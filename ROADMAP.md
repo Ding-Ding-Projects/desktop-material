@@ -13,6 +13,20 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
 
+## July 28 Cheap LFS Pages product guide — **Locally accepted; publication queued**
+
+The stable `/cheap-lfs.html` route now carries a marketing-style but
+source-grounded 30-point comparison with five persisted filters, explicit
+“choose Git LFS when…” guidance, and a six-stage provider-first push handoff.
+The guide documents the create-only first-branch Release anchor separately
+from ordinary manual branch publication, inspects the committed pointer with
+`git show`, and proves the pushed branch through matching local/upstream SHAs.
+The Pages-only Lowlevel MCP headless run passed **46/46** checks in eight
+phases at 1440×960 and 390×844 with both accepted captures retained. The full
+Electron production build was interrupted after an extended silent run so the
+user-requested site push could proceed; no app-build result is claimed by this
+documentation milestone.
+
 ## July 28 measured repository-view responsiveness — **Fix locally verified; exact post-fix release timing pending**
 
 Lowlevel MCP exercised the exact current Windows release on an off-screen

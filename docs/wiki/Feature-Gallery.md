@@ -54,6 +54,21 @@ contract rejects missing, duplicate, or unassigned assets.
 > publication and packaged Windows E2E are verified. Only the Linux TUI
 > compatibility correction rerun and installer/Release receipts remain pending.
 
+## Cheap LFS Pages acceptance
+
+These are Pages-guide captures, not additional Desktop Material app-gallery
+scenes, so they do not change the 89-function catalog count below. The first
+shows the sourced bilingual comparison and category controls at 1440×960. The
+second shows the safe branch-proof commands and first-branch distinction in a
+390×844 dark layout. Both came from the locally assembled real site in
+installed headless Chrome through Lowlevel MCP; the
+[dated receipt](../verification/cheap-lfs-pages-revamp-2026-07-28/README.md)
+records the exact checks and hashes.
+
+![Bilingual Cheap LFS versus Git LFS comparison with category filters and four-column decision table](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/verification/cheap-lfs-pages-revamp-2026-07-28/cheap-lfs-comparison-wide.png)
+
+![Narrow dark Cheap LFS git push guide with committed-pointer and upstream SHA proof commands](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/verification/cheap-lfs-pages-revamp-2026-07-28/cheap-lfs-push-narrow.png)
+
 The July 18–19 temporary-submodule and refreshed six-image set passed its local
 ten-pass off-screen inspection. A final 1440×960 post-build regression reopened
 the child, verified its read-only boundary, and returned to the root; a later

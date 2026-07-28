@@ -107,6 +107,56 @@
     localStorage.setItem('desktop-material-theme', next)
   })
 
+  const comparisonFilters = [
+    ...document.querySelectorAll('[data-comparison-filter]'),
+  ]
+  const comparisonGroups = [
+    ...document.querySelectorAll('[data-comparison-group]'),
+  ]
+  const comparisonCount = document.querySelector('[data-comparison-count]')
+  const comparisonNames = new Set([
+    'all',
+    ...comparisonGroups.map(group => group.dataset.comparisonGroup),
+  ])
+
+  const applyComparisonFilter = filter => {
+    const safeFilter = comparisonNames.has(filter) ? filter : 'all'
+    let visibleRows = 0
+
+    for (const group of comparisonGroups) {
+      const visible =
+        safeFilter === 'all' || group.dataset.comparisonGroup === safeFilter
+      group.hidden = !visible
+      if (visible) {
+        visibleRows += group.querySelectorAll('.comparison-row').length
+      }
+    }
+
+    for (const button of comparisonFilters) {
+      button.setAttribute(
+        'aria-pressed',
+        String(button.dataset.comparisonFilter === safeFilter)
+      )
+    }
+
+    if (comparisonCount) comparisonCount.textContent = String(visibleRows)
+    localStorage.setItem(
+      'desktop-material-cheap-lfs-comparison-filter',
+      safeFilter
+    )
+  }
+
+  for (const button of comparisonFilters) {
+    button.addEventListener('click', () =>
+      applyComparisonFilter(button.dataset.comparisonFilter)
+    )
+  }
+
+  applyComparisonFilter(
+    localStorage.getItem('desktop-material-cheap-lfs-comparison-filter') ||
+      'all'
+  )
+
   const menuButton = document.querySelector('.guide-menu-button')
   const nav = document.querySelector('.guide-nav')
   menuButton?.addEventListener('click', () => {

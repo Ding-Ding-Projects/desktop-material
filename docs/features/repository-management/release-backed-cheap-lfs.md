@@ -85,6 +85,32 @@ Release storage; see the
 [Cheap LFS OCI registry backend](cheap-lfs-oci-registry-backend.md) for image
 snapshots, add/remove behavior, timeout splitting, and private encryption.
 
+### Provider-first push boundary and comparison guide
+
+On an already-published branch whose remote tip still matches the reviewed
+parent, Cheap LFS completes the provider upload checks and source revalidation
+**before** it creates the pointer commit. The following ordinary `git push`
+therefore publishes that pointer commit; it is not a Git LFS-style pre-push
+upload, and running `git push` alone does not pin an unprepared working-tree
+file.
+
+Release-backed storage has one first-branch exception because a Release needs a
+commit already published on GitHub. For an unpublished branch, Desktop Material
+first publishes and re-reads the exact existing tip—or creates one empty
+bootstrap commit for an unborn repository—then reviews the now-visible Release
+inventory and starts the provider upload. That create-only anchor is a separate
+publication step, not proof that the later pointer commit reached the remote.
+
+The bilingual [Cheap LFS Pages product
+guide](https://ding-ding-projects.github.io/desktop-material/cheap-lfs.html)
+includes the complete provider-first [push
+walkthrough](https://ding-ding-projects.github.io/desktop-material/cheap-lfs.html#push)
+and a cross-checked [30-criterion Cheap LFS versus Git LFS
+comparison](https://ding-ding-projects.github.io/desktop-material/cheap-lfs.html#compare).
+It distinguishes Desktop Material behavior from the standard Git LFS client and
+links the current Git LFS, GitHub billing, collaboration, and Release-limit
+sources behind the comparison.
+
 A manual pin reviews the source file, repository-relative pointer path,
 release tag, optional release name, and byte size. The default tag is `assets`;
 if it has no release, the app creates a published prerelease so collaborators

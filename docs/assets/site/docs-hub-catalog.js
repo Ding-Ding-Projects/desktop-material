@@ -1351,6 +1351,27 @@
       d: 'Mode: publish',
     },
     {
+      t: 'Cheap LFS Pages revamp headless cleanup ledger',
+      h: 'verification/cheap-lfs-pages-revamp-2026-07-28/cleanup-ledger.html',
+      s: 'verification/cheap-lfs-pages-revamp-2026-07-28/cleanup-ledger.md',
+      c: 'verification',
+      d: 'Run ID: cheap-lfs-pages-revamp-2026-07-28',
+    },
+    {
+      t: 'Cheap LFS Pages comparison and push-guide verification',
+      h: 'verification/cheap-lfs-pages-revamp-2026-07-28/',
+      s: 'verification/cheap-lfs-pages-revamp-2026-07-28/README.md',
+      c: 'verification',
+      d: 'Date: 2026-07-28',
+    },
+    {
+      t: 'Cheap LFS GitHub Pages product-guide revamp — run manifest',
+      h: 'verification/cheap-lfs-pages-revamp-2026-07-28/run-manifest.html',
+      s: 'verification/cheap-lfs-pages-revamp-2026-07-28/run-manifest.md',
+      c: 'verification',
+      d: 'Mode: publish',
+    },
+    {
       t: 'Cheap LFS payload encryption — built-app capture, 2026-07-28',
       h: 'verification/cheap-lfs-payload-encryption-2026-07-28/',
       s: 'verification/cheap-lfs-payload-encryption-2026-07-28/README.md',

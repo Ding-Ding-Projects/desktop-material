@@ -21,6 +21,16 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 
 ![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci.yml/badge.svg?branch=main)
 
+> **Cheap LFS Pages guide — July 28, 2026:** the
+> [product guide](https://ding-ding-projects.github.io/desktop-material/cheap-lfs.html)
+> now pairs a provider-first `git push` walkthrough with a sourced, filterable
+> 30-point Cheap LFS versus Git LFS comparison. It calls out the first-branch
+> Release-anchor exception, distinguishes provider proof from remote branch
+> proof, and gives Git LFS the win where its open ecosystem is the better fit.
+> The Pages-only headless gate passed **46/46** across desktop and 390 px
+> layouts; see the
+> [verification receipt](docs/verification/cheap-lfs-pages-revamp-2026-07-28/README.md).
+
 > **Measured responsiveness checkpoint — July 28, 2026:** the exact released
 > Windows build held every sampled idle frame below 17 ms, but twelve warmed
 > Changes/History switches still took 56–104 ms and produced six long tasks.

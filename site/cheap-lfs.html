@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="A bilingual, visual guide to Cheap LFS in Desktop Material: what it is, how to configure it, track large files, commit pointers, restore verified bytes, and troubleshoot safely."
+      content="Cheap LFS in Desktop Material: the complete bilingual visual guide, exact git push workflow, 30-point Git LFS comparison, providers, verification, restore, privacy, and troubleshooting."
     />
     <meta name="theme-color" content="#f8f9ff" />
-    <title>Cheap LFS visual guide · Desktop Material</title>
+    <title>Cheap LFS vs Git LFS · Push, compare, and restore</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="style.css" />
     <link rel="stylesheet" href="cheap-lfs.css" />
@@ -47,20 +47,20 @@
         </button>
         <nav id="guide-nav" class="guide-nav" aria-label="Cheap LFS guide">
           <a href="#how-it-works">
-            <span class="copy en">How it works</span>
-            <span class="copy yue" lang="zh-HK">原理</span>
+            <span class="copy en">Overview</span>
+            <span class="copy yue" lang="zh-HK">總覽</span>
+          </a>
+          <a href="#push">
+            <span class="copy en">Git push</span>
+            <span class="copy yue" lang="zh-HK">Git push</span>
+          </a>
+          <a href="#compare">
+            <span class="copy en">Compare</span>
+            <span class="copy yue" lang="zh-HK">大比拼</span>
           </a>
           <a href="#ui-guide">
-            <span class="copy en">UI guide</span>
-            <span class="copy yue" lang="zh-HK">介面教學</span>
-          </a>
-          <a href="#providers">
-            <span class="copy en">Providers</span>
-            <span class="copy yue" lang="zh-HK">儲存方式</span>
-          </a>
-          <a href="#troubleshooting">
-            <span class="copy en">Troubleshooting</span>
-            <span class="copy yue" lang="zh-HK">故障排解</span>
+            <span class="copy en">Real UI</span>
+            <span class="copy yue" lang="zh-HK">真介面</span>
           </a>
           <a
             href="docs/features/repository-management/release-backed-cheap-lfs.html"
@@ -196,20 +196,20 @@
               </span>
             </p>
             <div class="cheap-hero-actions">
-              <a class="btn btn-filled" href="#ui-guide">
-                <span class="copy en">Start with the real UI</span>
-                <span class="copy yue" lang="zh-HK">跟真介面開始</span>
+              <a class="btn btn-filled" href="#compare">
+                <span class="copy en">Compare with Git LFS</span>
+                <span class="copy yue" lang="zh-HK">同 Git LFS 大比拼</span>
               </a>
-              <a class="btn btn-tonal" href="#quick-start">
-                <span class="copy en">Seven-step quick start</span>
-                <span class="copy yue" lang="zh-HK">七步極速開波</span>
+              <a class="btn btn-tonal" href="#push">
+                <span class="copy en">See the git push handoff</span>
+                <span class="copy yue" lang="zh-HK">睇 git push 點交棒</span>
               </a>
             </div>
             <ul class="hero-facts" aria-label="Guide facts">
               <li>
-                <strong>17</strong>
-                <span class="copy en">visuals</span>
-                <span class="copy yue" lang="zh-HK">張圖</span>
+                <strong>30</strong>
+                <span class="copy en">decision checks</span>
+                <span class="copy yue" lang="zh-HK">項揀選比較</span>
               </li>
               <li>
                 <strong>5</strong>
@@ -220,6 +220,11 @@
                 <strong>3</strong>
                 <span class="copy en">storage routes</span>
                 <span class="copy yue" lang="zh-HK">種儲存路線</span>
+              </li>
+              <li>
+                <strong>git</strong>
+                <span class="copy en">ordinary pointer push</span>
+                <span class="copy yue" lang="zh-HK">普通 pointer push</span>
               </li>
             </ul>
           </div>
@@ -370,6 +375,1473 @@
                 </p>
               </article>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="guide-section comparison-section tonal-section"
+        id="compare"
+        aria-labelledby="compare-title"
+      >
+        <div class="wrap">
+          <div class="comparison-heading">
+            <div class="section-heading copy-stack">
+              <span class="guide-kicker">
+                <span class="copy en">The gloriously oversized comparison</span>
+                <span class="copy yue" lang="zh-HK"
+                  >認真到有少少誇張嘅大比拼</span
+                >
+              </span>
+              <h2 id="compare-title">
+                <span class="copy en"
+                  >Cheap LFS vs Git LFS: 30 decisions, zero mystery meat.</span
+                >
+                <span class="copy yue" lang="zh-HK"
+                  >Cheap LFS 對 Git LFS：30 項逐樣比，唔賣神秘肉。</span
+                >
+              </h2>
+              <p>
+                <span class="copy en">
+                  Both keep heavy bytes out of ordinary Git objects. The split
+                  is everything around that pointer: client, provider, push
+                  timing, restore path, portability, billing, and operations.
+                  This is a fit guide, not a rigged victory lap.
+                </span>
+                <span class="copy yue" lang="zh-HK">
+                  兩邊都會將大舊 bytes 搬出普通 Git
+                  object。真正分野係指標周邊成套 做法：client、provider、push
+                  時機、還原、跨平台、計費同營運。
+                  呢度係揀工具指南，唔係預先寫好賽果嘅巡遊。
+                </span>
+              </p>
+            </div>
+            <aside class="comparison-truth copy-stack">
+              <strong>
+                <span class="copy en">The honest one-line verdict</span>
+                <span class="copy yue" lang="zh-HK">老實到肉嘅一句</span>
+              </strong>
+              <p>
+                <span class="copy en">
+                  Pick <b>Cheap LFS</b> for a guided Desktop Material workflow
+                  with Release/OCI storage and explicit verification. Pick
+                  <b>Git LFS</b> for its standard, cross-platform ecosystem and
+                  broad tool support.
+                </span>
+                <span class="copy yue" lang="zh-HK">
+                  想要 Desktop Material 帶住行、Release／OCI
+                  儲存同明確驗證，就揀
+                  <b>Cheap LFS</b>；要標準化、跨平台同工具生態夠闊，就揀
+                  <b>Git LFS</b>。
+                </span>
+              </p>
+            </aside>
+          </div>
+
+          <div class="product-showdown">
+            <article class="product-card product-card-cheap">
+              <span class="product-mark" aria-hidden="true">CL</span>
+              <div class="copy-stack">
+                <span class="product-eyebrow">
+                  <span class="copy en">Desktop Material native</span>
+                  <span class="copy yue" lang="zh-HK"
+                    >Desktop Material 原生</span
+                  >
+                </span>
+                <h3>Cheap LFS</h3>
+                <p>
+                  <span class="copy en"
+                    >Best for Windows teams that want a visual, guarded path
+                    from a working file strictly over 100 MiB to a verified
+                    pointer backed by GitHub Releases or OCI storage.</span
+                  >
+                  <span class="copy yue" lang="zh-HK"
+                    >最啱想用 Windows 圖像介面、由嚴格超過 100 MiB
+                    工作檔一路有護欄搬到 GitHub Releases／OCI，再落實驗證指標嘅
+                    team。</span
+                  >
+                </p>
+                <ul class="product-points">
+                  <li>
+                    <span class="copy en">Guided review and restore UI</span>
+                    <span class="copy yue" lang="zh-HK"
+                      >有審閱、有還原介面</span
+                    >
+                  </li>
+                  <li>
+                    <span class="copy en"
+                      >Provider choice and multipart files</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >可揀 provider，支援分件</span
+                    >
+                  </li>
+                  <li>
+                    <span class="copy en"
+                      >Optional Release payload encryption</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >Release payload 可選擇加密</span
+                    >
+                  </li>
+                </ul>
+              </div>
+            </article>
+
+            <div class="versus-orb" aria-hidden="true">VS</div>
+
+            <article class="product-card product-card-git-lfs">
+              <span class="product-mark" aria-hidden="true">LFS</span>
+              <div class="copy-stack">
+                <span class="product-eyebrow">
+                  <span class="copy en">Open, established extension</span>
+                  <span class="copy yue" lang="zh-HK"
+                    >成熟開放式 extension</span
+                  >
+                </span>
+                <h3>Git LFS</h3>
+                <p>
+                  <span class="copy en"
+                    >Best for teams that need an established pointer spec,
+                    cross-platform clients, hosting-provider integration, file
+                    locking, and familiar command-line automation.</span
+                  >
+                  <span class="copy yue" lang="zh-HK"
+                    >最啱需要成熟指標規格、跨平台 client、hosting provider
+                    整合、file locking 同熟悉 CLI 自動化嘅 team。</span
+                  >
+                </p>
+                <ul class="product-points">
+                  <li>
+                    <span class="copy en">Broad client and host support</span>
+                    <span class="copy yue" lang="zh-HK"
+                      >client 同 host 生態夠闊</span
+                    >
+                  </li>
+                  <li>
+                    <span class="copy en">Normal Git filter workflow</span>
+                    <span class="copy yue" lang="zh-HK"
+                      >標準 Git filter 流程</span
+                    >
+                  </li>
+                  <li>
+                    <span class="copy en"
+                      >Migrate, fetch, prune, and lock tools</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >有 migrate、fetch、prune、lock 工具</span
+                    >
+                  </li>
+                </ul>
+              </div>
+            </article>
+          </div>
+
+          <div class="comparison-controls">
+            <p id="comparison-filter-label" class="visually-hidden">
+              <span class="copy en">Filter comparison categories</span>
+              <span class="copy yue" lang="zh-HK">篩選比較分類</span>
+            </p>
+            <div
+              class="comparison-filters"
+              role="group"
+              aria-labelledby="comparison-filter-label"
+            >
+              <button
+                type="button"
+                data-comparison-filter="all"
+                aria-pressed="true"
+              >
+                <span class="copy en">All 30</span>
+                <span class="copy yue" lang="zh-HK">全部 30 項</span>
+              </button>
+              <button
+                type="button"
+                data-comparison-filter="workflow"
+                aria-pressed="false"
+              >
+                <span class="copy en">Workflow</span>
+                <span class="copy yue" lang="zh-HK">流程</span>
+              </button>
+              <button
+                type="button"
+                data-comparison-filter="storage"
+                aria-pressed="false"
+              >
+                <span class="copy en">Storage & cost</span>
+                <span class="copy yue" lang="zh-HK">儲存同成本</span>
+              </button>
+              <button
+                type="button"
+                data-comparison-filter="restore"
+                aria-pressed="false"
+              >
+                <span class="copy en">Restore & integrity</span>
+                <span class="copy yue" lang="zh-HK">還原同完整性</span>
+              </button>
+              <button
+                type="button"
+                data-comparison-filter="collaboration"
+                aria-pressed="false"
+              >
+                <span class="copy en">Collaboration</span>
+                <span class="copy yue" lang="zh-HK">協作</span>
+              </button>
+              <button
+                type="button"
+                data-comparison-filter="operations"
+                aria-pressed="false"
+              >
+                <span class="copy en">Operations</span>
+                <span class="copy yue" lang="zh-HK">營運</span>
+              </button>
+            </div>
+            <p class="comparison-count" aria-live="polite" aria-atomic="true">
+              <strong data-comparison-count>30</strong>
+              <span class="copy en">decision checks shown</span>
+              <span class="copy yue" lang="zh-HK">項比較顯示緊</span>
+            </p>
+          </div>
+
+          <p class="comparison-scroll-hint">
+            <span aria-hidden="true">↔</span>
+            <span class="copy en"
+              >On a narrow screen, scroll the comparison sideways.</span
+            >
+            <span class="copy yue" lang="zh-HK"
+              >窄畫面可以左右捲動比較表。</span
+            >
+          </p>
+          <div
+            class="comparison-table-shell"
+            role="region"
+            aria-labelledby="comparison-table-caption"
+            tabindex="0"
+          >
+            <table class="comparison-table">
+              <caption
+                id="comparison-table-caption"
+                class="visually-hidden copy-stack"
+              >
+                <span class="copy en"
+                  >Cheap LFS and Git LFS comparison across 30 decision
+                  criteria</span
+                >
+                <span class="copy yue" lang="zh-HK"
+                  >Cheap LFS 同 Git LFS 三十項選擇比較</span
+                >
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">
+                    <span class="copy en">Decision</span>
+                    <span class="copy yue" lang="zh-HK">考慮項目</span>
+                  </th>
+                  <th scope="col">Cheap LFS</th>
+                  <th scope="col">Git LFS</th>
+                  <th scope="col">
+                    <span class="copy en">Fit signal</span>
+                    <span class="copy yue" lang="zh-HK">邊種需要較啱</span>
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody data-comparison-group="workflow">
+                <tr class="comparison-group-row">
+                  <th colspan="4" scope="rowgroup">
+                    <span class="copy en">Workflow and setup</span>
+                    <span class="copy yue" lang="zh-HK">流程同設定</span>
+                  </th>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Primary client</span>
+                    <span class="copy yue" lang="zh-HK">主要 client</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Built into the Windows-only Desktop Material app.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >內置喺 Windows 專用 Desktop Material。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >A separate open-source Git extension with cross-platform
+                      clients.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >獨立開源 Git extension，有跨平台 client。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-split">
+                      <span class="copy en">Different strengths</span>
+                      <span class="copy yue" lang="zh-HK">各有所長</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">First-time setup</span>
+                    <span class="copy yue" lang="zh-HK">首次設定</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Choose a provider in Repository settings; the app owns
+                      the guided setup.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >喺 Repository settings 揀 provider，由 app
+                      帶住設定。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Install Git LFS, run <code>git lfs install</code>, then
+                      commit tracking rules.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >安裝 Git LFS、行 <code>git lfs install</code>，再 commit
+                      tracking rules。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-cheap">
+                      <span class="copy en">Guided UI</span>
+                      <span class="copy yue" lang="zh-HK">介面帶路</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">How files are selected</span>
+                    <span class="copy yue" lang="zh-HK">點揀檔案</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Review individual large files from Changes or the Large
+                      files manager; the default threshold is over 100
+                      MiB.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >喺 Changes 或 Large files manager 逐份審閱；預設係超過
+                      100 MiB。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Track path patterns in <code>.gitattributes</code>; size
+                      alone is not a persistent tracking rule.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >用 <code>.gitattributes</code> 路徑
+                      pattern；單靠檔案大小唔係 持久 tracking rule。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-split">
+                      <span class="copy en">Intent model</span>
+                      <span class="copy yue" lang="zh-HK">揀法唔同</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en"
+                      >What <code>git push</code> sends</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      ><code>git push</code> 傳啲乜</span
+                    >
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >The verified provider upload happens first; the later Git
+                      push sends the compact pointer commit.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >provider 上傳同驗證先完成；之後 Git push 送精簡指標
+                      commit。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >The pre-push hook uploads missing LFS objects as part of
+                      the normal push path.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >pre-push hook 會喺普通 push 流程上傳欠缺嘅 LFS
+                      objects。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-split">
+                      <span class="copy en">Timing choice</span>
+                      <span class="copy yue" lang="zh-HK">時機選擇</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Unpublished first branch</span>
+                    <span class="copy yue" lang="zh-HK">首次未發佈 branch</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Publishes and proves an exact branch-tip anchor before a
+                      Release upload; an empty repository gets one empty
+                      bootstrap commit.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >Release 上傳前先發佈兼證明精確 branch tip；全空 repo
+                      只建一個空白 bootstrap commit。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Does not need a Release anchor; the LFS transfer follows
+                      the host’s normal push negotiation.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >唔需要 Release anchor；LFS transfer 跟 host 嘅普通 push
+                      negotiation。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-split">
+                      <span class="copy en">Backend-driven</span>
+                      <span class="copy yue" lang="zh-HK">backend 決定</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Missing-object safety</span>
+                    <span class="copy yue" lang="zh-HK">欠 object 保護</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >A failed upload keeps the raw file selected and refuses
+                      to write a dangling pointer.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >上傳失敗會保留原檔選取，拒絕寫低斷線指標。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Incomplete pushes are blocked by default when required
+                      LFS objects are absent from the local cache.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >本機 cache 欠必要 LFS object 時，預設會擋住 incomplete
+                      push。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-tie">
+                      <span class="copy en">Strong on both</span>
+                      <span class="copy yue" lang="zh-HK">兩邊都穩</span>
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+
+              <tbody data-comparison-group="storage">
+                <tr class="comparison-group-row">
+                  <th colspan="4" scope="rowgroup">
+                    <span class="copy en">Storage, limits, and cost model</span>
+                    <span class="copy yue" lang="zh-HK"
+                      >儲存、限制同成本模式</span
+                    >
+                  </th>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Storage backends</span>
+                    <span class="copy yue" lang="zh-HK">儲存 backend</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >GitHub Release assets, GHCR/Docker Hub OCI objects, or a
+                      reviewed manual Release handoff.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >GitHub Release assets、GHCR／Docker Hub OCI objects，或者
+                      審閱後手動 Release 交接。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >A Git LFS server selected by the Git host or
+                      <code>.lfsconfig</code>.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >由 Git host 或 <code>.lfsconfig</code> 指定嘅 Git LFS
+                      server。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-split">
+                      <span class="copy en">Provider choice</span>
+                      <span class="copy yue" lang="zh-HK">provider 選擇</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">GitHub billing shape</span>
+                    <span class="copy yue" lang="zh-HK">GitHub 計費方式</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >No Git LFS meter is used; Release or registry quotas,
+                      policies, retention, and terms still apply.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >唔會用 Git LFS meter；Release／registry 自己嘅
+                      quota、政策、 保留同條款照樣適用。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >GitHub counts LFS storage and download bandwidth against
+                      the plan quota; overages are billed or blocked according
+                      to payment and budget settings.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >GitHub 由一開始就將 LFS 儲存同下載 bandwidth 計入 plan
+                      quota；超額後按付款同 budget 設定收費或暫停。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-split">
+                      <span class="copy en">Check current usage</span>
+                      <span class="copy yue" lang="zh-HK">睇實現時用量</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Very large logical files</span>
+                    <span class="copy yue" lang="zh-HK">超大邏輯檔案</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >After bounded inventory and preflight succeed, new
+                      Release writes use 500 MiB parts. Provider limits still
+                      apply; 50+ GiB inventory hardening remains open in
+                      <a
+                        href="https://github.com/Ding-Ding-Projects/desktop-material/issues/96"
+                        >#96</a
+                      >.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >有界 inventory 同 preflight 成功後，新 Release 寫入用 500
+                      MiB 分件。provider 限制照計；50+ GiB inventory hardening
+                      仲喺
+                      <a
+                        href="https://github.com/Ding-Ding-Projects/desktop-material/issues/96"
+                        >#96</a
+                      >
+                      等最後驗證。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Uses one logical LFS object; GitHub’s current per-file
+                      maximum varies by plan from 2–5 GB.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >用一個邏輯 LFS object；GitHub 現時每檔上限按 plan 由 2–5
+                      GB。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-cheap">
+                      <span class="copy en">Multipart option</span>
+                      <span class="copy yue" lang="zh-HK">可以分件</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Cloud compression</span>
+                    <span class="copy yue" lang="zh-HK">雲端壓縮</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Can install a reviewed GitHub workflow that adopts
+                      verified raw-DEFLATE parts while retaining raw
+                      fallback.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >可安裝經審閱 GitHub workflow，用驗證過嘅 raw-DEFLATE
+                      parts，並保留 raw fallback。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Core Git LFS keeps the logical object model unchanged.
+                      Clients can request gzip/zstd HTTP download encoding and
+                      configure clean/smudge extensions; neither rewrites
+                      provider assets into Cheap LFS raw-DEFLATE parts.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >核心 Git LFS 保持邏輯 object model；client 可要求
+                      gzip／zstd HTTP download encoding，亦可設定 clean／smudge
+                      extensions，但兩樣都唔等於將 provider asset 改寫成 Cheap
+                      LFS raw-DEFLATE parts。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-cheap">
+                      <span class="copy en">Built-in option</span>
+                      <span class="copy yue" lang="zh-HK">內置選項</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Client-side payload encryption</span>
+                    <span class="copy yue" lang="zh-HK"
+                      >client-side payload 加密</span
+                    >
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Interactive Release pins can use AES-256-GCM with the
+                      password outside Git. An unattended pin without a usable
+                      saved password skips the large file, never uploads
+                      plaintext, and excludes it from that commit.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >互動 Release pin 可用 AES-256-GCM，密碼留喺 Git
+                      外面。無人值守 pin
+                      冇可用已儲存密碼，就會跳過大檔、絕不明文
+                      upload，亦唔會放入嗰次 commit。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Core Git LFS defines no payload-encryption layer. Host
+                      access control is not client-side encryption; a separately
+                      operated extension can transform content.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >核心 Git LFS 冇定義 payload encryption layer。host access
+                      control 唔係 client-side 加密；另行營運嘅 extension
+                      可以轉換內容。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-cheap">
+                      <span class="copy en">Native option</span>
+                      <span class="copy yue" lang="zh-HK">原生選項</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Where objects appear</span>
+                    <span class="copy yue" lang="zh-HK"
+                      >objects 喺邊度見到</span
+                    >
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Release buckets or registry packages are provider
+                      resources; Desktop Material hides owned storage Releases
+                      from its ordinary release list by default.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >Release bucket 或 registry package 都係 provider
+                      resource；Desktop Material 預設會喺普通 release list
+                      收起自己擁有嘅儲存 Releases。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >LFS objects live behind the host’s LFS service rather
+                      than as ordinary release assets.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >LFS objects 放喺 host 嘅 LFS service 後面，唔係普通
+                      release assets。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-split">
+                      <span class="copy en">Visibility choice</span>
+                      <span class="copy yue" lang="zh-HK">可見度取向</span>
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+
+              <tbody data-comparison-group="restore">
+                <tr class="comparison-group-row">
+                  <th colspan="4" scope="rowgroup">
+                    <span class="copy en"
+                      >Restore, integrity, and delivery</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >還原、完整性同交付</span
+                    >
+                  </th>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Pointer integrity</span>
+                    <span class="copy yue" lang="zh-HK">指標完整性</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Records whole-file size/SHA-256 plus provider and part
+                      metadata; restore verifies before atomic
+                      replacement.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >記錄全檔 size／SHA-256、provider 同分件
+                      metadata；驗證後先 atomic replace。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >The standard pointer records a SHA-256 object ID and
+                      size; the client verifies the downloaded object.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >標準 pointer 記錄 SHA-256 object ID 同 size；client
+                      驗證下載 object。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-tie">
+                      <span class="copy en">Strong on both</span>
+                      <span class="copy yue" lang="zh-HK">兩邊都穩</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Normal clone/checkout</span>
+                    <span class="copy yue" lang="zh-HK"
+                      >普通 clone／checkout</span
+                    >
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Git receives pointers first; Desktop Material can
+                      materialize eligible files on open/clone or on
+                      demand.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >Git 先收 pointers；Desktop Material 可喺開啟／clone
+                      時或按需要還原合資格檔案。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Clean/smudge or filter-process integration normally
+                      materializes tracked files during checkout.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >clean／smudge 或 filter-process 整合通常會喺 checkout
+                      還原追蹤檔案。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-lfs">
+                      <span class="copy en">Transparent checkout</span>
+                      <span class="copy yue" lang="zh-HK">透明 checkout</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Selective restore/fetch</span>
+                    <span class="copy yue" lang="zh-HK">選擇性還原／fetch</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Materialize one pointer or all known pointers from the
+                      Large files inventory.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >喺 Large files inventory 還原一張或全部已知
+                      pointers。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Supports fetch include/exclude rules, recent windows, and
+                      skip-smudge workflows.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >支援 fetch include／exclude、recent window 同 skip-smudge
+                      流程。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-lfs">
+                      <span class="copy en">Automation depth</span>
+                      <span class="copy yue" lang="zh-HK">自動化更深</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Local object cache</span>
+                    <span class="copy yue" lang="zh-HK">本機 object cache</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Uses bounded app scratch space and the materialized
+                      working file; there is no user-facing LFS cache-prune
+                      command.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >用有界 app scratch space 同已還原工作檔；冇對等嘅
+                      user-facing LFS cache-prune command。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Maintains a local LFS object cache with fetch and
+                      configurable prune commands.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >有本機 LFS object cache、fetch 同可設定 prune
+                      commands。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-lfs">
+                      <span class="copy en">Cache tooling</span>
+                      <span class="copy yue" lang="zh-HK">cache 工具</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Offline behavior</span>
+                    <span class="copy yue" lang="zh-HK">離線表現</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Already materialized files keep working; a pointer that
+                      still needs provider bytes cannot restore offline.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >已還原檔案照用；仲要向 provider 攞 bytes 嘅 pointer
+                      離線還原唔到。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Cached/materialized objects keep working; uncached
+                      objects need the LFS remote.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >cache／已還原 objects 照用；未 cache 嘅要連 LFS
+                      remote。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-tie">
+                      <span class="copy en">Plan ahead</span>
+                      <span class="copy yue" lang="zh-HK">預先準備</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Archives and GitHub Pages</span>
+                    <span class="copy yue" lang="zh-HK"
+                      >archives 同 GitHub Pages</span
+                    >
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >GitHub-generated source archives contain Cheap LFS
+                      pointers. A separate build may materialize bytes into its
+                      own artifact or Pages output; Pages itself does not
+                      dereference the pointer.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >GitHub 生成嘅 source archive 會有 Cheap LFS
+                      pointers。另一個 build 可先還原 bytes 落自己 artifact 或
+                      Pages output；Pages 本身唔會解 pointer。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >GitHub can optionally include LFS objects in archives,
+                      but explicitly does not support Git LFS for Pages
+                      sites.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >GitHub 可選擇將 LFS objects 放入 archive，但明確唔支援
+                      Git LFS 用於 Pages site。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-tie">
+                      <span class="copy en">Materialize first</span>
+                      <span class="copy yue" lang="zh-HK">先還原</span>
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+
+              <tbody data-comparison-group="collaboration">
+                <tr class="comparison-group-row">
+                  <th colspan="4" scope="rowgroup">
+                    <span class="copy en">Collaboration and portability</span>
+                    <span class="copy yue" lang="zh-HK">協作同可攜性</span>
+                  </th>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Operating systems</span>
+                    <span class="copy yue" lang="zh-HK">作業系統</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Desktop Material’s supported product path is
+                      Windows.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >Desktop Material 正式支援路線係 Windows。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Available across Windows, macOS, and Linux
+                      environments.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >可用於 Windows、macOS 同 Linux 環境。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-lfs">
+                      <span class="copy en">Cross-platform</span>
+                      <span class="copy yue" lang="zh-HK">跨平台</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Host ecosystem</span>
+                    <span class="copy yue" lang="zh-HK">host 生態</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Purpose-built around GitHub Releases and selected OCI
+                      registries.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >專為 GitHub Releases 同指定 OCI registries 而設。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >A documented protocol implemented by many Git hosting
+                      products and standalone servers.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >有公開協議，唔少 Git hosting 產品同獨立 server 都有
+                      implementation。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-lfs">
+                      <span class="copy en">Ecosystem breadth</span>
+                      <span class="copy yue" lang="zh-HK">生態更闊</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Collaborator without the client</span>
+                    <span class="copy yue" lang="zh-HK">協作者冇 client</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Sees readable Desktop Material pointer text, not original
+                      bytes.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >見到可讀 Desktop Material pointer text，唔係原本
+                      bytes。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Sees the Git LFS pointer and cannot access original bytes
+                      through checkout.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >見到 Git LFS pointer，checkout 攞唔到原本 bytes。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-tie">
+                      <span class="copy en">Client required</span>
+                      <span class="copy yue" lang="zh-HK">要有 client</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Fork behavior on GitHub</span>
+                    <span class="copy yue" lang="zh-HK">GitHub fork 表現</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Pointers keep their original provider coordinates; a fork
+                      does not receive an independent object copy
+                      automatically.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >pointer 保留原 provider coordinates；fork 唔會自動有獨立
+                      object copy。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >GitHub attributes fork LFS storage and bandwidth to the
+                      parent owner. Public-fork pushes work only when the
+                      network already has the object or the pusher can write to
+                      the root network.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >GitHub 將 fork LFS 儲存同 bandwidth 計落 parent
+                      owner。public fork push 要 network 已有個 object，或者
+                      pusher 有 root network write 權限先得。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-split">
+                      <span class="copy en">Read the boundary</span>
+                      <span class="copy yue" lang="zh-HK">睇清界線</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Binary file locking</span>
+                    <span class="copy yue" lang="zh-HK"
+                      >binary file locking</span
+                    >
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >No Cheap LFS lock protocol; coordinate exclusive binary
+                      edits another way.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >冇 Cheap LFS lock protocol；獨佔 binary edit
+                      要用其他方法協調。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Defines lock/list/unlock APIs and pre-push lock
+                      verification when the server supports them.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >有 lock／list／unlock API；server 支援時可喺 pre-push
+                      驗證 lock。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-lfs">
+                      <span class="copy en">Git LFS edge</span>
+                      <span class="copy yue" lang="zh-HK">Git LFS 佔優</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Pull request review</span>
+                    <span class="copy yue" lang="zh-HK">Pull request 審閱</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >The committed Git blob is the Cheap LFS pointer; GitHub
+                      rendering varies by file type. Review the pointer with Git
+                      and materialize locally to inspect the binary.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >commit 入 Git 嘅 blob 係 Cheap LFS pointer；GitHub render
+                      會按 file type 有分別。用 Git 審 pointer，再本機還原
+                      binary。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >GitHub may show only pointer text for LFS content;
+                      inspect non-rendered binary changes locally.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >GitHub 對 LFS content 可能只顯示 pointer text；未 render
+                      binary change 要本機審閱。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-tie">
+                      <span class="copy en">Pointer review</span>
+                      <span class="copy yue" lang="zh-HK">審 pointer</span>
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+
+              <tbody data-comparison-group="operations">
+                <tr class="comparison-group-row">
+                  <th colspan="4" scope="rowgroup">
+                    <span class="copy en">Operations and governance</span>
+                    <span class="copy yue" lang="zh-HK">營運同治理</span>
+                  </th>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Existing-history migration</span>
+                    <span class="copy yue" lang="zh-HK">現有歷史搬遷</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Tracks reviewed working-tree files going forward; it does
+                      not automatically rewrite old Git history.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >由已審閱 working-tree 檔案開始向前追蹤；唔會自動重寫舊
+                      Git 歷史。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      ><code>git lfs migrate</code> supports scoped
+                      import/export. Most modes rewrite history;
+                      <code>import --no-rewrite</code> instead creates a new
+                      commit.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      ><code>git lfs migrate</code> 支援有範圍
+                      import／export。多數模式重寫歷史；
+                      <code>import --no-rewrite</code> 就另建新 commit。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-lfs">
+                      <span class="copy en">Migration tooling</span>
+                      <span class="copy yue" lang="zh-HK">搬遷工具</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Retention responsibility</span>
+                    <span class="copy yue" lang="zh-HK">保留責任</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Keep every provider object needed by any commit you
+                      promise to restore; pointer reachability is not provider
+                      retention.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >承諾仲原到嘅 commit 所需 provider object
+                      全部要留；pointer reachable 唔等於 provider
+                      會幫你保留。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Retention and deletion are host policy; local
+                      <code>prune</code> removes only eligible cached
+                      objects.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >保留同刪除由 host policy 決定；本機
+                      <code>prune</code> 只清合資格 cached objects。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-split">
+                      <span class="copy en">Govern explicitly</span>
+                      <span class="copy yue" lang="zh-HK">要明確治理</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Remote deletion guardrails</span>
+                    <span class="copy yue" lang="zh-HK">remote 刪除護欄</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Recognizes app-owned Release buckets by sentinel and
+                      provenance, reviews identity, and refuses unrelated
+                      releases.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >用 sentinel 同 provenance 認出 app-owned Release
+                      bucket、審閱身份，無關 release 一律拒絕掂。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Server-side object lifecycle is host-managed; deleting a
+                      Git reference is not the same as deleting billed LFS
+                      storage.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >server object lifecycle 由 host 管；刪 Git reference
+                      唔等於即時刪除計費 LFS storage。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-cheap">
+                      <span class="copy en">Visible review</span>
+                      <span class="copy yue" lang="zh-HK">睇住先刪</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Transfer observability</span>
+                    <span class="copy yue" lang="zh-HK">transfer 可觀察性</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >The progress model reports queue, provider, reason,
+                      bytes, timing, ETA, retry, decrypting, and manual phases
+                      per file; final built capture of the distinct decrypting
+                      label remains open in
+                      <a
+                        href="https://github.com/Ding-Ding-Projects/desktop-material/issues/85"
+                        >#85</a
+                      >.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >progress model 逐檔報
+                      queue、provider、原因、bytes、時間、ETA、
+                      retry、decrypting 同手動階段；獨立 decrypting label 嘅最後
+                      built capture 仲喺
+                      <a
+                        href="https://github.com/Ding-Ding-Projects/desktop-material/issues/85"
+                        >#85</a
+                      >。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >CLI transfer progress and trace/config controls integrate
+                      naturally with scripts and terminal logs.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >CLI transfer progress、trace／config 控制自然融入 script
+                      同 terminal log。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-split">
+                      <span class="copy en">UI vs CLI</span>
+                      <span class="copy yue" lang="zh-HK">UI 對 CLI</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">Manual recovery path</span>
+                    <span class="copy yue" lang="zh-HK">手動救援路線</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Can prepare deterministic parts for browser upload, then
+                      verifies exact names, sizes, digests, and downloads before
+                      adopting them.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >可準備固定分件俾 browser
+                      上傳，之後核對精確名稱、大小、digest 同下載先收貨。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Uses the LFS batch/transfer protocol and CLI retry tools;
+                      there is no equivalent GitHub Release handoff.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >用 LFS batch／transfer protocol 同 CLI retry；冇對等
+                      GitHub Release 手動交接。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-cheap">
+                      <span class="copy en">Browser fallback</span>
+                      <span class="copy yue" lang="zh-HK">browser 後備</span>
+                    </span>
+                  </td>
+                </tr>
+                <tr class="comparison-row">
+                  <th scope="row">
+                    <span class="copy en">CI and automation</span>
+                    <span class="copy yue" lang="zh-HK">CI 同自動化</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >Desktop Material owns pointer creation; optional cloud
+                      compression uses a reviewed repository workflow. CI that
+                      needs bytes must materialize them deliberately.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >Desktop Material 負責 pointer；可選雲端壓縮用經審閱 repo
+                      workflow。CI 要真 bytes 就要刻意還原。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Git LFS exposes scriptable fetch and checkout commands;
+                      each CI environment must install or enable the client and
+                      configure checkout behavior.</span
+                    >
+                    <span class="copy yue" lang="zh-HK"
+                      >Git LFS 有可 script 嘅 fetch 同 checkout command；每個 CI
+                      環境都要安裝／啟用 client，再設定 checkout 行為。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="fit-badge fit-lfs">
+                      <span class="copy en">Automation breadth</span>
+                      <span class="copy yue" lang="zh-HK">自動化更闊</span>
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="comparison-citations copy-stack">
+            <strong>
+              <span class="copy en">Receipts, not vibes</span>
+              <span class="copy yue" lang="zh-HK">有單有據，唔靠感覺</span>
+            </strong>
+            <p>
+              <span class="copy en">
+                Cheap LFS behavior is documented in the
+                <a
+                  href="docs/features/repository-management/release-backed-cheap-lfs.html"
+                  >technical reference</a
+                >. Git LFS behavior is cross-checked against the
+                <a href="https://git-lfs.com/">official Git LFS guide</a>,
+                <a
+                  href="https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-git-large-file-storage"
+                  >GitHub’s LFS overview and limits</a
+                >,
+                <a
+                  href="https://docs.github.com/en/billing/concepts/product-billing/git-lfs"
+                  >current billing model</a
+                >, and
+                <a
+                  href="https://docs.github.com/en/repositories/working-with-files/managing-large-files/collaboration-with-git-large-file-storage"
+                  >collaboration guidance</a
+                >. GitHub.com limits and billing were checked on July 28, 2026;
+                provider plans and policies can change.
+              </span>
+              <span class="copy yue" lang="zh-HK">
+                Cheap LFS 行為見
+                <a
+                  href="docs/features/repository-management/release-backed-cheap-lfs.html"
+                  >技術文件</a
+                >；Git LFS 行為就對照
+                <a href="https://git-lfs.com/">官方 Git LFS 指南</a>、
+                <a
+                  href="https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-git-large-file-storage"
+                  >GitHub LFS 總覽同限制</a
+                >、
+                <a
+                  href="https://docs.github.com/en/billing/concepts/product-billing/git-lfs"
+                  >現行計費模式</a
+                >同
+                <a
+                  href="https://docs.github.com/en/repositories/working-with-files/managing-large-files/collaboration-with-git-large-file-storage"
+                  >協作指引</a
+                >。GitHub.com 限制同計費資料查核日期係 2026 年 7 月 28
+                日；provider plan 同政策可以改。
+              </span>
+            </p>
+            <ul class="comparison-source-links">
+              <li>
+                <a
+                  href="https://github.com/git-lfs/git-lfs/blob/main/docs/spec.md"
+                  ><span class="copy en">Git LFS pointer and push spec</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >Git LFS pointer 同 push 規格</span
+                  ></a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/git-lfs/git-lfs/blob/main/docs/man/git-lfs-track.adoc"
+                  ><span class="copy en">Git LFS tracking and attributes</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >Git LFS tracking 同 attributes</span
+                  ></a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/git-lfs/git-lfs/blob/main/docs/man/git-lfs-migrate.adoc"
+                  ><span class="copy en">Git LFS migration</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >Git LFS 歷史搬遷</span
+                  ></a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/git-lfs/git-lfs/blob/main/docs/man/git-lfs-config.adoc"
+                  ><span class="copy en">Git LFS fetch, prune, and hooks</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >Git LFS fetch、prune 同 hooks</span
+                  ></a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/git-lfs/git-lfs/blob/main/docs/api/locking.md"
+                  ><span class="copy en">Git LFS locking API</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >Git LFS locking API</span
+                  ></a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases"
+                  ><span class="copy en">GitHub Release limits</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >GitHub Release 限制</span
+                  ></a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github"
+                  ><span class="copy en">GitHub regular-Git file limits</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >GitHub 普通 Git 檔案限制</span
+                  ></a
+                >
+              </li>
+            </ul>
           </div>
         </div>
       </section>
@@ -543,6 +2015,398 @@
               </div>
             </li>
           </ol>
+        </div>
+      </section>
+
+      <section
+        class="guide-section push-section tonal-section"
+        id="push"
+        aria-labelledby="push-title"
+      >
+        <div class="wrap">
+          <div class="push-hero">
+            <div class="section-heading copy-stack">
+              <span class="guide-kicker">
+                <span class="copy en">The exact handoff</span>
+                <span class="copy yue" lang="zh-HK">精確交棒位</span>
+              </span>
+              <h2 id="push-title">
+                <span class="copy en"
+                  >On an established branch, the heavy bytes go first. Then an
+                  ordinary <code>git push</code> carries the pointer. A first
+                  Release publication may create and prove an anchor
+                  first.</span
+                >
+                <span class="copy yue" lang="zh-HK"
+                  >喺已有 branch，大舊 bytes 先行；之後普通
+                  <code>git push</code> 送指標。首次 Release
+                  發佈可能要先建立兼證明 anchor。</span
+                >
+              </h2>
+              <p>
+                <span class="copy en">
+                  Desktop Material consumes the exact reviewed upload stream,
+                  validates the returned provider state, and revalidates the
+                  source before it writes the pointer you commit. The later push
+                  does not need
+                  <code>git lfs push</code>, and a failed provider upload does
+                  not leave a newly committed pointer whose bytes exist nowhere.
+                </span>
+                <span class="copy yue" lang="zh-HK">
+                  Desktop Material 會食晒精確審閱 upload stream、核對 provider
+                  回傳狀態，再驗多次 source，先寫低俾你 commit 嘅 pointer。之後
+                  push 唔需要
+                  <code>git lfs push</code>；provider 上傳失敗亦唔會新 commit
+                  一張冇 bytes 撐腰嘅指標。
+                </span>
+              </p>
+            </div>
+            <div class="push-badge copy-stack">
+              <span aria-hidden="true">✓</span>
+              <strong>
+                <span class="copy en">Provider first</span>
+                <span class="copy yue" lang="zh-HK">provider 先行</span>
+              </strong>
+              <small>
+                <span class="copy en">Pointer commit second</span>
+                <span class="copy yue" lang="zh-HK">pointer commit 跟住</span>
+              </small>
+            </div>
+          </div>
+
+          <div class="push-warning copy-stack">
+            <strong>
+              <span class="copy en"
+                >Important: <code>git push</code> is not a pin button.</span
+              >
+              <span class="copy yue" lang="zh-HK"
+                >重要：<code>git push</code> 唔係 pin 掣。</span
+              >
+            </strong>
+            <p>
+              <span class="copy en">
+                Prepare the raw file through Desktop Material first. Running
+                plain Git commands on an unprepared binary does not create a
+                Cheap LFS pointer or provider object; GitHub rejects ordinary
+                Git blobs over 100 MiB.
+              </span>
+              <span class="copy yue" lang="zh-HK">
+                原檔要先經 Desktop Material 準備。對未準備 binary 淨係行普通 Git
+                command，唔會變出 Cheap LFS pointer 或 provider object；普通 Git
+                blob 超過 100 MiB 會被 GitHub 拒絕。
+              </span>
+            </p>
+          </div>
+
+          <ol class="push-flow">
+            <li>
+              <span class="push-flow-number">01</span>
+              <div class="copy-stack">
+                <h3>
+                  <span class="copy en">Preflight the real push remote</span>
+                  <span class="copy yue" lang="zh-HK"
+                    >先檢查真正 push remote</span
+                  >
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >For Release storage, the app resolves the canonical GitHub
+                    repository, account, branch, and expected remote state
+                    before any provider upload or Git remote mutation. OCI uses
+                    registry-specific digest and manifest checks instead.</span
+                  >
+                  <span class="copy yue" lang="zh-HK"
+                    >Release 儲存會喺 provider upload 或 Git remote mutation
+                    前，解清 canonical GitHub repository、account、branch 同預期
+                    remote 狀態；OCI 就用 registry 專用 digest 同 manifest
+                    檢查。</span
+                  >
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="push-flow-number">02</span>
+              <div class="copy-stack">
+                <h3>
+                  <span class="copy en"
+                    >Anchor a brand-new branch if needed</span
+                  >
+                  <span class="copy yue" lang="zh-HK"
+                    >新 branch 有需要先落 anchor</span
+                  >
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >A Release needs a commit GitHub already knows. Cheap LFS
+                    publishes the exact local tip with create-only semantics and
+                    re-reads the remote ref to prove it. A completely empty
+                    repository receives one empty bilingual bootstrap
+                    commit.</span
+                  >
+                  <span class="copy yue" lang="zh-HK"
+                    >Release 要 GitHub 已知嘅 commit。Cheap LFS 用 create-only
+                    語意發佈精確本機 tip，再讀 remote ref 證明。全空 repository
+                    只會收到一個雙語空白 bootstrap commit。</span
+                  >
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="push-flow-number">03</span>
+              <div class="copy-stack">
+                <h3>
+                  <span class="copy en"
+                    >Upload, re-read, and verify the bytes</span
+                  >
+                  <span class="copy yue" lang="zh-HK"
+                    >上傳、讀返、驗清 bytes</span
+                  >
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >Each new Release part is at most 500 MiB. The upload stream
+                    must consume exactly the reviewed bytes; returned asset
+                    state, identity, and size are checked, any provider digest
+                    is checked when present, and the source is revalidated
+                    before pointer replacement.</span
+                  >
+                  <span class="copy yue" lang="zh-HK"
+                    >每件新 Release part 最多 500 MiB。upload stream
+                    必須精確食晒審閱 bytes；回傳 asset
+                    狀態、身份同大小會核對，provider 有 digest 就一併驗，再驗
+                    source 先換 pointer。</span
+                  >
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="push-flow-number">04</span>
+              <div class="copy-stack">
+                <h3>
+                  <span class="copy en">Review and commit the pointer</span>
+                  <span class="copy yue" lang="zh-HK"
+                    >審閱再 commit pointer</span
+                  >
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >Changes shows readable pointer text. Confirm the tracked
+                    path, whole-file SHA-256, size, provider, and parts before
+                    committing.</span
+                  >
+                  <span class="copy yue" lang="zh-HK"
+                    >Changes 顯示可讀 pointer text。Commit 前核對路徑、全檔
+                    SHA-256、size、provider 同 parts。</span
+                  >
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="push-flow-number">05</span>
+              <div class="copy-stack">
+                <h3>
+                  <span class="copy en">Push the ordinary Git commit</span>
+                  <span class="copy yue" lang="zh-HK"
+                    >Push 普通 Git commit</span
+                  >
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >Use <strong>Push origin</strong> in Desktop Material or the
+                    standard command below. The established-branch path has no
+                    second Cheap LFS payload upload hidden inside this
+                    push.</span
+                  >
+                  <span class="copy yue" lang="zh-HK"
+                    >用 Desktop Material 嘅
+                    <strong>Push origin</strong> 或下面標準 command。已有 branch
+                    呢條路線入面，今次 push 冇暗藏第二輪 Cheap LFS payload
+                    upload。</span
+                  >
+                </p>
+              </div>
+            </li>
+            <li>
+              <span class="push-flow-number">06</span>
+              <div class="copy-stack">
+                <h3>
+                  <span class="copy en"
+                    >Prove the remote tip, then test restore</span
+                  >
+                  <span class="copy yue" lang="zh-HK"
+                    >證明 remote tip，再試還原</span
+                  >
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >A successful process ends with the intended commit on the
+                    remote and a fresh clone that materializes the exact
+                    SHA-256—not with a hopeful green toast.</span
+                  >
+                  <span class="copy yue" lang="zh-HK"
+                    >真正成功係 remote 有目標 commit，fresh clone 還原到精確
+                    SHA-256；唔係見到綠色 toast 就當贏。</span
+                  >
+                </p>
+              </div>
+            </li>
+          </ol>
+
+          <div class="push-command-grid">
+            <article class="terminal-card">
+              <div class="terminal-bar">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <strong id="existing-upstream-title">
+                  <span class="copy en">Existing upstream</span>
+                  <span class="copy yue" lang="zh-HK">已有 upstream</span>
+                </strong>
+              </div>
+              <pre
+                tabindex="0"
+                aria-labelledby="existing-upstream-title"
+              ><code>git remote get-url --push origin
+git show HEAD:path/to/large-file.bin
+git push
+git fetch origin
+git rev-parse HEAD
+git rev-parse '@{upstream}'</code></pre>
+              <p>
+                <span class="copy en"
+                  >Review the committed pointer with <code>git show</code>. The
+                  app may intentionally materialize raw bytes over that path, so
+                  <code>git status</code> can show it as modified:
+                  <strong>do not <code>git add</code> the raw file</strong>. The
+                  final two SHAs must match.</span
+                >
+                <span class="copy yue" lang="zh-HK"
+                  >用 <code>git show</code> 審 committed pointer。app 可能刻意將
+                  raw bytes materialize 返個路徑，所以
+                  <code>git status</code> 可以顯示 modified：
+                  <strong>唔好 <code>git add</code> 原檔</strong>。最後兩個 SHA
+                  必須一樣。</span
+                >
+              </p>
+            </article>
+
+            <article class="terminal-card">
+              <div class="terminal-bar">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <strong id="manual-publish-title">
+                  <span class="copy en"
+                    >Ordinary manual branch publication</span
+                  >
+                  <span class="copy yue" lang="zh-HK"
+                    >普通手動 branch 發佈</span
+                  >
+                </strong>
+              </div>
+              <pre
+                tabindex="0"
+                aria-labelledby="manual-publish-title"
+              ><code>git remote get-url --push origin
+git push --set-upstream origin HEAD
+git fetch origin
+git rev-parse HEAD
+git rev-parse '@{upstream}'</code></pre>
+              <p>
+                <span class="copy en"
+                  >Normally Desktop Material’s anchor step handles a branch that
+                  Release storage needs first. Use this when you deliberately
+                  publish the branch yourself. This ordinary push can update a
+                  valid existing branch and runs hooks; it is
+                  <strong>not</strong> equivalent to the app’s create-only,
+                  hook-skipping anchor.</span
+                >
+                <span class="copy yue" lang="zh-HK"
+                  >正常情況由 Desktop Material anchor 處理 Release 儲存需要嘅新
+                  branch；你刻意自己發佈先用呢組。普通 push 可以更新合法既有
+                  branch，亦會行 hooks；佢<strong>唔係</strong> app 嘅
+                  create-only、skip-hook anchor 等價物。</span
+                >
+              </p>
+            </article>
+          </div>
+
+          <div class="push-failure-grid">
+            <article>
+              <strong>
+                <span class="copy en">Remote preflight or anchor fails</span>
+                <span class="copy yue" lang="zh-HK"
+                  >remote preflight 或 anchor 失敗</span
+                >
+              </strong>
+              <p>
+                <span class="copy en"
+                  >No provider upload or pointer commit is produced. Fix the
+                  reported remote, authentication, policy, or branch-state
+                  problem before retrying.</span
+                >
+                <span class="copy yue" lang="zh-HK"
+                  >唔會有 provider upload 或 pointer commit。先處理報告嘅
+                  remote、authentication、policy 或 branch 狀態，再重試。</span
+                >
+              </p>
+            </article>
+            <article>
+              <strong>
+                <span class="copy en">Provider upload fails</span>
+                <span class="copy yue" lang="zh-HK">provider 上傳失敗</span>
+              </strong>
+              <p>
+                <span class="copy en"
+                  >The raw file remains selected, the failure reason stays
+                  visible, and no new pointer is committed. Retry the provider
+                  step.</span
+                >
+                <span class="copy yue" lang="zh-HK"
+                  >原檔繼續 selected、失敗原因照顯示、唔會 commit 新
+                  pointer；重試 provider 階段。</span
+                >
+              </p>
+            </article>
+            <article>
+              <strong>
+                <span class="copy en">Git push fails</span>
+                <span class="copy yue" lang="zh-HK">Git push 失敗</span>
+              </strong>
+              <p>
+                <span class="copy en"
+                  >If the later pointer-commit push fails, the provider bytes
+                  and local pointer commit remain. Fix the reported
+                  remote/auth/policy/divergence problem and retry without
+                  uploading a duplicate.</span
+                >
+                <span class="copy yue" lang="zh-HK"
+                  >如果之後 pointer-commit push 失敗，provider bytes 同本機
+                  pointer commit 仲喺度。處理報告嘅
+                  remote／auth／policy／divergence，再重試，唔好 duplicate
+                  upload。</span
+                >
+              </p>
+            </article>
+            <article>
+              <strong>
+                <span class="copy en">Fresh restore fails</span>
+                <span class="copy yue" lang="zh-HK">fresh restore 失敗</span>
+              </strong>
+              <p>
+                <span class="copy en"
+                  >Keep the provider object, capture the exact pointer and
+                  failure reason, and inspect access, retention, size, and
+                  digest. Do not delete the only known-good bytes.</span
+                >
+                <span class="copy yue" lang="zh-HK"
+                  >保留 provider object、記低精確 pointer 同失敗原因，再查
+                  access、retention、size 同 digest；唔好刪唯一 known-good
+                  bytes。</span
+                >
+              </p>
+            </article>
+          </div>
         </div>
       </section>
 

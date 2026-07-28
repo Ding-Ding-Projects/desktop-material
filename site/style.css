@@ -485,6 +485,12 @@ h1.hero-title {
   text-underline-offset: 0.22em;
 }
 
+.feature-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 20px;
+}
+
 /* ---- Screenshots gallery ---------------------------------------------- */
 .gallery-grid {
   display: grid;

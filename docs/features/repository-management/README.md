@@ -96,7 +96,11 @@ Material is displaying or how a repository is represented in the application.
   ordinals, logical and actual bytes, phase, rate, ETA, queue, failures, and
   cancellation. Combined local tests, the exact Windows production build, and
   hidden-desktop acceptance pass; packaged E2E and remote publication remain
-  separate.
+  separate. The [bilingual Pages product
+  guide](https://ding-ding-projects.github.io/desktop-material/cheap-lfs.html)
+  adds a provider-first established-branch push walkthrough, the
+  unpublished-branch Release-anchor caveat, and a cross-checked 30-criterion
+  Cheap LFS versus Git LFS comparison.
 - [Cheap LFS Release payload
   encryption](cheap-lfs-release-payload-encryption.md) — optionally encrypt new
   GitHub Release payloads with repository-scoped AES-256-GCM and scrypt,

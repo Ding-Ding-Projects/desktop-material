@@ -1,5 +1,31 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-28 — Cheap LFS Pages comparison and push guide
+
+`site/cheap-lfs.html` now presents a filterable 30-decision Cheap LFS versus
+Git LFS comparison and a six-stage push handoff. The copy is deliberately
+marketing-forward without hiding the boundaries: an established branch
+uploads and verifies provider bytes before the compact pointer commit is
+pushed; a first Release-backed publication may require the app's create-only,
+hook-skipping branch anchor first. The CLI proof uses `git show` for the
+committed pointer, warns against adding the materialized raw file, fetches the
+remote, and requires `HEAD` to equal `@{upstream}`.
+
+The dedicated verifier served the assembled site on loopback and drove
+installed Chrome headlessly through Lowlevel MCP. Its **46/46** checks across
+eight phases covered all three language modes, both themes, independent
+funny-level persistence, every comparison filter and reload persistence,
+desktop and 390 px overflow, compact-nav keyboard reachability, image/network
+health, and browser/server cleanup. Accepted captures are
+`docs/verification/cheap-lfs-pages-revamp-2026-07-28/cheap-lfs-comparison-wide.png`
+(1440×960) and `cheap-lfs-push-narrow.png` (390×844); exact hashes and the
+Pages-only evidence boundary are in the dated receipt.
+
+The skill-required full Electron production build was started through the
+exact Lowlevel MCP endpoint but remained silent for more than 34 minutes. It
+was interrupted when the user prioritized publishing the site update, so this
+milestone makes no full-app build claim and changes no app screenshot.
+
 ## 2026-07-28 — Measured Changes/History renderer update suppression
 
 The exact `v3.6.3-beta3-zadughkqcv` Windows x64 portable build at
