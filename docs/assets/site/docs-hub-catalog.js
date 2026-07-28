@@ -1372,6 +1372,13 @@
       d: 'Visual evidence for issue #83 (restore the missing English and Cantonese funny-level sliders).',
     },
     {
+      t: 'Built app launched on an off-screen desktop — 2026-07-28',
+      h: 'verification/headless-desktop-launch-2026-07-28/',
+      s: 'verification/headless-desktop-launch-2026-07-28/README.md',
+      c: 'verification',
+      d: 'Independent confirmation that the production build actually runs, captured through a completely different route from the Playwright-driven fixture used elsewhere in…',
+    },
+    {
       t: 'Linux TUI publish cleanup ledger',
       h: 'verification/linux-tui-2026-07-27/cleanup-ledger.html',
       s: 'verification/linux-tui-2026-07-27/cleanup-ledger.md',
@@ -1419,6 +1426,20 @@
       s: 'verification/responsive-surface-matrix-2026-07-17.md',
       c: 'verification',
       d: 'The final hidden-renderer smoke gate inventories every registered repository page, preferences page, repository-settings page, clone tab, notification tab, File History tab,…',
+    },
+    {
+      t: 'Shift+Right-click opens appearance editors — built-app capture, 2026-07-28',
+      h: 'verification/shift-right-click-appearance-2026-07-28/',
+      s: 'verification/shift-right-click-appearance-2026-07-28/README.md',
+      c: 'verification',
+      d: 'Visual evidence for issue #89.',
+    },
+    {
+      t: 'New tab group dialog is overlapped by the toolbar — built-app capture, 2026-07-28',
+      h: 'verification/tab-group-dialog-overlap-2026-07-28/',
+      s: 'verification/tab-group-dialog-overlap-2026-07-28/README.md',
+      c: 'verification',
+      d: 'Evidence for the defect found while capturing issue #81.',
     },
     {
       t: 'Tab groups and command palette verification — 2026-07-22',

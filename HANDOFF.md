@@ -1,5 +1,16 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-28 — Unattended encrypted Cheap LFS pin skips instead of prompting (Refs #87)
+
+`isBackgroundTask` now reaches `autoPinLargeFilesBeforeCommit`. A scheduled
+commit whose repository has Release payload encryption on and no saved password
+skips the pin via `app/src/lib/cheap-lfs/unattended-encryption.ts` — nothing
+encrypted, nothing uploaded, no anchor published, the large files left in the
+working tree and out of that commit, and one non-blocking notice per repository.
+The interactive modal is unchanged. Verified: 638/638 Cheap LFS tests green
+(22 new), `npx tsc --noEmit` exits 0, `yarn lint` clean. Not visually verified —
+no build was run.
+
 ## 2026-07-28 — Shift+Right-click opens appearance editors (Refs #89)
 
 The appearance editor no longer claims a plain right-click anywhere. The

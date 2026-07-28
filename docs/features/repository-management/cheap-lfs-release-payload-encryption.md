@@ -42,11 +42,36 @@ after its GCM tag and plaintext receipts verify, so a mistyped replacement
 cannot overwrite a usable credential. Buffers owned by the transfer path are
 zeroed after use where the JavaScript runtime permits.
 
+## Unattended commits
+
+A scheduled or automated commit runs with nobody in front of the app, so it must
+never summon credential UI. When such a commit would auto-pin a large file in a
+repository that has encryption on and **no** saved password, the pin is skipped
+rather than prompted:
+
+- Nothing is encrypted and nothing is uploaded. No release is anchored and no
+  provider is contacted, because the decision is made before the anchor step.
+- The affected large files stay in the working tree, unchanged, and are left out
+  of that commit. Everything else in the selection commits normally.
+- Each skipped file carries a localized reason on its commit-terminal row, and a
+  single non-blocking notice per repository explains what happened and how to
+  fix it — commit interactively to be asked for the password, or save one under
+  **Large files & storage**. No modal is shown.
+- An unreachable or locked credential vault is treated exactly like a missing
+  password. It is never read as permission to upload in the clear.
+
+An interactive commit is unaffected: it still opens the masked password dialog,
+which is a modal because the password is a decision required before continuing.
+The notice body honours the per-language funny-level sliders; the skipped paths,
+their count, and the remedy are stated identically at every level.
+
 ## Failure modes and safety
 
 - A missing password opens the masked password prompt before an encrypted
   upload or restore. Canceling stops before provider access, and the app never
   silently falls back to plaintext.
+- An unattended commit is never prompted at all. See **Unattended commits**
+  above for the defined skip-and-report outcome.
 - A locked or unavailable credential vault produces a non-blocking error. The
   one-operation password is never copied to a weaker store.
 - A saved password that fails authentication is identified as stale. The app
@@ -75,8 +100,10 @@ streaming ranges, a captured origin/main format-v1 container, the exact
 origin/main pointer text, wrong-password and tamper failures, encrypted
 multipart Release upload and materialization, exact temporary-file cleanup,
 operation-scoped prompting, stale-vault replacement, credential-vault
-save/change/forget behavior, the irreversible acknowledgement, all three
-language modes, and ciphertext storage accounting. The checkpoint also passes
+save/change/forget behavior, the irreversible acknowledgement, the unattended
+commit skip (including the unreachable-vault case, the funny-level bands, and
+the source-level proof that the skip is decided before any prompt or anchor),
+all three language modes, and ciphertext storage accounting. The checkpoint also passes
 full TypeScript checking. Packaged visual acceptance and remote CI remain
 separate release evidence.
 
