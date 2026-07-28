@@ -37,6 +37,7 @@ import {
   requirePackagePolicy,
   resolveConversionVisibility,
   runCanonicalPublicationTransaction,
+  selectCanonicalGhcrEntries,
   serializeOciPointer,
   serializeRepositoryKey,
   newRepositoryKey,
@@ -1917,7 +1918,7 @@ async function main() {
   const tempRoot = await mkdtemp(join(tmpdir(), 'cheap-lfs-release-to-ghcr-'))
   try {
     const objects = await loadExistingObjects(
-      pointers.oci,
+      selectCanonicalGhcrEntries(pointers.oci, target.registryRepository),
       registry,
       target,
       visibility,

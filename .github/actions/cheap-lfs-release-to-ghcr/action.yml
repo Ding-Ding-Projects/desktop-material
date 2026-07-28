@@ -1,8 +1,8 @@
 name: Cheap LFS Release to GHCR
 description:
   Publish one verified immutable Cheap LFS GHCR snapshot, atomically adopt
-  Release pointers on the current default branch, then promote its canonical
-  tag after the remote adoption commit is proven.
+  Release pointers on the current default branch, then promote its canonical tag
+  after the remote adoption commit is proven.
 
 inputs:
   private-repository-actions-confirmed:
@@ -19,5 +19,6 @@ runs:
       shell: bash
       env:
         CHEAP_LFS_GITHUB_TOKEN: ${{ github.token }}
-        CHEAP_LFS_PRIVATE_ACTIONS_CONFIRMED: ${{ inputs.private-repository-actions-confirmed }}
+        CHEAP_LFS_PRIVATE_ACTIONS_CONFIRMED:
+          ${{ inputs.private-repository-actions-confirmed }}
       run: node "$GITHUB_ACTION_PATH/release-to-ghcr.mjs"

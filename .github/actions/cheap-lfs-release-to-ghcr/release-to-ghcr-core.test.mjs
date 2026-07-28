@@ -13,6 +13,7 @@ import {
   requireRepairableAdoption,
   resolveConversionVisibility,
   runCanonicalPublicationTransaction,
+  selectCanonicalGhcrEntries,
   serializeAdoptionReceipt,
   serializeOciPointer,
 } from './release-to-ghcr-core.mjs'
@@ -55,6 +56,21 @@ describe('Release-to-GHCR pointer parsing', () => {
     assert.equal(text.startsWith(`version ${OCI_POINTER_VERSION}\n`), true)
     assert.deepEqual(parseOciPointer(text), {
       image: `ghcr.io/octo/material-cheap-lfs@sha256:${shaA}`,
+      object: `sha256:${shaB}`,
+      sizeInBytes: 12,
+      layers: [`sha256:${shaA}`],
+    })
+  })
+
+  it('parses Docker Hub pointers so mixed providers can remain untouched', () => {
+    const text = serializeOciPointer({
+      image: `docker.io/octo/material-cheap-lfs@sha256:${shaA}`,
+      object: `sha256:${shaB}`,
+      sizeInBytes: 12,
+      layers: [`sha256:${shaA}`],
+    })
+    assert.deepEqual(parseOciPointer(text), {
+      image: `docker.io/octo/material-cheap-lfs@sha256:${shaA}`,
       object: `sha256:${shaB}`,
       sizeInBytes: 12,
       layers: [`sha256:${shaA}`],
@@ -186,6 +202,32 @@ describe('Release-to-GHCR canonical image', () => {
     })
     assert.equal(first.manifestDigest, second.manifestDigest)
     assert.deepEqual(first.manifestBytes, second.manifestBytes)
+  })
+
+  it('selects only the exact managed GHCR package from mixed OCI providers', () => {
+    const target = 'ghcr.io/octo/material-cheap-lfs'
+    const entry = (image, path) => ({
+      path,
+      pointer: {
+        image,
+        object: `sha256:${shaB}`,
+        sizeInBytes: 12,
+        layers: [`sha256:${shaA}`],
+      },
+    })
+    const canonical = entry(`${target}@sha256:${shaA}`, 'canonical.bin')
+    const docker = entry(
+      `docker.io/octo/material-cheap-lfs@sha256:${shaA}`,
+      'docker.bin'
+    )
+    const external = entry(
+      `ghcr.io/elsewhere/material-cheap-lfs@sha256:${shaA}`,
+      'external.bin'
+    )
+    assert.deepEqual(
+      selectCanonicalGhcrEntries([docker, canonical, external], target),
+      [canonical]
+    )
   })
 })
 

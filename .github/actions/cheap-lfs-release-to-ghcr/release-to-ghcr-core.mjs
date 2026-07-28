@@ -52,6 +52,8 @@ const GitObjectPattern = /^[a-f0-9]{40,64}$/
 const ShaPattern = /^[a-f0-9]{64}$/
 const IntegerPattern = /^(?:0|[1-9][0-9]*)$/
 const OciRepositoryPattern =
+  /^(?:ghcr\.io|docker\.io)\/[a-z0-9]+(?:[._-][a-z0-9]+)*\/[a-z0-9]+(?:[._-][a-z0-9]+)*$/
+const GhcrRepositoryPattern =
   /^ghcr\.io\/[a-z0-9]+(?:[._-][a-z0-9]+)*\/[a-z0-9]+(?:[._-][a-z0-9]+)*$/
 const AdoptionReceiptPattern =
   /^v1 manifest=(sha256:[0-9a-f]{64}) parent=([a-f0-9]{40,64}) visibility=(public|private) pointers=([1-9][0-9]{0,6})$/
@@ -186,7 +188,7 @@ export function requireRepairableAdoption({
     receipt.visibility !== visibility ||
     !GitObjectPattern.test(headCommit) ||
     !GitObjectPattern.test(parentCommit) ||
-    !OciRepositoryPattern.test(registryRepository) ||
+    !GhcrRepositoryPattern.test(registryRepository) ||
     !Array.isArray(changedPaths) ||
     !Array.isArray(allowedAuxiliaryPaths) ||
     !Array.isArray(parentReleasePointers) ||
@@ -490,7 +492,7 @@ export function parseOciPointer(text) {
   const keyId =
     lines.length === 7 ? lines[5].slice('key-id '.length) : undefined
   if (
-    !/^ghcr\.io\/[a-z0-9]+(?:[._-][a-z0-9]+)*\/[a-z0-9]+(?:[._-][a-z0-9]+)*@sha256:[0-9a-f]{64}$/.test(
+    !/^(?:ghcr\.io|docker\.io)\/[a-z0-9]+(?:[._-][a-z0-9]+)*\/[a-z0-9]+(?:[._-][a-z0-9]+)*@sha256:[0-9a-f]{64}$/.test(
       image
     ) ||
     !DigestPattern.test(object) ||
@@ -518,7 +520,7 @@ export function parseOciPointer(text) {
 
 export function serializeOciPointer(pointer) {
   if (
-    !/^ghcr\.io\/[a-z0-9]+(?:[._-][a-z0-9]+)*\/[a-z0-9]+(?:[._-][a-z0-9]+)*@sha256:[0-9a-f]{64}$/.test(
+    !/^(?:ghcr\.io|docker\.io)\/[a-z0-9]+(?:[._-][a-z0-9]+)*\/[a-z0-9]+(?:[._-][a-z0-9]+)*@sha256:[0-9a-f]{64}$/.test(
       pointer.image
     ) ||
     !DigestPattern.test(pointer.object) ||
@@ -711,7 +713,7 @@ export function deriveTarget(repository) {
   const namespace = owner.toLowerCase()
   const repositoryName = name.toLowerCase()
   const registryRepository = `ghcr.io/${namespace}/${repositoryName}-cheap-lfs`
-  if (!OciRepositoryPattern.test(registryRepository)) {
+  if (!GhcrRepositoryPattern.test(registryRepository)) {
     fail(
       'repository-identity',
       'Cheap LFS could not derive a canonical GHCR repository name.'
@@ -724,6 +726,38 @@ export function deriveTarget(repository) {
     registryPath: `${namespace}/${repositoryName}-cheap-lfs`,
     packageName: `${repositoryName}-cheap-lfs`,
   }
+}
+
+/**
+ * Existing Docker Hub or external OCI pointers remain owned by their current
+ * provider. Release-to-GHCR builds its canonical snapshot only from pointers
+ * already aimed at this repository's exact managed GHCR package.
+ */
+export function selectCanonicalGhcrEntries(entries, registryRepository) {
+  if (
+    !Array.isArray(entries) ||
+    !GhcrRepositoryPattern.test(registryRepository)
+  ) {
+    fail(
+      'repository-identity',
+      'Cheap LFS could not select pointers for an invalid canonical GHCR target.'
+    )
+  }
+  return entries.filter(entry => {
+    const image = entry?.pointer?.image
+    if (typeof image !== 'string') {
+      fail(
+        'invalid-pointer',
+        'Cheap LFS found an invalid current OCI pointer entry.'
+      )
+    }
+    const separator = image.lastIndexOf('@')
+    return (
+      separator > 0 &&
+      image.slice(0, separator) === registryRepository &&
+      DigestPattern.test(image.slice(separator + 1))
+    )
+  })
 }
 
 export function parseRepositoryKey(text, expectedHeader) {
