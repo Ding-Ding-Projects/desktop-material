@@ -2115,21 +2115,6 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             <li>
               <a
                 class="doc-link"
-                href="features/quality-and-reliability/no-op-render-update-suppression.html"
-                ><span class="doc-link__title"
-                  >No-op renderer update suppression</span
-                ><span class="doc-link__desc"
-                  >Repository section navigation and the root store reject
-                  identical compare-form updates, avoiding a redundant global
-                  render for one user click.</span
-                ><span class="doc-link__path"
-                  >features/quality-and-reliability/no-op-render-update-suppression.md</span
-                ></a
-              >
-            </li>
-            <li>
-              <a
-                class="doc-link"
                 href="features/quality-and-reliability/canonical-remote-preflight-warning.html"
                 ><span class="doc-link__title"
                   >Canonical remote preflight warning</span
@@ -2186,6 +2171,22 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                   deleted-directory polling, and a slow first git status…</span
                 ><span class="doc-link__path"
                   >features/quality-and-reliability/native-large-repository-handling.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/quality-and-reliability/no-op-render-update-suppression.html"
+                ><span class="doc-link__title"
+                  >No-op renderer update suppression</span
+                ><span class="doc-link__desc"
+                  >Changes and History share compare-form state. Selecting
+                  either repository section used to send showBranchList: false
+                  after every section change, even when the branch list
+                  was…</span
+                ><span class="doc-link__path"
+                  >features/quality-and-reliability/no-op-render-update-suppression.md</span
                 ></a
               >
             </li>
@@ -3916,7 +3917,7 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             Verification records
           </h3>
           <p class="md-body subpanel__meta">
-            <strong>21</strong>
+            <strong>23</strong>
             <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
             <a href="verification/tab-group-dialog-overlap-2026-07-28/"
               ><span class="i18n-inline" data-i18n="categoryIndex"
@@ -4114,6 +4115,30 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             <li>
               <a
                 class="doc-link"
+                href="verification/renderer-responsiveness-2026-07-28/cleanup-ledger.html"
+                ><span class="doc-link__title">Cleanup ledger</span
+                ><span class="doc-link__desc"
+                  >Run ID: desktop-material-renderer-perf-20260728</span
+                ><span class="doc-link__path"
+                  >verification/renderer-responsiveness-2026-07-28/cleanup-ledger.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/renderer-responsiveness-2026-07-28/run-manifest.html"
+                ><span class="doc-link__title"
+                  >Renderer responsiveness run manifest</span
+                ><span class="doc-link__desc">Mode: publish</span
+                ><span class="doc-link__path"
+                  >verification/renderer-responsiveness-2026-07-28/run-manifest.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
                 href="verification/responsive-surface-matrix-2026-07-17.html"
                 ><span class="doc-link__title"
                   >Responsive surface matrix — 2026-07-17</span
@@ -4266,10 +4291,10 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
               <a class="doc-link" href="wiki/Developer-Guide.html"
                 ><span class="doc-link__title">Developer Guide</span
                 ><span class="doc-link__desc"
-                  >Long-lived work created by the root renderer must be released
-                  at the same lifecycle boundary. Store/updater/drag/IPC
-                  listeners belong in the root CompositeDisposable;
-                  polling…</span
+                  >Compare-form updates flow through the root AppStore, so an
+                  identical update is not free: without an equality gate it
+                  schedules another full renderer pass. Repository
+                  section…</span
                 ><span class="doc-link__path">wiki/Developer-Guide.md</span></a
               >
             </li>

@@ -616,6 +616,13 @@
       d: 'Root causes for this feature were found live on a 211k-file repository, where background Git maintenance, stale locks, deleted-directory polling, and a slow first git status…',
     },
     {
+      t: 'No-op renderer update suppression',
+      h: 'features/quality-and-reliability/no-op-render-update-suppression.html',
+      s: 'features/quality-and-reliability/no-op-render-update-suppression.md',
+      c: 'features',
+      d: 'Changes and History share compare-form state. Selecting either repository section used to send showBranchList: false after every section change, even when the branch list was…',
+    },
+    {
       t: 'Observed user-initiated operations',
       h: 'features/quality-and-reliability/observed-user-initiated-operations.html',
       s: 'features/quality-and-reliability/observed-user-initiated-operations.md',
@@ -1400,6 +1407,27 @@
       d: 'This folder keeps reproducible local acceptance records that support, but do not replace, exact-commit CI, Pages, wiki, and Release receipts in HANDOFF.md.',
     },
     {
+      t: 'Cleanup ledger',
+      h: 'verification/renderer-responsiveness-2026-07-28/cleanup-ledger.html',
+      s: 'verification/renderer-responsiveness-2026-07-28/cleanup-ledger.md',
+      c: 'verification',
+      d: 'Run ID: desktop-material-renderer-perf-20260728',
+    },
+    {
+      t: 'Renderer responsiveness verification',
+      h: 'verification/renderer-responsiveness-2026-07-28/',
+      s: 'verification/renderer-responsiveness-2026-07-28/README.md',
+      c: 'verification',
+      d: 'Source: release v3.6.3-beta3-zadughkqcv',
+    },
+    {
+      t: 'Renderer responsiveness run manifest',
+      h: 'verification/renderer-responsiveness-2026-07-28/run-manifest.html',
+      s: 'verification/renderer-responsiveness-2026-07-28/run-manifest.md',
+      c: 'verification',
+      d: 'Mode: publish',
+    },
+    {
       t: 'Repository group management — built-app capture, 2026-07-28',
       h: 'verification/repository-group-management-2026-07-28/',
       s: 'verification/repository-group-management-2026-07-28/README.md',
@@ -1495,7 +1523,7 @@
       h: 'wiki/Developer-Guide.html',
       s: 'wiki/Developer-Guide.md',
       c: 'wiki',
-      d: 'Long-lived work created by the root renderer must be released at the same lifecycle boundary. Store/updater/drag/IPC listeners belong in the root CompositeDisposable; polling…',
+      d: 'Compare-form updates flow through the root AppStore, so an identical update is not free: without an equality gate it schedules another full renderer pass. Repository section…',
     },
     {
       t: 'Guided Feature Gallery',
