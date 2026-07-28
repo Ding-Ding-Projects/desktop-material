@@ -25,8 +25,54 @@ Right-click any tab to reach its group actions:
 - **Collapse/Expand “name”** toggles the group's real strip state. Collapsing
   hides every member tab but keeps the named group chip visible; clicking the
   chip, or pressing Enter/Space while it is focused, expands the members again.
+- **Show tabs in “name”** opens the group's member dropdown (see below).
+- **Edit group “name”…** opens the rename/recolor dialog (see below).
 - **Delete group “name”** removes the label only. Every tab that belonged to
   it stays open and simply becomes ungrouped.
+
+## The group chip cluster
+
+Each group's chip is a two-control cluster: the pill itself folds and unfolds
+the group, and the trailing button beside it opens the group's **member
+dropdown**. Both are ordinary buttons, so both are reachable by mouse and by
+keyboard, and the strip reserves the width of the whole cluster when deciding
+which tabs overflow.
+
+### Member dropdown
+
+The dropdown lists **every** tab in the group, including while the group is
+collapsed and its members are absent from the strip entirely. That is the point:
+before it existed, a collapsed group was a dead end — the only way to reach a
+tab inside it was to expand the group first.
+
+Choosing a member stays **one** action. A single press selects that tab's
+repository, activates the tab, and closes the dropdown; there is no confirmation
+step and no second click.
+
+It is a keyboard-navigable listbox driven from either its search field or the
+list itself: <kbd>↑</kbd>/<kbd>↓</kbd> move the highlight, <kbd>Home</kbd>/
+<kbd>End</kbd> jump to the ends, <kbd>Enter</kbd> (and <kbd>Space</kbd>, from the
+list) activates, and <kbd>Esc</kbd> closes. The search carries the same stack as
+every other collection surface — plain text by default, substring and regex as
+explicit opt-ins through the shared `FilterModeControl` and its full regex
+builder — and an invalid pattern reports itself without hiding a single member.
+
+The dropdown also carries the group's own actions at its foot: **Edit group…**,
+**Collapse/Expand**, and **Delete group**, alongside a line stating that
+deleting clears the label only and every tab stays open.
+
+### Edit dialog
+
+**Edit group…** opens a dialog with the group's current name and its current
+curated color. Saving renames and recolors the group and nothing else: its
+membership, its position in the strip, the pin boundary, and every open tab are
+untouched, which is why the dialog's intro states the exact member count rather
+than implying an edit might disturb it. A blank or whitespace-only name keeps
+the confirm action disabled.
+
+The rename and recolor reach the profile store the same way every other tab
+mutation does, so they survive restart, profile switching, and settings-history
+restore.
 
 Manual movement preserves membership while a tab stays beside the rest of its
 group. Moving it outside that run explicitly ungroups only the moved tab. The
@@ -101,3 +147,11 @@ curated-color validation, visible/collapsible chips, profile/window persistence,
 safe repair of malformed records, pin-boundary rejection, non-destructive
 deletion, atomic manual/sorted ordering, portable-export stripping,
 localization, focus, and announcements.
+
+`app/test/unit/ui/tab-group-management-test.tsx` covers the chip cluster's newer
+surfaces: a collapsed group listing every member in its dropdown, one-action
+member switching, arrow/Home/Enter keyboard navigation with a live
+`aria-activedescendant`, deletion from the dropdown leaving every tab open, the
+bilingual rendering of the dropdown's copy, and the edit dialog renaming and
+recoloring a group — persisted to the profile store — without touching its
+membership.

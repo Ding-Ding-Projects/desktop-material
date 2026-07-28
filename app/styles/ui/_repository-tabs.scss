@@ -2104,6 +2104,9 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
 // from a persisted free-form string.
 // ---------------------------------------------------------------------------
 .repository-tab.grouped,
+.repository-tab-group,
+.repository-tab-group-members,
+.tab-group-members-popover,
 .repository-tab-group-chip {
   --dm-tab-group-color: var(--md-sys-color-primary);
 
@@ -2155,12 +2158,62 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
   }
 }
 
+// The chip cluster: the fold toggle plus the member-dropdown trigger. They
+// share one pill so the group reads as a single object, while staying two
+// separate controls — one folds the group, the other lists what is inside it.
+.repository-tab-group {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.repository-tab-group-members {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  min-height: 30px;
+  margin-bottom: 4px;
+  margin-left: -1px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--dm-tab-group-color) 48%, transparent);
+  border-radius: 0 999px 999px 0;
+  background: color-mix(in srgb, var(--dm-tab-group-color) 12%, var(--md-sys-color-surface-container-lowest));
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  transition: background 160ms var(--emph), color 160ms var(--emph);
+
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  &:hover {
+    background: color-mix(in srgb, var(--dm-tab-group-color) 24%, var(--md-sys-color-surface-container-lowest));
+    color: var(--md-sys-color-on-surface);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+    z-index: 1;
+  }
+}
+
+.repository-tab-group.active .repository-tab-group-members {
+  border-color: var(--dm-tab-group-color);
+  background: color-mix(in srgb, var(--dm-tab-group-color) 22%, var(--md-sys-color-surface-container-lowest));
+}
+
 .repository-tab-group-chip {
   display: flex;
   align-items: center;
   align-self: center;
   gap: 6px;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   max-width: 190px;
   min-height: 30px;
   margin-bottom: 4px;
@@ -2227,6 +2280,12 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
   }
 }
 
+// Inside the cluster the toggle keeps only its leading round end; the member
+// button supplies the trailing one, so the pair still paints as one pill.
+.repository-tab-group .repository-tab-group-chip {
+  border-radius: 999px 0 0 999px;
+}
+
 @media (max-width: 700px) {
   .repository-tab-group-chip {
     max-width: 132px;
@@ -2262,10 +2321,275 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
       color: ButtonText;
     }
   }
+
+  .repository-tab-group-members {
+    border-color: ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+  }
 }
 
-// The new-group dialog's color chooser.
-#create-tab-group {
+// ---------------------------------------------------------------------------
+// The group member dropdown
+//
+// Mirrors the overflow dropdown's anatomy so the two read as one family: a
+// titled header, the shared search stack, a keyboard-navigable listbox, and the
+// group's own actions at the foot. Selecting a member is one press.
+// ---------------------------------------------------------------------------
+.tab-group-members-popover {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 340px;
+  min-width: 0;
+  max-width: calc(100vw - 52px);
+  max-height: min(560px, calc(var(--available-height, 100vh) - 28px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  color: var(--md-sys-color-on-surface);
+
+  .tab-group-members-header {
+    min-width: 0;
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: var(--font-weight-semibold);
+      overflow-wrap: anywhere;
+    }
+
+    p {
+      margin: 4px 0 0;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+  }
+
+  .tab-group-members-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .tab-group-members-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 18px;
+    background: var(--md-sys-color-surface-container-high);
+    color: inherit;
+    font-size: 12px;
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 1px;
+    }
+  }
+
+  .tab-group-members-error {
+    margin: 0;
+    color: var(--md-sys-color-error);
+    font-size: 11px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .tab-group-members-results {
+    min-width: 0;
+    max-height: 320px;
+    margin: 0;
+    padding: 4px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-left: 3px solid var(--dm-tab-group-color);
+    border-radius: 16px;
+    list-style: none;
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+
+  .tab-group-members-row {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  .tab-group-members-result {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &.highlighted {
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+    }
+
+    &.active {
+      box-shadow: inset 3px 0 var(--dm-tab-group-color);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: -2px;
+    }
+  }
+
+  .tab-group-members-result-copy {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+
+    strong,
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    strong {
+      font-size: 12px;
+    }
+
+    .tab-group-members-result-path {
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 10px;
+    }
+  }
+
+  .tab-group-members-result-chips {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px;
+
+    > span {
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: var(--md-sys-color-surface-container-highest);
+      font-size: 9px;
+      font-weight: var(--font-weight-semibold);
+    }
+  }
+
+  .tab-group-members-empty {
+    min-height: 60px;
+    margin: 0;
+    padding: 18px 12px;
+    color: var(--md-sys-color-on-surface-variant);
+    text-align: center;
+  }
+
+  .tab-group-members-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .tab-group-members-action {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    font-size: 11px;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--md-sys-color-surface-container-highest);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 1px;
+    }
+
+    &.danger {
+      color: var(--md-sys-color-error);
+
+      &:hover {
+        background: var(--md-sys-color-error-container);
+        color: var(--md-sys-color-on-error-container);
+      }
+    }
+  }
+
+  .tab-group-members-hint,
+  .tab-group-members-status {
+    margin: 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 11px;
+    line-height: 1.45;
+  }
+}
+
+.popover-component:has(.tab-group-members-popover) {
+  max-width: calc(100vw - 20px);
+  border-radius: 22px;
+  box-shadow: var(--md-sys-elevation-level3);
+
+  .popover-content {
+    max-width: calc(100vw - 20px);
+    max-height: var(--available-height, calc(100vh - 20px));
+    padding: 16px;
+    overflow: hidden;
+    border-radius: 22px;
+  }
+}
+
+@media (max-width: 520px), (max-height: 560px) {
+  .tab-group-members-popover {
+    gap: 10px;
+    max-width: calc(100vw - 36px);
+    max-height: calc(var(--available-height, 100vh) - 20px);
+
+    .tab-group-members-results {
+      max-height: 200px;
+    }
+
+    // The builder's text label is the first thing to give at a narrow width;
+    // the input and the mode cluster both have to survive a long tab name.
+    .tab-group-members-filter-row .filter-regex-builder-label {
+      display: none;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .repository-tab-group-members {
+    transition: none;
+  }
+}
+
+// The new-group and edit-group dialogs share one color chooser.
+#create-tab-group,
+#edit-tab-group {
   .tab-group-intro {
     margin: 0 0 12px;
     color: var(--md-sys-color-on-surface-variant);

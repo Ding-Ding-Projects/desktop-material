@@ -28,6 +28,8 @@ import {
 } from './close-tabs-containing-popover'
 import { IMenuItem, showContextualMenu } from '../../lib/menu-item'
 import { CreateTabGroupDialog } from './create-tab-group-dialog'
+import { EditTabGroupDialog } from './edit-tab-group-dialog'
+import { TabGroupMembersPopover } from './tab-group-members-popover'
 import { FoldoutType } from '../../lib/app-state'
 import { NotificationBellButton } from '../notifications/notification-bell-button'
 import { RepositoryStateCache } from '../../lib/stores/repository-state-cache'
@@ -75,6 +77,12 @@ interface IRepositoryTabStripState {
   readonly announcement: string
   /** The tab awaiting a name for the new group it will start. */
   readonly createGroupForTab: IRepositoryTab | null
+  /** The group whose member dropdown is open, or null when none is. */
+  readonly membersGroupId: string | null
+  /** The chip control the member dropdown is anchored to. */
+  readonly membersAnchor: HTMLElement | null
+  /** The group being renamed and recolored, or null when none is. */
+  readonly editGroupId: string | null
   readonly languageMode: LanguageMode
   /**
    * Ids of tabs pushed out of the strip into the overflow dropdown because they
@@ -149,6 +157,9 @@ export class RepositoryTabStrip extends React.Component<
       draggingTabId: null,
       announcement: '',
       createGroupForTab: null,
+      membersGroupId: null,
+      membersAnchor: null,
+      editGroupId: null,
       languageMode: getPersistedLanguageMode(),
       overflowIds: [],
       pendingMeasure: true,
@@ -274,10 +285,11 @@ export class RepositoryTabStrip extends React.Component<
           this.tabWidthCache.set(id, element.offsetWidth)
         }
       })
+    // The measured element is the chip *cluster* (the fold toggle plus its
+    // member-dropdown button), not the toggle alone: both are always visible,
+    // so both consume width the tabs cannot compete for.
     list
-      .querySelectorAll<HTMLElement>(
-        '.repository-tab-group-chip[data-group-id]'
-      )
+      .querySelectorAll<HTMLElement>('.repository-tab-group[data-group-id]')
       .forEach(element => {
         const id = element.dataset.groupId
         if (id !== undefined) {
@@ -810,6 +822,15 @@ export class RepositoryTabStrip extends React.Component<
 
     if (currentGroup !== undefined) {
       items.push({
+        label: this.text('tabs.groupMembersShow', { name: currentGroup.name }),
+        action: () => this.openGroupMembersFromChip(currentGroup.id),
+      })
+      items.push({
+        label: this.text('tabs.groupEdit', { name: currentGroup.name }),
+        icon: octicons.pencil,
+        action: () => this.setState({ editGroupId: currentGroup.id }),
+      })
+      items.push({
         label: this.text('tabs.groupRemoveFrom', {
           name: currentGroup.name,
         }),
@@ -951,6 +972,122 @@ export class RepositoryTabStrip extends React.Component<
     return (
       this.props.tabsStore.getGroups().find(group => group.id === groupId) ??
       null
+    )
+  }
+
+  private onGroupMembersClick = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    const anchor = event.currentTarget
+    const groupId = anchor.dataset.groupId
+    if (groupId === undefined) {
+      return
+    }
+    if (this.state.membersGroupId === groupId) {
+      this.onGroupMembersDismiss()
+      return
+    }
+    this.setState({ membersGroupId: groupId, membersAnchor: anchor })
+  }
+
+  /**
+   * Open a group's member dropdown from somewhere other than its own button —
+   * a tab's context menu, for instance — by locating the still-mounted trigger
+   * and anchoring to it. A popover anchored to a disconnected element cannot
+   * position itself, and the invoking menu item is gone by the time this runs.
+   */
+  private openGroupMembersFromChip(groupId: string) {
+    window.setTimeout(() => {
+      const trigger = Array.from(
+        this.stripRef.current?.querySelectorAll<HTMLElement>(
+          '.repository-tab-group-members[data-group-id]'
+        ) ?? []
+      ).find(element => element.dataset.groupId === groupId)
+      if (trigger !== undefined) {
+        this.setState({ membersGroupId: groupId, membersAnchor: trigger })
+      }
+    }, 0)
+  }
+
+  private onGroupMembersDismiss = () => {
+    const anchor = this.state.membersAnchor
+    this.setState({ membersGroupId: null, membersAnchor: null }, () => {
+      if (anchor !== null) {
+        this.restorePopoverFocus(anchor)
+      }
+    })
+  }
+
+  /** Rename/recolor from the dropdown: close it first so the dialog owns focus. */
+  private onGroupMembersEdit = () => {
+    const groupId = this.state.membersGroupId
+    if (groupId === null) {
+      return
+    }
+    this.setState({
+      membersGroupId: null,
+      membersAnchor: null,
+      editGroupId: groupId,
+    })
+  }
+
+  private onGroupMembersToggleCollapsed = () => {
+    const groupId = this.state.membersGroupId
+    const group = this.props.tabsStore
+      .getGroups()
+      .find(candidate => candidate.id === groupId)
+    if (group === undefined) {
+      return
+    }
+    this.setState({ membersGroupId: null, membersAnchor: null }, () =>
+      this.toggleGroup(group, group.isCollapsed !== true, true)
+    )
+  }
+
+  /**
+   * Delete the group label from the dropdown.
+   *
+   * Every member tab stays open and simply becomes ungrouped — the store's
+   * `deleteTabGroup` never closes a tab, and the announced status says so.
+   */
+  private onGroupMembersDelete = () => {
+    const groupId = this.state.membersGroupId
+    const group = this.props.tabsStore
+      .getGroups()
+      .find(candidate => candidate.id === groupId)
+    if (group === undefined) {
+      return
+    }
+    this.setState({ membersGroupId: null, membersAnchor: null }, () =>
+      this.runGroupMutation(
+        this.props.tabsStore.deleteTabGroup(group.id),
+        'Failed to delete tab group',
+        this.text('tabs.groupDeletedStatus', { name: group.name })
+      )
+    )
+  }
+
+  private onEditGroupDismissed = () => {
+    const groupId = this.state.editGroupId
+    this.setState({ editGroupId: null }, () => {
+      if (groupId !== null) {
+        this.focusGroupChip(groupId)
+      }
+    })
+  }
+
+  private onSaveGroup = (name: string, color: TabGroupColor) => {
+    const groupId = this.state.editGroupId
+    if (groupId === null) {
+      return
+    }
+    this.setState({ editGroupId: null }, () =>
+      this.runGroupMutation(
+        this.props.tabsStore.updateTabGroup(groupId, { name, color }),
+        'Failed to update tab group',
+        this.text('tabs.groupUpdatedStatus', { name }),
+        groupId
+      )
     )
   }
 
@@ -1374,39 +1511,120 @@ export class RepositoryTabStrip extends React.Component<
     isActiveGroup: boolean
   ) {
     const isCollapsed = group.isCollapsed === true
+    const colorClass = `tab-group--${normalizeTabGroupColor(group.color)}`
     return (
-      <button
+      // The cluster is presentational; the two controls inside it keep their
+      // own roles so the collapsed chip is still the tablist's tab and the
+      // member dropdown is still an ordinary button.
+      <span
         key={`group-${group.id}`}
-        type="button"
-        className={classNames(
-          'repository-tab-group-chip',
-          `tab-group--${normalizeTabGroupColor(group.color)}`,
-          {
+        className={classNames('repository-tab-group', colorClass, {
+          active: isActiveGroup,
+          collapsed: isCollapsed,
+        })}
+        role="presentation"
+        data-group-id={group.id}
+      >
+        <button
+          type="button"
+          className={classNames('repository-tab-group-chip', colorClass, {
             active: isActiveGroup,
             collapsed: isCollapsed,
-          }
+          })}
+          data-group-id={group.id}
+          aria-label={this.accessibleText(
+            isCollapsed ? 'tabs.groupChipCollapsed' : 'tabs.groupChipExpanded',
+            { name: group.name, count: String(members.length) }
+          )}
+          aria-expanded={!isCollapsed}
+          role={isCollapsed ? 'tab' : undefined}
+          aria-selected={isCollapsed ? isActiveGroup : undefined}
+          aria-current={!isCollapsed && isActiveGroup ? 'page' : undefined}
+          onClick={this.onGroupChipClick}
+        >
+          <span className="repository-tab-group-dot" aria-hidden="true" />
+          <span className="repository-tab-group-label">{group.name}</span>
+          <span className="repository-tab-group-count" aria-hidden="true">
+            {members.length}
+          </span>
+          <Octicon
+            className="repository-tab-group-chevron"
+            symbol={isCollapsed ? octicons.chevronRight : octicons.chevronDown}
+          />
+        </button>
+        <button
+          type="button"
+          className={classNames('repository-tab-group-members', colorClass)}
+          data-group-id={group.id}
+          data-dm-feature={true}
+          aria-label={this.accessibleText('tabs.groupMembersButton', {
+            name: group.name,
+            count: String(members.length),
+          })}
+          aria-haspopup="listbox"
+          aria-expanded={this.state.membersGroupId === group.id}
+          onClick={this.onGroupMembersClick}
+        >
+          <Octicon symbol={octicons.kebabHorizontal} />
+        </button>
+      </span>
+    )
+  }
+
+  private renderGroupMembersPopover() {
+    const { membersGroupId, membersAnchor } = this.state
+    if (membersGroupId === null) {
+      return null
+    }
+    const group = this.props.tabsStore
+      .getGroups()
+      .find(candidate => candidate.id === membersGroupId)
+    if (group === undefined) {
+      return null
+    }
+
+    return (
+      <TabGroupMembersPopover
+        group={group}
+        members={this.state.tabs.tabs.filter(
+          tab => (tab.groupId ?? null) === group.id
         )}
-        data-group-id={group.id}
-        aria-label={this.accessibleText(
-          isCollapsed ? 'tabs.groupChipCollapsed' : 'tabs.groupChipExpanded',
-          { name: group.name, count: String(members.length) }
-        )}
-        aria-expanded={!isCollapsed}
-        role={isCollapsed ? 'tab' : undefined}
-        aria-selected={isCollapsed ? isActiveGroup : undefined}
-        aria-current={!isCollapsed && isActiveGroup ? 'page' : undefined}
-        onClick={this.onGroupChipClick}
-      >
-        <span className="repository-tab-group-dot" aria-hidden="true" />
-        <span className="repository-tab-group-label">{group.name}</span>
-        <span className="repository-tab-group-count" aria-hidden="true">
-          {members.length}
-        </span>
-        <Octicon
-          className="repository-tab-group-chevron"
-          symbol={isCollapsed ? octicons.chevronRight : octicons.chevronDown}
-        />
-      </button>
+        activeTabId={this.state.tabs.activeTabId}
+        anchor={membersAnchor}
+        languageMode={this.state.languageMode}
+        resolveLabel={this.labelForTab}
+        resolveMatchKeys={this.matchKeysForTab}
+        onSelect={this.onSelect}
+        onEditGroup={this.onGroupMembersEdit}
+        onToggleCollapsed={this.onGroupMembersToggleCollapsed}
+        onDeleteGroup={this.onGroupMembersDelete}
+        onClose={this.onGroupMembersDismiss}
+      />
+    )
+  }
+
+  private renderEditGroupDialog() {
+    const { editGroupId } = this.state
+    if (editGroupId === null) {
+      return null
+    }
+    const group = this.props.tabsStore
+      .getGroups()
+      .find(candidate => candidate.id === editGroupId)
+    if (group === undefined) {
+      return null
+    }
+
+    return (
+      <EditTabGroupDialog
+        group={group}
+        memberCount={
+          this.state.tabs.tabs.filter(tab => (tab.groupId ?? null) === group.id)
+            .length
+        }
+        onSave={this.onSaveGroup}
+        onDismissed={this.onEditGroupDismissed}
+      />
     )
   }
 
@@ -1624,7 +1842,9 @@ export class RepositoryTabStrip extends React.Component<
         {this.renderArrangePopover()}
         {this.renderSearchPopover()}
         {this.renderOverflowPopover()}
+        {this.renderGroupMembersPopover()}
         {this.renderCreateGroupDialog()}
+        {this.renderEditGroupDialog()}
         <div
           className="repository-tab-announcement"
           role="status"

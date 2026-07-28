@@ -289,6 +289,18 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
       implementation: 'standalone',
     },
     {
+      id: 'tab-group-members',
+      label: 'Tabs in a group',
+      source: 'repository-tabs/tab-group-members-popover.tsx',
+      implementation: 'standalone',
+    },
+    {
+      id: 'repository-group-members',
+      label: 'Repositories in a group',
+      source: 'repository-groups/manage-repository-group-dialog.tsx',
+      implementation: 'standalone',
+    },
+    {
       id: 'tab-search',
       label: 'Open tabs',
       source: 'repository-tabs/tab-search-popover.tsx',
