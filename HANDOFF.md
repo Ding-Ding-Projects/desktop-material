@@ -1,5 +1,52 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-27 — Progressive asynchronous lazy loading (locally verified, Refs #82)
+
+`App.render()` returns `null` until `AppStore.loadInitialState()` resolves, so
+every await in that method was a blank window. Two of them were slow and
+optional: enumerating installed external editors (a filesystem walk plus, on
+Windows, a registry read) and recovering the interrupted clone-queue journal.
+Both now run in `loadDeferredInitialState()`, which `loadInitialState()` starts
+without awaiting. The selected editor is adopted from `localStorage` so the
+shell paints with the user's real choice; the availability scan corrects it
+afterwards and drops its own answer when `externalEditorSelectionGeneration`
+shows the user picked an editor while it was running. Each deferred step is
+isolated and reports failures through `sendNonFatalException('deferredStartup')`
+rather than swallowing them. No timers were introduced anywhere in that path.
+
+`repository.tsx` previously imported seven substantial section modules
+statically (Actions, Releases, Cheap LFS, Issues, GitHub API explorer, provider
+triage, repository tools), so all seven were evaluated at launch even in a
+session that only looked at Changes. They are now `import type` for their props
+plus `import(/* webpackMode: "eager" */ …)` for evaluation, rendered through a
+new `LazyView`. Eager mode is deliberate: the app is one bundle, so what is
+deferred is module *evaluation*, and no new chunk files or packaging changes are
+introduced. Changes and History stay static. A failing section shows a local
+`role="alert"` surface naming the real error with a working retry, plus a
+persistent corner notification — never a modal, never a focus move.
+
+`app/src/lib/progressive-load.ts` holds the ordering rules once:
+`LatestLoadGate` refuses a token that is not strictly newer than the last
+accepted one, and `ProgressiveLoad.run()` never rejects, turning a rejection
+into a `failed` state carrying the real `Error`. It is used by `LazyView` and by
+the submodule/subtree count loaders in `repository.tsx`, which also stop
+discarding their failure reason in a bare `catch {}`.
+
+Local evidence: `progressive-load-test.ts` **21/21**, `ui/lazy-view-test.tsx`
+**10/10**, `progressive-startup-test.ts` **13/13**; eslint and prettier clean on
+every changed file. `npx tsc --noEmit` reports **720 errors before and 720
+after** — the entire baseline comes from `dugite`, `registry-js` and
+`@github/copilot-sdk` being absent from this host's `node_modules`, and none of
+the errors are in the changed files. Startup timing was **not measured**: no
+packaged build was produced on that host, so the improvement is argued from what
+no longer blocks the first paint, not from a number.
+
+The 720 pre-existing `tsc` errors were an artifact of that worktree's
+environment, not of the tree: the agent's worktree was missing the
+`app/node_modules` junction, so `dugite`, `registry-js` and
+`@github/copilot-sdk` could not resolve. In the main checkout, after this merge,
+`npx tsc --noEmit` exits 0.
+
 ## 2026-07-27 — Funny-level sliders moved to Appearance → Tone (locally verified, Refs #83)
 
 The sliders were never absent from the build — they rendered on **Settings →

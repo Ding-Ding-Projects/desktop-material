@@ -753,6 +753,7 @@ import {
 import { parseRemote } from '../../lib/remote-parsing'
 import { createTutorialRepository } from './helpers/create-tutorial-repository'
 import { sendNonFatalException } from '../helpers/non-fatal-exception'
+import { asError } from '../progressive-load'
 import { getDefaultDir } from '../../ui/lib/default-dir'
 import { WorkflowPreferences } from '../../models/workflow-preferences'
 import {
@@ -1649,6 +1650,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private uncommittedChangesStrategy = defaultUncommittedChangesStrategy
 
   private selectedExternalEditor: string | null = null
+
+  /**
+   * Bumped every time the selected editor is set.
+   *
+   * The startup availability scan captures this before it starts and compares
+   * it afterwards, so a choice the user makes while the scan is running is
+   * never overwritten by the scan's older answer.
+   */
+  private externalEditorSelectionGeneration = 0
 
   private resolvedExternalEditor: string | null = null
 
@@ -4580,9 +4590,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
       getEnum(uncommittedChangesStrategyKey, UncommittedChangesStrategy) ??
       defaultUncommittedChangesStrategy
 
-    this.updateSelectedExternalEditor(
-      await this.lookupSelectedExternalEditor()
-    ).catch(e => log.error('Failed resolving current editor at startup', e))
+    // Adopt the editor the user last chose straight from local storage so the
+    // shell can paint immediately. Confirming it is still installed means
+    // enumerating editors across the filesystem and (on Windows) the registry,
+    // which used to hold the entire window blank until it finished; that check
+    // now runs in loadDeferredInitialState().
+    //
+    // Showing the cached choice while the check runs is safe here because a
+    // stale value cannot change what any button does: every launch path calls
+    // findEditorOrDefault() again first and reports a clear ExternalEditorError
+    // when nothing suitable is installed. Nothing is written, moved or
+    // discarded on the strength of this value.
+    this.selectedExternalEditor = localStorage.getItem(externalEditorKey)
 
     const shellValue = localStorage.getItem(shellKey)
     this.selectedShell = shellValue ? parseShell(shellValue) : DefaultShell
@@ -4704,6 +4723,81 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.selectedCopilotModels = this.loadCopilotModelSelections()
     this.byokProviders = loadBYOKProviders()
 
+    this.emitUpdateNow()
+
+    this.accountsStore.refresh()
+    void this.auditAccountOAuthScopes()
+
+    this.updateMenuLabelsForSelectedRepository()
+
+    // Everything the shell can become usable without now runs behind the first
+    // paint instead of in front of it. It is deliberately not awaited: this
+    // method resolving is what un-hides the window.
+    void this.loadDeferredInitialState()
+  }
+
+  /**
+   * Startup work the application shell does not need in order to be usable.
+   *
+   * Each item is isolated so one slow or failing piece cannot hold up or
+   * cancel the others, and no rejection is discarded — every one is logged and
+   * reported. There are no timers here: nothing is delayed to look progressive,
+   * it simply stops blocking the first paint.
+   */
+  private async loadDeferredInitialState(): Promise<void> {
+    await Promise.all([
+      this.runDeferredStartupStep('externalEditorAvailability', () =>
+        this.confirmSelectedExternalEditorIsInstalled()
+      ),
+      this.runDeferredStartupStep('cloneQueueRecovery', () =>
+        this.recoverInterruptedCloneQueue()
+      ),
+    ])
+  }
+
+  /** Run one deferred startup step, surfacing rather than swallowing failure. */
+  private async runDeferredStartupStep(
+    name: string,
+    step: () => Promise<void>
+  ): Promise<void> {
+    try {
+      await step()
+    } catch (e) {
+      const error = asError(e)
+      log.error(`Deferred startup step '${name}' failed`, error)
+      sendNonFatalException('deferredStartup', error)
+    }
+  }
+
+  /**
+   * Verify the editor adopted from local storage during startup is actually
+   * installed, and correct it if it is not.
+   *
+   * The user can pick an editor in Preferences while this scan is still
+   * running. Their explicit choice is newer than anything this scan learned,
+   * so the generation captured before the scan is compared afterwards and a
+   * superseded result is dropped instead of overwriting them.
+   */
+  private async confirmSelectedExternalEditorIsInstalled(): Promise<void> {
+    const generation = this.externalEditorSelectionGeneration
+    const installed = await this.lookupSelectedExternalEditor()
+
+    if (generation !== this.externalEditorSelectionGeneration) {
+      return
+    }
+
+    if (installed !== this.selectedExternalEditor) {
+      await this.updateSelectedExternalEditor(installed)
+      this.emitUpdate()
+      this.updateMenuLabelsForSelectedRepository()
+      return
+    }
+
+    await this._resolveCurrentEditor()
+  }
+
+  /** Restore a clone queue interrupted by the previous session ending. */
+  private async recoverInterruptedCloneQueue(): Promise<void> {
     await this.batchCloneStore.initialize()
     await this.finalizeBatchClone()
     const recoveredBatch = this.batchCloneStore.getState()
@@ -4724,13 +4818,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       }
     }
     this.autoCloneStore.start()
-
-    this.emitUpdateNow()
-
-    this.accountsStore.refresh()
-    void this.auditAccountOAuthScopes()
-
-    this.updateMenuLabelsForSelectedRepository()
+    this.emitUpdate()
   }
 
   /**
@@ -4958,6 +5046,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     selectedEditor: string | null
   ): Promise<void> {
     this.selectedExternalEditor = selectedEditor
+    this.externalEditorSelectionGeneration += 1
 
     // Make sure we keep the resolved (cached) editor
     // in sync when the user changes their editor choice.

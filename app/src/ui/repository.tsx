@@ -51,16 +51,18 @@ import {
   accountSupportsActions,
   ActionsStore,
 } from '../lib/stores/actions-store'
-import { ActionsView } from './actions'
+import type { ActionsView } from './actions'
 import {
   getGitHubReleasesAvailability,
   GitHubReleasesStore,
 } from '../lib/stores/github-releases-store'
-import { GitHubDistributionView } from './github-packages'
-import { GitHubIssuesView } from './github-issues'
-import { GitHubAPIExplorer } from './github-api-explorer'
-import { CheapLfs, RepositoryTools } from './repository-tools'
-import { RepositoryProviderTriage } from './repository-tools/provider-triage'
+import type { GitHubDistributionView } from './github-packages'
+import type { GitHubIssuesView } from './github-issues'
+import type { GitHubAPIExplorer } from './github-api-explorer'
+import type { CheapLfs, RepositoryTools } from './repository-tools'
+import type { RepositoryProviderTriage } from './repository-tools/provider-triage'
+import { LazyView, lazyViewModule } from './lib/lazy-view'
+import { asError, LatestLoadGate } from '../lib/progressive-load'
 import { RepositorySettingsTab } from './repository-settings/repository-settings'
 import {
   getRepositorySections,
@@ -75,6 +77,90 @@ import {
 import { MaterialSymbol } from './lib/material-symbol'
 import { t } from '../lib/i18n'
 import { confirmAndCancelCheapLfsTransfer } from './changes/cheap-lfs-cancel-confirmation'
+
+/*
+ * Deferred repository sections.
+ *
+ * Changes and History are what the app opens on, so they stay statically
+ * imported and are ready the instant the shell paints. Everything below pulls
+ * in a substantial component tree — Actions run inspection, releases, Cheap
+ * LFS, issues, the API explorer, provider triage, the tools surface — that a
+ * given session may never look at, and until now every one of them was
+ * evaluated during startup regardless.
+ *
+ * Desktop Material ships as a single bundle, so what is deferred here is each
+ * module's top-level evaluation rather than a download. `webpackMode: "eager"`
+ * is deliberate: it keeps these modules inside the existing bundle (no new
+ * chunk files, no packaging or publicPath change) while still holding back
+ * their execution until the section is actually opened. The evaluation is
+ * cached afterwards, so returning to a section is instant.
+ */
+type ActionsViewProps = React.ComponentProps<typeof ActionsView>
+type GitHubDistributionViewProps = React.ComponentProps<
+  typeof GitHubDistributionView
+>
+type CheapLfsProps = React.ComponentProps<typeof CheapLfs>
+type GitHubIssuesViewProps = React.ComponentProps<typeof GitHubIssuesView>
+type GitHubAPIExplorerProps = React.ComponentProps<typeof GitHubAPIExplorer>
+type RepositoryProviderTriageProps = React.ComponentProps<
+  typeof RepositoryProviderTriage
+>
+type RepositoryToolsProps = React.ComponentProps<typeof RepositoryTools>
+
+const ActionsViewModule = lazyViewModule<ActionsViewProps>(
+  'repository-section.actions',
+  () => import(/* webpackMode: "eager" */ './actions').then(m => m.ActionsView)
+)
+
+const GitHubDistributionViewModule =
+  lazyViewModule<GitHubDistributionViewProps>(
+    'repository-section.releases',
+    () =>
+      import(/* webpackMode: "eager" */ './github-packages').then(
+        m => m.GitHubDistributionView
+      )
+  )
+
+const CheapLfsModule = lazyViewModule<CheapLfsProps>(
+  'repository-section.cheap-lfs',
+  () =>
+    import(/* webpackMode: "eager" */ './repository-tools').then(
+      m => m.CheapLfs
+    )
+)
+
+const GitHubIssuesViewModule = lazyViewModule<GitHubIssuesViewProps>(
+  'repository-section.issues',
+  () =>
+    import(/* webpackMode: "eager" */ './github-issues').then(
+      m => m.GitHubIssuesView
+    )
+)
+
+const GitHubAPIExplorerModule = lazyViewModule<GitHubAPIExplorerProps>(
+  'repository-section.github-api',
+  () =>
+    import(/* webpackMode: "eager" */ './github-api-explorer').then(
+      m => m.GitHubAPIExplorer
+    )
+)
+
+const RepositoryProviderTriageModule =
+  lazyViewModule<RepositoryProviderTriageProps>(
+    'repository-section.triage',
+    () =>
+      import(
+        /* webpackMode: "eager" */ './repository-tools/provider-triage'
+      ).then(m => m.RepositoryProviderTriage)
+  )
+
+const RepositoryToolsModule = lazyViewModule<RepositoryToolsProps>(
+  'repository-section.tools',
+  () =>
+    import(/* webpackMode: "eager" */ './repository-tools').then(
+      m => m.RepositoryTools
+    )
+)
 
 interface IRepositoryViewProps {
   readonly repository: Repository
@@ -226,6 +312,17 @@ export class RepositoryView extends React.Component<
   private repositoryViewUnmounted = false
   private submoduleOpenFromDiffInFlight = false
 
+  /**
+   * Ordering gates for the two counts loaded per repository.
+   *
+   * Selecting repository A, then B, then A again starts three overlapping
+   * counts whose repository hashes all pass a simple equality check. Only the
+   * newest may write, or a slow early result can silently repaint the badge
+   * with a number from a previous selection.
+   */
+  private readonly submoduleCountGate = new LatestLoadGate()
+  private readonly subtreeCountGate = new LatestLoadGate()
+
   public constructor(props: IRepositoryViewProps) {
     super(props)
 
@@ -239,21 +336,36 @@ export class RepositoryView extends React.Component<
     }
   }
 
+  /**
+   * True when `token`'s result may still be written to state: the view is
+   * mounted, the repository has not changed under it, and no newer load of the
+   * same count has already landed.
+   */
+  private canApplyCount(
+    repository: Repository,
+    gate: LatestLoadGate,
+    token: number
+  ): boolean {
+    return (
+      !this.repositoryViewUnmounted &&
+      this.props.repository.hash === repository.hash &&
+      gate.accept(token)
+    )
+  }
+
   private loadSubmoduleCount = async () => {
     const repository = this.props.repository
+    const token = this.submoduleCountGate.begin()
     try {
       const submodules = await this.props.dispatcher.getSubmodules(repository)
-      if (
-        !this.repositoryViewUnmounted &&
-        this.props.repository.hash === repository.hash
-      ) {
+      if (this.canApplyCount(repository, this.submoduleCountGate, token)) {
         this.setState({ submoduleCount: submodules.length })
       }
-    } catch {
-      if (
-        !this.repositoryViewUnmounted &&
-        this.props.repository.hash === repository.hash
-      ) {
+    } catch (e) {
+      // The badge falls back to "unknown", but the reason it is unknown is
+      // written down rather than thrown away.
+      log.warn(`Could not count submodules in ${repository.name}`, asError(e))
+      if (this.canApplyCount(repository, this.submoduleCountGate, token)) {
         this.setState({ submoduleCount: null })
       }
     }
@@ -268,19 +380,15 @@ export class RepositoryView extends React.Component<
 
   private loadSubtreeCount = async () => {
     const repository = this.props.repository
+    const token = this.subtreeCountGate.begin()
     try {
       const subtrees = await this.props.dispatcher.getSubtrees(repository)
-      if (
-        !this.repositoryViewUnmounted &&
-        this.props.repository.hash === repository.hash
-      ) {
+      if (this.canApplyCount(repository, this.subtreeCountGate, token)) {
         this.setState({ subtreeCount: subtrees.length })
       }
-    } catch {
-      if (
-        !this.repositoryViewUnmounted &&
-        this.props.repository.hash === repository.hash
-      ) {
+    } catch (e) {
+      log.warn(`Could not count subtrees in ${repository.name}`, asError(e))
+      if (this.canApplyCount(repository, this.subtreeCountGate, token)) {
         this.setState({ subtreeCount: null })
       }
     }
@@ -359,6 +467,23 @@ export class RepositoryView extends React.Component<
       return RepositorySectionTab.Changes
     }
     return section
+  }
+
+  /**
+   * A deferred section failed to evaluate.
+   *
+   * This informs; it never asks the user to decide anything, so it becomes a
+   * corner notification (errors persist until dismissed) rather than a modal.
+   * The section itself keeps its own local failure surface and retry button,
+   * and every other part of the window stays usable.
+   */
+  private onLazyViewLoadFailed = (name: string, error: Error) => {
+    this.props.dispatcher.postNotification({
+      kind: 'app-error',
+      title: t('lazyView.notificationTitle', { name }),
+      body: t('lazyView.notificationBody', { name, error: error.message }),
+      repositoryId: this.props.repository.id,
+    })
   }
 
   private onHideGitHubAPI = () => {
@@ -1259,80 +1384,120 @@ export class RepositoryView extends React.Component<
         ),
       ].filter((branch, index, all) => all.indexOf(branch) === index)
       return (
-        <ActionsView
-          repository={this.props.repository}
-          currentBranch={currentBranch}
-          branchNames={branches}
-          actionsStore={this.props.actionsStore}
+        <LazyView
+          key={ActionsViewModule.id}
+          view={ActionsViewModule}
+          name={t('lazyView.section.actions')}
+          onLoadFailed={this.onLazyViewLoadFailed}
+          viewProps={{
+            repository: this.props.repository,
+            currentBranch,
+            branchNames: branches,
+            actionsStore: this.props.actionsStore,
+          }}
         />
       )
     } else if (selectedSection === RepositorySectionTab.Releases) {
       return (
-        <GitHubDistributionView
-          repository={this.props.repository}
-          accounts={this.props.accounts}
-          releasesStore={this.props.releasesStore}
+        <LazyView
+          key={GitHubDistributionViewModule.id}
+          view={GitHubDistributionViewModule}
+          name={t('lazyView.section.releases')}
+          onLoadFailed={this.onLazyViewLoadFailed}
+          viewProps={{
+            repository: this.props.repository,
+            accounts: this.props.accounts,
+            releasesStore: this.props.releasesStore,
+          }}
         />
       )
     } else if (selectedSection === RepositorySectionTab.CheapLfs) {
       return (
         <div className="cheap-lfs-manager-view">
-          <CheapLfs
-            repository={this.props.repository}
-            accounts={this.props.accounts}
-            dispatcher={this.props.dispatcher}
+          <LazyView
+            key={CheapLfsModule.id}
+            view={CheapLfsModule}
+            name={t('cheapLfs.managerRail')}
+            onLoadFailed={this.onLazyViewLoadFailed}
+            viewProps={{
+              repository: this.props.repository,
+              accounts: this.props.accounts,
+              dispatcher: this.props.dispatcher,
+            }}
           />
         </div>
       )
     } else if (selectedSection === RepositorySectionTab.Issues) {
       return (
-        <GitHubIssuesView
-          repository={this.props.repository}
-          accounts={this.props.accounts}
-          issuesStore={this.props.issueWorkflowsStore}
-          dispatcher={this.props.dispatcher}
+        <LazyView
+          key={GitHubIssuesViewModule.id}
+          view={GitHubIssuesViewModule}
+          name={t('lazyView.section.issues')}
+          onLoadFailed={this.onLazyViewLoadFailed}
+          viewProps={{
+            repository: this.props.repository,
+            accounts: this.props.accounts,
+            issuesStore: this.props.issueWorkflowsStore,
+            dispatcher: this.props.dispatcher,
+          }}
         />
       )
     } else if (selectedSection === RepositorySectionTab.GitHubAPI) {
       return (
-        <GitHubAPIExplorer
-          repository={this.props.repository}
-          accounts={this.props.accounts}
-          functionRegistry={this.props.dispatcher}
-          surface="functions"
-          autoCreateFunctions={true}
-          onHide={this.onHideGitHubAPI}
+        <LazyView
+          key={GitHubAPIExplorerModule.id}
+          view={GitHubAPIExplorerModule}
+          name={t('githubApi.railLabel')}
+          onLoadFailed={this.onLazyViewLoadFailed}
+          viewProps={{
+            repository: this.props.repository,
+            accounts: this.props.accounts,
+            functionRegistry: this.props.dispatcher,
+            surface: 'functions',
+            autoCreateFunctions: true,
+            onHide: this.onHideGitHubAPI,
+          }}
         />
       )
     } else if (selectedSection === RepositorySectionTab.Triage) {
       return (
-        <RepositoryProviderTriage
-          repository={this.props.repository}
-          accounts={this.props.accounts}
-          onAssociateAccount={this.onAssociateProviderTriageAccount}
-          onSignIn={this.onShowAccounts}
-          onManageAccounts={this.onShowAccounts}
-          onChooseRepositoryAccount={this.onShowRepositoryAccount}
-          onReauthenticateAccount={this.onShowAccounts}
+        <LazyView
+          key={RepositoryProviderTriageModule.id}
+          view={RepositoryProviderTriageModule}
+          name={t('lazyView.section.triage')}
+          onLoadFailed={this.onLazyViewLoadFailed}
+          viewProps={{
+            repository: this.props.repository,
+            accounts: this.props.accounts,
+            onAssociateAccount: this.onAssociateProviderTriageAccount,
+            onSignIn: this.onShowAccounts,
+            onManageAccounts: this.onShowAccounts,
+            onChooseRepositoryAccount: this.onShowRepositoryAccount,
+            onReauthenticateAccount: this.onShowAccounts,
+          }}
         />
       )
     } else if (selectedSection === RepositorySectionTab.RepositoryTools) {
       return (
-        <RepositoryTools
-          repository={this.props.repository}
-          repositoryPath={this.props.repository.path}
-          onRefreshRepository={this.refreshRepository}
-          submoduleCount={this.state.submoduleCount}
-          onOpenSubmoduleManager={this.onOpenSubmoduleManager}
-          subtreeCount={this.state.subtreeCount}
-          onOpenSubtreeManager={this.onOpenSubtreeManager}
-          tagLifecycleDispatcher={this.props.dispatcher}
-          githubProjects={{
+        <LazyView
+          key={RepositoryToolsModule.id}
+          view={RepositoryToolsModule}
+          name={t('lazyView.section.tools')}
+          onLoadFailed={this.onLazyViewLoadFailed}
+          viewProps={{
             repository: this.props.repository,
-            accounts: this.props.accounts,
-          }}
-          githubAPIFunctions={
-            this.canUseGitHubAPI()
+            repositoryPath: this.props.repository.path,
+            onRefreshRepository: this.refreshRepository,
+            submoduleCount: this.state.submoduleCount,
+            onOpenSubmoduleManager: this.onOpenSubmoduleManager,
+            subtreeCount: this.state.subtreeCount,
+            onOpenSubtreeManager: this.onOpenSubtreeManager,
+            tagLifecycleDispatcher: this.props.dispatcher,
+            githubProjects: {
+              repository: this.props.repository,
+              accounts: this.props.accounts,
+            },
+            githubAPIFunctions: this.canUseGitHubAPI()
               ? {
                   repository: this.props.repository,
                   accounts: this.props.accounts,
@@ -1340,13 +1505,13 @@ export class RepositoryView extends React.Component<
                   autoCreateFunctions: true,
                   onShowAPI: this.onShowGitHubAPI,
                 }
-              : undefined
-          }
-          cheapLfs={{
-            repository: this.props.repository,
-            accounts: this.props.accounts,
-            dispatcher: this.props.dispatcher,
-            available: this.showsGitHubReleases(),
+              : undefined,
+            cheapLfs: {
+              repository: this.props.repository,
+              accounts: this.props.accounts,
+              dispatcher: this.props.dispatcher,
+              available: this.showsGitHubReleases(),
+            },
           }}
         />
       )

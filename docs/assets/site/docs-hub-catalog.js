@@ -238,6 +238,13 @@
       d: 'Builds on the audio system to give each meaningful app event its own recognizable sound effect instead of routing everything through the shared commit / auto-commit cue. It…',
     },
     {
+      t: 'Tone: the per-language funny-level sliders',
+      h: 'features/design-system/tone-funny-level.html',
+      s: 'features/design-system/tone-funny-level.md',
+      c: 'features',
+      d: "Two independent sliders — one for English, one for Cantonese — set how playful the app's copy reads, from 1 (fully serious) to 5 (maximum playfulness). They live on Settings →…",
+    },
+    {
       t: 'GitHub Desktop demand backlog coverage',
       h: 'features/github-desktop-demand-backlog.html',
       s: 'features/github-desktop-demand-backlog.md',
@@ -614,6 +621,13 @@
       s: 'features/quality-and-reliability/peer-closed-stream-writes.md',
       c: 'features',
       d: 'A write that finishes after the thing on the other end already went away is a routine event, not a crash. This document describes how Desktop Material contains that class of…',
+    },
+    {
+      t: 'Progressive asynchronous lazy loading',
+      h: 'features/quality-and-reliability/progressive-lazy-loading.html',
+      s: 'features/quality-and-reliability/progressive-lazy-loading.md',
+      c: 'features',
+      d: 'Desktop Material renders its shell and safe cached state as soon as it can, and finishes the expensive work behind that first paint. Surfaces that a session may never open are…',
     },
     {
       t: 'Quality and reliability',

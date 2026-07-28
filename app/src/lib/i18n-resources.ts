@@ -2338,6 +2338,22 @@ export type TranslationKey =
   | 'largeRepo.settings.autoDetectDescription'
   | 'largeRepo.settings.autoRepack'
   | 'largeRepo.settings.autoRepackDescription'
+  | 'lazyView.loading.plain'
+  | 'lazyView.loading.light'
+  | 'lazyView.loading.playful'
+  | 'lazyView.failedTitle'
+  | 'lazyView.failedBody.plain'
+  | 'lazyView.failedBody.light'
+  | 'lazyView.failedBody.playful'
+  | 'lazyView.failedDetail'
+  | 'lazyView.retry'
+  | 'lazyView.notificationTitle'
+  | 'lazyView.notificationBody'
+  | 'lazyView.section.actions'
+  | 'lazyView.section.releases'
+  | 'lazyView.section.issues'
+  | 'lazyView.section.triage'
+  | 'lazyView.section.tools'
   | 'largeRepo.status.computing'
   | 'largeRepo.repack.progressTitle'
   | 'largeRepo.repack.progressBody'
@@ -5556,6 +5572,32 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'largeRepo.settings.autoRepack': 'Repack large repositories when idle',
   'largeRepo.settings.autoRepackDescription':
     'Run one controlled git repack at a quiet moment, with a non-blocking progress notification.',
+  // Deferred surfaces. The three bands are the funny-level voice (1-2 plain, 3
+  // light, 4-5 playful). Every band names the exact surface being loaded and
+  // says the same thing about it, because the voice moves and the facts do
+  // not. The failure title, the reported error and the retry label carry no
+  // bands at all — they are the facts the user acts on.
+  'lazyView.loading.plain': 'Loading {name}…',
+  'lazyView.loading.light': 'Fetching {name}. The rest of the app still works.',
+  'lazyView.loading.playful':
+    'Waking {name} up. Everything else keeps working while it stretches.',
+  'lazyView.failedTitle': '{name} could not be loaded',
+  'lazyView.failedBody.plain':
+    'Nothing else in the app was affected. Select Try again to load {name} once more.',
+  'lazyView.failedBody.light':
+    'Only {name} is affected — the rest of the app is fine. Select Try again to load it once more.',
+  'lazyView.failedBody.playful':
+    '{name} tripped on the doorstep; the rest of the app never noticed. Select Try again to give it another go.',
+  'lazyView.failedDetail': 'Reported error: {error}',
+  'lazyView.retry': 'Try again',
+  'lazyView.notificationTitle': 'Could not open {name}',
+  'lazyView.notificationBody':
+    '{name} failed to load and is showing a retry button. Nothing else was affected. Reported error: {error}',
+  'lazyView.section.actions': 'Actions',
+  'lazyView.section.releases': 'Releases',
+  'lazyView.section.issues': 'Issues',
+  'lazyView.section.triage': 'Triage',
+  'lazyView.section.tools': 'Repository tools',
   'largeRepo.status.computing': 'Checking for local changes…',
   'largeRepo.repack.progressTitle': 'Optimizing large repository',
   'largeRepo.repack.progressBody': 'Repacking {name} in the background…',
@@ -8576,6 +8618,26 @@ export const cantoneseTranslations: Readonly<
   'largeRepo.settings.autoRepack': '得閒就同大型 repository repack',
   'largeRepo.settings.autoRepackDescription':
     '揀個靜靜時做一次受控嘅 git repack，會有唔阻手嘅進度通知。',
+  'lazyView.loading.plain': '載入緊 {name}…',
+  'lazyView.loading.light': '拎緊 {name} 出嚟，其他部分照用得。',
+  'lazyView.loading.playful': '嗌緊 {name} 起身，佢伸緊懶腰，其他嘢照玩。',
+  'lazyView.failedTitle': '載入唔到 {name}',
+  'lazyView.failedBody.plain':
+    'App 其他部分冇受影響。撳「再試一次」可以再載入 {name}。',
+  'lazyView.failedBody.light':
+    '淨係 {name} 出事，App 其他部分無恙。撳「再試一次」再載入佢。',
+  'lazyView.failedBody.playful':
+    '{name} 一出門口就仆親，App 其他部分完全唔知發生咩事。撳「再試一次」畀佢再嚟過。',
+  'lazyView.failedDetail': '錯誤訊息：{error}',
+  'lazyView.retry': '再試一次',
+  'lazyView.notificationTitle': '打唔開 {name}',
+  'lazyView.notificationBody':
+    '{name} 載入失敗，嗰度有粒「再試一次」掣等你撳。其他嘢冇受影響。錯誤訊息：{error}',
+  'lazyView.section.actions': 'Actions 工作流程',
+  'lazyView.section.releases': 'Releases 發布',
+  'lazyView.section.issues': 'Issues 議題',
+  'lazyView.section.triage': 'Triage 分流',
+  'lazyView.section.tools': 'Repository 工具',
   'largeRepo.status.computing': '查緊有冇本地改動…',
   'largeRepo.repack.progressTitle': '優化緊大型 repository',
   'largeRepo.repack.progressBody': '喺背景 repack 緊 {name}…',
