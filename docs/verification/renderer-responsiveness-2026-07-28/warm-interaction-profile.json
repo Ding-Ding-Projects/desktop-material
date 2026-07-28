@@ -1,0 +1,55 @@
+{
+  "elapsedMs": 37557,
+  "eventCount": 12,
+  "eventDurationsMs": [
+    56,
+    64,
+    64,
+    64,
+    64,
+    72,
+    96,
+    104,
+    104,
+    104,
+    104,
+    104
+  ],
+  "eventP95Ms": 104,
+  "eventMaximumMs": 104,
+  "longTaskCount": 6,
+  "longTasks": [
+    {
+      "startTime": 592423.5999999978,
+      "duration": 61,
+      "name": "self"
+    },
+    {
+      "startTime": 599181.0000000037,
+      "duration": 59,
+      "name": "self"
+    },
+    {
+      "startTime": 605905.8000000007,
+      "duration": 67,
+      "name": "self"
+    },
+    {
+      "startTime": 611115.4000000022,
+      "duration": 65,
+      "name": "self"
+    },
+    {
+      "startTime": 617404.1999999993,
+      "duration": 63,
+      "name": "self"
+    },
+    {
+      "startTime": 623805.3000000007,
+      "duration": 65,
+      "name": "self"
+    }
+  ],
+  "mutationRecordCount": 1602,
+  "finalNodeCount": 338
+}

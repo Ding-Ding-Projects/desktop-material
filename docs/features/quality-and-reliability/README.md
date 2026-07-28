@@ -5,6 +5,10 @@ contracts that span more than one user workflow.
 
 ## Features
 
+- [No-op renderer update
+  suppression](no-op-render-update-suppression.md) — prevent an already-closed
+  History branch list from emitting a second global app-state update and root
+  render whenever users switch between Changes and History.
 - [Root renderer resource
   lifecycle](root-renderer-resource-lifecycle.md) — make store, updater,
   drag-manager, and IPC subscriptions disposable; retain and clear deferred

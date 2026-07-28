@@ -1,0 +1,19 @@
+{
+  "elapsedMs": 7131.79999999702,
+  "eventCount": 1,
+  "eventDurationsMs": [
+    104
+  ],
+  "eventP95Ms": 104,
+  "eventMaximumMs": 104,
+  "longTaskCount": 1,
+  "longTasks": [
+    {
+      "startTime": 646158.4000000022,
+      "duration": 62,
+      "name": "self"
+    }
+  ],
+  "mutationRecordCount": 166,
+  "finalNodeCount": 338
+}

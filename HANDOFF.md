@@ -1,5 +1,31 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-28 — Measured Changes/History renderer update suppression
+
+The exact `v3.6.3-beta3-zadughkqcv` Windows x64 portable build at
+`9bdfdb8b25e458e4834bdaa26473d44a5602621d` was driven on an isolated Lowlevel
+MCP Win32 desktop. Idle rendering was already smooth (122/122 frames at
+16.51 ms average, 16.80 ms max, zero over 25 ms), but twelve warmed
+Changes/History switches measured 56–104 ms and six 59–67 ms long tasks. A
+single Changes click measured 104 ms, one 62 ms long task, and 166 mutation
+records.
+
+`RepositoryView.onTabClicked` always dispatched
+`updateCompareForm({ showBranchList: false })` after the real section mutation.
+`AppStore._updateCompareForm` then merged and emitted even when the value was
+already false, producing a second root render for one user click. Navigation
+now dispatches only when the list is open, and a store-level equality gate
+protects every caller. Focused responsiveness, lifecycle, progressive-loading,
+and navigation coverage passes **42/42**. Changed-file ESLint is blocked because
+the reused dependency tree cannot load five repository-specific rules; it
+reports only missing rule definitions, not source findings.
+
+The mandated local production build and a direct compile diagnostic both
+reached their bounded timeouts in webpack, so no local post-fix binary is
+claimed. Repository-wide TypeScript remains red against the reused incomplete
+dependency tree; no diagnostic names the new helper or test. Exact post-fix
+timing therefore waits for the remote release produced from the pushed commit.
+
 ## 2026-07-28 — Tab-group dialogs move onto the dialog layer (Refs #92)
 
 `CreateTabGroupDialog`/`EditTabGroupDialog` rendered inline in

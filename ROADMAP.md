@@ -13,6 +13,19 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
 
+## July 28 measured repository-view responsiveness — **Fix locally verified; exact post-fix release timing pending**
+
+Lowlevel MCP exercised the exact current Windows release on an off-screen
+desktop. Idle animation stayed below 17 ms across 122 sampled frames, but warmed
+Changes/History switches measured 56–104 ms with six long tasks. Every section
+click sent an already-satisfied `showBranchList: false` update after the real
+section mutation, causing a second global app-state emission and root render.
+The rail now skips that dispatch while the list is already closed, and the
+store rejects identical partial updates from every caller. Focused tests pass
+**42/42**. Changed-file ESLint is blocked by five missing repository rule
+definitions in the reused dependency tree; exact post-fix packaged timing is
+the remaining acceptance gate.
+
 ## July 28 root renderer resource audit — **Focused gates green; build blocked by missing dependencies**
 
 Root renderer subscriptions, IPC listeners, global document/window handlers,

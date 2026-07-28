@@ -1,5 +1,16 @@
 # Developer Guide
 
+## Avoiding redundant root renders
+
+Compare-form updates flow through the root `AppStore`, so an identical update
+is not free: without an equality gate it schedules another full renderer pass.
+Repository section navigation checks whether the History branch list is
+actually open before asking to close it, and `AppStore._updateCompareForm`
+rejects identical partial updates as the final boundary.
+
+See [No-op renderer update suppression](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/quality-and-reliability/no-op-render-update-suppression.md)
+for measured baseline timings, failure modes, and the verification contract.
+
 ## Root renderer resource ownership
 
 Long-lived work created by the root renderer must be released at the same

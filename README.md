@@ -21,6 +21,14 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 
 ![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci.yml/badge.svg?branch=main)
 
+> **Measured responsiveness checkpoint — July 28, 2026:** the exact released
+> Windows build held every sampled idle frame below 17 ms, but twelve warmed
+> Changes/History switches still took 56–104 ms and produced six long tasks.
+> The navigation path was emitting an identical compare-form update after the
+> real section change, forcing a second root render. Navigation and `AppStore`
+> now suppress that no-op; focused responsiveness and adjacent lifecycle/lazy
+> loading coverage passes **42/42**. Exact post-fix release timing is pending.
+
 > **Local reliability checkpoint — July 28, 2026:** the root renderer now owns
 > and releases its store/updater/drag/IPC subscriptions, telemetry and update
 > polling timers, and global document/window handlers. Queued idle and
