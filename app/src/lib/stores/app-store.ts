@@ -146,8 +146,8 @@ import {
   acquireCheapLfsOperationPassword,
   cleanupLegacyCheapLfsPayloadPasswords,
   forgetSavedCheapLfsPayloadPassword,
-  hasSavedCheapLfsPayloadPassword,
   ICheapLfsOperationPassword,
+  readSavedCheapLfsPayloadPassword,
   saveCheapLfsPayloadPassword,
 } from '../cheap-lfs/payload-encryption-credentials'
 import {
@@ -934,12 +934,10 @@ class CheapLfsPasswordPromptCanceledError extends Error {
   }
 }
 
-class CheapLfsBackgroundPasswordUnavailableError extends Error {
+class CheapLfsUnattendedPinSkippedAllError extends Error {
   public constructor() {
-    super(
-      'The encrypted Cheap LFS background commit stopped because no usable saved password was available from Windows Credential Manager. No upload was started.'
-    )
-    this.name = 'CheapLfsBackgroundPasswordUnavailableError'
+    super('Every selected file was safely excluded from the unattended commit.')
+    this.name = 'CheapLfsUnattendedPinSkippedAllError'
   }
 }
 
@@ -4166,17 +4164,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         action: { kind: 'open-repository', repositoryId: repository.id },
       })
     } catch (error) {
-      if (error instanceof CheapLfsBackgroundPasswordUnavailableError) {
-        this.postPersistentErrorNotice(
-          t('cheapLfs.encryption.dialog.commitTitle'),
-          translateWithFunnyLevel(
-            'cheapLfs.encryption.backgroundCommitBlocked',
-            getPersistedLanguageMode(),
-            readFunnyLevels()
-          ),
-          `cheap-lfs-background-password-required:${repository.id}`,
-          repository.id
-        )
+      if (error instanceof CheapLfsUnattendedPinSkippedAllError) {
         return
       }
       throw error
@@ -6688,9 +6676,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
         if (!this.isTemporaryRepositoryActive(repository)) {
           return false
         }
-        if (error instanceof CheapLfsBackgroundPasswordUnavailableError) {
-          throw error
-        }
         if (!wasUserCanceled) {
           this.emitError(
             error instanceof Error ? error : new Error(String(error))
@@ -6753,11 +6738,27 @@ export class AppStore extends TypedBaseStore<IAppState> {
           repository,
           alreadyStoredCheapLfsPaths
         )
-        this.postCheapLfsPinFailureNotification(repository, pinFailures)
+        const ordinaryPinFailures = pinFailures.filter(
+          failure =>
+            failure.reasonKey !== 'cheapLfs.unattendedEncryption.reason'
+        )
+        this.postCheapLfsPinFailureNotification(repository, ordinaryPinFailures)
 
         // A failed large-file pin must never be converted into an allow-empty
         // commit. Leave it selected in Changes for a later retry instead.
         if (pinFailures.length > 0 && selectedFiles.length === 0) {
+          if (
+            isBackgroundTask &&
+            pinFailures.some(
+              failure =>
+                failure.reasonKey === 'cheapLfs.unattendedEncryption.reason'
+            )
+          ) {
+            // The file-aware notice was already posted before any provider or
+            // Git mutation. Mark the no-safe-file outcome as handled so the
+            // scheduler cannot add a second generic failure notification.
+            throw new CheapLfsUnattendedPinSkippedAllError()
+          }
           return false
         }
       }
@@ -15136,8 +15137,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private async acquireCheapLfsEncryptionPassword(
     repository: Repository,
     requiredForEncryptedPointer: boolean = false,
-    context?: CheapLfsPayloadPasswordContext,
-    allowPrompt: boolean = true
+    context?: CheapLfsPayloadPasswordContext
   ): Promise<ICheapLfsOperationPassword | undefined> {
     const preferences =
       repository.buildRunPreferences ?? defaultBuildRunPreferences
@@ -15153,9 +15153,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       repository,
       requiredForEncryptedPointer ? 'decrypt' : 'encrypt',
       purpose =>
-        allowPrompt
-          ? this.promptForCheapLfsPayloadPassword(repository, purpose, context)
-          : Promise.resolve(null),
+        this.promptForCheapLfsPayloadPassword(repository, purpose, context),
       () =>
         this.postPersistentErrorNotice(
           t('cheapLfs.encryption.title'),
@@ -15165,9 +15163,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
         )
     )
     if (credential === null) {
-      if (!allowPrompt) {
-        throw new CheapLfsBackgroundPasswordUnavailableError()
-      }
       throw this.cheapLfsPasswordPromptCanceled()
     }
     return credential
@@ -15179,8 +15174,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * cancellation throws before release anchoring or any upload can begin.
    */
   private async acquireCheapLfsCommitEncryptionPassword(
-    repository: Repository,
-    isBackgroundTask: boolean = false
+    repository: Repository
   ): Promise<ICheapLfsOperationPassword | undefined> {
     const preferences =
       repository.buildRunPreferences ?? defaultBuildRunPreferences
@@ -15193,8 +15187,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const credential = await this.acquireCheapLfsEncryptionPassword(
       repository,
       false,
-      'commit-auto-pin',
-      !isBackgroundTask
+      'commit-auto-pin'
     )
     if (credential === undefined) {
       throw new Error(
@@ -15205,8 +15198,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /**
-   * Decide whether an automatic commit must abandon its encrypted pin, and if
-   * so build every surface that reports it.
+   * Resolve the one credential decision an unattended encrypted pin is allowed
+   * to make before any provider or Git mutation.
    *
    * A scheduled commit runs with nobody in front of the app. Asking it for a
    * password means opening a modal on an unattended machine and waiting for a
@@ -15215,15 +15208,30 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * left in the working tree and out of the commit and the reason is stated
    * on the failure rows, in the commit terminal, and on a non-blocking notice.
    *
-   * Returns `null` whenever the pin may go ahead — every interactive commit,
-   * and every automatic commit whose repository is either unencrypted or has a
-   * password deliberately saved to the operating-system vault.
+   * Interactive and unencrypted commits return `null` without consulting the
+   * vault. An encrypted background commit reads the vault exactly once and
+   * transfers either its owned password buffer or the complete file-aware skip
+   * outcome to the caller. This prevents a saved/missing race from opening a
+   * modal on an unattended machine.
    */
-  private async skipUnattendedCheapLfsEncryptedPin(
+  private async resolveUnattendedCheapLfsEncryptedPin(
     repository: Repository,
     targets: ReadonlyArray<ICheapLfsUnattendedSkipTarget>,
     isBackgroundTask: boolean
-  ): Promise<ReturnType<typeof buildCheapLfsUnattendedEncryptionSkip> | null> {
+  ): Promise<
+    | {
+        readonly kind: 'credential'
+        /** Caller ownership transfers to `encryptionPassword` and its `finally`. */
+        readonly password: Buffer
+      }
+    | {
+        readonly kind: 'skip'
+        readonly outcome: ReturnType<
+          typeof buildCheapLfsUnattendedEncryptionSkip
+        >
+      }
+    | null
+  > {
     const preferences =
       repository.buildRunPreferences ?? defaultBuildRunPreferences
     const encryptionEnabled =
@@ -15234,25 +15242,34 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (!isBackgroundTask || !encryptionEnabled) {
       return null
     }
+    const savedPassword = await readSavedCheapLfsPayloadPassword(repository)
     const decision = decideCheapLfsUnattendedEncryption({
       isBackgroundTask,
       encryptionEnabled,
-      savedPassword: await hasSavedCheapLfsPayloadPassword(repository),
+      savedPassword: savedPassword.kind,
     })
     if (decision === 'proceed') {
-      return null
-    }
-    return buildCheapLfsUnattendedEncryptionSkip(
-      targets,
-      repository.id,
-      (base, variables) =>
-        translateWithFunnyLevel(
-          base,
-          getPersistedLanguageMode(),
-          readFunnyLevels(),
-          variables
+      if (savedPassword.kind !== 'saved') {
+        throw new Error(
+          'The unattended encryption decision proceeded without a saved password.'
         )
-    )
+      }
+      return { kind: 'credential', password: savedPassword.password }
+    }
+    return {
+      kind: 'skip',
+      outcome: buildCheapLfsUnattendedEncryptionSkip(
+        targets,
+        repository.id,
+        (base, variables) =>
+          translateWithFunnyLevel(
+            base,
+            getPersistedLanguageMode(),
+            readFunnyLevels(),
+            variables
+          )
+      ),
+    }
   }
 
   /**
@@ -17161,32 +17178,33 @@ export class AppStore extends TypedBaseStore<IAppState> {
         // An unattended commit cannot be asked for a password, and an encrypted
         // repository has no other way to produce one. Decide that before the
         // anchor runs, so a skip publishes nothing and uploads nothing.
-        const unattendedSkip = await this.skipUnattendedCheapLfsEncryptedPin(
-          repository,
-          releaseEligibleTargets,
-          isBackgroundTask
-        )
-        if (unattendedSkip !== null) {
-          reportProgress(unattendedSkip.progress)
+        const unattendedResolution =
+          await this.resolveUnattendedCheapLfsEncryptedPin(
+            repository,
+            releaseEligibleTargets,
+            isBackgroundTask
+          )
+        if (unattendedResolution?.kind === 'skip') {
+          const { outcome } = unattendedResolution
+          reportProgress(outcome.progress)
           this.postPersistentErrorNotice(
-            unattendedSkip.notice.title,
-            unattendedSkip.notice.body,
-            unattendedSkip.notice.dedupeKey,
+            outcome.notice.title,
+            outcome.notice.body,
+            outcome.notice.dedupeKey,
             repository.id
           )
           return {
             pinned: [],
-            failures: mergeFailures(unattendedSkip.failures),
+            failures: mergeFailures(outcome.failures),
             commitPaths: [],
             alreadyStoredPaths: alreadyStored,
           }
         }
-        encryptionPassword = (
-          await this.acquireCheapLfsCommitEncryptionPassword(
-            repository,
-            isBackgroundTask
-          )
-        )?.password
+        encryptionPassword =
+          unattendedResolution?.kind === 'credential'
+            ? unattendedResolution.password
+            : (await this.acquireCheapLfsCommitEncryptionPassword(repository))
+                ?.password
       }
       const anchor: ICheapLfsReleaseAnchorOutcome =
         releaseEligibleTargets.length === 0

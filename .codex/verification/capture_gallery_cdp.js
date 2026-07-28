@@ -3421,11 +3421,11 @@ scene('repository-tools-scroll', async () => {
 })
 
 /**
- * Exercise the production scheduled-commit handler with its real typed
- * no-password outcome while replacing only the expensive Git/provider seams.
- * The verifier uses a synthetic repository identity which cannot match a
- * developer credential, and restores every temporary instance override before
- * returning.
+ * Exercise the production scheduled-commit handler, its single-read unattended
+ * encryption resolver, and the production nonblocking notice while replacing
+ * only the expensive Git/provider commit seam. The verifier uses a synthetic
+ * repository identity which cannot match a developer credential and restores
+ * every temporary instance override before returning.
  */
 async function postBackgroundCommitPasswordNotice() {
   const result = await evaluate(`(async () => {
@@ -3490,15 +3490,38 @@ async function postBackgroundCommitPasswordNotice() {
             'The scheduled commit did not forward its background-task flag.'
           )
         }
-        const unexpectedCredential =
-          await appStore.acquireCheapLfsCommitEncryptionPassword(
+        const resolution =
+          await appStore.resolveUnattendedCheapLfsEncryptedPin(
             encryptedRepository,
+            [
+              {
+                relativePath: 'evidence/oversized-encrypted.bin',
+                sizeInBytes: 125829120,
+              },
+            ],
             isBackgroundTask
           )
-        unexpectedCredential?.password?.fill(0)
-        throw new Error(
-          'The synthetic issue-87 credential identity unexpectedly resolved.'
+        if (resolution?.kind === 'credential') {
+          resolution.password.fill(0)
+          throw new Error(
+            'The synthetic issue-87 credential identity unexpectedly resolved.'
+          )
+        }
+        if (resolution?.kind !== 'skip') {
+          throw new Error(
+            'The unattended encrypted commit did not produce its safe skip.'
+          )
+        }
+        const { notice } = resolution.outcome
+        appStore.postPersistentErrorNotice(
+          notice.title,
+          notice.body,
+          notice.dedupeKey,
+          encryptedRepository.id
         )
+        // This synthetic seam represents the safe selected changes completing;
+        // the resolver above owns the real missing-password decision and notice.
+        return true
       }
     )
 
@@ -3545,17 +3568,19 @@ async function postBackgroundCommitPasswordNotice() {
   }
 
   await waitFor(
-    `[...document.querySelectorAll('.error-notice')].some(notice => {
+    `[...document.querySelectorAll('.error-notice')].filter(notice => {
       const text = vt(notice)
-      return text.includes('Password required before encrypted commit') &&
-        text.includes('scheduled commit') &&
+      return text.includes('Automatic commit did not pin large files') &&
+        text.includes('evidence/oversized-encrypted.bin') &&
+        text.includes('1 total') &&
         text.includes('Windows Credential Manager') &&
-        text.includes('No Release anchor was created') &&
-        text.includes('no upload started') &&
-        /plaintext fallback|fall back to plaintext/.test(text) &&
+        /Nothing was encrypted(?: or|\\/) uploaded/.test(text) &&
+        text.includes('no Release anchor was created') &&
+        text.includes('Unchanged and out of the commit') &&
+        /Other (?:selected )?changes remain eligible/.test(text) &&
         text.includes('Repository settings > Large files & storage') &&
-        text.includes('retry')
-    })`,
+        text.includes('Retry interactively')
+    }).length === 1`,
     'localized nonblocking background encryption notice'
   )
 }
@@ -3730,6 +3755,256 @@ scene('cheap-lfs-commit-password-evidence', async () => {
       'closed commit-time password dialog'
     )
   }
+})
+
+/**
+ * Regression evidence for #94. Exercise the real repository-tab context menu,
+ * wait for ButtonHints to show the menu item's tooltip, then activate that
+ * exact transient button. The menu and target unmount together; the shared
+ * Tooltip must observe the disconnection and remove the now-ownerless hint.
+ */
+scene('tab-group-tooltip-dismissal-evidence', async () => {
+  await ensureRepository()
+  await menuEvent('show-changes')
+
+  for (const [width, height] of [
+    [1440, 960],
+    [1180, 820],
+  ]) {
+    await setViewport(width, height)
+    await evaluate(`(() => {
+      document.getElementById('gallery-tooltip-suppressor')?.remove()
+      return document.querySelector('.material-context-menu') === null &&
+        document.querySelector('#create-tab-group') === null
+    })()`)
+    await contextMenuSelector(
+      '.repository-tab[role="tab"][aria-selected="true"]'
+    )
+    await waitFor(
+      `document.querySelector('.material-context-menu') !== null`,
+      `repository-tab context menu at ${width}x${height}`
+    )
+    const marked = await evaluate(`(() => {
+      const menu = document.querySelector('.material-context-menu')
+      const item = menu && [...menu.querySelectorAll('button.context-menu-item')]
+        .find(button => vt(button) === 'Add tab to new group…')
+      if (!(item instanceof HTMLButtonElement)) return false
+      item.setAttribute('data-issue-94-target', 'true')
+      item.dispatchEvent(new MouseEvent('mouseover', {
+        bubbles: true,
+        cancelable: true,
+        clientX: item.getBoundingClientRect().left + 12,
+        clientY: item.getBoundingClientRect().top + 12,
+      }))
+      return document.activeElement?.matches(
+        '.material-context-menu input[aria-label="Filter menu actions"]'
+      ) === true
+    })()`)
+    if (!marked) {
+      fail(
+        `Issue 94 could not retain filter focus while hovering its menu item at ${width}x${height}.`
+      )
+    }
+    await waitFor(
+      `[...document.querySelectorAll('[role="tooltip"]')].some(tooltip => {
+        const bounds = tooltip.getBoundingClientRect()
+        return vt(tooltip) === 'Add tab to new group…' &&
+          getComputedStyle(tooltip).visibility !== 'hidden' &&
+          bounds.width > 0 && bounds.height > 0
+      })`,
+      `visible owner tooltip before context-menu teardown at ${width}x${height}`
+    )
+
+    await clickPointerSelector(
+      'button.context-menu-item[data-issue-94-target="true"]'
+    )
+    await waitFor(
+      `document.querySelector(
+        '#dialog-layer dialog#create-tab-group[open]'
+      ) !== null && document.querySelector('.material-context-menu') === null`,
+      `create-group dialog after context-menu teardown at ${width}x${height}`
+    )
+    await sleep(650)
+
+    const settled = await evaluate(`(() => {
+      const visible = element => {
+        if (!(element instanceof HTMLElement)) return false
+        const style = getComputedStyle(element)
+        const bounds = element.getBoundingClientRect()
+        return style.display !== 'none' && style.visibility !== 'hidden' &&
+          Number(style.opacity || 1) !== 0 && bounds.width > 0 &&
+          bounds.height > 0
+      }
+      const staleTooltips = [...document.querySelectorAll('[role="tooltip"]')]
+        .filter(element =>
+          visible(element) && vt(element) === 'Add tab to new group…'
+        )
+      const layer = document.querySelector('#dialog-layer')
+      const dialog = layer?.querySelector('dialog#create-tab-group[open]')
+      const swatches = dialog
+        ? [...dialog.querySelectorAll('button.tab-group-color')]
+        : []
+      const insideViewport = element => {
+        const bounds = element.getBoundingClientRect()
+        return bounds.left >= 0 && bounds.top >= 0 &&
+          bounds.right <= window.innerWidth &&
+          bounds.bottom <= window.innerHeight
+      }
+      return {
+        staleTooltipCount: staleTooltips.length,
+        dialogInLayer: dialog instanceof HTMLDialogElement,
+        dialogInsideViewport:
+          dialog instanceof HTMLDialogElement && insideViewport(dialog),
+        swatchCount: swatches.length,
+        swatchesUsable: swatches.every(
+          swatch =>
+            swatch instanceof HTMLButtonElement &&
+            !swatch.disabled &&
+            insideViewport(swatch)
+        ),
+      }
+    })()`)
+    if (
+      settled?.staleTooltipCount !== 0 ||
+      settled?.dialogInLayer !== true ||
+      settled?.dialogInsideViewport !== true ||
+      settled?.swatchCount !== 6 ||
+      settled?.swatchesUsable !== true
+    ) {
+      fail(
+        `Issue 94 did not settle safely at ${width}x${height}: ${JSON.stringify(
+          settled
+        )}`
+      )
+    }
+
+    await capture(`tab-group-tooltip-dismissed-${width}x${height}`)
+    await clickText('Cancel', { within: '#create-tab-group' })
+    await waitFor(
+      `document.querySelector('#create-tab-group') === null`,
+      `closed issue-94 dialog at ${width}x${height}`
+    )
+  }
+  await restoreCaptureViewport()
+})
+
+/**
+ * Regression evidence for #95. Create a real one-member group, then prove the
+ * members button's accessible tooltip and the dropdown's live status both use
+ * the singular English form.
+ */
+scene('tab-group-member-singular-evidence', async () => {
+  await ensureRepository()
+  await menuEvent('show-changes')
+  await setViewport(1280, 860)
+  await evaluate(
+    `document.getElementById('gallery-tooltip-suppressor')?.remove(), true`
+  )
+
+  const existing = await evaluate(
+    `[...document.querySelectorAll('.repository-tab-group-label')]
+      .some(label => vt(label) === 'Verification group')`
+  )
+  if (!existing) {
+    await contextMenuSelector(
+      '.repository-tab[role="tab"][aria-selected="true"]'
+    )
+    await waitFor(
+      `document.querySelector('.material-context-menu') !== null`,
+      'repository-tab context menu for one-member group'
+    )
+    const addItemMarked = await evaluate(`(() => {
+      const item = [...document.querySelectorAll(
+        '.material-context-menu button.context-menu-item'
+      )].find(button => vt(button) === 'Add tab to new group…')
+      if (!(item instanceof HTMLButtonElement)) return false
+      item.setAttribute('data-issue-95-create', 'true')
+      return true
+    })()`)
+    if (!addItemMarked) {
+      fail('Issue 95 could not find the real Add tab to new group action.')
+    }
+    await clickPointerSelector(
+      'button.context-menu-item[data-issue-95-create="true"]'
+    )
+    await waitFor(
+      `document.querySelector(
+        '#dialog-layer dialog#create-tab-group[open]'
+      ) !== null`,
+      'one-member group dialog'
+    )
+    await setInput('#create-tab-group input[type="text"]', 'Verification group')
+    await clickText('Create group', { within: '#create-tab-group' })
+    await waitFor(
+      `[...document.querySelectorAll('.repository-tab-group-label')]
+        .some(label => vt(label) === 'Verification group')`,
+      'created one-member Verification group'
+    )
+  }
+
+  const memberButtonMarked = await evaluate(`(() => {
+    const groups = [...document.querySelectorAll('.repository-tab-group')]
+    const group = groups.find(candidate =>
+      vt(candidate.querySelector('.repository-tab-group-label')) ===
+        'Verification group'
+    )
+    const button = group?.querySelector('button.repository-tab-group-members')
+    if (!(button instanceof HTMLButtonElement)) return false
+    const count = group.querySelector('.repository-tab-group-count')
+    if (
+      vt(count) !== '1' ||
+      button.getAttribute('aria-label') !==
+        'Show the 1 tab in Verification group'
+    ) {
+      return false
+    }
+    button.setAttribute('data-issue-95-members', 'true')
+    return true
+  })()`)
+  if (!memberButtonMarked) {
+    fail(
+      'Issue 95 did not expose the exact singular accessible name on a one-member group.'
+    )
+  }
+
+  await clickPointerSelector(
+    'button.repository-tab-group-members[data-issue-95-members="true"]'
+  )
+  await waitFor(
+    `document.querySelector('.tab-group-members-popover') !== null &&
+      vt(document.querySelector('.tab-group-members-status')) ===
+        '1 tab in this group.'`,
+    'singular one-member dropdown status'
+  )
+  const hovered = await evaluate(`(() => {
+    const button = document.querySelector(
+      'button.repository-tab-group-members[data-issue-95-members="true"]'
+    )
+    if (!(button instanceof HTMLButtonElement)) return false
+    const bounds = button.getBoundingClientRect()
+    button.dispatchEvent(new MouseEvent('mouseover', {
+      bubbles: true,
+      cancelable: true,
+      clientX: bounds.left + bounds.width / 2,
+      clientY: bounds.top + bounds.height / 2,
+    }))
+    return true
+  })()`)
+  if (!hovered) {
+    fail('Issue 95 could not hover the one-member group control.')
+  }
+  await waitFor(
+    `[...document.querySelectorAll('[role="tooltip"]')].some(tooltip => {
+      const bounds = tooltip.getBoundingClientRect()
+      return vt(tooltip) === 'Show the 1 tab in Verification group' &&
+        getComputedStyle(tooltip).visibility !== 'hidden' &&
+        bounds.width > 0 && bounds.height > 0
+    })`,
+    'singular one-member accessible tooltip'
+  )
+  await capture('tab-group-member-singular-1280x860')
+  await pressEscape(1)
+  await restoreCaptureViewport()
 })
 
 scene('responsive-overflow', async () => {

@@ -8,6 +8,7 @@ import {
   getNativeButtonHint,
 } from '../../../src/ui/lib/button-hints'
 import { LinkButton } from '../../../src/ui/lib/link-button'
+import { showMaterialContextMenu } from '../../../src/ui/lib/material-context-menu'
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 import {
   advanceTimersBy,
@@ -203,5 +204,36 @@ describe('button hints', () => {
     await waitFor(() =>
       assert.equal(hovered.getAttribute('data-tooltip-target'), 'true')
     )
+  })
+
+  it('dismisses a delegated hint when its context-menu row unmounts', async t => {
+    enableTestTimers(['setTimeout'])
+    t.after(resetTestTimers)
+
+    render(<ButtonHints />)
+    const menuPromise = showMaterialContextMenu([
+      { label: 'Add tab to new group…' },
+    ])
+    const item = await screen.findByRole('menuitem', {
+      name: 'Add tab to new group…',
+    })
+    fireEvent.mouseOver(item)
+    advanceTimersBy(400)
+    assert.equal(
+      screen.getByRole('tooltip', { hidden: true }).textContent,
+      'Add tab to new group…'
+    )
+
+    fireEvent.click(item)
+    assert.equal((await menuPromise)?.label, 'Add tab to new group…')
+    await Promise.resolve()
+    await Promise.resolve()
+    advanceTimersBy(500)
+
+    assert.equal(
+      screen.queryByRole('menuitem', { name: 'Add tab to new group…' }),
+      null
+    )
+    assert.equal(screen.queryByRole('tooltip', { hidden: true }), null)
   })
 })

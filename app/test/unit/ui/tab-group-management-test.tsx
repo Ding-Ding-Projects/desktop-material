@@ -13,8 +13,12 @@ import {
 import { Repository } from '../../../src/models/repository'
 import { RepositoryTabStrip } from '../../../src/ui/repository-tabs/repository-tab-strip'
 import { EditTabGroupDialog } from '../../../src/ui/repository-tabs/edit-tab-group-dialog'
+import {
+  tabGroupMembersButtonKey,
+  tabGroupMembersCountKey,
+} from '../../../src/ui/repository-tabs/tab-group-members-popover'
 import { Dispatcher } from '../../../src/ui/dispatcher'
-import { LanguageModeChangedEvent } from '../../../src/lib/i18n'
+import { LanguageModeChangedEvent, translate } from '../../../src/lib/i18n'
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 
 let previousIpcSend: typeof ipcRenderer.send
@@ -125,6 +129,102 @@ async function buildHarness(): Promise<IStripHarness> {
 }
 
 describe('tab group member dropdown', () => {
+  it('selects natural member-count copy for zero, one, and many in both languages', () => {
+    const cases = [
+      {
+        language: 'english' as const,
+        count: 0,
+        button: 'Show the 0 tabs in Work',
+        status: '0 tabs in this group.',
+      },
+      {
+        language: 'english' as const,
+        count: 1,
+        button: 'Show the 1 tab in Work',
+        status: '1 tab in this group.',
+      },
+      {
+        language: 'english' as const,
+        count: 2,
+        button: 'Show the 2 tabs in Work',
+        status: '2 tabs in this group.',
+      },
+      {
+        language: 'cantonese' as const,
+        count: 0,
+        button: '打開「Work」入面 0 個分頁',
+        status: '呢個群組有 0 個分頁。',
+      },
+      {
+        language: 'cantonese' as const,
+        count: 1,
+        button: '打開「Work」入面 1 個分頁',
+        status: '呢個群組有 1 個分頁。',
+      },
+      {
+        language: 'cantonese' as const,
+        count: 2,
+        button: '打開「Work」入面 2 個分頁',
+        status: '呢個群組有 2 個分頁。',
+      },
+    ]
+
+    for (const testCase of cases) {
+      const variables = {
+        name: 'Work',
+        count: String(testCase.count),
+      }
+      assert.equal(
+        translate(
+          tabGroupMembersButtonKey(testCase.count),
+          testCase.language,
+          variables
+        ),
+        testCase.button
+      )
+      assert.equal(
+        translate(
+          tabGroupMembersCountKey(testCase.count),
+          testCase.language,
+          variables
+        ),
+        testCase.status
+      )
+    }
+  })
+
+  it('uses singular copy in the real accessible name and dropdown status', async () => {
+    const alpha = new Repository('/work/alpha', 1, null, false)
+    const beta = new Repository('/work/beta', 2, null, false)
+    const written = new Array<IProfileTabsState>()
+    const store = await createStore(
+      [makeTab('alpha', alpha), makeTab('beta', beta)],
+      'beta',
+      written
+    )
+    await store.createTabGroup('Work', 'purple', ['alpha'])
+    await store.setTabGroupCollapsed(store.getGroups()[0].id, true)
+    renderStrip(store, [alpha, beta], [])
+
+    const trigger = await screen.findByRole('button', {
+      name: 'Show the 1 tab in Work',
+    })
+    fireEvent.click(trigger)
+    assert.ok(await screen.findByText('1 tab in this group.'))
+
+    localStorage.setItem('language-mode-v1', 'cantonese')
+    fireEvent(
+      document,
+      new CustomEvent(LanguageModeChangedEvent, { detail: 'cantonese' })
+    )
+    assert.ok(
+      await screen.findByRole('button', {
+        name: '打開「Work」入面 1 個分頁',
+      })
+    )
+    assert.ok(await screen.findByText('呢個群組有 1 個分頁。'))
+  })
+
   it('lists every member of a collapsed group and switches in one action', async () => {
     const { store, selected } = await buildHarness()
     const groupId = store.getGroups()[0].id

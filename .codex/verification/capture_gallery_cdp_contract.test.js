@@ -1490,16 +1490,22 @@ test('issue 87 evidence uses the real scheduled handler and commit password dial
 
   assert.ok(errorScene.includes('postBackgroundCommitPasswordNotice()'))
   for (const contract of [
-    'acquireCheapLfsCommitEncryptionPassword',
+    'resolveUnattendedCheapLfsEncryptedPin',
     'performScheduledCommitPush',
     "'isScheduledAutomationFenceCurrent'",
     "'_commitIncludedChanges'",
     'observedBackgroundTask = isBackgroundTask',
     'isBackgroundTask !== true',
-    'encryptedRepository,\n            isBackgroundTask',
-    'No Release anchor was created',
-    'no upload started',
+    'evidence/oversized-encrypted.bin',
+    "resolution?.kind === 'credential'",
+    'resolution.password.fill(0)',
+    "resolution?.kind !== 'skip'",
+    'appStore.postPersistentErrorNotice',
+    'Nothing was encrypted',
+    'no Release anchor was created',
+    'changes remain eligible',
     'Repository settings > Large files & storage',
+    '}).length === 1',
     'for (const entry of overrides.reverse())',
     'if (entry.own)',
     'delete appStore[entry.name]',
@@ -1510,7 +1516,7 @@ test('issue 87 evidence uses the real scheduled handler and commit password dial
     )
   }
   assert.ok(
-    backgroundHelper.indexOf('acquireCheapLfsCommitEncryptionPassword') <
+    backgroundHelper.indexOf('resolveUnattendedCheapLfsEncryptedPin') <
       backgroundHelper.indexOf(
         'The synthetic issue-87 credential identity unexpectedly resolved.'
       )
@@ -1530,6 +1536,66 @@ test('issue 87 evidence uses the real scheduled handler and commit password dial
     )
   }
   assert.ok(!dialogScene.includes('globalThis.__issue87'))
+})
+
+test('issue 94 evidence proves a real transient tooltip disappears at two viewports', () => {
+  const evidence = sceneSource('tab-group-tooltip-dismissal-evidence')
+  for (const contract of [
+    '\'.repository-tab[role="tab"][aria-selected="true"]\'',
+    "vt(button) === 'Add tab to new group…'",
+    'button.context-menu-item[data-issue-94-target="true"]',
+    'visible owner tooltip before context-menu teardown',
+    "'#dialog-layer dialog#create-tab-group[open]'",
+    "document.querySelector('.material-context-menu') === null",
+    'await sleep(650)',
+    'staleTooltipCount: staleTooltips.length',
+    'settled?.staleTooltipCount !== 0',
+    'settled?.swatchCount !== 6',
+    'tab-group-tooltip-dismissed-${width}x${height}',
+  ]) {
+    assert.ok(
+      evidence.includes(contract),
+      `issue 94 evidence misses ${contract}`
+    )
+  }
+  assert.ok(evidence.includes('[1440, 960]'))
+  assert.ok(evidence.includes('[1180, 820]'))
+  assert.ok(
+    evidence.indexOf('visible owner tooltip before context-menu teardown') <
+      evidence.indexOf('clickPointerSelector')
+  )
+  assert.ok(
+    evidence.indexOf('clickPointerSelector') <
+      evidence.indexOf('settled?.staleTooltipCount !== 0')
+  )
+})
+
+test('issue 95 evidence proves singular accessible and visible copy', () => {
+  const evidence = sceneSource('tab-group-member-singular-evidence')
+  for (const contract of [
+    'setViewport(1280, 860)',
+    "'Verification group'",
+    "vt(label) === 'Verification group'",
+    "vt(count) !== '1'",
+    "'Show the 1 tab in Verification group'",
+    "'1 tab in this group.'",
+    "button.dispatchEvent(new MouseEvent('mouseover'",
+    "'singular one-member accessible tooltip'",
+    "capture('tab-group-member-singular-1280x860')",
+  ]) {
+    assert.ok(
+      evidence.includes(contract),
+      `issue 95 evidence misses ${contract}`
+    )
+  }
+  assert.ok(
+    evidence.indexOf("'Show the 1 tab in Verification group'") <
+      evidence.indexOf("capture('tab-group-member-singular-1280x860')")
+  )
+  assert.ok(
+    evidence.indexOf("'1 tab in this group.'") <
+      evidence.indexOf("capture('tab-group-member-singular-1280x860')")
+  )
 })
 
 test('repository sheet capture rejects clipped batch actions', () => {

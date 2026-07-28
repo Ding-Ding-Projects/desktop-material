@@ -56,6 +56,20 @@ const ListId = 'tab-group-members-list'
 /** The persistence id, audit identity, and regex-builder binding for the search. */
 const TabGroupMembersFilterListId = 'tab-group-members'
 
+/** Select the localized member-button form without teaching i18n English rules. */
+export function tabGroupMembersButtonKey(count: number): TranslationKey {
+  return count === 1
+    ? 'tabs.groupMembersButtonOne'
+    : 'tabs.groupMembersButtonMany'
+}
+
+/** Select the localized member-count form; zero deliberately uses the many form. */
+export function tabGroupMembersCountKey(count: number): TranslationKey {
+  return count === 1
+    ? 'tabs.groupMembersCountOne'
+    : 'tabs.groupMembersCountMany'
+}
+
 /**
  * The dropdown a group chip opens to list every tab it holds.
  *
@@ -455,7 +469,9 @@ export class TabGroupMembersPopover extends React.Component<
                   visible: String(results.length),
                   total: String(total),
                 })
-              : this.text('tabs.groupMembersCount', { count: String(total) })}
+              : this.text(tabGroupMembersCountKey(total), {
+                  count: String(total),
+                })}
           </div>
         </div>
       </Popover>

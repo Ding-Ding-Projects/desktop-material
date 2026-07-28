@@ -33,7 +33,10 @@ import { IMenuItem, showContextualMenu } from '../../lib/menu-item'
 import { DialogLayerPortal } from '../dialog/dialog-layer'
 import { CreateTabGroupDialog } from './create-tab-group-dialog'
 import { EditTabGroupDialog } from './edit-tab-group-dialog'
-import { TabGroupMembersPopover } from './tab-group-members-popover'
+import {
+  TabGroupMembersPopover,
+  tabGroupMembersButtonKey,
+} from './tab-group-members-popover'
 import { FoldoutType } from '../../lib/app-state'
 import { NotificationBellButton } from '../notifications/notification-bell-button'
 import { RepositoryStateCache } from '../../lib/stores/repository-state-cache'
@@ -1581,10 +1584,13 @@ export class RepositoryTabStrip extends React.Component<
           className={classNames('repository-tab-group-members', colorClass)}
           data-group-id={group.id}
           data-dm-feature={true}
-          aria-label={this.accessibleText('tabs.groupMembersButton', {
-            name: group.name,
-            count: String(members.length),
-          })}
+          aria-label={this.accessibleText(
+            tabGroupMembersButtonKey(members.length),
+            {
+              name: group.name,
+              count: String(members.length),
+            }
+          )}
           aria-haspopup="listbox"
           aria-expanded={this.state.membersGroupId === group.id}
           onClick={this.onGroupMembersClick}

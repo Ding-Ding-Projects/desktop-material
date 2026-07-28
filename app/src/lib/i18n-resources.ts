@@ -157,12 +157,14 @@ export type TranslationKey =
   | 'tabs.groupEditIntro'
   | 'tabs.groupSaveAction'
   | 'tabs.groupUpdatedStatus'
-  | 'tabs.groupMembersButton'
+  | 'tabs.groupMembersButtonOne'
+  | 'tabs.groupMembersButtonMany'
   | 'tabs.groupMembersTitle'
   | 'tabs.groupMembersDescription'
   | 'tabs.groupMembersListLabel'
   | 'tabs.groupMembersEmpty'
-  | 'tabs.groupMembersCount'
+  | 'tabs.groupMembersCountOne'
+  | 'tabs.groupMembersCountMany'
   | 'tabs.groupMembersKeepsTabs'
   | 'tabs.groupMembersShow'
   | 'tabs.tabPinnedSuffix'
@@ -2052,9 +2054,6 @@ export type TranslationKey =
   | 'cheapLfs.encryption.dialog.commitDescription.plain'
   | 'cheapLfs.encryption.dialog.commitDescription.light'
   | 'cheapLfs.encryption.dialog.commitDescription.playful'
-  | 'cheapLfs.encryption.backgroundCommitBlocked.plain'
-  | 'cheapLfs.encryption.backgroundCommitBlocked.light'
-  | 'cheapLfs.encryption.backgroundCommitBlocked.playful'
   | 'cheapLfs.encryption.dialog.decryptDescription'
   | 'cheapLfs.encryption.dialog.changeDescription'
   | 'cheapLfs.encryption.dialog.forgetDescription'
@@ -2767,14 +2766,16 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Rename or recolor “{name}”. Its {count} tabs stay open and stay in the group.',
   'tabs.groupSaveAction': 'Save group',
   'tabs.groupUpdatedStatus': '{name} group updated.',
-  'tabs.groupMembersButton': 'Show the {count} tabs in {name}',
+  'tabs.groupMembersButtonOne': 'Show the {count} tab in {name}',
+  'tabs.groupMembersButtonMany': 'Show the {count} tabs in {name}',
   'tabs.groupMembersTitle': 'Tabs in “{name}”',
   'tabs.groupMembersDescription':
     'Every tab in this group, listed even while the group is collapsed. Choosing one switches to it.',
   'tabs.groupMembersListLabel': 'Tabs in this group',
   'tabs.groupMembersEmpty':
     'This group holds no tabs yet. Move a tab in from that tab’s context menu.',
-  'tabs.groupMembersCount': '{count} tabs in this group.',
+  'tabs.groupMembersCountOne': '{count} tab in this group.',
+  'tabs.groupMembersCountMany': '{count} tabs in this group.',
   'tabs.groupMembersKeepsTabs':
     'Deleting the group clears the label only; every tab stays open.',
   'tabs.groupMembersShow': 'Show tabs in “{name}”',
@@ -5280,12 +5281,6 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'This commit is paused for a password: its large files will be pinned and uploaded only as encrypted ciphertext. Cancel stops the commit before any upload starts. Desktop Material cannot recover a lost password.',
   'cheapLfs.encryption.dialog.commitDescription.playful':
     'This commit is waiting at the encryption gate. Its large files will be pinned and uploaded only as encrypted ciphertext; Cancel stops the commit before any upload starts. Desktop Material cannot recover a lost password.',
-  'cheapLfs.encryption.backgroundCommitBlocked.plain':
-    "The scheduled commit stopped because no usable saved password was available from Windows Credential Manager. No Release anchor was created, no upload started, and Desktop Material did not fall back to plaintext. Open Repository settings > Large files & storage, check or save this repository's password, then retry.",
-  'cheapLfs.encryption.backgroundCommitBlocked.light':
-    "The scheduled commit stopped at the encryption gate because Windows Credential Manager had no usable saved password available. No Release anchor was created, no upload started, and Desktop Material did not fall back to plaintext. Open Repository settings > Large files & storage, check or save this repository's password, then retry.",
-  'cheapLfs.encryption.backgroundCommitBlocked.playful':
-    "The scheduled commit met a locked encryption gate and stopped because Windows Credential Manager had no usable saved password available. No Release anchor was created, no upload started, and Desktop Material did not sneak through a plaintext fallback. Open Repository settings > Large files & storage, check or save this repository's password, then retry.",
   'cheapLfs.encryption.dialog.decryptDescription':
     'Enter the password that was used to encrypt this Release payload.',
   'cheapLfs.encryption.dialog.changeDescription':
@@ -5481,13 +5476,13 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.unattendedEncryption.title':
     'Automatic commit did not pin large files',
   'cheapLfs.unattendedEncryption.reason':
-    'Release payload encryption is on for this repository and no password is saved, so an automatic commit had nobody to ask for one. This file was not encrypted, not uploaded, and not committed; it is unchanged in the working tree. Commit it yourself to be asked for the password, or save one under Large files & storage.',
+    'Windows Credential Manager had no usable saved password. This file stayed unchanged in the working tree and out of the commit; it was not encrypted or uploaded, and no Release anchor was created. Retry interactively to enter the password, or save it in Repository settings > Large files & storage.',
   'cheapLfs.unattendedEncryption.body.plain':
-    'Release payload encryption is on for this repository and no password is saved, so an automatic commit had nobody to ask for one. Nothing was encrypted and nothing was uploaded, and these large files stayed out of the commit: {names} ({count} in total). Everything else in the commit went through. Commit them yourself to be asked for the password, or save one under Large files & storage.',
+    'Windows Credential Manager had no usable saved password. Nothing was encrypted or uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Other selected changes remain eligible. Retry interactively, or save it in Repository settings > Large files & storage.',
   'cheapLfs.unattendedEncryption.body.light':
-    'An automatic commit met an encrypted repository, a password that was deliberately never saved, and nobody awake to type it — so it stopped instead of guessing. Nothing was encrypted and nothing was uploaded, and these large files stayed out of the commit: {names} ({count} in total). Everything else in the commit went through. Commit them yourself to be asked for the password, or save one under Large files & storage.',
+    'No usable saved password was waiting in Windows Credential Manager, so the unattended commit stopped at the lock. Nothing was encrypted/uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Other changes remain eligible. Retry interactively, or save it in Repository settings > Large files & storage.',
   'cheapLfs.unattendedEncryption.body.playful':
-    'The automatic commit walked up to the locked door, discovered you had very sensibly not left the key under the mat, and — full credit to it — did not try the window. Nothing was encrypted and nothing was uploaded, and these large files stayed out of the commit: {names} ({count} in total). Everything else in the commit went through. Commit them yourself to be asked for the password, or save one under Large files & storage.',
+    'The unattended commit found no usable saved key in Windows Credential Manager and wisely left the lock alone. Nothing was encrypted/uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Other changes remain eligible. Retry interactively, or save it in Repository settings > Large files & storage.',
   'cheapLfs.localState.pointer': 'Pointer stored locally',
   'cheapLfs.localState.materialized':
     'Materialized locally · verified against the committed pointer',
@@ -6081,14 +6076,16 @@ export const cantoneseTranslations: Readonly<
     '改「{name}」個名或者顏色。入面 {count} 個分頁照樣開住，亦都留喺呢個群組。',
   'tabs.groupSaveAction': '儲存群組',
   'tabs.groupUpdatedStatus': '已更新「{name}」群組。',
-  'tabs.groupMembersButton': '打開「{name}」入面 {count} 個分頁',
+  'tabs.groupMembersButtonOne': '打開「{name}」入面 {count} 個分頁',
+  'tabs.groupMembersButtonMany': '打開「{name}」入面 {count} 個分頁',
   'tabs.groupMembersTitle': '「{name}」入面嘅分頁',
   'tabs.groupMembersDescription':
     '呢個群組入面所有分頁，就算收埋咗一樣列晒出嚟。撳一下就即刻跳去嗰個分頁。',
   'tabs.groupMembersListLabel': '呢個群組入面嘅分頁',
   'tabs.groupMembersEmpty':
     '呢個群組暫時未有分頁。喺分頁嘅右鍵選單度將分頁搬入嚟。',
-  'tabs.groupMembersCount': '呢個群組有 {count} 個分頁。',
+  'tabs.groupMembersCountOne': '呢個群組有 {count} 個分頁。',
+  'tabs.groupMembersCountMany': '呢個群組有 {count} 個分頁。',
   'tabs.groupMembersKeepsTabs': '刪除群組只係甩個標籤，每個分頁都會繼續開住。',
   'tabs.groupMembersShow': '睇「{name}」入面嘅分頁',
   'tabs.tabPinnedSuffix': '，已置頂',
@@ -8378,12 +8375,6 @@ export const cantoneseTranslations: Readonly<
     '呢個 commit 暫停咗等密碼；大檔 pin 好之後只會以加密 ciphertext 上載。撳「取消」會喺任何上載開始前停止 commit。Desktop Material 無法復原遺失嘅密碼。',
   'cheapLfs.encryption.dialog.commitDescription.playful':
     '呢個 commit 喺加密閘口等緊密碼。大檔 pin 好之後只會以加密 ciphertext 上載；撳「取消」會喺任何上載開始前停止 commit。Desktop Material 無法復原遺失嘅密碼。',
-  'cheapLfs.encryption.backgroundCommitBlocked.plain':
-    '排程 commit 已停止，因為 Windows Credential Manager 冇可用嘅已儲存密碼。冇建立 Release anchor、冇開始上載，而 Desktop Material 亦冇改用未加密 plaintext。請開啟 Repository settings > Large files & storage，檢查或儲存呢個 repository 嘅密碼，然後重試。',
-  'cheapLfs.encryption.backgroundCommitBlocked.light':
-    '排程 commit 喺加密閘口停止，因為 Windows Credential Manager 冇可用嘅已儲存密碼。冇建立 Release anchor、冇開始上載，而 Desktop Material 亦冇改用未加密 plaintext。請開啟 Repository settings > Large files & storage，檢查或儲存呢個 repository 嘅密碼，然後重試。',
-  'cheapLfs.encryption.backgroundCommitBlocked.playful':
-    '排程 commit 撞到鎖住嘅加密閘口，所以停止咗；Windows Credential Manager 冇可用嘅已儲存密碼。冇建立 Release anchor、冇開始上載，而 Desktop Material 亦冇偷偷改用未加密 plaintext。請開啟 Repository settings > Large files & storage，檢查或儲存呢個 repository 嘅密碼，然後重試。',
   'cheapLfs.encryption.dialog.decryptDescription':
     '輸入當初用嚟加密呢個 Release payload 嘅密碼。',
   'cheapLfs.encryption.dialog.changeDescription':
@@ -8572,13 +8563,13 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.firstPublish.abortTitle': 'Commit 已經停低，個 branch 未發佈到',
   'cheapLfs.unattendedEncryption.title': '自動 commit 冇 pin 到啲大檔案',
   'cheapLfs.unattendedEncryption.reason':
-    '呢個 repository 開咗 Release payload 加密，但係冇儲低密碼，自動 commit 冇人可以問。呢個檔案冇加密過、冇上載過、亦都冇入到 commit，喺 working tree 度原封不動。請自己 commit 一次等佢問你攞密碼，或者喺「大檔案同儲存」度儲返個密碼。',
+    'Windows Credential Manager 冇可用嘅已儲密碼。呢個檔案喺 working tree 原封不動、冇入 commit、冇加密、冇上載，亦冇建立 Release anchor。請人手重試輸入密碼，或喺 Repository settings > 大檔案同儲存 儲低。',
   'cheapLfs.unattendedEncryption.body.plain':
-    '呢個 repository 開咗 Release payload 加密，但係冇儲低密碼，自動 commit 冇人可以問。冇加密過任何嘢，亦都冇上載過任何嘢，以下大檔案冇入到今次 commit：{names}（總共 {count} 個）。commit 入面其餘嘅嘢照樣做咗。請自己 commit 一次等佢問你攞密碼，或者喺「大檔案同儲存」度儲返個密碼。',
+    'Windows Credential Manager 冇可用已儲密碼。冇加密、冇上載，亦冇建立 Release anchor。以下大檔案原封不動、冇入 commit：{names}（總共 {count} 個）。其他已揀變更仍可繼續。請人手重試輸入密碼，或喺 Repository settings > 大檔案同儲存 儲低。',
   'cheapLfs.unattendedEncryption.body.light':
-    '自動 commit 撞正個加密 repository，密碼你又特登冇儲低，四圍又冇人醒住可以打，佢寧願停手都唔亂估。冇加密過任何嘢，亦都冇上載過任何嘢，以下大檔案冇入到今次 commit：{names}（總共 {count} 個）。commit 入面其餘嘅嘢照樣做咗。請自己 commit 一次等佢問你攞密碼，或者喺「大檔案同儲存」度儲返個密碼。',
+    'Windows Credential Manager 冇可用已儲密碼，排程 commit 喺加密閘前停低。冇加密、冇上載，亦冇建立 Release anchor。原封不動、冇入 commit：{names}（總共 {count} 個）。其他變更仍可繼續。請人手重試，或喺 Repository settings > 大檔案同儲存 儲低密碼。',
   'cheapLfs.unattendedEncryption.body.playful':
-    '自動 commit 行到門口，發覺你好醒目噉冇將鎖匙擺喺門墊底，佢都算識做，冇試過爬窗。冇加密過任何嘢，亦都冇上載過任何嘢，以下大檔案冇入到今次 commit：{names}（總共 {count} 個）。commit 入面其餘嘅嘢照樣做咗。請自己 commit 一次等佢問你攞密碼，或者喺「大檔案同儲存」度儲返個密碼。',
+    '排程 commit 喺 Windows Credential Manager 搵唔到可用已儲鎖匙，所以冇亂闖。冇加密、冇上載，亦冇建立 Release anchor。原封不動、冇入 commit：{names}（總共 {count} 個）。其他變更仍可繼續。請人手重試，或喺 Repository settings > 大檔案同儲存 儲低密碼。',
   'cheapLfs.localState.pointer': '本機淨係擺住個 pointer',
   'cheapLfs.localState.materialized':
     '已經喺本機還原 · 同 commit 咗嘅 pointer 對得上',

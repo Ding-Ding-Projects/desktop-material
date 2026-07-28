@@ -7,16 +7,6 @@ import { afterEach, describe, it, mock } from 'node:test'
 import { AppStore } from '../../../src/lib/stores/app-store'
 import { TokenStore } from '../../../src/lib/stores/token-store'
 import {
-  AudioSettingsStorageKey,
-  DefaultAudioSystemSettings,
-  serializeAudioSettings,
-} from '../../../src/lib/audio/audio-settings'
-import {
-  cantoneseTranslations,
-  englishTranslations,
-} from '../../../src/lib/i18n-resources'
-import { LanguageModeStorageKey } from '../../../src/lib/language-preference'
-import {
   defaultBuildRunPreferences,
   IBuildRunPreferences,
 } from '../../../src/models/build-run-preferences'
@@ -98,10 +88,7 @@ type PasswordFlowStore = {
       }
     | undefined
   >
-  acquireCheapLfsCommitEncryptionPassword(
-    repository: Repository,
-    isBackgroundTask?: boolean
-  ): Promise<
+  acquireCheapLfsCommitEncryptionPassword(repository: Repository): Promise<
     | {
         readonly password: Buffer
         readonly source: 'vault' | 'prompt'
@@ -164,6 +151,7 @@ function configureCommitRoute(
       readonly relativePath: string
       readonly sizeInBytes: number
       readonly message: string
+      readonly reasonKey?: string
     }>
     readonly commitPaths: ReadonlyArray<string>
   }>
@@ -222,8 +210,6 @@ function configureCommitRoute(
 
 afterEach(() => {
   mock.restoreAll()
-  localStorage.removeItem(AudioSettingsStorageKey)
-  localStorage.removeItem(LanguageModeStorageKey)
 })
 
 describe('AppStore Cheap LFS password prompting', () => {
@@ -314,120 +300,6 @@ describe('AppStore Cheap LFS password prompting', () => {
       store.acquireCheapLfsCommitEncryptionPassword(repository),
       (error: Error) => error.name === 'AbortError'
     )
-  })
-
-  it('rejects an unattended encrypted commit without opening credential UI', async () => {
-    mock.method(TokenStore, 'getItem', async () => null)
-    let promptCount = 0
-    const store = createStore(() => {
-      promptCount++
-    })
-
-    await assert.rejects(
-      store.acquireCheapLfsCommitEncryptionPassword(repository, true),
-      /no usable saved password was available from Windows Credential Manager/
-    )
-    assert.equal(promptCount, 0)
-  })
-
-  it('stops the real scheduled commit with one localized nonblocking notice and no upload fallback', async () => {
-    mock.method(TokenStore, 'getItem', async () => null)
-
-    const cases = [
-      {
-        mode: 'english',
-        funnyLevelEnglish: 1,
-        funnyLevelCantonese: 5,
-        title: englishTranslations['cheapLfs.encryption.dialog.commitTitle'],
-        body: englishTranslations[
-          'cheapLfs.encryption.backgroundCommitBlocked.plain'
-        ],
-      },
-      {
-        mode: 'cantonese',
-        funnyLevelEnglish: 5,
-        funnyLevelCantonese: 3,
-        title: cantoneseTranslations['cheapLfs.encryption.dialog.commitTitle'],
-        body: cantoneseTranslations[
-          'cheapLfs.encryption.backgroundCommitBlocked.light'
-        ],
-      },
-      {
-        mode: 'bilingual',
-        funnyLevelEnglish: 5,
-        funnyLevelCantonese: 1,
-        title: `${englishTranslations['cheapLfs.encryption.dialog.commitTitle']} · ${cantoneseTranslations['cheapLfs.encryption.dialog.commitTitle']}`,
-        body: `${englishTranslations['cheapLfs.encryption.backgroundCommitBlocked.playful']} · ${cantoneseTranslations['cheapLfs.encryption.backgroundCommitBlocked.plain']}`,
-      },
-    ] as const
-
-    for (const testCase of cases) {
-      localStorage.setItem(LanguageModeStorageKey, testCase.mode)
-      localStorage.setItem(
-        AudioSettingsStorageKey,
-        serializeAudioSettings({
-          ...DefaultAudioSystemSettings,
-          funnyLevelEnglish: testCase.funnyLevelEnglish,
-          funnyLevelCantonese: testCase.funnyLevelCantonese,
-        })
-      )
-
-      let promptCount = 0
-      let emittedErrors = 0
-      let providerAnchors = 0
-      let providerUploads = 0
-      let observedBackgroundTask: boolean | undefined
-      const notices = new Array<ReadonlyArray<unknown>>()
-      const passwordStore = createStore(() => {
-        promptCount++
-      })
-      const route = configureCommitRoute(
-        passwordStore,
-        async (...args: ReadonlyArray<unknown>) => {
-          observedBackgroundTask = args[3] as boolean | undefined
-          const credential =
-            await passwordStore.acquireCheapLfsCommitEncryptionPassword(
-              repository,
-              observedBackgroundTask
-            )
-          try {
-            providerAnchors++
-            providerUploads++
-          } finally {
-            credential?.password.fill(0)
-          }
-          return { pinned: [], failures: [], commitPaths: [] }
-        }
-      )
-      Object.assign(route.store, {
-        emitError: () => {
-          emittedErrors++
-        },
-        postPersistentErrorNotice: (...args: ReadonlyArray<unknown>) => {
-          notices.push(args)
-        },
-      })
-
-      await route.store.performScheduledCommitPush(repository, {
-        repositoryIdentity: repository.path,
-        selectionEpoch: 0,
-      })
-
-      assert.equal(observedBackgroundTask, true)
-      assert.equal(promptCount, 0)
-      assert.equal(emittedErrors, 0)
-      assert.equal(providerAnchors, 0)
-      assert.equal(providerUploads, 0)
-      assert.equal(route.gitOperations(), 0)
-      assert.deepEqual(notices, [
-        [
-          testCase.title,
-          testCase.body,
-          `cheap-lfs-background-password-required:${repository.id}`,
-          repository.id,
-        ],
-      ])
-    }
   })
 
   it('runs the real commit entry through the blocking password gate before the provider upload', async () => {
@@ -560,7 +432,55 @@ describe('AppStore Cheap LFS password prompting', () => {
     assert.equal(route.gitOperations(), 0)
   })
 
-  it('keeps the production password gate ahead of release anchoring and upload', () => {
+  it('handles an all-skipped unattended pin without a duplicate failure notification', async () => {
+    let persistentNotices = 0
+    let genericFailureCount = -1
+    const store = createStore(() => {
+      throw new Error('an unattended commit must not open a popup')
+    })
+    store.postPersistentErrorNotice = () => {
+      persistentNotices++
+    }
+    const route = configureCommitRoute(store, async () => {
+      store.postPersistentErrorNotice(
+        'Automatic commit did not pin large files',
+        'file-aware unattended skip',
+        'cheap-lfs-unattended-encryption:42',
+        repository.id
+      )
+      return {
+        pinned: [],
+        failures: [
+          {
+            relativePath: 'large.bin',
+            sizeInBytes: 101,
+            message: 'the file stayed unchanged and out of the commit',
+            reasonKey: 'cheapLfs.unattendedEncryption.reason',
+          },
+        ],
+        commitPaths: [],
+      }
+    })
+    Object.assign(route.store, {
+      postCheapLfsPinFailureNotification: (
+        _repository: Repository,
+        failures: ReadonlyArray<unknown>
+      ) => {
+        genericFailureCount = failures.length
+      },
+    })
+
+    await route.store.performScheduledCommitPush(repository, {
+      repositoryIdentity: repository.path,
+      selectionEpoch: 0,
+    })
+
+    assert.equal(persistentNotices, 1)
+    assert.equal(genericFailureCount, 0)
+    assert.equal(route.gitOperations(), 0)
+  })
+
+  it('keeps the unattended resolver and interactive password gate ahead of release anchoring and upload', () => {
     const productionAutoPin = (
       AppStore.prototype as unknown as {
         autoPinLargeFilesBeforeCommit(
@@ -568,6 +488,9 @@ describe('AppStore Cheap LFS password prompting', () => {
         ): Promise<unknown>
       }
     ).autoPinLargeFilesBeforeCommit.toString()
+    const unattendedResolver = productionAutoPin.indexOf(
+      'resolveUnattendedCheapLfsEncryptedPin'
+    )
     const passwordGate = productionAutoPin.indexOf(
       'acquireCheapLfsCommitEncryptionPassword'
     )
@@ -580,11 +503,12 @@ describe('AppStore Cheap LFS password prompting', () => {
       releaseAnchor
     )
 
-    assert.ok(passwordGate >= 0)
+    assert.ok(unattendedResolver >= 0)
+    assert.ok(passwordGate > unattendedResolver)
     assert.ok(releaseAnchor > passwordGate)
     assert.ok(providerUpload > releaseAnchor)
     assert.match(
-      productionAutoPin.slice(passwordGate, releaseAnchor),
+      productionAutoPin.slice(unattendedResolver, passwordGate),
       /isBackgroundTask/
     )
   })
