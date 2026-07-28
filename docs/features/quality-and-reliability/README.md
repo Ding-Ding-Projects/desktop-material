@@ -10,6 +10,13 @@ contracts that span more than one user workflow.
   discovery, hard-bound advisory process cleanup, coalesce stalled proxy work,
   serialize credential prompts, coalesce high-frequency appearance writes, and
   release request and markdown-preview resources deterministically.
+- [Progressive asynchronous lazy
+  loading](progressive-lazy-loading.md) — paint the shell from cached and
+  persisted state instead of gating it on an external-editor filesystem scan and
+  clone-queue recovery, defer the seven heavy repository sections to first
+  activation behind local screen-reader-announced progress with a real retry
+  path, and hold the newest-request-wins ordering rules in one tested primitive
+  so a slow response can never clobber a fresh one.
 - [Peer-closed stream writes](peer-closed-stream-writes.md) — contain the write
   that finishes after its peer already went away (`write EOF`/`EPIPE`) in the
   Cheap LFS upload, trampoline, agent-server, and hooks-proxy transports, plus a

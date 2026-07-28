@@ -35,6 +35,12 @@ export type FunnyBand = 'plain' | 'light' | 'playful'
  */
 export type FunnyLevelTextBase =
   | 'tabs.overflowDescription'
+  // Only the framing of a deferred surface's progress and failure copy carries
+  // bands. The failure title, the reported error string and the retry label
+  // are single fixed strings, because what failed and what to press are facts
+  // the user acts on rather than voice.
+  | 'lazyView.loading'
+  | 'lazyView.failedBody'
   // Only the *framing* of the encryption gate carries bands. The sentence that
   // says a lost passphrase is unrecoverable is a single fixed string with no
   // variants at all, because there is no funny level at which that fact is

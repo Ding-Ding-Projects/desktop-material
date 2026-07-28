@@ -46,6 +46,9 @@ export type ExceptionKinds =
   | 'NoSuggestedActionsProvided'
   | 'resizeObserverLoopCompleted'
   | 'peerClosedStreamWrite'
+  // Startup work that no longer blocks the first paint. A failure here leaves
+  // the app usable, so it is reported rather than surfaced as a fatal error.
+  | 'deferredStartup'
 
 export function sendNonFatalException(kind: ExceptionKinds, error: Error) {
   if (getHasOptedOutOfStats()) {
