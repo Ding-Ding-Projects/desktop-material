@@ -1473,6 +1473,65 @@ test('canonical workflow scenes use current reviewed controls and outcomes', () 
   }
 })
 
+test('issue 87 evidence uses the real scheduled handler and commit password dialog', () => {
+  const errorScene = sceneSource('error-notice')
+  const dialogScene = sceneSource('cheap-lfs-commit-password-evidence')
+  const backgroundHelperStart = source.indexOf(
+    'async function postBackgroundCommitPasswordNotice()'
+  )
+  const backgroundHelperEnd = source.indexOf(
+    "\nscene('error-notice'",
+    backgroundHelperStart
+  )
+  const backgroundHelper = source.slice(
+    backgroundHelperStart,
+    backgroundHelperEnd
+  )
+
+  assert.ok(errorScene.includes('postBackgroundCommitPasswordNotice()'))
+  for (const contract of [
+    'acquireCheapLfsCommitEncryptionPassword',
+    'performScheduledCommitPush',
+    "'isScheduledAutomationFenceCurrent'",
+    "'_commitIncludedChanges'",
+    'observedBackgroundTask = isBackgroundTask',
+    'isBackgroundTask !== true',
+    'encryptedRepository,\n            isBackgroundTask',
+    'No Release anchor was created',
+    'no upload started',
+    'Repository settings > Large files & storage',
+    'for (const entry of overrides.reverse())',
+    'if (entry.own)',
+    'delete appStore[entry.name]',
+  ]) {
+    assert.ok(
+      backgroundHelper.includes(contract),
+      `background evidence misses ${contract}`
+    )
+  }
+  assert.ok(
+    backgroundHelper.indexOf('acquireCheapLfsCommitEncryptionPassword') <
+      backgroundHelper.indexOf(
+        'The synthetic issue-87 credential identity unexpectedly resolved.'
+      )
+  )
+  for (const contract of [
+    'promptForCheapLfsPayloadPassword',
+    "'commit-auto-pin'",
+    "capture('commit-auto-pin-password-dialog')",
+    'inputs.length === 2',
+    "inputs.every(input => input.value === '')",
+    'finally',
+    'cancel?.click()',
+  ]) {
+    assert.ok(
+      dialogScene.includes(contract),
+      `commit-password evidence misses ${contract}`
+    )
+  }
+  assert.ok(!dialogScene.includes('globalThis.__issue87'))
+})
+
 test('repository sheet capture rejects clipped batch actions', () => {
   const scene = sceneSource('repositories-sheet')
   for (const contract of [

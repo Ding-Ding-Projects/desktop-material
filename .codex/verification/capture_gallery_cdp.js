@@ -3420,6 +3420,146 @@ scene('repository-tools-scroll', async () => {
   await restoreCaptureViewport()
 })
 
+/**
+ * Exercise the production scheduled-commit handler with its real typed
+ * no-password outcome while replacing only the expensive Git/provider seams.
+ * The verifier uses a synthetic repository identity which cannot match a
+ * developer credential, and restores every temporary instance override before
+ * returning.
+ */
+async function postBackgroundCommitPasswordNotice() {
+  const result = await evaluate(`(async () => {
+    const root = document.querySelector('#desktop-app-container')
+    const node = root?.querySelector('*')
+    const fiberKey = node && Object.keys(node).find(key =>
+      key.startsWith('__reactFiber$') ||
+      key.startsWith('__reactInternalInstance$')
+    )
+    let fiber = fiberKey ? node[fiberKey] : null
+    let appStore = null
+    for (let depth = 0; fiber && depth < 120; depth++, fiber = fiber.return) {
+      if (fiber.stateNode?.props?.appStore) {
+        appStore = fiber.stateNode.props.appStore
+        break
+      }
+    }
+    const repository = appStore?.selectedRepository
+    if (!appStore || !repository) {
+      return { appStoreFound: Boolean(appStore), repositoryFound: false }
+    }
+
+    const encryptedRepository = {
+      ...repository,
+      id: 870000000 + repository.id,
+      path: repository.path + '\\\\issue-87-background-credential-proof',
+      gitHubRepository: null,
+      buildRunPreferences: {
+        ...(repository.buildRunPreferences ?? {}),
+        cheapLfsStorageProvider: 'release',
+        cheapLfsPayloadEncryption: true,
+        cheapLfsPayloadEncryptionConfirmed: true,
+      },
+    }
+    const overrides = []
+    let observedBackgroundTask = null
+    const override = (name, value) => {
+      overrides.push({
+        name,
+        own: Object.prototype.hasOwnProperty.call(appStore, name),
+        value: appStore[name],
+      })
+      appStore[name] = value
+    }
+    override('isScheduledAutomationFenceCurrent', () => true)
+    override('generateAutomationCommitMessage', async () => null)
+    override('_changeIncludeAllFiles', async () => undefined)
+    override('setOneClickCommitPushPhase', () => undefined)
+    override(
+      '_commitIncludedChanges',
+      async (
+        _commitRepository,
+        _context,
+        _forceAutoPinLargeFiles,
+        _pushAfterCommit,
+        _canStartCommit,
+        isBackgroundTask
+      ) => {
+        observedBackgroundTask = isBackgroundTask
+        if (isBackgroundTask !== true) {
+          throw new Error(
+            'The scheduled commit did not forward its background-task flag.'
+          )
+        }
+        const unexpectedCredential =
+          await appStore.acquireCheapLfsCommitEncryptionPassword(
+            encryptedRepository,
+            isBackgroundTask
+          )
+        unexpectedCredential?.password?.fill(0)
+        throw new Error(
+          'The synthetic issue-87 credential identity unexpectedly resolved.'
+        )
+      }
+    )
+
+    let outcome = 'pending'
+    try {
+      await appStore.performScheduledCommitPush(repository, {
+        repositoryIdentity: repository.path,
+        selectionEpoch: 0,
+      })
+      outcome = 'resolved'
+    } catch (error) {
+      outcome = String(error?.message ?? error)
+    } finally {
+      for (const entry of overrides.reverse()) {
+        if (entry.own) {
+          appStore[entry.name] = entry.value
+        } else {
+          delete appStore[entry.name]
+        }
+      }
+    }
+    return {
+      appStoreFound: true,
+      repositoryFound: true,
+      outcome,
+      observedBackgroundTask,
+      promptCount: document.querySelectorAll(
+        '#cheap-lfs-payload-password'
+      ).length,
+    }
+  })()`)
+  if (
+    result?.appStoreFound !== true ||
+    result?.repositoryFound !== true ||
+    result?.outcome !== 'resolved' ||
+    result?.observedBackgroundTask !== true ||
+    result?.promptCount !== 0
+  ) {
+    fail(
+      `Scheduled encrypted commit did not resolve through its background notice: ${JSON.stringify(
+        result
+      )}`
+    )
+  }
+
+  await waitFor(
+    `[...document.querySelectorAll('.error-notice')].some(notice => {
+      const text = vt(notice)
+      return text.includes('Password required before encrypted commit') &&
+        text.includes('scheduled commit') &&
+        text.includes('Windows Credential Manager') &&
+        text.includes('No Release anchor was created') &&
+        text.includes('no upload started') &&
+        /plaintext fallback|fall back to plaintext/.test(text) &&
+        text.includes('Repository settings > Large files & storage') &&
+        text.includes('retry')
+    })`,
+    'localized nonblocking background encryption notice'
+  )
+}
+
 scene('error-notice', async () => {
   if (fixturePath === null) {
     fail('Lock-file recovery requires a disposable fixture path.')
@@ -3489,6 +3629,7 @@ scene('error-notice', async () => {
       `Stale-lock confirmation omitted its process warning: ${confirmationText}`
     )
   }
+  await postBackgroundCommitPasswordNotice()
   await sleep(700)
   await parkPointer()
   await capture('material-error-notice')
@@ -3519,6 +3660,76 @@ scene('error-notice', async () => {
     )}) === true`,
     'restored canonical fixture branch'
   )
+})
+
+scene('cheap-lfs-commit-password-evidence', async () => {
+  await ensureRepository()
+  await menuEvent('show-changes')
+  const opened = await evaluate(`(() => {
+    const root = document.querySelector('#desktop-app-container')
+    const node = root?.querySelector('*')
+    const fiberKey = node && Object.keys(node).find(key =>
+      key.startsWith('__reactFiber$') ||
+      key.startsWith('__reactInternalInstance$')
+    )
+    let fiber = fiberKey ? node[fiberKey] : null
+    let appStore = null
+    for (let depth = 0; fiber && depth < 120; depth++, fiber = fiber.return) {
+      if (fiber.stateNode?.props?.appStore) {
+        appStore = fiber.stateNode.props.appStore
+        break
+      }
+    }
+    const repository = appStore?.selectedRepository
+    if (!appStore || !repository) {
+      return { appStoreFound: Boolean(appStore), repositoryFound: false }
+    }
+    void appStore
+      .promptForCheapLfsPayloadPassword(
+        repository,
+        'encrypt',
+        'commit-auto-pin'
+      )
+      .catch(() => null)
+    return { appStoreFound: true, repositoryFound: true }
+  })()`)
+  if (opened?.appStoreFound !== true || opened?.repositoryFound !== true) {
+    fail(
+      `Commit-time encryption prompt could not open: ${JSON.stringify(opened)}`
+    )
+  }
+  try {
+    await waitFor(
+      `(() => {
+        const dialog = document.querySelector('#cheap-lfs-payload-password')
+        if (!(dialog instanceof HTMLElement)) return false
+        const text = vt(dialog)
+        const inputs = [...dialog.querySelectorAll('input[type="password"]')]
+        return text.includes('Password required before encrypted commit') &&
+          text.includes('uploaded only as encrypted ciphertext') &&
+          text.includes('Cancel stops the commit before any upload starts') &&
+          text.includes('Desktop Material cannot recover a lost password') &&
+          inputs.length === 2 &&
+          inputs.every(input => input.value === '')
+      })()`,
+      'real commit-time encrypted payload password dialog'
+    )
+    await parkPointer()
+    await capture('commit-auto-pin-password-dialog')
+  } finally {
+    await evaluate(`(() => {
+      const dialog = document.querySelector('#cheap-lfs-payload-password')
+      const cancel = dialog && [...dialog.querySelectorAll('button')].find(
+        button => vt(button) === 'Cancel'
+      )
+      cancel?.click()
+      return dialog !== null
+    })()`)
+    await waitFor(
+      `document.querySelector('#cheap-lfs-payload-password') === null`,
+      'closed commit-time password dialog'
+    )
+  }
 })
 
 scene('responsive-overflow', async () => {
