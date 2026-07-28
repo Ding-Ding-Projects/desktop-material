@@ -7,6 +7,7 @@ import { BranchListItem } from './branch-list-item'
 import { IMatches } from '../../lib/fuzzy-find'
 import { getRelativeTimeInfoFromDate } from '../relative-time'
 import { getPreferAbsoluteDates } from '../../models/formatting-preferences'
+import { WorktreeEntry } from '../../models/worktree'
 
 export function renderDefaultBranch(
   item: IBranchListItem,
@@ -14,7 +15,8 @@ export function renderDefaultBranch(
   currentBranch: Branch | null,
   authorDate: Date | undefined,
   onDropOntoBranch?: (branchName: string) => void,
-  onDropOntoCurrentBranch?: () => void
+  onDropOntoCurrentBranch?: () => void,
+  linkedWorktree?: WorktreeEntry
 ): JSX.Element {
   const branch = item.branch
   const currentBranchName = currentBranch ? currentBranch.name : null
@@ -27,6 +29,7 @@ export function renderDefaultBranch(
       isPinned={item.isPinned}
       isCurrentBranch={branch.name === currentBranchName}
       isLocalOnly={isLocalOnly}
+      linkedWorktreePath={linkedWorktree?.path}
       authorDate={authorDate}
       matches={matches}
       onDropOntoBranch={onDropOntoBranch}
@@ -37,7 +40,8 @@ export function renderDefaultBranch(
 
 export function getDefaultAriaLabelForBranch(
   item: IBranchListItem,
-  authorDate: Date | undefined
+  authorDate: Date | undefined,
+  linkedWorktree?: WorktreeEntry
 ): string {
   const branch = item.branch
   const localOnlySuffix =
@@ -46,9 +50,13 @@ export function getDefaultAriaLabelForBranch(
       ? ', not published'
       : ''
   const pinnedSuffix = item.isPinned ? ', pinned' : ''
+  const worktreeSuffix =
+    linkedWorktree === undefined
+      ? ''
+      : `, checked out in another worktree at ${linkedWorktree.path}`
 
   if (!authorDate) {
-    return `${branch.name}${localOnlySuffix}${pinnedSuffix}`
+    return `${branch.name}${localOnlySuffix}${pinnedSuffix}${worktreeSuffix}`
   }
 
   const { relativeText, absoluteText } = getRelativeTimeInfoFromDate(
@@ -56,7 +64,7 @@ export function getDefaultAriaLabelForBranch(
     true
   )
 
-  return `${item.branch.name}${localOnlySuffix}${pinnedSuffix} ${
+  return `${item.branch.name}${localOnlySuffix}${pinnedSuffix}${worktreeSuffix} ${
     getPreferAbsoluteDates() ? absoluteText : relativeText
   }`
 }

@@ -2218,11 +2218,20 @@ export class Dispatcher {
 
       const addedRepository = addedRepositories[0]
       await this.selectRepository(addedRepository)
+      const expectedCloneBranch = options?.branch ?? options?.defaultBranch
 
       // Detect point: a freshly-cloned repository may carry committed cheap-LFS
       // pointers to auto-materialize. Fire-and-forget; the app store no-ops when
       // the feature is off, no account is selected, or there are no pointers.
-      void this.appStore.maybeAutoMaterializeCheapLfs(addedRepository)
+      void this.appStore.maybeAutoMaterializeCheapLfs(addedRepository, {
+        ...(options?.cheapLfsSelection === undefined
+          ? {}
+          : { cheapLfsSelection: options.cheapLfsSelection }),
+        expectedCloneUrl: url,
+        ...(expectedCloneBranch === undefined
+          ? {}
+          : { expectedDefaultBranch: expectedCloneBranch }),
+      })
 
       if (isRepositoryWithForkedGitHubRepository(addedRepository)) {
         this.showPopup({

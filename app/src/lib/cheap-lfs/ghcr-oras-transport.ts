@@ -169,7 +169,8 @@ export interface IPublishCheapLfsGhcrImageOptions {
   readonly orasExecutableSha256: string
   readonly credentials: ICheapLfsGhcrCredentials
   readonly packagePolicyVerifier: ICheapLfsGhcrPackagePolicyVerifier
-  readonly parallelBlobUploads: boolean
+  /** Number of independent object upload lanes, bounded to one through three. */
+  readonly blobUploadConcurrency: number
   /** True only when this publish created the key during the same pin flow. */
   readonly keyCreated: boolean
   readonly keyRelativePath: typeof CheapLfsGhcrRepositoryKeyPath | null
@@ -1026,7 +1027,12 @@ export async function publishCheapLfsGhcrImage(
     try {
       await runBounded(
         [...layersByObject.values()],
-        options.parallelBlobUploads ? ParallelBlobLimit : 1,
+        Number.isFinite(options.blobUploadConcurrency)
+          ? Math.min(
+              ParallelBlobLimit,
+              Math.max(1, Math.floor(options.blobUploadConcurrency))
+            )
+          : 1,
         async layers => {
           const objectSha256 = layers[0]?.objectSha256
           if (objectSha256 === undefined) {

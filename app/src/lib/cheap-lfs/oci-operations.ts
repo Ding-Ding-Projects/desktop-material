@@ -154,7 +154,7 @@ export interface ICheapLfsOciPublishRequest {
   readonly registryRepository: string
   readonly repositoryIdentity: string
   readonly visibility: CheapLfsGhcrVisibility
-  readonly parallelBlobUploads: boolean
+  readonly blobUploadConcurrency: number
   readonly keyCreated: boolean
   readonly keyRelativePath: typeof CheapLfsRegistryRepositoryKeyPath | null
   readonly attempt: number
@@ -197,8 +197,10 @@ export interface ICheapLfsOciRepositoryContext {
   readonly provider: CheapLfsOciRegistryProvider
   /** Canonical `ghcr.io/owner/repository` or `docker.io/owner/repository`. */
   readonly registryRepository: string
-  /** At most three at runtime; timeout retries are automatically sequential. */
+  /** Legacy download parallelism contract retained independently of uploads. */
   readonly parallelBlobTransfers: boolean
+  /** One-to-three upload lanes; timeout retries are automatically sequential. */
+  readonly blobUploadConcurrency?: number
 }
 
 export type CheapLfsOciOperationPhase =
@@ -974,6 +976,14 @@ async function publishWithAdaptiveChunks(
 ): Promise<IPublishedImage> {
   let maximumChunkBytes = CheapLfsGhcrMaximumChunkBytes
   let resumableSnapshot = previousSnapshot
+  const configuredUploadConcurrency = context.blobUploadConcurrency
+  const uploadConcurrency =
+    typeof configuredUploadConcurrency === 'number' &&
+    Number.isFinite(configuredUploadConcurrency)
+      ? Math.min(3, Math.max(1, Math.floor(configuredUploadConcurrency)))
+      : context.parallelBlobTransfers
+      ? 3
+      : 1
   for (
     let attempt = 1;
     attempt <= CheapLfsGhcrMaximumAdaptivePrepareAttempts;
@@ -1016,7 +1026,7 @@ async function publishWithAdaptiveChunks(
             registryRepository: context.registryRepository,
             repositoryIdentity: context.repositoryIdentity,
             visibility: imageVisibility(context.visibility),
-            parallelBlobUploads: attempt === 1 && context.parallelBlobTransfers,
+            blobUploadConcurrency: attempt === 1 ? uploadConcurrency : 1,
             keyCreated: key.created,
             keyRelativePath: key.commitPath,
             attempt,

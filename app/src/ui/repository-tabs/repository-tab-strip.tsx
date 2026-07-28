@@ -279,6 +279,14 @@ export class RepositoryTabStrip extends React.Component<
 
     const renderableIds = this.getRenderableTabIds()
     const renderableSet = new Set(renderableIds)
+    const validGroupIds = new Set(
+      this.props.tabsStore.getGroups().map(group => group.id)
+    )
+    const visibleGroupIds = new Set(
+      this.state.tabs.tabs
+        .map(tab => tab.groupId ?? null)
+        .filter((id): id is string => id !== null && validGroupIds.has(id))
+    )
 
     // Refresh caches from any tab/chip elements currently in the DOM.
     list
@@ -306,6 +314,13 @@ export class RepositoryTabStrip extends React.Component<
         this.tabWidthCache.delete(id)
       }
     }
+    // Empty or deleted groups render no chip. Do not retain their historical
+    // measurements forever as profiles repeatedly create and remove groups.
+    for (const id of Array.from(this.chipWidthCache.keys())) {
+      if (!visibleGroupIds.has(id)) {
+        this.chipWidthCache.delete(id)
+      }
+    }
 
     const missingWidth = renderableIds.some(id => !this.tabWidthCache.has(id))
     if (missingWidth) {
@@ -323,11 +338,6 @@ export class RepositoryTabStrip extends React.Component<
 
     // Reserve the room the always-visible group chips consume so tabs only
     // compete for the leftover width.
-    const visibleGroupIds = new Set(
-      this.state.tabs.tabs
-        .map(tab => tab.groupId ?? null)
-        .filter((id): id is string => id !== null)
-    )
     let chipFootprint = 0
     for (const groupId of visibleGroupIds) {
       const width = this.chipWidthCache.get(groupId)

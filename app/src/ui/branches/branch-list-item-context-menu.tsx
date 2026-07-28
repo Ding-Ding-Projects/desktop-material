@@ -10,6 +10,7 @@ interface IBranchContextMenuConfig {
   onViewPullRequestOnGitHub?: () => void
   onDeleteBranch?: (branchName: string) => void
   onCheckoutInNewWorktree?: (branch: Branch) => void
+  onSwitchToWorktree?: (branch: Branch) => void
   isPinned?: boolean
   isSolo?: boolean
   canHide?: boolean
@@ -30,6 +31,7 @@ export function generateBranchContextMenuItems(
     onViewPullRequestOnGitHub,
     onDeleteBranch,
     onCheckoutInNewWorktree,
+    onSwitchToWorktree,
     isPinned,
     isSolo,
     canHide,
@@ -101,7 +103,12 @@ export function generateBranchContextMenuItems(
     })
   }
 
-  if (onCheckoutInNewWorktree !== undefined) {
+  if (onSwitchToWorktree !== undefined) {
+    items.push({
+      label: 'Switch to existing worktree',
+      action: () => onSwitchToWorktree(branch),
+    })
+  } else if (onCheckoutInNewWorktree !== undefined) {
     items.push({
       label: __DARWIN__
         ? 'Checkout in New Worktree…'

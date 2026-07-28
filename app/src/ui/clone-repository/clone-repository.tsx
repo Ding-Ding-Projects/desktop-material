@@ -65,6 +65,15 @@ import { CloningRepository } from '../../models/cloning-repository'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { GitModulesProbe } from '../../lib/submodules/gitmodules-probe'
+import {
+  CheapLfsCloneInventoryProbe,
+  CheapLfsCloneInventoryProbeResult,
+} from '../../lib/cheap-lfs/clone-inventory-probe'
+import { createCheapLfsCloneSelection } from '../../lib/cheap-lfs/clone-inventory'
+import {
+  getCheapLfsCloneSelectionIdentity,
+  ICheapLfsCloneSelection,
+} from '../../models/cheap-lfs-clone-selection'
 
 interface ICloneRepositoryProps {
   readonly dispatcher: Dispatcher
@@ -249,6 +258,9 @@ interface ICloneRepositoryState {
   /** Bumped when a `.gitmodules` probe lands so visible rows re-render. */
   readonly submoduleBadgeVersion: number
 
+  /** Bumped when a Cheap LFS inventory probe lands. */
+  readonly cheapLfsBadgeVersion: number
+
   /**
    * A submodule clone URL waiting for the URL tab to become selected. The
    * tab switch round-trips through the dispatcher, so the URL must only be
@@ -338,6 +350,9 @@ interface IGitHubTabState extends IBaseTabState {
    * available chips are derived from the loaded repository set.
    */
   readonly languageFilter: Set<string>
+
+  /** Manifest-bound per-repository Cheap LFS selections for this tab. */
+  readonly cheapLfsSelections: ReadonlyMap<string, ICheapLfsCloneSelection>
 }
 
 /** The component for cloning a repository. */
@@ -379,6 +394,12 @@ export class CloneRepository extends React.Component<
   /** Lazy per-account `.gitmodules` probes backing the submodule badges. */
   private readonly submoduleProbes = new Map<string, GitModulesProbe>()
 
+  /** Lazy per-account managed-inventory probes backing Cheap LFS badges. */
+  private readonly cheapLfsProbes = new Map<
+    string,
+    CheapLfsCloneInventoryProbe
+  >()
+
   public constructor(props: ICloneRepositoryProps) {
     super(props)
 
@@ -400,6 +421,7 @@ export class CloneRepository extends React.Component<
       cloneDepth: '1',
       autoCloneNewRepositories: false,
       submoduleBadgeVersion: 0,
+      cheapLfsBadgeVersion: 0,
       pendingSubmoduleCloneUrl: null,
       dotComTabState: {
         kind: 'dotComTabState',
@@ -409,6 +431,7 @@ export class CloneRepository extends React.Component<
         selectedOrganization: null,
         visibilityFilter: 'all',
         languageFilter: new Set<string>(),
+        cheapLfsSelections: new Map<string, ICheapLfsCloneSelection>(),
         ...initialBaseTabState,
       },
       enterpriseTabState: {
@@ -419,6 +442,7 @@ export class CloneRepository extends React.Component<
         selectedOrganization: null,
         visibilityFilter: 'all',
         languageFilter: new Set<string>(),
+        cheapLfsSelections: new Map<string, ICheapLfsCloneSelection>(),
         ...initialBaseTabState,
       },
       providerTabState: {
@@ -429,6 +453,7 @@ export class CloneRepository extends React.Component<
         selectedOrganization: null,
         visibilityFilter: 'all',
         languageFilter: new Set<string>(),
+        cheapLfsSelections: new Map<string, ICheapLfsCloneSelection>(),
         ...initialBaseTabState,
       },
       urlTabState: {
@@ -965,6 +990,10 @@ export class CloneRepository extends React.Component<
               onProbeSubmodules={this.onProbeSubmodules}
               onShowSubmodules={this.onShowSubmodules}
               submoduleBadgeVersion={this.state.submoduleBadgeVersion}
+              getCheapLfsAssetCount={this.getCheapLfsAssetCountForUrl}
+              onProbeCheapLfs={this.onProbeCheapLfs}
+              onShowCheapLfsAssets={this.onShowCheapLfsAssets}
+              cheapLfsBadgeVersion={this.state.cheapLfsBadgeVersion}
             />
           )
         }
@@ -1044,6 +1073,168 @@ export class CloneRepository extends React.Component<
     })
   }
 
+  private onCheapLfsProbeUpdated = () => {
+    if (!this.hasUnmounted) {
+      this.setState(previous => ({
+        cheapLfsBadgeVersion: previous.cheapLfsBadgeVersion + 1,
+      }))
+    }
+  }
+
+  private getCheapLfsProbe(
+    account: Account
+  ): CheapLfsCloneInventoryProbe | null {
+    // Cheap LFS clone inventories point at GitHub Releases/registries. Provider
+    // adapter tabs do not expose the GitHub Contents contract this probe uses.
+    if (isGitLabAccount(account) || isBitbucketAccount(account)) {
+      return null
+    }
+
+    const accountKey = getAccountKey(account)
+    const existing = this.cheapLfsProbes.get(accountKey)
+    if (existing !== undefined) {
+      return existing
+    }
+
+    const api = API.fromAccount(account)
+    const probe = new CheapLfsCloneInventoryProbe(
+      accountKey,
+      (owner, name, defaultBranch, signal) =>
+        api.fetchCheapLfsCloneInventoryFile(owner, name, defaultBranch, signal),
+      this.onCheapLfsProbeUpdated
+    )
+    this.cheapLfsProbes.set(accountKey, probe)
+    return probe
+  }
+
+  private onProbeCheapLfs = (repository: IAPIRepository) => {
+    const account = this.getAccountForTab(this.props.selectedTab)
+    if (account === null || repository.default_branch.length === 0) {
+      return
+    }
+
+    this.getCheapLfsProbe(account)?.probe({
+      cloneUrl: repository.clone_url,
+      ownerLogin: repository.owner.login,
+      name: repository.name,
+      defaultBranch: repository.default_branch,
+    })
+  }
+
+  private getCheapLfsAssetCountForUrl = (
+    url: string,
+    defaultBranch: string
+  ): number | null | undefined => {
+    const account = this.getAccountForTab(this.props.selectedTab)
+    if (
+      account === null ||
+      isGitLabAccount(account) ||
+      isBitbucketAccount(account)
+    ) {
+      return null
+    }
+    if (defaultBranch.length === 0) {
+      return null
+    }
+    return this.cheapLfsProbes
+      .get(getAccountKey(account))
+      ?.getCachedAssetCount(url, defaultBranch)
+  }
+
+  private getCheapLfsProbeResult(
+    repository: IAPIRepository
+  ): CheapLfsCloneInventoryProbeResult | undefined {
+    const account = this.getAccountForTab(this.props.selectedTab)
+    if (account === null) {
+      return undefined
+    }
+    return this.cheapLfsProbes
+      .get(getAccountKey(account))
+      ?.getCachedResult(repository.clone_url, repository.default_branch)
+  }
+
+  private onShowCheapLfsAssets = (repository: IAPIRepository) => {
+    const result = this.getCheapLfsProbeResult(repository)
+    if (result?.status !== 'ready') {
+      return
+    }
+
+    const tab = this.props.selectedTab
+    if (tab === CloneRepositoryTab.Generic) {
+      return
+    }
+    const existing = this.getGitHubTabState(tab).cheapLfsSelections.get(
+      repository.clone_url
+    )
+    const initialSelection =
+      existing !== undefined &&
+      getCheapLfsCloneSelectionIdentity(existing) === result.identity
+        ? existing
+        : undefined
+
+    this.props.dispatcher.showPopup({
+      type: PopupType.CheapLfsCloneAssets,
+      repositoryName: `${repository.owner.login}/${repository.name}`,
+      accountKey: result.accountKey,
+      repositoryCloneUrl: repository.clone_url,
+      defaultBranch: repository.default_branch,
+      manifestBlobSha: result.manifestBlobSha,
+      inventory: result.inventory,
+      initialSelection,
+      onSelectionConfirmed: this.onCheapLfsSelectionConfirmed,
+    })
+  }
+
+  private onCheapLfsSelectionConfirmed = (
+    selection: ICheapLfsCloneSelection
+  ) => {
+    const tab = this.props.selectedTab
+    if (tab === CloneRepositoryTab.Generic) {
+      return
+    }
+    const account = this.getAccountForTab(tab)
+    if (account === null || getAccountKey(account) !== selection.accountKey) {
+      return
+    }
+
+    const tabState = this.getGitHubTabState(tab)
+    const cheapLfsSelections = new Map(tabState.cheapLfsSelections)
+    cheapLfsSelections.set(selection.repositoryCloneUrl, selection)
+    this.setGitHubTabState({ cheapLfsSelections }, tab)
+  }
+
+  /**
+   * Resolve the explicit selection for this exact manifest, or synthesize the
+   * default-all choice. A stale choice is never applied to a changed blob/ref.
+   */
+  private getCheapLfsCloneSelection(
+    repository: IAPIRepository
+  ): ICheapLfsCloneSelection | undefined {
+    const result = this.getCheapLfsProbeResult(repository)
+    const tab = this.props.selectedTab
+    if (result?.status !== 'ready' || tab === CloneRepositoryTab.Generic) {
+      return undefined
+    }
+
+    const existing = this.getGitHubTabState(tab).cheapLfsSelections.get(
+      repository.clone_url
+    )
+    if (
+      existing !== undefined &&
+      getCheapLfsCloneSelectionIdentity(existing) === result.identity
+    ) {
+      return existing
+    }
+
+    return createCheapLfsCloneSelection(
+      result.accountKey,
+      repository.clone_url,
+      repository.default_branch,
+      result.manifestBlobSha,
+      result.inventory
+    )
+  }
+
   /**
    * Take a submodule's resolved URL into this already-open clone dialog's URL
    * tab instead of opening a second clone dialog on the popup stack.
@@ -1079,6 +1270,7 @@ export class CloneRepository extends React.Component<
           selectedOrganization: null,
           visibilityFilter: 'all',
           languageFilter: new Set<string>(),
+          cheapLfsSelections: new Map<string, ICheapLfsCloneSelection>(),
           selectedItem: null,
           checkedUrls: new Set<string>(),
           url: '',
@@ -1578,6 +1770,8 @@ export class CloneRepository extends React.Component<
       tabState.checkedUrls
     ).map(url => {
       const repo = repositories?.find(r => r.clone_url === url) ?? null
+      const cheapLfsSelection =
+        repo === null ? undefined : this.getCheapLfsCloneSelection(repo)
       return {
         url,
         ...(account !== null && account.token.length > 0
@@ -1586,6 +1780,7 @@ export class CloneRepository extends React.Component<
         ...(repo
           ? { name: repo.name, defaultBranch: repo.default_branch }
           : {}),
+        ...(cheapLfsSelection === undefined ? {} : { cheapLfsSelection }),
       }
     })
 
@@ -1890,10 +2085,24 @@ export class CloneRepository extends React.Component<
     }
 
     const { url, defaultBranch, accountKey } = cloneInfo
+    const selectedRepository =
+      tab === CloneRepositoryTab.Generic
+        ? null
+        : this.getGitHubTabState(tab).selectedItem
+    const cheapLfsSelection =
+      selectedRepository === null
+        ? undefined
+        : this.getCheapLfsCloneSelection(selectedRepository)
 
     this.props.dispatcher.closeFoldout(FoldoutType.Repository)
     try {
-      this.cloneImpl(url.trim(), path, defaultBranch, accountKey ?? undefined)
+      this.cloneImpl(
+        url.trim(),
+        path,
+        defaultBranch,
+        accountKey ?? undefined,
+        cheapLfsSelection
+      )
     } catch (e) {
       log.error(`CloneRepository: clone failed to complete to ${path}`, e)
       this.setState({ loading: false })
@@ -1905,7 +2114,8 @@ export class CloneRepository extends React.Component<
     url: string,
     path: string,
     defaultBranch?: string,
-    accountKey?: string
+    accountKey?: string,
+    cheapLfsSelection?: ICheapLfsCloneSelection
   ) {
     const depth = this.state.shallowClone
       ? normalizeCloneDepth(this.state.cloneDepth)
@@ -1916,6 +2126,7 @@ export class CloneRepository extends React.Component<
       depth,
       singleBranch: depth !== undefined,
       shallowSubmodules: depth !== undefined,
+      ...(cheapLfsSelection === undefined ? {} : { cheapLfsSelection }),
     })
     this.props.onDismissed()
 

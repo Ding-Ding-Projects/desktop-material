@@ -45,7 +45,6 @@ import {
 import {
   formatConfigPath,
   formatConfigScope,
-  getConfigValueWithOrigin,
   IConfigValueOrigin,
   setGlobalConfigValue,
 } from '../../lib/git/config'
@@ -83,7 +82,14 @@ import { getAccountForCommitMessageGeneration } from '../../lib/get-account-for-
 import { AriaLiveContainer } from '../accessibility/aria-live-container'
 import { HookProgress } from '../../lib/git'
 import { assertNever } from '../../lib/fatal-error'
-import { getShowCommitAuthorInfo } from '../../models/commit-author-display'
+import {
+  getShowCommitAuthorInfo,
+  ShowCommitAuthorInfoChangedEvent,
+} from '../../models/commit-author-display'
+import {
+  invalidateCommitAuthorOrigins,
+  loadCachedCommitAuthorOrigins,
+} from '../../lib/commit-author-origins'
 import {
   bilingualVariable,
   t,
@@ -611,6 +617,7 @@ interface ICommitMessageState {
   readonly repoRuleCommitMessageFailures: RepoRulesMetadataFailures
   readonly repoRuleCommitAuthorFailures: RepoRulesMetadataFailures
   readonly repoRuleBranchNameFailures: RepoRulesMetadataFailures
+  readonly showCommitAuthorInfo: boolean
   readonly commitAuthorNameOrigin: IConfigValueOrigin | null
   readonly commitAuthorEmailOrigin: IConfigValueOrigin | null
 }
@@ -648,6 +655,8 @@ export class CommitMessage extends React.Component<
   private descriptionTextArea: HTMLTextAreaElement | null = null
   private descriptionTextAreaScrollDebounceId: number | null = null
   private cheapLfsTimingIntervalId: number | null = null
+  private isMounted = false
+  private commitAuthorOriginLoadSequence = 0
 
   private coAuthorInputRef = React.createRef<AuthorInput>()
 
@@ -688,6 +697,7 @@ export class CommitMessage extends React.Component<
       repoRuleCommitMessageFailures: new RepoRulesMetadataFailures(),
       repoRuleCommitAuthorFailures: new RepoRulesMetadataFailures(),
       repoRuleBranchNameFailures: new RepoRulesMetadataFailures(),
+      showCommitAuthorInfo: getShowCommitAuthorInfo(),
       commitAuthorNameOrigin: null,
       commitAuthorEmailOrigin: null,
     }
@@ -695,9 +705,15 @@ export class CommitMessage extends React.Component<
 
   // Persist our current commit message if the caller wants to
   public componentWillUnmount() {
+    this.isMounted = false
+    this.commitAuthorOriginLoadSequence += 1
     const { props, state } = this
     props.onPersistCommitMessage?.(state.commitMessage)
     window.removeEventListener('keydown', this.onKeyDown)
+    document.removeEventListener(
+      ShowCommitAuthorInfoChangedEvent,
+      this.onShowCommitAuthorInfoChanged
+    )
     if (this.cheapLfsTimingIntervalId !== null) {
       window.clearInterval(this.cheapLfsTimingIntervalId)
       this.cheapLfsTimingIntervalId = null
@@ -705,7 +721,12 @@ export class CommitMessage extends React.Component<
   }
 
   public async componentDidMount() {
+    this.isMounted = true
     window.addEventListener('keydown', this.onKeyDown)
+    document.addEventListener(
+      ShowCommitAuthorInfoChangedEvent,
+      this.onShowCommitAuthorInfoChanged
+    )
     this.syncCheapLfsTimingInterval()
     await Promise.all([
       this.updateRepoRuleFailures(undefined, undefined, true),
@@ -796,7 +817,28 @@ export class CommitMessage extends React.Component<
       })
     }
 
-    if (this.props.repository.id !== prevProps.repository.id) {
+    const repositoryChanged =
+      this.props.repository.id !== prevProps.repository.id ||
+      this.props.repository.path !== prevProps.repository.path
+    const authorRefreshed =
+      this.props.commitAuthor !== prevProps.commitAuthor && !repositoryChanged
+
+    if (repositoryChanged || authorRefreshed) {
+      this.commitAuthorOriginLoadSequence += 1
+      if (authorRefreshed) {
+        // An author refresh can preserve the same visible name/email while the
+        // winning Git config file or scope changes underneath it.
+        invalidateCommitAuthorOrigins(this.props.repository)
+      }
+      if (
+        this.state.commitAuthorNameOrigin !== null ||
+        this.state.commitAuthorEmailOrigin !== null
+      ) {
+        this.setState({
+          commitAuthorNameOrigin: null,
+          commitAuthorEmailOrigin: null,
+        })
+      }
       await this.loadCommitAuthorOrigins()
     }
 
@@ -886,16 +928,65 @@ export class CommitMessage extends React.Component<
     onManualCheapLfsUpload()
   }
 
+  private onShowCommitAuthorInfoChanged = (event: Event) => {
+    if (!this.isMounted) {
+      return
+    }
+
+    const shouldShow = (event as CustomEvent<boolean>).detail
+    if (!shouldShow) {
+      this.commitAuthorOriginLoadSequence += 1
+      this.setState({
+        showCommitAuthorInfo: false,
+        commitAuthorNameOrigin: null,
+        commitAuthorEmailOrigin: null,
+      })
+      return
+    }
+
+    this.setState({ showCommitAuthorInfo: true }, () => {
+      void this.loadCommitAuthorOrigins()
+    })
+  }
+
   private loadCommitAuthorOrigins = async () => {
+    if (
+      !this.isMounted ||
+      !this.state.showCommitAuthorInfo ||
+      this.props.commitAuthor === null
+    ) {
+      return
+    }
+
+    const sequence = ++this.commitAuthorOriginLoadSequence
+    const repository = this.props.repository
+
+    // Identity-source details are optional and hidden by default. Avoid paying
+    // for two Git processes when there is no surface that can render them.
     try {
-      const [commitAuthorNameOrigin, commitAuthorEmailOrigin] =
-        await Promise.all([
-          getConfigValueWithOrigin(this.props.repository, 'user.name'),
-          getConfigValueWithOrigin(this.props.repository, 'user.email'),
-        ])
-      this.setState({ commitAuthorNameOrigin, commitAuthorEmailOrigin })
+      const origins = await loadCachedCommitAuthorOrigins(repository)
+      if (
+        !this.isMounted ||
+        sequence !== this.commitAuthorOriginLoadSequence ||
+        repository.id !== this.props.repository.id ||
+        repository.path !== this.props.repository.path
+      ) {
+        return
+      }
+      this.setState({
+        commitAuthorNameOrigin: origins.name,
+        commitAuthorEmailOrigin: origins.email,
+      })
     } catch (error) {
       log.warn('Unable to load effective Git author config origins', error)
+      if (
+        !this.isMounted ||
+        sequence !== this.commitAuthorOriginLoadSequence ||
+        repository.id !== this.props.repository.id ||
+        repository.path !== this.props.repository.path
+      ) {
+        return
+      }
       this.setState({
         commitAuthorNameOrigin: null,
         commitAuthorEmailOrigin: null,
@@ -1284,7 +1375,7 @@ export class CommitMessage extends React.Component<
 
   private renderCommitAuthorIdentity() {
     const { commitAuthor, repository } = this.props
-    if (!getShowCommitAuthorInfo() || commitAuthor === null) {
+    if (!this.state.showCommitAuthorInfo || commitAuthor === null) {
       return null
     }
 
@@ -1327,7 +1418,10 @@ export class CommitMessage extends React.Component<
 
   private onUpdateUserEmail = async (email: string) => {
     await setGlobalConfigValue('user.email', email)
+    invalidateCommitAuthorOrigins()
+    this.commitAuthorOriginLoadSequence += 1
     this.props.onRefreshAuthor()
+    await this.loadCommitAuthorOrigins()
   }
 
   private onOpenRepositorySettings = () => {
@@ -2944,7 +3038,7 @@ export class CommitMessage extends React.Component<
       >
         {this.renderCommitAuthorIdentity()}
         <div className={summaryClassName} ref={this.summaryGroupRef}>
-          {!getShowCommitAuthorInfo() && this.renderAvatar()}
+          {!this.state.showCommitAuthorInfo && this.renderAvatar()}
 
           <AutocompletingInput
             required={true}

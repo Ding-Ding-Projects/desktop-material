@@ -242,15 +242,18 @@ describe('AppStore Cheap LFS OCI routing', () => {
     }
     let account: unknown = 'not-called'
     let provider: unknown = null
+    let parallelBlobTransfers: unknown = null
     const store = Object.create(AppStore.prototype) as AppStore
     Object.assign(store, {
       accounts: [],
       cheapLfsOciSessionRunner: async (options: {
         readonly account: unknown
         readonly provider: unknown
+        readonly parallelBlobTransfers: unknown
       }) => {
         account = options.account
         provider = options.provider
+        parallelBlobTransfers = options.parallelBlobTransfers
         return {
           provider: 'docker-hub',
           relativePath: entry.relativePath,
@@ -270,6 +273,7 @@ describe('AppStore Cheap LFS OCI routing', () => {
 
     assert.equal(account, null)
     assert.equal(provider, 'docker-hub')
+    assert.equal(parallelBlobTransfers, true)
     assert.equal(result.bytes, 19)
   })
 
@@ -956,5 +960,57 @@ describe('AppStore Cheap LFS OCI routing', () => {
     )
     assert.equal(sessionStarted, false)
     assert.equal(refreshes, 1)
+  })
+
+  it('routes normalized upload concurrency without reducing restore parallelism', async t => {
+    const root = await createTempDirectory(t)
+    const repository = new Repository(
+      root,
+      94,
+      null,
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      null,
+      {
+        ...defaultBuildRunPreferences,
+        cheapLfsStorageProvider: 'ghcr',
+        cheapLfsUploadConcurrency: 2,
+        parallelCheapLfsUploads: true,
+      }
+    )
+    let captured:
+      | {
+          readonly parallelBlobTransfers: boolean
+          readonly blobUploadConcurrency?: number
+        }
+      | undefined
+    const store = Object.create(AppStore.prototype) as AppStore
+    Object.assign(store, {
+      requireCheapLfsAccount: () => ({}),
+      withTemporaryRepositoryMutationGuard: async (
+        _repository: Repository,
+        operation: () => Promise<unknown>
+      ) => await operation(),
+      cheapLfsOciSessionRunner: async (options: {
+        readonly parallelBlobTransfers: boolean
+        readonly blobUploadConcurrency?: number
+      }) => {
+        captured = options
+        return { published: true, failures: [] }
+      },
+      _refreshRepository: async () => undefined,
+    })
+
+    await store._pinFileToRelease(repository, {
+      absoluteFilePath: join(root, 'chosen.bin'),
+      trackedRelativePath: 'chosen.bin',
+      releaseTag: '',
+    })
+
+    assert.equal(captured?.blobUploadConcurrency, 2)
+    assert.equal(captured?.parallelBlobTransfers, true)
   })
 })

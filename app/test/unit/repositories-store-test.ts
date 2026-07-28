@@ -9,7 +9,10 @@ import {
   SubmoduleRepository,
 } from '../../src/models/repository'
 import { Account, getAccountKey } from '../../src/models/account'
-import { defaultBuildRunPreferences } from '../../src/models/build-run-preferences'
+import {
+  defaultBuildRunPreferences,
+  getCheapLfsUploadConcurrency,
+} from '../../src/models/build-run-preferences'
 
 describe('RepositoriesStore', () => {
   let repoDb = new TestRepositoriesDatabase()
@@ -104,18 +107,47 @@ describe('RepositoriesStore', () => {
   })
 
   describe('repository metadata', () => {
-    it('round-trips the parallel Cheap LFS upload preference', async () => {
+    it('round-trips configurable Cheap LFS upload concurrency and its legacy mirror', async () => {
       const repository = await repositoriesStore.addRepository(
         '/some/cheap-lfs/path',
         '/some/cheap-lfs/path/.git'
       )
       await repositoriesStore.updateRepositoryBuildRunPreferences(repository, {
         ...defaultBuildRunPreferences,
+        cheapLfsUploadConcurrency: 2,
+        parallelCheapLfsUploads: true,
+      })
+
+      const [reloaded] = await repositoriesStore.getAll()
+      assert.equal(reloaded.buildRunPreferences.cheapLfsUploadConcurrency, 2)
+      assert.equal(reloaded.buildRunPreferences.parallelCheapLfsUploads, true)
+      assert.equal(
+        getCheapLfsUploadConcurrency(reloaded.buildRunPreferences),
+        2
+      )
+    })
+
+    it('keeps a persisted legacy false upload switch sequential', async () => {
+      const repository = await repositoriesStore.addRepository(
+        '/some/legacy-cheap-lfs/path',
+        '/some/legacy-cheap-lfs/path/.git'
+      )
+      await repositoriesStore.updateRepositoryBuildRunPreferences(repository, {
+        ...defaultBuildRunPreferences,
+        cheapLfsUploadConcurrency: undefined,
         parallelCheapLfsUploads: false,
       })
 
       const [reloaded] = await repositoriesStore.getAll()
+      assert.equal(
+        reloaded.buildRunPreferences.cheapLfsUploadConcurrency,
+        undefined
+      )
       assert.equal(reloaded.buildRunPreferences.parallelCheapLfsUploads, false)
+      assert.equal(
+        getCheapLfsUploadConcurrency(reloaded.buildRunPreferences),
+        1
+      )
     })
 
     it('round-trips the one-image GHCR Cheap LFS preference', async () => {

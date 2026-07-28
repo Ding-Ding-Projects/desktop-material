@@ -378,7 +378,10 @@ async function createStore(
   return store
 }
 
-function renderStrip(store: RepositoryTabsStore) {
+function renderStrip(
+  store: RepositoryTabsStore,
+  ref?: React.Ref<RepositoryTabStrip>
+) {
   const dispatcher = {
     selectRepository: () => undefined,
     showFoldout: () => undefined,
@@ -392,6 +395,7 @@ function renderStrip(store: RepositoryTabsStore) {
 
   return render(
     <RepositoryTabStrip
+      ref={ref}
       tabsStore={store}
       repositories={repositories}
       dispatcher={dispatcher}
@@ -403,6 +407,42 @@ function renderStrip(store: RepositoryTabsStore) {
 }
 
 describe('RepositoryTabStrip overflow capabilities', () => {
+  it('bounds cached chip widths to valid groups that still have members', async () => {
+    const store = await createStore([
+      makeTab('alpha', alpha),
+      makeTab('material', material, 'Material workspace'),
+    ])
+    const activeGroupId = await store.createTabGroup('Active', 'blue', [
+      'alpha',
+    ])
+    const inactiveGroupId = await store.createTabGroup('Empty', 'green')
+    const deletedGroupId = await store.createTabGroup('Deleted', 'red')
+    assert.ok(activeGroupId !== null)
+    assert.ok(inactiveGroupId !== null)
+    assert.ok(deletedGroupId !== null)
+    await store.deleteTabGroup(deletedGroupId)
+
+    const stripRef = React.createRef<RepositoryTabStrip>()
+    renderStrip(store, stripRef)
+    assert.ok(stripRef.current !== null)
+    const chipWidthCache = (
+      stripRef.current as unknown as {
+        readonly chipWidthCache: Map<string, number>
+      }
+    ).chipWidthCache
+
+    chipWidthCache.set(activeGroupId, 80)
+    chipWidthCache.set(inactiveGroupId, 80)
+    chipWidthCache.set(deletedGroupId, 80)
+    assert.equal(chipWidthCache.size, 3)
+
+    // A store update drives the same recomputation used after group changes.
+    await store.updateTabGroup(activeGroupId, { name: 'Active renamed' })
+    await waitFor(() => {
+      assert.deepEqual(new Set(chipWidthCache.keys()), new Set([activeGroupId]))
+    })
+  })
+
   it('opens the per-tab appearance editor for a tab that only exists in the dropdown', async () => {
     const restore = measureStrip({ tab: 120, list: 260, overflowButton: 40 })
     try {

@@ -31,8 +31,8 @@ interface ICommitMessageAvatarState {
   /** Currently selected account email address. */
   readonly accountEmail: string
 
-  /** Whether the git configuration is local to the repository or global  */
-  readonly isGitConfigLocal: boolean
+  /** Whether Git config is local, global, or still being resolved on demand. */
+  readonly isGitConfigLocal: boolean | null
 }
 
 interface ICommitMessageAvatarProps {
@@ -104,6 +104,9 @@ export class CommitMessageAvatar extends React.Component<
 > {
   private avatarButtonRef: HTMLButtonElement | null = null
   private warningBadgeRef = React.createRef<HTMLDivElement>()
+  private isMounted = false
+  private gitConfigLocationLoadSequence = 0
+  private gitConfigLocationLoadKey: string | null = null
 
   public constructor(props: ICommitMessageAvatarProps) {
     super(props)
@@ -111,17 +114,54 @@ export class CommitMessageAvatar extends React.Component<
     this.state = {
       isPopoverOpen: false,
       accountEmail: this.props.preferredAccountEmail,
-      isGitConfigLocal: false,
+      isGitConfigLocal: null,
     }
-    this.determineGitConfigLocation()
+  }
+
+  public componentDidMount() {
+    this.isMounted = true
+  }
+
+  public componentWillUnmount() {
+    this.isMounted = false
+    this.gitConfigLocationLoadSequence += 1
+    this.gitConfigLocationLoadKey = null
   }
 
   public componentDidUpdate(prevProps: ICommitMessageAvatarProps) {
-    if (
+    const repositoryChanged =
+      this.props.repository.id !== prevProps.repository.id ||
+      this.props.repository.path !== prevProps.repository.path
+    const authorChanged =
       this.props.user?.name !== prevProps.user?.name ||
       this.props.user?.email !== prevProps.user?.email
+
+    if (repositoryChanged || authorChanged) {
+      this.gitConfigLocationLoadSequence += 1
+      this.gitConfigLocationLoadKey = null
+      const reloadIfVisible = () => {
+        if (this.state.isPopoverOpen && this.props.warningType === 'none') {
+          void this.determineGitConfigLocation()
+        }
+      }
+      if (this.state.isGitConfigLocal === null) {
+        reloadIfVisible()
+      } else {
+        this.setState({ isGitConfigLocal: null }, reloadIfVisible)
+      }
+    } else if (
+      this.state.isPopoverOpen &&
+      this.props.warningType === 'none' &&
+      prevProps.warningType !== 'none' &&
+      this.state.isGitConfigLocal === null
     ) {
-      this.determineGitConfigLocation()
+      void this.determineGitConfigLocation()
+    } else if (
+      this.props.warningType !== 'none' &&
+      prevProps.warningType === 'none'
+    ) {
+      this.gitConfigLocationLoadSequence += 1
+      this.gitConfigLocationLoadKey = null
     }
 
     if (
@@ -133,15 +173,60 @@ export class CommitMessageAvatar extends React.Component<
   }
 
   private async determineGitConfigLocation() {
-    const isGitConfigLocal = await this.isGitConfigLocal()
-    this.setState({ isGitConfigLocal })
-  }
+    if (
+      !this.isMounted ||
+      !this.state.isPopoverOpen ||
+      this.props.warningType !== 'none'
+    ) {
+      return
+    }
 
-  private isGitConfigLocal = async () => {
-    const { repository } = this.props
-    const localName = await getConfigValue(repository, 'user.name', true)
-    const localEmail = await getConfigValue(repository, 'user.email', true)
-    return localName !== null || localEmail !== null
+    const repository = this.props.repository
+    const loadKey = `${repository.id}\0${repository.path}`
+    if (this.gitConfigLocationLoadKey === loadKey) {
+      return
+    }
+
+    const sequence = ++this.gitConfigLocationLoadSequence
+    this.gitConfigLocationLoadKey = loadKey
+    try {
+      const [localName, localEmail] = await Promise.all([
+        getConfigValue(repository, 'user.name', true),
+        getConfigValue(repository, 'user.email', true),
+      ])
+      if (
+        !this.isMounted ||
+        !this.state.isPopoverOpen ||
+        this.props.warningType !== 'none' ||
+        sequence !== this.gitConfigLocationLoadSequence ||
+        repository.id !== this.props.repository.id ||
+        repository.path !== this.props.repository.path
+      ) {
+        return
+      }
+
+      this.setState({
+        isGitConfigLocal: localName !== null || localEmail !== null,
+      })
+    } catch (error) {
+      log.warn('Unable to determine the effective Git config location', error)
+      if (
+        this.isMounted &&
+        this.state.isPopoverOpen &&
+        this.props.warningType === 'none' &&
+        sequence === this.gitConfigLocationLoadSequence &&
+        repository.id === this.props.repository.id &&
+        repository.path === this.props.repository.path
+      ) {
+        // Preserve the old fallback: an unavailable local lookup routes to the
+        // global Git settings rather than leaving the popover permanently busy.
+        this.setState({ isGitConfigLocal: false })
+      }
+    } finally {
+      if (sequence === this.gitConfigLocationLoadSequence) {
+        this.gitConfigLocationLoadKey = null
+      }
+    }
   }
 
   private onButtonRef = (buttonRef: HTMLButtonElement | null) => {
@@ -207,18 +292,34 @@ export class CommitMessageAvatar extends React.Component<
   }
 
   private openPopover = () => {
-    this.setState(prevState => {
-      if (prevState.isPopoverOpen === false) {
-        return { isPopoverOpen: true }
+    this.setState(
+      prevState => {
+        if (prevState.isPopoverOpen === false) {
+          return { isPopoverOpen: true }
+        }
+        return null
+      },
+      () => {
+        if (
+          this.state.isPopoverOpen &&
+          this.props.warningType === 'none' &&
+          this.state.isGitConfigLocal === null
+        ) {
+          void this.determineGitConfigLocation()
+        }
       }
-      return null
-    })
+    )
   }
 
   private closePopover = () => {
+    this.gitConfigLocationLoadSequence += 1
+    this.gitConfigLocationLoadKey = null
     this.setState(prevState => {
       if (prevState.isPopoverOpen) {
-        return { isPopoverOpen: false }
+        // Git identity may have moved between global and local config without
+        // changing its visible name/email. Force the next ordinary open to run
+        // a fresh lazy location check instead of routing to stale settings.
+        return { isPopoverOpen: false, isGitConfigLocal: null }
       }
       return null
     })
@@ -236,6 +337,23 @@ export class CommitMessageAvatar extends React.Component<
   private renderGitConfigPopover() {
     const { user } = this.props
     const { isGitConfigLocal } = this.state
+    const buttonText = __DARWIN__ ? 'Open Git Settings' : 'Open git settings'
+
+    if (isGitConfigLocal === null) {
+      return (
+        <>
+          <p role="status">Checking which Git configuration applies…</p>
+          <Row className="button-row">
+            <OkCancelButtonGroup
+              okButtonText={buttonText}
+              okButtonDisabled={true}
+              onOkButtonClick={this.onOpenGitSettings}
+              onCancelButtonClick={this.onIgnoreClick}
+            />
+          </Row>
+        </>
+      )
+    }
 
     const location = isGitConfigLocal ? 'local' : 'global'
     const locationDesc = isGitConfigLocal ? 'for your repository' : ''
@@ -243,8 +361,6 @@ export class CommitMessageAvatar extends React.Component<
     const settings = isGitConfigLocal
       ? 'repository settings'
       : `git ${settingsName}`
-    const buttonText = __DARWIN__ ? 'Open Git Settings' : 'Open git settings'
-
     return (
       <>
         <p>{user && user.name && `Email: ${user.email}`}</p>
@@ -443,8 +559,13 @@ export class CommitMessageAvatar extends React.Component<
   }
 
   private onOpenGitSettings = () => {
+    const { isGitConfigLocal } = this.state
+    if (isGitConfigLocal === null) {
+      return
+    }
+
     this.closePopover()
-    if (this.state.isGitConfigLocal) {
+    if (isGitConfigLocal) {
       this.props.onOpenRepositorySettings()
     } else {
       this.props.onOpenGitSettings()

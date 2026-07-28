@@ -80,6 +80,7 @@ function publicContext(repositoryPath: string): ICheapLfsOciRepositoryContext {
     provider: 'ghcr',
     registryRepository,
     parallelBlobTransfers: true,
+    blobUploadConcurrency: 3,
   }
 }
 
@@ -1079,10 +1080,10 @@ describe('Cheap LFS OCI orchestration', () => {
     const bytes = Buffer.from('adaptive upload')
     await writeFile(join(root, 'adaptive.bin'), bytes)
     const maximums: number[] = []
-    const parallel: boolean[] = []
+    const uploadConcurrency: number[] = []
     const runtime = new FakeRuntime(async request => {
       maximums.push(request.image.maximumChunkBytes)
-      parallel.push(request.parallelBlobUploads)
+      uploadConcurrency.push(request.blobUploadConcurrency)
       if (maximums.length === 1) {
         throw new CheapLfsGhcrLayerUploadTimeoutError(
           sha256(bytes),
@@ -1095,7 +1096,7 @@ describe('Cheap LFS OCI orchestration', () => {
     })
 
     const result = await pinCheapLfsFilesToOci(
-      publicContext(root),
+      { ...publicContext(root), blobUploadConcurrency: 2 },
       [{ relativePath: 'adaptive.bin' }],
       { runtime }
     )
@@ -1104,7 +1105,7 @@ describe('Cheap LFS OCI orchestration', () => {
       CheapLfsGhcrMaximumChunkBytes,
       Math.floor(CheapLfsGhcrMaximumChunkBytes / 2),
     ])
-    assert.deepEqual(parallel, [true, false])
+    assert.deepEqual(uploadConcurrency, [2, 1])
     assert.equal(result.attempts, 2)
     assert.equal(result.failures.length, 0)
   })

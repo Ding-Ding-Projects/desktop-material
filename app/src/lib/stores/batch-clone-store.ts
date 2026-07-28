@@ -926,6 +926,9 @@ export class BatchCloneStore extends TypedBaseStore<IBatchCloneState | null> {
           {
             defaultBranch: item.defaultBranch,
             accountKey: item.accountKey,
+            ...(item.cheapLfsSelection === undefined
+              ? {}
+              : { cheapLfsSelection: item.cheapLfsSelection }),
           },
           {
             onError: error => {

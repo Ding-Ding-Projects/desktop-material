@@ -47,6 +47,7 @@ import {
   ICheapLfsReleasesGateway,
   listCheapLfsPointers,
   listAllCheapLfsPointers,
+  listAllCheapLfsPointersAtHead,
   materializePointer,
   pinFileToRelease,
   selectCheapLfsAutoPinTargets,
@@ -4448,6 +4449,92 @@ describe('cheap LFS operations', () => {
       assert.equal(registry?.kind, 'oci')
       assert.equal(registry?.workingTreeState, 'materialized')
       assert.equal(registry?.pointer.sizeInBytes, materializedBytes.length)
+    })
+  })
+
+  it('inventories the exact HEAD pointer set after worktree hydration and deletion', async () => {
+    await withTempRepository(async (dir, repository) => {
+      await execFile('git', ['init', '--quiet'], { cwd: dir })
+      const releaseBytes = Buffer.from('release payload from a prior clone')
+      const releasePointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'assets',
+        assetName: 'release.bin',
+        sizeInBytes: releaseBytes.length,
+        sha256: createHash('sha256').update(releaseBytes).digest('hex'),
+      }
+      const registryBytes = Buffer.from('registry payload from a prior clone')
+      const registrySha = createHash('sha256')
+        .update(registryBytes)
+        .digest('hex')
+      await writeFile(
+        join(dir, 'release.bin'),
+        serializeCheapLfsPointer(releasePointer),
+        'utf8'
+      )
+      await writeFile(
+        join(dir, 'registry.bin'),
+        serializeCheapLfsGhcrPointer({
+          version: CHEAP_LFS_OCI_POINTER_VERSION,
+          image: `ghcr.io/desktop/material@sha256:${'a'.repeat(64)}`,
+          object: `sha256:${registrySha}`,
+          sizeInBytes: registryBytes.length,
+          layers: [`sha256:${'c'.repeat(64)}`],
+        }),
+        'utf8'
+      )
+      await execFile('git', ['add', '--all'], { cwd: dir })
+      await execFile(
+        'git',
+        [
+          '-c',
+          'user.name=Cheap LFS Test',
+          '-c',
+          'user.email=cheap-lfs@example.test',
+          'commit',
+          '--quiet',
+          '-m',
+          'pointers',
+        ],
+        { cwd: dir }
+      )
+
+      await writeFile(join(dir, 'release.bin'), releaseBytes)
+      await rm(join(dir, 'registry.bin'))
+
+      const workingTree = await listAllCheapLfsPointers(repository)
+      assert.deepEqual(
+        workingTree.map(entry => [
+          entry.relativePath,
+          entry.workingTreeState,
+        ]),
+        [['release.bin', 'materialized']]
+      )
+
+      const committed = await listAllCheapLfsPointersAtHead(repository)
+      assert.deepEqual(
+        committed.map(entry => [
+          entry.relativePath,
+          entry.kind,
+          entry.workingTreeState,
+        ]),
+        [
+          ['registry.bin', 'oci', 'pointer'],
+          ['release.bin', 'release', 'pointer'],
+        ]
+      )
+      assert.equal(
+        committed.find(entry => entry.relativePath === 'release.bin')?.kind,
+        'release'
+      )
+
+      const scoped = await listAllCheapLfsPointersAtHead(repository, [
+        'registry.bin',
+      ])
+      assert.deepEqual(
+        scoped.map(entry => [entry.relativePath, entry.kind]),
+        [['registry.bin', 'oci']]
+      )
     })
   })
 

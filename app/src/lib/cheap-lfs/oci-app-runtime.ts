@@ -47,7 +47,10 @@ export interface IWithCheapLfsOciRuntimeForRepositoryOptions {
   readonly repository: Repository
   readonly account: Account | null
   readonly provider: CheapLfsRegistryProvider
+  /** Existing restore/download behavior; independent of upload lane settings. */
   readonly parallelBlobTransfers: boolean
+  /** Optional for callers predating configurable Cheap LFS upload lanes. */
+  readonly blobUploadConcurrency?: number
 }
 
 export interface ICheapLfsOciAppRuntimeDependencies {
@@ -316,6 +319,13 @@ export async function withCheapLfsOciRuntimeForRepository<T>(
       provider: options.provider,
       registryRepository: target.registryRepository,
       parallelBlobTransfers: options.parallelBlobTransfers,
+      blobUploadConcurrency:
+        typeof options.blobUploadConcurrency === 'number' &&
+        Number.isFinite(options.blobUploadConcurrency)
+          ? Math.min(3, Math.max(1, Math.floor(options.blobUploadConcurrency)))
+          : options.parallelBlobTransfers
+          ? 3
+          : 1,
     }
     const runtime: ICheapLfsOciRuntime = {
       publish: async request => {
@@ -365,7 +375,7 @@ export async function withCheapLfsOciRuntimeForRepository<T>(
             orasExecutableSha256: oras.sha256,
             credentials: publishCredentials,
             packagePolicyVerifier: verifier,
-            parallelBlobUploads: request.parallelBlobUploads,
+            blobUploadConcurrency: request.blobUploadConcurrency,
             keyCreated: request.keyCreated,
             keyRelativePath: request.keyRelativePath,
             signal: request.signal,

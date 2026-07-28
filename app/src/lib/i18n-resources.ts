@@ -1701,6 +1701,8 @@ export type TranslationKey =
   | 'push.ghCliFallbackSuccessBody'
   | 'clone.visibilityPublic'
   | 'clone.visibilityPrivate'
+  | 'clone.visibilityAll'
+  | 'clone.visibilityForked'
   | 'clone.noDescription'
   | 'clone.starsLabel'
   | 'clone.forksLabel'
@@ -1710,6 +1712,32 @@ export type TranslationKey =
   | 'clone.languageLabel'
   | 'clone.languageFilterLabel'
   | 'clone.languageFilterAria'
+  | 'clone.visibilityFilterAria'
+  | 'clone.visibilityFilterLabel'
+  | 'clone.filters.button'
+  | 'clone.filters.buttonActive'
+  | 'clone.filters.activeCount'
+  | 'clone.filters.metadataAria'
+  | 'clone.cheapLfs.badgeTitle'
+  | 'clone.cheapLfs.badgeAriaOne'
+  | 'clone.cheapLfs.badgeAriaMany'
+  | 'clone.cheapLfs.selectorTitle'
+  | 'clone.cheapLfs.selectorSummaryOne'
+  | 'clone.cheapLfs.selectorSummaryMany'
+  | 'clone.cheapLfs.selectorSearchPlaceholder'
+  | 'clone.cheapLfs.selectorSearchAria'
+  | 'clone.cheapLfs.selectorRegexTarget'
+  | 'clone.cheapLfs.selectorSelectedCount'
+  | 'clone.cheapLfs.selectorSelectAll'
+  | 'clone.cheapLfs.selectorSelectNone'
+  | 'clone.cheapLfs.selectorNoMatches'
+  | 'clone.cheapLfs.selectorTreeAria'
+  | 'clone.cheapLfs.selectorIncludeOne'
+  | 'clone.cheapLfs.selectorIncludeMany'
+  | 'clone.cheapLfs.selectorFileAria'
+  | 'clone.cheapLfs.selectorFolderAria'
+  | 'clone.cheapLfs.selectorCollapse'
+  | 'clone.cheapLfs.selectorExpand'
   | 'clone.orgScopeMissing'
   | 'clone.orgReconnect'
   | 'clone.orgRestrictionNote'
@@ -2011,6 +2039,9 @@ export type TranslationKey =
   | 'cheapLfs.settings.autoMaterialize'
   | 'cheapLfs.settings.autoPin'
   | 'cheapLfs.settings.autoPinHelp'
+  | 'cheapLfs.settings.cloneHelper'
+  | 'cheapLfs.settings.cloneHelperHelp'
+  | 'cheapLfs.settings.summary'
   | 'cheapLfs.settings.parallelUploads'
   | 'cheapLfs.settings.parallelUploadsHelp'
   | 'cheapLfs.settings.ghcrStorage'
@@ -2339,6 +2370,12 @@ export type TranslationKey =
   | 'repositorySettings.appearance.logoInherits'
   | 'githubApi.railLabel'
   | 'cheapLfs.settings.sectionHeading'
+  | 'cheapLfs.cloneHelper.conflictTitle'
+  | 'cheapLfs.cloneHelper.conflictBody'
+  | 'cheapLfs.cloneHelper.failureTitle'
+  | 'cheapLfs.cloneHelper.failureBody'
+  | 'cheapLfs.cloneSelection.rejectedTitle'
+  | 'cheapLfs.cloneSelection.rejectedBody'
   | 'gitAutoFix.fixIt'
   | 'gitAutoFix.staleIndexLock.title'
   | 'gitAutoFix.staleIndexLock.summary'
@@ -4684,6 +4721,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'The push to {remote} was rejected, so Desktop Material retried it with your GitHub CLI login and it succeeded.',
   'clone.visibilityPublic': 'Public',
   'clone.visibilityPrivate': 'Private',
+  'clone.visibilityAll': 'All',
+  'clone.visibilityForked': 'Forked',
   'clone.noDescription': 'No description provided',
   'clone.starsLabel': '{count} stars',
   'clone.forksLabel': '{count} forks',
@@ -4693,6 +4732,37 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'clone.languageLabel': 'Language: {language}',
   'clone.languageFilterLabel': 'Language',
   'clone.languageFilterAria': 'Filter repositories by language',
+  'clone.visibilityFilterAria': 'Filter repositories by visibility',
+  'clone.visibilityFilterLabel': 'Visibility',
+  'clone.filters.button': 'Repository filters',
+  'clone.filters.buttonActive': 'Repository filters · {count}',
+  'clone.filters.activeCount': '{count} active',
+  'clone.filters.metadataAria': 'Repository metadata filters',
+  'clone.cheapLfs.badgeTitle': 'Cheap LFS files',
+  'clone.cheapLfs.badgeAriaOne':
+    'Choose whether to download the 1 Cheap LFS file when cloning {repository}',
+  'clone.cheapLfs.badgeAriaMany':
+    'Choose which of the {count} Cheap LFS files to download when cloning {repository}',
+  'clone.cheapLfs.selectorTitle': 'Choose Cheap LFS files',
+  'clone.cheapLfs.selectorSummaryOne':
+    'Choose whether to download the Cheap LFS file in {repository}. Everything is selected by default.',
+  'clone.cheapLfs.selectorSummaryMany':
+    'Choose which {count} Cheap LFS files to download in {repository}. Everything is selected by default.',
+  'clone.cheapLfs.selectorSearchPlaceholder': 'Search large-file paths',
+  'clone.cheapLfs.selectorSearchAria': 'Search Cheap LFS files',
+  'clone.cheapLfs.selectorRegexTarget': 'Cheap LFS asset paths',
+  'clone.cheapLfs.selectorSelectedCount': '{selected} of {count} selected',
+  'clone.cheapLfs.selectorSelectAll': 'Select all',
+  'clone.cheapLfs.selectorSelectNone': 'Select none',
+  'clone.cheapLfs.selectorNoMatches': 'No Cheap LFS files match this search.',
+  'clone.cheapLfs.selectorTreeAria': 'Cheap LFS files',
+  'clone.cheapLfs.selectorIncludeOne': 'Include {count} file',
+  'clone.cheapLfs.selectorIncludeMany': 'Include {count} files',
+  'clone.cheapLfs.selectorFileAria': 'Include {path} in the Cheap LFS download',
+  'clone.cheapLfs.selectorFolderAria':
+    '{selected} of {count} files selected in {path}',
+  'clone.cheapLfs.selectorCollapse': 'Collapse {path}',
+  'clone.cheapLfs.selectorExpand': 'Expand {path}',
   'clone.orgScopeMissing':
     "We couldn't see any organizations. This sign-in may be missing organization access.",
   'clone.orgReconnect': 'Reconnect to load organizations',
@@ -5203,9 +5273,14 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.settings.autoPin': 'Pin large files when committing',
   'cheapLfs.settings.autoPinHelp':
     'Files over about 100 MB are uploaded to the selected Cheap LFS storage and replaced with small pointers. Failed files stay in Changes for the next commit while other selected safe changes continue.',
-  'cheapLfs.settings.parallelUploads': 'Upload up to 3 large files at once',
+  'cheapLfs.settings.cloneHelper': 'Include the Windows and Linux clone helper',
+  'cheapLfs.settings.cloneHelperHelp':
+    'Enabled by default. Cheap LFS commits keep a managed Markdown guide and one-command Windows/Linux hydration scripts under .desktop-material/cheap-lfs. Turning this off stops future updates without deleting files already committed.',
+  'cheapLfs.settings.summary':
+    'Pinning uploads committed files over about 100 MB to the selected Cheap LFS storage and commits a small pointer instead. Uploads use the selected one-to-three lanes; retries use one lane, and failed files stay in Changes while safe files can still commit. GHCR and Docker Hub keep the repository object set in one digest-pinned OCI image, with tracked-key encryption for private repositories. The clone helper and Desktop Material restore selected pointers after cloning or pulling.',
+  'cheapLfs.settings.parallelUploads': 'Simultaneous Cheap LFS uploads',
   'cheapLfs.settings.parallelUploadsHelp':
-    'Uses up to three independent Cheap LFS transfer lanes. Turn this off to upload one file at a time.',
+    'Choose 1, 2, or 3 upload lanes. Upload retries fall back to one lane; downloads keep their existing restore behavior.',
   'cheapLfs.settings.ghcrStorage': 'Store Cheap LFS in one GHCR image',
   'cheapLfs.settings.ghcrStorageHelp':
     'Publishes one digest-pinned OCI image for all repository objects. Private repositories encrypt objects with a shared key tracked in that private repository.',
@@ -5213,6 +5288,17 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.settings.storageRelease': 'GitHub published prerelease',
   'cheapLfs.settings.storageGhcr': 'GHCR · one OCI image',
   'cheapLfs.settings.storageDockerHub': 'Docker Hub · one OCI image',
+  'cheapLfs.cloneHelper.conflictTitle':
+    'Cheap LFS clone helper needs attention',
+  'cheapLfs.cloneHelper.conflictBody':
+    'Desktop Material left these non-managed files unchanged: {paths}. Move or rename them, then commit again to generate the managed Windows and Linux helper safely.',
+  'cheapLfs.cloneHelper.failureTitle': 'Cheap LFS clone helper was not updated',
+  'cheapLfs.cloneHelper.failureBody':
+    'The uploaded Cheap LFS pointers remain valid, but Desktop Material could not safely update the managed Windows and Linux hydration helper. Review the repository files and retry the commit.',
+  'cheapLfs.cloneSelection.rejectedTitle':
+    'Selected Cheap LFS files were not downloaded',
+  'cheapLfs.cloneSelection.rejectedBody':
+    'The repository manifest, branch, account, or pointer files changed after selection ({reason}). The clone completed with its pointer files intact. Reopen Clone Repository and choose the assets again.',
   'cheapLfs.encryption.title': 'Release payload encryption',
   'cheapLfs.encryption.toggle': 'Encrypt new Release payloads with a password',
   'cheapLfs.encryption.help':
@@ -7792,6 +7878,8 @@ export const cantoneseTranslations: Readonly<
     '推送去 {remote} 一開始俾人拒絕，所以 Desktop Material 改用你嘅 GitHub CLI 登入再試一次，今次搞掂咗。',
   'clone.visibilityPublic': '公開',
   'clone.visibilityPrivate': '私人',
+  'clone.visibilityAll': '全部',
+  'clone.visibilityForked': 'Fork 咗',
   'clone.noDescription': '未有描述',
   'clone.starsLabel': '{count} 個 star',
   'clone.forksLabel': '{count} 個 fork',
@@ -7801,6 +7889,37 @@ export const cantoneseTranslations: Readonly<
   'clone.languageLabel': '語言：{language}',
   'clone.languageFilterLabel': '語言',
   'clone.languageFilterAria': '按語言篩選倉庫',
+  'clone.visibilityFilterAria': '按公開狀態篩選倉庫',
+  'clone.visibilityFilterLabel': '公開狀態',
+  'clone.filters.button': '倉庫篩選器',
+  'clone.filters.buttonActive': '倉庫篩選器 · {count}',
+  'clone.filters.activeCount': '{count} 個使用中',
+  'clone.filters.metadataAria': '倉庫資料篩選器',
+  'clone.cheapLfs.badgeTitle': 'Cheap LFS 檔案',
+  'clone.cheapLfs.badgeAriaOne':
+    'Clone {repository} 時揀呢 1 個 Cheap LFS 檔案下唔下載',
+  'clone.cheapLfs.badgeAriaMany':
+    'Clone {repository} 時揀 {count} 個 Cheap LFS 檔案入面邊啲要下載',
+  'clone.cheapLfs.selectorTitle': '揀 Cheap LFS 檔案',
+  'clone.cheapLfs.selectorSummaryOne':
+    '揀 {repository} 入面嗰個 Cheap LFS 檔案下唔下載；預設已經勾好。',
+  'clone.cheapLfs.selectorSummaryMany':
+    '揀 {repository} 入面邊啲 Cheap LFS 檔案要下載；{count} 個預設全部勾好。',
+  'clone.cheapLfs.selectorSearchPlaceholder': '搜尋大檔案路徑',
+  'clone.cheapLfs.selectorSearchAria': '搜尋 Cheap LFS 檔案',
+  'clone.cheapLfs.selectorRegexTarget': 'Cheap LFS 檔案路徑',
+  'clone.cheapLfs.selectorSelectedCount': '已揀 {selected} 個，共 {count} 個',
+  'clone.cheapLfs.selectorSelectAll': '全部揀晒',
+  'clone.cheapLfs.selectorSelectNone': '全部唔揀',
+  'clone.cheapLfs.selectorNoMatches': '今次搜尋搵唔到相符嘅 Cheap LFS 檔案。',
+  'clone.cheapLfs.selectorTreeAria': 'Cheap LFS 檔案',
+  'clone.cheapLfs.selectorIncludeOne': '包括 {count} 個檔案',
+  'clone.cheapLfs.selectorIncludeMany': '包括 {count} 個檔案',
+  'clone.cheapLfs.selectorFileAria': '下載 Cheap LFS 時包括 {path}',
+  'clone.cheapLfs.selectorFolderAria':
+    '{path} 入面揀咗 {selected} 個檔案，共 {count} 個',
+  'clone.cheapLfs.selectorCollapse': '收起 {path}',
+  'clone.cheapLfs.selectorExpand': '展開 {path}',
   'clone.orgScopeMissing': '睇唔到任何組織，可能今次登入未攞到組織權限。',
   'clone.orgReconnect': '重新連接以載入組織',
   'clone.orgRestrictionNote':
@@ -8283,9 +8402,14 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.settings.autoPin': 'Commit 嗰陣自動 pin 大檔案',
   'cheapLfs.settings.autoPinHelp':
     '大過約 100 MB 嘅檔案會上載去揀好嘅 Cheap LFS 儲存位置，再換成細 pointer。失手嘅檔案會留喺 Changes 等下次 commit，其他揀咗嘅安全變更會照行。',
-  'cheapLfs.settings.parallelUploads': '一次過載最多 3 個大檔案',
+  'cheapLfs.settings.cloneHelper': '包括 Windows 同 Linux clone helper',
+  'cheapLfs.settings.cloneHelperHelp':
+    '預設開啟。Cheap LFS commit 會喺 .desktop-material/cheap-lfs 保持一份受管理 Markdown 指南，同埋 Windows/Linux 一行指令 hydration scripts。關閉後只會停止日後更新，已經 commit 嘅檔案唔會偷偷刪走。',
+  'cheapLfs.settings.summary':
+    'Pinning 會將 commit 入面大過約 100 MB 嘅檔案上載去揀好嘅 Cheap LFS 儲存位置，再 commit 一條細 pointer。上載會用你揀嘅一至三條通道，重試就逐個嚟；失敗檔案留喺 Changes，安全檔案照樣可以 commit。GHCR 同 Docker Hub 會將倉庫物件放喺一個鎖定 digest 嘅 OCI image，私人倉庫就用 track 咗嘅 key 加密。Clone helper 同 Desktop Material 會喺 clone 或 pull 後還原你揀嘅 pointers。',
+  'cheapLfs.settings.parallelUploads': 'Cheap LFS 同時上載數量',
   'cheapLfs.settings.parallelUploadsHelp':
-    '會用最多三條獨立 Cheap LFS 傳輸通道；熄咗就逐個檔案上載。',
+    '揀 1、2 或 3 條上載通道；上載重試會穩陣啲逐個嚟，下載就保留原本還原方式，唔會亂改車道。',
   'cheapLfs.settings.ghcrStorage': '用一個 GHCR image 儲晒 Cheap LFS',
   'cheapLfs.settings.ghcrStorageHelp':
     '成個 repository 嘅物件會放入一個鎖定 digest 嘅 OCI image。私人 repository 會用一條一齊 track 嘅共享 key 加密物件。',
@@ -8293,6 +8417,15 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.settings.storageRelease': 'GitHub 已發佈 prerelease',
   'cheapLfs.settings.storageGhcr': 'GHCR · 一個 OCI image',
   'cheapLfs.settings.storageDockerHub': 'Docker Hub · 一個 OCI image',
+  'cheapLfs.cloneHelper.conflictTitle': 'Cheap LFS clone helper 要你望一望',
+  'cheapLfs.cloneHelper.conflictBody':
+    'Desktop Material 冇郁過呢啲唔屬於受管理 helper 嘅檔案：{paths}。請搬走或者改名，再 commit 一次，就可以安全產生 Windows 同 Linux helper。',
+  'cheapLfs.cloneHelper.failureTitle': 'Cheap LFS clone helper 未有更新',
+  'cheapLfs.cloneHelper.failureBody':
+    '已上載嘅 Cheap LFS pointers 仍然有效，但 Desktop Material 未能安全更新受管理嘅 Windows/Linux hydration helper。請檢查倉庫檔案，再試一次 commit。',
+  'cheapLfs.cloneSelection.rejectedTitle': '已揀嘅 Cheap LFS 檔案未有下載',
+  'cheapLfs.cloneSelection.rejectedBody':
+    '你揀完之後，倉庫 manifest、branch、account 或 pointer 檔案有變（{reason}）。Clone 已完成，pointer 檔案保持原樣。請重新打開 Clone Repository 再揀資產。',
   'cheapLfs.encryption.title': 'Release payload 加密',
   'cheapLfs.encryption.toggle': '用密碼加密新嘅 Release payload',
   'cheapLfs.encryption.help':

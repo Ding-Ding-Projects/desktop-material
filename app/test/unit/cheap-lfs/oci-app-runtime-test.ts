@@ -166,6 +166,7 @@ describe('Cheap LFS app OCI runtime', () => {
             provider: 'ghcr',
             registryRepository: 'ghcr.io/octo/project-cheap-lfs',
             parallelBlobTransfers: true,
+            blobUploadConcurrency: 3,
           })
           assert.equal(
             token.some(byte => byte !== 0),
@@ -185,9 +186,11 @@ describe('Cheap LFS app OCI runtime', () => {
 
   it('turns a redacted GHCR command rejection into actionable package-auth guidance', async () => {
     const token = Buffer.from('package-token')
+    let forwardedUploadConcurrency: number | undefined
     const deps: ICheapLfsOciAppRuntimeDependencies = {
       ...dependencies(true, token),
-      publish: async () => {
+      publish: async options => {
+        forwardedUploadConcurrency = options.blobUploadConcurrency
         throw new CheapLfsGhcrTransportError(
           'process-failed',
           'The packaged ORAS process failed.'
@@ -202,6 +205,7 @@ describe('Cheap LFS app OCI runtime', () => {
           account: account(),
           provider: 'ghcr',
           parallelBlobTransfers: true,
+          blobUploadConcurrency: 2,
         },
         async session =>
           await session.runtime.publish({
@@ -210,7 +214,7 @@ describe('Cheap LFS app OCI runtime', () => {
             registryRepository: session.context.registryRepository,
             repositoryIdentity: session.context.repositoryIdentity,
             visibility: 'private',
-            parallelBlobUploads: true,
+            blobUploadConcurrency: 2,
             keyCreated: false,
             keyRelativePath: null,
             attempt: 1,
@@ -229,6 +233,7 @@ describe('Cheap LFS app OCI runtime', () => {
       token.every(byte => byte === 0),
       true
     )
+    assert.equal(forwardedUploadConcurrency, 2)
   })
 
   it('opens a public GHCR restore session without account credentials', async () => {
@@ -244,6 +249,47 @@ describe('Cheap LFS app OCI runtime', () => {
       dependencies(false, token)
     )
     assert.equal(result, 'verified-public')
+    assert.equal(token.toString('utf8'), 'unused')
+  })
+
+  it('keeps restore downloads parallel when uploads are configured to one lane', async () => {
+    const token = Buffer.from('unused')
+    const stored = ghcrStoredPointer('ghcr.io/octo/project-cheap-lfs')
+    let parallelBlobDownloads: boolean | undefined
+    const deps: ICheapLfsOciAppRuntimeDependencies = {
+      ...dependencies(false, token),
+      pull: async (options, operation) => {
+        parallelBlobDownloads = options.parallelBlobDownloads
+        return await operation({
+          sourceRepositoryUrl: 'https://github.com/octo/project',
+        } as never)
+      },
+    }
+
+    const result = await withCheapLfsOciRuntimeForRepository(
+      {
+        repository: localRepository(false),
+        account: null,
+        provider: 'ghcr',
+        parallelBlobTransfers: true,
+        blobUploadConcurrency: 1,
+      },
+      async session => {
+        assert.equal(session.context.blobUploadConcurrency, 1)
+        return await session.runtime.withPulledImage(
+          {
+            pointer: stored.pointer,
+            expectedRepositoryIdentity: session.context.repositoryIdentity,
+            expectedVisibility: 'public',
+          },
+          async () => 'restored'
+        )
+      },
+      deps
+    )
+
+    assert.equal(result, 'restored')
+    assert.equal(parallelBlobDownloads, true)
     assert.equal(token.toString('utf8'), 'unused')
   })
 

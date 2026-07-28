@@ -42,6 +42,8 @@ import classNames from 'classnames'
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { BulkBranchDelete } from './bulk-branch-delete'
 import { ForkBranchCheckout } from './fork-branch-checkout'
+import { WorktreeEntry } from '../../models/worktree'
+import { findLinkedWorktreeForBranch } from './branch-worktree'
 
 /**
  * Virtualized row height for branch rows inside the branch side sheet.
@@ -65,6 +67,7 @@ interface IBranchesContainerProps {
   readonly onRenameBranch: (branchName: string) => void
   readonly onDeleteBranch: (branchName: string) => void
   readonly onCheckoutInNewWorktree?: (branch: Branch) => void
+  readonly worktrees: ReadonlyArray<WorktreeEntry>
 
   /** Optional callback to checkout a PR in a new worktree */
   readonly onCheckoutPRInNewWorktree?: (pullRequest: PullRequest) => void
@@ -282,13 +285,22 @@ export class BranchesContainer extends React.Component<
     matches: IMatches,
     authorDate: Date | undefined
   ) => {
+    const linkedWorktree = enableWorktreeSupport()
+      ? findLinkedWorktreeForBranch(
+          this.props.repository.path,
+          item.branch,
+          this.props.worktrees
+        )
+      : undefined
+
     return renderDefaultBranch(
       item,
       matches,
       this.props.currentBranch,
       authorDate,
       this.onDropOntoBranch,
-      this.onDropOntoCurrentBranch
+      this.onDropOntoCurrentBranch,
+      linkedWorktree
     )
   }
 
@@ -296,7 +308,17 @@ export class BranchesContainer extends React.Component<
     item: IBranchListItem,
     authorDate: Date | undefined
   ): string => {
-    return getDefaultAriaLabelForBranch(item, authorDate)
+    return getDefaultAriaLabelForBranch(
+      item,
+      authorDate,
+      enableWorktreeSupport()
+        ? findLinkedWorktreeForBranch(
+            this.props.repository.path,
+            item.branch,
+            this.props.worktrees
+          )
+        : undefined
+    )
   }
 
   private renderSelectedTab() {
@@ -355,6 +377,10 @@ export class BranchesContainer extends React.Component<
               enableWorktreeSupport()
                 ? this.props.onCheckoutInNewWorktree
                 : undefined
+            }
+            worktrees={this.props.worktrees}
+            onSwitchToWorktree={
+              enableWorktreeSupport() ? this.onBranchItemClick : undefined
             }
           />
         )
