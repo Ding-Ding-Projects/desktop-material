@@ -133,8 +133,12 @@ export interface ITooltipProps<T> {
    * relative to the window. This can be useful in scenarios where the target's
    * natural positioning is not already relative to the window such as an
    * element within in iframe.
+   *
+   * Consumers whose offset depends on layout may provide a resolver. It runs
+   * only when the tooltip is about to open (and while an open tooltip is
+   * remeasured), keeping layout reads out of ordinary React renders.
    */
-  readonly tooltipOffset?: DOMRect
+  readonly tooltipOffset?: DOMRect | ((target: TooltipTarget) => DOMRect)
 
   /** Optional parameter for toggle tip behavior.
    *
@@ -258,7 +262,7 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
             this.setState({ tooltipRect })
           }
         } else if (entry.target === this.state.target) {
-          const targetRect = this.state.target.getBoundingClientRect()
+          const targetRect = this.getTargetRect(this.state.target)
           if (!rectEquals(this.state.targetRect, targetRect)) {
             this.setState({ targetRect })
           }
@@ -655,13 +659,17 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
 
   private getTargetRect(target: TooltipTarget) {
     const { direction, tooltipOffset } = this.props
+    const resolvedOffset =
+      typeof tooltipOffset === 'function'
+        ? tooltipOffset(target)
+        : tooltipOffset
 
     return offsetRect(
       direction === undefined && this.props.positionRelativeToTarget !== true
         ? this.getPointerRect(target)
         : target.getBoundingClientRect(),
-      tooltipOffset?.x ?? 0,
-      tooltipOffset?.y ?? 0
+      resolvedOffset?.x ?? 0,
+      resolvedOffset?.y ?? 0
     )
   }
 

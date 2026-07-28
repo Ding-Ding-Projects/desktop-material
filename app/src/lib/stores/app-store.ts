@@ -389,6 +389,7 @@ import {
   ICheapLfsRestoreState,
   IBatchCloneFinalizingState,
 } from '../app-state'
+import { afterRendererPaint } from '../after-renderer-paint'
 import { compareFormUpdateChangesState } from '../compare-form-update'
 import {
   findEditorOrDefault,
@@ -1479,6 +1480,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private batchCloneFinalizing: IBatchCloneFinalizingState | null = null
 
   private selectedRepository: Repository | CloningRepository | null = null
+  private repositorySectionChangeSequence = 0
   private automationSettings: IAutomationSettingsState =
     loadAutomationSettings()
 
@@ -5714,6 +5716,25 @@ export class AppStore extends TypedBaseStore<IAppState> {
     selectedSection: RepositorySectionTab,
     forceButtonFocus: boolean = false
   ): Promise<void> {
+    switch (selectedSection) {
+      case RepositorySectionTab.Changes:
+      case RepositorySectionTab.History:
+      case RepositorySectionTab.Actions:
+      case RepositorySectionTab.Releases:
+      case RepositorySectionTab.CheapLfs:
+      case RepositorySectionTab.Issues:
+      case RepositorySectionTab.GitHubAPI:
+      case RepositorySectionTab.Triage:
+      case RepositorySectionTab.RepositoryTools:
+        break
+      default:
+        return assertNever(
+          selectedSection,
+          `Unknown section: ${selectedSection}`
+        )
+    }
+
+    const changeSequence = ++this.repositorySectionChangeSequence
     this.repositoryStateCache.update(repository, state => {
       if (state.selectedSection !== selectedSection) {
         this.statsStore.increment('repositoryViewChangeCount')
@@ -5722,6 +5743,33 @@ export class AppStore extends TypedBaseStore<IAppState> {
     })
     this.emitUpdate()
 
+    const targetIsStillCurrent = () => {
+      const selectedRepository = this.selectedRepository
+      return (
+        changeSequence === this.repositorySectionChangeSequence &&
+        selectedRepository instanceof Repository &&
+        selectedRepository.id === repository.id &&
+        selectedRepository.path === repository.path &&
+        this.repositoryStateCache.get(repository).selectedSection ===
+          selectedSection
+      )
+    }
+
+    // Git refreshes synchronously create child processes before their first
+    // await. Starting that work in the click task delays presentation of the
+    // newly selected section. Let the queued store update render and receive a
+    // paint opportunity first; hidden windows cannot produce animation frames,
+    // so they retain the immediate path.
+    if (this.windowState !== 'hidden') {
+      await afterRendererPaint()
+    }
+    if (
+      !this.isTemporaryRepositoryActive(repository) ||
+      !targetIsStillCurrent()
+    ) {
+      return
+    }
+
     if (selectedSection === RepositorySectionTab.History) {
       await this.refreshHistorySection(repository)
     } else if (selectedSection === RepositorySectionTab.Changes) {
@@ -5729,19 +5777,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
         includingStatus: true,
         clearPartialState: false,
       })
-    } else if (
-      selectedSection !== RepositorySectionTab.Actions &&
-      selectedSection !== RepositorySectionTab.Releases &&
-      selectedSection !== RepositorySectionTab.CheapLfs &&
-      selectedSection !== RepositorySectionTab.Issues &&
-      selectedSection !== RepositorySectionTab.GitHubAPI &&
-      selectedSection !== RepositorySectionTab.Triage &&
-      selectedSection !== RepositorySectionTab.RepositoryTools
-    ) {
-      return assertNever(selectedSection, `Unknown section: ${selectedSection}`)
     }
 
-    if (forceButtonFocus) {
+    if (forceButtonFocus && targetIsStillCurrent()) {
       const repoSideBar = document.getElementById('repository-sidebar')
       const button = repoSideBar?.querySelector(
         '.tab-bar-item.selected'

@@ -10,6 +10,7 @@ import {
   Tooltip,
   TooltipDirection,
 } from '../../../src/ui/lib/tooltip'
+import { ListRow } from '../../../src/ui/lib/list/list-row'
 import { fireEvent, render, screen } from '../../helpers/ui/render'
 import {
   advanceTimersBy,
@@ -64,6 +65,60 @@ class FocusTooltipFixture extends React.Component {
     )
   }
 }
+
+describe('list row focus tooltip performance', () => {
+  it('renders content once and defers its width read until the tooltip opens', t => {
+    enableTestTimers(['setTimeout'])
+    t.after(resetTestTimers)
+
+    let tooltipRenders = 0
+    const row = (selected: boolean) => (
+      <ListRow
+        sectionHasHeader={false}
+        rowCount={1}
+        rowIndex={{ section: 0, row: 0 }}
+        selected={selected}
+        inKeyboardInsertionMode={false}
+        onRowMouseDown={() => undefined}
+        onRowMouseUp={() => undefined}
+        onRowClick={() => undefined}
+        onRowDoubleClick={() => undefined}
+        onRowKeyDown={() => undefined}
+        selectable={true}
+        renderRowFocusTooltip={() => {
+          tooltipRenders++
+          return 'Alpha repository details'
+        }}
+        hasKeyboardFocus={false}
+      >
+        Alpha
+      </ListRow>
+    )
+
+    const view = render(row(false))
+    const target = screen.getByRole('option')
+    let widthReads = 0
+    Object.defineProperty(target, 'clientWidth', {
+      configurable: true,
+      get: () => {
+        widthReads++
+        return 240
+      },
+    })
+
+    // The first pass installs ListRow's observable ref. The second represents
+    // an ordinary virtual-row update where the tooltip can be rendered.
+    view.rerender(row(true))
+    assert.equal(tooltipRenders, 1)
+    assert.equal(widthReads, 0)
+
+    fireEvent.focusIn(target)
+    advanceTimersBy(400)
+
+    assert.ok(screen.getByRole('tooltip', { hidden: true }))
+    assert.equal(widthReads, 1)
+  })
+})
 
 describe('tooltip viewport containment', () => {
   it('dismisses stale body and host portals after the viewport changes', t => {

@@ -1,7 +1,7 @@
 import * as React from 'react'
 import classNames from 'classnames'
 import { RowIndexPath } from './list-row-index-path'
-import { Tooltip } from '../tooltip'
+import { Tooltip, TooltipTarget } from '../tooltip'
 import { createObservableRef, ObservableRef } from '../observable-ref'
 import { enableAccessibleListToolTips } from '../../../lib/feature-flag'
 
@@ -151,16 +151,22 @@ export class ListRow extends React.Component<IListRowProps, {}> {
   private keyboardFocusDetectionState: 'ready' | 'failed' | 'focused' = 'ready'
   private listItemRef: ObservableRef<HTMLDivElement> | null = null
 
+  private getFocusTooltipOffset(target: TooltipTarget) {
+    return new DOMRect(target.clientWidth / -2 + 20, 0)
+  }
+
   private renderFocusTooltip() {
     if (!enableAccessibleListToolTips()) {
       return null
     }
 
-    if (
-      !this.listItemRef ||
-      !this.props.renderRowFocusTooltip ||
-      !this.props.renderRowFocusTooltip(this.props.rowIndex)
-    ) {
+    const { renderRowFocusTooltip } = this.props
+    if (!this.listItemRef || !renderRowFocusTooltip) {
+      return null
+    }
+
+    const tooltipContent = renderRowFocusTooltip(this.props.rowIndex)
+    if (!tooltipContent) {
       return null
     }
 
@@ -171,16 +177,9 @@ export class ListRow extends React.Component<IListRowProps, {}> {
         openOnFocus={true}
         positionRelativeToTarget={true}
         delay={this.props.hasKeyboardFocus ? 1000 : undefined}
-        tooltipOffset={
-          new DOMRect(
-            this.listItemRef.current
-              ? this.listItemRef.current?.clientWidth / -2 + 20
-              : 0,
-            0
-          )
-        }
+        tooltipOffset={this.getFocusTooltipOffset}
       >
-        {this.props.renderRowFocusTooltip(this.props.rowIndex)}
+        {tooltipContent}
       </Tooltip>
     )
   }
