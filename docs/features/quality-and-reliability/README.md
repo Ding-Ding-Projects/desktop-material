@@ -5,6 +5,11 @@ contracts that span more than one user workflow.
 
 ## Features
 
+- [Root renderer resource
+  lifecycle](root-renderer-resource-lifecycle.md) — make store, updater,
+  drag-manager, and IPC subscriptions disposable; retain and clear deferred
+  polling timers; and release document/window handlers that otherwise keep a
+  stale root renderer alive after unmount.
 - [Responsiveness and resource
   lifecycle](responsiveness-and-resource-lifecycle.md) — avoid redundant remote
   discovery, hard-bound advisory process cleanup, coalesce stalled proxy work,

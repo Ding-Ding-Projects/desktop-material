@@ -21,6 +21,15 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 
 ![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci.yml/badge.svg?branch=main)
 
+> **Local reliability checkpoint — July 28, 2026:** the root renderer now owns
+> and releases its store/updater/drag/IPC subscriptions, telemetry and update
+> polling timers, and global document/window handlers. Queued idle and
+> animation-frame callbacks cannot restart work after unmount. Focused
+> lifecycle tests pass **4/4** and changed-file ESLint is clean. The required
+> Lowlevel MCP headless production build was attempted but stopped before
+> compilation because this checkout has no installed dependency tree;
+> built-app capture and remote CI are not yet claimed.
+
 > **Local implementation checkpoint — July 27, 2026:** #78 adds optional
 > AES-256-GCM encryption to GitHub Release-backed Cheap LFS payloads. Passwords
 > are requested once per operation or, only when the user opts in, retrieved

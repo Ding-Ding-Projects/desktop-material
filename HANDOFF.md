@@ -1,5 +1,29 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-28 — Root renderer resource lifetime audit (focused gates green)
+
+The root `App` created telemetry and update-check intervals without retaining
+their handles, while `componentWillUnmount` cleared only an unrelated interval.
+A queued idle callback could therefore start permanent polling after unmount.
+The same root instance was retained by undisposed app/build/updater/drag
+subscriptions, three IPC listeners, document drag/drop/focus handlers, and
+application-menu key listeners.
+
+The fix collects subscriptions in one `CompositeDisposable`, makes typed IPC
+`on()` registrations disposable, retains and clears both deferred timer
+handles, releases every global handler, and guards queued idle/animation-frame
+work with the mounted state. Focused lifecycle tests pass **4/4** and ESLint is
+clean on all three changed files.
+
+The exact Lowlevel MCP headless build preflight passed against server checkout
+`f2edfe442555cfe35a519dd0b058986cb09d6ee3`, but the mandated production build
+stopped before compilation because this checkout has no dependency tree and
+`npx --no-install` correctly refused to download missing `cross-env`.
+Repository-wide TypeScript also remains red from missing baseline dependencies
+(`dugite`, `registry-js`, Copilot SDK, Dexie, and others); no reported
+diagnostic targets the changed files. Built-app capture and remote CI remain
+pending.
+
 ## 2026-07-27 — Observed user-initiated push/pull/fetch promises (locally verified, Refs #80)
 
 Pressing **Push origin** could surface the generic "A background action stopped

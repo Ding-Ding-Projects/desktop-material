@@ -1,6 +1,6 @@
 # Desktop Material roadmap
 
-Updated: **July 27, 2026**
+Updated: **July 28, 2026**
 
 Desktop Material's numbered roadmap now extends through **M27**. M0–M21 and the
 M23 Ollama manager have published receipts; M22's 73-scene visual refresh is
@@ -12,6 +12,16 @@ and installer-release pipelines.
 This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
+
+## July 28 root renderer resource audit — **Focused gates green; build blocked by missing dependencies**
+
+Root renderer subscriptions, IPC listeners, global document/window handlers,
+and deferred telemetry/update polling now have deterministic unmount cleanup.
+Queued idle and animation-frame work cannot resurrect those resources after the
+root has unmounted. Focused lifecycle coverage passes **4/4** and changed-file
+ESLint is clean. The Lowlevel MCP production build was attempted headlessly and
+stopped at the dependency gate because this checkout has no local dependency
+tree; built-app capture and remote CI are not yet claimed.
 
 ## July 27 encryption, observed network actions, and tone controls — **Local gates green; visual and remote acceptance pending**
 
