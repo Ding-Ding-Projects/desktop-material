@@ -15,6 +15,13 @@ contracts that span more than one user workflow.
   Cheap LFS upload, trampoline, agent-server, and hooks-proxy transports, plus a
   narrowly-scoped process backstop that turns it into a non-blocking notice
   while every unknown exception stays fatal.
+- [Observed user-initiated
+  operations](observed-user-initiated-operations.md) — push, force-push, pull,
+  and fetch observe the promise they start, so a failed canonical-remote
+  preflight is presented once through the normal error machinery instead of
+  reaching the global `unhandledrejection` containment as a generic "a
+  background action stopped unexpectedly" notice; background refreshes are
+  contained as diagnostics instead.
 - [Git operation auto-fix](git-operation-auto-fix.md) — a pure classifier that
   recognizes fixable Git failures (stale index.lock, auto-gc/maintenance hang,
   non-fast-forward push, forbidden org-remote push, detached-HEAD commit),

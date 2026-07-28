@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { Dispatcher } from '../dispatcher'
 import { Ref } from '../lib/ref'
+import { observeUserInitiatedOperation } from '../lib/observed-operations'
 import { RepositoryWithGitHubRepository } from '../../models/repository'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { SignInResult } from '../../lib/stores'
@@ -71,7 +72,11 @@ export class WorkflowPushRejectedDialog extends React.Component<
     })
 
     if (result.kind === 'success') {
-      dispatcher.push(repository)
+      observeUserInitiatedOperation(
+        dispatcher.push(repository),
+        dispatcher,
+        'the push retried after signing in'
+      )
     }
 
     this.props.onDismissed()
