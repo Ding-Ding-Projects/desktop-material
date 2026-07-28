@@ -1,7 +1,11 @@
 // Hosted clone-row Cheap LFS inventory badge and its manifest-bound asset
-// selector. The large marketing logo currently lives only under docs/assets;
-// this shipping surface uses the bundled package_2 glyph until a compact
-// app-bundled logo asset is added through the normal binary-asset pipeline.
+// selector.
+.cheap-lfs-logo-mark {
+  display: block;
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
 .clone-repository-list-item {
   .cheap-lfs-clone-badge {
     display: inline-flex;
@@ -190,6 +194,12 @@ dialog.clone-repository {
     padding-left: 24px;
   }
 
+  .cheap-lfs-asset-tree:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: -2px;
+    border-radius: calc(var(--md-sys-shape-corner-large) - 1px);
+  }
+
   .cheap-lfs-asset-tree-row {
     display: flex;
     align-items: center;
@@ -201,6 +211,11 @@ dialog.clone-repository {
     &:hover {
       background: var(--md-sys-color-surface-container);
     }
+  }
+
+  .cheap-lfs-asset-tree-item.active > .cheap-lfs-asset-tree-row {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
   }
 
   .cheap-lfs-folder-disclosure {

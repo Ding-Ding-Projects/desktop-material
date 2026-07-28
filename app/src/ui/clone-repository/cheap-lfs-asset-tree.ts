@@ -22,6 +22,12 @@ export type ICheapLfsAssetTreeNode =
   | ICheapLfsAssetFileNode
   | ICheapLfsAssetFolderNode
 
+export interface ICheapLfsVisibleAssetTreeRow {
+  readonly node: ICheapLfsAssetTreeNode
+  readonly level: number
+  readonly parentPath: string | null
+}
+
 interface IMutableFolderNode {
   readonly name: string
   readonly path: string
@@ -168,4 +174,34 @@ export function getInitialCheapLfsExpandedPaths(
   return new Set(
     nodes.flatMap(node => (node.kind === 'folder' ? [node.path] : []))
   )
+}
+
+/**
+ * Flatten only the currently visible rows for roving tree focus. Keeping this
+ * projection pure lets keyboard navigation and the rendered hierarchy share
+ * one exact ordering.
+ */
+export function flattenVisibleCheapLfsAssetTree(
+  nodes: ReadonlyArray<ICheapLfsAssetTreeNode>,
+  expandedPaths: ReadonlySet<string>,
+  forceExpanded: boolean
+): ReadonlyArray<ICheapLfsVisibleAssetTreeRow> {
+  const rows = new Array<ICheapLfsVisibleAssetTreeRow>()
+  const visit = (
+    children: ReadonlyArray<ICheapLfsAssetTreeNode>,
+    level: number,
+    parentPath: string | null
+  ) => {
+    for (const node of children) {
+      rows.push({ node, level, parentPath })
+      if (
+        node.kind === 'folder' &&
+        (forceExpanded || expandedPaths.has(node.path))
+      ) {
+        visit(node.children, level + 1, node.path)
+      }
+    }
+  }
+  visit(nodes, 1, null)
+  return rows
 }

@@ -1,8 +1,12 @@
 import assert from 'node:assert'
-import { describe, it } from 'node:test'
+import { afterEach, beforeEach, describe, it } from 'node:test'
 import * as React from 'react'
+import { ipcRenderer } from 'electron'
 
-import { ICheapLfsCloneInventoryAsset } from '../../../src/lib/cheap-lfs/clone-inventory'
+import {
+  ICheapLfsCloneInventory,
+  ICheapLfsCloneInventoryAsset,
+} from '../../../src/lib/cheap-lfs/clone-inventory'
 import { FilterMode } from '../../../src/lib/fuzzy-find'
 import { Account } from '../../../src/models/account'
 import { BatchCloneMode } from '../../../src/models/batch-clone'
@@ -11,11 +15,13 @@ import { filterByMode } from '../../../src/ui/lib/filter-string-list'
 import {
   buildCheapLfsAssetTree,
   filterCheapLfsAssetTree,
+  flattenVisibleCheapLfsAssetTree,
   getCheapLfsAssetNodeCheckboxValue,
   getInitialCheapLfsExpandedPaths,
   toggleCheapLfsAssetNode,
 } from '../../../src/ui/clone-repository/cheap-lfs-asset-tree'
 import { CloneGithubRepository } from '../../../src/ui/clone-repository/clone-github-repository'
+import { CheapLfsAssetSelectorDialog } from '../../../src/ui/clone-repository/cheap-lfs-asset-selector-dialog'
 import { CloneableRepositoryListItem } from '../../../src/ui/clone-repository/cloneable-repository-filter-list'
 import { ICloneableRepositoryListItem } from '../../../src/ui/clone-repository/group-repositories'
 import * as octicons from '../../../src/ui/octicons/octicons.generated'
@@ -44,6 +50,23 @@ const assets: ReadonlyArray<ICheapLfsCloneInventoryAsset> = [
     pointerBlobSha256: 'f'.repeat(64),
   },
 ]
+
+const inventory: ICheapLfsCloneInventory = {
+  schemaVersion: 1,
+  pointerSetSha256: '1'.repeat(64),
+  assets,
+}
+
+let previousIpcSend: typeof ipcRenderer.send
+
+beforeEach(() => {
+  previousIpcSend = ipcRenderer.send
+  ipcRenderer.send = () => undefined
+})
+
+afterEach(() => {
+  ipcRenderer.send = previousIpcSend
+})
 
 function account(): Account {
   return new Account(
@@ -101,6 +124,16 @@ describe('Cheap LFS clone asset tree', () => {
     )
     assert.deepEqual([...toggleCheapLfsAssetNode(root, completed)], [])
     assert.deepEqual([...getInitialCheapLfsExpandedPaths(tree)], ['assets'])
+    assert.deepEqual(
+      flattenVisibleCheapLfsAssetTree(tree, new Set(['assets']), false).map(
+        row => [row.node.path, row.level, row.parentPath]
+      ),
+      [
+        ['assets', 1, null],
+        ['assets/audio', 2, 'assets'],
+        ['assets/images', 2, 'assets'],
+      ]
+    )
   })
 
   it('keeps only matching files and ancestors during a search', () => {
@@ -196,8 +229,19 @@ describe('Cheap LFS clone dialog surfaces', () => {
   it('opens the Cheap LFS picker without bubbling into repository selection', () => {
     let openedUrl: string | null = null
     let parentClicks = 0
+    const onParentClick = () => parentClicks++
+    const onParentKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        parentClicks++
+      }
+    }
     render(
-      <div onClick={() => parentClicks++}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onParentClick}
+        onKeyDown={onParentKeyDown}
+      >
         <CloneableRepositoryListItem
           item={rowItem()}
           matches={{ title: [], subtitle: [] }}
@@ -219,5 +263,71 @@ describe('Cheap LFS clone dialog surfaces', () => {
     )
     assert.equal(openedUrl, 'https://github.com/example/game.git')
     assert.equal(parentClicks, 0)
+    const badge = screen.getByRole('button', {
+      name: /Choose which of the 3 Cheap LFS files/,
+    })
+    assert.ok(badge.querySelector('svg.cheap-lfs-logo-mark'))
+    assert.equal(badge.querySelector('.material-symbol'), null)
+  })
+
+  it('renders one roving-focus tree with every asset selected by default', () => {
+    render(
+      <CheapLfsAssetSelectorDialog
+        repositoryName="example/game"
+        accountKey="github.com:octocat"
+        repositoryCloneUrl="https://github.com/example/game.git"
+        defaultBranch="main"
+        manifestBlobSha={'2'.repeat(40)}
+        inventory={inventory}
+        onSelectionConfirmed={() => undefined}
+        onDismissed={() => undefined}
+      />
+    )
+
+    const tree = screen.getByRole('tree', { hidden: true })
+    assert.equal(tree.getAttribute('tabindex'), '0')
+    assert.equal(
+      tree.getAttribute('aria-activedescendant'),
+      'cheap-lfs-asset-tree-item-assets'
+    )
+    assert.equal(
+      screen
+        .getAllByRole('checkbox', { hidden: true })
+        .every(checkbox => (checkbox as HTMLInputElement).checked),
+      true
+    )
+
+    tree.focus()
+    fireEvent.keyDown(tree, { key: 'ArrowDown' })
+    assert.equal(
+      tree.getAttribute('aria-activedescendant'),
+      'cheap-lfs-asset-tree-item-assets%2Faudio'
+    )
+    fireEvent.keyDown(tree, { key: 'ArrowRight' })
+    fireEvent.keyDown(tree, { key: 'ArrowDown' })
+    assert.equal(
+      tree.getAttribute('aria-activedescendant'),
+      'cheap-lfs-asset-tree-item-assets%2Faudio%2Ftheme.flac'
+    )
+
+    const themeRow = document.getElementById(
+      'cheap-lfs-asset-tree-item-assets%2Faudio%2Ftheme.flac'
+    )
+    assert.ok(themeRow)
+    assert.equal(themeRow.getAttribute('aria-selected'), 'true')
+    fireEvent.keyDown(tree, { key: ' ' })
+    assert.equal(themeRow.getAttribute('aria-selected'), 'false')
+
+    fireEvent.keyDown(tree, { key: 'ArrowLeft' })
+    assert.equal(
+      tree.getAttribute('aria-activedescendant'),
+      'cheap-lfs-asset-tree-item-assets%2Faudio'
+    )
+    fireEvent.keyDown(tree, { key: 'End' })
+    assert.equal(
+      tree.getAttribute('aria-activedescendant'),
+      'cheap-lfs-asset-tree-item-assets%2Fimages'
+    )
+    assert.equal(document.activeElement, tree)
   })
 })

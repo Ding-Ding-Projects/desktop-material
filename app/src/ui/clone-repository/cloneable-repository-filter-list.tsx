@@ -29,6 +29,7 @@ import {
 } from './repository-metadata'
 import { LanguageMode } from '../../models/language-mode'
 import { getPersistedLanguageMode, translate } from '../../lib/i18n'
+import { CheapLfsLogo } from './cheap-lfs-logo'
 
 interface ICloneableRepositoryFilterListProps {
   /** The account to clone from. */
@@ -345,9 +346,8 @@ export class CloneableRepositoryListItem extends React.PureComponent<ICloneableR
         className="cheap-lfs-clone-badge"
         onClick={this.onCheapLfsBadgeClick}
         aria-label={label}
-        title={this.localize('clone.cheapLfs.badgeTitle')}
       >
-        <MaterialSymbol name="package_2" size={13} />
+        <CheapLfsLogo size={14} />
         <span aria-hidden={true}>{cheapLfsAssetCount}</span>
       </button>
     )

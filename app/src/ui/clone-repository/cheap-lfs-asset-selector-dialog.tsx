@@ -16,6 +16,7 @@ import { t } from '../../lib/i18n'
 import {
   buildCheapLfsAssetTree,
   filterCheapLfsAssetTree,
+  flattenVisibleCheapLfsAssetTree,
   getCheapLfsAssetNodeCheckboxValue,
   getInitialCheapLfsExpandedPaths,
   ICheapLfsAssetTreeNode,
@@ -42,6 +43,7 @@ interface ICheapLfsAssetSelectorDialogState {
   readonly filterCaseSensitive: boolean
   readonly selectedPaths: ReadonlySet<string>
   readonly expandedPaths: ReadonlySet<string>
+  readonly activePath: string | null
 }
 
 interface ICheapLfsAssetTreeRowProps {
@@ -49,7 +51,9 @@ interface ICheapLfsAssetTreeRowProps {
   readonly level: number
   readonly selectedPaths: ReadonlySet<string>
   readonly expandedPaths: ReadonlySet<string>
+  readonly activePath: string
   readonly forceExpanded: boolean
+  readonly onActivate: (path: string) => void
   readonly onToggleSelection: (node: ICheapLfsAssetTreeNode) => void
   readonly onToggleExpanded: (path: string) => void
 }
@@ -64,7 +68,9 @@ function CheapLfsAssetTreeRow(props: ICheapLfsAssetTreeRowProps) {
     level,
     selectedPaths,
     expandedPaths,
+    activePath,
     forceExpanded,
+    onActivate,
     onToggleSelection,
     onToggleExpanded,
   } = props
@@ -78,6 +84,18 @@ function CheapLfsAssetTreeRow(props: ICheapLfsAssetTreeRowProps) {
     () => onToggleExpanded(node.path),
     [node.path, onToggleExpanded]
   )
+  const onRowClick = React.useCallback(
+    () => onActivate(node.path),
+    [node.path, onActivate]
+  )
+  const onRowKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLLIElement>) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        onActivate(node.path)
+      }
+    },
+    [node.path, onActivate]
+  )
   const checkboxValue = getCheapLfsAssetNodeCheckboxValue(node, selectedPaths)
   const selectedCount = node.descendantPaths.filter(path =>
     selectedPaths.has(path)
@@ -89,14 +107,20 @@ function CheapLfsAssetTreeRow(props: ICheapLfsAssetTreeRowProps) {
         path: node.path,
       })
     : t('clone.cheapLfs.selectorFileAria', { path: node.path })
+  const active = activePath === node.path
 
   return (
     <li
-      className={`cheap-lfs-asset-tree-item ${node.kind}`}
+      id={`cheap-lfs-asset-tree-item-${encodeURIComponent(node.path)}`}
+      className={`cheap-lfs-asset-tree-item ${node.kind}${
+        active ? ' active' : ''
+      }`}
       role="treeitem"
       aria-level={level}
       aria-expanded={folder ? expanded : undefined}
       aria-selected={checkboxValue === CheckboxValue.On}
+      onClick={onRowClick}
+      onKeyDown={onRowKeyDown}
     >
       <div className="cheap-lfs-asset-tree-row">
         {folder ? (
@@ -111,6 +135,7 @@ function CheapLfsAssetTreeRow(props: ICheapLfsAssetTreeRowProps) {
             )}
             aria-expanded={expanded}
             onClick={onDisclosureClick}
+            tabIndex={-1}
           >
             <MaterialSymbol
               name={expanded ? 'keyboard_arrow_down' : 'expand_more'}
@@ -124,6 +149,7 @@ function CheapLfsAssetTreeRow(props: ICheapLfsAssetTreeRowProps) {
           value={checkboxValue}
           onChange={onCheckboxChange}
           ariaLabel={checkboxLabel}
+          tabIndex={-1}
         />
         <MaterialSymbol
           className="cheap-lfs-asset-kind"
@@ -146,7 +172,9 @@ function CheapLfsAssetTreeRow(props: ICheapLfsAssetTreeRowProps) {
               level={level + 1}
               selectedPaths={selectedPaths}
               expandedPaths={expandedPaths}
+              activePath={activePath}
               forceExpanded={forceExpanded}
+              onActivate={onActivate}
               onToggleSelection={onToggleSelection}
               onToggleExpanded={onToggleExpanded}
             />
@@ -167,6 +195,7 @@ export class CheapLfsAssetSelectorDialog extends React.Component<
   ICheapLfsAssetSelectorDialogState
 > {
   private readonly tree: ReadonlyArray<ICheapLfsAssetTreeNode>
+  private treeElement: HTMLUListElement | null = null
 
   public constructor(props: ICheapLfsAssetSelectorDialogProps) {
     super(props)
@@ -180,6 +209,7 @@ export class CheapLfsAssetSelectorDialog extends React.Component<
       filterCaseSensitive: false,
       selectedPaths: new Set(initialPaths),
       expandedPaths: getInitialCheapLfsExpandedPaths(this.tree),
+      activePath: this.tree[0]?.path ?? null,
     }
   }
 
@@ -222,7 +252,9 @@ export class CheapLfsAssetSelectorDialog extends React.Component<
   private onToggleSelection = (node: ICheapLfsAssetTreeNode) => {
     this.setState(state => ({
       selectedPaths: toggleCheapLfsAssetNode(node, state.selectedPaths),
+      activePath: node.path,
     }))
+    this.treeElement?.focus()
   }
 
   private onToggleExpanded = (path: string) => {
@@ -233,8 +265,107 @@ export class CheapLfsAssetSelectorDialog extends React.Component<
       } else {
         expandedPaths.add(path)
       }
-      return { expandedPaths }
+      return { expandedPaths, activePath: path }
     })
+    this.treeElement?.focus()
+  }
+
+  private onActivate = (path: string) => {
+    this.setState({ activePath: path })
+    this.treeElement?.focus()
+  }
+
+  private onTreeRef = (element: HTMLUListElement | null) => {
+    this.treeElement = element
+  }
+
+  private getVisibleTreeRows() {
+    const filtered = this.getFilteredAssets()
+    const visiblePaths = new Set(filtered.items.map(asset => asset.path))
+    const tree = filterCheapLfsAssetTree(this.tree, visiblePaths)
+    return flattenVisibleCheapLfsAssetTree(
+      tree,
+      this.state.expandedPaths,
+      this.state.filterText.trim().length > 0
+    )
+  }
+
+  private onTreeKeyDown = (event: React.KeyboardEvent<HTMLUListElement>) => {
+    const rows = this.getVisibleTreeRows()
+    if (rows.length === 0) {
+      return
+    }
+    let index = rows.findIndex(row => row.node.path === this.state.activePath)
+    if (index < 0) {
+      index = 0
+    }
+    const current = rows[index]
+    const forceExpanded = this.state.filterText.trim().length > 0
+    let nextPath: string | null = null
+    let handled = true
+
+    switch (event.key) {
+      case 'ArrowDown':
+        nextPath = rows[Math.min(index + 1, rows.length - 1)].node.path
+        break
+      case 'ArrowUp':
+        nextPath = rows[Math.max(index - 1, 0)].node.path
+        break
+      case 'Home':
+        nextPath = rows[0].node.path
+        break
+      case 'End':
+        nextPath = rows[rows.length - 1].node.path
+        break
+      case 'ArrowRight':
+        if (current.node.kind !== 'folder') {
+          handled = false
+          break
+        }
+        if (
+          !forceExpanded &&
+          !this.state.expandedPaths.has(current.node.path)
+        ) {
+          this.onToggleExpanded(current.node.path)
+        } else if (rows[index + 1]?.parentPath === current.node.path) {
+          nextPath = rows[index + 1].node.path
+        }
+        break
+      case 'ArrowLeft':
+        if (
+          current.node.kind === 'folder' &&
+          !forceExpanded &&
+          this.state.expandedPaths.has(current.node.path)
+        ) {
+          this.onToggleExpanded(current.node.path)
+        } else if (current.parentPath !== null) {
+          nextPath = current.parentPath
+        }
+        break
+      case ' ':
+      case 'Spacebar':
+        this.onToggleSelection(current.node)
+        break
+      case 'Enter':
+        if (current.node.kind === 'folder' && !forceExpanded) {
+          this.onToggleExpanded(current.node.path)
+        } else {
+          this.onToggleSelection(current.node)
+        }
+        break
+      default:
+        handled = false
+        break
+    }
+
+    if (!handled) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    if (nextPath !== null && nextPath !== this.state.activePath) {
+      this.setState({ activePath: nextPath })
+    }
   }
 
   private onSelectAll = () => {
@@ -285,6 +416,16 @@ export class CheapLfsAssetSelectorDialog extends React.Component<
     const selectedCount = this.state.selectedPaths.size
     const count = this.props.inventory.assets.length
     const forceExpanded = this.state.filterText.trim().length > 0
+    const visibleRows = flattenVisibleCheapLfsAssetTree(
+      tree,
+      this.state.expandedPaths,
+      forceExpanded
+    )
+    const activePath =
+      visibleRows.find(row => row.node.path === this.state.activePath)?.node
+        .path ??
+      visibleRows[0]?.node.path ??
+      null
     const filterErrorId =
       filtered.regexError === null ? undefined : 'cheap-lfs-asset-filter-error'
 
@@ -366,6 +507,16 @@ export class CheapLfsAssetSelectorDialog extends React.Component<
                 role="tree"
                 aria-label={t('clone.cheapLfs.selectorTreeAria')}
                 aria-multiselectable={true}
+                aria-activedescendant={
+                  activePath === null
+                    ? undefined
+                    : `cheap-lfs-asset-tree-item-${encodeURIComponent(
+                        activePath
+                      )}`
+                }
+                tabIndex={0}
+                ref={this.onTreeRef}
+                onKeyDown={this.onTreeKeyDown}
               >
                 {tree.map(node => (
                   <CheapLfsAssetTreeRow
@@ -374,7 +525,9 @@ export class CheapLfsAssetSelectorDialog extends React.Component<
                     level={1}
                     selectedPaths={this.state.selectedPaths}
                     expandedPaths={this.state.expandedPaths}
+                    activePath={activePath ?? ''}
                     forceExpanded={forceExpanded}
+                    onActivate={this.onActivate}
                     onToggleSelection={this.onToggleSelection}
                     onToggleExpanded={this.onToggleExpanded}
                   />
