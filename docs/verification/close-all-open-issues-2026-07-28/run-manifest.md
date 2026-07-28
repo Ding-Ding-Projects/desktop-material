@@ -7,8 +7,8 @@
   #89. Issues #92, #94, and #95 were discovered during the campaign and joined
   the same implementation, verification, publication, and closure gate. Issue
   #96 was filed while the campaign was active and is governed by that same
-  gate; its fix first landed on `main` and must be reconciled into this
-  worktree before final build and publication.
+  gate; its initial fix first landed on `main`, was reconciled here, and was
+  strengthened after adversarial review before final build and publication.
 - Project worktree:
   `C:\Users\cntow\Documents\GitHub\desktop-material-close-issues-20260728`
 - Initial source: `origin/main` at
@@ -53,9 +53,31 @@
   1440×960 and 1180×820.
 - #95: every visible and accessible tab-count phrase uses a truthful singular
   or many form in English and natural classifier phrasing in Cantonese.
-- #96: Cheap LFS inventory checks must bound reads of definitely raw oversized
-  payloads so validation cannot exhaust memory, while pointer-looking files
-  continue to fail closed on malformed or unverifiable metadata.
+- #96: working-tree Cheap LFS inventory must never submit changed/untracked
+  content to an unbounded Git grep. Raw and pointer-looking oversized payloads
+  receive only a securely identity-proven 512-byte header read; pointer-shaped
+  files continue to fail closed on malformed, oversized, or unverifiable
+  metadata.
+
+## Issue #96 strengthened source checkpoint
+
+- Working-tree Git inventory now returns names only. Explicit pathspecs are
+  validated before any of the working/index/HEAD tasks start.
+- The tracked-path store reads at most 512 bytes from a settled,
+  identity-proven regular single-link file, then revalidates the handle,
+  visible path, and canonical parents. Symlinks/reparse points, gitlinks,
+  unsafe traversal, identity drift, and invalid numeric bounds fail closed.
+- Regression fixtures use NTFS sparse files at the issue's exact
+  **55,581,030,080-byte** logical size. Git Trace2 proves that name inventory
+  runs and `grep --untracked` does not.
+- The final affected pair passes **82/82**. The complete Cheap LFS directory
+  passes **673/673 across 48 files and 89 suites** in 187.55 seconds.
+- Two independent adversarial reviews found no remaining actionable blocker in
+  the reported working-tree scope. Index/HEAD object inventory is a separate
+  broader hardening opportunity and is not represented as part of this fix.
+- This is a local source checkpoint only. Final typecheck/lint, exact MCP
+  production build, remote-default ancestry, applicable remote workflows, and
+  the finished issue receipt remain required.
 
 ## Ordered background interactions
 

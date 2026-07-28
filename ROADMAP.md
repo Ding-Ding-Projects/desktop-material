@@ -27,6 +27,15 @@ issue-closing receipts are proved. The archived Linux TUI prototype, its five
 captures, and its package/compatibility lanes are historical and non-blocking
 under the Windows-only product boundary.
 
+Issue #96's reported working-tree inventory OOM path is now locally
+closure-ready: Git supplies only changed/untracked names, Desktop Material
+reads at most a securely identity-proven 512-byte prefix, and an exact
+55,581,030,080-byte NTFS sparse regression proves `git grep --untracked` is
+never invoked. Focused coverage passes 82/82 and the complete Cheap LFS
+directory passes 673/673. Publication, final-tree gates, and the issue-closing
+receipt remain part of this wave rather than being inferred from that local
+checkpoint.
+
 ## Historical July 28 measured repository-view responsiveness — **Source fix locally verified; exact post-fix timing pending**
 
 Lowlevel MCP exercised the immutable baseline Windows release at `9bdfdb8b25`

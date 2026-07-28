@@ -80,19 +80,40 @@ exact build.
 ## 2026-07-28 — Bounded Cheap LFS inventory joins the close-out (Refs #96)
 
 Issue #96 was filed while this campaign was active. The initial fix landed on
-remote `main` and is now present through this merge: definitely raw oversized
-payloads receive a bounded header preflight instead of being fed whole into
-pointer inventory. Adversarial review found one remaining acceptance gap: an
-oversized file whose bounded header looks like a pointer is still left in
-`git grep`, so an attacker-controlled 50+ GiB sparse file could exhaust Git
-before the bounded format validator runs. The close-out branch must still
-exclude every oversized file from Git content grep, directly feed
-pointer-looking oversized paths to the existing bounded validation path, and
-prove scoped and unscoped inventory behavior with real large logical-size
-sparse fixtures. The original focused results do not cover that adversarial
-case. Final closure requires the strengthened fix, merge ancestry, a fresh
-affected-test/typecheck/lint pass, the exact build, and remote publication
-proof.
+remote `main` and is now present through this merge. Adversarial review showed
+that its size preflight still sent a pointer-looking oversized file to
+`git grep -I --untracked`, so a hostile 50+ GiB sparse file could exhaust Git
+before Desktop Material's bounded format validator ran.
+
+The close-out branch now removes working-tree content from Git grep entirely.
+Unscoped inventory asks Git only for NUL-delimited changed/untracked names;
+explicit path selections are validated before any asynchronous Git work. Each
+candidate is then proven as an in-repository regular single-link file and only
+its first **512 bytes** are read through the tracked-path store. The prefix read
+requires a settled identity, rechecks the opened handle and visible path after
+the read, revalidates every parent, refuses symlinks/reparse points, gitlinks,
+linked files, and identity drift, and rejects unsafe or non-safe-integer
+bounds. Clean committed pointers remain classified from their bounded
+working-tree text. Pointer-looking oversized files are carried to the existing
+bounded format rejection; raw oversized files never enter content grep.
+
+The regression uses real NTFS sparse files with the issue's exact logical size,
+**55,581,030,080 bytes**, for both raw and pointer-looking cases. Git Trace2
+proves the vulnerable `grep --untracked` command is absent while the bounded
+name inventory still runs. It also covers scoped and unscoped calls, traversal
+prevalidation, clean committed pointers, modified gitlinks, selected symlinks,
+the exact pointer-format boundary, future-mtime/unsettled identity proofs, and
+invalid prefix bounds. The final focused pair passes **82/82**; the complete
+Cheap LFS directory passes **673/673 across 48 files and 89 suites** in
+187.55 seconds. Two independent adversarial reviewers found no remaining
+actionable blocker in #96's reported working-tree scope. Index/HEAD Git-object
+inventory still uses bounded-result Git plumbing and is recorded as a separate
+hardening opportunity, not part of #96's explicit `--untracked` reproduction.
+
+The source fix is closure-ready locally, but the issue remains open. Final
+closure still requires a fresh final-tree typecheck/lint pass after all
+reconciliation, the exact MCP production build, pushed `main` ancestry,
+applicable remote checks, and a timestamped finished receipt.
 
 ## 2026-07-28 — Guided gallery scoped to 84 Windows scenes (Refs #23)
 

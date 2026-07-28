@@ -17,6 +17,7 @@ import { basename, dirname, join } from 'path'
 import { Account } from '../../models/account'
 import type { CheapLfsStorageProvider } from '../../models/build-run-preferences'
 import { Repository } from '../../models/repository'
+import { isErrnoException } from '../errno-exception'
 import {
   IGitHubRelease,
   IGitHubReleaseAsset,
@@ -747,13 +748,10 @@ async function gitPointerPaths(
   source: 'working-tree' | 'index' | 'head',
   pathspec?: ReadonlyArray<string>
 ): Promise<ReadonlyArray<string>> {
-  let workingTreePathspec = pathspec
-  let oversizedWorkingTreeExclusions: ReadonlyArray<string> = []
+  if (pathspec !== undefined && pathspec.length === 0) {
+    return []
+  }
   if (source === 'working-tree') {
-    const maximumPointerBytes = Math.max(
-      CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES,
-      CHEAP_LFS_OCI_MAXIMUM_POINTER_TEXT_BYTES
-    )
     const changedPaths =
       pathspec ??
       parseNulPaths(
@@ -776,40 +774,52 @@ async function gitPointerPaths(
           )
         ).stdout
       )
-    const oversizedRawPaths = new Array<string>()
-    for (const relativePath of changedPaths) {
+    const pointerCandidates = new Array<string>()
+    const store = defaultCheapLfsTrackedPathStore
+    for (const path of changedPaths) {
+      const relativePath = validateCheapLfsTrackedPath(path)
+      if (relativePath === null) {
+        throw new Error('Git returned an unsafe Cheap LFS tracked path.')
+      }
+      if (isCheapLfsOwnedArtifactPath(relativePath)) {
+        continue
+      }
       const absolutePath = join(root, relativePath)
-      let sizeInBytes: number
+      let entry
       try {
-        sizeInBytes = (await stat(absolutePath)).size
-      } catch {
+        entry = await lstat(absolutePath)
+      } catch (error) {
+        if (
+          isErrnoException(error) &&
+          (error.code === 'ENOENT' || error.code === 'ENOTDIR')
+        ) {
+          // A path deleted between Git's bounded name inventory and this
+          // bounded open is intentionally absent from the current inventory.
+          continue
+        }
+        throw error
+      }
+      if (entry.isSymbolicLink() || !entry.isFile()) {
+        // Git can report a changed gitlink/submodule path. Pointer inventory
+        // never reads directory, device, pipe, symlink, or reparse content.
         continue
       }
-      if (sizeInBytes <= maximumPointerBytes) {
+      const proof = await store.proveDestinationIdentity!(root, relativePath)
+      if (!proof.exists) {
         continue
       }
-      const header = await readBoundedText(
-        absolutePath,
-        CheapLfsPointerHeaderBytes,
-        false
+      const header = await store.readTextPrefix(
+        proof,
+        CheapLfsPointerHeaderBytes
       )
       if (pointerHeaderMatches(header)) {
-        // Keep pointer-looking files in Git's candidate set so the existing
-        // bounded parser can fail closed with the format-specific size error.
-        // Only raw payloads are safe to exclude before grep.
-        continue
+        pointerCandidates.push(relativePath)
       }
-      oversizedRawPaths.push(relativePath)
     }
-    if (pathspec !== undefined) {
-      const oversized = new Set(oversizedRawPaths)
-      workingTreePathspec = pathspec.filter(path => !oversized.has(path))
-      if (workingTreePathspec.length === 0) {
-        return []
-      }
-    } else {
-      oversizedWorkingTreeExclusions = oversizedRawPaths
-    }
+    // Never send working-tree content to `git grep`. A bounded open per
+    // changed/scoped path remains bounded even if another process grows or
+    // atomically replaces the file between inventory steps.
+    return pointerCandidates
   }
   const args = [
     ...largeRepositoryGitArgsForPath(root),
@@ -823,9 +833,7 @@ async function gitPointerPaths(
     '-e',
     `version ${CHEAP_LFS_OCI_POINTER_VERSION}`,
   ]
-  if (source === 'working-tree') {
-    args.push('--untracked')
-  } else if (source === 'index') {
+  if (source === 'index') {
     args.push('--cached')
   } else {
     args.push('HEAD')
@@ -837,12 +845,8 @@ async function gitPointerPaths(
   // matched with `:(literal)` so a filename containing pathspec glob magic
   // (`*`, `[`, ...) still matches itself exactly, mirroring the caller's own
   // exact-path narrowing.
-  if (workingTreePathspec !== undefined && workingTreePathspec.length > 0) {
-    args.push(...workingTreePathspec.map(path => `:(literal)${path}`))
-  } else if (oversizedWorkingTreeExclusions.length > 0) {
-    args.push(
-      ...oversizedWorkingTreeExclusions.map(path => `:(exclude,literal)${path}`)
-    )
+  if (pathspec !== undefined) {
+    args.push(...pathspec.map(path => `:(literal)${path}`))
   }
   const result = await git(args, root, `listCheapLfs${source}Pointers`, {
     successExitCodes: new Set([0, 1, 128]),
@@ -996,10 +1000,17 @@ async function scanPointerCandidatesFromGit(
   root: string,
   pathspec?: ReadonlyArray<string>
 ): Promise<ReadonlyArray<ICheapLfsPointerCandidate>> {
+  const safePathspec = pathspec?.map(path => {
+    const relativePath = validateCheapLfsTrackedPath(path)
+    if (relativePath === null) {
+      throw new Error('Git returned an unsafe Cheap LFS tracked path.')
+    }
+    return relativePath
+  })
   const [workingPaths, indexPaths, headPaths] = await Promise.all([
-    gitPointerPaths(root, 'working-tree', pathspec),
-    gitPointerPaths(root, 'index', pathspec),
-    gitPointerPaths(root, 'head', pathspec),
+    gitPointerPaths(root, 'working-tree', safePathspec),
+    gitPointerPaths(root, 'index', safePathspec),
+    gitPointerPaths(root, 'head', safePathspec),
   ])
   const working = new Set(workingPaths)
   const index = new Set(indexPaths)
@@ -1053,7 +1064,7 @@ async function scanPointerCandidatesFromGit(
           )
         : ''
     const worktreePrefix = worktreeText.slice(0, CheapLfsPointerHeaderBytes)
-    if (working.has(relativePath) && pointerHeaderMatches(worktreePrefix)) {
+    if (pointerHeaderMatches(worktreePrefix)) {
       const text = worktreeText
       if (!pointerHeaderMatches(text.slice(0, CheapLfsPointerHeaderBytes))) {
         throw new Error(

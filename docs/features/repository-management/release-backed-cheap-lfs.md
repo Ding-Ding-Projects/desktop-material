@@ -66,6 +66,29 @@ behavior and safety contract.
 
 ## Behavior and configuration
 
+### Bounded working-tree pointer inventory
+
+Working-tree pointer discovery never sends file content to
+`git grep --untracked`. For an unscoped refresh, Git returns only the
+NUL-delimited names of changed and untracked files. A user-selected path list
+is normalized and rejected if unsafe before any inventory subprocess starts.
+
+Desktop Material then resolves each name below the canonical repository root,
+refuses owned scratch paths, directories and gitlinks, symlinks/reparse points,
+and multiply linked files, and reads at most the first **512 bytes** through an
+identity-proven tracked-path handle. The handle, visible pathname, and every
+parent directory are revalidated before that prefix can be used. An unsettled
+timestamp proof, concurrent replacement, link change, invalid bound, or path
+redirect fails closed.
+
+That prefix decides only whether a file is a pointer candidate. A
+pointer-looking file still goes through the existing whole-pointer byte limit
+and parser; an oversized pointer-shaped file is rejected rather than partially
+inventoried. An ordinary raw payload, including a multi-gigabyte model file,
+never reaches a content-scanning Git process. Committed index/HEAD pointer
+metadata uses the separate Git-object inventory path and does not weaken this
+working-tree bound.
+
 **Repository settings → Cheap LFS → Large-file storage** selects a
 published GitHub prerelease, one GHCR OCI image, or one Docker Hub OCI image.
 The Cheap LFS preferences live on their own tab in the Repository Settings
