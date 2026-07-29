@@ -234,3 +234,4 @@ _site/
 .ruff_cache/
 .coverage
 htmlcov/
+.github/workflows/cheap-lfs-cloud-compression.yml
