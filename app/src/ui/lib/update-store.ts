@@ -195,29 +195,50 @@ export class UpdateStore {
     this.emitDidChange()
   }
 
-  private onUpdateDownloaded = async () => {
+  private onUpdateDownloaded = () => {
     const generation = ++this.updateTransitionGeneration
-    const newReleases = await this.generateReleaseSummary()
-    if (generation !== this.updateTransitionGeneration) {
-      return
-    }
-    this.newReleases = newReleases
-    // We know it's an "immediate" auto-update from x64 to arm64 if the app is
-    // running on arm64 under x64 emulation and there is only one new release
-    // and it's the same version we have right now (which means we spoofed
-    // Central with an old version of the app).
-    this.isX64ToARM64ImmediateAutoUpdate =
-      this.supportsImmediateUpdateFromEmulatedX64ToARM64() &&
-      this.newReleases !== null &&
-      this.newReleases.length === 1 &&
-      this.newReleases[0].latestVersion === getVersion() &&
-      (await isRunningUnderARM64Translation())
     // The update stopped being "coming" the moment it landed on disk.
     this.comingSoonSignal = null
     this.status = UpdateStatus.UpdateReady
     this.emitDidChange()
 
-    this.updatePriorityUpdateStatus()
+    // Release notes enrich the ready surface, but a slow or unavailable public
+    // changelog must never hide an update that Squirrel has already downloaded.
+    void this.refreshDownloadedUpdateMetadata(generation)
+    void this.updatePriorityUpdateStatus()
+  }
+
+  private async refreshDownloadedUpdateMetadata(
+    generation: number
+  ): Promise<void> {
+    try {
+      const newReleases = await this.generateReleaseSummary()
+      if (generation !== this.updateTransitionGeneration) {
+        return
+      }
+
+      // We know it's an "immediate" auto-update from x64 to arm64 if the app is
+      // running on arm64 under x64 emulation and there is only one new release
+      // and it's the same version we have right now (which means we spoofed
+      // Central with an old version of the app).
+      const isImmediateARM64Update =
+        this.supportsImmediateUpdateFromEmulatedX64ToARM64() &&
+        newReleases.length === 1 &&
+        newReleases[0].latestVersion === getVersion() &&
+        (await isRunningUnderARM64Translation())
+      if (generation !== this.updateTransitionGeneration) {
+        return
+      }
+
+      this.newReleases = newReleases
+      this.isX64ToARM64ImmediateAutoUpdate = isImmediateARM64Update
+      this.emitDidChange()
+    } catch (error) {
+      log.warn(
+        'Could not refresh release information for a downloaded update.',
+        error instanceof Error ? error : new Error(String(error))
+      )
+    }
   }
 
   private async probeForComingSoonSignal(): Promise<IUpdateComingSoonSignal | null> {

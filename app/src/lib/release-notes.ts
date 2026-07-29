@@ -12,6 +12,8 @@ import { offsetFromNow } from './offset-from'
 import { encodePathAsUrl } from './path'
 import { getUserAgent } from './http'
 
+const ChangelogRequestTimeoutMilliseconds = 15_000
+
 // expects a release note entry to contain a header and then some text
 // example:
 //    [New] Fallback to Gravatar for loading avatars - #821
@@ -106,6 +108,7 @@ export async function getChangeLog(
 
   const response = await fetch(changelogURL.toString(), {
     headers: { 'user-agent': getUserAgent() },
+    signal: AbortSignal.timeout(ChangelogRequestTimeoutMilliseconds),
   })
   if (response.ok) {
     const releases: ReadonlyArray<ReleaseMetadata> = await response.json()

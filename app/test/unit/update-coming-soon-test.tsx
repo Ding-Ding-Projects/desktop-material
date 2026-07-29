@@ -23,7 +23,7 @@ import {
   IUpdateComingSoonSignal,
   UpdateComingSoonDismissalKey,
 } from '../../src/lib/update-coming-soon-estimate'
-import { About } from '../../src/ui/about/about'
+import { About, isRealUpdaterState } from '../../src/ui/about/about'
 import { UpdateComingSoon } from '../../src/ui/banners/update-coming-soon'
 import {
   IUpdateState,
@@ -80,6 +80,7 @@ function updateStoreAccess(store: UpdateStore) {
   return store as unknown as {
     readonly onUpdateNotAvailable: () => Promise<void>
     readonly onUpdateAvailable: () => void
+    readonly onUpdateDownloaded: () => void
   }
 }
 
@@ -457,6 +458,38 @@ describe('update coming soon', () => {
     assert.equal(store.state.status, UpdateStatus.UpdateAvailable)
     // A superseded "coming soon" must not leave its details behind either.
     assert.equal(store.state.comingSoonSignal, null)
+  })
+
+  it('publishes a downloaded update before release-note enrichment finishes', () => {
+    const neverFinishes = new Promise<ReadonlyArray<never>>(() => undefined)
+    const store = new UpdateStore({
+      generateReleaseSummary: async () => await neverFinishes,
+      probeForNewerBuild: async () => null,
+      subscribeToUpdaterEvents: false,
+    })
+
+    updateStoreAccess(store).onUpdateDownloaded()
+
+    assert.equal(store.state.status, UpdateStatus.UpdateReady)
+    assert.equal(store.state.comingSoonSignal, null)
+  })
+
+  it('reveals only genuine updater event states in development About', () => {
+    for (const status of [
+      UpdateStatus.CheckingForUpdates,
+      UpdateStatus.UpdateAvailable,
+      UpdateStatus.UpdateNotAvailable,
+      UpdateStatus.UpdateReady,
+    ]) {
+      assert.equal(isRealUpdaterState(status), true, UpdateStatus[status])
+    }
+
+    for (const status of [
+      UpdateStatus.UpdateNotChecked,
+      UpdateStatus.UpdateComingSoon,
+    ]) {
+      assert.equal(isRealUpdaterState(status), false, UpdateStatus[status])
+    }
   })
 
   it('classifies only bounded-read failures as a handled degradation', () => {
