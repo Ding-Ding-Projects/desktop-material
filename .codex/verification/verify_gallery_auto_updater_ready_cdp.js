@@ -1391,54 +1391,79 @@ if ($null -ne $process) {
   return parsed.SID
 }
 
-function queryProcessDesktopNames(processId) {
+function queryProcessDesktopNames(processId, expectedDesktopName) {
   if (!Number.isSafeInteger(processId) || processId < 1) {
     fail('Process desktop identity is invalid.')
+  }
+  if (
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{3,63}$/.test(expectedDesktopName) ||
+    /^(default|winlogon)$/i.test(expectedDesktopName)
+  ) {
+    fail('Expected process desktop identity is invalid.')
   }
   const parsed = parsePowerShellJSON(
     `$source = @'
 using System;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
-using System.Text;
 public static class DesktopMaterialDesktopProbe {
-  [DllImport("user32.dll", SetLastError=true)]
-  private static extern IntPtr GetThreadDesktop(uint threadId);
+  private const uint DESKTOP_READOBJECTS = 0x0001;
+  private const uint DESKTOP_ENUMERATE = 0x0040;
+  private delegate bool EnumDesktopWindowsProc(IntPtr window, IntPtr parameter);
   [DllImport("user32.dll", SetLastError=true, CharSet=CharSet.Unicode)]
-  private static extern bool GetUserObjectInformation(
-    IntPtr handle, int index, StringBuilder value, uint length,
-    out uint required);
-  public static string Name(uint threadId) {
-    var handle = GetThreadDesktop(threadId);
+  private static extern IntPtr OpenDesktop(
+    string name, uint flags, bool inherit, uint desiredAccess);
+  [DllImport("user32.dll", SetLastError=true)]
+  private static extern bool EnumDesktopWindows(
+    IntPtr desktop, EnumDesktopWindowsProc callback, IntPtr parameter);
+  [DllImport("user32.dll")]
+  private static extern uint GetWindowThreadProcessId(
+    IntPtr window, out uint processId);
+  [DllImport("user32.dll", SetLastError=true)]
+  private static extern bool CloseDesktop(IntPtr desktop);
+  public static int WindowCount(string desktopName, uint expectedProcessId) {
+    var handle = OpenDesktop(
+      desktopName, 0, false, DESKTOP_READOBJECTS | DESKTOP_ENUMERATE);
     if (handle == IntPtr.Zero) {
       throw new Win32Exception(Marshal.GetLastWin32Error());
     }
-    uint required;
-    GetUserObjectInformation(handle, 2, null, 0, out required);
-    var value = new StringBuilder((int)(required / 2) + 1);
-    if (!GetUserObjectInformation(handle, 2, value, required, out required)) {
-      throw new Win32Exception(Marshal.GetLastWin32Error());
+    try {
+      var count = 0;
+      EnumDesktopWindowsProc callback = delegate(IntPtr window, IntPtr _) {
+        uint processId;
+        GetWindowThreadProcessId(window, out processId);
+        if (processId == expectedProcessId) {
+          count += 1;
+        }
+        return true;
+      };
+      if (!EnumDesktopWindows(handle, callback, IntPtr.Zero)) {
+        throw new Win32Exception(Marshal.GetLastWin32Error());
+      }
+      return count;
+    } finally {
+      CloseDesktop(handle);
     }
-    return value.ToString();
   }
 }
 '@
 Add-Type -TypeDefinition $source
-$names = [System.Diagnostics.Process]::GetProcessById(${processId}).Threads |
-  ForEach-Object {
-    try {
-      [DesktopMaterialDesktopProbe]::Name([uint32]$_.Id)
-    } catch {
-      $null
-    }
-  } | Where-Object { $_ -ne '' } | Sort-Object -Unique
-@($names) | ConvertTo-Json -Compress`,
+$count = [DesktopMaterialDesktopProbe]::WindowCount(
+  '${expectedDesktopName}', [uint32]${processId})
+[pscustomobject]@{
+  Name = '${expectedDesktopName}'
+  WindowCount = [int]$count
+} | ConvertTo-Json -Compress`,
     'Process desktop query'
   )
-  if (parsed === null) {
-    fail('App process did not expose a Win32 desktop.')
+  if (
+    parsed?.Name?.toLowerCase() !== expectedDesktopName.toLowerCase() ||
+    !Number.isSafeInteger(parsed.WindowCount) ||
+    parsed.WindowCount < 1
+  ) {
+    fail('App process did not expose a window on the expected Win32 desktop.')
   }
-  return Array.isArray(parsed) ? parsed : [parsed]
+  return [parsed.Name]
 }
 
 function findOwnedMainProcess(options) {
@@ -2287,33 +2312,13 @@ async function requestNormalExit(client) {
 
 async function requestCleanupExit(client) {
   try {
-    await evaluate(
+    return await evaluate(
       client,
-      `(() => {
-        const root = document.querySelector('#desktop-app-container')
-        const nodes = root ? [root, ...root.querySelectorAll('*')] : []
-        for (const node of nodes) {
-          const fiberKey = Object.keys(node).find(key =>
-            key.startsWith('__reactFiber$') ||
-            key.startsWith('__reactInternalInstance$')
-          )
-          let fiber = fiberKey ? node[fiberKey] : null
-          for (
-            let depth = 0;
-            fiber && depth < 180;
-            depth += 1, fiber = fiber.return
-          ) {
-            const dispatcher = fiber.stateNode?.props?.dispatcher
-            if (typeof dispatcher?.quitApp === 'function') {
-              setTimeout(() => void dispatcher.quitApp(true), 0)
-              return true
-            }
-          }
-        }
-        return false
-      })()`
+      `require('electron').ipcRenderer.send('quit-app', true), true`
     )
-  } catch {}
+  } catch {
+    return false
+  }
 }
 
 function removeOwnedInstall(options) {
@@ -2581,7 +2586,10 @@ async function main() {
     const target = await waitForRendererTarget(options.port)
     mainProcess = findOwnedMainProcess(options)
     const ownerSid = queryProcessOwnerSid(mainProcess.processId)
-    const desktopNames = queryProcessDesktopNames(mainProcess.processId)
+    const desktopNames = queryProcessDesktopNames(
+      mainProcess.processId,
+      options.desktopName
+    )
     const isolationAssertions = {
       exactExecutionIdentity:
         ownerSid.toLowerCase() === options.executionUserSid.toLowerCase(),

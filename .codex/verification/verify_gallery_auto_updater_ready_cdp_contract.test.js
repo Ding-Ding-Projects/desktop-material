@@ -562,12 +562,8 @@ test('PowerShell probes preserve multiline scripts and sanitize forbidden proces
     )
   }
   assert.equal(source.includes("'-Command',\n        '-'"), false)
-  assert.ok(
-    source.includes(
-      '[System.Diagnostics.Process]::GetProcessById(${processId}).Threads'
-    )
-  )
   assert.equal(source.includes('Get-CimInstance Win32_Thread'), false)
+  assert.equal(source.includes('GetThreadDesktop('), false)
 })
 
 test('source invokes real IPC, observes real state, and never fabricates ready UI', () => {
@@ -731,6 +727,22 @@ test('source captures before attested File Exit and does not kill a process', ()
   assert.equal(source.includes('.Kill('), false)
   assert.equal(source.includes('Stop-Process'), false)
   assert.equal(source.includes('taskkill'), false)
+})
+
+test('desktop and cleanup attestation bind to live production primitives', () => {
+  for (const required of [
+    'OpenDesktop(',
+    'EnumDesktopWindows(',
+    'GetWindowThreadProcessId(',
+    'WindowCount = [int]$count',
+    'queryProcessDesktopNames(',
+    'options.desktopName',
+    "ipcRenderer.send('quit-app', true)",
+  ]) {
+    assert.ok(source.includes(required), `missing live primitive: ${required}`)
+  }
+  assert.equal(source.includes('GetThreadDesktop('), false)
+  assert.equal(source.includes('dispatcher.quitApp(true)'), false)
 })
 
 test('receipt explicitly separates current inert proof from historical publication', () => {
