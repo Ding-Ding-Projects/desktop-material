@@ -1100,6 +1100,11 @@ interface ICheapLfsMaterializeOwner {
   readonly requestSignal: AbortSignal | undefined
 }
 
+interface ICheapLfsRestoreRun {
+  readonly id: number
+  progress: ICheapLfsRestoreState | null
+}
+
 interface ICheapLfsMaterializeBatchOptions {
   readonly requestedPaths?: ReadonlySet<string>
   readonly includeReleasePointers?: boolean
@@ -1491,6 +1496,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private addRepositoriesProgress: IAddRepositoriesProgress | null = null
   /** Live reading for a running Cheap LFS restore batch, or null. */
   private cheapLfsRestore: ICheapLfsRestoreState | null = null
+  /**
+   * Different checkouts may restore concurrently. Keep every run's latest
+   * snapshot so an older run cannot overwrite or clear a newer visible run,
+   * and so the older run can become visible again if the newer one finishes
+   * first.
+   */
+  private cheapLfsRestoreRunSequence = 0
+  private readonly cheapLfsRestoreRuns = new Map<number, ICheapLfsRestoreRun>()
   /** Live reading for the batch clone post-clone finalization, or null. */
   private batchCloneFinalizing: IBatchCloneFinalizingState | null = null
 
@@ -16473,6 +16486,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           })
         }
 
+        const restoreRunId = this.beginCheapLfsRestoreRun()
         const publishRestore = (batch: ICheapLfsBatchProgress) => {
           const elapsedSeconds = Math.max(
             0,
@@ -16579,7 +16593,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             })),
             cancelRequested: materializeSignal.aborted,
           }
-          this.updateCheapLfsRestore(progress)
+          this.publishCheapLfsRestoreRun(restoreRunId, progress)
         }
 
         let summary = emptySummary
@@ -16613,7 +16627,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             publishRestore
           )
         } finally {
-          this.updateCheapLfsRestore(null)
+          this.finishCheapLfsRestoreRun(restoreRunId)
         }
         this.cheapLfsInventoryCache?.invalidate(repository.path)
         await this._refreshRepository(repository)
@@ -16712,7 +16726,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       restore.repositoryId === repository.id &&
       'logicalProcessedBytes' in restore
     ) {
-      this.updateCheapLfsRestore({
+      this.replaceCheapLfsRestoreRunProgress(restore, {
         ...restore,
         phase: 'canceling',
         cancelRequested: true,
@@ -18814,6 +18828,62 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private updateCheapLfsRestore(cheapLfsRestore: ICheapLfsRestoreState | null) {
     this.cheapLfsRestore = cheapLfsRestore
     this.emitUpdate()
+  }
+
+  private beginCheapLfsRestoreRun(): number {
+    const id = ++this.cheapLfsRestoreRunSequence
+    this.cheapLfsRestoreRuns.set(id, { id, progress: null })
+    return id
+  }
+
+  private publishCheapLfsRestoreRun(
+    id: number,
+    progress: ICheapLfsRestoreState
+  ): void {
+    const run = this.cheapLfsRestoreRuns.get(id)
+    if (run === undefined) {
+      return
+    }
+
+    run.progress = progress
+    const visible = this.latestCheapLfsRestoreRun()
+    if (visible?.id === id) {
+      this.updateCheapLfsRestore(progress)
+    }
+  }
+
+  private finishCheapLfsRestoreRun(id: number): void {
+    if (!this.cheapLfsRestoreRuns.delete(id)) {
+      return
+    }
+
+    const next = this.latestCheapLfsRestoreRun()?.progress ?? null
+    if (this.cheapLfsRestore !== next) {
+      this.updateCheapLfsRestore(next)
+    }
+  }
+
+  private replaceCheapLfsRestoreRunProgress(
+    current: ICheapLfsRestoreState,
+    replacement: ICheapLfsRestoreState
+  ): void {
+    for (const run of this.cheapLfsRestoreRuns.values()) {
+      if (run.progress === current) {
+        run.progress = replacement
+        break
+      }
+    }
+    this.updateCheapLfsRestore(replacement)
+  }
+
+  private latestCheapLfsRestoreRun(): ICheapLfsRestoreRun | null {
+    let latest: ICheapLfsRestoreRun | null = null
+    for (const run of this.cheapLfsRestoreRuns.values()) {
+      if (run.progress !== null && (latest === null || run.id > latest.id)) {
+        latest = run
+      }
+    }
+    return latest
   }
 
   private updateAddRepositoriesProgress(

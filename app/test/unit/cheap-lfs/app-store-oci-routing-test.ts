@@ -438,6 +438,8 @@ describe('AppStore Cheap LFS OCI routing', () => {
     Object.assign(store, {
       cheapLfsMaterializeOwners: new Map(),
       cheapLfsMaterializeTails: new Map(),
+      cheapLfsRestoreRunSequence: 0,
+      cheapLfsRestoreRuns: new Map(),
       isTemporaryRepositoryActive: () => true,
       withTemporaryRepositoryMutationGuard: async (
         _repository: Repository,
@@ -524,6 +526,126 @@ describe('AppStore Cheap LFS OCI routing', () => {
     assert.equal(restoreSnapshots.at(-1), null)
   })
 
+  it('keeps a newer repository restore visible when an older run reports or finishes', async t => {
+    const firstRoot = await createTempDirectory(t)
+    const secondRoot = await createTempDirectory(t)
+    const relativePath = 'concurrent.ptr'
+
+    const initializeRepository = async (root: string, seed: string) => {
+      const raw = Buffer.from(`concurrent restore ${seed}\n`)
+      const sha256 = createHash('sha256').update(raw).digest('hex')
+      const pointer = serializeCheapLfsGhcrPointer({
+        version: CHEAP_LFS_OCI_POINTER_VERSION,
+        image: `ghcr.io/owner/repo-cheap-lfs@sha256:${seed.repeat(64)}`,
+        object: `sha256:${sha256}`,
+        sizeInBytes: raw.length,
+        layers: [`sha256:${seed.repeat(64)}`],
+      })
+      await execFile('git', ['init', '--quiet'], { cwd: root })
+      await execFile('git', ['config', 'user.name', 'Cheap LFS Test'], {
+        cwd: root,
+      })
+      await execFile(
+        'git',
+        ['config', 'user.email', 'cheap-lfs@example.test'],
+        {
+          cwd: root,
+        }
+      )
+      await writeFile(join(root, relativePath), pointer)
+      await execFile('git', ['add', '--', relativePath], { cwd: root })
+      await execFile('git', ['commit', '--quiet', '-m', 'Track pointer'], {
+        cwd: root,
+      })
+    }
+
+    await initializeRepository(firstRoot, 'a')
+    await initializeRepository(secondRoot, 'b')
+
+    const firstRepository = new Repository(firstRoot, 1200, null, false)
+    const secondRepository = new Repository(secondRoot, 1201, null, false)
+    const firstEntered = deferred<void>()
+    const secondEntered = deferred<void>()
+    const firstRelease = deferred<void>()
+    const secondRelease = deferred<void>()
+    const progressCallbacks = new Map<number, (transferred: number) => void>()
+    const restoreSnapshots = new Array<unknown>()
+    const store = Object.create(AppStore.prototype) as AppStore
+    Object.assign(store, {
+      accounts: [],
+      cheapLfsMaterializeOwners: new Map(),
+      cheapLfsMaterializeTails: new Map(),
+      cheapLfsRestore: null,
+      cheapLfsRestoreRunSequence: 0,
+      cheapLfsRestoreRuns: new Map(),
+      isTemporaryRepositoryActive: () => true,
+      withTemporaryRepositoryMutationGuard: async (
+        _repository: Repository,
+        operation: () => Promise<unknown>
+      ) => await operation(),
+      materializeCheapLfsEntry: async (
+        repository: Repository,
+        entry: ICheapLfsManagedPointerEntry,
+        _signal?: AbortSignal,
+        onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
+      ) => {
+        const publishProgress = (transferred: number) =>
+          onProgress?.({
+            operationId: `${repository.id}:${entry.relativePath}`,
+            direction: 'download',
+            transferredBytes: transferred,
+            totalBytes: entry.pointer.sizeInBytes,
+          })
+        progressCallbacks.set(repository.id, publishProgress)
+        publishProgress(1)
+        const isFirst = repository.id === firstRepository.id
+        ;(isFirst ? firstEntered : secondEntered).resolve()
+        await (isFirst ? firstRelease : secondRelease).promise
+        return {
+          path: join(repository.path, entry.relativePath),
+          bytes: entry.pointer.sizeInBytes,
+        }
+      },
+      _refreshRepository: async () => undefined,
+      postCheapLfsMaterializeNotification: () => undefined,
+      updateCheapLfsRestore: (progress: unknown) => {
+        ;(
+          store as unknown as {
+            cheapLfsRestore: unknown
+          }
+        ).cheapLfsRestore = progress
+        restoreSnapshots.push(progress)
+      },
+    })
+    const visibleRepositoryId = () =>
+      (
+        store as unknown as {
+          cheapLfsRestore: { readonly repositoryId?: number } | null
+        }
+      ).cheapLfsRestore?.repositoryId ?? null
+
+    const first = store._materializeAllCheapLfsPointers(firstRepository)
+    await firstEntered.promise
+    const second = store._materializeAllCheapLfsPointers(secondRepository)
+    await secondEntered.promise
+    assert.equal(visibleRepositoryId(), secondRepository.id)
+
+    const snapshotsBeforeStaleProgress = restoreSnapshots.length
+    progressCallbacks.get(firstRepository.id)?.(2)
+    assert.equal(restoreSnapshots.length, snapshotsBeforeStaleProgress)
+    assert.equal(visibleRepositoryId(), secondRepository.id)
+
+    firstRelease.resolve()
+    await first
+    assert.equal(restoreSnapshots.length, snapshotsBeforeStaleProgress)
+    assert.equal(visibleRepositoryId(), secondRepository.id)
+
+    secondRelease.resolve()
+    await second
+    assert.equal(visibleRepositoryId(), null)
+    assert.equal(restoreSnapshots.at(-1), null)
+  })
+
   it('serializes auto, individual, and Materialize-all requests by checkout path', async t => {
     const root = await createTempDirectory(t)
     const relativePath = 'shared.bin'
@@ -562,6 +684,8 @@ describe('AppStore Cheap LFS OCI routing', () => {
       accounts: [],
       cheapLfsMaterializeOwners: new Map(),
       cheapLfsMaterializeTails: new Map(),
+      cheapLfsRestoreRunSequence: 0,
+      cheapLfsRestoreRuns: new Map(),
       isTemporaryRepositoryActive: () => true,
       withTemporaryRepositoryMutationGuard: async (
         _repository: Repository,
@@ -894,6 +1018,8 @@ describe('AppStore Cheap LFS OCI routing', () => {
       accounts: [],
       cheapLfsMaterializeOwners: new Map(),
       cheapLfsMaterializeTails: new Map(),
+      cheapLfsRestoreRunSequence: 0,
+      cheapLfsRestoreRuns: new Map(),
       isTemporaryRepositoryActive: () => true,
       withTemporaryRepositoryMutationGuard: async (
         _repository: Repository,
