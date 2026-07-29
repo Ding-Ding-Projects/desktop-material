@@ -1992,8 +1992,7 @@ async function prepareIsolatedUpdaterWorkspace(client) {
 
   return {
     welcomeWasVisible: initialOnboarding.welcomeWasVisible,
-    firstRunChecklistWasVisible:
-      initialOnboarding.firstRunChecklistWasVisible,
+    firstRunChecklistWasVisible: initialOnboarding.firstRunChecklistWasVisible,
     welcomeWasLatched: transition.welcomeWasLatched,
     autoFitWasEnabled: transition.autoFitWasEnabled,
     assertions: {
@@ -2743,8 +2742,7 @@ async function main() {
         },
         firstRun: {
           welcomeWasVisible: workspace.welcomeWasVisible,
-          firstRunChecklistWasVisible:
-            workspace.firstRunChecklistWasVisible,
+          firstRunChecklistWasVisible: workspace.firstRunChecklistWasVisible,
           welcomeWasLatched: workspace.welcomeWasLatched,
           autoFitWasEnabled: workspace.autoFitWasEnabled,
           completionPreference: 'owned-disposable-profile-only',

@@ -13,7 +13,7 @@ const releases = readFileSync(
 )
 
 describe('shared filter control hit targets', () => {
-  it('keeps every shared filter action at the repository 40px minimum', () => {
+  it('keeps shared actions at 40px outside the high-zoom release layout', () => {
     assert.match(
       styles,
       /\.filter-mode-button,[\s\S]*?\.filter-case-button\s*\{[\s\S]*?height: 40px;[\s\S]*?min-width: 40px;/
@@ -24,9 +24,19 @@ describe('shared filter control hit targets', () => {
     )
     assert.match(styles, /\.filter-chip\s*\{[\s\S]*?height: 40px;/)
     assert.doesNotMatch(styles, /height: 30px;/)
+    const compactReleaseQuery =
+      '@media (max-width: 800px) and (max-height: 560px)'
+    const releasesBeforeCompactQuery = releases.slice(
+      0,
+      releases.indexOf(compactReleaseQuery)
+    )
     assert.doesNotMatch(
-      releases,
+      releasesBeforeCompactQuery,
       /\.filter-(?:mode|case|regex-builder)-button[\s\S]{0,180}?height: (?:28|30|32)px;/
+    )
+    assert.match(
+      releases.slice(releases.indexOf(compactReleaseQuery)),
+      /\.github-releases-search-field \{[\s\S]*?min-width: 32px;[\s\S]*?height: 32px;/
     )
   })
 })

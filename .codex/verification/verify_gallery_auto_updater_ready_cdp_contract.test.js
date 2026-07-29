@@ -626,9 +626,7 @@ test('ready inspection observes but never focuses or activates install', () => {
   assert.ok(helper.includes('installControlVisible'))
   assert.ok(helper.includes('installControlEnabled'))
   assert.ok(helper.includes('install.disabled === false'))
-  assert.ok(
-    helper.includes("install.getAttribute('aria-disabled') !== 'true'")
-  )
+  assert.ok(helper.includes("install.getAttribute('aria-disabled') !== 'true'"))
 })
 
 test('owned first-run preference settles the already-created product store', () => {
