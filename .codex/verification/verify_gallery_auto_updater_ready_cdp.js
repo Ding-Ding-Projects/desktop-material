@@ -100,8 +100,13 @@ if (CaptureBasename === HistoricalCaptureBasename) {
 
 const ProfileDirectory = 'profile'
 const OwnedTempDirectory = 'temp'
+const FirstRunChecklistDismissedKey = 'first-run-checklist-dismissed-v1'
 const VerificationTimeoutMilliseconds = 20 * 60 * 1000
 const LaunchTimeoutMilliseconds = 5 * 60 * 1000
+// The renderer's bounded shutdown is 10 seconds. Leave additional time for
+// its final IPC and main-process teardown before requesting the graceful
+// direct-quit fallback.
+const NormalExitGraceMilliseconds = 15_000
 const MaximumLogBytes = 8 * 1024 * 1024
 const MaximumTreeFiles = 100_000
 const MaximumTreeBytes = 5 * 1024 * 1024 * 1024
@@ -1912,20 +1917,34 @@ function updaterRuntimeFinderSource() {
 }
 
 async function prepareIsolatedUpdaterWorkspace(client) {
-  const welcomeWasVisible = await evaluate(
+  const initialOnboarding = await evaluate(
     client,
-    `document.querySelector('#welcome') instanceof HTMLElement`
+    `({
+      welcomeWasVisible:
+        document.querySelector('#welcome') instanceof HTMLElement,
+      firstRunChecklistWasVisible:
+        document.querySelector('.first-run-checklist') instanceof HTMLElement,
+    })`
   )
+  if (
+    typeof initialOnboarding?.welcomeWasVisible !== 'boolean' ||
+    typeof initialOnboarding?.firstRunChecklistWasVisible !== 'boolean'
+  ) {
+    fail('Owned onboarding surfaces did not report their initial state.')
+  }
 
   await evaluate(
     client,
     `localStorage.setItem('has-shown-welcome-flow', '1'),
+      localStorage.setItem('${FirstRunChecklistDismissedKey}', '1'),
       localStorage.setItem('zoom-auto-fit-enabled', '0'), true`
   )
 
   // AppStore can latch the first-run state before React mounts #welcome. Use
   // the product's real completion transition so the owned preference and the
-  // already-created store agree without relying on a renderer reload.
+  // already-created store agree without relying on a renderer reload. The
+  // disposable profile also pre-dismisses the compact checklist which
+  // production mounts immediately after this transition.
   await waitForExpression(
     client,
     `(${updaterRuntimeFinderSource()})() !== null`,
@@ -1963,21 +1982,27 @@ async function prepareIsolatedUpdaterWorkspace(client) {
       runtime.appStore.getState().showWelcomeFlow === false &&
       runtime.appStore.getState().autoFitZoomEnabled === false &&
       document.querySelector('#welcome') === null &&
+      document.querySelector('.first-run-checklist') === null &&
       localStorage.getItem('has-shown-welcome-flow') === '1' &&
+      localStorage.getItem('${FirstRunChecklistDismissedKey}') === '1' &&
       localStorage.getItem('zoom-auto-fit-enabled') === '0'
     })()`,
     'isolated updater workspace'
   )
 
   return {
-    welcomeWasVisible,
+    welcomeWasVisible: initialOnboarding.welcomeWasVisible,
+    firstRunChecklistWasVisible:
+      initialOnboarding.firstRunChecklistWasVisible,
     welcomeWasLatched: transition.welcomeWasLatched,
     autoFitWasEnabled: transition.autoFitWasEnabled,
     assertions: {
       ownedFirstRunPreferencePersisted: true,
+      ownedFirstRunChecklistDismissed: true,
       ownedAutoFitDisabled: true,
       productionWelcomeStateSettled: true,
       welcomeSurfaceAbsent: true,
+      firstRunChecklistAbsent: true,
       accountAndProviderFlowsNotInvoked: true,
     },
   }
@@ -2132,6 +2157,13 @@ async function inspectReadySurface(client, productVersion, sourceCommit) {
       const dialogRect = rect(dialog)
       const installRect = rect(install)
       const closeRect = rect(close)
+      const dialogHit =
+        dialogRect === null
+          ? null
+          : document.elementFromPoint(
+              dialogRect.x + dialogRect.width / 2,
+              dialogRect.y + dialogRect.height / 2
+            )
       const corpus = [
         document.body.innerText,
         ...[...document.querySelectorAll(
@@ -2161,6 +2193,14 @@ async function inspectReadySurface(client, productVersion, sourceCommit) {
           visible(dialog) &&
           title?.textContent?.replace(/\\s+/g, ' ').trim() ===
             'About Desktop Material',
+        frontmostAboutDialog:
+          dialog instanceof HTMLElement &&
+          dialogHit instanceof Element &&
+          (dialogHit === dialog || dialog.contains(dialogHit)),
+        welcomeSurfaceAbsent:
+          document.querySelector('#welcome') === null,
+        firstRunChecklistAbsent:
+          document.querySelector('.first-run-checklist') === null,
         exactCurrentSourceVersion:
           dialog?.textContent?.includes(
             'Build ${sourceCommit.slice(0, 10)} (x64)'
@@ -2703,6 +2743,8 @@ async function main() {
         },
         firstRun: {
           welcomeWasVisible: workspace.welcomeWasVisible,
+          firstRunChecklistWasVisible:
+            workspace.firstRunChecklistWasVisible,
           welcomeWasLatched: workspace.welcomeWasLatched,
           autoFitWasEnabled: workspace.autoFitWasEnabled,
           completionPreference: 'owned-disposable-profile-only',
@@ -2790,7 +2832,7 @@ async function main() {
         processesExited = await waitForOwnedProcessesToExit(
           options,
           mainProcess.processId,
-          normalExitRequested ? 10_000 : 1_000
+          normalExitRequested ? NormalExitGraceMilliseconds : 1_000
         )
         if (!processesExited && client !== null) {
           cleanupExitRequested = await requestCleanupExit(client)

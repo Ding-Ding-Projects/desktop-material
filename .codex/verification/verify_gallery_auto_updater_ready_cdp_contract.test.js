@@ -639,16 +639,25 @@ test('owned first-run preference settles the already-created product store', () 
   assert.ok(start >= 0 && end > start, 'missing isolated workspace helper')
 
   const helper = source.slice(start, end)
+  assert.ok(
+    source.includes(
+      "FirstRunChecklistDismissedKey = 'first-run-checklist-dismissed-v1'"
+    )
+  )
   for (const required of [
     "localStorage.setItem('has-shown-welcome-flow', '1')",
+    "localStorage.setItem('${FirstRunChecklistDismissedKey}', '1')",
     "localStorage.setItem('zoom-auto-fit-enabled', '0')",
     'updaterRuntimeFinderSource',
     'runtime.appStore.getState().showWelcomeFlow === true',
     'await runtime.dispatcher.endWelcomeFlow()',
     'runtime.appStore.getState().autoFitZoomEnabled === true',
     'await runtime.dispatcher.setAutoFitZoomEnabled(false)',
+    "document.querySelector('.first-run-checklist') === null",
+    'ownedFirstRunChecklistDismissed: true',
     'ownedAutoFitDisabled: true',
     'productionWelcomeStateSettled: true',
+    'firstRunChecklistAbsent: true',
   ]) {
     assert.ok(
       helper.includes(required),
@@ -660,6 +669,25 @@ test('owned first-run preference settles the already-created product store', () 
     false,
     'owned first-run settlement must not depend on renderer reload behavior'
   )
+})
+
+test('capture rejects onboarding overlays and requires frontmost About pixels', () => {
+  const start = source.indexOf('async function inspectReadySurface(')
+  const end = source.indexOf('\nfunction assertBooleanAssertions', start)
+  assert.ok(start >= 0 && end > start, 'missing ready-surface inspector')
+
+  const helper = source.slice(start, end)
+  for (const required of [
+    'document.elementFromPoint(',
+    'dialogHit === dialog || dialog.contains(dialogHit)',
+    'frontmostAboutDialog:',
+    "document.querySelector('#welcome') === null",
+    "document.querySelector('.first-run-checklist') === null",
+    'welcomeSurfaceAbsent:',
+    'firstRunChecklistAbsent:',
+  ]) {
+    assert.ok(helper.includes(required), `missing occlusion gate: ${required}`)
+  }
 })
 
 test('capture viewport tolerates only Chromium DPR floating-point noise', () => {
@@ -738,7 +766,8 @@ test('desktop and cleanup attestation bind to live production primitives', () =>
     'queryProcessDesktopNames(',
     'options.desktopName',
     "ipcRenderer.send('quit-app', true)",
-    'normalExitRequested ? 10_000 : 1_000',
+    'NormalExitGraceMilliseconds = 15_000',
+    'normalExitRequested ? NormalExitGraceMilliseconds : 1_000',
     'cleanupExitRequested = await requestCleanupExit(client)',
     'directQuitFallbackRequested: cleanupExitRequested',
   ]) {
@@ -748,7 +777,7 @@ test('desktop and cleanup attestation bind to live production primitives', () =>
     'normalExitRequested = await requestNormalExit(client)'
   )
   const initialWaitIndex = source.lastIndexOf(
-    'normalExitRequested ? 10_000 : 1_000'
+    'normalExitRequested ? NormalExitGraceMilliseconds : 1_000'
   )
   const fallbackIndex = source.lastIndexOf(
     'cleanupExitRequested = await requestCleanupExit(client)'
