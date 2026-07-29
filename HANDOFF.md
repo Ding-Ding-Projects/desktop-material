@@ -2,9 +2,31 @@
 
 ## 2026-07-28 — CURRENT HANDOFF (read this first)
 
-Both July 28 task lineages are merged into the local `main` history while this
-handoff is being verified. The result is not yet pushed, and no remote CI,
-installer, release, or issue-closure success is inferred from the local merge.
+### Stop-now checkpoint
+
+Local and remote `main` are exactly
+`ddfbec8302cd4ac4f5f4fb4313f36505dd34750c`. The completed Cheap LFS and
+close-out source tips are ancestors of that pushed commit. The push has started
+remote checks; this handoff does **not** infer a CI, installer, release, or
+issue-closure success before GitHub reports one.
+
+The exact-tip updater run built `ddfbec8302` successfully and reached the real
+Electron/Squirrel **Update ready** UI. Chromium wrote a 960×660, 46,232-byte
+candidate PNG, but the verifier deliberately rejected the run because its
+normal File → Exit request left the owned app process alive beyond the
+45-second cleanup bound. The candidate was therefore **not promoted** to the
+gallery and no complete verifier receipt exists. Cleanup was then performed
+through the real app dispatcher with `quitApp(true)` on the same off-screen
+desktop. The app process count and headless window count both reached zero, and
+`DesktopMaterialMainUpdater-20260728-441a0f01ca54` was released. A successor
+should repair the verifier's normal-exit boundary, rerun it from a clean owned
+root, require the complete receipt, inspect the image at original pixels, and
+only then promote the screenshot.
+
+The focused updater source gates completed before this stop: updater behavior
+31/31, release-note behavior 6/6, and verifier contract 18/18, with TypeScript
+and targeted formatting/lint clean. Full final-tree tests and the exact pushed
+CI/release verdict remain remote or outstanding and must be reported as such.
 
 ### Cheap LFS long Windows filenames and materialized-pull boundary
 
