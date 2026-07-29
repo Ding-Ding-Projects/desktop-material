@@ -369,3 +369,44 @@ run will record the exact blocker and will not misrepresent it as closed.
 - Endpoint: `http://127.0.0.1:8765/mcp`.
 - Every continuation preflight call returned `client_ok: true`;
   `run_command` also returned `returncode: 0` and `timed_out: false`.
+
+## Superseding current-source updater acceptance — 2026-07-29
+
+This section supersedes only the unfinished updater-capture state above. The
+dated preflight, rejected attempts, and historical cleanup facts remain accurate
+records of those earlier runs.
+
+- Runtime source:
+  `b069384ad7d8a65d1192ee06859a705fe484c9c8`.
+- Screenshot publication:
+  `e3967f1b81ec039624500797dca40a1ab6d98598`.
+- Packaged development x64 tree: 6,210 files, 385 directories, 904,084,592
+  bytes; SHA-256
+  `1b728afc5c53c9a37b63b57af528a71356a726a1115458a458b6284fb05a7cdc`.
+- `GitHubDesktop.exe`: 226,677,760 bytes; SHA-256
+  `7930378e3675b12f337784dd29018c5110b4b789ec5bb79be2cec6c83a8a0c40`.
+- Accepted frame:
+  `docs/assets/screenshots/auto-updater-current-source-ready.png`, 960×660,
+  47,086 bytes; SHA-256
+  `0fc9caf5b13eb5b914121090f403c394545e02ea4303b11dd4598afcb3a2dfca`.
+- Complete receipt: 12,299 bytes; SHA-256
+  `50fe3ed0bcb5287786933a6ae1523021bd1417b1462a3fe5bb48d644d7527f3c`.
+
+The verifier exercised real Electron/Squirrel events through loopback with a
+disclosed inert, no-executable `9000.0.1` full nupkg. Acceptance required the
+current development x64 source, frontmost About, onboarding absent, and the
+exact updater-ready state. Protected install and external state remained
+unchanged. File Exit was requested, followed by the graceful direct-quit
+fallback; **Quit and Install** was never clicked. The owned processes, registry
+state, install tree, profile, temporary state, and ready tree were removed. The
+desktop then listed zero windows before it was closed.
+
+Original-pixel inspection had rejected a prior formally successful capture
+because the Welcome surface covered About. The fixed verifier now requires the
+first-run checklist to be absent and uses `elementFromPoint` to prove About is
+frontmost before capture. No temporary or private path is retained in this
+publication record.
+
+香港粵語：舊 run 嘅失敗紀錄照留，但新 run 已經用真 Electron/Squirrel
+事件、離屏視窗同完整清理證明收貨；Welcome 遮住畫面嗰張舊候選圖唔算數，
+修正 gate 之後先發佈。

@@ -44,6 +44,124 @@ historical records, not supported product/release targets and not blockers for
 this Windows close-out. Any later heading that says “read this first” is an
 archived point-in-time handoff and is explicitly superseded by this section.
 
+### Current-source updater capture accepted and published
+
+The packaged development x64 application at runtime source
+`b069384ad7d8a65d1192ee06859a705fe484c9c8` passed the real updater-ready gate.
+Screenshot promotion commit
+`e3967f1b81ec039624500797dca40a1ab6d98598` publishes
+`docs/assets/screenshots/auto-updater-current-source-ready.png`: 960×660,
+47,086 bytes, SHA-256
+`0fc9caf5b13eb5b914121090f403c394545e02ea4303b11dd4598afcb3a2dfca`.
+The 12,299-byte receipt has SHA-256
+`50fe3ed0bcb5287786933a6ae1523021bd1417b1462a3fe5bb48d644d7527f3c`.
+
+The accepted package contains 6,210 files and 385 directories totalling
+904,084,592 bytes, with SHA-256
+`1b728afc5c53c9a37b63b57af528a71356a726a1115458a458b6284fb05a7cdc`.
+Its 226,677,760-byte `GitHubDesktop.exe` has SHA-256
+`7930378e3675b12f337784dd29018c5110b4b789ec5bb79be2cec6c83a8a0c40`.
+
+The verifier exercised real Electron/Squirrel events over loopback using a
+disclosed inert, no-executable `9000.0.1` full nupkg. It proved the exact
+current development x64 source, frontmost About, onboarding absent, and the
+ready state. Protected install and external state stayed unchanged. File Exit
+was requested before the graceful direct-quit fallback; **Quit and Install**
+was never clicked. Owned processes, registry state, install tree, profile,
+temporary state, and ready tree were removed, then the desktop listed zero
+windows and closed.
+
+Original-resolution inspection rejected an earlier formally successful frame
+because Welcome covered About. The verifier was fixed to require the first-run
+checklist to be absent and to use `elementFromPoint` for a frontmost About
+attestation. That rejected candidate and the dated pending notes below remain
+historical facts; they are superseded as the current updater acceptance state.
+The immutable July 22 legacy migration frame remains a separate historical
+artifact.
+
+香港粵語：今次用真 build 同真 Electron/Squirrel event，Welcome 遮住 About
+嗰張舊候選圖已經打回頭；修正 gate 要 onboarding checklist 消失兼驗明
+About 喺最前，先收貨 960×660 圖、receipt 同完整清理證明。`Quit and
+Install` 冇撳過，保護中嘅 install／外部狀態亦冇郁過。
+
+### Main consolidation and task-worktree cleanup
+
+Every task tip was rechecked as clean and as an ancestor of both `main` and
+`origin/main` before cleanup:
+
+- `codex/bug-hunt-20260728` at `bd0041d33989ded70ba1b6424b538312d502b455`;
+- `codex/report-gitlab-core` at
+  `10c2e3142d165fc971ba06bac52191a41f0b5b91`;
+- `codex/report-gitlab-fixture` at
+  `ada118d1bafe52e96f2517452747cbd94102da53`;
+- `codex/report-gitlab-integration` at
+  `b574c256061c1aebf524da4df86f5e384bfcacd2`;
+- `codex/report-gitlab-live-fixture` at
+  `a5ae2f6f535309113d10b3e119be580a0747cd92`; and
+- `codex/report-gitlab-ui` at
+  `bf566b4c5bee3487d2b3409443c91fc427d3a1d6`.
+
+Their six linked worktrees and local branches were removed. The merged remote
+`origin/codex/bug-hunt-20260728` tip
+`ac0e50fc2d4571ffe0ec8c6d72f929988daf35cb` was also deleted. The one
+initialized submodule set was at its recorded commits with no modified or
+untracked content; the other five sets were uninitialized. Git left four
+dependency junction shells after unregistering the worktrees, so each exact
+junction was resolved and removed without traversal; the main checkout's root
+and app `node_modules` targets remained intact. The now-empty worktree parent
+was removed. Final cleanup proof must continue to show one registered `main`
+worktree, no local or origin task branches, and no stashes. The unrelated
+`desktop-plus` and `upstream` remotes were deliberately preserved.
+
+香港粵語：六個 task tip 全部先驗明已經入咗本地同遠端 `main`、worktree
+乾淨、submodule 冇改動，先刪 worktree、分支同已合併嘅遠端 task 分支；
+共用 dependency junction 只刪連結本身，主 checkout 嘅 dependencies
+冇郁。`desktop-plus` 同 `upstream` 係無關 remote，所以保留。
+
+### Final regression and security sweep
+
+The complete post-merge test run used application source
+`d0be4827e0bb636132006d2c361ce845dc579f15` plus the documentation-only
+publication edits in this handoff. It accounted for all 873 discovered files
+across four batches: 7,112 tests reported, 7,111 passed, one intentional skip,
+zero failures, and exit code 0 in 457.47 seconds. The script suite separately
+reported 190 passes, two intentional skips, and zero failures.
+
+`yarn lint`, `yarn tsc`, `yarn test:eslint`, the 27 updater/Pages verifier
+contracts, and the 17 screenshot/wiki contracts all passed. The documentation
+catalog regenerated 231 entries without a tracked generated-file change.
+
+The full run exposed and then verified two late high-zoom regressions. The
+GitHub Releases controls now retain their normal 40 CSS-pixel target while the
+dedicated 125%–200% zoom layout uses 32 CSS pixels so a complete release row
+stays above the fold. The formerly contradictory tests now assert both scopes,
+and the verifier sources that had failed CI formatting are formatted.
+
+The dependency sweep now resolves every `brace-expansion` consumer through the
+callable compatibility adapter backed by patched 5.0.8. The adapter is covered
+across minimatch 3/10, glob 7/13, bounded expansion, and Electron ASAR unpack
+globs. `markdownlint-cli` 0.49.1 now brings `markdown-it` 14.3.0 and
+`linkify-it` 5.0.2. The dev-dependency audit reports zero vulnerabilities, and
+GitHub reports zero open Dependabot alerts.
+
+Nine CodeQL false positives were removed without exclusions or suppressions:
+fixed error strings are asserted exactly, the GHES host is checked as the exact
+`--hostname` argument, Git config uses JSON string serialization, and
+credential tests use length-checked constant-time equality without printing
+secrets. The subsequent CodeQL run closed all nine. One high alert remains:
+the production OAuth client secret is intentionally compiled into the native
+public client. Moving it to another shipped bundle would not secure it.
+GitHub's device flow is disabled for the bundled app registration, and changing
+to device flow or a confidential exchange broker requires external app-owner
+authority, a credential rotation/migration plan, and a product decision. Alert
+45 therefore remains open rather than being dismissed inaccurately.
+
+香港粵語：最終 full suite 873/873 個檔案都有結果，7,112 個 test 係
+7,111 pass、1 個有意 skip、0 fail；lint、TypeScript、驗證器同文件合約
+亦全綠。三個 Dependabot 漏洞已清零，九個 CodeQL 誤報用更精準斷言收妥。
+OAuth secret 嗰個真實架構警報冇扮作解決：要 app owner 開 device flow
+或者提供 confidential broker，同時要做憑證輪換先可以真正移除。
+
 ### Security, packaging, and toolchain hardening checkpoint
 
 The merged tree at `d273ae95d7` received a second bug-hunt pass before packaged

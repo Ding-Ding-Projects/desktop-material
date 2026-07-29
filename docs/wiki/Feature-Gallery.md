@@ -20,11 +20,18 @@ missing, duplicate, or unassigned current assets. Five retained Linux/Xvfb
 captures are enumerated separately as historical evidence and are deliberately
 outside this Windows target set.
 
-> **Current refresh status — July 28, 2026:** the contract declares 67
+> **Current refresh status — July 29, 2026:** the contract declares 67
 > canonical and 17 specialist Windows targets. The distinct current-source
-> updater target is still awaiting capture, so this page does not yet claim a
-> passing 84-image publication. The immutable legacy-updater frame below
-> remains historical and cannot fill that slot.
+> updater target is now accepted and published, completing its separate slot in
+> the 84-image Windows set. Runtime source
+> `b069384ad7d8a65d1192ee06859a705fe484c9c8` exercised the real
+> Electron/Squirrel event path with a disclosed verifier-owned inert payload;
+> promotion `e3967f1b81ec039624500797dca40a1ab6d98598` records the inspected
+> 960×660, 47,086-byte PNG with SHA-256
+> `0fc9caf5b13eb5b914121090f403c394545e02ea4303b11dd4598afcb3a2dfca`.
+> This is development current-source UI proof, not a claim that the inert
+> payload was published. The immutable legacy-updater frame remains separate
+> historical migration evidence.
 
 > **Historical publication record:** The gallery includes the July 14, 2026 Actions cache and headless
 > pagination evidence, the Pages accessibility/clipping gate, the inspected July 16 adaptive
@@ -585,6 +592,8 @@ path does not weaken the dedicated audit timeline.
 ![Material first-run welcome with a focused setup card and tonal workspace preview](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-welcome.png)
 
 ![Current-source About dialog showing the automatic updater ready after a genuine Electron and Squirrel event path downloaded the disclosed inert verifier payload](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/auto-updater-current-source-ready.png)
+
+<sub>Accepted current-source development proof: runtime `b069384ad7d8a65d1192ee06859a705fe484c9c8`, promoted by `e3967f1b81ec039624500797dca40a1ab6d98598`. The verifier-owned payload is inert and disclosed; this frame does not claim a published updater payload.<br>目前原始碼開發版證明已驗收：真 Electron/Squirrel 路徑用驗證器自有、已披露嘅無害 payload；呢張相唔代表嗰個 payload 已經發佈。</sub>
 
 ![Appearance editor anchored beside its actual owner with History, a dedicated local Git path, and burst-safe persistence](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-customization.png)
 

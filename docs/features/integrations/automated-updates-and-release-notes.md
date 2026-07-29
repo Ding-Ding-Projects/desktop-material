@@ -302,4 +302,19 @@ then published greater same-SHA Release
 [`v3.6.3-beta3-zadtbhvdfc`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-zadtbhvdfc),
 which the legacy UI visibly downloaded and exposed as ready to install.
 
+Current-source UI acceptance is also published as a separate frame. Runtime
+source `b069384ad7d8a65d1192ee06859a705fe484c9c8` reached the ready state
+through the real Electron/Squirrel event path using a disclosed verifier-owned
+inert payload. Promotion `e3967f1b81ec039624500797dca40a1ab6d98598`
+records the inspected 960×660, 47,086-byte PNG with SHA-256
+`0fc9caf5b13eb5b914121090f403c394545e02ea4303b11dd4598afcb3a2dfca`.
+This development proof does not claim that the inert payload was published.
+
+![Current-source About dialog showing the automatic updater ready through the real Electron and Squirrel event path with a disclosed verifier-owned inert payload](../../assets/screenshots/auto-updater-current-source-ready.png)
+
+<sub>目前原始碼開發版畫面已驗收：驗證器自有、已披露嘅無害 payload 行過真 Electron/Squirrel 路徑；呢張圖唔代表嗰個 payload 已發佈。</sub>
+
+The following immutable image remains the separate legacy Super Express
+migration record:
+
 ![Historical About dialog showing the legacy Super Express updater migration at immutable source commit 923dbb51acad8f01f01f1c100c6945c7a2e08e23](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/923dbb51acad8f01f01f1c100c6945c7a2e08e23/docs/assets/screenshots/auto-updater-update-ready.png)

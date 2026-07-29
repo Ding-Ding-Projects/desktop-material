@@ -8,6 +8,31 @@ Screenshots of the real built app come from the capture fixture described in
 [App capture fixture](../technical/app-capture-fixture.md) — including multi-tab
 scenes such as the tab overflow dropdown, which cannot be produced by hand.
 
+## Current-source updater acceptance
+
+The current development x64 application at source
+`b069384ad7d8a65d1192ee06859a705fe484c9c8` passed the packaged updater-ready
+verifier. The accepted
+[`auto-updater-current-source-ready.png`](../assets/screenshots/auto-updater-current-source-ready.png)
+was published by `e3967f1b81ec039624500797dca40a1ab6d98598`: 960×660,
+47,086 bytes, SHA-256
+`0fc9caf5b13eb5b914121090f403c394545e02ea4303b11dd4598afcb3a2dfca`.
+Its 12,299-byte receipt has SHA-256
+`50fe3ed0bcb5287786933a6ae1523021bd1417b1462a3fe5bb48d644d7527f3c`.
+
+The verifier drove real Electron/Squirrel events over loopback using a disclosed
+inert, no-executable `9000.0.1` full nupkg. It proved frontmost About, no
+onboarding checklist, the exact ready state, unchanged protected
+install/external state, and complete owned-resource cleanup. Original-resolution
+inspection rejected an earlier formally successful candidate because Welcome
+covered the app; the repaired gate now requires the first-run checklist to be
+absent and `elementFromPoint` to resolve the frontmost About surface. File Exit
+was requested before the graceful direct-quit fallback, and **Quit and Install**
+was neither focused nor clicked.
+
+香港粵語：今次係真 build、真 Electron/Squirrel event 同完整清理證明；舊嗰張
+俾 Welcome 遮住嘅候選圖已經打回頭，修正後先正式收貨同發佈。
+
 ## Immutable provenance for dated gallery receipts
 
 The links in this table address the exact Git blob through the commit that

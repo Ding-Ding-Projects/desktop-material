@@ -3,9 +3,8 @@
 - Run ID: `close-all-open-issues-20260728`
 - Cleanup owner: the coordinated headless verification run described in
   `run-manifest.md`
-- Status: **Open — the primary run root, logs, shims, and verification
-  environments exist; the P0/UI resources remain pending and every owned
-  resource stays listed until final absence proof**
+- Status: **Open for the preserved campaign-wide resources listed below; the
+  superseding current-source updater run is closed with full absence proof**
 
 ## Owned resources
 
@@ -64,9 +63,20 @@ with a reason before the run is complete.
 | Final-main updater Electron process | PID and HWND pending from the verifier handshake and headless launch | no | planned; verifier requests normal File Exit, exact-PID fallback only after revalidation |
 | Final-main development build through MCP | `logs\build.{stdout,stderr}.log`; global Node `v26.5.0` | yes | compile and build command returned `0` after 600 seconds, but the required package audit rejected it because output stopped at electron-packager startup and only an incomplete temporary `dist` directory existed; no package success is claimed |
 | Final-main exact package retry through MCP | `logs\package-node24.{stdout,stderr}.log`; preinstalled Node `v24.14.0` | yes | returned `0` in 71.6 seconds; log ends `Built to ...\dist\GitHubDesktop-win32-x64`; `GitHubDesktop.exe` is 226,677,760 bytes with SHA-256 `7930378E3675B12F337784DD29018C5110B4B789EC5BB79BE2CEC6C83A8A0C40` |
+| Superseding current-source updater run | owned process, registry, install, profile, temporary, ready-tree, and headless-desktop resources | yes | closed: File Exit was requested before the graceful direct-quit fallback; **Quit and Install** was never clicked; protected install/external state stayed unchanged; every owned filesystem and registry resource was removed; the headless desktop listed zero windows and then closed |
 
 ## Cleanup proof
 
-Pending. The completed ledger will record graceful HWND closure, exact-PID
-fallback if needed, desktop closure, containment-checked path removal, temporary
-environment destruction, credential cleanup, and post-run absence checks.
+The text above remains the dated pending boundary for the original campaign
+resources; it is not rewritten into a success claim.
+
+The superseding updater acceptance at source
+`b069384ad7d8a65d1192ee06859a705fe484c9c8` completed its own cleanup proof.
+File Exit was requested, the graceful direct-quit fallback was requested, and
+no **Quit and Install** action occurred. Owned process, registry, install,
+profile, temporary, and ready-tree checks all reached absence. The off-screen
+desktop listed zero windows before close. No temporary or private path is
+retained here.
+
+香港粵語：原本大 run 未清嘅項目照舊列明；新 updater run 自己嗰份 process、
+registry、install、profile、temp、ready 同離屏 desktop 清理就已經全部收妥。

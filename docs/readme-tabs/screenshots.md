@@ -78,9 +78,9 @@ justification rather than leaving it to be mistaken for a stale app capture.
 
 <!-- markdownlint-disable MD013 -->
 
-| Historical cross-lane automatic update recovery |
-| --- |
-| <img src="https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/923dbb51acad8f01f01f1c100c6945c7a2e08e23/docs/assets/screenshots/auto-updater-update-ready.png" alt="Historical About Desktop Material frame showing a newer alphabetic-z update ready for a legacy Super Express installation" width="720"><br><sub>Immutable July 22 evidence · legacy s lane → shared z lane · real Squirrel download</sub> |
+| Current-source automatic updater ready | Historical cross-lane automatic update recovery |
+| --- | --- |
+| <img src="../assets/screenshots/auto-updater-current-source-ready.png" alt="Current-source About Desktop Material frame showing the automatic updater ready after the real Electron and Squirrel event path downloaded a disclosed verifier-owned inert payload" width="520"><br><sub>Accepted current-source frame · runtime `b069384ad7d8a65d1192ee06859a705fe484c9c8` · promoted `e3967f1b81ec039624500797dca40a1ab6d98598` · 960×660 · 47,086 bytes · SHA-256 `0fc9caf5b13eb5b914121090f403c394545e02ea4303b11dd4598afcb3a2dfca` · development proof, not a published payload<br>目前原始碼畫面已驗收 · 真 Electron/Squirrel 路徑配驗證器自有嘅無害 payload · 唔代表已發佈更新 payload</sub> | <img src="https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/923dbb51acad8f01f01f1c100c6945c7a2e08e23/docs/assets/screenshots/auto-updater-update-ready.png" alt="Historical About Desktop Material frame showing a newer alphabetic-z update ready for a legacy Super Express installation" width="520"><br><sub>Immutable July 22 evidence · legacy s lane → shared z lane · real Squirrel download</sub> |
 
 <!-- markdownlint-enable MD013 -->
 

@@ -51,8 +51,9 @@ remote CI caught a macOS error-ordering defect without publishing; correction
 
 The [Guided Feature Gallery](Feature-Gallery) declares the canonical 84-scene
 Windows visual target: every catalogued function or state must own one distinct
-screenshot rather than borrow an overview image. Current promotion remains
-pending until all targets pass. Five earlier Linux/Xvfb captures remain
+screenshot rather than borrow an overview image. The current-source updater
+frame is accepted and published as its own target; it does not replace the
+immutable historical migration frame. Five earlier Linux/Xvfb captures remain
 archived outside that target set.
 
 - [The shell](#the-shell)
@@ -222,6 +223,21 @@ started from `3.6.3-beta3-s000000000201`: the ordinary updater automatically
 selected, downloaded, and applied `3.6.3-beta3-zadtberjmv`; a following
 same-source Super Express Release then progressed visibly through **Downloading
 update…** to **Quit and Install Update**.
+
+The current-source development frame below separately proves runtime source
+`b069384ad7d8a65d1192ee06859a705fe484c9c8` reaching the ready state through
+the real Electron/Squirrel event path. Its disclosed verifier-owned payload was
+inert, so this is UI-path evidence rather than a claim that the payload was
+published. Promotion `e3967f1b81ec039624500797dca40a1ab6d98598` records the
+inspected 960×660, 47,086-byte PNG with SHA-256
+`0fc9caf5b13eb5b914121090f403c394545e02ea4303b11dd4598afcb3a2dfca`.
+
+![Current-source About frame showing the automatic updater ready through the real Electron and Squirrel event path with a disclosed verifier-owned inert payload](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/auto-updater-current-source-ready.png)
+
+<sub>目前原始碼開發版畫面已驗收：真 Electron/Squirrel 路徑用驗證器自有、已披露嘅無害 payload；呢個係 UI 路徑證明，唔係話個 payload 已經發佈。</sub>
+
+The immutable frame below remains the separate installed legacy-to-shared-lane
+migration record.
 
 ![Historical About frame showing an automatic update ready for a legacy Super Express installation](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/923dbb51acad8f01f01f1c100c6945c7a2e08e23/docs/assets/screenshots/auto-updater-update-ready.png)
 

@@ -23,14 +23,19 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 
 ![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci.yml/badge.svg?branch=main)
 
-> **Current close-out status — July 28, 2026:** the active issue-closing wave is
+> **Current close-out status — July 29, 2026:** the active issue-closing wave is
 > merged locally with the Cheap LFS helper train and the Windows shutdown/profile
 > persistence corrections, and remains in final verification. Its capture and
 > publication contracts own exactly **84 current Windows scenes**; five earlier
-> Linux/Xvfb files remain immutable historical evidence outside that set. No
-> fresh final-tip gallery promotion, full-suite pass, pushed-default proof, or
-> issue closure is claimed by this checkpoint. The dated notes below are
-> preserved chronology, not current blockers or issue states.
+> Linux/Xvfb files remain immutable historical evidence outside that set. The
+> distinct current-source updater frame is now accepted and published from
+> runtime source `b069384ad7d8a65d1192ee06859a705fe484c9c8` through promotion
+> `e3967f1b81ec039624500797dca40a1ab6d98598`; it proves the real
+> Electron/Squirrel event path with a disclosed verifier-owned inert payload,
+> not a published updater payload. The complete local regression accounted for
+> 873/873 files and 7,112 tests with zero failures; final-SHA remote CI and each
+> issue's own runtime-closure evidence remain separate gates. The dated notes
+> below are preserved chronology, not current blockers or issue states.
 
 > **Cheap LFS long-name correction — July 28, 2026:** valid long Windows
 > filenames now use bounded basename-independent recovery and materialization
