@@ -572,6 +572,7 @@ describe('TabSearchPopover', () => {
         tabs={tabs}
         activeTabId="material"
         anchor={null}
+        languageMode="english"
         resolveLabel={tab => visibleTabLabel(tab, repository(tab))}
         resolveMatchKeys={tab => repositoryTabMatchKeys(tab, repository(tab))}
         onSelect={tab => (selected = tab.id)}
@@ -627,6 +628,7 @@ describe('TabSearchPopover', () => {
         tabs={tabs}
         activeTabId="alpha"
         anchor={null}
+        languageMode="english"
         resolveLabel={tab => visibleTabLabel(tab, repository(tab))}
         resolveMatchKeys={tab => repositoryTabMatchKeys(tab, repository(tab))}
         onSelect={() => undefined}
@@ -640,6 +642,7 @@ describe('TabSearchPopover', () => {
         tabs={[tabs[0]]}
         activeTabId="alpha"
         anchor={null}
+        languageMode="english"
         resolveLabel={tab => visibleTabLabel(tab, repository(tab))}
         resolveMatchKeys={tab => repositoryTabMatchKeys(tab, repository(tab))}
         onSelect={() => undefined}
@@ -658,6 +661,7 @@ describe('TabSearchPopover', () => {
         tabs={tabs}
         activeTabId="alpha"
         anchor={null}
+        languageMode="english"
         resolveLabel={tab => visibleTabLabel(tab, repository(tab))}
         resolveMatchKeys={tab => repositoryTabMatchKeys(tab, repository(tab))}
         onSelect={() => undefined}
@@ -680,6 +684,42 @@ describe('TabSearchPopover', () => {
         `${key} should preserve the search field's native behavior`
       )
     }
+  })
+
+  it('localizes the complete tab-search surface in bilingual mode', () => {
+    render(
+      <TabSearchPopover
+        tabs={tabs}
+        activeTabId="material"
+        anchor={null}
+        languageMode="bilingual"
+        resolveLabel={tab => visibleTabLabel(tab, repository(tab))}
+        resolveMatchKeys={tab => repositoryTabMatchKeys(tab, repository(tab))}
+        onSelect={() => undefined}
+        onClose={() => undefined}
+      />
+    )
+
+    assert.ok(screen.getByText('Search tabs · 搜尋分頁'))
+    assert.ok(
+      screen.getByText(
+        'Find an open tab by name, alias, path, or clone URL. · 用名、別名、路徑或者 clone 網址搵已開啟分頁。'
+      )
+    )
+    assert.ok(screen.getByText('3 matching tabs · 有 3 個符合嘅分頁'))
+    assert.ok(screen.getByText('Active · 使用緊'))
+    assert.ok(screen.getByText('Pinned · 已置頂'))
+    assert.ok(screen.getByText('Favorite · 最愛'))
+
+    fireEvent.change(
+      screen.getByRole('combobox', { name: 'Search open tabs' }),
+      { target: { value: 'not-a-tab' } }
+    )
+    assert.ok(
+      screen.getByText(
+        'No open tabs match this search. · 冇已開啟分頁符合呢個搜尋。'
+      )
+    )
   })
 })
 

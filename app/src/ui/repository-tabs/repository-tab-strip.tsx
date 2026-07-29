@@ -1501,6 +1501,7 @@ export class RepositoryTabStrip extends React.Component<
         tabs={this.state.tabs.tabs}
         activeTabId={this.state.tabs.activeTabId}
         anchor={searchAnchor}
+        languageMode={this.state.languageMode}
         resolveLabel={this.labelForTab}
         resolveMatchKeys={this.matchKeysForTab}
         onSelect={this.onSelect}

@@ -5,6 +5,13 @@ import {
   PopoverDecoration,
 } from '../lib/popover'
 import { IRepositoryTab } from '../../models/repository-tab'
+import { LanguageMode } from '../../models/language-mode'
+import {
+  translate,
+  translateForAccessibleName,
+  TranslationKey,
+  TranslationVariables,
+} from '../../lib/i18n'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import {
@@ -16,6 +23,7 @@ interface ITabSearchPopoverProps {
   readonly tabs: ReadonlyArray<IRepositoryTab>
   readonly activeTabId: string | null
   readonly anchor: HTMLElement | null
+  readonly languageMode: LanguageMode
   readonly resolveLabel: (tab: IRepositoryTab) => string
   readonly resolveMatchKeys: (tab: IRepositoryTab) => ReadonlyArray<string>
   readonly onSelect: (tab: IRepositoryTab) => void
@@ -62,6 +70,17 @@ export class TabSearchPopover extends React.Component<
     if (nextIndex !== this.state.highlightedIndex) {
       this.setState({ highlightedIndex: nextIndex })
     }
+  }
+
+  private text(key: TranslationKey, variables?: TranslationVariables) {
+    return translate(key, this.props.languageMode, variables)
+  }
+
+  private accessibleText(
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ) {
+    return translateForAccessibleName(key, variables, this.props.languageMode)
   }
 
   private getResults(): ReadonlyArray<IRepositoryTab> {
@@ -194,8 +213,8 @@ export class TabSearchPopover extends React.Component<
       >
         <div className="tab-search-popover">
           <header className="tab-search-header">
-            <h3 id="tab-search-title">Search tabs</h3>
-            <p>Find an open tab by name, alias, path, or clone URL.</p>
+            <h3 id="tab-search-title">{this.text('tabs.searchTitle')}</h3>
+            <p>{this.text('tabs.searchDescription')}</p>
           </header>
 
           <div className="tab-search-filter-row">
@@ -204,7 +223,7 @@ export class TabSearchPopover extends React.Component<
               className="tab-search-input"
               type="search"
               role="combobox"
-              aria-label="Search open tabs"
+              aria-label={this.accessibleText('tabs.searchLabel')}
               aria-controls={hasResults ? ResultListId : undefined}
               aria-expanded={hasResults}
               aria-activedescendant={activeDescendant}
@@ -220,7 +239,7 @@ export class TabSearchPopover extends React.Component<
               caseSensitive={this.state.filterCaseSensitive}
               onModeChange={this.onFilterModeChange}
               onCaseSensitiveChange={this.onFilterCaseSensitiveChange}
-              regexBuilderTarget="Open tabs"
+              regexBuilderTarget={this.accessibleText('tabs.searchTarget')}
               getSampleItems={this.getFilterSampleItems}
               filterText={this.state.query}
               onRegexPatternApply={this.onRegexPatternApply}
@@ -228,13 +247,13 @@ export class TabSearchPopover extends React.Component<
           </div>
 
           {results.length === 0 ? (
-            <p className="tab-search-empty">No open tabs match this search.</p>
+            <p className="tab-search-empty">{this.text('tabs.searchEmpty')}</p>
           ) : (
             <ul
               id={ResultListId}
               className="tab-search-results"
               role="listbox"
-              aria-label="Matching repository tabs"
+              aria-label={this.accessibleText('tabs.searchListLabel')}
             >
               {results.map((tab, index) => {
                 const label = this.props.resolveLabel(tab)
@@ -250,9 +269,19 @@ export class TabSearchPopover extends React.Component<
                       type="button"
                       role="option"
                       aria-selected={isHighlighted}
-                      aria-label={`${label}${isActive ? ', active' : ''}${
-                        tab.isPinned === true ? ', pinned' : ''
-                      }${tab.isFavorite === true ? ', favorite' : ''}`}
+                      aria-label={`${label}${
+                        isActive
+                          ? this.accessibleText('tabs.overflowActiveSuffix')
+                          : ''
+                      }${
+                        tab.isPinned === true
+                          ? this.accessibleText('tabs.tabPinnedSuffix')
+                          : ''
+                      }${
+                        tab.isFavorite === true
+                          ? this.accessibleText('tabs.tabFavoriteSuffix')
+                          : ''
+                      }`}
                       data-tab-id={tab.id}
                       data-result-index={index}
                       onClick={this.onResultClick}
@@ -263,9 +292,15 @@ export class TabSearchPopover extends React.Component<
                         <span>{tab.repositoryPath}</span>
                       </span>
                       <span className="tab-search-result-chips">
-                        {isActive && <span>Active</span>}
-                        {tab.isPinned === true && <span>Pinned</span>}
-                        {tab.isFavorite === true && <span>Favorite</span>}
+                        {isActive && (
+                          <span>{this.text('tabs.overflowActiveChip')}</span>
+                        )}
+                        {tab.isPinned === true && (
+                          <span>{this.text('tabs.overflowPinnedChip')}</span>
+                        )}
+                        {tab.isFavorite === true && (
+                          <span>{this.text('tabs.overflowFavoriteChip')}</span>
+                        )}
                       </span>
                     </button>
                   </li>
@@ -280,9 +315,12 @@ export class TabSearchPopover extends React.Component<
             role="status"
             aria-live="polite"
           >
-            {results.length === 1
-              ? '1 matching tab'
-              : `${results.length} matching tabs`}
+            {this.text(
+              results.length === 1
+                ? 'tabs.searchCountOne'
+                : 'tabs.searchCountMany',
+              { count: String(results.length) }
+            )}
           </div>
         </div>
       </Popover>

@@ -176,6 +176,14 @@ export type TranslationKey =
   | 'tabs.overflowButtonLabelOne'
   | 'tabs.overflowButtonLabelMany'
   | 'tabs.overflowTitle'
+  | 'tabs.searchTitle'
+  | 'tabs.searchDescription'
+  | 'tabs.searchLabel'
+  | 'tabs.searchTarget'
+  | 'tabs.searchEmpty'
+  | 'tabs.searchListLabel'
+  | 'tabs.searchCountOne'
+  | 'tabs.searchCountMany'
   | 'lazyView.loading.plain'
   | 'lazyView.loading.light'
   | 'lazyView.loading.playful'
@@ -2874,6 +2882,15 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tabs.overflowButtonLabelOne': 'Show {count} more tab',
   'tabs.overflowButtonLabelMany': 'Show {count} more tabs',
   'tabs.overflowTitle': 'More tabs',
+  'tabs.searchTitle': 'Search tabs',
+  'tabs.searchDescription':
+    'Find an open tab by name, alias, path, or clone URL.',
+  'tabs.searchLabel': 'Search open tabs',
+  'tabs.searchTarget': 'Open tabs',
+  'tabs.searchEmpty': 'No open tabs match this search.',
+  'tabs.searchListLabel': 'Matching repository tabs',
+  'tabs.searchCountOne': '1 matching tab',
+  'tabs.searchCountMany': '{count} matching tabs',
   // The three bands are the funny-level voice (1-2 plain, 3 light, 4-5
   // playful). Every band states the same fact — these tabs did not fit in the
   // strip and are still fully usable from here — because the voice moves and
@@ -6284,6 +6301,14 @@ export const cantoneseTranslations: Readonly<
   'tabs.overflowButtonLabelOne': '打開多 {count} 個分頁',
   'tabs.overflowButtonLabelMany': '打開多 {count} 個分頁',
   'tabs.overflowTitle': '仲有啲分頁',
+  'tabs.searchTitle': '搜尋分頁',
+  'tabs.searchDescription': '用名、別名、路徑或者 clone 網址搵已開啟分頁。',
+  'tabs.searchLabel': '搜尋已開啟分頁',
+  'tabs.searchTarget': '已開啟分頁',
+  'tabs.searchEmpty': '冇已開啟分頁符合呢個搜尋。',
+  'tabs.searchListLabel': '符合嘅 repository 分頁',
+  'tabs.searchCountOne': '有 1 個符合嘅分頁',
+  'tabs.searchCountMany': '有 {count} 個符合嘅分頁',
   'tabs.overflowDescription.plain':
     '呢啲分頁擠唔落條分頁列。喺呢度可以搵、揀，或者改外觀。',
   'tabs.overflowDescription.light':
