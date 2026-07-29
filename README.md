@@ -32,6 +32,15 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 > dated notes below are preserved chronology, not current blockers or issue
 > states.
 
+> **Cheap LFS long-name correction — July 28, 2026:** valid long Windows
+> filenames now use bounded basename-independent recovery and materialization
+> sidecars across Release, OCI, and generated clone hydration. Focused
+> regressions pass **82/82**, including 255-unit tracked names. The separate
+> Pull warning shown for already-materialized payloads is ordinary Git safety:
+> back up those verified caches, return them to committed pointers, pull, and
+> materialize again; do not pack multi-gigabyte caches into a Git stash.
+> Final-tip build, push, CI, and installer proof remain pending.
+
 > **Standalone Cheap LFS versus Git LFS atlas — July 28, 2026:** the
 > [separate comparison page](https://ding-ding-projects.github.io/desktop-material/cheap-lfs-vs-git-lfs.html)
 > maps **72 sourced differences in 12 categories**, with row-level receipts,

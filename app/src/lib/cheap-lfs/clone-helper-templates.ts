@@ -31,7 +31,6 @@ import { createHash, randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { createInflateRaw } from 'node:zlib'
 import {
-  basename,
   dirname,
   isAbsolute,
   join,
@@ -1156,10 +1155,7 @@ async function materializeReleaseEntry(
 ) {
   const recoveryPath = join(
     proof.parent,
-    '.' +
-      basename(proof.absolutePath) +
-      '.cheap-lfs-hydrate-' +
-      randomUUID()
+    '.cheap-lfs-hydrate-' + process.pid + '-' + randomUUID()
   )
   await mkdir(recoveryPath, { mode: 0o700 })
   const recovery = await lstat(recoveryPath, { bigint: true })

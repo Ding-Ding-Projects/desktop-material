@@ -107,7 +107,9 @@ describe('Cheap LFS OCI repository image', () => {
     const directory = await root()
     const bytes = Buffer.from('abcdefghij')
     const sourcePath = join(directory, 'source.bin')
-    const destinationPath = join(directory, 'restored.bin')
+    const longDestinationName = `${'r'.repeat(196)}.bin`
+    assert.equal(longDestinationName.length, 200)
+    const destinationPath = join(directory, longDestinationName)
     await writeFile(sourcePath, bytes)
     let stagingDirectory = ''
 

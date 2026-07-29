@@ -104,6 +104,10 @@ describe('Cheap LFS scratch storage', () => {
       assert.match(written, /^\.cheeplfs-\*\.tmp$/m)
       assert.match(written, /^\.verify-\*\.tmp$/m)
       assert.match(written, /^\.\*\.cheap-lfs-recovery-\*\/$/m)
+      assert.match(written, /^\.cheap-lfs-hydrate-\*\/$/m)
+      assert.match(written, /^\.cheap-lfs-ghcr-\*$/m)
+      assert.match(written, /^\.cheap-lfs-materialized-\*$/m)
+      assert.match(written, /^\.cheap-lfs-consumed-\*$/m)
 
       // Re-running is a no-op rather than an ever-growing pile of blocks.
       const second = await ensureCheapLfsScratchHygiene(dir)

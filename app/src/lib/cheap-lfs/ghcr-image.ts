@@ -4,7 +4,6 @@ import {
   createHash,
   hkdfSync,
   randomBytes,
-  randomUUID,
 } from 'crypto'
 import { constants, createReadStream, createWriteStream, Stats } from 'fs'
 import {
@@ -24,6 +23,7 @@ import { tmpdir } from 'os'
 import { basename, dirname, join, resolve } from 'path'
 import { Transform, Writable } from 'stream'
 import { pipeline } from 'stream/promises'
+import { cheapLfsSidecarName } from './sidecar-name'
 
 export const CheapLfsGhcrArtifactType =
   'application/vnd.desktop-material.cheap-lfs.repository.v1'
@@ -1713,10 +1713,7 @@ export async function materializeCheapLfsGhcrObject(
           destination,
           options.expectedPointerText
         )
-  const temporary = join(
-    parent,
-    `.${basename(destination)}.cheap-lfs-ghcr-${process.pid}-${randomUUID()}`
-  )
+  const temporary = join(parent, cheapLfsSidecarName('ghcr'))
   let temporaryExists = false
   let temporaryHandle: Awaited<ReturnType<typeof open>> | null = null
   try {

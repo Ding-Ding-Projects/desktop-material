@@ -16,17 +16,10 @@ import {
   writeFile,
 } from 'fs/promises'
 import { tmpdir } from 'os'
-import {
-  basename,
-  dirname,
-  isAbsolute,
-  join,
-  relative,
-  resolve,
-  sep,
-} from 'path'
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'path'
 import { setTimeout as delay } from 'timers/promises'
 import { validateCheapLfsTrackedPath } from './pointer'
+import { cheapLfsSidecarName } from './sidecar-name'
 
 const NoFollowFlag = constants.O_NOFOLLOW ?? 0
 const CopyBufferBytes = 1024 * 1024
@@ -1384,9 +1377,7 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
     await this.revalidateParents(proof.parents)
     const directory = join(
       dirname(proof.absolutePath),
-      `.${basename(proof.absolutePath)}.cheap-lfs-recovery-${
-        process.pid
-      }-${randomUUID()}`
+      cheapLfsSidecarName('recovery')
     )
     await mkdir(directory, { mode: 0o700 })
     const directoryEntry = await lstat(directory, { bigint: true })
@@ -1682,9 +1673,7 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
     await this.revalidateSourceProof(source, true)
     const quarantine = join(
       dirname(source.absolutePath),
-      `.${basename(source.absolutePath)}.cheap-lfs-consumed-${
-        process.pid
-      }-${randomUUID()}`
+      cheapLfsSidecarName('consumed')
     )
     try {
       await rename(source.absolutePath, quarantine)

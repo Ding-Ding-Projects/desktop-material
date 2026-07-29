@@ -19,6 +19,25 @@ historical test receipts stay in [PLAN.md](PLAN.md) and
 
 ## July 28 current close-out wave — **Merged locally; final verification in progress**
 
+### Cheap LFS bounded Windows sidecars — **Implemented locally; final-tip build pending**
+
+Pin, Release restore, OCI restore, and generated clone hydration no longer
+derive scratch components from the complete tracked basename. Fixed
+process/UUID names remain well below NTFS's 255-unit component limit while
+preserving same-directory atomicity; current and legacy crash leftovers are
+kept out of status, staging, and automatic pin scans. Focused coverage is green
+at **82/82**, including 255-unit tracked names and 200-unit helper/GHCR/OCI
+destinations. The earlier `67d475fd5e` build predates this correction and is
+not final-tip evidence.
+
+The screenshot's Pull refusal is tracked as a separate ordinary-Git boundary:
+raw materialized caches are intentionally hidden only from Desktop's Changes
+projection, not from Git's merge safety. The documented current workaround
+backs up only verified **Materialized** files, restores their committed
+pointers, pulls, then re-materializes; multi-gigabyte caches should not be
+stashed. Automatic cache parking remains future work because it must retain
+the payload, roll back on pull failure, and never rewrite a modified path.
+
 ### Standalone Cheap LFS versus Git LFS atlas — **Pages published; integrated app verification pending**
 
 The new stable `/cheap-lfs-vs-git-lfs.html` route is separate from the

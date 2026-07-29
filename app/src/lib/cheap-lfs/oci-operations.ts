@@ -1,6 +1,5 @@
-import { randomUUID } from 'crypto'
 import { open, realpath, unlink } from 'fs/promises'
-import { basename, dirname, join, resolve } from 'path'
+import { dirname, join, resolve } from 'path'
 import {
   CheapLfsGhcrMaximumAdaptivePrepareAttempts,
   CheapLfsGhcrMaximumChunkBytes,
@@ -43,6 +42,7 @@ import {
   materializeCheapLfsOciPointer,
   parseCheapLfsGhcrPointer,
 } from './ghcr-pointer'
+import { cheapLfsSidecarName } from './sidecar-name'
 import {
   CheapLfsWorkingTreePointerState,
   ICheapLfsFileSystem,
@@ -1979,9 +1979,7 @@ export async function materializeCheapLfsOciFile(
           await deps.fileSystem.trackedPaths.revalidate(trackedProof)
           const materializedPath = join(
             dirname(destinationPath),
-            `.${basename(destinationPath)}.cheap-lfs-materialized-${
-              process.pid
-            }-${randomUUID()}`
+            cheapLfsSidecarName('materialized')
           )
           await materializeCheapLfsGhcrObject(image, {
             objectSha256: object.sha256,

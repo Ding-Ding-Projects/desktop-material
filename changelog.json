@@ -1,6 +1,7 @@
 {
   "releases": {
     "3.6.3-beta3": [
+      "[Fixed] Keep Cheap LFS recovery and materialization sidecar names bounded so valid long Windows filenames no longer fail with ENAMETOOLONG",
       "[Fixed] Resolve error that prevented Copilot-based features from working correctly on Windows - #22509",
       "[Fixed] Keep commit message @-mention autocomplete from surfacing users without a profile name when typing queries like \"@null\" - #22414. Thanks @sukanth!"
     ],

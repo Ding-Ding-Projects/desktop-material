@@ -1530,7 +1530,9 @@ describe('Cheap LFS OCI orchestration', () => {
     keyResult.key!.fill(0)
     const bytes = Buffer.from('restore my encrypted bytes')
     const sourcePath = join(root, 'private-source.bin')
-    const destinationPath = join(root, 'restored.bin')
+    const destinationName = `${'r'.repeat(196)}.bin`
+    assert.equal(destinationName.length, 200)
+    const destinationPath = join(root, destinationName)
     await writeFile(sourcePath, bytes)
 
     await withPreparedCheapLfsGhcrImage(
@@ -1571,7 +1573,7 @@ describe('Cheap LFS OCI orchestration', () => {
 
         const result = await materializeCheapLfsOciFile(
           privateContext(root),
-          'restored.bin',
+          destinationName,
           { runtime }
         )
 

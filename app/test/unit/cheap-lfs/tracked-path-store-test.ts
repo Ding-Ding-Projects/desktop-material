@@ -50,6 +50,36 @@ async function assertMissing(path: string): Promise<void> {
 }
 
 describe('Cheap LFS tracked path store', () => {
+  it('keeps recovery staging bounded for 255-unit filenames', async t => {
+    const root = await repository(t)
+    const targetName = `${'p'.repeat(251)}.bin`
+    const sourceName = `${'s'.repeat(251)}.tmp`
+    assert.equal(targetName.length, 255)
+    assert.equal(sourceName.length, 255)
+    const target = join(root, targetName)
+    const source = join(root, sourceName)
+    const store = new CheapLfsTrackedPathStore()
+
+    await writeFile(target, 'raw payload')
+    await store.publishText(
+      await store.proveExisting(root, targetName),
+      'pointer\n'
+    )
+    assert.equal(await readFile(target, 'utf8'), 'pointer\n')
+
+    await writeFile(source, 'restored')
+    await store.replaceFromPath(
+      await store.proveExisting(root, targetName),
+      source,
+      'eb00bf0aba491c620ddf47bf68068be4cc52c39bf3b8b554e2c51ff74e5e915e',
+      8
+    )
+
+    assert.equal(await readFile(target, 'utf8'), 'restored')
+    await assertMissing(source)
+    assert.deepEqual(await recoveryDirectories(root), [])
+  })
+
   it('publishes a pointer through quarantine and leaves no recovery artifact', async t => {
     const root = await repository(t)
     const path = join(root, 'payload.bin')

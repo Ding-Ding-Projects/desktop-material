@@ -378,6 +378,8 @@ describe('Cheap LFS clone-helper bundle', () => {
 describe('generated Cheap LFS hydration runtime', () => {
   it('hydrates raw multipart and deflate parts, but preserves the pointer after failed verification', async t => {
     const root = await fixture(t)
+    const trackedName = `${'w'.repeat(196)}.bin`
+    assert.equal(trackedName.length, 200)
     const rawPart = Buffer.from('raw-prefix-')
     const deflatedPart = Buffer.from('compress-me-'.repeat(80))
     const storedDeflate = deflateRawSync(deflatedPart)
@@ -404,11 +406,11 @@ describe('generated Cheap LFS hydration runtime', () => {
     }
     const entry: CheapLfsCloneHelperEntry = {
       kind: 'release',
-      relativePath: 'assets/whole.bin',
+      relativePath: `assets/${trackedName}`,
       pointer,
     }
     await mkdir(join(root, 'assets'))
-    const trackedPath = join(root, 'assets', 'whole.bin')
+    const trackedPath = join(root, 'assets', trackedName)
     const pointerText = serializeCheapLfsPointer(pointer)
     await writeFile(trackedPath, pointerText)
     await ensureCheapLfsCloneHelperBundle({
@@ -490,17 +492,21 @@ if (args[0] === 'repo' && args[1] === 'view') {
 
     const succeeded = await run(
       process.execPath,
-      [runtime, '--path', 'assets\\whole.bin'],
+      [runtime, '--path', `assets\\${trackedName}`],
       root,
       environment
     )
     assert.equal(succeeded.code, 0, succeeded.stderr)
     assert.deepEqual(await readFile(trackedPath), whole)
-    assert.match(succeeded.stdout, /"hydrated":\["assets\/whole\.bin"\]/)
+    assert.deepEqual(JSON.parse(succeeded.stdout).hydrated, [
+      `assets/${trackedName}`,
+    ])
 
     const repeated = await run(process.execPath, [runtime], root, environment)
     assert.equal(repeated.code, 0, repeated.stderr)
-    assert.match(repeated.stdout, /"alreadyHydrated":\["assets\/whole\.bin"\]/)
+    assert.deepEqual(JSON.parse(repeated.stdout).alreadyHydrated, [
+      `assets/${trackedName}`,
+    ])
     const loggedArguments = (await readFile(argvLog, 'utf8'))
       .trim()
       .split('\n')

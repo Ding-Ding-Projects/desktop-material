@@ -48,6 +48,21 @@ const OwnedVerificationFileName = /^\.verify-[0-9a-f]{16}\.tmp$/
 const OwnedRecoveryDirectoryName =
   /^\..+\.cheap-lfs-recovery-\d{1,10}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+/**
+ * Generated clone hydration directories. The optional prefix recognises
+ * orphaned bundles from builds that copied the complete tracked basename;
+ * current builds use the fixed short form and include the process id.
+ */
+const OwnedHydrationDirectoryName =
+  /^\.(?:.+\.)?cheap-lfs-hydrate-(?:\d{1,10}-)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * Release/OCI materialization files. As above, both the bounded current form
+ * and basename-prefixed historical crash leftovers are excluded from scans.
+ */
+const OwnedMaterializationFileName =
+  /^\.(?:.+\.)?cheap-lfs-(?:ghcr|materialized|consumed)-\d{1,10}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 /** What a recognised artifact is, for callers that report or log the reason. */
 export type CheapLfsOwnedArtifactKind =
   | 'temporary-file'
@@ -69,6 +84,12 @@ export function cheapLfsOwnedArtifactKind(
   }
   if (OwnedRecoveryDirectoryName.test(name)) {
     return 'recovery-directory'
+  }
+  if (OwnedHydrationDirectoryName.test(name)) {
+    return 'recovery-directory'
+  }
+  if (OwnedMaterializationFileName.test(name)) {
+    return 'temporary-file'
   }
   return null
 }
@@ -111,6 +132,14 @@ export const CheapLfsOwnedArtifactExcludePatterns: ReadonlyArray<string> = [
   '.cheeplfs-*.tmp',
   '.verify-*.tmp',
   '.*.cheap-lfs-recovery-*/',
+  '.cheap-lfs-hydrate-*/',
+  '.*.cheap-lfs-hydrate-*/',
+  '.cheap-lfs-ghcr-*',
+  '.*.cheap-lfs-ghcr-*',
+  '.cheap-lfs-materialized-*',
+  '.*.cheap-lfs-materialized-*',
+  '.cheap-lfs-consumed-*',
+  '.*.cheap-lfs-consumed-*',
 ]
 
 /**

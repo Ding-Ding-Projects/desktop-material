@@ -27,6 +27,28 @@ describe('Cheap LFS owned artifacts', () => {
       cheapLfsOwnedArtifactKind(`.big.bin.cheap-lfs-recovery-4821-${uuid}`),
       'recovery-directory'
     )
+    assert.equal(
+      cheapLfsOwnedArtifactKind(`.entry.cheap-lfs-recovery-4821-${uuid}`),
+      'recovery-directory'
+    )
+    assert.equal(
+      cheapLfsOwnedArtifactKind(`.cheap-lfs-hydrate-4821-${uuid}`),
+      'recovery-directory'
+    )
+    assert.equal(
+      cheapLfsOwnedArtifactKind(`.model.bin.cheap-lfs-hydrate-${uuid}`),
+      'recovery-directory'
+    )
+    for (const kind of ['ghcr', 'materialized', 'consumed']) {
+      assert.equal(
+        cheapLfsOwnedArtifactKind(`.cheap-lfs-${kind}-4821-${uuid}`),
+        'temporary-file'
+      )
+      assert.equal(
+        cheapLfsOwnedArtifactKind(`.model.bin.cheap-lfs-${kind}-4821-${uuid}`),
+        'temporary-file'
+      )
+    }
   })
 
   it('leaves ordinary user files alone', () => {
@@ -70,6 +92,14 @@ describe('Cheap LFS owned artifacts', () => {
       '.cheeplfs-*.tmp',
       '.verify-*.tmp',
       '.*.cheap-lfs-recovery-*/',
+      '.cheap-lfs-hydrate-*/',
+      '.*.cheap-lfs-hydrate-*/',
+      '.cheap-lfs-ghcr-*',
+      '.*.cheap-lfs-ghcr-*',
+      '.cheap-lfs-materialized-*',
+      '.*.cheap-lfs-materialized-*',
+      '.cheap-lfs-consumed-*',
+      '.*.cheap-lfs-consumed-*',
     ])
   })
 

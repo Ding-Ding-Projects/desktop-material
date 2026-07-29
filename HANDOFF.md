@@ -6,6 +6,36 @@ Both July 28 task lineages are merged into the local `main` history while this
 handoff is being verified. The result is not yet pushed, and no remote CI,
 installer, release, or issue-closure success is inferred from the local merge.
 
+### Cheap LFS long Windows filenames and materialized-pull boundary
+
+The integrated tree now keeps every Cheap LFS recovery/materialization
+component independent of the tracked basename. A valid 200-unit Windows
+filename previously grew to 256–267 units when the tracked store, GHCR/OCI
+restore, or generated clone hydrator appended its suffix; a 255-unit filename
+grew to 311–322. Those per-component overflows are not repaired by
+`core.longpaths`, `\\?\`, a short checkout root, or 8.3 aliases. The new
+bounded process/UUID names cover tracked recovery, consumed sources, GHCR
+staging, OCI materialization, and generated hydration. Current and historical
+crash-orphan shapes are also recognized by the owned-artifact scanner and
+private `info/exclude` block.
+
+The focused Windows regression gate passes **82/82 tests across seven files**:
+255-unit tracked publish/replace, 200-unit Release helper hydration, 200-unit
+GHCR and OCI materialization, all bounded sidecar kinds, and current/legacy
+owned-artifact shapes. That is a source-level checkpoint only. The earlier
+successful exact-`67d475fd5e` production compile/package is now superseded by
+this later source change; the bounded-sidecar final tip still needs its own
+full build, headless acceptance, commit, push, CI, and installer release.
+
+The reported Pull dialog is a separate boundary. Desktop projects an
+exact-hash **Materialized** payload as clean, while Git still sees raw bytes
+where its index carries a pointer and correctly refuses an incoming overwrite.
+Do not use **Stash changes and continue** for multi-gigabyte materialized
+payloads. On the current build, first copy those verified payloads outside the
+repository, restore only paths explicitly marked **Materialized** from `HEAD`,
+pull, run **Materialize all**, and retain the backup until hydration verifies.
+An edited or **Modified** path must never be restored this way.
+
 ### Standalone Cheap LFS versus Git LFS comparison atlas
 
 The Pages lineage based on remote `823f7fa0e5` added
