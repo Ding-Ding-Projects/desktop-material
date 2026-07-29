@@ -39,7 +39,9 @@ for (const required of [
   }
 }
 
-const html = readFileSync(pagePath, 'utf8')
+// Git checks text out with CRLF on Windows. Normalize the source before exact
+// multiline command checks so the publication contract is platform-neutral.
+const html = readFileSync(pagePath, 'utf8').replace(/\r\n/g, '\n')
 const home = readFileSync(homePath, 'utf8')
 const guide = readFileSync(guidePath, 'utf8')
 const pageScript = readFileSync(scriptPath, 'utf8')

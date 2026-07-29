@@ -9,12 +9,12 @@ Material ships. For milestone status and published CI/release evidence, see the
 [Roadmap & receipts](roadmap-and-receipts.md) tab; for annotated captures, see the
 [Screenshots](screenshots.md) tab.
 
-The separate [Linux-first terminal edition](../features/linux-tui/README.md)
-adapts these workflows for character-cell terminals with mouse clicks,
-keyboard focus, and real single-line/multiline text controls. Its generated
-[parity contract](../../tui/contracts/parity.yaml) maps all 201 desktop rows and
-marks missing work explicitly; the current preview is not described as full
-parity.
+The archived [Linux TUI prototype](../features/linux-tui/README.md) adapted a
+subset of these workflows for character-cell terminals. Its source, generated
+[parity contract](../../tui/contracts/parity.yaml), package notes, and five
+Xvfb captures remain as historical July 27 evidence only. It is not a current
+supported product/release target, and its gaps do not block the Windows
+application.
 
 > Looking for an exhaustive checklist instead of this prose tour? The
 > **[Complete list](complete-feature-list.md)** tab records every feature in one
@@ -27,8 +27,9 @@ parity.
 > TypeScript check, exact Windows production build, and isolated hidden-desktop
 > interaction/privacy review. The source and captures are pushed through
 > `2abccae8fd`, and Pages/wiki publication is verified live. Packaged Windows
-> E2E is verified. Only the Linux TUI compatibility correction rerun and
-> installer/Release evidence remain pending.
+> E2E is verified. Installer/Release evidence was still pending at that dated
+> checkpoint; the separate historical TUI correction is non-blocking under the
+> Windows-only product boundary.
 
 **The whole feature set on one page / 成套功能一版睇晒**
 
@@ -149,7 +150,7 @@ provider-sync exercise is recorded in [`HANDOFF.md`](../../HANDOFF.md).
   **Hong Kong Cantonese**, or a compact **Bilingual** presentation. English is
   the safe fallback; Desktop Material does not silently replace the selection
   from the Windows locale
-- `Shift`+right-click an actual visual owner—or focus it and press `Shift+F10`—to open its editor beside that element. A plain right-click is left to the surface's ordinary context menu, and surfaces that have one keep a Customize entry in it. This covers the app identity/workspace, update bar, toolbar, repository list, tab strip, code/diff surface, individual Material feature entry points, each repository name/logo, each tab title, and the temporary-submodule Back control. Specialized Git context menus keep priority on their surrounding hit areas
+- `Shift`+right-click an actual visual owner—or focus it and press the Context Menu key or `Shift+F10`—to open its editor beside that element. A plain right-click remains available to the surface's ordinary context menu, and surfaces that have one keep a Customize entry in it. This covers the app identity/workspace, update bar, toolbar, repository list, tab strip, code/diff surface, individual Material feature entry points, each repository name/logo, each tab title, and the temporary-submodule Back control. Specialized Git context menus keep priority on their surrounding hit areas
 - Every appearance owner has one versioned `setting.json` in its own local Git
   repository and its own **History** manager with lazy diffs, undo, redo, and
   restore. History actions append audit commits; the editor footer exposes the
@@ -163,7 +164,7 @@ provider-sync exercise is recorded in [`HANDOFF.md`](../../HANDOFF.md).
 
 ```mermaid
 flowchart TD
-  ELEM["Right-click the real element<br/>or press Shift+F10"]
+  ELEM["Shift+right-click the real element<br/>or use Context Menu / Shift+F10"]
   HUB["Repository settings,<br/>Appearance hub"]
   EDITOR["Anchored editor for<br/>that one owner"]
   ELEM --> EDITOR
@@ -185,8 +186,9 @@ flowchart TD
 ```
 
 **How appearance is layered.** There is no central appearance studio. You reach
-an editor two ways — `Shift`+right-clicking the element that actually owns the look, or
-the Repository settings Appearance hub — and both commit through the same owner
+an editor two ways — `Shift`+right-clicking the element that actually owns the
+look (or focusing it and using the Context Menu key / `Shift+F10`), or the
+Repository settings Appearance hub — and both commit through the same owner
 path, so an edit made either way is indistinguishable, History included. The
 normalized value lands on exactly one owner: a profile owner, a repository
 owner, a feature owner, or a single tab's title owner. A repository owner whose
@@ -195,11 +197,11 @@ value is cleared inherits the matching profile value. Each owner keeps one
 undo, redo, or restore — each of which appends an audit commit rather than
 rewriting the chain.
 
-<sub>**外觀係點分層。** 呢度冇一個中央外觀工作室。你有兩條路開到編輯器：右擊真正擁有嗰個樣嘅元素，或者行 Repository settings 嘅 Appearance hub；兩條路都行同一個 owner 路徑落去，所以邊度改都一模一樣，連 History 都一樣。個正規化咗嘅數值淨係落喺一個 owner 度：profile owner、repository owner、feature owner，或者某一個分頁標題嘅 owner。Repository owner 清空咗個值，就會繼承返 profile 嗰個。每個 owner 喺自己嘅本機 Git repo 揸住一個 `setting.json`，History 面板可以睇 diff、undo、redo、還原 — 每一下都係加多個審計 commit，唔會改寫舊歷史。</sub>
+<sub>**外觀係點分層。** 呢度冇一個中央外觀工作室。你有兩條路開到編輯器：撳住 `Shift` 再右擊真正擁有嗰個樣嘅元素（或者 focus 住撳 Context Menu 掣／`Shift+F10`），或者行 Repository settings 嘅 Appearance hub；普通右擊繼續開原本嘅功能選單。兩條外觀路徑都行同一個 owner 路徑落去，所以邊度改都一模一樣，連 History 都一樣。個正規化咗嘅數值淨係落喺一個 owner 度：profile owner、repository owner、feature owner，或者某一個分頁標題嘅 owner。Repository owner 清空咗個值，就會繼承返 profile 嗰個。每個 owner 喺自己嘅本機 Git repo 揸住一個 `setting.json`，History 面板可以睇 diff、undo、redo、還原 — 每一下都係加多個審計 commit，唔會改寫舊歷史。</sub>
 
 **Repository tabs**
 - Browser-like repository tabs, per-account and bound to repos, with inline rename
-- Per-tab title styling: `Shift`+right-click the actual title (a plain right-click opens the tab command menu, which still offers Customize Appearance…) for bold/italic/underline, size, text color, background color, font family, and alignment, with curated palettes, recent colors, a custom picker, one-click return to default, and that tab's dedicated Git history. The clicked tab initializes before the editor opens; an in-progress profile transition gives localized retry guidance instead of escaping to the app crash boundary
+- Per-tab title styling: `Shift`+right-click the actual title for bold/italic/underline, size, text color, background color, font family, and alignment, with curated palettes, recent colors, a custom picker, one-click return to default, and that tab's dedicated Git history. Ordinary right-click opens the tab command menu, whose explicit **Customize Appearance…** action reaches the same editor. The clicked tab initializes before the editor opens; an in-progress profile transition gives localized retry guidance instead of escaping to the app crash boundary
 - Collect tabs into named, curated-color groups. A visible chip before the first member shows its name, count, active state, and expanded/collapsed state; mouse, Enter, or Space really hides/restores the member tabs. Group actions, dialog copy, announcements, and accessible names follow English, playful Hong Kong-style Cantonese, or bilingual mode
 - Group metadata persists across open/close and bulk-close operations, per-window reloads, profile history, and session imports. A group cannot cross the protected pinned/unpinned boundary. Deleting a group never closes its tabs
 - Mark tabs as favorites, drag a repository folder onto the app to open or switch its tab, and export or import the current ordered tab session with pins, favorites, aliases, and per-tab appearance. Portable exports intentionally omit profile-local group definitions and `groupId` memberships, while import preserves the destination profile's existing groups

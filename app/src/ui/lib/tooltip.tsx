@@ -234,6 +234,7 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
 
   private tooltipRef: TooltipTarget | null = null
   private viewportListenersInstalled = false
+  private targetConnectivityObserver: MutationObserver | null = null
 
   private readonly resizeObserver: ResizeObserver
 
@@ -362,6 +363,8 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
       this.removeTooltip(prevState.target)
       if (target !== null) {
         this.installTooltip(target)
+      } else {
+        this.stopObservingTargetConnectivity()
       }
     }
 
@@ -589,11 +592,20 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
   }
 
   private beginShowTooltip() {
-    if (this.props.disabled === true) {
+    const { target } = this.state
+    if (
+      this.props.disabled === true ||
+      target === null ||
+      !target.isConnected
+    ) {
+      if (target !== null && !target.isConnected) {
+        this.dismissDisconnectedTarget()
+      }
       return
     }
 
     this.cancelShowTooltip()
+    this.startObservingTargetConnectivity()
     this.showTooltipTimeout = window.setTimeout(
       this.showTooltip,
       this.props.delay ?? DefaultTooltipDelay
@@ -627,11 +639,15 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
     }
 
     const { tooltipHost, target } = this.state
-    if (tooltipHost === null || target === null) {
+    if (tooltipHost === null || target === null || !target.isConnected) {
+      if (target !== null && !target.isConnected) {
+        this.dismissDisconnectedTarget()
+      }
       return
     }
 
     if (this.props.onlyWhenOverflowed && !this.isTargetOverflowed()) {
+      this.stopObservingTargetConnectivity()
       return
     }
 
@@ -693,6 +709,64 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
     return this.mouseRect ?? target.getBoundingClientRect()
   }
 
+  /**
+   * Observe the document only while a tooltip is pending or visible. A
+   * transient owner can remove a focused row without dispatching mouseout or
+   * focusout, while a shared Tooltip (such as ButtonHints) remains mounted.
+   */
+  private startObservingTargetConnectivity() {
+    if (
+      this.targetConnectivityObserver !== null ||
+      this.state.target === null ||
+      !this.state.target.isConnected ||
+      document.documentElement === null
+    ) {
+      return
+    }
+    const MutationObserverConstructor = window.MutationObserver
+    if (MutationObserverConstructor === undefined) {
+      return
+    }
+    this.targetConnectivityObserver = new MutationObserverConstructor(() => {
+      const currentTarget = this.state.target
+      if (
+        this.mounted &&
+        currentTarget !== null &&
+        !currentTarget.isConnected
+      ) {
+        this.dismissDisconnectedTarget()
+      }
+    })
+    this.targetConnectivityObserver.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+    })
+  }
+
+  private stopObservingTargetConnectivity() {
+    this.targetConnectivityObserver?.disconnect()
+    this.targetConnectivityObserver = null
+  }
+
+  private dismissDisconnectedTarget() {
+    const currentTarget = this.state.target
+    if (!this.mounted || currentTarget === null || currentTarget.isConnected) {
+      return
+    }
+    this.cancelShowTooltip()
+    this.cancelHideTooltip()
+    this.stopObservingTargetConnectivity()
+    this.removeViewportListeners()
+    this.mouseOverTarget = false
+    this.mouseOverTooltip = false
+    this.setState({
+      target: null,
+      tooltipHost: null,
+      show: false,
+      measure: false,
+    })
+  }
+
   private cancelShowTooltip() {
     if (this.showTooltipTimeout !== null) {
       clearTimeout(this.showTooltipTimeout)
@@ -722,6 +796,7 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
   private hideTooltip = () => {
     this.cancelShowTooltip()
     this.cancelHideTooltip()
+    this.stopObservingTargetConnectivity()
 
     if (!this.mounted) {
       return
@@ -747,6 +822,7 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
     this.mounted = false
     this.cancelShowTooltip()
     this.cancelHideTooltip()
+    this.stopObservingTargetConnectivity()
     this.removeViewportListeners()
     this.resizeObserver.disconnect()
     this.props.target.unsubscribe(this.onTargetRef)

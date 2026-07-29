@@ -64,11 +64,19 @@ current compact Releases frame.
 
 ## UI evidence
 
-| Frame | Role | Dimensions | Bytes | SHA-256 |
+![Historical Cheap LFS commit-progress acceptance at immutable source commit c3db37ea5524b91f9603151ae5d1107205f16a59](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/c3db37ea5524b91f9603151ae5d1107205f16a59/docs/assets/screenshots/cheap-lfs-commit-progress.png)
+
+![Historical compact Repository Releases acceptance at immutable source commit 513c5cc96aee045a218837530a11951e8466b618](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/513c5cc96aee045a218837530a11951e8466b618/docs/assets/screenshots/material-github-releases-compact.png)
+
+The promoted rows below are immutable commit-addressed blobs. Their familiar
+gallery pathnames are labels only; a later capture at the same path on `main`
+does not change these dated byte/hash receipts.
+
+| Frame / immutable blob | Role | Dimensions | Bytes | SHA-256 |
 | --- | --- | ---: | ---: | --- |
-| `docs/assets/screenshots/cheap-lfs-commit-progress.png` | Promoted wide English frame | 1440×960 | 113,869 | `3d6358567126e3ce0504b04c4489abbfd473b77546bd82dac834553d50fe9333` |
+| [`cheap-lfs-commit-progress.png` at `c3db37ea5524b91f9603151ae5d1107205f16a59`](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/c3db37ea5524b91f9603151ae5d1107205f16a59/docs/assets/screenshots/cheap-lfs-commit-progress.png) | Promoted wide English frame | 1440×960 | 113,869 | `3d6358567126e3ce0504b04c4489abbfd473b77546bd82dac834553d50fe9333` |
 | Ephemeral inspected narrow frame | Accepted local bilingual frame; not gallery-promoted | 640×960 | 85,175 | `1b99c827d1b5b2cf05298fb1255873acdf0502f72a40437c378c0be7bb989e50` |
-| `docs/assets/screenshots/material-github-releases-compact.png` | Corrected promoted 200%-zoom Releases frame | 960×660 | 89,856 | `8e29ac666a0832d353126d8dd759200ba7e853016a940501e5c7cbdbb1cf992a` |
+| [`material-github-releases-compact.png` at `513c5cc96aee045a218837530a11951e8466b618`](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/513c5cc96aee045a218837530a11951e8466b618/docs/assets/screenshots/material-github-releases-compact.png) | Corrected promoted 200%-zoom Releases frame | 960×660 | 89,856 | `8e29ac666a0832d353126d8dd759200ba7e853016a940501e5c7cbdbb1cf992a` |
 
 The final wide receipt passed all **36/36** named surface assertions, including
 `noBlockingDialog`, plus the required deterministic selection receipt. It kept the

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
@@ -8,6 +8,7 @@ import { describe, it } from 'node:test'
 import captureModule from './capture-app.js'
 
 const {
+  assertCapturePrivacy,
   captureApp,
   createCaptureRepositories,
   parseCaptureArguments,
@@ -16,6 +17,10 @@ const {
   TabCountExpression,
   WelcomeFlowSteps,
 } = captureModule
+const captureSource = readFileSync(
+  new URL('./capture-app.js', import.meta.url),
+  'utf8'
+)
 
 /** Evaluate the browser-side tab-count expression against a fake DOM. */
 function countTabs({ tabs = 0, overflowLabel = null, hasStrip = true }) {
@@ -298,6 +303,79 @@ describe('capture-app tab counting', () => {
 })
 
 describe('capture-app fixture', () => {
+  it('runs the privacy gate before either screenshot implementation', () => {
+    const gate = captureSource.indexOf(
+      'const privacyReceipt = assertCapturePrivacy'
+    )
+    const windowPixels = captureSource.indexOf(
+      'await captureWindowPixels(electronApp, outPath)',
+      gate
+    )
+    const pageScreenshot = captureSource.indexOf(
+      'await page.screenshot({ path: outPath })',
+      gate
+    )
+
+    assert.notEqual(gate, -1)
+    assert.notEqual(windowPixels, -1)
+    assert.notEqual(pageScreenshot, -1)
+    assert.ok(gate < windowPixels)
+    assert.ok(gate < pageScreenshot)
+  })
+
+  it('passes synthetic fixture identity and returns a content-free privacy receipt', () => {
+    assert.deepEqual(
+      assertCapturePrivacy('fixture.png', {
+        text: 'Signed in as capture-bot@example.invalid',
+        fields: [{ type: 'text', value: 'capture-bot@example.invalid' }],
+        attributes: ['https://example.invalid/repository'],
+      }),
+      {
+        passed: true,
+        checkedTextCharacters: 40,
+        checkedFieldCount: 1,
+        checkedAttributeCount: 1,
+      }
+    )
+  })
+
+  it('rejects each private-data class without echoing the matched value', () => {
+    const cases = [
+      {
+        kind: 'private-path',
+        evidence: { text: 'C:\\Users\\alice\\private-repository' },
+        secret: 'alice',
+      },
+      {
+        kind: 'personal-email',
+        evidence: { text: 'alice@personal.example' },
+        secret: 'alice@personal.example',
+      },
+      {
+        kind: 'credential',
+        evidence: { attributes: ['Authorization: Bearer top-secret-token'] },
+        secret: 'top-secret-token',
+      },
+      {
+        kind: 'password-field',
+        evidence: {
+          fields: [{ type: 'password', value: 'correct horse battery staple' }],
+        },
+        secret: 'correct horse battery staple',
+      },
+    ]
+
+    for (const { kind, evidence, secret } of cases) {
+      assert.throws(
+        () => assertCapturePrivacy('unsafe.png', evidence),
+        error =>
+          error instanceof Error &&
+          error.message.includes(`(${kind})`) &&
+          !error.message.includes(secret)
+      )
+    }
+  })
+
   it('keeps the known-good first-run sequence in order', () => {
     assert.deepEqual(WelcomeFlowSteps, [
       'Continue without signing in',

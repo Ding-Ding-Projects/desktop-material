@@ -218,8 +218,15 @@ describe('anchored appearance editor', () => {
       const anchor = screen.getByRole('button', { name: 'Toolbar' })
       anchor.focus()
 
-      const wasNotCancelled = fireEvent.contextMenu(anchor, { shiftKey: true })
-      assert.equal(wasNotCancelled, false)
+      const ordinaryRightClick = fireEvent.contextMenu(anchor, { button: 2 })
+      assert.equal(ordinaryRightClick, true)
+      assert.equal(screen.queryByRole('dialog'), null)
+
+      const shiftedRightClick = fireEvent.contextMenu(anchor, {
+        button: 2,
+        shiftKey: true,
+      })
+      assert.equal(shiftedRightClick, false)
       assert.ok(screen.getByRole('dialog', { name: 'Toolbar appearance' }))
       assert.ok(screen.getByRole('tab', { name: 'Customize' }))
       assert.ok(screen.getByRole('tab', { name: 'History' }))
@@ -342,7 +349,7 @@ describe('anchored appearance editor', () => {
     const anchor = screen.getByRole('button', { name: 'Toolbar' })
     anchor.focus()
 
-    fireEvent.contextMenu(anchor, { shiftKey: true })
+    fireEvent.contextMenu(anchor, { button: 2, shiftKey: true })
     const editor = screen.getByRole('dialog', {
       name: 'Toolbar appearance',
     })
@@ -367,7 +374,7 @@ describe('anchored appearance editor', () => {
       assert.equal(document.activeElement, anchor)
     })
 
-    fireEvent.contextMenu(anchor, { shiftKey: true })
+    fireEvent.contextMenu(anchor, { button: 2, shiftKey: true })
     assert.ok(screen.getByRole('dialog', { name: 'Toolbar appearance' }))
     fireEvent.keyDown(window, { key: 'Escape' })
     await waitFor(() => {
@@ -391,6 +398,7 @@ describe('anchored appearance editor', () => {
       />
     )
     fireEvent.contextMenu(screen.getByRole('button', { name: 'Toolbar' }), {
+      button: 2,
       shiftKey: true,
     })
 
@@ -413,7 +421,7 @@ describe('anchored appearance editor', () => {
       />
     )
     const anchor = screen.getByRole('button', { name: 'Toolbar' })
-    fireEvent.contextMenu(anchor, { shiftKey: true })
+    fireEvent.contextMenu(anchor, { button: 2, shiftKey: true })
     fireEvent.click(screen.getByRole('tab', { name: 'History' }))
 
     const history = await screen.findByRole('dialog', {
@@ -462,6 +470,7 @@ describe('anchored appearance editor', () => {
   it('lets rich editor children own the visual heading and History action', async () => {
     render(<Harness contentOwnsHeader={true} />)
     fireEvent.contextMenu(screen.getByRole('button', { name: 'Toolbar' }), {
+      button: 2,
       shiftKey: true,
     })
 

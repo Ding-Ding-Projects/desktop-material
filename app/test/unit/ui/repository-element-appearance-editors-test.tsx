@@ -263,16 +263,21 @@ describe('repository element appearance editors', () => {
     })
     name.focus()
 
-    // Right-clicking the name no longer opens the editor directly (that was too
-    // easy to trigger by accident). The contextmenu event is not cancelled and
-    // bubbles to the row so the repository context menu can handle it.
-    const contextMenuNotCancelled = fireEvent.contextMenu(name)
+    // Ordinary right-click is not cancelled and bubbles to the row so the
+    // repository context menu can handle it.
+    const contextMenuNotCancelled = fireEvent.contextMenu(name, { button: 2 })
     assert.equal(contextMenuNotCancelled, true)
     assert.equal(screen.queryByRole('dialog'), null)
     assert.equal(backgroundMenus, 1)
 
-    // The keyboard path (Shift+F10) still opens the anchored editor directly.
-    fireEvent.keyDown(name, { key: 'F10', shiftKey: true })
+    // Shift+right-click expresses appearance-editing intent and stays local to
+    // the name owner instead of opening the row's command menu.
+    const shiftedContextMenu = fireEvent.contextMenu(name, {
+      button: 2,
+      shiftKey: true,
+    })
+    assert.equal(shiftedContextMenu, false)
+    assert.equal(backgroundMenus, 1)
 
     const editor = await screen.findByRole('dialog', {
       name: 'desktop-material list-name appearance',

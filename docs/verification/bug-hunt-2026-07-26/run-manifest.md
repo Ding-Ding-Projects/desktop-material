@@ -142,9 +142,11 @@
   `568C2B927F555586CDBFA62BD1AC79B6E4A7C8B7CC17D4F98178CCF6441D4AC6`.
 - The deterministic `seed,regex-builder` dark-English scene passed at
   `1280 x 800`; the safe-RE2 adversarial near miss completed in 16 ms. The
-  original-resolution accepted image is
-  `docs/assets/screenshots/regex-builder.png`, SHA-256
+  original-resolution accepted image is the immutable
+  [`regex-builder.png` blob at `f8eca3ac844e8eaec2dc2dce635f57874b4e92bc`](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/f8eca3ac844e8eaec2dc2dce635f57874b4e92bc/docs/assets/screenshots/regex-builder.png),
+  SHA-256
   `BEFBFA90491120195884F7424AAB551B81CB3174068077E466A8020C335A28B1`.
+  The mutable `main` pathname is not the authority for this dated hash.
 - The exact app process exited, the disposable provider credential was deleted
   and proved absent, the provider stopped, the headless desktop closed, and
   both owned P0 fixture roots were removed. Remote Actions, Pages, wiki,

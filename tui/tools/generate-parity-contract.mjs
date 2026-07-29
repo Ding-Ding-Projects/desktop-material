@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto'
 import { access, readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { normalizeLineEndings } from './normalize-line-endings.mjs'
 
 const toolsDirectory = dirname(fileURLToPath(import.meta.url))
 const repositoryRoot = resolve(toolsDirectory, '..', '..')
@@ -23,7 +24,7 @@ const outputPath = resolve(repositoryRoot, 'tui', 'contracts', 'parity.yaml')
 
 // Git may check Markdown out as CRLF on Windows and LF on Linux. Normalize
 // before hashing so the generated contract is byte-identical on every runner.
-const source = (await readFile(sourcePath, 'utf8')).replace(/\r\n?/gu, '\n')
+const source = normalizeLineEndings(await readFile(sourcePath, 'utf8'))
 const overrides = JSON.parse(await readFile(overridesPath, 'utf8'))
 
 function slugify(value) {
@@ -202,7 +203,9 @@ const rendered = `${JSON.stringify(contract, null, 2)}\n`
 const checkOnly = process.argv.includes('--check')
 
 if (checkOnly) {
-  const current = await readFile(outputPath, 'utf8').catch(() => '')
+  const current = normalizeLineEndings(
+    await readFile(outputPath, 'utf8').catch(() => '')
+  )
   if (current !== rendered) {
     console.error(
       'tui/contracts/parity.yaml is stale; run ' +

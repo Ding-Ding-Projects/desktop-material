@@ -64,7 +64,9 @@ export function getDefaultAriaLabelForBranch(
     true
   )
 
-  return `${item.branch.name}${localOnlySuffix}${pinnedSuffix}${worktreeSuffix} ${
+  return `${
+    item.branch.name
+  }${localOnlySuffix}${pinnedSuffix}${worktreeSuffix} ${
     getPreferAbsoluteDates() ? absoluteText : relativeText
   }`
 }

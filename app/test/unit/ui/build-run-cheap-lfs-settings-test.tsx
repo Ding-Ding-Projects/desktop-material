@@ -1,4 +1,5 @@
 import assert from 'node:assert'
+import { randomBytes } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
@@ -274,6 +275,7 @@ describe('Cheap LFS settings tab preferences', () => {
       getStatus: async () => 'missing' as const,
       save: async () => true,
       forget: async () => 'missing' as const,
+      verify: async () => undefined,
     }
 
     render(
@@ -301,14 +303,15 @@ describe('Cheap LFS settings tab preferences', () => {
     assert.equal(popup.requireIrreversibleAcknowledgement, true)
     assert.equal(changes.length, 0)
 
-    const password = Buffer.from('not-persisted', 'utf8')
+    const password = randomBytes(32)
+    const secretMarker = password.toString('hex')
     popup.onSubmit(password, false)
 
     await waitFor(() =>
       assert.equal(changes.at(-1)?.cheapLfsPayloadEncryption, true)
     )
     assert.equal(changes.at(-1)?.cheapLfsPayloadEncryptionConfirmed, true)
-    assert.doesNotMatch(JSON.stringify(changes), /not-persisted/)
+    assert.equal(JSON.stringify(changes).includes(secretMarker), false)
     assert.ok(password.every(byte => byte === 0))
   })
 
@@ -328,6 +331,7 @@ describe('Cheap LFS settings tab preferences', () => {
           getStatus: async () => 'missing',
           save: async () => true,
           forget: async () => 'missing',
+          verify: async () => undefined,
         }}
         preferences={defaultBuildRunPreferences}
         onPreferencesChanged={preferences => changes.push(preferences)}
@@ -344,9 +348,59 @@ describe('Cheap LFS settings tab preferences', () => {
     assert.equal(changes.length, 0)
   })
 
+  it('keeps encryption off and does not save when the authenticated test block fails', async () => {
+    const changes: IBuildRunPreferences[] = []
+    let popup: Popup | undefined
+    let saveCalls = 0
+    let reportedErrors = 0
+    render(
+      <CheapLfsSettings
+        repository={githubRepository(true)}
+        dispatcher={{
+          showPopup: async nextPopup => {
+            popup = nextPopup
+          },
+          postError: async () => {
+            reportedErrors++
+          },
+        }}
+        credentialActions={{
+          getStatus: async () => 'missing',
+          save: async () => {
+            saveCalls++
+            return true
+          },
+          forget: async () => 'missing',
+          verify: async () => {
+            throw new Error('authenticated test-block verification failed')
+          },
+        }}
+        preferences={defaultBuildRunPreferences}
+        onPreferencesChanged={preferences => changes.push(preferences)}
+      />
+    )
+
+    fireEvent.click(
+      screen.getByRole('checkbox', {
+        name: /encrypt new release payloads/i,
+      })
+    )
+    await waitFor(() => assert.ok(popup !== undefined))
+    if (popup?.type !== PopupType.CheapLfsPayloadPassword) {
+      assert.fail('Expected the Cheap LFS payload-password popup')
+    }
+    const password = randomBytes(32)
+    popup.onSubmit(password, true)
+
+    await waitFor(() => assert.equal(reportedErrors, 1))
+    assert.equal(changes.length, 0)
+    assert.equal(saveCalls, 0)
+    assert.ok(password.every(byte => byte === 0))
+  })
+
   it('saves a changed password only through the credential action and zeroes it', async () => {
     let popup: Popup | undefined
-    let savedValue = ''
+    let savedValue: Buffer | undefined
     render(
       <CheapLfsSettings
         repository={githubRepository(true)}
@@ -359,10 +413,11 @@ describe('Cheap LFS settings tab preferences', () => {
         credentialActions={{
           getStatus: async () => 'missing',
           save: async (_repository, password) => {
-            savedValue = Buffer.from(password).toString('utf8')
+            savedValue = Buffer.from(password)
             return true
           },
           forget: async () => 'missing',
+          verify: async () => undefined,
         }}
         preferences={defaultBuildRunPreferences}
         onPreferencesChanged={() => {}}
@@ -379,13 +434,16 @@ describe('Cheap LFS settings tab preferences', () => {
     }
     assert.equal(popup.purpose, 'change')
 
-    const password = Buffer.from('vault-only', 'utf8')
+    const password = randomBytes(32)
+    const expectedSavedValue = Buffer.from(password)
     popup.onSubmit(password, true)
-    await waitFor(() => assert.equal(savedValue, 'vault-only'))
+    await waitFor(() => assert.deepEqual(savedValue, expectedSavedValue))
     await waitFor(() =>
       assert.ok(screen.getByText(/password was saved in windows/i))
     )
     assert.ok(password.every(byte => byte === 0))
+    savedValue?.fill(0)
+    expectedSavedValue.fill(0)
   })
 
   it('forgets a saved password only after explicit popup confirmation', async () => {
@@ -407,6 +465,7 @@ describe('Cheap LFS settings tab preferences', () => {
             forgetCalls++
             return 'deleted'
           },
+          verify: async () => undefined,
         }}
         preferences={defaultBuildRunPreferences}
         onPreferencesChanged={() => {}}

@@ -1275,11 +1275,7 @@ describe('autoPinLargeFilesForCommit', () => {
     resolvers.get('one.bin')?.()
     await new Promise<void>(resolve => setImmediate(resolve))
     assert.deepEqual(started, ['one.bin', 'two.bin', 'three.bin'])
-    assert.deepEqual(laneTags, [
-      'assets',
-      'assets-parallel-2',
-      'assets',
-    ])
+    assert.deepEqual(laneTags, ['assets', 'assets-parallel-2', 'assets'])
 
     resolvers.get('two.bin')?.()
     resolvers.get('three.bin')?.()

@@ -84,6 +84,9 @@ export type CheapLfsPayloadPasswordPurpose =
   | 'forget'
   | 'forget-stale'
 
+/** Why an encryption prompt is blocking the current operation. */
+export type CheapLfsPayloadPasswordContext = 'commit-auto-pin'
+
 export enum PopupType {
   RenameBranch = 'RenameBranch',
   DeleteBranch = 'DeleteBranch',
@@ -645,6 +648,7 @@ export type PopupDetail =
       type: PopupType.CheapLfsPayloadPassword
       repository: Repository
       purpose: CheapLfsPayloadPasswordPurpose
+      context?: CheapLfsPayloadPasswordContext
       requireIrreversibleAcknowledgement?: boolean
       /**
        * Receives an independently owned, zeroable password buffer. The callback

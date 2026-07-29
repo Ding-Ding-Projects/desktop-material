@@ -100,6 +100,12 @@ export class ButtonHints extends React.Component<{}, IButtonHintsState> {
   }
 
   private syncTarget() {
+    if (this.hoveredButton?.isConnected === false) {
+      this.hoveredButton = null
+    }
+    if (this.focusedButton?.isConnected === false) {
+      this.focusedButton = null
+    }
     // Pointer intent takes precedence while the cursor is over a different
     // button. When it leaves, the currently focused control resumes ownership
     // of the keyboard hint.

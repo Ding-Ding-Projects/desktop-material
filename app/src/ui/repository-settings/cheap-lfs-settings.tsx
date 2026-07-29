@@ -22,6 +22,7 @@ import {
   hasSavedCheapLfsPayloadPassword,
   saveCheapLfsPayloadPassword,
 } from '../../lib/cheap-lfs/payload-encryption-credentials'
+import { verifyCheapLfsEncryptionSecret } from '../../lib/cheap-lfs/payload-encryption'
 
 type CheapLfsCredentialStatus = 'checking' | 'saved' | 'missing' | 'unavailable'
 
@@ -44,12 +45,14 @@ interface ICheapLfsCredentialActions {
   ): Promise<'saved' | 'missing' | 'unavailable'>
   save(repository: Repository, password: Uint8Array): Promise<boolean>
   forget(repository: Repository): Promise<CheapLfsSavedPasswordForget>
+  verify(password: Uint8Array): Promise<void>
 }
 
 const defaultCredentialActions: ICheapLfsCredentialActions = {
   getStatus: hasSavedCheapLfsPayloadPassword,
   save: saveCheapLfsPayloadPassword,
   forget: forgetSavedCheapLfsPayloadPassword,
+  verify: verifyCheapLfsEncryptionSecret,
 }
 
 interface ICheapLfsSettingsProps {
@@ -274,6 +277,8 @@ export class CheapLfsSettings extends React.Component<
     rememberPassword: boolean,
     enableEncryption: boolean
   ): Promise<void> {
+    await this.credentialActions.verify(password)
+
     let credentialFeedback: CheapLfsCredentialFeedback = 'not-saved'
     let credentialStatus = this.state.credentialStatus
 

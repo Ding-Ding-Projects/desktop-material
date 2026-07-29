@@ -750,9 +750,13 @@
                 still commit. Release storage uses published prerelease buckets,
                 verified assets, optional cloud compression, and a bounded
                 manual browser handoff. Public repositories prepare the owned
-                compression caller in Changes automatically; private
-                repositories require explicit opt-in, and either caller runs
-                only after a reviewed commit and push. Actions compresses one
+                compression caller in Changes automatically and run it only
+                after a reviewed commit and push. Private repositories stay off
+                until explicit persisted opt-in; that consent installs no
+                workflow in the private repository and spends none of its
+                Actions minutes. It routes encrypted work through the externally
+                registered public builder instead, and fails closed while that
+                registration is unavailable or unproved. Actions compresses one
                 Release object at a time. Failed or non-beneficial objects
                 remain raw and cloneable, while all decompression and
                 verification happens locally in Desktop Material. GHCR and
@@ -1132,7 +1136,15 @@
           <p class="section-sub">
             Click any image to open it full size. Guided task forms wrap text
             and stack controls as space narrows, avoiding page-level sideways
-            scrolling; spatial code, diff, and log content is the exception.
+            scrolling; spatial code, diff, and log content is the exception. The
+            current refresh contract targets 84 Windows scenes. Promotion
+            remains fail-closed until every distinct target exists and passes
+            current-build inspection. Five earlier Linux/Xvfb captures remain in
+            the
+            <a href="docs/verification/linux-tui-2026-07-27/run-manifest.html"
+              >historical verification record</a
+            >
+            and are not current gallery figures.
           </p>
           <div class="gallery-grid">
             <figure class="shot">
@@ -1351,14 +1363,14 @@
               >
                 <img
                   src="docs/assets/screenshots/cheap-lfs-cloud-compression.png"
-                  alt="Bilingual private-repository Cheap LFS manager with explicit cloud-compression consent and a verified compressed pointer"
+                  alt="Bilingual private-repository Cheap LFS manager with persisted cloud-compression consent, encrypted public-builder routing, no private workflow, and one verified 99.9%-compressed pointer"
                   loading="lazy"
                 />
               </a>
               <figcaption>
                 Cheap LFS cloud compression
                 <span class="tag"
-                  >Public auto · private opt-in · local restore</span
+                  >Private opt-in · public builder · 99.9% smaller</span
                 >
               </figcaption>
             </figure>
@@ -1523,19 +1535,19 @@
 
             <figure class="shot">
               <a
-                href="docs/assets/screenshots/auto-updater-update-ready.png"
+                href="docs/assets/screenshots/auto-updater-current-source-ready.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="docs/assets/screenshots/auto-updater-update-ready.png"
-                  alt="About dialog with a downloaded automatic update ready for an explicit quit-and-install action"
+                  src="docs/assets/screenshots/auto-updater-current-source-ready.png"
+                  alt="Current-source About dialog showing update ready after a genuine Electron and Squirrel event path downloaded a disclosed inert verifier payload"
                   loading="lazy"
                 />
               </a>
               <figcaption>
-                Automatic update ready
-                <span class="tag">Downloaded · explicit install</span>
+                Current-source updater ready
+                <span class="tag">Real event path · inert fixture</span>
               </figcaption>
             </figure>
 
@@ -2597,97 +2609,6 @@
               <figcaption>
                 Private repository badge
                 <span class="tag">Explicit metadata · keyboard label</span>
-              </figcaption>
-            </figure>
-
-            <figure class="shot">
-              <a
-                href="docs/assets/screenshots/linux-tui-overview.png"
-                target="_blank"
-                rel="noopener"
-              >
-                <img
-                  src="docs/assets/screenshots/linux-tui-overview.png"
-                  alt="Linux terminal edition overview with repository navigation, status, and workspace tabs"
-                  loading="lazy"
-                />
-              </a>
-              <figcaption>
-                Linux TUI overview
-                <span class="tag">Repositories · status · tabs</span>
-              </figcaption>
-            </figure>
-
-            <figure class="shot">
-              <a
-                href="docs/assets/screenshots/linux-tui-text-input.png"
-                target="_blank"
-                rel="noopener"
-              >
-                <img
-                  src="docs/assets/screenshots/linux-tui-text-input.png"
-                  alt="Linux terminal edition text field accepting real keyboard input"
-                  loading="lazy"
-                />
-              </a>
-              <figcaption>
-                Linux TUI text input
-                <span class="tag">Real terminal · keyboard input</span>
-              </figcaption>
-            </figure>
-
-            <figure class="shot">
-              <a
-                href="docs/assets/screenshots/linux-tui-regex-builder.png"
-                target="_blank"
-                rel="noopener"
-              >
-                <img
-                  src="docs/assets/screenshots/linux-tui-regex-builder.png"
-                  alt="Linux terminal edition guided regex builder with live matches and capture groups"
-                  loading="lazy"
-                />
-              </a>
-              <figcaption>
-                Linux TUI regex builder
-                <span class="tag">Guided pattern · live matches</span>
-              </figcaption>
-            </figure>
-
-            <figure class="shot">
-              <a
-                href="docs/assets/screenshots/linux-tui-bilingual-narrow.png"
-                target="_blank"
-                rel="noopener"
-              >
-                <img
-                  src="docs/assets/screenshots/linux-tui-bilingual-narrow.png"
-                  alt="Linux terminal edition narrow bilingual layout in English
-                    and playful Hong Kong-style Cantonese"
-                  loading="lazy"
-                />
-              </a>
-              <figcaption>
-                Linux TUI bilingual narrow
-                <span class="tag">English · Cantonese · responsive</span>
-              </figcaption>
-            </figure>
-
-            <figure class="shot">
-              <a
-                href="docs/assets/screenshots/linux-tui-cheap-lfs.png"
-                target="_blank"
-                rel="noopener"
-              >
-                <img
-                  src="docs/assets/screenshots/linux-tui-cheap-lfs.png"
-                  alt="Linux terminal edition Cheap LFS workspace with detailed repository-scoped transfer controls"
-                  loading="lazy"
-                />
-              </a>
-              <figcaption>
-                Linux TUI Cheap LFS
-                <span class="tag">Repository-scoped · transfer detail</span>
               </figcaption>
             </figure>
           </div>

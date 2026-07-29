@@ -28,6 +28,6 @@ the implemented feature contracts.
   responsiveness, lifecycle cleanup, failure recovery, and regression gates.
 - [Design system](design-system/README.md) — Material presentation controls,
   including command-palette row appearance and responsive visual behavior.
-- [Linux-first terminal edition](linux-tui/README.md) — mouse and keyboard
-  interaction, editable text controls, Git/GitHub workflows, XDG persistence,
-  RE2 search, packaging, security, and honest desktop-parity status.
+- [Historical Linux TUI prototype](linux-tui/README.md) — archived July 27
+  mouse/keyboard, package, XDG, RE2, security, parity, and acceptance records;
+  not a supported product edition or Windows-release blocker.

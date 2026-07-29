@@ -3,8 +3,10 @@ import { describe, it } from 'node:test'
 
 import {
   estimateCommandLength,
+  maximumGitHubReporterFiles,
   partitionFiles,
   parseReportedTests,
+  shouldUseGitHubReporter,
   summarizeRun,
 } from './test.mjs'
 
@@ -43,6 +45,18 @@ describe('test harness partitioning', () => {
     assert.ok(
       estimateCommandLength(['--test', 'file.tsx']) >
         estimateCommandLength(['file.tsx'])
+    )
+  })
+
+  it('bounds GitHub step summaries for the complete unit suite', () => {
+    assert.equal(shouldUseGitHubReporter(false, 1), false)
+    assert.equal(
+      shouldUseGitHubReporter(true, maximumGitHubReporterFiles),
+      true
+    )
+    assert.equal(
+      shouldUseGitHubReporter(true, maximumGitHubReporterFiles + 1),
+      false
     )
   })
 })

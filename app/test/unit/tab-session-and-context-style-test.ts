@@ -56,6 +56,7 @@ describe('tab session, folder drop, and customization context contracts', () => 
       readFile(Path.join(app, 'src/ui/window/app-brand.tsx'), 'utf8'),
     ])
     assert.match(appSource, /onCustomizationContextMenu/)
+    assert.match(appSource, /!isAppearanceEditorFallbackContextMenu\(event\)/)
     assert.match(appSource, /getProfileAppearanceHistorySource/)
     assert.match(appSource, /getRepositoryAppearanceHistorySource/)
     assert.match(appSource, /getFeatureAppearanceHistorySource/)
@@ -172,7 +173,7 @@ describe('tab session, folder drop, and customization context contracts', () => 
     )
     assert.match(
       submoduleBack,
-      /onKeyDown = [\s\S]{0,160}?isAppearanceEditorContextMenuKey\(event\)/
+      /onKeyDown = [\s\S]{0,160}?openAppearanceEditorFromKeyDown\(event/
     )
 
     // No surface may open-code the gesture; the predicate owns it. app.tsx

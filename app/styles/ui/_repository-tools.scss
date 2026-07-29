@@ -978,6 +978,79 @@
   padding: 0 24px 8px;
 }
 
+.repository-tools-inventory-statuses {
+  display: grid;
+  flex: none;
+  gap: 8px;
+  max-height: 128px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 24px 8px;
+  scrollbar-gutter: stable;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.repository-tools-inventory-status {
+  align-items: center;
+  background: var(--md-sys-color-surface-container-high);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+  min-width: 0;
+  padding: 9px 12px;
+
+  &.loading {
+    border-color: color-mix(in srgb, var(--md-sys-color-primary) 48%, var(--md-sys-color-outline-variant));
+  }
+
+  &.failed {
+    background: var(--md-sys-color-error-container);
+    border-color: var(--md-sys-color-error);
+    color: var(--md-sys-color-on-error-container);
+  }
+
+  > div {
+    min-width: 0;
+  }
+
+  strong,
+  p {
+    overflow-wrap: anywhere;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  strong + p,
+  .repository-tools-inventory-error {
+    margin-top: 3px;
+  }
+
+  .button-component {
+    flex: none;
+    height: auto;
+    min-height: 40px;
+    min-width: 44px;
+    white-space: normal;
+  }
+}
+
+.repository-tools-inventory-error {
+  font-family: var(--font-family-monospace);
+  font-size: 11.5px;
+  max-height: 64px;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  white-space: pre-wrap;
+}
+
 .repository-tools-layout {
   display: flex;
   flex: 1;
@@ -1784,6 +1857,10 @@
 
   .repository-tools-sidebar {
     padding: 4px 16px 0;
+  }
+
+  .repository-tools-inventory-statuses {
+    padding-inline: 16px;
   }
 
   .repository-tools-results-column {

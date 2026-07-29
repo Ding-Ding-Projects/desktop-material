@@ -9,6 +9,12 @@ contracts that span more than one user workflow.
   suppression](no-op-render-update-suppression.md) — prevent an already-closed
   History branch list from emitting a second global app-state update and root
   render whenever users switch between Changes and History.
+- [Progressive asynchronous
+  loading](progressive-lazy-loading.md) — reveal the usable shell from cached
+  and persisted state before optional startup work, evaluate the seven heavy
+  inactive repository sections on first activation, and contain each load
+  behind screen-reader-announced progress, retry, and newest-request-wins
+  lifecycle guards.
 - [Root renderer resource
   lifecycle](root-renderer-resource-lifecycle.md) — make store, updater,
   drag-manager, and IPC subscriptions disposable; retain and clear deferred
@@ -19,13 +25,6 @@ contracts that span more than one user workflow.
   discovery, hard-bound advisory process cleanup, coalesce stalled proxy work,
   serialize credential prompts, coalesce high-frequency appearance writes, and
   release request and markdown-preview resources deterministically.
-- [Progressive asynchronous lazy
-  loading](progressive-lazy-loading.md) — paint the shell from cached and
-  persisted state instead of gating it on an external-editor filesystem scan and
-  clone-queue recovery, defer the seven heavy repository sections to first
-  activation behind local screen-reader-announced progress with a real retry
-  path, and hold the newest-request-wins ordering rules in one tested primitive
-  so a slow response can never clobber a fresh one.
 - [Peer-closed stream writes](peer-closed-stream-writes.md) — contain the write
   that finishes after its peer already went away (`write EOF`/`EPIPE`) in the
   Cheap LFS upload, trampoline, agent-server, and hooks-proxy transports, plus a

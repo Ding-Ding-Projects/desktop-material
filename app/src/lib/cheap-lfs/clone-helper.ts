@@ -1,6 +1,6 @@
 import { createHash } from 'crypto'
 import { lstat, mkdir, realpath } from 'fs/promises'
-import { join, resolve } from 'path'
+import { dirname, join, resolve } from 'path'
 import {
   ICheapLfsGhcrPointer,
   serializeCheapLfsGhcrPointer,
@@ -142,6 +142,22 @@ async function canonicalRepositoryRoot(
   repositoryPath: string
 ): Promise<string> {
   const requested = resolve(repositoryPath)
+  // realpath expands Windows 8.3 names (for example ADMINI~1) as well as real
+  // redirects. Walk the requested chain so a short-but-regular path remains
+  // valid without weakening the junction/symlink boundary.
+  let ancestor = requested
+  while (true) {
+    if ((await lstat(ancestor, { bigint: true })).isSymbolicLink()) {
+      throw new Error(
+        'Cheap LFS clone helper requires a canonical regular repository directory.'
+      )
+    }
+    const parent = dirname(ancestor)
+    if (parent === ancestor) {
+      break
+    }
+    ancestor = parent
+  }
   const requestedEntry = await lstat(requested, { bigint: true })
   if (requestedEntry.isSymbolicLink() || !requestedEntry.isDirectory()) {
     throw new Error(
@@ -151,8 +167,6 @@ async function canonicalRepositoryRoot(
   const canonical = await realpath(requested)
   const canonicalEntry = await lstat(canonical, { bigint: true })
   if (
-    normalizeRootForComparison(requested) !==
-      normalizeRootForComparison(canonical) ||
     canonicalEntry.isSymbolicLink() ||
     !canonicalEntry.isDirectory() ||
     requestedEntry.dev !== canonicalEntry.dev ||

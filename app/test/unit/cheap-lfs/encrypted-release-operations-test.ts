@@ -1,11 +1,12 @@
 import assert from 'node:assert'
-import { createHash } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { execFile as execFileCallback } from 'node:child_process'
 import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
 import { promisify } from 'node:util'
+import { deflateRaw } from 'node:zlib'
 import { Account, getAccountKey } from '../../../src/models/account'
 import { GitHubRepository } from '../../../src/models/github-repository'
 import { Owner } from '../../../src/models/owner'
@@ -24,22 +25,31 @@ import { IGitHubReleaseMutationReview } from '../../../src/lib/stores/github-rel
 import {
   defaultCheapLfsFileSystem,
   ICheapLfsReleasesGateway,
+  ICheapLfsMaterializeTransferProgress,
   materializePointer,
   pinFileToRelease,
   planCheapLfsManualUpload,
 } from '../../../src/lib/cheap-lfs/operations'
 import {
+  CHEAP_LFS_ENCRYPTION_POINTER_FORMAT_VERSION,
+  CHEAP_LFS_POINTER_VERSION,
+  ICheapLfsPointer,
   isEncryptedCheapLfsPointer,
   parseCheapLfsPointer,
+  serializeCheapLfsPointer,
 } from '../../../src/lib/cheap-lfs/pointer'
 import {
+  CHEAP_LFS_ENCRYPTION_OVERHEAD_BYTES,
   CheapLfsAuthenticationError,
   CheapLfsEncryptionError,
   CheapLfsPasswordRequiredError,
   CheapLfsPayloadIntegrityError,
+  encryptCheapLfsPayload,
 } from '../../../src/lib/cheap-lfs/payload-encryption'
+import { isRegisteredCheapLfsOwnedArtifact } from '../../../src/lib/cheap-lfs/owned-artifacts'
 
 const execFile = promisify(execFileCallback)
+const compress = promisify(deflateRaw)
 
 const selected = new Account(
   'selected',
@@ -240,6 +250,36 @@ class EncryptedReleaseGateway implements ICheapLfsReleasesGateway {
     assert.equal(this.payloads.has(assetId), true)
     this.payloads.set(assetId, Buffer.from(payload))
   }
+
+  public seedPayload(tagName: string, name: string, payload: Buffer): void {
+    const sha256 = createHash('sha256').update(payload).digest('hex')
+    const asset: IGitHubReleaseAsset = {
+      id: this.nextAssetId++,
+      name,
+      label: null,
+      state: 'uploaded',
+      contentType: 'application/octet-stream',
+      sizeInBytes: payload.length,
+      downloadCount: 0,
+      createdAt: new Date(0),
+      updatedAt: new Date(0),
+      digest: `sha256:${sha256}`,
+    }
+    this.payloads.set(asset.id, Buffer.from(payload))
+    this.release = {
+      id: 7,
+      tagName,
+      targetCommitish: 'main',
+      name: tagName,
+      body: '',
+      draft: false,
+      prerelease: true,
+      createdAt: new Date(0),
+      publishedAt: new Date(0),
+      authorLogin: 'fixture-bot',
+      assets: [asset],
+    }
+  }
 }
 
 async function gitRepository(): Promise<{
@@ -260,6 +300,21 @@ async function assertRemoved(paths: ReadonlyArray<string>): Promise<void> {
   for (const path of paths) {
     await assert.rejects(stat(path), { code: 'ENOENT' })
   }
+}
+
+function distinctMaterializePhases(
+  updates: ReadonlyArray<ICheapLfsMaterializeTransferProgress>
+): ReadonlyArray<string> {
+  const phases = new Array<string>()
+  for (const update of updates) {
+    if (
+      update.phase !== undefined &&
+      update.phase !== phases[phases.length - 1]
+    ) {
+      phases.push(update.phase)
+    }
+  }
+  return phases
 }
 
 describe('encrypted GitHub Release Cheap LFS operations', () => {
@@ -296,7 +351,8 @@ describe('encrypted GitHub Release Cheap LFS operations', () => {
           128
         )
       )
-      const password = Buffer.from('release payload password')
+      const password = randomBytes(32)
+      const passwordBefore = Buffer.from(password)
       await writeFile(sourcePath, plaintext)
       const releases = new EncryptedReleaseGateway()
 
@@ -383,14 +439,287 @@ describe('encrypted GitHub Release Cheap LFS operations', () => {
       assert.equal(restored.bytes, plaintext.length)
       assert.deepEqual(await readFile(sourcePath), plaintext)
       await assertRemoved(releases.downloadDestinationPaths)
-      assert.equal(
-        password.toString('utf8'),
-        'release payload password',
+      assert.deepEqual(
+        password,
+        passwordBefore,
         'the caller retains ownership of its mutable secret'
       )
+      passwordBefore.fill(0)
       password.fill(0)
     } finally {
       await dispose()
+    }
+  })
+
+  it('pins through a real compression-then-encryption writer and restores both stages', async () => {
+    const { dir, repository, dispose } = await gitRepository()
+    const password = randomBytes(32)
+    try {
+      const sourcePath = join(dir, 'combined.bin')
+      const plaintext = Buffer.from(
+        'compress before authenticated encryption\n'.repeat(1024)
+      )
+      await writeFile(sourcePath, plaintext)
+      const releases = new EncryptedReleaseGateway()
+
+      const pinned = await pinFileToRelease(releases, repository, selected, {
+        absoluteFilePath: sourcePath,
+        trackedRelativePath: 'combined.bin',
+        releaseTag: 'assets',
+        encryptionPassword: password,
+        compressBeforeEncryption: true,
+      })
+
+      const part = pinned.pointer.parts?.[0]
+      assert.notEqual(part, undefined)
+      assert.equal(part?.encrypted, true)
+      assert.ok(
+        (part?.deflatedSizeInBytes ?? plaintext.length) < plaintext.length
+      )
+      assert.equal(
+        part?.storedSizeInBytes,
+        part!.deflatedSizeInBytes! + CHEAP_LFS_ENCRYPTION_OVERHEAD_BYTES
+      )
+      assert.match(
+        await readFile(sourcePath, 'utf8'),
+        /^part-encrypted-deflate /m
+      )
+      assert.notDeepEqual(releases.storedPayload(pinned.asset.id), plaintext)
+
+      const restored = await materializePointer(
+        releases,
+        repository,
+        selected,
+        'combined.bin',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        password
+      )
+
+      assert.equal(restored.bytes, plaintext.length)
+      assert.deepEqual(await readFile(sourcePath), plaintext)
+      await assertRemoved([
+        ...releases.uploadSourcePaths,
+        ...releases.downloadDestinationPaths,
+      ])
+    } finally {
+      password.fill(0)
+      await dispose()
+    }
+  })
+
+  it('keeps failed compressed-temp cleanup registered for a later hygiene retry', async () => {
+    const { dir, repository, dispose } = await gitRepository()
+    const password = randomBytes(32)
+    let leakedCompressedPath: string | undefined
+    try {
+      const sourcePath = join(dir, 'combined-cleanup.bin')
+      await writeFile(
+        sourcePath,
+        Buffer.from('compressible cleanup provenance\n'.repeat(1024))
+      )
+      const releases = new EncryptedReleaseGateway()
+      const fs = {
+        ...defaultCheapLfsFileSystem,
+        removeFile: async (path: string) => {
+          if (releases.uploadSourcePaths.includes(path)) {
+            await defaultCheapLfsFileSystem.removeFile(path)
+            return
+          }
+          leakedCompressedPath = path
+          throw new Error('forced compressed cleanup failure')
+        },
+      }
+
+      const error = await pinFileToRelease(
+        releases,
+        repository,
+        selected,
+        {
+          absoluteFilePath: sourcePath,
+          trackedRelativePath: 'combined-cleanup.bin',
+          releaseTag: 'assets',
+          encryptionPassword: password,
+          compressBeforeEncryption: true,
+        },
+        undefined,
+        undefined,
+        fs
+      ).catch(candidate => candidate)
+
+      assert.ok(error instanceof AggregateError)
+      assert.match(error.message, /app-owned compressed temporary file/)
+      assert.notEqual(leakedCompressedPath, undefined)
+      assert.equal(
+        isRegisteredCheapLfsOwnedArtifact(leakedCompressedPath!),
+        true
+      )
+      assert.ok((await stat(leakedCompressedPath!)).size > 0)
+    } finally {
+      password.fill(0)
+      if (leakedCompressedPath !== undefined) {
+        await defaultCheapLfsFileSystem.removeFile(leakedCompressedPath)
+        assert.equal(
+          isRegisteredCheapLfsOwnedArtifact(leakedCompressedPath),
+          false
+        )
+      }
+      await dispose()
+    }
+  })
+
+  it('reports encrypted, compressed, and combined restore stages in execution order', async () => {
+    const plaintext = Buffer.from('truthful restore stages\n'.repeat(256))
+    const plaintextSha256 = createHash('sha256').update(plaintext).digest('hex')
+    const compressed = await compress(plaintext)
+    const password = randomBytes(32)
+    const testKdf = { logN: 10, blockSize: 8, parallelism: 1 }
+    const encrypted = await encryptCheapLfsPayload(plaintext, password, testKdf)
+    const compressedAndEncrypted = await encryptCheapLfsPayload(
+      compressed,
+      password,
+      testKdf
+    )
+    const releaseTag = 'restore-stage-fixture'
+    const assetName = 'payload.bin.part001'
+    const cases: ReadonlyArray<{
+      readonly name: string
+      readonly stored: Buffer
+      readonly pointer: ICheapLfsPointer
+      readonly expected: ReadonlyArray<string>
+      readonly password?: Buffer
+    }> = [
+      {
+        name: 'encrypted',
+        stored: encrypted,
+        pointer: {
+          version: CHEAP_LFS_POINTER_VERSION,
+          releaseTag,
+          assetName,
+          sizeInBytes: plaintext.length,
+          sha256: plaintextSha256,
+          encryptionFormatVersion: CHEAP_LFS_ENCRYPTION_POINTER_FORMAT_VERSION,
+          parts: [
+            {
+              name: assetName,
+              sizeInBytes: plaintext.length,
+              sha256: plaintextSha256,
+              encrypted: true,
+              storedSizeInBytes: encrypted.length,
+              storedSha256: createHash('sha256')
+                .update(encrypted)
+                .digest('hex'),
+            },
+          ],
+        },
+        expected: ['downloading', 'decrypting', 'verifying', 'materializing'],
+        password,
+      },
+      {
+        name: 'compressed',
+        stored: compressed,
+        pointer: {
+          version: CHEAP_LFS_POINTER_VERSION,
+          releaseTag,
+          assetName,
+          sizeInBytes: plaintext.length,
+          sha256: plaintextSha256,
+          parts: [
+            {
+              name: assetName,
+              sizeInBytes: plaintext.length,
+              sha256: plaintextSha256,
+              deflatedSizeInBytes: compressed.length,
+            },
+          ],
+        },
+        expected: [
+          'downloading',
+          'decompressing',
+          'verifying',
+          'materializing',
+        ],
+      },
+      {
+        name: 'compressed and encrypted',
+        stored: compressedAndEncrypted,
+        pointer: {
+          version: CHEAP_LFS_POINTER_VERSION,
+          releaseTag,
+          assetName,
+          sizeInBytes: plaintext.length,
+          sha256: plaintextSha256,
+          encryptionFormatVersion: CHEAP_LFS_ENCRYPTION_POINTER_FORMAT_VERSION,
+          parts: [
+            {
+              name: assetName,
+              sizeInBytes: plaintext.length,
+              sha256: plaintextSha256,
+              deflatedSizeInBytes: compressed.length,
+              encrypted: true,
+              storedSizeInBytes: compressedAndEncrypted.length,
+              storedSha256: createHash('sha256')
+                .update(compressedAndEncrypted)
+                .digest('hex'),
+            },
+          ],
+        },
+        expected: [
+          'downloading',
+          'decrypting',
+          'decompressing',
+          'verifying',
+          'materializing',
+        ],
+        password,
+      },
+    ]
+
+    try {
+      for (const candidate of cases) {
+        const { dir, repository, dispose } = await gitRepository()
+        try {
+          await writeFile(
+            join(dir, 'payload.bin'),
+            serializeCheapLfsPointer(candidate.pointer),
+            'utf8'
+          )
+          const releases = new EncryptedReleaseGateway()
+          releases.seedPayload(releaseTag, assetName, candidate.stored)
+          const updates = new Array<ICheapLfsMaterializeTransferProgress>()
+
+          await materializePointer(
+            releases,
+            repository,
+            selected,
+            'payload.bin',
+            undefined,
+            update => updates.push(update),
+            undefined,
+            undefined,
+            candidate.password
+          )
+
+          assert.deepEqual(
+            await readFile(join(dir, 'payload.bin')),
+            plaintext,
+            candidate.name
+          )
+          assert.deepEqual(
+            distinctMaterializePhases(updates),
+            candidate.expected,
+            candidate.name
+          )
+        } finally {
+          await dispose()
+        }
+      }
+    } finally {
+      password.fill(0)
+      encrypted.fill(0)
+      compressedAndEncrypted.fill(0)
     }
   })
 
@@ -399,7 +728,7 @@ describe('encrypted GitHub Release Cheap LFS operations', () => {
     try {
       const sourcePath = join(dir, 'payload.bin')
       const plaintext = Buffer.from('authenticated bytes\n'.repeat(256))
-      const password = Buffer.from('correct release password')
+      const password = randomBytes(32)
       await writeFile(sourcePath, plaintext)
       const releases = new EncryptedReleaseGateway()
       const pinned = await pinFileToRelease(releases, repository, selected, {
@@ -421,7 +750,7 @@ describe('encrypted GitHub Release Cheap LFS operations', () => {
           undefined,
           undefined,
           undefined,
-          Buffer.from('wrong release password')
+          randomBytes(32)
         ),
         CheapLfsAuthenticationError
       )
@@ -478,7 +807,7 @@ describe('encrypted GitHub Release Cheap LFS operations', () => {
     try {
       const sourcePath = join(dir, 'payload.bin')
       const plaintext = Buffer.from('cleanup must be proven\n'.repeat(128))
-      const password = Buffer.from('cleanup test password')
+      const password = randomBytes(32)
       await writeFile(sourcePath, plaintext)
       const releases = new EncryptedReleaseGateway()
       await pinFileToRelease(releases, repository, selected, {
@@ -536,7 +865,7 @@ describe('encrypted GitHub Release Cheap LFS operations', () => {
             absoluteFilePath: 'C:\\fixture\\payload.bin',
             trackedRelativePath: 'payload.bin',
             releaseTag: 'assets',
-            encryptionPassword: Buffer.from('secret'),
+            encryptionPassword: randomBytes(32),
           },
         ]
       ),

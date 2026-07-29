@@ -298,7 +298,7 @@ export function groupReferenceSections(entries) {
       groups.set(entry.c, { name: entry.c, index: null, pages: [] })
     }
     const group = groups.get(entry.c)
-    if (basename(entry.s) === 'README.md' && entry.c !== 'root') {
+    if (entry.s === `${entry.c}/README.md` && entry.c !== 'root') {
       group.index = entry
     } else {
       group.pages.push(entry)

@@ -3,15 +3,16 @@
 > **Delivery status — July 27, 2026:** the implementation, focused tests,
 > TypeScript checks, production build, and isolated real-window capture pass
 > locally. The source is merged and pushed through `2abccae8fd`; Pages and wiki
-> publication and packaged Windows E2E are verified. Only the Linux TUI
-> compatibility correction rerun and installer/Release evidence remain pending.
+> publication and packaged Windows E2E are verified. Installer/Release evidence
+> remained pending at that dated checkpoint; archived Linux TUI compatibility
+> work is outside the current Windows acceptance boundary.
 
 Desktop Material shows a separate filled lock beside a repository's normal
 leading glyph when GitHub metadata explicitly identifies the repository as
 private. The lock does not replace a fork glyph, custom repository logo, or
 ordinary repository icon.
 
-![Repository picker showing a private-repository lock beside the repository logo](../../assets/screenshots/private-repository-lock-badge.png)
+![Historical repository-picker acceptance showing a private-repository lock beside the repository logo at immutable source commit 2abccae8fddcf2eb79edd18724454bb9b6530f67](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/2abccae8fddcf2eb79edd18724454bb9b6530f67/docs/assets/screenshots/private-repository-lock-badge.png)
 
 <sub>**香港粵語速讀。** GitHub 明確話個 repo 係 private，repo 行就會另外顯示一個
 鎖仔；原本嘅 fork、custom logo 或 repo icon 照樣保留。唔會靠網址、登入失敗或者
@@ -88,11 +89,12 @@ exact `isPrivate: true` metadata without a network account or credential. The
 original-resolution image passed clipping, overlap, sizing, and private-data
 inspection.
 
-The source and accepted image are pushed through `2abccae8fd`; its raw `main`
-URL is now a live publication receipt in the 89-scene gallery, and Pages/wiki
-publication and packaged Windows E2E are verified. Only the Linux TUI
-compatibility correction rerun and installer/Release verification remain
-pending.
+The source and accepted image are pushed through
+`2abccae8fddcf2eb79edd18724454bb9b6530f67`; the image above renders that
+immutable historical blob, not mutable `main` and not the current refresh.
+Pages/wiki publication and packaged Windows E2E were verified at that dated
+checkpoint. Installer/Release verification remained pending then; the archived
+TUI correction is outside the supported-product gate.
 
 ## API applicability
 

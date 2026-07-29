@@ -460,6 +460,144 @@ describe('Repository tools', () => {
     )
   })
 
+  it('keeps deferred inventories local, retryable, and backed by safe cached counts', async () => {
+    const client = new FakeRepositoryToolsClient()
+    let subtreeRetries = 0
+    const renderRepositoryTools = (
+      submoduleState:
+        | { readonly kind: 'loading'; readonly value: number | null }
+        | { readonly kind: 'ready'; readonly value: number },
+      subtreeState:
+        | {
+            readonly kind: 'failed'
+            readonly value: number | null
+            readonly error: Error
+          }
+        | { readonly kind: 'ready'; readonly value: number }
+    ) => (
+      <RepositoryTools
+        repositoryPath={uiRepositoryPath}
+        onRefreshRepository={async () => {}}
+        client={client}
+        submoduleInventoryState={submoduleState}
+        onRetrySubmoduleInventory={() => {}}
+        onOpenSubmoduleManager={() => {}}
+        subtreeInventoryState={subtreeState}
+        onRetrySubtreeInventory={() => {
+          subtreeRetries++
+        }}
+        onOpenSubtreeManager={() => {}}
+      />
+    )
+
+    const view = render(
+      renderRepositoryTools(
+        { kind: 'loading', value: 2 },
+        {
+          kind: 'failed',
+          value: null,
+          error: new Error('history probe failed'),
+        }
+      )
+    )
+    await screen.findByText('git version 2.55.0')
+
+    const submoduleStatus = view.container.querySelector<HTMLElement>(
+      '[data-inventory="submodule"]'
+    )
+    assert.ok(submoduleStatus)
+    assert.equal(submoduleStatus.getAttribute('role'), 'status')
+    assert.equal(submoduleStatus.getAttribute('aria-busy'), 'true')
+    assert.match(submoduleStatus.textContent ?? '', /Submodules/)
+
+    const subtreeStatus = view.container.querySelector<HTMLElement>(
+      '[data-inventory="subtree"]'
+    )
+    assert.ok(subtreeStatus)
+    assert.equal(subtreeStatus.getAttribute('role'), 'alert')
+    assert.match(
+      subtreeStatus.textContent ?? '',
+      /Subtrees could not be loaded/
+    )
+    assert.match(subtreeStatus.textContent ?? '', /history probe failed/)
+    const subtreeRetry = within(subtreeStatus).getByRole('button')
+    assert.equal(subtreeRetry.getAttribute('aria-label'), 'Try again: Subtrees')
+    fireEvent.click(subtreeRetry)
+    assert.equal(subtreeRetries, 1)
+
+    // A refresh keeps the last accepted count available while loading.
+    selectHubTool('submodule-manager')
+    assert.match(
+      getSelectedToolCard('Submodule manager').textContent ?? '',
+      /declares 2 submodules/
+    )
+
+    // Unknown or failed subtree inventory must never be presented as empty.
+    selectHubTool('subtree-manager')
+    const subtreeCard = getSelectedToolCard('Subtree manager')
+    assert.doesNotMatch(subtreeCard.textContent ?? '', /No subtrees yet/)
+    assert.match(subtreeCard.textContent ?? '', /Subtrees could not be loaded/)
+
+    // When a refreshed inventory removes the selected gated entry, return to a
+    // real catalog item instead of leaving an empty detail pane.
+    selectHubTool('submodule-manager')
+    view.rerender(
+      renderRepositoryTools(
+        { kind: 'ready', value: 0 },
+        { kind: 'ready', value: 0 }
+      )
+    )
+    assert.equal(
+      view.container.querySelector('[data-inventory="submodule"]'),
+      null
+    )
+    assert.equal(
+      view.container.querySelector('[data-inventory="subtree"]'),
+      null
+    )
+    await waitFor(() => {
+      const statusSummary = view.container.querySelector<HTMLElement>(
+        '[data-hub-tool="status-summary"]'
+      )
+      assert.ok(statusSummary)
+      assert.equal(statusSummary.getAttribute('aria-current'), 'true')
+    })
+    assert.equal(
+      view.container.querySelector('[data-hub-tool="submodule-manager"]'),
+      null
+    )
+    selectHubTool('subtree-manager')
+    assert.match(
+      getSelectedToolCard('Subtree manager').textContent ?? '',
+      /No subtrees yet/
+    )
+  })
+
+  it('preserves the caller focus when the tools surface mounts', async () => {
+    const client = new FakeRepositoryToolsClient()
+    const host = document.createElement('div')
+    const focusOwner = document.createElement('button')
+    const mount = document.createElement('div')
+    host.append(focusOwner, mount)
+    document.body.append(host)
+    focusOwner.focus()
+    assert.equal(document.activeElement, focusOwner)
+
+    const view = render(
+      <RepositoryTools
+        repositoryPath={uiRepositoryPath}
+        onRefreshRepository={async () => {}}
+        client={client}
+      />,
+      { container: mount }
+    )
+    await screen.findByText('git version 2.55.0')
+    assert.equal(document.activeElement, focusOwner)
+
+    view.unmount()
+    host.remove()
+  })
+
   it('matches catalog search across title, description, and category', async () => {
     const client = new FakeRepositoryToolsClient()
     renderTools(client)

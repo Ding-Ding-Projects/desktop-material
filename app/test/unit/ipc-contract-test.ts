@@ -110,6 +110,7 @@ describe('IPC channel contract', () => {
   ] as const
 
   const expectedResponseChannels = [
+    'cleanup-cheap-lfs-payload-credentials',
     'register-actions-artifact-provenance-credential-lease',
     'verify-actions-artifact-provenance',
     'inspect-actions-artifact-subjects',

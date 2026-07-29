@@ -8,7 +8,13 @@ Express release lanes. Both lanes use a fixed-width alphabetic `z` version that
 sorts above the historical `b…` and `s…` packages and avoids the installed
 Squirrel/NuGet comparer's 32-bit numeric prerelease overflow.
 
-![Legacy Super Express installation with a newer alphabetic-z update ready](../assets/screenshots/auto-updater-update-ready.png)
+![Legacy Super Express installation with a newer alphabetic-z update ready at immutable source commit 923dbb51acad8f01f01f1c100c6945c7a2e08e23](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/923dbb51acad8f01f01f1c100c6945c7a2e08e23/docs/assets/screenshots/auto-updater-update-ready.png)
+
+This legacy `s…`→`z…` frame and its hash are reserved historical evidence.
+They address the immutable blob at
+`923dbb51acad8f01f01f1c100c6945c7a2e08e23`; a current-source updater
+acceptance must use a distinct capture target rather than overwrite or relabel
+this basename.
 
 ## Fail-closed correction
 
@@ -113,9 +119,9 @@ and the top-edge progress indicator. It then showed **An update has been
 downloaded and is ready to be installed** plus **Quit and Install Update**. The
 install button was deliberately not clicked.
 
-The accepted client-only capture is
-`docs/assets/screenshots/auto-updater-update-ready.png`: 960×660, 49,195 bytes,
-SHA-256
+The accepted client-only capture is the immutable
+[`auto-updater-update-ready.png` blob at `923dbb51acad8f01f01f1c100c6945c7a2e08e23`](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/923dbb51acad8f01f01f1c100c6945c7a2e08e23/docs/assets/screenshots/auto-updater-update-ready.png):
+960×660, 49,195 bytes, SHA-256
 `a02cffa612114be3af5e0fffcd5b602a4ba4dfd3226298e48d143a6bed76bd4d`.
 Two independent nonblank captures were byte-identical. The dialog was closed,
 File → Exit ended the saved app PID, no owned helper remained, the desktop had

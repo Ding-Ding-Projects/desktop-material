@@ -472,6 +472,7 @@ export class CloneGithubRepository extends React.PureComponent<
         id="clone-repository-metadata-filters"
         className="clone-repository-metadata-filters"
         hidden={!this.state.filtersOpen}
+        role="group"
         aria-label={this.localize('clone.filters.metadataAria')}
       >
         <OrgFilterChips

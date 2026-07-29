@@ -3283,9 +3283,10 @@ export class Dispatcher {
 
   /** List the repository's submodules with their configuration and status. */
   public getSubmodules(
-    repository: Repository
+    repository: Repository,
+    signal?: AbortSignal
   ): Promise<ReadonlyArray<IManagedSubmodule>> {
-    return this.appStore._getSubmodules(repository)
+    return this.appStore._getSubmodules(repository, signal)
   }
 
   /** Open a diff-selected submodule path as a temporary, non-persisted view. */
@@ -3504,9 +3505,10 @@ export class Dispatcher {
 
   /** Discover the subtrees recorded in the repository history. */
   public getSubtrees(
-    repository: Repository
+    repository: Repository,
+    signal?: AbortSignal
   ): Promise<ReadonlyArray<IManagedSubtree>> {
-    return this.appStore._getSubtrees(repository)
+    return this.appStore._getSubtrees(repository, signal)
   }
 
   /** Add a subtree at the given prefix from a source repository and ref. */

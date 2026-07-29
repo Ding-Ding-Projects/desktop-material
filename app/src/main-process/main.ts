@@ -146,6 +146,7 @@ import {
   createRendererFailureError,
   normalizeUnhandledRejection,
 } from './renderer-failure'
+import { cleanupCheapLfsPayloadCredentialsInMainProcess } from './cheap-lfs-payload-credential-cleanup'
 
 app.setAppLogsPath()
 enableSourceMaps()
@@ -997,6 +998,11 @@ app.on('ready', () => {
 
   ipcMain.handle('set-agent-server-enabled', async (_event, enabled) =>
     agentServerController!.setEnabled(enabled)
+  )
+  ipcMain.handle(
+    'cleanup-cheap-lfs-payload-credentials',
+    async (_event, request) =>
+      cleanupCheapLfsPayloadCredentialsInMainProcess(request)
   )
   ipcMain.on('agent-command-result', (_event, id, result) => {
     agentServerController?.acceptRendererResult(id, result)

@@ -29,8 +29,6 @@ import {
 } from 'node:fs/promises'
 import { createHash, randomUUID } from 'node:crypto'
 import { spawn } from 'node:child_process'
-import { Transform } from 'node:stream'
-import { pipeline } from 'node:stream/promises'
 import { createInflateRaw } from 'node:zlib'
 import {
   basename,
@@ -129,6 +127,26 @@ function sameContentIdentity(left, right) {
 
 async function requireCanonicalDirectory(path, repositoryRoot = path) {
   const requested = resolve(path)
+  // realpath expands ordinary Windows 8.3 names as well as links. Inspect each
+  // visible path segment so short names remain usable without admitting a
+  // symlink or junction anywhere in the requested chain.
+  let ancestor = requested
+  while (true) {
+    const ancestorEntry = await lstat(ancestor, { bigint: true }).catch(
+      () => null
+    )
+    if (ancestorEntry === null || ancestorEntry.isSymbolicLink()) {
+      throw new HydrationError(
+        'Cheap LFS refused a missing, linked, or non-directory path: ' +
+          requested
+      )
+    }
+    const parent = dirname(ancestor)
+    if (parent === ancestor) {
+      break
+    }
+    ancestor = parent
+  }
   const before = await lstat(requested, { bigint: true }).catch(() => null)
   if (
     before === null ||
@@ -141,9 +159,11 @@ async function requireCanonicalDirectory(path, repositoryRoot = path) {
   }
   const canonical = await realpath(requested)
   const after = await lstat(canonical, { bigint: true })
+  const containmentRoot = samePath(requested, repositoryRoot)
+    ? canonical
+    : repositoryRoot
   if (
-    !samePath(requested, canonical) ||
-    !isInside(repositoryRoot, canonical) ||
+    !isInside(containmentRoot, canonical) ||
     after.isSymbolicLink() ||
     !after.isDirectory() ||
     before.dev !== after.dev ||
@@ -780,22 +800,6 @@ async function downloadReleaseAsset(
   let stderrBytes = 0
   let transferred = 0
   let overflow = false
-  const limiter = new Transform({
-    transform(chunk, _encoding, callback) {
-      transferred += chunk.length
-      if (transferred > expectedSizeInBytes) {
-        overflow = true
-        callback(
-          new HydrationError(
-            'GitHub Release asset exceeded its exact pointer size.'
-          )
-        )
-        child.kill()
-        return
-      }
-      callback(null, chunk)
-    },
-  })
   child.stderr.on('data', chunk => {
     stderrBytes += chunk.length
     if (stderrBytes > MaximumGhErrorBytes) {
@@ -807,16 +811,29 @@ async function downloadReleaseAsset(
   })
   let closed = false
   try {
-    const output = handle.createWriteStream({ autoClose: false })
     const childOutcome = new Promise((resolveOutcome, rejectOutcome) => {
       child.once('error', rejectOutcome)
       child.once('close', (code, signal) =>
         resolveOutcome({ code, signal })
       )
     })
+    const transfer = (async () => {
+      for await (const chunk of child.stdout) {
+        const nextTransferred = transferred + chunk.length
+        if (nextTransferred > expectedSizeInBytes) {
+          overflow = true
+          child.kill()
+          throw new HydrationError(
+            'GitHub Release asset exceeded its exact pointer size.'
+          )
+        }
+        await writeAll(handle, chunk, transferred)
+        transferred = nextTransferred
+      }
+    })()
     const [outcome] = await Promise.all([
       childOutcome,
-      pipeline(child.stdout, limiter, output),
+      transfer,
     ])
     if (
       overflow ||
@@ -1358,7 +1375,7 @@ async function main() {
   )
 }
 
-main().catch(error => {
+await main().catch(error => {
   const message =
     error instanceof Error ? error.message : 'Unknown Cheap LFS helper failure.'
   console.error('Cheap LFS hydration stopped: ' + message)

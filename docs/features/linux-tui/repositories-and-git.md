@@ -1,5 +1,9 @@
 # TUI repository and Git workflows
 
+> **Historical prototype record:** This page preserves the July 27, 2026 TUI
+> experiment. It is not current supported-product guidance or a Windows-release
+> blocker.
+
 ## Repository entry
 
 The repository rail supports:

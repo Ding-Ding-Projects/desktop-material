@@ -11,6 +11,7 @@ import {
   rm,
   stat,
   symlink,
+  truncate,
   writeFile,
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -79,6 +80,7 @@ import {
   truncateToUtf8ByteBudget,
   utf8ByteLength,
 } from '../../../src/lib/utf8-budget'
+import { isErrnoException } from '../../../src/lib/errno-exception'
 
 const selected = new Account(
   'selected',
@@ -405,6 +407,25 @@ async function withTempRepository(
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
+}
+
+const Issue96ReportedRawPayloadBytes = 55_581_030_080
+
+async function writeSparseInventoryFixture(
+  path: string,
+  prefix: string,
+  sizeInBytes: number = Issue96ReportedRawPayloadBytes
+): Promise<void> {
+  await writeFile(path, prefix, 'utf8')
+  if (process.platform === 'win32') {
+    // NTFS needs the sparse attribute before extension; otherwise this
+    // regression would reserve the issue's 50+ GiB logical payload on disk.
+    await execFile('fsutil', ['sparse', 'setflag', path], {
+      windowsHide: true,
+    })
+  }
+  await truncate(path, sizeInBytes)
+  assert.equal((await stat(path)).size, sizeInBytes)
 }
 
 /** True when a string survives a UTF-8 round trip with no substitutions. */
@@ -4410,6 +4431,11 @@ describe('cheap LFS operations', () => {
       await execFile('git', ['add', '--', 'registry.bin'], { cwd: dir })
       const stagedRaw = await listAllCheapLfsPointers(repository)
       assert.equal(
+        stagedRaw.find(entry => entry.relativePath === 'pointer-002.bin')
+          ?.workingTreeState,
+        'pointer'
+      )
+      assert.equal(
         stagedRaw.find(entry => entry.relativePath === 'registry.bin')
           ?.workingTreeState,
         'modified'
@@ -4504,10 +4530,7 @@ describe('cheap LFS operations', () => {
 
       const workingTree = await listAllCheapLfsPointers(repository)
       assert.deepEqual(
-        workingTree.map(entry => [
-          entry.relativePath,
-          entry.workingTreeState,
-        ]),
+        workingTree.map(entry => [entry.relativePath, entry.workingTreeState]),
         [['release.bin', 'materialized']]
       )
 
@@ -4694,7 +4717,142 @@ describe('cheap LFS operations', () => {
         scopedGlob.map(entry => entry.relativePath),
         ['glob[1].bin']
       )
+
+      await assert.rejects(
+        listAllCheapLfsPointers(repository, defaultCheapLfsFileSystem, [
+          '../outside-pointer.bin',
+        ]),
+        /unsafe Cheap LFS tracked path/
+      )
     })
+  })
+
+  it('skips a modified gitlink directory without opening it as pointer text', async () => {
+    await withTempRepository(async (dir, repository) => {
+      await execFile('git', ['init', '--quiet'], { cwd: dir })
+      const submodulePath = join(dir, 'submodule')
+      await mkdir(submodulePath)
+      await execFile('git', ['init', '--quiet'], { cwd: submodulePath })
+      await writeFile(join(submodulePath, 'readme.md'), 'submodule\n', 'utf8')
+      await execFile('git', ['add', '--all'], { cwd: submodulePath })
+      await execFile(
+        'git',
+        [
+          '-c',
+          'user.name=Cheap LFS Test',
+          '-c',
+          'user.email=cheap-lfs@example.test',
+          'commit',
+          '--quiet',
+          '-m',
+          'submodule',
+        ],
+        { cwd: submodulePath }
+      )
+      const submoduleHead = (
+        await execFile('git', ['rev-parse', 'HEAD'], { cwd: submodulePath })
+      ).stdout.trim()
+      await execFile(
+        'git',
+        [
+          'update-index',
+          '--add',
+          '--cacheinfo',
+          `160000,${submoduleHead},submodule`,
+        ],
+        { cwd: dir }
+      )
+      await execFile(
+        'git',
+        [
+          '-c',
+          'user.name=Cheap LFS Test',
+          '-c',
+          'user.email=cheap-lfs@example.test',
+          'commit',
+          '--quiet',
+          '-m',
+          'gitlink',
+        ],
+        { cwd: dir }
+      )
+      await writeFile(
+        join(submodulePath, 'readme.md'),
+        'modified submodule\n',
+        'utf8'
+      )
+      await execFile('git', ['add', '--all'], { cwd: submodulePath })
+      await execFile(
+        'git',
+        [
+          '-c',
+          'user.name=Cheap LFS Test',
+          '-c',
+          'user.email=cheap-lfs@example.test',
+          'commit',
+          '--quiet',
+          '-m',
+          'advance submodule',
+        ],
+        { cwd: submodulePath }
+      )
+      const changed = await execFile(
+        'git',
+        ['ls-files', '-m', '-o', '--exclude-standard'],
+        { cwd: dir }
+      )
+      assert.match(changed.stdout, /^submodule$/m)
+
+      assert.deepEqual(await listAllCheapLfsPointers(repository), [])
+      assert.deepEqual(
+        await listAllCheapLfsPointers(repository, defaultCheapLfsFileSystem, [
+          'submodule',
+        ]),
+        []
+      )
+    })
+  })
+
+  it('never follows a selected symlink while classifying pointer headers', async t => {
+    const outside = await mkdtemp(join(tmpdir(), 'cheeplfs-outside-'))
+    try {
+      await withTempRepository(async (dir, repository) => {
+        await execFile('git', ['init', '--quiet'], { cwd: dir })
+        const pointerText = serializeCheapLfsPointer({
+          version: CHEAP_LFS_POINTER_VERSION,
+          releaseTag: 'assets',
+          assetName: 'outside.bin',
+          sizeInBytes: 10,
+          sha256: 'b'.repeat(64),
+        })
+        const outsidePath = join(outside, 'outside.ptr')
+        const linkedPath = join(dir, 'linked.ptr')
+        await writeFile(outsidePath, pointerText, 'utf8')
+        try {
+          await symlink(outsidePath, linkedPath, 'file')
+        } catch (error) {
+          if (
+            process.platform === 'win32' &&
+            isErrnoException(error) &&
+            error.code === 'EPERM'
+          ) {
+            t.skip('Windows symlink creation is unavailable.')
+            return
+          }
+          throw error
+        }
+
+        assert.deepEqual(await listAllCheapLfsPointers(repository), [])
+        assert.deepEqual(
+          await listAllCheapLfsPointers(repository, defaultCheapLfsFileSystem, [
+            'linked.ptr',
+          ]),
+          []
+        )
+      })
+    } finally {
+      await rm(outside, { recursive: true, force: true })
+    }
   })
 
   it('excludes oversized raw working-tree files before asking Git to grep them', async () => {
@@ -4708,14 +4866,24 @@ describe('cheap LFS operations', () => {
         sha256: 'b'.repeat(64),
       })
       await writeFile(join(dir, 'pointer.bin'), pointerText, 'utf8')
-      await writeFile(
+      await writeSparseInventoryFixture(
         join(dir, 'raw-model.gguf'),
-        Buffer.alloc(CHEAP_LFS_OCI_MAXIMUM_POINTER_TEXT_BYTES + 1, 7)
+        'GGUF raw model fixture\n'
       )
 
       const all = await listAllCheapLfsPointers(repository)
       assert.deepEqual(
         all.map(entry => entry.relativePath),
+        ['pointer.bin']
+      )
+
+      const scopedMixed = await listAllCheapLfsPointers(
+        repository,
+        defaultCheapLfsFileSystem,
+        ['pointer.bin', 'raw-model.gguf']
+      )
+      assert.deepEqual(
+        scopedMixed.map(entry => entry.relativePath),
         ['pointer.bin']
       )
 
@@ -4725,6 +4893,41 @@ describe('cheap LFS operations', () => {
         ['raw-model.gguf']
       )
       assert.deepEqual(scopedRaw, [])
+    })
+  })
+
+  it('routes reported-size pointer-looking files to bounded rejection without Git grep', async () => {
+    await withTempRepository(async (dir, repository) => {
+      await execFile('git', ['init', '--quiet'], { cwd: dir })
+      const tracePath = join(dir, '.git', 'issue-96-git-trace.json')
+      await writeSparseInventoryFixture(
+        join(dir, 'oversized.ptr'),
+        `version ${CHEAP_LFS_OCI_POINTER_VERSION}\n${'x'.repeat(512)}`
+      )
+
+      const expected =
+        /Tracked Cheap LFS pointer oversized\.ptr exceeds the bounded pointer format limit/
+      const previousTrace = process.env.GIT_TRACE2_EVENT
+      process.env.GIT_TRACE2_EVENT = tracePath
+      try {
+        await assert.rejects(listAllCheapLfsPointers(repository), expected)
+        await assert.rejects(
+          listAllCheapLfsPointers(repository, defaultCheapLfsFileSystem, [
+            'oversized.ptr',
+          ]),
+          expected
+        )
+      } finally {
+        if (previousTrace === undefined) {
+          delete process.env.GIT_TRACE2_EVENT
+        } else {
+          process.env.GIT_TRACE2_EVENT = previousTrace
+        }
+      }
+
+      const trace = await readFile(tracePath, 'utf8')
+      assert.match(trace, /"argv":\[[^\r\n]*"ls-files"/)
+      assert.doesNotMatch(trace, /"argv":\[[^\r\n]*"grep"[^\r\n]*"--untracked"/)
     })
   })
 

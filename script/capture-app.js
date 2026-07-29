@@ -508,6 +508,113 @@ async function captureWindowPixels(electronApp, outPath) {
 }
 
 /**
+ * Reject visible personal data or credentials before any screenshot API runs.
+ *
+ * The thrown error identifies only the class of violation. It deliberately
+ * never includes the matched text, field value, URL, or filesystem path.
+ */
+function assertCapturePrivacy(captureName, evidence) {
+  const text = typeof evidence?.text === 'string' ? evidence.text : ''
+  const fields = Array.isArray(evidence?.fields) ? evidence.fields : []
+  const attributes = Array.isArray(evidence?.attributes)
+    ? evidence.attributes
+    : []
+  const visibleValues = fields
+    .map(field => (typeof field?.value === 'string' ? field.value : ''))
+    .join('\n')
+  const corpus = [text, visibleValues, ...attributes].join('\n')
+  const fail = kind => {
+    throw new Error(`Capture ${captureName} failed privacy gate (${kind})`)
+  }
+
+  if (
+    /(?:\b[A-Z]:[\\/](?:Users|Documents and Settings)[\\/]|ADMINI~1|(?:^|[\\/])AppData[\\/])/im.test(
+      corpus
+    )
+  ) {
+    fail('private-path')
+  }
+  if (
+    /\b(?:gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,})\b/i.test(
+      corpus
+    ) ||
+    /(?:authorization\s*:\s*(?:bearer|basic)|\bbearer\s+[A-Za-z0-9._~+/-]{12,}={0,2}\b|[?&](?:access_token|token)=)/i.test(
+      corpus
+    )
+  ) {
+    fail('credential')
+  }
+
+  const emails =
+    corpus.match(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi) ?? []
+  if (emails.some(email => !email.toLowerCase().endsWith('@example.invalid'))) {
+    fail('personal-email')
+  }
+  if (
+    fields.some(
+      field =>
+        String(field?.type ?? '').toLowerCase() === 'password' &&
+        typeof field?.value === 'string' &&
+        field.value.length > 0
+    )
+  ) {
+    fail('password-field')
+  }
+
+  return Object.freeze({
+    passed: true,
+    checkedTextCharacters: text.length,
+    checkedFieldCount: fields.length,
+    checkedAttributeCount: attributes.length,
+  })
+}
+
+/** Collect only visible renderer evidence used by the pre-capture privacy gate. */
+async function collectCapturePrivacyEvidence(page) {
+  return page.evaluate(() => {
+    const isVisible = element => {
+      const style = window.getComputedStyle(element)
+      return (
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        Number(style.opacity) !== 0 &&
+        element.getClientRects().length > 0
+      )
+    }
+
+    const fields = Array.from(document.querySelectorAll('input, textarea'))
+      .filter(isVisible)
+      .map(field => ({
+        type:
+          field instanceof HTMLInputElement
+            ? field.type.toLowerCase()
+            : 'textarea',
+        value: field.value,
+      }))
+    const attributes = Array.from(
+      document.querySelectorAll('[title], [href], [src]')
+    )
+      .filter(isVisible)
+      .flatMap(element =>
+        ['title', 'href', 'src']
+          .map(name => element.getAttribute(name))
+          .filter(
+            value =>
+              typeof value === 'string' &&
+              value.length > 0 &&
+              !/^file:.*[\\/]out[\\/]static[\\/]/i.test(value)
+          )
+      )
+
+    return {
+      text: document.body?.innerText ?? '',
+      fields,
+      attributes,
+    }
+  })
+}
+
+/**
  * Lower the window's own minimum size so a later `resize:` can genuinely reach
  * a smaller viewport. The app ships a 960×660 floor, which is exactly the size
  * the small-window screenshots are supposed to prove — and a `setContentSize`
@@ -980,6 +1087,10 @@ async function captureApp(options) {
         : options.settleMilliseconds
     )
 
+    const privacyReceipt = assertCapturePrivacy(
+      path.basename(outPath),
+      await collectCapturePrivacyEvidence(page)
+    )
     fs.mkdirSync(path.dirname(outPath), { recursive: true })
 
     // A window small enough for the app to auto-fit its zoom no longer has a
@@ -1011,6 +1122,7 @@ async function captureApp(options) {
       overflowVisible,
       capturedVia: useWindowPixels ? 'window-pixels' : 'page-screenshot',
       devicePixelRatio,
+      privacyReceipt,
       // Playwright's viewportSize() is null for an Electron page, so ask the
       // renderer for the size that was actually captured.
       viewport: await page.evaluate(
@@ -1074,7 +1186,9 @@ async function main() {
 }
 
 module.exports = {
+  assertCapturePrivacy,
   captureApp,
+  collectCapturePrivacyEvidence,
   createCaptureRepositories,
   parseCaptureArguments,
   parseSize,

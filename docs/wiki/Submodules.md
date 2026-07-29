@@ -146,16 +146,17 @@ saved repository list. If a child becomes unsafe after it is already open,
 Desktop Material clears that temporary context, returns to the saved root, and
 shows a localized error instead of continuing to use the stale worktree.
 
-Right-click the actual Back control, or press `Shift+F10` while it is focused,
-to open that element's editor beside it. You can make it **Tonal**, **Filled
-accent**, or **Outlined**, and label it **Back to parent**, with the parent
-name, or as an icon only. The icon-only choice still has an accessible name
-that says where it goes. Repository Settings shows the same Back preview;
-right-clicking that preview opens the same anchored editor, but its changes are
-staged until you press **Save**. The general Appearance page keeps only the
-ordinary language, theme, scale, and layout preferences. The Back owner has its
-own local Git repository and **History** action; undo, redo, and restore affect
-only its style and label and append audit commits.
+`Shift`+right-click the actual Back control, or focus it and press the Context
+Menu key or `Shift+F10`, to open that element's editor beside it. You can make
+it **Tonal**, **Filled accent**, or **Outlined**, and label it **Back to
+parent**, with the parent name, or as an icon only. The icon-only choice still
+has an accessible name that says where it goes. Repository Settings shows the
+same Back preview; `Shift`+right-clicking that preview opens the same anchored
+editor, but its changes are staged until you press **Save**. The general
+Appearance page keeps only the ordinary language, theme, scale, and layout
+preferences. The Back owner has its own local Git repository and **History**
+action; undo, redo, and restore affect only its style and label and append audit
+commits.
 
 Temporary mode is intentionally inspection-first. Repository Tools remains
 available for safe reading, while branch/tag/stash/history rewrites, remotes,

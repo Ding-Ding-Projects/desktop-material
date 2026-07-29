@@ -15,22 +15,13 @@ safe Git loop, short-lived branches, conflict resolution, rebase, stash recovery
 automation, and account isolation. The diagrams are reproducible with
 `node script/generate-wiki-diagrams.js`.
 
-## Linux-first terminal edition
+## Historical Linux terminal captures
 
-These are original-resolution captures of the packaged Python wheel running in
-a real mouse-reporting Debian terminal on an off-screen X display.
-
-<!-- markdownlint-disable MD013 -->
-
-| Changes and editable text | Clickable Cheap LFS manager |
-| --- | --- |
-| <img src="../assets/screenshots/linux-tui-text-input.png" alt="Linux terminal edition with a clicked commit summary Input and a two-line editable TextArea" width="520"><br><sub>Mouse focus · Input · multiline TextArea</sub> | <img src="../assets/screenshots/linux-tui-cheap-lfs.png" alt="Linux terminal Cheap LFS manager with pointer and oversized-file rows, editable path tag and repository fields, and a local preview plan" width="520"><br><sub>Windows-compatible v1 pointers · safe preview</sub> |
-
-| Live RE2 builder | Bilingual narrow layout |
-| --- | --- |
-| <img src="../assets/screenshots/linux-tui-regex-builder.png" alt="Linux terminal RE2 builder with an editable pattern, multiline sample, case-insensitive flag, two matches, and capture groups" width="520"><br><sub>RE2 flags · live matches · capture groups</sub> | <img src="../assets/screenshots/linux-tui-bilingual-narrow.png" alt="Compact bilingual Desktop Material terminal layout with abbreviated tabs and unclipped primary controls" width="520"><br><sub>English plus playful Hong Kong Cantonese · 100-column layout</sub> |
-
-<!-- markdownlint-enable MD013 -->
+Five original-resolution Debian/Xvfb captures remain preserved with their
+[dated run manifest](../verification/linux-tui-2026-07-27/run-manifest.md).
+They are historical evidence, not current Windows screenshots, and are
+therefore excluded from the 84-scene guided-gallery target, Pages manifest,
+and current refresh campaign.
 
 ## Inherited external-UI assets — excluded from the capture mandate
 
@@ -75,7 +66,7 @@ justification rather than leaving it to be mistaken for a stale app capture.
 
 | Live Cheap LFS pin and restore | Live cloud compression |
 | --- | --- |
-| <img src="../assets/screenshots/cheap-lfs-ui-acceptance.png" alt="Cheap LFS manager after a live private-repository UI pin with one verified pointer and its Materialize action" width="520"><br><sub>Public/private live GitHub · native picker · pushed pointer history</sub> | <img src="../assets/screenshots/cheap-lfs-cloud-compression.png" alt="Bilingual private-repository Cheap LFS manager with explicit cloud-compression consent and a compressed pointer row" width="520"><br><sub>Private opt-in · 99.9% smaller · local verified materialization</sub> |
+| <img src="../assets/screenshots/cheap-lfs-ui-acceptance.png" alt="Cheap LFS manager after a live private-repository UI pin with one verified pointer and its Materialize action" width="520"><br><sub>Public/private live GitHub · native picker · pushed pointer history</sub> | <img src="../assets/screenshots/cheap-lfs-cloud-compression.png" alt="Bilingual private-repository Cheap LFS manager with persisted cloud-compression consent, encrypted public-builder routing, and a verified 99.9%-compressed pointer row" width="520"><br><sub>Private opt-in · no private workflow · 99.9% smaller</sub> |
 
 | Detailed Cheap LFS commit progress | Compact Repository Releases at 200% |
 | --- | --- |
@@ -87,9 +78,9 @@ justification rather than leaving it to be mistaken for a stale app capture.
 
 <!-- markdownlint-disable MD013 -->
 
-| Cross-lane automatic update recovery |
+| Historical cross-lane automatic update recovery |
 | --- |
-| <img src="../assets/screenshots/auto-updater-update-ready.png" alt="About Desktop Material showing a newer alphabetic-z update ready for a legacy Super Express installation" width="720"><br><sub>Legacy s lane → shared z lane · real Squirrel download · ready to install</sub> |
+| <img src="https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/923dbb51acad8f01f01f1c100c6945c7a2e08e23/docs/assets/screenshots/auto-updater-update-ready.png" alt="Historical About Desktop Material frame showing a newer alphabetic-z update ready for a legacy Super Express installation" width="720"><br><sub>Immutable July 22 evidence · legacy s lane → shared z lane · real Squirrel download</sub> |
 
 <!-- markdownlint-enable MD013 -->
 
@@ -97,15 +88,17 @@ Cheap LFS can now install a reviewed, SHA-pinned GitHub Actions caller that
 compresses Release objects sequentially without Actions artifacts or caches.
 For a confirmed-public repository, Desktop Material automatically prepares the
 owned caller in Changes; it starts running only after the user reviews, commits,
-and pushes that workflow. Private repositories stay off until the user opts in,
-then follow the same reviewed commit/push boundary. Failed or non-beneficial
-objects keep their exact raw pointer and asset, while successful objects become
-backward-compatible `part-deflate` records. Decompression always happens
-locally in Desktop Material with bounded expansion plus original part and
-whole-file SHA-256 verification. Live public and private Actions converted
-separate 1 MiB objects to verified 1,033-byte side assets while retaining their
-raw historical assets; both compressed pointers restored to the exact original
-bytes through the app.
+and pushes that workflow. Private repositories stay off until the user opts in;
+that persisted consent installs no private-repository workflow and spends no
+private Actions minutes, routing compression through the encrypted public
+builder instead. Failed or non-beneficial objects keep their exact raw pointer
+and asset, while successful objects become backward-compatible `part-deflate`
+records. Decompression always happens locally in Desktop Material with bounded
+expansion plus original part and whole-file SHA-256 verification. The historical
+2026-07-22 public and private Actions acceptance converted separate 1 MiB
+objects to verified 1,033-byte side assets while retaining their raw historical
+assets; both compressed pointers restored to the exact original bytes through
+the app.
 
 | Repository workflows | GitHub workflows | Accessibility and shell |
 | --- | --- | --- |

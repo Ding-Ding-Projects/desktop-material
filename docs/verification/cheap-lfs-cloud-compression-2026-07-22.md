@@ -6,6 +6,16 @@ This receipt covers the public-auto/private-opt-in cloud-compression policy,
 one-object-at-a-time GitHub Actions implementation, automatic pointer adoption,
 failure-safe raw fallback, and local-only Desktop Material decompression.
 
+> **Current-state clarification (2026-07-28):** This dated receipt and its
+> screenshot faithfully preserve the 2026-07-22 build, when private opt-in added
+> an in-repository caller. Current builds install no workflow in a private
+> repository and spend none of its Actions minutes; persisted private opt-in
+> routes compression through the encrypted public builder instead. The
+> historical result below is unchanged and is not the current gallery capture
+> target.
+
+![Historical private-caller cloud-compression acceptance at immutable source commit f7b4760a13894f0320f7b361f055f6fba40d913f](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/f7b4760a13894f0320f7b361f055f6fba40d913f/docs/assets/screenshots/cheap-lfs-cloud-compression.png)
+
 ## Contract
 
 - Public repositories install an automatic caller after GitHub visibility is
@@ -106,9 +116,13 @@ The accepted original-resolution frame shows bilingual mode, private explicit
 consent, the ready managed workflow notice, and a compressed row reporting
 99.9% savings:
 
-| Capture | Dimensions | Bytes | SHA-256 |
+The table identifies the immutable blob at
+`f7b4760a13894f0320f7b361f055f6fba40d913f`; the mutable `main` gallery path
+is not evidence for this dated hash.
+
+| Immutable capture blob | Dimensions | Bytes | SHA-256 |
 | --- | ---: | ---: | --- |
-| `docs/assets/screenshots/cheap-lfs-cloud-compression.png` | 960×660 | 105,577 | `9449e50f60cd298e9cc261e9044fc0cd93706a8e9f243dcceb88d63b6df9ab8d` |
+| [`cheap-lfs-cloud-compression.png` at `f7b4760a13894f0320f7b361f055f6fba40d913f`](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/f7b4760a13894f0320f7b361f055f6fba40d913f/docs/assets/screenshots/cheap-lfs-cloud-compression.png) | 960×660 | 105,577 | `9449e50f60cd298e9cc261e9044fc0cd93706a8e9f243dcceb88d63b6df9ab8d` |
 
 The frame was inspected at original pixels and contains no credential, token,
 local filesystem path, signed URL, or unrelated private content.

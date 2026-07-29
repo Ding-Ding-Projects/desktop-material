@@ -119,6 +119,29 @@ describe('list row focus tooltip performance', () => {
     assert.equal(widthReads, 1)
   })
 })
+interface IDisconnectableTooltipFixtureProps {
+  readonly showTarget: boolean
+}
+
+/** Keep the Tooltip mounted while its transient target leaves the document. */
+class DisconnectableTooltipFixture extends React.Component<IDisconnectableTooltipFixtureProps> {
+  private readonly target = createObservableRef<HTMLButtonElement>()
+
+  public render() {
+    return (
+      <>
+        {this.props.showTarget ? (
+          <button ref={this.target} type="button">
+            Transient action
+          </button>
+        ) : null}
+        <Tooltip target={this.target} openOnFocus={true}>
+          Transient action
+        </Tooltip>
+      </>
+    )
+  }
+}
 
 describe('tooltip viewport containment', () => {
   it('dismisses stale body and host portals after the viewport changes', t => {
@@ -254,5 +277,41 @@ describe('tooltip viewport containment', () => {
       windowRect
     )
     assert.deepEqual([untouched.left, untouched.top], [809, 110])
+  })
+
+  it('cancels a pending tooltip when its target is removed', async t => {
+    enableTestTimers(['setTimeout'])
+    t.after(resetTestTimers)
+
+    const view = render(<DisconnectableTooltipFixture showTarget={true} />)
+    const target = screen.getByRole('button', { name: 'Transient action' })
+    fireEvent.focusIn(target)
+    view.rerender(<DisconnectableTooltipFixture showTarget={false} />)
+
+    await Promise.resolve()
+    await Promise.resolve()
+    advanceTimersBy(500)
+
+    assert.equal(screen.queryByRole('tooltip', { hidden: true }), null)
+    assert.equal(target.getAttribute('data-tooltip-target'), null)
+  })
+
+  it('dismisses a visible tooltip when its target is removed without blur or mouseout', async t => {
+    enableTestTimers(['setTimeout'])
+    t.after(resetTestTimers)
+
+    const view = render(<DisconnectableTooltipFixture showTarget={true} />)
+    const target = screen.getByRole('button', { name: 'Transient action' })
+    fireEvent.focusIn(target)
+    advanceTimersBy(400)
+    assert.ok(screen.getByRole('tooltip', { hidden: true }))
+
+    view.rerender(<DisconnectableTooltipFixture showTarget={false} />)
+    await Promise.resolve()
+    await Promise.resolve()
+
+    assert.equal(screen.queryByRole('tooltip', { hidden: true }), null)
+    assert.equal(target.getAttribute('data-tooltip-target'), null)
+    assert.equal(target.getAttribute('aria-describedby'), null)
   })
 })

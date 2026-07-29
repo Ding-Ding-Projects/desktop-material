@@ -40,6 +40,7 @@ export type ExceptionKinds =
   | 'unhandledRejection'
   | 'reactErrorBoundary'
   | 'startupInitialization'
+  | 'deferredStartup'
   | 'rebaseConflictsWithBranchAlreadyUpToDate'
   | 'forkCreation'
   | 'NoSuggestedActionsProvided'

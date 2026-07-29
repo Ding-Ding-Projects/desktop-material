@@ -54,7 +54,11 @@ describe('repository section navigation source contract', () => {
     // renders it through its deferred module rather than a static element.
     assert.match(
       repositorySource,
-      /selectedSection === RepositorySectionTab\.CheapLfs[\s\S]*?view=\{CheapLfsModule\}/
+      /selectedSection === RepositorySectionTab\.CheapLfs[\s\S]*?<LazyView<CheapLfsModule>[\s\S]*?render=\{this\.renderCheapLfsModule\}/
+    )
+    assert.match(
+      repositorySource,
+      /renderCheapLfsModule[\s\S]*?<module\.CheapLfs/
     )
     assert.match(repositorySource, /className="cheap-lfs-manager-view"/)
     assert.match(

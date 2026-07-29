@@ -61,7 +61,12 @@ import {
   persistFilterMode,
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
-import { t } from '../../lib/i18n'
+import { getPersistedLanguageMode, t } from '../../lib/i18n'
+import {
+  readFunnyLevels,
+  translateWithFunnyLevel,
+} from '../../lib/funny-level-text'
+import { ProgressiveLoadState } from '../../lib/progressive-load'
 import { GitHubProjectsWorkspace } from '../github-projects'
 import {
   GitHubAPIExplorer,
@@ -471,6 +476,12 @@ export interface IRepositoryToolsProps {
    */
   readonly submoduleCount?: number | null
 
+  /** Deferred submodule inventory state, including a retained safe count. */
+  readonly submoduleInventoryState?: ProgressiveLoadState<number>
+
+  /** Retry the local submodule inventory without leaving this surface. */
+  readonly onRetrySubmoduleInventory?: () => void
+
   /** Opens the standalone submodule manager for this repository. */
   readonly onOpenSubmoduleManager?: () => void
 
@@ -479,6 +490,12 @@ export interface IRepositoryToolsProps {
    * unknown. The subtree manager entry is listed only for a positive count.
    */
   readonly subtreeCount?: number | null
+
+  /** Deferred subtree inventory state, including a retained safe count. */
+  readonly subtreeInventoryState?: ProgressiveLoadState<number>
+
+  /** Retry the local subtree inventory without leaving this surface. */
+  readonly onRetrySubtreeInventory?: () => void
 
   /** Opens the standalone subtree manager for this repository. */
   readonly onOpenSubtreeManager?: () => void
@@ -567,7 +584,6 @@ export class RepositoryTools extends React.Component<
   private unsubscribeOutput: (() => void) | null = null
   private unsubscribeState: (() => void) | null = null
   private confirmButton: HTMLButtonElement | null = null
-  private hubSearchInput: HTMLInputElement | null = null
   private archiveRunDestination: string | null = null
   private readonly operationHandlers = new WeakMap<
     IRepositoryToolOperation,
@@ -644,7 +660,6 @@ export class RepositoryTools extends React.Component<
     this.unsubscribeOutput = this.client.onOutput(this.onOutput)
     this.unsubscribeState = this.client.onState(this.onState)
     void this.loadAvailability()
-    this.hubSearchInput?.focus()
   }
 
   public componentDidUpdate(prevProps: IRepositoryToolsProps) {
@@ -676,6 +691,18 @@ export class RepositoryTools extends React.Component<
         toolFilter: '',
         toolCategory: 'All',
         selectedTool: DefaultHubTool,
+      })
+    } else if (
+      !this.getAllHubEntries().some(
+        entry => entry.id === this.state.selectedTool
+      )
+    ) {
+      // A deferred inventory can remove a gated entry after it was selected
+      // (for example, a cached positive submodule count refreshing to zero).
+      // Keep the navigation and detail pane on a real, focusable catalog item.
+      this.setState({
+        selectedTool: DefaultHubTool,
+        toolCategory: 'All',
       })
     }
   }
@@ -784,10 +811,6 @@ export class RepositoryTools extends React.Component<
     this.confirmButton = button
   }
 
-  private setHubSearchInput = (input: HTMLInputElement | null) => {
-    this.hubSearchInput = input
-  }
-
   private onHubFilterChanged = (event: React.FormEvent<HTMLInputElement>) => {
     this.setState({ toolFilter: event.currentTarget.value })
   }
@@ -840,10 +863,23 @@ export class RepositoryTools extends React.Component<
    * so a positive count is not required), and the cheap-LFS panel for GitHub
    * repositories.
    */
+  private get submoduleCount(): number | null | undefined {
+    return this.props.submoduleInventoryState !== undefined
+      ? this.props.submoduleInventoryState.value
+      : this.props.submoduleCount
+  }
+
+  private get subtreeCount(): number | null | undefined {
+    return this.props.subtreeInventoryState !== undefined
+      ? this.props.subtreeInventoryState.value
+      : this.props.subtreeCount
+  }
+
   private getAllHubEntries(): ReadonlyArray<IRepositoryToolsHubEntry> {
-    const { submoduleCount, onOpenSubmoduleManager } = this.props
+    const { onOpenSubmoduleManager } = this.props
     const { onOpenSubtreeManager } = this.props
     const { cheapLfs } = this.props
+    const submoduleCount = this.submoduleCount
     const submodulesHidden =
       onOpenSubmoduleManager === undefined ||
       submoduleCount === undefined ||
@@ -1469,6 +1505,107 @@ export class RepositoryTools extends React.Component<
     )
   }
 
+  private renderInventoryStatus(
+    kind: 'submodule' | 'subtree',
+    name: string,
+    state: ProgressiveLoadState<number> | undefined,
+    retry: (() => void) | undefined
+  ): JSX.Element | null {
+    if (state === undefined || state.kind === 'ready') {
+      return null
+    }
+
+    const languageMode = getPersistedLanguageMode()
+    const funnyLevels = readFunnyLevels()
+    if (state.kind === 'failed') {
+      return (
+        <section
+          className="repository-tools-inventory-status failed"
+          data-inventory={kind}
+          role="alert"
+        >
+          <div>
+            <strong>{t('lazyView.failedTitle', { name })}</strong>
+            <p>
+              {translateWithFunnyLevel(
+                'lazyView.failedBody',
+                languageMode,
+                funnyLevels,
+                { name }
+              )}
+            </p>
+            <p className="repository-tools-inventory-error">
+              {t('lazyView.failedDetail', { error: state.error.message })}
+            </p>
+          </div>
+          {retry !== undefined && (
+            <Button
+              type="button"
+              ariaLabel={`${t('lazyView.retry')}: ${name}`}
+              onClick={retry}
+            >
+              {t('lazyView.retry')}
+            </Button>
+          )}
+        </section>
+      )
+    }
+
+    return (
+      <section
+        className="repository-tools-inventory-status loading"
+        data-inventory={kind}
+        role="status"
+        aria-live="polite"
+        aria-busy={true}
+      >
+        <p>
+          {translateWithFunnyLevel(
+            'lazyView.loading',
+            languageMode,
+            funnyLevels,
+            { name }
+          )}
+        </p>
+      </section>
+    )
+  }
+
+  private renderInventoryStatuses(): React.ReactNode {
+    return (
+      <div className="repository-tools-inventory-statuses">
+        {this.renderInventoryStatus(
+          'submodule',
+          t('submodule.title'),
+          this.props.submoduleInventoryState,
+          this.props.onRetrySubmoduleInventory
+        )}
+        {this.renderInventoryStatus(
+          'subtree',
+          t('subtree.title'),
+          this.props.subtreeInventoryState,
+          this.props.onRetrySubtreeInventory
+        )}
+      </div>
+    )
+  }
+
+  private getPendingInventoryCopy(
+    name: string,
+    state: ProgressiveLoadState<number> | undefined
+  ): string {
+    if (state?.kind === 'failed') {
+      return t('lazyView.failedTitle', { name })
+    }
+
+    return translateWithFunnyLevel(
+      'lazyView.loading',
+      getPersistedLanguageMode(),
+      readFunnyLevels(),
+      { name }
+    )
+  }
+
   private renderCategoryHeader(
     category: RepositoryToolsHubCategory,
     titleId: string
@@ -1562,7 +1699,8 @@ export class RepositoryTools extends React.Component<
   }
 
   private renderSubmoduleManager() {
-    const { submoduleCount, onOpenSubmoduleManager } = this.props
+    const { onOpenSubmoduleManager } = this.props
+    const submoduleCount = this.submoduleCount
     if (
       onOpenSubmoduleManager === undefined ||
       submoduleCount === undefined ||
@@ -1614,12 +1752,14 @@ export class RepositoryTools extends React.Component<
   }
 
   private renderSubtreeManager() {
-    const { subtreeCount, onOpenSubtreeManager } = this.props
+    const { onOpenSubtreeManager } = this.props
+    const subtreeCount = this.subtreeCount
     if (onOpenSubtreeManager === undefined) {
       return null
     }
 
     const hasSubtrees = typeof subtreeCount === 'number' && subtreeCount > 0
+    const hasKnownEmptyInventory = subtreeCount === 0
 
     return (
       <section
@@ -1649,12 +1789,17 @@ export class RepositoryTools extends React.Component<
                     changes back, split a prefix into its own branch, or add
                     another subtree.
                   </>
-                ) : (
+                ) : hasKnownEmptyInventory ? (
                   <>
                     No subtrees yet. Open the manager to vendor a folder from
                     another repository as your first subtree, then pull, push,
                     or split it in place.
                   </>
+                ) : (
+                  this.getPendingInventoryCopy(
+                    t('subtree.title'),
+                    this.props.subtreeInventoryState
+                  )
                 )}
               </p>
               {this.renderDetailChips(
@@ -2383,7 +2528,6 @@ export class RepositoryTools extends React.Component<
             aria-label="Search tools"
             value={this.state.toolFilter}
             onChange={this.onHubFilterChanged}
-            ref={this.setHubSearchInput}
           />
           <FilterModeControl
             searchSurfaceId="repository-tools"
@@ -2517,6 +2661,7 @@ export class RepositoryTools extends React.Component<
               {this.temporaryToolsReadOnlyMessage}
             </p>
           )}
+          {this.renderInventoryStatuses()}
           <div className="repository-tools-layout">
             {this.renderSidebar()}
             {this.renderDetail()}

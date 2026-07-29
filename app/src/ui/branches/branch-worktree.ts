@@ -8,7 +8,10 @@ import { WorktreeEntry } from '../../models/worktree'
  * and ignore separator/trailing-slash differences.
  */
 function normalizeWorktreePath(path: string): string {
-  return path.replace(/[\\/]+/g, '/').replace(/\/+$/, '').toLowerCase()
+  return path
+    .replace(/[\\/]+/g, '/')
+    .replace(/\/+$/, '')
+    .toLowerCase()
 }
 
 /**

@@ -1,61 +1,66 @@
 // Local progress and failure states for a deferred surface (see
 // app/src/ui/lib/lazy-view.tsx).
 //
-// These occupy exactly the space the real surface will, so nothing around them
-// jumps when the module lands. They are never modal and never take focus: the
-// window's chrome, sidebar and every other tab stay usable while one surface
-// is still loading or has failed.
+// These occupy the real surface's space, remain non-modal, and never take
+// focus, so the window chrome and every other tab stay usable while one
+// surface is loading or has failed.
 .lazy-view {
   display: flex;
   flex: 1 1 auto;
   min-width: 0;
   min-height: 0;
-  flex-direction: column;
+  box-sizing: border-box;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-half);
-  padding: var(--spacing-double);
-  text-align: center;
+  gap: var(--spacing);
+  padding: var(--spacing-triple);
+  color: var(--md-sys-color-on-surface-variant);
   background: var(--md-sys-color-surface);
-  color: var(--md-sys-color-on-surface);
+  text-align: center;
+
+  p {
+    margin: 0;
+  }
 
   .lazy-view-message {
-    margin: 0;
     max-width: 46ch;
     font-size: var(--font-size-sm);
     line-height: 1.55;
-    color: var(--md-sys-color-on-surface-variant);
   }
 }
 
 .lazy-view-loading {
-  .lazy-view-spinner {
-    color: var(--md-sys-color-primary);
-    animation: lazyViewSpin 1.1s linear infinite;
-  }
+  flex-direction: row;
+}
+
+.lazy-view-spinner {
+  display: inline-flex;
+  color: var(--md-sys-color-primary);
 }
 
 .lazy-view-failed {
-  .lazy-view-icon {
-    color: var(--md-sys-color-error);
-  }
+  flex-direction: column;
 
   .lazy-view-title {
     margin: 0;
-    font-size: var(--font-size-md);
-    font-weight: var(--font-weight-semibold);
     color: var(--md-sys-color-on-surface);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
   }
 
   // The reported error is the fact the user needs in order to act on the
   // failure, so it is shown verbatim rather than being paraphrased away.
-  .lazy-view-detail {
-    margin: 0;
-    max-width: 60ch;
+  .lazy-view-error-detail {
+    max-width: min(42rem, 100%);
+    max-height: 8em;
+    overflow: auto;
+    padding: var(--spacing);
+    border-radius: var(--border-radius);
+    color: var(--md-sys-color-on-error-container);
+    background: var(--md-sys-color-error-container);
     font-family: var(--font-family-monospace);
     font-size: var(--font-size-xs);
     line-height: 1.5;
-    color: var(--md-sys-color-on-surface-variant);
     overflow-wrap: anywhere;
   }
 
@@ -64,24 +69,43 @@
   }
 }
 
-@keyframes lazyViewSpin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
+.startup-progress {
+  position: absolute;
+  z-index: 1001;
+  top: var(--spacing);
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-half);
+  max-width: calc(100% - var(--spacing-double));
+  padding: var(--spacing-half) var(--spacing);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface);
+  background: var(--md-sys-color-surface-container-high);
+  box-shadow: var(--md-sys-elevation-level2);
+  font-size: var(--font-size-sm);
+  pointer-events: none;
+  transform: translateX(-50%);
 }
 
-// The shell already neutralizes animation globally under reduced motion; this
-// states it locally too so the spinner cannot outlive that guard.
+.startup-shell {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  background: var(--md-sys-color-surface);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .lazy-view-loading .lazy-view-spinner {
+  .lazy-view-spinner .spin {
     animation: none;
   }
 }
 
-body[data-dm-motion='reduced'] .lazy-view-loading .lazy-view-spinner {
+body[data-dm-motion='reduced'] .lazy-view-spinner .spin {
   animation: none;
 }

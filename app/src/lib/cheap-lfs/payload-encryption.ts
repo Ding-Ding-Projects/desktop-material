@@ -653,6 +653,36 @@ export async function decryptCheapLfsPayload(
 }
 
 /**
+ * Prove the complete production cipher/KDF path before a repository enables
+ * encryption. The random test block never leaves memory, and every copy is
+ * cleared after the authenticated round trip.
+ */
+export async function verifyCheapLfsEncryptionSecret(
+  secret: CheapLfsEncryptionSecret,
+  kdf: ICheapLfsKdfParameters = defaultCheapLfsKdfParameters
+): Promise<void> {
+  const testBlock = randomBytes(64)
+  let encrypted: Buffer | undefined
+  let decrypted: Buffer | undefined
+  try {
+    encrypted = await encryptCheapLfsPayload(testBlock, secret, kdf)
+    decrypted = await decryptCheapLfsPayload(encrypted, secret)
+    if (
+      decrypted.length !== testBlock.length ||
+      !timingSafeEqual(decrypted, testBlock)
+    ) {
+      throw new CheapLfsEncryptionError(
+        'Cheap LFS could not verify this password with an authenticated test block. Encryption remains off.'
+      )
+    }
+  } finally {
+    testBlock.fill(0)
+    encrypted?.fill(0)
+    decrypted?.fill(0)
+  }
+}
+
+/**
  * Stream-encrypt exactly one plaintext range into a new container file.
  *
  * The destination is created exclusively and deleted on every failure. A

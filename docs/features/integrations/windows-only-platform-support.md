@@ -1,15 +1,16 @@
-# Windows-only graphical edition support
+# Windows-only product support
 
-Desktop Material's graphical Electron edition is a Windows application.
-Windows is its only supported runtime, packaging target, installer target, and
-end-to-end acceptance environment. Source inherited from upstream may still
-contain non-Windows adapters, but those paths are compatibility history rather
-than supported graphical product surfaces.
+Desktop Material is a Windows-only application. Windows is its only supported
+runtime, build, packaging, installer, release, and end-to-end acceptance
+environment. Source inherited from upstream may still contain non-Windows
+adapters, but those paths are compatibility history rather than supported
+product surfaces.
 
-The [Linux-first terminal edition](../linux-tui/README.md) is a separate
-Python/Textual product surface with its own packages, CI, interaction model, and
-acceptance record. It does not change the Electron boundary or make inherited
-macOS/Linux Electron adapters supported.
+The retained [Linux TUI prototype](../linux-tui/README.md), its Python/Textual
+source, package/CI notes, parity ledger, and five Xvfb captures preserve a
+July 27 experiment for historical audit. It is not a supported product edition
+or release target. Its package, compatibility, or acceptance gaps do not block
+the Windows application.
 
 ## Behavior and configuration
 
@@ -21,16 +22,15 @@ macOS/Linux Electron adapters supported.
 - WSL, UNC shares, mapped drives, Windows editor registration, and Windows
   shell behavior remain first-class integrations.
 
-There is no macOS or Linux mode to enable in the Electron binary. Non-Windows
-runners may host platform-neutral automation and the distinct Linux TUI lane;
-neither expands graphical application support.
+There is no macOS or Linux product mode to enable. Non-Windows runners may host
+platform-neutral automation; that does not expand application support.
 
 ## Failure modes and recovery
 
-A non-Windows host receives no graphical Desktop Material installer. Use a
-supported Windows system or Windows virtual machine for Electron. Linux users
-may install the separate terminal edition, whose own package and headless
-interaction failures are release blockers for that edition only.
+A non-Windows host receives no supported Desktop Material installer or package.
+Use a supported Windows system or Windows virtual machine. The archived TUI
+instructions remain reproducibility notes for their dated receipt, not a
+current installation recommendation.
 
 ## Security considerations
 

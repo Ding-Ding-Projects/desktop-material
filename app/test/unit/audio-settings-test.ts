@@ -63,6 +63,19 @@ describe('audio-settings serialization', () => {
     assert.strictEqual(clampFunnyLevel('nope', 3), 3)
   })
 
+  it('persists the two funny levels independently', () => {
+    const parsed = parseAudioSettings(
+      serializeAudioSettings({
+        ...DefaultAudioSystemSettings,
+        funnyLevelEnglish: 1,
+        funnyLevelCantonese: 5,
+      })
+    )
+
+    assert.strictEqual(parsed.funnyLevelEnglish, 1)
+    assert.strictEqual(parsed.funnyLevelCantonese, 5)
+  })
+
   it('normalizes quiet hours and falls back on garbage', () => {
     const parsed = normalizeAudioSettings({
       quietHours: { enabled: true, startHour: 99, endHour: -4 },

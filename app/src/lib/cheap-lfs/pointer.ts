@@ -64,6 +64,12 @@ const encryptedPartLineV1 =
   /^([a-f0-9]{64}) (0|[1-9][0-9]*) (0|[1-9][0-9]*) ([a-f0-9]{64}) (.+)$/
 const encryptedPartLineInterim =
   /^([a-f0-9]{64}) (0|[1-9][0-9]*) ([a-f0-9]{64}) (0|[1-9][0-9]*) (.+)$/
+// `part-encrypted-deflate <plain-sha> <plain-size> <deflated-size>
+// <stored-size> <stored-sha> <name>` records compression before encryption.
+// Keeping both intermediate and stored sizes lets restore validate each
+// transform without weakening the existing plaintext and ciphertext digests.
+const encryptedDeflatedPartLine =
+  /^([a-f0-9]{64}) (0|[1-9][0-9]*) (0|[1-9][0-9]*) (0|[1-9][0-9]*) ([a-f0-9]{64}) (.+)$/
 const positiveInteger = /^[1-9][0-9]*$/
 const controlCharacters = /[\u0000-\u001f]/
 const CheapLfsMaximumEncryptionFormatVersion = 1000
@@ -194,7 +200,6 @@ export function serializeCheapLfsPointer(pointer: ICheapLfsPointer): string {
     for (const part of pointer.parts) {
       if (part.encrypted === true) {
         if (
-          part.deflatedSizeInBytes !== undefined ||
           part.storedSha256 === undefined ||
           part.storedSizeInBytes === undefined
         ) {
@@ -203,7 +208,9 @@ export function serializeCheapLfsPointer(pointer: ICheapLfsPointer): string {
           )
         }
         lines.push(
-          `part-encrypted ${part.sha256} ${part.sizeInBytes} ${part.storedSizeInBytes} ${part.storedSha256} ${part.name}`
+          part.deflatedSizeInBytes === undefined
+            ? `part-encrypted ${part.sha256} ${part.sizeInBytes} ${part.storedSizeInBytes} ${part.storedSha256} ${part.name}`
+            : `part-encrypted-deflate ${part.sha256} ${part.sizeInBytes} ${part.deflatedSizeInBytes} ${part.storedSizeInBytes} ${part.storedSha256} ${part.name}`
         )
       } else {
         if (
@@ -259,7 +266,7 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
   const headLines = new Array<string>()
   const partTexts = new Array<{
     readonly text: string
-    readonly kind: 'raw' | 'deflated' | 'encrypted'
+    readonly kind: 'raw' | 'deflated' | 'encrypted' | 'encrypted-deflated'
   }>()
   const encryptionLines = new Array<string>()
   for (const line of allLines) {
@@ -269,6 +276,11 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
       partTexts.push({
         text: line.slice('part-deflate '.length),
         kind: 'deflated',
+      })
+    } else if (line.startsWith('part-encrypted-deflate ')) {
+      partTexts.push({
+        text: line.slice('part-encrypted-deflate '.length),
+        kind: 'encrypted-deflated',
       })
     } else if (line.startsWith('part-encrypted ')) {
       partTexts.push({
@@ -352,13 +364,15 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
   const parts = new Array<ICheapLfsPointerPart>()
   let partsTotal = 0
   const containsEncryptedPart = partTexts.some(
-    entry => entry.kind === 'encrypted'
+    entry => entry.kind === 'encrypted' || entry.kind === 'encrypted-deflated'
   )
   // One file has one storage contract. Mixed encrypted/plain part sets would
   // make password prompting and fail-closed verification ambiguous.
   if (
     containsEncryptedPart &&
-    partTexts.some(entry => entry.kind !== 'encrypted')
+    partTexts.some(
+      entry => entry.kind !== 'encrypted' && entry.kind !== 'encrypted-deflated'
+    )
   ) {
     return null
   }
@@ -369,14 +383,24 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
     const match = (
       entry.kind === 'deflated'
         ? deflatedPartLine
+        : entry.kind === 'encrypted-deflated'
+        ? encryptionFormatVersion === undefined
+          ? null
+          : encryptedDeflatedPartLine
         : entry.kind === 'encrypted'
         ? encryptionFormatVersion === undefined
           ? encryptedPartLineInterim
           : encryptedPartLineV1
         : partLine
-    ).exec(entry.text)
+    )?.exec(entry.text)
     const nameIndex =
-      entry.kind === 'encrypted' ? 5 : entry.kind === 'deflated' ? 4 : 3
+      entry.kind === 'encrypted-deflated'
+        ? 6
+        : entry.kind === 'encrypted'
+        ? 5
+        : entry.kind === 'deflated'
+        ? 4
+        : 3
     // Deliberately measured in UTF-16 code units, not UTF-8 bytes, even though
     // *writing* a name now budgets bytes. No string can spend fewer bytes than
     // it has code units, so a 255-byte name is always within 255 characters:
@@ -385,7 +409,7 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
     // old character budget — a 255-character CJK name is ~765 bytes — and those
     // files are already pinned and already committed. A parser may widen what
     // it accepts; it must never narrow it.
-    if (match === null || match[nameIndex].length > 255) {
+    if (match == null || match[nameIndex].length > 255) {
       return null
     }
     const partSize = Number(match[2])
@@ -400,7 +424,30 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
     if (!Number.isSafeInteger(partsTotal)) {
       return null
     }
-    if (entry.kind === 'encrypted') {
+    if (entry.kind === 'encrypted-deflated') {
+      const deflatedSizeInBytes = Number(match[3])
+      const storedSizeInBytes = Number(match[4])
+      if (
+        !Number.isSafeInteger(deflatedSizeInBytes) ||
+        deflatedSizeInBytes < 1 ||
+        deflatedSizeInBytes >= partSize ||
+        deflatedSizeInBytes > CheapLfsLegacyMaximumPartSizeBytes ||
+        !Number.isSafeInteger(storedSizeInBytes) ||
+        storedSizeInBytes <= deflatedSizeInBytes ||
+        storedSizeInBytes > CheapLfsLegacyMaximumPartSizeBytes
+      ) {
+        return null
+      }
+      parts.push({
+        name: match[6],
+        sizeInBytes: partSize,
+        sha256: match[1],
+        deflatedSizeInBytes,
+        encrypted: true,
+        storedSha256: match[5],
+        storedSizeInBytes,
+      })
+    } else if (entry.kind === 'encrypted') {
       const storedSizeInBytes = Number(
         encryptionFormatVersion === undefined ? match[4] : match[3]
       )

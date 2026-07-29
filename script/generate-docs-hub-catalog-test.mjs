@@ -229,6 +229,10 @@ describe('documentation hub page inventory', () => {
       { s: 'README.md', c: 'root' },
       { s: 'technical/README.md', c: 'technical' },
       { s: 'technical/oauth.md', c: 'technical' },
+      {
+        s: 'technical/dated-receipt/README.md',
+        c: 'technical',
+      },
       { s: 'features/design-system/audio-system.md', c: 'features' },
     ])
 
@@ -240,6 +244,10 @@ describe('documentation hub page inventory', () => {
     assert.equal(groups[0].index, null)
     assert.equal(groups[0].pages.length, 2)
     assert.equal(groups[1].index.s, 'technical/README.md')
+    assert.deepEqual(
+      groups[1].pages.map(page => page.s),
+      ['technical/oauth.md', 'technical/dated-receipt/README.md']
+    )
   })
 
   it('escapes page text and titles a folder the label map does not know', () => {

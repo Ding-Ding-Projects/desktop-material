@@ -5,6 +5,7 @@ import {
   mkdir,
   mkdtemp,
   readFile,
+  realpath,
   rm,
   symlink,
   writeFile,
@@ -209,7 +210,9 @@ describe('Cheap LFS clone-helper bundle', () => {
       enabled: true,
       entries: [first],
     })
-    assert.equal(created.status, 'created')
+    if (created.status !== 'created') {
+      assert.fail(`expected created helper, received ${created.status}`)
+    }
     assert.equal(created.created.length, 6)
 
     const unchanged = await ensureCheapLfsCloneHelperBundle({
@@ -217,7 +220,9 @@ describe('Cheap LFS clone-helper bundle', () => {
       enabled: true,
       entries: [first],
     })
-    assert.equal(unchanged.status, 'unchanged')
+    if (unchanged.status !== 'unchanged') {
+      assert.fail(`expected unchanged helper, received ${unchanged.status}`)
+    }
     assert.equal(unchanged.unchanged.length, 6)
 
     const inventoryPath = join(
@@ -246,7 +251,9 @@ describe('Cheap LFS clone-helper bundle', () => {
       []
     )
 
-    const readmePath = join(root, '.desktop-material', 'cheap-lfs', 'README.md')
+    const readmePath = await realpath(
+      join(root, '.desktop-material', 'cheap-lfs', 'README.md')
+    )
     await writeFile(readmePath, '# User-owned helper\n')
     const beforeConflict = await readFile(inventoryPath, 'utf8')
     const conflict = await ensureCheapLfsCloneHelperBundle({
@@ -340,13 +347,15 @@ describe('Cheap LFS clone-helper bundle', () => {
       enabled: true,
       entries: [first],
     })
-    const readmePath = join(root, '.desktop-material', 'cheap-lfs', 'README.md')
+    const inventoryPath = await realpath(
+      join(root, '.desktop-material', 'cheap-lfs', 'inventory.json')
+    )
     let raced = false
     const store = new CheapLfsTrackedPathStore({
       beforeQuarantine: async proof => {
-        if (!raced && proof.absolutePath === readmePath) {
+        if (!raced && proof.absolutePath === inventoryPath) {
           raced = true
-          await writeFile(readmePath, 'concurrent occupant\n')
+          await writeFile(inventoryPath, 'concurrent occupant\n')
         }
       },
     })
@@ -362,7 +371,7 @@ describe('Cheap LFS clone-helper bundle', () => {
       }),
       /changed/
     )
-    assert.equal(await readFile(readmePath, 'utf8'), 'concurrent occupant\n')
+    assert.equal(await readFile(inventoryPath, 'utf8'), 'concurrent occupant\n')
   })
 })
 
@@ -466,7 +475,12 @@ if (args[0] === 'repo' && args[1] === 'view') {
       ]),
     })
 
-    assert.notEqual(failed.code, 0)
+    const failedArguments = await readFile(argvLog, 'utf8').catch(() => '')
+    assert.notEqual(
+      failed.code,
+      0,
+      JSON.stringify({ ...failed, arguments: failedArguments })
+    )
     assert.match(failed.stderr, /failed exact size or SHA-256 verification/)
     assert.equal(await readFile(trackedPath, 'utf8'), pointerText)
     assert.doesNotMatch(

@@ -24,6 +24,10 @@ import {
   persistFilterMode,
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
+import {
+  tabGroupMembersCountKey,
+  tabOverflowFilterCountKey,
+} from './tab-count-copy'
 
 interface ITabGroupMembersPopoverProps {
   readonly group: ITabGroup
@@ -451,11 +455,13 @@ export class TabGroupMembersPopover extends React.Component<
             aria-live="polite"
           >
             {isFiltering
-              ? this.text('tabs.overflowFilterCount', {
+              ? this.text(tabOverflowFilterCountKey(total), {
                   visible: String(results.length),
                   total: String(total),
                 })
-              : this.text('tabs.groupMembersCount', { count: String(total) })}
+              : this.text(tabGroupMembersCountKey(total), {
+                  count: String(total),
+                })}
           </div>
         </div>
       </Popover>

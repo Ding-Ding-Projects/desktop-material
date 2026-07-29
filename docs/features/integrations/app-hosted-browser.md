@@ -4,10 +4,10 @@
 > Combined tests, verifier contracts, TypeScript, the exact Windows production
 > build, and an isolated real-window interaction/privacy receipt passed.
 > The source is merged and pushed through `2abccae8fd`; Pages and wiki
-> publication are verified live, and packaged Windows E2E is verified. Only the
-> Linux TUI compatibility correction rerun and installer/Release evidence
-> remain pending; this is not a claim that the
-> feature is in the current installer.
+> publication are verified live, and packaged Windows E2E is verified.
+> Installer/Release evidence remained pending at that dated checkpoint; the
+> archived Linux TUI compatibility work is non-blocking. This is not a claim
+> that the feature is in the current installer.
 
 Desktop Material can open browser-bound HTTP and HTTPS links in a dedicated
 app-hosted window instead of always handing them to the system browser. The
@@ -15,15 +15,15 @@ window supplies a URL bar, tabs, New tab, Back, Forward, Refresh/Stop, Go,
 bookmarks, and an explicit **Open externally** escape while keeping remote web
 content outside the trusted app renderer.
 
-![App-hosted browser with captured redirects and popups, a new tab, a sanitized bookmark, and an isolated authentication tab](../../assets/screenshots/app-hosted-browser-authentication.png)
+![Historical app-hosted browser acceptance with captured redirects and popups, a new tab, a sanitized bookmark, and an isolated authentication tab at immutable source commit 2abccae8fddcf2eb79edd18724454bb9b6530f67](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/2abccae8fddcf2eb79edd18724454bb9b6530f67/docs/assets/screenshots/app-hosted-browser-authentication.png)
 
 <sub>**香港粵語速讀。** 設定揀咗喺 Desktop Material 入面開連結，就會用一個有
 網址列、分頁、前後頁、重新整理、Go、書籤同「喺外部開啟」嘅 app 內瀏覽器。網頁
 本身係鎖喺 sandbox 嘅遠端 view，掂唔到 app IPC；登入分頁更加係即用即棄，唔會畀
 你加書籤。本機正式 build 同 hidden-desktop 驗收已經過關；source 同相已經經
 `2abccae8fd` 推上 main，Pages/wiki 亦 live，packaged Windows E2E 都過關。而家淨係
-TUI correction 遙距 rerun 同 installer/Release 憑證未完成，未可以扮成已經入咗
-installer。</sub>
+installer/Release 憑證未完成，未可以扮成已經入咗 installer；舊 TUI correction
+唔屬於而家 Windows-only 產品嘅 blocker。</sub>
 
 ## Behavior and configuration
 
@@ -146,11 +146,12 @@ removal from bookmark storage, and the authentication escape. The fixture used
 no real account, credential, or provider. The accepted 1144×741 image above
 passed original-resolution clipping, overlap, and private-data inspection.
 
-The source and accepted screenshot are pushed through `2abccae8fd`; its raw
-`main` URL is now a live publication receipt in the 89-scene gallery, and
-Pages/wiki publication and packaged Windows E2E are verified. Only the Linux
-TUI compatibility correction rerun and installer/Release verification remain
-pending.
+The source and accepted screenshot are pushed through
+`2abccae8fddcf2eb79edd18724454bb9b6530f67`; the image above renders that
+immutable historical blob, not mutable `main` and not the current refresh.
+Pages/wiki publication and packaged Windows E2E were verified at that dated
+checkpoint. Installer/Release verification remained pending then; the archived
+TUI correction is outside the supported-product gate.
 
 ## API applicability
 

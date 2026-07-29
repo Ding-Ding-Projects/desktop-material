@@ -1,6 +1,12 @@
-# Linux TUI installation and packaging
+# Historical Linux TUI installation and packaging record
 
-## Requirements
+> **Unsupported archive:** These requirements, commands, package checks, and
+> failure modes reproduce the July 27, 2026 prototype receipt. Desktop Material
+> is supported and released on Windows only. The TUI is not a current package
+> or release target, and failures in this archived lane do not block the
+> Windows application.
+
+## Historical requirements
 
 - Linux with Python 3.10 through 3.13;
 - Git on `PATH`;
@@ -13,7 +19,7 @@ The TUI is pure Python except for the published `google-re2` wheel. Installation
 must fail rather than silently replacing RE2 with Python's backtracking
 regular-expression engine.
 
-## Run from a checkout
+## Historical checkout route
 
 The locked contributor path is:
 
@@ -45,7 +51,7 @@ uv run desktop-material-tui --help
 `--theme dark|light|system` and `--language en|yue-HK|bilingual` are accepted
 run-level choices. Persistent choices live in Settings.
 
-## User installation
+## Historical user-installation route
 
 Git and [uv](https://docs.astral.sh/uv/getting-started/installation/) are
 required. For a fresh Linux shell installation, clone the trusted repository,

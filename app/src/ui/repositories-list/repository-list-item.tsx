@@ -34,6 +34,7 @@ import { LocalizedText } from '../lib/localized-text'
 import { Dispatcher } from '../dispatcher'
 import {
   AnchoredAppearanceEditor,
+  openAppearanceEditorFromContextMenu,
   openAppearanceEditorFromKeyDown,
   ProfileDefaultRepositoryLogoAppearanceEditor,
   RepositoryListNameAppearanceEditor,
@@ -438,9 +439,9 @@ export class RepositoryListItem extends React.Component<
   /**
    * Open the list-name appearance editor from the row's context menu. Resolves
    * the anchor (the name element) from this row's own DOM so the anchored
-   * editor points at the same target the keyboard path uses. Right-clicking the
-   * row no longer opens the editor directly — it opens the repository context
-   * menu, whose "Customize name appearance" item calls this.
+   * editor points at the same target the keyboard path uses. An ordinary
+   * right-click opens the repository context menu, whose "Customize name
+   * appearance" item calls this; Shift+right-click opens this owner directly.
    */
   public openNameAppearanceEditorFromMenu(): void {
     const anchor = this.listItemRef.current?.querySelector<HTMLElement>(
@@ -462,6 +463,14 @@ export class RepositoryListItem extends React.Component<
     if (anchor !== null && anchor !== undefined) {
       this.openLogoAppearanceEditor(anchor)
     }
+  }
+
+  private onNameContextMenu = (event: React.MouseEvent<HTMLDivElement>) => {
+    openAppearanceEditorFromContextMenu(event, this.openNameAppearanceEditor)
+  }
+
+  private onLogoContextMenu = (event: React.MouseEvent<HTMLSpanElement>) => {
+    openAppearanceEditorFromContextMenu(event, this.openLogoAppearanceEditor)
   }
 
   private onNameKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -741,6 +750,7 @@ export class RepositoryListItem extends React.Component<
               this.state.appearanceEditorAnchor !== null
             }
             data-context-menu-owner="repository-list-name-appearance"
+            onContextMenu={this.onNameContextMenu}
             onKeyDown={this.onNameKeyDown}
           >
             {prefix ? <span className="prefix">{prefix}</span> : null}
@@ -900,6 +910,7 @@ export class RepositoryListItem extends React.Component<
             this.state.appearanceEditorAnchor !== null
           }
           data-context-menu-owner="repository-logo-appearance"
+          onContextMenu={this.onLogoContextMenu}
           onKeyDown={this.onLogoKeyDown}
         >
           <RepositoryLogo

@@ -6,12 +6,14 @@
 
 Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [GitHub Desktop](https://github.com/desktop/desktop). It rebuilds the entire application shell around Material Design 3 while keeping GitHub Desktop's full Git workflow and the same underlying stack: [TypeScript](https://www.typescriptlang.org), [React](https://react.dev), [Electron](https://www.electronjs.org), and [Sass](https://sass-lang.com). This project is in active development.
 
-> **Platform support:** the graphical Electron edition remains Windows-only:
-> Windows x64 is its installer and portable-ZIP target, with Windows x64/arm64
-> builds and packaged Windows x64 E2E. A separate
-> [Linux-first terminal edition](docs/features/linux-tui/README.md) now provides
-> mouse, keyboard, and real text-field workflows as a Python package. It is not
-> a Linux build of the Electron application.
+> **Platform support:** Desktop Material is a Windows-only product. Its
+> supported runtime, build, packaging, installer, release, and end-to-end
+> acceptance paths are Windows: x64 installer/portable ZIP, x64/arm64 build
+> validation, and packaged x64 E2E. The retained
+> [Linux TUI prototype](docs/features/linux-tui/README.md), its package notes,
+> and its five Xvfb captures are historical July 27 evidence only. They are not
+> a supported product edition, a current release target, or a blocker for the
+> Windows application.
 
 <img
   width="1072"
@@ -20,6 +22,15 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 />
 
 ![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci.yml/badge.svg?branch=main)
+
+> **Current close-out status — July 28, 2026:** the active issue-closing wave is
+> now merged locally with the Cheap LFS helper train and is still in
+> verification. Its capture and publication contracts own exactly **84 current
+> Windows scenes**; five earlier Linux/Xvfb files remain immutable historical
+> evidence outside that set. No fresh gallery promotion, full-suite pass,
+> pushed-default proof, or issue closure is claimed by this checkpoint. The
+> dated notes below are preserved chronology, not current blockers or issue
+> states.
 
 > **Standalone Cheap LFS versus Git LFS atlas — July 28, 2026:** the
 > [separate comparison page](https://ding-ding-projects.github.io/desktop-material/cheap-lfs-vs-git-lfs.html)
@@ -45,23 +56,27 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 > [verification receipt](docs/verification/cheap-lfs-pages-revamp-2026-07-28/README.md).
 
 > **Measured responsiveness checkpoint — July 28, 2026:** the exact released
-> Windows build held every sampled idle frame below 17 ms, but twelve warmed
-> Changes/History switches still took 56–104 ms and produced six long tasks.
-> The navigation path was emitting an identical compare-form update after the
-> real section change, forcing a second root render. Navigation and `AppStore`
-> now suppress that no-op; focused responsiveness and adjacent lifecycle/lazy
-> loading coverage passes **42/42**. Exact post-fix release timing is pending.
+> baseline Windows build at `9bdfdb8b25` held every sampled idle frame below
+> 17 ms, but twelve warmed Changes/History switches still took 56–104 ms and
+> produced six long tasks. The navigation path was emitting an identical
+> compare-form update after the real section change, forcing a second root
+> render. Navigation and `AppStore` now suppress that no-op; focused
+> responsiveness and adjacent lifecycle/lazy-loading coverage passed **42/42**
+> at that source checkpoint. Exact post-fix release timing remains pending;
+> this does not replace the close-out gates above.
 
-> **Local reliability checkpoint — July 28, 2026:** the root renderer now owns
+> **Historical local reliability checkpoint — July 28, 2026 (superseded):**
+> the root renderer now owns
 > and releases its store/updater/drag/IPC subscriptions, telemetry and update
 > polling timers, and global document/window handlers. Queued idle and
 > animation-frame callbacks cannot restart work after unmount. Focused
-> lifecycle tests pass **4/4** and changed-file ESLint is clean. The required
-> Lowlevel MCP headless production build was attempted but stopped before
-> compilation because this checkout has no installed dependency tree;
-> built-app capture and remote CI are not yet claimed.
+> lifecycle tests passed **4/4** and changed-file ESLint was clean. That
+> predecessor checkout stopped before compilation because its dependency tree
+> was absent. This was a checkout-specific historical condition, not the
+> current build blocker or current verification state.
 
-> **Local implementation checkpoint — July 27, 2026:** #78 adds optional
+> **Historical local implementation checkpoint — July 27, 2026
+> (superseded):** #78 added optional
 > AES-256-GCM encryption to GitHub Release-backed Cheap LFS payloads. Passwords
 > are requested once per operation or, only when the user opts in, retrieved
 > from the Windows credential vault; existing pointer formats remain compatible,
@@ -75,21 +90,22 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 > clean. #78, #80, and #83 remain open pending real built-app screenshots;
 > packaged visual evidence and remote CI are not yet claimed.
 
-> **Merged and published source — July 27, 2026:** Cheap LFS Release restores now
+> **Historical merged and published checkpoint — July 27, 2026:** Cheap LFS
+> Release restores then
 > open one bounded look-ahead lane at the exact 90% download point and expose
 > detailed overall/file/part progress. Browser-bound links can also use a
 > secure app-hosted tabbed browser with an explicit system-browser escape.
-> Private repositories now keep a separate lock badge even when their leading
+> Private repositories then kept a separate lock badge even when their leading
 > repository glyph is a fork or custom logo. The final focused gate passed
-> **760/760**, verifier contracts passed **14/14**, TypeScript is clean, the
+> **760/760**, verifier contracts passed **14/14**, TypeScript was clean, the
 > exact Windows production build completed successfully, and the real built
 > app passed isolated off-screen English/bilingual interaction and privacy
-> inspection. The source is merged and pushed through `2abccae8fd`; Pages and
-> wiki publication are live. TUI correction commit `f555d374a6` is contained
+> inspection. The source was merged and pushed through `2abccae8fd`; Pages and
+> wiki publication went live. TUI correction commit `f555d374a6` is contained
 > in `origin/main`; remote run `30317262582` passed its Linux TUI matrix and
 > Windows TUI core job but failed overall in the unrelated Windows x64 unit
 > job. Installer run `30318769692` failed and published no Release. Packaged
-> Windows E2E remains verified.
+> Windows E2E was verified.
 > See
 > [Release-backed Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md),
 > the [app-hosted browser](docs/features/integrations/app-hosted-browser.md),
@@ -114,10 +130,16 @@ Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.co
 See the [Install tab](docs/readme-tabs/install.md) for asset verification, manual
 downloads, and updater behavior.
 
-## Run the Linux-first TUI
+## Historical Linux TUI prototype (unsupported)
 
-Install the trusted checkout as an isolated tool, then launch a repository with
-the literal `github` command:
+The commands and behavior below preserve the July 27 prototype record. The TUI
+is not a current supported package, runtime, release lane, or compatibility
+commitment, and its tests or package status do not block the Windows product.
+The repository retains the source and exact acceptance receipts for audit; do
+not read this section as a current installation recommendation.
+
+At that historical checkpoint, a trusted checkout could be installed as an
+isolated tool and launched with the literal `github` command:
 
 Linux shell, from a fresh parent directory:
 
@@ -140,8 +162,8 @@ Both commands require Git and
 the terminal afterward so the updated `PATH` is loaded, then run
 `github /path/to/repository` on Linux or
 `github C:\path\to\repository` on Windows. The interactive acceptance target
-remains Linux-first; the Windows Terminal launch path and cross-platform core
-are also tested.
+was Linux-first; the Windows Terminal launch path and cross-platform core were
+also tested at that checkpoint.
 
 `github`, `dmt`, and `desktop-material-tui` are identical launchers for this
 terminal edition. This alias does not replace GitHub CLI's `gh`. If another
@@ -165,7 +187,7 @@ LFS pointers with exact size/SHA-256 verification. The explicit `github git …`
 form passes other native Git arguments through without a shell; see the
 [wrapper contract](docs/features/linux-tui/cheap-lfs-git-wrapper.md).
 
-The current browser/wrapper milestone passes the full Windows-hosted TUI suite
+The dated browser/wrapper milestone passed the full Windows-hosted TUI suite
 (250 passed, 1 Linux-only skip in 182.76 seconds), its 29 focused path/browser
 tests, and its 47 focused wrapper tests. Ruff lint/format, strict mypy for the
 normal and explicit Linux targets, and package build are also green. A real
@@ -184,27 +206,26 @@ uv sync --locked --extra dev
 uv run desktop-material-tui
 ```
 
-It supports mouse clicks, a folder-only repository browser, safe quoted-path
+The prototype supported mouse clicks, a folder-only repository browser, safe quoted-path
 paste, keyboard focus, editable single-line and multiline text controls, local
 Git workflows, GitHub workflows through `gh`, shared RE2 search, localization,
-notifications, and XDG persistence. It does **not** yet
+notifications, and XDG persistence. It did **not**
 claim all 201 graphical-edition capabilities; see the generated
 [parity contract](tui/contracts/parity.yaml) and
 [TUI documentation](docs/features/linux-tui/README.md).
 
-A minimal non-root Docker image is also available; the
-[container guide](docs/features/linux-tui/container.md) includes copy-paste
-build and interactive run commands with repository and XDG persistence mounts.
+The historical record also retained a minimal non-root Docker image; the
+[container guide](docs/features/linux-tui/container.md) records its build and
+interactive run commands.
 
-<img
-  width="1072"
-  src="docs/assets/screenshots/linux-tui-overview.png"
-  alt="Desktop Material TUI running Changes in an off-screen Linux terminal"
-/>
+The five dated Linux/Xvfb captures remain preserved in the
+[historical TUI verification record](docs/verification/linux-tui-2026-07-27/run-manifest.md).
+They are not presented as current Windows evidence and are excluded from the
+84-scene guided gallery and its refresh plan.
 
 ## Explore the tabs
 
-- **[Install](docs/readme-tabs/install.md)** — Windows installer and Linux TUI source/package routes
+- **[Install](docs/readme-tabs/install.md)** — supported Windows installation plus the archived Linux TUI prototype record
 - **[Features](docs/readme-tabs/features.md)** — the full Material Design 3 shell plus every Git and GitHub workflow
 - **[Complete list](docs/readme-tabs/complete-feature-list.md)** — every feature in one bilingual table, labelled Added / Extended / Inherited against GitHub Desktop
 - **[Screenshots](docs/readme-tabs/screenshots.md)** — the annotated capture gallery

@@ -43,7 +43,8 @@ interface IRepositoryTabProps {
   readonly onRename: (tab: IRepositoryTab, label: string | null) => void
   readonly onContextMenu: (
     tab: IRepositoryTab,
-    event: React.MouseEvent<HTMLElement>
+    event: React.MouseEvent<HTMLElement>,
+    anchor?: HTMLElement
   ) => void
   readonly onOpenStyleEditor: (tab: IRepositoryTab, anchor: HTMLElement) => void
   readonly onDragStart: (
@@ -256,7 +257,7 @@ export class RepositoryTab extends React.Component<
 
   private onContextMenu = (event: React.MouseEvent<HTMLElement>) => {
     event.preventDefault()
-    this.props.onContextMenu(this.props.tab, event)
+    this.props.onContextMenu(this.props.tab, event, event.currentTarget)
   }
 
   private onFormatClick = (event: React.MouseEvent<HTMLElement>) => {

@@ -172,9 +172,13 @@ The current maintenance additions in this section are implemented. Their exact
 production, headless, source-publication, and cleanup evidence remains centralized
 in `HANDOFF.md`; historical gallery references do not substitute for those receipts.
 
-The [Guided Feature Gallery](Feature-Gallery) is the machine-checked documentation manifest for 89
-captured, user-facing visual functions and states associated with these subsystems. Each function
-owns one distinct tracked PNG; missing, duplicate, and unassigned assets fail the catalog contract.
+The [Guided Feature Gallery](Feature-Gallery) is the machine-checked
+documentation manifest for 84 user-facing Windows visual targets associated
+with these subsystems. Each function must own one distinct current PNG;
+missing, duplicate, and unassigned current assets fail the catalog contract,
+so the manifest cannot claim publication while a target is absent. Five
+retained Linux/Xvfb assets are explicitly historical and outside that target
+set.
 Keep captures free of personal paths, account identifiers, credentials, signed URLs, and unbounded
 provider payloads. A tracked image reference does not replace exact-source build, CI, public
 publication, release, or cleanup evidence.
@@ -205,8 +209,10 @@ publication, release, or cleanup evidence.
   `app/src/models/element-appearance.ts` defines narrow profile, feature, repository, and tab-owner
   documents; `app/src/lib/stores/element-appearance-coordinator.ts` maps each to a separate
   `DedicatedSettingStore`. **Settings → Appearance** exposes ordinary preferences only. The actual
-  owner opens `AnchoredAppearanceEditor` by right-click or `Shift+F10`, with its own repository path
-  and `VersionedStoreHistory`. Repository Settings has no Appearance tab. The profile default
+  owner opens `AnchoredAppearanceEditor` by `Shift`+right-click, the keyboard Context Menu key, or
+  `Shift+F10`, leaving ordinary right-click to native or component-specific commands. The editor
+  carries its own repository path and `VersionedStoreHistory`. Repository Settings has no
+  Appearance tab. The profile default
   repository logo still uses `app/src/models/repository-logo.ts` and its
   versioned code-native vector model: bounded backgrounds and at most eight allowlisted mark/text
   layers, with strict color, transform, typography, text, and 16 KiB document normalization.
