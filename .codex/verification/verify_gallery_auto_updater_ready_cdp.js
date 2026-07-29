@@ -2557,6 +2557,10 @@ async function main() {
       fixtureServer.url
     )
     const observedStates = await waitForRealUpdateReady(client)
+    // The production renderer can finish applying its persisted zoom after the
+    // first capture setup. Reassert the attested 960x660, DPR-1 viewport only
+    // after the genuine ready event has settled, immediately before inspection.
+    await configureCaptureViewport(client)
 
     const updateLogPath = assertRealFile(
       path.join(options.installRoot, 'Squirrel-Update.log'),

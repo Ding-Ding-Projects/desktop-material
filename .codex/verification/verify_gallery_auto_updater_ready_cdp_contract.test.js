@@ -629,6 +629,11 @@ test('current-source About assertions ignore screen-reader duplication and pin t
     false,
     'development builds expose a Build label, not a release Version label'
   )
+  assert.equal(
+    [...source.matchAll(/await configureCaptureViewport\(client\)/g)].length,
+    2,
+    'the final ready surface must reassert geometry after persisted zoom settles'
+  )
 })
 
 test('source contains loopback, registry, external-state, and cleanup ledgers', () => {
