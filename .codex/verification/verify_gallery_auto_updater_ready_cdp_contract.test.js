@@ -572,6 +572,9 @@ test('PowerShell probes preserve multiline scripts and sanitize forbidden proces
 
 test('source invokes real IPC, observes real state, and never fabricates ready UI', () => {
   for (const required of [
+    'prepareIsolatedUpdaterWorkspace',
+    "localStorage.setItem('has-shown-welcome-flow', '1')",
+    'accountAndProviderFlowsNotInvoked: true',
     "'check-for-updates'",
     'invokeRealCheckForUpdates',
     "'auto-updater-update-downloaded'",

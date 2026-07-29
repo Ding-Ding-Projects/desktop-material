@@ -1848,6 +1848,46 @@ async function configureCaptureViewport(client) {
   )
 }
 
+/**
+ * The updater run owns a brand-new disposable Chromium profile. Persist the
+ * production first-run completion flag inside that profile before asking the
+ * real menu to open About. This avoids an account or Git-configuration flow
+ * that is unrelated to updater acceptance; it does not fabricate updater
+ * state, dispatch a UI event, or touch the user's normal profile.
+ */
+async function prepareIsolatedUpdaterWorkspace(client) {
+  const welcomeWasVisible = await evaluate(
+    client,
+    `document.querySelector('#welcome') instanceof HTMLElement`
+  )
+
+  await evaluate(
+    client,
+    `localStorage.setItem('has-shown-welcome-flow', '1'), true`
+  )
+
+  if (welcomeWasVisible) {
+    await client.send('Page.reload', { ignoreCache: false })
+  }
+
+  await waitForExpression(
+    client,
+    `document.querySelector('#desktop-app-container') !== null &&
+      document.querySelector('#welcome') === null &&
+      localStorage.getItem('has-shown-welcome-flow') === '1'`,
+    'isolated updater workspace'
+  )
+
+  return {
+    welcomeWasVisible,
+    assertions: {
+      ownedFirstRunPreferencePersisted: true,
+      welcomeSurfaceAbsent: true,
+      accountAndProviderFlowsNotInvoked: true,
+    },
+  }
+}
+
 async function openRealAbout(client) {
   await evaluate(
     client,
@@ -2498,6 +2538,7 @@ async function main() {
       mainProcess
     )
 
+    const workspace = await prepareIsolatedUpdaterWorkspace(client)
     await configureCaptureViewport(client)
     await openRealAbout(client)
     const productionIPCInvoked = await invokeRealCheckForUpdates(
@@ -2565,6 +2606,11 @@ async function main() {
         assertions: {
           ...isolationAssertions,
           ...rendererAssertions,
+          ...workspace.assertions,
+        },
+        firstRun: {
+          welcomeWasVisible: workspace.welcomeWasVisible,
+          completionPreference: 'owned-disposable-profile-only',
         },
       },
       currentSource: {
