@@ -1843,7 +1843,7 @@ async function configureCaptureViewport(client) {
     client,
     `innerWidth === ${CaptureWidth} &&
       innerHeight === ${CaptureHeight} &&
-      devicePixelRatio === 1`,
+      Math.abs(devicePixelRatio - 1) <= 0.000001`,
     'exact 960x660 Chromium viewport'
   )
 }
@@ -1875,6 +1875,7 @@ function updaterRuntimeFinderSource() {
           fiber.stateNode?.props?.appStore ?? dispatcher?.appStore
         if (
           typeof dispatcher?.endWelcomeFlow === 'function' &&
+          typeof dispatcher?.setAutoFitZoomEnabled === 'function' &&
           typeof appStore?.getState === 'function'
         ) {
           return { dispatcher, appStore }
@@ -1893,7 +1894,8 @@ async function prepareIsolatedUpdaterWorkspace(client) {
 
   await evaluate(
     client,
-    `localStorage.setItem('has-shown-welcome-flow', '1'), true`
+    `localStorage.setItem('has-shown-welcome-flow', '1'),
+      localStorage.setItem('zoom-auto-fit-enabled', '0'), true`
   )
 
   // AppStore can latch the first-run state before React mounts #welcome. Use
@@ -1910,14 +1912,22 @@ async function prepareIsolatedUpdaterWorkspace(client) {
       const runtime = (${updaterRuntimeFinderSource()})()
       const welcomeWasLatched =
         runtime.appStore.getState().showWelcomeFlow === true
+      const autoFitWasEnabled =
+        runtime.appStore.getState().autoFitZoomEnabled === true
       if (welcomeWasLatched) {
         await runtime.dispatcher.endWelcomeFlow()
       }
-      return { welcomeWasLatched }
+      if (autoFitWasEnabled) {
+        await runtime.dispatcher.setAutoFitZoomEnabled(false)
+      }
+      return { welcomeWasLatched, autoFitWasEnabled }
     })()`
   )
-  if (typeof transition?.welcomeWasLatched !== 'boolean') {
-    fail('Owned first-run transition did not report its latched state.')
+  if (
+    typeof transition?.welcomeWasLatched !== 'boolean' ||
+    typeof transition?.autoFitWasEnabled !== 'boolean'
+  ) {
+    fail('Owned presentation transition did not report its latched state.')
   }
 
   await waitForExpression(
@@ -1926,8 +1936,10 @@ async function prepareIsolatedUpdaterWorkspace(client) {
       const runtime = (${updaterRuntimeFinderSource()})()
       return runtime !== null &&
       runtime.appStore.getState().showWelcomeFlow === false &&
+      runtime.appStore.getState().autoFitZoomEnabled === false &&
       document.querySelector('#welcome') === null &&
-      localStorage.getItem('has-shown-welcome-flow') === '1'
+      localStorage.getItem('has-shown-welcome-flow') === '1' &&
+      localStorage.getItem('zoom-auto-fit-enabled') === '0'
     })()`,
     'isolated updater workspace'
   )
@@ -1935,8 +1947,10 @@ async function prepareIsolatedUpdaterWorkspace(client) {
   return {
     welcomeWasVisible,
     welcomeWasLatched: transition.welcomeWasLatched,
+    autoFitWasEnabled: transition.autoFitWasEnabled,
     assertions: {
       ownedFirstRunPreferencePersisted: true,
+      ownedAutoFitDisabled: true,
       productionWelcomeStateSettled: true,
       welcomeSurfaceAbsent: true,
       accountAndProviderFlowsNotInvoked: true,
@@ -2114,7 +2128,7 @@ async function inspectReadySurface(client, productVersion, sourceCommit) {
         exactViewport:
           innerWidth === ${CaptureWidth} &&
           innerHeight === ${CaptureHeight} &&
-          devicePixelRatio === 1,
+          Math.abs(devicePixelRatio - 1) <= 0.000001,
         lightEnglishPresentation:
           !document.body.classList.contains('theme-dark') &&
           (
@@ -2683,6 +2697,7 @@ async function main() {
         firstRun: {
           welcomeWasVisible: workspace.welcomeWasVisible,
           welcomeWasLatched: workspace.welcomeWasLatched,
+          autoFitWasEnabled: workspace.autoFitWasEnabled,
           completionPreference: 'owned-disposable-profile-only',
         },
       },

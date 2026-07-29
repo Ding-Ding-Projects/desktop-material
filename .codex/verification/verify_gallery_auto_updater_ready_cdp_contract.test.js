@@ -628,9 +628,13 @@ test('owned first-run preference settles the already-created product store', () 
   const helper = source.slice(start, end)
   for (const required of [
     "localStorage.setItem('has-shown-welcome-flow', '1')",
+    "localStorage.setItem('zoom-auto-fit-enabled', '0')",
     'updaterRuntimeFinderSource',
     'runtime.appStore.getState().showWelcomeFlow === true',
     'await runtime.dispatcher.endWelcomeFlow()',
+    'runtime.appStore.getState().autoFitZoomEnabled === true',
+    'await runtime.dispatcher.setAutoFitZoomEnabled(false)',
+    'ownedAutoFitDisabled: true',
     'productionWelcomeStateSettled: true',
   ]) {
     assert.ok(
@@ -642,6 +646,18 @@ test('owned first-run preference settles the already-created product store', () 
     helper.includes("client.send('Page.reload'"),
     false,
     'owned first-run settlement must not depend on renderer reload behavior'
+  )
+})
+
+test('capture viewport tolerates only Chromium DPR floating-point noise', () => {
+  assert.ok(
+    source.includes('Math.abs(devicePixelRatio - 1) <= 0.000001'),
+    'capture should accept the measured Chromium DPR epsilon'
+  )
+  assert.equal(
+    source.includes('devicePixelRatio === 1'),
+    false,
+    'capture must not require impossible exact floating-point DPR equality'
   )
 })
 
