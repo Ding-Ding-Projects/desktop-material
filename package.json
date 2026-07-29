@@ -68,6 +68,7 @@
     "@types/react": "16.14.62",
     "@types/minimatch": "3.0.3",
     "@types/react-css-transition-replace/@types/react": "16.14.62",
+    "brace-expansion": "file:./vendor/brace-expansion-compat",
     "legal-eagle/underscore": "^1.13.8",
     "mkdirp": "0.5.6"
   },

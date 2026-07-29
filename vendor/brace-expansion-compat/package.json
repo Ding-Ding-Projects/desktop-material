@@ -1,0 +1,14 @@
+{
+  "name": "brace-expansion",
+  "version": "5.0.8",
+  "description": "Callable CommonJS compatibility adapter for brace-expansion 5.0.8",
+  "private": true,
+  "main": "index.js",
+  "license": "MIT",
+  "engines": {
+    "node": "20 || >=22"
+  },
+  "dependencies": {
+    "brace-expansion-modern": "npm:brace-expansion@5.0.8"
+  }
+}
