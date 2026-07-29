@@ -18,6 +18,7 @@ import { join, resolve } from 'node:path'
 import { describe, it } from 'node:test'
 import { promisify } from 'node:util'
 import {
+  classifyGuidedProofAuthorization,
   createGuidedProofChildEnvironment,
   createGuidedProofHandler,
   createGuidedProofRepository,
@@ -136,6 +137,12 @@ async function cloneWithToken(
   certificatePath?: string
 ): Promise<void> {
   const configPath = `${destination}.proof.gitconfig`
+  if (
+    certificatePath !== undefined &&
+    /[\u0000-\u001f\u007f]/.test(certificatePath)
+  ) {
+    throw new Error('The test certificate path contains a control character.')
+  }
   const certificateConfiguration =
     certificatePath === undefined
       ? ''
@@ -209,13 +216,18 @@ async function reserveLoopbackPort(): Promise<number> {
   return address.port
 }
 
-async function httpsStatus(url: string, token: string): Promise<number> {
+async function httpsStatus(
+  url: string,
+  token: string,
+  certificatePath: string
+): Promise<number> {
+  const certificateAuthority = await readFile(certificatePath)
   return await new Promise<number>((resolvePromise, reject) => {
     const request = httpsRequest(
       url,
       {
         headers: { Authorization: `Bearer ${token}` },
-        rejectUnauthorized: false,
+        ca: certificateAuthority,
       },
       response => {
         response.resume()
@@ -228,6 +240,37 @@ async function httpsStatus(url: string, token: string): Promise<number> {
 }
 
 describe('guided proof fixture script', () => {
+  it('classifies bounded authorization values without regex backtracking', () => {
+    assert.equal(
+      classifyGuidedProofAuthorization(`Bearer ${tokenA}`, tokenA, tokenB),
+      'proof-a'
+    )
+    assert.equal(
+      classifyGuidedProofAuthorization(
+        basicAuthorization(tokenB),
+        tokenA,
+        tokenB
+      ),
+      'proof-b'
+    )
+    assert.equal(
+      classifyGuidedProofAuthorization(
+        `Bearer ${'x'.repeat(8_193)}`,
+        tokenA,
+        tokenB
+      ),
+      'unknown'
+    )
+    assert.equal(
+      classifyGuidedProofAuthorization(
+        `Basic ${'='.repeat(8_000)}`,
+        tokenA,
+        tokenB
+      ),
+      'unknown'
+    )
+  })
+
   it('accepts tokens only from environment and sanitizes every child environment', () => {
     const parsed = parseGuidedProofCLIArguments(
       [
@@ -440,7 +483,11 @@ describe('guided proof fixture script', () => {
         tokenB,
       })
       assert.equal(
-        await httpsStatus(`${running.ready.endpoint}/user`, tokenB),
+        await httpsStatus(
+          `${running.ready.endpoint}/user`,
+          tokenB,
+          certificatePath
+        ),
         200
       )
       const rejectedDestination = join(root, 'account-a-clone')
@@ -502,7 +549,11 @@ describe('guided proof fixture script', () => {
       assert.doesNotMatch(ledger, new RegExp(tokenB))
       running = null
       await assert.rejects(
-        httpsStatus(`https://127.0.0.1:${port}/api/v3/user`, tokenB)
+        httpsStatus(
+          `https://127.0.0.1:${port}/api/v3/user`,
+          tokenB,
+          certificatePath
+        )
       )
     } finally {
       await running?.close().catch(() => undefined)

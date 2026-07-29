@@ -177,6 +177,7 @@ import {
   GitHubReleaseExactJSONMaximumBytes,
 } from './github-release-json'
 import { readBoundedRegistryPolicyJson } from './cheap-lfs/registry-policy-response'
+import { isValidOciNameComponent } from './cheap-lfs/oci-name-component'
 import {
   IAPIProviderTriagePage,
   normalizeProviderTriageLimit,
@@ -415,7 +416,10 @@ interface IFetchAllOptions<T> {
 const ClientID = process.env.TEST_ENV ? '' : __OAUTH_CLIENT_ID__
 const ClientSecret = process.env.TEST_ENV ? '' : __OAUTH_SECRET__
 
-if (!ClientID || !ClientID.length || !ClientSecret || !ClientSecret.length) {
+if (
+  __PROCESS_KIND__ === 'ui' &&
+  (!ClientID || !ClientID.length || !ClientSecret || !ClientSecret.length)
+) {
   log.warn(
     `DESKTOP_OAUTH_CLIENT_ID and/or DESKTOP_OAUTH_CLIENT_SECRET is undefined. You won't be able to authenticate new users.`
   )
@@ -1810,7 +1814,7 @@ export class API {
   ): Promise<unknown | null> {
     if (
       !/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(owner) ||
-      !/^[a-z0-9]+(?:(?:[._]|__|[-]*)[a-z0-9]+)*$/.test(packageName)
+      !isValidOciNameComponent(packageName)
     ) {
       throw new Error('The GitHub container package coordinate is invalid.')
     }

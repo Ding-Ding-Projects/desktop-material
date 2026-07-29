@@ -24,6 +24,7 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { JSDOM } from 'jsdom'
 import prettier from 'prettier'
 
 const repositoryRoot = fileURLToPath(new URL('../', import.meta.url))
@@ -63,7 +64,7 @@ export function* walkMarkdown(directory) {
 
 /** Reduces inline Markdown to the plain text a search index should hold. */
 export function stripInline(text) {
-  return text
+  const withoutMarkdown = text
     .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/\[([^\]]*)\]\[[^\]]*\]/g, '$1')
@@ -71,9 +72,16 @@ export function stripInline(text) {
     .replace(/\*\*([^*]*)\*\*/g, '$1')
     .replace(/\*([^*]*)\*/g, '$1')
     .replace(/_([^_]*)_/g, '$1')
-    .replace(/<[^>]+>/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+
+  // Let an HTML parser, rather than a tag-shaped regular expression, handle
+  // quoted `>` characters, comments and entity decoding. Executable and
+  // non-visible elements contribute no searchable prose.
+  const fragment = JSDOM.fragment(withoutMarkdown)
+  for (const element of fragment.querySelectorAll('script, style, template')) {
+    element.remove()
+  }
+
+  return (fragment.textContent ?? '').replace(/\s+/g, ' ').trim()
 }
 
 /**

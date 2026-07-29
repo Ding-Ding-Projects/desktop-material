@@ -17,6 +17,7 @@ import {
   renderedHref,
   replaceManagedBlock,
   sectionOf,
+  stripInline,
   titleFor,
 } from './generate-docs-hub-catalog.mjs'
 
@@ -45,6 +46,20 @@ describe('documentation hub catalog projection', () => {
       '# The `regex` **builder** and [guide](regex-guide.md)'
     )
     assert.equal(titleFor(lines, 'x.md'), 'The regex builder and guide')
+  })
+
+  it('parses inline HTML without treating quoted angle brackets as tags', () => {
+    assert.equal(
+      stripInline(
+        'Before <span data-comparison="1 > 0">inside &amp; sound</span> ' +
+          '<script>not searchable</script>after.'
+      ),
+      'Before inside & sound after.'
+    )
+    assert.equal(
+      stripInline('Keep a < b > c as prose.'),
+      'Keep a < b > c as prose.'
+    )
   })
 
   it('derives a title from the file name when there is no heading', () => {

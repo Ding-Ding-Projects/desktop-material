@@ -296,6 +296,150 @@ export function removeAndCopy(source: string, destination: string) {
   })
 }
 
+interface IStaticResourceCopyOptions {
+  readonly force?: boolean
+}
+
+function isPathInside(root: string, candidate: string): boolean {
+  const relative = path.relative(root, candidate)
+  return (
+    relative === '' ||
+    (!path.isAbsolute(relative) &&
+      relative !== '..' &&
+      !relative.startsWith(`..${path.sep}`))
+  )
+}
+
+/**
+ * Copy a static-resource directory without retaining links in the packaged app.
+ *
+ * A few upstream gitignore aliases are relative file symlinks. They are safe
+ * to package only when their resolved target is a regular file inside the
+ * source tree. Directory links, escaping or broken links, special files, and
+ * linked destinations all fail closed.
+ */
+export function copyStaticResourceTree(
+  source: string,
+  destination: string,
+  options: IStaticResourceCopyOptions = {}
+) {
+  const force = options.force ?? true
+  const sourceRootStat = lstatSync(source)
+  if (sourceRootStat.isSymbolicLink() || !sourceRootStat.isDirectory()) {
+    throw new Error(
+      `Static resource source must be a real directory: ${source}`
+    )
+  }
+
+  const resolvedSourceRoot = realpathSync.native(source)
+
+  const copyEntry = (sourcePath: string, destinationPath: string): void => {
+    const sourceStat = lstatSync(sourcePath)
+
+    if (sourceStat.isSymbolicLink()) {
+      let resolvedTarget: string
+      try {
+        resolvedTarget = realpathSync.native(sourcePath)
+      } catch {
+        throw new Error(
+          `Static resource link has an unsupported or missing target: ${sourcePath}`
+        )
+      }
+
+      if (!isPathInside(resolvedSourceRoot, resolvedTarget)) {
+        throw new Error(
+          `Static resource link escapes its source tree: ${sourcePath}`
+        )
+      }
+
+      const targetStat = lstatSync(resolvedTarget)
+      if (!targetStat.isFile()) {
+        throw new Error(
+          `Static resource links must target regular files: ${sourcePath}`
+        )
+      }
+
+      copyStaticResourceFile(resolvedTarget, destinationPath, force)
+      return
+    }
+
+    if (sourceStat.isDirectory()) {
+      const destinationStat = lstatIfPresent(destinationPath)
+      if (destinationStat !== undefined) {
+        if (
+          destinationStat.isSymbolicLink() ||
+          !destinationStat.isDirectory()
+        ) {
+          throw new Error(
+            `Static resource destination directory is unsafe: ${destinationPath}`
+          )
+        }
+      } else {
+        mkdirSync(destinationPath, { recursive: true })
+      }
+
+      for (const entry of readdirSync(sourcePath)) {
+        copyEntry(
+          path.join(sourcePath, entry),
+          path.join(destinationPath, entry)
+        )
+      }
+      return
+    }
+
+    if (sourceStat.isFile()) {
+      copyStaticResourceFile(sourcePath, destinationPath, force)
+      return
+    }
+
+    throw new Error(`Unsupported static resource entry: ${sourcePath}`)
+  }
+
+  copyEntry(source, destination)
+}
+
+function lstatIfPresent(
+  entry: string
+): ReturnType<typeof lstatSync> | undefined {
+  try {
+    return lstatSync(entry)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return undefined
+    }
+    throw error
+  }
+}
+
+function copyStaticResourceFile(
+  source: string,
+  destination: string,
+  force: boolean
+): void {
+  const destinationStat = lstatIfPresent(destination)
+  if (destinationStat !== undefined) {
+    if (destinationStat.isSymbolicLink() || !destinationStat.isFile()) {
+      throw new Error(
+        `Static resource destination file is unsafe: ${destination}`
+      )
+    }
+    if (!force) {
+      return
+    }
+  }
+
+  cpSync(source, destination, {
+    force,
+    errorOnExist: false,
+  })
+
+  if (lstatSync(destination).isSymbolicLink()) {
+    throw new Error(
+      `Static resource copy unexpectedly created a link: ${destination}`
+    )
+  }
+}
+
 function copyEmoji() {
   const emojiImages = path.join(projectRoot, 'gemoji', 'images', 'emoji')
   const emojiImagesDestination = path.join(outRoot, 'emoji')
@@ -317,15 +461,10 @@ function copyStaticResources() {
   const destination = path.join(outRoot, 'static')
   rmSync(destination, { recursive: true, force: true })
   if (existsSync(platformSpecific)) {
-    cpSync(platformSpecific, destination, {
-      recursive: true,
-      verbatimSymlinks: true,
-    })
+    copyStaticResourceTree(platformSpecific, destination)
   }
-  cpSync(common, destination, {
-    recursive: true,
+  copyStaticResourceTree(common, destination, {
     force: false,
-    verbatimSymlinks: true,
   })
 
   // The pre-generated narration + melody assets live in a top-level static dir

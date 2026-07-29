@@ -11,6 +11,8 @@
 
 /**
  * @typedef {import('@typescript-eslint/experimental-utils').TSESTree.ClassDeclaration} ClassDeclaration
+ * @typedef {import('@typescript-eslint/experimental-utils').TSESTree.ClassExpression} ClassExpression
+ * @typedef {ClassDeclaration | ClassExpression} ClassLike
  * @typedef {import('@typescript-eslint/experimental-utils').TSESTree.Node} Node
  * @typedef {import('@typescript-eslint/experimental-utils').TSESTree.Parameter} Parameter
  * @typedef {import("@typescript-eslint/experimental-utils").TSESTree.MethodDefinition} MethodDefinition
@@ -18,22 +20,43 @@
  */
 
 /**
+ * Read React component type arguments across TypeScript ESLint AST versions.
+ *
+ * TypeScript ESLint 8 renamed `superTypeParameters` to `superTypeArguments`.
+ * Keep accepting the legacy property because this repository still has tools
+ * that consume the older AST shape.
+ *
+ * @param {ClassLike} node
+ *
+ * @returns {any|null}
+ */
+function getSuperTypeArguments(node) {
+  const compatibleNode = /** @type {any} */ (node)
+  return (
+    compatibleNode.superTypeArguments ??
+    compatibleNode.superTypeParameters ??
+    null
+  )
+}
+
+/**
  * Extract the props type from the class declaration
  *
- * @param {ClassDeclaration} node
+ * @param {ClassLike} node
  *
  * @returns {string|null} a `string` if the props type can be resolved, `null` otherwise
  */
 function getPropsType(node) {
-  if (!node.superTypeParameters) {
+  const superTypeArguments = getSuperTypeArguments(node)
+  if (!superTypeArguments) {
     return null
   }
 
-  if (node.superTypeParameters.params.length <= 0) {
+  if (superTypeArguments.params.length <= 0) {
     return null
   }
 
-  const propsParam = node.superTypeParameters.params[0]
+  const propsParam = superTypeArguments.params[0]
   if (
     propsParam.type === 'TSTypeReference' &&
     propsParam.typeName.type === 'Identifier'
@@ -54,17 +77,18 @@ function getPropsType(node) {
 /**
  * Extract the state type from the class declaration
  *
- * @param {ClassDeclaration} node
+ * @param {ClassLike} node
  * @param {(node: Node) => string} getText
  *
  * @returns {string|null} a `string` if the props type can be resolved, `null` otherwise
  */
 function getStateType(node, getText) {
-  if (node.superTypeParameters.params.length <= 1) {
+  const superTypeArguments = getSuperTypeArguments(node)
+  if (!superTypeArguments || superTypeArguments.params.length <= 1) {
     return null
   }
 
-  const propsParam = node.superTypeParameters.params[1]
+  const propsParam = superTypeArguments.params[1]
   if (
     propsParam.type === 'TSTypeReference' &&
     propsParam.typeName.type === 'Identifier'
@@ -82,7 +106,7 @@ function getStateType(node, getText) {
 /**
  * Check if the encountered class subclasses React.Component or React.PureComponent
  *
- * @param {ClassDeclaration} node
+ * @param {ClassLike} node
  *
  * @returns {boolean} `true` if the superclass matches React.Component or React.PureComponent, or `false` in all other cases
  */
@@ -284,28 +308,34 @@ module.exports = {
       }
     }
 
-    let isValidComponent = false
+    /** @type {Array<{ propsTypeName: string, stateTypeName: string } | null>} */
+    const classContexts = []
 
-    let propsTypeName = '{}'
-    let stateTypeName = '{}'
+    /** @param {ClassLike} node */
+    function enterClass(node) {
+      if (!extendsReactComponent(node)) {
+        classContexts.push(null)
+        return
+      }
+
+      classContexts.push({
+        propsTypeName: getPropsType(node) ?? '{}',
+        stateTypeName: getStateType(node, getText) ?? '{}',
+      })
+    }
+
+    function exitClass() {
+      classContexts.pop()
+    }
 
     return {
-      ClassDeclaration(node) {
-        if (!extendsReactComponent(node)) {
-          return
-        }
-
-        isValidComponent = true
-
-        if (!node.superTypeParameters) {
-          return
-        }
-
-        propsTypeName = getPropsType(node)
-        stateTypeName = getStateType(node, getText)
-      },
+      ClassDeclaration: enterClass,
+      'ClassDeclaration:exit': exitClass,
+      ClassExpression: enterClass,
+      'ClassExpression:exit': exitClass,
       MethodDefinition(node) {
-        if (!isValidComponent) {
+        const classContext = classContexts[classContexts.length - 1]
+        if (!classContext) {
           return
         }
 
@@ -334,22 +364,22 @@ module.exports = {
               break
             case 'componentWillReceiveProps':
               return verifyParameters('componentWillReceiveProps', node, [
-                { name: 'nextProps', type: propsTypeName },
+                { name: 'nextProps', type: classContext.propsTypeName },
               ])
             case 'componentWillUpdate':
               return verifyParameters('componentWillUpdate', node, [
-                { name: 'nextProps', type: propsTypeName },
-                { name: 'nextState', type: stateTypeName },
+                { name: 'nextProps', type: classContext.propsTypeName },
+                { name: 'nextState', type: classContext.stateTypeName },
               ])
             case 'componentDidUpdate':
               return verifyParameters(methodName, node, [
-                { name: 'prevProps', type: propsTypeName },
-                { name: 'prevState', type: stateTypeName },
+                { name: 'prevProps', type: classContext.propsTypeName },
+                { name: 'prevState', type: classContext.stateTypeName },
               ])
             case 'shouldComponentUpdate':
               return verifyParameters('shouldComponentUpdate', node, [
-                { name: 'nextProps', type: propsTypeName },
-                { name: 'nextState', type: stateTypeName },
+                { name: 'nextProps', type: classContext.propsTypeName },
+                { name: 'nextState', type: classContext.stateTypeName },
               ])
             default:
               context.report({

@@ -21,6 +21,7 @@ Object.assign(globalThis, {
   __DEV__: false,
   __TEST__: true,
   __DEV_SECRETS__: false,
+  __PROCESS_KIND__: 'ui',
   // Mirror production: `__APP_NAME__` is the user-visible display name
   // (`Desktop Material`), NOT the on-disk `productName` (`GitHub Desktop`).
   __APP_NAME__: AppDisplayName,

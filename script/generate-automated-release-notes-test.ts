@@ -54,7 +54,7 @@ describe('automated release notes', () => {
     const subject = sanitizeCommitSubject(
       '  # Ship <script>bad()</script> @team [click](https://bad)\nnext  '
     )
-    assert.doesNotMatch(subject, /\n|<script>|@team|\[click\]\(/)
+    assert.doesNotMatch(subject, /\n|<script\b|@team|\[click\]\(/i)
     assert.match(subject, /&lt;script&gt;/)
     assert.match(subject, /@\u200bteam/)
     assert.ok(subject.length < 300)

@@ -68,6 +68,7 @@ rules:
   '@typescript-eslint/no-unused-vars':
     - error
     - args: 'none'
+      caughtErrors: 'none'
   '@typescript-eslint/no-use-before-define':
     - error
     - functions: false
@@ -91,9 +92,16 @@ rules:
   # too many cases, we're gonna want to pay down this debt
   # incrementally if we want to enable it.
   '@typescript-eslint/ban-types': off
+  # TypeScript ESLint 8 split these checks out of ban-types. Preserve the
+  # established policy until each category can be paid down incrementally.
+  '@typescript-eslint/no-empty-object-type': off
+  '@typescript-eslint/no-unsafe-function-type': off
+  '@typescript-eslint/no-wrapper-object-types': off
 
   # It'd be nice to be able to turn this on eventually
   '@typescript-eslint/no-var-requires': off
+  # TypeScript ESLint 8 replaced no-var-requires with this broader rule.
+  '@typescript-eslint/no-require-imports': off
 
   # Don't particularly care about these
   '@typescript-eslint/triple-slash-reference': off

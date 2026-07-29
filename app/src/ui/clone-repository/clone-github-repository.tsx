@@ -507,7 +507,10 @@ export class CloneGithubRepository extends React.PureComponent<
 
     return (
       <div className="batch-clone-controls">
-        <label className="auto-clone-toggle">
+        <label
+          className="auto-clone-toggle"
+          aria-label="Automatically clone new repositories. Runs in the background after this dialog closes and downloads new repositories into this base directory."
+        >
           <input
             type="checkbox"
             checked={this.props.autoCloneNewRepositories}

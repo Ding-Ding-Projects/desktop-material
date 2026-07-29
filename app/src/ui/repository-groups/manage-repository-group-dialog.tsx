@@ -292,7 +292,7 @@ export class ManageRepositoryGroupDialog extends React.Component<
     const checked = this.state.selectedIds.has(repository.id)
     return (
       <li key={repository.id} className="repository-group-member">
-        <label>
+        <label aria-label={`${nameOf(repository)}. ${repository.path}`}>
           <input
             type="checkbox"
             value={String(repository.id)}

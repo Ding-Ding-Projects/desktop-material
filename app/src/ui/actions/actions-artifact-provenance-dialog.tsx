@@ -31,10 +31,6 @@ interface IActionsArtifactProvenanceDialogState {
 
 let actionsArtifactProvenanceDialogSequence = 0
 
-function digest(value: string): string {
-  return value.replace(/^sha256:/, 'sha256:')
-}
-
 function signerLabel(signer: IActionsArtifactProvenanceReviewSigner): string {
   return `${signer.identity} · ${
     signer.kind === 'current-workflow'
@@ -181,7 +177,7 @@ export class ActionsArtifactProvenanceDialog extends React.Component<
       <div className="actions-provenance-summary-grid">
         <div className="actions-provenance-digest">
           <span>Archive transport digest</span>
-          <code>{digest(review.archive.digest)}</code>
+          <code>{review.archive.digest}</code>
           <small>
             {formatBytes(review.archive.bytes, 1)} downloaded bytes · exact ZIP
             transport identity

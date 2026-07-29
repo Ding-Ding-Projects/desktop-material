@@ -38,10 +38,11 @@ export function getReplacements() {
   const isDevBuild = channel === 'development'
 
   return {
-    __OAUTH_CLIENT_ID__: s(process.env.DESKTOP_OAUTH_CLIENT_ID || devClientId),
-    __OAUTH_SECRET__: s(
-      process.env.DESKTOP_OAUTH_CLIENT_SECRET || devClientSecret
-    ),
+    // API helpers are also imported by non-renderer bundles. Replace their
+    // globals with JavaScript undefined there; the renderer config overrides
+    // these two entries with the real OAuth values.
+    __OAUTH_CLIENT_ID__: 'undefined',
+    __OAUTH_SECRET__: 'undefined',
     __DARWIN__: process.platform === 'darwin',
     __WIN32__: process.platform === 'win32',
     __LINUX__: process.platform === 'linux',
@@ -61,5 +62,18 @@ export function getReplacements() {
     'process.platform': s(process.platform),
     'process.env.NODE_ENV': s(process.env.NODE_ENV || 'development'),
     'process.env.TEST_ENV': s(process.env.TEST_ENV),
+  }
+}
+
+/**
+ * OAuth credentials are needed only by the full renderer's API client. Keep
+ * them out of main, crash, CLI, quick-action, and worker bundles entirely.
+ */
+export function getOAuthReplacements() {
+  return {
+    __OAUTH_CLIENT_ID__: s(process.env.DESKTOP_OAUTH_CLIENT_ID || devClientId),
+    __OAUTH_SECRET__: s(
+      process.env.DESKTOP_OAUTH_CLIENT_SECRET || devClientSecret
+    ),
   }
 }

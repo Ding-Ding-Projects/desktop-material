@@ -150,4 +150,23 @@ describe('GitHub Packages API', () => {
       GitHubDotComRESTAPIVersion
     )
   })
+
+  it('rejects adversarial container package names before making a request', async () => {
+    const api = new API('https://api.github.com', 'secret-token')
+    let requests = 0
+    Reflect.set(api, 'ghRequest', async () => {
+      requests++
+      return new Response('{}')
+    })
+
+    await assert.rejects(
+      api.fetchGitHubContainerPackageMetadata(
+        'Ding-Ding-Projects',
+        `${'a'.repeat(1_000_000)}!`,
+        'organization'
+      ),
+      /container package coordinate is invalid/
+    )
+    assert.equal(requests, 0)
+  })
 })

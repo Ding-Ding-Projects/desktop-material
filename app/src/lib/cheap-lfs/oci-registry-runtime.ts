@@ -3,6 +3,7 @@ import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { lstat, open, realpath } from 'fs/promises'
 import { join, relative, resolve, isAbsolute, basename } from 'path'
 import { guardStreamAgainstPeerClose } from '../peer-closed-stream-error'
+import { isValidOciNameComponent } from './oci-name-component'
 
 export type CheapLfsRegistryProvider = 'ghcr' | 'docker-hub'
 export type CheapLfsOrasArchitecture = 'x64' | 'arm64'
@@ -26,7 +27,6 @@ const DefaultCredentialHelperTimeoutMs = 15_000
 const DigestRegex = /^sha256:[0-9a-f]{64}$/
 const GitHubLoginRegex = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/
 const DockerHubNamespaceRegex = /^[a-z0-9](?:[a-z0-9_-]{0,253}[a-z0-9])?$/
-const OciNameComponentRegex = /^[a-z0-9]+(?:(?:[._]|__|[-]*)[a-z0-9]+)*$/
 const ImmutableDigestRegex = /^sha256:[0-9a-f]{64}$/
 const AllowedDockerCredentialHelpers = new Set(['desktop', 'wincred'])
 
@@ -1033,7 +1033,7 @@ function canonicalRepositoryName(value: string): string {
     value.length === 0 ||
     value.length > 100 ||
     !/^[A-Za-z0-9._-]+$/.test(value) ||
-    !OciNameComponentRegex.test(canonical)
+    !isValidOciNameComponent(canonical)
   ) {
     throw new CheapLfsRegistryRuntimeError(
       'invalid-input',

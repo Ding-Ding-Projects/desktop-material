@@ -17,6 +17,7 @@ import {
   buildShellExtension,
   findMsvcToolchain,
   getMsvcToolchainCoordinates,
+  loadMsvcEnvironment,
   readPortableExecutableMachine,
   validateShellExtensionMachine,
 } from './build-shell-extension'
@@ -85,6 +86,32 @@ describe('shell extension native build contract', () => {
       assert.equal(result!.compilerPath, compiler)
       assert.equal(result!.vcVarsAllPath, vcvars)
       assert.equal(result!.coordinates.vcVarsArgument, 'x64_arm64')
+    }
+  )
+
+  it(
+    'preserves the first inherited environment entry from vcvars output',
+    { skip: process.platform !== 'win32' },
+    t => {
+      const toolchain = findMsvcToolchain('x64')
+      if (toolchain === null) {
+        t.skip('Visual Studio C++ x64 tools are not installed')
+        return
+      }
+
+      const name = 'AAA_DESKTOP_MATERIAL_VCVARS_INHERITED'
+      const previousValue = process.env[name]
+      process.env[name] = 'preserved'
+      try {
+        const compilerEnvironment = loadMsvcEnvironment(toolchain)
+        assert.equal(compilerEnvironment[name], 'preserved')
+      } finally {
+        if (previousValue === undefined) {
+          delete process.env[name]
+        } else {
+          process.env[name] = previousValue
+        }
+      }
     }
   )
 
@@ -184,6 +211,58 @@ describe('shell extension native build contract', () => {
         stdio: 'pipe',
         windowsHide: true,
       })
+    }
+  )
+
+  it(
+    'passes metacharacter build paths to cl.exe as argv without cmd expansion',
+    { skip: process.platform !== 'win32' },
+    t => {
+      if (findMsvcToolchain('x64') === null) {
+        t.skip('Visual Studio C++ x64 tools are not installed')
+        return
+      }
+
+      const root = mkdtempSync(join(tmpdir(), 'dm-shell-argv-safe-'))
+      roots.push(root)
+      const injectionVariable = 'DM_SHELL_EXTENSION_PATH_INJECTION'
+      const sentinel = join(root, 'cmd-injection-sentinel.txt')
+      const previousValue = process.env[injectionVariable]
+      process.env[injectionVariable] = `" & echo injected>"${sentinel}" & rem "`
+
+      try {
+        const outputRoot = join(root, `%${injectionVariable}% & (literal) !^`)
+        mkdirSync(outputRoot, { recursive: true })
+
+        const result = buildShellExtension(outputRoot, {
+          architecture: 'x64',
+        })
+
+        assert.equal(result.built, true, result.reason)
+        assert.equal(existsSync(sentinel), false)
+        assert.equal(
+          existsSync(
+            join(
+              outputRoot,
+              'shell-extension',
+              'DesktopMaterialShellExtension.dll'
+            )
+          ),
+          true
+        )
+        assert.equal(
+          existsSync(
+            join(outputRoot, 'shell-extension', 'build-shell-extension.bat')
+          ),
+          false
+        )
+      } finally {
+        if (previousValue === undefined) {
+          delete process.env[injectionVariable]
+        } else {
+          process.env[injectionVariable] = previousValue
+        }
+      }
     }
   )
 

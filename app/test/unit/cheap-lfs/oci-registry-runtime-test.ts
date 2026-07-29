@@ -609,6 +609,16 @@ describe('Cheap LFS OCI registry runtime', () => {
       assert.throws(
         () =>
           deriveCheapLfsRegistryTarget({
+            provider: 'ghcr',
+            repositoryId: 7,
+            owner: 'owner',
+            name: `${'a'.repeat(1_000_000)}!`,
+          }),
+        CheapLfsRegistryRuntimeError
+      )
+      assert.throws(
+        () =>
+          deriveCheapLfsRegistryTarget({
             provider: 'docker-hub',
             repositoryId: 7,
             owner: 'owner',

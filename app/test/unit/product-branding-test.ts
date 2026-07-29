@@ -2,7 +2,11 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 
 import { DefaultAppDisplayName } from '../../src/models/app-identity'
-import { AppDisplayName } from '../../app-info'
+import {
+  AppDisplayName,
+  getOAuthReplacements,
+  getReplacements,
+} from '../../app-info'
 import { productName } from '../../package.json'
 
 /**
@@ -50,5 +54,15 @@ describe('product name branding', () => {
     // pinned until an explicit migration exists. This guard documents intent —
     // change it only alongside that migration.
     assert.equal(productName, 'GitHub Desktop')
+  })
+
+  it('keeps OAuth credentials out of shared non-renderer replacements', () => {
+    const shared = getReplacements()
+    assert.equal(shared.__OAUTH_CLIENT_ID__, 'undefined')
+    assert.equal(shared.__OAUTH_SECRET__, 'undefined')
+
+    const rendererOnly = getOAuthReplacements()
+    assert.notEqual(rendererOnly.__OAUTH_CLIENT_ID__, 'undefined')
+    assert.notEqual(rendererOnly.__OAUTH_SECRET__, 'undefined')
   })
 })

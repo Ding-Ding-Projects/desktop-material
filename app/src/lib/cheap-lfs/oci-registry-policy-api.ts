@@ -14,12 +14,20 @@ import {
   ICheapLfsSourceRepositoryPolicyApi,
   getCheapLfsGitHubRepositoryIdentity,
 } from './oci-registry-runtime'
+import {
+  isValidOciNameComponent,
+  OciNameComponentMaximumLength,
+} from './oci-name-component'
 import { readBoundedRegistryPolicyJson } from './registry-policy-response'
 
 const DockerHubApiRoot = 'https://hub.docker.com'
 const DefaultPolicyTimeoutMs = 20_000
 const GitHubOwnerPattern = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/
-const OciComponentPattern = /^[a-z0-9]+(?:(?:[._]|__|[-]*)[a-z0-9]+)*$/
+const DockerHubNamespaceMaximumLength = 255
+const DockerHubCoordinateMaximumLength =
+  'docker.io//'.length +
+  DockerHubNamespaceMaximumLength +
+  OciNameComponentMaximumLength
 
 type JsonObject = { readonly [key: string]: unknown }
 
@@ -300,6 +308,9 @@ interface IDockerHubCoordinate {
 }
 
 function dockerHubCoordinate(registryRepository: string): IDockerHubCoordinate {
+  if (registryRepository.length > DockerHubCoordinateMaximumLength) {
+    throw policyError()
+  }
   const match = /^docker\.io\/([^/]+)\/([^/]+)$/.exec(registryRepository)
   const namespace = match?.[1]
   const repository = match?.[2]
@@ -307,7 +318,7 @@ function dockerHubCoordinate(registryRepository: string): IDockerHubCoordinate {
     namespace === undefined ||
     repository === undefined ||
     !/^[a-z0-9](?:[a-z0-9_-]{0,253}[a-z0-9])?$/.test(namespace) ||
-    !OciComponentPattern.test(repository)
+    !isValidOciNameComponent(repository)
   ) {
     throw policyError()
   }

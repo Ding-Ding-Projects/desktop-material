@@ -126,7 +126,10 @@ export class CommandPaletteAppearanceEditor extends React.Component<
     description: string
   ) {
     return (
-      <label className="command-palette-appearance-option">
+      <label
+        className="command-palette-appearance-option"
+        aria-label={`${label}. ${description}`}
+      >
         <input
           type="radio"
           name="command-palette-density"

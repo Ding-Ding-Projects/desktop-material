@@ -342,6 +342,27 @@ describe('Cheap LFS registry policy APIs', () => {
     )
   })
 
+  it('rejects oversized adversarial Docker Hub coordinates before fetch', async () => {
+    let fetchCalls = 0
+    const policy = new DockerHubCheapLfsRegistryRepositoryPolicyApi(
+      { username: 'octo', token: Buffer.from('secret') },
+      async () => {
+        fetchCalls++
+        return Response.json({})
+      },
+      5_000
+    )
+
+    await assert.rejects(
+      policy.inspectRegistryRepository({
+        provider: 'docker-hub',
+        registryRepository: `docker.io/octo/${'a'.repeat(1_000_000)}!`,
+      }),
+      /could not verify source repository access/
+    )
+    assert.equal(fetchCalls, 0)
+  })
+
   it('keeps the Docker policy timeout active while the response body stalls', async () => {
     const encoder = new TextEncoder()
     const fetcher: ICheapLfsRegistryPolicyFetch = async url =>

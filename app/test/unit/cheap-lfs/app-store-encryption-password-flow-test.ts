@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { createHash, randomBytes } from 'node:crypto'
+import { createHmac, randomBytes } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, describe, it, mock } from 'node:test'
@@ -41,6 +41,14 @@ const repository = {
   buildRunPreferences: encryptedReleasePreferences,
 } as Repository
 
+const CredentialFingerprintKey = randomBytes(32)
+
+function credentialFingerprint(value: string | Buffer): string {
+  return createHmac('sha256', CredentialFingerprintKey)
+    .update(value)
+    .digest('hex')
+}
+
 function runtimeCredential(): {
   readonly value: string
   readonly digest: string
@@ -48,7 +56,7 @@ function runtimeCredential(): {
   const value = randomBytes(32).toString('base64url')
   return {
     value,
-    digest: createHash('sha256').update(value).digest('hex'),
+    digest: credentialFingerprint(value),
   }
 }
 
@@ -57,9 +65,7 @@ function assertCredentialDigest(
   expectedDigest: string
 ): void {
   assert.equal(
-    createHash('sha256')
-      .update(Buffer.isBuffer(value) ? value : value ?? '')
-      .digest('hex'),
+    credentialFingerprint(Buffer.isBuffer(value) ? value : value ?? ''),
     expectedDigest
   )
 }

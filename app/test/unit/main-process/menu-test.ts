@@ -183,7 +183,7 @@ describe('main-process menu', () => {
     it('exposes the multi-window keyboard shortcut', () => {
       const template = buildDefaultMenuTemplate(baseParams)
       const fileMenu = template.find(
-        item => item.label?.replace('&', '') === 'File'
+        item => item.label?.replaceAll('&', '') === 'File'
       )
       assert.ok(fileMenu && Array.isArray(fileMenu.submenu))
       const newWindow = fileMenu.submenu.find(item => item.id === 'new-window')
@@ -193,7 +193,7 @@ describe('main-process menu', () => {
     it('exposes the stable Repository Tools keyboard shortcut', () => {
       const template = buildDefaultMenuTemplate(baseParams)
       const viewMenu = template.find(
-        item => item.label?.replace('&', '') === 'View'
+        item => item.label?.replaceAll('&', '') === 'View'
       )
       assert.ok(viewMenu && Array.isArray(viewMenu.submenu))
       const repositoryTools = viewMenu.submenu.find(

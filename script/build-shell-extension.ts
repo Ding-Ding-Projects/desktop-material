@@ -314,6 +314,65 @@ export interface IShellExtensionBuildOptions {
   readonly visualStudioRoot?: string
 }
 
+/**
+ * Load the environment prepared by Visual Studio without letting build paths
+ * enter cmd.exe's command grammar.
+ *
+ * vcvarsall is necessarily a batch file, so a small, static command is the
+ * only cmd.exe boundary in the native build. Its path is supplied through an
+ * environment variable and the architecture argument comes from our closed
+ * toolchain mapping. Compiler inputs and outputs never cross this boundary.
+ */
+export function loadMsvcEnvironment(
+  toolchain: IMsvcShellExtensionToolchain
+): NodeJS.ProcessEnv {
+  const vcVarsEnvironmentName = 'DESKTOP_MATERIAL_VCVARSALL'
+  const environment: NodeJS.ProcessEnv = {
+    ...process.env,
+    [vcVarsEnvironmentName]: toolchain.vcVarsAllPath,
+  }
+  const environmentMarker = '__DESKTOP_MATERIAL_VCVARS_ENVIRONMENT__'
+  const bootstrap = [
+    '@echo off',
+    // Interactive cmd writes its initial prompt without a newline. Emit one
+    // before `set` so that prompt text can never prefix the first environment
+    // variable name.
+    'echo(',
+    `call "%${vcVarsEnvironmentName}%" ${toolchain.coordinates.vcVarsArgument} >nul`,
+    'if errorlevel 1 exit /b %errorlevel%',
+    `echo ${environmentMarker}`,
+    'set',
+    'exit /b 0',
+  ].join('\r\n')
+  const output = execFileSync('cmd.exe', ['/d', '/q', '/v:off'], {
+    encoding: 'utf8',
+    env: environment,
+    input: bootstrap,
+    maxBuffer: 4 * 1024 * 1024,
+    stdio: ['pipe', 'pipe', 'inherit'],
+    timeout: 30_000,
+    windowsHide: true,
+  })
+
+  const compilerEnvironment: NodeJS.ProcessEnv = {}
+  const outputLines = output.split(/\r?\n/)
+  const markerIndex = outputLines.indexOf(environmentMarker)
+  if (markerIndex < 0) {
+    throw new Error('Visual Studio environment bootstrap returned no marker')
+  }
+  for (const line of outputLines.slice(markerIndex + 1)) {
+    const separator = line.indexOf('=')
+    // cmd.exe also exposes pseudo-variables such as "=C:=C:\\path". They are
+    // shell state, not process environment variables accepted by Node.
+    if (separator <= 0) {
+      continue
+    }
+    compilerEnvironment[line.slice(0, separator)] = line.slice(separator + 1)
+  }
+  delete compilerEnvironment[vcVarsEnvironmentName]
+  return compilerEnvironment
+}
+
 /** Compile the DLL and write the manifest beside it. */
 export function buildShellExtension(
   outputRoot: string,
@@ -351,18 +410,11 @@ export function buildShellExtension(
 
   mkdirSync(path.join(outputDirectory, 'obj'), { recursive: true })
 
-  // vcvarsall must run in the same shell as cl.exe to export INCLUDE/LIB, so the
-  // two are written to one batch file. Passing them as a `cmd /c` string
-  // instead would have Node escape the embedded quotes and break every path
-  // containing a space — which "Program Files" always does.
-  const scriptPath = path.join(outputDirectory, 'build-shell-extension.bat')
-  writeFileSync(
-    scriptPath,
-    [
-      '@echo off',
-      `call "${toolchain.vcVarsAllPath}" ${toolchain.coordinates.vcVarsArgument} || exit /b 1`,
+  try {
+    const environment = loadMsvcEnvironment(toolchain)
+    execFileSync(
+      toolchain.compilerPath,
       [
-        `"${toolchain.compilerPath}"`,
         '/nologo',
         '/std:c++17',
         '/EHsc',
@@ -370,29 +422,24 @@ export function buildShellExtension(
         '/DUNICODE',
         '/D_UNICODE',
         '/LD',
-        `"${source}"`,
-        `/Fe:"${dllPath}"`,
-        // The object directory needs a trailing separator, doubled so it does
-        // not escape the closing quote under the MSVC command-line parse.
-        `/Fo:"${path.join(outputDirectory, 'obj')}\\\\"`,
+        source,
+        `/Fe:${dllPath}`,
+        `/Fo:${path.join(outputDirectory, 'obj', 'dllmain.obj')}`,
         '/link',
         'shlwapi.lib',
         'ole32.lib',
         'shell32.lib',
         'user32.lib',
         `/MACHINE:${toolchain.coordinates.linkerMachine}`,
-        `/DEF:"${path.join(sourceDir, 'exports.def')}"`,
-      ].join(' '),
-      'exit /b %ERRORLEVEL%',
-    ].join('\r\n'),
-    'utf8'
-  )
-
-  try {
-    execFileSync('cmd.exe', ['/c', scriptPath], {
-      stdio: 'inherit',
-      cwd: outputDirectory,
-    })
+        `/DEF:${path.join(sourceDir, 'exports.def')}`,
+      ],
+      {
+        env: environment,
+        stdio: 'inherit',
+        cwd: outputDirectory,
+        windowsHide: true,
+      }
+    )
   } catch (error) {
     return fail(
       `cl.exe failed: ${error instanceof Error ? error.message : String(error)}`
@@ -416,7 +463,6 @@ export function buildShellExtension(
   // Intermediates would otherwise ship inside the package directory, where
   // everything present is content the sparse package exposes.
   rmSync(path.join(outputDirectory, 'obj'), { recursive: true, force: true })
-  rmSync(scriptPath, { force: true })
   for (const leftover of [
     'dllmain.obj',
     'DesktopMaterialShellExtension.exp',

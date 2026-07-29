@@ -2,12 +2,13 @@ import * as path from 'path'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import webpack from 'webpack'
 import merge from 'webpack-merge'
-import { getReplacements } from './app-info'
+import { getOAuthReplacements, getReplacements } from './app-info'
 
 export const externals = ['7zip']
 
 const outputDir = 'out'
 export const replacements = getReplacements()
+const oauthReplacements = getOAuthReplacements()
 
 const commonConfig: webpack.Configuration = {
   optimization: {
@@ -113,7 +114,7 @@ export const renderer = merge({}, commonConfig, {
       }
     ),
     new webpack.DefinePlugin(
-      Object.assign({}, replacements, {
+      Object.assign({}, replacements, oauthReplacements, {
         __PROCESS_KIND__: JSON.stringify('ui'),
       })
     ),
@@ -157,7 +158,7 @@ export const quickAction = merge({}, commonConfig, {
     }),
     new webpack.DefinePlugin(
       Object.assign({}, replacements, {
-        __PROCESS_KIND__: JSON.stringify('ui'),
+        __PROCESS_KIND__: JSON.stringify('quick-action'),
       })
     ),
   ],

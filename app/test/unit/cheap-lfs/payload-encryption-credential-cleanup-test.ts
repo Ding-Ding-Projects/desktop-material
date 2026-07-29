@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { createHash, randomBytes } from 'node:crypto'
+import { createHash, createHmac, randomBytes } from 'node:crypto'
 import { describe, it } from 'node:test'
 
 import {
@@ -14,18 +14,24 @@ import {
 const account = (label: string) =>
   createHash('sha256').update(label).digest('hex')
 
+const CredentialFingerprintKey = randomBytes(32)
+
+function credentialFingerprint(value: string): string {
+  return createHmac('sha256', CredentialFingerprintKey)
+    .update(value)
+    .digest('hex')
+}
+
 function sentinel(): { readonly value: string; readonly digest: string } {
   const value = randomBytes(32).toString('base64url')
   return {
     value,
-    digest: createHash('sha256').update(value).digest('hex'),
+    digest: credentialFingerprint(value),
   }
 }
 
 function digest(value: string | undefined): string {
-  return createHash('sha256')
-    .update(value ?? '')
-    .digest('hex')
+  return credentialFingerprint(value ?? '')
 }
 
 class CredentialVault implements ICheapLfsMainProcessCredentialVault {

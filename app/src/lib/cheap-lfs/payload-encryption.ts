@@ -258,17 +258,19 @@ function scryptOptions(kdf: ICheapLfsKdfParameters): {
   const N = valid ? 2 ** kdf.logN : 0
   const estimatedBytes =
     valid && Number.isSafeInteger(N)
-      ? 128 * N * kdf.blockSize + 128 * kdf.blockSize * kdf.parallelism
-      : Number.POSITIVE_INFINITY
+      ? 128n * BigInt(N) * BigInt(kdf.blockSize) +
+        128n * BigInt(kdf.blockSize) * BigInt(kdf.parallelism)
+      : -1n
   const workFactor = valid
-    ? N * kdf.blockSize * kdf.parallelism
-    : Number.POSITIVE_INFINITY
+    ? BigInt(N) * BigInt(kdf.blockSize) * BigInt(kdf.parallelism)
+    : -1n
   if (
     !valid ||
-    !Number.isSafeInteger(estimatedBytes) ||
-    estimatedBytes + ScryptMemoryReserveBytes > MaximumScryptMemoryBytes ||
-    !Number.isSafeInteger(workFactor) ||
-    workFactor > MaximumScryptWorkFactor
+    estimatedBytes < 0n ||
+    estimatedBytes + BigInt(ScryptMemoryReserveBytes) >
+      BigInt(MaximumScryptMemoryBytes) ||
+    workFactor < 0n ||
+    workFactor > BigInt(MaximumScryptWorkFactor)
   ) {
     throw new CheapLfsEncryptionError(
       'The Cheap LFS payload header carries unusable key-derivation parameters.'
@@ -278,7 +280,7 @@ function scryptOptions(kdf: ICheapLfsKdfParameters): {
     N,
     r: kdf.blockSize,
     p: kdf.parallelism,
-    maxmem: estimatedBytes + ScryptMemoryReserveBytes,
+    maxmem: Number(estimatedBytes) + ScryptMemoryReserveBytes,
   }
 }
 
@@ -382,7 +384,8 @@ function parseHeaderPrefix(
     )
   }
 
-  const ciphertextOffset = offset + saltLength + nonceLength + tagLength
+  const ciphertextOffset =
+    HeaderFixedBytes + SaltLengthBytes + NonceLengthBytes + TagLengthBytes
   if (totalSizeInBytes < ciphertextOffset) {
     throw new CheapLfsEncryptionError(
       'This Cheap LFS payload is truncated before its ciphertext.'

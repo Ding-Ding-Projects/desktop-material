@@ -165,6 +165,40 @@ export class WindowControls extends React.Component {
   }
   `,
         },
+        // Class context must not leak into later or nested non-React classes,
+        // and each React class keeps its own props/state types.
+        {
+          filename: 'app/src/ui/multiple-classes.tsx',
+          code: `
+import * as React from 'react'
+
+interface IFirstProps {}
+interface ISecondProps {}
+interface ISecondState {}
+
+class First extends React.Component<IFirstProps> {
+  public render() {
+    const NestedUtility = class {
+      public componentLooksLikeLifecycle() {}
+    }
+    return NestedUtility
+  }
+
+  public componentDidUpdate(prevProps: IFirstProps) {}
+}
+
+class Utility {
+  public componentLooksLikeLifecycle() {}
+}
+
+class Second extends React.Component<ISecondProps, ISecondState> {
+  public componentDidUpdate(
+    prevProps: ISecondProps,
+    prevState: ISecondState
+  ) {}
+}
+`,
+        },
       ],
       invalid: [
         //

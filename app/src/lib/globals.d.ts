@@ -60,7 +60,13 @@ declare const __NON_FATAL_ERROR_REPORTING_ENDPOINT__: string | undefined
  * The currently executing process kind, this is specific to desktop
  * and identifies the processes that we have.
  */
-declare const __PROCESS_KIND__: 'main' | 'ui' | 'crash' | 'highlighter'
+declare const __PROCESS_KIND__:
+  | 'main'
+  | 'ui'
+  | 'quick-action'
+  | 'crash'
+  | 'highlighter'
+  | 'cli'
 
 interface IDesktopLogger {
   /**

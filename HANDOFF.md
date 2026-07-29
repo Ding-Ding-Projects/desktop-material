@@ -1,6 +1,6 @@
 # Desktop Material — Active parity handoff
 
-## 2026-07-28 — CURRENT HANDOFF (read this first)
+## 2026-07-29 — CURRENT HANDOFF (read this first)
 
 The issue-closeout, Cheap LFS helper, GitLab, and Windows bug-hunt lineages are
 now reconciled in the local `main` merge, and all six textual conflicts are
@@ -43,6 +43,57 @@ source/package notes, and the July 27 Debian/Xvfb manifests are preserved
 historical records, not supported product/release targets and not blockers for
 this Windows close-out. Any later heading that says “read this first” is an
 archived point-in-time handoff and is explicitly superseded by this section.
+
+### Security, packaging, and toolchain hardening checkpoint
+
+The merged tree at `d273ae95d7` received a second bug-hunt pass before packaged
+runtime acceptance:
+
+- the static-resource packager now materializes only contained regular-file
+  links, rejects escaping, directory, broken, and destination links before a
+  copy can write outside the output tree, and leaves the packaged static tree
+  free of reparse points;
+- the shell-extension build captures Visual Studio's environment through one
+  bounded static `cmd.exe` bootstrap, parses only rows after an explicit marker,
+  and passes every compiler path and option directly to `cl.exe` as argv;
+- bounded linear OCI component validation replaces three backtracking regular
+  expressions, including million-character pre-network regressions;
+- payload bounds use checked `BigInt` arithmetic, guided-proof authorization is
+  length-bounded and linear, TLS tests trust their fixture CA, certificate paths
+  reject controls, and documentation HTML extraction uses JSDOM rather than
+  regex stripping or manual entity decoding;
+- real OAuth values are injected only into the full renderer. Main, crash, CLI,
+  highlighter, and quick-action bundles receive JavaScript `undefined`; the
+  quick-action renderer now has its own process kind so it cannot emit a false
+  authentication warning;
+- TypeScript-ESLint 8 support retains the repository's explicit legacy policy
+  while fixing the custom React lifecycle rule for the renamed AST field and
+  for context leakage across sibling or nested classes; and
+- the dependency refresh pins compatibility-sensitive TypeScript, React,
+  formatter, test-runner, and request-typing versions, removes an unused Azure
+  dependency, raises the honest Node floor to 22, and keeps both Yarn lockfiles
+  plus the TUI UV lock synchronized.
+
+Current local gates pass: a frozen root install (including the app/native
+post-install), repo-wide lint, TypeScript, 93/93 focused app tests, 186/188
+script tests with only the absent ARM64 toolchain and optional Mermaid browser
+skipped, 4/4 custom ESLint-rule tests, and the TUI's 250 tests with its one
+platform-only skip plus Ruff and Mypy. The dependency audit is reduced to one
+unique `brace-expansion` advisory through four repository build/lint paths; no
+compatible 1.x patch exists, those paths do not ship in the app, and forcing
+the incompatible 5.x API into Minimatch 3 was rejected.
+
+This is still a source checkpoint. The exact committed tip needs its own
+production build, packaged-tree proof, off-screen updater receipt and inspected
+960×660 screenshot, full 7,100-test gate after screenshot promotion, final
+documentation push, remote CI/Pages proof, and merged branch/worktree cleanup.
+
+香港粵語：第二輪已加固封裝 symlink／reparse point、原生編譯器參數、OCI
+驗證、加密長度、文件 HTML 解析、OAuth bundle 邊界、ESLint AST 相容性同
+依賴鎖檔；fresh install、lint、TypeScript、重點 app／script／TUI 測試已
+通過。未完成同一個 commit 嘅 Windows 封裝、離屏 updater receipt、完整
+7,100 個測試、遠端 CI／Pages 同分支／worktree 清理之前，仍然唔會當成
+最終完成。
 
 ### Superseded stop-now checkpoint
 

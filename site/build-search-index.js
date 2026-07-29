@@ -14,40 +14,49 @@
 
 const fs = require('fs')
 const path = require('path')
+const { JSDOM } = require('jsdom')
 
 const siteDir = path.resolve(process.argv[2] ?? '_site')
 const docsDir = path.join(siteDir, 'docs')
 const MaximumPageCharacters = 200_000
 
+function textWithElementBoundaries(node) {
+  return Array.from(node.childNodes)
+    .map(child =>
+      child.nodeType === 3
+        ? child.nodeValue ?? ''
+        : textWithElementBoundaries(child)
+    )
+    .join(' ')
+}
+
 function htmlToText(html) {
-  const main = html.match(/<main[^>]*>([\s\S]*?)<\/main>/i)
-  const body = main === null ? html : main[1]
-  return body
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
+  const fragment = JSDOM.fragment(html)
+  const root = fragment.querySelector('main') ?? fragment
+  const clone = root.cloneNode(true)
+  for (const element of clone.querySelectorAll('script, style, template')) {
+    element.remove()
+  }
+  return textWithElementBoundaries(clone)
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, MaximumPageCharacters)
 }
 
 function titleOf(html, fallback) {
-  const heading = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)
+  const fragment = JSDOM.fragment(html)
+  const heading = fragment.querySelector('h1')
   if (heading !== null) {
-    const text = htmlToText(`<main>${heading[1]}</main>`)
+    const text = htmlToText(heading.outerHTML)
     if (text !== '') {
       return text
     }
   }
-  const tag = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)
+  const tag = fragment.querySelector('title')
   if (tag !== null) {
-    return tag[1].replace(/\s*·\s*Desktop Material Docs\s*$/, '').trim()
+    return (tag.textContent ?? '')
+      .replace(/\s*·\s*Desktop Material Docs\s*$/, '')
+      .trim()
   }
   return fallback
 }
@@ -97,4 +106,8 @@ function main() {
   )
 }
 
-main()
+if (require.main === module) {
+  main()
+}
+
+module.exports = { htmlToText, titleOf }

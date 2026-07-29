@@ -597,6 +597,68 @@ export async function createGuidedProofRepository(
   }
 }
 
+export function classifyGuidedProofAuthorization(
+  value: string | undefined,
+  tokenA: string,
+  tokenB: string
+): ProofAccountClass {
+  if (value === undefined || value.length === 0) {
+    return 'anonymous'
+  }
+  // This is a local proof server, but its HTTP header still crosses a trust
+  // boundary. Keep parsing linear and bounded even when a raw client sends a
+  // deliberately oversized or whitespace-heavy Authorization value.
+  if (value.length > 8_192) {
+    return 'unknown'
+  }
+  const separator = value.search(/\s/)
+  if (separator <= 0) {
+    return 'unknown'
+  }
+  let valueStart = separator
+  while (valueStart < value.length && /\s/.test(value[valueStart])) {
+    valueStart++
+  }
+  if (valueStart === value.length) {
+    return 'unknown'
+  }
+  const scheme = value.slice(0, separator).toLowerCase()
+  const candidate = value.slice(valueStart)
+  if (scheme === 'basic') {
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(candidate)) {
+      return 'unknown'
+    }
+    try {
+      const decoded = Buffer.from(candidate, 'base64').toString('utf8')
+      const credentialSeparator = decoded.indexOf(':')
+      const username =
+        credentialSeparator === -1
+          ? decoded
+          : decoded.slice(0, credentialSeparator)
+      const password =
+        credentialSeparator === -1 ? '' : decoded.slice(credentialSeparator + 1)
+      if (username === tokenA || password === tokenA) {
+        return 'proof-a'
+      }
+      if (username === tokenB || password === tokenB) {
+        return 'proof-b'
+      }
+      return 'unknown'
+    } catch {
+      return 'unknown'
+    }
+  } else if (scheme !== 'bearer' && scheme !== 'token') {
+    return 'unknown'
+  }
+  if (candidate === tokenA) {
+    return 'proof-a'
+  }
+  if (candidate === tokenB) {
+    return 'proof-b'
+  }
+  return 'unknown'
+}
+
 class GuidedProofContext {
   public readonly ready: IGuidedProofReady
   public readonly activeUploadPacks = new Set<ChildProcessWithoutNullStreams>()
@@ -807,48 +869,11 @@ class GuidedProofContext {
   }
 
   public classifyAuthorization(value: string | undefined): ProofAccountClass {
-    if (value === undefined || value.length === 0) {
-      return 'anonymous'
-    }
-    let candidate = ''
-    const bearer = /^(?:Bearer|token)\s+(.+)$/i.exec(value)
-    if (bearer !== null) {
-      candidate = bearer[1]
-    } else {
-      const basic = /^Basic\s+([A-Za-z0-9+/]+=*)$/i.exec(value)
-      if (basic === null) {
-        return 'unknown'
-      }
-      try {
-        const decoded = Buffer.from(basic[1], 'base64').toString('utf8')
-        const separator = decoded.indexOf(':')
-        const username =
-          separator === -1 ? decoded : decoded.slice(0, separator)
-        const password = separator === -1 ? '' : decoded.slice(separator + 1)
-        if (
-          username === this.options.tokenA ||
-          password === this.options.tokenA
-        ) {
-          return 'proof-a'
-        }
-        if (
-          username === this.options.tokenB ||
-          password === this.options.tokenB
-        ) {
-          return 'proof-b'
-        }
-        return 'unknown'
-      } catch {
-        return 'unknown'
-      }
-    }
-    if (candidate === this.options.tokenA) {
-      return 'proof-a'
-    }
-    if (candidate === this.options.tokenB) {
-      return 'proof-b'
-    }
-    return 'unknown'
+    return classifyGuidedProofAuthorization(
+      value,
+      this.options.tokenA,
+      this.options.tokenB
+    )
   }
 
   public recordEvent(

@@ -342,6 +342,25 @@ describe('documentation hub search dock', () => {
     )
   })
 
+  it('keeps a catalog href inside its result attribute', async () => {
+    const { window, document } = await openHub()
+    const maliciousHref = 'security.html" data-injected="true'
+    window.DesktopMaterialDocsCatalog.push({
+      t: 'Attribute boundary regression',
+      h: maliciousHref,
+      s: 'security.md',
+      c: 'root',
+      d: '',
+    })
+
+    typeSearch(window, 'Attribute boundary regression')
+
+    const result = document.querySelector('#search-results .result')
+    assert.ok(result !== null)
+    assert.equal(result.getAttribute('href'), maliciousHref)
+    assert.equal(result.hasAttribute('data-injected'), false)
+  })
+
   it('reports the empty state without clearing the reader’s query', async () => {
     const { window, document } = await openHub()
     const input = typeSearch(window, 'zzzz-no-such-documentation-page')

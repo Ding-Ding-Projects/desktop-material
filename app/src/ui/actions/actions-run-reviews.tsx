@@ -340,7 +340,11 @@ export class ActionsRunReviews extends React.Component<
         className="actions-pending-environment"
         key={environment.environmentId}
       >
-        <label>
+        <label
+          aria-label={`${environment.environmentName}. ${waitTimerLabel(
+            environment
+          )}`}
+        >
           <input
             type="checkbox"
             checked={selected}

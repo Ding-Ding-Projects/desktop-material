@@ -73,7 +73,7 @@
     "which": "^5.0.0",
     "windows-argv-parser": "file:../vendor/windows-argv-parser",
     "winston": "^3.6.0",
-    "yaml": "^2.0.0",
+    "yaml": "^2.8.3",
     "yauzl": "2.10.0"
   },
   "devDependencies": {

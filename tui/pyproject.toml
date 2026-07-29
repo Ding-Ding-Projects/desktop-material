@@ -44,9 +44,8 @@ dev = [
   "mypy>=1.16,<2",
   "pexpect>=4.9,<5; sys_platform != 'win32'",
   "pyte>=0.8.2,<1",
-  "pytest>=8.4,<9",
+  "pytest>=9.0.3,<10",
   "pytest-asyncio>=1.0,<2",
-  "pytest-textual-snapshot>=1.1,<2",
   "ruff>=0.12,<1",
 ]
 

@@ -802,7 +802,10 @@ export class CloneRepository extends React.Component<
     return (
       <DialogFooter>
         <div className="clone-history-options">
-          <label className="clone-shallow-toggle">
+          <label
+            className="clone-shallow-toggle"
+            aria-label="Shallow clone. Current branch and recursive submodules"
+          >
             <input
               type="checkbox"
               checked={this.state.shallowClone}
