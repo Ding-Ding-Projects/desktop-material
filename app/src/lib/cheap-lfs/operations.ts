@@ -12,11 +12,12 @@ import {
 } from 'fs/promises'
 import { Transform } from 'stream'
 import { finished, pipeline } from 'stream/promises'
-import { createInflateRaw } from 'zlib'
+import { createDeflateRaw, createInflateRaw } from 'zlib'
 import { basename, dirname, join } from 'path'
 import { Account } from '../../models/account'
 import type { CheapLfsStorageProvider } from '../../models/build-run-preferences'
 import { Repository } from '../../models/repository'
+import { isErrnoException } from '../errno-exception'
 import {
   IGitHubRelease,
   IGitHubReleaseAsset,
@@ -337,6 +338,14 @@ export interface ICheapLfsFileSystem {
     destination: string,
     signal?: AbortSignal
   ): Promise<{ readonly sha256: string; readonly sizeInBytes: number }>
+  /** Compress one stable plaintext range into a fresh raw-DEFLATE temp. */
+  compressPayloadRange?(
+    source: string,
+    destination: string,
+    offset: number,
+    length: number,
+    signal?: AbortSignal
+  ): Promise<void>
   /** Expand one raw-DEFLATE asset to a new temp file. */
   decompressFile?(
     source: string,
@@ -396,6 +405,11 @@ export interface ICheapLfsPinOptions {
    * owns and may zero this mutable secret after the operation settles.
    */
   readonly encryptionPassword?: CheapLfsEncryptionSecret
+  /**
+   * Adaptively raw-DEFLATE each part before password encryption. Compression
+   * is retained only when it is smaller, and the pointer records both stages.
+   */
+  readonly compressBeforeEncryption?: boolean
 }
 
 /** A verified private copy of a pinned payload, still on disk after the pin. */
@@ -642,6 +656,24 @@ async function decompressFileOnDisk(
   )
 }
 
+async function compressPayloadRangeOnDisk(
+  source: string,
+  destination: string,
+  offset: number,
+  length: number,
+  signal?: AbortSignal
+): Promise<void> {
+  await pipeline(
+    createReadStream(source, {
+      start: offset,
+      end: offset + length - 1,
+    }),
+    createDeflateRaw({ level: 9 }),
+    createWriteStream(destination, { flags: 'wx' }),
+    { signal }
+  )
+}
+
 async function readBoundedText(
   path: string,
   maximumBytes: number,
@@ -716,13 +748,10 @@ async function gitPointerPaths(
   source: 'working-tree' | 'index' | 'head',
   pathspec?: ReadonlyArray<string>
 ): Promise<ReadonlyArray<string>> {
-  let workingTreePathspec = pathspec
-  let oversizedWorkingTreeExclusions: ReadonlyArray<string> = []
+  if (pathspec !== undefined && pathspec.length === 0) {
+    return []
+  }
   if (source === 'working-tree') {
-    const maximumPointerBytes = Math.max(
-      CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES,
-      CHEAP_LFS_OCI_MAXIMUM_POINTER_TEXT_BYTES
-    )
     const changedPaths =
       pathspec ??
       parseNulPaths(
@@ -745,40 +774,52 @@ async function gitPointerPaths(
           )
         ).stdout
       )
-    const oversizedRawPaths = new Array<string>()
-    for (const relativePath of changedPaths) {
+    const pointerCandidates = new Array<string>()
+    const store = defaultCheapLfsTrackedPathStore
+    for (const path of changedPaths) {
+      const relativePath = validateCheapLfsTrackedPath(path)
+      if (relativePath === null) {
+        throw new Error('Git returned an unsafe Cheap LFS tracked path.')
+      }
+      if (isCheapLfsOwnedArtifactPath(relativePath)) {
+        continue
+      }
       const absolutePath = join(root, relativePath)
-      let sizeInBytes: number
+      let entry
       try {
-        sizeInBytes = (await stat(absolutePath)).size
-      } catch {
+        entry = await lstat(absolutePath)
+      } catch (error) {
+        if (
+          isErrnoException(error) &&
+          (error.code === 'ENOENT' || error.code === 'ENOTDIR')
+        ) {
+          // A path deleted between Git's bounded name inventory and this
+          // bounded open is intentionally absent from the current inventory.
+          continue
+        }
+        throw error
+      }
+      if (entry.isSymbolicLink() || !entry.isFile()) {
+        // Git can report a changed gitlink/submodule path. Pointer inventory
+        // never reads directory, device, pipe, symlink, or reparse content.
         continue
       }
-      if (sizeInBytes <= maximumPointerBytes) {
+      const proof = await store.proveDestinationIdentity!(root, relativePath)
+      if (!proof.exists) {
         continue
       }
-      const header = await readBoundedText(
-        absolutePath,
-        CheapLfsPointerHeaderBytes,
-        false
+      const header = await store.readTextPrefix(
+        proof,
+        CheapLfsPointerHeaderBytes
       )
       if (pointerHeaderMatches(header)) {
-        // Keep pointer-looking files in Git's candidate set so the existing
-        // bounded parser can fail closed with the format-specific size error.
-        // Only raw payloads are safe to exclude before grep.
-        continue
+        pointerCandidates.push(relativePath)
       }
-      oversizedRawPaths.push(relativePath)
     }
-    if (pathspec !== undefined) {
-      const oversized = new Set(oversizedRawPaths)
-      workingTreePathspec = pathspec.filter(path => !oversized.has(path))
-      if (workingTreePathspec.length === 0) {
-        return []
-      }
-    } else {
-      oversizedWorkingTreeExclusions = oversizedRawPaths
-    }
+    // Never send working-tree content to `git grep`. A bounded open per
+    // changed/scoped path remains bounded even if another process grows or
+    // atomically replaces the file between inventory steps.
+    return pointerCandidates
   }
   const args = [
     ...largeRepositoryGitArgsForPath(root),
@@ -792,9 +833,7 @@ async function gitPointerPaths(
     '-e',
     `version ${CHEAP_LFS_OCI_POINTER_VERSION}`,
   ]
-  if (source === 'working-tree') {
-    args.push('--untracked')
-  } else if (source === 'index') {
+  if (source === 'index') {
     args.push('--cached')
   } else {
     args.push('HEAD')
@@ -806,12 +845,8 @@ async function gitPointerPaths(
   // matched with `:(literal)` so a filename containing pathspec glob magic
   // (`*`, `[`, ...) still matches itself exactly, mirroring the caller's own
   // exact-path narrowing.
-  if (workingTreePathspec !== undefined && workingTreePathspec.length > 0) {
-    args.push(...workingTreePathspec.map(path => `:(literal)${path}`))
-  } else if (oversizedWorkingTreeExclusions.length > 0) {
-    args.push(
-      ...oversizedWorkingTreeExclusions.map(path => `:(exclude,literal)${path}`)
-    )
+  if (pathspec !== undefined) {
+    args.push(...pathspec.map(path => `:(literal)${path}`))
   }
   const result = await git(args, root, `listCheapLfs${source}Pointers`, {
     successExitCodes: new Set([0, 1, 128]),
@@ -965,10 +1000,17 @@ async function scanPointerCandidatesFromGit(
   root: string,
   pathspec?: ReadonlyArray<string>
 ): Promise<ReadonlyArray<ICheapLfsPointerCandidate>> {
+  const safePathspec = pathspec?.map(path => {
+    const relativePath = validateCheapLfsTrackedPath(path)
+    if (relativePath === null) {
+      throw new Error('Git returned an unsafe Cheap LFS tracked path.')
+    }
+    return relativePath
+  })
   const [workingPaths, indexPaths, headPaths] = await Promise.all([
-    gitPointerPaths(root, 'working-tree', pathspec),
-    gitPointerPaths(root, 'index', pathspec),
-    gitPointerPaths(root, 'head', pathspec),
+    gitPointerPaths(root, 'working-tree', safePathspec),
+    gitPointerPaths(root, 'index', safePathspec),
+    gitPointerPaths(root, 'head', safePathspec),
   ])
   const working = new Set(workingPaths)
   const index = new Set(indexPaths)
@@ -1022,7 +1064,7 @@ async function scanPointerCandidatesFromGit(
           )
         : ''
     const worktreePrefix = worktreeText.slice(0, CheapLfsPointerHeaderBytes)
-    if (working.has(relativePath) && pointerHeaderMatches(worktreePrefix)) {
+    if (pointerHeaderMatches(worktreePrefix)) {
       const text = worktreeText
       if (!pointerHeaderMatches(text.slice(0, CheapLfsPointerHeaderBytes))) {
         throw new Error(
@@ -1246,6 +1288,26 @@ async function payloadTemporaryPath(
 }
 
 /**
+ * Drop provenance only after the injected filesystem proves deletion. Keeping
+ * registration on failure lets startup hygiene retry sensitive scratch.
+ */
+async function removeCheapLfsOwnedArtifact(
+  fs: ICheapLfsFileSystem,
+  path: string,
+  kind: 'encrypted' | 'compressed'
+): Promise<void> {
+  try {
+    await fs.removeFile(path)
+    forgetCheapLfsOwnedArtifact(path)
+  } catch (error) {
+    throw new AggregateError(
+      [error],
+      `Cheap LFS could not remove its app-owned ${kind} temporary file safely.`
+    )
+  }
+}
+
+/**
  * Persist a pointer beside its source, then atomically replace the source only
  * after the complete pointer has been written and flushed. The exclusive temp
  * create means cleanup only ever removes a file this operation owns.
@@ -1365,6 +1427,7 @@ export const defaultCheapLfsFileSystem: ICheapLfsFileSystem = {
   temporaryPathFor,
   allocatePayloadTemporaryPath: allocateCheapLfsPayloadTemporaryPath,
   assembleParts: assemblePartsOnDisk,
+  compressPayloadRange: compressPayloadRangeOnDisk,
   decompressFile: decompressFileOnDisk,
   encryptPayloadRange: (
     sourcePath,
@@ -1782,7 +1845,8 @@ function preflightProjectedPointer(
   sourceSizeInBytes: number,
   releaseTag: string,
   baseName: string,
-  encrypted: boolean = false
+  encrypted: boolean = false,
+  compressBeforeEncryption: boolean = false
 ): void {
   if (!Number.isSafeInteger(sourceSizeInBytes) || sourceSizeInBytes < 0) {
     throw new Error('Cheap LFS cannot plan parts for this file size.')
@@ -1827,13 +1891,24 @@ function preflightProjectedPointer(
         : CHEAP_LFS_PART_SIZE_BYTES
     projectedBytes += cheapLfsPointerTextSizeInBytes(
       encrypted
-        ? `part-encrypted ${placeholderSha256} ${partSize} ${
-            partSize + CHEAP_LFS_ENCRYPTION_OVERHEAD_BYTES
-          } ${placeholderSha256} ${partAssetName(
-            pointerBaseName,
-            index,
-            partCount
-          )}\n`
+        ? compressBeforeEncryption && partSize > 1
+          ? `part-encrypted-deflate ${placeholderSha256} ${partSize} ${
+              partSize - 1
+            } ${
+              partSize - 1 + CHEAP_LFS_ENCRYPTION_OVERHEAD_BYTES
+            } ${placeholderSha256} ${partAssetName(
+              pointerBaseName,
+              index,
+              partCount,
+              true
+            )}\n`
+          : `part-encrypted ${placeholderSha256} ${partSize} ${
+              partSize + CHEAP_LFS_ENCRYPTION_OVERHEAD_BYTES
+            } ${placeholderSha256} ${partAssetName(
+              pointerBaseName,
+              index,
+              partCount
+            )}\n`
         : `part ${placeholderSha256} ${partSize} ${partAssetName(
             pointerBaseName,
             index,
@@ -1979,6 +2054,14 @@ export async function pinFileToRelease(
   ) {
     throw new CheapLfsPasswordRequiredError()
   }
+  if (
+    options.compressBeforeEncryption === true &&
+    options.encryptionPassword === undefined
+  ) {
+    throw new Error(
+      'Cheap LFS compression-before-encryption requires payload encryption.'
+    )
+  }
 
   const baseName = cheapLfsSourceAssetName(options.absoluteFilePath)
   let verifiedSource: ICheapLfsVerifiedSourceCopy | undefined
@@ -2015,7 +2098,8 @@ export async function pinFileToRelease(
       sourceSizeInBytes,
       options.releaseTag,
       baseName,
-      options.encryptionPassword !== undefined
+      options.encryptionPassword !== undefined,
+      options.compressBeforeEncryption === true
     )
     hashed = await fs.hashFileParts(
       options.absoluteFilePath,
@@ -2031,7 +2115,8 @@ export async function pinFileToRelease(
     sourceSizeInBytes,
     options.releaseTag,
     baseName,
-    options.encryptionPassword !== undefined
+    options.encryptionPassword !== undefined,
+    options.compressBeforeEncryption === true
   )
   // The single-asset and split-asset routes both settle here, so the retained
   // copy is handed over in exactly one place — after the pointer is published
@@ -2095,7 +2180,8 @@ export async function pinFileToRelease(
       sourceSizeInBytes,
       releaseTag,
       baseName,
-      options.encryptionPassword !== undefined
+      options.encryptionPassword !== undefined,
+      options.compressBeforeEncryption === true
     )
 
     // What this asset is, attached to the asset itself. The introducing commit
@@ -2140,7 +2226,76 @@ export async function pinFileToRelease(
             currentRelease = refreshed
           }
 
-          const name = partAssetName(partBaseName, index, hashed.parts.length)
+          let encryptionSourcePath = uploadSourcePath
+          let encryptionSourceOffset = part.offset
+          let encryptionSourceSize = part.length
+          let encryptionSourceSha256 = part.sha256
+          let deflatedSizeInBytes: number | undefined
+          let compressedPath: string | undefined
+          if (options.compressBeforeEncryption === true && part.length > 0) {
+            compressedPath = await payloadTemporaryPath(
+              fs,
+              repository.path,
+              join(repository.path, trackedRelativePath)
+            )
+            try {
+              if (fs.compressPayloadRange === undefined) {
+                await compressPayloadRangeOnDisk(
+                  uploadSourcePath,
+                  compressedPath,
+                  part.offset,
+                  part.length,
+                  signal
+                )
+              } else {
+                await fs.compressPayloadRange(
+                  uploadSourcePath,
+                  compressedPath,
+                  part.offset,
+                  part.length,
+                  signal
+                )
+              }
+              const compressed = await fs.hashFile(compressedPath, signal)
+              if (compressed.sizeInBytes < part.length) {
+                encryptionSourcePath = compressedPath
+                encryptionSourceOffset = 0
+                encryptionSourceSize = compressed.sizeInBytes
+                encryptionSourceSha256 = compressed.sha256
+                deflatedSizeInBytes = compressed.sizeInBytes
+              } else {
+                await removeCheapLfsOwnedArtifact(
+                  fs,
+                  compressedPath,
+                  'compressed'
+                )
+                compressedPath = undefined
+              }
+            } catch (error) {
+              if (compressedPath !== undefined) {
+                try {
+                  await removeCheapLfsOwnedArtifact(
+                    fs,
+                    compressedPath,
+                    'compressed'
+                  )
+                } catch (cleanupError) {
+                  throw new AggregateError(
+                    [error, cleanupError],
+                    'Cheap LFS compression failed and its plaintext temporary file could not be removed safely.'
+                  )
+                }
+              }
+              throw error
+            }
+          }
+
+          const name = partAssetName(
+            partBaseName,
+            index,
+            hashed.parts.length,
+            deflatedSizeInBytes !== undefined
+          )
           const encryptedPath = await payloadTemporaryPath(
             fs,
             repository.path,
@@ -2151,19 +2306,19 @@ export async function pinFileToRelease(
             const encrypted =
               fs.encryptPayloadRange === undefined
                 ? await encryptCheapLfsPayloadRangeToFile(
-                    uploadSourcePath,
+                    encryptionSourcePath,
                     encryptedPath,
-                    part.offset,
-                    part.length,
+                    encryptionSourceOffset,
+                    encryptionSourceSize,
                     options.encryptionPassword,
                     undefined,
                     signal
                   )
                 : await fs.encryptPayloadRange(
-                    uploadSourcePath,
+                    encryptionSourcePath,
                     encryptedPath,
-                    part.offset,
-                    part.length,
+                    encryptionSourceOffset,
+                    encryptionSourceSize,
                     options.encryptionPassword,
                     signal
                   )
@@ -2171,15 +2326,15 @@ export async function pinFileToRelease(
             // exclusive destination. On `EEXIST`, never unlink a stranger.
             ownsEncryptedPath = true
             if (
-              encrypted.plaintextSha256 !== part.sha256 ||
-              encrypted.plaintextSizeInBytes !== part.length
+              encrypted.plaintextSha256 !== encryptionSourceSha256 ||
+              encrypted.plaintextSizeInBytes !== encryptionSourceSize
             ) {
               throw new Error(
                 'The cheap LFS source changed while it was being encrypted. The original file was left in place.'
               )
             }
             const expectedStoredSize =
-              part.length + CHEAP_LFS_ENCRYPTION_OVERHEAD_BYTES
+              encryptionSourceSize + CHEAP_LFS_ENCRYPTION_OVERHEAD_BYTES
             const encryptedOnDisk = await fs.hashFile(encryptedPath, signal)
             if (
               !/^[a-f0-9]{64}$/.test(encrypted.storedSha256) ||
@@ -2195,6 +2350,9 @@ export async function pinFileToRelease(
               name,
               sizeInBytes: part.length,
               sha256: part.sha256,
+              ...(deflatedSizeInBytes === undefined
+                ? {}
+                : { deflatedSizeInBytes }),
               encrypted: true,
               storedSha256: encrypted.storedSha256,
               storedSizeInBytes: encrypted.storedSizeInBytes,
@@ -2230,10 +2388,23 @@ export async function pinFileToRelease(
             firstAsset ??= upload.asset
             transferred += part.length
           } finally {
-            if (ownsEncryptedPath) {
-              await fs.removeFile(encryptedPath)
+            try {
+              if (ownsEncryptedPath) {
+                await removeCheapLfsOwnedArtifact(
+                  fs,
+                  encryptedPath,
+                  'encrypted'
+                )
+              }
+            } finally {
+              if (compressedPath !== undefined) {
+                await removeCheapLfsOwnedArtifact(
+                  fs,
+                  compressedPath,
+                  'compressed'
+                )
+              }
             }
-            forgetCheapLfsOwnedArtifact(encryptedPath)
           }
         }
 
@@ -3697,6 +3868,7 @@ const CheapLfsMaterializeLookAheadFraction =
 /** Observable Release restore phases after pointer/release preparation. */
 export type CheapLfsMaterializePhase =
   | 'downloading'
+  | 'decrypting'
   | 'decompressing'
   // Decryption is its own phase, never decompression's. scrypt at the
   // configured cost makes it the longest visible step of an encrypted restore,
@@ -3878,10 +4050,11 @@ function boundedCheapLfsTransferBytes(value: number, maximum: number): number {
 /**
  * Convert transfer/stage progress into truthful whole-file work.
  *
- * Network bytes occupy the first 85% of the aggregate. Decompression,
- * verification, assembly, and atomic replacement advance the remaining band,
- * but an unsettled file is always held below 100%. The scheduler continues to
- * use the unweighted physical transfer ratio for its exact 90% look-ahead.
+ * Network bytes occupy the first 85% of the aggregate. Decryption,
+ * decompression, verification, assembly, and atomic replacement advance the
+ * remaining band, but an unsettled file is always held below 100%. The
+ * scheduler continues to use the unweighted physical transfer ratio for its
+ * exact 90% look-ahead.
  */
 export function cheapLfsMaterializeStageAwareLogicalBytes(
   progress: ICheapLfsMaterializeTransferProgress,
@@ -3908,6 +4081,8 @@ export function cheapLfsMaterializeStageAwareLogicalBytes(
               ? 95
               : phase === 'decompressing'
               ? 90
+              : phase === 'decrypting'
+              ? 88
               : 85)) /
             100
         )
@@ -4364,6 +4539,7 @@ async function materializeMultiPart(
         let verified:
           | { readonly sha256: string; readonly sizeInBytes: number }
           | undefined
+        let transformedSizeInBytes = download.bytes
         if (part.encrypted === true) {
           progress.stage(index, 'decrypting')
           if (encryptionPassword === undefined) {
@@ -4404,14 +4580,18 @@ async function materializeMultiPart(
           // exclusive create lets the outer operation remove this path later.
           expandedPaths.add(decryptedPath)
           verificationPath = decryptedPath
-          verified = {
-            sha256: decrypted.plaintextSha256,
-            sizeInBytes: decrypted.plaintextSizeInBytes,
+          transformedSizeInBytes = decrypted.plaintextSizeInBytes
+          if (part.deflatedSizeInBytes === undefined) {
+            verified = {
+              sha256: decrypted.plaintextSha256,
+              sizeInBytes: decrypted.plaintextSizeInBytes,
+            }
           }
-        } else if (part.deflatedSizeInBytes !== undefined) {
+        }
+        if (part.deflatedSizeInBytes !== undefined) {
           progress.stage(index, 'decompressing')
           if (
-            download.bytes !== part.deflatedSizeInBytes ||
+            transformedSizeInBytes !== part.deflatedSizeInBytes ||
             fs.decompressFile === undefined
           ) {
             throw new Error(
@@ -4425,7 +4605,7 @@ async function materializeMultiPart(
           )
           expandedPaths.add(expandedPath)
           await fs.decompressFile(
-            download.path,
+            verificationPath,
             expandedPath,
             part.sizeInBytes,
             materializeSignal

@@ -92,7 +92,7 @@ function historySource(): IVersionedStoreHistorySource {
 
 /**
  * One shared owner store. Both the Repository Settings appearance hub and the
- * anchored (right-click) editor read and write through it, so a test can prove
+ * anchored direct-owner editor read and write through it, so a test can prove
  * an edit made on one surface is the very same owner the other surface sees.
  */
 function createOwnerStore(
@@ -225,7 +225,7 @@ describe('Repository Settings appearance hub', () => {
     assert.ok(screen.getByText('Inheriting row typography'))
 
     // Discoverability points back at the element itself.
-    assert.ok(screen.getByText(/Right-click the repository row/))
+    assert.ok(screen.getByText(/Shift\+right-click the repository row/))
     assert.equal(writes.length, 0)
   })
 
@@ -264,7 +264,7 @@ describe('Repository Settings appearance hub', () => {
     )
   })
 
-  it('round-trips an edit made in the hub to the anchored right-click editor', async () => {
+  it('round-trips an edit made in the hub to the anchored keyboard editor', async () => {
     const writes: IRecordedWrite[] = []
     const { dispatcher } = createOwnerStore(writes)
 

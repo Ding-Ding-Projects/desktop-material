@@ -9,6 +9,12 @@ export type TranslationKey =
   | 'ci.cancelled'
   | 'ci.skipped'
   | 'ci.stale'
+  | 'startup.loading'
+  | 'repositorySection.actions'
+  | 'repositorySection.releases'
+  | 'repositorySection.issues'
+  | 'repositorySection.triage'
+  | 'repositorySection.tools'
   | 'update.downloadingLabel'
   | 'update.downloadingValue'
   | 'update.comingSoon'
@@ -136,8 +142,10 @@ export type TranslationKey =
   | 'tabs.groupColorGrey'
   | 'tabs.groupCreateAction'
   | 'tabs.groupCancelAction'
-  | 'tabs.groupChipExpanded'
-  | 'tabs.groupChipCollapsed'
+  | 'tabs.groupChipExpandedOne'
+  | 'tabs.groupChipExpandedMany'
+  | 'tabs.groupChipCollapsedOne'
+  | 'tabs.groupChipCollapsedMany'
   | 'tabs.groupMemberLabel'
   | 'tabs.groupCreatedStatus'
   | 'tabs.groupMovedStatus'
@@ -148,21 +156,25 @@ export type TranslationKey =
   | 'tabs.groupActionFailed'
   | 'tabs.groupEdit'
   | 'tabs.groupEditTitle'
-  | 'tabs.groupEditIntro'
+  | 'tabs.groupEditIntroOne'
+  | 'tabs.groupEditIntroMany'
   | 'tabs.groupSaveAction'
   | 'tabs.groupUpdatedStatus'
-  | 'tabs.groupMembersButton'
+  | 'tabs.groupMembersButtonOne'
+  | 'tabs.groupMembersButtonMany'
   | 'tabs.groupMembersTitle'
   | 'tabs.groupMembersDescription'
   | 'tabs.groupMembersListLabel'
   | 'tabs.groupMembersEmpty'
-  | 'tabs.groupMembersCount'
+  | 'tabs.groupMembersCountOne'
+  | 'tabs.groupMembersCountMany'
   | 'tabs.groupMembersKeepsTabs'
   | 'tabs.groupMembersShow'
   | 'tabs.tabPinnedSuffix'
   | 'tabs.tabFavoriteSuffix'
   | 'tabs.overflowButton'
-  | 'tabs.overflowButtonLabel'
+  | 'tabs.overflowButtonLabelOne'
+  | 'tabs.overflowButtonLabelMany'
   | 'tabs.overflowTitle'
   | 'lazyView.loading.plain'
   | 'lazyView.loading.light'
@@ -195,7 +207,8 @@ export type TranslationKey =
   | 'tabs.overflowSearchPlaceholder'
   | 'tabs.overflowSearchTarget'
   | 'tabs.overflowNoMatches'
-  | 'tabs.overflowFilterCount'
+  | 'tabs.overflowFilterCountOne'
+  | 'tabs.overflowFilterCountMany'
   | 'tabs.overflowRegexError'
   | 'tabs.overflowCustomize'
   | 'tabs.overflowCustomizeLabel'
@@ -2037,11 +2050,15 @@ export type TranslationKey =
   | 'cheapLfs.encryption.forgetMissing'
   | 'cheapLfs.encryption.forgetUnavailable'
   | 'cheapLfs.encryption.dialog.encryptTitle'
+  | 'cheapLfs.encryption.dialog.commitTitle'
   | 'cheapLfs.encryption.dialog.decryptTitle'
   | 'cheapLfs.encryption.dialog.changeTitle'
   | 'cheapLfs.encryption.dialog.forgetTitle'
   | 'cheapLfs.encryption.dialog.staleForgetTitle'
   | 'cheapLfs.encryption.dialog.encryptDescription'
+  | 'cheapLfs.encryption.dialog.commitDescription.plain'
+  | 'cheapLfs.encryption.dialog.commitDescription.light'
+  | 'cheapLfs.encryption.dialog.commitDescription.playful'
   | 'cheapLfs.encryption.dialog.decryptDescription'
   | 'cheapLfs.encryption.dialog.changeDescription'
   | 'cheapLfs.encryption.dialog.forgetDescription'
@@ -2518,6 +2535,9 @@ export type TranslationKey =
   | 'cheapLfs.restore.phase.downloading'
   | 'cheapLfs.restore.phase.decompressing'
   | 'cheapLfs.restore.phase.decrypting'
+  | 'cheapLfs.restore.phase.decrypting.plain'
+  | 'cheapLfs.restore.phase.decrypting.light'
+  | 'cheapLfs.restore.phase.decrypting.playful'
   | 'cheapLfs.restore.phase.verifying'
   | 'cheapLfs.restore.phase.materializing'
   | 'cheapLfs.restore.phase.canceling'
@@ -2577,6 +2597,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'ci.cancelled': 'cancelled',
   'ci.skipped': 'skipped',
   'ci.stale': 'stale',
+  'startup.loading': 'Opening your workspace…',
+  'repositorySection.actions': 'Actions',
+  'repositorySection.releases': 'Releases',
+  'repositorySection.issues': 'Issues',
+  'repositorySection.triage': 'Triage',
+  'repositorySection.tools': 'Repository tools',
   'update.downloadingLabel': 'Downloading app update',
   'update.downloadingValue': 'Downloading',
   'update.comingSoon': 'New update coming soon',
@@ -2727,9 +2753,13 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tabs.groupColorGrey': 'Grey',
   'tabs.groupCreateAction': 'Create group',
   'tabs.groupCancelAction': 'Cancel',
-  'tabs.groupChipExpanded':
+  'tabs.groupChipExpandedOne':
+    '{name} group, {count} tab, expanded. Collapse group.',
+  'tabs.groupChipExpandedMany':
     '{name} group, {count} tabs, expanded. Collapse group.',
-  'tabs.groupChipCollapsed':
+  'tabs.groupChipCollapsedOne':
+    '{name} group, {count} tab, collapsed. Expand group.',
+  'tabs.groupChipCollapsedMany':
     '{name} group, {count} tabs, collapsed. Expand group.',
   'tabs.groupMemberLabel': '{tab}, {name} group',
   'tabs.groupCreatedStatus': '{name} group created.',
@@ -2741,25 +2771,30 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tabs.groupActionFailed': 'Could not update the tab group. Try again.',
   'tabs.groupEdit': 'Edit group “{name}”…',
   'tabs.groupEditTitle': 'Edit tab group',
-  'tabs.groupEditIntro':
+  'tabs.groupEditIntroOne':
+    'Rename or recolor “{name}”. Its {count} tab stays open and stays in the group.',
+  'tabs.groupEditIntroMany':
     'Rename or recolor “{name}”. Its {count} tabs stay open and stay in the group.',
   'tabs.groupSaveAction': 'Save group',
   'tabs.groupUpdatedStatus': '{name} group updated.',
-  'tabs.groupMembersButton': 'Show the {count} tabs in {name}',
+  'tabs.groupMembersButtonOne': 'Show the {count} tab in {name}',
+  'tabs.groupMembersButtonMany': 'Show the {count} tabs in {name}',
   'tabs.groupMembersTitle': 'Tabs in “{name}”',
   'tabs.groupMembersDescription':
     'Every tab in this group, listed even while the group is collapsed. Choosing one switches to it.',
   'tabs.groupMembersListLabel': 'Tabs in this group',
   'tabs.groupMembersEmpty':
     'This group holds no tabs yet. Move a tab in from that tab’s context menu.',
-  'tabs.groupMembersCount': '{count} tabs in this group.',
+  'tabs.groupMembersCountOne': '{count} tab in this group.',
+  'tabs.groupMembersCountMany': '{count} tabs in this group.',
   'tabs.groupMembersKeepsTabs':
     'Deleting the group clears the label only; every tab stays open.',
   'tabs.groupMembersShow': 'Show tabs in “{name}”',
   'tabs.tabPinnedSuffix': ', pinned',
   'tabs.tabFavoriteSuffix': ', favorite',
   'tabs.overflowButton': '{count} more',
-  'tabs.overflowButtonLabel': 'Show {count} more tabs',
+  'tabs.overflowButtonLabelOne': 'Show {count} more tab',
+  'tabs.overflowButtonLabelMany': 'Show {count} more tabs',
   'tabs.overflowTitle': 'More tabs',
   // The three bands are the funny-level voice (1-2 plain, 3 light, 4-5
   // playful). Every band states the same fact — these tabs did not fit in the
@@ -2783,7 +2818,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tabs.overflowSearchPlaceholder': 'Name, alias, path, or URL',
   'tabs.overflowSearchTarget': 'Overflowing tabs',
   'tabs.overflowNoMatches': 'No tab in this menu matches this search.',
-  'tabs.overflowFilterCount': '{visible} of {total} tabs in this menu',
+  'tabs.overflowFilterCountOne': '{visible} of {total} tab in this menu',
+  'tabs.overflowFilterCountMany': '{visible} of {total} tabs in this menu',
   'tabs.overflowRegexError':
     'Invalid regular expression: {message}. Every tab in this menu is still listed.',
   'tabs.overflowCustomize': 'Customize appearance',
@@ -2809,7 +2845,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'submodule.closeTemporaryViewer': 'Close viewer',
   'submodule.appearanceHeading': 'Back button appearance',
   'submodule.appearanceDescription':
-    'Right-click the preview Back button to open its editor beside the button. Save applies this to the active profile.',
+    'Shift+right-click the preview Back button, or focus it and press the Context Menu key or Shift+F10, to open its editor beside the button. Save applies this to the active profile.',
   'submodule.appearancePreview': 'Preview',
   'submodule.openUnavailable': 'Clone this submodule before opening it',
   'submodule.openFailed': 'Could not open {child} as a repository: {error}',
@@ -4484,7 +4520,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.soundFunnyEnglishLabel': 'English playfulness',
   'settings.soundFunnyCantoneseLabel': 'Cantonese playfulness',
   'settings.soundFunnyHint':
-    '1 is fully serious, 5 is maximum fun. Errors always stay clear.',
+    'Set English and Cantonese playfulness in Appearance. Errors always stay clear.',
   'settings.soundMusicHeading': 'Per-repository music',
   'settings.soundMusicEnableTitle': 'Play themed music',
   'settings.soundMusicEnableDescription':
@@ -4935,9 +4971,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositorySettings.automationTab': 'Automation (this repository)',
   'repositorySettings.appearanceTab': 'Appearance',
   'repositorySettings.appearance.intro':
-    'Everything here belongs to this repository alone. Each section edits the same owner — the same setting, the same local Git repository, and the same history — that you reach by right-clicking the actual element.',
+    'Everything here belongs to this repository alone. Each section edits the same owner — the same setting, the same local Git repository, and the same history — that you reach by Shift+right-clicking the actual element.',
   'repositorySettings.appearance.introHint':
-    'Prefer editing in place? Right-click the repository row, its logo, or the toolbar (or press Shift+F10 with it focused) to open the very same editor beside it.',
+    'Prefer editing in place? Shift+right-click the repository row, its logo, or the toolbar (or focus it and press the Context Menu key or Shift+F10) to open the very same editor beside it.',
   'repositorySettings.appearance.loading':
     'Opening this repository’s appearance owners…',
   'repositorySettings.appearance.unavailable':
@@ -5241,6 +5277,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.encryption.forgetUnavailable':
     'Windows Credential Manager could not remove the saved password.',
   'cheapLfs.encryption.dialog.encryptTitle': 'Set a Release payload password',
+  'cheapLfs.encryption.dialog.commitTitle':
+    'Password required before encrypted commit',
   'cheapLfs.encryption.dialog.decryptTitle':
     'Enter the Release payload password',
   'cheapLfs.encryption.dialog.changeTitle':
@@ -5250,6 +5288,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Forget the password that did not work?',
   'cheapLfs.encryption.dialog.encryptDescription':
     'Enter the password for encrypting new Release payloads. Desktop Material cannot recover a lost password.',
+  'cheapLfs.encryption.dialog.commitDescription.plain':
+    'This commit is waiting for a password so its large files can be pinned and uploaded only as encrypted ciphertext. Cancel stops the commit before any upload starts. Desktop Material cannot recover a lost password.',
+  'cheapLfs.encryption.dialog.commitDescription.light':
+    'This commit is paused for a password: its large files will be pinned and uploaded only as encrypted ciphertext. Cancel stops the commit before any upload starts. Desktop Material cannot recover a lost password.',
+  'cheapLfs.encryption.dialog.commitDescription.playful':
+    'This commit is waiting at the encryption gate. Its large files will be pinned and uploaded only as encrypted ciphertext; Cancel stops the commit before any upload starts. Desktop Material cannot recover a lost password.',
   'cheapLfs.encryption.dialog.decryptDescription':
     'Enter the password that was used to encrypt this Release payload.',
   'cheapLfs.encryption.dialog.changeDescription':
@@ -5445,13 +5489,13 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.unattendedEncryption.title':
     'Automatic commit did not pin large files',
   'cheapLfs.unattendedEncryption.reason':
-    'Release payload encryption is on for this repository and no password is saved, so an automatic commit had nobody to ask for one. This file was not encrypted, not uploaded, and not committed; it is unchanged in the working tree. Commit it yourself to be asked for the password, or save one under Large files & storage.',
+    'Windows Credential Manager had no usable saved password. This file stayed unchanged in the working tree and out of the commit; it was not encrypted or uploaded, and no Release anchor was created. Retry interactively to enter the password, or save it in Repository settings > Large files & storage.',
   'cheapLfs.unattendedEncryption.body.plain':
-    'Release payload encryption is on for this repository and no password is saved, so an automatic commit had nobody to ask for one. Nothing was encrypted and nothing was uploaded, and these large files stayed out of the commit: {names} ({count} in total). Everything else in the commit went through. Commit them yourself to be asked for the password, or save one under Large files & storage.',
+    'Windows Credential Manager had no usable saved password. Nothing was encrypted or uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Other selected changes remain eligible. Retry interactively, or save it in Repository settings > Large files & storage.',
   'cheapLfs.unattendedEncryption.body.light':
-    'An automatic commit met an encrypted repository, a password that was deliberately never saved, and nobody awake to type it — so it stopped instead of guessing. Nothing was encrypted and nothing was uploaded, and these large files stayed out of the commit: {names} ({count} in total). Everything else in the commit went through. Commit them yourself to be asked for the password, or save one under Large files & storage.',
+    'No usable saved password was waiting in Windows Credential Manager, so the unattended commit stopped at the lock. Nothing was encrypted/uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Other changes remain eligible. Retry interactively, or save it in Repository settings > Large files & storage.',
   'cheapLfs.unattendedEncryption.body.playful':
-    'The automatic commit walked up to the locked door, discovered you had very sensibly not left the key under the mat, and — full credit to it — did not try the window. Nothing was encrypted and nothing was uploaded, and these large files stayed out of the commit: {names} ({count} in total). Everything else in the commit went through. Commit them yourself to be asked for the password, or save one under Large files & storage.',
+    'The unattended commit found no usable saved key in Windows Credential Manager and wisely left the lock alone. Nothing was encrypted/uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Other changes remain eligible. Retry interactively, or save it in Repository settings > Large files & storage.',
   'cheapLfs.localState.pointer': 'Pointer stored locally',
   'cheapLfs.localState.materialized':
     'Materialized locally · verified against the committed pointer',
@@ -5788,6 +5832,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.restore.phase.downloading': 'Downloading',
   'cheapLfs.restore.phase.decompressing': 'Decompressing',
   'cheapLfs.restore.phase.decrypting': 'Decrypting',
+  'cheapLfs.restore.phase.decrypting.plain': 'Decrypting',
+  'cheapLfs.restore.phase.decrypting.light': 'Securely decrypting',
+  'cheapLfs.restore.phase.decrypting.playful': 'Decrypting the locked bytes',
   'cheapLfs.restore.phase.verifying': 'Verifying',
   'cheapLfs.restore.phase.materializing': 'Restoring',
   'cheapLfs.restore.phase.canceling': 'Stopping',
@@ -5873,6 +5920,12 @@ export const cantoneseTranslations: Readonly<
   'ci.cancelled': '已取消',
   'ci.skipped': '已略過',
   'ci.stale': '資料舊咗',
+  'startup.loading': '打開緊你嘅工作區…',
+  'repositorySection.actions': '操作',
+  'repositorySection.releases': '版本發布',
+  'repositorySection.issues': '問題',
+  'repositorySection.triage': '分流',
+  'repositorySection.tools': 'Repo 工具',
   'update.downloadingLabel': '下載緊應用程式更新',
   'update.downloadingValue': '下載緊',
   'update.comingSoon': '新版本就快焗好出爐',
@@ -6018,9 +6071,13 @@ export const cantoneseTranslations: Readonly<
   'tabs.groupColorGrey': '灰色',
   'tabs.groupCreateAction': '建立群組',
   'tabs.groupCancelAction': '取消',
-  'tabs.groupChipExpanded':
+  'tabs.groupChipExpandedOne':
     '「{name}」群組，{count} 個分頁，已展開。收起群組。',
-  'tabs.groupChipCollapsed':
+  'tabs.groupChipExpandedMany':
+    '「{name}」群組，{count} 個分頁，已展開。收起群組。',
+  'tabs.groupChipCollapsedOne':
+    '「{name}」群組，{count} 個分頁，已收起。展開群組。',
+  'tabs.groupChipCollapsedMany':
     '「{name}」群組，{count} 個分頁，已收起。展開群組。',
   'tabs.groupMemberLabel': '{tab}，「{name}」群組',
   'tabs.groupCreatedStatus': '已建立「{name}」群組。',
@@ -6032,24 +6089,29 @@ export const cantoneseTranslations: Readonly<
   'tabs.groupActionFailed': '未能更新分頁群組，等陣再試。',
   'tabs.groupEdit': '編輯群組「{name}」…',
   'tabs.groupEditTitle': '編輯分頁群組',
-  'tabs.groupEditIntro':
+  'tabs.groupEditIntroOne':
+    '改「{name}」個名或者顏色。入面 {count} 個分頁照樣開住，亦都留喺呢個群組。',
+  'tabs.groupEditIntroMany':
     '改「{name}」個名或者顏色。入面 {count} 個分頁照樣開住，亦都留喺呢個群組。',
   'tabs.groupSaveAction': '儲存群組',
   'tabs.groupUpdatedStatus': '已更新「{name}」群組。',
-  'tabs.groupMembersButton': '打開「{name}」入面 {count} 個分頁',
+  'tabs.groupMembersButtonOne': '打開「{name}」入面 {count} 個分頁',
+  'tabs.groupMembersButtonMany': '打開「{name}」入面 {count} 個分頁',
   'tabs.groupMembersTitle': '「{name}」入面嘅分頁',
   'tabs.groupMembersDescription':
     '呢個群組入面所有分頁，就算收埋咗一樣列晒出嚟。撳一下就即刻跳去嗰個分頁。',
   'tabs.groupMembersListLabel': '呢個群組入面嘅分頁',
   'tabs.groupMembersEmpty':
     '呢個群組暫時未有分頁。喺分頁嘅右鍵選單度將分頁搬入嚟。',
-  'tabs.groupMembersCount': '呢個群組有 {count} 個分頁。',
+  'tabs.groupMembersCountOne': '呢個群組有 {count} 個分頁。',
+  'tabs.groupMembersCountMany': '呢個群組有 {count} 個分頁。',
   'tabs.groupMembersKeepsTabs': '刪除群組只係甩個標籤，每個分頁都會繼續開住。',
   'tabs.groupMembersShow': '睇「{name}」入面嘅分頁',
   'tabs.tabPinnedSuffix': '，已置頂',
   'tabs.tabFavoriteSuffix': '，最愛',
   'tabs.overflowButton': '仲有 {count} 個',
-  'tabs.overflowButtonLabel': '打開多 {count} 個分頁',
+  'tabs.overflowButtonLabelOne': '打開多 {count} 個分頁',
+  'tabs.overflowButtonLabelMany': '打開多 {count} 個分頁',
   'tabs.overflowTitle': '仲有啲分頁',
   'tabs.overflowDescription.plain':
     '呢啲分頁擠唔落條分頁列。喺呢度可以搵、揀，或者改外觀。',
@@ -6069,7 +6131,8 @@ export const cantoneseTranslations: Readonly<
   'tabs.overflowSearchPlaceholder': '名、別名、路徑或者網址',
   'tabs.overflowSearchTarget': '擠唔落嘅分頁',
   'tabs.overflowNoMatches': '呢個選單冇分頁夾到呢個搜尋。',
-  'tabs.overflowFilterCount': '呢個選單 {total} 個分頁入面有 {visible} 個',
+  'tabs.overflowFilterCountOne': '呢個選單 {total} 個分頁入面有 {visible} 個',
+  'tabs.overflowFilterCountMany': '呢個選單 {total} 個分頁入面有 {visible} 個',
   'tabs.overflowRegexError':
     '規則式唔啱：{message}。呢個選單啲分頁一個都冇少，照樣列晒出嚟。',
   'tabs.overflowCustomize': '整色整水',
@@ -6094,7 +6157,7 @@ export const cantoneseTranslations: Readonly<
   'submodule.closeTemporaryViewer': '關閉檢視器',
   'submodule.appearanceHeading': '返回掣外觀',
   'submodule.appearanceDescription':
-    '右擊預覽返回掣，就會喺掣旁邊打開編輯器。按「儲存」先套用到目前 profile。',
+    '撳住 Shift 再右擊預覽返回掣，或者 focus 住撳 Context Menu 掣／Shift+F10，就會喺掣旁邊打開編輯器。按「儲存」先套用到目前 profile。',
   'submodule.appearancePreview': '預覽',
   'submodule.openUnavailable': '要先複製呢個子模組先開得',
   'submodule.openFailed': '未能將 {child} 當 repo 打開：{error}',
@@ -7600,7 +7663,8 @@ export const cantoneseTranslations: Readonly<
   'settings.soundFunnyHeading': '旁白語氣',
   'settings.soundFunnyEnglishLabel': '英文搞笑程度',
   'settings.soundFunnyCantoneseLabel': '廣東話搞笑程度',
-  'settings.soundFunnyHint': '1 係認真，5 係最搞笑。出錯訊息永遠都會講清楚。',
+  'settings.soundFunnyHint':
+    '去「外觀」設定英文同廣東話搞笑程度。出錯訊息永遠都會講清楚。',
   'settings.soundMusicHeading': '每個 repository 嘅音樂',
   'settings.soundMusicEnableTitle': '播主題音樂',
   'settings.soundMusicEnableDescription':
@@ -8032,9 +8096,9 @@ export const cantoneseTranslations: Readonly<
   'repositorySettings.automationTab': '自動化（呢個存放庫）',
   'repositorySettings.appearanceTab': '外觀',
   'repositorySettings.appearance.intro':
-    '呢度全部只係屬於呢個 repo。每一段都係改緊同一個主人——同一份設定、同一個本機 Git 倉、同一段歷史，即係你右 click 個實物時開嗰個。',
+    '呢度全部只係屬於呢個 repo。每一段都係改緊同一個主人——同一份設定、同一個本機 Git 倉、同一段歷史，即係你撳住 Shift 再右 click 個實物時開嗰個。',
   'repositorySettings.appearance.introHint':
-    '想就地改？右 click 個 repo 列、佢個 logo 或者工具列（或者 focus 住撳 Shift+F10），就會喺旁邊開返同一個編輯器。',
+    '想就地改？撳住 Shift 再右 click 個 repo 列、佢個 logo 或者工具列（或者 focus 住撳 Context Menu 掣／Shift+F10），就會喺旁邊開返同一個編輯器。',
   'repositorySettings.appearance.loading': '開緊呢個 repo 嘅外觀主人……',
   'repositorySettings.appearance.unavailable':
     '外觀主人仲啟動緊。請稍後再開 Repository settings。',
@@ -8319,12 +8383,19 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.encryption.forgetUnavailable':
     'Windows Credential Manager 移除唔到已儲存密碼。',
   'cheapLfs.encryption.dialog.encryptTitle': '設定 Release payload 密碼',
+  'cheapLfs.encryption.dialog.commitTitle': '加密 commit 前需要密碼',
   'cheapLfs.encryption.dialog.decryptTitle': '輸入 Release payload 密碼',
   'cheapLfs.encryption.dialog.changeTitle': '更改已儲存嘅 Release payload 密碼',
   'cheapLfs.encryption.dialog.forgetTitle': '忘記已儲存密碼？',
   'cheapLfs.encryption.dialog.staleForgetTitle': '忘記呢個無效密碼？',
   'cheapLfs.encryption.dialog.encryptDescription':
     '輸入用嚟加密新 Release payload 嘅密碼。Desktop Material 無法復原遺失嘅密碼。',
+  'cheapLfs.encryption.dialog.commitDescription.plain':
+    '呢個 commit 正等緊密碼，之後先會將大檔 pin 好，而且只會以加密 ciphertext 上載。撳「取消」會喺任何上載開始前停止 commit。Desktop Material 無法復原遺失嘅密碼。',
+  'cheapLfs.encryption.dialog.commitDescription.light':
+    '呢個 commit 暫停咗等密碼；大檔 pin 好之後只會以加密 ciphertext 上載。撳「取消」會喺任何上載開始前停止 commit。Desktop Material 無法復原遺失嘅密碼。',
+  'cheapLfs.encryption.dialog.commitDescription.playful':
+    '呢個 commit 喺加密閘口等緊密碼。大檔 pin 好之後只會以加密 ciphertext 上載；撳「取消」會喺任何上載開始前停止 commit。Desktop Material 無法復原遺失嘅密碼。',
   'cheapLfs.encryption.dialog.decryptDescription':
     '輸入當初用嚟加密呢個 Release payload 嘅密碼。',
   'cheapLfs.encryption.dialog.changeDescription':
@@ -8513,13 +8584,13 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.firstPublish.abortTitle': 'Commit 已經停低，個 branch 未發佈到',
   'cheapLfs.unattendedEncryption.title': '自動 commit 冇 pin 到啲大檔案',
   'cheapLfs.unattendedEncryption.reason':
-    '呢個 repository 開咗 Release payload 加密，但係冇儲低密碼，自動 commit 冇人可以問。呢個檔案冇加密過、冇上載過、亦都冇入到 commit，喺 working tree 度原封不動。請自己 commit 一次等佢問你攞密碼，或者喺「大檔案同儲存」度儲返個密碼。',
+    'Windows Credential Manager 冇可用嘅已儲密碼。呢個檔案喺 working tree 原封不動、冇入 commit、冇加密、冇上載，亦冇建立 Release anchor。請人手重試輸入密碼，或喺 Repository settings > 大檔案同儲存 儲低。',
   'cheapLfs.unattendedEncryption.body.plain':
-    '呢個 repository 開咗 Release payload 加密，但係冇儲低密碼，自動 commit 冇人可以問。冇加密過任何嘢，亦都冇上載過任何嘢，以下大檔案冇入到今次 commit：{names}（總共 {count} 個）。commit 入面其餘嘅嘢照樣做咗。請自己 commit 一次等佢問你攞密碼，或者喺「大檔案同儲存」度儲返個密碼。',
+    'Windows Credential Manager 冇可用已儲密碼。冇加密、冇上載，亦冇建立 Release anchor。以下大檔案原封不動、冇入 commit：{names}（總共 {count} 個）。其他已揀變更仍可繼續。請人手重試輸入密碼，或喺 Repository settings > 大檔案同儲存 儲低。',
   'cheapLfs.unattendedEncryption.body.light':
-    '自動 commit 撞正個加密 repository，密碼你又特登冇儲低，四圍又冇人醒住可以打，佢寧願停手都唔亂估。冇加密過任何嘢，亦都冇上載過任何嘢，以下大檔案冇入到今次 commit：{names}（總共 {count} 個）。commit 入面其餘嘅嘢照樣做咗。請自己 commit 一次等佢問你攞密碼，或者喺「大檔案同儲存」度儲返個密碼。',
+    'Windows Credential Manager 冇可用已儲密碼，排程 commit 喺加密閘前停低。冇加密、冇上載，亦冇建立 Release anchor。原封不動、冇入 commit：{names}（總共 {count} 個）。其他變更仍可繼續。請人手重試，或喺 Repository settings > 大檔案同儲存 儲低密碼。',
   'cheapLfs.unattendedEncryption.body.playful':
-    '自動 commit 行到門口，發覺你好醒目噉冇將鎖匙擺喺門墊底，佢都算識做，冇試過爬窗。冇加密過任何嘢，亦都冇上載過任何嘢，以下大檔案冇入到今次 commit：{names}（總共 {count} 個）。commit 入面其餘嘅嘢照樣做咗。請自己 commit 一次等佢問你攞密碼，或者喺「大檔案同儲存」度儲返個密碼。',
+    '排程 commit 喺 Windows Credential Manager 搵唔到可用已儲鎖匙，所以冇亂闖。冇加密、冇上載，亦冇建立 Release anchor。原封不動、冇入 commit：{names}（總共 {count} 個）。其他變更仍可繼續。請人手重試，或喺 Repository settings > 大檔案同儲存 儲低密碼。',
   'cheapLfs.localState.pointer': '本機淨係擺住個 pointer',
   'cheapLfs.localState.materialized':
     '已經喺本機還原 · 同 commit 咗嘅 pointer 對得上',
@@ -8834,6 +8905,9 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.restore.phase.downloading': '下載緊',
   'cheapLfs.restore.phase.decompressing': '解壓緊',
   'cheapLfs.restore.phase.decrypting': '解密緊',
+  'cheapLfs.restore.phase.decrypting.plain': '解密緊',
+  'cheapLfs.restore.phase.decrypting.light': '安全解密緊',
+  'cheapLfs.restore.phase.decrypting.playful': '幫啲加密資料解密緊',
   'cheapLfs.restore.phase.verifying': '核實緊',
   'cheapLfs.restore.phase.materializing': '還原緊',
   'cheapLfs.restore.phase.canceling': '停緊',

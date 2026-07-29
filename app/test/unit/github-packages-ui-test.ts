@@ -13,7 +13,7 @@ describe('GitHub Packages repository UI wiring', () => {
       read('ui/github-packages/github-distribution-view.tsx'),
     ])
 
-    assert.match(repository, /<GitHubDistributionView/)
+    assert.match(repository, /<module\.GitHubDistributionView/)
     assert.match(distribution, /<GitHubReleasesView/)
     assert.match(distribution, /<GitHubPackagesView/)
     assert.match(distribution, /<TabBar/)

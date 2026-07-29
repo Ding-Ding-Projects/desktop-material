@@ -370,6 +370,50 @@ describe('Cheap LFS tracked path store', () => {
     )
   })
 
+  it('reads only a proven prefix and refuses an unsettled identity', async t => {
+    const root = await repository(t)
+    const store = new CheapLfsTrackedPathStore()
+    const stable = join(root, 'stable-prefix.bin')
+    await writeFile(stable, 'version bounded-pointer\nunread payload')
+    const stableProof = await store.proveDestinationIdentity(
+      root,
+      'stable-prefix.bin'
+    )
+
+    assert.equal(await store.readTextPrefix(stableProof, 7), 'version')
+    await assert.rejects(
+      store.readTextPrefix(stableProof, Number.POSITIVE_INFINITY),
+      CheapLfsTrackedPathError
+    )
+
+    // A future mtime cannot settle, so same-size writes inside that filesystem
+    // tick would not be distinguishable by identity metadata. Prefix reads
+    // must reject the proof even when no observable metadata has drifted.
+    const racy = join(root, 'racy-prefix.bin')
+    await writeFile(racy, 'version bounded-pointer\nunread payload')
+    const unreachable = new Date(Date.now() + 3_600_000)
+    await utimes(racy, unreachable, unreachable)
+    const racyProof = await store.proveDestinationIdentity(
+      root,
+      'racy-prefix.bin'
+    )
+    const before = await stat(racy, { bigint: true })
+
+    await assert.rejects(
+      store.readTextPrefix(racyProof, 7),
+      CheapLfsTrackedPathError
+    )
+
+    const after = await stat(racy, { bigint: true })
+    assert.equal(after.ino, before.ino)
+    assert.equal(after.mtimeNs, before.mtimeNs)
+    assert.equal(after.size, before.size)
+    assert.equal(
+      await readFile(racy, 'utf8'),
+      'version bounded-pointer\nunread payload'
+    )
+  })
+
   it('consumes verified materialization temps on success, failure, and cancel', async t => {
     const root = await repository(t)
     const success = join(root, 'success.bin')

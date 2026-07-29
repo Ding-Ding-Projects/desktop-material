@@ -6,6 +6,17 @@ const fs = require('node:fs')
 const path = require('node:path')
 const test = require('node:test')
 const vm = require('node:vm')
+const {
+  CanonicalCandidateCount,
+  CanonicalGalleryOutputs,
+  CaptureBatches,
+  DeferredCanonicalOutputs,
+  ExpectedPublishedGalleryCount,
+  GalleryCapturePlan,
+  PublishedGalleryOutputs,
+  RetainedHistoricalEvidence,
+  SpecialistCaptureEntries,
+} = require('./gallery_capture_plan.js')
 
 const driverPath = path.join(__dirname, 'capture_gallery_cdp.js')
 const source = fs.readFileSync(driverPath, 'utf8')
@@ -201,9 +212,9 @@ test('every renderer reload is fenced by the appearance coordinator', () => {
   const locationReloads =
     source.match(/await evaluate\('window\.location\.reload\(\), true'\)/g) ??
     []
-  assert.equal(pageReloads.length, 2)
+  assert.equal(pageReloads.length, 3)
   assert.equal(locationReloads.length, 1)
-  assert.equal(pageReloads.length + locationReloads.length, 3)
+  assert.equal(pageReloads.length + locationReloads.length, 4)
 
   const helperStart = source.indexOf(
     'async function waitForElementAppearanceCoordinatorReady(context)'
@@ -284,6 +295,27 @@ test('every renderer reload is fenced by the appearance coordinator', () => {
       identityPre < identityReload &&
       identityReload < identityTimeOrigin &&
       identityTimeOrigin < identityPost
+  )
+
+  const tabGroups = sceneSource('tab-group-management-evidence')
+  const tabGroupsPre = tabGroups.indexOf(
+    "'tab-group management before renderer reload'"
+  )
+  const tabGroupsReload = tabGroups.indexOf(
+    "await client.send('Page.reload', { ignoreCache: true })"
+  )
+  const tabGroupsTimeOrigin = tabGroups.indexOf(
+    'performance.timeOrigin > ${JSON.stringify(',
+    tabGroupsReload
+  )
+  const tabGroupsPost = tabGroups.indexOf(
+    "'tab-group management after renderer reload'"
+  )
+  assert.ok(
+    tabGroupsPre >= 0 &&
+      tabGroupsPre < tabGroupsReload &&
+      tabGroupsReload < tabGroupsTimeOrigin &&
+      tabGroupsTimeOrigin < tabGroupsPost
   )
 
   const anchored = sceneSource('anchored-appearance')
@@ -840,50 +872,93 @@ test('capture-only tooltip suppression is removed before disconnect', () => {
   assert.ok(cleanup < close)
 })
 
-test('canonical mode plans 68 captures distinct from the 77 published images', () => {
+test('canonical and specialist batches own all 84 published images exactly once', () => {
   const scenes = frozenStringArray('CanonicalGalleryScenes')
   const outputs = frozenStringArray('CanonicalGalleryOutputs')
-  const gallery = fs.readFileSync(
-    path.join(__dirname, '..', '..', 'docs', 'wiki', 'Feature-Gallery.md'),
-    'utf8'
+  const publishedCanonical = outputs.filter(
+    output => !DeferredCanonicalOutputs.includes(output)
   )
-  const catalog = [
-    ...gallery.matchAll(/^\| `([^`]+)\.png` \| [^|]+ \|$/gm),
-  ].map(([, name]) => name)
-
-  // Canonical outputs captured by the driver but intentionally not published to
-  // the guided gallery catalog (progress-only surface).
-  const deferredOutputs = ['material-cheap-lfs-preparing']
-  // Catalogued PNGs the canonical Batch A driver does not produce: covered by
-  // per-feature CDP verifiers and the live Cheap LFS captures.
-  const catalogOnlyOutputs = [
-    'auto-updater-update-ready',
-    'cheap-lfs-bambu-build-live',
-    'cheap-lfs-cloud-compression',
-    'cheap-lfs-commit-progress',
-    'cheap-lfs-ui-acceptance',
-    'material-command-palette-appearance',
-    'material-github-releases-compact',
-    'material-ollama-model-manager',
-    'material-pull-preview',
-    'material-tab-groups',
-  ]
-  const expectedCatalog = [
-    ...outputs.filter(output => !deferredOutputs.includes(output)),
-    ...catalogOnlyOutputs,
+  const specialistOutputs = SpecialistCaptureEntries.map(entry => entry.output)
+  const expectedCatalog = [...publishedCanonical, ...specialistOutputs]
+  const historicalLinuxOutputs = [
+    'linux-tui-bilingual-narrow',
+    'linux-tui-cheap-lfs',
+    'linux-tui-overview',
+    'linux-tui-regex-builder',
+    'linux-tui-text-input',
   ]
 
-  assert.equal(outputs.length, 68)
-  assert.equal(new Set(outputs).size, 68)
-  assert.equal(catalog.length, 77)
-  assert.equal(new Set(catalog).size, 77)
-  assert.deepEqual([...expectedCatalog].sort(), [...catalog].sort())
-  for (const output of catalogOnlyOutputs) {
+  assert.equal(CanonicalCandidateCount, 68)
+  assert.deepEqual(CanonicalGalleryOutputs, outputs)
+  assert.equal(outputs.length, CanonicalCandidateCount)
+  assert.equal(new Set(outputs).size, CanonicalCandidateCount)
+  assert.deepEqual(DeferredCanonicalOutputs, ['material-cheap-lfs-preparing'])
+  assert.equal(publishedCanonical.length, 67)
+  assert.equal(specialistOutputs.length, 17)
+  assert.equal(new Set(specialistOutputs).size, 17)
+  assert.ok(specialistOutputs.includes('auto-updater-current-source-ready'))
+  assert.ok(!specialistOutputs.includes('auto-updater-update-ready'))
+  assert.equal(ExpectedPublishedGalleryCount, 84)
+  assert.equal(PublishedGalleryOutputs.length, ExpectedPublishedGalleryCount)
+  assert.equal(new Set(PublishedGalleryOutputs).size, 84)
+  assert.equal(GalleryCapturePlan.length, 84)
+  assert.deepEqual(
+    [...expectedCatalog].sort(),
+    [...PublishedGalleryOutputs].sort()
+  )
+  assert.deepEqual(
+    GalleryCapturePlan.map(entry => entry.output).sort(),
+    [...PublishedGalleryOutputs].sort()
+  )
+  for (const output of specialistOutputs) {
     assert.ok(!outputs.includes(output), output)
   }
-  for (const deferred of deferredOutputs) {
+  for (const output of historicalLinuxOutputs) {
+    assert.ok(!PublishedGalleryOutputs.includes(output), output)
+    assert.ok(
+      !GalleryCapturePlan.some(entry => entry.output === output),
+      output
+    )
+  }
+  assert.ok(!PublishedGalleryOutputs.includes('auto-updater-update-ready'))
+  assert.deepEqual(
+    RetainedHistoricalEvidence['auto-updater-update-ready.png'],
+    {
+      acceptedAt: '2026-07-22',
+      document: 'docs/verification/auto-updater-version-order-2026-07-22.md',
+      sourceCommit: '923dbb51acad8f01f01f1c100c6945c7a2e08e23',
+      sha256:
+        'a02cffa612114be3af5e0fffcd5b602a4ba4dfd3226298e48d143a6bed76bd4d',
+    }
+  )
+  const currentUpdater = GalleryCapturePlan.find(
+    entry => entry.output === 'auto-updater-current-source-ready'
+  )
+  assert.ok(currentUpdater)
+  assert.ok(
+    currentUpdater.commands.some(command =>
+      command.includes('verify_gallery_auto_updater_ready_cdp.js')
+    )
+  )
+  assert.ok(
+    currentUpdater.commands.some(command =>
+      command.includes('auto-updater-current-source-ready-receipt.json')
+    )
+  )
+  assert.ok(
+    currentUpdater.commands.every(
+      command => !command.includes('\\captures\\auto-updater-update-ready.png')
+    )
+  )
+  assert.equal(CaptureBatches['linux-tui-lowlevel'], undefined)
+  assert.ok(
+    Object.values(CaptureBatches).every(
+      batch => batch.platform !== 'linux-xvfb'
+    )
+  )
+  for (const deferred of DeferredCanonicalOutputs) {
     assert.ok(outputs.includes(deferred), deferred)
-    assert.ok(!catalog.includes(deferred), deferred)
+    assert.ok(!PublishedGalleryOutputs.includes(deferred), deferred)
   }
   for (const sceneName of scenes) {
     assert.ok(source.includes(`scene('${sceneName}'`), sceneName)
@@ -895,7 +970,73 @@ test('canonical mode plans 68 captures distinct from the 77 published images', (
   ]) {
     assert.ok(scenes.includes(required), required)
   }
-  assert.ok(source.includes("process.stdout.write('CANONICAL 68/68"))
+  for (const entry of GalleryCapturePlan) {
+    assert.ok(entry.scene.length > 0, entry.output)
+    assert.ok(entry.interaction.length > 0, entry.output)
+    assert.ok(entry.fixture.length > 0, entry.output)
+    assert.ok(entry.privacyGate.length > 0, entry.output)
+    assert.ok(entry.commands.length > 0, entry.output)
+    assert.ok(CaptureBatches[entry.batch], entry.output)
+    assert.ok(
+      entry.commands.every(
+        command => command.length > 0 && !command.includes('<output>')
+      ),
+      entry.output
+    )
+  }
+  assert.ok(
+    source.includes(
+      '`CANONICAL ${expected.length}/${expected.length} exact output set\\n`'
+    )
+  )
+})
+
+test('specialist command templates satisfy verifier-owned output containment', () => {
+  const internalBrowser = GalleryCapturePlan.find(
+    entry => entry.output === 'app-hosted-browser-authentication'
+  )
+  const ollama = GalleryCapturePlan.find(
+    entry => entry.output === 'material-ollama-model-manager'
+  )
+  assert.ok(internalBrowser)
+  assert.ok(ollama)
+
+  assert.ok(
+    internalBrowser.commands.some(command =>
+      command.includes(
+        '--receipt <owned-temp-run-root>\\internal-browser-cdp-receipt.json'
+      )
+    )
+  )
+  assert.ok(
+    internalBrowser.commands.every(
+      command => !command.includes('<owned-temp-run-root>\\receipts\\')
+    )
+  )
+  assert.ok(
+    ollama.commands.some(command =>
+      command.includes(
+        '--receipt <owned-p0-run-root>\\captures\\material-ollama-model-manager.json'
+      )
+    )
+  )
+
+  const internalBrowserVerifier = fs.readFileSync(
+    path.join(__dirname, 'verify_internal_browser_cdp.js'),
+    'utf8'
+  )
+  const ollamaVerifier = fs.readFileSync(
+    path.join(__dirname, 'verify_ollama_manager_cdp.js'),
+    'utf8'
+  )
+  assert.match(
+    internalBrowserVerifier,
+    /path\.dirname\(requestedReceipt\)\.toLowerCase\(\) !== runRoot\.toLowerCase\(\)/
+  )
+  assert.match(
+    ollamaVerifier,
+    /const expectedParent = path\.join\(p0\.runRoot, 'captures'\)[\s\S]*?parent\.toLowerCase\(\) !== expectedParent\.toLowerCase\(\)/
+  )
 })
 
 test('audit-design mode owns a separate exact five-surface catalog', () => {
@@ -1452,6 +1593,376 @@ test('canonical workflow scenes use current reviewed controls and outcomes', () 
   ]) {
     assert.ok(!source.includes(stale), `stale control remains: ${stale}`)
   }
+})
+
+test('issue 87 evidence uses the real scheduled handler and commit password dialog', () => {
+  const errorScene = sceneSource('error-notice')
+  const dialogScene = sceneSource('cheap-lfs-commit-password-evidence')
+  const backgroundHelperStart = source.indexOf(
+    'async function postBackgroundCommitPasswordNotice()'
+  )
+  const backgroundHelperEnd = source.indexOf(
+    "\nscene('error-notice'",
+    backgroundHelperStart
+  )
+  const backgroundHelper = source.slice(
+    backgroundHelperStart,
+    backgroundHelperEnd
+  )
+
+  assert.ok(errorScene.includes('postBackgroundCommitPasswordNotice()'))
+  for (const contract of [
+    'resolveUnattendedCheapLfsEncryptedPin',
+    'performScheduledCommitPush',
+    "'isScheduledAutomationFenceCurrent'",
+    "'_commitIncludedChanges'",
+    'observedBackgroundTask = isBackgroundTask',
+    'isBackgroundTask !== true',
+    'evidence/oversized-encrypted.bin',
+    "resolution?.kind === 'credential'",
+    'resolution.password.fill(0)',
+    "resolution?.kind !== 'skip'",
+    'appStore.postPersistentErrorNotice',
+    'Nothing was encrypted',
+    'no Release anchor was created',
+    'changes remain eligible',
+    'Repository settings > Large files & storage',
+    '}).length === 1',
+    'for (const entry of overrides.reverse())',
+    'if (entry.own)',
+    'delete appStore[entry.name]',
+  ]) {
+    assert.ok(
+      backgroundHelper.includes(contract),
+      `background evidence misses ${contract}`
+    )
+  }
+  assert.ok(
+    backgroundHelper.indexOf('resolveUnattendedCheapLfsEncryptedPin') <
+      backgroundHelper.indexOf(
+        'The synthetic issue-87 credential identity unexpectedly resolved.'
+      )
+  )
+  for (const contract of [
+    'promptForCheapLfsPayloadPassword',
+    "'commit-auto-pin'",
+    "capture('commit-auto-pin-password-dialog')",
+    'inputs.length === 2',
+    "inputs.every(input => input.value === '')",
+    'finally',
+    'cancel?.click()',
+  ]) {
+    assert.ok(
+      dialogScene.includes(contract),
+      `commit-password evidence misses ${contract}`
+    )
+  }
+  assert.ok(!dialogScene.includes('globalThis.__issue87'))
+})
+
+test('issue 80 evidence proves the real Push origin warning fails closed', () => {
+  const evidence = sceneSource('canonical-remote-warning-evidence')
+  for (const contract of [
+    'assertOwnedDisposableFixture()',
+    "requestedLanguageMode !== 'english'",
+    'missingRemote.origin !== endpoint.origin',
+    "missingRemote.username !== ''",
+    "missingRemote.password !== ''",
+    'missingRemote.href.includes(ready.token',
+    "'remote'",
+    "'get-url'",
+    "'origin'",
+    "'symbolic-ref'",
+    "'HEAD'",
+    '`refs/remotes/origin/${ready.featureBranch}`',
+    'originalHeadOID',
+    'originalRemoteTrackingOID',
+    'ownedBareRepository',
+    'providerRemoteRef',
+    'originalProviderRemoteOID',
+    'behind !== 0',
+    'ahead < 1',
+    'setViewport(1280, 860)',
+    "'set-url'",
+    'missingRemoteURL',
+    "require('electron').ipcRenderer.emit('focus')",
+    'selection?.state?.remote?.url',
+    "'button.push-pull-button.push-pull-button--push'",
+    "vt(button).includes('Push origin')",
+    'providerLogPositionBeforeClick',
+    'providerMutationsBeforeClick',
+    'new MutationObserver',
+    'observer.observe(document.body, { childList: true, subtree: true })',
+    "pushButton.setAttribute('data-canonical-remote-warning-target', 'true')",
+    'pushButton.focus()',
+    'pushButton.click()',
+    "'Remote URL needs attention'",
+    'No push was attempted.',
+    "'Change remote URL'",
+    'genericBackgroundNoticeCount',
+    'duplicateOccurrenceCount',
+    'visibleDialogCount',
+    'warningBackground',
+    'domReceipt?.focus?.tag',
+    'domReceipt?.observer?.noticeAdditions?.length !== 1',
+    'domReceipt?.observer?.dialogAdditions?.length !== 0',
+    'providerLogPositionAfterClick',
+    'missingRepositoryAPIPath',
+    'entry.status === 404',
+    'git-receive-pack|service=git-receive-pack',
+    'receivePackRequests.length !== 0',
+    'providerMutationsAfterClick !== providerMutationsBeforeClick',
+    'localHeadAfterClick !== originalHeadOID',
+    'remoteTrackingAfterClick !== originalRemoteTrackingOID',
+    'providerRemoteAfterClick !== originalProviderRemoteOID',
+    "capture('canonical-remote-warning-1280x860')",
+    'backgroundProviderRefresh',
+    'exercised: false',
+    'No reviewed app-native built-app action',
+    'push-network-rejection-test.ts',
+    'push-rejection-observation-test.tsx',
+    'finally',
+    'originalRemoteURL',
+    'originalRemoteRestored',
+    'providerRemoteOIDRestored',
+    "'canonical-remote-warning-evidence.json'",
+    'serializedReceipt.includes(ready.token)',
+    'fs.writeFileSync(receiptPath, serializedReceipt',
+  ]) {
+    assert.ok(
+      evidence.includes(contract),
+      `issue 80 evidence misses ${contract}`
+    )
+  }
+
+  const observer = evidence.indexOf('new MutationObserver')
+  const click = evidence.indexOf('pushButton.click()')
+  const domGate = evidence.indexOf('domReceipt?.warningCount !== 1')
+  const providerGate = evidence.indexOf('expectedProviderRequests.length < 1')
+  const refGate = evidence.indexOf('localHeadAfterClick !== originalHeadOID')
+  const capture = evidence.indexOf(
+    "capture('canonical-remote-warning-1280x860')"
+  )
+  const restore = evidence.indexOf(
+    'originalRemoteRestored: restoredRemoteURL === originalRemoteURL'
+  )
+  const receiptWrite = evidence.indexOf(
+    'fs.writeFileSync(receiptPath, serializedReceipt'
+  )
+  assert.match(
+    evidence,
+    /finally[\s\S]*?'set-url',\s*'origin',\s*originalRemoteURL[\s\S]*?originalRemoteRestored/
+  )
+  assert.ok(observer >= 0 && observer < click)
+  assert.ok(click < domGate && domGate < providerGate)
+  assert.ok(providerGate < refGate && refGate < capture)
+  assert.ok(capture < restore && restore < receiptWrite)
+})
+
+test('issue 94 evidence proves a real transient tooltip disappears at two viewports', () => {
+  const evidence = sceneSource('tab-group-tooltip-dismissal-evidence')
+  for (const contract of [
+    '\'.repository-tab[role="tab"][aria-selected="true"]\'',
+    "vt(button) === 'Add tab to new group…'",
+    'button.context-menu-item[data-issue-94-target="true"]',
+    'visible owner tooltip before context-menu teardown',
+    "'#dialog-layer dialog#create-tab-group[open]'",
+    "document.querySelector('.material-context-menu') === null",
+    'await sleep(650)',
+    'staleTooltipCount: staleTooltips.length',
+    'settled?.staleTooltipCount !== 0',
+    'settled?.swatchCount !== 6',
+    'tab-group-tooltip-dismissed-${width}x${height}',
+  ]) {
+    assert.ok(
+      evidence.includes(contract),
+      `issue 94 evidence misses ${contract}`
+    )
+  }
+  assert.ok(evidence.includes('[1440, 960]'))
+  assert.ok(evidence.includes('[1180, 820]'))
+  assert.ok(
+    evidence.indexOf('visible owner tooltip before context-menu teardown') <
+      evidence.indexOf('clickPointerSelector')
+  )
+  assert.ok(
+    evidence.indexOf('clickPointerSelector') <
+      evidence.indexOf('settled?.staleTooltipCount !== 0')
+  )
+})
+
+test('issue 95 evidence proves singular accessible and visible copy', () => {
+  const evidence = sceneSource('tab-group-member-singular-evidence')
+  for (const contract of [
+    'setViewport(1280, 860)',
+    "'Verification group'",
+    "vt(label) === 'Verification group'",
+    "vt(count) !== '1'",
+    "'Show the 1 tab in Verification group'",
+    "'1 tab in this group.'",
+    "button.dispatchEvent(new MouseEvent('mouseover'",
+    "'singular one-member accessible tooltip'",
+    "capture('tab-group-member-singular-1280x860')",
+  ]) {
+    assert.ok(
+      evidence.includes(contract),
+      `issue 95 evidence misses ${contract}`
+    )
+  }
+  assert.ok(
+    evidence.indexOf("'Show the 1 tab in Verification group'") <
+      evidence.indexOf("capture('tab-group-member-singular-1280x860')")
+  )
+  assert.ok(
+    evidence.indexOf("'1 tab in this group.'") <
+      evidence.indexOf("capture('tab-group-member-singular-1280x860')")
+  )
+})
+
+test('tab-group management evidence creates only fresh owned Git fixtures', () => {
+  const start = source.indexOf('const TabGroupManagementEvidenceDirectory')
+  const end = source.indexOf('const DefaultWidth', start)
+  assert.ok(start >= 0 && end > start)
+  const fixture = source.slice(start, end)
+
+  for (const contract of [
+    'assertOwnedDisposableFixture()',
+    "'tab-group-management-evidence'",
+    "'material-evidence-beta'",
+    "'material-evidence-gamma'",
+    'path.relative(ownedRunRoot, evidenceRoot)',
+    'fs.existsSync(evidenceRoot)',
+    'fs.mkdirSync(evidenceRoot, { recursive: false })',
+    'fs.lstatSync(evidenceRoot)',
+    'entry.isSymbolicLink()',
+    'fs.mkdirSync(repositoryPath, { recursive: false })',
+    "{ encoding: 'utf8', flag: 'wx' }",
+    "runAdvancedWorkflowGit(ownedRepository, ['init', '--quiet'])",
+    "'user.name=Desktop Material Evidence'",
+    "'user.email=evidence@desktop-material.invalid'",
+    "'--no-gpg-sign'",
+    "'--is-inside-work-tree'",
+    "'status'",
+    "'--porcelain=v1'",
+    "'switch-receipt.json'",
+    'TAB_GROUP_MANAGEMENT_FIXTURE',
+  ]) {
+    assert.ok(
+      fixture.includes(contract),
+      `tab-group fixture misses ${contract}`
+    )
+  }
+  for (const destructive of [
+    'rmSync(',
+    'rmdirSync(',
+    'unlinkSync(',
+    "'reset'",
+    "'clean'",
+  ]) {
+    assert.ok(
+      !fixture.includes(destructive),
+      `tab-group fixture must not use ${destructive}`
+    )
+  }
+})
+
+test('tab-group management evidence drives, receipts, edits, and reloads real UI', () => {
+  const evidence = sceneSource('tab-group-management-evidence')
+  const canonical = frozenStringArray('CanonicalGalleryScenes')
+  assert.ok(!canonical.includes('tab-group-management-evidence'))
+
+  for (const contract of [
+    'initialState?.tabCount !== 1',
+    'initialState?.groupCount !== 0',
+    'prepareTabGroupManagementEvidenceFixture()',
+    "menuEvent('add-local-repository')",
+    '\'#add-existing-repository input[type="text"]\'',
+    "clickText('Add repository'",
+    'contextMenuSelector(seedTabSelector)',
+    "'Add tab to new group…'",
+    '\'#create-tab-group button.tab-group-color[data-color="purple"]\'',
+    "clickText('Create group'",
+    '`Move to “${initialGroupName}”`',
+    'expectedMemberCount',
+    "'3 tabs in this group.'",
+    "capture('tab-group-members-collapsed-1280x860')",
+    "dispatchKeyboardKey('ArrowDown', 'ArrowDown', 40)",
+    "dispatchKeyboardKey('Enter', 'Enter', 13)",
+    "navigation: Object.freeze(['ArrowDown', 'Enter'])",
+    'afterActiveTabId === targetTabId',
+    "scene: 'tab-group-management-evidence'",
+    'path.relative(evidenceFixture.root, evidenceFixture.receiptPath)',
+    "{ encoding: 'utf8', flag: 'wx' }",
+    'TAB_GROUP_SWITCH_RECEIPT',
+    '`Edit group “${initialGroupName}”…`',
+    '\'#edit-tab-group button.tab-group-color[data-color="green"]\'',
+    "capture('tab-group-edit-1280x860')",
+    "clickText('Save group'",
+    "'tab-group management before renderer reload'",
+    "await client.send('Page.reload', { ignoreCache: true })",
+    "'tab-group management after renderer reload'",
+    '`${persistedGroupName} group, 3 tabs, collapsed. Expand group.`',
+    '`Show the 3 tabs in ${persistedGroupName}`',
+    "capture('tab-group-persisted-1280x860')",
+  ]) {
+    assert.ok(
+      evidence.includes(contract),
+      `tab-group management evidence misses ${contract}`
+    )
+  }
+
+  assert.equal(
+    (evidence.match(/await dispatchKeyboardKey\('Enter', 'Enter', 13\)/g) ?? [])
+      .length,
+    1
+  )
+  assert.equal(
+    (evidence.match(/await maskTabGroupMemberPathsForCapture\(\)/g) ?? [])
+      .length,
+    2
+  )
+  assert.equal(
+    (
+      evidence.match(
+        /await client\.send\('Page\.reload', \{ ignoreCache: true \}\)/g
+      ) ?? []
+    ).length,
+    1
+  )
+
+  const firstMask = evidence.indexOf(
+    'await maskTabGroupMemberPathsForCapture()'
+  )
+  const collapsedCapture = evidence.indexOf(
+    "capture('tab-group-members-collapsed-1280x860')"
+  )
+  const arrow = evidence.indexOf(
+    "dispatchKeyboardKey('ArrowDown', 'ArrowDown', 40)"
+  )
+  const enter = evidence.indexOf("dispatchKeyboardKey('Enter', 'Enter', 13)")
+  const receipt = evidence.indexOf('TAB_GROUP_SWITCH_RECEIPT')
+  const editCapture = evidence.indexOf("capture('tab-group-edit-1280x860')")
+  const reload = evidence.indexOf(
+    "await client.send('Page.reload', { ignoreCache: true })"
+  )
+  const secondMask = evidence.indexOf(
+    'await maskTabGroupMemberPathsForCapture()',
+    firstMask + 1
+  )
+  const persistedCapture = evidence.indexOf(
+    "capture('tab-group-persisted-1280x860')"
+  )
+  assert.ok(
+    firstMask >= 0 &&
+      firstMask < collapsedCapture &&
+      collapsedCapture < arrow &&
+      arrow < enter &&
+      enter < receipt &&
+      receipt < editCapture &&
+      editCapture < reload &&
+      reload < secondMask &&
+      secondMask < persistedCapture
+  )
 })
 
 test('repository sheet capture rejects clipped batch actions', () => {

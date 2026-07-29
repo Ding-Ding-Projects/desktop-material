@@ -19,7 +19,7 @@ labels at 11 px, metadata at 9–10 px, controls at 30–34 px, the tools panel 
 shrinking English/Cantonese bilingual text, and the five metrics use three
 columns with the latest value spanning two.
 
-![Repository Releases retaining a complete first row at 200% scale](../../assets/screenshots/material-github-releases-compact.png)
+![Historical Repository Releases acceptance retaining a complete first row at 200% scale, pinned to source commit 513c5cc96aee045a218837530a11951e8466b618](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/513c5cc96aee045a218837530a11951e8466b618/docs/assets/screenshots/material-github-releases-compact.png)
 
 The surface uses the selected repository's provider account and supports fuzzy,
 substring, and regular-expression matching plus published, prerelease, and

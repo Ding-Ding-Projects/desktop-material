@@ -7,7 +7,10 @@ Every non-empty group has a visible chip before its first member, so its name,
 color, member count, expanded/collapsed state, and active-group state remain
 readable without relying on the members' color bands alone.
 
-![Restart-restored named tab-group chip with its visible repository member](../../assets/screenshots/material-tab-groups.png)
+![Historical restart-restored tab-group acceptance at immutable source commit 58be6fe5953477b015a134c414a8cf82363ecc75](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/58be6fe5953477b015a134c414a8cf82363ecc75/docs/assets/screenshots/material-tab-groups.png)
+
+This immutable July 22 frame preserves the accepted bytes from that milestone;
+it is not current-build visual evidence for the #94/#95 corrections below.
 
 ## Behavior and configuration
 
@@ -154,6 +157,15 @@ write an invalid order. A malformed profile that already mixes pin kinds keeps
 the first member's side and safely treats incompatible later members as
 ungrouped while compacting valid members into one run.
 
+Transient group rows and controls can disappear while their keyboard tooltip is
+pending or visible—for example, when filtering, collapsing, or deleting their
+owner. The shared tooltip lifecycle observes connectivity only during that
+pending/visible interval. Removing the owner cancels timers, removes the portal,
+stops viewport and mutation observers, clears the tooltip marker and
+`aria-describedby`, and never leaves disconnected help floating over the next
+surface. This is the regression boundary for
+[#94](https://github.com/Ding-Ding-Projects/desktop-material/issues/94).
+
 ## Security considerations
 
 Group colors come from a closed, curated set and are re-validated on every
@@ -172,6 +184,15 @@ safe repair of malformed records, pin-boundary rejection, non-destructive
 deletion, atomic manual/sorted ordering, portable-export stripping,
 localization, focus, and announcements.
 
+`app/src/ui/repository-tabs/tab-count-copy.ts` owns the one-versus-many
+selection used by every tab-group count phrase. In English, exactly one uses
+**tab/stays** while zero and two-plus use **tabs/stay** across the group chip,
+edit-dialog intro, member-menu button/status, and overflow-button accessible
+name. Cantonese keeps its natural count wording through the same selection
+contract. The focused suite checks 0, 1, and 2 in both languages plus the real
+collapsed-group and overflow-button accessible names, covering
+[#95](https://github.com/Ding-Ding-Projects/desktop-material/issues/95).
+
 `app/test/unit/ui/tab-group-management-test.tsx` covers the chip cluster's newer
 surfaces: a collapsed group listing every member in its dropdown, one-action
 member switching, arrow/Home/Enter keyboard navigation with a live
@@ -186,3 +207,8 @@ member dropdown must both land inside `#dialog-layer`, and the strip itself
 must contain no `<dialog>` at all. `app/test/unit/floating-surface-style-test.ts`
 adds the source-level half of the same contract, including the `.tooltip-host`
 rule that makes an unportalled dialog fall into normal flow in the first place.
+
+`app/test/unit/ui/tooltip-viewport-test.tsx` adds the disconnected-owner half:
+one regression removes a target before its show delay expires, and another
+removes a visible target without `blur` or `mouseout`. Both require the portal,
+marker, and accessible description to be absent afterward.

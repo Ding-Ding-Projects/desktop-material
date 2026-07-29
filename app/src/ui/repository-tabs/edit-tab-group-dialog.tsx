@@ -18,6 +18,7 @@ import {
   TranslationKey,
   TranslationVariables,
 } from '../../lib/i18n'
+import { tabGroupEditIntroKey } from './tab-count-copy'
 
 interface IEditTabGroupDialogProps {
   /** The group being renamed or recolored. */
@@ -128,7 +129,7 @@ export class EditTabGroupDialog extends React.Component<
       >
         <DialogContent>
           <p className="tab-group-intro">
-            {this.text('tabs.groupEditIntro', {
+            {this.text(tabGroupEditIntroKey(this.props.memberCount), {
               name: this.props.group.name,
               count: String(this.props.memberCount),
             })}

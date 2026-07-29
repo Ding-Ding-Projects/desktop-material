@@ -53,9 +53,9 @@ English is the safe fallback. The language choice is stored under the bounded
 locale, and can migrate once from the former aggregate appearance value.
 
 To customize the temporary-context Back control, `Shift`+right-click the visible
-Back button (or focus it and press `Shift+F10` / the `ContextMenu` key). A plain
+Back button, or focus it and press the Context Menu key or `Shift+F10`. A plain
 right-click is deliberately left alone so it never competes with an ordinary
-context menu. Its editor opens beside that button and offers:
+context menu. The editor opens beside that button and offers:
 
 - style: **Tonal**, **Filled accent**, or **Outlined**; and
 - label: **Back to parent**, **Parent name**, or **Icon only**.

@@ -1,289 +1,331 @@
 import * as React from 'react'
 
-import { Button } from './button'
-import { MaterialSymbol } from './material-symbol'
 import {
-  IProgressiveLoadState,
+  normalizeProgressiveLoadError,
   ProgressiveLoad,
-  asError,
+  ProgressiveLoadState,
 } from '../../lib/progressive-load'
-import { getPersistedLanguageMode, t } from '../../lib/i18n'
 import {
   readFunnyLevels,
   translateWithFunnyLevel,
 } from '../../lib/funny-level-text'
+import { getPersistedLanguageMode, t } from '../../lib/i18n'
+import { Button } from './button'
+import { Loading } from './loading'
 
-/**
- * A view module whose evaluation is deferred until the surface is opened.
- *
- * Desktop Material ships as a single bundle, so "lazy" here means the module's
- * top-level code (its imports, class definitions and registrations) is not
- * executed while the app is starting. A tab the user never opens costs nothing
- * at launch; a tab they do open pays for itself once and is then cached for
- * the rest of the session.
- */
-export interface ILazyViewModule<P> {
-  /** A stable identity for this module, used to detect a swapped surface. */
-  readonly id: string
+type LoadSource = () => Promise<unknown>
 
-  /** The component if it has already been evaluated, otherwise null. */
-  peek(): React.ComponentType<P> | null
-
-  /**
-   * Evaluate the module, or join the evaluation already in flight.
-   *
-   * Rejects with the real error when the module cannot be evaluated, and
-   * forgets that failure so a later call genuinely retries instead of
-   * replaying a cached rejection forever.
-   */
-  load(): Promise<React.ComponentType<P>>
-}
-
-class LazyViewModule<P> implements ILazyViewModule<P> {
-  public readonly id: string
-  private readonly loader: () => Promise<React.ComponentType<P>>
-  private component: React.ComponentType<P> | null = null
-  private inFlight: Promise<React.ComponentType<P>> | null = null
-
-  public constructor(
-    id: string,
-    loader: () => Promise<React.ComponentType<P>>
-  ) {
-    this.id = id
-    this.loader = loader
-  }
-
-  public peek(): React.ComponentType<P> | null {
-    return this.component
-  }
-
-  public load(): Promise<React.ComponentType<P>> {
-    if (this.component !== null) {
-      return Promise.resolve(this.component)
-    }
-
-    if (this.inFlight === null) {
-      this.inFlight = this.loader().then(
-        component => {
-          this.component = component
-          this.inFlight = null
-          return component
-        },
-        error => {
-          // Dropping the shared promise is what makes the retry button real; a
-          // cached rejection would turn one bad load into a permanent one.
-          this.inFlight = null
-          throw asError(error)
-        }
-      )
-    }
-
-    return this.inFlight
-  }
+interface IResolvedLoad {
+  readonly value: unknown
 }
 
 /**
- * Declare a deferred view module.
- *
- * Call this at module scope so the identity — and therefore the cached
- * evaluation — is shared by every mount of the surface.
+ * Stable module loaders are evaluated once per renderer session. In-flight
+ * requests are shared too, while rejections are deliberately forgotten so the
+ * local retry button always starts a real new attempt.
  */
-export function lazyViewModule<P>(
-  id: string,
-  loader: () => Promise<React.ComponentType<P>>
-): ILazyViewModule<P> {
-  return new LazyViewModule(id, loader)
+const resolvedLoads = new WeakMap<LoadSource, IResolvedLoad>()
+const inFlightLoads = new WeakMap<LoadSource, Promise<unknown>>()
+
+function asLoadSource<T>(source: () => Promise<T>): LoadSource {
+  return source as LoadSource
 }
 
-interface ILazyViewProps<P> {
-  /** The deferred module this surface renders. */
-  readonly view: ILazyViewModule<P>
-
-  /** The props handed to the component once it has been evaluated. */
-  readonly viewProps: P
-
-  /**
-   * The localized, human name of the surface, e.g. "Actions".
-   *
-   * It appears in both the progress and the failure copy so the user is always
-   * told exactly which surface is loading, or which one failed.
-   */
-  readonly name: string
-
-  /**
-   * Invoked once per accepted failure so the host can raise a non-blocking
-   * notification. The local failure surface is shown either way.
-   */
-  readonly onLoadFailed?: (name: string, error: Error) => void
+function readCachedLoad<T>(source: () => Promise<T>): {
+  readonly found: boolean
+  readonly value: T | null
+} {
+  const cached = resolvedLoads.get(asLoadSource(source))
+  return cached === undefined
+    ? { found: false, value: null }
+    : { found: true, value: cached.value as T }
 }
 
-interface ILazyViewState<P> {
-  /** The module id the current load state belongs to. */
-  readonly viewId: string
-
-  /** Progress, value and error for the module named by `viewId`. */
-  readonly load: IProgressiveLoadState<React.ComponentType<P>>
+function forgetCachedLoad<T>(source: () => Promise<T>): void {
+  const key = asLoadSource(source)
+  resolvedLoads.delete(key)
+  inFlightLoads.delete(key)
 }
 
-/**
- * Renders a deferred view module, keeping its loading and failure states local
- * to this surface.
- *
- * The rest of the window stays interactive throughout: nothing here is modal,
- * nothing here moves focus, and a failure names the surface and the underlying
- * error instead of leaving a spinner running forever.
- */
-export class LazyView<P extends object> extends React.Component<
-  ILazyViewProps<P>,
-  ILazyViewState<P>
-> {
-  private progressive: ProgressiveLoad<React.ComponentType<P>>
-  private mounted = false
+function loadOnce<T>(source: () => Promise<T>): Promise<T> {
+  const key = asLoadSource(source)
+  const cached = resolvedLoads.get(key)
+  if (cached !== undefined) {
+    return Promise.resolve(cached.value as T)
+  }
 
-  public constructor(props: ILazyViewProps<P>) {
-    super(props)
+  const inFlight = inFlightLoads.get(key)
+  if (inFlight !== undefined) {
+    return inFlight as Promise<T>
+  }
 
-    // A module evaluated earlier in this session is adopted synchronously, so
-    // revisiting a surface shows no progress state at all.
-    this.progressive = new ProgressiveLoad<React.ComponentType<P>>(
-      this.onLoadStateChanged,
-      props.view.peek()
+  const request = Promise.resolve()
+    .then(source)
+    .then(
+      value => {
+        resolvedLoads.set(key, { value })
+        inFlightLoads.delete(key)
+        return value
+      },
+      error => {
+        inFlightLoads.delete(key)
+        throw normalizeProgressiveLoadError(error)
+      }
     )
-    this.state = { viewId: props.view.id, load: this.progressive.getState() }
+  inFlightLoads.set(key, request)
+  return request
+}
+
+export interface ILazyViewProps<T> {
+  /** User-facing name of the local surface being loaded. */
+  readonly name: string
+  /** Stable module or data loader. It is not invoked until this view mounts. */
+  readonly load: () => Promise<T>
+  /** Render the resolved surface. */
+  readonly render: (value: T) => React.ReactNode
+  /** Report an accepted load or render failure through a non-blocking channel. */
+  readonly onError?: (name: string, error: Error) => void
+}
+
+interface ILazyViewState<T> {
+  /** Identifies which loader owns `loadState` across prop changes. */
+  readonly source: () => Promise<T>
+  readonly loadState: ProgressiveLoadState<T>
+  /** Remounts the render boundary for each explicit load or retry attempt. */
+  readonly renderAttempt: number
+}
+
+function loadingState<T>(): ProgressiveLoadState<T> {
+  return { kind: 'loading', value: null }
+}
+
+interface ILazyRenderContentProps<T> {
+  readonly value: T
+  readonly render: (value: T) => React.ReactNode
+}
+
+/**
+ * Invokes the owner renderer below, rather than inside, the error boundary.
+ * React boundaries do not catch exceptions thrown by their own render method.
+ */
+function LazyRenderContent<T>(props: ILazyRenderContentProps<T>): JSX.Element {
+  return <React.Fragment>{props.render(props.value)}</React.Fragment>
+}
+
+interface ILazyRenderBoundaryProps<T> extends ILazyRenderContentProps<T> {
+  readonly renderFailure: (error: Error) => React.ReactNode
+  readonly onError: (error: Error) => void
+}
+
+interface ILazyRenderBoundaryState {
+  readonly error: Error | null
+}
+
+/**
+ * Contains exceptions from a successfully loaded surface inside LazyView.
+ *
+ * The parent owns retry so a retry receives a fresh loader attempt as well as
+ * a fresh boundary. This avoids trapping a repaired or newly downloaded chunk
+ * behind the state of the failed render.
+ */
+class LazyRenderBoundary<T> extends React.Component<
+  ILazyRenderBoundaryProps<T>,
+  ILazyRenderBoundaryState
+> {
+  public static getDerivedStateFromError(
+    error: unknown
+  ): Partial<ILazyRenderBoundaryState> {
+    return { error: normalizeProgressiveLoadError(error) }
   }
 
-  public componentDidMount() {
-    this.mounted = true
-    if (this.progressive.getState().value === null) {
-      this.startLoad()
+  public state: ILazyRenderBoundaryState = { error: null }
+
+  // eslint-disable-next-line react-proper-lifecycle-methods -- React error-boundary lifecycle.
+  public componentDidCatch(error: Error): void {
+    this.props.onError(normalizeProgressiveLoadError(error))
+  }
+
+  public render(): React.ReactNode {
+    if (this.state.error !== null) {
+      return this.props.renderFailure(this.state.error)
+    }
+
+    return (
+      <LazyRenderContent value={this.props.value} render={this.props.render} />
+    )
+  }
+}
+
+/**
+ * Local progressive boundary for modules and other expensive inactive views.
+ *
+ * It deliberately owns no focus calls. Loading is announced politely, loader
+ * and render errors stay in this surface with a retry, late completions are
+ * fenced by the underlying ProgressiveLoad generation, and resolved stable
+ * loaders are reused without flashing a spinner when a surface is revisited.
+ */
+export class LazyView<T> extends React.Component<
+  ILazyViewProps<T>,
+  ILazyViewState<T>
+> {
+  private progressiveLoad: ProgressiveLoad<T>
+  private mounted = false
+  private nextRenderAttempt = 0
+
+  public constructor(props: ILazyViewProps<T>) {
+    super(props)
+    const cached = readCachedLoad(props.load)
+    this.progressiveLoad = new ProgressiveLoad<T>(
+      cached.found ? cached.value : null
+    )
+    this.state = {
+      source: props.load,
+      loadState: cached.found ? this.progressiveLoad.state : loadingState<T>(),
+      renderAttempt: this.nextRenderAttempt,
     }
   }
 
-  public componentDidUpdate(prevProps: ILazyViewProps<P>) {
-    if (prevProps.view === this.props.view) {
+  public componentDidMount(): void {
+    this.mounted = true
+    if (this.progressiveLoad.state.kind !== 'ready') {
+      this.startLoad(this.props.load)
+    }
+  }
+
+  public componentDidUpdate(prevProps: ILazyViewProps<T>): void {
+    if (prevProps.load === this.props.load) {
       return
     }
 
-    // The surface was swapped for a different module. Every in-flight result
-    // for the previous one is refused rather than being painted here.
-    this.progressive.dispose()
-    this.progressive = new ProgressiveLoad<React.ComponentType<P>>(
-      this.onLoadStateChanged,
-      this.props.view.peek()
+    this.progressiveLoad.dispose()
+    const cached = readCachedLoad(this.props.load)
+    this.progressiveLoad = new ProgressiveLoad<T>(
+      cached.found ? cached.value : null
     )
-    this.setState({
-      viewId: this.props.view.id,
-      load: this.progressive.getState(),
-    })
-    if (this.progressive.getState().value === null) {
-      this.startLoad()
+    if (cached.found) {
+      this.setState({
+        source: this.props.load,
+        loadState: this.progressiveLoad.state,
+        renderAttempt: ++this.nextRenderAttempt,
+      })
+    } else {
+      this.startLoad(this.props.load)
     }
   }
 
-  public componentWillUnmount() {
+  public componentWillUnmount(): void {
     this.mounted = false
-    this.progressive.dispose()
+    this.progressiveLoad.dispose()
   }
 
-  public render() {
-    const { viewId, load } = this.state
+  private startLoad(source: () => Promise<T>): void {
+    const renderAttempt = ++this.nextRenderAttempt
+    const completion = this.progressiveLoad.run(() => loadOnce(source))
+    this.setState({
+      source,
+      loadState: this.progressiveLoad.state,
+      renderAttempt,
+    })
 
-    // State left over from a previous module must never be rendered with the
-    // current module's props; componentDidUpdate has already queued its load.
-    if (viewId !== this.props.view.id) {
-      return this.renderLoading()
-    }
-
-    if (load.value !== null) {
-      return React.createElement(load.value, this.props.viewProps)
-    }
-
-    if (load.status === 'failed' && load.error !== null) {
-      return this.renderFailure(load.error)
-    }
-
-    return this.renderLoading()
-  }
-
-  private startLoad() {
-    const progressive = this.progressive
-    const view = this.props.view
-    const load = () => view.load()
-
-    void progressive.run(load).then(applied => {
-      const { error } = progressive.getState()
-      if (!applied || error === null) {
+    void completion.then(result => {
+      if (!this.mounted || !result.accepted || source !== this.props.load) {
         return
       }
 
-      // A rejected surface load is never dropped on the floor: it is logged,
-      // rendered locally, and offered to the host as a notification.
-      log.error(`Deferred view '${view.id}' failed to load`, error)
-      if (this.mounted) {
-        this.props.onLoadFailed?.(this.props.name, error)
+      this.setState({ source, loadState: result.state, renderAttempt })
+      if (result.state.kind === 'failed') {
+        this.reportFailure(result.state.error)
       }
     })
   }
 
-  private onLoadStateChanged = (
-    load: IProgressiveLoadState<React.ComponentType<P>>
-  ) => {
-    if (this.mounted) {
-      this.setState({ viewId: this.props.view.id, load })
+  private reportFailure = (error: Error): void => {
+    try {
+      this.props.onError?.(this.props.name, error)
+    } catch (reportError) {
+      try {
+        log.error('Unable to report a lazy view failure', reportError)
+      } catch {
+        // A local recovery surface must not depend on diagnostics.
+      }
     }
   }
 
-  private onRetry = () => {
-    this.startLoad()
+  private retry = (): void => {
+    forgetCachedLoad(this.props.load)
+    this.startLoad(this.props.load)
   }
 
-  private renderLoading() {
-    // role=status announces politely and never moves focus, which is exactly
-    // what loading a background surface should do.
+  private renderLoading(): JSX.Element {
+    const message = translateWithFunnyLevel(
+      'lazyView.loading',
+      getPersistedLanguageMode(),
+      readFunnyLevels(),
+      { name: this.props.name }
+    )
+
     return (
-      <div
+      <section
         className="lazy-view lazy-view-loading"
         role="status"
         aria-live="polite"
         aria-busy={true}
       >
-        <MaterialSymbol
-          name="progress_activity"
-          className="lazy-view-spinner"
-          size={32}
-        />
-        <p className="lazy-view-message">
-          {translateWithFunnyLevel(
-            'lazyView.loading',
-            getPersistedLanguageMode(),
-            readFunnyLevels(),
-            { name: this.props.name }
-          )}
-        </p>
-      </div>
+        <span className="lazy-view-spinner" aria-hidden={true}>
+          <Loading />
+        </span>
+        <p className="lazy-view-message">{message}</p>
+      </section>
     )
   }
 
-  private renderFailure(error: Error) {
+  private renderFailure = (error: Error): JSX.Element => {
+    const variables = { name: this.props.name }
+    const body = translateWithFunnyLevel(
+      'lazyView.failedBody',
+      getPersistedLanguageMode(),
+      readFunnyLevels(),
+      variables
+    )
+
     return (
-      <div className="lazy-view lazy-view-failed" role="alert">
-        <MaterialSymbol name="error" className="lazy-view-icon" size={32} />
+      <section className="lazy-view lazy-view-failed" role="alert">
         <h2 className="lazy-view-title">
-          {t('lazyView.failedTitle', { name: this.props.name })}
+          {t('lazyView.failedTitle', variables)}
         </h2>
-        <p className="lazy-view-message">
-          {translateWithFunnyLevel(
-            'lazyView.failedBody',
-            getPersistedLanguageMode(),
-            readFunnyLevels(),
-            { name: this.props.name }
-          )}
-        </p>
-        <p className="lazy-view-detail">
+        <p className="lazy-view-message">{body}</p>
+        <p className="lazy-view-error-detail">
           {t('lazyView.failedDetail', { error: error.message })}
         </p>
-        <Button onClick={this.onRetry}>{t('lazyView.retry')}</Button>
-      </div>
+        <Button type="button" onClick={this.retry}>
+          {t('lazyView.retry')}
+        </Button>
+      </section>
     )
+  }
+
+  public render(): React.ReactNode {
+    // A prop change renders once before componentDidUpdate runs. Never hand a
+    // resource from the previous loader to the new renderer during that frame.
+    if (this.state.source !== this.props.load) {
+      return this.renderLoading()
+    }
+
+    const state = this.state.loadState
+    if (state.kind === 'ready') {
+      return (
+        <LazyRenderBoundary
+          key={this.state.renderAttempt}
+          value={state.value}
+          render={this.props.render}
+          renderFailure={this.renderFailure}
+          onError={this.reportFailure}
+        />
+      )
+    }
+    if (state.kind === 'failed') {
+      return this.renderFailure(state.error)
+    }
+    return this.renderLoading()
   }
 }

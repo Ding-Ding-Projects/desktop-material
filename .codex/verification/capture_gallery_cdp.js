@@ -543,6 +543,176 @@ function prepareAdvancedWorkflowTagFixture() {
   return receipt
 }
 
+const TabGroupManagementEvidenceDirectory = 'tab-group-management-evidence'
+const TabGroupManagementRepositoryNames = Object.freeze([
+  'material-evidence-beta',
+  'material-evidence-gamma',
+])
+
+/**
+ * Create the two real repositories used by the tab-group management scene.
+ *
+ * The scene owns a fresh, exact child below the already-proven disposable run
+ * root. Refusing an existing directory keeps every write fail-closed: this
+ * helper never follows, replaces, cleans, or reuses an unknown filesystem
+ * entry.
+ */
+function prepareTabGroupManagementEvidenceFixture() {
+  assertOwnedDisposableFixture()
+  if (runRoot === undefined) {
+    fail('Tab-group management evidence requires an owned Temp run root.')
+  }
+
+  let ownedRunRoot
+  try {
+    ownedRunRoot = fs.realpathSync.native(path.resolve(runRoot))
+  } catch {
+    fail('The tab-group management run root could not be resolved.')
+  }
+
+  const evidenceRoot = path.join(
+    ownedRunRoot,
+    TabGroupManagementEvidenceDirectory
+  )
+  const relativeEvidenceRoot = path.relative(ownedRunRoot, evidenceRoot)
+  if (
+    relativeEvidenceRoot.toLowerCase() !==
+      TabGroupManagementEvidenceDirectory.toLowerCase() ||
+    path.isAbsolute(relativeEvidenceRoot)
+  ) {
+    fail('The tab-group management evidence root escaped its owned run root.')
+  }
+  if (fs.existsSync(evidenceRoot)) {
+    fail('The tab-group management evidence root must be fresh.')
+  }
+
+  fs.mkdirSync(evidenceRoot, { recursive: false })
+  let ownedEvidenceRoot
+  try {
+    const entry = fs.lstatSync(evidenceRoot)
+    ownedEvidenceRoot = fs.realpathSync.native(evidenceRoot)
+    if (
+      !entry.isDirectory() ||
+      entry.isSymbolicLink() ||
+      ownedEvidenceRoot.toLowerCase() !==
+        path.resolve(evidenceRoot).toLowerCase()
+    ) {
+      fail('The tab-group management evidence root is not an owned directory.')
+    }
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('tab-group')) {
+      throw error
+    }
+    fail('The tab-group management evidence root could not be verified.')
+  }
+
+  const repositories = TabGroupManagementRepositoryNames.map((name, index) => {
+    const repositoryPath = path.join(ownedEvidenceRoot, name)
+    const relativeRepository = path.relative(ownedEvidenceRoot, repositoryPath)
+    if (
+      relativeRepository.toLowerCase() !== name.toLowerCase() ||
+      path.isAbsolute(relativeRepository) ||
+      fs.existsSync(repositoryPath)
+    ) {
+      fail(`The tab-group evidence repository ${name} is not a fresh child.`)
+    }
+
+    fs.mkdirSync(repositoryPath, { recursive: false })
+    let ownedRepository
+    try {
+      const entry = fs.lstatSync(repositoryPath)
+      ownedRepository = fs.realpathSync.native(repositoryPath)
+      if (
+        !entry.isDirectory() ||
+        entry.isSymbolicLink() ||
+        ownedRepository.toLowerCase() !==
+          path.resolve(repositoryPath).toLowerCase() ||
+        path.relative(ownedEvidenceRoot, ownedRepository).toLowerCase() !==
+          name.toLowerCase()
+      ) {
+        fail(
+          `The tab-group evidence repository ${name} escaped its owned root.`
+        )
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('tab-group')) {
+        throw error
+      }
+      fail(`The tab-group evidence repository ${name} could not be verified.`)
+    }
+
+    const readmePath = path.join(ownedRepository, 'README.md')
+    fs.writeFileSync(
+      readmePath,
+      `# ${name}\n\nDisposable repository for tab-group UI evidence.\n`,
+      { encoding: 'utf8', flag: 'wx' }
+    )
+    runAdvancedWorkflowGit(ownedRepository, ['init', '--quiet'])
+    runAdvancedWorkflowGit(ownedRepository, ['add', '--', 'README.md'])
+    runAdvancedWorkflowGit(
+      ownedRepository,
+      [
+        '-c',
+        'user.name=Desktop Material Evidence',
+        '-c',
+        'user.email=evidence@desktop-material.invalid',
+        'commit',
+        '--quiet',
+        '--no-gpg-sign',
+        '--message',
+        `Seed ${name}`,
+      ],
+      {
+        env: {
+          GIT_AUTHOR_DATE: `2026-07-28T12:0${index}:00Z`,
+          GIT_COMMITTER_DATE: `2026-07-28T12:0${index}:00Z`,
+        },
+      }
+    )
+
+    const insideWorkTree = runAdvancedWorkflowGit(ownedRepository, [
+      'rev-parse',
+      '--is-inside-work-tree',
+    ])
+    const head = runAdvancedWorkflowGit(ownedRepository, [
+      'rev-parse',
+      '--verify',
+      'HEAD',
+    ])
+    const status = runAdvancedWorkflowGit(ownedRepository, [
+      'status',
+      '--porcelain=v1',
+      '--untracked-files=all',
+    ])
+    if (
+      insideWorkTree !== 'true' ||
+      !/^[0-9a-f]{40,64}$/i.test(head) ||
+      status !== ''
+    ) {
+      fail(`The tab-group evidence repository ${name} is not a clean Git repo.`)
+    }
+
+    return Object.freeze({ name, path: ownedRepository })
+  })
+
+  const receiptPath = path.join(ownedEvidenceRoot, 'switch-receipt.json')
+  if (fs.existsSync(receiptPath)) {
+    fail('The tab-group switch receipt must not already exist.')
+  }
+  const fixture = Object.freeze({
+    root: ownedEvidenceRoot,
+    receiptPath,
+    repositories: Object.freeze(repositories),
+  })
+  process.stdout.write(
+    `TAB_GROUP_MANAGEMENT_FIXTURE ${JSON.stringify({
+      root: relativeEvidenceRoot,
+      repositories: repositories.map(repository => repository.name),
+    })}\n`
+  )
+  return fixture
+}
+
 const DefaultWidth = 1440
 const DefaultHeight = 960
 const CaptureWidth = Number(args.get('width') ?? DefaultWidth)
@@ -693,8 +863,8 @@ const CanonicalGalleryOutputs = Object.freeze([
 ])
 
 /**
- * Audit-only v2 surfaces that are intentionally outside the frozen 68-image
- * documentation gallery. Each runner is also directly addressable through
+ * Audit-only v2 surfaces that are intentionally outside the 68-output
+ * canonical candidate batch. Each runner is also directly addressable through
  * --scenes for targeted multi-viewport inspection.
  */
 const AuditDesignScenes = Object.freeze([
@@ -1542,6 +1712,19 @@ async function pressEscape(times = 1) {
   }
 }
 
+/** Send one physical-key contract through CDP rather than a DOM event. */
+async function dispatchKeyboardKey(key, code, windowsVirtualKeyCode) {
+  for (const type of ['rawKeyDown', 'keyUp']) {
+    await client.send('Input.dispatchKeyEvent', {
+      type,
+      key,
+      code,
+      windowsVirtualKeyCode,
+    })
+  }
+  await sleep(300)
+}
+
 async function clickText(label, options = {}) {
   const clicked = await evaluate(`(() => {
     const scope = ${
@@ -1853,6 +2036,34 @@ async function maskVisibleValue(selector, value) {
   })()`)
   if (!masked) {
     fail(`Unable to mask visible value ${selector}.`)
+  }
+}
+
+/**
+ * Replace only the three owned repository paths painted by the real member
+ * dropdown. Names, ids, grouping state, controls, and React state stay real.
+ */
+async function maskTabGroupMemberPathsForCapture() {
+  const masked = await evaluate(`(() => {
+    const paths = [...document.querySelectorAll(
+      '.tab-group-members-result-path'
+    )]
+    if (paths.length !== 3) return false
+    const publicPaths = [
+      'C:\\\\Synthetic\\\\Tab Group Evidence 1',
+      'C:\\\\Synthetic\\\\Tab Group Evidence 2',
+      'C:\\\\Synthetic\\\\Tab Group Evidence 3',
+    ]
+    paths.forEach((element, index) => {
+      element.textContent = publicPaths[index]
+      element.removeAttribute('title')
+    })
+    return paths.every(
+      (element, index) => element.textContent === publicPaths[index]
+    )
+  })()`)
+  if (!masked) {
+    fail('Unable to mask the three owned tab-group member paths.')
   }
 }
 
@@ -3420,6 +3631,171 @@ scene('repository-tools-scroll', async () => {
   await restoreCaptureViewport()
 })
 
+/**
+ * Exercise the production scheduled-commit handler, its single-read unattended
+ * encryption resolver, and the production nonblocking notice while replacing
+ * only the expensive Git/provider commit seam. The verifier uses a synthetic
+ * repository identity which cannot match a developer credential and restores
+ * every temporary instance override before returning.
+ */
+async function postBackgroundCommitPasswordNotice() {
+  const result = await evaluate(`(async () => {
+    const root = document.querySelector('#desktop-app-container')
+    const node = root?.querySelector('*')
+    const fiberKey = node && Object.keys(node).find(key =>
+      key.startsWith('__reactFiber$') ||
+      key.startsWith('__reactInternalInstance$')
+    )
+    let fiber = fiberKey ? node[fiberKey] : null
+    let appStore = null
+    for (let depth = 0; fiber && depth < 120; depth++, fiber = fiber.return) {
+      if (fiber.stateNode?.props?.appStore) {
+        appStore = fiber.stateNode.props.appStore
+        break
+      }
+    }
+    const repository = appStore?.selectedRepository
+    if (!appStore || !repository) {
+      return { appStoreFound: Boolean(appStore), repositoryFound: false }
+    }
+
+    const encryptedRepository = {
+      ...repository,
+      id: 870000000 + repository.id,
+      path: repository.path + '\\\\issue-87-background-credential-proof',
+      gitHubRepository: null,
+      buildRunPreferences: {
+        ...(repository.buildRunPreferences ?? {}),
+        cheapLfsStorageProvider: 'release',
+        cheapLfsPayloadEncryption: true,
+        cheapLfsPayloadEncryptionConfirmed: true,
+      },
+    }
+    const overrides = []
+    let observedBackgroundTask = null
+    const override = (name, value) => {
+      overrides.push({
+        name,
+        own: Object.prototype.hasOwnProperty.call(appStore, name),
+        value: appStore[name],
+      })
+      appStore[name] = value
+    }
+    override('isScheduledAutomationFenceCurrent', () => true)
+    override('generateAutomationCommitMessage', async () => null)
+    override('_changeIncludeAllFiles', async () => undefined)
+    override('setOneClickCommitPushPhase', () => undefined)
+    override(
+      '_commitIncludedChanges',
+      async (
+        _commitRepository,
+        _context,
+        _forceAutoPinLargeFiles,
+        _pushAfterCommit,
+        _canStartCommit,
+        isBackgroundTask
+      ) => {
+        observedBackgroundTask = isBackgroundTask
+        if (isBackgroundTask !== true) {
+          throw new Error(
+            'The scheduled commit did not forward its background-task flag.'
+          )
+        }
+        const resolution =
+          await appStore.resolveUnattendedCheapLfsEncryptedPin(
+            encryptedRepository,
+            [
+              {
+                relativePath: 'evidence/oversized-encrypted.bin',
+                sizeInBytes: 125829120,
+              },
+            ],
+            isBackgroundTask
+          )
+        if (resolution?.kind === 'credential') {
+          resolution.password.fill(0)
+          throw new Error(
+            'The synthetic issue-87 credential identity unexpectedly resolved.'
+          )
+        }
+        if (resolution?.kind !== 'skip') {
+          throw new Error(
+            'The unattended encrypted commit did not produce its safe skip.'
+          )
+        }
+        const { notice } = resolution.outcome
+        appStore.postPersistentErrorNotice(
+          notice.title,
+          notice.body,
+          notice.dedupeKey,
+          encryptedRepository.id
+        )
+        // This synthetic seam represents the safe selected changes completing;
+        // the resolver above owns the real missing-password decision and notice.
+        return true
+      }
+    )
+
+    let outcome = 'pending'
+    try {
+      await appStore.performScheduledCommitPush(repository, {
+        repositoryIdentity: repository.path,
+        selectionEpoch: 0,
+      })
+      outcome = 'resolved'
+    } catch (error) {
+      outcome = String(error?.message ?? error)
+    } finally {
+      for (const entry of overrides.reverse()) {
+        if (entry.own) {
+          appStore[entry.name] = entry.value
+        } else {
+          delete appStore[entry.name]
+        }
+      }
+    }
+    return {
+      appStoreFound: true,
+      repositoryFound: true,
+      outcome,
+      observedBackgroundTask,
+      promptCount: document.querySelectorAll(
+        '#cheap-lfs-payload-password'
+      ).length,
+    }
+  })()`)
+  if (
+    result?.appStoreFound !== true ||
+    result?.repositoryFound !== true ||
+    result?.outcome !== 'resolved' ||
+    result?.observedBackgroundTask !== true ||
+    result?.promptCount !== 0
+  ) {
+    fail(
+      `Scheduled encrypted commit did not resolve through its background notice: ${JSON.stringify(
+        result
+      )}`
+    )
+  }
+
+  await waitFor(
+    `[...document.querySelectorAll('.error-notice')].filter(notice => {
+      const text = vt(notice)
+      return text.includes('Automatic commit did not pin large files') &&
+        text.includes('evidence/oversized-encrypted.bin') &&
+        text.includes('1 total') &&
+        text.includes('Windows Credential Manager') &&
+        /Nothing was encrypted(?: or|\\/) uploaded/.test(text) &&
+        text.includes('no Release anchor was created') &&
+        text.includes('Unchanged and out of the commit') &&
+        /Other (?:selected )?changes remain eligible/.test(text) &&
+        text.includes('Repository settings > Large files & storage') &&
+        text.includes('Retry interactively')
+    }).length === 1`,
+    'localized nonblocking background encryption notice'
+  )
+}
+
 scene('error-notice', async () => {
   if (fixturePath === null) {
     fail('Lock-file recovery requires a disposable fixture path.')
@@ -3489,6 +3865,7 @@ scene('error-notice', async () => {
       `Stale-lock confirmation omitted its process warning: ${confirmationText}`
     )
   }
+  await postBackgroundCommitPasswordNotice()
   await sleep(700)
   await parkPointer()
   await capture('material-error-notice')
@@ -3519,6 +3896,1583 @@ scene('error-notice', async () => {
     )}) === true`,
     'restored canonical fixture branch'
   )
+})
+
+scene('cheap-lfs-commit-password-evidence', async () => {
+  await ensureRepository()
+  await menuEvent('show-changes')
+  const opened = await evaluate(`(() => {
+    const root = document.querySelector('#desktop-app-container')
+    const node = root?.querySelector('*')
+    const fiberKey = node && Object.keys(node).find(key =>
+      key.startsWith('__reactFiber$') ||
+      key.startsWith('__reactInternalInstance$')
+    )
+    let fiber = fiberKey ? node[fiberKey] : null
+    let appStore = null
+    for (let depth = 0; fiber && depth < 120; depth++, fiber = fiber.return) {
+      if (fiber.stateNode?.props?.appStore) {
+        appStore = fiber.stateNode.props.appStore
+        break
+      }
+    }
+    const repository = appStore?.selectedRepository
+    if (!appStore || !repository) {
+      return { appStoreFound: Boolean(appStore), repositoryFound: false }
+    }
+    void appStore
+      .promptForCheapLfsPayloadPassword(
+        repository,
+        'encrypt',
+        'commit-auto-pin'
+      )
+      .catch(() => null)
+    return { appStoreFound: true, repositoryFound: true }
+  })()`)
+  if (opened?.appStoreFound !== true || opened?.repositoryFound !== true) {
+    fail(
+      `Commit-time encryption prompt could not open: ${JSON.stringify(opened)}`
+    )
+  }
+  try {
+    await waitFor(
+      `(() => {
+        const dialog = document.querySelector('#cheap-lfs-payload-password')
+        if (!(dialog instanceof HTMLElement)) return false
+        const text = vt(dialog)
+        const inputs = [...dialog.querySelectorAll('input[type="password"]')]
+        return text.includes('Password required before encrypted commit') &&
+          text.includes('uploaded only as encrypted ciphertext') &&
+          text.includes('Cancel stops the commit before any upload starts') &&
+          text.includes('Desktop Material cannot recover a lost password') &&
+          inputs.length === 2 &&
+          inputs.every(input => input.value === '')
+      })()`,
+      'real commit-time encrypted payload password dialog'
+    )
+    await parkPointer()
+    await capture('commit-auto-pin-password-dialog')
+  } finally {
+    await evaluate(`(() => {
+      const dialog = document.querySelector('#cheap-lfs-payload-password')
+      const cancel = dialog && [...dialog.querySelectorAll('button')].find(
+        button => vt(button) === 'Cancel'
+      )
+      cancel?.click()
+      return dialog !== null
+    })()`)
+    await waitFor(
+      `document.querySelector('#cheap-lfs-payload-password') === null`,
+      'closed commit-time password dialog'
+    )
+  }
+})
+
+/**
+ * Regression evidence for #80. The prepared P0 fixture is one local commit
+ * ahead of its feature-branch tracking ref, so it exposes the real enabled
+ * Push origin control without creating any additional commit. Point origin at
+ * a same-provider repository which the owned fixture intentionally does not
+ * serve, observe the renderer and provider log before activating that control,
+ * and prove the canonical-remote preflight fails closed before receive-pack.
+ */
+scene('canonical-remote-warning-evidence', async () => {
+  if (
+    runRoot === undefined ||
+    fixturePath === null ||
+    ready === null ||
+    providerRequestLog === null ||
+    outDir === null
+  ) {
+    fail(
+      'Canonical-remote warning evidence requires an owned provider-backed fixture and explicit output directory.'
+    )
+  }
+  if (requestedLanguageMode !== 'english') {
+    fail('Canonical-remote warning evidence requires --language-mode english.')
+  }
+  assertOwnedDisposableFixture()
+  if (
+    typeof ready.owner !== 'string' ||
+    typeof ready.repository !== 'string' ||
+    typeof ready.featureBranch !== 'string' ||
+    typeof ready.endpoint !== 'string' ||
+    !/^[a-z0-9][a-z0-9._-]*$/i.test(ready.owner) ||
+    !/^[a-z0-9][a-z0-9._-]*$/i.test(ready.repository) ||
+    !/^[a-z0-9][a-z0-9._/-]*$/i.test(ready.featureBranch)
+  ) {
+    fail('Canonical-remote warning evidence lacks reviewed provider identity.')
+  }
+  if (!fs.existsSync(providerRequestLog)) {
+    fail('Canonical-remote warning evidence requires the provider request log.')
+  }
+  let ownedRunRoot
+  let ownedBareRepository
+  try {
+    ownedRunRoot = fs.realpathSync.native(path.resolve(runRoot))
+    ownedBareRepository = fs.realpathSync.native(
+      path.join(
+        ownedRunRoot,
+        'git-http',
+        ready.owner,
+        `${ready.repository}.git`
+      )
+    )
+  } catch {
+    fail(
+      'Canonical-remote warning evidence could not resolve its provider repository.'
+    )
+  }
+  const expectedBareRelativePath = path.join(
+    'git-http',
+    ready.owner,
+    `${ready.repository}.git`
+  )
+  const actualBareRelativePath = path.relative(
+    ownedRunRoot,
+    ownedBareRepository
+  )
+  if (
+    actualBareRelativePath.toLowerCase() !==
+      expectedBareRelativePath.toLowerCase() ||
+    path.isAbsolute(actualBareRelativePath) ||
+    runAdvancedWorkflowGit(ownedBareRepository, [
+      'rev-parse',
+      '--is-bare-repository',
+    ]) !== 'true'
+  ) {
+    fail('Canonical-remote warning evidence escaped its owned bare repository.')
+  }
+
+  const endpoint = new URL(ready.endpoint)
+  if (
+    endpoint.protocol !== 'http:' ||
+    !['127.0.0.1', 'localhost', '::1'].includes(endpoint.hostname) ||
+    endpoint.username !== '' ||
+    endpoint.password !== '' ||
+    endpoint.search !== '' ||
+    endpoint.hash !== ''
+  ) {
+    fail(
+      'Canonical-remote warning evidence requires a credential-free loopback endpoint.'
+    )
+  }
+  const missingRepositoryName = `${ready.repository}-canonical-warning-missing`
+  const missingRemote = new URL(
+    `/${ready.owner}/${missingRepositoryName}.git`,
+    endpoint.origin
+  )
+  if (
+    missingRemote.origin !== endpoint.origin ||
+    missingRemote.username !== '' ||
+    missingRemote.password !== '' ||
+    missingRemote.search !== '' ||
+    missingRemote.hash !== '' ||
+    missingRemote.href.includes(ready.token ?? '__no_fixture_token__')
+  ) {
+    fail(
+      'Canonical-remote warning evidence derived an unsafe nonexistent repository URL.'
+    )
+  }
+  const missingRemoteURL = missingRemote.href
+  const missingRepositoryAPIPath = `/api/v3/repos/${ready.owner}/${missingRepositoryName}`
+  const originalRemoteURL = runAdvancedWorkflowGit(fixturePath, [
+    'remote',
+    'get-url',
+    'origin',
+  ])
+  let originalRemote
+  try {
+    originalRemote = new URL(originalRemoteURL)
+  } catch {
+    fail('The original origin URL is not an absolute credential-free URL.')
+  }
+  if (
+    originalRemote.username !== '' ||
+    originalRemote.password !== '' ||
+    originalRemote.search !== '' ||
+    originalRemote.hash !== ''
+  ) {
+    fail('The original origin URL contains credentials or unreviewed URL data.')
+  }
+
+  const originalHeadRef = runAdvancedWorkflowGit(fixturePath, [
+    'symbolic-ref',
+    '--quiet',
+    'HEAD',
+  ])
+  const expectedHeadRef = `refs/heads/${ready.featureBranch}`
+  const originalHeadOID = runAdvancedWorkflowGit(fixturePath, [
+    'rev-parse',
+    '--verify',
+    'HEAD^{commit}',
+  ]).toLowerCase()
+  const remoteTrackingRef = `refs/remotes/origin/${ready.featureBranch}`
+  const originalRemoteTrackingOID = runAdvancedWorkflowGit(fixturePath, [
+    'rev-parse',
+    '--verify',
+    `${remoteTrackingRef}^{commit}`,
+  ]).toLowerCase()
+  const providerRemoteRef = `refs/heads/${ready.featureBranch}`
+  const originalProviderRemoteOID = runAdvancedWorkflowGit(
+    ownedBareRepository,
+    ['rev-parse', '--verify', `${providerRemoteRef}^{commit}`]
+  ).toLowerCase()
+  const originalStatus = runAdvancedWorkflowGit(fixturePath, [
+    'status',
+    '--porcelain=v1',
+    '--untracked-files=all',
+  ])
+  const [behindText, aheadText] = runAdvancedWorkflowGit(fixturePath, [
+    'rev-list',
+    '--left-right',
+    '--count',
+    `${remoteTrackingRef}...HEAD`,
+  ]).split(/\s+/)
+  const behind = Number(behindText)
+  const ahead = Number(aheadText)
+  if (
+    originalHeadRef !== expectedHeadRef ||
+    !/^[0-9a-f]{40,64}$/.test(originalHeadOID) ||
+    !/^[0-9a-f]{40,64}$/.test(originalRemoteTrackingOID) ||
+    originalProviderRemoteOID !== originalRemoteTrackingOID ||
+    originalStatus !== '' ||
+    behind !== 0 ||
+    !Number.isSafeInteger(ahead) ||
+    ahead < 1
+  ) {
+    fail(
+      `Canonical-remote warning fixture is not a clean pushable branch: ${JSON.stringify(
+        {
+          originalHeadRef,
+          expectedHeadRef,
+          originalStatus,
+          behind,
+          ahead,
+        }
+      )}`
+    )
+  }
+
+  await ensureRepository()
+  await menuEvent('show-changes')
+  await setViewport(1280, 860)
+
+  let evidenceReceipt = null
+  let restorationReceipt = null
+  let sceneFailure = null
+  let restorationFailure = null
+  try {
+    runAdvancedWorkflowGit(fixturePath, [
+      'remote',
+      'set-url',
+      'origin',
+      missingRemoteURL,
+    ])
+    const configuredRemoteURL = runAdvancedWorkflowGit(fixturePath, [
+      'remote',
+      'get-url',
+      'origin',
+    ])
+    if (configuredRemoteURL !== missingRemoteURL) {
+      fail('Git did not retain the sanitized nonexistent origin URL exactly.')
+    }
+
+    // Refresh through the app's real focus listener so its repository state
+    // observes the external Git config change before the toolbar action runs.
+    await evaluate(`require('electron').ipcRenderer.emit('focus'), true`)
+    await waitFor(
+      `(() => {
+        const root = document.querySelector('#desktop-app-container')
+        const node = root?.querySelector('*')
+        const fiberKey = node && Object.keys(node).find(key =>
+          key.startsWith('__reactFiber$') ||
+          key.startsWith('__reactInternalInstance$')
+        )
+        let fiber = fiberKey ? node[fiberKey] : null
+        let appStore = null
+        for (let depth = 0; fiber && depth < 120; depth++, fiber = fiber.return) {
+          if (fiber.stateNode?.props?.appStore) {
+            appStore = fiber.stateNode.props.appStore
+            break
+          }
+        }
+        const selection = appStore?.getState?.().selectedState
+        return selection?.state?.remote?.url === ${JSON.stringify(
+          missingRemoteURL
+        )}
+      })()`,
+      'app state with sanitized nonexistent origin URL',
+      30000
+    )
+    await waitFor(
+      `(() => {
+        const button = document.querySelector(
+          'button.push-pull-button.push-pull-button--push'
+        )
+        return button instanceof HTMLButtonElement &&
+          vt(button).includes('Push origin') &&
+          !button.disabled &&
+          button.getAttribute('aria-disabled') !== 'true'
+      })()`,
+      'real enabled Push origin control',
+      30000
+    )
+
+    const providerLogBefore = fs.readFileSync(providerRequestLog)
+    if (
+      providerLogBefore.byteLength > 0 &&
+      providerLogBefore[providerLogBefore.byteLength - 1] !== 0x0a
+    ) {
+      fail('Provider request log did not end at a complete JSONL record.')
+    }
+    const providerLogPositionBeforeClick = providerLogBefore.byteLength
+    const providerMutationsBeforeClick = countProviderMutations()
+
+    const observerStart = await evaluate(`(() => {
+      globalThis.__canonicalRemoteWarningEvidence?.observer?.disconnect()
+      const pushButton = document.querySelector(
+        'button.push-pull-button.push-pull-button--push'
+      )
+      if (
+        !(pushButton instanceof HTMLButtonElement) ||
+        !vt(pushButton).includes('Push origin') ||
+        pushButton.disabled ||
+        pushButton.getAttribute('aria-disabled') === 'true'
+      ) {
+        return null
+      }
+      const initialNotices = [...document.querySelectorAll('.error-notice')]
+      const visible = element => {
+        if (!(element instanceof HTMLElement)) return false
+        const style = getComputedStyle(element)
+        const bounds = element.getBoundingClientRect()
+        return style.display !== 'none' && style.visibility !== 'hidden' &&
+          Number(style.opacity || 1) !== 0 && bounds.width > 0 &&
+          bounds.height > 0
+      }
+      const initialDialogs = [...document.querySelectorAll(
+        'dialog[open], [role="dialog"]'
+      )].filter(visible)
+      const state = {
+        noticeAdditions: [],
+        dialogAdditions: [],
+        focusBeforeClick: null,
+      }
+      const seenNoticeIds = new Set()
+      const observer = new MutationObserver(records => {
+        for (const record of records) {
+          for (const added of record.addedNodes) {
+            if (!(added instanceof Element)) continue
+            const notices = [
+              ...(added.matches('.error-notice') ? [added] : []),
+              ...added.querySelectorAll('.error-notice'),
+            ]
+            for (const notice of notices) {
+              const id = notice.getAttribute('data-error-notice-id') ?? ''
+              if (seenNoticeIds.has(id)) continue
+              seenNoticeIds.add(id)
+              state.noticeAdditions.push({
+                id,
+                warning: notice.classList.contains('error-notice--warning'),
+                text: vt(notice),
+              })
+            }
+            const dialogs = [
+              ...(added.matches('dialog[open], [role="dialog"]') ? [added] : []),
+              ...added.querySelectorAll('dialog[open], [role="dialog"]'),
+            ]
+            for (const dialog of dialogs.filter(visible)) {
+              state.dialogAdditions.push(vt(dialog).slice(0, 160))
+            }
+          }
+        }
+      })
+      observer.observe(document.body, { childList: true, subtree: true })
+      globalThis.__canonicalRemoteWarningEvidence = { observer, state }
+      pushButton.setAttribute('data-canonical-remote-warning-target', 'true')
+      pushButton.focus()
+      state.focusBeforeClick = {
+        tag: document.activeElement?.tagName ?? null,
+        label: vt(document.activeElement),
+      }
+      pushButton.click()
+      return {
+        initialNoticeCount: initialNotices.length,
+        initialDialogCount: initialDialogs.length,
+        observerInstalled: true,
+        focusBeforeClick: state.focusBeforeClick,
+      }
+    })()`)
+    if (
+      observerStart?.initialNoticeCount !== 0 ||
+      observerStart?.initialDialogCount !== 0 ||
+      observerStart?.observerInstalled !== true ||
+      observerStart?.focusBeforeClick?.tag !== 'BUTTON' ||
+      !observerStart.focusBeforeClick.label.includes('Push origin')
+    ) {
+      fail(
+        `Canonical-remote warning observer did not start cleanly before the real click: ${JSON.stringify(
+          observerStart
+        )}`
+      )
+    }
+
+    await waitFor(
+      `(() => {
+        const notices = [...document.querySelectorAll('.error-notice')]
+        const notice = notices[0]
+        const action = notice?.querySelector('button.error-notice-recovery')
+        return notices.length === 1 &&
+          notice?.classList.contains('error-notice--warning') === true &&
+          vt(notice.querySelector('h2')) === 'Remote URL needs attention' &&
+          vt(notice.querySelector('.error-notice-content > p')) ===
+            'Desktop Material could not verify this repository’s remote URL. No push was attempted. Review the remote URL, then try again.' &&
+          vt(action) === 'Change remote URL' &&
+          action instanceof HTMLButtonElement && !action.disabled
+      })()`,
+      'single actionable canonical-remote warning notice',
+      30000
+    )
+    await sleep(900)
+
+    const domReceipt = await evaluate(`(() => {
+      const evidence = globalThis.__canonicalRemoteWarningEvidence
+      evidence?.observer?.disconnect()
+      const visible = element => {
+        if (!(element instanceof HTMLElement)) return false
+        const style = getComputedStyle(element)
+        const bounds = element.getBoundingClientRect()
+        return style.display !== 'none' && style.visibility !== 'hidden' &&
+          Number(style.opacity || 1) !== 0 && bounds.width > 0 &&
+          bounds.height > 0
+      }
+      const notices = [...document.querySelectorAll('.error-notice')].filter(visible)
+      const warning = notices.find(notice =>
+        notice.classList.contains('error-notice--warning')
+      )
+      const action = warning?.querySelector('button.error-notice-recovery')
+      const active = document.activeElement
+      const activeBounds = active instanceof HTMLElement
+        ? active.getBoundingClientRect()
+        : null
+      const dialogs = [...document.querySelectorAll(
+        'dialog[open], [role="dialog"]'
+      )].filter(visible)
+      const receipt = {
+        warningCount: notices.filter(notice =>
+          notice.classList.contains('error-notice--warning')
+        ).length,
+        genericBackgroundNoticeCount: notices.filter(notice =>
+          !notice.classList.contains('error-notice--warning')
+        ).length,
+        title: vt(warning?.querySelector('h2')),
+        body: vt(warning?.querySelector('.error-notice-content > p')),
+        action: vt(action),
+        actionEnabled:
+          action instanceof HTMLButtonElement &&
+          !action.disabled &&
+          action.getAttribute('aria-disabled') !== 'true',
+        warningRole: warning?.getAttribute('role') ?? null,
+        warningAtomic: warning?.getAttribute('aria-atomic') ?? null,
+        warningBackground:
+          warning instanceof HTMLElement
+            ? getComputedStyle(warning).backgroundColor
+            : null,
+        duplicateOccurrenceCount:
+          warning?.querySelectorAll('.error-notice-occurrences').length ?? -1,
+        visibleDialogCount: dialogs.length,
+        focus: {
+          tag: active?.tagName ?? null,
+          label: vt(active),
+          connected: active instanceof HTMLElement && active.isConnected,
+          enabled:
+            active instanceof HTMLButtonElement
+              ? !active.disabled &&
+                active.getAttribute('aria-disabled') !== 'true'
+              : active instanceof HTMLElement,
+          visible:
+            activeBounds !== null &&
+            activeBounds.width > 0 &&
+            activeBounds.height > 0,
+        },
+        observer: evidence?.state ?? null,
+      }
+      delete globalThis.__canonicalRemoteWarningEvidence
+      return receipt
+    })()`)
+    if (
+      domReceipt?.warningCount !== 1 ||
+      domReceipt?.genericBackgroundNoticeCount !== 0 ||
+      domReceipt?.title !== 'Remote URL needs attention' ||
+      domReceipt?.body !==
+        'Desktop Material could not verify this repository’s remote URL. No push was attempted. Review the remote URL, then try again.' ||
+      domReceipt?.action !== 'Change remote URL' ||
+      domReceipt?.actionEnabled !== true ||
+      domReceipt?.warningRole !== 'alert' ||
+      domReceipt?.warningAtomic !== 'true' ||
+      typeof domReceipt?.warningBackground !== 'string' ||
+      domReceipt.warningBackground === 'rgba(0, 0, 0, 0)' ||
+      domReceipt?.duplicateOccurrenceCount !== 0 ||
+      domReceipt?.visibleDialogCount !== 0 ||
+      domReceipt?.focus?.tag !== 'BUTTON' ||
+      !domReceipt.focus.label.includes('Push origin') ||
+      domReceipt?.focus?.connected !== true ||
+      domReceipt?.focus?.enabled !== true ||
+      domReceipt?.focus?.visible !== true ||
+      domReceipt?.observer?.noticeAdditions?.length !== 1 ||
+      domReceipt.observer.noticeAdditions[0]?.warning !== true ||
+      domReceipt?.observer?.dialogAdditions?.length !== 0
+    ) {
+      fail(
+        `Canonical-remote warning DOM contract failed: ${JSON.stringify(
+          domReceipt
+        )}`
+      )
+    }
+
+    const providerLogAfter = fs.readFileSync(providerRequestLog)
+    if (
+      providerLogAfter.byteLength < providerLogPositionBeforeClick ||
+      !providerLogAfter
+        .subarray(0, providerLogPositionBeforeClick)
+        .equals(providerLogBefore)
+    ) {
+      fail('Provider request log was truncated or rewritten during evidence.')
+    }
+    const appendedProviderText = providerLogAfter
+      .subarray(providerLogPositionBeforeClick)
+      .toString('utf8')
+    const appendedProviderRequests = appendedProviderText
+      .split(/\r?\n/)
+      .filter(line => line.trim() !== '')
+      .map(line => JSON.parse(line))
+    const providerLogPositionAfterClick = providerLogAfter.byteLength
+    const expectedProviderRequests = appendedProviderRequests.filter(
+      entry =>
+        entry.kind === 'api' &&
+        entry.method === 'GET' &&
+        entry.path === missingRepositoryAPIPath &&
+        entry.status === 404
+    )
+    const receivePackRequests = appendedProviderRequests.filter(
+      entry =>
+        entry.kind === 'git' &&
+        /git-receive-pack|service=git-receive-pack/i.test(entry.path ?? '')
+    )
+    const providerMutationsAfterClick = countProviderMutations()
+    if (
+      expectedProviderRequests.length < 1 ||
+      receivePackRequests.length !== 0 ||
+      appendedProviderRequests.some(entry => entry.kind === 'git') ||
+      providerMutationsAfterClick !== providerMutationsBeforeClick
+    ) {
+      fail(
+        `Canonical-remote warning did not stop before provider mutation: ${JSON.stringify(
+          {
+            appendedProviderRequests,
+            providerMutationsBeforeClick,
+            providerMutationsAfterClick,
+          }
+        )}`
+      )
+    }
+
+    const localHeadAfterClick = runAdvancedWorkflowGit(fixturePath, [
+      'rev-parse',
+      '--verify',
+      'HEAD^{commit}',
+    ]).toLowerCase()
+    const localHeadRefAfterClick = runAdvancedWorkflowGit(fixturePath, [
+      'symbolic-ref',
+      '--quiet',
+      'HEAD',
+    ])
+    const remoteTrackingAfterClick = runAdvancedWorkflowGit(fixturePath, [
+      'rev-parse',
+      '--verify',
+      `${remoteTrackingRef}^{commit}`,
+    ]).toLowerCase()
+    const providerRemoteAfterClick = runAdvancedWorkflowGit(
+      ownedBareRepository,
+      ['rev-parse', '--verify', `${providerRemoteRef}^{commit}`]
+    ).toLowerCase()
+    const statusAfterClick = runAdvancedWorkflowGit(fixturePath, [
+      'status',
+      '--porcelain=v1',
+      '--untracked-files=all',
+    ])
+    if (
+      localHeadAfterClick !== originalHeadOID ||
+      localHeadRefAfterClick !== originalHeadRef ||
+      remoteTrackingAfterClick !== originalRemoteTrackingOID ||
+      providerRemoteAfterClick !== originalProviderRemoteOID ||
+      statusAfterClick !== '' ||
+      runAdvancedWorkflowGit(fixturePath, ['remote', 'get-url', 'origin']) !==
+        missingRemoteURL
+    ) {
+      fail('The rejected Push origin action changed a local or remote ref.')
+    }
+
+    await parkPointer()
+    await capture('canonical-remote-warning-1280x860')
+    evidenceReceipt = {
+      schemaVersion: 1,
+      issue: 80,
+      scene: 'canonical-remote-warning-evidence',
+      capture: 'canonical-remote-warning-1280x860.png',
+      viewport: { width: 1280, height: 860 },
+      fixture: {
+        branchRef: originalHeadRef,
+        localHeadBeforeClick: originalHeadOID,
+        localHeadAfterClick,
+        remoteTrackingRef,
+        remoteTrackingBeforeClick: originalRemoteTrackingOID,
+        remoteTrackingAfterClick,
+        providerRemoteRef,
+        providerRemoteBeforeClick: originalProviderRemoteOID,
+        providerRemoteAfterClick,
+        ahead,
+        behind,
+        statusBeforeClick: originalStatus,
+        statusAfterClick,
+      },
+      remote: {
+        originalURL: originalRemoteURL,
+        evidenceURL: missingRemoteURL,
+        sameEndpoint: missingRemote.origin === endpoint.origin,
+        credentialFree:
+          missingRemote.username === '' && missingRemote.password === '',
+        expectedProviderPath: missingRepositoryAPIPath,
+      },
+      provider: {
+        requestLogPositionBeforeClick: providerLogPositionBeforeClick,
+        requestLogPositionAfterClick: providerLogPositionAfterClick,
+        appendedRequestCount: appendedProviderRequests.length,
+        expectedNotFoundCount: expectedProviderRequests.length,
+        receivePackCount: receivePackRequests.length,
+        mutationsBeforeClick: providerMutationsBeforeClick,
+        mutationsAfterClick: providerMutationsAfterClick,
+        requests: appendedProviderRequests.map(entry => ({
+          kind: entry.kind,
+          method: entry.method,
+          path: entry.path,
+          status: entry.status,
+        })),
+      },
+      dom: domReceipt,
+      backgroundProviderRefresh: {
+        exercised: false,
+        reason:
+          'No reviewed app-native built-app action can deterministically reject a contained background provider refresh without a test-only override or fixture fault-control mutation.',
+        coveredBy:
+          'app/test/unit/push-network-rejection-test.ts and app/test/unit/push-rejection-observation-test.tsx',
+      },
+    }
+  } catch (error) {
+    sceneFailure = error
+  } finally {
+    try {
+      await evaluate(`(() => {
+        globalThis.__canonicalRemoteWarningEvidence?.observer?.disconnect()
+        delete globalThis.__canonicalRemoteWarningEvidence
+        return true
+      })()`)
+      runAdvancedWorkflowGit(fixturePath, [
+        'remote',
+        'set-url',
+        'origin',
+        originalRemoteURL,
+      ])
+      const restoredRemoteURL = runAdvancedWorkflowGit(fixturePath, [
+        'remote',
+        'get-url',
+        'origin',
+      ])
+      const restoredHeadRef = runAdvancedWorkflowGit(fixturePath, [
+        'symbolic-ref',
+        '--quiet',
+        'HEAD',
+      ])
+      const restoredHeadOID = runAdvancedWorkflowGit(fixturePath, [
+        'rev-parse',
+        '--verify',
+        'HEAD^{commit}',
+      ]).toLowerCase()
+      const restoredRemoteTrackingOID = runAdvancedWorkflowGit(fixturePath, [
+        'rev-parse',
+        '--verify',
+        `${remoteTrackingRef}^{commit}`,
+      ]).toLowerCase()
+      const restoredProviderRemoteOID = runAdvancedWorkflowGit(
+        ownedBareRepository,
+        ['rev-parse', '--verify', `${providerRemoteRef}^{commit}`]
+      ).toLowerCase()
+      const restoredStatus = runAdvancedWorkflowGit(fixturePath, [
+        'status',
+        '--porcelain=v1',
+        '--untracked-files=all',
+      ])
+      restorationReceipt = {
+        originalRemoteRestored: restoredRemoteURL === originalRemoteURL,
+        originalHeadRefRestored: restoredHeadRef === originalHeadRef,
+        originalHeadOIDRestored: restoredHeadOID === originalHeadOID,
+        remoteTrackingOIDRestored:
+          restoredRemoteTrackingOID === originalRemoteTrackingOID,
+        providerRemoteOIDRestored:
+          restoredProviderRemoteOID === originalProviderRemoteOID,
+        clean: restoredStatus === '',
+      }
+      if (
+        restorationReceipt.originalRemoteRestored !== true ||
+        restorationReceipt.originalHeadRefRestored !== true ||
+        restorationReceipt.originalHeadOIDRestored !== true ||
+        restorationReceipt.remoteTrackingOIDRestored !== true ||
+        restorationReceipt.providerRemoteOIDRestored !== true ||
+        restorationReceipt.clean !== true
+      ) {
+        fail(
+          `Canonical-remote warning fixture restoration failed: ${JSON.stringify(
+            restorationReceipt
+          )}`
+        )
+      }
+    } catch (error) {
+      restorationFailure = error
+    }
+  }
+
+  if (sceneFailure !== null && restorationFailure !== null) {
+    fail(
+      `Canonical-remote warning evidence and restoration both failed: evidence=${String(
+        sceneFailure?.message ?? sceneFailure
+      )}; restoration=${String(
+        restorationFailure?.message ?? restorationFailure
+      )}`
+    )
+  }
+  if (sceneFailure !== null) {
+    throw sceneFailure
+  }
+  if (restorationFailure !== null) {
+    throw restorationFailure
+  }
+  if (evidenceReceipt === null || restorationReceipt === null) {
+    fail('Canonical-remote warning evidence did not produce complete receipts.')
+  }
+
+  const receipt = { ...evidenceReceipt, restoration: restorationReceipt }
+  const serializedReceipt = `${JSON.stringify(receipt, null, 2)}\n`
+  if (
+    (typeof ready.token === 'string' &&
+      ready.token.length > 0 &&
+      serializedReceipt.includes(ready.token)) ||
+    serializedReceipt.includes(fixturePath) ||
+    serializedReceipt.includes(runRoot)
+  ) {
+    fail('Canonical-remote warning receipt contains private fixture data.')
+  }
+  fs.mkdirSync(outDir, { recursive: true })
+  const receiptPath = path.join(
+    outDir,
+    'canonical-remote-warning-evidence.json'
+  )
+  if (path.dirname(receiptPath) !== outDir) {
+    fail('Canonical-remote warning receipt escaped its output directory.')
+  }
+  fs.writeFileSync(receiptPath, serializedReceipt, {
+    encoding: 'utf8',
+    flag: 'wx',
+  })
+  process.stdout.write(
+    `CANONICAL_REMOTE_WARNING_EVIDENCE ${JSON.stringify({
+      receipt: path.basename(receiptPath),
+      capture: receipt.capture,
+      receivePackCount: receipt.provider.receivePackCount,
+      restored: receipt.restoration.originalRemoteRestored,
+    })}\n`
+  )
+})
+
+/**
+ * Regression evidence for #94. Exercise the real repository-tab context menu,
+ * wait for ButtonHints to show the menu item's tooltip, then activate that
+ * exact transient button. The menu and target unmount together; the shared
+ * Tooltip must observe the disconnection and remove the now-ownerless hint.
+ */
+scene('tab-group-tooltip-dismissal-evidence', async () => {
+  await ensureRepository()
+  await menuEvent('show-changes')
+
+  for (const [width, height] of [
+    [1440, 960],
+    [1180, 820],
+  ]) {
+    await setViewport(width, height)
+    await evaluate(`(() => {
+      document.getElementById('gallery-tooltip-suppressor')?.remove()
+      return document.querySelector('.material-context-menu') === null &&
+        document.querySelector('#create-tab-group') === null
+    })()`)
+    await contextMenuSelector(
+      '.repository-tab[role="tab"][aria-selected="true"]'
+    )
+    await waitFor(
+      `document.querySelector('.material-context-menu') !== null`,
+      `repository-tab context menu at ${width}x${height}`
+    )
+    const marked = await evaluate(`(() => {
+      const menu = document.querySelector('.material-context-menu')
+      const item = menu && [...menu.querySelectorAll('button.context-menu-item')]
+        .find(button => vt(button) === 'Add tab to new group…')
+      if (!(item instanceof HTMLButtonElement)) return false
+      item.setAttribute('data-issue-94-target', 'true')
+      item.dispatchEvent(new MouseEvent('mouseover', {
+        bubbles: true,
+        cancelable: true,
+        clientX: item.getBoundingClientRect().left + 12,
+        clientY: item.getBoundingClientRect().top + 12,
+      }))
+      return document.activeElement?.matches(
+        '.material-context-menu input[aria-label="Filter menu actions"]'
+      ) === true
+    })()`)
+    if (!marked) {
+      fail(
+        `Issue 94 could not retain filter focus while hovering its menu item at ${width}x${height}.`
+      )
+    }
+    await waitFor(
+      `[...document.querySelectorAll('[role="tooltip"]')].some(tooltip => {
+        const bounds = tooltip.getBoundingClientRect()
+        return vt(tooltip) === 'Add tab to new group…' &&
+          getComputedStyle(tooltip).visibility !== 'hidden' &&
+          bounds.width > 0 && bounds.height > 0
+      })`,
+      `visible owner tooltip before context-menu teardown at ${width}x${height}`
+    )
+
+    await clickPointerSelector(
+      'button.context-menu-item[data-issue-94-target="true"]'
+    )
+    await waitFor(
+      `document.querySelector(
+        '#dialog-layer dialog#create-tab-group[open]'
+      ) !== null && document.querySelector('.material-context-menu') === null`,
+      `create-group dialog after context-menu teardown at ${width}x${height}`
+    )
+    await sleep(650)
+
+    const settled = await evaluate(`(() => {
+      const visible = element => {
+        if (!(element instanceof HTMLElement)) return false
+        const style = getComputedStyle(element)
+        const bounds = element.getBoundingClientRect()
+        return style.display !== 'none' && style.visibility !== 'hidden' &&
+          Number(style.opacity || 1) !== 0 && bounds.width > 0 &&
+          bounds.height > 0
+      }
+      const staleTooltips = [...document.querySelectorAll('[role="tooltip"]')]
+        .filter(element =>
+          visible(element) && vt(element) === 'Add tab to new group…'
+        )
+      const layer = document.querySelector('#dialog-layer')
+      const dialog = layer?.querySelector('dialog#create-tab-group[open]')
+      const swatches = dialog
+        ? [...dialog.querySelectorAll('button.tab-group-color')]
+        : []
+      const insideViewport = element => {
+        const bounds = element.getBoundingClientRect()
+        return bounds.left >= 0 && bounds.top >= 0 &&
+          bounds.right <= window.innerWidth &&
+          bounds.bottom <= window.innerHeight
+      }
+      return {
+        staleTooltipCount: staleTooltips.length,
+        dialogInLayer: dialog instanceof HTMLDialogElement,
+        dialogInsideViewport:
+          dialog instanceof HTMLDialogElement && insideViewport(dialog),
+        swatchCount: swatches.length,
+        swatchesUsable: swatches.every(
+          swatch =>
+            swatch instanceof HTMLButtonElement &&
+            !swatch.disabled &&
+            insideViewport(swatch)
+        ),
+      }
+    })()`)
+    if (
+      settled?.staleTooltipCount !== 0 ||
+      settled?.dialogInLayer !== true ||
+      settled?.dialogInsideViewport !== true ||
+      settled?.swatchCount !== 6 ||
+      settled?.swatchesUsable !== true
+    ) {
+      fail(
+        `Issue 94 did not settle safely at ${width}x${height}: ${JSON.stringify(
+          settled
+        )}`
+      )
+    }
+
+    await capture(`tab-group-tooltip-dismissed-${width}x${height}`)
+    await clickText('Cancel', { within: '#create-tab-group' })
+    await waitFor(
+      `document.querySelector('#create-tab-group') === null`,
+      `closed issue-94 dialog at ${width}x${height}`
+    )
+  }
+  await restoreCaptureViewport()
+})
+
+/**
+ * Regression evidence for #95. Create a real one-member group, then prove the
+ * members button's accessible tooltip and the dropdown's live status both use
+ * the singular English form.
+ */
+scene('tab-group-member-singular-evidence', async () => {
+  await ensureRepository()
+  await menuEvent('show-changes')
+  await setViewport(1280, 860)
+  await evaluate(
+    `document.getElementById('gallery-tooltip-suppressor')?.remove(), true`
+  )
+
+  const existing = await evaluate(
+    `[...document.querySelectorAll('.repository-tab-group-label')]
+      .some(label => vt(label) === 'Verification group')`
+  )
+  if (!existing) {
+    await contextMenuSelector(
+      '.repository-tab[role="tab"][aria-selected="true"]'
+    )
+    await waitFor(
+      `document.querySelector('.material-context-menu') !== null`,
+      'repository-tab context menu for one-member group'
+    )
+    const addItemMarked = await evaluate(`(() => {
+      const item = [...document.querySelectorAll(
+        '.material-context-menu button.context-menu-item'
+      )].find(button => vt(button) === 'Add tab to new group…')
+      if (!(item instanceof HTMLButtonElement)) return false
+      item.setAttribute('data-issue-95-create', 'true')
+      return true
+    })()`)
+    if (!addItemMarked) {
+      fail('Issue 95 could not find the real Add tab to new group action.')
+    }
+    await clickPointerSelector(
+      'button.context-menu-item[data-issue-95-create="true"]'
+    )
+    await waitFor(
+      `document.querySelector(
+        '#dialog-layer dialog#create-tab-group[open]'
+      ) !== null`,
+      'one-member group dialog'
+    )
+    await setInput('#create-tab-group input[type="text"]', 'Verification group')
+    await clickText('Create group', { within: '#create-tab-group' })
+    await waitFor(
+      `[...document.querySelectorAll('.repository-tab-group-label')]
+        .some(label => vt(label) === 'Verification group')`,
+      'created one-member Verification group'
+    )
+  }
+
+  const memberButtonMarked = await evaluate(`(() => {
+    const groups = [...document.querySelectorAll('.repository-tab-group')]
+    const group = groups.find(candidate =>
+      vt(candidate.querySelector('.repository-tab-group-label')) ===
+        'Verification group'
+    )
+    const button = group?.querySelector('button.repository-tab-group-members')
+    if (!(button instanceof HTMLButtonElement)) return false
+    const count = group.querySelector('.repository-tab-group-count')
+    if (
+      vt(count) !== '1' ||
+      button.getAttribute('aria-label') !==
+        'Show the 1 tab in Verification group'
+    ) {
+      return false
+    }
+    button.setAttribute('data-issue-95-members', 'true')
+    return true
+  })()`)
+  if (!memberButtonMarked) {
+    fail(
+      'Issue 95 did not expose the exact singular accessible name on a one-member group.'
+    )
+  }
+
+  await clickPointerSelector(
+    'button.repository-tab-group-members[data-issue-95-members="true"]'
+  )
+  await waitFor(
+    `document.querySelector('.tab-group-members-popover') !== null &&
+      vt(document.querySelector('.tab-group-members-status')) ===
+        '1 tab in this group.'`,
+    'singular one-member dropdown status'
+  )
+  const hovered = await evaluate(`(() => {
+    const button = document.querySelector(
+      'button.repository-tab-group-members[data-issue-95-members="true"]'
+    )
+    if (!(button instanceof HTMLButtonElement)) return false
+    const bounds = button.getBoundingClientRect()
+    button.dispatchEvent(new MouseEvent('mouseover', {
+      bubbles: true,
+      cancelable: true,
+      clientX: bounds.left + bounds.width / 2,
+      clientY: bounds.top + bounds.height / 2,
+    }))
+    return true
+  })()`)
+  if (!hovered) {
+    fail('Issue 95 could not hover the one-member group control.')
+  }
+  await waitFor(
+    `[...document.querySelectorAll('[role="tooltip"]')].some(tooltip => {
+      const bounds = tooltip.getBoundingClientRect()
+      return vt(tooltip) === 'Show the 1 tab in Verification group' &&
+        getComputedStyle(tooltip).visibility !== 'hidden' &&
+        bounds.width > 0 && bounds.height > 0
+    })`,
+    'singular one-member accessible tooltip'
+  )
+  await capture('tab-group-member-singular-1280x860')
+  await pressEscape(1)
+  await restoreCaptureViewport()
+})
+
+/**
+ * Complete tab-group management evidence for #81. Every state transition uses
+ * the shipped controls: add two owned repositories, group all three tabs,
+ * collapse and inspect the group, switch members by keyboard, edit the group,
+ * and reload the renderer to prove the structural profile survived.
+ */
+scene('tab-group-management-evidence', async () => {
+  const initialGroupName = 'Evidence crew'
+  const persistedGroupName = 'Persisted crew'
+  await ensureRepository()
+  await menuEvent('show-changes')
+  await setViewport(1280, 860)
+
+  const initialState = await evaluate(`(() => {
+    const tabs = [...document.querySelectorAll(
+      '.repository-tab[role="tab"]'
+    )]
+    const groups = document.querySelectorAll('.repository-tab-group')
+    const tab = tabs[0]
+    return {
+      tabCount: tabs.length,
+      groupCount: groups.length,
+      seedTabId: tab?.getAttribute('data-tab-id') ?? null,
+      seedLabel: tab?.querySelector('.repository-tab-label')?.textContent
+        ?.trim() ?? null,
+    }
+  })()`)
+  if (
+    initialState?.tabCount !== 1 ||
+    initialState?.groupCount !== 0 ||
+    typeof initialState?.seedTabId !== 'string' ||
+    initialState.seedTabId.length === 0 ||
+    typeof initialState?.seedLabel !== 'string' ||
+    initialState.seedLabel.length === 0
+  ) {
+    fail(
+      `Tab-group management evidence requires one ungrouped starting tab: ${JSON.stringify(
+        initialState
+      )}`
+    )
+  }
+
+  const evidenceFixture = prepareTabGroupManagementEvidenceFixture()
+  const addExistingRepository = async (
+    repository,
+    expectedRepositoryTabCount
+  ) => {
+    await menuEvent('add-local-repository')
+    await waitFor(
+      `document.querySelector(
+        '#add-existing-repository input[type="text"]'
+      ) !== null`,
+      `add ${repository.name} dialog`
+    )
+    await setInput(
+      '#add-existing-repository input[type="text"]',
+      repository.path
+    )
+    await waitFor(
+      `(() => {
+        const dialog = document.querySelector('#add-existing-repository')
+        const button = dialog && [...dialog.querySelectorAll('button')].find(
+          candidate => vt(candidate) === 'Add repository'
+        )
+        return button instanceof HTMLButtonElement &&
+          !button.disabled &&
+          button.getAttribute('aria-disabled') !== 'true'
+      })()`,
+      `enabled Add repository action for ${repository.name}`,
+      25000
+    )
+    await clickText('Add repository', {
+      within: '#add-existing-repository',
+    })
+    await waitFor(
+      `(() => {
+        if (document.querySelector('#add-existing-repository') !== null) {
+          return false
+        }
+        const tabs = [...document.querySelectorAll(
+          '.repository-tab[role="tab"]'
+        )]
+        const matches = tabs.filter(tab =>
+          vt(tab.querySelector('.repository-tab-label')) ===
+            ${JSON.stringify(repository.name)}
+        )
+        return tabs.length === ${expectedRepositoryTabCount} &&
+          matches.length === 1 &&
+          matches[0].getAttribute('aria-selected') === 'true'
+      })()`,
+      `real ${repository.name} repository tab`,
+      30000
+    )
+    const tabId = await evaluate(`(() => {
+      const tab = [...document.querySelectorAll(
+        '.repository-tab[role="tab"]'
+      )].find(candidate =>
+        vt(candidate.querySelector('.repository-tab-label')) ===
+          ${JSON.stringify(repository.name)}
+      )
+      return tab?.getAttribute('data-tab-id') ?? null
+    })()`)
+    if (typeof tabId !== 'string' || tabId.length === 0) {
+      fail(`The real ${repository.name} repository tab has no stable id.`)
+    }
+    return tabId
+  }
+
+  try {
+    const addedTabIds = []
+    for (const [index, repository] of evidenceFixture.repositories.entries()) {
+      addedTabIds.push(await addExistingRepository(repository, index + 2))
+    }
+
+    const seedTabSelector = `.repository-tab[data-tab-id=${JSON.stringify(
+      initialState.seedTabId
+    )}]`
+    await contextMenuSelector(seedTabSelector)
+    await waitFor(
+      `document.querySelector('.material-context-menu') !== null`,
+      'tab-group management create context menu'
+    )
+    await clickText('Add tab to new group…', {
+      within: '.material-context-menu',
+    })
+    await waitFor(
+      `document.querySelector(
+        '#dialog-layer dialog#create-tab-group[open]'
+      ) !== null`,
+      'tab-group management create dialog'
+    )
+    await setInput('#create-tab-group input[type="text"]', initialGroupName)
+    await clickEnabledSelector(
+      '#create-tab-group button.tab-group-color[data-color="purple"]'
+    )
+    await waitFor(
+      `document.querySelector(
+        '#create-tab-group button.tab-group-color[data-color="purple"]'
+      )?.getAttribute('aria-pressed') === 'true'`,
+      'selected purple tab-group color'
+    )
+    await clickText('Create group', {
+      within: '#create-tab-group',
+    })
+    await waitFor(
+      `(() => {
+        const group = [...document.querySelectorAll(
+          '.repository-tab-group'
+        )].find(candidate =>
+          vt(candidate.querySelector('.repository-tab-group-label')) ===
+            ${JSON.stringify(initialGroupName)}
+        )
+        return document.querySelector('#create-tab-group') === null &&
+          group?.classList.contains('tab-group--purple') === true &&
+          vt(group.querySelector('.repository-tab-group-count')) === '1' &&
+          vt(document.querySelector('.repository-tab-announcement')) ===
+            ${JSON.stringify(`${initialGroupName} group created.`)}
+      })()`,
+      'created persisted purple one-tab group',
+      25000
+    )
+
+    const groupId = await evaluate(`(() => {
+      const group = [...document.querySelectorAll(
+        '.repository-tab-group'
+      )].find(candidate =>
+        vt(candidate.querySelector('.repository-tab-group-label')) ===
+          ${JSON.stringify(initialGroupName)}
+      )
+      return group?.getAttribute('data-group-id') ?? null
+    })()`)
+    if (typeof groupId !== 'string' || groupId.length === 0) {
+      fail('The real tab group has no stable id.')
+    }
+    const groupSelector = `.repository-tab-group[data-group-id=${JSON.stringify(
+      groupId
+    )}]`
+
+    const moveTabIntoGroup = async (
+      tabId,
+      repositoryName,
+      expectedMemberCount
+    ) => {
+      const tabSelector = `.repository-tab[data-tab-id=${JSON.stringify(
+        tabId
+      )}]`
+      await contextMenuSelector(tabSelector)
+      await waitFor(
+        `document.querySelector('.material-context-menu') !== null`,
+        `move ${repositoryName} context menu`
+      )
+      await clickText(`Move to “${initialGroupName}”`, {
+        within: '.material-context-menu',
+      })
+      await waitFor(
+        `(() => {
+          const group = document.querySelector(${JSON.stringify(groupSelector)})
+          const tab = document.querySelector(${JSON.stringify(tabSelector)})
+          return document.querySelector('.material-context-menu') === null &&
+            group?.classList.contains('tab-group--purple') === true &&
+            vt(group.querySelector('.repository-tab-group-count')) ===
+              ${JSON.stringify(String(expectedMemberCount))} &&
+            tab?.classList.contains('grouped') === true &&
+            tab?.classList.contains('tab-group--purple') === true &&
+            vt(document.querySelector('.repository-tab-announcement')) ===
+              ${JSON.stringify(
+                `${repositoryName} moved to ${initialGroupName}.`
+              )}
+        })()`,
+        `${repositoryName} persisted in ${initialGroupName}`,
+        25000
+      )
+    }
+
+    for (const [index, repository] of evidenceFixture.repositories.entries()) {
+      await moveTabIntoGroup(addedTabIds[index], repository.name, index + 2)
+    }
+
+    await clickPointerSelector(seedTabSelector)
+    await waitFor(
+      `document.querySelector(${JSON.stringify(
+        seedTabSelector
+      )})?.getAttribute('aria-selected') === 'true'`,
+      'first grouped tab selected before collapse'
+    )
+    await clickPointerSelector(
+      `${groupSelector} button.repository-tab-group-chip`
+    )
+    await waitFor(
+      `(() => {
+        const group = document.querySelector(${JSON.stringify(groupSelector)})
+        const chip = group?.querySelector(
+          'button.repository-tab-group-chip'
+        )
+        return group?.classList.contains('collapsed') === true &&
+          chip?.getAttribute('aria-expanded') === 'false' &&
+          chip?.getAttribute('aria-selected') === 'true' &&
+          vt(group.querySelector('.repository-tab-group-count')) === '3' &&
+          vt(document.querySelector('.repository-tab-announcement')) ===
+            ${JSON.stringify(`${initialGroupName} group collapsed.`)}
+      })()`,
+      'persisted collapsed three-tab group',
+      25000
+    )
+
+    const membersButtonSelector = `${groupSelector} button.repository-tab-group-members`
+    await clickPointerSelector(membersButtonSelector)
+    await waitFor(
+      `(() => {
+        const popover = document.querySelector('.tab-group-members-popover')
+        const group = document.querySelector(${JSON.stringify(groupSelector)})
+        const rows = popover?.querySelectorAll(
+          'button.tab-group-members-result[role="option"]'
+        )
+        return popover?.classList.contains('tab-group--purple') === true &&
+          group?.classList.contains('collapsed') === true &&
+          rows?.length === 3 &&
+          vt(popover.querySelector('#tab-group-members-title')) ===
+            ${JSON.stringify(`Tabs in “${initialGroupName}”`)} &&
+          vt(popover.querySelector('.tab-group-members-status')) ===
+            '3 tabs in this group.'
+      })()`,
+      'real collapsed three-member dropdown'
+    )
+    const beforeSwitch = await evaluate(`(() => {
+      const popover = document.querySelector('.tab-group-members-popover')
+      const active = popover?.querySelector(
+        'button.tab-group-members-result.active'
+      )
+      const highlighted = popover?.querySelector(
+        'button.tab-group-members-result.highlighted'
+      )
+      const input = popover?.querySelector('.tab-group-members-input')
+      return {
+        activeTabId: active?.getAttribute('data-tab-id') ?? null,
+        highlightedIndex:
+          highlighted?.getAttribute('data-result-index') ?? null,
+        activeDescendant: input?.getAttribute('aria-activedescendant') ?? null,
+      }
+    })()`)
+    if (
+      beforeSwitch?.activeTabId !== initialState.seedTabId ||
+      beforeSwitch?.highlightedIndex !== '0' ||
+      beforeSwitch?.activeDescendant !== 'tab-group-member-0'
+    ) {
+      fail(
+        `The collapsed member dropdown did not start on the active first tab: ${JSON.stringify(
+          beforeSwitch
+        )}`
+      )
+    }
+
+    await maskTabGroupMemberPathsForCapture()
+    await parkPointer()
+    await capture('tab-group-members-collapsed-1280x860')
+
+    const inputFocused = await evaluate(`(() => {
+      const input = document.querySelector('.tab-group-members-input')
+      if (!(input instanceof HTMLInputElement)) return false
+      input.focus()
+      return document.activeElement === input
+    })()`)
+    if (!inputFocused) {
+      fail('The real group-member search input could not receive focus.')
+    }
+    await dispatchKeyboardKey('ArrowDown', 'ArrowDown', 40)
+    await waitFor(
+      `(() => {
+        const input = document.querySelector('.tab-group-members-input')
+        const highlighted = document.querySelector(
+          'button.tab-group-members-result.highlighted'
+        )
+        return input?.getAttribute('aria-activedescendant') ===
+            'tab-group-member-1' &&
+          highlighted?.getAttribute('data-result-index') === '1'
+      })()`,
+      'keyboard-highlighted second group member'
+    )
+    const targetTabId = await evaluate(`document.querySelector(
+      'button.tab-group-members-result[data-result-index="1"]'
+    )?.getAttribute('data-tab-id') ?? null`)
+    if (
+      typeof targetTabId !== 'string' ||
+      targetTabId.length === 0 ||
+      targetTabId === beforeSwitch.activeTabId
+    ) {
+      fail('Keyboard navigation did not target a different real group member.')
+    }
+
+    await dispatchKeyboardKey('Enter', 'Enter', 13)
+    await waitFor(
+      `document.querySelector('.tab-group-members-popover') === null`,
+      'single Enter member activation'
+    )
+    await clickPointerSelector(membersButtonSelector)
+    await waitFor(
+      `(() => {
+        const popover = document.querySelector('.tab-group-members-popover')
+        const rows = popover?.querySelectorAll(
+          'button.tab-group-members-result[role="option"]'
+        )
+        const active = popover?.querySelector(
+          'button.tab-group-members-result.active'
+        )
+        return rows?.length === 3 &&
+          active?.getAttribute('data-tab-id') ===
+            ${JSON.stringify(targetTabId)}
+      })()`,
+      'keyboard-switched active group member'
+    )
+    const afterActiveTabId = await evaluate(`document.querySelector(
+      '.tab-group-members-popover button.tab-group-members-result.active'
+    )?.getAttribute('data-tab-id') ?? null`)
+    const switchReceipt = Object.freeze({
+      schemaVersion: 1,
+      scene: 'tab-group-management-evidence',
+      navigation: Object.freeze(['ArrowDown', 'Enter']),
+      memberCount: 3,
+      beforeActiveTabId: beforeSwitch.activeTabId,
+      targetIndex: 1,
+      targetTabId,
+      afterActiveTabId,
+      switched:
+        afterActiveTabId === targetTabId &&
+        afterActiveTabId !== beforeSwitch.activeTabId,
+    })
+    if (
+      switchReceipt.switched !== true ||
+      path.relative(evidenceFixture.root, evidenceFixture.receiptPath) !==
+        'switch-receipt.json' ||
+      fs.realpathSync.native(path.dirname(evidenceFixture.receiptPath)) !==
+        evidenceFixture.root ||
+      fs.existsSync(evidenceFixture.receiptPath)
+    ) {
+      fail(
+        `The tab-group switch receipt failed its ownership/state gate: ${JSON.stringify(
+          switchReceipt
+        )}`
+      )
+    }
+    fs.writeFileSync(
+      evidenceFixture.receiptPath,
+      `${JSON.stringify(switchReceipt, null, 2)}\n`,
+      { encoding: 'utf8', flag: 'wx' }
+    )
+    const writtenSwitchReceipt = JSON.parse(
+      fs.readFileSync(evidenceFixture.receiptPath, 'utf8')
+    )
+    if (
+      JSON.stringify(writtenSwitchReceipt) !== JSON.stringify(switchReceipt)
+    ) {
+      fail('The tab-group switch receipt failed its read-back gate.')
+    }
+    process.stdout.write(
+      `TAB_GROUP_SWITCH_RECEIPT ${JSON.stringify(switchReceipt)}\n`
+    )
+
+    await clickText(`Edit group “${initialGroupName}”…`, {
+      within: '.tab-group-members-popover',
+    })
+    await waitFor(
+      `document.querySelector(
+        '#dialog-layer dialog#edit-tab-group[open]'
+      ) !== null &&
+        document.querySelector('.tab-group-members-popover') === null`,
+      'real edit tab-group dialog'
+    )
+    await setInput('#edit-tab-group input[type="text"]', persistedGroupName)
+    await clickEnabledSelector(
+      '#edit-tab-group button.tab-group-color[data-color="green"]'
+    )
+    await waitFor(
+      `(() => {
+        const dialog = document.querySelector('#edit-tab-group')
+        const input = dialog?.querySelector('input[type="text"]')
+        const green = dialog?.querySelector(
+          'button.tab-group-color[data-color="green"]'
+        )
+        return input?.value === ${JSON.stringify(persistedGroupName)} &&
+          green?.getAttribute('aria-pressed') === 'true' &&
+          vt(dialog?.querySelector('.tab-group-intro')) ===
+            ${JSON.stringify(
+              `Rename or recolor “${initialGroupName}”. Its 3 tabs stay open and stay in the group.`
+            )}
+      })()`,
+      'edited three-member group name and green color'
+    )
+    await parkPointer()
+    await capture('tab-group-edit-1280x860')
+    await clickText('Save group', {
+      within: '#edit-tab-group',
+    })
+    await waitFor(
+      `(() => {
+        const group = document.querySelector(${JSON.stringify(groupSelector)})
+        return document.querySelector('#edit-tab-group') === null &&
+          group?.classList.contains('tab-group--green') === true &&
+          group?.classList.contains('collapsed') === true &&
+          vt(group.querySelector('.repository-tab-group-label')) ===
+            ${JSON.stringify(persistedGroupName)} &&
+          vt(group.querySelector('.repository-tab-group-count')) === '3' &&
+          vt(document.querySelector('.repository-tab-announcement')) ===
+            ${JSON.stringify(`${persistedGroupName} group updated.`)}
+      })()`,
+      'persisted renamed green collapsed group',
+      25000
+    )
+
+    await waitForElementAppearanceCoordinatorReady(
+      'tab-group management before renderer reload'
+    )
+    const beforeTabGroupReloadTimeOrigin = await evaluate(
+      'performance.timeOrigin'
+    )
+    await client.send('Page.reload', { ignoreCache: true })
+    await sleep(4500)
+    await client.send('Runtime.enable')
+    await waitFor(
+      `performance.timeOrigin > ${JSON.stringify(
+        beforeTabGroupReloadTimeOrigin
+      )}`,
+      'tab-group management renderer reload',
+      25000
+    )
+    await waitForElementAppearanceCoordinatorReady(
+      'tab-group management after renderer reload'
+    )
+    await assertRequestedPresentationState(
+      'tab-group management after renderer reload'
+    )
+    await setViewport(1280, 860)
+    await waitFor(
+      `(() => {
+        const group = document.querySelector(${JSON.stringify(groupSelector)})
+        const chip = group?.querySelector(
+          'button.repository-tab-group-chip'
+        )
+        const members = group?.querySelector(
+          'button.repository-tab-group-members'
+        )
+        return document.querySelector('nav.repository-rail') !== null &&
+          group?.classList.contains('tab-group--green') === true &&
+          group?.classList.contains('collapsed') === true &&
+          vt(group.querySelector('.repository-tab-group-label')) ===
+            ${JSON.stringify(persistedGroupName)} &&
+          vt(group.querySelector('.repository-tab-group-count')) === '3' &&
+          chip?.getAttribute('aria-expanded') === 'false' &&
+          chip?.getAttribute('aria-label') ===
+            ${JSON.stringify(
+              `${persistedGroupName} group, 3 tabs, collapsed. Expand group.`
+            )} &&
+          members?.getAttribute('aria-label') ===
+            ${JSON.stringify(`Show the 3 tabs in ${persistedGroupName}`)}
+      })()`,
+      'renamed green collapsed group after renderer reload',
+      30000
+    )
+    await clickPointerSelector(membersButtonSelector)
+    await waitFor(
+      `(() => {
+        const popover = document.querySelector('.tab-group-members-popover')
+        const active = popover?.querySelector(
+          'button.tab-group-members-result.active'
+        )
+        return popover?.classList.contains('tab-group--green') === true &&
+          popover?.querySelectorAll(
+            'button.tab-group-members-result[role="option"]'
+          ).length === 3 &&
+          vt(popover.querySelector('#tab-group-members-title')) ===
+            ${JSON.stringify(`Tabs in “${persistedGroupName}”`)} &&
+          vt(popover.querySelector('.tab-group-members-status')) ===
+            '3 tabs in this group.' &&
+          active?.getAttribute('data-tab-id') ===
+            ${JSON.stringify(targetTabId)}
+      })()`,
+      'persisted renamed three-member dropdown'
+    )
+    await maskTabGroupMemberPathsForCapture()
+    await parkPointer()
+    await capture('tab-group-persisted-1280x860')
+    await pressEscape(1)
+    await waitFor(
+      `document.querySelector('.tab-group-members-popover') === null`,
+      'closed persisted group-member dropdown'
+    )
+  } finally {
+    await pressEscape(2).catch(() => undefined)
+    await restoreCaptureViewport().catch(() => undefined)
+  }
 })
 
 scene('responsive-overflow', async () => {
@@ -6856,9 +8810,9 @@ async function main() {
       if (!exact) {
         if (!resilient) {
           fail(
-            `Canonical gallery did not produce the exact 68-output set: ${JSON.stringify(
-              { expected, actual }
-            )}`
+            `Canonical gallery did not produce the exact ${
+              expected.length
+            }-output set: ${JSON.stringify({ expected, actual })}`
           )
         }
         const missing = expected.filter(name => !capturedNames.includes(name))
@@ -6868,7 +8822,9 @@ async function main() {
           }; missing: ${missing.join(', ')}\n`
         )
       } else {
-        process.stdout.write('CANONICAL 68/68 exact output set\n')
+        process.stdout.write(
+          `CANONICAL ${expected.length}/${expected.length} exact output set\n`
+        )
       }
     }
     if (auditDesign) {

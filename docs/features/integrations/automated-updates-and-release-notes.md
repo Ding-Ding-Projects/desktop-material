@@ -302,4 +302,4 @@ then published greater same-SHA Release
 [`v3.6.3-beta3-zadtbhvdfc`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-zadtbhvdfc),
 which the legacy UI visibly downloaded and exposed as ready to install.
 
-![About showing the automatic updater ready to migrate a legacy Super Express installation](../../assets/screenshots/auto-updater-update-ready.png)
+![Historical About dialog showing the legacy Super Express updater migration at immutable source commit 923dbb51acad8f01f01f1c100c6945c7a2e08e23](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/923dbb51acad8f01f01f1c100c6945c7a2e08e23/docs/assets/screenshots/auto-updater-update-ready.png)

@@ -2,11 +2,20 @@
 
 <sub>Tabbed README — GitHub can't run scripts, so each tab above is a separate page.</sub>
 
-# Install the Linux-first TUI
+# Supported platform
 
-The terminal edition is a distinct Python/Textual package for Linux, not a
-Linux Electron build. Install a trusted checkout and open a repository with the
-literal launcher:
+Desktop Material is supported, built, packaged, released, and accepted on
+Windows only. Use [Install on Windows](#install-on-windows) for the current
+product. The TUI material below is an archived July 27 prototype record: it is
+not a supported package or release target, and its compatibility or packaging
+state does not block Windows releases.
+
+# Historical Linux TUI prototype record (unsupported)
+
+The terminal prototype was a distinct Python/Textual experiment, not a Linux
+Electron build. The following commands are retained to preserve the exact
+historical acceptance record; they are not a current installation
+recommendation.
 
 Linux shell, from a fresh parent directory:
 
@@ -29,8 +38,8 @@ Both one-liners require Git and
 the terminal afterward so the updated `PATH` is loaded, then run
 `github /path/to/repository` on Linux or
 `github C:\path\to\repository` on Windows. The interactive acceptance target
-remains Linux-first; the Windows Terminal launch path and cross-platform core
-are also tested.
+was Linux-first; the Windows Terminal launch path and cross-platform core were
+also tested at that checkpoint.
 
 `github`, `dmt`, and `desktop-material-tui` are identical launchers for the
 terminal edition; the alias does not replace GitHub CLI's `gh`. If another
@@ -61,14 +70,13 @@ uv sync --locked --extra dev
 uv run desktop-material-tui
 ```
 
-The CI lane builds a wheel and source distribution and smoke-installs the wheel
-in a fresh environment. Current package, XDG, security, mouse/text-box, and
-parity details live in the
-[Linux TUI guide](../features/linux-tui/README.md).
+At that checkpoint, a CI lane built a wheel and source distribution and
+smoke-installed the wheel in a fresh environment. The archived package, XDG,
+security, mouse/text-box, and parity details remain in the
+[historical Linux TUI guide](../features/linux-tui/README.md).
 
-Docker users can build the local wheel into the tracked non-root image and run
-it interactively against the current repository with persistent XDG volumes.
-See the copy-paste [container installation](../features/linux-tui/container.md).
+The historical record also includes the tracked non-root image and its
+copy-paste [container instructions](../features/linux-tui/container.md).
 
 # Install on Windows
 

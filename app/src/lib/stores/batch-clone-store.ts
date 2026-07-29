@@ -60,6 +60,7 @@ export class BatchCloneStore extends TypedBaseStore<IBatchCloneState | null> {
   private generation = 0
   private notifiedGeneration = 0
   private initialized = false
+  private initializationPromise: Promise<void> | null = null
   private journal: IBatchCloneJournal | null
   private writeChain: Promise<void> = Promise.resolve()
   private maintenanceChain: Promise<void> = Promise.resolve()
@@ -85,12 +86,15 @@ export class BatchCloneStore extends TypedBaseStore<IBatchCloneState | null> {
   }
 
   /** Load and normalize an interrupted queue from disk once per app lifetime. */
-  public async initialize(): Promise<void> {
-    if (this.initialized) {
-      return
+  public initialize(): Promise<void> {
+    if (this.initializationPromise === null) {
+      this.initialized = true
+      this.initializationPromise = this.initializeOnce()
     }
-    this.initialized = true
+    return this.initializationPromise
+  }
 
+  private async initializeOnce(): Promise<void> {
     try {
       if (this.journal === null) {
         this.journal = new FileBatchCloneJournal(await getPath('userData'))
@@ -141,6 +145,11 @@ export class BatchCloneStore extends TypedBaseStore<IBatchCloneState | null> {
       }
     } catch (error) {
       log.error('Unable to restore the clone queue journal', error)
+      // Fail closed: a new queue must not overwrite a durable journal whose
+      // state could not be inspected. The shared initialization promise keeps
+      // rejecting for this process, so callers can surface one retry-at-launch
+      // failure without racing automatic or user-initiated clone work.
+      throw error
     }
   }
 
@@ -210,6 +219,11 @@ export class BatchCloneStore extends TypedBaseStore<IBatchCloneState | null> {
     mode: BatchCloneMode,
     source: BatchCloneSource = 'manual'
   ): Promise<void> {
+    // Startup recovery and a new user queue must never race. Every caller
+    // awaits the same in-flight initialization promise before it can inspect
+    // or replace queue state.
+    await this.initialize()
+
     assertSafeBatchCloneItems(items)
     if (items.length === 0) {
       throw new Error('A clone queue must contain at least one repository.')

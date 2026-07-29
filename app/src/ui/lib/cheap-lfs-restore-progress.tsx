@@ -13,10 +13,16 @@ import {
 } from '../../lib/cheap-lfs/restore-progress'
 import { formatPreciseDuration } from '../../lib/format-duration'
 import {
+  getPersistedLanguageMode,
   t,
   translatedVariable,
   translateForAccessibleName,
 } from '../../lib/i18n'
+import {
+  funnyLevelBilingualVariable,
+  readFunnyLevels,
+  translateWithFunnyLevel,
+} from '../../lib/funny-level-text'
 import { Button } from './button'
 import { formatBytes } from './bytes'
 import { MaterialSymbol } from './material-symbol'
@@ -228,7 +234,15 @@ export class CheapLfsRestoreProgress extends React.Component<ICheapLfsRestorePro
           <span>{fileOrdinal}</span>
           {partOrdinal !== null && <span>{partOrdinal}</span>}
           <span>{t(restoreProviderKey(lane.provider))}</span>
-          <span>{t(restorePhaseKey(lane.phase))}</span>
+          <span>
+            {lane.phase === 'decrypting'
+              ? translateWithFunnyLevel(
+                  'cheapLfs.restore.phase.decrypting',
+                  getPersistedLanguageMode(),
+                  readFunnyLevels()
+                )
+              : t(restorePhaseKey(lane.phase))}
+          </span>
         </div>
         <OperationProgressRow
           className="cheap-lfs-restore-lane-bar"
@@ -334,7 +348,13 @@ export class CheapLfsRestoreProgress extends React.Component<ICheapLfsRestorePro
       provider: translatedVariable(restoreProviderKey(progress.provider)),
     })
     const phaseBadge = t('cheapLfs.restore.phaseBadge', {
-      phase: translatedVariable(restorePhaseKey(progress.phase)),
+      phase:
+        progress.phase === 'decrypting'
+          ? funnyLevelBilingualVariable(
+              'cheapLfs.restore.phase.decrypting',
+              readFunnyLevels()
+            )
+          : translatedVariable(restorePhaseKey(progress.phase)),
     })
     const summary = t('cheapLfs.restore.summary', {
       percent: String(announcementPercent),

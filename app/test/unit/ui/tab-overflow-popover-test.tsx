@@ -106,6 +106,19 @@ function renderPopover(
 }
 
 describe('TabOverflowPopover search', () => {
+  it('uses singular copy while filtering a one-tab menu', () => {
+    renderPopover([overflowTabs[0]])
+
+    fireEvent.change(
+      screen.getByRole('combobox', {
+        name: 'Search tabs in this menu',
+      }),
+      { target: { value: 'alpha' } }
+    )
+
+    assert.ok(screen.getByText('1 of 1 tab in this menu'))
+  })
+
   it('narrows the overflowed list through the shared filter modes', async () => {
     renderPopover()
 
@@ -403,6 +416,26 @@ function renderStrip(store: RepositoryTabsStore) {
 }
 
 describe('RepositoryTabStrip overflow capabilities', () => {
+  it('uses the singular accessible name when exactly one tab overflows', async () => {
+    const restore = measureStrip({ tab: 120, list: 310, overflowButton: 40 })
+    try {
+      const store = await createStore([
+        makeTab('alpha', alpha),
+        makeTab('material', material, 'Material workspace'),
+        makeTab('omega', omega),
+      ])
+      renderStrip(store)
+
+      assert.ok(
+        await waitFor(() =>
+          screen.getByRole('button', { name: 'Show 1 more tab' })
+        )
+      )
+    } finally {
+      restore()
+    }
+  })
+
   it('opens the per-tab appearance editor for a tab that only exists in the dropdown', async () => {
     const restore = measureStrip({ tab: 120, list: 260, overflowButton: 40 })
     try {

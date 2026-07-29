@@ -80,11 +80,17 @@ export type CheapLfsUnattendedLocalizeWithFunnyLevel = (
   variables: Readonly<Record<string, string>>
 ) => string
 
-/** How many skipped paths the notice names before `{count}` covers the rest. */
-const MaximumNamedSkippedPaths = 3
+/**
+ * How many skipped paths the notice names before `{count}` covers the rest.
+ *
+ * Bilingual mode renders the variables once per language. Keep one bounded
+ * representative in the 600-character corner notice; the terminal rows retain
+ * every exact path.
+ */
+const MaximumNamedSkippedPaths = 1
 
 /** Longest displayed path before the notice elides the remainder. */
-const MaximumNamedPathLength = 120
+const MaximumNamedPathLength = 44
 
 /** True for C0/C1 control code points, which never belong in a notice. */
 function isControlCodePoint(codePoint: number): boolean {

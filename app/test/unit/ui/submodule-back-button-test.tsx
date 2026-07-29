@@ -49,19 +49,19 @@ describe('Submodule Back button contextual appearance editor', () => {
       documentSawPrevented = event.defaultPrevented
     }
     document.addEventListener('contextmenu', onDocumentContextMenu)
-
-    // A plain right-click is left entirely alone — not prevented, not
-    // swallowed — so the ordinary right-click contract elsewhere still holds.
-    const plainWasNotCancelled = fireEvent.contextMenu(button)
-    assert.equal(plainWasNotCancelled, true)
+    const ordinaryRightClick = fireEvent.contextMenu(button, { button: 2 })
+    assert.equal(ordinaryRightClick, true)
     assert.equal(documentSawPrevented, false)
     assert.equal(screen.queryByRole('dialog'), null)
     assert.equal(button.getAttribute('aria-expanded'), 'false')
 
-    const wasNotCancelled = fireEvent.contextMenu(button, { shiftKey: true })
+    const shiftedRightClick = fireEvent.contextMenu(button, {
+      button: 2,
+      shiftKey: true,
+    })
     document.removeEventListener('contextmenu', onDocumentContextMenu)
 
-    assert.equal(wasNotCancelled, false)
+    assert.equal(shiftedRightClick, false)
     assert.equal(documentSawPrevented, true)
     const dialog = screen.getByRole('dialog', {
       name: 'Back button appearance',

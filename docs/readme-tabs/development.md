@@ -12,7 +12,8 @@ Full instructions live in [`docs/contributing/setup.md`](../contributing/setup.m
 yarn && yarn build:dev && yarn start
 ```
 
-The separate Linux terminal edition uses its locked Python project:
+For historical reproduction only, the archived July 27 Linux TUI prototype
+used this locked Python project:
 
 ```bash
 cd tui
@@ -21,5 +22,6 @@ uv run pytest
 uv run desktop-material-tui
 ```
 
-Its full contributor, package, interaction, and verification contract is in the
-[Linux TUI documentation](../features/linux-tui/README.md).
+Its archived contributor, package, interaction, and verification record is in
+the [historical Linux TUI documentation](../features/linux-tui/README.md).
+Those lanes are not current supported-product or Windows-release gates.

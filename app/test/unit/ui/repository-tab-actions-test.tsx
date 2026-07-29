@@ -191,6 +191,55 @@ describe('CloseTabsContainingPopover compatibility', () => {
 })
 
 describe('CloseTabsExceptContainingPopover', () => {
+  it('uses singular copy when one tab stays open', async () => {
+    const alpha = new Repository('/work/alpha', 1, null, false)
+    const store = await createStore([makeTab('alpha', alpha)])
+
+    render(
+      <CloseTabsExceptContainingPopover
+        tabsStore={store}
+        anchor={null}
+        resolveAdditionalKeys={() => []}
+        resolveLabel={() => 'alpha'}
+        onClosed={() => undefined}
+        onClose={() => undefined}
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText('Text to keep'), {
+      target: { value: 'alpha' },
+    })
+    assert.ok(screen.getByText('The 1 tab stays open.'))
+  })
+
+  it('uses singular copy when one bounded preview row is omitted', async () => {
+    const repositories = Array.from(
+      { length: 9 },
+      (_, index) =>
+        new Repository(`/work/repository-${index + 1}`, index + 1, null, false)
+    )
+    const tabs = repositories.map((repository, index) =>
+      makeTab(`tab-${index + 1}`, repository)
+    )
+    const store = await createStore(tabs)
+
+    render(
+      <CloseTabsExceptContainingPopover
+        tabsStore={store}
+        anchor={null}
+        resolveAdditionalKeys={() => []}
+        resolveLabel={tab => tab.repositoryPath}
+        onClosed={() => undefined}
+        onClose={() => undefined}
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText('Text to keep'), {
+      target: { value: 'repository-1' },
+    })
+    assert.ok(screen.getByText('And 1 more tab'))
+  })
+
   it('previews literal alias matches, pinned protection, and safe counts', async () => {
     const material = new Repository(
       '/work/desktop-material',
@@ -289,6 +338,15 @@ describe('CloseTabsExceptContainingPopover', () => {
 })
 
 describe('ArrangeTabsPopover', () => {
+  it('uses singular copy for a one-tab collection', async () => {
+    const alpha = new Repository('/work/alpha', 1, null, false)
+    const store = await createStore([makeTab('alpha', alpha)])
+
+    render(<ArrangeHarness store={store} repositories={[alpha]} ranks={{}} />)
+
+    assert.ok(screen.getByText('1 of 1 tab'))
+  })
+
   it('stars and one-shot arranges favorite tabs accessibly', async () => {
     const alpha = new Repository('/work/alpha', 1, null, false)
     const beta = new Repository('/work/beta', 2, null, false)
@@ -596,7 +654,7 @@ describe('TabSearchPopover', () => {
 })
 
 describe('RepositoryTab title appearance', () => {
-  it('opens the clicked inactive title editor and its independent Git history', async () => {
+  it('keeps ordinary title commands, their Customize action, and Shift+right-click appearance access', async () => {
     const alpha = new Repository('/work/alpha', 1, null, false)
     const beta = new Repository('/work/beta', 2, null, false)
     let style: IRepositoryTab['titleStyle'] = null
@@ -665,20 +723,12 @@ describe('RepositoryTab title appearance', () => {
 
     const label = screen.getByText('beta')
     assert.equal(label.classList.contains('repository-tab-label'), true)
-
-    // A plain right-click on the title belongs to the tab command menu, which
-    // still carries "Customize Appearance…"; only Shift+Right-click opens the
-    // title's appearance editor directly.
-    fireEvent.contextMenu(label)
+    const ordinaryRightClick = fireEvent.contextMenu(label, { button: 2 })
+    assert.equal(ordinaryRightClick, false)
     assert.equal(screen.queryByText('Tab appearance'), null)
-    const plainMenuBackdrop = document.querySelector<HTMLElement>(
-      '.material-context-menu-backdrop'
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Customize Appearance…' })
     )
-    if (plainMenuBackdrop !== null) {
-      fireEvent.mouseDown(plainMenuBackdrop)
-    }
-
-    fireEvent.contextMenu(label, { shiftKey: true })
 
     await waitFor(() => {
       assert.ok(screen.getByText('Tab appearance'))
@@ -711,7 +761,21 @@ describe('RepositoryTab title appearance', () => {
     )
     await waitFor(() => assert.equal(document.activeElement, label))
 
-    fireEvent.contextMenu(screen.getByRole('tab', { name: 'beta' }))
+    const shiftedRightClick = fireEvent.contextMenu(label, {
+      button: 2,
+      shiftKey: true,
+    })
+    assert.equal(shiftedRightClick, false)
+    await waitFor(() => assert.ok(screen.getByText('Tab appearance')))
+    assert.deepEqual(ensuredTabs, ['beta-tab', 'beta-tab'])
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Close beta tab title' })
+    )
+    await waitFor(() => assert.equal(document.activeElement, label))
+
+    fireEvent.contextMenu(screen.getByRole('tab', { name: 'beta' }), {
+      button: 2,
+    })
     assert.equal(
       screen.queryByText('Tab appearance'),
       null,

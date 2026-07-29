@@ -1,7 +1,18 @@
 import * as React from 'react'
 
-import { CheapLfsPayloadPasswordPurpose } from '../../models/popup'
-import { t, translateForAccessibleName } from '../../lib/i18n'
+import {
+  CheapLfsPayloadPasswordContext,
+  CheapLfsPayloadPasswordPurpose,
+} from '../../models/popup'
+import {
+  getPersistedLanguageMode,
+  t,
+  translateForAccessibleName,
+} from '../../lib/i18n'
+import {
+  readFunnyLevels,
+  translateWithFunnyLevel,
+} from '../../lib/funny-level-text'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { PasswordTextBox } from '../lib/password-text-box'
 import {
@@ -13,6 +24,7 @@ import {
 
 interface ICheapLfsPayloadPasswordProps {
   readonly purpose: CheapLfsPayloadPasswordPurpose
+  readonly context?: CheapLfsPayloadPasswordContext
   readonly requireIrreversibleAcknowledgement?: boolean
   readonly onSubmit: (
     password: Buffer | undefined,
@@ -70,6 +82,12 @@ export class CheapLfsPayloadPassword extends React.Component<
   }
 
   private get title(): string {
+    if (
+      this.props.context === 'commit-auto-pin' &&
+      this.props.purpose === 'encrypt'
+    ) {
+      return t('cheapLfs.encryption.dialog.commitTitle')
+    }
     switch (this.props.purpose) {
       case 'encrypt':
         return t('cheapLfs.encryption.dialog.encryptTitle')
@@ -85,6 +103,16 @@ export class CheapLfsPayloadPassword extends React.Component<
   }
 
   private get description(): string {
+    if (
+      this.props.context === 'commit-auto-pin' &&
+      this.props.purpose === 'encrypt'
+    ) {
+      return translateWithFunnyLevel(
+        'cheapLfs.encryption.dialog.commitDescription',
+        getPersistedLanguageMode(),
+        readFunnyLevels()
+      )
+    }
     switch (this.props.purpose) {
       case 'encrypt':
         return t('cheapLfs.encryption.dialog.encryptDescription')

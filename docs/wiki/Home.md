@@ -4,11 +4,12 @@
 
 Use this map to choose a starting point: learn the daily workflow in the User Guide, browse shipped surfaces in the Feature Gallery, or open a specialist guide for deeper details.
 
-> **Platform support:** the graphical Electron edition is Windows-only. Its
-> installer and portable-ZIP target is Windows x64, with Windows x64/arm64
-> build validation and packaged Windows E2E. A separate
-> [Linux-first TUI](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/linux-tui/README.md) provides a terminal-native
-> Python package; it is not a Linux Electron build.
+> **Platform support:** Desktop Material is Windows-only. Windows owns the
+> supported runtime, build, package, installer, release, and E2E paths. The
+> retained
+> [Linux TUI prototype](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/linux-tui/README.md),
+> package notes, and five Xvfb captures are historical July 27 evidence, not a
+> supported edition or Windows-release blocker.
 
 **Desktop Material** is an independent Material Design 3 (M3 Expressive) remake of GitHub Desktop.
 It is a fork of [desktop/desktop](https://github.com/desktop/desktop) (MIT) with the entire
@@ -54,8 +55,9 @@ into named app functions rather than a searchable command or endpoint catalogue.
 > gate, 14/14 verifier contracts, full TypeScript, the exact Windows production
 > build, and isolated hidden-desktop interaction/privacy review. The source and
 > captures are pushed through `2abccae8fd`, and Pages/wiki publication is
-> verified live. Packaged Windows E2E is verified. Only the Linux TUI
-> compatibility correction rerun and installer/Release evidence remain pending.
+> verified live. Packaged Windows E2E is verified. Installer/Release evidence
+> remained pending at that dated checkpoint; the archived TUI compatibility
+> work is outside the current Windows acceptance boundary.
 
 M21 closes the complete 30-item GitHub Desktop demand brief: exact account and
 repository identity, native PR review/creation/activity, selective and external
@@ -93,10 +95,11 @@ for details, the portable-ZIP extraction note, and the manual-download path.
 
 ---
 
-## Install the terminal edition
+## Historical Linux TUI prototype record (unsupported)
 
-From a fresh parent directory, install the Linux-first TUI with Git and uv in
-one line.
+The commands below reproduce the July 27 prototype record. They are retained
+for audit, not as a current installation recommendation; Desktop Material's
+supported installation path is Windows.
 
 Linux shell:
 
@@ -117,8 +120,8 @@ git clone https://github.com/Ding-Ding-Projects/desktop-material.git; if ($LASTE
 Close and reopen the terminal afterward, then run
 `github /path/to/repository` on Linux or
 `github C:\path\to\repository` on Windows. The interactive acceptance target
-remains Linux-first; the Windows Terminal launch path and cross-platform core
-are also tested. `github push` scans safe working candidates and the publication
+was Linux-first; the Windows Terminal launch path and cross-platform core were
+also tested at that checkpoint. `github push` scanned safe working candidates and the publication
 delta, with a conservative full-source-history fallback, before the real push;
 `github pull` restores verified canonical pointers after native Git succeeds,
 and `github git …` passes other native Git argv through without a shell.
@@ -134,10 +137,10 @@ the requirements, packaging, Docker, security, and failure-mode details.
 
 | Page | What it covers |
 | --- | --- |
-| [Install the terminal edition](#install-the-terminal-edition) | One-line Linux shell and Windows PowerShell installation, PATH setup, and launcher guidance. |
+| [Historical Linux TUI prototype](#historical-linux-tui-prototype-record-unsupported) | Archived July 27 package and launcher commands; not a supported product route or Windows-release blocker. |
 | [Install on Windows](User-Guide#install-on-windows) | Fully automatic PowerShell install, portable ZIP, integrity checks, architecture limits, and manual download. |
 | [User Guide](User-Guide) | Task-oriented walkthrough for the Material welcome, appearance scopes, adaptive toolbar, accounts, the app-hosted browser, guided Git/GitHub functions, Cheap LFS restore progress, organizations, tabs, automation, Actions, History, stashes, pull-all, multi-window, and the MD3 shell. |
-| [Guided Feature Gallery](Feature-Gallery) | One distinct screenshot for each of 89 named visual scenes, with automated missing/duplicate coverage checks. |
+| [Guided Feature Gallery](Feature-Gallery) | Machine-checked target of one distinct screenshot for each of 84 Windows visual scenes; current promotion remains pending, while five retained Linux/Xvfb assets stay explicitly archived outside the set. |
 | [Automation](Automation) | Scheduled commit & push and pull, layered overrides, safety guards, and merge-all branches/worktrees. |
 | [Submodules](Submodules) | The simplest page in the wiki — what submodules are (toy boxes inside toy boxes), pre-clone badges, temporary open-and-Back navigation, the Submodule Manager, configuration, fixes, and submodule vs subtree, all in pictures. |
 | [Regex Guide](Regex-Guide) | Filter chips, substring/regex modes, the regex builder, and the search surfaces that use them. |
@@ -204,10 +207,11 @@ receipts as acceptance evidence.
 ### Appearance, onboarding, and adaptive layout
 
 **Settings → Appearance** now keeps only ordinary language, theme, scale, list, sorting,
-formatting, and diff preferences. Custom visuals stay with their owners. Right-click the actual app
-identity/workspace, progress bar, toolbar, repository list, tab strip, code/diff surface, repository
-name or logo, tab title, reviewed Material entry point, or temporary-submodule Back control—or use
-`Shift+F10`—to open its editor beside it.
+formatting, and diff preferences. Custom visuals stay with their owners. `Shift`+right-click the
+actual app identity/workspace, progress bar, toolbar, repository list, tab strip, code/diff surface,
+repository name or logo, tab title, reviewed Material entry point, or temporary-submodule Back
+control—or focus it and use the Context Menu key or `Shift+F10`—to open its editor beside it.
+Ordinary right-click remains available for native and component-specific commands.
 
 Every owner has its own strict setting, local Git repository path, and History manager. Profile,
 feature, repository-instance, and tab-instance changes never share a mutable timeline; undo, redo,
@@ -307,9 +311,9 @@ the tonal workspace preview hides when a compact window needs the space.
 - **Temporary submodule navigation** — in the wider **Repository settings → Submodules** surface,
   choose **Open temporary viewer** on an initialized child—or from a changed/new submodule commit
   card—to inspect it read-only without adding it to the repository list, Recent, or persisted last
-  selection. **Close viewer** clears the temporary state and returns to the parent. Right-click the
-  Back preview to open its element-owned
-  editor beside it; changes remain staged until Save. Adjacent **Subtrees** embeds add, pull, push,
+  selection. **Close viewer** clears the temporary state and returns to the parent.
+  `Shift`+right-click the Back preview—or focus it and press the Context Menu key or `Shift+F10`—to
+  open its element-owned editor beside it; changes remain staged until Save. Adjacent **Subtrees** embeds add, pull, push,
   and split management. Back returns
   to the saved root; invalid or escaping paths fail closed without a partial import.
 

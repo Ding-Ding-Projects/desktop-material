@@ -9,13 +9,20 @@ const read = (path: string) => readFileSync(join(root, path), 'utf8')
 describe('Repository Settings repository-management surfaces', () => {
   it('owns Back appearance beside the element in staged and live contexts', () => {
     const backButton = read('app/src/ui/submodules/submodule-back-button.tsx')
+    const anchoredEditor = read(
+      'app/src/ui/appearance/anchored-appearance-editor.tsx'
+    )
     const submodules = read('app/src/ui/repository-settings/submodules.tsx')
     const appearance = read('app/src/ui/preferences/appearance.tsx')
     const app = read('app/src/ui/app.tsx')
 
     assert.match(
       backButton,
-      /onContextMenu[\s\S]*?preventDefault\(\)[\s\S]*?stopPropagation\(\)[\s\S]*?editorAnchor/
+      /private onContextMenu = \(event: React\.MouseEvent<HTMLButtonElement>\) => \{\s*openAppearanceEditorFromContextMenu\(event, anchor =>\s*this\.openEditor\(anchor\)\s*\)\s*\}/
+    )
+    assert.match(
+      anchoredEditor,
+      /export function openAppearanceEditorFromContextMenu<T extends HTMLElement>\(\s*event: React\.MouseEvent<T>,\s*open: \(anchor: T\) => void\s*\): boolean \{\s*if \(!isAppearanceEditorPointerGesture\(event\)\) \{\s*return false\s*\}\s*event\.preventDefault\(\)\s*event\.stopPropagation\(\)\s*open\(event\.currentTarget\)\s*return true\s*\}/
     )
     assert.match(
       backButton,

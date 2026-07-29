@@ -13,8 +13,16 @@ import {
 import { Repository } from '../../../src/models/repository'
 import { RepositoryTabStrip } from '../../../src/ui/repository-tabs/repository-tab-strip'
 import { EditTabGroupDialog } from '../../../src/ui/repository-tabs/edit-tab-group-dialog'
+import {
+  tabGroupChipKey,
+  tabGroupEditIntroKey,
+  tabGroupMembersButtonKey,
+  tabGroupMembersCountKey,
+  tabOverflowButtonLabelKey,
+  tabOverflowFilterCountKey,
+} from '../../../src/ui/repository-tabs/tab-count-copy'
 import { Dispatcher } from '../../../src/ui/dispatcher'
-import { LanguageModeChangedEvent } from '../../../src/lib/i18n'
+import { LanguageModeChangedEvent, translate } from '../../../src/lib/i18n'
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 
 let previousIpcSend: typeof ipcRenderer.send
@@ -125,6 +133,186 @@ async function buildHarness(): Promise<IStripHarness> {
 }
 
 describe('tab group member dropdown', () => {
+  it('selects natural member-count copy for zero, one, and many in both languages', () => {
+    const cases = [
+      {
+        language: 'english' as const,
+        count: 0,
+        button: 'Show the 0 tabs in Work',
+        status: '0 tabs in this group.',
+        chipExpanded: 'Work group, 0 tabs, expanded. Collapse group.',
+        chipCollapsed: 'Work group, 0 tabs, collapsed. Expand group.',
+        editIntro:
+          'Rename or recolor “Work”. Its 0 tabs stay open and stay in the group.',
+        overflowButton: 'Show 0 more tabs',
+      },
+      {
+        language: 'english' as const,
+        count: 1,
+        button: 'Show the 1 tab in Work',
+        status: '1 tab in this group.',
+        chipExpanded: 'Work group, 1 tab, expanded. Collapse group.',
+        chipCollapsed: 'Work group, 1 tab, collapsed. Expand group.',
+        editIntro:
+          'Rename or recolor “Work”. Its 1 tab stays open and stays in the group.',
+        overflowButton: 'Show 1 more tab',
+      },
+      {
+        language: 'english' as const,
+        count: 2,
+        button: 'Show the 2 tabs in Work',
+        status: '2 tabs in this group.',
+        chipExpanded: 'Work group, 2 tabs, expanded. Collapse group.',
+        chipCollapsed: 'Work group, 2 tabs, collapsed. Expand group.',
+        editIntro:
+          'Rename or recolor “Work”. Its 2 tabs stay open and stay in the group.',
+        overflowButton: 'Show 2 more tabs',
+      },
+      {
+        language: 'cantonese' as const,
+        count: 0,
+        button: '打開「Work」入面 0 個分頁',
+        status: '呢個群組有 0 個分頁。',
+        chipExpanded: '「Work」群組，0 個分頁，已展開。收起群組。',
+        chipCollapsed: '「Work」群組，0 個分頁，已收起。展開群組。',
+        editIntro:
+          '改「Work」個名或者顏色。入面 0 個分頁照樣開住，亦都留喺呢個群組。',
+        overflowButton: '打開多 0 個分頁',
+      },
+      {
+        language: 'cantonese' as const,
+        count: 1,
+        button: '打開「Work」入面 1 個分頁',
+        status: '呢個群組有 1 個分頁。',
+        chipExpanded: '「Work」群組，1 個分頁，已展開。收起群組。',
+        chipCollapsed: '「Work」群組，1 個分頁，已收起。展開群組。',
+        editIntro:
+          '改「Work」個名或者顏色。入面 1 個分頁照樣開住，亦都留喺呢個群組。',
+        overflowButton: '打開多 1 個分頁',
+      },
+      {
+        language: 'cantonese' as const,
+        count: 2,
+        button: '打開「Work」入面 2 個分頁',
+        status: '呢個群組有 2 個分頁。',
+        chipExpanded: '「Work」群組，2 個分頁，已展開。收起群組。',
+        chipCollapsed: '「Work」群組，2 個分頁，已收起。展開群組。',
+        editIntro:
+          '改「Work」個名或者顏色。入面 2 個分頁照樣開住，亦都留喺呢個群組。',
+        overflowButton: '打開多 2 個分頁',
+      },
+    ]
+
+    for (const testCase of cases) {
+      const variables = {
+        name: 'Work',
+        count: String(testCase.count),
+      }
+      assert.equal(
+        translate(
+          tabGroupMembersButtonKey(testCase.count),
+          testCase.language,
+          variables
+        ),
+        testCase.button
+      )
+      assert.equal(
+        translate(
+          tabGroupMembersCountKey(testCase.count),
+          testCase.language,
+          variables
+        ),
+        testCase.status
+      )
+      assert.equal(
+        translate(
+          tabGroupChipKey(testCase.count, false),
+          testCase.language,
+          variables
+        ),
+        testCase.chipExpanded
+      )
+      assert.equal(
+        translate(
+          tabGroupChipKey(testCase.count, true),
+          testCase.language,
+          variables
+        ),
+        testCase.chipCollapsed
+      )
+      assert.equal(
+        translate(
+          tabGroupEditIntroKey(testCase.count),
+          testCase.language,
+          variables
+        ),
+        testCase.editIntro
+      )
+      assert.equal(
+        translate(
+          tabOverflowButtonLabelKey(testCase.count),
+          testCase.language,
+          variables
+        ),
+        testCase.overflowButton
+      )
+      assert.equal(
+        tabOverflowFilterCountKey(testCase.count),
+        testCase.count === 1
+          ? 'tabs.overflowFilterCountOne'
+          : 'tabs.overflowFilterCountMany'
+      )
+    }
+  })
+
+  it('uses singular copy in the real accessible name and dropdown status', async () => {
+    const alpha = new Repository('/work/alpha', 1, null, false)
+    const beta = new Repository('/work/beta', 2, null, false)
+    const written = new Array<IProfileTabsState>()
+    const store = await createStore(
+      [makeTab('alpha', alpha), makeTab('beta', beta)],
+      'beta',
+      written
+    )
+    await store.createTabGroup('Work', 'purple', ['alpha'])
+    await store.setTabGroupCollapsed(store.getGroups()[0].id, true)
+    renderStrip(store, [alpha, beta], [])
+
+    assert.ok(
+      await screen.findByRole('tab', {
+        name: 'Work group, 1 tab, collapsed. Expand group.',
+      })
+    )
+    const trigger = await screen.findByRole('button', {
+      name: 'Show the 1 tab in Work',
+    })
+    fireEvent.click(trigger)
+    assert.ok(await screen.findByText('1 tab in this group.'))
+    const search = screen.getByRole('combobox', {
+      name: 'Tabs in this group',
+    })
+    fireEvent.change(search, { target: { value: 'alpha' } })
+    assert.ok(await screen.findByText('1 of 1 tab in this menu'))
+    fireEvent.change(search, { target: { value: '' } })
+
+    localStorage.setItem('language-mode-v1', 'cantonese')
+    fireEvent(
+      document,
+      new CustomEvent(LanguageModeChangedEvent, { detail: 'cantonese' })
+    )
+    assert.ok(
+      await screen.findByRole('button', {
+        name: '打開「Work」入面 1 個分頁',
+      })
+    )
+    assert.ok(
+      await screen.findByRole('tab', {
+        name: '「Work」群組，1 個分頁，已收起。展開群組。',
+      })
+    )
+    assert.ok(await screen.findByText('呢個群組有 1 個分頁。'))
+  })
+
   it('lists every member of a collapsed group and switches in one action', async () => {
     const { store, selected } = await buildHarness()
     const groupId = store.getGroups()[0].id

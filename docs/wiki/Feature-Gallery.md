@@ -4,8 +4,8 @@
 
 Treat every gallery entry as part of a workflow: find the capability, open its named surface, review the exact scope, and keep the resulting evidence.
 
-This page maps 89 named, user-facing visual functions and states to a one-screenshot-per-function
-acceptance gallery. Every view
+This page maps 84 named, user-facing visual functions and states to a
+one-screenshot-per-function Windows acceptance target. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata except the purpose-built live Cheap LFS acceptance repositories. No personal path,
 credential, email address, private file content, or unrelated account identifier belongs in the
@@ -13,11 +13,20 @@ image set.
 
 For this catalog, a function is a distinct visual workflow or result that a user can open or
 reach. Internal commands, background services, and transient safeguards are documented through
-their owning settings, progress, result, or recovery surface. Every tracked gallery PNG is assigned
-to exactly one row below, every row renders exactly one distinct PNG, and the automated catalog
-contract rejects missing, duplicate, or unassigned assets.
+their owning settings, progress, result, or recovery surface. Every current
+guided-gallery target is assigned to exactly one row below, every row must
+render exactly one distinct PNG, and the automated catalog contract rejects
+missing, duplicate, or unassigned current assets. Five retained Linux/Xvfb
+captures are enumerated separately as historical evidence and are deliberately
+outside this Windows target set.
 
-> **Publication status:** The gallery includes the July 14, 2026 Actions cache and headless
+> **Current refresh status — July 28, 2026:** the contract declares 67
+> canonical and 17 specialist Windows targets. The distinct current-source
+> updater target is still awaiting capture, so this page does not yet claim a
+> passing 84-image publication. The immutable legacy-updater frame below
+> remains historical and cannot fill that slot.
+
+> **Historical publication record:** The gallery includes the July 14, 2026 Actions cache and headless
 > pagination evidence, the Pages accessibility/clipping gate, the inspected July 16 adaptive
 > customization set, the profile app-identity workspace, the clone-style Add Submodule release,
 > the repository-contextual GitHub API Explorer, filtered notification bulk triage, and
@@ -43,16 +52,17 @@ contract rejects missing, duplicate, or unassigned assets.
 > privacy receipts are retained in `HANDOFF.md`; each promoted release records its own main, CI,
 > Pages, and wiki verification without implying that later maintenance work is complete.
 >
-> **July 27 published acceptance:** one repository-list sync-summary scene, the
+> **July 27 published acceptance (superseded snapshot):** one repository-list sync-summary scene, the
 > exact-90% restore, app-hosted authentication browser, and private-repository
-> lock receipts, plus five Linux TUI receipts bring the source catalog to 89.
-> The three new Windows captures came from the real production build on an
-> isolated hidden Win32 desktop. The Linux TUI captures came from the real
-> Textual application in an ephemeral Debian environment, a real terminal, and
-> an isolated Xvfb display. All eight passed original-resolution accessibility,
-> clipping, and privacy inspection. Their default-branch, Pages, and wiki
-> publication and packaged Windows E2E are verified. Only the Linux TUI
-> compatibility correction rerun and installer/Release receipts remain pending.
+> lock receipts brought the then-current Windows source catalog to 84. The three new
+> Windows captures came from the real production build on an isolated hidden
+> Win32 desktop and passed original-resolution accessibility, clipping, and
+> privacy inspection. Their default-branch, Pages, and wiki publication and
+> packaged Windows E2E are verified. The five earlier Linux TUI captures and
+> their Debian/Xvfb receipts remain intact as historical evidence below, but
+> they are not current gallery rows, Pages figures, or capture-plan outputs.
+> That receipt does not prove the July 28 refresh or its distinct current-source
+> updater target.
 
 ## Cheap LFS Pages acceptance
 
@@ -126,7 +136,7 @@ active profile's style, label, and explicit language mode.
 | `material-tab-groups.png` | Restart-restored named group chip with visible repository membership and real collapse/expand behavior |
 | `material-command-palette-appearance.png` | Rich command results beside the fully visible density and row-content appearance editor |
 | `cheap-lfs-ui-acceptance.png` | Live private-repository Cheap LFS pin result with the verified pointer and Materialize action |
-| `cheap-lfs-cloud-compression.png` | Bilingual private opt-in with the managed cloud workflow ready and a verified compressed pointer |
+| `cheap-lfs-cloud-compression.png` | Bilingual persisted private opt-in routed through the encrypted public builder, with no private-repository workflow and one verified 99.9%-compressed pointer |
 | `cheap-lfs-commit-progress.png` | Three-worker Cheap LFS terminal with queue, provider, reason, timing, ETA, manual-phase, and keyboard-disclosure context |
 | `cheap-lfs-bambu-build-live.png` | Live public Bambu build inventory with ten tracked Release-backed pointer objects |
 | `cheap-lfs-restore-lookahead.png` | Exact-90% Release restore with detailed current and already-running look-ahead lanes |
@@ -165,7 +175,7 @@ active profile's style, label, and explicit language mode.
 | `material-history.png` | Core History browsing and selected-commit inspection |
 | `material-history-context-actions.png` | Selection-aware History commit More/right-click actions and button hint |
 | `material-settings.png` | Responsive Material Settings dialog |
-| `auto-updater-update-ready.png` | Downloaded automatic update ready for an explicit quit-and-install action |
+| `auto-updater-current-source-ready.png` | Current-source production UI after a genuine Electron/Squirrel update-downloaded path with a disclosed inert verifier payload and no published-payload claim |
 | `settings-history-manager.png` | Git-backed Settings history side sheet |
 | `material-repositories-sheet.png` | Repository navigation side sheet |
 | `material-branches-sheet.png` | Branch navigation and status side sheet |
@@ -199,39 +209,50 @@ active profile's style, label, and explicit language mode.
 | `repository-groups-expanded.png` | Repository group expanded with per-row sync summaries |
 | `repository-groups-collapsed.png` | Repository group collapsed with its member count pill |
 | `private-repository-lock-badge.png` | Explicit private-metadata lock retained beside the repository logo |
-| `linux-tui-overview.png` | Linux terminal edition overview with repository navigation, status, and first-class workspace tabs |
-| `linux-tui-text-input.png` | Real terminal text-field editing and keyboard interaction |
-| `linux-tui-regex-builder.png` | Guided RE2-compatible regex builder with live matches and capture groups |
-| `linux-tui-bilingual-narrow.png` | Narrow bilingual terminal layout with readable English and playful Hong Kong-style Cantonese |
-| `linux-tui-cheap-lfs.png` | Linux terminal Cheap LFS workspace with repository-scoped transfer detail |
 
 ## App identity and portable tabs
 
 The active profile can customize the in-app logo/name and rich name typography,
 with a live preview and clear/reset actions. Favorites, drag-to-open repository
-folders, current-tab session import/export, and appropriate right-click
-customization/history context use the same profile/repository ownership model.
+folders, current-tab session import/export, and appropriate
+`Shift`+right-click or keyboard customization/history context use the same
+profile/repository ownership model.
 
 ![Restart-restored profile app identity and favorite repository tab](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-app-identity-workspace.png)
 
-## Linux terminal edition
+## Historical Linux terminal evidence (outside the current gallery)
 
-The Linux terminal edition adapts Desktop Material's repository navigation,
-Git workflows, Cheap LFS controls, search, regex construction, language modes,
-and persisted appearance model for a keyboard-first Textual interface. These
-captures come from the real application running in a real Debian terminal and
-isolated Xvfb display; they cover the workspace overview, editable text input,
-the full regex builder, narrow bilingual layout, and Cheap LFS workspace.
+The five original Linux terminal captures and their exact hashes remain
+preserved with the
+[July 27 Debian/Xvfb run manifest](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/verification/linux-tui-2026-07-27/run-manifest.md).
+They document what was accepted at that time, but they are out of scope for the
+current Windows-only 84-scene target, Pages manifest, and refresh campaign.
+They are retained rather than relabelled or presented as current Windows
+evidence.
 
-![Linux terminal edition overview with repository navigation, status, and workspace tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/linux-tui-overview.png)
+| Archived asset | Historical receipt | Current status |
+| --- | --- | --- |
+| `linux-tui-overview.png` | July 27 Debian/Xvfb acceptance | Excluded from the current Windows gallery |
+| `linux-tui-text-input.png` | July 27 Debian/Xvfb acceptance | Excluded from the current Windows gallery |
+| `linux-tui-regex-builder.png` | July 27 Debian/Xvfb acceptance | Excluded from the current Windows gallery |
+| `linux-tui-bilingual-narrow.png` | July 27 Debian/Xvfb acceptance | Excluded from the current Windows gallery |
+| `linux-tui-cheap-lfs.png` | July 27 Debian/Xvfb acceptance | Excluded from the current Windows gallery |
 
-![Linux terminal edition text field accepting real keyboard input](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/linux-tui-text-input.png)
+## Historical updater evidence (outside the current gallery)
 
-![Linux terminal edition guided regex builder with live matches and capture groups](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/linux-tui-regex-builder.png)
+The July 22 legacy Super Express-to-newer published-package migration remains
+immutable historical evidence. Its accepted PNG, 49,195-byte size, and
+`a02cffa612114be3af5e0fffcd5b602a4ba4dfd3226298e48d143a6bed76bd4d`
+SHA-256 stay pinned to source commit
+`923dbb51acad8f01f01f1c100c6945c7a2e08e23` in the
+[published-migration record](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/verification/auto-updater-version-order-2026-07-22.md).
+It is not overwritten or relabelled as current-source evidence.
 
-![Linux terminal edition narrow bilingual layout in English and playful Hong Kong-style Cantonese](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/linux-tui-bilingual-narrow.png)
+| Archived asset | Historical receipt | Current status |
+| --- | --- | --- |
+| `auto-updater-update-ready.png` | July 22 published legacy migration | Excluded from the current Windows gallery |
 
-![Linux terminal edition Cheap LFS workspace with detailed repository-scoped transfer controls](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/linux-tui-cheap-lfs.png)
+![Historical legacy Super Express installation with a newer alphabetic-z update ready](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/923dbb51acad8f01f01f1c100c6945c7a2e08e23/docs/assets/screenshots/auto-updater-update-ready.png)
 
 ## App-hosted browser
 
@@ -247,15 +268,16 @@ The accepted capture uses a synthetic redirect/popup fixture and no real
 account or credential. It proves the private authentication notice, explicit
 system-browser action, bookmark exclusion, and sandboxed tab chrome from the
 real production bundle. The source and capture are pushed through `2abccae8fd`,
-and Pages/wiki publication and packaged Windows E2E are verified. Only the
-Linux TUI compatibility correction rerun and installer/Release evidence remain
-pending. See the
+and Pages/wiki publication and packaged Windows E2E are verified.
+Installer/Release evidence remained pending at that dated checkpoint; the
+archived TUI correction is outside the Windows-only acceptance boundary. See the
 [app-hosted browser contract](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/integrations/app-hosted-browser.md).
 
 <sub>**香港粵語速讀。** 分頁、網址列、前後頁、重新整理、Go、書籤同外部逃生門
 齊晒，網頁鎖喺 sandbox。呢張係真 build 喺 hidden desktop 嘅驗收相，冇用真帳戶
 或者密碼；source 同相已經經 `2abccae8fd` 推上 main，Pages/wiki 亦 live，packaged
-Windows E2E 都過關。而家淨係 TUI correction 遙距 rerun 同 installer/Release 憑證未完成。</sub>
+Windows E2E 都過關。嗰陣 installer/Release 憑證未完成；舊 TUI correction 唔係而家
+Windows-only 產品嘅 blocker。</sub>
 
 ![App-hosted browser showing captured redirects, a sanitized bookmark, and the private authentication escape](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/app-hosted-browser-authentication.png)
 
@@ -336,14 +358,14 @@ file/part ordinals; logical and actual downloaded bytes; phase, queue, rate,
 ETA, failures, and cancellation. The scheduler, shared UI, production build,
 and wide English/narrow bilingual hidden-desktop receipts pass. The exact
 source and screenshot are now live on default-branch Pages and the wiki;
-packaged Windows E2E is verified. Only the Linux TUI compatibility correction
-rerun and installer/Release evidence remain pending.
+packaged Windows E2E is verified. Installer/Release evidence remained pending
+at that dated checkpoint; archived TUI compatibility work is non-blocking.
 
 ![Detailed Cheap LFS restore with the current transfer at exactly 90% and the next transfer already active](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-restore-lookahead.png)
 
 ![Live private-repository Cheap LFS pin result with the verified pointer and Materialize action](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-ui-acceptance.png)
 
-![Bilingual private-repository cloud-compression opt-in with a verified compressed pointer](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-cloud-compression.png)
+![Bilingual persisted private-repository cloud-compression opt-in routed through the encrypted public builder, with no private-repository workflow and one verified 99.9%-compressed pointer](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-cloud-compression.png)
 
 ![Three-worker Cheap LFS terminal showing the queue, provider recommendation, timing, ETA, manual controls, and large-file filter](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-commit-progress.png)
 
@@ -383,8 +405,9 @@ Tools owns short-window vertical scrolling so Diagnostics and later results stay
 reachable. **Repository settings → Submodules → Add submodule…** opens the
 same provider/URL chooser as Clone, then reviews the safe relative destination
 and optional tracked branch before Git starts. The wider settings surface also
-shows the profile-wide Back preview; right-clicking it opens that element's
-editor beside it, with edits staged until the settings dialog is saved. An
+shows the profile-wide Back preview; `Shift`+right-clicking it (or focusing it
+and using the Context Menu key / `Shift+F10`) opens that element's editor beside
+it, with edits staged until the settings dialog is saved. An
 initialized row or changed/new submodule commit card's **Open temporary
 viewer** action opens that child read-only without adding it to the repository
 list. The context bar's visible **Close viewer** action clears the temporary
@@ -561,7 +584,7 @@ path does not weaken the dedicated audit timeline.
 
 ![Material first-run welcome with a focused setup card and tonal workspace preview](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-welcome.png)
 
-![About dialog with a downloaded automatic update ready for an explicit quit-and-install action](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/auto-updater-update-ready.png)
+![Current-source About dialog showing the automatic updater ready after a genuine Electron and Squirrel event path downloaded the disclosed inert verifier payload](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/auto-updater-current-source-ready.png)
 
 ![Appearance editor anchored beside its actual owner with History, a dedicated local Git path, and burst-safe persistence](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-customization.png)
 

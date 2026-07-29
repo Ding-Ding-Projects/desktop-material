@@ -43,9 +43,13 @@ successful rerun:
   string. The model now normalizes both spellings to the same semantic value,
   preventing a verified unlabeled upload from being rejected and deleted.
 
-The accepted 1200×752 client capture is
-`docs/assets/screenshots/cheap-lfs-ui-acceptance.png`, 79,404 bytes, SHA-256
+![Historical Cheap LFS UI acceptance at immutable source commit 342a1548009a3e1591c27f7a4af82cf6cf02c96e](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/342a1548009a3e1591c27f7a4af82cf6cf02c96e/docs/assets/screenshots/cheap-lfs-ui-acceptance.png)
+
+The accepted 1200×752 client capture is the immutable
+[`cheap-lfs-ui-acceptance.png` blob at `342a1548009a3e1591c27f7a4af82cf6cf02c96e`](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/342a1548009a3e1591c27f7a4af82cf6cf02c96e/docs/assets/screenshots/cheap-lfs-ui-acceptance.png):
+79,404 bytes, SHA-256
 `8f53ed803dc7415ca86e4399040201afbbd627718a48e4a453e637099fa03684`.
+The same pathname on `main` is not the authority for this dated hash.
 Original-resolution inspection confirmed that it is nonblank, unclipped, and
 contains no token, email address, local path, or private file content.
 

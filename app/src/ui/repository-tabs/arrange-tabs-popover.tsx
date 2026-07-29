@@ -12,6 +12,7 @@ import {
   persistFilterMode,
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
+import { formatVisibleTabCount } from './tab-count-copy'
 
 /** The persistence id for the arrange filter's mode. */
 const ArrangeTabsFilterListId = 'arrange-tabs'
@@ -342,7 +343,10 @@ export class ArrangeTabsPopover extends React.Component<
     const { tabs } = this.props.tabs
     const disabled = this.state.isApplying || tabs.length < 2
     const filteredTabs = this.getFilteredTabs()
-    const resultSummary = `${filteredTabs.length} of ${tabs.length} tabs`
+    const resultSummary = formatVisibleTabCount(
+      filteredTabs.length,
+      tabs.length
+    )
 
     return (
       <Popover

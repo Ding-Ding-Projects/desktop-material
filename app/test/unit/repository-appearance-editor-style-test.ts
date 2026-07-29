@@ -53,11 +53,18 @@ describe('repository owner appearance editors', () => {
       'repository-element-appearance-editors.tsx'
     )
 
-    // Right-clicking the row no longer opens the editor directly (that was
-    // triggerable by accident). The row exposes menu-driven openers that the
-    // repository context menu's "Customize …" items call, resolving the anchor
-    // from the row's own DOM.
-    assert.doesNotMatch(row, /openAppearanceEditorFromContextMenu/)
+    // The exact name and logo owners use the shared helper, so only
+    // Shift+right-click opens directly while ordinary right-click continues to
+    // the repository command menu. The menu's explicit "Customize …" entries
+    // resolve those same anchors from the row's own DOM.
+    assert.match(
+      row,
+      /openAppearanceEditorFromContextMenu\(event, this\.openNameAppearanceEditor\)/
+    )
+    assert.match(
+      row,
+      /openAppearanceEditorFromContextMenu\(event, this\.openLogoAppearanceEditor\)/
+    )
     // The list owns the row's pointer gestures: a plain right-click builds the
     // repository context menu (which keeps its "Customize …" entries), and
     // Shift+Right-click — decided by the one shared predicate, never a local

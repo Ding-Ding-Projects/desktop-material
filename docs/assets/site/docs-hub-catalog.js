@@ -277,7 +277,7 @@
       h: 'features/identity-and-workspace/owner-scoped-appearance-and-history.html',
       s: 'features/identity-and-workspace/owner-scoped-appearance-and-history.md',
       c: 'features',
-      d: 'Desktop Material attaches appearance controls to the element that owns the setting. Shift+right-click, or Shift+F10 / the ContextMenu key from the keyboard, opens an anchored…',
+      d: 'Desktop Material attaches appearance controls to the element that owns the setting. Shift+right-click, the keyboard Context Menu key, or Shift+F10 opens an anchored editor…',
     },
     {
       t: 'Identity and workspace features',
@@ -469,11 +469,11 @@
       d: 'Adds Desktop Material actions to the File Explorer right-click menu on folders and folder backgrounds, and gives those actions a small dedicated window instead of booting the…',
     },
     {
-      t: 'Windows-only graphical edition support',
+      t: 'Windows-only product support',
       h: 'features/integrations/windows-only-platform-support.html',
       s: 'features/integrations/windows-only-platform-support.md',
       c: 'features',
-      d: "Desktop Material's graphical Electron edition is a Windows application. Windows is its only supported runtime, packaging target, installer target, and end-to-end acceptance…",
+      d: 'Desktop Material is a Windows-only application. Windows is its only supported runtime, build, packaging, installer, release, and end-to-end acceptance environment. Source…',
     },
     {
       t: 'WSL-aware editor opening',
@@ -525,7 +525,7 @@
       d: "GitHub features use the installed gh executable. Authenticate outside the app with the GitHub CLI's normal device/browser flow:",
     },
     {
-      t: 'Linux TUI installation and packaging',
+      t: 'Historical Linux TUI installation and packaging record',
       h: 'features/linux-tui/install-and-packaging.html',
       s: 'features/linux-tui/install-and-packaging.md',
       c: 'features',
@@ -546,11 +546,11 @@
       d: 'Settings persists exactly three application language modes:',
     },
     {
-      t: 'Linux-first terminal edition',
+      t: 'Historical Linux TUI prototype — archived July 27, 2026',
       h: 'features/linux-tui/',
       s: 'features/linux-tui/README.md',
       c: 'features',
-      d: 'Desktop Material TUI is a separate, terminal-native edition of Desktop Material. It targets Linux first and is built with Textual. The graphical Electron edition remains a…',
+      d: 'Desktop Material TUI was a separate, terminal-native prototype built with Textual. It targeted Linux first; it did not turn the Windows Electron application into a…',
     },
     {
       t: 'TUI repository and Git workflows',
@@ -637,11 +637,11 @@
       d: 'A write that finishes after the thing on the other end already went away is a routine event, not a crash. This document describes how Desktop Material contains that class of…',
     },
     {
-      t: 'Progressive asynchronous lazy loading',
+      t: 'Progressive asynchronous loading',
       h: 'features/quality-and-reliability/progressive-lazy-loading.html',
       s: 'features/quality-and-reliability/progressive-lazy-loading.md',
       c: 'features',
-      d: 'Desktop Material renders its shell and safe cached state as soon as it can, and finishes the expensive work behind that first paint. Surfaces that a session may never open are…',
+      d: 'Desktop Material paints and reveals its usable application shell before optional startup work finishes. Expensive repository sections are downloaded and evaluated only when…',
     },
     {
       t: 'Quality and reliability',
@@ -1099,11 +1099,11 @@
       d: 'The full Material Design 3 shell plus every Git and GitHub workflow Desktop Material ships. For milestone status and published CI/release evidence, see the Roadmap & receipts…',
     },
     {
-      t: 'Install the Linux-first TUI',
+      t: 'Supported platform',
       h: 'readme-tabs/install.html',
       s: 'readme-tabs/install.md',
       c: 'readme-tabs',
-      d: 'The terminal edition is a distinct Python/Textual package for Linux, not a Linux Electron build. Install a trusted checkout and open a repository with the literal launcher:',
+      d: 'Desktop Material is supported, built, packaged, released, and accepted on Windows only. Use Install on Windows for the current product. The TUI material below is an archived…',
     },
     {
       t: 'Roadmap & receipts',
@@ -1405,6 +1405,20 @@
       s: 'verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/run-manifest.md',
       c: 'verification',
       d: 'Mode: publish',
+    },
+    {
+      t: 'Close-all-open-issues cleanup ledger',
+      h: 'verification/close-all-open-issues-2026-07-28/cleanup-ledger.html',
+      s: 'verification/close-all-open-issues-2026-07-28/cleanup-ledger.md',
+      c: 'verification',
+      d: 'Run ID: close-all-open-issues-20260728',
+    },
+    {
+      t: 'Close-all-open-issues verification run',
+      h: 'verification/close-all-open-issues-2026-07-28/run-manifest.html',
+      s: 'verification/close-all-open-issues-2026-07-28/run-manifest.md',
+      c: 'verification',
+      d: 'Run ID: close-all-open-issues-20260728',
     },
     {
       t: 'Funny-level sliders — built-app capture, 2026-07-28',

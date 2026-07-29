@@ -125,7 +125,7 @@ describe('Pages accessibility contracts', () => {
       'docs/assets/screenshots/material-github-releases-compact.png',
       'docs/assets/screenshots/material-history-context-actions.png',
       'docs/assets/screenshots/material-repository-tools-scroll.png',
-      'docs/assets/screenshots/auto-updater-update-ready.png',
+      'docs/assets/screenshots/auto-updater-current-source-ready.png',
     ]) {
       assert.ok(markup.includes(`href="${source}"`))
       assert.ok(markup.includes(`src="${source}"`))
@@ -176,7 +176,7 @@ describe('Pages accessibility contracts', () => {
     ]
       .map(([, file]) => `docs/assets/screenshots/${file}`)
       .sort()
-    assert.equal(expectedSources.length, 89)
+    assert.equal(expectedSources.length, 84)
     assert.equal(figures.length, expectedSources.length)
 
     const actualSources = new Array<string>()
@@ -195,5 +195,21 @@ describe('Pages accessibility contracts', () => {
       assert.ok(existsSync(join(process.cwd(), source)), `${source} is missing`)
     }
     assert.deepEqual(actualSources.sort(), expectedSources)
+    for (const historical of [
+      'linux-tui-bilingual-narrow.png',
+      'linux-tui-cheap-lfs.png',
+      'linux-tui-overview.png',
+      'linux-tui-regex-builder.png',
+      'linux-tui-text-input.png',
+    ]) {
+      assert.ok(
+        !actualSources.some(source => source.endsWith(historical)),
+        `${historical} is historical and must not be a current Pages figure`
+      )
+    }
+    assert.match(
+      markup,
+      /href="docs\/verification\/linux-tui-2026-07-27\/run-manifest\.html"/
+    )
   })
 })

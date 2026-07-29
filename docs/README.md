@@ -28,8 +28,8 @@ this fork.
   [Collaboration](features/collaboration/README.md),
   [Review and diff](features/review-and-diff/README.md),
   [Quality and reliability](features/quality-and-reliability/README.md), and
-  [Design system](features/design-system/README.md), plus the separate
-  [Linux-first terminal edition](features/linux-tui/README.md)
+  [Design system](features/design-system/README.md), plus the archived
+  [Linux TUI prototype record](features/linux-tui/README.md)
 - **Search and regex** — [Regex guide](regex-guide.md)
 - **Evidence** — [Verification records](verification/README.md)
 - **Contributing** — [Development environment setup](contributing/setup.md),
@@ -54,12 +54,12 @@ this fork.
 
 The sections below keep the full detail behind each area.
 
-Desktop Material's graphical Electron edition is supported and released on
-Windows only. The separate Python/Textual terminal edition targets Linux and
-has its own [support, packaging, interaction, and parity
-contract](features/linux-tui/README.md); it is not a non-Windows Electron
-runtime. See [graphical-edition platform
-support](features/integrations/windows-only-platform-support.md).
+Desktop Material is supported, built, packaged, released, and accepted on
+Windows only. The retained Python/Textual TUI source, package/interaction
+notes, parity contract, and five Xvfb captures are
+[historical July 27 evidence](features/linux-tui/README.md), not a supported
+edition, a non-Windows Electron runtime, or a release blocker. See
+[Windows-only product support](features/integrations/windows-only-platform-support.md).
 
 ## Product and Material design
 
@@ -95,17 +95,20 @@ files**, **14/14** verifier contracts passed, TypeScript is clean, the exact
 Windows production build succeeded, and real hidden-desktop
 interaction/privacy receipts passed. The source and captures are merged and
 pushed through `2abccae8fd`, with Pages and wiki publication verified live.
-Packaged Windows E2E is verified. Only the Linux TUI compatibility correction
-rerun and installer/Release evidence remain pending.
+Packaged Windows E2E is verified. Installer/Release evidence remained pending
+at that dated checkpoint; the archived TUI compatibility work is outside the
+current Windows acceptance boundary.
 
-Appearance is now owner-scoped. Right-clicking an actual visual opens an editor
-beside it; every profile element, feature entry point, repository element, and
-tab title has its own strict setting, local Git repository, and mutable history.
+Appearance is now owner-scoped. `Shift`+right-clicking an actual visual—or
+focusing it and using the Context Menu key or `Shift+F10`—opens an editor beside
+it; ordinary right-click stays available for contextual commands. Every profile
+element, feature entry point, repository element, and tab title has its own
+strict setting, local Git repository, and mutable history.
 Ordinary language/theme/scale preferences stay in Settings. Repository Settings
 has no monolithic Appearance tab; its **Appearance** tab is a hub that renders
 those same owner-scoped editors for the current repository and commits through
-the same owners, so hub edits and right-click edits share one setting, one local
-Git repository, and one history. The measured app bar moves
+the same owners, so hub edits and direct owner edits share one setting, one
+local Git repository, and one history. The measured app bar moves
 Build & Run and then Commit & Push into **More** before clipping and restores
 those mounted actions as space returns.
 The pure Material Welcome and landing redesigns share the same token and surface
@@ -145,10 +148,10 @@ The locally accepted repository-navigation change adds
 submodule commit cards. The resulting read-only workspace is temporary: it does
 not enter the repository list, Recent group, or persisted last selection, and
 both **Close viewer** and the profile-customizable Back control return to the
-persisted root repository while clearing temporary state. Right-clicking Back
-opens its dedicated editor and
-history beside it; explicit English, playful Hong Kong Cantonese, and compact
-bilingual language remain ordinary preferences.
+persisted root repository while clearing temporary state. `Shift`+right-clicking
+Back—or focusing it and pressing the Context Menu key or `Shift+F10`—opens its
+dedicated editor and history beside it; explicit English, playful Hong Kong
+Cantonese, and compact bilingual language remain ordinary preferences.
 Behavior, persistence, containment checks, and failure recovery are documented
 in [Temporary submodule repository navigation](features/repository-management/submodule-repository-navigation.md).
 The earlier accepted exact production build, ten-pass off-screen evidence, and

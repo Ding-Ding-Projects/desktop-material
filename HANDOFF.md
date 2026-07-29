@@ -1,5 +1,20 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-28 — CURRENT HANDOFF (read this first)
+
+The close-all-open-issues wave is still active on its isolated task branch.
+Source and contract work is present, but completion still requires the exact
+Windows production build, the declared focused and full test gates, fresh
+acceptance for all 84 Windows gallery targets, default-branch integration and
+push proof, and separate finished/closing receipts for each issue. None of
+those remaining gates is inferred from an older screenshot or test run.
+
+Desktop Material is Windows-only. The five `linux-tui-*.png` files, the TUI
+source/package notes, and the July 27 Debian/Xvfb manifests are preserved
+historical records, not supported product/release targets and not blockers for
+this Windows close-out. Any later heading that says “read this first” is an
+archived point-in-time handoff and is explicitly superseded by this section.
+
 ## 2026-07-28 — Standalone Cheap LFS versus Git LFS comparison atlas
 
 An isolated Pages-only branch based on remote `823f7fa0e5` adds
@@ -80,9 +95,232 @@ exact Lowlevel MCP endpoint but remained silent for more than 34 minutes. It
 was interrupted when the user prioritized publishing the site update, so this
 milestone makes no full-app build claim and changes no app screenshot.
 
-## 2026-07-28 — Measured Changes/History renderer update suppression
+## Close-all-open-issues verification provenance
 
-The exact `v3.6.3-beta3-zadughkqcv` Windows x64 portable build at
+### Immutable provenance for historical screenshot hashes
+
+Every dated screenshot byte count/SHA table below refers to the exact
+commit-addressed blob in this table. The pathname is a display label, not a
+claim that mutable `main` still contains the same bytes after a gallery
+refresh.
+
+<!-- markdownlint-disable MD013 -->
+
+| Historical frame | Immutable source blob |
+| --- | --- |
+| Tab groups | [`material-tab-groups.png` at `58be6fe5953477b015a134c414a8cf82363ecc75`](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/58be6fe5953477b015a134c414a8cf82363ecc75/docs/assets/screenshots/material-tab-groups.png) |
+| Command palette | [`material-command-palette-appearance.png` at `58be6fe5953477b015a134c414a8cf82363ecc75`](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/58be6fe5953477b015a134c414a8cf82363ecc75/docs/assets/screenshots/material-command-palette-appearance.png) |
+| Cheap LFS UI | [`cheap-lfs-ui-acceptance.png` at `342a1548009a3e1591c27f7a4af82cf6cf02c96e`](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/342a1548009a3e1591c27f7a4af82cf6cf02c96e/docs/assets/screenshots/cheap-lfs-ui-acceptance.png) |
+| Cheap LFS cloud | [`cheap-lfs-cloud-compression.png` at `f7b4760a13894f0320f7b361f055f6fba40d913f`](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/f7b4760a13894f0320f7b361f055f6fba40d913f/docs/assets/screenshots/cheap-lfs-cloud-compression.png) |
+| Cheap LFS commit progress | [`cheap-lfs-commit-progress.png` at `c3db37ea5524b91f9603151ae5d1107205f16a59`](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/c3db37ea5524b91f9603151ae5d1107205f16a59/docs/assets/screenshots/cheap-lfs-commit-progress.png) |
+| Compact Releases | [`material-github-releases-compact.png` at `513c5cc96aee045a218837530a11951e8466b618`](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/513c5cc96aee045a218837530a11951e8466b618/docs/assets/screenshots/material-github-releases-compact.png) |
+| Legacy updater migration | [`auto-updater-update-ready.png` at `923dbb51acad8f01f01f1c100c6945c7a2e08e23`](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/923dbb51acad8f01f01f1c100c6945c7a2e08e23/docs/assets/screenshots/auto-updater-update-ready.png) |
+| Safe regex builder | [`regex-builder.png` at `f8eca3ac844e8eaec2dc2dce635f57874b4e92bc`](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/f8eca3ac844e8eaec2dc2dce635f57874b4e92bc/docs/assets/screenshots/regex-builder.png) |
+
+<!-- markdownlint-enable MD013 -->
+
+### Superseded pre-final-review TypeScript gate
+
+The logged root `npx tsc --noEmit` run completed with exit `0` after its
+foreground wait had timed out. The authoritative files are
+`%TEMP%\DesktopMaterial-close-all-open-issues-20260728-1581a0ec8c65\logs\tsc-noemit-source-freeze.log`
+and
+`%TEMP%\DesktopMaterial-close-all-open-issues-20260728-1581a0ec8c65\logs\tsc-noemit-source-freeze.exit`;
+an empty log is expected for this clean compiler pass. Wrapper PID `14588` and
+compiler PID `19300` were both rechecked and proved absent, so the gate left no
+owned compiler process running. Later adversarial review changed progressive
+error normalization and its tests, so this earlier pass is retained only as a
+scoped historical checkpoint and is **not** the final-tree TypeScript proof. A
+second run begun before that review finished was deliberately marked
+superseded; its exact wrapper/command/compiler/console-host process tree
+(`3148`, `6168`, `16148`, `16340`) was stopped and proved absent. Final closure
+requires a fresh post-review compiler run. Neither checkpoint stands in for the
+production build, full test suite, visual acceptance, publication, or issue
+closure.
+
+### Reviewed-source checkpoint before `main` reconciliation
+
+After the adversarial code and documentation reviews completed, a fresh
+`npx tsc --noEmit` run passed with exit `0`, and `yarn lint` passed the
+repository-wide Prettier check, the ESLint/Prettier compatibility check, and
+source ESLint with exit `0` in 319.30 seconds. The authoritative files are
+`%TEMP%\DesktopMaterial-close-all-open-issues-20260728-1581a0ec8c65\logs\tsc-noemit-reviewed-source-freeze.{log,exit}`
+and
+`%TEMP%\DesktopMaterial-close-all-open-issues-20260728-1581a0ec8c65\logs\yarn-lint-reviewed-source.{log,exit}`.
+Their wrapper/compiler process trees were rechecked and proved absent.
+
+All 16 verifier contract files then ran. **206/207** assertions passed; the
+only failure was the intended fail-closed Pages import because the distinct
+current-source updater frame,
+`auto-updater-current-source-ready.png`, does not exist yet. The complete log
+is
+`%TEMP%\DesktopMaterial-close-all-open-issues-20260728-1581a0ec8c65\logs\verifier-contracts-reviewed-source.log`.
+This checkpoint predates reconciliation with the newer remote `main` fixes,
+including #96, so the same gates must run again on the merged source before the
+exact build.
+
+### Post-checkpoint acceptance and CI reconciliation
+
+The pushed close-out checkpoint is
+`2fedf140e394fa2fea3e380203e716b6f7aa8628`. Remote CI run
+[`30370044526`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30370044526)
+completed with successful lint, Windows TUI core, and packaged Windows x64 E2E
+smoke. Its 845-file/6,957-test Windows x64 unit run had exactly seven leaf
+failures: the two deliberate missing-updater gallery gates plus five stale
+source/copy assertions described below. Three Linux TUI jobs stopped only at
+the generated parity-contract hash, and Windows arm64 script tests stopped only
+at the generated documentation catalog. The parity contract has therefore been
+regenerated from the current 201-row source. The documentation catalog repair
+already exists on newer `main` and will be regenerated again only after the
+final documentation tree is reconciled.
+
+The preceding branch run also exposed three stale source-shape tests. Their
+assertions now follow the current lazy repository-tools JSX wiring, the shared
+context-menu appearance helper, and the localized “Subtrees could not be
+loaded” copy. These are test-contract repairs, not product-behavior changes.
+The updater/wiki failures remain deliberately unresolved until the distinct
+current-source updater frame is produced by the packaged-build verifier.
+
+A separate read-only acceptance audit proved that every required verifier
+implementation exists, but found two printed command templates that their own
+containment checks would reject. The internal-browser receipt is now a direct
+child of its owned run root, and the Ollama receipt now shares the owned P0
+`captures` directory with its PNG. A cross-contract assertion pins both rules.
+After the shared renderer profiler became quiescent, the three repaired app
+test files passed **46/46 across 3/3 files**, the regenerated 201-row parity
+contract passed its checked-generation gate, and the gallery plus live Cheap
+LFS contracts passed **75/75**. Prettier, application-test ESLint, the
+repository-ignored verifier lint with its intentional CommonJS/synchronous
+rules disabled, syntax checks, and `git diff --check` are green. The
+authoritative logs are
+`%TEMP%\DesktopMaterial-close-all-open-issues-20260728-1581a0ec8c65\logs\post-ci-repair-{targeted-tests,contracts,format-lint}.log`.
+Those reviewed repairs and provenance fences are pushed at
+`107bd91a003f490fa3d91cc642a7beaa350d2c35`; branch CI run
+[`30376865471`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30376865471)
+is queued. The matching rolling checkpoint is
+[Discussion #54 comment 17815363](https://github.com/Ding-Ding-Projects/desktop-material/discussions/54#discussioncomment-17815363),
+and the private-gallery authority boundary is recorded on
+[#23 comment 5106684118](https://github.com/Ding-Ding-Projects/desktop-material/issues/23#issuecomment-5106684118).
+Those two earlier receipts printed a nonexistent source-gate SHA; the
+correction is explicit in
+[Discussion comment 17815648](https://github.com/Ding-Ding-Projects/desktop-material/discussions/54#discussioncomment-17815648)
+and
+[#23 comment 5107001088](https://github.com/Ding-Ding-Projects/desktop-material/issues/23#issuecomment-5107001088).
+Only `107bd91a003f490fa3d91cc642a7beaa350d2c35` is authoritative.
+
+The open-issue scan after that audit remains exactly #23, #80, #81, #82, #85,
+#87, #94, #95, and #96. Two #23 specialist frames still require read access to
+`DingDingChae/desktop-material-cheap-lfs-private-20260722-153308`. Both GitHub
+API and non-prompting HTTPS checks under the active `codingmachineedge`
+identity return not-found. No substitute repository, historical frame, or
+mocked provenance will be represented as that private live acceptance.
+
+The read-only audit also found that the cloud specialist's current pin is
+internally inconsistent with the retained history. Its verifier requires
+`e56519d4742c63bb2c9f5f1e917de3fca7379fdd`, the pre-compression UI-acceptance
+commit, while simultaneously requiring the compressed pointer first documented
+at `6259b0fa0dc6c65cdb5a90af8e1da9358b45b0ac` and today's
+no-private-workflow encrypted-builder routing. Read access is required first to
+inspect authentic later history. If no retained commit contains the compressed
+pointer with the legacy private workflow removed, producing that current-state
+evidence will require separate owner authorization for one narrowly scoped
+fixture commit; it will not be inferred from the request to capture screenshots.
+
+The live Cheap LFS specialist now fails closed around that boundary. Before
+attaching to Chromium, after the settled production surface proves the current
+builder-routing state, and immediately after original-pixel capture, it
+bookends read-only Git snapshots and requires a clean `main` checkout at the
+exact `origin/main` SHA. Every fence revalidates the repository root and
+`.git` directory as the same real directories, checks Git's reported top-level
+and absolute Git directory, and rebinds the reviewed GitHub origin. The cloud
+scene additionally requires
+`.github/workflows/cheap-lfs-cloud-compression.yml` to be absent from `HEAD`,
+the index, and the real working tree; link/junction parents, ignored occupants,
+and any other non-absence fail. A version-2 receipt binds the exact reviewed
+commit, hashed origin, and stable filesystem identity to its canonical SHA-256
+fingerprints. Capture creation uses an exclusive descriptor, full write,
+`fsync`, and identity-aware cleanup; the fully written receipt is published
+atomically without overwriting through a same-directory hard link. The focused
+contract passes **20/20**, including real dangling-link and atomic-publication
+probes plus injected write failures. This closes the verifier's mount-time
+rewrite and orphan-output gaps without pretending that the inaccessible,
+internally inconsistent fixture pin is resolved. A mutation that begins and
+fully reverts between samples remains the unavoidable read-only TOCTOU limit;
+the owned fresh clone and three double-fenced samples are the strongest
+non-mutating mitigation.
+
+## 2026-07-28 — Bounded Cheap LFS inventory joins the close-out (Refs #96)
+
+Issue #96 was filed while this campaign was active. The initial fix landed on
+remote `main` and is now present through this merge. Adversarial review showed
+that its size preflight still sent a pointer-looking oversized file to
+`git grep -I --untracked`, so a hostile 50+ GiB sparse file could exhaust Git
+before Desktop Material's bounded format validator ran.
+
+The close-out branch now removes working-tree content from Git grep entirely.
+Unscoped inventory asks Git only for NUL-delimited changed/untracked names;
+explicit path selections are validated before any asynchronous Git work. Each
+candidate is then proven as an in-repository regular single-link file and only
+its first **512 bytes** are read through the tracked-path store. The prefix read
+requires a settled identity, rechecks the opened handle and visible path after
+the read, revalidates every parent, refuses symlinks/reparse points, gitlinks,
+linked files, and identity drift, and rejects unsafe or non-safe-integer
+bounds. Clean committed pointers remain classified from their bounded
+working-tree text. Pointer-looking oversized files are carried to the existing
+bounded format rejection; raw oversized files never enter content grep.
+
+The regression uses real NTFS sparse files with the issue's exact logical size,
+**55,581,030,080 bytes**, for both raw and pointer-looking cases. Git Trace2
+proves the vulnerable `grep --untracked` command is absent while the bounded
+name inventory still runs. It also covers scoped and unscoped calls, traversal
+prevalidation, clean committed pointers, modified gitlinks, selected symlinks,
+the exact pointer-format boundary, future-mtime/unsettled identity proofs, and
+invalid prefix bounds. The final focused pair passes **82/82**; the complete
+Cheap LFS directory passes **673/673 across 48 files and 89 suites** in
+187.55 seconds. Two independent adversarial reviewers found no remaining
+actionable blocker in #96's reported working-tree scope. Index/HEAD Git-object
+inventory still uses bounded-result Git plumbing and is recorded as a separate
+hardening opportunity, not part of #96's explicit `--untracked` reproduction.
+
+The source fix is closure-ready locally, but the issue remains open. Final
+closure still requires a fresh final-tree typecheck/lint pass after all
+reconciliation, the exact MCP production build, pushed `main` ancestry,
+applicable remote checks, and a timestamped finished receipt.
+
+## 2026-07-28 — Guided gallery scoped to 84 Windows scenes (Refs #23)
+
+The current guided-gallery contract, capture plan, and Pages manifest declare
+exactly **84 Windows targets**: 67 canonical outputs and 17 specialist outputs.
+That declaration does not become a published 84-image acceptance until every
+target exists and passes the current-build capture, privacy, and promotion
+gates. The five original `linux-tui-*.png` files and their dated Debian/Xvfb
+manifests remain byte-for-byte historical evidence, but are explicitly outside
+the current gallery rows, raw-main image set, Pages figures, and promotion
+plan. README/wiki/site screenshot surfaces describe that boundary without
+relabeling the old pixels as Windows evidence.
+
+Issue #23's older public body and comments contain superseded 77- and 89-image
+counts. Its final evidence comment must explicitly correct that history to the
+current contract: 84 blocking Windows scenes, plus five preserved historical
+Linux/Xvfb frames outside the current set.
+
+The July 22 legacy updater-migration frame is also retained outside the current
+set at immutable commit `923dbb51acad8f01f01f1c100c6945c7a2e08e23`.
+Current-source updater acceptance owns a distinct filename, so its promotion
+cannot overwrite or relabel those 49,195 historical bytes.
+
+Static documentation generation and the non-image-dependent documentation,
+tab-count, tooltip-lifetime, and localization checks pass. The fail-closed
+gallery validity checks correctly remain red because the distinct
+`auto-updater-current-source-ready.png` target has not yet been captured; the
+legacy updater blob is historical evidence and cannot satisfy that current
+slot. No UI was launched and no screenshot was recaptured or deleted in this
+documentation checkpoint. Issue closure still requires current-build
+acceptance for all 84 Windows targets.
+
+## 2026-07-28 — Measured Changes/History renderer update suppression (`main` checkpoint)
+
+The exact baseline `v3.6.3-beta3-zadughkqcv` Windows x64 portable build at
 `9bdfdb8b25e458e4834bdaa26473d44a5602621d` was driven on an isolated Lowlevel
 MCP Win32 desktop. Idle rendering was already smooth (122/122 frames at
 16.51 ms average, 16.80 ms max, zero over 25 ms), but twelve warmed
@@ -96,15 +334,15 @@ records.
 already false, producing a second root render for one user click. Navigation
 now dispatches only when the list is open, and a store-level equality gate
 protects every caller. Focused responsiveness, lifecycle, progressive-loading,
-and navigation coverage passes **42/42**. Changed-file ESLint is blocked because
-the reused dependency tree cannot load five repository-specific rules; it
-reports only missing rule definitions, not source findings.
+and navigation coverage passed **42/42**. In that source checkout, changed-file
+ESLint could not load five repository-specific rules; it reported only missing
+rule definitions, not source findings.
 
-The mandated local production build and a direct compile diagnostic both
-reached their bounded timeouts in webpack, so no local post-fix binary is
-claimed. Repository-wide TypeScript remains red against the reused incomplete
-dependency tree; no diagnostic names the new helper or test. Exact post-fix
-timing therefore waits for the remote release produced from the pushed commit.
+That source checkout's mandated production build and direct compile diagnostic
+both reached bounded webpack timeouts, and its reused incomplete dependency
+tree left repository-wide TypeScript red without naming the new helper or
+test. No post-fix binary or timing was claimed by that checkpoint. The merged
+close-out tree still owes the final gates listed in the current handoff above.
 
 ## 2026-07-28 — Tab-group dialogs move onto the dialog layer (Refs #92)
 
@@ -122,6 +360,45 @@ back to an unclamped SOUTH — so the tip landed half outside the window.
 three touched test files (5 new, each confirmed failing before the fix), `tsc`
 exits 0, eslint and repo-wide prettier clean. **Not visually verified** — no
 build or capture was run on this worktree.
+
+## 2026-07-28 — Disconnected tooltip owners clean up immediately (Refs #94)
+
+A tooltip could outlive a transient button or row when React removed its owner
+without dispatching `mouseout` or `blur`. `Tooltip` now observes target
+connectivity only while a tip is pending or visible. If the target disconnects,
+it cancels pending show/hide timers, stops its observer and viewport listeners,
+removes the portal, and clears the old target's tooltip marker and
+`aria-describedby`; unmount performs the same cleanup. Focused regressions
+cover both removal before the delay expires and removal after the tooltip is
+visible. Final built-app acceptance remains part of the current Windows gate
+and is not claimed here.
+
+## 2026-07-28 — Tab counts use truthful singular and many copy (Refs #95)
+
+Count selection now lives in `tab-count-copy.ts` instead of being scattered
+through individual controls. English uses singular copy for exactly one and
+the many form for zero or two-plus across the group chip, edit-dialog intro,
+member-menu button/status, and overflow-button accessible name. Cantonese keeps
+its natural count wording while using the same one/many selection contract.
+Unit coverage exercises 0, 1, and 2 in English and Cantonese and checks the real
+collapsed-group and overflow-button accessible names. The fresh source-freeze
+#95/i18n run covered 4/4 declared files and passed 64/64 tests with exit `0`;
+its authoritative files are
+`%TEMP%\DesktopMaterial-close-all-open-issues-20260728-1581a0ec8c65\logs\focused-tab-copy-source-freeze.log`
+and the matching `.exit` file. Wrapper PID `3252` was rechecked and proved
+absent. This is exact focused proof, not built-app acceptance, which remains
+pending with the current Windows gate.
+
+## 2026-07-28 — Encrypted restore names the decrypting phase (Refs #85)
+
+Encrypted-and-compressed Release restores now report the real transform order:
+**Downloading → Decrypting → Decompressing → Verifying → Materializing**.
+The plain bilingual label is **Decrypting · 解密緊**; funny-level voice may vary
+without changing the phase, path, byte counts, or order. The focused operation,
+progress, localization, and real-operation verifier contracts cover the
+distinct phase. Exact current-build UI acceptance remains pending and is not
+borrowed from the July 22 Cheap LFS screenshots.
+
 ## 2026-07-28 — Unattended encrypted Cheap LFS pin skips instead of prompting (Refs #87)
 
 `isBackgroundTask` now reaches `autoPinLargeFilesBeforeCommit`. A scheduled
@@ -151,7 +428,7 @@ The two pre-existing `tsc` errors that branch recorded against its base
 (`operations.ts` and `app.tsx`) were the merge-collision damage fixed in
 `ff53cd2155`; after merging, `npx tsc --noEmit` exits 0 on this tree.
 
-## 2026-07-28 — Root renderer resource lifetime audit (focused gates green)
+## 2026-07-28 — Root renderer resource lifetime audit (historical predecessor checkout snapshot)
 
 The root `App` created telemetry and update-check intervals without retaining
 their handles, while `componentWillUnmount` cleared only an unrelated interval.
@@ -166,14 +443,16 @@ handles, releases every global handler, and guards queued idle/animation-frame
 work with the mounted state. Focused lifecycle tests pass **4/4** and ESLint is
 clean on all three changed files.
 
-The exact Lowlevel MCP headless build preflight passed against server checkout
+In that predecessor checkout, the exact Lowlevel MCP headless build preflight
+passed against server checkout
 `f2edfe442555cfe35a519dd0b058986cb09d6ee3`, but the mandated production build
-stopped before compilation because this checkout has no dependency tree and
-`npx --no-install` correctly refused to download missing `cross-env`.
-Repository-wide TypeScript also remains red from missing baseline dependencies
+stopped before compilation because that predecessor checkout had no dependency
+tree and `npx --no-install` correctly refused to download missing `cross-env`.
+Repository-wide TypeScript was also red from missing baseline dependencies
 (`dugite`, `registry-js`, Copilot SDK, Dexie, and others); no reported
-diagnostic targets the changed files. Built-app capture and remote CI remain
-pending.
+diagnostic targeted the changed files. That checkout-specific environment is
+superseded by the current handoff and is not a current blocker or current test
+verdict.
 ## 2026-07-27 — Progressive asynchronous lazy loading (locally verified, Refs #82)
 
 `App.render()` returns `null` until `AppStore.loadInitialState()` resolves, so
@@ -191,13 +470,15 @@ rather than swallowing them. No timers were introduced anywhere in that path.
 `repository.tsx` previously imported seven substantial section modules
 statically (Actions, Releases, Cheap LFS, Issues, GitHub API explorer, provider
 triage, repository tools), so all seven were evaluated at launch even in a
-session that only looked at Changes. They are now `import type` for their props
-plus `import(/* webpackMode: "eager" */ …)` for evaluation, rendered through a
-new `LazyView`. Eager mode is deliberate: the app is one bundle, so what is
-deferred is module *evaluation*, and no new chunk files or packaging changes are
-introduced. Changes and History stay static. A failing section shows a local
-`role="alert"` surface naming the real error with a working retry, plus a
-persistent corner notification — never a modal, never a focus move.
+session that only looked at Changes. They are now type-only imports plus direct
+named asynchronous imports, rendered through a new `LazyView`. The production
+renderer emits the exact seven `repository-*.js` chunks; no
+`webpackMode: "eager"` or barrel import remains. Changes and History stay
+static. A failing section shows a local `role="alert"` surface naming the real
+error with a working retry, plus a persistent corner notification — never a
+modal, never a focus move. Webpack chunk failures retain the actionable chunk
+name while redacting only a private `file:///C:/…/out/` installation prefix
+before the message reaches either surface.
 
 `app/src/lib/progressive-load.ts` holds the ordering rules once:
 `LatestLoadGate` refuses a token that is not strictly newer than the last
@@ -206,20 +487,15 @@ into a `failed` state carrying the real `Error`. It is used by `LazyView` and by
 the submodule/subtree count loaders in `repository.tsx`, which also stop
 discarding their failure reason in a bare `catch {}`.
 
-Local evidence: `progressive-load-test.ts` **21/21**, `ui/lazy-view-test.tsx`
-**10/10**, `progressive-startup-test.ts` **13/13**; eslint and prettier clean on
-every changed file. `npx tsc --noEmit` reports **720 errors before and 720
-after** — the entire baseline comes from `dugite`, `registry-js` and
-`@github/copilot-sdk` being absent from this host's `node_modules`, and none of
-the errors are in the changed files. Startup timing was **not measured**: no
-packaged build was produced on that host, so the improvement is argued from what
-no longer blocks the first paint, not from a number.
-
-The 720 pre-existing `tsc` errors were an artifact of that worktree's
-environment, not of the tree: the agent's worktree was missing the
-`app/node_modules` junction, so `dugite`, `registry-js` and
-`@github/copilot-sdk` could not resolve. In the main checkout, after this merge,
-`npx tsc --noEmit` exits 0.
+Current focused evidence is **37/37** across
+`progressive-load-test.ts`, `ui/lazy-view-test.tsx`, and
+`progressive-startup-test.ts`; the new packaged verifier contract is **8/8**.
+That verifier inventories the exact seven chunks, withholds only
+`repository-tools.js`, observes the real accessible loading→local-failure
+transition without focus or modal theft, restores the identical SHA-256, uses
+the physical **Try again** control, and requires a spinner-free cached revisit.
+The final exact MCP build and off-screen original-pixel execution remain the
+publication gate and are not claimed by this source checkpoint.
 
 ## 2026-07-27 — Funny-level sliders: superseded by the owner's own integration (Refs #83)
 
@@ -277,7 +553,7 @@ reverted. Adjacent suites pass — provider triage and canonical-remote prefligh
 **33/33**. `npx tsc --noEmit`, ESLint, and Prettier are all clean. Remote CI,
 installer, and built-app screenshot evidence for #80 remain outstanding.
 
-## 2026-07-27 — Encryption, observed network actions, and funny-level controls (local gates green)
+## 2026-07-27 — Historical encryption/network/tone checkpoint (superseded status)
 
 The current local implementation covers three open issues. #78 provides
 optional AES-256-GCM encryption for GitHub Release-backed Cheap LFS payloads:
@@ -295,7 +571,7 @@ across 831 files**, with `tsc` and `yarn lint` clean. This checkpoint does not
 claim packaged visual evidence or remote CI. #78, #80, and #83 remain open
 pending screenshots captured from the real built application.
 
-## 2026-07-27 — TUI path browser and Cheap LFS Git wrapper (automated gates green)
+## 2026-07-27 — Historical TUI path browser and Cheap LFS Git wrapper (archived, non-blocking)
 
 The Linux-first Textual edition now has a folder-only browser in its Open and
 Create repository dialogs. Browse/Hide, Home, and Up remain reachable by mouse
@@ -359,7 +635,7 @@ pushed through merge `f5f6f04c7e`, which remains an ancestor of current remote
 `30323259650` passed; CI run `30323259648` and code-scanning run `30323259706`
 were still running at handoff and are not claimed green.
 
-## 2026-07-27 — Remote TUI compatibility correction (TUI lanes green)
+## 2026-07-27 — Historical TUI compatibility correction (archived, non-blocking)
 
 The first CI run for merged source `2abccae8fd` exposed two real portability
 defects after the earlier local matrix:
@@ -400,7 +676,7 @@ correction were
 and the
 [historical-target TUI package job](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30315814320/job/90141026604).
 
-## 2026-07-27 — Linux-first interactive TUI preview (locally verified)
+## 2026-07-27 — Historical Linux-first interactive TUI preview (archived, non-blocking)
 
 A new `tui/` Python project is a terminal-native sibling to the Windows-only
 Electron application. Its Textual shell is designed for both mouse and keyboard
@@ -456,7 +732,7 @@ job, while installer run `30318769692` failed and published no Release. The
 [run manifest](docs/verification/linux-tui-2026-07-27/run-manifest.md) records
 the exact local evidence and hashes.
 
-## 2026-07-27 — SESSION HANDOFF (read this first)
+## 2026-07-27 — HISTORICAL SESSION HANDOFF (superseded; do not read as current)
 
 `main` is at **`949dc81e6d`**, pushed, with **zero divergence** from the remote.
 The working tree is clean; no stashes; every agent branch is merged and deleted
@@ -678,9 +954,10 @@ deployed Pages site.
 At this pre-publication checkpoint, three user-facing continuations were
 locally accepted and integrated into local `main`. The source and captures were
 later pushed through `2abccae8fd`, and Pages/wiki publication is now verified
-live. Packaged Windows E2E is verified. Only the Linux TUI compatibility
-correction rerun and installer/Release evidence remain pending; do not attach
-an older installer badge to these changes.
+live. Packaged Windows E2E is verified. At that checkpoint, a TUI compatibility
+rerun and installer/Release evidence were still pending; the TUI item is now
+historical and non-blocking under the Windows-only product boundary. Do not
+attach an older installer badge to these changes.
 
 **Cheap LFS restore scheduling and progress**
 
@@ -777,10 +1054,11 @@ an older installer badge to these changes.
 **Publication update**
 
 The source and accepted captures are pushed through `2abccae8fd`, and
-Pages/wiki publication and packaged Windows E2E are verified. Only the Linux
-TUI compatibility correction rerun and installer/Release evidence remain
-pending. This pre-publication local receipt does not claim those remaining
-gates.
+Pages/wiki publication and packaged Windows E2E are verified. At that
+historical checkpoint, installer/Release evidence remained pending; the
+separate TUI correction no longer defines or blocks the supported Windows
+product. This pre-publication local receipt does not claim the missing
+installer evidence.
 
 Feature contracts:
 [Release-backed Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md),
@@ -1244,7 +1522,7 @@ packaged build is also still outstanding — the instrumentation is in and logs
 `Quick action window interactive in <n>ms`; the dev bundle is 11.4 MB vs the
 main renderer's 25.8 MB, which is a size proxy, not a timing.
 
-## 2026-07-25 SESSION HANDOFF — read this first / 交接即讀
+## 2026-07-25 HISTORICAL SESSION HANDOFF — superseded / 舊交接紀錄
 
 Seven cycles pushed today (tips: `f9e07c9c42` → `72876526d4` → `7c588cb224` →
 `a49757e881` → `51fcf503f4`/`645657f470`/`be5784f7da` → `ee591a3278` →
@@ -2257,7 +2535,7 @@ wrote its app directory, repointed the execution stub, and finished. The
 accepted 960×660 capture is 49,195 bytes with SHA-256
 `a02cffa612114be3af5e0fffcd5b602a4ba4dfd3226298e48d143a6bed76bd4d`.
 
-![Legacy Super Express installation with a newer alphabetic-z update ready](docs/assets/screenshots/auto-updater-update-ready.png)
+![Historical legacy Super Express installation with a newer alphabetic-z update ready at immutable source commit 923dbb51acad8f01f01f1c100c6945c7a2e08e23](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/923dbb51acad8f01f01f1c100c6945c7a2e08e23/docs/assets/screenshots/auto-updater-update-ready.png)
 
 The detailed fail-closed, remote, package, log, headless-desktop, and cleanup
 receipt is in

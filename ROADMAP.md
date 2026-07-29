@@ -4,14 +4,37 @@ Updated: **July 28, 2026**
 
 Desktop Material's numbered roadmap now extends through **M27**. M0–M21 and the
 M23 Ollama manager have published receipts; M22's 73-scene visual refresh is
-published byte-identically, and the exact acceptance/publication state for
-M24–M27 is listed below. The July 22 tab-group, command-palette, Alt-key,
+published byte-identically. The current guided-gallery contract declares
+exactly **84 Windows targets**; it does not become a passing publication until
+every target passes the current-build gates. Five Linux/Xvfb captures remain
+preserved as historical evidence outside that target set. The exact
+acceptance/publication state for M24–M27 is listed below. The July 22 tab-group,
+command-palette, Alt-key,
 release-gate, and Cheap LFS UI continuation is implemented, locally accepted,
 pushed to `main`, and verified through the exact-source CI, CodeQL, Pages, wiki,
 and installer-release pipelines.
 This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
+
+## July 28 current close-out wave — **Implementation under final verification**
+
+The current isolated issue-closing branch covers the remaining actionable
+source, accessibility, documentation, and acceptance gaps. It is not complete
+until the exact Windows production build, all 84 fresh Windows scene checks,
+the declared focused and full suites, default-branch integration/push, and
+issue-closing receipts are proved. The archived Linux TUI prototype, its five
+captures, and its package/compatibility lanes are historical and non-blocking
+under the Windows-only product boundary.
+
+Issue #96's reported working-tree inventory OOM path is now locally
+closure-ready: Git supplies only changed/untracked names, Desktop Material
+reads at most a securely identity-proven 512-byte prefix, and an exact
+55,581,030,080-byte NTFS sparse regression proves `git grep --untracked` is
+never invoked. Focused coverage passes 82/82 and the complete Cheap LFS
+directory passes 673/673. Publication, final-tree gates, and the issue-closing
+receipt remain part of this wave rather than being inferred from that local
+checkpoint.
 
 ## July 28 standalone Cheap LFS versus Git LFS atlas — **Locally accepted; publication queued**
 
@@ -55,30 +78,34 @@ Electron production build was interrupted after an extended silent run so the
 user-requested site push could proceed; no app-build result is claimed by this
 documentation milestone.
 
-## July 28 measured repository-view responsiveness — **Fix locally verified; exact post-fix release timing pending**
+## Historical July 28 measured repository-view responsiveness — **Source fix locally verified; exact post-fix timing pending**
 
-Lowlevel MCP exercised the exact current Windows release on an off-screen
-desktop. Idle animation stayed below 17 ms across 122 sampled frames, but warmed
-Changes/History switches measured 56–104 ms with six long tasks. Every section
-click sent an already-satisfied `showBranchList: false` update after the real
-section mutation, causing a second global app-state emission and root render.
-The rail now skips that dispatch while the list is already closed, and the
-store rejects identical partial updates from every caller. Focused tests pass
-**42/42**. Changed-file ESLint is blocked by five missing repository rule
-definitions in the reused dependency tree; exact post-fix packaged timing is
-the remaining acceptance gate.
+Lowlevel MCP exercised the immutable baseline Windows release at `9bdfdb8b25`
+on an off-screen desktop. Idle animation stayed below 17 ms across 122 sampled
+frames, but warmed Changes/History switches measured 56–104 ms with six long
+tasks. Every section click sent an already-satisfied
+`showBranchList: false` update after the real section mutation, causing a
+second global app-state emission and root render. The rail now skips that
+dispatch while the list is already closed, and the store rejects identical
+partial updates from every caller. Focused tests passed **42/42** in that source
+checkpoint. Its changed-file ESLint was blocked by five missing
+repository-specific rule definitions in the reused dependency tree; that
+historical environment does not override the active close-out branch's later
+green lint gate. Exact post-fix packaged timing is still an acceptance
+requirement.
 
-## July 28 root renderer resource audit — **Focused gates green; build blocked by missing dependencies**
+## Historical July 28 root renderer resource audit — **Superseded checkout snapshot**
 
 Root renderer subscriptions, IPC listeners, global document/window handlers,
 and deferred telemetry/update polling now have deterministic unmount cleanup.
 Queued idle and animation-frame work cannot resurrect those resources after the
-root has unmounted. Focused lifecycle coverage passes **4/4** and changed-file
-ESLint is clean. The Lowlevel MCP production build was attempted headlessly and
-stopped at the dependency gate because this checkout has no local dependency
-tree; built-app capture and remote CI are not yet claimed.
+root has unmounted. Focused lifecycle coverage passed **4/4** and changed-file
+ESLint was clean. The Lowlevel MCP production build in that predecessor
+checkout stopped because that checkout lacked its dependency tree. That
+environment-specific stop is retained as chronology; it is not a current
+blocker or a substitute for the active branch's final build.
 
-## July 27 encryption, observed network actions, and tone controls — **Local gates green; visual and remote acceptance pending**
+## Historical July 27 encryption, observed network actions, and tone controls — **Superseded status snapshot**
 
 - **#78:** GitHub Release-backed Cheap LFS payload encryption is optional and
   uses AES-256-GCM. Credentials are operation-scoped by default, with Windows
@@ -95,12 +122,15 @@ tree; built-app capture and remote CI are not yet claimed.
 Local verification is **194/194 focused tests** and **6768/6768 full tests
 across 831 files**; TypeScript and `yarn lint` are clean. Packaged visual
 evidence and remote CI are not yet claimed. #78, #80, and #83 remain open until
-real built-app screenshots are captured.
-## July 27–28 encryption, group management, lazy loading, tone controls — **Merged and pushed, visual evidence outstanding**
+real built-app screenshots are captured. Those deferral and open-issue
+statements describe that July 27 checkpoint only; the current close-out state
+is the section above.
 
-Five issues landed on `main` in one sweep. Each is locally green; none of the
-surfaces with a visible component has a real capture yet, so the issues remain
-open rather than being closed on test evidence alone.
+## Historical July 27–28 encryption, group management, lazy loading, tone controls — **Integration chronology**
+
+Five issues landed on `main` in one sweep. At that checkpoint each was locally
+green; none of the surfaces with a visible component had a real capture yet, so
+the issues remained open rather than being closed on test evidence alone.
 
 Two of them were then **superseded**. The repository owner independently
 implemented #78 and #83 and pushed `a550dc1ea8`, which deleted this branch's
@@ -149,9 +179,13 @@ out-of-memory failures were reported as success and a screenshot was taken of a
 stale bundle — which is how a shipped feature briefly appeared to be missing
 from the settings tab.
 
-## July 27 Linux TUI path browser and Git wrapper — **Handoff accepted with a bounded visual gap**
+## Historical July 27 Linux TUI path browser and Git wrapper — **Archived, non-blocking prototype receipt**
 
-The Linux-first terminal edition now adds a folder-only repository browser to
+This section preserves what the prototype accepted on July 27. The TUI is not
+a current supported product/package target, and none of its remaining
+compatibility, CI, installer, or visual gaps blocks the Windows application.
+
+The Linux-first terminal edition then added a folder-only repository browser to
 its Open and Create dialogs without replacing the real editable path field.
 Browse/Hide, Home, and Up work by mouse and keyboard. A matching outer pair of
 single or double quotes is removed from pasted repository paths immediately
@@ -245,9 +279,9 @@ Detailed contracts and the evidence split are in [HANDOFF.md](HANDOFF.md),
 the [app-hosted browser](docs/features/integrations/app-hosted-browser.md), and
 the [private-repository lock badge](docs/features/repository-management/private-repository-lock-badge.md).
 
-## Linux-first interactive TUI — **Remote TUI lanes green; overall CI/installer failed**
+## Historical Linux-first interactive TUI — **Archived, non-blocking prototype receipt**
 
-A separate Python/Textual edition now adapts Desktop Material for Linux
+A separate Python/Textual prototype adapted Desktop Material for Linux
 terminals without weakening the graphical edition's Windows-only boundary. The
 preview has a clickable repository rail, tabs, buttons, lists, tables, selects,
 and checkboxes; real single-line and multiline text controls; keyboard focus
@@ -862,19 +896,22 @@ six-asset Windows x64 Release are verified for the `main` push recorded in
   pointers, restores individually or all at once, and never requires browsing or
   decoding release asset names externally.
 - **Cloud compression**: Public repositories receive an automatic reviewed
-  caller; private repositories remain off until explicit persisted consent.
-  The SHA-pinned Action streams one Release object at a time directly to a
+  caller. Private repositories remain off until explicit persisted consent;
+  consent installs no private-repository workflow or private Actions cost and
+  routes compression through the encrypted public builder. The SHA-pinned
+  Action streams one Release object at a time directly to a
   raw-DEFLATE side asset, never uses Actions artifact/cache storage, updates
   only verified beneficial objects to v1 `part-deflate`, retains every raw
   historical asset, and leaves failed/non-beneficial pointers cloneable.
   Desktop Material is the only decompressor and verifies bounded expanded
   bytes locally. Focused real-action, policy, failure, UI, and materialization
-  tests pass. Retained public/private production-UI caller commits triggered
-  successful Actions runs that adopted 1,033-byte side assets, and both bot
-  pointers restored locally to the exact original 1 MiB SHA-256. A preceding
-  public draft-tag 404 also proved the raw pointer and asset remain usable after
-  a failed run. Draft lookup is bounded to 10,000 releases; a missing bounded
-  draft or a full 1,000-asset Release fails safely without pointer adoption.
+  tests pass. The historical 2026-07-22 public/private production-UI caller
+  commits triggered successful Actions runs that adopted 1,033-byte side assets,
+  and both bot pointers restored locally to the exact original 1 MiB SHA-256. A
+  preceding public draft-tag 404 also proved the raw pointer and asset remain
+  usable after a failed run. Draft lookup is bounded to 10,000 releases; a
+  missing bounded draft or a full 1,000-asset Release fails safely without
+  pointer adoption.
 - **Manual browser handoff**: When the trusted GitHub CLI path cannot complete
   safely, a browser-assisted upload handoff plans every remaining file, splits
   sources into ordered .partNNN files in a flat bounded folder, opens the
@@ -1154,7 +1191,7 @@ The following items track the current cycle's progress against all six acceptanc
 | Clone-style Add Submodule | **Complete** | Verified hosted-provider and URL selection, exact-account affinity, reviewed relative path/branch, duplicate and occupied-path rejection, bounded progress, cancellation, list refresh, keyboard labels, and minimum-window containment |
 | Repository-wide feature revalidation | **Complete** | The historical revalidation verified the registered-surface and M0–M19 implementation inventory, focused and repository-wide tests, production builds/packages, isolated headless interaction, exact-SHA CI and installer runs, Pages, the seven-page wiki, and its then-current 52-image documentation gallery |
 | Live Bambu build Cheap LFS acceptance | **Remote storage, clone integrity, and serialization correction complete** | A public 14,809,588,162-byte, 8,305-file payload completed four proven UI batches after an HTTP 408 retry, cloud run `30048474438` reported 13/0/0 with raw fallback retained across 26 assets, UI commit `712ad85` passed verifier `30054805137`, and a fresh UI clone restored 10/10 hashes from 370–514-byte committed pointers. The first automatic/manual overlap prompted a normalized-checkout queue now covered by deterministic concurrency regressions; the live ten-pointer UI frame is promoted separately from the clone hash receipt. |
-| Documentation gallery expansion | **89-scene source catalog published** | The published 77-scene history remains intact. Four upstream repository-list/tab scenes, three newly accepted Windows captures—exact-90% restore, app-hosted authentication browser, and private-repository lock badge—and five verified Linux TUI captures bring the machine-checked source catalog to 89. All 89 source images are pushed through `2abccae8fd`, with Pages/wiki rendering and packaged Windows E2E verified. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection. Correction commit `f555d374a6` is in `origin/main`; its Linux TUI matrix and Windows TUI core jobs passed, while the overall workflow and installer run failed and no new Release was produced. |
+| Documentation gallery expansion | **84-scene Windows target locked; current promotion pending; historical evidence retained separately** | The published 77-scene history remains intact. Four upstream repository-list/tab scenes plus three accepted Windows captures—exact-90% restore, app-hosted authentication browser, and private-repository lock badge—established the predecessor gallery. The current machine-checked plan declares 84 Windows targets, but it is not a passing 84-image publication until every distinct current-source target is captured, inspected, and promoted. Five Linux/Xvfb captures remain byte-for-byte historical evidence outside its rows, Pages figures, and capture plan without making Linux a supported target. The legacy updater-migration frame is pinned to its immutable July 22 blob; current-source updater acceptance uses a distinct filename that is still pending capture at this checkpoint. The earlier `2abccae8fd` Pages/wiki and packaged-Windows evidence cannot prove this refresh. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection. Historical TUI correction commit `f555d374a6` is in `origin/main`; its lane results do not block the Windows product. |
 | Complete notifications and Releases dashboard | **Complete** | Verified every GitHub notification page, confirmed local/remote Clear all with partial-failure retention, release status metrics and loaded-result search/filtering, rich asset metadata, scoped retries, responsive layout, and inspected headless evidence |
 
 <!-- markdownlint-enable MD013 -->

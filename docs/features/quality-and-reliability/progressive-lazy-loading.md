@@ -1,86 +1,90 @@
-# Progressive asynchronous lazy loading
+# Progressive asynchronous loading
 
-Desktop Material renders its shell and safe cached state as soon as it can, and
-finishes the expensive work behind that first paint. Surfaces that a session may
-never open are not evaluated until they are opened, and every one of them owns
-its own progress and failure state instead of borrowing the whole window.
+Desktop Material paints and reveals its usable application shell before
+optional startup work finishes. Expensive repository sections are downloaded
+and evaluated only when selected, with loading and failure state contained
+inside that section.
 
 Tracked by [issue #82](https://github.com/Ding-Ding-Projects/desktop-material/issues/82).
 
 ## Why
 
-`App.render()` returns `null` until `AppStore.loadInitialState()` resolves, so
-anything that method awaits is a blank window. Two of the things it awaited were
-genuinely slow and genuinely optional:
+The shell needs accounts, repositories, persisted preferences, and the applied
+theme before it can render correctly. It does not need to stay blank while the
+app:
 
-- **Enumerating installed external editors.** `getAvailableEditors()` walks the
-  filesystem and, on Windows, the registry, purely to confirm that the editor the
-  user already chose is still installed.
-- **Recovering an interrupted clone queue.** Reading and finalizing the batch
-  clone journal is disk work whose result nothing on the first screen depends on.
+- enumerates installed external editors through the filesystem and registry;
+- recovers an interrupted clone queue;
+- refreshes accounts and audits permissions; or
+- starts automatic-clone monitoring.
 
-Separately, `repository.tsx` statically imported seven substantial section
-modules — Actions, Releases, Cheap LFS, Issues, the GitHub API explorer, provider
-triage and repository tools — so all seven were evaluated at launch even in a
-session that only ever looked at Changes.
+Repository Changes and History are normal landing surfaces. Seven other
+sections bring substantial component trees that a session may never open:
+Actions, Releases and Packages, Cheap LFS, Issues, the GitHub API Explorer,
+provider triage, and Repository tools.
 
-## Behavior
+## Startup boundary
 
-### Startup
+`AppStore.loadInitialState()` remains the correctness boundary for the data
+needed to paint a truthful shell. Work which can safely finish after first
+interaction runs as isolated deferred steps. One rejection is logged, reported
+through non-fatal diagnostics, and placed in notification history without
+cancelling its siblings or opening a modal.
 
-`loadInitialState()` now resolves once the shell has everything it needs:
-accounts, repositories, persisted preferences, and the applied theme. It then
-calls `loadDeferredInitialState()` **without awaiting it**.
+The persisted external-editor choice is displayed as cached data while its
+availability is checked. This is safe because launching an editor resolves the
+actual executable again before opening a file; stale display data cannot cause
+the app to run a missing program.
 
-The deferred phase runs each step through `runDeferredStartupStep()`, which
-isolates failures so one broken step cannot cancel another, and which logs and
-reports every rejection through `sendNonFatalException('deferredStartup', …)`.
-There are no timers anywhere in that path: nothing is delayed to look
-progressive, it merely stops blocking the first paint.
+The renderer sends its ready signal from `componentDidMount`, the first
+committed shell. It does not wait for an animation frame because hidden Electron
+windows can throttle that callback. There is no artificial timeout or delay:
+remaining startup work continues behind a small polite status chip while the
+rest of the shell is available.
 
-The selected external editor is adopted straight from `localStorage` so the
-shell can paint with the user's real choice. See
-[Cached data while refreshing](#cached-data-while-refreshing) for why that read
-is safe.
+## Deferred repository sections
 
-### Deferred repository sections
+The seven inactive sections use named asynchronous webpack chunks which point
+directly at each surface module. They do not use barrel imports or
+`webpackMode: "eager"`. A production renderer build must retain the separate
+chunks; the artifact itself is a verification gate against accidentally pulling
+heavy inactive surfaces back into the initial renderer path.
 
-`app/src/ui/lib/lazy-view.tsx` provides two pieces:
-
-- `lazyViewModule(id, loader)` — a module handle that evaluates once, caches the
-  result, and **drops a failed load's promise** so a retry genuinely retries
-  instead of replaying a cached rejection forever.
-- `<LazyView>` — renders the module, or a local progress state, or a local
-  failure state.
-
-`repository.tsx` imports the seven heavy sections with `import type` (erased at
-compile time) and evaluates them through
-`import(/* webpackMode: "eager" */ './…')`.
-
-> `webpackMode: "eager"` is deliberate. The app ships as one bundle, so there is
-> no download to defer; what is deferred is each module's **top-level
-> evaluation**. Eager mode keeps every module inside the existing bundle — no new
-> chunk files, no `publicPath` change, no packaging change — while still holding
-> back its execution until the section is opened. Changes and History stay
-> statically imported, because deferring what the app opens on would just trade
-> one blocking screen for another.
-
-### Loading and failure states
+`LazyView` owns three states:
 
 | State | Markup | Behavior |
 | --- | --- | --- |
-| Loading | `role="status"`, `aria-live="polite"`, `aria-busy="true"` | Announced politely, never moves focus. Spinner honours `prefers-reduced-motion` and `body[data-dm-motion='reduced']`. |
-| Failed | `role="alert"` | Names the surface, shows the underlying error verbatim, and offers **Try again**. Focus is not moved. |
+| Loading | `role="status"`, `aria-live="polite"`, `aria-busy="true"` | Announces the named surface politely and never moves focus. |
+| Ready | No wrapper element | Renders the resolved surface directly. A stable loader is cached for the renderer session, so revisiting it is synchronous and does not flash progress. |
+| Failed | `role="alert"` | Names the surface, includes the original error, and retains a **Try again** button. |
 
-A failure also raises a corner notification (`kind: 'app-error'`, so it persists
-until dismissed) through `Dispatcher.postNotification`. It is never escalated to
-a modal: nothing about it requires a decision before the user can continue, and
-every other part of the window stays usable.
+Both a loader rejection and an exception thrown while rendering a resolved
+surface stay inside the same local boundary. A retry forgets a cached result,
+starts the exact loader again, and creates a fresh nested render boundary. A
+failed load is never cached, so retry cannot replay a rejected promise forever.
 
-## Race safety
+Each accepted failure is logged and offered to the owner once for a persistent,
+non-blocking notification. Nothing about a deferred section failure requires an
+immediate decision, so the modal popup stack remains untouched and every other
+part of the window stays usable.
 
-`app/src/lib/progressive-load.ts` holds the ordering rules once instead of
-re-deriving them per call site.
+## Deferred repository inventories
+
+Submodule and subtree inventories are used only by Repository tools. Their Git
+queries begin when that section becomes active, not when the repository view
+mounts. Leaving the section aborts both probes while retaining the last verified
+counts for a later visit. Changing repository or unmounting aborts and clears
+them.
+
+The `AbortSignal` travels through Dispatcher, AppStore, and the Git helpers so
+navigation can stop the underlying work, not merely ignore its result. The view
+also checks the repository identity and active section before publishing. A
+failure remains local and retryable; a previously verified count stays visible
+while a refresh runs or fails.
+
+## Race and lifecycle guarantees
+
+`app/src/lib/progressive-load.ts` centralizes newest-request-wins ordering.
 
 ```mermaid
 sequenceDiagram
@@ -92,89 +96,69 @@ sequenceDiagram
     UI->>A: start
     UI->>Gate: begin() → 2
     UI->>B: start
+    A-->>UI: resolves while B is pending
+    UI->>Gate: accept(1) → false
     B-->>UI: resolves
     UI->>Gate: accept(2) → true
-    A-->>UI: resolves (late)
-    UI->>Gate: accept(1) → false
-    Note over UI: the stale answer is dropped, not painted
+    Note over UI: only the newest issued request can publish
 ```
 
-- `LatestLoadGate.accept(token)` succeeds only for a token strictly newer than
-  the last accepted one and not cancelled, so a slow first response cannot
-  overwrite a fast second one.
-- `ProgressiveLoad.run()` **never rejects**; a rejection becomes a `failed`
-  state carrying the real `Error`. `void load.run(…)` therefore cannot produce
-  an unhandled rejection and cannot hide a failure either.
-- `reset()` cancels every in-flight load, so a response for a previous subject
-  (a different repository, a different module) can never be painted as the new
-  one's.
+- `LatestLoadGate.accept(token)` succeeds only when `token` is the newest
+  request issued and has not already been accepted.
+- `ProgressiveLoad.run()` never rejects. A source rejection resolves to a
+  `failed` state carrying the real `Error`, so launching it with `void` cannot
+  produce an unhandled rejection.
+- `reset()` advances the generation and refuses every completion from the
+  previous subject. `dispose()` permanently refuses later results.
+- A verified value can remain available during a refresh and after a failed
+  refresh.
 
-Applied at three call sites:
+The same contract fences a surface swap, rapid repository A → B → A
+navigation, and an external-editor selection changed while discovery is still
+running.
 
-| Call site | Race prevented |
-| --- | --- |
-| `LazyView` | Swapping a surface mid-load must not paint the previous module with the new surface's props. |
-| `RepositoryView.loadSubmoduleCount` / `loadSubtreeCount` | Selecting repository A → B → A starts three loads whose repository hashes all pass an equality check; only the newest may write. These also now log why a count is unknown instead of discarding the reason in a bare `catch {}`. |
-| `AppStore.confirmSelectedExternalEditorIsInstalled` | A choice the user makes in Preferences while the availability scan is still running is newer than anything that scan learned, so the scan's answer is discarded when `externalEditorSelectionGeneration` has moved. |
+## Language modes and funny levels
 
-## Cached data while refreshing
+`lazyView.loading` and `lazyView.failedBody` are three-band key families. The
+per-language funny-level sliders style their voice in English and playful Hong
+Kong-style Cantonese independently, while every band still names the affected
+surface.
 
-Showing stale data while a refresh continues is only correct where a stale read
-cannot change what an action does. It is applied in exactly two places:
+The failure title, original error detail, retry action, and notification facts
+do not vary by funny level. Humour changes voice, never what happened or what
+the user can do.
 
-1. **The selected external editor at startup.** The value is read from
-   `localStorage` and shown immediately while the availability scan runs.
-   Every launch path (`_openInExternalEditor`) calls `findEditorOrDefault()`
-   again before doing anything, and reports a clear `ExternalEditorError` when
-   nothing suitable is installed. The stale value can only ever mislabel a
-   button, never make it do something different, and nothing is written, moved
-   or deleted on its strength.
-2. **An already-evaluated view module.** A section opened earlier in the session
-   renders synchronously with no progress state. A module's evaluation is
-   immutable for the lifetime of the process, so it cannot go stale.
+## Accessibility
 
-It is deliberately **not** applied to commit or push state, conflict state, or
-credentials, where a stale read changes what a button does.
+- Loading is announced politely without changing focus.
+- Failure uses `role="alert"` and remains keyboard reachable without moving
+  focus.
+- The spinner animation is neutralized under
+  `prefers-reduced-motion: reduce` and
+  `body[data-dm-motion='reduced']`.
+- The retry control uses the standard Material button, focus ring, and hit
+  target.
+- Long localized names and raw error text wrap inside the surface instead of
+  clipping it.
 
 ## Configuration
 
-None. There is no setting, no threshold and no delay to tune.
+None. There is no threshold, delay, or timer to tune.
 
 ## Failure modes
 
 | Failure | Result |
 | --- | --- |
-| A deferred startup step rejects | Logged, reported as a `deferredStartup` non-fatal exception, other steps continue. The shell is already usable. |
-| A section module fails to evaluate | Local `role="alert"` surface naming the section and the real error, a working **Try again** button, and a persistent corner notification. Every other surface keeps working. |
-| A submodule/subtree count fails | The badge falls back to unknown and the reason is written to the log. |
-| An out-of-order response arrives | Dropped by `LatestLoadGate`; the newer state stays. |
-
-## Language modes and funny levels
-
-`lazyView.loading` and `lazyView.failedBody` are three-band key families, so the
-per-language funny-level slider styles the voice in English and Cantonese
-independently. Every band of every language names the surface being loaded.
-
-What failed (`lazyView.failedTitle`), what went wrong
-(`lazyView.failedDetail`) and what to press (`lazyView.retry`) carry **no
-bands** — they are facts the user acts on, so they read identically at every
-funny level.
-
-## Accessibility
-
-- Progress uses `role="status"` + `aria-live="polite"` + `aria-busy`, so it is
-  announced without interrupting and without moving focus.
-- Failure uses `role="alert"`, which announces assertively and still does not
-  move focus.
-- The spinner animation is neutralized under `prefers-reduced-motion: reduce`
-  and under the app's own `body[data-dm-motion='reduced']` setting.
-- The retry control is a standard Material button with the app's normal focus
-  ring and hit target.
+| A deferred startup step rejects | Logged and reported as a non-fatal startup failure; sibling steps continue and the shell stays usable. |
+| A section chunk or renderer fails | Local alert with the real error and retry, plus a persistent non-blocking notification. |
+| A submodule or subtree probe fails | Local retry state retains any verified count; the rest of the repository remains interactive. |
+| An out-of-order response arrives | Rejected by the generation gate even if a newer request is still pending. |
+| Navigation or unmount occurs | Abortable work is cancelled and every late completion is fenced. |
 
 ## Verification
 
 | Suite | Covers |
 | --- | --- |
-| `app/test/unit/progressive-load-test.ts` | Gate ordering, out-of-order drops, cancel/dispose, cached-while-refreshing, rejection surfacing, and a guard against a timer ever appearing in the module. |
-| `app/test/unit/ui/lazy-view-test.tsx` | Polite announcement, focus never moved, direct render with no wrapper element, real error text, retry, cached second mount, module-swap safety, no report after unmount, and both languages' band copy. |
-| `app/test/unit/progressive-startup-test.ts` | The startup contract in `app-store.ts` and the deferred-section wiring in `repository.tsx`. |
+| `app/test/unit/progressive-load-test.ts` | Both stale-completion orders, reset, disposal, cached refresh state, rejection normalization, and the no-timer contract. |
+| `app/test/unit/ui/lazy-view-test.tsx` | Polite loading, focus retention, render containment, real error copy, retry, cached revisits, shared in-flight loads, surface swaps, and unmount fencing. |
+| `app/test/unit/progressive-startup-test.ts` | Startup boundaries, direct asynchronous chunk wiring, deferred Repository tools inventories, and signal propagation. |

@@ -4,7 +4,13 @@ import {
   DefaultAudioSystemSettings,
   parseAudioSettings,
 } from './audio/audio-settings'
-import { translate, TranslationKey, TranslationVariables } from './i18n'
+import {
+  bilingualVariable,
+  IBilingualVariable,
+  translate,
+  TranslationKey,
+  TranslationVariables,
+} from './i18n'
 import { LanguageMode } from '../models/language-mode'
 
 /**
@@ -51,6 +57,10 @@ export type FunnyLevelTextBase =
   | 'cheapLfs.unattendedEncryption.body'
   | 'pullBranchDeleted.intro'
   | 'pullBranchDeleted.recovered'
+  | 'cheapLfs.restore.phase.decrypting'
+  | 'cheapLfs.encryption.dialog.commitDescription'
+  | 'lazyView.loading'
+  | 'lazyView.failedBody'
 
 /** Read the persisted per-language funny levels, defaulting when unreadable. */
 export function readFunnyLevels(): IFunnyLevels {
@@ -83,6 +93,20 @@ export function funnyBand(level: number): FunnyBand {
   return clamped === 3 ? 'light' : 'playful'
 }
 
+/** Build one independently toned value for interpolation by both catalogs. */
+export function funnyLevelBilingualVariable(
+  base: FunnyLevelTextBase,
+  levels: IFunnyLevels = DefaultFunnyLevels,
+  variables: TranslationVariables = {}
+): IBilingualVariable {
+  const englishKey: TranslationKey = `${base}.${funnyBand(levels.english)}`
+  const cantoneseKey: TranslationKey = `${base}.${funnyBand(levels.cantonese)}`
+  return bilingualVariable(
+    translate(englishKey, 'english', variables),
+    translate(cantoneseKey, 'cantonese', variables)
+  )
+}
+
 /**
  * Translate a `<base>.plain` / `.light` / `.playful` key family, picking each
  * language's own band from its own funny level.
@@ -97,18 +121,13 @@ export function translateWithFunnyLevel(
   levels: IFunnyLevels = DefaultFunnyLevels,
   variables: TranslationVariables = {}
 ): string {
-  const englishKey: TranslationKey = `${base}.${funnyBand(levels.english)}`
-  const cantoneseKey: TranslationKey = `${base}.${funnyBand(levels.cantonese)}`
+  const localized = funnyLevelBilingualVariable(base, levels, variables)
 
   if (languageMode === 'cantonese') {
-    return translate(cantoneseKey, 'cantonese', variables)
+    return localized.cantonese
   }
   if (languageMode === 'bilingual') {
-    return `${translate(englishKey, 'english', variables)} · ${translate(
-      cantoneseKey,
-      'cantonese',
-      variables
-    )}`
+    return `${localized.english} · ${localized.cantonese}`
   }
-  return translate(englishKey, 'english', variables)
+  return localized.english
 }

@@ -1,30 +1,27 @@
 import assert from 'node:assert'
-import { readFile } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
 
-const readSource = (path: string) =>
-  readFile(join(process.cwd(), 'app', 'src', ...path.split('/')), 'utf8')
+const read = (...segments: ReadonlyArray<string>) =>
+  readFileSync(join(process.cwd(), ...segments), 'utf8')
 
-/**
- * Slice a method body out of a source file so a contract can be asserted
- * against that method alone rather than the whole 20k-line store.
- */
+/** Extract one complete method so assertions cannot match a different caller. */
 function methodBody(source: string, signature: string): string {
   const start = source.indexOf(signature)
-  assert.notStrictEqual(start, -1, `could not find '${signature}' in source`)
+  assert.notEqual(start, -1, `could not find '${signature}' in source`)
 
   let depth = 0
   let seenBrace = false
-  for (let i = start; i < source.length; i++) {
-    const character = source[i]
+  for (let index = start; index < source.length; index++) {
+    const character = source[index]
     if (character === '{') {
-      depth += 1
+      depth++
       seenBrace = true
     } else if (character === '}') {
-      depth -= 1
+      depth--
       if (seenBrace && depth === 0) {
-        return source.slice(start, i + 1)
+        return source.slice(start, index + 1)
       }
     }
   }
@@ -32,208 +29,263 @@ function methodBody(source: string, signature: string): string {
   assert.fail(`could not find the end of '${signature}'`)
 }
 
-describe('startup does not block the shell on optional work', () => {
-  it('adopts the cached editor choice instead of awaiting an availability scan', async () => {
-    const source = await readSource('lib/stores/app-store.ts')
-    const body = methodBody(source, 'public async loadInitialState()')
+const appSource = read('app', 'src', 'ui', 'app.tsx')
+const appStoreSource = read('app', 'src', 'lib', 'stores', 'app-store.ts')
+const repositorySource = read('app', 'src', 'ui', 'repository.tsx')
+const dispatcherSource = read('app', 'src', 'ui', 'dispatcher', 'dispatcher.ts')
+const gitLogSource = read('app', 'src', 'lib', 'git', 'log.ts')
+const subtreeSource = read('app', 'src', 'lib', 'git', 'subtree.ts')
+const lazyViewSource = read('app', 'src', 'ui', 'lib', 'lazy-view.tsx')
+const repositoryToolsSource = read(
+  'app',
+  'src',
+  'ui',
+  'repository-tools',
+  'repository-tools.tsx'
+)
+const repositoryToolsStyleSource = read(
+  'app',
+  'styles',
+  'ui',
+  '_repository-tools.scss'
+)
 
+const heavyModules = [
+  {
+    barrel: './actions',
+    direct: './actions/actions-view',
+    loader: 'loadActionsModule',
+  },
+  {
+    barrel: './github-packages',
+    direct: './github-packages/github-distribution-view',
+    loader: 'loadGitHubDistributionModule',
+  },
+  {
+    barrel: './github-issues',
+    direct: './github-issues/github-issues-view',
+    loader: 'loadGitHubIssuesModule',
+  },
+  {
+    barrel: './github-api-explorer',
+    direct: './github-api-explorer/github-api-explorer',
+    loader: 'loadGitHubAPIModule',
+  },
+  {
+    barrel: './repository-tools',
+    direct: './repository-tools/repository-tools',
+    loader: 'loadRepositoryToolsModule',
+  },
+  {
+    barrel: './repository-tools',
+    direct: './repository-tools/cheap-lfs',
+    loader: 'loadCheapLfsModule',
+  },
+  {
+    barrel: './repository-tools/provider-triage',
+    direct: './repository-tools/provider-triage',
+    loader: 'loadRepositoryProviderTriageModule',
+  },
+] as const
+
+describe('progressive startup source contract', () => {
+  it('reveals the committed shell without a fake delay', () => {
+    assert.doesNotMatch(
+      appSource,
+      /if \(this\.loading\)\s*\{\s*return null\s*\}/
+    )
+    assert.match(appSource, /className="startup-progress"/)
     assert.match(
-      body,
-      /this\.selectedExternalEditor = localStorage\.getItem\(externalEditorKey\)/,
-      'the shell must paint from the persisted choice rather than a filesystem scan'
+      appSource,
+      /componentDidMount\(\)[\s\S]*?this\.readySent = true[\s\S]*?sendReady\(/
+    )
+    assert.doesNotMatch(appSource, /ReadyDelay|setTimeout\([^)]*sendReady/)
+    assert.match(
+      appSource,
+      /componentWillUnmount\(\)[\s\S]*?cancelIdleCallback\(/
+    )
+  })
+
+  it('uses persisted editor data while isolated startup work continues', () => {
+    const initialState = methodBody(
+      appStoreSource,
+      'public async loadInitialState()'
+    )
+    assert.match(
+      initialState,
+      /this\.selectedExternalEditor\s*=\s*[\s\S]*?localStorage\.getItem\(externalEditorKey\) \|\| null/
     )
     assert.doesNotMatch(
-      body,
-      /await this\.lookupSelectedExternalEditor\(\)/,
-      'enumerating installed editors must not gate the first paint'
+      initialState,
+      /this\.updateSelectedExternalEditor\(\s*await this\.lookupSelectedExternalEditor\(\)\s*\)/
     )
-    assert.doesNotMatch(
-      body,
-      /await this\.batchCloneStore\.initialize\(\)/,
-      'clone-queue recovery must not gate the first paint'
-    )
-  })
-
-  it('hands the remaining startup work to a deferred phase it does not await', async () => {
-    const source = await readSource('lib/stores/app-store.ts')
-    const body = methodBody(source, 'public async loadInitialState()')
-
-    assert.match(body, /void this\.loadDeferredInitialState\(\)/)
-    assert.doesNotMatch(
-      body,
-      /await this\.loadDeferredInitialState\(\)/,
-      'awaiting the deferred phase would put the blocking gate straight back'
-    )
-  })
-
-  it('isolates each deferred step so one failure cannot cancel the rest', async () => {
-    const source = await readSource('lib/stores/app-store.ts')
-    const body = methodBody(source, 'private async loadDeferredInitialState()')
-
     assert.match(
-      body,
-      /runDeferredStartupStep\([\s\S]*?externalEditorAvailability/
+      initialState,
+      /void this\.loadDeferredInitialState\(\s*deferredStartupGeneration\s*\)\.catch/
     )
-    assert.match(body, /runDeferredStartupStep\([\s\S]*?cloneQueueRecovery/)
-  })
-
-  it('reports a deferred failure instead of swallowing it', async () => {
-    const source = await readSource('lib/stores/app-store.ts')
-    const body = methodBody(source, 'private async runDeferredStartupStep(')
-
-    assert.match(body, /log\.error\(/)
-    assert.match(body, /sendNonFatalException\('deferredStartup', error\)/)
-  })
-
-  it('never delays deferred startup work to make it look progressive', async () => {
-    const source = await readSource('lib/stores/app-store.ts')
-    const bodies = [
-      methodBody(source, 'private async loadDeferredInitialState()'),
-      methodBody(source, 'private async runDeferredStartupStep('),
-      methodBody(
-        source,
-        'private async confirmSelectedExternalEditorIsInstalled()'
-      ),
-      methodBody(source, 'private async recoverInterruptedCloneQueue()'),
-    ]
-
-    for (const body of bodies) {
-      assert.doesNotMatch(body, /setTimeout|setInterval|sleep\(/)
-    }
-  })
-
-  it('drops a stale editor scan rather than overwriting the user’s choice', async () => {
-    const source = await readSource('lib/stores/app-store.ts')
-    const body = methodBody(
-      source,
-      'private async confirmSelectedExternalEditorIsInstalled()'
-    )
-
     assert.match(
-      body,
-      /const generation = this\.externalEditorSelectionGeneration[\s\S]*?await this\.lookupSelectedExternalEditor\(\)[\s\S]*?if \(generation !== this\.externalEditorSelectionGeneration\) \{[\s\S]*?return/,
-      'the scan must compare the generation it captured before awaiting'
+      appStoreSource,
+      /runDeferredStartupStep[\s\S]*?try \{[\s\S]*?await action\(\)[\s\S]*?catch \(error\)[\s\S]*?reportDeferredStartupFailure/
     )
+    assert.match(appStoreSource, /sendNonFatalException\(\s*'deferredStartup'/)
+
+    const start = appStoreSource.indexOf('public async loadInitialState')
+    const end = appStoreSource.indexOf(
+      'private async auditAccountOAuthScopes',
+      start
+    )
+    assert.doesNotMatch(appStoreSource.slice(start, end), /setTimeout|sleep\(/)
   })
 
-  it('bumps the generation whenever the selected editor changes', async () => {
-    const source = await readSource('lib/stores/app-store.ts')
-    const body = methodBody(source, 'private updateSelectedExternalEditor(')
+  it('fences editor discovery when the user changes selection', () => {
+    const deferredStartup = methodBody(
+      appStoreSource,
+      'private async loadDeferredInitialState('
+    )
+    assert.match(
+      deferredStartup,
+      /const selectionGeneration = this\.externalEditorSelectionGeneration[\s\S]*?await this\.externalEditorDiscoveryLoad\.run\([\s\S]*?selectionGeneration !== this\.externalEditorSelectionGeneration[\s\S]*?return/
+    )
 
-    assert.match(body, /this\.externalEditorSelectionGeneration \+= 1/)
+    const updateSelection = methodBody(
+      appStoreSource,
+      'private updateSelectedExternalEditor('
+    )
+    assert.match(
+      updateSelection,
+      /this\.externalEditorSelectionGeneration \+= 1/
+    )
   })
 })
 
-describe('heavy repository sections load lazily', () => {
-  const sections = [
-    './actions',
-    './github-packages',
-    './github-issues',
-    './github-api-explorer',
-    './repository-tools',
-    './repository-tools/provider-triage',
-  ]
+describe('lazy repository module source contract', () => {
+  it('uses direct asynchronous chunks for all seven inactive sections', () => {
+    assert.doesNotMatch(repositorySource, /webpackMode:\s*["']eager["']/)
 
-  it('imports every heavy section for its types only', async () => {
-    const source = await readSource('ui/repository.tsx')
-
-    for (const section of sections) {
-      const pattern = new RegExp(
-        `import type \\{[^}]*\\} from '${section.replace(/\//g, '\\/')}'`
+    for (const { barrel, direct, loader } of heavyModules) {
+      const escapedBarrel = barrel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const escapedDirect = direct.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      assert.doesNotMatch(
+        repositorySource,
+        new RegExp(`import\\s+\\{[^}]+\\}\\s+from\\s+'${escapedBarrel}'`)
       )
+      assert.doesNotMatch(
+        repositorySource,
+        new RegExp(`from\\s+'${escapedDirect}'`)
+      )
+      const loaderStart = repositorySource.indexOf(`const ${loader}`)
+      assert.notEqual(loaderStart, -1, `Expected runtime loader ${loader}`)
+      const nextLoader = repositorySource.indexOf('\nconst ', loaderStart + 1)
+      const loaderSource = repositorySource.slice(
+        loaderStart,
+        nextLoader === -1 ? undefined : nextLoader
+      )
+      assert.match(loaderSource, /import\(/)
+      assert.match(loaderSource, /webpackChunkName:/)
+      assert.match(loaderSource, new RegExp(`'${escapedDirect}'`))
+    }
+
+    assert.equal(repositorySource.match(/<LazyView</g)?.length, 7)
+    for (const key of ['actions', 'releases', 'issues', 'triage', 'tools']) {
       assert.match(
-        source,
-        pattern,
-        `${section} must be imported for types only so it is not evaluated at startup`
+        repositorySource,
+        new RegExp(`name=\\{t\\('repositorySection\\.${key}'\\)\\}`)
       )
     }
   })
 
-  it('evaluates every heavy section through a deferred module', async () => {
-    const source = await readSource('ui/repository.tsx')
-
-    for (const section of sections) {
-      const pattern = new RegExp(
-        `import\\(\\s*\\/\\* webpackMode: "eager" \\*\\/\\s*'${section.replace(
-          /\//g,
-          '\\/'
-        )}'`
-      )
-      assert.match(source, pattern, `${section} must be loaded via import()`)
-    }
+  it('keeps loading, recovery, caching, and focus behavior local', () => {
+    assert.match(
+      lazyViewSource,
+      /role="status"[\s\S]*?aria-live="polite"[\s\S]*?aria-busy=\{true\}/
+    )
+    assert.match(lazyViewSource, /role="alert"/)
+    assert.match(lazyViewSource, /onClick=\{this\.retry\}/)
+    assert.match(lazyViewSource, /resolvedLoads = new WeakMap/)
+    assert.match(lazyViewSource, /inFlightLoads = new WeakMap/)
+    assert.match(lazyViewSource, /forgetCachedLoad\(this\.props\.load\)/)
+    assert.doesNotMatch(lazyViewSource, /\.focus\(|autoFocus/)
   })
 
-  it('keeps Changes and History statically imported', async () => {
-    const source = await readSource('ui/repository.tsx')
-
-    // These are what the app opens on. Deferring them would trade one blocking
-    // screen for another, so they stay eager on purpose.
+  it('fences and aborts repository inventories across navigation', () => {
     assert.match(
-      source,
-      /^import \{ Changes, ChangesSidebar \} from '\.\/changes'$/m
+      repositorySource,
+      /submoduleCountLoad = new ProgressiveLoad<number>\(\)/
     )
     assert.match(
-      source,
-      /^import \{ SelectedCommits, CompareSidebar \} from '\.\/history'$/m
+      repositorySource,
+      /subtreeCountLoad = new ProgressiveLoad<number>\(\)/
+    )
+    assert.match(
+      repositorySource,
+      /getSubmodules\(\s*repository,\s*abortController\.signal\s*\)/
+    )
+    assert.match(
+      repositorySource,
+      /getSubtrees\(\s*repository,\s*abortController\.signal\s*\)/
+    )
+    assert.match(
+      repositorySource,
+      /cancelRepositoryInventoryLoads[\s\S]*?submoduleCountLoad\.reset\([\s\S]*?subtreeCountLoad\.reset\(/
+    )
+    assert.match(
+      dispatcherSource,
+      /getSubmodules\([\s\S]{0,100}?signal\?: AbortSignal[\s\S]{0,180}?_getSubmodules\(repository, signal\)/
+    )
+    assert.match(
+      dispatcherSource,
+      /getSubtrees\([\s\S]{0,100}?signal\?: AbortSignal[\s\S]{0,180}?_getSubtrees\(repository, signal\)/
+    )
+    assert.match(
+      appStoreSource,
+      /_getSubmodules\([\s\S]{0,100}?signal\?: AbortSignal[\s\S]{0,180}?getSubmodules\(repository, signal\)/
+    )
+    assert.match(
+      appStoreSource,
+      /_getSubtrees\([\s\S]{0,100}?signal\?: AbortSignal[\s\S]{0,180}?discoverSubtrees\(repository, 400, signal\)/
+    )
+    assert.match(
+      subtreeSource,
+      /discoverSubtrees\([\s\S]{0,140}?signal\?: AbortSignal[\s\S]{0,260}?getCommits\([\s\S]{0,260}?signal/
+    )
+    assert.match(
+      gitLogSource,
+      /getCommits\([\s\S]{0,180}?signal\?: AbortSignal[\s\S]{0,1800}?createGitProcessAbortHandler\(signal\)[\s\S]{0,420}?processCallback/
     )
   })
 
-  it('routes every deferred section failure to a non-blocking notification', async () => {
-    const source = await readSource('ui/repository.tsx')
-
-    const handlers = source.match(
-      /onLoadFailed=\{this\.onLazyViewLoadFailed\}/g
-    )
-    assert.strictEqual(
-      handlers?.length,
-      7,
-      'every deferred section must report a load failure'
-    )
-
-    const handler = methodBody(source, 'private onLazyViewLoadFailed = (')
-    assert.match(
-      handler,
-      /dispatcher\.postNotification\(\{[\s\S]*?lazyView\.notificationTitle/,
-      'a failed section informs rather than asking for a decision, so it is a notification'
-    )
-    assert.doesNotMatch(
-      handler,
-      /showPopup|Dialog/,
-      'a failed section must never be escalated to a modal'
-    )
-  })
-})
-
-describe('repository counts cannot be clobbered by an out-of-order response', () => {
-  it('gates both counts on a monotonic token', async () => {
-    const source = await readSource('ui/repository.tsx')
-
-    assert.match(
-      source,
-      /private readonly submoduleCountGate = new LatestLoadGate\(\)/
+  it('starts inventories only for Tools and keeps failures usable there', () => {
+    const didMount = repositorySource.slice(
+      repositorySource.indexOf('public componentDidMount()'),
+      repositorySource.indexOf('public componentWillUnmount()')
     )
     assert.match(
-      source,
-      /private readonly subtreeCountGate = new LatestLoadGate\(\)/
-    )
-    assert.match(source, /gate\.accept\(token\)/)
-  })
-
-  it('records why a count is unknown instead of discarding the reason', async () => {
-    const source = await readSource('ui/repository.tsx')
-
-    assert.match(
-      source,
-      /catch \(e\) \{[\s\S]*?log\.warn\([\s\S]*?Could not count submodules/
+      didMount,
+      /getSelectedSection\(\) === RepositorySectionTab\.RepositoryTools/
     )
     assert.match(
-      source,
-      /catch \(e\) \{[\s\S]*?log\.warn\([\s\S]*?Could not count subtrees/
+      repositorySource,
+      /!wasRepositoryToolsActive && repositoryToolsActive[\s\S]*?loadSubmoduleCount\(\)[\s\S]*?loadSubtreeCount\(\)/
     )
-    assert.doesNotMatch(
-      source,
-      /\} catch \{\s*\n\s*if \(\s*\n?\s*!this\.repositoryViewUnmounted/,
-      'the bare catch that threw the failure away must not come back'
+    assert.match(
+      repositorySource,
+      /wasRepositoryToolsActive && !repositoryToolsActive[\s\S]*?cancelRepositoryInventoryLoads\(true\)/
     )
+    assert.match(
+      repositoryToolsSource,
+      /submoduleInventoryState\?: ProgressiveLoadState<number>/
+    )
+    assert.match(repositoryToolsSource, /role="alert"/)
+    assert.match(repositoryToolsSource, /onClick=\{retry\}/)
+    assert.match(
+      repositoryToolsStyleSource,
+      /\.repository-tools-inventory-statuses[\s\S]*?max-height: 128px;[\s\S]*?overflow-y: auto;/
+    )
+
+    const toolsDidMount = repositoryToolsSource.slice(
+      repositoryToolsSource.indexOf('public componentDidMount()'),
+      repositoryToolsSource.indexOf('public componentDidUpdate(')
+    )
+    assert.doesNotMatch(toolsDidMount, /\.focus\(|autoFocus/)
   })
 })

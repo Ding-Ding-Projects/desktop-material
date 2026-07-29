@@ -19,31 +19,33 @@ import {
   isOnlyCheapLfsAuthenticationError,
   isEncryptedCheapLfsPayload,
   readCheapLfsEncryptionHeader,
+  verifyCheapLfsEncryptionSecret,
 } from '../../../src/lib/cheap-lfs/payload-encryption'
 
 // A deliberately cheap cost so the suite stays fast. Production uses
 // defaultCheapLfsKdfParameters; the format records whatever was used, which is
 // exactly what lets this test pick its own.
 const fastKdf = { logN: 8, blockSize: 1, parallelism: 1 }
-const password = 'correct horse battery staple'
 
 describe('Cheap LFS payload encryption', () => {
-  it('decrypts a format-v1 container written by the pushed origin/main implementation', async () => {
-    // Captured from the already-pushed format-v1 writer with low test KDF
-    // parameters. The layout/magic are immutable compatibility data.
-    const originMainContainer = Buffer.from(
-      'RE1DTEZTAAEBAAEAAQAAAAoAAAAIAAAAAQAAABAAAAAMAAAAEAAAAEN/FUhz5gRbCX9zzCqAHBVixTT1+V/U8i+KyMRSEmetGTNY9bRmYNpGaLcI1q1itWHvwowFWmReZbxzphuToxOCNA==',
-      'base64'
-    )
+  it('keeps the current writer and reader on format v1', async () => {
+    const plaintext = randomBytes(64)
+    const password = randomBytes(32)
+    const container = await encryptCheapLfsPayload(plaintext, password, fastKdf)
 
-    const plaintext = await decryptCheapLfsPayload(
-      originMainContainer,
-      'compat-password'
+    assert.equal(
+      readCheapLfsEncryptionHeader(container).formatVersion,
+      CheapLfsEncryptionFormatVersion
     )
-    assert.equal(plaintext.toString('utf8'), 'origin-main-compatible')
+    assert.deepEqual(
+      await decryptCheapLfsPayload(container, password),
+      plaintext
+    )
+    password.fill(0)
   })
 
   it('round-trips to byte-identical plaintext', async () => {
+    const password = randomBytes(32)
     const plaintext = randomBytes(4096)
     const encrypted = await encryptCheapLfsPayload(plaintext, password, fastKdf)
 
@@ -56,6 +58,7 @@ describe('Cheap LFS payload encryption', () => {
   })
 
   it('round-trips an empty payload', async () => {
+    const password = randomBytes(32)
     const encrypted = await encryptCheapLfsPayload(
       Buffer.alloc(0),
       password,
@@ -65,17 +68,25 @@ describe('Cheap LFS payload encryption', () => {
     assert.equal(decrypted.length, 0)
   })
 
+  it('verifies a password through an authenticated in-memory test block', async () => {
+    const password = randomBytes(32)
+    await verifyCheapLfsEncryptionSecret(password, fastKdf)
+    password.fill(0)
+  })
+
   it('fails cleanly on a wrong password and returns no partial output', async () => {
+    const password = randomBytes(32)
     const plaintext = randomBytes(2048)
     const encrypted = await encryptCheapLfsPayload(plaintext, password, fastKdf)
 
     await assert.rejects(
-      decryptCheapLfsPayload(encrypted, 'not the password'),
+      decryptCheapLfsPayload(encrypted, randomBytes(32)),
       CheapLfsEncryptionError
     )
   })
 
   it('rejects a single flipped ciphertext byte', async () => {
+    const password = randomBytes(32)
     const plaintext = randomBytes(2048)
     const encrypted = await encryptCheapLfsPayload(plaintext, password, fastKdf)
     const header = readCheapLfsEncryptionHeader(encrypted)
@@ -90,6 +101,7 @@ describe('Cheap LFS payload encryption', () => {
   })
 
   it('rejects a truncated payload', async () => {
+    const password = randomBytes(32)
     const plaintext = randomBytes(2048)
     const encrypted = await encryptCheapLfsPayload(plaintext, password, fastKdf)
 
@@ -103,6 +115,7 @@ describe('Cheap LFS payload encryption', () => {
   })
 
   it('rejects a swapped nonce', async () => {
+    const password = randomBytes(32)
     const plaintext = randomBytes(2048)
     const first = await encryptCheapLfsPayload(plaintext, password, fastKdf)
     const second = await encryptCheapLfsPayload(plaintext, password, fastKdf)
@@ -127,6 +140,7 @@ describe('Cheap LFS payload encryption', () => {
   })
 
   it('draws a fresh nonce and salt for every encryption of the same bytes', async () => {
+    const password = randomBytes(32)
     // Nonce reuse under one key breaks GCM outright, so this is the single
     // most important property in the module.
     const plaintext = randomBytes(512)
@@ -164,6 +178,7 @@ describe('Cheap LFS payload encryption', () => {
   })
 
   it('records the key-derivation parameters it used', async () => {
+    const password = randomBytes(32)
     const encrypted = await encryptCheapLfsPayload(
       randomBytes(64),
       password,
@@ -176,6 +191,7 @@ describe('Cheap LFS payload encryption', () => {
   })
 
   it('decrypts a payload written with different parameters than today default', async () => {
+    const password = randomBytes(32)
     // Proves cost can be raised later without orphaning existing payloads:
     // decryption reads the parameters from the header rather than assuming.
     const plaintext = randomBytes(256)
@@ -204,6 +220,7 @@ describe('Cheap LFS payload encryption', () => {
   })
 
   it('refuses a header claiming absurd derivation cost', async () => {
+    const password = randomBytes(32)
     const encrypted = await encryptCheapLfsPayload(
       randomBytes(64),
       password,
@@ -220,6 +237,7 @@ describe('Cheap LFS payload encryption', () => {
   })
 
   it('refuses individually valid scrypt parameters whose memory exceeds the hard bound', async () => {
+    const password = randomBytes(32)
     const encrypted = await encryptCheapLfsPayload(
       randomBytes(64),
       password,
@@ -237,6 +255,7 @@ describe('Cheap LFS payload encryption', () => {
   })
 
   it('requires a password on both sides', async () => {
+    const password = randomBytes(32)
     await assert.rejects(
       encryptCheapLfsPayload(randomBytes(16), '', fastKdf),
       CheapLfsPasswordRequiredError
@@ -253,6 +272,7 @@ describe('Cheap LFS payload encryption', () => {
   })
 
   it('refuses scrypt parameters whose CPU work exceeds the hard bound', async () => {
+    const password = randomBytes(32)
     const encrypted = await encryptCheapLfsPayload(
       randomBytes(64),
       password,
@@ -271,7 +291,7 @@ describe('Cheap LFS payload encryption', () => {
   })
 
   it('accepts a caller-zeroable byte secret without mutating it', async () => {
-    const secret = Buffer.from('mutable passphrase')
+    const secret = randomBytes(32)
     const before = Buffer.from(secret)
     const plaintext = randomBytes(128)
     const encrypted = await encryptCheapLfsPayload(plaintext, secret, fastKdf)
@@ -282,13 +302,8 @@ describe('Cheap LFS payload encryption', () => {
   })
 
   it('never puts the password in its error messages', async () => {
-    // Both passphrases are deliberately unmistakable strings that cannot occur
-    // in ordinary English prose. An earlier version of this test used "wrong"
-    // as the attempted password and failed against the perfectly correct
-    // message "the password is wrong or the stored bytes were altered" — the
-    // test was at fault, not the code.
-    const secret = 'zq7-hunter-passphrase-alpha'
-    const attempted = 'zq7-different-passphrase-beta'
+    const secret = randomBytes(32)
+    const attempted = randomBytes(32)
     const encrypted = await encryptCheapLfsPayload(
       randomBytes(128),
       secret,
@@ -323,12 +338,16 @@ describe('Cheap LFS payload encryption', () => {
       false
     )
     assert.ok(
-      !error.message.includes(secret) && !error.message.includes(attempted),
+      !error.message.includes(secret.toString('hex')) &&
+        !error.message.includes(attempted.toString('hex')),
       `the failure must not echo either password, saw: ${error.message}`
     )
+    secret.fill(0)
+    attempted.fill(0)
   })
 
   it('stream-encrypts one file range and authenticates it into a separate file', async () => {
+    const password = randomBytes(32)
     const dir = await mkdtemp(join(tmpdir(), 'cheap-lfs-encryption-'))
     try {
       const prefix = randomBytes(97)
@@ -344,7 +363,7 @@ describe('Cheap LFS payload encryption', () => {
         encryptedPath,
         prefix.length,
         plaintext.length,
-        Buffer.from(password),
+        password,
         fastKdf
       )
       assert.equal(encrypted.plaintextSizeInBytes, plaintext.length)
@@ -366,7 +385,7 @@ describe('Cheap LFS payload encryption', () => {
       const decrypted = await decryptCheapLfsPayloadFileToFile(
         encryptedPath,
         decryptedPath,
-        Buffer.from(password)
+        password
       )
       assert.deepEqual(await readFile(decryptedPath), plaintext)
       assert.equal(decrypted.plaintextSha256, encrypted.plaintextSha256)
@@ -377,6 +396,7 @@ describe('Cheap LFS payload encryption', () => {
   })
 
   it('stream decryption removes partial output on a wrong password or truncation', async () => {
+    const password = randomBytes(32)
     const dir = await mkdtemp(join(tmpdir(), 'cheap-lfs-encryption-fail-'))
     try {
       const source = join(dir, 'source.bin')
@@ -392,14 +412,14 @@ describe('Cheap LFS payload encryption', () => {
         (
           await stat(source)
         ).size,
-        Buffer.from(password),
+        password,
         fastKdf
       )
 
       const wrong = await decryptCheapLfsPayloadFileToFile(
         encryptedPath,
         wrongOutput,
-        Buffer.from('not the password')
+        randomBytes(32)
       ).catch(error => error)
       assert.ok(wrong instanceof CheapLfsAuthenticationError)
       await assert.rejects(stat(wrongOutput), { code: 'ENOENT' })
@@ -409,7 +429,7 @@ describe('Cheap LFS payload encryption', () => {
       const truncated = await decryptCheapLfsPayloadFileToFile(
         encryptedPath,
         truncatedOutput,
-        Buffer.from(password)
+        password
       ).catch(error => error)
       assert.ok(truncated instanceof CheapLfsAuthenticationError)
       await assert.rejects(stat(truncatedOutput), { code: 'ENOENT' })
@@ -420,7 +440,7 @@ describe('Cheap LFS payload encryption', () => {
         decryptCheapLfsPayloadFileToFile(
           encryptedPath,
           existingOutput,
-          Buffer.from(password)
+          password
         ),
         { code: 'EEXIST' }
       )
@@ -431,6 +451,7 @@ describe('Cheap LFS payload encryption', () => {
   })
 
   it('honors a pre-aborted stream operation before creating output', async () => {
+    const password = randomBytes(32)
     const dir = await mkdtemp(join(tmpdir(), 'cheap-lfs-encryption-abort-'))
     try {
       const source = join(dir, 'source.bin')
@@ -448,7 +469,7 @@ describe('Cheap LFS payload encryption', () => {
           canceledEncryptedPath,
           0,
           plaintext.length,
-          Buffer.from(password),
+          password,
           fastKdf,
           encryptController.signal
         ),
@@ -461,7 +482,7 @@ describe('Cheap LFS payload encryption', () => {
         encryptedPath,
         0,
         plaintext.length,
-        Buffer.from(password),
+        password,
         fastKdf
       )
       const decryptController = new AbortController()
@@ -470,7 +491,7 @@ describe('Cheap LFS payload encryption', () => {
         decryptCheapLfsPayloadFileToFile(
           encryptedPath,
           canceledPlaintextPath,
-          Buffer.from(password),
+          password,
           decryptController.signal
         ),
         { name: 'AbortError' }

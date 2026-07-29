@@ -106,6 +106,10 @@ import {
   IOpenExternalOptions,
   InternalBrowserCommand,
 } from './internal-browser'
+import {
+  CheapLfsPayloadCredentialCleanupResult,
+  ICheapLfsPayloadCredentialCleanupRequest,
+} from './cheap-lfs/payload-encryption-credential-cleanup'
 
 /**
  * Defines the simplex IPC channel names we use from the renderer
@@ -260,6 +264,9 @@ export type RequestChannels = {
  * Return signatures must be promises
  */
 export type RequestResponseChannels = {
+  'cleanup-cheap-lfs-payload-credentials': (
+    request: ICheapLfsPayloadCredentialCleanupRequest
+  ) => Promise<CheapLfsPayloadCredentialCleanupResult>
   'register-actions-artifact-provenance-credential-lease': (
     request: IActionsArtifactProvenanceCredentialRegistration
   ) => Promise<string | null>

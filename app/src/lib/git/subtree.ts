@@ -182,11 +182,17 @@ export function parseSubtreePrefixes(
  */
 export async function discoverSubtrees(
   repository: Repository,
-  limit = 400
+  limit = 400,
+  signal?: AbortSignal
 ): Promise<ReadonlyArray<IManagedSubtree>> {
-  const commits = await getCommits(repository, undefined, limit, undefined, [
-    '--grep=git-subtree-dir:',
-  ])
+  const commits = await getCommits(
+    repository,
+    undefined,
+    limit,
+    undefined,
+    ['--grep=git-subtree-dir:'],
+    signal
+  )
 
   return parseSubtreePrefixes(commits)
 }

@@ -2,6 +2,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import { BatchCloneMode, IBatchCloneItem } from '../../src/models/batch-clone'
 import { BatchCloneStore } from '../../src/lib/stores/batch-clone-store'
+import { IBatchCloneJournal } from '../../src/lib/stores/batch-clone-journal'
 import { CloningRepositoriesStore } from '../../src/lib/stores/cloning-repositories-store'
 import { CloneOptions } from '../../src/models/clone-options'
 import { ICloneProgress } from '../../src/models/progress'
@@ -11,6 +12,14 @@ type CloneCallbacks = {
   readonly onError?: (error: Error) => void
   readonly onProgress?: (progress: ICloneProgress) => void
   readonly onSuccess?: (accountKey: string | null) => void
+}
+
+function createEmptyJournal(): IBatchCloneJournal {
+  return {
+    load: async () => null,
+    save: async () => undefined,
+    clear: async () => undefined,
+  }
 }
 
 describe('BatchCloneStore account binding', () => {
@@ -44,7 +53,7 @@ describe('BatchCloneStore account binding', () => {
       },
     } as unknown as CloningRepositoriesStore
 
-    const store = new BatchCloneStore(cloningStore)
+    const store = new BatchCloneStore(cloningStore, createEmptyJournal())
     await store.startBatch([item], BatchCloneMode.Sequential)
 
     assert.equal(receivedOptions?.accountKey, selectedAccountKey)
@@ -74,7 +83,7 @@ describe('BatchCloneStore account binding', () => {
       },
     } as unknown as CloningRepositoriesStore
 
-    const store = new BatchCloneStore(cloningStore)
+    const store = new BatchCloneStore(cloningStore, createEmptyJournal())
     await store.startBatch([item], BatchCloneMode.Sequential)
 
     assert.deepStrictEqual(store.getState()?.statuses.get(item.path), {

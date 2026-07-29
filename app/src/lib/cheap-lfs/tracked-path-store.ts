@@ -199,6 +199,15 @@ export interface ICheapLfsTrackedPathStore {
     proof: ICheapLfsTrackedFileProof,
     maximumBytes: number
   ): Promise<string>
+  /**
+   * Read only the requested prefix from an identity-proven regular file. The
+   * file may be larger than the prefix; symlinks, reparse points, linked files,
+   * parent redirects, and identity drift remain fail-closed.
+   */
+  readTextPrefix(
+    proof: ICheapLfsTrackedFileProof,
+    maximumBytes: number
+  ): Promise<string>
   prepareUpload(
     repositoryPath: string,
     relativePath: string,
@@ -970,6 +979,68 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
         )
       }
       await this.revalidate(proof)
+      return buffer.subarray(0, result.bytesRead).toString('utf8')
+    } finally {
+      await handle.close()
+    }
+  }
+
+  public async readTextPrefix(
+    proofInput: ICheapLfsTrackedFileProof,
+    maximumBytes: number
+  ): Promise<string> {
+    const proof = this.requireProof(proofInput)
+    if (
+      !proof.exists ||
+      !Number.isSafeInteger(maximumBytes) ||
+      maximumBytes < 0
+    ) {
+      throw new CheapLfsTrackedPathError(
+        'Cheap LFS refused an absent tracked prefix read.'
+      )
+    }
+    const bytesToRead = Math.min(proof.sizeInBytes, maximumBytes)
+    const handle = await open(
+      proof.absolutePath,
+      constants.O_RDONLY | NoFollowFlag
+    )
+    try {
+      const openedStats = await handle.stat({ bigint: true })
+      const opened = identity(openedStats)
+      if (
+        !openedStats.isFile() ||
+        openedStats.nlink !== 1n ||
+        proof.identity === null ||
+        !sameSettledEntry(proof.identity, opened)
+      ) {
+        throw new CheapLfsTrackedPathError(
+          'The tracked Cheap LFS prefix changed while it was opened.'
+        )
+      }
+      const buffer = Buffer.alloc(bytesToRead)
+      const result =
+        bytesToRead === 0
+          ? { bytesRead: 0 }
+          : await handle.read(buffer, 0, bytesToRead, 0)
+      const afterStats = await handle.stat({ bigint: true })
+      const visibleStats = await lstat(proof.absolutePath, { bigint: true })
+      const after = identity(afterStats)
+      const visible = identity(visibleStats)
+      if (
+        result.bytesRead !== bytesToRead ||
+        !afterStats.isFile() ||
+        afterStats.nlink !== 1n ||
+        visibleStats.isSymbolicLink() ||
+        !visibleStats.isFile() ||
+        visibleStats.nlink !== 1n ||
+        !sameSettledEntry(proof.identity, after) ||
+        !sameSettledEntry(proof.identity, visible)
+      ) {
+        throw new CheapLfsTrackedPathError(
+          'The tracked Cheap LFS prefix changed while it was read.'
+        )
+      }
+      await this.revalidateParents(proof.parents)
       return buffer.subarray(0, result.bytesRead).toString('utf8')
     } finally {
       await handle.close()
