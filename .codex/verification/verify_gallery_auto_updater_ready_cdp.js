@@ -1936,8 +1936,13 @@ async function waitForRealUpdateReady(client) {
       client,
       `(() => {
         const dialog = document.querySelector('#about')
-        const status = dialog?.querySelector('.update-status')
-          ?.textContent?.replace(/\\s+/g, ' ').trim() ?? ''
+        const statusElement = dialog?.querySelector('.update-status')
+        const status = (() => {
+          if (!(statusElement instanceof HTMLElement)) return ''
+          const clone = statusElement.cloneNode(true)
+          clone.querySelectorAll('.sr-only').forEach(node => node.remove())
+          return clone.textContent?.replace(/\\s+/g, ' ').trim() ?? ''
+        })()
         const buttons = [...(dialog?.querySelectorAll('button') ?? [])]
           .map(value => ({
             text: value.textContent?.replace(/\\s+/g, ' ').trim() ?? '',
@@ -1964,13 +1969,19 @@ async function waitForRealUpdateReady(client) {
   fail('Timed out waiting for the genuine update-ready About state.')
 }
 
-async function inspectReadySurface(client, productVersion) {
+async function inspectReadySurface(client, productVersion, sourceCommit) {
   return evaluate(
     client,
     `(() => {
       const dialog = document.querySelector('#about')
       const title = dialog?.querySelector('h1')
       const status = dialog?.querySelector('.update-status')
+      const visibleStatus = (() => {
+        if (!(status instanceof HTMLElement)) return ''
+        const clone = status.cloneNode(true)
+        clone.querySelectorAll('.sr-only').forEach(node => node.remove())
+        return clone.textContent?.replace(/\\s+/g, ' ').trim() ?? ''
+      })()
       const buttons = [...(dialog?.querySelectorAll('button') ?? [])]
       const install = buttons.find(value =>
         value.textContent?.replace(/\\s+/g, ' ').trim() ===
@@ -2060,11 +2071,11 @@ async function inspectReadySurface(client, productVersion) {
             'About Desktop Material',
         exactCurrentSourceVersion:
           dialog?.textContent?.includes(
-            'Version ${productVersion} (x64)'
+            'Build ${sourceCommit.slice(0, 10)} (x64)'
           ) === true,
         genuineUpdateStoreReady: updateStatus === 3,
         exactReadyMessage:
-          status?.textContent?.replace(/\\s+/g, ' ').trim() ===
+          visibleStatus ===
             'An update has been downloaded and is ready to be installed.',
         installDecisionUntouched:
           visible(install) &&
@@ -2093,9 +2104,9 @@ async function inspectReadySurface(client, productVersion) {
       return {
         title:
           title?.textContent?.replace(/\\s+/g, ' ').trim() ?? null,
-        version: '${productVersion}',
-        status:
-          status?.textContent?.replace(/\\s+/g, ' ').trim() ?? null,
+        productVersion: '${productVersion}',
+        buildLabel: 'Build ${sourceCommit.slice(0, 10)}',
+        status: visibleStatus,
         installLabel:
           install?.textContent?.replace(/\\s+/g, ' ').trim() ?? null,
         updateStatus,
@@ -2589,7 +2600,8 @@ async function main() {
 
     const surface = await inspectReadySurface(
       client,
-      topology.build.productVersion
+      topology.build.productVersion,
+      topology.build.sourceCommit
     )
     assertBooleanAssertions(surface.assertions, 'ui')
     const capture = await captureOriginalPixels(client, options.capturePath)

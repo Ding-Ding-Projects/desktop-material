@@ -618,6 +618,19 @@ test('source invokes real IPC, observes real state, and never fabricates ready U
   }
 })
 
+test('current-source About assertions ignore screen-reader duplication and pin the development build label', () => {
+  assert.ok(source.includes("clone.querySelectorAll('.sr-only')"))
+  assert.ok(
+    source.includes("'Build ${sourceCommit.slice(0, 10)} (x64)'"),
+    'development capture must prove the exact visible source build'
+  )
+  assert.equal(
+    source.includes("'Version ${productVersion} (x64)'"),
+    false,
+    'development builds expose a Build label, not a release Version label'
+  )
+})
+
 test('source contains loopback, registry, external-state, and cleanup ledgers', () => {
   for (const required of [
     "server.listen(0, '127.0.0.1'",
