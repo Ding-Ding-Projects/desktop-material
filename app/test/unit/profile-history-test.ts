@@ -136,6 +136,54 @@ describe('profile git history', () => {
     )
   })
 
+  it('blocks document replacement until the renderer lease is released', async () => {
+    let beforeUnload: ((event: BeforeUnloadEvent) => void) | null = null
+    const navigationTarget = {
+      addEventListener: (
+        _type: 'beforeunload',
+        listener: (event: BeforeUnloadEvent) => void
+      ) => {
+        beforeUnload = listener
+      },
+      removeEventListener: (
+        _type: 'beforeunload',
+        listener: (event: BeforeUnloadEvent) => void
+      ) => {
+        if (beforeUnload === listener) {
+          beforeUnload = null
+        }
+      },
+    }
+    let finishAction!: () => void
+    const action = new Promise<void>(resolve => {
+      finishAction = resolve
+    })
+    let finishRelease!: () => void
+    const release = new Promise<void>(resolve => {
+      finishRelease = resolve
+    })
+
+    const running = runProfileRepositoryActionWithLease(
+      () => action,
+      async () => {
+        await release
+        return true
+      },
+      navigationTarget
+    )
+    assert.notEqual(beforeUnload, null)
+    const event = new Event('beforeunload', { cancelable: true })
+    beforeUnload!(event as BeforeUnloadEvent)
+    assert.equal(event.defaultPrevented, true)
+
+    finishAction()
+    await Promise.resolve()
+    assert.notEqual(beforeUnload, null)
+    finishRelease()
+    await running
+    assert.equal(beforeUnload, null)
+  })
+
   it('serializes profile mutations across window stores', async t => {
     const repository = await createProfileRepository(t)
     let active = 0

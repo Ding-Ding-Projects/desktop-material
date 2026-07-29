@@ -1,0 +1,299 @@
+// Hosted clone-row Cheap LFS inventory badge and its manifest-bound asset
+// selector.
+.cheap-lfs-logo-mark {
+  display: block;
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.clone-repository-list-item {
+  .cheap-lfs-clone-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+    min-width: 28px;
+    min-height: 20px;
+    margin-left: var(--spacing-half);
+    padding: 1px 7px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    font-size: 11px;
+    font-weight: var(--font-weight-semibold);
+    line-height: 16px;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--md-sys-color-secondary);
+      color: var(--md-sys-color-on-secondary);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 1px;
+    }
+  }
+}
+
+dialog.clone-repository {
+  .clone-repository-filter-disclosure {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0;
+  }
+
+  .clone-repository-filter-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface-variant);
+    font: inherit;
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+
+    &.active {
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+    }
+
+    &:hover {
+      background: var(--md-sys-color-surface-container-highest);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+
+  .clone-repository-filter-chevron {
+    transition: transform 160ms ease;
+
+    &.expanded {
+      transform: rotate(180deg);
+    }
+  }
+
+  .clone-repository-filter-status {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+  }
+
+  .clone-repository-metadata-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: var(--md-sys-shape-corner-large);
+    background: var(--md-sys-color-surface-container-low);
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  .clone-repository-list-item.with-metadata .repo-header {
+    .cheap-lfs-clone-badge {
+      margin-left: 0;
+    }
+  }
+}
+
+#cheap-lfs-clone-assets {
+  width: min(720px, calc(100vw - 40px));
+
+  .dialog-content {
+    min-height: 0;
+  }
+
+  .cheap-lfs-asset-summary {
+    margin: 0 0 12px;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  .cheap-lfs-asset-selection-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .cheap-lfs-asset-search {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+
+    .text-box-component {
+      flex: 1 1 260px;
+      min-width: 0;
+    }
+  }
+
+  .cheap-lfs-asset-filter-error {
+    color: var(--md-sys-color-error);
+    font-size: var(--font-size-sm);
+  }
+
+  .cheap-lfs-asset-bulk-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+
+    button {
+      min-height: 36px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+      font: inherit;
+      font-weight: var(--font-weight-semibold);
+      cursor: pointer;
+
+      &:hover {
+        background: var(--md-sys-color-secondary);
+        color: var(--md-sys-color-on-secondary);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--md-sys-color-primary);
+        outline-offset: 1px;
+      }
+    }
+  }
+
+  .cheap-lfs-asset-tree-scroll {
+    min-height: 180px;
+    max-height: min(430px, 55vh);
+    overflow: auto;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-large);
+    background: var(--md-sys-color-surface-container-lowest);
+  }
+
+  .cheap-lfs-asset-tree,
+  .cheap-lfs-asset-tree ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .cheap-lfs-asset-tree ul {
+    padding-left: 24px;
+  }
+
+  .cheap-lfs-asset-tree:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: -2px;
+    border-radius: calc(var(--md-sys-shape-corner-large) - 1px);
+  }
+
+  .cheap-lfs-asset-tree-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 2px 10px 2px 6px;
+    color: var(--md-sys-color-on-surface);
+
+    &:hover {
+      background: var(--md-sys-color-surface-container);
+    }
+  }
+
+  .cheap-lfs-asset-tree-item.active > .cheap-lfs-asset-tree-row {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+  }
+
+  .cheap-lfs-folder-disclosure {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--md-sys-color-surface-container-high);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 1px;
+    }
+  }
+
+  .cheap-lfs-file-indent {
+    flex: 0 0 32px;
+    width: 32px;
+  }
+
+  .cheap-lfs-asset-kind {
+    flex: 0 0 auto;
+    color: var(--md-sys-color-primary);
+  }
+
+  .cheap-lfs-asset-name {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow-wrap: anywhere;
+  }
+
+  .cheap-lfs-asset-size {
+    flex: 0 0 auto;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-xs);
+    white-space: nowrap;
+  }
+
+  .cheap-lfs-asset-empty {
+    display: grid;
+    min-height: 180px;
+    place-items: center;
+    padding: 20px;
+    color: var(--md-sys-color-on-surface-variant);
+    text-align: center;
+  }
+}
+
+@media (max-width: 560px) {
+  #cheap-lfs-clone-assets {
+    .cheap-lfs-asset-search {
+      flex-direction: column;
+
+      .text-box-component,
+      .filter-mode-control {
+        width: 100%;
+      }
+    }
+
+    .cheap-lfs-asset-size {
+      display: none;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.clone-repository .clone-repository-filter-chevron {
+    transition: none;
+  }
+}

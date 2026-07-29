@@ -10,6 +10,7 @@ import { Owner } from '../../../src/models/owner'
 import {
   IBuildRunPreferences,
   defaultBuildRunPreferences,
+  getCheapLfsUploadConcurrency,
 } from '../../../src/models/build-run-preferences'
 import { BuildRunSettings } from '../../../src/ui/repository-settings/build-run-settings'
 import { CheapLfsSettings } from '../../../src/ui/repository-settings/cheap-lfs-settings'
@@ -38,12 +39,40 @@ describe('Cheap LFS settings tab preferences', () => {
   it('defaults both automation toggles on', () => {
     assert.equal(defaultBuildRunPreferences.autoMaterializeCheapLfs, true)
     assert.equal(defaultBuildRunPreferences.autoPinLargeFilesOnCommit, true)
+    assert.equal(defaultBuildRunPreferences.cheapLfsCloneHelperEnabled, true)
     assert.equal(defaultBuildRunPreferences.parallelCheapLfsUploads, true)
+    assert.equal(defaultBuildRunPreferences.cheapLfsUploadConcurrency, 3)
     assert.equal(defaultBuildRunPreferences.cheapLfsStorageProvider, 'release')
     assert.equal(defaultBuildRunPreferences.cheapLfsPayloadEncryption, false)
     assert.equal(
       defaultBuildRunPreferences.cheapLfsPayloadEncryptionConfirmed,
       false
+    )
+  })
+
+  it('defaults the cross-platform clone helper on and persists an explicit opt-out', () => {
+    const changes: IBuildRunPreferences[] = []
+    render(
+      <CheapLfsSettings
+        repository={repository()}
+        preferences={{
+          ...defaultBuildRunPreferences,
+          cheapLfsCloneHelperEnabled: undefined,
+        }}
+        onPreferencesChanged={preference => changes.push(preference)}
+      />
+    )
+
+    const checkbox = screen.getByRole<HTMLInputElement>('checkbox', {
+      name: /include the windows and linux clone helper/i,
+    })
+    assert.equal(checkbox.checked, true)
+    fireEvent.click(checkbox)
+    assert.equal(changes.at(-1)?.cheapLfsCloneHelperEnabled, false)
+    assert.match(
+      screen.getByText(/one-command windows\/linux hydration scripts/i)
+        .textContent ?? '',
+      /\.desktop-material\/cheap-lfs/
     )
   })
 
@@ -117,10 +146,11 @@ describe('Cheap LFS settings tab preferences', () => {
     assert.equal(pin.checked, true)
   })
 
-  it('defaults a legacy missing parallel field on and persists sequential mode', () => {
+  it('defaults legacy upload settings to three lanes and synchronizes the legacy switch', () => {
     const changes: IBuildRunPreferences[] = []
     const preferences = {
       ...defaultBuildRunPreferences,
+      cheapLfsUploadConcurrency: undefined,
       parallelCheapLfsUploads: undefined,
     }
     render(
@@ -131,14 +161,19 @@ describe('Cheap LFS settings tab preferences', () => {
       />
     )
 
-    const parallel = screen.getByRole<HTMLInputElement>('checkbox', {
-      name: /upload up to 3 large files at once/i,
+    const concurrency = screen.getByRole<HTMLSelectElement>('combobox', {
+      name: /simultaneous cheap lfs uploads/i,
     })
-    assert.equal(parallel.checked, true)
-    fireEvent.click(parallel)
+    assert.equal(concurrency.value, '3')
+    fireEvent.change(concurrency, { target: { value: '1' } })
+    assert.equal(changes.at(-1)?.cheapLfsUploadConcurrency, 1)
     assert.equal(changes.at(-1)?.parallelCheapLfsUploads, false)
     assert.equal(changes.at(-1)?.autoPinLargeFilesOnCommit, true)
     assert.equal(changes.at(-1)?.autoMaterializeCheapLfs, true)
+    fireEvent.change(concurrency, { target: { value: '2' } })
+    assert.equal(changes.at(-1)?.cheapLfsUploadConcurrency, 2)
+    assert.equal(changes.at(-1)?.parallelCheapLfsUploads, true)
+    assert.equal(getCheapLfsUploadConcurrency(changes.at(-1)!), 2)
   })
 
   it('provides English, Cantonese, and bilingual parallel-upload copy', () => {
@@ -151,10 +186,10 @@ describe('Cheap LFS settings tab preferences', () => {
       'cheapLfs.settings.parallelUploads',
       'bilingual'
     )
-    assert.match(english, /3 large files/i)
-    assert.match(cantonese, /3 個大檔案/)
-    assert.match(bilingual, /3 large files/i)
-    assert.match(bilingual, /3 個大檔案/)
+    assert.match(english, /simultaneous cheap lfs uploads/i)
+    assert.match(cantonese, /cheap lfs 同時上載數量/i)
+    assert.match(bilingual, /simultaneous cheap lfs uploads/i)
+    assert.match(bilingual, /cheap lfs 同時上載數量/i)
 
     const autoPin = translate('cheapLfs.settings.autoPin', 'bilingual')
     const autoMaterialize = translate(
@@ -166,8 +201,9 @@ describe('Cheap LFS settings tab preferences', () => {
     assert.match(autoPin, /自動 pin 大檔案/)
     assert.match(autoMaterialize, /Download large files after cloning/)
     assert.match(autoMaterialize, /自動下載大檔案/)
-    assert.match(help, /transfer lanes/)
-    assert.doesNotMatch(help, /release lanes/i)
+    assert.match(help, /1, 2, or 3 upload lanes/i)
+    assert.match(help, /retries fall back to one lane/i)
+    assert.match(help, /downloads keep their existing restore behavior/i)
   })
 
   it('persists the Release, GHCR, and Docker Hub storage selector', () => {

@@ -1,6 +1,7 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import {
+  DocumentScopedNativeClosePreparationController,
   INativeClosePreparationClock,
   INativeClosePreparationResult,
   NativeClosePreparationController,
@@ -53,6 +54,8 @@ const createSequentialIds = () => {
   let nextId = 1
   return () => `close-request-${nextId++}`
 }
+
+const flushPromises = () => new Promise<void>(resolve => setImmediate(resolve))
 
 describe('NativeClosePreparationController', () => {
   it('arms delivery before one send and shares the request across close races', async () => {
@@ -267,5 +270,161 @@ describe('NativeClosePreparationController', () => {
     assert.deepEqual(completions, [
       { requestId: 'failure-id', reason: 'prepared' },
     ])
+  })
+})
+
+describe('DocumentScopedNativeClosePreparationController', () => {
+  it('keeps close bounded while a replacement document never becomes ready', async () => {
+    const clock = new FakeClock()
+    const controller = new DocumentScopedNativeClosePreparationController({
+      clock,
+      createRequestId: createSequentialIds(),
+      deliveryTimeoutMilliseconds: 20,
+      sendPrepare: () => {},
+    })
+
+    const close = controller.requestPreparation()
+    assert.deepEqual(clock.activeDelays(), [20])
+    clock.fire(20)
+
+    assert.deepEqual(await close, {
+      requestId: 'renderer-document-lifecycle',
+      reason: 'delivery-timed-out',
+    })
+    assert.equal(controller.isReadyToClose, true)
+
+    controller.documentWillChange()
+    assert.equal(controller.isReadyToClose, false)
+  })
+
+  it('invalidates a navigating document and prepares its replacement', async () => {
+    const sent = new Array<string>()
+    const controller = new DocumentScopedNativeClosePreparationController({
+      clock: new FakeClock(),
+      createRequestId: createSequentialIds(),
+      sendPrepare: requestId => sent.push(requestId),
+    })
+
+    controller.documentDidBecomeReady()
+    const close = controller.requestPreparation()
+    let terminalActions = 0
+    void close.then(() => {
+      terminalActions++
+    })
+    await flushPromises()
+    assert.deepEqual(sent, ['close-request-1'])
+    assert.equal(controller.started('close-request-1'), true)
+
+    controller.documentWillChange()
+    assert.equal(controller.isReadyToClose, false)
+    assert.equal(controller.prepared('close-request-1'), false)
+
+    let settled = false
+    void close.then(() => {
+      settled = true
+    })
+    await flushPromises()
+    assert.equal(settled, false)
+    assert.equal(terminalActions, 0)
+
+    controller.documentDidBecomeReady()
+    await flushPromises()
+    assert.deepEqual(sent, ['close-request-1', 'close-request-2'])
+    assert.equal(controller.started('close-request-1'), false)
+    assert.equal(controller.started('close-request-2'), true)
+    assert.equal(controller.prepared('close-request-2'), true)
+
+    assert.deepEqual(await close, {
+      requestId: 'close-request-2',
+      reason: 'prepared',
+    })
+    await flushPromises()
+    assert.equal(terminalActions, 1)
+    assert.equal(controller.prepared('close-request-1'), false)
+    assert.equal(terminalActions, 1)
+    assert.equal(controller.isReadyToClose, true)
+  })
+
+  it('does not carry an explicitly cancelled close into a replacement document', async () => {
+    const sent = new Array<string>()
+    const controller = new DocumentScopedNativeClosePreparationController({
+      clock: new FakeClock(),
+      createRequestId: createSequentialIds(),
+      sendPrepare: requestId => sent.push(requestId),
+    })
+
+    controller.documentDidBecomeReady()
+    const close = controller.requestPreparation()
+    await flushPromises()
+    controller.documentWillChange()
+    assert.equal(controller.reset(), true)
+
+    assert.deepEqual(await close, {
+      requestId: 'renderer-document-lifecycle',
+      reason: 'reset',
+    })
+
+    controller.documentDidBecomeReady()
+    await flushPromises()
+    assert.deepEqual(sent, ['close-request-1'])
+    assert.equal(controller.isReadyToClose, false)
+  })
+
+  it('ignores readiness reported for a superseded document generation', async () => {
+    const sent = new Array<string>()
+    const controller = new DocumentScopedNativeClosePreparationController({
+      clock: new FakeClock(),
+      createRequestId: createSequentialIds(),
+      sendPrepare: requestId => sent.push(requestId),
+    })
+
+    controller.documentDidBecomeReady()
+    const close = controller.requestPreparation()
+    await flushPromises()
+    assert.deepEqual(sent, ['close-request-1'])
+
+    const firstReplacement = controller.documentWillChange()
+    const currentReplacement = controller.documentWillChange()
+    controller.documentDidBecomeReady(firstReplacement)
+    await flushPromises()
+    assert.deepEqual(sent, ['close-request-1'])
+
+    controller.documentDidBecomeReady(currentReplacement)
+    await flushPromises()
+    assert.deepEqual(sent, ['close-request-1', 'close-request-2'])
+    assert.equal(controller.started('close-request-2'), true)
+    assert.equal(controller.prepared('close-request-2'), true)
+    await close
+  })
+
+  it('invalidates completed preparation when the renderer document changes', async () => {
+    const sent = new Array<string>()
+    const controller = new DocumentScopedNativeClosePreparationController({
+      clock: new FakeClock(),
+      createRequestId: createSequentialIds(),
+      sendPrepare: requestId => sent.push(requestId),
+    })
+
+    controller.documentDidBecomeReady()
+    const first = controller.requestPreparation()
+    await flushPromises()
+    assert.equal(controller.started('close-request-1'), true)
+    assert.equal(controller.prepared('close-request-1'), true)
+    await first
+    assert.equal(controller.isReadyToClose, true)
+
+    controller.documentWillChange()
+    assert.equal(controller.isReadyToClose, false)
+    const replacement = controller.requestPreparation()
+    await flushPromises()
+    assert.deepEqual(sent, ['close-request-1'])
+
+    controller.documentDidBecomeReady()
+    await flushPromises()
+    assert.deepEqual(sent, ['close-request-1', 'close-request-2'])
+    assert.equal(controller.started('close-request-2'), true)
+    assert.equal(controller.prepared('close-request-2'), true)
+    await replacement
+    assert.equal(controller.isReadyToClose, true)
   })
 })

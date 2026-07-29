@@ -36,6 +36,17 @@ async function findTestFilesIn(paths) {
 export const maximumCommandLength =
   process.platform === 'win32' ? 24_000 : 96_000
 
+// node-test-github-reporter writes one expandable block per test. The complete
+// unit suite is large enough to exceed GitHub's 1 MiB step-summary limit, which
+// turns otherwise-green output into an upload error. Keep the rich reporter for
+// focused suites while the spec log and TAP accounting continue to cover large
+// runs without an unbounded summary.
+export const maximumGitHubReporterFiles = 250
+
+export function shouldUseGitHubReporter(isGitHubActions, fileCount) {
+  return isGitHubActions && fileCount <= maximumGitHubReporterFiles
+}
+
 export function estimateCommandLength(args) {
   return (
     'node'.length + args.reduce((length, arg) => length + arg.length + 3, 0)
@@ -227,7 +238,10 @@ async function main() {
     ...switchArgs,
     '--test',
     ...reporter('spec'),
-    ...(process.env.GITHUB_ACTIONS
+    ...(shouldUseGitHubReporter(
+      Boolean(process.env.GITHUB_ACTIONS),
+      files.length
+    )
       ? reporter('node-test-github-reporter')
       : []),
   ]

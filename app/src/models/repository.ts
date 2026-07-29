@@ -10,6 +10,7 @@ import {
   IBuildRunPreferences,
   defaultBuildRunPreferences,
   getCheapLfsStorageProvider,
+  getCheapLfsUploadConcurrency,
 } from './build-run-preferences'
 import { assertNever, fatalError } from '../lib/fatal-error'
 import { createEqualityHash } from './equality-hash'
@@ -99,10 +100,11 @@ export class Repository {
       this.buildRunPreferences.autoBuildOnPull,
       this.buildRunPreferences.buildFixProvider,
       this.buildRunPreferences.buildFixAutoApprove,
+      this.buildRunPreferences.cheapLfsCloneHelperEnabled !== false,
       this.buildRunPreferences.cheapLfsCloudCompression,
       this.buildRunPreferences.cheapLfsPayloadEncryption === true,
       this.buildRunPreferences.cheapLfsPayloadEncryptionConfirmed === true,
-      this.buildRunPreferences.parallelCheapLfsUploads !== false,
+      getCheapLfsUploadConcurrency(this.buildRunPreferences),
       getCheapLfsStorageProvider(this.buildRunPreferences),
       this.groupName,
       this.defaultBranch,

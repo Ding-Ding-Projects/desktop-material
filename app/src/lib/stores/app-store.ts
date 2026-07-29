@@ -39,6 +39,7 @@ import {
   createCheapLfsMaterializeCache,
   defaultCheapLfsFileSystem,
   discardCheapLfsRetainedPins,
+  getCheapLfsReleaseLaneTag,
   ICheapLfsAutoPinFailure,
   ICheapLfsAutoPinProgress,
   ICheapLfsAutoPinnedFile,
@@ -53,6 +54,7 @@ import {
   isCheapLfsPayloadProvenStored,
   CheapLfsPinStage,
   listAllCheapLfsPointers,
+  listAllCheapLfsPointersAtHead,
   materializeCheapLfsPointers,
   materializePointer,
   pinFileToRelease,
@@ -67,6 +69,11 @@ import {
   ICheapLfsRestoreLaneProgress,
   ICheapLfsRestoreProgress,
 } from '../cheap-lfs/restore-progress'
+import { ensureCheapLfsCloneHelperBundle } from '../cheap-lfs/clone-helper'
+import {
+  readCheapLfsCloneManifestEvidence,
+  validateCheapLfsCloneSelection,
+} from '../cheap-lfs/clone-selection-validation'
 import { cheapLfsPinFailureReasonText } from '../cheap-lfs/failure-reason'
 import {
   buildCheapLfsFirstPublishAbort,
@@ -209,6 +216,7 @@ import {
 } from '../../models/appearance-customization'
 import { CloneRepositoryTab } from '../../models/clone-repository-tab'
 import type { CloneOptions } from '../../models/clone-options'
+import type { ICheapLfsCloneSelection } from '../../models/cheap-lfs-clone-selection'
 import { CloningRepository } from '../../models/cloning-repository'
 import {
   getPreferAbsoluteDates,
@@ -390,6 +398,8 @@ import {
   ICheapLfsRestoreState,
   IBatchCloneFinalizingState,
 } from '../app-state'
+import { afterRendererPaint } from '../after-renderer-paint'
+import { invalidateCommitAuthorOrigins } from '../commit-author-origins'
 import { compareFormUpdateChangesState } from '../compare-form-update'
 import {
   findEditorOrDefault,
@@ -770,6 +780,7 @@ import { WorkflowPreferences } from '../../models/workflow-preferences'
 import {
   defaultBuildRunPreferences,
   getCheapLfsStorageProvider,
+  getCheapLfsUploadConcurrency,
   IBuildRunPreferences,
 } from '../../models/build-run-preferences'
 import { RepositoryIndicatorUpdater } from './helpers/repository-indicator-updater'
@@ -1485,9 +1496,52 @@ export function selectCheapLfsCommitFilesAfterPin(
     )
 }
 
+/**
+ * Build the pointer inventory that the pending commit will expose.
+ *
+ * A hydrated or locally deleted worktree is not evidence that an unselected
+ * pointer disappeared from Git. Start with the exact HEAD tree, remove only
+ * paths included in this commit (including a rename's old path), then overlay
+ * selected paths whose current bytes are valid pointer text.
+ */
+export function mergeCheapLfsPointersForProspectiveCommit(
+  headEntries: ReadonlyArray<ICheapLfsManagedPointerEntry>,
+  selectedWorktreeEntries: ReadonlyArray<ICheapLfsManagedPointerEntry>,
+  committedPaths: ReadonlySet<string>
+): ReadonlyArray<ICheapLfsManagedPointerEntry> {
+  const merged = new Map(
+    headEntries.map(entry => [entry.relativePath, entry] as const)
+  )
+  for (const path of committedPaths) {
+    merged.delete(path)
+  }
+  for (const entry of selectedWorktreeEntries) {
+    if (
+      committedPaths.has(entry.relativePath) &&
+      entry.workingTreeState === 'pointer'
+    ) {
+      merged.set(entry.relativePath, entry)
+    }
+  }
+  return [...merged.values()].sort((left, right) =>
+    left.relativePath < right.relativePath
+      ? -1
+      : left.relativePath > right.relativePath
+      ? 1
+      : 0
+  )
+}
+
 interface IRendererShutdownResumeFlight {
   readonly generation: number
   readonly promise: Promise<void>
+}
+
+interface ICheapLfsAutoMaterializeOptions {
+  readonly requireSelected?: boolean
+  readonly cheapLfsSelection?: ICheapLfsCloneSelection
+  readonly expectedCloneUrl?: string
+  readonly expectedDefaultBranch?: string
 }
 
 export class AppStore extends TypedBaseStore<IAppState> {
@@ -1512,6 +1566,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private batchCloneFinalizing: IBatchCloneFinalizingState | null = null
 
   private selectedRepository: Repository | CloningRepository | null = null
+  private repositorySectionChangeSequence = 0
   private automationSettings: IAutomationSettingsState =
     loadAutomationSettings()
 
@@ -3752,7 +3807,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   public async _selectRepository(
     repository: Repository | CloningRepository | null,
     persistSelection: boolean = true,
-    allowSubmoduleRepository: boolean = false
+    allowSubmoduleRepository: boolean = false,
+    autoMaterializeOptions: ICheapLfsAutoMaterializeOptions = {}
   ): Promise<Repository | null> {
     if (isSubmoduleRepository(repository) && !allowSubmoduleRepository) {
       const parent = this.getCurrentSubmoduleParent(repository)
@@ -3876,7 +3932,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     return this._selectRepositoryRefreshTasks(
       refreshedRepository,
-      previouslySelectedRepository
+      previouslySelectedRepository,
+      autoMaterializeOptions
     )
   }
 
@@ -3913,7 +3970,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   // finish `_selectRepository`s refresh tasks
   private async _selectRepositoryRefreshTasks(
     repository: Repository,
-    previouslySelectedRepository: Repository | CloningRepository | null
+    previouslySelectedRepository: Repository | CloningRepository | null,
+    autoMaterializeOptions: ICheapLfsAutoMaterializeOptions = {}
   ): Promise<Repository | null> {
     // Temporary submodule workspaces intentionally have no database record or
     // remote association. A foreground refresh is enough; starting persistent
@@ -3979,6 +4037,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // Detect point: opening a repository may reveal committed cheap-LFS
     // pointers to auto-materialize. Re-entrant, so re-check the selection.
     await this.maybeAutoMaterializeCheapLfs(refreshedRepository, {
+      ...autoMaterializeOptions,
       requireSelected: true,
     })
 
@@ -5912,6 +5971,25 @@ export class AppStore extends TypedBaseStore<IAppState> {
     selectedSection: RepositorySectionTab,
     forceButtonFocus: boolean = false
   ): Promise<void> {
+    switch (selectedSection) {
+      case RepositorySectionTab.Changes:
+      case RepositorySectionTab.History:
+      case RepositorySectionTab.Actions:
+      case RepositorySectionTab.Releases:
+      case RepositorySectionTab.CheapLfs:
+      case RepositorySectionTab.Issues:
+      case RepositorySectionTab.GitHubAPI:
+      case RepositorySectionTab.Triage:
+      case RepositorySectionTab.RepositoryTools:
+        break
+      default:
+        return assertNever(
+          selectedSection,
+          `Unknown section: ${selectedSection}`
+        )
+    }
+
+    const changeSequence = ++this.repositorySectionChangeSequence
     this.repositoryStateCache.update(repository, state => {
       if (state.selectedSection !== selectedSection) {
         this.statsStore.increment('repositoryViewChangeCount')
@@ -5920,6 +5998,33 @@ export class AppStore extends TypedBaseStore<IAppState> {
     })
     this.emitUpdate()
 
+    const targetIsStillCurrent = () => {
+      const selectedRepository = this.selectedRepository
+      return (
+        changeSequence === this.repositorySectionChangeSequence &&
+        selectedRepository instanceof Repository &&
+        selectedRepository.id === repository.id &&
+        selectedRepository.path === repository.path &&
+        this.repositoryStateCache.get(repository).selectedSection ===
+          selectedSection
+      )
+    }
+
+    // Git refreshes synchronously create child processes before their first
+    // await. Starting that work in the click task delays presentation of the
+    // newly selected section. Let the queued store update render and receive a
+    // paint opportunity first; hidden windows cannot produce animation frames,
+    // so they retain the immediate path.
+    if (this.windowState !== 'hidden') {
+      await afterRendererPaint()
+    }
+    if (
+      !this.isTemporaryRepositoryActive(repository) ||
+      !targetIsStillCurrent()
+    ) {
+      return
+    }
+
     if (selectedSection === RepositorySectionTab.History) {
       await this.refreshHistorySection(repository)
     } else if (selectedSection === RepositorySectionTab.Changes) {
@@ -5927,19 +6032,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
         includingStatus: true,
         clearPartialState: false,
       })
-    } else if (
-      selectedSection !== RepositorySectionTab.Actions &&
-      selectedSection !== RepositorySectionTab.Releases &&
-      selectedSection !== RepositorySectionTab.CheapLfs &&
-      selectedSection !== RepositorySectionTab.Issues &&
-      selectedSection !== RepositorySectionTab.GitHubAPI &&
-      selectedSection !== RepositorySectionTab.Triage &&
-      selectedSection !== RepositorySectionTab.RepositoryTools
-    ) {
-      return assertNever(selectedSection, `Unknown section: ${selectedSection}`)
     }
 
-    if (forceButtonFocus) {
+    if (forceButtonFocus && targetIsStillCurrent()) {
       const repoSideBar = document.getElementById('repository-sidebar')
       const button = repoSideBar?.querySelector(
         '.tab-bar-item.selected'
@@ -6635,7 +6730,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const gitStore = this.gitStoreCache.get(repository)
 
     let refreshAfterAutoPinFailure = false
-    let autoIncludedCheapLfsWorkflowPath: string | null = null
+    const autoIncludedCheapLfsManagedPaths = new Set<string>()
     // Owned by this method from the moment the pin outcome arrives: every exit
     // path below runs through the `finally` that discards them.
     let retainedCheapLfsPins: ReadonlyArray<ICheapLfsRetainedPin> = []
@@ -6649,6 +6744,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       let cheapLfsCommitPaths: ReadonlyArray<string>
       let annotatablePins: ReadonlyArray<ICheapLfsAnnotatablePin> = []
       let alreadyStoredCheapLfsPaths: ReadonlyArray<string> = []
+      const preferences =
+        repository.buildRunPreferences ?? defaultBuildRunPreferences
       try {
         const pinResult = await this.autoPinLargeFilesBeforeCommit(
           repository,
@@ -6662,7 +6759,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
         annotatablePins = pinResult.annotatablePins ?? []
         retainedCheapLfsPins = pinResult.retainedPins ?? []
         alreadyStoredCheapLfsPaths = pinResult.alreadyStoredPaths ?? []
-
         // The Release compressor is driven by a repository-owned workflow. An
         // automatic pin must install that caller before the status refresh and
         // include any uncommitted managed file in this same commit; otherwise a
@@ -6670,8 +6766,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
         // even though cloud compression is enabled. GHCR uses registry layers
         // directly and has no Release caller.
         if (pinned.length > 0) {
-          const preferences =
-            repository.buildRunPreferences ?? defaultBuildRunPreferences
           if (getCheapLfsStorageProvider(preferences) === 'release') {
             try {
               const workflow = await ensureCheapLfsCloudCompressionWorkflow(
@@ -6679,8 +6773,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
                 preferences
               )
               if (cheapLfsCloudCompressionUsesInRepoWorkflow(workflow.policy)) {
-                autoIncludedCheapLfsWorkflowPath =
+                autoIncludedCheapLfsManagedPaths.add(
                   CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH
+                )
               }
             } catch (workflowError) {
               // Raw published prerelease assets remain valid storage. Surface
@@ -6725,7 +6820,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       if (
         pinned.length > 0 ||
         pinFailures.length > 0 ||
-        alreadyStoredCheapLfsPaths.length > 0
+        alreadyStoredCheapLfsPaths.length > 0 ||
+        autoIncludedCheapLfsManagedPaths.size > 0
       ) {
         // Re-read status so the just-written pointer content — not the original
         // binary — is staged for each success, and every failed raw file can be
@@ -6746,9 +6842,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
           requiredCheapLfsPaths.delete(path)
         }
         const originalSelectedPaths = new Set(selectedFiles.map(f => f.path))
-        if (autoIncludedCheapLfsWorkflowPath !== null) {
-          originalSelectedPaths.add(autoIncludedCheapLfsWorkflowPath)
-          requiredCheapLfsPaths.add(autoIncludedCheapLfsWorkflowPath)
+        for (const managedPath of autoIncludedCheapLfsManagedPaths) {
+          originalSelectedPaths.add(managedPath)
+          requiredCheapLfsPaths.add(managedPath)
         }
         const refreshedFiles =
           this.repositoryStateCache.get(repository).changesState
@@ -6856,6 +6952,101 @@ export class AppStore extends TypedBaseStore<IAppState> {
           return false
         }
         cheapLfsCommitKeyRequirement = null
+      }
+
+      // Keep the default-on, repository-owned clone helper synchronized with
+      // the exact pointer set this commit will expose. HEAD is authoritative
+      // for every unselected path: hydrated or locally deleted payloads must
+      // not silently disappear from a later helper inventory.
+      if (preferences.cheapLfsCloneHelperEnabled !== false) {
+        try {
+          const committedPointerPaths = new Set<string>()
+          for (const file of selectedFiles) {
+            committedPointerPaths.add(file.path)
+            if (file.status.kind === AppFileStatusKind.Renamed) {
+              committedPointerPaths.add(file.status.oldPath)
+            }
+          }
+          const selectedWorktreePointers = await listAllCheapLfsPointers(
+            repository,
+            undefined,
+            [...committedPointerPaths]
+          )
+          const selectedPointerPaths = new Set(
+            selectedWorktreePointers
+              .filter(entry => entry.workingTreeState === 'pointer')
+              .map(entry => entry.relativePath)
+          )
+          // Pointer text is one atomic record. A line-level selection could
+          // otherwise commit a blob different from both the old and new
+          // pointer while the generated inventory described the whole file.
+          selectedFiles = selectedFiles.map(file =>
+            selectedPointerPaths.has(file.path)
+              ? file.withIncludeAll(true)
+              : file
+          )
+          const helperPointers = mergeCheapLfsPointersForProspectiveCommit(
+            await listAllCheapLfsPointersAtHead(repository),
+            selectedWorktreePointers,
+            committedPointerPaths
+          )
+          const helper = await ensureCheapLfsCloneHelperBundle({
+            repositoryPath: repository.path,
+            enabled: true,
+            entries: helperPointers,
+          })
+          if (helper.status === 'conflict') {
+            this.postPersistentErrorNotice(
+              t('cheapLfs.cloneHelper.conflictTitle'),
+              t('cheapLfs.cloneHelper.conflictBody', {
+                paths: helper.conflicts.join(', '),
+              }),
+              `cheap-lfs-clone-helper-conflict:${repository.id}`,
+              repository.id
+            )
+          } else if (
+            helper.status === 'created' ||
+            helper.status === 'updated'
+          ) {
+            const helperPaths = new Set([...helper.created, ...helper.updated])
+            const refreshedStatus = await this._loadStatus(repository)
+            if (
+              refreshedStatus === null ||
+              !this.isTemporaryRepositoryActive(repository)
+            ) {
+              return false
+            }
+            const selectedByPath = new Map(
+              selectedFiles.map(file => [file.path, file] as const)
+            )
+            for (const file of this.repositoryStateCache.get(repository)
+              .changesState.workingDirectory.files) {
+              if (helperPaths.has(file.path)) {
+                selectedByPath.set(file.path, file.withIncludeAll(true))
+                helperPaths.delete(file.path)
+              }
+            }
+            if (helperPaths.size > 0) {
+              throw new Error(
+                `Cheap LFS clone helper files were not available to commit: ${[
+                  ...helperPaths,
+                ].join(', ')}`
+              )
+            }
+            selectedFiles = [...selectedByPath.values()]
+          }
+        } catch (helperError) {
+          log.error(
+            'Automatic Cheap LFS clone-helper setup failed',
+            helperError
+          )
+          this.postPersistentErrorNotice(
+            t('cheapLfs.cloneHelper.failureTitle'),
+            t('cheapLfs.cloneHelper.failureBody'),
+            `cheap-lfs-clone-helper-failure:${repository.id}`,
+            repository.id
+          )
+        }
       }
 
       this.repositoryStateCache.update(repository, () => ({
@@ -8401,6 +8592,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   public async _refreshAuthor(repository: Repository): Promise<void> {
+    // Git identity can change while the Changes view is unmounted. Clear every
+    // repository's short-lived origin snapshot so a later remount cannot show
+    // a stale global/local scope after a global setting change.
+    invalidateCommitAuthorOrigins()
+
     const gitStore = this.gitStoreCache.get(repository)
     const commitAuthor =
       (await gitStore.performFailableOperation(() =>
@@ -12583,13 +12779,27 @@ export class AppStore extends TypedBaseStore<IAppState> {
         // clone batch reports completion, so users don't receive a successful
         // clone summary while only pointer text is still present on disk.
         for (const [index, registered] of addedRepositories.entries()) {
+          const cloneItem = matchExistingRepository(
+            unfinalizedItems,
+            registered.path
+          )
           this.updateBatchCloneFinalizing({
             completed: index,
             total: addedRepositories.length,
             current: registered.name,
             stage: 'restoring',
           })
-          await this.maybeAutoMaterializeCheapLfs(registered)
+          await this.maybeAutoMaterializeCheapLfs(registered, {
+            ...(cloneItem?.cheapLfsSelection === undefined
+              ? {}
+              : { cheapLfsSelection: cloneItem.cheapLfsSelection }),
+            ...(cloneItem === undefined
+              ? {}
+              : {
+                  expectedCloneUrl: cloneItem.url,
+                  expectedDefaultBranch: cloneItem.defaultBranch,
+                }),
+          })
         }
       } finally {
         this.updateBatchCloneFinalizing(null)
@@ -15451,9 +15661,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
               repository,
               account: this.requireCheapLfsAccount(repository),
               provider,
-              parallelBlobTransfers:
-                repository.buildRunPreferences.parallelCheapLfsUploads !==
-                false,
+              parallelBlobTransfers: true,
+              blobUploadConcurrency: getCheapLfsUploadConcurrency(
+                repository.buildRunPreferences
+              ),
             },
             session =>
               pinCheapLfsFilesToOci(
@@ -15614,8 +15825,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         repository,
         account: getAccountForRepository(this.accounts, repository),
         provider: entry.provider,
-        parallelBlobTransfers:
-          repository.buildRunPreferences.parallelCheapLfsUploads !== false,
+        parallelBlobTransfers: true,
       },
       session =>
         materializeCheapLfsOciFile(
@@ -15719,9 +15929,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
               repository,
               account: this.requireCheapLfsAccount(repository),
               provider: entry.provider,
-              parallelBlobTransfers:
-                repository.buildRunPreferences.parallelCheapLfsUploads !==
-                false,
+              parallelBlobTransfers: true,
+              blobUploadConcurrency: getCheapLfsUploadConcurrency(
+                repository.buildRunPreferences
+              ),
             },
             session =>
               removeCheapLfsOciFile(
@@ -16333,7 +16544,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
    */
   public async maybeAutoMaterializeCheapLfs(
     repository: Repository,
-    options: { readonly requireSelected?: boolean } = {}
+    options: ICheapLfsAutoMaterializeOptions = {}
   ): Promise<void> {
     try {
       if (isSubmoduleRepository(repository)) {
@@ -16359,10 +16570,47 @@ export class AppStore extends TypedBaseStore<IAppState> {
       const pointerEntries = discoveredEntries.filter(
         entry => entry.workingTreeState === 'pointer'
       )
+      let requestedPaths = new Set(
+        pointerEntries.map(entry => entry.relativePath)
+      )
+      if (options.cheapLfsSelection !== undefined) {
+        const manifest = await readCheapLfsCloneManifestEvidence(repository)
+        const validation = validateCheapLfsCloneSelection(
+          options.cheapLfsSelection,
+          {
+            accountKey: repository.accountKey,
+            repositoryCloneUrl: options.expectedCloneUrl ?? '',
+            defaultBranch:
+              options.expectedDefaultBranch ?? repository.defaultBranch,
+          },
+          manifest,
+          pointerEntries
+        )
+        if (validation.kind === 'invalid') {
+          log.warn(
+            `Cheap LFS clone selection was rejected: ${validation.reason}`
+          )
+          this.postPersistentErrorNotice(
+            t('cheapLfs.cloneSelection.rejectedTitle'),
+            t('cheapLfs.cloneSelection.rejectedBody', {
+              reason: validation.reason,
+            }),
+            `cheap-lfs-clone-selection:${repository.id}:${validation.reason}`,
+            repository.id
+          )
+          return
+        }
+        requestedPaths = new Set(validation.selectedPaths)
+      }
       const entries =
         releaseReadAccount === null
-          ? pointerEntries.filter(entry => entry.kind === 'oci')
-          : pointerEntries
+          ? pointerEntries.filter(
+              entry =>
+                entry.kind === 'oci' && requestedPaths.has(entry.relativePath)
+            )
+          : pointerEntries.filter(entry =>
+              requestedPaths.has(entry.relativePath)
+            )
       if (entries.length === 0) {
         return
       }
@@ -16390,7 +16638,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         return
       }
       await this.runCheapLfsMaterialize(repository, {
-        requestedPaths: new Set(entries.map(entry => entry.relativePath)),
+        requestedPaths,
         includeReleasePointers: releaseReadAccount !== null,
         shouldRun: options.requireSelected
           ? () => this.selectedRepository === repository
@@ -16966,9 +17214,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           {
             absoluteFilePath: target.absolutePath,
             trackedRelativePath: target.relativePath,
-            releaseTag:
-              ['assets', 'assets-parallel-2', 'assets-parallel-3'][laneIndex] ??
-              'assets',
+            releaseTag: getCheapLfsReleaseLaneTag(laneIndex),
             ...(releaseReview === null ? {} : { releaseReview }),
             retainSourceForRestore: true,
             ...(encryptionPassword === undefined
@@ -17105,7 +17351,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
               repository,
               account: this.requireCheapLfsAccount(repository),
               provider: selectedStorageProvider,
-              parallelBlobTransfers: prefs.parallelCheapLfsUploads !== false,
+              parallelBlobTransfers: true,
+              blobUploadConcurrency: getCheapLfsUploadConcurrency(prefs),
             },
             session =>
               pinCheapLfsFilesToOci(
@@ -17281,7 +17528,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           controller.signal,
           reportProgress,
           file => automaticallyPinned.push(file),
-          prefs.parallelCheapLfsUploads === false ? 1 : 3
+          getCheapLfsUploadConcurrency(prefs)
         )
         if (controller.signal.aborted || result.canceled) {
           const canceled = new Error(
@@ -22096,17 +22343,19 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.autoCloneStore.stop()
 
     if (this.rendererShutdownFlush === null) {
-      // If cancellation already reached an asynchronous batch resume, let that
-      // owned resume settle before pausing again. The new generation has
+      // If cancellation already reached an asynchronous batch resume, request
+      // its pause first. `BatchCloneStore.resume()` owns the full clone run, so
+      // awaiting that promise before pausing would make a retried quit wait for
+      // the clone to finish instead of interrupting it. The new generation has
       // already stopped auto-clone and invalidated the cancellation flight.
       const pendingResume = this.rendererShutdownResume?.promise
       const preparation = (async () => {
-        await pendingResume?.catch(() => undefined)
         // A renderer-owned Git child must not outlive the renderer. Persist the
         // paused/interrupted transition and await process-tree teardown before
         // the final journal drain; recovery can then restart only app-owned
         // staging.
         await this.batchCloneStore.requestPause()
+        await pendingResume?.catch(() => undefined)
         await this.batchCloneStore.flush()
       })()
       this.rendererShutdownFlush = preparation

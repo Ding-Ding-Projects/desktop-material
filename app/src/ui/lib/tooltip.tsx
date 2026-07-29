@@ -133,8 +133,12 @@ export interface ITooltipProps<T> {
    * relative to the window. This can be useful in scenarios where the target's
    * natural positioning is not already relative to the window such as an
    * element within in iframe.
+   *
+   * Consumers whose offset depends on layout may provide a resolver. It runs
+   * only when the tooltip is about to open (and while an open tooltip is
+   * remeasured), keeping layout reads out of ordinary React renders.
    */
-  readonly tooltipOffset?: DOMRect
+  readonly tooltipOffset?: DOMRect | ((target: TooltipTarget) => DOMRect)
 
   /** Optional parameter for toggle tip behavior.
    *
@@ -221,7 +225,7 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
   ITooltipState
 > {
   private mounted = false
-  private mouseRect = new DOMRect()
+  private mouseRect: DOMRect | null = null
 
   private mouseOverTarget = false
   private mouseOverTooltip = false
@@ -259,7 +263,7 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
             this.setState({ tooltipRect })
           }
         } else if (entry.target === this.state.target) {
-          const targetRect = this.state.target.getBoundingClientRect()
+          const targetRect = this.getTargetRect(this.state.target)
           if (!rectEquals(this.state.targetRect, targetRect)) {
             this.setState({ targetRect })
           }
@@ -293,6 +297,9 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
       !this.state.target.isConnected
     ) {
       return
+    }
+    if (target !== this.state.target) {
+      this.mouseRect = null
     }
     this.setState({ target, tooltipHost: tooltipHostFor(target) })
   }
@@ -432,6 +439,7 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
 
     const { ancestorFocused } = this.props
     if (ancestorFocused === true) {
+      this.mouseRect = null
       this.beginShowTooltip()
     } else if (ancestorFocused === false) {
       this.beginHideTooltip()
@@ -518,16 +526,20 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
       this.state.target?.matches(':focus-visible') &&
       !this.props.isToggleTip
     ) {
+      this.mouseRect = null
       this.beginShowTooltip()
     }
   }
 
-  private onTargetClick = (event: FocusEvent) => {
+  private onTargetClick = (event: MouseEvent) => {
     // We only want to handle click events for toggle tips
     if (
       !this.state.show &&
       (this.props.isToggleTip || this.props.openOnTargetClick)
     ) {
+      if (event.detail === 0) {
+        this.mouseRect = null
+      }
       this.beginShowTooltip()
     }
   }
@@ -539,6 +551,7 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
    */
   private onTargetFocusIn = (event: FocusEvent) => {
     if (this.props.openOnFocus) {
+      this.mouseRect = null
       this.beginShowTooltip()
     }
   }
@@ -671,34 +684,29 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
 
   private getTargetRect(target: TooltipTarget) {
     const { direction, tooltipOffset } = this.props
+    const resolvedOffset =
+      typeof tooltipOffset === 'function'
+        ? tooltipOffset(target)
+        : tooltipOffset
 
     return offsetRect(
       direction === undefined && this.props.positionRelativeToTarget !== true
         ? this.getPointerRect(target)
         : target.getBoundingClientRect(),
-      tooltipOffset?.x ?? 0,
-      tooltipOffset?.y ?? 0
+      resolvedOffset?.x ?? 0,
+      resolvedOffset?.y ?? 0
     )
   }
 
   /**
    * The rect a mouse-anchored tooltip is placed against.
    *
-   * `mouseRect` is only ever written by a mouse event over the target, but a
-   * tooltip can also be shown without one — keyboard focus (`onTargetFocus`),
-   * `openOnFocus`, or a programmatic click. In that case the pristine
-   * `new DOMRect()` would anchor the tooltip at the viewport origin and strand
-   * it half outside the window rather than beside the thing it describes
-   * (#92). Fall back to the target's own box whenever no pointer position has
-   * been recorded; a real pointer always yields a 20x20 rect, so only the
-   * untouched rect matches.
+   * `mouseRect` is present only for the current pointer interaction. Keyboard,
+   * ancestor-focus, and programmatic openings explicitly clear it so an old
+   * hover can never strand a later focus tooltip beside stale coordinates.
    */
   private getPointerRect(target: TooltipTarget) {
-    const { x, y, width, height } = this.mouseRect
-
-    return x === 0 && y === 0 && width === 0 && height === 0
-      ? target.getBoundingClientRect()
-      : this.mouseRect
+    return this.mouseRect ?? target.getBoundingClientRect()
   }
 
   /**
@@ -768,6 +776,7 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
 
   private onTargetMouseLeave = (event: MouseEvent) => {
     this.mouseOverTarget = false
+    this.mouseRect = null
     this.beginHideTooltip()
   }
 

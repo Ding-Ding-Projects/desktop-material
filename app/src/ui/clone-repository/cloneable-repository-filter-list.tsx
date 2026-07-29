@@ -29,6 +29,7 @@ import {
 } from './repository-metadata'
 import { LanguageMode } from '../../models/language-mode'
 import { getPersistedLanguageMode, translate } from '../../lib/i18n'
+import { CheapLfsLogo } from './cheap-lfs-logo'
 
 interface ICloneableRepositoryFilterListProps {
   /** The account to clone from. */
@@ -127,6 +128,24 @@ interface ICloneableRepositoryFilterListProps {
   readonly submoduleBadgeVersion?: number
 
   /**
+   * Returns `undefined` while unprobed, `null` when no usable inventory exists,
+   * or the valid inventory's asset count (including zero).
+   */
+  readonly getCheapLfsAssetCount?: (
+    url: string,
+    defaultBranch: string
+  ) => number | null | undefined
+
+  /** Requests the bounded default-branch inventory probe for a visible row. */
+  readonly onProbeCheapLfs?: (repository: IAPIRepository) => void
+
+  /** Opens the manifest-bound Cheap LFS asset selector for a row. */
+  readonly onShowCheapLfsAssets?: (repository: IAPIRepository) => void
+
+  /** Bumped when Cheap LFS probe results land so visible rows re-render. */
+  readonly cheapLfsBadgeVersion?: number
+
+  /**
    * Overrides the virtualized row height. The clone dialog's Material rows
    * paint taller than the compact default, and the hit-testing height must
    * match the painted height exactly or clicks land beside the cursor.
@@ -213,6 +232,14 @@ interface ICloneableRepositoryListItemProps {
   readonly onShowSubmodules?: (url: string) => void
 
   /**
+   * Valid manifest asset count, including zero. Undefined/null hides the badge.
+   */
+  readonly cheapLfsAssetCount?: number | null
+
+  /** Called with the row's clone URL when the Cheap LFS badge is clicked. */
+  readonly onShowCheapLfsAssets?: (url: string) => void
+
+  /**
    * When true the row paints the rich metadata card (description, language,
    * stars, forks, size, default branch, last updated, visibility pill). The
    * reused compact lists (submodules, subtree) leave this false.
@@ -257,6 +284,14 @@ export class CloneableRepositoryListItem extends React.PureComponent<ICloneableR
     this.props.onShowSubmodules?.(this.props.item.url)
   }
 
+  private onCheapLfsBadgeClick = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    // Inventory selection is independent of selecting/cloning the row.
+    event.stopPropagation()
+    this.props.onShowCheapLfsAssets?.(this.props.item.url)
+  }
+
   private renderSubmoduleBadge() {
     const { item, submoduleCount, onShowSubmodules } = this.props
 
@@ -281,6 +316,39 @@ export class CloneableRepositoryListItem extends React.PureComponent<ICloneableR
       >
         <Octicon symbol={octicons.fileSubmodule} />
         {submoduleCount}
+      </button>
+    )
+  }
+
+  private renderCheapLfsBadge() {
+    const { item, cheapLfsAssetCount, onShowCheapLfsAssets } = this.props
+    if (
+      cheapLfsAssetCount === undefined ||
+      cheapLfsAssetCount === null ||
+      onShowCheapLfsAssets === undefined
+    ) {
+      return null
+    }
+
+    const label = this.localize(
+      cheapLfsAssetCount === 1
+        ? 'clone.cheapLfs.badgeAriaOne'
+        : 'clone.cheapLfs.badgeAriaMany',
+      {
+        count: String(cheapLfsAssetCount),
+        repository: item.text[0],
+      }
+    )
+
+    return (
+      <button
+        type="button"
+        className="cheap-lfs-clone-badge"
+        onClick={this.onCheapLfsBadgeClick}
+        aria-label={label}
+      >
+        <CheapLfsLogo size={14} />
+        <span aria-hidden={true}>{cheapLfsAssetCount}</span>
       </button>
     )
   }
@@ -460,6 +528,7 @@ export class CloneableRepositoryListItem extends React.PureComponent<ICloneableR
             <HighlightText text={item.text[0]} highlight={matches.title} />
           </TooltippedContent>
           {this.renderSubmoduleBadge()}
+          {this.renderCheapLfsBadge()}
           {item.archived && <div className="archived">Archived</div>}
         </div>
       )
@@ -493,6 +562,7 @@ export class CloneableRepositoryListItem extends React.PureComponent<ICloneableR
             </TooltippedContent>
             {this.renderVisibilityPill()}
             {this.renderSubmoduleBadge()}
+            {this.renderCheapLfsBadge()}
             {item.archived && <div className="archived">Archived</div>}
           </div>
           {this.renderDescription()}
@@ -578,6 +648,7 @@ export class CloneableRepositoryFilterList extends React.PureComponent<ICloneabl
           groups,
           checkedUrls: this.props.checkedUrls,
           submoduleBadgeVersion: this.props.submoduleBadgeVersion,
+          cheapLfsBadgeVersion: this.props.cheapLfsBadgeVersion,
         }}
         groups={groups}
         filterText={this.props.filterText}
@@ -641,8 +712,17 @@ export class CloneableRepositoryFilterList extends React.PureComponent<ICloneabl
     item: ICloneableRepositoryListItem,
     matches: IMatches
   ) => {
-    const { onToggleItemChecked, checkedUrls, getSubmoduleCount } = this.props
+    const {
+      onToggleItemChecked,
+      checkedUrls,
+      getSubmoduleCount,
+      getCheapLfsAssetCount,
+    } = this.props
     const submoduleCount = getSubmoduleCount?.(item.url)
+    const cheapLfsAssetCount = getCheapLfsAssetCount?.(
+      item.url,
+      item.defaultBranch ?? ''
+    )
 
     // The list virtualizes rows, so a row rendering means it's visible —
     // exactly when a lazy, cached `.gitmodules` probe should be requested.
@@ -656,6 +736,21 @@ export class CloneableRepositoryFilterList extends React.PureComponent<ICloneabl
       }
     }
 
+    if (
+      cheapLfsAssetCount === undefined &&
+      item.defaultBranch !== undefined &&
+      item.defaultBranch.length > 0 &&
+      this.props.onProbeCheapLfs
+    ) {
+      const repository =
+        this.props.repositories === null
+          ? null
+          : findRepositoryForListItem(this.props.repositories, item)
+      if (repository !== null) {
+        this.props.onProbeCheapLfs(repository)
+      }
+    }
+
     return (
       <CloneableRepositoryListItem
         item={item}
@@ -665,6 +760,12 @@ export class CloneableRepositoryFilterList extends React.PureComponent<ICloneabl
         submoduleCount={submoduleCount}
         onShowSubmodules={
           this.props.onShowSubmodules ? this.onShowSubmodulesForUrl : undefined
+        }
+        cheapLfsAssetCount={cheapLfsAssetCount}
+        onShowCheapLfsAssets={
+          this.props.onShowCheapLfsAssets
+            ? this.onShowCheapLfsAssetsForUrl
+            : undefined
         }
         showMetadata={this.props.showMetadata}
         languageMode={this.props.languageMode ?? getPersistedLanguageMode()}
@@ -681,6 +782,18 @@ export class CloneableRepositoryFilterList extends React.PureComponent<ICloneabl
     const repository = repositories.find(r => r.clone_url === url) || null
     if (repository !== null) {
       onShowSubmodules(repository)
+    }
+  }
+
+  private onShowCheapLfsAssetsForUrl = (url: string) => {
+    const { repositories, onShowCheapLfsAssets } = this.props
+    if (repositories === null || onShowCheapLfsAssets === undefined) {
+      return
+    }
+
+    const repository = repositories.find(r => r.clone_url === url) || null
+    if (repository !== null) {
+      onShowCheapLfsAssets(repository)
     }
   }
 

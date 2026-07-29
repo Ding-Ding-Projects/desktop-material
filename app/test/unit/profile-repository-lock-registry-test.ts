@@ -161,28 +161,51 @@ describe('ProfileRepositoryLockRegistry', () => {
     assert.equal(registry.release(9, secondGranted), true)
   })
 
-  it('cancels a navigating sender queue without releasing its active lease', async () => {
+  it('cancels queued work and releases active leases for a replaced document', async () => {
     const registry = createRegistry()
-    const active = await registry.acquire(2, 'C:\\profiles\\shared')
-    const later = registry.acquire(3, 'C:\\profiles\\shared')
+    const active = await registry.acquire(2, 'C:\\profiles\\shared', 4)
+    const replacement = registry.acquire(2, 'C:\\profiles\\shared', 5)
     const otherHolder = await registry.acquire(1, 'D:\\profiles\\other')
-    const queued = registry.acquire(2, 'D:\\profiles\\other')
+    const queued = registry.acquire(2, 'D:\\profiles\\other', 4)
     const queuedResult = queued.then(
       () => undefined,
       error => error
     )
 
-    registry.cancelQueuedSender(2)
+    registry.releaseDocument(2, 4)
 
     assert.ok(
       (await queuedResult) instanceof ProfileRepositoryLockCancelledError
     )
-    await assertPending(later)
-    assert.equal(registry.release(2, active), true)
-
-    const laterLease = await later
-    assert.equal(registry.release(3, laterLease), true)
+    const replacementLease = await replacement
+    assert.equal(registry.release(2, active, 4), false)
+    assert.equal(registry.release(2, replacementLease, 4), false)
+    assert.equal(registry.release(2, replacementLease, 5), true)
     assert.equal(registry.release(1, otherHolder), true)
+  })
+
+  it('leaves a replacement document owned by the same sender untouched', async () => {
+    const registry = createRegistry()
+    const oldDocumentLease = await registry.acquire(2, 'C:\\profiles\\old', 10)
+    const otherHolder = await registry.acquire(1, 'C:\\profiles\\replacement')
+    const replacementDocument = registry.acquire(
+      2,
+      'C:\\profiles\\replacement',
+      11
+    )
+    const oldPathWaiting = registry.acquire(3, 'C:\\profiles\\old')
+
+    registry.releaseDocument(2, 10)
+
+    const oldPathLease = await oldPathWaiting
+    await assertPending(replacementDocument)
+    assert.equal(registry.release(2, oldDocumentLease, 10), false)
+
+    assert.equal(registry.release(1, otherHolder), true)
+    const replacementLease = await replacementDocument
+    assert.equal(registry.release(2, replacementLease, 10), false)
+    assert.equal(registry.release(2, replacementLease, 11), true)
+    assert.equal(registry.release(3, oldPathLease), true)
   })
 
   it('allows unrelated repository paths to be held concurrently', async () => {
@@ -225,18 +248,19 @@ describe('profile repository lock wiring', () => {
       mainSource,
       /acquire-profile-repository-lock[\s\S]*?normalizeProfileRepositoryPath\(repositoryPath\)[\s\S]*?Fs\.promises\.realpath[\s\S]*?profileRepositoryLocks\.acquire/
     )
-    assert.match(
-      mainSource,
-      /cancelQueuedDocumentWork[\s\S]*?cancelQueuedSender/
-    )
+    assert.match(mainSource, /releaseDocumentLeases[\s\S]*?releaseDocument/)
     assert.match(mainSource, /releaseSenderLeases[\s\S]*?releaseSender/)
     assert.match(
       mainSource,
-      /did-start-navigation[\s\S]*?cancelQueuedDocumentWork\(\)/
+      /did-start-navigation[\s\S]*?releaseDocumentLeases\(\)/
     )
     assert.match(
       mainSource,
-      /render-process-gone', releaseSenderLeases[\s\S]*?destroyed', releaseSenderLeases/
+      /render-process-gone', releaseSenderLeases[\s\S]*?destroyed'/
+    )
+    assert.match(
+      mainSource,
+      /const documentId = senderState\.documentId[\s\S]*?await Fs\.promises\.realpath[\s\S]*?senderState\.documentId !== documentId[\s\S]*?ProfileRepositoryLockCancelledError[\s\S]*?profileRepositoryLocks\.acquire\([\s\S]*?documentId/
     )
   })
 })

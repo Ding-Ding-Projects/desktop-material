@@ -1005,6 +1005,7 @@ function sameFingerprint(left, right) {
 }
 
 function runPowerShell(source, maximumBytes = 16 * 1024 * 1024) {
+  const encodedSource = Buffer.from(source, 'utf16le').toString('base64')
   try {
     return execFileSync(
       'powershell.exe',
@@ -1014,14 +1015,15 @@ function runPowerShell(source, maximumBytes = 16 * 1024 * 1024) {
         '-NonInteractive',
         '-ExecutionPolicy',
         'Bypass',
-        '-Command',
-        '-',
+        '-OutputFormat',
+        'Text',
+        '-EncodedCommand',
+        encodedSource,
       ],
       {
-        input: source,
         encoding: 'utf8',
         windowsHide: true,
-        stdio: ['pipe', 'pipe', 'pipe'],
+        stdio: ['ignore', 'pipe', 'pipe'],
         timeout: 30_000,
         maxBuffer: maximumBytes,
       }
@@ -1031,15 +1033,39 @@ function runPowerShell(source, maximumBytes = 16 * 1024 * 1024) {
   }
 }
 
-function parsePowerShellJSON(source, label) {
+function parsePowerShellJSON(
+  source,
+  label,
+  sanitizeForbiddenControlCharacters = false
+) {
   const output = runPowerShell(source)
   if (output === '') {
     return null
   }
+  const json = sanitizeForbiddenControlCharacters
+    ? output.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '\uFFFD')
+    : output
   try {
-    return JSON.parse(output)
-  } catch {
-    fail(`${label} returned invalid JSON.`)
+    return JSON.parse(json)
+  } catch (error) {
+    const firstCodePoint = json.codePointAt(0)?.toString(16) ?? 'none'
+    const lastCodePoint =
+      json.codePointAt(json.length - 1)?.toString(16) ?? 'none'
+    const nullCharacters = json.split('\u0000').length - 1
+    const positionMatch = /\bposition\s+(\d+)\b/i.exec(safeError(error))
+    const invalidPosition =
+      positionMatch === null ? null : Number.parseInt(positionMatch[1], 10)
+    const invalidCodePoint =
+      invalidPosition === null
+        ? 'unknown'
+        : json.codePointAt(invalidPosition)?.toString(16) ?? 'none'
+    fail(
+      `${label} returned invalid JSON (characters=${
+        json.length
+      }, first=U+${firstCodePoint}, last=U+${lastCodePoint}, nulls=${nullCharacters}, position=${
+        invalidPosition ?? 'unknown'
+      }, code=U+${invalidCodePoint}).`
+    )
   }
 }
 
@@ -1069,16 +1095,29 @@ function validateExecutionAccounts(options) {
   const protectedAccount = queryUserAccount(options.protectedUserSid)
   const executionAccount = queryUserAccount(options.executionUserSid)
   const verifierSid = queryCurrentUserSid()
-  if (
-    protectedAccount?.SID !== options.protectedUserSid ||
-    protectedAccount.LocalAccount !== true ||
-    protectedAccount.Disabled !== false ||
-    executionAccount?.SID !== options.executionUserSid ||
-    executionAccount.LocalAccount !== true ||
-    executionAccount.Disabled !== false ||
-    verifierSid.toLowerCase() !== options.executionUserSid.toLowerCase()
-  ) {
-    fail('Protected/execution Windows account attestation failed.')
+  const checks = {
+    protectedSidMatches:
+      protectedAccount?.SID?.toLowerCase() ===
+      options.protectedUserSid.toLowerCase(),
+    protectedAccountIsLocal: protectedAccount?.LocalAccount === true,
+    protectedAccountIsEnabled: protectedAccount?.Disabled === false,
+    executionSidMatches:
+      executionAccount?.SID?.toLowerCase() ===
+      options.executionUserSid.toLowerCase(),
+    executionAccountIsLocal: executionAccount?.LocalAccount === true,
+    executionAccountIsEnabled: executionAccount?.Disabled === false,
+    verifierRunsAsExecutionIdentity:
+      verifierSid.toLowerCase() === options.executionUserSid.toLowerCase(),
+  }
+  const failedChecks = Object.entries(checks)
+    .filter(([, passed]) => !passed)
+    .map(([name]) => name)
+  if (failedChecks.length > 0) {
+    fail(
+      `Protected/execution Windows account attestation failed: ${failedChecks.join(
+        ', '
+      )}.`
+    )
   }
   return {
     protectedIdentityHash: sha256Text(options.protectedUserSid),
@@ -1286,14 +1325,25 @@ function assertOwnedRegistryEntry(options) {
 function queryProcesses() {
   const parsed = parsePowerShellJSON(
     `@(Get-CimInstance Win32_Process | ForEach-Object {
+  $executablePath = if ($null -eq $_.ExecutablePath) {
+    $null
+  } else {
+    $_.ExecutablePath -replace '[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]', [char]0xFFFD
+  }
+  $commandLine = if ($null -eq $_.CommandLine) {
+    $null
+  } else {
+    $_.CommandLine -replace '[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]', [char]0xFFFD
+  }
   [pscustomobject]@{
     ProcessId = [int]$_.ProcessId
     ParentProcessId = [int]$_.ParentProcessId
-    ExecutablePath = $_.ExecutablePath
-    CommandLine = $_.CommandLine
+    ExecutablePath = $executablePath
+    CommandLine = $commandLine
   }
 }) | ConvertTo-Json -Compress`,
-    'Windows process query'
+    'Windows process query',
+    true
   )
   return parsed === null ? [] : Array.isArray(parsed) ? parsed : [parsed]
 }
@@ -1374,9 +1424,13 @@ public static class DesktopMaterialDesktopProbe {
 }
 '@
 Add-Type -TypeDefinition $source
-$names = Get-CimInstance Win32_Thread -Filter "ProcessHandle='${processId}'" |
+$names = [System.Diagnostics.Process]::GetProcessById(${processId}).Threads |
   ForEach-Object {
-    [DesktopMaterialDesktopProbe]::Name([uint32]$_.Handle)
+    try {
+      [DesktopMaterialDesktopProbe]::Name([uint32]$_.Id)
+    } catch {
+      $null
+    }
   } | Where-Object { $_ -ne '' } | Sort-Object -Unique
 @($names) | ConvertTo-Json -Compress`,
     'Process desktop query'
@@ -1794,6 +1848,46 @@ async function configureCaptureViewport(client) {
   )
 }
 
+/**
+ * The updater run owns a brand-new disposable Chromium profile. Persist the
+ * production first-run completion flag inside that profile before asking the
+ * real menu to open About. This avoids an account or Git-configuration flow
+ * that is unrelated to updater acceptance; it does not fabricate updater
+ * state, dispatch a UI event, or touch the user's normal profile.
+ */
+async function prepareIsolatedUpdaterWorkspace(client) {
+  const welcomeWasVisible = await evaluate(
+    client,
+    `document.querySelector('#welcome') instanceof HTMLElement`
+  )
+
+  await evaluate(
+    client,
+    `localStorage.setItem('has-shown-welcome-flow', '1'), true`
+  )
+
+  if (welcomeWasVisible) {
+    await client.send('Page.reload', { ignoreCache: false })
+  }
+
+  await waitForExpression(
+    client,
+    `document.querySelector('#desktop-app-container') !== null &&
+      document.querySelector('#welcome') === null &&
+      localStorage.getItem('has-shown-welcome-flow') === '1'`,
+    'isolated updater workspace'
+  )
+
+  return {
+    welcomeWasVisible,
+    assertions: {
+      ownedFirstRunPreferencePersisted: true,
+      welcomeSurfaceAbsent: true,
+      accountAndProviderFlowsNotInvoked: true,
+    },
+  }
+}
+
 async function openRealAbout(client) {
   await evaluate(
     client,
@@ -1842,8 +1936,13 @@ async function waitForRealUpdateReady(client) {
       client,
       `(() => {
         const dialog = document.querySelector('#about')
-        const status = dialog?.querySelector('.update-status')
-          ?.textContent?.replace(/\\s+/g, ' ').trim() ?? ''
+        const statusElement = dialog?.querySelector('.update-status')
+        const status = (() => {
+          if (!(statusElement instanceof HTMLElement)) return ''
+          const clone = statusElement.cloneNode(true)
+          clone.querySelectorAll('.sr-only').forEach(node => node.remove())
+          return clone.textContent?.replace(/\\s+/g, ' ').trim() ?? ''
+        })()
         const buttons = [...(dialog?.querySelectorAll('button') ?? [])]
           .map(value => ({
             text: value.textContent?.replace(/\\s+/g, ' ').trim() ?? '',
@@ -1870,13 +1969,19 @@ async function waitForRealUpdateReady(client) {
   fail('Timed out waiting for the genuine update-ready About state.')
 }
 
-async function inspectReadySurface(client, productVersion) {
+async function inspectReadySurface(client, productVersion, sourceCommit) {
   return evaluate(
     client,
     `(() => {
       const dialog = document.querySelector('#about')
       const title = dialog?.querySelector('h1')
       const status = dialog?.querySelector('.update-status')
+      const visibleStatus = (() => {
+        if (!(status instanceof HTMLElement)) return ''
+        const clone = status.cloneNode(true)
+        clone.querySelectorAll('.sr-only').forEach(node => node.remove())
+        return clone.textContent?.replace(/\\s+/g, ' ').trim() ?? ''
+      })()
       const buttons = [...(dialog?.querySelectorAll('button') ?? [])]
       const install = buttons.find(value =>
         value.textContent?.replace(/\\s+/g, ' ').trim() ===
@@ -1966,11 +2071,11 @@ async function inspectReadySurface(client, productVersion) {
             'About Desktop Material',
         exactCurrentSourceVersion:
           dialog?.textContent?.includes(
-            'Version ${productVersion} (x64)'
+            'Build ${sourceCommit.slice(0, 10)} (x64)'
           ) === true,
         genuineUpdateStoreReady: updateStatus === 3,
         exactReadyMessage:
-          status?.textContent?.replace(/\\s+/g, ' ').trim() ===
+          visibleStatus ===
             'An update has been downloaded and is ready to be installed.',
         installDecisionUntouched:
           visible(install) &&
@@ -1999,9 +2104,9 @@ async function inspectReadySurface(client, productVersion) {
       return {
         title:
           title?.textContent?.replace(/\\s+/g, ' ').trim() ?? null,
-        version: '${productVersion}',
-        status:
-          status?.textContent?.replace(/\\s+/g, ' ').trim() ?? null,
+        productVersion: '${productVersion}',
+        buildLabel: 'Build ${sourceCommit.slice(0, 10)}',
+        status: visibleStatus,
         installLabel:
           install?.textContent?.replace(/\\s+/g, ' ').trim() ?? null,
         updateStatus,
@@ -2444,6 +2549,7 @@ async function main() {
       mainProcess
     )
 
+    const workspace = await prepareIsolatedUpdaterWorkspace(client)
     await configureCaptureViewport(client)
     await openRealAbout(client)
     const productionIPCInvoked = await invokeRealCheckForUpdates(
@@ -2451,6 +2557,10 @@ async function main() {
       fixtureServer.url
     )
     const observedStates = await waitForRealUpdateReady(client)
+    // The production renderer can finish applying its persisted zoom after the
+    // first capture setup. Reassert the attested 960x660, DPR-1 viewport only
+    // after the genuine ready event has settled, immediately before inspection.
+    await configureCaptureViewport(client)
 
     const updateLogPath = assertRealFile(
       path.join(options.installRoot, 'Squirrel-Update.log'),
@@ -2494,7 +2604,8 @@ async function main() {
 
     const surface = await inspectReadySurface(
       client,
-      topology.build.productVersion
+      topology.build.productVersion,
+      topology.build.sourceCommit
     )
     assertBooleanAssertions(surface.assertions, 'ui')
     const capture = await captureOriginalPixels(client, options.capturePath)
@@ -2511,6 +2622,11 @@ async function main() {
         assertions: {
           ...isolationAssertions,
           ...rendererAssertions,
+          ...workspace.assertions,
+        },
+        firstRun: {
+          welcomeWasVisible: workspace.welcomeWasVisible,
+          completionPreference: 'owned-disposable-profile-only',
         },
       },
       currentSource: {

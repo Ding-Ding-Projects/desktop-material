@@ -2217,12 +2217,19 @@ export class Dispatcher {
       }
 
       const addedRepository = addedRepositories[0]
-      await this.selectRepository(addedRepository)
-
-      // Detect point: a freshly-cloned repository may carry committed cheap-LFS
-      // pointers to auto-materialize. Fire-and-forget; the app store no-ops when
-      // the feature is off, no account is selected, or there are no pointers.
-      void this.appStore.maybeAutoMaterializeCheapLfs(addedRepository)
+      const expectedCloneBranch = options?.branch ?? options?.defaultBranch
+      // The first real-repository selection owns the one post-clone restore.
+      // Forward a manifest-bound subset before selection refresh can run the
+      // ordinary all-pointer repository-open path.
+      await this.appStore._selectRepository(addedRepository, true, false, {
+        ...(options?.cheapLfsSelection === undefined
+          ? {}
+          : { cheapLfsSelection: options.cheapLfsSelection }),
+        expectedCloneUrl: url,
+        ...(expectedCloneBranch === undefined
+          ? {}
+          : { expectedDefaultBranch: expectedCloneBranch }),
+      })
 
       if (isRepositoryWithForkedGitHubRepository(addedRepository)) {
         this.showPopup({

@@ -117,6 +117,7 @@ export class BranchDropdown extends React.Component<IBranchDropdownProps> {
         onDeleteBranch={this.onDeleteBranch}
         onRenameBranch={this.onRenameBranch}
         onCheckoutInNewWorktree={this.onCheckoutInNewWorktree}
+        worktrees={repositoryState.worktrees}
         onCheckoutPRInNewWorktree={this.onCheckoutPRInNewWorktree}
         underlineLinks={this.props.underlineLinks}
       />

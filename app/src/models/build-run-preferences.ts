@@ -97,11 +97,31 @@ export interface IBuildRunPreferences {
   readonly autoPinLargeFilesOnCommit?: boolean
 
   /**
-   * Upload up to three automatic Cheap LFS files concurrently. Optional for
-   * back-compat with preferences persisted before this field existed; treat an
-   * absent value as enabled. Turning it off retains sequential uploads.
+   * Keep the managed cross-platform clone/hydration helper under
+   * `.desktop-material/cheap-lfs` synchronized whenever the repository
+   * contains Cheap LFS pointers. Optional for compatibility with repositories
+   * saved before the helper existed; an absent value is enabled.
+   *
+   * Disabling this stops future managed updates but deliberately does not
+   * delete a helper already committed to the repository.
+   */
+  readonly cheapLfsCloneHelperEnabled?: boolean
+
+  /**
+   * Legacy parallel-upload switch retained for compatibility with older app
+   * versions. New writes keep it synchronized with
+   * `cheapLfsUploadConcurrency`: one lane is false and two or three lanes are
+   * true.
    */
   readonly parallelCheapLfsUploads?: boolean
+
+  /**
+   * Maximum simultaneous Cheap LFS uploads. Optional for compatibility with
+   * repositories persisted before configurable lanes existed; use
+   * {@link getCheapLfsUploadConcurrency} instead of reading this field
+   * directly.
+   */
+  readonly cheapLfsUploadConcurrency?: number
 
   /** Storage used for newly pinned objects; old pointer formats still restore. */
   readonly cheapLfsStorageProvider?: CheapLfsStorageProvider
@@ -160,7 +180,9 @@ export const defaultBuildRunPreferences: IBuildRunPreferences = {
   opencodeAutoApprove: false,
   autoMaterializeCheapLfs: true,
   autoPinLargeFilesOnCommit: true,
+  cheapLfsCloneHelperEnabled: true,
   parallelCheapLfsUploads: true,
+  cheapLfsUploadConcurrency: 3,
   cheapLfsStorageProvider: 'release',
   cheapLfsPayloadEncryption: false,
   cheapLfsPayloadEncryptionConfirmed: false,
@@ -179,6 +201,22 @@ export function getCheapLfsStorageProvider(
     return provider
   }
   return preferences.cheapLfsGhcrStorage === true ? 'ghcr' : 'release'
+}
+
+/**
+ * Resolve the configurable Cheap LFS upload lane count while preserving the
+ * legacy boolean contract. Persisted numeric values are clamped to the safe
+ * one-to-three range; old false values stay sequential and true/absent values
+ * retain the historical default of three lanes.
+ */
+export function getCheapLfsUploadConcurrency(
+  preferences: IBuildRunPreferences
+): number {
+  const configured = preferences.cheapLfsUploadConcurrency
+  if (typeof configured === 'number' && Number.isFinite(configured)) {
+    return Math.min(3, Math.max(1, Math.floor(configured)))
+  }
+  return preferences.parallelCheapLfsUploads === false ? 1 : 3
 }
 
 /** Resolve the renamed provider-neutral approval setting compatibly. */

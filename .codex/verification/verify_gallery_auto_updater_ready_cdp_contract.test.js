@@ -548,8 +548,33 @@ test('source gates launch on exact development bundle and unique owned topology'
   }
 })
 
+test('PowerShell probes preserve multiline scripts and sanitize forbidden process controls', () => {
+  for (const required of [
+    "Buffer.from(source, 'utf16le').toString('base64')",
+    "'-EncodedCommand'",
+    'sanitizeForbiddenControlCharacters',
+    '/[\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f]/g',
+    "'\\uFFFD'",
+  ]) {
+    assert.ok(
+      source.includes(required),
+      `missing robust PowerShell probe contract: ${required}`
+    )
+  }
+  assert.equal(source.includes("'-Command',\n        '-'"), false)
+  assert.ok(
+    source.includes(
+      '[System.Diagnostics.Process]::GetProcessById(${processId}).Threads'
+    )
+  )
+  assert.equal(source.includes('Get-CimInstance Win32_Thread'), false)
+})
+
 test('source invokes real IPC, observes real state, and never fabricates ready UI', () => {
   for (const required of [
+    'prepareIsolatedUpdaterWorkspace',
+    "localStorage.setItem('has-shown-welcome-flow', '1')",
+    'accountAndProviderFlowsNotInvoked: true',
     "'check-for-updates'",
     'invokeRealCheckForUpdates',
     "'auto-updater-update-downloaded'",
@@ -591,6 +616,24 @@ test('source invokes real IPC, observes real state, and never fabricates ready U
       `forbidden updater shortcut: ${forbidden}`
     )
   }
+})
+
+test('current-source About assertions ignore screen-reader duplication and pin the development build label', () => {
+  assert.ok(source.includes("clone.querySelectorAll('.sr-only')"))
+  assert.ok(
+    source.includes("'Build ${sourceCommit.slice(0, 10)} (x64)'"),
+    'development capture must prove the exact visible source build'
+  )
+  assert.equal(
+    source.includes("'Version ${productVersion} (x64)'"),
+    false,
+    'development builds expose a Build label, not a release Version label'
+  )
+  assert.equal(
+    [...source.matchAll(/await configureCaptureViewport\(client\)/g)].length,
+    2,
+    'the final ready surface must reassert geometry after persisted zoom settles'
+  )
 })
 
 test('source contains loopback, registry, external-state, and cleanup ledgers', () => {

@@ -2,12 +2,41 @@
 
 ## 2026-07-28 — CURRENT HANDOFF (read this first)
 
-The close-all-open-issues wave is still active on its isolated task branch.
-Source and contract work is present, but completion still requires the exact
-Windows production build, the declared focused and full test gates, fresh
-acceptance for all 84 Windows gallery targets, default-branch integration and
-push proof, and separate finished/closing receipts for each issue. None of
-those remaining gates is inferred from an older screenshot or test run.
+The issue-closeout, Cheap LFS helper, GitLab, and Windows bug-hunt lineages are
+now reconciled in the local `main` merge, and all six textual conflicts are
+resolved. The shutdown/profile persistence checkpoint is present at
+`ac0e50fc2d`; its focused tests and task-branch push passed before
+reconciliation. The merged tree then received four additional P1 repairs:
+
+- single-clone Cheap LFS selections now reach the first real-repository refresh
+  before ordinary all-pointer hydration can start, including an explicit empty
+  selection;
+- clone-helper inventories now begin with the exact `HEAD` pointer set and
+  overlay only commit-selected paths, preserving hydrated and locally deleted
+  unselected pointers while covering new pointers, rewrites, renames, and
+  selected deletions;
+- a retried quit requests pause before awaiting an already resumed clone batch,
+  so a long clone cannot consume the bounded shutdown window before its journal
+  is flushed; and
+- profile leases and native close preparation are renderer-document scoped.
+  Active profile mutations block unload until release, acquisitions crossing a
+  navigation are rejected, and a replacement document must answer a fresh
+  close request before normal exit or update installation may continue.
+
+The post-reconciliation focused gate passes **194/194 tests across 17 files**.
+TypeScript, targeted ESLint with the repository rules, targeted Prettier, the
+231-entry documentation catalog, the generated hub parity gate, and the
+line-ending contract also pass. This is a source checkpoint, not the final
+acceptance claim. Completion still requires the full-tree gates, an exact
+Windows production build through the off-screen Lowlevel MCP workflow, runtime
+and updater-exit acceptance, a pushed default-branch proof, cleanup of every
+merged task worktree/branch, and the applicable issue receipts.
+
+香港粵語：四條工作線已經喺本機 `main` 完整對齊，六個文字衝突亦已解決。
+今輪再修正單一 clone 揀檔時序、clone helper 清單遺漏、重試關閉等候長時間
+clone，同埋 reload 跨文件設定檔鎖／關閉確認競態；相關 194/194 個重點測試
+已通過。未完成完整 Windows build、離屏實機驗證、推送同清理之前，唔會當成
+最終完成。
 
 Desktop Material is Windows-only. The five `linux-tui-*.png` files, the TUI
 source/package notes, and the July 27 Debian/Xvfb manifests are preserved
@@ -15,9 +44,93 @@ historical records, not supported product/release targets and not blockers for
 this Windows close-out. Any later heading that says “read this first” is an
 archived point-in-time handoff and is explicitly superseded by this section.
 
-## 2026-07-28 — Standalone Cheap LFS versus Git LFS comparison atlas
+### Superseded stop-now checkpoint
 
-An isolated Pages-only branch based on remote `823f7fa0e5` adds
+The last exact source-and-verifier checkpoint is
+`ddfbec8302cd4ac4f5f4fb4313f36505dd34750c`, and the stop-now handoff recording
+its final boundary is pushed at
+`d107b0aeb8be2db6f3bd1baf152548249bcd562b`. Local and remote `main` matched
+that latter commit before this final cleanup note. The completed Cheap LFS and
+close-out source tips are ancestors of pushed `main`; their two remote task
+branches were deleted after that proof.
+
+The exact-tip updater run built `ddfbec8302` successfully and reached the real
+Electron/Squirrel **Update ready** UI. Chromium wrote a 960×660, 46,232-byte
+candidate PNG, but the verifier deliberately rejected the run because its
+normal File → Exit request left the owned app process alive beyond the
+45-second cleanup bound. The candidate was therefore **not promoted** to the
+gallery and no complete verifier receipt exists. Cleanup was then performed
+through the real app dispatcher with `quitApp(true)` on the same off-screen
+desktop. The app process count and headless window count both reached zero, and
+`DesktopMaterialMainUpdater-20260728-441a0f01ca54` was released. A successor
+should repair the verifier's normal-exit boundary, rerun it from a clean owned
+root, require the complete receipt, inspect the image at original pixels, and
+only then promote the screenshot.
+
+The focused updater source gates completed before this stop: updater behavior
+31/31, release-note behavior 6/6, and verifier contract 18/18, with TypeScript
+and targeted formatting/lint clean. Full final-tree tests and the exact pushed
+CI/release verdict remain remote or outstanding and must be reported as such.
+
+Eight sibling directories that were no longer registered Git worktrees were
+revalidated as empty shells containing only two junctions back to this
+checkout's dependency directories. The junctions were unlinked first and all
+eight empty shells were removed. The failed updater run root contained no live
+owned process or reparse point; its read-only Git objects were normalized and
+the exact temporary root was then removed. No stash or additional registered
+worktree remains.
+
+`origin/codex/bug-hunt-20260728` is intentionally preserved at
+`bd0041d33989ded70ba1b6424b538312d502b455`. It is an unfinished lineage, not
+cleanup debris: 25 commits diverge from `main`, a trial merge has six content
+conflicts, and exact-tip CI run
+[`30420344514`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30420344514)
+failed current docs/gallery gates. Its own handoff still requires a build, full
+tests, visual acceptance, and issue receipts. Do not delete or wholesale-merge
+it until those changes are reconciled and verified.
+
+For `d107b0aeb8`, Cheap LFS cloud compression run
+[`30423623373`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30423623373)
+passed, while CI
+[`30423623412`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30423623412)
+and Code scanning
+[`30423623414`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30423623414)
+were still running at handoff. No release targeted that SHA yet. The continuous
+issue scan remained #23, #80, #81, #82, #85, #87, #94, #95, and #96.
+
+### Cheap LFS long Windows filenames and materialized-pull boundary
+
+The integrated tree now keeps every Cheap LFS recovery/materialization
+component independent of the tracked basename. A valid 200-unit Windows
+filename previously grew to 256–267 units when the tracked store, GHCR/OCI
+restore, or generated clone hydrator appended its suffix; a 255-unit filename
+grew to 311–322. Those per-component overflows are not repaired by
+`core.longpaths`, `\\?\`, a short checkout root, or 8.3 aliases. The new
+bounded process/UUID names cover tracked recovery, consumed sources, GHCR
+staging, OCI materialization, and generated hydration. Current and historical
+crash-orphan shapes are also recognized by the owned-artifact scanner and
+private `info/exclude` block.
+
+The focused Windows regression gate passes **82/82 tests across seven files**:
+255-unit tracked publish/replace, 200-unit Release helper hydration, 200-unit
+GHCR and OCI materialization, all bounded sidecar kinds, and current/legacy
+owned-artifact shapes. That is a source-level checkpoint only. The earlier
+successful exact-`67d475fd5e` production compile/package is now superseded by
+this later source change; the bounded-sidecar final tip still needs its own
+full build, headless acceptance, commit, push, CI, and installer release.
+
+The reported Pull dialog is a separate boundary. Desktop projects an
+exact-hash **Materialized** payload as clean, while Git still sees raw bytes
+where its index carries a pointer and correctly refuses an incoming overwrite.
+Do not use **Stash changes and continue** for multi-gigabyte materialized
+payloads. On the current build, first copy those verified payloads outside the
+repository, restore only paths explicitly marked **Materialized** from `HEAD`,
+pull, run **Materialize all**, and retain the backup until hydration verifies.
+An edited or **Modified** path must never be restored this way.
+
+### Standalone Cheap LFS versus Git LFS comparison atlas
+
+The Pages lineage based on remote `823f7fa0e5` added
 `site/cheap-lfs-vs-git-lfs.html` as a genuinely separate route rather than
 stretching the existing product guide again. The route controller defines
 exactly 72 bilingual, row-level sourced criteria in 12 categories and renders
@@ -53,23 +166,24 @@ accessible titles/descriptions, not fabricated app evidence. The full feature
 contract is
 [`docs/features/repository-management/cheap-lfs-vs-git-lfs.md`](docs/features/repository-management/cheap-lfs-vs-git-lfs.md).
 
-**Verification state:** local Pages acceptance is complete in the isolated
-worktree. The new 72-row contract and original 30-row guide pass; documentation
+**Verification state:** local Pages acceptance completed before integration.
+The new 72-row contract and original 30-row guide pass; documentation
 catalog/hub/regex/search suites pass 59/59; and the exact Lowlevel MCP run passed
 35/35 installed-Chrome checks in six phases with 33/33 HTTP 200 responses, zero
 runtime errors, zero document overflow at 1440×960 and 390×844, and verified
 browser/server cleanup. The accepted captures and hashes live in
 `docs/verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/`.
 
-The branch base predates renderer multi-compiler correction `6903c9ae1e`. Its
+That branch base predates renderer multi-compiler correction `6903c9ae1e`. Its
 skill-required production-build attempt entered that known pre-fix webpack
 path, so only the validated task-owned ten-process tree was stopped. The
 captured boundary is `returncode=4294967295`, empty stderr, and
-`timed_out=false`; no app-build success is claimed. Final exact application
-build proof belongs to the renderer lineage after integration. Commit, push,
-live route, and Pages deployment proof remain queued at this local checkpoint.
+`timed_out=false`; no app-build success is claimed. The route is now present on
+remote `main` at `80e0209a12f41df8a6a80ef52925b52ab9ecb1b0`, and Pages run
+`30391300142` deployed that source successfully. Final exact application build
+proof still belongs to the integrated tree.
 
-## 2026-07-28 — Cheap LFS Pages comparison and push guide
+### Cheap LFS Pages comparison and push guide
 
 `site/cheap-lfs.html` now presents a filterable 30-decision Cheap LFS versus
 Git LFS comparison and a six-stage push handoff. The copy is deliberately
@@ -96,6 +210,21 @@ was interrupted when the user prioritized publishing the site update, so this
 milestone makes no full-app build claim and changes no app screenshot.
 
 ## Close-all-open-issues verification provenance
+
+### Integrated close-out gate
+
+The close-all-open-issues wave is merged locally but remains unpushed.
+Source and contract work is present, but completion still requires the exact
+Windows production build, the declared focused and full test gates, fresh
+acceptance for all 84 Windows gallery targets, default-branch integration and
+push proof, and separate finished/closing receipts for each issue. None of
+those remaining gates is inferred from an older screenshot or test run.
+
+Desktop Material is Windows-only. The five `linux-tui-*.png` files, the TUI
+source/package notes, and the July 27 Debian/Xvfb manifests are preserved
+historical records, not supported product/release targets and not blockers for
+this Windows close-out. Any later heading that says “read this first” is an
+archived point-in-time handoff and is explicitly superseded by this section.
 
 ### Immutable provenance for historical screenshot hashes
 

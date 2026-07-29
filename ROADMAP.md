@@ -17,26 +17,28 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
 
-## July 28 current close-out wave — **Implementation under final verification**
+## July 28 current close-out wave — **Merged locally; final verification in progress**
 
-The current isolated issue-closing branch covers the remaining actionable
-source, accessibility, documentation, and acceptance gaps. It is not complete
-until the exact Windows production build, all 84 fresh Windows scene checks,
-the declared focused and full suites, default-branch integration/push, and
-issue-closing receipts are proved. The archived Linux TUI prototype, its five
-captures, and its package/compatibility lanes are historical and non-blocking
-under the Windows-only product boundary.
+### Cheap LFS bounded Windows sidecars — **Implemented locally; final-tip build pending**
 
-Issue #96's reported working-tree inventory OOM path is now locally
-closure-ready: Git supplies only changed/untracked names, Desktop Material
-reads at most a securely identity-proven 512-byte prefix, and an exact
-55,581,030,080-byte NTFS sparse regression proves `git grep --untracked` is
-never invoked. Focused coverage passes 82/82 and the complete Cheap LFS
-directory passes 673/673. Publication, final-tree gates, and the issue-closing
-receipt remain part of this wave rather than being inferred from that local
-checkpoint.
+Pin, Release restore, OCI restore, and generated clone hydration no longer
+derive scratch components from the complete tracked basename. Fixed
+process/UUID names remain well below NTFS's 255-unit component limit while
+preserving same-directory atomicity; current and legacy crash leftovers are
+kept out of status, staging, and automatic pin scans. Focused coverage is green
+at **82/82**, including 255-unit tracked names and 200-unit helper/GHCR/OCI
+destinations. The earlier `67d475fd5e` build predates this correction and is
+not final-tip evidence.
 
-## July 28 standalone Cheap LFS versus Git LFS atlas — **Locally accepted; publication queued**
+The screenshot's Pull refusal is tracked as a separate ordinary-Git boundary:
+raw materialized caches are intentionally hidden only from Desktop's Changes
+projection, not from Git's merge safety. The documented current workaround
+backs up only verified **Materialized** files, restores their committed
+pointers, pulls, then re-materializes; multi-gigabyte caches should not be
+stashed. Automatic cache parking remains future work because it must retain
+the payload, roll back on pull failure, and never rewrite a modified path.
+
+### Standalone Cheap LFS versus Git LFS atlas — **Pages published; integrated app verification pending**
 
 The new stable `/cheap-lfs-vs-git-lfs.html` route is separate from the
 end-to-end Cheap LFS guide. Its source defines 72 row-level sourced
@@ -61,10 +63,11 @@ tests, 35 installed-Chrome checks, all 33 HTTP requests, original-resolution
 wide/narrow capture inspection, and runtime cleanup passed. The base predates
 renderer multi-compiler fix `6903c9ae1e`, so its known pre-fix production-build
 path was stopped with bounded evidence rather than misreported as a Pages
-success. The pushed SHA and live Pages verdict remain queued at this local
-checkpoint.
+success. The route is published from remote `main` commit
+`80e0209a12f41df8a6a80ef52925b52ab9ecb1b0`; Pages run `30391300142`
+succeeded. Exact integrated application verification remains pending.
 
-## July 28 Cheap LFS Pages product guide — **Locally accepted; publication queued**
+### Cheap LFS Pages product guide — **Pages published; integrated app verification pending**
 
 The stable `/cheap-lfs.html` route now carries a marketing-style but
 source-grounded 30-point comparison with five persisted filters, explicit
@@ -77,6 +80,25 @@ phases at 1440×960 and 390×844 with both accepted captures retained. The full
 Electron production build was interrupted after an extended silent run so the
 user-requested site push could proceed; no app-build result is claimed by this
 documentation milestone.
+
+### Integrated close-out gate
+
+The locally merged issue-closing lineage covers the remaining actionable
+source, accessibility, documentation, and acceptance gaps. It is not complete
+until the exact Windows production build, all 84 fresh Windows scene checks,
+the declared focused and full suites, default-branch integration/push, and
+issue-closing receipts are proved. The archived Linux TUI prototype, its five
+captures, and its package/compatibility lanes are historical and non-blocking
+under the Windows-only product boundary.
+
+Issue #96's reported working-tree inventory OOM path is now locally
+closure-ready: Git supplies only changed/untracked names, Desktop Material
+reads at most a securely identity-proven 512-byte prefix, and an exact
+55,581,030,080-byte NTFS sparse regression proves `git grep --untracked` is
+never invoked. Focused coverage passes 82/82 and the complete Cheap LFS
+directory passes 673/673. Publication, final-tree gates, and the issue-closing
+receipt remain part of this wave rather than being inferred from that local
+checkpoint.
 
 ## Historical July 28 measured repository-view responsiveness — **Source fix locally verified; exact post-fix timing pending**
 

@@ -1614,7 +1614,6 @@ export class Preferences extends React.Component<
 
     setShowCommitAuthorInfo(this.state.showCommitAuthorInfo)
     dispatcher.setAutomationSettings(this.state.automationSettings)
-    setShowCommitAuthorInfo(this.state.showCommitAuthorInfo)
 
     if (enableFormattingPreferences()) {
       if (this.state.selectedDateFormat !== undefined) {

@@ -24,12 +24,22 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 ![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci.yml/badge.svg?branch=main)
 
 > **Current close-out status — July 28, 2026:** the active issue-closing wave is
-> still in verification. Its capture and publication contracts own exactly
-> **84 current Windows scenes**; five earlier Linux/Xvfb files remain immutable
-> historical evidence outside that set. No fresh gallery promotion, full-suite
-> pass, merge to the pushed default branch, or issue closure is claimed by this
-> checkpoint. The dated notes below are preserved chronology, not current
-> blockers or issue states.
+> merged locally with the Cheap LFS helper train and the Windows shutdown/profile
+> persistence corrections, and remains in final verification. Its capture and
+> publication contracts own exactly **84 current Windows scenes**; five earlier
+> Linux/Xvfb files remain immutable historical evidence outside that set. No
+> fresh final-tip gallery promotion, full-suite pass, pushed-default proof, or
+> issue closure is claimed by this checkpoint. The dated notes below are
+> preserved chronology, not current blockers or issue states.
+
+> **Cheap LFS long-name correction — July 28, 2026:** valid long Windows
+> filenames now use bounded basename-independent recovery and materialization
+> sidecars across Release, OCI, and generated clone hydration. Focused
+> regressions pass **82/82**, including 255-unit tracked names. The separate
+> Pull warning shown for already-materialized payloads is ordinary Git safety:
+> back up those verified caches, return them to committed pointers, pull, and
+> materialize again; do not pack multi-gigabyte caches into a Git stash.
+> Final-tip build, push, CI, and installer proof remain pending.
 
 > **Standalone Cheap LFS versus Git LFS atlas — July 28, 2026:** the
 > [separate comparison page](https://ding-ding-projects.github.io/desktop-material/cheap-lfs-vs-git-lfs.html)

@@ -1,3 +1,5 @@
+import { ICheapLfsCloneSelection } from './cheap-lfs-clone-selection'
+
 /** Additional arguments to provide when cloning a repository */
 export type CloneOptions = {
   /** Stable account identity to use for the first credential attempt. */
@@ -12,6 +14,11 @@ export type CloneOptions = {
   readonly singleBranch?: boolean
   /** Apply the shallow-history limit to recursively cloned submodules. */
   readonly shallowSubmodules?: boolean
+  /**
+   * Optional manifest-bound Cheap LFS allowlist captured before clone.
+   * Post-clone materialization must validate it against committed pointers.
+   */
+  readonly cheapLfsSelection?: ICheapLfsCloneSelection
 }
 
 export const MaximumCloneDepth = 2_147_483_647

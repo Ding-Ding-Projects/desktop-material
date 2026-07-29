@@ -118,7 +118,7 @@ function publishOptions(
     orasExecutablePath: oras.path,
     orasExecutableSha256: oras.digest,
     credentials: { username: 'test-user', token },
-    parallelBlobUploads: false,
+    blobUploadConcurrency: 1,
     keyCreated: false,
     keyRelativePath: null,
     packagePolicyVerifier: {
@@ -144,7 +144,7 @@ afterEach(async () => {
 })
 
 describe('Cheap LFS ORAS registry transport', () => {
-  it('publishes at most three files concurrently, retains the digest, then moves the stable tag', async () => {
+  it('honors a two-lane object upload limit, retains the digest, then moves the stable tag', async () => {
     const directory = await root()
     const oras = await orasFixture(directory)
     const sources = await Promise.all(
@@ -219,7 +219,7 @@ describe('Cheap LFS ORAS registry transport', () => {
           orasExecutablePath: oras.path,
           orasExecutableSha256: oras.digest,
           credentials: { username: 'test_user', token },
-          parallelBlobUploads: true,
+          blobUploadConcurrency: 2,
           keyCreated: false,
           keyRelativePath: null,
           signal: controller.signal,
@@ -251,13 +251,13 @@ describe('Cheap LFS ORAS registry transport', () => {
         })
 
         assert.equal(result.provider, 'docker-hub')
-        assert.equal(maximumActive, 3)
+        assert.equal(maximumActive, 2)
         assert.equal(
-          activeLaneSnapshots.some(snapshot => snapshot.length === 3),
+          activeLaneSnapshots.some(snapshot => snapshot.length === 2),
           true
         )
         assert.equal(
-          activeLaneSnapshots.every(snapshot => snapshot.length <= 3),
+          activeLaneSnapshots.every(snapshot => snapshot.length <= 2),
           true
         )
         assert.equal(
@@ -355,7 +355,7 @@ describe('Cheap LFS ORAS registry transport', () => {
           orasExecutablePath: oras.path,
           orasExecutableSha256: oras.digest,
           credentials: { username: 'test_user', token },
-          parallelBlobUploads: true,
+          blobUploadConcurrency: 3,
           keyCreated: false,
           keyRelativePath: null,
           runner,
@@ -438,7 +438,7 @@ describe('Cheap LFS ORAS registry transport', () => {
             orasExecutablePath: oras.path,
             orasExecutableSha256: oras.digest,
             credentials: { username: 'test-user', token },
-            parallelBlobUploads: false,
+            blobUploadConcurrency: 1,
             keyCreated: false,
             keyRelativePath: null,
             runner,
@@ -690,7 +690,7 @@ describe('Cheap LFS ORAS registry transport', () => {
             orasExecutablePath: oras.path,
             orasExecutableSha256: oras.digest,
             credentials: { username: 'test-user', token },
-            parallelBlobUploads: false,
+            blobUploadConcurrency: 1,
             keyCreated: false,
             keyRelativePath: null,
             runner,
@@ -772,7 +772,7 @@ describe('Cheap LFS ORAS registry transport', () => {
             orasExecutablePath: oras.path,
             orasExecutableSha256: oras.digest,
             credentials: { username: 'test-user', token },
-            parallelBlobUploads: true,
+            blobUploadConcurrency: 3,
             keyCreated: false,
             keyRelativePath: null,
             runner,
@@ -860,7 +860,7 @@ describe('Cheap LFS ORAS registry transport', () => {
             orasExecutablePath: oras.path,
             orasExecutableSha256: oras.digest,
             credentials: { username: 'test-user', token },
-            parallelBlobUploads: true,
+            blobUploadConcurrency: 3,
             keyCreated: false,
             keyRelativePath: null,
             runner,

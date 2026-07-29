@@ -132,6 +132,12 @@ import {
   readBoundedActionsArtifactJSON,
 } from './actions-artifact-json'
 import {
+  CHEAP_LFS_CLONE_INVENTORY_PATH,
+  CHEAP_LFS_CLONE_INVENTORY_RESPONSE_MAXIMUM_BYTES,
+  CheapLfsCloneInventoryRemoteFile,
+  decodeCheapLfsCloneInventoryContents,
+} from './cheap-lfs/clone-inventory'
+import {
   ActionsArtifactAttestationMaximumBytes,
   ActionsArtifactAttestationProbePageSize,
   ActionsArtifactProvenancePredicate,
@@ -4877,6 +4883,64 @@ export class API {
       await parsedResponse<unknown>(response)
     }
     return await response.text()
+  }
+
+  /**
+   * Fetch the managed Cheap LFS clone inventory from one exact default-branch
+   * ref. Unlike the general raw-file helper this reads the Contents JSON
+   * envelope through a hard byte limit, validates its declared/decoded size,
+   * and retains the manifest blob identity used to bind a user's selection.
+   */
+  public async fetchCheapLfsCloneInventoryFile(
+    owner: string,
+    name: string,
+    defaultBranch: string,
+    signal?: AbortSignal
+  ): Promise<CheapLfsCloneInventoryRemoteFile> {
+    const query = `?ref=${encodeURIComponent(defaultBranch)}`
+    const response = await this.ghRequest(
+      'GET',
+      `repos/${owner}/${name}/contents/${CHEAP_LFS_CLONE_INVENTORY_PATH}${query}`,
+      { signal }
+    )
+
+    if (response.status === HttpStatusCode.NotFound) {
+      await response.body?.cancel().catch(() => undefined)
+      return { kind: 'absent' }
+    }
+    if (
+      response.status === HttpStatusCode.Unauthorized ||
+      response.status === HttpStatusCode.Forbidden
+    ) {
+      await response.body?.cancel().catch(() => undefined)
+      return { kind: 'auth' }
+    }
+    if (!response.ok) {
+      await boundedActionsArtifactResponse(response, signal)
+      // The bounded response helper always throws for a non-success response.
+      return { kind: 'invalid' }
+    }
+
+    let value: unknown
+    try {
+      value = await readBoundedActionsArtifactJSON(
+        response,
+        signal,
+        CHEAP_LFS_CLONE_INVENTORY_RESPONSE_MAXIMUM_BYTES
+      )
+    } catch (error) {
+      if ((error as Error)?.name === 'AbortError') {
+        throw error
+      }
+      if (error instanceof ActionsArtifactJSONError) {
+        return error.kind === 'too-large' || error.kind === 'invalid-length'
+          ? { kind: 'truncated' }
+          : { kind: 'invalid' }
+      }
+      throw error
+    }
+
+    return decodeCheapLfsCloneInventoryContents(value, defaultBranch)
   }
 
   /**

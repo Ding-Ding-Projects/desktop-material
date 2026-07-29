@@ -1235,6 +1235,31 @@ contract every naming site holds to:
   re-measuring in bytes would import ext4's 255-byte `NAME_MAX` and start
   refusing to track files the user can see in Explorer.
 
+Cheap LFS therefore keeps every same-directory recovery name independent of
+the tracked basename. Pin, Release restore, OCI restore, and the generated
+clone hydrator use bounded process/UUID sidecars such as
+`.entry.cheap-lfs-recovery-<pid>-<uuid>` and
+`.cheap-lfs-hydrate-<pid>-<uuid>`. Older builds instead prepended the full
+tracked basename; a valid 200-unit name could become a 256-unit sidecar and
+fail with `ENAMETOOLONG`. Extended-length `\\?\` paths, Git `core.longpaths`,
+8.3 aliases, and a shallower checkout cannot bypass NTFS's 255-unit
+**per-component** limit. On an older build, the practical workaround is to
+temporarily rename that one tracked basename to at most 100 units, complete the
+pin or restore, then commit the intended path rename or move it back after the
+pointer is safely written.
+
+Materialized Cheap LFS payloads create a separate ordinary-Git pull boundary:
+Desktop can prove and project their raw bytes as clean, but Git still compares
+those bytes with the pointer in the index and may refuse an incoming overwrite.
+For a path that Large files & storage explicitly marks **Materialized** (never
+**Modified**), the current safe workaround is to copy the raw payload outside
+the repository, restore that path's worktree copy from `HEAD`, pull, and then
+run **Materialize all** again. Keep the backup until the new materialization is
+verified; never apply this to an edited or unproven file. Ordinary changes may
+be stashed separately, but the multi-gigabyte materialized payloads themselves
+should not be packed into a Git stash. The app does not silently run that
+destructive conversion from the Pull button.
+
 Manual release-asset uploads in the Releases view split the difference. The name
 the picker suggests from the chosen file is trimmed to the byte budget, so a
 long CJK file name still opens the upload panel with an editable name rather

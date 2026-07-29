@@ -180,6 +180,7 @@ import {
   CloneRepository,
   BatchCloneProgress,
   CloneableSubmodulesDialog,
+  CheapLfsAssetSelectorDialog,
 } from './clone-repository'
 import { SubmoduleManagerDialog } from './submodules/submodule-manager-dialog'
 import { SubmoduleConfigDialog } from './submodules/submodule-config-dialog'
@@ -449,6 +450,7 @@ export const dialogTransitionTimeout = {
 const ModalPopupTypes = new Set<PopupType>([
   PopupType.InstallingUpdate,
   PopupType.PullPreview,
+  PopupType.CheapLfsCloneAssets,
   PopupType.CheapLfsPayloadPassword,
 ])
 
@@ -3446,6 +3448,21 @@ export class App extends React.Component<IAppProps, IAppState> {
             parentCloneUrl={popup.parentCloneUrl}
             entries={popup.entries}
             onCloneUrl={popup.onCloneUrl ?? this.showCloneRepo}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.CheapLfsCloneAssets:
+        return (
+          <CheapLfsAssetSelectorDialog
+            key={`cheap-lfs-clone-assets-${popup.repositoryCloneUrl}-${popup.manifestBlobSha}`}
+            repositoryName={popup.repositoryName}
+            accountKey={popup.accountKey}
+            repositoryCloneUrl={popup.repositoryCloneUrl}
+            defaultBranch={popup.defaultBranch}
+            manifestBlobSha={popup.manifestBlobSha}
+            inventory={popup.inventory}
+            initialSelection={popup.initialSelection}
+            onSelectionConfirmed={popup.onSelectionConfirmed}
             onDismissed={onPopupDismissedFn}
           />
         )

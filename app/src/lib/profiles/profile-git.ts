@@ -35,6 +35,64 @@ const ProfileHistoryScanBatchSize = 100
 const ProfileTabsPath = 'tabs.json'
 const processProfileRepositoryLockTails = new Map<string, Promise<void>>()
 
+export interface IProfileRepositoryNavigationTarget {
+  addEventListener(
+    type: 'beforeunload',
+    listener: (event: BeforeUnloadEvent) => void
+  ): void
+  removeEventListener(
+    type: 'beforeunload',
+    listener: (event: BeforeUnloadEvent) => void
+  ): void
+}
+
+interface IProfileRepositoryNavigationGuard {
+  count: number
+  readonly listener: (event: BeforeUnloadEvent) => void
+}
+
+const profileRepositoryNavigationGuards = new WeakMap<
+  IProfileRepositoryNavigationTarget,
+  IProfileRepositoryNavigationGuard
+>()
+
+function holdProfileRepositoryDocument(
+  target: IProfileRepositoryNavigationTarget
+): () => void {
+  const existing = profileRepositoryNavigationGuards.get(target)
+  if (existing !== undefined) {
+    existing.count++
+    return () => releaseProfileRepositoryDocument(target, existing)
+  }
+
+  const guard: IProfileRepositoryNavigationGuard = {
+    count: 1,
+    listener: event => {
+      event.preventDefault()
+      // Electron consistently honors an explicitly assigned returnValue for
+      // both renderer- and BrowserWindow-initiated reloads.
+      event.returnValue = false
+    },
+  }
+  profileRepositoryNavigationGuards.set(target, guard)
+  target.addEventListener('beforeunload', guard.listener)
+  return () => releaseProfileRepositoryDocument(target, guard)
+}
+
+function releaseProfileRepositoryDocument(
+  target: IProfileRepositoryNavigationTarget,
+  guard: IProfileRepositoryNavigationGuard
+): void {
+  if (profileRepositoryNavigationGuards.get(target) !== guard) {
+    return
+  }
+  guard.count--
+  if (guard.count === 0) {
+    profileRepositoryNavigationGuards.delete(target)
+    target.removeEventListener('beforeunload', guard.listener)
+  }
+}
+
 /** Construct a lightweight Repository model pointing at a profile directory. */
 export function profileRepository(path: string): Repository {
   return new Repository(path, -1, null, false)
@@ -114,9 +172,9 @@ async function ensureCrashSafePersistenceIgnored(path: string): Promise<void> {
 
 /**
  * Serialize profile file and Git mutations. Renderer documents lease the path
- * from the main process; terminal destruction releases ownership while a
- * navigation may cancel only work which has not started. Node-based tools and
- * tests use an equivalent in-process queue.
+ * from the main process. An active lease blocks document replacement until its
+ * action and release finish; navigation cancels only work which has not
+ * started. Node-based tools and tests use an equivalent in-process queue.
  */
 export async function withProfileRepositoryLock<T>(
   repository: Repository,
@@ -129,8 +187,10 @@ export async function withProfileRepositoryLock<T>(
       'acquire-profile-repository-lock',
       repository.path
     )
-    return runProfileRepositoryActionWithLease(action, () =>
-      ipcRenderer.invoke('release-profile-repository-lock', leaseId)
+    return runProfileRepositoryActionWithLease(
+      action,
+      () => ipcRenderer.invoke('release-profile-repository-lock', leaseId),
+      window
     )
   }
 
@@ -163,8 +223,13 @@ export async function withProfileRepositoryLock<T>(
  */
 export async function runProfileRepositoryActionWithLease<T>(
   action: () => Promise<T>,
-  releaseLease: () => Promise<boolean>
+  releaseLease: () => Promise<boolean>,
+  navigationTarget?: IProfileRepositoryNavigationTarget
 ): Promise<T> {
+  const releaseDocumentHold =
+    navigationTarget === undefined
+      ? null
+      : holdProfileRepositoryDocument(navigationTarget)
   let actionFailed = false
   try {
     return await action()
@@ -173,16 +238,20 @@ export async function runProfileRepositoryActionWithLease<T>(
     throw error
   } finally {
     try {
-      const released = await releaseLease()
-      if (!released) {
-        throw new Error(
-          'The profile repository lease was no longer owned by this renderer.'
-        )
+      try {
+        const released = await releaseLease()
+        if (!released) {
+          throw new Error(
+            'The profile repository lease was no longer owned by this renderer.'
+          )
+        }
+      } catch (releaseError) {
+        if (!actionFailed) {
+          throw releaseError
+        }
       }
-    } catch (releaseError) {
-      if (!actionFailed) {
-        throw releaseError
-      }
+    } finally {
+      releaseDocumentHold?.()
     }
   }
 }

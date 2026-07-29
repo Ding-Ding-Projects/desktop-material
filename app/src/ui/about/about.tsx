@@ -77,6 +77,27 @@ interface IUpdateInfoProps {
   readonly loading?: boolean
 }
 
+/**
+ * Development builds do not start automatic update checks, but an explicitly
+ * requested check still travels through Electron's real updater event path.
+ * Reveal only those genuine Squirrel states; keep the ordinary development
+ * About surface and the separate coming-soon probe unchanged.
+ */
+export function isRealUpdaterState(status: UpdateStatus): boolean {
+  switch (status) {
+    case UpdateStatus.CheckingForUpdates:
+    case UpdateStatus.UpdateAvailable:
+    case UpdateStatus.UpdateNotAvailable:
+    case UpdateStatus.UpdateReady:
+      return true
+    case UpdateStatus.UpdateNotChecked:
+    case UpdateStatus.UpdateComingSoon:
+      return false
+    default:
+      return assertNever(status, `Unknown update status ${status}`)
+  }
+}
+
 class UpdateInfo extends React.Component<IUpdateInfoProps> {
   public render() {
     return (
@@ -103,7 +124,8 @@ export class About extends React.Component<IAboutProps, IAboutState> {
   private get canCheckForUpdates() {
     return (
       __RELEASE_CHANNEL__ !== 'development' ||
-      this.props.allowDevelopment === true
+      this.props.allowDevelopment === true ||
+      isRealUpdaterState(this.props.updateState.status)
     )
   }
 

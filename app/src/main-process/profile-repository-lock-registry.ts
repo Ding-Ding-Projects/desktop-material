@@ -4,11 +4,13 @@ import { win32 as WindowsPath } from 'path'
 interface IProfileRepositoryLease {
   readonly id: string
   readonly ownerId: number
+  readonly documentId: number
   readonly repositoryKey: string
 }
 
 interface IProfileRepositoryLockRequest {
   readonly ownerId: number
+  readonly documentId: number
   readonly resolve: (leaseId: string) => void
   readonly reject: (error: Error) => void
 }
@@ -94,11 +96,14 @@ export function normalizeProfileRepositoryPathWithinUserData(
 }
 
 /**
- * Raised when a renderer disappears before its queued lock request is granted.
+ * Raised when a renderer document disappears before its lock request is
+ * granted.
  */
 export class ProfileRepositoryLockCancelledError extends Error {
   public constructor() {
-    super('The profile repository lock request owner is no longer available.')
+    super(
+      'The profile repository lock request document is no longer available.'
+    )
     this.name = 'ProfileRepositoryLockCancelledError'
   }
 }
@@ -106,10 +111,10 @@ export class ProfileRepositoryLockCancelledError extends Error {
 /**
  * Serializes profile repository work inside the main process.
  *
- * A lease belongs to the exact renderer which requested it. Navigation may
- * cancel that renderer's queued requests, but an active lease remains exclusive
- * until its action releases it or terminal renderer destruction invokes
- * releaseSender.
+ * A lease belongs to the exact renderer document which requested it. Replacing
+ * that document cancels its queued requests and releases its active leases so a
+ * replacement document cannot wait forever behind an owner which no longer
+ * exists.
  */
 export class ProfileRepositoryLockRegistry {
   private readonly locks = new Map<string, IProfileRepositoryLockState>()
@@ -124,8 +129,13 @@ export class ProfileRepositoryLockRegistry {
    *
    * Requests for equivalent paths are granted in arrival order.
    */
-  public acquire(ownerId: number, repositoryPath: string): Promise<string> {
+  public acquire(
+    ownerId: number,
+    repositoryPath: string,
+    documentId = 0
+  ): Promise<string> {
     this.validateOwnerId(ownerId)
+    this.validateDocumentId(documentId)
     const repositoryKey = this.normalizeRepositoryPath(repositoryPath)
     let lock = this.locks.get(repositoryKey)
 
@@ -135,21 +145,28 @@ export class ProfileRepositoryLockRegistry {
     }
 
     if (lock.holder === undefined) {
-      return Promise.resolve(this.grant(ownerId, repositoryKey, lock))
+      return Promise.resolve(
+        this.grant(ownerId, documentId, repositoryKey, lock)
+      )
     }
 
     return new Promise<string>((resolve, reject) => {
-      lock!.queue.push({ ownerId, resolve, reject })
+      lock!.queue.push({ ownerId, documentId, resolve, reject })
     })
   }
 
   /**
-   * Release a lease only when the requesting renderer owns it.
+   * Release a lease only when the requesting renderer document owns it.
    */
-  public release(ownerId: number, leaseId: string): boolean {
+  public release(ownerId: number, leaseId: string, documentId = 0): boolean {
     this.validateOwnerId(ownerId)
+    this.validateDocumentId(documentId)
     const lease = this.leases.get(leaseId)
-    if (lease === undefined || lease.ownerId !== ownerId) {
+    if (
+      lease === undefined ||
+      lease.ownerId !== ownerId ||
+      lease.documentId !== documentId
+    ) {
       return false
     }
 
@@ -159,13 +176,27 @@ export class ProfileRepositoryLockRegistry {
 
   /**
    * Cancel only requests which have not acquired a lease yet.
-   *
-   * Starting a navigation is not proof that already-started filesystem or Git
-   * work has stopped, so active leases deliberately remain owned.
    */
   public cancelQueuedSender(ownerId: number): void {
     this.validateOwnerId(ownerId)
     this.cancelQueuedRequests(ownerId)
+  }
+
+  /**
+   * Cancel queued work and release active leases for one replaced document.
+   */
+  public releaseDocument(ownerId: number, documentId: number): void {
+    this.validateOwnerId(ownerId)
+    this.validateDocumentId(documentId)
+    // Cancel first so releasing an active lease cannot grant queued work back
+    // to the document which is being replaced.
+    this.cancelQueuedRequests(ownerId, documentId)
+
+    for (const lease of Array.from(this.leases.values())) {
+      if (lease.ownerId === ownerId && lease.documentId === documentId) {
+        this.releaseLease(lease)
+      }
+    }
   }
 
   /**
@@ -184,11 +215,14 @@ export class ProfileRepositoryLockRegistry {
     }
   }
 
-  private cancelQueuedRequests(ownerId: number): void {
+  private cancelQueuedRequests(ownerId: number, documentId?: number): void {
     for (const [repositoryKey, lock] of this.locks) {
       const retained: IProfileRepositoryLockRequest[] = []
       for (const request of lock.queue) {
-        if (request.ownerId === ownerId) {
+        if (
+          request.ownerId === ownerId &&
+          (documentId === undefined || request.documentId === documentId)
+        ) {
           request.reject(new ProfileRepositoryLockCancelledError())
         } else {
           retained.push(request)
@@ -205,6 +239,14 @@ export class ProfileRepositoryLockRegistry {
     }
   }
 
+  private validateDocumentId(documentId: number): void {
+    if (!Number.isSafeInteger(documentId) || documentId < 0) {
+      throw new TypeError(
+        'A non-negative integer lock document id is required.'
+      )
+    }
+  }
+
   private normalizeRepositoryPath(repositoryPath: string): string {
     // Desktop Material is Windows-only. Normalize explicitly with win32 so
     // platform-neutral unit runners exercise the same case-insensitive keys.
@@ -213,6 +255,7 @@ export class ProfileRepositoryLockRegistry {
 
   private grant(
     ownerId: number,
+    documentId: number,
     repositoryKey: string,
     lock: IProfileRepositoryLockState
   ): string {
@@ -221,7 +264,7 @@ export class ProfileRepositoryLockRegistry {
       leaseId = this.createLeaseId()
     }
 
-    const lease = { id: leaseId, ownerId, repositoryKey }
+    const lease = { id: leaseId, ownerId, documentId, repositoryKey }
     lock.holder = lease
     this.leases.set(leaseId, lease)
     return leaseId
@@ -238,7 +281,9 @@ export class ProfileRepositoryLockRegistry {
 
     const next = lock.queue.shift()
     if (next !== undefined) {
-      next.resolve(this.grant(next.ownerId, lease.repositoryKey, lock))
+      next.resolve(
+        this.grant(next.ownerId, next.documentId, lease.repositoryKey, lock)
+      )
     } else {
       this.deleteUnusedLock(lease.repositoryKey, lock)
     }

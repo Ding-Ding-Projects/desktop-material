@@ -7,6 +7,10 @@ const source = readFileSync(
   join(process.cwd(), 'app', 'src', 'lib', 'stores', 'app-store.ts'),
   'utf8'
 )
+const dispatcherSource = readFileSync(
+  join(process.cwd(), 'app', 'src', 'ui', 'dispatcher', 'dispatcher.ts'),
+  'utf8'
+)
 
 function methodBody(start: string, end: string): string {
   const startIndex = source.indexOf(start)
@@ -87,7 +91,7 @@ describe('cheap LFS commit entry points', () => {
     assert.ok(refreshStatus > ensureWorkflow)
     assert.match(
       body,
-      /autoIncludedCheapLfsWorkflowPath\s*=\s*CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH/
+      /autoIncludedCheapLfsManagedPaths\.add\(\s*CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH/
     )
     // Only a public repository has a caller to include. A private one routes
     // through the encrypted public builder and never gets the file, so the
@@ -100,7 +104,46 @@ describe('cheap LFS commit entry points', () => {
     assert.doesNotMatch(body, /if \(workflow\.changed\)/)
     assert.match(
       body,
-      /originalSelectedPaths\.add\(autoIncludedCheapLfsWorkflowPath\)/
+      /for \(const managedPath of autoIncludedCheapLfsManagedPaths\)[\s\S]*originalSelectedPaths\.add\(managedPath\)[\s\S]*requiredCheapLfsPaths\.add\(managedPath\)/
+    )
+  })
+
+  it('generates and atomically includes the default-on clone helper', () => {
+    const body = methodBody(
+      'public async _commitIncludedChanges(',
+      'private async _refreshRepositoryAfterCommit('
+    )
+    const pin = body.indexOf('autoPinLargeFilesBeforeCommit(')
+    const listHeadPointers = body.indexOf(
+      'await listAllCheapLfsPointersAtHead(repository)',
+      pin
+    )
+    const mergePointers = body.indexOf(
+      'mergeCheapLfsPointersForProspectiveCommit(',
+      pin
+    )
+    const ensureHelper = body.indexOf(
+      'ensureCheapLfsCloneHelperBundle(',
+      mergePointers
+    )
+    const refreshStatus = body.indexOf(
+      'await this._loadStatus(repository)',
+      ensureHelper
+    )
+
+    assert.ok(pin >= 0)
+    assert.ok(mergePointers > pin)
+    assert.ok(listHeadPointers > mergePointers)
+    assert.ok(ensureHelper > listHeadPointers)
+    assert.ok(refreshStatus > ensureHelper)
+    assert.match(body, /preferences\.cheapLfsCloneHelperEnabled !== false/)
+    assert.match(
+      body,
+      /const helperPaths = new Set\(\[[\s\S]*helper\.created[\s\S]*helper\.updated[\s\S]*file\.withIncludeAll\(true\)/
+    )
+    assert.match(
+      body,
+      /selectedWorktreePointers[\s\S]*workingTreeState === 'pointer'[\s\S]*selectedFiles = selectedFiles\.map[\s\S]*file\.withIncludeAll\(true\)/
     )
   })
 
@@ -129,18 +172,51 @@ describe('cheap LFS commit entry points', () => {
   it('waits for verified materialization when opening or completing a clone', () => {
     assert.match(
       source,
-      /await this\.maybeAutoMaterializeCheapLfs\(refreshedRepository, \{\s*requireSelected: true/
+      /await this\.maybeAutoMaterializeCheapLfs\(refreshedRepository, \{[\s\S]*?requireSelected: true/
     )
     // The loop now also publishes a 'restoring' finalization reading per
     // repository so the clone popup stays live, but it must still await every
     // materialization before the batch is allowed to report completion.
     assert.match(
       source,
-      /for \(const \[index, registered\] of addedRepositories\.entries\(\)\) \{[\s\S]*?await this\.maybeAutoMaterializeCheapLfs\(registered\)/
+      /for \(const \[index, registered\] of addedRepositories\.entries\(\)\) \{[\s\S]*?await this\.maybeAutoMaterializeCheapLfs\(registered, \{/
     )
     assert.match(
       source,
-      /stage: 'restoring',[\s\S]*?await this\.maybeAutoMaterializeCheapLfs\(registered\)/
+      /stage: 'restoring',[\s\S]*?await this\.maybeAutoMaterializeCheapLfs\(registered, \{/
+    )
+    assert.match(
+      source,
+      /cheapLfsSelection: cloneItem\.cheapLfsSelection[\s\S]*expectedCloneUrl: cloneItem\.url[\s\S]*expectedDefaultBranch: cloneItem\.defaultBranch/
+    )
+  })
+
+  it('binds single-clone asset choices to authoritative local evidence', () => {
+    const body = methodBody(
+      'public async maybeAutoMaterializeCheapLfs(',
+      'private async runCheapLfsMaterialize('
+    )
+    const manifest = body.indexOf('readCheapLfsCloneManifestEvidence(')
+    const validate = body.indexOf('validateCheapLfsCloneSelection(', manifest)
+    const rejected = body.indexOf("validation.kind === 'invalid'", validate)
+    const materialize = body.indexOf('this.runCheapLfsMaterialize(', rejected)
+
+    assert.ok(manifest >= 0)
+    assert.ok(validate > manifest)
+    assert.ok(rejected > validate)
+    assert.ok(materialize > rejected)
+    assert.match(
+      body.slice(rejected, materialize),
+      /postPersistentErrorNotice\([\s\S]*return/
+    )
+    assert.match(body, /requestedPaths = new Set\(validation\.selectedPaths\)/)
+    assert.match(
+      dispatcherSource,
+      /_selectRepository\(addedRepository, true, false, \{[\s\S]*cheapLfsSelection: options\.cheapLfsSelection[\s\S]*expectedCloneUrl: url/
+    )
+    assert.doesNotMatch(
+      dispatcherSource,
+      /maybeAutoMaterializeCheapLfs\(addedRepository/
     )
   })
 

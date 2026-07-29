@@ -102,37 +102,81 @@ export class RichText extends React.Component<IRichTextProps, IRichTextState> {
     this.state = { overflowed: false }
     this.containerRef.subscribe(this.onContainerRef)
     this.resizeObserver = new ResizeObserver(entries => {
-      const newWidth = entries[0].contentRect.width
+      const entry = entries.find(
+        candidate => candidate.target === this.containerRef.current
+      )
+      if (entry === undefined) {
+        return
+      }
+
+      const newWidth = entry.contentRect.width
 
       if (this.lastKnownWidth !== newWidth) {
         this.lastKnownWidth = newWidth
-
-        if (this.resizeDebounceId !== null) {
-          cancelAnimationFrame(this.resizeDebounceId)
-          this.resizeDebounceId = null
-        }
-        this.resizeDebounceId = requestAnimationFrame(_ => this.onResized())
+        this.scheduleResize()
       }
     })
   }
 
+  private cancelScheduledResize() {
+    if (this.resizeDebounceId !== null) {
+      window.cancelAnimationFrame(this.resizeDebounceId)
+      this.resizeDebounceId = null
+    }
+  }
+
+  private scheduleResize = () => {
+    this.cancelScheduledResize()
+    this.resizeDebounceId = window.requestAnimationFrame(() => {
+      this.resizeDebounceId = null
+      this.onResized()
+    })
+  }
+
   private onContainerRef = (elem: HTMLDivElement | null) => {
+    this.resizeObserver.disconnect()
+    this.lastKnownWidth = null
+
     if (elem === null) {
-      this.resizeObserver.disconnect()
+      this.cancelScheduledResize()
       return
     }
 
     this.resizeObserver.observe(elem)
-    this.onResized(elem)
+    this.scheduleResize()
   }
 
-  private onResized = (elem?: HTMLDivElement) => {
-    elem = elem ?? this.containerRef.current ?? undefined
-    if (elem && elem.scrollWidth > elem.clientWidth) {
-      this.setState({ overflowed: true })
-    } else {
-      this.setState({ overflowed: false })
+  private onResized = () => {
+    const elem = this.containerRef.current
+    if (elem === null) {
+      return
     }
+
+    const overflowed = elem.scrollWidth > elem.clientWidth
+    this.setState(state =>
+      state.overflowed === overflowed ? null : { overflowed }
+    )
+  }
+
+  public componentDidUpdate(prevProps: IRichTextProps) {
+    const visibleTextChanged =
+      this.getTitle(prevProps.text) !== this.getTitle(this.props.text)
+    const renderedContentChanged =
+      visibleTextChanged ||
+      prevProps.emoji !== this.props.emoji ||
+      prevProps.repository !== this.props.repository ||
+      prevProps.renderUrlsAsLinks !== this.props.renderUrlsAsLinks ||
+      prevProps.className !== this.props.className
+
+    if (renderedContentChanged && this.containerRef.current !== null) {
+      this.scheduleResize()
+    }
+  }
+
+  public componentWillUnmount() {
+    this.cancelScheduledResize()
+    this.resizeObserver.disconnect()
+    this.containerRef.unsubscribe(this.onContainerRef)
   }
 
   public render() {

@@ -37,8 +37,8 @@ import {
 } from './renderer-failure'
 import { AutoFitDebounceMs } from '../lib/zoom'
 import {
+  DocumentScopedNativeClosePreparationController,
   INativeClosePreparationResult,
-  NativeClosePreparationController,
 } from './native-close-preparation'
 import type { ApplicationClosePreparationClaim } from './application-quit-preparation'
 
@@ -52,7 +52,7 @@ export class AppWindow {
   private window: Electron.BrowserWindow
   private emitter = new Emitter()
   private readonly cleanupTasks = new Array<() => void>()
-  private readonly nativeClosePreparation: NativeClosePreparationController
+  private readonly nativeClosePreparation: DocumentScopedNativeClosePreparationController
 
   private _loadTime: number | null = null
   private _rendererReadyTime: number | null = null
@@ -122,13 +122,72 @@ export class AppWindow {
 
     this.window = new BrowserWindow(windowOptions)
     addTrustedIPCSender(this.window.webContents)
-    this.nativeClosePreparation = new NativeClosePreparationController({
-      sendPrepare: requestId =>
-        ipcWebContents.send(
-          this.window.webContents,
-          'prepare-window-close',
-          requestId
-        ),
+    this.nativeClosePreparation =
+      new DocumentScopedNativeClosePreparationController({
+        sendPrepare: requestId =>
+          ipcWebContents.send(
+            this.window.webContents,
+            'prepare-window-close',
+            requestId
+          ),
+      })
+
+    const onDidStartNavigation = (
+      details: Electron.Event<Electron.WebContentsDidStartNavigationEventParams>
+    ) => {
+      if (details.isMainFrame && !details.isSameDocument) {
+        this.nativeClosePreparation.documentWillChange()
+      }
+    }
+    const onWillNavigate = (
+      details: Electron.Event<Electron.WebContentsWillNavigateEventParams>
+    ) => {
+      if (!details.isMainFrame || details.isSameDocument) {
+        return
+      }
+
+      const documentGeneration =
+        this.nativeClosePreparation.currentDocumentGeneration
+      // did-start-navigation precedes the cancellable will-navigate event.
+      // Observe defaultPrevented after every listener has run so the still-live
+      // current document does not remain invalidated when navigation is denied.
+      queueMicrotask(() => {
+        if (details.defaultPrevented) {
+          this.nativeClosePreparation.documentDidBecomeReady(documentGeneration)
+        }
+      })
+    }
+    const onDocumentReady = () => {
+      if (!this.window.webContents.isLoadingMainFrame()) {
+        this.nativeClosePreparation.documentDidBecomeReady()
+      }
+    }
+    const onDocumentLoadFailed = (
+      _event: Electron.Event,
+      _errorCode: number,
+      _errorDescription: string,
+      _validatedURL: string,
+      isMainFrame: boolean
+    ) => {
+      if (isMainFrame) {
+        onDocumentReady()
+      }
+    }
+    this.window.webContents.on('did-start-navigation', onDidStartNavigation)
+    this.window.webContents.on('will-navigate', onWillNavigate)
+    this.window.webContents.on('did-finish-load', onDocumentReady)
+    this.window.webContents.on('did-fail-load', onDocumentLoadFailed)
+    this.addCleanupTask(() => {
+      this.window.webContents.removeListener(
+        'did-start-navigation',
+        onDidStartNavigation
+      )
+      this.window.webContents.removeListener('will-navigate', onWillNavigate)
+      this.window.webContents.removeListener('did-finish-load', onDocumentReady)
+      this.window.webContents.removeListener(
+        'did-fail-load',
+        onDocumentLoadFailed
+      )
     })
 
     const onRenderProcessGone = (

@@ -151,6 +151,7 @@ import {
 import { cleanupCheapLfsPayloadCredentialsInMainProcess } from './cheap-lfs-payload-credential-cleanup'
 import {
   normalizeProfileRepositoryPath,
+  ProfileRepositoryLockCancelledError,
   ProfileRepositoryLockRegistry,
 } from './profile-repository-lock-registry'
 import {
@@ -168,7 +169,14 @@ const updateDownloadState: IAppWindowUpdateDownloadState = {
 }
 let updateInstallTerminalInProgress = false
 const profileRepositoryLocks = new ProfileRepositoryLockRegistry()
-const profileRepositoryLockSenders = new WeakSet<WebContents>()
+interface IProfileRepositoryLockSenderState {
+  documentId: number
+  destroyed: boolean
+}
+const profileRepositoryLockSenders = new WeakMap<
+  WebContents,
+  IProfileRepositoryLockSenderState
+>()
 let internalBrowserWindow: InternalBrowserWindow | null = null
 let browserOpenMode: BrowserOpenMode = 'internal'
 let agentServerController: AgentServerController | null = null
@@ -627,29 +635,49 @@ function getAppWindows(): ReadonlyArray<AppWindow> {
   return [...windows.values()]
 }
 
-function bindProfileRepositoryLockSender(contents: WebContents): void {
-  if (profileRepositoryLockSenders.has(contents)) {
-    return
+function bindProfileRepositoryLockSender(
+  contents: WebContents
+): IProfileRepositoryLockSenderState {
+  const existingState = profileRepositoryLockSenders.get(contents)
+  if (existingState !== undefined) {
+    return existingState
   }
-  profileRepositoryLockSenders.add(contents)
 
-  const cancelQueuedDocumentWork = () =>
-    profileRepositoryLocks.cancelQueuedSender(contents.id)
-  const releaseSenderLeases = () =>
+  const state: IProfileRepositoryLockSenderState = {
+    documentId: 0,
+    destroyed: false,
+  }
+  profileRepositoryLockSenders.set(contents, state)
+
+  const releaseDocumentLeases = () => {
+    if (state.destroyed) {
+      return
+    }
+    const replacedDocumentId = state.documentId
+    state.documentId++
+    profileRepositoryLocks.releaseDocument(contents.id, replacedDocumentId)
+  }
+  const releaseSenderLeases = () => {
+    if (!state.destroyed) {
+      state.documentId++
+    }
     profileRepositoryLocks.releaseSender(contents.id)
+  }
   contents.on(
     'did-start-navigation',
     (_event, _url, isInPlace, isMainFrame) => {
       if (isMainFrame && !isInPlace) {
-        // Navigation alone is not proof that an already-started Git child has
-        // stopped. Cancel work which has not acquired a lease, but keep active
-        // leases exclusive until the action releases them or the renderer dies.
-        cancelQueuedDocumentWork()
+        releaseDocumentLeases()
       }
     }
   )
   contents.on('render-process-gone', releaseSenderLeases)
-  contents.once('destroyed', releaseSenderLeases)
+  contents.once('destroyed', () => {
+    state.destroyed = true
+    state.documentId++
+    releaseSenderLeases()
+  })
+  return state
 }
 
 function reportApplicationQuitPreparationFailure(
@@ -1422,7 +1450,8 @@ app.on('ready', () => {
   ipcMain.handle(
     'acquire-profile-repository-lock',
     async (event, repositoryPath) => {
-      bindProfileRepositoryLockSender(event.sender)
+      const senderState = bindProfileRepositoryLockSender(event.sender)
+      const documentId = senderState.documentId
       const requestedPath = normalizeProfileRepositoryPath(repositoryPath)
       // Collapse junctions, symlinks, and case aliases before keying the
       // process-wide broker. Every legitimate profile/working repository
@@ -1430,16 +1459,32 @@ app.on('ready', () => {
       const canonicalPath = normalizeProfileRepositoryPath(
         await Fs.promises.realpath(requestedPath)
       )
-      return profileRepositoryLocks.acquire(event.sender.id, canonicalPath)
+      // Navigation can occur while realpath is pending. Fail the stale action
+      // before it can acquire a lease for a document which no longer exists.
+      if (senderState.destroyed || senderState.documentId !== documentId) {
+        throw new ProfileRepositoryLockCancelledError()
+      }
+      return profileRepositoryLocks.acquire(
+        event.sender.id,
+        canonicalPath,
+        documentId
+      )
     }
   )
 
-  ipcMain.handle(
-    'release-profile-repository-lock',
-    async (event, leaseId) =>
+  ipcMain.handle('release-profile-repository-lock', async (event, leaseId) => {
+    const senderState = profileRepositoryLockSenders.get(event.sender)
+    return (
       typeof leaseId === 'string' &&
-      profileRepositoryLocks.release(event.sender.id, leaseId)
-  )
+      senderState !== undefined &&
+      !senderState.destroyed &&
+      profileRepositoryLocks.release(
+        event.sender.id,
+        leaseId,
+        senderState.documentId
+      )
+    )
+  })
 
   ipcMain.on('quit-and-install-updates', event => {
     if (getAppWindowFromWebContents(event.sender) !== null) {

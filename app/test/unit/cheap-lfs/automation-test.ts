@@ -8,6 +8,7 @@ import { IGitHubReleaseAsset } from '../../../src/lib/github-releases'
 import {
   autoPinLargeFilesForCommit,
   cheapLfsMaterializeStageAwareLogicalBytes,
+  getCheapLfsReleaseLaneTag,
   ICheapLfsAutoPinProgress,
   ICheapLfsAutoPinTarget,
   ICheapLfsPinResult,
@@ -1239,6 +1240,47 @@ describe('autoPinLargeFilesForCommit', () => {
       ['one.bin', 'two.bin', 'three.bin', 'four.bin']
     )
     assert.deepEqual(callbacks, ['one.bin', 'two.bin', 'three.bin', 'four.bin'])
+  })
+
+  it('honors two Release lanes and derives every lane tag deterministically', async () => {
+    const started: string[] = []
+    const laneTags: string[] = []
+    const resolvers = new Map<string, () => void>()
+    const operation = autoPinLargeFilesForCommit(
+      repository(),
+      ['one.bin', 'two.bin', 'three.bin'],
+      threshold,
+      {
+        statSize: async () => 200,
+        readPointerText: async () => 'not a pointer\n',
+        pin: async (target, _signal, _progress, _stage, _hash, lane = -1) => {
+          started.push(target.relativePath)
+          laneTags.push(getCheapLfsReleaseLaneTag(lane))
+          await new Promise<void>(resolve =>
+            resolvers.set(target.relativePath, resolve)
+          )
+          return pinResult(target.relativePath)
+        },
+      },
+      undefined,
+      undefined,
+      undefined,
+      2
+    )
+
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['one.bin', 'two.bin'])
+    assert.deepEqual(laneTags, ['assets', 'assets-parallel-2'])
+
+    resolvers.get('one.bin')?.()
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['one.bin', 'two.bin', 'three.bin'])
+    assert.deepEqual(laneTags, ['assets', 'assets-parallel-2', 'assets'])
+
+    resolvers.get('two.bin')?.()
+    resolvers.get('three.bin')?.()
+    assert.equal((await operation).pinned.length, 3)
+    assert.equal(getCheapLfsReleaseLaneTag(7), 'assets-parallel-3')
   })
 
   it('retains sequential behavior when concurrency is one', async () => {

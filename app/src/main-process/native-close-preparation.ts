@@ -261,3 +261,235 @@ export class NativeClosePreparationController {
     }
   }
 }
+
+interface IDeferredSignal {
+  readonly promise: Promise<void>
+  readonly resolve: () => void
+}
+
+const createDeferredSignal = (): IDeferredSignal => {
+  let resolve!: () => void
+  const promise = new Promise<void>(promiseResolve => {
+    resolve = promiseResolve
+  })
+  return { promise, resolve }
+}
+
+const documentLifecycleResult = (
+  reason: 'delivery-timed-out' | 'renderer-destroyed' | 'reset'
+): INativeClosePreparationResult => ({
+  requestId: 'renderer-document-lifecycle',
+  reason,
+})
+
+/**
+ * Keeps one logical close request alive across renderer document replacement.
+ *
+ * The underlying controller still bounds delivery and draining for one
+ * document. A main-frame navigation invalidates that physical request and the
+ * logical caller waits until the replacement document is ready before sending
+ * a new request id. Explicit cancellation, unlike navigation, settles the
+ * logical caller with `reset`.
+ */
+export class DocumentScopedNativeClosePreparationController {
+  private readonly preparation: NativeClosePreparationController
+  private readonly clock: INativeClosePreparationClock
+  private readonly documentReadyTimeoutMilliseconds: number
+  private documentGeneration = 0
+  private lifecycleGeneration = 0
+  private documentReady = false
+  private rendererIsDestroyed = false
+  private fallbackReadyDocumentGeneration: number | null = null
+  private documentReadySignal = createDeferredSignal()
+  private lifecycleChangedSignal = createDeferredSignal()
+  private activeRequests = 0
+
+  public constructor(options: INativeClosePreparationOptions) {
+    this.preparation = new NativeClosePreparationController(options)
+    this.clock = options.clock ?? defaultClock
+    this.documentReadyTimeoutMilliseconds =
+      options.deliveryTimeoutMilliseconds ??
+      DefaultNativeCloseDeliveryTimeoutMilliseconds
+  }
+
+  public get isPreparationPending(): boolean {
+    return this.activeRequests > 0 || this.preparation.isPreparationPending
+  }
+
+  public get currentDocumentGeneration(): number {
+    return this.documentGeneration
+  }
+
+  public get isReadyToClose(): boolean {
+    return (
+      !this.rendererIsDestroyed &&
+      ((this.documentReady && this.preparation.isReadyToClose) ||
+        this.fallbackReadyDocumentGeneration === this.documentGeneration)
+    )
+  }
+
+  public requestPreparation(): Promise<INativeClosePreparationResult> {
+    return this.requestCurrentDocument(this.lifecycleGeneration)
+  }
+
+  /**
+   * Invalidate acknowledgements and completion cached for the outgoing
+   * document. Logical close callers remain pending for its replacement.
+   */
+  public documentWillChange(): number {
+    if (this.rendererIsDestroyed) {
+      return this.documentGeneration
+    }
+
+    const outgoingReadySignal = this.documentReadySignal
+    this.documentGeneration++
+    this.documentReady = false
+    this.fallbackReadyDocumentGeneration = null
+    this.documentReadySignal = createDeferredSignal()
+    this.preparation.reset()
+    // Wake callers which were still waiting for the outgoing document to load.
+    outgoingReadySignal.resolve()
+    return this.documentGeneration
+  }
+
+  /** Allow pending logical close callers to address the replacement document. */
+  public documentDidBecomeReady(
+    documentGeneration: number = this.documentGeneration
+  ): void {
+    if (
+      this.rendererIsDestroyed ||
+      documentGeneration !== this.documentGeneration ||
+      this.documentReady
+    ) {
+      return
+    }
+
+    this.documentReady = true
+    this.fallbackReadyDocumentGeneration = null
+    this.documentReadySignal.resolve()
+  }
+
+  public started(requestId: string): boolean {
+    return this.preparation.started(requestId)
+  }
+
+  public prepared(requestId: string): boolean {
+    return this.preparation.prepared(requestId)
+  }
+
+  /**
+   * Explicit user/application cancellation terminates logical requests rather
+   * than carrying them into another document.
+   */
+  public reset(): boolean {
+    const wasPending = this.isPreparationPending
+    const lifecycleChangedSignal = this.lifecycleChangedSignal
+    this.lifecycleGeneration++
+    this.lifecycleChangedSignal = createDeferredSignal()
+    this.fallbackReadyDocumentGeneration = null
+    const resetPhysicalRequest = this.preparation.reset()
+    lifecycleChangedSignal.resolve()
+    return wasPending || resetPhysicalRequest
+  }
+
+  public rendererDestroyed(): boolean {
+    if (this.rendererIsDestroyed) {
+      return false
+    }
+
+    this.rendererIsDestroyed = true
+    this.documentGeneration++
+    this.documentReady = false
+    this.documentReadySignal.resolve()
+    this.lifecycleChangedSignal.resolve()
+    return this.preparation.rendererDestroyed()
+  }
+
+  private async requestCurrentDocument(
+    lifecycleGeneration: number
+  ): Promise<INativeClosePreparationResult> {
+    this.activeRequests++
+    try {
+      while (lifecycleGeneration === this.lifecycleGeneration) {
+        if (this.rendererIsDestroyed) {
+          return documentLifecycleResult('renderer-destroyed')
+        }
+
+        const documentGeneration = this.documentGeneration
+        const documentReadySignal = this.documentReadySignal.promise
+        const lifecycleChangedSignal = this.lifecycleChangedSignal.promise
+        if (!this.documentReady) {
+          const readinessTimedOut = await this.waitForDocumentReadiness(
+            documentReadySignal,
+            lifecycleChangedSignal
+          )
+          if (lifecycleGeneration !== this.lifecycleGeneration) {
+            return documentLifecycleResult('reset')
+          }
+          if (
+            this.rendererIsDestroyed ||
+            documentGeneration !== this.documentGeneration
+          ) {
+            continue
+          }
+          if (readinessTimedOut) {
+            this.fallbackReadyDocumentGeneration = documentGeneration
+            return documentLifecycleResult('delivery-timed-out')
+          }
+        }
+
+        const result = await this.preparation.requestPreparation()
+        if (lifecycleGeneration !== this.lifecycleGeneration) {
+          return documentLifecycleResult('reset')
+        }
+        if (this.rendererIsDestroyed) {
+          return documentLifecycleResult('renderer-destroyed')
+        }
+        if (
+          documentGeneration !== this.documentGeneration ||
+          result.reason === 'reset'
+        ) {
+          continue
+        }
+        return result
+      }
+
+      return documentLifecycleResult('reset')
+    } finally {
+      this.activeRequests--
+    }
+  }
+
+  private async waitForDocumentReadiness(
+    documentReadySignal: Promise<void>,
+    lifecycleChangedSignal: Promise<void>
+  ): Promise<boolean> {
+    let timeoutHandle: unknown = null
+    const timedOut = new Promise<boolean>(resolve => {
+      try {
+        timeoutHandle = this.clock.setTimeout(
+          () => resolve(true),
+          this.documentReadyTimeoutMilliseconds
+        )
+      } catch {
+        resolve(true)
+      }
+    })
+
+    try {
+      return await Promise.race([
+        documentReadySignal.then(() => false),
+        lifecycleChangedSignal.then(() => false),
+        timedOut,
+      ])
+    } finally {
+      if (timeoutHandle !== null && timeoutHandle !== undefined) {
+        try {
+          this.clock.clearTimeout(timeoutHandle)
+        } catch {
+          // A clock failure must not keep close waiting after another signal.
+        }
+      }
+    }
+  }
+}

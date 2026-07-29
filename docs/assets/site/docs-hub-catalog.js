@@ -1309,6 +1309,13 @@
       d: 'Run ID: bug-hunt-2026-07-26-019f9f87',
     },
     {
+      t: 'Final bug-hunt verification run',
+      h: 'verification/bug-hunt-2026-07-28/run-manifest.html',
+      s: 'verification/bug-hunt-2026-07-28/run-manifest.md',
+      c: 'verification',
+      d: 'Run ID: bug-hunt-20260728-final',
+    },
+    {
       t: 'Cheap LFS Bambu build cloud, clone, and batching acceptance — 2026-07-23',
       h: 'verification/cheap-lfs-bambu-build-2026-07-23.html',
       s: 'verification/cheap-lfs-bambu-build-2026-07-23.md',

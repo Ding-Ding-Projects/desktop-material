@@ -175,11 +175,7 @@ export class ExpandableCommitSummary extends React.Component<
             // We might end up causing a recursive update by updating the state
             // when we're reacting to a resize so we'll defer it until after
             // react is done with this frame.
-            if (this.updateOverflowTimeoutId !== null) {
-              clearImmediate(this.updateOverflowTimeoutId)
-            }
-
-            this.updateOverflowTimeoutId = setImmediate(this.onResized)
+            this.scheduleOverflowUpdate()
           }
         }
       })
@@ -194,7 +190,23 @@ export class ExpandableCommitSummary extends React.Component<
     this.updateOverflow()
   }
 
+  private cancelScheduledOverflowUpdate() {
+    if (this.updateOverflowTimeoutId !== null) {
+      clearImmediate(this.updateOverflowTimeoutId)
+      this.updateOverflowTimeoutId = null
+    }
+  }
+
+  private scheduleOverflowUpdate = () => {
+    this.cancelScheduledOverflowUpdate()
+    this.updateOverflowTimeoutId = setImmediate(() => {
+      this.updateOverflowTimeoutId = null
+      this.onResized()
+    })
+  }
+
   private onDescriptionScrollViewRef = (ref: HTMLDivElement | null) => {
+    this.cancelScheduledOverflowUpdate()
     this.descriptionScrollViewRef = ref
 
     if (this.resizeObserver) {
@@ -202,8 +214,6 @@ export class ExpandableCommitSummary extends React.Component<
 
       if (ref) {
         this.resizeObserver.observe(ref)
-      } else {
-        this.setState({ isOverflowed: false })
       }
     }
   }
@@ -265,6 +275,12 @@ export class ExpandableCommitSummary extends React.Component<
     if (!this.props.isExpanded) {
       this.updateOverflow()
     }
+  }
+
+  public componentWillUnmount() {
+    this.cancelScheduledOverflowUpdate()
+    this.resizeObserver?.disconnect()
+    this.descriptionScrollViewRef = null
   }
 
   public componentWillUpdate(nextProps: IExpandableCommitSummaryProps) {

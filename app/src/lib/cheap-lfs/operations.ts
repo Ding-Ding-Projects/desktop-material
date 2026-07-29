@@ -3868,7 +3868,6 @@ const CheapLfsMaterializeLookAheadFraction =
 /** Observable Release restore phases after pointer/release preparation. */
 export type CheapLfsMaterializePhase =
   | 'downloading'
-  | 'decrypting'
   | 'decompressing'
   // Decryption is its own phase, never decompression's. scrypt at the
   // configured cost makes it the longest visible step of an encrypted restore,
@@ -4945,17 +4944,44 @@ export async function listCheapLfsPointers(
   return entries
 }
 
-/**
- * List both historical GitHub Release pointers and OCI registry pointers.
- * Keeping the discriminant explicit prevents provider-specific restore or
- * removal code from accidentally interpreting one format as the other.
- */
-export async function listAllCheapLfsPointers(
-  repository: Repository,
-  fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem,
+async function scanPointerCandidatesAtHead(
+  root: string,
   pathspec?: ReadonlyArray<string>
-): Promise<ReadonlyArray<ICheapLfsManagedPointerEntry>> {
-  const candidates = await fs.scanPointerCandidates(repository.path, pathspec)
+): Promise<ReadonlyArray<ICheapLfsPointerCandidate>> {
+  if (!(await isGitWorkingTree(root))) {
+    return []
+  }
+
+  const paths = await gitPointerPaths(root, 'head', pathspec)
+  const requests = new Array<ICheapLfsGitPointerTextRequest>()
+  for (const candidate of paths) {
+    const relativePath = validateCheapLfsTrackedPath(candidate)
+    if (relativePath === null || isCheapLfsOwnedArtifactPath(relativePath)) {
+      continue
+    }
+    requests.push({ source: 'head', relativePath })
+  }
+
+  const texts = await readGitPointerTextBatch(root, requests)
+  return requests.map(request => {
+    const text = texts.get(gitPointerTextKey(request))
+    if (text === undefined) {
+      throw new Error(
+        `Git returned an incomplete Cheap LFS pointer for ${request.relativePath}.`
+      )
+    }
+    return {
+      relativePath: request.relativePath,
+      text,
+      workingTreeState: 'pointer',
+      metadataSource: 'head',
+    }
+  })
+}
+
+function managedPointerEntriesFromCandidates(
+  candidates: ReadonlyArray<ICheapLfsPointerCandidate>
+): ReadonlyArray<ICheapLfsManagedPointerEntry> {
   const entries = new Array<ICheapLfsManagedPointerEntry>()
   for (const candidate of candidates) {
     pointerIdentity(candidate.text)
@@ -4996,6 +5022,37 @@ export async function listAllCheapLfsPointers(
     }
   }
   return entries
+}
+
+/**
+ * List both historical GitHub Release pointers and OCI registry pointers.
+ * Keeping the discriminant explicit prevents provider-specific restore or
+ * removal code from accidentally interpreting one format as the other.
+ */
+export async function listAllCheapLfsPointers(
+  repository: Repository,
+  fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem,
+  pathspec?: ReadonlyArray<string>
+): Promise<ReadonlyArray<ICheapLfsManagedPointerEntry>> {
+  const candidates = await fs.scanPointerCandidates(repository.path, pathspec)
+  return managedPointerEntriesFromCandidates(candidates)
+}
+
+/**
+ * List the exact Cheap LFS pointer set committed at `HEAD`, independent of
+ * restored, modified, or deleted working-tree payloads.
+ *
+ * Clone-helper manifests describe what a fresh clone receives, so callers must
+ * never derive them from the current worktree alone. A repository without a
+ * `HEAD` (for example, before its first commit) has no committed pointer set.
+ */
+export async function listAllCheapLfsPointersAtHead(
+  repository: Repository,
+  pathspec?: ReadonlyArray<string>
+): Promise<ReadonlyArray<ICheapLfsManagedPointerEntry>> {
+  return managedPointerEntriesFromCandidates(
+    await scanPointerCandidatesAtHead(repository.path, pathspec)
+  )
 }
 
 /**
@@ -5563,6 +5620,17 @@ export interface ICheapLfsAutoPinResult {
 
 /** Automatic pinning deliberately never exceeds three concurrent files. */
 export const CheapLfsMaximumAutoPinConcurrency = 3
+
+/** Return the stable Release bucket tag owned by a zero-based upload lane. */
+export function getCheapLfsReleaseLaneTag(laneIndex: number): string {
+  const lane = Number.isFinite(laneIndex)
+    ? Math.min(
+        CheapLfsMaximumAutoPinConcurrency - 1,
+        Math.max(0, Math.floor(laneIndex))
+      )
+    : 0
+  return lane === 0 ? 'assets' : `assets-parallel-${lane + 1}`
+}
 
 /** The disk and transfer seams the auto-pin-on-commit flow depends on. */
 export interface ICheapLfsAutoPinDependencies {

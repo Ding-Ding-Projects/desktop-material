@@ -309,3 +309,63 @@ run will record the exact blocker and will not misrepresent it as closed.
 - Endpoint: `http://127.0.0.1:8765/mcp`
 - Every preflight call returned `client_ok: true`, `returncode: 0` where
   applicable, and `timed_out: false`.
+
+## Final `main` integration updater capture continuation
+
+- Start: `2026-07-28T20:18:18-04:00`
+- Run ID: `main-integration-updater-20260728-441a0f01ca54`
+- Mode: `publish`
+- Milestone: merge both July 28 task lineages, repair their integration gates,
+  capture the genuine current-source updater-ready surface, then push and prove
+  the exact Windows CI/installer release.
+- Project worktree:
+  `C:\Users\Administrator\Documents\GitHub\desktop-material`
+- Initial Git state: `main` at `46e82d2b66fb134871d0da6810f26a84bd8bbf0b`
+  with `MERGE_HEAD` `f2629903525684ea4073557a186b0e58ce397c70`;
+  the dirty index and working tree are the intentional in-progress integration
+  of the two named task branches plus pre-push gate repairs.
+- Remote: `https://github.com/Ding-Ding-Projects/desktop-material.git`
+- Active GitHub account: `DingDingChae`
+- Expected publication branch: `main`; force push is prohibited.
+- Expected UI state: the real freshly built Windows application shows the
+  current-source auto-updater **Update ready** surface named by
+  `verify_gallery_auto_updater_ready_cdp.js`, with no private data, clipping,
+  blank pixels, or unrelated desktop content.
+- Ordered background interaction: preflight the fixed HTTP MCP and scheduled
+  task; build through MCP; prepare the verifier-owned updater fixture and
+  isolated user data; create one uniquely named headless desktop; launch the
+  exact saved executable/PID; resolve its HWND at runtime; capture before input;
+  drive only the verifier's HWND-targeted interactions; inspect the final PNG;
+  promote it only after acceptance; then revalidate the HWND/PID and clean up
+  the app, desktop, and owned temporary paths.
+- Disposable root:
+  `%TEMP%\desktop-material-updater-ready-20260728-441a0f01ca54`
+- Headless desktop:
+  `DesktopMaterialMainUpdater-20260728-441a0f01ca54`
+- Screenshot target:
+  `docs/assets/screenshots/auto-updater-current-source-ready.png`; dimensions
+  and theme are the exact values declared by the updater verifier.
+- Documentation allowlist: this run manifest, its cleanup ledger, `README.md`,
+  `HANDOFF.md`, `ROADMAP.md`, `site/`, `docs/wiki/`, generated docs catalog
+  outputs, and the single screenshot target.
+- Required gates: updater verifier contracts, gallery/site/wiki contracts,
+  `yarn lint`, `npx tsc --noEmit`, full unit/script suites, x64 production
+  build/package/E2E, parity check, diff/secret review, pushed-default ancestry,
+  remote CI/Pages/CodeQL/installer success, and a nonempty installer-bearing
+  release targeting the exact pushed commit.
+
+### Continuation preflight receipt
+
+- `startup_status`: `ok: true`, installed, scheduled task state `Ready`.
+- Scheduled task: `\LowLevelComputerUseMCP`.
+- Executable:
+  `C:\Users\Administrator\Documents\GitHub\lowlevel-computer-use-mcp\.venv\Scripts\python.exe`.
+- Arguments:
+  `-m lowlevel_computer_use_mcp.server --http --host 127.0.0.1 --port 8765`.
+- Working directory:
+  `C:\Users\Administrator\Documents\GitHub\lowlevel-computer-use-mcp`.
+- MCP checkout HEAD:
+  `547a102a49169d41da876de217856229ab7c03a1`.
+- Endpoint: `http://127.0.0.1:8765/mcp`.
+- Every continuation preflight call returned `client_ok: true`;
+  `run_command` also returned `returncode: 0` and `timed_out: false`.

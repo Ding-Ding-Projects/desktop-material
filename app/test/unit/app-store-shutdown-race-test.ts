@@ -170,13 +170,29 @@ describe('AppStore renderer shutdown cancellation', () => {
   it('repauses after a cancellation resume was already in flight', async () => {
     const resume = deferred()
     const state = { isRunning: true, isPaused: false }
-    const { store, counters } = createShutdownHarness(
-      state,
-      Promise.resolve(),
-      resume.promise
-    )
+    const { store, counters } = createShutdownHarness(state)
 
     await store.flushForShutdown()
+    const events = new Array<string>()
+    store.batchCloneStore.resume = async () => {
+      counters.batchResumes++
+      events.push('resume-start')
+      await resume.promise
+      events.push('resume-settle')
+      state.isRunning = true
+      state.isPaused = false
+    }
+    store.batchCloneStore.requestPause = async () => {
+      counters.batchPauseRequests++
+      events.push('pause-request')
+      resume.resolve()
+      await resume.promise
+      state.isPaused = true
+    }
+    store.batchCloneStore.flush = async () => {
+      counters.batchFlushes++
+      events.push('flush')
+    }
     const cancelledGeneration = store.resumeAfterCancelledShutdown()
     await flushPromises()
     assert.equal(counters.batchResumes, 1)
@@ -185,13 +201,18 @@ describe('AppStore renderer shutdown cancellation', () => {
     assert.equal(store.deferredStartupShutdown, true)
     assert.equal(counters.autoCloneStarts, 0)
 
-    resume.resolve()
     await cancelledGeneration
     await retryShutdown
 
     assert.equal(state.isPaused, true)
     assert.equal(counters.batchPauseRequests, 2)
     assert.equal(counters.autoCloneStarts, 0)
+    assert.deepEqual(events, [
+      'resume-start',
+      'pause-request',
+      'resume-settle',
+      'flush',
+    ])
 
     await store.resumeAfterCancelledShutdown()
     assert.equal(counters.batchResumes, 2)
