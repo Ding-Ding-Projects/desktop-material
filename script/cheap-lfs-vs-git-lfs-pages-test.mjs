@@ -40,6 +40,10 @@ for (const required of [
 }
 
 const html = readFileSync(pagePath, 'utf8')
+// Git checks this HTML out with CRLF on Windows. Normalize only for the
+// newline-bounded command assertions so the contract still distinguishes the
+// standalone `git push` step from `git push --set-upstream ...`.
+const commandHtml = html.replace(/\r\n/g, '\n')
 const home = readFileSync(homePath, 'utf8')
 const guide = readFileSync(guidePath, 'utf8')
 const pageScript = readFileSync(scriptPath, 'utf8')
@@ -122,7 +126,7 @@ for (const command of [
   'git lfs install',
   'git lfs track "*.psd"',
 ]) {
-  if (!html.includes(command)) {
+  if (!commandHtml.includes(command)) {
     fail(`the publication proof is missing command: ${command.trim()}`)
   }
 }
