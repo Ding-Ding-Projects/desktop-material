@@ -13,6 +13,7 @@ import {
   ProfileCommitQueue,
   redoLastProfileChange,
   restoreProfileTo,
+  runProfileRepositoryActionWithLease,
   undoLastProfileChange,
   withProfileRepositoryLock,
 } from '../../src/lib/profiles/profile-git'
@@ -42,9 +43,9 @@ async function readSettings(repository: Repository) {
 }
 
 describe('profile git history', () => {
-  it('recovers a lock left by a reloaded renderer with the same PID', async t => {
-    const repository = await createProfileRepository(t)
-    const lockPath = `${repository.path}.desktop-material.lock`
+  it('removes a legacy filesystem lock while initializing under the broker lease', async t => {
+    const path = await createTempDirectory(t)
+    const lockPath = `${path}.desktop-material.lock`
     await writeFile(
       lockPath,
       JSON.stringify({
@@ -54,13 +55,85 @@ describe('profile git history', () => {
       })
     )
 
-    let ran = false
-    await withProfileRepositoryLock(repository, async () => {
-      ran = true
-    })
+    await ensureProfileRepository(path)
 
-    assert.equal(ran, true)
     await assert.rejects(stat(lockPath), /ENOENT/)
+  })
+
+  it('runs an action once and preserves its exact failure', async t => {
+    const repository = await createProfileRepository(t)
+    const actionError = Object.assign(new Error('action already exists'), {
+      code: 'EEXIST',
+    })
+    let actionRuns = 0
+
+    await assert.rejects(
+      withProfileRepositoryLock(repository, async () => {
+        actionRuns++
+        throw actionError
+      }),
+      error => error === actionError
+    )
+    assert.equal(actionRuns, 1)
+  })
+
+  it('preserves an action failure when renderer lease release also fails', async () => {
+    const actionError = new Error('profile action failed')
+    const releaseError = new Error('lease release transport failed')
+    let releases = 0
+
+    await assert.rejects(
+      runProfileRepositoryActionWithLease(
+        async () => {
+          throw actionError
+        },
+        async () => {
+          releases++
+          throw releaseError
+        }
+      ),
+      error => error === actionError
+    )
+    assert.equal(releases, 1)
+
+    await assert.rejects(
+      runProfileRepositoryActionWithLease(
+        async () => {
+          throw actionError
+        },
+        async () => false
+      ),
+      error => error === actionError
+    )
+  })
+
+  it('fails a successful action when renderer lease release is not proven', async () => {
+    await assert.rejects(
+      runProfileRepositoryActionWithLease(
+        async () => 'saved',
+        async () => false
+      ),
+      /lease was no longer owned/
+    )
+
+    const releaseError = new Error('lease release transport failed')
+    await assert.rejects(
+      runProfileRepositoryActionWithLease(
+        async () => 'saved',
+        async () => {
+          throw releaseError
+        }
+      ),
+      error => error === releaseError
+    )
+
+    assert.equal(
+      await runProfileRepositoryActionWithLease(
+        async () => 'saved',
+        async () => true
+      ),
+      'saved'
+    )
   })
 
   it('serializes profile mutations across window stores', async t => {

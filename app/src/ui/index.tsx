@@ -107,7 +107,7 @@ import { restoreAgentServerStartupConfiguration } from '../lib/agent-server-star
 import { getCurrentWindowScope } from '../lib/window-scope'
 import {
   configureRendererShutdown,
-  prepareRendererShutdown,
+  runAfterRendererShutdown,
 } from './lib/renderer-shutdown'
 import {
   BrowserPreferencesChangedEvent,
@@ -575,11 +575,28 @@ configureRendererShutdown([
   },
 ])
 
-// Browser unload cannot be delayed reliably. Renderer-owned normal quit and
-// update-install paths await this same single flight before notifying Electron;
-// this listener is a best-effort backup for operating-system window teardown.
-window.addEventListener('beforeunload', () => {
-  void prepareRendererShutdown()
+ipcRenderer.on('prepare-window-close', (_event, requestId) => {
+  void ipcRenderer
+    .invoke('start-window-close-preparation', requestId)
+    .then(accepted => {
+      if (!accepted) {
+        return
+      }
+      return runAfterRendererShutdown(() =>
+        ipcRenderer.send('window-close-prepared', requestId)
+      )
+    })
+    .catch(error =>
+      log.error('Unable to prepare renderer state for window close', error)
+    )
+})
+
+ipcRenderer.on('cancel-window-close-preparation', () => {
+  void appStore
+    .resumeAfterCancelledShutdown()
+    .catch(error =>
+      log.error('Unable to resume renderer after cancelled quit', error)
+    )
 })
 
 const buildRunStore = new BuildRunStore(({ repositoryId, phase, exitCode }) => {

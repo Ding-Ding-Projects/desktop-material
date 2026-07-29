@@ -22,25 +22,89 @@ describe('renderer shutdown wiring', () => {
       source,
       /name: 'clone recovery journal',[\s\S]*?appStore\.flushForShutdown\(\)/
     )
-    assert.match(
+  })
+
+  it('does not start asynchronous durable writes from browser unload', async () => {
+    const source = await readSource('ui/index.tsx')
+
+    assert.doesNotMatch(
       source,
-      /beforeunload'[\s\S]*?void prepareRendererShutdown\(\)/
+      /addEventListener\(['"]beforeunload['"][\s\S]*?prepareRendererShutdown/
+    )
+  })
+
+  it('awaits a bounded renderer drain before native window close', async () => {
+    const [windowSource, mainSource, rendererSource, channelsSource] =
+      await Promise.all([
+        readSource('main-process/app-window.ts'),
+        readSource('main-process/main.ts'),
+        readSource('ui/index.tsx'),
+        readSource('lib/ipc-shared.ts'),
+      ])
+
+    assert.match(
+      windowSource,
+      /window\.on\('close'[\s\S]*?e\.preventDefault\(\)[\s\S]*?requestNativeWindowClose\(\)/
+    )
+    assert.match(
+      windowSource,
+      /NativeClosePreparationController[\s\S]*?prepare-window-close[\s\S]*?requestId/
+    )
+    assert.match(
+      mainSource,
+      /start-window-close-preparation[\s\S]*?startClosePreparation[\s\S]*?window-close-prepared[\s\S]*?completeClosePreparation/
+    )
+    assert.match(
+      rendererSource,
+      /prepare-window-close[\s\S]*?invoke\('start-window-close-preparation', requestId\)[\s\S]*?if \(!accepted\)[\s\S]*?runAfterRendererShutdown[\s\S]*?window-close-prepared/
+    )
+    assert.match(
+      channelsSource,
+      /'prepare-window-close': \(requestId: string\) => void/
+    )
+    assert.match(
+      channelsSource,
+      /'start-window-close-preparation': \(requestId: string\) => Promise<boolean>/
+    )
+    assert.match(
+      channelsSource,
+      /'window-close-prepared': \(requestId: string\) => void/
     )
   })
 
   it('awaits the coordinator before normal and update-install quit actions', async () => {
-    const [appStore, updateStore] = await Promise.all([
-      readSource('lib/stores/app-store.ts'),
-      readSource('ui/lib/update-store.ts'),
-    ])
+    const [mainSource, appStore, updateStore, rendererSource] =
+      await Promise.all([
+        readSource('main-process/main.ts'),
+        readSource('lib/stores/app-store.ts'),
+        readSource('ui/lib/update-store.ts'),
+        readSource('ui/index.tsx'),
+      ])
+
+    assert.match(
+      mainSource,
+      /ApplicationQuitPreparationCoordinator[\s\S]*?autoUpdater\.quitAndInstall\(\)[\s\S]*?app\.quit\(\)/
+    )
+    assert.match(
+      mainSource,
+      /app\.on\('before-quit'[\s\S]*?preventApplicationQuitForUpdate[\s\S]*?handleBeforeQuit/
+    )
+    assert.match(
+      mainSource,
+      /quit-and-install-updates[\s\S]*?requestApplicationQuit\('install-update', true\)[\s\S]*?quit-app[\s\S]*?requestApplicationQuit\(\s*'quit',\s*typeof evenIfUpdating === 'boolean' && evenIfUpdating\s*\)/
+    )
 
     assert.match(
       appStore,
-      /async _quitApp[\s\S]*?await runAfterRendererShutdown\(\(\) => \{[\s\S]*?quitApp\(\)/
+      /async _quitApp[\s\S]*?await runAfterRendererShutdown\(\(\) => \{[\s\S]*?quitApp\(evenIfUpdating\)/
     )
     assert.match(
       appStore,
-      /_cancelQuittingApp[\s\S]*?resetRendererShutdown\(\)[\s\S]*?autoCloneStore\.start\(\)/
+      /resumeAfterCancelledShutdown[\s\S]*?resetRendererShutdown\(\)[\s\S]*?batchCloneStore\.resume\(\)[\s\S]*?autoCloneStore\.start\(\)/
+    )
+    assert.match(
+      rendererSource,
+      /cancel-window-close-preparation[\s\S]*?resumeAfterCancelledShutdown\(\)/
     )
     assert.match(
       appStore,
@@ -48,7 +112,7 @@ describe('renderer shutdown wiring', () => {
     )
     assert.match(
       updateStore,
-      /async quitAndInstallUpdate[\s\S]*?await runAfterRendererShutdown\(\(\) => \{[\s\S]*?sendWillQuitSync\(\)[\s\S]*?quitAndInstallUpdate\(\)/
+      /async quitAndInstallUpdate[\s\S]*?await runAfterRendererShutdown\(\(\) => \{[\s\S]*?quitAndInstallUpdate\(\)/
     )
   })
 

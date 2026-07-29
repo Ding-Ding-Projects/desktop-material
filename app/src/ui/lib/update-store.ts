@@ -11,7 +11,6 @@ import {
   onAutoUpdaterUpdateDownloaded,
   onAutoUpdaterUpdateNotAvailable,
   quitAndInstallUpdate,
-  sendWillQuitSync,
 } from '../main-process-proxy'
 import { ErrorWithMetadata } from '../../lib/error-with-metadata'
 import { parseError } from '../../lib/squirrel-error-parser'
@@ -382,10 +381,6 @@ export class UpdateStore {
   /** Quit and install the update. */
   public async quitAndInstallUpdate(): Promise<void> {
     await runAfterRendererShutdown(() => {
-      // This is synchronous so that we can ensure the app will let itself be
-      // quit before we call the function to quit.
-      // eslint-disable-next-line no-sync
-      sendWillQuitSync()
       quitAndInstallUpdate()
     })
   }

@@ -159,8 +159,6 @@ export type RequestChannels = {
   'menu-event': (name: MenuEvent) => void
   log: (level: LogLevel, message: string) => void
   'set-verbose-logging': (verbose: boolean) => void
-  'will-quit': () => void
-  'will-quit-even-if-updating': () => void
   'cancel-quitting': () => void
   'crash-ready': () => void
   'crash-quit': () => void
@@ -191,7 +189,7 @@ export type RequestChannels = {
    */
   'contained-background-failure': () => void
   'quit-and-install-updates': () => void
-  'quit-app': () => void
+  'quit-app': (evenIfUpdating: boolean) => void
   'open-repository-in-new-window': (path: string | null) => void
   'set-window-title': (title: string) => void
   'set-window-repository-state': (
@@ -202,6 +200,12 @@ export type RequestChannels = {
   'maximize-window': () => void
   'unmaximize-window': () => void
   'close-window': () => void
+  /** Main -> renderer: durably drain stores before a native window close. */
+  'prepare-window-close': (requestId: string) => void
+  /** Renderer -> main: the bounded native-close drain has finished. */
+  'window-close-prepared': (requestId: string) => void
+  /** Main -> renderer: resume stores after a prepared quit is cancelled. */
+  'cancel-window-close-preparation': () => void
   'auto-updater-error': (error: Error) => void
   'auto-updater-checking-for-update': () => void
   'auto-updater-update-available': () => void
@@ -264,6 +268,15 @@ export type RequestChannels = {
  * Return signatures must be promises
  */
 export type RequestResponseChannels = {
+  /** Lease one absolute Windows Git repository across renderer documents. */
+  'acquire-profile-repository-lock': (repositoryPath: string) => Promise<string>
+  /** Release a profile repository lease owned by the invoking renderer. */
+  'release-profile-repository-lock': (leaseId: string) => Promise<boolean>
+  /**
+   * Renderer -> main: accept delivery before beginning asynchronous drains.
+   * False means the delivery deadline expired and no new writes may start.
+   */
+  'start-window-close-preparation': (requestId: string) => Promise<boolean>
   'cleanup-cheap-lfs-payload-credentials': (
     request: ICheapLfsPayloadCredentialCleanupRequest
   ) => Promise<CheapLfsPayloadCredentialCleanupResult>

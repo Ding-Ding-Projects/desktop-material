@@ -1,14 +1,5 @@
-import {
-  appendFile,
-  mkdir,
-  open,
-  readdir,
-  readFile,
-  stat,
-  rm,
-} from 'fs/promises'
-import { randomUUID } from 'crypto'
-import { join } from 'path'
+import { appendFile, mkdir, readdir, readFile, stat, rm } from 'fs/promises'
+import { join, resolve } from 'path'
 import { git } from '../git/core'
 import { getDefaultBranch } from '../helpers/default-branch'
 import { initGitRepository } from '../git/init'
@@ -25,6 +16,7 @@ import {
   IProfileHistoryPage,
   ProfileHistoryPageSize,
 } from '../../models/profile'
+import * as ipcRenderer from '../ipc-renderer'
 
 const commitAuthorName = 'Desktop Material'
 const commitAuthorEmail = 'desktop-material@localhost'
@@ -39,12 +31,9 @@ export const ProfileFoldRestoreTrailer = 'Desktop-Material-Fold-Restore-Of'
 
 const profileStateFiles = ['settings.json', 'tabs.json'] as const
 const fullSHA = /^[0-9a-f]{40}$/i
-const ProfileLockRetryMs = 25
-const ProfileLockWaitMs = 5000
-const ProfileLockStaleMs = 30000
-const ProfileLockOwnerToken = randomUUID()
 const ProfileHistoryScanBatchSize = 100
 const ProfileTabsPath = 'tabs.json'
+const processProfileRepositoryLockTails = new Map<string, Promise<void>>()
 
 /** Construct a lightweight Repository model pointing at a profile directory. */
 export function profileRepository(path: string): Repository {
@@ -63,6 +52,11 @@ export async function ensureProfileRepository(
 
   const repository = profileRepository(path)
   await withProfileRepositoryLock(repository, async () => {
+    // Versions before the main-process lease broker used a sibling filesystem
+    // lock. The application is single-instance and this broker already owns the
+    // repository, so an orphan from an interrupted renderer is safe to remove.
+    await rm(`${path}.desktop-material.lock`, { force: true })
+
     let initialized = false
     try {
       await stat(join(path, '.git'))
@@ -119,59 +113,78 @@ async function ensureCrashSafePersistenceIgnored(path: string): Promise<void> {
 }
 
 /**
- * Serialize profile file and Git mutations across renderer processes. Each app
- * window owns a separate ProfileStore, so an in-memory promise queue alone is
- * insufficient once multi-window support is enabled.
+ * Serialize profile file and Git mutations. Renderer documents lease the path
+ * from the main process; terminal destruction releases ownership while a
+ * navigation may cancel only work which has not started. Node-based tools and
+ * tests use an equivalent in-process queue.
  */
 export async function withProfileRepositoryLock<T>(
   repository: Repository,
   action: () => Promise<T>
 ): Promise<T> {
-  const lockPath = `${repository.path}.desktop-material.lock`
-  const startedAt = Date.now()
+  if (
+    (process as NodeJS.Process & { readonly type?: string }).type === 'renderer'
+  ) {
+    const leaseId = await ipcRenderer.invoke(
+      'acquire-profile-repository-lock',
+      repository.path
+    )
+    return runProfileRepositoryActionWithLease(action, () =>
+      ipcRenderer.invoke('release-profile-repository-lock', leaseId)
+    )
+  }
 
-  while (true) {
-    try {
-      const handle = await open(lockPath, 'wx')
-      try {
-        await handle.writeFile(
-          JSON.stringify({
-            version: 1,
-            pid: process.pid,
-            token: ProfileLockOwnerToken,
-          }),
-          'utf8'
-        )
-        return await action()
-      } finally {
-        await handle.close()
-        await rm(lockPath, { force: true })
-      }
-    } catch (error) {
-      if (!isFileExistsError(error)) {
-        throw error
-      }
+  const repositoryKey = resolve(repository.path).toLowerCase()
+  const predecessor =
+    processProfileRepositoryLockTails.get(repositoryKey) ?? Promise.resolve()
+  let release!: () => void
+  const gate = new Promise<void>(resolveGate => {
+    release = resolveGate
+  })
+  const tail = predecessor.catch(() => undefined).then(() => gate)
+  processProfileRepositoryLockTails.set(repositoryKey, tail)
+  await predecessor.catch(() => undefined)
 
-      if (await isAbandonedProfileLock(lockPath)) {
-        await rm(lockPath, { force: true })
-        continue
-      }
-
-      if (Date.now() - startedAt >= ProfileLockWaitMs) {
-        throw new Error(`Timed out waiting for profile lock at ${lockPath}`)
-      }
-      await new Promise(resolve => setTimeout(resolve, ProfileLockRetryMs))
+  try {
+    return await action()
+  } finally {
+    release()
+    if (processProfileRepositoryLockTails.get(repositoryKey) === tail) {
+      processProfileRepositoryLockTails.delete(repositoryKey)
     }
   }
 }
 
-function isFileExistsError(error: unknown): boolean {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'code' in error &&
-    error.code === 'EEXIST'
-  )
+/**
+ * Run one leased action without allowing cleanup to replace its primary error.
+ *
+ * A successful action still fails closed when the main process cannot prove
+ * that this renderer released the exact lease it acquired.
+ */
+export async function runProfileRepositoryActionWithLease<T>(
+  action: () => Promise<T>,
+  releaseLease: () => Promise<boolean>
+): Promise<T> {
+  let actionFailed = false
+  try {
+    return await action()
+  } catch (error) {
+    actionFailed = true
+    throw error
+  } finally {
+    try {
+      const released = await releaseLease()
+      if (!released) {
+        throw new Error(
+          'The profile repository lease was no longer owned by this renderer.'
+        )
+      }
+    } catch (releaseError) {
+      if (!actionFailed) {
+        throw releaseError
+      }
+    }
+  }
 }
 
 function isFileSystemError(error: unknown, code: string): boolean {
@@ -181,74 +194,6 @@ function isFileSystemError(error: unknown, code: string): boolean {
     'code' in error &&
     error.code === code
   )
-}
-
-async function isAbandonedProfileLock(lockPath: string): Promise<boolean> {
-  try {
-    const [contents, lockStat] = await Promise.all([
-      readFile(lockPath, 'utf8'),
-      stat(lockPath),
-    ])
-    if (Date.now() - lockStat.mtimeMs >= ProfileLockStaleMs) {
-      return true
-    }
-
-    const owner = parseProfileLockOwner(contents)
-    if (owner === null) {
-      return false
-    }
-    if (
-      owner.pid === process.pid &&
-      owner.token !== null &&
-      owner.token !== ProfileLockOwnerToken
-    ) {
-      // Electron can reuse the renderer OS process across a document reload.
-      // A new module context gets a new token, so a same-PID/different-token
-      // lock belongs to the destroyed document and is safe to recover now.
-      return true
-    }
-    try {
-      process.kill(owner.pid, 0)
-      return false
-    } catch (error) {
-      return (
-        typeof error === 'object' &&
-        error !== null &&
-        'code' in error &&
-        error.code === 'ESRCH'
-      )
-    }
-  } catch {
-    return false
-  }
-}
-
-function parseProfileLockOwner(
-  contents: string
-): { readonly pid: number; readonly token: string | null } | null {
-  const trimmed = contents.trim()
-  if (/^\d+$/.test(trimmed)) {
-    const pid = Number(trimmed)
-    return Number.isSafeInteger(pid) && pid > 0 ? { pid, token: null } : null
-  }
-
-  try {
-    const parsed = JSON.parse(trimmed) as {
-      readonly version?: unknown
-      readonly pid?: unknown
-      readonly token?: unknown
-    }
-    return parsed.version === 1 &&
-      typeof parsed.pid === 'number' &&
-      Number.isSafeInteger(parsed.pid) &&
-      parsed.pid > 0 &&
-      typeof parsed.token === 'string' &&
-      parsed.token.length > 0
-      ? { pid: parsed.pid, token: parsed.token }
-      : null
-  } catch {
-    return null
-  }
 }
 
 /**

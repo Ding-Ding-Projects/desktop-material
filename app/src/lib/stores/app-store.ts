@@ -324,7 +324,6 @@ import {
   updateAccounts,
   setWindowZoomFactor,
   onShowInstallingUpdate,
-  sendWillQuitEvenIfUpdatingSync,
   quitApp,
   sendCancelQuittingSync,
   sendVerboseLoggingEnabled,
@@ -1486,6 +1485,11 @@ export function selectCheapLfsCommitFilesAfterPin(
     )
 }
 
+interface IRendererShutdownResumeFlight {
+  readonly generation: number
+  readonly promise: Promise<void>
+}
+
 export class AppStore extends TypedBaseStore<IAppState> {
   private readonly gitStoreCache: GitStoreCache
 
@@ -1820,6 +1824,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private readonly autoCloneStore: AutoCloneStore
   private deferredStartupGeneration = 0
   private deferredStartupShutdown = false
+  private rendererShutdownFlush: Promise<void> | null = null
+  private rendererShutdownResume: IRendererShutdownResumeFlight | null = null
+  private resumeBatchCloneAfterCancelledShutdown = false
 
   /** Account-bound Releases coordinator backing the cheap-LFS delegations. */
   private readonly githubReleasesStore: GitHubReleasesStore
@@ -22075,33 +22082,111 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /** Stop background producers and durably drain this store's clone journal. */
-  public async flushForShutdown(): Promise<void> {
+  public flushForShutdown(): Promise<void> {
+    // Reassert shutdown even when a previous generation's pause/flush is still
+    // in flight. A cancel followed immediately by another quit must invalidate
+    // the old resume before it can restart either producer.
     this.deferredStartupShutdown = true
     this.deferredStartupGeneration++
+    const batchCloneState = this.batchCloneStore.getState()
+    this.resumeBatchCloneAfterCancelledShutdown =
+      this.resumeBatchCloneAfterCancelledShutdown ||
+      (batchCloneState?.isRunning === true && !batchCloneState.isPaused)
     this.externalEditorDiscoveryLoad.reset(this.selectedExternalEditor)
     this.autoCloneStore.stop()
-    // A renderer-owned Git child must not outlive the renderer. Persist the
-    // paused/interrupted transition and await process-tree teardown before the
-    // final journal drain; recovery can then restart only app-owned staging.
-    await this.batchCloneStore.requestPause()
-    await this.batchCloneStore.flush()
+
+    if (this.rendererShutdownFlush === null) {
+      // If cancellation already reached an asynchronous batch resume, let that
+      // owned resume settle before pausing again. The new generation has
+      // already stopped auto-clone and invalidated the cancellation flight.
+      const pendingResume = this.rendererShutdownResume?.promise
+      const preparation = (async () => {
+        await pendingResume?.catch(() => undefined)
+        // A renderer-owned Git child must not outlive the renderer. Persist the
+        // paused/interrupted transition and await process-tree teardown before
+        // the final journal drain; recovery can then restart only app-owned
+        // staging.
+        await this.batchCloneStore.requestPause()
+        await this.batchCloneStore.flush()
+      })()
+      this.rendererShutdownFlush = preparation
+      void preparation
+        .finally(() => {
+          if (this.rendererShutdownFlush === preparation) {
+            this.rendererShutdownFlush = null
+          }
+        })
+        .catch(() => undefined)
+    }
+    return this.rendererShutdownFlush
   }
 
   public async _quitApp(evenIfUpdating: boolean): Promise<void> {
     await runAfterRendererShutdown(() => {
-      if (evenIfUpdating) {
-        sendWillQuitEvenIfUpdatingSync()
-      }
-
-      quitApp()
+      quitApp(evenIfUpdating)
     })
   }
 
-  public _cancelQuittingApp() {
+  /**
+   * Resume every renderer-owned producer after main rejects a prepared quit.
+   * If the bounded shutdown coordinator returned before a clone pause settled,
+   * wait for that real operation before attempting a safe resume.
+   */
+  public resumeAfterCancelledShutdown(): Promise<void> {
+    const currentResume = this.rendererShutdownResume
+    if (
+      currentResume !== null &&
+      currentResume.generation === this.deferredStartupGeneration
+    ) {
+      return currentResume.promise
+    }
+
+    if (
+      !this.deferredStartupShutdown &&
+      !this.resumeBatchCloneAfterCancelledShutdown
+    ) {
+      return Promise.resolve()
+    }
+
     resetRendererShutdown()
     this.deferredStartupShutdown = false
-    this.deferredStartupGeneration++
-    this.autoCloneStore.start()
+    const generation = ++this.deferredStartupGeneration
+    const shutdownFlush = this.rendererShutdownFlush
+    const resume = (async () => {
+      await shutdownFlush?.catch(() => undefined)
+      if (!this.isDeferredStartupCurrent(generation)) {
+        return
+      }
+
+      if (this.resumeBatchCloneAfterCancelledShutdown) {
+        await this.batchCloneStore.resume()
+        // A new quit may have started while the asynchronous resume was
+        // settling. Preserve ownership so cancellation of that generation can
+        // restore the batch again after its new pause.
+        if (!this.isDeferredStartupCurrent(generation)) {
+          return
+        }
+        this.resumeBatchCloneAfterCancelledShutdown = false
+      }
+
+      this.autoCloneStore.start()
+    })()
+    const flight: IRendererShutdownResumeFlight = {
+      generation,
+      promise: resume,
+    }
+    this.rendererShutdownResume = flight
+    void resume
+      .finally(() => {
+        if (this.rendererShutdownResume === flight) {
+          this.rendererShutdownResume = null
+        }
+      })
+      .catch(() => undefined)
+    return resume
+  }
+
+  public _cancelQuittingApp() {
     sendCancelQuittingSync()
   }
 

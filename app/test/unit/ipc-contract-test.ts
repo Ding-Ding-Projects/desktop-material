@@ -46,8 +46,6 @@ describe('IPC channel contract', () => {
     'menu-event',
     'log',
     'set-verbose-logging',
-    'will-quit',
-    'will-quit-even-if-updating',
     'cancel-quitting',
     'crash-ready',
     'crash-quit',
@@ -74,6 +72,9 @@ describe('IPC channel contract', () => {
     'maximize-window',
     'unmaximize-window',
     'close-window',
+    'prepare-window-close',
+    'window-close-prepared',
+    'cancel-window-close-preparation',
     'auto-updater-error',
     'auto-updater-checking-for-update',
     'auto-updater-update-available',
@@ -110,6 +111,9 @@ describe('IPC channel contract', () => {
   ] as const
 
   const expectedResponseChannels = [
+    'acquire-profile-repository-lock',
+    'release-profile-repository-lock',
+    'start-window-close-preparation',
     'cleanup-cheap-lfs-payload-credentials',
     'register-actions-artifact-provenance-credential-lease',
     'verify-actions-artifact-provenance',
@@ -200,7 +204,9 @@ describe('IPC channel contract', () => {
       const critical: ReadonlyArray<keyof RequestChannels> = [
         'renderer-ready',
         'uncaught-exception',
-        'will-quit',
+        'prepare-window-close',
+        'window-close-prepared',
+        'cancel-window-close-preparation',
         'log',
         'error',
       ]
@@ -228,6 +234,9 @@ describe('IPC channel contract', () => {
 
     it('includes critical request-response channels', () => {
       const critical: ReadonlyArray<keyof RequestResponseChannels> = [
+        'acquire-profile-repository-lock',
+        'release-profile-repository-lock',
+        'start-window-close-preparation',
         'get-path',
         'open-external',
         'show-save-dialog',

@@ -202,7 +202,7 @@ export const checkForUpdates = invokeProxy('check-for-updates', 1)
 export const quitAndInstallUpdate = sendProxy('quit-and-install-updates', 0)
 
 /** Tell the main process to quit the app */
-export const quitApp = sendProxy('quit-app', 0)
+export const quitApp = sendProxy('quit-app', 1)
 
 /** Open a repository in a separate Desktop Material window. */
 export const openRepositoryInNewWindow = sendProxy(
@@ -321,30 +321,6 @@ export const isRunningUnderARM64Translation = invokeProxy(
   'is-running-under-arm64-translation',
   0
 )
-
-/**
- * Tell the main process that we're going to quit. This means it should allow
- * the window to close.
- *
- * This event is sent synchronously to avoid any races with subsequent calls
- * that would tell the app to quit.
- */
-export function sendWillQuitSync() {
-  // eslint-disable-next-line no-sync
-  ipcRenderer.sendSync('will-quit')
-}
-
-/**
- * Tell the main process that we're going to quit, even if the app is installing
- * an update. This means it should allow the window to close.
- *
- * This event is sent synchronously to avoid any races with subsequent calls
- * that would tell the app to quit.
- */
-export function sendWillQuitEvenIfUpdatingSync() {
-  // eslint-disable-next-line no-sync
-  ipcRenderer.sendSync('will-quit-even-if-updating')
-}
 
 /**
  * Tell the main process that the user cancelled quitting.

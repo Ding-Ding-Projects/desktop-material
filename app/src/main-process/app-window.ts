@@ -36,17 +36,26 @@ import {
   isFatalRendererLoadFailure,
 } from './renderer-failure'
 import { AutoFitDebounceMs } from '../lib/zoom'
+import {
+  INativeClosePreparationResult,
+  NativeClosePreparationController,
+} from './native-close-preparation'
+import type { ApplicationClosePreparationClaim } from './application-quit-preparation'
 
 const rendererUnresponsiveRecoveryDelay = 15_000
+
+export interface IAppWindowUpdateDownloadState {
+  isDownloadingUpdate: boolean
+}
 
 export class AppWindow {
   private window: Electron.BrowserWindow
   private emitter = new Emitter()
   private readonly cleanupTasks = new Array<() => void>()
+  private readonly nativeClosePreparation: NativeClosePreparationController
 
   private _loadTime: number | null = null
   private _rendererReadyTime: number | null = null
-  private isDownloadingUpdate: boolean = false
   private _selectedRepositoryPath: string | null = null
   private _openRepositoryPaths: ReadonlyArray<string> = []
 
@@ -58,12 +67,19 @@ export class AppWindow {
   private quitting = false
   private quittingEvenIfUpdating = false
   private rendererFailureReported = false
+  private closeWhenPrepared = false
+  private applicationClosePreparationClaimed = false
 
   // Debounces the delivery of the BrowserWindow content size to the renderer.
   // See sendContentSize/scheduleSendContentSize.
   private contentSizeDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
-  public constructor(public readonly scope: string) {
+  public constructor(
+    public readonly scope: string,
+    private readonly updateDownloadState: IAppWindowUpdateDownloadState = {
+      isDownloadingUpdate: false,
+    }
+  ) {
     const savedWindowState = windowStateKeeper({
       defaultWidth: this.minWidth,
       defaultHeight: this.minHeight,
@@ -106,11 +122,20 @@ export class AppWindow {
 
     this.window = new BrowserWindow(windowOptions)
     addTrustedIPCSender(this.window.webContents)
+    this.nativeClosePreparation = new NativeClosePreparationController({
+      sendPrepare: requestId =>
+        ipcWebContents.send(
+          this.window.webContents,
+          'prepare-window-close',
+          requestId
+        ),
+    })
 
     const onRenderProcessGone = (
       _event: Electron.Event,
       details: Electron.RenderProcessGoneDetails
     ) => {
+      this.nativeClosePreparation.rendererDestroyed()
       if (
         this.quitting ||
         this.rendererFailureReported ||
@@ -131,6 +156,9 @@ export class AppWindow {
         onRenderProcessGone
       )
     )
+    this.window.webContents.once('destroyed', () => {
+      this.nativeClosePreparation.rendererDestroyed()
+    })
 
     let unresponsiveTimer: ReturnType<typeof setTimeout> | null = null
     const clearUnresponsiveTimer = () => {
@@ -164,12 +192,6 @@ export class AppWindow {
     savedWindowState.manage(this.window)
     this.shouldMaximizeOnShow = savedWindowState.isMaximized
 
-    const onBeforeQuit = () => {
-      this.quitting = true
-    }
-    app.on('before-quit', onBeforeQuit)
-    this.addCleanupTask(() => app.removeListener('before-quit', onBeforeQuit))
-
     this.window.on('close', e => {
       const hideInsteadOfClose = this.shouldHideWindowInsteadOfClose()
       // On macOS, closing the window doesn't mean the app is quitting. If the
@@ -178,17 +200,10 @@ export class AppWindow {
       if (
         !hideInsteadOfClose &&
         !this.quittingEvenIfUpdating &&
-        this.isDownloadingUpdate
+        this.updateDownloadState.isDownloadingUpdate
       ) {
         e.preventDefault()
-        ipcWebContents.send(this.window.webContents, 'show-installing-update')
-
-        // Make sure the window is visible, so the user can see why we're
-        // preventing the app from quitting. This is important on macOS, where
-        // the window could be hidden/closed when the user tries to quit.
-        // It could also happen on Windows if the user quits the app from the
-        // task bar while it's in the background.
-        this.show()
+        this.showUpdateQuitPrevention()
         return
       }
 
@@ -205,6 +220,15 @@ export class AppWindow {
           this.window.hide()
         }
         return
+      }
+
+      if (
+        !this.quitting &&
+        !this.nativeClosePreparation.isReadyToClose &&
+        !this.window.webContents.isDestroyed()
+      ) {
+        e.preventDefault()
+        this.requestNativeWindowClose()
       }
     })
 
@@ -623,14 +647,14 @@ export class AppWindow {
 
   public setupAutoUpdater() {
     const onError = (error: Error) => {
-      this.isDownloadingUpdate = false
+      this.updateDownloadState.isDownloadingUpdate = false
       ipcWebContents.send(this.window.webContents, 'auto-updater-error', error)
     }
     autoUpdater.on('error', onError)
     this.addCleanupTask(() => autoUpdater.removeListener('error', onError))
 
     const onCheckingForUpdate = () => {
-      this.isDownloadingUpdate = false
+      this.updateDownloadState.isDownloadingUpdate = false
       ipcWebContents.send(
         this.window.webContents,
         'auto-updater-checking-for-update'
@@ -642,7 +666,7 @@ export class AppWindow {
     )
 
     const onUpdateAvailable = () => {
-      this.isDownloadingUpdate = true
+      this.updateDownloadState.isDownloadingUpdate = true
       ipcWebContents.send(
         this.window.webContents,
         'auto-updater-update-available'
@@ -654,7 +678,7 @@ export class AppWindow {
     )
 
     const onUpdateNotAvailable = () => {
-      this.isDownloadingUpdate = false
+      this.updateDownloadState.isDownloadingUpdate = false
       ipcWebContents.send(
         this.window.webContents,
         'auto-updater-update-not-available'
@@ -666,7 +690,7 @@ export class AppWindow {
     )
 
     const onUpdateDownloaded = () => {
-      this.isDownloadingUpdate = false
+      this.updateDownloadState.isDownloadingUpdate = false
       ipcWebContents.send(
         this.window.webContents,
         'auto-updater-update-downloaded'
@@ -699,7 +723,7 @@ export class AppWindow {
             verdict.version
           }, which is older than the running ${app.getVersion()}.`
         )
-        this.isDownloadingUpdate = false
+        this.updateDownloadState.isDownloadingUpdate = false
         ipcWebContents.send(
           this.window.webContents,
           'auto-updater-update-not-available'
@@ -713,10 +737,6 @@ export class AppWindow {
       return e
     }
     return undefined
-  }
-
-  public quitAndInstallUpdate() {
-    autoUpdater.quitAndInstall()
   }
 
   public minimizeWindow() {
@@ -733,6 +753,30 @@ export class AppWindow {
 
   public closeWindow() {
     this.window.close()
+  }
+
+  /** Promise-only renderer drain shared by native, app-wide, and update quits. */
+  public prepareForClose(
+    claim: ApplicationClosePreparationClaim
+  ): Promise<INativeClosePreparationResult> {
+    if (claim === 'application') {
+      this.applicationClosePreparationClaimed = true
+    }
+    const preparation = this.nativeClosePreparation.requestPreparation()
+    if (this.window.isDestroyed() || this.window.webContents.isDestroyed()) {
+      this.nativeClosePreparation.rendererDestroyed()
+    }
+    return preparation
+  }
+
+  /** Confirm that the current request arrived before its delivery deadline. */
+  public startClosePreparation(requestId: string): boolean {
+    return this.nativeClosePreparation.started(requestId)
+  }
+
+  /** Complete only the matching, started renderer drain. */
+  public completeClosePreparation(requestId: string): boolean {
+    return this.nativeClosePreparation.prepared(requestId)
   }
 
   public isMaximized() {
@@ -811,18 +855,78 @@ export class AppWindow {
     return filePaths
   }
 
-  public markWillQuit() {
+  public markWillQuit(evenIfUpdating = false) {
     this.quitting = true
+    if (evenIfUpdating) {
+      this.quittingEvenIfUpdating = true
+    }
   }
 
-  public markWillQuitEvenIfUpdating() {
-    this.quitting = true
-    this.quittingEvenIfUpdating = true
+  /**
+   * Preserve the existing update-download guard before an app-wide drain. The
+   * caller stops at the first blocking window so only one dialog is revealed.
+   */
+  public preventApplicationQuitForUpdate(evenIfUpdating: boolean): boolean {
+    if (
+      evenIfUpdating ||
+      !this.updateDownloadState.isDownloadingUpdate ||
+      this.window.isDestroyed() ||
+      this.window.webContents.isDestroyed()
+    ) {
+      return false
+    }
+    this.showUpdateQuitPrevention()
+    return true
   }
 
   public cancelQuitting() {
     this.quitting = false
     this.quittingEvenIfUpdating = false
+    this.closeWhenPrepared = false
+    this.applicationClosePreparationClaimed = false
+    this.nativeClosePreparation.reset()
+    if (!this.window.webContents.isDestroyed()) {
+      ipcWebContents.send(
+        this.window.webContents,
+        'cancel-window-close-preparation'
+      )
+    }
+  }
+
+  private requestNativeWindowClose() {
+    if (this.closeWhenPrepared) {
+      return
+    }
+    this.closeWhenPrepared = true
+    void this.prepareForClose('native-window').then(result => {
+      if (
+        !this.closeWhenPrepared ||
+        this.applicationClosePreparationClaimed ||
+        result.reason === 'reset'
+      ) {
+        return
+      }
+      if (
+        result.reason !== 'prepared' &&
+        result.reason !== 'renderer-destroyed'
+      ) {
+        log.warn(
+          `Renderer native-close preparation ended with ${result.reason}; continuing bounded window close`
+        )
+      }
+      if (!this.window.isDestroyed()) {
+        this.window.close()
+      }
+    })
+  }
+
+  private showUpdateQuitPrevention() {
+    if (this.window.webContents.isDestroyed()) {
+      return
+    }
+    ipcWebContents.send(this.window.webContents, 'show-installing-update')
+    // The user needs to see why quit was stopped even if the window was hidden.
+    this.show()
   }
 
   private addCleanupTask(task: () => void) {
@@ -830,6 +934,7 @@ export class AppWindow {
   }
 
   private cleanup() {
+    this.nativeClosePreparation.rendererDestroyed()
     for (const task of this.cleanupTasks.splice(0).reverse()) {
       try {
         task()

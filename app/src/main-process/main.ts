@@ -9,12 +9,14 @@ import {
   systemPreferences,
   nativeTheme,
   WebContents,
+  autoUpdater,
 } from 'electron'
 import * as Fs from 'fs'
 import * as Path from 'path'
 import { randomUUID } from 'crypto'
 
 import { AppWindow } from './app-window'
+import type { IAppWindowUpdateDownloadState } from './app-window'
 import { buildDefaultMenu, getAllMenuItems } from './menu'
 import { shellNeedsPatching, updateEnvironmentForProcess } from '../lib/shell'
 import { IOAuthAction, parseAppURL } from '../lib/parse-app-url'
@@ -147,11 +149,26 @@ import {
   normalizeUnhandledRejection,
 } from './renderer-failure'
 import { cleanupCheapLfsPayloadCredentialsInMainProcess } from './cheap-lfs-payload-credential-cleanup'
+import {
+  normalizeProfileRepositoryPath,
+  ProfileRepositoryLockRegistry,
+} from './profile-repository-lock-registry'
+import {
+  ApplicationQuitIntent,
+  ApplicationQuitPreparationCoordinator,
+  ApplicationQuitPreparationFailure,
+} from './application-quit-preparation'
 
 app.setAppLogsPath()
 enableSourceMaps()
 
 const windows = new Map<number, AppWindow>()
+const updateDownloadState: IAppWindowUpdateDownloadState = {
+  isDownloadingUpdate: false,
+}
+let updateInstallTerminalInProgress = false
+const profileRepositoryLocks = new ProfileRepositoryLockRegistry()
+const profileRepositoryLockSenders = new WeakSet<WebContents>()
 let internalBrowserWindow: InternalBrowserWindow | null = null
 let browserOpenMode: BrowserOpenMode = 'internal'
 let agentServerController: AgentServerController | null = null
@@ -609,6 +626,108 @@ initializeDesktopNotifications()
 function getAppWindows(): ReadonlyArray<AppWindow> {
   return [...windows.values()]
 }
+
+function bindProfileRepositoryLockSender(contents: WebContents): void {
+  if (profileRepositoryLockSenders.has(contents)) {
+    return
+  }
+  profileRepositoryLockSenders.add(contents)
+
+  const cancelQueuedDocumentWork = () =>
+    profileRepositoryLocks.cancelQueuedSender(contents.id)
+  const releaseSenderLeases = () =>
+    profileRepositoryLocks.releaseSender(contents.id)
+  contents.on(
+    'did-start-navigation',
+    (_event, _url, isInPlace, isMainFrame) => {
+      if (isMainFrame && !isInPlace) {
+        // Navigation alone is not proof that an already-started Git child has
+        // stopped. Cancel work which has not acquired a lease, but keep active
+        // leases exclusive until the action releases them or the renderer dies.
+        cancelQueuedDocumentWork()
+      }
+    }
+  )
+  contents.on('render-process-gone', releaseSenderLeases)
+  contents.once('destroyed', releaseSenderLeases)
+}
+
+function reportApplicationQuitPreparationFailure(
+  failure: ApplicationQuitPreparationFailure
+): void {
+  const description =
+    failure.kind === 'terminal-action' || failure.kind === 'commit-check'
+      ? `${failure.kind} for ${failure.intent}`
+      : `${failure.kind} for an application window`
+  log.error(`[shutdown] Failed ${description}`, failure.error)
+}
+
+const applicationQuitPreparation = new ApplicationQuitPreparationCoordinator(
+  getAppWindows,
+  intent => {
+    if (intent === 'install-update') {
+      updateInstallTerminalInProgress = true
+      try {
+        autoUpdater.quitAndInstall()
+      } catch (error) {
+        updateInstallTerminalInProgress = false
+        throw error
+      }
+    } else {
+      app.quit()
+    }
+  },
+  reportApplicationQuitPreparationFailure,
+  (_intent, evenIfUpdating) => !preventApplicationQuitForUpdate(evenIfUpdating)
+)
+
+autoUpdater.on('error', (error: Error) => {
+  updateDownloadState.isDownloadingUpdate = false
+  if (!updateInstallTerminalInProgress) {
+    return
+  }
+
+  updateInstallTerminalInProgress = false
+  reportApplicationQuitPreparationFailure({
+    kind: 'terminal-action',
+    intent: 'install-update',
+    error,
+  })
+  applicationQuitPreparation.cancel()
+  if (getAppWindows().length === 0) {
+    app.quit()
+  }
+})
+
+function preventApplicationQuitForUpdate(evenIfUpdating: boolean): boolean {
+  for (const window of getAppWindows()) {
+    if (window.preventApplicationQuitForUpdate(evenIfUpdating)) {
+      return true
+    }
+  }
+  return false
+}
+
+function requestApplicationQuit(
+  intent: ApplicationQuitIntent,
+  evenIfUpdating: boolean
+): Promise<void> {
+  if (preventApplicationQuitForUpdate(evenIfUpdating)) {
+    return Promise.resolve()
+  }
+  return applicationQuitPreparation.request(intent, evenIfUpdating)
+}
+
+app.on('before-quit', event => {
+  if (applicationQuitPreparation.isCommitted || getAppWindows().length === 0) {
+    return
+  }
+  if (preventApplicationQuitForUpdate(false)) {
+    event.preventDefault()
+    return
+  }
+  applicationQuitPreparation.handleBeforeQuit(event)
+})
 
 function getAppWindowFromBrowserWindow(
   browserWindow: BrowserWindow | null | undefined
@@ -1300,11 +1419,42 @@ app.on('ready', () => {
     getAppWindowFromWebContents(event.sender)?.checkForUpdates(url)
   )
 
-  ipcMain.on('quit-and-install-updates', event =>
-    getAppWindowFromWebContents(event.sender)?.quitAndInstallUpdate()
+  ipcMain.handle(
+    'acquire-profile-repository-lock',
+    async (event, repositoryPath) => {
+      bindProfileRepositoryLockSender(event.sender)
+      const requestedPath = normalizeProfileRepositoryPath(repositoryPath)
+      // Collapse junctions, symlinks, and case aliases before keying the
+      // process-wide broker. Every legitimate profile/working repository
+      // already exists before requesting its lease.
+      const canonicalPath = normalizeProfileRepositoryPath(
+        await Fs.promises.realpath(requestedPath)
+      )
+      return profileRepositoryLocks.acquire(event.sender.id, canonicalPath)
+    }
   )
 
-  ipcMain.on('quit-app', () => app.quit())
+  ipcMain.handle(
+    'release-profile-repository-lock',
+    async (event, leaseId) =>
+      typeof leaseId === 'string' &&
+      profileRepositoryLocks.release(event.sender.id, leaseId)
+  )
+
+  ipcMain.on('quit-and-install-updates', event => {
+    if (getAppWindowFromWebContents(event.sender) !== null) {
+      void requestApplicationQuit('install-update', true)
+    }
+  })
+
+  ipcMain.on('quit-app', (event, evenIfUpdating) => {
+    if (getAppWindowFromWebContents(event.sender) !== null) {
+      void requestApplicationQuit(
+        'quit',
+        typeof evenIfUpdating === 'boolean' && evenIfUpdating
+      )
+    }
+  })
 
   ipcMain.on('open-repository-in-new-window', (_, path: string | null) => {
     createWindow(
@@ -1356,6 +1506,22 @@ app.on('ready', () => {
   ipcMain.on('close-window', event =>
     getAppWindowFromWebContents(event.sender)?.closeWindow()
   )
+
+  ipcMain.handle(
+    'start-window-close-preparation',
+    async (event, requestId) =>
+      typeof requestId === 'string' &&
+      (getAppWindowFromWebContents(event.sender)?.startClosePreparation(
+        requestId
+      ) ??
+        false)
+  )
+
+  ipcMain.on('window-close-prepared', (event, requestId) => {
+    getAppWindowFromWebContents(event.sender)?.completeClosePreparation(
+      requestId
+    )
+  })
 
   ipcMain.handle(
     'is-window-maximized',
@@ -1696,24 +1862,8 @@ app.on('ready', () => {
     requestNotificationsPermission()
   )
 
-  ipcMain.on('will-quit', event => {
-    for (const window of getAppWindows()) {
-      window.markWillQuit()
-    }
-    event.returnValue = true
-  })
-
-  ipcMain.on('will-quit-even-if-updating', event => {
-    for (const window of getAppWindows()) {
-      window.markWillQuitEvenIfUpdating()
-    }
-    event.returnValue = true
-  })
-
   ipcMain.on('cancel-quitting', event => {
-    for (const window of getAppWindows()) {
-      window.cancelQuitting()
-    }
+    applicationQuitPreparation.cancel()
     event.returnValue = true
   })
 })
@@ -1764,7 +1914,7 @@ app.on(
 
 function createWindow(onWindowDidLoad?: OnDidLoadFn): AppWindow {
   const scope = nextWindowScope(new Set(getAppWindows().map(w => w.scope)))
-  const window = new AppWindow(scope)
+  const window = new AppWindow(scope, updateDownloadState)
   windows.set(window.id, window)
 
   if (__DEV__) {
@@ -1796,7 +1946,10 @@ function createWindow(onWindowDidLoad?: OnDidLoadFn): AppWindow {
       !__DARWIN__ &&
       windows.size === 0 &&
       internalBrowserWindow === null &&
-      !preventQuit
+      !preventQuit &&
+      !applicationQuitPreparation.isPreparing &&
+      !applicationQuitPreparation.isCommitted &&
+      !updateInstallTerminalInProgress
     ) {
       app.quit()
     }

@@ -72,7 +72,7 @@ describe('progressive startup safety boundaries', () => {
 
   it('fences deferred startup before shutdown drains producers', () => {
     const shutdown = appStoreSource.slice(
-      appStoreSource.indexOf('public async flushForShutdown'),
+      appStoreSource.indexOf('public flushForShutdown'),
       appStoreSource.indexOf('public async _quitApp')
     )
 
