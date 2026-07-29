@@ -35,7 +35,6 @@ test('brace-expansion keeps the legacy callable API over the safe implementation
 
 test('all installed minimatch and glob generations accept the adapter', async () => {
   const minimatch3 = require('minimatch')
-  const minimatch5 = fromNodeModules('markdownlint-cli/node_modules/minimatch')
   const minimatch10CommonJs = fromNodeModules(
     '@typescript-eslint/typescript-estree/node_modules/minimatch'
   ).minimatch
@@ -57,7 +56,6 @@ test('all installed minimatch and glob generations accept the adapter', async ()
 
   for (const matches of [
     minimatch3,
-    minimatch5,
     minimatch10CommonJs,
     minimatch10Esm.minimatch,
   ]) {
@@ -67,9 +65,18 @@ test('all installed minimatch and glob generations accept the adapter', async ()
   }
 
   const glob7 = require('glob')
-  const glob8 = fromNodeModules('markdownlint-cli/node_modules/glob')
-  assert.deepEqual(glob7.sync('vendor/yarn-*.js'), ['vendor/yarn-1.21.1.js'])
-  assert.deepEqual(glob8.sync('vendor/yarn-*.js'), ['vendor/yarn-1.21.1.js'])
+  const glob13 = fromNodeModules('rimraf/node_modules/glob')
+  const normalizePaths = paths => paths.map(path => path.replaceAll('\\', '/'))
+  const expectedPaths = ['vendor/yarn-1.21.1.js']
+
+  assert.deepEqual(
+    normalizePaths(glob7.sync('vendor/yarn-*.{js,ts}')),
+    expectedPaths
+  )
+  assert.deepEqual(
+    normalizePaths(glob13.sync('vendor/yarn-*.{js,ts}')),
+    expectedPaths
+  )
 })
 
 test('brace expansion remains bounded for exponentially large input', () => {
