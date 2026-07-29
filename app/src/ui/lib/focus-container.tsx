@@ -44,6 +44,10 @@ export class FocusContainer extends React.Component<
    * @param focusWithin the new focus state of the control
    */
   private onFocusWithinChanged(focusWithin: boolean) {
+    if (focusWithin === this.state.focusWithin) {
+      return
+    }
+
     this.setState({ focusWithin })
 
     if (this.focusWithinChangedTimeoutId !== null) {
@@ -60,18 +64,28 @@ export class FocusContainer extends React.Component<
     })
   }
 
-  private onWrapperRef = (elem: HTMLDivElement) => {
-    if (elem) {
-      elem.addEventListener('focusin', () => {
-        this.onFocusWithinChanged(true)
-      })
+  public componentWillUnmount() {
+    if (this.focusWithinChangedTimeoutId !== null) {
+      cancelAnimationFrame(this.focusWithinChangedTimeoutId)
+      this.focusWithinChangedTimeoutId = null
+    }
+  }
 
-      elem.addEventListener('focusout', () => {
-        this.onFocusWithinChanged(false)
-      })
+  private onWrapperRef = (elem: HTMLDivElement | null) => {
+    this.wrapperRef = elem
+  }
+
+  private onFocus = () => {
+    this.onFocusWithinChanged(true)
+  }
+
+  private onBlur = (event: React.FocusEvent<HTMLDivElement>) => {
+    const next = event.relatedTarget
+    if (next instanceof Node && event.currentTarget.contains(next)) {
+      return
     }
 
-    this.wrapperRef = elem
+    this.onFocusWithinChanged(false)
   }
 
   private onClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -110,6 +124,8 @@ export class FocusContainer extends React.Component<
         className={className}
         ref={this.onWrapperRef}
         role={this.props.role}
+        onFocus={this.onFocus}
+        onBlur={this.onBlur}
         onClick={this.onClick}
         onMouseDown={this.onMouseDown}
         onKeyDown={this.onKeyDown}

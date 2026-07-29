@@ -13,6 +13,18 @@ import {
   MaxRegexInputLength,
   MaxRegexPatternLength,
 } from '../../../lib/safe-regex'
+import {
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+  translate,
+  translateForAccessibleName,
+  TranslationKey,
+  TranslationVariables,
+} from '../../../lib/i18n'
+import {
+  LanguageMode,
+  normalizeLanguageMode,
+} from '../../../models/language-mode'
 
 /** The maximum number of visible items used to seed the tester's sample. */
 const MaxSampleItems = 50
@@ -107,16 +119,17 @@ interface IRegexBuilderState {
   readonly activeCategory: number
   readonly sample: string
   readonly dragOffset: { readonly x: number; readonly y: number }
+  readonly languageMode: LanguageMode
 }
 
 const FlagChips: ReadonlyArray<{
   readonly key: keyof IRegexFlags
-  readonly tooltip: string
-}> = [{ key: 'i', tooltip: 'ignore case' }]
+  readonly labelKey: TranslationKey
+}> = [{ key: 'i', labelKey: 'regex.builder.flag.ignoreCase' }]
 
 interface IFlagChipProps {
   readonly flagKey: keyof IRegexFlags
-  readonly tooltip: string
+  readonly accessibleLabel: string
   readonly on: boolean
   readonly onToggleFlag: (key: keyof IRegexFlags) => void
 }
@@ -128,11 +141,11 @@ class FlagChip extends React.Component<IFlagChipProps> {
   }
 
   public render() {
-    const { flagKey, tooltip, on } = this.props
+    const { flagKey, accessibleLabel, on } = this.props
     return (
       <button
         type="button"
-        aria-label={`${flagKey} — ${tooltip}`}
+        aria-label={`${flagKey} — ${accessibleLabel}`}
         aria-pressed={on}
         className={classNames('regex-flag-chip', { on })}
         onClick={this.onClick}
@@ -146,6 +159,7 @@ class FlagChip extends React.Component<IFlagChipProps> {
 interface IViewTabProps {
   readonly view: RegexBuilderView
   readonly label: string
+  readonly accessibleLabel: string
   readonly icon: OcticonSymbol
   readonly selected: boolean
   readonly onSelectView: (view: RegexBuilderView) => void
@@ -169,12 +183,13 @@ class RegexBuilderViewTab extends React.Component<IViewTabProps> {
   }
 
   public render() {
-    const { view, label, icon, selected } = this.props
+    const { view, label, accessibleLabel, icon, selected } = this.props
     return (
       <button
         type="button"
         id={`regex-builder-view-tab-${view}`}
         role="tab"
+        aria-label={accessibleLabel}
         aria-selected={selected}
         aria-controls={`regex-builder-view-${view}`}
         tabIndex={selected ? 0 : -1}
@@ -233,6 +248,7 @@ export class RegexBuilder extends React.Component<
       activeCategory: 0,
       sample: this.defaultSample(),
       dragOffset: { x: 0, y: 0 },
+      languageMode: getPersistedLanguageMode(),
     }
   }
 
@@ -244,6 +260,10 @@ export class RegexBuilder extends React.Component<
         : null
     window.addEventListener('resize', this.scheduleKeepOnScreen)
     window.addEventListener('keydown', this.onWindowKeyDown)
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
     this.scheduleKeepOnScreen()
     this.patternInputRef.current?.focus()
   }
@@ -251,6 +271,10 @@ export class RegexBuilder extends React.Component<
   public componentWillUnmount = () => {
     window.removeEventListener('resize', this.scheduleKeepOnScreen)
     window.removeEventListener('keydown', this.onWindowKeyDown)
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
     if (this.clampFrameId !== null) {
       window.cancelAnimationFrame(this.clampFrameId)
     }
@@ -273,6 +297,23 @@ export class RegexBuilder extends React.Component<
       }))
     }
   }
+
+  private onLanguageModeChanged = (event: Event) => {
+    const languageMode = normalizeLanguageMode(
+      (event as CustomEvent<unknown>).detail
+    )
+    if (languageMode !== this.state.languageMode) {
+      this.setState({ languageMode })
+    }
+  }
+
+  private text = (key: TranslationKey, variables: TranslationVariables = {}) =>
+    translate(key, this.state.languageMode, variables)
+
+  private accessibleText = (
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ) => translateForAccessibleName(key, variables, this.state.languageMode)
 
   private scheduleKeepOnScreen = () => {
     if (this.clampFrameId !== null) {
@@ -449,11 +490,12 @@ export class RegexBuilder extends React.Component<
       <div
         className="regex-builder-views"
         role="tablist"
-        aria-label="Regex builder views"
+        aria-label={this.accessibleText('regex.builder.viewsLabel')}
       >
         <RegexBuilderViewTab
           view="build"
-          label="Build"
+          label={this.text('regex.builder.view.build')}
+          accessibleLabel={this.accessibleText('regex.builder.view.build')}
           icon={octicons.tools}
           selected={view === 'build'}
           onSelectView={this.onSelectView}
@@ -461,7 +503,8 @@ export class RegexBuilder extends React.Component<
         />
         <RegexBuilderViewTab
           view="guide"
-          label="How regex works"
+          label={this.text('regex.builder.view.guide')}
+          accessibleLabel={this.accessibleText('regex.builder.view.guide')}
           icon={octicons.book}
           selected={view === 'guide'}
           onSelectView={this.onSelectView}
@@ -483,6 +526,7 @@ export class RegexBuilder extends React.Component<
         <RegexBuilderPalette
           categories={RegexCategories}
           activeCategory={this.state.activeCategory}
+          languageMode={this.state.languageMode}
           onCategoryChange={this.onCategoryChange}
           onInsertToken={this.onInsertToken}
         />
@@ -491,6 +535,7 @@ export class RegexBuilder extends React.Component<
           pattern={this.state.pattern}
           flags={flagsToString(this.state.flags)}
           sample={this.state.sample}
+          languageMode={this.state.languageMode}
           onSampleChanged={this.onSampleChanged}
           externalPatternErrorId="regex-builder-pattern-error"
         />
@@ -529,7 +574,7 @@ export class RegexBuilder extends React.Component<
           ref={this.dialogRef}
           role="dialog"
           aria-modal="false"
-          aria-labelledby="regex-builder-title"
+          aria-label={this.accessibleText('regex.builder.title')}
           aria-describedby="regex-builder-description"
         >
           <div
@@ -541,16 +586,19 @@ export class RegexBuilder extends React.Component<
           >
             <span className="regex-builder-glyph">.*</span>
             <div className="regex-builder-heading">
-              <h2 id="regex-builder-title">Regex builder</h2>
+              <h2 id="regex-builder-title">
+                {this.text('regex.builder.title')}
+              </h2>
               <p id="regex-builder-description">
-                Compose a pattern from building blocks, test it live, then apply
-                it to the {this.props.targetLabel} search
+                {this.text('regex.builder.description', {
+                  target: this.props.targetLabel,
+                })}
               </p>
             </div>
             <button
               type="button"
               className="regex-builder-close"
-              aria-label="Close"
+              aria-label={this.accessibleText('regex.builder.close')}
               onClick={this.props.onDismissed}
             >
               <Octicon symbol={octicons.x} />
@@ -569,14 +617,14 @@ export class RegexBuilder extends React.Component<
                   ref={this.patternInputRef}
                   type="text"
                   className="regex-pattern-input"
-                  aria-label="Regular expression pattern"
+                  aria-label={this.accessibleText('regex.builder.patternLabel')}
                   aria-invalid={invalid}
                   aria-describedby={
                     invalid ? 'regex-builder-pattern-error' : undefined
                   }
                   maxLength={MaxRegexPatternLength}
                   spellCheck={false}
-                  placeholder="pattern"
+                  placeholder={this.text('regex.builder.patternPlaceholder')}
                   value={this.state.pattern}
                   onChange={this.onPatternChanged}
                 />
@@ -586,7 +634,7 @@ export class RegexBuilder extends React.Component<
               <button
                 type="button"
                 className="regex-builder-icon-button"
-                aria-label="Delete last character"
+                aria-label={this.accessibleText('regex.builder.deleteLast')}
                 onClick={this.onBackspace}
               >
                 &#9003;
@@ -594,7 +642,7 @@ export class RegexBuilder extends React.Component<
               <button
                 type="button"
                 className="regex-builder-icon-button destructive"
-                aria-label="Clear pattern"
+                aria-label={this.accessibleText('regex.builder.clear')}
                 onClick={this.onClear}
               >
                 <Octicon symbol={octicons.trash} />
@@ -615,11 +663,11 @@ export class RegexBuilder extends React.Component<
               <span className="regex-builder-flags-label">SAFE RE2</span>
               {this.props.caseSensitive === undefined
                 ? null
-                : FlagChips.map(({ key, tooltip }) => (
+                : FlagChips.map(({ key, labelKey }) => (
                     <FlagChip
                       key={key}
                       flagKey={key}
-                      tooltip={tooltip}
+                      accessibleLabel={this.accessibleText(labelKey)}
                       on={this.state.flags[key]}
                       onToggleFlag={this.onToggleFlag}
                     />
@@ -627,25 +675,34 @@ export class RegexBuilder extends React.Component<
             </div>
 
             {this.renderBuildView(this.state.view !== 'build')}
-            <RegexBuilderGuide hidden={this.state.view !== 'guide'} />
+            <RegexBuilderGuide
+              hidden={this.state.view !== 'guide'}
+              languageMode={this.state.languageMode}
+            />
           </div>
 
           <div className="regex-builder-footer">
             <button
               type="button"
               className="regex-builder-cancel"
+              aria-label={this.accessibleText('regex.builder.cancel')}
               onClick={this.props.onDismissed}
             >
-              Cancel
+              {this.text('regex.builder.cancel')}
             </button>
             <button
               type="button"
               className="regex-builder-apply"
+              aria-label={this.accessibleText('regex.builder.apply', {
+                target: this.props.targetLabel,
+              })}
               disabled={invalid}
               onClick={this.onApply}
             >
               <Octicon symbol={octicons.check} />
-              Apply to {this.props.targetLabel}
+              {this.text('regex.builder.apply', {
+                target: this.props.targetLabel,
+              })}
             </button>
           </div>
         </div>

@@ -1,4 +1,6 @@
 import * as React from 'react'
+import { translate, TranslationKey } from '../../../lib/i18n'
+import { LanguageMode } from '../../../models/language-mode'
 import { Octicon, OcticonSymbol } from '../../octicons'
 import * as octicons from '../../octicons/octicons.generated'
 
@@ -6,12 +8,12 @@ import * as octicons from '../../octicons/octicons.generated'
 export interface IRegexGuideSection {
   /** The leading symbol rendered beside the section title. */
   readonly icon: OcticonSymbol
-  readonly title: string
-  readonly body: string
+  readonly titleKey: TranslationKey
+  readonly bodyKey: TranslationKey
   /** An optional highlighted example pattern. */
   readonly code?: string
   /** The muted explanation rendered after the example pattern. */
-  readonly codeNote?: string
+  readonly codeNoteKey?: TranslationKey
 }
 
 /**
@@ -24,89 +26,55 @@ export interface IRegexGuideSection {
 export const RegexGuideSections: ReadonlyArray<IRegexGuideSection> = [
   {
     icon: octicons.mortarBoard,
-    title: 'How matching works',
-    body:
-      'Desktop Material uses the linear-time RE2 engine. It scans text left to right ' +
-      'and explores alternatives without catastrophic backtracking, so a ' +
-      'user-authored search pattern cannot freeze the renderer. A search ' +
-      'matches when the whole pattern can be satisfied somewhere in the text.',
+    titleKey: 'regex.builder.guide.matching.title',
+    bodyKey: 'regex.builder.guide.matching.body',
     code: 'material',
-    codeNote:
-      '— plain characters match themselves; this finds "material" anywhere',
+    codeNoteKey: 'regex.builder.guide.matching.note',
   },
   {
     icon: octicons.pin,
-    title: 'Anchors pin the position',
-    body:
-      'Anchors match positions, not characters. ^ is the start of each ' +
-      'searched item, $ is the end, \\b is the boundary ' +
-      'between a word character and anything else, \\B is everywhere that is ' +
-      'not a boundary.',
+    titleKey: 'regex.builder.guide.anchors.title',
+    bodyKey: 'regex.builder.guide.anchors.body',
     code: '^app/.*\\.scss$',
-    codeNote: '— paths that start with app/ and end in .scss',
+    codeNoteKey: 'regex.builder.guide.anchors.note',
   },
   {
     icon: octicons.apps,
-    title: 'Character classes',
-    body:
-      'A class matches exactly one character from a set: \\d a digit, \\w a ' +
-      'word character, \\s whitespace, and . any character at all. Square ' +
-      'brackets build your own sets — [a-z] is a range, [^abc] means ' +
-      'anything except a, b, or c.',
+    titleKey: 'regex.builder.guide.classes.title',
+    bodyKey: 'regex.builder.guide.classes.body',
     code: '[0-9a-f]{7}',
-    codeNote: '— exactly seven hex characters: a short commit sha',
+    codeNoteKey: 'regex.builder.guide.classes.note',
   },
   {
     icon: octicons.iterations,
-    title: 'Quantifiers and greediness',
-    body:
-      'Quantifiers repeat the token before them: * means zero or more, + one ' +
-      'or more, ? optional, {n,m} between n and m times. They are greedy — ' +
-      'they grab as much text as possible. Append ? to make one lazy so it ' +
-      'stops as early as it can.',
+    titleKey: 'regex.builder.guide.quantifiers.title',
+    bodyKey: 'regex.builder.guide.quantifiers.body',
     code: '".*?"',
-    codeNote:
-      '— lazy: matches each quoted string separately instead of one giant match',
+    codeNoteKey: 'regex.builder.guide.quantifiers.note',
   },
   {
     icon: octicons.gitMerge,
-    title: 'Groups and captures',
-    body:
-      'Parentheses capture what they matched. (?:…) groups without ' +
-      'capturing, and (?<name>…) gives a capture a readable name. RE2 ' +
-      'deliberately rejects backreferences and lookaround because they cannot ' +
-      'be evaluated with its linear-time safety guarantee.',
+    titleKey: 'regex.builder.guide.groups.title',
+    bodyKey: 'regex.builder.guide.groups.body',
     code: '(?<area>app|docs)/',
-    codeNote: '— captures app or docs as the named area',
+    codeNoteKey: 'regex.builder.guide.groups.note',
   },
   {
     icon: octicons.gitBranch,
-    title: 'Alternation',
-    body:
-      'The pipe | means or. Combine it with a group to keep it scoped: ' +
-      'gr(a|e)y matches gray and grey. Without the group, the | splits the ' +
-      'entire pattern in two.',
+    titleKey: 'regex.builder.guide.alternation.title',
+    bodyKey: 'regex.builder.guide.alternation.body',
     code: '\\.(scss|tsx?)$',
-    codeNote: '— files ending in .scss, .ts, or .tsx',
+    codeNoteKey: 'regex.builder.guide.alternation.note',
   },
   {
     icon: octicons.flag,
-    title: 'Flags change the rules',
-    body:
-      'The i flag ignores case and stays synchronized with the search bar’s ' +
-      'Match case control. Desktop Material always enumerates matches safely ' +
-      'and uses Unicode-aware RE2 semantics, so unsupported JavaScript-only ' +
-      'flags are not shown.',
+    titleKey: 'regex.builder.guide.flags.title',
+    bodyKey: 'regex.builder.guide.flags.body',
   },
   {
     icon: octicons.search,
-    title: 'How Desktop Material uses regex',
-    body:
-      'Every search bar in the app has a .* toggle that switches it from ' +
-      'plain-text to safe RE2 matching. An invalid or unsupported pattern ' +
-      'shows a localized error and filters nothing until fixed. This builder ' +
-      'tests the exact pattern and case mode that Apply sends back to the ' +
-      'search bar.',
+    titleKey: 'regex.builder.guide.usage.title',
+    bodyKey: 'regex.builder.guide.usage.body',
   },
 ]
 
@@ -123,6 +91,7 @@ const MaxStaggerMs = 450
  */
 interface IRegexBuilderGuideProps {
   readonly hidden?: boolean
+  readonly languageMode: LanguageMode
 }
 
 export class RegexBuilderGuide extends React.Component<IRegexBuilderGuideProps> {
@@ -130,19 +99,24 @@ export class RegexBuilderGuide extends React.Component<IRegexBuilderGuideProps> 
     const animationDelay = `${Math.min(index * StaggerStepMs, MaxStaggerMs)}ms`
     return (
       <section
-        key={section.title}
+        key={section.titleKey}
         className="regex-guide-section"
         style={{ animationDelay }}
       >
         <h3>
           <Octicon className="regex-guide-icon" symbol={section.icon} />
-          {section.title}
+          {translate(section.titleKey, this.props.languageMode)}
         </h3>
-        <p>{section.body}</p>
+        <p>{translate(section.bodyKey, this.props.languageMode)}</p>
         {section.code === undefined ? null : (
           <div className="regex-guide-code">
             <span className="regex-guide-code-token">{section.code}</span>
-            <span className="regex-guide-code-note"> {section.codeNote}</span>
+            <span className="regex-guide-code-note">
+              {' '}
+              {section.codeNoteKey === undefined
+                ? null
+                : translate(section.codeNoteKey, this.props.languageMode)}
+            </span>
           </div>
         )}
       </section>

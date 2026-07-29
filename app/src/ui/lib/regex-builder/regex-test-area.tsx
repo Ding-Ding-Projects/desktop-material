@@ -1,6 +1,13 @@
 import * as React from 'react'
 import classNames from 'classnames'
-import { t, translateForAccessibleName } from '../../../lib/i18n'
+import {
+  getPersistedLanguageMode,
+  translate,
+  translateForAccessibleName,
+  TranslationKey,
+  TranslationVariables,
+} from '../../../lib/i18n'
+import { LanguageMode } from '../../../models/language-mode'
 import {
   compileSafeRegex,
   getRegexInputLengthError,
@@ -19,6 +26,8 @@ interface IRegexTestAreaProps {
   /** The current sample text (one candidate per line). */
   readonly sample: string
   readonly onSampleChanged: (sample: string) => void
+  /** Explicit owner mode makes an open builder update live with the app. */
+  readonly languageMode?: LanguageMode
   /** Existing builder-owned element that describes a pattern error. */
   readonly externalPatternErrorId?: string
 }
@@ -93,6 +102,24 @@ function* enumerateRegexSampleCandidates(
  * runs highlighted.
  */
 export class RegexTestArea extends React.Component<IRegexTestAreaProps> {
+  private get languageMode(): LanguageMode {
+    return this.props.languageMode ?? getPersistedLanguageMode()
+  }
+
+  private text(
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ): string {
+    return translate(key, this.languageMode, variables)
+  }
+
+  private accessibleText(
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ): string {
+    return translateForAccessibleName(key, variables, this.languageMode)
+  }
+
   private evaluate(): IRegexTestEvaluation {
     const sample = this.props.sample
     const inputError = getRegexInputLengthError(sample.length)
@@ -210,15 +237,15 @@ export class RegexTestArea extends React.Component<IRegexTestAreaProps> {
     capture: ISafeRegexCapturePreview
   ): React.ReactNode {
     if (capture.value === null || capture.originalLength === null) {
-      return <em>{t('regex.test.capture.unmatched')}</em>
+      return <em>{this.text('regex.test.capture.unmatched')}</em>
     }
     if (capture.originalLength === 0) {
-      return <em>{t('regex.test.capture.empty')}</em>
+      return <em>{this.text('regex.test.capture.empty')}</em>
     }
     if (capture.originalLength === capture.value.length) {
       return capture.value
     }
-    return t('regex.test.capture.truncated', {
+    return this.text('regex.test.capture.truncated', {
       value: capture.value,
       count: String(capture.originalLength),
     })
@@ -233,10 +260,10 @@ export class RegexTestArea extends React.Component<IRegexTestAreaProps> {
       <div
         className="regex-test-captures"
         role="group"
-        aria-label={translateForAccessibleName('regex.test.capture.groupLabel')}
+        aria-label={this.accessibleText('regex.test.capture.groupLabel')}
       >
         <span className="regex-test-captures-label">
-          {t('regex.test.capture.heading')}
+          {this.text('regex.test.capture.heading')}
         </span>
         <dl>
           {evaluation.captures.map(capture => (
@@ -248,7 +275,7 @@ export class RegexTestArea extends React.Component<IRegexTestAreaProps> {
         </dl>
         {evaluation.capturesOmitted > 0 ? (
           <span className="regex-test-captures-omitted">
-            {t('regex.test.capture.more', {
+            {this.text('regex.test.capture.more', {
               count: String(evaluation.capturesOmitted),
             })}
           </span>
@@ -293,8 +320,8 @@ export class RegexTestArea extends React.Component<IRegexTestAreaProps> {
     const count = evaluation.count
     const displayedCount = `${count}${evaluation.truncated ? '+' : ''}`
     const label = invalid
-      ? t('regex.test.status.invalid')
-      : t(
+      ? this.text('regex.test.status.invalid')
+      : this.text(
           count === 1
             ? 'regex.test.status.oneMatch'
             : 'regex.test.status.matches',
@@ -343,12 +370,14 @@ export class RegexTestArea extends React.Component<IRegexTestAreaProps> {
     return (
       <div className="regex-test-area">
         <div className="regex-test-header">
-          <span className="regex-test-label">TEST</span>
+          <span className="regex-test-label">
+            {this.text('regex.test.heading')}
+          </span>
           {this.renderCountChip(evaluation)}
         </div>
         <textarea
           className="regex-test-sample"
-          aria-label="Sample text for testing the regular expression"
+          aria-label={this.accessibleText('regex.test.sampleLabel')}
           aria-describedby={
             evaluation.errorSource === 'sample' ? RegexTestErrorId : undefined
           }

@@ -51,8 +51,14 @@ describe('floating surface layout contracts', () => {
     assert.match(component, /clampDialogOffset\(/)
     assert.match(component, /className="regex-builder-scroll-region"/)
     assert.match(component, /role="dialog"/)
-    assert.match(component, /aria-labelledby="regex-builder-title"/)
-    assert.match(component, /aria-label="Regular expression pattern"/)
+    assert.match(
+      component,
+      /aria-label=\{this\.accessibleText\('regex\.builder\.title'\)\}/
+    )
+    assert.match(
+      component,
+      /aria-label=\{this\.accessibleText\('regex\.builder\.patternLabel'\)\}/
+    )
     assert.match(component, /this\.patternInputRef\.current\?\.focus\(\)/)
     assert.match(
       component,

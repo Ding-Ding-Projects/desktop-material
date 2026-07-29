@@ -1,16 +1,22 @@
 import * as React from 'react'
+import {
+  translate,
+  translateForAccessibleName,
+  TranslationKey,
+} from '../../../lib/i18n'
+import { LanguageMode } from '../../../models/language-mode'
 
 /** A single insertable token in the regex builder palette. */
 export interface IRegexToken {
   /** The literal text appended to the pattern when the chip is clicked. */
   readonly token: string
   /** A short human readable description shown under the token. */
-  readonly description: string
+  readonly descriptionKey: TranslationKey
 }
 
 /** A named group of related tokens. */
 export interface IRegexCategory {
-  readonly name: string
+  readonly nameKey: TranslationKey
   readonly tokens: ReadonlyArray<IRegexToken>
 }
 
@@ -20,56 +26,83 @@ export interface IRegexCategory {
  */
 export const RegexCategories: ReadonlyArray<IRegexCategory> = [
   {
-    name: 'Anchors',
+    nameKey: 'regex.builder.category.anchors',
     tokens: [
-      { token: '^', description: 'start of searched item' },
-      { token: '$', description: 'end of searched item' },
-      { token: '\\b', description: 'word boundary' },
-      { token: '\\B', description: 'non-boundary' },
+      { token: '^', descriptionKey: 'regex.builder.token.start' },
+      { token: '$', descriptionKey: 'regex.builder.token.end' },
+      {
+        token: '\\b',
+        descriptionKey: 'regex.builder.token.wordBoundary',
+      },
+      { token: '\\B', descriptionKey: 'regex.builder.token.nonBoundary' },
     ],
   },
   {
-    name: 'Character classes',
+    nameKey: 'regex.builder.category.characterClasses',
     tokens: [
-      { token: '.', description: 'any character' },
-      { token: '\\d', description: 'digit' },
-      { token: '\\D', description: 'non-digit' },
-      { token: '\\w', description: 'word char' },
-      { token: '\\W', description: 'non-word char' },
-      { token: '\\s', description: 'whitespace' },
-      { token: '\\S', description: 'non-whitespace' },
-      { token: '[abc]', description: 'any of a, b, c' },
-      { token: '[^abc]', description: 'none of a, b, c' },
-      { token: '[a-z]', description: 'a range' },
-      { token: '\\t', description: 'tab' },
+      { token: '.', descriptionKey: 'regex.builder.token.anyCharacter' },
+      { token: '\\d', descriptionKey: 'regex.builder.token.digit' },
+      { token: '\\D', descriptionKey: 'regex.builder.token.nonDigit' },
+      {
+        token: '\\w',
+        descriptionKey: 'regex.builder.token.wordCharacter',
+      },
+      {
+        token: '\\W',
+        descriptionKey: 'regex.builder.token.nonWordCharacter',
+      },
+      { token: '\\s', descriptionKey: 'regex.builder.token.whitespace' },
+      {
+        token: '\\S',
+        descriptionKey: 'regex.builder.token.nonWhitespace',
+      },
+      { token: '[abc]', descriptionKey: 'regex.builder.token.anyOf' },
+      { token: '[^abc]', descriptionKey: 'regex.builder.token.noneOf' },
+      { token: '[a-z]', descriptionKey: 'regex.builder.token.range' },
+      { token: '\\t', descriptionKey: 'regex.builder.token.tab' },
     ],
   },
   {
-    name: 'Quantifiers',
+    nameKey: 'regex.builder.category.quantifiers',
     tokens: [
-      { token: '*', description: 'zero or more' },
-      { token: '+', description: 'one or more' },
-      { token: '?', description: 'optional' },
-      { token: '{3}', description: 'exactly 3' },
-      { token: '{2,}', description: '2 or more' },
-      { token: '{2,5}', description: 'between 2 and 5' },
-      { token: '*?', description: 'lazy zero or more' },
-      { token: '+?', description: 'lazy one or more' },
+      { token: '*', descriptionKey: 'regex.builder.token.zeroOrMore' },
+      { token: '+', descriptionKey: 'regex.builder.token.oneOrMore' },
+      { token: '?', descriptionKey: 'regex.builder.token.optional' },
+      { token: '{3}', descriptionKey: 'regex.builder.token.exactlyThree' },
+      { token: '{2,}', descriptionKey: 'regex.builder.token.twoOrMore' },
+      {
+        token: '{2,5}',
+        descriptionKey: 'regex.builder.token.betweenTwoAndFive',
+      },
+      {
+        token: '*?',
+        descriptionKey: 'regex.builder.token.lazyZeroOrMore',
+      },
+      {
+        token: '+?',
+        descriptionKey: 'regex.builder.token.lazyOneOrMore',
+      },
     ],
   },
   {
-    name: 'Groups',
+    nameKey: 'regex.builder.category.groups',
     tokens: [
-      { token: '()', description: 'capturing group' },
-      { token: '(?:)', description: 'non-capturing group' },
-      { token: '(?<name>)', description: 'named group' },
+      {
+        token: '()',
+        descriptionKey: 'regex.builder.token.capturingGroup',
+      },
+      {
+        token: '(?:)',
+        descriptionKey: 'regex.builder.token.nonCapturingGroup',
+      },
+      { token: '(?<name>)', descriptionKey: 'regex.builder.token.namedGroup' },
     ],
   },
   {
-    name: 'Alternation',
+    nameKey: 'regex.builder.category.alternation',
     tokens: [
-      { token: '|', description: 'or' },
-      { token: '(a|b)', description: 'a or b' },
+      { token: '|', descriptionKey: 'regex.builder.token.or' },
+      { token: '(a|b)', descriptionKey: 'regex.builder.token.aOrB' },
     ],
   },
 ]
@@ -77,6 +110,7 @@ export const RegexCategories: ReadonlyArray<IRegexCategory> = [
 interface IRegexBuilderPaletteProps {
   readonly categories: ReadonlyArray<IRegexCategory>
   readonly activeCategory: number
+  readonly languageMode: LanguageMode
   readonly onCategoryChange: (index: number) => void
   readonly onInsertToken: (token: string) => void
 }
@@ -87,6 +121,7 @@ interface IRegexBuilderPaletteProps {
  */
 interface IRegexCategoryTabProps {
   readonly name: string
+  readonly accessibleName: string
   readonly index: number
   readonly selected: boolean
   readonly onCategoryChange: (index: number) => void
@@ -106,12 +141,13 @@ class RegexCategoryTab extends React.Component<IRegexCategoryTabProps> {
   }
 
   public render() {
-    const { name, selected } = this.props
+    const { name, accessibleName, selected } = this.props
     return (
       <button
         type="button"
         id={`regex-builder-category-${this.props.index}`}
         role="tab"
+        aria-label={accessibleName}
         aria-selected={selected}
         aria-controls="regex-builder-token-list"
         tabIndex={selected ? 0 : -1}
@@ -131,6 +167,7 @@ class RegexCategoryTab extends React.Component<IRegexCategoryTabProps> {
 
 interface IRegexTokenChipProps {
   readonly token: IRegexToken
+  readonly languageMode: LanguageMode
   readonly onInsertToken: (token: string) => void
 }
 
@@ -140,12 +177,18 @@ class RegexTokenChip extends React.Component<IRegexTokenChipProps> {
   }
 
   public render() {
-    const { token, description } = this.props.token
+    const { token, descriptionKey } = this.props.token
+    const description = translate(descriptionKey, this.props.languageMode)
+    const accessibleDescription = translateForAccessibleName(
+      descriptionKey,
+      {},
+      this.props.languageMode
+    )
     return (
       <button
         type="button"
         className="regex-builder-token"
-        aria-label={description}
+        aria-label={accessibleDescription}
         onClick={this.onClick}
       >
         <span className="regex-builder-token-glyph">{token}</span>
@@ -191,7 +234,7 @@ export class RegexBuilderPalette extends React.Component<IRegexBuilderPalettePro
   }
 
   public render() {
-    const { categories, activeCategory } = this.props
+    const { categories, activeCategory, languageMode } = this.props
     const active = categories[activeCategory] ?? categories[0]
 
     return (
@@ -199,12 +242,21 @@ export class RegexBuilderPalette extends React.Component<IRegexBuilderPalettePro
         <div
           className="regex-builder-categories"
           role="tablist"
-          aria-label="Regular expression building-block categories"
+          aria-label={translateForAccessibleName(
+            'regex.builder.categoriesLabel',
+            {},
+            languageMode
+          )}
         >
           {categories.map((category, index) => (
             <RegexCategoryTab
-              key={category.name}
-              name={category.name}
+              key={category.nameKey}
+              name={translate(category.nameKey, languageMode)}
+              accessibleName={translateForAccessibleName(
+                category.nameKey,
+                {},
+                languageMode
+              )}
               index={index}
               selected={index === activeCategory}
               onCategoryChange={this.props.onCategoryChange}
@@ -222,6 +274,7 @@ export class RegexBuilderPalette extends React.Component<IRegexBuilderPalettePro
             <RegexTokenChip
               key={t.token}
               token={t}
+              languageMode={languageMode}
               onInsertToken={this.props.onInsertToken}
             />
           ))}

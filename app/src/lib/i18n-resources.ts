@@ -2464,6 +2464,84 @@ export type TranslationKey =
   | 'regex.error.inputTooLong'
   | 'regex.error.invalidOrUnsupported'
   | 'regex.error.unknown'
+  | 'filter.mode.fuzzy'
+  | 'filter.mode.substring'
+  | 'filter.mode.regex'
+  | 'filter.mode.cycleLabel'
+  | 'filter.case.match'
+  | 'filter.regexBuilder.open'
+  | 'filter.regexBuilder.label'
+  | 'regex.builder.viewsLabel'
+  | 'regex.builder.view.build'
+  | 'regex.builder.view.guide'
+  | 'regex.builder.title'
+  | 'regex.builder.description'
+  | 'regex.builder.close'
+  | 'regex.builder.patternLabel'
+  | 'regex.builder.patternPlaceholder'
+  | 'regex.builder.deleteLast'
+  | 'regex.builder.clear'
+  | 'regex.builder.flag.ignoreCase'
+  | 'regex.builder.cancel'
+  | 'regex.builder.apply'
+  | 'regex.builder.categoriesLabel'
+  | 'regex.builder.category.anchors'
+  | 'regex.builder.category.characterClasses'
+  | 'regex.builder.category.quantifiers'
+  | 'regex.builder.category.groups'
+  | 'regex.builder.category.alternation'
+  | 'regex.builder.token.start'
+  | 'regex.builder.token.end'
+  | 'regex.builder.token.wordBoundary'
+  | 'regex.builder.token.nonBoundary'
+  | 'regex.builder.token.anyCharacter'
+  | 'regex.builder.token.digit'
+  | 'regex.builder.token.nonDigit'
+  | 'regex.builder.token.wordCharacter'
+  | 'regex.builder.token.nonWordCharacter'
+  | 'regex.builder.token.whitespace'
+  | 'regex.builder.token.nonWhitespace'
+  | 'regex.builder.token.anyOf'
+  | 'regex.builder.token.noneOf'
+  | 'regex.builder.token.range'
+  | 'regex.builder.token.tab'
+  | 'regex.builder.token.zeroOrMore'
+  | 'regex.builder.token.oneOrMore'
+  | 'regex.builder.token.optional'
+  | 'regex.builder.token.exactlyThree'
+  | 'regex.builder.token.twoOrMore'
+  | 'regex.builder.token.betweenTwoAndFive'
+  | 'regex.builder.token.lazyZeroOrMore'
+  | 'regex.builder.token.lazyOneOrMore'
+  | 'regex.builder.token.capturingGroup'
+  | 'regex.builder.token.nonCapturingGroup'
+  | 'regex.builder.token.namedGroup'
+  | 'regex.builder.token.or'
+  | 'regex.builder.token.aOrB'
+  | 'regex.builder.guide.matching.title'
+  | 'regex.builder.guide.matching.body'
+  | 'regex.builder.guide.matching.note'
+  | 'regex.builder.guide.anchors.title'
+  | 'regex.builder.guide.anchors.body'
+  | 'regex.builder.guide.anchors.note'
+  | 'regex.builder.guide.classes.title'
+  | 'regex.builder.guide.classes.body'
+  | 'regex.builder.guide.classes.note'
+  | 'regex.builder.guide.quantifiers.title'
+  | 'regex.builder.guide.quantifiers.body'
+  | 'regex.builder.guide.quantifiers.note'
+  | 'regex.builder.guide.groups.title'
+  | 'regex.builder.guide.groups.body'
+  | 'regex.builder.guide.groups.note'
+  | 'regex.builder.guide.alternation.title'
+  | 'regex.builder.guide.alternation.body'
+  | 'regex.builder.guide.alternation.note'
+  | 'regex.builder.guide.flags.title'
+  | 'regex.builder.guide.flags.body'
+  | 'regex.builder.guide.usage.title'
+  | 'regex.builder.guide.usage.body'
+  | 'regex.test.heading'
+  | 'regex.test.sampleLabel'
   | 'regex.test.capture.unmatched'
   | 'regex.test.capture.empty'
   | 'regex.test.capture.truncated'
@@ -5862,6 +5940,97 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'accounts.invalidatedTokenPrompt': 'Do you want to sign in as {login} again?',
   'accounts.invalidatedTokenSignIn': 'Sign in again',
   'accounts.invalidatedTokenLater': 'Not now',
+  'filter.mode.fuzzy': 'Fuzzy',
+  'filter.mode.substring': 'Substring',
+  'filter.mode.regex': 'Regex',
+  'filter.mode.cycleLabel': 'Filter mode: {mode} (click to change)',
+  'filter.case.match': 'Match case',
+  'filter.regexBuilder.open': 'Open regex builder',
+  'filter.regexBuilder.label': 'Regex builder',
+  'regex.builder.viewsLabel': 'Regex builder views',
+  'regex.builder.view.build': 'Build',
+  'regex.builder.view.guide': 'How regex works',
+  'regex.builder.title': 'Regex builder',
+  'regex.builder.description':
+    'Compose a pattern from building blocks, test it live, then apply it to the {target} search.',
+  'regex.builder.close': 'Close',
+  'regex.builder.patternLabel': 'Regular expression pattern',
+  'regex.builder.patternPlaceholder': 'pattern',
+  'regex.builder.deleteLast': 'Delete last character',
+  'regex.builder.clear': 'Clear pattern',
+  'regex.builder.flag.ignoreCase': 'ignore case',
+  'regex.builder.cancel': 'Cancel',
+  'regex.builder.apply': 'Apply to {target}',
+  'regex.builder.categoriesLabel':
+    'Regular expression building-block categories',
+  'regex.builder.category.anchors': 'Anchors',
+  'regex.builder.category.characterClasses': 'Character classes',
+  'regex.builder.category.quantifiers': 'Quantifiers',
+  'regex.builder.category.groups': 'Groups',
+  'regex.builder.category.alternation': 'Alternation',
+  'regex.builder.token.start': 'start of searched item',
+  'regex.builder.token.end': 'end of searched item',
+  'regex.builder.token.wordBoundary': 'word boundary',
+  'regex.builder.token.nonBoundary': 'non-boundary',
+  'regex.builder.token.anyCharacter': 'any character',
+  'regex.builder.token.digit': 'digit',
+  'regex.builder.token.nonDigit': 'non-digit',
+  'regex.builder.token.wordCharacter': 'word char',
+  'regex.builder.token.nonWordCharacter': 'non-word char',
+  'regex.builder.token.whitespace': 'whitespace',
+  'regex.builder.token.nonWhitespace': 'non-whitespace',
+  'regex.builder.token.anyOf': 'any of a, b, c',
+  'regex.builder.token.noneOf': 'none of a, b, c',
+  'regex.builder.token.range': 'a range',
+  'regex.builder.token.tab': 'tab',
+  'regex.builder.token.zeroOrMore': 'zero or more',
+  'regex.builder.token.oneOrMore': 'one or more',
+  'regex.builder.token.optional': 'optional',
+  'regex.builder.token.exactlyThree': 'exactly 3',
+  'regex.builder.token.twoOrMore': '2 or more',
+  'regex.builder.token.betweenTwoAndFive': 'between 2 and 5',
+  'regex.builder.token.lazyZeroOrMore': 'lazy zero or more',
+  'regex.builder.token.lazyOneOrMore': 'lazy one or more',
+  'regex.builder.token.capturingGroup': 'capturing group',
+  'regex.builder.token.nonCapturingGroup': 'non-capturing group',
+  'regex.builder.token.namedGroup': 'named group',
+  'regex.builder.token.or': 'or',
+  'regex.builder.token.aOrB': 'a or b',
+  'regex.builder.guide.matching.title': 'How matching works',
+  'regex.builder.guide.matching.body':
+    'Desktop Material uses the linear-time RE2 engine. It scans text left to right and explores alternatives without catastrophic backtracking, so a user-authored search pattern cannot freeze the renderer. A search matches when the whole pattern can be satisfied somewhere in the text.',
+  'regex.builder.guide.matching.note':
+    '— plain characters match themselves; this finds "material" anywhere',
+  'regex.builder.guide.anchors.title': 'Anchors pin the position',
+  'regex.builder.guide.anchors.body':
+    'Anchors match positions, not characters. ^ is the start of each searched item, $ is the end, \\b is the boundary between a word character and anything else, \\B is everywhere that is not a boundary.',
+  'regex.builder.guide.anchors.note':
+    '— paths that start with app/ and end in .scss',
+  'regex.builder.guide.classes.title': 'Character classes',
+  'regex.builder.guide.classes.body':
+    'A class matches exactly one character from a set: \\d a digit, \\w a word character, \\s whitespace, and . any character at all. Square brackets build your own sets — [a-z] is a range, [^abc] means anything except a, b, or c.',
+  'regex.builder.guide.classes.note':
+    '— exactly seven hex characters: a short commit sha',
+  'regex.builder.guide.quantifiers.title': 'Quantifiers and greediness',
+  'regex.builder.guide.quantifiers.body':
+    'Quantifiers repeat the token before them: * means zero or more, + one or more, ? optional, {n,m} between n and m times. They are greedy — they grab as much text as possible. Append ? to make one lazy so it stops as early as it can.',
+  'regex.builder.guide.quantifiers.note':
+    '— lazy: matches each quoted string separately instead of one giant match',
+  'regex.builder.guide.groups.title': 'Groups and captures',
+  'regex.builder.guide.groups.body':
+    'Parentheses capture what they matched. (?:…) groups without capturing, and (?<name>…) gives a capture a readable name. RE2 deliberately rejects backreferences and lookaround because they cannot be evaluated with its linear-time safety guarantee.',
+  'regex.builder.guide.groups.note': '— captures app or docs as the named area',
+  'regex.builder.guide.alternation.title': 'Alternation',
+  'regex.builder.guide.alternation.body':
+    'The pipe | means or. Combine it with a group to keep it scoped: gr(a|e)y matches gray and grey. Without the group, the | splits the entire pattern in two.',
+  'regex.builder.guide.alternation.note':
+    '— files ending in .scss, .ts, or .tsx',
+  'regex.builder.guide.flags.title': 'Flags change the rules',
+  'regex.builder.guide.flags.body':
+    'The i flag ignores case and stays synchronized with the search bar’s Match case control. Desktop Material always enumerates matches safely and uses Unicode-aware RE2 semantics, so unsupported JavaScript-only flags are not shown.',
+  'regex.builder.guide.usage.title': 'How Desktop Material uses regex',
+  'regex.builder.guide.usage.body':
+    'Every search bar in the app has a .* toggle that switches it from plain-text to safe RE2 matching. An invalid or unsupported pattern shows a localized error and filters nothing until fixed. This builder tests the exact pattern and case mode that Apply sends back to the search bar.',
   'regex.error.patternTooLong':
     'Pattern is too long (maximum {max} characters).',
   'regex.error.inputTooLong':
@@ -5878,6 +6047,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'regex.test.status.invalid': 'Invalid pattern',
   'regex.test.status.oneMatch': '{count} match',
   'regex.test.status.matches': '{count} matches',
+  'regex.test.heading': 'TEST',
+  'regex.test.sampleLabel': 'Sample text for testing the regular expression',
 }
 
 /** Hong Kong Cantonese catalog. Missing entries deliberately use English. */
@@ -8935,6 +9106,94 @@ export const cantoneseTranslations: Readonly<
   'accounts.invalidatedTokenPrompt': '要唔要用返 {login} 重新登入？',
   'accounts.invalidatedTokenSignIn': '重新登入',
   'accounts.invalidatedTokenLater': '暫時唔使',
+  'filter.mode.fuzzy': '模糊配對',
+  'filter.mode.substring': '包含文字',
+  'filter.mode.regex': '正則表達式',
+  'filter.mode.cycleLabel': '配對模式：{mode}（撳一下轉模式）',
+  'filter.case.match': '分大小寫',
+  'filter.regexBuilder.open': '打開正則表達式砌法器',
+  'filter.regexBuilder.label': '正則表達式砌法器',
+  'regex.builder.viewsLabel': '正則表達式砌法器檢視',
+  'regex.builder.view.build': '砌樣式',
+  'regex.builder.view.guide': '正則表達式點運作',
+  'regex.builder.title': '正則表達式砌法器',
+  'regex.builder.description':
+    '用積木砌出樣式，即場試清楚，再套用到「{target}」搜尋。',
+  'regex.builder.close': '關閉',
+  'regex.builder.patternLabel': '正則表達式樣式',
+  'regex.builder.patternPlaceholder': '樣式',
+  'regex.builder.deleteLast': '刪除最後一個字元',
+  'regex.builder.clear': '清除樣式',
+  'regex.builder.flag.ignoreCase': '唔分大小寫',
+  'regex.builder.cancel': '取消',
+  'regex.builder.apply': '套用到「{target}」',
+  'regex.builder.categoriesLabel': '正則表達式積木分類',
+  'regex.builder.category.anchors': '定位符',
+  'regex.builder.category.characterClasses': '字元類別',
+  'regex.builder.category.quantifiers': '數量詞',
+  'regex.builder.category.groups': '群組',
+  'regex.builder.category.alternation': '二揀一',
+  'regex.builder.token.start': '搜尋項目開頭',
+  'regex.builder.token.end': '搜尋項目結尾',
+  'regex.builder.token.wordBoundary': '字詞邊界',
+  'regex.builder.token.nonBoundary': '非字詞邊界',
+  'regex.builder.token.anyCharacter': '任何字元',
+  'regex.builder.token.digit': '數字',
+  'regex.builder.token.nonDigit': '非數字',
+  'regex.builder.token.wordCharacter': '字詞字元',
+  'regex.builder.token.nonWordCharacter': '非字詞字元',
+  'regex.builder.token.whitespace': '空白字元',
+  'regex.builder.token.nonWhitespace': '非空白字元',
+  'regex.builder.token.anyOf': 'a、b、c 其中一個',
+  'regex.builder.token.noneOf': '唔係 a、b 或 c',
+  'regex.builder.token.range': '一段範圍',
+  'regex.builder.token.tab': 'Tab 字元',
+  'regex.builder.token.zeroOrMore': '零次或以上',
+  'regex.builder.token.oneOrMore': '一次或以上',
+  'regex.builder.token.optional': '有都得冇都得',
+  'regex.builder.token.exactlyThree': '啱啱 3 次',
+  'regex.builder.token.twoOrMore': '2 次或以上',
+  'regex.builder.token.betweenTwoAndFive': '2 至 5 次',
+  'regex.builder.token.lazyZeroOrMore': '慳住搶嘅零次或以上',
+  'regex.builder.token.lazyOneOrMore': '慳住搶嘅一次或以上',
+  'regex.builder.token.capturingGroup': '擷取群組',
+  'regex.builder.token.nonCapturingGroup': '非擷取群組',
+  'regex.builder.token.namedGroup': '有名群組',
+  'regex.builder.token.or': '或者',
+  'regex.builder.token.aOrB': 'a 或者 b',
+  'regex.builder.guide.matching.title': '配對點運作',
+  'regex.builder.guide.matching.body':
+    'Desktop Material 用線性時間嘅 RE2 引擎，由左至右掃文字，亦唔會因為災難性回溯而卡死。你自己寫嘅搜尋樣式唔會凍結 renderer；只要成個樣式喺文字其中一處成立，就算配對成功。',
+  'regex.builder.guide.matching.note':
+    '— 普通字元會配對自己；呢個樣式會喺任何位置搵到「material」',
+  'regex.builder.guide.anchors.title': '定位符釘實位置',
+  'regex.builder.guide.anchors.body':
+    '定位符配對位置，唔係字元。^ 代表每個搜尋項目開頭，$ 代表結尾，\\b 係字詞字元同其他字元之間嘅邊界，\\B 就係唔屬於邊界嘅位置。',
+  'regex.builder.guide.anchors.note': '— 路徑由 app/ 開頭，而且以 .scss 結尾',
+  'regex.builder.guide.classes.title': '字元類別',
+  'regex.builder.guide.classes.body':
+    '字元類別會由一組字元入面配對啱啱一個：\\d 係數字、\\w 係字詞字元、\\s 係空白，而 . 係任何字元。方括號可以自砌集合；[a-z] 係範圍，[^abc] 嘅意思係除咗 a、b、c 之外嘅字元。',
+  'regex.builder.guide.classes.note':
+    '— 啱啱七個十六進制字元，即係短版 commit SHA',
+  'regex.builder.guide.quantifiers.title': '數量詞同貪心配對',
+  'regex.builder.guide.quantifiers.body':
+    '數量詞會重複前面嘅積木：* 係零次或以上，+ 係一次或以上，? 係可有可無，{n,m} 係 n 至 m 次。預設會貪心咁盡量攞多啲文字；後面加 ? 就會變懶惰，夠用即停。',
+  'regex.builder.guide.quantifiers.note':
+    '— 懶惰配對：逐段配對引號字串，唔會一啖吞晒',
+  'regex.builder.guide.groups.title': '群組同擷取',
+  'regex.builder.guide.groups.body':
+    '括號會擷取配對到嘅內容。(?:…) 只分組但唔擷取，(?<name>…) 就會俾擷取結果一個易明嘅名。RE2 會拒絕反向引用同環視，因為佢哋守唔到線性時間安全保證。',
+  'regex.builder.guide.groups.note': '— 將 app 或 docs 擷取做名為 area 嘅內容',
+  'regex.builder.guide.alternation.title': '二揀一',
+  'regex.builder.guide.alternation.body':
+    '直線 | 代表「或者」。配合群組就可以限制範圍：gr(a|e)y 可以配對 gray 同 grey；冇群組嘅話，| 會將成個樣式斬開兩邊。',
+  'regex.builder.guide.alternation.note': '— 以 .scss、.ts 或 .tsx 結尾嘅檔案',
+  'regex.builder.guide.flags.title': '旗標改變規則',
+  'regex.builder.guide.flags.body':
+    'i 旗標會忽略大小寫，並同搜尋列嘅「分大小寫」控制保持同步。Desktop Material 會安全咁列舉配對，亦會用支援 Unicode 嘅 RE2 語意，所以唔會顯示只屬於 JavaScript、但唔支援嘅旗標。',
+  'regex.builder.guide.usage.title': 'Desktop Material 點用正則表達式',
+  'regex.builder.guide.usage.body':
+    'App 入面每個搜尋列都有 .* 切換掣，可以由純文字轉做安全 RE2 配對。無效或者唔支援嘅樣式會顯示本地化錯誤，修好之前唔會過濾任何項目。砌法器會測試「套用」真正交返畀搜尋列嘅同一個樣式同大小寫模式。',
   'regex.error.patternTooLong': '樣式太長，最多只可以有 {max} 個字元。',
   'regex.error.inputTooLong':
     '搜尋文字太長，未能安全評估（最多 {max} 個字元）。',
@@ -8949,4 +9208,6 @@ export const cantoneseTranslations: Readonly<
   'regex.test.status.invalid': '樣式無效',
   'regex.test.status.oneMatch': '{count} 個配對',
   'regex.test.status.matches': '{count} 個配對',
+  'regex.test.heading': '測試',
+  'regex.test.sampleLabel': '用嚟測試正則表達式嘅範例文字',
 }

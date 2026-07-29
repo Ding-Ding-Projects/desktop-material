@@ -23,8 +23,8 @@
   .filter-case-button {
     display: grid;
     place-items: center;
-    height: 30px;
-    min-width: 32px;
+    height: 40px;
+    min-width: 40px;
     padding: 0 8px;
     border: 0;
     border-radius: 10px;
@@ -61,7 +61,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    height: 30px;
+    height: 40px;
     padding: 0 12px;
     border: 0;
     border-radius: 999px;
@@ -90,7 +90,7 @@
   padding: 0 var(--spacing) var(--spacing-half);
 
   .filter-chip {
-    height: 30px;
+    height: 40px;
     padding: 0 12px;
     border: 0;
     border-radius: 999px;

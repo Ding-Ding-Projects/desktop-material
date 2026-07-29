@@ -1,6 +1,15 @@
 import * as React from 'react'
 import classNames from 'classnames'
 import { FilterMode } from '../../lib/fuzzy-find'
+import {
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+  translate,
+  translateForAccessibleName,
+  TranslationKey,
+  TranslationVariables,
+} from '../../lib/i18n'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { RegexBuilder } from './regex-builder/regex-builder'
 
 /** The cycle order of filter modes when the mode button is pressed. */
@@ -10,10 +19,10 @@ const ModeCycle: ReadonlyArray<FilterMode> = [
   FilterMode.Regex,
 ]
 
-const ModeLabels: Record<FilterMode, string> = {
-  [FilterMode.Fuzzy]: 'Fuzzy',
-  [FilterMode.Substring]: 'Substring',
-  [FilterMode.Regex]: 'Regex',
+const ModeLabelKeys: Record<FilterMode, TranslationKey> = {
+  [FilterMode.Fuzzy]: 'filter.mode.fuzzy',
+  [FilterMode.Substring]: 'filter.mode.substring',
+  [FilterMode.Regex]: 'filter.mode.regex',
 }
 
 /** Advance to the next mode in the cycle. */
@@ -72,6 +81,7 @@ interface IFilterModeControlProps {
 
 interface IFilterModeControlState {
   readonly isBuilderOpen: boolean
+  readonly languageMode: LanguageMode
 }
 
 /**
@@ -85,8 +95,42 @@ export class FilterModeControl extends React.Component<
 > {
   public constructor(props: IFilterModeControlProps) {
     super(props)
-    this.state = { isBuilderOpen: false }
+    this.state = {
+      isBuilderOpen: false,
+      languageMode: getPersistedLanguageMode(),
+    }
   }
+
+  public componentDidMount() {
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  public componentWillUnmount() {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    const languageMode = normalizeLanguageMode(
+      (event as CustomEvent<unknown>).detail
+    )
+    if (languageMode !== this.state.languageMode) {
+      this.setState({ languageMode })
+    }
+  }
+
+  private text = (key: TranslationKey, variables: TranslationVariables = {}) =>
+    translate(key, this.state.languageMode, variables)
+
+  private accessibleText = (
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ) => translateForAccessibleName(key, variables, this.state.languageMode)
 
   private onCycleMode = () => {
     this.props.onModeChange(nextFilterMode(this.props.mode))
@@ -134,6 +178,7 @@ export class FilterModeControl extends React.Component<
   public render() {
     const { mode, caseSensitive } = this.props
     const caseDisabled = mode === FilterMode.Fuzzy
+    const modeLabel = this.accessibleText(ModeLabelKeys[mode])
 
     return (
       <div
@@ -157,7 +202,9 @@ export class FilterModeControl extends React.Component<
             className={classNames('filter-mode-button', {
               active: mode !== FilterMode.Fuzzy,
             })}
-            aria-label={`Filter mode: ${ModeLabels[mode]} (click to change)`}
+            aria-label={this.accessibleText('filter.mode.cycleLabel', {
+              mode: modeLabel,
+            })}
             onClick={this.onCycleMode}
           >
             <span className="filter-mode-glyph">.*</span>
@@ -167,7 +214,7 @@ export class FilterModeControl extends React.Component<
             className={classNames('filter-case-button', {
               active: !caseDisabled && caseSensitive,
             })}
-            aria-label="Match case"
+            aria-label={this.accessibleText('filter.case.match')}
             aria-pressed={caseSensitive}
             disabled={caseDisabled}
             onClick={this.onToggleCase}
@@ -178,11 +225,13 @@ export class FilterModeControl extends React.Component<
             <button
               type="button"
               className="filter-regex-builder-button"
-              aria-label="Open regex builder"
+              aria-label={this.accessibleText('filter.regexBuilder.open')}
               onClick={this.onOpenBuilder}
             >
               <span className="filter-mode-glyph">.*</span>
-              <span className="filter-regex-builder-label">Regex builder</span>
+              <span className="filter-regex-builder-label">
+                {this.text('filter.regexBuilder.label')}
+              </span>
             </button>
           )}
         </div>

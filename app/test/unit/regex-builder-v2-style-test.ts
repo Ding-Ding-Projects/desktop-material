@@ -10,6 +10,7 @@ const builder = read('app/src/ui/lib/regex-builder/regex-builder.tsx')
 const guide = read('app/src/ui/lib/regex-builder/regex-builder-guide.tsx')
 const palette = read('app/src/ui/lib/regex-builder/regex-builder-palette.tsx')
 const tester = read('app/src/ui/lib/regex-builder/regex-test-area.tsx')
+const resources = read('app/src/lib/i18n-resources.ts')
 const diffSearch = read('app/src/ui/diff/side-by-side-diff.tsx')
 const diffSearchMatcher = read('app/src/ui/diff/diff-search-matcher.ts')
 
@@ -48,13 +49,16 @@ describe('Regex builder v2 style contract', () => {
     // The component wires the two tabs up as an accessible tablist.
     assert.match(
       builder,
-      /role="tablist"[\s\S]*?aria-label="Regex builder views"/
+      /role="tablist"[\s\S]*?aria-label=\{this\.accessibleText\('regex\.builder\.viewsLabel'\)\}/
     )
     assert.match(builder, /aria-selected=\{selected\}/)
-    assert.match(builder, /label="Build"[\s\S]*?icon=\{octicons\.tools\}/)
     assert.match(
       builder,
-      /label="How regex works"[\s\S]*?icon=\{octicons\.book\}/
+      /label=\{this\.text\('regex\.builder\.view\.build'\)\}[\s\S]*?icon=\{octicons\.tools\}/
+    )
+    assert.match(
+      builder,
+      /label=\{this\.text\('regex\.builder\.view\.guide'\)\}[\s\S]*?icon=\{octicons\.book\}/
     )
     // Bound class-field handler — no inline arrows in JSX props.
     assert.match(builder, /private onSelectView = \(view: RegexBuilderView\)/)
@@ -69,7 +73,7 @@ describe('Regex builder v2 style contract', () => {
     )
     assert.match(
       builder,
-      /<RegexBuilderGuide hidden=\{this\.state\.view !== 'guide'\} \/>/
+      /<RegexBuilderGuide[\s\S]*?hidden=\{this\.state\.view !== 'guide'\}[\s\S]*?languageMode=\{this\.state\.languageMode\}/
     )
   })
 
@@ -100,19 +104,19 @@ describe('Regex builder v2 style contract', () => {
 
     // Every safe-RE2 guide section, in order.
     const titles = [
-      'How matching works',
-      'Anchors pin the position',
-      'Character classes',
-      'Quantifiers and greediness',
-      'Groups and captures',
-      'Alternation',
-      'Flags change the rules',
-      'How Desktop Material uses regex',
+      'regex.builder.guide.matching.title',
+      'regex.builder.guide.anchors.title',
+      'regex.builder.guide.classes.title',
+      'regex.builder.guide.quantifiers.title',
+      'regex.builder.guide.groups.title',
+      'regex.builder.guide.alternation.title',
+      'regex.builder.guide.flags.title',
+      'regex.builder.guide.usage.title',
     ]
     let cursor = 0
-    for (const title of titles) {
-      const at = guide.indexOf(`title: '${title}'`, cursor)
-      assert.ok(at >= 0, `guide section "${title}" present and in order`)
+    for (const titleKey of titles) {
+      const at = guide.indexOf(`titleKey: '${titleKey}'`, cursor)
+      assert.ok(at >= 0, `guide section "${titleKey}" present and in order`)
       cursor = at
     }
 
@@ -120,15 +124,15 @@ describe('Regex builder v2 style contract', () => {
     assert.ok(guide.includes('^app/.*\\\\.scss$'))
     assert.ok(guide.includes('[0-9a-f]{7}'))
     assert.ok(guide.includes('(?<area>app|docs)'))
-    assert.match(guide, /rejects backreferences and lookaround/)
+    assert.match(resources, /rejects backreferences and lookaround/)
   })
 
   it('documents and enforces the shared safe RE2 dialect', () => {
     assert.match(builder, /compileSafeRegex/)
     assert.match(builder, />SAFE RE2</)
     assert.doesNotMatch(builder, /new RegExp\(/)
-    assert.match(guide, /linear-time RE2 engine/)
-    assert.match(guide, /rejects backreferences and lookaround/)
+    assert.match(resources, /linear-time RE2 engine/)
+    assert.match(resources, /rejects backreferences and lookaround/)
     assert.equal(
       palette.includes("{ token: '\\\\n',"),
       false,
@@ -156,9 +160,12 @@ describe('Regex builder v2 style contract', () => {
     )
     assert.match(
       tester,
-      /aria-label=\{translateForAccessibleName\('regex\.test\.capture\.groupLabel'\)\}/
+      /aria-label=\{this\.accessibleText\('regex\.test\.capture\.groupLabel'\)\}/
     )
-    assert.match(tester, /<em>\{t\('regex\.test\.capture\.unmatched'\)\}<\/em>/)
+    assert.match(
+      tester,
+      /<em>\{this\.text\('regex\.test\.capture\.unmatched'\)\}<\/em>/
+    )
     assert.match(tester, /MaxRegexCapturePreviews/)
     assert.match(
       styles,
