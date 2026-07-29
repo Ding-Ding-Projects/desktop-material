@@ -195,6 +195,32 @@ describe('TabOverflowPopover search', () => {
     assert.ok(screen.getByText('3 of 3 tabs in this menu'))
   })
 
+  it('keeps its owned Regex Builder portal interactive without dismissing the popover', () => {
+    const spies = renderPopover()
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Open regex builder',
+      })
+    )
+
+    const pattern = screen.getByRole('textbox', {
+      name: 'Regular expression pattern',
+    })
+    fireEvent.click(pattern)
+    fireEvent.change(pattern, { target: { value: '^omega$' } })
+
+    assert.equal(
+      spies.closes(),
+      0,
+      'interacting with the owned document-level portal must not count as an outside click'
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /Apply to/ }))
+    assert.equal(spies.closes(), 0)
+    assert.equal(screen.queryByRole('dialog', { name: 'Regex builder' }), null)
+  })
+
   it('keeps the list keyboard operable from the field and from the list', () => {
     const spies = renderPopover()
 

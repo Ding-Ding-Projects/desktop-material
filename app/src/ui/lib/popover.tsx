@@ -67,6 +67,32 @@ const hasPopoverComponentDecoration = (
 const hasPopoverTip = (decoration: PopoverDecoration | undefined) =>
   decoration === PopoverDecoration.Balloon
 
+/**
+ * Regex Builder renders in a document-level portal so it can escape clipped
+ * search rows. Treat that portal as part of the popover only when the popover
+ * owns a search control with the same surface id. This keeps an unrelated
+ * builder from disabling outside-click dismissal.
+ */
+export function isOwnedSearchSurfacePortal(
+  container: HTMLElement,
+  target: Node
+): boolean {
+  const targetElement =
+    target instanceof Element ? target : target.parentElement
+  const portal = targetElement?.closest<HTMLElement>(
+    '.regex-builder-overlay[data-search-surface-id]'
+  )
+  const searchSurfaceId = portal?.dataset.searchSurfaceId
+
+  if (searchSurfaceId === undefined || searchSurfaceId.length === 0) {
+    return false
+  }
+
+  return Array.from(
+    container.querySelectorAll<HTMLElement>('[data-search-surface-id]')
+  ).some(owner => owner.dataset.searchSurfaceId === searchSurfaceId)
+}
+
 interface IPopoverProps {
   readonly onClickOutside?: (event?: MouseEvent) => void
   readonly onMousedownOutside?: (event?: MouseEvent) => void
@@ -236,6 +262,7 @@ export class Popover extends React.Component<IPopoverProps, IPopoverState> {
       ref.parentElement !== null &&
       target instanceof Node &&
       !ref.parentElement.contains(target) &&
+      !isOwnedSearchSurfacePortal(ref.parentElement, target) &&
       this.props.onClickOutside !== undefined
     ) {
       this.props.onClickOutside(event)
@@ -252,6 +279,7 @@ export class Popover extends React.Component<IPopoverProps, IPopoverState> {
       ref.parentElement !== null &&
       target instanceof Node &&
       !ref.parentElement.contains(target) &&
+      !isOwnedSearchSurfacePortal(ref.parentElement, target) &&
       this.props.onMousedownOutside !== undefined
     ) {
       this.props.onMousedownOutside(event)
