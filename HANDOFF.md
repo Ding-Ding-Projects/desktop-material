@@ -4,11 +4,13 @@
 
 ### Stop-now checkpoint
 
-Local and remote `main` are exactly
-`ddfbec8302cd4ac4f5f4fb4313f36505dd34750c`. The completed Cheap LFS and
-close-out source tips are ancestors of that pushed commit. The push has started
-remote checks; this handoff does **not** infer a CI, installer, release, or
-issue-closure success before GitHub reports one.
+The last exact source-and-verifier checkpoint is
+`ddfbec8302cd4ac4f5f4fb4313f36505dd34750c`, and the stop-now handoff recording
+its final boundary is pushed at
+`d107b0aeb8be2db6f3bd1baf152548249bcd562b`. Local and remote `main` matched
+that latter commit before this final cleanup note. The completed Cheap LFS and
+close-out source tips are ancestors of pushed `main`; their two remote task
+branches were deleted after that proof.
 
 The exact-tip updater run built `ddfbec8302` successfully and reached the real
 Electron/Squirrel **Update ready** UI. Chromium wrote a 960×660, 46,232-byte
@@ -27,6 +29,32 @@ The focused updater source gates completed before this stop: updater behavior
 31/31, release-note behavior 6/6, and verifier contract 18/18, with TypeScript
 and targeted formatting/lint clean. Full final-tree tests and the exact pushed
 CI/release verdict remain remote or outstanding and must be reported as such.
+
+Eight sibling directories that were no longer registered Git worktrees were
+revalidated as empty shells containing only two junctions back to this
+checkout's dependency directories. The junctions were unlinked first and all
+eight empty shells were removed. The failed updater run root contained no live
+owned process or reparse point; its read-only Git objects were normalized and
+the exact temporary root was then removed. No stash or additional registered
+worktree remains.
+
+`origin/codex/bug-hunt-20260728` is intentionally preserved at
+`bd0041d33989ded70ba1b6424b538312d502b455`. It is an unfinished lineage, not
+cleanup debris: 25 commits diverge from `main`, a trial merge has six content
+conflicts, and exact-tip CI run
+[`30420344514`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30420344514)
+failed current docs/gallery gates. Its own handoff still requires a build, full
+tests, visual acceptance, and issue receipts. Do not delete or wholesale-merge
+it until those changes are reconciled and verified.
+
+For `d107b0aeb8`, Cheap LFS cloud compression run
+[`30423623373`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30423623373)
+passed, while CI
+[`30423623412`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30423623412)
+and Code scanning
+[`30423623414`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30423623414)
+were still running at handoff. No release targeted that SHA yet. The continuous
+issue scan remained #23, #80, #81, #82, #85, #87, #94, #95, and #96.
 
 ### Cheap LFS long Windows filenames and materialized-pull boundary
 
