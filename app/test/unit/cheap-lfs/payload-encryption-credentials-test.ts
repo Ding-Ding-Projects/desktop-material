@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { createHmac, randomBytes } from 'node:crypto'
+import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { describe, it } from 'node:test'
 
 import {
@@ -55,33 +55,27 @@ function createVault(initial: string | null = null): {
   }
 }
 
-const CredentialFingerprintKey = randomBytes(32)
-
-function credentialFingerprint(value: string | Buffer): string {
-  return createHmac('sha256', CredentialFingerprintKey)
-    .update(value)
-    .digest('hex')
-}
-
-function runtimeCredential(): {
-  readonly value: string
-  readonly digest: string
-} {
+function runtimeCredential(): { readonly value: string } {
   const value = randomBytes(32).toString('base64url')
-  return {
-    value,
-    digest: credentialFingerprint(value),
-  }
+  return { value }
 }
 
-function assertCredentialDigest(
+function assertCredentialValue(
   value: string | Buffer | null | undefined,
-  expectedDigest: string
+  expected: string
 ): void {
-  assert.equal(
-    credentialFingerprint(Buffer.isBuffer(value) ? value : value ?? ''),
-    expectedDigest
-  )
+  const actual = Buffer.isBuffer(value)
+    ? value
+    : Buffer.from(value ?? '', 'utf8')
+  const expectedBytes = Buffer.from(expected, 'utf8')
+  const matches =
+    actual.length === expectedBytes.length &&
+    timingSafeEqual(actual, expectedBytes)
+  if (!Buffer.isBuffer(value)) {
+    actual.fill(0)
+  }
+  expectedBytes.fill(0)
+  assert.equal(matches, true)
 }
 
 describe('Cheap LFS operation-scoped payload passwords', () => {
@@ -104,7 +98,7 @@ describe('Cheap LFS operation-scoped payload passwords', () => {
     assert.equal(prompts, 0)
     assert.equal(credential?.source, 'vault')
     assert.equal(credential?.rememberPassword, false)
-    assertCredentialDigest(credential?.password, sentinel.digest)
+    assertCredentialValue(credential?.password, sentinel.value)
     credential?.password.fill(0)
   })
 
@@ -128,7 +122,7 @@ describe('Cheap LFS operation-scoped payload passwords', () => {
       vault
     )
     assert.equal(first?.source, 'prompt')
-    assertCredentialDigest(first?.password, sentinels[0].digest)
+    assertCredentialValue(first?.password, sentinels[0].value)
     first?.password.fill(0)
 
     const second = await acquireCheapLfsOperationPassword(
@@ -139,7 +133,7 @@ describe('Cheap LFS operation-scoped payload passwords', () => {
       vault
     )
     assert.equal(second?.source, 'prompt')
-    assertCredentialDigest(second?.password, sentinels[1].digest)
+    assertCredentialValue(second?.password, sentinels[1].value)
     second?.password.fill(0)
 
     assert.equal(prompts, 2)
@@ -163,7 +157,7 @@ describe('Cheap LFS operation-scoped payload passwords', () => {
     assert.equal(credential?.source, 'prompt')
     assert.equal(credential?.rememberPassword, false)
     assert.equal(savedValues.length, 1)
-    assertCredentialDigest(savedValues[0], sentinel.digest)
+    assertCredentialValue(savedValues[0], sentinel.value)
     credential?.password.fill(0)
   })
 
@@ -214,14 +208,14 @@ describe('Cheap LFS operation-scoped payload passwords', () => {
     const result = await readSavedCheapLfsPayloadPassword(repository, vault)
 
     assert.equal(result.kind, 'saved')
-    assertCredentialDigest(
+    assertCredentialValue(
       result.kind === 'saved' ? result.password : null,
-      sentinel.digest
+      sentinel.value
     )
     if (result.kind === 'saved') {
       result.password.fill(0)
     }
-    assertCredentialDigest(values.get(stableKey), sentinel.digest)
+    assertCredentialValue(values.get(stableKey), sentinel.value)
     assert.equal(values.has(legacyKey), false)
   })
 
@@ -314,16 +308,16 @@ describe('Cheap LFS operation-scoped payload passwords', () => {
     assert.equal(result.kind, 'saved')
     if (result.kind === 'saved') {
       assert.equal(result.cleanupPending, true)
-      assertCredentialDigest(result.password, sentinel.digest)
+      assertCredentialValue(result.password, sentinel.value)
       result.password.fill(0)
     }
-    assertCredentialDigest(
+    assertCredentialValue(
       values.get(
         `${CheapLfsPayloadPasswordService}\0${cheapLfsPayloadPasswordAccount(
           repository
         )}`
       ),
-      sentinel.digest
+      sentinel.value
     )
     assert.equal(values.has(legacyKey), true)
   })
@@ -343,13 +337,13 @@ describe('Cheap LFS operation-scoped payload passwords', () => {
       ),
       true
     )
-    assertCredentialDigest(
+    assertCredentialValue(
       values.get(
         `${CheapLfsPayloadPasswordService}\0${cheapLfsPayloadPasswordAccount(
           repository
         )}`
       ),
-      sentinel.digest
+      sentinel.value
     )
   })
 

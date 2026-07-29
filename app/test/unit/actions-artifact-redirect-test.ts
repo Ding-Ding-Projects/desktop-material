@@ -348,8 +348,8 @@ describe('Actions artifact redirect transport', () => {
       }),
       error =>
         error instanceof Error &&
-        !error.message.includes('never-include-this-value') &&
-        !error.message.includes(signedHost)
+        error.message ===
+          'GitHub provided an unsafe artifact download redirect.'
     )
 
     await assert.rejects(
@@ -366,9 +366,7 @@ describe('Actions artifact redirect transport', () => {
       error =>
         error instanceof Error &&
         error.message ===
-          'GitHub artifact download service could not be reached.' &&
-        !error.message.includes('never-include-this-value') &&
-        !error.message.includes(signedHost)
+          'GitHub artifact download service could not be reached.'
     )
   })
 

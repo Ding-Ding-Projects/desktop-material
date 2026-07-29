@@ -146,9 +146,7 @@ async function cloneWithToken(
   const certificateConfiguration =
     certificatePath === undefined
       ? ''
-      : `\tsslCAInfo = "${certificatePath
-          .replace(/\\/g, '/')
-          .replace(/"/g, '\\"')}"\n`
+      : `\tsslCAInfo = ${JSON.stringify(certificatePath.replace(/\\/g, '/'))}\n`
   await writeFile(
     configPath,
     `[credential]\n\thelper =\n[http]\n${certificateConfiguration}\textraHeader = Authorization: ${basicAuthorization(

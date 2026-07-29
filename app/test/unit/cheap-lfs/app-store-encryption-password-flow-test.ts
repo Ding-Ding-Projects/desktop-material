@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { createHmac, randomBytes } from 'node:crypto'
+import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, describe, it, mock } from 'node:test'
@@ -41,33 +41,27 @@ const repository = {
   buildRunPreferences: encryptedReleasePreferences,
 } as Repository
 
-const CredentialFingerprintKey = randomBytes(32)
-
-function credentialFingerprint(value: string | Buffer): string {
-  return createHmac('sha256', CredentialFingerprintKey)
-    .update(value)
-    .digest('hex')
-}
-
-function runtimeCredential(): {
-  readonly value: string
-  readonly digest: string
-} {
+function runtimeCredential(): { readonly value: string } {
   const value = randomBytes(32).toString('base64url')
-  return {
-    value,
-    digest: credentialFingerprint(value),
-  }
+  return { value }
 }
 
-function assertCredentialDigest(
+function assertCredentialValue(
   value: Buffer | string | null | undefined,
-  expectedDigest: string
+  expected: string
 ): void {
-  assert.equal(
-    credentialFingerprint(Buffer.isBuffer(value) ? value : value ?? ''),
-    expectedDigest
-  )
+  const actual = Buffer.isBuffer(value)
+    ? value
+    : Buffer.from(value ?? '', 'utf8')
+  const expectedBytes = Buffer.from(expected, 'utf8')
+  const matches =
+    actual.length === expectedBytes.length &&
+    timingSafeEqual(actual, expectedBytes)
+  if (!Buffer.isBuffer(value)) {
+    actual.fill(0)
+  }
+  expectedBytes.fill(0)
+  assert.equal(matches, true)
 }
 
 type PasswordFlowStore = {
@@ -261,7 +255,7 @@ describe('AppStore Cheap LFS password prompting', () => {
       true
     )
     assert.equal(first?.source, 'prompt')
-    assertCredentialDigest(first?.password, sentinels[0].digest)
+    assertCredentialValue(first?.password, sentinels[0].value)
     first?.password.fill(0)
 
     const second = await store.acquireCheapLfsEncryptionPassword(
@@ -269,7 +263,7 @@ describe('AppStore Cheap LFS password prompting', () => {
       true
     )
     assert.equal(second?.source, 'prompt')
-    assertCredentialDigest(second?.password, sentinels[1].digest)
+    assertCredentialValue(second?.password, sentinels[1].value)
     second?.password.fill(0)
     assert.equal(promptCount, 2)
   })
@@ -291,7 +285,7 @@ describe('AppStore Cheap LFS password prompting', () => {
 
     assert.equal(promptCount, 1)
     assert.equal(credential?.source, 'prompt')
-    assertCredentialDigest(credential?.password, sentinel.digest)
+    assertCredentialValue(credential?.password, sentinel.value)
     credential?.password.fill(0)
   })
 
@@ -322,7 +316,7 @@ describe('AppStore Cheap LFS password prompting', () => {
       const credential =
         await passwordStore.acquireCheapLfsCommitEncryptionPassword(repository)
       events.push('password-acquired')
-      assertCredentialDigest(credential?.password, sentinel.digest)
+      assertCredentialValue(credential?.password, sentinel.value)
       try {
         events.push('provider-anchor')
         events.push('provider-upload')
@@ -546,7 +540,7 @@ describe('AppStore Cheap LFS password prompting', () => {
     )
     assert.deepEqual(purposes, ['forget-stale', 'decrypt'])
     assert.equal(replacement?.source, 'prompt')
-    assertCredentialDigest(replacement?.password, replacementSentinel.digest)
+    assertCredentialValue(replacement?.password, replacementSentinel.value)
     replacement?.password.fill(0)
     assert.equal(saved, null)
   })

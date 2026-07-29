@@ -312,8 +312,7 @@ describe('main-process Actions redirect transport', () => {
       error =>
         error instanceof ActionsTransferRedirectError &&
         error.kind === 'unsafe-redirect' &&
-        !error.message.includes('never-log-this-value') &&
-        !error.message.includes(signedHost)
+        error.message === 'GitHub provided an unsafe Actions transfer redirect.'
     )
 
     await assert.rejects(
@@ -331,8 +330,8 @@ describe('main-process Actions redirect transport', () => {
       error =>
         error instanceof ActionsTransferRedirectError &&
         error.kind === 'network' &&
-        !error.message.includes('never-log-this-value') &&
-        !error.message.includes(signedHost)
+        error.message ===
+          'GitHub Actions transfer service could not be reached.'
     )
   })
 

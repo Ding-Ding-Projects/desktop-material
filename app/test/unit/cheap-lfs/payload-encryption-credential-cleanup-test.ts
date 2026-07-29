@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { createHash, createHmac, randomBytes } from 'node:crypto'
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import { describe, it } from 'node:test'
 
 import {
@@ -14,24 +14,23 @@ import {
 const account = (label: string) =>
   createHash('sha256').update(label).digest('hex')
 
-const CredentialFingerprintKey = randomBytes(32)
-
-function credentialFingerprint(value: string): string {
-  return createHmac('sha256', CredentialFingerprintKey)
-    .update(value)
-    .digest('hex')
-}
-
-function sentinel(): { readonly value: string; readonly digest: string } {
+function sentinel(): { readonly value: string } {
   const value = randomBytes(32).toString('base64url')
-  return {
-    value,
-    digest: credentialFingerprint(value),
-  }
+  return { value }
 }
 
-function digest(value: string | undefined): string {
-  return credentialFingerprint(value ?? '')
+function assertCredentialValue(
+  value: string | undefined,
+  expected: string
+): void {
+  const actual = Buffer.from(value ?? '', 'utf8')
+  const expectedBytes = Buffer.from(expected, 'utf8')
+  const matches =
+    actual.length === expectedBytes.length &&
+    timingSafeEqual(actual, expectedBytes)
+  actual.fill(0)
+  expectedBytes.fill(0)
+  assert.equal(matches, true)
 }
 
 class CredentialVault implements ICheapLfsMainProcessCredentialVault {
@@ -120,9 +119,9 @@ describe('main-process Cheap LFS credential cleanup', () => {
       deleted: 4,
       pending: 0,
     })
-    assert.equal(
-      digest(vault.get(CheapLfsPayloadPasswordService, canonicalAccount)),
-      current.digest
+    assertCredentialValue(
+      vault.get(CheapLfsPayloadPasswordService, canonicalAccount),
+      current.value
     )
     assert.equal(vault.values.size, 1)
     assert.equal(JSON.stringify(result).includes(current.value), false)
@@ -162,13 +161,13 @@ describe('main-process Cheap LFS credential cleanup', () => {
       deleted: 0,
       pending: 1,
     })
-    assert.equal(
-      digest(vault.get(CheapLfsPayloadPasswordService, canonicalAccount)),
-      current.digest
+    assertCredentialValue(
+      vault.get(CheapLfsPayloadPasswordService, canonicalAccount),
+      current.value
     )
-    assert.equal(
-      digest(vault.get(LegacyCheapLfsPayloadPasswordService, legacyAccount)),
-      current.digest
+    assertCredentialValue(
+      vault.get(LegacyCheapLfsPayloadPasswordService, legacyAccount),
+      current.value
     )
     assert.equal(JSON.stringify(result).includes(current.value), false)
   })

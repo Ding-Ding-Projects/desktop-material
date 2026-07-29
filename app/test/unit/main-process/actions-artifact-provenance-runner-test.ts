@@ -242,7 +242,10 @@ describe('Actions artifact provenance runner', () => {
     assert.equal(env.GITHUB_TOKEN, undefined)
     assert.equal(capture.args?.includes('selected-ghe-token'), false)
     assert.equal(capture.args?.includes('GH_TOKEN'), false)
-    assert.ok(capture.args?.includes('octocorp.ghe.com'))
+    const args = capture.args ?? []
+    const hostnameArgument = args.indexOf('--hostname')
+    assert.notEqual(hostnameArgument, -1)
+    assert.equal(args[hostnameArgument + 1], 'octocorp.ghe.com')
   })
 
   it('does not spawn when credential presence disagrees with the fixed policy host', async () => {
