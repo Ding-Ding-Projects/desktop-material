@@ -618,7 +618,7 @@ test('source invokes real IPC, observes real state, and never fabricates ready U
   }
 })
 
-test('owned first-run preference always reaches a newly loaded renderer', () => {
+test('owned first-run preference settles the already-created product store', () => {
   const start = source.indexOf(
     'async function prepareIsolatedUpdaterWorkspace(client)'
   )
@@ -628,11 +628,10 @@ test('owned first-run preference always reaches a newly loaded renderer', () => 
   const helper = source.slice(start, end)
   for (const required of [
     "localStorage.setItem('has-shown-welcome-flow', '1')",
-    "await client.send('Page.reload', { ignoreCache: false })",
-    '__desktopMaterialUpdaterVerifierReloadMarker',
-    "crypto.randomBytes(16).toString('hex')",
-    "document.readyState !== 'loading'",
-    "'isolated updater renderer reload'",
+    'updaterRuntimeFinderSource',
+    'runtime.appStore.getState().showWelcomeFlow === true',
+    'await runtime.dispatcher.endWelcomeFlow()',
+    'productionWelcomeStateSettled: true',
   ]) {
     assert.ok(
       helper.includes(required),
@@ -640,9 +639,9 @@ test('owned first-run preference always reaches a newly loaded renderer', () => 
     )
   }
   assert.equal(
-    helper.includes('if (welcomeWasVisible)'),
+    helper.includes("client.send('Page.reload'"),
     false,
-    'renderer reload must not depend on welcome mounting before the probe'
+    'owned first-run settlement must not depend on renderer reload behavior'
   )
 })
 

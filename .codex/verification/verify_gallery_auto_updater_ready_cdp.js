@@ -1855,6 +1855,36 @@ async function configureCaptureViewport(client) {
  * that is unrelated to updater acceptance; it does not fabricate updater
  * state, dispatch a UI event, or touch the user's normal profile.
  */
+function updaterRuntimeFinderSource() {
+  return `() => {
+    const root = document.querySelector('#desktop-app-container')
+    const nodes = root ? [root, ...root.querySelectorAll('*')] : []
+    for (const node of nodes) {
+      const fiberKey = Object.keys(node).find(key =>
+        key.startsWith('__reactFiber$') ||
+        key.startsWith('__reactInternalInstance$')
+      )
+      let fiber = fiberKey ? node[fiberKey] : null
+      for (
+        let depth = 0;
+        fiber && depth < 200;
+        depth += 1, fiber = fiber.return
+      ) {
+        const dispatcher = fiber.stateNode?.props?.dispatcher
+        const appStore =
+          fiber.stateNode?.props?.appStore ?? dispatcher?.appStore
+        if (
+          typeof dispatcher?.endWelcomeFlow === 'function' &&
+          typeof appStore?.getState === 'function'
+        ) {
+          return { dispatcher, appStore }
+        }
+      }
+    }
+    return null
+  }`
+}
+
 async function prepareIsolatedUpdaterWorkspace(client) {
   const welcomeWasVisible = await evaluate(
     client,
@@ -1866,36 +1896,48 @@ async function prepareIsolatedUpdaterWorkspace(client) {
     `localStorage.setItem('has-shown-welcome-flow', '1'), true`
   )
 
-  // The renderer target can become inspectable before React mounts #welcome.
-  // Always reload after persisting the owned first-run preference so a
-  // blank-to-welcome race cannot leave the in-memory store on its old value.
-  const reloadMarker = crypto.randomBytes(16).toString('hex')
-  await evaluate(
-    client,
-    `window.__desktopMaterialUpdaterVerifierReloadMarker =
-      ${JSON.stringify(reloadMarker)}, true`
-  )
-  await client.send('Page.reload', { ignoreCache: false })
+  // AppStore can latch the first-run state before React mounts #welcome. Use
+  // the product's real completion transition so the owned preference and the
+  // already-created store agree without relying on a renderer reload.
   await waitForExpression(
     client,
-    `window.__desktopMaterialUpdaterVerifierReloadMarker !==
-      ${JSON.stringify(reloadMarker)} &&
-      document.readyState !== 'loading'`,
-    'isolated updater renderer reload'
+    `(${updaterRuntimeFinderSource()})() !== null`,
+    'isolated updater runtime'
   )
+  const transition = await evaluate(
+    client,
+    `(async () => {
+      const runtime = (${updaterRuntimeFinderSource()})()
+      const welcomeWasLatched =
+        runtime.appStore.getState().showWelcomeFlow === true
+      if (welcomeWasLatched) {
+        await runtime.dispatcher.endWelcomeFlow()
+      }
+      return { welcomeWasLatched }
+    })()`
+  )
+  if (typeof transition?.welcomeWasLatched !== 'boolean') {
+    fail('Owned first-run transition did not report its latched state.')
+  }
 
   await waitForExpression(
     client,
-    `document.querySelector('#desktop-app-container') !== null &&
+    `(() => {
+      const runtime = (${updaterRuntimeFinderSource()})()
+      return runtime !== null &&
+      runtime.appStore.getState().showWelcomeFlow === false &&
       document.querySelector('#welcome') === null &&
-      localStorage.getItem('has-shown-welcome-flow') === '1'`,
+      localStorage.getItem('has-shown-welcome-flow') === '1'
+    })()`,
     'isolated updater workspace'
   )
 
   return {
     welcomeWasVisible,
+    welcomeWasLatched: transition.welcomeWasLatched,
     assertions: {
       ownedFirstRunPreferencePersisted: true,
+      productionWelcomeStateSettled: true,
       welcomeSurfaceAbsent: true,
       accountAndProviderFlowsNotInvoked: true,
     },
@@ -2640,6 +2682,7 @@ async function main() {
         },
         firstRun: {
           welcomeWasVisible: workspace.welcomeWasVisible,
+          welcomeWasLatched: workspace.welcomeWasLatched,
           completionPreference: 'owned-disposable-profile-only',
         },
       },
