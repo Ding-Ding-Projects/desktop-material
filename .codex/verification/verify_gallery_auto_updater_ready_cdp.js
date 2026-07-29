@@ -1869,11 +1869,18 @@ async function prepareIsolatedUpdaterWorkspace(client) {
   // The renderer target can become inspectable before React mounts #welcome.
   // Always reload after persisting the owned first-run preference so a
   // blank-to-welcome race cannot leave the in-memory store on its old value.
-  const previousTimeOrigin = await evaluate(client, 'performance.timeOrigin')
+  const reloadMarker = crypto.randomBytes(16).toString('hex')
+  await evaluate(
+    client,
+    `window.__desktopMaterialUpdaterVerifierReloadMarker =
+      ${JSON.stringify(reloadMarker)}, true`
+  )
   await client.send('Page.reload', { ignoreCache: false })
   await waitForExpression(
     client,
-    `performance.timeOrigin > ${JSON.stringify(previousTimeOrigin)}`,
+    `window.__desktopMaterialUpdaterVerifierReloadMarker !==
+      ${JSON.stringify(reloadMarker)} &&
+      document.readyState !== 'loading'`,
     'isolated updater renderer reload'
   )
 

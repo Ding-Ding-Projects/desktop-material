@@ -629,7 +629,9 @@ test('owned first-run preference always reaches a newly loaded renderer', () => 
   for (const required of [
     "localStorage.setItem('has-shown-welcome-flow', '1')",
     "await client.send('Page.reload', { ignoreCache: false })",
-    "'performance.timeOrigin'",
+    '__desktopMaterialUpdaterVerifierReloadMarker',
+    "crypto.randomBytes(16).toString('hex')",
+    "document.readyState !== 'loading'",
     "'isolated updater renderer reload'",
   ]) {
     assert.ok(
