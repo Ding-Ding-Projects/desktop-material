@@ -12,10 +12,10 @@
   },
   "gypfile": true,
   "dependencies": {
-    "node-gyp": "^10.0.1"
+    "node-gyp": "^13.0.1"
   },
   "devDependencies": {
-    "node-gyp": "^10.0.1"
+    "node-gyp": "^13.0.1"
   },
   "keywords": ["native", "environment", "variables", "executable"],
   "author": "",
