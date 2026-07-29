@@ -618,6 +618,23 @@ test('source invokes real IPC, observes real state, and never fabricates ready U
   }
 })
 
+test('ready inspection observes but never focuses or activates install', () => {
+  const start = source.indexOf('async function inspectReadySurface(')
+  const end = source.indexOf('\nfunction assertBooleanAssertions', start)
+  assert.ok(start >= 0 && end > start, 'missing ready-surface inspector')
+
+  const helper = source.slice(start, end)
+  assert.equal(helper.includes('install.focus('), false)
+  assert.equal(helper.includes('document.activeElement === install'), false)
+  assert.equal(helper.includes('.click()'), false)
+  assert.ok(helper.includes('installControlVisible'))
+  assert.ok(helper.includes('installControlEnabled'))
+  assert.ok(helper.includes('install.disabled === false'))
+  assert.ok(
+    helper.includes("install.getAttribute('aria-disabled') !== 'true'")
+  )
+})
+
 test('owned first-run preference settles the already-created product store', () => {
   const start = source.indexOf(
     'async function prepareIsolatedUpdaterWorkspace(client)'

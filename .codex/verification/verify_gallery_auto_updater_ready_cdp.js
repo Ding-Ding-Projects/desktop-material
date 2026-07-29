@@ -2060,9 +2060,6 @@ async function inspectReadySurface(client, productVersion, sourceCommit) {
       const close = buttons.find(value =>
         value.textContent?.replace(/\\s+/g, ' ').trim() === 'Close'
       )
-      if (install instanceof HTMLButtonElement) {
-        install.focus({ preventScroll: true })
-      }
       const root = document.querySelector('#desktop-app-container')
       const nodes = root ? [root, ...root.querySelectorAll('*')] : []
       let updateStatus = null
@@ -2147,11 +2144,12 @@ async function inspectReadySurface(client, productVersion, sourceCommit) {
         exactReadyMessage:
           visibleStatus ===
             'An update has been downloaded and is ready to be installed.',
-        installDecisionUntouched:
-          visible(install) &&
+        installControlVisible:
+          install instanceof HTMLButtonElement && visible(install),
+        installControlEnabled:
           install instanceof HTMLButtonElement &&
           install.disabled === false &&
-          document.activeElement === install,
+          install.getAttribute('aria-disabled') !== 'true',
         closeControlPresent:
           visible(close) && close instanceof HTMLButtonElement,
         materialDialog:
