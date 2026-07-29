@@ -562,6 +562,12 @@ test('PowerShell probes preserve multiline scripts and sanitize forbidden proces
     )
   }
   assert.equal(source.includes("'-Command',\n        '-'"), false)
+  assert.ok(
+    source.includes(
+      '[System.Diagnostics.Process]::GetProcessById(${processId}).Threads'
+    )
+  )
+  assert.equal(source.includes('Get-CimInstance Win32_Thread'), false)
 })
 
 test('source invokes real IPC, observes real state, and never fabricates ready UI', () => {

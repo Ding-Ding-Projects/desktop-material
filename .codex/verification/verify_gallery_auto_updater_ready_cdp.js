@@ -1424,9 +1424,13 @@ public static class DesktopMaterialDesktopProbe {
 }
 '@
 Add-Type -TypeDefinition $source
-$names = Get-CimInstance Win32_Thread -Filter "ProcessHandle='${processId}'" |
+$names = [System.Diagnostics.Process]::GetProcessById(${processId}).Threads |
   ForEach-Object {
-    [DesktopMaterialDesktopProbe]::Name([uint32]$_.Handle)
+    try {
+      [DesktopMaterialDesktopProbe]::Name([uint32]$_.Id)
+    } catch {
+      $null
+    }
   } | Where-Object { $_ -ne '' } | Sort-Object -Unique
 @($names) | ConvertTo-Json -Compress`,
     'Process desktop query'
