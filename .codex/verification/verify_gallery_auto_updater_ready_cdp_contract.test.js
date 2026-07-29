@@ -738,9 +738,29 @@ test('desktop and cleanup attestation bind to live production primitives', () =>
     'queryProcessDesktopNames(',
     'options.desktopName',
     "ipcRenderer.send('quit-app', true)",
+    'normalExitRequested ? 10_000 : 1_000',
+    'cleanupExitRequested = await requestCleanupExit(client)',
+    'directQuitFallbackRequested: cleanupExitRequested',
   ]) {
     assert.ok(source.includes(required), `missing live primitive: ${required}`)
   }
+  const normalExitIndex = source.lastIndexOf(
+    'normalExitRequested = await requestNormalExit(client)'
+  )
+  const initialWaitIndex = source.lastIndexOf(
+    'normalExitRequested ? 10_000 : 1_000'
+  )
+  const fallbackIndex = source.lastIndexOf(
+    'cleanupExitRequested = await requestCleanupExit(client)'
+  )
+  const finalWaitIndex = source.lastIndexOf('35_000')
+  const exitFailureIndex = source.lastIndexOf(
+    'Owned app processes did not exit after the bounded wait.'
+  )
+  assert.ok(normalExitIndex < initialWaitIndex)
+  assert.ok(initialWaitIndex < fallbackIndex)
+  assert.ok(fallbackIndex < finalWaitIndex)
+  assert.ok(finalWaitIndex < exitFailureIndex)
   assert.equal(source.includes('GetThreadDesktop('), false)
   assert.equal(source.includes('dispatcher.quitApp(true)'), false)
 })

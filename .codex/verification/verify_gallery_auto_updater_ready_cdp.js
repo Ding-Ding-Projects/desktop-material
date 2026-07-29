@@ -2535,6 +2535,7 @@ async function main() {
   let pendingReceipt = null
   let primaryError = null
   let normalExitRequested = false
+  let cleanupExitRequested = false
   let processesExited = false
   let cleanup = null
 
@@ -2784,15 +2785,23 @@ async function main() {
   } catch (error) {
     primaryError = error
   } finally {
-    if (client !== null && !normalExitRequested) {
-      await requestCleanupExit(client)
-    }
     if (mainProcess !== null && options !== null) {
       try {
         processesExited = await waitForOwnedProcessesToExit(
           options,
-          mainProcess.processId
+          mainProcess.processId,
+          normalExitRequested ? 10_000 : 1_000
         )
+        if (!processesExited && client !== null) {
+          cleanupExitRequested = await requestCleanupExit(client)
+        }
+        if (!processesExited) {
+          processesExited = await waitForOwnedProcessesToExit(
+            options,
+            mainProcess.processId,
+            35_000
+          )
+        }
         if (!processesExited) {
           fail('Owned app processes did not exit after the bounded wait.')
         }
@@ -2916,6 +2925,7 @@ async function main() {
     },
     cleanup: {
       normalFileExitRequested: normalExitRequested,
+      directQuitFallbackRequested: cleanupExitRequested,
       ownedProcessesExited: processesExited,
       ownedInstallRemoved: cleanup.removed,
       ownedProfileRemoved: cleanup.profileRemoved,
