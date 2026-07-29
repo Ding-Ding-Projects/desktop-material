@@ -618,6 +618,32 @@ test('source invokes real IPC, observes real state, and never fabricates ready U
   }
 })
 
+test('owned first-run preference always reaches a newly loaded renderer', () => {
+  const start = source.indexOf(
+    'async function prepareIsolatedUpdaterWorkspace(client)'
+  )
+  const end = source.indexOf('\nasync function openRealAbout(client)', start)
+  assert.ok(start >= 0 && end > start, 'missing isolated workspace helper')
+
+  const helper = source.slice(start, end)
+  for (const required of [
+    "localStorage.setItem('has-shown-welcome-flow', '1')",
+    "await client.send('Page.reload', { ignoreCache: false })",
+    "'performance.timeOrigin'",
+    "'isolated updater renderer reload'",
+  ]) {
+    assert.ok(
+      helper.includes(required),
+      `missing first-run reload contract: ${required}`
+    )
+  }
+  assert.equal(
+    helper.includes('if (welcomeWasVisible)'),
+    false,
+    'renderer reload must not depend on welcome mounting before the probe'
+  )
+})
+
 test('current-source About assertions ignore screen-reader duplication and pin the development build label', () => {
   assert.ok(source.includes("clone.querySelectorAll('.sr-only')"))
   assert.ok(

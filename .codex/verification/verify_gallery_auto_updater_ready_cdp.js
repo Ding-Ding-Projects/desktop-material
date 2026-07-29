@@ -1866,9 +1866,16 @@ async function prepareIsolatedUpdaterWorkspace(client) {
     `localStorage.setItem('has-shown-welcome-flow', '1'), true`
   )
 
-  if (welcomeWasVisible) {
-    await client.send('Page.reload', { ignoreCache: false })
-  }
+  // The renderer target can become inspectable before React mounts #welcome.
+  // Always reload after persisting the owned first-run preference so a
+  // blank-to-welcome race cannot leave the in-memory store on its old value.
+  const previousTimeOrigin = await evaluate(client, 'performance.timeOrigin')
+  await client.send('Page.reload', { ignoreCache: false })
+  await waitForExpression(
+    client,
+    `performance.timeOrigin > ${JSON.stringify(previousTimeOrigin)}`,
+    'isolated updater renderer reload'
+  )
 
   await waitForExpression(
     client,
