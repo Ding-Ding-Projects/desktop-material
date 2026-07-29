@@ -651,6 +651,36 @@ describe('TabSearchPopover', () => {
       'tab-search-result-0'
     )
   })
+
+  it('preserves native input navigation and hides stale popup relationships when no tabs match', () => {
+    render(
+      <TabSearchPopover
+        tabs={tabs}
+        activeTabId="alpha"
+        anchor={null}
+        resolveLabel={tab => visibleTabLabel(tab, repository(tab))}
+        resolveMatchKeys={tab => repositoryTabMatchKeys(tab, repository(tab))}
+        onSelect={() => undefined}
+        onClose={() => undefined}
+      />
+    )
+
+    const input = screen.getByRole('combobox', { name: 'Search open tabs' })
+    fireEvent.change(input, { target: { value: 'not-a-tab' } })
+
+    assert.equal(screen.queryByRole('listbox'), null)
+    assert.equal(input.getAttribute('aria-controls'), null)
+    assert.equal(input.getAttribute('aria-expanded'), 'false')
+    assert.equal(input.getAttribute('aria-activedescendant'), null)
+
+    for (const key of ['ArrowDown', 'ArrowUp', 'Home', 'End']) {
+      assert.equal(
+        fireEvent.keyDown(input, { key }),
+        true,
+        `${key} should preserve the search field's native behavior`
+      )
+    }
+  })
 })
 
 describe('RepositoryTab title appearance', () => {

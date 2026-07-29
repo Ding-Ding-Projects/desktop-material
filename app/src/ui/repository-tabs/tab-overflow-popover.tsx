@@ -194,6 +194,14 @@ export class TabOverflowPopover extends React.Component<
     }
   }
 
+  private onCustomizeKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>
+  ) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.stopPropagation()
+    }
+  }
+
   private onRowContextMenu = (event: React.MouseEvent<HTMLLIElement>) => {
     const tab = this.tabFromElement(event.currentTarget)
     if (tab !== undefined) {
@@ -242,6 +250,16 @@ export class TabOverflowPopover extends React.Component<
     const results = this.getResults().tabs
     const count = results.length
     let highlightedIndex = this.state.highlightedIndex
+
+    if (
+      count === 0 &&
+      (event.key === 'ArrowDown' ||
+        event.key === 'ArrowUp' ||
+        event.key === 'Home' ||
+        event.key === 'End')
+    ) {
+      return
+    }
 
     switch (event.key) {
       case 'ArrowDown':
@@ -351,6 +369,7 @@ export class TabOverflowPopover extends React.Component<
           })}
           data-tab-id={tab.id}
           onClick={this.onCustomizeClick}
+          onKeyDown={this.onCustomizeKeyDown}
         >
           <Octicon symbol={octicons.paintbrush} />
         </button>
@@ -362,8 +381,9 @@ export class TabOverflowPopover extends React.Component<
     const { tabs: results, regexError } = this.getResults()
     const total = this.props.tabs.length
     const isFiltering = this.state.query.trim().length > 0
+    const hasResults = results.length > 0
     const activeDescendant =
-      this.state.highlightedIndex >= 0
+      hasResults && this.state.highlightedIndex >= 0
         ? `tab-overflow-result-${this.state.highlightedIndex}`
         : undefined
 
@@ -395,8 +415,8 @@ export class TabOverflowPopover extends React.Component<
               type="search"
               role="combobox"
               aria-label={this.accessibleText('tabs.overflowSearchLabel')}
-              aria-controls={ListId}
-              aria-expanded={true}
+              aria-controls={hasResults ? ListId : undefined}
+              aria-expanded={hasResults}
               aria-activedescendant={activeDescendant}
               autoComplete="off"
               autoFocus={true}

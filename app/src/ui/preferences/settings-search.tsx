@@ -145,9 +145,15 @@ export class SettingsSearch extends React.Component<
         highlightedIndex = (highlightedIndex - 1 + count) % count
         break
       case 'Home':
-        highlightedIndex = count > 0 ? 0 : -1
+        if (count === 0) {
+          return
+        }
+        highlightedIndex = 0
         break
       case 'End':
+        if (count === 0) {
+          return
+        }
         highlightedIndex = count - 1
         break
       case 'Enter':
@@ -372,8 +378,9 @@ export class SettingsSearch extends React.Component<
 
   public render() {
     const isSearching = this.props.query.trim().length > 0
+    const hasResults = isSearching && this.props.results.length > 0
     const activeDescendant =
-      isSearching && this.state.highlightedIndex >= 0
+      hasResults && this.state.highlightedIndex >= 0
         ? `settings-search-result-${this.state.highlightedIndex}`
         : undefined
 
@@ -393,8 +400,8 @@ export class SettingsSearch extends React.Component<
             type="search"
             role="combobox"
             aria-label={inputLabel}
-            aria-controls={ResultsListId}
-            aria-expanded={isSearching}
+            aria-controls={hasResults ? ResultsListId : undefined}
+            aria-expanded={hasResults}
             aria-activedescendant={activeDescendant}
             placeholder={this.t('settingsSearch.inputPlaceholder')}
             autoComplete="off"

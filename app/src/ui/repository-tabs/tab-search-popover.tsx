@@ -130,6 +130,16 @@ export class TabSearchPopover extends React.Component<
     const results = this.getResults()
     let highlightedIndex = this.state.highlightedIndex
 
+    if (
+      results.length === 0 &&
+      (event.key === 'ArrowDown' ||
+        event.key === 'ArrowUp' ||
+        event.key === 'Home' ||
+        event.key === 'End')
+    ) {
+      return
+    }
+
     switch (event.key) {
       case 'ArrowDown':
         if (results.length > 0) {
@@ -167,8 +177,9 @@ export class TabSearchPopover extends React.Component<
 
   public render() {
     const results = this.getResults()
+    const hasResults = results.length > 0
     const activeDescendant =
-      this.state.highlightedIndex >= 0
+      hasResults && this.state.highlightedIndex >= 0
         ? `tab-search-result-${this.state.highlightedIndex}`
         : undefined
 
@@ -194,8 +205,8 @@ export class TabSearchPopover extends React.Component<
               type="search"
               role="combobox"
               aria-label="Search open tabs"
-              aria-controls={ResultListId}
-              aria-expanded={true}
+              aria-controls={hasResults ? ResultListId : undefined}
+              aria-expanded={hasResults}
               aria-activedescendant={activeDescendant}
               autoComplete="off"
               autoFocus={true}

@@ -402,6 +402,34 @@ describe('tab group member dropdown', () => {
     assert.deepEqual(selected, ['alpha'])
   })
 
+  it('preserves native input navigation and hides stale popup relationships when no members match', async () => {
+    const { store } = await buildHarness()
+    const groupId = store.getGroups()[0].id
+    await store.setTabGroupCollapsed(groupId, true)
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Show the 2 tabs in Work' })
+    )
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Tabs in this group',
+    })
+    fireEvent.change(input, { target: { value: 'not-a-tab' } })
+
+    assert.equal(screen.queryByRole('listbox'), null)
+    assert.equal(input.getAttribute('aria-controls'), null)
+    assert.equal(input.getAttribute('aria-expanded'), 'false')
+    assert.equal(input.getAttribute('aria-activedescendant'), null)
+
+    for (const key of ['ArrowDown', 'ArrowUp', 'Home', 'End']) {
+      assert.equal(
+        fireEvent.keyDown(input, { key }),
+        true,
+        `${key} should preserve the search field's native behavior`
+      )
+    }
+  })
+
   it('deletes the group from the dropdown without closing a single tab', async () => {
     const { store } = await buildHarness()
 

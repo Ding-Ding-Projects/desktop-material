@@ -157,6 +157,18 @@ describe('TabOverflowPopover search', () => {
     assert.equal(screen.queryAllByRole('option').length, 0)
     assert.ok(screen.getByText('No tab in this menu matches this search.'))
     assert.ok(screen.getByText('0 of 3 tabs in this menu'))
+    assert.equal(screen.queryByRole('listbox'), null)
+    assert.equal(input.getAttribute('aria-controls'), null)
+    assert.equal(input.getAttribute('aria-expanded'), 'false')
+    assert.equal(input.getAttribute('aria-activedescendant'), null)
+
+    for (const key of ['ArrowDown', 'ArrowUp', 'Home', 'End']) {
+      assert.equal(
+        fireEvent.keyDown(input, { key }),
+        true,
+        `${key} should preserve the search field's native behavior`
+      )
+    }
   })
 
   it('applies an opt-in regular expression and reports an invalid one without hiding rows', () => {
@@ -277,6 +289,16 @@ describe('TabOverflowPopover search', () => {
     const customize = screen.getByRole('button', {
       name: 'Customize appearance of Material workspace',
     })
+    for (const key of ['Enter', ' ']) {
+      assert.equal(
+        fireEvent.keyDown(customize, { key }),
+        true,
+        `${key === ' ' ? 'Space' : key} should retain native button activation`
+      )
+    }
+    assert.deepEqual(spies.selected, [])
+    assert.equal(spies.closes(), 0)
+
     fireEvent.click(customize)
     assert.deepEqual(spies.customized, ['material'])
 

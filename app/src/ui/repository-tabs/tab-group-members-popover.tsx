@@ -213,6 +213,16 @@ export class TabGroupMembersPopover extends React.Component<
     const count = results.length
     let highlightedIndex = this.state.highlightedIndex
 
+    if (
+      count === 0 &&
+      (event.key === 'ArrowDown' ||
+        event.key === 'ArrowUp' ||
+        event.key === 'Home' ||
+        event.key === 'End')
+    ) {
+      return
+    }
+
     switch (event.key) {
       case 'ArrowDown':
         if (count > 0) {
@@ -354,8 +364,9 @@ export class TabGroupMembersPopover extends React.Component<
     const { members: results, regexError } = this.getResults()
     const total = this.props.members.length
     const isFiltering = this.state.query.trim().length > 0
+    const hasResults = results.length > 0
     const activeDescendant =
-      this.state.highlightedIndex >= 0
+      hasResults && this.state.highlightedIndex >= 0
         ? `tab-group-member-${this.state.highlightedIndex}`
         : undefined
 
@@ -389,8 +400,8 @@ export class TabGroupMembersPopover extends React.Component<
               type="search"
               role="combobox"
               aria-label={this.accessibleText('tabs.groupMembersListLabel')}
-              aria-controls={ListId}
-              aria-expanded={true}
+              aria-controls={hasResults ? ListId : undefined}
+              aria-expanded={hasResults}
               aria-activedescendant={activeDescendant}
               autoComplete="off"
               autoFocus={true}
