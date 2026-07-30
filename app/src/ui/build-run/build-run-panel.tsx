@@ -27,6 +27,7 @@ import {
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { getBoolean, setBoolean } from '../../lib/local-storage'
 import { normalizeBuildFixProvider } from '../../lib/build-run/codex'
+import { OperationProgressRow } from '../lib/operation-progress-row'
 
 export const BuildRunAutoScrollStorageKey = 'build-run-panel-auto-scroll-v1'
 export const BuildRunTruncateOutputStorageKey =
@@ -52,6 +53,7 @@ interface IBuildRunPanelState {
   readonly autoScroll: boolean
   /** Whether long output lines are visually shortened to one row. */
   readonly truncateOutput: boolean
+  readonly now: number
 }
 
 /** Translation key + tone class for a phase's status chip. */
@@ -94,6 +96,7 @@ export class BuildRunPanel extends React.Component<
 > {
   private storeSubscription: Disposable | null = null
   private scrollRef = React.createRef<HTMLDivElement>()
+  private clock: number | null = null
 
   public constructor(props: IBuildRunPanelProps) {
     super(props)
@@ -103,6 +106,7 @@ export class BuildRunPanel extends React.Component<
       confirmingStop: false,
       autoScroll: getBoolean(BuildRunAutoScrollStorageKey, true),
       truncateOutput: getBoolean(BuildRunTruncateOutputStorageKey, false),
+      now: Date.now(),
     }
   }
 
@@ -113,6 +117,7 @@ export class BuildRunPanel extends React.Component<
       this.onLanguageModeChanged
     )
     this.maybeScrollToBottom()
+    this.syncClock()
   }
 
   private onLanguageModeChanged = (event: Event) => {
@@ -137,6 +142,7 @@ export class BuildRunPanel extends React.Component<
     ) {
       this.maybeScrollToBottom()
     }
+    this.syncClock()
   }
 
   public componentWillUnmount() {
@@ -146,6 +152,10 @@ export class BuildRunPanel extends React.Component<
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
     )
+    if (this.clock !== null) {
+      window.clearInterval(this.clock)
+      this.clock = null
+    }
   }
 
   private subscribe() {
@@ -169,6 +179,20 @@ export class BuildRunPanel extends React.Component<
         this.props.repository.id
       ),
     })
+  }
+
+  private syncClock() {
+    if (this.isTaskRunning()) {
+      if (this.clock === null) {
+        this.clock = window.setInterval(
+          () => this.setState({ now: Date.now() }),
+          1000
+        )
+      }
+    } else if (this.clock !== null) {
+      window.clearInterval(this.clock)
+      this.clock = null
+    }
   }
 
   private maybeScrollToBottom() {
@@ -377,19 +401,72 @@ export class BuildRunPanel extends React.Component<
     )
   }
 
-  /** The close (X) control, disabled with an explaining tooltip while running. */
+  /** Hiding a running panel never stops its background operation. */
   private renderCloseButton() {
     const running = this.isTaskRunning()
     return (
       <Button
         className="header-action"
         onClick={this.onClose}
-        disabled={running}
         ariaLabel={t('buildRun.closePanel')}
-        tooltip={running ? t('buildRun.closeDisabledRunning') : undefined}
+        tooltip={running ? t('buildRun.hideRunningPanel') : undefined}
       >
         <Octicon symbol={octicons.x} />
       </Button>
+    )
+  }
+
+  private renderBackgroundProgress(compact = false) {
+    if (!this.isTaskRunning()) {
+      return null
+    }
+    const { operationStartedAt, phase } = this.state.view
+    const started = operationStartedAt ?? this.state.now
+    const elapsedSeconds = Math.max(
+      0,
+      Math.floor((this.state.now - started) / 1000)
+    )
+    const expectedSeconds = this.state.view.opencodeRunning
+      ? 600
+      : phase === 'installing'
+      ? 180
+      : phase === 'building'
+      ? 360
+      : phase === 'running'
+      ? null
+      : 90
+    const elapsedText = t('buildRun.elapsed', {
+      elapsed: `${Math.floor(elapsedSeconds / 60)}m ${elapsedSeconds % 60}s`,
+    })
+    const remaining =
+      expectedSeconds === null
+        ? null
+        : Math.max(0, expectedSeconds - elapsedSeconds)
+    const etaText =
+      remaining === null
+        ? t('buildRun.estimatedFinishUnknown')
+        : t('buildRun.estimatedFinish', {
+            time: new Date(
+              this.state.now + remaining * 1000
+            ).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+          })
+    return (
+      <OperationProgressRow
+        className={classNames('build-run-background-progress', { compact })}
+        label={t('buildRun.backgroundProgress')}
+        description={compact ? undefined : t('buildRun.backgroundWorking')}
+        value={
+          expectedSeconds === null
+            ? null
+            : Math.min(elapsedSeconds, expectedSeconds * 0.95)
+        }
+        max={expectedSeconds}
+        valueText={`${elapsedText}. ${etaText}`}
+        detail={compact ? undefined : `${elapsedText} · ${etaText}`}
+      />
     )
   }
 
@@ -450,6 +527,7 @@ export class BuildRunPanel extends React.Component<
             <Octicon className="header-icon" symbol={octicons.terminal} />
             <span className="header-title">{title}</span>
             {this.renderStatusChip()}
+            {this.renderBackgroundProgress(true)}
             <div className="header-spacer" />
             <Button
               className="header-action"
@@ -568,6 +646,7 @@ export class BuildRunPanel extends React.Component<
           </Button>
           {this.renderCloseButton()}
         </div>
+        {this.renderBackgroundProgress()}
         <div
           className={classNames('build-run-log', {
             'truncate-output': this.state.truncateOutput,

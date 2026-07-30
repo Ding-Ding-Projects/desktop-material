@@ -1372,6 +1372,7 @@ export class RepositoryView extends React.Component<
         currentBranch={currentBranch}
         branchNames={branches}
         actionsStore={this.props.actionsStore}
+        dispatcher={this.props.dispatcher}
       />
     )
   }

@@ -79,6 +79,25 @@ beforeEach(() => {
 })
 
 describe('CheapLfsRestoreProgress', () => {
+  it('collapses and expands detailed restore progress without hiding the summary header', () => {
+    const view = render(
+      <CheapLfsRestoreProgress progress={progressFixture()} />
+    )
+    const toggle = screen.getByRole('button', {
+      name: 'Collapse restore progress details',
+    })
+    assert.equal(toggle.getAttribute('aria-expanded'), 'true')
+    fireEvent.click(toggle)
+    const details = view.container.querySelector('.cheap-lfs-restore-details')
+    assert.ok(details?.hasAttribute('hidden'))
+    assert.ok(screen.getByText('Large-file restore'))
+    const expand = screen.getByRole('button', {
+      name: 'Expand restore progress details',
+    })
+    fireEvent.click(expand)
+    assert.equal(details?.hasAttribute('hidden'), false)
+  })
+
   it('shows detailed batch, timing, queue, failure and two-lane progress', () => {
     let cancelCalls = 0
     render(

@@ -82,7 +82,14 @@ import {
 import { TitleBar, ZoomInfo, FullScreenInfo } from './window'
 
 import { RepositoriesList } from './repositories-list'
-import { CheapLfsRestoreProgress } from './lib/cheap-lfs-restore-progress'
+import {
+  CheapLfsRestoreProgress,
+  ToggleCheapLfsRestoreProgressEvent,
+} from './lib/cheap-lfs-restore-progress'
+import {
+  PaletteCloudCiRepairPrompt,
+  PaletteConflictRepairPrompt,
+} from '../lib/build-run/repair-prompts'
 import { OperationProgressRow } from './lib/operation-progress-row'
 import { RepositoryView } from './repository'
 import { observeUserInitiatedOperation } from './lib/observed-operations'
@@ -1321,6 +1328,18 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showRepositoryTools()
       case 'palette:github-api-explorer':
         return this.showGitHubAPIExplorer()
+      case 'palette:resolve-conflicts-with-agent':
+        return this.openPaletteAgentTask(PaletteConflictRepairPrompt)
+      case 'palette:fix-ci-with-agent':
+        return this.openPaletteAgentTask(PaletteCloudCiRepairPrompt)
+      case 'palette:hide-background-progress':
+        return this.setPaletteBackgroundProgressVisible(false)
+      case 'palette:show-background-progress':
+        return this.setPaletteBackgroundProgressVisible(true)
+      case 'palette:toggle-cheap-lfs-restore-progress':
+        return document.dispatchEvent(
+          new Event(ToggleCheapLfsRestoreProgressEvent)
+        )
       case 'palette:notification-history':
         return this.props.dispatcher.showPopup({
           type: PopupType.NotificationHistory,
@@ -1337,6 +1356,24 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.copyCurrentCommitSha()
       default:
         return this.onMenuEvent(event as MenuEvent)
+    }
+  }
+
+  private openPaletteAgentTask(initialPrompt: string) {
+    const repository = this.getRepository()
+    if (repository instanceof Repository) {
+      this.props.dispatcher.showPopup({
+        type: PopupType.OpencodeSend,
+        repository,
+        context: { cwd: repository.path, initialPrompt },
+      })
+    }
+  }
+
+  private setPaletteBackgroundProgressVisible(visible: boolean) {
+    const repository = this.getRepository()
+    if (repository instanceof Repository) {
+      this.props.dispatcher.setBuildRunPanelOpen(repository, visible)
     }
   }
 

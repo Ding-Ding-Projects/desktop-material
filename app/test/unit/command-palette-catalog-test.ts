@@ -62,6 +62,11 @@ const NewCommandEvents = [
   'palette:copy-repo-path',
   'palette:copy-branch-name',
   'palette:copy-commit-sha',
+  'palette:resolve-conflicts-with-agent',
+  'palette:fix-ci-with-agent',
+  'palette:hide-background-progress',
+  'palette:show-background-progress',
+  'palette:toggle-cheap-lfs-restore-progress',
 ]
 
 const CommandPaletteUiKeys = [
@@ -285,6 +290,26 @@ describe('command palette catalog', () => {
     )
     assert.ok(onBranch.has('palette:copy-branch-name'))
     assert.ok(onBranch.has('palette:copy-commit-sha'))
+  })
+
+  it('teleports each requested repair and progress feature from a palette result', () => {
+    const withRepo = new Set(
+      filterPaletteCommands(
+        CommandPaletteCatalog,
+        '',
+        'win32',
+        repositoryContext
+      ).map(command => command.event)
+    )
+    for (const event of [
+      'palette:resolve-conflicts-with-agent',
+      'palette:fix-ci-with-agent',
+      'palette:hide-background-progress',
+      'palette:show-background-progress',
+      'palette:toggle-cheap-lfs-restore-progress',
+    ]) {
+      assert.ok(withRepo.has(event), event)
+    }
   })
 
   it('dispatches the exact event id for each match via a fake executor', () => {

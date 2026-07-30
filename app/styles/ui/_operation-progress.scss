@@ -99,7 +99,17 @@
     align-items: center;
     display: grid;
     gap: var(--spacing-half) var(--spacing);
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+  }
+
+  .cheap-lfs-restore-details {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing);
+  }
+
+  .cheap-lfs-restore-details[hidden] {
+    display: none;
   }
 
   .cheap-lfs-restore-heading {
@@ -253,6 +263,10 @@
     }
 
     .cheap-lfs-restore-cancel {
+      justify-self: stretch;
+    }
+
+    .cheap-lfs-restore-toggle {
       justify-self: stretch;
     }
 

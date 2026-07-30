@@ -26,6 +26,9 @@ function baseState(): IRepositoryBuildRunState {
     detected: true,
     opencodeRunning: false,
     opencodeOperationId: null,
+    operationStartedAt: null,
+    phaseStartedAt: null,
+    panelHiddenWhileRunning: false,
   }
 }
 
@@ -146,17 +149,17 @@ function closeButton(): HTMLElement {
 }
 
 describe('BuildRunPanel — close button while running', () => {
-  it('disables the close button during a live build phase', () => {
+  it('lets a live build be hidden without stopping it', () => {
     renderPanel(stateWith({ phase: 'running', activeRunId: 'run-1' }))
-    assert.equal(closeButton().getAttribute('aria-disabled'), 'true')
+    assert.equal(closeButton().getAttribute('aria-disabled'), null)
   })
 
-  it('disables the close button while detecting', () => {
+  it('lets detection be hidden without stopping it', () => {
     renderPanel(stateWith({ phase: 'detecting', activeRunId: 'run-1' }))
-    assert.equal(closeButton().getAttribute('aria-disabled'), 'true')
+    assert.equal(closeButton().getAttribute('aria-disabled'), null)
   })
 
-  it('disables the close button while opencode is running', () => {
+  it('lets an agent task be hidden without stopping it', () => {
     renderPanel(
       stateWith({
         phase: 'failed',
@@ -164,7 +167,7 @@ describe('BuildRunPanel — close button while running', () => {
         opencodeOperationId: 'op-1',
       })
     )
-    assert.equal(closeButton().getAttribute('aria-disabled'), 'true')
+    assert.equal(closeButton().getAttribute('aria-disabled'), null)
   })
 
   it('enables the close button when idle or on a terminal phase', () => {
@@ -189,7 +192,10 @@ describe('BuildRunPanel — opencode running status chip', () => {
         opencodeOperationId: 'op-1',
       })
     )
-    const chip = screen.getByRole('status')
+    const chip = screen
+      .getByText(/fixing with opencode/i)
+      .closest('.status-chip')
+    assert.ok(chip)
     assert.ok(/fixing with opencode/i.test(chip.textContent ?? ''))
     assert.equal(screen.queryByText('Failed'), null)
   })

@@ -28,6 +28,9 @@ import { Account } from '../../../models/account'
 import { Octicon } from '../../octicons'
 import * as octicons from '../../octicons/octicons.generated'
 import { Button } from '../../lib/button'
+import { PopupType } from '../../../models/popup'
+import { buildConflictRepairPrompt } from '../../../lib/build-run/repair-prompts'
+import { t } from '../../../lib/i18n'
 
 interface IConflictsDialogProps {
   readonly dispatcher: Dispatcher
@@ -310,6 +313,25 @@ export class ConflictsDialog extends React.Component<
     )
   }
 
+  private resolveWithLocalAgent = () => {
+    const conflictedPaths = getConflictedFiles(
+      this.props.workingDirectory,
+      this.props.manualResolutions
+    ).map(file => file.path)
+    this.props.dispatcher.showPopup({
+      type: PopupType.OpencodeSend,
+      repository: this.props.repository,
+      context: {
+        cwd: this.props.repository.path,
+        initialPrompt: buildConflictRepairPrompt({
+          ourBranch: this.props.ourBranch,
+          theirBranch: this.props.theirBranch,
+          conflictedPaths,
+        }),
+      },
+    })
+  }
+
   private renderFooter(
     conflictedFilesCount: number,
     submitButton: string,
@@ -317,6 +339,18 @@ export class ConflictsDialog extends React.Component<
     abortButton: string
   ): JSX.Element {
     const copilotButton = this.renderCopilotButton(conflictedFilesCount)
+    const localAgentButton =
+      conflictedFilesCount > 0 ? (
+        <Button
+          className="local-agent-resolve-button"
+          onClick={this.resolveWithLocalAgent}
+          disabled={this.state.isAborting}
+          tooltip="Open a bounded local repair task and choose Codex or OpenCode"
+        >
+          <Octicon symbol={octicons.tools} />
+          {` ${t('conflicts.resolveWithAgent')}`}
+        </Button>
+      ) : null
     const buttonGroup = (
       <OkCancelButtonGroup
         okButtonText={submitButton}
@@ -328,12 +362,13 @@ export class ConflictsDialog extends React.Component<
       />
     )
 
-    if (copilotButton === null) {
+    if (copilotButton === null && localAgentButton === null) {
       return buttonGroup
     }
 
     return (
       <div className="conflicts-footer-with-copilot">
+        {localAgentButton}
         {copilotButton}
         {buttonGroup}
       </div>

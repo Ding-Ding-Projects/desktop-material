@@ -35,6 +35,11 @@ export interface ICheapLfsRestoreProgressProps {
   readonly className?: string
 }
 
+export const ToggleCheapLfsRestoreProgressEvent =
+  'desktop-material:toggle-cheap-lfs-restore-progress'
+
+let nextCheapLfsRestoreDetailsId = 0
+
 function formatRestoreBytes(bytes: number): string {
   if (bytes === 0) {
     return '0 B'
@@ -158,6 +163,28 @@ function lanePath(lane: ICheapLfsRestoreLaneProgress): string {
  * assistive technology is not interrupted for every byte event.
  */
 export class CheapLfsRestoreProgress extends React.Component<ICheapLfsRestoreProgressProps> {
+  private readonly detailsId = `cheap-lfs-restore-details-${++nextCheapLfsRestoreDetailsId}`
+  public state = { expanded: true }
+
+  public componentDidMount() {
+    document.addEventListener(
+      ToggleCheapLfsRestoreProgressEvent,
+      this.toggleExpanded
+    )
+  }
+
+  public componentWillUnmount() {
+    document.removeEventListener(
+      ToggleCheapLfsRestoreProgressEvent,
+      this.toggleExpanded
+    )
+  }
+
+  private toggleExpanded = () =>
+    this.setState((state: { expanded: boolean }) => ({
+      expanded: !state.expanded,
+    }))
+
   private renderLane(
     lane: ICheapLfsRestoreLaneProgress,
     kind: 'current' | 'prefetch'
@@ -401,6 +428,26 @@ export class CheapLfsRestoreProgress extends React.Component<ICheapLfsRestorePro
             <span>{providerBadge}</span>
             <span>{phaseBadge}</span>
           </div>
+          <Button
+            className="cheap-lfs-restore-toggle"
+            onClick={this.toggleExpanded}
+            ariaExpanded={this.state.expanded}
+            ariaControls={this.detailsId}
+            ariaLabel={
+              this.state.expanded
+                ? translateForAccessibleName('cheapLfs.restore.collapse')
+                : translateForAccessibleName('cheapLfs.restore.expand')
+            }
+            size="small"
+          >
+            <MaterialSymbol
+              name={this.state.expanded ? 'keyboard_arrow_down' : 'expand_more'}
+              size={18}
+            />
+            {this.state.expanded
+              ? t('cheapLfs.restore.collapse')
+              : t('cheapLfs.restore.expand')}
+          </Button>
           {this.props.onCancel !== undefined && (
             <Button
               className="cheap-lfs-restore-cancel"
@@ -417,85 +464,91 @@ export class CheapLfsRestoreProgress extends React.Component<ICheapLfsRestorePro
         </header>
 
         <div
-          className="cheap-lfs-restore-summary"
-          role="status"
-          aria-live="polite"
-          aria-atomic={true}
+          id={this.detailsId}
+          className="cheap-lfs-restore-details"
+          hidden={!this.state.expanded}
         >
-          {summary}
+          <div
+            className="cheap-lfs-restore-summary"
+            role="status"
+            aria-live="polite"
+            aria-atomic={true}
+          >
+            {summary}
+          </div>
+
+          <OperationProgressRow
+            className="cheap-lfs-restore-overall"
+            label={translateForAccessibleName('cheapLfs.restore.progressLabel')}
+            value={progress.logicalTotalBytes > 0 ? percent : null}
+            max={progress.logicalTotalBytes > 0 ? 100 : null}
+            valueText={valueText}
+            countText={`${percent}%`}
+            detail={logicalBytes}
+          />
+
+          <div className="cheap-lfs-restore-look-ahead">
+            <MaterialSymbol name="low_priority" size={18} />
+            <span>{lookAheadText}</span>
+          </div>
+
+          <dl className="cheap-lfs-restore-stats">
+            <div>
+              <dt>{t('cheapLfs.restore.filesLabel')}</dt>
+              <dd>
+                {t('cheapLfs.restore.filesValue', {
+                  succeeded: String(progress.filesSucceeded),
+                  failed: String(progress.filesFailed),
+                  remaining: String(progress.filesRemaining),
+                  total: String(progress.filesTotal),
+                })}
+              </dd>
+            </div>
+            <div>
+              <dt>{t('cheapLfs.restore.logicalBytesLabel')}</dt>
+              <dd>{logicalBytes}</dd>
+            </div>
+            <div>
+              <dt>{t('cheapLfs.restore.actualBytesLabel')}</dt>
+              <dd>{actualDownloadValue(progress)}</dd>
+            </div>
+            <div>
+              <dt>{t('cheapLfs.restore.rateLabel')}</dt>
+              <dd>{rateValue(progress)}</dd>
+            </div>
+            <div>
+              <dt>{t('cheapLfs.restore.etaLabel')}</dt>
+              <dd>{etaValue(progress)}</dd>
+            </div>
+            <div>
+              <dt>{t('cheapLfs.restore.elapsedLabel')}</dt>
+              <dd>{formatRestoreDuration(progress.elapsedSeconds)}</dd>
+            </div>
+            <div>
+              <dt>{t('cheapLfs.restore.queueLabel')}</dt>
+              <dd>
+                {t('cheapLfs.restore.queueValue', {
+                  files: String(progress.queuedFiles),
+                  parts: String(progress.queuedParts),
+                })}
+              </dd>
+            </div>
+          </dl>
+
+          {progress.currentLane !== null ? (
+            <div className="cheap-lfs-restore-lanes">
+              {this.renderLane(progress.currentLane, 'current')}
+              {progress.prefetchLane !== null &&
+                this.renderLane(progress.prefetchLane, 'prefetch')}
+            </div>
+          ) : (
+            <div className="cheap-lfs-restore-lane-waiting">
+              {t('cheapLfs.restore.laneWaiting')}
+            </div>
+          )}
+
+          {this.renderFailures(progress)}
         </div>
-
-        <OperationProgressRow
-          className="cheap-lfs-restore-overall"
-          label={translateForAccessibleName('cheapLfs.restore.progressLabel')}
-          value={progress.logicalTotalBytes > 0 ? percent : null}
-          max={progress.logicalTotalBytes > 0 ? 100 : null}
-          valueText={valueText}
-          countText={`${percent}%`}
-          detail={logicalBytes}
-        />
-
-        <div className="cheap-lfs-restore-look-ahead">
-          <MaterialSymbol name="low_priority" size={18} />
-          <span>{lookAheadText}</span>
-        </div>
-
-        <dl className="cheap-lfs-restore-stats">
-          <div>
-            <dt>{t('cheapLfs.restore.filesLabel')}</dt>
-            <dd>
-              {t('cheapLfs.restore.filesValue', {
-                succeeded: String(progress.filesSucceeded),
-                failed: String(progress.filesFailed),
-                remaining: String(progress.filesRemaining),
-                total: String(progress.filesTotal),
-              })}
-            </dd>
-          </div>
-          <div>
-            <dt>{t('cheapLfs.restore.logicalBytesLabel')}</dt>
-            <dd>{logicalBytes}</dd>
-          </div>
-          <div>
-            <dt>{t('cheapLfs.restore.actualBytesLabel')}</dt>
-            <dd>{actualDownloadValue(progress)}</dd>
-          </div>
-          <div>
-            <dt>{t('cheapLfs.restore.rateLabel')}</dt>
-            <dd>{rateValue(progress)}</dd>
-          </div>
-          <div>
-            <dt>{t('cheapLfs.restore.etaLabel')}</dt>
-            <dd>{etaValue(progress)}</dd>
-          </div>
-          <div>
-            <dt>{t('cheapLfs.restore.elapsedLabel')}</dt>
-            <dd>{formatRestoreDuration(progress.elapsedSeconds)}</dd>
-          </div>
-          <div>
-            <dt>{t('cheapLfs.restore.queueLabel')}</dt>
-            <dd>
-              {t('cheapLfs.restore.queueValue', {
-                files: String(progress.queuedFiles),
-                parts: String(progress.queuedParts),
-              })}
-            </dd>
-          </div>
-        </dl>
-
-        {progress.currentLane !== null ? (
-          <div className="cheap-lfs-restore-lanes">
-            {this.renderLane(progress.currentLane, 'current')}
-            {progress.prefetchLane !== null &&
-              this.renderLane(progress.prefetchLane, 'prefetch')}
-          </div>
-        ) : (
-          <div className="cheap-lfs-restore-lane-waiting">
-            {t('cheapLfs.restore.laneWaiting')}
-          </div>
-        )}
-
-        {this.renderFailures(progress)}
       </section>
     )
   }

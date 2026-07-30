@@ -29,6 +29,23 @@ before(async () => {
 })
 
 describe('BuildRunStore active-run fencing', () => {
+  it('keeps a hidden operation in the background until explicitly reopened', () => {
+    const store = new BuildRunStore()
+    const repositoryId = 70
+    store.beginRun(repositoryId, 'background-run')
+    store.setPanelOpen(repositoryId, false)
+    store.addLocalLogLine(repositoryId, 'build', 'stdout', 'still working')
+    let current = store.getStateForRepository(repositoryId)
+    assert.equal(current.panelOpen, false)
+    assert.equal(current.panelHiddenWhileRunning, true)
+    assert.ok(current.operationStartedAt !== null)
+
+    store.setPanelOpen(repositoryId, true)
+    current = store.getStateForRepository(repositoryId)
+    assert.equal(current.panelOpen, true)
+    assert.equal(current.panelHiddenWhileRunning, false)
+  })
+
   it('rejects state and log events from superseded and completed runs', () => {
     const store = new BuildRunStore()
     const repositoryId = 71

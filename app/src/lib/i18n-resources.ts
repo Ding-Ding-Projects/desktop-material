@@ -1819,6 +1819,11 @@ export type TranslationKey =
   | 'palette.copyRepoPath'
   | 'palette.copyBranchName'
   | 'palette.copyCommitSha'
+  | 'palette.resolveConflictsAgent'
+  | 'palette.fixCiAgent'
+  | 'palette.hideBackgroundProgress'
+  | 'palette.showBackgroundProgress'
+  | 'palette.toggleCheapLfsProgress'
   | 'buildRun.closeDisabledRunning'
   | 'buildRun.fixingWithOpencode'
   | 'buildRun.stopConfirmTitle'
@@ -1828,6 +1833,14 @@ export type TranslationKey =
   | 'buildRun.scrollToBottom'
   | 'buildRun.autoScroll'
   | 'buildRun.truncateOutput'
+  | 'buildRun.backgroundProgress'
+  | 'buildRun.backgroundWorking'
+  | 'buildRun.hideRunningPanel'
+  | 'buildRun.elapsed'
+  | 'buildRun.estimatedFinish'
+  | 'buildRun.estimatedFinishUnknown'
+  | 'conflicts.resolveWithAgent'
+  | 'actions.fixCiWithAgent'
   | 'githubReleaseTransfer.stalled'
   | 'githubReleaseTransfer.cliUnavailable'
   | 'githubReleaseTransfer.cliFailed'
@@ -2610,6 +2623,8 @@ export type TranslationKey =
   | 'cheapLfs.restore.status'
   | 'cheapLfs.restore.cancel'
   | 'cheapLfs.restore.canceling'
+  | 'cheapLfs.restore.collapse'
+  | 'cheapLfs.restore.expand'
   | 'cheapLfs.restore.title'
   | 'cheapLfs.restore.sectionLabel'
   | 'cheapLfs.restore.summary'
@@ -4962,6 +4977,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'palette.copyRepoPath': 'Copy repository path',
   'palette.copyBranchName': 'Copy current branch name',
   'palette.copyCommitSha': 'Copy current commit SHA',
+  'palette.resolveConflictsAgent': 'Resolve conflicts with Codex/OpenCode',
+  'palette.fixCiAgent': 'Fix CI with Codex/OpenCode',
+  'palette.hideBackgroundProgress': 'Hide background progress',
+  'palette.showBackgroundProgress': 'Show background progress',
+  'palette.toggleCheapLfsProgress':
+    'Expand/collapse Cheap LFS restore progress',
   'buildRun.closeDisabledRunning':
     'A task is running — stop it before closing the panel',
   'buildRun.fixingWithOpencode': 'Fixing with OpenCode…',
@@ -4973,6 +4994,16 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'buildRun.scrollToBottom': 'Scroll to bottom',
   'buildRun.autoScroll': 'Auto-scroll output',
   'buildRun.truncateOutput': 'Truncate long lines',
+  'buildRun.backgroundProgress': 'Background operation progress',
+  'buildRun.backgroundWorking': 'Working in the background',
+  'buildRun.hideRunningPanel':
+    'Hide this panel; the operation will continue in the background',
+  'buildRun.elapsed': '{elapsed} elapsed',
+  'buildRun.estimatedFinish': 'Estimated finish {time}',
+  'buildRun.estimatedFinishUnknown':
+    'Finish time becomes available when measurable',
+  'conflicts.resolveWithAgent': 'Resolve with Codex/OpenCode',
+  'actions.fixCiWithAgent': 'Fix CI with Codex/OpenCode',
   'githubReleaseTransfer.stalled':
     'The release asset upload stopped making network progress. Retry it or use Manual upload.',
   'githubReleaseTransfer.cliUnavailable':
@@ -5958,6 +5989,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Restoring large files — {files} files, {bytes} transferred',
   'cheapLfs.restore.cancel': 'Stop restoring',
   'cheapLfs.restore.canceling': 'Stopping…',
+  'cheapLfs.restore.collapse': 'Collapse restore progress details',
+  'cheapLfs.restore.expand': 'Expand restore progress details',
   'cheapLfs.restore.title': 'Large-file restore',
   'cheapLfs.restore.sectionLabel':
     'Large-file restore progress for {repository}',
@@ -8253,6 +8286,11 @@ export const cantoneseTranslations: Readonly<
   'palette.copyRepoPath': '複製倉庫路徑',
   'palette.copyBranchName': '複製而家分支個名',
   'palette.copyCommitSha': '複製而家 commit SHA',
+  'palette.resolveConflictsAgent': '用 Codex/OpenCode 執衝突',
+  'palette.fixCiAgent': '用 Codex/OpenCode 執 CI',
+  'palette.hideBackgroundProgress': '收埋背景進度',
+  'palette.showBackgroundProgress': '顯示背景進度',
+  'palette.toggleCheapLfsProgress': '展開／收埋 Cheap LFS 還原進度',
   'buildRun.closeDisabledRunning': '而家有任務行緊，要先停咗佢先可以閂呢個面板',
   'buildRun.fixingWithOpencode': 'OpenCode 修緊…',
   'buildRun.stopConfirmTitle': '要停咗行緊嘅任務？',
@@ -8263,6 +8301,14 @@ export const cantoneseTranslations: Readonly<
   'buildRun.scrollToBottom': '碌到最底',
   'buildRun.autoScroll': '自動碌去最新輸出',
   'buildRun.truncateOutput': '截短太長嘅輸出行',
+  'buildRun.backgroundProgress': '背景操作進度',
+  'buildRun.backgroundWorking': '背景做緊嘢',
+  'buildRun.hideRunningPanel': '收埋面板；個操作會繼續喺背景做，唔會扮失蹤',
+  'buildRun.elapsed': '行咗 {elapsed}',
+  'buildRun.estimatedFinish': '估計 {time} 完成',
+  'buildRun.estimatedFinishUnknown': '量度到先會顯示估計完成時間',
+  'conflicts.resolveWithAgent': '用 Codex/OpenCode 執衝突',
+  'actions.fixCiWithAgent': '用 Codex/OpenCode 執 CI',
   'githubReleaseTransfer.stalled':
     'Release 資產上載停止咗網絡進度。請重試，或者使用手動上載。',
   'githubReleaseTransfer.cliUnavailable':
@@ -9188,6 +9234,8 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.restore.status': '還原緊大檔案 — {files} 個檔案，傳咗 {bytes}',
   'cheapLfs.restore.cancel': '停止還原',
   'cheapLfs.restore.canceling': '停緊…',
+  'cheapLfs.restore.collapse': '收埋還原進度詳情',
+  'cheapLfs.restore.expand': '展開還原進度詳情',
   'cheapLfs.restore.title': '大檔案還原實況',
   'cheapLfs.restore.sectionLabel': '{repository} 嘅大檔案還原進度',
   'cheapLfs.restore.summary':

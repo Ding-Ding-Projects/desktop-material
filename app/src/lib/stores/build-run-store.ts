@@ -62,6 +62,9 @@ export interface IRepositoryBuildRunState {
   readonly opencodeOperationId: string | null
   /** Which provider owns `opencodeOperationId`; name kept for store back-compat. */
   readonly buildFixProvider?: BuildFixProvider | null
+  readonly operationStartedAt: number | null
+  readonly phaseStartedAt: number | null
+  readonly panelHiddenWhileRunning: boolean
 }
 
 /** Max lines retained in the per-repository log ring buffer. */
@@ -81,6 +84,9 @@ const emptyState: IRepositoryBuildRunState = {
   opencodeRunning: false,
   opencodeOperationId: null,
   buildFixProvider: null,
+  operationStartedAt: null,
+  phaseStartedAt: null,
+  panelHiddenWhileRunning: false,
 }
 
 /** The set of phases that terminate a run. */
@@ -175,6 +181,7 @@ export class BuildRunStore extends TypedBaseStore<number | null> {
    * panel and enter the `detecting` phase.
    */
   public beginRun(repositoryId: number, runId: string): void {
+    const now = Date.now()
     const supersededRunId = this.getStateForRepository(repositoryId).activeRunId
     if (supersededRunId !== null && supersededRunId !== runId) {
       this.runToRepository.delete(supersededRunId)
@@ -194,6 +201,9 @@ export class BuildRunStore extends TypedBaseStore<number | null> {
       opencodeRunning: false,
       opencodeOperationId: null,
       buildFixProvider: null,
+      operationStartedAt: now,
+      phaseStartedAt: now,
+      panelHiddenWhileRunning: false,
     })
   }
 
@@ -209,10 +219,23 @@ export class BuildRunStore extends TypedBaseStore<number | null> {
     opencodeOperationId: string | null = null,
     buildFixProvider: BuildFixProvider = 'opencode'
   ): void {
+    const current = this.getStateForRepository(repositoryId)
+    const now = Date.now()
     this.mutate(repositoryId, {
       opencodeRunning,
       opencodeOperationId: opencodeRunning ? opencodeOperationId : null,
       buildFixProvider: opencodeRunning ? buildFixProvider : null,
+      operationStartedAt:
+        opencodeRunning && !current.opencodeRunning
+          ? now
+          : current.operationStartedAt,
+      phaseStartedAt:
+        opencodeRunning && !current.opencodeRunning
+          ? now
+          : current.phaseStartedAt,
+      panelHiddenWhileRunning: opencodeRunning
+        ? current.panelHiddenWhileRunning
+        : false,
     })
   }
 
@@ -237,6 +260,9 @@ export class BuildRunStore extends TypedBaseStore<number | null> {
     this.mutate(repositoryId, {
       panelOpen,
       panelMinimized: panelOpen ? false : current.panelMinimized,
+      panelHiddenWhileRunning: panelOpen
+        ? false
+        : current.activeRunId !== null || current.opencodeRunning,
     })
   }
 
@@ -266,7 +292,10 @@ export class BuildRunStore extends TypedBaseStore<number | null> {
     this.states.set(repositoryId, {
       ...current,
       logLines: next,
-      panelOpen: openPanel ? true : current.panelOpen,
+      panelOpen:
+        openPanel && !current.panelHiddenWhileRunning
+          ? true
+          : current.panelOpen,
     })
     this.emitUpdate(repositoryId)
   }
@@ -306,6 +335,11 @@ export class BuildRunStore extends TypedBaseStore<number | null> {
       exitCode,
       runPid: state.pid ?? (isTerminal ? null : current.runPid),
       activeRunId: isTerminal ? null : state.runId,
+      phaseStartedAt:
+        state.phase !== current.phase ? Date.now() : current.phaseStartedAt,
+      panelHiddenWhileRunning: isTerminal
+        ? false
+        : current.panelHiddenWhileRunning,
     })
 
     if (isTerminal) {

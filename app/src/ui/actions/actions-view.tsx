@@ -57,6 +57,7 @@ import { WorkflowCatalogDialog } from './workflow-catalog-dialog'
 import { IWorkflowTemplate } from './workflow-templates'
 import { ActionsCacheManager } from './actions-cache-manager'
 import { isWorkflowRunCancellableStatus } from '../../lib/actions-workflow-runs'
+import { Dispatcher } from '../dispatcher'
 
 type ActionsConfirmation =
   | {
@@ -81,6 +82,7 @@ interface IActionsViewProps {
   readonly currentBranch?: string | null
   readonly branchNames: ReadonlyArray<string>
   readonly actionsStore: ActionsStore
+  readonly dispatcher?: Dispatcher
   /** Overrides the provider-response deadline for deterministic tests. */
   readonly bulkRunCancellationRequestTimeoutMs?: number
 }
@@ -2204,6 +2206,7 @@ export class ActionsView extends React.Component<
               </div>
               {selectedRun && this.props.repository.gitHubRepository && (
                 <RunDetails
+                  dispatcher={this.props.dispatcher}
                   repository={this.props.repository}
                   actionsStore={this.props.actionsStore}
                   run={selectedRun}

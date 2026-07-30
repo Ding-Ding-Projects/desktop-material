@@ -5,6 +5,12 @@ built for scanning: each row carries an icon, the command title, an optional
 keyword line, and a group chip, and the reader controls how much of that is
 shown.
 
+Direct results cover conflict repair, failed cloud CI repair, hiding or
+reopening background progress, and expanding or collapsing Cheap LFS restore
+details. Enter and pointer activation dispatch the highlighted result
+immediately. Search keeps its in-field fuzzy/substring/regex mode,
+case-sensitivity toggle, full regex builder, and appearance editor.
+
 ![Command palette showing Ollama results beside the fully visible row appearance editor](../../assets/screenshots/material-command-palette-appearance.png)
 
 ## Behavior and configuration

@@ -1,5 +1,22 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-30 — Conflict/CI agent repair and hideable progress (local state)
+
+- Conflict dialogs and failed Actions details open the existing Codex/OpenCode
+  composer with bounded, non-destructive local repair prompts.
+- Build/agent work shows elapsed time and a conservative ETA. Closing the panel
+  hides it without stopping work or letting streamed output reopen it.
+- Cheap LFS restore details collapse while the live header remains visible.
+- Five command-palette results dispatch these exact features on Enter or click;
+  the palette's mode, case, regex-builder, and appearance toggles remain inline.
+- Local evidence: TypeScript no-emit, targeted lint, repository-wide Prettier,
+  and 42/42 focused tests passed. The real production renderer was exercised on
+  Lowlevel MCP's off-screen Win32 desktop; direct palette activation, the CI
+  composer, active elapsed/ETA progress, hide-without-Stop, and palette reopen
+  are captured in
+  [`docs/verification/agent-repair-progress-2026-07-30.md`](docs/verification/agent-repair-progress-2026-07-30.md).
+  Remote SHA, hosted CI, and installer release remain pending until push.
+
 ## 2026-07-29 — CURRENT HANDOFF (read this first)
 
 This close-out is limited to two existing reliability changes. The Cheap LFS

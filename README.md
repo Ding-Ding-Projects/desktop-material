@@ -4,6 +4,11 @@
 
 # Desktop Material
 
+> **Local repair and background progress — July 30, 2026:** conflict and failed
+> CI surfaces launch bounded Codex/OpenCode tasks; long work has hideable
+> elapsed/ETA progress; Cheap LFS restore details collapse; and every action is
+> directly searchable and executable from the command palette.
+
 Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [GitHub Desktop](https://github.com/desktop/desktop). It rebuilds the entire application shell around Material Design 3 while keeping GitHub Desktop's full Git workflow and the same underlying stack: [TypeScript](https://www.typescriptlang.org), [React](https://react.dev), [Electron](https://www.electronjs.org), and [Sass](https://sass-lang.com). This project is in active development.
 
 > **Platform support:** Desktop Material is a Windows-only product. Its

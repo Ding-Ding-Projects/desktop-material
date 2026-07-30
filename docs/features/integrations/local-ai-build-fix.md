@@ -5,6 +5,19 @@ request, to either the Codex CLI or OpenCode. The provider choice is stored with
 that repository and remains editable in both launch dialogs. Merely showing the
 offer never starts an agent, installs software, or changes a file.
 
+The same bounded composer opens from unresolved-conflict dialogs and failed
+GitHub Actions run details. Conflict requests name at most 40 paths; CI requests
+name the failed run, jobs, and steps already loaded by the app. Both request
+local edits and focused checks only, forbid commits, pushes, branch changes and
+cloud dispatches, and keep cloud success unverified until a user push starts a
+real hosted run.
+
+Long build and agent work shows elapsed time plus a conservative estimated
+finish. The panel may be hidden while work continues; streamed output will not
+force it open again. The command palette directly opens both repair composers,
+hides or restores background progress, and retains its fuzzy, substring,
+case-sensitive, regex-builder, and appearance controls.
+
 ## User workflow
 
 1. Run a detected Build & Run profile.

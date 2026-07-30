@@ -1,6 +1,16 @@
 # Desktop Material roadmap
 
-Updated: **July 29, 2026**
+Updated: **July 30, 2026**
+
+## July 30 local conflict/CI repair and background progress — **Implemented locally; push and hosted verification pending**
+
+Conflict dialogs and failed Actions runs now open bounded Codex/OpenCode tasks,
+Build & Run carries elapsed/ETA progress and stays hidden while work continues,
+and Cheap LFS restore details collapse without hiding the live header. All five
+actions are direct command-palette results alongside its rich search controls.
+TypeScript no-emit, targeted lint, Prettier, and 42/42 focused tests are green.
+The real production renderer passed off-screen command-palette and background
+progress acceptance; hosted CI and installer evidence remain pending until push.
 
 Desktop Material's numbered roadmap now extends through **M27**. M0–M21 and the
 M23 Ollama manager have published receipts; M22's 73-scene visual refresh is

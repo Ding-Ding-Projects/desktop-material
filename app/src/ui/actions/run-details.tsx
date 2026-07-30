@@ -1,6 +1,6 @@
 import * as React from 'react'
 import classNames from 'classnames'
-import { IAPIWorkflowRun } from '../../lib/api'
+import { APICheckConclusion, IAPIWorkflowRun } from '../../lib/api'
 import {
   ActionsJobAttemptOptionMaximum,
   ActionsJobConclusion,
@@ -21,6 +21,10 @@ import { ActionsRunReviews } from './actions-run-reviews'
 import { Octicon, OcticonSymbol } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { getRunStatusGlyph, getRunTone } from './run-list'
+import { Dispatcher } from '../dispatcher'
+import { PopupType } from '../../models/popup'
+import { buildCloudCiRepairPrompt } from '../../lib/build-run/repair-prompts'
+import { t } from '../../lib/i18n'
 
 /** Status glyph for an individual job step. */
 function getStepGlyph(step: {
@@ -49,6 +53,7 @@ function getStepGlyph(step: {
 
 interface IRunDetailsProps {
   readonly repository: Repository
+  readonly dispatcher?: Dispatcher
   readonly actionsStore: ActionsStore
   readonly run: IAPIWorkflowRun
   readonly jobs: ReadonlyArray<IActionsJob>
@@ -159,6 +164,21 @@ export class RunDetails extends React.PureComponent<IRunDetailsProps> {
 
   private clearAttemptValidity = () => this.attemptInput?.setCustomValidity('')
 
+  private fixCloudCiLocally = () => {
+    const { dispatcher, repository, run, jobs } = this.props
+    if (dispatcher === undefined) {
+      return
+    }
+    dispatcher.showPopup({
+      type: PopupType.OpencodeSend,
+      repository,
+      context: {
+        cwd: repository.path,
+        initialPrompt: buildCloudCiRepairPrompt(run, jobs),
+      },
+    })
+  }
+
   private onAttemptJump = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const latestAttempt = getActionsRunAttempt(this.props.run.run_attempt)
@@ -224,7 +244,19 @@ export class RunDetails extends React.PureComponent<IRunDetailsProps> {
               </span>
             </div>
           </div>
-          <Button onClick={this.props.onClose}>Close</Button>
+          <div className="actions-details-header-actions">
+            {run.conclusion === APICheckConclusion.Failure &&
+              this.props.dispatcher !== undefined && (
+                <Button
+                  onClick={this.fixCloudCiLocally}
+                  tooltip="Fix locally with Codex or OpenCode, verify, then push to start cloud CI"
+                >
+                  <Octicon symbol={octicons.tools} />{' '}
+                  {t('actions.fixCiWithAgent')}
+                </Button>
+              )}
+            <Button onClick={this.props.onClose}>Close</Button>
+          </div>
         </header>
         <section className="actions-jobs" aria-label="Workflow run jobs">
           <header className="actions-jobs-header">

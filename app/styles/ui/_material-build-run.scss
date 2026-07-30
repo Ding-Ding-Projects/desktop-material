@@ -147,6 +147,17 @@
   z-index: 30;
   animation: dmUp calc(420ms * var(--mdur, 1)) var(--spring) backwards;
 
+  .build-run-background-progress {
+    margin: 0 14px 10px;
+    color: var(--md-sys-color-inverse-on-surface);
+
+    &.compact {
+      flex: 0 1 180px;
+      margin: 0;
+      min-width: 90px;
+    }
+  }
+
   // Minimized → collapse to just the slim header bar; drop the tall min-height
   // and let the panel hug its header. The log region is not rendered.
   &.is-minimized {

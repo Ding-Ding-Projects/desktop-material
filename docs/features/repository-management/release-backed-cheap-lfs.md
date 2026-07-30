@@ -5,6 +5,11 @@
 The generated mark above is documentation artwork. It is not embedded in the
 pointer format and is not required by the transfer protocol.
 
+During restore, detailed download progress can be collapsed while the
+repository, provider, phase, and cancel action remain visible. The toggle is
+keyboard and screen-reader operable, and the command palette can expand or
+collapse the same live surface directly.
+
 > **Restore continuation — July 27, 2026:** the exact-90% two-lane Release
 > restore pipeline and substantially more detailed shared progress surface
 > passed 652/652 combined tests, 14/14 verifier contracts, full TypeScript, the

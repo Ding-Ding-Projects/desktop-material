@@ -34,6 +34,9 @@ function buildState(
     detected: true,
     opencodeRunning: false,
     opencodeOperationId: null,
+    operationStartedAt: Date.now(),
+    phaseStartedAt: Date.now(),
+    panelHiddenWhileRunning: false,
   }
 }
 
