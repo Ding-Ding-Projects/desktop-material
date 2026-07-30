@@ -320,4 +320,71 @@ describe('PullAllDialog', () => {
     assert.deepEqual(request, { operation: 'fetch', repositoryIds: [2] })
     assert(await screen.findByText('1 fetched, 0 skipped, 0 failed.'))
   })
+
+  it('requires explicit destructive confirmation before merge cleanup', async () => {
+    let request: IRepositorySyncRequest | undefined
+    const dispatcher = createDispatcher(async (current, onProgress) => {
+      request = current
+      onProgress?.({
+        completed: 1,
+        total: 1,
+        active: 0,
+        item: {
+          id: 2,
+          name: 'repository-2',
+          status: 'merged-cleaned',
+          detail:
+            'Remote main matched; one verified branch and worktree were deleted.',
+        },
+      })
+      return [
+        {
+          id: 2,
+          name: 'repository-2',
+          status: 'merged-cleaned',
+          detail:
+            'Remote main matched; one verified branch and worktree were deleted.',
+        },
+      ]
+    })
+
+    render(
+      React.createElement(PullAllDialog, {
+        dispatcher,
+        onDismissed: () => {},
+      })
+    )
+
+    fireEvent.click(
+      await screen.findByRole('radio', {
+        name: 'Merge completed work into main, push, then clean up',
+      })
+    )
+    fireEvent.click(screen.getByRole('checkbox', { name: 'repository-1' }))
+
+    const start = screen.getByRole('button', {
+      name: 'Merge, push & clean up',
+    })
+    assert.equal(start.getAttribute('aria-disabled'), 'true')
+
+    fireEvent.click(
+      screen.getByRole('checkbox', {
+        name: /I confirm that verified non-default branches/,
+      })
+    )
+    assert.equal(start.getAttribute('aria-disabled'), null)
+    fireEvent.click(start)
+
+    await waitFor(() => assert.notEqual(request, undefined))
+    assert.deepEqual(request, {
+      operation: 'merge-cleanup',
+      repositoryIds: [2],
+      confirmedDestructiveCleanup: true,
+    })
+    assert(
+      await screen.findByText(
+        '1 merged, pushed, and cleaned; 0 skipped; 0 need review.'
+      )
+    )
+  })
 })

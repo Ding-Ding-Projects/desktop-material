@@ -485,6 +485,7 @@ import {
   IStatusResult,
   upstreamStateFromStatus,
   GitError,
+  merge as mergeBranch,
   MergeResult,
   getBranchesDifferingFromUpstream,
   deleteLocalBranch,
@@ -705,8 +706,18 @@ import {
   IPullAllResult,
   IRepositorySyncRequest,
   PullAllProgressListener,
+  RepositorySyncAgentRunner,
   runBoundedPullAll,
 } from '../automation/pull-all'
+import {
+  buildSyncMergeConflictPrompt,
+  deleteRemoteBranchWithLease,
+  isExactAncestor,
+  ISyncMergeCleanupCandidate,
+  planSyncMergeCleanup,
+  readExactRef,
+  SyncMergeCleanupBranchName,
+} from '../automation/sync-merge-cleanup'
 import {
   commitPushAllRepository,
   CommitPushAllProgressListener,
@@ -736,6 +747,7 @@ import {
   createBranchFromDesktopStash,
   createDesktopStashEntry,
   createNamedDesktopStashEntry,
+  getStashes,
   getLastDesktopStashEntryForBranch,
   popStashEntry,
   moveStashEntry,
@@ -11958,10 +11970,25 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /** Pull or fetch only the exact repository IDs reviewed in the dialog. */
   public async _syncRepositories(
     request: IRepositorySyncRequest,
-    onProgress?: PullAllProgressListener
+    onProgress?: PullAllProgressListener,
+    runAgent?: RepositorySyncAgentRunner
   ): Promise<ReadonlyArray<IPullAllResult>> {
-    if (request.operation !== 'pull' && request.operation !== 'fetch') {
-      throw new Error('Choose pull or fetch for the repository batch.')
+    if (
+      request.operation !== 'pull' &&
+      request.operation !== 'fetch' &&
+      request.operation !== 'merge-cleanup'
+    ) {
+      throw new Error(
+        'Choose pull, fetch, or reviewed merge-and-cleanup for the repository batch.'
+      )
+    }
+    if (
+      request.operation === 'merge-cleanup' &&
+      request.confirmedDestructiveCleanup !== true
+    ) {
+      throw new Error(
+        'Confirm the reviewed destructive cleanup before starting it.'
+      )
     }
 
     const repositoryIds = [...new Set(request.repositoryIds)]
@@ -11998,18 +12025,813 @@ export class AppStore extends TypedBaseStore<IAppState> {
         if (repository === undefined) {
           return { status: 'skipped', detail: 'Repository was removed.' }
         }
-        return request.operation === 'pull'
-          ? this.performPullAllRepository(
-              repository,
-              reportProgress,
-              recoveryBudget
-            )
-          : this.performFetchAllRepository(repository, reportProgress)
+        if (request.operation === 'pull') {
+          return this.performPullAllRepository(
+            repository,
+            reportProgress,
+            recoveryBudget
+          )
+        }
+        if (request.operation === 'fetch') {
+          return this.performFetchAllRepository(repository, reportProgress)
+        }
+        if (runAgent === undefined) {
+          return {
+            status: 'failed' as const,
+            detail:
+              'The configured Codex/OpenCode task runner is unavailable in this build.',
+          }
+        }
+        return this.performSyncMergeCleanupRepository(
+          repository,
+          reportProgress,
+          runAgent
+        )
       },
       3,
       onProgress,
-      request.operation === 'pull' ? 'pulling' : 'fetching'
+      request.operation === 'pull'
+        ? 'pulling'
+        : request.operation === 'fetch'
+        ? 'fetching'
+        : 'merging-cleanup'
     )
+  }
+
+  /**
+   * Integrate reviewed local branch tips into main, prove the exact pushed main
+   * object, then remove only candidates whose local and remote identities have
+   * remained stable. Codex/OpenCode is limited to conflicted-file resolution;
+   * Git inventory, merge commits, push proof, and cleanup stay app-owned.
+   */
+  private async performSyncMergeCleanupRepository(
+    repository: Repository,
+    reportProgress: (detail: string) => void,
+    runAgent: RepositorySyncAgentRunner
+  ): Promise<{
+    readonly status: 'merged-cleaned' | 'skipped' | 'failed'
+    readonly detail: string
+  }> {
+    if (repository.missing) {
+      return { status: 'skipped', detail: 'Repository is missing.' }
+    }
+    if (isSubmoduleRepository(repository)) {
+      return {
+        status: 'skipped',
+        detail:
+          'Temporary submodule workspaces are not eligible for repository-wide cleanup.',
+      }
+    }
+    let result:
+      | {
+          readonly status: 'merged-cleaned' | 'skipped' | 'failed'
+          readonly detail: string
+        }
+      | undefined
+    const acquired = await this.withIsCommitting(repository, async () => {
+      result = await this.performSyncMergeCleanupRepositoryInsideGate(
+        repository,
+        reportProgress,
+        runAgent
+      )
+      return true
+    })
+    return acquired && result !== undefined
+      ? result
+      : {
+          status: 'skipped',
+          detail:
+            'Another commit or Cheap LFS file restoration owns this checkout. Wait for it to finish.',
+        }
+  }
+
+  /**
+   * Runs while the existing commit/materialization gate owns this checkout.
+   * Restores queued after entry wait on that same gate until push proof and
+   * cleanup finish; a restore already queued makes gate acquisition fail.
+   */
+  private async performSyncMergeCleanupRepositoryInsideGate(
+    repository: Repository,
+    reportProgress: (detail: string) => void,
+    runAgent: RepositorySyncAgentRunner
+  ): Promise<{
+    readonly status: 'merged-cleaned' | 'skipped' | 'failed'
+    readonly detail: string
+  }> {
+    if (repository.missing) {
+      return { status: 'skipped', detail: 'Repository is missing.' }
+    }
+    if (isSubmoduleRepository(repository)) {
+      return {
+        status: 'skipped',
+        detail:
+          'Temporary submodule workspaces are not eligible for repository-wide cleanup.',
+      }
+    }
+
+    const materializeOwners = this.cheapLfsMaterializeOwners?.get(
+      cheapLfsMaterializeRepositoryKey(repository)
+    )
+    if (materializeOwners !== undefined && materializeOwners.size > 0) {
+      return {
+        status: 'skipped',
+        detail:
+          'Cheap LFS cloning or restoration is still changing files. Wait for it to finish.',
+      }
+    }
+
+    reportProgress('Refreshing canonical repository and remote metadata.')
+    let liveRepository: Repository
+    try {
+      liveRepository = await this.repositoryWithCanonicalRemoteForNetwork(
+        repository,
+        false
+      )
+    } catch (error) {
+      return {
+        status: 'failed',
+        detail: `The push remote could not be verified: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      }
+    }
+
+    await this._refreshRepository(liveRepository)
+    let state = this.repositoryStateCache.get(liveRepository)
+    if (
+      state.changesState.workingDirectory.files.length > 0 ||
+      state.changesState.conflictState !== null ||
+      state.multiCommitOperationState !== null ||
+      state.isPushPullFetchInProgress ||
+      state.isGeneratingCommitMessage ||
+      state.oneClickCommitPushPhase !== null ||
+      state.checkoutProgress !== null ||
+      (state.mergeAllState !== null &&
+        state.mergeAllState.phase !== 'complete' &&
+        state.mergeAllState.phase !== 'cancelled')
+    ) {
+      return {
+        status: 'skipped',
+        detail:
+          'Repository has local work or another Git operation in progress; nothing was merged or deleted.',
+      }
+    }
+
+    const primaryStatus = await git(
+      ['status', '--porcelain', '--untracked-files=all'],
+      liveRepository.path,
+      'syncMergeCleanupPrimaryStatus'
+    )
+    if (primaryStatus.stdout.length > 0) {
+      return {
+        status: 'skipped',
+        detail:
+          'The primary worktree has uncommitted work; nothing was merged or deleted.',
+      }
+    }
+
+    const defaultBranch = state.branchesState.defaultBranch
+    const mainBranch = state.branchesState.allBranches.find(
+      branch =>
+        branch.type === BranchType.Local &&
+        branch.name === SyncMergeCleanupBranchName
+    )
+    if (
+      defaultBranch === null ||
+      defaultBranch.name !== SyncMergeCleanupBranchName ||
+      mainBranch === undefined
+    ) {
+      return {
+        status: 'skipped',
+        detail:
+          'This action requires the configured default branch and a local branch both named main.',
+      }
+    }
+
+    const remoteName = mainBranch.upstreamRemoteName
+    if (
+      remoteName === null ||
+      mainBranch.upstreamWithoutRemote !== SyncMergeCleanupBranchName
+    ) {
+      return {
+        status: 'skipped',
+        detail:
+          'Local main must track an exact remote main branch before cleanup.',
+      }
+    }
+    const remote = (await getRemotes(liveRepository)).find(
+      candidate => candidate.name === remoteName
+    )
+    if (remote === undefined) {
+      return {
+        status: 'skipped',
+        detail: `The tracked main remote ${remoteName} is unavailable.`,
+      }
+    }
+
+    const initialWorktrees = await listWorktrees(liveRepository)
+    if (
+      initialWorktrees.some(
+        worktree =>
+          worktree.path !== liveRepository.path &&
+          worktree.branch === mainBranch.ref
+      )
+    ) {
+      return {
+        status: 'skipped',
+        detail:
+          'Main is checked out in another worktree; its ownership is unchanged.',
+      }
+    }
+
+    let agentProbe
+    try {
+      agentProbe = await runAgent(liveRepository, null, () => undefined)
+    } catch (error) {
+      return {
+        status: 'failed',
+        detail:
+          error instanceof Error
+            ? error.message
+            : 'The configured local agent could not be checked.',
+      }
+    }
+    if (!agentProbe.ok) {
+      return {
+        status: 'failed',
+        detail: `${agentProbe.provider} is not ready for conflict resolution.`,
+      }
+    }
+    reportProgress(
+      `${agentProbe.provider} is configured for any merge conflicts.`
+    )
+
+    if (
+      state.branchesState.tip.kind !== TipState.Valid ||
+      state.branchesState.tip.branch.name !== SyncMergeCleanupBranchName
+    ) {
+      reportProgress('Checking out main in the primary worktree.')
+      await this.withTemporaryRepositoryMutationGuard(liveRepository, () =>
+        checkoutBranch(liveRepository, mainBranch, remote)
+      )
+      await this._refreshRepository(liveRepository)
+      state = this.repositoryStateCache.get(liveRepository)
+    }
+    if (
+      state.branchesState.tip.kind !== TipState.Valid ||
+      state.branchesState.tip.branch.name !== SyncMergeCleanupBranchName
+    ) {
+      return {
+        status: 'failed',
+        detail: 'Could not check out main; no cleanup was attempted.',
+      }
+    }
+
+    reportProgress(`Fetching ${remote.name} before inventory review.`)
+    await this.performFetch(liveRepository, FetchType.BackgroundTask, [remote])
+    await this._refreshRepository(liveRepository)
+    state = this.repositoryStateCache.get(liveRepository)
+
+    const worktrees = await listWorktrees(liveRepository)
+    const cleanWorktreePaths = new Set<string>()
+    for (const worktree of worktrees.filter(item => item.type === 'linked')) {
+      if (worktree.isDetached || worktree.branch === null) {
+        continue
+      }
+      const worktreeStatus = await git(
+        ['status', '--porcelain', '--untracked-files=all'],
+        worktree.path,
+        'syncMergeCleanupLinkedStatus'
+      )
+      if (worktreeStatus.stdout.length === 0) {
+        cleanWorktreePaths.add(worktree.path)
+      }
+    }
+    const stashes = await getStashes(liveRepository)
+    const plan = planSyncMergeCleanup(
+      state.branchesState.allBranches,
+      worktrees,
+      cleanWorktreePaths,
+      remote.name
+    )
+    if (plan.exceedsBranchLimit) {
+      return {
+        status: 'skipped',
+        detail:
+          'More than 100 branches/worktrees require review; nothing was merged or deleted.',
+      }
+    }
+
+    const accountKey = getRepositoryCredentialAccountKey(
+      this.accounts,
+      liveRepository
+    )
+    const remoteMain = await probeRemoteBranch(
+      liveRepository,
+      remote,
+      SyncMergeCleanupBranchName,
+      accountKey
+    )
+    if (remoteMain.kind !== 'present') {
+      return {
+        status: 'failed',
+        detail:
+          remoteMain.kind === 'absent'
+            ? 'The tracked remote main branch does not exist.'
+            : 'The tracked remote main branch could not be read safely.',
+      }
+    }
+
+    const remoteMainCandidate: ISyncMergeCleanupCandidate = {
+      name: `${remote.name}/${SyncMergeCleanupBranchName}`,
+      ref: `refs/remotes/${remote.name}/${SyncMergeCleanupBranchName}`,
+      localSha: remoteMain.sha,
+      remoteSha: remoteMain.sha,
+      remoteOwnership: 'tracked',
+      worktree: null,
+    }
+    const remoteMainIntegrated = await this.integrateSyncMergeCleanupCandidate(
+      liveRepository,
+      remoteMainCandidate,
+      [remoteMain.sha],
+      agentProbe.provider,
+      runAgent,
+      reportProgress
+    )
+    if (!remoteMainIntegrated.ok) {
+      return {
+        status: 'failed',
+        detail: `Remote main could not be integrated: ${remoteMainIntegrated.detail}`,
+      }
+    }
+
+    const integrated: ISyncMergeCleanupCandidate[] = []
+    const integrationFailures: string[] = []
+    let mergedTips = remoteMainIntegrated.mergedTips
+    for (const candidate of plan.candidates) {
+      const tips = [...new Set([candidate.localSha, candidate.remoteSha])]
+        .filter((sha): sha is string => sha !== null)
+        .map(sha => sha.toLowerCase())
+      reportProgress(`Integrating ${candidate.name} into main.`)
+      const outcome = await this.integrateSyncMergeCleanupCandidate(
+        liveRepository,
+        candidate,
+        tips,
+        agentProbe.provider,
+        runAgent,
+        reportProgress
+      )
+      if (outcome.ok) {
+        integrated.push(candidate)
+        mergedTips += outcome.mergedTips
+      } else {
+        integrationFailures.push(`${candidate.name}: ${outcome.detail}`)
+      }
+    }
+
+    await this._refreshRepository(liveRepository)
+    state = this.repositoryStateCache.get(liveRepository)
+    const afterMergeStatus = await git(
+      ['status', '--porcelain', '--untracked-files=all'],
+      liveRepository.path,
+      'syncMergeCleanupAfterMergeStatus'
+    )
+    if (
+      state.branchesState.tip.kind !== TipState.Valid ||
+      state.branchesState.tip.branch.name !== SyncMergeCleanupBranchName ||
+      state.changesState.conflictState !== null ||
+      afterMergeStatus.stdout.length > 0
+    ) {
+      return {
+        status: 'failed',
+        detail:
+          'Main is not clean after integration. It was not pushed and no cleanup was attempted.',
+      }
+    }
+
+    reportProgress('Pushing main without force.')
+    await this._push(liveRepository)
+    reportProgress('Reading remote main to prove the pushed object.')
+    const pushedMain = await probeRemoteBranch(
+      liveRepository,
+      remote,
+      SyncMergeCleanupBranchName,
+      accountKey
+    )
+    const localMainSha = await readExactRef(
+      liveRepository,
+      `refs/heads/${SyncMergeCleanupBranchName}`
+    )
+    if (
+      pushedMain.kind !== 'present' ||
+      localMainSha === null ||
+      pushedMain.sha.toLowerCase() !== localMainSha
+    ) {
+      return {
+        status: 'failed',
+        detail:
+          'Remote main does not exactly match local main after push. No branches or worktrees were deleted.',
+      }
+    }
+
+    let cleaned = 0
+    let retainedAfterProof = plan.retained.length
+    const cleanupFailures: string[] = []
+    for (const candidate of integrated) {
+      reportProgress(`Verifying ${candidate.name} before cleanup.`)
+      const cleanup = await this.cleanupProvenSyncMergeCandidate(
+        liveRepository,
+        remote,
+        candidate,
+        pushedMain.sha.toLowerCase(),
+        accountKey
+      )
+      if (cleanup.cleaned) {
+        cleaned++
+      } else {
+        retainedAfterProof++
+        cleanupFailures.push(`${candidate.name}: ${cleanup.detail}`)
+      }
+    }
+
+    await this._refreshRepository(liveRepository)
+    const retainedStashes = stashes.stashEntryCount
+    const failureCount = integrationFailures.length + cleanupFailures.length
+    const detail = [
+      `${mergedTips} tip${
+        mergedTips === 1 ? '' : 's'
+      } merged; ${cleaned} branch${
+        cleaned === 1 ? '' : 'es'
+      } cleaned after exact remote-main proof.`,
+      `${retainedAfterProof} unsafe or ownership-uncertain item${
+        retainedAfterProof === 1 ? '' : 's'
+      } retained.`,
+      `${retainedStashes} stash${
+        retainedStashes === 1 ? '' : 'es'
+      } inventoried and retained.`,
+      ...(failureCount === 0
+        ? []
+        : [
+            `${failureCount} item${failureCount === 1 ? '' : 's'} need review.`,
+          ]),
+    ].join(' ')
+
+    return {
+      status: failureCount === 0 ? 'merged-cleaned' : 'failed',
+      detail,
+    }
+  }
+
+  private async integrateSyncMergeCleanupCandidate(
+    repository: Repository,
+    candidate: ISyncMergeCleanupCandidate,
+    tips: ReadonlyArray<string>,
+    provider: 'Codex' | 'OpenCode',
+    runAgent: RepositorySyncAgentRunner,
+    reportProgress: (detail: string) => void
+  ): Promise<{
+    readonly ok: boolean
+    readonly mergedTips: number
+    readonly detail: string
+  }> {
+    let mergedTips = 0
+    for (const tip of tips) {
+      const mainBefore = await readExactRef(
+        repository,
+        `refs/heads/${SyncMergeCleanupBranchName}`
+      )
+      if (mainBefore === null) {
+        return { ok: false, mergedTips, detail: 'Local main disappeared.' }
+      }
+      if (await isExactAncestor(repository, tip, mainBefore)) {
+        continue
+      }
+
+      let mergeResult: MergeResult
+      try {
+        mergeResult = await this.withTemporaryRepositoryMutationGuard(
+          repository,
+          () => mergeBranch(repository, tip)
+        )
+      } catch (error) {
+        return {
+          ok: false,
+          mergedTips,
+          detail: error instanceof Error ? error.message : String(error),
+        }
+      }
+
+      if (mergeResult === MergeResult.Failed) {
+        if (!(await isMergeHeadSet(repository))) {
+          return {
+            ok: false,
+            mergedTips,
+            detail: 'Git refused the exact reviewed tip without a merge state.',
+          }
+        }
+
+        reportProgress(
+          `${provider} is resolving conflicts for ${candidate.name}.`
+        )
+        let agentResult
+        try {
+          agentResult = await runAgent(
+            repository,
+            buildSyncMergeConflictPrompt(candidate, provider),
+            () => undefined
+          )
+        } catch (error) {
+          await this.abortSyncMergeCleanupMerge(repository)
+          return {
+            ok: false,
+            mergedTips,
+            detail:
+              error instanceof Error
+                ? error.message
+                : `${provider} could not resolve the conflicts.`,
+          }
+        }
+        if (!agentResult.ok) {
+          await this.abortSyncMergeCleanupMerge(repository)
+          return {
+            ok: false,
+            mergedTips,
+            detail: `${provider} did not complete conflict resolution.`,
+          }
+        }
+
+        const unresolved = await git(
+          ['diff', '--name-only', '--diff-filter=U', '-z', '--'],
+          repository.path,
+          'syncMergeCleanupUnresolvedConflicts'
+        )
+        if (unresolved.stdout.length > 0) {
+          await this.abortSyncMergeCleanupMerge(repository)
+          return {
+            ok: false,
+            mergedTips,
+            detail: `${provider} left unresolved files; the merge was aborted.`,
+          }
+        }
+
+        if (await isMergeHeadSet(repository)) {
+          await this._refreshRepository(repository)
+          const conflictState = this.repositoryStateCache.get(repository)
+          let commit: string
+          try {
+            commit = await this.withTemporaryRepositoryMutationGuard(
+              repository,
+              () =>
+                createMergeCommit(
+                  repository,
+                  conflictState.changesState.workingDirectory,
+                  new Map<string, ManualConflictResolution>()
+                )
+            )
+          } catch (error) {
+            await this.abortSyncMergeCleanupMerge(repository)
+            return {
+              ok: false,
+              mergedTips,
+              detail: `The resolved merge commit failed: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            }
+          }
+          if (commit.length === 0 || (await isMergeHeadSet(repository))) {
+            await this.abortSyncMergeCleanupMerge(repository)
+            return {
+              ok: false,
+              mergedTips,
+              detail: 'The resolved merge could not be committed.',
+            }
+          }
+        }
+      }
+
+      const mainAfter = await readExactRef(
+        repository,
+        `refs/heads/${SyncMergeCleanupBranchName}`
+      )
+      if (
+        mainAfter === null ||
+        !(await isExactAncestor(repository, tip, mainAfter))
+      ) {
+        await this.abortSyncMergeCleanupMerge(repository)
+        return {
+          ok: false,
+          mergedTips,
+          detail: 'The reviewed tip is not contained by main after merging.',
+        }
+      }
+      mergedTips++
+    }
+    return { ok: true, mergedTips, detail: 'Integrated.' }
+  }
+
+  private async abortSyncMergeCleanupMerge(
+    repository: Repository
+  ): Promise<void> {
+    if (await isMergeHeadSet(repository)) {
+      await this.withTemporaryRepositoryMutationGuard(repository, () =>
+        abortMerge(repository)
+      )
+      await this._refreshRepository(repository)
+    }
+  }
+
+  private async cleanupProvenSyncMergeCandidate(
+    repository: Repository,
+    remote: IRemote,
+    candidate: ISyncMergeCleanupCandidate,
+    pushedMainSha: string,
+    accountKey?: string
+  ): Promise<{ readonly cleaned: boolean; readonly detail: string }> {
+    const currentLocalSha = await readExactRef(repository, candidate.ref)
+    if (
+      currentLocalSha === null ||
+      currentLocalSha !== candidate.localSha.toLowerCase()
+    ) {
+      return {
+        cleaned: false,
+        detail: 'The local branch moved after review.',
+      }
+    }
+    if (!(await isExactAncestor(repository, currentLocalSha, pushedMainSha))) {
+      return {
+        cleaned: false,
+        detail: 'The local tip is not an ancestor of pushed remote main.',
+      }
+    }
+    if (candidate.remoteOwnership === 'uncertain') {
+      return {
+        cleaned: false,
+        detail:
+          'The same-name remote branch is not the local branch’s tracked upstream.',
+      }
+    }
+
+    let remoteWasDeleted = false
+    if (candidate.remoteOwnership === 'tracked') {
+      const remotePresence = await probeRemoteBranch(
+        repository,
+        remote,
+        candidate.name,
+        accountKey
+      )
+      if (remotePresence.kind === 'indeterminate') {
+        return {
+          cleaned: false,
+          detail: 'The remote branch could not be revalidated.',
+        }
+      }
+      if (remotePresence.kind === 'present') {
+        const remoteSha = remotePresence.sha.toLowerCase()
+        if (!(await isExactAncestor(repository, remoteSha, pushedMainSha))) {
+          return {
+            cleaned: false,
+            detail: 'The current remote tip is not in pushed remote main.',
+          }
+        }
+        const deletion = await this.getSyncMergeRemoteDeletionDecision(
+          repository,
+          candidate.name
+        )
+        if (deletion !== 'allowed') {
+          return {
+            cleaned: false,
+            detail:
+              deletion === 'protected'
+                ? 'Remote branch deletion is protected by repository rules.'
+                : 'Remote branch ownership/protection could not be proved.',
+          }
+        }
+        try {
+          await deleteRemoteBranchWithLease(
+            repository,
+            remote,
+            candidate.name,
+            remoteSha,
+            accountKey
+          )
+        } catch (error) {
+          return {
+            cleaned: false,
+            detail: `Exact remote deletion failed: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          }
+        }
+        const afterDelete = await probeRemoteBranch(
+          repository,
+          remote,
+          candidate.name,
+          accountKey
+        )
+        if (afterDelete.kind !== 'absent') {
+          return {
+            cleaned: false,
+            detail:
+              'Remote deletion was not proved; the local branch/worktree were retained.',
+          }
+        }
+        remoteWasDeleted = true
+      }
+    }
+
+    if (candidate.worktree !== null) {
+      const currentWorktree = (await listWorktrees(repository)).find(
+        worktree =>
+          worktree.path === candidate.worktree!.path &&
+          worktree.branch === candidate.ref &&
+          !worktree.isDetached &&
+          !worktree.isLocked
+      )
+      if (currentWorktree === undefined) {
+        return {
+          cleaned: false,
+          detail: `${
+            remoteWasDeleted ? 'Remote branch deleted; ' : ''
+          }the reviewed worktree identity changed and was retained.`,
+        }
+      }
+      const status = await git(
+        ['status', '--porcelain', '--untracked-files=all'],
+        currentWorktree.path,
+        'syncMergeCleanupFinalWorktreeStatus'
+      )
+      const currentWorktreeHead = await readExactRef(
+        currentWorktree.path,
+        'HEAD'
+      )
+      if (
+        status.stdout.length > 0 ||
+        currentWorktreeHead !== candidate.localSha.toLowerCase()
+      ) {
+        return {
+          cleaned: false,
+          detail: `${
+            remoteWasDeleted ? 'Remote branch deleted; ' : ''
+          }the worktree became dirty or moved and was retained.`,
+        }
+      }
+      try {
+        await this.withTemporaryRepositoryMutationGuard(repository, () =>
+          removeWorktree(repository.path, currentWorktree.path, false)
+        )
+      } catch (error) {
+        return {
+          cleaned: false,
+          detail: `${
+            remoteWasDeleted ? 'Remote branch deleted; ' : ''
+          }worktree removal failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        }
+      }
+    }
+
+    const deletion = await deleteReviewedLocalBranches(repository, [
+      { name: candidate.name, expectedSha: currentLocalSha },
+    ])
+    if (deletion[0]?.status !== 'deleted') {
+      return {
+        cleaned: false,
+        detail: `${
+          remoteWasDeleted ? 'Remote branch deleted; ' : ''
+        }the exact local branch could not be deleted.`,
+      }
+    }
+    return {
+      cleaned: true,
+      detail: remoteWasDeleted
+        ? 'Remote branch, linked worktree, and local branch deleted.'
+        : 'Linked worktree and local branch deleted.',
+    }
+  }
+
+  private async getSyncMergeRemoteDeletionDecision(
+    repository: Repository,
+    branchName: string
+  ): Promise<'allowed' | 'protected' | 'unknown'> {
+    const gitHubRepository = repository.gitHubRepository
+    const account = getAccountForRepository(this.accounts, repository)
+    if (gitHubRepository === null || account === null) {
+      return 'unknown'
+    }
+    try {
+      const control = await API.fromAccount(account).fetchPushControl(
+        gitHubRepository.owner.login,
+        gitHubRepository.name,
+        branchName,
+        { strict: true, reloadCache: true }
+      )
+      return control.allow_actor && control.allow_deletions
+        ? 'allowed'
+        : 'protected'
+    } catch {
+      return 'unknown'
+    }
   }
 
   private async performFetchAllRepository(

@@ -32,6 +32,7 @@ interface IPullAllDialogState {
   readonly candidates: ReadonlyArray<IPullAllCandidate>
   readonly selectedRepositoryIds: ReadonlySet<number>
   readonly operation: RepositorySyncOperation
+  readonly destructiveCleanupConfirmed: boolean
   readonly progress: ReadonlyArray<IPullAllProgress>
   readonly completed: number
   readonly total: number
@@ -54,6 +55,7 @@ function emptyPullAllState(): IPullAllDialogState {
     candidates: [],
     selectedRepositoryIds: new Set(),
     operation: 'pull',
+    destructiveCleanupConfirmed: false,
     progress: [],
     completed: 0,
     total: 0,
@@ -124,6 +126,9 @@ function startRun(
         {
           operation: reviewedState.operation,
           repositoryIds: [...reviewedState.selectedRepositoryIds],
+          ...(reviewedState.operation === 'merge-cleanup'
+            ? { confirmedDestructiveCleanup: true }
+            : {}),
         },
         update => updateRunProgress(run, update)
       )
@@ -165,10 +170,14 @@ function getProgressStatusKey(status: PullAllProgressStatus): TranslationKey {
       return 'batchSync.statusPulling'
     case 'fetching':
       return 'batchSync.statusFetching'
+    case 'merging-cleanup':
+      return 'batchSync.statusMergingCleanup'
     case 'pulled':
       return 'batchSync.statusPulled'
     case 'fetched':
       return 'batchSync.statusFetched'
+    case 'merged-cleaned':
+      return 'batchSync.statusMergedCleaned'
     case 'skipped':
       return 'batchSync.statusSkipped'
     case 'failed':
@@ -262,9 +271,24 @@ export class PullAllDialog extends React.Component<
 
   private onOperationChanged = (event: React.FormEvent<HTMLInputElement>) => {
     const operation = event.currentTarget.value
-    if (operation === 'pull' || operation === 'fetch') {
-      this.setState({ operation })
+    if (
+      operation === 'pull' ||
+      operation === 'fetch' ||
+      operation === 'merge-cleanup'
+    ) {
+      this.setState({
+        operation,
+        destructiveCleanupConfirmed: false,
+      })
     }
+  }
+
+  private onDestructiveCleanupConfirmationChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.setState({
+      destructiveCleanupConfirmed: event.currentTarget.checked,
+    })
   }
 
   private onRepositorySelectionChanged = (
@@ -323,7 +347,32 @@ export class PullAllDialog extends React.Component<
                 />
                 {this.localize('batchSync.fetchOnly')}
               </label>
+              <label>
+                <input
+                  type="radio"
+                  name="repository-sync-operation"
+                  value="merge-cleanup"
+                  checked={this.state.operation === 'merge-cleanup'}
+                  onChange={this.onOperationChanged}
+                />
+                {this.localize('batchSync.mergeCleanup')}
+              </label>
             </fieldset>
+            {this.state.operation === 'merge-cleanup' ? (
+              <div className="pull-all-destructive-review">
+                <p className="pull-all-review-note">
+                  {this.localize('batchSync.mergeCleanupReview')}
+                </p>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={this.state.destructiveCleanupConfirmed}
+                    onChange={this.onDestructiveCleanupConfirmationChanged}
+                  />
+                  {this.localize('batchSync.mergeCleanupConfirm')}
+                </label>
+              </div>
+            ) : null}
             <div className="pull-all-review-heading">
               <h2>{this.localize('batchSync.chooseRepositories')}</h2>
               <div>
@@ -381,13 +430,20 @@ export class PullAllDialog extends React.Component<
           </Button>
           <Button
             type="submit"
-            disabled={selected === 0 || this.state.error !== null}
+            disabled={
+              selected === 0 ||
+              this.state.error !== null ||
+              (this.state.operation === 'merge-cleanup' &&
+                !this.state.destructiveCleanupConfirmed)
+            }
             onClick={this.startReviewedBatch}
           >
             {this.localize(
               this.state.operation === 'pull'
                 ? 'batchSync.startPull'
-                : 'batchSync.startFetch'
+                : this.state.operation === 'fetch'
+                ? 'batchSync.startFetch'
+                : 'batchSync.startMergeCleanup'
             )}
           </Button>
         </DialogFooter>
@@ -434,6 +490,9 @@ export class PullAllDialog extends React.Component<
     const fetched = progress.filter(
       result => result.status === 'fetched'
     ).length
+    const mergedCleaned = progress.filter(
+      result => result.status === 'merged-cleaned'
+    ).length
     const skipped = progress.filter(
       result => result.status === 'skipped'
     ).length
@@ -442,7 +501,12 @@ export class PullAllDialog extends React.Component<
     const percent =
       total === 0 ? (complete ? 100 : 0) : Math.round((completed / total) * 100)
     const activeRepositories = progress
-      .filter(item => item.status === 'pulling' || item.status === 'fetching')
+      .filter(
+        item =>
+          item.status === 'pulling' ||
+          item.status === 'fetching' ||
+          item.status === 'merging-cleanup'
+      )
       .map(item => item.name)
       .join(', ')
 
@@ -466,7 +530,9 @@ export class PullAllDialog extends React.Component<
                     : complete
                     ? operation === 'pull'
                       ? this.localize('batchSync.pullComplete')
-                      : this.localize('batchSync.fetchComplete')
+                      : operation === 'fetch'
+                      ? this.localize('batchSync.fetchComplete')
+                      : this.localize('batchSync.mergeCleanupComplete')
                     : this.localize('batchSync.liveProgress')}
                 </p>
                 <h2>
@@ -476,7 +542,9 @@ export class PullAllDialog extends React.Component<
                     ? this.localize('batchSync.allProcessed')
                     : operation === 'pull'
                     ? this.localize('batchSync.pullingRepositories')
-                    : this.localize('batchSync.fetchingRepositories')}
+                    : operation === 'fetch'
+                    ? this.localize('batchSync.fetchingRepositories')
+                    : this.localize('batchSync.mergingCleanupRepositories')}
                 </h2>
               </div>
               <strong className="pull-all-progress-count">
@@ -529,7 +597,9 @@ export class PullAllDialog extends React.Component<
                 ? this.localize(
                     operation === 'pull'
                       ? 'batchSync.nowPulling'
-                      : 'batchSync.nowFetching',
+                      : operation === 'fetch'
+                      ? 'batchSync.nowFetching'
+                      : 'batchSync.nowMergingCleanup',
                     { repositories: activeRepositories }
                   )
                 : this.localize('batchSync.waitingNext')}
@@ -551,9 +621,17 @@ export class PullAllDialog extends React.Component<
               {this.localize(
                 operation === 'pull'
                   ? 'batchSync.summaryPull'
-                  : 'batchSync.summaryFetch',
+                  : operation === 'fetch'
+                  ? 'batchSync.summaryFetch'
+                  : 'batchSync.summaryMergeCleanup',
                 {
-                  completed: String(operation === 'pull' ? pulled : fetched),
+                  completed: String(
+                    operation === 'pull'
+                      ? pulled
+                      : operation === 'fetch'
+                      ? fetched
+                      : mergedCleaned
+                  ),
                   skipped: String(skipped),
                   failed: String(failed),
                 }
@@ -562,7 +640,11 @@ export class PullAllDialog extends React.Component<
           )}
           {progress.length === 0 && complete && (
             <p className="pull-all-empty">
-              {this.localize('batchSync.noneToPull')}
+              {this.localize(
+                operation === 'merge-cleanup'
+                  ? 'batchSync.noneToMergeCleanup'
+                  : 'batchSync.noneToPull'
+              )}
             </p>
           )}
           {progress.length > 0 && (

@@ -1,11 +1,24 @@
-export type RepositorySyncOperation = 'pull' | 'fetch'
+import { Repository } from '../../models/repository'
+import { IOpencodeLogEvent } from '../build-run/opencode'
+
+export type RepositorySyncOperation = 'pull' | 'fetch' | 'merge-cleanup'
 
 export interface IRepositorySyncRequest {
   readonly operation: RepositorySyncOperation
   readonly repositoryIds: ReadonlyArray<number>
+  /**
+   * Required only for merge-cleanup. The reviewed dialog sets this after the
+   * user explicitly accepts the destructive cleanup decision.
+   */
+  readonly confirmedDestructiveCleanup?: boolean
 }
 
-export type PullAllResultStatus = 'pulled' | 'fetched' | 'skipped' | 'failed'
+export type PullAllResultStatus =
+  | 'pulled'
+  | 'fetched'
+  | 'merged-cleaned'
+  | 'skipped'
+  | 'failed'
 
 export interface IPullAllCandidate {
   readonly id: number
@@ -21,6 +34,7 @@ export type PullAllProgressStatus =
   | 'queued'
   | 'pulling'
   | 'fetching'
+  | 'merging-cleanup'
   | PullAllResultStatus
 
 export interface IPullAllProgress extends IPullAllCandidate {
@@ -37,6 +51,21 @@ export interface IPullAllProgressUpdate {
 
 export type PullAllProgressListener = (update: IPullAllProgressUpdate) => void
 
+export interface IRepositorySyncAgentResult {
+  readonly provider: 'Codex' | 'OpenCode'
+  readonly ok: boolean
+}
+
+/**
+ * `prompt: null` probes the configured provider without launching it. A real
+ * prompt uses the existing repository-scoped Codex/OpenCode task path.
+ */
+export type RepositorySyncAgentRunner = (
+  repository: Repository,
+  prompt: string | null,
+  onLog: (line: IOpencodeLogEvent) => void
+) => Promise<IRepositorySyncAgentResult>
+
 type PullAllOperationResult = Pick<IPullAllResult, 'status' | 'detail'>
 type PullAllOperationProgressListener = (detail: string) => void
 
@@ -49,7 +78,7 @@ export async function runBoundedPullAll(
   ) => Promise<PullAllOperationResult>,
   concurrency = 3,
   onProgress?: PullAllProgressListener,
-  activeStatus: 'pulling' | 'fetching' = 'pulling'
+  activeStatus: 'pulling' | 'fetching' | 'merging-cleanup' = 'pulling'
 ): Promise<ReadonlyArray<IPullAllResult>> {
   if (!Number.isInteger(concurrency) || concurrency < 1) {
     throw new Error('Pull-all concurrency must be a positive integer.')

@@ -130,6 +130,7 @@ import type {
   PullAllProgressListener,
   IPullAllResult,
   IRepositorySyncRequest,
+  RepositorySyncAgentRunner,
 } from '../../lib/automation/pull-all'
 import type {
   CommitPushAllProgressListener,
@@ -237,6 +238,7 @@ import { WorkflowPreferences } from '../../models/workflow-preferences'
 import {
   IBuildRunPreferences,
   defaultBuildRunPreferences,
+  getBuildFixAutoApprove,
 } from '../../models/build-run-preferences'
 import {
   BuildStageKind,
@@ -274,7 +276,11 @@ import {
   IOpencodeRunResult,
   IOpencodeStatus,
 } from '../../lib/build-run/opencode'
-import { BuildFixProvider, ICodexStatus } from '../../lib/build-run/codex'
+import {
+  BuildFixProvider,
+  ICodexStatus,
+  normalizeBuildFixProvider,
+} from '../../lib/build-run/codex'
 import { BuildRunViewPhase } from '../../lib/stores/build-run-store'
 import { resolveWithin } from '../../lib/path'
 import { CherryPickResult } from '../../lib/git/cherry-pick'
@@ -2045,7 +2051,13 @@ export class Dispatcher {
     request: IRepositorySyncRequest,
     onProgress?: PullAllProgressListener
   ): Promise<ReadonlyArray<IPullAllResult>> {
-    return this.appStore._syncRepositories(request, onProgress)
+    return this.appStore._syncRepositories(
+      request,
+      onProgress,
+      request.operation === 'merge-cleanup'
+        ? this.runRepositorySyncAgent
+        : undefined
+    )
   }
 
   /**
@@ -3985,6 +3997,67 @@ export class Dispatcher {
     provider: BuildFixProvider
   ): Promise<IOpencodeStatus | ICodexStatus> {
     return provider === 'codex' ? detectCodex() : detectOpencode()
+  }
+
+  /**
+   * Probe or run the repository's persisted Codex/OpenCode choice for reviewed
+   * Sync-repository conflict resolution. This reuses the established typed IPC,
+   * operation registry, cancellation, and repository sandbox, but deliberately
+   * does not launch Build & Run afterwards: the caller verifies Git ancestry,
+   * the pushed main object, and every cleanup candidate instead.
+   */
+  private runRepositorySyncAgent: RepositorySyncAgentRunner = async (
+    repository,
+    prompt,
+    onLog
+  ) => {
+    const preferences =
+      repository.buildRunPreferences ?? defaultBuildRunPreferences
+    const provider = normalizeBuildFixProvider(preferences.buildFixProvider)
+    const providerLabel = provider === 'codex' ? 'Codex' : 'OpenCode'
+    const status = await this.detectBuildFixProvider(provider)
+    if (!status.installed) {
+      throw new Error(
+        `${providerLabel} is selected for this repository but is not installed.`
+      )
+    }
+    if (!status.authConfigured) {
+      throw new Error(
+        `${providerLabel} is selected for this repository but is not signed in.`
+      )
+    }
+    if (prompt === null) {
+      return { provider: providerLabel, ok: true }
+    }
+
+    const operationId = randomUUID()
+    const dispose = this.pipeBuildFixLog(
+      provider,
+      repository,
+      operationId,
+      onLog
+    )
+    const operation = this.ownBuildFixOperation(provider, operationId)
+    this.buildRunStore.setOpencodeRunning(
+      repository.id,
+      true,
+      operationId,
+      provider
+    )
+    try {
+      const result = await this.invokeBuildFixPrompt(provider, {
+        operationId,
+        repoPath: repository.path,
+        cwd: repository.path,
+        autoApprove: getBuildFixAutoApprove(preferences),
+        prompt,
+      })
+      return { provider: providerLabel, ok: result.ok }
+    } finally {
+      dispose()
+      operation.dispose()
+      this.buildRunStore.setOpencodeRunning(repository.id, false)
+    }
   }
 
   /**

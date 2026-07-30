@@ -888,6 +888,9 @@ export type TranslationKey =
   | 'batchSync.operation'
   | 'batchSync.pullActive'
   | 'batchSync.fetchOnly'
+  | 'batchSync.mergeCleanup'
+  | 'batchSync.mergeCleanupReview'
+  | 'batchSync.mergeCleanupConfirm'
   | 'batchSync.chooseRepositories'
   | 'batchSync.selectAll'
   | 'batchSync.selectNone'
@@ -898,15 +901,18 @@ export type TranslationKey =
   | 'batchSync.cancel'
   | 'batchSync.startPull'
   | 'batchSync.startFetch'
+  | 'batchSync.startMergeCleanup'
   | 'batchSync.progressAria'
   | 'batchSync.stopped'
   | 'batchSync.pullComplete'
   | 'batchSync.fetchComplete'
+  | 'batchSync.mergeCleanupComplete'
   | 'batchSync.liveProgress'
   | 'batchSync.couldNotFinish'
   | 'batchSync.allProcessed'
   | 'batchSync.pullingRepositories'
   | 'batchSync.fetchingRepositories'
+  | 'batchSync.mergingCleanupRepositories'
   | 'batchSync.completedOf'
   | 'batchSync.synchronizedAria'
   | 'batchSync.metricComplete'
@@ -915,11 +921,14 @@ export type TranslationKey =
   | 'batchSync.finalResult'
   | 'batchSync.nowPulling'
   | 'batchSync.nowFetching'
+  | 'batchSync.nowMergingCleanup'
   | 'batchSync.waitingNext'
   | 'batchSync.backgroundNote'
   | 'batchSync.summaryPull'
   | 'batchSync.summaryFetch'
+  | 'batchSync.summaryMergeCleanup'
   | 'batchSync.noneToPull'
+  | 'batchSync.noneToMergeCleanup'
   | 'batchSync.resultsAria'
   | 'batchSync.repository'
   | 'batchSync.status'
@@ -929,8 +938,10 @@ export type TranslationKey =
   | 'batchSync.statusWaiting'
   | 'batchSync.statusPulling'
   | 'batchSync.statusFetching'
+  | 'batchSync.statusMergingCleanup'
   | 'batchSync.statusPulled'
   | 'batchSync.statusFetched'
+  | 'batchSync.statusMergedCleaned'
   | 'batchSync.statusSkipped'
   | 'batchSync.statusFailed'
   | 'repositoryPicker.status'
@@ -3853,6 +3864,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'batchSync.operation': 'Operation',
   'batchSync.pullActive': 'Pull active branches',
   'batchSync.fetchOnly': 'Fetch only (leave worktrees unchanged)',
+  'batchSync.mergeCleanup':
+    'Merge completed work into main, push, then clean up',
+  'batchSync.mergeCleanupReview':
+    'Desktop Material inventories local and remote branches, linked worktrees, and stashes. The configured Codex or OpenCode provider may resolve merge conflicts. Cleanup starts only after remote main exactly matches local main and every candidate tip is proved to be its ancestor. Dirty, unmerged, protected, default, moved, unpushed, or ownership-uncertain state is retained.',
+  'batchSync.mergeCleanupConfirm':
+    'I confirm that verified non-default branches and linked worktrees may be permanently deleted from this computer and their exact tracked remote branches.',
   'batchSync.chooseRepositories': 'Choose repositories',
   'batchSync.selectAll': 'Select all',
   'batchSync.selectNone': 'Select none',
@@ -3865,15 +3882,19 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'batchSync.cancel': 'Cancel',
   'batchSync.startPull': 'Start pull',
   'batchSync.startFetch': 'Start fetch',
+  'batchSync.startMergeCleanup': 'Merge, push & clean up',
   'batchSync.progressAria': 'Sync progress',
   'batchSync.stopped': 'Sync stopped',
   'batchSync.pullComplete': 'Pull complete',
   'batchSync.fetchComplete': 'Fetch complete',
+  'batchSync.mergeCleanupComplete': 'Merge and cleanup complete',
   'batchSync.liveProgress': 'Live progress',
   'batchSync.couldNotFinish': 'Repository sync could not finish',
   'batchSync.allProcessed': 'All repositories processed',
   'batchSync.pullingRepositories': 'Pulling repositories',
   'batchSync.fetchingRepositories': 'Fetching repositories',
+  'batchSync.mergingCleanupRepositories':
+    'Merging, pushing, and verifying cleanup',
   'batchSync.completedOf': '{completed} of {total} repositories complete',
   'batchSync.synchronizedAria': 'Repositories synchronized',
   'batchSync.metricComplete': '{count} complete',
@@ -3882,6 +3903,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'batchSync.finalResult': 'Every repository has a final result.',
   'batchSync.nowPulling': 'Now pulling: {repositories}',
   'batchSync.nowFetching': 'Now fetching: {repositories}',
+  'batchSync.nowMergingCleanup': 'Now integrating: {repositories}',
   'batchSync.waitingNext': 'Waiting for the next repository to start.',
   'batchSync.backgroundNote':
     'Up to three repositories are synchronized at a time. You can run this in the background while the work continues.',
@@ -3889,7 +3911,11 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     '{completed} pulled, {skipped} skipped, {failed} failed.',
   'batchSync.summaryFetch':
     '{completed} fetched, {skipped} skipped, {failed} failed.',
+  'batchSync.summaryMergeCleanup':
+    '{completed} merged, pushed, and cleaned; {skipped} skipped; {failed} need review.',
   'batchSync.noneToPull': 'There were no repositories to pull.',
+  'batchSync.noneToMergeCleanup':
+    'There were no repositories to merge and clean up.',
   'batchSync.resultsAria': 'Repository sync progress',
   'batchSync.repository': 'Repository',
   'batchSync.status': 'Status',
@@ -3899,8 +3925,10 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'batchSync.statusWaiting': 'Waiting',
   'batchSync.statusPulling': 'Pulling',
   'batchSync.statusFetching': 'Fetching',
+  'batchSync.statusMergingCleanup': 'Merging & verifying',
   'batchSync.statusPulled': 'Pulled',
   'batchSync.statusFetched': 'Fetched',
+  'batchSync.statusMergedCleaned': 'Merged & cleaned',
   'batchSync.statusSkipped': 'Skipped',
   'batchSync.statusFailed': 'Failed',
   'repositoryPicker.status': 'Repository status',
@@ -7249,6 +7277,11 @@ export const cantoneseTranslations: Readonly<
   'batchSync.operation': '操作',
   'batchSync.pullActive': 'Pull 使用中嘅分支',
   'batchSync.fetchOnly': '只 Fetch（唔郁 worktree）',
+  'batchSync.mergeCleanup': '合併完成工作去 main、Push，再安全清理',
+  'batchSync.mergeCleanupReview':
+    'Desktop Material 會點算本機同遠端分支、linked worktree 同 stash；有衝突時會用呢個 repo 已設定嘅 Codex 或 OpenCode。只有 remote main 同 local main 完全一致，而且逐個證明候選 tip 都係 main 嘅 ancestor，先會開始清理。未 commit、未合併、受保護、預設、移動咗、未 push 或者擁有權唔肯定嘅狀態全部保留，唔會扮熟亂刪。',
+  'batchSync.mergeCleanupConfirm':
+    '我確認：已驗證嘅非預設分支同 linked worktree 可以喺呢部電腦永久刪除，而佢哋精確追蹤嘅遠端分支亦可以刪除。',
   'batchSync.chooseRepositories': '揀 repo',
   'batchSync.selectAll': '全部揀晒',
   'batchSync.selectNone': '全部唔揀',
@@ -7261,15 +7294,18 @@ export const cantoneseTranslations: Readonly<
   'batchSync.cancel': '取消',
   'batchSync.startPull': '開始 Pull',
   'batchSync.startFetch': '開始 Fetch',
+  'batchSync.startMergeCleanup': '合併、Push 同清理',
   'batchSync.progressAria': '同步進度',
   'batchSync.stopped': '同步已停止',
   'batchSync.pullComplete': 'Pull 完成',
   'batchSync.fetchComplete': 'Fetch 完成',
+  'batchSync.mergeCleanupComplete': '合併同清理完成',
   'batchSync.liveProgress': '即時進度',
   'batchSync.couldNotFinish': 'Repo 同步未能完成',
   'batchSync.allProcessed': '所有 repo 都處理好喇',
   'batchSync.pullingRepositories': 'Pull 緊 repo',
   'batchSync.fetchingRepositories': 'Fetch 緊 repo',
+  'batchSync.mergingCleanupRepositories': '合併、Push 同驗證清理緊',
   'batchSync.completedOf': '{total} 個 repo 入面已完成 {completed} 個',
   'batchSync.synchronizedAria': '已同步 repo',
   'batchSync.metricComplete': '{count} 個完成',
@@ -7278,6 +7314,7 @@ export const cantoneseTranslations: Readonly<
   'batchSync.finalResult': '每個 repo 都有最終結果。',
   'batchSync.nowPulling': '而家 Pull 緊：{repositories}',
   'batchSync.nowFetching': '而家 Fetch 緊：{repositories}',
+  'batchSync.nowMergingCleanup': '而家整合緊：{repositories}',
   'batchSync.waitingNext': '等緊下一個 repo 開始。',
   'batchSync.backgroundNote':
     '每次最多同步三個 repo。工作會繼續，你可以放心放佢去背景。',
@@ -7285,7 +7322,10 @@ export const cantoneseTranslations: Readonly<
     'Pull 咗 {completed} 個，略過 {skipped} 個，失敗 {failed} 個。',
   'batchSync.summaryFetch':
     'Fetch 咗 {completed} 個，略過 {skipped} 個，失敗 {failed} 個。',
+  'batchSync.summaryMergeCleanup':
+    '合併、Push 同清理咗 {completed} 個；略過 {skipped} 個；{failed} 個要再睇。',
   'batchSync.noneToPull': '冇 repo 需要 Pull。',
+  'batchSync.noneToMergeCleanup': '冇 repo 需要合併同清理。',
   'batchSync.resultsAria': 'Repo 同步進度',
   'batchSync.repository': 'Repo',
   'batchSync.status': '狀態',
@@ -7295,8 +7335,10 @@ export const cantoneseTranslations: Readonly<
   'batchSync.statusWaiting': '等緊',
   'batchSync.statusPulling': 'Pull 緊',
   'batchSync.statusFetching': 'Fetch 緊',
+  'batchSync.statusMergingCleanup': '合併同驗證緊',
   'batchSync.statusPulled': '已 Pull',
   'batchSync.statusFetched': '已 Fetch',
+  'batchSync.statusMergedCleaned': '已合併同清理',
   'batchSync.statusSkipped': '已略過',
   'batchSync.statusFailed': '失敗',
   'repositoryPicker.status': 'Repo 狀態',
