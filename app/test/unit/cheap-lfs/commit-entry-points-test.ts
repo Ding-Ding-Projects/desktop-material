@@ -243,4 +243,101 @@ describe('cheap LFS commit entry points', () => {
     assert.match(body, /this\._commitIncludedChanges\(repository, context\)/)
     assert.doesNotMatch(body, /createCommit\(/)
   })
+
+  it('keeps every commit entry point behind the active restore guard', () => {
+    const commitBody = methodBody(
+      'public async _commitIncludedChanges(',
+      'private async _refreshRepositoryAfterCommit('
+    )
+    const withIsCommitting = methodBody(
+      'private async withIsCommitting(',
+      'private async withIsGeneratingCommitMessage('
+    )
+    const materializeLock = methodBody(
+      'private withCheapLfsMaterializeLock<T>(',
+      'private async materializeCheapLfsEntry('
+    )
+
+    assert.match(
+      commitBody,
+      /if \(this\.blockCommitDuringCheapLfsMaterialize\(repository\)\) \{\s*return false/
+    )
+    assert.match(
+      withIsCommitting,
+      /blockCommitDuringCheapLfsMaterialize\(repository\)[\s\S]*cheapLfsCommitGates[\s\S]*releaseCommitGate\(\)/
+    )
+    assert.match(
+      materializeLock,
+      /const commitGate = this\.cheapLfsCommitGates\?\.get\(key\)[\s\S]*Promise\.all\(\[previousMaterialize, commitGate\]\)/
+    )
+    assert.match(
+      materializeLock,
+      /const settled = queued\.then\([\s\S]*cleanup\(\)[\s\S]*observeCheapLfsMaterializeRequest\(settled/
+    )
+  })
+
+  it('excludes temporary submodules from every commit-time Cheap LFS path', () => {
+    const body = methodBody(
+      'public async _commitIncludedChanges(',
+      'private async _refreshRepositoryAfterCommit('
+    )
+    const eligibility = body.indexOf(
+      'const canUseCheapLfs = !isSubmoduleRepository(repository)'
+    )
+    const pin = body.indexOf('this.autoPinLargeFilesBeforeCommit(', eligibility)
+    const key = body.indexOf(
+      'resolveCheapLfsCommitKeyRequirement(',
+      eligibility
+    )
+    const helper = body.indexOf('ensureCheapLfsCloneHelperBundle(', eligibility)
+
+    assert.ok(eligibility >= 0)
+    assert.ok(pin > eligibility)
+    assert.ok(key > pin)
+    assert.ok(helper > key)
+    assert.match(
+      body.slice(eligibility, pin),
+      /const pinResult = canUseCheapLfs\s*\?/
+    )
+    assert.match(
+      body.slice(pin, helper),
+      /cheapLfsCommitKeyRequirement = canUseCheapLfs\s*\?/
+    )
+    assert.match(
+      body.slice(key, helper),
+      /if \(\s*canUseCheapLfs &&\s*preferences\.cheapLfsCloneHelperEnabled !== false/
+    )
+  })
+
+  it('keeps ordinary push while bypassing the mutating legacy rewriter for unsafe owners', () => {
+    const batching = methodBody(
+      'private async handleLegacyLocalCommitPushBatching(',
+      'private canRunLegacyLocalCommitPushBatching('
+    )
+    const eligibility = methodBody(
+      'private canRunLegacyLocalCommitPushBatching(',
+      'private async performPush('
+    )
+    const push = methodBody(
+      'private async performPush(',
+      'private async deployDockerAfterPush('
+    )
+
+    assert.match(
+      batching,
+      /if \(!this\.canRunLegacyLocalCommitPushBatching\(repository\)\) \{\s*[\s\S]*?return/
+    )
+    assert.ok(
+      batching.indexOf('canRunLegacyLocalCommitPushBatching(repository)') <
+        batching.indexOf('session.prepare(')
+    )
+    assert.match(
+      eligibility,
+      /isSubmoduleRepository\(repository\)[\s\S]*cheapLfsMaterializeOwners\?\.get[\s\S]*owners === undefined \|\| owners\.size === 0/
+    )
+    assert.match(
+      push,
+      /await this\.handleLegacyLocalCommitPushBatching\([\s\S]*await pushRepo\(/
+    )
+  })
 })

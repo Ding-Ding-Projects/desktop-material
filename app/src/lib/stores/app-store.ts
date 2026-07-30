@@ -1601,6 +1601,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * Materialize-all requests. A queued request never mutates its predecessor.
    */
   private readonly cheapLfsMaterializeTails = new Map<string, Promise<void>>()
+  /**
+   * One gate for each checkout whose commit phase currently owns the working
+   * tree. A materialize request which arrives after the commit claim waits on
+   * this promise; a commit which arrives after a materialize owner registered
+   * is refused instead. The synchronous claim order makes the two mutations
+   * mutually exclusive without a timing debounce.
+   */
+  private cheapLfsCommitGates = new Map<string, Promise<void>>()
 
   /**
    * Memoized Cheap LFS pointer inventory for the status-projection hot path,
@@ -6711,6 +6719,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (!this.isTemporaryRepositoryActive(repository) || !canStartCommit()) {
       return false
     }
+    if (this.blockCommitDuringCheapLfsMaterialize(repository)) {
+      return false
+    }
     if (pushAfterCommit) {
       repository = await this.repositoryWithCanonicalRemoteForNetwork(
         repository,
@@ -6723,6 +6734,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
     const state = this.repositoryStateCache.get(repository)
     const files = state.changesState.workingDirectory.files
+    // A temporary submodule workspace is an independent Git repository, but it
+    // deliberately inherits some display preferences from its parent model.
+    // Those inherited defaults must never opt the child into parent-owned
+    // Cheap LFS workflow, pointer-key, clone-helper, pin, or publish work.
+    const canUseCheapLfs = !isSubmoduleRepository(repository)
     let selectedFiles = files.filter(file => {
       return file.selection.getSelectionType() !== DiffSelectionType.None
     })
@@ -6748,12 +6764,19 @@ export class AppStore extends TypedBaseStore<IAppState> {
       const preferences =
         repository.buildRunPreferences ?? defaultBuildRunPreferences
       try {
-        const pinResult = await this.autoPinLargeFilesBeforeCommit(
-          repository,
-          selectedFiles,
-          forceAutoPinLargeFiles,
-          isBackgroundTask
-        )
+        const pinResult = canUseCheapLfs
+          ? await this.autoPinLargeFilesBeforeCommit(
+              repository,
+              selectedFiles,
+              forceAutoPinLargeFiles,
+              isBackgroundTask
+            )
+          : {
+              pinned: [],
+              failures: [],
+              commitPaths: [],
+              alreadyStoredPaths: [],
+            }
         pinned = pinResult.pinned
         pinFailures = pinResult.failures
         cheapLfsCommitPaths = pinResult.commitPaths
@@ -6915,19 +6938,20 @@ export class AppStore extends TypedBaseStore<IAppState> {
       let cheapLfsCommitKeyRequirement: ICheapLfsRequiredCommitFile | null
       try {
         const isPrivate = repository.gitHubRepository?.isPrivate
-        cheapLfsCommitKeyRequirement =
-          await resolveCheapLfsCommitKeyRequirement(
-            repository.path,
-            selectedFiles.map(file => ({
-              relativePath: file.path,
-              deleted: file.isDeleted(),
-            })),
-            isPrivate === true
-              ? 'verified-private'
-              : isPrivate === false
-              ? 'verified-public'
-              : 'unknown'
-          )
+        cheapLfsCommitKeyRequirement = canUseCheapLfs
+          ? await resolveCheapLfsCommitKeyRequirement(
+              repository.path,
+              selectedFiles.map(file => ({
+                relativePath: file.path,
+                deleted: file.isDeleted(),
+              })),
+              isPrivate === true
+                ? 'verified-private'
+                : isPrivate === false
+                ? 'verified-public'
+                : 'unknown'
+            )
+          : null
       } catch (error) {
         if (!(error instanceof CheapLfsCommitKeyError)) {
           throw error
@@ -6959,7 +6983,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       // the exact pointer set this commit will expose. HEAD is authoritative
       // for every unselected path: hydrated or locally deleted payloads must
       // not silently disappear from a later helper inventory.
-      if (preferences.cheapLfsCloneHelperEnabled !== false) {
+      if (canUseCheapLfs && preferences.cheapLfsCloneHelperEnabled !== false) {
         try {
           const committedPointerPaths = new Set<string>()
           for (const file of selectedFiles) {
@@ -10796,6 +10820,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
     options?: PushOptions,
     flushExistingBeforeNewCommit: boolean = false
   ): Promise<void> {
+    if (!this.canRunLegacyLocalCommitPushBatching(repository)) {
+      // The legacy rewriter temporarily resets and rebuilds local commits. A
+      // temporary submodule must keep its independent history untouched, and
+      // a restore owns changing working-tree bytes until it settles. Neither
+      // condition blocks the ordinary immutable-ref Git push that follows.
+      return
+    }
     if (options?.forceWithLease || options?.branch !== undefined) {
       return
     }
@@ -10872,6 +10903,22 @@ export class AppStore extends TypedBaseStore<IAppState> {
         action: { kind: 'open-repository', repositoryId: repository.id },
       })
     }
+  }
+
+  /**
+   * The pre-push legacy batch rewriter is optional preparation, not the push
+   * itself. Keep it out of temporary submodules and any checkout whose Cheap
+   * LFS clone/restore queue owns file bytes; ordinary repositories with no
+   * owner retain the existing batching path.
+   */
+  private canRunLegacyLocalCommitPushBatching(repository: Repository): boolean {
+    if (isSubmoduleRepository(repository)) {
+      return false
+    }
+    const owners = this.cheapLfsMaterializeOwners?.get(
+      cheapLfsMaterializeRepositoryKey(repository)
+    )
+    return owners === undefined || owners.size === 0
   }
 
   private async performPush(
@@ -11246,18 +11293,41 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (state.isCommitting) {
       return false
     }
+    // Re-check at the last synchronous boundary before the commit owns the
+    // worktree. A restore can enqueue while commit preparation awaits Git or a
+    // remote; owners register at enqueue time, so none can slip through this
+    // second check.
+    if (this.blockCommitDuringCheapLfsMaterialize(repository)) {
+      return false
+    }
 
-    this.repositoryStateCache.update(repository, () => ({
-      isCommitting: true,
-      commitOperationPhase: { kind: 'preparing' },
-      hookProgress: null,
-      subscribeToCommitOutput: null,
-    }))
-    this.emitUpdate()
+    const materializeKey = cheapLfsMaterializeRepositoryKey(repository)
+    let releaseCommitGate: () => void = () => undefined
+    const commitGate = new Promise<void>(resolve => {
+      releaseCommitGate = resolve
+    })
+    // A few focused store tests construct an AppStore prototype without
+    // invoking its heavyweight constructor. Lazily recover the map there;
+    // production instances always take the initialized field above.
+    const commitGates =
+      this.cheapLfsCommitGates ??
+      (this.cheapLfsCommitGates = new Map<string, Promise<void>>())
+    commitGates.set(materializeKey, commitGate)
 
     try {
+      this.repositoryStateCache.update(repository, () => ({
+        isCommitting: true,
+        commitOperationPhase: { kind: 'preparing' },
+        hookProgress: null,
+        subscribeToCommitOutput: null,
+      }))
+      this.emitUpdate()
       return await fn()
     } finally {
+      if (commitGates.get(materializeKey) === commitGate) {
+        commitGates.delete(materializeKey)
+      }
+      releaseCommitGate()
       if (this.isTemporaryRepositoryActive(repository)) {
         this.repositoryStateCache.update(repository, () => ({
           isCommitting: false,
@@ -11268,6 +11338,30 @@ export class AppStore extends TypedBaseStore<IAppState> {
         this.emitUpdate()
       }
     }
+  }
+
+  /**
+   * Refuse a commit while any automatic clone hydration, single-file restore,
+   * or Materialize-all request owns (or is queued for) this checkout.
+   *
+   * The notice is persistent, deduplicated, and non-modal: no Git mutation has
+   * started, and the user can retry as soon as the existing progress finishes.
+   */
+  private blockCommitDuringCheapLfsMaterialize(
+    repository: Repository
+  ): boolean {
+    const key = cheapLfsMaterializeRepositoryKey(repository)
+    const owners = this.cheapLfsMaterializeOwners?.get(key)
+    if (owners === undefined || owners.size === 0) {
+      return false
+    }
+    this.postPersistentErrorNotice(
+      t('cheapLfs.commitBlocked.restoreTitle'),
+      t('cheapLfs.commitBlocked.restoreBody', { name: repository.name }),
+      `cheap-lfs-commit-blocked-restore:${repository.id}`,
+      repository.id
+    )
+    return true
   }
 
   private async withIsGeneratingCommitMessage(
@@ -15717,19 +15811,20 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const owners = this.cheapLfsMaterializeOwners.get(key) ?? new Set()
     owners.add(owner)
     this.cheapLfsMaterializeOwners.set(key, owners)
-    const previous = this.cheapLfsMaterializeTails.get(key) ?? Promise.resolve()
+    const previousMaterialize =
+      this.cheapLfsMaterializeTails.get(key) ?? Promise.resolve()
+    const commitGate = this.cheapLfsCommitGates?.get(key)
+    const previous =
+      commitGate === undefined
+        ? previousMaterialize
+        : Promise.all([previousMaterialize, commitGate]).then(() => undefined)
     const queued = previous
       .catch(() => undefined)
       .then(async () => {
         throwIfCheapLfsMaterializeAborted(controller.signal)
         return await operation(controller.signal)
       })
-    const tail = queued.then(
-      () => undefined,
-      () => undefined
-    )
-    this.cheapLfsMaterializeTails.set(key, tail)
-    void tail.then(() => {
+    const cleanup = () => {
       requestSignal?.removeEventListener('abort', cancelOwner)
       const pending = this.cheapLfsMaterializeOwners.get(key)
       if (pending !== undefined) {
@@ -15741,8 +15836,26 @@ export class AppStore extends TypedBaseStore<IAppState> {
       if (this.cheapLfsMaterializeTails.get(key) === tail) {
         this.cheapLfsMaterializeTails.delete(key)
       }
-    })
-    return observeCheapLfsMaterializeRequest(queued, requestSignal)
+    }
+    // Cleanup runs before this settled promise publishes its result. An
+    // immediate commit after an awaited restore therefore cannot observe a
+    // one-microtask stale owner and report a false "still restoring" block.
+    const settled = queued.then(
+      value => {
+        cleanup()
+        return value
+      },
+      error => {
+        cleanup()
+        throw error
+      }
+    )
+    const tail = settled.then(
+      () => undefined,
+      () => undefined
+    )
+    this.cheapLfsMaterializeTails.set(key, tail)
+    return observeCheapLfsMaterializeRequest(settled, requestSignal)
   }
 
   /**
@@ -15970,6 +16083,20 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository,
     preferences: IBuildRunPreferences
   ): Promise<IEnsureCheapLfsCloudCompressionResult> {
+    if (isSubmoduleRepository(repository)) {
+      // Temporary submodule workspaces have no persisted repository record and
+      // must never inherit their parent's cloud-compression caller. The panel
+      // is hidden for them; this fail-soft boundary also protects stale or
+      // programmatic dispatches without producing a push-time Cheap LFS error.
+      return {
+        path: Path.join(
+          repository.path,
+          CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH
+        ),
+        changed: false,
+        policy: 'not-github',
+      }
+    }
     await this.assertTemporaryRepositoryIsSafe(repository)
     const result = await ensureCheapLfsCloudCompressionWorkflow(
       repository,
@@ -16002,6 +16129,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
   public maybeAutoInstallCheapLfsCloudCompressionWorkflow(
     repository: Repository
   ): void {
+    if (isSubmoduleRepository(repository)) {
+      return
+    }
     const target = String(repository.id)
     const claim = claimInFlight(this.cheapLfsWorkflowInstalls, target)
     if (!claim.accepted) {
@@ -16036,6 +16166,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
         : this.repositories.find(candidate => candidate.id === repositoryId)) ??
       null
     if (!(repository instanceof Repository)) {
+      return
+    }
+    if (isSubmoduleRepository(repository)) {
       return
     }
     const target = String(repository.id)

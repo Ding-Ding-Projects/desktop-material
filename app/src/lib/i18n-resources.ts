@@ -1972,6 +1972,8 @@ export type TranslationKey =
   | 'branchRules.filterNoMatchesInList'
   | 'cheapLfs.files.one'
   | 'cheapLfs.files.many'
+  | 'cheapLfs.commitBlocked.restoreTitle'
+  | 'cheapLfs.commitBlocked.restoreBody'
   | 'cheapLfs.managerRail'
   | 'cheapLfs.managerTitle'
   | 'cheapLfs.managerIntro'
@@ -5183,6 +5185,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'branchRules.filterNoMatchesInList': 'No values match the filter',
   'cheapLfs.files.one': '{count} large file',
   'cheapLfs.files.many': '{count} large files',
+  'cheapLfs.commitBlocked.restoreTitle': 'Commit waits for the file restore',
+  'cheapLfs.commitBlocked.restoreBody':
+    'A Cheap LFS file clone or restore is still running in {name}. No commit started. Wait for its progress to finish, then retry.',
   'cheapLfs.managerRail': 'Large files',
   'repositorySettings.buildRunTab': 'Build & run',
   'repositorySettings.cheapLfsTab': 'Cheap LFS',
@@ -8490,6 +8495,9 @@ export const cantoneseTranslations: Readonly<
   'branchRules.filterNoMatchesInList': '呢個清單冇數值啱',
   'cheapLfs.files.one': '{count} 個大檔案',
   'cheapLfs.files.many': '{count} 個大檔案',
+  'cheapLfs.commitBlocked.restoreTitle': 'Commit 要等檔案還原完成',
+  'cheapLfs.commitBlocked.restoreBody':
+    '「{name}」仲有 Cheap LFS 檔案 clone 緊或還原緊。今次未有開始 commit；等進度跑完再試，唔好同個檔案玩搶櫈仔。',
   'cheapLfs.managerRail': '大檔案',
   'repositorySettings.buildRunTab': '建置同執行',
   'repositorySettings.cheapLfsTab': 'Cheap LFS 大檔案',
