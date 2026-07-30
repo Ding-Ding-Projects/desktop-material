@@ -238,12 +238,19 @@ describe('RepositoriesList custom group actions', () => {
     await waitFor(() => assert.ok(screen.getByText('alpha')))
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Create a repository group' })
+      screen.getByRole('button', { name: 'More repository actions' })
+    )
+    fireEvent.click(
+      await screen.findByRole('menuitem', {
+        name: 'Create a repository group',
+      })
     )
 
-    assert.deepEqual(shownPopups, [
-      { type: PopupType.ManageRepositoryGroup, groupName: null },
-    ])
+    await waitFor(() =>
+      assert.deepEqual(shownPopups, [
+        { type: PopupType.ManageRepositoryGroup, groupName: null },
+      ])
+    )
   })
 })
 
