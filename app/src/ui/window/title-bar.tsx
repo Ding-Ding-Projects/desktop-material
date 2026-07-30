@@ -27,11 +27,11 @@ export function getTitleBarHeight() {
     }
   }
 
-  // Design-spec-shell §2: Windows title bar is 38px tall (the inline menu items,
-  // 21px logo tile and 46px window controls all center within it). Kept in sync
-  // with --win32-title-bar-height in _variables.scss (drives the left/top resize
-  // handles) and consumed by dialog.tsx for its drag/clamp geometry.
-  return 38
+  // The three Windows caption buttons are keyboard-focusable app controls, so
+  // the bar provides the required 44px minimum hit target vertically as well as
+  // horizontally. dialog.tsx consumes this value for drag/clamp geometry;
+  // _title-bar.scss applies the same minimum to the rendered bar.
+  return 44
 }
 
 interface ITitleBarProps {

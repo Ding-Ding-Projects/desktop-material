@@ -1,13 +1,23 @@
 @import '../../mixins';
 
 #desktop-app-title-bar {
+  // Caption buttons are safety-critical window exits. Reserve their complete
+  // three-button cluster independently of the brand/menu flex row so intrinsic
+  // menu widths and renderer zoom can never push Maximize or Close off-screen.
+  --window-control-width: 46px;
+  --window-control-min-target: 44px;
+  --window-controls-width: 138px;
+
   -webkit-app-region: drag;
   flex-grow: 0;
   flex-shrink: 0;
+  min-width: 0;
   width: 100%;
 
   display: flex;
   flex-direction: row;
+  align-items: stretch;
+  position: relative;
   // v2 prototype: brand group is inset 10px from the window edge with a 4px
   // inter-group gap; the whole bar leads the shell's dmDown entrance stagger.
   gap: 4px;
@@ -21,7 +31,9 @@
   }
 
   @include win32 {
-    height: var(--win32-title-bar-height);
+    height: max(var(--win32-title-bar-height), var(--window-control-min-target));
+    min-height: var(--window-control-min-target);
+    padding-right: var(--window-controls-width);
     background: var(--md-sys-color-surface-container);
     border-bottom: 1px solid var(--md-sys-color-outline-variant);
 
@@ -45,8 +57,16 @@
 
     &.left {
       width: 3px;
-      height: var(--win32-title-bar-height);
+      height: 100%;
     }
+  }
+
+  // The application menu is the flexible sibling. `min-width: auto` would make
+  // its label row retain its intrinsic width and overflow into the protected
+  // caption-button reservation at narrow widths or high renderer zoom.
+  > #app-menu-bar {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   // Window controls is the container for the three buttons minimize,
@@ -54,9 +74,15 @@
   // automatically even for borderless window so we only render
   // controls on Windows.
   .window-controls {
-    flex-grow: 0;
-    flex-shrink: 0;
-    margin-left: auto;
+    -webkit-app-region: no-drag;
+    display: flex;
+    position: absolute;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: var(--window-controls-width);
+    min-width: var(--window-controls-width);
 
     // Each button centers a single Material Symbols Rounded glyph for the
     // function it represents (v2 prototype Title bar screen).
@@ -66,8 +92,11 @@
       display: grid;
       place-items: center;
       position: relative;
-      width: 46px;
+      flex: 0 0 var(--window-control-width);
+      width: var(--window-control-width);
+      min-width: var(--window-control-min-target);
       height: 100%;
+      min-height: var(--window-control-min-target);
       padding: 0;
       margin: 0;
       overflow: hidden;

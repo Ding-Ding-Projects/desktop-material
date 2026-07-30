@@ -102,9 +102,8 @@ export class WindowControls extends React.Component<{}, IWindowControlState> {
     return (
       <Button
         ariaLabel={title}
-        ariaHidden={true}
-        tabIndex={-1}
         className={className}
+        dataVerification={`window-control-${name}`}
         onClick={onClick}
         tooltip={title}
         tooltipClassName="window-controls-tooltip"
@@ -133,7 +132,12 @@ export class WindowControls extends React.Component<{}, IWindowControlState> {
     const close = this.renderButton('close', this.onClose, closeSymbol, 18)
 
     return (
-      <div className="window-controls">
+      <div
+        aria-label="Window controls"
+        className="window-controls"
+        data-verification="window-controls"
+        role="group"
+      >
         {min}
         {maximizeOrRestore}
         {close}
