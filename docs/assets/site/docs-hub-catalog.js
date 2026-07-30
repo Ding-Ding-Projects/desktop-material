@@ -1295,6 +1295,13 @@
       d: 'One of the design decision early on with GitHub Desktop assumed a high-fidelity application menu. On macOS we get that for free since the application menu is detached from the…',
     },
     {
+      t: 'Agent repair and background progress verification — 2026-07-30',
+      h: 'verification/agent-repair-progress-2026-07-30.html',
+      s: 'verification/agent-repair-progress-2026-07-30.md',
+      c: 'verification',
+      d: "The Windows production renderer was built with the repository's exact headless command and launched from out/main.js on the off-screen Win32 desktop…",
+    },
+    {
       t: 'Cross-lane automatic updater verification — 2026-07-22/23',
       h: 'verification/auto-updater-version-order-2026-07-22.html',
       s: 'verification/auto-updater-version-order-2026-07-22.md',
