@@ -2306,6 +2306,16 @@ export type TranslationKey =
   | 'workflowDispatch.noMatches'
   | 'workflowDispatch.stateActive'
   | 'workflowDispatch.stateDisabled'
+  | 'publish.organization.label'
+  | 'publish.organization.searchPlaceholder'
+  | 'publish.organization.searchAriaLabel'
+  | 'publish.organization.listAriaLabel'
+  | 'publish.organization.none'
+  | 'publish.organization.resultCountOne'
+  | 'publish.organization.resultCountMany'
+  | 'publish.organization.noMatches'
+  | 'publish.organization.selectedHint'
+  | 'publish.organization.regexErrorPrefix'
   | 'settingsSearch.inputLabel'
   | 'settingsSearch.inputPlaceholder'
   | 'settingsSearch.resultsHeading'
@@ -5231,7 +5241,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.cloud.privateToggle':
     'Enable cloud compression for this private repository',
   'cheapLfs.cloud.privateHelp':
-    'Off by default for private repositories. Enabling adds no workflow here and spends none of your private GitHub Actions minutes: compression runs on a free public runner through the encrypted builder, and nothing that identifies this repository — its name, your file paths, or asset names — is published there.',
+    'Off by default for private repositories. Enabling adds and publishes the reviewed workflow in this repository. Its runs use your private GitHub Actions minutes, compress Release objects one by one, and publish verified pointer commits back to this repository.',
   'cheapLfs.cloud.visibilityUnknown':
     'Off until GitHub confirms whether this repository is public or private.',
   'cheapLfs.cloud.localOnly':
@@ -5755,6 +5765,17 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'workflowDispatch.noMatches': 'No workflows match the current filter.',
   'workflowDispatch.stateActive': 'Active',
   'workflowDispatch.stateDisabled': 'Disabled',
+  'publish.organization.label': 'Organization',
+  'publish.organization.searchPlaceholder': 'Search organizations…',
+  'publish.organization.searchAriaLabel': 'Search organizations',
+  'publish.organization.listAriaLabel': 'Organizations',
+  'publish.organization.none': 'None — publish to my personal account',
+  'publish.organization.resultCountOne': '1 destination found',
+  'publish.organization.resultCountMany': '{count} destinations found',
+  'publish.organization.noMatches':
+    'No publishing destinations match the current search.',
+  'publish.organization.selectedHint': 'Selected',
+  'publish.organization.regexErrorPrefix': 'Pattern error:',
   'settingsSearch.inputLabel': 'Search settings',
   'settingsSearch.inputPlaceholder': 'Search settings',
   'settingsSearch.resultsHeading': 'Search results',
@@ -8521,7 +8542,7 @@ export const cantoneseTranslations: Readonly<
     '公開 repo 會自動開啟。第一次先檢查、commit 同 push 個 workflow 改動；之後每個 Release 物件會逐件壓縮。',
   'cheapLfs.cloud.privateToggle': '為呢個私人 repo 開啟雲端壓縮',
   'cheapLfs.cloud.privateHelp':
-    '私人 repo 預設關閉。開咗都唔會喺呢度加 workflow，亦唔會燒你嘅私人 Actions 分鐘：壓縮會經加密 builder 喺免費嘅公共 runner 度做，而且對外一個字都唔漏 —— repo 名、你嘅檔案路徑、asset 名，全部唔會 publish 出去。',
+    '私人 repo 預設關閉。開啟後會喺呢個 repo 加入並 publish 已審核嘅 workflow；每次運行會用你嘅私人 GitHub Actions 分鐘，逐件壓縮 Release 物件，再將驗證過嘅 pointer commit 推返嚟。慳容量還慳容量，分鐘張單照樣識搵門口。',
   'cheapLfs.cloud.visibilityUnknown':
     'GitHub 未確認個 repo 係公開定私人之前，會穩陣噉保持關閉。',
   'cheapLfs.cloud.localOnly':
@@ -9017,6 +9038,16 @@ export const cantoneseTranslations: Readonly<
   'workflowDispatch.noMatches': '冇 workflow 啱而家嘅篩選。',
   'workflowDispatch.stateActive': '開緊',
   'workflowDispatch.stateDisabled': '停咗',
+  'publish.organization.label': 'Organization／機構',
+  'publish.organization.searchPlaceholder': '搜尋 organization…',
+  'publish.organization.searchAriaLabel': '搜尋 organization',
+  'publish.organization.listAriaLabel': 'Organization 清單',
+  'publish.organization.none': 'None — 發佈去我個人帳戶',
+  'publish.organization.resultCountOne': '搵到 1 個發佈目的地',
+  'publish.organization.resultCountMany': '搵到 {count} 個發佈目的地',
+  'publish.organization.noMatches': '冇發佈目的地啱而家嘅搜尋。',
+  'publish.organization.selectedHint': '已揀',
+  'publish.organization.regexErrorPrefix': 'Pattern 有問題：',
   'settingsSearch.inputLabel': '搜尋設定',
   'settingsSearch.inputPlaceholder': '打字搵設定…',
   'settingsSearch.resultsHeading': '搜尋結果',

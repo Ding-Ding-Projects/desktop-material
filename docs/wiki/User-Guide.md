@@ -353,8 +353,18 @@ rather than a browser OAuth flow:
 When a GitHub account belongs to organizations, the clone view loads the account's organization
 list and adds filter chips. Select an organization to browse its complete repository list; if one
 organization fails to load, the view reports that error without hiding the repositories already
-available. The publish dialog uses the same organization list, so choose the owner before creating
-the remote repository.
+available.
+
+The **Publish repository** dialog presents that ownership choice as a
+searchable listbox. **None** publishes to the personal account, while the other
+rows select an organization. The search supports fuzzy, substring, and bounded
+safe-regex modes plus the full Regex Builder. Invalid regex keeps every owner
+reachable and reports the pattern problem inline. Arrow keys,
+<kbd>Home</kbd>/<kbd>End</kbd>, and <kbd>Enter</kbd>/<kbd>Space</kbd> work from
+the keyboard. On narrow windows the search tools wrap above a list with its own
+scroll, so the owner rows and the dialog actions remain reachable.
+
+![Bilingual Publish repository dialog with a visible, searchable organization listbox](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-publish-organization-picker.png)
 
 ### Assign an account to a repository
 

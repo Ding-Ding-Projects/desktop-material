@@ -18,6 +18,101 @@ function renderBuilder() {
 }
 
 describe('RegexBuilder keyboard tabs', () => {
+  it('owns Escape after background focus and restores focus exactly once', () => {
+    let builderDismissals = 0
+    let hostDismissals = 0
+    let nextFrameId = 0
+    const scheduledFrames = new Map<number, FrameRequestCallback>()
+    const originalRequestAnimationFrame = window.requestAnimationFrame
+    const originalCancelAnimationFrame = window.cancelAnimationFrame
+
+    window.requestAnimationFrame = callback => {
+      const frameId = ++nextFrameId
+      scheduledFrames.set(frameId, callback)
+      return frameId
+    }
+    window.cancelAnimationFrame = frameId => {
+      scheduledFrames.delete(frameId)
+    }
+
+    function NestedBuilderHarness() {
+      const [builderOpen, setBuilderOpen] = React.useState(false)
+
+      const onHostKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === 'Escape') {
+          hostDismissals++
+        }
+      }
+
+      return (
+        // The focusable test dialog models the host's real Escape handler.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
+        <div
+          role="dialog"
+          aria-label="Host dialog"
+          tabIndex={-1}
+          onKeyDown={onHostKeyDown}
+        >
+          <button type="button" onClick={() => setBuilderOpen(true)}>
+            Open regex builder
+          </button>
+          {builderOpen ? (
+            <RegexBuilder
+              targetLabel="Changes"
+              initialPattern=""
+              sampleItems={[]}
+              onApply={() => undefined}
+              onDismissed={() => {
+                builderDismissals++
+                setBuilderOpen(false)
+              }}
+            />
+          ) : null}
+        </div>
+      )
+    }
+
+    const view = render(<NestedBuilderHarness />)
+    try {
+      const opener = screen.getByRole('button', { name: 'Open regex builder' })
+      opener.focus()
+      fireEvent.click(opener)
+
+      const patternInput = screen.getByRole('textbox', {
+        name: 'Regular expression pattern',
+      })
+      assert.equal(document.activeElement, patternInput)
+
+      // The overlay is intentionally non-modal, so a user can move focus back
+      // to its host while the builder remains open. Escape must still belong
+      // to the builder and never leak into the host dialog.
+      opener.focus()
+      assert.equal(document.activeElement, opener)
+      const propagated = fireEvent.keyDown(opener, {
+        key: 'Escape',
+        code: 'Escape',
+      })
+
+      assert.equal(propagated, false, 'the builder prevents the Escape default')
+      assert.equal(builderDismissals, 1)
+      assert.equal(hostDismissals, 0)
+      assert.equal(
+        screen.queryByRole('dialog', { name: 'Build regular expression' }),
+        null
+      )
+
+      assert.equal(scheduledFrames.size, 1)
+      const returnFocusFrame = Array.from(scheduledFrames.values())[0]
+      assert.ok(returnFocusFrame)
+      returnFocusFrame(0)
+      assert.equal(document.activeElement, opener)
+    } finally {
+      view.unmount()
+      window.requestAnimationFrame = originalRequestAnimationFrame
+      window.cancelAnimationFrame = originalCancelAnimationFrame
+    }
+  })
+
   it('roves through the view tabs and keeps every controlled panel mounted', () => {
     renderBuilder()
 

@@ -126,6 +126,7 @@ describe('Pages accessibility contracts', () => {
       'docs/assets/screenshots/material-history-context-actions.png',
       'docs/assets/screenshots/material-repository-tools-scroll.png',
       'docs/assets/screenshots/auto-updater-current-source-ready.png',
+      'docs/assets/screenshots/material-publish-organization-picker.png',
     ]) {
       assert.ok(markup.includes(`href="${source}"`))
       assert.ok(markup.includes(`src="${source}"`))
@@ -176,7 +177,7 @@ describe('Pages accessibility contracts', () => {
     ]
       .map(([, file]) => `docs/assets/screenshots/${file}`)
       .sort()
-    assert.equal(expectedSources.length, 84)
+    assert.equal(expectedSources.length, 85)
     assert.equal(figures.length, expectedSources.length)
 
     const actualSources = new Array<string>()

@@ -13,9 +13,10 @@
 const fs = require('fs')
 const path = require('path')
 
-const ExpectedPublishedGalleryCount = 84
+const ExpectedPublishedGalleryCount = 85
 const CanonicalCandidateCount = 68
 const DeferredCanonicalOutputs = Object.freeze(['material-cheap-lfs-preparing'])
+const DeferredSpecialistOutputs = Object.freeze([])
 const RetainedHistoricalEvidence = Object.freeze({
   'auto-updater-update-ready.png': Object.freeze({
     acceptedAt: '2026-07-22',
@@ -84,6 +85,17 @@ const CaptureBatches = Object.freeze({
       'Fresh owned P0 run root, isolated user data, disposable provider-backed Git fixture, and the exact production bundle on a hidden Win32 desktop.',
     privacyGate:
       'capture_gallery_cdp.js runs its renderer privacy assertion before every Page.captureScreenshot call; inspect every original PNG before promotion.',
+  }),
+  'windows-publish-organization-cdp': Object.freeze({
+    platform: 'windows-headless',
+    commands: Object.freeze([
+      'npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod',
+      'node .codex/verification/capture_gallery_cdp.js --scenes publish-organization-picker --run-root <owned-p0-run-root> --fixture-path <owned-p0-run-root>\\fixture --out <owned-p0-run-root>\\captures\\gallery --port <owned-cdp-port> --theme dark --language-mode bilingual --width 1440 --height 960',
+    ]),
+    fixture:
+      'Fresh owned P0 run root with its clean real git-source repository (no remote), provider-backed fixture clone, isolated profile, and three deterministic organization owners including one deliberately long login.',
+    privacyGate:
+      'The scene proves the owned no-remote source before opening Publish Repository, rejects provider mutations, runs the renderer privacy assertion, and requires contained physical 390x844 auto-fit geometry before restoring and capturing at 1440x960.',
   }),
   'windows-internal-browser': Object.freeze({
     platform: 'windows-headless',
@@ -274,6 +286,13 @@ const SpecialistCaptureEntries = Object.freeze([
       'Fetch once, open the exact frozen fast-forward review, and leave branch identities, incoming commits, changed files, and clean-worktree confirmation visible without confirming Pull.',
   },
   {
+    output: 'material-publish-organization-picker',
+    scene: 'publish-organization-picker',
+    batch: 'windows-publish-organization-cdp',
+    interaction:
+      'Add and select the real P0 no-remote git-source repository through the shipped dialog, invoke Push to open Publish Repository, exercise fuzzy, substring, invalid and valid regex, the Regex Builder, keyboard selection of the final owner and None, then prove the bilingual picker at a physical 390x844 auto-fit window before restoring the reviewed 1440x960 frame.',
+  },
+  {
     output: 'material-tab-groups',
     scene: 'restored-tab-group',
     batch: 'windows-ui-state-lowlevel',
@@ -328,7 +347,10 @@ function buildGalleryCapturePlan() {
       output
     )} scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.`,
   }))
-  const entries = [...canonical, ...SpecialistCaptureEntries].map(entry => {
+  const publishedSpecialists = SpecialistCaptureEntries.filter(
+    entry => !DeferredSpecialistOutputs.includes(entry.output)
+  )
+  const entries = [...canonical, ...publishedSpecialists].map(entry => {
     const batch = CaptureBatches[entry.batch]
     if (batch === undefined) {
       throw new Error(`Unknown capture batch ${entry.batch}.`)
@@ -366,6 +388,18 @@ function buildGalleryCapturePlan() {
       `Capture plan/catalog mismatch: ${JSON.stringify({ missing, extra })}`
     )
   }
+  const invalidDeferredSpecialists = DeferredSpecialistOutputs.filter(
+    output =>
+      !SpecialistCaptureEntries.some(entry => entry.output === output) ||
+      PublishedGalleryOutputs.includes(output)
+  )
+  if (invalidDeferredSpecialists.length > 0) {
+    throw new Error(
+      `Deferred specialist outputs must be planned but unpublished: ${JSON.stringify(
+        invalidDeferredSpecialists
+      )}`
+    )
+  }
   return Object.freeze(entries)
 }
 
@@ -378,6 +412,7 @@ module.exports = {
   CanonicalGalleryScenes,
   CaptureBatches,
   DeferredCanonicalOutputs,
+  DeferredSpecialistOutputs,
   ExpectedPublishedGalleryCount,
   GalleryCapturePlan,
   PublishedGalleryOutputs,
@@ -398,7 +433,10 @@ if (require.main === module) {
         published: GalleryCapturePlan.length,
         canonicalCandidates: CanonicalGalleryOutputs.length,
         deferredCanonical: DeferredCanonicalOutputs,
-        specialist: SpecialistCaptureEntries.length,
+        deferredSpecialist: DeferredSpecialistOutputs,
+        publishedSpecialist:
+          SpecialistCaptureEntries.length - DeferredSpecialistOutputs.length,
+        specialistCandidates: SpecialistCaptureEntries.length,
         batches: summary,
       },
       null,

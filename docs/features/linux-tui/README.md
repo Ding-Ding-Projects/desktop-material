@@ -51,7 +51,7 @@ node tui/tools/generate-parity-contract.mjs --check
 ## Historical terminal captures
 
 The five original, unedited captures came from the packaged wheel running in
-an off-screen Debian terminal. They are retained outside the current 84-scene
+an off-screen Debian terminal. They are retained outside the current 85-scene
 Windows gallery and include the Changes overview, real
 single-line and multiline editing, the clickable Cheap LFS manager, live RE2
 matches, and the compact bilingual layout:

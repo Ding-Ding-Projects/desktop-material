@@ -240,6 +240,59 @@ function assertOwnedDisposableFixture() {
   }
 }
 
+/**
+ * Resolve the untouched repository created by prepare_p0_fixture.ps1 before
+ * its bare clone and provider-backed app clone exist. This is the only P0
+ * repository that deliberately has no remote, so it is the real entry point
+ * for Publish Repository acceptance rather than a renderer-injected stand-in.
+ */
+function assertOwnedPublishSourceFixture() {
+  assertOwnedDisposableFixture()
+  if (runRoot === undefined || fixtureSourcePath === null) {
+    fail('Publish Repository evidence requires the owned P0 source fixture.')
+  }
+
+  let ownedRunRoot
+  let ownedSource
+  let sourceEntry
+  try {
+    ownedRunRoot = fs.realpathSync.native(path.resolve(runRoot))
+    sourceEntry = fs.lstatSync(fixtureSourcePath)
+    ownedSource = fs.realpathSync.native(fixtureSourcePath)
+  } catch {
+    fail('The owned P0 Publish source fixture could not be resolved.')
+  }
+
+  const relativeSource = path.relative(ownedRunRoot, ownedSource)
+  if (
+    !sourceEntry.isDirectory() ||
+    sourceEntry.isSymbolicLink() ||
+    relativeSource.toLowerCase() !== 'git-source' ||
+    path.isAbsolute(relativeSource) ||
+    ownedSource.toLowerCase() !== path.resolve(fixtureSourcePath).toLowerCase()
+  ) {
+    fail('The P0 Publish source fixture escaped its owned run root.')
+  }
+
+  const insideWorkTree = runAdvancedWorkflowGit(ownedSource, [
+    'rev-parse',
+    '--is-inside-work-tree',
+  ])
+  const remotes = runAdvancedWorkflowGit(ownedSource, ['remote'])
+  const status = runAdvancedWorkflowGit(ownedSource, [
+    'status',
+    '--porcelain=v1',
+    '--untracked-files=all',
+  ])
+  if (insideWorkTree !== 'true' || remotes !== '' || status !== '') {
+    fail(
+      'Publish Repository evidence requires the clean real P0 repository with no remote.'
+    )
+  }
+
+  return ownedSource
+}
+
 const AdvancedWorkflowLocalTagNames = Object.freeze([
   'preview-local',
   'v1.0.0',
@@ -2991,6 +3044,678 @@ scene('repositories-sheet', async () => {
     )
   }
   await capture('material-repositories-sheet')
+  await closeAllDialogs()
+})
+
+scene('publish-organization-picker', async () => {
+  const expectedOrganizations = Object.freeze([
+    'desktop-material-responsive-verification-organization-with-a-deliberately-long-login',
+    'material-design-labs',
+    'material-fixture-owner',
+  ])
+  const longOrganization = expectedOrganizations[0]
+  if (requestedLanguageMode !== 'bilingual') {
+    fail(
+      'Publish Organization gallery evidence requires --language-mode bilingual.'
+    )
+  }
+  if (CaptureWidth !== 1440 || CaptureHeight !== 960) {
+    fail(
+      'Publish Organization gallery evidence requires a 1440x960 capture viewport.'
+    )
+  }
+  if (ready === null || providerRequestLog === null) {
+    fail(
+      'Publish Organization gallery evidence requires the owned P0 provider.'
+    )
+  }
+
+  const publishSource = assertOwnedPublishSourceFixture()
+  await seedProfile()
+  const mutationsBefore = countProviderMutations()
+  const organizationRequestsBefore = countProviderRequests(
+    'GET',
+    /\/user\/orgs(?:\?|$)/
+  )
+
+  // Reset only this not-yet-mounted collection's documented preference, then
+  // add the real no-remote repository through the shipped dialog.
+  await evaluate(`(() => {
+    localStorage.setItem('filter-mode/publish-organizations', 'fuzzy')
+    return true
+  })()`)
+  await menuEvent('add-local-repository')
+  await waitFor(
+    `document.querySelector(
+      '#add-existing-repository input[type="text"]'
+    ) !== null`,
+    'P0 no-remote Add repository dialog'
+  )
+  await setInput('#add-existing-repository input[type="text"]', publishSource)
+  await waitFor(
+    `(() => {
+      const dialog = document.querySelector('#add-existing-repository')
+      const button = dialog && [...dialog.querySelectorAll('button')].find(
+        candidate => vt(candidate) === 'Add repository'
+      )
+      return button instanceof HTMLButtonElement &&
+        !button.disabled &&
+        button.getAttribute('aria-disabled') !== 'true'
+    })()`,
+    'enabled Add repository action for the P0 no-remote fixture',
+    25000
+  )
+  await clickText('Add repository', {
+    within: '#add-existing-repository',
+  })
+  await waitFor(
+    `(() => {
+      if (document.querySelector('#add-existing-repository') !== null) {
+        return false
+      }
+      const root = document.querySelector('#desktop-app-container')
+      const node = root?.querySelector('*')
+      const fiberKey = node && Object.keys(node).find(key =>
+        key.startsWith('__reactFiber$') ||
+        key.startsWith('__reactInternalInstance$')
+      )
+      let fiber = fiberKey ? node[fiberKey] : null
+      let appStore = null
+      for (let depth = 0; fiber && depth < 120; depth++, fiber = fiber.return) {
+        if (fiber.stateNode?.props?.appStore) {
+          appStore = fiber.stateNode.props.appStore
+          break
+        }
+      }
+      const selectedPath = appStore?.selectedRepository?.path
+      const expectedPath = ${JSON.stringify(publishSource)}
+      const selectedTabs = [...document.querySelectorAll(
+        '.repository-tab[role="tab"][aria-selected="true"]'
+      )]
+      return typeof selectedPath === 'string' &&
+        selectedPath.replaceAll('/', '\\\\').toLowerCase() ===
+          expectedPath.replaceAll('/', '\\\\').toLowerCase() &&
+        selectedTabs.length === 1 &&
+        vt(selectedTabs[0].querySelector('.repository-tab-label')) ===
+          'git-source'
+    })()`,
+    'selected real P0 no-remote repository',
+    30000
+  )
+
+  await menuEvent('push')
+  await waitFor(
+    `(() => {
+      const dialog = document.querySelector('#publish-repository[open]')
+      const list = dialog?.querySelector(
+        '#publish-organization-results.publish-organization-results'
+      )
+      return dialog instanceof HTMLDialogElement &&
+        list instanceof HTMLElement
+    })()`,
+    'Publish Repository organization listbox'
+  )
+  await waitFor(
+    `(() => {
+      const picker = document.querySelector(
+        '#publish-repository .publish-organization-picker'
+      )
+      const list = picker?.querySelector('.publish-organization-results')
+      const options = [...(list?.querySelectorAll(
+        '.publish-organization-option[role="option"]'
+      ) ?? [])]
+      const organizationLabels = options
+        .filter(option => option.dataset.optionKey !== 'none')
+        .map(option =>
+          vt(option.querySelector('.publish-organization-option-copy'))
+        )
+      const avatars = [...(picker?.querySelectorAll(
+        '.publish-organization-avatar'
+      ) ?? [])]
+      return options.length === 4 &&
+        options[0]?.dataset.optionKey === 'none' &&
+        JSON.stringify(organizationLabels) ===
+          ${JSON.stringify(JSON.stringify(expectedOrganizations))} &&
+        avatars.length === 3 &&
+        avatars.every(avatar =>
+          avatar instanceof HTMLImageElement &&
+          avatar.complete &&
+          avatar.naturalWidth > 0
+        )
+    })()`,
+    'three deterministic P0 organizations and None',
+    25000
+  )
+
+  const searchSelector =
+    '.publish-organization-search input[data-search-surface-id="publish-organizations"]'
+  const modeSelector =
+    '#publish-repository .publish-organization-filter-row .filter-mode-button'
+  const listSelector =
+    '#publish-repository #publish-organization-results.publish-organization-results'
+
+  await waitFor(
+    `document.querySelector(${JSON.stringify(
+      modeSelector
+    )})?.getAttribute('aria-label') ===
+      'Filter mode: Fuzzy (click to change)'`,
+    'Publish Organization fuzzy mode'
+  )
+  await setInput(searchSelector, 'material-design')
+  await waitFor(
+    `(() => {
+      const options = [...document.querySelectorAll(
+        '#publish-repository .publish-organization-option[role="option"]'
+      )]
+      return options.length === 1 &&
+        vt(options[0].querySelector('.publish-organization-option-copy')) ===
+          'material-design-labs'
+    })()`,
+    'fuzzy organization search'
+  )
+
+  await clickEnabledSelector(modeSelector)
+  await waitFor(
+    `document.querySelector(${JSON.stringify(
+      modeSelector
+    )})?.getAttribute('aria-label') ===
+      'Filter mode: Substring (click to change)'`,
+    'Publish Organization substring mode'
+  )
+  await setInput(searchSelector, 'definitely-no-publish-destination')
+  await waitFor(
+    `(() => {
+      const dialog = document.querySelector('#publish-repository')
+      const empty = dialog?.querySelector('.publish-organization-empty')
+      const list = dialog?.querySelector('.publish-organization-results')
+      return empty instanceof HTMLElement &&
+        list instanceof HTMLElement &&
+        list.getBoundingClientRect().height >= 120 &&
+        list.querySelectorAll('[role="option"]').length === 0
+    })()`,
+    'explicit empty Publish Organization result'
+  )
+
+  await clickEnabledSelector(modeSelector)
+  await waitFor(
+    `document.querySelector(${JSON.stringify(
+      modeSelector
+    )})?.getAttribute('aria-label') ===
+      'Filter mode: Regex (click to change)'`,
+    'Publish Organization regex mode'
+  )
+  await setInput(searchSelector, '[')
+  await waitFor(
+    `(() => {
+      const dialog = document.querySelector('#publish-repository')
+      const input = dialog?.querySelector(${JSON.stringify(searchSelector)})
+      const error = dialog?.querySelector(
+        '.publish-organization-error[role="alert"]'
+      )
+      const options = dialog?.querySelectorAll(
+        '.publish-organization-option[role="option"]'
+      )
+      return input?.getAttribute('aria-invalid') === 'true' &&
+        error instanceof HTMLElement &&
+        vt(error).length > 0 &&
+        options?.length === 4
+    })()`,
+    'non-destructive invalid organization regex'
+  )
+
+  await clickEnabledSelector('#publish-repository .filter-regex-builder-button')
+  await waitFor(
+    `document.querySelector('#regex-builder-title') !== null`,
+    'Publish Organization Regex Builder'
+  )
+  await pressEscape(1)
+  await waitFor(
+    `document.querySelector('#regex-builder-title') === null &&
+      document.querySelector('#publish-repository[open]') !== null`,
+    'closed Publish Organization Regex Builder'
+  )
+  await setInput(searchSelector, '.*')
+  await waitFor(
+    `(() => {
+      const dialog = document.querySelector('#publish-repository')
+      return dialog?.querySelector('.publish-organization-error') === null &&
+        dialog?.querySelectorAll(
+          '.publish-organization-option[role="option"]'
+        ).length === 4
+    })()`,
+    'valid organization regex'
+  )
+  await setInput(searchSelector, '')
+
+  let narrowViewportApplied = false
+  try {
+    await setViewport(390, 844)
+    narrowViewportApplied = true
+    await waitFor(
+      `Math.abs(Math.round(window.innerWidth * window.devicePixelRatio) - 390) <= 2 &&
+        Math.abs(Math.round(window.innerHeight * window.devicePixelRatio) - 844) <= 2 &&
+        localStorage.getItem('zoom-auto-fit-enabled') === '1' &&
+        document.querySelector(${JSON.stringify(listSelector)})
+          ?.querySelectorAll('[role="option"]').length === 4`,
+      '390x844 Publish Organization viewport'
+    )
+
+    const focusedList = await evaluate(`(() => {
+      const list = document.querySelector(${JSON.stringify(listSelector)})
+      if (!(list instanceof HTMLElement)) return false
+      list.focus()
+      return document.activeElement === list
+    })()`)
+    if (!focusedList) {
+      fail('The Publish Organization listbox could not receive keyboard focus.')
+    }
+    await dispatchKeyboardKey('End', 'End', 35)
+    await waitFor(
+      `(() => {
+        const list = document.querySelector(${JSON.stringify(listSelector)})
+        const options = [...(list?.querySelectorAll(
+          '.publish-organization-option[role="option"]'
+        ) ?? [])]
+        const last = options.at(-1)
+        const active = list?.getAttribute('aria-activedescendant')
+        if (!(list instanceof HTMLElement) ||
+            !(last instanceof HTMLElement) ||
+            active !== last.id) return false
+        const listBounds = list.getBoundingClientRect()
+        const lastBounds = last.getBoundingClientRect()
+        return lastBounds.top >= listBounds.top - 0.5 &&
+          lastBounds.bottom <= listBounds.bottom + 0.5
+      })()`,
+      'keyboard-reachable final organization option'
+    )
+    await dispatchKeyboardKey('Enter', 'Enter', 13)
+    await waitFor(
+      `(() => {
+        const options = [...document.querySelectorAll(
+          '#publish-repository .publish-organization-option[role="option"]'
+        )]
+        return options.at(-1)?.getAttribute('aria-selected') === 'true'
+      })()`,
+      'selected final organization option'
+    )
+    await dispatchKeyboardKey('Home', 'Home', 36)
+    await dispatchKeyboardKey('Enter', 'Enter', 13)
+    await waitFor(
+      `document.querySelector(
+        '#publish-repository .publish-organization-option[data-option-key="none"]'
+      )?.getAttribute('aria-selected') === 'true'`,
+      'keyboard-selected None organization'
+    )
+
+    const geometry = await evaluate(`(async () => {
+      const visible = element => {
+        if (!(element instanceof HTMLElement)) return false
+        const style = getComputedStyle(element)
+        const bounds = element.getBoundingClientRect()
+        return style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          Number(style.opacity || 1) !== 0 &&
+          bounds.width > 0 && bounds.height > 0
+      }
+      const bounds = element => {
+        const rect = element.getBoundingClientRect()
+        return {
+          left: rect.left,
+          right: rect.right,
+          top: rect.top,
+          bottom: rect.bottom,
+          width: rect.width,
+          height: rect.height,
+        }
+      }
+      const within = (child, parent, tolerance = 0.75) =>
+        child.left >= parent.left - tolerance &&
+        child.right <= parent.right + tolerance &&
+        child.top >= parent.top - tolerance &&
+        child.bottom <= parent.bottom + tolerance
+      const withinViewport = (rect, tolerance = 0.75) =>
+        rect.left >= -tolerance &&
+        rect.right <= window.innerWidth + tolerance &&
+        rect.top >= -tolerance &&
+        rect.bottom <= window.innerHeight + tolerance
+      const horizontalWithin = (child, parent, tolerance = 0.75) =>
+        child.left >= parent.left - tolerance &&
+        child.right <= parent.right + tolerance
+      const verticallyIntersects = (child, parent) =>
+        child.bottom > parent.top + 1 && child.top < parent.bottom - 1
+      const describe = element => {
+        const id = element.id ? '#' + element.id : ''
+        const classes = [...element.classList]
+          .slice(0, 3)
+          .map(name => '.' + name)
+          .join('')
+        return element.tagName.toLowerCase() + id + classes
+      }
+
+      const dialog = document.querySelector('#publish-repository[open]')
+      const picker = dialog?.querySelector('.publish-organization-picker')
+      const filterRow = picker?.querySelector(
+        '.publish-organization-filter-row'
+      )
+      const search = picker?.querySelector('.publish-organization-search')
+      const searchInput = picker?.querySelector(
+        'input[data-search-surface-id="publish-organizations"]'
+      )
+      const modeControl = picker?.querySelector('.filter-mode-control')
+      const modeCluster = picker?.querySelector(
+        '.filter-mode-control-cluster'
+      )
+      const list = picker?.querySelector('.publish-organization-results')
+      const count = picker?.querySelector(
+        '.publish-organization-result-count'
+      )
+      const footer = dialog?.querySelector('.dialog-footer')
+      const required = {
+        dialog,
+        picker,
+        filterRow,
+        search,
+        searchInput,
+        modeControl,
+        modeCluster,
+        list,
+        count,
+        footer,
+      }
+      const missing = Object.entries(required)
+        .filter(([, element]) => !visible(element))
+        .map(([name]) => name)
+      if (missing.length > 0) {
+        return { viewport: [window.innerWidth, window.innerHeight], missing }
+      }
+
+      const dialogBounds = bounds(dialog)
+      const listBounds = bounds(list)
+      const deviceScale = window.devicePixelRatio
+      const zoomFactor = require('electron').webFrame.getZoomFactor()
+      const options = [...list.querySelectorAll(
+        '.publish-organization-option[role="option"]'
+      )]
+      const optionRects = options.map(option => ({
+        label: vt(option.querySelector('.publish-organization-option-copy')),
+        rect: bounds(option),
+      }))
+      const visibleOptions = options.filter(option => {
+        const rect = bounds(option)
+        return visible(option) && verticallyIntersects(rect, listBounds)
+      })
+      const empty = picker.querySelector('.publish-organization-empty')
+
+      const controlCandidates = [
+        picker,
+        filterRow,
+        search,
+        searchInput,
+        modeControl,
+        modeCluster,
+        list,
+        count,
+        footer,
+        ...dialog.querySelectorAll(
+          'button, input, [role="tab"], [role="listbox"]'
+        ),
+      ]
+      const controls = [...new Set(controlCandidates)].filter(element => {
+        if (!visible(element)) return false
+        if (!element.matches('.publish-organization-option')) return true
+        return verticallyIntersects(bounds(element), listBounds)
+      })
+      const controlFailures = controls
+        .map(element => ({ name: describe(element), rect: bounds(element) }))
+        .filter(item =>
+          !within(item.rect, dialogBounds) || !withinViewport(item.rect)
+        )
+
+      const horizontalOverflow = [
+        document.documentElement,
+        document.body,
+        dialog,
+        picker,
+        filterRow,
+        search,
+        searchInput,
+        modeControl,
+        modeCluster,
+        list,
+      ]
+        .filter(element =>
+          element.scrollWidth > element.clientWidth + 1
+        )
+        .map(describe)
+      const optionHorizontalFailures = optionRects
+        .filter(item => !horizontalWithin(item.rect, listBounds))
+        .map(item => item.label)
+
+      const longOption = options.find(option =>
+        vt(option.querySelector('.publish-organization-option-copy')) ===
+          ${JSON.stringify(longOrganization)}
+      )
+      const longCopy = longOption?.querySelector(
+        '.publish-organization-option-copy'
+      )
+      const longCopyStyle =
+        longCopy instanceof HTMLElement ? getComputedStyle(longCopy) : null
+      const longContained =
+        longOption instanceof HTMLElement &&
+        longCopy instanceof HTMLElement &&
+        horizontalWithin(bounds(longOption), listBounds) &&
+        horizontalWithin(bounds(longCopy), bounds(longOption)) &&
+        longCopy.scrollWidth > longCopy.clientWidth + 1 &&
+        longCopyStyle?.overflowX === 'hidden' &&
+        longCopyStyle?.textOverflow === 'ellipsis' &&
+        longCopyStyle?.whiteSpace === 'nowrap'
+
+      // Keyboard selection uses scrollIntoView({ block: 'nearest' }), which
+      // can leave a harmless sub-row offset. Normalize the owned scroll proof
+      // to the top before requiring a positive trip to the final option.
+      list.scrollTop = 0
+      await new Promise(resolve => requestAnimationFrame(() =>
+        requestAnimationFrame(resolve)
+      ))
+      const initialScrollTop = list.scrollTop
+      list.scrollTop = list.scrollHeight
+      await new Promise(resolve => requestAnimationFrame(() =>
+        requestAnimationFrame(resolve)
+      ))
+      const finalOption = options.at(-1)
+      const finalBounds =
+        finalOption instanceof HTMLElement ? bounds(finalOption) : null
+      const maximumScrollTop = list.scrollHeight - list.clientHeight
+      const reachedBottom =
+        list.scrollHeight > list.clientHeight &&
+        maximumScrollTop > 0 &&
+        Math.abs(list.scrollTop - maximumScrollTop) <= 1
+      const scrolledForward = list.scrollTop > initialScrollTop + 0.5
+      const finalOptionVisible =
+        finalBounds !== null &&
+        finalBounds.top >= listBounds.top - 0.75 &&
+        finalBounds.bottom <= listBounds.bottom + 0.75
+      const finalOptionLabel =
+        finalOption instanceof HTMLElement
+          ? vt(finalOption.querySelector('.publish-organization-option-copy'))
+          : null
+      list.scrollTop = 0
+
+      return {
+        viewport: [
+          Math.round(window.innerWidth * deviceScale),
+          Math.round(window.innerHeight * deviceScale),
+        ],
+        logicalViewport: [window.innerWidth, window.innerHeight],
+        devicePixelRatio: deviceScale,
+        zoomFactor,
+        autoFitZoomEnabled:
+          localStorage.getItem('zoom-auto-fit-enabled') === '1',
+        missing,
+        dialog: dialogBounds,
+        list: {
+          ...listBounds,
+          physicalWidth: listBounds.width * deviceScale,
+          physicalHeight: listBounds.height * deviceScale,
+          clientWidth: list.clientWidth,
+          scrollWidth: list.scrollWidth,
+          clientHeight: list.clientHeight,
+          scrollHeight: list.scrollHeight,
+          initialScrollTop,
+          maximumScrollTop,
+        },
+        optionCount: options.length,
+        visibleOptionCount: visibleOptions.length,
+        emptyVisible: visible(empty),
+        controlCount: controls.length,
+        controlFailures,
+        horizontalOverflow,
+        optionHorizontalFailures,
+        longContained,
+        reachedBottom,
+        scrolledForward,
+        finalOptionVisible,
+        finalOptionLabel,
+        dialogContained: withinViewport(dialogBounds),
+      }
+    })()`)
+    if (
+      geometry?.viewport?.[0] !== 390 ||
+      geometry?.viewport?.[1] !== 844 ||
+      geometry?.autoFitZoomEnabled !== true ||
+      (geometry?.devicePixelRatio ?? 0) <= 0 ||
+      Math.abs(
+        (geometry?.zoomFactor ?? 0) - (geometry?.devicePixelRatio ?? 0)
+      ) > 0.001 ||
+      geometry?.missing?.length !== 0 ||
+      geometry?.dialogContained !== true ||
+      geometry?.list?.width <= 0 ||
+      geometry?.list?.height < 120 ||
+      geometry?.list?.physicalHeight < 44 ||
+      geometry?.list?.clientHeight < 120 ||
+      geometry?.list?.scrollHeight <= geometry?.list?.clientHeight ||
+      geometry?.list?.maximumScrollTop <= 0 ||
+      geometry?.list?.initialScrollTop > 0.5 ||
+      geometry?.list?.scrollWidth > geometry?.list?.clientWidth + 1 ||
+      geometry?.optionCount !== 4 ||
+      ((geometry?.visibleOptionCount ?? 0) < 1 &&
+        geometry?.emptyVisible !== true) ||
+      (geometry?.controlCount ?? 0) < 12 ||
+      geometry?.controlFailures?.length !== 0 ||
+      geometry?.horizontalOverflow?.length !== 0 ||
+      geometry?.optionHorizontalFailures?.length !== 0 ||
+      geometry?.longContained !== true ||
+      geometry?.reachedBottom !== true ||
+      geometry?.scrolledForward !== true ||
+      geometry?.finalOptionVisible !== true ||
+      geometry?.finalOptionLabel !== expectedOrganizations.at(-1)
+    ) {
+      fail(
+        `Publish Organization 390x844 geometry failed: ${JSON.stringify(
+          geometry
+        )}`
+      )
+    }
+    process.stdout.write(
+      `PUBLISH_ORGANIZATION_GEOMETRY ${JSON.stringify(geometry)}\n`
+    )
+  } finally {
+    if (narrowViewportApplied) {
+      await restoreCaptureViewport()
+    }
+  }
+
+  await waitFor(
+    `window.innerWidth === 1440 && window.innerHeight === 960`,
+    'restored 1440x960 Publish Organization viewport'
+  )
+  await waitFor(
+    `document.querySelector('#window-zoom-info') === null`,
+    'dismissed Publish Organization zoom indicator',
+    5000
+  )
+  const wideState = await evaluate(`(() => {
+    const dialog = document.querySelector('#publish-repository[open]')
+    const list = dialog?.querySelector('.publish-organization-results')
+    const picker = dialog?.querySelector('.publish-organization-picker')
+    const longOption = [...(list?.querySelectorAll(
+      '.publish-organization-option[role="option"]'
+    ) ?? [])].find(option =>
+      vt(option.querySelector('.publish-organization-option-copy')) ===
+        ${JSON.stringify(longOrganization)}
+    )
+    if (!(dialog instanceof HTMLElement) ||
+        !(picker instanceof HTMLElement) ||
+        !(list instanceof HTMLElement) ||
+        !(longOption instanceof HTMLElement)) return null
+    const dialogBounds = dialog.getBoundingClientRect()
+    const pickerBounds = picker.getBoundingClientRect()
+    const listBounds = list.getBoundingClientRect()
+    const within = (child, parent) =>
+      child.left >= parent.left - 0.75 &&
+      child.right <= parent.right + 0.75 &&
+      child.top >= parent.top - 0.75 &&
+      child.bottom <= parent.bottom + 0.75
+    return {
+      viewport: [window.innerWidth, window.innerHeight],
+      listHeight: listBounds.height,
+      optionCount: list.querySelectorAll('[role="option"]').length,
+      pickerContained: within(pickerBounds, dialogBounds),
+      noHorizontalOverflow:
+        document.documentElement.scrollWidth <= window.innerWidth + 1 &&
+        dialog.scrollWidth <= dialog.clientWidth + 1 &&
+        picker.scrollWidth <= picker.clientWidth + 1 &&
+        list.scrollWidth <= list.clientWidth + 1,
+      noneSelected:
+        list.querySelector('[data-option-key="none"]')
+          ?.getAttribute('aria-selected') === 'true',
+    }
+  })()`)
+  if (
+    wideState?.viewport?.[0] !== 1440 ||
+    wideState?.viewport?.[1] !== 960 ||
+    wideState?.listHeight < 120 ||
+    wideState?.optionCount !== 4 ||
+    wideState?.pickerContained !== true ||
+    wideState?.noHorizontalOverflow !== true ||
+    wideState?.noneSelected !== true
+  ) {
+    fail(
+      `Restored Publish Organization gallery state failed: ${JSON.stringify(
+        wideState
+      )}`
+    )
+  }
+
+  const organizationRequestsAfter = countProviderRequests(
+    'GET',
+    /\/user\/orgs(?:\?|$)/
+  )
+  if (organizationRequestsAfter !== organizationRequestsBefore + 1) {
+    fail(
+      `Publish Organization gallery expected one organization request: ${JSON.stringify(
+        {
+          before: organizationRequestsBefore,
+          after: organizationRequestsAfter,
+        }
+      )}`
+    )
+  }
+  assertNoProviderMutations(
+    mutationsBefore,
+    'publish-organization-picker scene'
+  )
+  process.stdout.write(
+    `PUBLISH_ORGANIZATION_STATE ${JSON.stringify({
+      organizations: expectedOrganizations,
+      organizationRequests:
+        organizationRequestsAfter - organizationRequestsBefore,
+      languageMode: requestedLanguageMode,
+      viewport: wideState.viewport,
+    })}\n`
+  )
+  await parkPointer()
+  await capture('material-publish-organization-picker')
   await closeAllDialogs()
 })
 

@@ -20,7 +20,7 @@ automation, and account isolation. The diagrams are reproducible with
 Five original-resolution Debian/Xvfb captures remain preserved with their
 [dated run manifest](../verification/linux-tui-2026-07-27/run-manifest.md).
 They are historical evidence, not current Windows screenshots, and are
-therefore excluded from the 84-scene guided-gallery target, Pages manifest,
+therefore excluded from the 85-scene guided-gallery target, Pages manifest,
 and current refresh campaign.
 
 ## Inherited external-UI assets — excluded from the capture mandate
@@ -51,6 +51,10 @@ someone else's UI rather than evidence about this app. They are therefore
 capture coverage. Decision recorded 2026-07-27 (issue #25, option A). Anyone
 adding a new external-product screenshot should list it here with the same
 justification rather than leaving it to be mistaken for a stale app capture.
+
+| Searchable Publish organization owner |
+| --- |
+| <img src="../assets/screenshots/material-publish-organization-picker.png" alt="Bilingual Publish repository dialog with a searchable organization owner listbox fully visible at narrow width" width="720"><br><sub>Personal or organization owner · fuzzy/substring/safe regex · non-collapsing contained list</sub> |
 
 | Custom app identity | Material Welcome | Appearance customization | Dynamic toolbar overflow |
 | --- | --- | --- | --- |

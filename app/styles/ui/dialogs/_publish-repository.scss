@@ -4,4 +4,175 @@
   .account-picker {
     width: 100%;
   }
+
+  .publish-organization-picker,
+  .publish-organization-filter-row,
+  .publish-organization-search,
+  .publish-organization-results,
+  .publish-organization-row,
+  .publish-organization-option {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .publish-organization-picker {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: var(--spacing-half);
+    margin-top: var(--spacing);
+  }
+
+  .publish-organization-label {
+    color: var(--md-sys-color-on-surface);
+    font-weight: 600;
+  }
+
+  .publish-organization-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    width: 100%;
+    gap: var(--spacing-half);
+  }
+
+  .publish-organization-search {
+    flex: 1 1 180px;
+
+    input {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+    }
+  }
+
+  .publish-organization-filter-row > .filter-mode-control {
+    flex: 0 1 auto;
+    max-width: 100%;
+  }
+
+  .publish-organization-results {
+    display: block;
+    width: 100%;
+    // A fixed flex basis is intentional here. The surrounding dialog content
+    // owns the page scroll, so this inner collection must never be flexed down
+    // to the zero-height "listbox" that prompted this repair.
+    height: clamp(128px, 20vh, 176px);
+    min-height: 128px;
+    max-height: 176px;
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 4px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    list-style: none;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 12px;
+    background: var(--md-sys-color-surface-container-low);
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+
+  .publish-organization-row {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .publish-organization-option {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 44px;
+    gap: var(--spacing-half);
+    padding: 8px 10px;
+    overflow: hidden;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface);
+    text-align: left;
+    cursor: pointer;
+
+    &:hover,
+    &.highlighted {
+      background: var(--md-sys-color-surface-container-high);
+    }
+
+    &.selected {
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: -2px;
+    }
+  }
+
+  .publish-organization-avatar {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .publish-organization-option-copy {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .publish-organization-selected-hint {
+    flex: 0 0 auto;
+    color: currentColor;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .publish-organization-error,
+  .publish-organization-empty,
+  .publish-organization-result-count {
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+  }
+
+  .publish-organization-error {
+    color: var(--md-sys-color-error);
+  }
+
+  .publish-organization-empty,
+  .publish-organization-result-count {
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  @media (max-width: 480px) {
+    .publish-organization-filter-row {
+      align-items: stretch;
+    }
+
+    .publish-organization-search {
+      flex-basis: 100%;
+    }
+
+    .publish-organization-filter-row > .filter-mode-control {
+      width: 100%;
+      margin-left: 0;
+
+      .filter-mode-control-cluster {
+        justify-content: flex-start;
+      }
+    }
+  }
 }

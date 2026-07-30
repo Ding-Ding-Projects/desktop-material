@@ -32,6 +32,17 @@ FEATURE_BRANCH = "feature/material-verification"
 DEFAULT_BRANCH = "main"
 ACCOUNT_LOGIN = "material-verifier-p0"
 ACCOUNT_ID = 7_130_701
+ORGANIZATION_AVATAR_PATH_PREFIX = "/fixture-assets/organization-avatars"
+ORGANIZATION_FIXTURES = (
+    (7_130_704, OWNER, "MF", "#6750a4"),
+    (7_130_705, "material-design-labs", "MD", "#006a6a"),
+    (
+        7_130_706,
+        "desktop-material-responsive-verification-organization-with-a-deliberately-long-login",
+        "DM",
+        "#9c4146",
+    ),
+)
 WORKFLOW_ID = 84_001
 WORKFLOW_RUN_ID = 84_101
 WORKFLOW_JOB_ID = 84_201
@@ -234,6 +245,44 @@ class ProviderState:
             "type": "User",
             "plan": {"name": "enterprise"},
         }
+
+    @property
+    def organizations(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "id": organization_id,
+                "url": f"{self.html_url}/api/v3/orgs/{login}",
+                "login": login,
+                "avatar_url": (
+                    f"{self.html_url}{ORGANIZATION_AVATAR_PATH_PREFIX}/"
+                    f"{organization_id}.svg"
+                ),
+            }
+            for organization_id, login, _initials, _color in ORGANIZATION_FIXTURES
+        ]
+
+    @staticmethod
+    def organization_avatar_svg(organization_id: int) -> str | None:
+        fixture = next(
+            (
+                value
+                for value in ORGANIZATION_FIXTURES
+                if value[0] == organization_id
+            ),
+            None,
+        )
+        if fixture is None:
+            return None
+        _organization_id, login, initials, color = fixture
+        return (
+            '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" '
+            'viewBox="0 0 64 64">'
+            f"<title>{login}</title>"
+            f'<rect width="64" height="64" rx="16" fill="{color}"/>'
+            '<text x="32" y="39" fill="#fff" font-family="sans-serif" '
+            'font-size="22" font-weight="700" text-anchor="middle">'
+            f"{initials}</text></svg>"
+        )
 
     @property
     def repository(self) -> dict[str, Any]:
@@ -1084,6 +1133,21 @@ class ProviderState:
             if not self.is_inspector_job_id(job_id):
                 return json_response({"message": "Not Found"}, HTTPStatus.NOT_FOUND)
             return text_response(self.inspector_job_log(job_id))
+        organization_avatar_match = re.fullmatch(
+            rf"{re.escape(ORGANIZATION_AVATAR_PATH_PREFIX)}/(\d+)\.svg",
+            path,
+        )
+        if (
+            method == "GET"
+            and organization_avatar_match is not None
+            and not query
+        ):
+            avatar = self.organization_avatar_svg(
+                parse_route_identifier(organization_avatar_match.group(1))
+            )
+            if avatar is None:
+                return json_response({"message": "Not Found"}, HTTPStatus.NOT_FOUND)
+            return text_response(avatar, content_type="image/svg+xml; charset=utf-8")
         api_prefix = "/api/v3"
         if not path.startswith(api_prefix):
             return json_response({"message": "Not Found"}, HTTPStatus.NOT_FOUND)
@@ -1112,7 +1176,9 @@ class ProviderState:
             )
         if method == "GET" and resource == "/user/repos":
             return json_response([self.repository])
-        if method == "GET" and resource in {"/user/orgs", "/organizations", "/notifications"}:
+        if method == "GET" and resource == "/user/orgs":
+            return json_response(self.organizations)
+        if method == "GET" and resource in {"/organizations", "/notifications"}:
             return json_response([])
         if method == "GET" and resource == "/desktop_internal/features":
             return json_response(

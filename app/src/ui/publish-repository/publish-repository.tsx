@@ -2,16 +2,21 @@ import * as React from 'react'
 import { Account } from '../../models/account'
 import { API, IAPIOrganization } from '../../lib/api'
 import { TextBox } from '../lib/text-box'
-import { Select } from '../lib/select'
 import { DialogContent } from '../dialog'
 import { Row } from '../lib/row'
 import { merge } from '../../lib/merge'
 import { caseInsensitiveCompare } from '../../lib/compare'
+import {
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+} from '../../lib/i18n'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { sanitizedRepositoryName } from '../add-repository/sanitized-repository-name'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { RepositoryPublicationSettings } from '../../models/publish-settings'
 import { AccountPicker } from '../account-picker'
+import { PublishOrganizationPicker } from './publish-organization-picker'
 
 interface IPublishRepositoryProps {
   /** The user to use for publishing. */
@@ -31,6 +36,7 @@ interface IPublishRepositoryProps {
 
 interface IPublishRepositoryState {
   readonly orgs: ReadonlyArray<IAPIOrganization>
+  readonly languageMode: LanguageMode
 }
 
 /** The Publish Repository component. */
@@ -40,16 +46,35 @@ export class PublishRepository extends React.Component<
 > {
   /** The repository name entered by the user. It has not yet been sanitized. */
   private name: string
+  private isMounted = false
+  private organizationRequestId = 0
 
   public constructor(props: IPublishRepositoryProps) {
     super(props)
 
-    this.state = { orgs: [] }
+    this.state = {
+      orgs: [],
+      languageMode: getPersistedLanguageMode(),
+    }
     this.name = props.settings.name
   }
 
-  public async componentWillMount() {
+  public componentDidMount() {
+    this.isMounted = true
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
     this.fetchOrgs(this.props.account)
+  }
+
+  public componentWillUnmount() {
+    this.isMounted = false
+    this.organizationRequestId++
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
   }
 
   public componentWillReceiveProps(nextProps: IPublishRepositoryProps) {
@@ -61,11 +86,22 @@ export class PublishRepository extends React.Component<
   }
 
   private async fetchOrgs(account: Account) {
+    const requestId = ++this.organizationRequestId
     const api = API.fromAccount(account)
     const apiOrgs = await api.fetchOrgs()
     const orgs = [...apiOrgs]
     orgs.sort((a, b) => caseInsensitiveCompare(a.login, b.login))
-    this.setState({ orgs })
+    if (this.isMounted && requestId === this.organizationRequestId) {
+      this.setState({ orgs })
+    }
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    this.setState({
+      languageMode: normalizeLanguageMode(
+        (event as CustomEvent<unknown>).detail
+      ),
+    })
   }
 
   private updateSettings<K extends keyof RepositoryPublicationSettings>(
@@ -91,58 +127,10 @@ export class PublishRepository extends React.Component<
     this.updateSettings({ private: event.currentTarget.checked })
   }
 
-  private onOrgChange = (event: React.FormEvent<HTMLSelectElement>) => {
-    const { settings } = this.props
-
-    const value = event.currentTarget.value
-    const index = parseInt(value, 10)
-    let newSettings: RepositoryPublicationSettings
-    if (index < 0 || isNaN(index)) {
-      newSettings = { ...settings, org: null }
-    } else {
-      const org = this.state.orgs[index]
-      newSettings = { ...settings, org }
-    }
-
-    this.props.onSettingsChanged(newSettings)
-  }
-
-  private renderOrgs(): JSX.Element | null {
-    if (this.state.orgs.length === 0) {
-      return null
-    }
-
-    const options = new Array<JSX.Element>()
-    options.push(
-      <option value={-1} key={-1}>
-        None
-      </option>
-    )
-
-    let selectedIndex = -1
-
-    const selectedOrg = this.props.settings.org
-    for (const [index, org] of this.state.orgs.entries()) {
-      if (selectedOrg && selectedOrg.id === org.id) {
-        selectedIndex = index
-      }
-
-      options.push(
-        <option value={index} key={index}>
-          {org.login}
-        </option>
-      )
-    }
-
-    return (
-      <Select
-        label="Organization"
-        value={selectedIndex.toString()}
-        onChange={this.onOrgChange}
-      >
-        {options}
-      </Select>
-    )
+  private onSelectedOrganizationChanged = (
+    organization: IAPIOrganization | null
+  ) => {
+    this.updateSettings({ org: organization })
   }
 
   public render() {
@@ -188,7 +176,12 @@ export class PublishRepository extends React.Component<
           </label>
         </Row>
 
-        {this.renderOrgs()}
+        <PublishOrganizationPicker
+          organizations={this.state.orgs}
+          selectedOrganization={this.props.settings.org}
+          languageMode={this.state.languageMode}
+          onSelectedOrganizationChanged={this.onSelectedOrganizationChanged}
+        />
       </DialogContent>
     )
   }

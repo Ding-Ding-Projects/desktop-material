@@ -149,6 +149,24 @@ test('settle fails closed until every bundled font face is ready', () => {
   assert.doesNotMatch(source, /document\.fonts\.ready\.catch/)
 })
 
+test('every rendered listbox has a usable-row and bottom-reachability receipt', () => {
+  for (const contract of [
+    'querySelectorAll(\'[role="listbox"]\')',
+    'const listboxReceipts = listboxes.map',
+    'querySelectorAll(\'[role="option"]\')',
+    'visibleOptionCount',
+    'hasEmptyState',
+    'listbox.height < 44',
+    'listbox.clientHeight < 44',
+    'listbox.visibleOptionCount === 0 && !listbox.hasEmptyState',
+    'listbox.scrollWidth > listbox.clientWidth + 1',
+    '!listbox.reachedBottom',
+    'listboxes: listboxReceipts',
+  ]) {
+    assert.ok(source.includes(contract), `missing listbox gate: ${contract}`)
+  }
+})
+
 test('provider readiness exposes only bounded loopback identity fields', () => {
   const identity = verifier.validateProviderIdentity(providerReady())
   assert.deepEqual(identity, {

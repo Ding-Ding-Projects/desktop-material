@@ -798,6 +798,13 @@
       d: "Desktop Material shows a separate filled lock beside a repository's normal leading glyph when GitHub metadata explicitly identifies the repository as private. The lock does not…",
     },
     {
+      t: 'Publish organization picker',
+      h: 'features/repository-management/publish-organization-picker.html',
+      s: 'features/repository-management/publish-organization-picker.md',
+      c: 'features',
+      d: 'The Publish repository dialog uses a searchable listbox to choose who will own the new GitHub repository. The first choice is always None — publish to my personal account;…',
+    },
+    {
       t: 'Reviewed ordinary Git pull previews',
       h: 'features/repository-management/pull-previews.html',
       s: 'features/repository-management/pull-previews.md',
@@ -1482,6 +1489,13 @@
       s: 'verification/linux-tui-path-browser-wrapper-2026-07-27/run-manifest.md',
       c: 'verification',
       d: 'Run ID: linux-tui-path-browser-wrapper-2026-07-27-019fa510',
+    },
+    {
+      t: 'Publish organization picker sizing acceptance — 2026-07-30',
+      h: 'verification/publish-organization-picker-2026-07-30/',
+      s: 'verification/publish-organization-picker-2026-07-30/README.md',
+      c: 'verification',
+      d: 'This receipt covers the Publish repository → Organization listbox repair. It does not claim that a repository was published: the acceptance fixture has no remote, uses a…',
     },
     {
       t: 'Verification records',

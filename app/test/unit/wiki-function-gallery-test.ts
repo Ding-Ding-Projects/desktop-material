@@ -36,7 +36,7 @@ describe('wiki function screenshot catalog', () => {
       ),
     ].map(([, asset]) => asset)
 
-    assert.equal(rows.length, 84)
+    assert.equal(rows.length, 85)
     assert.equal(new Set(rows.map(row => row.asset)).size, rows.length)
     assert.equal(new Set(rows.map(row => row.name)).size, rows.length)
     assert.deepEqual(archivedRows.sort(), historicalGalleryAssets)
@@ -49,6 +49,9 @@ describe('wiki function screenshot catalog', () => {
     }
     assert.ok(
       rows.some(row => row.asset === 'auto-updater-current-source-ready.png')
+    )
+    assert.ok(
+      rows.some(row => row.asset === 'material-publish-organization-picker.png')
     )
     assert.ok(!rows.some(row => row.asset === 'auto-updater-update-ready.png'))
   })
@@ -85,6 +88,11 @@ describe('wiki function screenshot catalog', () => {
     assert.ok(
       gallery.includes(
         `${canonicalRawImagePrefix}auto-updater-current-source-ready.png`
+      )
+    )
+    assert.ok(
+      gallery.includes(
+        `${canonicalRawImagePrefix}material-publish-organization-picker.png`
       )
     )
     assert.match(

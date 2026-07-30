@@ -11,6 +11,7 @@ const {
   CanonicalGalleryOutputs,
   CaptureBatches,
   DeferredCanonicalOutputs,
+  DeferredSpecialistOutputs,
   ExpectedPublishedGalleryCount,
   GalleryCapturePlan,
   PublishedGalleryOutputs,
@@ -872,14 +873,17 @@ test('capture-only tooltip suppression is removed before disconnect', () => {
   assert.ok(cleanup < close)
 })
 
-test('canonical and specialist batches own all 84 published images exactly once', () => {
+test('canonical and promoted specialist batches own all 85 published images exactly once', () => {
   const scenes = frozenStringArray('CanonicalGalleryScenes')
   const outputs = frozenStringArray('CanonicalGalleryOutputs')
   const publishedCanonical = outputs.filter(
     output => !DeferredCanonicalOutputs.includes(output)
   )
   const specialistOutputs = SpecialistCaptureEntries.map(entry => entry.output)
-  const expectedCatalog = [...publishedCanonical, ...specialistOutputs]
+  const publishedSpecialistOutputs = specialistOutputs.filter(
+    output => !DeferredSpecialistOutputs.includes(output)
+  )
+  const expectedCatalog = [...publishedCanonical, ...publishedSpecialistOutputs]
   const historicalLinuxOutputs = [
     'linux-tui-bilingual-narrow',
     'linux-tui-cheap-lfs',
@@ -893,15 +897,18 @@ test('canonical and specialist batches own all 84 published images exactly once'
   assert.equal(outputs.length, CanonicalCandidateCount)
   assert.equal(new Set(outputs).size, CanonicalCandidateCount)
   assert.deepEqual(DeferredCanonicalOutputs, ['material-cheap-lfs-preparing'])
+  assert.deepEqual(DeferredSpecialistOutputs, [])
   assert.equal(publishedCanonical.length, 67)
-  assert.equal(specialistOutputs.length, 17)
-  assert.equal(new Set(specialistOutputs).size, 17)
+  assert.equal(specialistOutputs.length, 18)
+  assert.equal(new Set(specialistOutputs).size, 18)
+  assert.equal(publishedSpecialistOutputs.length, 18)
   assert.ok(specialistOutputs.includes('auto-updater-current-source-ready'))
+  assert.ok(specialistOutputs.includes('material-publish-organization-picker'))
   assert.ok(!specialistOutputs.includes('auto-updater-update-ready'))
-  assert.equal(ExpectedPublishedGalleryCount, 84)
+  assert.equal(ExpectedPublishedGalleryCount, 85)
   assert.equal(PublishedGalleryOutputs.length, ExpectedPublishedGalleryCount)
-  assert.equal(new Set(PublishedGalleryOutputs).size, 84)
-  assert.equal(GalleryCapturePlan.length, 84)
+  assert.equal(new Set(PublishedGalleryOutputs).size, 85)
+  assert.equal(GalleryCapturePlan.length, 85)
   assert.deepEqual(
     [...expectedCatalog].sort(),
     [...PublishedGalleryOutputs].sort()
@@ -959,6 +966,14 @@ test('canonical and specialist batches own all 84 published images exactly once'
   for (const deferred of DeferredCanonicalOutputs) {
     assert.ok(outputs.includes(deferred), deferred)
     assert.ok(!PublishedGalleryOutputs.includes(deferred), deferred)
+  }
+  for (const deferred of DeferredSpecialistOutputs) {
+    assert.ok(specialistOutputs.includes(deferred), deferred)
+    assert.ok(!PublishedGalleryOutputs.includes(deferred), deferred)
+    assert.ok(
+      !GalleryCapturePlan.some(entry => entry.output === deferred),
+      deferred
+    )
   }
   for (const sceneName of scenes) {
     assert.ok(source.includes(`scene('${sceneName}'`), sceneName)
@@ -1037,6 +1052,49 @@ test('specialist command templates satisfy verifier-owned output containment', (
     ollamaVerifier,
     /const expectedParent = path\.join\(p0\.runRoot, 'captures'\)[\s\S]*?parent\.toLowerCase\(\) !== expectedParent\.toLowerCase\(\)/
   )
+})
+
+test('promoted Publish Organization capture has one bilingual P0 specialist owner', () => {
+  const candidate = SpecialistCaptureEntries.find(
+    entry => entry.output === 'material-publish-organization-picker'
+  )
+  assert.ok(candidate)
+  assert.equal(candidate.scene, 'publish-organization-picker')
+  assert.equal(candidate.batch, 'windows-publish-organization-cdp')
+  assert.deepEqual(DeferredSpecialistOutputs, [])
+  assert.ok(
+    GalleryCapturePlan.some(
+      entry => entry.output === 'material-publish-organization-picker'
+    ),
+    'the accepted capture must be in the published gallery plan'
+  )
+
+  const batch = CaptureBatches[candidate.batch]
+  assert.ok(batch)
+  assert.equal(batch.platform, 'windows-headless')
+  assert.match(batch.fixture, /real git-source repository \(no remote\)/)
+  assert.match(batch.fixture, /three deterministic organization owners/)
+  assert.match(batch.privacyGate, /physical 390x844 auto-fit geometry/)
+  assert.match(batch.privacyGate, /1440x960/)
+  const command = batch.commands.find(value =>
+    value.includes('capture_gallery_cdp.js')
+  )
+  assert.ok(command)
+  for (const contract of [
+    '--scenes publish-organization-picker',
+    '--run-root <owned-p0-run-root>',
+    '--fixture-path <owned-p0-run-root>\\fixture',
+    '--out <owned-p0-run-root>\\captures\\gallery',
+    '--theme dark',
+    '--language-mode bilingual',
+    '--width 1440',
+    '--height 960',
+  ]) {
+    assert.ok(
+      command.includes(contract),
+      `specialist command misses ${contract}`
+    )
+  }
 })
 
 test('audit-design mode owns a separate exact five-surface catalog', () => {
@@ -1980,6 +2038,179 @@ test('repository sheet capture rejects clipped batch actions', () => {
     scene.indexOf('Repository sheet clips or omits actions') <
       scene.indexOf("capture('material-repositories-sheet')"),
     'the layout gate must run before capture'
+  )
+})
+
+test('Publish Organization scene opens the real P0 no-remote repository through app flows', () => {
+  const ownershipStart = source.indexOf(
+    'function assertOwnedPublishSourceFixture()'
+  )
+  const ownershipEnd = source.indexOf(
+    'const AdvancedWorkflowLocalTagNames',
+    ownershipStart
+  )
+  assert.ok(ownershipStart >= 0 && ownershipEnd > ownershipStart)
+  const ownership = source.slice(ownershipStart, ownershipEnd)
+  for (const contract of [
+    'assertOwnedDisposableFixture()',
+    "relativeSource.toLowerCase() !== 'git-source'",
+    'sourceEntry.isSymbolicLink()',
+    "runAdvancedWorkflowGit(ownedSource, ['remote'])",
+    "'status'",
+    "'--porcelain=v1'",
+    "insideWorkTree !== 'true' || remotes !== '' || status !== ''",
+    'clean real P0 repository with no remote',
+  ]) {
+    assert.ok(ownership.includes(contract), `ownership gate misses ${contract}`)
+  }
+
+  const scene = sceneSource('publish-organization-picker')
+  for (const contract of [
+    "requestedLanguageMode !== 'bilingual'",
+    'CaptureWidth !== 1440 || CaptureHeight !== 960',
+    'ready === null || providerRequestLog === null',
+    'const publishSource = assertOwnedPublishSourceFixture()',
+    'await seedProfile()',
+    "localStorage.setItem('filter-mode/publish-organizations', 'fuzzy')",
+    "await menuEvent('add-local-repository')",
+    '\'#add-existing-repository input[type="text"]\'',
+    "await clickText('Add repository'",
+    'appStore?.selectedRepository?.path',
+    "'git-source'",
+    "await menuEvent('push')",
+    "'#publish-repository[open]'",
+    "'#publish-organization-results.publish-organization-results'",
+    "options[0]?.dataset.optionKey === 'none'",
+    "'desktop-material-responsive-verification-organization-with-a-deliberately-long-login'",
+    'const organizationRequestsBefore = countProviderRequests(',
+    'const organizationRequestsAfter = countProviderRequests(',
+    '/\\/user\\/orgs(?:\\?|$)/',
+    'assertNoProviderMutations(',
+    "'publish-organization-picker scene'",
+    "capture('material-publish-organization-picker')",
+  ]) {
+    assert.ok(scene.includes(contract), `Publish scene misses ${contract}`)
+  }
+
+  const ownershipGate = scene.indexOf(
+    'const publishSource = assertOwnedPublishSourceFixture()'
+  )
+  const seed = scene.indexOf('await seedProfile()')
+  const add = scene.indexOf("await menuEvent('add-local-repository')")
+  const select = scene.indexOf("'selected real P0 no-remote repository'")
+  const push = scene.indexOf("await menuEvent('push')")
+  const list = scene.indexOf("'Publish Repository organization listbox'")
+  const capture = scene.indexOf(
+    "capture('material-publish-organization-picker')"
+  )
+  assert.ok(
+    ownershipGate >= 0 &&
+      ownershipGate < seed &&
+      seed < add &&
+      add < select &&
+      select < push &&
+      push < list &&
+      list < capture
+  )
+})
+
+test('Publish Organization scene exercises filtering and rejects narrow layout regressions', () => {
+  const scene = sceneSource('publish-organization-picker')
+  for (const contract of [
+    "'Filter mode: Fuzzy (click to change)'",
+    "await setInput(searchSelector, 'material-design')",
+    "'Filter mode: Substring (click to change)'",
+    "await setInput(searchSelector, 'definitely-no-publish-destination')",
+    "'.publish-organization-empty'",
+    "await setInput(searchSelector, '[')",
+    '\'.publish-organization-error[role="alert"]\'',
+    "input?.getAttribute('aria-invalid') === 'true'",
+    'options?.length === 4',
+    "'#publish-repository .filter-regex-builder-button'",
+    "document.querySelector('#regex-builder-title')",
+    "await setInput(searchSelector, '.*')",
+    'await setViewport(390, 844)',
+    'Math.round(window.innerWidth * window.devicePixelRatio) - 390',
+    'Math.round(window.innerHeight * window.devicePixelRatio) - 844',
+    "localStorage.getItem('zoom-auto-fit-enabled') === '1'",
+    "await dispatchKeyboardKey('End', 'End', 35)",
+    "await dispatchKeyboardKey('Home', 'Home', 36)",
+    "await dispatchKeyboardKey('Enter', 'Enter', 13)",
+    'geometry?.list?.width <= 0',
+    'geometry?.list?.height < 120',
+    'geometry?.list?.physicalHeight < 44',
+    'geometry?.list?.clientHeight < 120',
+    'geometry?.list?.scrollHeight <= geometry?.list?.clientHeight',
+    'geometry?.list?.maximumScrollTop <= 0',
+    'geometry?.list?.initialScrollTop > 0.5',
+    'geometry?.list?.scrollWidth > geometry?.list?.clientWidth + 1',
+    'geometry?.visibleOptionCount',
+    'geometry?.emptyVisible',
+    'geometry?.controlFailures?.length !== 0',
+    'geometry?.horizontalOverflow?.length !== 0',
+    'geometry?.optionHorizontalFailures?.length !== 0',
+    'longCopy.scrollWidth > longCopy.clientWidth + 1',
+    "longCopyStyle?.textOverflow === 'ellipsis'",
+    "longCopyStyle?.whiteSpace === 'nowrap'",
+    'list.scrollTop = 0',
+    'const initialScrollTop = list.scrollTop',
+    'list.scrollTop = list.scrollHeight',
+    'list.scrollHeight > list.clientHeight',
+    'maximumScrollTop > 0',
+    'Math.abs(list.scrollTop - maximumScrollTop) <= 1',
+    'list.scrollTop > initialScrollTop + 0.5',
+    'geometry?.reachedBottom !== true',
+    'geometry?.scrolledForward !== true',
+    'geometry?.finalOptionVisible !== true',
+    'logicalViewport: [window.innerWidth, window.innerHeight]',
+    'devicePixelRatio: deviceScale',
+    'zoomFactor',
+    'autoFitZoomEnabled:',
+    'physicalHeight: listBounds.height * deviceScale',
+    'PUBLISH_ORGANIZATION_GEOMETRY',
+    'await restoreCaptureViewport()',
+    'window.innerWidth === 1440 && window.innerHeight === 960',
+    "document.querySelector('#window-zoom-info') === null",
+    "'dismissed Publish Organization zoom indicator'",
+    'wideState?.noHorizontalOverflow !== true',
+    'wideState?.noneSelected !== true',
+  ]) {
+    assert.ok(scene.includes(contract), `Publish geometry misses ${contract}`)
+  }
+
+  const fuzzy = scene.indexOf("'Publish Organization fuzzy mode'")
+  const substring = scene.indexOf("'Publish Organization substring mode'")
+  const empty = scene.indexOf("'explicit empty Publish Organization result'")
+  const regex = scene.indexOf("'Publish Organization regex mode'")
+  const invalid = scene.indexOf("'non-destructive invalid organization regex'")
+  const builder = scene.indexOf("'Publish Organization Regex Builder'")
+  const narrow = scene.indexOf('await setViewport(390, 844)')
+  const end = scene.indexOf("await dispatchKeyboardKey('End', 'End', 35)")
+  const home = scene.indexOf("await dispatchKeyboardKey('Home', 'Home', 36)")
+  const geometry = scene.indexOf('const geometry = await evaluate')
+  const restore = scene.indexOf('await restoreCaptureViewport()', geometry)
+  const wide = scene.indexOf(
+    "'restored 1440x960 Publish Organization viewport'",
+    restore
+  )
+  const capture = scene.indexOf(
+    "capture('material-publish-organization-picker')",
+    wide
+  )
+  assert.ok(
+    fuzzy >= 0 &&
+      fuzzy < substring &&
+      substring < empty &&
+      empty < regex &&
+      regex < invalid &&
+      invalid < builder &&
+      builder < narrow &&
+      narrow < end &&
+      end < home &&
+      home < geometry &&
+      geometry < restore &&
+      restore < wide &&
+      wide < capture
   )
 })
 

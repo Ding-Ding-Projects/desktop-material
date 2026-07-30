@@ -4,7 +4,7 @@
 
 Treat every gallery entry as part of a workflow: find the capability, open its named surface, review the exact scope, and keep the resulting evidence.
 
-This page maps 84 named, user-facing visual functions and states to a
+This page maps 85 named, user-facing visual functions and states to a
 one-screenshot-per-function Windows acceptance target. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata except the purpose-built live Cheap LFS acceptance repositories. No personal path,
@@ -20,8 +20,20 @@ missing, duplicate, or unassigned current assets. Five retained Linux/Xvfb
 captures are enumerated separately as historical evidence and are deliberately
 outside this Windows target set.
 
-> **Current refresh status — July 29, 2026:** the contract declares 67
-> canonical and 17 specialist Windows targets. The distinct current-source
+> **Current refresh status — July 30, 2026:** the contract declares 67
+> canonical and 18 specialist Windows targets. The searchable Publish
+> organization owner picker is accepted and published, completing the
+> 85-image Windows set. The real production bundle ran against an owned
+> no-remote repository and deterministic three-organization provider on an
+> isolated hidden Win32 desktop, with zero provider mutations. Its bilingual
+> dialog passed the physical 390×844 auto-fit gate with a non-collapsing
+> listbox, positive scroll travel, keyboard-reachable final and None options,
+> long-label containment, and no horizontal overflow. The reviewed 1440×960
+> PNG is 133,919 bytes with SHA-256
+> `7db03d5db789d19e1ad49de66bd79abb62e46c7909eda9de08878aac367033d8`.
+>
+> **July 29 updater acceptance (superseded snapshot):** the contract declared
+> 67 canonical and 17 specialist Windows targets. The distinct current-source
 > updater target is now accepted and published, completing its separate slot in
 > the 84-image Windows set. Runtime source
 > `b069384ad7d8a65d1192ee06859a705fe484c9c8` exercised the real
@@ -74,7 +86,7 @@ outside this Windows target set.
 ## Cheap LFS Pages acceptance
 
 These are Pages-guide captures, not additional Desktop Material app-gallery
-scenes, so they do not change the 89-function catalog count below. The first
+scenes, so they do not change the 90-function catalog count below. The first
 pair documents the standalone 72-row Cheap LFS versus Git LFS atlas: a
 1440×960 bilingual marketing overview with its code-native product-orbit
 graphic, then the 390×844 dark Cantonese publication handoff. The assembled
@@ -185,6 +197,7 @@ active profile's style, label, and explicit language mode.
 | `auto-updater-current-source-ready.png` | Current-source production UI after a genuine Electron/Squirrel update-downloaded path with a disclosed inert verifier payload and no published-payload claim |
 | `settings-history-manager.png` | Git-backed Settings history side sheet |
 | `material-repositories-sheet.png` | Compact Add, Select, and More repository actions |
+| `material-publish-organization-picker.png` | Searchable personal-or-organization owner listbox with bounded filtering, keyboard selection, and physical narrow-window containment |
 | `material-branches-sheet.png` | Branch navigation and status side sheet |
 | `regex-builder.png` | Safe RE2 builder with bounded live matches and captures |
 | `material-gitignore-manager.png` | Reviewed `.gitignore` template catalogue |
@@ -233,7 +246,7 @@ The five original Linux terminal captures and their exact hashes remain
 preserved with the
 [July 27 Debian/Xvfb run manifest](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/verification/linux-tui-2026-07-27/run-manifest.md).
 They document what was accepted at that time, but they are out of scope for the
-current Windows-only 84-scene target, Pages manifest, and refresh campaign.
+current Windows-only 85-scene target, Pages manifest, and refresh campaign.
 They are retained rather than relabelled or presented as current Windows
 evidence.
 
@@ -395,6 +408,18 @@ Whole multipart files and whole manual batches roll together from `assets` to
 toward capacity but cannot be downloaded until GitHub marks them uploaded.
 
 ## Repository administration
+
+Publish Repository replaces the collapsing organization select with a
+searchable personal-or-organization listbox. Fuzzy and substring filtering,
+bounded regex, and the full Regex Builder share one persisted mode; invalid
+regex keeps the prior results visible instead of emptying the owner list.
+Arrow, Home, End, Enter, and Space selection reaches every organization and
+the explicit None option. The accepted bilingual run proved positive list
+height and scroll travel, final-row reachability, long-name ellipsis, and
+contained controls at a physical 390×844 auto-fit window before restoring the
+reviewed 1440×960 frame.
+
+![Bilingual Publish repository dialog with a searchable, contained organization owner listbox](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-publish-organization-picker.png)
 
 The repository picker shows a separate filled lock only for exact
 `isPrivate === true` provider metadata. The lock remains visible beside the

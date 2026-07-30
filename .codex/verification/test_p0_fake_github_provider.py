@@ -51,6 +51,83 @@ class ProviderStateTests(unittest.TestCase):
         response = self.state.dispatch("OPTIONS", self.repo_path, {})
         self.assertEqual(response.status, 204)
 
+    def test_user_organizations_are_stable_and_self_host_their_avatars(self) -> None:
+        local_state = provider.ProviderState(
+            self.artifact, html_url="http://localhost:43119"
+        )
+        origin = local_state.html_url
+        response = local_state.dispatch(
+            "GET", "/api/v3/user/orgs", self.headers
+        )
+        expected = [
+            {
+                "id": 7_130_704,
+                "url": f"{origin}/api/v3/orgs/material-fixture-owner",
+                "login": "material-fixture-owner",
+                "avatar_url": (
+                    f"{origin}/fixture-assets/"
+                    "organization-avatars/7130704.svg"
+                ),
+            },
+            {
+                "id": 7_130_705,
+                "url": f"{origin}/api/v3/orgs/material-design-labs",
+                "login": "material-design-labs",
+                "avatar_url": (
+                    f"{origin}/fixture-assets/"
+                    "organization-avatars/7130705.svg"
+                ),
+            },
+            {
+                "id": 7_130_706,
+                "url": (
+                    f"{origin}/api/v3/orgs/"
+                    "desktop-material-responsive-verification-organization-"
+                    "with-a-deliberately-long-login"
+                ),
+                "login": (
+                    "desktop-material-responsive-verification-organization-"
+                    "with-a-deliberately-long-login"
+                ),
+                "avatar_url": (
+                    f"{origin}/fixture-assets/"
+                    "organization-avatars/7130706.svg"
+                ),
+            },
+        ]
+        self.assertEqual(response.status, 200)
+        self.assertEqual(self.json(response), expected)
+        self.assertEqual(len(expected), 3)
+        self.assertGreater(len(expected[-1]["login"]), 60)
+
+        for organization in expected:
+            self.assertTrue(
+                organization["avatar_url"].startswith(f"{origin}/")
+            )
+            avatar_target = organization["avatar_url"][len(origin) :]
+            avatar = local_state.dispatch("GET", avatar_target, {})
+            self.assertEqual(avatar.status, 200)
+            self.assertEqual(
+                avatar.headers["Content-Type"],
+                "image/svg+xml; charset=utf-8",
+            )
+            self.assertIn(
+                f"<title>{organization['login']}</title>",
+                avatar.body.decode("utf-8"),
+            )
+
+        missing_avatar = local_state.dispatch(
+            "GET",
+            f"{provider.ORGANIZATION_AVATAR_PATH_PREFIX}/9999999.svg",
+            {},
+        )
+        self.assertEqual(missing_avatar.status, 404)
+        for resource in ("/organizations", "/notifications"):
+            unchanged = local_state.dispatch(
+                "GET", f"/api/v3{resource}", self.headers
+            )
+            self.assertEqual(self.json(unchanged), [])
+
     def test_copilot_capability_is_opt_in_and_identity_safe(self) -> None:
         default_response = self.state.dispatch(
             "POST", "/api/v3/graphql", self.headers

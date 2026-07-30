@@ -259,7 +259,7 @@ export class RegexBuilder extends React.Component<
         ? activeElement
         : null
     window.addEventListener('resize', this.scheduleKeepOnScreen)
-    window.addEventListener('keydown', this.onWindowKeyDown)
+    window.addEventListener('keydown', this.onWindowKeyDown, true)
     document.addEventListener(
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
@@ -270,7 +270,7 @@ export class RegexBuilder extends React.Component<
 
   public componentWillUnmount = () => {
     window.removeEventListener('resize', this.scheduleKeepOnScreen)
-    window.removeEventListener('keydown', this.onWindowKeyDown)
+    window.removeEventListener('keydown', this.onWindowKeyDown, true)
     document.removeEventListener(
       LanguageModeChangedEvent,
       this.onLanguageModeChanged

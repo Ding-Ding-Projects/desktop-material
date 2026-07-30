@@ -1392,6 +1392,42 @@ async function inspectSurface(page, selector, targetSelector = null) {
               .at(-1) ?? null
       const controlRoot = target ?? root
 
+      // Listboxes deserve their own receipt. A zero-height list can still be
+      // present in the accessibility tree and pass generic surface checks,
+      // while every human-visible row has effectively disappeared.
+      const participatesInLayout = element => {
+        if (!(element instanceof HTMLElement)) {
+          return false
+        }
+        if (
+          element.closest('[hidden], [aria-hidden="true"]') !== null ||
+          element.offsetParent === null
+        ) {
+          return false
+        }
+        for (
+          let current = element;
+          current instanceof HTMLElement && root.contains(current);
+          current = current.parentElement
+        ) {
+          const style = getComputedStyle(current)
+          if (
+            style.display === 'none' ||
+            style.visibility === 'hidden' ||
+            style.visibility === 'collapse'
+          ) {
+            return false
+          }
+          if (current === root) {
+            break
+          }
+        }
+        return true
+      }
+      const listboxes = [
+        ...controlRoot.querySelectorAll('[role="listbox"]'),
+      ].filter(participatesInLayout)
+
       const scrollOwners = [root, ...root.querySelectorAll('*')].filter(
         element => {
           if (!(element instanceof HTMLElement) || !visible(element)) {
@@ -1425,6 +1461,63 @@ async function inspectSurface(page, selector, targetSelector = null) {
             owner.scrollTop - (owner.scrollHeight - owner.clientHeight)
           ) <= 2,
       }))
+      const listboxReceipts = listboxes.map(listbox => {
+        const rect = listbox.getBoundingClientRect()
+        const options = [...listbox.querySelectorAll('[role="option"]')]
+        const visibleOptionCount = options.filter(option => {
+          if (
+            !(option instanceof HTMLElement) ||
+            !participatesInLayout(option)
+          ) {
+            return false
+          }
+          const optionRect = option.getBoundingClientRect()
+          return (
+            optionRect.width > 0 &&
+            optionRect.height > 0 &&
+            optionRect.right > rect.left + 1 &&
+            optionRect.left < rect.right - 1 &&
+            optionRect.bottom > rect.top + 1 &&
+            optionRect.top < rect.bottom - 1
+          )
+        }).length
+        const stateOwner = listbox.parentElement ?? controlRoot
+        const hasEmptyState = [
+          ...stateOwner.querySelectorAll(
+            '[role="status"], [role="alert"], [class*="empty"], [data-testid*="empty"]'
+          ),
+        ].some(
+          candidate =>
+            candidate instanceof HTMLElement &&
+            participatesInLayout(candidate) &&
+            (candidate.textContent ?? '').trim().length > 0
+        )
+        const maxScrollTop = listbox.scrollHeight - listbox.clientHeight
+
+        return {
+          label:
+            listbox.getAttribute('aria-label') ||
+            listbox.id ||
+            [...listbox.classList].slice(0, 3).join('.') ||
+            'listbox',
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+          clientWidth: listbox.clientWidth,
+          scrollWidth: listbox.scrollWidth,
+          clientHeight: listbox.clientHeight,
+          scrollHeight: listbox.scrollHeight,
+          visibleOptionCount,
+          hasEmptyState,
+          withinViewportHorizontally:
+            rect.left >= -1 && rect.right <= innerWidth + 1,
+          withinRootHorizontally:
+            rect.left >= root.getBoundingClientRect().left - 1 &&
+            rect.right <= root.getBoundingClientRect().right + 1,
+          reachedBottom:
+            maxScrollTop <= 1 ||
+            Math.abs(listbox.scrollTop - maxScrollTop) <= 2,
+        }
+      })
 
       const rootBounds = root.getBoundingClientRect()
       const controls = [
@@ -1653,6 +1746,7 @@ async function inspectSurface(page, selector, targetSelector = null) {
               }
             : null,
         scrollOwners: scrollOwnerReceipts,
+        listboxes: listboxReceipts,
         verticalOverflowTraps,
         lastControl:
           lastControl instanceof HTMLElement && lastRect !== undefined
@@ -1713,6 +1807,32 @@ function assertSurface(receipt, label) {
     }
     if (receipt.scrollOwners.some(owner => !owner.reachedBottom)) {
       problems.push('scroll owner could not reach bottom')
+    }
+    for (const listbox of receipt.listboxes) {
+      if (
+        listbox.width <= 0 ||
+        listbox.height < 44 ||
+        listbox.clientHeight < 44
+      ) {
+        problems.push(`listbox has no usable height (${listbox.label})`)
+      }
+      if (listbox.visibleOptionCount === 0 && !listbox.hasEmptyState) {
+        problems.push(
+          `listbox has no visible option or empty state (${listbox.label})`
+        )
+      }
+      if (
+        !listbox.withinViewportHorizontally ||
+        !listbox.withinRootHorizontally ||
+        listbox.scrollWidth > listbox.clientWidth + 1
+      ) {
+        problems.push(`listbox is horizontally clipped (${listbox.label})`)
+      }
+      if (!listbox.reachedBottom) {
+        problems.push(
+          `listbox could not reach its final row (${listbox.label})`
+        )
+      }
     }
     if (receipt.verticalOverflowTraps.length > 0) {
       problems.push('vertical overflow has no user-scrollable owner')

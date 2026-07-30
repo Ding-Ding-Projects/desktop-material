@@ -259,7 +259,10 @@ membership, because a group belongs to the profile that receives the import.
   GHCR path. Repository deletion, package deletion, and unrelated administrative
   scopes remain excluded; the registry documentation's PAT-classic-only caveat
   is recorded in the OCI feature guide
-- Browse complete GitHub organization repository lists, filter cloning by organization, and choose an organization when publishing
+- Browse complete GitHub organization repository lists, filter cloning by
+  organization, and choose a personal or organization owner from the Publish
+  dialog's non-collapsing, keyboard-operable listbox with fuzzy, substring,
+  and bounded-regex search
 - Add GitLab accounts, including self-hosted endpoints, with a personal access token; add Bitbucket accounts with an app password, then browse and clone their repositories from the provider tab
 - Select all repositories with a mixed-state checkbox, or opt in to automatically clone only newly discovered repositories in the background. **Settings → Clone queue** keeps each signed-in account's base directory, parallel/sequential mode, and enabled state discoverable after the Clone dialog closes; auto-clone never opens an unsolicited progress dialog
 - Pause and resume pending multi-clones, including after restart or an interrupted process. A bounded atomic recovery journal revalidates the exact destination, usable clean worktree, `HEAD`, and matching origin without deleting occupied folders; failed/review-required queues remain visible until explicitly dismissed
