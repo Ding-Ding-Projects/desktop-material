@@ -1,5 +1,55 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-30 — Publish organization listbox sizing (pushed acceptance)
+
+Publish repository's Organization control is no longer a native select whose
+options could disappear inside a compact dialog. It is now a searchable,
+explicit-None listbox with persisted fuzzy, substring, and bounded-regex
+matching plus direct access to the full Regex Builder. Keyboard operation covers
+<kbd>Home</kbd>, <kbd>End</kbd>, <kbd>Enter</kbd>, <kbd>Space</kbd>, and
+<kbd>Escape</kbd>. The parent ignores a previous account's late organization
+response. The shared Regex Builder portal now owns Escape and closes itself
+without closing the Publish dialog.
+
+The list viewport is bounded to 128–176 CSS px, scrolls vertically inside the
+dialog, and ellipsizes long organization names. Shared select wrappers also
+gain shrink containment so they cannot force dialog-level horizontal overflow.
+The owned provider fixture returns exactly three stable organizations, including
+one deliberately long name and local deterministic avatars.
+
+Local evidence is green:
+
+- focused Publish UI and style coverage: **26/26**;
+- TypeScript no-emit: passed;
+- capture, gallery-state, and responsive verifier contracts before gallery
+  promotion: **83/83**;
+- provider fixture coverage: **19/19**;
+- documentation catalog and page checks: **61/61**; and
+- exact hidden Windows production build: return code 0 after **1042.19
+  seconds**, no timeout, with only npm's upgrade notice on stderr.
+
+The accepted final capture,
+`docs/assets/screenshots/material-publish-organization-picker.png`, is
+1440×960, 133,919 bytes, with SHA-256
+`7db03d5db789d19e1ad49de66bd79abb62e46c7909eda9de08878aac367033d8`.
+Its narrow acceptance used a 390×844 physical window, 780×1688 logical
+viewport, and combined DPR/zoom 0.5. The list measured 176 CSS px / 88 physical
+px with `clientHeight=172`, `scrollHeight=184`, and `maxScrollTop=12`; the
+harness reached the bottom, kept the final option visible, found no horizontal
+overflow, proved the long label ellipsis, and restored None as the selection.
+The owned provider, app processes, headless desktop, fixture, profile, and
+temporary evidence were cleaned up.
+
+Gallery promotion brings the current Windows plan to **85 scenes**: 67
+canonical plus 18 specialist. Older dated 84-scene entries below remain
+point-in-time provenance. Implementation commit
+`63c1ec08c4f24f85d87f21d98851dcd5784c7800` is proven on `origin/main`.
+Its first hosted matrix exposed two provenance-generation omissions rather
+than an application regression: this retained receipt was not committed even
+though the generated catalog linked it, and the TUI parity contract had not
+been regenerated. This follow-up publishes both inputs; final exact-SHA CI,
+Pages/wiki, and installer Release proof remain open.
+
 ## 2026-07-30 — Conflict/CI agent repair and hideable progress (local state)
 
 - Conflict dialogs and failed Actions details open the existing Codex/OpenCode

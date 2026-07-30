@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "feature": "publish-organization-picker",
+  "date": "2026-07-30",
+  "baseCommit": "dcf985d8521177406782816894c831e49e81e8c7",
+  "sourceCommit": "63c1ec08c4f24f85d87f21d98851dcd5784c7800",
+  "build": {
+    "command": "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+    "durationSeconds": 1042.19,
+    "returnCode": 0,
+    "timedOut": false,
+    "stderrClassification": "npm upgrade notice only"
+  },
+  "tests": {
+    "focusedUi": {
+      "passed": 26,
+      "failed": 0
+    },
+    "verifierContractsBeforePromotion": {
+      "passed": 83,
+      "failed": 0
+    },
+    "provider": {
+      "passed": 19,
+      "failed": 0
+    },
+    "documentation": {
+      "passed": 61,
+      "failed": 0
+    },
+    "typescript": "passed"
+  },
+  "narrow": {
+    "physicalViewport": [390, 844],
+    "logicalViewport": [780, 1688],
+    "devicePixelRatio": 0.5,
+    "zoomFactor": 0.5,
+    "autoFit": true,
+    "dialogContained": true,
+    "listCssHeight": 176,
+    "listPhysicalHeight": 88,
+    "listClientHeight": 172,
+    "listScrollHeight": 184,
+    "initialScrollTop": 0,
+    "maximumScrollTop": 12,
+    "reachedBottom": true,
+    "finalOptionVisible": true,
+    "optionCount": 4,
+    "noneSelected": true,
+    "longLoginEllipsized": true,
+    "horizontalOverflow": false
+  },
+  "restored": {
+    "viewport": [1440, 960],
+    "devicePixelRatio": 1,
+    "zoomFactor": 1,
+    "zoomIndicatorAbsent": true,
+    "dialogContained": true,
+    "listHeight": 176,
+    "optionCount": 4,
+    "noneSelected": true,
+    "horizontalOverflow": false
+  },
+  "image": {
+    "path": "docs/assets/screenshots/material-publish-organization-picker.png",
+    "verificationCopy": "docs/verification/publish-organization-picker-2026-07-30/publish-organization-picker-1440x960.png",
+    "width": 1440,
+    "height": 960,
+    "bytes": 133919,
+    "sha256": "7db03d5db789d19e1ad49de66bd79abb62e46c7909eda9de08878aac367033d8",
+    "originalResolutionReviewed": true,
+    "privacyGatePassed": true
+  },
+  "provider": {
+    "sceneOrganizationRequestDelta": 1,
+    "sceneStateChangingRequestDelta": 0,
+    "loopbackOnly": true,
+    "syntheticDataOnly": true
+  },
+  "cleanup": {
+    "applicationAbsent": true,
+    "providerAbsent": true,
+    "launcherAbsent": true,
+    "credentialAbsent": true,
+    "listenerPortsAbsent": true,
+    "headlessWindows": 0,
+    "ownedTempRootAbsent": true
+  },
+  "remote": {
+    "push": "63c1ec08c4f24f85d87f21d98851dcd5784c7800",
+    "ci": "generated-input correction pending",
+    "release": "pending"
+  }
+}

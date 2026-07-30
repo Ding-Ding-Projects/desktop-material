@@ -9,6 +9,24 @@
 > elapsed/ETA progress; Cheap LFS restore details collapse; and every action is
 > directly searchable and executable from the command palette.
 
+> **Publish organization picker sizing — July 30, 2026 (implementation
+> pushed; final hosted proof pending):** Publish repository no longer squeezes its Organization
+> choices into a native select. The replacement is an explicit-None,
+> searchable listbox with persisted fuzzy, substring, and bounded-regex modes,
+> the full Regex Builder, complete keyboard operation, and stale-account
+> response protection. Its 128–176 CSS px list keeps scrolling contained and
+> long names ellipsized; shared select wrappers can now shrink inside narrow
+> dialogs. The accepted built-app frame is 1440×960 (133,919 bytes, SHA-256
+> `7db03d5db789d19e1ad49de66bd79abb62e46c7909eda9de08878aac367033d8`).
+> A 390×844 physical receipt also proves a visible, bottom-reachable list with
+> no horizontal overflow and None selected. The promoted gallery will contain
+> exactly **85 current Windows scenes** (67 canonical plus 18 specialist).
+> Local tests and the exact production build are green. Implementation commit
+> `63c1ec08c4f24f85d87f21d98851dcd5784c7800` is proven on `origin/main`;
+> this follow-up publishes the retained receipt and regenerated parity input
+> that its first hosted matrix found missing. Final hosted CI and
+> installer-release proof remain pending.
+
 Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [GitHub Desktop](https://github.com/desktop/desktop). It rebuilds the entire application shell around Material Design 3 while keeping GitHub Desktop's full Git workflow and the same underlying stack: [TypeScript](https://www.typescriptlang.org), [React](https://react.dev), [Electron](https://www.electronjs.org), and [Sass](https://sass-lang.com). This project is in active development.
 
 > **Platform support:** Desktop Material is a Windows-only product. Its
@@ -252,7 +270,7 @@ interactive run commands.
 The five dated Linux/Xvfb captures remain preserved in the
 [historical TUI verification record](docs/verification/linux-tui-2026-07-27/run-manifest.md).
 They are not presented as current Windows evidence and are excluded from the
-84-scene guided gallery and its refresh plan.
+85-scene guided gallery and its refresh plan.
 
 ## Explore the tabs
 

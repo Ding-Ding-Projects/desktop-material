@@ -4,7 +4,7 @@
   "generator": "tui/tools/generate-parity-contract.mjs",
   "source": {
     "path": "docs/readme-tabs/complete-feature-list.md",
-    "sha256": "2a56a6ca2cd13506a83676d42c45afd8bdf5790d43acfd8170eb0b3c3f88ee45",
+    "sha256": "0bfb908eafb59cff05ad1505a21f1656ccfeed16ad9d337419b72f5bc5f862f4",
     "declared_feature_count": 201,
     "parsed_feature_count": 201,
     "section_count": 17
@@ -533,7 +533,7 @@
       "section_title": "Accounts and identity",
       "title": "Organization browsing and publishing",
       "upstream_relation": "extended",
-      "desktop_documentation": null,
+      "desktop_documentation": "../features/repository-management/publish-organization-picker.md",
       "tui_status": "not_yet_available",
       "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
       "evidence": []

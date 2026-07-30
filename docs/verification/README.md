@@ -56,6 +56,7 @@ capture may legitimately replace.
 <!-- markdownlint-enable MD013 -->
 
 - [Standalone Cheap LFS versus Git LFS comparison atlas — 2026-07-28](cheap-lfs-vs-git-lfs-pages-2026-07-28/README.md)
+- [Publish organization picker sizing acceptance — 2026-07-30](publish-organization-picker-2026-07-30/README.md)
 - [Close-all-open-issues publish run — 2026-07-28](close-all-open-issues-2026-07-28/run-manifest.md)
 - [Renderer responsiveness — 2026-07-28](renderer-responsiveness-2026-07-28/README.md)
 - [Cheap LFS Pages product-guide revamp — 2026-07-28](cheap-lfs-pages-revamp-2026-07-28/README.md)

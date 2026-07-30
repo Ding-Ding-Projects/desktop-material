@@ -2,6 +2,35 @@
 
 Updated: **July 30, 2026**
 
+## July 30 Publish organization sizing — **Implementation pushed; final hosted proof pending**
+
+Publish repository's Organization field is now an explicit-None searchable
+listbox instead of a native select. It persists fuzzy, substring, and bounded
+regex modes, opens the full Regex Builder, supports
+<kbd>Home</kbd>/<kbd>End</kbd>/<kbd>Enter</kbd>/<kbd>Space</kbd>/<kbd>Escape</kbd>,
+ignores stale responses from a previously selected account, and keeps the
+shared Regex Builder portal responsible for Escape so the host dialog stays
+open. Global select wrappers can shrink within their parent, while this list
+uses a bounded 128–176 CSS px viewport, contained vertical scrolling, and
+ellipsis for long organization names.
+
+The frozen local tree passes **26/26 focused UI tests**, TypeScript no-emit,
+**83/83 pre-promotion verifier contracts**, **19/19 provider checks**, and
+**61/61 documentation checks**. Its exact hidden production build returned 0
+after **1042.19 seconds**, without a timeout; stderr contained only npm's
+upgrade notice. The accepted 1440×960 capture is 133,919 bytes with SHA-256
+`7db03d5db789d19e1ad49de66bd79abb62e46c7909eda9de08878aac367033d8`.
+The 390×844 physical receipt used a 780×1688 logical viewport at combined
+DPR/zoom 0.5: the 176 CSS px list rendered at 88 physical px, had
+`clientHeight=172`, `scrollHeight=184`, reached `maxScrollTop=12`, kept the
+final option visible, showed no horizontal overflow, ellipsized the long row,
+and restored None. Gallery promotion makes this **85 current Windows scenes**
+(67 canonical plus 18 specialist). Cleanup is complete, and implementation
+commit `63c1ec08c4f24f85d87f21d98851dcd5784c7800` is proven on `origin/main`.
+The first hosted matrix identified the omitted retained receipt and stale
+generated parity contract; this follow-up publishes both. Final exact-SHA
+hosted CI and installer-release proof remain open gates.
+
 ## July 30 local conflict/CI repair and background progress — **Implemented locally; push and hosted verification pending**
 
 Conflict dialogs and failed Actions runs now open bounded Codex/OpenCode tasks,
@@ -15,7 +44,7 @@ progress acceptance; hosted CI and installer evidence remain pending until push.
 Desktop Material's numbered roadmap now extends through **M27**. M0–M21 and the
 M23 Ollama manager have published receipts; M22's 73-scene visual refresh is
 published byte-identically. The current guided-gallery contract declares
-exactly **84 Windows targets**. Its current-source updater-ready frame is now
+exactly **85 Windows targets**. Its current-source updater-ready frame is now
 accepted and published; each remaining replacement stays fail-closed until it
 passes the current-build gates. Five Linux/Xvfb captures remain preserved as
 historical evidence outside that target set. The exact
@@ -1247,7 +1276,7 @@ The following items track the current cycle's progress against all six acceptanc
 | Clone-style Add Submodule | **Complete** | Verified hosted-provider and URL selection, exact-account affinity, reviewed relative path/branch, duplicate and occupied-path rejection, bounded progress, cancellation, list refresh, keyboard labels, and minimum-window containment |
 | Repository-wide feature revalidation | **Complete** | The historical revalidation verified the registered-surface and M0–M19 implementation inventory, focused and repository-wide tests, production builds/packages, isolated headless interaction, exact-SHA CI and installer runs, Pages, the seven-page wiki, and its then-current 52-image documentation gallery |
 | Live Bambu build Cheap LFS acceptance | **Remote storage, clone integrity, and serialization correction complete** | A public 14,809,588,162-byte, 8,305-file payload completed four proven UI batches after an HTTP 408 retry, cloud run `30048474438` reported 13/0/0 with raw fallback retained across 26 assets, UI commit `712ad85` passed verifier `30054805137`, and a fresh UI clone restored 10/10 hashes from 370–514-byte committed pointers. The first automatic/manual overlap prompted a normalized-checkout queue now covered by deterministic concurrency regressions; the live ten-pointer UI frame is promoted separately from the clone hash receipt. |
-| Documentation gallery expansion | **84-scene Windows target locked; current-source updater frame published; historical evidence retained separately** | The published 77-scene history remains intact. Four upstream repository-list/tab scenes plus three accepted Windows captures—exact-90% restore, app-hosted authentication browser, and private-repository lock badge—established the predecessor gallery. The current machine-checked plan declares 84 Windows targets; every additional current-source replacement remains fail-closed until captured, inspected, and promoted. Five Linux/Xvfb captures remain byte-for-byte historical evidence outside its rows, Pages figures, and capture plan without making Linux a supported target. The legacy updater-migration frame stays pinned to its immutable July 22 blob. The distinct current-source updater-ready frame is accepted from runtime source `b069384ad7d8a65d1192ee06859a705fe484c9c8` and published by `e3967f1b81ec039624500797dca40a1ab6d98598`; its inspected 960×660 PNG is 47,086 bytes with SHA-256 `0fc9caf5b13eb5b914121090f403c394545e02ea4303b11dd4598afcb3a2dfca`. The earlier `2abccae8fd` Pages/wiki and packaged-Windows evidence cannot prove this refresh. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection. Historical TUI correction commit `f555d374a6` is in `origin/main`; its lane results do not block the Windows product. |
+| Documentation gallery expansion | **85-scene Windows target assembled; picker implementation pushed; final hosted publication pending; historical evidence retained separately** | The published 77-scene history remains intact. Four upstream repository-list/tab scenes plus three accepted Windows captures—exact-90% restore, app-hosted authentication browser, and private-repository lock badge—established the predecessor gallery. The machine-checked plan now declares 85 Windows targets: 67 canonical and 18 specialist outputs, including the accepted Publish organization picker frame. Every additional current-source replacement remains fail-closed until captured, inspected, and promoted. Five Linux/Xvfb captures remain byte-for-byte historical evidence outside its rows, Pages figures, and capture plan without making Linux a supported target. The legacy updater-migration frame stays pinned to its immutable July 22 blob. The distinct current-source updater-ready frame is accepted from runtime source `b069384ad7d8a65d1192ee06859a705fe484c9c8` and published by `e3967f1b81ec039624500797dca40a1ab6d98598`; its inspected 960×660 PNG is 47,086 bytes with SHA-256 `0fc9caf5b13eb5b914121090f403c394545e02ea4303b11dd4598afcb3a2dfca`. Publish organization implementation commit `63c1ec08c4f24f85d87f21d98851dcd5784c7800` is proven on `origin/main`; the retained receipt and regenerated parity input follow in the provenance correction push. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection. Historical TUI correction commit `f555d374a6` is in `origin/main`; its lane results do not block the Windows product. |
 | Complete notifications and Releases dashboard | **Complete** | Verified every GitHub notification page, confirmed local/remote Clear all with partial-failure retention, release status metrics and loaded-result search/filtering, rich asset metadata, scoped retries, responsive layout, and inspected headless evidence |
 
 <!-- markdownlint-enable MD013 -->
