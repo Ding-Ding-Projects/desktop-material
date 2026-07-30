@@ -1,5 +1,67 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-29 — CURRENT HANDOFF (read this first)
+
+This close-out is limited to two existing reliability changes. The Cheap LFS
+cloud-compression workflow commit now uses a temporary empty
+`core.hooksPath`, closing the post-commit gap left by `--no-verify` without
+changing hooks for ordinary user commits. The second change adds the
+authenticated diagnostic-log service, the best-effort client transport, its
+deployment runbook, feature documentation, and category/master Postman
+collections.
+
+The focused desktop gate passes **38/38 tests across 2 files**, including a
+real-Git fixture whose deliberately failing Git LFS-style `post-commit` hook
+is not invoked while the exact workflow commit still reaches its bare remote.
+The service gate passes **4/4 tests** for authorization, dashboard isolation,
+ingest/redaction/persistence/search, and bounded storage metadata. TypeScript,
+focused Prettier and ESLint, JSON parsing, Docker Compose validation, and
+`git diff --check` pass. The deployed ARM64 service at
+`192.168.50.242:4318` returns HTTP 200 from `/health`; its earlier
+authenticated ingest/search/storage acceptance remains recorded below without
+re-reading or exposing its bearer token.
+
+The exact hidden Lowlevel MCP production build passed before integration in
+402.68 seconds. While closing out, `origin/main` advanced independently to
+`d99c09886001f778f11cbf51db67021e76b4f4ad` with the compact repository
+actions work. Local `main` was fast-forwarded to that commit and this scope
+reapplied without conflict. The exact integrated production build then passed
+in **520.65 seconds** with `client_ok: true`, return code 0, no stderr, and no
+timeout. The client reported a session-termination transport cleanup failure
+only after returning the complete successful result; this non-visual run
+created no headless desktop or app window. The integrated tree again passes
+**38/38 desktop tests across 2 files**, **4/4 service tests**, and **19/19
+documentation-catalog tests**, plus TypeScript, focused Prettier/ESLint,
+new-file Markdown lint, JSON parsing, Compose validation, catalog parity, and
+`git diff --check`. Remote publication evidence is the remaining gate.
+
+Final review caught and corrected the dashboard's default `level=` request:
+an empty level now means all levels, while a malformed non-empty client filter
+returns HTTP 400 instead of falling through to an all-client query. The 4/4
+service suite covers both cases, and the service image builds locally. After a
+fresh host capacity/workload/port preflight, only the existing
+`desktop-material-diagnostic-log-server` Compose service was rebuilt and
+recreated. It is `running/healthy`; live public health and authenticated
+default search return HTTP 200, malformed-client search returns HTTP 400, and
+the deployed `server.mjs` SHA-256 is
+`087a3e7b47d71c857dd9ee4b5111249dbf7e382dd3b0e3f44fde5beee37c9270`.
+The host again reported that its kernel does not enforce the configured memory
+limit; CPU, PID, retention, storage, and application-level bounds remain
+active.
+
+Immediately before commit, `origin/main` advanced from `d99c098860` to
+`5a2fb5c228` with one test-only correction in
+`app/test/unit/ui/repository-group-management-test.tsx`. The staged close-out
+was preserved, local `main` was fast-forwarded, and the index reapplied
+without conflict. No production source changed after the accepted build; the
+upstream focused test was rerun as the integration gate.
+
+香港粵語：今次淨係收好兩件已經開咗工嘅可靠性修正——Cheap LFS 背景 commit
+唔再畀壞咗嘅 `post-commit` hook 扮失敗，同埋中央診斷記錄服務／客戶端正式
+執齊。38/38 個桌面測試、4/4 個服務測試同靜態檢查都過晒；遠端中途有新
+`main` commit 亦已經穩陣接返，冇用推土機式 push。依家只欠合併後最終
+驗證同遠端出貨證明，唔會臨收舖先加新餸。
+
 ## 2026-07-29 — Compact repository actions
 
 The repository side sheet no longer presents five equal-weight pills across
@@ -25,7 +87,24 @@ headless run restored the matching Electron 42.0.1 runtime from its
 checksum-verified local cache, with no download. Remote and CI publication
 evidence follows in the rolling progress record, Discussion #98.
 
-## 2026-07-29 — CURRENT HANDOFF (read this first)
+## 2026-07-29 — Diagnostic logging and Cheap LFS hook containment
+
+The current task adds two isolated reliability surfaces. The Cheap LFS
+cloud-compression workflow commit now uses a temporary empty `core.hooksPath`,
+closing the post-commit gap that `--no-verify` leaves. Its real-Git regression
+passes with a deliberately failing Git LFS-style hook and proves the exact
+one-file commit reaches the remote.
+
+The repository now also contains the authenticated diagnostic log service,
+client remote transport, deployment runbook, feature documentation, and
+category/master Postman routes. The ARM64 service is running healthy at
+`192.168.50.242:4318` from
+`/home/docker/services/desktop-material-diagnostic-log-server`, with data at
+`/home/docker/data/desktop-material-diagnostic-logs`. Its bearer token exists
+only in the host-side mode-0600 secret file. Live ingest, redaction, search, and
+storage-status acceptance passed. Docker warned that this host does not enforce
+memory cgroup limits; CPU, PID, storage, retention, and application-level
+bounds remain active.
 
 The issue-closeout, Cheap LFS helper, GitLab, and Windows bug-hunt lineages are
 now reconciled in the local `main` merge, and all six textual conflicts are

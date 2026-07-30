@@ -1,5 +1,9 @@
 # Quality and reliability
 
+- [Central diagnostic logging](central-diagnostic-logging.md) — opt-in
+  local/remote/both client logging plus an authenticated, redacted, bounded
+  ARM64 Docker service for operators and troubleshooting agents.
+
 This category documents cross-cutting responsiveness, lifecycle, and recovery
 contracts that span more than one user workflow.
 

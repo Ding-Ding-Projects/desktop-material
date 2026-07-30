@@ -1,6 +1,6 @@
 # Desktop Material roadmap
 
-Updated: **July 28, 2026**
+Updated: **July 29, 2026**
 
 Desktop Material's numbered roadmap now extends through **M27**. M0–M21 and the
 M23 Ollama manager have published receipts; M22's 73-scene visual refresh is
@@ -17,6 +17,29 @@ and installer-release pipelines.
 This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
+
+## July 29 Cheap LFS hook containment and diagnostic server — **Implemented, deployed, and locally verified**
+
+The one-file background commit that installs the Cheap LFS cloud-compression
+caller now points Git at an operation-owned empty hooks directory. This closes
+the gap left by `--no-verify`: a failing Git LFS-style `post-commit` hook is
+never invoked, while ordinary user commits and pushes keep the repository's
+hooks. A real-Git regression proves the generated workflow alone commits and
+reaches the remote despite a deliberately failing post-commit hook.
+
+Desktop clients can select local, remote, or dual diagnostic storage through
+launch configuration, including an optional absolute local directory and a
+token-file-backed central endpoint. The remote transport is five-second
+bounded, best-effort, and redacts credentials before sending.
+
+The ARM64 central service is live at the private Docker host on port 4318. It
+requires bearer authentication for ingestion, search, storage status, and the
+dashboard; redacts again server-side; stores per-client daily JSONL in an
+operator-selected bind mount; and enforces 14-day/5-GiB retention plus CPU,
+PID, request, query, and message bounds. The host Docker daemon reported that
+memory cgroup limits are unsupported, so the configured 192-MiB Compose limit
+is documented but not enforced there. Live health and an authenticated
+ingest/search/storage smoke test passed with the injected token value removed.
 
 ## July 28 current close-out wave — **Merged locally; final verification in progress**
 

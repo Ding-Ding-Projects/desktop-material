@@ -1,0 +1,118 @@
+import assert from 'node:assert/strict'
+import { randomBytes } from 'node:crypto'
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { spawn } from 'node:child_process'
+import { after, before, test } from 'node:test'
+
+const root = await mkdtemp(join(tmpdir(), 'desktop-log-server-test-'))
+const storage = join(root, 'data')
+const tokenFile = join(root, 'token')
+const token = randomBytes(32).toString('hex')
+const port = 43_000 + Math.floor(Math.random() * 1_000)
+let child
+
+before(async () => {
+  await mkdir(storage)
+  await writeFile(tokenFile, token, { mode: 0o600 })
+  child = spawn(process.execPath, ['server.mjs'], {
+    cwd: new URL('..', import.meta.url),
+    env: {
+      ...process.env,
+      HOST: '127.0.0.1',
+      PORT: String(port),
+      STORAGE_ROOT: storage,
+      TOKEN_FILE: tokenFile,
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  for (let attempt = 0; attempt < 50; attempt++) {
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/health`)
+      if (response.ok) return
+    } catch {}
+    await new Promise(resolve => setTimeout(resolve, 20))
+  }
+  throw new Error('server did not become healthy')
+})
+
+after(async () => {
+  child?.kill()
+  await rm(root, { recursive: true, force: true })
+})
+
+test('requires authorization for log data', async () => {
+  const response = await fetch(`http://127.0.0.1:${port}/v1/logs`)
+  assert.equal(response.status, 401)
+})
+
+test('serves a dashboard shell without exposing log data', async () => {
+  const response = await fetch(`http://127.0.0.1:${port}/`)
+  assert.equal(response.status, 200)
+  assert.match(await response.text(), /Desktop Material diagnostics/)
+  assert.match(
+    response.headers.get('content-security-policy') || '',
+    /connect-src 'self'/
+  )
+})
+
+test('ingests, redacts, stores, and searches structured events', async () => {
+  const response = await fetch(`http://127.0.0.1:${port}/v1/logs`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      clientId: 'client-one',
+      sessionId: 'session-one',
+      level: 'error',
+      message: 'push failed token=do-not-store github_pat_0123456789abcdef',
+      appVersion: '1.0.0',
+    }),
+  })
+  assert.equal(response.status, 202)
+  const stored = await readFile(
+    join(
+      storage,
+      'client-one',
+      `${new Date().toISOString().slice(0, 10)}.jsonl`
+    ),
+    'utf8'
+  )
+  assert.doesNotMatch(stored, /do-not-store|github_pat_/)
+  assert.match(stored, /\[REDACTED\]/)
+
+  const query = await fetch(
+    `http://127.0.0.1:${port}/v1/logs?level=error&q=push`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  const result = await query.json()
+  assert.equal(result.count, 1)
+  assert.equal(result.events[0].clientId, 'client-one')
+
+  const dashboardDefaultQuery = await fetch(
+    `http://127.0.0.1:${port}/v1/logs?level=&q=`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  assert.equal(dashboardDefaultQuery.status, 200)
+  assert.equal((await dashboardDefaultQuery.json()).count, 1)
+
+  const invalidClient = await fetch(
+    `http://127.0.0.1:${port}/v1/logs?client=../all`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  )
+  assert.equal(invalidClient.status, 400)
+})
+
+test('reports bounded storage metadata for agents', async () => {
+  const response = await fetch(`http://127.0.0.1:${port}/v1/storage`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  const result = await response.json()
+  assert.equal(result.ok, true)
+  assert.equal(result.clientCount, 1)
+  assert.equal(result.fileCount, 1)
+  assert.ok(result.usedBytes > 0)
+})

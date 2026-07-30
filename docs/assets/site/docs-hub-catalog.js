@@ -595,6 +595,13 @@
       d: "Network mutations that depend on a GitHub repository association now fail closed when Desktop Material cannot prove the configured remote's canonical destination. Instead of…",
     },
     {
+      t: 'Central diagnostic logging',
+      h: 'features/quality-and-reliability/central-diagnostic-logging.html',
+      s: 'features/quality-and-reliability/central-diagnostic-logging.md',
+      c: 'features',
+      d: 'Desktop Material can keep logs locally, send them to a self-hosted diagnostic server, or do both. Local-only remains the default. Operators select the destination, optional…',
+    },
+    {
       t: 'Git hook execution environment',
       h: 'features/quality-and-reliability/git-hook-execution.html',
       s: 'features/quality-and-reliability/git-hook-execution.md',
@@ -648,7 +655,7 @@
       h: 'features/quality-and-reliability/',
       s: 'features/quality-and-reliability/README.md',
       c: 'features',
-      d: 'This category documents cross-cutting responsiveness, lifecycle, and recovery contracts that span more than one user workflow.',
+      d: 'Central diagnostic logging — opt-in',
     },
     {
       t: 'Responsiveness and resource lifecycle',

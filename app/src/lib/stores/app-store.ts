@@ -1,5 +1,6 @@
 import * as Path from 'path'
-import { lstat, writeFile } from 'fs/promises'
+import { lstat, mkdtemp, rm, writeFile } from 'fs/promises'
+import { tmpdir } from 'os'
 import {
   AccountsStore,
   BatchCloneStore,
@@ -16404,20 +16405,42 @@ export class AppStore extends TypedBaseStore<IAppState> {
       'stageCheapLfsCloudCompressionWorkflow',
       { isBackgroundTask: true }
     )
-    const commit = await git(
-      [
-        'commit',
-        '--no-verify',
-        '--no-gpg-sign',
-        '-m',
-        CheapLfsWorkflowInstallCommitMessage,
-        '--',
-        CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
-      ],
-      repository.path,
-      'commitCheapLfsCloudCompressionWorkflow',
-      { successExitCodes: new Set([0, 1]), isBackgroundTask: true }
+    // `--no-verify` skips pre-commit and commit-msg, but Git still invokes
+    // post-commit. Git LFS installs a post-commit hook, and a broken or
+    // partially removed LFS installation can therefore make this otherwise
+    // self-contained background operation report a false failure after Git
+    // has already created the commit. Point this one command at an owned,
+    // empty hooks directory so *all* repository hooks are bypassed. The
+    // user's ordinary commits keep the repository's configured hooks.
+    const emptyHooksPath = await mkdtemp(
+      Path.join(tmpdir(), 'desktop-material-cloud-workflow-hooks-')
     )
+    let commit
+    try {
+      commit = await git(
+        [
+          '-c',
+          `core.hooksPath=${emptyHooksPath}`,
+          'commit',
+          '--no-verify',
+          '--no-gpg-sign',
+          '-m',
+          CheapLfsWorkflowInstallCommitMessage,
+          '--',
+          CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+        ],
+        repository.path,
+        'commitCheapLfsCloudCompressionWorkflow',
+        { successExitCodes: new Set([0, 1]), isBackgroundTask: true }
+      )
+    } finally {
+      await rm(emptyHooksPath, { recursive: true, force: true }).catch(error =>
+        log.error(
+          'Could not remove the empty cloud workflow hooks directory',
+          error
+        )
+      )
+    }
     if (commit.exitCode !== 0) {
       return null
     }

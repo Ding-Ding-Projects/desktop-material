@@ -1,7 +1,14 @@
 import assert from 'node:assert'
 import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { describe, it, TestContext } from 'node:test'
@@ -622,6 +629,30 @@ describe('Cheap LFS cloud-compression workflow background install', () => {
     assert.equal(fixture.notifications.length, 2)
     assert.match(fixture.notifications[0].body, /background/i)
     assert.match(fixture.notifications[1].body, /main/)
+  })
+
+  it('bypasses every hook, including a failing Git LFS-style post-commit hook', async t => {
+    const fixture = await setupFixture(t)
+    const hooks = git(fixture.worktree, ['config', 'core.hooksPath'])
+    const marker = join(hooks, 'post-commit-ran')
+    const hook = join(hooks, 'post-commit')
+    await writeFile(
+      hook,
+      `#!/bin/sh\nprintf ran > '${marker.replace(/\\/g, '/')}'\nexit 1\n`,
+      'utf8'
+    )
+    await chmod(hook, 0o755)
+
+    await runInstall(fixture)
+
+    const head = git(fixture.worktree, ['rev-parse', 'HEAD'])
+    assert.equal(git(fixture.bare, ['rev-parse', 'refs/heads/main']), head)
+    await assert.rejects(() => readFile(marker, 'utf8'))
+    assert.equal(
+      git(fixture.worktree, ['log', '-1', '--format=%s']),
+      CheapLfsWorkflowInstallCommitMessage
+    )
+    assert.deepEqual(fixture.notices, [])
   })
 
   it('never touches a foreign file at the workflow path', async t => {

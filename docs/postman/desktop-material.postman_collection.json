@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "467b085a-2dcf-4e1a-9c41-dda6f584fabc",
     "name": "Desktop Material — All APIs",
-    "description": "Master Postman collection for Desktop Material. The Agent API is currently the only product-owned HTTP API, so this collection contains its complete route and 24-command contract. Provider integrations call external APIs but do not add Desktop Material HTTP endpoints.",
+    "description": "Master Postman collection for Desktop Material. It contains the local Agent API and the self-hosted diagnostic log API. Provider integrations call external APIs but do not add Desktop Material endpoints.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -16,6 +16,91 @@
     ]
   },
   "item": [
+    {
+      "name": "Diagnostic log server",
+      "description": "Authenticated, redacted diagnostic ingest and agent-readable search. Keep logToken in an unexported secret environment.",
+      "item": [
+        {
+          "name": "Log server health",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{logBaseUrl}}/health"
+          }
+        },
+        {
+          "name": "Ingest one diagnostic",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{logToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientId\": \"postman-client\",\n  \"sessionId\": \"postman-session\",\n  \"level\": \"info\",\n  \"message\": \"Postman diagnostic fixture\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{logBaseUrl}}/v1/logs"
+          }
+        },
+        {
+          "name": "Search diagnostics",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{logToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{logBaseUrl}}/v1/logs?level={{logLevel}}&q={{logQuery}}&limit=200"
+          }
+        },
+        {
+          "name": "Log storage status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{logToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{logBaseUrl}}/v1/storage"
+          }
+        }
+      ]
+    },
     {
       "name": "Server information",
       "item": [
@@ -880,6 +965,28 @@
     }
   ],
   "variable": [
+    {
+      "key": "logBaseUrl",
+      "value": "http://127.0.0.1:4318",
+      "type": "string",
+      "description": "Diagnostic log server base URL."
+    },
+    {
+      "key": "logToken",
+      "value": "",
+      "type": "secret",
+      "description": "Keep the real value in an unexported secret environment."
+    },
+    {
+      "key": "logLevel",
+      "value": "error",
+      "type": "string"
+    },
+    {
+      "key": "logQuery",
+      "value": "",
+      "type": "string"
+    },
     {
       "key": "agentBaseUrl",
       "value": "http://127.0.0.1:0",

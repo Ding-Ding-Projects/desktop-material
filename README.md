@@ -23,6 +23,16 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 
 ![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci.yml/badge.svg?branch=main)
 
+> **Cheap LFS hook bypass and central diagnostics — July 29, 2026:** the
+> app-authored cloud-compression workflow commit now runs against an owned,
+> empty hooks directory, so a broken Git LFS post-commit hook cannot falsely
+> fail it; normal user commits keep every configured hook. Desktop clients can
+> also choose local, central, or dual logging through launch configuration.
+> The authenticated, double-redacted
+> [diagnostic service](docs/features/quality-and-reliability/central-diagnostic-logging.md)
+> is live on the private Docker host with searchable agent APIs, operator-picked
+> storage, bounded retention, and a browser dashboard.
+
 > **Current close-out status — July 29, 2026:** the active issue-closing wave is
 > merged locally with the Cheap LFS helper train and the Windows shutdown/profile
 > persistence corrections, and remains in final verification. Its capture and

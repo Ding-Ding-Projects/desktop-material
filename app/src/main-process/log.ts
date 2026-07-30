@@ -6,8 +6,18 @@ import { DesktopConsoleTransport } from './desktop-console-transport'
 import memoizeOne from 'memoize-one'
 import { mkdir } from 'fs/promises'
 import { DesktopFileTransport } from './desktop-file-transport'
+import { randomUUID } from 'crypto'
+import { readFile } from 'fs/promises'
+import { isAbsolute } from 'path'
+import { app } from 'electron'
+import {
+  DesktopRemoteLogTransport,
+  normalizeRemoteLogDestination,
+  normalizeRemoteLogEndpoint,
+} from './desktop-remote-log-transport'
 
 let fileTransport: DesktopFileTransport | null = null
+let remoteTransport: DesktopRemoteLogTransport | null = null
 let fileTransportLevel: LogLevel = 'info'
 
 /**
@@ -20,6 +30,9 @@ export function setLogLevel(level: LogLevel) {
   if (fileTransport !== null) {
     fileTransport.level = level
   }
+  if (remoteTransport !== null) {
+    remoteTransport.level = level
+  }
 }
 
 /**
@@ -29,7 +42,11 @@ export function setLogLevel(level: LogLevel) {
  *
  * @param path The path where to write log files.
  */
-function initializeWinston(path: string): winston.LogMethod {
+function initializeWinston(
+  path: string,
+  remote: DesktopRemoteLogTransport | null,
+  writeLocal: boolean
+): winston.LogMethod {
   const timestamp = () => new Date().toISOString()
 
   const fileLogger = new DesktopFileTransport({
@@ -50,7 +67,11 @@ function initializeWinston(path: string): winston.LogMethod {
   })
 
   winston.configure({
-    transports: [consoleLogger, fileLogger],
+    transports: [
+      consoleLogger,
+      ...(writeLocal ? [fileLogger] : []),
+      ...(remote === null ? [] : [remote]),
+    ],
     format: winston.format.simple(),
   })
 
@@ -67,9 +88,46 @@ function initializeWinston(path: string): winston.LogMethod {
  *          for when the event has been written to all destinations.
  */
 const getLogger = memoizeOne(async () => {
-  const logDirectory = getLogDirectoryPath()
-  await mkdir(logDirectory, { recursive: true })
-  return initializeWinston(logDirectory)
+  const configuredDirectory = process.env.DESKTOP_MATERIAL_LOG_DIRECTORY
+  const logDirectory =
+    configuredDirectory !== undefined && isAbsolute(configuredDirectory)
+      ? configuredDirectory
+      : getLogDirectoryPath()
+  const destination = normalizeRemoteLogDestination(
+    process.env.DESKTOP_MATERIAL_LOG_DESTINATION
+  )
+  const writeLocal = destination !== 'remote'
+  if (writeLocal) {
+    await mkdir(logDirectory, { recursive: true })
+  }
+
+  let remote: DesktopRemoteLogTransport | null = null
+  if (destination !== 'local') {
+    const endpoint = normalizeRemoteLogEndpoint(
+      process.env.DESKTOP_MATERIAL_LOG_SERVER_URL ?? ''
+    )
+    const tokenFile = process.env.DESKTOP_MATERIAL_LOG_SERVER_TOKEN_FILE
+    if (endpoint !== null && tokenFile !== undefined && isAbsolute(tokenFile)) {
+      // A missing/revoked token disables only the remote sink. In `both` mode
+      // the local file transport must still initialize and remain usable.
+      const token = (await readFile(tokenFile, 'utf8').catch(() => '')).trim()
+      if (token.length >= 32 && token.length <= 512) {
+        remote = new DesktopRemoteLogTransport({
+          endpoint,
+          token,
+          clientId:
+            process.env.DESKTOP_MATERIAL_LOG_CLIENT_ID ??
+            `desktop-${randomUUID()}`,
+          sessionId: randomUUID(),
+          appVersion: app.getVersion(),
+          releaseChannel: __RELEASE_CHANNEL__,
+          level: fileTransportLevel,
+        })
+        remoteTransport = remote
+      }
+    }
+  }
+  return initializeWinston(logDirectory, remote, writeLocal)
 })
 
 /**

@@ -12,8 +12,8 @@ access modes.
   requests for every shipped HTTP route and every static command.
 - [Project-wide Postman
   collection](../../postman/desktop-material.postman_collection.json) — the
-  master collection. The Agent API is currently the only product-owned HTTP
-  API; provider integrations do not add Desktop Material endpoints.
+  master collection, including this API and the self-hosted diagnostic-log
+  service. Provider integrations do not add Desktop Material endpoints.
 
 The checked-in collections contain no token, pairing code, credential, or
 machine-specific path. Supply private values only through an unexported local

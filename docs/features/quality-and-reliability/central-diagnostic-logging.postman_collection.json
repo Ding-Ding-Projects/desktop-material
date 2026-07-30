@@ -1,0 +1,85 @@
+{
+  "info": {
+    "_postman_id": "7e147767-7785-49bf-8f6a-284768181c1c",
+    "name": "Desktop Material — Diagnostic Log Server",
+    "description": "Authenticated ingest, search, and storage status for the self-hosted diagnostic server. Keep the bearer token in an unexported Postman environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{logToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "url": "{{logBaseUrl}}/health"
+      }
+    },
+    {
+      "name": "Ingest one diagnostic",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clientId\": \"postman-client\",\n  \"sessionId\": \"postman-session\",\n  \"timestamp\": \"2026-07-29T00:00:00.000Z\",\n  \"level\": \"info\",\n  \"appVersion\": \"0.1.0\",\n  \"releaseChannel\": \"development\",\n  \"message\": \"Postman diagnostic fixture\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{logBaseUrl}}/v1/logs"
+      }
+    },
+    {
+      "name": "Search diagnostics",
+      "request": {
+        "method": "GET",
+        "url": "{{logBaseUrl}}/v1/logs?level={{logLevel}}&q={{logQuery}}&limit=200"
+      }
+    },
+    {
+      "name": "Storage status",
+      "request": {
+        "method": "GET",
+        "url": "{{logBaseUrl}}/v1/storage"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "logBaseUrl",
+      "value": "http://127.0.0.1:4318"
+    },
+    {
+      "key": "logToken",
+      "value": "",
+      "type": "secret"
+    },
+    {
+      "key": "logLevel",
+      "value": "error"
+    },
+    {
+      "key": "logQuery",
+      "value": ""
+    }
+  ]
+}
