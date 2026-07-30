@@ -176,137 +176,59 @@ confirmed public. It is off by default for private repositories and runs there
 only after the user explicitly enables the persisted **Cloud compression**
 setting; unknown visibility fails closed.
 
-Where it runs depends entirely on that visibility, and the app never guesses:
+The managed caller always runs in the repository that owns the Release objects:
 
 | Policy | Route | What happens |
 | --- | --- | --- |
 | `automatic-public` | `in-repo-workflow` | Unchanged. One owned caller at `.github/workflows/cheap-lfs-cloud-compression.yml`, committed and pushed in the background. |
-| `enabled-private` | `encrypted-public-builder` | **No caller is installed.** Compression is registered for a free public runner instead — see [Private repositories](#private-repositories-the-encrypted-public-builder). |
+| `enabled-private` | `in-repo-workflow` | The same owned caller is rendered with its private arm enabled, then committed and pushed in the background. Each run uses that private repository's GitHub Actions minutes. |
 | `disabled-private`, `not-github` | `none` | Nothing. |
 | `visibility-unknown` | `blocked-visibility-unknown` | Neither route runs. The blocker is reported as a non-blocking notice. |
 
-For a public repository, opening the Large files manager writes the owned
-caller, and when the repository does not already carry it in its committed
-history the app commits and pushes it in the background — see
-[Background workflow install](#background-workflow-install). The caller also
-checks live event visibility, so a formerly public repository stops on its own
-the moment it becomes private, without waiting for the app to notice.
+Opening the Large files manager writes the owned caller for either active
+policy. When the committed history does not already carry the exact caller, the
+app commits and pushes it in the background — see
+[Background workflow install](#background-workflow-install).
 
-`renderCheapLfsCloudCompressionWorkflow` still accepts a
-`privateRepositoryOptIn` argument, but nothing the app writes ever passes
-`true` any more. The private arm of the caller's runtime guard exists only so a
-caller installed by an older release can be recognized and rewritten closed;
-see [Closing a legacy private caller](#closing-a-legacy-private-caller).
+#### Private repositories: explicit in-repository publishing
 
-#### Private repositories: the encrypted public builder
+Private compression is a deliberate cost choice. The setting says plainly that
+each run uses the private repository's GitHub Actions minutes. When the user
+enables it, `renderCheapLfsCloudCompressionWorkflow(true)` emits:
 
-Compression is long-running and bandwidth-heavy — exactly the shape of job that
-burns Actions minutes fastest. On a private repository those minutes are the
-user's own, so the app refuses to install a caller there at all. Compression is
-routed to the **encrypted public builder** instead: the reviewed compressor runs
-on a free public runner while nothing about the private repository appears
-anywhere public.
+```yaml
+# Private repository opt-in: enabled
+...
+if: >-
+  github.ref_type == 'branch' && github.ref == format('refs/heads/{0}',
+  github.event.repository.default_branch) &&
+  (github.event.repository.private == false || true)
+```
 
-The app produces the registration and stops. It derives, from a SHA-256 digest
-of the private `owner/name` under three separate domain separators:
+The exact managed file is then committed and pushed to the repository's current
+default branch. This includes the important transition where a prior managed
+caller exists with `|| false`: the explicit opt-in is recognized as a reviewed
+guard transition and published, rather than being mistaken for an unrelated
+workflow edit and stranded in the working tree.
 
-- an **opaque project id** (16 characters), used as the public workflow's file
-  name, job id, and `repository_dispatch` type;
-- an **opaque secret suffix** (12 characters) shared by every secret name;
-- a **gibberish builder name** — three pronounceable five-letter syllable
-  groups, e.g. `nidef-dared-dekir` — for the public repository.
+The caller does not carry a cross-repository destination or a stored personal
+token. Its composite action receives the calling run's `github.token`;
+`GITHUB_REPOSITORY` is the Release and API target; and `origin` is the only Git
+push target. `permissions: contents: write` grants the job only the calling
+repository access it needs to read and update its managed prerelease assets and
+publish the verified pointer commit. Checkout and compressor actions stay
+pinned by full commit SHA.
 
-None of the three is derived from the repository name in any readable way, none
-can be read back into one, and a one-character change in the name changes all
-three completely. They are stable for one repository so the same registration
-is reproduced on every machine. A party who already guesses the exact
-`owner/name` can confirm a match by recomputing the digest; the derivation
-hides the name, it does not defend against a confirmed guess.
+The workflow also checks the live event visibility and exact default-branch ref
+on every run. A public caller whose repository becomes private therefore stops
+unless its managed guard was explicitly armed. A disabled private repository
+creates no caller. If an armed managed caller is present when the setting is
+turned off, the working-tree copy is rewritten with `|| false`; an unowned file
+at the same path is never overwritten.
 
-The committed public file is one neutral loader stub: a gibberish workflow
-name, `permissions: {}`, the opaque job id, three secret references *by name*,
-and one gzip+base64 blob. It decodes the blob into `$RUNNER_TEMP` and runs it.
-Nothing in it states what is built, for whom, or where the result goes — not
-even the word "compress".
-
-Three secrets live on the public builder, created by a human in GitHub's own
-secret store. Desktop Material never sees, stores, or transports their values,
-and never writes one into a file:
-
-| Secret | Holds |
-| --- | --- |
-| `RELEASE_TARGET_<SUFFIX>` | The private repository as `owner/name`. The **only** place it exists. |
-| `RELEASE_TOKEN_<SUFFIX>` | A fine-grained token scoped to that one private repository with read and write access to its contents. |
-| `RUNTIME_SOURCE_<SUFFIX>` | The pinned location the job fetches the compressor from. Deliberately neutral: a name like `COMPRESSOR_SOURCE` would tell any reader of the public builder what the job does. |
-
-> [!IMPORTANT]
-> `RELEASE_TOKEN_<SUFFIX>` is a token that can write to a private repository,
-> stored on a public one. The loader stub therefore triggers only on
-> `workflow_dispatch` and `repository_dispatch`, never on `push`,
-> `pull_request`, or `pull_request_target`, and the job body exits `78` on any
-> other event before it touches a secret. Scope the token to the one repository
-> and to contents only.
-
-The job body itself names nothing. It masks `RELEASE_TARGET` — and each half of
-it, since GitHub masks literal substrings — before first use, clones the
-private repository with the token, and runs the same SHA-pinned
-`cloud-compress.mjs` the public route uses, with `GITHUB_REPOSITORY` set to the
-private target. Verification semantics are therefore identical on both routes:
-every compressed object still round-trips to its exact original bytes with its
-recorded size and SHA-256 verified before adoption.
-
-Two leaks are closed in the body specifically because the runner is public.
-The compressor prints `<path> / <asset name>` for every object it touches, and
-writes the same into the job summary; Cheap LFS asset names are derived from
-user file paths, so both are private data. The body therefore runs it with
-`GITHUB_STEP_SUMMARY` unset and its entire transcript redirected into a
-runner-local file that is deleted and never echoed, uploaded, or summarized.
-Results move only through `gh` against the private target — never an Actions
-artifact, and never a release on the public builder.
-
-##### The leak guard
-
-Before a registration is returned, every public-bound value is scanned against
-every identifier of the private repository: the owner, the name, `owner/name`,
-each Cheap LFS asset name, each tracked path, each path segment, and each
-segment's stem without its extension. The scanned values are the builder name,
-the project id, the secret suffix, the committed loader path, the loader stub
-with its payload elided, and the **decoded** project body — base64 hides
-plaintext from a substring scan, so the guard opens the envelope rather than
-scanning the blob.
-
-An identifier of four characters or more is refused anywhere in a value. A
-shorter one is refused only as a whole word, because a bare substring scan for
-a two-letter repository name matches `grab` and would block every publication
-forever instead of the ones that actually leak.
-
-Any hit throws `CheapLfsPrivateIdentifierLeakError` and nothing is prepared,
-committed, or published. The error names the surface and the identifier's
-*length* only — a leak report that repeats the leaked value is another leak.
-This is deliberately fail-closed: a private repository whose name genuinely
-collides with the public template (say, one named `ubuntu`) can never be
-published safely, so it is refused and reported rather than published with a
-best-effort redaction.
-
-##### Where the app stops
-
-Desktop Material prepares the registration and goes no further. It cannot
-create a public repository or write an Actions secret on the user's behalf —
-doing either would mean holding a token, which this feature never does. So the
-private route always ends in the `builder-unavailable` blocker, reported as a
-persistent non-blocking notice that carries the builder name, the project id,
-and the three secret names. Until the public builder exists and its secrets are
-set, **compression does not run on a private repository at all**: objects stay
-raw, which is valid, cloneable storage. Nothing falls back to spending private
-minutes, and nothing is published publicly.
-
-#### Closing a legacy private caller
-
-A caller installed by an older release into a private repository is not left
-armed. The next time the app touches the path it rewrites the file with the
-public template — whose guard reads `github.event.repository.private == false
-|| false` — so the workflow stops running rather than continuing to bill
-private minutes. An unowned file at the path is still never rewritten.
+Unknown visibility remains a hard stop. The app neither creates nor arms a
+caller until GitHub reports the repository as exactly public or private, so it
+cannot accidentally spend private Actions minutes before consent.
 
 #### Background workflow install
 
@@ -552,14 +474,14 @@ as a safely classified large-file candidate.
 
 The same settings surface shows public cloud compression as automatic and
 read-only. A private repository receives a separate off-by-default checkbox
-that states plainly, before recording consent, that enabling it adds no
-workflow and spends none of the user's private Actions minutes because
-compression runs on the encrypted public builder. Opting in therefore never
-reports "workflow added"; it reports the builder route and its blocker.
+that states plainly, before recording consent, that enabling it publishes the
+managed workflow in that repository and uses the user's private Actions
+minutes. Opting in reports the real workflow-added or workflow-ready state;
+turning it off closes the managed private guard.
 English, playful Hong Kong-style Cantonese, and bilingual modes cover the
 setting, manager status, local-only decompression notice, raw/compressed/mixed
-pointer badges, and every background workflow-install, builder-route,
-visibility-blocked, and leak-refusal notice.
+pointer badges, and every background workflow-install and visibility-blocked
+notice.
 
 ### Post-commit payload restore
 
@@ -1611,23 +1533,17 @@ Enterprise still require the exact repository-selected account. Anonymous
 create, update, publish, delete, upload, and mutation-review operations are
 rejected before transport.
 
-Cloud compression never installs a workflow into a private repository, so a
-private repository spends no Actions minutes on it and keeps no
-`.github/workflows` entry the app authored. When compression for a private
-repository is routed to the encrypted public builder, no identifier of that
-repository may reach any public place: not its name, its owner, its file paths,
-the asset names derived from them, or the release target, and not in a
-committed file, a workflow name, or a public runner's log. The registration is
-built from opaque hash-derived tokens, the release target and the token live
-only in Actions secrets, the committed loader stub is scanned with its payload
-elided, and the project body is scanned decoded rather than base64-encoded. A
-single hit fails the whole preparation closed — nothing is prepared, committed,
-or published, and the refusal reports the identifier's length rather than its
-value. Visibility that GitHub has not confirmed is treated the same way: no
-install, no public preparation, and a reported blocker. Public prerelease assets remain outside the stable
-Latest release. The feature never puts provider credentials in a pointer.
-Temporary downloads are cleaned on success and failure, and unverified bytes
-never replace a tracked file.
+Cloud compression installs its managed workflow into a private repository only
+after the persisted private opt-in. The setting discloses the private Actions
+minute cost before consent. The run uses only that calling repository's
+`github.token`, `GITHUB_REPOSITORY`, Release API, and `origin`; it does not carry
+a cross-repository target or provider credential. The exact default-branch and
+live visibility checks run before compression, and the managed caller is pinned
+to reviewed action commits. Visibility that GitHub has not confirmed is a
+reported hard stop: no workflow is created or armed. Public prerelease assets
+remain outside the stable Latest release. The feature never puts provider
+credentials in a pointer. Temporary downloads are cleaned on success and
+failure, and unverified bytes never replace a tracked file.
 
 Optional payload encryption keeps its passphrase in the OS credential vault
 only, never in the Git-backed profile settings store, a preferences file,

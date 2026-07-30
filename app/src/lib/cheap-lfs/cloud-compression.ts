@@ -103,13 +103,12 @@ export function isCheapLfsCloudCompressionEnabled(
 /**
  * Where a repository's compression actually runs.
  *
- * - `in-repo-workflow`           — a confirmed-public repository. Public
- *   Actions minutes are free, so the reviewed caller lives in the repository
- *   itself, exactly as it always has.
- * - `encrypted-public-builder`   — a private repository with the opt-in.
- *   Compression is long-running and bandwidth-heavy, and every pass would bill
- *   the user's private minutes, so it runs on a free public runner through the
- *   encrypted builder instead. No caller is ever installed here.
+ * - `in-repo-workflow`           — a confirmed-public repository, or a private
+ *   repository whose user explicitly accepted its Actions-minute cost. The
+ *   reviewed caller lives in that repository so GitHub can run it and publish
+ *   the verified pointer update back to the same default branch.
+ * - `encrypted-public-builder`   — reserved for an externally provisioned
+ *   builder. No current repository policy selects it.
  * - `blocked-visibility-unknown` — GitHub has not said whether the repository
  *   is public or private. Neither route may run: installing a caller could
  *   bill private minutes, and preparing a public builder could publish an
@@ -131,7 +130,7 @@ export function getCheapLfsCloudCompressionRoute(
     case 'automatic-public':
       return 'in-repo-workflow'
     case 'enabled-private':
-      return 'encrypted-public-builder'
+      return 'in-repo-workflow'
     case 'visibility-unknown':
       return 'blocked-visibility-unknown'
     case 'disabled-private':
@@ -142,9 +141,9 @@ export function getCheapLfsCloudCompressionRoute(
 }
 
 /**
- * True only when the repository-local caller may exist and run — that is, only
- * for a confirmed-public repository. A private repository never gets one: the
- * whole point of the builder route is that its Actions minutes stay unspent.
+ * True only when the repository-local caller may exist and run: either the
+ * repository is confirmed public, or it is confirmed private and the user
+ * explicitly opted in.
  */
 export function cheapLfsCloudCompressionUsesInRepoWorkflow(
   policy: CheapLfsCloudCompressionPolicy
@@ -199,10 +198,9 @@ export function getCheapLfsCloudCompressionStats(
  * authoritative: a public repository that later becomes private stops on its
  * own, without waiting for this app to notice.
  *
- * `privateRepositoryOptIn` is now only ever `false` in anything this app
- * writes. Private repositories route through the encrypted public builder and
- * never carry a caller at all, so the guard's private arm exists solely to
- * describe — and close — a caller installed by an older release.
+ * `privateRepositoryOptIn` is embedded in the reviewed caller so the live event
+ * visibility check preserves the user's explicit private-repository choice.
+ * Disabling that choice rewrites the managed caller with this arm closed.
  */
 export function renderCheapLfsCloudCompressionWorkflow(
   privateRepositoryOptIn: boolean
@@ -595,11 +593,10 @@ async function serializeWorkflowWrite<T>(
  * Add or update only Desktop Material's owned workflow file. This never stages,
  * commits, or pushes: the generated change remains visible for user review.
  *
- * Only a confirmed-public repository ever gains a caller. A private repository
- * — opted in or not — and a repository of unknown visibility are never given
- * one, because running it would bill the user's private Actions minutes; a
- * caller an older release installed there is rewritten with its runtime guard
- * closed rather than left armed.
+ * A confirmed-public repository gains the public caller automatically. A
+ * confirmed-private repository gains the private caller only after explicit
+ * opt-in; disabling that choice closes an existing managed caller. Unknown
+ * visibility still fails closed.
  */
 export async function ensureCheapLfsCloudCompressionWorkflow(
   repository: Repository,
@@ -629,9 +626,9 @@ export async function ensureCheapLfsCloudCompressionWorkflow(
       )
     }
 
-    // Always the public caller: nothing this app writes arms the private arm
-    // of the guard any more, so a legacy armed caller is closed on sight.
-    const next = renderCheapLfsCloudCompressionWorkflow(false)
+    const next = renderCheapLfsCloudCompressionWorkflow(
+      policy === 'enabled-private'
+    )
     if (current?.contents === next) {
       return { path: safePath.path, changed: false, policy }
     }
@@ -670,7 +667,9 @@ export async function inspectCheapLfsCloudCompressionWorkflow(
   fileSystem: ICheapLfsWorkflowFileSystem = nodeWorkflowFileSystem
 ): Promise<ICheapLfsWorkflowInspection> {
   const policy = getCheapLfsCloudCompressionPolicy(repository, preferences)
-  const canonicalContents = renderCheapLfsCloudCompressionWorkflow(false)
+  const canonicalContents = renderCheapLfsCloudCompressionWorkflow(
+    policy === 'enabled-private'
+  )
   const safePath = await safeWorkflowPath(repository.path, false, fileSystem)
   const snapshot = safePath.parentExists
     ? await readWorkflowSnapshot(safePath.path, fileSystem)

@@ -584,14 +584,12 @@ describe('CheapLfs panel', () => {
       dispatcher.ensureCalls[1].preferences.cheapLfsCloudCompression,
       true
     )
-    // Opting in must never promise a workflow: a private repository gets no
-    // caller and spends no private Actions minutes. It says so instead.
+    // The persisted private opt-in now publishes the same reviewed caller,
+    // armed only for private visibility.
     assert.ok(
-      await screen.findByText(
-        /No workflow was added to this private repository/i
-      )
+      await screen.findByText(/Cloud-compression workflow added to Changes/i)
     )
-    assert.equal(screen.queryByText(/workflow added to Changes/i), null)
+    assert.ok(screen.getByText(/Cloud-compression workflow file is ready/i))
   })
 
   it('keeps a persisted private opt-in when workflow setup fails', async () => {

@@ -41,6 +41,7 @@ import { Owner } from '../../../src/models/owner'
 import { Repository } from '../../../src/models/repository'
 
 const canonicalPublic = renderCheapLfsCloudCompressionWorkflow(false)
+const canonicalPrivate = renderCheapLfsCloudCompressionWorkflow(true)
 
 function observation(
   overrides: Partial<ICheapLfsWorkflowObservation> = {}
@@ -178,22 +179,32 @@ describe('Cheap LFS cloud-compression workflow install decision', () => {
     }
   })
 
-  it('never installs a caller into an opted-in private repository', () => {
-    // Installing here would bill the user's own Actions minutes for every
-    // long compression pass. The external builder route is reported instead,
-    // whatever the repository already carries at the path.
-    for (const contents of [null, canonicalPublic, 'name: someone else\n']) {
-      assert.equal(
-        decideCheapLfsWorkflowInstall(
-          observation({
-            policy: 'enabled-private',
-            committedContents: contents,
-            workingTreeContents: contents,
-          })
-        ),
-        'external-builder'
-      )
-    }
+  it('installs the armed caller only after the private opt-in and still protects unowned files', () => {
+    const privateObservation = (
+      contents: string | null
+    ): ICheapLfsWorkflowObservation =>
+      observation({
+        policy: 'enabled-private',
+        committedContents: contents,
+        workingTreeContents: contents,
+        canonicalContents: canonicalPrivate,
+      })
+    assert.equal(
+      decideCheapLfsWorkflowInstall(privateObservation(null)),
+      'install'
+    )
+    assert.equal(
+      decideCheapLfsWorkflowInstall(privateObservation(canonicalPrivate)),
+      'installed'
+    )
+    assert.equal(
+      decideCheapLfsWorkflowInstall(privateObservation(canonicalPublic)),
+      'install'
+    )
+    assert.equal(
+      decideCheapLfsWorkflowInstall(privateObservation('name: someone else\n')),
+      'blocked-unowned'
+    )
   })
 
   it('fails closed and reports when GitHub has not confirmed visibility', () => {
@@ -786,33 +797,41 @@ describe('Cheap LFS cloud-compression workflow background install', () => {
     )
   })
 
-  it('installs nothing in an opted-in private repository and reports the builder route', async t => {
+  it('arms and pushes an existing managed caller when a private repository opts in', async t => {
     const fixture = await setupFixture(t)
     const opted = repositoryAt(fixture.worktree, true, {
       ...defaultBuildRunPreferences,
       cheapLfsCloudCompression: true,
     })
-    const before = git(fixture.worktree, ['rev-parse', 'HEAD'])
+    await mkdir(dirname(fixture.workflowPath), { recursive: true })
+    await writeFile(fixture.workflowPath, canonicalPublic, 'utf8')
+    git(fixture.worktree, [
+      'add',
+      '--',
+      CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+    ])
+    git(fixture.worktree, ['commit', '-m', 'managed caller disabled'])
+    git(fixture.worktree, ['push', 'origin', 'main'])
+    fixture.remoteBranchSha = git(fixture.worktree, ['rev-parse', 'HEAD'])
 
     await runInstall(fixture, false, opted)
 
-    // Not one byte in the private repository, and not one private Actions
-    // minute: no caller, no commit, no push.
-    await assert.rejects(() => readFile(fixture.workflowPath, 'utf8'))
-    assert.equal(git(fixture.worktree, ['rev-parse', 'HEAD']), before)
+    const committed = git(fixture.worktree, [
+      'cat-file',
+      'blob',
+      `HEAD:${CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH}`,
+    ])
+    assert.equal(committed.trim(), canonicalPrivate.trim())
+    assert.match(committed, /Private repository opt-in: enabled/)
+    assert.match(committed, /\|\| true/)
+    const head = git(fixture.worktree, ['rev-parse', 'HEAD'])
+    assert.equal(git(fixture.bare, ['rev-parse', 'refs/heads/main']), head)
+    assert.equal(git(fixture.worktree, ['rev-list', '--count', 'HEAD']), '3')
+    assert.deepEqual(fixture.notices, [])
+    assert.equal(fixture.notifications.length, 2)
     assert.equal(
-      git(fixture.bare, ['rev-parse', 'refs/heads/main']),
-      fixture.remoteBranchSha
-    )
-    assert.deepEqual(fixture.notifications, [])
-    assert.equal(fixture.notices.length, 1)
-    assert.equal(
-      fixture.notices[0].dedupeKey,
-      cheapLfsWorkflowNoticeDedupeKey(opted.id, 'external-builder')
-    )
-    assert.equal(
-      fixture.notices[0].title,
-      'Private compression runs on the external builder'
+      git(fixture.worktree, ['log', '-1', '--format=%s']),
+      CheapLfsWorkflowInstallCommitMessage
     )
   })
 

@@ -128,7 +128,7 @@ describe('Cheap LFS cloud compression policy', () => {
     )
   })
 
-  it('sends only a confirmed-public repository down the in-repo workflow route', () => {
+  it('uses the in-repo workflow for public repositories and opted-in private repositories', () => {
     assert.deepEqual(
       (
         [
@@ -141,18 +141,16 @@ describe('Cheap LFS cloud compression policy', () => {
       ).map(getCheapLfsCloudCompressionRoute),
       [
         'in-repo-workflow',
-        'encrypted-public-builder',
+        'in-repo-workflow',
         'none',
         'blocked-visibility-unknown',
         'none',
       ]
     )
-    assert.equal(
-      cheapLfsCloudCompressionUsesInRepoWorkflow('automatic-public'),
-      true
-    )
+    for (const policy of ['automatic-public', 'enabled-private'] as const) {
+      assert.equal(cheapLfsCloudCompressionUsesInRepoWorkflow(policy), true)
+    }
     for (const policy of [
-      'enabled-private',
       'disabled-private',
       'visibility-unknown',
       'not-github',
@@ -260,11 +258,7 @@ describe('Cheap LFS managed cloud-compression workflow', () => {
     }
   })
 
-  it('never installs a caller in an opted-in private repository', async () => {
-    // Every compression pass a private caller runs is billed to the user's own
-    // Actions minutes. Opting in routes compression to the encrypted public
-    // builder instead, so no file — and no `.github/workflows` directory — is
-    // created here at all.
+  it('installs an armed caller in an explicitly opted-in private repository', async () => {
     const root = await mkdtemp(join(tmpdir(), 'cheap-lfs-cloud-private-'))
     try {
       const enabledPreferences = {
@@ -276,15 +270,17 @@ describe('Cheap LFS managed cloud-compression workflow', () => {
         enabledPreferences
       )
       assert.equal(enabled.policy, 'enabled-private')
-      assert.equal(enabled.changed, false)
-      await assert.rejects(() => readFile(enabled.path, 'utf8'))
-      await assert.rejects(() => readdir(join(root, '.github')))
+      assert.equal(enabled.changed, true)
+      assert.equal(
+        await readFile(enabled.path, 'utf8'),
+        renderCheapLfsCloudCompressionWorkflow(true)
+      )
     } finally {
       await rm(root, { recursive: true, force: true })
     }
   })
 
-  it('closes a legacy armed private caller instead of leaving it running', async () => {
+  it('closes an armed private caller when its opt-in is disabled', async () => {
     const root = await mkdtemp(join(tmpdir(), 'cheap-lfs-cloud-legacy-'))
     const workflow = join(
       root,
@@ -298,13 +294,9 @@ describe('Cheap LFS managed cloud-compression workflow', () => {
         renderCheapLfsCloudCompressionWorkflow(true),
         'utf8'
       )
-      const enabledPreferences = {
-        ...defaultBuildRunPreferences,
-        cheapLfsCloudCompression: true,
-      }
       const result = await ensureCheapLfsCloudCompressionWorkflow(
-        repositoryAt(root, true, enabledPreferences),
-        enabledPreferences
+        repositoryAt(root, true),
+        defaultBuildRunPreferences
       )
       assert.equal(result.changed, true)
       assert.match(await readFile(workflow, 'utf8'), /\|\| false/)
@@ -409,16 +401,13 @@ describe('Cheap LFS managed cloud-compression workflow', () => {
           }
         ),
       ])
-      // Both callers converge on the public template — an opted-in private
-      // repository no longer arms the guard — so whichever ran first rewrote
-      // the legacy file and the other found nothing left to change.
-      assert.equal(
-        [publicResult.changed, privateResult.changed].filter(Boolean).length,
-        1
-      )
+      // The same path is serialized. The public update closes the initial
+      // private arm, then the explicitly opted-in private update arms it again.
+      assert.equal(publicResult.changed, true)
+      assert.equal(privateResult.changed, true)
       assert.equal(
         await readFile(workflow, 'utf8'),
-        renderCheapLfsCloudCompressionWorkflow(false)
+        renderCheapLfsCloudCompressionWorkflow(true)
       )
       assert.deepEqual(
         (await readdir(dirname(workflow))).filter(name =>

@@ -93,9 +93,9 @@ describe('cheap LFS commit entry points', () => {
       body,
       /autoIncludedCheapLfsManagedPaths\.add\(\s*CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH/
     )
-    // Only a public repository has a caller to include. A private one routes
-    // through the encrypted public builder and never gets the file, so the
-    // auto-include must be gated on the route, not on "compression is on".
+    // Public repositories and explicitly opted-in private repositories have a
+    // caller to include. Keep the auto-include gated on the resolved route,
+    // rather than a looser preference check.
     assert.match(
       body,
       /cheapLfsCloudCompressionUsesInRepoWorkflow\(workflow\.policy\)/

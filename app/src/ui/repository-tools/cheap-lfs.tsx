@@ -1115,19 +1115,13 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       if (!this.isCurrentCloudRepository(repository, generation)) {
         return
       }
-      // Only a confirmed-public repository has a caller to be ready. A private
-      // repository that opted in compresses through the external builder and
-      // must never be told a workflow was added here, because none was.
       const usesWorkflow = cheapLfsCloudCompressionUsesInRepoWorkflow(
         result.policy
       )
-      const routedToBuilder = result.policy === 'enabled-private'
       this.setState({
         cloudBusy: false,
         cloudWorkflowReady: usesWorkflow,
-        notice: routedToBuilder
-          ? t('cheapLfs.cloud.builderRouted')
-          : !usesWorkflow
+        notice: !usesWorkflow
           ? result.changed
             ? t('cheapLfs.cloud.workflowDisabled')
             : this.state.notice
@@ -1188,21 +1182,23 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       notice: null,
     })
     try {
-      await dispatcher.updateRepositoryBuildRunPreferences(
+      const result = await dispatcher.updateRepositoryBuildRunPreferences(
         repository,
         preferences
       )
       if (!this.isCurrentCloudRepository(repository, generation)) {
         return
       }
-      // This toggle only exists on a private repository, and a private
-      // repository never gets a caller: opting in routes compression to the
-      // external builder instead of spending private Actions minutes.
+      const usesWorkflow =
+        result !== null &&
+        cheapLfsCloudCompressionUsesInRepoWorkflow(result.policy)
       this.setState({
         cloudBusy: false,
-        cloudWorkflowReady: false,
+        cloudWorkflowReady: enabled && usesWorkflow,
         notice: enabled
-          ? t('cheapLfs.cloud.builderRouted')
+          ? result?.changed
+            ? t('cheapLfs.cloud.workflowAdded')
+            : t('cheapLfs.cloud.workflowReady')
           : t('cheapLfs.cloud.workflowDisabled'),
       })
     } catch (error) {

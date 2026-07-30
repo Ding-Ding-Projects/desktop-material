@@ -16108,9 +16108,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
     if (decision === 'blocked-visibility-unknown') {
-      // Fail closed, loudly. Installing a caller might bill private minutes and
-      // preparing a public builder might publish a private identifier, so
-      // neither route runs until GitHub says which this repository is.
+      // Fail closed, loudly. Installing and arming a caller before GitHub has
+      // confirmed visibility could spend private Actions minutes without the
+      // required explicit opt-in.
       this.postPersistentErrorNotice(
         t('cheapLfs.cloud.autoInstall.visibilityUnknownTitle'),
         t('cheapLfs.cloud.autoInstall.visibilityUnknownBody'),

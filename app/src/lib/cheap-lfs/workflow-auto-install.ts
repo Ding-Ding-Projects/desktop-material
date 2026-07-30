@@ -5,6 +5,7 @@ import {
   CheapLfsCloudCompressionPolicy,
   CHEAP_LFS_MANAGED_WORKFLOW_MARKER,
   getCheapLfsCloudCompressionRoute,
+  renderCheapLfsCloudCompressionWorkflow,
 } from './cloud-compression'
 
 /**
@@ -50,11 +51,8 @@ export interface ICheapLfsWorkflowObservation {
  *                        replaced silently; surface a one-click confirm.
  * - `blocked-unowned`  — something the app does not own occupies the path.
  *                        Leave it completely untouched and say so once.
- * - `external-builder` — a private repository that opted in. Installing a
- *                        caller here would bill the user's private Actions
- *                        minutes for every long compression pass, so nothing is
- *                        installed and the encrypted public builder route is
- *                        reported instead.
+ * - `external-builder` — reserved for an externally provisioned route. No
+ *                        current repository policy selects it.
  * - `blocked-visibility-unknown`
  *                      — GitHub has not confirmed whether this repository is
  *                        public or private. Neither route may run, and the
@@ -73,12 +71,12 @@ export type CheapLfsWorkflowInstallDecision =
  * Decide, fail-closed and without ever proposing an overwrite, what the
  * background installer may do.
  *
- * The route is settled before anything else. A caller is only ever written
- * into a repository GitHub has confirmed public; every other answer either
- * does nothing or reports why, and none of them installs a file. After that
- * the unowned check runs, because a file at this path that does not carry the
- * managed marker was written by somebody else, and no later branch may reach a
- * state that writes over it.
+ * The route is settled before anything else. A caller is written only when
+ * GitHub has confirmed the repository public or when a confirmed-private
+ * repository carries the explicit opt-in. Every other answer either does
+ * nothing or reports why. After that the unowned check runs, because a file at
+ * this path that does not carry the managed marker was written by somebody
+ * else, and no later branch may reach a state that writes over it.
  */
 export function decideCheapLfsWorkflowInstall(
   observation: ICheapLfsWorkflowObservation
@@ -104,6 +102,22 @@ export function decideCheapLfsWorkflowInstall(
     contents !== null && !contents.startsWith(CHEAP_LFS_MANAGED_WORKFLOW_MARKER)
   if (unowned(committed) || unowned(workingTree)) {
     return 'blocked-unowned'
+  }
+
+  // A private opt-in changes the exact disabled managed caller into its armed
+  // counterpart. Publishing that reviewed transition is the user's explicit
+  // choice, not an unsolicited update to a divergent workflow, so let the
+  // background publisher commit it instead of stopping at "offer update".
+  const oppositePrivateGuard =
+    observation.policy === 'enabled-private'
+      ? renderCheapLfsCloudCompressionWorkflow(false)
+      : null
+  if (
+    oppositePrivateGuard !== null &&
+    committed === oppositePrivateGuard &&
+    (workingTree === oppositePrivateGuard || workingTree === canonical)
+  ) {
+    return 'install'
   }
 
   if (committed === null) {
