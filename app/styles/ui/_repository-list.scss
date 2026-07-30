@@ -338,31 +338,54 @@
   .new-repository-button {
     flex-shrink: 0;
 
-    .octicon,
-    .material-symbol {
+    .octicon:last-child,
+    .material-symbol:last-child {
       margin-left: 5px;
     }
   }
 
   .repository-list-actions {
+    align-items: center;
     display: flex;
-    // This action group lives in the 400px repository sheet. Keep the group
-    // bounded by the filter row and let whole buttons wrap when their readable
-    // labels cannot share one line. Without this, the trailing Add button is
-    // painted beyond the sheet edge and becomes only partially actionable.
+    // Keep the frequent Add and multi-select actions visible, then collapse
+    // the three lower-frequency workspace actions into one menu. The compact
+    // labels remain a single row even in bilingual mode, instead of producing
+    // the five-pill, three-line block this 400px sheet used to need.
     flex: 1 1 100%;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: var(--spacing-half);
     min-width: 0;
     width: 100%;
 
-    .pull-all-repositories-button .octicon,
-    .pull-all-repositories-button .material-symbol,
-    .commit-push-all-repositories-button .octicon,
-    .commit-push-all-repositories-button .material-symbol,
-    .repository-bulk-enter-button .octicon,
-    .repository-bulk-enter-button .material-symbol {
+    .button-component {
+      align-items: center;
+      display: inline-flex;
+      flex: 0 0 auto;
+      gap: 6px;
+      justify-content: center;
+      min-height: 44px;
+      min-width: 0;
+      padding: 0 12px;
+    }
+
+    .repository-list-add-button {
+      padding-left: 14px;
+      padding-right: 10px;
+    }
+
+    .repository-list-compact-action {
+      padding-inline: 12px;
+    }
+
+    .repository-list-add-button > .material-symbol:first-child,
+    .repository-bulk-enter-button > .material-symbol:first-child,
+    .repository-more-actions-button > .material-symbol:first-child {
       margin-right: 4px;
+    }
+
+    .localized-text {
+      min-width: 0;
+      white-space: nowrap;
     }
   }
 

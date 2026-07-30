@@ -1,8 +1,11 @@
 # Repository list bulk actions
 
-The repository side sheet has a multi-select mode. **Select multiple** turns on
-a checkbox per row and a contextual selection bar that can fetch, pull,
-favorite, group, or forget several saved repositories in one reviewed pass.
+The repository side sheet keeps its frequent workspace actions on one compact
+44 px row: **Add**, **Select**, and **More**. **More** contains repository-group
+creation, workspace sync, and commit/push-all so the narrow sheet does not turn
+five equal-weight pills into a three-line block. **Select** turns on a checkbox
+per row and a contextual selection bar that can fetch, pull, favorite, group,
+or forget several saved repositories in one reviewed pass.
 
 ## Behavior and configuration
 
@@ -18,6 +21,9 @@ favorite, group, or forget several saved repositories in one reviewed pass.
   the app to that repository, which keeps the side sheet open while reviewing.
 - **Escape** and **Clear** both leave multi-select and drop the selection.
   Escape unwinds the removal confirmation first.
+- The compact row remains keyboard reachable. Add and More expose
+  `aria-haspopup="menu"` and deterministic localized names; Select preserves
+  its pressed state while multi-select is active.
 - **Fetch** and **Pull** run the selection through the existing reviewed batch
   sync, one repository at a time. **Favorite / Unfavorite**, **Assign to
   group / Remove from group**, and **Remove from list** apply immediately and
@@ -85,5 +91,9 @@ items with the in-flight repository finishing, and every sanitizer rule.
 `ui/repository-bulk-actions-test.tsx` renders the selection bar, progress row,
 and removal confirmation, and pins the registered operations, the English and
 Cantonese key parity, and the plain destructive copy.
+`ui/repositories-list-actions-test.tsx` pins the compact row's accessible
+controls and proves that group, sync, and commit/push actions remain reachable
+through the More menu. `repository-list-filter-style-test.ts` requires the
+single-row layout and 44 px minimum target height.
 `collection-surface-registry-test.ts` requires each registered operation to
 exist in the implementing source and asserts the removal safety exclusion.

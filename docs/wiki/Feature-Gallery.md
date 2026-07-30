@@ -184,7 +184,7 @@ active profile's style, label, and explicit language mode.
 | `material-settings.png` | Responsive Material Settings dialog |
 | `auto-updater-current-source-ready.png` | Current-source production UI after a genuine Electron/Squirrel update-downloaded path with a disclosed inert verifier payload and no published-payload claim |
 | `settings-history-manager.png` | Git-backed Settings history side sheet |
-| `material-repositories-sheet.png` | Repository navigation side sheet |
+| `material-repositories-sheet.png` | Compact Add, Select, and More repository actions |
 | `material-branches-sheet.png` | Branch navigation and status side sheet |
 | `regex-builder.png` | Safe RE2 builder with bounded live matches and captures |
 | `material-gitignore-manager.png` | Reviewed `.gitignore` template catalogue |
@@ -626,7 +626,7 @@ owner.
 
 ![Git-backed Settings history side sheet](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/settings-history-manager.png)
 
-![Repository navigation side sheet](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-repositories-sheet.png)
+![Dark repository side sheet with compact Add, Select, and More actions](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-repositories-sheet.png)
 
 ![Branch navigation and status side sheet](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-branches-sheet.png)
 

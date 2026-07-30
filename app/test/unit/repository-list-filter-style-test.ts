@@ -50,10 +50,14 @@ describe('repository list scope filter styles', () => {
     )
   })
 
-  it('keeps every repository-sheet action inside the narrow sheet', () => {
+  it('keeps the compact repository actions on one touch-friendly row', () => {
     assert.match(
       style,
-      /\.repository-list-actions\s*\{[\s\S]*?flex: 1 1 100%;[\s\S]*?flex-wrap: wrap;[\s\S]*?min-width: 0;[\s\S]*?width: 100%;/
+      /\.repository-list-actions\s*\{[\s\S]*?align-items: center;[\s\S]*?flex: 1 1 100%;[\s\S]*?flex-wrap: nowrap;[\s\S]*?min-width: 0;[\s\S]*?width: 100%;/
+    )
+    assert.match(
+      style,
+      /\.repository-list-actions[\s\S]*?\.button-component\s*\{[\s\S]*?min-height: 44px;[\s\S]*?min-width: 0;/
     )
   })
 })

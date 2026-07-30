@@ -823,7 +823,7 @@
       h: 'features/repository-management/repository-list-bulk-actions.html',
       s: 'features/repository-management/repository-list-bulk-actions.md',
       c: 'features',
-      d: 'The repository side sheet has a multi-select mode. Select multiple turns on a checkbox per row and a contextual selection bar that can fetch, pull, favorite, group, or forget…',
+      d: 'The repository side sheet keeps its frequent workspace actions on one compact 44 px row: Add, Select, and More. More contains repository-group creation, workspace sync, and…',
     },
     {
       t: 'Repository list collapsible groups',

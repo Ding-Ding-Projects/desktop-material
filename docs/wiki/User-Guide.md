@@ -763,11 +763,13 @@ interactive while a dialog is open.
 
 **Preferences** is the reference surface: an MD3 940×660 dialog with a left navigation rail, an
 **Active** chip on the current section, and a pill footer. The **repository** and **branch** pickers
-open as MD3 **side sheets** rather than blocking modals.
+open as MD3 **side sheets** rather than blocking modals. The repository sheet keeps **Add** and
+**Select** visible, while **More** holds group creation, workspace sync, and commit/push-all so
+all five actions stay available without wrapping into a cluttered multi-line block.
 
 ![Preferences as an MD3 dialog](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-settings.png)
 
-![Repository navigation side sheet](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-repositories-sheet.png)
+![Dark repository side sheet with compact Add, Select, and More actions](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-repositories-sheet.png)
 
 ![Branch navigation and status side sheet](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-branches-sheet.png)
 

@@ -997,6 +997,12 @@ export type TranslationKey =
   | 'repositorySync.missing.plain'
   | 'repositorySync.missing.light'
   | 'repositorySync.missing.playful'
+  | 'repositoryActions.add'
+  | 'repositoryActions.addAria'
+  | 'repositoryActions.select'
+  | 'repositoryActions.more'
+  | 'repositoryActions.moreAria'
+  | 'repositoryActions.commitPushAll'
   | 'repositoryBulk.enterSelection'
   | 'repositoryBulk.enterSelectionAria'
   | 'repositoryBulk.barAria'
@@ -3968,6 +3974,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Missing from disk, so the sync state is unknown',
   'repositorySync.missing.playful':
     'Vanished from disk, so the remote cannot be checked',
+  'repositoryActions.add': 'Add',
+  'repositoryActions.addAria': 'Add a repository',
+  'repositoryActions.select': 'Select',
+  'repositoryActions.more': 'More',
+  'repositoryActions.moreAria': 'More repository actions',
+  'repositoryActions.commitPushAll': 'Commit & push all',
   'repositoryBulk.enterSelection': 'Select multiple',
   'repositoryBulk.enterSelectionAria': 'Select multiple repositories',
   'repositoryBulk.barAria': 'Bulk repository actions',
@@ -7305,6 +7317,12 @@ export const cantoneseTranslations: Readonly<
   'repositorySync.missing.plain': '磁碟上搵唔到，同步狀態未知',
   'repositorySync.missing.light': '磁碟上搵唔到，所以同步狀態未知',
   'repositorySync.missing.playful': '喺磁碟上人間蒸發，查唔到個遠端',
+  'repositoryActions.add': '新增',
+  'repositoryActions.addAria': '新增 repo',
+  'repositoryActions.select': '揀選',
+  'repositoryActions.more': '更多',
+  'repositoryActions.moreAria': '更多 repo 操作',
+  'repositoryActions.commitPushAll': '全部 commit 同 push',
   'repositoryBulk.enterSelection': '揀多個',
   'repositoryBulk.enterSelectionAria': '一次揀多個 repo',
   'repositoryBulk.barAria': 'Repo 批次操作',

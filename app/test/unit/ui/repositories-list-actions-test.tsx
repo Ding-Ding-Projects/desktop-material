@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { describe, it } from 'node:test'
+import { afterEach, describe, it } from 'node:test'
 import * as React from 'react'
 
 import { Repository } from '../../../src/models/repository'
@@ -7,7 +7,7 @@ import { PopupType } from '../../../src/models/popup'
 import { ShowBranchNameInRepoListSetting } from '../../../src/models/show-branch-name-in-repo-list'
 import { Dispatcher } from '../../../src/ui/dispatcher'
 import { RepositoriesList } from '../../../src/ui/repositories-list/repositories-list'
-import { fireEvent, render, screen } from '../../helpers/ui/render'
+import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 
 class TestResizeObserver {
   public observe() {}
@@ -25,6 +25,14 @@ Object.defineProperty(window, 'ResizeObserver', {
 })
 
 const localRepository = new Repository('/work/local-repo', 1, null, false)
+
+afterEach(() => {
+  for (const backdrop of document.querySelectorAll<HTMLElement>(
+    '.material-context-menu-backdrop'
+  )) {
+    fireEvent.mouseDown(backdrop)
+  }
+})
 
 function createProps(showPopup: (popup: { type: PopupType }) => void) {
   const dispatcher = {
@@ -56,20 +64,43 @@ function createProps(showPopup: (popup: { type: PopupType }) => void) {
 }
 
 describe('RepositoriesList batch actions', () => {
-  it('renders both the Sync repositories and Commit & push all buttons', () => {
+  it('keeps the frequent actions in one compact, accessible row', () => {
     render(<RepositoriesList {...createProps(() => {})} />)
 
-    assert.ok(screen.getByRole('button', { name: /Sync repositories/ }))
-    assert.ok(screen.getByRole('button', { name: /Commit & push all/ }))
+    assert.ok(screen.getByRole('button', { name: 'Add a repository' }))
+    assert.ok(
+      screen.getByRole('button', { name: 'Select multiple repositories' })
+    )
+    assert.ok(screen.getByRole('button', { name: 'More repository actions' }))
+    assert.equal(
+      screen.queryByRole('button', { name: /Sync repositories/ }),
+      null
+    )
+    assert.equal(
+      screen.queryByRole('button', { name: /Commit & push all/ }),
+      null
+    )
   })
 
-  it('opens the Commit and push all popup when the button is clicked', () => {
+  it('keeps group, sync, and commit/push available in the More menu', async () => {
     const popups: Array<{ type: PopupType }> = []
     render(<RepositoriesList {...createProps(popup => popups.push(popup))} />)
 
-    fireEvent.click(screen.getByRole('button', { name: /Commit & push all/ }))
+    const more = screen.getByRole('button', {
+      name: 'More repository actions',
+    })
+    assert.equal(more.getAttribute('aria-haspopup'), 'menu')
+    fireEvent.click(more)
 
-    assert.equal(popups.length, 1)
+    await waitFor(() =>
+      assert.ok(
+        screen.getByRole('menuitem', { name: 'Create a repository group' })
+      )
+    )
+    assert.ok(screen.getByRole('menuitem', { name: 'Sync repositories' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Commit & push all' }))
+
+    await waitFor(() => assert.equal(popups.length, 1))
     assert.equal(popups[0].type, PopupType.CommitAndPushAll)
   })
 })

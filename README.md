@@ -131,6 +131,8 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 
 ![Repository picker showing the separate lock badge for explicit private metadata](docs/assets/screenshots/private-repository-lock-badge.png)
 
+![Dark repository side sheet with one compact Add, Select, and More action row](docs/assets/screenshots/material-repositories-sheet.png)
+
 ## Install on Windows
 
 Desktop Material's automated releases provide a per-user x64 Windows installer.

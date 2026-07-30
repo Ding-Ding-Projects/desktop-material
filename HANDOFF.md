@@ -1,5 +1,30 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-29 — Compact repository actions
+
+The repository side sheet no longer presents five equal-weight pills across
+three rows. Its top-level action strip is now one 44 px row with **Add**,
+**Select**, and **More**. The More menu preserves repository-group creation,
+workspace sync, and commit/push-all; the two menu buttons expose localized
+accessible names and popup state. New visible and accessibility copy ships in
+English and playful Hong Kong Cantonese.
+
+Focused repository-action and layout tests pass **6/6**. Targeted ESLint and
+Prettier pass. The exact Lowlevel MCP production build completed successfully,
+and the built Electron UI was exercised on the isolated
+`WinSta0\DMCompactActions20260729T200345` desktop with a disposable one-repo
+fixture. The accepted dark `1440×960` capture is
+`docs/assets/screenshots/material-repositories-sheet.png`, SHA-256
+`a4337af0544827860e8c0e9cf540359926f2b79b51c4ae9d1fe4b9571841dd1a`.
+It contains no user repository names, credentials, or private account data.
+
+The first production build correctly failed because an unbundled
+`more_horiz` ligature violated the typed Material Symbols allowlist. The action
+now uses the already bundled `category` glyph; the repeated build passed. The
+headless run restored the matching Electron 42.0.1 runtime from its
+checksum-verified local cache, with no download. Remote and CI publication
+evidence follows in the rolling progress record, Discussion #98.
+
 ## 2026-07-29 — CURRENT HANDOFF (read this first)
 
 The issue-closeout, Cheap LFS helper, GitLab, and Windows bug-hunt lineages are

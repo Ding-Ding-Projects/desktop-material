@@ -197,6 +197,7 @@ interface IRepositoriesListProps {
 
 interface IRepositoriesListState {
   readonly newRepositoryMenuExpanded: boolean
+  readonly repositoryActionsMenuExpanded: boolean
   readonly selectedItem: IRepositoryListItem | null
   readonly pinnedRepositoryIds: ReadonlyArray<number>
   readonly accountFilter: RepositoryAccountFilter
@@ -494,6 +495,7 @@ export class RepositoriesList extends React.Component<
 
     this.state = {
       newRepositoryMenuExpanded: false,
+      repositoryActionsMenuExpanded: false,
       selectedItem: null,
       pinnedRepositoryIds: getPinnedRepositories(),
       accountFilter: 'all',
@@ -1646,7 +1648,26 @@ export class RepositoriesList extends React.Component<
     return (
       <div className="repository-list-actions">
         <Button
-          className="repository-bulk-enter-button"
+          className="new-repository-button repository-list-add-button"
+          ariaLabel={translateForAccessibleName(
+            'repositoryActions.addAria',
+            {},
+            this.state.languageMode
+          )}
+          ariaExpanded={this.state.newRepositoryMenuExpanded}
+          ariaHaspopup="menu"
+          onClick={this.onNewRepositoryButtonClick}
+          onKeyDown={this.onNewRepositoryButtonKeyDown}
+        >
+          <MaterialSymbol name="add" size={18} />
+          <LocalizedText
+            translationKey="repositoryActions.add"
+            languageMode={this.state.languageMode}
+          />
+          <MaterialSymbol name="expand_more" size={18} />
+        </Button>
+        <Button
+          className="repository-bulk-enter-button repository-list-compact-action"
           ariaLabel={translateForAccessibleName(
             'repositoryBulk.enterSelectionAria',
             {},
@@ -1658,48 +1679,60 @@ export class RepositoriesList extends React.Component<
         >
           <MaterialSymbol name="library_add_check" size={16} />
           <LocalizedText
-            translationKey="repositoryBulk.enterSelection"
+            translationKey="repositoryActions.select"
             languageMode={this.state.languageMode}
           />
         </Button>
         <Button
-          className="repository-group-new-button"
+          className="repository-more-actions-button repository-list-compact-action"
           ariaLabel={translateForAccessibleName(
-            'repositoryGroups.newButtonAria',
+            'repositoryActions.moreAria',
             {},
             this.state.languageMode
           )}
-          onClick={this.onNewRepositoryGroup}
+          ariaExpanded={this.state.repositoryActionsMenuExpanded}
+          ariaHaspopup="menu"
+          onClick={this.onRepositoryActionsButtonClick}
         >
-          <MaterialSymbol name="group_add" size={16} />
+          <MaterialSymbol name="category" size={18} />
           <LocalizedText
-            translationKey="repositoryGroups.newButton"
+            translationKey="repositoryActions.more"
             languageMode={this.state.languageMode}
           />
         </Button>
-        <Button
-          className="pull-all-repositories-button"
-          onClick={this.onPullAllRepositories}
-        >
-          <MaterialSymbol name="sync" size={16} /> Sync repositories
-        </Button>
-        <Button
-          className="commit-push-all-repositories-button"
-          onClick={this.onCommitAndPushAllRepositories}
-        >
-          <MaterialSymbol name="arrow_upward" size={16} /> Commit &amp; push all
-        </Button>
-        <Button
-          className="new-repository-button"
-          onClick={this.onNewRepositoryButtonClick}
-          ariaExpanded={this.state.newRepositoryMenuExpanded}
-          onKeyDown={this.onNewRepositoryButtonKeyDown}
-        >
-          Add
-          <MaterialSymbol name="expand_more" size={18} />
-        </Button>
       </div>
     )
+  }
+
+  private onRepositoryActionsButtonClick = () => {
+    const items: ReadonlyArray<IMenuItem> = [
+      {
+        label: translate(
+          'repositoryGroups.newButtonAria',
+          this.state.languageMode
+        ),
+        action: this.onNewRepositoryGroup,
+      },
+      { type: 'separator' },
+      {
+        label: translate('batchSync.title', this.state.languageMode),
+        action: this.onPullAllRepositories,
+      },
+      {
+        label: translate(
+          'repositoryActions.commitPushAll',
+          this.state.languageMode
+        ),
+        action: this.onCommitAndPushAllRepositories,
+      },
+    ]
+
+    this.setState({ repositoryActionsMenuExpanded: true })
+    showContextualMenu(items).then(() => {
+      if (!this.unmounted) {
+        this.setState({ repositoryActionsMenuExpanded: false })
+      }
+    })
   }
 
   private onPullAllRepositories = () => {
