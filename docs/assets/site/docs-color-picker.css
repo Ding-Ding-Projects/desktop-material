@@ -1,0 +1,382 @@
+/*
+ * Desktop Material documentation hub — infinite colour picker styles.
+ *
+ * Mobile-first. The picker is a single column that stays usable from 320 CSS px
+ * upward, nothing depends on a hover-capable pointer, and every interactive
+ * target keeps at least a 44 px touch dimension.
+ */
+
+.dm-color-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.dm-color-picker *,
+.dm-color-picker *::before,
+.dm-color-picker *::after {
+  box-sizing: border-box;
+}
+
+.dm-color-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+/* The chequerboard shows through a translucent colour, so alpha stays legible. */
+.dm-color-preview {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid var(--md-outline-variant, rgba(0, 0, 0, 0.2));
+  background-color: transparent;
+  background-image: linear-gradient(45deg, #c9c9c9 25%, transparent 25%),
+    linear-gradient(-45deg, #c9c9c9 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #c9c9c9 75%),
+    linear-gradient(-45deg, transparent 75%, #c9c9c9 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+}
+
+.dm-color-preview-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.dm-color-preview-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.dm-color-preview-space {
+  font-size: 0.8125rem;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.dm-color-field {
+  position: relative;
+  width: 100%;
+  /*
+   * A ratio rather than a fixed height, so the field grows with its column
+   * instead of becoming a letterbox on a phone.
+   */
+  aspect-ratio: 3 / 2;
+  min-height: 132px;
+  border-radius: 12px;
+  border: 1px solid var(--md-outline-variant, rgba(0, 0, 0, 0.2));
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.dm-color-field:focus-visible {
+  outline: 3px solid var(--md-primary, #6750a4);
+  outline-offset: 2px;
+}
+
+.dm-color-field-marker {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+
+.dm-color-slider {
+  width: 100%;
+}
+
+.dm-color-slider input[type='range'] {
+  width: 100%;
+  min-width: 0;
+  /* 44 px keeps the thumb reachable on touch, where there is no hover preview. */
+  height: 44px;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.dm-color-slider input[type='range']:focus-visible {
+  outline: 3px solid var(--md-primary, #6750a4);
+  outline-offset: 2px;
+}
+
+.dm-color-slider input[type='range']::-webkit-slider-runnable-track {
+  height: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--md-outline-variant, rgba(0, 0, 0, 0.2));
+}
+
+.dm-color-slider input[type='range']::-moz-range-track {
+  height: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--md-outline-variant, rgba(0, 0, 0, 0.2));
+}
+
+.dm-color-slider--hue input[type='range']::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to right,
+    #f00 0%,
+    #ff0 17%,
+    #0f0 33%,
+    #0ff 50%,
+    #00f 67%,
+    #f0f 83%,
+    #f00 100%
+  );
+}
+
+.dm-color-slider--hue input[type='range']::-moz-range-track {
+  background: linear-gradient(
+    to right,
+    #f00 0%,
+    #ff0 17%,
+    #0f0 33%,
+    #0ff 50%,
+    #00f 67%,
+    #f0f 83%,
+    #f00 100%
+  );
+}
+
+.dm-color-slider--alpha input[type='range']::-webkit-slider-runnable-track {
+  background-color: transparent;
+  background-image: linear-gradient(
+      to right,
+      transparent,
+      var(--dm-alpha-color, #000)
+    ),
+    linear-gradient(45deg, #c9c9c9 25%, transparent 25%),
+    linear-gradient(-45deg, #c9c9c9 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #c9c9c9 75%),
+    linear-gradient(-45deg, transparent 75%, #c9c9c9 75%);
+  background-size: 100% 100%, 10px 10px, 10px 10px, 10px 10px, 10px 10px;
+  background-position: 0 0, 0 0, 0 5px, 5px -5px, -5px 0;
+}
+
+.dm-color-slider--alpha input[type='range']::-moz-range-track {
+  background-color: transparent;
+  background-image: linear-gradient(
+      to right,
+      transparent,
+      var(--dm-alpha-color, #000)
+    ),
+    linear-gradient(45deg, #c9c9c9 25%, transparent 25%),
+    linear-gradient(-45deg, #c9c9c9 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #c9c9c9 75%),
+    linear-gradient(-45deg, transparent 75%, #c9c9c9 75%);
+  background-size: 100% 100%, 10px 10px, 10px 10px, 10px 10px, 10px 10px;
+  background-position: 0 0, 0 0, 0 5px, 5px -5px, -5px 0;
+}
+
+.dm-color-slider input[type='range']::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -5px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: var(--md-on-surface, #1d1b20);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+}
+
+.dm-color-slider input[type='range']::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: var(--md-on-surface, #1d1b20);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.55);
+}
+
+.dm-color-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dm-color-entry-label,
+.dm-color-translator-heading,
+.dm-color-recent-heading {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.dm-color-entry-input,
+.dm-color-translator-value {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--md-outline, rgba(0, 0, 0, 0.35));
+  background: var(--md-surface, #fef7ff);
+  color: var(--md-on-surface, #1d1b20);
+  font-family: 'Roboto Mono', ui-monospace, monospace;
+  font-size: 0.875rem;
+}
+
+.dm-color-entry-input[aria-invalid='true'],
+.dm-color-translator-value[aria-invalid='true'] {
+  border-color: var(--md-error, #b3261e);
+  border-width: 2px;
+}
+
+.dm-color-entry-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--md-error, #b3261e);
+}
+
+.dm-color-translator {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * One row per notation. It wraps to two lines on a narrow phone rather than
+ * compressing the value field into unreadability.
+ */
+.dm-color-translator-row {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dm-color-translator-label {
+  font-size: 0.8125rem;
+  color: var(--md-on-surface-variant, #49454f);
+  overflow-wrap: anywhere;
+}
+
+.dm-color-translator-row.is-undefined .dm-color-translator-value {
+  font-style: italic;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.dm-color-translator-copy,
+.dm-color-reset,
+.dm-color-recent-swatch {
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--md-outline, rgba(0, 0, 0, 0.35));
+  background: var(--md-surface-variant, #e7e0ec);
+  color: var(--md-on-surface-variant, #49454f);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.dm-color-translator-copy:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.dm-color-translator-copy:focus-visible,
+.dm-color-reset:focus-visible,
+.dm-color-recent-swatch:focus-visible {
+  outline: 3px solid var(--md-primary, #6750a4);
+  outline-offset: 2px;
+}
+
+.dm-color-gamut {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--md-tertiary-container, #ffd8e4);
+  color: var(--md-on-tertiary-container, #31111d);
+  font-size: 0.8125rem;
+}
+
+.dm-color-contrast {
+  font-size: 0.8125rem;
+  color: var(--md-on-surface-variant, #49454f);
+  overflow-wrap: anywhere;
+}
+
+.dm-color-recent {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dm-color-recent-swatch {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+
+.dm-color-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/*
+ * At 360 px and below the label column would squeeze the value field, so the
+ * row becomes two lines and the value keeps its full width.
+ */
+@media (max-width: 360px) {
+  .dm-color-translator-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .dm-color-translator-label {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dm-color-picker * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .dm-color-field,
+  .dm-color-preview,
+  .dm-color-recent-swatch {
+    border: 1px solid CanvasText;
+  }
+
+  /*
+   * The field's meaning is its gradient, which forced colours remove. Say so,
+   * rather than presenting an empty box as a working control.
+   */
+  .dm-color-field::after {
+    content: 'Use the numeric fields below in high-contrast mode.';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    text-align: center;
+    font-size: 0.8125rem;
+    background: Canvas;
+    color: CanvasText;
+  }
+}
