@@ -33,6 +33,7 @@ import { IMenuItem, showContextualMenu } from '../../lib/menu-item'
 import { DialogLayerPortal } from '../dialog/dialog-layer'
 import { CreateTabGroupDialog } from './create-tab-group-dialog'
 import { EditTabGroupDialog } from './edit-tab-group-dialog'
+import { MoveTabToGroupDialog } from './move-tab-to-group-dialog'
 import { TabGroupMembersPopover } from './tab-group-members-popover'
 import {
   tabGroupChipKey,
@@ -86,6 +87,10 @@ interface IRepositoryTabStripState {
   readonly announcement: string
   /** The tab awaiting a name for the new group it will start. */
   readonly createGroupForTab: IRepositoryTab | null
+  /** The tab choosing an existing group destination, or null when closed. */
+  readonly moveGroupTabId: string | null
+  /** The tab or overflow control that opened the move-group chooser. */
+  readonly moveGroupAnchor: HTMLElement | null
   /** The group whose member dropdown is open, or null when none is. */
   readonly membersGroupId: string | null
   /** The chip control the member dropdown is anchored to. */
@@ -166,6 +171,8 @@ export class RepositoryTabStrip extends React.Component<
       draggingTabId: null,
       announcement: '',
       createGroupForTab: null,
+      moveGroupTabId: null,
+      moveGroupAnchor: null,
       membersGroupId: null,
       membersAnchor: null,
       editGroupId: null,
@@ -183,7 +190,29 @@ export class RepositoryTabStrip extends React.Component<
     this.disposable = this.props.tabsStore.onDidUpdate(tabs => {
       // A changed tab set (or renamed/restyled tab) can change widths, so mark
       // the strip for a fresh measurement pass before re-applying the overflow.
-      this.setState({ tabs, pendingMeasure: true })
+      const moveSourceDisappeared =
+        this.state.moveGroupTabId !== null &&
+        !tabs.tabs.some(tab => tab.id === this.state.moveGroupTabId)
+      const moveAnchor = moveSourceDisappeared
+        ? this.state.moveGroupAnchor
+        : null
+      if (moveSourceDisappeared) {
+        this.setState(
+          {
+            tabs,
+            pendingMeasure: true,
+            moveGroupTabId: null,
+            moveGroupAnchor: null,
+            announcement: this.text('tabs.groupActionFailed'),
+          },
+          () => this.restorePopoverFocus(moveAnchor)
+        )
+      } else {
+        this.setState({
+          tabs,
+          pendingMeasure: true,
+        })
+      }
       this.scheduleSettingsCommitRefresh()
     })
     this.settingsCommitDisposable =
@@ -756,7 +785,7 @@ export class RepositoryTabStrip extends React.Component<
         action: () => this.openArrange(anchor),
       },
       { type: 'separator' },
-      ...this.buildGroupMenuItems(tab),
+      ...this.buildGroupMenuItems(tab, anchor),
       { type: 'separator' },
       {
         label: 'Customize Appearance…',
@@ -799,11 +828,17 @@ export class RepositoryTabStrip extends React.Component<
   }
 
   /**
-   * The "Tab group" section of a tab's context menu: move it into any existing
-   * group, start a new one, or take it out. Deleting a group from here only
-   * removes the label — the tabs themselves stay open.
+   * The "Tab group" section of a tab's context menu.
+   *
+   * Existing destinations deliberately live behind one searchable command:
+   * expanding one menu item per group made the native menu unusable for large
+   * profiles. Deleting a group from here only removes the label — the tabs
+   * themselves stay open.
    */
-  private buildGroupMenuItems(tab: IRepositoryTab): ReadonlyArray<IMenuItem> {
+  private buildGroupMenuItems(
+    tab: IRepositoryTab,
+    anchor: HTMLElement
+  ): ReadonlyArray<IMenuItem> {
     const groups = this.props.tabsStore.getGroups()
     const currentGroupId = tab.groupId ?? null
     const currentGroup =
@@ -817,36 +852,12 @@ export class RepositoryTabStrip extends React.Component<
         icon: octicons.plus,
         action: () => this.openCreateGroup(tab),
       },
+      {
+        label: this.text('tabs.groupMoveAction'),
+        icon: octicons.arrowSwitch,
+        action: () => this.openMoveGroup(tab, anchor),
+      },
     ]
-
-    for (const group of groups) {
-      if (group.id === currentGroupId) {
-        continue
-      }
-      const members = this.state.tabs.tabs.filter(
-        candidate => (candidate.groupId ?? null) === group.id
-      )
-      if (
-        members.some(
-          member => (member.isPinned === true) !== (tab.isPinned === true)
-        )
-      ) {
-        continue
-      }
-      items.push({
-        label: this.text('tabs.groupMoveTo', { name: group.name }),
-        action: () =>
-          this.runGroupMutation(
-            this.props.tabsStore.setTabGroup(tab.id, group.id),
-            'Failed to move tab into group',
-            this.text('tabs.groupMovedStatus', {
-              tab: this.labelForTab(tab),
-              name: group.name,
-            }),
-            group.isCollapsed === true ? group.id : null
-          ),
-      })
-    }
 
     if (currentGroup !== undefined) {
       items.push({
@@ -857,20 +868,6 @@ export class RepositoryTabStrip extends React.Component<
         label: this.text('tabs.groupEdit', { name: currentGroup.name }),
         icon: octicons.pencil,
         action: () => this.setState({ editGroupId: currentGroup.id }),
-      })
-      items.push({
-        label: this.text('tabs.groupRemoveFrom', {
-          name: currentGroup.name,
-        }),
-        action: () =>
-          this.runGroupMutation(
-            this.props.tabsStore.setTabGroup(tab.id, null),
-            'Failed to remove tab from group',
-            this.text('tabs.groupRemovedStatus', {
-              tab: this.labelForTab(tab),
-              name: currentGroup.name,
-            })
-          ),
       })
       items.push({
         label:
@@ -902,6 +899,105 @@ export class RepositoryTabStrip extends React.Component<
 
   private openCreateGroup = (tab: IRepositoryTab) => {
     this.setState({ createGroupForTab: tab })
+  }
+
+  private openMoveGroup = (tab: IRepositoryTab, anchor: HTMLElement) => {
+    this.setState({ moveGroupTabId: tab.id, moveGroupAnchor: anchor })
+  }
+
+  private onMoveGroupDismissed = () => {
+    const anchor = this.state.moveGroupAnchor
+    this.setState({ moveGroupTabId: null, moveGroupAnchor: null }, () =>
+      this.restorePopoverFocus(anchor)
+    )
+  }
+
+  private failMoveGroup = () => {
+    const anchor = this.state.moveGroupAnchor
+    this.setState(
+      {
+        moveGroupTabId: null,
+        moveGroupAnchor: null,
+        announcement: this.text('tabs.groupActionFailed'),
+      },
+      () => this.restorePopoverFocus(anchor)
+    )
+  }
+
+  private onMoveGroup = (groupId: string | null) => {
+    // Re-read the store at activation instead of trusting the dialog's render
+    // snapshot. A group or pin state can change while the chooser is open.
+    const tabs = this.props.tabsStore.getState()
+    const tab = tabs.tabs.find(
+      candidate => candidate.id === this.state.moveGroupTabId
+    )
+    if (tab === undefined) {
+      this.failMoveGroup()
+      return
+    }
+
+    const groups = this.props.tabsStore.getGroups()
+    const currentGroupId = tab.groupId ?? null
+    const currentGroup = groups.find(group => group.id === currentGroupId)
+    const targetGroup =
+      groupId === null ? undefined : groups.find(group => group.id === groupId)
+    let successAnnouncement: string
+    let failureLog: string
+    let focusGroupId: string | null
+
+    if (groupId === null) {
+      // Null is the explicit "No group" destination. It is valid only while
+      // the source still belongs to a real current group.
+      if (currentGroupId === null || currentGroup === undefined) {
+        this.failMoveGroup()
+        return
+      }
+      successAnnouncement = this.text('tabs.groupRemovedStatus', {
+        tab: this.labelForTab(tab),
+        name: currentGroup.name,
+      })
+      failureLog = 'Failed to remove tab from group'
+      focusGroupId = null
+    } else {
+      const targetIsCurrent = groupId === currentGroupId
+      const targetIsPinCompatible =
+        targetGroup !== undefined &&
+        !tabs.tabs.some(
+          member =>
+            member.id !== tab.id &&
+            (member.groupId ?? null) === targetGroup.id &&
+            (member.isPinned === true) !== (tab.isPinned === true)
+        )
+      if (
+        targetGroup === undefined ||
+        targetIsCurrent ||
+        !targetIsPinCompatible
+      ) {
+        this.failMoveGroup()
+        return
+      }
+      successAnnouncement = this.text('tabs.groupMovedStatus', {
+        tab: this.labelForTab(tab),
+        name: targetGroup.name,
+      })
+      failureLog = 'Failed to move tab into group'
+      focusGroupId = targetGroup.isCollapsed === true ? targetGroup.id : null
+    }
+
+    const anchor = this.state.moveGroupAnchor
+
+    // Start the store operation in this validated JS turn. Deferring its first
+    // evaluation to a React setState callback would reopen a TOCTOU window in
+    // which the target could disappear or cross the pin boundary.
+    const operation = this.props.tabsStore.setTabGroup(tab.id, groupId)
+    this.setState({ moveGroupTabId: null, moveGroupAnchor: null })
+    this.runGroupMutation(
+      operation,
+      failureLog,
+      successAnnouncement,
+      focusGroupId,
+      anchor
+    )
   }
 
   private onCreateGroupDismissed = () => {
@@ -936,13 +1032,16 @@ export class RepositoryTabStrip extends React.Component<
     operation: Promise<unknown>,
     failureLog: string,
     successAnnouncement: string,
-    focusGroupId: string | null = null
+    focusGroupId: string | null = null,
+    focusAnchor: HTMLElement | null = null
   ) {
     void operation
       .then(() => {
         this.setState({ announcement: successAnnouncement }, () => {
           if (focusGroupId !== null) {
             this.focusGroupChip(focusGroupId)
+          } else if (focusAnchor !== null) {
+            this.restorePopoverFocus(focusAnchor)
           }
         })
       })
@@ -953,6 +1052,8 @@ export class RepositoryTabStrip extends React.Component<
           () => {
             if (focusGroupId !== null) {
               this.focusGroupChip(focusGroupId)
+            } else if (focusAnchor !== null) {
+              this.restorePopoverFocus(focusAnchor)
             }
           }
         )
@@ -1674,6 +1775,43 @@ export class RepositoryTabStrip extends React.Component<
     )
   }
 
+  private renderMoveGroupDialog() {
+    const tab = this.state.tabs.tabs.find(
+      candidate => candidate.id === this.state.moveGroupTabId
+    )
+    if (tab === undefined) {
+      return null
+    }
+
+    const groups = this.props.tabsStore.getGroups()
+    const currentGroupId = tab.groupId ?? null
+    const currentGroup =
+      groups.find(group => group.id === currentGroupId) ?? null
+    const compatibleGroups = groups.filter(group => {
+      if (group.id === currentGroupId) {
+        return false
+      }
+      return !this.state.tabs.tabs.some(
+        member =>
+          (member.groupId ?? null) === group.id &&
+          (member.isPinned === true) !== (tab.isPinned === true)
+      )
+    })
+
+    return (
+      <DialogLayerPortal>
+        <MoveTabToGroupDialog
+          tabLabel={this.labelForTab(tab)}
+          groups={compatibleGroups}
+          currentGroup={currentGroup}
+          languageMode={this.state.languageMode}
+          onMove={this.onMoveGroup}
+          onDismissed={this.onMoveGroupDismissed}
+        />
+      </DialogLayerPortal>
+    )
+  }
+
   private renderRepositoryTab(
     tab: IRepositoryTab,
     group: ITabGroup | null,
@@ -1904,6 +2042,7 @@ export class RepositoryTabStrip extends React.Component<
         {this.renderOverflowPopover()}
         {this.renderGroupMembersPopover()}
         {this.renderCreateGroupDialog()}
+        {this.renderMoveGroupDialog()}
         {this.renderEditGroupDialog()}
         <div
           className="repository-tab-announcement"

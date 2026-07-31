@@ -25,6 +25,21 @@ describe('repository tab action responsive styles', () => {
     assert.match(strip, /label: 'Close All Tabs Except Those Containing…'/)
   })
 
+  it('starts a validated group move before clearing chooser state', () => {
+    const handler = strip.match(
+      /private onMoveGroup = \(groupId: string \| null\) => \{[\s\S]*?\n  private onCreateGroupDismissed/
+    )?.[0]
+    assert.notEqual(handler, undefined)
+    assert.match(
+      handler!,
+      /const operation = this\.props\.tabsStore\.setTabGroup\(tab\.id, groupId\)[\s\S]*?this\.setState\(\{ moveGroupTabId: null, moveGroupAnchor: null \}\)[\s\S]*?this\.runGroupMutation\(\s*operation,/
+    )
+    assert.doesNotMatch(
+      handler!,
+      /this\.setState\(\{ moveGroupTabId: null, moveGroupAnchor: null \}, \(\) =>[\s\S]*?setTabGroup\(tab\.id, groupId\)/
+    )
+  })
+
   it('keeps favorite tabs visible, labelled, and independently sortable', () => {
     assert.match(strip, /Add to Favorites/)
     assert.match(strip, /setTabFavorite/)
@@ -108,6 +123,14 @@ describe('repository tab action responsive styles', () => {
     assert.match(
       style,
       /@media \(max-width: 520px\), \(max-height: 560px\)[\s\S]*?\.tab-overflow-popover \.tab-overflow-filter-row \.filter-regex-builder-label\s*\{[\s\S]*?display: none;/
+    )
+    assert.match(
+      style,
+      /#move-tab-to-group\s*\{[\s\S]*?width: min\(480px, calc\(100vw - 32px\)\);[\s\S]*?\.move-tab-to-group-results\s*\{[\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;/
+    )
+    assert.match(
+      style,
+      /@media \(max-width: 520px\), \(max-height: 560px\)[\s\S]*?#move-tab-to-group\s*\{[\s\S]*?\.move-tab-to-group-search\s*\{[\s\S]*?flex-direction: column;[\s\S]*?align-items: stretch;[\s\S]*?\.move-tab-to-group-input\s*\{[\s\S]*?width: 100%;[\s\S]*?\.filter-regex-builder-label\s*\{[\s\S]*?display: none;/
     )
   })
 

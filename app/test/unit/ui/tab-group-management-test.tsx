@@ -9,6 +9,7 @@ import { RepositoryTabsStore } from '../../../src/lib/stores/repository-tabs-sto
 import {
   IProfileTabsState,
   IRepositoryTab,
+  ITabGroup,
 } from '../../../src/models/repository-tab'
 import { Repository } from '../../../src/models/repository'
 import { RepositoryTabStrip } from '../../../src/ui/repository-tabs/repository-tab-strip'
@@ -33,6 +34,7 @@ beforeEach(() => {
   ipcRenderer.send = () => undefined
   localStorage.removeItem('language-mode-v1')
   localStorage.removeItem('filter-mode/tab-group-members')
+  localStorage.removeItem('filter-mode/move-tab-to-group')
 
   // `App` renders `<div id="dialog-layer">` once, and every floating dialog in
   // the app lives inside it. The strip is mounted on its own here, so stage the
@@ -66,9 +68,10 @@ function makeTab(id: string, repository: Repository): IRepositoryTab {
 async function createStore(
   tabs: ReadonlyArray<IRepositoryTab>,
   activeTabId: string | null,
-  written: Array<IProfileTabsState>
+  written: Array<IProfileTabsState>,
+  groups: ReadonlyArray<ITabGroup> = []
 ): Promise<RepositoryTabsStore> {
-  const initial: IProfileTabsState = { tabs, activeTabId }
+  const initial: IProfileTabsState = { tabs, activeTabId, groups }
   const profileStore = {
     readTabs: () => Promise.resolve(initial),
     writeTabs: (state: IProfileTabsState) => {
@@ -79,6 +82,50 @@ async function createStore(
   const store = new RepositoryTabsStore(profileStore, 'primary', Date.now)
   await store.initialize()
   return store
+}
+
+function replaceStoreState(
+  store: RepositoryTabsStore,
+  state: IProfileTabsState,
+  notify: boolean
+) {
+  const mutable = store as unknown as {
+    state: IProfileTabsState
+    emitUpdate: (state: IProfileTabsState) => void
+  }
+  mutable.state = state
+  if (notify) {
+    mutable.emitUpdate(state)
+  }
+}
+
+function countTabGroupMutations(store: RepositoryTabsStore): () => number {
+  const original = store.setTabGroup.bind(store)
+  let calls = 0
+  store.setTabGroup = (tabId, groupId) => {
+    calls++
+    return original(tabId, groupId)
+  }
+  return () => calls
+}
+
+function statusText(): string {
+  return screen
+    .getAllByRole('status')
+    .map(status => status.textContent ?? '')
+    .join(' ')
+}
+
+async function exposeDialog(id: string): Promise<HTMLDialogElement> {
+  const dialog = await waitFor(() => {
+    const element = document.querySelector(`dialog#${id}`)
+    assert.notEqual(element, null)
+    return element as HTMLDialogElement
+  })
+  // jsdom does not implement HTMLDialogElement.show(); expose it the way
+  // Chromium does after Dialog.componentDidMount.
+  dialog.setAttribute('open', '')
+  return dialog
 }
 
 interface IStripHarness {
@@ -598,6 +645,374 @@ describe('tab group edit dialog', () => {
       new CustomEvent(LanguageModeChangedEvent, { detail: 'english' })
     )
     assert.ok(screen.getByRole('dialog', { name: 'Edit tab group' }))
+  })
+})
+
+describe('move tab to group chooser', () => {
+  it('keeps one enabled context command and an honest empty state with zero groups', async () => {
+    const gamma = new Repository('/work/gamma', 3, null, false)
+    const store = await createStore(
+      [makeTab('gamma', gamma)],
+      'gamma',
+      new Array<IProfileTabsState>()
+    )
+    renderStrip(store, [gamma], [])
+
+    fireEvent.contextMenu(await screen.findByRole('tab', { name: 'gamma' }))
+    const moveCommands = await screen.findAllByRole('menuitem', {
+      name: 'Move tab to group…',
+    })
+    assert.equal(moveCommands.length, 1)
+    assert.notEqual(moveCommands[0].getAttribute('aria-disabled'), 'true')
+    assert.equal(
+      screen.queryAllByRole('menuitem', { name: /^Move to “/ }).length,
+      0
+    )
+
+    fireEvent.click(moveCommands[0])
+    await exposeDialog('move-tab-to-group')
+
+    assert.ok(screen.getByRole('dialog', { name: 'Move tab to group' }))
+    assert.ok(
+      screen.getByText(
+        'No compatible destination groups are available. Create a group from the tab context menu first.'
+      )
+    )
+    const search = screen.getByRole('combobox', {
+      name: 'Search tab groups',
+    })
+    assert.equal(search.getAttribute('aria-expanded'), 'false')
+    assert.equal(search.getAttribute('aria-controls'), null)
+    assert.equal(screen.queryByRole('listbox'), null)
+  })
+
+  it('filters 240 destinations and moves with one keyboard action', async () => {
+    const gamma = new Repository('/work/gamma', 3, null, false)
+    const groups = Array.from(
+      { length: 240 },
+      (_, index): ITabGroup => ({
+        id: `group-${index}`,
+        name: index === 237 ? 'Needle destination' : `Group ${index}`,
+        color: index % 2 === 0 ? 'blue' : 'purple',
+      })
+    )
+    const store = await createStore(
+      [makeTab('gamma', gamma)],
+      'gamma',
+      new Array<IProfileTabsState>(),
+      groups
+    )
+    renderStrip(store, [gamma], [])
+
+    fireEvent.contextMenu(await screen.findByRole('tab', { name: 'gamma' }))
+    const moveCommands = await screen.findAllByRole('menuitem', {
+      name: 'Move tab to group…',
+    })
+    assert.equal(moveCommands.length, 1)
+    assert.equal(
+      screen.queryAllByRole('menuitem', { name: /^Move to “/ }).length,
+      0,
+      'destinations must stay out of the native context menu'
+    )
+    fireEvent.click(moveCommands[0])
+    await exposeDialog('move-tab-to-group')
+
+    const search = screen.getByRole('combobox', {
+      name: 'Search tab groups',
+    })
+    assert.equal(screen.getAllByRole('option').length, 240)
+    assert.equal(search.getAttribute('aria-expanded'), 'true')
+    assert.equal(
+      search.getAttribute('aria-controls'),
+      'move-tab-to-group-results'
+    )
+    assert.equal(
+      search.getAttribute('aria-activedescendant'),
+      'move-tab-to-group-result-0'
+    )
+
+    fireEvent.change(search, { target: { value: 'Needle' } })
+    await waitFor(() => assert.equal(screen.getAllByRole('option').length, 1))
+    const destination = screen.getByRole('option', {
+      name: 'Move tab to “Needle destination”',
+    })
+    assert.equal(destination.getAttribute('aria-selected'), 'true')
+
+    fireEvent.keyDown(search, { key: 'Enter' })
+    await waitFor(() =>
+      assert.equal(
+        store.getState().tabs.find(tab => tab.id === 'gamma')?.groupId,
+        'group-237'
+      )
+    )
+    assert.equal(document.querySelector('dialog#move-tab-to-group'), null)
+  })
+
+  it('offers ungrouping only for a grouped tab and supports Space activation', async () => {
+    const { store } = await buildHarness()
+    const groupId = store.getGroups()[0].id
+
+    fireEvent.contextMenu(
+      await screen.findByRole('tab', { name: 'alpha, Work group' })
+    )
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Move tab to group…' })
+    )
+    await exposeDialog('move-tab-to-group')
+
+    const list = screen.getByRole('listbox', {
+      name: 'Available tab groups',
+    })
+    assert.ok(
+      screen.getByRole('option', {
+        name: 'No group — remove from “Work”',
+      })
+    )
+    assert.equal(
+      screen.queryByRole('option', { name: 'Move tab to “Work”' }),
+      null,
+      'the current group is not a no-op destination'
+    )
+    fireEvent.keyDown(list, { key: ' ' })
+    await waitFor(() =>
+      assert.equal(
+        store.getState().tabs.find(tab => tab.id === 'alpha')?.groupId ?? null,
+        null
+      )
+    )
+    assert.equal(
+      store.getState().tabs.find(tab => tab.id === 'beta')?.groupId,
+      groupId,
+      'ungrouping one tab leaves its peers grouped'
+    )
+
+    fireEvent.contextMenu(await screen.findByRole('tab', { name: 'gamma' }))
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Move tab to group…' })
+    )
+    await exposeDialog('move-tab-to-group')
+
+    assert.equal(
+      screen.queryByRole('option', { name: /No group/ }),
+      null,
+      'an ungrouped tab does not get a no-op ungroup destination'
+    )
+    fireEvent.click(screen.getByRole('option', { name: 'Move tab to “Work”' }))
+    await waitFor(() =>
+      assert.equal(
+        store.getState().tabs.find(tab => tab.id === 'gamma')?.groupId,
+        groupId
+      )
+    )
+  })
+
+  it('localizes accessible names and restores invoking-tab focus after Escape', async () => {
+    const showDescriptor = Object.getOwnPropertyDescriptor(
+      HTMLDialogElement.prototype,
+      'show'
+    )
+    Object.defineProperty(HTMLDialogElement.prototype, 'show', {
+      configurable: true,
+      value(this: HTMLDialogElement) {
+        this.setAttribute('open', '')
+      },
+    })
+
+    try {
+      localStorage.setItem('language-mode-v1', 'cantonese')
+      await buildHarness()
+      const gamma = await screen.findByRole('tab', { name: 'gamma' })
+
+      fireEvent.contextMenu(gamma)
+      const moveCommands = await screen.findAllByRole('menuitem', {
+        name: '將分頁移去群組…',
+      })
+      assert.equal(moveCommands.length, 1)
+      fireEvent.click(moveCommands[0])
+
+      const dialog = await screen.findByRole('dialog', {
+        name: '將分頁移去群組',
+      })
+      const search = screen.getByRole('combobox', {
+        name: '搜尋分頁群組',
+      })
+      assert.equal(search.getAttribute('aria-expanded'), 'true')
+      assert.equal(
+        search.getAttribute('aria-activedescendant'),
+        'move-tab-to-group-result-0'
+      )
+      assert.ok(screen.getByRole('listbox', { name: '可用嘅分頁群組' }))
+      assert.ok(
+        screen.getByRole('option', {
+          name: '將分頁移去「Work」',
+        })
+      )
+
+      await new Promise<void>(resolve =>
+        dialog.addEventListener('dialog-appeared', () => resolve(), {
+          once: true,
+        })
+      )
+      fireEvent.keyDown(dialog, { key: 'Escape' })
+
+      await waitFor(() =>
+        assert.equal(document.querySelector('dialog#move-tab-to-group'), null)
+      )
+      await waitFor(() => assert.equal(document.activeElement, gamma))
+    } finally {
+      if (showDescriptor === undefined) {
+        Reflect.deleteProperty(HTMLDialogElement.prototype, 'show')
+      } else {
+        Object.defineProperty(
+          HTMLDialogElement.prototype,
+          'show',
+          showDescriptor
+        )
+      }
+    }
+  })
+
+  it('clears a disappeared source and never resurrects the chooser for a later same-id tab', async () => {
+    const { store } = await buildHarness()
+    const source = store.getState().tabs.find(tab => tab.id === 'gamma')
+    assert.notEqual(source, undefined)
+    const groupMutations = countTabGroupMutations(store)
+
+    fireEvent.contextMenu(await screen.findByRole('tab', { name: 'gamma' }))
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Move tab to group…' })
+    )
+    await exposeDialog('move-tab-to-group')
+
+    await store.closeTab('gamma')
+    await waitFor(() =>
+      assert.equal(document.querySelector('dialog#move-tab-to-group'), null)
+    )
+    const activeTab = await screen.findByRole('tab', {
+      name: 'beta, Work group',
+    })
+    await waitFor(() => assert.equal(document.activeElement, activeTab))
+
+    // Reinsert the exact same id after the disappearance notification. The
+    // old chooser request must stay cleared rather than binding to this later
+    // tab merely because its id text matches.
+    const afterClose = store.getState()
+    replaceStoreState(
+      store,
+      {
+        ...afterClose,
+        tabs: [...afterClose.tabs, source!],
+        activeTabId: source!.id,
+      },
+      true
+    )
+    await screen.findByRole('tab', { name: 'gamma' })
+    assert.equal(document.querySelector('dialog#move-tab-to-group'), null)
+    assert.equal(groupMutations(), 0)
+    assert.match(statusText(), /Could not update the tab group\./)
+    assert.doesNotMatch(statusText(), /moved to/)
+  })
+
+  it('fails closed when a rendered non-null destination has been deleted', async () => {
+    const alpha = new Repository('/work/alpha', 1, null, false)
+    const work: ITabGroup = { id: 'work', name: 'Work', color: 'blue' }
+    const deleted: ITabGroup = {
+      id: 'deleted',
+      name: 'Deleted destination',
+      color: 'purple',
+    }
+    const written = new Array<IProfileTabsState>()
+    const store = await createStore(
+      [{ ...makeTab('alpha', alpha), groupId: work.id }],
+      'alpha',
+      written,
+      [work, deleted]
+    )
+    const groupMutations = countTabGroupMutations(store)
+    renderStrip(store, [alpha], [])
+
+    fireEvent.contextMenu(
+      await screen.findByRole('tab', { name: 'alpha, Work group' })
+    )
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Move tab to group…' })
+    )
+    await exposeDialog('move-tab-to-group')
+    const staleOption = screen.getByRole('option', {
+      name: 'Move tab to “Deleted destination”',
+    })
+
+    // Model deletion after render but before the queued click reaches the
+    // parent. No update is emitted so the old option remains the exact stale
+    // activation surface under test.
+    replaceStoreState(store, { ...store.getState(), groups: [work] }, false)
+    fireEvent.click(staleOption)
+
+    await waitFor(() =>
+      assert.equal(document.querySelector('dialog#move-tab-to-group'), null)
+    )
+    assert.equal(groupMutations(), 0)
+    assert.equal(store.getState().tabs[0].groupId, work.id)
+    assert.equal(written.length, 0)
+    assert.match(statusText(), /Could not update the tab group\./)
+    assert.doesNotMatch(statusText(), /moved to Deleted destination/)
+    assert.doesNotMatch(statusText(), /removed from Work/)
+  })
+
+  it('revalidates latest pin compatibility before activating a destination', async () => {
+    const alpha = new Repository('/work/alpha', 1, null, false)
+    const gamma = new Repository('/work/gamma', 3, null, false)
+    const work: ITabGroup = { id: 'work', name: 'Work', color: 'blue' }
+    const written = new Array<IProfileTabsState>()
+    const store = await createStore(
+      [
+        { ...makeTab('alpha', alpha), groupId: work.id },
+        makeTab('gamma', gamma),
+      ],
+      'gamma',
+      written,
+      [work]
+    )
+    const groupMutations = countTabGroupMutations(store)
+    renderStrip(store, [alpha, gamma], [])
+
+    fireEvent.contextMenu(await screen.findByRole('tab', { name: 'gamma' }))
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Move tab to group…' })
+    )
+    await exposeDialog('move-tab-to-group')
+    const staleOption = screen.getByRole('option', {
+      name: 'Move tab to “Work”',
+    })
+
+    // The target inherited the unpinned source's pin kind when rendered. Make
+    // its latest member pinned without notifying React so activation must
+    // consult the store rather than the dialog snapshot.
+    replaceStoreState(
+      store,
+      {
+        ...store.getState(),
+        tabs: store
+          .getState()
+          .tabs.map(tab =>
+            tab.id === 'alpha' ? { ...tab, isPinned: true } : tab
+          ),
+      },
+      false
+    )
+    fireEvent.click(staleOption)
+
+    await waitFor(() =>
+      assert.equal(document.querySelector('dialog#move-tab-to-group'), null)
+    )
+    assert.equal(groupMutations(), 0)
+    assert.equal(
+      store.getState().tabs.find(tab => tab.id === 'gamma')?.groupId ?? null,
+      null
+    )
+    assert.equal(written.length, 0)
+    assert.match(statusText(), /Could not update the tab group\./)
+    assert.doesNotMatch(statusText(), /gamma moved to Work/)
   })
 })
 

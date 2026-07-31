@@ -301,6 +301,12 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
       implementation: 'standalone',
     },
     {
+      id: 'move-tab-to-group',
+      label: 'Tab group destinations',
+      source: 'repository-tabs/move-tab-to-group-dialog.tsx',
+      implementation: 'standalone',
+    },
+    {
       id: 'repository-group-members',
       label: 'Repositories in a group',
       source: 'repository-groups/manage-repository-group-dialog.tsx',

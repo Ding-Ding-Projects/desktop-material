@@ -2589,7 +2589,8 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
 
 // The new-group and edit-group dialogs share one color chooser.
 #create-tab-group,
-#edit-tab-group {
+#edit-tab-group,
+#move-tab-to-group {
   .tab-group-intro {
     margin: 0 0 12px;
     color: var(--md-sys-color-on-surface-variant);
@@ -2655,6 +2656,171 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
 
     &--grey {
       background: #80868b;
+    }
+  }
+}
+
+#move-tab-to-group {
+  width: min(480px, calc(100vw - 32px));
+
+  .move-tab-to-group-intro {
+    margin: 0 0 14px;
+    color: var(--md-sys-color-on-surface-variant);
+    line-height: 1.45;
+  }
+
+  .move-tab-to-group-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .move-tab-to-group-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 12px;
+    outline: none;
+    background: var(--md-sys-color-surface-container-low);
+    color: var(--md-sys-color-on-surface);
+    font: inherit;
+
+    &:focus-visible {
+      border-color: var(--md-sys-color-primary);
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 1px;
+    }
+  }
+
+  .move-tab-to-group-error {
+    margin: 8px 0 0;
+    color: var(--md-sys-color-error);
+    font-size: 12px;
+  }
+
+  .move-tab-to-group-results {
+    max-height: min(360px, calc(100vh - 330px));
+    min-height: 64px;
+    margin: 12px 0 0;
+    padding: 4px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 16px;
+    background: var(--md-sys-color-surface-container-low);
+    list-style: none;
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+
+  .move-tab-to-group-result {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover,
+    &.highlighted {
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+    }
+
+    &.remove-current {
+      color: var(--md-sys-color-on-surface-variant);
+    }
+  }
+
+  .move-tab-to-group-color,
+  .move-tab-to-group-remove-icon {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+  }
+
+  .move-tab-to-group-color {
+    background: var(--dm-tab-group-color);
+  }
+
+  .move-tab-to-group-remove-icon {
+    display: grid;
+    place-items: center;
+    background: var(--md-sys-color-surface-container-highest);
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .move-tab-to-group-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .move-tab-to-group-empty {
+    min-height: 72px;
+    margin: 12px 0 0;
+    padding: 18px 14px;
+    border: 1px dashed var(--md-sys-color-outline-variant);
+    border-radius: 16px;
+    color: var(--md-sys-color-on-surface-variant);
+    text-align: center;
+  }
+
+  .move-tab-to-group-status {
+    margin-top: 8px;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 12px;
+  }
+}
+
+// A 200% display scale turns an ordinary 960px window into roughly 480 CSS
+// pixels. Stack the search controls at that same compact breakpoint so the
+// regex-builder cluster never squeezes the query field off-screen; bilingual
+// labels yield before any control does.
+@media (max-width: 520px), (max-height: 560px) {
+  #move-tab-to-group {
+    .move-tab-to-group-search {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .move-tab-to-group-input {
+      width: 100%;
+    }
+
+    .move-tab-to-group-search .filter-mode-control {
+      width: 100%;
+      margin-left: 0;
+    }
+
+    .move-tab-to-group-search .filter-mode-control-cluster {
+      justify-content: flex-start;
+    }
+
+    .move-tab-to-group-search .filter-regex-builder-label {
+      display: none;
+    }
+
+    .move-tab-to-group-results {
+      max-height: 180px;
     }
   }
 }

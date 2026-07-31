@@ -19,12 +19,14 @@ Right-click any tab to reach its group actions:
 - **Add tab to new group…** opens a small dialog for the group's name and one
   of six curated colors (blue, green, yellow, red, purple, grey). The
   right-clicked tab becomes the group's first member.
-- **Move to “name”** moves the tab into an existing group. The tab is
-  repositioned next to that group's last existing member, so a group always
-  reads as one contiguous run rather than being split by unrelated tabs. A
-  pinned tab cannot join an unpinned group, or vice versa, because no group is
-  allowed to cross the strip's protected pin boundary.
-- **Remove from “name”** ungroups the tab and leaves it exactly where it sits.
+- **Move tab to group…** is one stable menu item regardless of whether the
+  profile has two groups or two hundred. It opens a bounded, searchable
+  destination dialog instead of expanding every group into the native context
+  menu. Choosing a group moves the tab beside that group's last member, so the
+  group remains one contiguous run. A grouped tab also gets a **No group**
+  destination that removes only its label and leaves the tab open. Incompatible
+  pinned/unpinned destinations are omitted because no group may cross the
+  strip's protected pin boundary.
 - **Collapse/Expand “name”** toggles the group's real strip state. Collapsing
   hides every member tab but keeps the named group chip visible; clicking the
   chip, or pressing Enter/Space while it is focused, expands the members again.
@@ -32,6 +34,24 @@ Right-click any tab to reach its group actions:
 - **Edit group “name”…** opens the rename/recolor dialog (see below).
 - **Delete group “name”** removes the label only. Every tab that belonged to
   it stays open and simply becomes ungrouped.
+
+### Move destination dialog
+
+The move dialog owns the scale problem that a native context menu cannot. Its
+list is height-bounded and scrollable, exposes a live result count, and filters
+group names without changing or closing a tab until a destination is chosen.
+Plain text remains the default; substring and regex are explicit modes through
+the shared `FilterModeControl` and full regex builder. Invalid regex input is
+reported inline, and an honest no-match state keeps the query available for
+correction.
+
+Focus begins in the search combobox. <kbd>↑</kbd>/<kbd>↓</kbd>,
+<kbd>Home</kbd>/<kbd>End</kbd> move the listbox highlight,
+<kbd>Enter</kbd>/<kbd>Space</kbd> choose it, and <kbd>Esc</kbd> cancels. The
+dialog restores focus to the tab or overflow control that opened the context
+menu. Group names are ellipsized visually but retained in each option's full
+accessible name. The title, instructions, search copy, counts, no-match state,
+and announcements follow the active English, Cantonese, or bilingual mode.
 
 ## The group chip cluster
 
@@ -157,6 +177,15 @@ write an invalid order. A malformed profile that already mixes pin kinds keeps
 the first member's side and safely treats incompatible later members as
 ungrouped while compacting valid members into one run.
 
+The move chooser is stricter than the low-level repair behavior because its
+options can become stale while the dialog is open. Activation rereads the live
+source tab, destination group, current membership, and pin boundary in the same
+turn that starts the mutation. A closed source, deleted non-null destination,
+removed current group, or newly incompatible pin state dismisses the chooser,
+announces failure, restores focus to a still-connected owner, and performs no
+group write. Closing and later reopening a tab with the same stable id cannot
+resurrect the old chooser request.
+
 Transient group rows and controls can disappear while their keyboard tooltip is
 pending or visible—for example, when filtering, collapsing, or deleting their
 owner. The shared tooltip lifecycle observes connectivity only during that
@@ -200,6 +229,15 @@ member switching, arrow/Home/Enter keyboard navigation with a live
 bilingual rendering of the dropdown's copy, and the edit dialog renaming and
 recoloring a group — persisted to the profile store — without touching its
 membership.
+
+Its **move tab to group chooser** block proves that the native context menu
+keeps exactly one enabled move command with zero groups and with 240 groups;
+the destination dialog filters 240 rows to one and activates it in one keyboard
+action; Space ungroups only a grouped tab; Cantonese roles/names and Escape
+focus restoration remain intact; and a disappeared source, deleted destination,
+later same-id tab, or changed pin boundary performs no mutation and emits no
+false success. Together with the registry and responsive-style files, the
+focused chooser gate is **30/30 tests across three files**.
 
 Its `tab group dialog stacking` block pins the layering contract: the new-group
 dialog opened from a tab's context menu and the edit dialog opened from the

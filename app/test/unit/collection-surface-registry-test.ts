@@ -78,6 +78,18 @@ function markedTags(
 }
 
 describe('collection surface registries', () => {
+  it('registers the scalable tab-group destination chooser', () => {
+    assert.deepStrictEqual(
+      SearchSurfaceRegistry.find(surface => surface.id === 'move-tab-to-group'),
+      {
+        id: 'move-tab-to-group',
+        label: 'Tab group destinations',
+        source: 'repository-tabs/move-tab-to-group-dialog.tsx',
+        implementation: 'standalone',
+      }
+    )
+  })
+
   it('binds every audited input one-to-one with its registry entry and regex builder', () => {
     const sources = new Map(
       tsxFiles(uiRoot).map(file => [
