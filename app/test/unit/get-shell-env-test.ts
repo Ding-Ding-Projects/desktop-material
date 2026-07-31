@@ -1,5 +1,6 @@
-import { describe, it } from 'node:test'
+import { describe, it, TestContext } from 'node:test'
 import assert from 'node:assert'
+import { getShell } from '../../src/lib/hooks/get-shell'
 import { getShellEnv } from '../../src/lib/hooks/get-shell-env'
 import { SupportedHooksEnvShell } from '../../src/lib/hooks/config'
 import { getPrintenvzPath } from 'printenvz'
@@ -10,7 +11,16 @@ describe('getShellEnv', () => {
 
   for (const shellKind of shellKinds) {
     const label = shellKind ?? 'default shell'
-    it(`returns an env containing PATH (${label})`, async () => {
+    it(`returns an env containing PATH (${label})`, async (t: TestContext) => {
+      // Every one of these shells is optional on Windows: PowerShell 7 and Git
+      // Bash are separate installs. `getShellEnv` correctly reports failure for
+      // one that is absent, so asserting success on a machine without it would
+      // be testing the installer, not this code.
+      if ((await getShell(shellKind)) === undefined) {
+        t.skip(`${label} is not installed on this machine`)
+        return
+      }
+
       const result = await getShellEnv(undefined, shellKind, getPrintenvzPath())
 
       assert.equal(result.kind, 'success')
