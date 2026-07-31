@@ -1,0 +1,531 @@
+/*
+ * Desktop Material documentation site — screenshot gallery styles.
+ *
+ * Mobile-first: one column from 320 CSS px, widening to a grid only when there
+ * is room for a second card. Nothing depends on hover, every interactive
+ * target keeps at least a 44 px dimension, and wide content (the
+ * full-resolution capture) scrolls inside its own box so the page itself never
+ * scrolls sideways.
+ */
+
+.dm-shots,
+.dm-shot-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.dm-shots *,
+.dm-shots *::before,
+.dm-shots *::after,
+.dm-shot-page *,
+.dm-shot-page *::before,
+.dm-shot-page *::after {
+  box-sizing: border-box;
+}
+
+/* Screen-reader-only, but still rendered so live regions actually announce. */
+.dm-shots-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------------ search */
+
+.dm-shots-search {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dm-shots-search-label,
+.dm-shots-filter-label {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+/*
+ * The builder affordance sits in the same row as the field it belongs to, and
+ * wraps beneath it rather than squeezing the input on a narrow phone.
+ */
+.dm-shots-search-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dm-shots-search-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--md-outline, rgba(0, 0, 0, 0.35));
+  background: var(--md-surface, #fef7ff);
+  color: var(--md-on-surface, #1d1b20);
+  font: inherit;
+  font-size: 0.9375rem;
+}
+
+.dm-shots-search-input[aria-invalid='true'] {
+  border-color: var(--md-error, #b3261e);
+  border-width: 2px;
+}
+
+.dm-shots-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.dm-shots-mode-input {
+  width: 24px;
+  height: 24px;
+  /* The 44 px target comes from the label; the box itself stays 24 px. */
+  margin: 10px 0;
+  flex: 0 0 auto;
+}
+
+.dm-shots-mode-label {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 0.875rem;
+  color: var(--md-on-surface, #1d1b20);
+}
+
+.dm-shots-mode-hint,
+.dm-shots-search-describe {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.dm-shots-builder-panel {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--md-outline-variant, rgba(0, 0, 0, 0.2));
+  background: var(--md-surface-variant, #e7e0ec);
+}
+
+.dm-shots-error {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--md-error-container, #f9dedc);
+  color: var(--md-on-error-container, #410e0b);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+/* ----------------------------------------------------------------- filters */
+
+.dm-shots-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.dm-shots-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.dm-shots-filter-select {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--md-outline, rgba(0, 0, 0, 0.35));
+  background: var(--md-surface, #fef7ff);
+  color: var(--md-on-surface, #1d1b20);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.dm-shots-status,
+.dm-shots-hint,
+.dm-shots-skipped,
+.dm-shots-empty,
+.dm-shot-shortcuts,
+.dm-shot-gaps {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--md-on-surface-variant, #49454f);
+  overflow-wrap: anywhere;
+}
+
+.dm-shots-skipped,
+.dm-shot-gaps {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--md-tertiary-container, #ffd8e4);
+  color: var(--md-on-tertiary-container, #31111d);
+}
+
+/* -------------------------------------------------------------------- grid */
+
+/*
+ * One column at 320 px. `auto-fill` with a 240 px minimum adds columns only
+ * where they fit, so no card is ever narrower than its caption can read.
+ */
+.dm-shots-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@media (min-width: 560px) {
+  .dm-shots-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+.dm-shot-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--md-outline-variant, rgba(0, 0, 0, 0.2));
+  background: var(--md-surface, #fef7ff);
+}
+
+.dm-shot-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 8px;
+}
+
+.dm-shot-card:focus-visible,
+.dm-shots-search-input:focus-visible,
+.dm-shots-filter-select:focus-visible,
+.dm-shots-mode-input:focus-visible,
+.dm-shots-builder-toggle:focus-visible,
+.dm-shots-filters-reset:focus-visible,
+.dm-shot-action:focus-visible,
+.dm-shot-nav-previous:focus-visible,
+.dm-shot-nav-next:focus-visible,
+.dm-shot-hero-frame:focus-visible,
+.dm-shot-lightbox-frame:focus-visible,
+.dm-shot-lightbox-zoom:focus-visible,
+.dm-shot-lightbox-close:focus-visible {
+  outline: 3px solid var(--md-primary, #6750a4);
+  outline-offset: 2px;
+}
+
+.dm-shot-thumb {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--md-outline-variant, rgba(0, 0, 0, 0.2));
+  background: var(--md-surface-variant, #e7e0ec);
+}
+
+.dm-shot-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dm-shot-card-name {
+  font-family: 'Roboto Mono', ui-monospace, monospace;
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.dm-shot-card-caption {
+  font-size: 0.875rem;
+  color: var(--md-on-surface, #1d1b20);
+  overflow-wrap: anywhere;
+}
+
+.dm-shot-card-meta {
+  font-size: 0.75rem;
+  color: var(--md-on-surface-variant, #49454f);
+  overflow-wrap: anywhere;
+}
+
+.dm-shot-card-receipt {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.dm-shot-card-receipt.is-present {
+  color: var(--md-on-tertiary-container, #31111d);
+}
+
+.dm-shot-card-receipt.is-absent,
+.is-unrecorded {
+  font-style: italic;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.dm-shot-card-actions,
+.dm-shot-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dm-shot-action,
+.dm-shots-builder-toggle,
+.dm-shots-filters-reset {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--md-outline, rgba(0, 0, 0, 0.35));
+  background: var(--md-surface-variant, #e7e0ec);
+  color: var(--md-on-surface-variant, #49454f);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.dm-shot-action:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* ------------------------------------------------------------ single shot */
+
+.dm-shot-hero {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/*
+ * The capture is up to 1600 px wide. It is scaled to fit here and scrolls
+ * inside its own box when zoomed, so the page body never scrolls sideways.
+ */
+.dm-shot-hero-frame {
+  max-width: 100%;
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid var(--md-outline-variant, rgba(0, 0, 0, 0.2));
+  background: var(--md-surface-variant, #e7e0ec);
+}
+
+.dm-shot-hero-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+}
+
+.dm-shot-hero-caption {
+  font-size: 0.875rem;
+  color: var(--md-on-surface, #1d1b20);
+  overflow-wrap: anywhere;
+}
+
+.dm-shot-meta {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px 12px;
+  margin: 0;
+}
+
+@media (min-width: 560px) {
+  .dm-shot-meta {
+    grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr);
+  }
+}
+
+.dm-shot-meta-term {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.dm-shot-meta-value {
+  margin: 0 0 8px;
+  font-size: 0.8125rem;
+  /* Commands and receipt lists are newline separated and must stay readable. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.dm-shot-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dm-shot-nav-previous,
+.dm-shot-nav-next {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--md-outline, rgba(0, 0, 0, 0.35));
+  color: var(--md-primary, #6750a4);
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.dm-shot-nav-position {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+/* ---------------------------------------------------------------- lightbox */
+
+.dm-shot-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.dm-shot-lightbox-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 1100px;
+  max-height: 100%;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--md-surface, #fef7ff);
+  color: var(--md-on-surface, #1d1b20);
+  overflow: auto;
+}
+
+.dm-shot-lightbox-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.dm-shot-lightbox-title {
+  flex: 1 1 8rem;
+  margin: 0;
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.dm-shot-lightbox-zoom,
+.dm-shot-lightbox-close {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--md-outline, rgba(0, 0, 0, 0.35));
+  background: var(--md-surface-variant, #e7e0ec);
+  color: var(--md-on-surface-variant, #49454f);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.dm-shot-lightbox-frame {
+  max-width: 100%;
+  overflow: auto;
+  border-radius: 8px;
+  border: 1px solid var(--md-outline-variant, rgba(0, 0, 0, 0.2));
+  background: var(--md-surface-variant, #e7e0ec);
+}
+
+.dm-shot-lightbox-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  cursor: zoom-in;
+}
+
+/* Zoomed shows true pixels and pans inside the frame, never the page. */
+.dm-shot-lightbox-frame.is-zoomed .dm-shot-lightbox-image {
+  width: auto;
+  max-width: none;
+  cursor: zoom-out;
+}
+
+.dm-shot-lightbox-caption,
+.dm-shot-lightbox-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--md-on-surface-variant, #49454f);
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------- accommodations */
+
+@media (prefers-reduced-motion: reduce) {
+  .dm-shots *,
+  .dm-shot-page *,
+  .dm-shot-lightbox * {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .dm-shot-cell,
+  .dm-shot-thumb,
+  .dm-shot-hero-frame,
+  .dm-shot-lightbox-dialog,
+  .dm-shot-lightbox-frame {
+    border: 1px solid CanvasText;
+  }
+
+  /*
+   * Forced colours drop the translucent backdrop, so the dialog needs its own
+   * opaque surface or the gallery behind it would show through the modal.
+   */
+  .dm-shot-lightbox {
+    background: Canvas;
+  }
+
+  .dm-shot-card:focus-visible,
+  .dm-shot-action:focus-visible,
+  .dm-shots-search-input:focus-visible {
+    outline: 3px solid Highlight;
+  }
+}

@@ -1,0 +1,2392 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>
+      Short-height Repository Tools scrolled to its reachable final results
+      surface · Desktop Material screenshots
+    </title>
+    <meta
+      name="description"
+      content="Short-height Repository Tools scrolled to its reachable final results surface — recorded scene, capture batch, fixture, privacy gate, exact dimensions and regeneration commands for material-repository-tools-scroll.png."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="../assets/site/docs-hub.css" />
+    <link rel="stylesheet" href="../assets/site/docs-color-picker.css" />
+    <!--
+      The gallery module builds .dm-shot-* markup and ships the only stylesheet
+      that constrains it. Without this the thumbnails render at their natural
+      1440 px and the page scrolls sideways on every phone.
+    -->
+    <link rel="stylesheet" href="../assets/site/docs-screenshot-gallery.css" />
+    <link rel="stylesheet" href="screenshot-docs.css" />
+    <script>
+      // Resolve the stored appearance and language before first paint so the
+      // page never flashes the wrong palette, density or language mode. This is
+      // the hub's own pre-paint contract, reading the same storage keys; all
+      // behaviour still lives in the shared modules.
+      ;(function () {
+        var root = document.documentElement
+        // data-js is deliberately NOT set here. docs-screenshot-page.js sets
+        // it only after the gallery mounts, so the "JavaScript is off" note
+        // cannot be hidden above controls that are in fact inert.
+        try {
+          var theme = localStorage.getItem('dm-docs-theme')
+          if (theme === 'light' || theme === 'dark') {
+            root.setAttribute('data-theme', theme)
+          }
+          var lang = localStorage.getItem('dm-docs-lang')
+          if (lang === 'en' || lang === 'yue' || lang === 'bi') {
+            root.setAttribute('data-lang', lang)
+          }
+          var density = localStorage.getItem('dm-docs-density')
+          if (density === 'compact') {
+            root.setAttribute('data-density', density)
+          }
+          var accent = localStorage.getItem('dm-docs-accent')
+          if (accent === 'teal' || accent === 'amber' || accent === 'rose') {
+            root.setAttribute('data-accent', accent)
+          }
+        } catch (error) {
+          /* Storage may be unavailable; the defaults are already correct. */
+        }
+      })()
+    </script>
+  </head>
+  <body data-page="screenshot-docs">
+    <a class="skip-link" href="#main" data-i18n="skipLink"
+      >Skip to main content</a
+    >
+
+    <header class="app-bar">
+      <a class="app-bar__brand" href="../index.html">
+        <span class="app-bar__mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path
+              d="M12 2 2 7v10l10 5 10-5V7Zm0 2.3 7.2 3.6-7.2 3.6-7.2-3.6Zm-8 5.4 7 3.5v5.2l-7-3.5Zm16 0v5.2l-7 3.5v-5.2Z"
+            />
+          </svg>
+        </span>
+        <span class="app-bar__titles">
+          <span class="app-bar__title">Desktop Material</span>
+          <span class="app-bar__subtitle">Screenshot documentation</span>
+        </span>
+      </a>
+
+      <div class="app-bar__actions">
+        <button
+          type="button"
+          id="theme-toggle"
+          class="btn btn--icon"
+          aria-pressed="false"
+          title="Switch between the light and dark theme"
+          aria-label="Switch between the light and dark theme"
+          data-i18n-attr="aria-label=themeToggle;title=themeToggle"
+        >
+          <svg class="icon-dark" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0-5 2 3h-4Zm0 20-2-3h4ZM2 12l3-2v4Zm20 0-3 2v-4ZM5 5l3.5.9-2.6 2.6ZM19 19l-3.5-.9 2.6-2.6ZM19 5l-.9 3.5-2.6-2.6ZM5 19l.9-3.5 2.6 2.6Z"
+            />
+          </svg>
+          <svg class="icon-light" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 15.2A8.5 8.5 0 0 1 8.8 4 8.5 8.5 0 1 0 20 15.2Z" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          id="prefs-toggle"
+          class="btn btn--icon"
+          aria-expanded="false"
+          aria-controls="prefs"
+          title="Appearance and language preferences"
+          aria-label="Appearance and language preferences"
+          data-i18n-attr="aria-label=prefsToggle;title=prefsToggle"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M3 7h10a3 3 0 0 1 5.8 0H21v2h-2.2a3 3 0 0 1-5.8 0H3Zm0 8h5.2a3 3 0 0 1 5.8 0h7v2h-7a3 3 0 0 1-5.8 0H3Z"
+            />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <nav class="tabs" id="tabs" aria-label="Screenshot documentation sections">
+      <a class="tab" href="index.html">Screenshot index</a>
+      <a class="tab" href="../index.html#features">Documentation hub</a>
+      <a class="tab" href="../wiki/Feature-Gallery.html">Feature Gallery</a>
+    </nav>
+
+    <p class="nojs-note">
+      <span
+        >JavaScript is off, so the preference controls and the screenshot search
+        are inactive. Every screenshot, every recorded fact and every link on
+        this page still works.</span
+      >
+      <span lang="zh-HK"
+        >而家冇
+        JavaScript，所以設定同搜尋唔會運作。相片、記錄同連結全部照樣睇得到。</span
+      >
+    </p>
+
+    <!--
+      Preference controls. Same ids, names and classes as the hub, so the shared
+      modules bind language mode, both playfulness sliders, theme, density and
+      accent without this page shipping a line of that logic.
+    -->
+    <section id="prefs" class="prefs" hidden aria-label="Preferences">
+      <div class="prefs__inner">
+        <fieldset>
+          <legend data-i18n="prefLang">Language mode</legend>
+          <label class="checkbox">
+            <input type="radio" name="lang" value="en" />
+            <span>English</span>
+          </label>
+          <label class="checkbox">
+            <input type="radio" name="lang" value="yue" />
+            <span lang="zh-HK">廣東話</span>
+          </label>
+          <label class="checkbox">
+            <input type="radio" name="lang" value="bi" />
+            <span class="i18n-inline" data-i18n="langBi">Bilingual</span>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="prefFunEn">Playfulness — English</legend>
+          <div class="slider-row">
+            <input
+              type="range"
+              id="fun-en"
+              min="1"
+              max="5"
+              step="1"
+              value="3"
+              aria-label="Playfulness — English"
+              data-i18n-attr="aria-label=prefFunEn"
+            />
+            <output id="fun-en-value" for="fun-en">3</output>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="prefFunYue">Playfulness — 廣東話</legend>
+          <div class="slider-row">
+            <input
+              type="range"
+              id="fun-yue"
+              min="1"
+              max="5"
+              step="1"
+              value="3"
+              aria-label="Playfulness — 廣東話"
+              data-i18n-attr="aria-label=prefFunYue"
+            />
+            <output id="fun-yue-value" for="fun-yue">3</output>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="prefTheme">Theme</legend>
+          <label class="checkbox">
+            <input type="radio" name="theme" value="system" />
+            <span class="i18n-inline" data-i18n="themeSystem">System</span>
+          </label>
+          <label class="checkbox">
+            <input type="radio" name="theme" value="light" />
+            <span class="i18n-inline" data-i18n="themeLight">Light</span>
+          </label>
+          <label class="checkbox">
+            <input type="radio" name="theme" value="dark" />
+            <span class="i18n-inline" data-i18n="themeDark">Dark</span>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="prefDensity">Density</legend>
+          <label class="checkbox">
+            <input type="radio" name="density" value="comfortable" />
+            <span class="i18n-inline" data-i18n="densityComfortable"
+              >Comfortable</span
+            >
+          </label>
+          <label class="checkbox">
+            <input type="radio" name="density" value="compact" />
+            <span class="i18n-inline" data-i18n="densityCompact">Compact</span>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="prefAccent">Accent colour</legend>
+          <label class="checkbox">
+            <input type="radio" name="accent" value="violet" />
+            <span class="i18n-inline" data-i18n="accentViolet">Violet</span>
+          </label>
+          <label class="checkbox">
+            <input type="radio" name="accent" value="teal" />
+            <span class="i18n-inline" data-i18n="accentTeal">Teal</span>
+          </label>
+          <label class="checkbox">
+            <input type="radio" name="accent" value="amber" />
+            <span class="i18n-inline" data-i18n="accentAmber">Amber</span>
+          </label>
+          <label class="checkbox">
+            <input type="radio" name="accent" value="rose" />
+            <span class="i18n-inline" data-i18n="accentRose">Rose</span>
+          </label>
+        </fieldset>
+
+        <p class="md-body">
+          Preferences are stored in this browser only and apply to every
+          documentation page.
+        </p>
+      </div>
+    </section>
+
+    <!--
+      Search dock. The field, mode button, builder toggle, status line and
+      results list keep the hub's ids so the gallery module can own them. The
+      builder container is intentionally empty markup: the shared module builds
+      the full regex builder inside it, and the fallback paragraph below is what
+      a reader sees if that module has not loaded.
+    -->
+    <div class="dock" role="search" aria-label="Screenshot search">
+      <div class="dock__inner">
+        <div class="search-bar">
+          <div class="search-bar__field">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="M10 2a8 8 0 1 0 4.9 14.3l5.4 5.4 1.4-1.4-5.4-5.4A8 8 0 0 0 10 2Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z"
+              />
+            </svg>
+            <label class="visually-hidden" for="search-input"
+              >Search the screenshot documentation</label
+            >
+            <input
+              id="search-input"
+              type="search"
+              autocomplete="off"
+              spellcheck="false"
+              maxlength="512"
+              aria-invalid="false"
+              aria-describedby="search-mode-hint"
+              placeholder="Search captions, scenes and batches"
+            />
+          </div>
+          <div class="search-bar__tools">
+            <button
+              type="button"
+              id="search-mode"
+              class="btn btn--outlined btn--small"
+              aria-pressed="false"
+            >
+              <span class="i18n-inline" data-i18n="searchModeRegex"
+                >Regular expression</span
+              >
+            </button>
+            <button
+              type="button"
+              id="builder-toggle"
+              class="btn btn--tonal btn--small"
+              aria-expanded="false"
+              aria-controls="regex-builder"
+            >
+              <span class="i18n-inline" data-i18n="searchBuilderShow"
+                >Open regex builder</span
+              >
+            </button>
+            <button
+              type="button"
+              id="search-clear"
+              class="btn btn--text btn--small"
+            >
+              <span class="i18n-inline" data-i18n="searchClear">Clear</span>
+            </button>
+          </div>
+        </div>
+
+        <p id="search-mode-hint" class="search-note">
+          Plain-text search is the default. Turn on
+          <strong>Regular expression</strong> to search with a pattern, or open
+          the regex builder to construct one.
+        </p>
+
+        <div
+          id="regex-builder"
+          class="builder panel"
+          hidden
+          data-regex-builder="screenshot-gallery"
+        >
+          <p class="md-body" data-builder-fallback>
+            The regex builder is supplied by the shared gallery module. If it
+            has not loaded, the documentation hub's builder is available on the
+            <a href="../index.html#search">hub search tab</a>.
+          </p>
+        </div>
+
+        <p
+          id="search-status"
+          class="search-status"
+          role="status"
+          aria-live="polite"
+        ></p>
+        <!--
+          docs-screenshot-gallery.js builds its own search field, mode
+          controls, regex-builder panel, filters and grid inside this
+          container. It is empty in source on purpose: emitting the hub’s
+          control ids here produced widgets with no controller attached.
+        -->
+        <div id="screenshot-gallery"></div>
+      </div>
+    </div>
+
+    <main id="main" tabindex="-1">
+      <article
+        class="section shot-page"
+        data-screenshot-output="material-repository-tools-scroll"
+        data-screenshot-file="material-repository-tools-scroll.png"
+        data-screenshot-batch="windows-canonical-cdp"
+        data-screenshot-scene="repository-tools-scroll"
+        data-screenshot-search="material-repository-tools-scroll material-repository-tools-scroll.png Short-height Repository Tools scrolled to its reachable final results surface windows-canonical-cdp repository-tools-scroll Repository administration"
+      >
+        <div class="section__head">
+          <p class="eyebrow">Frame 16 of 92 · windows-canonical-cdp</p>
+          <h1 class="md-headline">
+            Short-height Repository Tools scrolled to its reachable final
+            results surface
+          </h1>
+          <p class="md-body">
+            1000 × 679 px · 76,741 bytes · batch windows-canonical-cdp
+          </p>
+          <p class="md-body" lang="zh-HK">
+            呢一頁只講一張相：邊個 scene 出，邊個 batch
+            收，尺寸、指令、憑證全部照抄記錄，冇記錄就照直講冇。
+          </p>
+        </div>
+
+        <figure class="shot-figure">
+          <img
+            src="../assets/screenshots/material-repository-tools-scroll.png"
+            width="1000"
+            height="679"
+            alt="Short Repository Tools workspace scrolled to its reachable final results surface"
+            decoding="async"
+          />
+          <figcaption class="md-body">
+            Short-height Repository Tools scrolled to its reachable final
+            results surface
+          </figcaption>
+        </figure>
+
+        <section class="panel shot-panel">
+          <h2 class="md-title">What the sources record</h2>
+          <dl class="shot-facts">
+            <dt class="shot-facts__key">Asset file</dt>
+            <dd class="shot-facts__value">
+              docs/assets/screenshots/material-repository-tools-scroll.png
+            </dd>
+            <dt class="shot-facts__key">Pixel dimensions</dt>
+            <dd class="shot-facts__value">
+              1,000 × 679 px, read from the PNG IHDR header
+            </dd>
+            <dt class="shot-facts__key">File size</dt>
+            <dd class="shot-facts__value">76,741 bytes on disk</dd>
+            <dt class="shot-facts__key">PNG encoding</dt>
+            <dd class="shot-facts__value">
+              8-bit truecolour (IHDR colour type 2)
+            </dd>
+            <dt class="shot-facts__key">Gallery output id</dt>
+            <dd class="shot-facts__value">material-repository-tools-scroll</dd>
+            <dt class="shot-facts__key">Scene</dt>
+            <dd class="shot-facts__value">repository-tools-scroll</dd>
+            <dt class="shot-facts__key">Capture batch</dt>
+            <dd class="shot-facts__value">windows-canonical-cdp</dd>
+            <dt class="shot-facts__key">Platform</dt>
+            <dd class="shot-facts__value">windows-headless</dd>
+            <dt class="shot-facts__key">Feature Gallery section</dt>
+            <dd class="shot-facts__value">Repository administration</dd>
+            <dt class="shot-facts__key">Guided workflow caption</dt>
+            <dd class="shot-facts__value">
+              Short-height Repository Tools scrolled to its reachable final
+              results surface
+            </dd>
+            <dt class="shot-facts__key">Publication status</dt>
+            <dd class="shot-facts__value">
+              Published target in the current Windows guided gallery
+            </dd>
+          </dl>
+        </section>
+
+        <section class="panel shot-panel">
+          <h2 class="md-title">Alternative text</h2>
+          <p class="md-body">
+            <q
+              >Short Repository Tools workspace scrolled to its reachable final
+              results surface</q
+            >
+          </p>
+          <p class="md-body">
+            The alternative text above is the Feature Gallery's own Markdown alt
+            text for this frame, so the image describes itself identically in
+            the wiki and here.
+          </p>
+        </section>
+
+        <section class="panel shot-panel">
+          <h2 class="md-title">The interaction the harness performs</h2>
+          <p class="md-body">
+            Run the registered repository-tools-scroll scene in the complete
+            canonical batch; promote only this output after the exact-set,
+            semantic, geometry, font, and hash gates pass.
+          </p>
+        </section>
+
+        <section class="panel shot-panel">
+          <h2 class="md-title">Fixture the capture batch requires</h2>
+          <p class="md-body">
+            Fresh owned P0 run root, isolated user data, disposable
+            provider-backed Git fixture, and the exact production bundle on a
+            hidden Win32 desktop.
+          </p>
+        </section>
+
+        <section class="panel shot-panel">
+          <h2 class="md-title">Privacy gate the capture must pass</h2>
+          <p class="md-body">
+            capture_gallery_cdp.js runs its renderer privacy assertion before
+            every Page.captureScreenshot call; inspect every original PNG before
+            promotion.
+          </p>
+        </section>
+
+        <section class="panel shot-panel">
+          <h2 class="md-title">Regenerating this capture</h2>
+          <p class="md-body">
+            Run these commands in order, exactly as the capture batch records
+            them. Placeholders in angle brackets are the verifier's own run
+            root, fixture path and CDP port.
+          </p>
+          <ol class="shot-commands">
+            <li>
+              <div class="code">
+                <div class="code__bar">
+                  <span>Step 1 of 2</span>
+                </div>
+                <pre><code>npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod</code></pre>
+              </div>
+            </li>
+            <li>
+              <div class="code">
+                <div class="code__bar">
+                  <span>Step 2 of 2</span>
+                </div>
+                <pre><code>node .codex/verification/capture_gallery_cdp.js --canonical true --run-root &lt;owned-p0-run-root&gt; --fixture-path &lt;owned-p0-run-root&gt;\fixture --out &lt;owned-p0-run-root&gt;\captures\gallery --port &lt;owned-cdp-port&gt; --theme light --language-mode english</code></pre>
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <section class="panel shot-panel">
+          <h2 class="md-title">Dated acceptance receipt</h2>
+          <p class="md-body shot-unavailable">
+            No dated receipt under <code>docs/verification/</code> names
+            <code>material-repository-tools-scroll.png</code>. The frame is
+            published without its own dated acceptance document; the build,
+            interaction and privacy evidence for its batch is recorded in
+            <code>HANDOFF.md</code> and in the Feature Gallery's refresh notes
+            instead.
+          </p>
+        </section>
+
+        <section class="panel shot-panel">
+          <h2 class="md-title">Where else this frame appears</h2>
+          <ul class="shot-links">
+            <li>
+              <a
+                href="../assets/screenshots/material-repository-tools-scroll.png"
+                >Open the PNG on its own</a
+              >
+            </li>
+            <li>
+              <a href="../wiki/Feature-Gallery.html"
+                >Feature Gallery, where this frame is captioned</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/wiki/Feature-Gallery.md"
+                >Feature Gallery Markdown source</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://github.com/Ding-Ding-Projects/desktop-material/blob/main/.codex/verification/gallery_capture_plan.js"
+                >Capture plan that declares this frame</a
+              >
+            </li>
+          </ul>
+        </section>
+
+        <nav class="shot-nav" aria-label="Screenshot documentation navigation">
+          <a
+            class="shot-nav__link"
+            rel="prev"
+            href="material-repository-tools.html"
+          >
+            <span class="shot-nav__label">Previous frame</span>
+            <span class="shot-nav__title"
+              >Named Repository Tools administration hub</span
+            >
+          </a>
+          <a class="shot-nav__link shot-nav__link--index" href="index.html">
+            <span class="shot-nav__label">Index</span>
+            <span class="shot-nav__title">All screenshot pages</span>
+          </a>
+          <a
+            class="shot-nav__link shot-nav__link--next"
+            rel="next"
+            href="material-error-notice.html"
+          >
+            <span class="shot-nav__label">Next frame</span>
+            <span class="shot-nav__title"
+              >Scoped stale Git lock recovery from a bottom-right error
+              notice</span
+            >
+          </a>
+        </nav>
+      </article>
+    </main>
+    <script id="screenshot-data" type="application/json">
+      {
+        "single": true,
+        "imageBase": "../assets/screenshots/",
+        "item": {
+          "output": "material-repository-tools-scroll",
+          "file": "material-repository-tools-scroll.png",
+          "caption": "Short-height Repository Tools scrolled to its reachable final results surface",
+          "altText": "Short Repository Tools workspace scrolled to its reachable final results surface",
+          "scene": "repository-tools-scroll",
+          "batch": "windows-canonical-cdp",
+          "platform": "windows-headless",
+          "section": "Repository administration",
+          "interaction": "Run the registered repository-tools-scroll scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+          "width": 1000,
+          "height": 679,
+          "bytes": 76741,
+          "commands": [
+            "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+            "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+          ],
+          "datedReceipts": []
+        },
+        "items": [
+          {
+            "output": "material-welcome",
+            "file": "material-welcome.png",
+            "caption": "Material first-run task card and responsive workspace preview",
+            "altText": "Material first-run welcome with a focused setup card and tonal workspace preview",
+            "scene": "welcome",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Customization, welcome, and adaptive toolbar",
+            "interaction": "Run the registered welcome scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 125975,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-workspace-changes",
+            "file": "material-workspace-changes.png",
+            "caption": "Material Changes workspace and commit flow",
+            "altText": "Material Changes workspace and commit flow",
+            "scene": "workspace-changes",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Material shell and accessibility",
+            "interaction": "Run the registered workspace-changes scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 94706,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-history",
+            "file": "material-history.png",
+            "caption": "Core History browsing and selected-commit inspection",
+            "altText": "Core History browsing and selected-commit inspection",
+            "scene": "history",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Run the registered history scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 141128,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-history-context-actions",
+            "file": "material-history-context-actions.png",
+            "caption": "Selection-aware History commit More/right-click actions and button hint",
+            "altText": "History commit row with its named More actions control and hover hint",
+            "scene": "history-context-actions",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Run the registered history-context-actions scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 156920,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-branches-sheet",
+            "file": "material-branches-sheet.png",
+            "caption": "Branch navigation and status side sheet",
+            "altText": "Branch navigation and status side sheet",
+            "scene": "branches-sheet",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Material shell and accessibility",
+            "interaction": "Run the registered branches-sheet scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 93670,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-settings",
+            "file": "material-settings.png",
+            "caption": "Responsive Material Settings dialog",
+            "altText": "Responsive Material Settings dialog",
+            "scene": "settings",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Material shell and accessibility",
+            "interaction": "Run the registered settings scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 134803,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-agent-access",
+            "file": "material-agent-access.png",
+            "caption": "Local MCP and REST agent access controls",
+            "altText": "Local MCP and REST agent access controls",
+            "scene": "settings-agent-access",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Run the registered settings-agent-access scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 135380,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-customization",
+            "file": "material-customization.png",
+            "caption": "Editor anchored beside its actual visual owner with burst-coalesced persistence, dedicated Git history, and repository path",
+            "altText": "Appearance editor anchored beside its actual owner with History, a dedicated local Git path, and burst-safe persistence",
+            "scene": "anchored-appearance",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Customization, welcome, and adaptive toolbar",
+            "interaction": "Run the registered anchored-appearance scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 101434,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-provider-accounts",
+            "file": "material-provider-accounts.png",
+            "caption": "GitHub, GitLab, and Bitbucket account controls",
+            "altText": "GitHub, GitLab, and Bitbucket account controls",
+            "scene": "settings-accounts",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Run the registered settings-accounts scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 131886,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-automation",
+            "file": "material-automation.png",
+            "caption": "Layered automation schedules and account overrides",
+            "altText": "Layered automation schedules and account overrides",
+            "scene": "settings-automation",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Run the registered settings-automation scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 144221,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "settings-history-manager",
+            "file": "settings-history-manager.png",
+            "caption": "Git-backed Settings history side sheet",
+            "altText": "Git-backed Settings history side sheet",
+            "scene": "settings-history",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Material shell and accessibility",
+            "interaction": "Run the registered settings-history scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 114690,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": [
+              "docs/verification/ui-design-audit-2026-07-20/reference-inventory.md",
+              "docs/verification/ui-design-audit-2026-07-20/runtime-plan.md"
+            ]
+          },
+          {
+            "output": "material-sparse-checkout",
+            "file": "material-sparse-checkout.png",
+            "caption": "Persistent three-step sparse-checkout guide in its disabled Choose state",
+            "altText": "Persistent three-step sparse-checkout guide in its disabled Choose state",
+            "scene": "sparse-checkout",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Run the registered sparse-checkout scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 123678,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-gitignore-manager",
+            "file": "material-gitignore-manager.png",
+            "caption": "Reviewed `.gitignore` template catalogue",
+            "altText": "Reviewed gitignore template catalogue",
+            "scene": "gitignore-manager",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Repository administration",
+            "interaction": "Run the registered gitignore-manager scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 118533,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-effective-branch-rules",
+            "file": "material-effective-branch-rules.png",
+            "caption": "Effective protection and ruleset policy",
+            "altText": "Effective branch protection and ruleset policy",
+            "scene": "branch-rules",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered branch-rules scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 156891,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-repository-tools",
+            "file": "material-repository-tools.png",
+            "caption": "Named Repository Tools administration hub",
+            "altText": "Named Repository Tools administration hub",
+            "scene": "repository-tools",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Repository administration",
+            "interaction": "Run the registered repository-tools scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 123637,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-repository-tools-scroll",
+            "file": "material-repository-tools-scroll.png",
+            "caption": "Short-height Repository Tools scrolled to its reachable final results surface",
+            "altText": "Short Repository Tools workspace scrolled to its reachable final results surface",
+            "scene": "repository-tools-scroll",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Repository administration",
+            "interaction": "Run the registered repository-tools-scroll scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1000,
+            "height": 679,
+            "bytes": 76741,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-error-notice",
+            "file": "material-error-notice.png",
+            "caption": "Scoped stale Git lock recovery from a bottom-right error notice",
+            "altText": "Bottom-right Git lock error notice with Remove lock file recovery",
+            "scene": "error-notice",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Run the registered error-notice scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 118999,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": [
+              "docs/verification/close-all-open-issues-2026-07-28/run-manifest.md"
+            ]
+          },
+          {
+            "output": "material-responsive-overflow-fixed",
+            "file": "material-responsive-overflow-fixed.png",
+            "caption": "Exact-size responsive overflow regression proof",
+            "altText": "Exact-size responsive overflow regression proof",
+            "scene": "responsive-overflow",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Material shell and accessibility",
+            "interaction": "Run the registered responsive-overflow scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1450,
+            "height": 997,
+            "bytes": 92264,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-github-releases",
+            "file": "material-github-releases.png",
+            "caption": "Repository-bound Releases dashboard, status summary, metadata, and assets",
+            "altText": "Repository-bound Releases dashboard with status summary, selected metadata, and assets",
+            "scene": "releases",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered releases scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 151901,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-github-issues",
+            "file": "material-github-issues.png",
+            "caption": "Issue detail, comments, and reviewed lifecycle controls",
+            "altText": "Issue detail, comments, and reviewed lifecycle controls",
+            "scene": "issues",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered issues scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 124384,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-provider-triage",
+            "file": "material-provider-triage.png",
+            "caption": "Account- and repository-bound provider triage",
+            "altText": "Account- and repository-bound provider triage with bounded results",
+            "scene": "provider-triage",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Provider triage",
+            "interaction": "Run the registered provider-triage scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 98925,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-github-api-explorer",
+            "file": "material-github-api-explorer.png",
+            "caption": "Repository-bound REST/GraphQL API Explorer with mutation review and bounded responses",
+            "altText": "Repository-contextual GitHub API Explorer with a searchable operation catalog, REST request builder, and bounded redacted response",
+            "scene": "api-explorer",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered api-explorer scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 104131,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-api-app-functions",
+            "file": "material-api-app-functions.png",
+            "caption": "Named repository-bound API functions extending the app through reviewed contracts",
+            "altText": "Named API app functions with repository-bound definitions and reviewed execution",
+            "scene": "api-app-functions",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered api-app-functions scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 101931,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-actions-pagination",
+            "file": "material-actions-pagination.png",
+            "caption": "Workflow-run pagination retained across refresh",
+            "altText": "Actions workflow-run pagination retained across refresh",
+            "scene": "actions-runs",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered actions-runs scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 146812,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-actions-pagination-headless",
+            "file": "material-actions-pagination-headless.png",
+            "caption": "Headless Actions run pagination and page-two sentinel",
+            "altText": "Headless Actions run pagination with the page-two sentinel retained",
+            "scene": "actions-load-more",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered actions-load-more scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 150746,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-actions-jobs-pagination",
+            "file": "material-actions-jobs-pagination.png",
+            "caption": "Attempt-aware job pagination and retry",
+            "altText": "Attempt-aware Actions job pagination and retry",
+            "scene": "actions-run-details",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered actions-run-details scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 152190,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-actions-cache-manager",
+            "file": "material-actions-cache-manager.png",
+            "caption": "Actions cache usage, inventory, refs, and deletion controls",
+            "altText": "Actions cache manager with usage totals, refs, wrapped keys, and delete controls",
+            "scene": "actions-caches",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered actions-caches scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 104867,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-notification-center",
+            "file": "material-notification-center.png",
+            "caption": "Git-backed notification centre",
+            "altText": "Git-backed notification centre",
+            "scene": "notification-center",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Run the registered notification-center scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 149703,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-notification-bulk-actions",
+            "file": "material-notification-bulk-actions.png",
+            "caption": "Filtered Local notification selection and bulk triage",
+            "altText": "Filtered Local notifications selected for bulk triage",
+            "scene": "notification-bulk",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Run the registered notification-bulk scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 152710,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-github-notifications",
+            "file": "material-github-notifications.png",
+            "caption": "Account-aware GitHub notifications",
+            "altText": "Account-aware GitHub notifications",
+            "scene": "notification-github",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Run the registered notification-github scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 117764,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-tab-search",
+            "file": "material-tab-search.png",
+            "caption": "Runtime tab search across names, aliases, paths, and clone URLs",
+            "altText": "Runtime repository-tab search matching an active repository by name and path",
+            "scene": "tab-search",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Customization, welcome, and adaptive toolbar",
+            "interaction": "Run the registered tab-search scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 103479,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-tab-arrange",
+            "file": "material-tab-arrange.png",
+            "caption": "Pinned/manual movement and one-shot tab ordering controls",
+            "altText": "Arrange tabs surface with pinned and manual movement controls plus one-shot label, opened-date, and repository-status sorts",
+            "scene": "tab-arrange",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Customization, welcome, and adaptive toolbar",
+            "interaction": "Run the registered tab-arrange scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 120579,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-tab-appearance-word",
+            "file": "material-tab-appearance-word.png",
+            "caption": "Word-style tab typography, alignment, and independent color palettes",
+            "altText": "Word-style tab appearance editor with typography, alignment, and independent text and background palettes",
+            "scene": "tab-style",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Customization, welcome, and adaptive toolbar",
+            "interaction": "Run the registered tab-style scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 104032,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-app-identity-workspace",
+            "file": "material-app-identity-workspace.png",
+            "caption": "Restart-restored profile app identity and favorite repository tab",
+            "altText": "Restart-restored profile app identity and favorite repository tab",
+            "scene": "app-identity",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "App identity and portable tabs",
+            "interaction": "Run the registered app-identity scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 153271,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-multi-window-menu",
+            "file": "material-multi-window-menu.png",
+            "caption": "Open repositories and worktrees in another window",
+            "altText": "Open repositories and worktrees in another window",
+            "scene": "multi-window-menu",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Run the registered multi-window-menu scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 112915,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-toolbar-overflow",
+            "file": "material-toolbar-overflow.png",
+            "caption": "Measured narrow toolbar with Build & Run and Commit & Push in More",
+            "altText": "Measured narrow toolbar with Build and Run and Commit and Push available from More without clipping",
+            "scene": "toolbar-overflow",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Customization, welcome, and adaptive toolbar",
+            "interaction": "Run the registered toolbar-overflow scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 720,
+            "height": 687,
+            "bytes": 60935,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-scale-200-autofit",
+            "file": "material-scale-200-autofit.png",
+            "caption": "200% requested scale safely auto-fitted at minimum size",
+            "altText": "Requested 200 percent scale safely auto-fitted at minimum size",
+            "scene": "scale-200",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Material shell and accessibility",
+            "interaction": "Run the registered scale-200 scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 960,
+            "height": 660,
+            "bytes": 75101,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-history-power-tools",
+            "file": "material-history-power-tools.png",
+            "caption": "Searchable History and commit ancestry graph",
+            "altText": "Searchable History and commit ancestry graph",
+            "scene": "history-power-tools",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Run the registered history-power-tools scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 140806,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-remote-manager",
+            "file": "material-remote-manager.png",
+            "caption": "Reviewed named-remote administration",
+            "altText": "Reviewed named-remote administration",
+            "scene": "remote-manager",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Repository administration",
+            "interaction": "Run the registered remote-manager scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 129930,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "add-submodule-dialog",
+            "file": "add-submodule-dialog.png",
+            "caption": "Clone-style Add Submodule review with source, checkout path, and branch",
+            "altText": "Clone-style Add Submodule review with a synthetic URL, checkout path, and tracked branch",
+            "scene": "add-submodule",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Clone, pull, and working-tree scope",
+            "interaction": "Run the registered add-submodule scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 136556,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-repository-logo-studio",
+            "file": "material-repository-logo-studio.png",
+            "caption": "Layered custom repository-logo studio with live preview and safe transfer controls",
+            "altText": "Layered custom repository-logo studio with live preview and safe transfer controls",
+            "scene": "logo-studio",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Customization, welcome, and adaptive toolbar",
+            "interaction": "Run the registered logo-studio scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 154339,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-repository-folder-detection",
+            "file": "material-repository-folder-detection.png",
+            "caption": "Repository folder detection during add and open",
+            "altText": "Repository folder detection during add and open",
+            "scene": "repository-folder-detection",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Repository administration",
+            "interaction": "Run the registered repository-folder-detection scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 119286,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-repository-submodule-management",
+            "file": "material-repository-submodule-management.png",
+            "caption": "Repository submodule management and reviewed update actions",
+            "altText": "Repository submodule management and reviewed update actions",
+            "scene": "repository-submodule-management",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Repository administration",
+            "interaction": "Run the registered repository-submodule-management scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 147859,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-submodule-context",
+            "file": "material-submodule-context.png",
+            "caption": "Initialized submodule opened temporarily with context and Back to the persisted root",
+            "altText": "Initialized submodule opened temporarily with a context bar and Back control to the persisted root repository",
+            "scene": "submodule-context",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Clone, pull, and working-tree scope",
+            "interaction": "Run the registered submodule-context scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 100125,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-stash-manager",
+            "file": "material-stash-manager.png",
+            "caption": "Repository-wide stash selection and exact-entry actions",
+            "altText": "Repository-wide stash manager with an exact selected entry",
+            "scene": "stash-manager",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Repository administration",
+            "interaction": "Run the registered stash-manager scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 108213,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-rebase-review",
+            "file": "material-rebase-review.png",
+            "caption": "Reviewed current→target rebase with ahead/behind state and commit preview",
+            "altText": "Reviewed current-branch rebase showing current to target, ahead and behind counts, and a bounded commit preview",
+            "scene": "rebase-review",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Repository administration",
+            "interaction": "Run the registered rebase-review scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 133796,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-native-pull-request",
+            "file": "material-native-pull-request.png",
+            "caption": "Native pull-request creation with bounded metadata",
+            "altText": "Native pull-request creation with bounded metadata",
+            "scene": "pull-request-compose",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered pull-request-compose scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 69951,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-create-pull-request",
+            "file": "material-create-pull-request.png",
+            "caption": "Native pull-request completion state",
+            "altText": "Native pull-request completion state",
+            "scene": "pull-request-open",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered pull-request-open scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 104235,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-shallow-clone",
+            "file": "material-shallow-clone.png",
+            "caption": "Shallow-clone commit-depth controls",
+            "altText": "Shallow-clone commit-depth controls",
+            "scene": "shallow-clone-dialog",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Run the registered shallow-clone-dialog scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 118514,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-shallow-clone-safe",
+            "file": "material-shallow-clone-safe.png",
+            "caption": "Reviewed shallow clone with a bounded commit depth",
+            "altText": "Reviewed shallow clone with a bounded commit depth",
+            "scene": "shallow-clone-dialog",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Clone, pull, and working-tree scope",
+            "interaction": "Run the registered shallow-clone-dialog scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 118593,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-sparse-checkout-safe",
+            "file": "material-sparse-checkout-safe.png",
+            "caption": "Persistent guided review with the locked editor and exact normalized selection",
+            "altText": "Persistent guided sparse-checkout review with the editor locked and exact normalized selection",
+            "scene": "sparse-checkout-safe",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Clone, pull, and working-tree scope",
+            "interaction": "Run the registered sparse-checkout-safe scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 126177,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-pull-all-account-fallback",
+            "file": "material-pull-all-account-fallback.png",
+            "caption": "Pull all with per-repository results and exact-origin account retry",
+            "altText": "Pull all showing a neutral exact-origin signed-in account fallback result",
+            "scene": "pull-all",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Clone, pull, and working-tree scope",
+            "interaction": "Run the registered pull-all scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 92209,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-clone-account-fallback",
+            "file": "material-clone-account-fallback.png",
+            "caption": "Generic HTTPS clone completed through exact-origin signed-in account fallback",
+            "altText": "Generic HTTPS clone completed through exact-origin signed-in account fallback",
+            "scene": "clone-fallback",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Clone, pull, and working-tree scope",
+            "interaction": "Run the registered clone-fallback scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 117880,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "regex-builder",
+            "file": "regex-builder.png",
+            "caption": "Safe RE2 builder with bounded live matches and captures",
+            "altText": "Safe RE2 builder with bounded live matches and captures",
+            "scene": "regex-builder",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Run the registered regex-builder scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1280,
+            "height": 800,
+            "bytes": 106747,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": [
+              "docs/verification/bug-hunt-2026-07-26/cleanup-ledger.md",
+              "docs/verification/bug-hunt-2026-07-26/run-manifest.md",
+              "docs/verification/ui-design-audit-2026-07-20/reference-inventory.md",
+              "docs/verification/ui-design-audit-2026-07-20/runtime-plan.md"
+            ]
+          },
+          {
+            "output": "material-history-deepen",
+            "file": "material-history-deepen.png",
+            "caption": "Deepen-history result without exposing the account used",
+            "altText": "Deepen-history result without displaying the account used",
+            "scene": "history-deepen",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Clone, pull, and working-tree scope",
+            "interaction": "Run the registered history-deepen scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 140379,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-history-deepening",
+            "file": "material-history-deepening.png",
+            "caption": "Full-history state after a verified deepen",
+            "altText": "Full-history state after a verified deepen",
+            "scene": "history-deepening",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Repository administration",
+            "interaction": "Run the registered history-deepening scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 139310,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-actions-artifacts",
+            "file": "material-actions-artifacts.png",
+            "caption": "Artifact digest and attestation-presence context",
+            "altText": "Actions artifact digest and attestation-presence context",
+            "scene": "actions-artifacts",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered actions-artifacts scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 148357,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-actions-artifact-download",
+            "file": "material-actions-artifact-download.png",
+            "caption": "Bounded artifact download with a locally computed digest",
+            "altText": "Bounded Actions artifact download with a locally computed digest",
+            "scene": "actions-artifact-download",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered actions-artifact-download scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 149370,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-actions-artifact-page-two",
+            "file": "material-actions-artifact-page-two.png",
+            "caption": "Wrapped artifact page-two sentinel",
+            "altText": "Actions artifact page-two sentinel with wrapped content",
+            "scene": "actions-artifact-page-two",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered actions-artifact-page-two scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 146454,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-actions-artifacts-headless",
+            "file": "material-actions-artifacts-headless.png",
+            "caption": "Headless bounded artifact inventory",
+            "altText": "Headless Actions artifact inventory with bounded pagination",
+            "scene": "actions-artifact-page-two",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered actions-artifact-page-two scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 147318,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-actions-sentinel-headless",
+            "file": "material-actions-sentinel-headless.png",
+            "caption": "Headless wrapped sentinel evidence with no clipping",
+            "altText": "Headless Actions sentinel evidence with wrapped content and no clipping",
+            "scene": "actions-sentinel",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered actions-sentinel scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 154258,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-actions-job-log",
+            "file": "material-actions-job-log.png",
+            "caption": "Searchable in-app Actions job log",
+            "altText": "Searchable in-app Actions job log",
+            "scene": "actions-job-log",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered actions-job-log scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 53867,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-actions-cancel",
+            "file": "material-actions-cancel.png",
+            "caption": "Exact workflow-run cancellation review with ref, actor, and commit context",
+            "altText": "Material workflow-run cancellation review naming the exact run, ref, actor, and commit",
+            "scene": "actions-cancel",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered actions-cancel scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 170118,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-actions-pending-deployments",
+            "file": "material-actions-pending-deployments.png",
+            "caption": "Deployment environment review and history",
+            "altText": "Pending deployment environment review and history",
+            "scene": "actions-pending-deployments",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "Run the registered actions-pending-deployments scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 147987,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-branch-merge-all",
+            "file": "material-branch-merge-all.png",
+            "caption": "Merge All branches/worktrees with per-target state",
+            "altText": "Merge All branches and worktrees with per-target state",
+            "scene": "merge-all",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Run the registered merge-all scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 101458,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "advanced-workflows",
+            "file": "advanced-workflows.png",
+            "caption": "Tag lifecycle inventory with local-only, pushed, and remote-only states and bounded actions",
+            "altText": "Advanced tag lifecycle workspace with local-only, pushed, and remote-only states",
+            "scene": "advanced-workflows",
+            "batch": "windows-canonical-cdp",
+            "platform": "windows-headless",
+            "section": "Repository administration",
+            "interaction": "Run the registered advanced-workflows scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 120842,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-publish-organization-picker",
+            "file": "material-publish-organization-picker.png",
+            "caption": "Searchable personal-or-organization owner listbox with bounded filtering, keyboard selection, and physical narrow-window containment",
+            "altText": "Bilingual Publish repository dialog with a searchable, contained organization owner listbox",
+            "scene": "publish-organization-picker",
+            "batch": "windows-publish-organization-cdp",
+            "platform": "windows-headless",
+            "section": "Repository administration",
+            "interaction": "Add and select the real P0 no-remote git-source repository through the shipped dialog, invoke Push to open Publish Repository, exercise fuzzy, substring, invalid and valid regex, the Regex Builder, keyboard selection of the final owner and None, then prove the bilingual picker at a physical 390x844 auto-fit window before restoring the reviewed 1440x960 frame.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 133919,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --scenes publish-organization-picker --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme dark --language-mode bilingual --width 1440 --height 960"
+            ],
+            "datedReceipts": [
+              "docs/verification/publish-organization-picker-2026-07-30/README.md",
+              "docs/verification/publish-organization-picker-2026-07-30/runtime-receipt.json"
+            ]
+          },
+          {
+            "output": "material-history-hover-time",
+            "file": "material-history-hover-time.png",
+            "caption": "Commit hover/focus card with exact authored timestamp and relative age",
+            "altText": "History commit hover card showing an exact timestamp and relative age",
+            "scene": "history-hover-time",
+            "batch": "windows-history-hover",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Open History on the disposable repository, focus one real commit row, require a contained hover card with both its exact authored timestamp and a relative age, then preserve that card.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 128957,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --scenes history-hover-time --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\history-hover --port \u003cowned-cdp-port> --theme dark --language-mode bilingual"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-repositories-sheet",
+            "file": "material-repositories-sheet.png",
+            "caption": "Collapsible repository filters with compact Add, Select, and More actions",
+            "altText": "Dark repository side sheet with collapsed Filters and compact Add, Select, and More actions",
+            "scene": "repositories-sheet",
+            "batch": "windows-repositories-sheet",
+            "platform": "windows-headless",
+            "section": "Material shell and accessibility",
+            "interaction": "Open the repository sheet in dark bilingual mode, exercise the state-preserving Filters disclosure, and preserve the compact equal-width Add, Select, and More row after the narrow-width geometry gate passes.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 83343,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "node .codex/verification/capture_gallery_cdp.js --scenes seed,repositories-sheet --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\repositories-sheet --port \u003cowned-cdp-port> --theme dark --language-mode bilingual"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "app-hosted-browser-authentication",
+            "file": "app-hosted-browser-authentication.png",
+            "caption": "Sandboxed app-hosted browser with tabs, redirects, bookmark sanitization, and private authentication escape",
+            "altText": "App-hosted browser showing captured redirects, a sanitized bookmark, and the private authentication escape",
+            "scene": "internal-browser-authentication",
+            "batch": "windows-internal-browser",
+            "platform": "windows-headless",
+            "section": "App-hosted browser",
+            "interaction": "Drive same-tab redirect, popup capture, New Tab, sanitized bookmark, then leave the nonbookmarkable authentication tab and external-browser escape action visible.",
+            "width": 1144,
+            "height": 741,
+            "bytes": 65346,
+            "commands": [
+              "node .codex/verification/verify_internal_browser_cdp.js --port \u003cowned-cdp-port> --run-root \u003cowned-temp-run-root> --receipt \u003cowned-temp-run-root>\\internal-browser-cdp-receipt.json",
+              "Lowlevel capture_screenshot(client_only=true, hwnd=\u003cresolved-browser-hwnd>, path=\u003cowned-temp-run-root>\\captures\\app-hosted-browser-authentication.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "auto-updater-current-source-ready",
+            "file": "auto-updater-current-source-ready.png",
+            "caption": "Current-source production UI after a genuine Electron/Squirrel update-downloaded path with a disclosed inert verifier payload and no published-payload claim",
+            "altText": "Current-source About dialog showing the automatic updater ready after a genuine Electron and Squirrel event path downloaded the disclosed inert verifier payload",
+            "scene": "current-source-installed-update-ready",
+            "batch": "windows-updater-lowlevel",
+            "platform": "windows-headless",
+            "section": "Customization, welcome, and adaptive toolbar",
+            "interaction": "Invoke the real production check-for-updates IPC against the bounded loopback feed, observe the genuine Squirrel update-downloaded event, and leave the current-source About surface showing the disclosed inert fixture ready without clicking Quit and Install.",
+            "width": 960,
+            "height": 660,
+            "bytes": 47086,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development yarn build:prod",
+              "node .codex/verification/verify_gallery_auto_updater_ready_cdp.js --port \u003cowned-cdp-port> --run-root \u003cowned-temp-run-root> --protected-install-root \u003cattested-protected-install-root> --protected-user-sid \u003cattested-protected-user-sid> --execution-user-sid \u003cattested-execution-user-sid> --desktop-name \u003cowned-headless-desktop-name> --capture \u003cowned-temp-run-root>\\captures\\auto-updater-current-source-ready.png --receipt \u003cowned-temp-run-root>\\receipts\\auto-updater-current-source-ready-receipt.json --ready \u003cowned-temp-run-root>\\receipts\\auto-updater-current-source-ready-verifier-ready.json",
+              "Lowlevel wait for the verifier-owned ready handshake, launch only its exact executable, arguments, environment, identity, and non-default desktop, then let the verifier capture original Chromium pixels and exit through File > Exit without invoking Quit and Install"
+            ],
+            "datedReceipts": [
+              "docs/verification/bug-hunt-2026-07-28/run-manifest.md",
+              "docs/verification/close-all-open-issues-2026-07-28/cleanup-ledger.md",
+              "docs/verification/close-all-open-issues-2026-07-28/run-manifest.md"
+            ]
+          },
+          {
+            "output": "cheap-lfs-bambu-build-live",
+            "file": "cheap-lfs-bambu-build-live.png",
+            "caption": "Live public Bambu build inventory with ten tracked Release-backed pointer objects",
+            "altText": "Live public Bambu build Cheap LFS inventory with ten tracked Release-backed pointer objects",
+            "scene": "bambu-build-live-inventory",
+            "batch": "windows-cheap-lfs-live",
+            "platform": "windows-headless",
+            "section": "Large-file commit preparation",
+            "interaction": "Clone the public Bambu build fixture afresh, open Cheap LFS, and show its ten verified Release-backed pointers without exposing an account.",
+            "width": 960,
+            "height": 660,
+            "bytes": 98404,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with the named disposable Cheap LFS fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "cheap-lfs-cloud-compression",
+            "file": "cheap-lfs-cloud-compression.png",
+            "caption": "Bilingual persisted private opt-in routed through the encrypted public builder, with no private-repository workflow and one verified 99.9%-compressed pointer",
+            "altText": "Bilingual persisted private-repository cloud-compression opt-in routed through the encrypted public builder, with no private-repository workflow and one verified 99.9%-compressed pointer",
+            "scene": "private-cloud-compression-consent",
+            "batch": "windows-cheap-lfs-live",
+            "platform": "windows-headless",
+            "section": "Large-file commit preparation",
+            "interaction": "Use a caller-owned disposable private fixture with persisted cloud-compression consent and one retained verified compressed pointer; validate the current no-private-workflow encrypted public-builder route, then leave its bilingual routing notice and 99.9%-smaller row visible.",
+            "width": 960,
+            "height": 660,
+            "bytes": 105577,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with the named disposable Cheap LFS fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": [
+              "docs/verification/cheap-lfs-cloud-compression-2026-07-22.md"
+            ]
+          },
+          {
+            "output": "cheap-lfs-ui-acceptance",
+            "file": "cheap-lfs-ui-acceptance.png",
+            "caption": "Live private-repository Cheap LFS pin result with the verified pointer and Materialize action",
+            "altText": "Live private-repository Cheap LFS pin result with the verified pointer and Materialize action",
+            "scene": "private-live-pin-acceptance",
+            "batch": "windows-cheap-lfs-live",
+            "platform": "windows-headless",
+            "section": "Large-file commit preparation",
+            "interaction": "Fresh-clone the purpose-built private acceptance repository, verify its retained live Release-pointer history, then show the verified row and Materialize action without provider or repository mutation.",
+            "width": 1200,
+            "height": 752,
+            "bytes": 79404,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with the named disposable Cheap LFS fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": [
+              "docs/verification/cheap-lfs-github-public-private-2026-07-22.md",
+              "docs/verification/close-all-open-issues-2026-07-28/run-manifest.md"
+            ]
+          },
+          {
+            "output": "cheap-lfs-commit-progress",
+            "file": "cheap-lfs-commit-progress.png",
+            "caption": "Three-worker Cheap LFS terminal with queue, provider, reason, timing, ETA, manual-phase, and keyboard-disclosure context",
+            "altText": "Three-worker Cheap LFS terminal showing the queue, provider recommendation, timing, ETA, manual controls, and large-file filter",
+            "scene": "wide-commit-progress",
+            "batch": "windows-cheap-lfs-commit",
+            "platform": "windows-headless",
+            "section": "Large-file commit preparation",
+            "interaction": "Run the verifier wide scenario and preserve its deterministic three-lane commit terminal at 1440x960.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 113869,
+            "commands": [
+              "node .codex/verification/verify_cheap_lfs_progress_cdp.js --port \u003cowned-cdp-port> --run-root \u003cowned-temp-run-root> --repository-path \u003cowned-temp-run-root>\\fixture --scenario wide --capture \u003cowned-temp-run-root>\\captures\\cheap-lfs-commit-progress.png --receipt \u003cowned-temp-run-root>\\receipts\\cheap-lfs-commit-progress.json"
+            ],
+            "datedReceipts": [
+              "docs/verification/cheap-lfs-commit-progress-2026-07-23.md"
+            ]
+          },
+          {
+            "output": "cheap-lfs-restore-lookahead",
+            "file": "cheap-lfs-restore-lookahead.png",
+            "caption": "Exact-90% Release restore with detailed current and already-running look-ahead lanes",
+            "altText": "Detailed Cheap LFS restore with the current transfer at exactly 90% and the next transfer already active",
+            "scene": "wide-restore-lookahead",
+            "batch": "windows-cheap-lfs-restore",
+            "platform": "windows-headless",
+            "section": "Large-file commit preparation",
+            "interaction": "Run the verifier wide scenario and preserve current transfer 90%, next transfer active, bounded concurrency, rate, ETA, and counters.",
+            "width": 1440,
+            "height": 960,
+            "bytes": 106724,
+            "commands": [
+              "node .codex/verification/verify_cheap_lfs_restore_progress_cdp.js --port \u003cowned-cdp-port> --run-root \u003cowned-temp-run-root> --repository-path \u003cowned-temp-run-root>\\fixture --scenario wide --capture \u003cowned-temp-run-root>\\captures\\cheap-lfs-restore-lookahead.png --receipt \u003cowned-temp-run-root>\\receipts\\cheap-lfs-restore-lookahead.json"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-command-palette-appearance",
+            "file": "material-command-palette-appearance.png",
+            "caption": "Rich command results beside the compact aligned appearance editor with stable random-per-repository mode",
+            "altText": "Command palette showing Ollama results beside the compact aligned row appearance editor with random per repository mode",
+            "scene": "command-palette-appearance",
+            "batch": "windows-ui-state-lowlevel",
+            "platform": "windows-headless",
+            "section": "Tab groups and command palette",
+            "interaction": "Open the command palette, type ollama, open its appearance editor, exercise deterministic random-per-repository mode, and leave eight rich results plus the aligned, fully contained editor and Reset control visible at 1000x687.",
+            "width": 1000,
+            "height": 687,
+            "bytes": 115855,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": [
+              "docs/verification/tab-groups-command-palette-2026-07-22.md"
+            ]
+          },
+          {
+            "output": "material-tab-groups",
+            "file": "material-tab-groups.png",
+            "caption": "Restart-restored named group chip with visible repository membership and real collapse/expand behavior",
+            "altText": "Restart-restored named tab-group chip with its visible repository member",
+            "scene": "restored-tab-group",
+            "batch": "windows-ui-state-lowlevel",
+            "platform": "windows-headless",
+            "section": "Tab groups and command palette",
+            "interaction": "Create a named colored tab group through the tab menu, relaunch the isolated profile, and leave the restored expanded group chip and member visible at 1000x687.",
+            "width": 1000,
+            "height": 687,
+            "bytes": 91222,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": [
+              "docs/verification/tab-groups-command-palette-2026-07-22.md"
+            ]
+          },
+          {
+            "output": "repository-groups-collapsed",
+            "file": "repository-groups-collapsed.png",
+            "caption": "Repository group collapsed with its member count pill",
+            "altText": "Repository group collapsed with its member count pill",
+            "scene": "repository-group-collapsed",
+            "batch": "windows-ui-state-lowlevel",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Create one named repository group with three disposable members, activate its disclosure button once, and leave aria-expanded=false plus the member-count pill visible at 1180x820.",
+            "width": 1180,
+            "height": 820,
+            "bytes": 91377,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "repository-groups-expanded",
+            "file": "repository-groups-expanded.png",
+            "caption": "Repository group expanded with per-row sync summaries",
+            "altText": "Repository group expanded with per-row sync summaries",
+            "scene": "repository-group-expanded",
+            "batch": "windows-ui-state-lowlevel",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Create one named repository group with three disposable members and leave aria-expanded=true with every member row and its fixture sync summary visible at 1180x820.",
+            "width": 1180,
+            "height": 820,
+            "bytes": 105302,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "repository-list-sync-summary",
+            "file": "repository-list-sync-summary.png",
+            "caption": "Repository-list sync summary naming the last known push and pull state",
+            "altText": "Repository-list sync summary naming the last known push and pull state",
+            "scene": "repository-row-sync-summary",
+            "batch": "windows-ui-state-lowlevel",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Use a disposable local/bare-origin repository with one known push and pull, open the repository picker, and crop the exact rendered row summary to 390x100 only after whole-window privacy inspection.",
+            "width": 390,
+            "height": 100,
+            "bytes": 7152,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "tab-overflow-search",
+            "file": "tab-overflow-search.png",
+            "caption": "Tab overflow dropdown with its search field and regex builder",
+            "altText": "Tab overflow dropdown with its search field and regex builder",
+            "scene": "tab-overflow-regex-search",
+            "batch": "windows-ui-state-lowlevel",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Open enough disposable repository tabs to force overflow at 1280x800, click the overflow button, enable regex mode, and leave its search field, results, and regex builder visible.",
+            "width": 1280,
+            "height": 800,
+            "bytes": 124518,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-github-releases-compact",
+            "file": "material-github-releases-compact.png",
+            "caption": "200%-scaled compact Releases catalog with one complete row and keyboard-reachable tools",
+            "altText": "Compact Repository Releases at 200 percent scale with one complete row and the keyboard-reachable Filters and selection disclosure",
+            "scene": "releases-compact-200-percent",
+            "batch": "windows-releases-compact",
+            "platform": "windows-headless",
+            "section": "GitHub lifecycle",
+            "interaction": "At 200% app zoom leave one complete release row and keyboard-reachable Filters and selection disclosure visible in the 960x660 client.",
+            "width": 960,
+            "height": 660,
+            "bytes": 89856,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with the P0 release fixture, set app zoom to 200%, open Repository Releases, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\material-github-releases-compact.png)"
+            ],
+            "datedReceipts": [
+              "docs/verification/cheap-lfs-commit-progress-2026-07-23.md"
+            ]
+          },
+          {
+            "output": "material-ollama-model-manager",
+            "file": "material-ollama-model-manager.png",
+            "caption": "Ollama health, installed/running inventory, model details, and guarded lifecycle actions",
+            "altText": "Ollama model manager showing endpoint health, installed and running inventory, model details, and lifecycle actions",
+            "scene": "ollama-model-manager",
+            "batch": "windows-ollama",
+            "platform": "windows-headless",
+            "section": "Local Ollama model lifecycle",
+            "interaction": "Run the attach-only verifier through endpoint health, installed/running inventory, selected details, and lifecycle controls, then retain its accepted final frame.",
+            "width": 1452,
+            "height": 1001,
+            "bytes": 128903,
+            "commands": [
+              "node .codex/verification/verify_ollama_manager_cdp.js --port \u003cowned-cdp-port> --p0-run-root \u003cowned-p0-run-root> --ollama-run-root \u003cowned-ollama-run-root> --capture \u003cowned-p0-run-root>\\captures\\material-ollama-model-manager.png --receipt \u003cowned-p0-run-root>\\captures\\material-ollama-model-manager.json"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-pull-preview",
+            "file": "material-pull-preview.png",
+            "caption": "Freshly fetched ordinary pull review bound to one exact upstream OID",
+            "altText": "Reviewed ordinary Git pull with exact branch identities, incoming commits, changed files, and a clean-worktree confirmation gate",
+            "scene": "reviewed-pull-preview",
+            "batch": "windows-pull-preview",
+            "platform": "windows-headless",
+            "section": "Clone, pull, and working-tree scope",
+            "interaction": "Fetch once, open the exact frozen fast-forward review, and leave branch identities, incoming commits, changed files, and clean-worktree confirmation visible without confirming Pull.",
+            "width": 960,
+            "height": 660,
+            "bytes": 62882,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with the owned local/bare-origin fixture, activate Pull, wait for the frozen fetched preview, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\material-pull-preview.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "private-repository-lock-badge",
+            "file": "private-repository-lock-badge.png",
+            "caption": "Explicit private-metadata lock retained beside the repository logo",
+            "altText": "Repository picker showing the private-repository lock beside the repository logo",
+            "scene": "exact-private-metadata-badge",
+            "batch": "windows-private-badge",
+            "platform": "windows-headless",
+            "section": "Repository administration",
+            "interaction": "Open the repository picker after the app-native hook sets exact private metadata; retain the ordinary repository logo and separate focusable localized lock.",
+            "width": 960,
+            "height": 660,
+            "bytes": 87517,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with the disposable repository, set exact isPrivate=true through the app-native state hook, open the repository picker, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\private-repository-lock-badge.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "auto-updater-update-ready",
+            "file": "auto-updater-update-ready.png",
+            "caption": null,
+            "altText": "Historical legacy Super Express installation with a newer alphabetic-z update ready",
+            "scene": null,
+            "batch": "retained-historical",
+            "platform": null,
+            "section": "Historical updater evidence (outside the current gallery)",
+            "interaction": null,
+            "width": 960,
+            "height": 660,
+            "bytes": 49195,
+            "commands": [],
+            "datedReceipts": [
+              "docs/verification/auto-updater-version-order-2026-07-22.md",
+              "docs/verification/close-all-open-issues-2026-07-28/run-manifest.md"
+            ]
+          },
+          {
+            "output": "linux-tui-bilingual-narrow",
+            "file": "linux-tui-bilingual-narrow.png",
+            "caption": null,
+            "altText": "Desktop Material screenshot linux-tui-bilingual-narrow.png, filed under Historical Linux terminal evidence (outside the current gallery). The Feature Gallery records no alt text and no caption describing this frame.",
+            "scene": null,
+            "batch": "retained-historical",
+            "platform": null,
+            "section": "Historical Linux terminal evidence (outside the current gallery)",
+            "interaction": null,
+            "width": 1600,
+            "height": 1000,
+            "bytes": 58251,
+            "commands": [],
+            "datedReceipts": [
+              "docs/verification/linux-tui-2026-07-27/cleanup-ledger.md",
+              "docs/verification/linux-tui-2026-07-27/run-manifest.md"
+            ]
+          },
+          {
+            "output": "linux-tui-cheap-lfs",
+            "file": "linux-tui-cheap-lfs.png",
+            "caption": null,
+            "altText": "Desktop Material screenshot linux-tui-cheap-lfs.png, filed under Historical Linux terminal evidence (outside the current gallery). The Feature Gallery records no alt text and no caption describing this frame.",
+            "scene": null,
+            "batch": "retained-historical",
+            "platform": null,
+            "section": "Historical Linux terminal evidence (outside the current gallery)",
+            "interaction": null,
+            "width": 1600,
+            "height": 1000,
+            "bytes": 88937,
+            "commands": [],
+            "datedReceipts": [
+              "docs/verification/linux-tui-2026-07-27/cleanup-ledger.md",
+              "docs/verification/linux-tui-2026-07-27/run-manifest.md"
+            ]
+          },
+          {
+            "output": "linux-tui-overview",
+            "file": "linux-tui-overview.png",
+            "caption": null,
+            "altText": "Desktop Material screenshot linux-tui-overview.png, filed under Historical Linux terminal evidence (outside the current gallery). The Feature Gallery records no alt text and no caption describing this frame.",
+            "scene": null,
+            "batch": "retained-historical",
+            "platform": null,
+            "section": "Historical Linux terminal evidence (outside the current gallery)",
+            "interaction": null,
+            "width": 1600,
+            "height": 1000,
+            "bytes": 74330,
+            "commands": [],
+            "datedReceipts": [
+              "docs/verification/linux-tui-2026-07-27/cleanup-ledger.md",
+              "docs/verification/linux-tui-2026-07-27/run-manifest.md"
+            ]
+          },
+          {
+            "output": "linux-tui-regex-builder",
+            "file": "linux-tui-regex-builder.png",
+            "caption": null,
+            "altText": "Desktop Material screenshot linux-tui-regex-builder.png, filed under Historical Linux terminal evidence (outside the current gallery). The Feature Gallery records no alt text and no caption describing this frame.",
+            "scene": null,
+            "batch": "retained-historical",
+            "platform": null,
+            "section": "Historical Linux terminal evidence (outside the current gallery)",
+            "interaction": null,
+            "width": 1600,
+            "height": 1000,
+            "bytes": 73555,
+            "commands": [],
+            "datedReceipts": [
+              "docs/verification/linux-tui-2026-07-27/cleanup-ledger.md",
+              "docs/verification/linux-tui-2026-07-27/run-manifest.md"
+            ]
+          },
+          {
+            "output": "linux-tui-text-input",
+            "file": "linux-tui-text-input.png",
+            "caption": null,
+            "altText": "Desktop Material screenshot linux-tui-text-input.png, filed under Historical Linux terminal evidence (outside the current gallery). The Feature Gallery records no alt text and no caption describing this frame.",
+            "scene": null,
+            "batch": "retained-historical",
+            "platform": null,
+            "section": "Historical Linux terminal evidence (outside the current gallery)",
+            "interaction": null,
+            "width": 1600,
+            "height": 1000,
+            "bytes": 75793,
+            "commands": [],
+            "datedReceipts": [
+              "docs/verification/linux-tui-2026-07-27/cleanup-ledger.md",
+              "docs/verification/linux-tui-2026-07-27/run-manifest.md"
+            ]
+          }
+        ]
+      }
+    </script>
+
+    <footer class="site-footer">
+      <div class="site-footer__inner">
+        <p class="md-body">
+          Every fact on this page is generated from
+          <code>.codex/verification/gallery_capture_plan.js</code>,
+          <code>docs/wiki/Feature-Gallery.md</code>, the PNG headers in
+          <code>docs/assets/screenshots/</code> and the receipts in
+          <code>docs/verification/</code> by
+          <code>script/generate-screenshot-docs.mjs</code>. Edit those sources,
+          not this file.
+        </p>
+      </div>
+    </footer>
+
+    <div
+      id="toasts"
+      class="toasts"
+      role="region"
+      aria-label="Notifications"
+    ></div>
+
+    <script src="../assets/site/docs-color.js"></script>
+    <script src="../assets/site/docs-color-picker.js"></script>
+    <script src="../assets/site/docs-regex-job.js"></script>
+    <script src="../assets/site/docs-screenshot-gallery.js"></script>
+    <script src="../assets/site/docs-screenshot-strings.js"></script>
+    <script src="../assets/site/docs-screenshot-page.js"></script>
+  </body>
+</html>
