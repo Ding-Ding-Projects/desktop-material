@@ -54,7 +54,10 @@ export function readTagDates({ cwd = repositoryRoot } = {}) {
     'git',
     [
       'for-each-ref',
-      '--format=%(refname:short)|%(creatordate:short)',
+      // `iso8601` carries the wall-clock time and offset the tag was actually
+      // written with. `short` discarded it, so no release could ever show a
+      // time — and a time is not something that can be recovered later.
+      '--format=%(refname:short)|%(creatordate:iso8601)',
       'refs/tags/' + TagPrefix + '*',
     ],
     { cwd, encoding: 'utf8', maxBuffer: 1 << 28 }
@@ -71,11 +74,19 @@ export function readTagDates({ cwd = repositoryRoot } = {}) {
       continue
     }
     const ref = trimmed.slice(0, separator)
-    const date = trimmed.slice(separator + 1).trim()
-    if (!ref.startsWith(TagPrefix) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const stamp = trimmed.slice(separator + 1).trim()
+    // iso8601 from Git looks like `2026-07-14 09:32:11 -0400`. Keep the date
+    // and the 24-hour time separately: the date is what filtering sorts on,
+    // and the time is display-only.
+    const match = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}):\d{2}/.exec(stamp)
+    if (!ref.startsWith(TagPrefix) || match === null) {
       continue
     }
-    dates.set(ref.slice(TagPrefix.length), date)
+    // 24-hour throughout, with no locale AM/PM form anywhere.
+    dates.set(ref.slice(TagPrefix.length), {
+      date: match[1],
+      time: match[2],
+    })
   }
   return dates
 }
@@ -103,10 +114,13 @@ export function collectReleases({ changelog, tagDates }) {
   for (const version of Object.keys(changelog.releases)) {
     const list = changelog.releases[version]
     const entries = (Array.isArray(list) ? list : []).map(splitEntry)
-    const date = tagDates.get(version)
+    const stamp = tagDates.get(version)
     releases.push({
       version,
-      date: date === undefined ? null : date,
+      date: stamp === undefined ? null : stamp.date,
+      // 24-hour, display only. Null whenever the date is null, so a release
+      // can never show a time it has no tag to source it from.
+      time: stamp === undefined ? null : stamp.time,
       entries,
     })
   }
@@ -169,7 +183,10 @@ export function renderCatalogModule(releases) {
   lines.push(' * `release-<version>` Git tags.')
   lines.push(' *')
   lines.push(
-    ' * Each release is `{ v: version, d: date | null, e: [[category, text], …] }`.'
+    ' * Each release is `{ v: version, d: date | null, t: 24-hour time | null,'
+  )
+  lines.push(
+    ' *   e: [[category, text], …] }`. `t` is display-only and always 24-hour.'
   )
   lines.push(
     ' * `d: null` means no `release-<version>` tag exists, so the release date is'
@@ -194,6 +211,13 @@ export function renderCatalogModule(releases) {
     lines.push(
       '        d: ' +
         (release.date === null ? 'null' : quote(release.date)) +
+        ','
+    )
+    lines.push(
+      '        t: ' +
+        (release.time === null || release.time === undefined
+          ? 'null'
+          : quote(release.time)) +
         ','
     )
     if (release.entries.length === 0) {

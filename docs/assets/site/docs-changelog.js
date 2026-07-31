@@ -1045,6 +1045,9 @@
     for (index = 0; index < releases.length; index++) {
       var release = releases[index]
       var date = typeof release.d === 'string' ? release.d : null
+      // 24-hour HH:MM from the release tag, display only. Never shown without
+      // its date, so a time can't imply a date the tag never carried.
+      var time = typeof release.t === 'string' ? release.t : null
 
       if (date === null) {
         if (!includeUndated) {
@@ -1081,6 +1084,7 @@
       view.releases.push({
         version: release.v,
         date: date,
+        time: date === null ? null : time,
         entries: kept,
         versionMatch: versionMatch,
         hasRecordedChanges: entries.length > 0,
@@ -1250,7 +1254,11 @@
     for (var r = 0; r < view.releases.length; r++) {
       var release = view.releases[r]
       var dateText =
-        release.date === null ? labels.fixed('dateUnrecorded') : release.date
+        release.date === null
+          ? labels.fixed('dateUnrecorded')
+          : typeof release.time === 'string' && release.time.length > 0
+          ? release.date + ' ' + release.time
+          : release.date
       lines.push((markdown ? '## ' : '') + release.version + ' — ' + dateText)
       lines.push('')
       if (release.entries.length === 0) {
@@ -2748,9 +2756,20 @@
         unrecorded.setAttribute('title', labels.fixed('dateUnrecordedNote'))
         header.appendChild(unrecorded)
       } else {
-        var time = element('time', 'dm-changelog-date', release.date)
-        time.setAttribute('datetime', release.date)
-        header.appendChild(time)
+        var stampText =
+          typeof release.time === 'string' && release.time.length > 0
+            ? release.date + ' ' + release.time
+            : release.date
+        var stamp = element('time', 'dm-changelog-date', stampText)
+        // datetime carries the machine-readable form: date alone when no time
+        // was recorded, otherwise a local date-and-time both halves agree with.
+        stamp.setAttribute(
+          'datetime',
+          typeof release.time === 'string' && release.time.length > 0
+            ? release.date + 'T' + release.time
+            : release.date
+        )
+        header.appendChild(stamp)
       }
       header.appendChild(
         element(

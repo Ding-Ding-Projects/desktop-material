@@ -53,6 +53,8 @@ interface IFilterState {
 interface IViewRelease {
   readonly version: string
   readonly date: string | null
+  /** 24-hour `HH:MM` from the release tag; null whenever the date is null. */
+  readonly time: string | null
   readonly entries: ReadonlyArray<{
     readonly category: string | null
     readonly text: string
@@ -593,10 +595,23 @@ describe('documentation-site changelog export', () => {
     assert.equal(headings.length, view.releaseCount)
     for (let index = 0; index < view.releases.length; index++) {
       const release = view.releases[index]
+      // A dated release now carries its 24-hour release time as well, so the
+      // export reads exactly what the viewer shows.
       assert.equal(
         headings[index],
-        '## ' + release.version + ' — ' + (release.date as string)
+        '## ' +
+          release.version +
+          ' — ' +
+          (release.date as string) +
+          (release.time ? ' ' + release.time : '')
       )
+      if (release.time !== null && release.time !== undefined) {
+        assert.match(
+          release.time,
+          /^([01][0-9]|2[0-3]):[0-5][0-9]$/,
+          'release times must be 24-hour HH:MM, never a 12-hour or AM/PM form'
+        )
+      }
       for (const entry of release.entries) {
         assert.ok(
           text.indexOf(entry.text) !== -1,

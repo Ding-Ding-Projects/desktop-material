@@ -227,5 +227,37 @@
       </form>
     </header>
     <main>$body$</main>
+
+    <!--
+      Every rendered Markdown documentation page comes through this template, so
+      the shared surfaces belong here rather than being bolted onto each page.
+      `$docsroot$` is pandoc's relative prefix back to /docs/, which is where
+      assets/site/ is published — a nested page therefore resolves the same
+      modules as the hub without hard-coding a depth.
+    -->
+    <link rel="stylesheet" href="$docsroot$assets/site/docs-dim-sum.css" />
+    <script>
+      window.DocsDimSumAutoInit = false
+    </script>
+    <script src="$docsroot$assets/site/docs-dim-sum.js"></script>
+    <script>
+      ;(function () {
+        if (typeof DocsDimSum === 'undefined') {
+          return
+        }
+        function start() {
+          // The default base assumes /docs/ itself; a nested page needs the
+          // same prefix pandoc used for every other link on this page.
+          DocsDimSum.init({ assetBase: '$docsroot$assets/site/dim-sum/' })
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', function () {
+            window.setTimeout(start, 900)
+          })
+        } else {
+          window.setTimeout(start, 900)
+        }
+      })()
+    </script>
   </body>
 </html>

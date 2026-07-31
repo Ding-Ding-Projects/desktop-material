@@ -10,6 +10,11 @@
       content="Desktop Material is a Windows-only Material Design 3 Git desktop with adaptive controls, repository-aware customization, browser-like tabs, multi-account context, local Git-backed settings history, and focused native workflows."
     />
     <link rel="stylesheet" href="style.css" />
+    <!--
+      Published from site/ to the site root, so shared modules resolve through
+      docs/assets/site/ — the same directory the hub uses one level down.
+    -->
+    <link rel="stylesheet" href="docs/assets/site/docs-dim-sum.css" />
     <!-- Set theme before paint to avoid a flash of the wrong palette -->
     <script>
       ;(function () {
@@ -2844,6 +2849,41 @@
             setOpen(false)
           }
         })
+      })()
+    </script>
+
+    <!--
+      The dim sum surprise, which the landing page was missing entirely: this
+      page shipped no script tags at all, so none of the global-memory surfaces
+      reached the first page a visitor actually lands on.
+      docs-dim-sum.js self-mounts a short delay after DOMContentLoaded, needs no
+      markup, honours its own persisted off switch, and never blocks or delays
+      the page becoming usable.
+    -->
+    <!--
+      The module's default asset directory is relative to /docs/, so from the
+      site root its SVGs 404. Take over the timing through the documented seam
+      and pass the correct base rather than shipping a broken image.
+    -->
+    <script>
+      window.DocsDimSumAutoInit = false
+    </script>
+    <script src="docs/assets/site/docs-dim-sum.js"></script>
+    <script>
+      ;(function () {
+        if (typeof DocsDimSum === 'undefined') {
+          return
+        }
+        function start() {
+          DocsDimSum.init({ assetBase: 'docs/assets/site/dim-sum/' })
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', function () {
+            window.setTimeout(start, 900)
+          })
+        } else {
+          window.setTimeout(start, 900)
+        }
       })()
     </script>
   </body>
