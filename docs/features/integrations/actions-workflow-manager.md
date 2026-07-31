@@ -61,6 +61,41 @@ Because it is derived from the runs already loaded into the Actions view, the
 figure reflects the loaded page of run history. Loading more runs can reveal a
 more recent completed run and update the row.
 
+## Force-cancelling a stuck run
+
+A run that ignores an ordinary cancellation cannot be stopped from the Actions
+UI — the request is accepted and the jobs keep going. GitHub provides a separate
+endpoint for this:
+
+```
+POST /repos/{owner}/{repo}/actions/runs/{run_id}/force-cancel
+```
+
+Desktop Material exposes it inside the **same reviewed confirmation** as an
+ordinary cancel, as a **Force cancel** checkbox rather than a second button, so
+the harsher action is chosen deliberately and with the run's identity already on
+screen. Ticking it retitles the dialog to *Force-cancel workflow run?* and
+relabels the confirm button, so the dialog never says one thing and does
+another.
+
+> **What it actually does.** `force-cancel` bypasses conditional evaluation.
+> Steps guarded by `if: always()` — cleanup, artifact upload, teardown — **do
+> not run**, and jobs are terminated outright. That is precisely why it works on
+> a wedged run, and precisely why it is not the default.
+
+Behavioural guarantees:
+
+- The choice is **per confirmation and never remembered**, so a forced
+  cancellation cannot be inherited by the next ordinary one.
+- Forced and normal requests use **different in-flight keys**. A forced request
+  is never deduplicated into a normal one that is already stalling — which is
+  exactly the state the user reaches for this in.
+- Every progress message says which kind was sent; a forced request never
+  reports itself as a normal one.
+- The same pre-POST revalidation applies: the run identity, repository, and
+  account are rechecked immediately before the request crosses the boundary, and
+  an already-terminal run is reported as finished rather than force-cancelled.
+
 ## Accessibility and language
 
 The duration is part of the row's existing secondary line, so the row height,
@@ -71,6 +106,11 @@ users. It is tinted with the primary color and semibold rather than enlarged,
 keeping it subordinate to the workflow name.
 
 ## Verification
+
+`app/test/unit/actions-run-cancellation-store-test.ts` covers force cancellation:
+a forced request POSTs to `force-cancel` while a concurrent normal request still
+POSTs to `cancel`, the two are not merged, and the forced request's progress
+messages identify themselves as forced and never as normal.
 
 `app/test/unit/actions/workflow-run-duration-test.ts` covers the formatter
 across every boundary in the table above, newest-completed-run selection across

@@ -370,6 +370,56 @@
   }
 }
 
+// Opt-in to GitHub's force-cancel endpoint, inside the same reviewed
+// confirmation as the ordinary cancel. Tinted with the error container because
+// choosing it skips the run's own cleanup steps — the checkbox is the moment
+// the user takes that on, so it should not read as an ordinary toggle.
+.actions-force-cancel-option {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 10px;
+  align-items: start;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid var(--md-sys-color-error);
+  border-radius: 12px;
+  color: var(--md-sys-color-on-error-container);
+  background: var(--md-sys-color-error-container);
+  cursor: pointer;
+
+  input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+    min-height: 18px;
+    flex: 0 0 18px;
+    margin: 2px 0 0;
+    accent-color: var(--md-sys-color-error);
+  }
+
+  > span {
+    display: grid;
+    min-width: 0;
+    gap: 3px;
+    font-size: 12px;
+  }
+
+  &:focus-within {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.actions-force-cancel-explanation {
+  min-width: 0;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+
+  code {
+    font-family: var(--font-family-monospace);
+  }
+}
+
 .actions-cancel-run-metadata {
   display: grid;
   min-width: 0;

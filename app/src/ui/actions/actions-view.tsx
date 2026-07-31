@@ -117,6 +117,12 @@ interface IActionsViewState {
   readonly jobsLoadingMore: boolean
   readonly jobsError: Error | null
   readonly busyRunId: number | null
+  /**
+   * Whether the pending cancel-run confirmation should use GitHub's
+   * `force-cancel` endpoint. Opt in per confirmation; never remembered, so a
+   * forced cancellation can never be inherited by the next ordinary one.
+   */
+  readonly forceCancelRun: boolean
   readonly bulkRunBusy: boolean
   readonly busyJobId: number | null
   readonly busyWorkflowId: number | null
@@ -174,6 +180,7 @@ const initialActionsViewState = (repositoryKey: string): IActionsViewState => ({
   jobsLoadingMore: false,
   jobsError: null,
   busyRunId: null,
+  forceCancelRun: false,
   bulkRunBusy: false,
   busyJobId: null,
   busyWorkflowId: null,
@@ -1494,6 +1501,7 @@ export class ActionsView extends React.Component<
         returnFocus: () =>
           this.restoreCancellationFocus(returnFocus, fallbackFocus),
       },
+      forceCancelRun: false,
       confirmationError: null,
       confirmationProgress: null,
       logJob: null,
@@ -1552,6 +1560,10 @@ export class ActionsView extends React.Component<
     this.refreshButton = button
   }
 
+  private onForceCancelRunChanged = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => this.setState({ forceCancelRun: event.currentTarget.checked })
+
   private confirmCancelRun = async () => {
     const confirmation = this.state.confirmation
     const repository = this.props.repository
@@ -1577,6 +1589,7 @@ export class ActionsView extends React.Component<
       })
       return
     }
+    const force = this.state.forceCancelRun
     const controller = new AbortController()
     this.cancellationController = controller
     this.setState({
@@ -1606,7 +1619,8 @@ export class ActionsView extends React.Component<
           ) {
             this.setState({ confirmationProgress: progress.message })
           }
-        }
+        },
+        force
       )
       if (
         this.cancellationController === controller &&
@@ -1625,7 +1639,9 @@ export class ActionsView extends React.Component<
           confirmationProgress: null,
           actionMessage:
             result.conclusion === 'cancelled'
-              ? `Workflow run #${runNumber} was canceled.`
+              ? force
+                ? `Workflow run #${runNumber} was force-canceled.`
+                : `Workflow run #${runNumber} was canceled.`
               : result.alreadyTerminal
               ? `Workflow run #${runNumber} had already finished (${conclusion}).`
               : `Workflow run #${runNumber} finished as ${conclusion} before cancellation completed.`,
@@ -2288,11 +2304,17 @@ export class ActionsView extends React.Component<
           this.props.repository.gitHubRepository !== null && (
             <ActionsConfirmationDialog
               eyebrow="Destructive action"
-              title="Cancel workflow run?"
+              title={
+                this.state.forceCancelRun
+                  ? 'Force-cancel workflow run?'
+                  : 'Cancel workflow run?'
+              }
               description={
                 <>
                   <p>
-                    Request normal cancellation for this exact workflow run?
+                    {this.state.forceCancelRun
+                      ? 'Request forced cancellation for this exact workflow run?'
+                      : 'Request normal cancellation for this exact workflow run?'}
                   </p>
                   <dl className="actions-cancel-run-metadata">
                     <div>
@@ -2341,9 +2363,29 @@ export class ActionsView extends React.Component<
                       </div>
                     )}
                   </dl>
+                  <label className="actions-force-cancel-option">
+                    <input
+                      type="checkbox"
+                      checked={this.state.forceCancelRun}
+                      disabled={this.state.busyRunId !== null}
+                      onChange={this.onForceCancelRunChanged}
+                    />
+                    <span>
+                      <strong>Force cancel</strong>
+                      <span className="actions-force-cancel-explanation">
+                        Uses GitHub's <code>force-cancel</code> endpoint for a
+                        run that ignores an ordinary cancellation. It bypasses
+                        conditional evaluation, so <code>if: always()</code>{' '}
+                        cleanup steps do not run and jobs are terminated
+                        outright. Use it for a genuinely stuck run.
+                      </span>
+                    </span>
+                  </label>
                 </>
               }
-              confirmLabel="Cancel run"
+              confirmLabel={
+                this.state.forceCancelRun ? 'Force cancel run' : 'Cancel run'
+              }
               submitting={this.state.busyRunId === cancelConfirmation.run.id}
               error={this.state.confirmationError}
               progressMessage={this.state.confirmationProgress}

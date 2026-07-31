@@ -292,4 +292,65 @@ describe('ActionsStore workflow-run cancellation', () => {
       fromAccount.mock.restore()
     }
   })
+
+  it('sends force-cancel only when forced, and never merges it with a normal request', async () => {
+    const accounts = new TestAccountsStore([account])
+    const store = await createStore(accounts)
+    const reads = [
+      state('in_progress'),
+      state('in_progress'),
+      state('completed', 'cancelled'),
+      state('completed', 'cancelled'),
+    ]
+    const requests = new Array<string>()
+    const fakeAPI = {
+      fetchWorkflowRunCancellationState: async () => {
+        const next = reads.shift()
+        assert(next !== undefined)
+        return next
+      },
+      cancelWorkflowRun: async (
+        _owner: string,
+        _name: string,
+        _runId: number,
+        force: boolean
+      ) => {
+        requests.push(`POST:${force}`)
+        return true
+      },
+    }
+    const fromAccount = mock.method(
+      API,
+      'fromAccount',
+      () => fakeAPI as unknown as API
+    )
+
+    try {
+      const progress = new Array<string>()
+      // A stalling normal cancellation is exactly the situation Force cancel
+      // exists for, so the forced request must not be deduplicated into it.
+      const normal = store.cancelRun(repository, 42)
+      const forced = store.cancelRun(
+        repository,
+        42,
+        undefined,
+        value => progress.push(value.message),
+        true
+      )
+      assert.notEqual(normal, forced)
+      await Promise.all([normal, forced])
+
+      assert.deepEqual(requests.sort(), ['POST:false', 'POST:true'])
+      assert.ok(
+        progress.some(message => /forced cancellation/i.test(message)),
+        'the forced request reports itself as forced'
+      )
+      assert.ok(
+        !progress.some(message => /normal cancellation/i.test(message)),
+        'the forced request never claims to be a normal one'
+      )
+    } finally {
+      fromAccount.mock.restore()
+    }
+  })
 })

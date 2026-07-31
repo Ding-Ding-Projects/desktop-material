@@ -1479,7 +1479,8 @@ export class ActionsStore {
     context: IActionsRunCancellationContext,
     api: API,
     accountSignal: AbortSignal,
-    onProgress: ActionsRunCancellationProgressCallback | undefined
+    onProgress: ActionsRunCancellationProgressCallback | undefined,
+    force: boolean = false
   ): Promise<IActionsRunCancellationRequestResult> {
     this.assertRunCancellationContext(repository, context, accountSignal)
     this.reportRunCancellationProgress(
@@ -1516,7 +1517,9 @@ export class ActionsStore {
     this.reportRunCancellationProgress(
       onProgress,
       'requesting',
-      `Requesting normal cancellation for workflow run #${context.runId}…`
+      force
+        ? `Requesting forced cancellation for workflow run #${context.runId}…`
+        : `Requesting normal cancellation for workflow run #${context.runId}…`
     )
 
     let accepted: boolean
@@ -1525,7 +1528,7 @@ export class ActionsStore {
         context.owner,
         context.name,
         context.runId,
-        false,
+        force,
         accountSignal
       )
     } catch (error) {
@@ -1562,7 +1565,11 @@ export class ActionsStore {
       onProgress,
       'accepted',
       accepted
-        ? `GitHub accepted cancellation for workflow run #${context.runId}.`
+        ? force
+          ? `GitHub accepted forced cancellation for workflow run #${context.runId}.`
+          : `GitHub accepted cancellation for workflow run #${context.runId}.`
+        : force
+        ? `Forced cancellation was sent for workflow run #${context.runId}.`
         : `Cancellation was sent for workflow run #${context.runId}.`
     )
     return { accepted, alreadyTerminal: false, state }
@@ -1634,7 +1641,8 @@ export class ActionsStore {
     context: IActionsRunCancellationContext,
     account: Account,
     signal: AbortSignal | undefined,
-    onProgress: ActionsRunCancellationProgressCallback | undefined
+    onProgress: ActionsRunCancellationProgressCallback | undefined,
+    force: boolean = false
   ): Promise<IActionsRunCancellationResult> {
     const api = API.fromAccount(account)
     return this.runAccountBound(signal, async accountSignal => {
@@ -1643,7 +1651,8 @@ export class ActionsStore {
         context,
         api,
         accountSignal,
-        onProgress
+        onProgress,
+        force
       )
       if (request.alreadyTerminal) {
         return {
@@ -1665,11 +1674,22 @@ export class ActionsStore {
     })
   }
 
+  /**
+   * Cancel a workflow run and wait for GitHub to report it terminal.
+   *
+   * `force` selects GitHub's dedicated `force-cancel` endpoint instead of
+   * `cancel`. That endpoint bypasses conditional evaluation — `if: always()`
+   * cleanup steps and the like — and terminates jobs that ignore an ordinary
+   * cancellation, which is the only way to stop a genuinely wedged run. It is
+   * therefore a strictly harsher action, never a silent retry: the caller must
+   * ask for it explicitly.
+   */
   public async cancelRun(
     repository: Repository,
     runId: number,
     signal?: AbortSignal,
-    onProgress?: ActionsRunCancellationProgressCallback
+    onProgress?: ActionsRunCancellationProgressCallback,
+    force: boolean = false
   ): Promise<IActionsRunCancellationResult> {
     await this.accountsReady
     const safeRunId = validateActionsJobIdentifier(runId, 'workflow run id')
@@ -1684,7 +1704,12 @@ export class ActionsStore {
       name: gitHubRepository.name,
       runId: safeRunId,
     }
-    const key = `${context.repositoryHash}#${context.repositoryKey}#${context.accountKey}#run:${safeRunId}`
+    // A forced cancellation is a different, harsher request, so it must never
+    // be de-duplicated against a normal one that is already stalling — that is
+    // exactly the situation the user reaches for Force cancel in.
+    const key = `${context.repositoryHash}#${context.repositoryKey}#${
+      context.accountKey
+    }#run:${safeRunId}${force ? '#force' : ''}`
     const pending = this.runCancellationInFlight.get(key)
     if (pending !== undefined) {
       return pending
@@ -1694,7 +1719,8 @@ export class ActionsStore {
       context,
       account,
       signal,
-      onProgress
+      onProgress,
+      force
     )
       .catch(error => {
         throw actionsMutationError(error, 'cancel-run')
