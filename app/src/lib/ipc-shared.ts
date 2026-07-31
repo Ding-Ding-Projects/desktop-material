@@ -188,6 +188,11 @@ export type RequestChannels = {
    * an arbitrary error message can never copy a credential into the UI.
    */
   'contained-background-failure': () => void
+  /**
+   * A normalized HTTP(S) launch was rejected by the operating system. Carries
+   * no URL or error detail so signed links and credentials stay out of notices.
+   */
+  'browser-external-open-failed': () => void
   'quit-and-install-updates': () => void
   'quit-app': (evenIfUpdating: boolean) => void
   'open-repository-in-new-window': (path: string | null) => void

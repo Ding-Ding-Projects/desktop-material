@@ -1676,6 +1676,8 @@ export type TranslationKey =
   | 'settings.browserOpenModeDescription'
   | 'settings.browserOpenModeInternal'
   | 'settings.browserOpenModeExternal'
+  | 'browser.error.externalOpenFailedTitle'
+  | 'browser.error.externalOpenFailed'
   | 'browser.title'
   | 'browser.tabs'
   | 'browser.newTab'
@@ -4849,9 +4851,13 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Tokens are kept in the operating-system credential store and are never written to repository configuration.',
   'settings.browserOpenModeTitle': 'Open web links',
   'settings.browserOpenModeDescription':
-    'Choose whether browser-bound links open in Desktop Material or your system browser. Authentication always offers an external-browser option.',
+    'Use your system browser by default. This is recommended when the in-app browser is blank; choose Inside Desktop Material only when you intentionally want the app-hosted browser.',
   'settings.browserOpenModeInternal': 'Inside Desktop Material',
-  'settings.browserOpenModeExternal': 'In the system browser',
+  'settings.browserOpenModeExternal':
+    'In the system browser (default and recommended)',
+  'browser.error.externalOpenFailedTitle': 'System browser did not open',
+  'browser.error.externalOpenFailed':
+    'Desktop Material could not open this web link in the system browser. Nothing else was opened. Check your default browser and retry, or deliberately choose Inside Desktop Material under Settings → Advanced.',
   'browser.title': 'Desktop Material browser',
   'browser.tabs': 'Browser tabs',
   'browser.newTab': 'New tab',
@@ -8219,9 +8225,12 @@ export const cantoneseTranslations: Readonly<
     '權杖只會存喺作業系統嘅憑證庫，絕對唔會寫入 repository 嘅設定檔。',
   'settings.browserOpenModeTitle': '開啟網頁連結',
   'settings.browserOpenModeDescription':
-    '揀 browser 連結喺 Desktop Material 入面開，定交畀系統瀏覽器。登入頁永遠都有轉去外部瀏覽器嘅選項。',
+    '預設交畀系統瀏覽器開。如果 app 內瀏覽器一片空白，建議用呢個；只係你明確想用 app 內瀏覽器先揀「喺 Desktop Material 入面」。',
   'settings.browserOpenModeInternal': '喺 Desktop Material 入面',
-  'settings.browserOpenModeExternal': '喺系統瀏覽器',
+  'settings.browserOpenModeExternal': '喺系統瀏覽器（預設兼建議）',
+  'browser.error.externalOpenFailedTitle': '系統瀏覽器開唔到連結',
+  'browser.error.externalOpenFailed':
+    'Desktop Material 未能喺系統瀏覽器開呢條網頁連結，亦冇改用其他方法開。請檢查預設瀏覽器再試；或者去「設定 → 進階」明確揀「喺 Desktop Material 入面」。',
   'browser.title': 'Desktop Material 瀏覽器',
   'browser.tabs': '瀏覽器分頁',
   'browser.newTab': '新分頁',

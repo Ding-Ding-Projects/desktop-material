@@ -74,6 +74,7 @@ import {
   InternalBrowserWindow,
   isInternalBrowserRemoteWebContents,
 } from './internal-browser-window'
+import { launchExternalTarget } from './browser-external-launch'
 import {
   BrowserOpenMode,
   createInternalBrowserOAuthCallbackId,
@@ -178,7 +179,7 @@ const profileRepositoryLockSenders = new WeakMap<
   IProfileRepositoryLockSenderState
 >()
 let internalBrowserWindow: InternalBrowserWindow | null = null
-let browserOpenMode: BrowserOpenMode = 'internal'
+let browserOpenMode: BrowserOpenMode = 'external'
 let agentServerController: AgentServerController | null = null
 const internalBrowserOAuthCallbackTimeoutMs = 60_000
 
@@ -431,6 +432,7 @@ function getInternalBrowserWindow(): InternalBrowserWindow {
   const browser = new InternalBrowserWindow({
     handleAuthenticationCallback: handleInternalBrowserAuthenticationCallback,
     isAppURL: isAppProtocolURL,
+    onExternalOpenFailed: notifyBrowserExternalOpenFailure,
     onClosed: () => {
       if (internalBrowserWindow === browser) {
         internalBrowserWindow = null
@@ -447,6 +449,14 @@ function getInternalBrowserWindow(): InternalBrowserWindow {
   })
   internalBrowserWindow = browser
   return browser
+}
+
+function notifyBrowserExternalOpenFailure(sourceWindowId: number | null): void {
+  const requested =
+    sourceWindowId === null ? undefined : windows.get(sourceWindowId)
+  const target =
+    requested?.isLoaded === true ? requested : getLoadedTargetWindow()
+  target?.sendBrowserExternalOpenFailure()
 }
 
 async function openExternalTarget(
@@ -471,13 +481,13 @@ async function openExternalTarget(
   if (webURL !== null) {
     log.info(`Opening in the system browser: ${redactBrowserURL(webURL)}`)
   }
-  try {
-    await shell.openExternal(path)
-    return true
-  } catch (error) {
-    log.error('Call to openExternal failed', error)
-    return false
-  }
+  return launchExternalTarget(path, {
+    mode,
+    reportFailure: options?.reportFailure !== false,
+    openExternal: target => shell.openExternal(target),
+    onBrowserOpenFailed: () => notifyBrowserExternalOpenFailure(sourceWindowId),
+    onError: error => log.error('Call to openExternal failed', error),
+  })
 }
 
 // On Windows, in order to get notifications properly working for dev builds,

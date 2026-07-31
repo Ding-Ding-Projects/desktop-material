@@ -17,6 +17,12 @@ import {
   TranslationKey,
 } from '../../src/lib/i18n-resources'
 import { translate } from '../../src/lib/i18n'
+import {
+  announceBrowserPreferencesChanged,
+  BrowserOpenModeStorageKey,
+  setBrowserOpenModePreference,
+} from '../../src/lib/internal-browser'
+import { applySettingsSnapshot } from '../../src/lib/profiles/profile-settings-registry'
 import { fireEvent, render, screen, waitFor } from '../helpers/ui/render'
 
 // Keep every assertion in the default English mode; other suites may leave a
@@ -24,6 +30,7 @@ import { fireEvent, render, screen, waitFor } from '../helpers/ui/render'
 beforeEach(() => {
   localStorage.removeItem('language-mode-v1')
   localStorage.removeItem('appearance-customization-v1')
+  localStorage.removeItem(BrowserOpenModeStorageKey)
 })
 
 function automationState(
@@ -144,6 +151,34 @@ describe('Advanced preferences disclosure rows', () => {
     ).map(node => node.textContent)
     assert.ok(glyphs.includes('monitoring'))
     assert.ok(glyphs.includes('key'))
+  })
+
+  it('refreshes a mounted browser choice after missing or invalid profile restore', async () => {
+    setBrowserOpenModePreference('internal')
+    const view = render(<Advanced {...advancedProps} />)
+    const internal = view.getByRole('radio', {
+      name: 'Inside Desktop Material',
+    })
+    const external = view.getByRole('radio', {
+      name: /In the system browser/,
+    })
+    assert.equal((internal as HTMLInputElement).checked, true)
+    assert.equal((external as HTMLInputElement).checked, false)
+
+    applySettingsSnapshot({}, localStorage)
+    await waitFor(() =>
+      assert.equal((external as HTMLInputElement).checked, true)
+    )
+
+    setBrowserOpenModePreference('internal')
+    await waitFor(() =>
+      assert.equal((internal as HTMLInputElement).checked, true)
+    )
+    localStorage.setItem(BrowserOpenModeStorageKey, 'invalid-profile-value')
+    announceBrowserPreferencesChanged()
+    await waitFor(() =>
+      assert.equal((external as HTMLInputElement).checked, true)
+    )
   })
 })
 

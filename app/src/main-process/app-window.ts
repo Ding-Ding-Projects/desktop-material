@@ -612,6 +612,14 @@ export class AppWindow {
     ipcWebContents.send(this.window.webContents, 'contained-background-failure')
   }
 
+  /**
+   * Report a rejected HTTP(S) system-browser launch without revealing its URL
+   * or stealing focus from the user's current window.
+   */
+  public sendBrowserExternalOpenFailure() {
+    ipcWebContents.send(this.window.webContents, 'browser-external-open-failed')
+  }
+
   /** Send the app launch timing stats to the renderer. */
   public sendLaunchTimingStats(stats: ILaunchStats) {
     ipcWebContents.send(this.window.webContents, 'launch-timing-stats', stats)

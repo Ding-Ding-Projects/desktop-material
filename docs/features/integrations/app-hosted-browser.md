@@ -29,14 +29,17 @@ installer/Release 憑證未完成，未可以扮成已經入咗 installer；舊 
 
 **Settings → Advanced → Open web links** stores one global choice:
 
-- **Inside Desktop Material** is the default. Browser-bound HTTP and HTTPS
-  links open in the app-hosted window.
-- **In the system browser** preserves the conventional external-browser
-  behavior.
+- **In the system browser** is the default and recommended choice. It avoids a
+  blank app-hosted page by handing browser-bound HTTP and HTTPS links to the
+  operating system's configured browser.
+- **Inside Desktop Material** is an intentional opt-in. Browser-bound HTTP and
+  HTTPS links open in the app-hosted window.
 
-The choice is persisted locally and applied at startup. Callers also provide an
-explicit `default` or `authentication` intent; the app never guesses that a URL
-is an authentication flow from its hostname or path.
+The choice is persisted locally, included in profile settings restore, and
+applied at startup. A fresh or invalid preference resolves to the system
+browser; an explicitly saved **Inside Desktop Material** choice is preserved.
+Callers also provide an explicit `default` or `authentication` intent; the app
+never guesses that a URL is an authentication flow from its hostname or path.
 
 The app-hosted window has one trusted local chrome renderer and one sandboxed
 `WebContentsView` per remote tab. Its controls provide:
@@ -85,6 +88,15 @@ The browser chrome reports invalid addresses, failed loads, certificate
 failures, blocked downloads, and a stopped remote renderer without opening an
 acknowledgement-only modal. Back/Forward disable when no matching history
 entry exists, and Refresh becomes Stop while a page is loading.
+
+If Windows rejects a system-browser launch, Desktop Material reports the
+failure as a factual non-blocking notice without including the attempted URL.
+The same detail-free path covers ordinary renderer links, native Help-menu
+links, and **Open externally** from the app-hosted browser, while callers that
+already present a specific error suppress the generic notice. It does not
+silently fall back to the app-hosted browser. The user can retry after checking
+the default browser or intentionally select **Inside Desktop Material** in
+Advanced settings.
 
 The app-hosted browser intentionally does not save downloads. A download
 attempt is stopped and the page explains that it must be opened externally.

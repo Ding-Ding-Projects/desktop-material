@@ -9749,6 +9749,19 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /**
+   * Show an error that must stay non-blocking even when legacy error dialogs
+   * are enabled. It is both visible in the notice stack and retained in the
+   * notification centre.
+   */
+  public _showPersistentErrorNotice(
+    title: string,
+    message: string,
+    dedupeKey: string
+  ): void {
+    this.postPersistentErrorNotice(title, message, dedupeKey)
+  }
+
+  /**
    * Record an in-app notification. Public entry point for the dispatcher and for
    * other orchestrators (clone-batch, auto-commit, merge-all, auto-pull) that
    * post their summaries to the notification centre. Never throws.
@@ -19773,7 +19786,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
                 repository,
                 plan.release
               )
-              if (!(await shell.openExternal(releaseURL))) {
+              if (
+                !(await shell.openExternal(releaseURL, {
+                  reportFailure: false,
+                }))
+              ) {
                 throw new Error(
                   'Could not open the GitHub Release upload page for manual cheap LFS upload.'
                 )

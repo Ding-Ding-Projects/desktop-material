@@ -73,6 +73,18 @@ describe('filterSettingsEntries', () => {
     assert.ok(results.some(e => e.id === 'advanced-usage-stats'))
   })
 
+  it('finds the external-browser default and blank-page escape in both languages', () => {
+    const english = filterSettingsEntries('blank page', substring).results
+    assert.ok(english.some(r => r.item.id === 'advanced-browser-open-mode'))
+
+    const cantonese = filterSettingsEntries('系統瀏覽器', substring).results
+    const match = cantonese.find(
+      r => r.item.id === 'advanced-browser-open-mode'
+    )
+    assert.ok(match)
+    assert.strictEqual(match!.item.tab, PreferencesTab.Advanced)
+  })
+
   it('matches Cantonese query text against the localized description', () => {
     // "深色" (dark) is only in the Cantonese appearance-theme copy/keywords.
     const results = filterSettingsEntries('深色', substring).results

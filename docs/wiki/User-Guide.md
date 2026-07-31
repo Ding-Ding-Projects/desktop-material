@@ -419,13 +419,20 @@ timeout. Clone cancellation remains stricter and waits for the owned process to 
 
 Open **Settings → Advanced → Open web links** and choose:
 
-- **Inside Desktop Material** to send browser-bound HTTP(S) links to the
-  dedicated app-hosted window; or
-- **In the system browser** to preserve external-browser behavior.
+- **In the system browser** for the default, recommended behavior, especially
+  when the app-hosted browser renders a blank page; or
+- **Inside Desktop Material** to intentionally send browser-bound HTTP(S)
+  links to the dedicated app-hosted window.
 
-The selection persists and applies to later links. Authentication is marked
-explicitly by the app; Desktop Material does not guess from a hostname or URL
-path.
+The selection persists, follows profile settings restore, and applies to later
+links. An explicitly saved internal-browser choice remains selected.
+Authentication is marked explicitly by the app; Desktop Material does not
+guess from a hostname or URL path.
+
+If Windows rejects an HTTP(S) launch, Desktop Material shows one non-blocking,
+detail-free notice whether the link came from app content, the native Help
+menu, or the app-hosted browser's external escape. It never includes the failed
+URL and never silently falls back to the app-hosted browser.
 
 The app-hosted window provides browser tabs, New tab, close, Back, Forward,
 Refresh/Stop, a labelled address field, Go, ordinary bookmarks, and **Open
@@ -449,8 +456,8 @@ certificate failures refused. A blocked download explains that the page must
 be opened externally. Load, certificate, download, and renderer failures appear
 in the browser chrome with a refresh or external-browser recovery path.
 
-<sub>**香港粵語速讀。** **Settings → Advanced → Open web links** 揀 app 入面定系統
-瀏覽器。App 入面有分頁、網址列、前後頁、重新整理、Go、書籤同外部逃生門；網頁
+<sub>**香港粵語速讀。** **Settings → Advanced → Open web links** 預設兼建議用系統
+瀏覽器，特別係 app 內瀏覽器一片空白嗰陣；真係想用先明確揀 app 入面。App 入面有分頁、網址列、前後頁、重新整理、Go、書籤同外部逃生門；網頁
 自己就鎖喺 sandbox view，冇 Node、冇 app IPC、冇權限，壞憑證唔會夾硬放行。登入
 分頁係記憶體工作階段、加唔到書籤，閂咗會清資料，亦永遠可以轉去系統瀏覽器。呢
 本機正式 build 同 hidden-desktop 驗收已經過關；遠端發佈證據另外計。</sub>

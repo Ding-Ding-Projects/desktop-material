@@ -113,6 +113,7 @@ import {
   BrowserPreferencesChangedEvent,
   getBrowserOpenModePreference,
 } from '../lib/internal-browser'
+import { showBrowserExternalOpenFailure } from './lib/browser-external-open-failure'
 
 if (__DEV__) {
   installDevGlobals()
@@ -630,6 +631,10 @@ const dispatcher = new Dispatcher(
   buildRunStore,
   namedAPIFunctionsStore,
   elementAppearanceCoordinator
+)
+
+ipcRenderer.on('browser-external-open-failed', () =>
+  showBrowserExternalOpenFailure(dispatcher, getPersistedLanguageMode())
 )
 
 installAgentCommandExecutor(

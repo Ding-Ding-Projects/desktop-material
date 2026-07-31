@@ -202,6 +202,28 @@ describe('main-process menu', () => {
       assert.equal(repositoryTools?.accelerator, 'CmdOrCtrl+4')
     })
 
+    it('routes native Help links through the injected browser launcher', async () => {
+      const opened: Array<string> = []
+      const template = buildDefaultMenuTemplate(baseParams, async url => {
+        opened.push(url)
+        return false
+      })
+      const helpMenu = template.find(
+        item => item.label?.replaceAll('&', '') === 'Help'
+      )
+      assert.ok(helpMenu && Array.isArray(helpMenu.submenu))
+      const userGuides = helpMenu.submenu.find(
+        item => item.label === 'Show User Guides'
+      )
+      assert.ok(userGuides?.click)
+      ;(userGuides.click as () => void)()
+      await Promise.resolve()
+
+      assert.deepEqual(opened, [
+        'https://github.com/Ding-Ding-Projects/desktop-material/wiki/User-Guide',
+      ])
+    })
+
     it('exposes the guided sparse checkout manager in Repository', () => {
       const template = buildDefaultMenuTemplate(baseParams)
       const repositoryMenu = template.find(item => item.id === 'repository')

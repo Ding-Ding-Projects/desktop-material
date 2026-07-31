@@ -20,6 +20,7 @@ import {
 } from '../../lib/large-repository/large-repository-settings'
 import { clearLargeRepositoryEvaluations } from '../../lib/large-repository/large-repository-controller'
 import {
+  BrowserPreferencesChangedEvent,
   BrowserOpenMode,
   BrowserOpenModes,
   getBrowserOpenModePreference,
@@ -58,6 +59,8 @@ export class Advanced extends React.Component<
   IAdvancedPreferencesProps,
   IAdvancedPreferencesState
 > {
+  private mounted = false
+
   public constructor(props: IAdvancedPreferencesProps) {
     super(props)
 
@@ -76,17 +79,27 @@ export class Advanced extends React.Component<
   }
 
   public componentDidMount() {
+    this.mounted = true
     this.checkSSHAvailability()
     document.addEventListener(
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
     )
+    document.addEventListener(
+      BrowserPreferencesChangedEvent,
+      this.onBrowserPreferencesChanged
+    )
   }
 
   public componentWillUnmount() {
+    this.mounted = false
     document.removeEventListener(
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
+    )
+    document.removeEventListener(
+      BrowserPreferencesChangedEvent,
+      this.onBrowserPreferencesChanged
     )
   }
 
@@ -98,8 +111,15 @@ export class Advanced extends React.Component<
     })
   }
 
+  private onBrowserPreferencesChanged = () => {
+    this.setState({ browserOpenMode: getBrowserOpenModePreference() })
+  }
+
   private async checkSSHAvailability() {
-    this.setState({ canUseWindowsSSH: await isWindowsOpenSSHAvailable() })
+    const canUseWindowsSSH = await isWindowsOpenSSHAvailable()
+    if (this.mounted) {
+      this.setState({ canUseWindowsSSH })
+    }
   }
 
   private onReportingOptOutChanged = (

@@ -94,6 +94,11 @@ export interface IOpenExternalOptions {
   readonly mode: BrowserOpenMode
   /** Authentication is explicit; URL heuristics are never its source of truth. */
   readonly intent: BrowserOpenIntent
+  /**
+   * False only when the renderer caller already turns a failed launch into its
+   * own factual error. Native and ordinary link launches report by default.
+   */
+  readonly reportFailure?: boolean
 }
 
 export interface IInternalBrowserTabState {
@@ -156,7 +161,7 @@ const internalBrowserOAuthCallbackIdPattern =
   /^internal-browser-oauth-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export function normalizeBrowserOpenMode(value: unknown): BrowserOpenMode {
-  return value === 'external' ? 'external' : 'internal'
+  return value === 'internal' ? 'internal' : 'external'
 }
 
 export function getBrowserOpenModePreference(

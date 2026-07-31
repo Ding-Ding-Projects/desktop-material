@@ -21,6 +21,11 @@ export interface IAppShellOpenExternalOptions {
   readonly mode?: BrowserOpenMode
   /** Explicitly marks a launch as an authentication flow. */
   readonly intent?: BrowserOpenIntent
+  /**
+   * Set false only when the caller already turns a false result into its own
+   * factual user-facing error. This prevents two notices for one failed launch.
+   */
+  readonly reportFailure?: boolean
 }
 
 export interface IAppShell {
@@ -71,11 +76,14 @@ export const shell: IAppShell = {
   moveItemToTrash,
   forceDeleteDirectory,
   beep: electronShell.beep,
-  openExternal: (path, options = {}) =>
-    openExternal(path, {
-      mode: options.mode ?? getBrowserOpenModePreference(),
+  openExternal: async (path, options = {}) => {
+    const mode = options.mode ?? getBrowserOpenModePreference()
+    return openExternal(path, {
+      mode,
       intent: options.intent ?? 'default',
-    }),
+      reportFailure: options.reportFailure !== false,
+    })
+  },
   showItemInFolder,
   showFolderContents,
   openPath: electronShell.openPath,

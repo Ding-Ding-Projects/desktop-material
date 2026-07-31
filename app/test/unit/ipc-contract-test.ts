@@ -63,6 +63,7 @@ describe('IPC channel contract', () => {
     'update-accounts',
     'accounts-changed',
     'contained-background-failure',
+    'browser-external-open-failed',
     'quit-and-install-updates',
     'quit-app',
     'open-repository-in-new-window',
@@ -207,6 +208,7 @@ describe('IPC channel contract', () => {
         'prepare-window-close',
         'window-close-prepared',
         'cancel-window-close-preparation',
+        'browser-external-open-failed',
         'log',
         'error',
       ]
@@ -216,6 +218,14 @@ describe('IPC channel contract', () => {
           `Missing critical channel: ${channel}`
         )
       }
+    })
+
+    it('keeps external-browser failure reports detail-free', () => {
+      const noPayload: Parameters<
+        RequestChannels['browser-external-open-failed']
+      > = []
+
+      assert.deepEqual(noPayload, [])
     })
   })
 

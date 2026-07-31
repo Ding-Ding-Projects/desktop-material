@@ -79,6 +79,20 @@ describe('recent UI internationalization', () => {
     )
   })
 
+  it('localizes the system-browser default and non-blocking launch failure', () => {
+    for (const key of [
+      'settings.browserOpenModeDescription',
+      'settings.browserOpenModeExternal',
+      'browser.error.externalOpenFailedTitle',
+      'browser.error.externalOpenFailed',
+    ] as const) {
+      const english = translate(key, 'english')
+      const cantonese = translate(key, 'cantonese')
+      assert.notEqual(english, cantonese)
+      assert.equal(translate(key, 'bilingual'), `${english} · ${cantonese}`)
+    }
+  })
+
   it('localizes stalled release-upload recovery in all three modes', () => {
     for (const key of [
       'githubReleaseTransfer.stalled',

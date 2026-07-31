@@ -738,6 +738,15 @@ export class Dispatcher {
     this.appStore.postNotification(input)
   }
 
+  /** Show and retain a factual error without blocking the current workflow. */
+  public showPersistentErrorNotice(
+    title: string,
+    message: string,
+    dedupeKey: string
+  ): void {
+    this.appStore._showPersistentErrorNotice(title, message, dedupeKey)
+  }
+
   // --- Notification automations ----------------------------------------------
 
   /**

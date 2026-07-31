@@ -23,6 +23,7 @@ import {
 } from '../lib/internal-browser'
 import * as ipcWebContents from './ipc-webcontents'
 import { addTrustedIPCSender } from './trusted-ipc-sender'
+import { openInternalBrowserURLExternally } from './internal-browser-external-open'
 
 interface IInternalBrowserTab {
   readonly id: string
@@ -49,6 +50,7 @@ export interface IInternalBrowserWindowOptions {
     ownerWindowId: number | null
   ) => Promise<InternalBrowserOAuthCallbackResult>
   readonly isAppURL: (url: string) => boolean
+  readonly onExternalOpenFailed: (ownerWindowId: number | null) => void
   readonly onClosed: () => void
 }
 
@@ -301,9 +303,18 @@ export class InternalBrowserWindow {
           // Merely handing the address to the system browser is not proof that
           // OAuth succeeded. Retain the private tab/session until the trusted
           // renderer acknowledges the matching callback.
-          void shell.openExternal(tab.url).catch(error => {
-            log.error('Internal browser external escape failed', error)
-          })
+          const ownerWindowId =
+            tab.authenticationFlowId === null
+              ? null
+              : this.authenticationFlows.get(tab.authenticationFlowId)
+                  ?.ownerWindowId ?? null
+          void openInternalBrowserURLExternally(
+            tab.url,
+            ownerWindowId,
+            target => shell.openExternal(target),
+            this.options.onExternalOpenFailed,
+            error => log.error('Internal browser external escape failed', error)
+          )
         }
         return
       }

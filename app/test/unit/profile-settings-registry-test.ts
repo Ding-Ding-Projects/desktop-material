@@ -5,6 +5,7 @@ import {
   applySettingsSnapshot,
   describeSettingsChange,
 } from '../../src/lib/profiles/profile-settings-registry'
+import { getBrowserOpenModePreference } from '../../src/lib/internal-browser'
 
 /** Minimal in-memory Storage stand-in for the parts the registry uses. */
 function createStorage(seed: Record<string, string> = {}) {
@@ -68,6 +69,16 @@ describe('applySettingsSnapshot', () => {
     applySettingsSnapshot({ 'tab-size': '4' }, storage)
 
     assert.equal(storage.getItem('users'), '[secret]')
+  })
+
+  it('restores an explicit internal-browser choice and resets absence to external', () => {
+    const storage = createStorage()
+
+    applySettingsSnapshot({ 'browser-open-mode-v1': 'internal' }, storage)
+    assert.equal(getBrowserOpenModePreference(storage), 'internal')
+
+    applySettingsSnapshot({}, storage)
+    assert.equal(getBrowserOpenModePreference(storage), 'external')
   })
 })
 

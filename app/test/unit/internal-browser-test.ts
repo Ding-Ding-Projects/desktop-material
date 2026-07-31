@@ -15,6 +15,7 @@ import {
   normalizeInternalBrowserOAuthCallbackReceipt,
   normalizeWebURL,
   MaximumInternalBrowserTabs,
+  normalizeBrowserOpenMode,
   parseInternalBrowserBookmarks,
   redactBrowserURL,
   rotateAuthenticationPartition,
@@ -67,9 +68,20 @@ describe('internal browser contracts', () => {
     )
   })
 
-  it('persists the global internal/external choice', () => {
+  it('defaults fresh and invalid preferences to the system browser', () => {
+    assert.equal(normalizeBrowserOpenMode(undefined), 'external')
+    assert.equal(normalizeBrowserOpenMode('unexpected'), 'external')
+
     const storage = new MemoryStorage()
+    assert.equal(getBrowserOpenModePreference(storage), 'external')
+  })
+
+  it('persists an explicit internal or external choice without overwriting it', () => {
+    const storage = new MemoryStorage()
+    setBrowserOpenModePreference('internal', storage)
+    assert.equal(storage.getItem(BrowserOpenModeStorageKey), 'internal')
     assert.equal(getBrowserOpenModePreference(storage), 'internal')
+
     setBrowserOpenModePreference('external', storage)
     assert.equal(storage.getItem(BrowserOpenModeStorageKey), 'external')
     assert.equal(getBrowserOpenModePreference(storage), 'external')

@@ -3,6 +3,8 @@ import { describe, it } from 'node:test'
 import * as React from 'react'
 
 import { FilterMode } from '../../../src/lib/fuzzy-find'
+import { filterSettingsEntries } from '../../../src/lib/settings-search/settings-search-catalog'
+import { PreferencesTab } from '../../../src/models/preferences'
 import { SettingsSearch } from '../../../src/ui/preferences/settings-search'
 import { fireEvent, render, screen } from '../../helpers/ui/render'
 
@@ -36,5 +38,44 @@ describe('SettingsSearch', () => {
         `${key} should preserve the search field's native behavior`
       )
     }
+  })
+
+  it('opens Advanced when the external-browser setting is selected', () => {
+    const navigations: Array<{
+      readonly tab: PreferencesTab
+      readonly entryId: string
+    }> = []
+    const results = filterSettingsEntries('blank page', {
+      mode: FilterMode.Substring,
+      caseSensitive: false,
+    }).results
+
+    render(
+      <SettingsSearch
+        query="blank page"
+        filterMode={FilterMode.Substring}
+        caseSensitive={false}
+        results={results}
+        languageMode="english"
+        onQueryChange={() => undefined}
+        onFilterModeChange={() => undefined}
+        onCaseSensitiveChange={() => undefined}
+        onRegexPatternApply={() => undefined}
+        onNavigate={(tab, entryId) => navigations.push({ tab, entryId })}
+      />
+    )
+
+    fireEvent.click(
+      screen.getByRole('option', {
+        name: 'Open web links, in Advanced',
+      })
+    )
+
+    assert.deepEqual(navigations, [
+      {
+        tab: PreferencesTab.Advanced,
+        entryId: 'advanced-browser-open-mode',
+      },
+    ])
   })
 })
