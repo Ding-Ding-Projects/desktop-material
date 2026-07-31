@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="assets/site/docs-hub.css" />
     <link rel="stylesheet" href="assets/site/docs-changelog.css" />
     <link rel="stylesheet" href="assets/site/docs-dim-sum.css" />
+    <link rel="stylesheet" href="assets/site/docs-tabs.css" />
     <script>
       // Resolve the stored appearance and language before first paint so the
       // page never flashes the wrong palette, density or language mode. The
@@ -4943,5 +4944,68 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
       if it ever fails to load, nothing else on the page depends on it.
     -->
     <script src="assets/site/docs-dim-sum.js"></script>
+    <script src="assets/site/docs-tabs.js"></script>
+    <script>
+      /*
+       * docs-tabs.js upgrades the declarative strips docs-hub.js already owns,
+       * so it must run AFTER the hub has assigned roles and routed the opening
+       * hash. Measured in Chromium: exactly one tab stays aria-selected, hash
+       * routing still shows the right panel, and no page error is raised.
+       *
+       * Its 52 labels are `fixed` strings: control names, announcements and
+       * match-failure copy must not move with the playfulness slider. They are
+       * re-applied on a language change through the returned labels() hook, so
+       * switching to Cantonese relabels the live controls without a reload.
+       */
+      ;(function () {
+        if (typeof DocsTabs === 'undefined') {
+          return
+        }
+        function bundleFor(id) {
+          var packs = window.DesktopMaterialDocsStrings || {}
+          var pack = packs[id === 'yue' ? 'yue' : 'en']
+          var fallback =
+            (packs.en && packs.en.fixed && packs.en.fixed.tabsUi) || {}
+          return (pack && pack.fixed && pack.fixed.tabsUi) || fallback
+        }
+        function activeLanguage() {
+          try {
+            var stored = window.localStorage.getItem('dm-docs-lang')
+            return stored === 'yue' || stored === 'bi' ? 'yue' : 'en'
+          } catch (error) {
+            return 'en'
+          }
+        }
+        var controller = DocsTabs.upgrade({
+          labels: bundleFor(activeLanguage()),
+        })
+        if (controller === null) {
+          return
+        }
+        window.__docsTabs = controller
+        /*
+         * The hub calls applyLanguage() in place and dispatches no event, so
+         * there is no hook to subscribe to. Listen to the same radios it
+         * listens to instead. An invented event name here would have been dead
+         * code that looked like working localisation.
+         */
+        var langInputs = document.querySelectorAll('input[name="lang"]')
+        for (var i = 0; i < langInputs.length; i++) {
+          langInputs[i].addEventListener('change', function (event) {
+            /*
+             * Read the chosen value off the event, not localStorage. This
+             * inline script runs before the hub's own DOMContentLoaded wiring,
+             * so this listener fires FIRST — localStorage still holds the
+             * previous language at this point and relabelling from it would
+             * silently re-apply the language the reader just left.
+             */
+            var chosen = event && event.target ? event.target.value : null
+            controller.labels(
+              bundleFor(chosen === 'yue' || chosen === 'bi' ? 'yue' : 'en')
+            )
+          })
+        }
+      })()
+    </script>
   </body>
 </html>

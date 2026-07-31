@@ -1,0 +1,726 @@
+/*
+ * Desktop Material documentation hub — browser-style tab system styles.
+ *
+ * Mobile-first. The strip, its toolbar, its group manager and its bulk-close
+ * preview all stay usable from 320 CSS px upward; every interactive target keeps
+ * at least a 44 px dimension, nothing needs a hover-capable pointer, and no
+ * surface here may cause the page itself to scroll sideways — wide content
+ * scrolls inside its own row instead.
+ *
+ * Every colour falls back to a literal, so the module still renders correctly on
+ * a page that has not loaded the hub's Material tokens.
+ */
+
+.dm-tabstrip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.dm-tabstrip *,
+.dm-tabstrip *::before,
+.dm-tabstrip *::after {
+  box-sizing: border-box;
+}
+
+/* ------------------------------------------------------------------ toolbar */
+
+.dm-tabstrip-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dm-tabstrip-live {
+  /*
+   * The reorder/pin announcements are for assistive technology, not for the
+   * page. Clipped rather than `display: none`, because a hidden live region is
+   * never announced.
+   */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --------------------------------------------------------------- the strip */
+
+.dm-tabstrip-list {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+  /*
+   * The 3 px focus ring sits 2 px outside a tab, so the row needs 5 px of
+   * vertical room or the only keyboard indicator on the strip's primary control
+   * is clipped away. `overflow-clip-margin` does the same for the two ends,
+   * where padding would inflate `clientWidth` and corrupt the overflow
+   * measurement; browsers without it still get the vertical padding.
+   */
+  padding: 5px 0;
+  /*
+   * Overflow is decided in script and the surplus tabs move into the "More"
+   * menu. Clipping here only stops a half-measured frame from painting outside
+   * the row; it is never the mechanism that removes a tab, because a clipped
+   * tab is an unreachable tab.
+   */
+  overflow: hidden;
+  overflow: clip;
+  overflow-clip-margin: 6px;
+}
+
+/*
+ * `[hidden]` has to be honoured explicitly. `display` below is an author
+ * declaration and beats the user-agent's `[hidden] { display: none }` no matter
+ * how specific that selector is, so without this rule an overflowed tab stays
+ * laid out — clipped out of the row, still focusable, still counted by a screen
+ * reader — instead of moving into the "More" menu.
+ */
+.dm-tabstrip-tab[hidden] {
+  display: none;
+}
+
+/*
+ * The pinned region is a separate, stable place at the start of the strip. It
+ * never shrinks below its content and is never a candidate for overflow, so a
+ * pinned tab stays visible while ordinary tabs move into the menu.
+ */
+.dm-tabstrip-pinned {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  gap: 4px;
+  padding-right: 8px;
+  margin-right: 4px;
+  border-right: 1px solid var(--md-outline-variant, rgba(0, 0, 0, 0.2));
+}
+
+.dm-tabstrip-pinned[hidden] {
+  display: none;
+}
+
+.dm-tabstrip-flow {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+}
+
+/*
+ * Where a bulk-closed tab's anchor waits. It stays in the document so the close
+ * is genuinely reversible after a reload; `hidden` keeps it out of the layout,
+ * out of the tab sequence and out of the accessibility tree meanwhile.
+ */
+.dm-tabstrip-closed-region[hidden] {
+  display: none;
+}
+
+.dm-tabstrip-tab {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  /*
+   * Never shrink, because the overflow pass measures these widths and a
+   * shrinkable tab would always appear to fit.
+   */
+  flex: 0 0 auto;
+  /*
+   * But never wider than the row either. The selected tab is deliberately exempt
+   * from the overflow pass — it has to stay visible — so a long bilingual label
+   * on it is the one case that can exceed the strip. Without this cap it escaped
+   * the row and dragged the whole page into sideways scrolling; with it, the tab
+   * fills the row and the label is cut instead.
+   */
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  /*
+   * Declared for correctness, but it does not render here: the label is a bare
+   * text node inside an `inline-flex` box, so it becomes an anonymous flex item
+   * and `text-overflow` has nothing it can apply to. The trailing fade below is
+   * the signal that actually paints, and script attaches the full label as a
+   * tooltip whenever it measures a tab as cut.
+   */
+  text-overflow: ellipsis;
+}
+
+/*
+ * "There is more text than this" — a fade, because an ellipsis cannot render on
+ * a flex container. Without any signal the reader cannot tell a cut label from a
+ * genuinely short one.
+ */
+.dm-tabstrip-tab[data-dm-truncated='true'] {
+  mask-image: linear-gradient(
+    to right,
+    #000 calc(100% - 1.75em),
+    rgba(0, 0, 0, 0.15) 100%
+  );
+}
+
+.dm-tabstrip-tab[data-dm-pinned='true'] {
+  /*
+   * A pinned tab may compress to a glyph at narrow widths. Its accessible name
+   * is set on the element itself in script, so the short visible form never
+   * costs a screen-reader user the full label.
+   */
+  max-width: 12ch;
+}
+
+.dm-tabstrip[data-dm-dragging='true'] .dm-tabstrip-tab {
+  cursor: grabbing;
+  /* Pointer reordering must not be interrupted by the browser's own panning. */
+  touch-action: none;
+  user-select: none;
+}
+
+/* --------------------------------------------------------------- tab groups */
+
+.dm-tabstrip-group {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 4px;
+  border-radius: 12px;
+  border: 1px solid
+    var(--dm-group-color, var(--md-outline-variant, rgba(0, 0, 0, 0.2)));
+}
+
+.dm-tabstrip-group[data-dm-group-colored='true'] {
+  /*
+   * The group colour tints the border and the header only. Tab text keeps the
+   * page's own foreground, so a user-chosen colour can never drive label
+   * contrast below the readable threshold.
+   */
+  border-width: 2px;
+}
+
+.dm-tabstrip-group-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.dm-tabstrip-group-toggle,
+.dm-tabstrip-group-members {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.dm-tabstrip-group-toggle {
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dm-tabstrip-group[data-dm-group-colored='true'] .dm-tabstrip-group-toggle {
+  box-shadow: inset 0 -3px 0 0 var(--dm-group-color);
+}
+
+.dm-tabstrip-group-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dm-tabstrip-group-tabs[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------------- menus */
+
+.dm-tabstrip-overflow-button,
+.dm-tabstrip-panel-button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--md-outline, rgba(0, 0, 0, 0.35));
+  border-radius: 22px;
+  background: var(--md-surface-container, transparent);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.dm-tabstrip-overflow-button[hidden] {
+  display: none;
+}
+
+.dm-tabstrip-menu {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  max-width: 100%;
+  /*
+   * A tall overflow list scrolls inside itself. On a phone this is a full-width
+   * block under the toolbar rather than a floating popover, which keeps it on
+   * screen instead of pinned to an edge it cannot fit beside.
+   */
+  max-height: 60vh;
+  overflow-y: auto;
+  /* 5 px so a scrolled item's focus ring is not clipped by the scroll box. */
+  padding: 5px;
+  border: 1px solid var(--md-outline-variant, rgba(0, 0, 0, 0.2));
+  border-radius: 12px;
+  background: var(--md-surface-container-high, var(--md-surface, #fff));
+}
+
+.dm-tabstrip-menu[hidden] {
+  display: none;
+}
+
+.dm-tabstrip-menu-item {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------ search fields */
+
+.dm-tabs-search {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.dm-tabs-search-label,
+.dm-tabs-field-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.dm-tabs-search-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.dm-tabs-search-input,
+.dm-tabs-input {
+  flex: 1 1 140px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--md-outline, rgba(0, 0, 0, 0.35));
+  border-radius: 12px;
+  background: var(--md-surface, #fff);
+  color: inherit;
+  font: inherit;
+}
+
+.dm-tabs-search-input[aria-invalid='true'] {
+  border-color: var(--md-error, #b3261e);
+  border-width: 2px;
+}
+
+/*
+ * Plain text is the default and regex is an explicit opt-in, so the toggle is a
+ * visible labelled checkbox rather than an icon whose state has to be guessed.
+ */
+.dm-tabs-search-regex {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dm-tabs-search-regex-input,
+.dm-tabs-member input,
+.dm-tabs-bulk-radio input,
+.dm-tabs-bulk-include input {
+  width: 22px;
+  height: 22px;
+  /* A 22 px box inside a 44 px row keeps the real target at 44 px. */
+  flex: 0 0 auto;
+}
+
+.dm-tabs-search-builder {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--md-outline, rgba(0, 0, 0, 0.35));
+  border-radius: 12px;
+  background: var(--md-surface-container, transparent);
+  color: inherit;
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  cursor: pointer;
+}
+
+.dm-tabs-search-builder[hidden] {
+  display: none;
+}
+
+.dm-tabs-search-status {
+  margin: 0;
+  min-height: 1.25em;
+  font-size: 0.8125rem;
+  color: var(--md-on-surface-variant, #49454f);
+  overflow-wrap: anywhere;
+}
+
+/* ----------------------------------------------------------------- results */
+
+.dm-tabs-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  max-height: 50vh;
+  overflow-y: auto;
+  margin: 0;
+  /* 5 px so a scrolled result's focus ring is not clipped by the scroll box. */
+  padding: 5px;
+  list-style: none;
+}
+
+.dm-tabs-results[hidden] {
+  display: none;
+}
+
+.dm-tabs-result {
+  display: flex;
+  min-width: 0;
+}
+
+.dm-tabs-result-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.dm-tabs-result-label {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Strip · group · pinned state, so a result can always be located. */
+.dm-tabs-result-where {
+  font-size: 0.75rem;
+  color: var(--md-on-surface-variant, #49454f);
+  overflow-wrap: anywhere;
+}
+
+.dm-tabs-result-empty {
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+/* ------------------------------------------------------------- panel bodies */
+
+.dm-tabstrip-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+  border: 1px solid var(--md-outline-variant, rgba(0, 0, 0, 0.2));
+  border-radius: 16px;
+  background: var(--md-surface-container-low, transparent);
+}
+
+.dm-tabstrip-panel[hidden] {
+  display: none;
+}
+
+.dm-tabs-heading {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.dm-tabs-groups,
+.dm-tabs-bulk,
+.dm-tabs-closed,
+.dm-tabs-master {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dm-tabs-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dm-tabs-group-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--md-outline-variant, rgba(0, 0, 0, 0.2));
+  border-radius: 12px;
+  min-width: 0;
+}
+
+.dm-tabs-group-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dm-tabs-action {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--md-outline, rgba(0, 0, 0, 0.35));
+  border-radius: 22px;
+  background: var(--md-surface-container, transparent);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.dm-tabs-action[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dm-tabs-action--danger {
+  border-color: var(--md-error, #b3261e);
+  color: var(--md-error, #b3261e);
+}
+
+.dm-tabs-color {
+  width: 100%;
+  max-width: 120px;
+  min-height: 44px;
+  padding: 2px;
+  border: 1px solid var(--md-outline, rgba(0, 0, 0, 0.35));
+  border-radius: 12px;
+  background: var(--md-surface, #fff);
+}
+
+.dm-tabs-group-membership {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.dm-tabs-member {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+/* ------------------------------------------------------------- bulk closing */
+
+.dm-tabs-bulk-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--md-outline-variant, rgba(0, 0, 0, 0.2));
+  border-radius: 12px;
+}
+
+.dm-tabs-bulk-mode legend {
+  padding: 0 4px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.dm-tabs-bulk-radio,
+.dm-tabs-bulk-include {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.dm-tabs-bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/*
+ * The preview is the gate on a destructive action, so it is prominent and it
+ * always states the mode, the count and the pinned tabs it is protecting.
+ */
+.dm-tabs-bulk-preview {
+  padding: 10px 12px;
+  border: 1px solid var(--md-outline-variant, rgba(0, 0, 0, 0.2));
+  border-radius: 12px;
+  font-size: 0.875rem;
+}
+
+.dm-tabs-bulk-preview p {
+  margin: 0 0 6px;
+}
+
+.dm-tabs-bulk-summary {
+  font-weight: 600;
+}
+
+.dm-tabs-bulk-list {
+  margin: 0;
+  padding-left: 1.25em;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.dm-tabs-bulk-protected {
+  margin: 6px 0 0;
+  color: var(--md-on-surface-variant, #49454f);
+  overflow-wrap: anywhere;
+}
+
+.dm-tabs-closed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dm-tabs-closed-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* --------------------------------------------------------------- focus ring */
+
+.dm-tabstrip :focus-visible {
+  outline: 3px solid var(--md-primary, #6750a4);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------- narrow widths */
+
+/*
+ * At 320 px the toolbar becomes a single column: two controls side by side would
+ * push the search field below its 44 px target or force the page to scroll
+ * sideways.
+ */
+@media (max-width: 480px) {
+  .dm-tabstrip-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dm-tabs-search {
+    flex: 1 1 auto;
+  }
+
+  .dm-tabstrip-group-toggle {
+    max-width: 10ch;
+  }
+
+  .dm-tabstrip-tab[data-dm-pinned='true'] {
+    max-width: 8ch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dm-tabstrip *,
+  .dm-tabs-master * {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (forced-colors: active) {
+  /*
+   * Forced colours discard the group tint, which is the only thing that
+   * distinguished one group from the next. A visible border restores the
+   * boundary so grouping still reads as grouping.
+   */
+  .dm-tabstrip-group,
+  .dm-tabstrip-menu,
+  .dm-tabs-group-row,
+  .dm-tabs-bulk-mode,
+  .dm-tabs-bulk-preview,
+  .dm-tabstrip-panel {
+    border: 1px solid CanvasText;
+  }
+
+  .dm-tabstrip-group[data-dm-group-colored='true'] .dm-tabstrip-group-toggle {
+    box-shadow: none;
+    text-decoration: underline;
+  }
+
+  .dm-tabs-search-input[aria-invalid='true'] {
+    border-color: CanvasText;
+    text-decoration: underline wavy;
+  }
+
+  /*
+   * Forced colours exist to guarantee contrast, so fading text is exactly the
+   * wrong thing to do. The tooltip and the accessible name still carry the whole
+   * label, and a trailing rule marks the cut instead.
+   */
+  .dm-tabstrip-tab[data-dm-truncated='true'] {
+    mask-image: none;
+    border-right: 3px solid CanvasText;
+  }
+
+  .dm-tabs-action--danger {
+    border-color: CanvasText;
+    color: CanvasText;
+  }
+}
