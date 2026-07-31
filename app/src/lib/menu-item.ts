@@ -23,6 +23,16 @@ export interface IMenuItem {
   /** The action to invoke when the user selects the item. */
   readonly action?: () => void
 
+  /**
+   * The keyboard shortcut this item mirrors, in Electron accelerator syntax
+   * (`'CmdOrCtrl+C'`). Display only: the context menu shows it beside the label
+   * so the shortcut is discoverable, and announces it through
+   * `aria-keyshortcuts`. It never registers a binding — the accelerator has to
+   * already be handled by the app menu or the focused control, or the hint
+   * would be a promise the app does not keep.
+   */
+  readonly accelerator?: string
+
   /** The type of item. */
   readonly type?: 'separator' | 'checkbox'
 

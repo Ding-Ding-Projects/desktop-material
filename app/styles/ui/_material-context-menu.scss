@@ -133,6 +133,30 @@
     white-space: nowrap;
   }
 
+  // The keyboard shortcut a menu action mirrors, trailing the label the way a
+  // desktop menu shows it. `flex: none` so a long label ellipsises instead of
+  // squeezing the shortcut — a half-rendered "Ctrl+" teaches the wrong key.
+  .context-menu-accelerator {
+    flex: none;
+    margin-left: 12px;
+    font-family: inherit;
+    font-size: 11.5px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  .context-menu-item:hover:not(:disabled) .context-menu-accelerator,
+  .context-menu-item.highlighted:not(:disabled) .context-menu-accelerator {
+    // Inherit the highlighted row's foreground so the hint keeps its contrast
+    // against the secondary-container fill rather than staying a dim grey.
+    color: inherit;
+  }
+
+  .context-menu-item:disabled .context-menu-accelerator {
+    color: inherit;
+  }
+
   .context-menu-expand {
     flex: none;
     width: 12px;

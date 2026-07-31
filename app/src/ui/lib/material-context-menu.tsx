@@ -8,6 +8,14 @@ import { FilterModeControl } from './filter-mode-control'
 import { persistFilterMode, readPersistedFilterMode } from './filter-list-mode'
 import { Octicon, OcticonSymbol } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { friendlyAcceleratorText } from '../app-menu/menu-list-item'
+import {
+  getPersistedLanguageMode,
+  translate,
+  TranslationKey,
+  TranslationVariables,
+} from '../../lib/i18n'
+import { LanguageMode } from '../../models/language-mode'
 
 /**
  * The Material Design in-app context menu.
@@ -21,7 +29,109 @@ import * as octicons from '../octicons/octicons.generated'
 /** The persistence id for the context-menu filter's mode. */
 const ContextMenuFilterListId = 'material-context-menu'
 
+/**
+ * The search-surface id shared by the filter input, its filter-mode cluster and
+ * the regex builder those open. One constant because the backdrop matches the
+ * builder's overlay by this id, and a typo there would silently restore the
+ * dismiss-on-click bug it exists to prevent.
+ */
+const ContextMenuSearchSurfaceId = 'material-context-menu'
+
 /** Execute a predefined edit role against the focused element. */
+/**
+ * The items Electron's `editMenu` role stands for.
+ *
+ * The native menu expands that role itself; the in-app menu never did, so every
+ * text field's context menu (`showContextualMenu([{ role: 'editMenu' }])` in
+ * text-box, text-area and the autocompleting input) rendered as a single blank,
+ * unclickable row. Expanding it here restores the actual commands — and they
+ * are the items whose shortcuts a user is most likely to be looking up.
+ */
+function expandEditMenu(): ReadonlyArray<IMenuItem> {
+  const languageMode = getPersistedLanguageMode()
+  const label = (key: TranslationKey) => translate(key, languageMode)
+  return [
+    {
+      label: label('contextMenu.cut'),
+      role: 'cut',
+      accelerator: 'CmdOrCtrl+X',
+    },
+    {
+      label: label('contextMenu.copy'),
+      role: 'copy',
+      accelerator: 'CmdOrCtrl+C',
+    },
+    {
+      label: label('contextMenu.paste'),
+      role: 'paste',
+      accelerator: 'CmdOrCtrl+V',
+    },
+    { type: 'separator' },
+    {
+      label: label('contextMenu.selectAll'),
+      role: 'selectAll',
+      accelerator: 'CmdOrCtrl+A',
+    },
+  ]
+}
+
+/**
+ * Replaces composite roles with the items they stand for, leaving every other
+ * item untouched. Submenus are expanded too, since a caller may nest an edit
+ * menu inside one.
+ */
+export function expandRoleMenus(
+  items: ReadonlyArray<IMenuItem>
+): ReadonlyArray<IMenuItem> {
+  const expanded = new Array<IMenuItem>()
+  for (const item of items) {
+    if (item.role === 'editMenu') {
+      expanded.push(...expandEditMenu())
+      continue
+    }
+    if (item.submenu !== undefined && item.submenu.length > 0) {
+      expanded.push({
+        ...item,
+        submenu: expandRoleMenus(item.submenu) as ReadonlyArray<
+          typeof item
+        > as IMenuItem['submenu'],
+      })
+      continue
+    }
+    expanded.push(item)
+  }
+  return expanded
+}
+
+/**
+ * The `aria-keyshortcuts` form of an Electron accelerator.
+ *
+ * ARIA names the keys in its own vocabulary ("Control+C", "Meta+C"), which is
+ * not the string a user sees; the visible hint keeps the platform's symbols
+ * while assistive technology gets the form it can announce correctly.
+ */
+export function ariaKeyShortcuts(accelerator: string): string {
+  return accelerator
+    .split('+')
+    .map(part => {
+      switch (part.toLowerCase()) {
+        case 'cmdorctrl':
+        case 'commandorcontrol':
+          return __DARWIN__ ? 'Meta' : 'Control'
+        case 'cmd':
+        case 'command':
+          return 'Meta'
+        case 'ctrl':
+          return 'Control'
+        case 'option':
+          return 'Alt'
+        default:
+          return part
+      }
+    })
+    .join('+')
+}
+
 function performRole(role: NonNullable<IMenuItem['role']>) {
   switch (role) {
     case 'copy':
@@ -53,6 +163,7 @@ interface IMaterialContextMenuState {
   readonly filterMode: FilterMode
   readonly filterCaseSensitive: boolean
   readonly highlightedIndex: number
+  readonly languageMode: LanguageMode
   readonly expandedSubmenus: ReadonlySet<number>
 }
 
@@ -78,8 +189,14 @@ class MaterialContextMenu extends React.Component<
       filterCaseSensitive: false,
       highlightedIndex: -1,
       expandedSubmenus: new Set(),
+      // Read once: a context menu is transient, and the language cannot be
+      // changed while one is open.
+      languageMode: getPersistedLanguageMode(),
     }
   }
+
+  private text = (key: TranslationKey, variables: TranslationVariables = {}) =>
+    translate(key, this.state.languageMode, variables)
 
   public componentDidMount() {
     this.filterRef.current?.focus()
@@ -94,8 +211,28 @@ class MaterialContextMenu extends React.Component<
     this.props.onResolve(null)
   }
 
+  /**
+   * True while this menu's own regex builder is on screen.
+   *
+   * The builder's full-viewport overlay is `pointer-events: none` outside its
+   * dialog, so a click in that empty margin lands on the menu backdrop
+   * underneath. Dismissing there would tear down the menu and the builder with
+   * it, discarding a half-built pattern, so the backdrop stands down while the
+   * builder is up — the builder keeps its own Escape and Cancel.
+   *
+   * The surface id is matched so an unrelated builder opened elsewhere cannot
+   * pin this menu open.
+   */
+  private isBuilderOpen(): boolean {
+    return (
+      document.querySelector(
+        `.regex-builder-overlay[data-search-surface-id="${ContextMenuSearchSurfaceId}"]`
+      ) !== null
+    )
+  }
+
   private onBackdropMouseDown = (event: React.MouseEvent) => {
-    if (event.target === event.currentTarget) {
+    if (event.target === event.currentTarget && !this.isBuilderOpen()) {
       event.preventDefault()
       this.dismiss()
     }
@@ -114,12 +251,21 @@ class MaterialContextMenu extends React.Component<
     return results.length > 0
   }
 
+  /**
+   * The items as rendered: composite roles already expanded into the commands
+   * they stand for. Computed per call rather than cached because a menu is
+   * mounted once with fixed items and the list is tiny.
+   */
+  private getItems(): ReadonlyArray<IMenuItem> {
+    return expandRoleMenus(this.props.items)
+  }
+
   /** The flattened, filter-narrowed rows in display order. */
   private getVisibleRows(): ReadonlyArray<IVisibleRow> {
     const query = this.state.filterText.trim()
     const rows: IVisibleRow[] = []
 
-    this.props.items.forEach((item, index) => {
+    this.getItems().forEach((item, index) => {
       if (item.type === 'separator') {
         if (query.length === 0) {
           rows.push({ item, index, depth: 0, parentIndex: null })
@@ -197,7 +343,7 @@ class MaterialContextMenu extends React.Component<
 
   private getFilterSampleItems = (): ReadonlyArray<string> => {
     const labels = new Array<string>()
-    for (const item of this.props.items) {
+    for (const item of this.getItems()) {
       if (item.type !== 'separator' && item.label !== undefined) {
         labels.push(item.label)
       }
@@ -215,9 +361,18 @@ class MaterialContextMenu extends React.Component<
     // overlay it hosts) must not drive the menu's own navigation: Enter on a
     // mode button should cycle the mode, not activate the highlighted row,
     // and Escape inside the builder should close only the builder.
+    //
+    // The builder is portalled to a body-level layer, so it is NOT a DOM
+    // descendant of `.filter-mode-control` — only of the React tree, which is
+    // why its key events still arrive here. Testing that class alone therefore
+    // let every keystroke typed into the pattern field drive the menu instead:
+    // Escape tore down the whole menu, Enter fired a menu action, and the
+    // arrow keys moved the highlight behind the builder. Every other host of
+    // the builder already tests `.regex-builder-overlay` for this reason.
     if (
       event.target instanceof HTMLElement &&
-      event.target.closest('.filter-mode-control') !== null
+      (event.target.closest('.filter-mode-control') !== null ||
+        event.target.closest('.regex-builder-overlay') !== null)
     ) {
       return
     }
@@ -309,6 +464,7 @@ class MaterialContextMenu extends React.Component<
       item.submenu !== undefined && item.submenu.length > 0 && row.depth === 0
     const expanded = this.state.expandedSubmenus.has(row.index)
     const icon = item.icon as OcticonSymbol | undefined
+    const accelerator = item.accelerator
 
     return (
       <button
@@ -322,6 +478,9 @@ class MaterialContextMenu extends React.Component<
         data-row-index={ix}
         onClick={this.onItemButtonClick}
         role="menuitem"
+        aria-keyshortcuts={
+          accelerator === undefined ? undefined : ariaKeyShortcuts(accelerator)
+        }
       >
         <span className="context-menu-item-leading">
           {item.type === 'checkbox' ? (
@@ -336,6 +495,14 @@ class MaterialContextMenu extends React.Component<
           ) : null}
         </span>
         <span className="context-menu-item-label">{item.label}</span>
+        {accelerator !== undefined && (
+          // `aria-hidden` because the same shortcut is already announced from
+          // `aria-keyshortcuts` above; reading the glyphs a second time as
+          // literal text ("Ctrl plus C") only clutters the item.
+          <kbd className="context-menu-accelerator" aria-hidden={true}>
+            {friendlyAcceleratorText(accelerator)}
+          </kbd>
+        )}
         {hasSubmenu && (
           <Octicon
             symbol={expanded ? octicons.chevronDown : octicons.chevronRight}
@@ -380,17 +547,17 @@ class MaterialContextMenu extends React.Component<
           <div className="context-menu-filter">
             <Octicon symbol={octicons.filter} />
             <input
-              data-search-surface-id="material-context-menu"
+              data-search-surface-id={ContextMenuSearchSurfaceId}
               ref={this.filterRef}
               type="text"
-              placeholder="Filter actions"
-              aria-label="Filter menu actions"
+              placeholder={this.text('contextMenu.filterPlaceholder')}
+              aria-label={this.text('contextMenu.filterLabel')}
               value={this.state.filterText}
               onChange={this.onFilterChanged}
               spellCheck={false}
             />
             <FilterModeControl
-              searchSurfaceId="material-context-menu"
+              searchSurfaceId={ContextMenuSearchSurfaceId}
               mode={this.state.filterMode}
               caseSensitive={this.state.filterCaseSensitive}
               onModeChange={this.onFilterModeChanged}
@@ -403,7 +570,9 @@ class MaterialContextMenu extends React.Component<
           </div>
           <div className="context-menu-items" role="presentation">
             {rows.length === 0 ? (
-              <p className="context-menu-empty">No matching actions</p>
+              <p className="context-menu-empty">
+                {this.text('contextMenu.empty')}
+              </p>
             ) : (
               rows.map((row, ix) => this.renderRow(row, ix))
             )}

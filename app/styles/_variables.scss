@@ -350,6 +350,19 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
    */
   --tooltip-z-index: 20;
   --popup-z-index: 19;
+  /**
+   * The regex builder sits above every surface that can open it, which now
+   * includes the Material context menu (z-index 1000) and the deferred-view
+   * overlay (1001). It is portalled to `document.body`, so it competes in the
+   * root stacking context with those two rather than nesting inside them: at
+   * its old value of 70 the context menu's own full-viewport backdrop took
+   * every click, dismissed the menu, and unmounted the builder mid-use.
+   *
+   * Higher than `--tooltip-z-index` looks wrong beside the comment above, but
+   * that scale only describes surfaces inside the app shell; 1000+ is the
+   * separate band the imperative body-level layers already use.
+   */
+  --regex-builder-z-index: 1100;
   --popup-overlay-z-index: 18;
   --foldout-z-index: 17;
   --nudge-arrow-z-index: 16;

@@ -2576,6 +2576,14 @@ export type TranslationKey =
   | 'regex.error.inputTooLong'
   | 'regex.error.invalidOrUnsupported'
   | 'regex.error.unknown'
+  | 'contextMenu.filterPlaceholder'
+  | 'contextMenu.filterLabel'
+  | 'contextMenu.empty'
+  | 'contextMenu.shortcut'
+  | 'contextMenu.cut'
+  | 'contextMenu.copy'
+  | 'contextMenu.paste'
+  | 'contextMenu.selectAll'
   | 'filter.mode.fuzzy'
   | 'filter.mode.substring'
   | 'filter.mode.regex'
@@ -6203,6 +6211,16 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'accounts.invalidatedTokenPrompt': 'Do you want to sign in as {login} again?',
   'accounts.invalidatedTokenSignIn': 'Sign in again',
   'accounts.invalidatedTokenLater': 'Not now',
+  'contextMenu.filterPlaceholder': 'Filter actions',
+  'contextMenu.filterLabel': 'Filter menu actions',
+  'contextMenu.empty': 'No matching actions',
+  // Spoken to screen readers after the item's own label, so it reads as
+  // "Copy, shortcut Ctrl+C" rather than leaving the shortcut visual-only.
+  'contextMenu.shortcut': 'shortcut {keys}',
+  'contextMenu.cut': 'Cut',
+  'contextMenu.copy': 'Copy',
+  'contextMenu.paste': 'Paste',
+  'contextMenu.selectAll': 'Select all',
   'filter.mode.fuzzy': 'Fuzzy',
   'filter.mode.substring': 'Substring',
   'filter.mode.regex': 'Regex',
@@ -9504,6 +9522,14 @@ export const cantoneseTranslations: Readonly<
   'accounts.invalidatedTokenPrompt': '要唔要用返 {login} 重新登入？',
   'accounts.invalidatedTokenSignIn': '重新登入',
   'accounts.invalidatedTokenLater': '暫時唔使',
+  'contextMenu.filterPlaceholder': '篩走用唔著嘅動作',
+  'contextMenu.filterLabel': '篩選選單動作',
+  'contextMenu.empty': '搵唔到夾得上嘅動作',
+  'contextMenu.shortcut': '快捷鍵 {keys}',
+  'contextMenu.cut': '剪下',
+  'contextMenu.copy': '複製',
+  'contextMenu.paste': '貼上',
+  'contextMenu.selectAll': '全選',
   'filter.mode.fuzzy': '模糊配對',
   'filter.mode.substring': '包含文字',
   'filter.mode.regex': '正則表達式',

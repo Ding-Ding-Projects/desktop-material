@@ -15,7 +15,9 @@
 .regex-builder-overlay {
   position: fixed;
   inset: 0;
-  z-index: 70;
+  // Above the context menu's backdrop and the deferred-view overlay, both of
+  // which are body-level layers in the same stacking context as this one.
+  z-index: var(--regex-builder-z-index, 1100);
   display: grid;
   place-items: center;
   // Empty margin lets clicks pass through to the live app behind.
