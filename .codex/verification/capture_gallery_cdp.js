@@ -6603,8 +6603,54 @@ scene('provider-triage', async () => {
   await capture('material-provider-triage')
 })
 
+/**
+ * The Feature Gallery documents this frame as the explorer's "REST request
+ * builder, and bounded redacted response", while `material-api-app-functions`
+ * documents the named-function list. The app later unified both into one
+ * workspace, so simply opening the section produced a frame byte-identical to
+ * that sibling and the duplicate gate refused it (#103).
+ *
+ * Executing one seeded read function restores the distinction the captions
+ * already describe: this frame shows a real bounded response, the sibling shows
+ * the function inventory. The seeded functions are read-only repository queries,
+ * so this adds provider reads and never a mutation.
+ */
 scene('api-explorer', async () => {
-  await captureSection('API explorer', 'material-github-api-explorer', 3000)
+  await captureSection('API explorer', null, 3000)
+  const ran = await evaluate(`(() => {
+    const button = [...document.querySelectorAll(
+      '.github-api-explorer button'
+    )].find(candidate => vt(candidate) === 'Run function')
+    if (!(button instanceof HTMLButtonElement) || button.disabled) {
+      return false
+    }
+    button.click()
+    return true
+  })()`)
+  if (!ran) {
+    fail('No enabled Run function control was available in the API explorer.')
+  }
+  await waitFor(
+    `(() => {
+      const response = document.querySelector('.github-api-explorer-response')
+      if (!(response instanceof HTMLElement)) {
+        return false
+      }
+      // Wait for the request to finish rather than for the pane to exist, or the
+      // frame captures a half-populated response.
+      const announced = [...document.querySelectorAll('[role="status"]')]
+        .map(node => vt(node))
+        .join(' ')
+      return (
+        vt(response).length > 0 &&
+        announced.includes('GitHub API request completed')
+      )
+    })()`,
+    'bounded API explorer response',
+    30000
+  )
+  await parkPointer()
+  await capture('material-github-api-explorer')
 })
 
 scene('api-app-functions', async () => {
