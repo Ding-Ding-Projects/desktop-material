@@ -523,7 +523,30 @@ describe('build wiring', () => {
 
   it('styles the figure in the site stylesheet, not from a CDN', () => {
     assert.match(DocsTemplate, /\.mermaid-figure svg \{/)
-    assert.ok(!/<script/i.test(DocsTemplate))
+
+    // The property being defended is "nothing is fetched from a third party",
+    // not "no JavaScript at all". This used to assert the template held no
+    // `<script>` whatsoever, which was a fair proxy while the template had
+    // none — until the dim sum surprise shipped, at which point a locally
+    // bundled script started failing a CDN test it does not violate.
+    //
+    // Every script source must therefore be relative. Anything absolute,
+    // protocol-relative, or on a named host is a remote fetch and fails.
+    for (const [, source] of DocsTemplate.matchAll(
+      /<script\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/gi
+    )) {
+      assert.ok(
+        !/^(?:[a-z][a-z0-9+.-]*:)?\/\//i.test(source),
+        `script must be bundled locally, not fetched from ${source}`
+      )
+    }
+    // An inline script must not pull one in either.
+    assert.ok(
+      !/\b(?:import|fetch|importScripts)\s*\(\s*["'](?:[a-z][a-z0-9+.-]*:)?\/\//i.test(
+        DocsTemplate
+      ),
+      'inline script must not load a remote module'
+    )
   })
 })
 

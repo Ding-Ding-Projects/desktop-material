@@ -37,33 +37,20 @@ on:
       DESKTOP_OAUTH_CLIENT_ID:
       DESKTOP_OAUTH_CLIENT_SECRET:
 
-# Pull requests and non-default-branch pushes share a per-ref group, so a new
-# commit cancels the run it superseded instead of spending a Windows build
-# matrix on code nobody will ship.
+# Every invocation owns a unique group so a newer push, pull request, manual
+# dispatch, or installer verification can run immediately without cancelling
+# or queueing an older in-progress CI run.
 #
-# Default-branch pushes are deliberately asymmetric: they keep the old unique
-# group, and are therefore never cancelled and never queued. The installer
-# workflow triggers on this workflow's `workflow_run` completion and publishes
-# a Release only when CI concludes `success`, so a cancelled main run silently
-# skips a release — and a *queued* main run is just as dangerous, because a
-# third run entering an occupied group cancels the pending one. Manual
-# dispatches get a unique group for the same reason: an explicitly requested
-# verification run must never wait behind, or be discarded by, someone else's
-# push. A `workflow_call` invocation is not distinguishable here — inside a
-# reusable workflow the `github` context is the caller's, so `github.event_name`
-# reports the event that started the caller — and is therefore keyed by whatever
-# that caller's event was.
+# This is a deliberate safety contract, enforced by
+# app/test/unit/ci-workflow-safety-test.ts: the installer workflow triggers on
+# this workflow's `workflow_run` completion and publishes a Release only when
+# CI concludes `success`, so a cancelled main run silently skips a release —
+# and a queued one is just as dangerous, because a third run entering an
+# occupied group cancels the pending one. Saving runner minutes by cancelling
+# superseded runs is not worth a release that quietly never ships.
 concurrency:
-  group: >-
-    ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name ==
-    'pull_request' && github.event.pull_request.number || github.event_name ==
-    'push' && github.ref != format('refs/heads/{0}',
-    github.event.repository.default_branch || 'main') && github.ref ||
-    format('unique-{0}-{1}', github.run_id, github.run_attempt) }}
-  cancel-in-progress: >-
-    ${{ github.event_name == 'pull_request' || (github.event_name == 'push' &&
-    github.ref != format('refs/heads/{0}',
-    github.event.repository.default_branch || 'main')) }}
+  group: ci-${{ github.run_id }}-${{ github.run_attempt }}
+  cancel-in-progress: false
 
 env:
   NODE_VERSION: 24.15.0

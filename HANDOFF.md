@@ -69,6 +69,32 @@ That commit also repairs `yarn lint:src`, which was **already red on `main`**
 from two test files added earlier in this session's work
 (`docs-site-color-test.ts`, `docs-site-tabs-test.ts`).
 
+**CI had been red on `main` for the previous three pushes, blocking every
+release, from three independent causes — all of them mine, all now fixed.**
+The lint job above was only one of them. The other two:
+
+- **`ci.yml` concurrency.** Commit `f35fcb76da` earlier in this session
+  rewrote the concurrency group so superseded pull-request and feature-branch
+  runs would cancel, to save runner minutes. That silently broke the safety
+  contract `app/test/unit/ci-workflow-safety-test.ts` exists to defend: the
+  installer workflow publishes a Release only when CI concludes `success`, so
+  a cancelled or *queued* main run makes a release quietly never ship. Now
+  reverted to the unique `ci-${{ github.run_id }}-${{ github.run_attempt }}`
+  group with `cancel-in-progress: false`, and the comment says why so the
+  next person does not re-optimise it.
+- **`script/render-mermaid-test.mjs`** asserted the docs template contained no
+  `<script>` at all, as a proxy for "nothing loads from a CDN". That proxy
+  held until the dim sum surprise shipped a locally bundled script into
+  `site/docs-template.html`. The assertion now checks what it actually means —
+  every `src` must be relative, and no inline script may import a remote
+  module — and was verified to still fail against an injected CDN tag rather
+  than being loosened into something that passes everything.
+
+`Build Installers / Express Release` run `30652270161` shows the shape of the
+damage: it built, packaged, signed and collected the installers successfully,
+then failed on "Preserve the upstream CI failure result" and skipped
+publishing. The release machinery is fine; it was being fed a red CI.
+
 ### Evidence
 
 | Check | Result |
@@ -84,6 +110,31 @@ from two test files added earlier in this session's work
 
 The backdrop and keyboard cases in the context-menu test genuinely fail
 without their fixes — verified by watching them fail first.
+
+### Decision: stop supporting arm64
+
+The user has directed that **arm64 support ends**. The only development
+machine is amd64 (x64), so nothing arm64 can be built, run, or verified here —
+an arm64 job can only ever report a result nobody on this project can
+reproduce or debug.
+
+This is recorded, **not yet implemented**. Nothing has been removed. Whoever
+picks it up should drop the arm64 matrix legs and any arm64-only packaging,
+release assets, and verification steps, then confirm the release still
+publishes a complete x64 installer set.
+
+Worth knowing before starting: the arm64 leg has already cost real time this
+session. One of the three CI failures above — the `render-mermaid-test.mjs`
+CDN assertion — was reported **only by the arm64 runner**, because the matrix
+splits which test batch runs where, not because the failure was
+architecture-specific. It reproduced on x64 the moment it was run there. So
+removing arm64 must not be treated as removing coverage: check which test
+batches the arm64 legs were carrying and make sure the x64 legs still run all
+of them, or the suite will get quieter without getting greener.
+
+Search starting points: `.github/workflows/ci.yml`,
+`.github/workflows/build-installers.yml`, and any `arch`/`matrix` entries
+naming `arm64`.
 
 ### Not done — pick these up
 
