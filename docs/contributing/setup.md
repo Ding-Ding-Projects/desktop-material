@@ -25,21 +25,63 @@ versions look similar to the below output:
 
 ```shellsession
 $ node -v
-v20.17.0
+v24.15.0
 
 $ yarn -v
 1.21.1
-
-$ python --version
-Python 3.9.x
 ```
 
+Where those numbers come from, so you can check them yourself rather than
+trusting this page:
+
+| Tool | Pin | Where it is pinned |
+| --- | --- | --- |
+| Node.js | `24.15.0` | [`.node-version`](../../.node-version), [`.nvmrc`](../../.nvmrc), [`.tool-versions`](../../.tool-versions), and `NODE_VERSION` in [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) |
+| Yarn | `1.21.1` (Yarn Classic) | [`.yarnrc`](../../.yarnrc) sets `yarn-path` to the vendored `vendor/yarn-1.21.1.js`, so a repository-local `yarn` reports `1.21.1` whatever you have installed globally |
+
+`package.json` declares a looser floor of `node >= 22` and `yarn >= 1.9` for
+consumers; the pins above are what this repository is developed and tested
+against, so prefer them. Yarn Classic is deliberate — the lockfile is
+`yarn lockfile v1` and Yarn 2+ will not read it.
+
+### Python
+
+Python is needed on Windows so that `node-gyp` can compile native modules during
+install — [`setup-windows.md`](./setup-windows.md) covers installing it.
+
+**This repository's Python pins contradict each other, and this page states that
+rather than picking a winner:**
+
+| Source | Python | What it is for |
+| --- | --- | --- |
+| [`.python-version`](../../.python-version) | `3.9` | inherited toolchain pin |
+| [`.tool-versions`](../../.tool-versions) | `3.9.5` | inherited toolchain pin |
+| [`setup-windows.md`](./setup-windows.md) | `3.9.x` | `node-gyp` native-module builds |
+| [`super-express-release.yml`](../../.github/workflows/super-express-release.yml) | `3.11` | the Python the desktop packaging job restores |
+| [`ci.yml`](../../.github/workflows/ci.yml) | `3.10`, `3.12`, `3.13` | the `linux-tui` / `windows-tui-core` test matrix |
+
+Nothing in CI installs Python 3.9, so no green run is evidence that `3.9` still
+works here; the versions with passing runs behind them are `3.10` through `3.13`.
+Those runs test the Python TUI package, not `node-gyp`, so no CI run vouches for
+any particular Python for the native-module build either. Whether the pin files should be raised, or CI lowered to match them, is a
+maintainer decision that has not been made — so neither side was quietly edited to
+agree with the other. If you hit a `node-gyp` failure, report the Python version
+you used on
+[the tracker](https://github.com/Ding-Ding-Projects/desktop-material/issues), as
+that is the data this needs to be settled.
+
 There are also [additional resources](tooling.md) to configure your favorite
-editor to work nicely with the GitHub Desktop repository.
+editor to work nicely with this repository.
 
-## Building Desktop
+## Building Desktop Material
 
-First, create a fork of `desktop/desktop` and then clone the repository to your local machine. You'll need to be inside the repository in order to build the application locally.
+First, create a fork of [`Ding-Ding-Projects/desktop-material`](https://github.com/Ding-Ding-Projects/desktop-material)
+and then clone your fork to your local machine. You'll need to be inside the
+repository in order to build the application locally.
+
+Contributions go to this repository, not to `desktop/desktop`. This codebase
+originated as a fork of that project (MIT) and credits it as such, but upstream
+cannot review or ship a Desktop Material change.
 
 The typical workflow to get up running is as follows:
 
@@ -53,7 +95,9 @@ If you've made changes in the `main-process` folder you need to run `yarn
 build:dev` to rebuild the package, and then `yarn start` for these changes to be
 reflected in the running app.
 
-If you are using GitHub Enterprise with your development build of GitHub Desktop, you will need to follow a few extra steps to [authenticate properly](github-enterprise-auth-from-dev-build.md).
+If you are using GitHub Enterprise with your development build of Desktop
+Material, you will need to follow a few extra steps to
+[authenticate properly](github-enterprise-auth-from-dev-build.md).
 
 If you're still encountering issues with building, refer to our
 [troubleshooting](troubleshooting.md) guide for more common

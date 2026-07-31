@@ -679,6 +679,13 @@
       d: 'The root App owns every long-lived renderer subscription and polling timer it starts. Store, updater, drag-manager, and IPC listeners are collected in one CompositeDisposable;…',
     },
     {
+      t: 'Supply-chain and CI hardening',
+      h: 'features/quality-and-reliability/supply-chain-and-ci-hardening.html',
+      s: 'features/quality-and-reliability/supply-chain-and-ci-hardening.md',
+      c: 'features',
+      d: "Desktop Material's continuous-integration workflow builds and signs the Windows installers that users actually run, so what its jobs install and how its runs are scheduled are…",
+    },
+    {
       t: 'Desktop Material feature documentation',
       h: 'features/',
       s: 'features/README.md',
@@ -1482,6 +1489,13 @@
       s: 'verification/headless-desktop-launch-2026-07-28/README.md',
       c: 'verification',
       d: 'Independent confirmation that the production build actually runs, captured through a completely different route from the Playwright-driven fixture used elsewhere in…',
+    },
+    {
+      t: 'Issue #94 and #80 built-app evidence — 2026-07-31',
+      h: 'verification/issue-94-80-evidence-2026-07-31/',
+      s: 'verification/issue-94-80-evidence-2026-07-31/README.md',
+      c: 'verification',
+      d: "Real captures from the production bundle, produced on an off-screen Win32 desktop through the project's own capturegallerycdp.js harness. These are issue evidence, not…",
     },
     {
       t: 'Linux TUI publish cleanup ledger',

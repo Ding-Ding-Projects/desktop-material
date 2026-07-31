@@ -1,9 +1,13 @@
 {
   "repository": {
     "type": "git",
-    "url": "https://github.com/desktop/desktop.git"
+    "url": "https://github.com/Ding-Ding-Projects/desktop-material.git"
   },
-  "description": "GitHub Desktop build dependencies",
+  "description": "Desktop Material build dependencies",
+  "bugs": {
+    "url": "https://github.com/Ding-Ding-Projects/desktop-material/issues"
+  },
+  "homepage": "https://ding-ding-projects.github.io/desktop-material/",
   "scripts": {
     "cli": "ts-node app/src/cli/main.ts",
     "agent": "node script/agent/desktop-agent.js",

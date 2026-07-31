@@ -37,12 +37,33 @@ on:
       DESKTOP_OAUTH_CLIENT_ID:
       DESKTOP_OAUTH_CLIENT_SECRET:
 
-# Every invocation owns a unique group so a newer push, pull request, manual
-# dispatch, or installer verification can run immediately without cancelling
-# or queueing an older in-progress CI run.
+# Pull requests and non-default-branch pushes share a per-ref group, so a new
+# commit cancels the run it superseded instead of spending a Windows build
+# matrix on code nobody will ship.
+#
+# Default-branch pushes are deliberately asymmetric: they keep the old unique
+# group, and are therefore never cancelled and never queued. The installer
+# workflow triggers on this workflow's `workflow_run` completion and publishes
+# a Release only when CI concludes `success`, so a cancelled main run silently
+# skips a release — and a *queued* main run is just as dangerous, because a
+# third run entering an occupied group cancels the pending one. Manual
+# dispatches get a unique group for the same reason: an explicitly requested
+# verification run must never wait behind, or be discarded by, someone else's
+# push. A `workflow_call` invocation is not distinguishable here — inside a
+# reusable workflow the `github` context is the caller's, so `github.event_name`
+# reports the event that started the caller — and is therefore keyed by whatever
+# that caller's event was.
 concurrency:
-  group: ci-${{ github.run_id }}-${{ github.run_attempt }}
-  cancel-in-progress: false
+  group: >-
+    ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name ==
+    'pull_request' && github.event.pull_request.number || github.event_name ==
+    'push' && github.ref != format('refs/heads/{0}',
+    github.event.repository.default_branch || 'main') && github.ref ||
+    format('unique-{0}-{1}', github.run_id, github.run_attempt) }}
+  cancel-in-progress: >-
+    ${{ github.event_name == 'pull_request' || (github.event_name == 'push' &&
+    github.ref != format('refs/heads/{0}',
+    github.event.repository.default_branch || 'main')) }}
 
 env:
   NODE_VERSION: 24.15.0
@@ -68,12 +89,145 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: yarn
-      - run: yarn
+      # --frozen-lockfile turns a lock file that no longer matches the manifests
+      # into an immediate, named failure instead of a silent re-resolution that
+      # only the working-directory check at the end of this job would catch.
+      - run: yarn install --frozen-lockfile
       - run: yarn validate-electron-version
       - run: yarn lint
       - run: yarn validate-changelog
       - name: Ensure a clean working directory
         run: git diff --name-status --exit-code
+  supply-chain:
+    name: Supply chain
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ inputs.repository || github.repository }}
+          ref: ${{ inputs.ref }}
+      # No install: the provenance check reads the lock files, and `yarn audit`
+      # builds its tree from yarn.lock plus the in-repo `file:` dependency
+      # directories under vendor/, none of which are submodules.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Verify lock file provenance and integrity
+        run: |
+          set -uo pipefail
+          # This check is offline and deterministic — it only reads files that
+          # are already in the commit — which is why it is allowed to fail the
+          # build. An entry that suddenly resolves from another host, or that
+          # lost its subresource hash, means the lock file no longer pins what
+          # it claims to.
+          #
+          # Entries without a `resolved` line (the `file:` resolutions pointing
+          # at vendor/) are reviewed as repository code and skipped.
+          # vendor/desktop-trampoline/yarn.lock is upstream's own file and is
+          # not audited here; three of its entries predate `integrity`.
+          status=0
+          for lock in yarn.lock app/yarn.lock; do
+            echo "Checking $(grep -c '^  resolved ' "$lock") resolved packages in $lock"
+            awk -v lock="$lock" '
+              function flush() {
+                if (resolved != "" && integrity == "") {
+                  printf "%s: %s is resolved without an integrity hash\n", lock, entry
+                  bad = 1
+                }
+                resolved = ""
+                integrity = ""
+              }
+              /^[^ \t#]/ { flush(); entry = $0; next }
+              /^  resolved / {
+                resolved = $2
+                gsub(/"/, "", resolved)
+                host = resolved
+                sub(/^https?:\/\//, "", host)
+                sub(/\/.*$/, "", host)
+                if (host != "registry.yarnpkg.com" && host != "registry.npmjs.org") {
+                  printf "%s: %s resolves from unexpected host %s\n", lock, entry, host
+                  bad = 1
+                }
+                next
+              }
+              /^  integrity / { integrity = $2; next }
+              END { flush(); exit (bad ? 1 : 0) }
+            ' "$lock" || status=1
+          done
+          if [ "$status" -ne 0 ]; then
+            echo "::error title=Lock file provenance::A lock file entry resolves from an unexpected host or carries no integrity hash. Review the diff to yarn.lock before merging."
+            exit 1
+          fi
+      - name: Report dependency advisories
+        run: |
+          set -uo pipefail
+          # `yarn audit` exits with a bitfield of the severities it found, so
+          # gating on it would turn every commit red for a transitive advisory
+          # with no published fix — a state no commit in this repository can
+          # repair. Advisories are therefore surfaced in the job summary and as
+          # warning annotations, and this step always succeeds.
+          set +e
+          audited=0
+          for target in . app; do
+            label=root
+            if [ "$target" != "." ]; then
+              label="$target"
+            fi
+            out="$RUNNER_TEMP/yarn-audit-$label.txt"
+            # --no-color keeps ANSI escapes out of the job summary's code block.
+            (cd "$target" && yarn audit --no-progress --no-color) >"$out" 2>&1
+            code=$?
+            {
+              echo "### Dependency advisories — \`$label\`"
+              echo
+            } >>"$GITHUB_STEP_SUMMARY"
+            if ! grep -q 'Packages audited' "$out"; then
+              echo "::warning title=Dependency audit unavailable ($label)::yarn audit did not complete (exit $code); advisories were not evaluated for this manifest."
+              {
+                echo "> [!WARNING]"
+                echo "> \`yarn audit\` did not complete (exit \`$code\`)."
+                echo "> Advisories were **not** evaluated for this manifest."
+                echo
+              } >>"$GITHUB_STEP_SUMMARY"
+            else
+              audited=$((audited + 1))
+              found=$(grep -E 'vulnerabilities found|^Severity:' "$out" | tr '\n' ' ')
+              if [ "$code" -eq 0 ]; then
+                echo "$found" >>"$GITHUB_STEP_SUMMARY"
+              else
+                echo "::warning title=Dependency advisories ($label)::$found See the job summary for the full report."
+                {
+                  echo "$found"
+                  echo
+                  echo "\`yarn audit\` exit code \`$code\` is a severity bitfield"
+                  echo "(1 info, 2 low, 4 moderate, 8 high, 16 critical), not a"
+                  echo "build failure."
+                  echo
+                } >>"$GITHUB_STEP_SUMMARY"
+              fi
+            fi
+            {
+              echo '<details><summary>Full report</summary>'
+              echo
+              echo '```text'
+              # `head -c` can cut mid-line, so force a newline before the
+              # closing fence; otherwise it lands inside the last line and the
+              # code block never closes, swallowing the rest of the summary.
+              head -c 60000 "$out"
+              echo
+              echo '```'
+              echo
+              echo '</details>'
+              echo
+            } >>"$GITHUB_STEP_SUMMARY"
+          done
+          if [ "$audited" -eq 0 ]; then
+            echo "::warning title=Dependency audit unavailable::No manifest could be audited in this run; treat this run as carrying no advisory evidence."
+          fi
+          exit 0
   linux-tui:
     name: Linux TUI · Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
@@ -219,7 +373,7 @@ jobs:
       - name: Run desktop-trampoline tests
         run: |
           cd vendor/desktop-trampoline
-          yarn install
+          yarn install --frozen-lockfile
           yarn test
       - name: Build production app
         run: yarn build:prod

@@ -1,8 +1,94 @@
 version: 2
+
 updates:
+  # Workflow action versions. Stale action pins are a real supply-chain risk in
+  # a repository whose workflows publish signed installers, so version updates
+  # are proposed rather than suppressed. They arrive as one grouped pull request
+  # per week because every one of them has to be read as a change to the release
+  # pipeline, not as routine dependency churn.
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
-    # Disable version updates and keep only security updates
-    open-pull-requests-limit: 0
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      github-actions:
+        patterns:
+          - '*'
+
+  # Root manifest: the build, lint, test, and packaging toolchain plus the
+  # scripts under script/. Yarn Classic lock files are updated in place, so a
+  # proposal here also rewrites yarn.lock and is verified by CI's
+  # --frozen-lockfile installs.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    # Each pull request costs a full Windows x64 + arm64 build, a packaged E2E
+    # smoke run, and the TUI matrix. Five keeps a reviewable queue that still
+    # has room for the two groups below plus a few individual majors; a larger
+    # limit mostly buys queued Windows runners.
+    open-pull-requests-limit: 5
+    versioning-strategy: increase-if-necessary
+    groups:
+      # Toolchain churn lands as one pull request instead of dozens.
+      development-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+      # Runtime patches are the security-relevant ones; keep them together but
+      # away from the tooling noise. Runtime minors and every major stay
+      # individual so they get their own review.
+      runtime-patches:
+        dependency-type: production
+        update-types:
+          - patch
+    ignore:
+      # Electron's version is asserted in three coordinated places:
+      # package.json devDependencies, app/.npmrc `target`, and
+      # ValidElectronVersions in script/validate-electron-version.ts. A bot that
+      # edits only the first produces a build that fails release validation.
+      - dependency-name: electron
+      # Pinned by the `resolutions` block in package.json, which Dependabot
+      # does not update — a bump here would be silently overridden.
+      - dependency-name: '@types/react'
+      - dependency-name: '@types/minimatch'
+      - dependency-name: mkdirp
+      # Resolved to the reviewed shim in vendor/brace-expansion-compat, not to
+      # a registry version.
+      - dependency-name: brace-expansion
+
+  # The packaged Electron application's own manifest and lock file. Its runtime
+  # dependencies ship to users, so production updates here matter more than the
+  # root toolchain's; its dev dependency surface is four packages, so the same
+  # grouping keeps the queue small.
+  - package-ecosystem: npm
+    directory: /app
+    schedule:
+      interval: weekly
+      day: monday
+    # Deliberately lower than the root limit: these dependencies are shipped
+    # code, and three at a time is what can be reviewed properly in a week.
+    open-pull-requests-limit: 3
+    versioning-strategy: increase-if-necessary
+    groups:
+      development-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+      runtime-patches:
+        dependency-type: production
+        update-types:
+          - patch
+# Deliberately not covered here:
+#   * vendor/desktop-trampoline, vendor/desktop-notifications,
+#     vendor/windows-argv-parser, and vendor/printenvz are consumed as `file:`
+#     dependencies. Dependabot cannot propose updates for a path dependency;
+#     their content is reviewed as repository code.
+#   * The Python TUI under tui/ (uv.lock) is out of scope for this repository's
+#     current desktop-only work; adding an ecosystem entry would open pull
+#     requests nobody is allowed to act on.
