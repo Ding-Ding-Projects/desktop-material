@@ -99,6 +99,26 @@ describe('legacy local commit batching entry points', () => {
     assert.match(body, /result\.mode === 'rewritten-commits'/)
   })
 
+  it('owns the commit gate once and lets a queued restore wait behind the rewrite', () => {
+    const body = methodBody(
+      'private async handleLegacyLocalCommitPushBatching(',
+      'private async performPush('
+    )
+    assert.match(
+      body,
+      /if \(!commitGateAlreadyHeld\) \{[\s\S]*canRunLegacyLocalCommitPushBatching\(repository\)[\s\S]*withIsCommitting\(repository,[\s\S]*handleLegacyLocalCommitPushBatching\([\s\S]*true[\s\S]*return/
+    )
+    assert.equal(
+      body.match(/canRunLegacyLocalCommitPushBatching\(repository\)/g)?.length,
+      1,
+      'materialize ownership is sampled only before acquiring the gate'
+    )
+    assert.match(
+      body,
+      /Do not sample materialize ownership again after the commit gate has been[\s\S]*if \(isSubmoduleRepository\(repository\)\)/
+    )
+  })
+
   it('lets an ordinary push proceed when batching cannot apply', () => {
     const body = methodBody(
       'private async handleLegacyLocalCommitPushBatching(',

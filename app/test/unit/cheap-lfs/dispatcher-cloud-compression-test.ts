@@ -106,4 +106,32 @@ describe('Dispatcher Cheap LFS cloud-compression preference routing', () => {
     assert.deepEqual(harness.persistenceCalls, [{ repository, preferences }])
     assert.deepEqual(harness.ensureCalls, [{ repository, preferences }])
   })
+
+  it('reconciles the managed caller when the storage provider changes', async () => {
+    const repository = repositoryWithPreferences(true, {
+      ...defaultBuildRunPreferences,
+      cheapLfsCloudCompression: true,
+      cheapLfsStorageProvider: 'release',
+    })
+    const preferences: IBuildRunPreferences = {
+      ...repository.buildRunPreferences,
+      cheapLfsStorageProvider: 'ghcr',
+    }
+    const result: IEnsureCheapLfsCloudCompressionResult = {
+      path: 'C:\\cheap-lfs-dispatcher\\.github\\workflows\\cheap-lfs.yml',
+      changed: true,
+      policy: 'disabled-private',
+    }
+    const harness = createHarness(result)
+
+    const updateResult =
+      await harness.dispatcher.updateRepositoryBuildRunPreferences(
+        repository,
+        preferences
+      )
+
+    assert.strictEqual(updateResult, result)
+    assert.deepEqual(harness.persistenceCalls, [{ repository, preferences }])
+    assert.deepEqual(harness.ensureCalls, [{ repository, preferences }])
+  })
 })

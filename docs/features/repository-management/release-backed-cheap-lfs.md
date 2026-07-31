@@ -167,9 +167,9 @@ while optional cloud compression runs.
 
 ![Historical July 22 private-caller cloud-compression acceptance at immutable source commit f7b4760a13894f0320f7b361f055f6fba40d913f](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/f7b4760a13894f0320f7b361f055f6fba40d913f/docs/assets/screenshots/cheap-lfs-cloud-compression.png)
 
-That immutable frame proves the July 22 caller behavior only. It is not
-relabelled as evidence for the current externally registered public-builder
-route described below.
+That immutable frame proves the July 22 caller behavior only. It remains
+historical evidence; the repository-local route and publication rules below
+define current behavior.
 
 Cloud compression is automatic for a repository whose GitHub visibility is
 confirmed public. It is off by default for private repositories and runs there
@@ -180,15 +180,18 @@ The managed caller always runs in the repository that owns the Release objects:
 
 | Policy | Route | What happens |
 | --- | --- | --- |
-| `automatic-public` | `in-repo-workflow` | Unchanged. One owned caller at `.github/workflows/cheap-lfs-cloud-compression.yml`, committed and pushed in the background. |
-| `enabled-private` | `in-repo-workflow` | The same owned caller is rendered with its private arm enabled, then committed and pushed in the background. Each run uses that private repository's GitHub Actions minutes. |
-| `disabled-private`, `not-github` | `none` | Nothing. |
+| `automatic-public` | `in-repo-workflow` | One owned caller at `.github/workflows/cheap-lfs-cloud-compression.yml` is handed to the default-branch background publisher. |
+| `enabled-private` | `in-repo-workflow` | The same owned caller is rendered with its private arm enabled and handed to the default-branch background publisher. Each run uses that private repository's GitHub Actions minutes. |
+| `disabled-private` | `none`, except managed shutdown | No caller is created. If any app-owned noncanonical caller is committed or present in the working tree (including an older armed template), its guard is closed with the current canonical file and any resulting one-file transition enters the default-branch background publisher. |
+| `not-github` | `none` | Nothing. |
 | `visibility-unknown` | `blocked-visibility-unknown` | Neither route runs. The blocker is reported as a non-blocking notice. |
 
-Opening the Large files manager writes the owned caller for either active
-policy. When the committed history does not already carry the exact caller, the
-app commits and pushes it in the background — see
-[Background workflow install](#background-workflow-install).
+Opening the Large files manager queues a read-only policy reconciliation for
+either active policy. The caller is written only after the worker owns the
+shared checkout gate. When committed history does not already carry the exact
+caller, the app commits and pushes it in the background — see
+[Background workflow install](#background-workflow-install). A private opt-out
+uses the same publisher only when an existing owned caller must be closed.
 
 #### Private repositories: explicit in-repository publishing
 
@@ -205,11 +208,12 @@ if: >-
   (github.event.repository.private == false || true)
 ```
 
-The exact managed file is then committed and pushed to the repository's current
-default branch. This includes the important transition where a prior managed
-caller exists with `|| false`: the explicit opt-in is recognized as a reviewed
-guard transition and published, rather than being mistaken for an unrelated
-workflow edit and stranded in the working tree.
+The exact managed file then enters the background publication flow on the
+repository's checked-out default branch. This includes the important transition
+where a prior managed caller exists with `|| false`: the explicit opt-in is
+recognized as a reviewed guard transition rather than being mistaken for an
+unrelated workflow edit. Only the remote-tip proof described below reports it
+as ready; a diverged default branch remains pending for the user's own push.
 
 The caller does not carry a cross-repository destination or a stored personal
 token. Its composite action receives the calling run's `github.token`;
@@ -221,10 +225,20 @@ pinned by full commit SHA.
 
 The workflow also checks the live event visibility and exact default-branch ref
 on every run. A public caller whose repository becomes private therefore stops
-unless its managed guard was explicitly armed. A disabled private repository
-creates no caller. If an armed managed caller is present when the setting is
-turned off, the working-tree copy is rewritten with `|| false`; an unowned file
-at the same path is never overwritten.
+unless its managed guard was explicitly armed. Turning private compression off
+never creates a caller merely to record the setting. If an app-owned committed
+caller or working copy is noncanonical, however — an armed current caller or an
+older armed template — the app renders its current canonical `|| false` guard,
+commits any resulting one-file shutdown, and publishes it from the checked-out
+default branch. The
+opt-out is not treated as remotely complete until the remote tip proves that
+shutdown landed. An unowned file at the same path is never overwritten.
+
+Moving a private repository from Release storage to GHCR or Docker Hub applies
+that same closed guard to any existing owned caller. A public closed guard would
+still run on a public repository, so a public provider transition instead
+removes the owned Release caller and publishes that one-path deletion. An absent
+caller remains absent, and an unowned caller remains protected.
 
 Unknown visibility remains a hard stop. The app neither creates nor arms a
 caller until GitHub reports the repository as exactly public or private, so it
@@ -235,60 +249,93 @@ cannot accidentally spend private Actions minutes before consent.
 GitHub Actions only sees committed files, so a checkout holding the caller as an
 uncommitted change is still a checkout where nothing compresses. Leaving that
 last step to the user is the step that silently never happened. Enabling cloud
-compression, opening the Large files manager, and the automatic materialize pass
-therefore each ask the background installer to close the gap.
+compression, opening the Large files manager, and the post-materialize repair
+therefore each ask the background installer to close the gap. Each request
+carries the freshly persisted preferences that triggered it. It records a
+monotonic per-repository generation synchronously, before any read, so rapid
+enable/disable or provider transitions cannot be evaluated out of call order.
+The worker drains the latest generation before releasing its mutation gate.
 
 Detection reads the committed blob at the exact path
 `.github/workflows/cheap-lfs-cloud-compression.yml`, never the working tree
-alone, and produces one decision:
+alone, and produces one outcome:
 
-The route is settled before anything else is considered, so no later branch can
-reach a state that writes a file into a private repository:
-
-| Observation | Decision | What happens |
+| Observation | Outcome | What happens |
 | --- | --- | --- |
-| Compression off, or a non-Release storage provider | `disabled` | Nothing. |
-| Private repository with the opt-in | `external-builder` | Nothing is installed. The encrypted-builder registration is prepared and its blocker reported once. |
+| Compression off, or a non-Release storage provider, with no managed caller to close or remove | `disabled` | Nothing. |
+| Confirmed private repository with the explicit opt-in | Active in-repository route | Install or arm the canonical caller, then publish it from the default branch. |
+| Confirmed private repository opted out, or left Release storage, with any committed or working app-owned noncanonical caller | Managed shutdown | Render the current canonical closed guard, then publish any one-file transition from the default branch. |
+| Confirmed public repository left Release storage with an owned caller | Managed removal | Remove the Release caller, commit that exact deletion, and publish it from the default branch. |
 | Visibility not confirmed by GitHub | `blocked-visibility-unknown` | Neither route runs; reported once. |
-| No committed caller, working tree empty or already canonical | `install` | Write the canonical caller, commit it, push it. |
+| Active route with no committed caller, and a working tree that is empty or already canonical | `install` | Write the canonical caller and hand it to the default-branch commit/publish flow. |
 | Committed caller is byte-identical to canonical | `installed` | Nothing, including when the user has edited their working copy. |
-| A caller exists but differs from canonical | `offer-update` | A non-blocking notice offers a confirm-class one-click update. Never replaced silently. |
+| An active-policy caller exists but differs from the canonical or reviewed guard transition | `offer-update` | A non-blocking notice offers a confirm-class one-click update. Never replaced silently. |
 | Anything without the managed marker occupies the path | `blocked-unowned` | Left completely untouched; reported once. |
 
-`external-builder` and `blocked-visibility-unknown` win over every content
-observation, including `blocked-unowned`: whatever occupies the path, a private
-or unconfirmed repository is not somewhere this app installs, commits, or
-pushes a workflow.
+Unknown visibility stops before any mutation. Confirmed private opt-in uses the
+same owned in-repository route as public compression. Confirmed private opt-out
+may reach the writer only to turn a committed app-owned noncanonical caller into
+the current closed guard; it never installs a new caller. Content the app does
+not own remains protected in every policy.
 
 The same route gates the commit path. When an automatic large-file pin runs,
 `_commitIncludedChanges` includes an uncommitted managed caller in that commit
-only when `cheapLfsCloudCompressionUsesInRepoWorkflow` is true — a private
-repository has no caller to include, so nothing is added to the user's commit.
+only when `cheapLfsCloudCompressionUsesInRepoWorkflow` is true. A private
+opt-out is instead handled as the background publisher's explicit one-file
+shutdown; it is not smuggled into an unrelated user commit.
 
-The install itself never blocks the caller. It claims the repository through the
-Cheap LFS in-flight guard so a settings toggle, a panel sync, and a materialize
-pass cannot race to create the same commit, then runs detached and reports
-through the notification centre and the non-blocking notice stack.
+The request remains non-blocking to the UI, but every authoritative inspection,
+write, commit, and push waits for the repository's shared commit/materialize
+ownership. A clone restore, materialization, or another accepted commit finishes
+first; once workflow publication owns the gate, a later restore waits.
+Post-materialize repair is queued only after that restore releases. The
+latest-wins reconcile scheduler replaces an older queued generation instead of
+dropping the newer setting. If a generation changes during a write, the worker
+compare-and-swap restores the prior app-owned working bytes and index state only
+while the scheduler-produced file receipt and observed index preimage still
+match. A newer file edit or same-path stage wins and is preserved; rollback
+never writes over an unowned replacement.
+Confirm-class consent to replace a divergent managed caller belongs only to the
+exact confirmed generation and is never inherited by an ordinary reconcile.
+Progress and failures stay in the notification centre and non-blocking notice
+stack.
 
-Only the workflow path is committed. The file is staged by name and committed
-with `git commit -- <path>`, so whatever the user had staged stays staged and
-uncommitted. The commit message is bilingual:
-`Add Cheap LFS cloud compression workflow / 加入雲端壓縮工作流`.
+Only the workflow path is committed. A temporary index is seeded from the
+observed parent, stages only that path, writes one tree, and creates the commit
+with `git commit-tree`; an exact `update-ref` then advances only the still
+checked-out default branch. The real index is synchronized for that one path
+only, so every user-staged selection remains staged and uncommitted. The neutral
+bilingual message covers installs, shutdowns, and removals:
+`Reconcile Cheap LFS cloud compression policy / 對齊 Cheap LFS 雲端壓縮政策`.
 
-Publication reuses the existing batching push machinery and its proofs:
+Before any background commit or push, the checked-out branch must exactly match
+the canonicalized repository model's provider-reported `defaultBranch`; Git's
+inferred remote HEAD or `init.defaultBranch` fallback is not accepted. The exact
+destination is carried as `refs/heads/<default>` through the remote probe and
+push. Another branch, a detached HEAD, an ambiguous remote ref, or missing
+provider default identity leaves publication pending and reports the exact
+reason. The installer never checks out a different branch on the user's behalf.
+Immediately before the local ref update and again before push, it proves
+symbolic `HEAD`, the exact local default ref, the workflow commit's one expected
+parent, and a diff containing only the workflow path.
 
 - **Branch already published, remote tip equals the commit's parent** — the push
   goes through `ILocalCommitBatchingOperations.push` with
   `expectedRemoteSha` set to that tip, so it can only ever add this one commit,
   and the new tip is re-read from the remote with `readRemoteTip` rather than
   inferred from a successful `git push`.
-- **Branch never published** — the Cheap LFS first-publish anchor is reused
-  unchanged, because it is already the reviewed route that creates the branch
-  and proves it landed.
+- **Branch never published** — the same batching operation uses
+  `expectedRemoteSha: null`, which is create-only. If the branch appears before
+  push, the operation rejects; it never accepts an arbitrary newly visible tip
+  as proof of the workflow commit.
 - **Branch diverged from its remote** — the caller is committed locally and
   *not* pushed. A background push there would publish local commits the user
   never reviewed, so the workflow rides out with their own next push and the
   notice says so.
+
+Only a re-read remote tip equal to the workflow commit is reported as remotely
+ready. A deferred local commit remains pending until the user's own push proves
+it landed.
 
 Both the commit and the push skip hooks. This commit is app-generated,
 single-file, and unattended; a `pre-commit` or `pre-push` hook waiting on a
@@ -1722,31 +1769,19 @@ immutable action pins, mixed badges, and local-only single-object
 decompression.
 `cheap-lfs/workflow-auto-install-test.ts` covers the background install:
 every detection outcome (missing, committed-canonical, committed-divergent,
-locally edited, unowned), every publish outcome (push, anchor,
-defer-unpushed-commits, and each blocking reason), the `workflow`-scope refusal
-classification, a contract test proving every `uses:` in the canonical template
-is pinned by a full 40-character commit SHA, and an end-to-end run against a
-real repository with a real local bare remote that proves the caller is
-committed and the remote tip matches, that exactly one commit touching exactly
-one path is published, that a foreign file at the path is never rewritten, that
-a divergent managed caller is replaced only after confirmation, that a diverged
-branch is committed but never pushed, and that the user's staged selection
-survives untouched. It also drives the same real repository as an opted-in
-private repository and as one whose visibility GitHub has not confirmed,
-proving that neither writes the workflow path, creates a commit, or moves the
-remote tip, and that each reports its own deduped blocker notice.
-`cheap-lfs/encrypted-builder-test.ts` covers the private route on its own: the
-opaque derivations and their alphabets, stability for one repository and
-independence between two, the neutral loader stub, the gzip+base64 round-trip,
-every leak-prevention property of the job body (secrets-only configuration,
-masking before first use, `GITHUB_STEP_SUMMARY` unset, transcript captured and
-deleted, no Actions artifacts, dispatch-only triggers, and the SHA pin that
-keeps verification identical to the public route), and the leak guard —
-including an explicit assertion that no identifier of a private repository
-reaches any public-bound value, that the guard sees through the base64 envelope
-that would hide one, that a refusal never repeats the identifier it refused,
-that a short identifier is matched as a word and a long one anywhere, and that
-a name colliding with the public template is refused rather than published.
+locally edited, unowned), the exact private armed and closed guard transitions,
+every publish outcome (default-branch push, anchor,
+defer-unpushed-commits, non-default-branch refusal, and each blocking reason),
+the `workflow`-scope refusal classification, a contract test proving every
+`uses:` in the canonical template is pinned by a full 40-character commit SHA,
+and an end-to-end run against a real repository with a real local bare remote.
+That run proves the caller is committed and the remote tip matches, exactly one
+commit touching exactly one path is published, a foreign file at the path is
+never rewritten, a divergent managed caller is replaced only after
+confirmation, a diverged branch is committed but never pushed, and the user's
+staged selection survives untouched. It also drives the same real repository
+through private opt-in, private opt-out, and unknown-visibility states, proving
+the reviewed guard transitions and the deduped fail-closed blocker.
 `cheap-lfs/manual-upload-test.ts` covers whole-batch handoff names, atomic
 bucket rollover, Windows case-insensitive reservation, live preparation
 progress, free-space preflight, verified hardlink/copy staging, zero-byte and

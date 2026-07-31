@@ -169,6 +169,8 @@ describe('cheap LFS canonical remote preflight', () => {
           hasGitHubRepository: false,
           remoteName: null,
           branchName: null,
+          defaultBranchName: null,
+          remoteBranchRef: null,
           localTipShaBeforeCommit: null,
           remoteBranchSha: null,
         }
@@ -178,8 +180,11 @@ describe('cheap LFS canonical remote preflight', () => {
       },
     })
 
-    await (store as any).commitAndPublishCheapLfsWorkflow(repository)
+    const publication = await (store as any).prepareCheapLfsWorkflowPublication(
+      repository
+    )
 
+    assert.equal(publication, null)
     assert.deepEqual(events, ['canonicalize', 'read', 'failure'])
   })
 
@@ -197,6 +202,8 @@ describe('cheap LFS canonical remote preflight', () => {
           hasGitHubRepository: true,
           remoteName: 'origin',
           branchName: 'main',
+          defaultBranchName: 'main',
+          remoteBranchRef: 'refs/heads/main',
           localTipShaBeforeCommit: sha('a'),
           remoteBranchSha: sha('a'),
         }
@@ -206,8 +213,11 @@ describe('cheap LFS canonical remote preflight', () => {
       },
     })
 
-    await (store as any).commitAndPublishCheapLfsWorkflow(repository)
+    const publication = await (store as any).prepareCheapLfsWorkflowPublication(
+      repository
+    )
 
+    assert.equal(publication, null)
     assert.deepEqual(events, [])
     assert.deepEqual(failures, ['the destination could not be proven'])
   })
@@ -234,6 +244,8 @@ describe('cheap LFS canonical remote preflight', () => {
           hasGitHubRepository: true,
           remoteName: 'origin',
           branchName: 'main',
+          defaultBranchName: 'main',
+          remoteBranchRef: 'refs/heads/main',
           localTipShaBeforeCommit: sha('a'),
           remoteBranchSha: sha('a'),
         }
@@ -268,7 +280,15 @@ describe('cheap LFS canonical remote preflight', () => {
       },
     })
 
-    await (store as any).commitAndPublishCheapLfsWorkflow(repository)
+    const publication = await (store as any).prepareCheapLfsWorkflowPublication(
+      repository
+    )
+    assert.ok(publication !== null)
+    await (store as any).commitAndPublishCheapLfsWorkflow(
+      publication.repository,
+      publication.before,
+      publication.decision
+    )
 
     assert.deepEqual(events, [
       'canonicalize',
@@ -308,8 +328,8 @@ describe('cheap LFS canonical remote preflight', () => {
     )
 
     const workflow = section(
-      'private async commitAndPublishCheapLfsWorkflow(',
-      'private async pushCheapLfsWorkflowCommit('
+      'private async prepareCheapLfsWorkflowPublication(',
+      'private async reportCheapLfsEncryptedBuilderRoute('
     )
     assert.match(
       workflow,

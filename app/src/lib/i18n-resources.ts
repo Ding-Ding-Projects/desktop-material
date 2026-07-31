@@ -124,8 +124,23 @@ export type TranslationKey =
   | 'tabs.settingsChangeUndone'
   | 'tabs.settingsChangeRedone'
   | 'tabs.groupAddNew'
+  | 'tabs.groupMoveAction'
   | 'tabs.groupMoveTo'
   | 'tabs.groupRemoveFrom'
+  | 'tabs.groupMoveDialogTitle'
+  | 'tabs.groupMoveDialogIntro'
+  | 'tabs.groupMoveSearchLabel'
+  | 'tabs.groupMoveSearchPlaceholder'
+  | 'tabs.groupMoveSearchTarget'
+  | 'tabs.groupMoveListLabel'
+  | 'tabs.groupMoveRemoveCurrent'
+  | 'tabs.groupMoveDestinationLabel'
+  | 'tabs.groupMoveEmpty'
+  | 'tabs.groupMoveNoMatches'
+  | 'tabs.groupMoveCountOne'
+  | 'tabs.groupMoveCountMany'
+  | 'tabs.groupMoveFilterCount'
+  | 'tabs.groupMoveRegexError'
   | 'tabs.groupExpand'
   | 'tabs.groupCollapse'
   | 'tabs.groupDelete'
@@ -2006,6 +2021,8 @@ export type TranslationKey =
   | 'cheapLfs.cloud.autoInstall.succeededBody'
   | 'cheapLfs.cloud.autoInstall.deferredTitle'
   | 'cheapLfs.cloud.autoInstall.deferredBody'
+  | 'cheapLfs.cloud.autoInstall.pendingDefaultTitle'
+  | 'cheapLfs.cloud.autoInstall.pendingDefaultBody'
   | 'cheapLfs.cloud.autoInstall.failedTitle'
   | 'cheapLfs.cloud.autoInstall.failedBody'
   | 'cheapLfs.cloud.autoInstall.failedWorkflowScope'
@@ -2014,6 +2031,7 @@ export type TranslationKey =
   | 'cheapLfs.cloud.autoInstall.failedNoRepository'
   | 'cheapLfs.cloud.autoInstall.failedNoRemote'
   | 'cheapLfs.cloud.autoInstall.failedDetachedHead'
+  | 'cheapLfs.cloud.autoInstall.failedNoDefaultBranch'
   | 'cheapLfs.cloud.autoInstall.updateTitle'
   | 'cheapLfs.cloud.autoInstall.updateBody'
   | 'cheapLfs.cloud.autoInstall.updateAction'
@@ -2901,8 +2919,25 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tabs.settingsChangeUndone': 'Settings change undone.',
   'tabs.settingsChangeRedone': 'Settings change redone.',
   'tabs.groupAddNew': 'Add tab to new group…',
+  'tabs.groupMoveAction': 'Move tab to group…',
   'tabs.groupMoveTo': 'Move to “{name}”',
   'tabs.groupRemoveFrom': 'Remove from “{name}”',
+  'tabs.groupMoveDialogTitle': 'Move tab to group',
+  'tabs.groupMoveDialogIntro':
+    'Choose a destination for “{tab}”. Moving it only reorganizes the tab strip; it never closes the tab.',
+  'tabs.groupMoveSearchLabel': 'Search tab groups',
+  'tabs.groupMoveSearchPlaceholder': 'Group name',
+  'tabs.groupMoveSearchTarget': 'Tab groups',
+  'tabs.groupMoveListLabel': 'Available tab groups',
+  'tabs.groupMoveRemoveCurrent': 'No group — remove from “{name}”',
+  'tabs.groupMoveDestinationLabel': 'Move tab to “{name}”',
+  'tabs.groupMoveEmpty':
+    'No compatible destination groups are available. Create a group from the tab context menu first.',
+  'tabs.groupMoveNoMatches': 'No tab group matches this search.',
+  'tabs.groupMoveCountOne': '1 available destination',
+  'tabs.groupMoveCountMany': '{count} available destinations',
+  'tabs.groupMoveFilterCount': '{visible} of {total} destinations shown',
+  'tabs.groupMoveRegexError': 'Invalid regular expression: {message}.',
   'tabs.groupExpand': 'Expand “{name}”',
   'tabs.groupCollapse': 'Collapse “{name}”',
   'tabs.groupDelete': 'Delete group “{name}”',
@@ -5280,38 +5315,47 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.cloud.localOnly':
     'GitHub Actions compresses only. Desktop Material downloads and decompresses compressed objects locally, then verifies their original size and SHA-256.',
   'cheapLfs.cloud.workflowAdded':
-    'Cloud-compression workflow added to Changes. Review, commit, and push it to activate compression.',
+    'Cloud-compression policy queued. Desktop Material publishes the managed workflow in the background from the checked-out default branch and proves the remote tip.',
   'cheapLfs.cloud.workflowReady':
-    'Cloud-compression workflow file is ready. Commit and push it once; pointer updates then arrive as GitHub Actions commits.',
+    'The managed cloud-compression policy is prepared. The background publisher checks the default branch and leaves already-matching policy untouched.',
   'cheapLfs.cloud.workflowDisabled':
-    'Private cloud compression is off. Existing raw objects remain cloneable.',
+    'Private cloud compression is off. If an existing managed caller needs closing, Desktop Material publishes its closed guard in the background; raw objects remain cloneable.',
   'cheapLfs.cloud.builderRouted':
     'No workflow was added to this private repository and none of your private Actions minutes are spent. Compression runs through the encrypted public builder, which is set up outside Desktop Material; until it is, objects stay raw and cloneable.',
-  'cheapLfs.cloud.autoInstall.startedTitle': 'Setting up cloud compression',
+  'cheapLfs.cloud.autoInstall.startedTitle':
+    'Publishing cloud compression policy',
   'cheapLfs.cloud.autoInstall.startedBody':
-    'This repository uses cloud compression but has no compression workflow. Adding {path} in the background; keep working.',
-  'cheapLfs.cloud.autoInstall.succeededTitle': 'Cloud compression is active',
+    'Reconciling {path} with this repository’s current setting in the background. Desktop Material will commit and prove the exact remote policy when safe, or defer without pushing unrelated commits.',
+  'cheapLfs.cloud.autoInstall.succeededTitle':
+    'Cloud compression policy published',
   'cheapLfs.cloud.autoInstall.succeededBody':
-    'Committed and pushed {path} to {branch}. Release objects are compressed one by one from now on.',
+    'Remote branch {branch} now contains {path} with the guard that matches the current setting. Release objects follow that policy.',
   'cheapLfs.cloud.autoInstall.deferredTitle':
-    'Cloud compression workflow added',
+    'Cloud compression policy committed',
   'cheapLfs.cloud.autoInstall.deferredBody':
-    'Committed {path}. This branch has commits that are not on {remote} yet, so it was not pushed for you; compression starts after your next push.',
+    'Committed {path}, but this branch also has commits that are not on {remote}. Nothing was pushed automatically; the policy travels with your next reviewed push.',
+  'cheapLfs.cloud.autoInstall.pendingDefaultTitle':
+    'Cloud compression policy is waiting for the default branch',
+  'cheapLfs.cloud.autoInstall.pendingDefaultBody':
+    'The current branch is {branch}. The background publisher changes only the provider-reported default branch, {defaultBranch}; check it out and retry. No background commit or push was made. Any already prepared working-tree policy remains visible for review.',
   'cheapLfs.cloud.autoInstall.failedTitle':
-    'Could not set up cloud compression',
-  'cheapLfs.cloud.autoInstall.failedBody': '{path} was not installed. {reason}',
+    'Could not publish cloud compression policy',
+  'cheapLfs.cloud.autoInstall.failedBody':
+    'The remote policy at {path} is not yet proven to match this setting. {reason}',
   'cheapLfs.cloud.autoInstall.failedWorkflowScope':
-    'The push was rejected because the signed-in account lacks the `workflow` scope, which GitHub requires for any change under .github/workflows. Sign out and sign back in to grant it, or commit and push the file yourself.',
+    'The push was rejected because the signed-in account lacks the `workflow` scope, which GitHub requires for any change under .github/workflows. Sign out and back in to grant it, or review and push the managed policy yourself.',
   'cheapLfs.cloud.autoInstall.failedRejected':
-    'The push was rejected because the branch moved on the remote. Pull, then push again to activate compression.',
+    'The push was rejected because the remote branch moved. Pull, review the managed policy, then push again.',
   'cheapLfs.cloud.autoInstall.failedUnknown':
-    'The commit or push did not complete. The workflow file is still in Changes, so you can review and push it yourself.',
+    'The commit or push did not complete. The managed workflow may remain in Changes for review; the remote policy was not reported as published.',
   'cheapLfs.cloud.autoInstall.failedNoRepository':
     'This checkout is not associated with a GitHub repository, so there is nowhere to run the compression workflow.',
   'cheapLfs.cloud.autoInstall.failedNoRemote':
     'This repository has no push remote configured, so the workflow cannot be published.',
   'cheapLfs.cloud.autoInstall.failedDetachedHead':
     'HEAD is detached, so there is no branch to commit the workflow on. Check out a branch and try again.',
+  'cheapLfs.cloud.autoInstall.failedNoDefaultBranch':
+    'GitHub did not provide a default branch for this repository. Refresh or publish its default branch, then retry; no workflow commit was created.',
   'cheapLfs.cloud.autoInstall.updateTitle':
     'Cloud compression workflow is out of date',
   'cheapLfs.cloud.autoInstall.updateBody':
@@ -6425,8 +6469,24 @@ export const cantoneseTranslations: Readonly<
   'tabs.settingsChangeUndone': '已復原設定改動。',
   'tabs.settingsChangeRedone': '已重做設定改動。',
   'tabs.groupAddNew': '將分頁加入新群組…',
+  'tabs.groupMoveAction': '將分頁移去群組…',
   'tabs.groupMoveTo': '移去「{name}」',
   'tabs.groupRemoveFrom': '從「{name}」移走',
+  'tabs.groupMoveDialogTitle': '將分頁移去群組',
+  'tabs.groupMoveDialogIntro':
+    '揀「{tab}」要去邊個群組。搬位只會整理分頁列，絕對唔會閂咗個分頁。',
+  'tabs.groupMoveSearchLabel': '搜尋分頁群組',
+  'tabs.groupMoveSearchPlaceholder': '群組名',
+  'tabs.groupMoveSearchTarget': '分頁群組',
+  'tabs.groupMoveListLabel': '可用嘅分頁群組',
+  'tabs.groupMoveRemoveCurrent': '唔入群組 — 從「{name}」移走',
+  'tabs.groupMoveDestinationLabel': '將分頁移去「{name}」',
+  'tabs.groupMoveEmpty': '暫時冇相容嘅目的地群組。請先喺分頁右鍵選單建立群組。',
+  'tabs.groupMoveNoMatches': '冇分頁群組符合呢個搜尋。',
+  'tabs.groupMoveCountOne': '有 1 個可用目的地',
+  'tabs.groupMoveCountMany': '有 {count} 個可用目的地',
+  'tabs.groupMoveFilterCount': '顯示緊 {total} 個目的地入面嘅 {visible} 個',
+  'tabs.groupMoveRegexError': '正規表示式無效：{message}。',
   'tabs.groupExpand': '展開「{name}」',
   'tabs.groupCollapse': '收起「{name}」',
   'tabs.groupDelete': '刪除群組「{name}」',
@@ -8598,36 +8658,43 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.cloud.localOnly':
     'GitHub Actions 只負責壓縮。Desktop Material 會喺你部機下載同解壓，再核對原本大小同 SHA-256。',
   'cheapLfs.cloud.workflowAdded':
-    '雲端壓縮 workflow 已放入 Changes。檢查、commit 同 push 之後就會啟動。',
+    '雲端壓縮政策已排隊。Desktop Material 會喺背景由已 checkout 嘅預設 branch publish 個受管 workflow，再核實 remote tip，唔會叫個檔案自己識飛。',
   'cheapLfs.cloud.workflowReady':
-    '雲端壓縮 workflow 檔案已準備好。第一次 commit 同 push 之後，pointer 更新就會由 GitHub Actions commit 返嚟。',
+    '受管雲端壓縮政策已準備好。背景 publisher 會檢查預設 branch；如果政策本身已對，就唔會多手郁佢。',
   'cheapLfs.cloud.workflowDisabled':
-    '私人雲端壓縮已關閉；原本 raw 物件照樣 clone 得返。',
+    '私人雲端壓縮已關閉。如果舊受管 caller 仲要落閘，Desktop Material 會喺背景 publish 關閉 guard；raw 物件照樣 clone 得返。',
   'cheapLfs.cloud.builderRouted':
     '呢個私人 repo 冇加過 workflow，你嘅私人 Actions 分鐘一分鐘都冇燒。壓縮會經加密 public builder 做，而個 builder 要喺 Desktop Material 以外set好；未set好之前，啲物件會保持 raw，照樣 clone 得返。',
-  'cheapLfs.cloud.autoInstall.startedTitle': '幫緊你開雲端壓縮',
+  'cheapLfs.cloud.autoInstall.startedTitle': 'Publish 緊雲端壓縮政策',
   'cheapLfs.cloud.autoInstall.startedBody':
-    '呢個 repo 用緊雲端壓縮，但係未有壓縮 workflow。而家喺背景幫你加返 {path}，你照做嘢就得。',
-  'cheapLfs.cloud.autoInstall.succeededTitle': '雲端壓縮開好喇',
+    '而家喺背景將 {path} 同呢個 repo 嘅設定對齊；安全時先會 commit 同核實精確 remote 政策，否則會 defer，唔會順手 push 埋無關 commit。',
+  'cheapLfs.cloud.autoInstall.succeededTitle': '雲端壓縮政策已 publish',
   'cheapLfs.cloud.autoInstall.succeededBody':
-    '已經 commit 同 push 咗 {path} 上 {branch}。之後每個 Release 物件會逐件壓縮。',
-  'cheapLfs.cloud.autoInstall.deferredTitle': '壓縮 workflow 已經 commit 咗',
+    'Remote branch {branch} 而家有 {path}，入面個 guard 同目前設定一致；Release 物件會照呢份政策辦事。',
+  'cheapLfs.cloud.autoInstall.deferredTitle': '雲端壓縮政策已 commit',
   'cheapLfs.cloud.autoInstall.deferredBody':
-    '已經 commit 咗 {path}。呢條 branch 仲有 commit 未上 {remote}，所以冇幫你 push；你下次 push 之後壓縮就會啟動。',
-  'cheapLfs.cloud.autoInstall.failedTitle': '開唔到雲端壓縮',
-  'cheapLfs.cloud.autoInstall.failedBody': '{path} 未裝到。{reason}',
+    '已經 commit 咗 {path}，但呢條 branch 仲有其他 commit 未上 {remote}，所以背景冇擅自 push；政策會跟你下一次經審核嘅 push 一齊出門。',
+  'cheapLfs.cloud.autoInstall.pendingDefaultTitle':
+    '雲端壓縮政策等緊預設 branch',
+  'cheapLfs.cloud.autoInstall.pendingDefaultBody':
+    '目前係 {branch}。背景 publisher 只會改 provider 回報嘅預設 branch {defaultBranch}；checkout 過去再試。今次冇背景 commit 或 push；如果 working tree 本身已有準備好嘅政策，會留低畀你 review。',
+  'cheapLfs.cloud.autoInstall.failedTitle': 'Publish 唔到雲端壓縮政策',
+  'cheapLfs.cloud.autoInstall.failedBody':
+    'Remote 上 {path} 嘅政策仲未證實同目前設定一致。{reason}',
   'cheapLfs.cloud.autoInstall.failedWorkflowScope':
-    'Push 被拒絕，因為登入緊嘅帳戶冇 `workflow` 權限範圍；GitHub 規定改 .github/workflows 入面任何嘢都要有。請登出再登入授權，或者自己 commit 同 push 個檔案。',
+    'Push 被拒絕，因為登入緊嘅帳戶冇 `workflow` 權限範圍；GitHub 規定改 .github/workflows 入面任何嘢都要有。請登出再登入授權，或者檢查清楚再自己 push 份受管政策。',
   'cheapLfs.cloud.autoInstall.failedRejected':
-    'Push 被拒絕，因為遠端 branch 已經行前咗。請先 pull，再 push 一次去啟動壓縮。',
+    'Push 被拒絕，因為 remote branch 已經行前咗。請先 pull、檢查受管政策，再 push 一次。',
   'cheapLfs.cloud.autoInstall.failedUnknown':
-    'Commit 或者 push 未完成。個 workflow 檔案仲喺 Changes 度，你可以自己檢查同 push。',
+    'Commit 或者 push 未完成。受管 workflow 可能仲喺 Changes 等你檢查；remote 政策冇被報成已 publish。',
   'cheapLfs.cloud.autoInstall.failedNoRepository':
     '呢個 checkout 冇連住 GitHub repo，所以冇地方行壓縮 workflow。',
   'cheapLfs.cloud.autoInstall.failedNoRemote':
     '呢個 repo 冇設定 push remote，所以個 workflow publish 唔到。',
   'cheapLfs.cloud.autoInstall.failedDetachedHead':
     'HEAD 而家係 detached，冇 branch 可以 commit 個 workflow。請 checkout 返一條 branch 再試。',
+  'cheapLfs.cloud.autoInstall.failedNoDefaultBranch':
+    'GitHub 冇提供呢個 repo 嘅預設 branch。Refresh 或者先 publish 預設 branch 再試；今次冇建立 workflow commit。',
   'cheapLfs.cloud.autoInstall.updateTitle': '壓縮 workflow 版本唔同咗',
   'cheapLfs.cloud.autoInstall.updateBody':
     '{path} 同呢個版本嘅 Desktop Material 會裝嘅唔一樣。個檔案原封不動冇改過。如果唔係你自己特登改，先好更新佢。',

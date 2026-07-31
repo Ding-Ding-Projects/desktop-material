@@ -35,6 +35,7 @@ import { createTempDirectory } from '../../helpers/temp'
 import { GitHubRepository } from '../../../src/models/github-repository'
 import { Owner } from '../../../src/models/owner'
 import type { IGitHubReleaseTransferProgressEvent } from '../../../src/lib/github-release-transfer'
+import { Account } from '../../../src/models/account'
 
 const execFile = promisify(execFileCallback)
 
@@ -359,11 +360,108 @@ describe('AppStore Cheap LFS OCI routing', () => {
       ) => {
         routedPaths = [...(options.requestedPaths ?? [])]
       },
+      repositoriesStore: {
+        getAll: async () => [repository],
+      },
     })
 
     await store.maybeAutoMaterializeCheapLfs(repository)
 
     assert.deepEqual([...routedPaths].sort(), ['registry.ptr', 'release.ptr'])
+  })
+
+  it('re-reads persisted preferences after a long restore before queuing workflow policy', async t => {
+    const root = await createTempDirectory(t)
+    await writeFile(
+      join(root, 'release.ptr'),
+      serializeCheapLfsPointer({
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'assets',
+        assetName: 'release.bin',
+        sizeInBytes: 11,
+        sha256: 'a'.repeat(64),
+      })
+    )
+    const gitHubRepository = new GitHubRepository(
+      'material',
+      new Owner('desktop', 'https://api.github.com', 1),
+      191,
+      true
+    )
+    const enabledPreferences = {
+      ...defaultBuildRunPreferences,
+      cheapLfsCloudCompression: true,
+    }
+    const disabledPreferences = {
+      ...defaultBuildRunPreferences,
+      cheapLfsCloudCompression: false,
+    }
+    const repository = new Repository(
+      root,
+      191,
+      gitHubRepository,
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      null,
+      enabledPreferences
+    )
+    const latestRepository = new Repository(
+      root,
+      191,
+      gitHubRepository,
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      null,
+      disabledPreferences
+    )
+    const restoreStarted = deferred<void>()
+    const releaseRestore = deferred<void>()
+    const queued: Array<{
+      repository: Repository
+      preferences: typeof disabledPreferences
+    }> = []
+    const store = Object.create(AppStore.prototype) as AppStore
+    Object.assign(store, {
+      accounts: [
+        new Account(
+          'selected',
+          'https://api.github.com',
+          'token',
+          [],
+          '',
+          1,
+          'Selected'
+        ),
+      ],
+      cheapLfsMaterializeOwners: new Map(),
+      cheapLfsMaterializeTails: new Map(),
+      runCheapLfsMaterialize: async () => {
+        restoreStarted.resolve()
+        await releaseRestore.promise
+      },
+      repositoriesStore: {
+        getAll: async () => [latestRepository],
+      },
+      maybeAutoInstallCheapLfsCloudCompressionWorkflow: (
+        target: Repository,
+        preferences: typeof disabledPreferences
+      ) => queued.push({ repository: target, preferences }),
+    })
+
+    const materialize = store.maybeAutoMaterializeCheapLfs(repository)
+    await restoreStarted.promise
+    releaseRestore.resolve()
+    await materialize
+
+    assert.equal(queued.length, 1)
+    assert.equal(queued[0].repository, latestRepository)
+    assert.equal(queued[0].preferences.cheapLfsCloudCompression, false)
   })
 
   it('keeps signed-out private and unknown Release pointers gated', async t => {

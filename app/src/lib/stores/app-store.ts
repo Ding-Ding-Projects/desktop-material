@@ -1,5 +1,15 @@
 import * as Path from 'path'
-import { lstat, mkdtemp, rm, writeFile } from 'fs/promises'
+import { constants as FsConstants } from 'fs'
+import {
+  copyFile,
+  lstat,
+  mkdtemp,
+  readFile,
+  rename,
+  rm,
+  unlink,
+  writeFile,
+} from 'fs/promises'
 import { tmpdir } from 'os'
 import {
   AccountsStore,
@@ -117,10 +127,14 @@ import {
 } from '../cheap-lfs/oci-registry-runtime'
 import {
   CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+  cheapLfsWorkflowSnapshotsMatch,
   cheapLfsCloudCompressionUsesInRepoWorkflow,
   ensureCheapLfsCloudCompressionWorkflow,
+  ICheapLfsWorkflowSnapshot,
   IEnsureCheapLfsCloudCompressionResult,
   inspectCheapLfsCloudCompressionWorkflow,
+  removeCheapLfsCloudCompressionWorkflow,
+  restoreCheapLfsCloudCompressionWorkflowSnapshot,
 } from '../cheap-lfs/cloud-compression'
 import {
   CheapLfsEncryptedBuilderPreparation,
@@ -144,6 +158,7 @@ import {
   decideCheapLfsWorkflowInstall,
   decideCheapLfsWorkflowPublish,
   ICheapLfsWorkflowPublicationState,
+  CheapLfsWorkflowPublishDecision,
 } from '../cheap-lfs/workflow-auto-install'
 import {
   ICheapLfsStorageRecommendation,
@@ -1550,6 +1565,52 @@ interface IRendererShutdownResumeFlight {
   readonly promise: Promise<void>
 }
 
+interface ICheapLfsWorkflowReconcileRequest {
+  readonly generation: number
+  readonly repository: Repository
+  readonly preferences: IBuildRunPreferences
+  /**
+   * Consent from the explicit "update managed workflow" action. This belongs
+   * only to this generation; an ordinary later reconcile must never inherit it.
+   */
+  readonly replaceDivergent: boolean
+}
+
+interface ICheapLfsWorkflowReconcileWaiter {
+  readonly resolve: () => void
+}
+
+interface ICheapLfsWorkflowReconcileState {
+  generation: number
+  latest: ICheapLfsWorkflowReconcileRequest | null
+  worker: Promise<void> | null
+  waiters: Array<ICheapLfsWorkflowReconcileWaiter>
+}
+
+interface ICheapLfsWorkflowIndexTransaction {
+  readonly indexPath: string
+  readonly indexExisted: boolean
+  readonly lockPath: string
+  readonly environment: Readonly<Record<string, string>>
+  readonly priorContents: Buffer
+  readonly priorEntry: string
+}
+
+interface ICheapLfsWorkflowIndexReceipt {
+  readonly indexPath: string
+  readonly priorContents: Buffer
+  readonly committedContents: Buffer
+  readonly priorEntry: string
+  readonly committedEntry: string
+}
+
+interface ICheapLfsWorkflowCommitReceipt {
+  readonly commitSha: string
+  readonly expectedBlobSha: string | null
+  readonly expectedWorkingTree: ICheapLfsWorkflowSnapshot | null
+  readonly index: ICheapLfsWorkflowIndexReceipt
+}
+
 interface ICheapLfsAutoMaterializeOptions {
   readonly requireSelected?: boolean
   readonly cheapLfsSelection?: ICheapLfsCloneSelection
@@ -1879,11 +1940,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private readonly gitAutoFixInFlight = new Set<string>()
 
   /**
-   * Repositories whose cloud-compression workflow is being installed right now.
-   * Every enable, panel sync, and materialize pass can ask for the same repair,
-   * and two of them at once would race to create the same commit.
+   * Latest-wins cloud-compression policy reconciliation, one queue per
+   * checkout. A toggle arriving while an older pass waits or runs replaces its
+   * generation; the worker drains the replacement before releasing the shared
+   * commit/materialize gate.
    */
-  private cheapLfsWorkflowInstalls: InFlightGuardState = EmptyInFlightGuard
+  private cheapLfsWorkflowReconciles = new Map<
+    string,
+    ICheapLfsWorkflowReconcileState
+  >()
 
   /**
    * Repositories whose commit-provenance annotation pass is running right now,
@@ -4284,7 +4349,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     fence: IScheduledAutomationFence | null = this.captureScheduledAutomationFence(
       repository
     ),
-    isBackgroundTask: boolean = fence !== null
+    isBackgroundTask: boolean = fence !== null,
+    commitGateAlreadyHeld: boolean = false
   ): Promise<boolean> {
     if (!this.canContinueScheduledAutomation(fence)) {
       return false
@@ -4300,7 +4366,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return this.performScheduledPushWithResolvedRepository(
       resolvedRepository,
       fence,
-      isBackgroundTask
+      isBackgroundTask,
+      commitGateAlreadyHeld
     )
   }
 
@@ -4309,7 +4376,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     fence: IScheduledAutomationFence | null = this.captureScheduledAutomationFence(
       repository
     ),
-    isBackgroundTask: boolean = fence !== null
+    isBackgroundTask: boolean = fence !== null,
+    commitGateAlreadyHeld: boolean = false
   ): Promise<boolean> {
     if (!this.canContinueScheduledAutomation(fence)) {
       return false
@@ -4358,7 +4426,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
             onHookFailure: async () => 'abort',
             isBackgroundTask,
             noVerify: isBackgroundTask,
-          }
+          },
+          false,
+          commitGateAlreadyHeld
         )
         await pushRepo(
           repository,
@@ -7180,6 +7250,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             destination.remote,
             accountKey,
             { onHookFailure: async () => 'abort', isBackgroundTask },
+            true,
             true
           )
         })
@@ -7375,7 +7446,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
             const pushed = await this.performScheduledPush(
               repository,
               null,
-              isBackgroundTask
+              isBackgroundTask,
+              true
             )
             if (!pushed) {
               return false
@@ -10830,13 +10902,45 @@ export class AppStore extends TypedBaseStore<IAppState> {
     remote: IRemote,
     accountKey: string | undefined,
     options?: PushOptions,
-    flushExistingBeforeNewCommit: boolean = false
+    flushExistingBeforeNewCommit: boolean = false,
+    commitGateAlreadyHeld: boolean = false
   ): Promise<void> {
-    if (!this.canRunLegacyLocalCommitPushBatching(repository)) {
+    if (!commitGateAlreadyHeld) {
+      if (!this.canRunLegacyLocalCommitPushBatching(repository)) {
+        // The legacy rewriter temporarily resets and rebuilds local commits. A
+        // temporary submodule must keep its independent history untouched, and
+        // a restore owns changing working-tree bytes until it settles. Neither
+        // condition blocks the ordinary immutable-ref Git push that follows.
+        return
+      }
+      const acquired = await this.withIsCommitting(repository, async () => {
+        await this.handleLegacyLocalCommitPushBatching(
+          repository,
+          remote,
+          accountKey,
+          options,
+          flushExistingBeforeNewCommit,
+          true
+        )
+        return true
+      })
+      if (!acquired) {
+        // Another commit or a newly queued restore won the gate. Batching is
+        // optional preparation, so the caller still performs its ordinary push
+        // without resetting or rebuilding local history.
+        return
+      }
+      return
+    }
+
+    // Do not sample materialize ownership again after the commit gate has been
+    // acquired. A restore that queues now deliberately registers an owner
+    // immediately, but it waits on this gate; treating that queued owner as an
+    // active conflict would skip safe batching forever.
+    if (isSubmoduleRepository(repository)) {
       // The legacy rewriter temporarily resets and rebuilds local commits. A
-      // temporary submodule must keep its independent history untouched, and
-      // a restore owns changing working-tree bytes until it settles. Neither
-      // condition blocks the ordinary immutable-ref Git push that follows.
+      // temporary submodule must keep its independent history untouched even
+      // when a stale caller incorrectly claims to hold the outer commit gate.
       return
     }
     if (options?.forceWithLease || options?.branch !== undefined) {
@@ -10858,7 +10962,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     const remoteBranchName = tip.branch.upstreamWithoutRemote ?? tip.branch.name
 
-    const session = createLocalCommitBatchingGitSession(repository, {
+    const session = this.createLegacyLocalCommitBatchingGitSession(repository, {
       remote,
       remoteBranchRef: `refs/heads/${remoteBranchName}`,
       accountKey,
@@ -12584,7 +12688,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
               () =>
                 createMergeCommit(
                   repository,
-                  conflictState.changesState.workingDirectory,
+                  conflictState.changesState.workingDirectory.files,
                   new Map<string, ManualConflictResolution>()
                 )
             )
@@ -16919,19 +17023,44 @@ export class AppStore extends TypedBaseStore<IAppState> {
         policy: 'not-github',
       }
     }
-    await this.assertTemporaryRepositoryIsSafe(repository)
-    const result = await ensureCheapLfsCloudCompressionWorkflow(
+
+    // Record the preference generation before the first await. Two rapid
+    // toggles must preserve call order even when their read-only inspections
+    // finish in the opposite order.
+    void this.runCheapLfsWorkflowAutoInstall(
+      repository,
+      false,
+      preferences
+    ).catch(error =>
+      log.error('Background Cheap LFS workflow reconcile failed', error)
+    )
+
+    // This boundary is deliberately read-only. The gated worker repeats this
+    // inspection before making any decision, so these bytes are only an
+    // immediate UI hint and can never authorize a later mutation.
+    const effectivePreferences = this.cheapLfsWorkflowEffectivePreferences(
       repository,
       preferences
     )
-    if (result.changed) {
-      await this._loadStatus(repository)
+    const inspection = await inspectCheapLfsCloudCompressionWorkflow(
+      repository,
+      effectivePreferences
+    )
+    const decision = decideCheapLfsWorkflowInstall({
+      policy: inspection.policy,
+      provider: getCheapLfsStorageProvider(preferences),
+      committedContents: await this.readCommittedCheapLfsWorkflow(repository),
+      workingTreeContents: inspection.contents,
+      canonicalContents: inspection.canonicalContents,
+    })
+    return {
+      path: inspection.path,
+      changed:
+        decision === 'install' ||
+        decision === 'publish-disable' ||
+        decision === 'publish-remove',
+      policy: inspection.policy,
     }
-    // Enabling compression is the moment the repository starts depending on a
-    // workflow it may not carry. Detect and repair that in the background so
-    // the caller — a settings toggle, the Cheap LFS panel — returns at once.
-    this.maybeAutoInstallCheapLfsCloudCompressionWorkflow(repository)
-    return result
   }
 
   /**
@@ -16944,32 +17073,27 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * commit and push it themselves, which is the step that silently never
    * happened. This closes it by committing and pushing that one file for them.
    *
-   * Fire-and-forget by construction: it claims the repository, returns
-   * immediately, and reports start, success, and failure as non-blocking
-   * notifications. It never throws and never blocks whatever the user is doing.
+   * Fire-and-forget by construction: it records the newest requested policy in
+   * the repository's reconcile queue and returns immediately. The worker waits
+   * for the shared restore/commit gate, skips superseded generations, and
+   * reports start, success, deferral, and failure as non-blocking
+   * notifications. It never blocks whatever the user is doing.
    */
   public maybeAutoInstallCheapLfsCloudCompressionWorkflow(
-    repository: Repository
+    repository: Repository,
+    preferences: IBuildRunPreferences = repository.buildRunPreferences ??
+      defaultBuildRunPreferences
   ): void {
     if (isSubmoduleRepository(repository)) {
       return
     }
-    const target = String(repository.id)
-    const claim = claimInFlight(this.cheapLfsWorkflowInstalls, target)
-    if (!claim.accepted) {
-      return
-    }
-    this.cheapLfsWorkflowInstalls = claim.state
-    void this.runCheapLfsWorkflowAutoInstall(repository, false)
-      .catch(error =>
-        log.error('Background Cheap LFS workflow install failed', error)
-      )
-      .finally(() => {
-        this.cheapLfsWorkflowInstalls = releaseInFlight(
-          this.cheapLfsWorkflowInstalls,
-          target
-        )
-      })
+    void this.runCheapLfsWorkflowAutoInstall(
+      repository,
+      false,
+      preferences
+    ).catch(error =>
+      log.error('Background Cheap LFS workflow reconcile failed', error)
+    )
   }
 
   /**
@@ -16993,22 +17117,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (isSubmoduleRepository(repository)) {
       return
     }
-    const target = String(repository.id)
-    const claim = claimInFlight(this.cheapLfsWorkflowInstalls, target)
-    if (!claim.accepted) {
-      return
-    }
-    this.cheapLfsWorkflowInstalls = claim.state
     this._dismissErrorNotice(noticeId)
     try {
       await this.runCheapLfsWorkflowAutoInstall(repository, true)
     } catch (error) {
       log.error('Confirmed Cheap LFS workflow update failed', error)
-    } finally {
-      this.cheapLfsWorkflowInstalls = releaseInFlight(
-        this.cheapLfsWorkflowInstalls,
-        target
-      )
     }
   }
 
@@ -17039,26 +17152,227 @@ export class AppStore extends TypedBaseStore<IAppState> {
    */
   private async runCheapLfsWorkflowAutoInstall(
     repository: Repository,
-    replaceDivergent: boolean
+    replaceDivergent: boolean,
+    preferences: IBuildRunPreferences = repository.buildRunPreferences ??
+      defaultBuildRunPreferences
   ): Promise<void> {
     if (isSubmoduleRepository(repository)) {
       return
     }
-    await this.assertTemporaryRepositoryIsSafe(repository)
-    const preferences =
-      repository.buildRunPreferences ?? defaultBuildRunPreferences
-    const inspection = await inspectCheapLfsCloudCompressionWorkflow(
+    return await this.queueCheapLfsWorkflowReconcile(
+      repository,
+      preferences,
+      replaceDivergent
+    )
+  }
+
+  /**
+   * Convert an inactive private provider to the canonical closed guard without
+   * changing the persisted preference snapshot. Public inactive providers are
+   * handled by removing their caller because a public guard cannot be closed.
+   */
+  private cheapLfsWorkflowEffectivePreferences(
+    repository: Repository,
+    preferences: IBuildRunPreferences
+  ): IBuildRunPreferences {
+    return getCheapLfsStorageProvider(preferences) !== 'release' &&
+      repository.gitHubRepository?.isPrivate === true
+      ? { ...preferences, cheapLfsCloudCompression: false }
+      : preferences
+  }
+
+  /** Queue a generation and resolve only after the queue becomes idle. */
+  private queueCheapLfsWorkflowReconcile(
+    repository: Repository,
+    preferences: IBuildRunPreferences,
+    replaceDivergent: boolean
+  ): Promise<void> {
+    const key = cheapLfsMaterializeRepositoryKey(repository)
+    const states =
+      this.cheapLfsWorkflowReconciles ??
+      (this.cheapLfsWorkflowReconciles = new Map())
+    let state = states.get(key)
+    if (state === undefined) {
+      state = {
+        generation: 0,
+        latest: null,
+        worker: null,
+        waiters: [],
+      }
+      states.set(key, state)
+    }
+    const generation = ++state.generation
+    state.latest = {
+      generation,
+      repository,
+      // Callers pass immutable models today, but make the queued policy
+      // independent of any accidental later object mutation.
+      preferences: { ...preferences },
+      replaceDivergent,
+    }
+    const completion = new Promise<void>(resolve =>
+      state!.waiters.push({ resolve })
+    )
+    if (state.worker === null) {
+      this.startCheapLfsWorkflowReconcileWorker(key, state)
+    }
+    return completion
+  }
+
+  private startCheapLfsWorkflowReconcileWorker(
+    key: string,
+    state: ICheapLfsWorkflowReconcileState
+  ): void {
+    const worker = this.drainCheapLfsWorkflowReconciles(state)
+      .catch(error =>
+        log.error('Cheap LFS workflow reconcile worker failed', error)
+      )
+      .finally(() => {
+        if (state.worker !== worker) {
+          return
+        }
+        state.worker = null
+        if (state.latest !== null) {
+          this.startCheapLfsWorkflowReconcileWorker(key, state)
+          return
+        }
+        if (this.cheapLfsWorkflowReconciles?.get(key) === state) {
+          this.cheapLfsWorkflowReconciles.delete(key)
+        }
+        const waiters = state.waiters.splice(0)
+        for (const waiter of waiters) {
+          waiter.resolve()
+        }
+      })
+    state.worker = worker
+  }
+
+  /**
+   * Hold the shared checkout gate while draining every generation that arrives
+   * during the active pass. A superseded request is skipped at each async
+   * boundary; its successor is then reconciled before the gate is released.
+   */
+  private async drainCheapLfsWorkflowReconciles(
+    state: ICheapLfsWorkflowReconcileState
+  ): Promise<void> {
+    while (state.latest !== null) {
+      const queued = state.latest
+      try {
+        await this.assertTemporaryRepositoryIsSafe(queued.repository)
+        const acquired = await this.withCheapLfsWorkflowPublicationGate(
+          queued.repository,
+          async () => {
+            while (state.latest !== null) {
+              const request = state.latest
+              const isCurrent = () =>
+                state.latest?.generation === request.generation
+              await this.runCheapLfsWorkflowAutoInstallWithGate(
+                request.repository,
+                request.replaceDivergent,
+                request.preferences,
+                isCurrent
+              )
+              if (isCurrent()) {
+                state.latest = null
+              }
+            }
+            return true
+          }
+        )
+        if (!acquired && state.latest?.generation === queued.generation) {
+          state.latest = null
+        }
+      } catch (error) {
+        log.error('Cheap LFS workflow reconcile pass failed', error)
+        if (state.latest?.generation === queued.generation) {
+          state.latest = null
+        }
+      }
+    }
+  }
+
+  /**
+   * Wait for any checkout restore or commit owner, then claim the same commit
+   * gate before the background publisher reads, writes, commits, or pushes.
+   *
+   * Restore owners register at enqueue time and later restores wait on the
+   * commit gate. Re-reading both queues in a loop closes the only remaining
+   * race: a restore or commit that appeared while this background task was
+   * waiting simply becomes the next promise it waits for.
+   */
+  private async withCheapLfsWorkflowPublicationGate(
+    repository: Repository,
+    operation: () => Promise<boolean>
+  ): Promise<boolean> {
+    const key = cheapLfsMaterializeRepositoryKey(repository)
+    while (this.isTemporaryRepositoryActive(repository)) {
+      const materialize = this.cheapLfsMaterializeTails?.get(key)
+      const commit = this.cheapLfsCommitGates?.get(key)
+      const pending = [materialize, commit].filter(
+        (value): value is Promise<void> => value !== undefined
+      )
+      if (pending.length > 0) {
+        await Promise.all(pending.map(value => value.catch(() => undefined)))
+        continue
+      }
+
+      const acquired = await this.withIsCommitting(repository, operation)
+      if (acquired) {
+        return true
+      }
+
+      // `withIsCommitting` can lose only to repository teardown, a commit, or
+      // a restore. Retry a newly observable owner; otherwise the repository
+      // became unavailable and this fire-and-forget pass stops quietly.
+      if (
+        this.cheapLfsMaterializeTails?.has(key) ||
+        this.cheapLfsCommitGates?.has(key)
+      ) {
+        continue
+      }
+      return false
+    }
+    return false
+  }
+
+  /** Run only while `withIsCommitting` owns the checkout mutation gate. */
+  private async runCheapLfsWorkflowAutoInstallWithGate(
+    repository: Repository,
+    replaceDivergent: boolean,
+    preferences: IBuildRunPreferences,
+    isCurrent: () => boolean
+  ): Promise<void> {
+    if (!isCurrent()) {
+      return
+    }
+    const effectivePreferences = this.cheapLfsWorkflowEffectivePreferences(
       repository,
       preferences
     )
+    const inspection = await inspectCheapLfsCloudCompressionWorkflow(
+      repository,
+      effectivePreferences
+    )
+    if (!isCurrent()) {
+      return
+    }
+    const committedContents = await this.readCommittedCheapLfsWorkflow(
+      repository
+    )
+    if (!isCurrent()) {
+      return
+    }
     const decision = decideCheapLfsWorkflowInstall({
       policy: inspection.policy,
       provider: getCheapLfsStorageProvider(preferences),
-      committedContents: await this.readCommittedCheapLfsWorkflow(repository),
+      committedContents,
       workingTreeContents: inspection.contents,
       canonicalContents: inspection.canonicalContents,
     })
 
+    if (!isCurrent()) {
+      return
+    }
     if (decision === 'disabled' || decision === 'installed') {
       return
     }
@@ -17096,45 +17410,164 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
 
-    this.postNotification({
-      kind: 'cheap-lfs',
-      title: t('cheapLfs.cloud.autoInstall.startedTitle'),
-      body: t('cheapLfs.cloud.autoInstall.startedBody', {
-        path: CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
-      }),
-      repositoryId: repository.id,
-      action: { kind: 'open-repository', repositoryId: repository.id },
-    })
-
     try {
+      const publication = await this.prepareCheapLfsWorkflowPublication(
+        repository,
+        isCurrent
+      )
+      if (publication === null || !isCurrent()) {
+        return
+      }
+      repository = publication.repository
+
+      this.postNotification({
+        kind: 'cheap-lfs',
+        title: t('cheapLfs.cloud.autoInstall.startedTitle'),
+        body: t('cheapLfs.cloud.autoInstall.startedBody', {
+          path: CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+        }),
+        repositoryId: repository.id,
+        action: { kind: 'open-repository', repositoryId: repository.id },
+      })
+
       // The hardened writer owns every filesystem check (symlink, hard link,
       // redirected directory, oversized file); this never writes the path
       // itself. A confirmed update is the only caller allowed to reach it with
       // a divergent managed file in place, and the writer still refuses an
       // unowned one.
-      const written = await ensureCheapLfsCloudCompressionWorkflow(
-        repository,
-        preferences
-      )
+      const written =
+        decision === 'publish-remove'
+          ? await removeCheapLfsCloudCompressionWorkflow(
+              repository,
+              effectivePreferences,
+              undefined,
+              isCurrent
+            )
+          : await ensureCheapLfsCloudCompressionWorkflow(
+              repository,
+              effectivePreferences,
+              undefined,
+              isCurrent
+            )
+      const rollbackMutation = async () => {
+        if (written.changed) {
+          await restoreCheapLfsCloudCompressionWorkflowSnapshot(
+            repository,
+            inspection.contents,
+            written.snapshot
+          )
+        }
+        await this._loadStatus(repository)
+      }
+      if (!isCurrent()) {
+        await rollbackMutation()
+        return
+      }
       const staged = await inspectCheapLfsCloudCompressionWorkflow(
         repository,
-        preferences
+        effectivePreferences
       )
-      if (staged.contents !== staged.canonicalContents) {
+      if (!isCurrent()) {
+        await rollbackMutation()
+        return
+      }
+      const stagedMatchesPolicy =
+        decision === 'publish-remove'
+          ? staged.contents === null
+          : decision === 'publish-disable'
+          ? staged.contents === null ||
+            staged.contents === staged.canonicalContents
+          : staged.contents === staged.canonicalContents
+      if (
+        !stagedMatchesPolicy ||
+        !cheapLfsWorkflowSnapshotsMatch(staged.snapshot, written.snapshot)
+      ) {
         throw new Error(
-          'the workflow file did not match the canonical caller after it was written'
+          'the workflow file did not match the exact scheduler write after it was written'
         )
       }
       if (written.changed) {
         await this._loadStatus(repository)
       }
-      await this.commitAndPublishCheapLfsWorkflow(repository)
+      await this.commitAndPublishCheapLfsWorkflow(
+        repository,
+        publication.before,
+        publication.decision,
+        written.snapshot,
+        isCurrent,
+        rollbackMutation
+      )
     } catch (error) {
+      if (isCurrent()) {
+        this.postCheapLfsWorkflowFailure(
+          repository,
+          error instanceof Error ? error.message : String(error)
+        )
+      }
+    }
+  }
+
+  /**
+   * Resolve and prove the one branch the background publisher may mutate.
+   * This runs inside the commit/materialize gate and before the workflow writer,
+   * so a stale remote, feature branch, detached checkout, or missing default
+   * branch cannot leave even a new working-tree policy behind.
+   */
+  private async prepareCheapLfsWorkflowPublication(
+    repository: Repository,
+    isCurrent: () => boolean = () => true
+  ): Promise<{
+    readonly repository: Repository
+    readonly before: ICheapLfsWorkflowPublicationState
+    readonly decision: CheapLfsWorkflowPublishDecision
+  } | null> {
+    try {
+      repository = await this.repositoryWithCanonicalRemoteForNetwork(
+        repository,
+        true
+      )
+    } catch (error) {
+      if (isCurrent()) {
+        this.postCheapLfsWorkflowFailure(
+          repository,
+          error instanceof Error ? error.message : String(error)
+        )
+      }
+      return null
+    }
+    if (!isCurrent()) {
+      return null
+    }
+
+    const before = await this.readCheapLfsWorkflowPublicationState(repository)
+    if (!isCurrent()) {
+      return null
+    }
+    const decision = decideCheapLfsWorkflowPublish(before)
+    if (decision === 'defer-non-default') {
+      this.postNotification({
+        kind: 'cheap-lfs',
+        title: t('cheapLfs.cloud.autoInstall.pendingDefaultTitle'),
+        body: t('cheapLfs.cloud.autoInstall.pendingDefaultBody', {
+          branch: before.branchName ?? '',
+          defaultBranch: before.defaultBranchName ?? '',
+        }),
+        repositoryId: repository.id,
+        action: { kind: 'open-repository', repositoryId: repository.id },
+      })
+      return null
+    }
+    if (cheapLfsWorkflowPublishIsBlocked(decision)) {
+      const reasonKey = cheapLfsWorkflowPublishReasonKey(decision)
       this.postCheapLfsWorkflowFailure(
         repository,
-        error instanceof Error ? error.message : String(error)
+        '',
+        reasonKey ?? 'cheapLfs.cloud.autoInstall.failedUnknown'
       )
+      return null
     }
+
+    return { repository, before, decision }
   }
 
   /**
@@ -17194,45 +17627,51 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * from the remote rather than from a successful `git push`.
    */
   private async commitAndPublishCheapLfsWorkflow(
-    repository: Repository
+    repository: Repository,
+    before: ICheapLfsWorkflowPublicationState,
+    decision: CheapLfsWorkflowPublishDecision,
+    expectedWorkingTree: ICheapLfsWorkflowSnapshot | null,
+    isCurrent: () => boolean = () => true,
+    rollbackWorkingTree: () => Promise<void> = async () => {}
   ): Promise<void> {
-    // This unattended flow reads the remote branch state and then pushes an
-    // app-generated commit. Resolve the canonical remote first so a repository
-    // transferred or renamed on GitHub is never probed — or published to — at
-    // a stale URL. Fail closed: an unproven destination reports the failure
-    // and stops.
-    try {
-      repository = await this.repositoryWithCanonicalRemoteForNetwork(
-        repository,
-        true
-      )
-    } catch (error) {
-      this.postCheapLfsWorkflowFailure(
-        repository,
-        error instanceof Error ? error.message : String(error)
-      )
+    if (!isCurrent()) {
+      await rollbackWorkingTree()
       return
     }
-    const before = await this.readCheapLfsWorkflowPublicationState(repository)
-    const decision = decideCheapLfsWorkflowPublish(before)
-    if (cheapLfsWorkflowPublishIsBlocked(decision)) {
-      const reasonKey = cheapLfsWorkflowPublishReasonKey(decision)
-      this.postCheapLfsWorkflowFailure(
-        repository,
-        '',
-        reasonKey ?? 'cheapLfs.cloud.autoInstall.failedUnknown'
-      )
-      return
-    }
-
-    const commitSha = await this.commitCheapLfsWorkflowPath(repository)
-    if (commitSha === null) {
+    const committed = await this.commitCheapLfsWorkflowPath(
+      repository,
+      before,
+      expectedWorkingTree,
+      isCurrent
+    )
+    if (committed === null) {
       // Nothing to commit means the tree already carried this exact content at
       // HEAD; the detection above raced with another writer. Not a failure.
+      if (!isCurrent()) {
+        await rollbackWorkingTree()
+      }
+      return
+    }
+    if (!isCurrent()) {
+      await this.rollbackCheapLfsWorkflowCommitRef(
+        repository,
+        before,
+        committed
+      )
+      await rollbackWorkingTree()
       return
     }
     await this._loadStatus(repository)
     await this.gitStoreCache.get(repository).loadBranches()
+    if (!isCurrent()) {
+      await this.rollbackCheapLfsWorkflowCommitRef(
+        repository,
+        before,
+        committed
+      )
+      await rollbackWorkingTree()
+      return
+    }
 
     if (decision === 'defer-unpushed-commits') {
       // Pushing here would publish local commits the user never asked to
@@ -17250,23 +17689,23 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
 
-    if (decision === 'anchor') {
-      // The branch has never been published. The Cheap LFS first-publish anchor
-      // is already the reviewed route that creates it and proves it landed.
-      const anchor = await this.ensureCheapLfsReleaseAnchor(repository)
-      if (anchor.failure !== null) {
-        this.postCheapLfsWorkflowFailure(
-          repository,
-          anchor.failure.detail ?? '',
-          anchor.failure.reasonKey
-        )
-        return
-      }
-      this.postCheapLfsWorkflowSuccess(repository, before.branchName ?? '')
-      return
+    // `anchor` uses the same exact create-only CAS as an existing branch. A
+    // generic release-anchor check could see a branch that appeared after the
+    // workflow commit and incorrectly report success for somebody else's tip.
+    const pushState = await this.pushCheapLfsWorkflowCommit(
+      repository,
+      before,
+      committed,
+      isCurrent
+    )
+    if (pushState === 'not-started' && !isCurrent()) {
+      await this.rollbackCheapLfsWorkflowCommitRef(
+        repository,
+        before,
+        committed
+      )
+      await rollbackWorkingTree()
     }
-
-    await this.pushCheapLfsWorkflowCommit(repository, before, commitSha)
   }
 
   /**
@@ -17277,13 +17716,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private async pushCheapLfsWorkflowCommit(
     repository: Repository,
     before: ICheapLfsWorkflowPublicationState,
-    commitSha: string
-  ): Promise<void> {
+    committed: ICheapLfsWorkflowCommitReceipt,
+    isCurrent: () => boolean = () => true
+  ): Promise<'not-started' | 'started'> {
+    const { commitSha } = committed
     const remoteName = before.remoteName
     const branchName = before.branchName
-    if (remoteName === null || branchName === null) {
+    const remoteBranchRef = before.remoteBranchRef
+    if (
+      remoteName === null ||
+      branchName === null ||
+      remoteBranchRef === null ||
+      remoteBranchRef !== `refs/heads/${branchName}`
+    ) {
       this.postCheapLfsWorkflowFailure(repository, '')
-      return
+      return 'not-started'
     }
     const remote = this.gitStoreCache
       .get(repository)
@@ -17294,19 +17741,41 @@ export class AppStore extends TypedBaseStore<IAppState> {
         '',
         'cheapLfs.cloud.autoInstall.failedNoRemote'
       )
-      return
+      return 'not-started'
     }
-    const remoteBranchRef = `refs/heads/${branchName}`
-    const session = createLocalCommitBatchingGitSession(repository, {
-      remote,
-      remoteBranchRef,
-      accountKey: getRepositoryCredentialAccountKey(this.accounts, repository),
-      isBackgroundTask: true,
-      // App-generated, single-file, and unattended: a `pre-push` hook that
-      // waits on a prompt nobody is watching would hang this background task
-      // forever. The user's own reviewed push still runs every hook.
-      skipPushHooks: true,
-    })
+    const session = this.createCheapLfsWorkflowLocalCommitBatchingGitSession(
+      repository,
+      {
+        remote,
+        remoteBranchRef,
+        accountKey: getRepositoryCredentialAccountKey(
+          this.accounts,
+          repository
+        ),
+        isBackgroundTask: true,
+        // App-generated, single-file, and unattended: a `pre-push` hook that
+        // waits on a prompt nobody is watching would hang this background task
+        // forever. The user's own reviewed push still runs every hook.
+        skipPushHooks: true,
+      }
+    )
+    if (
+      !isCurrent() ||
+      !(await this.proveCheapLfsWorkflowCommit(
+        repository,
+        before,
+        committed
+      )) ||
+      !isCurrent()
+    ) {
+      if (isCurrent()) {
+        this.postCheapLfsWorkflowFailure(
+          repository,
+          'the workflow commit parent, path set, or current branch tip changed before push'
+        )
+      }
+      return 'not-started'
+    }
     const result = await session.operations.push({
       remoteName,
       localBranchRef: remoteBranchRef,
@@ -17318,106 +17787,776 @@ export class AppStore extends TypedBaseStore<IAppState> {
       force: false,
     })
     if (result !== 'pushed') {
-      this.postCheapLfsWorkflowFailure(repository, `git push ${result}`)
-      return
+      if (isCurrent()) {
+        this.postCheapLfsWorkflowFailure(repository, `git push ${result}`)
+      }
+      // `rejected` is returned only before pushExact runs, so the remote is
+      // proven untouched and a superseded local transaction may be rolled
+      // back. `unknown` (or a thrown transport error) is visibility-uncertain
+      // and must never trigger a speculative local rollback.
+      return result === 'rejected' ? 'not-started' : 'started'
     }
     const proven = await session.operations.readRemoteTip({
       remoteName,
       remoteBranchRef,
     })
     if (proven !== commitSha) {
-      this.postCheapLfsWorkflowFailure(
-        repository,
-        'the remote branch tip did not match the published commit'
-      )
-      return
+      if (isCurrent()) {
+        this.postCheapLfsWorkflowFailure(
+          repository,
+          'the remote branch tip did not match the published commit'
+        )
+      }
+      return 'started'
+    }
+    if (!isCurrent()) {
+      return 'started'
     }
     await this._refreshRepository(repository)
-    this.postCheapLfsWorkflowSuccess(repository, branchName)
+    if (isCurrent()) {
+      this.postCheapLfsWorkflowSuccess(repository, branchName)
+    }
+    return 'started'
+  }
+
+  /** Injectable seam for exact rejected-versus-uncertain push tests. */
+  private createCheapLfsWorkflowLocalCommitBatchingGitSession(
+    repository: Repository,
+    options: Parameters<typeof createLocalCommitBatchingGitSession>[1]
+  ): ReturnType<typeof createLocalCommitBatchingGitSession> {
+    return createLocalCommitBatchingGitSession(repository, options)
+  }
+
+  /** Injectable seam used to prove preparation remains inside the commit gate. */
+  private createLegacyLocalCommitBatchingGitSession(
+    repository: Repository,
+    options: Parameters<typeof createLocalCommitBatchingGitSession>[1]
+  ): ReturnType<typeof createLocalCommitBatchingGitSession> {
+    return createLocalCommitBatchingGitSession(repository, options)
+  }
+
+  /**
+   * Prove the exact app-generated commit before publishing it. This catches a
+   * local commit that appeared after the remote snapshot, a pathspec that
+   * accidentally included another file, or HEAD moving away from the reviewed
+   * workflow commit.
+   */
+  private async proveCheapLfsWorkflowCommit(
+    repository: Repository,
+    before: ICheapLfsWorkflowPublicationState,
+    committed: ICheapLfsWorkflowCommitReceipt
+  ): Promise<boolean> {
+    const { commitSha, expectedBlobSha, expectedWorkingTree } = committed
+    const expectedBranch = before.defaultBranchName
+    if (
+      expectedBranch === null ||
+      before.branchName !== expectedBranch ||
+      before.remoteBranchRef !== `refs/heads/${expectedBranch}`
+    ) {
+      return false
+    }
+    const localBranchRef = `refs/heads/${expectedBranch}`
+    const [parents, paths, head, symbolicHead, localDefault, treeEntry] =
+      await Promise.all([
+        git(
+          ['rev-list', '--parents', '-n', '1', commitSha],
+          repository.path,
+          'proveCheapLfsWorkflowCommitParents',
+          { successExitCodes: new Set([0, 128]), isBackgroundTask: true }
+        ),
+        git(
+          [
+            'diff-tree',
+            '--root',
+            '--no-commit-id',
+            '--name-only',
+            '-r',
+            commitSha,
+          ],
+          repository.path,
+          'proveCheapLfsWorkflowCommitPaths',
+          { successExitCodes: new Set([0, 128]), isBackgroundTask: true }
+        ),
+        git(
+          ['rev-parse', '--verify', 'HEAD^{commit}'],
+          repository.path,
+          'proveCheapLfsWorkflowCommitHead',
+          { successExitCodes: new Set([0, 128]), isBackgroundTask: true }
+        ),
+        git(
+          ['symbolic-ref', '--quiet', 'HEAD'],
+          repository.path,
+          'proveCheapLfsWorkflowSymbolicHead',
+          { successExitCodes: new Set([0, 1, 128]), isBackgroundTask: true }
+        ),
+        git(
+          ['rev-parse', '--verify', `${localBranchRef}^{commit}`],
+          repository.path,
+          'proveCheapLfsWorkflowDefaultBranchTip',
+          { successExitCodes: new Set([0, 128]), isBackgroundTask: true }
+        ),
+        git(
+          [
+            'ls-tree',
+            '-z',
+            commitSha,
+            '--',
+            CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+          ],
+          repository.path,
+          'proveCheapLfsWorkflowCommitBlob',
+          { successExitCodes: new Set([0, 128]), isBackgroundTask: true }
+        ),
+      ])
+    if (
+      parents.exitCode !== 0 ||
+      paths.exitCode !== 0 ||
+      head.exitCode !== 0 ||
+      symbolicHead.exitCode !== 0 ||
+      localDefault.exitCode !== 0 ||
+      treeEntry.exitCode !== 0 ||
+      head.stdout.trim() !== commitSha ||
+      symbolicHead.stdout.trim() !== localBranchRef ||
+      localDefault.stdout.trim() !== commitSha
+    ) {
+      return false
+    }
+    const expectedTreeEntry =
+      expectedBlobSha === null
+        ? ''
+        : `100644 blob ${expectedBlobSha}\t${CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH}\0`
+    if (
+      treeEntry.stdout !== expectedTreeEntry ||
+      !(await this.cheapLfsWorkflowWorkingTreeMatches(
+        repository,
+        expectedWorkingTree
+      ))
+    ) {
+      return false
+    }
+    const ancestry = parents.stdout.trim().split(/\s+/)
+    const expectedParent = before.localTipShaBeforeCommit
+    const parentMatches =
+      ancestry[0] === commitSha &&
+      (expectedParent === null
+        ? ancestry.length === 1
+        : ancestry.length === 2 && ancestry[1] === expectedParent)
+    const changedPaths = paths.stdout
+      .split(/\r?\n/)
+      .map(path => path.trim())
+      .filter(path => path.length > 0)
+    return (
+      parentMatches &&
+      changedPaths.length === 1 &&
+      changedPaths[0] === CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH
+    )
   }
 
   /**
    * Commit only the workflow path, leaving the user's staged selection and
    * every other change exactly as they were.
    *
-   * The pathspec form of `git commit` commits the working-tree content of the
-   * named path without consuming the index, which is what keeps a background
-   * commit from swallowing whatever the user was preparing. Hooks are skipped
-   * for the same reason the anchor push skips them: this commit is
-   * app-generated and unattended, and a hook prompt would hang it forever.
-   * Returns `null` when there was nothing to commit.
+   * A private temporary index is seeded from the exact reviewed parent, stages
+   * only the workflow path, and feeds `commit-tree`; the user's real index is
+   * never used to construct the commit. The exact default-branch ref advances
+   * through compare-and-swap, after which only this managed path is aligned in
+   * the real index. `commit-tree` invokes no hooks, so an unattended prompt
+   * cannot hang the publisher. Returns `null` when there was nothing to commit.
    */
   private async commitCheapLfsWorkflowPath(
-    repository: Repository
-  ): Promise<string | null> {
-    // `git commit -- <path>` only accepts a path Git already knows, so the one
-    // file is staged first. Naming it explicitly keeps every other index entry
-    // — the user's own staged selection — exactly where it was. A path the
-    // repository ignores fails here and is reported rather than force-added.
-    await git(
-      ['add', '--', CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH],
-      repository.path,
-      'stageCheapLfsCloudCompressionWorkflow',
-      { isBackgroundTask: true }
+    repository: Repository,
+    before: ICheapLfsWorkflowPublicationState,
+    expectedWorkingTree: ICheapLfsWorkflowSnapshot | null,
+    shouldProceed: () => boolean = () => true
+  ): Promise<ICheapLfsWorkflowCommitReceipt | null> {
+    const branchName = before.branchName
+    if (branchName === null || !shouldProceed()) {
+      return null
+    }
+    const temporaryIndexDirectory = await mkdtemp(
+      Path.join(tmpdir(), 'desktop-material-cloud-workflow-index-')
     )
-    // `--no-verify` skips pre-commit and commit-msg, but Git still invokes
-    // post-commit. Git LFS installs a post-commit hook, and a broken or
-    // partially removed LFS installation can therefore make this otherwise
-    // self-contained background operation report a false failure after Git
-    // has already created the commit. Point this one command at an owned,
-    // empty hooks directory so *all* repository hooks are bypassed. The
-    // user's ordinary commits keep the repository's configured hooks.
-    const emptyHooksPath = await mkdtemp(
-      Path.join(tmpdir(), 'desktop-material-cloud-workflow-hooks-')
-    )
-    let commit
+    const commitEnvironment = {
+      GIT_INDEX_FILE: Path.join(temporaryIndexDirectory, 'index'),
+    }
+    const localBranchRef = `refs/heads/${branchName}`
+    const expectedParent = before.localTipShaBeforeCommit
+    let indexTransaction: ICheapLfsWorkflowIndexTransaction | null = null
+    let refUpdatedTo: string | null = null
+    let indexCommitted = false
     try {
-      commit = await git(
+      indexTransaction = await this.beginCheapLfsWorkflowIndexTransaction(
+        repository,
+        temporaryIndexDirectory
+      )
+      if (!indexTransaction.indexExisted) {
+        throw new Error(
+          'the real Git index was absent before workflow publication'
+        )
+      }
+      if (
+        !shouldProceed() ||
+        !(await this.cheapLfsWorkflowWorkingTreeMatches(
+          repository,
+          expectedWorkingTree
+        ))
+      ) {
+        return null
+      }
+      if (expectedParent !== null) {
+        const indexPath = await git(
+          [
+            'diff',
+            '--cached',
+            '--quiet',
+            expectedParent,
+            '--',
+            CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+          ],
+          repository.path,
+          'proveCheapLfsWorkflowIndexPathUnstaged',
+          {
+            env: indexTransaction.environment,
+            successExitCodes: new Set([0, 1]),
+            isBackgroundTask: true,
+          }
+        )
+        if (indexPath.exitCode !== 0) {
+          throw new Error(
+            'the managed workflow already has a user-staged change'
+          )
+        }
+      } else if (indexTransaction.priorEntry !== '') {
+        throw new Error('the managed workflow already has a user-staged change')
+      }
+      await git(
+        expectedParent === null
+          ? ['read-tree', '--empty']
+          : ['read-tree', expectedParent],
+        repository.path,
+        'seedCheapLfsWorkflowCommitIndex',
+        { env: commitEnvironment, isBackgroundTask: true }
+      )
+      const expectedBlobSha = await this.writeCheapLfsWorkflowExpectedBlob(
+        repository,
+        expectedWorkingTree
+      )
+      await this.stageCheapLfsWorkflowIndexEntry(
+        repository,
+        commitEnvironment,
+        expectedBlobSha
+      )
+      if (
+        !(await this.cheapLfsWorkflowWorkingTreeMatches(
+          repository,
+          expectedWorkingTree
+        ))
+      ) {
+        throw new Error(
+          'the managed workflow changed before its exact blob could be committed'
+        )
+      }
+      const tree = await git(
+        ['write-tree'],
+        repository.path,
+        'writeCheapLfsCloudCompressionWorkflowTree',
+        { env: commitEnvironment, isBackgroundTask: true }
+      )
+      const treeSha = tree.stdout.trim()
+      if (!/^[0-9a-f]{40}$/.test(treeSha)) {
+        throw new Error('Git did not return the workflow policy tree.')
+      }
+      if (expectedParent !== null) {
+        const parentTree = await git(
+          ['rev-parse', '--verify', `${expectedParent}^{tree}`],
+          repository.path,
+          'readCheapLfsWorkflowParentTree',
+          { isBackgroundTask: true }
+        )
+        if (parentTree.stdout.trim() === treeSha) {
+          return null
+        }
+      }
+      if (!shouldProceed()) {
+        return null
+      }
+      const commit = await git(
         [
-          '-c',
-          `core.hooksPath=${emptyHooksPath}`,
-          'commit',
-          '--no-verify',
-          '--no-gpg-sign',
+          'commit-tree',
+          treeSha,
+          ...(expectedParent === null ? [] : ['-p', expectedParent]),
           '-m',
           CheapLfsWorkflowInstallCommitMessage,
-          '--',
-          CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
         ],
         repository.path,
         'commitCheapLfsCloudCompressionWorkflow',
-        { successExitCodes: new Set([0, 1]), isBackgroundTask: true }
+        { env: commitEnvironment, isBackgroundTask: true }
       )
+      const commitSha = commit.stdout.trim()
+      if (!/^[0-9a-f]{40}$/.test(commitSha) || !shouldProceed()) {
+        return null
+      }
+      await this.stageCheapLfsWorkflowIndexEntry(
+        repository,
+        indexTransaction.environment,
+        expectedBlobSha
+      )
+      const committedEntry = await this.readCheapLfsWorkflowIndexEntry(
+        repository,
+        indexTransaction.environment
+      )
+      const expectedEntry =
+        expectedBlobSha === null
+          ? ''
+          : `100644 ${expectedBlobSha} 0\t${CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH}\0`
+      if (committedEntry !== expectedEntry) {
+        throw new Error(
+          'the prepared workflow index entry did not match the expected blob'
+        )
+      }
+      const committedIndexContents = await readFile(indexTransaction.lockPath)
+      if (
+        !(await this.cheapLfsWorkflowHeadMatches(
+          repository,
+          localBranchRef,
+          expectedParent
+        )) ||
+        !(await this.cheapLfsWorkflowWorkingTreeMatches(
+          repository,
+          expectedWorkingTree
+        )) ||
+        !(await this.cheapLfsWorkflowIndexPreimageMatches(indexTransaction)) ||
+        !shouldProceed()
+      ) {
+        return null
+      }
+      await git(
+        [
+          'update-ref',
+          localBranchRef,
+          commitSha,
+          expectedParent ?? '0'.repeat(40),
+        ],
+        repository.path,
+        'publishCheapLfsWorkflowCommitLocally',
+        { isBackgroundTask: true }
+      )
+      refUpdatedTo = commitSha
+      if (
+        !shouldProceed() ||
+        !(await this.cheapLfsWorkflowHeadMatches(
+          repository,
+          localBranchRef,
+          commitSha
+        )) ||
+        !(await this.cheapLfsWorkflowWorkingTreeMatches(
+          repository,
+          expectedWorkingTree
+        )) ||
+        !(await this.cheapLfsWorkflowIndexPreimageMatches(indexTransaction))
+      ) {
+        await this.rollbackCheapLfsWorkflowLocalRef(
+          repository,
+          localBranchRef,
+          expectedParent,
+          commitSha
+        )
+        refUpdatedTo = null
+        return null
+      }
+      await this.commitCheapLfsWorkflowIndexTransaction(indexTransaction)
+      indexCommitted = true
+      return {
+        commitSha,
+        expectedBlobSha,
+        expectedWorkingTree,
+        index: {
+          indexPath: indexTransaction.indexPath,
+          priorContents: indexTransaction.priorContents,
+          committedContents: committedIndexContents,
+          priorEntry: indexTransaction.priorEntry,
+          committedEntry,
+        },
+      }
+    } catch (error) {
+      if (refUpdatedTo !== null && !indexCommitted) {
+        await this.rollbackCheapLfsWorkflowLocalRef(
+          repository,
+          localBranchRef,
+          expectedParent,
+          refUpdatedTo
+        )
+        refUpdatedTo = null
+      }
+      throw error
     } finally {
-      await rm(emptyHooksPath, { recursive: true, force: true }).catch(error =>
+      if (indexTransaction !== null && !indexCommitted) {
+        await this.abortCheapLfsWorkflowIndexTransaction(indexTransaction)
+      }
+      await rm(temporaryIndexDirectory, {
+        recursive: true,
+        force: true,
+      }).catch(error =>
+        log.error('Could not remove the cloud workflow scratch index', error)
+      )
+    }
+  }
+
+  /** Undo only the exact unpublished app ref/index receipt under a new lock. */
+  private async rollbackCheapLfsWorkflowCommitRef(
+    repository: Repository,
+    before: ICheapLfsWorkflowPublicationState,
+    committed: ICheapLfsWorkflowCommitReceipt
+  ): Promise<void> {
+    const branchName = before.branchName
+    if (branchName === null) {
+      return
+    }
+    const localBranchRef = `refs/heads/${branchName}`
+    const previous = before.localTipShaBeforeCommit
+    const temporaryIndexDirectory = await mkdtemp(
+      Path.join(tmpdir(), 'desktop-material-cloud-workflow-rollback-index-')
+    )
+    let transaction: ICheapLfsWorkflowIndexTransaction | null = null
+    let refRolledBack = false
+    let indexCommitted = false
+    try {
+      transaction = await this.beginCheapLfsWorkflowIndexTransaction(
+        repository,
+        temporaryIndexDirectory
+      )
+      if (
+        !(await this.cheapLfsWorkflowHeadMatches(
+          repository,
+          localBranchRef,
+          committed.commitSha
+        ))
+      ) {
+        return
+      }
+      const managedPathStillAppOwned =
+        transaction.priorEntry === committed.index.committedEntry
+      if (managedPathStillAppOwned) {
+        if (
+          transaction.priorContents.equals(committed.index.committedContents)
+        ) {
+          await writeFile(transaction.lockPath, committed.index.priorContents)
+        } else {
+          await this.restoreCheapLfsWorkflowIndexEntry(
+            repository,
+            transaction.environment,
+            committed.index.priorEntry
+          )
+        }
+      }
+      await this.rollbackCheapLfsWorkflowLocalRef(
+        repository,
+        localBranchRef,
+        previous,
+        committed.commitSha
+      )
+      refRolledBack = true
+      if (!managedPathStillAppOwned) {
+        return
+      }
+      if (!(await this.cheapLfsWorkflowIndexPreimageMatches(transaction))) {
+        throw new Error(
+          'the Git index changed outside its lock during workflow rollback'
+        )
+      }
+      try {
+        await this.commitCheapLfsWorkflowIndexTransaction(transaction)
+        indexCommitted = true
+      } catch (error) {
+        await git(
+          [
+            'update-ref',
+            localBranchRef,
+            committed.commitSha,
+            previous ?? '0'.repeat(40),
+          ],
+          repository.path,
+          'restoreCheapLfsWorkflowCommitAfterIndexRollbackFailure',
+          { isBackgroundTask: true }
+        )
+        refRolledBack = false
+        throw error
+      }
+    } finally {
+      if (transaction !== null && !indexCommitted) {
+        await this.abortCheapLfsWorkflowIndexTransaction(transaction)
+      }
+      if (refRolledBack && !indexCommitted) {
+        // A user staged the managed path after our transaction. Its exact index
+        // entry stays untouched; only the exact unpublished app ref rolled back.
+      }
+      await rm(temporaryIndexDirectory, {
+        recursive: true,
+        force: true,
+      }).catch(error =>
         log.error(
-          'Could not remove the empty cloud workflow hooks directory',
+          'Could not remove the cloud workflow rollback scratch index',
           error
         )
       )
     }
-    if (commit.exitCode !== 0) {
+  }
+
+  private async beginCheapLfsWorkflowIndexTransaction(
+    repository: Repository,
+    temporaryIndexDirectory: string
+  ): Promise<ICheapLfsWorkflowIndexTransaction> {
+    const resolved = await git(
+      ['rev-parse', '--path-format=absolute', '--git-path', 'index'],
+      repository.path,
+      'resolveCheapLfsWorkflowIndexPath',
+      { isBackgroundTask: true }
+    )
+    const indexPath = resolved.stdout.trim()
+    if (!Path.isAbsolute(indexPath)) {
+      throw new Error('Git did not return an absolute worktree index path.')
+    }
+    const lockPath = `${indexPath}.lock`
+    let indexExisted = true
+    let ownsLock = false
+    try {
+      await copyFile(indexPath, lockPath, FsConstants.COPYFILE_EXCL)
+      ownsLock = true
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        throw error
+      }
+      indexExisted = false
+      const emptyIndexPath = Path.join(temporaryIndexDirectory, 'empty-index')
+      await git(
+        ['read-tree', '--empty'],
+        repository.path,
+        'seedEmptyCheapLfsWorkflowRealIndex',
+        {
+          env: { GIT_INDEX_FILE: emptyIndexPath },
+          isBackgroundTask: true,
+        }
+      )
+      await copyFile(emptyIndexPath, lockPath, FsConstants.COPYFILE_EXCL)
+      ownsLock = true
+    }
+    try {
+      const environment = { GIT_INDEX_FILE: lockPath }
+      const priorContents = await readFile(lockPath)
+      const priorEntry = await this.readCheapLfsWorkflowIndexEntry(
+        repository.path,
+        environment
+      )
+      return {
+        indexPath,
+        indexExisted,
+        lockPath,
+        environment,
+        priorContents,
+        priorEntry,
+      }
+    } catch (error) {
+      if (ownsLock) {
+        await Promise.all([
+          unlink(lockPath).catch(() => undefined),
+          unlink(`${lockPath}.lock`).catch(() => undefined),
+        ])
+      }
+      throw error
+    }
+  }
+
+  private async readCheapLfsWorkflowIndexEntry(
+    repository: Repository | string,
+    environment: Readonly<Record<string, string>>
+  ): Promise<string> {
+    const path = typeof repository === 'string' ? repository : repository.path
+    const entry = await git(
+      [
+        'ls-files',
+        '--stage',
+        '-z',
+        '--',
+        CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+      ],
+      path,
+      'readCheapLfsWorkflowIndexEntry',
+      { env: environment, isBackgroundTask: true }
+    )
+    return entry.stdout
+  }
+
+  private async stageCheapLfsWorkflowIndexEntry(
+    repository: Repository,
+    environment: Readonly<Record<string, string>>,
+    expectedBlobSha: string | null
+  ): Promise<void> {
+    await git(
+      expectedBlobSha === null
+        ? [
+            'update-index',
+            '--force-remove',
+            '--',
+            CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+          ]
+        : [
+            'update-index',
+            '--add',
+            '--cacheinfo',
+            '100644',
+            expectedBlobSha,
+            CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+          ],
+      repository.path,
+      'stageExactCheapLfsWorkflowIndexEntry',
+      { env: environment, isBackgroundTask: true }
+    )
+  }
+
+  private async restoreCheapLfsWorkflowIndexEntry(
+    repository: Repository,
+    environment: Readonly<Record<string, string>>,
+    priorEntry: string
+  ): Promise<void> {
+    if (priorEntry === '') {
+      await this.stageCheapLfsWorkflowIndexEntry(repository, environment, null)
+      return
+    }
+    await git(
+      ['update-index', '-z', '--index-info'],
+      repository.path,
+      'restoreExactCheapLfsWorkflowIndexEntry',
+      { env: environment, stdin: priorEntry, isBackgroundTask: true }
+    )
+  }
+
+  private async writeCheapLfsWorkflowExpectedBlob(
+    repository: Repository,
+    expectedWorkingTree: ICheapLfsWorkflowSnapshot | null
+  ): Promise<string | null> {
+    if (expectedWorkingTree === null) {
       return null
     }
-    const head = await git(
-      ['rev-parse', '--verify', 'HEAD^{commit}'],
+    const blob = await git(
+      ['hash-object', '-w', '--stdin'],
       repository.path,
-      'readCheapLfsWorkflowCommitSha',
-      { successExitCodes: new Set([0, 128]) }
+      'writeExpectedCheapLfsWorkflowBlob',
+      {
+        stdin: expectedWorkingTree.contents,
+        isBackgroundTask: true,
+      }
     )
-    const sha = head.stdout.trim()
-    return head.exitCode === 0 && /^[0-9a-f]{40}$/.test(sha) ? sha : null
+    const sha = blob.stdout.trim()
+    if (!/^[0-9a-f]{40}$/.test(sha)) {
+      throw new Error('Git did not return the expected workflow blob.')
+    }
+    return sha
+  }
+
+  private async cheapLfsWorkflowWorkingTreeMatches(
+    repository: Repository,
+    expected: ICheapLfsWorkflowSnapshot | null
+  ): Promise<boolean> {
+    const inspection = await inspectCheapLfsCloudCompressionWorkflow(repository)
+    return cheapLfsWorkflowSnapshotsMatch(inspection.snapshot, expected)
+  }
+
+  private async cheapLfsWorkflowIndexPreimageMatches(
+    transaction: ICheapLfsWorkflowIndexTransaction
+  ): Promise<boolean> {
+    try {
+      return (await readFile(transaction.indexPath)).equals(
+        transaction.priorContents
+      )
+    } catch (error) {
+      return (
+        !transaction.indexExisted &&
+        (error as NodeJS.ErrnoException).code === 'ENOENT'
+      )
+    }
+  }
+
+  /** Injectable seam for deterministic index-publication failure tests. */
+  private async commitCheapLfsWorkflowIndexTransaction(
+    transaction: ICheapLfsWorkflowIndexTransaction
+  ): Promise<void> {
+    await rename(transaction.lockPath, transaction.indexPath)
+  }
+
+  private async abortCheapLfsWorkflowIndexTransaction(
+    transaction: ICheapLfsWorkflowIndexTransaction
+  ): Promise<void> {
+    await Promise.all([
+      unlink(transaction.lockPath).catch(() => undefined),
+      unlink(`${transaction.lockPath}.lock`).catch(() => undefined),
+    ])
+  }
+
+  private async rollbackCheapLfsWorkflowLocalRef(
+    repository: Repository,
+    localBranchRef: string,
+    previous: string | null,
+    commitSha: string
+  ): Promise<void> {
+    await git(
+      previous === null
+        ? ['update-ref', '-d', localBranchRef, commitSha]
+        : ['update-ref', localBranchRef, previous, commitSha],
+      repository.path,
+      'rollbackSupersededCheapLfsWorkflowCommit',
+      { isBackgroundTask: true }
+    )
+  }
+
+  /** Prove both symbolic HEAD and its exact local branch tip. */
+  private async cheapLfsWorkflowHeadMatches(
+    repository: Repository,
+    localBranchRef: string,
+    expectedSha: string | null
+  ): Promise<boolean> {
+    const [symbolic, tip] = await Promise.all([
+      git(
+        ['symbolic-ref', '--quiet', 'HEAD'],
+        repository.path,
+        'readCheapLfsWorkflowSymbolicHead',
+        { successExitCodes: new Set([0, 1, 128]), isBackgroundTask: true }
+      ),
+      git(
+        ['rev-parse', '--verify', `${localBranchRef}^{commit}`],
+        repository.path,
+        'readCheapLfsWorkflowLocalBranchTip',
+        { successExitCodes: new Set([0, 128]), isBackgroundTask: true }
+      ),
+    ])
+    return (
+      symbolic.exitCode === 0 &&
+      symbolic.stdout.trim() === localBranchRef &&
+      (expectedSha === null
+        ? tip.exitCode !== 0
+        : tip.exitCode === 0 && tip.stdout.trim() === expectedSha)
+    )
   }
 
   /** Read the branch and remote facts the publish decision is made from. */
   private async readCheapLfsWorkflowPublicationState(
     repository: Repository
   ): Promise<ICheapLfsWorkflowPublicationState> {
-    const state = await this.readCheapLfsPublicationState(repository)
+    // `repositoryWithCanonicalRemoteForNetwork` refreshed this model from the
+    // provider. Do not substitute Git's inferred default branch: it may fall
+    // back to init.defaultBranch or a stale remote HEAD.
+    const defaultBranchName = repository.defaultBranch
+    const remoteBranchRef =
+      defaultBranchName === null ? null : `refs/heads/${defaultBranchName}`
+    const state = await this.readCheapLfsPublicationState(
+      repository,
+      defaultBranchName
+    )
     return {
       hasGitHubRepository: state.hasGitHubRepository,
       remoteName: state.remoteName,
       branchName: state.branchName,
+      defaultBranchName,
+      remoteBranchRef,
       localTipShaBeforeCommit: state.localTipSha,
       remoteBranchSha: state.remoteBranchSha,
     }
@@ -17533,7 +18672,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
       // app-owned scratch directory before any scan runs (issue #65).
       await ensureCheapLfsScratchHygiene(repository.path)
       const prefs = repository.buildRunPreferences ?? defaultBuildRunPreferences
-      const account = getGitHubReleasesAccount(repository, this.accounts)
       const releaseReadAccount = getGitHubReleasesReadAccount(
         repository,
         this.accounts
@@ -17592,26 +18730,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       if (entries.length === 0) {
         return
       }
-      if (
-        account !== null &&
-        getCheapLfsStorageProvider(prefs) === 'release' &&
-        entries.some(entry => entry.kind === 'release')
-      ) {
-        try {
-          // Repair clones made by older versions that committed a Release
-          // pointer without installing the managed compressor. This repository
-          // is demonstrably *using* compression — it carries Release pointers —
-          // so a missing caller is committed and pushed in the background
-          // rather than left as a working-tree change nobody acts on.
-          await ensureCheapLfsCloudCompressionWorkflow(repository, prefs)
-          this.maybeAutoInstallCheapLfsCloudCompressionWorkflow(repository)
-        } catch (workflowError) {
-          log.error(
-            'Automatic Cheap LFS cloud-compression setup failed',
-            workflowError
-          )
-        }
-      }
+      const restoredReleasePointer = entries.some(
+        entry => entry.kind === 'release'
+      )
       if (options.requireSelected && this.selectedRepository !== repository) {
         return
       }
@@ -17622,6 +18743,31 @@ export class AppStore extends TypedBaseStore<IAppState> {
           ? () => this.selectedRepository === repository
           : undefined,
       })
+      if (restoredReleasePointer) {
+        // Repair older clones only after their restore owner has released the
+        // checkout. Re-read the persisted model now: a settings change made
+        // during a long restore must win over the preferences captured before
+        // that restore began.
+        const latestRepository = (await this.repositoriesStore.getAll()).find(
+          candidate => candidate.id === repository.id
+        )
+        if (latestRepository === undefined) {
+          return
+        }
+        const latestPreferences =
+          latestRepository.buildRunPreferences ?? defaultBuildRunPreferences
+        if (
+          getGitHubReleasesAccount(latestRepository, this.accounts) !== null &&
+          getCheapLfsStorageProvider(latestPreferences) === 'release'
+        ) {
+          // The latest-wins scheduler repeats every inspection and performs
+          // every write/commit/push under the shared mutation gate.
+          this.maybeAutoInstallCheapLfsCloudCompressionWorkflow(
+            latestRepository,
+            latestPreferences
+          )
+        }
+      }
     } catch (error) {
       if ((error as Error)?.name !== 'AbortError') {
         log.error('Automatic cheap LFS materialize failed', error)
@@ -18765,7 +19911,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * publish) canonicalize before their first call here.
    */
   private async readCheapLfsPublicationState(
-    repository: Repository
+    repository: Repository,
+    exactRemoteBranchName: string | null = null
   ): Promise<ICheapLfsPublicationState> {
     const state = this.repositoryStateCache.get(repository)
     const tip = state.branchesState.tip
@@ -18784,6 +19931,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     const remoteBranchName =
+      exactRemoteBranchName ??
       (tip.kind === TipState.Valid ? tip.branch.upstreamWithoutRemote : null) ??
       branchName
     try {

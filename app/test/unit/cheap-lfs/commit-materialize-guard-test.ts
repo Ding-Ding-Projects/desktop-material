@@ -1,7 +1,13 @@
 import assert from 'node:assert'
+import { execFileSync } from 'node:child_process'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, it } from 'node:test'
 import { AppStore } from '../../../src/lib/stores/app-store'
+import { Branch, BranchType } from '../../../src/models/branch'
 import { Repository, SubmoduleRepository } from '../../../src/models/repository'
+import { TipState } from '../../../src/models/tip'
 
 interface IDeferred<T> {
   readonly promise: Promise<T>
@@ -18,6 +24,20 @@ function deferred<T>(): IDeferred<T> {
 
 function repositoryFixture(): Repository {
   return new Repository('C:/work/restore-guard', 91, null, false)
+}
+
+function git(cwd: string, args: ReadonlyArray<string>): string {
+  return execFileSync('git', [...args], {
+    cwd,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      GIT_AUTHOR_NAME: 'Guard Test',
+      GIT_AUTHOR_EMAIL: 'guard@example.invalid',
+      GIT_COMMITTER_NAME: 'Guard Test',
+      GIT_COMMITTER_EMAIL: 'guard@example.invalid',
+    },
+  }).trim()
 }
 
 function storeFixture() {
@@ -140,6 +160,116 @@ describe('Cheap LFS commit/materialize ownership', () => {
     assert.equal(await commit, true)
     await restoreStarted.promise
     assert.equal(await restore, 'restored')
+  })
+
+  it('keeps legacy push preparation inside the commit gate when a restore queues behind it', async t => {
+    const root = await mkdtemp(join(tmpdir(), 'legacy-push-restore-gate-'))
+    t.after(() => rm(root, { recursive: true, force: true }))
+    const worktree = join(root, 'worktree')
+    const bare = join(root, 'remote.git')
+    await mkdir(worktree)
+    git(root, ['init', '--bare', '--initial-branch=main', bare])
+    git(worktree, ['init', '--initial-branch=main'])
+    await writeFile(join(worktree, 'base.txt'), 'base\n', 'utf8')
+    git(worktree, ['add', '--', 'base.txt'])
+    git(worktree, ['commit', '-m', 'base'])
+    git(worktree, ['remote', 'add', 'origin', bare])
+    git(worktree, ['push', '-u', 'origin', 'main'])
+    const tipSha = git(worktree, ['rev-parse', 'HEAD'])
+    const repository = new Repository(worktree, 91, null, false)
+    const { store, state } = storeFixture()
+    Object.assign(state, {
+      branchesState: {
+        tip: {
+          kind: TipState.Valid,
+          branch: new Branch(
+            'main',
+            'origin/main',
+            { sha: tipSha },
+            BranchType.Local,
+            'refs/heads/main'
+          ),
+        },
+      },
+    })
+    const originalWithIsCommitting = Reflect.get(
+      AppStore.prototype,
+      'withIsCommitting'
+    ) as (
+      repository: Repository,
+      operation: () => Promise<boolean>
+    ) => Promise<boolean>
+    const originalWithMaterialize = Reflect.get(
+      AppStore.prototype,
+      'withCheapLfsMaterializeLock'
+    ) as (
+      repository: Repository,
+      signal: AbortSignal | undefined,
+      operation: (signal: AbortSignal) => Promise<string>
+    ) => Promise<string>
+    let ownershipChecks = 0
+    let restoreStarted = false
+    let preparationRan = false
+    let restore: Promise<string> | null = null
+
+    Reflect.set(store, 'canRunLegacyLocalCommitPushBatching', () => {
+      ownershipChecks++
+      return true
+    })
+    Reflect.set(store, 'createLegacyLocalCommitBatchingGitSession', () => ({
+      operations: {},
+      prepare: async () => {
+        preparationRan = true
+        assert.equal(
+          restoreStarted,
+          false,
+          'preparation must mutate its marker before the queued restore starts'
+        )
+        throw new Error('injected preparation stop')
+      },
+    }))
+    Reflect.set(
+      store,
+      'withIsCommitting',
+      async (
+        target: Repository,
+        operation: () => Promise<boolean>
+      ): Promise<boolean> =>
+        await originalWithIsCommitting.call(store, target, async () => {
+          restore = originalWithMaterialize.call(
+            store,
+            target,
+            undefined,
+            async () => {
+              restoreStarted = true
+              return 'restored'
+            }
+          )
+          await Promise.resolve()
+          assert.equal(
+            restoreStarted,
+            false,
+            'the restore must wait behind the legacy rewrite gate'
+          )
+          return await operation()
+        })
+    )
+
+    await assert.rejects(
+      (store as any).handleLegacyLocalCommitPushBatching(
+        repository,
+        { name: 'origin', url: bare },
+        undefined,
+        {}
+      ),
+      /injected preparation stop/
+    )
+
+    assert.equal(ownershipChecks, 1)
+    assert.equal(preparationRan, true)
+    assert.ok(restore !== null)
+    assert.equal(await restore, 'restored')
+    assert.equal(restoreStarted, true)
   })
 
   it('treats a stale cloud-compression dispatch for a submodule as a no-op', async () => {

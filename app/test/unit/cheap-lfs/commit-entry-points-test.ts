@@ -59,7 +59,7 @@ describe('cheap LFS commit entry points', () => {
     assert.ok(proveAndClear > push)
     assert.match(
       body.slice(push, proveAndClear),
-      /performScheduledPush\(\s*repository,\s*null,\s*isBackgroundTask\s*\)/
+      /performScheduledPush\(\s*repository,\s*null,\s*isBackgroundTask,\s*true\s*\)/
     )
     assert.match(
       body,

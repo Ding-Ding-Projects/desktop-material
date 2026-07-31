@@ -9,13 +9,11 @@ import {
 } from './cloud-compression'
 
 /**
- * Message of the one commit that installs the managed cloud-compression
- * caller. Bilingual, matching this app's commit-note convention, and plain
- * about what it adds — it is a real commit in the user's history that the app
- * authored on their behalf, so it says exactly what it is.
+ * Message of an app-owned cloud-compression policy commit. It is deliberately
+ * neutral because the same path may be installed, closed, or removed.
  */
 export const CheapLfsWorkflowInstallCommitMessage =
-  'Add Cheap LFS cloud compression workflow / 加入雲端壓縮工作流'
+  'Reconcile Cheap LFS cloud compression policy / 對齊 Cheap LFS 雲端壓縮政策'
 
 /**
  * Everything needed to decide whether the repository is missing its managed
@@ -42,9 +40,18 @@ export interface ICheapLfsWorkflowObservation {
  * What the background installer is allowed to do about the observation.
  *
  * - `disabled`         — compression is off, or the storage provider has no
- *                        Release caller at all. Do nothing.
+ *                        Release caller at all, and no existing private caller
+ *                        needs closing. Do nothing.
  * - `install`          — the committed tree carries no caller. Write the
  *                        canonical file, commit it, and push it.
+ * - `publish-disable`  — a confirmed-private repository opted out while an
+ *                        app-owned noncanonical caller is still committed.
+ *                        Write the canonical closed guard, commit it, and
+ *                        publish it.
+ * - `publish-remove`   — a confirmed-public repository moved away from the
+ *                        Release provider while an app-owned caller remains.
+ *                        Remove that now-inactive caller, commit the deletion,
+ *                        and publish it.
  * - `installed`        — the committed caller is already canonical. Do nothing;
  *                        a local edit on top of it is the user's business.
  * - `offer-update`     — a caller exists but differs from canonical. Never
@@ -61,6 +68,8 @@ export interface ICheapLfsWorkflowObservation {
 export type CheapLfsWorkflowInstallDecision =
   | 'disabled'
   | 'install'
+  | 'publish-disable'
+  | 'publish-remove'
   | 'installed'
   | 'offer-update'
   | 'blocked-unowned'
@@ -71,19 +80,66 @@ export type CheapLfsWorkflowInstallDecision =
  * Decide, fail-closed and without ever proposing an overwrite, what the
  * background installer may do.
  *
- * The route is settled before anything else. A caller is written only when
- * GitHub has confirmed the repository public or when a confirmed-private
- * repository carries the explicit opt-in. Every other answer either does
- * nothing or reports why. After that the unowned check runs, because a file at
- * this path that does not carry the managed marker was written by somebody
- * else, and no later branch may reach a state that writes over it.
+ * A caller is armed only when GitHub has confirmed the repository public or
+ * when a confirmed-private repository carries the explicit opt-in. A confirmed
+ * private opt-out is the one disabled route that may still publish: it replaces
+ * a committed app-owned noncanonical caller with the closed canonical guard.
+ * Ownership is checked before either transition, because a file at this path
+ * without the managed marker was written by somebody else and no later branch
+ * may reach a state that writes over it.
  */
 export function decideCheapLfsWorkflowInstall(
   observation: ICheapLfsWorkflowObservation
 ): CheapLfsWorkflowInstallDecision {
+  const committed = observation.committedContents
+  const workingTree = observation.workingTreeContents
+  const canonical = observation.canonicalContents
+  const unowned = (contents: string | null): boolean =>
+    contents !== null && !contents.startsWith(CHEAP_LFS_MANAGED_WORKFLOW_MARKER)
+
+  if (unowned(committed) || unowned(workingTree)) {
+    return 'blocked-unowned'
+  }
+
+  // A provider transition is also a policy transition. A private caller is
+  // retained as the canonical closed guard so an older app can still see the
+  // explicit opt-out. A public caller must be removed: its private guard is
+  // irrelevant on a public repository, so leaving it in place would keep the
+  // Release compressor active after Release storage was disabled.
   if (observation.provider !== 'release') {
+    if (
+      observation.policy === 'enabled-private' ||
+      observation.policy === 'disabled-private'
+    ) {
+      return (committed !== null && committed !== canonical) ||
+        (workingTree !== null && workingTree !== canonical)
+        ? 'publish-disable'
+        : 'disabled'
+    }
+    if (observation.policy === 'automatic-public') {
+      return committed !== null || workingTree !== null
+        ? 'publish-remove'
+        : 'disabled'
+    }
     return 'disabled'
   }
+
+  // Opting out of private-repository compression is itself a reviewed policy
+  // transition. When any app-owned noncanonical guard is committed, publish
+  // the canonical closed guard so an older armed caller cannot keep spending
+  // private minutes.
+  // An absent or already-closed caller needs no commit, while somebody else's
+  // file remains protected even though this route is otherwise disabled.
+  if (observation.policy === 'disabled-private') {
+    if (
+      (committed !== null && committed !== canonical) ||
+      (workingTree !== null && workingTree !== canonical)
+    ) {
+      return 'publish-disable'
+    }
+    return 'disabled'
+  }
+
   const route = getCheapLfsCloudCompressionRoute(observation.policy)
   if (route === 'none') {
     return 'disabled'
@@ -93,15 +149,6 @@ export function decideCheapLfsWorkflowInstall(
   }
   if (route === 'encrypted-public-builder') {
     return 'external-builder'
-  }
-
-  const committed = observation.committedContents
-  const workingTree = observation.workingTreeContents
-  const canonical = observation.canonicalContents
-  const unowned = (contents: string | null): boolean =>
-    contents !== null && !contents.startsWith(CHEAP_LFS_MANAGED_WORKFLOW_MARKER)
-  if (unowned(committed) || unowned(workingTree)) {
-    return 'blocked-unowned'
   }
 
   // A private opt-in changes the exact disabled managed caller into its armed
@@ -144,6 +191,10 @@ export interface ICheapLfsWorkflowPublicationState {
   readonly hasGitHubRepository: boolean
   readonly remoteName: string | null
   readonly branchName: string | null
+  /** GitHub's canonical default branch, or `null` until it is proven. */
+  readonly defaultBranchName: string | null
+  /** Exact fully-qualified default-branch destination proven for this pass. */
+  readonly remoteBranchRef: string | null
   /** The branch tip as it stood *before* the workflow commit was created. */
   readonly localTipShaBeforeCommit: string | null
   /**
@@ -160,21 +211,34 @@ export interface ICheapLfsWorkflowPublicationState {
  * - `push`                   — the remote tip is exactly the commit this
  *                              install was built on, so the push publishes the
  *                              workflow commit and nothing else.
- * - `anchor`                 — the branch has never been published. Reuse the
- *                              Cheap LFS first-publish anchor, which is already
- *                              the reviewed route for creating this branch.
+ * - `anchor`                 — the branch has never been published. Create its
+ *                              exact fully-qualified ref through a create-only
+ *                              compare-and-swap, then prove the remote tip is
+ *                              the workflow commit.
  * - `defer-unpushed-commits` — the branch has diverged from its remote. The
  *                              workflow is committed locally and rides out with
  *                              the user's own next push; a background push here
  *                              would publish work they have not reviewed.
+ * - `defer-non-default`      — the current branch is not GitHub's proven
+ *                              default branch. Stop before committing or
+ *                              pushing; the default-branch caller is the only
+ *                              one the background publisher may manage.
+ * - `blocked-detached-head`  — the current branch is unavailable. Fail closed.
+ * - `blocked-no-default-branch`
+ *                            — GitHub's canonical default branch is unavailable.
+ *                              Fail closed so the UI can request that exact
+ *                              missing prerequisite.
  */
 export type CheapLfsWorkflowPublishDecision =
   | 'push'
   | 'anchor'
   | 'defer-unpushed-commits'
+  | 'defer-non-default'
   | 'blocked-no-github-repository'
   | 'blocked-no-remote'
+  | 'blocked-unproven-remote-target'
   | 'blocked-detached-head'
+  | 'blocked-no-default-branch'
 
 /** Decide, fail-closed, how far the workflow commit may be published. */
 export function decideCheapLfsWorkflowPublish(
@@ -189,6 +253,15 @@ export function decideCheapLfsWorkflowPublish(
   if (state.branchName === null) {
     return 'blocked-detached-head'
   }
+  if (state.defaultBranchName === null) {
+    return 'blocked-no-default-branch'
+  }
+  if (state.remoteBranchRef !== `refs/heads/${state.defaultBranchName}`) {
+    return 'blocked-unproven-remote-target'
+  }
+  if (state.branchName !== state.defaultBranchName) {
+    return 'defer-non-default'
+  }
   if (state.remoteBranchSha === null) {
     return 'anchor'
   }
@@ -197,14 +270,17 @@ export function decideCheapLfsWorkflowPublish(
     : 'defer-unpushed-commits'
 }
 
-/** True while the decision forbids publishing the workflow commit at all. */
+/** True while the decision requires stopping before any commit or push. */
 export function cheapLfsWorkflowPublishIsBlocked(
   decision: CheapLfsWorkflowPublishDecision
 ): boolean {
   return (
+    decision === 'defer-non-default' ||
     decision === 'blocked-no-github-repository' ||
     decision === 'blocked-no-remote' ||
-    decision === 'blocked-detached-head'
+    decision === 'blocked-unproven-remote-target' ||
+    decision === 'blocked-detached-head' ||
+    decision === 'blocked-no-default-branch'
   )
 }
 
@@ -266,9 +342,12 @@ export function cheapLfsWorkflowPublishReasonKey(
     case 'blocked-no-github-repository':
       return 'cheapLfs.cloud.autoInstall.failedNoRepository'
     case 'blocked-no-remote':
+    case 'blocked-unproven-remote-target':
       return 'cheapLfs.cloud.autoInstall.failedNoRemote'
     case 'blocked-detached-head':
       return 'cheapLfs.cloud.autoInstall.failedDetachedHead'
+    case 'blocked-no-default-branch':
+      return 'cheapLfs.cloud.autoInstall.failedNoDefaultBranch'
     default:
       return null
   }

@@ -239,6 +239,7 @@ import {
   IBuildRunPreferences,
   defaultBuildRunPreferences,
   getBuildFixAutoApprove,
+  getCheapLfsStorageProvider,
 } from '../../models/build-run-preferences'
 import {
   BuildStageKind,
@@ -3830,11 +3831,17 @@ export class Dispatcher {
     const cloudCompressionChanged =
       (repository.buildRunPreferences.cheapLfsCloudCompression === true) !==
       (buildRunPreferences.cheapLfsCloudCompression === true)
+    const storageProviderChanged =
+      getCheapLfsStorageProvider(repository.buildRunPreferences) !==
+      getCheapLfsStorageProvider(buildRunPreferences)
     await this.appStore._updateRepositoryBuildRunPreferences(
       repository,
       buildRunPreferences
     )
-    if (repository.gitHubRepository !== null && cloudCompressionChanged) {
+    if (
+      repository.gitHubRepository !== null &&
+      (cloudCompressionChanged || storageProviderChanged)
+    ) {
       return await this.appStore._ensureCheapLfsCloudCompressionWorkflow(
         repository,
         buildRunPreferences

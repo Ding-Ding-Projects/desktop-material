@@ -34,7 +34,9 @@ import {
   getCheapLfsCloudCompressionPolicy,
   getCheapLfsCloudCompressionRoute,
   getCheapLfsCloudCompressionStats,
+  inspectCheapLfsCloudCompressionWorkflow,
   renderCheapLfsCloudCompressionWorkflow,
+  restoreCheapLfsCloudCompressionWorkflowSnapshot,
 } from '../../../src/lib/cheap-lfs/cloud-compression'
 import {
   CHEAP_LFS_POINTER_VERSION,
@@ -548,6 +550,96 @@ describe('Cheap LFS managed cloud-compression workflow', () => {
         ),
         []
       )
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('does not unlink an unowned workflow swapped in during rollback', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'cheap-lfs-cloud-rollback-race-'))
+    const workflow = join(
+      root,
+      ...CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH.split('/')
+    )
+    const managed = renderCheapLfsCloudCompressionWorkflow(false)
+    const unowned = 'name: Concurrent unowned workflow\n'
+    try {
+      await mkdir(dirname(workflow), { recursive: true })
+      await writeFile(workflow, managed, 'utf8')
+      const expectedCurrent = (
+        await inspectCheapLfsCloudCompressionWorkflow(repositoryAt(root, false))
+      ).snapshot
+      assert.notEqual(expectedCurrent, null)
+      const canonicalDirectory = await realpath(dirname(workflow))
+      let directoryProofs = 0
+      const racingFileSystem: ICheapLfsWorkflowFileSystem = {
+        ...nativeWorkflowFileSystem,
+        realpath: async path => {
+          const canonical = await realpath(path)
+          if (canonical === canonicalDirectory && ++directoryProofs === 2) {
+            await writeFile(workflow, unowned, 'utf8')
+          }
+          return canonical
+        },
+      }
+
+      await assert.rejects(
+        restoreCheapLfsCloudCompressionWorkflowSnapshot(
+          repositoryAt(root, false),
+          null,
+          expectedCurrent,
+          racingFileSystem
+        ),
+        /did not remove a workflow that changed while rolling back/
+      )
+      assert.equal(await readFile(workflow, 'utf8'), unowned)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('does not unlink a differently edited managed workflow during rollback', async () => {
+    const root = await mkdtemp(
+      join(tmpdir(), 'cheap-lfs-cloud-managed-rollback-race-')
+    )
+    const workflow = join(
+      root,
+      ...CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH.split('/')
+    )
+    const schedulerContents = renderCheapLfsCloudCompressionWorkflow(false)
+    const userManagedEdit = `${renderCheapLfsCloudCompressionWorkflow(
+      true
+    )}\n# user kept this managed customization\n`
+    try {
+      await mkdir(dirname(workflow), { recursive: true })
+      await writeFile(workflow, schedulerContents, 'utf8')
+      const expectedCurrent = (
+        await inspectCheapLfsCloudCompressionWorkflow(repositoryAt(root, false))
+      ).snapshot
+      assert.notEqual(expectedCurrent, null)
+      const canonicalDirectory = await realpath(dirname(workflow))
+      let directoryProofs = 0
+      const racingFileSystem: ICheapLfsWorkflowFileSystem = {
+        ...nativeWorkflowFileSystem,
+        realpath: async path => {
+          const canonical = await realpath(path)
+          if (canonical === canonicalDirectory && ++directoryProofs === 2) {
+            await writeFile(workflow, userManagedEdit, 'utf8')
+          }
+          return canonical
+        },
+      }
+
+      await assert.rejects(
+        restoreCheapLfsCloudCompressionWorkflowSnapshot(
+          repositoryAt(root, false),
+          null,
+          expectedCurrent,
+          racingFileSystem
+        ),
+        /did not remove a workflow that changed while rolling back/
+      )
+      assert.equal(await readFile(workflow, 'utf8'), userManagedEdit)
     } finally {
       await rm(root, { recursive: true, force: true })
     }

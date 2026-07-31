@@ -249,20 +249,29 @@ export interface IEnsureCheapLfsCloudCompressionResult {
   readonly policy: CheapLfsCloudCompressionPolicy
 }
 
+/** Exact identity and bytes of one safely opened managed workflow. */
+export interface ICheapLfsWorkflowSnapshot {
+  readonly contents: string
+  readonly device: number
+  readonly inode: number
+}
+
+/** Mutation receipt used to compare-and-swap a superseded scheduler write. */
+export interface ICheapLfsWorkflowMutationResult
+  extends IEnsureCheapLfsCloudCompressionResult {
+  readonly snapshot: ICheapLfsWorkflowSnapshot | null
+}
+
 /** A read-only look at the workflow path, taken without writing anything. */
 export interface ICheapLfsWorkflowInspection {
   readonly path: string
   /** Exact working-tree bytes, or `null` when nothing occupies the path. */
   readonly contents: string | null
+  /** Exact identity paired with `contents`, for later compare-and-swap. */
+  readonly snapshot: ICheapLfsWorkflowSnapshot | null
   /** The canonical caller for the repository's current policy. */
   readonly canonicalContents: string
   readonly policy: CheapLfsCloudCompressionPolicy
-}
-
-interface IWorkflowSnapshot {
-  readonly contents: string
-  readonly device: number
-  readonly inode: number
 }
 
 function isFileSystemError(
@@ -284,10 +293,24 @@ function pathsEqual(left: string, right: string): boolean {
 }
 
 function sameFile(
-  left: Pick<IWorkflowSnapshot, 'device' | 'inode'>,
-  right: Pick<IWorkflowSnapshot, 'device' | 'inode'>
+  left: Pick<ICheapLfsWorkflowSnapshot, 'device' | 'inode'>,
+  right: Pick<ICheapLfsWorkflowSnapshot, 'device' | 'inode'>
 ): boolean {
   return left.device === right.device && left.inode === right.inode
+}
+
+/** Exact equality used by scheduler rollback and commit publication receipts. */
+export function cheapLfsWorkflowSnapshotsMatch(
+  left: ICheapLfsWorkflowSnapshot | null,
+  right: ICheapLfsWorkflowSnapshot | null
+): boolean {
+  return (
+    (left === null && right === null) ||
+    (left !== null &&
+      right !== null &&
+      left.contents === right.contents &&
+      sameFile(left, right))
+  )
 }
 
 function requireUnaliasedRegularFile(path: string, metadata: Stats): void {
@@ -308,7 +331,7 @@ function requireUnaliasedRegularFile(path: string, metadata: Stats): void {
 async function readWorkflowSnapshot(
   path: string,
   fileSystem: ICheapLfsWorkflowFileSystem
-): Promise<IWorkflowSnapshot | null> {
+): Promise<ICheapLfsWorkflowSnapshot | null> {
   let entry: Stats
   try {
     entry = await fileSystem.lstat(path)
@@ -466,10 +489,14 @@ async function publishExclusive(
 
 async function replaceManagedWorkflow(
   path: string,
-  current: IWorkflowSnapshot | null,
+  current: ICheapLfsWorkflowSnapshot | null,
   next: string,
-  fileSystem: ICheapLfsWorkflowFileSystem
-): Promise<void> {
+  fileSystem: ICheapLfsWorkflowFileSystem,
+  shouldProceed: () => boolean
+): Promise<ICheapLfsWorkflowSnapshot | null> {
+  if (!shouldProceed()) {
+    return current
+  }
   const directory = dirname(path)
   const temporary = join(
     directory,
@@ -501,6 +528,9 @@ async function replaceManagedWorkflow(
     }
 
     await requireSafeDirectory(directory, fileSystem)
+    if (!shouldProceed()) {
+      return current
+    }
     if (current === null) {
       if ((await readWorkflowSnapshot(path, fileSystem)) !== null) {
         throw new Error(
@@ -546,6 +576,9 @@ async function replaceManagedWorkflow(
           `Cheap LFS did not overwrite a workflow that changed while updating ${CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH}.`
         )
       }
+      if (!shouldProceed()) {
+        return current
+      }
       await fileSystem.rename(temporary, path)
       temporaryExists = false
     }
@@ -560,6 +593,7 @@ async function replaceManagedWorkflow(
         `Cheap LFS could not verify the updated workflow at ${CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH}.`
       )
     }
+    return published
   } finally {
     if (temporaryExists) {
       await fileSystem.unlink(temporary).catch(() => {})
@@ -601,21 +635,25 @@ async function serializeWorkflowWrite<T>(
 export async function ensureCheapLfsCloudCompressionWorkflow(
   repository: Repository,
   preferences: IBuildRunPreferences = repository.buildRunPreferences,
-  fileSystem: ICheapLfsWorkflowFileSystem = nodeWorkflowFileSystem
-): Promise<IEnsureCheapLfsCloudCompressionResult> {
+  fileSystem: ICheapLfsWorkflowFileSystem = nodeWorkflowFileSystem,
+  shouldProceed: () => boolean = () => true
+): Promise<ICheapLfsWorkflowMutationResult> {
   const policy = getCheapLfsCloudCompressionPolicy(repository, preferences)
   const requestedPath = resolve(
     repository.path,
     ...CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH.split('/')
   )
   return await serializeWorkflowWrite(requestedPath, async () => {
+    if (!shouldProceed()) {
+      return { path: requestedPath, changed: false, policy, snapshot: null }
+    }
     const enabled = cheapLfsCloudCompressionUsesInRepoWorkflow(policy)
     let safePath = await safeWorkflowPath(repository.path, enabled, fileSystem)
     let current = safePath.parentExists
       ? await readWorkflowSnapshot(safePath.path, fileSystem)
       : null
     if (!enabled && current === null) {
-      return { path: safePath.path, changed: false, policy }
+      return { path: safePath.path, changed: false, policy, snapshot: null }
     }
     if (
       current !== null &&
@@ -630,7 +668,10 @@ export async function ensureCheapLfsCloudCompressionWorkflow(
       policy === 'enabled-private'
     )
     if (current?.contents === next) {
-      return { path: safePath.path, changed: false, policy }
+      return { path: safePath.path, changed: false, policy, snapshot: current }
+    }
+    if (!shouldProceed()) {
+      return { path: safePath.path, changed: false, policy, snapshot: current }
     }
 
     // Re-resolve after any directory creation and use only the validated path.
@@ -645,10 +686,165 @@ export async function ensureCheapLfsCloudCompressionWorkflow(
       )
     }
     if (current?.contents === next) {
-      return { path: safePath.path, changed: false, policy }
+      return { path: safePath.path, changed: false, policy, snapshot: current }
     }
-    await replaceManagedWorkflow(safePath.path, current, next, fileSystem)
-    return { path: safePath.path, changed: true, policy }
+    const snapshot = await replaceManagedWorkflow(
+      safePath.path,
+      current,
+      next,
+      fileSystem,
+      shouldProceed
+    )
+    return {
+      path: safePath.path,
+      changed: !cheapLfsWorkflowSnapshotsMatch(snapshot, current),
+      policy,
+      snapshot,
+    }
+  })
+}
+
+/**
+ * Remove only Desktop Material's owned caller.
+ *
+ * Public repositories that move away from Release storage cannot retain a
+ * "closed" private guard: the public half of that same guard would still run.
+ * The provider transition therefore removes the managed caller with the same
+ * path, ownership, alias, and size checks used by the writer. An absent caller
+ * remains absent and an unowned caller is never removed.
+ */
+export async function removeCheapLfsCloudCompressionWorkflow(
+  repository: Repository,
+  preferences: IBuildRunPreferences = repository.buildRunPreferences,
+  fileSystem: ICheapLfsWorkflowFileSystem = nodeWorkflowFileSystem,
+  shouldProceed: () => boolean = () => true
+): Promise<ICheapLfsWorkflowMutationResult> {
+  const policy = getCheapLfsCloudCompressionPolicy(repository, preferences)
+  const requestedPath = resolve(
+    repository.path,
+    ...CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH.split('/')
+  )
+  return await serializeWorkflowWrite(requestedPath, async () => {
+    if (!shouldProceed()) {
+      return { path: requestedPath, changed: false, policy, snapshot: null }
+    }
+    const safePath = await safeWorkflowPath(repository.path, false, fileSystem)
+    if (!safePath.parentExists) {
+      return { path: safePath.path, changed: false, policy, snapshot: null }
+    }
+    const current = await readWorkflowSnapshot(safePath.path, fileSystem)
+    if (current === null) {
+      return { path: safePath.path, changed: false, policy, snapshot: null }
+    }
+    if (!current.contents.startsWith(ManagedWorkflowMarker)) {
+      throw new Error(
+        `Cheap LFS did not remove the existing unowned workflow at ${CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH}.`
+      )
+    }
+    const latest = await readWorkflowSnapshot(safePath.path, fileSystem)
+    if (
+      latest === null ||
+      latest.contents !== current.contents ||
+      !sameFile(latest, current)
+    ) {
+      throw new Error(
+        `Cheap LFS did not remove a workflow that changed while updating ${CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH}.`
+      )
+    }
+    await requireSafeDirectory(dirname(safePath.path), fileSystem)
+    if (!shouldProceed()) {
+      return { path: safePath.path, changed: false, policy, snapshot: current }
+    }
+    await fileSystem.unlink(safePath.path)
+    if ((await readWorkflowSnapshot(safePath.path, fileSystem)) !== null) {
+      throw new Error(
+        `Cheap LFS could not verify removal of ${CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH}.`
+      )
+    }
+    return { path: safePath.path, changed: true, policy, snapshot: null }
+  })
+}
+
+/**
+ * Restore the exact app-owned working-tree bytes observed before a superseded
+ * reconcile. This is intentionally narrower than a generic file writer: both
+ * the saved bytes and any current occupant must be managed, and `null` can
+ * remove only a managed current occupant.
+ */
+export async function restoreCheapLfsCloudCompressionWorkflowSnapshot(
+  repository: Repository,
+  contents: string | null,
+  expectedCurrent: ICheapLfsWorkflowSnapshot | null,
+  fileSystem: ICheapLfsWorkflowFileSystem = nodeWorkflowFileSystem
+): Promise<void> {
+  if (
+    contents !== null &&
+    !contents.startsWith(CHEAP_LFS_MANAGED_WORKFLOW_MARKER)
+  ) {
+    throw new Error('Cheap LFS refused an unowned workflow rollback snapshot.')
+  }
+  if (
+    expectedCurrent !== null &&
+    !expectedCurrent.contents.startsWith(CHEAP_LFS_MANAGED_WORKFLOW_MARKER)
+  ) {
+    throw new Error(
+      'Cheap LFS refused an unowned current workflow rollback snapshot.'
+    )
+  }
+  const requestedPath = resolve(
+    repository.path,
+    ...CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH.split('/')
+  )
+  await serializeWorkflowWrite(requestedPath, async () => {
+    let safePath = await safeWorkflowPath(
+      repository.path,
+      contents !== null,
+      fileSystem
+    )
+    let current = safePath.parentExists
+      ? await readWorkflowSnapshot(safePath.path, fileSystem)
+      : null
+    if (!cheapLfsWorkflowSnapshotsMatch(current, expectedCurrent)) {
+      throw new Error(
+        `Cheap LFS did not overwrite a workflow that changed while rolling back ${CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH}.`
+      )
+    }
+    if (
+      current?.contents === contents ||
+      (current === null && contents === null)
+    ) {
+      return
+    }
+    if (contents === null) {
+      await requireSafeDirectory(dirname(safePath.path), fileSystem)
+      const latest = await readWorkflowSnapshot(safePath.path, fileSystem)
+      if (!cheapLfsWorkflowSnapshotsMatch(latest, expectedCurrent)) {
+        throw new Error(
+          `Cheap LFS did not remove a workflow that changed while rolling back ${CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH}.`
+        )
+      }
+      await fileSystem.unlink(safePath.path)
+      if ((await readWorkflowSnapshot(safePath.path, fileSystem)) !== null) {
+        throw new Error(
+          `Cheap LFS could not verify rollback removal of ${CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH}.`
+        )
+      }
+      return
+    }
+    safePath = await safeWorkflowPath(repository.path, true, fileSystem)
+    current = await readWorkflowSnapshot(safePath.path, fileSystem)
+    if (!cheapLfsWorkflowSnapshotsMatch(current, expectedCurrent)) {
+      throw new Error(
+        `Cheap LFS did not overwrite a workflow that changed while rolling back ${CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH}.`
+      )
+    }
+    await replaceManagedWorkflow(
+      safePath.path,
+      current,
+      contents,
+      fileSystem,
+      () => true
+    )
   })
 }
 
@@ -677,6 +873,7 @@ export async function inspectCheapLfsCloudCompressionWorkflow(
   return {
     path: safePath.path,
     contents: snapshot?.contents ?? null,
+    snapshot,
     canonicalContents,
     policy,
   }

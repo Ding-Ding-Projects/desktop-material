@@ -37,6 +37,11 @@ Material is displaying or how a repository is represented in the application.
 - [Reviewed batch repository sync](reviewed-batch-sync.md) — pull active
   branches or fetch only across an exact reviewed subset with bounded
   concurrency and isolated results.
+- [Verified merge-and-cleanup repository
+  sync](sync-merge-cleanup.md) — merge reviewed work into exact local and
+  default `main`, use the configured Codex/OpenCode provider only for
+  conflicted files, push without force, prove remote `main`, and delete only
+  unchanged owned branches and worktrees behind expected-object safeguards.
 - [External stash
   interoperability](external-stash-interoperability.md) — inspect and safely
   apply, restore, branch from, or explicitly discard stashes made by other Git
