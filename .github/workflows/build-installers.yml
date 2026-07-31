@@ -214,11 +214,11 @@ jobs:
             echo "Checked-out commit $checked_out does not match release target $RELEASE_TARGET_SHA." >&2
             exit 1
           fi
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: 0.11.26
           enable-cache: true
@@ -478,16 +478,16 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: express-release-${{ github.run_id }}-${{ github.run_attempt }}
           path: release-payload/installers
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name:
             express-release-notes-${{ github.run_id }}-${{ github.run_attempt }}
           path: release-payload
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: express-tui-${{ github.run_id }}-${{ github.run_attempt }}
           path: release-payload/tui
