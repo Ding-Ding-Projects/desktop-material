@@ -4945,12 +4945,14 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
     <script src="assets/site/docs-regex-job.js"></script>
     <script src="assets/site/docs-hub.js"></script>
     <!--
-      The changelog catalog must load before the viewer: `mount()` falls back to
-      `global.DesktopMaterialDocsChangelogCatalog` and returns null without it,
-      which would leave the panel silently empty.
+      The changelog catalog is 542 KB and its viewer another 105 KB, for a tab
+      most readers never open. docs-lazy.js loads both the moment the panel is
+      revealed and mounts the viewer then, so the shell and the opening tab are
+      usable without paying for a surface nobody asked for. It still loads the
+      catalog before the viewer, because mount() reads it and returns null
+      without it.
     -->
-    <script src="assets/site/docs-changelog-catalog.js"></script>
-    <script src="assets/site/docs-changelog.js"></script>
+    <script src="assets/site/docs-lazy.js"></script>
     <!--
       Dim sum self-mounts a short delay after DOMContentLoaded and needs no
       markup of its own. It is last because it is the only optional surface here:
