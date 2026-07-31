@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 import * as React from 'react'
 
 import { IMenuItem } from '../../../src/lib/menu-item'
+import { formatDate } from '../../../src/lib/format-date'
 import { Commit } from '../../../src/models/commit'
 import { CommitIdentity } from '../../../src/models/commit-identity'
 import {
@@ -161,5 +162,56 @@ describe('history contextual actions', () => {
       })
     )
     assert.equal(menuRequests, 1)
+  })
+
+  it('shows the exact commit date and how long ago in the row hover card', () => {
+    const now = Date.UTC(2026, 6, 29, 22, 30)
+    const date = new Date(now - 2 * 60 * 1000)
+    const datedIdentity = new CommitIdentity('Test', 'test@example.com', date)
+    const commit = new Commit(
+      'dated',
+      'dated',
+      'Dated commit',
+      '',
+      datedIdentity,
+      datedIdentity,
+      [],
+      [],
+      []
+    )
+    const previousLanguageMode = localStorage.getItem('language-mode-v1')
+    localStorage.setItem('language-mode-v1', 'bilingual')
+    const list = makeCommitList([commit], [])
+    const testable = list as unknown as {
+      renderRowFocusTooltip(index: {
+        readonly section: number
+        readonly row: number
+      }): JSX.Element | null
+    }
+    const originalDateNow = Date.now
+
+    Date.now = () => now
+    try {
+      const tooltip = testable.renderRowFocusTooltip({ section: 0, row: 0 })
+      assert.ok(tooltip)
+      render(tooltip)
+
+      assert.ok(
+        screen.getByText(
+          formatDate(date, {
+            dateStyle: 'full',
+            timeStyle: 'short',
+          })
+        )
+      )
+      assert.ok(screen.getByText('2 minutes ago · 2 分鐘前'))
+    } finally {
+      Date.now = originalDateNow
+      if (previousLanguageMode === null) {
+        localStorage.removeItem('language-mode-v1')
+      } else {
+        localStorage.setItem('language-mode-v1', previousLanguageMode)
+      }
+    }
   })
 })

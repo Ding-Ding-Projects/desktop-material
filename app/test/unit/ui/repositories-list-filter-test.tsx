@@ -147,11 +147,124 @@ const commonProps = {
 
 beforeEach(() => localStorage.clear())
 
+function expandRepositoryFilters() {
+  const disclosure = screen.getByRole('button', { name: 'Filters' })
+  if (disclosure.getAttribute('aria-expanded') === 'false') {
+    fireEvent.click(disclosure)
+  }
+  return disclosure
+}
+
 describe('RepositoriesList account and service filters', () => {
+  it('collapses all filter controls together without hiding repository actions', async () => {
+    const FilterHarness = () => {
+      const [filterText, setFilterText] = React.useState('')
+      return (
+        <RepositoriesList
+          {...commonProps}
+          accounts={[github, gitlab]}
+          filterText={filterText}
+          onFilterTextChanged={setFilterText}
+        />
+      )
+    }
+    render(<FilterHarness />)
+
+    const disclosure = screen.getByRole('button', { name: 'Filters' })
+    const panel = document.querySelector('#repository-list-filter-panel')
+
+    assert.ok(panel)
+    assert.equal(disclosure.getAttribute('aria-expanded'), 'false')
+    assert.equal(
+      disclosure.getAttribute('aria-controls'),
+      'repository-list-filter-panel'
+    )
+    assert.equal(panel.hasAttribute('hidden'), true)
+    assert.equal(screen.queryByRole('combobox'), null)
+    assert.equal(screen.queryByRole('textbox'), null)
+    assert.ok(screen.getByRole('button', { name: 'Add a repository' }))
+
+    fireEvent.click(disclosure)
+
+    assert.equal(disclosure.getAttribute('aria-expanded'), 'true')
+    assert.equal(panel.hasAttribute('hidden'), false)
+    assert.ok(
+      screen.getByRole('combobox', {
+        name: 'Repository account',
+      })
+    )
+    assert.ok(screen.getByRole('textbox', { name: 'Filter Repositories' }))
+    const builderLauncher = screen.getByRole('button', {
+      name: 'Open regex builder',
+    })
+    assert.ok(builderLauncher)
+
+    fireEvent.click(builderLauncher)
+    assert.ok(screen.getByRole('dialog', { name: 'Regex builder' }))
+    disclosure.focus()
+    fireEvent.click(disclosure)
+    await waitFor(() =>
+      assert.equal(
+        screen.queryByRole('dialog', { name: 'Regex builder' }),
+        null
+      )
+    )
+    assert.ok(document.activeElement === disclosure)
+    assert.equal(panel.hasAttribute('hidden'), true)
+
+    fireEvent.click(disclosure)
+    assert.equal(panel.hasAttribute('hidden'), false)
+
+    const filter = screen.getByRole('textbox', {
+      name: 'Filter Repositories',
+    })
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Filter mode: Fuzzy (click to change)',
+      })
+    )
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Filter mode: Substring (click to change)',
+      })
+    )
+    fireEvent.change(filter, { target: { value: '(' } })
+    const regexAlert = screen.getByRole('alert')
+    assert.ok(panel.contains(regexAlert))
+    fireEvent.click(disclosure)
+    assert.equal(panel.hasAttribute('hidden'), true)
+    assert.equal(screen.queryByRole('alert'), null)
+    fireEvent.click(disclosure)
+    assert.equal(panel.hasAttribute('hidden'), false)
+    assert.strictEqual(screen.getByRole('alert'), regexAlert)
+    fireEvent.change(filter, { target: { value: '' } })
+    assert.equal(screen.queryByRole('alert'), null)
+
+    const account = screen.getByRole('combobox', {
+      name: 'Repository account',
+    })
+    fireEvent.change(account, { target: { value: accountFilterFor(github) } })
+    fireEvent.click(disclosure)
+
+    assert.equal(panel.hasAttribute('hidden'), true)
+    assert.ok(screen.getByRole('button', { name: 'Filters · 1' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filters · 1' }))
+    assert.equal(
+      (
+        screen.getByRole('combobox', {
+          name: 'Repository account',
+        }) as HTMLSelectElement
+      ).value,
+      accountFilterFor(github)
+    )
+  })
+
   it('combines mutually exclusive scopes and clears a stale account selection', async () => {
     const { rerender } = render(
       <RepositoriesList {...commonProps} accounts={[github, gitlab]} />
     )
+    expandRepositoryFilters()
     const account = screen.getByRole('combobox', {
       name: 'Repository account',
     })
@@ -239,6 +352,7 @@ describe('RepositoriesList account and service filters', () => {
         localRepositoryStateLookup={localRepositoryStateLookup}
       />
     )
+    expandRepositoryFilters()
 
     const all = screen.getByRole('button', { name: 'All' })
     const changedChip = screen.getByRole('button', { name: 'Changed' })
@@ -277,6 +391,7 @@ describe('RepositoriesList account and service filters', () => {
         repositories={[visible, hidden]}
       />
     )
+    expandRepositoryFilters()
 
     await waitFor(() => assert.ok(screen.getByText('visible-repo')))
     assert.equal(screen.queryByText('hidden-repo'), null)
@@ -317,6 +432,7 @@ describe('RepositoriesList account and service filters', () => {
     )
 
     try {
+      expandRepositoryFilters()
       assert.ok(screen.getByText('Repository status'))
       assert.ok(screen.getByRole('button', { name: 'Changed' }))
 

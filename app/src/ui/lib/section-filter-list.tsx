@@ -187,6 +187,22 @@ interface ISectionFilterListProps<T extends IFilterListItem, GroupIdentifier> {
   /** Called to render content after the filter. */
   readonly renderPostFilter?: () => JSX.Element | null
 
+  /**
+   * Optional disclosure rendered immediately before a collapsible filter
+   * panel. Consumers provide the accessible button while this component owns
+   * the panel so pre-list controls and the search row hide as one unit.
+   */
+  readonly renderFilterDisclosure?: () => JSX.Element | null
+
+  /** Stable id for the optional collapsible filter panel. */
+  readonly filterPanelId?: string
+
+  /** Whether the optional collapsible filter panel is expanded. */
+  readonly filterPanelExpanded?: boolean
+
+  /** Content rendered after the optional filter panel and before the list. */
+  readonly renderAfterFilterPanel?: () => JSX.Element | null
+
   /** Called when there are no items to render.  */
   readonly renderNoItems?: () => JSX.Element | null
 
@@ -230,6 +246,21 @@ interface ISectionFilterListProps<T extends IFilterListItem, GroupIdentifier> {
 
   /** Placeholder text for text box. Default is "Filter". */
   readonly placeholderText?: string
+
+  /** Fully localized accessible search label. */
+  readonly filterAriaLabel?: string
+
+  /** Fully localized clear-button label for the search field. */
+  readonly filterClearButtonAriaLabel?: string
+
+  /** Fully localized live-region copy after clearing the search field. */
+  readonly filterClearedMessage?: string
+
+  /** Fully localized result-count announcement. */
+  readonly getFilterResultsAnnouncement?: (count: number) => string
+
+  /** Native input semantics for the filter field. Defaults to text. */
+  readonly filterInputType?: 'text' | 'search'
 
   /** If true, we do not render the filter. */
   readonly hideFilterRow?: boolean
@@ -352,7 +383,10 @@ export class SectionFilterList<
   }
 
   public componentDidMount() {
-    if (this.filterTextBox !== null) {
+    if (
+      this.filterTextBox !== null &&
+      this.props.filterPanelExpanded !== false
+    ) {
       this.filterTextBox.selectAll()
     }
 
@@ -415,9 +449,10 @@ export class SectionFilterList<
 
   public renderTextBox() {
     const ariaLabel =
-      this.props.filterListLabel !== undefined
+      this.props.filterAriaLabel ??
+      (this.props.filterListLabel !== undefined
         ? `Filter ${this.props.filterListLabel}`
-        : this.props.placeholderText ?? 'Filter'
+        : this.props.placeholderText ?? 'Filter')
 
     return (
       <TextBox
@@ -425,9 +460,12 @@ export class SectionFilterList<
         ref={this.onTextBoxRef}
         displayClearButton={true}
         prefixedIcon={octicons.search}
-        autoFocus={true}
+        autoFocus={this.props.filterPanelExpanded !== false}
         placeholder={this.props.placeholderText || 'Filter'}
+        type={this.props.filterInputType}
         ariaLabel={ariaLabel}
+        clearButtonAriaLabel={this.props.filterClearButtonAriaLabel}
+        clearedMessage={this.props.filterClearedMessage}
         className="filter-list-filter-field"
         onValueChanged={this.onFilterValueChanged}
         onEnterPressed={this.onEnterPressed}
@@ -445,7 +483,9 @@ export class SectionFilterList<
 
     const itemRows = this.state.rows.flat().filter(row => row.kind === 'item')
     const resultsPluralized = itemRows.length === 1 ? 'result' : 'results'
-    const screenReaderMessage = `${itemRows.length} ${resultsPluralized}`
+    const screenReaderMessage =
+      this.props.getFilterResultsAnnouncement?.(itemRows.length) ??
+      `${itemRows.length} ${resultsPluralized}`
 
     return (
       <AriaLiveContainer
@@ -493,7 +533,19 @@ export class SectionFilterList<
   }
 
   private onRegexPatternApply = (pattern: string) => {
-    this.props.onFilterTextChanged?.(pattern)
+    // FilterModeControl switches to regex immediately before applying the
+    // pattern. Commit the pattern against that mode before notifying a
+    // controlled parent: otherwise the parent's filterText update can arrive
+    // through componentWillReceiveProps while the mode change is still queued
+    // and rebuild the rows with the previous (usually fuzzy) mode.
+    this.setState(
+      prev =>
+        createStateUpdate(
+          { ...this.props, filterText: pattern },
+          { ...prev, filterMode: FilterMode.Regex }
+        ),
+      () => this.props.onFilterTextChanged?.(pattern)
+    )
   }
 
   private renderFilterControls() {
@@ -513,6 +565,7 @@ export class SectionFilterList<
         }
         getSampleItems={this.getSampleItems}
         filterText={this.props.filterText ?? ''}
+        enabled={this.props.filterPanelExpanded !== false}
         onRegexPatternApply={this.onRegexPatternApply}
       />
     )
@@ -552,6 +605,19 @@ export class SectionFilterList<
   }
 
   public render() {
+    const hasCollapsibleFilterPanel = this.props.filterPanelId !== undefined
+    const filterControls = (
+      <>
+        {this.props.renderPreList ? this.props.renderPreList() : null}
+        {this.renderFilterRow()}
+        {this.state.regexError !== null && (
+          <p className="filter-list-regex-message" role="alert">
+            {this.state.regexError}
+          </p>
+        )}
+      </>
+    )
+
     return (
       <div
         className={classnames('filter-list', this.props.className, {
@@ -560,9 +626,21 @@ export class SectionFilterList<
       >
         {this.renderLiveContainer()}
 
-        {this.props.renderPreList ? this.props.renderPreList() : null}
+        {this.props.renderFilterDisclosure?.()}
 
-        {this.renderFilterRow()}
+        {hasCollapsibleFilterPanel ? (
+          <div
+            id={this.props.filterPanelId}
+            className="filter-list-controls-panel"
+            hidden={this.props.filterPanelExpanded === false}
+          >
+            {filterControls}
+          </div>
+        ) : (
+          filterControls
+        )}
+
+        {this.props.renderAfterFilterPanel?.()}
 
         <div className="filter-list-container">{this.renderContent()}</div>
       </div>
@@ -932,6 +1010,10 @@ export class SectionFilterList<
       )
 
       if (row != null) {
+        // The search field may live inside a dialog form (for example Publish
+        // repository). Enter activates the first matching listbox option; it
+        // must not continue into the form's implicit submit action.
+        event.preventDefault()
         this.onRowClick(row, { kind: 'keyboard', event })
       }
     }

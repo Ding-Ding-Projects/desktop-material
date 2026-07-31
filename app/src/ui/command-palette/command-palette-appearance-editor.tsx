@@ -10,6 +10,7 @@ import {
 
 interface ICommandPaletteAppearanceEditorProps {
   readonly appearance: ICommandPaletteAppearance
+  readonly resolvedAppearance: ICommandPaletteAppearance
   readonly onChange: (appearance: ICommandPaletteAppearance) => void
 }
 
@@ -120,10 +121,20 @@ export class CommandPaletteAppearanceEditor extends React.Component<
     this.props.onChange(DefaultCommandPaletteAppearance)
   }
 
+  private onRandomPerRepositoryChanged = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    this.props.onChange({
+      ...this.props.appearance,
+      mode: event.currentTarget.checked ? 'random-per-repository' : 'manual',
+    })
+  }
+
   private renderDensityOption(
     value: CommandPaletteDensity,
     label: string,
-    description: string
+    description: string,
+    checked: boolean
   ) {
     return (
       <label
@@ -134,7 +145,7 @@ export class CommandPaletteAppearanceEditor extends React.Component<
           type="radio"
           name="command-palette-density"
           value={value}
-          checked={this.props.appearance.density === value}
+          checked={checked}
           onChange={this.onDensityChanged}
         />
         <span className="command-palette-appearance-option-copy">
@@ -152,6 +163,10 @@ export class CommandPaletteAppearanceEditor extends React.Component<
   public render() {
     const { appearance } = this.props
     const { open } = this.state
+    const randomPerRepository = appearance.mode === 'random-per-repository'
+    const displayedAppearance = randomPerRepository
+      ? this.props.resolvedAppearance
+      : appearance
 
     return (
       <div className="command-palette-appearance" ref={this.containerRef}>
@@ -179,25 +194,51 @@ export class CommandPaletteAppearanceEditor extends React.Component<
             )}
           >
             <h3>{t('commandPalette.appearanceHeading')}</h3>
-            <fieldset>
+            <fieldset className="command-palette-appearance-mode">
+              <label
+                className="command-palette-appearance-check"
+                aria-label={`${translateForAccessibleName(
+                  'commandPalette.randomPerRepository'
+                )}. ${translateForAccessibleName(
+                  'commandPalette.randomPerRepositoryDescription'
+                )}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={randomPerRepository}
+                  onChange={this.onRandomPerRepositoryChanged}
+                />
+                <span className="command-palette-appearance-option-copy">
+                  <span className="command-palette-appearance-option-label">
+                    {t('commandPalette.randomPerRepository')}
+                  </span>
+                  <span className="command-palette-appearance-option-description">
+                    {t('commandPalette.randomPerRepositoryDescription')}
+                  </span>
+                </span>
+              </label>
+            </fieldset>
+            <fieldset disabled={randomPerRepository}>
               <legend>{t('commandPalette.rowDensity')}</legend>
               {this.renderDensityOption(
                 'comfortable',
                 t('commandPalette.comfortable'),
-                t('commandPalette.comfortableDescription')
+                t('commandPalette.comfortableDescription'),
+                displayedAppearance.density === 'comfortable'
               )}
               {this.renderDensityOption(
                 'compact',
                 t('commandPalette.compact'),
-                t('commandPalette.compactDescription')
+                t('commandPalette.compactDescription'),
+                displayedAppearance.density === 'compact'
               )}
             </fieldset>
-            <fieldset>
+            <fieldset disabled={randomPerRepository}>
               <legend>{t('commandPalette.showInEachRow')}</legend>
               <label className="command-palette-appearance-check">
                 <input
                   type="checkbox"
-                  checked={appearance.showIcons}
+                  checked={displayedAppearance.showIcons}
                   onChange={this.onShowIconsChanged}
                 />
                 <span>{t('commandPalette.icons')}</span>
@@ -205,7 +246,7 @@ export class CommandPaletteAppearanceEditor extends React.Component<
               <label className="command-palette-appearance-check">
                 <input
                   type="checkbox"
-                  checked={appearance.showGroups}
+                  checked={displayedAppearance.showGroups}
                   onChange={this.onShowGroupsChanged}
                 />
                 <span>{t('commandPalette.groupChips')}</span>
@@ -213,7 +254,7 @@ export class CommandPaletteAppearanceEditor extends React.Component<
               <label className="command-palette-appearance-check">
                 <input
                   type="checkbox"
-                  checked={appearance.showKeywords}
+                  checked={displayedAppearance.showKeywords}
                   onChange={this.onShowKeywordsChanged}
                 />
                 <span>{t('commandPalette.keywordLine')}</span>

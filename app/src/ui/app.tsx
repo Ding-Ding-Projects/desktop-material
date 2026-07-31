@@ -1431,6 +1431,8 @@ export class App extends React.Component<IAppProps, IAppState> {
     const repository = state?.repository
     return {
       platform: process.platform,
+      repositoryKey:
+        repository instanceof Repository ? String(repository.id) : undefined,
       hasRepository: repository instanceof Repository,
       hasRemote: state?.state.remote != null,
       hasBranch: tip?.kind === TipState.Valid,

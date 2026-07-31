@@ -49,7 +49,7 @@ remote CI caught a macOS error-ordering defect without publishing; correction
 `98d93ccc` passed its full remote CI gate and published
 `v3.6.3-beta3-b0000000165`. Exact publication receipts are in `HANDOFF.md`.
 
-The [Guided Feature Gallery](Feature-Gallery) declares the canonical 84-scene
+The [Guided Feature Gallery](Feature-Gallery) declares the canonical 86-scene
 Windows visual target: every catalogued function or state must own one distinct
 screenshot rather than borrow an overview image. The current-source updater
 frame is accepted and published as its own target; it does not replace the
@@ -651,17 +651,20 @@ density fits more commands by suppressing the secondary line.
 
 Use **Customize appearance** beside the filter and regex controls to choose
 comfortable or compact rows and independently show/hide icons, group chips,
-and the keyword line. Changes apply immediately and persist for later palette
-sessions; malformed stored values repair field by field. Escape closes only
-the anchored appearance editor and returns focus to its toggle, leaving the
-palette open.
+and the keyword line. The compact, left-aligned editor also offers **Random per
+repository**: each repository gets one stable derived layout that survives
+restarts instead of reshuffling every time the palette opens. Manual controls
+remain visible but disabled while that mode is active. Changes apply
+immediately and persist for later palette sessions; malformed stored values
+repair field by field. Escape closes only the anchored appearance editor and
+returns focus to its toggle, leaving the palette open.
 
 The palette shell, groups, appearance controls, accessibility names, and the
 Ollama model manager, Copilot/provider preferences, and background queue entries
 follow English, playful Hong Kong-style Cantonese, or bilingual mode. English
 fallback titles and localized group names both remain searchable.
 
-![Command palette showing Ollama results beside the fully visible row appearance editor](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-command-palette-appearance.png)
+![Command palette showing Ollama results beside the compact aligned row appearance editor with random per repository mode](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-command-palette-appearance.png)
 
 ---
 
@@ -782,11 +785,13 @@ interactive while a dialog is open.
 **Active** chip on the current section, and a pill footer. The **repository** and **branch** pickers
 open as MD3 **side sheets** rather than blocking modals. The repository sheet keeps **Add** and
 **Select** visible, while **More** holds group creation, workspace sync, and commit/push-all so
-all five actions stay available without wrapping into a cluttered multi-line block.
+all five actions stay available without wrapping into a cluttered multi-line block. Its
+**Filters** disclosure folds account, service, status, search, and regex controls together;
+active values remain applied and are counted on the pill while the panel is collapsed.
 
 ![Preferences as an MD3 dialog](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-settings.png)
 
-![Dark repository side sheet with compact Add, Select, and More actions](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-repositories-sheet.png)
+![Dark repository side sheet with collapsed Filters and compact Add, Select, and More actions](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-repositories-sheet.png)
 
 ![Branch navigation and status side sheet](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-branches-sheet.png)
 
@@ -1744,10 +1749,14 @@ Right-click a commit row for reset, checkout, reorder, revert, branch, tag, cher
 provider actions. The row's named **More actions** button, the Context Menu key, and `Shift+F10`
 open the same action set. Invoking an unselected commit targets only that row; invoking a member of
 the current multi-selection preserves the selection for eligible multi-commit actions.
+Hovering or keyboard-focusing a commit also shows its exact authored timestamp
+and an auto-updating relative line such as **2 minutes ago**.
 
 ![History search and commit graph](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-power-tools.png)
 
 ![History commit row with its named More actions control and hover hint](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-context-actions.png)
+
+![History commit hover card showing an exact timestamp and relative age](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-hover-time.png)
 
 ---
 

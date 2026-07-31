@@ -779,7 +779,14 @@ async function gitPointerPaths(
     for (const path of changedPaths) {
       const relativePath = validateCheapLfsTrackedPath(path)
       if (relativePath === null) {
-        throw new Error('Git returned an unsafe Cheap LFS tracked path.')
+        // This is an unscoped inventory of every changed or untracked path,
+        // not a Cheap LFS request. Ordinary repositories legitimately change
+        // names such as `.gitmodules` and `.github/workflows/...`, which Cheap
+        // LFS must never open but which also do not make the repository
+        // corrupt. Ignore those paths before touching the filesystem. Explicit
+        // Cheap LFS pathspecs remain fail-closed in
+        // `scanPointerCandidatesFromGit`.
+        continue
       }
       if (isCheapLfsOwnedArtifactPath(relativePath)) {
         continue

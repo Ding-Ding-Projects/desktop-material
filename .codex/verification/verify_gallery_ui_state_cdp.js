@@ -79,15 +79,24 @@ const SceneSpecifications = Object.freeze({
       'resultCount',
       'editorOpen',
       'resetVisible',
+      'randomToggleVisible',
+      'randomModeChanged',
+      'alignedOptions',
+      'editorScrollTop',
+      'appearanceHeadingVisible',
       'iconRowCount',
       'groupChipRowCount',
       'keywordRowCount',
     ]),
     assertionNames: Object.freeze([
       ...CommonAssertionNames,
-      'fiveOllamaResults',
+      'eightOllamaResults',
       'appearanceEditorOpen',
       'resetControlVisible',
+      'randomModeRoundTrip',
+      'alignedAppearanceControls',
+      'appearanceEditorAtTop',
+      'appearanceHeadingVisible',
       'richResultRows',
     ]),
   }),
@@ -1145,9 +1154,21 @@ async function setViewport(width, height) {
     deviceScaleFactor: 1,
     mobile: false,
   })
+  await sleep(350)
+  const observed = await evaluate(`({
+    innerWidth,
+    innerHeight,
+    devicePixelRatio,
+  })`)
+  process.stdout.write(
+    `VIEWPORT ${JSON.stringify({
+      requested: { width, height, devicePixelRatio: 1 },
+      observed,
+    })}\n`
+  )
   await waitFor(
     `innerWidth === ${width} && innerHeight === ${height} &&
-      devicePixelRatio === 1`,
+      Math.abs(devicePixelRatio - 1) < 0.000001`,
     `${width}x${height} viewport`
   )
   await sleep(350)
@@ -1202,6 +1223,38 @@ async function openCommandPaletteKeyboard() {
     modifiers: 0,
   })
   await sleep(250)
+  const opened = await evaluate(
+    `document.querySelector('#command-palette') !== null`
+  )
+  if (!opened) {
+    // CDP renderer key events do not always traverse Electron's native menu
+    // accelerator on a hidden Win32 desktop. Exercise the same shipped
+    // renderer IPC listener that the native Ctrl+F menu item targets.
+    await evaluate(
+      `require('electron').ipcRenderer.emit('menu-event', {}, 'find-text'), true`
+    )
+    await sleep(250)
+    const openedFromMenu = await evaluate(
+      `document.querySelector('#command-palette') !== null`
+    )
+    if (!openedFromMenu) {
+      const dispatched = await evaluate(`(() => {
+        const findRuntime = ${runtimeFinderSource()}
+        const runtime = findRuntime()
+        if (runtime === null) return false
+        runtime.dispatcher.showPopup({ type: 'CommandPalette' })
+        return true
+      })()`)
+      if (!dispatched) {
+        fail('Unable to dispatch the command palette through production state.')
+      }
+      process.stdout.write('COMMAND_PALETTE_OPEN route=dispatcher-fallback\n')
+    } else {
+      process.stdout.write('COMMAND_PALETTE_OPEN route=menu-event-fallback\n')
+    }
+  } else {
+    process.stdout.write('COMMAND_PALETTE_OPEN route=keyboard\n')
+  }
 }
 
 async function pointForExpression(elementExpression, label) {
@@ -1767,20 +1820,29 @@ async function sceneCommandPalette(context) {
   await setViewport(1000, 687)
   await openCommandPaletteKeyboard()
   await waitFor(
-    `document.querySelector('#command-palette input[
-      data-search-surface-id="command-palette"
-    ]') !== null`,
+    `document.querySelector(
+      '#command-palette input[data-search-surface-id="command-palette"]'
+    ) !== null`,
     'command palette'
   )
   await setInput(
     '#command-palette input[data-search-surface-id="command-palette"]',
     'ollama'
   )
+  const ollamaResults = await evaluate(`(() => ({
+    count: document.querySelectorAll(
+      '#command-palette .command-palette-row'
+    ).length,
+    titles: [...document.querySelectorAll(
+      '#command-palette .command-palette-title'
+    )].map(element => vt(element)),
+  }))()`)
+  process.stdout.write(`OLLAMA_RESULTS ${JSON.stringify(ollamaResults)}\n`)
   await waitFor(
     `document.querySelectorAll(
       '#command-palette .command-palette-row'
-    ).length === 5`,
-    'five ollama command results'
+    ).length === 8`,
+    'eight ollama command results'
   )
   await clickSelector(
     '#command-palette .command-palette-appearance-toggle',
@@ -1793,6 +1855,76 @@ async function sceneCommandPalette(context) {
     'command-palette appearance editor'
   )
   await clickText('Reset defaults', '#command-palette-appearance-editor')
+  await clickSelector(
+    '#command-palette-appearance-editor .command-palette-appearance-mode input[type="checkbox"]',
+    'Random per repository'
+  )
+  await waitFor(
+    `document.querySelector(
+      '#command-palette-appearance-editor .command-palette-appearance-mode input[type="checkbox"]'
+    )?.checked === true`,
+    'random-per-repository appearance enabled'
+  )
+  const randomModeChanged = await evaluate(`(() => {
+    const editor = document.querySelector('#command-palette-appearance-editor')
+    const toggle = editor?.querySelector(
+      '.command-palette-appearance-mode input[type="checkbox"]'
+    )
+    const compact = editor?.querySelector(
+      'input[name="command-palette-density"][value="compact"]'
+    )
+    return toggle instanceof HTMLInputElement &&
+      toggle.checked &&
+      compact instanceof HTMLInputElement &&
+      compact.matches(':disabled')
+  })()`)
+  await clickSelector(
+    '#command-palette-appearance-editor .command-palette-appearance-mode input[type="checkbox"]',
+    'Random per repository'
+  )
+  await waitFor(
+    `document.querySelector(
+      '#command-palette-appearance-editor .command-palette-appearance-mode input[type="checkbox"]'
+    )?.checked === false`,
+    'manual appearance restored'
+  )
+  const appearanceViewport = await evaluate(`(() => {
+    const editor = document.querySelector('#command-palette-appearance-editor')
+    if (!(editor instanceof HTMLElement)) return Promise.resolve(null)
+    editor.scrollTop = 0
+    return new Promise(resolve =>
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          const heading = editor.querySelector('h3')
+          const editorBounds = editor.getBoundingClientRect()
+          const headingBounds = heading instanceof HTMLElement
+            ? heading.getBoundingClientRect()
+            : null
+          resolve({
+            editorScrollTop: editor.scrollTop,
+            appearanceHeadingVisible:
+              heading instanceof HTMLElement &&
+              vt(heading) === 'Appearance' &&
+              headingBounds !== null &&
+              headingBounds.left >= editorBounds.left - 0.5 &&
+              headingBounds.right <= editorBounds.right + 0.5 &&
+              headingBounds.top >= editorBounds.top - 0.5 &&
+              headingBounds.bottom <= editorBounds.bottom + 0.5,
+          })
+        })
+      )
+    )
+  })()`)
+  if (
+    appearanceViewport?.editorScrollTop !== 0 ||
+    appearanceViewport.appearanceHeadingVisible !== true
+  ) {
+    fail(
+      `Command-palette appearance heading is clipped: ${JSON.stringify(
+        appearanceViewport
+      )}.`
+    )
+  }
   const state = await evaluate(`(() => {
     const dialog = document.querySelector('#command-palette')
     const input = dialog?.querySelector(
@@ -1806,6 +1938,26 @@ async function sceneCommandPalette(context) {
       [...editor.querySelectorAll('button')].find(button =>
         vt(button) === 'Reset defaults'
       )
+    const randomToggle = editor?.querySelector(
+      '.command-palette-appearance-mode input[type="checkbox"]'
+    )
+    const alignedOptions = [
+      ...(editor?.querySelectorAll(
+        '.command-palette-appearance-option, .command-palette-appearance-check'
+      ) ?? []),
+    ].every(label => {
+      const control = label.querySelector('input')
+      const copy = label.querySelector(
+        '.command-palette-appearance-option-copy, span'
+      )
+      if (!(control instanceof HTMLElement) || !(copy instanceof HTMLElement)) {
+        return false
+      }
+      const controlBounds = control.getBoundingClientRect()
+      const copyBounds = copy.getBoundingClientRect()
+      const gap = copyBounds.left - controlBounds.right
+      return gap >= -0.5 && gap <= 16
+    })
     const contained = element => {
       if (!(element instanceof HTMLElement)) return false
       const bounds = element.getBoundingClientRect()
@@ -1823,6 +1975,16 @@ async function sceneCommandPalette(context) {
         dialog instanceof HTMLElement &&
         contained(dialog),
       resetVisible: reset instanceof HTMLButtonElement && contained(reset),
+      randomToggleVisible:
+        randomToggle instanceof HTMLInputElement &&
+        !randomToggle.checked &&
+        contained(randomToggle),
+      randomModeChanged: ${JSON.stringify(randomModeChanged)},
+      alignedOptions,
+      editorScrollTop: ${JSON.stringify(appearanceViewport.editorScrollTop)},
+      appearanceHeadingVisible: ${JSON.stringify(
+        appearanceViewport.appearanceHeadingVisible
+      )},
       iconRowCount: rows.filter(row =>
         row.querySelector('.command-palette-icon') !== null
       ).length,
@@ -1836,12 +1998,17 @@ async function sceneCommandPalette(context) {
   })()`)
   if (
     state?.query !== 'ollama' ||
-    state.resultCount !== 5 ||
+    state.resultCount !== 8 ||
     state.editorOpen !== true ||
     state.resetVisible !== true ||
-    state.iconRowCount !== 5 ||
-    state.groupChipRowCount !== 5 ||
-    state.keywordRowCount !== 5
+    state.randomToggleVisible !== true ||
+    state.randomModeChanged !== true ||
+    state.alignedOptions !== true ||
+    state.editorScrollTop !== 0 ||
+    state.appearanceHeadingVisible !== true ||
+    state.iconRowCount !== 8 ||
+    state.groupChipRowCount !== 8 ||
+    state.keywordRowCount !== 8
   ) {
     fail(`Command-palette gallery state diverged: ${JSON.stringify(state)}.`)
   }
@@ -2722,12 +2889,17 @@ function validateSceneReceipt(scene, receipt) {
     if (
       receipt.fixture.kind !== 'none' ||
       receipt.state.query !== 'ollama' ||
-      receipt.state.resultCount !== 5 ||
+      receipt.state.resultCount !== 8 ||
       receipt.state.editorOpen !== true ||
       receipt.state.resetVisible !== true ||
-      receipt.state.iconRowCount !== 5 ||
-      receipt.state.groupChipRowCount !== 5 ||
-      receipt.state.keywordRowCount !== 5 ||
+      receipt.state.randomToggleVisible !== true ||
+      receipt.state.randomModeChanged !== true ||
+      receipt.state.alignedOptions !== true ||
+      receipt.state.editorScrollTop !== 0 ||
+      receipt.state.appearanceHeadingVisible !== true ||
+      receipt.state.iconRowCount !== 8 ||
+      receipt.state.groupChipRowCount !== 8 ||
+      receipt.state.keywordRowCount !== 8 ||
       receipt.capture.clip !== null
     ) {
       fail('Command-palette receipt semantics are invalid.')

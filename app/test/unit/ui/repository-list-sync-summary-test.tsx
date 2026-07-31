@@ -346,6 +346,7 @@ describe('repository list sync summary in the list', () => {
 
     await waitFor(() => assert.ok(screen.getByText('repo-101')))
 
+    fireEvent.click(screen.getByRole('button', { name: 'Filters' }))
     const filter = screen.getByRole('textbox', { name: 'Filter Repositories' })
     for (const text of ['r', 're', 'rep', 'repo-10', 'repo-101']) {
       fireEvent.change(filter, { target: { value: text } })

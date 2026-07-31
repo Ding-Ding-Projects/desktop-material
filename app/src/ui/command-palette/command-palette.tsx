@@ -22,6 +22,7 @@ import {
   ICommandPaletteAppearance,
   persistCommandPaletteAppearance,
   readCommandPaletteAppearance,
+  resolveCommandPaletteAppearance,
   resolveCommandSymbol,
 } from './command-palette-appearance'
 import { CommandPaletteAppearanceEditor } from './command-palette-appearance-editor'
@@ -210,6 +211,10 @@ export class CommandPalette extends React.Component<
 
   public render() {
     const matches = this.getMatches()
+    const appearance = resolveCommandPaletteAppearance(
+      this.state.appearance,
+      this.props.availabilityContext?.repositoryKey
+    )
 
     return (
       <Dialog
@@ -248,6 +253,7 @@ export class CommandPalette extends React.Component<
               />
               <CommandPaletteAppearanceEditor
                 appearance={this.state.appearance}
+                resolvedAppearance={appearance}
                 onChange={this.onAppearanceChanged}
               />
             </div>
@@ -255,7 +261,7 @@ export class CommandPalette extends React.Component<
           <div
             className={classNames(
               'command-palette-results',
-              `density-${this.state.appearance.density}`
+              `density-${appearance.density}`
             )}
             role="listbox"
             aria-label={translateForAccessibleName('commandPalette.commands')}
@@ -288,7 +294,7 @@ export class CommandPalette extends React.Component<
                   }
                   onClick={this.onRowClick}
                 >
-                  {this.state.appearance.showIcons && (
+                  {appearance.showIcons && (
                     <span className="command-palette-icon" aria-hidden="true">
                       <MaterialSymbol
                         name={resolveCommandSymbol(
@@ -303,8 +309,8 @@ export class CommandPalette extends React.Component<
                     <span className="command-palette-title">
                       {resolvePaletteTitle(command)}
                     </span>
-                    {this.state.appearance.showKeywords &&
-                      this.state.appearance.density === 'comfortable' &&
+                    {appearance.showKeywords &&
+                      appearance.density === 'comfortable' &&
                       command.keywords !== undefined && (
                         <span className="command-palette-keywords">
                           {t('commandPalette.searchTerms', {
@@ -313,7 +319,7 @@ export class CommandPalette extends React.Component<
                         </span>
                       )}
                   </span>
-                  {this.state.appearance.showGroups && (
+                  {appearance.showGroups && (
                     <span className="command-palette-group">
                       {resolvePaletteGroup(command.group)}
                     </span>

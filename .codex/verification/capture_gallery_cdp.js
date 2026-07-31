@@ -2916,6 +2916,123 @@ scene('history-context-actions', async () => {
   await closeAllDialogs()
 })
 
+scene('history-hover-time', async () => {
+  await ensureRepository()
+  await menuEvent('show-history')
+  await sleep(1200)
+  await ensureCommitList()
+  const hoverPoint = await evaluate(`(() => {
+    document.getElementById('gallery-tooltip-suppressor')?.remove()
+    const row = document.querySelector(
+      '#commit-list .list-item, .commit-list .list-item'
+    )
+    if (!(row instanceof HTMLElement)) return null
+    const bounds = row.getBoundingClientRect()
+    return {
+      x: bounds.left + bounds.width / 2,
+      y: bounds.top + bounds.height / 2,
+    }
+  })()`)
+  if (
+    hoverPoint === null ||
+    !Number.isFinite(hoverPoint.x) ||
+    !Number.isFinite(hoverPoint.y)
+  ) {
+    fail('No commit row was available for the relative-time hover card.')
+  }
+  await client.send('Input.dispatchMouseEvent', {
+    type: 'mouseMoved',
+    x: hoverPoint.x,
+    y: hoverPoint.y,
+  })
+  await waitFor(
+    `(() => {
+      const tooltip = document.querySelector('.commit-list-item-tooltip')
+      const relative = tooltip?.querySelector('.commit-tooltip-relative-date')
+      const style = tooltip instanceof HTMLElement
+        ? getComputedStyle(tooltip)
+        : null
+      const bounds = tooltip instanceof HTMLElement
+        ? tooltip.getBoundingClientRect()
+        : null
+      return tooltip instanceof HTMLElement &&
+        relative instanceof HTMLElement &&
+        style?.display !== 'none' &&
+        style?.visibility !== 'hidden' &&
+        Number(style?.opacity ?? 1) !== 0 &&
+        bounds !== null &&
+        bounds.width > 0 &&
+        bounds.height > 0 &&
+        /ago|just now|minute|hour|day|week|month|year|啱啱|前|後/iu.test(vt(relative))
+    })()`,
+    'commit tooltip with relative time',
+    8000
+  )
+  const tooltipLayout = await evaluate(`(() => {
+    const tooltip = document.querySelector('.commit-list-item-tooltip')
+    const date = tooltip?.querySelector('.commit-tooltip-date')
+    const relative = tooltip?.querySelector('.commit-tooltip-relative-date')
+    if (
+      !(tooltip instanceof HTMLElement) ||
+      !(date instanceof HTMLElement) ||
+      !(relative instanceof HTMLElement)
+    ) {
+      return null
+    }
+    const bounds = tooltip.getBoundingClientRect()
+    const style = getComputedStyle(tooltip)
+    return {
+      date: vt(date),
+      relative: vt(relative),
+      visible:
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        Number(style.opacity || 1) !== 0 &&
+        bounds.width > 0 &&
+        bounds.height > 0,
+      contained:
+        bounds.left >= -0.5 &&
+        bounds.top >= -0.5 &&
+        bounds.right <= innerWidth + 0.5 &&
+        bounds.bottom <= innerHeight + 0.5,
+    }
+  })()`)
+  if (
+    tooltipLayout === null ||
+    tooltipLayout.relative.length === 0 ||
+    tooltipLayout.date === tooltipLayout.relative ||
+    tooltipLayout.visible !== true ||
+    tooltipLayout.contained !== true
+  ) {
+    fail(
+      `Commit relative-time tooltip layout diverged: ${JSON.stringify(
+        tooltipLayout
+      )}.`
+    )
+  }
+  const languageMatches =
+    requestedLanguageMode === 'bilingual'
+      ? / · /.test(tooltipLayout.relative) &&
+        /\p{Script=Han}/u.test(tooltipLayout.relative) &&
+        /ago|just now|minute|hour|day|week|month|year/i.test(
+          tooltipLayout.relative
+        )
+      : requestedLanguageMode === 'cantonese'
+      ? /\p{Script=Han}/u.test(tooltipLayout.relative)
+      : /ago|just now|minute|hour|day|week|month|year/i.test(
+          tooltipLayout.relative
+        )
+  if (!languageMatches) {
+    fail(
+      `Commit relative-time language diverged: ${JSON.stringify({
+        requestedLanguageMode,
+        relative: tooltipLayout.relative,
+      })}.`
+    )
+  }
+  await capture('material-history-hover-time')
+})
+
 scene('branches-sheet', async () => {
   await ensureRepository()
   await menuEvent('show-branches')
@@ -3000,6 +3117,12 @@ scene('repositories-sheet', async () => {
   const actionLayout = await evaluate(`(() => {
     const sheet = document.querySelector('#foldout-container .foldout')
     const actions = document.querySelector('.repository-list-actions')
+    const filterButton = document.querySelector(
+      '.repository-list-filter-button'
+    )
+    const filterPanel = document.querySelector(
+      '#repository-list-filter-panel'
+    )
     if (!(sheet instanceof HTMLElement) || !(actions instanceof HTMLElement)) {
       return null
     }
@@ -3022,14 +3145,23 @@ scene('repositories-sheet', async () => {
         bottom: sheetBounds.bottom,
       },
       buttons,
+      filter: {
+        label: filterButton instanceof HTMLElement ? vt(filterButton) : null,
+        expanded: filterButton?.getAttribute('aria-expanded') ?? null,
+        controls: filterButton?.getAttribute('aria-controls') ?? null,
+        panelHidden:
+          filterPanel instanceof HTMLElement ? filterPanel.hidden : null,
+      },
     }
   })()`)
-  const expectedActions = ['Sync repositories', 'Commit & push all', 'Add']
+  const expectedActions = ['Add', 'Select', 'More']
   const clippedActions =
     actionLayout === null
       ? expectedActions
       : expectedActions.filter(label => {
-          const button = actionLayout.buttons.find(item => item.label === label)
+          const button = actionLayout.buttons.find(item =>
+            item.label.startsWith(label)
+          )
           return (
             button === undefined ||
             button.left < actionLayout.sheet.left - 0.5 ||
@@ -3043,6 +3175,146 @@ scene('repositories-sheet', async () => {
       `Repository sheet clips or omits actions: ${clippedActions.join(', ')}.`
     )
   }
+  if (
+    !actionLayout?.filter.label?.startsWith('Filters') ||
+    actionLayout.filter.expanded !== 'false' ||
+    actionLayout.filter.controls !== 'repository-list-filter-panel' ||
+    actionLayout.filter.panelHidden !== true
+  ) {
+    fail(
+      `Repository filters did not start as one collapsed accessible panel: ${JSON.stringify(
+        actionLayout?.filter ?? null
+      )}.`
+    )
+  }
+  await evaluate(`(() => {
+    const button = document.querySelector('.repository-list-filter-button')
+    if (!(button instanceof HTMLButtonElement)) {
+      return false
+    }
+    button.click()
+    return true
+  })()`)
+  await waitFor(
+    `document.querySelector('.repository-list-filter-button')?.getAttribute('aria-expanded') === 'true' &&
+      document.querySelector('#repository-list-filter-panel')?.hidden === false`,
+    'expanded repository filter panel'
+  )
+  await clickSelector(
+    '#repository-list-filter-panel .filter-regex-builder-button'
+  )
+  await waitFor(
+    `document.querySelector('#regex-builder-layer .regex-builder-dialog') !== null`,
+    'repository filter Regex Builder'
+  )
+  await evaluate(`(() => {
+    const button = document.querySelector('.repository-list-filter-button')
+    if (!(button instanceof HTMLButtonElement)) {
+      return false
+    }
+    button.focus()
+    button.click()
+    return true
+  })()`)
+  await waitFor(
+    `document.querySelector('.repository-list-filter-button')?.getAttribute('aria-expanded') === 'false' &&
+      document.querySelector('#repository-list-filter-panel')?.hidden === true &&
+      document.querySelector('#regex-builder-layer .regex-builder-dialog') === null &&
+      document.activeElement === document.querySelector('.repository-list-filter-button')`,
+    'collapsed repository filter panel without detached Regex Builder'
+  )
+  await setViewport(390, 844)
+  const compactActionLayout = await evaluate(`(() => {
+    const sheet = document.querySelector('#foldout-container .foldout')
+    const actions = document.querySelector('.repository-list-actions')
+    const buttons = [
+      document.querySelector('.repository-list-add-button'),
+      document.querySelector('.repository-bulk-enter-button'),
+      document.querySelector('.repository-more-actions-button'),
+    ]
+    if (
+      !(sheet instanceof HTMLElement) ||
+      !(actions instanceof HTMLElement) ||
+      buttons.some(button => !(button instanceof HTMLButtonElement))
+    ) {
+      return null
+    }
+    const sheetBounds = sheet.getBoundingClientRect()
+    const actionBounds = actions.getBoundingClientRect()
+    return {
+      viewport: { width: innerWidth, height: innerHeight },
+      sheet: {
+        left: sheetBounds.left,
+        right: sheetBounds.right,
+        top: sheetBounds.top,
+        bottom: sheetBounds.bottom,
+      },
+      actions: {
+        left: actionBounds.left,
+        right: actionBounds.right,
+        top: actionBounds.top,
+        bottom: actionBounds.bottom,
+        clientWidth: actions.clientWidth,
+        scrollWidth: actions.scrollWidth,
+      },
+      buttons: buttons.map(button => {
+        const bounds = button.getBoundingClientRect()
+        return {
+          label: vt(button),
+          left: bounds.left,
+          right: bounds.right,
+          top: bounds.top,
+          bottom: bounds.bottom,
+          width: bounds.width,
+          clientWidth: button.clientWidth,
+          scrollWidth: button.scrollWidth,
+        }
+      }),
+    }
+  })()`)
+  const compactButtons = compactActionLayout?.buttons ?? []
+  const compactTops = compactButtons.map(button => button.top)
+  const compactBottoms = compactButtons.map(button => button.bottom)
+  const compactWidths = compactButtons.map(button => button.width)
+  const compactLanguageMatches =
+    requestedLanguageMode === 'bilingual'
+      ? compactButtons.every(
+          button =>
+            / · /.test(button.label) && /\p{Script=Han}/u.test(button.label)
+        )
+      : requestedLanguageMode === 'cantonese'
+      ? compactButtons.every(button => /\p{Script=Han}/u.test(button.label))
+      : compactButtons.every(button => !/\p{Script=Han}/u.test(button.label))
+  if (
+    compactActionLayout === null ||
+    compactActionLayout.viewport.width !== 390 ||
+    compactButtons.length !== 3 ||
+    Math.max(...compactTops) - Math.min(...compactTops) > 1 ||
+    Math.max(...compactBottoms) - Math.min(...compactBottoms) > 1 ||
+    Math.max(...compactWidths) - Math.min(...compactWidths) > 1 ||
+    compactButtons.some(
+      button =>
+        button.left < compactActionLayout.sheet.left - 0.5 ||
+        button.right > compactActionLayout.sheet.right + 0.5 ||
+        button.scrollWidth > button.clientWidth + 1
+    ) ||
+    compactActionLayout.actions.scrollWidth >
+      compactActionLayout.actions.clientWidth + 1 ||
+    compactLanguageMatches !== true
+  ) {
+    fail(
+      `Repository compact action geometry diverged: ${JSON.stringify({
+        requestedLanguageMode,
+        layout: compactActionLayout,
+      })}.`
+    )
+  }
+  await restoreCaptureViewport()
+  await waitFor(
+    `document.querySelector('.repository-list-filter-button')?.getAttribute('aria-expanded') === 'false' &&
+      document.querySelector('#repository-list-filter-panel')?.hidden === true`,
+    'restored collapsed repository sheet'
+  )
   await capture('material-repositories-sheet')
   await closeAllDialogs()
 })
@@ -7694,6 +7966,21 @@ scene('submodule-context', async () => {
   await evaluate(
     `new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))`
   )
+  const cheapLfsFalsePositives = await evaluate(`(() =>
+    [...document.querySelectorAll('.error-notice[role="alert"]')]
+      .map(notice => notice.textContent?.trim() ?? '')
+      .filter(message => /unsafe Cheap LFS tracked path/i.test(message))
+  )()`)
+  if (
+    !Array.isArray(cheapLfsFalsePositives) ||
+    cheapLfsFalsePositives.length > 0
+  ) {
+    fail(
+      `Ordinary submodule metadata triggered Cheap LFS validation: ${JSON.stringify(
+        cheapLfsFalsePositives
+      )}`
+    )
+  }
   await parkPointer()
   await capture('material-submodule-context')
 

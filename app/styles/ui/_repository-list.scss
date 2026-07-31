@@ -351,21 +351,24 @@
     // the three lower-frequency workspace actions into one menu. The compact
     // labels remain a single row even in bilingual mode, instead of producing
     // the five-pill, three-line block this 400px sheet used to need.
-    flex: 1 1 100%;
+    align-self: stretch;
+    flex: 0 0 auto;
     flex-wrap: nowrap;
     gap: var(--spacing-half);
+    margin: 0 16px 12px;
     min-width: 0;
-    width: 100%;
+    width: auto;
 
     .button-component {
       align-items: center;
       display: inline-flex;
-      flex: 0 0 auto;
+      flex: 1 1 0;
       gap: 6px;
       justify-content: center;
       min-height: 44px;
       min-width: 0;
       padding: 0 12px;
+      overflow: hidden;
     }
 
     .repository-list-add-button {
@@ -386,6 +389,69 @@
     .localized-text {
       min-width: 0;
       white-space: nowrap;
+    }
+
+    .localized-text[data-language-mode='bilingual'] {
+      align-items: center;
+      display: inline-flex;
+      flex-direction: column;
+      line-height: 1.05;
+      white-space: normal;
+
+      .localized-text-separator {
+        display: none;
+      }
+    }
+  }
+
+  .repository-list-filter-disclosure {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    margin: 0 16px 8px;
+  }
+
+  .repository-list-filter-button {
+    align-items: center;
+    background: var(--md-sys-color-surface-container-high);
+    border: 0;
+    border-radius: 999px;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    font-weight: var(--font-weight-semibold);
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 14px;
+
+    &.active {
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+    }
+
+    &:hover {
+      background: var(--md-sys-color-surface-container-highest);
+      color: var(--md-sys-color-on-surface);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+
+  .repository-list-filter-chevron {
+    transition: transform 160ms ease;
+
+    &.expanded {
+      transform: rotate(180deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .repository-list-filter-chevron {
+      transition: none;
     }
   }
 

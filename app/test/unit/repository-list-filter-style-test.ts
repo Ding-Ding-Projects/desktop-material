@@ -53,11 +53,15 @@ describe('repository list scope filter styles', () => {
   it('keeps the compact repository actions on one touch-friendly row', () => {
     assert.match(
       style,
-      /\.repository-list-actions\s*\{[\s\S]*?align-items: center;[\s\S]*?flex: 1 1 100%;[\s\S]*?flex-wrap: nowrap;[\s\S]*?min-width: 0;[\s\S]*?width: 100%;/
+      /\.repository-list-actions\s*\{[\s\S]*?align-items: center;[\s\S]*?align-self: stretch;[\s\S]*?flex: 0 0 auto;[\s\S]*?flex-wrap: nowrap;[\s\S]*?margin: 0 16px 12px;[\s\S]*?min-width: 0;[\s\S]*?width: auto;/
     )
     assert.match(
       style,
-      /\.repository-list-actions[\s\S]*?\.button-component\s*\{[\s\S]*?min-height: 44px;[\s\S]*?min-width: 0;/
+      /\.repository-list-actions[\s\S]*?\.button-component\s*\{[\s\S]*?flex: 1 1 0;[\s\S]*?min-height: 44px;[\s\S]*?min-width: 0;[\s\S]*?overflow: hidden;/
+    )
+    assert.match(
+      style,
+      /\.localized-text\[data-language-mode='bilingual'\]\s*\{[\s\S]*?flex-direction: column;[\s\S]*?white-space: normal;[\s\S]*?\.localized-text-separator\s*\{[\s\S]*?display: none;/
     )
   })
 })

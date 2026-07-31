@@ -78,6 +78,14 @@ Working-tree pointer discovery never sends file content to
 NUL-delimited names of changed and untracked files. A user-selected path list
 is normalized and rejected if unsafe before any inventory subprocess starts.
 
+That unscoped list belongs to ordinary Git status, not to a user-requested
+Cheap LFS operation. Ineligible metadata such as `.gitmodules`,
+`.github/workflows/...`, and gitlink directories is therefore skipped before
+filesystem access instead of being mislabeled as an “unsafe Cheap LFS tracked
+path.” The stricter boundary still applies to an explicit Cheap LFS pathspec:
+selecting `.gitmodules` directly is rejected, so the false-positive correction
+does not expand what Cheap LFS may read.
+
 Desktop Material then resolves each name below the canonical repository root,
 refuses owned scratch paths, directories and gitlinks, symlinks/reparse points,
 and multiply linked files, and reads at most the first **512 bytes** through an
@@ -93,6 +101,12 @@ inventoried. An ordinary raw payload, including a multi-gigabyte model file,
 never reaches a content-scanning Git process. Committed index/HEAD pointer
 metadata uses the separate Git-object inventory path and does not weaken this
 working-tree bound.
+
+The regression fixture creates an ordinary untracked `.gitmodules` file plus a
+`.github/workflows/build.yml`, proves an unscoped pointer inventory returns no
+objects and no error, then proves an explicit `.gitmodules` Cheap LFS request
+still fails closed. The off-screen submodule scene also checks the real
+notification stack for the absence of the former false-positive error.
 
 **Repository settings → Cheap LFS → Large-file storage** selects a
 published GitHub prerelease, one GHCR OCI image, or one Docker Hub OCI image.

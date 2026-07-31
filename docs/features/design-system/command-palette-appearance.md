@@ -11,7 +11,7 @@ details. Enter and pointer activation dispatch the highlighted result
 immediately. Search keeps its in-field fuzzy/substring/regex mode,
 case-sensitivity toggle, full regex builder, and appearance editor.
 
-![Command palette showing Ollama results beside the fully visible row appearance editor](../../assets/screenshots/material-command-palette-appearance.png)
+![Command palette showing Ollama results beside the compact aligned row appearance editor with random per repository mode](../../assets/screenshots/material-command-palette-appearance.png)
 
 ## Behavior and configuration
 
@@ -33,8 +33,16 @@ Each row renders:
 **Customize appearance** sits beside the filter-mode and regex controls in the
 search pill. It opens an editor anchored to its own button rather than a
 separate dialog, so the result list stays visible while it is adjusted and
-every change applies immediately:
+every change applies immediately. Controls are left-aligned in one compact
+column, keeping each radio or checkbox beside its label instead of letting
+global form layout push the pair apart:
 
+- **Random per repository** — derives one of six balanced row layouts from the
+  active repository's stable local identity. The same repository keeps the
+  same look across palette opens and restarts; switching repositories may pick
+  a different look. Manual controls remain visible but disabled while this mode
+  is active, so the resolved values stay inspectable without implying they can
+  be edited.
 - **Row density** — comfortable (roomier rows with the secondary line) or
   compact (tighter rows, more commands visible; the keyword line is
   suppressed).
@@ -42,8 +50,10 @@ every change applies immediately:
   turned off independently.
 - **Reset to defaults** restores comfortable density with all three shown.
 
-The choice is stored in `localStorage` under `command-palette-appearance-v1`
-and applies to every later palette session.
+The mode and manual choices are stored in `localStorage` under
+`command-palette-appearance-v1`. Random mode stores no repository paths or
+remote names and performs no random redraw: it hashes the already-available
+local repository ID only while resolving the current row layout.
 
 The palette title, search prompt, empty state, stable group labels, appearance
 editor, accessibility names, and the three discoverability entries below all
@@ -80,12 +90,16 @@ editor.
 Appearance controls presentation only. It cannot add, hide, reorder, or
 re-target a command, and it has no effect on a command's availability
 predicate, so a corrupted stored value can never cause a command to dispatch
-in a state where it could not otherwise run.
+in a state where it could not otherwise run. Random-per-repository resolution
+is local and deterministic; it performs no network request and persists no
+additional repository metadata.
 
 ## Verification
 
 `command-palette-appearance-test.ts`, `command-palette-catalog-test.ts`, and
 the command-palette surface tests cover storage defaults and repair, icon
 resolution precedence, localized discoverability titles, localized group
-search, density/toggle persistence, anchored-editor Escape containment, and
-focus restoration.
+search, density/toggle persistence, stable per-repository random resolution,
+aligned control geometry, disabled manual controls in random mode, live row
+structure changes across two repository identities, anchored-editor Escape
+containment, and focus restoration.

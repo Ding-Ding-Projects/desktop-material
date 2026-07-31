@@ -116,12 +116,29 @@ describe('CommandPalette filter modes', () => {
         localStorage.getItem('command-palette-appearance-v1') ?? 'null'
       ),
       {
+        mode: 'manual',
         density: 'compact',
         showIcons: false,
         showGroups: true,
         showKeywords: true,
       }
     )
+
+    const randomPerRepository = screen.getByRole('checkbox', {
+      name: /Random per repository/,
+    })
+    fireEvent.click(randomPerRepository)
+    assert.equal(
+      JSON.parse(
+        localStorage.getItem('command-palette-appearance-v1') ?? 'null'
+      ).mode,
+      'random-per-repository'
+    )
+    assert.equal(
+      screen.getByRole('radio', { name: /Compact/ }).matches(':disabled'),
+      true
+    )
+    fireEvent.click(randomPerRepository)
 
     icons.focus()
     fireEvent.keyDown(icons, { key: 'Escape' })
@@ -136,6 +153,62 @@ describe('CommandPalette filter modes', () => {
     assert.ok(screen.getByRole('dialog', { name: 'Command palette' }))
     assert.equal(dismissals, 0)
     await waitFor(() => assert.equal(document.activeElement, toggle))
+  })
+
+  it('resolves random row appearance from the active repository identity', () => {
+    localStorage.setItem(
+      'command-palette-appearance-v1',
+      JSON.stringify({
+        mode: 'random-per-repository',
+        density: 'comfortable',
+        showIcons: true,
+        showGroups: true,
+        showKeywords: true,
+      })
+    )
+
+    const view = render(
+      <DialogStackContext.Provider value={{ isTopMost: true }}>
+        <CommandPalette
+          availabilityContext={{
+            repositoryKey: 'repo-1',
+            hasRepository: true,
+            hasRemote: true,
+            hasBranch: true,
+            isGitHubRepository: true,
+          }}
+          onExecute={() => undefined}
+          onDismissed={() => undefined}
+        />
+      </DialogStackContext.Provider>
+    )
+
+    let results = screen.getByRole('listbox', { name: 'Commands' })
+    assert.ok(results.classList.contains('density-comfortable'))
+    assert.equal(results.querySelector('.command-palette-icon'), null)
+    assert.ok(results.querySelector('.command-palette-group'))
+
+    view.rerender(
+      <DialogStackContext.Provider value={{ isTopMost: true }}>
+        <CommandPalette
+          availabilityContext={{
+            repositoryKey: 'repo-2',
+            hasRepository: true,
+            hasRemote: true,
+            hasBranch: true,
+            isGitHubRepository: true,
+          }}
+          onExecute={() => undefined}
+          onDismissed={() => undefined}
+        />
+      </DialogStackContext.Provider>
+    )
+
+    results = screen.getByRole('listbox', { name: 'Commands' })
+    assert.ok(results.classList.contains('density-compact'))
+    assert.ok(results.querySelector('.command-palette-icon'))
+    assert.equal(results.querySelector('.command-palette-group'), null)
+    assert.equal(results.querySelector('.command-palette-keywords'), null)
   })
 })
 

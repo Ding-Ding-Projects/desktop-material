@@ -9,6 +9,13 @@
 > elapsed/ETA progress; Cheap LFS restore details collapse; and every action is
 > directly searchable and executable from the command palette.
 
+> **Repository workflow refinements — July 30, 2026:** the repository sheet
+> folds its filters behind one state-preserving disclosure, History hover cards
+> show exact and relative time, and command rows support stable per-repository
+> appearance. Automatic Cheap LFS discovery now ignores ineligible ordinary Git
+> metadata such as `.gitmodules`; explicitly selected unsafe paths remain
+> rejected.
+
 > **Publish organization picker sizing — July 30, 2026 (implementation
 > pushed; final hosted proof pending):** Publish repository no longer squeezes its Organization
 > choices into a native select. The replacement is an explicit-None,
@@ -20,7 +27,7 @@
 > `7db03d5db789d19e1ad49de66bd79abb62e46c7909eda9de08878aac367033d8`).
 > A 390×844 physical receipt also proves a visible, bottom-reachable list with
 > no horizontal overflow and None selected. The promoted gallery will contain
-> exactly **85 current Windows scenes** (67 canonical plus 18 specialist).
+> exactly **86 current Windows scenes** (66 canonical plus 20 specialist).
 > Local tests and the exact production build are green. Implementation commit
 > `63c1ec08c4f24f85d87f21d98851dcd5784c7800` is proven on `origin/main`;
 > this follow-up publishes the retained receipt and regenerated parity input
@@ -59,7 +66,7 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 > **Current close-out status — July 29, 2026:** the active issue-closing wave is
 > merged locally with the Cheap LFS helper train and the Windows shutdown/profile
 > persistence corrections, and remains in final verification. Its capture and
-> publication contracts own exactly **84 current Windows scenes**; five earlier
+> publication contracts own exactly **86 current Windows scenes**; five earlier
 > Linux/Xvfb files remain immutable historical evidence outside that set. The
 > distinct current-source updater frame is now accepted and published from
 > runtime source `b069384ad7d8a65d1192ee06859a705fe484c9c8` through promotion
@@ -164,7 +171,9 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 
 ![Repository picker showing the separate lock badge for explicit private metadata](docs/assets/screenshots/private-repository-lock-badge.png)
 
-![Dark repository side sheet with one compact Add, Select, and More action row](docs/assets/screenshots/material-repositories-sheet.png)
+![Dark repository side sheet with collapsed Filters and one compact Add, Select, and More action row](docs/assets/screenshots/material-repositories-sheet.png)
+
+![Bilingual Publish repository dialog with a searchable, contained organization owner listbox](docs/assets/screenshots/material-publish-organization-picker.png)
 
 ## Install on Windows
 
@@ -270,7 +279,7 @@ interactive run commands.
 The five dated Linux/Xvfb captures remain preserved in the
 [historical TUI verification record](docs/verification/linux-tui-2026-07-27/run-manifest.md).
 They are not presented as current Windows evidence and are excluded from the
-85-scene guided gallery and its refresh plan.
+86-scene guided gallery and its refresh plan.
 
 ## Explore the tabs
 

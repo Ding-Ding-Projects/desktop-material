@@ -248,6 +248,12 @@
       }
     }
 
+    .commit-tooltip-relative-date {
+      color: var(--md-sys-color-on-surface-variant);
+      display: block;
+      margin-top: 2px;
+    }
+
     .unpushed-indicator {
       display: inline-flex;
       flex: 0 0 auto;

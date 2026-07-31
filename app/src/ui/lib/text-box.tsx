@@ -102,6 +102,12 @@ export interface ITextBoxProps {
   /** Optional aria-label attribute */
   readonly ariaLabel?: string
 
+  /** Accessible label for the optional clear button. Defaults to "Clear". */
+  readonly clearButtonAriaLabel?: string
+
+  /** Live-region copy after clearing. Defaults to "Input cleared". */
+  readonly clearedMessage?: string
+
   /** Optional aria-labelledby attribute */
   readonly ariaLabelledBy?: string
 
@@ -343,15 +349,18 @@ export class TextBox extends React.Component<ITextBoxProps, ITextBoxState> {
           this.state.value !== undefined &&
           this.state.value !== '' && (
             <button
+              type="button"
               className="clear-button"
-              aria-label="Clear"
+              aria-label={this.props.clearButtonAriaLabel ?? 'Clear'}
               onClick={this.clearSearchText}
             >
               <Octicon symbol={octicons.x} />
             </button>
           )}
         {this.state.valueCleared && (
-          <AriaLiveContainer message="Input cleared" />
+          <AriaLiveContainer
+            message={this.props.clearedMessage ?? 'Input cleared'}
+          />
         )}
       </div>
     )

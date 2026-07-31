@@ -204,8 +204,9 @@
     top: calc(100% + 8px);
     right: 0;
     z-index: 10;
-    width: 268px;
-    max-height: min(330px, calc(100vh - 210px));
+    width: 300px;
+    max-width: calc(100vw - 32px);
+    max-height: min(420px, calc(100vh - 210px));
     padding: 12px 14px 14px;
     border: 1px solid var(--md-sys-color-outline-variant);
     border-radius: 16px;
@@ -229,6 +230,11 @@
       margin: 0 0 10px;
       padding: 0;
       border: 0;
+
+      &:disabled {
+        color: var(--md-sys-color-on-surface-variant);
+        opacity: 0.68;
+      }
     }
 
     legend {
@@ -241,13 +247,21 @@
   .command-palette-appearance-option {
     display: flex;
     align-items: flex-start;
+    justify-content: flex-start;
     gap: 8px;
     padding: 4px 0;
+    width: 100%;
     cursor: pointer;
+
+    > input {
+      flex: 0 0 auto;
+      margin: 2px 0 0;
+    }
   }
 
   .command-palette-appearance-option-copy {
     display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
     min-width: 0;
   }
@@ -264,10 +278,22 @@
   .command-palette-appearance-check {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
     gap: 8px;
     padding: 3px 0;
+    width: 100%;
     font-size: 12.5px;
     cursor: pointer;
+
+    > input {
+      flex: 0 0 auto;
+      margin: 0;
+    }
+  }
+
+  fieldset.command-palette-appearance-mode {
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
   }
 
   .command-palette-appearance-reset {

@@ -2,6 +2,12 @@ import * as React from 'react'
 import { TooltippedContent } from './lib/tooltipped-content'
 import { formatDate } from '../lib/format-date'
 import { formatRelative } from '../lib/format-relative'
+import { LanguageMode } from '../models/language-mode'
+import {
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+  translate,
+} from '../lib/i18n'
 
 interface IRelativeTimeProps {
   /**
@@ -21,6 +27,9 @@ interface IRelativeTimeProps {
 
   /** Whether to show a tooltip with the absolute date on hover - Default = true */
   readonly tooltip?: boolean
+
+  /** Language used for the relative phrase. Defaults to the active app mode. */
+  readonly languageMode?: LanguageMode
 }
 
 interface IRelativeTimeState {
@@ -46,7 +55,8 @@ type RelativeTimeInfo = {
 
 export function getRelativeTimeInfoFromDate(
   then: Date,
-  onlyRelative: boolean = true
+  onlyRelative: boolean = true,
+  languageMode: LanguageMode = 'english'
 ): RelativeTimeInfo {
   const diff = then.getTime() - Date.now()
   const duration = Math.abs(diff)
@@ -56,7 +66,10 @@ export function getRelativeTimeInfoFromDate(
     timeStyle: 'short',
   })
 
-  const relativeText = formatRelative(diff)
+  const relativeText =
+    languageMode === 'bilingual'
+      ? `${formatRelative(diff, 'en-US')} · ${formatRelative(diff, 'zh-HK')}`
+      : formatRelative(diff, languageMode === 'cantonese' ? 'zh-HK' : 'en-US')
 
   // Future date, let's just show as absolute and reschedule. If it's less
   // than a minute into the future we'll treat it as 'just now'.
@@ -72,7 +85,7 @@ export function getRelativeTimeInfoFromDate(
   } else if (duration < MINUTE) {
     return {
       absoluteText,
-      relativeText: 'just now',
+      relativeText: translate('relativeTime.justNow', languageMode),
       duration: MINUTE - duration,
     }
   } else if (duration < HOUR) {
@@ -137,11 +150,14 @@ export class RelativeTime extends React.Component<
     this.setState({ absoluteText, relativeText })
   }
 
-  private updateWithDate(then: Date) {
-    const { onlyRelative } = this.props
-
+  private updateWithDate(
+    then: Date,
+    onlyRelative: boolean | undefined = this.props.onlyRelative,
+    languageMode: LanguageMode = this.props.languageMode ??
+      getPersistedLanguageMode()
+  ) {
     const { absoluteText, relativeText, duration } =
-      getRelativeTimeInfoFromDate(then, onlyRelative)
+      getRelativeTimeInfoFromDate(then, onlyRelative, languageMode)
 
     if (duration !== undefined) {
       this.updateAndSchedule(absoluteText, relativeText, duration)
@@ -154,9 +170,34 @@ export class RelativeTime extends React.Component<
     this.updateWithDate(this.props.date)
   }
 
+  private readonly onLanguageModeChanged = () => {
+    if (this.props.languageMode === undefined) {
+      this.updateWithDate(
+        this.props.date,
+        this.props.onlyRelative,
+        getPersistedLanguageMode()
+      )
+    }
+  }
+
+  public componentDidMount() {
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
   public componentWillReceiveProps(nextProps: IRelativeTimeProps) {
-    if (this.props.date !== nextProps.date) {
-      this.updateWithDate(nextProps.date)
+    if (
+      this.props.date !== nextProps.date ||
+      this.props.onlyRelative !== nextProps.onlyRelative ||
+      this.props.languageMode !== nextProps.languageMode
+    ) {
+      this.updateWithDate(
+        nextProps.date,
+        nextProps.onlyRelative,
+        nextProps.languageMode ?? getPersistedLanguageMode()
+      )
     }
   }
 
@@ -165,6 +206,10 @@ export class RelativeTime extends React.Component<
   }
 
   public componentWillUnmount() {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
     this.clearTimer()
   }
 
@@ -174,6 +219,8 @@ export class RelativeTime extends React.Component<
   ) {
     return (
       nextProps.date !== this.props.date ||
+      nextProps.onlyRelative !== this.props.onlyRelative ||
+      nextProps.languageMode !== this.props.languageMode ||
       nextState.absoluteText !== this.state.absoluteText ||
       nextState.relativeText !== this.state.relativeText
     )

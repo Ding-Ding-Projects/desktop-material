@@ -4,7 +4,7 @@
 
 Treat every gallery entry as part of a workflow: find the capability, open its named surface, review the exact scope, and keep the resulting evidence.
 
-This page maps 85 named, user-facing visual functions and states to a
+This page maps 86 named, user-facing visual functions and states to a
 one-screenshot-per-function Windows acceptance target. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata except the purpose-built live Cheap LFS acceptance repositories. No personal path,
@@ -20,10 +20,13 @@ missing, duplicate, or unassigned current assets. Five retained Linux/Xvfb
 captures are enumerated separately as historical evidence and are deliberately
 outside this Windows target set.
 
-> **Current refresh status — July 30, 2026:** the contract declares 67
-> canonical and 18 specialist Windows targets. The searchable Publish
+> **Current refresh status — July 30, 2026:** the contract declares 66
+> canonical and 20 specialist Windows targets. The repository sheet now has a
+> dedicated dark bilingual specialist owner instead of inheriting the
+> light-English canonical batch, and the History commit hover card is published
+> as its own specialist scene. The searchable Publish
 > organization owner picker is accepted and published, completing the
-> 85-image Windows set. The real production bundle ran against an owned
+> 86-image Windows set. The real production bundle ran against an owned
 > no-remote repository and deterministic three-organization provider on an
 > isolated hidden Win32 desktop, with zero provider mutations. Its bilingual
 > dialog passed the physical 390×844 auto-fit gate with a non-collapsing
@@ -153,7 +156,7 @@ active profile's style, label, and explicit language mode.
 | `material-tab-arrange.png` | Pinned/manual movement and one-shot tab ordering controls |
 | `material-tab-search.png` | Runtime tab search across names, aliases, paths, and clone URLs |
 | `material-tab-groups.png` | Restart-restored named group chip with visible repository membership and real collapse/expand behavior |
-| `material-command-palette-appearance.png` | Rich command results beside the fully visible density and row-content appearance editor |
+| `material-command-palette-appearance.png` | Rich command results beside the compact aligned appearance editor with stable random-per-repository mode |
 | `cheap-lfs-ui-acceptance.png` | Live private-repository Cheap LFS pin result with the verified pointer and Materialize action |
 | `cheap-lfs-cloud-compression.png` | Bilingual persisted private opt-in routed through the encrypted public builder, with no private-repository workflow and one verified 99.9%-compressed pointer |
 | `cheap-lfs-commit-progress.png` | Three-worker Cheap LFS terminal with queue, provider, reason, timing, ETA, manual-phase, and keyboard-disclosure context |
@@ -193,10 +196,11 @@ active profile's style, label, and explicit language mode.
 | `material-workspace-changes.png` | Material Changes workspace and commit flow |
 | `material-history.png` | Core History browsing and selected-commit inspection |
 | `material-history-context-actions.png` | Selection-aware History commit More/right-click actions and button hint |
+| `material-history-hover-time.png` | Commit hover/focus card with exact authored timestamp and relative age |
 | `material-settings.png` | Responsive Material Settings dialog |
 | `auto-updater-current-source-ready.png` | Current-source production UI after a genuine Electron/Squirrel update-downloaded path with a disclosed inert verifier payload and no published-payload claim |
 | `settings-history-manager.png` | Git-backed Settings history side sheet |
-| `material-repositories-sheet.png` | Compact Add, Select, and More repository actions |
+| `material-repositories-sheet.png` | Collapsible repository filters with compact Add, Select, and More actions |
 | `material-publish-organization-picker.png` | Searchable personal-or-organization owner listbox with bounded filtering, keyboard selection, and physical narrow-window containment |
 | `material-branches-sheet.png` | Branch navigation and status side sheet |
 | `regex-builder.png` | Safe RE2 builder with bounded live matches and captures |
@@ -246,7 +250,7 @@ The five original Linux terminal captures and their exact hashes remain
 preserved with the
 [July 27 Debian/Xvfb run manifest](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/verification/linux-tui-2026-07-27/run-manifest.md).
 They document what was accepted at that time, but they are out of scope for the
-current Windows-only 85-scene target, Pages manifest, and refresh campaign.
+current Windows-only 86-scene target, Pages manifest, and refresh campaign.
 They are retained rather than relabelled or presented as current Windows
 evidence.
 
@@ -307,11 +311,13 @@ Named, colored tab groups persist with their profile/window state and render a
 real chip before the first member. Collapsing hides the member tabs without
 closing a repository, and the chip remains keyboard reachable. The command
 palette pairs localized rich result rows with an anchored editor for density,
-icons, group chips, and search-term visibility.
+icons, group chips, and search-term visibility. Its compact aligned controls
+also include a stable **Random per repository** mode, so each repository can
+carry a distinct row layout without changing on every open.
 
 ![Restart-restored named tab-group chip with its visible repository member](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-tab-groups.png)
 
-![Command palette showing Ollama results beside the fully visible row appearance editor](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-command-palette-appearance.png)
+![Command palette showing Ollama results beside the compact aligned row appearance editor with random per repository mode](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-command-palette-appearance.png)
 
 ## Clone, pull, and working-tree scope
 
@@ -651,7 +657,7 @@ owner.
 
 ![Git-backed Settings history side sheet](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/settings-history-manager.png)
 
-![Dark repository side sheet with compact Add, Select, and More actions](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-repositories-sheet.png)
+![Dark repository side sheet with collapsed Filters and compact Add, Select, and More actions](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-repositories-sheet.png)
 
 ![Branch navigation and status side sheet](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-branches-sheet.png)
 
@@ -670,6 +676,8 @@ reachable without page-level horizontal clipping.
 ![Core History browsing and selected-commit inspection](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history.png)
 
 ![History commit row with its named More actions control and hover hint](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-context-actions.png)
+
+![History commit hover card showing an exact timestamp and relative age](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-hover-time.png)
 
 ![Searchable History and commit ancestry graph](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-power-tools.png)
 

@@ -59,12 +59,17 @@ function pendingReceipt(scene) {
         fixture: fixtureReceipt(),
         state: {
           query: 'ollama',
-          resultCount: 5,
+          resultCount: 8,
           editorOpen: true,
           resetVisible: true,
-          iconRowCount: 5,
-          groupChipRowCount: 5,
-          keywordRowCount: 5,
+          randomToggleVisible: true,
+          randomModeChanged: true,
+          alignedOptions: true,
+          editorScrollTop: 0,
+          appearanceHeadingVisible: true,
+          iconRowCount: 8,
+          groupChipRowCount: 8,
+          keywordRowCount: 8,
         },
         capture: captureReceipt(scene),
       }
@@ -340,16 +345,24 @@ test('all state is reached through shipped controls and production stores', () =
   }
 })
 
-test('command palette contract leaves exactly five rich ollama rows and Reset', () => {
+test('command palette contract proves aligned random mode and eight rich ollama rows', () => {
   for (const contract of [
     'openCommandPaletteKeyboard()',
     "'ollama'",
-    'length === 5',
+    'length === 8',
     "'#command-palette .command-palette-appearance-toggle'",
     "'Reset defaults'",
-    'state.iconRowCount !== 5',
-    'state.groupChipRowCount !== 5',
-    'state.keywordRowCount !== 5',
+    "'Random per repository'",
+    'randomModeChanged',
+    'alignedOptions',
+    'editor.scrollTop = 0',
+    'requestAnimationFrame(() =>',
+    'appearanceHeadingVisible',
+    'state.editorScrollTop !== 0',
+    'state.appearanceHeadingVisible !== true',
+    'state.iconRowCount !== 8',
+    'state.groupChipRowCount !== 8',
+    'state.keywordRowCount !== 8',
   ]) {
     assert.ok(
       source.includes(contract),
@@ -358,7 +371,7 @@ test('command palette contract leaves exactly five rich ollama rows and Reset', 
   }
   assert.equal(
     validReceipt('material-command-palette-appearance').state.resultCount,
-    5
+    8
   )
 })
 
@@ -497,6 +510,30 @@ test('strict per-scene receipts reject extras, false gates, semantic drift, and 
   assert.throws(
     () =>
       verifier.validateSceneReceipt('repository-list-sync-summary', syncDrift),
+    /semantics/
+  )
+
+  const scrolledPalette = validReceipt('material-command-palette-appearance')
+  scrolledPalette.state.editorScrollTop = 1
+  assert.throws(
+    () =>
+      verifier.validateSceneReceipt(
+        'material-command-palette-appearance',
+        scrolledPalette
+      ),
+    /semantics/
+  )
+
+  const clippedPaletteHeading = validReceipt(
+    'material-command-palette-appearance'
+  )
+  clippedPaletteHeading.state.appearanceHeadingVisible = false
+  assert.throws(
+    () =>
+      verifier.validateSceneReceipt(
+        'material-command-palette-appearance',
+        clippedPaletteHeading
+      ),
     /semantics/
   )
 })

@@ -10,11 +10,13 @@ import {
   resetTestTimers,
 } from '../../helpers/ui/timers'
 import { RelativeTime } from '../../../src/ui/relative-time'
+import { LanguageModeChangedEvent } from '../../../src/lib/i18n'
 
 const now = Date.parse('2026-03-26T12:00:00.000Z')
 
 describe('RelativeTime', () => {
   beforeEach(() => {
+    localStorage.removeItem('language-mode-v1')
     enableTestTimers(['Date', 'setTimeout'], now)
   })
 
@@ -51,6 +53,36 @@ describe('RelativeTime', () => {
     )
 
     assert.equal(screen.getByText('2 hours ago').textContent, '2 hours ago')
+  })
+
+  it('renders Cantonese and bilingual relative phrases', () => {
+    const date = new Date(now - 2 * 60 * 1000)
+    const view = render(
+      <RelativeTime date={date} languageMode="cantonese" tooltip={false} />
+    )
+
+    assert.equal(screen.getByText('2 分鐘前').textContent, '2 分鐘前')
+
+    view.rerender(
+      <RelativeTime date={date} languageMode="bilingual" tooltip={false} />
+    )
+    assert.equal(
+      screen.getByText('2 minutes ago · 2 分鐘前').textContent,
+      '2 minutes ago · 2 分鐘前'
+    )
+  })
+
+  it('updates default-mode instances when the app language changes', () => {
+    const date = new Date(now - 2 * 60 * 1000)
+    render(<RelativeTime date={date} tooltip={false} />)
+    assert.ok(screen.getByText('2 minutes ago'))
+
+    localStorage.setItem('language-mode-v1', 'cantonese')
+    document.dispatchEvent(
+      new CustomEvent(LanguageModeChangedEvent, { detail: 'cantonese' })
+    )
+
+    assert.ok(screen.getByText('2 分鐘前'))
   })
 
   it('refreshes once the scheduled timeout elapses', () => {

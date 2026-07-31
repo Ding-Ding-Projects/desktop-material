@@ -173,7 +173,7 @@ production, headless, source-publication, and cleanup evidence remains centraliz
 in `HANDOFF.md`; historical gallery references do not substitute for those receipts.
 
 The [Guided Feature Gallery](Feature-Gallery) is the machine-checked
-documentation manifest for 84 user-facing Windows visual targets associated
+documentation manifest for 86 user-facing Windows visual targets associated
 with these subsystems. Each function must own one distinct current PNG;
 missing, duplicate, and unassigned current assets fail the catalog contract,
 so the manifest cannot claim publication while a target is absent. Five

@@ -4813,6 +4813,36 @@ describe('cheap LFS operations', () => {
     })
   })
 
+  it('ignores ordinary changed Git metadata paths during an unscoped pointer inventory', async () => {
+    await withTempRepository(async (dir, repository) => {
+      await execFile('git', ['init', '--quiet'], { cwd: dir })
+      await mkdir(join(dir, '.github', 'workflows'), { recursive: true })
+      await writeFile(
+        join(dir, '.gitmodules'),
+        [
+          '[submodule "vendor/codex"]',
+          '\tpath = vendor/codex',
+          '\turl = https://github.com/openai/codex',
+          '',
+        ].join('\n'),
+        'utf8'
+      )
+      await writeFile(
+        join(dir, '.github', 'workflows', 'build.yml'),
+        'name: build\n',
+        'utf8'
+      )
+
+      assert.deepEqual(await listAllCheapLfsPointers(repository), [])
+      await assert.rejects(
+        listAllCheapLfsPointers(repository, defaultCheapLfsFileSystem, [
+          '.gitmodules',
+        ]),
+        /unsafe Cheap LFS tracked path/
+      )
+    })
+  })
+
   it('never follows a selected symlink while classifying pointer headers', async t => {
     const outside = await mkdtemp(join(tmpdir(), 'cheeplfs-outside-'))
     try {

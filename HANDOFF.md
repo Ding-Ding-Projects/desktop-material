@@ -69,6 +69,58 @@ Pages/wiki, and installer Release proof remain open.
 
 ## 2026-07-29 — CURRENT HANDOFF (read this first)
 
+### Collapsible filters, searchable publish owners, relative age, and per-repository appearance
+
+The repository side sheet now keeps its account, service, status, search, and
+regex controls behind one state-preserving **Filters** disclosure that starts
+collapsed. Active filters remain applied and are counted on the disclosure.
+The existing compact **Add**, **Select**, and **More** action strip remains
+reachable outside the panel. Its three equal-width buttons stay inside the
+390 px sheet; bilingual labels stack inside each button instead of overflowing
+or recreating the old multi-row clutter.
+
+History commit hover/focus cards now pair the exact authored timestamp with an
+auto-updating relative age. The relative phrase follows the active English,
+Hong Kong Cantonese, or bilingual mode. The command-palette appearance editor
+is compact and left-aligned and adds a persisted **Random per repository**
+mode. It derives one of six balanced row layouts from the stable local
+repository ID, so the same repository keeps its look across opens and restarts
+without storing a path or redrawing randomly.
+
+Publish repository now replaces the organization select with an anchored
+Material listbox. Its native search field uses the shared fuzzy, substring, and
+safe-RE2 modes plus the full Regex Builder. Typing never changes ownership,
+invalid regex remains visibly fail-open, and switching accounts clears a stale
+organization before the newest request can populate the list.
+
+Focused implementation verification passes **133/133 tests across 11 files**,
+including the ordinary `.gitmodules` Cheap LFS false-positive regression,
+state-preserving filter collapse, bilingual relative time, nested
+listbox/builder focus, fail-closed publishing, and a renderer-level proof that
+two repository keys resolve to different row structures. The two gallery
+capture-contract suites pass **73/73**. The exact Windows production build and
+the four final current-build captures remain in progress; no stale renderer or
+missing organization screenshot is being presented as final evidence.
+
+The earlier candidate files awaiting current-build replacement are:
+
+- `material-repositories-sheet.png` — 1440×960, SHA-256
+  `0e7b37cc5b3e369c5ffb6a389c2b9cd7af02a4e51d76728d5ad96384ea97e02e`;
+- `material-history-hover-time.png` — 1440×960, SHA-256
+  `e3cc4132c79031ca7b7b8c559bdc1df9b862d60f887d34da2fe57f47cb14d933`;
+- `material-command-palette-appearance.png` — 1000×687, SHA-256
+  `23b2274af93b126ef3fa6103863c53a3abe0f3750f4bafd6f24758143fc65a7c`.
+
+香港粵語：repo 篩選而家識摺埋又記得狀態，三粒主要掣喺窄版雙語都唔會
+衝出門口；Publish owner 由舊式下拉變咗可搜尋 listbox，仲有完整 Regex
+Builder，打錯 regex 都唔會將選項變魔術消失；History hover 同時講實際日期
+同「幾耐之前」；命令面板仲可以每個 repo 穩定抽一款外觀，唔會每次打開都
+洗牌洗到暈。133/133 個 focused test 同 73/73 capture contract 已過，
+`.gitmodules` 唔再無啦啦畀 Cheap LFS 捉去問話；exact build 同四張最終圖
+仲做緊，未綠燈就唔會偷步報喜。
+
+### Earlier July 29 reliability close-out
+
 This close-out is limited to two existing reliability changes. The Cheap LFS
 cloud-compression workflow commit now uses a temporary empty
 `core.hooksPath`, closing the post-commit gap left by `--no-verify` without
@@ -556,7 +608,7 @@ milestone makes no full-app build claim and changes no app screenshot.
 The close-all-open-issues wave is merged locally but remains unpushed.
 Source and contract work is present, but completion still requires the exact
 Windows production build, the declared focused and full test gates, fresh
-acceptance for all 84 Windows gallery targets, default-branch integration and
+acceptance for all 86 Windows gallery targets, default-branch integration and
 push proof, and separate finished/closing receipts for each issue. None of
 those remaining gates is inferred from an older screenshot or test run.
 

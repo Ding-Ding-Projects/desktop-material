@@ -14,8 +14,8 @@ const getRelativeFormatter = mem(
   }
 )
 
-export function formatRelative(ms: number) {
-  const formatter = getRelativeFormatter('en-US', { numeric: 'auto' })
+export function formatRelative(ms: number, locale: string = 'en-US') {
+  const formatter = getRelativeFormatter(locale, { numeric: 'auto' })
 
   const sign = ms < 0 ? -1 : 1
 

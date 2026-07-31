@@ -3,12 +3,16 @@ import { MaterialSymbolName } from '../lib/material-symbol'
 /** Row height preset for the command palette result list. */
 export type CommandPaletteDensity = 'comfortable' | 'compact'
 
+/** How the result-row appearance is selected. */
+export type CommandPaletteAppearanceMode = 'manual' | 'random-per-repository'
+
 /**
  * The persisted look of the command palette result list. Every field is a
  * pure presentation choice; none of them changes which commands are offered
  * or what executing one does.
  */
 export interface ICommandPaletteAppearance {
+  readonly mode: CommandPaletteAppearanceMode
   readonly density: CommandPaletteDensity
   /** Show the leading Material Symbol for each row. */
   readonly showIcons: boolean
@@ -19,6 +23,7 @@ export interface ICommandPaletteAppearance {
 }
 
 export const DefaultCommandPaletteAppearance: ICommandPaletteAppearance = {
+  mode: 'manual',
   density: 'comfortable',
   showIcons: true,
   showGroups: true,
@@ -36,6 +41,10 @@ export function readCommandPaletteAppearance(): ICommandPaletteAppearance {
     }
     const parsed = JSON.parse(raw) as Partial<ICommandPaletteAppearance>
     return {
+      mode:
+        parsed.mode === 'random-per-repository' || parsed.mode === 'manual'
+          ? parsed.mode
+          : DefaultCommandPaletteAppearance.mode,
       density:
         parsed.density === 'compact' || parsed.density === 'comfortable'
           ? parsed.density
@@ -68,6 +77,80 @@ export function persistCommandPaletteAppearance(
     // Appearance is a convenience; a storage failure must not block the
     // palette from opening or running a command.
   }
+}
+
+const RandomRepositoryAppearances: ReadonlyArray<
+  Omit<ICommandPaletteAppearance, 'mode'>
+> = [
+  {
+    density: 'comfortable',
+    showIcons: true,
+    showGroups: true,
+    showKeywords: true,
+  },
+  {
+    density: 'compact',
+    showIcons: true,
+    showGroups: true,
+    showKeywords: false,
+  },
+  {
+    density: 'compact',
+    showIcons: true,
+    showGroups: false,
+    showKeywords: false,
+  },
+  {
+    density: 'comfortable',
+    showIcons: false,
+    showGroups: true,
+    showKeywords: true,
+  },
+  {
+    density: 'comfortable',
+    showIcons: true,
+    showGroups: false,
+    showKeywords: true,
+  },
+  {
+    density: 'compact',
+    showIcons: false,
+    showGroups: true,
+    showKeywords: false,
+  },
+]
+
+function stableRepositoryHash(repositoryKey: string): number {
+  let hash = 2166136261
+  for (let index = 0; index < repositoryKey.length; index++) {
+    hash ^= repositoryKey.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+  return hash >>> 0
+}
+
+/**
+ * Resolve the stored appearance for the active repository. Random mode is
+ * deterministic: a repository keeps the same variant across palette opens and
+ * restarts, while switching repositories may select a different variant.
+ */
+export function resolveCommandPaletteAppearance(
+  appearance: ICommandPaletteAppearance,
+  repositoryKey: string | undefined
+): ICommandPaletteAppearance {
+  if (
+    appearance.mode !== 'random-per-repository' ||
+    repositoryKey === undefined ||
+    repositoryKey.length === 0
+  ) {
+    return appearance
+  }
+
+  const variant =
+    RandomRepositoryAppearances[
+      stableRepositoryHash(repositoryKey) % RandomRepositoryAppearances.length
+    ]
+  return { mode: appearance.mode, ...variant }
 }
 
 /** The icon shown for a command group when the command declares none. */

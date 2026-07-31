@@ -13,9 +13,12 @@
 const fs = require('fs')
 const path = require('path')
 
-const ExpectedPublishedGalleryCount = 85
+const ExpectedPublishedGalleryCount = 86
 const CanonicalCandidateCount = 68
-const DeferredCanonicalOutputs = Object.freeze(['material-cheap-lfs-preparing'])
+const DeferredCanonicalOutputs = Object.freeze([
+  'material-cheap-lfs-preparing',
+  'material-repositories-sheet',
+])
 const DeferredSpecialistOutputs = Object.freeze([])
 const RetainedHistoricalEvidence = Object.freeze({
   'auto-updater-update-ready.png': Object.freeze({
@@ -96,6 +99,28 @@ const CaptureBatches = Object.freeze({
       'Fresh owned P0 run root with its clean real git-source repository (no remote), provider-backed fixture clone, isolated profile, and three deterministic organization owners including one deliberately long login.',
     privacyGate:
       'The scene proves the owned no-remote source before opening Publish Repository, rejects provider mutations, runs the renderer privacy assertion, and requires contained physical 390x844 auto-fit geometry before restoring and capturing at 1440x960.',
+  }),
+  'windows-history-hover': Object.freeze({
+    platform: 'windows-headless',
+    commands: Object.freeze([
+      'npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod',
+      'node .codex/verification/capture_gallery_cdp.js --scenes history-hover-time --run-root <owned-p0-run-root> --fixture-path <owned-p0-run-root>\\fixture --out <owned-p0-run-root>\\captures\\history-hover --port <owned-cdp-port> --theme dark --language-mode bilingual',
+    ]),
+    fixture:
+      'Fresh owned P0 run root, isolated user data, disposable provider-backed Git fixture, and the exact production bundle on a hidden Win32 desktop.',
+    privacyGate:
+      'The scene requires the real contained hover card, both localized relative phrases, bundled fonts, and the renderer privacy assertion before capture.',
+  }),
+  'windows-repositories-sheet': Object.freeze({
+    platform: 'windows-headless',
+    commands: Object.freeze([
+      'npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod',
+      'node .codex/verification/capture_gallery_cdp.js --scenes seed,repositories-sheet --run-root <owned-p0-run-root> --fixture-path <owned-p0-run-root>\\fixture --out <owned-p0-run-root>\\captures\\repositories-sheet --port <owned-cdp-port> --theme dark --language-mode bilingual',
+    ]),
+    fixture:
+      'Fresh owned P0 run root, isolated user data, disposable provider-backed Git fixture, and the exact production bundle on a hidden Win32 desktop.',
+    privacyGate:
+      'The scene requires the collapsed-by-default Filters disclosure, its restored active state, a single-row bilingual action strip at 390 px, and the renderer privacy assertion before capture.',
   }),
   'windows-internal-browser': Object.freeze({
     platform: 'windows-headless',
@@ -262,7 +287,21 @@ const SpecialistCaptureEntries = Object.freeze([
     scene: 'command-palette-appearance',
     batch: 'windows-ui-state-lowlevel',
     interaction:
-      'Open the command palette, type ollama, open its appearance editor, and leave five rich results plus the fully contained editor and Reset control visible at 1000x687.',
+      'Open the command palette, type ollama, open its appearance editor, exercise deterministic random-per-repository mode, and leave eight rich results plus the aligned, fully contained editor and Reset control visible at 1000x687.',
+  },
+  {
+    output: 'material-history-hover-time',
+    scene: 'history-hover-time',
+    batch: 'windows-history-hover',
+    interaction:
+      'Open History on the disposable repository, focus one real commit row, require a contained hover card with both its exact authored timestamp and a relative age, then preserve that card.',
+  },
+  {
+    output: 'material-repositories-sheet',
+    scene: 'repositories-sheet',
+    batch: 'windows-repositories-sheet',
+    interaction:
+      'Open the repository sheet in dark bilingual mode, exercise the state-preserving Filters disclosure, and preserve the compact equal-width Add, Select, and More row after the narrow-width geometry gate passes.',
   },
   {
     output: 'material-github-releases-compact',

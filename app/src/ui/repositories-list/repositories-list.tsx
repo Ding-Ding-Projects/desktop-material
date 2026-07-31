@@ -198,6 +198,7 @@ interface IRepositoriesListProps {
 interface IRepositoriesListState {
   readonly newRepositoryMenuExpanded: boolean
   readonly repositoryActionsMenuExpanded: boolean
+  readonly repositoryFiltersExpanded: boolean
   readonly selectedItem: IRepositoryListItem | null
   readonly pinnedRepositoryIds: ReadonlyArray<number>
   readonly accountFilter: RepositoryAccountFilter
@@ -269,6 +270,8 @@ const RepositoryStatusFilters: ReadonlyArray<{
     labelKey: 'repositoryPicker.missingOrCloning',
   },
 ]
+
+const RepositoryFilterPanelId = 'repository-list-filter-panel'
 
 /**
  * Side-sheet row geometry. The list renders exclusively inside the Current
@@ -496,6 +499,7 @@ export class RepositoriesList extends React.Component<
     this.state = {
       newRepositoryMenuExpanded: false,
       repositoryActionsMenuExpanded: false,
+      repositoryFiltersExpanded: false,
       selectedItem: null,
       pinnedRepositoryIds: getPinnedRepositories(),
       accountFilter: 'all',
@@ -1343,6 +1347,9 @@ export class RepositoriesList extends React.Component<
           filterListLabel="Repositories"
           filterText={this.props.filterText}
           onFilterTextChanged={this.props.onFilterTextChanged}
+          renderFilterDisclosure={this.renderFilterDisclosure}
+          filterPanelId={RepositoryFilterPanelId}
+          filterPanelExpanded={this.state.repositoryFiltersExpanded}
           renderPreList={this.renderScopeFilters}
           renderItem={this.renderItem}
           renderRowFocusTooltip={this.renderRowFocusTooltip}
@@ -1350,7 +1357,7 @@ export class RepositoriesList extends React.Component<
           isGroupCollapsed={this.isGroupCollapsed}
           getSectionId={this.getSectionIdGetter(groups)}
           onItemClick={this.onItemClick}
-          renderPostFilter={this.renderPostFilter}
+          renderAfterFilterPanel={this.renderPostFilter}
           renderNoItems={this.renderNoItems}
           groups={groups}
           onVisibleItemsChanged={this.onVisibleItemsChanged}
@@ -1436,6 +1443,62 @@ export class RepositoriesList extends React.Component<
       repository =>
         repository instanceof Repository && hidden.has(repository.id)
     ).length
+  }
+
+  private get activeRepositoryFilterCount() {
+    return (
+      (this.state.accountFilter === 'all' ? 0 : 1) +
+      (this.state.serviceFilter === 'all' ? 0 : 1) +
+      this.state.statusFilters.length +
+      (this.state.showHiddenRepositories ? 1 : 0) +
+      (this.props.filterText.trim().length === 0 ? 0 : 1)
+    )
+  }
+
+  private onToggleRepositoryFilters = () => {
+    this.setState(state => ({
+      repositoryFiltersExpanded: !state.repositoryFiltersExpanded,
+    }))
+  }
+
+  private renderFilterDisclosure = () => {
+    const activeCount = this.activeRepositoryFilterCount
+    const translationKey: TranslationKey =
+      activeCount === 0
+        ? 'repositoryPicker.filters'
+        : 'repositoryPicker.filtersActive'
+
+    return (
+      <div className="repository-list-filter-disclosure">
+        <button
+          type="button"
+          className={
+            activeCount === 0
+              ? 'repository-list-filter-button'
+              : 'repository-list-filter-button active'
+          }
+          aria-expanded={this.state.repositoryFiltersExpanded}
+          aria-controls={RepositoryFilterPanelId}
+          onClick={this.onToggleRepositoryFilters}
+        >
+          <MaterialSymbol name="filter_list" size={18} />
+          <LocalizedText
+            translationKey={translationKey}
+            languageMode={this.state.languageMode}
+            variables={{ count: String(activeCount) }}
+          />
+          <MaterialSymbol
+            className={
+              this.state.repositoryFiltersExpanded
+                ? 'repository-list-filter-chevron expanded'
+                : 'repository-list-filter-chevron'
+            }
+            name="expand_more"
+            size={18}
+          />
+        </button>
+      </div>
+    )
   }
 
   private renderScopeFilters = () => {
@@ -1536,7 +1599,6 @@ export class RepositoriesList extends React.Component<
             ))}
           </div>
           {this.renderAutoExpandedGroupsNotice()}
-          {this.renderGroupNotice()}
           {hiddenRepositoryCount > 0 && (
             <button
               type="button"
@@ -1646,61 +1708,64 @@ export class RepositoriesList extends React.Component<
 
   private renderPostFilter = () => {
     return (
-      <div className="repository-list-actions">
-        <Button
-          className="new-repository-button repository-list-add-button"
-          ariaLabel={translateForAccessibleName(
-            'repositoryActions.addAria',
-            {},
-            this.state.languageMode
-          )}
-          ariaExpanded={this.state.newRepositoryMenuExpanded}
-          ariaHaspopup="menu"
-          onClick={this.onNewRepositoryButtonClick}
-          onKeyDown={this.onNewRepositoryButtonKeyDown}
-        >
-          <MaterialSymbol name="add" size={18} />
-          <LocalizedText
-            translationKey="repositoryActions.add"
-            languageMode={this.state.languageMode}
-          />
-          <MaterialSymbol name="expand_more" size={18} />
-        </Button>
-        <Button
-          className="repository-bulk-enter-button repository-list-compact-action"
-          ariaLabel={translateForAccessibleName(
-            'repositoryBulk.enterSelectionAria',
-            {},
-            this.state.languageMode
-          )}
-          ariaPressed={this.state.bulkSelection.active}
-          disabled={this.isBulkBusy}
-          onClick={this.onToggleBulkSelection}
-        >
-          <MaterialSymbol name="library_add_check" size={16} />
-          <LocalizedText
-            translationKey="repositoryActions.select"
-            languageMode={this.state.languageMode}
-          />
-        </Button>
-        <Button
-          className="repository-more-actions-button repository-list-compact-action"
-          ariaLabel={translateForAccessibleName(
-            'repositoryActions.moreAria',
-            {},
-            this.state.languageMode
-          )}
-          ariaExpanded={this.state.repositoryActionsMenuExpanded}
-          ariaHaspopup="menu"
-          onClick={this.onRepositoryActionsButtonClick}
-        >
-          <MaterialSymbol name="category" size={18} />
-          <LocalizedText
-            translationKey="repositoryActions.more"
-            languageMode={this.state.languageMode}
-          />
-        </Button>
-      </div>
+      <>
+        {this.renderGroupNotice()}
+        <div className="repository-list-actions">
+          <Button
+            className="new-repository-button repository-list-add-button"
+            ariaLabel={translateForAccessibleName(
+              'repositoryActions.addAria',
+              {},
+              this.state.languageMode
+            )}
+            ariaExpanded={this.state.newRepositoryMenuExpanded}
+            ariaHaspopup="menu"
+            onClick={this.onNewRepositoryButtonClick}
+            onKeyDown={this.onNewRepositoryButtonKeyDown}
+          >
+            <MaterialSymbol name="add" size={18} />
+            <LocalizedText
+              translationKey="repositoryActions.add"
+              languageMode={this.state.languageMode}
+            />
+            <MaterialSymbol name="expand_more" size={18} />
+          </Button>
+          <Button
+            className="repository-bulk-enter-button repository-list-compact-action"
+            ariaLabel={translateForAccessibleName(
+              'repositoryBulk.enterSelectionAria',
+              {},
+              this.state.languageMode
+            )}
+            ariaPressed={this.state.bulkSelection.active}
+            disabled={this.isBulkBusy}
+            onClick={this.onToggleBulkSelection}
+          >
+            <MaterialSymbol name="library_add_check" size={16} />
+            <LocalizedText
+              translationKey="repositoryActions.select"
+              languageMode={this.state.languageMode}
+            />
+          </Button>
+          <Button
+            className="repository-more-actions-button repository-list-compact-action"
+            ariaLabel={translateForAccessibleName(
+              'repositoryActions.moreAria',
+              {},
+              this.state.languageMode
+            )}
+            ariaExpanded={this.state.repositoryActionsMenuExpanded}
+            ariaHaspopup="menu"
+            onClick={this.onRepositoryActionsButtonClick}
+          >
+            <MaterialSymbol name="category" size={18} />
+            <LocalizedText
+              translationKey="repositoryActions.more"
+              languageMode={this.state.languageMode}
+            />
+          </Button>
+        </div>
+      </>
     )
   }
 

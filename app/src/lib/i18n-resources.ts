@@ -960,6 +960,8 @@ export type TranslationKey =
   | 'batchSync.statusSkipped'
   | 'batchSync.statusFailed'
   | 'repositoryPicker.status'
+  | 'repositoryPicker.filters'
+  | 'repositoryPicker.filtersActive'
   | 'repositoryPicker.all'
   | 'repositoryPicker.clean'
   | 'repositoryPicker.changed'
@@ -1028,6 +1030,7 @@ export type TranslationKey =
   | 'repositoryActions.select'
   | 'repositoryActions.more'
   | 'repositoryActions.moreAria'
+  | 'relativeTime.justNow'
   | 'repositoryActions.commitPushAll'
   | 'repositoryBulk.enterSelection'
   | 'repositoryBulk.enterSelectionAria'
@@ -1806,6 +1809,8 @@ export type TranslationKey =
   | 'commandPalette.customizeAppearance'
   | 'commandPalette.appearanceDialog'
   | 'commandPalette.appearanceHeading'
+  | 'commandPalette.randomPerRepository'
+  | 'commandPalette.randomPerRepositoryDescription'
   | 'commandPalette.rowDensity'
   | 'commandPalette.comfortable'
   | 'commandPalette.comfortableDescription'
@@ -3969,6 +3974,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'batchSync.statusSkipped': 'Skipped',
   'batchSync.statusFailed': 'Failed',
   'repositoryPicker.status': 'Repository status',
+  'repositoryPicker.filters': 'Filters',
+  'repositoryPicker.filtersActive': 'Filters · {count}',
   'repositoryPicker.all': 'All',
   'repositoryPicker.clean': 'Clean',
   'repositoryPicker.changed': 'Changed',
@@ -4071,6 +4078,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositoryActions.select': 'Select',
   'repositoryActions.more': 'More',
   'repositoryActions.moreAria': 'More repository actions',
+  'relativeTime.justNow': 'just now',
   'repositoryActions.commitPushAll': 'Commit & push all',
   'repositoryBulk.enterSelection': 'Select multiple',
   'repositoryBulk.enterSelectionAria': 'Select multiple repositories',
@@ -5017,6 +5025,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'commandPalette.customizeAppearance': 'Customize command palette appearance',
   'commandPalette.appearanceDialog': 'Command palette appearance settings',
   'commandPalette.appearanceHeading': 'Appearance',
+  'commandPalette.randomPerRepository': 'Random per repository',
+  'commandPalette.randomPerRepositoryDescription':
+    'A stable look chosen for each repository',
   'commandPalette.rowDensity': 'Row density',
   'commandPalette.comfortable': 'Comfortable',
   'commandPalette.comfortableDescription': 'More detail and spacing',
@@ -7408,6 +7419,8 @@ export const cantoneseTranslations: Readonly<
   'batchSync.statusSkipped': '已略過',
   'batchSync.statusFailed': '失敗',
   'repositoryPicker.status': 'Repo 狀態',
+  'repositoryPicker.filters': '篩選器',
+  'repositoryPicker.filtersActive': '篩選器 · {count}',
   'repositoryPicker.all': '全部',
   'repositoryPicker.clean': '乾淨',
   'repositoryPicker.changed': '有變更',
@@ -7489,6 +7502,7 @@ export const cantoneseTranslations: Readonly<
   'repositoryActions.select': '揀選',
   'repositoryActions.more': '更多',
   'repositoryActions.moreAria': '更多 repo 操作',
+  'relativeTime.justNow': '啱啱',
   'repositoryActions.commitPushAll': '全部 commit 同 push',
   'repositoryBulk.enterSelection': '揀多個',
   'repositoryBulk.enterSelectionAria': '一次揀多個 repo',
@@ -8382,6 +8396,9 @@ export const cantoneseTranslations: Readonly<
   'commandPalette.customizeAppearance': '自訂命令面板外觀',
   'commandPalette.appearanceDialog': '命令面板外觀設定',
   'commandPalette.appearanceHeading': '外觀',
+  'commandPalette.randomPerRepository': '每個 repo 隨機外觀',
+  'commandPalette.randomPerRepositoryDescription':
+    '每個 repo 自己抽一款，重開都唔會再洗牌',
   'commandPalette.rowDensity': '列距',
   'commandPalette.comfortable': '舒適',
   'commandPalette.comfortableDescription': '闊落啲，資料睇得齊啲',

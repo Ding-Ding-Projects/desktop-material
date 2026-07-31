@@ -39,6 +39,7 @@ const {
   DefaultCommandPaletteAppearance,
   persistCommandPaletteAppearance,
   readCommandPaletteAppearance,
+  resolveCommandPaletteAppearance,
   resolveCommandSymbol,
   // eslint-disable-next-line @typescript-eslint/no-var-requires
 } = require('../../src/ui/command-palette/command-palette-appearance')
@@ -58,6 +59,7 @@ describe('command palette appearance', () => {
 
   it('round-trips a persisted appearance', () => {
     const appearance = {
+      mode: 'random-per-repository' as const,
       density: 'compact' as const,
       showIcons: false,
       showGroups: true,
@@ -77,6 +79,7 @@ describe('command palette appearance', () => {
       })
     )
     assert.deepEqual(readCommandPaletteAppearance(), {
+      mode: DefaultCommandPaletteAppearance.mode,
       density: DefaultCommandPaletteAppearance.density,
       showIcons: DefaultCommandPaletteAppearance.showIcons,
       showGroups: false,
@@ -101,5 +104,31 @@ describe('command palette appearance', () => {
     assert.equal(resolveCommandSymbol('Repository'), 'database')
     assert.equal(resolveCommandSymbol('Navigate'), 'account_tree')
     assert.equal(resolveCommandSymbol('Not a real group'), 'category')
+  })
+
+  it('chooses one stable randomized appearance for each repository', () => {
+    const randomAppearance = {
+      ...DefaultCommandPaletteAppearance,
+      mode: 'random-per-repository' as const,
+    }
+    const first = resolveCommandPaletteAppearance(randomAppearance, 'repo-1')
+
+    assert.deepEqual(
+      resolveCommandPaletteAppearance(randomAppearance, 'repo-1'),
+      first
+    )
+    assert.deepEqual(
+      resolveCommandPaletteAppearance(randomAppearance, undefined),
+      randomAppearance
+    )
+
+    const variants = new Set(
+      Array.from({ length: 12 }, (_, index) =>
+        JSON.stringify(
+          resolveCommandPaletteAppearance(randomAppearance, `repo-${index + 1}`)
+        )
+      )
+    )
+    assert.ok(variants.size > 1)
   })
 })

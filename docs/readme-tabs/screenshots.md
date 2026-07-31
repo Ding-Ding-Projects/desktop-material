@@ -20,7 +20,7 @@ automation, and account isolation. The diagrams are reproducible with
 Five original-resolution Debian/Xvfb captures remain preserved with their
 [dated run manifest](../verification/linux-tui-2026-07-27/run-manifest.md).
 They are historical evidence, not current Windows screenshots, and are
-therefore excluded from the 85-scene guided-gallery target, Pages manifest,
+therefore excluded from the 86-scene guided-gallery target, Pages manifest,
 and current refresh campaign.
 
 ## Inherited external-UI assets — excluded from the capture mandate
@@ -66,7 +66,7 @@ justification rather than leaving it to be mistaken for a stale app capture.
 
 | Persistent tab groups | Rich command palette |
 | --- | --- |
-| <img src="../assets/screenshots/material-tab-groups.png" alt="Desktop Material workspace with a visible named tab-group chip and its repository member" width="520"><br><sub>Named chip · collapse/expand · restart persistence</sub> | <img src="../assets/screenshots/material-command-palette-appearance.png" alt="Command palette showing Ollama results beside the fully visible row appearance editor" width="520"><br><sub>Rich result rows · density and visibility controls</sub> |
+| <img src="../assets/screenshots/material-tab-groups.png" alt="Desktop Material workspace with a visible named tab-group chip and its repository member" width="520"><br><sub>Named chip · collapse/expand · restart persistence</sub> | <img src="../assets/screenshots/material-command-palette-appearance.png" alt="Command palette showing Ollama results beside the compact aligned row appearance editor with random per repository mode" width="520"><br><sub>Aligned controls · stable random per repository</sub> |
 
 | Live Cheap LFS pin and restore | Live cloud compression |
 | --- | --- |
@@ -114,6 +114,8 @@ the app.
 | --- | --- | --- |
 | <img src="../assets/screenshots/material-tab-search.png" alt="Runtime repository-tab search matching the active local fixture by name and path" width="420"><br><sub>Search and switch tabs</sub> | <img src="../assets/screenshots/material-history-context-actions.png" alt="History commit row with its named More actions control and hover hint" width="420"><br><sub>Right-click and keyboard-equivalent actions</sub> | <img src="../assets/screenshots/material-repository-tools-scroll.png" alt="Short Repository Tools workspace scrolled to its reachable final results surface" width="420"><br><sub>Verified bottom reachability</sub> |
 
+![History commit hover card showing an exact timestamp and relative age](../assets/screenshots/material-history-hover-time.png)
+
 | GitHub API functions |
 | --- |
 | <img src="../assets/screenshots/material-github-api-explorer.png" alt="Repository-bound GitHub API functions with runnable buttons and an advanced request builder" width="720"><br><sub>Auto-added read functions · hideable API rail item · reviewed custom requests</sub> |
@@ -139,15 +141,16 @@ the app.
 | <img src="../assets/screenshots/material-ollama-model-manager.png" alt="Ollama model manager with endpoint health, installed and running model inventory, selected model details, and lifecycle actions" width="720"><br><sub>Health · inventory · pull · copy/rename · load/unload · confirmed delete</sub> |
 
 <details>
-<summary><strong>Open 30 more verified screenshots</strong></summary>
+<summary><strong>Open 31 more verified screenshots</strong></summary>
 
 | Clone and checkout | Repository administration | Accounts and automation |
 | --- | --- | --- |
 | <img src="../assets/screenshots/material-clone-account-fallback.png" alt="Exact-origin account fallback clone" width="360"><br><sub>Account-aware clone</sub> | <img src="../assets/screenshots/add-submodule-dialog.png" alt="Clone-style Add Submodule dialog reviewing a synthetic URL, checkout path, and tracked branch" width="360"><br><sub>Clone-style submodules</sub> | <img src="../assets/screenshots/material-remote-manager.png" alt="Named remote manager" width="360"><br><sub>Remote manager</sub> |
 | <img src="../assets/screenshots/material-shallow-clone-safe.png" alt="Reviewed shallow clone" width="360"><br><sub>Shallow clone</sub> | <img src="../assets/screenshots/material-gitignore-manager.png" alt="Gitignore template manager" width="360"><br><sub>Gitignore manager</sub> | <img src="../assets/screenshots/material-automation.png" alt="Automation settings" width="360"><br><sub>Automation</sub> |
 | <img src="../assets/screenshots/material-sparse-checkout-safe.png" alt="Guided sparse checkout with Review active, a locked editor, and the exact normalized selection" width="360"><br><sub>Guided sparse-checkout review</sub> | <img src="../assets/screenshots/material-history-deepening.png" alt="Full history after deepening" width="360"><br><sub>History deepening</sub> | <img src="../assets/screenshots/material-agent-access.png" alt="Local agent access settings" width="360"><br><sub>Agent access</sub> |
-| <img src="../assets/screenshots/material-branches-sheet.png" alt="Branches side sheet" width="360"><br><sub>Branches</sub> | <img src="../assets/screenshots/material-repositories-sheet.png" alt="Dark repository side sheet with compact Add, Select, and More actions" width="360"><br><sub>Compact repository actions</sub> | <img src="../assets/screenshots/material-multi-window-menu.png" alt="Open repository in a new window" width="360"><br><sub>Multi-window</sub> |
-| <img src="../assets/screenshots/material-history-power-tools.png" alt="History search and graph" width="360"><br><sub>History search</sub> | <img src="../assets/screenshots/material-branch-merge-all.png" alt="Merge all progress" width="360"><br><sub>Merge All</sub> | <img src="../assets/screenshots/material-notification-bulk-actions.png" alt="Filtered Local notification centre with visible selection and bulk actions" width="360"><br><sub>Bulk notification triage</sub> |
+| <img src="../assets/screenshots/material-branches-sheet.png" alt="Branches side sheet" width="360"><br><sub>Branches</sub> | <img src="../assets/screenshots/material-repositories-sheet.png" alt="Dark repository side sheet with collapsed Filters and compact Add, Select, and More actions" width="360"><br><sub>Collapsible repository filters</sub> | <img src="../assets/screenshots/material-publish-organization-picker.png" alt="Bilingual Publish repository dialog with a searchable, contained organization owner listbox" width="360"><br><sub>Searchable publish owner</sub> |
+| <img src="../assets/screenshots/material-history-power-tools.png" alt="History search and graph" width="360"><br><sub>History search</sub> | <img src="../assets/screenshots/material-branch-merge-all.png" alt="Merge all progress" width="360"><br><sub>Merge All</sub> | <img src="../assets/screenshots/material-multi-window-menu.png" alt="Open repository in a new window" width="360"><br><sub>Multi-window</sub> |
+| <img src="../assets/screenshots/material-notification-bulk-actions.png" alt="Filtered Local notification centre with visible selection and bulk actions" width="360"><br><sub>Bulk notification triage</sub> |  |  |
 | <img src="../assets/screenshots/regex-builder.png" alt="Safe RE2 builder with bounded live matches and captures" width="360"><br><sub>Safe regex builder</sub> | <img src="../assets/screenshots/settings-history-manager.png" alt="Settings history side sheet" width="360"><br><sub>Settings history</sub> | <img src="../assets/screenshots/material-error-notice.png" alt="Bottom-right Git lock error notice with a Remove lock file recovery action" width="360"><br><sub>Stale-lock recovery</sub> |
 
 | Pull requests and rules | Actions | Releases, issues, and providers |

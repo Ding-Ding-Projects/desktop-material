@@ -786,6 +786,9 @@ test('submodule context capture waits for its final unanimated surface', () => {
     'activeFiniteAnimations.length === 0',
     'settled temporary submodule Changes surface',
     'requestAnimationFrame(() => requestAnimationFrame(',
+    'document.querySelectorAll(\'.error-notice[role="alert"]\')',
+    '/unsafe Cheap LFS tracked path/i',
+    'Ordinary submodule metadata triggered Cheap LFS validation',
   ]) {
     assert.ok(submodule.includes(contract), `submodule gate misses ${contract}`)
   }
@@ -873,7 +876,7 @@ test('capture-only tooltip suppression is removed before disconnect', () => {
   assert.ok(cleanup < close)
 })
 
-test('canonical and promoted specialist batches own all 85 published images exactly once', () => {
+test('canonical and promoted specialist batches own all 86 published images exactly once', () => {
   const scenes = frozenStringArray('CanonicalGalleryScenes')
   const outputs = frozenStringArray('CanonicalGalleryOutputs')
   const publishedCanonical = outputs.filter(
@@ -896,19 +899,22 @@ test('canonical and promoted specialist batches own all 85 published images exac
   assert.deepEqual(CanonicalGalleryOutputs, outputs)
   assert.equal(outputs.length, CanonicalCandidateCount)
   assert.equal(new Set(outputs).size, CanonicalCandidateCount)
-  assert.deepEqual(DeferredCanonicalOutputs, ['material-cheap-lfs-preparing'])
+  assert.deepEqual(DeferredCanonicalOutputs, [
+    'material-cheap-lfs-preparing',
+    'material-repositories-sheet',
+  ])
   assert.deepEqual(DeferredSpecialistOutputs, [])
-  assert.equal(publishedCanonical.length, 67)
-  assert.equal(specialistOutputs.length, 18)
-  assert.equal(new Set(specialistOutputs).size, 18)
-  assert.equal(publishedSpecialistOutputs.length, 18)
+  assert.equal(publishedCanonical.length, 66)
+  assert.equal(specialistOutputs.length, 20)
+  assert.equal(new Set(specialistOutputs).size, 20)
+  assert.equal(publishedSpecialistOutputs.length, 20)
   assert.ok(specialistOutputs.includes('auto-updater-current-source-ready'))
   assert.ok(specialistOutputs.includes('material-publish-organization-picker'))
   assert.ok(!specialistOutputs.includes('auto-updater-update-ready'))
-  assert.equal(ExpectedPublishedGalleryCount, 85)
+  assert.equal(ExpectedPublishedGalleryCount, 86)
   assert.equal(PublishedGalleryOutputs.length, ExpectedPublishedGalleryCount)
-  assert.equal(new Set(PublishedGalleryOutputs).size, 85)
-  assert.equal(GalleryCapturePlan.length, 85)
+  assert.equal(new Set(PublishedGalleryOutputs).size, 86)
+  assert.equal(GalleryCapturePlan.length, 86)
   assert.deepEqual(
     [...expectedCatalog].sort(),
     [...PublishedGalleryOutputs].sort()
@@ -918,7 +924,10 @@ test('canonical and promoted specialist batches own all 85 published images exac
     [...PublishedGalleryOutputs].sort()
   )
   for (const output of specialistOutputs) {
-    assert.ok(!outputs.includes(output), output)
+    assert.ok(
+      !outputs.includes(output) || DeferredCanonicalOutputs.includes(output),
+      output
+    )
   }
   for (const output of historicalLinuxOutputs) {
     assert.ok(!PublishedGalleryOutputs.includes(output), output)
@@ -965,7 +974,11 @@ test('canonical and promoted specialist batches own all 85 published images exac
   )
   for (const deferred of DeferredCanonicalOutputs) {
     assert.ok(outputs.includes(deferred), deferred)
-    assert.ok(!PublishedGalleryOutputs.includes(deferred), deferred)
+    assert.ok(
+      !PublishedGalleryOutputs.includes(deferred) ||
+        specialistOutputs.includes(deferred),
+      deferred
+    )
   }
   for (const deferred of DeferredSpecialistOutputs) {
     assert.ok(specialistOutputs.includes(deferred), deferred)
@@ -1051,6 +1064,45 @@ test('specialist command templates satisfy verifier-owned output containment', (
   assert.match(
     ollamaVerifier,
     /const expectedParent = path\.join\(p0\.runRoot, 'captures'\)[\s\S]*?parent\.toLowerCase\(\) !== expectedParent\.toLowerCase\(\)/
+  )
+})
+
+test('History hover specialist runs its declared non-canonical scene', () => {
+  const historyHover = GalleryCapturePlan.find(
+    entry => entry.output === 'material-history-hover-time'
+  )
+  assert.ok(historyHover)
+  assert.equal(historyHover.batch, 'windows-history-hover')
+  assert.ok(
+    historyHover.commands.some(command =>
+      command.includes('--scenes history-hover-time')
+    )
+  )
+  assert.ok(
+    historyHover.commands.some(command =>
+      command.includes('--language-mode bilingual')
+    )
+  )
+})
+
+test('Repository sheet specialist runs its dark bilingual scene', () => {
+  const repositoriesSheet = GalleryCapturePlan.find(
+    entry => entry.output === 'material-repositories-sheet'
+  )
+  assert.ok(repositoriesSheet)
+  assert.equal(repositoriesSheet.batch, 'windows-repositories-sheet')
+  assert.ok(
+    repositoriesSheet.commands.some(command =>
+      command.includes('--scenes seed,repositories-sheet')
+    )
+  )
+  assert.ok(
+    repositoriesSheet.commands.some(command => command.includes('--theme dark'))
+  )
+  assert.ok(
+    repositoriesSheet.commands.some(command =>
+      command.includes('--language-mode bilingual')
+    )
   )
 })
 
@@ -2023,14 +2075,20 @@ test('tab-group management evidence drives, receipts, edits, and reloads real UI
   )
 })
 
-test('repository sheet capture rejects clipped batch actions', () => {
+test('repository sheet capture verifies compact actions and filter disclosure', () => {
   const scene = sceneSource('repositories-sheet')
   for (const contract of [
     "document.querySelector('#foldout-container .foldout')",
     "document.querySelector('.repository-list-actions')",
-    "['Sync repositories', 'Commit & push all', 'Add']",
+    "document.querySelector('.repository-list-filter-button')",
+    "['Add', 'Select', 'More']",
     'button.right > actionLayout.sheet.right + 0.5',
     'Repository sheet clips or omits actions',
+    "'expanded repository filter panel'",
+    "'repository filter Regex Builder'",
+    "'collapsed repository filter panel without detached Regex Builder'",
+    "document.querySelector('#regex-builder-layer .regex-builder-dialog') === null",
+    "document.activeElement === document.querySelector('.repository-list-filter-button')",
   ]) {
     assert.ok(scene.includes(contract), `repository sheet misses ${contract}`)
   }

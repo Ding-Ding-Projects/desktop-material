@@ -35,6 +35,14 @@ const MaxSampleItems = 50
  * of the app's inert overlay hosts.
  */
 const RegexBuilderLayerId = 'regex-builder-layer'
+const RegexBuilderFocusableSelector = [
+  'a[href]',
+  'button:not([disabled])',
+  'input:not([disabled]):not([type="hidden"])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(',')
 
 /**
  * Resolve (creating once) the top-level host the builder overlay renders into.
@@ -107,6 +115,12 @@ interface IRegexBuilderProps {
 
   /** Called when the builder is dismissed without applying. */
   readonly onDismissed: () => void
+
+  /**
+   * Restore focus to the launcher on unmount. Collapsible hosts disable this
+   * while hiding the launcher so focus remains on their disclosure control.
+   */
+  readonly restoreFocusOnUnmount?: boolean
 }
 
 /** The two top-level views of the builder: composing vs. the static guide. */
@@ -278,12 +292,14 @@ export class RegexBuilder extends React.Component<
     if (this.clampFrameId !== null) {
       window.cancelAnimationFrame(this.clampFrameId)
     }
-    const returnFocusElement = this.returnFocusElement
-    window.requestAnimationFrame(() => {
-      if (returnFocusElement?.isConnected) {
-        returnFocusElement.focus()
-      }
-    })
+    if (this.props.restoreFocusOnUnmount !== false) {
+      const returnFocusElement = this.returnFocusElement
+      window.requestAnimationFrame(() => {
+        if (returnFocusElement?.isConnected) {
+          returnFocusElement.focus()
+        }
+      })
+    }
   }
 
   public componentDidUpdate(prevProps: IRegexBuilderProps) {
@@ -433,10 +449,52 @@ export class RegexBuilder extends React.Component<
   }
 
   private onWindowKeyDown = (event: KeyboardEvent) => {
+    if (!event.defaultPrevented && event.key === 'Escape') {
+      event.preventDefault()
+      event.stopPropagation()
+      this.props.onDismissed()
+    }
+  }
+
+  private onDialogKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Escape') {
       event.preventDefault()
       event.stopPropagation()
       this.props.onDismissed()
+      return
+    }
+
+    if (event.key !== 'Tab') {
+      return
+    }
+
+    const dialog = this.dialogRef.current
+    if (dialog === null) {
+      return
+    }
+    const focusable = Array.from(
+      dialog.querySelectorAll<HTMLElement>(RegexBuilderFocusableSelector)
+    ).filter(
+      element => element.closest('[hidden], [aria-hidden="true"]') === null
+    )
+    if (focusable.length === 0) {
+      event.preventDefault()
+      dialog.focus()
+      return
+    }
+
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    const active = document.activeElement
+    if (event.shiftKey && (active === first || !dialog.contains(active))) {
+      event.preventDefault()
+      last.focus()
+    } else if (
+      !event.shiftKey &&
+      (active === last || !dialog.contains(active))
+    ) {
+      event.preventDefault()
+      first.focus()
     }
   }
 
@@ -568,6 +626,8 @@ export class RegexBuilder extends React.Component<
         className="regex-builder-overlay"
         data-search-surface-id={this.props.searchSurfaceId}
       >
+        {/* The non-modal dialog owns Tab/Escape for its nested native controls. */}
+        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
         <div
           className="regex-builder-dialog"
           style={{ transform }}
@@ -576,6 +636,7 @@ export class RegexBuilder extends React.Component<
           aria-modal="false"
           aria-label={this.accessibleText('regex.builder.title')}
           aria-describedby="regex-builder-description"
+          onKeyDown={this.onDialogKeyDown}
         >
           <div
             className="regex-builder-header"

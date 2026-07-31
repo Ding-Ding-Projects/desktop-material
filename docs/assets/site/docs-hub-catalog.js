@@ -763,6 +763,13 @@
       d: 'Desktop Material inventories the newest 500 entries in refs/stash, including stashes created by the Git CLI, another desktop client, or an editor. External entries carry an…',
     },
     {
+      t: 'History commit hover time',
+      h: 'features/repository-management/history-commit-hover-time.html',
+      s: 'features/repository-management/history-commit-hover-time.md',
+      c: 'features',
+      d: 'History commit rows expose an accessible hover/focus card with the author and authored date. The date now carries both the exact localized timestamp and a second relative line…',
+    },
+    {
       t: 'Ignored files to a local Cheap LFS submodule (local phase)',
       h: 'features/repository-management/ignored-files-to-local-submodule.html',
       s: 'features/repository-management/ignored-files-to-local-submodule.md',

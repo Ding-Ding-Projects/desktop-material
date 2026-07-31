@@ -15,6 +15,8 @@ import type { MaterialSymbolName } from '../ui/lib/material-symbol'
 export interface IPaletteCommandContext {
   /** The current process platform (mirrors `process.platform`). */
   readonly platform?: string
+  /** Stable local identity for repository-scoped presentation choices. */
+  readonly repositoryKey?: string
   /** A real (non-cloning) repository is selected. */
   readonly hasRepository: boolean
   /** The selected repository has a configured remote. */

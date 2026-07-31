@@ -77,6 +77,13 @@ interface IFilterModeControlProps {
    * Changes filter's §6.3 chip row) pass `false` to avoid a duplicate launcher.
    */
   readonly showRegexBuilder?: boolean
+
+  /**
+   * Whether the originating search surface is currently available. A
+   * collapsible host sets this false before hiding its field so a portalled
+   * builder cannot outlive the anchor that owns it.
+   */
+  readonly enabled?: boolean
 }
 
 interface IFilterModeControlState {
@@ -106,6 +113,16 @@ export class FilterModeControl extends React.Component<
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
     )
+  }
+
+  public componentDidUpdate(prevProps: IFilterModeControlProps) {
+    if (
+      prevProps.enabled !== false &&
+      this.props.enabled === false &&
+      this.state.isBuilderOpen
+    ) {
+      this.setState({ isBuilderOpen: false })
+    }
   }
 
   public componentWillUnmount() {
@@ -141,6 +158,9 @@ export class FilterModeControl extends React.Component<
   }
 
   private onOpenBuilder = () => {
+    if (this.props.enabled === false) {
+      return
+    }
     this.setState({ isBuilderOpen: true })
   }
 
@@ -169,6 +189,7 @@ export class FilterModeControl extends React.Component<
         initialPattern={this.props.filterText}
         caseSensitive={this.props.caseSensitive}
         sampleItems={this.props.getSampleItems()}
+        restoreFocusOnUnmount={this.props.enabled !== false}
         onApply={this.onApplyPattern}
         onDismissed={this.onCloseBuilder}
       />
@@ -226,6 +247,7 @@ export class FilterModeControl extends React.Component<
               type="button"
               className="filter-regex-builder-button"
               aria-label={this.accessibleText('filter.regexBuilder.open')}
+              disabled={this.props.enabled === false}
               onClick={this.onOpenBuilder}
             >
               <span className="filter-mode-glyph">.*</span>

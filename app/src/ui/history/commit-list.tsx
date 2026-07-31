@@ -30,6 +30,7 @@ import { Avatar } from '../lib/avatar'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { buildCommitGraphRows, ICommitGraphRow } from './commit-graph-model'
+import { RelativeTime } from '../relative-time'
 
 // v2 prototype "History panel" row geometry: 11px vertical inset + the 34px
 // leading avatar disc.
@@ -584,7 +585,15 @@ export class CommitList extends React.Component<
         {authorList}
         <div>
           <div className="label">Date: </div>
-          {absoluteDate}
+          <div className="commit-tooltip-date">
+            <div>{absoluteDate}</div>
+            <RelativeTime
+              className="commit-tooltip-relative-date"
+              date={date}
+              onlyRelative={true}
+              tooltip={false}
+            />
+          </div>
         </div>
         {showUnpushedIndicator ? (
           <div>

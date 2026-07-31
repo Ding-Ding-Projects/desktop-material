@@ -7,6 +7,17 @@
 
   min-width: inherit;
 
+  .filter-list-controls-panel {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    min-width: 0;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
   .filter-field-row {
     margin: var(--spacing);
     min-width: 0;

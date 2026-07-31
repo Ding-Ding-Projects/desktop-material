@@ -124,4 +124,10 @@
   .filter-list-filter-field input {
     border-color: var(--md-sys-color-error);
   }
+
+  .filter-list-regex-message {
+    margin: 0 var(--spacing) var(--spacing-half);
+    color: var(--md-sys-color-error);
+    font-size: var(--font-size-sm);
+  }
 }

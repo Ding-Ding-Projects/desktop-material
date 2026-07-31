@@ -16,6 +16,9 @@ Material is displaying or how a repository is represented in the application.
   discovery](advanced-history-discovery.md) — search rich commit metadata and
   page commits across local branches, remote-tracking branches, and tags while
   keeping cross-ref history read-only.
+- [History commit hover
+  time](history-commit-hover-time.md) — show the exact authored date and an
+  auto-updating relative age together in the commit row's hover/focus card.
 - [Reviewed bulk branch
   deletion](reviewed-bulk-branch-deletion.md) — select exact local branch tips,
   protect current/default/remote refs, and retain per-branch recovery IDs.
@@ -47,9 +50,13 @@ Material is displaying or how a repository is represented in the application.
   apply, restore, branch from, or explicitly discard stashes made by other Git
   clients without rewriting their metadata.
 - [Repository picker filters and
-  visibility](repository-picker-filters-and-visibility.md) — combine status,
-  account, service, and text filters, and locally hide repositories with an
-  explicit recovery path.
+  visibility](repository-picker-filters-and-visibility.md) — fold status,
+  account, service, text, and regex controls into one state-preserving
+  disclosure, and locally hide repositories with an explicit recovery path.
+- [Publish organization
+  picker](publish-organization-picker.md) — choose a personal or organization
+  owner from an anchored searchable listbox with fuzzy, substring, safe-RE2,
+  and the full Regex Builder while stale account requests fail closed.
 - [Repository list sync summary](repository-list-sync-summary.md) — a
   low-emphasis line under each repository name giving the exact commits waiting
   to push and to pull, an honest unknown state for anything never checked, and
@@ -87,7 +94,9 @@ Material is displaying or how a repository is represented in the application.
 - [Release-backed large-file
   storage](release-backed-cheap-lfs.md) — replace large tracked bytes with a
   verified GitHub Release pointer, recover a stalled or length-rejected native
-  upload automatically through a bounded trusted GitHub CLI transport, retain a
+  upload automatically through a bounded trusted GitHub CLI transport, ignore
+  ordinary ineligible Git metadata during automatic pointer discovery while
+  explicit Cheap LFS paths remain fail-closed, retain a
   verified whole-batch browser handoff, automatically cloud-compress public
   repository objects one at a time from a caller committed to that repository
   (an opted-in private repository gets no caller at all and spends none of its

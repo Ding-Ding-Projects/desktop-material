@@ -36,7 +36,7 @@ describe('wiki function screenshot catalog', () => {
       ),
     ].map(([, asset]) => asset)
 
-    assert.equal(rows.length, 85)
+    assert.equal(rows.length, 86)
     assert.equal(new Set(rows.map(row => row.asset)).size, rows.length)
     assert.equal(new Set(rows.map(row => row.name)).size, rows.length)
     assert.deepEqual(archivedRows.sort(), historicalGalleryAssets)
