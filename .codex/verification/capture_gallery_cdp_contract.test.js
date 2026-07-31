@@ -1797,7 +1797,7 @@ test('issue 80 evidence proves the real Push origin warning fails closed', () =>
     'missingRemoteURL',
     "require('electron').ipcRenderer.emit('focus')",
     'selection?.state?.remote?.url',
-    "'button.push-pull-button.push-pull-button--push'",
+    "'.toolbar-button.push-pull-button.push-pull-button--push button.button-component'",
     "vt(button).includes('Push origin')",
     'providerLogPositionBeforeClick',
     'providerMutationsBeforeClick',

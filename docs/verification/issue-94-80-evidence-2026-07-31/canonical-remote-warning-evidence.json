@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "issue": 80,
+  "scene": "canonical-remote-warning-evidence",
+  "capture": "canonical-remote-warning-1280x860.png",
+  "viewport": {
+    "width": 1280,
+    "height": 860
+  },
+  "fixture": {
+    "branchRef": "refs/heads/feature/material-verification",
+    "localHeadBeforeClick": "e72f073fc4ea083a7cd587557c54d3ed8911d8f5",
+    "localHeadAfterClick": "e72f073fc4ea083a7cd587557c54d3ed8911d8f5",
+    "remoteTrackingRef": "refs/remotes/origin/feature/material-verification",
+    "remoteTrackingBeforeClick": "09d7ed3e257b60330ebd51aac1d9dd9fd4494e47",
+    "remoteTrackingAfterClick": "09d7ed3e257b60330ebd51aac1d9dd9fd4494e47",
+    "providerRemoteRef": "refs/heads/feature/material-verification",
+    "providerRemoteBeforeClick": "09d7ed3e257b60330ebd51aac1d9dd9fd4494e47",
+    "providerRemoteAfterClick": "09d7ed3e257b60330ebd51aac1d9dd9fd4494e47",
+    "ahead": 1,
+    "behind": 0,
+    "statusBeforeClick": "",
+    "statusAfterClick": ""
+  },
+  "remote": {
+    "originalURL": "http://localhost:49432/material-fixture-owner/material-fixture.git",
+    "evidenceURL": "http://localhost:49432/material-fixture-owner/material-fixture-canonical-warning-missing.git",
+    "sameEndpoint": true,
+    "credentialFree": true,
+    "expectedProviderPath": "/api/v3/repos/material-fixture-owner/material-fixture-canonical-warning-missing"
+  },
+  "provider": {
+    "requestLogPositionBeforeClick": 9086,
+    "requestLogPositionAfterClick": 9266,
+    "appendedRequestCount": 1,
+    "expectedNotFoundCount": 1,
+    "receivePackCount": 0,
+    "mutationsBeforeClick": 2,
+    "mutationsAfterClick": 2,
+    "requests": [
+      {
+        "kind": "api",
+        "method": "GET",
+        "path": "/api/v3/repos/material-fixture-owner/material-fixture-canonical-warning-missing",
+        "status": 404
+      }
+    ]
+  },
+  "dom": {
+    "warningCount": 1,
+    "genericBackgroundNoticeCount": 0,
+    "title": "Remote URL needs attention",
+    "body": "Desktop Material could not verify this repository’s remote URL. No push was attempted. Review the remote URL, then try again.",
+    "action": "Change remote URL",
+    "actionEnabled": true,
+    "warningRole": "alert",
+    "warningAtomic": "true",
+    "warningBackground": "rgb(255, 251, 221)",
+    "duplicateOccurrenceCount": 0,
+    "visibleDialogCount": 0,
+    "focus": {
+      "tag": "BUTTON",
+      "label": "Push originLast fetched just now1",
+      "connected": true,
+      "enabled": true,
+      "visible": true
+    },
+    "observer": {
+      "noticeAdditions": [
+        {
+          "id": "4534ea5f-80eb-4512-8922-29fdcb0063b7",
+          "warning": true,
+          "text": "Remote URL needs attentionDesktop Material could not verify this repository’s remote URL. No push was attempted. Review the remote URL, then try again.Change remote URL"
+        }
+      ],
+      "dialogAdditions": [],
+      "focusBeforeClick": {
+        "tag": "BUTTON",
+        "label": "Push originNever fetched1"
+      }
+    }
+  },
+  "backgroundProviderRefresh": {
+    "exercised": false,
+    "reason": "No reviewed app-native built-app action can deterministically reject a contained background provider refresh without a test-only override or fixture fault-control mutation.",
+    "coveredBy": "app/test/unit/push-network-rejection-test.ts and app/test/unit/push-rejection-observation-test.tsx"
+  },
+  "restoration": {
+    "originalRemoteRestored": true,
+    "originalHeadRefRestored": true,
+    "originalHeadOIDRestored": true,
+    "remoteTrackingOIDRestored": true,
+    "providerRemoteOIDRestored": true,
+    "clean": true
+  }
+}

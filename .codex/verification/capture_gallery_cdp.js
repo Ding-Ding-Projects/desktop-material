@@ -5205,7 +5205,7 @@ scene('canonical-remote-warning-evidence', async () => {
     await waitFor(
       `(() => {
         const button = document.querySelector(
-          'button.push-pull-button.push-pull-button--push'
+          '.toolbar-button.push-pull-button.push-pull-button--push button.button-component'
         )
         return button instanceof HTMLButtonElement &&
           vt(button).includes('Push origin') &&
@@ -5229,7 +5229,7 @@ scene('canonical-remote-warning-evidence', async () => {
     const observerStart = await evaluate(`(() => {
       globalThis.__canonicalRemoteWarningEvidence?.observer?.disconnect()
       const pushButton = document.querySelector(
-        'button.push-pull-button.push-pull-button--push'
+        '.toolbar-button.push-pull-button.push-pull-button--push button.button-component'
       )
       if (
         !(pushButton instanceof HTMLButtonElement) ||
