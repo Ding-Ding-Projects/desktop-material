@@ -352,4 +352,66 @@ describe('scheduled automation repository selection', () => {
       assert.equal(tagsCleared, 0, methodName)
     }
   })
+
+  // #80: a scheduled commit that stops at the fence already told the user why.
+  // The scheduler still needs the rejection as its failure signal, but it must
+  // not follow it with a second, contentless "Automatic commit failed" notice.
+  it('reports an already-reported scheduled failure exactly once', async () => {
+    const repository = new Repository('C:/work/selected', 1, null, false)
+    const replacement = new Repository('C:/work/replacement', 2, null, false)
+    const store = Object.create(AppStore.prototype) as AppStore
+    let notifications = 0
+    Object.assign(store, {
+      selectedRepository: repository,
+      accounts: [],
+      automationSettings: { global: {}, accounts: {} },
+      currentAutomationScheduler: null,
+      repositoryStateCache: {
+        get: () => ({ changesState: { workingDirectory: { files: [] } } }),
+      },
+      setOneClickCommitPushPhase: () => undefined,
+      generateAutomationCommitMessage: async () => null,
+      _changeIncludeAllFiles: async () => undefined,
+      // Stand in for the real fence loss: the commit never happens, and the
+      // commit path has already surfaced the reason.
+      _commitIncludedChanges: async () => {
+        Reflect.set(store, 'selectedRepository', replacement)
+        return false
+      },
+      postNotification: () => {
+        notifications++
+      },
+    })
+
+    let fenceError: unknown
+    await assert.rejects(
+      invoke(store, 'performScheduledCommitPush', repository),
+      (error: Error) => {
+        fenceError = error
+        assert.match(error.message, /automatic commit did not complete/i)
+        assert.equal(error.name, 'AlreadyReportedAutomationError')
+        return true
+      }
+    )
+    assert.equal(notifications, 0, 'the fenced commit posts nothing itself')
+
+    // Drive the store's real scheduler error handler with that exact error.
+    Reflect.get(AppStore.prototype, 'startAutomationScheduler').call(
+      store,
+      repository
+    )
+    const scheduler = Reflect.get(store, 'currentAutomationScheduler')
+    assert.notEqual(scheduler, null)
+    const onError = Reflect.get(scheduler, 'onError') as (
+      operation: 'commit-push' | 'pull',
+      error: unknown
+    ) => void
+    scheduler.stop()
+
+    onError('commit-push', fenceError)
+    assert.equal(notifications, 0, 'no duplicate notice for the same failure')
+
+    onError('commit-push', new Error('the remote rejected the push'))
+    assert.equal(notifications, 1, 'an unreported failure still notifies')
+  })
 })

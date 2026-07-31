@@ -236,4 +236,39 @@ describe('button hints', () => {
     )
     assert.equal(screen.queryByRole('tooltip', { hidden: true }), null)
   })
+
+  // The keyboard twin of the test above. A focus-shown hint is deregistered by
+  // `Tooltip.onTargetRef(null)` rather than by a mouseleave, and that path used
+  // to ignore an already-detached target — leaving the tooltip stranded in the
+  // corner of the window after the menu closed (#94).
+  it('dismisses a focus-shown delegated hint when its context-menu row unmounts', async t => {
+    enableTestTimers(['setTimeout'])
+    t.after(resetTestTimers)
+
+    render(<ButtonHints />)
+    const menuPromise = showMaterialContextMenu([
+      { label: 'Add tab to new group…' },
+    ])
+    const item = await screen.findByRole('menuitem', {
+      name: 'Add tab to new group…',
+    })
+    fireEvent.focusIn(item)
+    advanceTimersBy(400)
+    assert.equal(
+      screen.getByRole('tooltip', { hidden: true }).textContent,
+      'Add tab to new group…'
+    )
+
+    fireEvent.click(item)
+    assert.equal((await menuPromise)?.label, 'Add tab to new group…')
+    await Promise.resolve()
+    await Promise.resolve()
+    advanceTimersBy(500)
+
+    assert.equal(
+      screen.queryByRole('menuitem', { name: 'Add tab to new group…' }),
+      null
+    )
+    assert.equal(screen.queryByRole('tooltip', { hidden: true }), null)
+  })
 })

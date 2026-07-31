@@ -980,6 +980,20 @@ class CheapLfsUnattendedPinSkippedAllError extends Error {
   }
 }
 
+/**
+ * A scheduled-automation failure whose real cause has already been shown to the
+ * user by the code that produced it. The scheduler still needs the rejection —
+ * it is the operation's only failure signal — but its generic "Automatic commit
+ * failed" notification would be the second, less informative notice for the same
+ * event (#80).
+ */
+class AlreadyReportedAutomationError extends Error {
+  public constructor(message: string) {
+    super(message)
+    this.name = 'AlreadyReportedAutomationError'
+  }
+}
+
 const LastSelectedRepositoryIDKey = 'last-selected-repository-id'
 
 /**
@@ -4215,6 +4229,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
         const normalizedError =
           error instanceof Error ? error : new Error(String(error))
         log.error(`Scheduled automation ${operation} failed`, normalizedError)
+        // The failing path already posted a notice carrying the real cause;
+        // a second generic one would just say "Automatic commit failed" (#80).
+        if (normalizedError instanceof AlreadyReportedAutomationError) {
+          return
+        }
         this.postNotification({
           kind: operation === 'pull' ? 'auto-pull' : 'auto-commit',
           title:
@@ -4325,7 +4344,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
         true
       )
       if (!committed) {
-        throw new Error('The automatic commit did not complete.')
+        throw new AlreadyReportedAutomationError(
+          'The automatic commit did not complete.'
+        )
       }
       this.postNotification({
         kind: 'auto-commit',

@@ -288,14 +288,17 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
     if (!this.mounted) {
       return
     }
-    // React clears host refs while tearing down their owning component. The
-    // Tooltip will be unmounted in the same pass, so avoid queueing a state
-    // update against a target which has already left the document.
+    // React clears host refs while tearing down their owning component, but a
+    // delegating owner (ButtonHints) clears the ref deliberately when the row
+    // it described is gone. Dismiss rather than merely ignore: the anchor has
+    // left the document and the tooltip portal lives in `body`, so nothing
+    // else would take it down (#94).
     if (
       target === null &&
       this.state.target !== null &&
       !this.state.target.isConnected
     ) {
+      this.dismissDisconnectedTarget()
       return
     }
     if (target !== this.state.target) {
@@ -797,6 +800,14 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
     this.cancelShowTooltip()
     this.cancelHideTooltip()
     this.stopObservingTargetConnectivity()
+
+    // A target removed after this point never sends mouseleave, so the pointer
+    // bookkeeping must not survive the hide or `onTooltipHidden` can re-open
+    // the tooltip for an anchor the pointer has already left (#94).
+    if (this.state.target !== null && !this.state.target.isConnected) {
+      this.mouseOverTarget = false
+      this.mouseOverTooltip = false
+    }
 
     if (!this.mounted) {
       return
