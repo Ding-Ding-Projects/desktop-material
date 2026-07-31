@@ -559,6 +559,44 @@ export function normalizeInternalBrowserOAuthCallbackReceipt(
   }
 }
 
+/**
+ * The area a tab's native view should occupy, given the chrome renderer's
+ * latest measurement and the window's current content size.
+ *
+ * The measurement starts at zero and is only filled in once the renderer
+ * measures its viewport and reports it over IPC — a report driven by
+ * `requestAnimationFrame`, which a hidden BrowserWindow suspends. A zero width
+ * or height therefore means "not measured yet", not "genuinely zero wide", and
+ * must fall back to the whole content area below the chrome; otherwise a tab
+ * created before its window is shown renders as a blank browser window.
+ */
+export function resolveInternalBrowserContentBounds(
+  measured: IInternalBrowserContentBounds,
+  contentWidth: number,
+  contentHeight: number,
+  minimumTop: number
+): IInternalBrowserContentBounds {
+  const width = Math.max(0, contentWidth)
+  const height = Math.max(0, contentHeight)
+
+  if (measured.width <= 0 || measured.height <= 0) {
+    return {
+      x: 0,
+      y: minimumTop,
+      width,
+      height: Math.max(0, height - minimumTop),
+    }
+  }
+
+  const x = Math.max(0, Math.min(measured.x, width))
+  return {
+    x,
+    y: Math.max(minimumTop, Math.min(measured.y, height)),
+    width: Math.max(0, Math.min(measured.width, width - x)),
+    height: Math.max(0, Math.min(measured.height, height - measured.y)),
+  }
+}
+
 export function canCreateInternalBrowserTab(currentCount: number): boolean {
   return (
     Number.isInteger(currentCount) &&

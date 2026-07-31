@@ -2234,6 +2234,7 @@ export class ActionsView extends React.Component<
         {this.state.activeTab === 'workflows' && (
           <WorkflowManager
             workflows={actions.workflows}
+            runs={actions.runs}
             busyWorkflowId={this.state.busyWorkflowId}
             onRequestChange={this.requestWorkflowStateChange}
             onNewWorkflow={this.openCatalog}

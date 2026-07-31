@@ -98,6 +98,32 @@ silently fall back to the app-hosted browser. The user can retry after checking
 the default browser or intentionally select **Inside Desktop Material** in
 Advanced settings.
 
+### A tab is never left unmeasured
+
+The native page view is sized from a measurement the browser chrome takes of
+its own content viewport and reports over IPC. That measurement is driven by
+`requestAnimationFrame`, which Electron suspends while a window is hidden — and
+the browser window is created hidden and shown only once it has finished
+loading. A tab created in that gap could therefore be given a 0x0 rectangle
+that nothing later corrected, producing a browser window with visible chrome
+and no page at all.
+
+Two independent guards close that gap:
+
+- The chrome pairs every frame-scheduled measurement with a short timer
+  fallback (120 ms). Timers keep running while a window is hidden, so the
+  measurement is always delivered; whichever path fires first cancels the
+  other, so the bounds are still reported exactly once per change.
+- The main process treats a zero width or height as *not measured yet* rather
+  than as a genuine zero-sized page. Until a real measurement arrives, a tab is
+  given the whole content area below the chrome, and the renderer's true
+  measurement refines it the moment it lands.
+
+`resolveInternalBrowserContentBounds` in `app/src/lib/internal-browser.ts` is
+the single pure function both the initial tab creation, tab activation, and
+window-resize paths call, so the fallback cannot apply on one path and not
+another.
+
 The app-hosted browser intentionally does not save downloads. A download
 attempt is stopped and the page explains that it must be opened externally.
 Certificate errors are denied rather than bypassed. A failed or crashed page

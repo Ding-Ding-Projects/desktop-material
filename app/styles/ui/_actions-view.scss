@@ -431,7 +431,16 @@
 .actions-workflow-row-file {
   color: var(--md-sys-color-on-surface-variant);
   font-family: var(--font-family-monospace);
-  font-size: 10.5px;
+  font-size: 12px;
+}
+
+// The last completed run's duration, carried on the same line as the file and
+// state so the row height is unchanged. Tinted rather than sized up: it is the
+// answer to "how long does this one take?", not the row's primary label.
+.actions-workflow-row-duration {
+  color: var(--md-sys-color-primary);
+  font-weight: 650;
+  white-space: nowrap;
 }
 
 .actions-workflow-switch {

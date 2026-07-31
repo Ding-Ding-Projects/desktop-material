@@ -1,6 +1,6 @@
 import * as React from 'react'
 import classNames from 'classnames'
-import { IAPIWorkflow } from '../../lib/api'
+import { IAPIWorkflow, IAPIWorkflowRun } from '../../lib/api'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import {
@@ -15,9 +15,67 @@ import { getWorkflowFileName, getWorkflowGlyph } from './workflow-templates'
 /** localStorage key used to persist the workflow filter mode. */
 const WorkflowManagerFilterListId = 'actions-workflows'
 
+/**
+ * Renders a run duration the way a glance wants it: seconds under a minute,
+ * minutes and seconds under an hour, hours and minutes above that. Never zero —
+ * a run that finished inside the same second still took some time.
+ */
+export function formatRunDuration(milliseconds: number): string {
+  const totalSeconds = Math.max(1, Math.round(milliseconds / 1000))
+  if (totalSeconds < 60) {
+    return `${totalSeconds}s`
+  }
+  const minutes = Math.floor(totalSeconds / 60)
+  if (minutes < 60) {
+    const seconds = totalSeconds % 60
+    return seconds === 0 ? `${minutes}m` : `${minutes}m ${seconds}s`
+  }
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = minutes % 60
+  return remainingMinutes === 0 ? `${hours}h` : `${hours}h ${remainingMinutes}m`
+}
+
+/**
+ * How long a workflow's most recent finished run took, in milliseconds, or null
+ * when no run of it has completed. GitHub reports no explicit duration on the
+ * run resource, so this is `updated_at - created_at` of the newest completed
+ * run — the same span the Actions web UI shows. Queued time is included, which
+ * is the honest number for "how long until it was done"; a still-running or
+ * never-run workflow reports nothing rather than a misleading partial time.
+ */
+export function getLastRunDuration(
+  workflow: IAPIWorkflow,
+  runs: ReadonlyArray<IAPIWorkflowRun>
+): number | null {
+  let newestStart = Number.NEGATIVE_INFINITY
+  let duration: number | null = null
+
+  for (const run of runs) {
+    if (run.workflow_id !== workflow.id || run.status !== 'completed') {
+      continue
+    }
+    if (run.updated_at === undefined) {
+      continue
+    }
+    const started = Date.parse(run.created_at)
+    const ended = Date.parse(run.updated_at)
+    if (Number.isNaN(started) || Number.isNaN(ended) || ended < started) {
+      continue
+    }
+    if (started > newestStart) {
+      newestStart = started
+      duration = ended - started
+    }
+  }
+
+  return duration
+}
+
 interface IWorkflowManagerRowProps {
   readonly workflow: IAPIWorkflow
   readonly busyWorkflowId: number | null
+  /** Duration of this workflow's most recent completed run, in milliseconds. */
+  readonly lastRunDuration: number | null
   readonly index: number
   readonly onRequestChange: (workflow: IAPIWorkflow, enabled: boolean) => void
 }
@@ -32,10 +90,12 @@ class WorkflowManagerRow extends React.PureComponent<IWorkflowManagerRowProps> {
   }
 
   public render() {
-    const { workflow, busyWorkflowId, index } = this.props
+    const { workflow, busyWorkflowId, lastRunDuration, index } = this.props
     const enabled = workflow.state === 'active'
     const action = getWorkflowStateAction(workflow)
     const stateLabel = workflow.state.replace(/_/g, ' ')
+    const durationLabel =
+      lastRunDuration === null ? null : formatRunDuration(lastRunDuration)
     const style = { animationDelay: `${Math.min(index, 8) * 40}ms` }
     return (
       <div
@@ -51,6 +111,14 @@ class WorkflowManagerRow extends React.PureComponent<IWorkflowManagerRowProps> {
           <strong>{workflow.name}</strong>
           <span className="actions-workflow-row-file">
             {getWorkflowFileName(workflow.path)} · {stateLabel}
+            {durationLabel !== null && (
+              <>
+                {' · '}
+                <span className="actions-workflow-row-duration">
+                  last run {durationLabel}
+                </span>
+              </>
+            )}
           </span>
         </span>
         <button
@@ -73,6 +141,8 @@ class WorkflowManagerRow extends React.PureComponent<IWorkflowManagerRowProps> {
 
 interface IWorkflowManagerProps {
   readonly workflows: ReadonlyArray<IAPIWorkflow>
+  /** Loaded runs, used to report each workflow's most recent run duration. */
+  readonly runs: ReadonlyArray<IAPIWorkflowRun>
   readonly busyWorkflowId: number | null
   readonly onRequestChange: (workflow: IAPIWorkflow, enabled: boolean) => void
   readonly onNewWorkflow: () => void
@@ -144,6 +214,7 @@ export class WorkflowManager extends React.PureComponent<
       key={workflow.id}
       workflow={workflow}
       busyWorkflowId={this.props.busyWorkflowId}
+      lastRunDuration={getLastRunDuration(workflow, this.props.runs)}
       index={index}
       onRequestChange={this.props.onRequestChange}
     />

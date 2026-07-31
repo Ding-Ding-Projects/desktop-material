@@ -16,6 +16,7 @@ credentials or machine-specific state in a repository.
 - [Automated update build status and release
   notes](automated-updates-and-release-notes.md)
 - [Build & Run output controls](build-run-output-controls.md)
+- [Actions workflow manager](actions-workflow-manager.md)
 - [Local GitHub Actions runner](local-actions-runner.md)
 - [Local AI build repair with Codex or
   OpenCode](local-ai-build-fix.md)

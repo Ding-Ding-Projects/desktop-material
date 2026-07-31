@@ -18,6 +18,7 @@ import {
   normalizeBrowserOpenMode,
   parseInternalBrowserBookmarks,
   redactBrowserURL,
+  resolveInternalBrowserContentBounds,
   rotateAuthenticationPartition,
   sanitizeBrowserTitle,
   selectInternalBrowserAuthenticationFlowsForResolution,
@@ -377,5 +378,47 @@ describe('internal browser contracts', () => {
     )
     assert.equal(canCreateInternalBrowserTab(MaximumInternalBrowserTabs), false)
     assert.equal(canCreateInternalBrowserTab(Number.NaN), false)
+  })
+})
+
+describe('internal browser content bounds', () => {
+  const measured = { x: 12, y: 140, width: 900, height: 500 }
+
+  it('uses the full area below the chrome before the renderer has measured', () => {
+    // A hidden BrowserWindow suspends requestAnimationFrame, so the first
+    // report can arrive long after the tab exists. Zero means unmeasured, and
+    // an unmeasured tab must still be visible.
+    assert.deepStrictEqual(
+      resolveInternalBrowserContentBounds(
+        { x: 0, y: 128, width: 0, height: 0 },
+        1160,
+        780,
+        128
+      ),
+      { x: 0, y: 128, width: 1160, height: 652 }
+    )
+  })
+
+  it('honours a real measurement', () => {
+    assert.deepStrictEqual(
+      resolveInternalBrowserContentBounds(measured, 1160, 780, 128),
+      { x: 12, y: 140, width: 900, height: 500 }
+    )
+  })
+
+  it('never lets a measurement escape the window or ride over the chrome', () => {
+    assert.deepStrictEqual(
+      resolveInternalBrowserContentBounds(measured, 400, 300, 128),
+      { x: 12, y: 140, width: 388, height: 160 }
+    )
+    assert.deepStrictEqual(
+      resolveInternalBrowserContentBounds(
+        { x: 0, y: 4, width: 900, height: 500 },
+        1160,
+        780,
+        128
+      ).y,
+      128
+    )
   })
 })

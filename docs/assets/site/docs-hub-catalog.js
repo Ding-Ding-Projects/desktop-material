@@ -322,6 +322,13 @@
       d: "The repository tab strip's trailing cluster carries the signature per-account settings-repo feedback from the v2 design: a persistent commit chip, a Settings-history entry…",
     },
     {
+      t: 'Actions workflow manager',
+      h: 'features/integrations/actions-workflow-manager.html',
+      s: 'features/integrations/actions-workflow-manager.md',
+      c: 'features',
+      d: 'The Workflows tab of the Actions view lists every workflow in the repository, with a switch per row to enable or disable it, a filter bar wired to the full regex builder, and —…',
+    },
+    {
       t: 'App-hosted browser',
       h: 'features/integrations/app-hosted-browser.html',
       s: 'features/integrations/app-hosted-browser.md',
@@ -901,6 +908,13 @@
       s: 'features/repository-management/submodule-subtree-and-remote-creation.md',
       c: 'features',
       d: 'Repository Settings brings dependency topology into one workspace. The Submodules surface can add, clone/update, synchronize, configure, remove, or temporarily open a recorded…',
+    },
+    {
+      t: 'Verified merge-and-cleanup repository sync',
+      h: 'features/repository-management/sync-merge-cleanup.html',
+      s: 'features/repository-management/sync-merge-cleanup.md',
+      c: 'features',
+      d: 'The Sync repositories dialog includes a reviewed Merge completed work into main, push, then clean up operation. It integrates eligible local branch tips into main, pushes main…',
     },
     {
       t: 'Tag lifecycle management',

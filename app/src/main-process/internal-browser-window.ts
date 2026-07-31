@@ -16,6 +16,7 @@ import {
   normalizeAddressInput,
   normalizeWebURL,
   redactBrowserURL,
+  resolveInternalBrowserContentBounds,
   sanitizeBrowserTitle,
   selectInternalBrowserAuthenticationFlowsForResolution,
   shouldDispatchInternalBrowserAppAction,
@@ -409,7 +410,7 @@ export class InternalBrowserWindow {
     this.configureRemoteSession(tab)
     this.configureRemoteWebContents(tab)
     this.window.contentView.addChildView(view)
-    view.setBounds(this.contentBounds)
+    view.setBounds(this.resolveContentBounds())
     view.setVisible(false)
     this.activateTab(id)
 
@@ -611,7 +612,7 @@ export class InternalBrowserWindow {
     for (const tab of this.tabs.values()) {
       tab.view.setVisible(tab.id === tabId)
       if (tab.id === tabId) {
-        tab.view.setBounds(this.contentBounds)
+        tab.view.setBounds(this.resolveContentBounds())
         tab.view.webContents.focus()
       }
     }
@@ -721,23 +722,33 @@ export class InternalBrowserWindow {
     }
   }
 
+  /**
+   * The area a tab's native view should occupy.
+   *
+   * `contentBounds` starts at zero and is only filled in once the chrome
+   * renderer measures its viewport and reports it over IPC. That report is
+   * driven by `requestAnimationFrame`, which a hidden BrowserWindow suspends —
+   * so a tab created before the window is shown could sit at 0x0 forever and
+   * render as a blank window. A zero-sized measurement therefore means "not
+   * measured yet", not "genuinely zero wide": fall back to the whole content
+   * area below the chrome so the page is always visible, and let the renderer's
+   * real measurement refine it the moment it arrives.
+   */
+  private resolveContentBounds(): Electron.Rectangle {
+    const [width, height] = this.window.getContentSize()
+    return resolveInternalBrowserContentBounds(
+      this.contentBounds,
+      width,
+      height,
+      minimumContentTop
+    )
+  }
+
   private applyContentBounds() {
     if (this.window.isDestroyed()) {
       return
     }
-    const [width, height] = this.window.getContentSize()
-    const bounds = {
-      x: Math.max(0, Math.min(this.contentBounds.x, width)),
-      y: Math.max(minimumContentTop, Math.min(this.contentBounds.y, height)),
-      width: Math.max(
-        0,
-        Math.min(this.contentBounds.width, width - this.contentBounds.x)
-      ),
-      height: Math.max(
-        0,
-        Math.min(this.contentBounds.height, height - this.contentBounds.y)
-      ),
-    }
+    const bounds = this.resolveContentBounds()
     const active = this.activeTabId
     for (const tab of this.tabs.values()) {
       if (tab.id === active) {

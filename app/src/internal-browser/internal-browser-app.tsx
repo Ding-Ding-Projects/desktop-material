@@ -37,6 +37,14 @@ const emptyBrowserState: IInternalBrowserState = {
   activeTabId: null,
 }
 
+/**
+ * How long to wait for an animation frame before measuring the content viewport
+ * on a plain timer instead. Long enough that a visible window always reports
+ * through the frame callback, short enough that a hidden one is not left
+ * showing a blank page.
+ */
+const BoundsMeasurementFallbackDelay = 120
+
 function activeTab(
   state: IInternalBrowserState
 ): IInternalBrowserTabState | null {
@@ -74,6 +82,7 @@ export class InternalBrowserApp extends React.Component<
   private readonly contentViewport = React.createRef<HTMLDivElement>()
   private resizeObserver: ResizeObserver | null = null
   private boundsFrame: number | null = null
+  private boundsFallback: number | null = null
   private lastActiveTabId: string | null = null
   private colorSchemeMedia: MediaQueryList | null = null
   private readonly tabButtons = new Map<string, HTMLButtonElement>()
@@ -138,6 +147,9 @@ export class InternalBrowserApp extends React.Component<
     this.resizeObserver?.disconnect()
     if (this.boundsFrame !== null) {
       cancelAnimationFrame(this.boundsFrame)
+    }
+    if (this.boundsFallback !== null) {
+      clearTimeout(this.boundsFallback)
     }
   }
 
@@ -218,24 +230,48 @@ export class InternalBrowserApp extends React.Component<
     }
   }
 
+  private sendContentBounds = () => {
+    const viewport = this.contentViewport.current
+    if (viewport === null) {
+      return
+    }
+    const bounds = viewport.getBoundingClientRect()
+    ipcRenderer.send('internal-browser-content-bounds', {
+      x: Math.round(bounds.x),
+      y: Math.round(bounds.y),
+      width: Math.round(bounds.width),
+      height: Math.round(bounds.height),
+    })
+  }
+
   private queueBoundsUpdate = () => {
     if (this.boundsFrame !== null) {
       cancelAnimationFrame(this.boundsFrame)
     }
+    if (this.boundsFallback !== null) {
+      clearTimeout(this.boundsFallback)
+    }
     this.boundsFrame = requestAnimationFrame(() => {
       this.boundsFrame = null
-      const viewport = this.contentViewport.current
-      if (viewport === null) {
-        return
+      if (this.boundsFallback !== null) {
+        clearTimeout(this.boundsFallback)
+        this.boundsFallback = null
       }
-      const bounds = viewport.getBoundingClientRect()
-      ipcRenderer.send('internal-browser-content-bounds', {
-        x: Math.round(bounds.x),
-        y: Math.round(bounds.y),
-        width: Math.round(bounds.width),
-        height: Math.round(bounds.height),
-      })
+      this.sendContentBounds()
     })
+    // A BrowserWindow that has not been shown yet suspends animation frames, so
+    // the callback above can simply never run and the native view would stay at
+    // its unmeasured zero size — a browser window with nothing in it. The timer
+    // keeps running while the window is hidden, so it reports the measurement
+    // regardless; whichever fires first cancels the other.
+    this.boundsFallback = window.setTimeout(() => {
+      this.boundsFallback = null
+      if (this.boundsFrame !== null) {
+        cancelAnimationFrame(this.boundsFrame)
+        this.boundsFrame = null
+      }
+      this.sendContentBounds()
+    }, BoundsMeasurementFallbackDelay)
   }
 
   private onAddressChanged = (event: React.FormEvent<HTMLInputElement>) => {
