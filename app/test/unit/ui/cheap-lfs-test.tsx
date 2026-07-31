@@ -585,11 +585,11 @@ describe('CheapLfs panel', () => {
       true
     )
     // The persisted private opt-in now publishes the same reviewed caller,
-    // armed only for private visibility.
-    assert.ok(
-      await screen.findByText(/Cloud-compression workflow added to Changes/i)
-    )
-    assert.ok(screen.getByText(/Cloud-compression workflow file is ready/i))
+    // armed only for private visibility. Publishing moved to a background
+    // publisher that proves the remote tip, so the copy reports a queued policy
+    // rather than a file dropped into Changes.
+    assert.ok(await screen.findByText(/Cloud-compression policy queued/i))
+    assert.ok(screen.getByText(/managed cloud-compression policy is prepared/i))
   })
 
   it('keeps a persisted private opt-in when workflow setup fails', async () => {

@@ -1052,24 +1052,44 @@ describe('RepositoryTabStrip tab groups', () => {
 
     for (const name of [
       'Add tab to new group… · 將分頁加入新群組…',
-      'Move to “Later” · 移去「Later」',
-      'Remove from “Work” · 從「Work」移走',
+      'Move tab to group… · 將分頁移去群組…',
+      'Show tabs in “Work” · 睇「Work」入面嘅分頁',
+      'Edit group “Work”… · 編輯群組「Work」…',
       'Collapse “Work” · 收起「Work」',
       'Delete group “Work” · 刪除群組「Work」',
     ]) {
       assert.ok(screen.getByRole('menuitem', { name }))
     }
-    assert.equal(
-      screen.queryByRole('menuitem', {
-        name: 'Move to “Pinned” · 移去「Pinned」',
-      }),
-      null
-    )
+
+    // The menu no longer grows one "Move to <group>" item per group; a single
+    // localized command opens the searchable chooser instead, so neither the
+    // eligible destination nor the ineligible pinned one appears here.
+    for (const name of [
+      'Move to “Later” · 移去「Later」',
+      'Move to “Pinned” · 移去「Pinned」',
+    ]) {
+      assert.equal(screen.queryByRole('menuitem', { name }), null)
+    }
 
     fireEvent.click(
       screen.getByRole('menuitem', {
-        name: 'Move to “Later” · 移去「Later」',
+        name: 'Move tab to group… · 將分頁移去群組…',
       })
+    )
+    const chooser = await waitFor(() => {
+      const element = document.querySelector('dialog#move-tab-to-group')
+      assert.notEqual(element, null)
+      return element as HTMLDialogElement
+    })
+    // jsdom does not implement HTMLDialogElement.show(); expose it the way
+    // Chromium does after Dialog.componentDidMount.
+    chooser.setAttribute('open', '')
+
+    // The chooser's option names use the accessible-name form, which collapses
+    // bilingual mode to its primary language so a screen reader does not read
+    // every destination twice. The visible row stays bilingual.
+    fireEvent.click(
+      await screen.findByRole('option', { name: 'Move tab to “Later”' })
     )
     await waitFor(() =>
       assert.equal(
