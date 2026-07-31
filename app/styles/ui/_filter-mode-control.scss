@@ -30,7 +30,7 @@
     border-radius: 10px;
     background: transparent;
     color: var(--md-sys-color-on-surface-variant);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
     transition: background-color 220ms var(--emph), color 220ms var(--emph);
@@ -50,9 +50,12 @@
     }
   }
 
+  // The `.*` / `Aa` glyphs are the entire label of a 40px control, so they read
+  // at the button's own scale rather than at the caption scale the surrounding
+  // helper text uses. At 12px they were a speck in the middle of the target.
   .filter-mode-glyph {
     font-family: var(--font-family-monospace, monospace);
-    font-size: 12px;
+    font-size: 15px;
     font-weight: 700;
     line-height: 1;
   }
@@ -67,7 +70,7 @@
     border-radius: 999px;
     background: var(--md-sys-color-primary-container);
     color: var(--md-sys-color-on-primary-container);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
     transition: background-color 220ms var(--emph);
