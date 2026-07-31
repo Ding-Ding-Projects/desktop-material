@@ -100,6 +100,7 @@ function deferred<T>() {
 class TestActionsStore {
   public readonly cancelCalls = new Array<number>()
   public readonly cancelSignals = new Array<AbortSignal | undefined>()
+  public readonly cancelForceFlags = new Array<boolean | undefined>()
   public readonly cancellationRequestCalls = new Array<number>()
   public readonly cancellationRequestSignals = new Array<
     AbortSignal | undefined
@@ -151,11 +152,13 @@ class TestActionsStore {
     selected,
     runId,
     signal,
-    onProgress
+    onProgress,
+    force
   ) => {
     this.cancelCalls.push(runId)
     this.cancelSignals.push(signal)
-    return this.cancelImpl(selected, runId, signal, onProgress)
+    this.cancelForceFlags.push(force)
+    return this.cancelImpl(selected, runId, signal, onProgress, force)
   }
 
   public requestRunCancellation: ActionsStore['requestRunCancellation'] = (
@@ -286,7 +289,18 @@ describe('Actions workflow-run cancellation UI', () => {
     assert.ok(details.getByText('feature/cancellation-material-confirmation'))
     assert.ok(details.getByText('@material-actor'))
     assert.ok(details.getByText('a'.repeat(40)))
-    assert.equal(details.queryByText(/Force cancel/i), null)
+    // Force cancel is offered, but it is never the primary action: the opt-in
+    // starts unchecked and the confirm button still commits an ordinary
+    // cancellation until the user deliberately ticks it.
+    const forceCancel = details.getByRole('checkbox', {
+      name: 'Force cancel this workflow run',
+    }) as HTMLInputElement
+    assert.equal(forceCancel.checked, false)
+    assert.equal(
+      details.queryByRole('button', { name: 'Force cancel run' }),
+      null
+    )
+    assert.ok(details.getByRole('button', { name: 'Cancel run' }))
     assert.equal(
       document.activeElement,
       details.getByRole('button', { name: 'Keep current state' })
@@ -296,6 +310,7 @@ describe('Actions workflow-run cancellation UI', () => {
     fireEvent.click(confirm)
     fireEvent.click(confirm)
     assert.deepEqual(store.cancelCalls, [42])
+    assert.deepEqual(store.cancelForceFlags, [false])
     assert.equal(dialog.getAttribute('aria-busy'), 'true')
     assert.ok(details.getByRole('status').textContent?.includes('Checking'))
     assert.equal(
@@ -317,6 +332,53 @@ describe('Actions workflow-run cancellation UI', () => {
     await waitFor(() => assert.equal(screen.queryByRole('alertdialog'), null))
     assert.ok(screen.getByText('Workflow run #1042 was canceled.'))
     assert.equal(document.activeElement, trigger)
+  })
+
+  it('force-cancels only when the opt-in is ticked, and says so before it does', async () => {
+    const selected = repository('repository', 7)
+    const run = workflowRun(42, 'in_progress')
+    const store = new TestActionsStore(
+      new Map([[selected.hash, actionsState(run)]])
+    )
+
+    render(
+      <ActionsView
+        repository={selected}
+        branchNames={['main']}
+        actionsStore={store as unknown as ActionsStore}
+      />
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Cancel workflow run 1042' })
+    )
+    const dialog = screen.getByRole('alertdialog', {
+      name: 'Cancel workflow run?',
+    })
+    const details = within(dialog)
+
+    fireEvent.click(
+      details.getByRole('checkbox', { name: 'Force cancel this workflow run' })
+    )
+
+    // The dialog must never say one thing and do another: ticking the opt-in
+    // retitles it and relabels the confirm button before anything is sent.
+    await waitFor(() =>
+      assert.ok(
+        screen.getByRole('alertdialog', { name: 'Force-cancel workflow run?' })
+      )
+    )
+    const confirm = within(screen.getByRole('alertdialog')).getByRole(
+      'button',
+      { name: 'Force cancel run' }
+    )
+
+    fireEvent.click(confirm)
+    assert.deepEqual(store.cancelCalls, [42])
+    assert.deepEqual(store.cancelForceFlags, [true])
+
+    await waitFor(() => assert.equal(screen.queryByRole('alertdialog'), null))
+    assert.ok(screen.getByText('Workflow run #1042 was force-canceled.'))
   })
 
   it('aborts a pending preflight when the repository identity changes', async () => {

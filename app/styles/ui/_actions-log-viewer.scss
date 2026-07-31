@@ -388,19 +388,21 @@
   background: var(--md-sys-color-error-container);
   cursor: pointer;
 
+  // The checkbox occupies the first column across both text rows; the label and
+  // its explanation stack beside it. Keeping the text as direct children of the
+  // label (rather than in a wrapper) is what gives the control its accessible
+  // name without an extra nesting level.
   input[type='checkbox'] {
     width: 18px;
     height: 18px;
     min-height: 18px;
-    flex: 0 0 18px;
+    grid-row: 1 / span 2;
     margin: 2px 0 0;
     accent-color: var(--md-sys-color-error);
   }
 
-  > span {
-    display: grid;
+  > strong {
     min-width: 0;
-    gap: 3px;
     font-size: 12px;
   }
 
@@ -412,6 +414,7 @@
 
 .actions-force-cancel-explanation {
   min-width: 0;
+  font-size: 12px;
   line-height: 1.45;
   overflow-wrap: anywhere;
 

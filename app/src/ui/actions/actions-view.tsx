@@ -2369,16 +2369,15 @@ export class ActionsView extends React.Component<
                       checked={this.state.forceCancelRun}
                       disabled={this.state.busyRunId !== null}
                       onChange={this.onForceCancelRunChanged}
+                      aria-label="Force cancel this workflow run"
                     />
-                    <span>
-                      <strong>Force cancel</strong>
-                      <span className="actions-force-cancel-explanation">
-                        Uses GitHub's <code>force-cancel</code> endpoint for a
-                        run that ignores an ordinary cancellation. It bypasses
-                        conditional evaluation, so <code>if: always()</code>{' '}
-                        cleanup steps do not run and jobs are terminated
-                        outright. Use it for a genuinely stuck run.
-                      </span>
+                    <strong>Force cancel</strong>
+                    <span className="actions-force-cancel-explanation">
+                      Uses GitHub's <code>force-cancel</code> endpoint for a run
+                      that ignores an ordinary cancellation. It bypasses
+                      conditional evaluation, so <code>if: always()</code>{' '}
+                      cleanup steps do not run and jobs are terminated outright.
+                      Use it for a genuinely stuck run.
                     </span>
                   </label>
                 </>
