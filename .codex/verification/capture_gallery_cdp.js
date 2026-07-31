@@ -6604,11 +6604,11 @@ scene('provider-triage', async () => {
 })
 
 scene('api-explorer', async () => {
-  await captureSection('API', 'material-github-api-explorer', 3000)
+  await captureSection('API explorer', 'material-github-api-explorer', 3000)
 })
 
 scene('api-app-functions', async () => {
-  await captureSection('API', null, 2000)
+  await captureSection('API explorer', null, 2000)
   // The functions-first API surface auto-seeds the repository read functions
   // (details, issues, pull requests, releases, workflows), so the saved
   // functions surface is the representative state to capture.

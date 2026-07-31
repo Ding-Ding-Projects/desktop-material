@@ -1296,7 +1296,7 @@ test('capture candidates cannot overwrite tracked screenshots directly', () => {
 test('API app-function capture shows the seeded repository functions', () => {
   const apiFunctions = sceneSource('api-app-functions')
   for (const contract of [
-    "captureSection('API', null, 2000)",
+    "captureSection('API explorer', null, 2000)",
     "document.querySelector('.github-api-functions')",
     'querySelectorAll(\'[aria-label="Named API functions"] > li\')',
     'cards.length >= 1',
