@@ -393,6 +393,11 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     group: 'App',
   },
   { event: 'show-about', title: 'About Desktop Material', group: 'App' },
+  {
+    event: 'show-changelog',
+    title: 'Release history (changelog)',
+    group: 'App',
+  },
   { event: 'open-new-window', title: 'Open a new window', group: 'App' },
   { event: 'zoom-in', title: 'Zoom in', group: 'App' },
   { event: 'zoom-out', title: 'Zoom out', group: 'App' },

@@ -37,7 +37,6 @@ const ContextMenuFilterListId = 'material-context-menu'
  */
 const ContextMenuSearchSurfaceId = 'material-context-menu'
 
-/** Execute a predefined edit role against the focused element. */
 /**
  * The items Electron's `editMenu` role stands for.
  *
@@ -132,6 +131,7 @@ export function ariaKeyShortcuts(accelerator: string): string {
     .join('+')
 }
 
+/** Execute a predefined edit role against the focused element. */
 function performRole(role: NonNullable<IMenuItem['role']>) {
   switch (role) {
     case 'copy':

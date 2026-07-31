@@ -1,0 +1,552 @@
+// The in-app changelog viewer: 683 releases, narrowed by search, category and
+// date. Drawn from the --md-sys-* tokens only, like every other M3 surface.
+
+#changelog {
+  width: min(760px, calc(100vw - 48px));
+
+  .dialog-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    // The list scrolls, not the dialog: the controls stay reachable however
+    // deep into 683 releases the reader has gone.
+    overflow: hidden;
+  }
+
+  .changelog-controls {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .changelog-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 260px;
+    min-width: 0;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: var(--md-sys-color-surface-container-highest);
+    color: var(--md-sys-color-on-surface-variant);
+
+    .octicon {
+      width: 14px;
+      height: 14px;
+      flex: none;
+      fill: currentColor;
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      background: transparent;
+      color: var(--md-sys-color-on-surface);
+      font-size: 13px;
+      outline: none;
+
+      &::placeholder {
+        color: var(--md-sys-color-on-surface-variant);
+      }
+    }
+  }
+
+  .changelog-date-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
+    // 36px keeps the pointer target at the M3 minimum without making the
+    // control taller than the search row beside it.
+    min-height: 36px;
+    padding: 6px 14px;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface);
+    font-size: 13px;
+    cursor: pointer;
+
+    .octicon {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    &.active {
+      border-color: transparent;
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+
+  .changelog-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .changelog-category {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 4px 12px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 12.5px;
+    cursor: pointer;
+
+    &.active {
+      border-color: transparent;
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+
+  .changelog-category-count {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.75;
+  }
+
+  .changelog-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  .changelog-undated-note,
+  .changelog-regex-error {
+    color: var(--md-sys-color-error);
+  }
+
+  .changelog-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-right: 4px;
+  }
+
+  .changelog-release {
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--md-sys-color-surface-container-low);
+
+    &.current {
+      // The build the reader is actually running, marked so "is this fixed in
+      // mine?" is answerable without comparing version strings by eye.
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: -2px;
+    }
+
+    header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+  }
+
+  .changelog-version {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--md-sys-color-on-surface);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .changelog-current-badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .changelog-stamp {
+    margin: 0;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  .changelog-entries {
+    margin: 8px 0 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    li {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--md-sys-color-on-surface);
+    }
+  }
+
+  .changelog-entry-category {
+    flex: none;
+    min-width: 66px;
+    padding: 1px 8px;
+    border-radius: 6px;
+    background: var(--md-sys-color-surface-container-highest);
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 11px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .changelog-entry-text {
+    min-width: 0;
+    // Long entries wrap rather than truncate: a half-shown fix is unreadable
+    // and there is no detail view to fall back to.
+    overflow-wrap: anywhere;
+  }
+
+  .changelog-no-changes,
+  .changelog-empty {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  .changelog-empty {
+    padding: 24px 8px;
+    text-align: center;
+  }
+
+  .changelog-show-more {
+    align-self: center;
+    min-height: 36px;
+    padding: 6px 20px;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--md-sys-color-primary);
+    font-size: 13px;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+
+  .changelog-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .changelog-export {
+    position: relative;
+  }
+
+  .changelog-export-menu {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 6px);
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+    padding: 6px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 12px;
+    background: var(--md-sys-color-surface-container);
+    box-shadow: var(--md-sys-elevation-level2);
+
+    button {
+      padding: 8px 12px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--md-sys-color-on-surface);
+      font-size: 13px;
+      text-align: left;
+      cursor: pointer;
+
+      &:hover {
+        background: var(--md-sys-color-secondary-container);
+        color: var(--md-sys-color-on-secondary-container);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--md-sys-color-primary);
+        outline-offset: -2px;
+      }
+    }
+  }
+
+  .changelog-include-undated {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 12.5px;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+}
+
+// The date picker is shared, so it is styled outside the dialog's id scope.
+.date-range-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  // Wide enough for a 7-column grid at a 36px cell, narrow enough to sit in a
+  // popover at 320px viewport width.
+  width: min(300px, calc(100vw - 40px));
+
+  .date-range-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .date-range-preset {
+    min-height: 30px;
+    padding: 3px 10px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 12px;
+    cursor: pointer;
+
+    &.active {
+      border-color: transparent;
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+
+  .date-range-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .date-range-field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+
+    label {
+      font-size: 11.5px;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    input {
+      width: 100%;
+      min-width: 0;
+      min-height: 34px;
+      padding: 5px 10px;
+      border: 1px solid var(--md-sys-color-outline);
+      border-radius: 8px;
+      background: var(--md-sys-color-surface);
+      color: var(--md-sys-color-on-surface);
+      font-size: 12.5px;
+      font-variant-numeric: tabular-nums;
+
+      &:focus-visible {
+        outline: 2px solid var(--md-sys-color-primary);
+        outline-offset: 1px;
+      }
+    }
+
+    &.invalid input {
+      border-color: var(--md-sys-color-error);
+    }
+  }
+
+  .date-range-hint,
+  .date-range-error {
+    margin: 0;
+    font-size: 11px;
+    // Reserved space, so the grid does not jump a row taller the moment an
+    // error appears under one field.
+    min-height: 14px;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  .date-range-error {
+    color: var(--md-sys-color-error);
+  }
+
+  .date-range-navigation {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    select {
+      flex: 1;
+      min-width: 0;
+      min-height: 32px;
+      padding: 4px 8px;
+      border: 1px solid var(--md-sys-color-outline);
+      border-radius: 8px;
+      background: var(--md-sys-color-surface);
+      color: var(--md-sys-color-on-surface);
+      font-size: 12.5px;
+    }
+  }
+
+  .date-range-step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex: none;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+
+    .octicon {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    &:hover {
+      background: var(--md-sys-color-surface-container-highest);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: -2px;
+    }
+  }
+
+  .date-range-weekdays,
+  .date-range-days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 2px;
+  }
+
+  .date-range-weekdays span {
+    padding: 2px 0;
+    font-size: 11px;
+    text-align: center;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  .date-range-day {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    // 34px square: the smallest cell that still clears the pointer-target
+    // guidance at a 7-column grid inside a 300px popover.
+    height: 34px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+
+    &.empty {
+      cursor: default;
+    }
+
+    &.in-range {
+      background: var(--md-sys-color-surface-container-highest);
+    }
+
+    &.selected {
+      background: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+    }
+
+    &.today:not(.selected) {
+      outline: 1px solid var(--md-sys-color-primary);
+      outline-offset: -1px;
+    }
+
+    &.outside {
+      // Still selectable: the history has gaps, and a date outside the
+      // recorded range is a legitimate thing to filter by.
+      color: color-mix(in srgb, var(--md-sys-color-on-surface) 45%, transparent);
+    }
+
+    &:hover:not(.empty):not(.selected) {
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: -2px;
+    }
+  }
+}
+
+// Narrow windows and large display scales: the controls stack rather than
+// clipping, and the calendar keeps its 7 columns.
+@media (max-width: 640px), (max-height: 620px) {
+  #changelog {
+    .changelog-controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .changelog-date-button {
+      justify-content: center;
+    }
+
+    .changelog-actions {
+      justify-content: stretch;
+
+      button {
+        flex: 1;
+      }
+    }
+  }
+}

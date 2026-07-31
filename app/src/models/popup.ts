@@ -136,6 +136,7 @@ export enum PopupType {
   LFSAttributeMismatch = 'LFSAttributeMismatch',
   UpstreamAlreadyExists = 'UpstreamAlreadyExists',
   ReleaseNotes = 'ReleaseNotes',
+  Changelog = 'Changelog',
   DeletePullRequest = 'DeletePullRequest',
   OversizedFiles = 'OversizedFiles',
   CommitConflictsWarning = 'CommitConflictsWarning',
@@ -456,6 +457,11 @@ export type PopupDetail =
   | {
       type: PopupType.ReleaseNotes
       newReleases: ReadonlyArray<ReleaseSummary>
+    }
+  | {
+      // The whole recorded release history, as opposed to ReleaseNotes above,
+      // which shows only what a pending update would install.
+      type: PopupType.Changelog
     }
   | {
       type: PopupType.DeletePullRequest

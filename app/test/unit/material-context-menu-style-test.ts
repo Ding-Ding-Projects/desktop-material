@@ -22,7 +22,12 @@ describe('material context menu contracts', () => {
   it('renders an M3 surface with a type-to-filter bar and icon slots', () => {
     const component = read('src', 'ui', 'lib', 'material-context-menu.tsx')
     assert.match(component, /className="context-menu-filter"/)
-    assert.match(component, /placeholder="Filter actions"/)
+    // The placeholder is translated rather than a hardcoded English literal,
+    // so this asserts the wiring; the strings themselves live in i18n.
+    assert.match(
+      component,
+      /placeholder=\{this\.text\('contextMenu\.filterPlaceholder'\)\}/
+    )
     assert.match(component, /context-menu-item-leading/)
     assert.match(component, /performRole/)
 

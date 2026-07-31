@@ -2576,6 +2576,52 @@ export type TranslationKey =
   | 'regex.error.inputTooLong'
   | 'regex.error.invalidOrUnsupported'
   | 'regex.error.unknown'
+  | 'dateRange.from'
+  | 'dateRange.to'
+  | 'dateRange.presetsLabel'
+  | 'dateRange.calendarLabel'
+  | 'dateRange.month'
+  | 'dateRange.year'
+  | 'dateRange.previousMonth'
+  | 'dateRange.nextMonth'
+  | 'dateRange.preset.all'
+  | 'dateRange.preset.last7'
+  | 'dateRange.preset.last30'
+  | 'dateRange.preset.last90'
+  | 'dateRange.preset.thisYear'
+  | 'dateRange.preset.lastYear'
+  | 'dateRange.error.incomplete'
+  | 'dateRange.error.outOfRange'
+  | 'dateRange.error.unrecognized'
+  | 'changelog.title'
+  | 'changelog.searchPlaceholder'
+  | 'changelog.searchLabel'
+  | 'changelog.dateFilter'
+  | 'changelog.dateFilterActive'
+  | 'changelog.categories'
+  | 'changelog.categoryAll'
+  | 'changelog.uncategorized'
+  | 'changelog.copy'
+  | 'changelog.copied'
+  | 'changelog.export'
+  | 'changelog.exportMarkdown'
+  | 'changelog.exportText'
+  | 'changelog.exported'
+  | 'changelog.exportFailed'
+  | 'changelog.reset'
+  | 'changelog.close'
+  | 'changelog.showMore'
+  | 'changelog.currentVersion'
+  | 'changelog.dateUnrecorded'
+  | 'changelog.noChanges'
+  | 'changelog.includeUndated'
+  | 'changelog.undatedHidden'
+  | 'changelog.summary.plain'
+  | 'changelog.summary.light'
+  | 'changelog.summary.playful'
+  | 'changelog.empty.plain'
+  | 'changelog.empty.light'
+  | 'changelog.empty.playful'
   | 'contextMenu.filterPlaceholder'
   | 'contextMenu.filterLabel'
   | 'contextMenu.empty'
@@ -6211,6 +6257,61 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'accounts.invalidatedTokenPrompt': 'Do you want to sign in as {login} again?',
   'accounts.invalidatedTokenSignIn': 'Sign in again',
   'accounts.invalidatedTokenLater': 'Not now',
+  'dateRange.from': 'From',
+  'dateRange.to': 'To',
+  'dateRange.presetsLabel': 'Date range presets',
+  'dateRange.calendarLabel': 'Choose a date range',
+  'dateRange.month': 'Month',
+  'dateRange.year': 'Year',
+  'dateRange.previousMonth': 'Previous month',
+  'dateRange.nextMonth': 'Next month',
+  'dateRange.preset.all': 'All time',
+  'dateRange.preset.last7': 'Last 7 days',
+  'dateRange.preset.last30': 'Last 30 days',
+  'dateRange.preset.last90': 'Last 90 days',
+  'dateRange.preset.thisYear': 'This year',
+  'dateRange.preset.lastYear': 'Last year',
+  // Each names the actual problem: "invalid" alone leaves the reader guessing
+  // which of the three it is.
+  'dateRange.error.incomplete': 'Keep going — that date is not complete yet.',
+  'dateRange.error.outOfRange': 'That day does not exist in that month.',
+  'dateRange.error.unrecognized':
+    'Use YYYY-MM-DD, or a four-digit year in the date order shown.',
+  'changelog.title': 'Release history',
+  'changelog.searchPlaceholder': 'Search every release',
+  'changelog.searchLabel': 'Search the release history',
+  'changelog.dateFilter': 'Dates',
+  'changelog.dateFilterActive': 'Dates: {range}',
+  'changelog.categories': 'Categories',
+  'changelog.categoryAll': 'All',
+  'changelog.uncategorized': 'Uncategorized',
+  'changelog.copy': 'Copy',
+  'changelog.copied': 'Copied {count} release(s) to the clipboard.',
+  'changelog.export': 'Export',
+  'changelog.exportMarkdown': 'Export as Markdown…',
+  'changelog.exportText': 'Export as plain text…',
+  'changelog.exported': 'Exported {count} release(s) to {path}.',
+  'changelog.exportFailed': 'The export could not be written: {error}',
+  'changelog.reset': 'Clear filters',
+  'changelog.close': 'Close',
+  'changelog.showMore': 'Show {count} more',
+  'changelog.currentVersion': 'You are running this version',
+  // Said plainly rather than left blank: a blank date reads as a bug.
+  'changelog.dateUnrecorded': 'date unrecorded',
+  'changelog.noChanges': 'No changes recorded for this release.',
+  'changelog.includeUndated': 'Include releases with no recorded date',
+  'changelog.undatedHidden':
+    '{count} release(s) hidden: no release tag records their date.',
+  'changelog.summary.plain':
+    '{releases} of {total} releases, {entries} entries.',
+  'changelog.summary.light':
+    '{releases} of {total} releases in view — {entries} entries.',
+  'changelog.summary.playful':
+    '{releases} of {total} releases dug up, {entries} entries and counting.',
+  'changelog.empty.plain': 'No releases match the current filters.',
+  'changelog.empty.light': 'Nothing here matches those filters.',
+  'changelog.empty.playful':
+    'Not one release matches that. The filters win this round.',
   'contextMenu.filterPlaceholder': 'Filter actions',
   'contextMenu.filterLabel': 'Filter menu actions',
   'contextMenu.empty': 'No matching actions',
@@ -9522,6 +9623,56 @@ export const cantoneseTranslations: Readonly<
   'accounts.invalidatedTokenPrompt': '要唔要用返 {login} 重新登入？',
   'accounts.invalidatedTokenSignIn': '重新登入',
   'accounts.invalidatedTokenLater': '暫時唔使',
+  'dateRange.from': '由',
+  'dateRange.to': '到',
+  'dateRange.presetsLabel': '常用日期範圍',
+  'dateRange.calendarLabel': '揀個日期範圍',
+  'dateRange.month': '月份',
+  'dateRange.year': '年份',
+  'dateRange.previousMonth': '上個月',
+  'dateRange.nextMonth': '下個月',
+  'dateRange.preset.all': '全部時間',
+  'dateRange.preset.last7': '最近 7 日',
+  'dateRange.preset.last30': '最近 30 日',
+  'dateRange.preset.last90': '最近 90 日',
+  'dateRange.preset.thisYear': '今年',
+  'dateRange.preset.lastYear': '舊年',
+  'dateRange.error.incomplete': '打多幾個字，個日期未夠完整。',
+  'dateRange.error.outOfRange': '嗰個月冇呢一日喎。',
+  'dateRange.error.unrecognized':
+    '請用 YYYY-MM-DD，或者跟住下面提示嘅日期次序。',
+  'changelog.title': '版本更新紀錄',
+  'changelog.searchPlaceholder': '搵勻所有版本',
+  'changelog.searchLabel': '搜尋版本更新紀錄',
+  'changelog.dateFilter': '日期',
+  'changelog.dateFilterActive': '日期：{range}',
+  'changelog.categories': '分類',
+  'changelog.categoryAll': '全部',
+  'changelog.uncategorized': '冇分類',
+  'changelog.copy': '複製',
+  'changelog.copied': '已經複製咗 {count} 個版本落剪貼簿。',
+  'changelog.export': '匯出',
+  'changelog.exportMarkdown': '匯出做 Markdown…',
+  'changelog.exportText': '匯出做純文字…',
+  'changelog.exported': '已經將 {count} 個版本匯出去 {path}。',
+  'changelog.exportFailed': '寫唔到份匯出檔：{error}',
+  'changelog.reset': '清走篩選',
+  'changelog.close': '閂咗佢',
+  'changelog.showMore': '再睇多 {count} 個',
+  'changelog.currentVersion': '你而家行緊呢個版本',
+  'changelog.dateUnrecorded': '冇記低日期',
+  'changelog.noChanges': '呢個版本冇記低任何改動。',
+  'changelog.includeUndated': '連冇記低日期嘅版本一齊計',
+  'changelog.undatedHidden': '收埋咗 {count} 個版本：佢哋冇 tag 記低日期。',
+  'changelog.summary.plain':
+    '{total} 個版本入面顯示 {releases} 個，{entries} 條紀錄。',
+  'changelog.summary.light':
+    '{total} 個版本入面睇緊 {releases} 個，總共 {entries} 條紀錄。',
+  'changelog.summary.playful':
+    '喺 {total} 個版本度掘咗 {releases} 個出嚟，{entries} 條紀錄任你睇。',
+  'changelog.empty.plain': '冇版本夾到而家嘅篩選條件。',
+  'changelog.empty.light': '呢啲條件之下，乜都搵唔到。',
+  'changelog.empty.playful': '一個都夾唔到，今鋪篩選贏咗。',
   'contextMenu.filterPlaceholder': '篩走用唔著嘅動作',
   'contextMenu.filterLabel': '篩選選單動作',
   'contextMenu.empty': '搵唔到夾得上嘅動作',

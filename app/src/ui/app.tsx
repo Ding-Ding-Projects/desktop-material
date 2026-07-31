@@ -120,6 +120,7 @@ import {
   uninstallWindowsCLI,
   openRepositoryInNewWindow,
   setWindowTitle,
+  showSaveDialog,
 } from './main-process-proxy'
 import { DiscardChanges } from './discard-changes'
 import { Welcome } from './welcome'
@@ -243,6 +244,8 @@ import { ShellError } from './shell'
 import { InitializeLFS, AttributeMismatch } from './lfs'
 import { UpstreamAlreadyExists } from './upstream-already-exists'
 import { ReleaseNotes } from './release-notes'
+import { ChangelogDialog } from './changelog/changelog-dialog'
+import { writeFile } from 'fs/promises'
 import { DeletePullRequest } from './delete-branch/delete-pull-request-dialog'
 import { CommitConflictsWarning } from './merge-conflicts'
 import { AppTheme } from './app-theme'
@@ -958,6 +961,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showImportTabSession()
       case 'show-about':
         return this.showAbout()
+      case 'show-changelog':
+        return this.showChangelog()
       case 'go-to-commit-message':
         return this.goToCommitMessage()
       case 'open-pull-request':
@@ -1570,6 +1575,40 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   private showAbout() {
     this.props.dispatcher.showPopup({ type: PopupType.About })
+  }
+
+  private showChangelog = () => {
+    this.props.dispatcher.showPopup({ type: PopupType.Changelog })
+  }
+
+  /**
+   * Writes an export to wherever the user picks, returning the path, or null
+   * when they cancel. The dialog stays out of the file system itself so its
+   * export path is testable without one.
+   */
+  private onExportChangelog = async (contents: string, fileName: string) => {
+    const destination = await showSaveDialog({
+      title: 'Export release history',
+      defaultPath: fileName,
+      filters: fileName.endsWith('.md')
+        ? [{ name: 'Markdown', extensions: ['md'] }]
+        : [{ name: 'Plain text', extensions: ['txt'] }],
+    })
+    if (destination === null) {
+      return null
+    }
+    await writeFile(destination, contents, 'utf8')
+    return destination
+  }
+
+  private onChangelogNotify = (body: string) => {
+    // Informational, so it becomes a non-blocking notification rather than a
+    // dialog stacked on top of the one the user is still reading.
+    this.props.dispatcher.postNotification({
+      kind: 'info',
+      title: 'Release history',
+      body,
+    })
   }
 
   private async showHistory(
@@ -3755,6 +3794,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             onCheckForNonStaggeredUpdates={this.onCheckForNonStaggeredUpdates}
             onShowAcknowledgements={this.showAcknowledgements}
             onShowTermsAndConditions={this.showTermsAndConditions}
+            onShowChangelog={this.showChangelog}
             updateState={this.state.updateState}
             onQuitAndInstall={this.onQuitAndInstall}
           />
@@ -3904,6 +3944,15 @@ export class App extends React.Component<IAppProps, IAppState> {
             newReleases={popup.newReleases}
             onDismissed={onPopupDismissedFn}
             underlineLinks={this.state.underlineLinks}
+          />
+        )
+      case PopupType.Changelog:
+        return (
+          <ChangelogDialog
+            key="changelog"
+            onDismissed={onPopupDismissedFn}
+            onExport={this.onExportChangelog}
+            onNotify={this.onChangelogNotify}
           />
         )
       case PopupType.DeletePullRequest:
@@ -4652,6 +4701,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           <AboutTestDialog
             key="about"
             onDismissed={onPopupDismissedFn}
+            onShowChangelog={this.showChangelog}
             onShowAcknowledgements={this.showAcknowledgements}
             onShowTermsAndConditions={this.showTermsAndConditions}
           />

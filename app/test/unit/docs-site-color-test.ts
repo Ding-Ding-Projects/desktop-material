@@ -21,6 +21,8 @@ interface ITranslationRow {
 }
 
 interface IColorApi {
+  /** Declared before the methods: the lint rule orders fields first. */
+  formats: ReadonlyArray<{ readonly id: string }>
   parse(input: unknown): IColor | null
   make(r: number, g: number, b: number, alpha?: number): IColor
   translate(color: IColor): ReadonlyArray<ITranslationRow>
@@ -53,7 +55,6 @@ interface IColorApi {
     readonly passesAAA: boolean
     readonly passesAAALarge: boolean
   }
-  formats: ReadonlyArray<{ readonly id: string }>
 }
 
 const Color: IColorApi = require_(

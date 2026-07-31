@@ -61,6 +61,11 @@ export type FunnyLevelTextBase =
   | 'cheapLfs.encryption.dialog.commitDescription'
   | 'lazyView.loading'
   | 'lazyView.failedBody'
+  // Only the changelog viewer's framing carries bands. Every version number,
+  // date, category and entry line stays exactly as the release recorded it —
+  // the counts inside these two are interpolated facts, not voice.
+  | 'changelog.summary'
+  | 'changelog.empty'
 
 /** Read the persisted per-language funny levels, defaulting when unreadable. */
 export function readFunnyLevels(): IFunnyLevels {

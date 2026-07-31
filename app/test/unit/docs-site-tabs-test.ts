@@ -119,6 +119,11 @@ interface IStripModel {
 }
 
 interface ILogic {
+  readonly containsMode: string
+  readonly notContainsMode: string
+  readonly maximumPatternLength: number
+  readonly maximumGroupNameLength: number
+  readonly stateVersion: number
   compileMatcher(spec: IMatchSpec): IMatcher
   visibleStrings(entry: unknown): ReadonlyArray<string>
   nameStrings(group: unknown): ReadonlyArray<string>
@@ -136,8 +141,6 @@ interface ILogic {
     result: IMatchResult,
     options: { mode: string; includePinned?: boolean }
   ): IPlan
-  readonly containsMode: string
-  readonly notContainsMode: string
   createSearchState(id: string): ISearchState
   createSearchStates(): {
     strip: ISearchState
@@ -198,9 +201,6 @@ interface ILogic {
     stripId: string,
     groupId: string | null
   ): ReadonlyArray<IEntry>
-  readonly maximumPatternLength: number
-  readonly maximumGroupNameLength: number
-  readonly stateVersion: number
 }
 
 interface IStripController {
@@ -891,7 +891,7 @@ describe('documentation-site tab groups', () => {
   })
 
   it('exposes every member of a collapsed group to the layout', () => {
-    let state = Logic.createGroup(baseState(), {
+    const state = Logic.createGroup(baseState(), {
       id: 'g1',
       name: 'Guides',
       members: ['a', 'b'],

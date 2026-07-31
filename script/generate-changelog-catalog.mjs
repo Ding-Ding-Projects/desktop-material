@@ -38,6 +38,20 @@ export const DefaultOutputPath = resolve(
   'docs/assets/site/docs-changelog-catalog.js'
 )
 
+/**
+ * Where the desktop app's release dates land.
+ *
+ * The app's own changelog viewer reads the entry text straight out of
+ * `changelog.json`, so only the dates need generating — they live in Git tags
+ * and nowhere else. Emitting dates alone rather than a second full catalog
+ * means the app and the site cannot disagree about what a release said, only
+ * about when it shipped, and that one fact comes from the same tag read.
+ */
+export const DefaultAppDatesPath = resolve(
+  repositoryRoot,
+  'app/src/lib/changelog/release-dates.ts'
+)
+
 /** Prefix of the tags that record a real release date. */
 const TagPrefix = 'release-'
 
@@ -251,6 +265,104 @@ export function renderCatalogModule(releases) {
   return lines.join('\n')
 }
 
+/**
+ * Renders the desktop app's release-date module.
+ *
+ * Only dated releases appear. A version with no `release-<version>` tag is
+ * absent from the map rather than present with an empty value, so the app's
+ * "date unrecorded" state is derived from a genuine absence instead of a
+ * sentinel that a future edit could mistake for real data.
+ *
+ * The value is `YYYY-MM-DD HH:MM` — one string, always 24-hour, with no locale
+ * AM/PM form anywhere in it.
+ */
+export function renderReleaseDatesModule(releases) {
+  const dated = releases.filter(release => release.date !== null)
+  const lines = []
+  lines.push('/**')
+  lines.push(
+    " * Desktop Material — release dates for the app's changelog viewer."
+  )
+  lines.push(' *')
+  lines.push(' * GENERATED FILE — do not edit by hand.')
+  lines.push(' * Regenerate with: yarn generate-changelog-catalog')
+  lines.push(' *')
+  lines.push(
+    " * The repository's `release-<version>` Git tags are the only record of when"
+  )
+  lines.push(
+    ' * a version shipped, and a tag cannot be read at runtime, so the dates are'
+  )
+  lines.push(
+    ' * baked in here. The entry text is NOT duplicated: the viewer reads'
+  )
+  lines.push(
+    ' * `changelog.json` directly, so the app and the documentation site cannot'
+  )
+  lines.push(' * drift about what a release actually said.')
+  lines.push(' *')
+  lines.push(
+    ' * A version missing from this map has no release tag, so its date is'
+  )
+  lines.push(
+    ' * genuinely unrecorded. That is reported as unrecorded rather than guessed'
+  )
+  lines.push(' * from the version number or a neighbouring release.')
+  lines.push(' */')
+  lines.push('')
+  lines.push('/** Total releases in `changelog.json` at generation time. */')
+  lines.push('export const ReleaseCount = ' + releases.length)
+  lines.push('')
+  lines.push('/** How many of those carry a real `release-*` tag date. */')
+  lines.push('export const DatedReleaseCount = ' + dated.length)
+  lines.push('')
+  lines.push(
+    '/** `version` to `YYYY-MM-DD HH:MM`, 24-hour, from the release tag. */'
+  )
+  lines.push('export const ReleaseStamps: Readonly<Record<string, string>> = {')
+  for (const release of dated) {
+    lines.push(
+      '  ' +
+        quote(release.version) +
+        ': ' +
+        quote(release.date + ' ' + (release.time ?? '00:00')) +
+        ','
+    )
+  }
+  lines.push('}')
+  lines.push('')
+  return lines.join('\n')
+}
+
+/** Builds the app release-date module text exactly as it belongs on disk. */
+export async function buildReleaseDatesModule({
+  changelogPath = DefaultChangelogPath,
+  outputPath = DefaultAppDatesPath,
+  cwd = repositoryRoot,
+} = {}) {
+  const changelog = JSON.parse(readFileSync(changelogPath, 'utf8'))
+  const releases = collectReleases({
+    changelog,
+    tagDates: readTagDates({ cwd }),
+  })
+  const options = (await prettier.resolveConfig(outputPath)) ?? {}
+  const source = await prettier.format(renderReleaseDatesModule(releases), {
+    ...options,
+    filepath: outputPath,
+    endOfLine: 'lf',
+  })
+  return { releases, source }
+}
+
+/** Writes the app release-date module. */
+export async function generateReleaseDates(settings = {}) {
+  const outputPath = settings.outputPath ?? DefaultAppDatesPath
+  const { source } = await buildReleaseDatesModule({ ...settings, outputPath })
+  mkdirSync(dirname(outputPath), { recursive: true })
+  writeFileSync(outputPath, source)
+  return { outputPath }
+}
+
 /** Builds the module text exactly as it belongs on disk, Prettier included. */
 export async function buildChangelogCatalog({
   changelogPath = DefaultChangelogPath,
@@ -294,6 +406,14 @@ if (
         ? DefaultOutputPath
         : resolve(process.argv[3]),
   })
+  // Both consumers are written from the one tag read, so the app can never end
+  // up with dates the site does not have.
+  const { outputPath: datesPath } = await generateReleaseDates({
+    changelogPath:
+      process.argv[2] === undefined
+        ? DefaultChangelogPath
+        : resolve(process.argv[2]),
+  })
   const categories = [...counts.categories]
     .sort(
       (left, right) => right[1] - left[1] || left[0].localeCompare(right[0])
@@ -305,6 +425,7 @@ if (
       `  dated from a release-* Git tag: ${counts.datedCount}\n` +
       `  date unrecorded (no matching tag): ${counts.unrecordedCount}\n` +
       `  versions with no recorded changes: ${counts.emptyCount}\n` +
+      `Generated ${counts.datedCount} release dates in ${datesPath}\n` +
       `entries by category:\n${categories}`
   )
 }

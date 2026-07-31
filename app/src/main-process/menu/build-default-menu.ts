@@ -671,11 +671,18 @@ export function buildDefaultMenuTemplate(
     click: emit('view-log-history'),
   }
 
+  const showChangelogItem: Electron.MenuItemConstructorOptions = {
+    id: 'show-changelog',
+    label: __DARWIN__ ? 'Release History' : 'Release &history',
+    click: emit('show-changelog'),
+  }
+
   const helpItems = [
     submitIssueItem,
     contactSupportItem,
     showUserGuides,
     showKeyboardShortcuts,
+    showChangelogItem,
     showLogsItem,
     viewLogHistoryItem,
   ]

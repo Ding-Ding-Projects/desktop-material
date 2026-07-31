@@ -55,6 +55,9 @@ interface IAboutProps {
 
   /** A function to call when the user wants to see Terms and Conditions. */
   readonly onShowTermsAndConditions: () => void
+
+  /** Opens the in-app changelog viewer over every recorded release. */
+  readonly onShowChangelog: () => void
   readonly onQuitAndInstall: () => void
 
   readonly updateState: IUpdateState
@@ -336,6 +339,13 @@ export class About extends React.Component<IAboutProps, IAboutState> {
     const releaseNotesLink = (
       <LinkButton uri={ReleaseNotesUri}>release notes</LinkButton>
     )
+    // The in-app viewer covers every recorded release offline; the link above
+    // stays because the website carries the rendered notes for the newest one.
+    const changelogLink = (
+      <LinkButton onClick={this.props.onShowChangelog}>
+        release history
+      </LinkButton>
+    )
 
     const versionText = __DEV__ ? `Build ${version}` : `Version ${version}`
     const titleId = 'Dialog_about'
@@ -359,7 +369,7 @@ export class About extends React.Component<IAboutProps, IAboutState> {
             <span className="selectable-text">
               {versionText} ({this.props.applicationArchitecture})
             </span>{' '}
-            ({releaseNotesLink})
+            ({releaseNotesLink}, {changelogLink})
           </p>
           {this.renderUpdateDetails()}
           {this.renderUpdateButton()}
