@@ -1,5 +1,129 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-31 — In-app changelog viewer and two context-menu defects
+
+Handoff written mid-stream at the user's request. Three of five requested
+items are complete and pushed; two were never started. Nothing is left in a
+broken or half-applied state, and no work is stashed or branch-only.
+
+### Done and pushed
+
+**`4942f2025c` — context menu regex builder and keyboard shortcuts.**
+
+The regex builder opened from a context menu was unusable, from three
+separate causes that had to be fixed together:
+
+1. The builder's overlay sat at `z-index: 70` while the menu's own
+   full-viewport backdrop sits at `1000`. Both are body-level layers in the
+   same stacking context, so the builder was painted *under* a transparent
+   sheet: the first click landed on the backdrop, dismissed the menu, and
+   unmounted the builder. Fixed with a named `--regex-builder-z-index: 1100`
+   token in `app/styles/_variables.scss`.
+2. The builder portals to `#regex-builder-layer` on `document.body`, so it is
+   not a DOM descendant of `.filter-mode-control` — only a React-tree one.
+   The menu's `onKeyDown` guard tested that class alone, so every keystroke
+   typed into the pattern field drove the menu instead: <kbd>Escape</kbd> tore
+   the menu down, <kbd>Enter</kbd> fired a menu action, arrows moved a
+   highlight nobody could see. Every other host of the builder already tested
+   `.regex-builder-overlay`; the context menu now does too.
+3. A click landing in the builder overlay's transparent margin still reached
+   the backdrop. The backdrop now stands down while a builder carrying its own
+   search-surface id is open.
+
+Also in that commit: `IMenuItem` gained an `accelerator`, rendered as a
+trailing `<kbd>` hint and announced through `aria-keyshortcuts` (never both,
+so the shortcut is not read twice). Electron's composite `editMenu` role is
+now expanded into Cut / Copy / Paste / Select all — it previously rendered as
+**one blank unclickable row**, which means every text field in the app
+(`text-box`, `text-area`, the autocompleting input) had an empty context
+menu. The menu's three hardcoded English strings are now localized.
+
+**`f89f162d3d` — the changelog viewer.**
+
+The app had no changelog: only a release-notes dialog for a pending update,
+plus a link that opened a website. The new Release history dialog covers all
+683 recorded releases and 3,694 entries, reachable from Help → Release
+history, the command palette, and About.
+
+- Entry text is imported directly from `changelog.json`. Only the dates are
+  generated (`app/src/lib/changelog/release-dates.ts`, from `release-*` Git
+  tags via `script/generate-changelog-catalog.mjs`, which now writes both the
+  site catalog and the app dates from one tag read). The app and the
+  documentation site therefore cannot drift about what a release said.
+- The 39 releases with no tag render "date unrecorded" rather than a guessed
+  date, and a date range reports how many it excluded for that reason instead
+  of letting them disappear.
+- Every time is 24-hour; a test asserts no AM/PM form survives anywhere.
+- Search runs through the shared `FilterModeControl` with the full regex
+  builder; plain text stays the default. Category and date filters compose
+  with it rather than overriding it.
+- Export and copy render exactly the filtered view, with the active filters
+  and the omitted-undated count stated in the file itself.
+- New shared `DateRangePicker` (`app/src/ui/lib/date-range-picker.tsx`):
+  presets, month/year jumps, range selection, and typed entry accepting ISO in
+  any locale plus the locale's own order and the `2026年7月31日` form. An
+  incomplete or impossible date is reported under its field **without
+  discarding what was typed**, and the last good range keeps filtering.
+
+That commit also repairs `yarn lint:src`, which was **already red on `main`**
+from two test files added earlier in this session's work
+(`docs-site-color-test.ts`, `docs-site-tabs-test.ts`).
+
+### Evidence
+
+| Check | Result |
+| --- | --- |
+| `changelog-viewer-test.ts` | 37/37 |
+| `changelog-viewer-wiring-test.ts` | 10/10 |
+| `ui/context-menu-shortcuts-test.tsx` | 11/11 |
+| `docs-site-color-test.ts` + `docs-site-tabs-test.ts` | 68/68 |
+| `material-context-menu-style-test.ts` | 4/4 |
+| `i18n-test.ts`, filter-mode and diff-search suites | 35/35 |
+| `npx tsc --noEmit` | clean |
+| `yarn lint:src` | clean (was red before) |
+
+The backdrop and keyboard cases in the context-menu test genuinely fail
+without their fixes — verified by watching them fail first.
+
+### Not done — pick these up
+
+1. **Drag a tab onto a tab to create a group; drag into a group to add.**
+   Requested this session, **not started**. Nothing was written for it.
+2. **Per-repository tabs above the history editor**, so history can be read
+   tab by tab. Requested this session, **not started**.
+3. **No webpack build has been run since the changelog landed.** `tsc` and the
+   unit tests pass, but the renderer now statically imports the 552 KB
+   `changelog.json` (via `app/src/lib/changelog/changelog-catalog.ts`, path
+   `../../../../changelog.json`). There is precedent for importing JSON from
+   outside `app/src` (`github-api-operation-catalog.ts`), so this is expected
+   to resolve — but **expected is not verified**. Run
+   `yarn build:prod` before trusting it, and consider a dynamic `import()` so
+   the catalog lands in its own chunk rather than the main bundle.
+4. **Documentation is not updated for either commit**: no feature article
+   under `docs/`, no `README.md` or `ROADMAP.md` entry, no landing-page or
+   docs-site section, and no screenshots of the new dialog. Anything added
+   under `docs/` must be followed by `yarn generate-docs-hub-catalog` — a
+   missed regeneration is what broke CI earlier in this work.
+5. **Issue #23 is unchanged** from the previous handoff: 8/86 frames promoted,
+   38 uninspected frames outside the repository, the per-feature `verify_*`
+   batch untouched, and the live Cheap LFS batch still needing real
+   multi-gigabyte uploads.
+6. **The `settings-history` capture has still not been re-run under demo
+   mode.** `out/` was rebuilt at the start of this session (exit 0) and now
+   contains the redaction, so the run is unblocked — it just has not happened.
+
+### Notes for whoever picks this up
+
+- `expandRoleMenus` and `ariaKeyShortcuts` are exported from
+  `material-context-menu.tsx` specifically so they can be tested without a DOM.
+- A context menu whose builder is open **cannot** be dismissed by clicking the
+  backdrop. That is deliberate. A test that awaits `showMaterialContextMenu`'s
+  promise after opening a builder will hang forever; tear the menu down by
+  removing `.material-context-menu-host` instead.
+- `filterChangelog` keeps a release whole when the *version* matched, and shows
+  only matching entries otherwise. Searching `3.6.2` is a request for that
+  release, not for a line inside it.
+
 ## 2026-07-30 — Publish organization listbox sizing (pushed acceptance)
 
 Publish repository's Organization control is no longer a native select whose
