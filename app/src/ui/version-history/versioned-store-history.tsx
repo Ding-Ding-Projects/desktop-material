@@ -10,6 +10,7 @@ import { TextBox } from '../lib/text-box'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import { DialogStackContext } from '../dialog'
+import { isDemoModeEnabled, redactForDemo } from '../../lib/demo-mode'
 
 const VersionHistoryPageSize = 50
 
@@ -606,7 +607,16 @@ export class VersionedStoreHistory extends React.Component<
     this.setState({ loadingDiff: true, diff: null, error: null })
 
     try {
-      const diff = await this.props.source.getDiff(sha, file)
+      const raw = await this.props.source.getDiff(sha, file)
+      /*
+       * Every versioned store snapshots real file contents, so a diff can carry
+       * absolute paths — the settings history did, and the capture harness
+       * rightly refused to photograph it. Redacting here covers settings, log
+       * and notification history in one place rather than trusting four call
+       * sites to remember. Off unless demo mode was explicitly asked for, so an
+       * ordinary user still sees their own real paths.
+       */
+      const diff = redactForDemo(raw, isDemoModeEnabled())
       if (
         this.isMountedFlag &&
         request === this.selectionRequest &&
