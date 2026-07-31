@@ -119,6 +119,20 @@ jobs:
           # surface without them would ship a search box that fails closed.
           test -f _site/docs/assets/site/docs-regex-job.js
           test -f _site/docs/assets/site/docs-hub-regex-worker.js
+          # The per-screenshot documentation pages live outside the Markdown
+          # tree, so the pandoc pass never sees them. Without this copy
+          # /docs/screenshots/ and every page under it 404 while still being
+          # linked from the gallery, which is worse than not shipping them.
+          if [ -d docs/screenshots ]; then
+            mkdir -p _site/docs/screenshots
+            cp -R docs/screenshots/. _site/docs/screenshots/
+            test -f _site/docs/screenshots/index.html
+            test -f _site/docs/screenshots/screenshot-docs.css
+            # Prove the gallery module and its strings actually shipped, since
+            # a page without them renders every control as a dead placeholder.
+            test -f _site/docs/assets/site/docs-screenshot-gallery.js
+            test -f _site/docs/assets/site/docs-screenshot-strings.js
+          fi
 
       - name: Set up Node.js for the Cheap LFS guide contract
         uses: actions/setup-node@v6
