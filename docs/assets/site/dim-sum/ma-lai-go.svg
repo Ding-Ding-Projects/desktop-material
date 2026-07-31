@@ -1,0 +1,27 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 64 64"
+  width="64"
+  height="64"
+  role="img"
+  aria-labelledby="t"
+>
+  <title id="t">Steamed sponge cake · 馬拉糕</title>
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#f7efe2" />
+  <ellipse cx="32" cy="48" rx="21" ry="4" fill="#e2d4bd" />
+  <path
+    d="M32 16 54 45H10z"
+    fill="#cf9a62"
+    stroke="#a4703c"
+    stroke-width="1.6"
+    stroke-linejoin="round"
+  />
+  <g fill="#e8bf92">
+    <circle cx="32" cy="30" r="3" />
+    <circle cx="25" cy="38" r="2.4" />
+    <circle cx="39" cy="37" r="2.6" />
+    <circle cx="32" cy="41" r="2" />
+    <circle cx="19" cy="42" r="1.8" />
+    <circle cx="45" cy="42" r="1.8" />
+  </g>
+</svg>

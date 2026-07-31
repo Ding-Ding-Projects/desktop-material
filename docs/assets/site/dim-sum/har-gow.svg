@@ -1,0 +1,32 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 64 64"
+  width="64"
+  height="64"
+  role="img"
+  aria-labelledby="t"
+>
+  <title id="t">Shrimp dumpling · 蝦餃</title>
+  <!--
+    The illustration carries its own warm mat so it reads identically in the
+    light and dark themes; an <img> cannot inherit the page's colour tokens.
+  -->
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#f7efe2" />
+  <ellipse cx="32" cy="47" rx="22" ry="4" fill="#e2d4bd" />
+  <path
+    d="M11 46c0-13 9-24 21-24s21 11 21 24z"
+    fill="#fdf8f1"
+    stroke="#9c8f7c"
+    stroke-width="1.6"
+    stroke-linejoin="round"
+  />
+  <!-- The shrimp shows through a translucent wrapper, which is how the real
+       thing is recognised at a glance. -->
+  <path d="M18 44c2-10 7-16 14-16s12 6 14 16z" fill="#f4a396" />
+  <g stroke="#b0a28d" stroke-width="1.5" fill="none" stroke-linecap="round">
+    <path d="M17 42c1-6 3-10 5-13" />
+    <path d="M26 41c0-6 1-11 3-14" />
+    <path d="M35 41c0-6-1-11-3-14" />
+    <path d="M44 42c-1-6-3-10-5-13" />
+  </g>
+</svg>

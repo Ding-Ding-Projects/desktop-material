@@ -1,0 +1,26 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 64 64"
+  width="64"
+  height="64"
+  role="img"
+  aria-labelledby="t"
+>
+  <title id="t">Sticky rice in lotus leaf · 糯米雞</title>
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#f7efe2" />
+  <path
+    d="M14 22c4-4 32-4 36 0 3 4 3 18 0 22-4 4-32 4-36 0-3-4-3-18 0-22z"
+    fill="#5f8a4a"
+    stroke="#3f6231"
+    stroke-width="1.6"
+  />
+  <g stroke="#3f6231" stroke-width="1.2" fill="none">
+    <path d="M20 26c6 3 6 11 0 14" />
+    <path d="M44 26c-6 3-6 11 0 14" />
+  </g>
+  <g stroke="#d8c49a" stroke-width="2" fill="none">
+    <path d="M10 33h44" />
+    <path d="M32 18v30" />
+  </g>
+  <circle cx="32" cy="33" r="3" fill="#d8c49a" />
+</svg>

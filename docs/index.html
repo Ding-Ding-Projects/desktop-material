@@ -10,6 +10,8 @@
     />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="assets/site/docs-hub.css" />
+    <link rel="stylesheet" href="assets/site/docs-changelog.css" />
+    <link rel="stylesheet" href="assets/site/docs-dim-sum.css" />
     <script>
       // Resolve the stored appearance and language before first paint so the
       // page never flashes the wrong palette, density or language mode. The
@@ -148,6 +150,14 @@
         data-tab="search"
         data-i18n="navSearch"
         >Search</a
+      >
+      <a
+        class="tab i18n-inline"
+        id="tab-changelog"
+        href="#changelog"
+        data-tab="changelog"
+        data-i18n="navChangelog"
+        >Changelog</a
       >
       <a
         class="tab i18n-inline"
@@ -4783,6 +4793,37 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
         </div>
       </section>
 
+      <!--
+        The viewer builds its own controls inside [data-dm-changelog] on
+        DOMContentLoaded. It APPENDS rather than replacing, so an ordinary
+        fallback paragraph would stay on screen beside a working viewer and tell
+        the reader JavaScript is off while they watch it run. <noscript> cannot
+        make that mistake: the browser renders it only when the claim is true.
+      -->
+      <section
+        class="section tab-panel"
+        id="changelog"
+        data-tab-panel="changelog"
+        aria-labelledby="tab-changelog"
+      >
+        <div class="section__head">
+          <h2 class="md-headline" data-i18n-tone="changelogTitle">Changelog</h2>
+          <p data-i18n-tone="changelogLead"></p>
+        </div>
+        <div data-dm-changelog>
+          <noscript>
+            <p>
+              The changelog viewer needs JavaScript. Every release is also
+              recorded in <code>changelog.json</code> in the repository.
+            </p>
+            <p lang="yue-Hant-HK">
+              更新記錄檢視器要開 JavaScript 先睇得到。每個版本喺 repo 入面嘅
+              <code>changelog.json</code> 都有記錄。
+            </p>
+          </noscript>
+        </div>
+      </section>
+
       <section
         class="section tab-panel"
         id="links"
@@ -4889,5 +4930,18 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
     <script src="assets/site/docs-hub-catalog.js"></script>
     <script src="assets/site/docs-regex-job.js"></script>
     <script src="assets/site/docs-hub.js"></script>
+    <!--
+      The changelog catalog must load before the viewer: `mount()` falls back to
+      `global.DesktopMaterialDocsChangelogCatalog` and returns null without it,
+      which would leave the panel silently empty.
+    -->
+    <script src="assets/site/docs-changelog-catalog.js"></script>
+    <script src="assets/site/docs-changelog.js"></script>
+    <!--
+      Dim sum self-mounts a short delay after DOMContentLoaded and needs no
+      markup of its own. It is last because it is the only optional surface here:
+      if it ever fails to load, nothing else on the page depends on it.
+    -->
+    <script src="assets/site/docs-dim-sum.js"></script>
   </body>
 </html>

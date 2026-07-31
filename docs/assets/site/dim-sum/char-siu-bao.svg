@@ -1,0 +1,29 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 64 64"
+  width="64"
+  height="64"
+  role="img"
+  aria-labelledby="t"
+>
+  <title id="t">Barbecue pork bun · 叉燒包</title>
+  <rect x="0" y="0" width="64" height="64" rx="14" fill="#f7efe2" />
+  <ellipse cx="32" cy="51" rx="20" ry="4" fill="#e2d4bd" />
+  <!-- A warm off-white keeps the bun's edge visible against the mat. -->
+  <circle
+    cx="32"
+    cy="34"
+    r="19"
+    fill="#fdf6ea"
+    stroke="#9c8f7c"
+    stroke-width="1.6"
+  />
+  <path
+    d="M23 21c3 5 6 7 9 7s6-2 9-7c-3-3-6-4-9-4s-6 1-9 4z"
+    fill="#8a3f2c"
+  />
+  <g stroke="#c2b39c" stroke-width="1.4" fill="none" stroke-linecap="round">
+    <path d="M23 24c-3 6-3 13 1 18" />
+    <path d="M41 24c3 6 3 13-1 18" />
+  </g>
+</svg>

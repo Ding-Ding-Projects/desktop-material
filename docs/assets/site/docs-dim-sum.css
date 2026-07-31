@@ -1,0 +1,193 @@
+/*
+ * Desktop Material documentation hub — dim sum surprise.
+ *
+ * Colour, shape, elevation and motion all come from the M3 tokens declared in
+ * `docs-hub.css`; nothing here invents a value. The illustrations carry their
+ * own warm mat inside the SVG because an <img> cannot inherit those tokens, so
+ * the artwork reads the same in the light and dark schemes.
+ *
+ * The card sits bottom-left. Toasts already own bottom-right, and a garnish
+ * must never cover a message the reader needs.
+ */
+
+.dm-dimsum {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 45;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  box-sizing: border-box;
+  /* Never wider than the viewport, so 320 px never scrolls sideways. */
+  width: min(22rem, calc(100vw - 2rem));
+  /*
+   * Never taller than the viewport either. A fixed card cannot be scrolled
+   * into view, so on a short window — a landscape phone, or a desktop window
+   * dragged down to 256 px — an uncapped card pushes its own title and its
+   * dismiss button off the top of the screen where nothing can reach them.
+   * `dvh` follows the mobile visual viewport; the `vh` line above it is the
+   * fallback for engines that do not know the newer unit.
+   */
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  /* Scrolling the garnish must not start scrolling the page behind it. */
+  overscroll-behavior: contain;
+  padding: 0.75rem 0.75rem 0.85rem 0.85rem;
+  border-radius: var(--md-shape-lg);
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+  border: 1px solid var(--md-outline-variant);
+  box-shadow: var(--md-elevation-3);
+  animation: dm-dimsum-in var(--md-motion-medium) var(--md-motion-easing);
+}
+
+/*
+ * A card on its way out is already invisible, so it must stop taking the
+ * pointer: without this, a cursor resting in the bottom-left corner would both
+ * cancel the removal (mouseenter clears the leave timer) and swallow clicks
+ * meant for whatever is underneath a card nobody can see.
+ */
+.dm-dimsum[data-leaving='true'] {
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(0.5rem);
+  transition: opacity 220ms var(--md-motion-easing),
+    transform 220ms var(--md-motion-easing);
+}
+
+.dm-dimsum__art {
+  flex: none;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--md-shape-md);
+  /* The SVG is authored at 64 px; scaling stays crisp because it is vector. */
+  display: block;
+}
+
+.dm-dimsum__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dm-dimsum__text > p {
+  margin: 0;
+}
+
+.dm-dimsum__title {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-variant);
+}
+
+/* The dish's name is the fact on this card, so it is the loudest thing on it. */
+.dm-dimsum__dish {
+  margin-top: 0.15rem;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  /* Long bilingual names wrap rather than clip at narrow widths. */
+  overflow-wrap: anywhere;
+}
+
+.dm-dimsum__rom {
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  color: var(--md-on-surface-variant);
+}
+
+.dm-dimsum__lead {
+  margin-top: 0.35rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--md-on-surface-variant);
+}
+
+.dm-dimsum__lead--second {
+  margin-top: 0.2rem;
+}
+
+.dm-dimsum__close {
+  flex: none;
+  /* 44 px in both dimensions: the rules' minimum touch target. */
+  min-width: 44px;
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--md-shape-full);
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.dm-dimsum__close:hover {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.dm-dimsum__close:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
+}
+
+@keyframes dm-dimsum-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/*
+ * Below 420 px the card spans the width it is given rather than sitting in a
+ * corner, which keeps the dish name on two lines instead of five.
+ */
+@media (max-width: 420px) {
+  .dm-dimsum {
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    width: auto;
+  }
+
+  .dm-dimsum__art {
+    width: 3rem;
+    height: 3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dm-dimsum {
+    animation: none;
+  }
+
+  .dm-dimsum[data-leaving='true'] {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .dm-dimsum {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+
+  .dm-dimsum__close {
+    border: 1px solid CanvasText;
+  }
+}
+
+/* A garnish has no place on paper. */
+@media print {
+  .dm-dimsum {
+    display: none !important;
+  }
+}

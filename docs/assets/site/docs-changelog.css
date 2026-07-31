@@ -1,0 +1,592 @@
+/*
+ * Desktop Material documentation site — changelog viewer styles.
+ *
+ * Mobile-first: one column from 320 CSS px upward, no horizontal *page*
+ * scrolling (the calendar grid scrolls inside its own container instead of
+ * shrinking its day targets below 44 px), and every interactive target at least
+ * 44 px in its smallest dimension.
+ *
+ * Colour, shape and elevation come from the M3 tokens defined in docs-hub.css.
+ * Each `var()` carries a fallback so this stylesheet still renders sensibly if
+ * it is ever loaded on a page that does not define them.
+ */
+
+.dm-changelog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.dm-changelog *,
+.dm-changelog *::before,
+.dm-changelog *::after {
+  box-sizing: border-box;
+}
+
+.dm-changelog-heading {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.25;
+  color: var(--md-on-surface, #1d1b20);
+}
+
+.dm-changelog-blurb,
+.dm-changelog-source {
+  margin: 0;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.dm-changelog-source {
+  font-size: 0.875rem;
+}
+
+/* --------------------------------------------------------------- controls */
+
+.dm-changelog-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dm-changelog-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--md-outline-variant, #cac4d0);
+  border-radius: var(--md-shape-lg, 16px);
+  background: var(--md-surface-container-low, #f7f2fa);
+  min-width: 0;
+}
+
+.dm-changelog-group-title {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.3;
+  color: var(--md-on-surface, #1d1b20);
+}
+
+.dm-changelog-label {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.dm-changelog-search-row,
+.dm-changelog-date-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dm-changelog-field {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dm-changelog-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--md-on-surface, #1d1b20);
+  background: var(--md-surface-container-lowest, #ffffff);
+  border: 1px solid var(--md-outline, #6f6779);
+  border-radius: var(--md-shape-sm, 8px);
+}
+
+.dm-changelog-input[aria-invalid='true'] {
+  border-color: var(--md-error, #b3261e);
+}
+
+.dm-changelog-select {
+  min-height: 44px;
+  min-width: 88px;
+  padding: 8px;
+  font: inherit;
+  color: var(--md-on-surface, #1d1b20);
+  background: var(--md-surface-container-lowest, #ffffff);
+  border: 1px solid var(--md-outline, #6f6779);
+  border-radius: var(--md-shape-sm, 8px);
+}
+
+.dm-changelog-button,
+.dm-changelog-chip,
+.dm-changelog-token,
+.dm-changelog-icon-button {
+  min-height: 44px;
+  padding: 10px 16px;
+  font: inherit;
+  color: var(--md-on-secondary-container, #1d192b);
+  background: var(--md-secondary-container, #e8def8);
+  border: 1px solid transparent;
+  border-radius: var(--md-shape-full, 999px);
+  cursor: pointer;
+}
+
+.dm-changelog-icon-button {
+  min-width: 44px;
+  padding: 10px;
+  text-align: center;
+}
+
+.dm-changelog-token {
+  min-width: 44px;
+  padding: 10px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--md-surface-container-highest, #e6e0e9);
+  color: var(--md-on-surface, #1d1b20);
+}
+
+.dm-changelog-chip[aria-pressed='true'],
+.dm-changelog-chip[aria-expanded='true'] {
+  background: var(--md-primary, #6750a4);
+  color: var(--md-on-primary, #ffffff);
+}
+
+.dm-changelog-button:hover,
+.dm-changelog-chip:hover,
+.dm-changelog-token:hover,
+.dm-changelog-icon-button:hover {
+  border-color: var(--md-outline, #6f6779);
+}
+
+.dm-changelog :focus-visible {
+  outline: 3px solid var(--md-primary, #6750a4);
+  outline-offset: 2px;
+}
+
+.dm-changelog-modes,
+.dm-changelog-presets,
+.dm-changelog-tokens,
+.dm-changelog-flags,
+.dm-changelog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dm-changelog-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 0.875rem;
+  color: var(--md-on-surface, #1d1b20);
+}
+
+.dm-changelog-check input {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+}
+
+.dm-changelog-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+/*
+ * These lines quote the reader's own search text back at them — a 200-character
+ * pattern with no spaces included — so they must wrap mid-token. Without this a
+ * long query pushes the whole page sideways at 320 CSS px.
+ */
+.dm-changelog-status,
+.dm-changelog-summary-line,
+.dm-changelog-error,
+.dm-changelog-empty-facts,
+.dm-changelog-hint {
+  overflow-wrap: anywhere;
+}
+
+.dm-changelog-status,
+.dm-changelog-summary-line {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--md-on-surface, #1d1b20);
+}
+
+.dm-changelog-status-error,
+.dm-changelog-error {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--md-error, #b3261e);
+}
+
+.dm-changelog-error:empty {
+  display: none;
+}
+
+.dm-changelog-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border-radius: var(--md-shape-md, 12px);
+  background: var(--md-surface-container, #f3edf7);
+}
+
+.dm-changelog-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px dashed var(--md-outline, #6f6779);
+  border-radius: var(--md-shape-md, 12px);
+  background: var(--md-surface-container-lowest, #ffffff);
+}
+
+.dm-changelog-builder[hidden] {
+  display: none;
+}
+
+.dm-changelog-literal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dm-changelog-date-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.dm-changelog-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --------------------------------------------------------------- calendar */
+
+.dm-changelog-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--md-outline-variant, #cac4d0);
+  border-radius: var(--md-shape-lg, 16px);
+  background: var(--md-surface-container-lowest, #ffffff);
+  box-shadow: var(
+    --md-elevation-2,
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 2px 6px 2px rgba(0, 0, 0, 0.15)
+  );
+}
+
+.dm-changelog-calendar[hidden] {
+  display: none;
+}
+
+.dm-changelog-calendar-head,
+.dm-changelog-calendar-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/*
+ * Day targets keep their full 44 px rather than shrinking on a narrow screen,
+ * so the grid scrolls inside this container. The page itself never scrolls
+ * sideways.
+ */
+.dm-changelog-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.dm-changelog-grid-row {
+  display: flex;
+  gap: 2px;
+  min-width: 322px;
+}
+
+.dm-changelog-grid-head {
+  flex: 1 1 44px;
+  min-width: 44px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.dm-changelog-grid-cell {
+  flex: 1 1 44px;
+  min-width: 44px;
+  display: flex;
+}
+
+.dm-changelog-day {
+  flex: 1 1 auto;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  font: inherit;
+  color: var(--md-on-surface, #1d1b20);
+  background: var(--md-surface-container-low, #f7f2fa);
+  border: 1px solid transparent;
+  border-radius: var(--md-shape-sm, 8px);
+  cursor: pointer;
+}
+
+.dm-changelog-day-outside {
+  color: var(--md-on-surface-variant, #49454f);
+  background: transparent;
+}
+
+.dm-changelog-day[aria-pressed='true'] {
+  background: var(--md-primary-container, #eaddff);
+  color: var(--md-on-primary-container, #21005d);
+}
+
+.dm-changelog-day[data-edge='true'] {
+  background: var(--md-primary, #6750a4);
+  color: var(--md-on-primary, #ffffff);
+}
+
+.dm-changelog-day[aria-current='date'] {
+  border-color: var(--md-primary, #6750a4);
+}
+
+/* ---------------------------------------------------------------- results */
+
+.dm-changelog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dm-changelog-list[hidden] {
+  display: none;
+}
+
+.dm-changelog-release {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--md-outline-variant, #cac4d0);
+  border-radius: var(--md-shape-lg, 16px);
+  background: var(--md-surface-container-lowest, #ffffff);
+  min-width: 0;
+}
+
+.dm-changelog-release-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dm-changelog-version {
+  margin: 0;
+  font-size: 1.0625rem;
+  line-height: 1.3;
+  /* A version is an identifier: it wraps only where it must, and never breaks
+     into something that reads as a different version. */
+  overflow-wrap: anywhere;
+  color: var(--md-on-surface, #1d1b20);
+}
+
+.dm-changelog-date {
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.dm-changelog-date-unrecorded {
+  padding: 2px 8px;
+  border-radius: var(--md-shape-full, 999px);
+  background: var(--md-surface-container-high, #ece6f0);
+}
+
+.dm-changelog-count {
+  margin-inline-start: auto;
+  font-size: 0.8125rem;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.dm-changelog-note {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.dm-changelog-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dm-changelog-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dm-changelog-category {
+  align-self: flex-start;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--md-shape-full, 999px);
+  background: var(--md-secondary-container, #e8def8);
+  color: var(--md-on-secondary-container, #1d192b);
+}
+
+.dm-changelog-category[data-category='fixed'] {
+  background: var(--md-tertiary-container, #ffd8e4);
+  color: var(--md-on-tertiary-container, #31111d);
+}
+
+.dm-changelog-category[data-category='removed'],
+.dm-changelog-category[data-category='unshipped'] {
+  background: var(--md-error-container, #f9dedc);
+  color: var(--md-on-error-container, #410e0b);
+}
+
+.dm-changelog-text {
+  /* Entry text is quoted verbatim, so long identifiers and URLs must wrap
+     rather than push the page sideways. */
+  overflow-wrap: anywhere;
+  color: var(--md-on-surface, #1d1b20);
+}
+
+.dm-changelog-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid var(--md-outline-variant, #cac4d0);
+  border-radius: var(--md-shape-lg, 16px);
+  background: var(--md-surface-container, #f3edf7);
+}
+
+.dm-changelog-empty[hidden] {
+  display: none;
+}
+
+.dm-changelog-empty-lead {
+  margin: 0;
+  font-size: 1.0625rem;
+  color: var(--md-on-surface, #1d1b20);
+}
+
+.dm-changelog-empty-facts {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--md-on-surface-variant, #49454f);
+}
+
+.dm-changelog-more[hidden] {
+  display: none;
+}
+
+.dm-changelog-more {
+  align-self: flex-start;
+}
+
+/* Bilingual mode: the secondary label stays present but visually secondary. */
+.dm-changelog .i18n-b:not(:empty) {
+  display: block;
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+/* ------------------------------------------------------------- wider views */
+
+@media (min-width: 600px) {
+  .dm-changelog-search-row,
+  .dm-changelog-date-row {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  .dm-changelog-search-row .dm-changelog-label {
+    flex: 0 0 auto;
+    align-self: center;
+  }
+
+  .dm-changelog-field {
+    flex: 1 1 auto;
+  }
+
+  .dm-changelog-date-field {
+    flex: 1 1 180px;
+  }
+
+  .dm-changelog-literal {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .dm-changelog-entry {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .dm-changelog-category {
+    flex: 0 0 auto;
+  }
+}
+
+/* ------------------------------------------------------- user preferences */
+
+@media (prefers-reduced-motion: reduce) {
+  .dm-changelog * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .dm-changelog-group,
+  .dm-changelog-release,
+  .dm-changelog-calendar,
+  .dm-changelog-empty,
+  .dm-changelog-day {
+    border-color: CanvasText;
+  }
+
+  /* Forced colours drop the fills, so selection has to be stated in text-safe
+     terms rather than by background alone. */
+  .dm-changelog-day[aria-pressed='true'],
+  .dm-changelog-chip[aria-pressed='true'] {
+    border-width: 3px;
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+}
