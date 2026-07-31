@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="assets/site/docs-changelog.css" />
     <link rel="stylesheet" href="assets/site/docs-dim-sum.css" />
     <link rel="stylesheet" href="assets/site/docs-tabs.css" />
+    <link rel="stylesheet" href="assets/site/docs-color-picker.css" />
     <script>
       // Resolve the stored appearance and language before first paint so the
       // page never flashes the wrong palette, density or language mode. The
@@ -286,6 +287,18 @@
             <input type="radio" name="accent" value="rose" />
             <span class="i18n-inline" data-i18n="accentRose">Rose</span>
           </label>
+          <!--
+            The four names above stay as conveniences. The appearance rules
+            require the underlying control to be a continuous picker rather
+            than a finite swatch list, so Custom reveals one and every named
+            preset remains reachable beside it.
+          -->
+          <label class="checkbox">
+            <input type="radio" name="accent" value="custom" />
+            <span class="i18n-inline" data-i18n="accentCustom">Custom</span>
+          </label>
+          <p class="md-body" data-i18n="accentCustomHint"></p>
+          <div id="accent-picker" hidden></div>
         </fieldset>
 
         <p class="md-body" data-i18n="prefNote"></p>
@@ -4945,6 +4958,149 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
     -->
     <script src="assets/site/docs-dim-sum.js"></script>
     <script src="assets/site/docs-tabs.js"></script>
+    <script src="assets/site/docs-color.js"></script>
+    <script src="assets/site/docs-color-picker.js"></script>
+    <script>
+      /*
+       * The named accents each set four Material tokens, so an arbitrary seed
+       * has to produce the same four or the container colours stop matching the
+       * primary. --md-on-primary is chosen by measured contrast rather than
+       * assumed to be white: a light accent needs dark text on it, and picking
+       * wrong here is exactly the accessibility defect the picker reports.
+       */
+      ;(function () {
+        var mount = document.getElementById('accent-picker')
+        if (mount === null || typeof DocsColorPicker === 'undefined') {
+          return
+        }
+        var StorageKey = 'dm-docs-accent-custom'
+        var DefaultSeed = '#6750a4'
+        var root = document.documentElement
+
+        function stored(key, fallback) {
+          try {
+            var value = window.localStorage.getItem(key)
+            return value === null ? fallback : value
+          } catch (error) {
+            return fallback
+          }
+        }
+
+        function remember(key, value) {
+          try {
+            window.localStorage.setItem(key, value)
+          } catch (error) {
+            /* Private-mode storage must never break the page. */
+          }
+        }
+
+        function labels() {
+          var packs = window.DesktopMaterialDocsStrings || {}
+          var id = stored('dm-docs-lang', 'en')
+          var pack = packs[id === 'yue' || id === 'bi' ? 'yue' : 'en']
+          var fallback =
+            (packs.en && packs.en.fixed && packs.en.fixed.accentPicker) || {}
+          return (pack && pack.fixed && pack.fixed.accentPicker) || fallback
+        }
+
+        /* One seed to the same four tokens a named accent sets. */
+        function applySeed(seed) {
+          var color = DocsColor.parse(seed)
+          if (color === null) {
+            return false
+          }
+          var white = DocsColor.parse('#ffffff')
+          var black = DocsColor.parse('#000000')
+          var onPrimary =
+            DocsColor.contrastRatio(white, color) >=
+            DocsColor.contrastRatio(black, color)
+              ? '#ffffff'
+              : '#000000'
+          var hsl = DocsColor.rgbToHsl(color.r, color.g, color.b)
+          var container = DocsColor.hslToRgb(hsl.h, hsl.s, 0.9)
+          var onContainer = DocsColor.hslToRgb(hsl.h, hsl.s, 0.12)
+          root.style.setProperty('--md-primary', DocsColor.toHex(color))
+          root.style.setProperty('--md-on-primary', onPrimary)
+          root.style.setProperty(
+            '--md-primary-container',
+            DocsColor.toHex(
+              DocsColor.make(container.r, container.g, container.b)
+            )
+          )
+          root.style.setProperty(
+            '--md-on-primary-container',
+            DocsColor.toHex(
+              DocsColor.make(onContainer.r, onContainer.g, onContainer.b)
+            )
+          )
+          return true
+        }
+
+        function clearSeed() {
+          root.style.removeProperty('--md-primary')
+          root.style.removeProperty('--md-on-primary')
+          root.style.removeProperty('--md-primary-container')
+          root.style.removeProperty('--md-on-primary-container')
+        }
+
+        var picker = DocsColorPicker.create({
+          initial: stored(StorageKey, DefaultSeed),
+          labels: labels(),
+          onChange: function (color) {
+            applySeed(DocsColor.toHex(color))
+          },
+          onCommit: function (color) {
+            remember(StorageKey, DocsColor.toHex(color))
+          },
+        })
+        mount.appendChild(picker.element)
+        window.__accentPicker = picker
+
+        function sync(value) {
+          var custom = value === 'custom'
+          mount.hidden = !custom
+          if (custom) {
+            applySeed(picker.css())
+          } else {
+            clearSeed()
+          }
+        }
+
+        var accentInputs = document.querySelectorAll('input[name="accent"]')
+        for (var i = 0; i < accentInputs.length; i++) {
+          accentInputs[i].addEventListener('change', function (event) {
+            sync(event.target.value)
+          })
+        }
+
+        /*
+         * The hub validates its own accent list and rewrites an unknown value
+         * back to 'violet', so `custom` is persisted separately and restored
+         * here rather than fought over in the hub’s own preference store.
+         */
+        if (stored('dm-docs-accent', 'violet') === 'custom') {
+          var chosen = document.querySelector(
+            'input[name="accent"][value="custom"]'
+          )
+          if (chosen !== null) {
+            chosen.checked = true
+          }
+          sync('custom')
+        }
+
+        var langInputs = document.querySelectorAll('input[name="lang"]')
+        for (var j = 0; j < langInputs.length; j++) {
+          langInputs[j].addEventListener('change', function (event) {
+            var packs = window.DesktopMaterialDocsStrings || {}
+            var value = event && event.target ? event.target.value : null
+            var pack = packs[value === 'yue' || value === 'bi' ? 'yue' : 'en']
+            picker.labels(
+              (pack && pack.fixed && pack.fixed.accentPicker) || labels()
+            )
+          })
+        }
+      })()
+    </script>
     <script>
       /*
        * docs-tabs.js upgrades the declarative strips docs-hub.js already owns,
