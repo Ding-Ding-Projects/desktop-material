@@ -3242,7 +3242,18 @@ scene('repositories-sheet', async () => {
     const sheetBounds = sheet.getBoundingClientRect()
     const actionBounds = actions.getBoundingClientRect()
     return {
-      viewport: { width: innerWidth, height: innerHeight },
+      // Below the app's minimum width, zoom auto-fit scales the renderer down,
+      // so innerWidth is the logical width and is larger than the window we
+      // asked for. Report the physical width too and gate on that, exactly as
+      // the publish-organization scene does; gating on innerWidth alone reads a
+      // correctly auto-fitted 390 px window as 780 and fails a passing layout.
+      viewport: {
+        width: innerWidth,
+        height: innerHeight,
+        devicePixelRatio: window.devicePixelRatio,
+        physicalWidth: Math.round(innerWidth * window.devicePixelRatio),
+        physicalHeight: Math.round(innerHeight * window.devicePixelRatio),
+      },
       sheet: {
         left: sheetBounds.left,
         right: sheetBounds.right,
@@ -3287,7 +3298,7 @@ scene('repositories-sheet', async () => {
       : compactButtons.every(button => !/\p{Script=Han}/u.test(button.label))
   if (
     compactActionLayout === null ||
-    compactActionLayout.viewport.width !== 390 ||
+    Math.abs(compactActionLayout.viewport.physicalWidth - 390) > 2 ||
     compactButtons.length !== 3 ||
     Math.max(...compactTops) - Math.min(...compactTops) > 1 ||
     Math.max(...compactBottoms) - Math.min(...compactBottoms) > 1 ||
