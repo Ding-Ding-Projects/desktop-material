@@ -4793,7 +4793,7 @@ async function postBackgroundCommitPasswordNotice() {
         text.includes('evidence/oversized-encrypted.bin') &&
         text.includes('1 total') &&
         text.includes('Windows Credential Manager') &&
-        /Nothing was encrypted(?: or|\\/) uploaded/.test(text) &&
+        /Nothing was encrypted(?: or |\\/)uploaded/.test(text) &&
         text.includes('no Release anchor was created') &&
         text.includes('Unchanged and out of the commit') &&
         /Other (?:selected )?changes remain eligible/.test(text) &&
