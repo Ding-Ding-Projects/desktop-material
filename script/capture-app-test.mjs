@@ -9,6 +9,7 @@ import captureModule from './capture-app.js'
 
 const {
   assertCapturePrivacy,
+  assertWindowControlsEvidence,
   captureApp,
   createCaptureRepositories,
   parseCaptureArguments,
@@ -38,6 +39,115 @@ function countTabs({ tabs = 0, overflowLabel = null, hasStrip = true }) {
   return new Function('document', `return ${TabCountExpression}`)(document)
 }
 
+function probeRect(left, top, width, height) {
+  return {
+    left,
+    top,
+    right: left + width,
+    bottom: top + height,
+    width,
+    height,
+  }
+}
+
+function visibleProbeElement(rect, overrides = {}) {
+  return {
+    rect,
+    display: 'flex',
+    visibility: 'visible',
+    opacity: 1,
+    pointerEvents: 'auto',
+    minWidth: 0,
+    minHeight: 0,
+    ...overrides,
+  }
+}
+
+function expectedWindowControlsScenario() {
+  return {
+    contentWidth: 390,
+    contentHeight: 844,
+    zoomFactor: 2,
+  }
+}
+
+function passingWindowControlsEvidence() {
+  const controls = [
+    ['window-control-minimize', 'Minimize', 57],
+    ['window-control-maximize', 'Maximize', 103],
+    ['window-control-close', 'Close', 149],
+  ].map(([verification, ariaLabel, left]) => ({
+    ...visibleProbeElement(probeRect(left, 0, 46, 44), {
+      minWidth: 44,
+      minHeight: 44,
+    }),
+    verification,
+    ariaLabel,
+    ariaHidden: null,
+    ariaDisabled: null,
+    disabled: false,
+    tagName: 'BUTTON',
+    tabIndex: 0,
+    focused: true,
+    hitTargets: {
+      center: true,
+      topLeft: true,
+      topRight: true,
+      bottomLeft: true,
+      bottomRight: true,
+    },
+  }))
+
+  return {
+    viewport: {
+      width: 195,
+      height: 422,
+      devicePixelRatio: 2,
+    },
+    nativeWindow: {
+      contentWidth: 390,
+      contentHeight: 844,
+      windowWidth: 390,
+      windowHeight: 844,
+      zoomFactor: 2,
+      maximized: false,
+      disableGpu: true,
+    },
+    titleBar: visibleProbeElement(probeRect(0, 0, 195, 44), {
+      minHeight: 44,
+    }),
+    appMenu: visibleProbeElement(probeRect(0, 0, 0, 0), {
+      display: 'none',
+    }),
+    dragRegion: {
+      ...visibleProbeElement(probeRect(10, 0, 47, 44), {
+        minWidth: 24,
+      }),
+      webkitAppRegion: 'drag',
+    },
+    group: {
+      ...visibleProbeElement(probeRect(57, 0, 138, 44)),
+      role: 'group',
+      ariaLabel: 'Window controls',
+    },
+    controls,
+    accessibleRoleCounts: {
+      group: 1,
+      buttons: {
+        Minimize: 1,
+        Maximize: 1,
+        Restore: 0,
+        Close: 1,
+      },
+    },
+    clearance: {
+      focusCleared: true,
+      pointerOutsideGroup: true,
+      visibleTooltips: 0,
+    },
+  }
+}
+
 describe('capture-app option parsing', () => {
   it('defaults to no repositories and a settle wait', () => {
     const options = parseCaptureArguments([])
@@ -48,6 +158,8 @@ describe('capture-app option parsing', () => {
     assert.deepEqual(options.steps, [])
     assert.equal(options.keepUserData, false)
     assert.equal(options.windowPixels, false)
+    assert.equal(options.probeWindowControls, false)
+    assert.equal(options.expectedWindowControls, null)
     assert.equal(options.repositoryGroup, null)
     assert.equal(options.repositoryDefaultBranch, null)
     assert.deepEqual(options.localStorage, {})
@@ -104,6 +216,47 @@ describe('capture-app option parsing', () => {
 
   it('accepts the window-pixel capture switch', () => {
     assert.equal(parseCaptureArguments(['--window-pixels']).windowPixels, true)
+  })
+
+  it('binds the fail-closed caption-control probe to an exact scenario', () => {
+    const options = parseCaptureArguments([
+      '--probe-window-controls',
+      '--expect-window-controls=390x844@2',
+    ])
+
+    assert.equal(options.probeWindowControls, true)
+    assert.deepEqual(options.expectedWindowControls, {
+      contentWidth: 390,
+      contentHeight: 844,
+      zoomFactor: 2,
+    })
+  })
+
+  it('rejects an unbound or malformed caption-control scenario', () => {
+    assert.throws(
+      () => parseCaptureArguments(['--probe-window-controls']),
+      /requires --expect-window-controls/
+    )
+    assert.throws(
+      () => parseCaptureArguments(['--expect-window-controls=390x844@2']),
+      /requires --probe-window-controls/
+    )
+    assert.throws(
+      () =>
+        parseCaptureArguments([
+          '--probe-window-controls',
+          '--expect-window-controls=390x844',
+        ]),
+      /<width>x<height>@<zoom>/
+    )
+    assert.throws(
+      () =>
+        parseCaptureArguments([
+          '--probe-window-controls',
+          '--expect-window-controls=390x844@0',
+        ]),
+      /<width>x<height>@<zoom>/
+    )
   })
 
   it('accepts a positional output path', () => {
@@ -299,6 +452,293 @@ describe('capture-app tab counting', () => {
 
   it('reports zero before the strip exists', () => {
     assert.equal(countTabs({ hasStrip: false }), 0)
+  })
+})
+
+describe('capture-app Windows caption-control probe', () => {
+  it('accepts a complete, right-pinned, keyboard-accessible control cluster', () => {
+    const result = assertWindowControlsEvidence(
+      passingWindowControlsEvidence(),
+      expectedWindowControlsScenario()
+    )
+
+    assert.equal(result.passed, true)
+    assert.deepEqual(result.expectedScenario, expectedWindowControlsScenario())
+    assert.deepEqual(
+      result.controls.map(control => control.ariaLabel),
+      ['Minimize', 'Maximize', 'Close']
+    )
+    assert.equal(result.dragRegion.webkitAppRegion, 'drag')
+    assert.equal(result.dragRegion.rect.width, 47)
+  })
+
+  it('accepts Restore as the middle control for a maximized window', () => {
+    const evidence = passingWindowControlsEvidence()
+    evidence.nativeWindow.maximized = true
+    evidence.controls[1].verification = 'window-control-restore'
+    evidence.controls[1].ariaLabel = 'Restore'
+    evidence.accessibleRoleCounts.buttons.Maximize = 0
+    evidence.accessibleRoleCounts.buttons.Restore = 1
+
+    const result = assertWindowControlsEvidence(
+      evidence,
+      expectedWindowControlsScenario()
+    )
+    assert.equal(result.passed, true)
+  })
+
+  it('requires runtime proof that Electron received --disable-gpu', () => {
+    const evidence = passingWindowControlsEvidence()
+    evidence.nativeWindow.disableGpu = false
+
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          evidence,
+          expectedWindowControlsScenario()
+        ),
+      /did not start with --disable-gpu/
+    )
+  })
+
+  it('fails closed when Close clips by any positive amount', () => {
+    const evidence = passingWindowControlsEvidence()
+    evidence.controls[2].rect = probeRect(149.1, 0, 46, 44)
+
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          evidence,
+          expectedWindowControlsScenario()
+        ),
+      /Close control escapes its pinned group/
+    )
+  })
+
+  it('rejects a 43 CSS-pixel title bar or control target', () => {
+    const shortTitle = passingWindowControlsEvidence()
+    shortTitle.titleBar.rect = probeRect(0, 0, 195, 43)
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          shortTitle,
+          expectedWindowControlsScenario()
+        ),
+      /title bar is below the 44 CSS-pixel target height/
+    )
+
+    const shortControl = passingWindowControlsEvidence()
+    shortControl.controls[0].rect = probeRect(57, 0, 46, 43)
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          shortControl,
+          expectedWindowControlsScenario()
+        ),
+      /Minimize control is below the 44 by 44 CSS-pixel target/
+    )
+
+    const shortMinimum = passingWindowControlsEvidence()
+    shortMinimum.controls[0].minWidth = 43
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          shortMinimum,
+          expectedWindowControlsScenario()
+        ),
+      /Minimize control is below the 44 by 44 CSS-pixel target/
+    )
+  })
+
+  it('fails closed when a caption control cannot receive keyboard focus', () => {
+    const evidence = passingWindowControlsEvidence()
+    evidence.controls[0].tabIndex = -1
+    evidence.controls[0].focused = false
+
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          evidence,
+          expectedWindowControlsScenario()
+        ),
+      /Minimize control is not keyboard focusable/
+    )
+  })
+
+  it('rejects even a fractional application-menu overlap', () => {
+    const evidence = passingWindowControlsEvidence()
+    evidence.appMenu = visibleProbeElement(probeRect(10, 0, 47.1, 44))
+
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          evidence,
+          expectedWindowControlsScenario()
+        ),
+      /application menu overlaps the pinned caption controls/
+    )
+  })
+
+  it('requires a contained native drag lane at least 24 CSS pixels wide', () => {
+    const missingNativeRegion = passingWindowControlsEvidence()
+    missingNativeRegion.dragRegion.webkitAppRegion = 'no-drag'
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          missingNativeRegion,
+          expectedWindowControlsScenario()
+        ),
+      /not registered as a native drag surface/
+    )
+
+    const narrowRegion = passingWindowControlsEvidence()
+    narrowRegion.dragRegion.rect = probeRect(33.1, 0, 23.9, 44)
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          narrowRegion,
+          expectedWindowControlsScenario()
+        ),
+      /below the 24 CSS-pixel minimum width/
+    )
+
+    const menuOverlap = passingWindowControlsEvidence()
+    menuOverlap.appMenu = visibleProbeElement(probeRect(0, 0, 10.1, 44))
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          menuOverlap,
+          expectedWindowControlsScenario()
+        ),
+      /application menu overlaps the native drag region/
+    )
+  })
+
+  it('probes the centre and every inset corner of each hit target', () => {
+    const evidence = passingWindowControlsEvidence()
+    evidence.controls[2].hitTargets.bottomRight = false
+
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          evidence,
+          expectedWindowControlsScenario()
+        ),
+      /Close control hit target is obstructed/
+    )
+  })
+
+  it('binds native size, window size, zoom, and viewport scaling', () => {
+    const wrongContent = passingWindowControlsEvidence()
+    wrongContent.nativeWindow.contentWidth = 391
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          wrongContent,
+          expectedWindowControlsScenario()
+        ),
+      /native content\/window size does not match/
+    )
+
+    const wrongWindow = passingWindowControlsEvidence()
+    wrongWindow.nativeWindow.windowHeight = 843
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          wrongWindow,
+          expectedWindowControlsScenario()
+        ),
+      /native content\/window size does not match/
+    )
+
+    const wrongZoom = passingWindowControlsEvidence()
+    wrongZoom.nativeWindow.zoomFactor = 1.99
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          wrongZoom,
+          expectedWindowControlsScenario()
+        ),
+      /native zoom does not match/
+    )
+
+    const wrongViewport = passingWindowControlsEvidence()
+    wrongViewport.viewport.height = 421
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          wrongViewport,
+          expectedWindowControlsScenario()
+        ),
+      /renderer viewport does not scale/
+    )
+  })
+
+  it('requires the title bar to span the requested viewport', () => {
+    const evidence = passingWindowControlsEvidence()
+    evidence.titleBar.rect = probeRect(0, 0, 194, 44)
+
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          evidence,
+          expectedWindowControlsScenario()
+        ),
+      /title bar does not span the renderer viewport/
+    )
+  })
+
+  it('requires focus, pointer, and tooltip clearance before capture', () => {
+    const evidence = passingWindowControlsEvidence()
+    evidence.clearance.visibleTooltips = 1
+
+    assert.throws(
+      () =>
+        assertWindowControlsEvidence(
+          evidence,
+          expectedWindowControlsScenario()
+        ),
+      /did not clear focus, pointer, and caption tooltip state/
+    )
+
+    assert.ok(
+      captureSource.includes(
+        'await page.mouse.move(pointerPark.x, pointerPark.y)'
+      )
+    )
+    assert.ok(captureSource.includes('WindowControlsTooltipSelector'))
+    assert.ok(captureSource.includes('await page.waitForFunction('))
+  })
+
+  it('returns a strict content-free whitelist and drops injected properties', () => {
+    const evidence = passingWindowControlsEvidence()
+    evidence.secretPath = 'C:\\private\\do-not-retain.txt'
+    evidence.viewport.secretToken = 'top-secret'
+    evidence.controls[0].repositoryPath = 'C:\\private\\repository'
+    evidence.controls[0].hitTargets.secret = 'hidden'
+    const expected = expectedWindowControlsScenario()
+    expected.secretPath = 'C:\\private\\expected.txt'
+
+    const result = assertWindowControlsEvidence(evidence, expected)
+    const serialized = JSON.stringify(result)
+
+    assert.doesNotMatch(
+      serialized,
+      /secretPath|secretToken|repositoryPath|top-secret|do-not-retain|[A-Z]:\\/
+    )
+    assert.deepEqual(Object.keys(result).sort(), [
+      'accessibleRoleCounts',
+      'appMenu',
+      'clearance',
+      'controls',
+      'dragRegion',
+      'expectedScenario',
+      'group',
+      'nativeWindow',
+      'passed',
+      'titleBar',
+      'viewport',
+    ])
   })
 })
 

@@ -100,6 +100,19 @@ export class TitleBar extends React.Component<ITitleBarProps> {
     // No Windows controls when we're in full-screen mode.
     const winControls = __WIN32__ && !inFullScreen ? <WindowControls /> : null
 
+    // Keep a real, non-interactive flex lane available for native window
+    // dragging. The app menu and caption buttons are deliberately no-drag
+    // controls, so relying on whatever pixels happen to remain around their
+    // labels can leave a frameless window with no practical drag target.
+    const winDragRegion =
+      __WIN32__ && !inFullScreen ? (
+        <div
+          aria-hidden={true}
+          className="title-bar-drag-region"
+          data-verification="window-drag-region"
+        />
+      ) : null
+
     // On Windows it's not possible to resize a frameless window if the
     // element that sits flush along the window edge has -webkit-app-region: drag.
     // The menu bar buttons all have no-drag but the area between menu buttons and
@@ -135,6 +148,7 @@ export class TitleBar extends React.Component<ITitleBarProps> {
         {leftResizeHandle}
         {appIcon}
         {this.props.children}
+        {winDragRegion}
         {winControls}
       </div>
     )

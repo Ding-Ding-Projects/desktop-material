@@ -7,6 +7,7 @@
   --window-control-width: 46px;
   --window-control-min-target: 44px;
   --window-controls-width: 138px;
+  --title-bar-drag-min-width: 24px;
 
   -webkit-app-region: drag;
   flex-grow: 0;
@@ -61,12 +62,47 @@
     }
   }
 
-  // The application menu is the flexible sibling. `min-width: auto` would make
-  // its label row retain its intrinsic width and overflow into the protected
-  // caption-button reservation at narrow widths or high renderer zoom.
+  // The application menu may shrink around its interactive buttons, but it
+  // must not grow into all remaining title-bar space. The adjacent drag lane
+  // owns that otherwise-unused surface.
   > #app-menu-bar {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
+
+    // Contain the top-level button hit boxes within the menu's shrunken flex
+    // bounds. The foldout is a separate absolutely positioned sibling, so it
+    // remains free to open below the title bar without being clipped.
+    > .toolbar-dropdown {
+      flex: 0 1 auto;
+      max-width: 100%;
+      min-width: 0;
+
+      > .toolbar-button {
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+
+        > button {
+          max-width: 100%;
+          min-width: 0;
+        }
+      }
+    }
+
+    button {
+      -webkit-app-region: no-drag;
+    }
+  }
+
+  // This is a normal flex sibling rather than a positioned overlay: it cannot
+  // cover a menu or caption button, and native Windows double-click-to-maximize
+  // remains available anywhere in the lane. Keep a small floor so growing menu
+  // labels surrender space before the only practical drag target disappears.
+  > .title-bar-drag-region {
+    -webkit-app-region: drag;
+    align-self: stretch;
+    flex: 1 0 var(--title-bar-drag-min-width);
+    min-width: var(--title-bar-drag-min-width);
   }
 
   // Window controls is the container for the three buttons minimize,
@@ -83,6 +119,7 @@
     bottom: 0;
     width: var(--window-controls-width);
     min-width: var(--window-controls-width);
+    min-height: var(--window-control-min-target);
 
     // Each button centers a single Material Symbols Rounded glyph for the
     // function it represents (v2 prototype Title bar screen).
@@ -148,6 +185,21 @@
           // Immediate feedback when clicking
           transition: none;
         }
+      }
+    }
+  }
+}
+
+// A 390px native window at 200% renderer zoom exposes roughly 195 CSS pixels.
+// Once the 138px caption cluster and 10px leading inset are reserved, 47px
+// remain. Collapse non-caption content at that extreme so the drag lane owns
+// all 47px and ends exactly where the caption cluster begins, with no overlap.
+@media (max-width: 210px) {
+  #desktop-app-title-bar {
+    @include win32 {
+      > .app-brand-container,
+      > #app-menu-bar {
+        display: none;
       }
     }
   }

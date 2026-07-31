@@ -41,6 +41,13 @@
 //   --keep-repos         do not delete the throwaway repositories
 //   --strict-console     exit non-zero when the renderer logged errors
 //   --window-pixels      always photograph the window, not the CSS viewport
+//   --probe-window-controls
+//                        fail unless the Windows caption controls satisfy their
+//                        runtime geometry and accessibility contract, and add
+//                        content-free evidence to the JSON report
+//   --expect-window-controls=<WxH>@<zoom>
+//                        required with --probe-window-controls; bind the probe
+//                        to one exact native content/window size and zoom
 //
 // Steps:
 //   wait:<ms>                    sleep
@@ -108,6 +115,17 @@ const TabCountExpression = `(() => {
 
 const DefaultSettleMilliseconds = 2500
 const DefaultTimeoutMilliseconds = 15000
+const WindowControlMinimumTarget = 44
+const WindowDragRegionMinimumTarget = 24
+const WindowControlGeometryEpsilon = 0.5
+const WindowControlZoomEpsilon = 0.001
+const WindowControlsTooltipSelector = '.window-controls-tooltip'
+const WindowControlsSelectors = Object.freeze({
+  titleBar: '#desktop-app-title-bar',
+  appMenu: '#app-menu-bar',
+  dragRegion: '[data-verification="window-drag-region"]',
+  group: '[data-verification="window-controls"]',
+})
 
 /** Parse `<width>x<height>`, or return null when it is not a size. */
 function parseSize(value) {
@@ -115,6 +133,28 @@ function parseSize(value) {
   return match === null
     ? null
     : { width: Number(match[1]), height: Number(match[2]) }
+}
+
+/** Parse one exact `<width>x<height>@<zoom>` caption-control scenario. */
+function parseWindowControlsExpectation(value) {
+  const match = /^([^@]+)@([^@]+)$/.exec(String(value).trim())
+  const size = match === null ? null : parseSize(match[1])
+  const zoomFactor = match === null ? NaN : Number(match[2])
+  if (
+    size === null ||
+    !Number.isFinite(zoomFactor) ||
+    zoomFactor <= 0 ||
+    zoomFactor > 4
+  ) {
+    throw new Error(
+      `--expect-window-controls must be <width>x<height>@<zoom>: ${value}`
+    )
+  }
+  return {
+    contentWidth: size.width,
+    contentHeight: size.height,
+    zoomFactor,
+  }
 }
 
 /** Parse one `--step=` value into a structured step. Throws when malformed. */
@@ -282,6 +322,8 @@ function parseCaptureArguments(argv) {
     keepRepositories: false,
     strictConsole: false,
     windowPixels: false,
+    probeWindowControls: false,
+    expectedWindowControls: null,
   }
 
   for (const argument of argv) {
@@ -385,9 +427,24 @@ function parseCaptureArguments(argv) {
       case 'window-pixels':
         options.windowPixels = true
         break
+      case 'probe-window-controls':
+        options.probeWindowControls = true
+        break
+      case 'expect-window-controls':
+        options.expectedWindowControls = parseWindowControlsExpectation(value)
+        break
       default:
         throw new Error(`Unknown option: --${name}`)
     }
+  }
+
+  if (options.probeWindowControls && options.expectedWindowControls === null) {
+    throw new Error(
+      '--probe-window-controls requires --expect-window-controls=<width>x<height>@<zoom>'
+    )
+  }
+  if (!options.probeWindowControls && options.expectedWindowControls !== null) {
+    throw new Error('--expect-window-controls requires --probe-window-controls')
   }
 
   return options
@@ -957,6 +1014,711 @@ async function runStep(page, electronApp, step, timeoutMilliseconds) {
   }
 }
 
+function failWindowControlsProbe(message) {
+  throw new Error(`Window-controls probe failed: ${message}`)
+}
+
+function requireWindowControlsProbe(condition, message) {
+  if (!condition) {
+    failWindowControlsProbe(message)
+  }
+}
+
+function isFiniteRectangle(rectangle) {
+  return (
+    rectangle !== null &&
+    typeof rectangle === 'object' &&
+    Number.isFinite(rectangle.left) &&
+    Number.isFinite(rectangle.top) &&
+    Number.isFinite(rectangle.right) &&
+    Number.isFinite(rectangle.bottom) &&
+    Number.isFinite(rectangle.width) &&
+    Number.isFinite(rectangle.height)
+  )
+}
+
+function copyProbeRectangle(rectangle) {
+  return {
+    left: rectangle.left,
+    top: rectangle.top,
+    right: rectangle.right,
+    bottom: rectangle.bottom,
+    width: rectangle.width,
+    height: rectangle.height,
+  }
+}
+
+function copyProbePresentation(element) {
+  return {
+    rect: copyProbeRectangle(element.rect),
+    display: element.display,
+    visibility: element.visibility,
+    opacity: element.opacity,
+    pointerEvents: element.pointerEvents,
+    minWidth: element.minWidth,
+    minHeight: element.minHeight,
+  }
+}
+
+function assertVisibleProbeElement(element, name, allowZeroWidth = false) {
+  requireWindowControlsProbe(
+    isFiniteRectangle(element?.rect),
+    `${name} geometry is unavailable`
+  )
+  requireWindowControlsProbe(
+    element.display !== 'none' &&
+      element.visibility !== 'hidden' &&
+      element.visibility !== 'collapse' &&
+      Number.isFinite(element.opacity) &&
+      element.opacity > 0,
+    `${name} is not visibly rendered`
+  )
+  requireWindowControlsProbe(
+    element.rect.height > 0 && (allowZeroWidth || element.rect.width > 0),
+    `${name} has no rendered area`
+  )
+}
+
+/**
+ * Validate content-free runtime evidence from the built Windows title bar.
+ *
+ * This deliberately accepts either Maximize or Restore as the middle caption
+ * control so the same probe is valid for a normal or maximized window. It does
+ * not accept a partially rendered cluster: every control must be visible,
+ * keyboard focusable, unobstructed, and contained by both the pinned group and
+ * the title bar.
+ */
+function assertWindowControlsEvidence(evidence, expectedScenario) {
+  requireWindowControlsProbe(
+    evidence !== null && typeof evidence === 'object',
+    'evidence is unavailable'
+  )
+  requireWindowControlsProbe(
+    Number.isInteger(expectedScenario?.contentWidth) &&
+      expectedScenario.contentWidth > 0 &&
+      Number.isInteger(expectedScenario?.contentHeight) &&
+      expectedScenario.contentHeight > 0 &&
+      Number.isFinite(expectedScenario?.zoomFactor) &&
+      expectedScenario.zoomFactor > 0,
+    'expected native size and zoom are unavailable'
+  )
+
+  const viewport = evidence.viewport
+  requireWindowControlsProbe(
+    Number.isFinite(viewport?.width) &&
+      viewport.width > 0 &&
+      Number.isFinite(viewport?.height) &&
+      viewport.height > 0 &&
+      Number.isFinite(viewport?.devicePixelRatio) &&
+      viewport.devicePixelRatio > 0,
+    'viewport geometry is invalid'
+  )
+
+  const nativeWindow = evidence.nativeWindow
+  requireWindowControlsProbe(
+    Number.isFinite(nativeWindow?.contentWidth) &&
+      nativeWindow.contentWidth > 0 &&
+      Number.isFinite(nativeWindow?.contentHeight) &&
+      nativeWindow.contentHeight > 0 &&
+      Number.isFinite(nativeWindow?.windowWidth) &&
+      nativeWindow.windowWidth > 0 &&
+      Number.isFinite(nativeWindow?.windowHeight) &&
+      nativeWindow.windowHeight > 0 &&
+      Number.isFinite(nativeWindow?.zoomFactor) &&
+      nativeWindow.zoomFactor > 0 &&
+      typeof nativeWindow.maximized === 'boolean' &&
+      typeof nativeWindow.disableGpu === 'boolean',
+    'native window state is invalid'
+  )
+  requireWindowControlsProbe(
+    nativeWindow.disableGpu === true,
+    'Electron did not start with --disable-gpu'
+  )
+  requireWindowControlsProbe(
+    nativeWindow.contentWidth === expectedScenario.contentWidth &&
+      nativeWindow.contentHeight === expectedScenario.contentHeight &&
+      nativeWindow.windowWidth === expectedScenario.contentWidth &&
+      nativeWindow.windowHeight === expectedScenario.contentHeight,
+    'native content/window size does not match the requested scenario'
+  )
+  requireWindowControlsProbe(
+    Math.abs(nativeWindow.zoomFactor - expectedScenario.zoomFactor) <=
+      WindowControlZoomEpsilon,
+    'native zoom does not match the requested scenario'
+  )
+  requireWindowControlsProbe(
+    Math.abs(
+      viewport.width * nativeWindow.zoomFactor - nativeWindow.contentWidth
+    ) <= WindowControlGeometryEpsilon &&
+      Math.abs(
+        viewport.height * nativeWindow.zoomFactor - nativeWindow.contentHeight
+      ) <= WindowControlGeometryEpsilon,
+    'renderer viewport does not scale to the requested native scenario'
+  )
+
+  const titleBar = evidence.titleBar
+  assertVisibleProbeElement(titleBar, 'title bar')
+  requireWindowControlsProbe(
+    Number.isFinite(titleBar.minHeight) &&
+      titleBar.minHeight >= WindowControlMinimumTarget &&
+      titleBar.rect.height >= WindowControlMinimumTarget,
+    'title bar is below the 44 CSS-pixel target height'
+  )
+  requireWindowControlsProbe(
+    titleBar.rect.left >= 0 &&
+      titleBar.rect.top >= 0 &&
+      titleBar.rect.right <= viewport.width &&
+      titleBar.rect.bottom <= viewport.height,
+    'title bar escapes the renderer viewport'
+  )
+  requireWindowControlsProbe(
+    Math.abs(titleBar.rect.left) <= WindowControlGeometryEpsilon &&
+      Math.abs(titleBar.rect.right - viewport.width) <=
+        WindowControlGeometryEpsilon &&
+      Math.abs(titleBar.rect.width - viewport.width) <=
+        WindowControlGeometryEpsilon,
+    'title bar does not span the renderer viewport'
+  )
+
+  const group = evidence.group
+  assertVisibleProbeElement(group, 'window-controls group')
+  requireWindowControlsProbe(
+    group.role === 'group' && group.ariaLabel === 'Window controls',
+    'caption controls do not expose their named group'
+  )
+  requireWindowControlsProbe(
+    group.pointerEvents !== 'none',
+    'window-controls group cannot receive pointer input'
+  )
+  requireWindowControlsProbe(
+    group.rect.left >= titleBar.rect.left &&
+      group.rect.top >= titleBar.rect.top &&
+      group.rect.right <= Math.min(titleBar.rect.right, viewport.width) &&
+      group.rect.bottom <= Math.min(titleBar.rect.bottom, viewport.height),
+    'window-controls group escapes the title bar'
+  )
+  requireWindowControlsProbe(
+    Math.abs(group.rect.right - titleBar.rect.right) <=
+      WindowControlGeometryEpsilon,
+    'window-controls group is not pinned to the right edge'
+  )
+  requireWindowControlsProbe(
+    Math.abs(group.rect.top - titleBar.rect.top) <=
+      WindowControlGeometryEpsilon &&
+      Math.abs(group.rect.bottom - titleBar.rect.bottom) <=
+        WindowControlGeometryEpsilon,
+    'window-controls group does not fill the title bar vertically'
+  )
+
+  const appMenu = evidence.appMenu
+  requireWindowControlsProbe(
+    isFiniteRectangle(appMenu?.rect),
+    'application menu geometry is unavailable'
+  )
+  const appMenuHidden = appMenu.display === 'none'
+  if (appMenuHidden) {
+    requireWindowControlsProbe(
+      viewport.width <= 210 &&
+        appMenu.rect.width === 0 &&
+        appMenu.rect.height === 0,
+      'application menu is hidden outside the narrow title-bar breakpoint'
+    )
+  } else {
+    assertVisibleProbeElement(appMenu, 'application menu', true)
+    requireWindowControlsProbe(
+      appMenu.rect.left >= titleBar.rect.left &&
+        appMenu.rect.right <= group.rect.left,
+      'application menu overlaps the pinned caption controls'
+    )
+  }
+
+  const dragRegion = evidence.dragRegion
+  assertVisibleProbeElement(dragRegion, 'window drag region')
+  requireWindowControlsProbe(
+    dragRegion.webkitAppRegion === 'drag',
+    'window drag region is not registered as a native drag surface'
+  )
+  requireWindowControlsProbe(
+    Number.isFinite(dragRegion.minWidth) &&
+      dragRegion.minWidth >= WindowDragRegionMinimumTarget &&
+      dragRegion.rect.width >= WindowDragRegionMinimumTarget,
+    'window drag region is below the 24 CSS-pixel minimum width'
+  )
+  requireWindowControlsProbe(
+    dragRegion.rect.left >= titleBar.rect.left &&
+      dragRegion.rect.top >= titleBar.rect.top &&
+      dragRegion.rect.right <= Math.min(group.rect.left, viewport.width) &&
+      dragRegion.rect.bottom <= Math.min(titleBar.rect.bottom, viewport.height),
+    'window drag region escapes the usable title-bar lane'
+  )
+  if (!appMenuHidden) {
+    requireWindowControlsProbe(
+      appMenu.rect.right <= dragRegion.rect.left,
+      'application menu overlaps the native drag region'
+    )
+  }
+
+  const controls = evidence.controls
+  requireWindowControlsProbe(
+    Array.isArray(controls) && controls.length === 3,
+    'caption-control count is not exactly three'
+  )
+
+  const expectedVerifications = [
+    'window-control-minimize',
+    nativeWindow.maximized
+      ? 'window-control-restore'
+      : 'window-control-maximize',
+    'window-control-close',
+  ]
+  const expectedLabels = [
+    'Minimize',
+    nativeWindow.maximized ? 'Restore' : 'Maximize',
+    'Close',
+  ]
+
+  for (const [index, control] of controls.entries()) {
+    const label = expectedLabels[index]
+    assertVisibleProbeElement(control, `${label} control`)
+    requireWindowControlsProbe(
+      control.verification === expectedVerifications[index] &&
+        control.ariaLabel === label &&
+        control.tagName === 'BUTTON',
+      `${label} control identity is incorrect`
+    )
+    requireWindowControlsProbe(
+      control.ariaHidden === null &&
+        control.ariaDisabled !== 'true' &&
+        control.disabled === false,
+      `${label} control is hidden from accessibility or disabled`
+    )
+    requireWindowControlsProbe(
+      control.tabIndex === 0 && control.focused === true,
+      `${label} control is not keyboard focusable`
+    )
+    requireWindowControlsProbe(
+      control.pointerEvents !== 'none' &&
+        control.hitTargets?.center === true &&
+        control.hitTargets?.topLeft === true &&
+        control.hitTargets?.topRight === true &&
+        control.hitTargets?.bottomLeft === true &&
+        control.hitTargets?.bottomRight === true,
+      `${label} control hit target is obstructed`
+    )
+    requireWindowControlsProbe(
+      Number.isFinite(control.minWidth) &&
+        control.minWidth >= WindowControlMinimumTarget &&
+        Number.isFinite(control.minHeight) &&
+        control.minHeight >= WindowControlMinimumTarget &&
+        control.rect.width >= WindowControlMinimumTarget &&
+        control.rect.height >= WindowControlMinimumTarget,
+      `${label} control is below the 44 by 44 CSS-pixel target`
+    )
+    requireWindowControlsProbe(
+      control.rect.left >= group.rect.left &&
+        control.rect.top >= group.rect.top &&
+        control.rect.right <= Math.min(group.rect.right, viewport.width) &&
+        control.rect.bottom <= Math.min(group.rect.bottom, viewport.height),
+      `${label} control escapes its pinned group`
+    )
+
+    if (index > 0) {
+      requireWindowControlsProbe(
+        controls[index - 1].rect.right <= control.rect.left,
+        `${label} control overlaps its preceding control`
+      )
+    }
+  }
+
+  const totalControlWidth = controls.reduce(
+    (total, control) => total + control.rect.width,
+    0
+  )
+  requireWindowControlsProbe(
+    Math.abs(group.rect.width - totalControlWidth) <=
+      WindowControlGeometryEpsilon,
+    'caption controls do not fill their reserved group'
+  )
+
+  const roleCounts = evidence.accessibleRoleCounts
+  requireWindowControlsProbe(
+    roleCounts?.group === 1 &&
+      roleCounts?.buttons?.Minimize === 1 &&
+      roleCounts?.buttons?.[expectedLabels[1]] === 1 &&
+      roleCounts?.buttons?.Close === 1,
+    'computed accessibility roles or names are incomplete'
+  )
+  requireWindowControlsProbe(
+    evidence.clearance?.focusCleared === true &&
+      evidence.clearance?.pointerOutsideGroup === true &&
+      evidence.clearance?.visibleTooltips === 0,
+    'probe did not clear focus, pointer, and caption tooltip state'
+  )
+
+  // Construct the report schema explicitly. Unknown input properties are
+  // intentionally discarded so a caller cannot smuggle page text, paths,
+  // account data, or secrets into retained verification evidence.
+  return {
+    passed: true,
+    expectedScenario: {
+      contentWidth: expectedScenario.contentWidth,
+      contentHeight: expectedScenario.contentHeight,
+      zoomFactor: expectedScenario.zoomFactor,
+    },
+    viewport: {
+      width: viewport.width,
+      height: viewport.height,
+      devicePixelRatio: viewport.devicePixelRatio,
+    },
+    nativeWindow: {
+      contentWidth: nativeWindow.contentWidth,
+      contentHeight: nativeWindow.contentHeight,
+      windowWidth: nativeWindow.windowWidth,
+      windowHeight: nativeWindow.windowHeight,
+      zoomFactor: nativeWindow.zoomFactor,
+      maximized: nativeWindow.maximized,
+      disableGpu: nativeWindow.disableGpu,
+    },
+    titleBar: {
+      ...copyProbePresentation(titleBar),
+    },
+    appMenu: {
+      ...copyProbePresentation(appMenu),
+    },
+    dragRegion: {
+      ...copyProbePresentation(dragRegion),
+      webkitAppRegion: dragRegion.webkitAppRegion,
+    },
+    group: {
+      ...copyProbePresentation(group),
+      role: group.role,
+      ariaLabel: group.ariaLabel,
+    },
+    controls: controls.map(control => ({
+      ...copyProbePresentation(control),
+      verification: control.verification,
+      ariaLabel: control.ariaLabel,
+      ariaHidden: control.ariaHidden,
+      ariaDisabled: control.ariaDisabled,
+      disabled: control.disabled,
+      tagName: control.tagName,
+      tabIndex: control.tabIndex,
+      focused: control.focused,
+      hitTargets: {
+        center: control.hitTargets.center,
+        topLeft: control.hitTargets.topLeft,
+        topRight: control.hitTargets.topRight,
+        bottomLeft: control.hitTargets.bottomLeft,
+        bottomRight: control.hitTargets.bottomRight,
+      },
+    })),
+    accessibleRoleCounts: {
+      group: roleCounts.group,
+      buttons: {
+        Minimize: roleCounts.buttons.Minimize,
+        Maximize: roleCounts.buttons.Maximize,
+        Restore: roleCounts.buttons.Restore,
+        Close: roleCounts.buttons.Close,
+      },
+    },
+    clearance: {
+      focusCleared: evidence.clearance.focusCleared,
+      pointerOutsideGroup: evidence.clearance.pointerOutsideGroup,
+      visibleTooltips: evidence.clearance.visibleTooltips,
+    },
+  }
+}
+
+/**
+ * Collect only public title-bar state and geometry. No visible application
+ * text, filesystem path, account, repository, field value, or URL enters this
+ * evidence object.
+ */
+async function collectWindowControlsEvidence(page, electronApp) {
+  const accessibleRoleCounts = {
+    group: await page
+      .getByRole('group', { name: 'Window controls', exact: true })
+      .count(),
+    buttons: {},
+  }
+
+  for (const label of ['Minimize', 'Maximize', 'Restore', 'Close']) {
+    accessibleRoleCounts.buttons[label] = await page
+      .getByRole('button', { name: label, exact: true })
+      .count()
+  }
+
+  const domEvidence = await page.evaluate(selectors => {
+    const titleBar = document.querySelector(selectors.titleBar)
+    const appMenu = document.querySelector(selectors.appMenu)
+    const dragRegion = document.querySelector(selectors.dragRegion)
+    const group = document.querySelector(selectors.group)
+    if (
+      !(titleBar instanceof HTMLElement) ||
+      !(appMenu instanceof HTMLElement) ||
+      !(dragRegion instanceof HTMLElement) ||
+      !(group instanceof HTMLElement)
+    ) {
+      throw new Error('Required Windows title-bar elements are unavailable')
+    }
+
+    const rectangle = element => {
+      const rect = element.getBoundingClientRect()
+      return {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+      }
+    }
+    const numberOrNull = value => {
+      const parsed = Number.parseFloat(value)
+      return Number.isFinite(parsed) ? parsed : null
+    }
+    const presentation = element => {
+      const style = window.getComputedStyle(element)
+      return {
+        rect: rectangle(element),
+        display: style.display,
+        visibility: style.visibility,
+        opacity: numberOrNull(style.opacity),
+        pointerEvents: style.pointerEvents,
+        minWidth: numberOrNull(style.minWidth),
+        minHeight: numberOrNull(style.minHeight),
+      }
+    }
+
+    const buttons = Array.from(
+      group.querySelectorAll('button[data-verification^="window-control-"]')
+    )
+    const controls = buttons.map(button => {
+      button.focus({ preventScroll: true })
+      const focused = document.activeElement === button
+      button.blur()
+
+      const rect = button.getBoundingClientRect()
+      const inset = Math.min(4, rect.width / 4, rect.height / 4)
+      const points = {
+        center: [rect.left + rect.width / 2, rect.top + rect.height / 2],
+        topLeft: [rect.left + inset, rect.top + inset],
+        topRight: [rect.right - inset, rect.top + inset],
+        bottomLeft: [rect.left + inset, rect.bottom - inset],
+        bottomRight: [rect.right - inset, rect.bottom - inset],
+      }
+      const hitTargets = Object.fromEntries(
+        Object.entries(points).map(([name, [x, y]]) => {
+          const hit =
+            x >= 0 && y >= 0 && x < window.innerWidth && y < window.innerHeight
+              ? document.elementFromPoint(x, y)
+              : null
+          return [
+            name,
+            hit !== null && (hit === button || button.contains(hit)),
+          ]
+        })
+      )
+
+      return {
+        ...presentation(button),
+        verification: button.getAttribute('data-verification'),
+        ariaLabel: button.getAttribute('aria-label'),
+        ariaHidden: button.getAttribute('aria-hidden'),
+        ariaDisabled: button.getAttribute('aria-disabled'),
+        disabled: button.disabled,
+        tagName: button.tagName,
+        tabIndex: button.tabIndex,
+        focused,
+        hitTargets,
+      }
+    })
+
+    const active = document.activeElement
+    if (active instanceof HTMLElement) {
+      active.blur()
+    }
+
+    const titleBarPresentation = presentation(titleBar)
+    const groupPresentation = presentation(group)
+    return {
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        devicePixelRatio: window.devicePixelRatio,
+      },
+      titleBar: {
+        ...titleBarPresentation,
+        minHeight: titleBarPresentation.minHeight,
+      },
+      appMenu: presentation(appMenu),
+      dragRegion: {
+        ...presentation(dragRegion),
+        webkitAppRegion: window
+          .getComputedStyle(dragRegion)
+          .getPropertyValue('-webkit-app-region')
+          .trim(),
+      },
+      group: {
+        ...groupPresentation,
+        role: group.getAttribute('role'),
+        ariaLabel: group.getAttribute('aria-label'),
+      },
+      controls,
+      pointerPark: {
+        x: Math.max(
+          0,
+          Math.min(window.innerWidth - 1, groupPresentation.rect.left - 8)
+        ),
+        y: Math.max(
+          0,
+          Math.min(window.innerHeight - 1, groupPresentation.rect.bottom + 8)
+        ),
+      },
+    }
+  }, WindowControlsSelectors)
+
+  const { pointerPark, ...publicDomEvidence } = domEvidence
+  await page.mouse.move(pointerPark.x, pointerPark.y)
+  await page.evaluate(
+    ({ selectors, tooltipSelector }) => {
+      const group = document.querySelector(selectors.group)
+      const targets =
+        group instanceof HTMLElement
+          ? [...group.querySelectorAll('button'), group]
+          : []
+      for (const target of targets) {
+        target.dispatchEvent(
+          new PointerEvent('pointerout', {
+            bubbles: true,
+            pointerType: 'mouse',
+            relatedTarget: document.body,
+          })
+        )
+        target.dispatchEvent(
+          new PointerEvent('pointerleave', {
+            bubbles: false,
+            pointerType: 'mouse',
+            relatedTarget: document.body,
+          })
+        )
+        target.dispatchEvent(
+          new MouseEvent('mouseout', {
+            bubbles: true,
+            relatedTarget: document.body,
+          })
+        )
+        target.dispatchEvent(
+          new MouseEvent('mouseleave', {
+            bubbles: false,
+            relatedTarget: document.body,
+          })
+        )
+      }
+      const active = document.activeElement
+      if (active instanceof HTMLElement) {
+        active.blur()
+      }
+
+      // Query once here as well as in waitForFunction so a misspelled selector
+      // cannot silently turn tooltip clearance into an unrelated delay.
+      document.querySelectorAll(tooltipSelector)
+    },
+    {
+      selectors: WindowControlsSelectors,
+      tooltipSelector: WindowControlsTooltipSelector,
+    }
+  )
+  await page.waitForFunction(
+    tooltipSelector => {
+      const isVisible = element => {
+        const style = window.getComputedStyle(element)
+        const rect = element.getBoundingClientRect()
+        return (
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.visibility !== 'collapse' &&
+          Number.parseFloat(style.opacity) > 0 &&
+          rect.width > 0 &&
+          rect.height > 0
+        )
+      }
+      return Array.from(document.querySelectorAll(tooltipSelector)).every(
+        element => !isVisible(element)
+      )
+    },
+    WindowControlsTooltipSelector,
+    { timeout: 5000 }
+  )
+  const clearance = await page.evaluate(
+    ({ selectors, tooltipSelector, parked }) => {
+      const group = document.querySelector(selectors.group)
+      if (!(group instanceof HTMLElement)) {
+        return {
+          focusCleared: false,
+          pointerOutsideGroup: false,
+          visibleTooltips: -1,
+        }
+      }
+      const groupRect = group.getBoundingClientRect()
+      const pointerOutsideGroup =
+        parked.x < groupRect.left ||
+        parked.x > groupRect.right ||
+        parked.y < groupRect.top ||
+        parked.y > groupRect.bottom
+      const visibleTooltips = Array.from(
+        document.querySelectorAll(tooltipSelector)
+      ).filter(element => {
+        const style = window.getComputedStyle(element)
+        const rect = element.getBoundingClientRect()
+        return (
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          style.visibility !== 'collapse' &&
+          Number.parseFloat(style.opacity) > 0 &&
+          rect.width > 0 &&
+          rect.height > 0
+        )
+      }).length
+      return {
+        focusCleared: !group.contains(document.activeElement),
+        pointerOutsideGroup,
+        visibleTooltips,
+      }
+    },
+    {
+      selectors: WindowControlsSelectors,
+      tooltipSelector: WindowControlsTooltipSelector,
+      parked: pointerPark,
+    }
+  )
+
+  const nativeWindow = await electronApp.evaluate(({ BrowserWindow, app }) => {
+    const [window] = BrowserWindow.getAllWindows()
+    if (window === undefined) {
+      throw new Error('No BrowserWindow available for window-controls probe')
+    }
+    const [contentWidth, contentHeight] = window.getContentSize()
+    const [windowWidth, windowHeight] = window.getSize()
+    return {
+      contentWidth,
+      contentHeight,
+      windowWidth,
+      windowHeight,
+      zoomFactor: window.webContents.getZoomFactor(),
+      maximized: window.isMaximized(),
+      disableGpu: app.commandLine.hasSwitch('disable-gpu'),
+    }
+  })
+
+  return {
+    ...publicDomEvidence,
+    nativeWindow,
+    accessibleRoleCounts,
+    clearance,
+  }
+}
+
 /**
  * Launch the built app with the given repositories open as tabs, run the given
  * steps, and write a PNG. Resolves with a report describing what happened.
@@ -1008,7 +1770,7 @@ async function captureApp(options) {
   try {
     electronApp = await _electron.launch({
       executablePath: getElectronExecutablePath(),
-      args: [mainPath, `--user-data-dir=${userDataDir}`],
+      args: ['--disable-gpu', mainPath, `--user-data-dir=${userDataDir}`],
       cwd: repoRoot,
       env: {
         ...process.env,
@@ -1087,6 +1849,14 @@ async function captureApp(options) {
         : options.settleMilliseconds
     )
 
+    const windowControls =
+      options.probeWindowControls === true
+        ? assertWindowControlsEvidence(
+            await collectWindowControlsEvidence(page, electronApp),
+            options.expectedWindowControls
+          )
+        : null
+
     const privacyReceipt = assertCapturePrivacy(
       path.basename(outPath),
       await collectCapturePrivacyEvidence(page)
@@ -1128,6 +1898,7 @@ async function captureApp(options) {
       viewport: await page.evaluate(
         '({ width: window.innerWidth, height: window.innerHeight })'
       ),
+      windowControls,
       consoleErrors,
     }
   } finally {
@@ -1187,6 +1958,7 @@ async function main() {
 
 module.exports = {
   assertCapturePrivacy,
+  assertWindowControlsEvidence,
   captureApp,
   collectCapturePrivacyEvidence,
   createCaptureRepositories,

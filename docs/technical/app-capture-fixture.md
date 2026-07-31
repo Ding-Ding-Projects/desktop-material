@@ -77,6 +77,8 @@ holding an array of the same step strings.
 | `--keep-repos`            | keep the throwaway repositories                       |
 | `--strict-console`        | exit non-zero when the renderer logged console errors |
 | `--window-pixels`         | always photograph the window, not the CSS viewport    |
+| `--probe-window-controls` | fail unless Windows caption controls pass at runtime  |
+| `--expect-window-controls=<WxH>@<zoom>` | bind that probe to an exact native size and zoom |
 
 ### Steps
 
@@ -147,6 +149,37 @@ viewport, so the PNG comes back 1000×954 with the app tucked in one corner and
 dead space around it. The fixture notices (`window.devicePixelRatio !== 1`) and
 photographs the window through `webContents.capturePage()` instead; the run
 prints `via=window-pixels` when it does. `--window-pixels` forces it.
+
+### Windows caption-control acceptance
+
+Add `--probe-window-controls` with a required exact scenario such as
+`--expect-window-controls=390x844@2` when a capture is intended to prove the
+Windows Minimize, Maximize/Restore, and Close cluster. Before the shutter, the
+fixture proves the native content and frameless-window size, Electron zoom,
+scaled renderer viewport, and full-width title bar match that request. It then
+fails closed unless the named group and all three buttons are visibly rendered,
+keyboard focusable, unobstructed at their centre and four inset corners, at
+least 44×44 CSS pixels, ordered without overlap, and wholly contained by the
+right-pinned title bar. Even fractional clipping or application-menu overlap is
+rejected. The same receipt requires a dedicated native drag lane that is at
+least 24 CSS pixels wide, reports `-webkit-app-region: drag`, stays inside the
+title bar, and is not covered by the application menu or caption cluster. A
+separate Lowlevel headless Win32 `WM_NCHITTEST` probe must then return
+`HTCAPTION` for the lane and `HTCLIENT` for the caption buttons, proving the
+real native hit map rather than merely trusting computed CSS.
+
+Successful `--report` output includes `windowControls` with only public-safe
+geometry, zoom/window state, fixed caption labels, verification selectors, and
+accessibility facts. It adds no visible application text, repository or account
+data, URLs, or filesystem paths beyond the report's pre-existing fixture-path
+fields. The probe moves the pointer outside the caption cluster, dispatches
+leave events, clears focus, and waits until every `.window-controls-tooltip` is
+absent or hidden before privacy inspection and capture.
+
+Electron always launches with `--disable-gpu` before the app entry point,
+matching the off-screen Win32 verification contract. The probe also verifies
+the switch through Electron's live command line rather than trusting the launch
+arguments.
 
 Useful stable selectors on the tab strip: `.repository-tab-strip`,
 `.repository-tab-overflow` (the overflow button, present only when tabs actually

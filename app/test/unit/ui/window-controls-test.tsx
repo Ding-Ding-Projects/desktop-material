@@ -107,11 +107,75 @@ describe('Windows title-bar layout contract', () => {
     )
     assert.match(
       style,
-      /> #app-menu-bar\s*\{[\s\S]*?flex: 1 1 auto;[\s\S]*?min-width: 0;/
+      /> #app-menu-bar\s*\{[\s\S]*?flex: 0 1 auto;[\s\S]*?min-width: 0;[\s\S]*?button\s*\{[\s\S]*?-webkit-app-region: no-drag;/
     )
     assert.match(
       style,
-      /\.window-controls\s*\{[\s\S]*?position: absolute;[\s\S]*?right: 0;[\s\S]*?width: var\(--window-controls-width\);/
+      /> #app-menu-bar\s*\{[\s\S]*?> \.toolbar-dropdown\s*\{[\s\S]*?max-width: 100%;[\s\S]*?min-width: 0;[\s\S]*?> \.toolbar-button\s*\{[\s\S]*?max-width: 100%;[\s\S]*?overflow: hidden;[\s\S]*?> button\s*\{[\s\S]*?max-width: 100%;/
+    )
+    assert.match(
+      component,
+      /className="title-bar-drag-region"[\s\S]*?data-verification="window-drag-region"/
+    )
+    assert.match(
+      style,
+      /> \.title-bar-drag-region\s*\{[\s\S]*?-webkit-app-region: drag;[\s\S]*?flex: 1 0 var\(--title-bar-drag-min-width\);[\s\S]*?min-width: var\(--title-bar-drag-min-width\);/
+    )
+    assert.match(
+      style,
+      /\.window-controls\s*\{[\s\S]*?position: absolute;[\s\S]*?right: 0;[\s\S]*?width: var\(--window-controls-width\);[\s\S]*?min-height: var\(--window-control-min-target\);/
+    )
+  })
+
+  it('keeps interactive controls out of the native drag lane', () => {
+    const dragRegionRule =
+      style.match(/> \.title-bar-drag-region\s*\{([^}]*)\}/)?.[1] ?? ''
+
+    assert.notEqual(dragRegionRule, '')
+    assert.doesNotMatch(dragRegionRule, /\b(position|inset|z-index)\s*:/)
+    assert.match(
+      style,
+      /#desktop-app-title-bar\s*\{[\s\S]*?-webkit-app-region: drag;/
+    )
+    assert.match(
+      style,
+      /\.window-controls\s*\{[\s\S]*?-webkit-app-region: no-drag;/
+    )
+    assert.match(
+      style,
+      /\.window-controls\s*\{[\s\S]*?button\s*\{[\s\S]*?-webkit-app-region: no-drag;/
+    )
+  })
+
+  it('leaves Windows double-click handling to its native drag region', () => {
+    assert.match(
+      component,
+      /const onTitlebarDoubleClick = __DARWIN__\s*\? this\.onTitlebarDoubleClickDarwin\s*: undefined/
+    )
+    assert.match(
+      component,
+      /id="desktop-app-title-bar"[\s\S]*?onDoubleClick=\{onTitlebarDoubleClick\}/
+    )
+  })
+
+  it('keeps a non-overlapping drag lane at 390px native width and 200% zoom', () => {
+    const nativeWidth = 390
+    const rendererZoom = 2
+    const cssViewportWidth = nativeWidth / rendererZoom
+    const captionClusterWidth = 138
+    const leadingInset = 10
+    const minimumDragWidth = 24
+    const captionClusterLeft = cssViewportWidth - captionClusterWidth
+    const availableDragWidth = captionClusterLeft - leadingInset
+
+    assert.equal(cssViewportWidth, 195)
+    assert.equal(captionClusterLeft, 57)
+    assert.equal(availableDragWidth, 47)
+    assert.ok(availableDragWidth >= minimumDragWidth)
+    assert.match(style, /--title-bar-drag-min-width: 24px;/)
+    assert.match(
+      style,
+      /@media \(max-width: 210px\)\s*\{[\s\S]*?#desktop-app-title-bar\s*\{[\s\S]*?@include win32\s*\{[\s\S]*?> \.app-brand-container,\s*> #app-menu-bar\s*\{[\s\S]*?display: none;/
     )
   })
 
