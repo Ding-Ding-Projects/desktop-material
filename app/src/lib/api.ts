@@ -2187,13 +2187,26 @@ export class API {
   }
 
   /** Create a new GitHub fork of this repository (owner and name) */
+  /**
+   * Fork a repository.
+   *
+   * `organization` places the fork in that organization rather than the
+   * signed-in user's own namespace. GitHub only honours it when the token can
+   * create repositories there, and rejects the request otherwise rather than
+   * silently forking to the user - so a refusal is reported, never masked.
+   */
   public async forkRepository(
     owner: string,
-    name: string
+    name: string,
+    organization?: string
   ): Promise<IAPIFullRepository> {
     try {
       const apiPath = `/repos/${owner}/${name}/forks`
-      const response = await this.ghRequest('POST', apiPath)
+      const response = await this.ghRequest(
+        'POST',
+        apiPath,
+        organization === undefined ? undefined : { body: { organization } }
+      )
       return await parsedResponse<IAPIFullRepository>(response)
     } catch (e) {
       log.error(

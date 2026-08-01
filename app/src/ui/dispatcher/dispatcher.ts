@@ -5482,6 +5482,29 @@ export class Dispatcher {
    * Converts a local repository to use the given fork
    * as its default remote and associated `GitHubRepository`.
    */
+  /**
+   * Copy this repository to a new remote repository and push to it, keeping
+   * the source as `upstream`. Used where a server-side fork is unavailable
+   * (self-hosted GitLab) or simply not wanted.
+   */
+  public copyRepositoryToNewRemote(
+    repository: Repository,
+    account: Account,
+    org: IAPIOrganization | null,
+    name: string,
+    description: string,
+    private_: boolean
+  ): Promise<Repository> {
+    return this.appStore._copyRepositoryToNewRemote(
+      repository,
+      account,
+      org,
+      name,
+      description,
+      private_
+    )
+  }
+
   public async convertRepositoryToFork(
     repository: RepositoryWithGitHubRepository,
     fork: IAPIFullRepository

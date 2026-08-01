@@ -476,6 +476,7 @@ import {
   getCommitDiff,
   getMergeBase,
   getRemotes,
+  setRemoteURL,
   getWorkingDirectoryDiff,
   isCoAuthoredByTrailer,
   handleLocalCommitPushBatching,
@@ -13692,6 +13693,67 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     await gitStore.refreshDefaultBranch()
 
+    return this._updateRepositoryAccount(repository, getAccountKey(account))
+  }
+
+  /**
+   * Copy this repository to a new remote repository and push to it.
+   *
+   * This is the path for providers whose fork API this app cannot drive -
+   * notably self-hosted GitLab, where the inherited GitHub fork route would
+   * post to a URL that does not exist. It is also offered on GitHub for
+   * anyone who wants an independent copy rather than an attributed fork.
+   *
+   * The remote topology matches what forking produces: `origin` becomes the
+   * new copy and the repository it came from is preserved as `upstream`, so
+   * pulls from the source keep working. An existing `upstream` is left alone
+   * rather than repointed, because whatever it names was a deliberate choice.
+   */
+  public async _copyRepositoryToNewRemote(
+    repository: Repository,
+    account: Account,
+    org: IAPIOrganization | null,
+    name: string,
+    description: string,
+    private_: boolean
+  ): Promise<Repository> {
+    if (isSubmoduleRepository(repository)) {
+      throw new Error(
+        'Copying is unavailable while a submodule is open temporarily. Return to the parent repository first.'
+      )
+    }
+
+    const api = API.fromAccount(account)
+    const created = await api.createRepository(org, name, description, private_)
+
+    const gitStore = this.gitStoreCache.get(repository)
+    const remotes = await getRemotes(repository)
+    const existingOrigin = remotes.find(remote => remote.name === 'origin')
+    const hasUpstream = remotes.some(remote => remote.name === 'upstream')
+
+    await this.withTemporaryRepositoryMutationGuard(repository, async () => {
+      // Preserve where this came from before origin is repointed, otherwise
+      // the source URL is simply lost.
+      if (existingOrigin !== undefined && !hasUpstream) {
+        await addRemote(repository, 'upstream', existingOrigin.url)
+      }
+      if (existingOrigin === undefined) {
+        await addRemote(repository, 'origin', created.clone_url)
+      } else {
+        await setRemoteURL(repository, 'origin', created.clone_url)
+      }
+    })
+    await gitStore.loadRemotes()
+
+    // An unborn or detached repository has nothing to push; saying so beats
+    // failing inside git with a message about a missing upstream.
+    if (gitStore.tip.kind === TipState.Valid) {
+      await this.performPush(repository, {
+        accountKey: getAccountKey(account),
+      })
+    }
+
+    await gitStore.refreshDefaultBranch()
     return this._updateRepositoryAccount(repository, getAccountKey(account))
   }
 

@@ -4329,6 +4329,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             dispatcher={this.props.dispatcher}
             repository={popup.repository}
             account={popup.account}
+            accounts={this.state.accounts}
           />
         )
       case PopupType.CreateTag: {

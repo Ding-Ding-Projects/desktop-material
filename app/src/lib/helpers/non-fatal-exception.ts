@@ -43,6 +43,9 @@ export type ExceptionKinds =
   | 'deferredStartup'
   | 'rebaseConflictsWithBranchAlreadyUpToDate'
   | 'forkCreation'
+  // Copying a repository to a new remote, the path used where a provider has
+  // no fork endpoint this app can drive.
+  | 'repositoryCopy'
   | 'NoSuggestedActionsProvided'
   | 'NoSuggestedActionsProvided'
   | 'resizeObserverLoopCompleted'
