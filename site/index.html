@@ -383,6 +383,33 @@
             <div class="hero-cta install-links">
               <a
                 class="btn btn-filled"
+                href="https://github.com/Ding-Ding-Projects/desktop-material/releases/latest/download/GitHubDesktopSetup-x64.exe"
+              >
+                <svg class="material-icon" aria-hidden="true">
+                  <use href="#icon-download"></use>
+                </svg>
+                Download installer (.exe)
+              </a>
+              <a
+                class="btn btn-tonal"
+                href="https://github.com/Ding-Ding-Projects/desktop-material/releases/latest/download/GitHubDesktopSetup-x64.msi"
+              >
+                <svg class="material-icon" aria-hidden="true">
+                  <use href="#icon-download"></use>
+                </svg>
+                Download .msi
+              </a>
+              <a
+                class="btn btn-tonal"
+                href="https://github.com/Ding-Ding-Projects/desktop-material/releases/latest/download/GitHub.Desktop-x64.zip"
+              >
+                <svg class="material-icon" aria-hidden="true">
+                  <use href="#icon-download"></use>
+                </svg>
+                Portable ZIP
+              </a>
+              <a
+                class="btn btn-tonal"
                 href="https://github.com/Ding-Ding-Projects/desktop-material/blob/main/script/install-windows.ps1"
               >
                 <svg class="material-icon" aria-hidden="true">
@@ -395,11 +422,18 @@
                 href="https://github.com/Ding-Ding-Projects/desktop-material/releases/latest"
               >
                 <svg class="material-icon" aria-hidden="true">
-                  <use href="#icon-download"></use>
+                  <use href="#icon-open-new"></use>
                 </svg>
-                Manual download
+                All release assets
               </a>
             </div>
+            <p class="install-note">
+              The three download buttons above resolve through GitHub&rsquo;s
+              <code>releases/latest/download/</code> route, so each one always
+              serves the newest published release&rsquo;s asset &mdash; no
+              version is pinned into this page and nothing goes stale between
+              builds.
+            </p>
           </div>
         </div>
       </section>
@@ -651,6 +685,94 @@
                 search, filters, select-visible bulk actions, and an explicit
                 Local Clear all control. GitHub keeps All, Unread,
                 participating-only, and complete signed-out states.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">
+                <svg class="material-icon"><use href="#icon-guide"></use></svg>
+              </div>
+              <h3>
+                Language modes &amp; playfulness
+                <span class="tag">Shipped</span>
+              </h3>
+              <p>
+                Every surface renders in English, playful Hong Kong-style
+                Cantonese, or a compact bilingual view, chosen in Settings
+                &rsaquo; Appearance and persisted across restarts. Two
+                independent 1&ndash;5 playfulness sliders &mdash; one per
+                language &mdash; style the voice of every message, errors and
+                warnings included. The level never changes the facts: what
+                happened, which file, and what your options are stay stated in
+                unambiguous words at every level.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">
+                <svg class="material-icon">
+                  <use href="#icon-history"></use>
+                </svg>
+              </div>
+              <h3>
+                Release history in the app <span class="tag">Shipped</span>
+              </h3>
+              <p>
+                A changelog viewer covering every released version, not just the
+                newest, reachable without leaving the app. Filter by date
+                through an advanced calendar that also accepts typed dates,
+                search the text with the same full regex builder every other
+                search bar uses, and export or copy exactly what the current
+                filter shows.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">
+                <svg class="material-icon">
+                  <use href="#icon-terminal"></use>
+                </svg>
+              </div>
+              <h3>Open in your editor <span class="tag">Shipped</span></h3>
+              <p>
+                Detects the editors and shells already installed, lets you add
+                or pick one, and opens the current repository or a selected file
+                in it. The choice persists, and a missing editor produces a
+                clear message rather than a silent no-op.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">
+                <svg class="material-icon"><use href="#icon-bolt"></use></svg>
+              </div>
+              <h3>
+                Spoken narrator &amp; cues <span class="tag">Shipped</span>
+              </h3>
+              <p>
+                An optional narrator, <strong>off by default</strong>, speaks
+                app events in English, Cantonese, or both serialized in one
+                non-overlapping queue, with per-event sound cues and
+                per-repository themes. It rate-limits itself, respects quiet
+                hours and reduced-sound, and yields to an active screen reader.
+                Spoken errors still name the real failure.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">
+                <svg class="material-icon">
+                  <use href="#icon-sparkle"></use>
+                </svg>
+              </div>
+              <h3>Dim sum surprise <span class="tag">Shipped</span></h3>
+              <p>
+                Roughly one launch in ten serves a randomly chosen dim sum dish,
+                named in both languages with a bundled local illustration and
+                alt text that names the dish. It never gates startup, never
+                steals focus, never appears during a first run or an error, and
+                clears itself away. There is no off switch &mdash; the manners
+                are in the behaviour, not an escape hatch.
               </p>
             </article>
 

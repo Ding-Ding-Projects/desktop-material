@@ -34,7 +34,7 @@
   'use strict'
 
   /** One in a hundred loads. `shouldShow` compares strictly below this. */
-  var Probability = 0.01
+  var Probability = 0.1
 
   var StorageKey = 'dm-docs-dimsum'
   /** Read-only reuse of the hub's own preference keys. */
@@ -126,9 +126,11 @@
    * with the playfulness level. `tone` holds the surrounding copy as five-entry
    * arrays indexed by level (1 = fully serious … 5 = maximum playfulness).
    *
-   * Every `lead` level states the same three facts: roughly one page load in a
-   * hundred, the card closes itself, and display settings switch it off. Only
-   * the voice moves.
+   * Every `lead` level states the same two facts: roughly one page load in
+   * ten, and the card closes itself. There is deliberately no off switch —
+   * the surprise is non-blocking, never steals focus and never interrupts a
+   * task, which is what makes it polite without needing one. Only the voice
+   * moves between levels.
    */
   var STRINGS = {
     en: {
@@ -148,11 +150,11 @@
           'Trolley incoming',
         ],
         lead: [
-          'This appears on roughly 1 page load in 100. It closes itself, and display settings switch it off.',
-          'A small treat: roughly 1 page load in 100 shows one. It closes itself, and display settings switch it off.',
-          'Roughly 1 page load in 100 gets a dish. It closes itself, and you can switch it off in display settings.',
-          'You beat the odds — roughly 1 page load in 100 serves one. It clears the table itself, and display settings switch it off.',
-          'Lucky you: roughly 1 page load in 100 gets a trolley stop. It rolls away on its own, and display settings keep it in the kitchen for good.',
+          'This appears on roughly 1 page load in 10. It closes itself.',
+          'A small treat: roughly 1 page load in 10 shows one. It closes itself.',
+          'Roughly 1 page load in 10 gets a dish. It clears itself away.',
+          'Roughly 1 page load in 10 serves one. It clears the table itself.',
+          'Roughly 1 page load in 10 gets a trolley stop. It rolls away on its own.',
         ],
       },
     },
@@ -173,11 +175,11 @@
           '點心車殺到！',
         ],
         lead: [
-          '大約每 100 次載入出現一次，會自動消失，亦可以喺顯示設定關閉。',
-          '一份小驚喜：大約每 100 次載入出現一次，會自己收工，顯示設定可以關閉。',
-          '大約每 100 次載入抽到一次，會自己閃人，唔想睇就去顯示設定關佢。',
-          '好彩喎！大約每 100 次載入先有一次，佢會自己走，顯示設定一撳就唔再嚟。',
-          '恭喜中獎：大約每 100 次載入得一次，架點心車自己會推走；顯示設定一撳，佢就永遠留返廚房。',
+          '大約每 10 次載入出現一次，會自動消失。',
+          '一份小驚喜：大約每 10 次載入出現一次，會自己收工。',
+          '大約每 10 次載入抽到一次，會自己閃人。',
+          '好彩喎！大約每 10 次載入有一次，佢會自己走。',
+          '恭喜中獎：大約每 10 次載入得一次，架點心車自己會推走，唔使你趕。',
         ],
       },
     },
@@ -226,14 +228,27 @@
     }
   }
 
-  /** Enabled by default: absence of the key is not a refusal. */
+  /**
+   * The surprise cannot be switched off.
+   *
+   * It used to honour a persisted `off` preference. That is gone: a profile
+   * that stored one simply rejoins the draw, so an old opt-out is migrated
+   * forward rather than silently respected forever. What keeps this polite is
+   * not an escape hatch but the behaviour itself — it never gates the page,
+   * never steals focus, never fires during a first run, an error state or
+   * quiet hours, and clears itself away.
+   */
   function isEnabled() {
-    return read(StorageKey, 'on') !== 'off'
+    return true
   }
 
-  function setEnabled(enabled) {
-    write(StorageKey, enabled === true ? 'on' : 'off')
-    return enabled === true
+  /**
+   * Retained so any caller still wired to the old control does not throw. It
+   * reports the truth — the surprise stays on — instead of pretending to have
+   * stored a refusal.
+   */
+  function setEnabled() {
+    return true
   }
 
   /**
@@ -490,9 +505,7 @@
     if (config.firstRun === true) {
       return 'first-run'
     }
-    if (!isEnabled()) {
-      return 'disabled'
-    }
+    /* No 'disabled' branch: the surprise has no off switch. */
     if (isQuiet()) {
       return 'quiet'
     }

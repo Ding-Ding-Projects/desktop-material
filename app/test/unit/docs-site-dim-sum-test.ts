@@ -130,28 +130,26 @@ after(() => {
 })
 
 describe('documentation-hub dim sum surprise', () => {
-  it('states the 1% probability and its single storage key', () => {
-    assert.equal(DimSum.probability, 0.01)
+  it('states the 10% probability and its single storage key', () => {
+    assert.equal(DimSum.probability, 0.1)
     assert.equal(DimSum.storageKey, 'dm-docs-dimsum')
     assert.equal(DimSum.assetDirectory, 'assets/site/dim-sum/')
   })
 
   it('shows only below the threshold and never at or above it', () => {
     resetStore()
-    for (const value of [0, 1e-9, 0.0001, 0.005, 0.0099, 0.00999999]) {
+    for (const value of [0, 1e-9, 0.0001, 0.05, 0.099, 0.0999999]) {
       assert.equal(
         DimSum.shouldShow(value),
         true,
-        `${value} is inside the 1% and must show`
+        `${value} is inside the 10% and must show`
       )
     }
-    for (const value of [
-      0.01, 0.010000001, 0.02, 0.1, 0.5, 0.9, 0.99, 0.999999, 1,
-    ]) {
+    for (const value of [0.1, 0.100000001, 0.2, 0.5, 0.9, 0.99, 0.999999, 1]) {
       assert.equal(
         DimSum.shouldShow(value),
         false,
-        `${value} is outside the 1% and must not show`
+        `${value} is outside the 10% and must not show`
       )
     }
     // A draw that is not a usable number is a miss, never a lucky accident.
@@ -188,26 +186,25 @@ describe('documentation-hub dim sum surprise', () => {
     })
   })
 
-  it('persists the off switch and honours it at every random value', () => {
+  it('has no off switch: every draw inside the band still shows', () => {
     resetStore()
+    // The old control is retained so a stale caller cannot throw, but it can
+    // no longer store a refusal - an opt-out from an older profile simply
+    // rejoins the draw.
     DimSum.setEnabled(false)
-    assert.equal(window.localStorage.getItem('dm-docs-dimsum'), 'off')
-    assert.equal(DimSum.isEnabled(), false)
+    assert.equal(DimSum.isEnabled(), true)
 
     for (let step = 0; step <= 1000; step++) {
       const value = step / 1000
       assert.equal(
         DimSum.shouldShow(value),
-        false,
-        `disabled must suppress ${value}`
+        value < 0.1,
+        `draw ${value} must follow the 10% band with no opt-out`
       )
     }
-    // Even the luckiest possible draw stays suppressed.
-    assert.equal(DimSum.shouldShow(0), false)
-    assert.equal(DimSum.shouldShow(0.001, false), false)
 
-    DimSum.setEnabled(true)
-    assert.equal(window.localStorage.getItem('dm-docs-dimsum'), 'on')
+    // A profile carrying the retired 'off' preference still gets the surprise.
+    window.localStorage.setItem('dm-docs-dimsum', 'off')
     assert.equal(DimSum.isEnabled(), true)
     assert.equal(DimSum.shouldShow(0.001), true)
   })
@@ -325,13 +322,23 @@ describe('documentation-hub dim sum surprise', () => {
     for (let level = 1; level <= 5; level++) {
       const english = DimSum.copy('en', level)
       assert.ok(english.title.trim().length > 0, `en title ${level}`)
-      assert.match(english.lead, /1 page load in 100/, `en lead ${level}`)
-      assert.match(english.lead, /display settings/i, `en lead ${level}`)
+      // The facts that must survive every level: the odds, and that the card
+      // clears itself. There is no longer an off switch to mention.
+      assert.match(english.lead, /1 page load in 10\b/, `en lead ${level}`)
+      assert.doesNotMatch(
+        english.lead,
+        /display settings/i,
+        `en lead ${level} must not promise an off switch`
+      )
 
       const cantonese = DimSum.copy('yue', level)
       assert.ok(cantonese.title.trim().length > 0, `yue title ${level}`)
-      assert.match(cantonese.lead, /100/, `yue lead ${level}`)
-      assert.match(cantonese.lead, /顯示設定/, `yue lead ${level}`)
+      assert.match(cantonese.lead, /10 /, `yue lead ${level}`)
+      assert.doesNotMatch(
+        cantonese.lead,
+        /顯示設定/,
+        `yue lead ${level} must not promise an off switch`
+      )
     }
     // Voice moves with the level; level 1 and level 5 do not read alike.
     assert.notEqual(DimSum.copy('en', 1).lead, DimSum.copy('en', 5).lead)
@@ -402,7 +409,7 @@ describe('documentation-hub dim sum surprise', () => {
     assert.equal(DimSum.suppressionReason({ firstRun: true }), 'first-run')
 
     DimSum.setEnabled(false)
-    assert.equal(DimSum.suppressionReason({}), 'disabled')
+    // 'disabled' is gone as a reason: there is nothing left to disable.
     DimSum.setEnabled(true)
 
     resetStore({ 'dm-docs-quiet': 'on' })
@@ -425,10 +432,12 @@ describe('documentation-hub dim sum surprise', () => {
       assert.equal(DimSum.init(merged), null)
       assert.equal(card(), null, JSON.stringify(options))
     }
+    // Being "switched off" is no longer a suppression path: a luckiest-possible
+    // draw still serves a dish even after the retired control is called.
     DimSum.reset()
     DimSum.setEnabled(false)
-    assert.equal(DimSum.init({ random: () => 0 }), null)
-    assert.equal(card(), null)
+    assert.notEqual(DimSum.init({ random: () => 0 }), null)
+    assert.notEqual(card(), null)
     resetStore()
     DimSum.reset()
   })
