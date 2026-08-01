@@ -33,7 +33,7 @@ Each is stated plainly rather than shipped stale-but-implied-fresh.
 | `linux-tui-*` (5) | The Linux TUI is under a standing do-not-touch scope directive. Out of scope until that reopens. |
 | `material-tab-groups` | The scene's fixture repository lives on a temporary `Z:` drive the verifier unmaps; after the (now genuinely working) renderer reload the tab cannot resolve. Persistence itself is fine — the group, its colour and its membership survive a full restart and were confirmed in `tabs.json`. |
 | `material-ollama-model-manager` | The manager surface has grown taller than the frame its acceptance gate was written for: at the gate's own 1452×1001 viewport the panel needs ~59px more room than the scroll region above the footer provides. Content is correctly clipped and scrollable — not a layout defect — but the gate demands the whole panel in one frame. |
-| `material-github-releases-compact`, `material-pull-preview`, `private-repository-lock-badge` | The repository-specialist verifier reaches its Releases inventory assertion but the fixture's release rows did not settle into the exact expected shape in the time available. |
+| `material-github-releases-compact`, `material-pull-preview`, `private-repository-lock-badge` | Re-attempted on a purpose-built fixture (fresh run root, Copilot-enabled provider, clean profile). The provider serves its releases correctly &mdash; the compact summary reads `3 shown &middot; 0 selected` &mdash; but **zero** rows satisfy the gate's `visible && inViewport && contained(list)` filter at its own 200% / 480&times;330 logical viewport, so `completeRowCount` is 0 where exactly 1 is required. Same class as the Ollama frame: the surface outgrew the frame the gate was written for. Not faked to force a pass. |
 | `cheap-lfs-*` (5), `app-hosted-browser-authentication`, `auto-updater-*` | Each needs its own bespoke fixture (sparse-file repositories, a loopback browser fixture, an update feed). Not attempted in this run. |
 
 `auto-updater-update-ready.png` is additionally recorded in the capture plan as
@@ -71,6 +71,26 @@ Two gates were also rewritten to say what they meant: the command-palette
 richness gate asserted exactly eight rows (which the expanded palette broke and
 which said nothing about rows nine and ten) and now asserts **every** rendered
 row carries its icon, group chip and keyword line.
+
+## Second attempt (2026-08-01, later)
+
+A fresh run root was stood up specifically to retry the blocked frames, with
+the Copilot-enabled provider from the start (the earlier provider restart had
+left the repository's persisted GitHub association pointing at a retired port).
+Seed passed, so the fixture itself is sound.
+
+Two further harness facts were established rather than guessed:
+
+- **The off-screen desktop suppresses Enter's default button activation.** Focus
+  is genuinely on the control and the trusted key event is delivered, but the
+  window is never the active window, so Chromium withholds the activation. The
+  Releases disclosure now proves keyboard *reachability* and then activates
+  through the control's own path, printing
+  `RELEASES_TOOLS_ACTIVATION click-fallback-offscreen-desktop` so the receipt
+  never implies a keystroke did it.
+- **`validateAppearanceLanguageSurface()` runs before any scene**, so it fails
+  on a pristine profile whose welcome flow has not been completed. The welcome
+  must be cleared out-of-band first.
 
 ## Honesty gate
 
