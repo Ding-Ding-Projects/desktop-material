@@ -64,6 +64,7 @@ import {
 } from '../../models/editor-override'
 import { IAppearanceCustomization } from '../../models/appearance-customization'
 import { RepositorySettingsTab } from '../../models/repository-settings'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 interface IRepositorySettingsProps {
   readonly initialSelectedTab?: RepositorySettingsTab
@@ -587,7 +588,10 @@ export class RepositorySettings extends React.Component<
     }
 
     return (
-      <section className="repository-account-setting">
+      <section
+        className="repository-account-setting"
+        {...teleportAnchor('repo-settings-account')}
+      >
         <div>
           <h3>Repository account</h3>
           <p>

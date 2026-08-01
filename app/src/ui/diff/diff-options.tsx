@@ -11,6 +11,7 @@ import {
 import { Tooltip, TooltipDirection } from '../lib/tooltip'
 import { createObservableRef } from '../lib/observable-ref'
 import { DiffContextPreferencesControl } from './diff-context-preferences-control'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 interface IDiffOptionsProps {
   readonly isInteractiveDiff: boolean
@@ -91,6 +92,7 @@ export class DiffOptions extends React.Component<
           onClick={this.onButtonClick}
           aria-expanded={this.state.isPopoverOpen}
           ref={this.innerButtonRef}
+          {...teleportAnchor('diff-options-button')}
         >
           <Tooltip
             target={this.innerButtonRef}

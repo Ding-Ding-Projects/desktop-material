@@ -29,6 +29,7 @@ import { LocalizedText } from '../lib/localized-text'
 import { TextBox } from '../lib/text-box'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 /** The address a stock Ollama install listens on. */
 export const DefaultOllamaEndpoint = 'http://127.0.0.1:11434'
@@ -363,7 +364,10 @@ export class OllamaPreferences extends React.Component<
           />
         </p>
 
-        <div className="ollama-tab-setup-endpoint">
+        <div
+          className="ollama-tab-setup-endpoint"
+          {...teleportAnchor('settings-ollama-endpoint')}
+        >
           <TextBox
             label={
               <LocalizedText

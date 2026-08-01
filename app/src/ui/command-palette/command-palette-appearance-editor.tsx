@@ -2,6 +2,7 @@ import * as React from 'react'
 import classNames from 'classnames'
 import { t, translateForAccessibleName } from '../../lib/i18n'
 import { MaterialSymbol } from '../lib/material-symbol'
+import { teleportAnchor } from '../../lib/teleport-targets'
 import {
   CommandPaletteDensity,
   CommandPaletteSize,
@@ -208,6 +209,7 @@ export class CommandPaletteAppearanceEditor extends React.Component<
       <div className="command-palette-appearance" ref={this.containerRef}>
         <button
           ref={this.toggleRef}
+          {...teleportAnchor('palette-appearance-button')}
           type="button"
           className={classNames('command-palette-appearance-toggle', { open })}
           aria-expanded={open}

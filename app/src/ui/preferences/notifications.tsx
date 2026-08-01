@@ -145,17 +145,19 @@ export class Notifications extends React.Component<
             that require a decision, retry, sign-in, or remediation link always
             remain dialogs.
           </p>
-          <RadioGroup<ErrorPresentationStyle>
-            ariaLabelledBy="error-presentation-heading"
-            selectedKey={this.props.errorPresentationStyle}
-            radioButtonKeys={[
-              ErrorPresentationStyle.Notice,
-              ErrorPresentationStyle.Dialog,
-            ]}
-            onSelectionChanged={this.onErrorPresentationStyleChanged}
-            renderRadioButtonLabelContents={this.renderErrorPresentationLabel}
-            className="error-presentation-options"
-          />
+          <div {...teleportAnchor('settings-error-presentation')}>
+            <RadioGroup<ErrorPresentationStyle>
+              ariaLabelledBy="error-presentation-heading"
+              selectedKey={this.props.errorPresentationStyle}
+              radioButtonKeys={[
+                ErrorPresentationStyle.Notice,
+                ErrorPresentationStyle.Dialog,
+              ]}
+              onSelectionChanged={this.onErrorPresentationStyleChanged}
+              renderRadioButtonLabelContents={this.renderErrorPresentationLabel}
+              className="error-presentation-options"
+            />
+          </div>
           <div
             className={`error-presentation-sample ${this.props.errorPresentationStyle}`}
             role="img"

@@ -62,6 +62,7 @@ import {
   TranslationVariables,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 interface IRepositoryTabStripProps {
   readonly tabsStore: RepositoryTabsStore
@@ -1961,8 +1962,10 @@ export class RepositoryTabStrip extends React.Component<
       <div
         ref={this.stripRef}
         className="repository-tab-strip"
+        {...teleportAnchor('tab-strip')}
         role="tablist"
         aria-label="Repository tabs"
+        {...teleportAnchor('tab-strip')}
         data-customization-surface="repository-tabs"
         data-customization-label="Repository tabs"
         data-customization-scope="profile"

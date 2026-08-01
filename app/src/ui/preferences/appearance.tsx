@@ -481,6 +481,7 @@ export class Appearance extends React.Component<
             className="scaling-slider-row"
             role="group"
             aria-labelledby="scaling-heading"
+            {...teleportAnchor('settings-ui-scale')}
           >
             <Octicon
               className="scaling-zoom-icon scaling-zoom-out"
@@ -508,16 +509,18 @@ export class Appearance extends React.Component<
             </span>
           </div>
 
-          <Checkbox
-            className="auto-fit-zoom"
-            label={this.renderAutoFitLabel()}
-            value={
-              this.props.autoFitZoomEnabled
-                ? CheckboxValue.On
-                : CheckboxValue.Off
-            }
-            onChange={this.onAutoFitZoomEnabledChanged}
-          />
+          <div {...teleportAnchor('settings-auto-fit-zoom')}>
+            <Checkbox
+              className="auto-fit-zoom"
+              label={this.renderAutoFitLabel()}
+              value={
+                this.props.autoFitZoomEnabled
+                  ? CheckboxValue.On
+                  : CheckboxValue.Off
+              }
+              onChange={this.onAutoFitZoomEnabledChanged}
+            />
+          </div>
 
           {isTrimmed && (
             <p className="scaling-effective">
@@ -577,56 +580,70 @@ export class Appearance extends React.Component<
         <h2 id="formatting-heading">Formatting</h2>
 
         <Row>
-          <Select
-            label={__DARWIN__ ? 'Date Format' : 'Date format'}
-            value={this.props.selectedDateFormat}
-            onChange={this.onDateFormatChanged}
+          <div
+            style={{ display: 'flex', flexGrow: 1, minWidth: 0 }}
+            {...teleportAnchor('settings-date-format')}
           >
-            {dateFormats.map(({ pattern, example }) => (
-              <option key={pattern} value={pattern}>
-                {example} ({pattern})
-              </option>
-            ))}
-          </Select>
+            <Select
+              label={__DARWIN__ ? 'Date Format' : 'Date format'}
+              value={this.props.selectedDateFormat}
+              onChange={this.onDateFormatChanged}
+            >
+              {dateFormats.map(({ pattern, example }) => (
+                <option key={pattern} value={pattern}>
+                  {example} ({pattern})
+                </option>
+              ))}
+            </Select>
+          </div>
 
-          <Select
-            label={__DARWIN__ ? 'Time Format' : 'Time format'}
-            value={this.props.selectedTimeFormat}
-            onChange={this.onTimeFormatChanged}
+          <div
+            style={{ display: 'flex', flexGrow: 1, minWidth: 0 }}
+            {...teleportAnchor('settings-time-format')}
           >
-            {timeFormats.map(({ pattern, example }) => (
-              <option key={pattern} value={pattern}>
-                {example} ({pattern})
-              </option>
-            ))}
-          </Select>
+            <Select
+              label={__DARWIN__ ? 'Time Format' : 'Time format'}
+              value={this.props.selectedTimeFormat}
+              onChange={this.onTimeFormatChanged}
+            >
+              {timeFormats.map(({ pattern, example }) => (
+                <option key={pattern} value={pattern}>
+                  {example} ({pattern})
+                </option>
+              ))}
+            </Select>
+          </div>
         </Row>
 
-        <Select
-          label={__DARWIN__ ? 'Number Format' : 'Number format'}
-          value={numberFormatToKey(this.props.selectedNumberFormat)}
-          onChange={this.onNumberFormatChanged}
-        >
-          {numberFormats.map(format => (
-            <option
-              key={numberFormatToKey(format)}
-              value={numberFormatToKey(format)}
-            >
-              {formatNumber(1234567.89, format)}
-            </option>
-          ))}
-        </Select>
+        <div {...teleportAnchor('settings-number-format')}>
+          <Select
+            label={__DARWIN__ ? 'Number Format' : 'Number format'}
+            value={numberFormatToKey(this.props.selectedNumberFormat)}
+            onChange={this.onNumberFormatChanged}
+          >
+            {numberFormats.map(format => (
+              <option
+                key={numberFormatToKey(format)}
+                value={numberFormatToKey(format)}
+              >
+                {formatNumber(1234567.89, format)}
+              </option>
+            ))}
+          </Select>
+        </div>
 
-        <Checkbox
-          className="prefer-absolute-dates"
-          label="Prefer absolute dates over relative"
-          value={
-            this.props.preferAbsoluteDates
-              ? CheckboxValue.On
-              : CheckboxValue.Off
-          }
-          onChange={this.onPreferAbsoluteDatesChanged}
-        />
+        <div {...teleportAnchor('settings-prefer-absolute-dates')}>
+          <Checkbox
+            className="prefer-absolute-dates"
+            label="Prefer absolute dates over relative"
+            value={
+              this.props.preferAbsoluteDates
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
+            onChange={this.onPreferAbsoluteDatesChanged}
+          />
+        </div>
       </div>
     )
   }
@@ -660,33 +677,42 @@ export class Appearance extends React.Component<
     return (
       <div className="appearance-section">
         <h2 id="repository-list-heading">Repository list</h2>
-        <Checkbox
-          label="Show recent repositories"
-          value={
-            this.props.showRecentRepositories
-              ? CheckboxValue.On
-              : CheckboxValue.Off
-          }
-          onChange={this.onShowRecentRepositoriesChanged}
-        />
-        <Select
-          label="Show branch name"
-          value={this.props.showBranchNameInRepoList}
-          onChange={this.onShowBranchNameInRepoListChanged}
-        >
-          <option value={ShowBranchNameInRepoListSetting.Always}>Always</option>
-          <option value={ShowBranchNameInRepoListSetting.WhenNotDefault}>
-            When not default
-          </option>
-          <option value={ShowBranchNameInRepoListSetting.Never}>Never</option>
-        </Select>
+        <div {...teleportAnchor('settings-show-recent-repositories')}>
+          <Checkbox
+            label="Show recent repositories"
+            value={
+              this.props.showRecentRepositories
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
+            onChange={this.onShowRecentRepositoriesChanged}
+          />
+        </div>
+        <div {...teleportAnchor('settings-branch-name-in-repo-list')}>
+          <Select
+            label="Show branch name"
+            value={this.props.showBranchNameInRepoList}
+            onChange={this.onShowBranchNameInRepoListChanged}
+          >
+            <option value={ShowBranchNameInRepoListSetting.Always}>
+              Always
+            </option>
+            <option value={ShowBranchNameInRepoListSetting.WhenNotDefault}>
+              When not default
+            </option>
+            <option value={ShowBranchNameInRepoListSetting.Never}>Never</option>
+          </Select>
+        </div>
       </div>
     )
   }
 
   private renderBranchSorting() {
     return (
-      <div className="appearance-section">
+      <div
+        className="appearance-section"
+        {...teleportAnchor('settings-branch-sort')}
+      >
         <h2 id="branch-sort-order-heading">Sort branches</h2>
         <RadioGroup<BranchSortOrder>
           ariaLabelledBy="branch-sort-order-heading"

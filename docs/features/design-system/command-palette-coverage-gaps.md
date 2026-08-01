@@ -1,15 +1,163 @@
 <!--
-  A survey, not a design document. Generated from a full read of the app's
-  settings surfaces and menu definition, then checked entry by entry against
-  the code. It records what the command palette does NOT yet reach, so the
-  remaining work is a list rather than a rediscovery.
+  A survey, then a record of what came of it. The tables under "the original
+  survey" were written from a full read of the app's settings surfaces and menu
+  definition. The status table above them is regenerated from the shipped
+  catalog itself, so it cannot drift into optimism.
 
-  Sixteen of these have since shipped (the eleven repository settings tabs and
-  five Help-menu commands); the rest are still open. Nothing here is a promise
-  about when — it is a record of what was found.
+  A row with no live control is not a row that failed. Most of them describe a
+  destination rather than a value - a dialog, an editor, a list - and the
+  honest thing for those is to take the reader there. Where a control was
+  genuinely wanted and could not be built, the reason is stated.
 -->
 
-# Command palette coverage: what is still missing
+# Command palette coverage
+
+## Status
+
+**131 of the 133 surveyed commands are in the palette. 49 of them carry a live
+control** the reader can change from the row itself; the rest teleport to the
+setting, which for a destination is the whole of what a row can do.
+
+Nothing in the catalog is inert: every row either goes somewhere, changes a
+value in place, or runs a handler, and a test fails the build if one does not.
+
+| Survey id | Command | In the palette | Live control | Note |
+|---|---|---|---|---|
+| G1 | `increase-active-resizable-width` | ✅ | — | VERIFIED wired=false. This is a one-shot action, not a setting: there is no value to read or write. Confirmed it is a real MenuEvent (menu-e |
+| G2 | `decrease-active-resizable-width` | ✅ | — | VERIFIED wired=false. Mirror image of G1 and blocked for the same reason: a one-shot action with no value behind it. Confirmed at menu-event |
+| G3 | `palette:report-issue` | ✅ | — | control = none. Confirmed: action row opening a web link, already shipped at app/src/ui/app.tsx:1393 `case 'palette:report-issue': return th |
+| G4 | `palette:contact-support` | ✅ | — | control = none. Confirmed: action row opening a support URL at app/src/ui/app.tsx:1395 `return this.openPaletteWebLink(ContactSupportUrl)`.  |
+| G5 | `palette:user-guides` | ✅ | — | control = none. Confirmed: action row at app/src/ui/app.tsx:1397-1398, where `case 'palette:user-guides':` falls through to `case 'palette:k |
+| G6 | `palette:keyboard-shortcuts` | ✅ | — | control = none. Confirmed: shares the fall-through case with G5 at app/src/ui/app.tsx:1397-1398, reaching the same openPaletteWebLink(UserGu |
+| G7 | `palette:show-logs-folder` | ✅ | — | control = none. Confirmed: action row at app/src/ui/app.tsx:1400 `return this.showLogsFolder()`. Nothing to read or write. No anchor — the p |
+| G8 | `palette:toggle-devtools` | — | — | deliberately not offered — control = none, and the command is absent from the catalog and from onPaletteCommand — independently confirmed. There is |
+| G9 | `palette:reload-window` | — | — | deliberately not offered — control = none, and the command is absent from the catalog — confirmed. Nothing to read or write. A renderer path does e |
+| G10 | `palette:set-theme-mode` | ✅ | ✅ |  |
+| G11 | `palette:set-ui-scale` | ✅ | ✅ |  |
+| G12 | `palette:set-auto-fit-zoom` | ✅ | ✅ |  |
+| G13 | `palette:set-show-recent-repositories` | ✅ | ✅ |  |
+| G14 | `palette:set-branch-name-in-repo-list` | ✅ | ✅ |  |
+| G15 | `palette:set-branch-sort` | ✅ | ✅ |  |
+| G16 | `palette:set-date-format` | ✅ | — |  |
+| G17 | `palette:set-time-format` | ✅ | — |  |
+| G18 | `palette:set-number-format` | ✅ | — |  |
+| G19 | `palette:set-prefer-absolute-dates` | ✅ | ✅ |  |
+| G20 | `palette:set-auto-switch-account` | ✅ | ✅ |  |
+| G21 | `palette:set-repository-indicators` | ✅ | ✅ |  |
+| G22 | `palette:set-usage-stats` | ✅ | — | The setting's only UI lives behind `{ENABLE_TELEMETRY && (...)}` in advanced.tsx:260, and app/src/lib/telemetry-flag.ts declares `export con |
+| G23 | `palette:set-verbose-logging` | ✅ | ✅ |  |
+| G24 | `palette:set-large-repo-auto-detect` | ✅ | ✅ |  |
+| G25 | `palette:set-large-repo-auto-repack` | ✅ | ✅ |  |
+| G26 | `palette:set-browser-open-mode` | ✅ | ✅ |  |
+| G27 | `palette:set-confirm-discard-permanently` | ✅ | ✅ |  |
+| G28 | `palette:set-confirm-discard-stash` | ✅ | ✅ |  |
+| G29 | `palette:set-confirm-checkout-commit` | ✅ | ✅ |  |
+| G30 | `palette:set-confirm-undo-commit` | ✅ | ✅ |  |
+| G31 | `palette:set-confirm-commit-message-override` | ✅ | ✅ |  |
+| G32 | `palette:set-confirm-worktree-removal` | ✅ | ✅ |  |
+| G33 | `palette:set-confirm-commit-filtered-changes` | ✅ | ✅ |  |
+| G34 | `palette:set-uncommitted-changes-strategy` | ✅ | ✅ |  |
+| G35 | `palette:set-diff-check-marks` | ✅ | ✅ |  |
+| G36 | `palette:set-error-presentation` | ✅ | ✅ |  |
+| G37 | `palette:entry-git-author-name` | ✅ | — | CONFIRMED unwireable. `user.name` is read only through the async `getGlobalConfigValue('user.name')` and written only through the async `set |
+| G38 | `palette:entry-git-author-email` | ✅ | — | CONFIRMED unwireable, same shape as G37 for `user.email`: async-only read/write via getGlobalConfigValue/setGlobalConfigValue, held meanwhil |
+| G39 | `palette:set-show-commit-identity` | ✅ | ✅ |  |
+| G40 | `palette:entry-default-branch-name` | ✅ | — | CONFIRMED unwireable. `init.defaultBranch` is read by the async `getDefaultBranch()` (app/src/lib/helpers/default-branch.ts:25) and written  |
+| G41 | `palette:set-git-hook-env` | ✅ | ✅ |  |
+| G42 | `palette:set-git-hook-env-shell` | ✅ | — |  |
+| G43 | `palette:set-git-hook-env-cache` | ✅ | ✅ |  |
+| G44 | `palette:global-ignore` | ✅ | — | CONFIRMED navigator-only by design. GlobalIgnoreEditor (app/src/ui/preferences/global-ignore.tsx) is a path line, a free textarea and action |
+| G45 | `palette:set-external-editor` | ✅ | — |  |
+| G46 | `palette:set-shell` | ✅ | — |  |
+| G47 | `palette:set-context-menu-opencode` | ✅ | — | No App-level read and no dispatcher write exist. Confirmed: app-state.ts has no context-menu field, dispatcher.ts has no context-menu method |
+| G48 | `palette:set-context-menu-desktop-material` | ✅ | — | Same as G47: registry state behind async IPC held in Integrations' local state, with no IAppState field and no Dispatcher method. Anchor del |
+| G49 | `palette:set-context-menu-modern` | ✅ | — | No App-level read and no dispatcher write. Value is contextMenu?.mode === 'modern' from the same async IPC state; write is ipcRenderer.invok |
+| G50 | `palette:branch-preset-script` | ✅ | — | Control is `none` (navigator). A read and a write do exist but are not scalar: app-state.ts:487 declares branchPresetScript as ICustomIntegr |
+| G51 | `palette:custom-integrations` | ✅ | — | Control is `none` (navigator) — the row stands in for six path/choose/arguments fields across two ICustomIntegration records (app-state.ts:4 |
+| G52 | `palette:set-agent-server-enabled` | ✅ | — | CONFIRMED. No App state field and no dispatcher method exists. grep /agent/i over app/src/lib/app-state.ts returns zero matches; grep /agent |
+| G53 | `palette:agent-access-mode` | ✅ | — | CONFIRMED. Control column is 'none' by design - navigator only. onModeChanged (agent-access.tsx:604 onward) fires a blocking window.confirm  |
+| G54 | `palette:agent-pairing` | ✅ | — | CONFIRMED. Control column is 'none' - navigator only. The pairing surface (renderPairing, agent-access.tsx:398) is a QR code plus action but |
+| G55 | `palette:agent-token` | ✅ | — | CONFIRMED. Teleport only, never a value - the token is secret material the palette must not read, echo, or copy. The anchor lands on the tok |
+| G56 | `palette:set-auto-commit-push` | ✅ | ✅ |  |
+| G57 | `palette:set-auto-commit-push-interval` | ✅ | — |  |
+| G58 | `palette:set-auto-pull` | ✅ | ✅ |  |
+| G59 | `palette:set-auto-pull-interval` | ✅ | — |  |
+| G60 | `palette:automation-account-overrides` | ✅ | — | Navigator row by design: the section renders 4 selects per account (OverrideSelect x2, OverrideIntervalSelect x2) over a runtime-discovered  |
+| G61 | `palette:queue-clone-settings` | ✅ | — | Navigator by design (control column is `none`), and it could not be an in-row control even if we wanted one. The clone-queue policy is per-a |
+| G62 | `palette:set-sound-enabled` | ✅ | ✅ |  |
+| G63 | `palette:set-sound-effects` | ✅ | ✅ |  |
+| G64 | `palette:set-sound-effect-volume` | ✅ | — |  |
+| G65 | `palette:set-sound-narrator` | ✅ | ✅ |  |
+| G66 | `palette:set-sound-recorded-narration` | ✅ | ✅ |  |
+| G67 | `palette:set-sound-narrator-volume` | ✅ | — |  |
+| G68 | `palette:set-sound-narrator-cooldown` | ✅ | — |  |
+| G69 | `palette:set-sound-music` | ✅ | ✅ |  |
+| G70 | `palette:set-sound-music-volume` | ✅ | — |  |
+| G71 | `palette:set-sound-quiet-hours` | ✅ | ✅ |  |
+| G72 | `palette:set-sound-quiet-hours-start` | ✅ | — |  |
+| G73 | `palette:set-sound-quiet-hours-end` | ✅ | — |  |
+| G74 | `palette:set-sound-reduced-motion` | ✅ | ✅ |  |
+| G75 | `palette:repository-music-track` | ✅ | — | Navigator row by design. Confirmed: no single palette-representable value exists. The per-repository music selection is a three-way override |
+| G76 | `palette:audition-sound-cues` | ✅ | — | Navigator row by design. Confirmed: the audition grid is fire-and-forget preview buttons calling audioCueStore.previewCue(category) (sound.t |
+| G77 | `palette:copilot-commit-model` | ✅ | — | Confirmed unwirable as a palette control, but the original blocker's reason was wrong and is corrected here. The control is `CopilotModelPic |
+| G78 | `palette:copilot-conflict-model` | ✅ | — | Same corrected reason as G77 — `dynamic-choice` exists as a catalog type but is unrendered by command-palette.tsx and has no copilot-models  |
+| G79 | `palette:set-copilot-always-resolve-conflicts` | ✅ | ✅ |  |
+| G80 | `palette:add-ai-provider` | ✅ | — | Confirmed: no value to read or write — the affordance opens the `edit-byok-provider-dialog`. The gating claim is verified in source: the `Ad |
+| G81 | `palette:entry-ollama-endpoint` | ✅ | — | Confirmed: there is NO app-state field and NO dispatcher method for the Ollama endpoint. The text box binds to `OllamaPreferences`'s own com |
+| G82 | `palette:repository-remotes` | ✅ | — | shipped as `palette:repository-settings-remote` |
+| G83 | `palette:repository-git-config` | ✅ | — | shipped as `palette:repository-settings-git-config` |
+| G84 | `palette:repository-build-run-settings` | ✅ | — | shipped as `palette:repository-settings-build-run` |
+| G85 | `palette:repository-submodules` | ✅ | — | shipped as `palette:repository-settings-submodules` |
+| G86 | `palette:repository-subtrees` | ✅ | — | shipped as `palette:repository-settings-subtrees` |
+| G87 | `palette:repository-metadata` | ✅ | — | shipped as `palette:repository-settings-metadata` |
+| G88 | `palette:repository-appearance` | ✅ | — | shipped as `palette:repository-settings-appearance` |
+| G89 | `palette:repository-fork-settings` | ✅ | — | shipped as `palette:repository-settings-fork-settings` |
+| G90 | `palette:ssh-working-copy` | ✅ | — | CONFIRMED not wirable, and CONFIRMED the only genuinely missing B12 row: a case-insensitive grep for 'ssh' across app/src/lib/command-palett |
+| G91 | `palette:set-build-auto-install` | ✅ | ✅ |  |
+| G92 | `palette:set-build-pre-elevate` | ✅ | ✅ |  |
+| G93 | `palette:set-build-run-after-build` | ✅ | ✅ |  |
+| G94 | `palette:set-build-auto-ignore-outputs` | ✅ | ✅ |  |
+| G95 | `palette:set-build-after-pull` | ✅ | ✅ |  |
+| G96 | `palette:set-build-offer-agents` | ✅ | ✅ |  |
+| G97 | `palette:set-build-fix-provider` | ✅ | ✅ |  |
+| G98 | `palette:set-build-fix-auto-approve` | ✅ | ✅ |  |
+| G99 | `palette:set-cheap-lfs-auto-materialize` | ✅ | ✅ |  |
+| G100 | `palette:set-cheap-lfs-auto-pin` | ✅ | ✅ |  |
+| G101 | `palette:set-cheap-lfs-clone-helper` | ✅ | ✅ |  |
+| G102 | `palette:set-cheap-lfs-parallel-uploads` | ✅ | — |  |
+| G103 | `palette:set-cheap-lfs-storage-provider` | ✅ | ✅ |  |
+| G104 | `palette:set-cheap-lfs-cloud-compression` | ✅ | — | DOWNGRADED by verification. The read and the write do not agree outside one narrow case, and the schema has no way to express the disabled/a |
+| G105 | `palette:cheap-lfs-encryption` | ✅ | — | Navigator only, by design — blocker VERIFIED against source. Turning encryption on is not a boolean write: CheapLfsSettings.onCheapLfsPayloa |
+| G106 | `palette:set-signing-commits` | ✅ | — | VERIFIED unwirable. No app-state field and no dispatcher method exist for commit signing: app/src/lib/app-state.ts has ZERO case-insensitive |
+| G107 | `palette:set-signing-tags` | ✅ | — | VERIFIED unwirable, identical to G106. `tagSigning` is declared only in RepositorySigning's local component state (signing.tsx:83) and set o |
+| G108 | `palette:signing-policy` | ✅ | — | Navigator row - control is `none` by design, so no read/write is required, and no anchor edit is needed: the survey's target `sidebarReposit |
+| G109 | `palette:set-diff-auto-expand-context` | ✅ | ✅ |  |
+| G110 | `palette:set-diff-context-step` | ✅ | — |  |
+| G111 | `palette:appearance` | ✅ | — | Navigator row — the survey specifies control `none`, so no read/write is needed. VERIFIED: the teleport anchor supplied here is the single a |
+| G112 | `palette:set-palette-density` | ✅ | — | CONFIRMED not wireable from App. `grep -c -i palette app/src/lib/app-state.ts` returns 0, and `grep -i palette` over app/src/ui/dispatcher/d |
+| G113 | `palette:set-palette-random-per-repository` | ✅ | — | CONFIRMED, same architectural blocker as G112 (zero palette references in app-state.ts, dispatcher.ts, app-store.ts). Union claim CONFIRMED: |
+| G114 | `palette:set-palette-show-icons` | ✅ | — | CONFIRMED, same architectural blocker as G112. `showIcons` is a field of the localStorage-only ICommandPaletteAppearance (command-palette-ap |
+| G115 | `palette:set-palette-show-group-chips` | ✅ | — | CONFIRMED, same architectural blocker as G112. `showGroups` is a field of the localStorage-only ICommandPaletteAppearance (command-palette-a |
+| G116 | `palette:set-palette-show-keywords` | ✅ | — | CONFIRMED, same architectural blocker as G112. `showKeywords` is a field of the localStorage-only ICommandPaletteAppearance (command-palette |
+| G117 | `palette:new-tab-group` | ✅ | — | CONFIRMED. Control is `none` (dialog), so no read/write is required, and none exists. `CreateTabGroupDialog` renders only from the component |
+| G118 | `palette:edit-tab-group` | ✅ | — | CONFIRMED. Control is `none` (dialog). `renderEditGroupDialog` (repository-tab-strip.tsx:1750-1752) returns null unless the component-local  |
+| G119 | `palette:close-tabs-containing` | ✅ | — | CONFIRMED, with one correction to the original blocker text. No read: the close-tabs query lives in `CloseTabsContainingPopover`'s own state |
+| G120 | `palette:close-tabs-not-containing` | ✅ | — | CONFIRMED. Inverse of G119. `CloseTabsExceptContainingPopover` is gated on the local `closeExceptAnchor` state set by `openCloseExcept(ancho |
+| G121 | `palette:pin-tab` | ✅ | — | CONFIRMED. Control is `none`, so no read/write is required. For the record the execute path exists and is safe and App-reachable: App holds  |
+| G122 | `palette:unpin-tab` | ✅ | — | CONFIRMED. Control is `none`. Mirror of G121: `this.props.repositoryTabsStore.setTabPinned(tab.id, false)` (repository-tabs-store.ts:768) is |
+| G123 | `palette:edit-tab-appearance` | ✅ | — | CONFIRMED. Control is `none`. The anchored editor is opened by the private async `RepositoryTabStrip.openStyleEditor(tab, anchor)` (reposito |
+| G124 | `palette:search-tabs` | ✅ | — | CONFIRMED. No read: the tab-search query is internal to `TabSearchPopover`; nothing persists it, so `clearOnApply: false` has no value to ke |
+| G125 | `palette:edit-app-appearance` | ✅ | — | Survey control column is `none`. This row opens the anchored app-workspace appearance editor; it carries no scalar value. The only real read |
+| G126 | `palette:edit-app-identity` | ✅ | — | Survey control column is `none`. Opens the anchored app-identity editor; no scalar value. Underlying store access is object-valued via `setP |
+| G127 | `palette:edit-toolbar-appearance` | ✅ | — | Survey control column is `none`. Additionally no JSX teleport anchor is possible here: the only `<Toolbar>` instance (app/src/ui/app.tsx:721 |
+| G128 | `palette:edit-repository-list-appearance` | ✅ | — | Survey control column is `none`. Opens the anchored repository-list appearance editor; no scalar value. NOTE: `TeleportTargetSelectors` has  |
+| G129 | `palette:edit-repository-tabs-appearance` | ✅ | — | Survey control column is `none`. Opens the anchored repository-tabs appearance editor; no scalar value. App.tsx's `onRepositoryTabsAppearanc |
+| G130 | `palette:edit-repository-logo` | ✅ | — | Survey control column is `none`. The logo is an `IRepositoryLogoDesign` object (or null when inherited) written through `dispatcher.setRepos |
+| G131 | `palette:manage-repository-groups` | ✅ | — | Action row, not a setting. Verified: PopupType.ManageRepositoryGroup is declared at app/src/models/popup.ts:163 and its union member at :571 |
+| G132 | `palette:repository-account` | ✅ | — | Not a scalar App owns. The dialog's live value is RepositorySettings' own component state (`this.state.accountKey`, app/src/ui/repository-se |
+| G133 | `palette:regex-builder` | ✅ | — | No app-wide value exists. Filter mode and case sensitivity are per-searchSurfaceId: the palette holds them in its own component state (`filt |
+
+## The original survey
 
 **Sources read:** `app/src/lib/command-palette-catalog.ts` (112 entries), `app/src/lib/teleport-targets.ts` (31 target keys), `app/src/models/preferences.ts` (14 `PreferencesTab` members), `app/src/ui/repository-settings/repository-settings.tsx` (11 `RepositorySettingsTab` members), `app/src/main-process/menu/menu-event.ts` (69 `MenuEvent` members) + `build-default-menu.ts`, `app/src/ui/app.tsx` (`onPaletteCommand` 1306, `getPaletteControlValues` 1451, `onPaletteControlChange` 1511), `app/test/unit/command-palette-catalog-test.ts`, `app/src/ui/preferences/prompts.tsx`, `app/src/lib/audio/audio-settings.ts`.
 

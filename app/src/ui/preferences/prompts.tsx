@@ -201,7 +201,10 @@ export class Prompts extends React.Component<
       UncommittedChangesStrategy.AskForConfirmation
 
     return (
-      <div className="advanced-section">
+      <div
+        className="advanced-section"
+        {...teleportAnchor('settings-uncommitted-changes-strategy')}
+      >
         <h2 id="switch-branch-heading">
           If I have changes and I switch branches...
         </h2>
@@ -219,15 +222,17 @@ export class Prompts extends React.Component<
 
   private renderCommittingFilteredChangesPrompt = () => {
     return (
-      <Checkbox
-        label="Committing changes hidden by filter"
-        value={
-          this.state.askForConfirmationOnCommitFilteredChanges
-            ? CheckboxValue.On
-            : CheckboxValue.Off
-        }
-        onChange={this.onAskForConfirmationOnCommitFilteredChanges}
-      />
+      <div {...teleportAnchor('settings-confirm-commit-filtered-changes')}>
+        <Checkbox
+          label="Committing changes hidden by filter"
+          value={
+            this.state.askForConfirmationOnCommitFilteredChanges
+              ? CheckboxValue.On
+              : CheckboxValue.Off
+          }
+          onChange={this.onAskForConfirmationOnCommitFilteredChanges}
+        />
+      </div>
     )
   }
 
@@ -261,33 +266,39 @@ export class Prompts extends React.Component<
                 onChange={this.onConfirmDiscardChangesChanged}
               />
             </div>
-            <Checkbox
-              label="Discarding changes permanently"
-              value={
-                this.state.confirmDiscardChangesPermanently
-                  ? CheckboxValue.On
-                  : CheckboxValue.Off
-              }
-              onChange={this.onConfirmDiscardChangesPermanentlyChanged}
-            />
-            <Checkbox
-              label="Discarding stash"
-              value={
-                this.state.confirmDiscardStash
-                  ? CheckboxValue.On
-                  : CheckboxValue.Off
-              }
-              onChange={this.onConfirmDiscardStashChanged}
-            />
-            <Checkbox
-              label="Checking out a commit"
-              value={
-                this.state.confirmCheckoutCommit
-                  ? CheckboxValue.On
-                  : CheckboxValue.Off
-              }
-              onChange={this.onConfirmCheckoutCommitChanged}
-            />
+            <div {...teleportAnchor('settings-confirm-discard-permanently')}>
+              <Checkbox
+                label="Discarding changes permanently"
+                value={
+                  this.state.confirmDiscardChangesPermanently
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={this.onConfirmDiscardChangesPermanentlyChanged}
+              />
+            </div>
+            <div {...teleportAnchor('settings-confirm-discard-stash')}>
+              <Checkbox
+                label="Discarding stash"
+                value={
+                  this.state.confirmDiscardStash
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={this.onConfirmDiscardStashChanged}
+              />
+            </div>
+            <div {...teleportAnchor('settings-confirm-checkout-commit')}>
+              <Checkbox
+                label="Checking out a commit"
+                value={
+                  this.state.confirmCheckoutCommit
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={this.onConfirmCheckoutCommitChanged}
+              />
+            </div>
             <div {...teleportAnchor('settings-confirm-force-push')}>
               <Checkbox
                 label="Force pushing"
@@ -299,33 +310,41 @@ export class Prompts extends React.Component<
                 onChange={this.onConfirmForcePushChanged}
               />
             </div>
-            <Checkbox
-              label="Undo commit"
-              value={
-                this.state.confirmUndoCommit
-                  ? CheckboxValue.On
-                  : CheckboxValue.Off
-              }
-              onChange={this.onConfirmUndoCommitChanged}
-            />
-            <Checkbox
-              label="Overriding commit message with generated message"
-              value={
-                this.state.confirmCommitMessageOverride
-                  ? CheckboxValue.On
-                  : CheckboxValue.Off
-              }
-              onChange={this.onConfirmCommitMessageOverrideChanged}
-            />
-            <Checkbox
-              label="Removing worktrees"
-              value={
-                this.state.confirmWorktreeRemoval
-                  ? CheckboxValue.On
-                  : CheckboxValue.Off
-              }
-              onChange={this.onConfirmWorktreeRemovalChanged}
-            />
+            <div {...teleportAnchor('settings-confirm-undo-commit')}>
+              <Checkbox
+                label="Undo commit"
+                value={
+                  this.state.confirmUndoCommit
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={this.onConfirmUndoCommitChanged}
+              />
+            </div>
+            <div
+              {...teleportAnchor('settings-confirm-commit-message-override')}
+            >
+              <Checkbox
+                label="Overriding commit message with generated message"
+                value={
+                  this.state.confirmCommitMessageOverride
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={this.onConfirmCommitMessageOverrideChanged}
+              />
+            </div>
+            <div {...teleportAnchor('settings-confirm-worktree-removal')}>
+              <Checkbox
+                label="Removing worktrees"
+                value={
+                  this.state.confirmWorktreeRemoval
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={this.onConfirmWorktreeRemovalChanged}
+              />
+            </div>
             {this.renderCommittingFilteredChangesPrompt()}
           </div>
         </div>

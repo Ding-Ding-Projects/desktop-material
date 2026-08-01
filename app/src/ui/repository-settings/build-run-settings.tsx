@@ -25,6 +25,7 @@ import {
   normalizeBuildFixProvider,
 } from '../../lib/build-run/codex'
 import { t } from '../../lib/i18n'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 interface IBuildRunSettingsProps {
   readonly repository: Repository
@@ -486,84 +487,100 @@ export class BuildRunSettings extends React.Component<
           Behaviour
         </h3>
         <div className="build-run-toggles">
-          <Checkbox
-            label={autoInstallLabel}
-            value={
-              prefs.autoInstallMissingTools ?? true
-                ? CheckboxValue.On
-                : CheckboxValue.Off
-            }
-            onChange={this.onAutoInstallMissingToolsChanged}
-          />
-          <Checkbox
-            label={elevatedLabel}
-            value={prefs.elevated ? CheckboxValue.On : CheckboxValue.Off}
-            onChange={this.onElevatedChanged}
-          />
-          <Checkbox
-            label={
-              __DARWIN__
-                ? 'Run After a Successful Build'
-                : 'Run after a successful build'
-            }
-            value={
-              prefs.autoRunAfterBuild ? CheckboxValue.On : CheckboxValue.Off
-            }
-            onChange={this.onAutoRunAfterBuildChanged}
-          />
-          <Checkbox
-            label={
-              __DARWIN__
-                ? 'Auto-Ignore Build Outputs'
-                : 'Auto-ignore build outputs'
-            }
-            value={
-              prefs.autoIgnoreBuildOutputs
-                ? CheckboxValue.On
-                : CheckboxValue.Off
-            }
-            onChange={this.onAutoIgnoreBuildOutputsChanged}
-          />
-          <Checkbox
-            label={
-              __DARWIN__
-                ? 'Build After Pulling New Commits'
-                : 'Build after pulling new commits'
-            }
-            value={
-              prefs.autoBuildOnPull ?? false
-                ? CheckboxValue.On
-                : CheckboxValue.Off
-            }
-            onChange={this.onAutoBuildOnPullChanged}
-          />
-          <Checkbox
-            label={offerOpencodeLabel}
-            value={
-              prefs.offerOpencodeAutoFix ?? false
-                ? CheckboxValue.On
-                : CheckboxValue.Off
-            }
-            onChange={this.onOfferOpencodeAutoFixChanged}
-          />
-          <Select
-            className="build-fix-provider-select"
-            label={t('buildRun.preferredProvider')}
-            value={normalizeBuildFixProvider(prefs.buildFixProvider)}
-            onChange={this.onBuildFixProviderChanged}
-          >
-            <option value="codex">Codex</option>
-            <option value="opencode">OpenCode</option>
-          </Select>
-          <Checkbox
-            label={opencodeAutoApproveLabel}
-            value={
-              getBuildFixAutoApprove(prefs)
-                ? CheckboxValue.On
-                : CheckboxValue.Off
-            }
-            onChange={this.onOpencodeAutoApproveChanged}
-          />
+          <div {...teleportAnchor('repo-settings-build-auto-install')}>
+            <Checkbox
+              label={autoInstallLabel}
+              value={
+                prefs.autoInstallMissingTools ?? true
+                  ? CheckboxValue.On
+                  : CheckboxValue.Off
+              }
+              onChange={this.onAutoInstallMissingToolsChanged}
+            />
+          </div>
+          <div {...teleportAnchor('repo-settings-build-pre-elevate')}>
+            <Checkbox
+              label={elevatedLabel}
+              value={prefs.elevated ? CheckboxValue.On : CheckboxValue.Off}
+              onChange={this.onElevatedChanged}
+            />
+          </div>
+          <div {...teleportAnchor('repo-settings-build-run-after-build')}>
+            <Checkbox
+              label={
+                __DARWIN__
+                  ? 'Run After a Successful Build'
+                  : 'Run after a successful build'
+              }
+              value={
+                prefs.autoRunAfterBuild ? CheckboxValue.On : CheckboxValue.Off
+              }
+              onChange={this.onAutoRunAfterBuildChanged}
+            />
+          </div>
+          <div {...teleportAnchor('repo-settings-build-auto-ignore')}>
+            <Checkbox
+              label={
+                __DARWIN__
+                  ? 'Auto-Ignore Build Outputs'
+                  : 'Auto-ignore build outputs'
+              }
+              value={
+                prefs.autoIgnoreBuildOutputs
+                  ? CheckboxValue.On
+                  : CheckboxValue.Off
+              }
+              onChange={this.onAutoIgnoreBuildOutputsChanged}
+            />
+          </div>
+          <div {...teleportAnchor('repo-settings-build-after-pull')}>
+            <Checkbox
+              label={
+                __DARWIN__
+                  ? 'Build After Pulling New Commits'
+                  : 'Build after pulling new commits'
+              }
+              value={
+                prefs.autoBuildOnPull ?? false
+                  ? CheckboxValue.On
+                  : CheckboxValue.Off
+              }
+              onChange={this.onAutoBuildOnPullChanged}
+            />
+          </div>
+          <div {...teleportAnchor('repo-settings-build-offer-agents')}>
+            <Checkbox
+              label={offerOpencodeLabel}
+              value={
+                prefs.offerOpencodeAutoFix ?? false
+                  ? CheckboxValue.On
+                  : CheckboxValue.Off
+              }
+              onChange={this.onOfferOpencodeAutoFixChanged}
+            />
+          </div>
+          <div {...teleportAnchor('repo-settings-build-fix-provider')}>
+            <Select
+              className="build-fix-provider-select"
+              label={t('buildRun.preferredProvider')}
+              value={normalizeBuildFixProvider(prefs.buildFixProvider)}
+              onChange={this.onBuildFixProviderChanged}
+            >
+              <option value="codex">Codex</option>
+              <option value="opencode">OpenCode</option>
+            </Select>
+          </div>
+          <div {...teleportAnchor('repo-settings-build-fix-auto-approve')}>
+            <Checkbox
+              label={opencodeAutoApproveLabel}
+              value={
+                getBuildFixAutoApprove(prefs)
+                  ? CheckboxValue.On
+                  : CheckboxValue.Off
+              }
+              onChange={this.onOpencodeAutoApproveChanged}
+            />
+          </div>
         </div>
         <p className="build-run-section-description">
           Auto-ignore adds the profile's build-output patterns to{' '}

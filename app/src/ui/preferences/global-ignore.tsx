@@ -15,6 +15,7 @@ import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { Button } from '../lib/button'
 import { LocalizedText } from '../lib/localized-text'
 import { TextArea } from '../lib/text-area'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 interface IGlobalIgnoreEditorProps {
   readonly load?: () => Promise<IGlobalIgnoreDocument>
@@ -197,6 +198,7 @@ export class GlobalIgnoreEditor extends React.Component<
       <section
         className="global-ignore-editor"
         aria-labelledby="global-ignore-heading"
+        {...teleportAnchor('settings-global-ignore')}
       >
         <h2 id="global-ignore-heading">
           <LocalizedText

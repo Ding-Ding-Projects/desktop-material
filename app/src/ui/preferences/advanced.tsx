@@ -209,7 +209,10 @@ export class Advanced extends React.Component<
   public render() {
     return (
       <DialogContent>
-        <div className="advanced-section">
+        <div
+          className="advanced-section"
+          {...teleportAnchor('settings-auto-switch-account')}
+        >
           <h2>Accounts</h2>
           <Checkbox
             label="Automatically switch the active account to the selected repository's owner"
@@ -232,7 +235,10 @@ export class Advanced extends React.Component<
             </p>
           </div>
         </div>
-        <div className="advanced-section">
+        <div
+          className="advanced-section"
+          {...teleportAnchor('settings-repository-indicators')}
+        >
           <h2>Background updates</h2>
           <Checkbox
             label="Show status icons in the repository list"
@@ -271,7 +277,10 @@ export class Advanced extends React.Component<
             />
           </div>
         )}
-        <div className="advanced-section">
+        <div
+          className="advanced-section"
+          {...teleportAnchor('settings-verbose-logging')}
+        >
           <h2>Logging</h2>
           <Checkbox
             label="Verbose logging (debug level)"
@@ -331,7 +340,10 @@ export class Advanced extends React.Component<
   private renderBrowserSettings() {
     const { languageMode, browserOpenMode } = this.state
     return (
-      <div className="advanced-section">
+      <div
+        className="advanced-section"
+        {...teleportAnchor('settings-browser-open-mode')}
+      >
         <h2 id="browser-open-mode-title">
           {translate('settings.browserOpenModeTitle', languageMode)}
         </h2>
@@ -367,16 +379,18 @@ export class Advanced extends React.Component<
     return (
       <div className="advanced-section">
         <h2>{translate('largeRepo.settings.title', languageMode)}</h2>
-        <Checkbox
-          label={translate('largeRepo.settings.autoDetect', languageMode)}
-          value={
-            this.state.largeRepoAutoDetect
-              ? CheckboxValue.On
-              : CheckboxValue.Off
-          }
-          onChange={this.onLargeRepoAutoDetectChanged}
-          ariaDescribedBy="large-repo-auto-detect-description"
-        />
+        <div {...teleportAnchor('settings-large-repo-auto-detect')}>
+          <Checkbox
+            label={translate('largeRepo.settings.autoDetect', languageMode)}
+            value={
+              this.state.largeRepoAutoDetect
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
+            onChange={this.onLargeRepoAutoDetectChanged}
+            ariaDescribedBy="large-repo-auto-detect-description"
+          />
+        </div>
         <div
           id="large-repo-auto-detect-description"
           className="settings-description"
@@ -391,16 +405,18 @@ export class Advanced extends React.Component<
             )}
           </p>
         </div>
-        <Checkbox
-          label={translate('largeRepo.settings.autoRepack', languageMode)}
-          value={
-            this.state.largeRepoAutoRepack
-              ? CheckboxValue.On
-              : CheckboxValue.Off
-          }
-          onChange={this.onLargeRepoAutoRepackChanged}
-          ariaDescribedBy="large-repo-auto-repack-description"
-        />
+        <div {...teleportAnchor('settings-large-repo-auto-repack')}>
+          <Checkbox
+            label={translate('largeRepo.settings.autoRepack', languageMode)}
+            value={
+              this.state.largeRepoAutoRepack
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
+            onChange={this.onLargeRepoAutoRepackChanged}
+            ariaDescribedBy="large-repo-auto-repack-description"
+          />
+        </div>
         <div
           id="large-repo-auto-repack-description"
           className="settings-description"

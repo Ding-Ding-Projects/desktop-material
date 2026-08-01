@@ -612,7 +612,14 @@ export class Integrations extends React.Component<
     const checked = entry !== undefined && entry.state !== 'not-installed'
 
     return (
-      <div className="context-menu-entry">
+      <div
+        className="context-menu-entry"
+        {...teleportAnchor(
+          id === 'open-with-opencode'
+            ? 'settings-context-menu-opencode'
+            : 'settings-context-menu-desktop-material'
+        )}
+      >
         <Checkbox
           label={translate(labelKey, languageMode)}
           value={checked ? CheckboxValue.On : CheckboxValue.Off}
@@ -708,7 +715,10 @@ export class Integrations extends React.Component<
         : null
 
     return (
-      <div className="context-menu-entry">
+      <div
+        className="context-menu-entry"
+        {...teleportAnchor('settings-context-menu-modern')}
+      >
         <Checkbox
           label={translate('settings.contextMenuModernLabel', languageMode)}
           value={mode === 'modern' ? CheckboxValue.On : CheckboxValue.Off}
@@ -782,7 +792,10 @@ export class Integrations extends React.Component<
     return (
       <DialogContent>
         <h2>Applications</h2>
-        <div className="integration-application-cards">
+        <div
+          className="integration-application-cards"
+          {...teleportAnchor('settings-custom-integration')}
+        >
           {this.renderExternalEditor()}
           {this.state.useCustomEditor && this.renderCustomExternalEditor()}
           {this.renderNoExternalEditorHint()}
@@ -791,7 +804,7 @@ export class Integrations extends React.Component<
         </div>
         {this.renderWindowsContextMenu()}
         {enableCustomIntegration() && (
-          <fieldset>
+          <fieldset {...teleportAnchor('settings-branch-preset-script')}>
             <legend>
               <h2>Branch name presets</h2>
             </legend>

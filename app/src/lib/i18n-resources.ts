@@ -1853,6 +1853,149 @@ export type TranslationKey =
   | 'palette.showLogsFolderDescription'
   | 'commandPalette.homeMenuBar'
   | 'commandPalette.linkFailed'
+  | 'palette.increaseActiveResizableWidth'
+  | 'palette.decreaseActiveResizableWidth'
+  | 'palette.setThemeMode.light'
+  | 'palette.setThemeMode.dark'
+  | 'palette.setThemeMode.system'
+  | 'palette.setThemeMode'
+  | 'palette.setUiScale'
+  | 'palette.setAutoFitZoom'
+  | 'palette.setShowRecentRepositories'
+  | 'palette.setBranchNameInRepoList.always'
+  | 'palette.setBranchNameInRepoList.notDefault'
+  | 'palette.setBranchNameInRepoList.never'
+  | 'palette.setBranchNameInRepoList'
+  | 'palette.setBranchSort.lastModified'
+  | 'palette.setBranchSort.alphabetical'
+  | 'palette.setBranchSort'
+  | 'palette.setDateFormat'
+  | 'palette.setTimeFormat'
+  | 'palette.setNumberFormat'
+  | 'palette.setPreferAbsoluteDates'
+  | 'palette.setAutoSwitchAccount'
+  | 'palette.setRepositoryIndicators'
+  | 'palette.setUsageStats'
+  | 'palette.setVerboseLogging'
+  | 'palette.setLargeRepoAutoDetect'
+  | 'palette.setLargeRepoAutoRepack'
+  | 'palette.setBrowserOpenMode.internal'
+  | 'palette.setBrowserOpenMode.external'
+  | 'palette.setBrowserOpenMode'
+  | 'palette.setConfirmDiscardPermanently'
+  | 'palette.setConfirmDiscardStash'
+  | 'palette.setConfirmCheckoutCommit'
+  | 'palette.setConfirmUndoCommit'
+  | 'palette.setConfirmCommitMessageOverride'
+  | 'palette.setConfirmWorktreeRemoval'
+  | 'palette.setConfirmCommitFilteredChanges'
+  | 'palette.setUncommittedChangesStrategy.askForConfirmation'
+  | 'palette.setUncommittedChangesStrategy.moveToNewBranch'
+  | 'palette.setUncommittedChangesStrategy.stashOnCurrentBranch'
+  | 'palette.setUncommittedChangesStrategy'
+  | 'palette.setDiffCheckMarks'
+  | 'palette.setErrorPresentation.notice'
+  | 'palette.setErrorPresentation.dialog'
+  | 'palette.setErrorPresentation'
+  | 'palette.entryGitAuthorName'
+  | 'palette.entryGitAuthorEmail'
+  | 'palette.setShowCommitIdentity'
+  | 'palette.entryDefaultBranchName'
+  | 'palette.setGitHookEnv'
+  | 'palette.setGitHookEnvShell'
+  | 'palette.setGitHookEnvCache'
+  | 'palette.globalIgnore'
+  | 'palette.setExternalEditor'
+  | 'palette.setShell'
+  | 'palette.setContextMenuOpencode'
+  | 'palette.setContextMenuDesktopMaterial'
+  | 'palette.setContextMenuModern'
+  | 'palette.branchPresetScript'
+  | 'palette.customIntegrations'
+  | 'palette.setAgentServerEnabled'
+  | 'palette.agentAccessMode'
+  | 'palette.agentPairing'
+  | 'palette.agentToken'
+  | 'palette.setAutoCommitPush'
+  | 'palette.setAutoCommitPushInterval'
+  | 'palette.setAutoPull'
+  | 'palette.setAutoPullInterval'
+  | 'palette.automationAccountOverrides'
+  | 'palette.queueCloneSettings'
+  | 'palette.setSoundEnabled'
+  | 'palette.setSoundEffects'
+  | 'palette.setSoundEffectVolume'
+  | 'palette.setSoundNarrator'
+  | 'palette.setSoundRecordedNarration'
+  | 'palette.setSoundNarratorVolume'
+  | 'palette.setSoundNarratorCooldown'
+  | 'palette.setSoundMusic'
+  | 'palette.setSoundMusicVolume'
+  | 'palette.setSoundQuietHours'
+  | 'palette.setSoundQuietHoursStart'
+  | 'palette.setSoundQuietHoursEnd'
+  | 'palette.setSoundReducedMotion'
+  | 'palette.repositoryMusicTrack'
+  | 'palette.auditionSoundCues'
+  | 'palette.copilotCommitModel'
+  | 'palette.copilotConflictModel'
+  | 'palette.setCopilotAlwaysResolveConflicts'
+  | 'palette.addAiProvider'
+  | 'palette.entryOllamaEndpoint'
+  | 'palette.sshWorkingCopy'
+  | 'palette.setBuildAutoInstall'
+  | 'palette.setBuildPreElevate'
+  | 'palette.setBuildRunAfterBuild'
+  | 'palette.setBuildAutoIgnoreOutputs'
+  | 'palette.setBuildAfterPull'
+  | 'palette.setBuildOfferAgents'
+  | 'palette.setBuildFixProvider.codex'
+  | 'palette.setBuildFixProvider.opencode'
+  | 'palette.setBuildFixProvider'
+  | 'palette.setBuildFixAutoApprove'
+  | 'palette.setCheapLfsAutoMaterialize'
+  | 'palette.setCheapLfsAutoPin'
+  | 'palette.setCheapLfsCloneHelper'
+  | 'palette.setCheapLfsParallelUploads'
+  | 'palette.setCheapLfsStorageProvider.release'
+  | 'palette.setCheapLfsStorageProvider.ghcr'
+  | 'palette.setCheapLfsStorageProvider.dockerhub'
+  | 'palette.setCheapLfsStorageProvider'
+  | 'palette.setCheapLfsCloudCompression'
+  | 'palette.cheapLfsEncryption'
+  | 'palette.setSigningCommits'
+  | 'palette.setSigningTags'
+  | 'palette.signingPolicy'
+  | 'palette.setDiffAutoExpandContext'
+  | 'palette.setDiffContextStep'
+  | 'palette.appearance'
+  | 'palette.setPaletteDensity'
+  | 'palette.setPaletteRandomPerRepository'
+  | 'palette.setPaletteShowIcons'
+  | 'palette.setPaletteShowGroupChips'
+  | 'palette.setPaletteShowKeywords'
+  | 'palette.newTabGroup'
+  | 'palette.editTabGroup'
+  | 'palette.closeTabsContaining'
+  | 'palette.closeTabsNotContaining'
+  | 'palette.pinTab'
+  | 'palette.unpinTab'
+  | 'palette.editTabAppearance'
+  | 'palette.searchTabs'
+  | 'palette.editAppAppearance'
+  | 'palette.editAppIdentity'
+  | 'palette.editToolbarAppearance'
+  | 'palette.editRepositoryListAppearance'
+  | 'palette.editRepositoryTabsAppearance'
+  | 'palette.editRepositoryLogo'
+  | 'palette.manageRepositoryGroups'
+  | 'palette.repositoryAccount'
+  | 'palette.regexBuilder'
+  | 'commandPalette.homeRepositoryTools'
+  | 'commandPalette.homePalette'
+  | 'commandPalette.homeTabStrip'
+  | 'commandPalette.homeWorkspace'
+  | 'commandPalette.homeRepositoryAppearance'
   | 'commandPalette.rowDensity'
   | 'commandPalette.comfortable'
   | 'commandPalette.comfortableDescription'
@@ -5240,6 +5383,166 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Reveals the folder holding this app\u2019s log files',
   'commandPalette.homeMenuBar': 'The application menu bar',
   'commandPalette.linkFailed': 'Could not open {url} in your browser',
+  'palette.increaseActiveResizableWidth': 'Expand the active resizable pane',
+  'palette.decreaseActiveResizableWidth': 'Contract the active resizable pane',
+  'palette.setThemeMode.light': 'Light',
+  'palette.setThemeMode.dark': 'Dark',
+  'palette.setThemeMode.system': 'Match the system',
+  'palette.setThemeMode': 'Theme',
+  'palette.setUiScale': 'Interface scale',
+  'palette.setAutoFitZoom': 'Shrink the interface to fit small windows',
+  'palette.setShowRecentRepositories': 'Show recent repositories',
+  'palette.setBranchNameInRepoList.always': 'Always',
+  'palette.setBranchNameInRepoList.notDefault':
+    'Only when not the default branch',
+  'palette.setBranchNameInRepoList.never': 'Never',
+  'palette.setBranchNameInRepoList':
+    'Show the branch name in the repository list',
+  'palette.setBranchSort.lastModified': 'By when they were last changed',
+  'palette.setBranchSort.alphabetical': 'Alphabetically',
+  'palette.setBranchSort': 'Sort branches',
+  'palette.setDateFormat': 'Date format',
+  'palette.setTimeFormat': 'Time format',
+  'palette.setNumberFormat': 'Number format',
+  'palette.setPreferAbsoluteDates': 'Prefer absolute dates over relative',
+  'palette.setAutoSwitchAccount':
+    'Switch the active account to the repository owner',
+  'palette.setRepositoryIndicators': 'Show status icons in the repository list',
+  'palette.setUsageStats': 'Submit usage stats',
+  'palette.setVerboseLogging': 'Verbose logging (debug level)',
+  'palette.setLargeRepoAutoDetect': 'Detect large repositories automatically',
+  'palette.setLargeRepoAutoRepack': 'Repack large repositories when idle',
+  'palette.setBrowserOpenMode.internal': 'In a window inside the app',
+  'palette.setBrowserOpenMode.external': 'In your usual browser',
+  'palette.setBrowserOpenMode': 'Open web links',
+  'palette.setConfirmDiscardPermanently':
+    'Confirm before permanently discarding changes',
+  'palette.setConfirmDiscardStash': 'Confirm before discarding a stash',
+  'palette.setConfirmCheckoutCommit': 'Confirm before checking out a commit',
+  'palette.setConfirmUndoCommit': 'Confirm before undoing a commit',
+  'palette.setConfirmCommitMessageOverride':
+    'Confirm before overwriting the commit message with a generated one',
+  'palette.setConfirmWorktreeRemoval': 'Confirm before removing a worktree',
+  'palette.setConfirmCommitFilteredChanges':
+    'Confirm before committing changes hidden by the filter',
+  'palette.setUncommittedChangesStrategy.askForConfirmation': 'Ask each time',
+  'palette.setUncommittedChangesStrategy.moveToNewBranch':
+    'Bring them to the new branch',
+  'palette.setUncommittedChangesStrategy.stashOnCurrentBranch':
+    'Stash them on this branch',
+  'palette.setUncommittedChangesStrategy':
+    'When switching branches with uncommitted changes',
+  'palette.setDiffCheckMarks': 'Show check marks in the diff',
+  'palette.setErrorPresentation.notice': 'As a notification',
+  'palette.setErrorPresentation.dialog': 'As a dialog',
+  'palette.setErrorPresentation': 'Application error presentation',
+  'palette.entryGitAuthorName': 'Git author name',
+  'palette.entryGitAuthorEmail': 'Git author email',
+  'palette.setShowCommitIdentity':
+    'Show the effective identity above the commit message',
+  'palette.entryDefaultBranchName': 'Default branch name for new repositories',
+  'palette.setGitHookEnv': 'Load Git hook environment variables from the shell',
+  'palette.setGitHookEnvShell': 'Shell used to load the hook environment',
+  'palette.setGitHookEnvCache': 'Cache Git hook environment variables',
+  'palette.globalIgnore': 'Global ignore rules',
+  'palette.setExternalEditor': 'External editor',
+  'palette.setShell': 'Shell',
+  'palette.setContextMenuOpencode':
+    'Explorer context menu: Open with OpenCode here',
+  'palette.setContextMenuDesktopMaterial':
+    'Explorer context menu: Open in Desktop Material',
+  'palette.setContextMenuModern': 'Show in the main Windows 11 menu',
+  'palette.branchPresetScript': 'Branch name preset script',
+  'palette.customIntegrations': 'Custom editor and shell commands',
+  'palette.setAgentServerEnabled': 'Agent server',
+  'palette.agentAccessMode': 'Agent access mode',
+  'palette.agentPairing': 'Pair a mobile device',
+  'palette.agentToken': 'Desktop bearer token',
+  'palette.setAutoCommitPush': 'Automatically commit and push',
+  'palette.setAutoCommitPushInterval': 'Commit and push interval',
+  'palette.setAutoPull': 'Automatically pull',
+  'palette.setAutoPullInterval': 'Pull interval',
+  'palette.automationAccountOverrides': 'Automation overrides (per account)',
+  'palette.queueCloneSettings': 'Clone queue settings (per account)',
+  'palette.setSoundEnabled': 'Sound',
+  'palette.setSoundEffects': 'Play sound effects',
+  'palette.setSoundEffectVolume': 'Effect volume',
+  'palette.setSoundNarrator': 'Spoken narrator',
+  'palette.setSoundRecordedNarration': 'Use recorded narration',
+  'palette.setSoundNarratorVolume': 'Narrator volume',
+  'palette.setSoundNarratorCooldown': 'Minimum gap between narrated lines',
+  'palette.setSoundMusic': 'Play themed music',
+  'palette.setSoundMusicVolume': 'Music volume',
+  'palette.setSoundQuietHours': 'Mute during quiet hours',
+  'palette.setSoundQuietHoursStart': 'Quiet hours start',
+  'palette.setSoundQuietHoursEnd': 'Quiet hours end',
+  'palette.setSoundReducedMotion': 'Follow reduced motion for sound',
+  'palette.repositoryMusicTrack': 'Music track for this repository',
+  'palette.auditionSoundCues': 'Audition the sound cues',
+  'palette.copilotCommitModel': 'Copilot commit-message model',
+  'palette.copilotConflictModel': 'Copilot conflict-resolution model',
+  'palette.setCopilotAlwaysResolveConflicts':
+    'Always use Copilot when conflicts are detected',
+  'palette.addAiProvider': 'Add an AI provider (BYOK)',
+  'palette.entryOllamaEndpoint': 'Ollama endpoint',
+  'palette.sshWorkingCopy': 'SSH working copy',
+  'palette.setBuildAutoInstall': 'Auto-install missing build tools',
+  'palette.setBuildPreElevate': 'Pre-elevate the build chain',
+  'palette.setBuildRunAfterBuild': 'Run after a successful build',
+  'palette.setBuildAutoIgnoreOutputs': 'Auto-ignore build outputs',
+  'palette.setBuildAfterPull': 'Build after pulling new commits',
+  'palette.setBuildOfferAgents': 'Offer Codex/OpenCode to fix build errors',
+  'palette.setBuildFixProvider.codex': 'Codex',
+  'palette.setBuildFixProvider.opencode': 'OpenCode',
+  'palette.setBuildFixProvider': 'Preferred build-fix provider',
+  'palette.setBuildFixAutoApprove':
+    'Auto-approve the build-fix agent in this repository',
+  'palette.setCheapLfsAutoMaterialize': 'Download large files after cloning',
+  'palette.setCheapLfsAutoPin': 'Pin large files when committing',
+  'palette.setCheapLfsCloneHelper': 'Include the clone helper script',
+  'palette.setCheapLfsParallelUploads': 'Simultaneous Cheap LFS uploads',
+  'palette.setCheapLfsStorageProvider.release': 'GitHub releases',
+  'palette.setCheapLfsStorageProvider.ghcr': 'GitHub container registry',
+  'palette.setCheapLfsStorageProvider.dockerhub': 'Docker Hub',
+  'palette.setCheapLfsStorageProvider': 'Large-file storage provider',
+  'palette.setCheapLfsCloudCompression':
+    'Cloud compression for this private repository',
+  'palette.cheapLfsEncryption': 'Encrypt new Release payloads with a password',
+  'palette.setSigningCommits': 'Sign commits by default',
+  'palette.setSigningTags': 'Sign annotated tags by default',
+  'palette.signingPolicy': 'Manage the signing policy',
+  'palette.setDiffAutoExpandContext': 'Automatically expand whole-file context',
+  'palette.setDiffContextStep': 'Context expansion step',
+  'palette.appearance': 'Customize the command palette',
+  'palette.setPaletteDensity': 'Command palette row density',
+  'palette.setPaletteRandomPerRepository':
+    "Randomize the palette's look per repository",
+  'palette.setPaletteShowIcons': 'Show icons in palette rows',
+  'palette.setPaletteShowGroupChips': 'Show group chips in palette rows',
+  'palette.setPaletteShowKeywords': 'Show the keyword line in palette rows',
+  'palette.newTabGroup': 'New tab group',
+  'palette.editTabGroup': 'Edit the current tab group',
+  'palette.closeTabsContaining': 'Close tabs containing text',
+  'palette.closeTabsNotContaining': 'Close tabs not containing text',
+  'palette.pinTab': 'Pin the current tab',
+  'palette.unpinTab': 'Unpin the current tab',
+  'palette.editTabAppearance': "Edit the current tab's appearance",
+  'palette.searchTabs': 'Search open tabs',
+  'palette.editAppAppearance': "Edit the app's appearance",
+  'palette.editAppIdentity': 'Edit the app name and logo',
+  'palette.editToolbarAppearance': "Edit the toolbar's appearance",
+  'palette.editRepositoryListAppearance':
+    "Edit the repository list's appearance",
+  'palette.editRepositoryTabsAppearance': 'Edit repository tab appearance',
+  'palette.editRepositoryLogo': 'Edit the repository logo',
+  'palette.manageRepositoryGroups': 'Manage repository groups',
+  'palette.repositoryAccount': 'Repository account',
+  'palette.regexBuilder': 'Open the regex builder',
+  'commandPalette.homeRepositoryTools': 'Repository tools',
+  'commandPalette.homePalette': 'The command palette itself',
+  'commandPalette.homeTabStrip': 'The repository tab strip',
+  'commandPalette.homeWorkspace': 'The workspace',
+  'commandPalette.homeRepositoryAppearance': 'Repository settings ▸ Appearance',
   'commandPalette.rowDensity': 'Row density',
   'commandPalette.comfortable': 'Comfortable',
   'commandPalette.comfortableDescription': 'More detail and spacing',
@@ -8809,6 +9112,152 @@ export const cantoneseTranslations: Readonly<
   'palette.showLogsFolderDescription': '喺檔案總管度指返啲 log 檔喺邊',
   'commandPalette.homeMenuBar': '上面條選單列',
   'commandPalette.linkFailed': '開唔到 {url}，瀏覽器唔畀面',
+  'palette.increaseActiveResizableWidth': '拉闊而家個窗格',
+  'palette.decreaseActiveResizableWidth': '收窄而家個窗格',
+  'palette.setThemeMode.light': '淺色',
+  'palette.setThemeMode.dark': '深色',
+  'palette.setThemeMode.system': '跟系統',
+  'palette.setThemeMode': '主題',
+  'palette.setUiScale': '介面縮放',
+  'palette.setAutoFitZoom': '視窗細就自動縮細介面',
+  'palette.setShowRecentRepositories': '顯示最近用過嘅 repo',
+  'palette.setBranchNameInRepoList.always': '次次都show',
+  'palette.setBranchNameInRepoList.notDefault': '唔係預設分支先show',
+  'palette.setBranchNameInRepoList.never': '唔好show',
+  'palette.setBranchNameInRepoList': 'Repo 列表度顯示分支名',
+  'palette.setBranchSort.lastModified': '按最近改過',
+  'palette.setBranchSort.alphabetical': '按字母',
+  'palette.setBranchSort': '分支排序',
+  'palette.setDateFormat': '日期格式',
+  'palette.setTimeFormat': '時間格式',
+  'palette.setNumberFormat': '數字格式',
+  'palette.setPreferAbsoluteDates': '寧願睇實際日期，唔要相對',
+  'palette.setAutoSwitchAccount': '自動轉去 repo 主人個帳戶',
+  'palette.setRepositoryIndicators': 'Repo 列表度顯示狀態圖示',
+  'palette.setUsageStats': '交使用統計',
+  'palette.setVerboseLogging': '詳細 log（debug 級）',
+  'palette.setLargeRepoAutoDetect': '自動偵測大 repo',
+  'palette.setLargeRepoAutoRepack': '得閒就幫大 repo 重新打包',
+  'palette.setBrowserOpenMode.internal': '喺 app 入面開',
+  'palette.setBrowserOpenMode.external': '用你平時個瀏覽器',
+  'palette.setBrowserOpenMode': '點開網頁連結',
+  'palette.setConfirmDiscardPermanently': '永久丟變更前先問一問',
+  'palette.setConfirmDiscardStash': '丟 stash 前先問一問',
+  'palette.setConfirmCheckoutCommit': 'Checkout commit 前先問',
+  'palette.setConfirmUndoCommit': '撤銷 commit 前先問一問',
+  'palette.setConfirmCommitMessageOverride':
+    '用生成嘅 commit 訊息蓋走原本前先問',
+  'palette.setConfirmWorktreeRemoval': '移除 worktree 前先問一問',
+  'palette.setConfirmCommitFilteredChanges': 'Commit 埋畀篩選收埋嘅變更前先問',
+  'palette.setUncommittedChangesStrategy.askForConfirmation': '每次問返',
+  'palette.setUncommittedChangesStrategy.moveToNewBranch': '搬去新分支',
+  'palette.setUncommittedChangesStrategy.stashOnCurrentBranch':
+    'stash 喺呢條分支',
+  'palette.setUncommittedChangesStrategy': '有未 commit 變更去轉分支時',
+  'palette.setDiffCheckMarks': 'Diff 度顯示剔號',
+  'palette.setErrorPresentation.notice': '出個通知',
+  'palette.setErrorPresentation.dialog': '彈個窗',
+  'palette.setErrorPresentation': '程式錯誤點樣顯示',
+  'palette.entryGitAuthorName': 'Git 作者名',
+  'palette.entryGitAuthorEmail': 'Git 作者 email',
+  'palette.setShowCommitIdentity': 'Commit 訊息上面顯示實際身分',
+  'palette.entryDefaultBranchName': '新 repo 嘅預設分支名',
+  'palette.setGitHookEnv': '由 shell 載入 Git hook 環境變數',
+  'palette.setGitHookEnvShell': '用邊個 shell 載 hook 環境',
+  'palette.setGitHookEnvCache': '快取 Git hook 環境變數',
+  'palette.globalIgnore': '全域忽略規則',
+  'palette.setExternalEditor': '外部編輯器',
+  'palette.setShell': 'Shell 終端機',
+  'palette.setContextMenuOpencode': '檔案總管右鍵：喺呢度用 OpenCode 開',
+  'palette.setContextMenuDesktopMaterial':
+    '檔案總管右鍵：用 Desktop Material 開',
+  'palette.setContextMenuModern': '擺埋喺 Windows 11 主選單度',
+  'palette.branchPresetScript': '分支名預設腳本',
+  'palette.customIntegrations': '自訂編輯器同 shell 指令',
+  'palette.setAgentServerEnabled': 'Agent 伺服器',
+  'palette.agentAccessMode': 'Agent 存取模式',
+  'palette.agentPairing': '配對手機',
+  'palette.agentToken': '桌面 bearer token',
+  'palette.setAutoCommitPush': '自動 commit 同 push',
+  'palette.setAutoCommitPushInterval': 'Commit 同 push 嘅間隔',
+  'palette.setAutoPull': '自動 pull',
+  'palette.setAutoPullInterval': 'Pull 嘅間隔',
+  'palette.automationAccountOverrides': '自動化覆寫（逐個帳戶）',
+  'palette.queueCloneSettings': 'Clone 佇列設定（逐個帳戶）',
+  'palette.setSoundEnabled': '聲音',
+  'palette.setSoundEffects': '播音效',
+  'palette.setSoundEffectVolume': '音效音量',
+  'palette.setSoundNarrator': '語音旁白',
+  'palette.setSoundRecordedNarration': '用錄好嘅旁白',
+  'palette.setSoundNarratorVolume': '旁白音量',
+  'palette.setSoundNarratorCooldown': '兩句旁白之間最短間隔',
+  'palette.setSoundMusic': '播主題音樂',
+  'palette.setSoundMusicVolume': '音樂音量',
+  'palette.setSoundQuietHours': '安靜時段熄晒聲',
+  'palette.setSoundQuietHoursStart': '安靜時段幾點開始',
+  'palette.setSoundQuietHoursEnd': '安靜時段幾點收工',
+  'palette.setSoundReducedMotion': '聲音跟隨減少動態設定',
+  'palette.repositoryMusicTrack': '呢個 repo 用邊首歌',
+  'palette.auditionSoundCues': '試聽啲音效提示',
+  'palette.copilotCommitModel': 'Copilot commit 訊息模型',
+  'palette.copilotConflictModel': 'Copilot 解衝突嘅模型',
+  'palette.setCopilotAlwaysResolveConflicts': '一撞到衝突就次次用 Copilot',
+  'palette.addAiProvider': '加個 AI 供應商（自備 key）',
+  'palette.entryOllamaEndpoint': 'Ollama 端點',
+  'palette.sshWorkingCopy': 'SSH 工作副本',
+  'palette.setBuildAutoInstall': '自動裝返欠咗嘅建置工具',
+  'palette.setBuildPreElevate': '建置前先攞埋管理員權限',
+  'palette.setBuildRunAfterBuild': '建置成功就即刻行',
+  'palette.setBuildAutoIgnoreOutputs': '自動忽略建置輸出',
+  'palette.setBuildAfterPull': 'Pull 到新 commit 就建置',
+  'palette.setBuildOfferAgents': '建置出錯就問用唔用 Codex/OpenCode 執',
+  'palette.setBuildFixProvider.codex': 'Codex',
+  'palette.setBuildFixProvider.opencode': 'OpenCode',
+  'palette.setBuildFixProvider': '執建置錯首選邊個供應商',
+  'palette.setBuildFixAutoApprove': '呢個 repo 自動批准執錯 agent',
+  'palette.setCheapLfsAutoMaterialize': 'Clone 完自動落大檔案',
+  'palette.setCheapLfsAutoPin': 'Commit 時釘住大檔案',
+  'palette.setCheapLfsCloneHelper': '連埋 clone 輔助腳本',
+  'palette.setCheapLfsParallelUploads': '同時上載幾多個 Cheap LFS',
+  'palette.setCheapLfsStorageProvider.release': 'GitHub releases',
+  'palette.setCheapLfsStorageProvider.ghcr': 'GitHub container registry',
+  'palette.setCheapLfsStorageProvider.dockerhub': 'Docker Hub',
+  'palette.setCheapLfsStorageProvider': '大檔案儲存供應商',
+  'palette.setCheapLfsCloudCompression': '呢個私人 repo 用雲端壓縮',
+  'palette.cheapLfsEncryption': '新 Release 檔用密碼加密',
+  'palette.setSigningCommits': '預設簽署 commit',
+  'palette.setSigningTags': '預設簽署註解標籤',
+  'palette.signingPolicy': '管理簽署政策',
+  'palette.setDiffAutoExpandContext': '自動展開成個檔嘅上下文',
+  'palette.setDiffContextStep': '上下文一次展開幾多',
+  'palette.appearance': '自訂命令面板',
+  'palette.setPaletteDensity': '命令面板列距',
+  'palette.setPaletteRandomPerRepository': '每個 repo 面板外觀隨機',
+  'palette.setPaletteShowIcons': '面板列顯示圖示',
+  'palette.setPaletteShowGroupChips': '面板列顯示群組標籤',
+  'palette.setPaletteShowKeywords': '面板列顯示關鍵字列',
+  'palette.newTabGroup': '開個新分頁群組',
+  'palette.editTabGroup': '改而家個分頁群組',
+  'palette.closeTabsContaining': '閂咗含住嗰段字嘅分頁',
+  'palette.closeTabsNotContaining': '閂咗冇嗰段字嘅分頁',
+  'palette.pinTab': '釘住而家個分頁',
+  'palette.unpinTab': '解返而家個分頁嘅釘',
+  'palette.editTabAppearance': '改而家個分頁嘅外觀',
+  'palette.searchTabs': '搵開咗嘅分頁',
+  'palette.editAppAppearance': '改 app 外觀',
+  'palette.editAppIdentity': '改 app 個名同 logo',
+  'palette.editToolbarAppearance': '改工具列外觀',
+  'palette.editRepositoryListAppearance': '改 repo 列表外觀',
+  'palette.editRepositoryTabsAppearance': '改 repo 分頁外觀',
+  'palette.editRepositoryLogo': '改 repo 個 logo',
+  'palette.manageRepositoryGroups': '管理 repo 群組',
+  'palette.repositoryAccount': 'Repo 帳戶',
+  'palette.regexBuilder': '打開 regex 砌法器',
+  'commandPalette.homeRepositoryTools': '儲存庫工具',
+  'commandPalette.homePalette': '指令板本身',
+  'commandPalette.homeTabStrip': '上面條 repo 分頁',
+  'commandPalette.homeWorkspace': '工作區',
+  'commandPalette.homeRepositoryAppearance': '儲存庫設定 ▸ 外觀',
   'commandPalette.rowDensity': '列距',
   'commandPalette.comfortable': '舒適',
   'commandPalette.comfortableDescription': '闊落啲，資料睇得齊啲',

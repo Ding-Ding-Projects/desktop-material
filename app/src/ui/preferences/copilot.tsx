@@ -45,6 +45,7 @@ import * as octicons from '../octicons/octicons.generated'
 import { TabBar } from '../tab-bar'
 import { CopilotModelSelectionInfo } from './copilot-model-selection-info'
 import type { Model } from '@github/copilot-sdk/dist/generated/rpc'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 interface ICopilotPreferencesProps {
   readonly selectedCopilotModels: CopilotModelSelections
@@ -375,15 +376,17 @@ export class CopilotPreferences extends React.Component<
             .
           </p>
         </Row>
-        {this.renderFeatureModelPicker(
-          copilotModels,
-          'commit-message-generation',
-          __DARWIN__
-            ? 'Commit Message Generation'
-            : 'Commit message generation',
-          this.onCommitMessageModelChanged,
-          350
-        )}
+        <div {...teleportAnchor('settings-copilot-commit-model')}>
+          {this.renderFeatureModelPicker(
+            copilotModels,
+            'commit-message-generation',
+            __DARWIN__
+              ? 'Commit Message Generation'
+              : 'Commit message generation',
+            this.onCommitMessageModelChanged,
+            350
+          )}
+        </div>
         <p className="settings-description">
           <LinkButton uri="https://docs.github.com/en/desktop/making-changes-in-a-branch/committing-and-reviewing-changes-to-your-project-in-github-desktop#write-a-commit-message-and-push-your-changes">
             Learn more about generating commit messages.
@@ -391,29 +394,33 @@ export class CopilotPreferences extends React.Component<
         </p>
         {enableCopilotConflictResolution() && (
           <>
-            {this.renderFeatureModelPicker(
-              copilotModels,
-              'conflict-resolution',
-              __DARWIN__ ? 'Conflict Resolution' : 'Conflict resolution',
-              this.onConflictResolutionModelChanged,
-              280
-            )}
+            <div {...teleportAnchor('settings-copilot-conflict-model')}>
+              {this.renderFeatureModelPicker(
+                copilotModels,
+                'conflict-resolution',
+                __DARWIN__ ? 'Conflict Resolution' : 'Conflict resolution',
+                this.onConflictResolutionModelChanged,
+                280
+              )}
+            </div>
             <p className="settings-description">
               Model changes apply to future conflict resolutions.
             </p>
-            <Checkbox
-              label={
-                __DARWIN__
-                  ? 'Always Use Copilot When Conflicts Are Detected'
-                  : 'Always use Copilot when conflicts are detected'
-              }
-              value={
-                this.props.alwaysUseCopilotForConflictResolution
-                  ? CheckboxValue.On
-                  : CheckboxValue.Off
-              }
-              onChange={this.onAlwaysUseCopilotForConflictResolutionChanged}
-            />
+            <div {...teleportAnchor('settings-copilot-always-conflicts')}>
+              <Checkbox
+                label={
+                  __DARWIN__
+                    ? 'Always Use Copilot When Conflicts Are Detected'
+                    : 'Always use Copilot when conflicts are detected'
+                }
+                value={
+                  this.props.alwaysUseCopilotForConflictResolution
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={this.onAlwaysUseCopilotForConflictResolutionChanged}
+              />
+            </div>
           </>
         )}
       </>

@@ -20,6 +20,7 @@ import { Select } from '../lib/select'
 import { TextBox } from '../lib/text-box'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 interface ISSHWorkingCopyManagerProps {
   readonly repositoryPath: string
@@ -412,7 +413,10 @@ export class SSHWorkingCopyManager extends React.Component<
     const isSaved = definitions.some(candidate => candidate.id === draft.id)
 
     return (
-      <section className="ssh-working-copy-manager">
+      <section
+        className="ssh-working-copy-manager"
+        {...teleportAnchor('repo-settings-ssh-working-copy')}
+      >
         <header>
           <div>
             <Octicon symbol={octicons.server} />

@@ -18,6 +18,7 @@ import {
   TranslationKey,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 interface IAutomationPreferencesProps {
   readonly accounts: ReadonlyArray<Account>
@@ -126,7 +127,10 @@ export class AutomationPreferences extends React.Component<
           </div>
         </section>
         {this.props.accounts.length > 0 && (
-          <section className="advanced-section automation-account-overrides">
+          <section
+            className="advanced-section automation-account-overrides"
+            {...teleportAnchor('settings-automation-account-overrides')}
+          >
             <h2>Account overrides</h2>
             <p className="settings-description">
               Choose whether each signed-in account inherits the global setting
@@ -237,7 +241,10 @@ function AutomationToggle(props: {
   )
 
   return (
-    <div className="preference-toggle-card">
+    <div
+      className="preference-toggle-card"
+      {...teleportAnchor(`settings-${idPrefix}`)}
+    >
       <div className="preference-toggle-row">
         <div className="preference-toggle-text">
           <span className="preference-toggle-title" id={titleId}>
@@ -259,6 +266,7 @@ function AutomationToggle(props: {
           className="preference-interval-group"
           role="radiogroup"
           aria-label={groupLabel}
+          {...teleportAnchor(`settings-${idPrefix}-interval`)}
         >
           <span className="preference-interval-label" aria-hidden={true}>
             {translate('settings.automationIntervalEvery', languageMode)}

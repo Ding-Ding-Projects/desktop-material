@@ -21,6 +21,7 @@ import {
   RepoMusicOverride,
 } from '../../lib/audio/audio-settings'
 import { repositoryThemeName } from '../../lib/audio/repo-theme-name'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 /**
  * The auditionable sound-effect cues, grouped by their motif family so the
@@ -149,13 +150,15 @@ export class SoundPreferences extends React.Component<
               languageMode={languageMode}
             />
           </p>
-          {this.renderToggle(
-            'settings.soundMasterEnableTitle',
-            'settings.soundMasterEnableDescription',
-            settings.masterEnabled,
-            masterEnabled => this.update({ masterEnabled }),
-            'sound-master'
-          )}
+          <div {...teleportAnchor('settings-sound-master')}>
+            {this.renderToggle(
+              'settings.soundMasterEnableTitle',
+              'settings.soundMasterEnableDescription',
+              settings.masterEnabled,
+              masterEnabled => this.update({ masterEnabled }),
+              'sound-master'
+            )}
+          </div>
         </div>
 
         <fieldset
@@ -169,19 +172,23 @@ export class SoundPreferences extends React.Component<
               languageMode={languageMode}
             />
           </h2>
-          {this.renderToggle(
-            'settings.soundSfxEnableTitle',
-            'settings.soundSfxEnableDescription',
-            settings.sfxEnabled,
-            sfxEnabled => this.update({ sfxEnabled }),
-            'sound-sfx'
-          )}
-          {this.renderVolume(
-            'settings.soundSfxVolumeLabel',
-            'sound-sfx-volume',
-            settings.sfxVolume,
-            sfxVolume => this.update({ sfxVolume })
-          )}
+          <div {...teleportAnchor('settings-sound-effects')}>
+            {this.renderToggle(
+              'settings.soundSfxEnableTitle',
+              'settings.soundSfxEnableDescription',
+              settings.sfxEnabled,
+              sfxEnabled => this.update({ sfxEnabled }),
+              'sound-sfx'
+            )}
+          </div>
+          <div {...teleportAnchor('settings-sound-effect-volume')}>
+            {this.renderVolume(
+              'settings.soundSfxVolumeLabel',
+              'sound-sfx-volume',
+              settings.sfxVolume,
+              sfxVolume => this.update({ sfxVolume })
+            )}
+          </div>
           <button
             type="button"
             className="sound-preview-button"
@@ -206,27 +213,35 @@ export class SoundPreferences extends React.Component<
               languageMode={languageMode}
             />
           </h2>
-          {this.renderToggle(
-            'settings.soundTtsEnableTitle',
-            'settings.soundTtsEnableDescription',
-            settings.ttsEnabled,
-            ttsEnabled => this.update({ ttsEnabled }),
-            'sound-tts'
-          )}
-          {this.renderToggle(
-            'settings.soundRecordedNarrationTitle',
-            'settings.soundRecordedNarrationDescription',
-            settings.useRecordedNarration,
-            useRecordedNarration => this.update({ useRecordedNarration }),
-            'sound-recorded-narration'
-          )}
-          {this.renderVolume(
-            'settings.soundTtsVolumeLabel',
-            'sound-tts-volume',
-            settings.ttsVolume,
-            ttsVolume => this.update({ ttsVolume })
-          )}
-          {this.renderCooldown()}
+          <div {...teleportAnchor('settings-sound-narrator')}>
+            {this.renderToggle(
+              'settings.soundTtsEnableTitle',
+              'settings.soundTtsEnableDescription',
+              settings.ttsEnabled,
+              ttsEnabled => this.update({ ttsEnabled }),
+              'sound-tts'
+            )}
+          </div>
+          <div {...teleportAnchor('settings-sound-recorded-narration')}>
+            {this.renderToggle(
+              'settings.soundRecordedNarrationTitle',
+              'settings.soundRecordedNarrationDescription',
+              settings.useRecordedNarration,
+              useRecordedNarration => this.update({ useRecordedNarration }),
+              'sound-recorded-narration'
+            )}
+          </div>
+          <div {...teleportAnchor('settings-sound-narrator-volume')}>
+            {this.renderVolume(
+              'settings.soundTtsVolumeLabel',
+              'sound-tts-volume',
+              settings.ttsVolume,
+              ttsVolume => this.update({ ttsVolume })
+            )}
+          </div>
+          <div {...teleportAnchor('settings-sound-narrator-cooldown')}>
+            {this.renderCooldown()}
+          </div>
           <p className="settings-description">
             <LocalizedText
               translationKey="settings.soundFunnyHint"
@@ -256,19 +271,23 @@ export class SoundPreferences extends React.Component<
               languageMode={languageMode}
             />
           </h2>
-          {this.renderToggle(
-            'settings.soundMusicEnableTitle',
-            'settings.soundMusicEnableDescription',
-            settings.musicEnabled,
-            musicEnabled => this.update({ musicEnabled }),
-            'sound-music'
-          )}
-          {this.renderVolume(
-            'settings.soundMusicVolumeLabel',
-            'sound-music-volume',
-            settings.musicVolume,
-            musicVolume => this.update({ musicVolume })
-          )}
+          <div {...teleportAnchor('settings-sound-music')}>
+            {this.renderToggle(
+              'settings.soundMusicEnableTitle',
+              'settings.soundMusicEnableDescription',
+              settings.musicEnabled,
+              musicEnabled => this.update({ musicEnabled }),
+              'sound-music'
+            )}
+          </div>
+          <div {...teleportAnchor('settings-sound-music-volume')}>
+            {this.renderVolume(
+              'settings.soundMusicVolumeLabel',
+              'sound-music-volume',
+              settings.musicVolume,
+              musicVolume => this.update({ musicVolume })
+            )}
+          </div>
           {this.renderMusicChooser()}
         </fieldset>
 
@@ -283,43 +302,51 @@ export class SoundPreferences extends React.Component<
               languageMode={languageMode}
             />
           </h2>
-          {this.renderToggle(
-            'settings.soundQuietHoursEnableTitle',
-            'settings.soundQuietHoursEnableDescription',
-            settings.quietHours.enabled,
-            enabled =>
-              this.update({
-                quietHours: { ...settings.quietHours, enabled },
-              }),
-            'sound-quiet'
-          )}
-          <div className="sound-quiet-row">
-            {this.renderHour(
-              'settings.soundQuietHoursStartLabel',
-              'sound-quiet-start',
-              settings.quietHours.startHour,
-              startHour =>
+          <div {...teleportAnchor('settings-sound-quiet-hours')}>
+            {this.renderToggle(
+              'settings.soundQuietHoursEnableTitle',
+              'settings.soundQuietHoursEnableDescription',
+              settings.quietHours.enabled,
+              enabled =>
                 this.update({
-                  quietHours: { ...settings.quietHours, startHour },
-                })
-            )}
-            {this.renderHour(
-              'settings.soundQuietHoursEndLabel',
-              'sound-quiet-end',
-              settings.quietHours.endHour,
-              endHour =>
-                this.update({
-                  quietHours: { ...settings.quietHours, endHour },
-                })
+                  quietHours: { ...settings.quietHours, enabled },
+                }),
+              'sound-quiet'
             )}
           </div>
-          {this.renderToggle(
-            'settings.soundReducedMotionTitle',
-            'settings.soundReducedMotionDescription',
-            settings.respectReducedMotion,
-            respectReducedMotion => this.update({ respectReducedMotion }),
-            'sound-reduced-motion'
-          )}
+          <div className="sound-quiet-row">
+            <div {...teleportAnchor('settings-sound-quiet-hours-start')}>
+              {this.renderHour(
+                'settings.soundQuietHoursStartLabel',
+                'sound-quiet-start',
+                settings.quietHours.startHour,
+                startHour =>
+                  this.update({
+                    quietHours: { ...settings.quietHours, startHour },
+                  })
+              )}
+            </div>
+            <div {...teleportAnchor('settings-sound-quiet-hours-end')}>
+              {this.renderHour(
+                'settings.soundQuietHoursEndLabel',
+                'sound-quiet-end',
+                settings.quietHours.endHour,
+                endHour =>
+                  this.update({
+                    quietHours: { ...settings.quietHours, endHour },
+                  })
+              )}
+            </div>
+          </div>
+          <div {...teleportAnchor('settings-sound-reduced-motion')}>
+            {this.renderToggle(
+              'settings.soundReducedMotionTitle',
+              'settings.soundReducedMotionDescription',
+              settings.respectReducedMotion,
+              respectReducedMotion => this.update({ respectReducedMotion }),
+              'sound-reduced-motion'
+            )}
+          </div>
         </fieldset>
       </DialogContent>
     )
@@ -333,7 +360,10 @@ export class SoundPreferences extends React.Component<
   private renderCueAudition() {
     const { languageMode } = this.state
     return (
-      <div className="sound-cue-audition">
+      <div
+        className="sound-cue-audition"
+        {...teleportAnchor('settings-sound-audition')}
+      >
         <h3 className="sound-subheading">
           <LocalizedText
             translationKey="settings.soundSfxAuditionHeading"
@@ -578,7 +608,10 @@ export class SoundPreferences extends React.Component<
           </p>
         </div>
 
-        <div className="sound-field-group">
+        <div
+          className="sound-field-group"
+          {...teleportAnchor('settings-sound-music-track')}
+        >
           <label htmlFor="sound-music-track">
             {translate('settings.soundMusicRepoLabel', languageMode, {
               repository: bilingualVariable(repository.name, repository.name),

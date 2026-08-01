@@ -352,6 +352,7 @@ import {
   preferencesPaletteEvent,
   repositorySettingsPaletteEvent,
   resolvePaletteHome,
+  CommandPaletteCatalog,
 } from '../lib/command-palette-catalog'
 import { resolvePaletteHomeLabel } from './command-palette/command-palette'
 import { teleportTo } from './lib/teleport'
@@ -390,6 +391,48 @@ import { DeleteWorktreeFailedDialog } from './worktrees/delete-worktree-failed-d
 import { WorktreeEntry } from '../models/worktree'
 import { SubmoduleReturnInFlightGuard } from './submodules/submodule-return-in-flight-guard'
 import { setGitHubAPITabHidden } from '../lib/github-api-tab-visibility'
+import { UncommittedChangesStrategy } from '../models/uncommitted-changes-strategy'
+import { clearLargeRepositoryEvaluations } from '../lib/large-repository/large-repository-controller'
+import {
+  getBrowserOpenModePreference,
+  normalizeBrowserOpenMode,
+  setBrowserOpenModePreference,
+} from '../lib/internal-browser'
+import {
+  getCacheHooksEnv,
+  getGitHookEnvShell,
+  getHooksEnvEnabled,
+  setCacheHooksEnv,
+  setGitHookEnvShell,
+  setHooksEnvEnabled,
+} from '../lib/hooks/config'
+import {
+  getCheapLfsStorageProvider,
+  getCheapLfsUploadConcurrency,
+} from '../models/build-run-preferences'
+import {
+  getDateFormatPreference,
+  getNumberFormatPreference,
+  getTimeFormatPreference,
+  numberFormatFromKey,
+  numberFormatToKey,
+  setDateFormatPreference,
+  setNumberFormatPreference,
+  setTimeFormatPreference,
+} from '../models/formatting-preferences'
+import {
+  getLargeRepositorySettings,
+  setLargeRepositorySettings,
+} from '../lib/large-repository/large-repository-settings'
+import {
+  getShowCommitAuthorInfo,
+  setShowCommitAuthorInfo,
+} from '../models/commit-author-display'
+import {
+  readDiffContextPreferences,
+  setDiffContextPreferences,
+} from './diff/diff-context-preferences'
+import { teleportAnchor } from '../lib/teleport-targets'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60
@@ -1428,6 +1471,19 @@ export class App extends React.Component<IAppProps, IAppState> {
       case 'palette:copy-commit-sha':
         return this.copyCurrentCommitSha()
       default:
+        // A `palette:` id is a palette-only action, never a menu event. One
+        // that reaches here is a settings row whose whole meaning is its
+        // destination — running it is not a thing that exists — so it goes
+        // where the setting lives instead of being cast to a MenuEvent the
+        // menu has never heard of.
+        if (event.startsWith('palette:')) {
+          const command = CommandPaletteCatalog.find(c => c.event === event)
+          if (command !== undefined) {
+            return this.onPaletteTeleport(command)
+          }
+          log.warn(`[App] no handler for palette command '${event}'`)
+          return
+        }
         return this.onMenuEvent(event as MenuEvent)
     }
   }
@@ -1557,6 +1613,255 @@ export class App extends React.Component<IAppProps, IAppState> {
     // The clone box is a one-shot: it has no stored value to show back.
     values.set('palette:entry-clone-url', '')
 
+    values.set('palette:set-theme-mode', this.state.selectedTheme)
+    values.set(
+      'palette:set-ui-scale',
+      Math.round(this.state.zoomBaseFactor * 100)
+    )
+    values.set('palette:set-auto-fit-zoom', this.state.autoFitZoomEnabled)
+    values.set(
+      'palette:set-show-recent-repositories',
+      this.state.showRecentRepositories
+    )
+    values.set(
+      'palette:set-branch-name-in-repo-list',
+      this.state.showBranchNameInRepoList
+    )
+    values.set('palette:set-branch-sort', this.state.branchSortOrder)
+    values.set('palette:set-date-format', getDateFormatPreference())
+    values.set('palette:set-time-format', getTimeFormatPreference())
+    values.set(
+      'palette:set-number-format',
+      numberFormatToKey(getNumberFormatPreference())
+    )
+    values.set(
+      'palette:set-prefer-absolute-dates',
+      this.state.preferAbsoluteDates
+    )
+    values.set(
+      'palette:set-auto-switch-account',
+      this.state.autoSwitchAccountToRepositoryOwner
+    )
+    values.set(
+      'palette:set-repository-indicators',
+      this.state.repositoryIndicatorsEnabled
+    )
+    values.set('palette:set-verbose-logging', this.state.verboseLogging)
+    values.set(
+      'palette:set-large-repo-auto-detect',
+      getLargeRepositorySettings().autoDetect
+    )
+    values.set(
+      'palette:set-large-repo-auto-repack',
+      getLargeRepositorySettings().autoRepack
+    )
+    values.set('palette:set-browser-open-mode', getBrowserOpenModePreference())
+    values.set(
+      'palette:set-confirm-discard-permanently',
+      this.state.askForConfirmationOnDiscardChangesPermanently
+    )
+    values.set(
+      'palette:set-confirm-discard-stash',
+      this.state.askForConfirmationOnDiscardStash
+    )
+    values.set(
+      'palette:set-confirm-checkout-commit',
+      this.state.askForConfirmationOnCheckoutCommit
+    )
+    values.set(
+      'palette:set-confirm-undo-commit',
+      this.state.askForConfirmationOnUndoCommit
+    )
+    values.set(
+      'palette:set-confirm-commit-message-override',
+      this.state.askForConfirmationOnCommitMessageOverride
+    )
+    values.set(
+      'palette:set-confirm-worktree-removal',
+      this.state.askForConfirmationOnWorktreeRemoval
+    )
+    values.set(
+      'palette:set-confirm-commit-filtered-changes',
+      this.state.askForConfirmationOnCommitFilteredChanges
+    )
+    values.set(
+      'palette:set-uncommitted-changes-strategy',
+      this.state.uncommittedChangesStrategy
+    )
+    values.set('palette:set-diff-check-marks', this.state.showDiffCheckMarks)
+    values.set(
+      'palette:set-error-presentation',
+      this.state.errorPresentationStyle
+    )
+    values.set('palette:set-show-commit-identity', getShowCommitAuthorInfo())
+    values.set('palette:set-git-hook-env', getHooksEnvEnabled())
+    values.set('palette:set-git-hook-env-shell', getGitHookEnvShell())
+    values.set('palette:set-git-hook-env-cache', getCacheHooksEnv())
+    values.set(
+      'palette:set-external-editor',
+      this.state.useCustomEditor ? '' : this.state.selectedExternalEditor ?? ''
+    )
+    values.set(
+      'palette:set-shell',
+      this.state.useCustomShell ? '' : this.state.selectedShell
+    )
+    values.set(
+      'palette:set-auto-commit-push',
+      this.state.automationSettings.global.autoCommitPushEnabled
+    )
+    values.set(
+      'palette:set-auto-commit-push-interval',
+      String(this.state.automationSettings.global.autoCommitPushInterval)
+    )
+    values.set(
+      'palette:set-auto-pull',
+      this.state.automationSettings.global.autoPullEnabled
+    )
+    values.set(
+      'palette:set-auto-pull-interval',
+      String(this.state.automationSettings.global.autoPullInterval)
+    )
+    values.set(
+      'palette:set-sound-enabled',
+      this.audioCueStore.getSettings().masterEnabled
+    )
+    values.set(
+      'palette:set-sound-effects',
+      this.audioCueStore.getSettings().sfxEnabled
+    )
+    values.set(
+      'palette:set-sound-effect-volume',
+      Math.round(this.audioCueStore.getSettings().sfxVolume * 100)
+    )
+    values.set(
+      'palette:set-sound-narrator',
+      this.audioCueStore.getSettings().ttsEnabled
+    )
+    values.set(
+      'palette:set-sound-recorded-narration',
+      this.audioCueStore.getSettings().useRecordedNarration
+    )
+    values.set(
+      'palette:set-sound-narrator-volume',
+      Math.round(this.audioCueStore.getSettings().ttsVolume * 100)
+    )
+    values.set(
+      'palette:set-sound-narrator-cooldown',
+      Math.round(this.audioCueStore.getSettings().ttsCooldownMs / 1000)
+    )
+    values.set(
+      'palette:set-sound-music',
+      this.audioCueStore.getSettings().musicEnabled
+    )
+    values.set(
+      'palette:set-sound-music-volume',
+      Math.round(this.audioCueStore.getSettings().musicVolume * 100)
+    )
+    values.set(
+      'palette:set-sound-quiet-hours',
+      this.audioCueStore.getSettings().quietHours.enabled
+    )
+    values.set(
+      'palette:set-sound-quiet-hours-start',
+      this.audioCueStore.getSettings().quietHours.startHour
+    )
+    values.set(
+      'palette:set-sound-quiet-hours-end',
+      this.audioCueStore.getSettings().quietHours.endHour
+    )
+    values.set(
+      'palette:set-sound-reduced-motion',
+      this.audioCueStore.getSettings().respectReducedMotion
+    )
+    values.set(
+      'palette:set-copilot-always-resolve-conflicts',
+      this.state.alwaysUseCopilotForConflictResolution
+    )
+    values.set(
+      'palette:set-build-auto-install',
+      this.getSelectedRepositoryState()?.repository.buildRunPreferences
+        .autoInstallMissingTools ?? true
+    )
+    values.set(
+      'palette:set-build-pre-elevate',
+      this.getSelectedRepositoryState()?.repository.buildRunPreferences
+        .elevated ?? false
+    )
+    values.set(
+      'palette:set-build-run-after-build',
+      this.getSelectedRepositoryState()?.repository.buildRunPreferences
+        .autoRunAfterBuild ?? true
+    )
+    values.set(
+      'palette:set-build-auto-ignore-outputs',
+      this.getSelectedRepositoryState()?.repository.buildRunPreferences
+        .autoIgnoreBuildOutputs ?? true
+    )
+    values.set(
+      'palette:set-build-after-pull',
+      this.getSelectedRepositoryState()?.repository.buildRunPreferences
+        .autoBuildOnPull ?? false
+    )
+    values.set(
+      'palette:set-build-offer-agents',
+      this.getSelectedRepositoryState()?.repository.buildRunPreferences
+        .offerOpencodeAutoFix ?? true
+    )
+    values.set(
+      'palette:set-build-fix-provider',
+      this.getSelectedRepositoryState()?.repository.buildRunPreferences
+        .buildFixProvider === 'codex'
+        ? 'codex'
+        : 'opencode'
+    )
+    values.set(
+      'palette:set-build-fix-auto-approve',
+      this.getSelectedRepositoryState()?.repository.buildRunPreferences
+        .buildFixAutoApprove ??
+        this.getSelectedRepositoryState()?.repository.buildRunPreferences
+          .opencodeAutoApprove ??
+        false
+    )
+    values.set(
+      'palette:set-cheap-lfs-auto-materialize',
+      repositoryState?.repository.buildRunPreferences.autoMaterializeCheapLfs ??
+        true
+    )
+    values.set(
+      'palette:set-cheap-lfs-auto-pin',
+      repositoryState?.repository.buildRunPreferences
+        .autoPinLargeFilesOnCommit ?? true
+    )
+    values.set(
+      'palette:set-cheap-lfs-clone-helper',
+      repositoryState?.repository.buildRunPreferences
+        .cheapLfsCloneHelperEnabled !== false
+    )
+    values.set(
+      'palette:set-cheap-lfs-parallel-uploads',
+      repositoryState === null
+        ? 3
+        : getCheapLfsUploadConcurrency(
+            repositoryState.repository.buildRunPreferences
+          )
+    )
+    values.set(
+      'palette:set-cheap-lfs-storage-provider',
+      repositoryState === null
+        ? 'release'
+        : getCheapLfsStorageProvider(
+            repositoryState.repository.buildRunPreferences
+          )
+    )
+    values.set(
+      'palette:set-diff-auto-expand-context',
+      readDiffContextPreferences().alwaysExpand
+    )
+    values.set(
+      'palette:set-diff-context-step',
+      String(readDiffContextPreferences().contextLines)
+    )
+
     return values
   }
 
@@ -1640,6 +1945,533 @@ export class App extends React.Component<IAppProps, IAppState> {
       }
       case 'palette:entry-clone-url':
         return this.showCloneRepo(asText)
+      case 'palette:set-theme-mode': {
+        this.props.dispatcher.setSelectedTheme(
+          String(value) as ApplicationTheme
+        )
+        return
+      }
+      case 'palette:set-ui-scale': {
+        this.props.dispatcher.setZoomBaseFactor(Number(value) / 100)
+        return
+      }
+      case 'palette:set-auto-fit-zoom': {
+        this.props.dispatcher.setAutoFitZoomEnabled(value as boolean)
+        return
+      }
+      case 'palette:set-show-recent-repositories': {
+        this.props.dispatcher.setShowRecentRepositories(value as boolean)
+        return
+      }
+      case 'palette:set-branch-name-in-repo-list': {
+        this.props.dispatcher.setShowBranchNameInRepoList(
+          String(
+            value
+          ) as import('../models/show-branch-name-in-repo-list').ShowBranchNameInRepoListSetting
+        )
+        return
+      }
+      case 'palette:set-branch-sort': {
+        this.props.dispatcher.setBranchSortOrder(
+          String(value) as import('../models/branch-sort-order').BranchSortOrder
+        )
+        return
+      }
+      case 'palette:set-date-format': {
+        setDateFormatPreference(
+          String(value) as import('../models/formatting-preferences').DateFormat
+        )
+        return
+      }
+      case 'palette:set-time-format': {
+        setTimeFormatPreference(
+          String(value) as import('../models/formatting-preferences').TimeFormat
+        )
+        return
+      }
+      case 'palette:set-number-format': {
+        setNumberFormatPreference(numberFormatFromKey(String(value)))
+        return
+      }
+      case 'palette:set-prefer-absolute-dates': {
+        this.props.dispatcher.setPreferAbsoluteDates(value as boolean)
+        return
+      }
+      case 'palette:set-auto-switch-account': {
+        this.props.dispatcher.setAutoSwitchAccountToRepositoryOwner(
+          value as boolean
+        )
+        return
+      }
+      case 'palette:set-repository-indicators': {
+        this.props.dispatcher.setRepositoryIndicatorsEnabled(value as boolean)
+        return
+      }
+      case 'palette:set-verbose-logging': {
+        this.props.dispatcher.setVerboseLogging(value as boolean)
+        return
+      }
+      case 'palette:set-large-repo-auto-detect': {
+        setLargeRepositorySettings({
+          ...getLargeRepositorySettings(),
+          autoDetect: value as boolean,
+        })
+        clearLargeRepositoryEvaluations()
+        return
+      }
+      case 'palette:set-large-repo-auto-repack': {
+        setLargeRepositorySettings({
+          ...getLargeRepositorySettings(),
+          autoRepack: value as boolean,
+        })
+        return
+      }
+      case 'palette:set-browser-open-mode': {
+        setBrowserOpenModePreference(normalizeBrowserOpenMode(value))
+        return
+      }
+      case 'palette:set-confirm-discard-permanently': {
+        this.props.dispatcher.setConfirmDiscardChangesPermanentlySetting(
+          value as boolean
+        )
+        return
+      }
+      case 'palette:set-confirm-discard-stash': {
+        this.props.dispatcher.setConfirmDiscardStashSetting(value as boolean)
+        return
+      }
+      case 'palette:set-confirm-checkout-commit': {
+        this.props.dispatcher.setConfirmCheckoutCommitSetting(value as boolean)
+        return
+      }
+      case 'palette:set-confirm-undo-commit': {
+        this.props.dispatcher.setConfirmUndoCommitSetting(value as boolean)
+        return
+      }
+      case 'palette:set-confirm-commit-message-override': {
+        this.props.dispatcher.setConfirmCommitMessageOverrideSetting(
+          value as boolean
+        )
+        return
+      }
+      case 'palette:set-confirm-worktree-removal': {
+        this.props.dispatcher.setConfirmWorktreeRemovalSetting(value as boolean)
+        return
+      }
+      case 'palette:set-confirm-commit-filtered-changes': {
+        this.props.dispatcher.setConfirmCommitFilteredChanges(value as boolean)
+        return
+      }
+      case 'palette:set-uncommitted-changes-strategy': {
+        this.props.dispatcher.setUncommittedChangesStrategySetting(
+          Object.values(UncommittedChangesStrategy).includes(
+            String(value) as UncommittedChangesStrategy
+          )
+            ? (String(value) as UncommittedChangesStrategy)
+            : UncommittedChangesStrategy.AskForConfirmation
+        )
+        return
+      }
+      case 'palette:set-diff-check-marks': {
+        this.props.dispatcher.setDiffCheckMarksSetting(value as boolean)
+        return
+      }
+      case 'palette:set-error-presentation': {
+        this.props.dispatcher.setErrorPresentationStyle(
+          String(
+            value
+          ) as import('../models/error-presentation').ErrorPresentationStyle
+        )
+        return
+      }
+      case 'palette:set-show-commit-identity': {
+        setShowCommitAuthorInfo(value === true)
+        return
+      }
+      case 'palette:set-git-hook-env': {
+        setHooksEnvEnabled(value === true)
+        return
+      }
+      case 'palette:set-git-hook-env-shell': {
+        setGitHookEnvShell(
+          ['git-bash', 'pwsh', 'powershell', 'cmd'].includes(String(value))
+            ? String(value)
+            : getGitHookEnvShell()
+        )
+        return
+      }
+      case 'palette:set-git-hook-env-cache': {
+        setCacheHooksEnv(value === true)
+        return
+      }
+      case 'palette:set-external-editor': {
+        this.props.dispatcher.setUseCustomEditor(false)
+        this.props.dispatcher.setExternalEditor(String(value))
+        return
+      }
+      case 'palette:set-shell': {
+        this.props.dispatcher.setUseCustomShell(false)
+        this.props.dispatcher.setShell(
+          String(value) as IAppState['selectedShell']
+        )
+        return
+      }
+      case 'palette:set-auto-commit-push': {
+        this.props.dispatcher.setGlobalAutomationSettings({
+          ...this.state.automationSettings.global,
+          autoCommitPushEnabled: value as boolean,
+        })
+        return
+      }
+      case 'palette:set-auto-commit-push-interval': {
+        this.props.dispatcher.setGlobalAutomationSettings({
+          ...this.state.automationSettings.global,
+          autoCommitPushInterval: Number(
+            value
+          ) as IAppState['automationSettings']['global']['autoCommitPushInterval'],
+        })
+        return
+      }
+      case 'palette:set-auto-pull': {
+        this.props.dispatcher.setGlobalAutomationSettings({
+          ...this.state.automationSettings.global,
+          autoPullEnabled: value as boolean,
+        })
+        return
+      }
+      case 'palette:set-auto-pull-interval': {
+        this.props.dispatcher.setGlobalAutomationSettings({
+          ...this.state.automationSettings.global,
+          autoPullInterval: Number(
+            value
+          ) as IAppState['automationSettings']['global']['autoPullInterval'],
+        })
+        return
+      }
+      case 'palette:set-sound-enabled': {
+        this.audioCueStore.setSettings({
+          ...this.audioCueStore.getSettings(),
+          masterEnabled: value as boolean,
+        })
+        return
+      }
+      case 'palette:set-sound-effects': {
+        this.audioCueStore.setSettings({
+          ...this.audioCueStore.getSettings(),
+          sfxEnabled: value as boolean,
+        })
+        return
+      }
+      case 'palette:set-sound-effect-volume': {
+        this.audioCueStore.setSettings({
+          ...this.audioCueStore.getSettings(),
+          sfxVolume: Math.min(1, Math.max(0, (value as number) / 100)),
+        })
+        return
+      }
+      case 'palette:set-sound-narrator': {
+        this.audioCueStore.setSettings({
+          ...this.audioCueStore.getSettings(),
+          ttsEnabled: value as boolean,
+        })
+        return
+      }
+      case 'palette:set-sound-recorded-narration': {
+        this.audioCueStore.setSettings({
+          ...this.audioCueStore.getSettings(),
+          useRecordedNarration: value as boolean,
+        })
+        return
+      }
+      case 'palette:set-sound-narrator-volume': {
+        this.audioCueStore.setSettings({
+          ...this.audioCueStore.getSettings(),
+          ttsVolume: Math.min(1, Math.max(0, (value as number) / 100)),
+        })
+        return
+      }
+      case 'palette:set-sound-narrator-cooldown': {
+        this.audioCueStore.setSettings({
+          ...this.audioCueStore.getSettings(),
+          ttsCooldownMs: Math.min(
+            60000,
+            Math.max(2000, Math.round(value as number) * 1000)
+          ),
+        })
+        return
+      }
+      case 'palette:set-sound-music': {
+        this.audioCueStore.setSettings({
+          ...this.audioCueStore.getSettings(),
+          musicEnabled: value as boolean,
+        })
+        return
+      }
+      case 'palette:set-sound-music-volume': {
+        this.audioCueStore.setSettings({
+          ...this.audioCueStore.getSettings(),
+          musicVolume: Math.min(1, Math.max(0, (value as number) / 100)),
+        })
+        return
+      }
+      case 'palette:set-sound-quiet-hours': {
+        this.audioCueStore.setSettings({
+          ...this.audioCueStore.getSettings(),
+          quietHours: {
+            ...this.audioCueStore.getSettings().quietHours,
+            enabled: value as boolean,
+          },
+        })
+        return
+      }
+      case 'palette:set-sound-quiet-hours-start': {
+        this.audioCueStore.setSettings({
+          ...this.audioCueStore.getSettings(),
+          quietHours: {
+            ...this.audioCueStore.getSettings().quietHours,
+            startHour: Math.min(23, Math.max(0, Math.round(value as number))),
+          },
+        })
+        return
+      }
+      case 'palette:set-sound-quiet-hours-end': {
+        this.audioCueStore.setSettings({
+          ...this.audioCueStore.getSettings(),
+          quietHours: {
+            ...this.audioCueStore.getSettings().quietHours,
+            endHour: Math.min(23, Math.max(0, Math.round(value as number))),
+          },
+        })
+        return
+      }
+      case 'palette:set-sound-reduced-motion': {
+        this.audioCueStore.setSettings({
+          ...this.audioCueStore.getSettings(),
+          respectReducedMotion: value as boolean,
+        })
+        return
+      }
+      case 'palette:set-copilot-always-resolve-conflicts':
+        return this.props.dispatcher.setAlwaysUseCopilotForConflictResolution(
+          value === true
+        )
+      case 'palette:set-build-auto-install': {
+        if (repository instanceof Repository) {
+          void this.props.dispatcher
+            .updateRepositoryBuildRunPreferences(repository, {
+              ...repository.buildRunPreferences,
+              autoInstallMissingTools: value === true,
+            })
+            .catch(error =>
+              log.error('Could not persist the Build & Run preference', error)
+            )
+        }
+        return
+      }
+      case 'palette:set-build-pre-elevate': {
+        if (repository instanceof Repository) {
+          void this.props.dispatcher
+            .updateRepositoryBuildRunPreferences(repository, {
+              ...repository.buildRunPreferences,
+              elevated: value === true,
+            })
+            .catch(error =>
+              log.error('Could not persist the Build & Run preference', error)
+            )
+        }
+        return
+      }
+      case 'palette:set-build-run-after-build': {
+        if (repository instanceof Repository) {
+          void this.props.dispatcher
+            .updateRepositoryBuildRunPreferences(repository, {
+              ...repository.buildRunPreferences,
+              autoRunAfterBuild: value === true,
+            })
+            .catch(error =>
+              log.error('Could not persist the Build & Run preference', error)
+            )
+        }
+        return
+      }
+      case 'palette:set-build-auto-ignore-outputs': {
+        if (repository instanceof Repository) {
+          void this.props.dispatcher
+            .updateRepositoryBuildRunPreferences(repository, {
+              ...repository.buildRunPreferences,
+              autoIgnoreBuildOutputs: value === true,
+            })
+            .catch(error =>
+              log.error('Could not persist the Build & Run preference', error)
+            )
+        }
+        return
+      }
+      case 'palette:set-build-after-pull': {
+        if (repository instanceof Repository) {
+          void this.props.dispatcher
+            .updateRepositoryBuildRunPreferences(repository, {
+              ...repository.buildRunPreferences,
+              autoBuildOnPull: value === true,
+            })
+            .catch(error =>
+              log.error('Could not persist the Build & Run preference', error)
+            )
+        }
+        return
+      }
+      case 'palette:set-build-offer-agents': {
+        if (repository instanceof Repository) {
+          void this.props.dispatcher
+            .updateRepositoryBuildRunPreferences(repository, {
+              ...repository.buildRunPreferences,
+              offerOpencodeAutoFix: value === true,
+            })
+            .catch(error =>
+              log.error('Could not persist the Build & Run preference', error)
+            )
+        }
+        return
+      }
+      case 'palette:set-build-fix-provider': {
+        if (repository instanceof Repository) {
+          void this.props.dispatcher
+            .updateRepositoryBuildRunPreferences(repository, {
+              ...repository.buildRunPreferences,
+              buildFixProvider:
+                String(value) === 'codex' ? 'codex' : 'opencode',
+            })
+            .catch(error =>
+              log.error('Could not persist the Build & Run preference', error)
+            )
+        }
+        return
+      }
+      case 'palette:set-build-fix-auto-approve': {
+        if (repository instanceof Repository) {
+          void this.props.dispatcher
+            .updateRepositoryBuildRunPreferences(repository, {
+              ...repository.buildRunPreferences,
+              buildFixAutoApprove: value === true,
+              // Keep the legacy field in sync for older Desktop Material builds.
+              opencodeAutoApprove: value === true,
+            })
+            .catch(error =>
+              log.error('Could not persist the Build & Run preference', error)
+            )
+        }
+        return
+      }
+      case 'palette:set-cheap-lfs-auto-materialize': {
+        {
+          const repo = this.getSelectedRepositoryState()?.repository
+          if (repo !== undefined) {
+            void this.props.dispatcher.updateRepositoryBuildRunPreferences(
+              repo,
+              {
+                ...repo.buildRunPreferences,
+                autoMaterializeCheapLfs: value as boolean,
+              }
+            )
+          }
+        }
+        return
+      }
+      case 'palette:set-cheap-lfs-auto-pin': {
+        {
+          const repo = this.getSelectedRepositoryState()?.repository
+          if (repo !== undefined) {
+            void this.props.dispatcher.updateRepositoryBuildRunPreferences(
+              repo,
+              {
+                ...repo.buildRunPreferences,
+                autoPinLargeFilesOnCommit: value as boolean,
+              }
+            )
+          }
+        }
+        return
+      }
+      case 'palette:set-cheap-lfs-clone-helper': {
+        {
+          const repo = this.getSelectedRepositoryState()?.repository
+          if (repo !== undefined) {
+            void this.props.dispatcher.updateRepositoryBuildRunPreferences(
+              repo,
+              {
+                ...repo.buildRunPreferences,
+                cheapLfsCloneHelperEnabled: value as boolean,
+              }
+            )
+          }
+        }
+        return
+      }
+      case 'palette:set-cheap-lfs-parallel-uploads': {
+        {
+          const repo = this.getSelectedRepositoryState()?.repository
+          if (repo !== undefined) {
+            const lanes = Math.min(3, Math.max(1, Math.floor(Number(value))))
+            void this.props.dispatcher.updateRepositoryBuildRunPreferences(
+              repo,
+              {
+                ...repo.buildRunPreferences,
+                cheapLfsUploadConcurrency: lanes,
+                // Keep app versions that only understand the legacy switch coherent.
+                parallelCheapLfsUploads: lanes > 1,
+              }
+            )
+          }
+        }
+        return
+      }
+      case 'palette:set-cheap-lfs-storage-provider': {
+        {
+          const repo = this.getSelectedRepositoryState()?.repository
+          if (repo !== undefined) {
+            const raw = String(value)
+            const provider =
+              raw === 'ghcr' || raw === 'docker-hub'
+                ? raw
+                : ('release' as const)
+            const prefs = repo.buildRunPreferences
+            void this.props.dispatcher.updateRepositoryBuildRunPreferences(
+              repo,
+              {
+                ...prefs,
+                cheapLfsStorageProvider: provider,
+                // Keep preview builds that only understood the GHCR boolean coherent.
+                cheapLfsGhcrStorage: provider === 'ghcr',
+                // Payload encryption is deliberately Release-provider only.
+                cheapLfsPayloadEncryption:
+                  provider === 'release'
+                    ? prefs.cheapLfsPayloadEncryption
+                    : false,
+                cheapLfsPayloadEncryptionConfirmed:
+                  provider === 'release'
+                    ? prefs.cheapLfsPayloadEncryptionConfirmed
+                    : false,
+              }
+            )
+          }
+        }
+        return
+      }
+      case 'palette:set-diff-auto-expand-context': {
+        setDiffContextPreferences({
+          ...readDiffContextPreferences(),
+          alwaysExpand: value === true,
+        })
+        return
+      }
+      case 'palette:set-diff-context-step': {
+        setDiffContextPreferences({
+          ...readDiffContextPreferences(),
+          contextLines:
+            Number(value) === 100 ? 100 : Number(value) === 50 ? 50 : 20,
+        })
+        return
+      }
       default:
         return
     }
@@ -6388,6 +7220,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       <div
         id="desktop-app-contents"
         className={this.getDesktopAppContentsClassNames()}
+        {...teleportAnchor('app-workspace')}
         data-customization-surface="app-workspace"
         data-customization-label="App workspace"
         data-customization-scope="profile"

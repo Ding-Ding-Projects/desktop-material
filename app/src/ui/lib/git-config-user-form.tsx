@@ -10,6 +10,7 @@ import { Select } from './select'
 import { GitEmailNotFoundWarning } from './git-email-not-found-warning'
 import { getStealthEmailForAccount } from '../../lib/email'
 import memoizeOne from 'memoize-one'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 const OtherEmailSelectValue = 'Other'
 
@@ -144,16 +145,20 @@ export class GitConfigUserForm extends React.Component<
   public render() {
     return (
       <div>
-        <Row>
-          <TextBox
-            label="Name"
-            value={this.props.name}
-            disabled={this.props.disabled}
-            onValueChanged={this.props.onNameChanged}
-          />
-        </Row>
-        {this.renderEmailDropdown()}
-        {this.renderEmailTextBox()}
+        <div {...teleportAnchor('settings-git-author-name')}>
+          <Row>
+            <TextBox
+              label="Name"
+              value={this.props.name}
+              disabled={this.props.disabled}
+              onValueChanged={this.props.onNameChanged}
+            />
+          </Row>
+        </div>
+        <div {...teleportAnchor('settings-git-author-email')}>
+          {this.renderEmailDropdown()}
+          {this.renderEmailTextBox()}
+        </div>
         {this.state.emailIsOther ? (
           <GitEmailNotFoundWarning
             accounts={this.props.accounts}

@@ -129,6 +129,7 @@ import {
 } from '../../lib/automation/bulk-repository-runner'
 import { RepositorySyncOperation } from '../../lib/automation/pull-all'
 import { menuAccelerator } from '../../lib/menu-accelerators'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 interface IRepositoriesListProps {
   /** Signed-in identities used by the account and provider scope controls. */
@@ -1338,7 +1339,11 @@ export class RepositoriesList extends React.Component<
       // the side sheet closes; every control inside it stays natively
       // interactive and keyboard reachable on its own.
       // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-      <div className="repository-list" onKeyDown={this.onListKeyDown}>
+      <div
+        className="repository-list"
+        onKeyDown={this.onListKeyDown}
+        {...teleportAnchor('repository-list')}
+      >
         {this.renderSheetHeader()}
         {this.renderBulkActions()}
         <SectionFilterList<IRepositoryListItem, RepositoryListGroup>

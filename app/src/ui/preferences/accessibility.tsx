@@ -43,16 +43,18 @@ export class Accessibility extends React.Component<
             easier to distinguish. {this.renderExampleLink()}
           </p>
 
-          <Checkbox
-            label="Show check marks in the diff"
-            value={
-              this.props.showDiffCheckMarks
-                ? CheckboxValue.On
-                : CheckboxValue.Off
-            }
-            onChange={this.onShowDiffCheckMarksChanged}
-            ariaDescribedBy="diff-checkmarks-setting-description"
-          />
+          <div {...teleportAnchor('settings-diff-check-marks')}>
+            <Checkbox
+              label="Show check marks in the diff"
+              value={
+                this.props.showDiffCheckMarks
+                  ? CheckboxValue.On
+                  : CheckboxValue.Off
+              }
+              onChange={this.onShowDiffCheckMarksChanged}
+              ariaDescribedBy="diff-checkmarks-setting-description"
+            />
+          </div>
           <p
             id="diff-checkmarks-setting-description"
             className="settings-description"

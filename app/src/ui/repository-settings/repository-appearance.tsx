@@ -37,6 +37,7 @@ import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { RepositoryLogo } from '../repository-logo/repository-logo'
 import { IVersionedStoreHistorySource } from '../version-history'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 /** How long to wait before re-checking a still-starting element coordinator. */
 const CoordinatorRetryDelay = 50
@@ -645,12 +646,14 @@ export class RepositoryAppearance extends React.Component<
       onReset: this.onResetLogo,
       onShowHistory: this.onShowLogoHistory,
       editor: (
-        <RepositoryLogoAppearanceEditor
-          value={value.logo}
-          profileValue={inherited.logo}
-          repositoryName={this.repositoryName}
-          onChange={this.onLogoChanged}
-        />
+        <div {...teleportAnchor('repo-settings-appearance')}>
+          <RepositoryLogoAppearanceEditor
+            value={value.logo}
+            profileValue={inherited.logo}
+            repositoryName={this.repositoryName}
+            onChange={this.onLogoChanged}
+          />
+        </div>
       ),
       preview: (
         <div className="repository-appearance-preview">

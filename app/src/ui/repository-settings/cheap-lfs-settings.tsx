@@ -23,6 +23,7 @@ import {
   saveCheapLfsPayloadPassword,
 } from '../../lib/cheap-lfs/payload-encryption-credentials'
 import { verifyCheapLfsEncryptionSecret } from '../../lib/cheap-lfs/payload-encryption'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 type CheapLfsCredentialStatus = 'checking' | 'saved' | 'missing' | 'unavailable'
 
@@ -434,7 +435,10 @@ export class CheapLfsSettings extends React.Component<
       this.state.credentialBusy || this.props.dispatcher === undefined
 
     return (
-      <div className="cheap-lfs-payload-encryption">
+      <div
+        className="cheap-lfs-payload-encryption"
+        {...teleportAnchor('repo-settings-cheap-lfs-encryption')}
+      >
         <h4>{t('cheapLfs.encryption.title')}</h4>
         <Checkbox
           label={t('cheapLfs.encryption.toggle')}
@@ -545,85 +549,107 @@ export class CheapLfsSettings extends React.Component<
               {t('cheapLfs.settings.sectionHeading')}
             </h3>
             <div className="build-run-toggles">
-              <Checkbox
-                label={t('cheapLfs.settings.autoMaterialize')}
-                value={
-                  prefs.autoMaterializeCheapLfs ?? true
-                    ? CheckboxValue.On
-                    : CheckboxValue.Off
-                }
-                onChange={this.onAutoMaterializeCheapLfsChanged}
-              />
-              <Checkbox
-                label={autoPinLabel}
-                value={
-                  prefs.autoPinLargeFilesOnCommit ?? true
-                    ? CheckboxValue.On
-                    : CheckboxValue.Off
-                }
-                onChange={this.onAutoPinLargeFilesOnCommitChanged}
-              />
-              <Checkbox
-                label={t('cheapLfs.settings.cloneHelper')}
-                value={
-                  prefs.cheapLfsCloneHelperEnabled !== false
-                    ? CheckboxValue.On
-                    : CheckboxValue.Off
-                }
-                ariaDescribedBy="cheap-lfs-clone-helper-help"
-                onChange={this.onCheapLfsCloneHelperEnabledChanged}
-              />
+              <div
+                {...teleportAnchor('repo-settings-cheap-lfs-auto-materialize')}
+              >
+                <Checkbox
+                  label={t('cheapLfs.settings.autoMaterialize')}
+                  value={
+                    prefs.autoMaterializeCheapLfs ?? true
+                      ? CheckboxValue.On
+                      : CheckboxValue.Off
+                  }
+                  onChange={this.onAutoMaterializeCheapLfsChanged}
+                />
+              </div>
+              <div {...teleportAnchor('repo-settings-cheap-lfs-auto-pin')}>
+                <Checkbox
+                  label={autoPinLabel}
+                  value={
+                    prefs.autoPinLargeFilesOnCommit ?? true
+                      ? CheckboxValue.On
+                      : CheckboxValue.Off
+                  }
+                  onChange={this.onAutoPinLargeFilesOnCommitChanged}
+                />
+              </div>
+              <div {...teleportAnchor('repo-settings-cheap-lfs-clone-helper')}>
+                <Checkbox
+                  label={t('cheapLfs.settings.cloneHelper')}
+                  value={
+                    prefs.cheapLfsCloneHelperEnabled !== false
+                      ? CheckboxValue.On
+                      : CheckboxValue.Off
+                  }
+                  ariaDescribedBy="cheap-lfs-clone-helper-help"
+                  onChange={this.onCheapLfsCloneHelperEnabledChanged}
+                />
+              </div>
               <p
                 id="cheap-lfs-clone-helper-help"
                 className="build-run-section-description"
               >
                 {t('cheapLfs.settings.cloneHelperHelp')}
               </p>
-              <Select
-                className="cheap-lfs-upload-concurrency-select"
-                label={t('cheapLfs.settings.parallelUploads')}
-                value={String(getCheapLfsUploadConcurrency(prefs))}
-                onChange={this.onCheapLfsUploadConcurrencyChanged}
+              <div
+                {...teleportAnchor('repo-settings-cheap-lfs-parallel-uploads')}
               >
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-              </Select>
+                <Select
+                  className="cheap-lfs-upload-concurrency-select"
+                  label={t('cheapLfs.settings.parallelUploads')}
+                  value={String(getCheapLfsUploadConcurrency(prefs))}
+                  onChange={this.onCheapLfsUploadConcurrencyChanged}
+                >
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                </Select>
+              </div>
               <p className="build-run-section-description">
                 {t('cheapLfs.settings.parallelUploadsHelp')}
               </p>
-              <Select
-                className="cheap-lfs-storage-provider-select"
-                label={t('cheapLfs.settings.storageProvider')}
-                value={cheapLfsStorageProvider}
-                onChange={this.onCheapLfsStorageProviderChanged}
+              <div
+                {...teleportAnchor('repo-settings-cheap-lfs-storage-provider')}
               >
-                <option value="release">
-                  {t('cheapLfs.settings.storageRelease')}
-                </option>
-                <option value="ghcr">
-                  {t('cheapLfs.settings.storageGhcr')}
-                </option>
-                <option value="docker-hub">
-                  {t('cheapLfs.settings.storageDockerHub')}
-                </option>
-              </Select>
+                <Select
+                  className="cheap-lfs-storage-provider-select"
+                  label={t('cheapLfs.settings.storageProvider')}
+                  value={cheapLfsStorageProvider}
+                  onChange={this.onCheapLfsStorageProviderChanged}
+                >
+                  <option value="release">
+                    {t('cheapLfs.settings.storageRelease')}
+                  </option>
+                  <option value="ghcr">
+                    {t('cheapLfs.settings.storageGhcr')}
+                  </option>
+                  <option value="docker-hub">
+                    {t('cheapLfs.settings.storageDockerHub')}
+                  </option>
+                </Select>
+              </div>
               {cloudPolicy !== 'not-github' &&
                 cheapLfsStorageProvider === 'release' && (
-                  <Checkbox
-                    label={cloudCompressionLabel}
-                    disabled={
-                      cloudPolicy === 'automatic-public' ||
-                      cloudPolicy === 'visibility-unknown'
-                    }
-                    value={
-                      cloudPolicy === 'automatic-public' ||
-                      cloudPolicy === 'enabled-private'
-                        ? CheckboxValue.On
-                        : CheckboxValue.Off
-                    }
-                    onChange={this.onCheapLfsCloudCompressionChanged}
-                  />
+                  <div
+                    {...teleportAnchor(
+                      'repo-settings-cheap-lfs-cloud-compression'
+                    )}
+                  >
+                    <Checkbox
+                      label={cloudCompressionLabel}
+                      disabled={
+                        cloudPolicy === 'automatic-public' ||
+                        cloudPolicy === 'visibility-unknown'
+                      }
+                      value={
+                        cloudPolicy === 'automatic-public' ||
+                        cloudPolicy === 'enabled-private'
+                          ? CheckboxValue.On
+                          : CheckboxValue.Off
+                      }
+                      onChange={this.onCheapLfsCloudCompressionChanged}
+                    />
+                  </div>
                 )}
             </div>
             {cheapLfsStorageProvider === 'release' &&

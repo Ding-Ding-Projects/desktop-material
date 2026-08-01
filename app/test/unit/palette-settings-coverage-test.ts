@@ -5,8 +5,14 @@ import * as Path from 'path'
 
 import { CommandPaletteCatalog } from '../../src/lib/command-palette-catalog'
 import { RepositorySettingsTab } from '../../src/models/repository-settings'
+import { PreferencesTab } from '../../src/models/preferences'
 
 const src = Path.resolve(__dirname, '../../src')
+
+/** Escapes the characters a palette event id can contain. */
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
 
 describe('palette settings coverage', () => {
   it('offers every repository settings tab by name', () => {
@@ -69,6 +75,91 @@ describe('palette settings coverage', () => {
         true,
         `${command.event} must be offered for an ordinary repository`
       )
+    }
+  })
+
+  it('reaches every Settings tab, not just the ones with a dialog', () => {
+    // The palette used to open Settings and stop there. A user who knows a
+    // setting's name should land on it, which means every tab has to be
+    // represented by at least one row that names something on it.
+    const tabs = Object.values(PreferencesTab).filter(
+      v => typeof v === 'number'
+    ) as ReadonlyArray<PreferencesTab>
+
+    for (const tab of tabs) {
+      const rows = CommandPaletteCatalog.filter(
+        c => c.home?.kind === 'preferences' && c.home.tab === tab
+      )
+      assert.ok(
+        rows.length > 0,
+        `Settings tab ${PreferencesTab[tab]} has no palette row`
+      )
+    }
+  })
+
+  it('never renders a control it cannot actually read and write', async () => {
+    const app = await readFile(Path.join(src, 'ui/app.tsx'), 'utf8')
+    for (const command of CommandPaletteCatalog) {
+      if (command.control === undefined) {
+        continue
+      }
+      // A switch that does not move, or moves and changes nothing, is worse
+      // than a row that simply takes you to the setting. Every control row
+      // must have both halves of its wiring.
+      // Whitespace-tolerant: the formatter wraps a long `values.set(...)`
+      // onto its own lines, and a literal match would then report a wiring
+      // that is plainly there.
+      assert.match(
+        app,
+        new RegExp(`values\\.set\\(\\s*'${escapeRegex(command.event)}'`),
+        `${command.event} renders a control with nothing reading its value`
+      )
+      assert.ok(
+        app.includes(`case '${command.event}':`),
+        `${command.event} renders a control that writes nowhere`
+      )
+    }
+  })
+
+  it('never offers a row that does nothing when selected', async () => {
+    const app = await readFile(Path.join(src, 'ui/app.tsx'), 'utf8')
+    const dead = CommandPaletteCatalog.filter(
+      command =>
+        command.home === undefined &&
+        command.control === undefined &&
+        !app.includes(`case '${command.event}':`)
+    )
+    // Three ways a row can mean something: it goes somewhere, it changes a
+    // value in place, or it runs a handler. A row with none of the three is
+    // the one outcome worse than not offering the command at all — the user
+    // finds it, selects it, and nothing happens.
+    assert.deepEqual(
+      dead.map(c => c.event),
+      [],
+      'these rows have no home, no control and no handler'
+    )
+  })
+
+  it('does not offer the same setting twice under two names', () => {
+    // Two rows pointing at one setting is how a palette starts disagreeing
+    // with itself: change one, and the other still shows the old value.
+    const destinations = new Map<string, string>()
+    for (const command of CommandPaletteCatalog) {
+      const home = command.home
+      if (
+        home?.kind !== 'repositorySettings' ||
+        command.control !== undefined
+      ) {
+        continue
+      }
+      const key = `repositorySettings:${home.tab}`
+      const first = destinations.get(key)
+      assert.equal(
+        first,
+        undefined,
+        `${command.event} and ${first} both stand for the same tab`
+      )
+      destinations.set(key, command.event)
     }
   })
 

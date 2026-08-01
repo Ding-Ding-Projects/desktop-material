@@ -9,6 +9,7 @@ import {
   IAppIdentityCustomization,
 } from '../../models/app-identity'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 interface IAppBrandProps {
   readonly identity: IAppIdentityCustomization
@@ -68,6 +69,9 @@ export class AppBrand extends React.Component<IAppBrandProps> {
           'app-brand-preview': this.props.preview,
         })}
         style={appBrandStyleToCss(identity)}
+        {...(this.props.preview === true
+          ? {}
+          : teleportAnchor('title-bar-brand'))}
         data-customization-surface="app-identity"
         data-customization-label="App identity"
         data-customization-scope="profile"

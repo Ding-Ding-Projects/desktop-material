@@ -37,6 +37,7 @@ import {
 import { CommandPaletteAppearanceEditor } from './command-palette-appearance-editor'
 import { RepositorySettingsTab } from '../../models/repository-settings'
 import type { TranslationKey } from '../../lib/i18n-resources'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 /** The persistence id for the palette's filter mode. */
 const PaletteFilterListId = 'command-palette'
@@ -920,7 +921,10 @@ export class CommandPalette extends React.Component<
               aria-activedescendant={activeRow}
               spellCheck={false}
             />
-            <div className="command-palette-filter-modes">
+            <div
+              className="command-palette-filter-modes"
+              {...teleportAnchor('palette-regex-builder')}
+            >
               <FilterModeControl
                 searchSurfaceId="command-palette"
                 mode={this.state.filterMode}

@@ -13,6 +13,7 @@ import {
   SupportedHooksEnvShell,
 } from '../../lib/hooks/config'
 import { GlobalIgnoreEditor } from './global-ignore'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 interface IGitProps {
   readonly name: string
@@ -85,14 +86,16 @@ export class Git extends React.Component<IGitProps> {
   private renderHooksSettings() {
     return (
       <>
-        <Checkbox
-          label="Load Git hook environment variables from shell"
-          ariaDescribedBy="git-hooks-env-description"
-          value={
-            this.props.enableGitHookEnv ? CheckboxValue.On : CheckboxValue.Off
-          }
-          onChange={this.onEnableGitHookEnvChanged}
-        />
+        <div {...teleportAnchor('settings-git-hook-env')}>
+          <Checkbox
+            label="Load Git hook environment variables from shell"
+            ariaDescribedBy="git-hooks-env-description"
+            value={
+              this.props.enableGitHookEnv ? CheckboxValue.On : CheckboxValue.Off
+            }
+            onChange={this.onEnableGitHookEnvChanged}
+          />
+        </div>
         <p id="git-hooks-env-description" className="settings-description">
           When enabled, GitHub Desktop will attempt to load environment
           variables from your shell when executing Git hooks. This is useful if
@@ -102,7 +105,7 @@ export class Git extends React.Component<IGitProps> {
         </p>
 
         {this.props.enableGitHookEnv && __WIN32__ && (
-          <>
+          <div {...teleportAnchor('settings-git-hook-env-shell')}>
             <Select
               className="git-hook-shell-select"
               label={'Shell to use when loading environment'}
@@ -117,21 +120,23 @@ export class Git extends React.Component<IGitProps> {
                   </option>
                 ))}
             </Select>
-          </>
+          </div>
         )}
 
         {this.props.enableGitHookEnv && (
           <>
-            <Checkbox
-              label="Cache Git hook environment variables"
-              ariaDescribedBy="git-hooks-cache-description"
-              onChange={this.onCacheGitHookEnvChanged}
-              value={
-                this.props.cacheGitHookEnv
-                  ? CheckboxValue.On
-                  : CheckboxValue.Off
-              }
-            />
+            <div {...teleportAnchor('settings-git-hook-env-cache')}>
+              <Checkbox
+                label="Cache Git hook environment variables"
+                ariaDescribedBy="git-hooks-cache-description"
+                onChange={this.onCacheGitHookEnvChanged}
+                value={
+                  this.props.cacheGitHookEnv
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+              />
+            </div>
 
             <div
               id="git-hooks-cache-description"
@@ -188,16 +193,18 @@ export class Git extends React.Component<IGitProps> {
           onEmailChanged={this.props.onEmailChanged}
           onNameChanged={this.props.onNameChanged}
         />
-        <Checkbox
-          label="Show effective identity and config source above commit message"
-          ariaDescribedBy="commit-author-info-description"
-          value={
-            this.props.showCommitAuthorInfo
-              ? CheckboxValue.On
-              : CheckboxValue.Off
-          }
-          onChange={this.onShowCommitAuthorInfoChanged}
-        />
+        <div {...teleportAnchor('settings-show-commit-identity')}>
+          <Checkbox
+            label="Show effective identity and config source above commit message"
+            ariaDescribedBy="commit-author-info-description"
+            value={
+              this.props.showCommitAuthorInfo
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
+            onChange={this.onShowCommitAuthorInfoChanged}
+          />
+        </div>
         <p id="commit-author-info-description" className="settings-description">
           Displays the name, email, Git config scope, and winning config file
           before you commit.
@@ -209,7 +216,10 @@ export class Git extends React.Component<IGitProps> {
 
   private renderDefaultBranchSetting() {
     return (
-      <div className="default-branch-component">
+      <div
+        className="default-branch-component"
+        {...teleportAnchor('settings-default-branch-name')}
+      >
         <h2 id="default-branch-heading">
           Default branch name for new repositories
         </h2>

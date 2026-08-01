@@ -17,6 +17,7 @@ import { MaterialSwitch } from '../lib/material-switch'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { showOpenDialog } from '../main-process-proxy'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 interface IQueuePreferencesProps {
   readonly accounts: ReadonlyArray<Account>
@@ -106,6 +107,7 @@ export class QueuePreferences extends React.Component<
         <section
           className="queue-heading"
           data-verification="clone-queue-settings"
+          {...teleportAnchor('settings-queue-accounts')}
         >
           <div className="queue-heading-icon" aria-hidden={true}>
             <Octicon symbol={octicons.stack} />

@@ -24,6 +24,7 @@ import {
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { LocalizedText } from '../lib/localized-text'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 interface IAgentAccessProps {
   readonly openInBrowser: (url: string) => Promise<boolean>
@@ -166,6 +167,7 @@ export class AgentAccess extends React.Component<
         <section className="agent-access-card agent-mode-card">
           <label htmlFor="agent-server-mode">Access mode</label>
           <select
+            {...teleportAnchor('settings-agent-access-mode')}
             id="agent-server-mode"
             value={mode}
             onChange={this.onModeChanged}
@@ -177,7 +179,10 @@ export class AgentAccess extends React.Component<
           </select>
           <p>{modeDescription(mode)}</p>
 
-          <div className="agent-toggle-row">
+          <div
+            className="agent-toggle-row"
+            {...teleportAnchor('settings-agent-server-enabled')}
+          >
             <div>
               <strong id="agent-server-enabled-label">
                 Enable agent server
@@ -231,7 +236,10 @@ export class AgentAccess extends React.Component<
           {!unsafe && (
             <>
               <label htmlFor="agent-server-token">Desktop bearer token</label>
-              <div className="agent-token-row">
+              <div
+                className="agent-token-row"
+                {...teleportAnchor('settings-agent-token')}
+              >
                 <input
                   id="agent-server-token"
                   type={this.state.revealToken ? 'text' : 'password'}
@@ -403,6 +411,7 @@ export class AgentAccess extends React.Component<
       <section
         className="agent-access-card agent-pairing-card"
         data-verification="mobile-connection-settings"
+        {...teleportAnchor('settings-agent-pairing')}
       >
         <div className="agent-access-card-title">
           <Octicon symbol={octicons.deviceMobile} />
