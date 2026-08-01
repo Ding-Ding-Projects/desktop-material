@@ -118,6 +118,7 @@ describe('CommandPalette filter modes', () => {
       {
         mode: 'manual',
         density: 'compact',
+        size: 'medium',
         showIcons: false,
         showGroups: true,
         showKeywords: true,

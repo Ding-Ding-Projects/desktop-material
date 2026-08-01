@@ -353,8 +353,15 @@ export class Popover extends React.Component<IPopoverProps, IPopoverState> {
       ...this.props.style,
     }
     const contentStyle: React.CSSProperties = {
-      overflow: 'hidden',
+      // Vertically scroll rather than clip. `--available-height` caps the
+      // content to what actually fits between the anchor and the viewport
+      // edge; with `overflow: hidden` everything past that cap was simply
+      // unreachable - a tall calendar lost its last rows with no scrollbar to
+      // say so. Horizontal stays hidden because the width is already fitted.
+      overflow: 'hidden auto',
       width: '100%',
+      maxHeight: 'var(--available-height)',
+      maxWidth: 'var(--available-width)',
     }
     let tipStyle: React.CSSProperties = {}
 

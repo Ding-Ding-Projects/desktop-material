@@ -3,6 +3,16 @@ import { MaterialSymbolName } from '../lib/material-symbol'
 /** Row height preset for the command palette result list. */
 export type CommandPaletteDensity = 'comfortable' | 'compact'
 
+/**
+ * How much of the window the palette occupies.
+ *
+ * `full` is the Material Design 3 full-screen search view - the palette covers
+ * the app. It reads well on a large display and overwhelming on a small one,
+ * so the default is the bounded card and the full-screen view is a choice
+ * rather than the only shape on offer.
+ */
+export type CommandPaletteSize = 'compact' | 'medium' | 'full'
+
 /** How the result-row appearance is selected. */
 export type CommandPaletteAppearanceMode = 'manual' | 'random-per-repository'
 
@@ -14,6 +24,8 @@ export type CommandPaletteAppearanceMode = 'manual' | 'random-per-repository'
 export interface ICommandPaletteAppearance {
   readonly mode: CommandPaletteAppearanceMode
   readonly density: CommandPaletteDensity
+  /** How much of the window the palette covers. */
+  readonly size: CommandPaletteSize
   /** Show the leading Material Symbol for each row. */
   readonly showIcons: boolean
   /** Show the group chip (Navigate, Repository, …) on each row. */
@@ -25,6 +37,7 @@ export interface ICommandPaletteAppearance {
 export const DefaultCommandPaletteAppearance: ICommandPaletteAppearance = {
   mode: 'manual',
   density: 'comfortable',
+  size: 'medium',
   showIcons: true,
   showGroups: true,
   showKeywords: true,
@@ -49,6 +62,12 @@ export function readCommandPaletteAppearance(): ICommandPaletteAppearance {
         parsed.density === 'compact' || parsed.density === 'comfortable'
           ? parsed.density
           : DefaultCommandPaletteAppearance.density,
+      size:
+        parsed.size === 'compact' ||
+        parsed.size === 'medium' ||
+        parsed.size === 'full'
+          ? parsed.size
+          : DefaultCommandPaletteAppearance.size,
       showIcons:
         typeof parsed.showIcons === 'boolean'
           ? parsed.showIcons
@@ -79,8 +98,12 @@ export function persistCommandPaletteAppearance(
   }
 }
 
+// Size is deliberately not part of a random variant. Row look is decoration a
+// reader can enjoy varying; how much of the window the palette swallows is a
+// deliberate choice, and having it change per repository would be a surprise
+// rather than a delight.
 const RandomRepositoryAppearances: ReadonlyArray<
-  Omit<ICommandPaletteAppearance, 'mode'>
+  Omit<ICommandPaletteAppearance, 'mode' | 'size'>
 > = [
   {
     density: 'comfortable',
@@ -150,7 +173,7 @@ export function resolveCommandPaletteAppearance(
     RandomRepositoryAppearances[
       stableRepositoryHash(repositoryKey) % RandomRepositoryAppearances.length
     ]
-  return { mode: appearance.mode, ...variant }
+  return { ...variant, mode: appearance.mode, size: appearance.size }
 }
 
 /** The icon shown for a command group when the command declares none. */

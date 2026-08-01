@@ -1,5 +1,495 @@
 {
   "releases": {
+    "3.6.3-material22": [
+      "[Fixed] Release notes on the Releases page render as formatted markdown instead of showing raw heading marks, link brackets and list dashes - 549839c45965f420f324ea7a8245f4779725720c",
+      "[Added] The Create Branch dialog shows live checkout progress and offers a checkbox to skip cloning submodules - 549839c45965f420f324ea7a8245f4779725720c",
+      "[Fixed] Submitting the Create Branch dialog from the keyboard no longer creates the same branch twice - 549839c45965f420f324ea7a8245f4779725720c",
+      "[Added] The push dropdown offers to diagnose a rejected push with OpenCode, with force-pushing, commit rewriting and branch switching ruled out - 549839c45965f420f324ea7a8245f4779725720c",
+      "[Added] Forking a repository lets you pick which signed-in account performs the fork and which organization it lands in - 25a1858fe3ead498ed1f1473bcdccefc8e4fe628",
+      "[Added] Repositories hosted where forking is unavailable can be copied into a new repository instead, keeping the original as upstream - 25a1858fe3ead498ed1f1473bcdccefc8e4fe628",
+      "[Improved] The Releases page starts with its five statistic cards collapsed, keeps the headline counts in the toggle, and remembers whether they were reopened - eacdc17e96fab1fd61525bf33e64a16996b19f66",
+      "[Improved] The missing read:packages permission message now offers a sign-in button that requests the permission instead of only naming it - eacdc17e96fab1fd61525bf33e64a16996b19f66",
+      "[Fixed] The Releases search and filter row can be collapsed at any window size, not just in a very narrow window - 40d5ff679b9732849b44493c84267e81a0ecba5c",
+      "[Fixed] The Reload buttons on the crash screen and the startup screen work again instead of doing nothing - 66d446266ecbd6c9dccf2a9d5ac9dacabc0fa17a",
+      "[Fixed] The repository logo editor no longer grows a second, redundant scrollbar - 66d446266ecbd6c9dccf2a9d5ac9dacabc0fa17a",
+      "[Improved] The feature gallery screenshots are re-shot against the current build, so they show the app as it looks today - 66d446266ecbd6c9dccf2a9d5ac9dacabc0fa17a",
+      "[Added] The website now covers the language modes, the two playfulness sliders, the in-app changelog viewer, external editor integration, the spoken narrator and the dim sum surprise - 309ad27736e5657907398fcc0d1491ee7233f40c",
+      "[Improved] The installer, package and portable download buttons hand over the newest published build directly instead of opening a list of releases - 309ad27736e5657907398fcc0d1491ee7233f40c",
+      "[Removed] The website's setting for turning off the dim sum surprise is gone, and the surprise now appears on one visit in ten - 309ad27736e5657907398fcc0d1491ee7233f40c",
+      "[Improved] The website and wiki describe what the command palette actually does now, including its app-wide coverage, live setting controls and jump-to-feature navigation - e6d5718fc405548447e78d10d06b6901ab256f61"
+    ],
+    "3.6.3-material21": [
+      "[New] Release history lists every recorded release and its entries inside the app, searchable, filterable by category and date range, and readable with no network connection - f89f162d3d0edbcf2a161514c98603312f721c78",
+      "[Added] A shared date picker offers presets, month and year jumps, range selection, and typed dates in either ISO or the local format, reporting an incomplete date without erasing what was typed - f89f162d3d0edbcf2a161514c98603312f721c78",
+      "[Improved] The command palette opens as a full-screen search view and renders each setting's real switch, text box, or dropdown inline, so a setting can be changed without hunting for the screen it lives on - da6cf4e83346bb6552fedb9761fd06bc16cdcffe",
+      "[Added] Choosing a command palette result jumps to where that feature lives and highlights it, while Ctrl+Enter still runs the command directly - da6cf4e83346bb6552fedb9761fd06bc16cdcffe",
+      "[Fixed] The regex builder opened from a right-click menu can be clicked and typed into instead of sitting under the menu's invisible backdrop, where the first press dismissed the menu and discarded the half-built pattern - 4942f2025c269b4db0c8994ba0496d56fccd8038",
+      "[Fixed] Right-clicking a text field lists Cut, Copy, Paste, and Select all instead of showing a single blank row - 4942f2025c269b4db0c8994ba0496d56fccd8038",
+      "[Added] Right-click menu items show their keyboard shortcut and announce it to screen readers - 4942f2025c269b4db0c8994ba0496d56fccd8038",
+      "[Fixed] A transient Git launch failure is retried once and a failed refresh of a single repository no longer interrupts the rest, so repeated background error popups stop - 20d1390430ca85267d0c51dfe7f55a17bd16bca2",
+      "[Fixed] Automatic large-file discovery skips ordinary Git metadata such as .gitmodules while still refusing an explicitly selected oversized protected path - 20d1390430ca85267d0c51dfe7f55a17bd16bca2",
+      "[Fixed] An already-staged .gitmodules entry is restored exactly as it was when a submodule operation has to roll back - 20d1390430ca85267d0c51dfe7f55a17bd16bca2",
+      "[Improved] The repository list filter collapses into a disclosure panel instead of permanently occupying the top of the list - 8912bcf3cdf9bbd5298884dde5e827801282e619",
+      "[Added] Hovering a commit in History shows its relative time as a tooltip - 8912bcf3cdf9bbd5298884dde5e827801282e619",
+      "[Improved] The force-cancel option in the workflow run cancellation dialog carries an accessible name, so a screen reader announces what the checkbox does - 35f8a25ded1b74ecbb2debba87b21ad71ae74c83",
+      "[Fixed] The security policy and contributing guides point at this project, so vulnerability reports are no longer routed to the upstream repository - f35fcb76da7f51b9f7868ce6f05738d0513eb8b0",
+      "[Added] The documentation site gains a Changelog tab listing every recorded release with its date and entries - 8cfd28bab1596a5a797ce342848800910e69fe54",
+      "[Added] The documentation site uses browser-style tabs with an overflow surface, pinning, grouping, four tab searches, and both bulk-close actions - 471e086ddd7d89dd1b011dd59449c15a20ec1b5d",
+      "[Improved] The documentation site's accent colour comes from a continuous colour picker with twelve editable notations and a live contrast readout instead of four fixed swatches - cc6c0338696ffc2e90040e8e87fbef1ece1dfb7a",
+      "[Fixed] The landing page and every rendered documentation page load the site's interactive features, including the dim sum surprise, which previously appeared on neither - b4d9d6f8200328c4c98cda256ff571e8e0ec09b3",
+      "[Improved] Release entries show a 24-hour time beside the date wherever the release tag recorded one, and a release with no tag still says its date is unrecorded rather than showing a guess - b4d9d6f8200328c4c98cda256ff571e8e0ec09b3",
+      "[Improved] The documentation site loads its changelog data when that tab is opened rather than making every visitor wait for it before the first page appears - fe9a6a312b059090533305d4ec56241b89c4c998",
+      "[Added] Every screenshot in the gallery gets its own documentation page with working search, theme, language, and appearance controls - 443234a236eefe08de232db1fc75978708e59389"
+    ],
+    "3.6.3-material20": [
+      "[Added] The cancel confirmation for a workflow run offers a Force cancel option for runs that ignore an ordinary cancellation, and says which kind was sent - aa74bcc42f1f39b37d4e622135fafee8c805159a",
+      "[Added] The Workflows tab shows how long each workflow's most recent completed run took, and omits the duration rather than guessing when it cannot be stated accurately - 10446a1c195325322c19401490f2b184c5198b66",
+      "[Fixed] The built-in browser renders the page instead of opening to a blank area below its toolbar and address bar - 10446a1c195325322c19401490f2b184c5198b66",
+      "[Fixed] A tooltip from a right-click menu disappears with the menu instead of lingering in the corner of the window describing a button that is gone - b2c107990ac1cc2c130cc683e641ddefbac8cfd6",
+      "[Fixed] A failed scheduled commit shows a single notification naming the real cause instead of two, one of which said only that the commit failed - b2c107990ac1cc2c130cc683e641ddefbac8cfd6",
+      "[Improved] Text in the repository releases pane is legibly sized, including the release dates, status badges, asset digests and the filter-mode buttons - d4471884435d1b42f324cbb3590c9ef5b1286503",
+      "[Improved] Web links open in the system browser by default, an explicit choice of the built-in browser survives a profile restore, and a link that fails to open reports it instead of doing nothing - d0afea98ed5d770888e2f949d6e44cb26e02e2df",
+      "[Improved] Moving a tab into a group opens a searchable, keyboard-operable chooser instead of a context menu that grew with every group - b4f3aabc5a537d1aed812aecf286769a4ae0c338",
+      "[Fixed] The window close, minimize and maximize buttons stay on screen at narrow widths instead of being pushed past the right edge - ac8e2b6a6be07ec5215a30b7fab5c2fdf0981304",
+      "[Fixed] The Windows title bar keeps a dedicated drag area, so the window can be moved by its top edge again - a647bd33ea8fd3350ed73917764f9268e19a6b49",
+      "[Fixed] Choosing an organization when publishing a repository uses a searchable, keyboard-complete list that no longer hides choices or overflows a narrow dialog - 63c1ec08c4f24f85d87f21d98851dcd5784c7800",
+      "[Added] The Sync repositories dialog can merge reviewed branches into the main branch, push without forcing, and remove local branches and worktrees only after proving each one is already contained remotely - a9a154380ea3b32c4dff71666bbc32496873d487",
+      "[Fixed] Turning on Cheap LFS cloud compression for a confirmed private repository now actually publishes its workflow instead of preparing one that never ran - de3522eaeb9fc2302381119723edcd09b237753b",
+      "[Improved] Cheap LFS keeps submodules out of a parent repository's setup, refuses to commit while a restore still owns the files, and verifies each workflow file, branch and remote tip before changing it - 118e47931d36c6e078bd6e934d1aaa5f5fb8236c"
+    ],
+    "3.6.3-material19": [
+      "[Added] Merge conflicts can be handed to a local Codex or OpenCode session straight from the conflicts dialog, with the branches and conflicted files already described in the prompt - f401e7d49a7c9e688105aa200d4c66ec14f35912",
+      "[Added] A failed workflow run offers a Fix CI action that opens a local Codex or OpenCode task describing the failing jobs, so the fix can be verified locally before pushing - f401e7d49a7c9e688105aa200d4c66ec14f35912",
+      "[Improved] Long-running background work now reports elapsed time and an estimated finish, and its progress panel can be hidden and reopened without stopping the task - f401e7d49a7c9e688105aa200d4c66ec14f35912",
+      "[Improved] Cheap LFS restore progress details can be collapsed and expanded instead of always occupying the full panel - f401e7d49a7c9e688105aa200d4c66ec14f35912",
+      "[Added] The command palette can now reach conflict repair, CI repair, showing or hiding background progress, and toggling Cheap LFS restore details - f401e7d49a7c9e688105aa200d4c66ec14f35912",
+      "[Improved] The repository list toolbar keeps Add and Select in view and moves the remaining workspace actions into a localized More menu so the toolbar no longer crowds at narrow widths - d99c09886001f778f11cbf51db67021e76b4f4ad",
+      "[Added] Logs can optionally be sent to a self-hosted diagnostic server with credentials redacted on both ends, while local-only logging stays the default and a slow or unreachable server never holds up the app - 1f777ad518d740dec5e1334de1a1e36e32f85ac2",
+      "[Fixed] A failing post-commit hook in the repository no longer makes an automatic Cheap LFS workflow commit report as failed after Git has already committed it - 1f777ad518d740dec5e1334de1a1e36e32f85ac2",
+      "[Fixed] Closing Desktop Material on Windows waits for pending settings and profile history writes to finish instead of quitting mid-write - ac0e50fc2d4571ffe0ec8c6d72f929988daf35cb",
+      "[Fixed] Cancelling a quit or window close returns the app to a fully usable state rather than leaving it half shut down - ac0e50fc2d4571ffe0ec8c6d72f929988daf35cb",
+      "[Fixed] Profile history writes no longer stall behind a stale lock file left over from an interrupted session - ac0e50fc2d4571ffe0ec8c6d72f929988daf35cb",
+      "[Improved] Sign-in credentials are compiled into the main window only, keeping them out of the command-line, crash reporter, and quick action bundles - fb2dd929ee9e280db7528d3ba7eb3df2b4fdf55b",
+      "[Improved] The releases view search filter, case, and regex builder buttons now fit inside the search field in short, narrow windows and at high zoom - b3d4701fe83a30307b6321936b8f29b45fd11b20"
+    ],
+    "3.6.3-material18": [
+      "[Fixed] Right-clicking a tab, a repository row, or a diff opens that surface's own context menu again, with Shift+right-click reserved for the appearance editor - da345bf2206fb4b11bef1d8a733d38c2c1ed5511",
+      "[Fixed] Removing a repository also clears its saved large-file encryption password from the operating system credential store - 334a60158987000b0f27cfe1f41fab49ea2f3553",
+      "[Fixed] A scheduled commit in a repository with encrypted large-file storage and no saved password now skips those large files and reports the skip, instead of waiting on a password dialog with nobody there to answer it - 911f23d644eb5caf0c0ad6da32d2c69bbda1f957",
+      "[Fixed] The New and Edit tab group dialogs open as proper centered dialogs instead of being laid out inside the tab strip, where toolbar buttons painted over the group colour swatches - a3e81b7aeedc7f880f8ec7ace3e24f67c8b82d0b",
+      "[Fixed] A tooltip opened by keyboard focus appears beside its control and stays inside the window instead of landing half off the top-left corner - a3e81b7aeedc7f880f8ec7ace3e24f67c8b82d0b",
+      "[Fixed] Tab group colour swatches wrap onto a second row so every colour stays visible and selectable at any window size - 58d543a1807b26d0b97f61a7aad74a8ae0b223f8",
+      "[Fixed] A tab group holding a single tab reads \"1 tab\" in its dropdown and in what screen readers announce, instead of \"1 tabs\" - 398c18695505b6a82fc12ff222785d4524bba6f2",
+      "[Improved] The two playfulness sliders are no longer duplicated under the Sound tab's text-to-speech heading, leaving a single pair in Appearance settings - 14eb8c62a71aa285442213f984415d202b3d4795",
+      "[Added] Each repository can upload large files over one, two, or three parallel connections instead of a single on-or-off setting - be1f167b18d4dee3ebaea4d00909507cdab52ccc",
+      "[Added] The branch list marks branches already checked out in another worktree and offers to switch to that worktree instead of creating a second one - adf29991ebb2cabeec31c6eac7153f758de8c7c6",
+      "[Fixed] Scanning a working tree for large-file pointers no longer exhausts memory on multi-gigabyte files such as model weights - 2fedf140e394fa2fea3e380203e716b6f7aa8628",
+      "[Fixed] Restoring large files in several repositories at once keeps each repository's progress separate instead of one restore clearing another's status - a15e2a8804c72915e1c29fc98a4f32b1a6a85e13",
+      "[Improved] Switching between a repository's sections responds immediately, and author details load only for the commits actually on screen - ac718ef75490a91a63eb2bc08d8837488d79195f",
+      "[Fixed] Author avatars and keyboard tooltips no longer show details cached from an earlier session, repository, or pointer position - fe8b5b0eb759310dcd0ed94936b98ad2bdd0a193",
+      "[Fixed] Clicking inside the Regex Builder no longer closes the search popover it was opened from - a8e32008cfc880a27851fe84b7deef8794836e15",
+      "[Fixed] Arrow keys keep working in tab and settings search when a query has no results, and those fields no longer announce a results list that is not on screen - 9486bd4f0ac5941ac8b1248d901903c02ff9024a",
+      "[Improved] The open-tab search renders entirely in the selected language mode, including its status text, chips, and screen-reader labels - a12edcf5a1fd5d831c864376a6d737aa7e557553",
+      "[Improved] The plain-text and regex mode controls beside search fields meet the minimum 40-pixel target size and keep a visible focus outline - 2d1baa98105d7827470dae5abcbbbed7de31d6e7",
+      "[Fixed] Bundled dependencies move to patched releases, clearing the known security advisories reported against the app - b339c5a21b7ec519fa4bf1d6506bb30aee82a067",
+      "[Fixed] An update that has finished downloading offers to restart and install right away instead of waiting for release notes to be fetched first - 85ba698f56ef94c433e65b4427acb0e098ca52cc"
+    ],
+    "3.6.3-material17": [
+      "[New] Cheap LFS payloads can be encrypted with a passphrase before they are uploaded, so a release asset never carries readable file contents - 75b45da89d494e031d01332a6c30c5407d371e21",
+      "[New] Links and provider sign-in prompts open in a built-in tabbed browser with URL entry, bookmarks, and a one-press switch to the system browser - ba6d6b246dbdcd975606c5d159f18b0c767f143a",
+      "[Added] Every repository row shows how many commits are waiting to push or pull, and says so plainly when there is no upstream to compare against instead of reporting a false zero - 63a6b08c0f1a92ae75a848f128b5cf11a3b0bd0c",
+      "[Added] Repository list group headings collapse and expand, remember which groups are folded across restarts, and always open while a filter is running so a search hit can never hide inside a fold - 066b8cf3187160964740ee32e30422094be47606",
+      "[Added] Repository and tab groups can be created, renamed, recoloured and removed from their own menus, and a collapsed tab group lists its members in a dropdown so you can switch without expanding it first - 3aab211e3e5c47e6da9dcda0955655b937146a15",
+      "[Added] The overflowed-tabs dropdown has its own search field with the full regex builder, plus per-row appearance editing and the complete tab command menu on right-click - 78ca28ad1b24f626d1b9339a4dde0b27c1c994b6",
+      "[Added] Cheap LFS restore shows a detailed progress card with the current and prefetched downloads, file and byte totals, transfer rate, estimated time remaining, and a cancel action - ba6d6b246dbdcd975606c5d159f18b0c767f143a",
+      "[Added] A pull whose upstream branch was deleted on the remote now offers to check out the default branch and pull that instead, and refuses to move a worktree with uncommitted or conflicted changes - 89dda34356b282495c0ddca6e2ab37b903fea9bb",
+      "[Added] Ignored files such as node_modules, virtual environments or large checkpoints can be moved into a new local submodule, with every copy verified before the original repository is touched - dcbdd07b3c955cdea46d23507e3cd898daa574ed",
+      "[Added] The documentation site is now organized into tabs with a search field, plain-text or regular-expression matching, and the regex builder available on every tab - 963505001b3e9b65861e5375630690890f6a182f",
+      "[Improved] The app window paints immediately at launch, scanning for installed external editors in the background and loading heavy repository tabs only when they are opened - 48f27c3f6037dd2c5a950d4b2218cae8dacbf571",
+      "[Improved] Cloud compression on a private repository no longer runs on that repository's own Actions minutes and no longer publishes its name or file paths - b07bcd3d16d213e6af8467468a2c223e50d049dc",
+      "[Improved] Pinning a file to an OCI registry reads the payload three times instead of seven, so pinning a multi-gigabyte file finishes considerably sooner - 50b5645da2560c57a5c3d5b30d1f8cee29cf400d",
+      "[Improved] The two funny-level sliders now sit in Appearance beside the language mode with a live preview for each language, instead of being filed under Sound - 102abbb0f88fe5e198cb83d64eecbef634b62d69",
+      "[Fixed] A failed push, force push, pull or fetch reports the actual error instead of a generic notice saying a background action stopped unexpectedly - 35ce1e059ed6aed22b6e4965144ff03efdba7254",
+      "[Fixed] The Windows Explorer right-click menu no longer silently disappears after the app updates, and Settings reports a stale registration instead of showing an enabled toggle that does nothing - 9da9586c617fd82cbc524a7fed5ba207d3a26db4",
+      "[Fixed] Cheap LFS no longer picks up its own in-progress download files and uploads them to a release when a commit runs during a clone - dd3e79143b18b55dc398fb3303ed44094b706905",
+      "[Fixed] A file just pinned to Cheap LFS stays on disk after the commit instead of being downloaded again on the next fetch, pull or repository open - b9275ac0197b5c66078b0840812a2be33125242f",
+      "[Fixed] Long Chinese and other non-Latin file names pin to Cheap LFS instead of failing partway through an upload with assets already on the release - 694f3405de9ecd6cd7d73678c6d1a30f00411cdd",
+      "[Fixed] Committing and pushing in a repository that uses Cheap LFS no longer copies every materialized multi-gigabyte payload into the repository's object database - d5a1223a675f4ef7bfc9d1d179b411b627a1d914",
+      "[Fixed] Settings > Git shows a visible label above the email box when no account is signed in, instead of an unlabelled field under Name - e28d940eff3e28e1b1a1dcc16b10cb9252d78cfa",
+      "[Fixed] Diagrams on the documentation site render as pictures in both light and dark themes instead of shipping as raw diagram source - 60b19f3801d93417ca4ba967bbfbcb01cb84f506",
+      "[Fixed] The documentation search page no longer freezes the tab on a slow or malicious regular expression, evaluating patterns in a background worker with a hard deadline - 24ba111b5bd868b6a6d3eb1e622bae5bd457f7f1"
+    ],
+    "3.6.3-material16": [
+      "[New] Right-clicking a folder in Windows Explorer offers Desktop Material entries, appearing in the top-level Windows 11 menu on packaged builds - 12d3ed460074755b669b272efde7e3e314b8daf3",
+      "[New] A GitHub Packages explorer browses packages and versions and transfers files to and from a repository's container registry - f8eca3ac844e8eaec2dc2dce635f57874b4e92bc",
+      "[Added] The Add Submodule dialog loads the remote's branches into a searchable picker instead of requiring the branch name to be typed by hand - 9b375560d953b8a72d39de9b1c7bd2f512e56ec7",
+      "[Added] Repository Settings gains an Appearance tab collecting the list name, logo, tab, toolbar, and workspace colour editors for that repository - 2ec16ceea8f6c302f11285cdb3799d82d76fc615",
+      "[Added] Editing a pinned large file uploads a new version of it, so checking out an older commit still restores that commit's exact bytes - 3e7bf75d201172608b21b55eccdd1dd15c949e0b",
+      "[Added] The Repository Tools tracked-content search supports the shared filter modes, a case toggle, and the full regex builder - e61eb9bd2dc16232f13f781c6f6d6ea439dedb98",
+      "[Fixed] Signing in to an additional account is kept instead of being silently dropped and gone again on the next launch - 46c442350e25b58da43364b214cd1f1dd80cd1d6",
+      "[Fixed] An expired token signs out only the account it belongs to rather than whichever account sorts first on that host - 3e692befb2c5df4fc8faee4c5a2f4f4688e89285",
+      "[Fixed] Answering \"Not now\" to the additional-permissions prompt is remembered instead of the prompt returning at every launch - 6a8a752ae1791c4347a4dc117ebd2c2337aeabec",
+      "[Fixed] A large-file upload whose helper exits mid-transfer no longer brings down the app with an unrecoverable error - e7be123636eb3277c0256eaa0e51f3892c4ad346",
+      "[Fixed] Pushing works when the unpushed commits include a merge commit, instead of failing with a non-linear history error - fa6f9a954b329b0615b0db96f9981c56c89bb725",
+      "[Fixed] Pinning a large batch of files no longer aborts partway through claiming that the release, asset, repository, or account changed - 297ccc82b8924b90ebf08ab24a9d44cee9532dd0",
+      "[Fixed] Large-file uploads and probes confirm the remote first, so a renamed or transferred repository is never pushed to its old address - 72ad7d33a1b38ed5b7f20620dfafca02704fd7ff",
+      "[Fixed] The version history search bar shows its filter mode controls and regex builder like every other search bar - 789caaa1904c6cc52787d4b0d360e06a202c5acf",
+      "[Fixed] Text no longer clips in the conflict banner, long Actions log lines scroll horizontally, and the filtered empty state stops covering Clear filters - 9d3552aa0e4d9bd009cdf23686c309388460c0e1",
+      "[Fixed] Searching no longer pauses with a slow-pattern warning after a momentary stall, and never warns during plain-text search - cdd39d03011b259d011ccfec0e2f369a9da176e2",
+      "[Fixed] Viewing one diff after another no longer holds every previous diff in memory for the rest of the session - 290ec7dcdfb031364f598a7d5c996a3abd9cbe07",
+      "[Fixed] Installed apps keep receiving updates when a push lands while a release is still building - 2e62c5a2a632cde8e4a079810488b84c3dd162ed",
+      "[Improved] Times display in 24-hour format by default, with the 12-hour choice still available in Date and time settings - 7cc31d9a8b6af8007dcb126200301ed36df47437",
+      "[Improved] Long lists in History, Actions, and Releases scroll and filter smoothly in large repositories - e5e4a2c68b09e43dc8ff2ee0e01f5fd3215ff862",
+      "[Improved] The notification centre, large TGA image previews, and streaming Ollama chat replies no longer freeze the window while they work - d877d1eba538f608957edb0b63997d0e29d6d68c",
+      "[Improved] Large files upload in 500 MiB parts, so a dropped transfer retries far less data and progress updates more often - e27976c33758a306677e439f816ddbd03bf956a9",
+      "[Improved] Pinning and committing large files finishes noticeably faster, especially with many files at once - 1e16f5d01b6a5af7b465e6fc1f7b479370ffd5d3",
+      "[Improved] Cancelling a package upload or download restores the transfer controls instead of leaving them stuck - 7cf168fbd4f534edb71f7686254224efe817dec5",
+      "[Improved] Large-file preferences move into their own Cheap LFS tab in Repository Settings instead of sharing the Build and run tab - 37077d8cf53923efd90d8c1aaea2e74f99b4eeef"
+    ],
+    "3.6.3-material15": [
+      "[Improved] Long-running operations such as history deepening, tag pushes, bulk branch deletion, bisect, subtree splits, and batch cloning show a progress bar and status instead of appearing frozen - b3d7d626b89148e218efe06779ad3f4402f34958",
+      "[Added] The repository list gains a multi-select mode for fetching, pulling, favoriting, grouping, or removing several repositories at once, with per-repository progress that can be cancelled between repositories - ce2406b5282ed47253aa930088339b50fed7a855",
+      "[Added] Ollama has its own Settings tab with an endpoint field and connection test, instead of being reachable only through the Copilot provider list - ef559866a024cda53150a1d245d3739627318883",
+      "[Added] An incoming build is announced in a dismissible banner with an estimated arrival time and a details view showing the signals the estimate is based on - 37b30c326e18e1408224f0a479019218133e7b1c",
+      "[Added] A Load all button pages through every release in the repository, so search and filters cover the whole list instead of only the pages already on screen - 9b1f0b043c6ce5b1e0c63a0c7ed1dff62ac791af",
+      "[Added] Releases can be sorted newest or oldest first from a control beside the status filter, and the choice persists and composes with search - 08bb47fad086bfd1c9b7f6e1978139a5f614ff63",
+      "[Added] A downloaded installer asset offers a Silent install button that names the exact file it will run and reports the real exit code when it finishes - 08bb47fad086bfd1c9b7f6e1978139a5f614ff63",
+      "[Fixed] Double-clicking an action that opens a file, folder, terminal, or external editor launches it once instead of starting duplicates - 4d6729f151c84d402d4d1d41d0fb8994d6c137d6",
+      "[Fixed] Committing an untracked nested repository records its submodule link, so a fresh clone no longer comes back with a missing Git link - 7b069262eefadda3be7ee1c49a40011ba8f76d17",
+      "[Fixed] Long pushes and fetches no longer fail partway with an invalid credential token or leave a repository holding its lock files behind a background-failure notice - b363c82ba06bf2c3ed174fc30031d8dd72eafa2d",
+      "[Fixed] An update feed advertising a version older than the installed app is treated as no update instead of moving the installation backwards - 1aebfc9424113a373b955ac6527255fce7760d88",
+      "[Fixed] The local version history panel no longer repeats entries while paging or shows two repositories' timelines mixed together - 843ef1253ec9fbac1b689231eba378bb90eb1ce4",
+      "[Fixed] Git hooks that read standard input, including the stock Git LFS hooks, run correctly under the bundled Git on Windows instead of failing before they start - 1323fa49b933096ddda56852b0af66584902d428",
+      "[Fixed] Uploading Cheap LFS files from a branch that has never been published now publishes the branch first instead of failing validation on every file - 3a7f5984cff7d3c0326096c719c3af5e93a09736",
+      "[Fixed] A Cheap LFS publish that is aborted names the reason on every affected file row, in the summary, and in a notification that stays until dismissed instead of stopping silently - 1323fa49b933096ddda56852b0af66584902d428",
+      "[Fixed] Pushing a very large repository no longer aborts with a file-busy error while its temporary index is being cleaned up - 96d4375c077f40c62ec44871ef67a830fb46eb69",
+      "[Fixed] Enabling Cheap LFS cloud compression commits and publishes the workflow it needs in the background, so compression actually runs instead of waiting on a manual commit - 054e0e6bb18543bd3f34fa8ee019a758c17f7d75",
+      "[Fixed] Double-clicking Manual upload starts a single upload instead of two - 4578d0820ffa485ade3f49edaa7ac85dfb429d54",
+      "[Fixed] A slow but progressing multi-gigabyte release upload no longer times out, while a connection that moves no data for fifteen minutes still fails and can be retried - 4578d0820ffa485ade3f49edaa7ac85dfb429d54",
+      "[Fixed] An oversized update-check response is reported once as a clear notification instead of a generic message about a background action stopping unexpectedly - 96d4375c077f40c62ec44871ef67a830fb46eb69",
+      "[Improved] A repository that appears not to exist is retried under every other signed-in account on the same host across releases, issues, and Actions instead of stopping at the first not-found response - 115ec875dfc1531ec27d76205ae79a00fa0260fc",
+      "[Improved] Bulk release deletion shows determinate progress, offers to stop after the release in flight, and continues past a failure with a reason listed for each release it could not delete - 9b1f0b043c6ce5b1e0c63a0c7ed1dff62ac791af",
+      "[Improved] Repositories with hundreds of thousands of files can be published in one pass, with the path ceiling raised from 100,000 to 600,000 - 1323fa49b933096ddda56852b0af66584902d428"
+    ],
+    "3.6.3-material14": [
+      "[New] An optional sound system adds a spoken narrator, sound effects and per-repository music, all off by default and controlled from a new Sound pane in Preferences - 4a081380f1acc2f9fb36054ea81a15e01614d154",
+      "[Added] The narrator plays pre-recorded English and Cantonese voice clips for each event through a single non-overlapping queue, falling back to live speech when a clip is missing - 082f16a72a44f9dc7619afcf67bfd9b849ceca38",
+      "[Added] Push, fetch, pull and each Build and run phase get their own sound cue instead of sharing the commit sound, with a per-cue audition grid in Sound settings - b21728560cacbbb86408cc27600d69f7b0df0b9c",
+      "[Added] Each repository gets its own generated theme music, with preview, track choice and mute controls in Sound settings - 85a9d311f50dac7f5bdaf7bcad41f880d4a9edb9",
+      "[New] The Preferences dialog gains a search box that finds settings across every tab by title, description or keyword and jumps to the tab holding the match - a19b9e0ef3495f0ada95c901289522f675338009",
+      "[Added] Repository tabs that no longer fit the strip move into a keyboard-accessible overflow menu instead of being clipped, keeping the active tab and collapsed group chips on screen - 4e3fa0ee46755e1741e40e54eb692c0031e4b19a",
+      "[New] Run a repository's GitHub Actions workflows on your own machine with act and Docker, including streaming logs, dispatch inputs, per-run secrets, a dry run and cancel - 085acb241f2bdf6c0c9ff112d21c5ba0bdcdaf85",
+      "[New] Recognized Git failures such as a stale index lock, a stalled background maintenance run, a rejected non-fast-forward push or a commit on a detached HEAD offer a one-click fix in the error notification, and destructive fixes never run on their own - 2b5f790238372eb01bfa48bb6efa8293bdbc5ff7",
+      "[Added] Very large repositories pause background Git maintenance during status, staging, checkout and fetch, clear stale index locks, show an explicit checking-for-changes state instead of claiming no changes, and offer to compress a nested Git folder - 264ccae1e0480edc84f19cd93e5387a22819d6bb",
+      "[Added] With the repack-when-idle setting on, a large repository is repacked once at a quiet moment, with progress, success or failure reported in the notification centre - f6f748db48e64fe9912c2c9fa270782303c5023a",
+      "[Added] Committing and pushing an enormous set of changes is split into batches capped at 10,000 files or 1.4 GB, with per-batch progress and each batch pushed before the next one starts - 1bf5a8a0f7cd46362a3515af86568b30c0659452",
+      "[Improved] Status refreshes, commits and large-file detection no longer rescan the whole working tree, cutting a refresh on a repository of over 200,000 files from roughly 49 seconds to milliseconds - 473f14e2eb8762d68c1d500aad5e8607e8a624c2",
+      "[Fixed] Committing in a large-file repository no longer aborts because of an unusual Windows path, an included submodule folder or a shortened repository root, and any remaining refusal names the file it applies to - 560fe8f7bce5363a66a4d8f261ab708b4ae45fb3",
+      "[Fixed] Committing an untracked submodule records a real submodule link again, so a fresh clone no longer reports a missing Git link and the submodule diff shows its target commit - 5394e607c539e7c5a4d83399eeeacac7d7bfda2e",
+      "[Fixed] The regex builder is no longer clipped inside smaller dialogs such as clone, preferences and repository settings, keeping its pattern palette, test area and Apply button reachable - 25906657b3977b30902311fbeb125a240134ba72",
+      "[Added] The stash manager inventory gains a search filter with plain text, fuzzy and regex modes and the full inline regex builder - 13f92244f4eb804229a050a86157818673b9e467",
+      "[Added] The batch clone queue, the local workflow run log and the branch rules inspector each gain a search filter with the full regex builder, including live filtering of streaming log output - d8289a2f013778d415cb711519325ab43dc2d7f0",
+      "[Improved] Sound settings, Ollama chat, large-file settings, per-repository automation overrides, the tag lifecycle manager and the GitHub API explorer can now be found by name from the command palette and settings search - d04c97bae999ad313a09a54fce12f8f9a66ffa94",
+      "[Improved] Build and run results reach the notification centre even when its panel is closed or minimized, and the toolbar button and panel controls are fully translated - f9a683ed169b51e8e70f6d45e862512abdb80772",
+      "[Added] The Windows install script gains a build-from-source mode that checks prerequisites, clones or updates the repository, builds it and launches the result, with a dry run that prints the plan first - 5756d30816a2d81467789d9cecc53f94386bace0"
+    ],
+    "3.6.3-material13": [
+      "[New] Large files can be stored in a GitHub Container Registry or Docker Hub image instead of prerelease assets, chosen per repository, with encrypted chunks for private sources and restore-while-signed-out for public ones - 5d63a22b0fcdf14491200f2ad437b349e67f1474",
+      "[New] Commits that would push more than about 1.5 GB at once are split automatically into smaller commits and pushes, with each remote tip proven before the next one is created and a durable checkpoint to resume after a failure - 5d63a22b0fcdf14491200f2ad437b349e67f1474",
+      "[New] A compact progress panel below Commit reports each large file's upload phase and byte progress across up to three parallel uploads, reachable and readable with the keyboard - 5d63a22b0fcdf14491200f2ad437b349e67f1474",
+      "[Added] The Changes list can be filtered to show only files over the 100 MiB large-file threshold - 5d63a22b0fcdf14491200f2ad437b349e67f1474",
+      "[Added] A downloaded release asset can be opened directly from the Releases view once its contents are verified - e3e574358bb88810fcd19f8c35788662478251c8",
+      "[Improved] The Releases view keeps its cards, tools, and buttons on screen at narrow window widths and up to 200% display scale, and announces the current selection to screen readers - 513c5cc96aee045a218837530a11951e8466b618",
+      "[Improved] Release timestamps use an unambiguous 24-hour clock, so midnight is shown as 00 instead of 24 - c3db37ea5524b91f9603151ae5d1107205f16a59",
+      "[Improved] Committing ordinary files is faster because their contents are no longer hashed for large-file checks unless the file is actually oversized - 34e156039f40d7d4b29b0ac2650b0149d984b723",
+      "[Improved] Automatic batched pushes complete faster by skipping redundant repacking, while hooks, credentials, and remote verification are unchanged - 21c4de4a7311d7024b69a0796eedb062d375d98c",
+      "[Fixed] Ordinary files under .github can be committed again instead of being rejected by the large-file path check - 4935e133134c855dbd5e66015057e9094bb5112a",
+      "[Fixed] Committing the deletion of a file whose path Windows cannot represent, such as one created on another platform, is no longer blocked - 9a0be385a149169e4f974703563b6c0a66547112",
+      "[Added] The Large files manager says where its settings live and opens Repository settings → Build & run directly - 9a0be385a149169e4f974703563b6c0a66547112",
+      "[Fixed] Automatic, single-file, and Materialize all restores share one queue per repository, so overlapping restores no longer collide or leave duplicate recovery files behind - a64c1cb54c456d2d0a8a8873002f3b0257bd001f",
+      "[Fixed] Canceling Materialize all stops every queued download in the repository rather than letting a background fetch restart them, and the panel reports how many files failed instead of always claiming success - e3fb8c8664506033ddee687a4e1e9f37770a6020",
+      "[Fixed] Queued cloud compression runs no longer cancel one another, so a run started while another is in progress still finishes - fd8f35ff00940a77d919ae3268e8a7d457d4a11d",
+      "[Improved] Commits written by the automatic cloud compression job are recorded in both English and Cantonese - 42e2cbcc9826e681324a0a7189497b84e3aad6e8"
+    ],
+    "3.6.3-material12": [
+      "[New] Repository tabs can be collected into named, colored groups that collapse behind a chip, stay together when the strip is sorted, and survive a restart - 58be6fe5953477b015a134c414a8cf82363ecc75",
+      "[New] Files pinned with Cheap LFS can be compressed in the cloud after upload, automatically for public repositories and only after opting in for private ones, with the manager showing whether each file is raw, compressed, or mixed - f7b4760a13894f0320f7b361f055f6fba40d913f",
+      "[Added] The Ollama model manager, the Copilot providers settings tab, and the background action queue can be found by name in the command palette - dfdf144154793ffdcaac22c5db60632fedec3bb9",
+      "[Fixed] Pressing Alt opens the application menu again immediately after a key press that another surface had already handled - 58be6fe5953477b015a134c414a8cf82363ecc75",
+      "[Fixed] New Cheap LFS parts are capped at 1.5 GiB so large uploads no longer fail near the 2 GiB release-asset ceiling, while existing pointers up to 2 GiB stay readable - d1d9a29f038795fb001cd29abd2e904a1e06adc9",
+      "[Improved] Release asset uploads no longer apply stall or total-runtime timeouts, so a slow transfer ends only on completion, failure, or cancellation - d1d9a29f038795fb001cd29abd2e904a1e06adc9",
+      "[Fixed] The large files manager finds a release by tag even while it is still an unpublished draft, instead of reporting the tag as missing - 58be6fe5953477b015a134c414a8cf82363ecc75",
+      "[Added] The documentation site gains a sticky search field wired to the regex builder and a collapsible menu on narrow screens - 0413a6f29b909c815cbc3d2f4681f4609438214c"
+    ],
+    "3.6.3-material11": [
+      "[Improved] Right-clicking the toolbar Pull button opens the reviewed pull preview that fetches first and summarizes the incoming commits, changed files and integration route, while a plain left click still pulls straight away - e78461a5fe10c7296517ed4d3154b1cf609ceaf5",
+      "[New] Settings gains a Clone queue page where each signed-in account sets its own base directory, parallel or sequential mode, and whether newly discovered repositories are cloned automatically in the background - fa4806971c5515766fee5a0ab03a76adfdd11d79",
+      "[Added] Agent access settings can open a mobile connection page that generates a fresh five-minute single-use pairing link and opens it in the default browser once paired LAN mode is running - fa4806971c5515766fee5a0ab03a76adfdd11d79",
+      "[New] A chat workspace for local Ollama models keeps named conversations with model selection, streaming replies and saved history across sessions - d6dd74b9d761f3b384788af8b2a8889213017d4b",
+      "[Added] A Send to opencode composer lets a free-form request be written, sent, and watched live in the Build & Run panel, with install guidance when opencode is missing - b5534c67077befc849328324d718c5eb7887fa40",
+      "[Improved] The workflow dispatch selector is now a searchable list with fuzzy, substring and regular-expression filtering plus full keyboard navigation instead of a row of chips - b5534c67077befc849328324d718c5eb7887fa40",
+      "[Added] Deleting a repository folder falls back to permanent deletion when the Recycle Bin refuses it, so a removal no longer simply fails - b5534c67077befc849328324d718c5eb7887fa40",
+      "[Added] The repository rail carries a Large files entry that opens the release-backed large-file manager directly instead of going through Repository Tools - 08744f77b70e1e418236da5f754424a7619b6ebc",
+      "[Added] Large files can be pinned to release assets by hand from the commit area, with separate hashing, upload and verification progress and a pointer staged in place of the binary - 41ce24d6b8c573a6378f28657ea4a64155ebec53",
+      "[Added] The Build & Run log adds jump-to-newest, auto-scroll and truncate-long-lines controls, with the two toggles remembered between sessions and full text still copied by Copy all output - 0de3e08b01b7e62f359074cbdbe71876dd4effd5",
+      "[Fixed] The whole window no longer oscillates when auto-fit is on, because the zoom calculation is driven by a zoom-invariant window size instead of one that changed each time the zoom was applied - b94445f6a2c005833dbdaa516ca45b4c871fdea0",
+      "[Improved] The last remaining legacy icons, empty-state illustrations, window controls, tooltips, spinners and easing curves are replaced with Material Symbols and design tokens across the navigation rail, lists, toolbar and dialogs - b94445f6a2c005833dbdaa516ca45b4c871fdea0",
+      "[Fixed] The clone dialog lists an account's organizations again instead of showing nothing when that account's repositories were already cached - f9043531eb27ed50162a44c5d37e5a3d48036412",
+      "[Fixed] Automatic repository detection no longer offers linked worktrees or repositories that have already been added - f9043531eb27ed50162a44c5d37e5a3d48036412",
+      "[Fixed] Local file paths are hidden in the settings history diff, so a home or profile folder is not exposed while screen-sharing - 7b319f92d87af188e47bea16ab467e70c103dcf8",
+      "[Fixed] Toolbar actions that collapse into the overflow menu on a narrow window show their full name and icon instead of a blank row - 148b297f2baa4bff6384a8b592869d97c98f888d",
+      "[Fixed] Pressing Escape to close the regex builder, a context menu or a dropdown inside the anchored appearance editor closes only that overlay rather than discarding the whole editing session - daab0ac8e14e1f4cf3970fcd0278cc70162e6f62",
+      "[Fixed] Wide appearance editors are no longer clipped at the edge of the window - ccef2d150786bc25f37eeb0898de522f77075250"
+    ],
+    "3.6.3-material10": [
+      "[New] Preferences gains an Ollama model manager for browsing, downloading, and removing models on a local Ollama server - 90a1763dd32a04aa28ab925f27fa3f00a500942b",
+      "[Improved] Cancelling an Ollama model download restores the installed model list instead of leaving it empty - 2455814988b5771b6e2a1b9ea8f136dea2664832",
+      "[Added] Ollama is offered as a ready-made preset when adding a local model provider - 1b72868b8c87dc4c1f42159bac76c1b0fd03b8d0",
+      "[New] GitLab merge requests can be created, updated, and merged from the branch menu, the push flow, and a dedicated merge request workspace - 245d6628d9e59e1efc87d462e06230cdd7a9549c",
+      "[Added] A failed HTTPS push to an organization repository retries once with GitHub CLI credentials before reporting an error - 5cb569ea88fc9a3d20e4e0350ed82f05eb40214d",
+      "[Improved] Repository rows in the clone dialog show description, language, stars, forks, size, default branch, last update, and visibility, with filter chips for language - 5cb569ea88fc9a3d20e4e0350ed82f05eb40214d",
+      "[Improved] Notification, automation, integration, and advanced settings use Material switches, segmented controls, and card-based selectors - 5cb569ea88fc9a3d20e4e0350ed82f05eb40214d",
+      "[Added] The tab strip carries a settings commit chip, a settings history button, and undo and redo actions that disable when there is nothing to undo - 5cb569ea88fc9a3d20e4e0350ed82f05eb40214d",
+      "[Improved] Fetch, pull, and push on an organization repository use the account that repository is bound to rather than whichever account signed in first - f21c6255bb8fd8978cd332c27f71e18cdc3fc549",
+      "[Added] A repository's API functions surface seeds read-only GitHub actions that run as buttons, and its rail item can be hidden or restored per repository - cddb019b5364bb855fd7e327632ed1dc3571a7ec",
+      "[Added] Releases can be selected in bulk and published or deleted together after a confirmation that lists exactly what is affected - ef8623f9e358eaef2337cf6835fd10a9ec85bedc",
+      "[Added] Adding a submodule can create its remote repository at the same time, validating the name and description before anything is created - ef8623f9e358eaef2337cf6835fd10a9ec85bedc",
+      "[Added] Toolbar text has its own appearance editor covering font, weight, colour, spacing, and decoration - d7d4ac10cf9c0193d671713b113b3b20c1b7a982",
+      "[Improved] Bring-your-own-key model providers stay configurable in preferences for accounts without Copilot access - 4c7f31914000a846a2dd68340dafbcb08cd5c55c",
+      "[Fixed] A dialog pushed behind a newer one can be closed again instead of silently ignoring every dismiss action - 69a74d3c5b1048529ac1f93e9647bf1e6e182df9",
+      "[Fixed] Refreshing stash details keeps the section you were looking at selected instead of jumping back to Changes - 72d9d2d9133d8c484fcf85cee178994916688058"
+    ],
+    "3.6.3-material9": [
+      "[New] Open an initialized submodule from the Submodule Manager as a temporary repository in the current workspace, with a Back control that returns to the repository that opened it and no new entry added to the repository list - 751c9aef03a39f8e26caccbbf0949d221f870174",
+      "[New] Choose an explicit language mode in Settings — English, Hong Kong Cantonese, or bilingual — that stays where it is set instead of following the Windows locale - 751c9aef03a39f8e26caccbbf0949d221f870174",
+      "[Added] Style the temporary-submodule Back control as tonal, filled accent, or outlined, and label it with the parent repository name, \"Back to parent\", or an icon alone that still announces its destination - 751c9aef03a39f8e26caccbbf0949d221f870174",
+      "[Improved] Opening a submodule whose checkout has been replaced by a symlink or junction is refused outright rather than reported as merely uninitialized - 98d93ccc8e6be4b5ae43c8166273157dfc8eef9c",
+      "[Fixed] Scheduled commits and commit-and-push-all send oversized files through the same automatic Cheap LFS pinning as a commit made by hand, instead of trying to commit them directly - 84884238ec1925781668705ff5cc1ba055513654",
+      "[Added] Cheap LFS compresses each upload part when compression actually saves space, leaves already-compressed data alone, and restores the original bytes on download - 3b14243935b9dc3579f4d6ceed17e07bc274b939",
+      "[Added] A \"Remove lock file\" action appears on the error notice when a stale .git/index.lock is blocking Git, so a crashed operation can be cleared without leaving the app - 3b14243935b9dc3579f4d6ceed17e07bc274b939",
+      "[New] Review pull requests without leaving the app — browse changed files in a tree, expand diff context, comment, reply, resolve threads, approve, request changes, and inspect checks - 7c98044bcebe5f65e51aee60af1036080fbd5110",
+      "[New] Create a pull request from inside the app with its full metadata, and receive notifications as activity arrives on it - 7c98044bcebe5f65e51aee60af1036080fbd5110",
+      "[New] Check out an exact branch or commit from another fork of the current repository - 7c98044bcebe5f65e51aee60af1036080fbd5110",
+      "[Added] Manage the complete tag lifecycle, including creating, pushing, and deleting local and remote tags with a review step before anything destructive runs - 7c98044bcebe5f65e51aee60af1036080fbd5110",
+      "[Added] Stash only the files you select, give stashes names, and manage several stashes at once including ones created outside the app - 7c98044bcebe5f65e51aee60af1036080fbd5110",
+      "[Added] Browse GitHub Projects in the app, backed by a last-known-good cache that shows an explicit stale or unavailable state when the network is down - 7c98044bcebe5f65e51aee60af1036080fbd5110",
+      "[Added] Compare CSV and TSV files structurally instead of line by line, and preview TGA images in the diff view - 7c98044bcebe5f65e51aee60af1036080fbd5110",
+      "[Added] Delete several reviewed local branches in one pass, edit the global ignore file, save allowlisted custom Git command presets, and open repositories on network shares or inside WSL - 7c98044bcebe5f65e51aee60af1036080fbd5110",
+      "[New] Right-click any customizable element — or focus it and press Shift+F10 — to open an appearance editor anchored beside that exact element, covering the toolbar, repository list, tab strip, code and diff surface, repository logos, and individual tab titles - 04581544cf323d8a6bc458e8908fcf5e11d4b93a",
+      "[Added] Every appearance owner keeps its own version history with diffs, undo, redo, and restore, so one visual change can be rolled back without disturbing any other setting - 04581544cf323d8a6bc458e8908fcf5e11d4b93a",
+      "[Added] Add several repositories at once from File → Add local repository → Auto-detect repositories…, which scans a folder for Git repositories and lists what it found for review - 04581544cf323d8a6bc458e8908fcf5e11d4b93a",
+      "[Improved] The commit button reports large-file preparation and upload progress, so pinning a multi-gigabyte file no longer looks like an ordinary commit that has stalled - 04581544cf323d8a6bc458e8908fcf5e11d4b93a",
+      "[Improved] Large-file uploads re-read the source after transfer to confirm the bytes still match, roll back partly uploaded parts when an upload fails, and never follow a symlink into its target - cdedb4afb86588553a72222a729bfe4fc1e232e3",
+      "[Removed] macOS builds are no longer produced; Desktop Material ships for Windows only - 9c8303e91b4e8830060f1385161220f78aca2f57"
+    ],
+    "3.6.3-material8": [
+      "[New] Cheap LFS uploads an oversized file to a GitHub release asset and commits a small pointer in its place, streaming files up to 2 GB and splitting anything larger into parts that materialize back into the original file - 6b4a4ebe729be7a861960ae96e6660b4993c88b5",
+      "[Improved] Cheap LFS pins oversized files to a release while committing instead of blocking the commit, and the size warning gains a Pin to release button when automatic pinning is unavailable - f72d480ed3e80f55991ffbb6b5031e74ed89f52c",
+      "[Improved] The subtree manager stays available in Repository Tools before a repository has any subtrees, so the first one can actually be added, with a guiding empty state - 166057feee3d47186a2e140ed5f9916aa66a327b",
+      "[Added] Every submodule row offers a Configure dialog for its URL, branch, update strategy, ignore rule, shallow and fetch settings, alongside Sync, Init and Deinit actions - 76c2ff19851797ebebd494e71ae0a97b5746afe0",
+      "[New] Help > View Log History opens an in-app log viewer with timeline, diffs, search and restore, together with a verbose logging option in Advanced preferences - 0b2562693123d892fced3d7bd1bf8dee62d919fb",
+      "[Improved] Every search and filter bar carries the same fuzzy, substring and regex mode control with match case and a regex builder, and remembers the chosen mode per surface - 1861ae483ac78eb4c401daee4094747f5db1436a",
+      "[Improved] OpenCode build repairs stream their output into the build terminal, and a repair keeps running when its dialog is closed instead of being cancelled - efd2969e50eec601e4c68c98e0bf332e617b4858",
+      "[Fixed] Build & Run runs Node, Gradle and Maven wrapper stages on Windows instead of failing immediately, picks the right Go run target from the module layout, and recognizes .slnx solutions - 4671ddddc6f2c4a227acab10341bae6c284261d4",
+      "[New] Repository settings can deploy to an SSH working copy with Docker Compose after a successful push, restricted to remotes that carry no embedded credentials - 889b4641ea6c41347905f0233acc4c87eed0b5a4",
+      "[Improved] The notification inbox loads every page of GitHub notifications instead of stopping at the first, and gains a Clear all action - 889b4641ea6c41347905f0233acc4c87eed0b5a4",
+      "[Improved] The Releases workspace becomes a searchable, filterable dashboard with full release metadata and assets - 889b4641ea6c41347905f0233acc4c87eed0b5a4",
+      "[Fixed] Releases whose notes span multiple lines load normally instead of failing the entire Releases view, and multi-line notes can be typed when creating a release - c5da3041db7faceafb09db78a076674608d3c49b",
+      "[New] Right-clicking a notification opens an automations builder for rules that call a webhook or run a local command when a matching notification arrives, with every rule disabled until deliberately armed - 9bff08f5a71c7e63d8c590ca1db17c32153ae297",
+      "[Improved] Clone progress shows the current git stage, percentage, transfer speed and an estimated time remaining, plus a distinct submodule-fetching phase - b9549bba27516b3b9d6f8fbd8f675bada1fa30eb",
+      "[Fixed] Cloning several repositories at once accepts a base folder that already contains files, since each repository clones into its own subfolder - d535e54deaaf4416628dbe31112769784b14c732",
+      "[Improved] Batch clone recovery survives interrupted runs, offering Use existing folder and Skip on affected repositories with an inline notice instead of a blocking error - abe607f9bfbbb5648699651a7d87246efe96cf6c",
+      "[Added] A repository tab's menu opens a read-only settings history scoped to just that tab - abe607f9bfbbb5648699651a7d87246efe96cf6c",
+      "[Fixed] The context menu opens at the pointer on the very first right-click instead of jumping to the top-left corner - fbef3115a4fb3297f0ce9bc2500f0f1118ec04e1",
+      "[Added] Selecting a repository switches the active account to that repository's owner, so the visible identity matches the work, with a toggle in Advanced preferences - 3d59a9c1c8c200ed7ad23c261e45c73527e499b3",
+      "[Fixed] Pushing authenticates as the repository's owner account when several accounts share the same host, instead of whichever account the credential helper found first - 6e36d718fef71328e08bb5a767248af1d40bd04e",
+      "[Added] Commit & push all pulls first, then commits and pushes every repository with local changes from the repository list, after confirming the message and the affected repositories - 55f6730bf4aa0f94f06aacb39b71cb1621f14563",
+      "[Added] The branch control shows a compact colour-coded CI status for the checked-out branch even when it has no pull request - e0a3bca3ec94fcb94cdb6c7ac416270e8a632433",
+      "[Added] A thin progress bar along the top edge shows an app update downloading, in a colour chosen under Settings > Appearance - e0a3bca3ec94fcb94cdb6c7ac416270e8a632433",
+      "[Added] CI status and update-download text follows the system language, with Traditional and Simplified Chinese alongside English - 19c1e2a06d0746f4c371d37a1c102ae961011f90",
+      "[Added] Settings > Appearance can mark Desktop Material's own features with an accent edge and badge to make them easier to find, off by default - 7134b380b166a97240cbed2ceb1a181c1bc61b15",
+      "[Improved] The submodule changes view is redesigned with a clearer old-to-new commit transition, copy buttons and a View on GitHub action - 4dd55ed7f554584ff311873ad3085c7126c548b5",
+      "[Improved] The Repository Tools hub groups its tools into seven plain-language categories with a one-line explanation of what each tool is for - a70d9f2cbed027511d26bffb87443ee091a93ea6"
+    ],
+    "3.6.3-material7": [
+      "[New] Ctrl+F opens a command palette that searches and runs every named command in the app, with find-in-view kept as one of its commands - 1b5438636ae9f1c74ce1644ccb69571fa0629d02",
+      "[Improved] The Actions view splits into Runs, Workflows, and Caches tabs, each with its own filter bar, instead of one deeply scrolling stack - db13cab6fd54ae754304b29578599b3d41bf8763",
+      "[Improved] Right-click menus are drawn in the app as Material menus with icons, a type-to-filter box, and inline submenus, and now open on surfaces such as the tab strip where nothing appeared before - 9b4f830cfad7dec5c051724318325c664c202a53",
+      "[Improved] Picking an account in Settings or the rail switcher makes it the active identity rather than only highlighting the row - 69112d637432143f7cb489db8afb9e2a3b3cee4a",
+      "[Added] A sign-in whose token predates the permissions the app needs is detected and offered a re-authorization dialog instead of failing later on releases and workflows - 69112d637432143f7cb489db8afb9e2a3b3cee4a",
+      "[Added] The clone dialog filters repositories by All, Public, Private, or Forked, and the submodule manager gains a name, path, and URL search with status chips - c5010be7385e6a84544d15caa1a566db73c98f17",
+      "[Fixed] Clicks in the clone repository lists land on the row under the pointer instead of a neighbouring one on large or scaled displays - 4c094e5d39788abc568c047d1d47027720425f5d",
+      "[Added] Right-clicking a commit in History offers Create worktree from commit, opening a new worktree with a branch at that commit - fe4142280dd974c6336d6a41f52f8d2dcfff6aba",
+      "[Added] Clone lists show each repository's submodule count and can clone submodules individually, and a repository with submodules gains a submodule manager in its tools hub - ec382695a56135a2a0d2928ffc7aff520cda9c15",
+      "[Fixed] Dialogs and the repository tools hub keep their controls reachable instead of clipping them in a narrow or short window - 751752142b8efa6b240148b1e3573ec6750dc73a",
+      "[New] Repository Settings gains an SSH working copy panel for managing a checkout that lives on a remote host - e5f77b259fc8d4b13fe00df727a2526df16e0bdb",
+      "[Added] A floating account switcher, an app-bar theme toggle that cycles light, dark, and system, and a first-run checklist arrive with the Material Design 3 refresh of History, settings, and the clone dialog - 126bf1aa7eb6fe5875a145630f7348e3b1fcbe7e",
+      "[Improved] Checkboxes, radio buttons, sliders, and progress bars are drawn as Material Design 3 controls and follow the light and dark themes - ee54ef7ebeeba1bd38274c78575b9a251ac0670d",
+      "[Improved] Dialog corners, the title bar, window controls, and the check-run popover use Material colors and elevation instead of the leftover legacy styling - 904dd8d156f137189b3ac6471e4f07f63da5e37f",
+      "[Added] The Actions view can add a workflow to the repository from a searchable catalog of starter templates - d36c87ae3490159c7c73d13e0af463ddc5cb332b",
+      "[Improved] Per-repository appearance is a full editor with a live tab and list-row preview, accent swatches, segmented density controls, and inline list-name typography instead of a stack of dropdowns - aa059e47fbde44cb0d808baf5d0f92afee65cd52",
+      "[Added] A repository can use its own font for its row in the repository list - be12dc2989f802ab72ab3e62d646568d1a88c84c",
+      "[Fixed] Build & Run terminal log text meets contrast requirements in both themes, and notification clear confirmations are announced to screen readers and can no longer be skipped by a second keypress - 6306eadbe1ca41dae6057c12cbafbc717f5e20e0",
+      "[Fixed] Check-run descriptions, branch details, toolbar chips, and menu rows grow with larger interface fonts instead of clipping, and the tab close button, tab rename field, and split-button options show a visible keyboard focus indicator - 3ba00720400430a3eb2819b8ffafac90a9d82eab",
+      "[Fixed] The sync pill, ahead/behind badge, and repository and branch side-sheet rows size themselves correctly, so counts no longer spill outside their chip and rows no longer overlap or mis-target clicks - 6820650561da7d85f3f39f570b063299720c7788",
+      "[Improved] The GitHub API operation catalogs gain a Go to page selector that jumps straight to any page instead of stepping through with Next and Last - a06df89b9d49dce879b96289b580a26221d8b646",
+      "[Added] A multi-repository clone can be paused and resumed, survives a restart or interrupted process, and keeps failed or review-required items visible until dismissed - d96a7c5a40e375f48e33df92a37fa2d10fa26c59",
+      "[Added] A crash shows a recovery card and restores the session instead of leaving a blank window - d96a7c5a40e375f48e33df92a37fa2d10fa26c59",
+      "[Improved] Build & Run installs missing toolchains on Windows, macOS, and Linux, and retries a failed build after restoring the project's dependencies - f7e922110db8316f0163bd87aa7ac9c438b77ffc",
+      "[Added] Build & Run detects Dockerfile and Docker Compose projects as first-class build profiles - 065c6040ebf69db5c149a1a99cbffc8923fe57ca",
+      "[Improved] The push and pull toolbar pill is tinted by the operation it is about to run, so fetch, pull, push, and force-push are distinguishable at a glance - 065c6040ebf69db5c149a1a99cbffc8923fe57ca",
+      "[Added] A per-repository option starts the selected Build & Run profile after a pull that brings in new commits - d3c0b2ecb475080c590d01bbf802c0eb9a4bf583",
+      "[Added] Repository Tools gains ten guided Git operations covering branch sync, contributors, version description, whitespace and conflict-marker auditing, ignored files, merged branches, prune and clean previews, untracked cleanup, and unreachable commit recovery - 7c405d7e5a85a4d6836bc593b53928d5b54c55d7",
+      "[Added] Repository Tools can search tracked content at an optional branch, tag, or commit, and add, replace, or remove a commit note behind a review step - e2cc08eb4f516dc0a9e07598c7e65b6f5d170d0c",
+      "[Added] Search tabs switches to a tab by name, alias, path, or clone URL - c351c8f9dd1a3ed6ed25722f49f8e51f3ccad283",
+      "[Added] The repository list filters by the account and provider a repository is bound to, with explicit scopes for local-only, unavailable, and signed-out repositories - c351c8f9dd1a3ed6ed25722f49f8e51f3ccad283",
+      "[Added] A vector logo studio gives a repository a custom mark that follows it into its tab and its row in the repository list, with presets, live preview, undo and redo, and import and export - fb15895289341f2e197fe9857e55ebfefab65497",
+      "[Added] A validated REST or GraphQL operation can be saved as a reusable app function bound to a specific repository, provider, and account, with every mutation returning to a visible review step - fb15895289341f2e197fe9857e55ebfefab65497",
+      "[Added] Windows can be installed with a single copyable command, documented on the site, the wiki, and the README - e493b413137ab8c49567cdf6c6bda4b65f8c1085"
+    ],
+    "3.6.3-material6": [
+      "[New] A GitHub API section in each repository lets you search the full REST and GraphQL operation catalog, fill in parameters for the open repository, and run a request against the signed-in account - 116f9eb315b94e62faac0f7947e26e928acd88a7",
+      "[Improved] Adding a submodule now opens a clone-style dialog where you pick a repository from a provider or paste a URL, then choose the checkout path and an optional branch - 666581bde29bad44780f26d66d7640b1aa89333a",
+      "[Improved] Cancelling a workflow run is offered only while the run is still queued, waiting, or running, and the confirmation names the workflow, run number, repository, and branch - 29c7b4875a57884064c9245ddd280e4383e34136",
+      "[New] An app identity editor in Preferences customizes the name, logo, colour, and typography shown in the title bar and window title - 4e797f52b9ecb4d77f40bfa1e11629fb2f8e3b95",
+      "[Added] The notification centre gains search, source and kind filters, visible selection, bulk mark read, mark unread and delete, and a labelled Clear all with a confirmation - 67411a6bfaed2d411b35bd9e9026e487f23bc54a",
+      "[Added] Errors that only need acknowledging appear as a dismissible notice in the bottom-right corner instead of a blocking dialog, with a preference to go back to dialogs - 67411a6bfaed2d411b35bd9e9026e487f23bc54a",
+      "[Added] The current set of tabs can be exported to a file and imported again from the File menu, so a tab workspace moves between profiles and machines - 4e797f52b9ecb4d77f40bfa1e11629fb2f8e3b95",
+      "[Improved] Dragging folders over the window now shows a drop target, and releasing them adds each folder as a repository - 4e797f52b9ecb4d77f40bfa1e11629fb2f8e3b95",
+      "[Added] The tab strip adds an Arrange tabs surface for moving, sorting, and pinning tabs, plus a Close all tabs except those containing action alongside the existing close-matching one - 9a9e68854e7bb9f0d08c18cde340518792771999",
+      "[Added] The tab appearance editor gains word-processor style formatting with font, size, case, spacing, emphasis, decoration, alignment, and text and highlight colours with a live preview - 3b68d09d4f898c6c647329b3d1b606f814161792",
+      "[Improved] Starting a rebase revalidates the repository first, shows that it is preparing, reports a failure inline in the dialog, and ignores a second submission while the first is running - f035d8c6fe6e43b98a22192587f426f24a86fc6b",
+      "[Improved] The repository provider panel lets you choose which account it uses and offers sign-in or re-authentication when that account cannot load pull requests and issues - f035d8c6fe6e43b98a22192587f426f24a86fc6b",
+      "[Improved] Pull All reports each repository's progress and final result while it runs, and the Changes list and commit form use a more compact layout - 1bc8a226de12996ffd01625aac69d4777ec2087f",
+      "[Improved] Toolbar controls move into the overflow menu based on their real label widths, so long branch and repository names stay readable at narrow and short window sizes - a9e140de718d8fed064f3ae059d0f3c40b456628",
+      "[Improved] Screen readers announce a name for the branch and other list filter fields - c5205838dfc5ee2b7ce80ce488215a2cd903bb26",
+      "[Fixed] The Regex Builder no longer clips its palette and test area at small window sizes - aa68ef2b6a876a9766717acb2b4cc6301821d77e",
+      "[Fixed] Closing the Regex Builder returns focus to the field that opened it - 81c1c12005947306b29688290e41e5f10087e0a0",
+      "[Fixed] The Remote Manager collapses to a single column at narrow dialog widths instead of cutting off its columns - 624f2afc4cee1056a22097d5c19510e334d251a7",
+      "[Fixed] The Repository tools panel scrolls vertically again when its content is taller than the window - 24d3cdd5fa14049dfe671fba43431268281804f1",
+      "[Fixed] Repository settings keeps its footer buttons reachable at short window heights - bc69c304dcdd33a193e251a97e83cc8be0598754"
+    ],
+    "3.6.3-material5": [
+      "[Improved] The first-run welcome flow is rebuilt as a Material 3 surface with a workspace preview beside the sign-in options - 1c1330e5bbe9afa1f6fd5c758ea9271ae1f1e1c0",
+      "[Added] Toolbar controls that no longer fit at narrow window widths collapse into a keyboard-accessible overflow menu instead of being clipped - d3d34c76792ba87dc897d0be6c79d4673e527815",
+      "[Added] Preferences gains an Appearance section for accent and surface palette, elevation, interface and monospace fonts, motion, toolbar labels, and density, saved with the active profile - f5a38d837e34daca5213ca3f1900f1dafc12cec7",
+      "[Added] Repository settings can override the accent palette, surface palette, toolbar labels, and tab density for a single repository, inheriting the app defaults for anything left unset - f5a38d837e34daca5213ca3f1900f1dafc12cec7",
+      "[Improved] The tab appearance editor can return a tab's text or background color to the default instead of only accepting a custom one - f5a38d837e34daca5213ca3f1900f1dafc12cec7",
+      "[Improved] Pull All reports live per-repository progress with a running completed count, and dismissing the dialog no longer loses an in-flight run - 28043ad1b719c42544fdb540560e14c9270dc198",
+      "[Improved] The project site's feature gallery covers the full shipped feature set rather than a short highlight list - 49603840e9844d0300627b32a401bb11d4538ea2"
+    ],
+    "3.6.3-material4": [
+      "[New] The Actions tab includes a cache manager that lists every repository cache with its size, ref and last-accessed time alongside total cache usage, and can delete a single cache or every cache sharing a key - e282eb2fce7c9c4af8b21c26554ca34f5faa4386",
+      "[Added] The clone dialog can select every repository in the list at once instead of ticking each one - 9e5f3b28a24f29462ab4a622e62a0090c6348148",
+      "[Added] An optional clone setting periodically checks for newly available repositories and clones them into the chosen base directory automatically - 9e5f3b28a24f29462ab4a622e62a0090c6348148",
+      "[Improved] Build and run recognizes Deno, PHP, Ruby, Swift package, Dart and Flutter, Elixir and Phoenix, Scala, Haskell and Zig projects - cfcf621a305ccd081edc4ae36f5769b87952c2e3",
+      "[Improved] Build and run names each detected profile by its project folder so multi-project repositories are readable - cfcf621a305ccd081edc4ae36f5769b87952c2e3",
+      "[Improved] Artifact downloads refuse unsafe download redirects, accepting only credential-free HTTPS locations that do not resolve to loopback or private network addresses - fe8079fa88d9778cac5fb693531dd122e4ae4cca",
+      "[Improved] Artifact downloads release their network connection when a download fails or is canceled instead of leaving it open - b6e78eecf3638fcdb1a81d27e7275c84e641a5f6",
+      "[Improved] Sparse-checkout changes stop with a clear unavailable reason instead of running when the repository's worktree path is in an unsafe state - 43abf67d5bd91c196112a807ca6878794abc8b58",
+      "[Improved] The Actions tab starts loading on its own once a repository is connected to GitHub, instead of staying empty until the view is reopened - e282eb2fce7c9c4af8b21c26554ca34f5faa4386"
+    ],
+    "3.6.3-material3": [
+      "[New] A sparse checkout manager lets you pick which folders of a large repository are checked out to disk - 859d1b221a2d2f4622c776c36afaf2989a2effc4",
+      "[Added] A shallow repository can be deepened back to its full history from the repository tools - 462b0c72816e36226159d0f0fee9ca49f465cc85",
+      "[New] The notification centre lists GitHub notifications and opens each one at the pull request, issue, or workflow run it came from - eec5c74617d809674f55142208881845b1a133fa",
+      "[New] A Git bundle can be imported from the repository tools, with a preview of the refs it carries before anything is applied - 964f1dfeeb341c661a3fcffe3d00cb176b3885b5",
+      "[New] GitHub issues can be created from inside the app, with title, body, labels, and assignees - b618fc7ece6e94658a88339a0476499bc2528fb5",
+      "[New] A GitHub Issues view lists, filters, and updates the current repository's issues without opening a browser - 51e5a4694c21e3f1fb89d97c0d10417f695b3206",
+      "[New] Pull requests can be created, reviewed, merged, and closed inside the app instead of on the web - 0bc17f48b706dbcdb0ef33877551784991dcbb48",
+      "[New] An Actions run inspector shows each run's jobs, streamed logs, and any deployment reviews waiting on approval - cae570ed7ac697ab5370977f147bdd824b4bf859",
+      "[New] Workflow run artifacts can be browsed, downloaded, and checked against their attestations directly from the Actions view - cec14273a1b7e6ffc61ed9d794a5d125b5b64e1e",
+      "[Added] Workflow artifact lists page through older entries instead of stopping at the first page of results - 29de6ec70a6ac6e507bd5d8f487b66542309cba1",
+      "[New] A stash manager lists every stash in the repository with a preview of its contents and apply, pop, and drop actions - ee084adc0d687d920cbae71f026d3dc9fac0fab2",
+      "[New] Guided bisect sessions run a good/bad search from the repository tools and report the first bad commit - 5ca8a9d26922fad3f681826a0bfc0873a8376950",
+      "[New] GitHub releases can be listed, drafted, edited, published, and given assets from inside the app - 7888be34c758ff0bd6e27f4323bd319398213656",
+      "[New] A remote manager in repository settings adds, renames, retargets, and removes remotes - 680e3ed8dfafd7448eb8faac31a375c72921b28b",
+      "[New] A repository hooks manager shows the installed Git hooks and lets each one be reviewed, enabled, or disabled - 801c23d1533428c253e3c0e3cff9113fdcf687a1",
+      "[New] A branch rules inspector shows which rulesets and protections apply to a branch and what would block a push - 8f61c97ecf06f51114f661a8be3d9171f7599152",
+      "[New] Repository tools cover commit signing setup and Git LFS administration, including tracked patterns and stored objects - 00188097d46b1a2b861df0ef7bd681942b841696",
+      "[New] A structured commit rewrite flow rewords, squashes, and edits recent commits without hand-written rebase commands - b4fa4d325eed48a3c3f6d83029bf9b9ce99372c8",
+      "[Added] The merge dialog previews the exact files that would conflict before the merge is started - 21b96c702b2e5a91a4182b908ea944d870955b32",
+      "[Added] Worktrees can be locked, unlocked, moved, and pruned from the worktree dropdown - c2931853269ddfe5794fb10835c26e625638a95a",
+      "[Added] A branch can be exported as a patch series and received patches applied back onto a branch from the repository tools - 97a4d0eded7cabf46c72c58aca6f80811ae3097a",
+      "[Added] Branches can be hidden from the branch list through their right-click menu, and the choice is remembered across restarts - 1a6bf5010eda600a1f1c1754022eb0275eae3f0c",
+      "[Fixed] Cloning retries with the signed-in account chosen for the clone instead of failing outright when the first set of credentials is rejected - 8df7fdb073ce05f6c5b2c314a398e68ee78c5e2a",
+      "[Fixed] Pull All retries a repository with a matching signed-in account instead of stopping at the first authentication failure - a1532fb9e1618d29a22afb7fbaf17440207e40dd",
+      "[Improved] Removing the remote a repository is currently published to now warns before the remote is deleted - 8b940850f033068c307b0a5d2a4a2c4c4c769a12"
+    ],
+    "3.6.3-material2": [
+      "[Improved] The whole workspace is rebuilt on Material Design 3, with a top app bar, a left navigation rail, floating repository and branch pills, and elevated Changes, History and diff cards - a95cea307db33ef0c8bc4c14061a4a147829df44",
+      "[Improved] Dialogs float above the app instead of blocking it, so settings and other sheets can stay open while working in the repository - 690ea60a6ddf2b54185645d0fcc20a0078c14926",
+      "[New] Any file can be opened in a dedicated history and blame view showing every commit that touched it and who last changed each line - 285a04e69114ad3de20b85ef60d0430b0bb32339",
+      "[Added] An earlier version of a file can be restored directly from its history view - 164f81ded010568a45d7a453b132dfde6c63ad2a",
+      "[New] A guided repository tools screen runs archive export, full-history bundle export and verification, signature audit and sparse checkout without leaving the app - 96b6a88cfc431b3c05231a93cedcba4b02187c39",
+      "[New] A repository Actions panel lists workflow runs, streams job logs, and dispatches, re-runs or cancels a run behind a confirmation - 786a52936a47200c0fcb09f9090f44496f78d751",
+      "[New] A Build & Run tab in Repository Settings detects a build profile per project, installs a missing toolchain before building, and keeps its log panel collapsible to a slim bar - 644fa87bdfcdb011ec2294572406cf56ec8c6af1",
+      "[New] A notification centre bell opens a panel with the full history of app notifications, filterable by type - 383030a24fbe4efc01aa509613dfde9160c72edb",
+      "[New] Every search bar offers plain text, fuzzy and regular expression matching, with a guided regex builder available beside the field - f4194c63498eb92804949f4be8f0b7732fdc91ca",
+      "[New] GitLab and Bitbucket accounts can sign in alongside GitHub, with repository browsing, cloning, pull requests and commit status routed to the right host - b52cb4c0f63780f779d7d43229b0514222016b82",
+      "[New] History draws a commit graph beside the timeline and marks merge commits distinctly - f0a2cf72cfa1a854b3e3a2a6a2f6165b0888317e",
+      "[Added] History can be searched and filtered by message, author, hash and other commit metadata - da3270d05b519045e26a81a9d9867627e02d6138",
+      "[New] A Submodules tab in Repository Settings initializes, updates, adds and removes submodules - 083f62e80810f4f8c530ebfbd3faf022a870ae30",
+      "[Improved] Repository Settings manages every configured remote rather than only the default one - d70303b75ca8b7316dc86a38606776eef3bc438f",
+      "[New] Multiple stashes can be kept per branch and applied or dropped individually - 83bfa8d55a644ed60c3701be890e2c06096450f5",
+      "[New] A gitignore manager suggests and merges templates for the current repository from Repository Settings - 2a75fa23fab6df9e4b59981aa29bbd7d88c0cabe",
+      "[New] The Clone dialog can select several repositories at once and clone them in one batch - c6434ad50c0445e1a52df5ae4761f31f5ebe9c27",
+      "[Added] The repository list can be exported to a file and imported again on another machine - 5142d4fb6e8283cf883da4579b1f7d4bb8f3da4f",
+      "[Added] Repositories can be pinned and sorted into custom groups, and the Recent group can be hidden - f826ff9ad1c73dfdd54c24022f165563e8682159",
+      "[New] Each repository can fetch and pull on its own schedule, with the interval configurable per account - 87b2d183b45c06e11ad17ab3e1f009daea7f2536",
+      "[New] Repositories open in browser-style tabs across multiple windows, with tab order and window layout restored on restart - fad3bf32aa7f5636949e256e949f61a9ee33ab8e",
+      "[New] Tabs have their own appearance editor with a searchable font picker, a full colour picker and size controls that grow the tab frame - 4f3a209c88ed29d1ffae6b375a746a59d58c8cae",
+      "[Added] The tab context menu closes tabs to the left, to the right, all others, or every tab whose title matches entered text or a pattern - ce41c07a9338b425ba3a530ec1654f08f0c214fc",
+      "[Added] Every branch and linked worktree can be merged into the default branch in one guarded action - da7a0b09864f812d3926e7bad041345b900ec2cc",
+      "[Added] Pull all fetches and pulls every added repository in one action, reporting the ones it had to skip - 8b1b578e86bc0b919ea6b69d6150c8d883cca583",
+      "[Added] A single action stages, commits and pushes the current changes when it is safe to do so - 246de0b77593e71a23a21ecd160fde356ea3df5c",
+      "[Added] Discard all changes offers a permanent variant that skips the trash and also removes untracked files - b22d3dd74e933d40d2ea5437b95471a531e644f6",
+      "[New] The interface scale is adjustable, including an auto-fit mode that sizes the layout to the window - dc743e43880edf5dad9a614078ad68ae5b62e394",
+      "[Improved] Settings, dialogs, popovers, history and build panels stay readable and clickable at small window sizes and high display scaling instead of clipping or overflowing sideways - 70ed7ea7bca417a77d64e36d58f6d8de5dcf792d",
+      "[New] A token-gated local server exposes repository commands to external tools, with access preferences and a command-line client - a35f12fc5251f10756a913c0fffffeaf8b0e118a",
+      "[Improved] The command-line launcher is installed as desktop-material and accepts repository paths and options directly - 86c136566660ef58006169246aea1ebf16a49e8c",
+      "[Improved] Updates are checked against this build's own release feed rather than the upstream endpoint - 2ae45c83ab5a1a528d108155f9d4bee33fbcf5ff",
+      "[Added] SVG files in a diff can be viewed as rendered images or as sanitized source - f36cb1f135d91ad8c91450cf666c3fcfc91fcefb",
+      "[Added] The commit composer shows the name and email a commit will actually use and where that setting comes from - 3b31d74f20196c0f4ee41b3eccb12e3de6ef9f30",
+      "[Added] Branch, commit, repository and worktree lists show accessible tooltips for names truncated by the column width - 8f5960a0bb42d149da8873cb5df6a52aa47d4d3f",
+      "[Added] The Create Tag dialog suggests tag names used previously in the repository - 6d42b3ce0a0e4263a32bffb7dcf3141192c17441",
+      "[Added] Installed WSL distributions appear as shell choices when opening a repository in a terminal - b79771192d868346fc5f3f7e075a3f45d1daf283",
+      "[Removed] All usage and crash telemetry reporting is removed, and the welcome screen no longer offers to enable it - 05f404d38fc37f9ee2ab86fed39d997c8a6fbf82"
+    ],
+    "3.6.3-material1": [
+      "[New] Open repositories appear as browser-style tabs above the toolbar, with middle-click close, double-click rename, and tab order remembered between launches - 18b387604bb4ace6a1c137466e93b9247c8690ec",
+      "[Added] Customize Appearance in a tab's context menu opens a tab text style editor with bold, italic, underline, alignment, font size, font family, and color, previewed live and saved per tab - 007845ca870d00cea9365132652299a8b4bbf22c",
+      "[New] Sign in with several accounts on the same host at once instead of being limited to one GitHub.com and one Enterprise account - c49fe25cd723f39bef268adacf9e5ff3fd430d12",
+      "[Improved] The Accounts tab in Preferences lists every signed-in GitHub.com and Enterprise account as its own card and offers an Add account action for each host - b4407f162d34aecd5b1558059547b4902a896733",
+      "[Added] Repository settings let you pick which signed-in account a repository authenticates with, so each repository keeps working under the identity you choose - e91b56cd0d0f9ff96e48deca4a7dad408a695e24",
+      "[New] Each signed-in account keeps its own settings profile, so preferences follow the account you are currently using and are snapshotted every time they change - 982636147771de2512283fdc2dcf20b4b5c7674e",
+      "[New] Settings history, opened from Edit or with Ctrl+Alt+Z, shows a timeline of every settings change with its diff and lets you undo, redo, or restore any earlier point without losing the newer state - 4114fa2bb00d8dfc67c84b7ed16d0f506050bb30",
+      "[Improved] The application shell is restyled on Material Design 3, refreshing surfaces, the toolbar, the sidebar, and buttons in both light and dark themes - 5d2042331b7197a408d33d8e0c87a87a91b2e850",
+      "[Improved] Dark mode now uses the correct Material Design 3 error colors, so error text and highlights stay readable on dark surfaces - 0ff26c6b8b1157115cfc5768a7dd33ee098d758b",
+      "[Added] Every build publishes a downloadable Windows installer straight to its release - 52b2abfa0788f1a32d4ac3d8e6aa7266788f3793",
+      "[Added] A project website and wiki cover the user guide, regex guide, automation, and developer setup, with screenshots of the redesigned interface - d367c92a5465125ecf21f898789e344785a7226e"
+    ],
+    "3.6.4-beta1": [
+      "[Added] Add Copilot usage info, moving custom provider configuration into a link from the Copilot model picker and adding better support for accounts with multiple Copilot licenses",
+      "[Fixed] Disable Continue in the Copilot conflict resolution dialog until every file skipped by Copilot (e.g. minified or oversized conflicts) has been resolved, and list those files separately for manual resolution",
+      "[Fixed] Stop Copilot from overwriting a conflicted file's manual resolution when the user already removed the conflict markers themselves before clicking Continue",
+      "[Fixed] Copilot conflict resolution now surfaces the underlying error (sign-in, network, rate limit, timeout) instead of a generic \"returned no results\" message",
+      "[Fixed] Show correct expanded context and syntax highlighting for resolved lines in the Copilot conflicts Changes tab instead of unrelated content",
+      "[Fixed] Screen readers now announce the group label ('Main Worktree' / 'Linked Worktrees') for items in the worktree list",
+      "[Fixed] Show an error message instead of an endless loading spinner when a file's diff fails to load in the Copilot conflicts Changes tab",
+      "[Improved] Copilot conflict resolution now handles delete-vs-modify conflicts, suggesting \"keep\" or \"delete\" for files deleted on one branch and modified on the other"
+    ],
+    "3.6.3": [
+      "[Fixed] Resolve error that prevented Copilot-based features from working correctly on Windows - #22509",
+      "[Fixed] Keep commit message @-mention autocomplete from surfacing users without a profile name when typing queries like \"null\" - #22414. Thanks @sukanth!",
+      "[Fixed] Resolve a crash where the truncated repository path text could enter an infinite re-render loop - #22458",
+      "[Fixed] Fall back to the main worktree so a repository no longer appears as missing when its linked worktree folder was deleted outside Desktop - #22474",
+      "[Fixed] Keep files visible in the Changes list after Desktop returns from being backgrounded - #22497",
+      "[Fixed] Show an error dialog instead of silently doing nothing when Copilot fails to generate a commit message due to a git error - #22496",
+      "[Fixed] Copilot sessions from generating commit messages or resolving conflicts do not show up in VS Code - #22443",
+      "[Fixed] Repository list scrolling no longer gets stuck or jitters when scrolling over tall groups (e.g. large organizations) - #22438. Thanks @peteski22!",
+      "[Improved] Clarify the line-ending conversion warning to explain that Git will automatically convert the file's line endings on next checkout, with a link to learn more - #21446. Thanks @Whitebrim!"
+    ],
     "3.6.3-beta3": [
       "[Fixed] Keep Cheap LFS recovery and materialization sidecar names bounded so valid long Windows filenames no longer fail with ENAMETOOLONG",
       "[Fixed] Resolve error that prevented Copilot-based features from working correctly on Windows - #22509",
@@ -90,7 +580,9 @@
       "[Added] Add support for custom model providers for Copilot - #22000",
       "[Added] Use repo rules to guide commit messages generation by Copilot - #22007"
     ],
-    "3.5.11": ["[Fixed] Fix launching custom shells"],
+    "3.5.11": [
+      "[Fixed] Fix launching custom shells"
+    ],
     "3.5.10": [
       "[Fixed] Intermittent crash trying to load Copilot models",
       "[Added] Add date, time, and number formatting preferences to the Appearance settings - #21836"
@@ -127,7 +619,9 @@
       "[Improved] Enable diff expansion and syntax highlighting for up to 1MB - #21876",
       "[Improved] Update re2js regex engine to use optimized DFA path for improved performance - #21924. Thanks @le0pard!"
     ],
-    "3.5.8": ["[Improved] Update Git for Windows to v2.53.0.windows.3"],
+    "3.5.8": [
+      "[Improved] Update Git for Windows to v2.53.0.windows.3"
+    ],
     "3.5.7": [
       "[Added] Rename branch dialog now validates branch names against repository rulesets - #21822",
       "[Added] Allow empty commits via the commit options menu - #21771",
@@ -289,7 +783,9 @@
       "[Improved] Provides the tooltips for list items in a single condensed tooltip that allows keyboard users and screen reader users access upon navigation of a list item - #20804",
       "[Removed] Remove support for macOS 11 - #21060"
     ],
-    "3.5.3-beta4": ["[Improved] Upgrade Electron to v38.2.0 - #21060"],
+    "3.5.3-beta4": [
+      "[Improved] Upgrade Electron to v38.2.0 - #21060"
+    ],
     "3.5.3-beta3": [
       "[Fixed] Copilot message generation in progress message is announced to screen readers - #21008",
       "[Fixed] Add Ptyxis shell integration - #20963. Thanks @logonoff!",
@@ -469,7 +965,9 @@
       "[Fixed] Moving maximized window in windows - #19786. Thanks @ahrm!",
       "[Improved] Upgrade embedded Git to v2.47.1 on macOS, and to v2.47.2.windows.2 on Windows"
     ],
-    "3.4.15": ["[Fixed] Restore ability to sign in on Windows"],
+    "3.4.15": [
+      "[Fixed] Restore ability to sign in on Windows"
+    ],
     "3.4.14": [
       "[Added] Add Ghostty shell integration - #19777. Thanks @aelew!",
       "[Fixed] No extra new line is prepended to `.gitignore` when adding to a non-existent `.gitignore` file - #19279. Thanks @GWDx!",
@@ -1086,8 +1584,12 @@
       "[Fixed] Scrolling works as expected in the \"Commit Reachability\" dialog - #17421",
       "[Improved] Upgrade to Electron v26.2.1 - #17408"
     ],
-    "3.3.3": ["[Improved] Upgrade to Electron v24.8.3 - #17416"],
-    "3.3.3-beta2": ["[Improved] Upgrade to Electron v24.8.3 - #17416"],
+    "3.3.3": [
+      "[Improved] Upgrade to Electron v24.8.3 - #17416"
+    ],
+    "3.3.3-beta2": [
+      "[Improved] Upgrade to Electron v24.8.3 - #17416"
+    ],
     "3.3.3-beta1": [
       "[Added] Add support for Pulsar code editor on Linux - #17397. Thanks @Daeraxa!",
       "[Added] Add Eclipse IDE integrations for macOS - #16991. Thanks @yuzawa-san!",
@@ -1150,8 +1652,12 @@
       "[Improved] Dropdown select buttons menu is keyboard navigable and have aria attributes - #17271",
       "[Improved] Prevent interrupting verbose announcements of branch count on branch dropdown open for screen reader users - #17225"
     ],
-    "3.2.10-beta1": ["[Fixed] Fix the inability to log into GHES - #17237"],
-    "3.2.9": ["[Fixed] Fix the inability to log into GHES - #17237"],
+    "3.2.10-beta1": [
+      "[Fixed] Fix the inability to log into GHES - #17237"
+    ],
+    "3.2.9": [
+      "[Fixed] Fix the inability to log into GHES - #17237"
+    ],
     "3.2.9-beta1": [
       "[Fixed] Double clicking the checkbox of a changed file does not open that file in the external editor - #17229",
       "[Fixed] Expand buttons in the diff are keyboard navigable. - #17212",
@@ -1319,7 +1825,9 @@
       "[Improved] Improve accessibility of GitHub Enterprise login flow - #16567",
       "[Improved] Screen readers announce sign in errors - #16556"
     ],
-    "3.2.2": ["[Improved] Upgrade embedded Git to 2.39.3"],
+    "3.2.2": [
+      "[Improved] Upgrade embedded Git to 2.39.3"
+    ],
     "3.2.2-beta2": [
       "[Improved] Improve accessibility of GitHub Enterprise login flow - #16567",
       "[Improved] Screen readers announce sign in errors - #16556",
@@ -1423,7 +1931,9 @@
       "[Improved] Focus on first suitable child in sign in flow - #16125",
       "[Improved] The misattributed warning popover is accessible through keyboard navigation - #16100"
     ],
-    "3.1.9-beta2": ["[Fixed] Fixed production build startup crash - #16191"],
+    "3.1.9-beta2": [
+      "[Fixed] Fixed production build startup crash - #16191"
+    ],
     "3.1.9-beta1": [
       "[Added] Add Tabby terminal integration for macOS - #16040. Thanks @ansidev!",
       "[Added] Add JetBrains DataSpell support on Windows - #16020. Thanks @tsvetilian-ty!",
@@ -1445,8 +1955,12 @@
       "[Fixed] Fix support for the latest versions of RStudio on Windows - #15810",
       "[Fixed] Fix support for latest versions of VSCodium on Windows - #15585. Thanks @voidei!"
     ],
-    "3.1.7": ["[Improved] Upgrade embedded Git to 2.39.2"],
-    "3.1.7-beta1": ["[Improved] Upgrade embedded Git to 2.39.2"],
+    "3.1.7": [
+      "[Improved] Upgrade embedded Git to 2.39.2"
+    ],
+    "3.1.7-beta1": [
+      "[Improved] Upgrade embedded Git to 2.39.2"
+    ],
     "3.1.6": [
       "[Improved] Upgrade embedded Git to 2.39.1 and Git LFS to 3.3.0 - #15915"
     ],
@@ -1487,7 +2001,9 @@
       "[Improved] Close repository list after creating or adding repositories - #15508. Thanks @angusdev!",
       "[Improved] Always show an error message when an update fails - #15530"
     ],
-    "3.1.4": ["[Improved] Upgrade embedded Git to 2.35.6"],
+    "3.1.4": [
+      "[Improved] Upgrade embedded Git to 2.35.6"
+    ],
     "3.1.4-beta1": [
       "[Added] Add support for JetBrains Toolbox and JetBrains Fleet editor for Windows - #12912. Thanks @tsvetilian-ty!",
       "[Added] Add support for Emacs editor for Linux - #15857. Thanks @zipperer!",
@@ -1540,8 +2056,12 @@
       "[Fixed] Fix commit shortcut (Ctrl/Cmd + Enter) while amending a commit - #15445",
       "[Improved] Pull request preview dialog width and height is responsive - #15500"
     ],
-    "3.1.3-beta1": ["[Improved] Upgrade embedded Git to 2.35.5"],
-    "3.1.2": ["[Improved] Upgrade embedded Git to 2.35.5"],
+    "3.1.3-beta1": [
+      "[Improved] Upgrade embedded Git to 2.35.5"
+    ],
+    "3.1.2": [
+      "[Improved] Upgrade embedded Git to 2.35.5"
+    ],
     "3.1.2-beta1": [
       "[Added] You can preview the changes a pull request from your current branch would make - #11517",
       "[Fixed] App correctly remembers undo commit prompt setting - #15408",
@@ -1632,8 +2152,12 @@
     "3.0.5-beta1": [
       "[Fixed] Surface again Git's warning about unsafe directories and provide a way to trust repositories not owned by the current user"
     ],
-    "3.0.4": ["[Improved] Upgrade embedded Git to 2.35.4"],
-    "3.0.4-beta1": ["[Improved] Upgrade embedded Git to 2.35.4"],
+    "3.0.4": [
+      "[Improved] Upgrade embedded Git to 2.35.4"
+    ],
+    "3.0.4-beta1": [
+      "[Improved] Upgrade embedded Git to 2.35.4"
+    ],
     "3.0.3": [
       "[Added] Add Aptana Studio support - #14669. Thanks @tsvetilian-ty!",
       "[Fixed] Fix crash when user's locale is unsupported by the spellchecker - #14817. Thanks @tsvetilian-ty!",
@@ -2033,7 +2557,9 @@
       "[Added] Add syntax highlighting for dart - #12827. Thanks @say25!",
       "[Fixed] Fix scrolling performance issue for large diffs."
     ],
-    "2.9.2": ["[Fixed] Fix scrolling performance issue for large diffs."],
+    "2.9.2": [
+      "[Fixed] Fix scrolling performance issue for large diffs."
+    ],
     "2.9.1": [
       "[Added] Add Fluent Terminal shell support - #12305. Thanks @Idered!",
       "[Added] Add support for IntelliJ CE for macOS - #12748. Thanks @T41US!",
@@ -2282,7 +2808,9 @@
       "[Fixed] Performing remote Git operations in rare cases displays an error message instead of crashing the app - #11694",
       "[Improved] Clicking on \"Add Co-Author\" moves the focus to the co-authors text field - #11621"
     ],
-    "2.6.5": ["[Fixed] Performing remote Git operations could crash the app"],
+    "2.6.5": [
+      "[Fixed] Performing remote Git operations could crash the app"
+    ],
     "2.6.4": [
       "[Added] Allow users to rename and delete branches via a new context menu on branches in the branches list - #5803 #10432",
       "[Fixed] Allow users to modify git config on a per repository basis - #9449. Thanks @say25!",
@@ -2320,7 +2848,9 @@
       "[Fixed] Remote git operations (like cloning a repo) won't fail on old macOS versions - #11516",
       "[Fixed] Updated about modal dialog on macOS to match the new Big Sur icon - #11511"
     ],
-    "2.6.3-beta2": ["[Improved] Update app icon for macOS Big Sur - #10855"],
+    "2.6.3-beta2": [
+      "[Improved] Update app icon for macOS Big Sur - #10855"
+    ],
     "2.6.3-beta1": [
       "[Fixed] Fast-forward all possible branches except the current branch when fetching - #11387",
       "[Improved] Enable spellcheck on commit summary and description - #1597",
@@ -2344,7 +2874,9 @@
       "[Fixed] Fork behavior changes are now reflected in the app immediately - #11327",
       "[Fixed] Commit message remains in text box until user chooses to commit - #7251"
     ],
-    "2.6.2-beta3": ["[Removed] Release removed in favor of 2.6.2-beta4"],
+    "2.6.2-beta3": [
+      "[Removed] Release removed in favor of 2.6.2-beta4"
+    ],
     "2.6.2-beta2": [
       "[Fixed] Forked repository remotes are no longer removed when there's local branches tracking them - #11266",
       "[Fixed] Avoid bright flash for users of the dark theme when launching the app maximized - #5631. Thanks @AndreiMaga!",
@@ -2405,8 +2937,12 @@
       "[Fixed] Fixes overflow issues with long branch names - #5970. Thanks @juliarvalenti!",
       "[Removed] Sign in to GitHub.com with username/password is no longer supported"
     ],
-    "2.5.8-beta1": ["[Improved] Upgrade embedded Git LFS - #10973"],
-    "2.5.7": ["[Improved] Upgrade embedded Git LFS - #10973"],
+    "2.5.8-beta1": [
+      "[Improved] Upgrade embedded Git LFS - #10973"
+    ],
+    "2.5.7": [
+      "[Improved] Upgrade embedded Git LFS - #10973"
+    ],
     "2.5.7-beta2": [
       "[New] Search text within split diffs - #10755",
       "[Improved] Use Page down, Page up, Home, and End keys to navigate and select items in lists - #10837",
@@ -2751,8 +3287,12 @@
       "[Improved] Format errors containing raw Git output with fixed-width font - #8964",
       "[Improved] Upgrade to Electron 7 - #8967"
     ],
-    "2.3.0-test2": ["Testing upgrade from Electron v6 to v7"],
-    "2.3.0-test1": ["Testing upgrade from Electron v5 to v6"],
+    "2.3.0-test2": [
+      "Testing upgrade from Electron v6 to v7"
+    ],
+    "2.3.0-test1": [
+      "Testing upgrade from Electron v5 to v6"
+    ],
     "2.3.2-beta1": [],
     "2.3.1": [
       "[Fixed] Don't display erroneous Git error when creating a fork - #9004",
@@ -2795,7 +3335,9 @@
       "[Fixed] Update branch protection state for checkout outside of Desktop - #8790",
       "[Improved] Re-designed preferences dialog - #8774"
     ],
-    "2.2.5-test1": ["[Fixed] Sign Windows installers using SHA256 file digest"],
+    "2.2.5-test1": [
+      "[Fixed] Sign Windows installers using SHA256 file digest"
+    ],
     "2.2.4": [
       "[New] Warn when committing to a protected branch - #7023",
       "[New] Warn when committing to a repository you don't have write access to - #8665",
@@ -2844,11 +3386,21 @@
       "[Fixed] Address warnings on macOS Catalina preventing app from opening after install - #8555",
       "[Improved] Update to most recent gitignore templates - #8527"
     ],
-    "2.2.3-test5": ["Testing entitlements + notarization for mac app"],
-    "2.2.3-test4": ["Testing entitlements + notarization for mac app"],
-    "2.2.3-test3": ["Testing entitlements + notarization for mac app"],
-    "2.2.3-test2": ["Testing notarization for mac app"],
-    "2.2.3-test1": ["Testing notarization for mac app"],
+    "2.2.3-test5": [
+      "Testing entitlements + notarization for mac app"
+    ],
+    "2.2.3-test4": [
+      "Testing entitlements + notarization for mac app"
+    ],
+    "2.2.3-test3": [
+      "Testing entitlements + notarization for mac app"
+    ],
+    "2.2.3-test2": [
+      "Testing notarization for mac app"
+    ],
+    "2.2.3-test1": [
+      "Testing notarization for mac app"
+    ],
     "2.2.2": [
       "[Added] Onboarding tutorial animations help guide users to the next action - #8487",
       "[Added] Prompt users to re-authenticate if they are unable to push changes to a workflow file - #8357",
@@ -2948,7 +3500,9 @@
       "[Improved] Always fast forward recent branches after fetch - #7761",
       "[Improved] Ensure recent branches are updated during remote interactions - #8081"
     ],
-    "2.1.2-beta2": ["[Fixed] Update embedded Git on Windows - #8133"],
+    "2.1.2-beta2": [
+      "[Fixed] Update embedded Git on Windows - #8133"
+    ],
     "2.1.2-beta1": [
       "[Added] Option to hide whitespace in historical commits - #8045. Thanks @say25!",
       "[Fixed] Small images are scaled down too much in two-up image rendering - #7520",
@@ -3018,7 +3572,9 @@
       "[Improved] Update license and .gitignore templates for initializing a new repository - #7548 #7661. Thanks @VADS!",
       "[Improved] \"Authentication failed\" dialog provides more help to diagnose issue -  #7622"
     ],
-    "2.0.4-test2": ["Upgrading infrastructure to Node 10"],
+    "2.0.4-test2": [
+      "Upgrading infrastructure to Node 10"
+    ],
     "2.0.4": [
       "[Fixed] Refresh for Enterprise repositories did not handle API error querying branches - #7713",
       "[Fixed] Missing \"Discard all changes\" context menu in Changes header - #7696",
@@ -3605,12 +4161,24 @@
       "[Fixed] User can toggle files when commit is in progress - #5341. Thanks @masungwon!",
       "[Improved] Repository indicator background work - #5317 #5326 #5363 #5241 #5320"
     ],
-    "1.3.3-test6": ["Testing infrastructure changes"],
-    "1.3.3-test5": ["Testing the new CircleCI config changes"],
-    "1.3.3-test4": ["Testing the new CircleCI config changes"],
-    "1.3.3-test3": ["Testing the new CircleCI config changes"],
-    "1.3.3-test2": ["Testing the new CircleCI config changes"],
-    "1.3.3-test1": ["Testing the new CircleCI config changes"],
+    "1.3.3-test6": [
+      "Testing infrastructure changes"
+    ],
+    "1.3.3-test5": [
+      "Testing the new CircleCI config changes"
+    ],
+    "1.3.3-test4": [
+      "Testing the new CircleCI config changes"
+    ],
+    "1.3.3-test3": [
+      "Testing the new CircleCI config changes"
+    ],
+    "1.3.3-test2": [
+      "Testing the new CircleCI config changes"
+    ],
+    "1.3.3-test1": [
+      "Testing the new CircleCI config changes"
+    ],
     "1.3.2": [
       "[Fixed] Bugfix for background checks not being aware of missing repositories - #5282",
       "[Fixed] Check the local state of a repository before performing Git operations - #5289",
@@ -3695,7 +4263,9 @@
       "[Fixed] Markdown header elements hard to read in dark mode - #5133. Thanks @agisilaos!",
       "[Improved] Diff gutter elements should be considered button elements when interacting - #5158"
     ],
-    "1.2.7-test3": ["Test deployment for electron version bump."],
+    "1.2.7-test3": [
+      "Test deployment for electron version bump."
+    ],
     "1.3.0-beta1": [
       "[New] Notification displayed in History tab when the base branch moves ahead of the current branch - #4768",
       "[New] Repository list displays uncommitted changes count and ahead/behind information - #2259",
@@ -3708,8 +4278,12 @@
       "[Improved] Repository list badge style tweaks and tweaks for dark theme - #5095",
       "[Improved] Change primary button color to blue for dark theme - #5074"
     ],
-    "1.2.7-test2": ["Test deployment for electron version bump."],
-    "1.2.7-test1": ["Sanity check deployment for refactored scripts"],
+    "1.2.7-test2": [
+      "Test deployment for electron version bump."
+    ],
+    "1.2.7-test1": [
+      "Sanity check deployment for refactored scripts"
+    ],
     "1.2.7-beta0": [
       "[Fixed] Visual indicator for upcoming feature should not be shown - #5026"
     ],
@@ -3789,7 +4363,9 @@
       "[Fixed] Updated embedded Git to 2.17.1 to address upstream security issue - #4791",
       "[Improved] Display the difference in file size of an image in the diff view - #4380. Thanks @ggajos!"
     ],
-    "1.2.1-test1": ["Upgraded embedded Git to 2.17.0"],
+    "1.2.1-test1": [
+      "Upgraded embedded Git to 2.17.0"
+    ],
     "1.2.1-beta1": [
       "[Added] Brackets support for macOS - #4608. Thanks @3raxton!",
       "[Added] Pull request number and author are included in fuzzy-find filtering - #4653. Thanks @damaneice!",
@@ -3798,7 +4374,9 @@
       "[Improved] Display the difference in file size of an image in the diff view - #4380. Thanks @ggajos!"
     ],
     "1.2.1-beta0": [],
-    "1.1.2-test6": ["Testing the Webpack v4 output from the project"],
+    "1.1.2-test6": [
+      "Testing the Webpack v4 output from the project"
+    ],
     "1.2.0": [
       "[New] History now has ability to compare to another branch and merge outstanding commits",
       "[New] Support for selecting more than one file in the changes list - #1712. Thanks @icosamuel!",
@@ -3837,8 +4415,12 @@
       "[Fixed] Keyboard focus issues when navigating Pull Request list - #4673",
       "[Improved] Automatically add valid repository when using command line interface - #4513. Thanks @ggajos!"
     ],
-    "1.1.2-test5": ["Actually upgrading fs-extra to v6 in the app"],
-    "1.1.2-test4": ["Upgrading fs-extra to v6"],
+    "1.1.2-test5": [
+      "Actually upgrading fs-extra to v6 in the app"
+    ],
+    "1.1.2-test4": [
+      "Upgrading fs-extra to v6"
+    ],
     "1.1.2-beta5": [
       "[Added] Syntax highlighting for JavaServer Pages (JSP) - #4470. Thanks @damaneice!",
       "[Fixed] Prevent icon from shrinking in rename dialog - #4566"
@@ -3864,7 +4446,9 @@
       "[Improved] Checking out a Pull Request may skip unnecessary fetch - #4068. Thanks @agisilaos!",
       "[Improved] Commit summary now has a hint to indicate why committing is disabled - #4429."
     ],
-    "1.1.2-test3": ["[New] Comparison Branch demo build"],
+    "1.1.2-test3": [
+      "[New] Comparison Branch demo build"
+    ],
     "1.1.2-test2": [
       "Refactoring the diff internals to potentially land some SVG improvements"
     ],
@@ -3944,7 +4528,9 @@
       "[Improved] Move forget password link to after the password dialog to maintain expected tab order - #4283. Thanks @iamnapo!",
       "[Improved] More descriptive text in repository toolbar button when no repositories are tracked - #4268. Thanks @agisilaos!"
     ],
-    "1.1.1-test2": ["[Improved] Electron 1.8.3 upgrade (again)"],
+    "1.1.1-test2": [
+      "[Improved] Electron 1.8.3 upgrade (again)"
+    ],
     "1.1.1-test1": [
       "[Improved] Forcing a focus on the window after the OAuth dance is done"
     ],
@@ -4000,7 +4586,9 @@
       "[Improved] Enable fuzzy search in the repository, branch, PR, and clone FilterLists - #911. Thanks @j-f1!",
       "[Improved] Tidy up commit summary and description layout in commit list - #3922. Thanks @willnode!"
     ],
-    "1.0.14-test1": ["[Improved] Electron 1.8.2 upgrade"],
+    "1.0.14-test1": [
+      "[Improved] Electron 1.8.2 upgrade"
+    ],
     "1.0.14-beta3": [
       "[Added] Add TextMate support for macOS - #3910. Thanks @caiofbpa!",
       "[Fixed] Handle Git errors when .gitmodules are malformed - #3912",
@@ -4016,7 +4604,9 @@
       "[Fixed] Ignore action assumes CRLF when core.autocrlf is unset - #3514",
       "[Improved] Use smaller default size when rendering Gravatar avatars - #3911"
     ],
-    "1.0.14-beta1": ["[New] Commit together with co-authors - #3879"],
+    "1.0.14-beta1": [
+      "[New] Commit together with co-authors - #3879"
+    ],
     "1.0.13": [
       "[New] Commit together with co-authors - #3879",
       "[New] PhpStorm is now a supported external editor on macOS - #3749. Thanks @hubgit!",
@@ -4546,7 +5136,9 @@
     "0.7.3-beta2": [],
     "0.7.3-beta1": [],
     "0.7.3-beta0": [],
-    "0.7.2": ["[Fixed] Issues with auto-updating to 0.7.1."],
+    "0.7.2": [
+      "[Fixed] Issues with auto-updating to 0.7.1."
+    ],
     "0.7.2-beta0": [],
     "0.7.1": [
       "[Improved] Redesigned error and warning dialogs to be clearer - #2277",
@@ -4765,7 +5357,9 @@
       "[Improved] Performance updating menu items - #1321",
       "[Improved] Windows: Dim the title bar when the app loses focus - #1189"
     ],
-    "0.0.39": ["[Fixed] An uncaught exception when adding a user - #1394"],
+    "0.0.39": [
+      "[Fixed] An uncaught exception when adding a user - #1394"
+    ],
     "0.0.38": [
       "[New] Shiny new icon! - #1221",
       "[New] More helpful blank slate view - #871",
@@ -4837,7 +5431,9 @@
       "[Improved] Command or control-W now closes open dialogs - #949",
       "[Improved] Less memory usage while parsing large diffs - #1235"
     ],
-    "0.0.33": ["[Fixed] Update Now wouldn't update now - #1209"],
+    "0.0.33": [
+      "[Fixed] Update Now wouldn't update now - #1209"
+    ],
     "0.0.32": [
       "[New] You can now disable stats reporting from Preferences > Advanced - #1120",
       "[New] Acknowledgements are now available from About - #810",
@@ -4882,7 +5478,9 @@
       "[Fixed] Protected branches show a descriptive error when the push is rejected - #1036",
       "[Fixed] 'Open in shell' on Windows opens to repository location - #1037"
     ],
-    "0.0.28": ["[Fixed] Bumping release notes to test deployments again"],
+    "0.0.28": [
+      "[Fixed] Bumping release notes to test deployments again"
+    ],
     "0.0.27": [
       "[Fixed] 2FA dialog when authenticating has information for SMS authentication - #1009",
       "[Fixed] Autocomplete for users handles accounts containing `-` - #1008"
@@ -4903,6 +5501,9 @@
       "[Fixed] Application creates repository path if it doesn't exist on disk - #925",
       "[Improved] Preferences sign-in flow updated to standalone dialogs - #961"
     ],
-    "0.0.24": ["Changed a thing", "Added another thing"]
+    "0.0.24": [
+      "Changed a thing",
+      "Added another thing"
+    ]
   }
 }

@@ -15,7 +15,13 @@ interface ICatalogRelease {
   readonly v: string
   /** `null` means no `release-<version>` tag exists, so the date is unrecorded. */
   readonly d: string | null
-  readonly e: ReadonlyArray<[string | null, string]>
+  /**
+   * `[category, text]`, or `[category, text, commit]` where the entry records
+   * the commit that made the change.
+   */
+  readonly e: ReadonlyArray<
+    [string | null, string] | [string | null, string, string]
+  >
 }
 
 interface ICatalog {
@@ -58,6 +64,8 @@ interface IViewRelease {
   readonly entries: ReadonlyArray<{
     readonly category: string | null
     readonly text: string
+    /** The commit this entry records, or null when it records none. */
+    readonly commit: string | null
   }>
   readonly versionMatch: boolean
   readonly hasRecordedChanges: boolean
@@ -134,6 +142,65 @@ const Changelog: IChangelogApi = require_(
   join(repositoryRoot, 'docs', 'assets', 'site', 'docs-changelog.js')
 )
 
+
+/** A full 40-character SHA at the end of an entry, after a dash. */
+const CommitReference = /[-–—]\s*([0-9a-f]{40})\s*$/
+
+/** `YYYY-MM-DD` for every commit any changelog entry references. */
+function commitDates(): Map<string, string> {
+  const shas = new Set<string>()
+  for (const list of Object.values(changelog.releases)) {
+    for (const entry of list) {
+      const match = CommitReference.exec(entry)
+      if (match !== null) {
+        shas.add(match[1])
+      }
+    }
+  }
+  if (shas.size === 0) {
+    return new Map<string, string>()
+  }
+  let output: string
+  try {
+    output = execFileSync(
+      'git',
+      ['log', '--no-walk', '--format=%H|%cd', '--date=short', ...shas],
+      { cwd: repositoryRoot, encoding: 'utf8', maxBuffer: 1 << 28 }
+    )
+  } catch {
+    // Same "this environment cannot prove it either way" situation as a
+    // checkout with no tags, reported the same way.
+    return new Map<string, string>()
+  }
+  const dates = new Map<string, string>()
+  for (const line of output.split('\n')) {
+    const separator = line.indexOf('|')
+    if (separator > 0) {
+      dates.set(
+        line.slice(0, separator).trim(),
+        line.slice(separator + 1).trim()
+      )
+    }
+  }
+  return dates
+}
+
+/** The newest commit date among a release's own entries. */
+function newestEntryCommitDate(
+  version: string,
+  commits: Map<string, string>
+): string | undefined {
+  let newest: string | undefined
+  for (const entry of changelog.releases[version] ?? []) {
+    const match = CommitReference.exec(entry)
+    const date = match === null ? undefined : commits.get(match[1])
+    if (date !== undefined && (newest === undefined || date > newest)) {
+      newest = date
+    }
+  }
+  return newest
+}
+
 /**
  * The release dates Git actually holds, read the same way the generator does.
  *
@@ -208,17 +275,21 @@ describe('documentation-site changelog catalog', () => {
       )
       entryCount += source.length
       for (let index = 0; index < source.length; index++) {
-        const [category, text] = record.e[index]
+        const [category, text, commit] = record.e[index]
         // Round-tripping the split must reproduce the shipped line exactly, so
-        // no entry text can be lost or reworded by the generator.
-        const rebuilt = category === null ? text : '[' + category + '] ' + text
+        // no entry text can be lost or reworded by the generator. The commit
+        // reference is lifted into its own slot rather than dropped, so it has
+        // to come back too — a SHA silently lost here is a dead evidence link
+        // on every surface that renders the entry.
+        const body = commit === undefined ? text : text + ' - ' + commit
+        const rebuilt = category === null ? body : '[' + category + '] ' + body
         assert.equal(rebuilt, source[index].trim(), `${version} entry ${index}`)
       }
     }
     assert.equal(catalog.entryCount, entryCount)
   })
 
-  it('dates a release only from its own release-<version> tag', t => {
+  it('dates a release from its own tag, then from its own commits', t => {
     const dates = tagDates()
     if (dates.size === 0) {
       // Nothing here can be proved either way without the tags themselves, and
@@ -231,9 +302,24 @@ describe('documentation-site changelog catalog', () => {
       )
       return
     }
+    // Two sources, in this order, and nothing else:
+    //
+    //   1. the release's own `release-<version>` tag, where one exists
+    //   2. the newest commit its own entries link to
+    //
+    // The second exists because Desktop Material's own releases have no tag
+    // and never will - the fork publishes per push, not per named version -
+    // but every one of their entries carries the commit that made the change.
+    // That is a stronger source than a tag, not a weaker one: it is the very
+    // commit the reader clicks through to, so the date and the link cannot
+    // disagree. What is still forbidden is a date from anywhere else - a
+    // neighbouring release, the version number, or a guess.
+    const commits = commitDates()
     let unrecorded = 0
     for (const release of catalog.releases) {
       const tagged = dates.get(release.v)
+      const fromEntries = newestEntryCommitDate(release.v, commits)
+
       if (release.d === null) {
         unrecorded++
         assert.equal(
@@ -241,12 +327,19 @@ describe('documentation-site changelog catalog', () => {
           undefined,
           `${release.v} is marked unrecorded but a release tag exists`
         )
+        assert.equal(
+          fromEntries,
+          undefined,
+          `${release.v} is marked unrecorded but its entries name a commit`
+        )
         continue
       }
+
       assert.equal(
         release.d,
-        tagged,
-        `${release.v} must carry the date from its own tag`
+        tagged ?? fromEntries,
+        `${release.v} must carry its tag date, or the date of the newest ` +
+          `commit its entries link to`
       )
     }
     assert.equal(catalog.unrecordedCount, unrecorded)

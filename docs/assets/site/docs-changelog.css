@@ -483,6 +483,35 @@
   color: var(--md-on-surface, #1d1b20);
 }
 
+.dm-changelog-commit {
+  /* The commit reference is the entry's evidence, so it sits beside the text
+     rather than under it — but it is evidence, not the headline, so it reads
+     quieter than the sentence it supports. */
+  flex: none;
+  align-self: baseline;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: var(--md-surface-container-high, #ece6f0);
+  color: var(--md-on-surface-variant, #49454f);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dm-changelog-commit:hover,
+.dm-changelog-commit:focus-visible {
+  background: var(--md-secondary-container, #e8def8);
+  color: var(--md-on-secondary-container, #1d192b);
+  text-decoration: underline;
+}
+
+.dm-changelog-commit:focus-visible {
+  outline: 2px solid var(--md-primary, #6750a4);
+  outline-offset: 2px;
+}
+
 .dm-changelog-empty {
   display: flex;
   flex-direction: column;

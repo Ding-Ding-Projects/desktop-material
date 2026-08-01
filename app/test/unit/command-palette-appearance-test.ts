@@ -61,6 +61,7 @@ describe('command palette appearance', () => {
     const appearance = {
       mode: 'random-per-repository' as const,
       density: 'compact' as const,
+      size: 'full' as const,
       showIcons: false,
       showGroups: true,
       showKeywords: false,
@@ -81,6 +82,7 @@ describe('command palette appearance', () => {
     assert.deepEqual(readCommandPaletteAppearance(), {
       mode: DefaultCommandPaletteAppearance.mode,
       density: DefaultCommandPaletteAppearance.density,
+      size: DefaultCommandPaletteAppearance.size,
       showIcons: DefaultCommandPaletteAppearance.showIcons,
       showGroups: false,
       showKeywords: DefaultCommandPaletteAppearance.showKeywords,
@@ -120,6 +122,15 @@ describe('command palette appearance', () => {
     assert.deepEqual(
       resolveCommandPaletteAppearance(randomAppearance, undefined),
       randomAppearance
+    )
+
+    assert.equal(
+      resolveCommandPaletteAppearance(
+        { ...randomAppearance, size: 'full' },
+        'repo-1'
+      ).size,
+      'full',
+      'the randomized row look must not take the chosen size away'
     )
 
     const variants = new Set(

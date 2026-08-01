@@ -16,13 +16,37 @@
  */
 
 /** Total releases in `changelog.json` at generation time. */
-export const ReleaseCount = 683
+export const ReleaseCount = 707
 
 /** How many of those carry a real `release-*` tag date. */
-export const DatedReleaseCount = 644
+export const DatedReleaseCount = 668
 
 /** `version` to `YYYY-MM-DD HH:MM`, 24-hour, from the release tag. */
 export const ReleaseStamps: Readonly<Record<string, string>> = {
+  '3.6.3-material22': '2026-08-01 17:53',
+  '3.6.3-material21': '2026-07-31 23:23',
+  '3.6.3-material20': '2026-07-30 23:54',
+  '3.6.3-material19': '2026-07-29 23:04',
+  '3.6.3-material18': '2026-07-28 23:51',
+  '3.6.3-material17': '2026-07-27 23:22',
+  '3.6.3-material16': '2026-07-26 22:08',
+  '3.6.3-material15': '2026-07-25 23:49',
+  '3.6.3-material14': '2026-07-24 23:55',
+  '3.6.3-material13': '2026-07-23 23:22',
+  '3.6.3-material12': '2026-07-22 21:38',
+  '3.6.3-material11': '2026-07-21 22:30',
+  '3.6.3-material10': '2026-07-20 23:51',
+  '3.6.3-material9': '2026-07-19 22:26',
+  '3.6.3-material8': '2026-07-18 23:01',
+  '3.6.3-material7': '2026-07-17 23:42',
+  '3.6.3-material6': '2026-07-16 23:40',
+  '3.6.3-material5': '2026-07-15 23:54',
+  '3.6.3-material4': '2026-07-14 22:23',
+  '3.6.3-material3': '2026-07-13 14:50',
+  '3.6.3-material2': '2026-07-12 23:59',
+  '3.6.3-material1': '2026-07-11 23:58',
+  '3.6.4-beta1': '2026-07-21 19:07',
+  '3.6.3': '2026-07-14 16:55',
   '3.6.3-beta3': '2026-07-08 12:04',
   '3.6.3-beta2': '2026-07-07 08:55',
   '3.6.3-beta1': '2026-07-01 16:02',

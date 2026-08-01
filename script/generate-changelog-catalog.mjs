@@ -105,30 +105,116 @@ export function readTagDates({ cwd = repositoryRoot } = {}) {
   return dates
 }
 
+/** A full 40-character SHA at the end of an entry, after a dash. */
+const CommitReference = /[-\u2013\u2014]\s*([0-9a-f]{40})\s*$/
+
+/**
+ * Reads the commit dates for every SHA a changelog entry references.
+ *
+ * A release with no `release-<version>` tag used to be simply undated. Desktop
+ * Material's own entries have no such tag and never will - the fork publishes
+ * per push, not per named version - but every one of them carries the commit
+ * that made the change, and that commit's date is a *better* source than a
+ * tag: it is the same commit the reader clicks through to, so the date and the
+ * link cannot disagree.
+ *
+ * A SHA Git does not have is left out rather than guessed at, which surfaces a
+ * dead reference as an undated release instead of hiding it behind a
+ * plausible date.
+ */
+export function readCommitDates(changelog, { cwd = repositoryRoot } = {}) {
+  const shas = new Set()
+  for (const list of Object.values(changelog.releases)) {
+    for (const entry of Array.isArray(list) ? list : []) {
+      const match = CommitReference.exec(entry)
+      if (match !== null) {
+        shas.add(match[1])
+      }
+    }
+  }
+  if (shas.size === 0) {
+    return new Map()
+  }
+
+  const output = execFileSync(
+    'git',
+    ['log', '--no-walk', '--format=%H|%cd', '--date=iso8601', ...shas],
+    { cwd, encoding: 'utf8', maxBuffer: 1 << 28 }
+  )
+
+  const dates = new Map()
+  for (const line of output.split('\n')) {
+    const separator = line.indexOf('|')
+    if (separator < 0) {
+      continue
+    }
+    const match = /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}):\d{2}/.exec(
+      line.slice(separator + 1).trim()
+    )
+    if (match !== null) {
+      dates.set(line.slice(0, separator).trim(), {
+        date: match[1],
+        time: match[2],
+      })
+    }
+  }
+  return dates
+}
+
+/**
+ * The newest commit date among a release's entries, or undefined when none of
+ * them reference a commit Git has.
+ */
+function dateFromEntries(entries, commitDates) {
+  let newest
+  for (const entry of entries) {
+    const match = CommitReference.exec(entry)
+    const stamp = match === null ? undefined : commitDates.get(match[1])
+    if (stamp === undefined) {
+      continue
+    }
+    const key = stamp.date + ' ' + stamp.time
+    if (newest === undefined || key > newest.date + ' ' + newest.time) {
+      newest = stamp
+    }
+  }
+  return newest
+}
+
 /**
  * Splits `[Fixed] text` into its category and text. An entry with no bracketed
  * category keeps a null category — 29 real entries look like that, and giving
  * them a made-up one would be a fabricated fact.
  */
 export function splitEntry(entry) {
-  const text = String(entry)
-  const match = /^\s*\[([^\]]+)\]\s*([\s\S]*)$/.exec(text)
-  if (match === null) {
-    return { category: null, text: text.trim() }
+  const raw = String(entry)
+  const match = /^\s*\[([^\]]+)\]\s*([\s\S]*)$/.exec(raw)
+  const category = match === null ? null : match[1].trim()
+  const body = (match === null ? raw : match[2]).trim()
+  // The commit reference is lifted out of the text so the site can render it
+  // as a link rather than as a wall of hex at the end of a sentence.
+  const commit = CommitReference.exec(body)
+  return {
+    category,
+    text: commit === null ? body : body.replace(CommitReference, '').trim(),
+    commit: commit === null ? null : commit[1],
   }
-  return { category: match[1].trim(), text: match[2].trim() }
 }
 
 /**
  * Projects changelog.json plus the tag dates into the records the viewer reads.
  * Release order follows changelog.json itself, which is authored newest first.
  */
-export function collectReleases({ changelog, tagDates }) {
+export function collectReleases({ changelog, tagDates, commitDates }) {
   const releases = []
+  const commits = commitDates ?? new Map()
   for (const version of Object.keys(changelog.releases)) {
     const list = changelog.releases[version]
-    const entries = (Array.isArray(list) ? list : []).map(splitEntry)
-    const stamp = tagDates.get(version)
+    const raw = Array.isArray(list) ? list : []
+    const entries = raw.map(splitEntry)
+    // The tag wins where there is one: it is what the project itself called
+    // the release date. The entries' commits only fill a gap the tag left.
+    const stamp = tagDates.get(version) ?? dateFromEntries(raw, commits)
     releases.push({
       version,
       date: stamp === undefined ? null : stamp.date,
@@ -200,7 +286,7 @@ export function renderCatalogModule(releases) {
     ' * Each release is `{ v: version, d: date | null, t: 24-hour time | null,'
   )
   lines.push(
-    ' *   e: [[category, text], …] }`. `t` is display-only and always 24-hour.'
+    ' *   e: [[category, text] | [category, text, commit], …] }`. `t` is'
   )
   lines.push(
     ' * `d: null` means no `release-<version>` tag exists, so the release date is'
@@ -239,11 +325,15 @@ export function renderCatalogModule(releases) {
     } else {
       lines.push('        e: [')
       for (const entry of release.entries) {
+        // The third slot is written only where a commit exists, so the
+        // 3,694 upstream entries that reference an issue instead stay two
+        // elements wide.
         lines.push(
           '          [' +
             (entry.category === null ? 'null' : quote(entry.category)) +
             ', ' +
             quote(entry.text) +
+            (entry.commit === null ? '' : ', ' + quote(entry.commit)) +
             '],'
         )
       }
@@ -344,6 +434,7 @@ export async function buildReleaseDatesModule({
   const releases = collectReleases({
     changelog,
     tagDates: readTagDates({ cwd }),
+    commitDates: readCommitDates(changelog, { cwd }),
   })
   const options = (await prettier.resolveConfig(outputPath)) ?? {}
   const source = await prettier.format(renderReleaseDatesModule(releases), {
@@ -373,6 +464,7 @@ export async function buildChangelogCatalog({
   const releases = collectReleases({
     changelog,
     tagDates: readTagDates({ cwd }),
+    commitDates: readCommitDates(changelog, { cwd }),
   })
   const options = (await prettier.resolveConfig(outputPath)) ?? {}
   const source = await prettier.format(renderCatalogModule(releases), {

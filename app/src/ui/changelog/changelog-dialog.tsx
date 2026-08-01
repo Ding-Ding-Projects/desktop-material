@@ -7,7 +7,11 @@ import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import { DateRangePicker } from '../lib/date-range-picker'
-import { Popover, PopoverAnchorPosition } from '../lib/popover'
+import {
+  Popover,
+  PopoverAnchorPosition,
+  PopoverDecoration,
+} from '../lib/popover'
 import {
   persistFilterMode,
   readPersistedFilterMode,
@@ -34,6 +38,8 @@ import {
   IChangelogExportContext,
 } from '../../lib/changelog/changelog-export'
 import { formatIsoDate } from '../../lib/changelog/changelog-dates'
+import { LinkButton } from '../lib/link-button'
+import { commitUrl } from '../../lib/changelog/commit-url'
 import {
   getPersistedLanguageMode,
   normalizeLocale,
@@ -373,6 +379,11 @@ export class ChangelogDialog extends React.Component<
             anchorPosition={PopoverAnchorPosition.BottomLeft}
             onClickOutside={this.onCloseDatePicker}
             ariaLabelledby="changelog-date-picker-label"
+            // Without a decoration the popover has no background, no border
+            // and no elevation, so the calendar floated over the dialog with
+            // the category chips showing straight through it.
+            decoration={PopoverDecoration.Bordered}
+            className="changelog-date-popover"
           >
             <h3 id="changelog-date-picker-label" className="sr-only">
               {this.accessibleText('dateRange.calendarLabel')}
@@ -451,6 +462,17 @@ export class ChangelogDialog extends React.Component<
                   </span>
                 )}
                 <span className="changelog-entry-text">{entry.text}</span>
+                {entry.commit !== null && (
+                  <LinkButton
+                    className="changelog-entry-commit"
+                    uri={commitUrl(entry.commit)}
+                    title={this.accessibleText('changelog.openCommit', {
+                      commit: entry.commit,
+                    })}
+                  >
+                    {entry.commit.slice(0, 7)}
+                  </LinkButton>
+                )}
               </li>
             ))}
           </ul>

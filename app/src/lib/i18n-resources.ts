@@ -1811,6 +1811,13 @@ export type TranslationKey =
   | 'commandPalette.appearanceHeading'
   | 'commandPalette.randomPerRepository'
   | 'commandPalette.randomPerRepositoryDescription'
+  | 'commandPalette.paletteSize'
+  | 'commandPalette.sizeCompact'
+  | 'commandPalette.sizeCompactDescription'
+  | 'commandPalette.sizeMedium'
+  | 'commandPalette.sizeMediumDescription'
+  | 'commandPalette.sizeFull'
+  | 'commandPalette.sizeFullDescription'
   | 'commandPalette.rowDensity'
   | 'commandPalette.comfortable'
   | 'commandPalette.comfortableDescription'
@@ -2667,6 +2674,7 @@ export type TranslationKey =
   | 'changelog.searchLabel'
   | 'changelog.dateFilter'
   | 'changelog.dateFilterActive'
+  | 'changelog.openCommit'
   | 'changelog.categories'
   | 'changelog.categoryAll'
   | 'changelog.uncategorized'
@@ -5151,6 +5159,15 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'commandPalette.randomPerRepository': 'Random per repository',
   'commandPalette.randomPerRepositoryDescription':
     'A stable look chosen for each repository',
+  'commandPalette.paletteSize': 'Palette size',
+  'commandPalette.sizeCompact': 'Small',
+  'commandPalette.sizeCompactDescription':
+    'A small card - the list only, no detail pane',
+  'commandPalette.sizeMedium': 'Standard',
+  'commandPalette.sizeMediumDescription':
+    'A card floating over the app, with the detail pane',
+  'commandPalette.sizeFull': 'Full screen',
+  'commandPalette.sizeFullDescription': 'The palette covers the whole app',
   'commandPalette.rowDensity': 'Row density',
   'commandPalette.comfortable': 'Comfortable',
   'commandPalette.comfortableDescription': 'More detail and spacing',
@@ -6441,6 +6458,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'changelog.searchLabel': 'Search the release history',
   'changelog.dateFilter': 'Dates',
   'changelog.dateFilterActive': 'Dates: {range}',
+  'changelog.openCommit': 'Open commit {commit} on the web',
   'changelog.categories': 'Categories',
   'changelog.categoryAll': 'All',
   'changelog.uncategorized': 'Uncategorized',
@@ -8677,6 +8695,13 @@ export const cantoneseTranslations: Readonly<
   'commandPalette.randomPerRepository': '每個 repo 隨機外觀',
   'commandPalette.randomPerRepositoryDescription':
     '每個 repo 自己抽一款，重開都唔會再洗牌',
+  'commandPalette.paletteSize': '指令板尺寸',
+  'commandPalette.sizeCompact': '細張',
+  'commandPalette.sizeCompactDescription': '細細張卡，淨係得清單，冇詳情欄',
+  'commandPalette.sizeMedium': '標準',
+  'commandPalette.sizeMediumDescription': '浮喺 app 上面嘅卡，連詳情欄',
+  'commandPalette.sizeFull': '全螢幕',
+  'commandPalette.sizeFullDescription': '成個 app 都畀佢冚晒',
   'commandPalette.rowDensity': '列距',
   'commandPalette.comfortable': '舒適',
   'commandPalette.comfortableDescription': '闊落啲，資料睇得齊啲',
@@ -9885,6 +9910,7 @@ export const cantoneseTranslations: Readonly<
   'changelog.searchLabel': '搜尋版本更新紀錄',
   'changelog.dateFilter': '日期',
   'changelog.dateFilterActive': '日期：{range}',
+  'changelog.openCommit': '喺網頁開返 commit {commit} 睇下',
   'changelog.categories': '分類',
   'changelog.categoryAll': '全部',
   'changelog.uncategorized': '冇分類',

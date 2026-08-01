@@ -4,6 +4,7 @@ import { t, translateForAccessibleName } from '../../lib/i18n'
 import { MaterialSymbol } from '../lib/material-symbol'
 import {
   CommandPaletteDensity,
+  CommandPaletteSize,
   DefaultCommandPaletteAppearance,
   ICommandPaletteAppearance,
 } from './command-palette-appearance'
@@ -130,6 +131,41 @@ export class CommandPaletteAppearanceEditor extends React.Component<
     })
   }
 
+  private onSizeChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const size = event.currentTarget.value as CommandPaletteSize
+    this.props.onChange({ ...this.props.appearance, size })
+  }
+
+  private renderSizeOption(
+    value: CommandPaletteSize,
+    label: string,
+    description: string,
+    checked: boolean
+  ) {
+    return (
+      <label
+        className="command-palette-appearance-option"
+        aria-label={`${label}. ${description}`}
+      >
+        <input
+          type="radio"
+          name="command-palette-size"
+          value={value}
+          checked={checked}
+          onChange={this.onSizeChanged}
+        />
+        <span className="command-palette-appearance-option-copy">
+          <span className="command-palette-appearance-option-label">
+            {label}
+          </span>
+          <span className="command-palette-appearance-option-description">
+            {description}
+          </span>
+        </span>
+      </label>
+    )
+  }
+
   private renderDensityOption(
     value: CommandPaletteDensity,
     label: string,
@@ -217,6 +253,27 @@ export class CommandPaletteAppearanceEditor extends React.Component<
                   </span>
                 </span>
               </label>
+            </fieldset>
+            <fieldset>
+              <legend>{t('commandPalette.paletteSize')}</legend>
+              {this.renderSizeOption(
+                'compact',
+                t('commandPalette.sizeCompact'),
+                t('commandPalette.sizeCompactDescription'),
+                displayedAppearance.size === 'compact'
+              )}
+              {this.renderSizeOption(
+                'medium',
+                t('commandPalette.sizeMedium'),
+                t('commandPalette.sizeMediumDescription'),
+                displayedAppearance.size === 'medium'
+              )}
+              {this.renderSizeOption(
+                'full',
+                t('commandPalette.sizeFull'),
+                t('commandPalette.sizeFullDescription'),
+                displayedAppearance.size === 'full'
+              )}
             </fieldset>
             <fieldset disabled={randomPerRepository}>
               <legend>{t('commandPalette.rowDensity')}</legend>

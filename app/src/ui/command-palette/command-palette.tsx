@@ -850,7 +850,10 @@ export class CommandPalette extends React.Component<
     return (
       <Dialog
         id="command-palette"
-        className="command-palette-full"
+        className={classNames(
+          'command-palette-surface',
+          `command-palette-size-${appearance.size}`
+        )}
         title={t('commandPalette.title')}
         onSubmit={this.props.onDismissed}
         onDismissed={this.props.onDismissed}

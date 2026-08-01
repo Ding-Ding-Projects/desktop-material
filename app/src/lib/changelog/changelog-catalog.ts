@@ -24,8 +24,18 @@ import { ReleaseStamps } from './release-dates'
 export interface IChangelogEntry {
   /** `Fixed`, `Added`, `Improved`, … or null when the line carries no prefix. */
   readonly category: string | null
-  /** The entry text with the category prefix removed. */
+  /** The entry text with the category prefix and any commit reference removed. */
   readonly text: string
+  /**
+   * The full commit SHA this entry describes, or null when the entry records
+   * no commit.
+   *
+   * An entry that says what changed but not where cannot be checked: a reader
+   * who doubts it, or who wants the surrounding context, has no route from the
+   * sentence to the code. Upstream's own entries reference an issue number
+   * instead and keep a null here rather than being given a made-up SHA.
+   */
+  readonly commit: string | null
 }
 
 /** A released version and everything recorded about it. */
@@ -52,10 +62,30 @@ interface IChangelogSource {
  */
 export function splitChangelogEntry(entry: string): IChangelogEntry {
   const match = /^\s*\[([^\]]+)\]\s*([\s\S]*)$/.exec(entry)
+  const category = match === null ? null : match[1].trim()
+  const body = match === null ? entry.trim() : match[2].trim()
+  const { text, commit } = splitCommitReference(body)
+  return { category, text, commit }
+}
+
+/**
+ * Lifts a trailing ` - <40-hex>` commit reference off an entry.
+ *
+ * The SHA is stored in the entry text because `changelog.json` is a map of
+ * version to plain strings and has been for the project's whole history;
+ * changing that shape would rewrite every release rather than add to the
+ * newest ones. Only a full 40-character SHA counts — an abbreviated one is
+ * ambiguous, and an issue reference like `#22509` is deliberately not a match.
+ */
+function splitCommitReference(body: string): {
+  text: string
+  commit: string | null
+} {
+  const match = /^([\s\S]*?)\s*[-–—]\s*([0-9a-f]{40})\s*$/.exec(body)
   if (match === null) {
-    return { category: null, text: entry.trim() }
+    return { text: body, commit: null }
   }
-  return { category: match[1].trim(), text: match[2].trim() }
+  return { text: match[1].trim(), commit: match[2] }
 }
 
 function buildReleases(): ReadonlyArray<IChangelogRelease> {

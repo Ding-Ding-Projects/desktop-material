@@ -175,6 +175,7 @@
           'No release-<version> Git tag exists for this version, so its release date is not recorded here.',
         noChanges: 'No changes are recorded for this version.',
         uncategorized: 'No category',
+        openCommit: 'Open this commit on the web',
         matchedVersion: 'Matched on the version number.',
         entryCountOne: '1 entry',
         entryCount: '{count} entries',
@@ -366,6 +367,7 @@
           '呢個版本冇 release-<version> Git tag，所以佢嘅發佈日期喺呢度冇記錄。',
         noChanges: '呢個版本冇記錄任何改動。',
         uncategorized: '冇分類',
+        openCommit: '喺網頁開返呢個 commit 睇下',
         matchedVersion: '係版本號中咗。',
         entryCountOne: '1 條記錄',
         entryCount: '{count} 條記錄',
@@ -965,7 +967,13 @@
     var list = Array.isArray(release.e) ? release.e : []
     var entries = []
     for (var index = 0; index < list.length; index++) {
-      entries.push({ category: list[index][0], text: list[index][1] })
+      entries.push({
+        category: list[index][0],
+        text: list[index][1],
+        // Present only on entries that record one; upstream entries reference
+        // an issue number instead and keep a null rather than a made-up SHA.
+        commit: list[index].length > 2 ? list[index][2] : null,
+      })
     }
     return entries
   }
@@ -1070,7 +1078,8 @@
             var entry = entries[e]
             if (
               test(entry.text) ||
-              (entry.category !== null && test(entry.category))
+              (entry.category !== null && test(entry.category)) ||
+              (entry.commit !== null && test(entry.commit))
             ) {
               kept.push(entry)
             }
@@ -1272,10 +1281,20 @@
           entry.category === null
             ? labels.fixed('uncategorized')
             : entry.category
+        var suffix =
+          entry.commit === null
+            ? ''
+            : markdown
+              ? ' ([`' +
+                entry.commit.slice(0, 7) +
+                '`](' +
+                commitUrl(entry.commit) +
+                '))'
+              : ' (' + commitUrl(entry.commit) + ')'
         if (markdown) {
-          lines.push('- **' + category + '** — ' + entry.text)
+          lines.push('- **' + category + '** — ' + entry.text + suffix)
         } else {
-          lines.push('- [' + category + '] ' + entry.text)
+          lines.push('- [' + category + '] ' + entry.text + suffix)
         }
       }
       lines.push('')
@@ -1355,6 +1374,21 @@
     } catch (error) {
       return fallback
     }
+  }
+
+  /** The repository this site documents; the only place a commit resolves. */
+  var CHANGELOG_REPOSITORY_URL =
+    'https://github.com/Ding-Ding-Projects/desktop-material'
+
+  /**
+   * The web URL for a commit reference.
+   *
+   * Only a full 40-character SHA is linked: an abbreviated one is ambiguous,
+   * and a confidently wrong link is worse for a reader than no link, because
+   * there is no way to tell it apart from a commit that merely moved.
+   */
+  function commitUrl(sha) {
+    return CHANGELOG_REPOSITORY_URL + '/commit/' + sha
   }
 
   function element(tag, className, text) {
@@ -2812,6 +2846,18 @@
         )
         row.appendChild(category)
         row.appendChild(element('span', 'dm-changelog-text', entry.text))
+        if (entry.commit !== null && /^[0-9a-f]{40}$/.test(entry.commit)) {
+          var link = element(
+            'a',
+            'dm-changelog-commit',
+            entry.commit.slice(0, 7)
+          )
+          link.setAttribute('href', commitUrl(entry.commit))
+          link.setAttribute('rel', 'noopener noreferrer')
+          link.setAttribute('target', '_blank')
+          link.setAttribute('title', labels.fixed('openCommit'))
+          row.appendChild(link)
+        }
         entries.appendChild(row)
       }
       item.appendChild(entries)

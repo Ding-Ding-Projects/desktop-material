@@ -331,10 +331,15 @@ export class SandboxedMarkdown extends React.PureComponent<
   private async getInlineStyleSheet(
     props: ISandboxedMarkdownProps
   ): Promise<string> {
+    // The stylesheet is copied next to the bundle at build time. Where it is
+    // genuinely absent - a unit test running from source, a packaging slip -
+    // the markdown still has to render: losing the styling is a cosmetic
+    // downgrade, while rejecting here threw an unhandled rejection out of a
+    // render path that nothing was waiting to catch.
     const css = await readFile(
       Path.join(__dirname, 'static', 'markdown.css'),
       'utf8'
-    )
+    ).catch(() => '')
 
     // scrape theme variables so iframe theme will match app
     const docStyle = getComputedStyle(document.body)

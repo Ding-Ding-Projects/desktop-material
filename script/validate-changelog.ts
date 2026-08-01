@@ -36,7 +36,13 @@ assert(releases.length > 0, 'Expected at least one release')
 
 for (const release of releases) {
   assert(
-    /^([0-9]+.[0-9]+.[0-9]+)(-beta[0-9]+|-test[0-9]+)?$/.test(release),
+    // `-material<n>` is Desktop Material's own build on top of the upstream
+    // version it forked from. It is numbered rather than dated so the version
+    // string stays a version string, and the date comes from the commits the
+    // release's entries link to.
+    /^([0-9]+.[0-9]+.[0-9]+)(-beta[0-9]+|-test[0-9]+|-material[0-9]+)?$/.test(
+      release
+    ),
     `Release ${release} does not match the expected format`
   )
   const changes = changelogObj['releases'][release]
