@@ -677,7 +677,7 @@ Ollama model manager, Copilot/provider preferences, and background queue entries
 follow English, playful Hong Kong-style Cantonese, or bilingual mode. English
 fallback titles and localized group names both remain searchable.
 
-![Command palette showing Ollama results beside the compact aligned row appearance editor with random per repository mode](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-command-palette-appearance.png)
+![Full-app command palette showing matched commands with their live settings controls beside the compact aligned row appearance editor](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-command-palette-appearance.png)
 
 ---
 

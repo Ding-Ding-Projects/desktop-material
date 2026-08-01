@@ -310,14 +310,20 @@ Windows-only 產品嘅 blocker。</sub>
 Named, colored tab groups persist with their profile/window state and render a
 real chip before the first member. Collapsing hides the member tabs without
 closing a repository, and the chip remains keyboard reachable. The command
-palette pairs localized rich result rows with an anchored editor for density,
-icons, group chips, and search-term visibility. Its compact aligned controls
-also include a stable **Random per repository** mode, so each repository can
-carry a distinct row layout without changing on every open.
+palette covers the whole app as Material Design 3's full-screen search view:
+localized rich result rows, a pane naming **where each feature lives**, and
+keyboard hints. A row that is a setting renders that setting's live control
+inline — a switch, a text box, a stepper, or a select — so the value is read
+and changed without leaving the palette, and choosing a row **teleports** to
+the control that owns the feature rather than firing it. Its anchored editor
+still governs density, icons, group chips, and search-term visibility, and its
+compact aligned controls include a stable **Random per repository** mode, so
+each repository can carry a distinct row layout without changing on every
+open.
 
 ![Restart-restored named tab-group chip with its visible repository member](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-tab-groups.png)
 
-![Command palette showing Ollama results beside the compact aligned row appearance editor with random per repository mode](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-command-palette-appearance.png)
+![Full-app command palette showing matched commands with their live settings controls beside the compact aligned row appearance editor](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-command-palette-appearance.png)
 
 ## Clone, pull, and working-tree scope
 
