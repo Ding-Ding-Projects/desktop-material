@@ -53,9 +53,17 @@ describe('repository logo studio style contract', () => {
       styles,
       /\.anchored-appearance-editor\.repository-logo-anchored-editor\s*\{[\s\S]*?\.repository-logo-studio\s*\{[\s\S]*?padding: 2px 6px;/
     )
+    // Both axes are released together. Releasing only overflow-y left the
+    // workbench rule's `overflow-x: hidden` in place, and CSS computes a
+    // (hidden, visible) pair as (hidden, auto) - silently recreating the
+    // second scroll owner this override exists to remove.
     assert.match(
       styles,
-      /\.anchored-appearance-editor\.repository-logo-anchored-editor\s*\{[\s\S]*?\.repository-logo-editor-scroll\s*\{[\s\S]*?max-height: none;[\s\S]*?overflow-y: visible;[\s\S]*?padding-right: 0;[\s\S]*?scrollbar-gutter: auto;/
+      /\.anchored-appearance-editor\.repository-logo-anchored-editor\s*\{[\s\S]*?\.repository-logo-editor-scroll\s*\{[\s\S]*?max-height: none;[\s\S]*?overflow: visible;[\s\S]*?padding-right: 0;[\s\S]*?scrollbar-gutter: auto;/
+    )
+    assert.doesNotMatch(
+      styles,
+      /\.repository-logo-editor-scroll\s*\{[^}]*overflow-y: visible;/
     )
   })
 
