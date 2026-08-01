@@ -1,4 +1,15 @@
-# Command palette gap list — settings + menu commands not yet in `CommandPaletteCatalog`
+<!--
+  A survey, not a design document. Generated from a full read of the app's
+  settings surfaces and menu definition, then checked entry by entry against
+  the code. It records what the command palette does NOT yet reach, so the
+  remaining work is a list rather than a rediscovery.
+
+  Sixteen of these have since shipped (the eleven repository settings tabs and
+  five Help-menu commands); the rest are still open. Nothing here is a promise
+  about when — it is a record of what was found.
+-->
+
+# Command palette coverage: what is still missing
 
 **Sources read:** `app/src/lib/command-palette-catalog.ts` (112 entries), `app/src/lib/teleport-targets.ts` (31 target keys), `app/src/models/preferences.ts` (14 `PreferencesTab` members), `app/src/ui/repository-settings/repository-settings.tsx` (11 `RepositorySettingsTab` members), `app/src/main-process/menu/menu-event.ts` (69 `MenuEvent` members) + `build-default-menu.ts`, `app/src/ui/app.tsx` (`onPaletteCommand` 1306, `getPaletteControlValues` 1451, `onPaletteControlChange` 1511), `app/test/unit/command-palette-catalog-test.ts`, `app/src/ui/preferences/prompts.tsx`, `app/src/lib/audio/audio-settings.ts`.
 

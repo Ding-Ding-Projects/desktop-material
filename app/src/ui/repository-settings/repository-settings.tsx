@@ -63,6 +63,7 @@ import {
   getEditorOverrideHash,
 } from '../../models/editor-override'
 import { IAppearanceCustomization } from '../../models/appearance-customization'
+import { RepositorySettingsTab } from '../../models/repository-settings'
 
 interface IRepositorySettingsProps {
   readonly initialSelectedTab?: RepositorySettingsTab
@@ -75,26 +76,7 @@ interface IRepositorySettingsProps {
   readonly onDismissed: () => void
 }
 
-export enum RepositorySettingsTab {
-  Remote = 0,
-  IgnoredFiles,
-  GitConfig,
-  // Note: BuildRun, CheapLfs, Submodules, Subtrees, and Appearance are placed
-  // before the conditionally-rendered ForkSettings tab so the enum values keep
-  // matching the TabBar positions
-  // whether or not the fork tab is shown. Integrator note: if the remotes work
-  // (b2:remotes) also inserts a tab here, keep the unconditionally-rendered
-  // tabs contiguous and leave ForkSettings last; reconcile the numeric indices
-  // so each enum value equals its TabBar position.
-  BuildRun,
-  CheapLfs,
-  Submodules,
-  Subtrees,
-  Automation,
-  Metadata,
-  Appearance,
-  ForkSettings,
-}
+export { RepositorySettingsTab }
 
 interface IRemoteApplyProgress {
   /** Mutations that have finished. Zero while the first snapshot is read. */

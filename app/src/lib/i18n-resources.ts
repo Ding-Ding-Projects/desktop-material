@@ -1818,6 +1818,41 @@ export type TranslationKey =
   | 'commandPalette.sizeMediumDescription'
   | 'commandPalette.sizeFull'
   | 'commandPalette.sizeFullDescription'
+  | 'repositorySettings.tabRemote'
+  | 'repositorySettings.tabIgnoredFiles'
+  | 'repositorySettings.tabGitConfig'
+  | 'repositorySettings.tabBuildRun'
+  | 'repositorySettings.tabCheapLfs'
+  | 'repositorySettings.tabSubmodules'
+  | 'repositorySettings.tabSubtrees'
+  | 'repositorySettings.tabAutomation'
+  | 'repositorySettings.tabMetadata'
+  | 'repositorySettings.tabAppearance'
+  | 'repositorySettings.tabForkSettings'
+  | 'commandPalette.homeRepositorySettings'
+  | 'palette.repositorySettingsRemote'
+  | 'palette.repositorySettingsIgnoredFiles'
+  | 'palette.repositorySettingsGitConfig'
+  | 'palette.repositorySettingsBuildRun'
+  | 'palette.repositorySettingsCheapLfs'
+  | 'palette.repositorySettingsSubmodules'
+  | 'palette.repositorySettingsSubtrees'
+  | 'palette.repositorySettingsAutomation'
+  | 'palette.repositorySettingsMetadata'
+  | 'palette.repositorySettingsAppearance'
+  | 'palette.repositorySettingsForkSettings'
+  | 'palette.reportIssue'
+  | 'palette.reportIssueDescription'
+  | 'palette.contactSupport'
+  | 'palette.contactSupportDescription'
+  | 'palette.userGuides'
+  | 'palette.userGuidesDescription'
+  | 'palette.keyboardShortcuts'
+  | 'palette.keyboardShortcutsDescription'
+  | 'palette.showLogsFolder'
+  | 'palette.showLogsFolderDescription'
+  | 'commandPalette.homeMenuBar'
+  | 'commandPalette.linkFailed'
   | 'commandPalette.rowDensity'
   | 'commandPalette.comfortable'
   | 'commandPalette.comfortableDescription'
@@ -5168,6 +5203,43 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'A card floating over the app, with the detail pane',
   'commandPalette.sizeFull': 'Full screen',
   'commandPalette.sizeFullDescription': 'The palette covers the whole app',
+  'repositorySettings.tabRemote': 'Remote',
+  'repositorySettings.tabIgnoredFiles': 'Ignored files',
+  'repositorySettings.tabGitConfig': 'Git config',
+  'repositorySettings.tabBuildRun': 'Build and run',
+  'repositorySettings.tabCheapLfs': 'Large files',
+  'repositorySettings.tabSubmodules': 'Submodules',
+  'repositorySettings.tabSubtrees': 'Subtrees',
+  'repositorySettings.tabAutomation': 'Automation',
+  'repositorySettings.tabMetadata': 'Metadata',
+  'repositorySettings.tabAppearance': 'Appearance',
+  'repositorySettings.tabForkSettings': 'Fork settings',
+  'commandPalette.homeRepositorySettings': 'Repository settings ▸ {tab}',
+  'palette.repositorySettingsRemote': 'Repository remotes',
+  'palette.repositorySettingsIgnoredFiles': 'Ignored files',
+  'palette.repositorySettingsGitConfig': 'Repository Git config',
+  'palette.repositorySettingsBuildRun': 'Build and run settings',
+  'palette.repositorySettingsCheapLfs': 'Large file settings',
+  'palette.repositorySettingsSubmodules': 'Submodule settings',
+  'palette.repositorySettingsSubtrees': 'Subtree settings',
+  'palette.repositorySettingsAutomation': 'Repository automation overrides',
+  'palette.repositorySettingsMetadata': 'Repository metadata',
+  'palette.repositorySettingsAppearance': 'Repository appearance',
+  'palette.repositorySettingsForkSettings': 'Fork behaviour',
+  'palette.reportIssue': 'Report an issue',
+  'palette.reportIssueDescription': 'Opens the issue tracker in your browser',
+  'palette.contactSupport': 'Contact support',
+  'palette.contactSupportDescription': 'Opens the support page in your browser',
+  'palette.userGuides': 'Show the user guides',
+  'palette.userGuidesDescription': 'Opens the documentation in your browser',
+  'palette.keyboardShortcuts': 'Show keyboard shortcuts',
+  'palette.keyboardShortcutsDescription':
+    'Opens the keyboard shortcut reference in your browser',
+  'palette.showLogsFolder': 'Show the logs folder',
+  'palette.showLogsFolderDescription':
+    'Reveals the folder holding this app\u2019s log files',
+  'commandPalette.homeMenuBar': 'The application menu bar',
+  'commandPalette.linkFailed': 'Could not open {url} in your browser',
   'commandPalette.rowDensity': 'Row density',
   'commandPalette.comfortable': 'Comfortable',
   'commandPalette.comfortableDescription': 'More detail and spacing',
@@ -8702,6 +8774,41 @@ export const cantoneseTranslations: Readonly<
   'commandPalette.sizeMediumDescription': '浮喺 app 上面嘅卡，連詳情欄',
   'commandPalette.sizeFull': '全螢幕',
   'commandPalette.sizeFullDescription': '成個 app 都畀佢冚晒',
+  'repositorySettings.tabRemote': '遠端',
+  'repositorySettings.tabIgnoredFiles': '忽略清單',
+  'repositorySettings.tabGitConfig': 'Git 設定',
+  'repositorySettings.tabBuildRun': '建置同執行',
+  'repositorySettings.tabCheapLfs': '大檔案',
+  'repositorySettings.tabSubmodules': '子模組',
+  'repositorySettings.tabSubtrees': '子樹',
+  'repositorySettings.tabAutomation': '自動化',
+  'repositorySettings.tabMetadata': '中繼資料',
+  'repositorySettings.tabAppearance': '外觀',
+  'repositorySettings.tabForkSettings': 'Fork 設定',
+  'commandPalette.homeRepositorySettings': '儲存庫設定 ▸ {tab}',
+  'palette.repositorySettingsRemote': '遠端設定',
+  'palette.repositorySettingsIgnoredFiles': '忽略檔案',
+  'palette.repositorySettingsGitConfig': '本 repo 嘅 Git 設定',
+  'palette.repositorySettingsBuildRun': '建置同執行設定',
+  'palette.repositorySettingsCheapLfs': '大檔案設定',
+  'palette.repositorySettingsSubmodules': '子模組設定',
+  'palette.repositorySettingsSubtrees': '子樹設定',
+  'palette.repositorySettingsAutomation': '本 repo 嘅自動化覆寫',
+  'palette.repositorySettingsMetadata': '儲存庫中繼資料',
+  'palette.repositorySettingsAppearance': '儲存庫外觀',
+  'palette.repositorySettingsForkSettings': 'Fork 行為',
+  'palette.reportIssue': '報告問題',
+  'palette.reportIssueDescription': '喺瀏覽器開返個 issue tracker',
+  'palette.contactSupport': '聯絡支援',
+  'palette.contactSupportDescription': '喺瀏覽器開返支援頁',
+  'palette.userGuides': '睇使用指南',
+  'palette.userGuidesDescription': '喺瀏覽器開返文件',
+  'palette.keyboardShortcuts': '睇快捷鍵',
+  'palette.keyboardShortcutsDescription': '喺瀏覽器開返快捷鍵一覽',
+  'palette.showLogsFolder': '打開 log 資料夾',
+  'palette.showLogsFolderDescription': '喺檔案總管度指返啲 log 檔喺邊',
+  'commandPalette.homeMenuBar': '上面條選單列',
+  'commandPalette.linkFailed': '開唔到 {url}，瀏覽器唔畀面',
   'commandPalette.rowDensity': '列距',
   'commandPalette.comfortable': '舒適',
   'commandPalette.comfortableDescription': '闊落啲，資料睇得齊啲',

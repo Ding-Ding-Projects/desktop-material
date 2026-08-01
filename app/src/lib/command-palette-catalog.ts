@@ -8,6 +8,7 @@ import type { TranslationKey } from './i18n-resources'
 import type { MaterialSymbolName } from '../ui/lib/material-symbol'
 import type { TeleportTargetId } from './teleport-targets'
 import { PreferencesTab } from '../models/preferences'
+import { RepositorySettingsTab } from '../models/repository-settings'
 
 /**
  * The application-selection snapshot an availability predicate inspects to
@@ -27,6 +28,8 @@ export interface IPaletteCommandContext {
   readonly hasBranch: boolean
   /** The selected repository is associated with a GitHub repository. */
   readonly isGitHubRepository: boolean
+  /** The selected GitHub repository is a fork of another. */
+  readonly isFork?: boolean
 }
 
 /**
@@ -47,6 +50,16 @@ const whenGitHubRepository: PaletteAvailability = context =>
   context.hasRepository && context.isGitHubRepository
 
 /**
+ * Available only for a fork.
+ *
+ * Fork behaviour settings exist nowhere else, so offering the row for an
+ * ordinary repository would teleport the reader to a tab that is not there -
+ * a worse outcome than the row simply not being offered.
+ */
+const whenFork: PaletteAvailability = context =>
+  context.hasRepository && context.isFork === true
+
+/**
  * A live control the palette renders inside the row itself, so a setting can
  * be read and changed without first hunting down the screen that owns it. The
  * palette renders the control that matches the value: a switch for a boolean,
@@ -58,6 +71,7 @@ export type IPaletteControl =
   | IPaletteEntryControl
   | IPaletteNumberControl
   | IPaletteChoiceControl
+  | IPaletteDynamicChoiceControl
 
 /** A boolean setting, rendered as a Material switch. */
 export interface IPaletteToggleControl {
@@ -85,6 +99,13 @@ export interface IPaletteNumberControl {
   readonly min: number
   readonly max: number
   readonly step?: number
+  /**
+   * The unit the number is in, shown beside the box.
+   *
+   * Without it a volume, a percentage, a cooldown and an hour-of-day all
+   * render as a bare integer, and the row stops saying what it is asking for.
+   */
+  readonly unitKey?: TranslationKey
 }
 
 /** One of a fixed set of values, rendered as a select. */
@@ -97,6 +118,36 @@ export interface IPaletteChoiceOption {
   /** The stored value, passed back verbatim when chosen. */
   readonly value: string
   readonly labelKey: TranslationKey
+}
+
+/**
+ * One of a set discovered at run time, rendered as a select.
+ *
+ * Some choices cannot be written down here: the installed editors and shells,
+ * the signed-in accounts, the models a provider currently offers. They have no
+ * translation key and no fixed length, so the catalog names the *list* and the
+ * app resolves it. A list the app cannot resolve renders as an empty select
+ * with its current value shown, rather than as a row that lies about what is
+ * available.
+ */
+export interface IPaletteDynamicChoiceControl {
+  readonly kind: 'dynamic-choice'
+  /** Which runtime list to resolve, e.g. `'external-editors'`. */
+  readonly optionsId: PaletteDynamicOptionsId
+}
+
+/** The runtime lists a dynamic choice can name. */
+export type PaletteDynamicOptionsId =
+  | 'external-editors'
+  | 'shells'
+  | 'accounts'
+  | 'date-formats'
+  | 'time-formats'
+
+/** A resolved option for a dynamic choice. Labels are values, not keys. */
+export interface IPaletteDynamicOption {
+  readonly value: string
+  readonly label: string
 }
 
 /** The value a palette control reads and writes. */
@@ -112,7 +163,10 @@ export type PaletteControlValue = boolean | string | number
  * when doing so is how the feature is reached (`openEvent`), and destructive
  * or side-effecting commands simply omit it and spotlight their control.
  */
-export type IPaletteHome = IPaletteSurfaceHome | IPaletteSettingsHome
+export type IPaletteHome =
+  | IPaletteSurfaceHome
+  | IPaletteSettingsHome
+  | IPaletteRepositorySettingsHome
 
 export interface IPaletteSurfaceHome {
   readonly kind: 'surface'
@@ -134,6 +188,23 @@ export interface IPaletteSettingsHome {
   /** The Settings tab the feature is rendered on. */
   readonly tab: PreferencesTab
   /** The setting row spotlit after Settings opens on that tab. */
+  readonly targetId?: TeleportTargetId
+}
+
+/**
+ * A setting that lives in the selected repository's own settings, which is a
+ * different popup with its own tabs from the app-wide Settings.
+ *
+ * Kept separate rather than folded into the preferences home because the two
+ * tab enumerations are genuinely different sets: collapsing them would let a
+ * row name a tab the popup it opens does not have, and the reader would land
+ * on whatever tab happened to be first with no sign anything went wrong.
+ */
+export interface IPaletteRepositorySettingsHome {
+  readonly kind: 'repositorySettings'
+  /** The repository settings tab the feature is rendered on. */
+  readonly tab: RepositorySettingsTab
+  /** The setting row spotlit after repository settings opens on that tab. */
   readonly targetId?: TeleportTargetId
 }
 
@@ -185,6 +256,35 @@ export function preferencesPaletteEvent(tab: PreferencesTab): string {
     default:
       return 'show-preferences'
   }
+}
+
+/**
+ * The palette action that opens the selected repository's settings on a tab.
+ *
+ * One event per tab, exactly as the app-wide Settings does, so a row lands on
+ * the tab that owns the setting rather than on whichever tab was open last.
+ */
+export function repositorySettingsPaletteEvent(
+  tab: RepositorySettingsTab
+): string {
+  return `palette:repository-settings-${RepositorySettingsTabSlug[tab]}`
+}
+
+/** Stable url-ish slugs for the repository settings tabs. */
+const RepositorySettingsTabSlug: Readonly<
+  Record<RepositorySettingsTab, string>
+> = {
+  [RepositorySettingsTab.Remote]: 'remote',
+  [RepositorySettingsTab.IgnoredFiles]: 'ignored-files',
+  [RepositorySettingsTab.GitConfig]: 'git-config',
+  [RepositorySettingsTab.BuildRun]: 'build-run',
+  [RepositorySettingsTab.CheapLfs]: 'cheap-lfs',
+  [RepositorySettingsTab.Submodules]: 'submodules',
+  [RepositorySettingsTab.Subtrees]: 'subtrees',
+  [RepositorySettingsTab.Automation]: 'automation',
+  [RepositorySettingsTab.Metadata]: 'metadata',
+  [RepositorySettingsTab.Appearance]: 'appearance',
+  [RepositorySettingsTab.ForkSettings]: 'fork-settings',
 }
 
 export interface IPaletteCommand {
@@ -1207,6 +1307,183 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     group: 'Branch',
     keywords: 'clipboard hash tip head revision',
     isAvailable: whenBranch,
+  },
+  {
+    event: 'palette:repository-settings-remote',
+    title: 'Repository remotes',
+    titleKey: 'palette.repositorySettingsRemote',
+    group: 'Repository',
+    keywords: 'origin upstream url push fetch remote',
+    isAvailable: whenRepository,
+    home: {
+      kind: 'repositorySettings',
+      tab: RepositorySettingsTab.Remote,
+    },
+  },
+  {
+    event: 'palette:repository-settings-ignored-files',
+    title: 'Ignored files',
+    titleKey: 'palette.repositorySettingsIgnoredFiles',
+    group: 'Repository',
+    keywords: 'gitignore exclude ignore',
+    isAvailable: whenRepository,
+    home: {
+      kind: 'repositorySettings',
+      tab: RepositorySettingsTab.IgnoredFiles,
+    },
+  },
+  {
+    event: 'palette:repository-settings-git-config',
+    title: 'Repository Git config',
+    titleKey: 'palette.repositorySettingsGitConfig',
+    group: 'Repository',
+    keywords: 'name email identity user config',
+    isAvailable: whenRepository,
+    home: {
+      kind: 'repositorySettings',
+      tab: RepositorySettingsTab.GitConfig,
+    },
+  },
+  {
+    event: 'palette:repository-settings-build-run',
+    title: 'Build and run settings',
+    titleKey: 'palette.repositorySettingsBuildRun',
+    group: 'Repository',
+    keywords: 'compile toolchain task script run',
+    isAvailable: whenRepository,
+    home: {
+      kind: 'repositorySettings',
+      tab: RepositorySettingsTab.BuildRun,
+    },
+  },
+  {
+    event: 'palette:repository-settings-cheap-lfs',
+    title: 'Large file settings',
+    titleKey: 'palette.repositorySettingsCheapLfs',
+    group: 'Repository',
+    keywords: 'lfs large binary storage sidecar',
+    isAvailable: whenRepository,
+    home: {
+      kind: 'repositorySettings',
+      tab: RepositorySettingsTab.CheapLfs,
+    },
+  },
+  {
+    event: 'palette:repository-settings-submodules',
+    title: 'Submodule settings',
+    titleKey: 'palette.repositorySettingsSubmodules',
+    group: 'Repository',
+    keywords: 'submodule nested clone update',
+    isAvailable: whenRepository,
+    home: {
+      kind: 'repositorySettings',
+      tab: RepositorySettingsTab.Submodules,
+    },
+  },
+  {
+    event: 'palette:repository-settings-subtrees',
+    title: 'Subtree settings',
+    titleKey: 'palette.repositorySettingsSubtrees',
+    group: 'Repository',
+    keywords: 'subtree vendored merge split prefix',
+    isAvailable: whenRepository,
+    home: {
+      kind: 'repositorySettings',
+      tab: RepositorySettingsTab.Subtrees,
+    },
+  },
+  {
+    event: 'palette:repository-settings-automation',
+    title: 'Repository automation overrides',
+    titleKey: 'palette.repositorySettingsAutomation',
+    group: 'Repository',
+    keywords: 'automation hooks schedule trigger override',
+    isAvailable: whenRepository,
+    home: {
+      kind: 'repositorySettings',
+      tab: RepositorySettingsTab.Automation,
+    },
+  },
+  {
+    event: 'palette:repository-settings-metadata',
+    title: 'Repository metadata',
+    titleKey: 'palette.repositorySettingsMetadata',
+    group: 'Repository',
+    keywords: 'description topics label notes',
+    isAvailable: whenRepository,
+    home: {
+      kind: 'repositorySettings',
+      tab: RepositorySettingsTab.Metadata,
+    },
+  },
+  {
+    event: 'palette:repository-settings-appearance',
+    title: 'Repository appearance',
+    titleKey: 'palette.repositorySettingsAppearance',
+    group: 'Repository',
+    keywords: 'colour color icon logo tab decoration',
+    isAvailable: whenRepository,
+    home: {
+      kind: 'repositorySettings',
+      tab: RepositorySettingsTab.Appearance,
+    },
+  },
+  {
+    event: 'palette:repository-settings-fork-settings',
+    title: 'Fork behaviour',
+    titleKey: 'palette.repositorySettingsForkSettings',
+    group: 'Repository',
+    keywords: 'fork upstream parent contribution',
+    isAvailable: whenFork,
+    home: {
+      kind: 'repositorySettings',
+      tab: RepositorySettingsTab.ForkSettings,
+    },
+  },
+  {
+    event: 'palette:report-issue',
+    title: 'Report an issue',
+    titleKey: 'palette.reportIssue',
+    descriptionKey: 'palette.reportIssueDescription',
+    group: 'App',
+    keywords: 'bug feedback problem github issue bug報告',
+    home: { kind: 'surface', labelKey: 'commandPalette.homeMenuBar' },
+  },
+  {
+    event: 'palette:contact-support',
+    title: 'Contact support',
+    titleKey: 'palette.contactSupport',
+    descriptionKey: 'palette.contactSupportDescription',
+    group: 'App',
+    keywords: 'help support contact assistance',
+    home: { kind: 'surface', labelKey: 'commandPalette.homeMenuBar' },
+  },
+  {
+    event: 'palette:user-guides',
+    title: 'Show the user guides',
+    titleKey: 'palette.userGuides',
+    descriptionKey: 'palette.userGuidesDescription',
+    group: 'App',
+    keywords: 'help docs documentation manual guide',
+    home: { kind: 'surface', labelKey: 'commandPalette.homeMenuBar' },
+  },
+  {
+    event: 'palette:keyboard-shortcuts',
+    title: 'Show keyboard shortcuts',
+    titleKey: 'palette.keyboardShortcuts',
+    descriptionKey: 'palette.keyboardShortcutsDescription',
+    group: 'App',
+    keywords: 'keys hotkeys accelerators bindings shortcut',
+    home: { kind: 'surface', labelKey: 'commandPalette.homeMenuBar' },
+  },
+  {
+    event: 'palette:show-logs-folder',
+    title: 'Show the logs folder',
+    titleKey: 'palette.showLogsFolder',
+    descriptionKey: 'palette.showLogsFolderDescription',
+    group: 'App',
+    keywords: 'log diagnostics troubleshoot folder directory',
+    home: { kind: 'surface', labelKey: 'commandPalette.homeMenuBar' },
   },
 ]
 

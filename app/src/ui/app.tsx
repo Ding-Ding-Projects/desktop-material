@@ -122,6 +122,8 @@ import {
   openRepositoryInNewWindow,
   setWindowTitle,
   showSaveDialog,
+  getPath,
+  showFolderContents,
 } from './main-process-proxy'
 import { DiscardChanges } from './discard-changes'
 import { Welcome } from './welcome'
@@ -348,6 +350,7 @@ import {
   IPaletteCommandContext,
   PaletteControlValue,
   preferencesPaletteEvent,
+  repositorySettingsPaletteEvent,
   resolvePaletteHome,
 } from '../lib/command-palette-catalog'
 import { resolvePaletteHomeLabel } from './command-palette/command-palette'
@@ -476,6 +479,19 @@ const ModalPopupTypes = new Set<PopupType>([
 ])
 
 export const bannerTransitionTimeout = { enter: 500, exit: 400 }
+
+/**
+ * The Help menu's links, which the palette now offers as commands too.
+ *
+ * Written here rather than imported from the main-process menu because that
+ * module cannot be loaded in the renderer; the two lists are small, fixed, and
+ * checked against each other by a contract test.
+ */
+const ReportIssueUrl =
+  'https://github.com/Ding-Ding-Projects/desktop-material/issues/new/choose'
+const ContactSupportUrl = 'https://github.com/contact?from_desktop_app=1'
+const UserGuideUrl =
+  'https://github.com/Ding-Ding-Projects/desktop-material/wiki/User-Guide'
 
 export class App extends React.Component<IAppProps, IAppState> {
   private loading = true
@@ -1344,6 +1360,43 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showRepositorySettings(RepositorySettingsTab.CheapLfs)
       case 'palette:repository-automation':
         return this.showRepositorySettings(RepositorySettingsTab.Automation)
+      // Every repository settings tab is reachable by name, so a reader who
+      // knows what a setting is called does not have to know which of the
+      // eleven tabs it happens to live on.
+      case 'palette:repository-settings-remote':
+        return this.showRepositorySettings(RepositorySettingsTab.Remote)
+      case 'palette:repository-settings-ignored-files':
+        return this.showRepositorySettings(RepositorySettingsTab.IgnoredFiles)
+      case 'palette:repository-settings-git-config':
+        return this.showRepositorySettings(RepositorySettingsTab.GitConfig)
+      case 'palette:repository-settings-build-run':
+        return this.showRepositorySettings(RepositorySettingsTab.BuildRun)
+      case 'palette:repository-settings-cheap-lfs':
+        return this.showRepositorySettings(RepositorySettingsTab.CheapLfs)
+      case 'palette:repository-settings-submodules':
+        return this.showRepositorySettings(RepositorySettingsTab.Submodules)
+      case 'palette:repository-settings-subtrees':
+        return this.showRepositorySettings(RepositorySettingsTab.Subtrees)
+      case 'palette:repository-settings-automation':
+        return this.showRepositorySettings(RepositorySettingsTab.Automation)
+      case 'palette:repository-settings-metadata':
+        return this.showRepositorySettings(RepositorySettingsTab.Metadata)
+      case 'palette:repository-settings-appearance':
+        return this.showRepositorySettings(RepositorySettingsTab.Appearance)
+      case 'palette:repository-settings-fork-settings':
+        return this.showRepositorySettings(RepositorySettingsTab.ForkSettings)
+      // The Help menu's links had no palette route at all: they live only as
+      // click handlers in the main-process menu, so the one place they could
+      // be reached from was the menu bar itself.
+      case 'palette:report-issue':
+        return this.openPaletteWebLink(ReportIssueUrl)
+      case 'palette:contact-support':
+        return this.openPaletteWebLink(ContactSupportUrl)
+      case 'palette:user-guides':
+      case 'palette:keyboard-shortcuts':
+        return this.openPaletteWebLink(UserGuideUrl)
+      case 'palette:show-logs-folder':
+        return this.showLogsFolder()
       case 'palette:tag-lifecycle':
         return this.showRepositoryTools()
       case 'palette:github-api-explorer':
@@ -1603,6 +1656,8 @@ export class App extends React.Component<IAppProps, IAppState> {
     const openEvent =
       home.kind === 'preferences'
         ? preferencesPaletteEvent(home.tab)
+        : home.kind === 'repositorySettings'
+        ? repositorySettingsPaletteEvent(home.tab)
         : home.openEvent === 'self'
         ? command.event
         : home.openEvent
@@ -1635,6 +1690,36 @@ export class App extends React.Component<IAppProps, IAppState> {
     )
   }
 
+  /** Opens one of the Help menu's links, reporting a failure rather than not. */
+  private openPaletteWebLink(url: string) {
+    this.props.dispatcher.openInBrowser(url).then(
+      opened => {
+        if (!opened) {
+          this.props.dispatcher.postNotification({
+            kind: 'app-error',
+            title: t('commandPalette.title'),
+            body: t('commandPalette.linkFailed', { url }),
+          })
+        }
+      },
+      error => log.warn('[App] palette link failed', error)
+    )
+  }
+
+  /**
+   * Reveals the folder holding the log files.
+   *
+   * The menu item does this in the main process, where the log directory is
+   * simply a local call. From here the path has to be asked for first, which
+   * is why this is not a one-liner.
+   */
+  private showLogsFolder() {
+    getPath('userData').then(
+      userData => showFolderContents(Path.join(userData, 'logs')),
+      error => log.warn('[App] could not locate the logs folder', error)
+    )
+  }
+
   /** The current selection snapshot the command palette gates commands on. */
   private getPaletteAvailabilityContext(): IPaletteCommandContext {
     const state = this.getSelectedRepositoryState()
@@ -1649,6 +1734,9 @@ export class App extends React.Component<IAppProps, IAppState> {
       hasBranch: tip?.kind === TipState.Valid,
       isGitHubRepository:
         repository instanceof Repository && repository.gitHubRepository != null,
+      isFork:
+        repository instanceof Repository &&
+        repository.gitHubRepository?.fork === true,
     }
   }
 

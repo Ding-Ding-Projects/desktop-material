@@ -35,6 +35,8 @@ import {
   resolveCommandSymbol,
 } from './command-palette-appearance'
 import { CommandPaletteAppearanceEditor } from './command-palette-appearance-editor'
+import { RepositorySettingsTab } from '../../models/repository-settings'
+import type { TranslationKey } from '../../lib/i18n-resources'
 
 /** The persistence id for the palette's filter mode. */
 const PaletteFilterListId = 'command-palette'
@@ -77,9 +79,51 @@ function resolvePaletteGroup(group: string): string {
 
 /** The localized name of the place a command's feature lives. */
 export function resolvePaletteHomeLabel(home: IPaletteHome): string {
-  return home.kind === 'preferences'
-    ? t('commandPalette.homeSettings', { tab: t(settingsTabNameKey(home.tab)) })
-    : t(home.labelKey)
+  switch (home.kind) {
+    case 'preferences':
+      return t('commandPalette.homeSettings', {
+        tab: t(settingsTabNameKey(home.tab)),
+      })
+    case 'repositorySettings':
+      // Named as the repository's own settings rather than as "Settings", so
+      // a reader is not sent looking in the app-wide dialog for a per-
+      // repository option that is not there.
+      return t('commandPalette.homeRepositorySettings', {
+        tab: t(repositorySettingsTabNameKey(home.tab)),
+      })
+    default:
+      return t(home.labelKey)
+  }
+}
+
+/** The localized name of a repository settings tab. */
+function repositorySettingsTabNameKey(
+  tab: RepositorySettingsTab
+): TranslationKey {
+  switch (tab) {
+    case RepositorySettingsTab.Remote:
+      return 'repositorySettings.tabRemote'
+    case RepositorySettingsTab.IgnoredFiles:
+      return 'repositorySettings.tabIgnoredFiles'
+    case RepositorySettingsTab.GitConfig:
+      return 'repositorySettings.tabGitConfig'
+    case RepositorySettingsTab.BuildRun:
+      return 'repositorySettings.tabBuildRun'
+    case RepositorySettingsTab.CheapLfs:
+      return 'repositorySettings.tabCheapLfs'
+    case RepositorySettingsTab.Submodules:
+      return 'repositorySettings.tabSubmodules'
+    case RepositorySettingsTab.Subtrees:
+      return 'repositorySettings.tabSubtrees'
+    case RepositorySettingsTab.Automation:
+      return 'repositorySettings.tabAutomation'
+    case RepositorySettingsTab.Metadata:
+      return 'repositorySettings.tabMetadata'
+    case RepositorySettingsTab.Appearance:
+      return 'repositorySettings.tabAppearance'
+    case RepositorySettingsTab.ForkSettings:
+      return 'repositorySettings.tabForkSettings'
+  }
 }
 
 /**
