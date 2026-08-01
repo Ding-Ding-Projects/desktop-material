@@ -88,6 +88,9 @@ const ReleasesSearchFilterId = 'github-releases-search'
 /** Persisted explicit choice for the Releases search + filter disclosure. */
 const ReleasesToolsExpandedKey = 'github-releases-tools-expanded'
 
+/** Persisted choice for the release stats band, which starts collapsed. */
+const ReleasesStatsExpandedKey = 'github-releases-stats-expanded'
+
 /**
  * The viewport at or below which the disclosure defaults to collapsed.
  *
@@ -262,6 +265,12 @@ interface IGitHubReleasesViewState {
   readonly toolsExpandedPreference: boolean | undefined
   /** Whether the list panel is currently narrow enough to default collapsed. */
   readonly toolsPanelNarrow: boolean
+  /**
+   * Whether the release stats band is open. Unlike the filter disclosure this
+   * starts closed: the five metric cards are a glance, not a workspace, and
+   * they cost the release list a whole band of height on every visit.
+   */
+  readonly statsExpanded: boolean
   readonly assets: ReadonlyArray<IGitHubReleaseAsset>
   readonly assetPage: number
   readonly nextAssetPage: number | null
@@ -312,6 +321,7 @@ function initialState(
     sortOrder: readPersistedReleaseSortOrder(ReleasesSearchFilterId),
     toolsExpandedPreference: getBoolean(ReleasesToolsExpandedKey),
     toolsPanelNarrow: false,
+    statsExpanded: getBoolean(ReleasesStatsExpandedKey, false),
     assets: [],
     assetPage: 0,
     nextAssetPage: null,
@@ -1097,6 +1107,13 @@ export class GitHubReleasesView extends React.Component<
   private releaseToolsExpanded(state = this.state): boolean {
     return state.toolsExpandedPreference ?? !state.toolsPanelNarrow
   }
+
+  private toggleReleaseStats = () =>
+    this.setState(state => {
+      const statsExpanded = !state.statsExpanded
+      setBoolean(ReleasesStatsExpandedKey, statsExpanded)
+      return { statsExpanded }
+    })
 
   private toggleCompactReleaseTools = () =>
     this.setState(state => {
@@ -2264,52 +2281,78 @@ export class GitHubReleasesView extends React.Component<
     const latestStable = this.latestStableRelease()
 
     return (
-      <section
-        className="github-releases-overview"
-        aria-label="Loaded release summary"
-      >
-        <article className="github-release-metric">
-          <span>Loaded releases</span>
-          <strong>{releases.length}</strong>
-          <small>
-            {assetCount} {assetCount === 1 ? 'asset' : 'assets'} ·{' '}
-            {downloadCount} downloads
-          </small>
-        </article>
-        <article className="github-release-metric published">
-          <span>Published</span>
-          <strong>{counts.published}</strong>
-          <small>Stable releases</small>
-        </article>
-        <article className="github-release-metric prerelease">
-          <span>Pre-releases</span>
-          <strong>{counts.prerelease}</strong>
-          <small>Published previews</small>
-        </article>
-        <article className="github-release-metric draft">
-          <span>Drafts</span>
-          <strong>{counts.draft}</strong>
-          <small>Not yet published</small>
-        </article>
-        <article className="github-release-metric latest">
-          <span>Latest stable</span>
-          <strong>
-            {latestStable === null ? 'None loaded' : latestStable.tagName}
-          </strong>
-          <small>
-            {latestStable === null ? (
-              'No stable release is in the loaded results.'
-            ) : (
-              <>
-                <ReleaseTimestamp
-                  date={latestStable.publishedAt ?? latestStable.createdAt}
-                />{' '}
-                · newest stable in loaded results
-              </>
-            )}
-          </small>
-        </article>
-      </section>
+      <>
+        <button
+          type="button"
+          className="github-releases-stats-toggle"
+          aria-expanded={this.state.statsExpanded}
+          aria-controls="github-releases-overview"
+          onClick={this.toggleReleaseStats}
+        >
+          <span>{t('githubReleases.statsSummaryLabel')}</span>
+          {/*
+            The headline counts stay legible while the band is closed, so
+            collapsing it costs the glance nothing. Only the cards go away.
+          */}
+          <span aria-live="polite" aria-atomic="true">
+            {t('githubReleases.statsSummary', {
+              loaded: releases.length.toString(),
+              published: counts.published.toString(),
+              latest:
+                latestStable === null ? 'None loaded' : latestStable.tagName,
+            })}
+          </span>
+        </button>
+        <section
+          id="github-releases-overview"
+          className={`github-releases-overview${
+            this.state.statsExpanded ? '' : ' stats-collapsed'
+          }`}
+          aria-label="Loaded release summary"
+        >
+          <article className="github-release-metric">
+            <span>Loaded releases</span>
+            <strong>{releases.length}</strong>
+            <small>
+              {assetCount} {assetCount === 1 ? 'asset' : 'assets'} ·{' '}
+              {downloadCount} downloads
+            </small>
+          </article>
+          <article className="github-release-metric published">
+            <span>Published</span>
+            <strong>{counts.published}</strong>
+            <small>Stable releases</small>
+          </article>
+          <article className="github-release-metric prerelease">
+            <span>Pre-releases</span>
+            <strong>{counts.prerelease}</strong>
+            <small>Published previews</small>
+          </article>
+          <article className="github-release-metric draft">
+            <span>Drafts</span>
+            <strong>{counts.draft}</strong>
+            <small>Not yet published</small>
+          </article>
+          <article className="github-release-metric latest">
+            <span>Latest stable</span>
+            <strong>
+              {latestStable === null ? 'None loaded' : latestStable.tagName}
+            </strong>
+            <small>
+              {latestStable === null ? (
+                'No stable release is in the loaded results.'
+              ) : (
+                <>
+                  <ReleaseTimestamp
+                    date={latestStable.publishedAt ?? latestStable.createdAt}
+                  />{' '}
+                  · newest stable in loaded results
+                </>
+              )}
+            </small>
+          </article>
+        </section>
+      </>
     )
   }
 

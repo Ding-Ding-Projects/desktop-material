@@ -23,6 +23,7 @@ import {
 import { Account, getAccountKey, isDotComAccount } from '../../models/account'
 import { Repository } from '../../models/repository'
 import { Button } from '../lib/button'
+import { t } from '../../lib/i18n'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import {
   persistFilterMode,
@@ -138,6 +139,29 @@ interface IGitHubPackagesViewProps {
   ) => Promise<string | null>
   /** Tests and deterministic previews may suppress the initial live request. */
   readonly autoLoad?: boolean
+  /**
+   * Re-runs sign-in for the account whose token is missing a scope. Without
+   * it the scope error is a dead end: the message names what is missing and
+   * offers no way to fix it.
+   */
+  readonly onReauthorize?: (account: Account) => void
+}
+
+/**
+ * Whether an error is GitHub refusing for a missing token scope rather than a
+ * transport or permission failure. GitHub phrases these as "you need at least
+ * <scope> scope", so the scope name is matched rather than the whole
+ * sentence, which varies by endpoint.
+ */
+export function missingPackagesScope(error: string | null): string | null {
+  if (error === null) {
+    return null
+  }
+  const match =
+    /\b(?:at least\s+)?(read:packages|write:packages|repo)\b[^.]*\bscope\b/i.exec(
+      error
+    )
+  return match === null ? null : match[1].toLowerCase()
 }
 
 interface IGitHubPackagesViewState {
@@ -1670,6 +1694,37 @@ export class GitHubPackagesView extends React.Component<
     )
   }
 
+  /**
+   * A way out of a missing-scope error. The token cannot gain a scope in
+   * place, so the only real remedy is signing in again and approving it;
+   * saying so and offering the button beats leaving the user to guess.
+   */
+  private renderScopeRecovery(): JSX.Element | null {
+    const scope = missingPackagesScope(this.state.error)
+    const account = this.currentContext()?.account ?? null
+    if (scope === null || account === null) {
+      return null
+    }
+    return (
+      <span className="github-packages-scope-recovery">
+        <span>{t('githubPackages.scopeRecovery', { scope })}</span>
+        <Button
+          onClick={this.onReauthorizeClick}
+          disabled={this.props.onReauthorize === undefined}
+        >
+          {t('githubPackages.signInAgain')}
+        </Button>
+      </span>
+    )
+  }
+
+  private onReauthorizeClick = () => {
+    const account = this.currentContext()?.account ?? null
+    if (account !== null) {
+      this.props.onReauthorize?.(account)
+    }
+  }
+
   public render() {
     const unavailable = this.renderAvailability()
     const context = this.currentContext()
@@ -1693,7 +1748,8 @@ export class GitHubPackagesView extends React.Component<
           <>
             {this.state.error !== null && (
               <div className="github-packages-banner error" role="alert">
-                {this.state.error}
+                <span>{this.state.error}</span>
+                {this.renderScopeRecovery()}
               </div>
             )}
             {this.state.message !== null && (

@@ -31,7 +31,7 @@ import {
 } from '../lib/stores'
 import { assertNever } from '../lib/fatal-error'
 import { shouldShowStatusComputing } from '../lib/large-repository/status-computing'
-import { Account } from '../models/account'
+import { Account, isDotComAccount } from '../models/account'
 import { FocusContainer } from './lib/focus-container'
 import { ImageDiffType } from '../models/diff'
 import { IMenu } from '../models/app-menu'
@@ -1377,6 +1377,18 @@ export class RepositoryView extends React.Component<
     )
   }
 
+  /**
+   * A token cannot gain a scope in place, so a Packages scope refusal is only
+   * recoverable by signing in again and approving the missing scope.
+   */
+  private onReauthorizePackagesAccount = (account: Account) => {
+    if (isDotComAccount(account)) {
+      this.props.dispatcher.showDotComSignInDialog()
+    } else {
+      this.props.dispatcher.showEnterpriseSignInDialog()
+    }
+  }
+
   private renderGitHubDistributionModule = (
     module: GitHubDistributionModule
   ): React.ReactNode => (
@@ -1384,6 +1396,7 @@ export class RepositoryView extends React.Component<
       repository={this.props.repository}
       accounts={this.props.accounts}
       releasesStore={this.props.releasesStore}
+      onReauthorize={this.onReauthorizePackagesAccount}
     />
   )
 

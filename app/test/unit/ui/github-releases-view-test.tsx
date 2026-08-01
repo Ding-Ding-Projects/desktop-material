@@ -1404,6 +1404,58 @@ describe('GitHub Releases view', () => {
     assert.ok(screen.getByRole('button', { name: /Desktop Material 1\.0/ }))
   })
 
+  it('starts the release stats band collapsed and remembers reopening it', async () => {
+    window.localStorage.removeItem('github-releases-stats-expanded')
+    const store = fakeStore({
+      list: async () => ({
+        releases: [draft],
+        page: 1,
+        nextPage: null,
+        capped: false,
+      }),
+    })
+    const view = render(
+      <GitHubReleasesView
+        repository={repository}
+        accounts={[account]}
+        releasesStore={store}
+      />
+    )
+
+    const toggle = await screen.findByRole('button', { name: /Release stats/ })
+    // Collapsed by default: the cards are a glance, and they cost the release
+    // list a whole band of height on every visit.
+    assert.equal(toggle.getAttribute('aria-expanded'), 'false')
+    const overview = document.querySelector('#github-releases-overview')
+    assert.ok(overview)
+    assert.equal(overview.classList.contains('stats-collapsed'), true)
+    // The headline counts stay readable while it is closed.
+    assert.ok(within(toggle).getByText(/loaded/))
+
+    fireEvent.click(toggle)
+    assert.equal(toggle.getAttribute('aria-expanded'), 'true')
+    assert.equal(
+      document
+        .querySelector('#github-releases-overview')
+        ?.classList.contains('stats-collapsed'),
+      false
+    )
+
+    view.unmount()
+    render(
+      <GitHubReleasesView
+        repository={repository}
+        accounts={[account]}
+        releasesStore={store}
+      />
+    )
+    const remounted = await screen.findByRole('button', {
+      name: /Release stats/,
+    })
+    assert.equal(remounted.getAttribute('aria-expanded'), 'true')
+    window.localStorage.removeItem('github-releases-stats-expanded')
+  })
+
   it('remembers an explicit disclosure choice across mounts', async () => {
     window.localStorage.removeItem('github-releases-tools-expanded')
     const store = fakeStore({

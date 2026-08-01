@@ -2325,6 +2325,10 @@ export type TranslationKey =
   | 'ignoredSubmodule.destination.ignored'
   | 'githubReleases.compactTools'
   | 'githubReleases.compactSummary'
+  | 'githubReleases.statsSummaryLabel'
+  | 'githubReleases.statsSummary'
+  | 'githubPackages.scopeRecovery'
+  | 'githubPackages.signInAgain'
   | 'githubReleases.filterSummary'
   | 'githubReleases.openFile'
   | 'githubReleases.showInFolder'
@@ -5688,6 +5692,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.progress.terminalStageManualDetected': 'Manual upload verified',
   'githubReleases.compactTools': 'Filters and selection',
   'githubReleases.compactSummary': '{visible} shown · {selected} selected',
+  'githubReleases.statsSummaryLabel': 'Release stats',
+  'githubReleases.statsSummary':
+    '{loaded} loaded · {published} published · latest {latest}',
+  'githubPackages.scopeRecovery':
+    'A token cannot gain a scope in place. Sign in again and approve {scope} to list packages.',
+  'githubPackages.signInAgain': 'Sign in again',
   'githubReleases.filterSummary':
     'Filtering {visible} of {total} loaded releases',
   'githubReleases.openFile': 'Open file',
@@ -9170,6 +9180,12 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.progress.terminalStageManualDetected': '手動上載核實咗',
   'githubReleases.compactTools': '篩選同選取',
   'githubReleases.compactSummary': '顯示 {visible} 個 · 已選 {selected} 個',
+  'githubReleases.statsSummaryLabel': '發佈統計',
+  'githubReleases.statsSummary':
+    '載入咗 {loaded} 個 · 已發佈 {published} 個 · 最新 {latest}',
+  'githubPackages.scopeRecovery':
+    '個 token 冇得原地加權限。要重新登入，批准 {scope}，先列到 packages。',
+  'githubPackages.signInAgain': '重新登入',
   'githubReleases.filterSummary':
     '篩選緊已載入 Release 入面嘅 {visible}/{total} 個',
   'githubReleases.openFile': '開啟檔案',

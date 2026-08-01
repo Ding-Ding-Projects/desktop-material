@@ -129,11 +129,81 @@
   overflow-wrap: anywhere;
 }
 
+// The stats band is a glance, not a workspace, so it is a disclosure that
+// starts closed and hands its whole height to the release list. The headline
+// counts live in the toggle, so closing it costs the glance nothing.
+.github-releases-stats-toggle {
+  display: flex;
+  min-height: 36px;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 9px;
+  padding: 6px 12px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-small, 8px);
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--md-sys-color-surface-container-high);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: -2px;
+  }
+
+  > span:first-child {
+    flex: 1 1 auto;
+    font-weight: var(--font-weight-semibold);
+    text-align: left;
+  }
+
+  > span:last-child {
+    flex: 0 1 auto;
+    color: var(--md-sys-color-on-surface-variant);
+    text-align: right;
+  }
+
+  &::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-right: 2px solid currentcolor;
+    border-bottom: 2px solid currentcolor;
+    rotate: -45deg;
+    translate: 0 1px;
+    transition: rotate calc(180ms * var(--mdur, 1)) var(--emph, ease);
+  }
+
+  &[aria-expanded='true']::after {
+    rotate: 45deg;
+    translate: 0 -2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .github-releases-stats-toggle::after {
+    transition: none;
+  }
+}
+
 .github-releases-overview {
   display: grid;
   flex: 0 0 auto;
   grid-template-columns: repeat(4, minmax(105px, 0.7fr)) minmax(210px, 1.5fr);
   gap: 9px;
+
+  &.stats-collapsed {
+    display: none;
+  }
 }
 
 .github-release-metric {

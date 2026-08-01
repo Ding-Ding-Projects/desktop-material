@@ -12,6 +12,8 @@ interface IGitHubDistributionViewProps {
   readonly repository: Repository
   readonly accounts: ReadonlyArray<Account>
   readonly releasesStore: GitHubReleasesStore
+  /** Re-runs sign-in when Packages is refused for a missing token scope. */
+  readonly onReauthorize?: (account: Account) => void
 }
 
 interface IGitHubDistributionViewState {
@@ -59,6 +61,7 @@ export class GitHubDistributionView extends React.Component<
             <GitHubPackagesView
               repository={this.props.repository}
               accounts={this.props.accounts}
+              onReauthorize={this.props.onReauthorize}
             />
           ) : (
             <GitHubReleasesView
