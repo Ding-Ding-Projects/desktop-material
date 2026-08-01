@@ -10,6 +10,21 @@ function fail(message) {
   throw new Error(message)
 }
 
+/**
+ * The credential service names the app reads, per build flavour.
+ *
+ * `getKeyForEndpoint` (app/src/lib/auth.ts) prefixes the endpoint with
+ * `GitHub Desktop Dev` in a dev build and plain `GitHub` in a production
+ * build (`__DEV__`). The provider's ready.json only records the dev-flavoured
+ * name, which is how the 2026-07-31 capture run seeded a token a production
+ * build could never find (accountCount stayed 0 and the whole gallery run
+ * failed closed). Seed and clean both names so either build hydrates.
+ */
+function credentialServices(ready) {
+  const endpoint = ready.credentialService.replace('GitHub Desktop Dev - ', '')
+  return [ready.credentialService, `GitHub - ${endpoint}`]
+}
+
 async function main() {
   const [mode, readyArgument, keytarArgument, login = 'material-verifier-p0'] =
     process.argv.slice(2)
@@ -46,19 +61,24 @@ async function main() {
     fail('Provider credential metadata is invalid.')
   }
 
+  const services = credentialServices(ready)
   const keytar = require(keytarPath)
   if (mode === 'set') {
-    await keytar.setPassword(ready.credentialService, login, ready.token)
-    if (
-      (await keytar.getPassword(ready.credentialService, login)) !== ready.token
-    ) {
-      fail('Credential readback did not match the disposable provider token.')
+    for (const service of services) {
+      await keytar.setPassword(service, login, ready.token)
+      if ((await keytar.getPassword(service, login)) !== ready.token) {
+        fail('Credential readback did not match the disposable provider token.')
+      }
     }
   } else if (mode === 'delete') {
-    await keytar.deletePassword(ready.credentialService, login)
+    for (const service of services) {
+      await keytar.deletePassword(service, login)
+    }
   }
-  const present =
-    (await keytar.getPassword(ready.credentialService, login)) !== null
+  let present = false
+  for (const service of services) {
+    present = present || (await keytar.getPassword(service, login)) !== null
+  }
   if (mode !== 'set' && present) {
     fail('Disposable credential remained present after cleanup.')
   }
@@ -66,7 +86,7 @@ async function main() {
     `${JSON.stringify({
       ok: true,
       mode,
-      service: ready.credentialService,
+      services,
       login,
       present,
     })}\n`

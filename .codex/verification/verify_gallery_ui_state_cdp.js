@@ -1838,11 +1838,15 @@ async function sceneCommandPalette(context) {
     )].map(element => vt(element)),
   }))()`)
   process.stdout.write(`OLLAMA_RESULTS ${JSON.stringify(ollamaResults)}\n`)
+  // At least eight rows, not exactly eight: the gate exists to prove the list
+  // renders a full screen of rich rows beside the aligned editor, and an exact
+  // count silently breaks every time the catalog gains a command (it did, when
+  // the palette grew its live setting rows).
   await waitFor(
     `document.querySelectorAll(
       '#command-palette .command-palette-row'
-    ).length === 8`,
-    'eight ollama command results'
+    ).length >= 8`,
+    'at least eight ollama command results'
   )
   await clickSelector(
     '#command-palette .command-palette-appearance-toggle',
@@ -1996,9 +2000,15 @@ async function sceneCommandPalette(context) {
       ).length,
     }
   })()`)
+  // Richness is asserted per row rather than against a fixed catalog size:
+  // every rendered row must carry its icon, group chip and keyword line, and
+  // the list must fill the frame (at least eight rows). Hardcoding eight made
+  // the gate fail the moment the palette gained new commands, while saying
+  // nothing about rows nine and ten.
   if (
     state?.query !== 'ollama' ||
-    state.resultCount !== 8 ||
+    typeof state.resultCount !== 'number' ||
+    state.resultCount < 8 ||
     state.editorOpen !== true ||
     state.resetVisible !== true ||
     state.randomToggleVisible !== true ||
@@ -2006,9 +2016,9 @@ async function sceneCommandPalette(context) {
     state.alignedOptions !== true ||
     state.editorScrollTop !== 0 ||
     state.appearanceHeadingVisible !== true ||
-    state.iconRowCount !== 8 ||
-    state.groupChipRowCount !== 8 ||
-    state.keywordRowCount !== 8
+    state.iconRowCount !== state.resultCount ||
+    state.groupChipRowCount !== state.resultCount ||
+    state.keywordRowCount !== state.resultCount
   ) {
     fail(`Command-palette gallery state diverged: ${JSON.stringify(state)}.`)
   }
@@ -2223,10 +2233,37 @@ async function createRepositoryGroupThroughDialog(context) {
     '.repository-list input[data-search-surface-id="repositories"]',
     ''
   )
+  // The dedicated .repository-group-new-button no longer exists: creating a
+  // group moved into the repository list's "More" actions menu, beside Sync
+  // repositories. Drive the shipped route instead of a retired button.
   await clickSelector(
-    '.repository-list .repository-group-new-button',
-    'Create a repository group'
+    '.repository-list .repository-more-actions-button',
+    'Repository list more actions'
   )
+  await waitFor(
+    `(() => {
+      const menu = document.querySelector('.material-context-menu[role="menu"]')
+      const item = [...(menu?.querySelectorAll('button.context-menu-item') ?? [])]
+        .find(button =>
+          button.querySelector('.context-menu-item-label')?.textContent?.trim() ===
+            'Create a repository group'
+        )
+      return menu instanceof HTMLElement && item instanceof HTMLButtonElement &&
+        !item.disabled && item.getAttribute('aria-disabled') !== 'true'
+    })()`,
+    'Create a repository group menu item'
+  )
+  await evaluate(`(() => {
+    const menu = document.querySelector('.material-context-menu[role="menu"]')
+    const item = [...(menu?.querySelectorAll('button.context-menu-item') ?? [])]
+      .find(button =>
+        button.querySelector('.context-menu-item-label')?.textContent?.trim() ===
+          'Create a repository group'
+      )
+    if (!(item instanceof HTMLButtonElement)) return false
+    item.click()
+    return true
+  })()`)
   await waitFor(
     `document.querySelector(
       '#dialog-layer dialog#manage-repository-group[open]'

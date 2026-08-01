@@ -478,9 +478,13 @@ test('appearance captures open the actual owners instead of retired settings tab
     "scene('anchored-appearance'",
     "contextMenuSelector('#desktop-app-toolbar')",
     "scene('logo-studio'",
-    "contextMenuSelector('.repository-list-logo-appearance-target')",
+    "contextMenuSelector('.repository-list-logo-appearance-target', {",
     "scene('tab-style'",
-    "contextMenuSelector('.repository-tab.active .repository-tab-label')",
+    // The tab label reserves plain right-click for tab management; the
+    // anchored editor's pointer gesture is Shift+Right-click, so the capture
+    // must dispatch the shifted variant of the owner gesture.
+    "contextMenuSelector('.repository-tab.active .repository-tab-label', {",
+    'shiftKey: true,',
     'waitForPrivacySafeAnchoredEditor',
   ]) {
     assert.ok(source.includes(contract), `missing owner contract: ${contract}`)
@@ -1667,7 +1671,10 @@ test('native pull-request review handles aria-only disablement at most once', ()
 
 test('canonical workflow scenes use current reviewed controls and outcomes', () => {
   for (const contract of [
-    "clickText('Sync repositories')",
+    // Batch sync moved into the repository list's "More" actions menu, so the
+    // reviewed control is that menu item rather than a bare button.
+    "clickSelector('.repository-more-actions-button')",
+    "'Sync repositories'",
     "clickText('Start pull'",
     'Every repository has a final result.',
     '\'[data-hub-tool="shallow-history"]\'',
@@ -2353,7 +2360,8 @@ test('artifact page-two capture targets its exact card inside the details pane',
   for (const contract of [
     'exact page-one artifact inventory and enabled pagination action',
     'const pageOneArtifactCount = ready.artifactCount - 1',
-    'const pageOneArtifactStatus = `Showing ${pageOneArtifactCount} loaded of ${ready.artifactCount} artifacts.`',
+    // The shipped status line names loaded, total and visible.
+    'const pageOneArtifactStatus = `Showing ${pageOneArtifactCount} loaded of ${ready.artifactCount} artifacts \u00b7 ${pageOneArtifactCount} visible.`',
     'const status = pagination?.querySelector(\'[role="status"]\')',
     "candidate.textContent?.trim() === 'Load more artifacts'",
     'button instanceof HTMLButtonElement',

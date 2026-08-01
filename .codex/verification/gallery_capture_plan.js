@@ -287,7 +287,7 @@ const SpecialistCaptureEntries = Object.freeze([
     scene: 'command-palette-appearance',
     batch: 'windows-ui-state-lowlevel',
     interaction:
-      'Open the command palette, type ollama, open its appearance editor, exercise deterministic random-per-repository mode, and leave eight rich results plus the aligned, fully contained editor and Reset control visible at 1000x687.',
+      'Open the command palette, type ollama, open its appearance editor, exercise deterministic random-per-repository mode, and leave a full screen of rich results (at least eight) plus the aligned, fully contained editor and Reset control visible at 1000x687.',
   },
   {
     output: 'material-history-hover-time',

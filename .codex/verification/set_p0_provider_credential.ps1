@@ -174,45 +174,55 @@ public static class DesktopMaterialKeytarCredential
 '@
 }
 
-$service = $ready.credentialService
+# The app composes its keytar service name per build flavour
+# (app/src/lib/auth.ts): `GitHub Desktop Dev - <endpoint>` in a dev build and
+# plain `GitHub - <endpoint>` in a production build. ready.json only records
+# the dev name; seeding it alone is how the 2026-07-31 gallery run left a
+# production build unable to hydrate any account. Write and remove both.
+$endpoint = $ready.credentialService -replace '^GitHub Desktop Dev - ', ''
+$services = @($ready.credentialService, "GitHub - $endpoint")
 $account = $ready.accountLogin
-$target = "$service/$account"
 
 if ($Remove) {
-  $code = [DesktopMaterialKeytarCredential]::Delete($service, $account)
-  # 1168 is ERROR_NOT_FOUND: already absent is the intended end state.
-  if ($code -ne 0 -and $code -ne 1168) {
-    throw "CredDelete failed for $target with Win32 error $code."
-  }
-  Write-Output (
-    [ordered]@{
+  $results = @()
+  foreach ($service in $services) {
+    $target = "$service/$account"
+    $code = [DesktopMaterialKeytarCredential]::Delete($service, $account)
+    # 1168 is ERROR_NOT_FOUND: already absent is the intended end state.
+    if ($code -ne 0 -and $code -ne 1168) {
+      throw "CredDelete failed for $target with Win32 error $code."
+    }
+    $results += [ordered]@{
       action  = 'remove'
       target  = $target
       removed = ($code -eq 0)
       absent  = ($code -eq 1168)
-    } | ConvertTo-Json -Compress
-  )
+    }
+  }
+  Write-Output ($results | ConvertTo-Json -Compress)
   return
 }
 
-$code = [DesktopMaterialKeytarCredential]::Write($service, $account, $ready.token)
-if ($code -ne 0) {
-  throw "CredWrite failed for $target with Win32 error $code."
-}
+foreach ($service in $services) {
+  $target = "$service/$account"
+  $code = [DesktopMaterialKeytarCredential]::Write($service, $account, $ready.token)
+  if ($code -ne 0) {
+    throw "CredWrite failed for $target with Win32 error $code."
+  }
 
-# Prove the round trip rather than trusting the write. A UTF-16 blob or a
-# service-only target both succeed at CredWrite and then fail to read back as
-# the token, which is exactly the silent failure this script exists to prevent.
-$readBack = [DesktopMaterialKeytarCredential]::Read($service, $account)
-if ($readBack -ne $ready.token) {
-  throw "Credential $target did not read back as the fixture token."
+  # Prove the round trip rather than trusting the write. A UTF-16 blob or a
+  # service-only target both succeed at CredWrite and then fail to read back as
+  # the token, which is exactly the silent failure this script exists to prevent.
+  $readBack = [DesktopMaterialKeytarCredential]::Read($service, $account)
+  if ($readBack -ne $ready.token) {
+    throw "Credential $target did not read back as the fixture token."
+  }
 }
 
 Write-Output (
   [ordered]@{
     action           = 'write'
-    target           = $target
-    service          = $service
+    services         = $services
     account          = $account
     endpoint         = $ready.endpoint
     blobEncoding     = 'utf-8'

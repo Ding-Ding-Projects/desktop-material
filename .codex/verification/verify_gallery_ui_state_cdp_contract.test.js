@@ -333,7 +333,10 @@ test('all state is reached through shipped controls and production stores', () =
     "'Add repository'",
     "clickText('Add tab to new group…'",
     "clickText('Create group', '#create-tab-group')",
-    "'.repository-list .repository-group-new-button'",
+    // Group creation moved into the repository list's "More" actions menu, so
+    // the reviewed control is that menu item rather than a retired button.
+    "'.repository-list .repository-more-actions-button'",
+    "'Create a repository group'",
     "clickText('Create group', '#manage-repository-group')",
     'runtime.dispatcher.refreshRepository(match)',
     'runtime.dispatcher.removeRepository(',
@@ -345,11 +348,11 @@ test('all state is reached through shipped controls and production stores', () =
   }
 })
 
-test('command palette contract proves aligned random mode and eight rich ollama rows', () => {
+test('command palette contract proves aligned random mode and rich ollama rows', () => {
   for (const contract of [
     'openCommandPaletteKeyboard()',
     "'ollama'",
-    'length === 8',
+    'length >= 8',
     "'#command-palette .command-palette-appearance-toggle'",
     "'Reset defaults'",
     "'Random per repository'",

@@ -1941,7 +1941,7 @@ async function clickPointerSelector(selector) {
 }
 
 /** Open the editor owned by a concrete element through its pointer contract. */
-async function contextMenuSelector(selector) {
+async function contextMenuSelector(selector, { shiftKey = false } = {}) {
   const opened = await evaluate(`(() => {
     const target = document.querySelector(${JSON.stringify(selector)})
     if (!(target instanceof HTMLElement)) return false
@@ -1949,6 +1949,7 @@ async function contextMenuSelector(selector) {
     target.dispatchEvent(new MouseEvent('contextmenu', {
       bubbles: true,
       cancelable: true,
+      shiftKey: ${JSON.stringify(shiftKey)},
       clientX: bounds.left + Math.min(24, bounds.width / 2),
       clientY: bounds.top + Math.min(18, bounds.height / 2),
     }))
@@ -7187,7 +7188,12 @@ scene('tab-arrange', async () => {
 
 scene('tab-style', async () => {
   await ensureRepository()
-  await contextMenuSelector('.repository-tab.active .repository-tab-label')
+  // The label reserves plain right-click for the tab-management menu; the
+  // anchored appearance editor's pointer gesture is Shift+Right-click
+  // (isAppearanceEditorPointerGesture), so the capture must hold Shift.
+  await contextMenuSelector('.repository-tab.active .repository-tab-label', {
+    shiftKey: true,
+  })
   await waitForPrivacySafeAnchoredEditor('tab-title owner appearance editor')
   await sleep(900)
   await parkPointer()
@@ -8067,7 +8073,12 @@ scene('logo-studio', async () => {
     `document.querySelector('.repository-list-logo-appearance-target') !== null`,
     'repository logo owner'
   )
-  await contextMenuSelector('.repository-list-logo-appearance-target')
+  // The logo target's pointer gesture is Shift+Right-click, matching every
+  // per-element appearance editor owner (plain right-click stays with the
+  // row's ordinary context menu).
+  await contextMenuSelector('.repository-list-logo-appearance-target', {
+    shiftKey: true,
+  })
   await waitForPrivacySafeAnchoredEditor('repository logo owner editor')
   await waitFor(
     `document.querySelector('.repository-logo-studio') !== null`,
@@ -8573,11 +8584,39 @@ scene('sparse-checkout-safe', async () => {
 scene('pull-all', async () => {
   await ensureRepository()
   await menuEvent('choose-repository')
+  // Batch sync is no longer a bare button in the repository sheet: it moved
+  // into the list's "More" actions menu beside Commit & push all. Open that
+  // menu and pick the item, rather than waiting forever for a button that the
+  // shipped UI stopped rendering.
   await waitFor(
-    `[...document.querySelectorAll('button')].some(button => button.textContent.trim() === 'Sync repositories')`,
+    `document.querySelector('.repository-more-actions-button') !== null`,
+    'repository list more-actions button'
+  )
+  await clickSelector('.repository-more-actions-button')
+  await waitFor(
+    `(() => {
+      const menu = document.querySelector('.material-context-menu[role="menu"]')
+      const item = [...(menu?.querySelectorAll('button.context-menu-item') ?? [])]
+        .find(button =>
+          button.querySelector('.context-menu-item-label')?.textContent?.trim() ===
+            'Sync repositories'
+        )
+      return menu instanceof HTMLElement && item instanceof HTMLButtonElement &&
+        !item.disabled && item.getAttribute('aria-disabled') !== 'true'
+    })()`,
     'repository batch-sync action'
   )
-  await clickText('Sync repositories')
+  await evaluate(`(() => {
+    const menu = document.querySelector('.material-context-menu[role="menu"]')
+    const item = [...(menu?.querySelectorAll('button.context-menu-item') ?? [])]
+      .find(button =>
+        button.querySelector('.context-menu-item-label')?.textContent?.trim() ===
+          'Sync repositories'
+      )
+    if (!(item instanceof HTMLButtonElement)) return false
+    item.click()
+    return true
+  })()`)
   await waitFor(
     `document.querySelector('#pull-all-repositories [aria-label="Repository batch review"]') !== null`,
     'repository batch review'
@@ -8854,7 +8893,10 @@ scene('actions-artifact-download', async () => {
 scene('actions-artifact-page-two', async () => {
   await openFirstRun()
   const pageOneArtifactCount = ready.artifactCount - 1
-  const pageOneArtifactStatus = `Showing ${pageOneArtifactCount} loaded of ${ready.artifactCount} artifacts.`
+  // The status line gained a "· N visible" clause (artifacts.showingStatus in
+  // i18n-resources), so the expectation names loaded, total and visible rather
+  // than the retired two-number sentence.
+  const pageOneArtifactStatus = `Showing ${pageOneArtifactCount} loaded of ${ready.artifactCount} artifacts · ${pageOneArtifactCount} visible.`
   await waitFor(
     `(() => {
       const artifacts = document.querySelector('.actions-run-details .actions-artifacts')
@@ -8892,7 +8934,7 @@ scene('actions-artifact-page-two', async () => {
       const artifacts = document.querySelector('.actions-run-details .actions-artifacts')
       const pagination = artifacts?.querySelector('.actions-artifact-pagination')
       const heading = artifacts?.querySelector('#actions-artifact-${ready.artifactSentinelId}')
-      return pagination?.textContent?.trim() === 'Showing ${ready.artifactCount} loaded of ${ready.artifactCount} artifacts.' &&
+      return pagination?.textContent?.trim() === 'Showing ${ready.artifactCount} loaded of ${ready.artifactCount} artifacts · ${ready.artifactCount} visible.' &&
         heading?.textContent?.trim() ===
           'page-two-artifact-sentinel-with-a-deliberately-long-name-that-must-wrap-without-clipping-overlap-or-sideways-scrolling' &&
         artifacts?.querySelectorAll('#actions-artifact-grid .actions-artifact-card').length === ${ready.artifactCount}

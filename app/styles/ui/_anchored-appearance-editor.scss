@@ -188,9 +188,14 @@
   // anchored-appearance-editor-content. Letting the workbench create another
   // one puts two adjacent vertical scrollbars beside the controls and makes
   // wheel/keyboard ownership ambiguous.
+  //
+  // Both axes must be released together: the workbench's own rule sets
+  // overflow-x hidden, and CSS computes a (hidden, visible) pair as
+  // (hidden, auto) — which silently re-created the second scroll owner this
+  // override exists to prevent.
   .repository-logo-editor-scroll {
     max-height: none;
-    overflow-y: visible;
+    overflow: visible;
     padding-right: 0;
     scrollbar-gutter: auto;
   }

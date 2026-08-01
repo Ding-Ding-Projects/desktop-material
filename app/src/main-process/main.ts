@@ -36,6 +36,7 @@ import {
   withSourceMappedStack,
 } from '../lib/source-map-support'
 import { now } from './now'
+import { isSameDocumentReloadUrl } from '../lib/same-document-reload'
 import { classifyPeerClosedStreamError } from '../lib/peer-closed-stream-error'
 import { showUncaughtException } from './show-uncaught-exception'
 import { buildContextMenu } from './menu/build-context-menu'
@@ -1941,6 +1942,13 @@ app.on('web-contents-created', (event, contents) => {
   // see https://www.electronjs.org/docs/tutorial/security#12-disable-or-limit-navigation
   contents.on('will-navigate', (event, url) => {
     if (isInternalBrowserRemoteWebContents(contents)) {
+      return
+    }
+    // window.location.reload() also emits will-navigate, carrying the
+    // document's own URL. Denying it silently killed every renderer Reload
+    // button (the crash-proof boundary's and the startup shell's), so the
+    // same-document reload stays allowed; only navigation away is prevented.
+    if (isSameDocumentReloadUrl(contents.getURL(), url)) {
       return
     }
     event.preventDefault()

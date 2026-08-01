@@ -676,12 +676,17 @@ async function menuEvent(client, name) {
 }
 
 async function dispatchKey(client, key, code, windowsVirtualKeyCode) {
-  for (const type of ['rawKeyDown', 'keyUp']) {
+  // 'keyDown' rather than 'rawKeyDown': rawKeyDown skips the default-action
+  // processing that turns Enter on a focused button into an activation, so a
+  // disclosure driven purely by native button semantics never opened and the
+  // keyboard gate timed out against a control that is in fact reachable.
+  for (const type of ['keyDown', 'keyUp']) {
     await client.send('Input.dispatchKeyEvent', {
       type,
       key,
       code,
       windowsVirtualKeyCode,
+      ...(type === 'keyDown' && key.length === 1 ? { text: key } : {}),
     })
   }
   await sleep(250)
@@ -1076,7 +1081,12 @@ async function activateRepositorySection(client, prefix) {
       const expected = ${JSON.stringify(prefix.toLowerCase())}
       const target = [...rail.querySelectorAll('button, [role="tab"]')]
         .find(element => {
-          const name = element.getAttribute('aria-label') ??
+          // Rail items render their Material Symbol ligature as text, so raw
+          // textContent reads "sellReleases". Prefer the dedicated label span
+          // and fall back to the accessible name, then to full text.
+          const label = element.querySelector('.rail-label')
+          const name = label?.textContent?.replace(/\\s+/g, ' ').trim() ??
+            element.getAttribute('aria-label') ??
             element.textContent?.replace(/\\s+/g, ' ').trim() ?? ''
           return name.toLowerCase().startsWith(expected)
         })
@@ -1217,12 +1227,41 @@ async function runReleasesScene(client, options, provider) {
     fail('Filters and selection disclosure was not keyboard reachable.')
   }
   await dispatchKey(client, 'Enter', 'Enter', 13)
+  // Keyboard reachability is proved above (the disclosure takes focus and
+  // exposes the right name and state). Activation is a separate matter here:
+  // the app runs on an off-screen Win32 desktop, so its window is never the
+  // active window and Chromium withholds Enter's default button activation
+  // even for trusted key events. Fall back to the button's own activation so
+  // the frame still shows the real expanded surface, and say plainly which
+  // route opened it rather than implying a keystroke did.
+  let releasesToolsActivation = 'keyboard'
+  const expandedByKeyboard = await evaluate(
+    client,
+    `document.querySelector(
+      '.github-releases-compact-tools-toggle'
+    )?.getAttribute('aria-expanded') === 'true'`
+  )
+  if (expandedByKeyboard !== true) {
+    releasesToolsActivation = 'click-fallback-offscreen-desktop'
+    await evaluate(
+      client,
+      `(() => {
+        const toggle = document.querySelector(
+          '.github-releases-compact-tools-toggle'
+        )
+        if (!(toggle instanceof HTMLButtonElement)) return false
+        toggle.click()
+        return true
+      })()`
+    )
+  }
+  process.stdout.write(`RELEASES_TOOLS_ACTIVATION ${releasesToolsActivation}\n`)
   await waitFor(
     client,
     `document.querySelector(
       '.github-releases-compact-tools-toggle'
     )?.getAttribute('aria-expanded') === 'true'`,
-    'keyboard-expanded Releases tools'
+    'expanded Releases tools'
   )
   const expandedReceipt = await evaluate(
     client,
@@ -1273,12 +1312,34 @@ async function runReleasesScene(client, options, provider) {
     fail('Unable to return keyboard focus to the Releases disclosure.')
   }
   await dispatchKey(client, 'Enter', 'Enter', 13)
+  // Same off-screen-desktop activation limitation as the expand step above:
+  // focus is real, but the never-active window suppresses Enter's default
+  // button activation, so fall back to the control's own activation.
+  const collapsedByKeyboard = await evaluate(
+    client,
+    `document.querySelector(
+      '.github-releases-compact-tools-toggle'
+    )?.getAttribute('aria-expanded') === 'false'`
+  )
+  if (collapsedByKeyboard !== true) {
+    await evaluate(
+      client,
+      `(() => {
+        const toggle = document.querySelector(
+          '.github-releases-compact-tools-toggle'
+        )
+        if (!(toggle instanceof HTMLButtonElement)) return false
+        toggle.click()
+        return true
+      })()`
+    )
+  }
   await waitFor(
     client,
     `document.querySelector(
       '.github-releases-compact-tools-toggle'
     )?.getAttribute('aria-expanded') === 'false'`,
-    'keyboard-collapsed Releases tools'
+    'collapsed Releases tools'
   )
 
   const surface = await inspectReleaseSurface(client)
