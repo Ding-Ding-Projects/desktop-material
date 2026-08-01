@@ -1,5 +1,31 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-01 — Gallery recapture after the palette rework
+
+Issue #23 asked for every published screenshot to be replaced. **81 of 92 are
+refreshed** against a build containing the full-app command palette; the 11
+that are not are listed with concrete blockers in
+`.codex/run-manifests/2026-08-01-gallery-recapture.md` (5 are the Linux TUI,
+which is out of scope by directive).
+
+The run exposed three real app defects, all fixed here:
+
+1. `window.location.reload()` was dead app-wide — the main process denied every
+   `will-navigate`, including a document reloading itself, so both renderer
+   Reload buttons did nothing. Fixed in `app/src/lib/same-document-reload.ts`.
+2. The repository logo editor grew a second scrollbar because its override
+   released `overflow-y` but not `overflow-x` (CSS computes `(hidden, visible)`
+   as `(hidden, auto)`).
+3. The capture fixture seeded its token under the dev-flavoured credential
+   service name only, so a production build could never hydrate an account —
+   the blocker that killed the 2026-07-31 run.
+
+Four harness drifts were also corrected (Shift+right-click appearance editors,
+two controls that moved into the More menu, the `· N visible` artifacts clause,
+and rail buttons whose text now embeds their Material Symbol ligature).
+
+Dewed: `66d446266e`, ancestry proven on the hui's `main`.
+
 ## 2026-07-31 — Full-app command palette: rich controls and teleport
 
 The Ctrl+F command palette was rebuilt as Material 3's full-screen search

@@ -1,6 +1,19 @@
 # Desktop Material roadmap
 
-Updated: **July 31, 2026**
+Updated: **August 1, 2026**
+
+## August 1 gallery recapture — **81 of 92 frames refreshed; 11 blocked and named**
+
+- Every published screenshot the harness can drive was re-shot against a build
+  carrying the full-app command palette, so the gallery stops documenting a UI
+  that no longer exists.
+- Three real app defects surfaced and were fixed: a dead
+  `window.location.reload()` app-wide, a double scrollbar in the repository
+  logo editor, and a capture credential seeded under one build flavour only.
+- Four harness drifts corrected; two acceptance gates rewritten to assert what
+  they meant rather than a fixed row count.
+- Remaining 11 frames (5 of them the out-of-scope Linux TUI) are itemized with
+  blockers in `.codex/run-manifests/2026-08-01-gallery-recapture.md`.
 
 ## July 31 full-app command palette with rich controls and teleport — **Implemented and locally verified**
 
