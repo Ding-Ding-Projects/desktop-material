@@ -35,6 +35,13 @@ Exact non-UTF-8 blob restoration, real submodule add/rollback, protected-path
 zero-read behavior, early remote-mutation gates, and mixed/manual failure
 merging are covered by the final focused suites.
 
+The first hosted run exposed two rebase-adjacent integration checks: a duplicate
+Help-menu <kbd>H</kbd> mnemonic from the incoming changelog viewer, and a
+duplicate desktop feature-summary row against the frozen TUI parity count. The
+Windows mnemonic now uses <kbd>R</kbd>; the duplicate summary row is removed
+without touching the out-of-scope TUI, while the full reliability article and
+Pages feature card remain published.
+
 ## July 30 Publish organization sizing — **Implementation pushed; final hosted proof pending**
 
 Publish repository's Organization field is now an explicit-None searchable

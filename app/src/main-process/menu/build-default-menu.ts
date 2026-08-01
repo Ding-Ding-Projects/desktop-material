@@ -673,7 +673,7 @@ export function buildDefaultMenuTemplate(
 
   const showChangelogItem: Electron.MenuItemConstructorOptions = {
     id: 'show-changelog',
-    label: __DARWIN__ ? 'Release History' : 'Release &history',
+    label: __DARWIN__ ? 'Release History' : '&Release history',
     click: emit('show-changelog'),
   }
 

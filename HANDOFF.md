@@ -216,6 +216,15 @@ remain pending. Rolling progress is recorded in
 都唔會俾 UTF-8 攪成炒蛋。Cheap LFS 亦識得分清 metadata 同大檔，唔會再
 亂報 unsafe path，更加唔會未判死刑就走去開 Release、commit 或 push。
 
+The first hosted CI run (`30677422935`) found one inherited Windows regression
+from the changelog commit rebased immediately before this fix: **Release
+history** and **Show logs in Explorer** both claimed <kbd>H</kbd> in Help. The
+release-history mnemonic now uses <kbd>R</kbd>; the exhaustive menu combination
+test passes. The same run's three Linux parity jobs reported 202 desktop feature
+rows against a frozen 201-row TUI contract. Rather than edit the prohibited TUI
+surface, this follow-up removes the duplicate summary row while retaining the
+dedicated feature article, category index, Pages card, and app documentation.
+
 ## 2026-07-30 — Publish organization listbox sizing (pushed acceptance)
 
 Publish repository's Organization control is no longer a native select whose
