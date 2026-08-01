@@ -220,6 +220,7 @@ import type {
 } from './copilot-store'
 import { Account, getAccountKey, isDotComAccount } from '../../models/account'
 import { AppMenu, IMenu } from '../../models/app-menu'
+import { setMenuAccelerators } from '../menu-accelerators'
 import { Author } from '../../models/author'
 import { Branch, BranchType, IAheadBehind } from '../../models/branch'
 import { BranchesTab } from '../../models/branches-tab'
@@ -15842,6 +15843,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
    *
    */
   private setAppMenu(menu: IMenu): Promise<void> {
+    // Context menus read their shortcut hints from here rather than repeating
+    // the accelerator strings, so the two records cannot drift apart.
+    setMenuAccelerators(menu)
+
     if (this.appMenu) {
       this.appMenu = this.appMenu.withMenu(menu)
     } else {

@@ -80,6 +80,7 @@ import {
   normalizeDiffContextPreferences,
   readDiffContextPreferences,
 } from './diff-context-preferences'
+import { roleAccelerator } from '../../lib/menu-accelerators'
 
 const DefaultRowHeight = 20
 
@@ -1481,10 +1482,12 @@ export class SideBySideDiff extends React.Component<
         // When using role="copy", the enabled attribute is not taken into account.
         role: selectionLength > 0 ? 'copy' : undefined,
         enabled: selectionLength > 0,
+        accelerator: roleAccelerator('copy'),
       },
       {
         label: __DARWIN__ ? 'Select All' : 'Select all',
         action: () => this.onSelectAll(),
+        accelerator: roleAccelerator('selectAll'),
       },
     ]
 

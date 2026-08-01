@@ -107,6 +107,7 @@ import {
   getWorkingDirectoryFileSizes,
   IWorkingDirectoryFileSize,
 } from '../../lib/large-files'
+import { menuAccelerator } from '../../lib/menu-accelerators'
 
 export interface IChangesListItem extends IFilterListItem {
   readonly id: string
@@ -795,6 +796,7 @@ export class FilterChangesList extends React.Component<
         label: __DARWIN__ ? 'Discard All Changes…' : 'Discard all changes…',
         action: this.onDiscardAllChanges,
         enabled: hasLocalChanges,
+        accelerator: menuAccelerator('discard-all-changes'),
       },
       {
         label: __DARWIN__
@@ -807,6 +809,7 @@ export class FilterChangesList extends React.Component<
         label: stashAllChangesLabel,
         action: this.onStashAllChanges,
         enabled: hasLocalChanges && this.props.branch !== null && !hasConflicts,
+        accelerator: menuAccelerator('stash-all-changes'),
       },
     ]
 

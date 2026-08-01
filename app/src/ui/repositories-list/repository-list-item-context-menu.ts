@@ -11,6 +11,7 @@ import {
 } from '../lib/context-menu'
 import { getPersistedLanguageMode, translate } from '../../lib/i18n'
 import { LanguageMode } from '../../models/language-mode'
+import { menuAccelerator } from '../../lib/menu-accelerators'
 
 interface IRepositoryListItemContextMenuConfig {
   repository: Repositoryish
@@ -144,6 +145,7 @@ export const generateRepositoryListContextMenu = (
       label: 'View on GitHub',
       action: () => config.onViewOnGitHub(repository),
       enabled: github,
+      accelerator: menuAccelerator('view-repository-on-github'),
     },
     {
       label: __DARWIN__ ? 'Fork Repository…' : 'Fork repository…',
@@ -154,21 +156,25 @@ export const generateRepositoryListContextMenu = (
       label: openInShell,
       action: () => config.onOpenInShell(repository),
       enabled: !missing,
+      accelerator: menuAccelerator('open-in-shell'),
     },
     {
       label: RevealInFileManagerLabel,
       action: () => config.onShowRepository(repository),
       enabled: !missing,
+      accelerator: menuAccelerator('open-working-directory'),
     },
     {
       label: openInExternalEditor,
       action: () => config.onOpenInExternalEditor(repository),
       enabled: !missing,
+      accelerator: menuAccelerator('open-external-editor'),
     },
     { type: 'separator' },
     {
       label: config.askForConfirmationOnRemoveRepository ? 'Remove…' : 'Remove',
       action: () => config.onRemoveRepository(repository),
+      accelerator: menuAccelerator('remove-repository'),
     },
   ]
 
@@ -244,6 +250,7 @@ const buildWorktreeMenuItems = (
     items.push({
       label: __DARWIN__ ? 'Show Worktrees' : 'Show worktrees',
       action: () => onShowWorktrees(repository),
+      accelerator: menuAccelerator('show-worktrees-list'),
     })
   }
 
@@ -251,6 +258,7 @@ const buildWorktreeMenuItems = (
     items.push({
       label: __DARWIN__ ? 'New Worktree…' : 'New worktree…',
       action: () => onCreateWorktree(repository),
+      accelerator: menuAccelerator('create-worktree'),
     })
   }
 

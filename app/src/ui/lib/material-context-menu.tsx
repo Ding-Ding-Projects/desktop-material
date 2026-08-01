@@ -16,6 +16,7 @@ import {
   TranslationVariables,
 } from '../../lib/i18n'
 import { LanguageMode } from '../../models/language-mode'
+import { roleAccelerator } from '../../lib/menu-accelerators'
 
 /**
  * The Material Design in-app context menu.
@@ -53,23 +54,23 @@ function expandEditMenu(): ReadonlyArray<IMenuItem> {
     {
       label: label('contextMenu.cut'),
       role: 'cut',
-      accelerator: 'CmdOrCtrl+X',
+      accelerator: roleAccelerator('cut'),
     },
     {
       label: label('contextMenu.copy'),
       role: 'copy',
-      accelerator: 'CmdOrCtrl+C',
+      accelerator: roleAccelerator('copy'),
     },
     {
       label: label('contextMenu.paste'),
       role: 'paste',
-      accelerator: 'CmdOrCtrl+V',
+      accelerator: roleAccelerator('paste'),
     },
     { type: 'separator' },
     {
       label: label('contextMenu.selectAll'),
       role: 'selectAll',
-      accelerator: 'CmdOrCtrl+A',
+      accelerator: roleAccelerator('selectAll'),
     },
   ]
 }

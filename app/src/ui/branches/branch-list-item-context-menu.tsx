@@ -2,6 +2,7 @@ import { IMenuItem } from '../../lib/menu-item'
 import { clipboard } from 'electron'
 import { Branch, BranchType } from '../../models/branch'
 import { getPersistedLanguageMode, translate } from '../../lib/i18n'
+import { menuAccelerator } from '../../lib/menu-accelerators'
 
 interface IBranchContextMenuConfig {
   branch: Branch
@@ -90,6 +91,7 @@ export function generateBranchContextMenuItems(
     items.push({
       label: 'View Branch on GitHub',
       action: () => onViewBranchOnGitHub(),
+      accelerator: menuAccelerator('branch-on-github'),
     })
   }
 
@@ -100,6 +102,7 @@ export function generateBranchContextMenuItems(
         getPersistedLanguageMode()
       ),
       action: () => onViewPullRequestOnGitHub(),
+      accelerator: menuAccelerator('create-pull-request'),
     })
   }
 

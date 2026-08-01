@@ -128,6 +128,7 @@ import {
   sanitizeBulkFailureReason,
 } from '../../lib/automation/bulk-repository-runner'
 import { RepositorySyncOperation } from '../../lib/automation/pull-all'
+import { menuAccelerator } from '../../lib/menu-accelerators'
 
 interface IRepositoriesListProps {
   /** Signed-in identities used by the account and provider scope controls. */
@@ -1851,16 +1852,19 @@ export class RepositoriesList extends React.Component<
       {
         label: __DARWIN__ ? 'Clone Repository…' : 'Clone repository…',
         action: this.onCloneRepository,
+        accelerator: menuAccelerator('clone-repository'),
       },
       {
         label: __DARWIN__ ? 'Create New Repository…' : 'Create new repository…',
         action: this.onCreateNewRepository,
+        accelerator: menuAccelerator('new-repository'),
       },
       {
         label: __DARWIN__
           ? 'Add Existing Repository…'
           : 'Add existing repository…',
         action: this.onAddExistingRepository,
+        accelerator: menuAccelerator('add-local-repository'),
       },
     ]
 

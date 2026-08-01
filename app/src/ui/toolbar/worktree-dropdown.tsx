@@ -16,6 +16,7 @@ import { PopupType } from '../../models/popup'
 import { Resizable } from '../resizable'
 import { enableResizingToolbarButtons } from '../../lib/feature-flag'
 import { WorktreeAdministration } from '../worktrees/worktree-administration'
+import { menuAccelerator } from '../../lib/menu-accelerators'
 
 interface IWorktreeDropdownProps {
   readonly dispatcher: Dispatcher
@@ -148,6 +149,7 @@ export class WorktreeDropdown extends React.Component<
     const newWorktreeItem: IMenuItem = {
       label: __DARWIN__ ? 'New Worktree…' : 'New worktree…',
       action: this.onCreateNewWorktree,
+      accelerator: menuAccelerator('create-worktree'),
     }
 
     showContextualMenu([newWorktreeItem, { type: 'separator' }, ...items])
