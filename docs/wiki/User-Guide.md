@@ -644,10 +644,23 @@ intact.
 
 ## Command palette
 
-Press `Ctrl+F` to search every named app function. Each comfortable row shows a
-leading Material Symbol, localized title, optional search-term line, and a
-localized Navigate, Repository, Branch, Changes, Edit, or App chip. Compact
-density fits more commands by suppressing the secondary line.
+Press `Ctrl+F` to search every named app function. The palette covers the
+whole app (Material 3's full-screen search view): results on the left, a
+detail pane on the right naming what the highlighted command does and **where
+it lives**, and a footer with the match count and keyboard hints. Each
+comfortable row shows a leading Material Symbol, localized title, a compact
+home label ("Toolbar", "Settings › Appearance"), optional search-term line,
+and a localized Navigate, Repository, Branch, Changes, Edit, or App chip.
+Compact density fits more commands by suppressing the secondary line.
+
+Rows that are settings carry their live control inline — a switch for a
+boolean, a text box for free text, a numeric box for a bounded number, a
+select for a choice — so the value can be read and changed without leaving
+the palette. Clicking any row (or pressing `Enter`) **teleports** to the
+control that owns the feature: the owning surface opens, the control scrolls
+into view, gets a brief spotlight ring, and receives focus. `Ctrl+Enter` or
+the row's **Run** button executes the command instead; destructive and
+network commands (push, force push, discard…) never fire from a teleport.
 
 Use **Customize appearance** beside the filter and regex controls to choose
 comfortable or compact rows and independently show/hide icons, group chips,

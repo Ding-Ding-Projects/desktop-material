@@ -342,7 +342,17 @@ import { getNumber } from '../lib/local-storage'
 import { IconPreviewDialog } from './octicons/icon-preview-dialog'
 import { isCertificateErrorSuppressedFor } from '../lib/suppress-certificate-error'
 import { webUtils, clipboard } from 'electron'
-import { IPaletteCommandContext } from '../lib/command-palette-catalog'
+import {
+  IPaletteCommand,
+  IPaletteCommandContext,
+  PaletteControlValue,
+  preferencesPaletteEvent,
+  resolvePaletteHome,
+} from '../lib/command-palette-catalog'
+import { resolvePaletteHomeLabel } from './command-palette/command-palette'
+import { teleportTo } from './lib/teleport'
+import { normalizeLanguageMode } from '../models/language-mode'
+import { clampFunnyLevel } from '../lib/audio/audio-settings'
 import { showTestUI } from './lib/test-ui-components/test-ui-components'
 import { ConfirmCommitFilteredChanges } from './changes/confirm-commit-filtered-changes-dialog'
 import { AboutTestDialog } from './about/about-test-dialog'
@@ -1314,6 +1324,10 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showPreferencesTab(PreferencesTab.Git)
       case 'palette:preferences-accessibility':
         return this.showPreferencesTab(PreferencesTab.Accessibility)
+      case 'palette:preferences-prompts':
+        return this.showPreferencesTab(PreferencesTab.Prompts)
+      case 'palette:preferences-agent-access':
+        return this.showPreferencesTab(PreferencesTab.AgentAccess)
       case 'palette:preferences-sound':
         return this.showPreferencesTab(PreferencesTab.Sound)
       case 'palette:preferences-copilot':
@@ -1427,6 +1441,197 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (tip !== undefined && tip.kind === TipState.Valid) {
       clipboard.writeText(tip.branch.tip.sha)
     }
+  }
+
+  /**
+   * The live value behind every palette command that carries a control, so the
+   * palette can show what a setting *is* before offering to change it.
+   */
+  private getPaletteControlValues(): ReadonlyMap<string, PaletteControlValue> {
+    const values = new Map<string, PaletteControlValue>()
+    const audio = this.audioCueStore.getSettings()
+    const customization = this.state.appearanceCustomization
+    const repositoryState = this.getSelectedRepositoryState()
+
+    values.set(
+      'palette:toggle-theme',
+      this.state.currentTheme === ApplicationTheme.Dark
+    )
+    values.set('palette:set-language-mode', customization.languageMode)
+    values.set('palette:set-funny-english', audio.funnyLevelEnglish)
+    values.set('palette:set-funny-cantonese', audio.funnyLevelCantonese)
+    values.set('palette:set-tab-size', this.state.selectedTabSize)
+    values.set(
+      'palette:set-highlight-features',
+      customization.highlightDesktopMaterialFeatures
+    )
+    values.set(
+      'palette:set-confirm-discard',
+      this.state.askForConfirmationOnDiscardChanges
+    )
+    values.set(
+      'palette:set-confirm-force-push',
+      this.state.askForConfirmationOnForcePush
+    )
+    values.set(
+      'palette:set-confirm-repository-removal',
+      this.state.askForConfirmationOnRepositoryRemoval
+    )
+    values.set(
+      'palette:set-commit-length-warning',
+      this.state.showCommitLengthWarning
+    )
+    values.set(
+      'palette:set-notifications-enabled',
+      this.state.notificationsEnabled
+    )
+    values.set('palette:set-underline-links', this.state.underlineLinks)
+    values.set(
+      'palette:set-external-credential-helper',
+      this.state.useExternalCredentialHelper
+    )
+    values.set('palette:set-windows-openssh', this.state.useWindowsOpenSSH)
+    values.set('palette:set-side-by-side-diff', this.state.showSideBySideDiff)
+    values.set(
+      'palette:set-hide-whitespace-changes',
+      this.state.hideWhitespaceInChangesDiff
+    )
+    values.set(
+      'palette:entry-commit-summary',
+      repositoryState?.state.changesState.commitMessage.summary ?? ''
+    )
+    // The clone box is a one-shot: it has no stored value to show back.
+    values.set('palette:entry-clone-url', '')
+
+    return values
+  }
+
+  /** Write a value a palette control changed, without closing the palette. */
+  private onPaletteControlChange = (
+    event: string,
+    value: PaletteControlValue
+  ) => {
+    const { dispatcher } = this.props
+    const asBoolean = value === true
+    const asNumber = typeof value === 'number' ? value : Number(value)
+    const asText = String(value)
+    const repository = this.getRepository()
+
+    switch (event) {
+      case 'palette:toggle-theme':
+        return dispatcher.setSelectedTheme(
+          asBoolean ? ApplicationTheme.Dark : ApplicationTheme.Light
+        )
+      case 'palette:set-language-mode':
+        return dispatcher.setAppearanceCustomization({
+          ...this.state.appearanceCustomization,
+          languageMode: normalizeLanguageMode(asText),
+        })
+      case 'palette:set-highlight-features':
+        return dispatcher.setAppearanceCustomization({
+          ...this.state.appearanceCustomization,
+          highlightDesktopMaterialFeatures: asBoolean,
+        })
+      case 'palette:set-funny-english':
+        return this.audioCueStore.setSettings({
+          ...this.audioCueStore.getSettings(),
+          funnyLevelEnglish: clampFunnyLevel(asNumber, 3),
+        })
+      case 'palette:set-funny-cantonese':
+        return this.audioCueStore.setSettings({
+          ...this.audioCueStore.getSettings(),
+          funnyLevelCantonese: clampFunnyLevel(asNumber, 3),
+        })
+      case 'palette:set-tab-size':
+        return dispatcher.setSelectedTabSize(asNumber)
+      case 'palette:set-confirm-discard':
+        dispatcher.setConfirmDiscardChangesSetting(asBoolean)
+        return
+      case 'palette:set-confirm-force-push':
+        dispatcher.setConfirmForcePushSetting(asBoolean)
+        return
+      case 'palette:set-confirm-repository-removal':
+        dispatcher.setConfirmRepoRemovalSetting(asBoolean)
+        return
+      case 'palette:set-commit-length-warning':
+        return dispatcher.setShowCommitLengthWarning(asBoolean)
+      case 'palette:set-notifications-enabled':
+        return dispatcher.setNotificationsEnabled(asBoolean)
+      case 'palette:set-underline-links':
+        return dispatcher.setUnderlineLinksSetting(asBoolean)
+      case 'palette:set-external-credential-helper':
+        return dispatcher.setUseExternalCredentialHelper(asBoolean)
+      case 'palette:set-windows-openssh':
+        return dispatcher.setUseWindowsOpenSSH(asBoolean)
+      case 'palette:set-side-by-side-diff':
+        dispatcher.onShowSideBySideDiffChanged(asBoolean)
+        return
+      case 'palette:set-hide-whitespace-changes':
+        if (repository instanceof Repository) {
+          dispatcher.onHideWhitespaceInChangesDiffChanged(asBoolean, repository)
+        }
+        return
+      case 'palette:entry-commit-summary': {
+        if (!(repository instanceof Repository)) {
+          return
+        }
+        const current =
+          this.getSelectedRepositoryState()?.state.changesState.commitMessage
+        dispatcher.setCommitMessage(repository, {
+          summary: asText,
+          description: current?.description ?? null,
+          timestamp: Date.now(),
+        })
+        return
+      }
+      case 'palette:entry-clone-url':
+        return this.showCloneRepo(asText)
+      default:
+        return
+    }
+  }
+
+  /**
+   * Take the user to where a command's feature lives: open the surface that
+   * owns it, then spotlight the exact control. Deliberately not the same as
+   * running the command — teleporting to "Force push" shows the toolbar button
+   * and pushes nothing.
+   */
+  private onPaletteTeleport = (command: IPaletteCommand) => {
+    const home = resolvePaletteHome(command)
+    const openEvent =
+      home.kind === 'preferences'
+        ? preferencesPaletteEvent(home.tab)
+        : home.openEvent === 'self'
+        ? command.event
+        : home.openEvent
+
+    if (openEvent !== undefined) {
+      this.onPaletteCommand(openEvent)
+    }
+
+    const { targetId } = home
+    if (targetId === undefined) {
+      return
+    }
+
+    teleportTo(targetId).then(
+      found => {
+        if (found) {
+          return
+        }
+        // The surface never appeared — say so rather than leaving the user
+        // staring at an unchanged screen wondering what the click did.
+        this.props.dispatcher.postNotification({
+          kind: 'info',
+          title: t('commandPalette.title'),
+          body: t('commandPalette.teleportMissing', {
+            place: resolvePaletteHomeLabel(home),
+          }),
+        })
+      },
+      error => log.warn('[App] palette teleport failed', error)
+    )
   }
 
   /** The current selection snapshot the command palette gates commands on. */
@@ -4389,6 +4594,9 @@ export class App extends React.Component<IAppProps, IAppState> {
           <CommandPalette
             key="command-palette"
             onExecute={this.onPaletteCommand}
+            onTeleport={this.onPaletteTeleport}
+            controlValues={this.getPaletteControlValues()}
+            onControlChange={this.onPaletteControlChange}
             availabilityContext={this.getPaletteAvailabilityContext()}
             onDismissed={onPopupDismissedFn}
           />

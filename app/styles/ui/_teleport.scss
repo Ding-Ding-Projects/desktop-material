@@ -1,0 +1,34 @@
+// The landing pad for a command palette teleport.
+//
+// After the palette takes the user to where a feature lives, the control is
+// ringed for a couple of seconds so it is unmistakable among its neighbours —
+// a settings checkbox in a stack of nine identical checkboxes is otherwise
+// "somewhere on this tab", which is exactly the problem teleporting solves.
+.teleport-spotlight {
+  position: relative;
+  border-radius: var(--md-sys-shape-corner-small, 8px);
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 4px;
+  animation: teleportSpotlightPulse 1200ms ease-out 2;
+}
+
+@keyframes teleportSpotlightPulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--md-sys-color-primary);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+// Reduced motion keeps the ring — it is the whole point — and drops the pulse.
+@media (prefers-reduced-motion: reduce) {
+  .teleport-spotlight {
+    animation: none;
+  }
+}

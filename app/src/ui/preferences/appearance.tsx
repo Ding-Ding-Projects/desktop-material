@@ -37,6 +37,7 @@ import {
   AudioCueStore,
   getAudioCueStore,
 } from '../../lib/audio/audio-cue-store'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 type AppearanceSelectKey = 'languageMode'
 
@@ -155,7 +156,10 @@ export class Appearance extends React.Component<
       translate(key, languageMode)
 
     return (
-      <div className="appearance-section appearance-customization-section appearance-language-navigation">
+      <div
+        className="appearance-section appearance-customization-section appearance-language-navigation"
+        {...teleportAnchor('settings-language-mode')}
+      >
         <h2>{localize('appearance.languageAndNavigation')}</h2>
         <Row>
           {this.renderCustomizationSelect(
@@ -221,7 +225,14 @@ export class Appearance extends React.Component<
     })
 
     return (
-      <div className="appearance-playfulness-control">
+      <div
+        className="appearance-playfulness-control"
+        {...teleportAnchor(
+          language === 'english'
+            ? 'settings-funny-english'
+            : 'settings-funny-cantonese'
+        )}
+      >
         <div className="appearance-playfulness-label-row">
           <label htmlFor={id}>{label}</label>
           <output id={outputId} htmlFor={id} aria-live="polite">
@@ -541,7 +552,7 @@ export class Appearance extends React.Component<
     ]
 
     return (
-      <div className="appearance-section">
+      <div className="appearance-section" {...teleportAnchor('settings-theme')}>
         <h2 id="theme-heading">Theme</h2>
 
         <RadioGroup<ApplicationTheme>
@@ -624,7 +635,10 @@ export class Appearance extends React.Component<
     const availableTabSizes: number[] = [1, 2, 3, 4, 5, 6, 8, 10, 12]
 
     return (
-      <div className="appearance-section">
+      <div
+        className="appearance-section"
+        {...teleportAnchor('settings-tab-size')}
+      >
         <h2 id="diff-heading">Diff</h2>
 
         <Select

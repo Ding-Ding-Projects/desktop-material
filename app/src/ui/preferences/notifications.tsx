@@ -20,6 +20,7 @@ import {
   translate,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 interface INotificationPreferencesProps {
   readonly notificationsEnabled: boolean
@@ -105,7 +106,10 @@ export class Notifications extends React.Component<
       <DialogContent>
         <div className="advanced-section">
           <h2>Notifications</h2>
-          <div className="preference-toggle-card">
+          <div
+            className="preference-toggle-card"
+            {...teleportAnchor('settings-notifications')}
+          >
             <div className="preference-toggle-row">
               <div className="preference-toggle-text">
                 <span

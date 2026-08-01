@@ -2,6 +2,26 @@
 
 Updated: **July 31, 2026**
 
+## July 31 full-app command palette with rich controls and teleport — **Implemented and locally verified**
+
+- The Ctrl+F palette now covers the entire app (MD3 full-screen search view)
+  with a results list, a "where it lives" detail pane, and a keyboard-hint
+  footer; narrow widths collapse the pane and chips instead of clipping.
+- Settings rows render their live control inline — switch for booleans,
+  text box for entries, numeric box for bounded numbers, select for choices —
+  wired to real app state through the same dispatcher setters the Settings
+  panes use; changing a control keeps the palette open.
+- Click/Enter teleports to the exact control that owns the feature
+  (spotlight ring + focus, `data-teleport-target` anchors and structural
+  hooks); Ctrl+Enter or the row's Run button executes instead. Destructive
+  and network commands can never fire from a teleport.
+- Verified: `command-palette-catalog-test.ts` (27),
+  `command-palette-rich-test.tsx` (6), `filter-mode-surfaces-test.tsx`,
+  i18n tests; tsc clean; changed-file eslint/prettier clean.
+- An MD3 source audit of the whole app UI (per the material-3 skill) is
+  recorded at `docs/verification/md3-ui-audit-2026-07-31.md` (84/100; the
+  two shape tokens it flagged as missing were added in this task).
+
 ## July 31 recurring background errors — **Implemented and locally verified**
 
 Production logs separated two failures that had appeared together: a bundled

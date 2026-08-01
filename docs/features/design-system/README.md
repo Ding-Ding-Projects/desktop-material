@@ -1,5 +1,10 @@
 # Design-system features
 
+- [Command palette: full-app coverage, rich controls and
+  teleport](command-palette-full-coverage.md) — the Ctrl+F palette as MD3's
+  full-screen search view: inline switches/boxes/steppers/selects for
+  settings rows, and click/Enter teleporting to the exact control that owns
+  each feature (Ctrl+Enter to run instead).
 - [Command palette rows and
   appearance](command-palette-appearance.md) — icon/keyword/group rows, the
   compact aligned Customize appearance editor, stable random-per-repository

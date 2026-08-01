@@ -5,7 +5,14 @@ import {
   CommandPaletteCatalog,
   IPaletteCommandContext,
   filterPaletteCommands,
+  preferencesPaletteEvent,
+  resolvePaletteHome,
 } from '../../src/lib/command-palette-catalog'
+import { PreferencesTab } from '../../src/models/preferences'
+import {
+  TeleportTargetSelectors,
+  teleportTargetSelector,
+} from '../../src/lib/teleport-targets'
 import { translate } from '../../src/lib/i18n'
 import { languageModes } from '../../src/models/language-mode'
 
@@ -332,5 +339,134 @@ describe('command palette catalog', () => {
       matches.map(c => c.event)
     )
     assert.ok(executed.includes('palette:preferences-accounts'))
+  })
+})
+
+describe('command palette rich controls and homes', () => {
+  it('renders every control against a value shape it declares', () => {
+    for (const command of CommandPaletteCatalog) {
+      const control = command.control
+      if (control === undefined) {
+        continue
+      }
+      // A setting the palette can change must localize its own title so the
+      // inline control is announced in every language mode.
+      assert.ok(command.titleKey !== undefined, command.event)
+      if (control.kind === 'number') {
+        assert.ok(control.min < control.max, command.event)
+      }
+      if (control.kind === 'choice') {
+        assert.ok(control.options.length >= 2, command.event)
+        const values = control.options.map(o => o.value)
+        assert.equal(new Set(values).size, values.length, command.event)
+        for (const option of control.options) {
+          for (const mode of languageModes) {
+            assert.ok(
+              translate(option.labelKey, mode).trim().length > 0,
+              `${command.event} option ${option.value} has no ${mode} label`
+            )
+          }
+        }
+      }
+    }
+  })
+
+  it('declares the expected control kinds for the flagship settings', () => {
+    const byEvent = new Map(CommandPaletteCatalog.map(c => [c.event, c]))
+    assert.equal(byEvent.get('palette:toggle-theme')?.control?.kind, 'toggle')
+    assert.equal(
+      byEvent.get('palette:set-language-mode')?.control?.kind,
+      'choice'
+    )
+    assert.equal(
+      byEvent.get('palette:set-funny-english')?.control?.kind,
+      'number'
+    )
+    assert.equal(
+      byEvent.get('palette:entry-commit-summary')?.control?.kind,
+      'entry'
+    )
+    assert.equal(byEvent.get('palette:entry-clone-url')?.control?.kind, 'entry')
+    assert.equal(
+      byEvent.get('palette:set-notifications-enabled')?.control?.kind,
+      'toggle'
+    )
+  })
+
+  it('resolves a home for every command and a selector for every target', () => {
+    for (const command of CommandPaletteCatalog) {
+      const home = resolvePaletteHome(command)
+      if (home.kind === 'surface') {
+        for (const mode of languageModes) {
+          assert.ok(
+            translate(home.labelKey, mode).trim().length > 0,
+            `${command.event} home has no ${mode} label`
+          )
+        }
+      }
+      if (home.targetId !== undefined) {
+        const selector = teleportTargetSelector(home.targetId)
+        assert.ok(selector.length > 0, command.event)
+      }
+    }
+  })
+
+  it('never dispatches a network or destructive command as its own opener', () => {
+    for (const event of [
+      'push',
+      'force-push',
+      'pull',
+      'fetch',
+      'stash-all-changes',
+      'discard-all-changes',
+      'permanently-discard-all-changes',
+      'remove-repository',
+    ]) {
+      const command = CommandPaletteCatalog.find(c => c.event === event)
+      assert.ok(command, event)
+      const home = resolvePaletteHome(command!)
+      assert.equal(home.kind, 'surface', event)
+      if (home.kind === 'surface') {
+        assert.notEqual(
+          home.openEvent,
+          'self',
+          `${event} must not run itself when teleporting`
+        )
+      }
+    }
+  })
+
+  it('maps every Preferences tab to a registered palette event', () => {
+    const events = new Set(CommandPaletteCatalog.map(c => c.event))
+    const tabs = Object.values(PreferencesTab).filter(
+      (value): value is PreferencesTab => typeof value === 'number'
+    )
+    for (const tab of tabs) {
+      const event = preferencesPaletteEvent(tab)
+      assert.ok(events.has(event), `tab ${tab} resolves to unknown ${event}`)
+    }
+  })
+
+  it('keeps every teleport selector syntactically valid and unique', () => {
+    const selectors = Object.values(TeleportTargetSelectors)
+    assert.equal(new Set(selectors).size, selectors.length)
+    for (const selector of selectors) {
+      assert.ok(/^[#.\[][-\w"=\[\]#.]+$/.test(selector), selector)
+    }
+  })
+
+  it('localizes descriptions and home labels in all three modes', () => {
+    for (const command of CommandPaletteCatalog) {
+      if (command.descriptionKey === undefined) {
+        continue
+      }
+      const english = translate(command.descriptionKey, 'english')
+      const cantonese = translate(command.descriptionKey, 'cantonese')
+      const bilingual = translate(command.descriptionKey, 'bilingual')
+      assert.ok(english.trim().length > 0, command.event)
+      assert.ok(cantonese.trim().length > 0, command.event)
+      assert.ok(bilingual.includes(english), command.event)
+      assert.ok(bilingual.includes(cantonese), command.event)
+    }
   })
 })

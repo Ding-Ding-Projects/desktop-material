@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { teleportAnchor } from '../../lib/teleport-targets'
 import { DialogContent } from '../dialog'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 
@@ -23,14 +24,16 @@ export class Accessibility extends React.Component<
       <DialogContent>
         <div className="accessibility-section">
           <h2>Accessibility</h2>
-          <Checkbox
-            label="Underline links"
-            value={
-              this.props.underlineLinks ? CheckboxValue.On : CheckboxValue.Off
-            }
-            onChange={this.onUnderlineLinksChanged}
-            ariaDescribedBy="underline-setting-description"
-          />
+          <div {...teleportAnchor('settings-underline-links')}>
+            <Checkbox
+              label="Underline links"
+              value={
+                this.props.underlineLinks ? CheckboxValue.On : CheckboxValue.Off
+              }
+              onChange={this.onUnderlineLinksChanged}
+              ariaDescribedBy="underline-setting-description"
+            />
+          </div>
           <p
             id="underline-setting-description"
             className="settings-description"

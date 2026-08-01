@@ -1,5 +1,6 @@
 /* eslint-disable react/jsx-no-bind -- localized radio labels depend on the live language mode */
 import * as React from 'react'
+import { teleportAnchor } from '../../lib/teleport-targets'
 import { ENABLE_TELEMETRY } from '../../lib/telemetry-flag'
 import { DialogContent } from '../dialog'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
@@ -292,7 +293,10 @@ export class Advanced extends React.Component<
         </div>
         <h2>Network and credentials</h2>
         {this.renderSSHSettings()}
-        <div className="advanced-section">
+        <div
+          className="advanced-section"
+          {...teleportAnchor('settings-external-credential-helper')}
+        >
           <Checkbox
             label={'Use Git Credential Manager'}
             value={
@@ -471,7 +475,10 @@ export class Advanced extends React.Component<
     }
 
     return (
-      <div className="advanced-section">
+      <div
+        className="advanced-section"
+        {...teleportAnchor('settings-windows-openssh')}
+      >
         <Checkbox
           label="Use system OpenSSH (recommended)"
           value={

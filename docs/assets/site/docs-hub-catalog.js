@@ -196,6 +196,13 @@
       d: 'The Ctrl+F command palette lists every named app function. Its result list is built for scanning: each row carries an icon, the command title, an optional keyword line, and a…',
     },
     {
+      t: 'Command palette: full-app coverage, rich controls and teleport',
+      h: 'features/design-system/command-palette-full-coverage.html',
+      s: 'features/design-system/command-palette-full-coverage.md',
+      c: 'features',
+      d: "The Ctrl+F master command palette is Material Design 3's full-screen search view: it covers the entire app below the title bar rather than floating as a small card, and its…",
+    },
+    {
       t: 'Dialog wheel and trackpad scrolling',
       h: 'features/design-system/dialog-wheel-scrolling.html',
       s: 'features/design-system/dialog-wheel-scrolling.md',
@@ -221,7 +228,7 @@
       h: 'features/design-system/',
       s: 'features/design-system/README.md',
       c: 'features',
-      d: '[Command palette rows and',
+      d: '[Command palette: full-app coverage, rich controls and',
     },
     {
       t: 'Repository-themed music',
@@ -1531,6 +1538,13 @@
       s: 'verification/linux-tui-path-browser-wrapper-2026-07-27/run-manifest.md',
       c: 'verification',
       d: 'Run ID: linux-tui-path-browser-wrapper-2026-07-27-019fa510',
+    },
+    {
+      t: 'MD3 Compliance Audit Report',
+      h: 'verification/md3-ui-audit-2026-07-31.html',
+      s: 'verification/md3-ui-audit-2026-07-31.md',
+      c: 'verification',
+      d: "Target: Desktop Material Windows desktop app (app/styles, app/src/ui) Date: 2026-07-31 Method: source audit per the Material 3 skill's audit procedure (web/CSS…",
     },
     {
       t: 'Publish organization picker sizing acceptance — 2026-07-30',

@@ -6,6 +6,8 @@
 
 import type { TranslationKey } from './i18n-resources'
 import type { MaterialSymbolName } from '../ui/lib/material-symbol'
+import type { TeleportTargetId } from './teleport-targets'
+import { PreferencesTab } from '../models/preferences'
 
 /**
  * The application-selection snapshot an availability predicate inspects to
@@ -44,6 +46,147 @@ const whenBranch: PaletteAvailability = context =>
 const whenGitHubRepository: PaletteAvailability = context =>
   context.hasRepository && context.isGitHubRepository
 
+/**
+ * A live control the palette renders inside the row itself, so a setting can
+ * be read and changed without first hunting down the screen that owns it. The
+ * palette renders the control that matches the value: a switch for a boolean,
+ * a text box for free text, a stepper for a number, a select for an
+ * enumeration.
+ */
+export type IPaletteControl =
+  | IPaletteToggleControl
+  | IPaletteEntryControl
+  | IPaletteNumberControl
+  | IPaletteChoiceControl
+
+/** A boolean setting, rendered as a Material switch. */
+export interface IPaletteToggleControl {
+  readonly kind: 'toggle'
+}
+
+/** Free text, rendered as a text box that applies on Enter or the ✓ button. */
+export interface IPaletteEntryControl {
+  readonly kind: 'entry'
+  /** Placeholder shown while the box is empty. */
+  readonly placeholderKey?: TranslationKey
+  /** Rejects longer input rather than silently truncating it. */
+  readonly maxLength?: number
+  /**
+   * Whether applying the value clears the box afterwards. True for one-shot
+   * entries (a clone URL is consumed by the dialog it opens); false for a
+   * value the box keeps showing (a commit summary stays what it now is).
+   */
+  readonly clearOnApply?: boolean
+}
+
+/** A bounded number, rendered as a numeric box with a range hint. */
+export interface IPaletteNumberControl {
+  readonly kind: 'number'
+  readonly min: number
+  readonly max: number
+  readonly step?: number
+}
+
+/** One of a fixed set of values, rendered as a select. */
+export interface IPaletteChoiceControl {
+  readonly kind: 'choice'
+  readonly options: ReadonlyArray<IPaletteChoiceOption>
+}
+
+export interface IPaletteChoiceOption {
+  /** The stored value, passed back verbatim when chosen. */
+  readonly value: string
+  readonly labelKey: TranslationKey
+}
+
+/** The value a palette control reads and writes. */
+export type PaletteControlValue = boolean | string | number
+
+/**
+ * Where a command's feature actually lives in the app.
+ *
+ * Choosing a row teleports there: the surface that owns the feature is brought
+ * on screen and the exact control is spotlit. That is deliberately *not* the
+ * same as running the command — teleporting to "Force push" must show the
+ * user the toolbar button, never push — so a home only dispatches an event
+ * when doing so is how the feature is reached (`openEvent`), and destructive
+ * or side-effecting commands simply omit it and spotlight their control.
+ */
+export type IPaletteHome = IPaletteSurfaceHome | IPaletteSettingsHome
+
+export interface IPaletteSurfaceHome {
+  readonly kind: 'surface'
+  /** Localized description of the place, e.g. "Toolbar". */
+  readonly labelKey: TranslationKey
+  /**
+   * How the surface is brought on screen before the spotlight:
+   * `'self'` dispatches this command's own event (only ever set where doing so
+   * merely opens the feature), any other string dispatches that event instead,
+   * and omitting it spotlights the target where it already lives.
+   */
+  readonly openEvent?: 'self' | string
+  /** The control spotlit once the surface is on screen. */
+  readonly targetId?: TeleportTargetId
+}
+
+export interface IPaletteSettingsHome {
+  readonly kind: 'preferences'
+  /** The Settings tab the feature is rendered on. */
+  readonly tab: PreferencesTab
+  /** The setting row spotlit after Settings opens on that tab. */
+  readonly targetId?: TeleportTargetId
+}
+
+/**
+ * The home every command teleports to. A command that does not declare one
+ * lives in the dialog it opens, so opening it *is* the teleport.
+ */
+export function resolvePaletteHome(command: IPaletteCommand): IPaletteHome {
+  return (
+    command.home ?? {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeDialog',
+      openEvent: 'self',
+    }
+  )
+}
+
+/** The palette event that opens Settings on a given tab. */
+export function preferencesPaletteEvent(tab: PreferencesTab): string {
+  switch (tab) {
+    case PreferencesTab.Accounts:
+      return 'palette:preferences-accounts'
+    case PreferencesTab.Integrations:
+      return 'palette:preferences-integrations'
+    case PreferencesTab.Copilot:
+      return 'palette:preferences-copilot'
+    case PreferencesTab.Git:
+      return 'palette:preferences-git'
+    case PreferencesTab.Appearance:
+      return 'palette:preferences-appearance'
+    case PreferencesTab.Notifications:
+      return 'palette:preferences-notifications'
+    case PreferencesTab.Prompts:
+      return 'palette:preferences-prompts'
+    case PreferencesTab.Advanced:
+      return 'palette:preferences-advanced'
+    case PreferencesTab.Accessibility:
+      return 'palette:preferences-accessibility'
+    case PreferencesTab.AgentAccess:
+      return 'palette:preferences-agent-access'
+    case PreferencesTab.Automation:
+      return 'palette:preferences-automation'
+    case PreferencesTab.Queue:
+      return 'palette:background-queue'
+    case PreferencesTab.Sound:
+      return 'palette:preferences-sound'
+    case PreferencesTab.Ollama:
+      return 'palette:ollama-model-manager'
+    default:
+      return 'show-preferences'
+  }
+}
+
 export interface IPaletteCommand {
   /** The menu event (or palette-only action id) executed on selection. */
   readonly event: string
@@ -64,6 +207,22 @@ export interface IPaletteCommand {
   readonly materialSymbol?: MaterialSymbolName
   /** Extra search terms. */
   readonly keywords?: string
+  /**
+   * A one-line explanation shown in the palette's detail pane. Commands whose
+   * title already says everything can omit it.
+   */
+  readonly descriptionKey?: TranslationKey
+  /**
+   * The live control rendered in the row. A command with a control is a
+   * setting the palette can read and change in place; a command without one is
+   * an action the palette runs.
+   */
+  readonly control?: IPaletteControl
+  /**
+   * Where the feature lives, used by the row's teleport. Omitting it means the
+   * feature is the dialog this command opens.
+   */
+  readonly home?: IPaletteHome
   /** Restricts the command to one platform. */
   readonly platform?: 'darwin' | 'win32'
   /**
@@ -75,26 +234,84 @@ export interface IPaletteCommand {
 
 export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
   // Navigate
-  { event: 'show-changes', title: 'Show changes', group: 'Navigate' },
-  { event: 'show-history', title: 'Show history', group: 'Navigate' },
+  {
+    event: 'show-changes',
+    title: 'Show changes',
+    group: 'Navigate',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeSidebar',
+      openEvent: 'self',
+      targetId: 'sidebarChangesTab',
+    },
+  },
+  {
+    event: 'show-history',
+    title: 'Show history',
+    group: 'Navigate',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeSidebar',
+      openEvent: 'self',
+      targetId: 'sidebarHistoryTab',
+    },
+  },
   {
     event: 'show-repository-tools',
     title: 'Show repository tools',
     group: 'Navigate',
     keywords: 'hub functions maintenance',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeSidebar',
+      openEvent: 'self',
+      targetId: 'sidebarRepositoryToolsTab',
+    },
   },
-  { event: 'show-branches', title: 'Show branches', group: 'Navigate' },
-  { event: 'show-worktrees', title: 'Show worktrees', group: 'Navigate' },
+  {
+    event: 'show-branches',
+    title: 'Show branches',
+    group: 'Navigate',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeToolbar',
+      openEvent: 'self',
+      targetId: 'toolbarBranch',
+    },
+  },
+  {
+    event: 'show-worktrees',
+    title: 'Show worktrees',
+    group: 'Navigate',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeToolbar',
+      openEvent: 'self',
+      targetId: 'toolbarWorktree',
+    },
+  },
   {
     event: 'choose-repository',
     title: 'Choose a repository',
     group: 'Navigate',
     keywords: 'switch open',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeToolbar',
+      openEvent: 'self',
+      targetId: 'toolbarRepository',
+    },
   },
   {
     event: 'go-to-commit-message',
     title: 'Go to commit message',
     group: 'Navigate',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeCommitBox',
+      openEvent: 'self',
+      targetId: 'commitSummary',
+    },
   },
   {
     event: 'palette:find-in-view',
@@ -103,11 +320,50 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     keywords: 'search text diff filter',
   },
 
-  // Repository
-  { event: 'push', title: 'Push', group: 'Repository' },
-  { event: 'force-push', title: 'Force push', group: 'Repository' },
-  { event: 'pull', title: 'Pull', group: 'Repository' },
-  { event: 'fetch', title: 'Fetch', group: 'Repository' },
+  // Repository. Push, pull, fetch and force push all live on the toolbar's
+  // sync button and all reach the network, so their home deliberately carries
+  // no opener: teleporting shows the user the button, and only the row's Run
+  // action (or the button itself) actually moves any commits.
+  {
+    event: 'push',
+    title: 'Push',
+    group: 'Repository',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeToolbar',
+      targetId: 'toolbarSync',
+    },
+  },
+  {
+    event: 'force-push',
+    title: 'Force push',
+    group: 'Repository',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeToolbar',
+      targetId: 'toolbarSync',
+    },
+  },
+  {
+    event: 'pull',
+    title: 'Pull',
+    group: 'Repository',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeToolbar',
+      targetId: 'toolbarSync',
+    },
+  },
+  {
+    event: 'fetch',
+    title: 'Fetch',
+    group: 'Repository',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeToolbar',
+      targetId: 'toolbarSync',
+    },
+  },
   {
     event: 'clone-repository',
     title: 'Clone a repository',
@@ -128,6 +384,13 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     event: 'remove-repository',
     title: 'Remove the repository',
     group: 'Repository',
+    // Removing is reached from the repository list's context menu; teleporting
+    // points at the list rather than starting a removal.
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeRepositoryList',
+      targetId: 'toolbarRepository',
+    },
   },
   {
     event: 'fork-repository',
@@ -179,6 +442,11 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     group: 'Repository',
     keywords: 'docker compose npm make build run',
     isAvailable: whenRepository,
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeToolbar',
+      targetId: 'toolbarBuildRun',
+    },
   },
   {
     event: 'palette:resolve-conflicts-with-agent',
@@ -326,36 +594,71 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
   },
   { event: 'create-worktree', title: 'Create a worktree', group: 'Branch' },
 
-  // Changes
+  // Changes. Stashing and discarding act on the working tree the moment they
+  // run, so — like push — their home spotlights the changes list rather than
+  // opening anything.
   {
     event: 'stash-all-changes',
     title: 'Stash all changes',
     group: 'Changes',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeChangesView',
+      targetId: 'sidebarChangesTab',
+    },
   },
   {
     event: 'discard-all-changes',
     title: 'Discard all changes',
     group: 'Changes',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeChangesView',
+      targetId: 'sidebarChangesTab',
+    },
   },
   {
     event: 'permanently-discard-all-changes',
     title: 'Permanently discard all changes',
     group: 'Changes',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeChangesView',
+      targetId: 'sidebarChangesTab',
+    },
   },
   {
     event: 'show-stashed-changes',
     title: 'Show stashed changes',
     group: 'Changes',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeChangesView',
+      openEvent: 'self',
+      targetId: 'sidebarChangesTab',
+    },
   },
   {
     event: 'hide-stashed-changes',
     title: 'Hide stashed changes',
     group: 'Changes',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeChangesView',
+      openEvent: 'self',
+      targetId: 'sidebarChangesTab',
+    },
   },
   {
     event: 'toggle-changes-filter',
     title: 'Toggle the changes filter',
     group: 'Changes',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeChangesView',
+      openEvent: 'self',
+      targetId: 'sidebarChangesTab',
+    },
   },
 
   // App
@@ -430,13 +733,302 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     keywords: 'highlight everything whole',
   },
 
-  // Appearance
+  // Appearance. Everything below carries a live control: the palette reads the
+  // current value and writes the new one in place, and its row still teleports
+  // to the settings surface that owns the same value.
   {
     event: 'palette:toggle-theme',
-    title: 'Toggle light/dark theme',
+    title: 'Dark theme',
     titleKey: 'palette.toggleTheme',
     group: 'App',
-    keywords: 'dark light mode colour color appearance switch',
+    materialSymbol: 'dark_mode',
+    keywords: 'dark light mode colour color appearance switch theme',
+    descriptionKey: 'palette.toggleThemeDescription',
+    control: { kind: 'toggle' },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Appearance,
+      targetId: 'settingsTheme',
+    },
+  },
+  {
+    event: 'palette:set-language-mode',
+    title: 'Language mode',
+    titleKey: 'palette.languageMode',
+    group: 'App',
+    materialSymbol: 'text_format',
+    keywords: 'language english cantonese bilingual 語言 廣東話 雙語',
+    descriptionKey: 'palette.languageModeDescription',
+    control: {
+      kind: 'choice',
+      options: [
+        { value: 'english', labelKey: 'language.english' },
+        { value: 'cantonese', labelKey: 'language.cantonese' },
+        { value: 'bilingual', labelKey: 'language.bilingual' },
+      ],
+    },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Appearance,
+      targetId: 'settingsLanguageMode',
+    },
+  },
+  {
+    event: 'palette:set-funny-english',
+    title: 'Playfulness (English)',
+    titleKey: 'palette.funnyEnglish',
+    group: 'App',
+    materialSymbol: 'waving_hand',
+    keywords: 'funny level playfulness humour humor english tone voice',
+    descriptionKey: 'palette.funnyLevelDescription',
+    control: { kind: 'number', min: 1, max: 5, step: 1 },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Appearance,
+      targetId: 'settingsFunnyEnglish',
+    },
+  },
+  {
+    event: 'palette:set-funny-cantonese',
+    title: 'Playfulness (Cantonese)',
+    titleKey: 'palette.funnyCantonese',
+    group: 'App',
+    materialSymbol: 'waving_hand',
+    keywords: 'funny level playfulness humour humor cantonese tone voice 幽默',
+    descriptionKey: 'palette.funnyLevelDescription',
+    control: { kind: 'number', min: 1, max: 5, step: 1 },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Appearance,
+      targetId: 'settingsFunnyCantonese',
+    },
+  },
+  {
+    event: 'palette:set-tab-size',
+    title: 'Diff tab size',
+    titleKey: 'palette.tabSize',
+    group: 'App',
+    materialSymbol: 'format_align_left',
+    keywords: 'tab size indentation spaces diff width',
+    descriptionKey: 'palette.tabSizeDescription',
+    control: { kind: 'number', min: 1, max: 16, step: 1 },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Appearance,
+      targetId: 'settingsTabSize',
+    },
+  },
+  {
+    event: 'palette:set-highlight-features',
+    title: 'Highlight Desktop Material features',
+    titleKey: 'palette.highlightFeatures',
+    group: 'App',
+    materialSymbol: 'star',
+    keywords: 'highlight desktop material features badge new entry points',
+    descriptionKey: 'palette.highlightFeaturesDescription',
+    control: { kind: 'toggle' },
+    home: { kind: 'preferences', tab: PreferencesTab.Appearance },
+  },
+
+  // Confirmations, notifications and the rest of the settings that are only
+  // ever hunted for when something has already gone wrong.
+  {
+    event: 'palette:set-confirm-discard',
+    title: 'Confirm before discarding changes',
+    titleKey: 'palette.confirmDiscard',
+    group: 'App',
+    materialSymbol: 'delete',
+    keywords: 'confirm prompt discard changes dialog warning',
+    descriptionKey: 'palette.confirmDiscardDescription',
+    control: { kind: 'toggle' },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Prompts,
+      targetId: 'settingsConfirmDiscard',
+    },
+  },
+  {
+    event: 'palette:set-confirm-force-push',
+    title: 'Confirm before force pushing',
+    titleKey: 'palette.confirmForcePush',
+    group: 'App',
+    materialSymbol: 'warning',
+    keywords: 'confirm prompt force push dialog warning',
+    descriptionKey: 'palette.confirmForcePushDescription',
+    control: { kind: 'toggle' },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Prompts,
+      targetId: 'settingsConfirmForcePush',
+    },
+  },
+  {
+    event: 'palette:set-confirm-repository-removal',
+    title: 'Confirm before removing a repository',
+    titleKey: 'palette.confirmRepositoryRemoval',
+    group: 'App',
+    materialSymbol: 'delete',
+    keywords: 'confirm prompt remove repository dialog warning',
+    descriptionKey: 'palette.confirmRepositoryRemovalDescription',
+    control: { kind: 'toggle' },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Prompts,
+      targetId: 'settingsConfirmRepositoryRemoval',
+    },
+  },
+  {
+    event: 'palette:set-commit-length-warning',
+    title: 'Warn about long commit summaries',
+    titleKey: 'palette.commitLengthWarning',
+    group: 'App',
+    materialSymbol: 'text_format',
+    keywords: 'commit summary length warning 50 characters',
+    descriptionKey: 'palette.commitLengthWarningDescription',
+    control: { kind: 'toggle' },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Prompts,
+      targetId: 'settingsCommitLengthWarning',
+    },
+  },
+  {
+    event: 'palette:set-notifications-enabled',
+    title: 'Desktop notifications',
+    titleKey: 'palette.notificationsEnabled',
+    group: 'App',
+    materialSymbol: 'notifications',
+    keywords: 'notifications alerts system toast enable disable',
+    descriptionKey: 'palette.notificationsEnabledDescription',
+    control: { kind: 'toggle' },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Notifications,
+      targetId: 'settingsNotifications',
+    },
+  },
+  {
+    event: 'palette:set-underline-links',
+    title: 'Underline links',
+    titleKey: 'palette.underlineLinks',
+    group: 'App',
+    materialSymbol: 'format_underlined',
+    keywords: 'underline links accessibility a11y readability',
+    descriptionKey: 'palette.underlineLinksDescription',
+    control: { kind: 'toggle' },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Accessibility,
+      targetId: 'settingsUnderlineLinks',
+    },
+  },
+  {
+    event: 'palette:set-external-credential-helper',
+    title: 'Use the external credential helper',
+    titleKey: 'palette.externalCredentialHelper',
+    group: 'App',
+    materialSymbol: 'key',
+    keywords: 'credential helper git authentication password manager',
+    descriptionKey: 'palette.externalCredentialHelperDescription',
+    control: { kind: 'toggle' },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Advanced,
+      targetId: 'settingsExternalCredentialHelper',
+    },
+  },
+  {
+    event: 'palette:set-windows-openssh',
+    title: 'Use the Windows OpenSSH client',
+    titleKey: 'palette.windowsOpenSSH',
+    group: 'App',
+    materialSymbol: 'terminal',
+    keywords: 'ssh openssh windows client git transport',
+    descriptionKey: 'palette.windowsOpenSSHDescription',
+    control: { kind: 'toggle' },
+    platform: 'win32',
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Advanced,
+      targetId: 'settingsWindowsOpenSSH',
+    },
+  },
+
+  // Diff presentation, which lives with the diff rather than in Settings.
+  {
+    event: 'palette:set-side-by-side-diff',
+    title: 'Side-by-side diff',
+    titleKey: 'palette.sideBySideDiff',
+    group: 'Changes',
+    materialSymbol: 'difference',
+    keywords: 'diff split unified side by side view',
+    descriptionKey: 'palette.sideBySideDiffDescription',
+    control: { kind: 'toggle' },
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeChangesView',
+      targetId: 'sidebarChangesTab',
+    },
+  },
+  {
+    event: 'palette:set-hide-whitespace-changes',
+    title: 'Hide whitespace in the changes diff',
+    titleKey: 'palette.hideWhitespaceChanges',
+    group: 'Changes',
+    materialSymbol: 'code',
+    keywords: 'whitespace diff hide ignore changes',
+    descriptionKey: 'palette.hideWhitespaceChangesDescription',
+    control: { kind: 'toggle' },
+    isAvailable: whenRepository,
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeChangesView',
+      targetId: 'sidebarChangesTab',
+    },
+  },
+
+  // Text the palette takes directly, rather than sending the user to a field
+  // and asking them to type it there.
+  {
+    event: 'palette:entry-commit-summary',
+    title: 'Commit summary',
+    titleKey: 'palette.commitSummary',
+    group: 'Changes',
+    materialSymbol: 'edit',
+    keywords: 'commit summary message subject write type',
+    descriptionKey: 'palette.commitSummaryDescription',
+    control: {
+      kind: 'entry',
+      placeholderKey: 'palette.commitSummaryPlaceholder',
+      maxLength: 500,
+    },
+    isAvailable: whenRepository,
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeCommitBox',
+      openEvent: 'go-to-commit-message',
+      targetId: 'commitSummary',
+    },
+  },
+  {
+    event: 'palette:entry-clone-url',
+    title: 'Clone from a URL',
+    titleKey: 'palette.cloneUrl',
+    group: 'Repository',
+    materialSymbol: 'cloud_download',
+    keywords: 'clone url git https repository download',
+    descriptionKey: 'palette.cloneUrlDescription',
+    control: {
+      kind: 'entry',
+      placeholderKey: 'palette.cloneUrlPlaceholder',
+      maxLength: 2048,
+      clearOnApply: true,
+    },
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeDialog',
+      openEvent: 'clone-repository',
+    },
   },
 
   // Settings panes
@@ -446,6 +1038,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     titleKey: 'palette.preferencesAccounts',
     group: 'App',
     keywords: 'settings sign in login github account',
+    home: { kind: 'preferences', tab: PreferencesTab.Accounts },
   },
   {
     event: 'palette:preferences-appearance',
@@ -453,6 +1046,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     titleKey: 'palette.preferencesAppearance',
     group: 'App',
     keywords: 'settings theme language font look',
+    home: { kind: 'preferences', tab: PreferencesTab.Appearance },
   },
   {
     event: 'palette:preferences-integrations',
@@ -460,6 +1054,11 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     titleKey: 'palette.preferencesIntegrations',
     group: 'App',
     keywords: 'settings editor shell external tools',
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Integrations,
+      targetId: 'settingsExternalEditor',
+    },
   },
   {
     event: 'palette:preferences-automation',
@@ -467,6 +1066,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     titleKey: 'palette.preferencesAutomation',
     group: 'App',
     keywords: 'settings automation rules scheduled',
+    home: { kind: 'preferences', tab: PreferencesTab.Automation },
   },
   {
     event: 'palette:preferences-advanced',
@@ -474,6 +1074,23 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     titleKey: 'palette.preferencesAdvanced',
     group: 'App',
     keywords: 'settings advanced diagnostics usage',
+    home: { kind: 'preferences', tab: PreferencesTab.Advanced },
+  },
+  {
+    event: 'palette:preferences-prompts',
+    title: 'Preferences: Prompts and confirmations',
+    titleKey: 'palette.preferencesPrompts',
+    group: 'App',
+    keywords: 'settings prompts confirmation dialog discard force push warning',
+    home: { kind: 'preferences', tab: PreferencesTab.Prompts },
+  },
+  {
+    event: 'palette:preferences-agent-access',
+    title: 'Preferences: Agent access',
+    titleKey: 'palette.preferencesAgentAccess',
+    group: 'App',
+    keywords: 'settings agent access automation permissions codex opencode',
+    home: { kind: 'preferences', tab: PreferencesTab.AgentAccess },
   },
   {
     event: 'palette:preferences-notifications',
@@ -481,6 +1098,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     titleKey: 'palette.preferencesNotifications',
     group: 'App',
     keywords: 'settings notifications alerts',
+    home: { kind: 'preferences', tab: PreferencesTab.Notifications },
   },
   {
     event: 'palette:preferences-git',
@@ -488,6 +1106,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     titleKey: 'palette.preferencesGit',
     group: 'App',
     keywords: 'settings git name email identity',
+    home: { kind: 'preferences', tab: PreferencesTab.Git },
   },
   {
     event: 'palette:preferences-accessibility',
@@ -495,6 +1114,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     titleKey: 'palette.preferencesAccessibility',
     group: 'App',
     keywords: 'settings accessibility a11y motion contrast',
+    home: { kind: 'preferences', tab: PreferencesTab.Accessibility },
   },
   {
     event: 'palette:preferences-sound',
@@ -503,6 +1123,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     group: 'App',
     keywords:
       'settings sound audio music narrator tts voice volume quiet hours effects',
+    home: { kind: 'preferences', tab: PreferencesTab.Sound },
   },
   // Surfaces that are otherwise only reachable by knowing which settings tab
   // hosts them. Naming them here makes them findable by what they do.
@@ -514,6 +1135,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     materialSymbol: 'stacks',
     keywords:
       'ollama local model llm ai copilot provider pull run inventory manager endpoint',
+    home: { kind: 'preferences', tab: PreferencesTab.Ollama },
   },
   {
     event: 'palette:ollama-chat',
@@ -523,6 +1145,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     materialSymbol: 'stacks',
     keywords:
       'ollama chat prompt conversation local model llm ai copilot workspace',
+    home: { kind: 'preferences', tab: PreferencesTab.Ollama },
   },
   {
     event: 'palette:preferences-copilot',
@@ -531,6 +1154,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     group: 'App',
     materialSymbol: 'auto_awesome',
     keywords: 'copilot ai provider ollama openai model byok endpoint chat',
+    home: { kind: 'preferences', tab: PreferencesTab.Copilot },
   },
   {
     event: 'palette:background-queue',
@@ -540,6 +1164,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     materialSymbol: 'low_priority',
     keywords:
       'queue background docker api action job pending run task throughput concurrency',
+    home: { kind: 'preferences', tab: PreferencesTab.Queue },
   },
 
   // Notifications

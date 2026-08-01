@@ -4,6 +4,7 @@ import { DialogContent } from '../dialog'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { RadioGroup } from '../lib/radio-group'
 import { assertNever } from '../../lib/fatal-error'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 interface IPromptsPreferencesProps {
   readonly confirmRepositoryRemoval: boolean
@@ -238,24 +239,28 @@ export class Prompts extends React.Component<
             Show a confirmation dialog before...
           </h2>
           <div role="group" aria-labelledby="show-confirm-dialog-heading">
-            <Checkbox
-              label="Removing repositories"
-              value={
-                this.state.confirmRepositoryRemoval
-                  ? CheckboxValue.On
-                  : CheckboxValue.Off
-              }
-              onChange={this.onConfirmRepositoryRemovalChanged}
-            />
-            <Checkbox
-              label="Discarding changes"
-              value={
-                this.state.confirmDiscardChanges
-                  ? CheckboxValue.On
-                  : CheckboxValue.Off
-              }
-              onChange={this.onConfirmDiscardChangesChanged}
-            />
+            <div {...teleportAnchor('settings-confirm-repository-removal')}>
+              <Checkbox
+                label="Removing repositories"
+                value={
+                  this.state.confirmRepositoryRemoval
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={this.onConfirmRepositoryRemovalChanged}
+              />
+            </div>
+            <div {...teleportAnchor('settings-confirm-discard')}>
+              <Checkbox
+                label="Discarding changes"
+                value={
+                  this.state.confirmDiscardChanges
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={this.onConfirmDiscardChangesChanged}
+              />
+            </div>
             <Checkbox
               label="Discarding changes permanently"
               value={
@@ -283,15 +288,17 @@ export class Prompts extends React.Component<
               }
               onChange={this.onConfirmCheckoutCommitChanged}
             />
-            <Checkbox
-              label="Force pushing"
-              value={
-                this.state.confirmForcePush
-                  ? CheckboxValue.On
-                  : CheckboxValue.Off
-              }
-              onChange={this.onConfirmForcePushChanged}
-            />
+            <div {...teleportAnchor('settings-confirm-force-push')}>
+              <Checkbox
+                label="Force pushing"
+                value={
+                  this.state.confirmForcePush
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={this.onConfirmForcePushChanged}
+              />
+            </div>
             <Checkbox
               label="Undo commit"
               value={
@@ -325,15 +332,17 @@ export class Prompts extends React.Component<
         {this.renderSwitchBranchOptions()}
         <div className="advanced-section">
           <h2>Commit Length</h2>
-          <Checkbox
-            label="Show commit length warning"
-            value={
-              this.props.showCommitLengthWarning
-                ? CheckboxValue.On
-                : CheckboxValue.Off
-            }
-            onChange={this.onShowCommitLengthWarningChanged}
-          />
+          <div {...teleportAnchor('settings-commit-length-warning')}>
+            <Checkbox
+              label="Show commit length warning"
+              value={
+                this.props.showCommitLengthWarning
+                  ? CheckboxValue.On
+                  : CheckboxValue.Off
+              }
+              onChange={this.onShowCommitLengthWarningChanged}
+            />
+          </div>
         </div>
       </DialogContent>
     )

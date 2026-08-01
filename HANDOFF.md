@@ -1,5 +1,39 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-31 — Full-app command palette: rich controls and teleport
+
+The Ctrl+F command palette was rebuilt as Material 3's full-screen search
+view. Three behaviours landed together:
+
+1. **Full-app coverage** — the palette dialog opts out of the floating-card
+   geometry and covers the window below the title bar
+   (`#dialog-layer dialog#command-palette.command-palette-full`), with a
+   1180px content column, a detail pane, and a hint footer.
+2. **Rich controls** — a catalog command may declare `control`
+   (`toggle` | `entry` | `number` | `choice`); the palette renders the
+   matching live control inline. `App` supplies values via
+   `getPaletteControlValues()` and writes via `onPaletteControlChange`,
+   reusing the exact dispatcher setters the Settings panes call. Unknown
+   values render disabled controls; changes never dismiss the palette.
+3. **Teleport** — every command resolves a home (`resolvePaletteHome`);
+   click/Enter opens the owning surface and spotlights the exact control
+   (`teleportTo` in `app/src/ui/lib/teleport.ts`, selector registry in
+   `app/src/lib/teleport-targets.ts`, anchors spread with
+   `teleportAnchor(...)` in the preferences panes). Ctrl+Enter/Run executes.
+   Push/force-push/pull/fetch/discard/remove homes carry no self-opener, so
+   teleporting can never fire them. A missing surface posts a non-blocking
+   notification instead of failing silently.
+
+New i18n keys live under `commandPalette.*` / `palette.*` in both languages.
+Docs: `docs/features/design-system/command-palette-full-coverage.md`.
+MD3 audit of the whole UI:
+`docs/verification/md3-ui-audit-2026-07-31.md` (84/100; missing
+`--md-sys-shape-corner-extra-small`/`-full` tokens were added).
+
+Verified locally: tsc clean; changed-file eslint/prettier clean; palette
+suites green (catalog 27, rich 6, filter-mode 4, appearance, i18n 23);
+`_command-palette.scss` + `_teleport.scss` compile standalone under dart-sass.
+
 ## 2026-07-31 — In-app changelog viewer and two context-menu defects
 
 Handoff written mid-stream at the user's request. Three of five requested

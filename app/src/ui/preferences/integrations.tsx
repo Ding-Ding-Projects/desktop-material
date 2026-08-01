@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { teleportAnchor } from '../../lib/teleport-targets'
 import { DialogContent } from '../dialog'
 import { LinkButton } from '../lib/link-button'
 import { Row } from '../../ui/lib/row'
@@ -234,8 +235,12 @@ export class Integrations extends React.Component<
     readonly disabled: boolean
     readonly onOpenMenu: () => void
   }) {
+    // The icon doubles as the teleport identity: the palette's "external
+    // editor" and "shell" rows land on these cards.
+    const anchor =
+      config.icon === 'code' ? 'settings-external-editor' : 'settings-shell'
     return (
-      <div className="integration-application-card">
+      <div className="integration-application-card" {...teleportAnchor(anchor)}>
         <span className="preference-disclosure-icon">
           <MaterialSymbol name={config.icon} size={21} />
         </span>

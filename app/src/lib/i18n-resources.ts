@@ -1857,6 +1857,71 @@ export type TranslationKey =
   | 'palette.hideBackgroundProgress'
   | 'palette.showBackgroundProgress'
   | 'palette.toggleCheapLfsProgress'
+  | 'commandPalette.homeDialog'
+  | 'commandPalette.homeToolbar'
+  | 'commandPalette.homeSidebar'
+  | 'commandPalette.homeChangesView'
+  | 'commandPalette.homeCommitBox'
+  | 'commandPalette.homeRepositoryList'
+  | 'commandPalette.homeSettings'
+  | 'commandPalette.whereItLives'
+  | 'commandPalette.goThere'
+  | 'commandPalette.runCommand'
+  | 'commandPalette.applyValue'
+  | 'commandPalette.close'
+  | 'commandPalette.detailEmpty'
+  | 'commandPalette.valueOn'
+  | 'commandPalette.valueOff'
+  | 'commandPalette.matchCount'
+  | 'commandPalette.hintMove'
+  | 'commandPalette.hintGo'
+  | 'commandPalette.hintRun'
+  | 'commandPalette.hintClose'
+  | 'commandPalette.rangeHint'
+  | 'commandPalette.currentValue'
+  | 'commandPalette.detailsRegion'
+  | 'commandPalette.controlsColumn'
+  | 'commandPalette.settingRow'
+  | 'commandPalette.actionRow'
+  | 'commandPalette.teleportMissing'
+  | 'palette.toggleThemeDescription'
+  | 'palette.languageMode'
+  | 'palette.languageModeDescription'
+  | 'palette.funnyEnglish'
+  | 'palette.funnyCantonese'
+  | 'palette.funnyLevelDescription'
+  | 'palette.tabSize'
+  | 'palette.tabSizeDescription'
+  | 'palette.highlightFeatures'
+  | 'palette.highlightFeaturesDescription'
+  | 'palette.confirmDiscard'
+  | 'palette.confirmDiscardDescription'
+  | 'palette.confirmForcePush'
+  | 'palette.confirmForcePushDescription'
+  | 'palette.confirmRepositoryRemoval'
+  | 'palette.confirmRepositoryRemovalDescription'
+  | 'palette.commitLengthWarning'
+  | 'palette.commitLengthWarningDescription'
+  | 'palette.notificationsEnabled'
+  | 'palette.notificationsEnabledDescription'
+  | 'palette.underlineLinks'
+  | 'palette.underlineLinksDescription'
+  | 'palette.externalCredentialHelper'
+  | 'palette.externalCredentialHelperDescription'
+  | 'palette.windowsOpenSSH'
+  | 'palette.windowsOpenSSHDescription'
+  | 'palette.sideBySideDiff'
+  | 'palette.sideBySideDiffDescription'
+  | 'palette.hideWhitespaceChanges'
+  | 'palette.hideWhitespaceChangesDescription'
+  | 'palette.commitSummary'
+  | 'palette.commitSummaryDescription'
+  | 'palette.commitSummaryPlaceholder'
+  | 'palette.cloneUrl'
+  | 'palette.cloneUrlDescription'
+  | 'palette.cloneUrlPlaceholder'
+  | 'palette.preferencesPrompts'
+  | 'palette.preferencesAgentAccess'
   | 'buildRun.closeDisabledRunning'
   | 'buildRun.fixingWithOpencode'
   | 'buildRun.stopConfirmTitle'
@@ -5099,7 +5164,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'commandPalette.groupNavigate': 'Navigate',
   'commandPalette.groupRepository': 'Repository',
   'palette.selectAll': 'Select all',
-  'palette.toggleTheme': 'Toggle light/dark theme',
+  'palette.toggleTheme': 'Dark theme',
   'palette.preferencesAccounts': 'Preferences: Accounts',
   'palette.preferencesAppearance': 'Preferences: Appearance',
   'palette.preferencesIntegrations': 'Preferences: Integrations',
@@ -5129,6 +5194,90 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'palette.showBackgroundProgress': 'Show background progress',
   'palette.toggleCheapLfsProgress':
     'Expand/collapse Cheap LFS restore progress',
+  'commandPalette.homeDialog': 'Opens as a dialog',
+  'commandPalette.homeToolbar': 'Toolbar',
+  'commandPalette.homeSidebar': 'Repository rail',
+  'commandPalette.homeChangesView': 'Changes view',
+  'commandPalette.homeCommitBox': 'Commit box',
+  'commandPalette.homeRepositoryList': 'Repository list',
+  'commandPalette.homeSettings': 'Settings › {tab}',
+  'commandPalette.whereItLives': 'Where it lives',
+  'commandPalette.goThere': 'Go there',
+  'commandPalette.runCommand': 'Run',
+  'commandPalette.applyValue': 'Apply',
+  'commandPalette.close': 'Close the command palette',
+  'commandPalette.detailEmpty':
+    'Pick a command to see what it does and where it lives.',
+  'commandPalette.valueOn': 'On',
+  'commandPalette.valueOff': 'Off',
+  'commandPalette.matchCount': '{count} of {total} commands',
+  'commandPalette.hintMove': 'move',
+  'commandPalette.hintGo': 'go there',
+  'commandPalette.hintRun': 'run',
+  'commandPalette.hintClose': 'close',
+  'commandPalette.rangeHint': '{min}–{max}',
+  'commandPalette.currentValue': 'Now: {value}',
+  'commandPalette.detailsRegion': 'Command details',
+  'commandPalette.controlsColumn': 'Setting',
+  'commandPalette.settingRow': 'Setting, adjustable here',
+  'commandPalette.actionRow': 'Action',
+  'commandPalette.teleportMissing':
+    '{place} is not on screen right now, so nothing was highlighted.',
+  'palette.toggleThemeDescription':
+    'Switch the whole app between the light and dark themes.',
+  'palette.languageMode': 'Language mode',
+  'palette.languageModeDescription':
+    'English, playful Cantonese, or both at once.',
+  'palette.funnyEnglish': 'Playfulness (English)',
+  'palette.funnyCantonese': 'Playfulness (Cantonese)',
+  'palette.funnyLevelDescription':
+    '1 is fully serious, 5 is maximum playfulness. It styles the voice of every message; what happened and what to do never changes.',
+  'palette.tabSize': 'Diff tab size',
+  'palette.tabSizeDescription':
+    'How many columns a tab character occupies in diffs.',
+  'palette.highlightFeatures': 'Highlight Desktop Material features',
+  'palette.highlightFeaturesDescription':
+    'Marks the entry points Desktop Material adds on top of GitHub Desktop.',
+  'palette.confirmDiscard': 'Confirm before discarding changes',
+  'palette.confirmDiscardDescription':
+    'Turning this off discards immediately, with no dialog and no second chance.',
+  'palette.confirmForcePush': 'Confirm before force pushing',
+  'palette.confirmForcePushDescription':
+    'Turning this off force pushes immediately, rewriting the remote branch with no dialog.',
+  'palette.confirmRepositoryRemoval': 'Confirm before removing a repository',
+  'palette.confirmRepositoryRemovalDescription':
+    'Removing takes the repository out of the app; the files stay on disk.',
+  'palette.commitLengthWarning': 'Warn about long commit summaries',
+  'palette.commitLengthWarningDescription':
+    'Shows the length warning once a commit summary runs past the recommended width.',
+  'palette.notificationsEnabled': 'Desktop notifications',
+  'palette.notificationsEnabledDescription':
+    'System notifications for finished pushes, checks, and review activity.',
+  'palette.underlineLinks': 'Underline links',
+  'palette.underlineLinksDescription':
+    'Underlines every link so it is identifiable without relying on colour.',
+  'palette.externalCredentialHelper': 'Use the external credential helper',
+  'palette.externalCredentialHelperDescription':
+    "Authenticates Git through the system credential helper instead of the app's own store.",
+  'palette.windowsOpenSSH': 'Use the Windows OpenSSH client',
+  'palette.windowsOpenSSHDescription':
+    'Runs SSH remotes through the OpenSSH client shipped with Windows.',
+  'palette.sideBySideDiff': 'Side-by-side diff',
+  'palette.sideBySideDiffDescription':
+    'Shows removals and additions in two columns instead of one unified column.',
+  'palette.hideWhitespaceChanges': 'Hide whitespace in the changes diff',
+  'palette.hideWhitespaceChangesDescription':
+    'Ignores whitespace-only edits while reviewing uncommitted changes.',
+  'palette.commitSummary': 'Commit summary',
+  'palette.commitSummaryDescription':
+    'Types straight into the commit box without leaving the palette.',
+  'palette.commitSummaryPlaceholder': 'Summary (required)',
+  'palette.cloneUrl': 'Clone from a URL',
+  'palette.cloneUrlDescription':
+    'Opens the clone dialog with this URL already filled in.',
+  'palette.cloneUrlPlaceholder': 'https://github.com/owner/repository',
+  'palette.preferencesPrompts': 'Preferences: Prompts and confirmations',
+  'palette.preferencesAgentAccess': 'Preferences: Agent access',
   'buildRun.closeDisabledRunning':
     'A task is running — stop it before closing the panel',
   'buildRun.fixingWithOpencode': 'Fixing with OpenCode…',
@@ -8535,7 +8684,7 @@ export const cantoneseTranslations: Readonly<
   'commandPalette.groupNavigate': '導覽',
   'commandPalette.groupRepository': '倉庫',
   'palette.selectAll': '全部揀晒',
-  'palette.toggleTheme': '切換光暗主題',
+  'palette.toggleTheme': '深色主題',
   'palette.preferencesAccounts': '設定：帳戶',
   'palette.preferencesAppearance': '設定：外觀',
   'palette.preferencesIntegrations': '設定：整合',
@@ -8564,6 +8713,80 @@ export const cantoneseTranslations: Readonly<
   'palette.hideBackgroundProgress': '收埋背景進度',
   'palette.showBackgroundProgress': '顯示背景進度',
   'palette.toggleCheapLfsProgress': '展開／收埋 Cheap LFS 還原進度',
+  'commandPalette.homeDialog': '按咗就彈對話框',
+  'commandPalette.homeToolbar': '工具列',
+  'commandPalette.homeSidebar': '倉庫側邊欄',
+  'commandPalette.homeChangesView': '變更畫面',
+  'commandPalette.homeCommitBox': 'Commit 輸入框',
+  'commandPalette.homeRepositoryList': '倉庫列表',
+  'commandPalette.homeSettings': '設定 › {tab}',
+  'commandPalette.whereItLives': '住喺邊度',
+  'commandPalette.goThere': '帶我去',
+  'commandPalette.runCommand': '執行',
+  'commandPalette.applyValue': '套用',
+  'commandPalette.close': '關掉命令面板',
+  'commandPalette.detailEmpty': '挹一個命令，就知佢做咗嘅，以及住喺邊度。',
+  'commandPalette.valueOn': '開咗',
+  'commandPalette.valueOff': '關咗',
+  'commandPalette.matchCount': '{total} 個命令中嘅 {count} 個',
+  'commandPalette.hintMove': '移動',
+  'commandPalette.hintGo': '帶我去',
+  'commandPalette.hintRun': '執行',
+  'commandPalette.hintClose': '關掉',
+  'commandPalette.rangeHint': '{min}–{max}',
+  'commandPalette.currentValue': '現在：{value}',
+  'commandPalette.detailsRegion': '命令詳情',
+  'commandPalette.controlsColumn': '設定',
+  'commandPalette.settingRow': '設定，喺呢度就改到',
+  'commandPalette.actionRow': '動作',
+  'commandPalette.teleportMissing':
+    '{place} 而家唔喺畫面度，所以沒高亮到任何東西。',
+  'palette.toggleThemeDescription': '整個 app 喺淺色跟深色主題之間彈來彈去。',
+  'palette.languageMode': '語言模式',
+  'palette.languageModeDescription': '英文、香港廣東話，或者兩樣一齊來。',
+  'palette.funnyEnglish': '搞笑程度（英文）',
+  'palette.funnyCantonese': '搞笑程度（廣東話）',
+  'palette.funnyLevelDescription':
+    '1 是完全正經，5 是夠靈夠搞笑。佢只改語氣；發生咗嘅、要做嘅永遠講得一樣清楚。',
+  'palette.tabSize': 'Diff Tab 寬度',
+  'palette.tabSizeDescription': '喺 diff 度一個 Tab 佔幾多個字位。',
+  'palette.highlightFeatures': '高亮 Desktop Material 功能',
+  'palette.highlightFeaturesDescription':
+    '把 Desktop Material 額外加嘅入口標出來，一眼分到。',
+  'palette.confirmDiscard': '丟掉變更前先問一問',
+  'palette.confirmDiscardDescription': '關咗就即刻丟，沒對話框也沒後悔藥。',
+  'palette.confirmForcePush': '強行 push 前先問一問',
+  'palette.confirmForcePushDescription':
+    '關咗就即刻強行 push，直接覆寫遠端分支，一個對話框都沒有。',
+  'palette.confirmRepositoryRemoval': '移除倉庫前先問一問',
+  'palette.confirmRepositoryRemovalDescription':
+    '移除只係喺 app 度拿走，硬碟嘅檔案仍然喺度。',
+  'palette.commitLengthWarning': 'Commit 標題太長就提醒',
+  'palette.commitLengthWarningDescription': 'Commit 標題長過建議寬度就彈提醒。',
+  'palette.notificationsEnabled': '桌面通知',
+  'palette.notificationsEnabledDescription':
+    'Push 完、檢查完、有人 review，系統通知話你知。',
+  'palette.underlineLinks': '連結加底線',
+  'palette.underlineLinksDescription': '每條連結都加底線，唔使靠顏色先認得出。',
+  'palette.externalCredentialHelper': '用外部憑證助理',
+  'palette.externalCredentialHelperDescription':
+    '用系統嘅憑證助理走 Git 驗證，唔用 app 自己嘅儲存。',
+  'palette.windowsOpenSSH': '用 Windows OpenSSH',
+  'palette.windowsOpenSSHDescription':
+    'SSH 遠端走 Windows 自帶嘅 OpenSSH client。',
+  'palette.sideBySideDiff': '左右對照 diff',
+  'palette.sideBySideDiffDescription': '刪嘅跟加嘅分兩欄看，唔係疊埋一欄。',
+  'palette.hideWhitespaceChanges': '變更 diff 唔理空白',
+  'palette.hideWhitespaceChangesDescription':
+    '看未 commit 嘅變更時，只改咗空白嘅行唔算。',
+  'palette.commitSummary': 'Commit 標題',
+  'palette.commitSummaryDescription': '唔使離開面板，直接打入 commit 框度。',
+  'palette.commitSummaryPlaceholder': '標題（必填）',
+  'palette.cloneUrl': '用 URL clone',
+  'palette.cloneUrlDescription': '开 clone 對話框，URL 已經填好。',
+  'palette.cloneUrlPlaceholder': 'https://github.com/owner/repository',
+  'palette.preferencesPrompts': '設定：提醒跟確認',
+  'palette.preferencesAgentAccess': '設定：Agent 存取',
   'buildRun.closeDisabledRunning': '而家有任務行緊，要先停咗佢先可以閂呢個面板',
   'buildRun.fixingWithOpencode': 'OpenCode 修緊…',
   'buildRun.stopConfirmTitle': '要停咗行緊嘅任務？',
