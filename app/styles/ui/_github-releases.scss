@@ -225,12 +225,82 @@
   }
 }
 
+// The search field and the status/sort/selection row are a disclosure at every
+// width, not only on a narrow panel. On a roomy panel they start open, so
+// nothing moves for anyone who never touches the control; collapsing them
+// hands the whole panel back to the release list, which is the point.
 .github-releases-compact-tools-toggle {
-  display: none;
+  display: flex;
+  min-height: 36px;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 6px 12px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-small, 8px);
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--md-sys-color-surface-container-high);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: -2px;
+  }
+
+  > span:first-child {
+    flex: 1 1 auto;
+    text-align: left;
+  }
+
+  // The live summary ("N shown · N selected") is what makes a collapsed
+  // disclosure honest: the counts stay readable without reopening it.
+  > span:last-child {
+    flex: 0 1 auto;
+    color: var(--md-sys-color-on-surface-variant);
+    text-align: right;
+  }
+
+  // A chevron that turns with the state, so the control reads as a disclosure
+  // rather than a button that might do anything.
+  &::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-right: 2px solid currentcolor;
+    border-bottom: 2px solid currentcolor;
+    rotate: 45deg;
+    translate: 0 -2px;
+    transition: rotate calc(180ms * var(--mdur, 1)) var(--emph, ease);
+  }
+}
+
+.github-releases-list-panel.tools-collapsed .github-releases-compact-tools-toggle::after {
+  rotate: -45deg;
+  translate: 0 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .github-releases-compact-tools-toggle::after {
+    transition: none;
+  }
 }
 
 .github-releases-compact-tools {
   display: contents;
+}
+
+.github-releases-list-panel.tools-collapsed .github-releases-compact-tools {
+  display: none;
 }
 
 .github-releases-filter-area {
@@ -1647,15 +1717,13 @@
     }
   }
 
-  .github-releases-compact-tools {
-    display: none;
-  }
-
-  .github-releases-list-panel.compact-tools-expanded .github-releases-compact-tools {
+  // Visibility is driven by .tools-collapsed at every width (see the base
+  // rules); a narrow panel only needs the expanded case to be able to grow.
+  .github-releases-list-panel.tools-expanded .github-releases-compact-tools {
     display: block;
   }
 
-  .github-releases-list-panel.compact-tools-expanded {
+  .github-releases-list-panel.tools-expanded {
     min-height: 320px;
     height: auto;
     max-height: none;

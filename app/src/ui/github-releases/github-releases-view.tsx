@@ -7,6 +7,7 @@ import { t, translateForAccessibleName } from '../../lib/i18n'
 import { TranslationKey } from '../../lib/i18n-resources'
 import { Account } from '../../models/account'
 import { Repository } from '../../models/repository'
+import { getBoolean, setBoolean } from '../../lib/local-storage'
 import {
   getGitHubReleasesAccount,
   getGitHubReleasesAvailability,
@@ -83,6 +84,21 @@ import { ExternalOpenBusy } from '../lib/external-open-busy'
 import { isCheapLfsReleaseBucket } from '../../lib/cheap-lfs/asset-version'
 
 const ReleasesSearchFilterId = 'github-releases-search'
+
+/** Persisted explicit choice for the Releases search + filter disclosure. */
+const ReleasesToolsExpandedKey = 'github-releases-tools-expanded'
+
+/**
+ * The viewport at or below which the disclosure defaults to collapsed.
+ *
+ * Kept in step with `@media (max-width: 800px) and (max-height: 560px)` in
+ * _github-releases.scss, which is the only place the tools were ever hidden
+ * by default. Measuring the list panel instead would be wrong: it is one
+ * column of a two-column layout and sits near 510px even in a 1500px window,
+ * so a panel-width rule would collapse the tools on an ordinary desktop.
+ */
+const ReleasesToolsCrampedWidth = 800
+const ReleasesToolsCrampedHeight = 560
 
 /**
  * The fixed slot height of one virtualized release row: the 64px minimum row
@@ -237,7 +253,15 @@ interface IGitHubReleasesViewState {
   /** Cheap LFS storage buckets stay out of the normal Releases view by default. */
   readonly showCheapLfsReleases: boolean
   readonly sortOrder: ReleaseSortOrder
-  readonly compactToolsExpanded: boolean
+  /**
+   * The user's explicit choice for the search + filter disclosure, or
+   * undefined when they have never touched it. Undefined is not "collapsed":
+   * it means "use this width's default", which is expanded on a roomy panel
+   * and collapsed on a narrow one.
+   */
+  readonly toolsExpandedPreference: boolean | undefined
+  /** Whether the list panel is currently narrow enough to default collapsed. */
+  readonly toolsPanelNarrow: boolean
   readonly assets: ReadonlyArray<IGitHubReleaseAsset>
   readonly assetPage: number
   readonly nextAssetPage: number | null
@@ -286,7 +310,8 @@ function initialState(
     statusFilter: 'all',
     showCheapLfsReleases: false,
     sortOrder: readPersistedReleaseSortOrder(ReleasesSearchFilterId),
-    compactToolsExpanded: false,
+    toolsExpandedPreference: getBoolean(ReleasesToolsExpandedKey),
+    toolsPanelNarrow: false,
     assets: [],
     assetPage: 0,
     nextAssetPage: null,
@@ -521,6 +546,8 @@ export class GitHubReleasesView extends React.Component<
 
   public componentDidMount() {
     this.mounted = true
+    this.measureReleaseToolsViewport()
+    window.addEventListener('resize', this.measureReleaseToolsViewport)
     if (this.state.availability === 'available') {
       void this.loadReleases(true)
     }
@@ -561,6 +588,7 @@ export class GitHubReleasesView extends React.Component<
   }
 
   public componentWillUnmount() {
+    window.removeEventListener('resize', this.measureReleaseToolsViewport)
     this.mounted = false
     this.generation++
     this.openDownloadRequest++
@@ -1061,10 +1089,35 @@ export class GitHubReleasesView extends React.Component<
       }
     })
 
+  /**
+   * The effective disclosure state: the user's choice when they have made one,
+   * otherwise this width's default (expanded when there is room, collapsed
+   * when there is not).
+   */
+  private releaseToolsExpanded(state = this.state): boolean {
+    return state.toolsExpandedPreference ?? !state.toolsPanelNarrow
+  }
+
   private toggleCompactReleaseTools = () =>
-    this.setState(state => ({
-      compactToolsExpanded: !state.compactToolsExpanded,
-    }))
+    this.setState(state => {
+      const expanded = !this.releaseToolsExpanded(state)
+      setBoolean(ReleasesToolsExpandedKey, expanded)
+      return { toolsExpandedPreference: expanded }
+    })
+
+  /**
+   * Track the viewport against the same cramped breakpoint the stylesheet
+   * uses, so the default side of the disclosure and the announced
+   * `aria-expanded` cannot disagree with what is drawn.
+   */
+  private measureReleaseToolsViewport = () => {
+    const cramped =
+      window.innerWidth <= ReleasesToolsCrampedWidth &&
+      window.innerHeight <= ReleasesToolsCrampedHeight
+    this.setState(state =>
+      state.toolsPanelNarrow === cramped ? null : { toolsPanelNarrow: cramped }
+    )
+  }
 
   private selectedReleases(): ReadonlyArray<IGitHubRelease> {
     return this.state.releases.filter(release =>
@@ -2348,11 +2401,12 @@ export class GitHubReleasesView extends React.Component<
       this.state.busy === 'releases'
     const loadAllProgress =
       this.state.busy === 'releases-all' ? this.state.loadAllProgress : null
+    const releaseToolsExpanded = this.releaseToolsExpanded()
 
     return (
       <section
         className={`github-releases-list-panel${
-          this.state.compactToolsExpanded ? ' compact-tools-expanded' : ''
+          releaseToolsExpanded ? ' tools-expanded' : ' tools-collapsed'
         }`}
         aria-labelledby="github-releases-list-title"
       >
@@ -2371,7 +2425,7 @@ export class GitHubReleasesView extends React.Component<
           <button
             type="button"
             className="github-releases-compact-tools-toggle"
-            aria-expanded={this.state.compactToolsExpanded}
+            aria-expanded={releaseToolsExpanded}
             aria-controls="github-releases-compact-tools"
             aria-describedby="github-releases-compact-summary"
             aria-label={translateForAccessibleName(

@@ -107,6 +107,34 @@ describe('GitHub Releases responsive Material styles', () => {
     )
   })
 
+  it('offers the search and filter disclosure at every width', () => {
+    // It used to be display:none outside the narrow layout, so a roomy panel
+    // could never reclaim the space the search and filter row occupies.
+    assert.match(
+      styles,
+      /\.github-releases-compact-tools-toggle \{[\s\S]*?display:\s*flex;/
+    )
+    assert.doesNotMatch(
+      styles,
+      /\.github-releases-compact-tools-toggle \{\s*display:\s*none;/
+    )
+    // A chevron that turns with the state, and a focus ring, so it reads and
+    // behaves as a disclosure rather than an unexplained button.
+    assert.match(
+      styles,
+      /\.github-releases-compact-tools-toggle \{[\s\S]*?&:focus-visible \{[\s\S]*?outline:\s*2px solid var\(--md-sys-color-primary\);/
+    )
+    assert.match(
+      styles,
+      /\.github-releases-list-panel\.tools-collapsed\s*\.github-releases-compact-tools-toggle::after \{[\s\S]*?rotate:\s*-45deg;/
+    )
+    // The turn is motion, so it stands down under reduced motion.
+    assert.match(
+      styles,
+      /@media \(prefers-reduced-motion: reduce\) \{[\s\S]*?\.github-releases-compact-tools-toggle::after \{[\s\S]*?transition:\s*none;/
+    )
+  })
+
   it('keeps a complete release row above the fold from 125% through 200% zoom', () => {
     assert.match(
       styles,
@@ -116,13 +144,19 @@ describe('GitHub Releases responsive Material styles', () => {
       styles,
       /@media \(max-width: 800px\) and \(max-height: 560px\)[\s\S]*?\.github-releases-overview \{[\s\S]*?grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\);[\s\S]*?\.github-release-metric\.latest \{[\s\S]*?grid-column:\s*span 2;/
     )
+    // The disclosure is available at every width now, so visibility is driven
+    // by .tools-collapsed in the base rules rather than hidden-by-default here.
     assert.match(
       styles,
-      /@media \(max-width: 800px\) and \(max-height: 560px\)[\s\S]*?\.github-releases-compact-tools \{\s*display:\s*none;[\s\S]*?\.compact-tools-expanded[\s\S]*?\.github-releases-compact-tools \{\s*display:\s*block;/
+      /\.github-releases-list-panel\.tools-collapsed \.github-releases-compact-tools \{\s*display:\s*none;/
     )
     assert.match(
       styles,
-      /@media \(max-width: 800px\) and \(max-height: 560px\)[\s\S]*?\.github-releases-list-panel\.compact-tools-expanded \{[\s\S]*?min-height:\s*320px;[\s\S]*?height:\s*auto;[\s\S]*?overflow-y:\s*visible;/
+      /@media \(max-width: 800px\) and \(max-height: 560px\)[\s\S]*?\.github-releases-list-panel\.tools-expanded \.github-releases-compact-tools \{\s*display:\s*block;/
+    )
+    assert.match(
+      styles,
+      /@media \(max-width: 800px\) and \(max-height: 560px\)[\s\S]*?\.github-releases-list-panel\.tools-expanded \{[\s\S]*?min-height:\s*320px;[\s\S]*?height:\s*auto;[\s\S]*?overflow-y:\s*visible;/
     )
     assert.match(
       styles,
@@ -132,10 +166,21 @@ describe('GitHub Releases responsive Material styles', () => {
       styles,
       /@media \(max-width: 800px\) and \(max-height: 560px\)[\s\S]*?\.github-releases-list \{[\s\S]*?min-height:\s*52px;[\s\S]*?\.github-release-row \{[\s\S]*?min-height:\s*52px;/
     )
-    const compactBlock = styles.slice(
-      styles.indexOf('@media (max-width: 800px) and (max-height: 560px)'),
-      styles.indexOf('@media (prefers-reduced-motion: reduce)')
+    // Slice to the reduced-motion block that FOLLOWS the compact one. There is
+    // now an earlier reduced-motion block in the base rules, so a plain
+    // indexOf would end the slice before it started and silently test ''.
+    const compactStart = styles.indexOf(
+      '@media (max-width: 800px) and (max-height: 560px)'
     )
+    const compactEnd = styles.indexOf(
+      '@media (prefers-reduced-motion: reduce)',
+      compactStart
+    )
+    const compactBlock = styles.slice(
+      compactStart,
+      compactEnd === -1 ? styles.length : compactEnd
+    )
+    assert.ok(compactBlock.length > 0, 'compact block must be found')
     assert.doesNotMatch(compactBlock, /font-size:\s*[78]px;/)
     assert.match(
       compactBlock,

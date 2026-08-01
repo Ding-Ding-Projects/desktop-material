@@ -1347,7 +1347,8 @@ describe('GitHub Releases view', () => {
     assert.ok(screen.getByText('0 selected'))
   })
 
-  it('toggles compact filter controls while preserving release rows in the DOM', async () => {
+  it('toggles the search and filter disclosure while preserving release rows in the DOM', async () => {
+    window.localStorage.removeItem('github-releases-tools-expanded')
     const store = fakeStore({
       list: async () => ({
         releases: [draft],
@@ -1369,7 +1370,9 @@ describe('GitHub Releases view', () => {
     })
     const panel = toggle.closest('.github-releases-list-panel')
     assert.ok(panel)
-    assert.equal(toggle.getAttribute('aria-expanded'), 'false')
+    // A panel with room starts open, so nobody who never touches the control
+    // sees the search field move. (jsdom reports width 0, which is not narrow.)
+    assert.equal(toggle.getAttribute('aria-expanded'), 'true')
     assert.equal(
       toggle.getAttribute('aria-controls'),
       'github-releases-compact-tools'
@@ -1382,18 +1385,70 @@ describe('GitHub Releases view', () => {
     assert.equal(compactStatus.id, 'github-releases-compact-summary')
     assert.equal(compactStatus.getAttribute('aria-live'), 'polite')
     assert.equal(compactStatus.getAttribute('aria-atomic'), 'true')
-    assert.equal(panel.classList.contains('compact-tools-expanded'), false)
+    assert.equal(panel.classList.contains('tools-expanded'), true)
+    assert.ok(screen.getByLabelText('Search loaded releases'))
+    assert.ok(screen.getByRole('button', { name: /Desktop Material 1\.0/ }))
+
+    // Collapsing hands the panel back to the release list. The live counts
+    // stay readable in the toggle, and the rows never leave the DOM.
+    fireEvent.click(toggle)
+    assert.equal(toggle.getAttribute('aria-expanded'), 'false')
+    assert.equal(panel.classList.contains('tools-collapsed'), true)
+    assert.ok(within(toggle).getByText('1 shown · 0 selected'))
     assert.ok(screen.getByRole('button', { name: /Desktop Material 1\.0/ }))
 
     fireEvent.click(toggle)
     assert.equal(toggle.getAttribute('aria-expanded'), 'true')
-    assert.equal(panel.classList.contains('compact-tools-expanded'), true)
+    assert.equal(panel.classList.contains('tools-expanded'), true)
     assert.ok(screen.getByLabelText('Search loaded releases'))
+    assert.ok(screen.getByRole('button', { name: /Desktop Material 1\.0/ }))
+  })
 
+  it('remembers an explicit disclosure choice across mounts', async () => {
+    window.localStorage.removeItem('github-releases-tools-expanded')
+    const store = fakeStore({
+      list: async () => ({
+        releases: [draft],
+        page: 1,
+        nextPage: null,
+        capped: false,
+      }),
+    })
+    const view = render(
+      <GitHubReleasesView
+        repository={repository}
+        accounts={[account]}
+        releasesStore={store}
+      />
+    )
+
+    const toggle = await screen.findByRole('button', {
+      name: /Filters and selection/,
+    })
     fireEvent.click(toggle)
     assert.equal(toggle.getAttribute('aria-expanded'), 'false')
-    assert.equal(panel.classList.contains('compact-tools-expanded'), false)
-    assert.ok(screen.getByRole('button', { name: /Desktop Material 1\.0/ }))
+    // The helper's own encoding is its business; what matters is that a
+    // choice was recorded at all, and that the remount below honours it.
+    assert.notEqual(
+      window.localStorage.getItem('github-releases-tools-expanded'),
+      null
+    )
+
+    // Remounting must honour the stored choice rather than snapping back to
+    // the width default - that is the whole point of persisting it.
+    view.unmount()
+    render(
+      <GitHubReleasesView
+        repository={repository}
+        accounts={[account]}
+        releasesStore={store}
+      />
+    )
+    const remounted = await screen.findByRole('button', {
+      name: /Filters and selection/,
+    })
+    assert.equal(remounted.getAttribute('aria-expanded'), 'false')
+    window.localStorage.removeItem('github-releases-tools-expanded')
   })
 
   it('localizes compact release tools in Cantonese and bilingual modes', async () => {
