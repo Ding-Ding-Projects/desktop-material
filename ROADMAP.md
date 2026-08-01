@@ -42,6 +42,12 @@ Windows mnemonic now uses <kbd>R</kbd>; the duplicate summary row is removed
 without touching the out-of-scope TUI, while the full reliability article and
 Pages feature card remain published.
 
+The second hosted run cleared both first-run failures. Its only remaining
+Windows failure was the incoming context-menu search surface using a constant
+expression instead of the registry auditor's literal one-to-one ID. Both the
+input and its regex control now expose the literal `material-context-menu`
+surface ID; the focused collection-registry contract passes.
+
 ## July 30 Publish organization sizing — **Implementation pushed; final hosted proof pending**
 
 Publish repository's Organization field is now an explicit-None searchable

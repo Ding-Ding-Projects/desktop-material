@@ -224,6 +224,12 @@ test passes. The same run's three Linux parity jobs reported 202 desktop feature
 rows against a frozen 201-row TUI contract. Rather than edit the prohibited TUI
 surface, this follow-up removes the duplicate summary row while retaining the
 dedicated feature article, category index, Pages card, and app documentation.
+The second hosted run (`30678663185`) cleared those failures and passed 7,472
+of 7,473 Windows unit checks; its sole failure found the same incoming context
+menu's new search input used a constant expression where the registry auditor
+requires a literal one-to-one surface ID. The input and its regex control now
+carry the literal `material-context-menu` ID, and the focused registry contract
+passes without changing runtime behavior.
 
 ## 2026-07-30 — Publish organization listbox sizing (pushed acceptance)
 
