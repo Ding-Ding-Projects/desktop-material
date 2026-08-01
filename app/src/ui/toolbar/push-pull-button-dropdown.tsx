@@ -19,6 +19,12 @@ interface IPushPullButtonDropDownProps {
 
   readonly fetch: () => void
   readonly forcePushWithLease: () => void
+  /**
+   * Opens the local coding agent on this push failure. Optional so a host
+   * that has no agent configured simply does not offer the item, rather than
+   * offering one that does nothing.
+   */
+  readonly resolvePushIssues?: () => void
 }
 
 export class PushPullButtonDropDown extends React.Component<IPushPullButtonDropDownProps> {
@@ -78,6 +84,14 @@ export class PushPullButtonDropDown extends React.Component<IPushPullButtonDropD
           icon: syncClockwise,
           materialSymbol: 'sync',
         }
+      case DropdownItemType.ResolvePushIssues:
+        return {
+          title: 'Resolve push issues with OpenCode',
+          description: `Diagnose why pushing to ${remoteName} is failing and fix the cause locally`,
+          action: this.props.resolvePushIssues ?? (() => undefined),
+          icon: syncClockwise,
+          materialSymbol: 'build',
+        }
       case DropdownItemType.ForcePush: {
         const forcePushWarning = this.props
           .askForConfirmationOnForcePush ? null : (
@@ -129,7 +143,13 @@ export class PushPullButtonDropDown extends React.Component<IPushPullButtonDropD
     const { itemTypes } = this.props
     return (
       <div className="push-pull-dropdown" ref={this.onButtonsContainerRef}>
-        {itemTypes.map(this.renderDropdownItem)}
+        {itemTypes
+          .filter(
+            type =>
+              type !== DropdownItemType.ResolvePushIssues ||
+              this.props.resolvePushIssues !== undefined
+          )
+          .map(this.renderDropdownItem)}
       </div>
     )
   }

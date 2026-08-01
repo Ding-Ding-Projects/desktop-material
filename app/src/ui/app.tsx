@@ -87,6 +87,7 @@ import {
   ToggleCheapLfsRestoreProgressEvent,
 } from './lib/cheap-lfs-restore-progress'
 import {
+  buildPushRepairPrompt,
   PaletteCloudCiRepairPrompt,
   PaletteConflictRepairPrompt,
 } from '../lib/build-run/repair-prompts'
@@ -3945,6 +3946,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             onDismissed={onPopupDismissedFn}
             dispatcher={this.props.dispatcher}
             initialName={popup.initialName || ''}
+            checkoutProgress={state.checkoutProgress}
           />
         )
       }
@@ -6802,8 +6804,38 @@ export class App extends React.Component<IAppProps, IAppState> {
         onDropdownStateChanged={this.onPushPullDropdownStateChanged}
         enableFocusTrap={enableFocusTrap}
         pushPullButtonWidth={this.state.pushPullButtonWidth}
+        onResolvePushIssues={this.onResolvePushIssues}
       />
     )
+  }
+
+  /**
+   * Open the local coding agent on a push that will not land.
+   *
+   * The prompt names the remote and branch so the agent starts from the real
+   * situation, and forbids the two remedies that lose work - force-pushing
+   * and dropping commits - because a rejected push is exactly when those look
+   * tempting.
+   */
+  private onResolvePushIssues = () => {
+    const state = this.getSelectedRepositoryState()
+    const repository = state?.repository
+    if (!(repository instanceof Repository)) {
+      return
+    }
+    const tip = state?.state.branchesState.tip
+    this.props.dispatcher.showPopup({
+      type: PopupType.OpencodeSend,
+      repository,
+      context: {
+        cwd: repository.path,
+        initialPrompt: buildPushRepairPrompt({
+          remoteName: state?.state.remote?.name,
+          branchName:
+            tip?.kind === TipState.Valid ? tip.branch.name : undefined,
+        }),
+      },
+    })
   }
 
   private showCreateBranch = () => {
@@ -7273,6 +7305,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           state={selectedState.state}
           dispatcher={this.props.dispatcher}
           emoji={state.emoji}
+          underlineLinks={this.state.underlineLinks}
           sidebarWidth={state.sidebarWidth}
           commitSummaryWidth={state.commitSummaryWidth}
           stashedFilesWidth={state.stashedFilesWidth}

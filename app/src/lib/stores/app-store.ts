@@ -8913,7 +8913,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
     name: string,
     startPoint: string | null,
     noTrackOption: boolean = false,
-    checkoutBranch: boolean = true
+    checkoutBranch: boolean = true,
+    /**
+     * Whether the checkout that follows should initialize and update
+     * submodules. Declining leaves the submodule directories unpopulated
+     * instead of cloning them, which is the point for a repository whose
+     * submodules are large or slow to fetch.
+     */
+    updateSubmodules: boolean = true
   ): Promise<Branch | undefined> {
     const gitStore = this.gitStoreCache.get(repository)
     const branch = await this.withTemporaryRepositoryMutationGuard(
@@ -8922,7 +8929,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
     )
 
     if (branch !== undefined && checkoutBranch) {
-      await this._checkoutBranch(repository, branch)
+      await this._checkoutBranch(
+        repository,
+        branch,
+        undefined,
+        updateSubmodules
+      )
     }
 
     return branch
@@ -9097,7 +9109,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   public async _checkoutBranch(
     repository: Repository,
     branch: Branch,
-    explicitStrategy?: UncommittedChangesStrategy
+    explicitStrategy?: UncommittedChangesStrategy,
+    updateSubmodules: boolean = true
   ): Promise<Repository> {
     const repositoryState = this.repositoryStateCache.get(repository)
     const { changesState, branchesState } = repositoryState
@@ -9138,7 +9151,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
       // We always want to end with refreshing the repository regardless of
       // whether the checkout succeeded or not in order to present the most
       // up-to-date information to the user.
-      return this.checkoutImplementation(repository, branch, strategy)
+      return this.checkoutImplementation(
+        repository,
+        branch,
+        strategy,
+        updateSubmodules
+      )
         .then(() => this.onSuccessfulCheckout(repository, branch))
         .catch(async e => {
           this.emitError(new CheckoutError(e, repository, branch))
@@ -9152,7 +9170,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private checkoutImplementation(
     repository: Repository,
     branch: Branch,
-    strategy: UncommittedChangesStrategy
+    strategy: UncommittedChangesStrategy,
+    updateSubmodules: boolean = true
   ) {
     const { currentRemote } = this.gitStoreCache.get(repository)
 
@@ -9161,7 +9180,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
     } else if (strategy === UncommittedChangesStrategy.MoveToNewBranch) {
       return this.checkoutAndBringChanges(repository, branch, currentRemote)
     } else {
-      return this.checkoutIgnoringChanges(repository, branch, currentRemote)
+      return this.checkoutIgnoringChanges(
+        repository,
+        branch,
+        currentRemote,
+        updateSubmodules
+      )
     }
   }
 
@@ -9169,12 +9193,20 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private async checkoutIgnoringChanges(
     repository: Repository,
     branch: Branch,
-    currentRemote: IRemote | null
+    currentRemote: IRemote | null,
+    updateSubmodules: boolean = true
   ) {
     await this.withTemporaryRepositoryMutationGuard(repository, () =>
-      checkoutBranch(repository, branch, currentRemote, progress => {
-        this.updateCheckoutProgress(repository, progress)
-      })
+      checkoutBranch(
+        repository,
+        branch,
+        currentRemote,
+        progress => {
+          this.updateCheckoutProgress(repository, progress)
+        },
+        false,
+        updateSubmodules
+      )
     )
   }
 

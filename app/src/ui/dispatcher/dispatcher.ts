@@ -1712,13 +1712,17 @@ export class Dispatcher {
     repository: Repository,
     name: string,
     startPoint: string | null,
-    noTrackOption: boolean = false
+    noTrackOption: boolean = false,
+    /** Whether the checkout that follows should clone submodules. */
+    updateSubmodules: boolean = true
   ): Promise<Branch | undefined> {
     return this.appStore._createBranch(
       repository,
       name,
       startPoint,
-      noTrackOption
+      noTrackOption,
+      true,
+      updateSubmodules
     )
   }
 

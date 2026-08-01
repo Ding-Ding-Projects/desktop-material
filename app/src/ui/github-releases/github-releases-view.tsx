@@ -44,6 +44,8 @@ import {
   IRepositoryAccountTarget,
 } from '../../lib/repository-account-fallback'
 import { Button } from '../lib/button'
+import { SandboxedMarkdown } from '../lib/sandboxed-markdown'
+import { Emoji } from '../../lib/emoji'
 import { RepositoryAccountFallbackNotice } from '../lib/repository-account-fallback-notice'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import { LinkButton } from '../lib/link-button'
@@ -226,6 +228,13 @@ interface ISilentInstallState {
 }
 
 interface IGitHubReleasesViewProps {
+  /**
+   * Emoji map used when rendering release notes as markdown. Optional so a
+   * focused test can mount the view without an emoji cache.
+   */
+  readonly emoji?: Map<string, Emoji>
+  /** Whether links inside rendered notes are underlined. */
+  readonly underlineLinks?: boolean
   readonly repository: Repository
   readonly accounts: ReadonlyArray<Account>
   readonly releasesStore: GitHubReleasesStore
@@ -3278,7 +3287,25 @@ export class GitHubReleasesView extends React.Component<
         </dl>
         <div className="github-release-notes">
           <h3>Release notes</h3>
-          <p>{release.body || 'No release notes were provided.'}</p>
+          {/*
+            Release notes are authored as markdown on the provider, so showing
+            release.body raw rendered the literal syntax - headings as #, links
+            as brackets. The shared sandboxed renderer is used rather than a
+            new one so notes inherit the same isolation and link handling as
+            every other markdown surface in the app.
+          */}
+          {release.body ? (
+            <SandboxedMarkdown
+              markdown={release.body}
+              emoji={this.props.emoji ?? new Map()}
+              underlineLinks={this.props.underlineLinks === true}
+              repository={this.props.repository.gitHubRepository ?? undefined}
+              baseHref={release.htmlURL ?? undefined}
+              ariaLabel={`Release notes for ${release.name || release.tagName}`}
+            />
+          ) : (
+            <p>No release notes were provided.</p>
+          )}
         </div>
         {this.renderAssets(release)}
       </section>

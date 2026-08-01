@@ -21,6 +21,9 @@ import { assertNever } from '../../lib/fatal-error'
 import { renderBranchNameExistsOnRemoteWarning } from '../lib/branch-name-warnings'
 import { getStartPoint } from '../../lib/create-branch'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
+import { ICheckoutProgress } from '../../models/progress'
+import { listSubmodules } from '../../lib/git/submodule'
 import { startTimer } from '../lib/timing'
 import { GitHubRepository } from '../../models/github-repository'
 import { RefNameTextBox } from '../lib/ref-name-text-box'
@@ -42,6 +45,15 @@ import {
 
 interface ICreateBranchProps {
   readonly repository: Repository
+  /**
+   * Live checkout progress for this repository.
+   *
+   * Creating a branch checks it out, and that checkout is what initializes
+   * submodules. Surfacing the progress here means the dialog can show the
+   * submodule work as it happens instead of sitting on a bare spinner while
+   * a large submodule clones.
+   */
+  readonly checkoutProgress?: ICheckoutProgress | null
   readonly targetCommit?: CommitOneLine
   readonly upstreamGitHubRepository: GitHubRepository | null
   readonly accounts: ReadonlyArray<Account>
@@ -95,6 +107,14 @@ interface ICreateBranchState {
    * shown in its place.
    */
   readonly isCreatingBranch: boolean
+  /**
+   * Whether this repository has submodules at all. Undefined while the check
+   * is still running; false hides the option entirely rather than offering a
+   * choice that would do nothing.
+   */
+  readonly hasSubmodules?: boolean
+  /** Whether the checkout that follows should clone submodules. */
+  readonly updateSubmodules: boolean
 
   /**
    * The tip of the current repository, captured from props at the start
@@ -132,6 +152,7 @@ export class CreateBranch extends React.Component<
       branchName: props.initialName,
       startPoint,
       isCreatingBranch: false,
+      updateSubmodules: true,
       tipAtCreateStart: props.tip,
       defaultBranchAtCreateStart: getBranchForStartPoint(startPoint, props),
       branchNamePresets: [],
@@ -163,7 +184,24 @@ export class CreateBranch extends React.Component<
     }
   }
 
+  /**
+   * Only offer the submodule choice where there is something to choose. A
+   * repository with no submodules should not be asked about them.
+   */
+  private async detectSubmodules() {
+    try {
+      const submodules = await listSubmodules(this.props.repository)
+      this.setState({ hasSubmodules: submodules.length > 0 })
+    } catch (e) {
+      // A failed probe must not block branch creation; assume none rather
+      // than offering an option whose effect cannot be predicted.
+      log.warn('Could not list submodules for the create-branch dialog', e)
+      this.setState({ hasSubmodules: false })
+    }
+  }
+
   public componentDidMount() {
+    void this.detectSubmodules()
     this.props.dispatcher
       .getBranchNamePresets(this.props.repository.path)
       .then(branchNamePresets => {
@@ -275,7 +313,12 @@ export class CreateBranch extends React.Component<
     const disabled =
       this.state.branchName.length <= 0 ||
       (!!this.state.currentError && !this.state.currentError.isWarning) ||
-      /^\s*$/.test(this.state.branchName)
+      /^\s*$/.test(this.state.branchName) ||
+      // Creating is not instant - it checks out, and that can clone
+      // submodules - so the button stays disabled for the whole operation.
+      // Without this a second click lands while the first is still running
+      // and tries to create the same branch twice.
+      this.state.isCreatingBranch
     const hasError = !!this.state.currentError
 
     return (
@@ -311,6 +354,10 @@ export class CreateBranch extends React.Component<
           )}
 
           {this.renderBranchSelection()}
+
+          {this.renderSubmoduleOption()}
+
+          {this.renderCheckoutProgress()}
         </DialogContent>
 
         <DialogFooter>
@@ -416,7 +463,67 @@ export class CreateBranch extends React.Component<
     }
   }
 
+  private onUpdateSubmodulesChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => this.setState({ updateSubmodules: event.currentTarget.checked })
+
+  /** The submodule choice, shown only where the repository has submodules. */
+  private renderSubmoduleOption() {
+    if (this.state.hasSubmodules !== true) {
+      return null
+    }
+    return (
+      <div className="create-branch-submodules">
+        <Checkbox
+          label="Clone submodules for the new branch"
+          value={
+            this.state.updateSubmodules ? CheckboxValue.On : CheckboxValue.Off
+          }
+          onChange={this.onUpdateSubmodulesChanged}
+          disabled={this.state.isCreatingBranch}
+        />
+        <p className="create-branch-submodules-note">
+          {this.state.updateSubmodules
+            ? 'Submodules are initialized and updated after the branch is checked out. Large submodules can make this take a while.'
+            : 'Submodule directories are left unpopulated. You can populate them later from the repository’s submodule tools.'}
+        </p>
+      </div>
+    )
+  }
+
+  /**
+   * Live progress for the checkout that follows branch creation, including
+   * the submodule phase. Without this the dialog shows a bare spinner and a
+   * slow submodule clone looks indistinguishable from a hang.
+   */
+  private renderCheckoutProgress() {
+    const progress = this.props.checkoutProgress
+    if (
+      !this.state.isCreatingBranch ||
+      progress === null ||
+      progress === undefined
+    ) {
+      return null
+    }
+    const percent = Math.round(progress.value * 100)
+    return (
+      <div className="create-branch-progress" role="status" aria-live="polite">
+        <progress value={progress.value} max={1} />
+        <span className="create-branch-progress-text">
+          {`${
+            progress.description ?? progress.title ?? 'Working'
+          } — ${percent}%`}
+        </span>
+      </div>
+    )
+  }
+
   private createBranch = async () => {
+    // The disabled button is the visible guard; this is the real one. A
+    // keyboard submit can still arrive while the first create is in flight.
+    if (this.state.isCreatingBranch) {
+      return
+    }
     const name = this.state.branchName
 
     let startPoint: string | null = null
@@ -471,7 +578,8 @@ export class CreateBranch extends React.Component<
         repository,
         name,
         startPoint,
-        noTrack
+        noTrack,
+        this.state.updateSubmodules
       )
       timer.done()
       this.props.onDismissed()

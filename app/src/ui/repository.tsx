@@ -116,6 +116,8 @@ interface IRepositoryViewProps {
   readonly state: IRepositoryState
   readonly dispatcher: Dispatcher
   readonly emoji: Map<string, Emoji>
+  /** Whether links are underlined, honoured inside rendered markdown. */
+  readonly underlineLinks: boolean
   readonly sidebarWidth: IConstrainedValue
   readonly commitSummaryWidth: IConstrainedValue
   readonly stashedFilesWidth: IConstrainedValue
@@ -1397,6 +1399,8 @@ export class RepositoryView extends React.Component<
       accounts={this.props.accounts}
       releasesStore={this.props.releasesStore}
       onReauthorize={this.onReauthorizePackagesAccount}
+      emoji={this.props.emoji}
+      underlineLinks={this.props.underlineLinks}
     />
   )
 

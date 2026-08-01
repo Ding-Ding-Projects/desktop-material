@@ -5,6 +5,7 @@ import { GitHubReleasesStore } from '../../lib/stores/github-releases-store'
 import { TabBar } from '../tab-bar'
 import { GitHubReleasesView } from '../github-releases'
 import { GitHubPackagesView } from './github-packages-view'
+import { Emoji } from '../../lib/emoji'
 
 type DistributionTab = 'releases' | 'packages'
 
@@ -14,6 +15,9 @@ interface IGitHubDistributionViewProps {
   readonly releasesStore: GitHubReleasesStore
   /** Re-runs sign-in when Packages is refused for a missing token scope. */
   readonly onReauthorize?: (account: Account) => void
+  /** Emoji map used when rendering release notes as markdown. */
+  readonly emoji: Map<string, Emoji>
+  readonly underlineLinks: boolean
 }
 
 interface IGitHubDistributionViewState {
@@ -67,6 +71,8 @@ export class GitHubDistributionView extends React.Component<
             <GitHubReleasesView
               repository={this.props.repository}
               accounts={this.props.accounts}
+              emoji={this.props.emoji}
+              underlineLinks={this.props.underlineLinks}
               releasesStore={this.props.releasesStore}
             />
           )}

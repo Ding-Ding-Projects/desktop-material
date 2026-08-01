@@ -115,7 +115,16 @@ export async function checkoutBranch(
   branch: Branch,
   currentRemote: IRemote | null,
   progressCallback?: ProgressCallback,
-  allowFileProtocol: boolean = false
+  allowFileProtocol: boolean = false,
+  /**
+   * Whether to initialize and update submodules after the checkout.
+   *
+   * Defaults to true, which is the long-standing behaviour. Callers that let
+   * the user decline - creating a branch in a repository with large or slow
+   * submodules, say - pass false, and the working tree is left with the
+   * submodule directories unpopulated rather than silently cloning them.
+   */
+  updateSubmodules: boolean = true
 ): Promise<true> {
   const title = `Checking out branch ${branch.name}`
   const opts = await getCheckoutOpts(
@@ -134,22 +143,24 @@ export async function checkoutBranch(
 
   await git(args, repository.path, 'checkoutBranch', opts)
 
-  // Update submodules after checkout
-  await updateSubmodulesAfterOperation(
-    repository,
-    currentRemote,
-    progressCallback
-      ? clampProgress<ICheckoutProgress>(
-          CheckoutStepWeight,
-          1,
-          progressCallback
-        )
-      : undefined,
-    'checkout',
-    title,
-    branch.name,
-    allowFileProtocol
-  )
+  // Update submodules after checkout, unless the caller declined.
+  if (updateSubmodules) {
+    await updateSubmodulesAfterOperation(
+      repository,
+      currentRemote,
+      progressCallback
+        ? clampProgress<ICheckoutProgress>(
+            CheckoutStepWeight,
+            1,
+            progressCallback
+          )
+        : undefined,
+      'checkout',
+      title,
+      branch.name,
+      allowFileProtocol
+    )
+  }
 
   // we return `true` here so `GitStore.performFailableGitOperation`
   // will return _something_ differentiable from `undefined` if this succeeds

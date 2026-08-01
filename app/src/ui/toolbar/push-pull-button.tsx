@@ -33,6 +33,13 @@ export const DropdownItemClassName = 'push-pull-dropdown-item'
 
 interface IPushPullButtonProps {
   /**
+   * Hands a failing push to the local coding agent. Optional: a host with no
+   * agent available omits it and the dropdown drops the item rather than
+   * showing one that does nothing.
+   */
+  readonly onResolvePushIssues?: () => void
+
+  /**
    * The ahead/behind count for the current branch. If null, it indicates the
    * branch doesn't have an upstream.
    */
@@ -134,6 +141,14 @@ interface IPushPullButtonState {
 export enum DropdownItemType {
   Fetch = 'fetch',
   ForcePush = 'force-push',
+  /**
+   * Hands the push failure to the local coding agent to diagnose.
+   *
+   * It sits beside Push rather than in a menu somewhere else because that is
+   * where a rejected push is discovered, and a push that will not land is the
+   * moment the help is wanted.
+   */
+  ResolvePushIssues = 'resolve-push-issues',
 }
 
 export type DropdownItem = {
@@ -457,6 +472,7 @@ export class PushPullButton extends React.Component<
           remoteName={this.props.remoteName}
           fetch={this.fetch}
           forcePushWithLease={this.forcePushWithLease}
+          resolvePushIssues={this.props.onResolvePushIssues}
           askForConfirmationOnForcePush={
             this.props.askForConfirmationOnForcePush
           }
@@ -730,6 +746,7 @@ export class PushPullButton extends React.Component<
         onClick={onClick}
         dropdownContentRenderer={this.getDropdownContentRenderer([
           DropdownItemType.Fetch,
+          DropdownItemType.ResolvePushIssues,
         ])}
       >
         {renderAheadBehind(aheadBehind, numTagsToPush)}
@@ -754,6 +771,7 @@ export class PushPullButton extends React.Component<
         onClick={onClick}
         dropdownContentRenderer={this.getDropdownContentRenderer([
           DropdownItemType.Fetch,
+          DropdownItemType.ResolvePushIssues,
         ])}
       >
         {renderAheadBehind(aheadBehind, numTagsToPush)}

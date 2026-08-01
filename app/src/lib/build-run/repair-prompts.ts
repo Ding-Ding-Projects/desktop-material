@@ -33,6 +33,42 @@ export const PaletteConflictRepairPrompt = buildConflictRepairPrompt({
   conflictedPaths: [],
 })
 
+/**
+ * Prompt for diagnosing a push that will not land.
+ *
+ * Pushing fails for a small, well-known set of reasons - the remote moved
+ * ahead, the branch is protected, a hook rejected it, the credential lacks a
+ * scope, a large file was refused - and each has a different remedy. The
+ * agent is asked to establish which one applies from real evidence before
+ * changing anything, and is explicitly barred from the two "fixes" that lose
+ * work: force-pushing and discarding local commits.
+ */
+export function buildPushRepairPrompt(args: {
+  readonly remoteName?: string
+  readonly branchName?: string
+  readonly error?: string
+}): string {
+  const remote = clean(args.remoteName ?? 'origin')
+  const branch = clean(args.branchName ?? 'the current branch')
+  const error =
+    args.error === undefined
+      ? ''
+      : `
+
+Reported failure:
+${clean(args.error)}`
+  return bounded(`Diagnose why pushing ${branch} to ${remote} is failing in this repository, then fix the cause.${error}
+
+Establish the actual reason from evidence before changing anything: run the push and read its output, check whether ${remote} has commits this branch does not, inspect branch protection or required checks, look for a rejecting pre-push hook, and check whether any file exceeds the remote's size limits. State which cause you found.
+
+Then apply the smallest safe remedy for that cause - integrating remote commits, correcting a hook, or repairing the offending file or configuration.
+
+Never force-push, never rewrite or drop existing commits, never change branches, and never contact external services beyond the repository's own remote. If the only remaining remedies would rewrite published history or need credentials you do not have, stop and report exactly what is required and why you did not do it.`)
+}
+
+/** The generic entry point, used where no specific failure is in hand yet. */
+export const PalettePushRepairPrompt = buildPushRepairPrompt({})
+
 export const PaletteCloudCiRepairPrompt =
   bounded(`Inspect this repository's cloud CI workflows and the most recent locally available failure evidence. Reproduce the failure locally where possible, make the smallest safe fix, and run focused verification.
 

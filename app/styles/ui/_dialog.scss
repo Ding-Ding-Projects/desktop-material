@@ -574,6 +574,38 @@ dialog {
   &#create-branch {
     width: 400px;
 
+    // The submodule choice and the live checkout progress. Creating a branch
+    // checks it out, and that checkout is what clones submodules - so this is
+    // where the waiting actually happens and where it should be visible.
+    .create-branch-submodules {
+      margin-top: var(--spacing);
+    }
+
+    .create-branch-submodules-note {
+      margin: var(--spacing-half) 0 0;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 12px;
+    }
+
+    .create-branch-progress {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-half);
+      margin-top: var(--spacing);
+
+      progress {
+        width: 100%;
+        height: 4px;
+        border-radius: var(--md-sys-shape-corner-full, 999px);
+      }
+    }
+
+    .create-branch-progress-text {
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+
     .dialog-fieldset-content,
     .dialog-content,
     .row-component,
