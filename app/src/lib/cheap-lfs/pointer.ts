@@ -554,7 +554,10 @@ export function isCheapLfsPointerText(text: string): boolean {
  * (no parent traversal, no absolute or drive-rooted paths, no Git metadata) but
  * returns a normalized forward-slash path, or `null` when the input is unsafe.
  */
-export function validateCheapLfsTrackedPath(relPath: string): string | null {
+function validateCheapLfsRepositoryPath(
+  relPath: string,
+  rejectGitPrefixedRoot: boolean
+): string | null {
   if (typeof relPath !== 'string') {
     return null
   }
@@ -592,9 +595,38 @@ export function validateCheapLfsTrackedPath(relPath: string): string | null {
         /[ .]$/.test(segment) ||
         reservedWindowsBasename.test(segment)
     ) ||
-    /^\.git/i.test(segments[0])
+    (rejectGitPrefixedRoot
+      ? /^\.git/i.test(segments[0])
+      : /^\.git$/i.test(segments[0]))
   ) {
     return null
   }
   return normalized
+}
+
+export function validateCheapLfsTrackedPath(relPath: string): string | null {
+  return validateCheapLfsRepositoryPath(relPath, true)
+}
+
+/**
+ * Validate a selected commit path for bounded size inspection. Unlike a Cheap
+ * LFS tracked destination, a normal Git control file such as `.gitmodules` or
+ * a workflow below `.github` may be inspected, but the real `.git` directory
+ * remains forbidden. Pinning still uses `validateCheapLfsTrackedPath`, so this
+ * never grants permission to replace a protected path with a pointer.
+ */
+export function validateCheapLfsCommitCandidatePath(
+  relPath: string
+): string | null {
+  return validateCheapLfsRepositoryPath(relPath, false)
+}
+
+/** Narrow ordinary commit selections to paths Cheap LFS may inspect. */
+export function cheapLfsTrackedPathsForCommit(
+  paths: ReadonlyArray<string>
+): ReadonlyArray<string> {
+  return paths.flatMap(path => {
+    const normalized = validateCheapLfsTrackedPath(path)
+    return normalized === null ? [] : [normalized]
+  })
 }

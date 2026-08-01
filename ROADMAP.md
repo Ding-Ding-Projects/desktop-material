@@ -1,6 +1,39 @@
 # Desktop Material roadmap
 
-Updated: **July 30, 2026**
+Updated: **July 31, 2026**
+
+## July 31 recurring background errors — **Implemented and locally verified**
+
+Production logs separated two failures that had appeared together: a bundled
+Git launcher denial during the hook-free settings history probe and an uncontained
+provider failure in repository-indicator refresh. The startup probe now has two
+bounded, cancellation-aware retries; indicator refresh contains each repository
+and reschedules in `finally`. Mutating Git commands remain single-shot.
+
+Focused verification passes 6/6 launcher/updater tests, 62/62 exact
+pointer/submodule checks, 101/101 broader focused checks, changed-file ESLint
+and Prettier, and TypeScript no-emit. The reproducible Lowlevel-MCP production
+build returned 0 after 539.6 seconds; the exact rebased tree returned 0 again
+after 559.1 seconds. Off-screen Win32 acceptance showed the
+modified `.gitmodules` and deleted gitlink together for twelve stable seconds,
+with empty notification history and none of the reported errors in isolated
+logs. Push and hosted installer/Release evidence remain the close-out gates.
+
+## July 31 automatic submodule recovery — **Implemented and locally verified**
+
+Add Submodule now resolves one immutable stage-0 blob OID, validates that same
+object, and restores its exact bytes only after the requested destination
+passes validation. The exclusive create cannot overwrite a concurrent file;
+failure cleanup removes only a matching device/inode and preserves a pathname
+when ownership cannot be proven. Commit-time Cheap LFS inventory omits Git
+metadata and gitlinks, but oversized protected dot paths stay in fail-closed
+commit accounting and are rejected before provider, credential, release,
+commit, or push mutation. This removes the follow-on unsafe-path toast without
+weakening real path, pointer, or large-file enforcement.
+
+Exact non-UTF-8 blob restoration, real submodule add/rollback, protected-path
+zero-read behavior, early remote-mutation gates, and mixed/manual failure
+merging are covered by the final focused suites.
 
 ## July 30 Publish organization sizing — **Implementation pushed; final hosted proof pending**
 

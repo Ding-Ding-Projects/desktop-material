@@ -46,6 +46,10 @@ contracts that span more than one user workflow.
   non-fast-forward push, forbidden org-remote push, detached-HEAD commit),
   proposes a safety-classed remediation, and surfaces a localized one-click
   "Fix it" action on the transient error notice without ever force-pushing.
+- [Background Git reliability](background-git-reliability.md) — retry only the
+  hook-free Windows startup history probe when the bundled launcher itself
+  fails and contain repository-indicator failures per repository so one
+  offline provider cannot abort the cycle or create an unhandled rejection.
 - [Canonical remote preflight
   warning](canonical-remote-preflight-warning.md) — stop a protected network
   mutation before Git runs when the remote destination cannot be proven, then

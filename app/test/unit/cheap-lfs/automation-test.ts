@@ -1,5 +1,8 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { Account, getAccountKey } from '../../../src/models/account'
 import { GitHubRepository } from '../../../src/models/github-repository'
 import { Owner } from '../../../src/models/owner'
@@ -8,6 +11,7 @@ import { IGitHubReleaseAsset } from '../../../src/lib/github-releases'
 import {
   autoPinLargeFilesForCommit,
   cheapLfsMaterializeStageAwareLogicalBytes,
+  defaultCheapLfsFileSystem,
   getCheapLfsReleaseLaneTag,
   ICheapLfsAutoPinProgress,
   ICheapLfsAutoPinTarget,
@@ -721,8 +725,9 @@ describe('selectCheapLfsAutoPinTargets', () => {
   ) {
     return {
       statSize: async (absolutePath: string) => {
+        const normalizedAbsolutePath = absolutePath.replace(/\\/g, '/')
         const size = [...sizes.entries()].find(([rel]) =>
-          absolutePath.endsWith(rel)
+          normalizedAbsolutePath.endsWith(rel)
         )?.[1]
         if (size === undefined) {
           throw new Error('missing')
@@ -730,8 +735,9 @@ describe('selectCheapLfsAutoPinTargets', () => {
         return size
       },
       readPointerText: async (absolutePath: string) => {
+        const normalizedAbsolutePath = absolutePath.replace(/\\/g, '/')
         const text = [...pointerText.entries()].find(([rel]) =>
-          absolutePath.endsWith(rel)
+          normalizedAbsolutePath.endsWith(rel)
         )?.[1]
         return text ?? 'not a pointer\n'
       },
@@ -756,6 +762,53 @@ describe('selectCheapLfsAutoPinTargets', () => {
       ['big.bin']
     )
     assert.equal(targets[0].sizeInBytes, 200)
+  })
+
+  it('keeps oversized protected dot paths in fail-closed pin accounting', async () => {
+    let pointerReads = 0
+    const targets = await selectCheapLfsAutoPinTargets(
+      repository(),
+      ['.gitmodules', '.github/oversized.bin', '.git/config'],
+      threshold,
+      {
+        ...deps(
+          new Map([
+            ['.gitmodules', 20],
+            ['.github/oversized.bin', 200],
+            ['.git/config', 300],
+          ])
+        ),
+        readPointerText: async () => {
+          pointerReads++
+          return 'not a pointer\n'
+        },
+      }
+    )
+
+    assert.deepEqual(
+      targets.map(target => target.relativePath),
+      ['.github/oversized.bin']
+    )
+    assert.equal(pointerReads, 0)
+  })
+
+  it('keeps a real oversized .github file with production filesystem proofs', async t => {
+    const root = await mkdtemp(join(tmpdir(), 'desktop-material-dot-path-'))
+    t.after(() => rm(root, { recursive: true, force: true }))
+    await mkdir(join(root, '.github'))
+    await writeFile(join(root, '.github', 'oversized.bin'), Buffer.alloc(101))
+
+    const targets = await selectCheapLfsAutoPinTargets(
+      repository(root),
+      ['.github/oversized.bin'],
+      threshold,
+      defaultCheapLfsFileSystem
+    )
+
+    assert.deepEqual(
+      targets.map(target => [target.relativePath, target.sizeInBytes]),
+      [['.github/oversized.bin', 101]]
+    )
   })
 
   it('skips a file that already holds a committed pointer', async () => {
@@ -973,6 +1026,33 @@ describe('selectCheapLfsAutoPinTargets', () => {
 })
 
 describe('autoPinLargeFilesForCommit', () => {
+  it('reports an oversized protected dot path as a pin failure instead of dropping it', async () => {
+    let pinCalls = 0
+    const result = await autoPinLargeFilesForCommit(
+      repository(),
+      ['.github/oversized.bin'],
+      threshold,
+      {
+        statSize: async () => 200,
+        readPointerText: async () => 'not a pointer\n',
+        pin: async target => {
+          pinCalls++
+          throw new Error(`protected path ${target.relativePath}`)
+        },
+      }
+    )
+
+    assert.equal(pinCalls, 1)
+    assert.equal(result.pinned.length, 0)
+    assert.deepEqual(result.failures, [
+      {
+        relativePath: '.github/oversized.bin',
+        sizeInBytes: 200,
+        message: 'protected path .github/oversized.bin',
+      },
+    ])
+  })
+
   const threshold = 100
 
   it('pins each over-threshold file and returns them for restaging', async () => {

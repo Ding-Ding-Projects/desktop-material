@@ -595,6 +595,13 @@
       d: 'From tui/:',
     },
     {
+      t: 'Background Git reliability',
+      h: 'features/quality-and-reliability/background-git-reliability.html',
+      s: 'features/quality-and-reliability/background-git-reliability.md',
+      c: 'features',
+      d: 'Desktop Material contains two independent failures found in the July 31, 2026 production log so background maintenance cannot flood the notification stack or silently stop.',
+    },
+    {
       t: 'Canonical remote preflight warning',
       h: 'features/quality-and-reliability/canonical-remote-preflight-warning.html',
       s: 'features/quality-and-reliability/canonical-remote-preflight-warning.md',

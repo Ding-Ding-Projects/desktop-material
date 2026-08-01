@@ -175,6 +175,47 @@ naming `arm64`.
   only matching entries otherwise. Searching `3.6.2` is a request for that
   release, not for a line inside it.
 
+## 2026-07-31 — Recurring Git errors auto-repair (local verification)
+
+The Windows app now contains the four failures reported from the repository
+surface. Its app-owned, hook-free `rev-parse --verify HEAD` probe retries only
+the localized Windows launcher denial, twice, with bounded cancellation-aware
+backoff. Repository-indicator refresh contains each provider failure, clears
+visible progress in `finally`, continues with the other repositories, and
+reschedules without producing the generic background-action toast.
+
+Add Submodule repairs a missing working `.gitmodules` only from one immutable,
+Git-validated stage-0 blob OID. The byte buffer is restored exactly (including
+valid non-UTF-8 comment bytes) through an exclusive create; failure rollback
+removes only a matching device/inode and preserves any path whose ownership
+cannot be proven. Cheap LFS pointer inventory omits protected metadata and
+gitlinks, while oversized protected dot paths remain in commit enforcement and
+fail before provider discovery, credentials, release anchoring, upload, commit,
+or push. Normal, mixed automatic/manual, scheduled, and one-click commit paths
+therefore cannot silently commit those raw bytes.
+
+Local evidence includes **6/6** launcher/updater regressions, **62/62** exact
+pointer/submodule checks, **101/101** broader focused checks, the exact
+non-UTF-8 blob and terminal-branch checks, **19/19** generated documentation
+checks, changed-file ESLint, and TypeScript no-emit. The reproducible production
+build passed through Lowlevel MCP before rebase, and the exact merged
+`7b6bed9768` tree passed again in **559.1 seconds** (`returncode: 0`, no
+timeout). A real off-screen Win32 session opened a deterministic repository with
+a modified `.gitmodules` and deleted gitlink; after twelve stable seconds the
+960×660 Changes surface showed both entries, notification history was empty,
+and isolated logs contained none of the four reported errors. The accepted
+80,546-byte frame had SHA-256
+`32f2849dd973c899f4596618f73a498929c137f00402c196a667a1003374cb21`.
+The app, desktop, profile, fixture, screenshots, and incomplete dependency
+backup were removed. Push, hosted CI, installer Release, and dim-sum asset proof
+remain pending. Rolling progress is recorded in
+[Discussion #113](https://github.com/Ding-Ding-Projects/desktop-material/discussions/113).
+
+香港粵語：Git 啟動跣腳會有節制咁再試，背景 fetch 自己仆低唔再拉埋全場；
+`.gitmodules` 只會由同一粒 index blob 原封不動補返，連奇怪 comment byte
+都唔會俾 UTF-8 攪成炒蛋。Cheap LFS 亦識得分清 metadata 同大檔，唔會再
+亂報 unsafe path，更加唔會未判死刑就走去開 Release、commit 或 push。
+
 ## 2026-07-30 — Publish organization listbox sizing (pushed acceptance)
 
 Publish repository's Organization control is no longer a native select whose
@@ -7304,6 +7345,45 @@ state: installer run `29671087924` and release
   opened`); both pass in isolation and on re-run, and neither touches this
   change. Push was explicitly out of scope for this task, so the work stays on
   `feat/ollama-settings-tab`.
+
+## 2026-07-31 recurring background Git and indicator errors
+
+- Production evidence separated the notification pair. The raw
+  `error launching git: Access is denied.` came from
+  `git rev-parse --verify HEAD` while an appearance settings repository
+  initialized. The generic background-action notice came from an unhandled
+  GitLab provider rejection in `RepositoryIndicatorUpdater`. A third,
+  independent `log-history` commit failed on a corrupt loose object and remains
+  fail-closed; it is not part of this cross-window-safe repair.
+- `app/src/lib/git/transient-launch-retry.ts` gives only the exact hook-free,
+  read-only startup probe two retries after 75 ms and 250 ms. Matching accepts
+  localized Windows launcher messages, cancellation prevents a later launch,
+  and mutating commands are never eligible.
+- `repository-indicator-updater.ts` catches each repository failure, continues
+  to the next repository, and reschedules in `finally`; the timer callback also
+  observes an unexpected cycle rejection.
+- Local evidence: 6/6 focused tests pass across the launcher and updater suites;
+  changed-file ESLint and Prettier pass;
+  TypeScript no-emit passes. The pre-containment production tree built
+  successfully through the off-screen Lowlevel MCP in 551.00 seconds. The
+  final exact-tree production build and headless runtime acceptance follow
+  before publication.
+
+## 2026-07-31 automatic submodule add recovery
+
+- The production add flow could stage `.gitmodules`, later find its working
+  file absent, and surface Git's `please make sure that the .gitmodules file is
+  in the working tree` refusal. After ordinary destination validation,
+  `restoreMissingGitModulesFromIndex` now reads only the valid stage-0 blob and
+  publishes it with an exclusive create; it never overwrites an existing file
+  or invents configuration, and removes its owned inode after a failed write.
+- Commit-time Cheap LFS preparation no longer submits Git metadata paths such
+  as `.gitmodules` to the explicit pointer scanner. The downstream commit-key
+  safety gate still evaluates every selected file, so unsafe pointer spellings
+  remain fail-closed while normal submodule declarations and gitlinks commit.
+- Focused evidence includes the real fixture-backed `.gitmodules` restoration,
+  metadata filtering in `cheap-lfs/pointer-test.ts`, and the existing modified
+  gitlink regression in `cheap-lfs/operations-test.ts`.
 
 ## 2026-07-26 `write EOF` crash — peer-closed stream writes
 

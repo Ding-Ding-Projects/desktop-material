@@ -675,7 +675,10 @@ async function repositoryHasHistory(repository: Repository): Promise<boolean> {
     ['rev-parse', '--verify', 'HEAD'],
     repository.path,
     'dedicatedSettingHasHistory',
-    { successExitCodes: new Set([0, 128]) }
+    {
+      successExitCodes: new Set([0, 128]),
+      retryGitLauncherFailure: true,
+    }
   )
   return result.exitCode === 0
 }

@@ -180,7 +180,9 @@ import {
 } from '../cheap-lfs/unattended-encryption'
 import {
   ICheapLfsPointer,
+  cheapLfsTrackedPathsForCommit,
   isEncryptedCheapLfsPointer,
+  validateCheapLfsTrackedPath,
 } from '../cheap-lfs/pointer'
 import { isOnlyCheapLfsAuthenticationError } from '../cheap-lfs/payload-encryption'
 import {
@@ -811,7 +813,10 @@ import {
   getCheapLfsUploadConcurrency,
   IBuildRunPreferences,
 } from '../../models/build-run-preferences'
-import { RepositoryIndicatorUpdater } from './helpers/repository-indicator-updater'
+import {
+  RepositoryIndicatorUpdater,
+  withRepositoryIndicatorProgressCleanup,
+} from './helpers/repository-indicator-updater'
 import { isAttributableEmailFor } from '../email'
 import { RemoveRepositoryResult } from '../../models/remove-repository-result'
 import { GitError as DugiteError } from 'dugite'
@@ -7090,9 +7095,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
         try {
           const committedPointerPaths = new Set<string>()
           for (const file of selectedFiles) {
-            committedPointerPaths.add(file.path)
+            for (const path of cheapLfsTrackedPathsForCommit([file.path])) {
+              committedPointerPaths.add(path)
+            }
             if (file.status.kind === AppFileStatusKind.Renamed) {
-              committedPointerPaths.add(file.status.oldPath)
+              for (const path of cheapLfsTrackedPathsForCommit([
+                file.status.oldPath,
+              ])) {
+                committedPointerPaths.add(path)
+              }
             }
           }
           const selectedWorktreePointers = await listAllCheapLfsPointers(
@@ -8284,14 +8295,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
           repo
         )
 
-        await this.withPushPullFetch(repo, () =>
-          gitStore.fetch(
-            isBackgroundTask,
-            progress => this.updatePushPullFetchProgress(repo, progress),
-            accountKey
-          )
+        await withRepositoryIndicatorProgressCleanup(
+          () =>
+            this.withPushPullFetch(repo, () =>
+              gitStore.fetch(
+                isBackgroundTask,
+                progress => this.updatePushPullFetchProgress(repo, progress),
+                accountKey
+              )
+            ),
+          () => this.updatePushPullFetchProgress(repo, null)
         )
-        this.updatePushPullFetchProgress(repo, null)
 
         return gitStore.aheadBehind
       },
@@ -19233,6 +19247,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.cheapLfsInventoryCache?.invalidate(repository.path)
     const prefs = repository.buildRunPreferences ?? defaultBuildRunPreferences
     const selectedPaths = selectedFiles.map(file => file.path)
+    const pointerScanPaths = cheapLfsTrackedPathsForCommit(selectedPaths)
     const selectedPathSet = new Set(selectedPaths)
     // This inventory is also the staging safety gate. A raw file backed by a
     // committed pointer must be explicitly re-pinned before Desktop can stage
@@ -19244,7 +19259,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       await listAllCheapLfsPointers(
         repository,
         defaultCheapLfsFileSystem,
-        selectedPaths
+        pointerScanPaths
       )
     ).filter(
       entry =>
@@ -19438,6 +19453,32 @@ export class AppStore extends TypedBaseStore<IAppState> {
           (selectedPathOrder.get(a.relativePath) ?? Number.MAX_SAFE_INTEGER) -
           (selectedPathOrder.get(b.relativePath) ?? Number.MAX_SAFE_INTEGER)
       )
+      const protectedFailures = preflightTargets
+        .filter(
+          target => validateCheapLfsTrackedPath(target.relativePath) === null
+        )
+        .map(
+          (target): ICheapLfsAutoPinFailure => ({
+            relativePath: target.relativePath,
+            sizeInBytes: target.sizeInBytes,
+            message:
+              'Cheap LFS cannot replace this protected Git metadata path with a pointer.',
+          })
+        )
+      const protectedFailurePaths = new Set(
+        protectedFailures.map(failure => failure.relativePath)
+      )
+      const pinnablePreflightTargets = preflightTargets.filter(
+        target => !protectedFailurePaths.has(target.relativePath)
+      )
+      if (pinnablePreflightTargets.length === 0) {
+        return {
+          pinned: [],
+          failures: protectedFailures,
+          commitPaths: [],
+          alreadyStoredPaths: alreadyStored,
+        }
+      }
       const releasesAccount = getGitHubReleasesAccount(
         repository,
         this.accounts
@@ -19446,7 +19487,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
         selectedStorageProvider === 'docker-hub' ||
         (await this.cheapLfsDockerHubCapabilityProbe())
       storageRecommendation = recommendCheapLfsStorage({
-        fileSizesInBytes: preflightTargets.map(target => target.sizeInBytes),
+        fileSizesInBytes: pinnablePreflightTargets.map(
+          target => target.sizeInBytes
+        ),
         isGitHubRepository: repository.gitHubRepository !== null,
         ghcrAvailable:
           repository.gitHubRepository?.isPrivate === true &&
@@ -19454,7 +19497,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           isDotComAccount(releasesAccount),
         dockerHubAvailable,
       })
-      const partialFailures = preflightTargets
+      const partialFailures = pinnablePreflightTargets
         .filter(target => partialPaths.has(target.relativePath))
         .map(
           (target): ICheapLfsAutoPinFailure => ({
@@ -19468,25 +19511,26 @@ export class AppStore extends TypedBaseStore<IAppState> {
         partialFailures.map(failure => failure.relativePath)
       )
       const pinEligiblePaths = pinSelectedPaths.filter(
-        path => !partialFailurePaths.has(path)
+        path =>
+          !partialFailurePaths.has(path) && !protectedFailurePaths.has(path)
       )
       const mergeFailures = (
         failures: ReadonlyArray<ICheapLfsAutoPinFailure>
       ) =>
-        [...partialFailures, ...failures].sort(
+        [...protectedFailures, ...partialFailures, ...failures].sort(
           (a, b) =>
             (selectedPathOrder.get(a.relativePath) ?? Number.MAX_SAFE_INTEGER) -
             (selectedPathOrder.get(b.relativePath) ?? Number.MAX_SAFE_INTEGER)
         )
 
       if (selectedStorageProvider !== 'release') {
-        const targets = preflightTargets.filter(
+        const targets = pinnablePreflightTargets.filter(
           target => !partialFailurePaths.has(target.relativePath)
         )
         if (targets.length === 0) {
           return {
             pinned: [],
-            failures: partialFailures,
+            failures: [...protectedFailures, ...partialFailures],
             commitPaths: [],
             alreadyStoredPaths: alreadyStored,
           }
@@ -19603,7 +19647,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       // create the bucket release. Settle that once, up front, instead of
       // letting every file repeat the same unrecoverable 422. An ordinary
       // commit with nothing to pin never pays for the remote read.
-      const releaseEligibleTargets = preflightTargets.filter(
+      const releaseEligibleTargets = pinnablePreflightTargets.filter(
         target => !partialFailurePaths.has(target.relativePath)
       )
       if (releaseEligibleTargets.length > 0) {
@@ -19730,7 +19774,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       if (remaining.length === 0) {
         return {
           pinned: automaticallyPinned,
-          failures: partialFailures,
+          failures: mergeFailures([]),
           commitPaths: automaticallyPinned.map(file => file.relativePath),
           annotatablePins: cheapLfsAnnotatablePins(automaticallyPinned),
           retainedPins: handOffRetainedPins(automaticallyPinned),
@@ -19855,7 +19899,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       this.cheapLfsCommitCancelRequests.delete(repository.id)
       return {
         pinned: [...automaticallyPinned, ...manual],
-        failures: partialFailures,
+        failures: mergeFailures([]),
         commitPaths: [...automaticallyPinned, ...manual].map(
           file => file.relativePath
         ),

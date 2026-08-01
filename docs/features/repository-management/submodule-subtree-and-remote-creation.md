@@ -56,6 +56,12 @@ to commit. A created remote is real provider state. If Git add fails afterward,
 the dialog retains the created repository result for that retry and reuses its
 clone URL rather than creating a duplicate.
 
+When `.gitmodules` is staged but temporarily absent from the working tree,
+Desktop restores that exact valid staged blob after destination validation and
+before `git submodule add`. Commit-time Cheap LFS preparation excludes Git
+metadata such as `.gitmodules` from pointer scanning, so the staged declaration
+and gitlink commit normally instead of producing an unsafe-path error.
+
 Subtrees are ordinary files and commits in the superproject. Their manager has
 no separate topology database: it reconstructs known prefixes from the
 `git-subtree-dir` and `git-subtree-split` trailers in repository history. Search
@@ -67,6 +73,15 @@ Submodule add rejects duplicate paths, occupied files or non-empty folders,
 absolute paths, parent traversal, `.git` segments, invalid branches, and stale
 account or organization selections before mutation. Cancellation stops the
 owned request/process. A remote-create failure never invokes Git.
+
+The `.gitmodules` repair never overwrites an existing path, never invents
+configuration, and does not run for an invalid destination. If the index has no
+stage-0 blob or Git's config parser rejects that blob, the original Git error
+remains visible. An empty but valid config is restored so Git can append the
+first stanza. Handle metadata, write, and close failures all enter the same
+cleanup path. The repair removes the file only when device/inode identity proves
+it still owns that pathname; if identity cannot be established after a retry,
+it preserves the path rather than risk deleting a concurrent replacement.
 
 Branch listing is non-blocking in every failure mode. An unreachable or
 unauthorized remote reports an inline `role="alert"` error and leaves manual
@@ -137,6 +152,10 @@ builder.
 organization ownership, strict metadata, cancellation uncertainty, unusable
 clone URLs, and no API call for invalid input. The dialog suite also proves
 that failed Git add retries reuse the created remote.
+`git/submodule-test.ts` proves the exact staged `.gitmodules` blob is restored
+only while the working file is absent. `cheap-lfs/pointer-test.ts` proves normal
+commit-time pointer scans exclude Git metadata while retaining safe payload and
+gitlink paths.
 
 `git/subtree-test.ts` covers prefix validation, trailer discovery,
 account-aware add/pull/push argv, progress, split results, and capability

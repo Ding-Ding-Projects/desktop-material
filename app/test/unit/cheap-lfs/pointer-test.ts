@@ -1,7 +1,10 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 import {
   cheapLfsPointerTextSizeInBytes,
+  cheapLfsTrackedPathsForCommit,
   CHEAP_LFS_ENCRYPTION_POINTER_FORMAT_VERSION,
   CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES,
   CHEAP_LFS_PART_SIZE_BYTES,
@@ -466,5 +469,55 @@ describe('cheap LFS pointer', () => {
     for (const [input, expected] of table) {
       assert.equal(validateCheapLfsTrackedPath(input), expected, input)
     }
+  })
+
+  it('excludes Git metadata from automatic commit-time pointer scans', () => {
+    assert.deepEqual(
+      cheapLfsTrackedPathsForCommit([
+        '.gitmodules',
+        '.github/workflows/build.yml',
+        'original-code-reference/libreoffice-core',
+        'assets/archive.bin',
+      ]),
+      ['original-code-reference/libreoffice-core', 'assets/archive.bin']
+    )
+  })
+
+  it('wires the commit filter into both automatic Cheap LFS scans', async () => {
+    const source = await readFile(
+      join(__dirname, '../../../src/lib/stores/app-store.ts'),
+      'utf8'
+    )
+    assert.match(
+      source,
+      /const pointerScanPaths = cheapLfsTrackedPathsForCommit\(selectedPaths\)/
+    )
+    assert.match(source, /const selectedPaths = selectedFiles\.map/)
+    assert.match(source, /const pinSelectedPaths = selectedPaths\.filter/)
+    assert.match(
+      source,
+      /listAllCheapLfsPointers\([\s\S]{0,160}?pointerScanPaths/
+    )
+    assert.equal(
+      source.match(
+        /cheapLfsTrackedPathsForCommit\(\[\s*file\.(?:path|status\.oldPath),?\s*\]\)/g
+      )?.length,
+      2
+    )
+    const protectedGate = source.indexOf(
+      'if (pinnablePreflightTargets.length === 0)'
+    )
+    assert.ok(protectedGate > 0)
+    assert.ok(
+      protectedGate < source.indexOf('this.cheapLfsDockerHubCapabilityProbe()')
+    )
+    assert.ok(
+      protectedGate < source.indexOf('getGitHubReleasesAccount(', protectedGate)
+    )
+    assert.equal(
+      source.match(/failures: mergeFailures\(\[\]\)/g)?.length,
+      2,
+      'remaining-empty and manual-success returns must retain protected failures'
+    )
   })
 })

@@ -7,6 +7,7 @@ import {
   readFile,
   realpath,
   rename,
+  rm,
   symlink,
   writeFile,
 } from 'fs/promises'
@@ -15,6 +16,7 @@ import { Repository, SubmoduleRepository } from '../../../src/models/repository'
 import {
   listSubmodules,
   addSubmodule,
+  restoreMissingGitModulesFromIndex,
   validateSubmoduleAddPath,
   resetSubmodulePaths,
   parseGitModules,
@@ -45,6 +47,136 @@ import { createTempDirectory } from '../../helpers/temp'
 
 describe('git/submodule', () => {
   describe('addSubmodule', () => {
+    it('restores a valid staged .gitmodules blob when the working file is missing', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const repository = new Repository(testRepoPath, -1, null, false)
+      const gitModulesPath = path.join(testRepoPath, '.gitmodules')
+      const expected = await readFile(gitModulesPath, 'utf8')
+      await rm(gitModulesPath)
+
+      assert.notEqual(await restoreMissingGitModulesFromIndex(repository), null)
+      assert.equal(await readFile(gitModulesPath, 'utf8'), expected)
+      assert.equal(await restoreMissingGitModulesFromIndex(repository), null)
+    })
+
+    it('restores non-UTF-8 comment bytes exactly from one staged blob', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const repository = new Repository(testRepoPath, -1, null, false)
+      const gitModulesPath = path.join(testRepoPath, '.gitmodules')
+      const expected = Buffer.concat([
+        Buffer.from('# byte '),
+        Buffer.from([0xff]),
+        Buffer.from(
+          '\n[submodule "foo/submodule"]\n\tpath = foo/submodule\n\turl = https://example.com/foo.git\n'
+        ),
+      ])
+      await writeFile(gitModulesPath, expected)
+      const added = await exec(['add', '--', '.gitmodules'], testRepoPath)
+      assert.equal(added.exitCode, 0, added.stderr)
+      await rm(gitModulesPath)
+
+      assert.notEqual(await restoreMissingGitModulesFromIndex(repository), null)
+      assert.deepEqual(await readFile(gitModulesPath), expected)
+    })
+
+    it('rolls back its restored file when the add still fails', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const repository = new Repository(testRepoPath, -1, null, false)
+      const gitModulesPath = path.join(testRepoPath, '.gitmodules')
+      await rm(gitModulesPath)
+
+      await assert.rejects(
+        addSubmodule(
+          repository,
+          '../definitely-missing-submodule-source',
+          'vendor/missing'
+        )
+      )
+      await assert.rejects(readFile(gitModulesPath, 'utf8'), /ENOENT/)
+    })
+
+    it('rolls back when a progress callback rejects the repair', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const repository = new Repository(testRepoPath, -1, null, false)
+      const gitModulesPath = path.join(testRepoPath, '.gitmodules')
+      await rm(gitModulesPath)
+
+      await assert.rejects(
+        addSubmodule(repository, '../source', 'vendor/source', null, {
+          onProgress: () => {
+            throw new Error('progress consumer closed')
+          },
+        }),
+        /progress consumer closed/
+      )
+      await assert.rejects(readFile(gitModulesPath, 'utf8'), /ENOENT/)
+    })
+
+    it('accepts an empty valid staged file and rejects malformed Git config', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const repository = new Repository(testRepoPath, -1, null, false)
+      const gitModulesPath = path.join(testRepoPath, '.gitmodules')
+
+      await writeFile(gitModulesPath, '', 'utf8')
+      assert.equal(
+        (await exec(['add', '--', '.gitmodules'], testRepoPath)).exitCode,
+        0
+      )
+      await rm(gitModulesPath)
+      assert.notEqual(await restoreMissingGitModulesFromIndex(repository), null)
+      assert.equal(await readFile(gitModulesPath, 'utf8'), '')
+
+      await writeFile(gitModulesPath, '[broken', 'utf8')
+      assert.equal(
+        (await exec(['add', '--', '.gitmodules'], testRepoPath)).exitCode,
+        0
+      )
+      await rm(gitModulesPath)
+      assert.equal(await restoreMissingGitModulesFromIndex(repository), null)
+      await assert.rejects(readFile(gitModulesPath, 'utf8'), /ENOENT/)
+    })
+
+    it('restores the declaration and completes a real local submodule add', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const repository = new Repository(testRepoPath, -1, null, false)
+      const gitModulesPath = path.join(testRepoPath, '.gitmodules')
+      const source = path.join(testRepoPath, 'foo', 'submodule')
+      const previousAllowProtocol = process.env.GIT_ALLOW_PROTOCOL
+      process.env.GIT_ALLOW_PROTOCOL = 'file'
+      t.after(() => {
+        if (previousAllowProtocol === undefined) {
+          delete process.env.GIT_ALLOW_PROTOCOL
+        } else {
+          process.env.GIT_ALLOW_PROTOCOL = previousAllowProtocol
+        }
+      })
+      await rm(gitModulesPath)
+
+      await addSubmodule(repository, source, 'vendor/restored-copy')
+
+      const entries = parseGitModules(await readFile(gitModulesPath, 'utf8'))
+      assert.ok(entries.some(entry => entry.path === 'foo/submodule'))
+      assert.ok(entries.some(entry => entry.path === 'vendor/restored-copy'))
+    })
+
     it('honors cancellation before inspecting or spawning Git', async () => {
       const repository = new Repository(
         'C:/missing/superproject',

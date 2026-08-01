@@ -21,7 +21,7 @@ import { IRemote } from '../../models/remote'
 import { Progress } from '../../models/progress'
 import * as Path from 'path'
 import { join, resolve } from 'path'
-import { lstat, readFile, realpath, rm } from 'fs/promises'
+import { lstat, open, readFile, realpath, rm, unlink } from 'fs/promises'
 import {
   getSubmoduleBranchError,
   getSubmodulePathError,
@@ -972,44 +972,209 @@ export async function addSubmodule(
   }
   throwIfAborted(options?.signal)
 
-  const args = ['submodule', 'add']
-
-  if (normalizedBranch.length > 0) {
-    args.push('-b', normalizedBranch)
-  }
-
-  let gitOptions: IGitStringExecutionOptions = {
-    env: await envForRemoteOperation(source),
-    credentialAccountKey: options?.accountKey,
-    processCallback: getAbortableProcessCallback(options?.signal),
-  }
-
-  if (options?.onProgress !== undefined) {
-    args.push('--progress')
-    const onProgress = options.onProgress
-    const progressOptions = await executionOptionsWithProgress(
-      { ...gitOptions, trackLFSProgress: true },
-      new CloneProgressParser(),
-      progress => {
-        const text =
-          progress.kind === 'progress' ? progress.details.text : progress.text
-        onProgress(text, progress.percent)
-      }
-    )
-    gitOptions = {
-      ...progressOptions,
-      processCallback: chainProcessCallbacks(
-        progressOptions.processCallback,
-        getAbortableProcessCallback(options.signal)
-      ),
+  const restoredGitModules = await restoreMissingGitModulesFromIndex(
+    repository,
+    options?.signal
+  )
+  try {
+    if (restoredGitModules !== null) {
+      options?.onProgress?.('Restored the staged .gitmodules file.', 0)
     }
-    onProgress('Preparing the submodule checkout…', 0)
+    const args = ['submodule', 'add']
+
+    if (normalizedBranch.length > 0) {
+      args.push('-b', normalizedBranch)
+    }
+
+    let gitOptions: IGitStringExecutionOptions = {
+      env: await envForRemoteOperation(source),
+      credentialAccountKey: options?.accountKey,
+      processCallback: getAbortableProcessCallback(options?.signal),
+    }
+
+    if (options?.onProgress !== undefined) {
+      args.push('--progress')
+      const onProgress = options.onProgress
+      const progressOptions = await executionOptionsWithProgress(
+        { ...gitOptions, trackLFSProgress: true },
+        new CloneProgressParser(),
+        progress => {
+          const text =
+            progress.kind === 'progress' ? progress.details.text : progress.text
+          onProgress(text, progress.percent)
+        }
+      )
+      gitOptions = {
+        ...progressOptions,
+        processCallback: chainProcessCallbacks(
+          progressOptions.processCallback,
+          getAbortableProcessCallback(options.signal)
+        ),
+      }
+      onProgress('Preparing the submodule checkout…', 0)
+    }
+
+    args.push('--', source, normalizedPath)
+
+    await git(args, repository.path, 'addSubmodule', gitOptions)
+    options?.onProgress?.('Submodule added.', 1)
+  } catch (error) {
+    if (restoredGitModules !== null) {
+      await rollbackRestoredGitModules(restoredGitModules)
+    }
+    throw error
+  }
+}
+
+export interface IRestoredGitModules {
+  readonly path: string
+  readonly contents: Buffer
+  readonly device: number
+  readonly inode: number
+}
+
+/**
+ * `git submodule add` refuses to run when `.gitmodules` is present in the
+ * index but absent from the working tree. Restore only that exact staged blob,
+ * only when an exclusive create proves the path is still absent. Existing
+ * files, invalid staged content, and repositories with no staged declaration
+ * are left untouched.
+ */
+export async function restoreMissingGitModulesFromIndex(
+  repository: Repository,
+  signal?: AbortSignal
+): Promise<IRestoredGitModules | null> {
+  const gitModulesPath = join(repository.path, '.gitmodules')
+  if (await pathExists(gitModulesPath)) {
+    return null
   }
 
-  args.push('--', source, normalizedPath)
+  throwIfAborted(signal)
+  const stagedObject = await git(
+    ['rev-parse', '--verify', ':.gitmodules'],
+    repository.path,
+    'resolveStagedGitModulesForSubmoduleAdd',
+    {
+      successExitCodes: new Set([0, 128]),
+      processCallback: getAbortableProcessCallback(signal),
+    }
+  )
+  throwIfAborted(signal)
 
-  await git(args, repository.path, 'addSubmodule', gitOptions)
-  options?.onProgress?.('Submodule added.', 1)
+  const stagedOid = stagedObject.stdout.trim()
+  if (
+    stagedObject.exitCode !== 0 ||
+    !/^[0-9a-f]{40}(?:[0-9a-f]{24})?$/i.test(stagedOid)
+  ) {
+    return null
+  }
+  const valid = await git(
+    ['config', '--blob', stagedOid, '--list'],
+    repository.path,
+    'validateStagedGitModulesForSubmoduleAdd',
+    {
+      successExitCodes: new Set([0, 1, 3, 128]),
+      processCallback: getAbortableProcessCallback(signal),
+    }
+  )
+  if (valid.exitCode !== 0) {
+    return null
+  }
+  const staged = await git(
+    ['show', stagedOid],
+    repository.path,
+    'readStagedGitModulesForSubmoduleAdd',
+    {
+      encoding: 'buffer',
+      successExitCodes: new Set([0, 128]),
+      processCallback: getAbortableProcessCallback(signal),
+    }
+  )
+  if (staged.exitCode !== 0) {
+    return null
+  }
+
+  let file
+  try {
+    file = await open(gitModulesPath, 'wx')
+  } catch (error) {
+    if (isFileSystemError(error, 'EEXIST')) {
+      return null
+    }
+    throw error
+  }
+
+  let created: Awaited<ReturnType<typeof file.stat>> | undefined
+  let failure: unknown
+  try {
+    created = await file.stat()
+    await file.writeFile(staged.stdout)
+  } catch (error) {
+    failure = error
+    // A transient first fstat must not forfeit cleanup ownership. Retry while
+    // the exclusive handle is still open; if identity remains unavailable,
+    // preserve the pathname rather than risking a concurrent replacement.
+    created ??= await file.stat().catch(() => undefined)
+  }
+  try {
+    await file.close()
+  } catch (error) {
+    failure ??= error
+  }
+  if (failure !== undefined) {
+    const current = await lstat(gitModulesPath).catch(() => null)
+    if (
+      current !== null &&
+      created !== undefined &&
+      current.dev === created.dev &&
+      current.ino === created.ino
+    ) {
+      await unlink(gitModulesPath).catch(() => undefined)
+    }
+    throw failure
+  }
+  if (created === undefined) {
+    throw new Error('Could not verify the repaired .gitmodules file.')
+  }
+  return {
+    path: gitModulesPath,
+    contents: staged.stdout,
+    device: Number(created.dev),
+    inode: Number(created.ino),
+  }
+}
+
+async function rollbackRestoredGitModules(
+  restored: IRestoredGitModules
+): Promise<void> {
+  const before = await lstat(restored.path).catch(() => null)
+  if (
+    before === null ||
+    before.dev !== restored.device ||
+    before.ino !== restored.inode
+  ) {
+    return
+  }
+  const contents = await readFile(restored.path).catch(() => null)
+  const after = await lstat(restored.path).catch(() => null)
+  if (
+    contents !== null &&
+    contents.equals(restored.contents) &&
+    after !== null &&
+    after.dev === restored.device &&
+    after.ino === restored.inode
+  ) {
+    await unlink(restored.path).catch(() => undefined)
+  }
+}
+
+function isFileSystemError(error: unknown, code: string): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === code
+  )
 }
 
 function submodulePathKey(path: string): string {

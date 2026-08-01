@@ -67,6 +67,7 @@ import {
   parseCheapLfsPointer,
   planFileParts,
   serializeCheapLfsPointer,
+  validateCheapLfsCommitCandidatePath,
   validateCheapLfsTrackedPath,
 } from './pointer'
 import {
@@ -5688,7 +5689,7 @@ export async function selectCheapLfsAutoPinTargets(
     if (signal?.aborted) {
       throw abortError('Cheap LFS commit upload was canceled.')
     }
-    const validated = validateCheapLfsTrackedPath(relativePath)
+    const validated = validateCheapLfsCommitCandidatePath(relativePath)
     if (
       validated === null ||
       isCheapLfsRepositoryKeyPath(validated) ||
@@ -5726,13 +5727,22 @@ export async function selectCheapLfsAutoPinTargets(
     }
     let sizeInBytes = candidate.sizeInBytes
     let trackedProof: ICheapLfsTrackedFileProof | undefined
-    if (trackedPaths !== undefined) {
+    // Protected root `.git*` paths are inspected only to keep oversized bytes
+    // from bypassing commit enforcement. The tracked-path store deliberately
+    // refuses them, and pinning will do the same; do not let that stricter
+    // identity proof silently erase the candidate from failure accounting.
+    if (validateCheapLfsTrackedPath(candidate.relativePath) === null) {
+      targets.push(candidate)
+      continue
+    }
+    const candidateTrackedPaths = trackedPaths
+    if (candidateTrackedPaths !== undefined) {
       try {
-        trackedProof = await (trackedPaths.proveDestinationIdentity?.(
+        trackedProof = await (candidateTrackedPaths.proveDestinationIdentity?.(
           repository.path,
           candidate.relativePath
         ) ??
-          trackedPaths.proveDestination(
+          candidateTrackedPaths.proveDestination(
             repository.path,
             candidate.relativePath
           ))
@@ -5751,9 +5761,9 @@ export async function selectCheapLfsAutoPinTargets(
     // — but classify anyway so a mis-sized pointer is never re-pinned.
     try {
       const text =
-        trackedProof !== undefined && trackedPaths !== undefined
+        trackedProof !== undefined && candidateTrackedPaths !== undefined
           ? trackedProof.sizeInBytes <= CheapLfsMaximumAnyPointerTextBytes
-            ? await trackedPaths.readText(
+            ? await candidateTrackedPaths.readText(
                 trackedProof,
                 CheapLfsMaximumAnyPointerTextBytes
               )

@@ -126,6 +126,13 @@ Because these are real git repos, the audit trail and restore semantics come "fo
 rather than from a bespoke persistence format. When adding data that should be versioned per account,
 persist it into the relevant profile repo and commit through the same path.
 
+The shared Git path has one deliberately narrow Windows launcher recovery:
+`withTransientGitLaunchRetry` may repeat only `git rev-parse --verify HEAD`, a
+hook-free read probe, after 75 ms and 250 ms. Do not broaden that allowlist to a
+mutating command: stderr text cannot prove that a hook or helper produced no
+side effects. Repository-indicator refreshes likewise contain failures per
+repository and always reschedule.
+
 Appearance lives under `userData/appearance-elements/<profile>/`. Every profile owner, stable
 feature ID, repository element, and tab title owns an ordinary directory containing only its own
 `.git` and versioned `setting.json`. `DedicatedSettingStore` serializes writes/history mutations,

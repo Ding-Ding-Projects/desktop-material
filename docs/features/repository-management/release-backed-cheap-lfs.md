@@ -86,6 +86,14 @@ path.” The stricter boundary still applies to an explicit Cheap LFS pathspec:
 selecting `.gitmodules` directly is rejected, so the false-positive correction
 does not expand what Cheap LFS may read.
 
+Commit enforcement still measures safe repository-relative dot paths before it
+decides whether they are pinnable. If a protected path such as
+`.github/oversized.bin` exceeds the receive threshold, Desktop reports an
+explicit per-file failure and excludes its raw bytes from the commit before any
+provider probe, password prompt, release anchor, upload, commit, or push can
+run. Small `.gitmodules` edits remain ordinary Git content and are never sent
+through Cheap LFS pointer inventory.
+
 Desktop Material then resolves each name below the canonical repository root,
 refuses owned scratch paths, directories and gitlinks, symlinks/reparse points,
 and multiply linked files, and reads at most the first **512 bytes** through an

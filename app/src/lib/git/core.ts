@@ -19,6 +19,7 @@ import { withHooksEnv } from '../hooks/with-hooks-env'
 import { coerceToString } from './coerce-to-string'
 import { pushTerminalChunk } from './push-terminal-chunk'
 import { DefaultAppDisplayName } from '../../models/app-identity'
+import { withTransientGitLaunchRetry } from './transient-launch-retry'
 
 export const isMaxBufferExceededError = (
   error: unknown
@@ -93,6 +94,9 @@ export interface IGitExecutionOptions
    * This is removed before spawning Git and never enters child environments.
    */
   readonly credentialAccountKey?: string
+
+  /** Retry the app-owned, hook-free HEAD probe when its Windows launcher fails. */
+  readonly retryGitLauncherFailure?: boolean
 
   readonly interceptHooks?: string[]
 }
@@ -242,7 +246,10 @@ export async function git(
     maxBuffer: options?.encoding === 'buffer' ? Infinity : kStringMaxLength,
   }
 
-  const { credentialAccountKey, ...opts } = { ...defaultOptions, ...options }
+  const { credentialAccountKey, retryGitLauncherFailure, ...opts } = {
+    ...defaultOptions,
+    ...options,
+  }
 
   // The combined contents of stdout and stderr with some light processing
   // applied to remove redundant lines caused by Git's use of `\r` to "erase"
@@ -288,7 +295,7 @@ export async function git(
           const commandName = `${name}: git ${args.join(' ')}`
           const observeProcess = opts.processCallback
 
-          const result = await GitPerf.measure(commandName, () =>
+          const execute = () =>
             exec(args, path, {
               ...opts,
               // Git can outlive this promise: an aborted or timed-out
@@ -312,6 +319,13 @@ export async function git(
                 ...env,
               },
             })
+          const result = await GitPerf.measure(commandName, () =>
+            retryGitLauncherFailure === true
+              ? withTransientGitLaunchRetry(execute, {
+                  args,
+                  signal: opts.signal,
+                })
+              : execute()
           ).catch(err => {
             // If this is an exception thrown by Node.js (as opposed to
             // dugite) let's keep the salient details but include the name of
