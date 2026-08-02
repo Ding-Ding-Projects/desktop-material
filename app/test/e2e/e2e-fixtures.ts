@@ -37,6 +37,9 @@ import { getProductName } from '../../package-info'
 const projectRoot = path.resolve(__dirname, '..', '..', '..')
 const userDataDir = path.join(os.tmpdir(), 'github-desktop-pw-e2e')
 const fakeHomeDir = path.join(os.tmpdir(), 'github-desktop-pw-fake-home')
+// Packaged Windows starts can attach the debugger before Electron finishes its
+// Playwright handshake, especially while hosted runners are under load.
+const e2eLaunchTimeout = 120_000
 const installedAppExecutablePath = process.env.DESKTOP_E2E_APP_PATH
 // `packaged` is the default because CI runs the suite against packaged or
 // installed production artifacts. `unpackaged` exists for local iteration so
@@ -192,7 +195,7 @@ export const test = base.extend<{}, E2EFixtures>({
           dir: path.join(projectRoot, 'playwright-videos'),
           size: { width: 1280, height: 800 },
         },
-        timeout: 30000,
+        timeout: e2eLaunchTimeout,
       })
 
       await use(app)
