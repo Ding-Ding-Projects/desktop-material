@@ -828,7 +828,7 @@ describe('Cheap LFS cloud compression action', () => {
     )
   })
 
-  it('does not process a pointer containing a two-GiB part', async () => {
+  it('accepts a legacy pointer containing an exactly two-GiB part', async () => {
     const original = Buffer.from('oversized part stays raw\n')
     const pointerText = [
       'version desktop-material/cheap-lfs/v1',
@@ -837,6 +837,36 @@ describe('Cheap LFS cloud compression action', () => {
       `size ${2 * 1024 * 1024 * 1024}`,
       `sha256 ${'a'.repeat(64)}`,
       `part ${'b'.repeat(64)} ${2 * 1024 * 1024 * 1024} payload.bin`,
+      '',
+    ].join('\n')
+    await withFixture(original, { pointerText }, async fixture => {
+      const result = await fixture.runAction()
+      assert.equal(result.code, 1)
+      assert.match(result.stdout, /0 compressed, 0 kept raw, 1 failed safely/)
+      assert.match(result.stderr, /Raw release asset size does not match/)
+      assert.doesNotMatch(
+        result.stderr,
+        /must (?:be smaller than|not exceed) 2 GiB/
+      )
+      assert.equal(fixture.uploaded.length, 0)
+      assert.equal(
+        await readFile(join(fixture.workspace, fixture.pointerPath), 'utf8'),
+        pointerText
+      )
+      assert.equal(git(fixture.workspace, ['rev-list', '--count', 'HEAD']), '1')
+    })
+  })
+
+  it('rejects a legacy pointer containing a part over two GiB', async () => {
+    const original = Buffer.from('oversized part stays raw\n')
+    const oversized = 2 * 1024 * 1024 * 1024 + 1
+    const pointerText = [
+      'version desktop-material/cheap-lfs/v1',
+      'release-tag assets',
+      'asset-name payload.bin',
+      `size ${oversized}`,
+      `sha256 ${'a'.repeat(64)}`,
+      `part ${'b'.repeat(64)} ${oversized} payload.bin`,
       '',
     ].join('\n')
     await withFixture(original, { pointerText }, async fixture => {

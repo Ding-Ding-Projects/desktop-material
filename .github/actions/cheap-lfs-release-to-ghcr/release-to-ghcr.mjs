@@ -3,9 +3,10 @@ import { createHash } from 'node:crypto'
 import { createReadStream, createWriteStream } from 'node:fs'
 import { appendFile, mkdtemp, open, rm, stat, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
+import { pathToFileURL } from 'node:url'
 import { createInflateRaw } from 'node:zlib'
 
 import {
@@ -300,8 +301,25 @@ async function readPointerBlobs(candidates, onBlob) {
     }
   })
   const completion = new Promise((resolve, reject) => {
-    child.once('error', reject)
-    child.once('close', resolve)
+    let settled = false
+    const settle = (callback, value) => {
+      if (settled) return
+      settled = true
+      callback(value)
+    }
+    const onChildError = error => settle(reject, error)
+    const onStdinError = error => settle(reject, error)
+    const onStdinClose = () => child.stdin.off('error', onStdinError)
+    const onClose = code => {
+      settle(resolve, code)
+      child.off('error', onChildError)
+      child.stdin.off('error', onStdinError)
+      child.stdin.off('close', onStdinClose)
+    }
+    child.on('error', onChildError)
+    child.once('close', onClose)
+    child.stdin.on('error', onStdinError)
+    child.stdin.once('close', onStdinClose)
   })
   child.stdin.end(`${candidates.map(candidate => candidate.oid).join('\n')}\n`)
 
@@ -2038,4 +2056,11 @@ async function main() {
   }
 }
 
-await main()
+if (
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(resolve(process.argv[1])).href
+) {
+  await main()
+}
+
+export { readPointerBlobs }

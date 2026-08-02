@@ -3,9 +3,10 @@ import { createHash } from 'node:crypto'
 import { createReadStream, createWriteStream } from 'node:fs'
 import { appendFile, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { basename, join } from 'node:path'
+import { basename, join, resolve } from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
+import { pathToFileURL } from 'node:url'
 import { createDeflateRaw } from 'node:zlib'
 
 const POINTER_VERSION = 'desktop-material/cheap-lfs/v1'
@@ -119,7 +120,7 @@ function parsePointer(text) {
     if (
       !Number.isSafeInteger(part.size) ||
       part.size < 0 ||
-      part.size >= MAX_PART_BYTES ||
+      part.size > MAX_PART_BYTES ||
       !part.name ||
       Buffer.byteLength(part.name, 'utf8') > MAX_ASSET_NAME_BYTES ||
       (part.storedSize !== undefined &&
@@ -245,8 +246,25 @@ async function readPointerBlobs(candidates, onBlob) {
     if (stderr.length < MAX_GIT_METADATA_BYTES) stderr += chunk
   })
   const completion = new Promise((resolve, reject) => {
-    child.once('error', reject)
-    child.once('close', resolve)
+    let settled = false
+    const settle = (callback, value) => {
+      if (settled) return
+      settled = true
+      callback(value)
+    }
+    const onChildError = error => settle(reject, error)
+    const onStdinError = error => settle(reject, error)
+    const onStdinClose = () => child.stdin.off('error', onStdinError)
+    const onClose = code => {
+      settle(resolve, code)
+      child.off('error', onChildError)
+      child.stdin.off('error', onStdinError)
+      child.stdin.off('close', onStdinClose)
+    }
+    child.on('error', onChildError)
+    child.once('close', onClose)
+    child.stdin.on('error', onStdinError)
+    child.stdin.once('close', onStdinClose)
   })
   child.stdin.end(candidates.map(candidate => candidate.oid).join('\n') + '\n')
 
@@ -770,8 +788,8 @@ async function compressObject(entry, object) {
   const tempRoot = await mkdtemp(join(tmpdir(), 'cheap-lfs-cloud-'))
   let uploadedAttemptId = null
   try {
-    if (object.size >= MAX_PART_BYTES) {
-      throw new Error('Raw release object must be smaller than 2 GiB.')
+    if (object.size > MAX_PART_BYTES) {
+      throw new Error('Raw release object must not exceed 2 GiB.')
     }
     const release = await releaseForTag(entry.pointer.releaseTag)
     const assets = await allAssets(release.id)
@@ -1017,4 +1035,11 @@ async function main() {
   if (failed > 0) process.exitCode = 1
 }
 
-await main()
+if (
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(resolve(process.argv[1])).href
+) {
+  await main()
+}
+
+export { readPointerBlobs }
