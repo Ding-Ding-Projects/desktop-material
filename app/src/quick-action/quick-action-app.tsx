@@ -137,11 +137,24 @@ export class QuickActionApp extends React.Component<{}, IQuickActionAppState> {
       onProgress: progress => this.setState({ progress }),
     })
       .then(sha =>
-        this.setState({
-          phase: 'done',
-          resultSha: sha,
-          progress: null,
-        })
+        this.setState(
+          previous => ({
+            phase: 'done' as const,
+            resultSha: sha,
+            progress: null,
+            // The window deliberately allows a further commit, so the state it
+            // offers one from has to be the state the folder is actually in.
+            // The files just committed are no longer pending: clear them and
+            // the summary at once, because until the re-probe answers a stale
+            // list is the one thing a second click could commit twice.
+            summary: '',
+            snapshot:
+              previous.snapshot === null
+                ? null
+                : { ...previous.snapshot, files: [], changedFileCount: 0 },
+          }),
+          () => this.refreshSnapshot()
+        )
       )
       .catch(error =>
         this.setState({
@@ -150,6 +163,25 @@ export class QuickActionApp extends React.Component<{}, IQuickActionAppState> {
           error: this.describeError(error),
         })
       )
+  }
+
+  /**
+   * Re-probe the folder after a commit lands.
+   *
+   * A failure here is deliberately silent: the commit and push already
+   * succeeded, and replacing that success with a probe's error message would
+   * report a failure that did not happen. The optimistically cleared file list
+   * is the safe state to stay in, so nothing is committed twice either way.
+   */
+  private refreshSnapshot() {
+    const { request } = this.state
+    if (request === null) {
+      return
+    }
+
+    loadQuickRepositorySnapshot(request.path)
+      .then(snapshot => this.setState({ snapshot }))
+      .catch(() => undefined)
   }
 
   private blockerMessage(blocker: QuickCommitBlocker): string {
@@ -241,7 +273,9 @@ export class QuickActionApp extends React.Component<{}, IQuickActionAppState> {
             type="text"
             value={summary}
             onChange={this.onSummaryChanged}
-            disabled={busy || phase === 'loading' || phase === 'done'}
+            // Not disabled once a commit has landed: the window deliberately
+            // allows a further one, and a further commit needs its own summary.
+            disabled={busy || phase === 'loading'}
             placeholder={translate(
               'quickAction.summaryPlaceholder',
               languageMode
