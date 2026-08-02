@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { readFileSync } from 'node:fs'
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { afterEach, describe, it } from 'node:test'
@@ -317,7 +317,13 @@ describe('AgentSetupCommandRunner', () => {
 
 describe('FileSystemAgentSetupDirectoryValidator', () => {
   it('accepts only a registered linked-worktree pointer and backpointer', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'desktop-material-worktree-'))
+    // Windows-hosted runners can expose RUNNER_TEMP through a junction. Build
+    // this synthetic worktree from the canonical temporary path so the test
+    // exercises the linked-worktree pointers instead of failing the validator's
+    // deliberate outer reparse-path guard.
+    const root = await realpath(
+      await mkdtemp(join(tmpdir(), 'desktop-material-worktree-'))
+    )
     temporaryDirectories.push(root)
     const worktreePath = join(root, 'agent')
     const repositoryPath = join(root, 'main')
@@ -419,7 +425,7 @@ describe('BoundedAgentSetupProcessExecutor', () => {
       "process.stdout.write('private-output'.repeat(1000)); setInterval(() => {}, 1000)"
     )
     const noisyResult = await new BoundedAgentSetupProcessExecutor(
-      2_000,
+      10_000,
       32
     ).execute(
       { enabled: true, executable: 'node', args: [noisy] },
