@@ -259,9 +259,10 @@ the tonal workspace preview hides when a compact window needs the space.
   approve or reject eligible deployments; approve an eligible fork run; dispatch a workflow; and
   load later artifact pages before a native download with local digest comparison and explicit
   attestation-presence context.
-- **Release gates** — the manual Super Express lane now runs the complete unit and script suites
-  before its Windows x64 build/package while continuing to skip lint, E2E, and history-generated
-  notes. Release pull requests target the Windows product's `main` default branch.
+- **Release gates** — the manual Super Express emergency lane runs no tests and
+  goes directly to its Windows x64 build/package, asset verification, and
+  optional release. Ordinary CI and tested Express remain the default gates;
+  release pull requests target the Windows product's `main` default branch.
 - **Compact Repository Releases** — the corrected 800×560 combined gate keeps the list ahead of
   overview/detail content and retains one complete row. One physical 960×660 gate passed at 100%,
   125% (768×528 CSS), 150%, and 200% (480×330 CSS); compact scales keep a 176 px panel, at least

@@ -1618,9 +1618,10 @@ The **Actions** panel brings CI into the app:
   confirmation. It is never inferred from a deployment decision.
 - Trigger manual workflows with the **`workflow_dispatch` dialog** — pick the workflow, ref, and
   inputs, and dispatch.
-- The repository's **Super Express Release** lane runs the complete unit and
-  script suites before its Windows x64 production build/package. It remains a
-  fast lane by skipping lint, E2E, and history-generated notes, and a release
+- The repository's **Super Express Release** emergency lane runs no unit,
+  script, TUI, lint, type, parity, smoke, or E2E tests. It goes directly to the
+  Windows x64 production build/package, asset verification, and optional
+  release; ordinary CI and tested Express remain the default gates. A release
   pull request targets the Windows product's `main` default branch.
 - Automatic and Super Express installers share one monotonic `z` package-version
   namespace. Releases are immutable and initially non-latest; only the greatest

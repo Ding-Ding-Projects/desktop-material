@@ -130,10 +130,10 @@ concurrency group, including CodeQL, remain independently runnable.
 
 `.github/workflows/super-express-release.yml` is a separate, manual-only
 emergency lane. Dispatching it from `main` goes directly from the exact
-dependency cache through the complete unit and script suites, then into the
-Windows x64 production build and package. It omits lint, trampoline, packaged
-E2E, and history-generated release notes. The ordinary CI and tested Express
-Release paths remain the default release gates.
+dependency cache into the Windows x64 production build and package. It runs no
+unit, script, TUI, lint, type, parity, smoke, trampoline, or packaged E2E tests,
+and it omits history-generated release notes. The ordinary CI and tested
+Express Release paths remain the default release gates.
 
 The direct lane still fails closed around the produced executable content. It
 requires the exact dispatched commit, uses the same validated run-ID package
@@ -208,10 +208,10 @@ updater to undo them.
   trigger, stale dispatch SHA, existing tag, or changed default-branch tip
   stops before publication.
 - Super Express Release must also be dispatched from `main`. It deliberately
-  omits lint, trampoline, packaged E2E, and history-note generation but retains
-  the complete unit and script suites. Use it only when that shorter
-  build/package path is the explicit operator choice. Clearing its `publish`
-  input retains artifacts without creating a Release.
+  omits every test/lint/type/parity/smoke gate plus trampoline, packaged E2E,
+  and history-note generation. Use it only when that direct build/package path
+  is the explicit operator choice. Clearing its `publish` input retains
+  artifacts without creating a Release.
 - Release run IDs must be positive decimal values of at most 12 digits. The
   shared generator converts them to a nine-letter base-26 payload and rejects a
   stable base without a prerelease channel, malformed versions, and a NuGet
