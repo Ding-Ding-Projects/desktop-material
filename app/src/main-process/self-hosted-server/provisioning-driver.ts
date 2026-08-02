@@ -592,6 +592,12 @@ function composePreservesLoopbackPublication(value: string): boolean {
     ) {
       return false
     }
+    if (
+      Object.keys(services as Record<string, unknown>).length !== 1 ||
+      !Object.prototype.hasOwnProperty.call(services, 'server')
+    ) {
+      return false
+    }
     const server = (services as Record<string, unknown>).server
     if (
       server === null ||
@@ -600,7 +606,31 @@ function composePreservesLoopbackPublication(value: string): boolean {
     ) {
       return false
     }
-    const ports = (server as Record<string, unknown>).ports
+    const definition = server as Record<string, unknown>
+    const build = definition.build
+    const volumes = definition.volumes
+    if (
+      build === null ||
+      typeof build !== 'object' ||
+      Array.isArray(build) ||
+      Object.keys(build as Record<string, unknown>).length !== 2 ||
+      (build as Record<string, unknown>).context !==
+        '${DESKTOP_MATERIAL_SERVER_BUNDLE_PATH:?Desktop Material server bundle is required}' ||
+      (build as Record<string, unknown>).dockerfile !== 'Dockerfile' ||
+      !Array.isArray(volumes) ||
+      volumes.length !== 1 ||
+      volumes[0] === null ||
+      typeof volumes[0] !== 'object' ||
+      Array.isArray(volumes[0]) ||
+      Object.keys(volumes[0] as Record<string, unknown>).length !== 3 ||
+      (volumes[0] as Record<string, unknown>).type !== 'bind' ||
+      (volumes[0] as Record<string, unknown>).source !==
+        '${DESKTOP_MATERIAL_SERVER_DATA_PATH:?Desktop Material server data path is required}' ||
+      (volumes[0] as Record<string, unknown>).target !== '/data'
+    ) {
+      return false
+    }
+    const ports = definition.ports
     const exactServerPort =
       Array.isArray(ports) &&
       ports.length === 1 &&
@@ -778,6 +808,8 @@ export class WindowsSelfHostedServerProvisioningDriver
       SystemRoot: dependencies.windowsDirectoryPath,
       WINDIR: dependencies.windowsDirectoryPath,
       DOCKER_HOST: 'npipe:////./pipe/docker_engine',
+      DESKTOP_MATERIAL_SERVER_BUNDLE_PATH: dependencies.bundledServicePath,
+      DESKTOP_MATERIAL_SERVER_DATA_PATH: this.dataRoot,
     })
     this.fileSystem = dependencies.fileSystem ?? defaultFileSystem()
     this.processExecutor =

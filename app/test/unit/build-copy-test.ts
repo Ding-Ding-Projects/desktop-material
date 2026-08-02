@@ -12,9 +12,31 @@ import {
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
-import { copyStaticResourceTree, removeAndCopy } from '../../../script/build'
+import {
+  copyStaticResourceTree,
+  getSelfHostedServerExtraResourcePath,
+  removeAndCopy,
+} from '../../../script/build'
 
 describe('build copying', () => {
+  it('ships the immutable self-hosted server build context as an extra resource', () => {
+    const resource = getSelfHostedServerExtraResourcePath(process.cwd())
+    assert.equal(
+      resource,
+      join(process.cwd(), 'services', 'desktop-material-server')
+    )
+    for (const file of [
+      'compose.yml',
+      'Dockerfile',
+      'package.json',
+      'server.mjs',
+    ]) {
+      const entry = join(resource, file)
+      assert.equal(lstatSync(entry).isFile(), true)
+      assert.equal(lstatSync(entry).isSymbolicLink(), false)
+    }
+  })
+
   it('dereferences a directory link before removing destination children', () => {
     const root = mkdtempSync(join(tmpdir(), 'desktop-build-copy-test-'))
 

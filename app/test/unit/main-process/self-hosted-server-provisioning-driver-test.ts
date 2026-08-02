@@ -38,6 +38,13 @@ const PublicOrigin = 'https://desktop-material.example'
 const LoopbackCompose = [
   'services:',
   '  server:',
+  '    build:',
+  '      context: ${DESKTOP_MATERIAL_SERVER_BUNDLE_PATH:?Desktop Material server bundle is required}',
+  '      dockerfile: Dockerfile',
+  '    volumes:',
+  '      - type: bind',
+  '        source: ${DESKTOP_MATERIAL_SERVER_DATA_PATH:?Desktop Material server data path is required}',
+  '        target: /data',
   '    ports:',
   "      - '127.0.0.1:${DESKTOP_MATERIAL_SERVER_PORT:-8787}:8787'",
   '',
@@ -742,6 +749,8 @@ describe('Windows self-hosted server provisioning driver', () => {
       SystemRoot: WindowsDirectoryPath,
       WINDIR: WindowsDirectoryPath,
       DOCKER_HOST: 'npipe:////./pipe/docker_engine',
+      DESKTOP_MATERIAL_SERVER_BUNDLE_PATH: BundlePath,
+      DESKTOP_MATERIAL_SERVER_DATA_PATH: DataRoot,
     })
 
     fileSystem.file(
@@ -761,6 +770,27 @@ describe('Windows self-hosted server provisioning driver', () => {
         return true
       }
     )
+
+    for (const unsafeCompose of [
+      LoopbackCompose.replace(
+        '${DESKTOP_MATERIAL_SERVER_BUNDLE_PATH:?Desktop Material server bundle is required}',
+        '.'
+      ),
+      LoopbackCompose.replace(
+        '${DESKTOP_MATERIAL_SERVER_DATA_PATH:?Desktop Material server data path is required}',
+        './data'
+      ),
+    ]) {
+      fileSystem.file(ComposePath, unsafeCompose)
+      await assert.rejects(
+        driver.startServer(new AbortController().signal),
+        (error: unknown) => {
+          assert.ok(error instanceof SelfHostedServerProvisioningDriverError)
+          assert.equal(error.code, 'compose-contract-invalid')
+          return true
+        }
+      )
+    }
   })
 
   it('verifies a bounded exact health identity over HTTPS or loopback HTTP', async () => {

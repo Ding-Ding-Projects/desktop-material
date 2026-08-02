@@ -69,6 +69,12 @@ const entitlementsPath = `${projectRoot}/script/entitlements${entitlementsSuffix
 const extendInfoPath = `${projectRoot}/script/info.plist`
 const outRoot = path.join(projectRoot, 'out')
 
+export function getSelfHostedServerExtraResourcePath(
+  root: string = projectRoot
+): string {
+  return path.join(root, 'services', 'desktop-material-server')
+}
+
 if (require.main === module) {
   console.log(`Building for ${getChannel()}…`)
 
@@ -217,7 +223,7 @@ function packageApp() {
     asar: false, // TODO: Probably wanna enable this down the road.
     out: getDistRoot(),
     icon: join(iconPath, 'icon-logo'),
-    extraResource: [assetsCarPath],
+    extraResource: [assetsCarPath, getSelfHostedServerExtraResourcePath()],
     dir: outRoot,
     overwrite: true,
     tmpdir: false,
