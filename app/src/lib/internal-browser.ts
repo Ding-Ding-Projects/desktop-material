@@ -700,6 +700,27 @@ export interface IInternalBrowserFindResult {
   readonly matches: ReadonlyArray<IInternalBrowserFindMatch>
 }
 
+/**
+ * Main -> chrome: Chromium's own in-page match tally for a plain-text search.
+ *
+ * Carries the tab id because the tally arrives asynchronously and the user may
+ * have switched tabs by the time it does; the find bar drops a tally that is
+ * not for the tab it is searching rather than showing another tab's count.
+ */
+export interface IInternalBrowserFindTally {
+  readonly tabId: string
+  readonly total: number
+  readonly active: number
+}
+
+/** Main -> chrome: the bounded page text a regular-expression search reads. */
+export interface IInternalBrowserPageText {
+  readonly tabId: string
+  readonly text: string
+  /** True when the page was longer than {@link MaximumPageTextLength}. */
+  readonly truncated: boolean
+}
+
 /** A find result with nothing searched yet. */
 export const emptyFindResult: IInternalBrowserFindResult = {
   mode: 'plain',

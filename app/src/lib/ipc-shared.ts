@@ -101,7 +101,9 @@ import {
 import {
   BrowserOpenMode,
   IInternalBrowserContentBounds,
+  IInternalBrowserFindTally,
   IInternalBrowserOAuthCallbackReceipt,
+  IInternalBrowserPageText,
   IInternalBrowserState,
   IOpenExternalOptions,
   InternalBrowserCommand,
@@ -250,6 +252,10 @@ export type RequestChannels = {
   ) => void
   /** Main -> internal-browser chrome: sanitized, serializable tab state. */
   'internal-browser-state': (state: IInternalBrowserState) => void
+  /** Main -> internal-browser chrome: Chromium's in-page match tally. */
+  'internal-browser-find': (tally: IInternalBrowserFindTally) => void
+  /** Main -> internal-browser chrome: bounded page text for a regex search. */
+  'internal-browser-page-text': (page: IInternalBrowserPageText) => void
   /** Trusted app renderer -> main: OAuth resolution and callback correlation. */
   'internal-browser-oauth-result': (
     receipt: IInternalBrowserOAuthCallbackReceipt

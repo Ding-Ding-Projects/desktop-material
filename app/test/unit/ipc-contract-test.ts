@@ -100,6 +100,8 @@ describe('IPC channel contract', () => {
     'internal-browser-command',
     'internal-browser-content-bounds',
     'internal-browser-state',
+    'internal-browser-find',
+    'internal-browser-page-text',
     'internal-browser-oauth-result',
     'build-run-log',
     'build-run-state',
