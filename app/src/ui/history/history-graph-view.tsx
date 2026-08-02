@@ -10,13 +10,17 @@ import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { RichText } from '../lib/rich-text'
 import { TooltippedContent } from '../lib/tooltipped-content'
-import { CommitGraph, CommitGraphColumnWidth } from './commit-graph'
+import { CommitGraphColumnWidth, CommitGraphViewport } from './commit-graph'
 import {
   buildCommitGraph,
   ICommitGraph,
   ICommitGraphRef,
   ICommitGraphRefLabel,
 } from './commit-graph-model'
+import {
+  ICommitContextMenuProps,
+  showCommitContextMenu,
+} from './commit-context-menu'
 
 /**
  * The row pitch, deliberately identical to the commit list's. The two views
@@ -24,17 +28,63 @@ import {
  * on a different commit every time they switched view.
  */
 export const HistoryGraphRowHeight = 56
+const HistoryGraphViewportOverscan = 1
 
-interface IHistoryGraphViewProps {
-  /** The list of commit SHAs to display, in order. */
-  readonly commitSHAs: ReadonlyArray<string>
+export interface IHistoryGraphViewport {
+  readonly scrollTop: number
+  readonly height: number
+  readonly firstVisibleRow: number
+  readonly lastVisibleRow: number
+  readonly firstRenderedRow: number
+  readonly lastRenderedRow: number
+}
 
-  /** The commits loaded, keyed by their full SHA. */
-  readonly commitLookup: Map<string, Commit>
+/**
+ * Resolves the graph slice that shares the virtual list's viewport. One row of
+ * vector overscan on either side gives curved connectors room to cross the
+ * viewport edge without drawing the entire history.
+ */
+export function getHistoryGraphViewport(
+  rowCount: number,
+  scrollTop: number,
+  clientHeight: number
+): IHistoryGraphViewport | null {
+  if (rowCount <= 0 || clientHeight <= 0) {
+    return null
+  }
 
-  /** The SHAs of the selected commits */
-  readonly selectedSHAs: ReadonlyArray<string>
+  const height = Math.max(0, clientHeight)
+  const maxScrollTop = Math.max(0, rowCount * HistoryGraphRowHeight - height)
+  const normalizedScrollTop = Math.min(maxScrollTop, Math.max(0, scrollTop))
+  const firstVisibleRow = Math.min(
+    rowCount - 1,
+    Math.floor(normalizedScrollTop / HistoryGraphRowHeight)
+  )
+  const lastVisibleRow = Math.min(
+    rowCount - 1,
+    Math.max(
+      firstVisibleRow,
+      Math.ceil((normalizedScrollTop + height) / HistoryGraphRowHeight) - 1
+    )
+  )
 
+  return {
+    scrollTop: normalizedScrollTop,
+    height,
+    firstVisibleRow,
+    lastVisibleRow,
+    firstRenderedRow: Math.max(
+      0,
+      firstVisibleRow - HistoryGraphViewportOverscan
+    ),
+    lastRenderedRow: Math.min(
+      rowCount - 1,
+      lastVisibleRow + HistoryGraphViewportOverscan
+    ),
+  }
+}
+
+interface IHistoryGraphViewProps extends ICommitContextMenuProps {
   /** Every known branch, used to place branch-head chips. */
   readonly branches: ReadonlyArray<Branch>
 
@@ -63,19 +113,28 @@ interface IHistoryGraphViewProps {
   readonly compareListScrollTop?: number
 }
 
-/** A three-column Branch / Graph / Message view over the same commits. */
-export class HistoryGraphView extends React.Component<IHistoryGraphViewProps> {
-  private listRef = React.createRef<List>()
+interface IHistoryGraphViewState {
+  readonly scrollTop: number
+  readonly clientHeight: number
+}
 
+/** A three-column Branch / Graph / Message view over the same commits. */
+export class HistoryGraphView extends React.Component<
+  IHistoryGraphViewProps,
+  IHistoryGraphViewState
+> {
+  private listRef = React.createRef<List>()
+  private bodyRef = React.createRef<HTMLDivElement>()
+  private viewportResizeObserver: ResizeObserver | null = null
+  private observedBody: HTMLDivElement | null = null
   private commitIndexBySha = memoizeOne(
     (commitSHAs: ReadonlyArray<string>) =>
       new Map(commitSHAs.map((sha, index) => [sha, index]))
   )
-
   private graph = memoizeOne(
     (
       commitSHAs: ReadonlyArray<string>,
-      commitLookup: Map<string, Commit>,
+      commitLookup: ReadonlyMap<string, Commit>,
       branches: ReadonlyArray<Branch>,
       currentBranch: Branch | null
     ): ICommitGraph => {
@@ -87,6 +146,46 @@ export class HistoryGraphView extends React.Component<IHistoryGraphViewProps> {
       return buildCommitGraph(commits, buildRefs(branches, currentBranch))
     }
   )
+
+  public state: IHistoryGraphViewState = {
+    scrollTop: this.props.compareListScrollTop ?? 0,
+    clientHeight: 0,
+  }
+
+  public componentDidMount() {
+    this.observeViewportBody()
+  }
+
+  public componentDidUpdate() {
+    // The view can mount while history is still empty. Attach the observer as
+    // soon as loading replaces the blankslate with the virtual list.
+    this.observeViewportBody()
+  }
+
+  public componentWillUnmount() {
+    this.viewportResizeObserver?.disconnect()
+  }
+
+  private observeViewportBody() {
+    const body = this.bodyRef.current
+    if (body === this.observedBody) {
+      return
+    }
+
+    this.viewportResizeObserver?.disconnect()
+    this.viewportResizeObserver = null
+    this.observedBody = body
+
+    if (body === null) {
+      return
+    }
+
+    this.viewportResizeObserver = new ResizeObserver(entries => {
+      const height = entries[0]?.contentRect.height ?? body.clientHeight
+      this.updateViewport(this.state.scrollTop, height)
+    })
+    this.viewportResizeObserver.observe(body)
+  }
 
   public focus() {
     this.listRef.current?.focus()
@@ -145,7 +244,32 @@ export class HistoryGraphView extends React.Component<IHistoryGraphViewProps> {
     }
   }
 
+  private onRowContextMenu = (
+    row: number,
+    event: React.MouseEvent<HTMLDivElement>
+  ) => {
+    showCommitContextMenu(row, event, this.props)
+  }
+
+  private onRowKeyboardContextMenu = (
+    row: number,
+    event: React.KeyboardEvent<HTMLDivElement>
+  ) => {
+    showCommitContextMenu(row, event, this.props)
+  }
+
+  private updateViewport(scrollTop: number, clientHeight: number) {
+    if (
+      scrollTop !== this.state.scrollTop ||
+      clientHeight !== this.state.clientHeight
+    ) {
+      this.setState({ scrollTop, clientHeight })
+    }
+  }
+
   private onScroll = (scrollTop: number, clientHeight: number) => {
+    this.updateViewport(scrollTop, clientHeight)
+
     const top = Math.floor(scrollTop / HistoryGraphRowHeight)
     this.props.onScroll?.(
       top,
@@ -196,13 +320,7 @@ export class HistoryGraphView extends React.Component<IHistoryGraphViewProps> {
         <div
           className="history-graph-cell history-graph-lanes"
           style={{ width: laneColumnWidth(graph) }}
-        >
-          <CommitGraph
-            row={graphRow}
-            rowHeight={HistoryGraphRowHeight}
-            columnCount={graph.maxColumn + 1}
-          />
-        </div>
+        />
         <div className="history-graph-cell history-graph-summary">
           <RichText
             className="history-graph-summary-text"
@@ -261,6 +379,47 @@ export class HistoryGraphView extends React.Component<IHistoryGraphViewProps> {
     )
   }
 
+  private renderViewportGraph(graph: ICommitGraph) {
+    const viewport = getHistoryGraphViewport(
+      graph.rows.length,
+      this.state.scrollTop,
+      this.state.clientHeight
+    )
+
+    if (viewport === null) {
+      return null
+    }
+
+    return (
+      <div
+        className="history-graph-viewport-layout"
+        aria-hidden="true"
+        data-first-visible-row={viewport.firstVisibleRow}
+        data-last-visible-row={viewport.lastVisibleRow}
+        data-first-rendered-row={viewport.firstRenderedRow}
+        data-last-rendered-row={viewport.lastRenderedRow}
+        data-scroll-top={viewport.scrollTop}
+        data-row-height={HistoryGraphRowHeight}
+      >
+        <div className="history-graph-cell history-graph-refs" />
+        <div
+          className="history-graph-cell history-graph-lanes"
+          style={{ width: laneColumnWidth(graph) }}
+        >
+          <CommitGraphViewport
+            graph={graph}
+            rowHeight={HistoryGraphRowHeight}
+            scrollTop={viewport.scrollTop}
+            viewportHeight={viewport.height}
+            firstRow={viewport.firstRenderedRow}
+            lastRow={viewport.lastRenderedRow}
+          />
+        </div>
+        <div className="history-graph-cell history-graph-summary" />
+      </div>
+    )
+  }
+
   public render() {
     const { commitSHAs, selectedSHAs, emptyListMessage } = this.props
 
@@ -276,10 +435,12 @@ export class HistoryGraphView extends React.Component<IHistoryGraphViewProps> {
       .map(sha => this.rowForSHA(sha))
       .filter(row => row !== -1)
 
+    const graph = this.getGraph()
+
     return (
       <div id="history-graph-view">
         {this.renderHeader()}
-        <div className="history-graph-body">
+        <div className="history-graph-body" ref={this.bodyRef}>
           <List
             ariaLabel="Commit graph"
             ref={this.listRef}
@@ -290,6 +451,8 @@ export class HistoryGraphView extends React.Component<IHistoryGraphViewProps> {
             getRowAriaLabel={this.getRowAriaLabel}
             onSelectionChanged={this.onSelectionChanged}
             onSelectedRowChanged={this.onSelectedRowChanged}
+            onRowContextMenu={this.onRowContextMenu}
+            onRowKeyboardContextMenu={this.onRowKeyboardContextMenu}
             selectionMode="multi"
             onScroll={this.onScroll}
             invalidationProps={{
@@ -300,6 +463,7 @@ export class HistoryGraphView extends React.Component<IHistoryGraphViewProps> {
             }}
             setScrollTop={this.props.compareListScrollTop}
           />
+          {this.renderViewportGraph(graph)}
         </div>
       </div>
     )

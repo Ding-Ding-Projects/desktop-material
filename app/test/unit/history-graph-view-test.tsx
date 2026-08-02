@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, it } from 'node:test'
+import { afterEach, describe, it } from 'node:test'
 import * as React from 'react'
 
 import { Branch, BranchType } from '../../src/models/branch'
@@ -12,13 +12,21 @@ import {
   buildCommitGraphRows,
 } from '../../src/ui/history/commit-graph-model'
 import {
+  CommitGraphBoundaryOverlap,
+  CommitGraphColumnWidth,
+  CommitGraphNodeRadius,
+  CommitGraphStrokeWidth,
+} from '../../src/ui/history/commit-graph'
+import {
   buildRefs,
   describeRef,
+  getHistoryGraphViewport,
   HistoryGraphRowHeight,
   HistoryGraphView,
   laneColumnWidth,
 } from '../../src/ui/history/history-graph-view'
-import { fireEvent, render, waitFor } from '../helpers/ui/render'
+import { captureClipboardWrites } from '../helpers/ui/electron'
+import { fireEvent, render, screen, waitFor } from '../helpers/ui/render'
 
 /**
  * jsdom lays everything out at zero, so the list's auto-sizer decides no rows
@@ -71,6 +79,14 @@ Object.defineProperty(globalThis, 'ResizeObserver', {
 Object.defineProperty(window, 'ResizeObserver', {
   configurable: true,
   value: TestResizeObserver,
+})
+
+afterEach(() => {
+  for (const backdrop of document.querySelectorAll<HTMLElement>(
+    '.material-context-menu-backdrop'
+  )) {
+    fireEvent.mouseDown(backdrop)
+  }
 })
 
 const identity = new CommitIdentity('Test', 'test@example.com', new Date(0))
@@ -260,9 +276,11 @@ describe('history graph view', () => {
   ) =>
     render(
       <HistoryGraphView
+        gitHubRepository={null}
         commitSHAs={commitSHAs}
         commitLookup={commitLookup}
         selectedSHAs={[]}
+        localCommitSHAs={commitSHAs}
         branches={[makeBranch('main', 'main'), makeBranch('topic', 'topic')]}
         currentBranch={makeBranch('main', 'main')}
         emoji={new Map()}
@@ -284,20 +302,139 @@ describe('history graph view', () => {
     return result
   }
 
-  it('draws every row at the graph’s row pitch so lanes meet across rows', async () => {
+  it('draws one viewport surface across the visible virtual rows', async () => {
     const { container } = await renderRows()
 
-    const graphs = container.querySelectorAll('svg.commit-graph')
-    assert.equal(graphs.length, mergeHistory.length)
+    await waitFor(() =>
+      assert.ok(
+        container.querySelector('svg.history-graph-viewport-svg') !== null
+      )
+    )
+
+    assert.equal(container.querySelectorAll('svg.commit-graph').length, 0)
+    const graphs = container.querySelectorAll('svg.history-graph-viewport-svg')
+    assert.equal(graphs.length, 1)
 
     const expectedWidth = String(
       laneColumnWidth(buildCommitGraph(mergeHistory))
     )
-    for (const graph of graphs) {
-      assert.equal(graph.getAttribute('height'), String(HistoryGraphRowHeight))
-      // Every row is drawn to the same width, so lane N sits at the same x on
-      // every row rather than shifting with that row's own lane count.
-      assert.equal(graph.getAttribute('width'), expectedWidth)
+    const graph = graphs[0]
+    assert.equal(graph.getAttribute('height'), '400')
+    assert.equal(graph.getAttribute('width'), expectedWidth)
+
+    const layout = container.querySelector('.history-graph-viewport-layout')
+    assert.equal(layout?.getAttribute('aria-hidden'), 'true')
+    assert.equal(layout?.getAttribute('data-first-visible-row'), '0')
+    assert.equal(layout?.getAttribute('data-last-visible-row'), '3')
+    assert.equal(layout?.getAttribute('data-row-height'), '56')
+    assert.equal(
+      graph.querySelectorAll('circle[data-segment="node"]').length,
+      mergeHistory.length
+    )
+  })
+
+  it('lets connectors cross row boundaries in the shared coordinate space', async () => {
+    const { container } = await renderRows()
+
+    await waitFor(() =>
+      assert.ok(
+        container.querySelector('svg.history-graph-viewport-svg') !== null
+      )
+    )
+
+    const paths = Array.from(
+      container.querySelectorAll<SVGPathElement>(
+        '.history-graph-viewport-svg path[data-start-y][data-end-y]'
+      )
+    )
+    const firstBoundary = HistoryGraphRowHeight
+    const crossing = paths.filter(path => {
+      const start = Number(path.dataset.startY)
+      const end = Number(path.dataset.endY)
+      return start < firstBoundary && end > firstBoundary
+    })
+
+    assert.ok(crossing.length > 0)
+    assert.ok(
+      crossing.some(path => path.dataset.row === '0'),
+      'the row above did not draw through the boundary'
+    )
+    assert.ok(
+      crossing.some(path => path.dataset.row === '1'),
+      'the row below did not draw through the boundary'
+    )
+  })
+
+  it('aligns vector virtualization to the exact list scroll offset', async () => {
+    const viewport = getHistoryGraphViewport(
+      100,
+      HistoryGraphRowHeight * 1.5,
+      HistoryGraphRowHeight * 2
+    )
+
+    assert.ok(viewport !== null)
+    assert.deepEqual(viewport, {
+      scrollTop: 84,
+      height: 112,
+      firstVisibleRow: 1,
+      lastVisibleRow: 3,
+      firstRenderedRow: 0,
+      lastRenderedRow: 4,
+    })
+
+    assert.equal(
+      viewport.firstVisibleRow * HistoryGraphRowHeight - viewport.scrollTop,
+      -HistoryGraphRowHeight / 2
+    )
+    assert.equal(
+      (viewport.firstVisibleRow + 1) * HistoryGraphRowHeight -
+        viewport.scrollTop,
+      HistoryGraphRowHeight / 2
+    )
+
+    const longHistory = Array.from({ length: 12 }, (_, index) =>
+      makeCommit(`long-${index}`, index === 11 ? [] : [`long-${index + 1}`])
+    )
+    const longSHAs = longHistory.map(commit => commit.sha)
+    const { container } = await renderRows({
+      commitSHAs: longSHAs,
+      commitLookup: new Map(
+        longHistory.map(commit => [commit.sha, commit] as const)
+      ),
+      localCommitSHAs: longSHAs,
+      branches: [],
+      currentBranch: null,
+      compareListScrollTop: viewport.scrollTop,
+    })
+
+    await waitFor(() =>
+      assert.equal(
+        container
+          .querySelector('.history-graph-viewport-layout')
+          ?.getAttribute('data-scroll-top'),
+        '84'
+      )
+    )
+    assert.equal(
+      container.querySelector('circle[data-row="2"]')?.getAttribute('cy'),
+      String(HistoryGraphRowHeight)
+    )
+  })
+
+  it('keeps stroke and node extents clipping-safe at supported UI scales', () => {
+    for (const scale of [1, 1.25, 1.5, 2]) {
+      const halfLane = (CommitGraphColumnWidth / 2) * scale
+      const nodeExtent =
+        (CommitGraphNodeRadius + CommitGraphStrokeWidth / 2) * scale
+
+      assert.equal(Number.isInteger(HistoryGraphRowHeight * scale), true)
+      assert.equal(Number.isInteger(CommitGraphColumnWidth * scale), true)
+      assert.equal(
+        CommitGraphBoundaryOverlap * scale >=
+          (CommitGraphStrokeWidth / 2) * scale,
+        true
+      )
+      assert.equal(nodeExtent < halfLane, true)
     }
   })
 
@@ -372,6 +509,64 @@ describe('history graph view', () => {
     }
   })
 
+  it('opens the shared commit actions and targets the right-clicked row', async () => {
+    const clipboard = captureClipboardWrites()
+
+    try {
+      const { container } = await renderRows({
+        // A stale selection on another row must not redirect the menu action.
+        selectedSHAs: ['main'],
+      })
+      const rows = container.querySelectorAll<HTMLElement>('[role="option"]')
+
+      assert.equal(
+        fireEvent.contextMenu(rows[2], {
+          button: 2,
+          clientX: 120,
+          clientY: 160,
+        }),
+        false
+      )
+
+      await waitFor(() => assert.ok(screen.getByRole('menu')))
+      assert.ok(
+        screen.getByRole('menuitem', { name: 'Create branch from commit' })
+      )
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Copy SHA' }))
+
+      await waitFor(() => assert.deepEqual(clipboard.writes, ['topic']))
+    } finally {
+      clipboard.restore()
+    }
+  })
+
+  it('opens from both keyboard menu gestures and restores the virtual row focus', async () => {
+    const { container } = await renderRows()
+    const row = container.querySelector<HTMLElement>('[role="option"]')
+    assert.ok(row !== null)
+
+    for (const key of [
+      { key: 'F10', shiftKey: true },
+      { key: 'ContextMenu', shiftKey: false },
+    ]) {
+      row.focus()
+      assert.equal(document.activeElement, row)
+      assert.equal(fireEvent.keyDown(row, key), false)
+
+      await waitFor(() => assert.ok(screen.getByRole('menu')))
+      assert.ok(
+        container.contains(row),
+        'the virtual row unmounted under its menu'
+      )
+      fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' })
+
+      await waitFor(() => {
+        assert.equal(screen.queryByRole('menu'), null)
+        assert.equal(document.activeElement, row)
+      })
+    }
+  })
+
   it('shows the empty message rather than an empty table', () => {
     const { container } = renderView({
       commitSHAs: [],
@@ -414,6 +609,61 @@ describe('history graph view: wiring', () => {
   it('keeps the commit list as the other view rather than replacing it', () => {
     assert.match(compare, /isHistory && this\.state\.showGraphView/)
     assert.match(compare, /<CommitList/)
+  })
+
+  it('shares one context-menu builder and the same production action wiring', () => {
+    const graphView = read('src', 'ui', 'history', 'history-graph-view.tsx')
+    const commitList = read('src', 'ui', 'history', 'commit-list.tsx')
+
+    assert.match(graphView, /showCommitContextMenu\(row, event, this\.props\)/)
+    assert.match(commitList, /showCommitContextMenu\(row, event, this\.props\)/)
+
+    const graphProps = /<HistoryGraphView\s+ref=([\s\S]*?)\/>/.exec(
+      compare
+    )?.[1]
+    assert.ok(graphProps !== undefined)
+    for (const prop of [
+      'gitHubRepository',
+      'localCommitSHAs',
+      'canResetToCommits',
+      'canUndoCommits',
+      'canAmendCommits',
+      'onViewCommitOnGitHub',
+      'onUndoCommit',
+      'onResetToCommit',
+      'onRevertCommit',
+      'onAmendCommit',
+      'onCreateBranch',
+      'onCreateWorktreeFromCommit',
+      'onCheckoutCommit',
+      'onCreateTag',
+      'onDeleteTag',
+      'onCherryPick',
+      'onKeyboardReorder',
+      'onSquash',
+      'tagsToPush',
+      'disableReordering',
+      'disableSquashing',
+      'isMultiCommitOperationInProgress',
+    ]) {
+      assert.match(graphProps, new RegExp(`${prop}=`), `${prop} is not wired`)
+    }
+  })
+
+  it('mounts the list before handing off graph-originated keyboard reorder data', () => {
+    const handler =
+      /private onKeyboardReorder[\s\S]*?(?=\n  private onSquash)/.exec(
+        compare
+      )?.[0]
+    assert.ok(handler !== undefined)
+    assert.match(
+      handler,
+      /if \(this\.state\.showGraphView\) \{[\s\S]*?this\.setState\(\{ showGraphView: false \}, \(\) => \{[\s\S]*?this\.setState\(\{ keyboardReorderData \}\)[\s\S]*?\}\)[\s\S]*?return/
+    )
+    assert.doesNotMatch(
+      handler,
+      /this\.setState\(\{\s*showGraphView: false,\s*keyboardReorderData/
+    )
   })
 
   it('registers its stylesheet in the styles index', () => {

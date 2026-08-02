@@ -15,7 +15,8 @@
   --history-graph-ref-column: 140px;
 
   .history-graph-header,
-  .history-graph-row {
+  .history-graph-row,
+  .history-graph-viewport-layout {
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -55,7 +56,10 @@
   }
 
   .history-graph-summary {
-    flex: 1 1 auto;
+    // A zero flex basis makes the three column boundaries content-independent:
+    // every virtual row and the viewport drawing layer keep the same x origin
+    // even when their summaries have very different intrinsic widths.
+    flex: 1 1 0;
     overflow: hidden;
   }
 
@@ -91,6 +95,22 @@
     flex-direction: column;
     flex: 1;
     min-height: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .history-graph-viewport-layout {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+
+    // This empty lane cell is the sole continuous drawing surface. Its empty
+    // sibling cells deliberately share the row flex contract so the surface
+    // remains aligned with virtual rows at narrow widths and browser zoom.
+    .history-graph-lanes {
+      overflow: hidden;
+    }
   }
 
   .list-item {
@@ -113,9 +133,9 @@
     background: var(--box-selected-active-background-color);
   }
 
-  .commit-graph {
+  .commit-graph,
+  .history-graph-viewport-svg {
     flex: 0 0 auto;
-    overflow: visible;
 
     path {
       fill: none;
@@ -127,6 +147,15 @@
       stroke: var(--md-sys-color-surface);
       stroke-width: 2;
     }
+  }
+
+  .commit-graph {
+    overflow: visible;
+  }
+
+  .history-graph-viewport-svg {
+    display: block;
+    overflow: hidden;
   }
 
   .history-graph-ref-chip {

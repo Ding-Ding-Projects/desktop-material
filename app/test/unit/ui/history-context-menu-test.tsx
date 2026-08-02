@@ -2,7 +2,6 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import * as React from 'react'
 
-import { IMenuItem } from '../../../src/lib/menu-item'
 import { formatDate } from '../../../src/lib/format-date'
 import { Commit } from '../../../src/models/commit'
 import { CommitIdentity } from '../../../src/models/commit-identity'
@@ -10,6 +9,7 @@ import {
   CommitList,
   getEffectiveCommitSelection,
 } from '../../../src/ui/history/commit-list'
+import { buildCommitContextMenuItems } from '../../../src/ui/history/commit-context-menu'
 import { CommitListItem } from '../../../src/ui/history/commit-list-item'
 import { ListRow } from '../../../src/ui/lib/list/list-row'
 import { fireEvent, render, screen } from '../../helpers/ui/render'
@@ -67,11 +67,9 @@ describe('history contextual actions', () => {
       onCherryPick: (commits: ReadonlyArray<Commit>) =>
         cherryPicked.push(commits),
     })
-    const testable = list as unknown as {
-      getContextMenuForSingleCommit(row: number, commit: Commit): IMenuItem[]
-    }
 
-    const items = testable.getContextMenuForSingleCommit(0, clicked)
+    const items = buildCommitContextMenuItems(0, list.props)
+    assert.ok(items !== null)
     items.find(item => item.label?.startsWith('Cherry-pick'))?.action?.()
 
     assert.deepEqual(cherryPicked, [[clicked]])

@@ -1018,17 +1018,45 @@ export class CompareSidebar extends React.Component<
           {this.renderCommitFilter()}
           <HistoryGraphView
             ref={this.historyGraphViewRef}
+            gitHubRepository={this.props.repository.gitHubRepository}
             commitLookup={this.props.commitLookup}
             commitSHAs={filteredCommitSHAs}
             selectedSHAs={this.props.selectedCommitShas}
+            localCommitSHAs={this.props.localCommitSHAs}
+            canResetToCommits={allowHistoryOps}
+            canUndoCommits={allowHistoryOps}
+            canAmendCommits={allowHistoryOps}
             branches={this.props.compareState.branches}
             currentBranch={this.props.currentBranch}
             emoji={this.props.emoji}
             emptyListMessage={emptyListMessage}
+            onViewCommitOnGitHub={this.props.onViewCommitOnGitHub}
+            onUndoCommit={this.onUndoCommit}
+            onResetToCommit={this.onResetToCommit}
+            onRevertCommit={
+              ableToRevertCommit(this.props.compareState.formState)
+                ? this.props.onRevertCommit
+                : undefined
+            }
+            onAmendCommit={this.props.onAmendCommit}
             onCommitsSelected={this.onCommitsSelected}
             onScroll={this.onScroll}
+            onCreateBranch={this.onCreateBranch}
+            onCreateWorktreeFromCommit={this.onCreateWorktreeFromCommit}
+            onCheckoutCommit={this.onCheckoutCommit}
+            onCreateTag={this.onCreateTag}
+            onDeleteTag={this.onDeleteTag}
+            onCherryPick={this.onCherryPick}
+            onKeyboardReorder={this.onKeyboardReorder}
+            onSquash={this.onSquash}
             onCompareListScrolled={this.props.onCompareListScrolled}
             compareListScrollTop={this.props.compareListScrollTop}
+            tagsToPush={this.props.tagsToPush ?? []}
+            disableReordering={!allowHistoryOps}
+            disableSquashing={!allowHistoryOps}
+            isMultiCommitOperationInProgress={
+              this.props.isMultiCommitOperationInProgress
+            }
           />
         </>
       )
@@ -1477,14 +1505,26 @@ export class CompareSidebar extends React.Component<
 
   private onKeyboardReorder = (toReorder: ReadonlyArray<Commit>) => {
     const { commitSHAs } = this.props.compareState
+    const keyboardReorderData: KeyboardInsertionData = {
+      type: DragType.Commit,
+      commits: toReorder,
+      itemIndices: toReorder.map(c => commitSHAs.indexOf(c.sha)),
+    }
 
-    this.setState({
-      keyboardReorderData: {
-        type: DragType.Commit,
-        commits: toReorder,
-        itemIndices: toReorder.map(c => commitSHAs.indexOf(c.sha)),
-      },
-    })
+    // Keyboard reordering is implemented by CommitList's insertion surface.
+    // If the shared row menu starts it from the graph, move to that equivalent
+    // view before installing the operation. List initializes its insertion
+    // cursor on the undefined-to-defined prop transition, which must happen
+    // after CommitList mounts.
+    if (this.state.showGraphView) {
+      setBoolean(ShowGraphViewKey, false)
+      this.setState({ showGraphView: false }, () => {
+        this.setState({ keyboardReorderData })
+      })
+      return
+    }
+
+    this.setState({ keyboardReorderData })
   }
 
   private onSquash = async (

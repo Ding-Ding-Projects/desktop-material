@@ -1,16 +1,12 @@
 import * as React from 'react'
 import memoize from 'memoize-one'
-import { GitHubRepository } from '../../models/github-repository'
-import { Commit, CommitOneLine } from '../../models/commit'
+import { Commit } from '../../models/commit'
 import { CommitListItem } from './commit-list-item'
 import { KeyboardInsertionData, List } from '../lib/list'
 import { arrayEquals } from '../../lib/equality'
 import { DragData, DragType } from '../../models/drag-drop'
 import classNames from 'classnames'
 import memoizeOne from 'memoize-one'
-import { IMenuItem, showContextualMenu } from '../../lib/menu-item'
-import { getDotComAPIEndpoint } from '../../lib/api'
-import { clipboard } from 'electron'
 import { RowIndexPath } from '../lib/list/list-row-index-path'
 import { assertNever } from '../../lib/fatal-error'
 import { CommitDragElement } from '../drag-elements/commit-drag-element'
@@ -31,59 +27,20 @@ import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { buildCommitGraphRows, ICommitGraphRow } from './commit-graph-model'
 import { RelativeTime } from '../relative-time'
+import {
+  ICommitContextMenuProps,
+  showCommitContextMenu,
+} from './commit-context-menu'
+
+export { getEffectiveCommitSelection } from './commit-context-menu'
 
 // v2 prototype "History panel" row geometry: 11px vertical inset + the 34px
 // leading avatar disc.
 const RowHeight = 56
 
-/**
- * Resolve the commits a contextual action should affect. A right click or More
- * actions click on an unselected row must not accidentally act on a stale
- * multi-selection, while a click within the current selection preserves it.
- */
-export function getEffectiveCommitSelection(
-  clickedCommit: Commit,
-  selectedSHAs: ReadonlyArray<string>,
-  commitLookup: ReadonlyMap<string, Commit>
-): ReadonlyArray<Commit> {
-  if (!selectedSHAs.includes(clickedCommit.sha)) {
-    return [clickedCommit]
-  }
-
-  const commits = selectedSHAs
-    .map(sha => commitLookup.get(sha))
-    .filter((commit): commit is Commit => commit !== undefined)
-
-  return commits.length === 0 ? [clickedCommit] : commits
-}
-
-interface ICommitListProps {
-  /** The GitHub repository associated with this commit (if found) */
-  readonly gitHubRepository: GitHubRepository | null
-
-  /** The list of commits SHAs to display, in order. */
-  readonly commitSHAs: ReadonlyArray<string>
-
-  /** The commits loaded, keyed by their full SHA. */
-  readonly commitLookup: Map<string, Commit>
-
-  /** The SHAs of the selected commits */
-  readonly selectedSHAs: ReadonlyArray<string>
-
-  /** Whether or not commits in this list can be undone. */
-  readonly canUndoCommits?: boolean
-
-  /** Whether or not commits in this list can be amended. */
-  readonly canAmendCommits?: boolean
-
-  /** Whether or the user can reset to commits in this list. */
-  readonly canResetToCommits?: boolean
-
+interface ICommitListProps extends ICommitContextMenuProps {
   /** The emoji lookup to render images inline */
   readonly emoji: Map<string, Emoji>
-
-  /** The list of known local commits for the current branch */
-  readonly localCommitSHAs: ReadonlyArray<string>
 
   /** The message to display inside the list when no results are displayed */
   readonly emptyListMessage?: JSX.Element | string
@@ -100,43 +57,8 @@ interface ICommitListProps {
   /** Callback that fires when a scroll event has occurred */
   readonly onScroll?: (start: number, end: number) => void
 
-  /** Callback to fire to undo a given commit in the current repository */
-  readonly onUndoCommit?: (commit: Commit) => void
-
-  /** Callback to fire to reset to a given commit in the current repository */
-  readonly onResetToCommit?: (commit: Commit) => void
-
-  /** Callback to fire to revert a given commit in the current repository */
-  readonly onRevertCommit?: (commit: Commit) => void
-
-  readonly onAmendCommit?: (commit: Commit, isLocalCommit: boolean) => void
-
-  /** Callback to fire to open a given commit on GitHub */
-  readonly onViewCommitOnGitHub?: (sha: string) => void
-
   /** Callback to fire to cancel a keyboard reordering operation */
   readonly onCancelKeyboardReorder?: () => void
-
-  /**
-   * Callback to fire to create a branch from a given commit in the current
-   * repository
-   */
-  readonly onCreateBranch?: (commit: CommitOneLine) => void
-
-  /** Callback to create a new worktree checked out at the given commit. */
-  readonly onCreateWorktreeFromCommit?: (commit: CommitOneLine) => void
-
-  /**
-   * Callback to fire to checkout the selected commit in the current
-   * repository
-   */
-  readonly onCheckoutCommit?: (commit: CommitOneLine) => void
-
-  /** Callback to fire to open the dialog to create a new tag on the given commit */
-  readonly onCreateTag?: (targetCommitSha: string) => void
-
-  /** Callback to fire to delete a tag, including whether it is unpushed. */
-  readonly onDeleteTag?: (tagName: string, unpushed: boolean) => void
 
   /**
    * A handler called whenever the user drops commits on the list to be inserted.
@@ -152,20 +74,6 @@ interface ICommitListProps {
     lastRetainedCommitRef: string | null
   ) => void
 
-  /** Callback to fire to cherry picking the commit  */
-  readonly onCherryPick?: (commits: ReadonlyArray<CommitOneLine>) => void
-
-  /** Callback to fire to start reordering commits with the keyboard */
-  readonly onKeyboardReorder?: (toReorder: ReadonlyArray<Commit>) => void
-
-  /** Callback to fire to squashing commits  */
-  readonly onSquash?: (
-    toSquash: ReadonlyArray<Commit>,
-    squashOnto: Commit,
-    lastRetainedCommitRef: string | null,
-    isInvokedByContextMenu: boolean
-  ) => void
-
   /**
    * Optional callback that fires on page scroll in order to allow passing
    * a new scrollTop value up to the parent component for storing.
@@ -178,15 +86,8 @@ interface ICommitListProps {
   /* Whether the repository is local (it has no remotes) */
   readonly isLocalRepository: boolean
 
-  /* Tags that haven't been pushed yet. This is used to show the unpushed indicator */
-  readonly tagsToPush?: ReadonlyArray<string>
-
   /** Whether or not commits in this list can be reordered. */
   readonly reorderingEnabled?: boolean
-
-  /** Whether a multi commit operation is in progress (in particular the
-   * conflicts resolution step allows interaction with history) */
-  readonly isMultiCommitOperationInProgress?: boolean
 
   /** Callback to render commit drag element */
   readonly onRenderCommitDragElement?: (
@@ -196,12 +97,6 @@ interface ICommitListProps {
 
   /** Callback to remove commit drag element */
   readonly onRemoveCommitDragElement?: () => void
-
-  /** Whether reordering should be enabled on the commit list */
-  readonly disableReordering?: boolean
-
-  /** Whether squashing should be enabled on the commit list */
-  readonly disableSquashing?: boolean
 
   /** Shas that should be highlighted */
   readonly shasToHighlight?: ReadonlyArray<string>
@@ -238,7 +133,7 @@ export class CommitList extends React.Component<
   private graphRowsBySHA = memoizeOne(
     (
       commitSHAs: ReadonlyArray<string>,
-      commitLookup: Map<string, Commit>
+      commitLookup: ReadonlyMap<string, Commit>
     ): ReadonlyMap<string, ICommitGraphRow> => {
       const commits = commitSHAs.flatMap(sha => {
         const commit = commitLookup.get(sha)
@@ -779,283 +674,13 @@ export class CommitList extends React.Component<
     row: number,
     event: React.SyntheticEvent<HTMLElement>
   ) => {
-    event.preventDefault()
-    event.stopPropagation()
-
     if (this.inKeyboardReorderMode) {
+      event.preventDefault()
+      event.stopPropagation()
       return
     }
 
-    const sha = this.props.commitSHAs[row]
-    const commit = this.props.commitLookup.get(sha)
-    if (commit === undefined) {
-      if (__DEV__) {
-        log.warn(
-          `[CommitList]: the commit '${sha}' does not exist in the cache`
-        )
-      }
-      return
-    }
-
-    const selectedCommits = getEffectiveCommitSelection(
-      commit,
-      this.props.selectedSHAs,
-      this.props.commitLookup
-    )
-
-    let items: IMenuItem[] = []
-    if (selectedCommits.length > 1) {
-      items = this.getContextMenuMultipleCommits(commit, selectedCommits)
-    } else {
-      items = this.getContextMenuForSingleCommit(row, commit)
-    }
-
-    showContextualMenu(items)
-  }
-
-  private getContextMenuForSingleCommit(
-    row: number,
-    commit: Commit
-  ): IMenuItem[] {
-    const isLocal = this.isLocalCommit(commit.sha)
-
-    const canBeUndone = this.props.canUndoCommits === true && row === 0
-    const canBeAmended = this.props.canAmendCommits === true && row === 0
-    // They cannot reset to the most recent commit... because they're already
-    // in it.
-    const isResettableCommit = row > 0
-    const canBeResetTo =
-      this.props.canResetToCommits === true && isResettableCommit
-    const canBeCheckedOut = row > 0 //Cannot checkout the current commit
-
-    let viewOnGitHubLabel = 'View on GitHub'
-    const gitHubRepository = this.props.gitHubRepository
-
-    if (
-      gitHubRepository &&
-      gitHubRepository.endpoint !== getDotComAPIEndpoint()
-    ) {
-      viewOnGitHubLabel = 'View on GitHub Enterprise'
-    }
-
-    const items: IMenuItem[] = []
-
-    if (canBeAmended) {
-      items.push({
-        label: __DARWIN__ ? 'Amend Commit…' : 'Amend commit…',
-        action: () => this.props.onAmendCommit?.(commit, isLocal),
-      })
-    }
-
-    if (canBeUndone) {
-      items.push({
-        label: __DARWIN__ ? 'Undo Commit…' : 'Undo commit…',
-        action: () => {
-          if (this.props.onUndoCommit) {
-            this.props.onUndoCommit(commit)
-          }
-        },
-        enabled: this.props.onUndoCommit !== undefined,
-      })
-    }
-
-    items.push({
-      label: __DARWIN__ ? 'Reset to Commit…' : 'Reset to commit…',
-      action: () => {
-        if (this.props.onResetToCommit) {
-          this.props.onResetToCommit(commit)
-        }
-      },
-      enabled: canBeResetTo && this.props.onResetToCommit !== undefined,
-    })
-
-    items.push({
-      label: __DARWIN__ ? 'Checkout Commit' : 'Checkout commit',
-      action: () => {
-        this.props.onCheckoutCommit?.(commit)
-      },
-      enabled: canBeCheckedOut && this.props.onCheckoutCommit !== undefined,
-    })
-
-    items.push({
-      label: __DARWIN__ ? 'Reorder Commit' : 'Reorder commit',
-      action: () => {
-        this.props.onKeyboardReorder?.([commit])
-      },
-      enabled: this.canReorder(),
-    })
-
-    items.push(
-      {
-        label: __DARWIN__
-          ? 'Revert Changes in Commit'
-          : 'Revert changes in commit',
-        action: () => {
-          if (this.props.onRevertCommit) {
-            this.props.onRevertCommit(commit)
-          }
-        },
-        enabled: this.props.onRevertCommit !== undefined,
-      },
-      { type: 'separator' },
-      {
-        label: __DARWIN__
-          ? 'Create Branch from Commit'
-          : 'Create branch from commit',
-        icon: octicons.gitBranch,
-        action: () => {
-          if (this.props.onCreateBranch) {
-            this.props.onCreateBranch(commit)
-          }
-        },
-        enabled: this.props.onCreateBranch !== undefined,
-      },
-      {
-        label: __DARWIN__
-          ? 'Create Worktree from Commit…'
-          : 'Create worktree from commit…',
-        icon: octicons.fileDirectory,
-        action: () => {
-          this.props.onCreateWorktreeFromCommit?.(commit)
-        },
-        enabled: this.props.onCreateWorktreeFromCommit !== undefined,
-      },
-      {
-        label: 'Create Tag…',
-        icon: octicons.tag,
-        action: () => this.props.onCreateTag?.(commit.sha),
-        enabled: this.props.onCreateTag !== undefined,
-      }
-    )
-
-    const deleteTagsMenuItem = this.getDeleteTagsMenuItem(commit)
-
-    if (deleteTagsMenuItem !== null) {
-      items.push(
-        {
-          type: 'separator',
-        },
-        deleteTagsMenuItem
-      )
-    }
-    const darwinTagsLabel = commit.tags.length > 1 ? 'Copy Tags' : 'Copy Tag'
-    const windowTagsLabel = commit.tags.length > 1 ? 'Copy tags' : 'Copy tag'
-    items.push(
-      {
-        label: __DARWIN__ ? 'Cherry-pick Commit…' : 'Cherry-pick commit…',
-        action: () => this.props.onCherryPick?.([commit]),
-        enabled: this.canCherryPick(),
-      },
-      { type: 'separator' },
-      {
-        label: 'Copy SHA',
-        icon: octicons.copy,
-        action: () => clipboard.writeText(commit.sha),
-      },
-      {
-        label: __DARWIN__ ? darwinTagsLabel : windowTagsLabel,
-        icon: octicons.tag,
-        action: () => clipboard.writeText(commit.tags.join(' ')),
-        enabled: commit.tags.length > 0,
-      },
-      {
-        label: viewOnGitHubLabel,
-        action: () => this.props.onViewCommitOnGitHub?.(commit.sha),
-        enabled: !isLocal && !!gitHubRepository,
-      }
-    )
-
-    return items
-  }
-
-  private canCherryPick(): boolean {
-    const { onCherryPick, isMultiCommitOperationInProgress } = this.props
-    return (
-      onCherryPick !== undefined && isMultiCommitOperationInProgress === false
-    )
-  }
-
-  private canReorder = () =>
-    this.props.onKeyboardReorder !== undefined &&
-    this.props.disableReordering === false &&
-    this.props.isMultiCommitOperationInProgress === false
-
-  private canSquash(): boolean {
-    const { onSquash, disableSquashing, isMultiCommitOperationInProgress } =
-      this.props
-    return (
-      onSquash !== undefined &&
-      disableSquashing === false &&
-      isMultiCommitOperationInProgress === false
-    )
-  }
-
-  private getDeleteTagsMenuItem(commit: Commit): IMenuItem | null {
-    const { onDeleteTag } = this.props
-    const unpushedTags = this.getUnpushedTags(commit)
-
-    if (
-      onDeleteTag === undefined ||
-      unpushedTags === undefined ||
-      commit.tags.length === 0
-    ) {
-      return null
-    }
-
-    if (commit.tags.length === 1) {
-      const tagName = commit.tags[0]
-      const unpushed = unpushedTags.includes(tagName)
-
-      return {
-        label: `Delete tag ${tagName}`,
-        action: () => onDeleteTag(tagName, unpushed),
-      }
-    }
-
-    // Convert tags to a Set to avoid O(n^2)
-    const unpushedTagsSet = new Set(unpushedTags)
-
-    return {
-      label: 'Delete tag…',
-      submenu: commit.tags.map(tagName => {
-        const unpushed = unpushedTagsSet.has(tagName)
-        return {
-          label: tagName,
-          action: () => onDeleteTag(tagName, unpushed),
-        }
-      }),
-    }
-  }
-
-  private getContextMenuMultipleCommits(
-    commit: Commit,
-    selectedCommits: ReadonlyArray<Commit>
-  ): IMenuItem[] {
-    const count = selectedCommits.length
-
-    return [
-      {
-        label: __DARWIN__
-          ? `Cherry-pick ${count} Commits…`
-          : `Cherry-pick ${count} commits…`,
-        action: () => this.props.onCherryPick?.(selectedCommits),
-        enabled: this.canCherryPick(),
-      },
-      {
-        label: __DARWIN__
-          ? `Squash ${count} Commits…`
-          : `Squash ${count} commits…`,
-        action: () => this.onSquash(selectedCommits, commit, true),
-        enabled: this.canSquash(),
-      },
-      {
-        label: __DARWIN__
-          ? `Reorder ${count} Commits…`
-          : `Reorder ${count} commits…`,
-        action: () => this.props.onKeyboardReorder?.(selectedCommits),
-        enabled: this.canReorder(),
-      },
-    ]
+    showCommitContextMenu(row, event, this.props)
   }
 
   private onKeyboardInsertionIndexPathChanged = (indexPath: RowIndexPath) => {
