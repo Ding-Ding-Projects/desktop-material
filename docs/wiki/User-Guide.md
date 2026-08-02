@@ -193,8 +193,41 @@ from this repository. The script then:
    validates that its HTTPS URL belongs to this repository;
 3. checks the reported byte count and GitHub SHA-256 release-asset digest, then
    requires any Authenticode signature to be valid;
-4. runs the per-user Squirrel installer silently with `/S`; and
-5. removes the installer from its unique, bounded temporary directory.
+4. runs the per-user Squirrel installer with its supported `--silent` flag;
+5. requires Squirrel to exit zero and verifies the installed postcondition; and
+6. removes the installer from its unique, bounded temporary directory.
+
+For automation, invoke the reviewed script as a script block and choose the
+explicit current-user operation:
+
+```powershell
+$installer = [scriptblock]::Create((Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/script/install-windows.ps1'))
+& $installer -Operation Install -InstallScope CurrentUser
+& $installer -Operation Update -InstallScope CurrentUser
+& $installer -Operation Uninstall -InstallScope CurrentUser
+```
+
+`Install` may refresh a complete existing installation. `Update` requires one.
+Install uses the downloaded, digest-verified setup asset. Update invokes the
+installed updater against the exact immutable release-tag feed with
+`--update=<url> --silent`, preserving normal Squirrel update behavior instead
+of performing a full reinstall. `Uninstall` is idempotent when the app is
+already absent and otherwise invokes the installed
+`Update.exe --uninstall --silent`; no executable is downloaded for removal.
+Every operation refuses a partial installation and asks for a running app to be
+closed normally instead of force-killing it. Squirrel has a 15-minute process
+deadline and its installed/removed postcondition has a one-minute deadline;
+nonzero exit codes and missing postconditions are failures. Use `-ResolveOnly`
+to inspect the exact plan without changing the machine.
+
+The application scope is always `CurrentUser` under
+`%LOCALAPPDATA%\GitHubDesktop`. `AllUsers` is rejected. The generated MSI is a
+machine deployment bootstrapper which schedules the same per-user setup at
+logon, not a conventional machine-wide Desktop Material payload. Run mutating
+operations in a normal, non-administrator PowerShell session; the script
+rejects elevation before Squirrel can show its unsupported-elevation error. It
+also preflights Squirrel's .NET Framework 4.5 minimum instead of opening a
+framework installer or reboot prompt during an unattended install.
 
 The current automated workflow publishes unsigned x64 installers. The script
 warns about the missing signature after verifying the GitHub digest, and it

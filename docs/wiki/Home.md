@@ -91,7 +91,9 @@ requires the matching GitHub SHA-256 asset digest, checks any Authenticode signa
 silently for the current user, and cleans up its temporary download. Current
 builds are unsigned; the script reports that fact and refuses an unsupported
 architecture or an unverified download. See the [User Guide](User-Guide#install-on-windows)
-for details, the portable-ZIP extraction note, and the manual-download path.
+for explicit silent install, update, and uninstall examples, the current-user
+scope and no-force-close contract, the portable-ZIP extraction note, and the
+manual-download path.
 
 ---
 

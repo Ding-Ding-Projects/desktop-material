@@ -103,12 +103,51 @@ published GitHub SHA-256 asset digest and any Authenticode signature, installs
 for the current user, and removes its temporary download. Current builds are
 unsigned, which the script reports after digest verification.
 
+For an unattended install, verified refresh, or uninstall, review the script
+and invoke it as a script block so parameters can be passed:
+
+```powershell
+$installer = [scriptblock]::Create((Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/script/install-windows.ps1'))
+& $installer -Operation Install -InstallScope CurrentUser
+& $installer -Operation Update -InstallScope CurrentUser
+& $installer -Operation Uninstall -InstallScope CurrentUser
+```
+
+`Install` is the default and may refresh an existing complete installation.
+`Update` requires an existing complete installation. `Uninstall` is idempotent
+when the app is already absent. Install downloads and verifies the exact native
+setup asset, then runs it with Squirrel's supported `--silent` flag. Update
+validates that the release has the exact native setup asset, then runs the
+already-installed updater against that release's immutable tag URL with
+`--update=<url> --silent`; it does not turn an update into a destructive full
+reinstall. Uninstall runs the same installed current-user `Update.exe` with
+`--uninstall --silent`; it never downloads an executable for removal.
+
+The only supported scope is `CurrentUser`, rooted at
+`%LOCALAPPDATA%\GitHubDesktop`. An `AllUsers` argument is rejected. The generated
+MSI is a machine deployment bootstrapper that arranges per-user installation at
+logon; it is not a conventional machine-wide Desktop Material payload and the
+script does not present it as one. Run mutating operations from a normal,
+non-administrator PowerShell session; the script rejects an elevated token
+before Squirrel can display its unsupported-elevation error. Install also
+preflights Squirrel's .NET Framework 4.5 minimum and fails with a recovery
+instruction instead of opening a framework installer or reboot prompt.
+
+Before changing files, every operation detects a running installed app and
+asks the caller to close it normally. It never force-kills Desktop Material.
+The script starts Squirrel hidden, waits up to 15 minutes for its process,
+propagates any nonzero child exit as failure, and then waits up to one minute
+for the expected installed or removed postcondition. A success receipt includes
+the operation, scope, Squirrel exit code, installation root, and final
+executable path where applicable. `-ResolveOnly` returns the exact planned file
+and arguments without downloading or changing the installation.
+
 For a manual installation, download one of these assets from the
 [latest Ding-Ding-Projects release](https://github.com/Ding-Ding-Projects/desktop-material/releases/latest):
 
 - `GitHubDesktopSetup-x64.exe` installs for the current user.
-- `GitHubDesktopSetup-x64.msi` provides the Windows Installer package for
-  managed deployment.
+- `GitHubDesktopSetup-x64.msi` provides Squirrel's machine deployment
+  bootstrapper; it still installs the application per user at logon.
 - `GitHub.Desktop-x64.zip` is the portable package; extract it before running
   the packaged executable.
 
