@@ -25,6 +25,7 @@
 @import 'ui/cloning-repository-view';
 @import 'ui/diff';
 @import 'ui/history';
+@import 'ui/history-graph-view';
 @import 'ui/file-history';
 @import 'ui/create-github-issue';
 @import 'ui/actions-local-run';
@@ -73,6 +74,7 @@
 @import 'ui/progress';
 @import 'ui/branches';
 @import 'ui/worktrees';
+@import 'ui/agent-sessions';
 @import 'ui/emoji';
 @import 'ui/ui-view';
 @import 'ui/autocompletion';

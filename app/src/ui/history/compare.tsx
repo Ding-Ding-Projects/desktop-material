@@ -63,6 +63,7 @@ import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { LocalizedText } from '../lib/localized-text'
 import { CollapsibleSection } from '../lib/collapsible-section'
 import { collapsibleRepositoryKey } from '../../lib/collapsed-state'
+import { HistoryGraphView } from './history-graph-view'
 
 interface ICompareSidebarProps {
   readonly repository: Repository
@@ -117,6 +118,12 @@ interface ICompareSidebarState {
 
   /** Whether the ancestry graph is visible beside commit rows. */
   readonly showCommitGraph: boolean
+
+  /**
+   * Whether history renders as the three-column Branch / Graph / Message view
+   * instead of the commit list.
+   */
+  readonly showGraphView: boolean
 
   /**
    * Whether the inline filter chip row (v2 prototype "History panel" chips) is
@@ -179,6 +186,7 @@ interface ICommitFilterCache {
 /** localStorage key used to persist the History commit filter mode. */
 const CommitFilterListId = 'history-commits'
 const ShowCommitGraphKey = 'history-show-commit-graph'
+const ShowGraphViewKey = 'history-show-graph-view'
 
 /** If we're within this many rows from the bottom, load the next history batch. */
 const CloseToBottomThreshold = 10
@@ -191,6 +199,7 @@ export class CompareSidebar extends React.Component<
   private readonly loadChangedFilesScheduler = new ThrottledScheduler(200)
   private branchList: BranchList | null = null
   private commitListRef = React.createRef<CommitList>()
+  private historyGraphViewRef = React.createRef<HistoryGraphView>()
   private loadingMoreCommitsPromise: Promise<void> | null = null
   private loadingSearchCommitsPromise: Promise<void> | null = null
   private exhaustedSearchQuery: string | null = null
@@ -207,6 +216,7 @@ export class CompareSidebar extends React.Component<
       commitFilterMode: readPersistedFilterMode(CommitFilterListId),
       commitFilterCaseSensitive: false,
       showCommitGraph: getBoolean(ShowCommitGraphKey, true),
+      showGraphView: getBoolean(ShowGraphViewKey, false),
       showCommitFilterChips: false,
       commitFilterUnpushed: false,
       commitFilterTagged: false,
@@ -306,7 +316,10 @@ export class CompareSidebar extends React.Component<
   }
 
   public focusHistory() {
+    // Only one of the two history views is mounted at a time, so whichever ref
+    // is live is the one holding the commits the user asked to focus.
     this.commitListRef.current?.focus()
+    this.historyGraphViewRef.current?.focus()
   }
 
   public componentWillMount() {
@@ -749,6 +762,15 @@ export class CompareSidebar extends React.Component<
             >
               <Octicon symbol={octicons.gitMerge} />
             </Button>
+            <Button
+              className="history-graph-view-toggle"
+              ariaLabel="Graph view"
+              tooltip="Graph view"
+              ariaPressed={this.state.showGraphView}
+              onClick={this.onGraphViewToggle}
+            >
+              <Octicon symbol={octicons.table} />
+            </Button>
           </div>
           {this.renderCommitFilterChips()}
           {this.renderCommitRegexBuilder()}
@@ -937,6 +959,14 @@ export class CompareSidebar extends React.Component<
     })
   }
 
+  private onGraphViewToggle = () => {
+    this.setState(state => {
+      const showGraphView = !state.showGraphView
+      setBoolean(ShowGraphViewKey, showGraphView)
+      return { showGraphView }
+    })
+  }
+
   private renderCommitList() {
     const { formState, commitSHAs } = this.props.compareState
 
@@ -981,6 +1011,28 @@ export class CompareSidebar extends React.Component<
       isHistory &&
       this.props.compareState.historyScope === HistoryScope.CurrentBranch &&
       !isCommitFilterActive
+
+    if (isHistory && this.state.showGraphView) {
+      return (
+        <>
+          {this.renderCommitFilter()}
+          <HistoryGraphView
+            ref={this.historyGraphViewRef}
+            commitLookup={this.props.commitLookup}
+            commitSHAs={filteredCommitSHAs}
+            selectedSHAs={this.props.selectedCommitShas}
+            branches={this.props.compareState.branches}
+            currentBranch={this.props.currentBranch}
+            emoji={this.props.emoji}
+            emptyListMessage={emptyListMessage}
+            onCommitsSelected={this.onCommitsSelected}
+            onScroll={this.onScroll}
+            onCompareListScrolled={this.props.onCompareListScrolled}
+            compareListScrollTop={this.props.compareListScrollTop}
+          />
+        </>
+      )
+    }
 
     return (
       <>

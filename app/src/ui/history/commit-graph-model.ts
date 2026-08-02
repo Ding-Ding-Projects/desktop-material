@@ -20,6 +20,23 @@ export interface ICommitGraphPath {
   readonly color: string
 }
 
+/** The kind of ref a graph chip stands for. */
+export type CommitGraphRefKind = 'branch' | 'tag'
+
+/** A branch head or tag pointing at a commit, as handed to the builder. */
+export interface ICommitGraphRef {
+  readonly name: string
+  readonly sha: string
+  readonly kind: CommitGraphRefKind
+  /** Whether this is the branch that is currently checked out. */
+  readonly isCurrent: boolean
+}
+
+/** A ref resolved onto the lane colour of the commit it points at. */
+export interface ICommitGraphRefLabel extends ICommitGraphRef {
+  readonly color: string
+}
+
 export interface ICommitGraphRow {
   readonly sha: string
   readonly column: number
@@ -28,6 +45,35 @@ export interface ICommitGraphRow {
   readonly continuations: ReadonlyArray<ICommitGraphPath>
   readonly connections: ReadonlyArray<ICommitGraphPath>
   readonly maxColumn: number
+  /** Branch heads and tags pointing at this commit, in display order. */
+  readonly refs: ReadonlyArray<ICommitGraphRefLabel>
+}
+
+export interface ICommitGraph {
+  readonly rows: ReadonlyArray<ICommitGraphRow>
+  /**
+   * The widest lane index reached anywhere in the graph. A column drawn to a
+   * per-row width clips the lanes that only exist further down, so the whole
+   * graph has to be sized to this.
+   */
+  readonly maxColumn: number
+}
+
+/**
+ * Order refs so a row reads the same way every time it is rendered: the
+ * checked-out branch first (it is what the reader is looking for), then the
+ * remaining branches, then tags, each alphabetically.
+ */
+function compareRefs(a: ICommitGraphRef, b: ICommitGraphRef): number {
+  if (a.isCurrent !== b.isCurrent) {
+    return a.isCurrent ? -1 : 1
+  }
+
+  if (a.kind !== b.kind) {
+    return a.kind === 'branch' ? -1 : 1
+  }
+
+  return a.name.localeCompare(b.name)
 }
 
 /**
@@ -38,10 +84,38 @@ export interface ICommitGraphRow {
 export function buildCommitGraphRows(
   commits: ReadonlyArray<Commit>
 ): ReadonlyArray<ICommitGraphRow> {
+  return buildCommitGraph(commits).rows
+}
+
+/**
+ * Builds the lane geometry along with the ref chips each row carries and the
+ * width the whole graph needs.
+ */
+export function buildCommitGraph(
+  commits: ReadonlyArray<Commit>,
+  refs: ReadonlyArray<ICommitGraphRef> = []
+): ICommitGraph {
   const visibleSHAs = new Set(commits.map(commit => commit.sha))
   const colors = new Map<string, string>()
   let nextColor = 0
   let lanes = new Array<IActiveLane>()
+
+  const refsBySHA = new Map<string, Array<ICommitGraphRef>>()
+  for (const ref of refs) {
+    if (!visibleSHAs.has(ref.sha)) {
+      continue
+    }
+    const existing = refsBySHA.get(ref.sha)
+    if (existing === undefined) {
+      refsBySHA.set(ref.sha, [ref])
+    } else if (
+      !existing.some(
+        other => other.kind === ref.kind && other.name === ref.name
+      )
+    ) {
+      existing.push(ref)
+    }
+  }
 
   const colorForSHA = (sha: string) => {
     const existing = colors.get(sha)
@@ -55,7 +129,7 @@ export function buildCommitGraphRows(
     return color
   }
 
-  return commits.map(commit => {
+  const rows = commits.map(commit => {
     let column = lanes.findIndex(lane => lane.sha === commit.sha)
     const hasTopLine = column >= 0
 
@@ -117,6 +191,25 @@ export function buildCommitGraphRows(
     ]
     lanes = nextLanes
 
+    // Tags live on the commit itself rather than in the caller's ref list, so
+    // they are folded in here and every consumer gets them for free.
+    const tagRefs = commit.tags.map(name => ({
+      name,
+      sha: commit.sha,
+      kind: 'tag' as const,
+      isCurrent: false,
+    }))
+    const passedRefs = refsBySHA.get(commit.sha) ?? []
+    const rowRefs = [
+      ...passedRefs,
+      ...tagRefs.filter(
+        tag =>
+          !passedRefs.some(ref => ref.kind === 'tag' && ref.name === tag.name)
+      ),
+    ]
+      .sort(compareRefs)
+      .map(ref => ({ ...ref, color: currentLane.color }))
+
     return {
       sha: commit.sha,
       column,
@@ -125,6 +218,12 @@ export function buildCommitGraphRows(
       continuations,
       connections,
       maxColumn: Math.max(...touchedColumns),
+      refs: rowRefs,
     }
   })
+
+  return {
+    rows,
+    maxColumn: rows.reduce((widest, row) => Math.max(widest, row.maxColumn), 0),
+  }
 }

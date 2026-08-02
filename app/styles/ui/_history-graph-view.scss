@@ -1,0 +1,198 @@
+/**
+ * The three-column Branch / Graph / Message view over history, an alternative
+ * to the commit list rather than a replacement for it.
+ */
+#history-graph-view {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+
+  // The chip column shrinks before the message column does, because a truncated
+  // ref name is still recognisable while a truncated summary stops being a
+  // sentence. It never disappears entirely, or the chips would have nowhere to
+  // sit against the graph.
+  --history-graph-ref-column: 140px;
+
+  .history-graph-header,
+  .history-graph-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+    padding-right: calc(var(--spacing) + var(--spacing-half));
+    padding-left: var(--spacing);
+    gap: var(--spacing-half);
+  }
+
+  .history-graph-cell {
+    min-width: 0;
+  }
+
+  .history-graph-refs {
+    display: flex;
+    flex: 0 1 var(--history-graph-ref-column);
+    flex-wrap: nowrap;
+    // Chips sit against the graph rather than against the panel edge, so a
+    // reader's eye travels straight from the chip to the lane it belongs to.
+    justify-content: flex-end;
+    align-items: center;
+    gap: 4px;
+    overflow: hidden;
+  }
+
+  .history-graph-lanes {
+    flex: 0 0 auto;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    overflow: visible;
+    // A one-lane history sizes this cell to 16px, which is narrower than the
+    // word "Graph" above it. The floor applies to header and rows alike, so the
+    // heading stays legible without the lanes drifting out of line.
+    min-width: 56px;
+  }
+
+  .history-graph-summary {
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+
+  .history-graph-header {
+    height: 32px;
+    flex: 0 0 auto;
+    border-bottom: var(--base-border);
+    background: var(--md-sys-color-surface-container-low);
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.02em;
+
+    // Headings truncate rather than wrap or overlap: the strip is one row tall
+    // and a wrapped heading would push the columns out of line with the rows.
+    // They lay out as blocks, not flex boxes, because text-overflow has no
+    // effect on the anonymous item a flex container makes of a bare string.
+    .history-graph-cell {
+      display: block;
+      align-self: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .history-graph-refs {
+      text-align: right;
+    }
+  }
+
+  .history-graph-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .list-item {
+    // Row pitch is set by the list; the row contents fill it exactly so a lane
+    // meets the lane of the row above it instead of stopping short.
+    .history-graph-row {
+      height: 100%;
+      border-bottom: var(--base-border);
+      // The lane colour tints the whole row so one branch reads as a single
+      // horizontal band down the view.
+      background: color-mix(in srgb, var(--history-graph-lane-color) 7%, transparent);
+    }
+  }
+
+  .list-item.selected .history-graph-row {
+    background: var(--box-selected-background-color);
+  }
+
+  .focus-within .list-item.selected .history-graph-row {
+    background: var(--box-selected-active-background-color);
+  }
+
+  .commit-graph {
+    flex: 0 0 auto;
+    overflow: visible;
+
+    path {
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+
+    circle {
+      stroke: var(--md-sys-color-surface);
+      stroke-width: 2;
+    }
+  }
+
+  .history-graph-ref-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    max-width: 100%;
+    min-width: 0;
+    height: 20px;
+    padding: 0 8px;
+    border-radius: 999px;
+    border: 1px solid var(--history-graph-ref-color);
+    background: color-mix(in srgb, var(--history-graph-ref-color) 16%, transparent);
+    color: var(--md-sys-color-on-surface);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-normal);
+    line-height: 1;
+
+    // The checked-out branch is the one a reader scans for, so it is bolder and
+    // more heavily outlined as well as carrying the check glyph — the mark has
+    // to survive a colour-blind reader and a greyscale screenshot alike.
+    &.current {
+      border-width: 2px;
+      font-weight: var(--font-weight-semibold);
+    }
+
+    &.tag {
+      border-style: dashed;
+    }
+
+    .ref-chip-check {
+      flex: 0 0 auto;
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+    }
+
+    .ref-chip-name {
+      // A long branch name truncates rather than pushing the graph sideways;
+      // the row's aria-label and the chip's tooltip still carry it in full.
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+  }
+
+  .history-graph-summary-text {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--md-sys-color-on-surface);
+    font-size: var(--font-size);
+
+    .emoji {
+      height: 1em;
+      vertical-align: text-bottom;
+      width: auto;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #history-graph-view .list-item,
+  #history-graph-view .history-graph-row {
+    transition: none;
+  }
+}
