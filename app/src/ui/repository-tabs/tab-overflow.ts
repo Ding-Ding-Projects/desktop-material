@@ -37,6 +37,16 @@ export interface ITabOverflowOptions {
    * screen. A contiguous window is chosen so tab order is never scrambled.
    */
   readonly activeTabId?: string | null
+  /**
+   * How many of the leading measurements are pinned tabs.
+   *
+   * The store keeps pinned tabs at the front of the array, and the pinning
+   * contract is that they stay in the strip when ordinary tabs overflow. They
+   * are therefore laid out first and only the remainder competes for what is
+   * left, rather than being carried along by a leading run they merely happen
+   * to sit in — a run the active-tab window slides straight off.
+   */
+  readonly pinnedCount?: number
 }
 
 /** The result of splitting the tabs between the strip and the dropdown. */
@@ -100,12 +110,27 @@ export function computeTabOverflowLayout(
   // Overflow is unavoidable, so reserve room for the "more tabs" button.
   const budget = Math.max(0, availableWidth - overflowButtonWidth)
 
-  // How many leading tabs fit in the budget.
-  let fitCount = 0
+  // The pinned run is laid out first and never competes for space; only what is
+  // left over is available to the ordinary tabs.
+  const pinnedCount = Math.max(0, Math.min(options.pinnedCount ?? 0, n))
+  const pinnedWidth = runWidth(measurements, 0, pinnedCount, gap)
+  const remainderBudget = Math.max(
+    0,
+    budget - (pinnedCount > 0 && pinnedCount < n ? pinnedWidth + gap : 0)
+  )
+
+  const activeIndex =
+    activeTabId === null
+      ? -1
+      : measurements.findIndex(m => m.id === activeTabId)
+
+  // How many ordinary tabs fit after the pinned run.
+  let fitCount = pinnedCount
   let used = 0
-  for (let i = 0; i < n; i++) {
-    const next = used + measurements[i].width + (fitCount > 0 ? gap : 0)
-    if (next <= budget + FitEpsilon) {
+  for (let i = pinnedCount; i < n; i++) {
+    const next =
+      used + measurements[i].width + (fitCount > pinnedCount ? gap : 0)
+    if (next <= remainderBudget + FitEpsilon) {
       used = next
       fitCount++
     } else {
@@ -113,23 +138,20 @@ export function computeTabOverflowLayout(
     }
   }
 
-  const activeIndex =
-    activeTabId === null
-      ? -1
-      : measurements.findIndex(m => m.id === activeTabId)
-
-  // Choose the visible window. Prefer the leading run; only slide it when the
-  // active tab would otherwise be hidden.
-  let windowStart = 0
+  // Choose the visible window over the ordinary tabs. Prefer the leading run;
+  // only slide it when the active tab would otherwise be hidden. A pinned tab
+  // is always visible, so an active pinned tab never moves the window.
+  let windowStart = pinnedCount
   let windowEnd = fitCount
 
-  if (activeIndex !== -1 && activeIndex >= fitCount) {
-    // Anchor the window on the active tab and grow leftward while it fits.
+  if (activeIndex >= fitCount) {
+    // Anchor the window on the active tab and grow leftward while it fits,
+    // stopping at the pinned run rather than displacing it.
     let start = activeIndex
     let width = measurements[activeIndex].width
-    while (start > 0) {
+    while (start > pinnedCount) {
       const candidate = width + gap + measurements[start - 1].width
-      if (candidate <= budget + FitEpsilon) {
+      if (candidate <= remainderBudget + FitEpsilon) {
         width = candidate
         start--
       } else {
@@ -140,17 +162,18 @@ export function computeTabOverflowLayout(
     windowEnd = activeIndex + 1
   }
 
-  // Guarantee at least one visible tab even when a single tab is wider than the
-  // whole budget, so the strip never collapses to just the dropdown button.
-  if (windowEnd <= windowStart) {
-    windowStart = activeIndex === -1 ? 0 : activeIndex
+  // Guarantee at least one ordinary tab stays visible even when a single tab is
+  // wider than the whole budget, so the strip never collapses to just the
+  // pinned run and the dropdown button.
+  if (windowEnd <= windowStart && pinnedCount < n) {
+    windowStart = activeIndex < pinnedCount ? pinnedCount : activeIndex
     windowEnd = windowStart + 1
   }
 
   const visibleIds: string[] = []
   const overflowIds: string[] = []
   for (let i = 0; i < n; i++) {
-    if (i >= windowStart && i < windowEnd) {
+    if (i < pinnedCount || (i >= windowStart && i < windowEnd)) {
       visibleIds.push(measurements[i].id)
     } else {
       overflowIds.push(measurements[i].id)

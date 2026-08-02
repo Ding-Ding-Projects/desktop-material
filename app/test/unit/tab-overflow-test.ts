@@ -87,6 +87,63 @@ describe('computeTabOverflowLayout', () => {
     assert.ok(layout.visibleIds.includes('t4'))
   })
 
+  it('keeps pinned tabs in the strip when the window slides to the active tab', () => {
+    // 2 pinned + 5 ordinary, all 100 wide. The active tab is the last one, so
+    // the window slides right; the pinned run must not be carried off with it.
+    const layout = computeTabOverflowLayout(uniform(7, 100), {
+      availableWidth: 500,
+      gap,
+      overflowButtonWidth,
+      activeTabId: 't6',
+      pinnedCount: 2,
+    })
+    assert.ok(layout.visibleIds.includes('t0'))
+    assert.ok(layout.visibleIds.includes('t1'))
+    assert.ok(layout.visibleIds.includes('t6'))
+    assert.equal(layout.overflowIds.includes('t0'), false)
+    assert.equal(layout.overflowIds.includes('t1'), false)
+  })
+
+  it('never overflows a pinned tab, however narrow the strip', () => {
+    const layout = computeTabOverflowLayout(uniform(6, 100), {
+      availableWidth: 260,
+      gap,
+      overflowButtonWidth,
+      activeTabId: 't5',
+      pinnedCount: 3,
+    })
+    assert.deepEqual(layout.visibleIds.slice(0, 3), ['t0', 't1', 't2'])
+    for (const pinned of ['t0', 't1', 't2']) {
+      assert.equal(layout.overflowIds.includes(pinned), false)
+    }
+    // The active ordinary tab still earns its place beside them.
+    assert.ok(layout.visibleIds.includes('t5'))
+  })
+
+  it('reserves the pinned run out of the budget the ordinary tabs share', () => {
+    // budget = 400 - 40 = 360. One pinned tab (100) plus its gap leaves 254,
+    // which fits exactly two more 100-wide tabs (206) and not a third (312).
+    const layout = computeTabOverflowLayout(uniform(5, 100), {
+      availableWidth: 400,
+      gap,
+      overflowButtonWidth,
+      pinnedCount: 1,
+    })
+    assert.deepEqual(layout.visibleIds, ['t0', 't1', 't2'])
+    assert.deepEqual(layout.overflowIds, ['t3', 't4'])
+  })
+
+  it('keeps every pinned tab when they are the only tabs', () => {
+    const layout = computeTabOverflowLayout(uniform(4, 100), {
+      availableWidth: 120,
+      gap,
+      overflowButtonWidth,
+      pinnedCount: 4,
+    })
+    assert.deepEqual(layout.visibleIds, ['t0', 't1', 't2', 't3'])
+    assert.deepEqual(layout.overflowIds, [])
+  })
+
   it('does not slide when the active tab already fits', () => {
     const layout = computeTabOverflowLayout(uniform(5, 100), {
       availableWidth: 300,

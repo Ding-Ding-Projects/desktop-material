@@ -291,6 +291,28 @@ export class RepositoryTabStrip extends React.Component<
     return ids
   }
 
+  /**
+   * How many of the renderable tabs, from the front, are pinned.
+   *
+   * The store keeps pinned tabs ahead of every ordinary one, so this is the
+   * length of that leading run once the members of collapsed groups have been
+   * dropped. The overflow split needs it to honour the pinning contract: a
+   * pinned tab stays in the strip when ordinary tabs overflow.
+   */
+  private countLeadingPinnedTabs(renderableIds: ReadonlyArray<string>): number {
+    const pinned = new Set(
+      this.state.tabs.tabs
+        .filter(tab => tab.isPinned === true)
+        .map(tab => tab.id)
+    )
+
+    let count = 0
+    while (count < renderableIds.length && pinned.has(renderableIds[count])) {
+      count++
+    }
+    return count
+  }
+
   /** Parse the strip's flex gap from its computed style, with a fallback. */
   private measureGap(list: HTMLElement): number {
     const raw = window.getComputedStyle(list).columnGap
@@ -402,6 +424,7 @@ export class RepositoryTabStrip extends React.Component<
       gap,
       overflowButtonWidth,
       activeTabId: this.state.tabs.activeTabId,
+      pinnedCount: this.countLeadingPinnedTabs(renderableIds),
     })
 
     const changed =
