@@ -69,7 +69,7 @@ Every number below is derived from this repository tree, not from memory:
 | **87** command-palette commands in **6** groups | `CommandPaletteCatalog` in `app/src/lib/command-palette-catalog.ts` |
 | **19** `.gitignore` templates | `templateMeta` in `app/src/lib/gitignore/catalog.ts` |
 | **117** UI feature directories | immediate subdirectories of `app/src/ui/` |
-| **2,416** English / **2,392** Cantonese translation keys | `englishTranslations` and `cantoneseTranslations` in `app/src/lib/i18n-resources.ts` |
+| **3,071** English / **3,047** Cantonese translation keys | `englishTranslations` and `cantoneseTranslations` in `app/src/lib/i18n-resources.ts` |
 
 ---
 
@@ -98,12 +98,13 @@ Every number below is derived from this repository tree, not from memory:
 
 | Feature / 功能 | vs. Desktop | Docs |
 | --- | --- | --- |
-| **Three language modes** — persisted **English**, playful **Hong Kong Cantonese**, or compact **Bilingual**. English is the safe fallback; the Windows locale never silently replaces your choice. 2,416 English and 2,392 Cantonese keys.<br><sub>**三種語言模式** — 會記住嘅**英文**、抵死**香港廣東話**，或者精簡嘅**雙語**。英文係安全後備；Windows 地區設定唔會靜靜雞改咗你嘅選擇。英文有 2,416 個字串鍵，廣東話有 2,392 個。</sub> | **Added** | — |
+| **Three language modes** — persisted **English**, playful **Hong Kong Cantonese**, or compact **Bilingual**. English is the safe fallback; the Windows locale never silently replaces your choice. 3,071 English and 3,047 Cantonese keys.<br><sub>**三種語言模式** — 會記住嘅**英文**、抵死**香港廣東話**，或者精簡嘅**雙語**。英文係安全後備；Windows 地區設定唔會靜靜雞改咗你嘅選擇。英文有 3,071 個字串鍵，廣東話有 3,047 個。</sub> | **Added** | — |
 | **Funny-level sliders (1–5)** — independent playfulness levels for English and Cantonese. Tone changes at every level; the facts never do.<br><sub>**搞笑程度滑桿（1–5）** — 英文同廣東話各有一個。每一級變嘅係語氣，事實永遠唔變。</sub> | **Added** | [Audio system](../features/design-system/audio-system.md) |
 | **Spoken narrator** — optional, off by default, English / Cantonese / both, serialized so utterances never overlap.<br><sub>**語音旁白** — 可選，預設熄咗，英文／廣東話／兩種都得，排住隊講，唔會疊聲。</sub> | **Added** | [Audio system](../features/design-system/audio-system.md) |
 | **Recorded narration and melody assets** — pre-generated per-event voice clips and melody cues replace live speech and synthesis, with automatic fallback.<br><sub>**錄好嘅旁白同旋律素材** — 每個事件都有預先生成嘅語音同旋律，取代即時合成，唔得就自動回退。</sub> | **Added** | [Narration assets](../features/design-system/narration-assets.md) |
 | **Distinct sound-effect event mapping** — push/fetch/pull and every Build & Run phase get their own cue across four motif families, with per-category cooldowns and an audition grid in **Settings → Sound**.<br><sub>**唔同事件唔同音效** — push／fetch／pull 同每個 Build & Run 階段都有自己嘅音效，分四個主題家族，每類有冷卻時間，仲可以喺 **設定 → Sound** 試聽。</sub> | **Added** | [SFX event mapping](../features/design-system/sfx-event-mapping.md) |
 | **Repository-themed music** — a deterministic synthesized loop seeded from each repository's identity, with per-repo custom-track and mute overrides.<br><sub>**倉庫專屬主題音樂** — 由倉庫身分做種子、確定性合成嘅循環音樂，每個倉庫都可以換歌或者靜音。</sub> | **Added** | [Repository theme music](../features/design-system/repository-theme-music.md) |
+| **The dim sum surprise** — one launch in ten shows a bundled photograph of a Hong Kong dim sum dish, named in both languages, in a self-clearing corner card. It never gates startup, never takes focus, and has no off switch.<br><sub>**點心驚喜** — 每 10 次開機大概有 1 次，角落彈出一張真點心相，中英文都寫齊個名，自己會收埋。唔阻開機、唔搶焦點，亦冇得熄。</sub> | **Added** | [Dim sum surprise](../features/design-system/dim-sum-surprise.md) |
 | **Quiet hours, reduced sound, and screen-reader coexistence** — audio ducks under or yields to assistive technology.<br><sub>**安靜時段、減少聲音、同讀屏軟件共存** — 有輔助技術喺度嗰陣，聲音會收細或者讓路。</sub> | **Added** | [Audio system](../features/design-system/audio-system.md) |
 
 ## 3. Repository tabs and windows / 倉庫分頁同視窗

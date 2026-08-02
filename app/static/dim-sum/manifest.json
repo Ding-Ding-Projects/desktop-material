@@ -1,0 +1,236 @@
+{
+  "version": 1,
+  "source": "agent-global-memory dim sum catalog",
+  "catalogSchemaVersion": "1.0.0",
+  "note": "Copied byte for byte from the catalog. Never generated, fetched, resized or re-encoded here.",
+  "dishes": [
+    {
+      "id": "hk-dish-0001",
+      "slug": "classic-har-gow",
+      "name": {
+        "en": "Classic Har Gow",
+        "zhHant": "蝦餃"
+      },
+      "jyutping": "haa1 gaau2",
+      "category": "steamed-dim-sum",
+      "alt": {
+        "en": "Warm tea-house photograph of Classic Har Gow",
+        "yue": "港式茶樓木枱上嘅蝦餃"
+      },
+      "file": "hk-dish-0001-classic-har-gow.png",
+      "bytes": 2406444,
+      "width": 1254,
+      "height": 1254,
+      "sha256": "c6ff2d32938f1e4c4ea685442f69227b8cd387f302ab8f8a62e8dd96c62b5ac0"
+    },
+    {
+      "id": "hk-dish-0011",
+      "slug": "classic-siu-mai",
+      "name": {
+        "en": "Classic Siu Mai",
+        "zhHant": "燒賣"
+      },
+      "jyutping": "siu1 maai6",
+      "category": "steamed-dim-sum",
+      "alt": {
+        "en": "Warm tea-house photograph of Classic Siu Mai",
+        "yue": "港式茶樓木枱上嘅燒賣"
+      },
+      "file": "hk-dish-0011-classic-siu-mai.png",
+      "bytes": 2447815,
+      "width": 1254,
+      "height": 1254,
+      "sha256": "2afac75530d1063c324b1e63904ff860b5d6346d8e49f8aa4eb1df8f3527d3bb"
+    },
+    {
+      "id": "hk-dish-0027",
+      "slug": "black-bean-chicken-feet",
+      "name": {
+        "en": "Steamed Chicken Feet in Black Bean Sauce",
+        "zhHant": "豉汁蒸鳳爪"
+      },
+      "jyutping": "si6 zap1 zing1 fung6 zaau2",
+      "category": "steamed-dim-sum",
+      "alt": {
+        "en": "Warm tea-house photograph of Steamed Chicken Feet in Black Bean Sauce",
+        "yue": "港式茶樓木枱上嘅豉汁蒸鳳爪"
+      },
+      "file": "hk-dish-0027-black-bean-chicken-feet.png",
+      "bytes": 2583720,
+      "width": 1254,
+      "height": 1254,
+      "sha256": "efb9ee97ba6ce9cae7b8d831988d8948e6927a61369acdf4792074e396a65a91"
+    },
+    {
+      "id": "hk-dish-0049",
+      "slug": "mini-lotus-leaf-rice",
+      "name": {
+        "en": "Mini Glutinous Rice Chicken",
+        "zhHant": "糯米雞"
+      },
+      "jyutping": "no6 mai5 gai1",
+      "category": "steamed-dim-sum",
+      "alt": {
+        "en": "Warm tea-house photograph of Mini Glutinous Rice Chicken",
+        "yue": "港式茶樓木枱上嘅糯米雞"
+      },
+      "file": "hk-dish-0049-mini-lotus-leaf-rice.png",
+      "bytes": 2517967,
+      "width": 1254,
+      "height": 1254,
+      "sha256": "7eddf419504872c2de4a4f8f9ae12e893506d68e7323c1d2508c73b2ad9de1f8"
+    },
+    {
+      "id": "hk-dish-0051",
+      "slug": "classic-char-siu-bao",
+      "name": {
+        "en": "Classic Char Siu Bao",
+        "zhHant": "叉燒包"
+      },
+      "jyutping": "caa1 siu1 baau1",
+      "category": "buns-and-cakes",
+      "alt": {
+        "en": "Warm tea-house photograph of Classic Char Siu Bao",
+        "yue": "港式茶樓木枱上嘅叉燒包"
+      },
+      "file": "hk-dish-0051-classic-char-siu-bao.png",
+      "bytes": 2297065,
+      "width": 1254,
+      "height": 1254,
+      "sha256": "55d8b94fb2712175f5cbca6ba50ce6e27be37e9c48114c0fc8aed8e4dc541459"
+    },
+    {
+      "id": "hk-dish-0058",
+      "slug": "steamed-custard-bao",
+      "name": {
+        "en": "Steamed Custard Bao",
+        "zhHant": "奶黃包"
+      },
+      "jyutping": "naai5 wong4 baau1",
+      "category": "buns-and-cakes",
+      "alt": {
+        "en": "Warm tea-house photograph of Steamed Custard Bao",
+        "yue": "港式茶樓木枱上嘅奶黃包"
+      },
+      "file": "hk-dish-0058-steamed-custard-bao.png",
+      "bytes": 2254520,
+      "width": 1254,
+      "height": 1254,
+      "sha256": "0107bcc9db9181237ca4743e1fc377cbfba9b5922975b7d3951585afe27fbbf2"
+    },
+    {
+      "id": "hk-dish-0126",
+      "slug": "pan-fried-radish-cake",
+      "name": {
+        "en": "Pan-Fried Radish Cake",
+        "zhHant": "香煎蘿蔔糕"
+      },
+      "jyutping": "hoeng1 zin1 lo4 baak6 gou1",
+      "category": "fried-and-baked",
+      "alt": {
+        "en": "Warm tea-house photograph of Pan-Fried Radish Cake",
+        "yue": "港式茶樓木枱上嘅香煎蘿蔔糕"
+      },
+      "file": "hk-dish-0126-pan-fried-radish-cake.png",
+      "bytes": 2380007,
+      "width": 1254,
+      "height": 1254,
+      "sha256": "3662e093dcd448da3a3d6138452897f60bdf58b7cca22a93a1982df757e02b00"
+    },
+    {
+      "id": "hk-dish-0139",
+      "slug": "puff-pastry-egg-tarts",
+      "name": {
+        "en": "Puff Pastry Egg Tarts",
+        "zhHant": "酥皮蛋撻"
+      },
+      "jyutping": "sou1 pei4 daan6 taat1",
+      "category": "fried-and-baked",
+      "alt": {
+        "en": "Warm tea-house photograph of Puff Pastry Egg Tarts",
+        "yue": "港式茶樓木枱上嘅酥皮蛋撻"
+      },
+      "file": "hk-dish-0139-puff-pastry-egg-tarts.png",
+      "bytes": 2374303,
+      "width": 1254,
+      "height": 1254,
+      "sha256": "3f5576aaf8e0ea41feac26317c2d5ceab8e89bb854ac940652e88743db42484c"
+    },
+    {
+      "id": "hk-dish-0144",
+      "slug": "baked-pineapple-buns",
+      "name": {
+        "en": "Baked Pineapple Buns",
+        "zhHant": "菠蘿包"
+      },
+      "jyutping": "bo1 lo4 baau1",
+      "category": "fried-and-baked",
+      "alt": {
+        "en": "Warm tea-house photograph of Baked Pineapple Buns",
+        "yue": "港式茶樓木枱上嘅菠蘿包"
+      },
+      "file": "hk-dish-0144-baked-pineapple-buns.png",
+      "bytes": 2519786,
+      "width": 1254,
+      "height": 1254,
+      "sha256": "63092b4f252e4c197bcd6ef360e01ec67cfc3b248d7651bef2d787888206fcfa"
+    },
+    {
+      "id": "hk-dish-0152",
+      "slug": "shrimp-rice-noodle-rolls",
+      "name": {
+        "en": "Shrimp Rice Noodle Rolls",
+        "zhHant": "鮮蝦腸粉"
+      },
+      "jyutping": "sin1 haa1 coeng4 fan2",
+      "category": "rice-rolls-and-dumplings",
+      "alt": {
+        "en": "Warm tea-house photograph of Shrimp Rice Noodle Rolls",
+        "yue": "港式茶樓木枱上嘅鮮蝦腸粉"
+      },
+      "file": "hk-dish-0152-shrimp-rice-noodle-rolls.png",
+      "bytes": 2466522,
+      "width": 1254,
+      "height": 1254,
+      "sha256": "afcb2326378005ab80c7fe6e26a584c07058526ee9f854e1c8ee0ae799df5068"
+    },
+    {
+      "id": "hk-dish-0231",
+      "slug": "mango-pomelo-sago",
+      "name": {
+        "en": "Mango Pomelo Sago",
+        "zhHant": "楊枝甘露"
+      },
+      "jyutping": "joeng4 zi1 gam1 lou6",
+      "category": "tea-house-sweets",
+      "alt": {
+        "en": "Warm tea-house photograph of Mango Pomelo Sago",
+        "yue": "港式茶樓木枱上嘅楊枝甘露"
+      },
+      "file": "hk-dish-0231-mango-pomelo-sago.png",
+      "bytes": 2238284,
+      "width": 1254,
+      "height": 1254,
+      "sha256": "a1f6f3a266b1d2b58837e5fb2b1c42869ba63067af5eda9eb9deb53240df1a8d"
+    },
+    {
+      "id": "hk-dish-0676",
+      "slug": "hong-kong-milk-tea",
+      "name": {
+        "en": "Hong Kong Milk Tea",
+        "zhHant": "港式奶茶"
+      },
+      "jyutping": "gong2 sik1 naai5 caa4",
+      "category": "Hong Kong Drinks",
+      "alt": {
+        "en": "A single serving of Hong Kong Milk Tea, strong copper-brown milk tea in a thick white ceramic cup and saucer.",
+        "yue": "一份擺喺懷舊香港茶餐廳入面嘅綠邊枱嘅港式奶茶。"
+      },
+      "file": "hk-dish-0676-hong-kong-milk-tea.png",
+      "bytes": 2173311,
+      "width": 1254,
+      "height": 1254,
+      "sha256": "1d7749477def44031f10cc760ae521b56b917cfffcc60d9965444815602c8b1c"
+    }
+  ]
+}

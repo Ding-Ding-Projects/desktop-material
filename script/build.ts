@@ -474,6 +474,14 @@ function copyStaticResources() {
   if (existsSync(audioSource)) {
     removeAndCopy(audioSource, path.join(destination, 'audio'))
   }
+
+  // The bundled dim sum surprise pictures follow the same arrangement: a
+  // top-level static dir the renderer reaches through
+  // encodePathAsUrl(__dirname, 'static/dim-sum', …).
+  const dimSumSource = path.join(projectRoot, 'app', 'static', 'dim-sum')
+  if (existsSync(dimSumSource)) {
+    removeAndCopy(dimSumSource, path.join(destination, 'dim-sum'))
+  }
 }
 
 function moveAnalysisFiles() {

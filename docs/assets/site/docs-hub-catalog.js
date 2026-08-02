@@ -196,6 +196,13 @@
       d: 'The Ctrl+F command palette lists every named app function. Its result list is built for scanning: each row carries an icon, the command title, an optional keyword line, and a…',
     },
     {
+      t: 'Command palette coverage',
+      h: 'features/design-system/command-palette-coverage-gaps.html',
+      s: 'features/design-system/command-palette-coverage-gaps.md',
+      c: 'features',
+      d: '131 of the 133 surveyed commands are in the palette. 49 of them carry a live control the reader can change from the row itself; the rest teleport to the setting, which for a…',
+    },
+    {
       t: 'Command palette: full-app coverage, rich controls and teleport',
       h: 'features/design-system/command-palette-full-coverage.html',
       s: 'features/design-system/command-palette-full-coverage.md',
@@ -208,6 +215,13 @@
       s: 'features/design-system/dialog-wheel-scrolling.md',
       c: 'features',
       d: "Desktop Material's floating dialogs accept vertical mouse-wheel and trackpad gestures anywhere over their scrollable content. Users no longer need to aim at the narrow…",
+    },
+    {
+      t: 'The dim sum surprise',
+      h: 'features/design-system/dim-sum-surprise.html',
+      s: 'features/design-system/dim-sum-surprise.md',
+      c: 'features',
+      d: 'Roughly one launch in ten, Desktop Material puts a small photograph of a Hong Kong dim sum dish in the bottom-left corner, names it in English and Traditional Chinese, and…',
     },
     {
       t: 'Material ripple state layer and theme reveal pulse',

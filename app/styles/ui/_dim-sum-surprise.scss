@@ -1,0 +1,163 @@
+// The dim sum surprise card. A corner surface that arrives, is read or
+// ignored, and clears itself. It takes the bottom-left corner because the
+// error notice stack owns bottom-right: a card that drew before an error
+// arrived must not end up sitting on top of the error.
+.dim-sum-surprise {
+  position: fixed;
+  left: max(16px, env(safe-area-inset-left));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: var(--popup-z-index);
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  width: min(21rem, calc(100vw - 32px));
+  // A fixed card cannot be scrolled into reach, so it is capped to the window
+  // and scrolls inside itself rather than putting its title off the top edge.
+  max-height: min(calc(100dvh - 32px), 32rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline) 40%, transparent);
+  border-radius: var(--md-sys-shape-corner-large);
+  background: var(--md-sys-color-surface-container-high);
+  box-shadow: var(--md-sys-elevation-level3);
+  color: var(--md-sys-color-on-surface);
+  animation: dmDown calc(340ms * var(--mdur, 1)) var(--spring-fast) both;
+
+  // Engines without dvh still get a cap rather than an uncapped card.
+  @supports not (height: 100dvh) {
+    max-height: min(calc(100vh - 32px), 32rem);
+  }
+
+  &[data-leaving='true'] {
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity calc(200ms * var(--mdur, 1)) ease, transform calc(200ms * var(--mdur, 1)) ease;
+  }
+}
+
+.dim-sum-surprise-art {
+  grid-column: 1 / -1;
+  display: block;
+  width: 100%;
+  // The bundled pictures are square; the box keeps that without depending on
+  // the intrinsic size, so a swapped-in dish cannot reflow the card.
+  aspect-ratio: 1 / 1;
+  height: auto;
+  object-fit: cover;
+  border-radius: var(--md-sys-shape-corner-medium);
+  background: var(--md-sys-color-surface-container);
+}
+
+.dim-sum-surprise-content {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.dim-sum-surprise-dish {
+  margin: 10px 0 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.35;
+  // Two scripts on one line: allow the break rather than clipping either half.
+  overflow-wrap: anywhere;
+}
+
+.dim-sum-surprise-romanization {
+  margin: 2px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.dim-sum-surprise-block + .dim-sum-surprise-block {
+  margin-top: 8px;
+}
+
+.dim-sum-surprise-title {
+  margin: 8px 0 0;
+  font-size: var(--font-size);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.3;
+}
+
+.dim-sum-surprise-lead {
+  margin: 2px 0 0;
+  font-size: var(--font-size-sm);
+  line-height: 1.45;
+  color: var(--md-sys-color-on-surface-variant);
+  overflow-wrap: anywhere;
+}
+
+.dim-sum-surprise-dismiss {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  // A comfortable target rather than a glyph-sized one.
+  min-width: 44px;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  border-radius: var(--md-sys-shape-corner-full);
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--md-sys-color-on-surface) 10%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+
+  .octicon {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+  }
+}
+
+// A window narrow enough that the card would crowd the app gets the full
+// width minus a small margin instead of overflowing it.
+@media (max-width: 480px) {
+  .dim-sum-surprise {
+    left: max(8px, env(safe-area-inset-left));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: calc(100vw - 16px);
+  }
+}
+
+// A short window drops the picture rather than the words: the dish's name is
+// the fact on the card, the photograph is the decoration.
+@media (max-height: 480px) {
+  .dim-sum-surprise {
+    bottom: max(8px, env(safe-area-inset-bottom));
+    max-height: calc(100vh - 16px);
+  }
+
+  .dim-sum-surprise-art {
+    max-height: 8rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dim-sum-surprise {
+    animation: none;
+  }
+
+  .dim-sum-surprise[data-leaving='true'] {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .dim-sum-surprise {
+    border: 1px solid CanvasText;
+  }
+}

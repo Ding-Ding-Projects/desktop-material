@@ -135,6 +135,13 @@ These apply to user-facing surfaces in this app.
   the app's own data — never a `.git` inside the user's folder.
 - **Changelog viewer** covering every released version, with date filtering,
   regex-capable search, and export.
+- **The dim sum surprise**: a 10% chance per launch, drawn fresh and never
+  twice in one launch, of showing a randomly chosen dim sum dish named in both
+  languages beside its picture. Non-blocking and auto-dismissing; it never
+  gates startup, steals focus, or appears on a first run, an error path, or an
+  update. Images are bundled local assets with alt text naming the dish — never
+  generated, downloaded, or fetched at runtime. **There is no setting to
+  disable it**, and any stored opt-out is migrated away.
 - Accessibility, clipping, and control-size defects are completion blockers, not
   polish: keyboard reachability, visible focus, correct roles and names,
   contrast, reduced-motion, no clipped or overlapping text at supported window

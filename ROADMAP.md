@@ -2,6 +2,26 @@
 
 Updated: **August 1, 2026**
 
+## August 1 dim sum surprise in the app — **Implemented and locally verified**
+
+- One launch in ten now shows a bundled photograph of a Hong Kong dim sum dish
+  in the bottom-left corner, named in English and Traditional Chinese, as a
+  self-clearing `role="status"` card that never gates startup and never takes
+  focus. The website already had this; the app did not.
+- Twelve real photographs are copied byte for byte out of the shared dim sum
+  catalog into `app/static/dim-sum/` (~27 MiB) with a manifest recording each
+  file's dimensions and SHA-256. Nothing is generated, fetched, or re-encoded,
+  and `script/generate-dim-sum-assets.mjs` verifies every PNG decodes before it
+  copies it.
+- The draw is spent once per launch whether it hits or misses, comes from a
+  uniform CSPRNG rather than a biased source, and is suppressed on first run,
+  error, update, modal and quiet-hours launches — each of which shows nothing
+  and is never retried later in that launch.
+- There is no off switch, and any retired opt-out preference is deleted on
+  launch so an old profile rejoins the draw. 47 unit tests cover the band, the
+  suppression table, all fifteen language × playfulness combinations, the
+  bundled bytes, and the rendered card.
+
 ## August 1 gallery recapture — **81 of 92 frames refreshed; 11 blocked and named**
 
 - Every published screenshot the harness can drive was re-shot against a build

@@ -29,6 +29,10 @@
   category → motif mapping that gives push/fetch/pull and every Build & Run
   phase their own cue in four motif families, with per-category cooldowns and a
   per-cue audition grid in Settings → Sound.
+- [The dim sum surprise](dim-sum-surprise.md) — one launch in ten shows a
+  bundled photograph of a Hong Kong dim sum dish, named in both languages, as a
+  self-clearing corner card that never gates startup, never takes focus, and
+  has no off switch.
 - [Repository-themed music](repository-theme-music.md) — a deterministic,
   synthesized looping theme per repository (no bundled files) seeded from its
   identity, with per-repo custom-track/mute overrides persisted in a Git-backed

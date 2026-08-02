@@ -66,6 +66,11 @@ export type FunnyLevelTextBase =
   // the counts inside these two are interpolated facts, not voice.
   | 'changelog.summary'
   | 'changelog.empty'
+  // Only the dim sum card's framing is banded. The dish's name, its
+  // romanization and the picture's description are the facts the card exists
+  // to state, so they are single fixed strings in both languages.
+  | 'dimSum.title'
+  | 'dimSum.lead'
 
 /** Read the persisted per-language funny levels, defaulting when unreadable. */
 export function readFunnyLevels(): IFunnyLevels {

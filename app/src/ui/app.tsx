@@ -31,7 +31,11 @@ import { OpencodeSendDialog } from './build-run/opencode-send-dialog'
 import { assertNever } from '../lib/fatal-error'
 import { openFolderInFileManager } from '../lib/app-shell'
 import { updateStore, UpdateStatus } from './lib/update-store'
-import { t, translateForAccessibleName } from '../lib/i18n'
+import {
+  getPersistedLanguageMode,
+  t,
+  translateForAccessibleName,
+} from '../lib/i18n'
 import { RetryAction } from '../models/retry-actions'
 import { FetchType } from '../models/fetch'
 import { shouldRenderApplicationMenu } from './lib/features'
@@ -162,6 +166,18 @@ import { getGitHubPullRequestContextVersion } from '../lib/github-pull-request'
 import { NotificationCentrePanel } from './notifications/notification-centre-panel'
 import { INotificationEntry } from '../models/notification-centre'
 import { ErrorNoticeStack } from './error-notice-stack'
+import { DimSumSurprise } from './dim-sum/dim-sum-surprise'
+import { getDimSumDishes } from '../lib/dim-sum-assets'
+import { drawUnitRandom } from '../lib/dim-sum-random'
+import {
+  IDimSumDish,
+  dimSumSuppressionReason,
+  migrateDimSumOptOut,
+  pickDimSumDish,
+  shouldShowDimSum,
+} from '../models/dim-sum'
+import { isWithinQuietHours } from '../lib/audio/audio-throttle'
+import { readFunnyLevels } from '../lib/funny-level-text'
 import { CrashProofBoundary } from './crash-proof-boundary'
 import { Button } from './lib/button'
 import { Loading } from './lib/loading'
@@ -357,7 +373,11 @@ import {
 import { resolvePaletteHomeLabel } from './command-palette/command-palette'
 import { teleportTo } from './lib/teleport'
 import { normalizeLanguageMode } from '../models/language-mode'
-import { clampFunnyLevel } from '../lib/audio/audio-settings'
+import {
+  AudioSettingsStorageKey,
+  clampFunnyLevel,
+  parseAudioSettings,
+} from '../lib/audio/audio-settings'
 import { showTestUI } from './lib/test-ui-components/test-ui-components'
 import { ConfirmCommitFilteredChanges } from './changes/confirm-commit-filtered-changes-dialog'
 import { AboutTestDialog } from './about/about-test-dialog'
@@ -536,6 +556,40 @@ const ContactSupportUrl = 'https://github.com/contact?from_desktop_app=1'
 const UserGuideUrl =
   'https://github.com/Ding-Ding-Projects/desktop-material/wiki/User-Guide'
 
+/**
+ * True while an update is being fetched, prepared, or waiting to be installed.
+ *
+ * The dim sum surprise stays away during all of it: an update is a flow the
+ * user is following, and a picture of a dumpling arriving mid-way through
+ * reads as part of it.
+ */
+export function isUpdateInProgress(status: UpdateStatus): boolean {
+  return (
+    status === UpdateStatus.CheckingForUpdates ||
+    status === UpdateStatus.UpdateAvailable ||
+    status === UpdateStatus.UpdateReady
+  )
+}
+
+/**
+ * True when the user's configured quiet hours are open right now.
+ *
+ * The window lives in the audio settings, and is honoured here whether or not
+ * the audio system itself is switched on: a user who told the app when to
+ * leave them alone meant it about more than sound.
+ */
+export function isWithinDimSumQuietHours(now: Date): boolean {
+  try {
+    const settings = parseAudioSettings(
+      localStorage.getItem(AudioSettingsStorageKey)
+    )
+    return isWithinQuietHours(settings.quietHours, now.getHours())
+  } catch {
+    // Unreadable settings are not a quiet window; the surprise carries on.
+    return false
+  }
+}
+
 export class App extends React.Component<IAppProps, IAppState> {
   private loading = true
   private mounted = false
@@ -550,6 +604,14 @@ export class App extends React.Component<IAppProps, IAppState> {
    * a new first-run modal before their workspace becomes interactive.
    */
   private showFirstRunChecklist = false
+  /**
+   * The dim sum surprise draws exactly once per launch. This records that the
+   * single draw has been spent, whether it hit or missed, so no later render
+   * or state update can serve a second dish.
+   */
+  private dimSumDrawn = false
+  /** The dish this launch drew, or null when it missed or was dismissed. */
+  private dimSumDish: IDimSumDish | null = null
   private repositoryFileDragDepth = 0
   private readonly effectiveBranchRulesetCache =
     new EffectiveBranchRulesetCache()
@@ -859,6 +921,99 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (this.mounted) {
       this.setOnOpenBanner()
     }
+
+    if (this.mounted) {
+      this.drawDimSumSurprise()
+    }
+  }
+
+  /**
+   * Draw for the dim sum surprise, once per launch.
+   *
+   * Deliberately the last thing deferred startup does: the window is already
+   * interactive, every other launch task has had its turn, and nothing here
+   * can hold any of them up. A failure costs the user a picture of a dumpling
+   * and nothing else, so the whole thing is wrapped rather than allowed to
+   * reach the deferred-startup error path.
+   */
+  private drawDimSumSurprise(): void {
+    if (this.dimSumDrawn) {
+      return
+    }
+
+    try {
+      // There is no off switch, so a refusal stored by an older profile is
+      // deleted rather than read: that profile simply rejoins the draw.
+      migrateDimSumOptOut(localStorage)
+
+      const dishes = getDimSumDishes()
+      const suppression = dimSumSuppressionReason({
+        firstRun: this.state.showWelcomeFlow,
+        errorState:
+          this.initializationError !== null ||
+          this.state.errorNotices.length > 0,
+        updating: isUpdateInProgress(this.state.updateState.status),
+        modalOpen: this.isShowingModal,
+        quietHours: isWithinDimSumQuietHours(new Date()),
+        alreadyDrawn: this.dimSumDrawn,
+        dishCount: dishes.length,
+      })
+
+      if (suppression !== null) {
+        // A suppressed launch simply shows nothing. The draw is not spent, but
+        // it is not retried later either: this runs once, at startup, so a
+        // suppressed launch is a launch with no surprise rather than one with a
+        // surprise waiting to ambush the user when a dialog closes.
+        log.debug(`Dim sum surprise stayed away: ${suppression}`)
+        return
+      }
+
+      // The draw itself is spent here whether it hits or misses, so a launch
+      // can never serve two dishes.
+      this.dimSumDrawn = true
+
+      if (!shouldShowDimSum(drawUnitRandom())) {
+        return
+      }
+
+      const dish = pickDimSumDish(dishes, drawUnitRandom())
+      if (dish === null) {
+        return
+      }
+
+      this.dimSumDish = dish
+      this.forceUpdate()
+    } catch (error) {
+      // A missing manifest, unreadable storage or a broken clock must never
+      // turn a small delight into a visible startup failure.
+      log.debug(`Dim sum surprise skipped: ${asError(error).message}`)
+    }
+  }
+
+  private onDimSumSurpriseDismissed = () => {
+    if (this.dimSumDish === null) {
+      return
+    }
+    this.dimSumDish = null
+    if (this.mounted) {
+      this.forceUpdate()
+    }
+  }
+
+  private renderDimSumSurprise() {
+    const dish = this.dimSumDish
+    if (dish === null) {
+      return null
+    }
+
+    return (
+      <DimSumSurprise
+        dish={dish}
+        languageMode={getPersistedLanguageMode()}
+        funnyLevels={readFunnyLevels()}
+        onDismissed={this.onDimSumSurpriseDismissed}
+      />
+    )
   }
 
   private scheduleDeferredLaunchActions(): void {
@@ -8416,6 +8571,7 @@ export class App extends React.Component<IAppProps, IAppState> {
               : this.renderApp()}
             {this.renderFirstRunChecklist()}
             {this.renderErrorNotices()}
+            {this.renderDimSumSurprise()}
             {this.renderZoomInfo()}
             {this.renderFullScreenInfo()}
           </>

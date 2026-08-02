@@ -1,5 +1,59 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-01 — The dim sum surprise reaches the app
+
+The website has served a dim sum dish on one visit in ten since
+`309ad27736`; the Windows app served none. It does now.
+
+**What shipped**
+
+- `app/src/models/dim-sum.ts` — the pure part: the 10% band, dish selection,
+  the seven suppression reasons in priority order, bilingual naming with
+  per-run `lang` tags, alt text, and the opt-out migration. No DOM, no
+  randomness of its own — every draw is passed in, so every outcome is pinnable
+  in a test.
+- `app/src/lib/dim-sum-assets.ts` — build-time import of
+  `app/static/dim-sum/manifest.json`, coerced defensively so one corrupt entry
+  costs one dish rather than startup. A filename that is not
+  `^[A-Za-z0-9._-]+\.png$` is dropped rather than resolved.
+- `app/src/lib/dim-sum-copy.ts` — composes the card for a language mode and a
+  pair of funny levels. Bilingual renders two framing blocks, each at its own
+  language's level, and one name.
+- `app/src/lib/dim-sum-random.ts` — `drawUnitRandom()`, a full 32-bit CSPRNG
+  draw over its range. `Math.random` is banned repository-wide by the
+  `insecure-random` rule, and a biased source would not give the stated rate
+  anyway.
+- `app/src/ui/dim-sum/dim-sum-surprise.tsx` + `_dim-sum-surprise.scss` — the
+  card. Bottom-**left**, because the error notice stack owns bottom-right.
+- `app/src/ui/app.tsx` — `drawDimSumSurprise()` at the end of
+  `performDeferredLaunchActions`, wrapped so a failure costs a dumpling and not
+  a startup.
+
+**The pictures**
+
+Twelve dishes, ~27 MiB, copied byte for byte from the shared catalog by
+`script/generate-dim-sum-assets.mjs`. Twelve rather than the whole catalog
+because each is a multi-megabyte lossless PNG the installer pays for; the
+twelve span steamed, baked, fried, rolled, bakery, dessert and drink.
+`script/build.ts` copies `app/static/dim-sum` to `out/static/dim-sum`, matching
+how the narration assets already travel.
+
+**Verification**
+
+47 unit tests across five files, all passing:
+`dim-sum-surprise-test.ts`, `dim-sum-copy-test.ts`, `dim-sum-assets-test.ts`,
+`dim-sum-wiring-test.ts`, `ui/dim-sum-surprise-test.tsx`. The asset test hashes
+every committed PNG against the manifest on every run, so a picture that stops
+decoding fails CI rather than reaching a user as a broken image. The wiring
+test walks every settings surface and fails if a dim sum toggle ever appears.
+
+**Not done here**
+
+No screenshot of the card in the running app: it appears on a 1-in-10 draw at
+launch, and the capture harness has no hook to force the draw. Adding one would
+mean a test-only override of the probability, which is a change to the feature
+rather than to the harness. The rendered markup is asserted instead.
+
 ## 2026-08-01 — Gallery recapture after the palette rework
 
 Issue #23 asked for every published screenshot to be replaced. **81 of 92 are

@@ -303,6 +303,31 @@ sizes the preview steps away so the setup task remains unclipped.
 
 ---
 
+## The dim sum surprise
+
+About **one launch in ten**, a small photograph of a Hong Kong dim sum dish appears in the
+bottom-left corner, named in English and Traditional Chinese — *Classic Har Gow · 蝦餃* — and clears
+itself after about nine seconds.
+
+It is a delight, not a system. It never delays the app becoming usable, never takes keyboard focus,
+and is not a dialog you have to dismiss; the labelled close button only saves you the wait. It stays
+away entirely on a first run, when startup has failed, while an update is in flight, while a
+blocking dialog is open, and inside your configured quiet hours. A launch it stays away from simply
+has no surprise; it does not lie in wait for the dialog to close.
+
+Each dish's name is a fact rather than a joke: it reads identically in every language mode and at
+every playfulness level, and only the order changes (Cantonese mode leads with 蝦餃). The copy
+*around* the name follows your two playfulness sliders, each language at its own level. The
+photographs ship with the app — twelve of them, no network request, no tracking — and the picture's
+alt text names the dish in both languages so it reaches screen-reader users too.
+
+**There is no setting to switch it off**, and if an older profile stored one, it is deleted on the
+next launch so that profile simply rejoins the draw.
+
+Full detail: [The dim sum surprise](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/design-system/dim-sum-surprise.md).
+
+---
+
 ## Signing in
 
 Open **Settings → Accounts** to manage sign-ins. Desktop Material supports **multiple accounts at

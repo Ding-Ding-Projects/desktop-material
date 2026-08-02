@@ -2880,6 +2880,18 @@ export type TranslationKey =
   | 'changelog.empty.plain'
   | 'changelog.empty.light'
   | 'changelog.empty.playful'
+  // The dim sum surprise. Only the framing carries bands: the dish's own name,
+  // its romanization and the picture's description are facts the card exists
+  // to state, and they read identically at every level in every mode.
+  | 'dimSum.region'
+  | 'dimSum.dismiss'
+  | 'dimSum.romanization'
+  | 'dimSum.title.plain'
+  | 'dimSum.title.light'
+  | 'dimSum.title.playful'
+  | 'dimSum.lead.plain'
+  | 'dimSum.lead.light'
+  | 'dimSum.lead.playful'
   | 'contextMenu.filterPlaceholder'
   | 'contextMenu.filterLabel'
   | 'contextMenu.empty'
@@ -6870,6 +6882,21 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'changelog.empty.light': 'Nothing here matches those filters.',
   'changelog.empty.playful':
     'Not one release matches that. The filters win this round.',
+  'dimSum.region': 'Dim sum surprise',
+  'dimSum.dismiss': 'Dismiss the dim sum surprise',
+  // Read after the name, so it lands as "Har Gow, said haa1 gaau2".
+  'dimSum.romanization': 'said {jyutping}',
+  'dimSum.title.plain': 'Dim sum surprise',
+  'dimSum.title.light': 'One from the trolley',
+  'dimSum.title.playful': 'The trolley squeaked past',
+  // The two facts every band states: the odds, and that the card leaves on its
+  // own. Neither promises a way to switch it off, because there is not one.
+  'dimSum.lead.plain':
+    'About 1 launch in 10 shows a dish. This card clears itself.',
+  'dimSum.lead.light':
+    'About 1 launch in 10 gets a dish. This one clears itself, so carry on.',
+  'dimSum.lead.playful':
+    'You drew the 1 launch in 10 that comes with food. It clears itself — no need to eat quickly.',
   'contextMenu.filterPlaceholder': 'Filter actions',
   'contextMenu.filterLabel': 'Filter menu actions',
   'contextMenu.empty': 'No matching actions',
@@ -10503,6 +10530,17 @@ export const cantoneseTranslations: Readonly<
   'changelog.empty.plain': '冇版本夾到而家嘅篩選條件。',
   'changelog.empty.light': '呢啲條件之下，乜都搵唔到。',
   'changelog.empty.playful': '一個都夾唔到，今鋪篩選贏咗。',
+  'dimSum.region': '點心驚喜',
+  'dimSum.dismiss': '收起點心驚喜',
+  'dimSum.romanization': '讀做 {jyutping}',
+  'dimSum.title.plain': '點心驚喜',
+  'dimSum.title.light': '推車經過，落咗一籠',
+  'dimSum.title.playful': '點心車推到你枱邊',
+  'dimSum.lead.plain': '大約每 10 次開機有 1 次會有點心。呢張卡會自己收埋。',
+  'dimSum.lead.light':
+    '大約每 10 次開機得 1 次有得食。呢張卡自己會走，你照做嘢得㗎喇。',
+  'dimSum.lead.playful':
+    '10 次開機先中 1 次，今次連食嘅都有埋。佢自己會收，唔使趕住食。',
   'contextMenu.filterPlaceholder': '篩走用唔著嘅動作',
   'contextMenu.filterLabel': '篩選選單動作',
   'contextMenu.empty': '搵唔到夾得上嘅動作',
