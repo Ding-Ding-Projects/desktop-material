@@ -81,7 +81,11 @@ describe('submodule clone-surface contracts', () => {
     // The hub entry is gated on a positive count plus an opener callback.
     assert.match(
       tools,
-      /getAllHubEntries\(\)[\s\S]*?onOpenSubmoduleManager === undefined \|\|[\s\S]*?submoduleCount === null \|\|[\s\S]*?submoduleCount === 0[\s\S]*?return RepositoryToolsHubEntries/
+      /const submodulesHidden =\s*onOpenSubmoduleManager === undefined \|\|[\s\S]*?submoduleCount === undefined \|\|[\s\S]*?submoduleCount === null \|\|[\s\S]*?submoduleCount === 0/
+    )
+    assert.match(
+      tools,
+      /\.\.\.\(submodulesHidden \? \[\] : \[SubmoduleManagerHubEntry\]\)/
     )
     assert.match(tools, /id: 'submodule-manager'/)
     assert.match(
@@ -173,7 +177,11 @@ describe('submodule clone-surface contracts', () => {
     assert.match(tools, /id: 'cheap-lfs'/)
     assert.match(
       tools,
-      /getAllHubEntries\(\)[\s\S]*?cheapLfsHidden =[\s\S]*?isSubmoduleRepository\(this\.props\.repository\)[\s\S]*?cheapLfs === undefined[\s\S]*?cheapLfs\.available !== true[\s\S]*?return RepositoryToolsHubEntries/
+      /const cheapLfsHidden =\s*isSubmoduleRepository\(this\.props\.repository\) \|\|[\s\S]*?cheapLfs === undefined \|\|[\s\S]*?cheapLfs\.available !== true/
+    )
+    assert.match(
+      tools,
+      /\.\.\.\(cheapLfsHidden \? \[\] : \[CheapLfsHubEntry\]\)/
     )
     assert.match(tools, /selected === 'cheap-lfs' && this\.renderCheapLfs\(\)/)
 

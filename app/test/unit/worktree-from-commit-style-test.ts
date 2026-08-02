@@ -9,16 +9,26 @@ const read = (...segments: ReadonlyArray<string>) =>
 describe('worktree-from-commit contracts', () => {
   it('offers the action on every History commit right-click', () => {
     const commitList = read('src', 'ui', 'history', 'commit-list.tsx')
+    const commitContextMenu = read(
+      'src',
+      'ui',
+      'history',
+      'commit-context-menu.ts'
+    )
 
     assert.match(
-      commitList,
-      /'Create Worktree from Commit…'\s*:\s*'Create worktree from commit…'/
+      commitContextMenu,
+      /'Create Worktree from Commit[^']*'\s*:\s*'Create worktree from commit[^']*'/
     )
-    assert.match(commitList, /onCreateWorktreeFromCommit\?\.\(commit\)/)
     assert.match(
-      commitList,
-      /enabled: this\.props\.onCreateWorktreeFromCommit !== undefined/
+      commitContextMenu,
+      /props\.onCreateWorktreeFromCommit\?\.\(commit\)/
     )
+    assert.match(
+      commitContextMenu,
+      /enabled: props\.onCreateWorktreeFromCommit !== undefined/
+    )
+    assert.match(commitList, /showCommitContextMenu\(row, event, this\.props\)/)
   })
 
   it('routes the commit into the Add Worktree dialog anchored at its SHA', () => {
