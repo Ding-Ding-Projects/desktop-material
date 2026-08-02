@@ -2868,6 +2868,7 @@ export type TranslationKey =
   | 'changelog.exportText'
   | 'changelog.exported'
   | 'changelog.exportFailed'
+  | 'changelog.copyFailed'
   | 'changelog.reset'
   | 'changelog.close'
   | 'changelog.showMore'
@@ -6871,6 +6872,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'changelog.exportText': 'Export as plain text…',
   'changelog.exported': 'Exported {count} release(s) to {path}.',
   'changelog.exportFailed': 'The export could not be written: {error}',
+  'changelog.copyFailed': 'Nothing was copied to the clipboard: {error}',
   'changelog.reset': 'Clear filters',
   'changelog.close': 'Close',
   'changelog.showMore': 'Show {count} more',
@@ -10559,6 +10561,7 @@ export const cantoneseTranslations: Readonly<
   'changelog.exportText': '匯出做純文字…',
   'changelog.exported': '已經將 {count} 個版本匯出去 {path}。',
   'changelog.exportFailed': '寫唔到份匯出檔：{error}',
+  'changelog.copyFailed': '複製唔到落剪貼簿：{error}',
   'changelog.reset': '清走篩選',
   'changelog.close': '閂咗佢',
   'changelog.showMore': '再睇多 {count} 個',

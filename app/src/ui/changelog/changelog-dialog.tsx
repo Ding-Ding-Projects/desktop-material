@@ -263,7 +263,20 @@ export class ChangelogDialog extends React.Component<
       this.buildExportContext(result),
       'markdown'
     )
-    await navigator.clipboard.writeText(contents)
+    // A clipboard write rejects for reasons the user can do something about —
+    // the document is not focused, permission was denied — and an uncaught one
+    // reaches the global handler, which says only that "a background action
+    // stopped unexpectedly", in English, with no mention of the copy.
+    try {
+      await navigator.clipboard.writeText(contents)
+    } catch (error) {
+      this.props.onNotify?.(
+        this.text('changelog.copyFailed', {
+          error: error instanceof Error ? error.message : String(error),
+        })
+      )
+      return
+    }
     this.props.onNotify?.(
       this.text('changelog.copied', { count: String(result.releases.length) })
     )

@@ -82,6 +82,28 @@ export class DimSumSurprise extends React.PureComponent<
     }
   }
 
+  /**
+   * Restart the countdown once focus has left the card entirely.
+   *
+   * Without this the card is permanent: `focusin` bubbles, so merely tabbing
+   * through the app lands on the dismiss button for an instant, cancels the
+   * timer, and moves on — leaving a card that promises in both languages to
+   * clear itself sitting in the corner for the rest of the session.
+   */
+  private onFocusOut = (event: React.FocusEvent<HTMLElement>) => {
+    const to = event.relatedTarget
+    if (to instanceof Node && event.currentTarget.contains(to)) {
+      return
+    }
+    if (this.state.leaving || this.dismissTimer !== null) {
+      return
+    }
+    this.dismissTimer = window.setTimeout(
+      this.beginLeaving,
+      this.props.durationMs ?? DimSumSurpriseDurationMs
+    )
+  }
+
   private beginLeaving = () => {
     this.dismissTimer = null
     if (this.state.leaving) {
@@ -121,6 +143,7 @@ export class DimSumSurprise extends React.PureComponent<
         data-leaving={this.state.leaving ? 'true' : undefined}
         data-dish-id={dish.id}
         onFocus={this.onFocusIn}
+        onBlur={this.onFocusOut}
       >
         <img
           className="dim-sum-surprise-art"
