@@ -9,7 +9,10 @@ import { getCommitDiff } from '../git/diff'
 import { Repository } from '../../models/repository'
 import { Commit } from '../../models/commit'
 import { DiffType, IDiff } from '../../models/diff/diff-data'
-import { CrashSafePersistenceGitIgnorePattern } from '../crash-safe-file'
+import {
+  clearCrashSafeFile,
+  CrashSafePersistenceGitIgnorePattern,
+} from '../crash-safe-file'
 import {
   composeProfileCommitMessage,
   IProfileHistoryEntry,
@@ -1054,7 +1057,12 @@ async function restoreProfileToInternal(
             'profileRestoreFile'
           )
         } else {
-          await rm(join(repository.path, file), { force: true })
+          // Every state file is written crash-safely, so it owns an ignored
+          // sibling backup that a plain unlink leaves behind. The next read
+          // would recover from that backup and reinstall the primary, quietly
+          // undoing the restore and letting the following commit record the
+          // resurrected file as a fresh user change.
+          await clearCrashSafeFile(join(repository.path, file))
         }
       }
       await onMutated?.()
