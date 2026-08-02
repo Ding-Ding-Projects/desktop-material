@@ -298,54 +298,78 @@ They are not presented as current Windows evidence and are excluded from the
 ## Lines of code
 
 <details>
-<summary><b>1,274,245 lines</b> across 3,328 files — full breakdown by area</summary>
+<summary><b>1,271,040 lines</b> across 3,328 files — full breakdown, and who wrote them</summary>
 
 | Area | Files | Lines | Non-blank |
 | --- | ---: | ---: | ---: |
-| App source | 1,492 | 489,040 | 447,371 |
-| Docs and documentation site | 371 | 377,216 | 366,085 |
-| Agent run and verification records *(excluded)* | 158 | 272,054 | 267,922 |
-| App tests | 988 | 238,973 | 216,245 |
-| Vendored / third-party *(excluded)* | 30 | 149,670 | 127,208 |
-| App styles | 265 | 61,118 | 52,287 |
-| Other subprojects | 33 | 38,521 | 36,904 |
-| Linux TUI prototype (historical) *(excluded)* | 93 | 28,814 | 25,837 |
-| Build and tooling scripts | 78 | 24,195 | 22,166 |
-| Repository root | 15 | 16,329 | 15,033 |
-| Remote-access site | 19 | 15,478 | 14,935 |
-| CI workflows and editor config | 49 | 10,141 | 9,095 |
-| App static assets | 10 | 2,429 | 2,309 |
-| Unclassified | 8 | 805 | 730 |
-| **Project total** | **3,328** | **1,274,245** | **1,183,160** |
+| App source | 1,492 | 487,548 | 447,371 |
+| Docs and documentation site | 371 | 376,845 | 366,085 |
+| Agent run and verification records *(excluded)* | 158 | 271,896 | 267,922 |
+| App tests | 988 | 237,995 | 216,245 |
+| Vendored / third-party *(excluded)* | 30 | 149,641 | 127,208 |
+| App styles | 265 | 60,854 | 52,287 |
+| Other subprojects | 33 | 38,488 | 36,904 |
+| Linux TUI prototype (historical) *(excluded)* | 93 | 28,721 | 25,837 |
+| Build and tooling scripts | 78 | 24,117 | 22,166 |
+| Repository root | 15 | 16,403 | 15,108 |
+| Remote-access site | 19 | 15,459 | 14,935 |
+| CI workflows and editor config | 49 | 10,113 | 9,116 |
+| App static assets | 10 | 2,421 | 2,309 |
+| Unclassified | 8 | 797 | 730 |
+| **Project total** | **3,328** | **1,271,040** | **1,183,256** |
+| **Everything counted** | **3,609** | **1,721,298** | **1,604,223** |
 
-Of the project total, **36,338 lines across 8 files are generated** by tooling
-rather than written by hand — the changelog catalog, the release-date table,
-the octicon bindings, and the bundled asset manifests.
+Two totals rather than one: the **project total** is this project's own code, and
+**everything counted** adds the four excluded rows back so a reader can see the
+whole repository as well. The excluded rows are visible in the same table rather
+than quietly dropped.
 
-**What is excluded, and why.** Only files Git tracks are counted, so
-dependency directories, build output and everything ignored are excluded by
-construction. Four rows are counted but held out of the project total because
-they are not this project's code: vendored third-party trees, the historical
-Linux TUI prototype (not a supported product edition), and the agent run and
-verification records under `.codex/`, which are evidence about how the project
-was built rather than the project itself. Binary and asset files are never
-counted; the `Unclassified` row exists so that a counted file can never be
-silently dropped from the total.
+Of the project total, **36,330 lines across 8 files are generated** by tooling
+rather than written by hand — the changelog catalog, the release-date table, the
+octicon bindings, and the bundled asset manifests.
 
-**Where the real record lives.** Every GitHub Release carries its own line
-count, measured by CI over the exact commit that release was built from, in the
-same run that produced the installers. That is the record; the table above is a
-convenience copy of the most recent one, so the two never disagree and no
-figure here was ever typed by hand.
+### Who wrote it
 
-**How to reproduce it.** The figure is measured, not estimated:
+| Written by | Lines | Share |
+| --- | ---: | ---: |
+| Agents | 1,159,677 | 67.4% |
+| People | 561,621 | 32.6% |
+| **Total attributed** | **1,721,298** | **100%** |
+
+Attribution is per **surviving** line via `git blame`, not lines added: churn is
+not authorship, and a line written and later deleted counts for nobody. A commit
+counts as agent-written when its author is an automation identity or it carries a
+`Co-Authored-By` trailer naming an agent. The attributed total equals *everything
+counted* exactly — if those two ever disagree, the counter is wrong and the
+figure should not be trusted.
+
+Desktop Material is a fork of [GitHub Desktop](https://github.com/desktop/desktop),
+so a large part of the human share is upstream work inherited with the fork
+rather than written here.
+
+**What is excluded, and why.** Only files Git tracks are counted, so dependency
+directories, build output and everything ignored are excluded by construction.
+Four rows are counted but held out of the project total because they are not this
+project's code: vendored third-party trees, the historical Linux TUI prototype
+(not a supported product edition), the agent run and verification records under
+`.codex/`, and packaging leftovers. Binary and asset files are never counted; the
+`Unclassified` row exists so that a counted file can never be silently dropped
+from the total.
+
+**Where the real record lives.** Every GitHub Release carries its own line count,
+measured by CI over the exact commit that release was built from, in the same run
+that produced the installers. That is the record; the tables above are a
+convenience copy of the most recent one, so the two never disagree and no figure
+here was ever typed by hand.
+
+**How to reproduce it.** The figures are measured, not estimated:
 
 ```bash
 node script/count-lines.mjs
 ```
 
-Measured at commit `6a13779604`. The script prints this exact table, so
-refreshing the number is one command rather than a manual re-count.
+Add `--no-attribution` to skip the `git blame` pass, which is by far the slowest
+part. Measured at commit `cac6abec75`.
 
 </details>
 

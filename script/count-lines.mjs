@@ -19,7 +19,7 @@
  * Usage: node script/count-lines.mjs [--json]
  */
 
-import { execSync } from 'node:child_process'
+import { execSync, spawn } from 'node:child_process'
 import { readFileSync, statSync } from 'node:fs'
 
 /** Extensions counted as source. Binaries and assets are not code. */
@@ -114,7 +114,106 @@ function isGenerated(file) {
   return GeneratedPatterns.some(pattern => pattern.test(file))
 }
 
-export function countRepository() {
+/**
+ * Author identities that are an agent rather than a person.
+ *
+ * Matched against the commit author. A commit is also treated as agent-written
+ * when it carries a `Co-Authored-By` trailer naming one, which covers work an
+ * agent did while committing under the repository owner's own identity.
+ */
+const AgentAuthorPattern =
+  /^(claude|codex|opencode|desktop material (automation|verification|test)|material fixture)/i
+
+/** Trailer values that mean an agent wrote the change. */
+const AgentTrailerPattern = /claude|codex|opencode/i
+
+/**
+ * Every commit an agent wrote, by full SHA.
+ *
+ * Built in one `git log` pass rather than one call per commit: the repository
+ * has tens of thousands of commits and a call each would take longer than the
+ * blame that follows.
+ */
+export function agentCommits() {
+  const raw = execSync(
+    'git log --format=%H%x01%an%x01%(trailers:key=Co-Authored-By,valueonly,separator=%x02)',
+    { maxBuffer: 1 << 28 }
+  ).toString('utf8')
+
+  const agents = new Set()
+  for (const line of raw.split(String.fromCharCode(10))) {
+    if (line.length === 0) {
+      continue
+    }
+    const [sha, author = '', trailers = ''] = line.split(String.fromCharCode(1))
+    if (AgentAuthorPattern.test(author) || AgentTrailerPattern.test(trailers)) {
+      agents.add(sha)
+    }
+  }
+  return agents
+}
+
+/**
+ * Attribute every surviving line of `files` to an agent or a person.
+ *
+ * `git blame` is the only thing that answers "who wrote the code that is still
+ * here" — counting added lines from the log would count churn instead, so a
+ * line written and later deleted would inflate whoever wrote it. Blame costs
+ * roughly 0.2s per file here, so the files are walked by a small pool of
+ * concurrent processes rather than one at a time.
+ */
+async function attributeLines(files, agents, concurrency = 8) {
+  const totals = { agent: 0, human: 0, unattributed: 0 }
+  let next = 0
+
+  async function blameOne(file) {
+    const sha = await new Promise(resolve => {
+      const child = spawn(
+        'git',
+        ['blame', '--line-porcelain', '--', file],
+        { stdio: ['ignore', 'pipe', 'ignore'] }
+      )
+      let buffered = ''
+      const counts = { agent: 0, human: 0 }
+      child.stdout.setEncoding('utf8')
+      child.stdout.on('data', chunk => {
+        buffered += chunk
+        const lines = buffered.split('\n')
+        buffered = lines.pop() ?? ''
+        for (const line of lines) {
+          // A porcelain header line starts each blamed line: "<sha> <a> <b> <n>".
+          const match = /^([0-9a-f]{40}) \d+ \d+(?: \d+)?$/.exec(line)
+          if (match !== null) {
+            if (agents.has(match[1])) {
+              counts.agent++
+            } else {
+              counts.human++
+            }
+          }
+        }
+      })
+      child.on('close', () => resolve(counts))
+      child.on('error', () => resolve(null))
+    })
+
+    if (sha === null) {
+      return
+    }
+    totals.agent += sha.agent
+    totals.human += sha.human
+  }
+
+  const workers = Array.from({ length: concurrency }, async () => {
+    while (next < files.length) {
+      await blameOne(files[next++])
+    }
+  })
+  await Promise.all(workers)
+
+  return totals
+}
+
+export async function countRepository({ attribution = true } = {}) {
   const files = execSync('git ls-files -z', { maxBuffer: 1 << 28 })
     .toString('utf8')
     .split('\0')
@@ -122,6 +221,7 @@ export function countRepository() {
 
   const rows = new Map()
   const generated = { files: 0, lines: 0, nonBlank: 0 }
+  const counted = []
 
   for (const file of files) {
     const extension = (file.split('.').pop() ?? '').toLowerCase()
@@ -143,6 +243,13 @@ export function countRepository() {
     }
 
     const all = text.length === 0 ? [] : text.split('\n')
+    // A file ending in a newline splits to a trailing empty element that is
+    // not a line. Dropping it makes this agree with `wc -l` and, more
+    // importantly, with `git blame` — otherwise the attribution table below
+    // would be short by exactly one line per file, for no visible reason.
+    if (all.length > 0 && all[all.length - 1] === '') {
+      all.pop()
+    }
     const lines = all.length
     const nonBlank = all.filter(line => line.trim() !== '').length
 
@@ -151,7 +258,11 @@ export function countRepository() {
       continue
     }
 
-    if (isGenerated(file)) {
+    // Only generated files inside the project total, so the sentence that
+    // reports this ("of the project total, N lines are generated") is
+    // arithmetically true. A generated file in an excluded row is already
+    // outside that total and must not be counted against it.
+    if (area.project && isGenerated(file)) {
       generated.files++
       generated.lines += lines
       generated.nonBlank += nonBlank
@@ -168,20 +279,36 @@ export function countRepository() {
     row.lines += lines
     row.nonBlank += nonBlank
     rows.set(area.name, row)
+    counted.push(file)
   }
 
   const ordered = [...rows.values()].sort((a, b) => b.lines - a.lines)
   const project = ordered.filter(row => row.project)
-  const total = key => project.reduce((sum, row) => sum + row[key], 0)
+  const sum = (list, key) => list.reduce((total, row) => total + row[key], 0)
+
+  // Who wrote the lines that are still here. Skipped with --no-attribution,
+  // because blame is by far the slowest part of this script.
+  const authored = attribution
+    ? await attributeLines(counted, agentCommits())
+    : null
 
   return {
     rows: ordered,
     generated,
     project: {
-      files: total('files'),
-      lines: total('lines'),
-      nonBlank: total('nonBlank'),
+      files: sum(project, 'files'),
+      lines: sum(project, 'lines'),
+      nonBlank: sum(project, 'nonBlank'),
     },
+    // Everything counted, including the rows held out of the project total.
+    // Stated so the excluded rows are visible as part of a whole rather than
+    // looking like they were quietly dropped.
+    everything: {
+      files: sum(ordered, 'files'),
+      lines: sum(ordered, 'lines'),
+      nonBlank: sum(ordered, 'nonBlank'),
+    },
+    authored,
     commit: execSync('git rev-parse --short HEAD').toString().trim(),
   }
 }
@@ -208,21 +335,57 @@ function markdown(result) {
       result.project.lines
     )}** | **${number(result.project.nonBlank)}** |`
   )
+  lines.push(
+    `| **Everything counted** | **${number(result.everything.files)}** | **${number(
+      result.everything.lines
+    )}** | **${number(result.everything.nonBlank)}** |`
+  )
   lines.push('')
   lines.push(
     `Of the project total, ${number(result.generated.lines)} lines across ` +
       `${number(result.generated.files)} files are generated by tooling ` +
       `rather than written by hand.`
   )
+
+  if (result.authored !== null) {
+    const { agent, human } = result.authored
+    const attributed = agent + human
+    const share = attributed === 0 ? 0 : Math.round((agent / attributed) * 1000) / 10
+    lines.push('')
+    lines.push('| Written by | Lines | Share |')
+    lines.push('| --- | ---: | ---: |')
+    lines.push(`| Agents | ${number(agent)} | ${share}% |`)
+    lines.push(
+      `| People | ${number(human)} | ${Math.round((100 - share) * 10) / 10}% |`
+    )
+    lines.push(`| **Total attributed** | **${number(attributed)}** | **100%** |`)
+    lines.push('')
+    lines.push(
+      'Attribution is per surviving line via `git blame`, not lines added: a ' +
+        'line written and later deleted counts for nobody. A commit counts as ' +
+        "agent-written when its author is an automation identity or it carries a " +
+        '`Co-Authored-By` trailer naming an agent.'
+    )
+  }
+
   return lines.join('\n')
 }
 
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/').split('/').pop())) {
-  const result = countRepository()
+const invokedDirectly =
+  process.argv[1] !== undefined &&
+  import.meta.url.endsWith(
+    process.argv[1].split(/[\\/]/).pop() ?? ' '
+  )
+
+if (invokedDirectly) {
+  const result = await countRepository({
+    attribution: !process.argv.includes('--no-attribution'),
+  })
   if (process.argv.includes('--json')) {
     console.log(JSON.stringify(result, null, 2))
   } else {
     console.log(markdown(result))
-    console.log(`\nMeasured at ${result.commit}.`)
+    console.log(`
+Measured at ${result.commit}.`)
   }
 }
