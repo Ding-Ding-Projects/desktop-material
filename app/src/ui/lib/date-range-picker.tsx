@@ -135,6 +135,18 @@ export class DateRangePicker extends React.Component<
 > {
   private gridRef = React.createRef<HTMLDivElement>()
 
+  /**
+   * The range this component last sent up from a typed field.
+   *
+   * A keystroke reaches the parent and comes straight back as a new `range`
+   * prop, so `componentDidUpdate` has no way of its own to tell an outside
+   * change from the echo of the character just typed. Remembering what was sent
+   * makes the echo recognisable, which is the difference between a field you can
+   * type `2026-07-31` into and one that rewrites itself to `2026-07-03` after
+   * the eighth character and parks the caret at the end.
+   */
+  private typedEcho: IDateRange | null = null
+
   public constructor(props: IDateRangePickerProps) {
     super(props)
     this.state = {
@@ -151,26 +163,41 @@ export class DateRangePicker extends React.Component<
   }
 
   public componentDidUpdate(prevProps: IDateRangePickerProps) {
-    // A range changed from outside (a preset button, a reset) rewrites the
-    // fields. Typing does not come back through here, so this cannot fight the
-    // user for the caret.
     if (
-      prevProps.range.from !== this.props.range.from ||
-      prevProps.range.to !== this.props.range.to
+      prevProps.range.from === this.props.range.from &&
+      prevProps.range.to === this.props.range.to
     ) {
-      this.setState({
-        fromText: this.props.range.from ?? '',
-        toText: this.props.range.to ?? '',
-        fromParse:
-          this.props.range.from === null
-            ? { kind: 'empty' }
-            : { kind: 'valid', iso: this.props.range.from },
-        toParse:
-          this.props.range.to === null
-            ? { kind: 'empty' }
-            : { kind: 'valid', iso: this.props.range.to },
-      })
+      return
     }
+
+    const echo = this.typedEcho
+    this.typedEcho = null
+    if (
+      echo !== null &&
+      echo.from === this.props.range.from &&
+      echo.to === this.props.range.to
+    ) {
+      // The user's own keystroke coming back around. Rewriting the field here
+      // would replace a half-typed date with its parsed form and drop the caret
+      // at the end of it, so the next character lands in the wrong place.
+      return
+    }
+
+    // Anything else — a preset, a calendar click, a reset, a correction the
+    // parent made to what was typed — rewrites the fields, because the calendar
+    // and the fields are two views of one range.
+    this.setState({
+      fromText: this.props.range.from ?? '',
+      toText: this.props.range.to ?? '',
+      fromParse:
+        this.props.range.from === null
+          ? { kind: 'empty' }
+          : { kind: 'valid', iso: this.props.range.from },
+      toParse:
+        this.props.range.to === null
+          ? { kind: 'empty' }
+          : { kind: 'valid', iso: this.props.range.to },
+    })
   }
 
   private text = (key: TranslationKey, variables: TranslationVariables = {}) =>
@@ -181,8 +208,24 @@ export class DateRangePicker extends React.Component<
     variables: TranslationVariables = {}
   ) => translateForAccessibleName(key, variables, this.props.languageMode)
 
+  /** Sends a finished choice — a calendar click or a preset — up, in order. */
   private emit(range: IDateRange) {
+    this.typedEcho = null
     this.props.onRangeChanged(normalizeDateRange(range))
+  }
+
+  /**
+   * Sends a typed range up exactly as typed, without putting it in order.
+   *
+   * Swapping the ends is right for a click, which is a finished choice, and
+   * wrong for a keystroke, which is not: `2026-07-3` typed into From against a
+   * To of `2026-01-05` reads as backwards for exactly as long as it takes to
+   * type the last digit, and swapping there throws a half-written date into the
+   * other field while the user is still in the middle of it.
+   */
+  private emitTyped(range: IDateRange) {
+    this.typedEcho = range
+    this.props.onRangeChanged(range)
   }
 
   private onFromTextChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,9 +236,9 @@ export class DateRangePicker extends React.Component<
       this.setState({
         visibleMonth: firstOfMonth(fromParse.iso, this.props.today),
       })
-      this.emit({ from: fromParse.iso, to: this.props.range.to })
+      this.emitTyped({ from: fromParse.iso, to: this.props.range.to })
     } else if (fromParse.kind === 'empty') {
-      this.emit({ from: null, to: this.props.range.to })
+      this.emitTyped({ from: null, to: this.props.range.to })
     }
     // An invalid entry changes nothing but its own message: the last good
     // range keeps filtering, so the list does not empty out mid-keystroke.
@@ -209,9 +252,9 @@ export class DateRangePicker extends React.Component<
       this.setState({
         visibleMonth: firstOfMonth(toParse.iso, this.props.today),
       })
-      this.emit({ from: this.props.range.from, to: toParse.iso })
+      this.emitTyped({ from: this.props.range.from, to: toParse.iso })
     } else if (toParse.kind === 'empty') {
-      this.emit({ from: this.props.range.from, to: null })
+      this.emitTyped({ from: this.props.range.from, to: null })
     }
   }
 
@@ -392,6 +435,18 @@ export class DateRangePicker extends React.Component<
     const { from, to } = this.props.range
     const todayIso = toIsoDate(this.props.today)
 
+    // Exactly one roving tab stop, chosen before the loop rather than tested per
+    // cell. Deriving it from `selected` alone gives a month holding both ends
+    // two stops, and a month holding neither — one page back from any set range
+    // — none at all, which drops the whole grid out of the tab order and leaves
+    // no way to reach the arrow keys that move within it.
+    const visibleMonthIso = toIsoDate(first).slice(0, 7)
+    const dayWithinMonth = (iso: string | null) =>
+      iso !== null && iso.slice(0, 7) === visibleMonthIso
+        ? Number(iso.slice(8))
+        : null
+    const tabStopDay = dayWithinMonth(from) ?? dayWithinMonth(to) ?? 1
+
     for (let day = 1; day <= daysInMonth; day++) {
       const iso = toIsoDate(new Date(year, month, day))
       const selected = iso === from || iso === to
@@ -412,7 +467,7 @@ export class DateRangePicker extends React.Component<
             outside,
           })}
           // Roving tabindex: one stop for the whole grid, arrows move inside it.
-          tabIndex={selected || (from === null && day === 1) ? 0 : -1}
+          tabIndex={day === tabStopDay ? 0 : -1}
           aria-pressed={selected}
           aria-label={formatIsoDate(iso, locale)}
           onClick={this.onDayClick}
