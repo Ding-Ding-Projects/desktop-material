@@ -1519,13 +1519,6 @@
       d: 'Visual evidence for issue #83 (restore the missing English and Cantonese funny-level sliders).',
     },
     {
-      t: 'Handoff closeout verification run',
-      h: 'verification/handoff-closeout-2026-08-02/run-manifest.html',
-      s: 'verification/handoff-closeout-2026-08-02/run-manifest.md',
-      c: 'verification',
-      d: 'Run ID: handoff-closeout-20260802',
-    },
-    {
       t: 'Built app launched on an off-screen desktop — 2026-07-28',
       h: 'verification/headless-desktop-launch-2026-07-28/',
       s: 'verification/headless-desktop-launch-2026-07-28/README.md',
