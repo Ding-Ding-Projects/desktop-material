@@ -7,6 +7,7 @@ import {
   BrowserOpenIntent,
   canCreateInternalBrowserTab,
   createAuthenticationPartition,
+  DefaultInternalBrowserContentTop,
   IInternalBrowserContentBounds,
   IInternalBrowserState,
   IInternalBrowserTabState,
@@ -104,7 +105,7 @@ export class InternalBrowserWindow {
   private activeTabId: string | null = null
   private contentBounds: Electron.Rectangle = {
     x: 0,
-    y: MinimumInternalBrowserContentTop,
+    y: DefaultInternalBrowserContentTop,
     width: 0,
     height: 0,
   }
@@ -809,8 +810,8 @@ export class InternalBrowserWindow {
   /**
    * The area a tab's native view should occupy.
    *
-   * `contentBounds` starts at zero and is only filled in once the chrome
-   * renderer measures its viewport and reports it over IPC. That report is
+   * `contentBounds` starts zero-sized at the comfortable chrome height and is
+   * only filled in once the renderer measures its viewport over IPC. That report is
    * driven by `requestAnimationFrame`, which a hidden BrowserWindow suspends —
    * so a tab created before the window is shown could sit at 0x0 forever and
    * render as a blank window. A zero-sized measurement therefore means "not
@@ -824,7 +825,8 @@ export class InternalBrowserWindow {
       this.contentBounds,
       width,
       height,
-      MinimumInternalBrowserContentTop
+      MinimumInternalBrowserContentTop,
+      DefaultInternalBrowserContentTop
     )
   }
 

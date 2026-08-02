@@ -6,6 +6,7 @@ import {
   canCreateInternalBrowserTab,
   createAuthenticationPartition,
   createInternalBrowserOAuthCallbackId,
+  DefaultInternalBrowserContentTop,
   getBrowserOpenModePreference,
   InternalBrowserBookmarksStorageKey,
   MaximumFindQueryLength,
@@ -460,22 +461,25 @@ describe('internal browser contracts', () => {
 
 describe('internal browser content bounds', () => {
   const measured = { x: 12, y: 140, width: 900, height: 500 }
-  const floor = MinimumInternalBrowserContentTop
+  const minimumTop = MinimumInternalBrowserContentTop
+  const unmeasuredTop = DefaultInternalBrowserContentTop
 
   it('parks an unmeasured view exactly where the chrome ends', () => {
     // A hidden BrowserWindow suspends requestAnimationFrame, so the first
     // report can arrive long after the tab exists. Zero means unmeasured, and
     // an unmeasured tab must still be visible.
     //
-    // The floor is the chrome's own height, so nothing is left over: a floor
-    // above it shows a blank strip across the top of every page.
-    assert.equal(floor, 107)
+    // Comfortable density is the safe pre-measurement default. Once measured,
+    // compact density may truthfully place the view at the lower 93px floor.
+    assert.equal(minimumTop, 93)
+    assert.equal(unmeasuredTop, 107)
     assert.deepStrictEqual(
       resolveInternalBrowserContentBounds(
-        { x: 0, y: floor, width: 0, height: 0 },
+        { x: 0, y: unmeasuredTop, width: 0, height: 0 },
         1160,
         780,
-        floor
+        minimumTop,
+        unmeasuredTop
       ),
       { x: 0, y: 107, width: 1160, height: 673 }
     )
@@ -483,14 +487,36 @@ describe('internal browser content bounds', () => {
 
   it('honours a real measurement', () => {
     assert.deepStrictEqual(
-      resolveInternalBrowserContentBounds(measured, 1160, 780, floor),
+      resolveInternalBrowserContentBounds(
+        measured,
+        1160,
+        780,
+        minimumTop,
+        unmeasuredTop
+      ),
       { x: 12, y: 140, width: 900, height: 500 }
+    )
+    assert.deepStrictEqual(
+      resolveInternalBrowserContentBounds(
+        { x: 0, y: 93, width: 1280, height: 627 },
+        1280,
+        720,
+        minimumTop,
+        unmeasuredTop
+      ),
+      { x: 0, y: 93, width: 1280, height: 627 }
     )
   })
 
   it('never lets a measurement escape the window or ride over the chrome', () => {
     assert.deepStrictEqual(
-      resolveInternalBrowserContentBounds(measured, 400, 300, floor),
+      resolveInternalBrowserContentBounds(
+        measured,
+        400,
+        300,
+        minimumTop,
+        unmeasuredTop
+      ),
       { x: 12, y: 140, width: 388, height: 160 }
     )
     assert.deepStrictEqual(
@@ -498,27 +524,29 @@ describe('internal browser content bounds', () => {
         { x: 0, y: 4, width: 900, height: 500 },
         1160,
         780,
-        floor
+        minimumTop,
+        unmeasuredTop
       ).y,
-      floor
+      minimumTop
     )
   })
 
   it('measures the height from where a clamped view actually lands', () => {
     // A measurement above the chrome is pushed down to the floor. Sizing the
     // view from the raw measurement instead handed it the full window height
-    // starting 107px down, so its bottom edge fell outside the window.
+    // starting below the floor, so its bottom edge fell outside the window.
     const clamped = resolveInternalBrowserContentBounds(
       { x: 0, y: 0, width: 1160, height: 780 },
       1160,
       780,
-      floor
+      minimumTop,
+      unmeasuredTop
     )
     assert.deepStrictEqual(clamped, {
       x: 0,
-      y: 107,
+      y: 93,
       width: 1160,
-      height: 673,
+      height: 687,
     })
     assert.equal(clamped.y + clamped.height, 780)
   })

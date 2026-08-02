@@ -3,7 +3,10 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
 import {
+  DefaultInternalBrowserContentTop,
   InternalBrowserChromeBorderHeight,
+  InternalBrowserCompactTabStripMinimumHeight,
+  InternalBrowserCompactToolbarMinimumHeight,
   InternalBrowserTabStripMinimumHeight,
   InternalBrowserToolbarMinimumHeight,
   MinimumInternalBrowserContentTop,
@@ -29,12 +32,23 @@ function declaredPixels(selector: string, property: string): number {
   return Number(rule?.[1])
 }
 
+function scopedDeclaredPixels(
+  scope: string,
+  selector: string,
+  property: string
+): number {
+  const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const rule = new RegExp(
+    `${escape(scope)}\\s*\\{[\\s\\S]*?${escape(
+      selector
+    )}\\s*\\{[^}]*?${property}: (\\d+)px;`
+  ).exec(style)
+  assert.notEqual(rule, null, `${scope} ${selector} should declare ${property}`)
+  return Number(rule?.[1])
+}
+
 describe('internal browser chrome styles', () => {
-  it('agrees with the floor the native view is parked at', () => {
-    // The floor exists to sit exactly where the chrome ends. These are the
-    // three declarations that decide where that is, so if one of them moves the
-    // constant has to move with it — otherwise every page gains (or loses) a
-    // strip of dead space along its top edge.
+  it('agrees with the comfortable fallback and compact measured floor', () => {
     assert.equal(
       declaredPixels('.internal-browser-tab-strip', 'min-height'),
       InternalBrowserTabStripMinimumHeight
@@ -48,7 +62,24 @@ describe('internal browser chrome styles', () => {
       /\.internal-browser-chrome\s*\{[^}]*?border-bottom: 1px solid/s
     )
     assert.equal(InternalBrowserChromeBorderHeight, 1)
-    assert.equal(MinimumInternalBrowserContentTop, 107)
+    assert.equal(DefaultInternalBrowserContentTop, 107)
+    assert.equal(
+      scopedDeclaredPixels(
+        "body[data-dm-tab-density='compact']",
+        '.internal-browser-tab-strip',
+        'min-height'
+      ),
+      InternalBrowserCompactTabStripMinimumHeight
+    )
+    assert.equal(
+      scopedDeclaredPixels(
+        "body[data-dm-toolbar-density='compact']",
+        '.internal-browser-toolbar',
+        'min-height'
+      ),
+      InternalBrowserCompactToolbarMinimumHeight
+    )
+    assert.equal(MinimumInternalBrowserContentTop, 93)
   })
 
   it('collapses only the label of the narrow external-open button', () => {

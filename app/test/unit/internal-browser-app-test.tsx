@@ -16,6 +16,45 @@ const sent = new Array<{
   readonly payload: unknown
 }>()
 
+interface IAnimationFrameHarness {
+  readonly pending: number
+  flush(): void
+  restore(): void
+}
+
+function installAnimationFrameHarness(): IAnimationFrameHarness {
+  const originalRequestAnimationFrame = globalThis.requestAnimationFrame
+  const originalCancelAnimationFrame = globalThis.cancelAnimationFrame
+  const callbacks = new Map<number, FrameRequestCallback>()
+  let nextFrameId = 0
+
+  globalThis.requestAnimationFrame = callback => {
+    const frameId = ++nextFrameId
+    callbacks.set(frameId, callback)
+    return frameId
+  }
+  globalThis.cancelAnimationFrame = frameId => {
+    callbacks.delete(frameId)
+  }
+
+  return {
+    get pending() {
+      return callbacks.size
+    },
+    flush() {
+      const pending = Array.from(callbacks.entries())
+      callbacks.clear()
+      for (const [frameId, callback] of pending) {
+        callback(frameId)
+      }
+    },
+    restore() {
+      globalThis.requestAnimationFrame = originalRequestAnimationFrame
+      globalThis.cancelAnimationFrame = originalCancelAnimationFrame
+    },
+  }
+}
+
 mock.module('../../src/lib/ipc-renderer', {
   namedExports: {
     on: (channel: string, listener: StateListener) => {
@@ -27,6 +66,29 @@ mock.module('../../src/lib/ipc-renderer', {
     },
     removeListener: (channel: string) => {
       listeners.delete(channel)
+    },
+  },
+})
+
+mock.module('../../src/internal-browser/internal-browser-appearance', {
+  namedExports: {
+    applyPersistedInternalBrowserAppearance: () => {
+      let customization: Record<string, unknown> = {}
+      try {
+        customization = JSON.parse(
+          localStorage.getItem('appearance-customization-v1') ?? '{}'
+        ) as Record<string, unknown>
+      } catch {
+        // Invalid persisted appearance values fall back to comfortable density.
+      }
+      document.body.setAttribute(
+        'data-dm-toolbar-density',
+        customization.toolbarDensity === 'compact' ? 'compact' : 'comfortable'
+      )
+      document.body.setAttribute(
+        'data-dm-tab-density',
+        customization.tabDensity === 'compact' ? 'compact' : 'comfortable'
+      )
     },
   },
 })
@@ -69,6 +131,62 @@ async function mountBrowserChrome() {
 }
 
 describe('the internal browser chrome', () => {
+  it('reports compact content bounds before announcing renderer readiness', async () => {
+    const appearanceStorageKey = 'appearance-customization-v1'
+    const previousAppearance = localStorage.getItem(appearanceStorageKey)
+    const originalBounds = HTMLElement.prototype.getBoundingClientRect
+    const frames = installAnimationFrameHarness()
+    let viewportY = 93
+    let view: ReturnType<typeof render> | null = null
+
+    localStorage.setItem(
+      appearanceStorageKey,
+      JSON.stringify({
+        version: 1,
+        toolbarDensity: 'compact',
+        tabDensity: 'compact',
+      })
+    )
+    HTMLElement.prototype.getBoundingClientRect = () => {
+      const compact =
+        document.body.getAttribute('data-dm-toolbar-density') === 'compact' &&
+        document.body.getAttribute('data-dm-tab-density') === 'compact'
+      const y = compact ? viewportY : 107
+      return new DOMRect(0, y, 1280, 720 - y)
+    }
+
+    try {
+      ;({ view } = await mountBrowserChrome())
+
+      assert.deepEqual(sent.slice(0, 2), [
+        {
+          channel: 'internal-browser-content-bounds',
+          payload: { x: 0, y: 93, width: 1280, height: 627 },
+        },
+        { channel: 'internal-browser-ready', payload: undefined },
+      ])
+
+      // The synchronous first report supplements rather than replaces the
+      // queued observer/resize path used for later layout changes.
+      assert.equal(frames.pending, 1)
+      viewportY = 96
+      frames.flush()
+      assert.deepEqual(sent.at(-1), {
+        channel: 'internal-browser-content-bounds',
+        payload: { x: 0, y: 96, width: 1280, height: 624 },
+      })
+    } finally {
+      view?.unmount()
+      frames.restore()
+      HTMLElement.prototype.getBoundingClientRect = originalBounds
+      if (previousAppearance === null) {
+        localStorage.removeItem(appearanceStorageKey)
+      } else {
+        localStorage.setItem(appearanceStorageKey, previousAppearance)
+      }
+    }
+  })
+
   it('holds a submitted address until the navigation actually commits', async () => {
     const { view, push, addressInput } = await mountBrowserChrome()
     push()

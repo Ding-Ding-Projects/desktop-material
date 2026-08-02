@@ -119,6 +119,11 @@ export class InternalBrowserApp extends React.Component<
       )
     }
     this.applyAppearance()
+    // Main may create and reveal the native content view as soon as readiness
+    // arrives. Measure synchronously after persisted density reaches the DOM so
+    // its first placement uses the real chrome height instead of the default
+    // density safety floor. The queued path below still handles later layout.
+    this.sendContentBounds()
 
     if (typeof ResizeObserver !== 'undefined') {
       this.resizeObserver = new ResizeObserver(this.queueBoundsUpdate)

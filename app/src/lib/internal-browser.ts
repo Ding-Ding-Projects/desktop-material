@@ -627,19 +627,26 @@ export function normalizeInternalBrowserOAuthCallbackReceipt(
  */
 export const InternalBrowserTabStripMinimumHeight = 48
 export const InternalBrowserToolbarMinimumHeight = 58
+export const InternalBrowserCompactTabStripMinimumHeight = 44
+export const InternalBrowserCompactToolbarMinimumHeight = 48
 export const InternalBrowserChromeBorderHeight = 1
 
 /**
- * Lowest position a tab's native view may be given.
+ * Comfortable-density position used until the renderer has measured itself.
  *
- * The native view is parked here whenever the renderer's measurement is
- * missing or implausibly small, so it has to be the height the chrome really
- * is. A floor above that height leaves a blank strip across the top of every
- * page — the chrome ends, and the page starts somewhere below it.
+ * A hidden BrowserWindow can suspend the renderer's first animation frame, so
+ * the native view needs an honest, immediately usable fallback. Comfortable is
+ * the persisted default density and therefore the safe pre-measurement value.
  */
-export const MinimumInternalBrowserContentTop =
+export const DefaultInternalBrowserContentTop =
   InternalBrowserTabStripMinimumHeight +
   InternalBrowserToolbarMinimumHeight +
+  InternalBrowserChromeBorderHeight
+
+/** Lowest measured position a tab's native view may be given. */
+export const MinimumInternalBrowserContentTop =
+  InternalBrowserCompactTabStripMinimumHeight +
+  InternalBrowserCompactToolbarMinimumHeight +
   InternalBrowserChromeBorderHeight
 
 /**
@@ -657,7 +664,8 @@ export function resolveInternalBrowserContentBounds(
   measured: IInternalBrowserContentBounds,
   contentWidth: number,
   contentHeight: number,
-  minimumTop: number
+  minimumTop: number,
+  unmeasuredTop: number = minimumTop
 ): IInternalBrowserContentBounds {
   const width = Math.max(0, contentWidth)
   const height = Math.max(0, contentHeight)
@@ -665,9 +673,9 @@ export function resolveInternalBrowserContentBounds(
   if (measured.width <= 0 || measured.height <= 0) {
     return {
       x: 0,
-      y: minimumTop,
+      y: unmeasuredTop,
       width,
-      height: Math.max(0, height - minimumTop),
+      height: Math.max(0, height - unmeasuredTop),
     }
   }
 
