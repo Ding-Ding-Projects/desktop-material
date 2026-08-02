@@ -4373,11 +4373,12 @@ toggle. Every Alt release consumes its pending sequence and clears the menu
 highlight path. This is covered as a deterministic keyboard-state contract;
 current end-to-end headless interaction evidence has not yet been recorded.
 
-The manual **Super Express Release** lane now runs the complete unit and script
-suites before its production build/package. It still skips lint, E2E, and the
-history-aware notes generator, and release pull requests target the Windows
-product's `main` default branch. The workflow contract checks test-before-build
-ordering and the `main` base.
+At this July checkpoint, the manual **Super Express Release** lane ran the
+complete unit and script suites before its production build/package. That
+test-before-build contract was explicitly superseded on August 2 by the
+owner-directed zero-test emergency lane recorded later in this handoff.
+Release pull requests continue to target the Windows product's `main` default
+branch.
 
 **Local continuation acceptance is complete; publication is pending.** The exact
 unpackaged production build passed through the fixed Lowlevel MCP endpoint in
@@ -8111,3 +8112,80 @@ Fixes the user-reported unrecoverable dialog from build `zadtrqvojl`:
   to fail against the pre-fix code.
 - Docs: `docs/features/quality-and-reliability/peer-closed-stream-writes.md`
   plus its category index entry.
+
+## 2026-08-02 closeout publication, CI recovery, and roadmap foundations
+
+The closeout range from `b637f07e0e` through `55ecff5946` is published on
+`origin/main`. It includes the completed bug/UI checkpoints, the bounded
+roadmap foundations listed below, and the release/installer corrections the
+owner requested. The exact run record is
+`docs/verification/handoff-closeout-2026-08-02/run-manifest.md`.
+
+### Release and CI behavior
+
+- **Super Express Release is now a genuine zero-test emergency lane.** It goes
+  directly through build, package, asset validation, line-count/release-note
+  generation, and release publication. It does not run unit, script, TUI,
+  lint, type, parity, or smoke tests.
+- **Normal CI still fails when tests fail, but packaging is no longer lost.**
+  Windows packaging and installer/portable artifact uploads run under
+  `always()` after an earlier test failure, while the job's final verdict stays
+  red. Remote arm64 artifact `8840399524` and Express installer artifact
+  `8840120256` are concrete failed-test-path receipts.
+- Packaged Electron startup was repaired by keeping the main-process setup
+  runner off the renderer/store/Copilot barrel. E2E job
+  [`91555720873`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30770121458/job/91555720873)
+  built, packaged, installed, and passed **10/10** packaged tests in 32 seconds.
+- The Windows silent installer now verifies the exact requested version after
+  install/update, treats an already-absent app as an idempotent uninstall,
+  stays current-user and hidden, and fails closed on mismatched postconditions.
+  PowerShell 5.1 and 7 contract tests pass. The source wiki and the real GitHub
+  wiki are synchronized; current wiki commit `dc4f9548bb` also carries the
+  zero-test Super Express correction.
+- Every real Actions workflow/run list now shows a truthful elapsed state. The
+  focused elapsed-time/UI gate passes **28/28**.
+
+### Roadmap foundation receipts
+
+These commits are foundations, not declarations that the corresponding open
+roadmap issue is finished:
+
+| Roadmap | Published foundation |
+| --- | --- |
+| R1 | server trust boundary, restart-safe provisioning, Windows provisioning driver, and Docker build context (`6839db9256`, `e014b3676c`, `a229ddabca`, `1547cb97f3`) |
+| R2 | fail-closed OAuth authority core (`74d8ee7eb8`) |
+| R3/R8 | continuous graph actions and truthful lane visibility (`f3e386edbc`, `22a44bceed`) |
+| R4 | operational Agents/signing surfaces and secure setup commands (`7373ba0afa`, `4613d62db8`) |
+| R6 | immutable, native-Windows-accurate conflict forecast (`55ecff5946`) |
+| R7 | guarded editable three-pane merge editor (`f52d815b2a`) |
+| R9 | immutable commit-composition plan (`482fd3bb3b`) |
+| R10 | safe reviewed change-summary contract (`d6ccccaa14`) |
+| R11 | Launchpad model, bounded preferences, and accessible view (`e19ccbc7c9`, `cd00c6c152`) |
+| R12 | pull-request review workspace (`a1a5e87e11`) |
+| R14 | fail-closed AI policy boundary (`f0fa06da2a`) |
+| R15 | repository refresh coordinator and integrated-terminal renderer (`0a78b569d5`, `c8abe88858`) |
+| R16 | provider sign-in redaction and strict issue-tracker identity/config (`8f94d5617c`, `229978e75f`) |
+| R17 | interactive-rebase plan/editor plus history lane controls (`cb4c38a5f4`, `a12756271d`, `22a44bceed`) |
+| R18 | canonical Cloud Patch artifact and encrypted self-hosted store (`e8cc4a1314`, `f895bf7aad`, `8abed0ce7e`) |
+
+Repository TypeScript is green at the last product commit. The R6 gate passes
+**15/15**, and an independent native `CompareStringOrdinal(ignoreCase=TRUE)`
+sweep covered all **1,112,064** Unicode scalar values with **1,946** aliases and
+zero mapper mismatches. R10 passes **24/24** and R16 passes **21/21**.
+
+### Deliberately open acceptance work
+
+Issues #118–#135 stay open wherever the roadmap table says an adapter, server
+route, live UI, or capture is pending. A foundation test is not a substitute
+for a reachable feature. In particular, the requested README/docs/wiki image
+for each new roadmap feature is **not claimed**: those images must come from
+the real built Windows surface through the off-screen Lowlevel capture harness
+after each feature is wired. No mockup, design image, or unrelated screenshot
+was substituted.
+
+A separate linked worktree at
+`C:\Users\cntow\Documents\GitHub\desktop-material-linux-tui-revival` contains
+uncommitted TUI work on `codex/revive-linux-tui`. Its recorded branch tip is an
+ancestor of `origin/main`, but its working files are not clean or proven
+complete. They were preserved exactly and were neither staged, committed,
+merged, nor deleted by this Windows closeout.

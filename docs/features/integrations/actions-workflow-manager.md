@@ -2,17 +2,31 @@
 
 The **Workflows** tab of the Actions view lists every workflow in the
 repository, with a switch per row to enable or disable it, a filter bar wired to
-the full regex builder, and — for each workflow — how long its most recent
-completed run took.
+the full regex builder, and — for each workflow — the truthful timing state of
+its newest loaded run. The run browser and workflow picker used to launch a run
+show the same timing contract on every row.
 
 Actions 版面嘅 Workflows 分頁列晒成個 repo 嘅 workflow，逐個有開關掣，仲會話你
-知每個上次行咗幾耐，唔使開網頁逐個㩒入去數。
+知每個係行完、行緊、等緊，定暫時量唔到，唔使開網頁逐個㩒入去數。
 
 ## Behavior and configuration
 
-Each row shows the workflow's icon, its `name:`, and a secondary line reading
-`<file> · <state>`, plus `· last run <duration>` when a completed run of that
-workflow has been loaded.
+Each manager row shows the workflow's icon, its `name:`, and a secondary line
+reading `<file> · <state>`, followed by one of these explicit states:
+
+- `Last run <duration>` for the newest completed run.
+- `Current run <duration>` for an in-progress run.
+- `Latest run: waiting to start` for queued, waiting, pending, or requested
+  work.
+- `Latest run time unavailable` when provider timestamps are missing,
+  malformed, or reversed.
+- `No loaded run time` when the loaded page has no run for that workflow.
+
+The main run browser reports `Elapsed <duration>`, `Elapsed: waiting to start`,
+or `Elapsed: unavailable` on every run row. The workflow picker in **Run
+workflow** uses the same five workflow-level states, so opening a second list
+does not make timing disappear. Reviewed bulk re-run/cancel lists retain the
+same per-run elapsed label in their confirmation dialog.
 
 The duration answers the question a workflow list is usually opened to answer:
 *which of these is the slow one?* Before it existed, comparing two workflows'
@@ -25,14 +39,21 @@ only. The filter mode persists per surface under the `actions-workflows` id.
 
 ## How the duration is derived
 
-GitHub's workflow-run resource reports no explicit duration, so
-`getLastRunDuration` (`app/src/ui/actions/workflow-manager.tsx`) computes
-`updated_at − created_at` of the **newest completed run** whose `workflow_id`
-matches the row. This is the same span the Actions web UI presents, and it
-includes queued time — which is the honest answer to "how long until it was
-done", not merely how long a runner was busy.
+GitHub's workflow-run resource reports no explicit duration or `completed_at`.
+The shared model in
+`app/src/lib/actions-workflow-run-elapsed.ts` therefore uses:
 
-`formatRunDuration` renders that span the way a glance wants it:
+1. `run_started_at` as the preferred execution boundary.
+2. `created_at` only when the provider omits `run_started_at` (older provider
+   adapters and fixtures).
+3. `updated_at` as the most precise available completion boundary.
+
+The model strictly validates RFC 3339 timestamps and calendar fields. A
+present-but-malformed `run_started_at` is not silently replaced with queued
+time. For an in-progress run, the end boundary is the current injected wall
+clock.
+
+`formatWorkflowRunElapsed` renders that span the way a glance wants it:
 
 | Span | Rendered |
 | --- | --- |
@@ -41,25 +62,34 @@ done", not merely how long a runner was busy.
 | minutes and seconds | `4m 12s` |
 | whole hours | `1h` |
 | hours and minutes | `1h 15m` |
+| days | `1d 1h 1m 1s` |
 
-A run that completed inside the same second reports `1s` rather than `0s`;
-zero would read as "did not run".
+A run that completed inside the same second reports `<1s` rather than the false
+`0s` or an invented full second.
+
+While a mounted list has a running row, one list-level timer updates all of its
+elapsed labels once per second. Workflow-level lists schedule that timer only
+when the newest run of an actually rendered, filter-matching workflow is
+running; an older superseded run cannot keep it alive. Filter changes resync the
+timer immediately. The timer pauses while the document is hidden, restarts with
+a fresh clock reading when visible, and is cleared when the list unmounts or the
+final visible active run becomes terminal. Completed and not-started lists
+schedule no timer.
 
 ## Failure modes
 
-The duration is **omitted entirely** rather than guessed whenever it cannot be
-stated truthfully:
+The duration is **never omitted or replaced with zero** when it cannot be
+stated truthfully. Rows instead say whether the run is waiting to start, timing
+is unavailable, or no matching run has been loaded. Missing boundaries,
+non-RFC-3339 values, impossible calendar dates, a future start, and an end that
+precedes its start or lies in the future all fail closed to unavailable. If any
+matching candidate has an unorderable creation timestamp, the workflow-level
+result is unavailable; it never falls back to an older run and labels stale
+timing as latest.
 
-- No run of that workflow has been loaded yet.
-- Every loaded run is still queued or in progress — a partial time would read
-  as a finished one.
-- The run reports no `updated_at`.
-- Either timestamp fails to parse, or the end precedes the start (clock skew);
-  a negative duration is discarded, never shown.
-
-Because it is derived from the runs already loaded into the Actions view, the
-figure reflects the loaded page of run history. Loading more runs can reveal a
-more recent completed run and update the row.
+Because it is derived from runs already loaded into the Actions view, the
+figure reflects that bounded provider window. A refresh or store update replaces
+it when a newer run arrives; older history is never presented as newer.
 
 ## Force-cancelling a stuck run
 
@@ -98,12 +128,13 @@ Behavioural guarantees:
 
 ## Accessibility and language
 
-The duration is part of the row's existing secondary line, so the row height,
-switch target, and focus order are unchanged. It is ordinary text — readable by
-a screen reader in sequence with the file name and state — and carries no
-`title` tooltip, which would be invisible to keyboard and assistive-technology
-users. It is tinted with the primary color and semibold rather than enlarged,
-keeping it subordinate to the workflow name.
+Elapsed text wraps at narrow widths and in bilingual mode instead of clipping
+the file name, state, or adjacent action. It carries no `title` tooltip. The
+visible copy follows English, playful Hong Kong Cantonese, or bilingual mode
+live; a separate screen-reader string uses the active primary language so a
+bilingual row is not announced twice. Timer updates are not an `aria-live`
+region, avoiding a new announcement every second. Existing row roles, selection
+semantics, switch targets, and focus order are unchanged.
 
 ## Verification
 
@@ -112,10 +143,16 @@ a forced request POSTs to `force-cancel` while a concurrent normal request still
 POSTs to `cancel`, the two are not merged, and the forced request's progress
 messages identify themselves as forced and never as normal.
 
-`app/test/unit/actions/workflow-run-duration-test.ts` covers the formatter
-across every boundary in the table above, newest-completed-run selection across
-multiple workflows, and each omission case: no runs, an in-progress run, a
-missing `updated_at`, an unparseable timestamp, and a reversed interval.
+`app/test/unit/actions/workflow-run-duration-test.ts` covers formatter
+boundaries, strict timestamps, preferred/fallback starts, completed and running
+calculations, newest-run selection, pending states, missing data, future starts,
+and reversed intervals.
+
+`app/test/unit/ui/actions-parity-test.tsx` and
+`app/test/unit/workflow-dispatch-dialog-test.tsx` cover all row labels, live
+clock updates, bounded scheduling, hidden-document pause, unmount cleanup,
+language switching, concise accessible copy, and the manager/dispatch/run-list
+surfaces.
 
 ## Suggested articles
 

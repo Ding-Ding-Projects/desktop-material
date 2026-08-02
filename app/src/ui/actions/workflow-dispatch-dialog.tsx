@@ -1,7 +1,7 @@
 import * as React from 'react'
 import classNames from 'classnames'
 import { Repository } from '../../models/repository'
-import { IAPIWorkflow } from '../../lib/api'
+import { IAPIWorkflow, IAPIWorkflowRun } from '../../lib/api'
 import {
   IWorkflowDispatchDefinition,
   IWorkflowDispatchInput,
@@ -10,7 +10,13 @@ import {
 } from '../../lib/actions-workflow-inputs'
 import { ActionsStore } from '../../lib/stores/actions-store'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
-import { t } from '../../lib/i18n'
+import {
+  getPersistedLanguageMode,
+  getPrimaryLanguageMode,
+  LanguageModeChangedEvent,
+  t,
+  translate,
+} from '../../lib/i18n'
 import { Select } from '../lib/select'
 import { TextBox } from '../lib/text-box'
 import { FilterModeControl } from '../lib/filter-mode-control'
@@ -22,6 +28,15 @@ import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { trapActionsDialogFocus } from './actions-dialog-focus'
 import { getWorkflowFileName, getWorkflowGlyph } from './workflow-templates'
+import {
+  DefaultWorkflowRunElapsedClock,
+  formatWorkflowRunElapsed,
+  getLatestWorkflowRunElapsed,
+  hasRunningLatestWorkflowRun,
+  IWorkflowRunElapsedClock,
+  WorkflowRunElapsedRefreshIntervalMs,
+} from '../../lib/actions-workflow-run-elapsed'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 
 /** How many quick-pick ref chips the popover shows before falling back. */
 export const WorkflowDispatchRefChipMaximum = 6
@@ -36,6 +51,7 @@ export const WorkflowDispatchPickerSearchSurfaceId = 'actions-workflow-dispatch'
 interface IWorkflowDispatchDialogProps {
   readonly repository: Repository
   readonly workflows: ReadonlyArray<IAPIWorkflow>
+  readonly runs: ReadonlyArray<IAPIWorkflowRun>
   readonly initialWorkflowId: number | null
   readonly branchNames: ReadonlyArray<string>
   readonly initialRef: string
@@ -46,6 +62,8 @@ interface IWorkflowDispatchDialogProps {
     inputs: Readonly<Record<string, string>>
   ) => Promise<void>
   readonly onDismissed: () => void
+  /** Deterministic clock/scheduler boundary for live elapsed labels. */
+  readonly elapsedClock?: IWorkflowRunElapsedClock
 }
 
 interface IWorkflowDispatchDialogState {
@@ -66,6 +84,9 @@ interface IWorkflowDispatchDialogState {
 
   /** Whether substring/regex matching is case sensitive. */
   readonly filterCaseSensitive: boolean
+
+  readonly now: number
+  readonly languageMode: LanguageMode
 }
 
 export class WorkflowDispatchDialog extends React.Component<
@@ -74,6 +95,7 @@ export class WorkflowDispatchDialog extends React.Component<
 > {
   private dialog: HTMLFormElement | null = null
   private previousFocus: HTMLElement | null = null
+  private elapsedInterval: number | null = null
 
   /** Live references to each rendered option row, keyed by workflow id. */
   private readonly rowRefs = new Map<number, HTMLButtonElement>()
@@ -98,7 +120,13 @@ export class WorkflowDispatchDialog extends React.Component<
         WorkflowDispatchPickerSearchSurfaceId
       ),
       filterCaseSensitive: false,
+      now: this.clock.now(),
+      languageMode: getPersistedLanguageMode(),
     }
+  }
+
+  private get clock(): IWorkflowRunElapsedClock {
+    return this.props.elapsedClock ?? DefaultWorkflowRunElapsedClock
   }
 
   public componentDidMount() {
@@ -108,11 +136,87 @@ export class WorkflowDispatchDialog extends React.Component<
         : null
     this.loadDefinition()
     this.dialog?.focus()
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+    document.addEventListener('visibilitychange', this.onVisibilityChanged)
+    this.syncElapsedInterval()
+  }
+
+  public componentDidUpdate(
+    prevProps: IWorkflowDispatchDialogProps,
+    prevState: IWorkflowDispatchDialogState
+  ) {
+    if (prevProps.elapsedClock !== this.props.elapsedClock) {
+      this.clearElapsedInterval(prevProps.elapsedClock)
+      this.setState({ now: this.clock.now() })
+    }
+    if (
+      prevProps.runs !== this.props.runs ||
+      prevProps.workflows !== this.props.workflows ||
+      prevState.filterText !== this.state.filterText ||
+      prevState.filterMode !== this.state.filterMode ||
+      prevState.filterCaseSensitive !== this.state.filterCaseSensitive ||
+      prevProps.elapsedClock !== this.props.elapsedClock
+    ) {
+      this.syncElapsedInterval()
+    }
   }
 
   public componentWillUnmount() {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+    document.removeEventListener('visibilitychange', this.onVisibilityChanged)
+    this.clearElapsedInterval()
     if (this.previousFocus?.isConnected) {
       this.previousFocus.focus()
+    }
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    this.setState({
+      languageMode: normalizeLanguageMode(
+        (event as CustomEvent<unknown>).detail
+      ),
+    })
+  }
+
+  private onVisibilityChanged = () => {
+    if (document.visibilityState !== 'hidden') {
+      this.setState({ now: this.clock.now() })
+    }
+    this.syncElapsedInterval()
+  }
+
+  private onElapsedInterval = () => this.setState({ now: this.clock.now() })
+
+  private syncElapsedInterval() {
+    const visibleWorkflows = this.getVisibleWorkflows().workflows
+    const shouldRun =
+      document.visibilityState !== 'hidden' &&
+      hasRunningLatestWorkflowRun(
+        visibleWorkflows,
+        this.props.runs,
+        this.state.now
+      )
+    if (shouldRun && this.elapsedInterval === null) {
+      this.elapsedInterval = this.clock.setInterval(
+        this.onElapsedInterval,
+        WorkflowRunElapsedRefreshIntervalMs
+      )
+    } else if (!shouldRun) {
+      this.clearElapsedInterval()
+    }
+  }
+
+  private clearElapsedInterval(clock = this.props.elapsedClock) {
+    if (this.elapsedInterval !== null) {
+      const elapsedClock = clock ?? DefaultWorkflowRunElapsedClock
+      elapsedClock.clearInterval(this.elapsedInterval)
+      this.elapsedInterval = null
     }
   }
 
@@ -328,6 +432,35 @@ export class WorkflowDispatchDialog extends React.Component<
     const stateLabel = active
       ? t('workflowDispatch.stateActive')
       : t('workflowDispatch.stateDisabled')
+    const elapsed = getLatestWorkflowRunElapsed(
+      workflow,
+      this.props.runs,
+      this.state.now
+    )
+    const durationVariables =
+      elapsed.kind === 'completed' || elapsed.kind === 'running'
+        ? { duration: formatWorkflowRunElapsed(elapsed.milliseconds) }
+        : undefined
+    const elapsedKey =
+      elapsed.kind === 'completed'
+        ? 'actions.elapsed.workflowCompleted'
+        : elapsed.kind === 'running'
+        ? 'actions.elapsed.workflowRunning'
+        : elapsed.kind === 'pending'
+        ? 'actions.elapsed.workflowPending'
+        : elapsed.kind === 'unavailable'
+        ? 'actions.elapsed.workflowUnavailable'
+        : 'actions.elapsed.workflowNone'
+    const elapsedLabel = translate(
+      elapsedKey,
+      this.state.languageMode,
+      durationVariables
+    )
+    const elapsedAccessibleLabel = translate(
+      elapsedKey,
+      getPrimaryLanguageMode(this.state.languageMode),
+      durationVariables
+    )
     return (
       <button
         key={workflow.id}
@@ -349,6 +482,10 @@ export class WorkflowDispatchDialog extends React.Component<
         <span className="workflow-dispatch-option-text">
           <span className="workflow-dispatch-option-name">{workflow.name}</span>
           <span className="workflow-dispatch-option-file">{fileName}</span>
+          <span className="workflow-dispatch-option-elapsed" aria-hidden="true">
+            {elapsedLabel}
+          </span>
+          <span className="sr-only">{elapsedAccessibleLabel}</span>
         </span>
         <span
           className={classNames('workflow-dispatch-option-state', {

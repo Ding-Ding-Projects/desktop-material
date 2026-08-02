@@ -20,24 +20,24 @@ ahead of any single feature that depends on it.
 
 | # | Item | State |
 | --- | --- | --- |
-| [R1](https://github.com/Ding-Ding-Projects/desktop-material/issues/118) | Self-hosted Docker server and its guided install wizard | not started — **critical path** |
-| [R2](https://github.com/Ding-Ding-Projects/desktop-material/issues/119) | Custom Docker OAuth server (SSO, multi-domain SSO, SAML) | not started, depends on R1 |
-| [R3](https://github.com/Ding-Ding-Projects/desktop-material/issues/120) | History graph view: Branch/Tag ∣ Graph ∣ Commit Message | in progress |
-| [R4](https://github.com/Ding-Ding-Projects/desktop-material/issues/121) | Agents panel: fleet view, session creator, worktree status | in progress |
-| [R5](https://github.com/Ding-Ding-Projects/desktop-material/issues/122) | Command palette expansion (45 audited additions, plus the git half) | audited, not added |
-| [R6](https://github.com/Ding-Ding-Projects/desktop-material/issues/123) | Proactive conflict detection and predictive merge alerts | not started |
-| [R7](https://github.com/Ding-Ding-Projects/desktop-material/issues/124) | AI merge conflict resolution, with an editable output pane | not started |
-| [R8](https://github.com/Ding-Ding-Projects/desktop-material/issues/125) | Commit context menu in the graph | not started |
-| [R9](https://github.com/Ding-Ding-Projects/desktop-material/issues/126) | Compose commits with AI | not started |
-| [R10](https://github.com/Ding-Ding-Projects/desktop-material/issues/127) | Summarize past changes with AI | not started |
-| [R11](https://github.com/Ding-Ding-Projects/desktop-material/issues/128) | Launchpad, with pinning and snoozing | not started |
-| [R12](https://github.com/Ding-Ding-Projects/desktop-material/issues/129) | In-app pull request review and internal code suggestions | not started |
+| [R1](https://github.com/Ding-Ding-Projects/desktop-material/issues/118) | Self-hosted Docker server and its guided install wizard | trust, provisioning, and build-context foundations implemented; guided UI and live transport pending — **critical path** |
+| [R2](https://github.com/Ding-Ding-Projects/desktop-material/issues/119) | Custom Docker OAuth server (SSO, multi-domain SSO, SAML) | authority foundation implemented; server flows and capture pending, depends on R1 |
+| [R3](https://github.com/Ding-Ding-Projects/desktop-material/issues/120) | History graph view: Branch/Tag ∣ Graph ∣ Commit Message | graph, context actions, and lane visibility implemented; final built-app capture pending |
+| [R4](https://github.com/Ding-Ding-Projects/desktop-material/issues/121) | Agents panel: fleet view, session creator, worktree status | operational foundation implemented; final acceptance and capture pending |
+| [R5](https://github.com/Ding-Ding-Projects/desktop-material/issues/122) | Command palette expansion (45 audited additions, plus the git half) | catalog audited and partial routes added; remaining live commands and capture pending |
+| [R6](https://github.com/Ding-Ding-Projects/desktop-material/issues/123) | Proactive conflict detection and predictive merge alerts | native-accurate forecast foundation implemented; observation adapter, live warning UI, and capture pending |
+| [R7](https://github.com/Ding-Ding-Projects/desktop-material/issues/124) | AI merge conflict resolution, with an editable output pane | guarded three-pane editor implemented; conflict-flow integration and capture pending |
+| [R8](https://github.com/Ding-Ding-Projects/desktop-material/issues/125) | Commit context menu in the graph | shared graph/list context actions implemented and tested; built-app capture pending |
+| [R9](https://github.com/Ding-Ding-Projects/desktop-material/issues/126) | Compose commits with AI | immutable composition-plan foundation implemented; policy-backed generation UI and capture pending |
+| [R10](https://github.com/Ding-Ding-Projects/desktop-material/issues/127) | Summarize past changes with AI | safe reviewed-result foundation implemented; policy-backed adapter/UI and capture pending |
+| [R11](https://github.com/Ding-Ding-Projects/desktop-material/issues/128) | Launchpad, with pinning and snoozing | model, bounded preferences, and accessible view implemented; live adapters/navigation/capture pending |
+| [R12](https://github.com/Ding-Ding-Projects/desktop-material/issues/129) | In-app pull request review and internal code suggestions | review workspace implemented; provider suggestion integration and capture pending |
 | [R13](https://github.com/Ding-Ding-Projects/desktop-material/issues/130) | Team collaboration: shared workspaces, insights, presence, deep links | not started, depends on R1 |
-| [R14](https://github.com/Ding-Ding-Projects/desktop-material/issues/131) | Admin and security controls, including AI security controls | not started, gates R7/R9/R10/R12 |
-| [R15](https://github.com/Ding-Ding-Projects/desktop-material/issues/132) | Integrated terminal with a live synchronized graph | not started |
-| [R16](https://github.com/Ding-Ding-Projects/desktop-material/issues/133) | Issue tracker integrations: Jira, GitLab, Trello | not started |
-| [R17](https://github.com/Ding-Ding-Projects/desktop-material/issues/134) | Parity gaps: lane hiding/soloing, SSH keygen, interactive rebase, Gitflow, in-app editor | not started |
-| [R18](https://github.com/Ding-Ding-Projects/desktop-material/issues/135) | Cloud Patches, self-hosted on your own server | not started, depends on R1 |
+| [R14](https://github.com/Ding-Ding-Projects/desktop-material/issues/131) | Admin and security controls, including AI security controls | fail-closed AI policy foundation implemented; trusted main-process wiring and admin UI pending, gates R7/R9/R10/R12 |
+| [R15](https://github.com/Ding-Ding-Projects/desktop-material/issues/132) | Integrated terminal with a live synchronized graph | renderer/session and refresh-coordinator foundations implemented; ConPTY/IPC/live-graph wiring and capture pending |
+| [R16](https://github.com/Ding-Ding-Projects/desktop-material/issues/133) | Issue tracker integrations: Jira, GitLab, Trello | strict provider identity/config foundation implemented; authenticated clients, UI, and capture pending |
+| [R17](https://github.com/Ding-Ding-Projects/desktop-material/issues/134) | Parity gaps: lane hiding/soloing, SSH keygen, interactive rebase, Gitflow, in-app editor | lane controls and interactive-rebase model/editor implemented; SSH keygen, Gitflow, in-app editor, wiring, and capture pending |
+| [R18](https://github.com/Ding-Ding-Projects/desktop-material/issues/135) | Cloud Patches, self-hosted on your own server | canonical artifact and encrypted store foundations implemented; authenticated HTTP/apply/UI/capture pending, depends on R1 |
 
 ## August 2 fleet bug hunt — **23 defects fixed; a handful named and left open**
 
@@ -1146,9 +1146,10 @@ open.
 - Bare Alt uses an explicit one-press state machine, so repeats, other keys,
   modifiers, prevented events, modal transitions, and out-of-order releases do
   not leak into the next menu toggle.
-- Super Express Release now runs complete unit and script suites before build/
-  package while continuing to skip lint, E2E, and history-generated notes;
-  release pull requests target `main`.
+- At this July checkpoint, Super Express ran unit and script suites before its
+  build/package. The owner explicitly superseded that contract on August 2:
+  the emergency lane now runs **zero tests** and goes directly to build,
+  package, validation, and release; release pull requests still target `main`.
 - The previously published baseline `7edca120c5` passed
   [CI `29895625564`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29895625564),
   [code scanning `29895625583`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29895625583),
@@ -1216,9 +1217,9 @@ six-asset Windows x64 Release are verified for the `main` push recorded in
   source before writing pointers, and records a version-2 manifest of original
   nested paths and flat asset ranges.
 - **Super Express Release fast lane**: A workflow_dispatch-only emergency
-  release path checks out the exact SHA, restores the dependency cache, runs the
-  complete unit and script suites, then builds and packages Windows x64
-  directly. It skips lint, E2E, and history-generated notes, verifies the
+  release path checks out the exact SHA, restores the dependency cache, and
+  builds/packages Windows x64 directly. It runs no unit, script, TUI, lint,
+  type, parity, smoke, or E2E tests and skips history-generated notes. It verifies the
   Squirrel/installer/portable payload, writes a local note from the checked-out
   commit, preserves an uncompressed artifact, and publishes one uniquely tagged
   release.
@@ -1472,7 +1473,7 @@ The following items track the current cycle's progress against all six acceptanc
 | Feature / Gate | Status | Key Evidence |
 |---|---|---|
 | Cross-lane automatic updater migration | **Complete; both release lanes and installed UI verified** | `241cc90` introduced the shared lane and `04246fdf` corrected the legacy integer-overflow boundary. CI `29977738533`, installer run `29978844761`, Super Express run `29980281736`, two six-asset exact-target `z…` Releases, automatic `s000000000201` migration, and the real download/ready UI are verified. |
-| July 22 tab groups, palette, Alt, and release gates | **Complete; source publication verified** | Source contracts cover persistence, pin-boundary safety, portable-export stripping, three language modes, rich palette rows/appearance, deterministic bare-Alt sequencing, Super Express test-before-build, and release-PR `main` targeting. The production build and off-screen acceptance passed; source `f7b4760a13` passed CI, CodeQL, Pages, synchronized wiki publication, and exact-tag six-asset Release verification. |
+| July 22 tab groups, palette, Alt, and release gates | **Complete; source publication verified** | Source contracts cover persistence, pin-boundary safety, portable-export stripping, three language modes, rich palette rows/appearance, deterministic bare-Alt sequencing, the then-current Super Express test-before-build contract, and release-PR `main` targeting. The production build and off-screen acceptance passed; source `f7b4760a13` passed CI, CodeQL, Pages, synchronized wiki publication, and exact-tag six-asset Release verification. The owner superseded only the emergency-lane test contract on August 2 with an explicit zero-test direct release path. |
 | M26 Cheap LFS / Express Release | **Complete; live public/private UI and source publication verified** | Retained public/private repositories contain pushed UI-created raw pointers and exact 1 MiB draft-release assets. Public automatic setup and private explicit opt-in produced successful Actions runs `29969707165` and `29969957449`; each bot commit adopted a verified 1,033-byte `part-deflate` asset while retaining raw history. Both compressed pointers restored through the production UI to SHA-256 `30e14955…`; failed public run `29967844734` left its raw pointer cloneable and UI-materializable. Source `f7b4760a13` passed CI, CodeQL, Pages/wiki publication, cleanup audit, and exact-tag six-asset Release verification. |
 | July 21 Settings queue and mobile connection | **Implementation complete** | Verified empty-account copy, persisted-policy hydration, required-directory validation, parallel/sequential changes, enable/disable dispatch, English/Cantonese/bilingual rendering, responsive-surface registration |
 | July 21 responsiveness hardening | **Local implementation complete** | Deterministic regressions verified for remote scan terminator, late termination rejection, same-URL proxy coalescing, strict clone barrier, every prompt family, 500-update burst, failed request-ID reuse, and 25 Markdown reloads |

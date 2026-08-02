@@ -429,18 +429,20 @@
 }
 
 .actions-workflow-row-file {
+  min-width: 0;
   color: var(--md-sys-color-on-surface-variant);
   font-family: var(--font-family-monospace);
   font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
-// The last completed run's duration, carried on the same line as the file and
-// state so the row height is unchanged. Tinted rather than sized up: it is the
-// answer to "how long does this one take?", not the row's primary label.
+// The newest run's truthful timing state, carried on the same line as the file
+// and workflow state. It can wrap for bilingual and narrow-window copy.
 .actions-workflow-row-duration {
   color: var(--md-sys-color-primary);
   font-weight: 650;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .actions-workflow-switch {
@@ -619,6 +621,10 @@
   &:hover {
     border-radius: 18px;
     background: var(--md-sys-color-surface-container-high);
+
+    .actions-run-elapsed {
+      color: var(--md-sys-color-on-surface);
+    }
   }
 
   &:active {
@@ -627,6 +633,10 @@
 
   &.selected {
     background: var(--md-sys-color-secondary-container);
+
+    .actions-run-elapsed {
+      color: var(--md-sys-color-on-secondary-container);
+    }
   }
 }
 
@@ -653,6 +663,11 @@
   border-radius: 12px;
   background: var(--md-sys-color-surface-container-low);
   font-size: 11px;
+
+  li {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
 }
 
 .actions-run-select {
@@ -779,7 +794,13 @@
   align-items: center;
   color: var(--md-sys-color-on-surface-variant);
   font-size: 11px;
-  opacity: 0.85;
+}
+
+.actions-run-elapsed {
+  color: var(--md-sys-color-primary);
+  font-weight: 650;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .branch-chip {
@@ -2010,6 +2031,15 @@
     text-overflow: ellipsis;
   }
 
+  .workflow-dispatch-option-elapsed {
+    min-width: 0;
+    color: var(--md-sys-color-primary);
+    font-size: 11px;
+    font-weight: 650;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   .workflow-dispatch-option-state {
     flex: 0 0 auto;
     padding: 2px 8px;
@@ -2029,6 +2059,10 @@
 
   &:hover {
     background: var(--md-sys-color-surface-container-high);
+
+    .workflow-dispatch-option-elapsed {
+      color: var(--md-sys-color-on-surface);
+    }
   }
 
   &.selected {
@@ -2036,7 +2070,8 @@
     background: var(--md-sys-color-primary-container);
 
     .workflow-dispatch-option-icon,
-    .workflow-dispatch-option-file {
+    .workflow-dispatch-option-file,
+    .workflow-dispatch-option-elapsed {
       color: var(--md-sys-color-on-primary-container);
     }
   }

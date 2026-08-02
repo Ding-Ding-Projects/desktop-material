@@ -99,7 +99,8 @@ The [tracked installer script](../../script/install-windows.ps1) asks GitHub for
 exact repository's latest stable installer release, accepts only the installer
 for the native architecture, verifies its release-asset size and GitHub SHA-256 digest,
 checks any Authenticode signature, runs the Squirrel installer silently with
-`/S`, and removes its controlled temporary directory. The current release
+`--silent`, verifies the installed postcondition, and removes its controlled
+temporary directory. The current release
 workflow publishes unsigned x64 builds, so the script reports that status and
 stops on ARM64 until an ARM64 asset is available. Review the script before
 running any remote command, or use the
@@ -110,6 +111,45 @@ published baseline already contains the required installer, feed, and portable
 ZIP assets. The updater-migration Releases additionally verify the complete
 installer, feed, NuGet, MSI, and portable-ZIP payload on exact source
 `04246fdf12`.
+
+## Unattended current-user operations
+
+The one-line command above performs the default `Install` operation. For an
+explicit install, update, or uninstall, load the reviewed script as a script
+block and pass the operation:
+
+```powershell
+$installer = [scriptblock]::Create((Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/script/install-windows.ps1'))
+& $installer -Operation Install -InstallScope CurrentUser
+& $installer -Operation Update -InstallScope CurrentUser
+& $installer -Operation Uninstall -InstallScope CurrentUser
+```
+
+`Install` may refresh an existing complete installation; `Update` requires one;
+and `Uninstall` succeeds without changing anything when Desktop Material is
+already absent. Install uses the downloaded, digest-verified setup asset with
+`--silent`. Update validates the native release asset and invokes the installed
+updater against the immutable tag-specific feed with `--update=<url> --silent`,
+so it preserves Squirrel's update semantics instead of doing a full reinstall.
+Uninstall uses only the installed
+`%LOCALAPPDATA%\GitHubDesktop\Update.exe` with `--uninstall --silent`.
+
+`CurrentUser` is the only supported application scope. Squirrel's MSI is a
+machine deployment bootstrapper that schedules a per-user setup at logon, not
+an all-users application directory, so this script deliberately rejects
+`AllUsers` instead of implying a scope the package does not provide. Mutating
+operations also reject an elevated token before Squirrel can surface its
+unsupported-elevation error; use a normal, non-administrator PowerShell. The
+install path also preflights Squirrel's .NET Framework 4.5 minimum rather than
+opening a framework installer or reboot prompt in unattended mode.
+
+The script never force-closes the app. A running installed process or a partial
+installation fails before mutation with a recovery instruction. Squirrel runs
+hidden and must exit zero within 15 minutes; the expected installed or
+removed postcondition must then appear within one minute. The returned receipt
+records the operation, scope, child exit code, installation root, and resulting
+executable path. Use `-ResolveOnly` to inspect the exact executable and argument
+list without downloading or changing anything.
 
 ## Build and run from source
 

@@ -185,8 +185,20 @@ an administrator shell:
 Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/script/install-windows.ps1' | Microsoft.PowerShell.Utility\Invoke-Expression
 ```
 
-See the [Install tab](docs/readme-tabs/install.md) for asset verification, manual
-downloads, and updater behavior.
+For automation, invoke the reviewed script as a script block and choose the
+explicit current-user operation:
+
+```powershell
+$installer = [scriptblock]::Create((Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/script/install-windows.ps1'))
+& $installer -Operation Install -InstallScope CurrentUser
+& $installer -Operation Update -InstallScope CurrentUser
+& $installer -Operation Uninstall -InstallScope CurrentUser
+```
+
+All three operations are silent, wait for Squirrel, verify the resulting
+installed state, and refuse to force-close a running app. See the
+[Install tab](docs/readme-tabs/install.md) for the exact scope, exit/failure
+contract, asset verification, manual downloads, and updater behavior.
 
 ## Historical Linux TUI prototype (unsupported)
 

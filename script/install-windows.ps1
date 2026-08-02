@@ -11,7 +11,18 @@ verifies GitHub's SHA-256 release-asset digest and any Authenticode signature,
 runs the installer silently, and removes the temporary download.
 
 .PARAMETER ResolveOnly
-Resolves and validates release metadata without downloading or installing it.
+Resolves and validates the unattended operation without downloading, installing,
+updating, or uninstalling anything.
+
+.PARAMETER Operation
+Chooses the unattended current-user operation. Install is the default and also
+refreshes an existing installation. Update requires an existing complete
+installation. Uninstall is idempotent when Desktop Material is already absent.
+
+.PARAMETER InstallScope
+Makes the supported installation scope explicit. Squirrel installs the app for
+the current user; AllUsers is deliberately not offered because the generated
+MSI is only a deployment bootstrapper, not a machine-wide application payload.
 
 .PARAMETER FromSource
 Builds and runs Desktop Material from source instead of installing a published
@@ -36,6 +47,10 @@ script/install-windows-test.ps1.
 [CmdletBinding()]
 param(
   [switch]$ResolveOnly,
+  [ValidateSet('Install', 'Update', 'Uninstall')]
+  [string]$Operation = 'Install',
+  [ValidateSet('CurrentUser')]
+  [string]$InstallScope = 'CurrentUser',
   [switch]$FromSource,
   [string]$SourceDirectory,
   [string]$SourceRef,
@@ -48,6 +63,8 @@ param(
   [CmdletBinding()]
   param(
     [bool]$ResolveOnly,
+    [string]$Operation,
+    [string]$InstallScope,
     [bool]$FromSource,
     [string]$SourceDirectory,
     [string]$SourceRef,
@@ -65,6 +82,27 @@ param(
     'User-Agent'             = 'Desktop-Material-Windows-Installer'
   }
   $maximumAssetBytes = 1GB
+  $maximumInstalledVersionDirectories = 128
+  $maximumReleaseManifestBytes = 256KB
+  $maximumReleaseManifestLines = 128
+  $installerProcessTimeoutMilliseconds = 900000
+  $postconditionTimeoutMilliseconds = 60000
+  # Keep the postcondition path byte-for-byte stable. Squirrel/NuGet can
+  # normalize omitted or zero revision components and leading-zero numeric
+  # components, so unattended release tags deliberately use the canonical
+  # three-component form produced by this repository's release workflows.
+  $squirrelReleaseVersionPattern = '^(?<major>0|[1-9][0-9]*)\.(?<minor>0|[1-9][0-9]*)\.(?<patch>0|[1-9][0-9]*)(?:-(?<prerelease>[0-9A-Za-z-]{1,20}))?$'
+
+  switch ($Operation.ToLowerInvariant()) {
+    'install' { $Operation = 'Install' }
+    'update' { $Operation = 'Update' }
+    'uninstall' { $Operation = 'Uninstall' }
+    default { throw "Unsupported unattended operation '$Operation'." }
+  }
+  if ($InstallScope -ine 'CurrentUser') {
+    throw "Unsupported installation scope '$InstallScope'. Desktop Material's Squirrel package supports CurrentUser only."
+  }
+  $InstallScope = 'CurrentUser'
 
   function Get-OptionalPropertyValue {
     param(
@@ -148,6 +186,97 @@ param(
     return $release
   }
 
+  function Get-DesktopMaterialReleaseVersion {
+    param(
+      [Parameter(Mandatory = $true)]
+      [object]$Release
+    )
+
+    $tag = [string](Get-OptionalPropertyValue -InputObject $Release -Name 'tag_name')
+    if ($tag.Length -gt 128 -or -not $tag.StartsWith('v', [System.StringComparison]::Ordinal)) {
+      throw 'The latest release tag is not a canonical Squirrel version tag.'
+    }
+
+    $version = $tag.Substring(1)
+    $versionMatch = [System.Text.RegularExpressions.Regex]::Match(
+      $version,
+      $squirrelReleaseVersionPattern,
+      [System.Text.RegularExpressions.RegexOptions]::CultureInvariant
+    )
+    if (-not $versionMatch.Success) {
+      throw 'The latest release tag is not a canonical Squirrel version tag.'
+    }
+
+    foreach ($componentName in @('major', 'minor', 'patch')) {
+      $component = 0
+      if (
+        -not [int]::TryParse(
+          $versionMatch.Groups[$componentName].Value,
+          [System.Globalization.NumberStyles]::None,
+          [System.Globalization.CultureInfo]::InvariantCulture,
+          [ref]$component
+        )
+      ) {
+        throw 'The latest release tag contains a Squirrel version component outside the supported range.'
+      }
+    }
+
+    $expectedPackageName = "GitHubDesktop-$version-full.nupkg"
+    $assetsValue = Get-OptionalPropertyValue -InputObject $Release -Name 'assets'
+    $packageMatches = @(
+      @($assetsValue) | Where-Object {
+        [string](Get-OptionalPropertyValue -InputObject $_ -Name 'name') -ceq $expectedPackageName
+      }
+    )
+    if ($packageMatches.Count -ne 1) {
+      throw "Expected exactly one '$expectedPackageName' feed package in the latest release; found $($packageMatches.Count)."
+    }
+
+    $packageAsset = $packageMatches[0]
+    $packageDownloadUrl = [string](Get-OptionalPropertyValue -InputObject $packageAsset -Name 'browser_download_url')
+    $packageDownloadUri = $null
+    if (
+      -not [System.Uri]::TryCreate(
+        $packageDownloadUrl,
+        [System.UriKind]::Absolute,
+        [ref]$packageDownloadUri
+      )
+    ) {
+      throw "The '$expectedPackageName' feed package has an invalid download URL."
+    }
+
+    $escapedRepository = [System.Text.RegularExpressions.Regex]::Escape($repository)
+    $escapedTag = [System.Text.RegularExpressions.Regex]::Escape($tag)
+    $escapedPackageName = [System.Text.RegularExpressions.Regex]::Escape($expectedPackageName)
+    $expectedPath = "^/$escapedRepository/releases/download/$escapedTag/$escapedPackageName$"
+    if (
+      $packageDownloadUri.Scheme -cne 'https' -or
+      $packageDownloadUri.Host -cne 'github.com' -or
+      -not [string]::IsNullOrEmpty($packageDownloadUri.Query) -or
+      -not [string]::IsNullOrEmpty($packageDownloadUri.Fragment) -or
+      $packageDownloadUri.AbsolutePath -cnotmatch $expectedPath
+    ) {
+      throw "The '$expectedPackageName' feed package is not bound to the exact release tag."
+    }
+
+    $packageSize = 0L
+    $packageSizeValue = Get-OptionalPropertyValue -InputObject $packageAsset -Name 'size'
+    if (
+      -not [long]::TryParse([string]$packageSizeValue, [ref]$packageSize) -or
+      $packageSize -le 0 -or
+      $packageSize -gt $maximumAssetBytes
+    ) {
+      throw "The '$expectedPackageName' feed package size is missing or outside the allowed range."
+    }
+
+    $packageDigest = [string](Get-OptionalPropertyValue -InputObject $packageAsset -Name 'digest')
+    if ($packageDigest -cnotmatch '^sha256:[0-9a-fA-F]{64}$') {
+      throw "The '$expectedPackageName' feed package has no supported GitHub SHA-256 digest."
+    }
+
+    return $version
+  }
+
   function Get-DesktopMaterialInstallerAsset {
     param(
       [Parameter(Mandatory = $true)]
@@ -179,13 +308,25 @@ param(
 
     $escapedRepository = [System.Text.RegularExpressions.Regex]::Escape($repository)
     $escapedName = [System.Text.RegularExpressions.Regex]::Escape($expectedName)
-    $expectedPath = "^/$escapedRepository/releases/download/[^/]+/$escapedName$"
+    $expectedPath = "^/$escapedRepository/releases/download/(?<tag>[^/]+)/$escapedName$"
+    $pathMatch = [System.Text.RegularExpressions.Regex]::Match(
+      $downloadUri.AbsolutePath,
+      $expectedPath
+    )
     if (
       $downloadUri.Scheme -cne 'https' -or
       $downloadUri.Host -cne 'github.com' -or
-      $downloadUri.AbsolutePath -cnotmatch $expectedPath
+      -not [string]::IsNullOrEmpty($downloadUri.Query) -or
+      -not [string]::IsNullOrEmpty($downloadUri.Fragment) -or
+      -not $pathMatch.Success
     ) {
       throw "The '$expectedName' asset URL is not an exact HTTPS release download from $repository."
+    }
+
+    $releaseTag = [string](Get-OptionalPropertyValue -InputObject $Release -Name 'tag_name')
+    $assetTag = [System.Uri]::UnescapeDataString($pathMatch.Groups['tag'].Value)
+    if ($assetTag -cne $releaseTag) {
+      throw "The '$expectedName' asset URL is not bound to the latest release tag."
     }
 
     $assetSize = 0L
@@ -280,28 +421,594 @@ param(
     }
   }
 
-  function Invoke-DesktopMaterialInstall {
+  function Get-DesktopMaterialInstallationState {
     param(
-      [bool]$ResolveOnly
+      [Parameter(Mandatory = $false)]
+      [AllowNull()]
+      [string]$Root
     )
 
-    $architecture = Get-NativeWindowsArchitecture
-    $release = Get-LatestDesktopMaterialRelease
-    $tag = [string](Get-OptionalPropertyValue -InputObject $release -Name 'tag_name')
-    $asset = Get-DesktopMaterialInstallerAsset -Release $release -Architecture $architecture
+    if ([string]::IsNullOrWhiteSpace($Root)) {
+      $localApplicationData = [Environment]::GetFolderPath(
+        [Environment+SpecialFolder]::LocalApplicationData
+      )
+      if ([string]::IsNullOrWhiteSpace($localApplicationData)) {
+        throw 'Windows did not provide the current user LocalAppData directory.'
+      }
 
-    if ($ResolveOnly) {
-      return [pscustomobject]@{
-        Repository   = $repository
-        ReleaseTag   = $tag
-        Architecture = $architecture
-        AssetName    = $asset.Name
-        Size         = $asset.Size
-        Sha256       = $asset.Sha256
-        DownloadUrl  = $asset.DownloadUrl
+      $Root = [System.IO.Path]::Combine($localApplicationData, 'GitHubDesktop')
+    }
+
+    $root = [System.IO.Path]::GetFullPath($Root)
+    $updaterPath = [System.IO.Path]::Combine($root, 'Update.exe')
+    $launcherPath = [System.IO.Path]::Combine($root, 'GitHubDesktop.exe')
+    $releaseManifestPath = [System.IO.Path]::Combine($root, 'packages', 'RELEASES')
+    $uninstallMarkerPath = [System.IO.Path]::Combine($root, '.dead')
+    $versionedExecutablePath = $null
+
+    if ([System.IO.Directory]::Exists($root)) {
+      $versionDirectories = @()
+      foreach (
+        $directoryPath in [System.IO.Directory]::EnumerateDirectories(
+          $root,
+          'app-*',
+          [System.IO.SearchOption]::TopDirectoryOnly
+        )
+      ) {
+        if ($versionDirectories.Count -ge $maximumInstalledVersionDirectories) {
+          throw "Desktop Material has more than $maximumInstalledVersionDirectories installed-version directories; refusing an unbounded unattended scan."
+        }
+        $versionDirectories += [System.IO.DirectoryInfo]::new($directoryPath)
+      }
+
+      $candidate = @(
+        $versionDirectories |
+        Sort-Object -Property Name -Descending |
+        ForEach-Object {
+          if (-not [System.IO.File]::Exists([System.IO.Path]::Combine($_.FullName, '.dead'))) {
+            $path = [System.IO.Path]::Combine($_.FullName, 'GitHubDesktop.exe')
+            if ([System.IO.File]::Exists($path)) {
+              $path
+            }
+          }
+        }
+      ) | Select-Object -First 1
+
+      if ($null -ne $candidate) {
+        $versionedExecutablePath = [string]$candidate
       }
     }
 
+    $hasRoot = [System.IO.Directory]::Exists($root)
+    $hasUpdater = [System.IO.File]::Exists($updaterPath)
+    $hasLauncher = [System.IO.File]::Exists($launcherPath)
+    $hasVersionedExecutable = -not [string]::IsNullOrWhiteSpace($versionedExecutablePath)
+    $hasReleaseManifest = [System.IO.File]::Exists($releaseManifestPath)
+    $hasExecutable = $hasLauncher -or $hasVersionedExecutable
+    $hasUninstallMarker = [System.IO.File]::Exists($uninstallMarkerPath)
+    $isInstalled =
+      $hasUpdater -and $hasLauncher -and $hasVersionedExecutable -and $hasReleaseManifest
+    $isUninstalledTombstone =
+      $hasRoot -and
+      $hasUninstallMarker -and
+      -not $hasUpdater -and
+      -not $hasExecutable -and
+      -not $hasReleaseManifest
+
+    return [pscustomobject]@{
+      Root                   = $root
+      UpdaterPath            = $updaterPath
+      LauncherPath           = $launcherPath
+      ReleaseManifestPath    = $releaseManifestPath
+      UninstallMarkerPath    = $uninstallMarkerPath
+      ExecutablePath         = if ($isInstalled) { $launcherPath } else { $null }
+      VersionedExecutablePath = $versionedExecutablePath
+      HasRoot                = $hasRoot
+      HasUpdater             = $hasUpdater
+      HasLauncher            = $hasLauncher
+      HasVersionedExecutable = $hasVersionedExecutable
+      HasReleaseManifest     = $hasReleaseManifest
+      HasExecutable          = $hasExecutable
+      HasUninstallMarker     = $hasUninstallMarker
+      IsInstalled            = $isInstalled
+      IsUninstalledTombstone = $isUninstalledTombstone
+      IsPartial              = $hasRoot -and -not $isInstalled -and -not $isUninstalledTombstone
+    }
+  }
+
+  function Test-DesktopMaterialExpectedVersion {
+    param(
+      [Parameter(Mandatory = $true)]
+      [object]$State,
+
+      [Parameter(Mandatory = $true)]
+      [string]$ExpectedVersion
+    )
+
+    if (
+      $ExpectedVersion.Length -gt 128 -or
+      $ExpectedVersion -cnotmatch $squirrelReleaseVersionPattern
+    ) {
+      throw 'The expected Desktop Material version is not canonical.'
+    }
+
+    $expectedVersionDirectory = [System.IO.Path]::Combine(
+      $State.Root,
+      "app-$ExpectedVersion"
+    )
+    $expectedVersionedExecutablePath = [System.IO.Path]::Combine(
+      $expectedVersionDirectory,
+      'GitHubDesktop.exe'
+    )
+    $expectedVersionMarkerPath = [System.IO.Path]::Combine(
+      $expectedVersionDirectory,
+      '.dead'
+    )
+    $expectedPackageName = "GitHubDesktop-$ExpectedVersion-full.nupkg"
+    $expectedPackagePath = [System.IO.Path]::Combine(
+      $State.Root,
+      'packages',
+      $expectedPackageName
+    )
+
+    if (
+      -not $State.IsInstalled -or
+      $State.HasUninstallMarker -or
+      -not [System.IO.File]::Exists($expectedVersionedExecutablePath) -or
+      [System.IO.File]::Exists($expectedVersionMarkerPath) -or
+      -not [System.IO.File]::Exists($expectedPackagePath)
+    ) {
+      return $false
+    }
+
+    try {
+      $expectedPackage = [System.IO.FileInfo]::new($expectedPackagePath)
+      $expectedPackageLength = $expectedPackage.Length
+    } catch {
+      # Squirrel may still be replacing the package after its parent updater
+      # exits. Treat transient filesystem state as not-ready and keep polling.
+      return $false
+    }
+    if ($expectedPackageLength -le 0 -or $expectedPackageLength -gt $maximumAssetBytes) {
+      return $false
+    }
+
+    try {
+      $manifest = [System.IO.FileInfo]::new($State.ReleaseManifestPath)
+      $manifestLength = $manifest.Length
+    } catch {
+      return $false
+    }
+    if ($manifestLength -le 0) {
+      return $false
+    }
+    if ($manifestLength -gt $maximumReleaseManifestBytes) {
+      throw "Desktop Material's local RELEASES manifest exceeds the bounded verification size."
+    }
+
+    try {
+      $manifestLines = [System.IO.File]::ReadAllLines($manifest.FullName)
+    } catch {
+      return $false
+    }
+    if ($manifestLines.Count -gt $maximumReleaseManifestLines) {
+      throw "Desktop Material's local RELEASES manifest has more than $maximumReleaseManifestLines lines; refusing an unbounded unattended scan."
+    }
+
+    $escapedPackageName = [System.Text.RegularExpressions.Regex]::Escape(
+      $expectedPackageName
+    )
+    $expectedEntryPattern = "^[0-9a-fA-F]{40}\s+$escapedPackageName\s+(?<size>[1-9][0-9]*)$"
+    foreach ($rawLine in $manifestLines) {
+      $line = [System.Text.RegularExpressions.Regex]::Replace(
+        $rawLine,
+        '\s*#.*$',
+        ''
+      ).Trim()
+      $entryMatch = [System.Text.RegularExpressions.Regex]::Match(
+        $line,
+        $expectedEntryPattern,
+        [System.Text.RegularExpressions.RegexOptions]::CultureInvariant
+      )
+      if ($entryMatch.Success) {
+        $entrySize = 0L
+        if (
+          [long]::TryParse(
+            $entryMatch.Groups['size'].Value,
+            [System.Globalization.NumberStyles]::None,
+            [System.Globalization.CultureInfo]::InvariantCulture,
+            [ref]$entrySize
+          ) -and
+          $entrySize -eq $expectedPackageLength
+        ) {
+          return $true
+        }
+      }
+    }
+
+    return $false
+  }
+
+  function Assert-DesktopMaterialIsNotRunning {
+    param(
+      [Parameter(Mandatory = $true)]
+      [object]$State
+    )
+
+    $rootPrefix = $State.Root.TrimEnd([char[]]@('\\', '/')) + [System.IO.Path]::DirectorySeparatorChar
+    $running = @()
+    $unresolved = @()
+    $currentSessionId = [System.Diagnostics.Process]::GetCurrentProcess().SessionId
+
+    foreach ($process in @(Get-Process -ErrorAction SilentlyContinue)) {
+      $processPath = $null
+      try {
+        $processPath = [string]$process.Path
+      } catch {
+        $processPath = $null
+      }
+
+      if ([string]::IsNullOrWhiteSpace($processPath)) {
+        if (
+          $process.ProcessName -ieq 'GitHubDesktop' -and
+          $process.SessionId -eq $currentSessionId
+        ) {
+          $unresolved += $process.Id
+        }
+        continue
+      }
+
+      $resolvedProcessPath = [System.IO.Path]::GetFullPath($processPath)
+      if (
+        $resolvedProcessPath.StartsWith(
+          $rootPrefix,
+          [System.StringComparison]::OrdinalIgnoreCase
+        )
+      ) {
+        $running += $process.Id
+      }
+    }
+
+    if ($running.Count -gt 0) {
+      throw "Desktop Material is running (process $($running -join ', ')). Close it normally and retry; unattended operations never force-close the app."
+    }
+    if ($unresolved.Count -gt 0) {
+      throw "Could not verify the executable path for GitHubDesktop process $($unresolved -join ', '). Close it normally and retry."
+    }
+  }
+
+  function Assert-DesktopMaterialCurrentUserExecutionContext {
+    if ([System.Environment]::OSVersion.Platform -ne [System.PlatformID]::Win32NT) {
+      throw 'Desktop Material unattended operations are supported on Windows only.'
+    }
+
+    $identity = $null
+    $isElevated = $false
+    try {
+      $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+      $principal = [System.Security.Principal.WindowsPrincipal]::new($identity)
+      $isElevated = $principal.IsInRole(
+        [System.Security.Principal.WindowsBuiltInRole]::Administrator
+      )
+    } catch {
+      throw 'Could not verify the current Windows user token; refusing an unattended operation.'
+    } finally {
+      if ($null -ne $identity) {
+        $identity.Dispose()
+      }
+    }
+
+    if ($isElevated) {
+      throw 'Run the CurrentUser operation from a normal, non-administrator PowerShell session; Squirrel does not support an elevated per-user setup.'
+    }
+  }
+
+  function Assert-SquirrelRuntimePrerequisite {
+    $baseKey = $null
+    $frameworkKey = $null
+    try {
+      $baseKey = [Microsoft.Win32.RegistryKey]::OpenBaseKey(
+        [Microsoft.Win32.RegistryHive]::LocalMachine,
+        [Microsoft.Win32.RegistryView]::Registry64
+      )
+      $frameworkKey = $baseKey.OpenSubKey(
+        'SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full',
+        $false
+      )
+      $release = 0
+      $releaseValue = if ($null -eq $frameworkKey) {
+        $null
+      } else {
+        $frameworkKey.GetValue('Release', $null)
+      }
+      $hasSupportedRuntime =
+        $null -ne $releaseValue -and
+        [int]::TryParse([string]$releaseValue, [ref]$release) -and
+        $release -ge 378389
+      if (-not $hasSupportedRuntime) {
+        throw 'Desktop Material setup requires .NET Framework 4.5 or newer. Install the supported Windows component first; unattended setup will not open a framework or reboot prompt.'
+      }
+    } finally {
+      if ($null -ne $frameworkKey) {
+        $frameworkKey.Dispose()
+      }
+      if ($null -ne $baseKey) {
+        $baseKey.Dispose()
+      }
+    }
+  }
+
+  function Invoke-DesktopMaterialInstallerProcess {
+    param(
+      [Parameter(Mandatory = $true)]
+      [string]$FilePath,
+
+      [Parameter(Mandatory = $true)]
+      [AllowEmptyCollection()]
+      [string[]]$Arguments,
+
+      [Parameter(Mandatory = $true)]
+      [string]$Label
+    )
+
+    $process = Start-Process `
+      -FilePath $FilePath `
+      -ArgumentList $Arguments `
+      -WindowStyle Hidden `
+      -PassThru `
+      -ErrorAction Stop
+
+    if (-not $process.WaitForExit($installerProcessTimeoutMilliseconds)) {
+      throw "$Label did not exit within $([int]($installerProcessTimeoutMilliseconds / 1000)) seconds. It was not force-terminated; inspect the Squirrel log before retrying."
+    }
+
+    $process.Refresh()
+    if ($process.ExitCode -ne 0) {
+      throw "$Label exited with code $($process.ExitCode)."
+    }
+
+    return [int]$process.ExitCode
+  }
+
+  function Wait-DesktopMaterialInstallationState {
+    param(
+      [Parameter(Mandatory = $true)]
+      [bool]$ShouldBeInstalled,
+
+      [Parameter(Mandatory = $true)]
+      [string]$Operation,
+
+      [Parameter(Mandatory = $false)]
+      [AllowNull()]
+      [string]$ExpectedVersion,
+
+      [Parameter(Mandatory = $false)]
+      [AllowNull()]
+      [string]$Root
+    )
+
+    if ($ShouldBeInstalled -and [string]::IsNullOrWhiteSpace($ExpectedVersion)) {
+      throw 'An exact expected version is required for an install or update postcondition.'
+    }
+
+    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    do {
+      $state = Get-DesktopMaterialInstallationState -Root $Root
+      if (
+        $ShouldBeInstalled -and
+        (Test-DesktopMaterialExpectedVersion `
+          -State $state `
+          -ExpectedVersion $ExpectedVersion)
+      ) {
+        $expectedExecutablePath = [System.IO.Path]::Combine(
+          $state.Root,
+          "app-$ExpectedVersion",
+          'GitHubDesktop.exe'
+        )
+        $state | Add-Member `
+          -NotePropertyName VersionedExecutablePath `
+          -NotePropertyValue $expectedExecutablePath `
+          -Force
+        $state | Add-Member `
+          -NotePropertyName VerifiedVersion `
+          -NotePropertyValue $ExpectedVersion
+        return $state
+      }
+      if (-not $ShouldBeInstalled -and -not $state.HasUpdater -and -not $state.HasExecutable) {
+        return $state
+      }
+
+      Start-Sleep -Milliseconds 250
+    } while ($stopwatch.ElapsedMilliseconds -lt $postconditionTimeoutMilliseconds)
+
+    $expected = if ($ShouldBeInstalled) {
+      "the exact complete Desktop Material $ExpectedVersion installation"
+    } else {
+      'no installed executable or updater'
+    }
+    throw "$Operation exited successfully but its postcondition was not reached within $([int]($postconditionTimeoutMilliseconds / 1000)) seconds; expected $expected."
+  }
+
+  function New-DesktopMaterialOperationPlan {
+    param(
+      [Parameter(Mandatory = $true)]
+      [string]$Operation,
+
+      [Parameter(Mandatory = $true)]
+      [string]$InstallScope,
+
+      [Parameter(Mandatory = $true)]
+      [object]$State,
+
+      [Parameter(Mandatory = $false)]
+      [AllowNull()]
+      [object]$Release,
+
+      [Parameter(Mandatory = $false)]
+      [AllowNull()]
+      [object]$Asset,
+
+      [Parameter(Mandatory = $false)]
+      [AllowNull()]
+      [string]$Architecture,
+
+      [Parameter(Mandatory = $false)]
+      [AllowNull()]
+      [string]$TargetVersion
+    )
+
+    $isUninstall = $Operation -ceq 'Uninstall'
+    $isUpdate = $Operation -ceq 'Update'
+    $releaseBaseUrl = if ($null -eq $Asset) {
+      $null
+    } else {
+      ([System.Uri]::new([System.Uri]$Asset.DownloadUrl, '.')).AbsoluteUri
+    }
+    $arguments = if ($isUninstall) {
+      @('--uninstall', '--silent')
+    } elseif ($isUpdate) {
+      @("--update=$releaseBaseUrl", '--silent')
+    } else {
+      @('--silent')
+    }
+    $filePath = if ($isUninstall -or $isUpdate) { $State.UpdaterPath } else { $Asset.Name }
+    $releaseTag = if ($null -eq $Release) {
+      $null
+    } else {
+      [string](Get-OptionalPropertyValue -InputObject $Release -Name 'tag_name')
+    }
+
+    return [pscustomobject]@{
+      Mode             = 'UnattendedRelease'
+      Operation        = $Operation
+      InstallScope     = $InstallScope
+      Silent           = $true
+      Architecture     = $Architecture
+      ReleaseTag       = $releaseTag
+      TargetVersion    = $TargetVersion
+      AssetName        = if ($null -eq $Asset) { $null } else { $Asset.Name }
+      Size             = if ($null -eq $Asset) { $null } else { $Asset.Size }
+      Sha256           = if ($null -eq $Asset) { $null } else { $Asset.Sha256 }
+      DownloadUrl      = if ($null -eq $Asset) { $null } else { $Asset.DownloadUrl }
+      ReleaseBaseUrl   = $releaseBaseUrl
+      DownloadRequired = -not $isUninstall -and -not $isUpdate
+      FilePath         = $filePath
+      Arguments        = $arguments
+      InstallationRoot = $State.Root
+      WasInstalled     = [bool]$State.IsInstalled
+      WasPartial       = [bool]$State.IsPartial
+    }
+  }
+
+  function Invoke-DesktopMaterialInstall {
+    param(
+      [bool]$ResolveOnly,
+      [string]$Operation,
+      [string]$InstallScope
+    )
+
+    $state = Get-DesktopMaterialInstallationState
+    $architecture = $null
+    $release = $null
+    $asset = $null
+    $targetVersion = $null
+    if ($Operation -cne 'Uninstall') {
+      $architecture = Get-NativeWindowsArchitecture
+      $release = Get-LatestDesktopMaterialRelease
+      $targetVersion = Get-DesktopMaterialReleaseVersion -Release $release
+      $asset = Get-DesktopMaterialInstallerAsset -Release $release -Architecture $architecture
+    }
+
+    $plan = New-DesktopMaterialOperationPlan `
+      -Operation $Operation `
+      -InstallScope $InstallScope `
+      -State $state `
+      -Release $release `
+      -Asset $asset `
+      -Architecture $architecture `
+      -TargetVersion $targetVersion
+
+    if ($ResolveOnly) {
+      $plan | Add-Member -NotePropertyName Repository -NotePropertyValue $repository
+      return $plan
+    }
+
+    Assert-DesktopMaterialCurrentUserExecutionContext
+    if ($Operation -ceq 'Install') {
+      Assert-SquirrelRuntimePrerequisite
+    }
+
+    if ($state.IsPartial) {
+      throw "Desktop Material has a partial installation at '$($state.Root)'. Repair or remove it interactively before retrying an unattended operation."
+    }
+    if ($Operation -ceq 'Update' -and -not $state.IsInstalled) {
+      throw 'Desktop Material is not installed for the current user; use -Operation Install.'
+    }
+    if ($Operation -ceq 'Uninstall' -and -not $state.IsInstalled) {
+      return [pscustomobject]@{
+        Mode             = 'UnattendedRelease'
+        Operation        = $Operation
+        InstallScope     = $InstallScope
+        Silent           = $true
+        ProcessExitCode  = 0
+        Changed          = $false
+        InstallationRoot = $state.Root
+        ExecutablePath   = $null
+      }
+    }
+
+    Assert-DesktopMaterialIsNotRunning -State $state
+
+    if ($Operation -ceq 'Uninstall') {
+      Write-Host 'Uninstalling Desktop Material for the current user...'
+      $exitCode = Invoke-DesktopMaterialInstallerProcess `
+        -FilePath $state.UpdaterPath `
+        -Arguments $plan.Arguments `
+        -Label 'Desktop Material uninstaller'
+      $finalState = Wait-DesktopMaterialInstallationState `
+        -ShouldBeInstalled $false `
+        -Operation $Operation
+
+      Write-Host 'Desktop Material uninstalled successfully.'
+      return [pscustomobject]@{
+        Mode             = 'UnattendedRelease'
+        Operation        = $Operation
+        InstallScope     = $InstallScope
+        Silent           = $true
+        ProcessExitCode  = $exitCode
+        Changed          = $true
+        InstallationRoot = $finalState.Root
+        ExecutablePath   = $null
+      }
+    }
+
+    if ($Operation -ceq 'Update') {
+      Write-Host "Updating Desktop Material from the exact $($plan.ReleaseTag) release feed..."
+      $exitCode = Invoke-DesktopMaterialInstallerProcess `
+        -FilePath $state.UpdaterPath `
+        -Arguments $plan.Arguments `
+        -Label 'Desktop Material updater'
+      $finalState = Wait-DesktopMaterialInstallationState `
+        -ShouldBeInstalled $true `
+        -Operation $Operation `
+        -ExpectedVersion $targetVersion
+
+      Write-Host 'Desktop Material update check completed successfully.'
+      return [pscustomobject]@{
+        Mode             = 'UnattendedRelease'
+        Operation        = $Operation
+        InstallScope     = $InstallScope
+        Silent           = $true
+        Architecture     = $architecture
+        ReleaseTag       = $plan.ReleaseTag
+        TargetVersion    = $targetVersion
+        ProcessExitCode  = $exitCode
+        InstallationRoot = $finalState.Root
+        ExecutablePath   = $finalState.ExecutablePath
+      }
+    }
+
+    $tag = [string](Get-OptionalPropertyValue -InputObject $release -Name 'tag_name')
     Write-Host "Installing Desktop Material $tag for Windows $architecture..."
     $workDirectory = $null
     try {
@@ -325,17 +1032,31 @@ param(
 
       Confirm-DesktopMaterialInstaller -Path $installerPath -Asset $asset
 
-      $installerProcess = Start-Process `
+      $exitCode = Invoke-DesktopMaterialInstallerProcess `
         -FilePath $installerPath `
-        -ArgumentList '/S' `
-        -Wait `
-        -PassThru `
-        -ErrorAction Stop
-      if ($installerProcess.ExitCode -ne 0) {
-        throw "Desktop Material installer exited with code $($installerProcess.ExitCode)."
-      }
+        -Arguments $plan.Arguments `
+        -Label 'Desktop Material installer'
+      $finalState = Wait-DesktopMaterialInstallationState `
+        -ShouldBeInstalled $true `
+        -Operation $Operation `
+        -ExpectedVersion $targetVersion
 
-      Write-Host 'Desktop Material installed successfully.'
+      Write-Host "Desktop Material $($Operation.ToLowerInvariant()) completed successfully."
+      return [pscustomobject]@{
+        Mode             = 'UnattendedRelease'
+        Operation        = $Operation
+        InstallScope     = $InstallScope
+        Silent           = $true
+        Architecture     = $architecture
+        ReleaseTag       = $tag
+        TargetVersion    = $targetVersion
+        AssetName        = $asset.Name
+        Sha256           = $asset.Sha256
+        ProcessExitCode  = $exitCode
+        Changed          = $true
+        InstallationRoot = $finalState.Root
+        ExecutablePath   = $finalState.ExecutablePath
+      }
     } finally {
       if ($null -ne $workDirectory) {
         try {
@@ -594,6 +1315,9 @@ param(
   }
 
   if ($FromSource) {
+    if ($Operation -cne 'Install') {
+      throw '-FromSource cannot be combined with -Operation Update or Uninstall.'
+    }
     if ([string]::IsNullOrWhiteSpace($SourceDirectory)) {
       $SourceDirectory = [System.IO.Path]::Combine(
         [Environment]::GetFolderPath('MyDocuments'),
@@ -615,12 +1339,17 @@ param(
         -SourceRef $SourceRef `
         -DryRun $DryRun
     } else {
-      Invoke-DesktopMaterialInstall -ResolveOnly $ResolveOnly
+      Invoke-DesktopMaterialInstall `
+        -ResolveOnly $ResolveOnly `
+        -Operation $Operation `
+        -InstallScope $InstallScope
     }
   } finally {
     [System.Net.ServicePointManager]::SecurityProtocol = $originalSecurityProtocol
   }
 } -ResolveOnly:$ResolveOnly.IsPresent `
+  -Operation $Operation `
+  -InstallScope $InstallScope `
   -FromSource:$FromSource.IsPresent `
   -SourceDirectory $SourceDirectory `
   -SourceRef $SourceRef `
