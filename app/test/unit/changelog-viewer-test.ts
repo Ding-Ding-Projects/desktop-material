@@ -97,19 +97,24 @@ describe('changelog catalog', () => {
   })
 
   it('splits a category prefix without eating the text', () => {
+    // `#1` is an issue reference, not a commit, so the trailing text stays put
+    // and `commit` reports null rather than a made-up SHA.
     assert.deepEqual(splitChangelogEntry('[Fixed] A thing broke - #1'), {
       category: 'Fixed',
       text: 'A thing broke - #1',
+      commit: null,
     })
     // Entries with no prefix keep a null category rather than a made-up one.
     assert.deepEqual(splitChangelogEntry('Plain entry'), {
       category: null,
       text: 'Plain entry',
+      commit: null,
     })
     // A bracket later in the line is not a category.
     assert.deepEqual(splitChangelogEntry('Fixed [maybe] later'), {
       category: null,
       text: 'Fixed [maybe] later',
+      commit: null,
     })
   })
 
