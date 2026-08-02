@@ -148,6 +148,25 @@ These apply to user-facing surfaces in this app.
   sizes and display scales, and adequate hit targets. Validate at narrow widths
   and with the longest localized strings.
 
+## The README reports the line count
+
+- `README.md` states how many lines of code this repository has, **broken down
+  by area** rather than reduced to one number, with total and non-blank lines
+  for each.
+- Say plainly what is excluded and why. Vendored trees, dependency
+  directories, build output, the historical TUI prototype and the agent
+  verification records are not this project's code; they are shown in the
+  table and held out of the project total rather than silently dropped.
+- Separate generated files from hand-written ones wherever the difference is
+  large enough to move the number.
+- The figure is **measured, never estimated**: `node script/count-lines.mjs`
+  prints the exact table the README publishes, and the README records the
+  command and the commit it was measured at.
+- Refresh it in the same task that materially moves it, exactly as the landing
+  page and feature articles are updated.
+- The count is information, never a boast. Do not pad it with generated or
+  vendored code, and do not hide test lines to make a ratio look better.
+
 ## Working discipline
 
 - Prefer reversible, auditable changes and headless verification. Read

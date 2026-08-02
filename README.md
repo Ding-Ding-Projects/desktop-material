@@ -295,6 +295,54 @@ They are not presented as current Windows evidence and are excluded from the
 - Project site: https://ding-ding-projects.github.io/desktop-material/
 - Wiki: https://github.com/Ding-Ding-Projects/desktop-material/wiki
 
+## Lines of code
+
+<details>
+<summary><b>1,274,245 lines</b> across 3,328 files — full breakdown by area</summary>
+
+| Area | Files | Lines | Non-blank |
+| --- | ---: | ---: | ---: |
+| App source | 1,492 | 489,040 | 447,371 |
+| Docs and documentation site | 371 | 377,216 | 366,085 |
+| Agent run and verification records *(excluded)* | 158 | 272,054 | 267,922 |
+| App tests | 988 | 238,973 | 216,245 |
+| Vendored / third-party *(excluded)* | 30 | 149,670 | 127,208 |
+| App styles | 265 | 61,118 | 52,287 |
+| Other subprojects | 33 | 38,521 | 36,904 |
+| Linux TUI prototype (historical) *(excluded)* | 93 | 28,814 | 25,837 |
+| Build and tooling scripts | 78 | 24,195 | 22,166 |
+| Repository root | 15 | 16,329 | 15,033 |
+| Remote-access site | 19 | 15,478 | 14,935 |
+| CI workflows and editor config | 49 | 10,141 | 9,095 |
+| App static assets | 10 | 2,429 | 2,309 |
+| Unclassified | 8 | 805 | 730 |
+| **Project total** | **3,328** | **1,274,245** | **1,183,160** |
+
+Of the project total, **36,338 lines across 8 files are generated** by tooling
+rather than written by hand — the changelog catalog, the release-date table,
+the octicon bindings, and the bundled asset manifests.
+
+**What is excluded, and why.** Only files Git tracks are counted, so
+dependency directories, build output and everything ignored are excluded by
+construction. Four rows are counted but held out of the project total because
+they are not this project's code: vendored third-party trees, the historical
+Linux TUI prototype (not a supported product edition), and the agent run and
+verification records under `.codex/`, which are evidence about how the project
+was built rather than the project itself. Binary and asset files are never
+counted; the `Unclassified` row exists so that a counted file can never be
+silently dropped from the total.
+
+**How to reproduce it.** The figure is measured, not estimated:
+
+```bash
+node script/count-lines.mjs
+```
+
+Measured at commit `6a13779604`. The script prints this exact table, so
+refreshing the number is one command rather than a manual re-count.
+
+</details>
+
 ## Credits & License
 
 Desktop Material is built on [GitHub Desktop](https://github.com/desktop/desktop) (MIT), with feature-parity references from [desktop-plus](https://github.com/desktop-plus/desktop-plus) (MIT). Thanks to both projects and their contributors.
