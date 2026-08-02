@@ -49,7 +49,7 @@
       ]
     },
     "repositorySettings": {
-      "source": "app/src/ui/repository-settings/repository-settings.tsx#RepositorySettingsTab",
+      "source": "app/src/models/repository-settings.ts#RepositorySettingsTab",
       "kind": "settings-page",
       "risk": "safe",
       "surfaces": [

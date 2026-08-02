@@ -556,6 +556,10 @@ describe('Cheap LFS repository-settings tab wiring', () => {
     ),
     'utf8'
   )
+  const settingsModelSource = readFileSync(
+    join(process.cwd(), 'app/src/models/repository-settings.ts'),
+    'utf8'
+  )
 
   it('registers the Cheap LFS tab immediately after Build & Run', () => {
     assert.equal(
@@ -564,7 +568,7 @@ describe('Cheap LFS repository-settings tab wiring', () => {
     )
     // The enum-position === TabBar-position invariant: the unconditional tabs
     // stay contiguous and ForkSettings stays last.
-    assert.match(settingsSource, /BuildRun,\s*CheapLfs,\s*Submodules,/)
+    assert.match(settingsModelSource, /BuildRun,\s*CheapLfs,\s*Submodules,/)
     assert.match(
       settingsSource,
       /translationKey="repositorySettings\.buildRunTab"[\s\S]*?translationKey="repositorySettings\.cheapLfsTab"[\s\S]*?translationKey="submodule\.title"/

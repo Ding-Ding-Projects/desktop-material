@@ -16,7 +16,15 @@ describe('Actions artifact responsive styles', () => {
   it('keeps the run pager inside a vertically scrolling, zero-min-width column', () => {
     assert.match(
       source,
-      /\.actions-run-column\s*\{[\s\S]*?display: flex;[\s\S]*?flex-direction: column;[\s\S]*?min-width: min\(360px, 100%\);[\s\S]*?min-height: 0;/
+      /#actions-run-column\s*\{[\s\S]*?display: flex;[\s\S]*?flex: 0 0 auto;[\s\S]*?flex-direction: column;[\s\S]*?min-width: 0;[\s\S]*?min-height: 0;[\s\S]*?overflow: hidden;/
+    )
+    assert.match(
+      source,
+      /\.actions-run-column\s*\{[\s\S]*?display: flex;[\s\S]*?flex: 1 1 auto;[\s\S]*?flex-direction: column;[\s\S]*?min-width: 0;[\s\S]*?min-height: 0;/
+    )
+    assert.match(
+      source,
+      /\.actions-run-list\s*\{[\s\S]*?flex: 1 1 auto;[\s\S]*?min-width: 0;[\s\S]*?min-height: 0;[\s\S]*?overflow-y: auto;/
     )
     assert.match(
       source,

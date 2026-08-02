@@ -74,11 +74,12 @@ describe('Repository Settings repository-management surfaces', () => {
     const settings = read(
       'app/src/ui/repository-settings/repository-settings.tsx'
     )
+    const settingsModel = read('app/src/models/repository-settings.ts')
     const subtreeManager = read(
       'app/src/ui/subtrees/subtree-manager-dialog.tsx'
     )
 
-    assert.match(settings, /Submodules,\s*Subtrees,\s*Automation,/)
+    assert.match(settingsModel, /Submodules,\s*Subtrees,\s*Automation,/)
     assert.match(
       settings,
       /case RepositorySettingsTab\.Subtrees:[\s\S]*?<SubtreeManager[\s\S]*?repository=\{this\.props\.repository\}[\s\S]*?accounts=\{this\.props\.accounts\}/

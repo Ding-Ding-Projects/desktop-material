@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { resolve } from 'node:path'
-import { describe, it } from 'node:test'
+import { beforeEach, describe, it } from 'node:test'
 import * as React from 'react'
 
 import {
@@ -13,6 +13,7 @@ import {
   GitHubAPIWorkbenchRequest,
   IGitHubAPIWorkbenchResponse,
 } from '../../../src/lib/github-api-workbench'
+import { writeCollapsibleState } from '../../../src/lib/collapsed-state'
 import { Account, getAccountKey } from '../../../src/models/account'
 import { GitHubRepository } from '../../../src/models/github-repository'
 import { Owner } from '../../../src/models/owner'
@@ -129,7 +130,19 @@ const repository = new Repository(
   getAccountKey(account)
 )
 
+function expandNamedFunctions() {
+  const toggle = screen.getByRole('button', { name: /API functions/ })
+  if (toggle.getAttribute('aria-expanded') !== 'true') {
+    fireEvent.click(toggle)
+  }
+  return toggle
+}
+
 describe('GitHub API Explorer app functions', () => {
+  beforeEach(() => {
+    writeCollapsibleState('api-functions', repository.path, false)
+  })
+
   it('auto-adds the safe built-in functions for a repository', async () => {
     const registry = new FunctionRegistry()
     render(
@@ -181,6 +194,11 @@ describe('GitHub API Explorer app functions', () => {
     })
     registry.replaceFromProfile([restored])
 
+    const toggle = screen.getByRole('button', { name: /API functions/ })
+    await waitFor(() =>
+      assert.match(toggle.textContent ?? '', /1 for this repository/)
+    )
+    expandNamedFunctions()
     await waitFor(() => assert.ok(screen.getByText('restored_patterns')))
   })
 
@@ -196,6 +214,7 @@ describe('GitHub API Explorer app functions', () => {
       />
     )
 
+    expandNamedFunctions()
     fireEvent.change(screen.getByLabelText('Function name'), {
       target: { value: 'list_patterns' },
     })
@@ -271,6 +290,12 @@ describe('GitHub API Explorer app functions', () => {
       })
     )
 
+    assert.equal(
+      screen
+        .getByRole('button', { name: /API functions/ })
+        .getAttribute('aria-expanded'),
+      'true'
+    )
     // One click prefills the manual builder from the operation...
     assert.equal(
       (screen.getByLabelText('REST API path') as HTMLInputElement).value,
@@ -308,6 +333,7 @@ describe('GitHub API Explorer app functions', () => {
       />
     )
 
+    expandNamedFunctions()
     fireEvent.click(screen.getByRole('tab', { name: 'GraphQL' }))
     fireEvent.change(screen.getByLabelText('GraphQL query'), {
       target: {

@@ -121,7 +121,7 @@ describe('Cheap LFS Changes filter chip', () => {
     assert.doesNotMatch(styles, /&:has\(\.changes-filter-chips\)/)
     assert.match(
       styles,
-      /&\.has-inline-filter-chips\s*\{[\s\S]*?flex: 0 0 auto;[\s\S]*?> \.filter-list\s*\{[\s\S]*?flex: 0 0 auto;[\s\S]*?> \.filter-list-container\s*\{[\s\S]*?flex: 0 0 34px;[\s\S]*?height: 34px;/
+      /&\.has-inline-filter-chips\s*\{[\s\S]*?flex: 1 1 auto;[\s\S]*?min-height: 0;[\s\S]*?> \.filter-list\s*\{[\s\S]*?display: flex;[\s\S]*?flex: 1 1 auto;[\s\S]*?flex-direction: column;[\s\S]*?> \.filter-list-container\s*\{[\s\S]*?flex: 1 1 auto;[\s\S]*?min-height: 34px;/
     )
     assert.match(
       styles,

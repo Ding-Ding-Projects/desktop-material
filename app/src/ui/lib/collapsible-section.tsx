@@ -90,13 +90,13 @@ export class CollapsibleSection extends React.Component<
     }
   }
 
-  public componentDidUpdate(previous: ICollapsibleSectionProps) {
+  public componentDidUpdate(prevProps: ICollapsibleSectionProps) {
     // Switching repositories has to re-read, or the new repository inherits
     // whatever the last one was left at - the precise thing per-repository
     // state exists to prevent.
     if (
-      previous.repositoryKey === this.props.repositoryKey &&
-      previous.elementId === this.props.elementId
+      prevProps.repositoryKey === this.props.repositoryKey &&
+      prevProps.elementId === this.props.elementId
     ) {
       return
     }
@@ -119,6 +119,17 @@ export class CollapsibleSection extends React.Component<
       this.props.repositoryKey,
       expanded
     )
+  }
+
+  /** Open this section for an owning workflow that must reveal its content. */
+  public expand(onExpanded?: () => void) {
+    if (this.state.expanded) {
+      onExpanded?.()
+      return
+    }
+
+    writeCollapsibleState(this.props.elementId, this.props.repositoryKey, true)
+    this.setState({ expanded: true }, onExpanded)
   }
 
   public render() {

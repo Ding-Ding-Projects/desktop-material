@@ -391,15 +391,18 @@ describe('Repository Settings appearance hub', () => {
 describe('Repository Settings appearance tab registration', () => {
   it('keeps the enum, tab rail, and pane in the same order', async () => {
     const { readFile } = await import('node:fs/promises')
-    const source = await readFile(
-      'app/src/ui/repository-settings/repository-settings.tsx',
-      'utf8'
-    )
+    const [source, modelSource] = await Promise.all([
+      readFile(
+        'app/src/ui/repository-settings/repository-settings.tsx',
+        'utf8'
+      ),
+      readFile('app/src/models/repository-settings.ts', 'utf8'),
+    ])
 
     // The enum value must equal the TabBar position, and the conditionally
     // rendered fork tab must stay last.
     assert.match(
-      source,
+      modelSource,
       /Automation,\s*Metadata,\s*Appearance,\s*ForkSettings,/
     )
     assert.match(

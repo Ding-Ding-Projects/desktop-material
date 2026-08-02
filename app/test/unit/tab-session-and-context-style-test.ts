@@ -77,7 +77,19 @@ describe('tab session, folder drop, and customization context contracts', () => 
       appSource,
       /anchorPosition=\{this\.getAppearanceEditorAnchorPosition\(target\)\}/
     )
-    assert.doesNotMatch(appSource, /RepositorySettingsTab\.Appearance/)
+    const customizationHandlerStart = appSource.indexOf(
+      'private onCustomizationContextMenu'
+    )
+    const customizationHandlerEnd = appSource.indexOf(
+      'private prepareAppearanceAnchor',
+      customizationHandlerStart
+    )
+    assert.notEqual(customizationHandlerStart, -1)
+    assert.notEqual(customizationHandlerEnd, -1)
+    assert.doesNotMatch(
+      appSource.slice(customizationHandlerStart, customizationHandlerEnd),
+      /RepositorySettingsTab\.Appearance/
+    )
     assert.match(tabStrip, /getTabStyleHistorySource/)
     assert.match(tabStrip, /getTabStyleRepositoryPath/)
     assert.match(tabStrip, /AnchoredAppearanceEditor/)

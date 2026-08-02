@@ -701,7 +701,7 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
 
   /**
    * Preview the inverse bulk-close action. It is the exact negation of
-   * {@link findMatchingTabs}: the same mode, case sensitivity, searched keys and
+   * `findMatchingTabs`: the same mode, case sensitivity, searched keys and
    * query handling decide which tabs are kept, so a phrase can never keep a tab
    * here that "close tabs containing" refuses to match. `mode` defaults to the
    * literal substring the inverse action has always used.

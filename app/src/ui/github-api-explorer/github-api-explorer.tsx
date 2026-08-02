@@ -416,6 +416,7 @@ export class GitHubAPIExplorer extends React.Component<
   private functionLoadGeneration = 0
   private executionController: AbortController | null = null
   private readonly functionNameInput = React.createRef<HTMLInputElement>()
+  private readonly functionSection = React.createRef<CollapsibleSection>()
   private functionRegistrySubscription: {
     readonly dispose: () => void
   } | null = null
@@ -584,6 +585,10 @@ export class GitHubAPIExplorer extends React.Component<
     this.functionRegistrySubscription = registry.onNamedAPIFunctionsChanged(
       functions => {
         if (this.mounted && this.props.functionRegistry === registry) {
+          // A profile restore can publish while the initial async read is
+          // yielding. Retire that older snapshot so it cannot replace the
+          // newly published catalog when its await resumes.
+          this.functionLoadGeneration++
           this.setState({
             namedFunctions: functions,
             functionError: null,
@@ -812,10 +817,16 @@ export class GitHubAPIExplorer extends React.Component<
   }
 
   private focusFunctionEditor() {
-    // The save-as-function form is the primary surface at the top of the
-    // Explorer; focusing its name field both reveals it (browser focus scrolls
-    // it into view) and lands the caret where naming a new function begins.
-    this.functionNameInput.current?.focus()
+    // The save-as-function form is inside a persisted disclosure. Reveal it
+    // before focusing so a one-click catalog action never targets an unmounted
+    // input when this repository remembers the section as closed.
+    const focus = () => this.functionNameInput.current?.focus()
+    const section = this.functionSection.current
+    if (section === null) {
+      focus()
+      return
+    }
+    section.expand(focus)
   }
 
   private onOperationClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -1912,6 +1923,7 @@ export class GitHubAPIExplorer extends React.Component<
     const registryAvailable = this.props.functionRegistry !== undefined
     return (
       <CollapsibleSection
+        ref={this.functionSection}
         elementId="api-functions"
         repositoryKey={collapsibleRepositoryKey(this.props.repository)}
         label="API functions"
