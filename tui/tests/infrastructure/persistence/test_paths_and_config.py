@@ -64,6 +64,7 @@ def test_config_round_trip_includes_settings_ui_fields(tmp_path: Path) -> None:
             accent="#123abc",
             unicode_borders=False,
             reduced_motion=True,
+            repository_rail_width=36,
             element_overrides={
                 "diff": {
                     "foreground": "#abcdef",
@@ -123,6 +124,7 @@ def test_config_missing_new_fields_uses_safe_defaults(tmp_path: Path) -> None:
     assert loaded.interaction.quiet_hours_start == ""
     assert loaded.interaction.reduced_sound is False
     assert loaded.interaction.yield_to_screen_reader is True
+    assert loaded.appearance.repository_rail_width == 28
     assert loaded.appearance.element_overrides == {}
 
 
@@ -140,6 +142,17 @@ def test_config_rejects_invalid_element_appearance(tmp_path: Path) -> None:
 
     with pytest.raises(ConfigError):
         store.save(AppConfig(appearance=appearance))
+
+
+@pytest.mark.parametrize("width", [19, True])
+def test_config_rejects_invalid_repository_rail_width(
+    tmp_path: Path,
+    width: int,
+) -> None:
+    store = ConfigStore(XDGPaths.discover(environment={}, home=tmp_path))
+
+    with pytest.raises(ConfigError, match="Repository rail width"):
+        store.save(AppConfig(appearance=AppearanceConfig(repository_rail_width=width)))
 
 
 @pytest.mark.parametrize(

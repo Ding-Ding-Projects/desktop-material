@@ -36,6 +36,7 @@ from ...infrastructure.git.advanced import (
     SubmoduleRecord,
     WorktreeRecord,
 )
+from ..widgets.responsive_layout import ScrollableToolbar
 from .dialogs import DecisionDialog
 from .repository_panes import RepositoryPane
 
@@ -68,9 +69,14 @@ class AdvancedPane(RepositoryPane):
     def compose(self) -> ComposeResult:
         with TabbedContent(initial="advanced-worktrees-tab", id="advanced-tabs"):
             with TabPane("Worktrees", id="advanced-worktrees-tab"):
-                with Horizontal(classes="screen-toolbar"):
+                with ScrollableToolbar():
                     yield Button("Refresh", id="advanced-refresh")
                     yield Button("Add worktree", id="worktree-add", variant="primary")
+                    yield Button("Lock", id="worktree-lock")
+                    yield Button("Unlock", id="worktree-unlock")
+                    yield Button("Move", id="worktree-move")
+                    yield Button("Rename", id="worktree-rename")
+                    yield Button("Repair", id="worktree-repair")
                     yield Button("Remove…", id="worktree-remove", variant="error")
                     yield Button("Prune stale…", id="worktree-prune")
                 yield DataTable(
@@ -80,7 +86,10 @@ class AdvancedPane(RepositoryPane):
                     classes="advanced-table",
                 )
                 with Vertical(classes="form-panel advanced-form"):
-                    yield Label("New worktree path", classes="field-label")
+                    yield Label(
+                        "Worktree path (new, selected, or relocated for repair)",
+                        classes="field-label",
+                    )
                     yield Input(
                         placeholder="/home/you/src/project-feature",
                         id="worktree-path",
@@ -97,18 +106,30 @@ class AdvancedPane(RepositoryPane):
                             id="worktree-start",
                             select_on_focus=False,
                         )
+                    with Horizontal(classes="advanced-input-row"):
+                        yield Input(
+                            placeholder="move destination or new folder name",
+                            id="worktree-action-value",
+                            select_on_focus=False,
+                        )
+                        yield Input(
+                            placeholder="lock reason (optional)",
+                            id="worktree-lock-reason",
+                            select_on_focus=False,
+                        )
                     with Horizontal(classes="advanced-check-row"):
                         yield Checkbox("Create branch", id="worktree-create-branch")
                         yield Checkbox("Detached", id="worktree-detached")
                         yield Checkbox("Force removal", id="worktree-force")
                     yield Static(
-                        "Removal always asks for typed confirmation. Git refuses dirty "
-                        "worktrees unless Force removal is selected.",
+                        "Move uses a full destination; Rename uses one folder name. Repair "
+                        "uses Worktree path, or repairs all metadata when that field is blank. "
+                        "Removal always asks for typed confirmation.",
                         classes="help-copy",
                     )
 
             with TabPane("Submodules", id="advanced-submodules-tab"):
-                with Horizontal(classes="screen-toolbar"):
+                with ScrollableToolbar():
                     yield Button("Refresh", id="submodule-refresh")
                     yield Button("Initialize / update", id="submodule-update", variant="primary")
                     yield Button("Sync URLs", id="submodule-sync")
@@ -139,7 +160,7 @@ class AdvancedPane(RepositoryPane):
                     )
 
             with TabPane("Sparse checkout", id="advanced-sparse-tab"):
-                with Horizontal(classes="screen-toolbar"):
+                with ScrollableToolbar():
                     yield Button("Refresh", id="sparse-refresh")
                     yield Button("Apply patterns…", id="sparse-apply", variant="primary")
                     yield Button("Disable…", id="sparse-disable")
@@ -165,7 +186,7 @@ class AdvancedPane(RepositoryPane):
                 )
 
             with TabPane("Recovery & diagnostics", id="advanced-recovery-tab"):
-                with Horizontal(classes="screen-toolbar"):
+                with ScrollableToolbar():
                     yield Button("Refresh", id="recovery-refresh")
                     yield Button("Copy selected hash", id="reflog-copy")
                 with Horizontal(classes="screen-split"):
@@ -219,7 +240,7 @@ class AdvancedPane(RepositoryPane):
                         id="advanced-terminal-command",
                         select_on_focus=False,
                     )
-                with Horizontal(classes="screen-toolbar"):
+                with ScrollableToolbar():
                     yield Button("Run build", id="advanced-run-build", variant="primary")
                     yield Button("Run app", id="advanced-run-app")
                     yield Button("Save commands", id="advanced-save-commands")
@@ -452,6 +473,19 @@ class AdvancedPane(RepositoryPane):
         index = _selected_index(table)
         return self.worktrees[index] if index is not None and index < len(self.worktrees) else None
 
+    def _selected_linked_worktree(self, action: str) -> WorktreeRecord | None:
+        record = self._selected_worktree()
+        if record is None:
+            self.app.notify("Select a linked worktree first.", severity="warning")
+            return None
+        if self.git is not None and record.path.resolve() == self.git.validate():
+            self.app.notify(
+                f"The primary worktree cannot be {action} here.",
+                severity="warning",
+            )
+            return None
+        return record
+
     def _selected_submodule(self) -> SubmoduleRecord | None:
         table = cast(
             DataTable[object],
@@ -473,6 +507,16 @@ class AdvancedPane(RepositoryPane):
             self.reload()
         elif button_id == "worktree-add":
             self._add_worktree()
+        elif button_id == "worktree-lock":
+            self._lock_worktree()
+        elif button_id == "worktree-unlock":
+            self._unlock_worktree()
+        elif button_id == "worktree-move":
+            self._move_worktree()
+        elif button_id == "worktree-rename":
+            self._rename_worktree()
+        elif button_id == "worktree-repair":
+            self._repair_worktrees()
         elif button_id == "worktree-remove":
             self._confirm_remove_worktree()
         elif button_id == "worktree-prune":
@@ -554,6 +598,91 @@ class AdvancedPane(RepositoryPane):
             self.query_one("#worktree-path", Input).value = ""
             self.query_one("#worktree-branch", Input).value = ""
             self.query_one("#worktree-start", Input).value = ""
+
+    @work(exclusive=True, group="advanced-mutate")
+    async def _lock_worktree(self) -> None:
+        git = self.git
+        if git is None:
+            return
+        record = self._selected_linked_worktree("locked")
+        if record is None:
+            return
+        reason_input = self.query_one("#worktree-lock-reason", Input)
+        reason = reason_input.value.strip() or None
+        if await self._git_operation(
+            "Lock worktree",
+            lambda: git.lock_worktree(record.path, reason=reason),
+            f"Locked worktree {record.path}.",
+        ):
+            reason_input.value = ""
+
+    @work(exclusive=True, group="advanced-mutate")
+    async def _unlock_worktree(self) -> None:
+        git = self.git
+        if git is None:
+            return
+        record = self._selected_linked_worktree("unlocked")
+        if record is not None:
+            await self._git_operation(
+                "Unlock worktree",
+                lambda: git.unlock_worktree(record.path),
+                f"Unlocked worktree {record.path}.",
+            )
+
+    @work(exclusive=True, group="advanced-mutate")
+    async def _move_worktree(self) -> None:
+        git = self.git
+        if git is None:
+            return
+        record = self._selected_linked_worktree("moved")
+        if record is None:
+            return
+        destination_input = self.query_one("#worktree-action-value", Input)
+        destination = destination_input.value.strip()
+        if not destination:
+            self.app.notify("Enter the new full worktree destination.", severity="warning")
+            destination_input.focus()
+            return
+        if await self._git_operation(
+            "Move worktree",
+            lambda: git.move_worktree(record.path, destination),
+            f"Moved worktree {record.path} to {destination}.",
+        ):
+            destination_input.value = ""
+
+    @work(exclusive=True, group="advanced-mutate")
+    async def _rename_worktree(self) -> None:
+        git = self.git
+        if git is None:
+            return
+        record = self._selected_linked_worktree("renamed")
+        if record is None:
+            return
+        name_input = self.query_one("#worktree-action-value", Input)
+        new_name = name_input.value.strip()
+        if not new_name:
+            self.app.notify("Enter one new worktree folder name.", severity="warning")
+            name_input.focus()
+            return
+        if await self._git_operation(
+            "Rename worktree",
+            lambda: git.rename_worktree(record.path, new_name),
+            f"Renamed worktree {record.path} to {new_name}.",
+        ):
+            name_input.value = ""
+
+    @work(exclusive=True, group="advanced-mutate")
+    async def _repair_worktrees(self) -> None:
+        git = self.git
+        if git is None:
+            return
+        path = self.query_one("#worktree-path", Input).value.strip()
+        detail = f" for {path}" if path else ""
+        await self._git_operation(
+            "Repair worktree metadata",
+            lambda: git.repair_worktrees((path,) if path else ()),
+            f"Repaired worktree metadata{detail}.",
+        )
 
     def _confirm_remove_worktree(self) -> None:
         record = self._selected_worktree()

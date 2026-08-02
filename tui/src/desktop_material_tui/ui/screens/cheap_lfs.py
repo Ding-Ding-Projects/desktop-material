@@ -21,6 +21,7 @@ from ...application.cheap_lfs import (
 )
 from ...application.search import RegexFlags, SearchMode, SearchService
 from ..i18n import Translator, get_translator
+from ..widgets.responsive_layout import ScrollableToolbar
 from ..widgets.search_bar import SearchBar, SearchState
 from .dialogs import DecisionDialog
 from .repository_panes import RepositoryPane
@@ -48,7 +49,7 @@ class CheapLfsPane(RepositoryPane):
             placeholder=self._t("cheap_lfs.filter"),
             id="cheap-lfs-search",
         )
-        with Horizontal(classes="screen-toolbar"):
+        with ScrollableToolbar():
             yield Button(self._t("cheap_lfs.refresh"), id="cheap-lfs-refresh")
             yield Button(
                 self._t("cheap_lfs.preview"),
@@ -170,7 +171,10 @@ class CheapLfsPane(RepositoryPane):
         self.cheap_lfs = None
         self.entries = []
         self._visible_entries = []
-        self.reload()
+        # Repository binding can happen while Textual is still mounting this
+        # pane's composed children. Defer the worker until the next completed
+        # refresh so its table and search-bar queries are always mount-safe.
+        self.call_after_refresh(self.reload)
 
     @work(exclusive=True, group="cheap-lfs-load")
     async def reload(self) -> None:

@@ -18,6 +18,7 @@ from ...application.search import (
     RegexFlags,
     SafeRegex,
 )
+from ..widgets.responsive_layout import ResponsiveFormRow, ScrollableToolbar
 from ..widgets.search_bar import SearchState
 
 MAX_PATTERN_LENGTH = MAX_REGEX_PATTERN_LENGTH
@@ -54,7 +55,7 @@ class RegexBuilderPane(Vertical):
             "pattern ≤ 1,000 · sample ≤ 100,000",
             id="regex-dialect",
         )
-        with Horizontal(id="regex-guided", classes="screen-toolbar"):
+        with ScrollableToolbar(id="regex-guided"):
             yield Button("Literal", id="regex-literal")
             yield Button(".", id="regex-any")
             yield Button("[a-z]", id="regex-class")
@@ -68,7 +69,7 @@ class RegexBuilderPane(Vertical):
             yield Button("*", id="regex-star")
             yield Button("+", id="regex-plus")
             yield Button("{1,3}", id="regex-range")
-        with Horizontal(classes="form-row"):
+        with ResponsiveFormRow():
             yield Input(
                 placeholder="Pattern",
                 id="regex-pattern",

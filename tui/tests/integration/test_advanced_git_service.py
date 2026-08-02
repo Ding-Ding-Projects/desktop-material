@@ -82,6 +82,47 @@ def test_worktree_lifecycle_and_reflog_are_bounded(
     assert len(reflog) <= 10
 
 
+def test_worktree_lock_move_rename_and_repair_lifecycle(
+    advanced_repository: Path,
+    tmp_path: Path,
+) -> None:
+    service = AdvancedGitService(advanced_repository)
+    original = tmp_path / "managed worktree"
+
+    service.add_worktree(
+        original,
+        branch="feature/worktree-tools",
+        create_branch=True,
+    )
+    service.lock_worktree(original, reason="Keep this checkout available")
+    locked = next(record for record in service.worktrees() if record.path == original)
+    assert locked.locked_reason == "Keep this checkout available"
+
+    service.unlock_worktree(original)
+    unlocked = next(record for record in service.worktrees() if record.path == original)
+    assert unlocked.locked_reason is None
+
+    service.rename_worktree(original, "renamed worktree")
+    renamed = original.with_name("renamed worktree")
+    assert renamed.is_dir()
+    assert renamed in {record.path for record in service.worktrees()}
+
+    moved = tmp_path / "nested" / "moved worktree"
+    moved.parent.mkdir()
+    service.move_worktree(renamed, moved)
+    assert moved.is_dir()
+    assert moved in {record.path for record in service.worktrees()}
+
+    manually_moved = tmp_path / "manually moved worktree"
+    moved.rename(manually_moved)
+    assert moved in {record.path for record in service.worktrees()}
+    service.repair_worktrees((manually_moved,))
+    assert manually_moved in {record.path for record in service.worktrees()}
+
+    service.remove_worktree(manually_moved)
+    assert not manually_moved.exists()
+
+
 def test_sparse_checkout_and_diagnostics(
     advanced_repository: Path,
 ) -> None:
@@ -115,6 +156,28 @@ def test_advanced_operations_reject_unregistered_or_escaping_paths(
         service.update_submodules(("../outside",))
     with pytest.raises(InvalidGitArgumentError):
         service.set_sparse_checkout(("--danger",))
+
+
+def test_worktree_management_rejects_unsafe_or_ambiguous_targets(
+    advanced_repository: Path,
+    tmp_path: Path,
+) -> None:
+    service = AdvancedGitService(advanced_repository)
+    linked = tmp_path / "linked worktree"
+    service.add_worktree(linked, detach=True)
+
+    with pytest.raises(InvalidGitArgumentError, match="linked worktree"):
+        service.lock_worktree(advanced_repository)
+    with pytest.raises(InvalidGitArgumentError, match="single-line"):
+        service.lock_worktree(linked, reason="line one\nline two")
+    with pytest.raises(InvalidGitArgumentError, match="one safe path component"):
+        service.rename_worktree(linked, "../escape")
+    with pytest.raises(InvalidGitArgumentError, match="must differ"):
+        service.move_worktree(linked, linked)
+    with pytest.raises(InvalidGitArgumentError, match="existing directory"):
+        service.repair_worktrees((tmp_path / "missing",))
+    with pytest.raises(InvalidGitArgumentError, match="duplicate"):
+        service.repair_worktrees((linked, linked))
 
 
 def test_submodule_status_deinitialize_update_and_sync(

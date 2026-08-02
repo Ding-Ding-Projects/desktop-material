@@ -24,6 +24,8 @@ from ..infrastructure.git.runner import SubprocessGitRunner, redact_git_argument
 
 _MAX_SPARSE_PATTERNS = 512
 _MAX_REF_LENGTH = 1024
+_MAX_WORKTREE_LOCK_REASON_LENGTH = 1024
+_MAX_WORKTREE_NAME_LENGTH = 255
 
 
 class AdvancedGitService:
@@ -118,6 +120,81 @@ class AdvancedGitService:
         if force:
             args.append("--force")
         args.extend(["--", str(target)])
+        return self._run(args, timeout=self.long_timeout)
+
+    def lock_worktree(
+        self,
+        path: str | Path,
+        *,
+        reason: str | None = None,
+    ) -> GitCommandResult:
+        """Prevent a linked worktree from being pruned or moved."""
+
+        target = self._registered_linked_worktree(path)
+        args = ["worktree", "lock"]
+        if reason is not None and reason != "":
+            args.extend(["--reason", self._validate_worktree_lock_reason(reason)])
+        args.extend(["--", str(target)])
+        return self._run(args)
+
+    def unlock_worktree(self, path: str | Path) -> GitCommandResult:
+        """Remove an existing linked-worktree lock."""
+
+        target = self._registered_linked_worktree(path)
+        return self._run(["worktree", "unlock", "--", str(target)])
+
+    def move_worktree(
+        self,
+        path: str | Path,
+        destination: str | Path,
+    ) -> GitCommandResult:
+        """Move a registered linked worktree and update Git's metadata."""
+
+        source = self._registered_linked_worktree(path)
+        target = self._absolute_path(destination, "worktree destination")
+        if target == source:
+            raise InvalidGitArgumentError(
+                "worktree destination", "must differ from the current worktree path"
+            )
+        if target == self.validate():
+            raise InvalidGitArgumentError(
+                "worktree destination", "cannot replace the primary worktree"
+            )
+        return self._run(
+            ["worktree", "move", "--", str(source), str(target)],
+            timeout=self.long_timeout,
+        )
+
+    def rename_worktree(self, path: str | Path, new_name: str) -> GitCommandResult:
+        """Rename a linked worktree within its current parent directory."""
+
+        source = self._registered_linked_worktree(path)
+        name = self._validate_worktree_name(new_name)
+        return self.move_worktree(source, source.with_name(name))
+
+    def repair_worktrees(
+        self,
+        paths: Sequence[str | Path] = (),
+    ) -> GitCommandResult:
+        """Repair administrative metadata after worktrees were moved manually."""
+
+        normalized: list[str] = []
+        seen: set[Path] = set()
+        for path in paths:
+            target = self._absolute_path(path, "worktree repair path")
+            if not target.is_dir():
+                raise InvalidGitArgumentError(
+                    "worktree repair path", "must identify an existing directory"
+                )
+            if target in seen:
+                raise InvalidGitArgumentError(
+                    "worktree repair path", "must not contain duplicate paths"
+                )
+            seen.add(target)
+            normalized.append(str(target))
+        args = ["worktree", "repair"]
+        if normalized:
+            args.extend(["--", *normalized])
         return self._run(args, timeout=self.long_timeout)
 
     def prune_worktrees(self, *, dry_run: bool = True) -> GitCommandResult:
@@ -301,6 +378,14 @@ class AdvancedGitService:
             raise InvalidGitArgumentError("worktree path", "is not a registered worktree")
         return target
 
+    def _registered_linked_worktree(self, path: str | Path) -> Path:
+        target = self._registered_worktree(path)
+        if target == self.validate():
+            raise InvalidGitArgumentError(
+                "worktree path", "must identify a linked worktree, not the primary worktree"
+            )
+        return target
+
     def _repository_relative_path(self, path: str | Path, label: str) -> str:
         text = str(path)
         if not text or "\x00" in text:
@@ -375,6 +460,37 @@ class AdvancedGitService:
         ):
             raise InvalidGitArgumentError(
                 "sparse pattern", "must be a non-empty single-line path or pattern"
+            )
+        return value
+
+    @staticmethod
+    def _validate_worktree_lock_reason(value: str) -> str:
+        if (
+            not value
+            or len(value) > _MAX_WORKTREE_LOCK_REASON_LENGTH
+            or "\x00" in value
+            or any(character in value for character in ("\r", "\n"))
+        ):
+            raise InvalidGitArgumentError(
+                "worktree lock reason",
+                f"must be a non-empty single-line value of at most "
+                f"{_MAX_WORKTREE_LOCK_REASON_LENGTH} characters",
+            )
+        return value
+
+    @staticmethod
+    def _validate_worktree_name(value: str) -> str:
+        if (
+            not value
+            or len(value) > _MAX_WORKTREE_NAME_LENGTH
+            or value in {".", ".."}
+            or any(character in value for character in ("/", "\\", "\x00", "\r", "\n"))
+            or any(ord(character) < 32 for character in value)
+        ):
+            raise InvalidGitArgumentError(
+                "worktree name",
+                f"must be one safe path component of at most {_MAX_WORKTREE_NAME_LENGTH} "
+                "characters",
             )
         return value
 

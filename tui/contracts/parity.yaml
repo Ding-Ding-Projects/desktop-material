@@ -16,9 +16,9 @@
     "terminal_owned": "The terminal emulator or operating environment owns this behavior; the TUI documents the boundary."
   },
   "status_summary": {
-    "adapted": 14,
+    "adapted": 15,
     "not_yet_available": 133,
-    "partial": 53,
+    "partial": 52,
     "terminal_owned": 2
   },
   "features": [
@@ -752,13 +752,14 @@
       "title": "Worktree management",
       "upstream_relation": "added",
       "desktop_documentation": null,
-      "tui_status": "partial",
-      "reason": "The Advanced pane lists, adds, removes, and prunes worktrees with branch, start-point, detached, and force controls plus typed removal confirmation. Lock, move, rename, and repair are not implemented.",
+      "tui_status": "adapted",
+      "reason": "The Advanced pane lists, adds, locks and unlocks with optional reasons, moves, renames, repairs, removes, and prunes worktrees. Branch, start-point, detached, and force controls plus typed removal confirmation are wired to bounded argv-only Git operations.",
       "evidence": [
         "tui/src/desktop_material_tui/application/advanced_git.py",
         "tui/src/desktop_material_tui/ui/screens/advanced.py",
         "tui/tests/integration/test_advanced_git_service.py",
-        "tui/tests/ui/test_advanced.py"
+        "tui/tests/ui/test_advanced.py",
+        "tui/tests/ui/test_worktree_management.py"
       ]
     },
     {

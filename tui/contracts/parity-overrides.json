@@ -172,13 +172,14 @@
       "evidence": ["tui/src/desktop_material_tui/app.py"]
     },
     "Worktree management": {
-      "status": "partial",
-      "reason": "The Advanced pane lists, adds, removes, and prunes worktrees with branch, start-point, detached, and force controls plus typed removal confirmation. Lock, move, rename, and repair are not implemented.",
+      "status": "adapted",
+      "reason": "The Advanced pane lists, adds, locks and unlocks with optional reasons, moves, renames, repairs, removes, and prunes worktrees. Branch, start-point, detached, and force controls plus typed removal confirmation are wired to bounded argv-only Git operations.",
       "evidence": [
         "tui/src/desktop_material_tui/application/advanced_git.py",
         "tui/src/desktop_material_tui/ui/screens/advanced.py",
         "tui/tests/integration/test_advanced_git_service.py",
-        "tui/tests/ui/test_advanced.py"
+        "tui/tests/ui/test_advanced.py",
+        "tui/tests/ui/test_worktree_management.py"
       ]
     },
     "Submodule add and management": {

@@ -24,6 +24,7 @@ from textual.widgets import (
 )
 
 from ...application.version_history import VersionEntry, VersionHistoryService
+from ..widgets.responsive_layout import ResponsiveFormRow, ScrollableToolbar
 
 
 class ElementOverride(TypedDict):
@@ -162,7 +163,7 @@ class SettingsPane(VerticalScroll):
 
     def compose(self) -> ComposeResult:
         yield Label("Appearance", classes="modal-title")
-        with Horizontal(classes="form-row"):
+        with ResponsiveFormRow():
             yield Select(
                 (("Dark", "dark"), ("Light", "light"), ("System", "system")),
                 value="dark",
@@ -194,7 +195,7 @@ class SettingsPane(VerticalScroll):
         )
 
         yield Label("Language and tone", classes="modal-title")
-        with Horizontal(classes="form-row"):
+        with ResponsiveFormRow():
             yield Select(
                 (
                     ("English", "en"),
@@ -219,7 +220,7 @@ class SettingsPane(VerticalScroll):
             )
 
         yield Label("External editor and shell", classes="modal-title")
-        with Horizontal(classes="form-row"):
+        with ResponsiveFormRow():
             yield Input(
                 placeholder="Editor command, e.g. code",
                 id="settings-editor",
@@ -234,7 +235,7 @@ class SettingsPane(VerticalScroll):
 
         yield Label("Narrator and sound", classes="modal-title")
         yield Checkbox("Enable optional spoken narrator", id="settings-narrator")
-        with Horizontal(classes="form-row"):
+        with ResponsiveFormRow():
             yield Select(
                 (("English", "en"), ("Cantonese", "yue-HK"), ("Both", "both")),
                 value="en",
@@ -256,7 +257,7 @@ class SettingsPane(VerticalScroll):
         yield Checkbox("Yield narration to screen readers", value=True, id="settings-screen-reader")
 
         yield Label("Per-element terminal appearance", classes="modal-title")
-        with Horizontal(classes="form-row"):
+        with ResponsiveFormRow():
             yield Select(
                 (
                     ("Workspace", "workspace"),
@@ -288,7 +289,7 @@ class SettingsPane(VerticalScroll):
             id="settings-element-style",
             compact=True,
         )
-        with Horizontal(classes="screen-toolbar"):
+        with ScrollableToolbar():
             yield Button("Preview", id="settings-preview")
             yield Button("Reset element", id="settings-reset-element")
             yield Button("Save settings", id="settings-save", variant="primary")
@@ -299,7 +300,7 @@ class SettingsPane(VerticalScroll):
             "the app data directory—not inside any repository you open.",
             id="settings-history-status",
         )
-        with Horizontal(classes="screen-toolbar"):
+        with ScrollableToolbar():
             yield Button("Undo", id="settings-undo")
             yield Button("Redo", id="settings-redo")
             yield Button("Open history", id="settings-history")

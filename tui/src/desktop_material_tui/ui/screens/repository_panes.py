@@ -23,6 +23,7 @@ from textual.widgets import (
 from textual.worker import Worker
 
 from ...application.search import RegexFlags, SearchMode, SearchService
+from ..widgets.responsive_layout import ResponsiveFormRow, ScrollableToolbar
 from ..widgets.search_bar import SearchBar, SearchState
 from .dialogs import DecisionDialog
 
@@ -140,7 +141,7 @@ class ChangesPane(RepositoryPane):
             placeholder="Filter changed files…",
             id="changes-search",
         )
-        with Horizontal(classes="screen-toolbar"):
+        with ScrollableToolbar():
             yield Button("Refresh", id="changes-refresh")
             yield Button("Stage selected", id="changes-stage", variant="primary")
             yield Button("Unstage selected", id="changes-unstage")
@@ -170,7 +171,7 @@ class ChangesPane(RepositoryPane):
                 soft_wrap=True,
                 tab_behavior="focus",
             )
-            with Horizontal(classes="form-row"):
+            with ResponsiveFormRow():
                 yield Checkbox("Amend last commit", id="commit-amend")
                 yield Checkbox("Add Signed-off-by", id="commit-signoff")
                 yield Button("Commit", id="commit-submit", variant="primary")
@@ -395,7 +396,7 @@ class HistoryPane(RepositoryPane):
             placeholder="Search commits, authors, hashes…",
             id="history-search",
         )
-        with Horizontal(classes="screen-toolbar"):
+        with ScrollableToolbar():
             yield Button("Refresh", id="history-refresh")
             yield Button("Copy hash", id="history-copy")
         with Horizontal(classes="screen-split"):
@@ -528,7 +529,7 @@ class BranchesPane(RepositoryPane):
             placeholder="Filter local and remote branches…",
             id="branches-search",
         )
-        with Horizontal(classes="screen-toolbar"):
+        with ScrollableToolbar():
             yield Button("Refresh", id="branches-refresh")
             yield Button("Checkout", id="branches-checkout", variant="primary")
             yield Button("Merge", id="branches-merge")
@@ -731,7 +732,7 @@ class StashesPane(RepositoryPane):
             placeholder="Filter stashes…",
             id="stashes-search",
         )
-        with Horizontal(classes="screen-toolbar"):
+        with ScrollableToolbar():
             yield Button("Refresh", id="stashes-refresh")
             yield Button("Apply", id="stashes-apply")
             yield Button("Pop", id="stashes-pop", variant="primary")
@@ -896,7 +897,7 @@ class RepositoryToolsPane(RepositoryPane):
             placeholder="Search remotes, tags, diagnostics…",
             id="tools-search",
         )
-        with Horizontal(classes="screen-toolbar"):
+        with ScrollableToolbar():
             yield Button("Refresh", id="tools-refresh")
             yield Button("Copy repository path", id="tools-copy-path")
             yield Button("Open external editor", id="tools-editor", variant="primary")

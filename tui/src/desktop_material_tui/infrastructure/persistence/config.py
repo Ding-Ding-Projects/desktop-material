@@ -43,6 +43,7 @@ class AppearanceConfig:
     accent: str = "#6750a4"
     unicode_borders: bool = True
     reduced_motion: bool = False
+    repository_rail_width: int = 28
     element_overrides: dict[str, dict[str, object]] = field(default_factory=dict)
 
     def validate(self) -> None:
@@ -52,6 +53,12 @@ class AppearanceConfig:
             raise ConfigError(f"Unsupported density: {self.density}")
         if not _is_hex_colour(self.accent):
             raise ConfigError("Accent must be a #RRGGBB colour")
+        if (
+            isinstance(self.repository_rail_width, bool)
+            or not isinstance(self.repository_rail_width, int)
+            or self.repository_rail_width < 20
+        ):
+            raise ConfigError("Repository rail width must be an integer of at least 20")
         for target, override in self.element_overrides.items():
             if target not in ELEMENT_TARGETS:
                 raise ConfigError(f"Unsupported appearance target: {target}")
@@ -233,6 +240,11 @@ def _config_from_mapping(raw: Mapping[str, Any]) -> AppConfig:
                     appearance_raw.get("reduced_motion"),
                     False,
                     "appearance.reduced_motion",
+                ),
+                repository_rail_width=_integer(
+                    appearance_raw.get("repository_rail_width"),
+                    28,
+                    "appearance.repository_rail_width",
                 ),
                 element_overrides=_element_overrides(appearance_raw.get("element_overrides")),
             ),

@@ -36,8 +36,29 @@ Footer {
     min-width: 20;
     height: 100%;
     background: $surface-raised;
-    border-right: solid $outline;
     padding: 1;
+}
+
+#repository-splitter {
+    width: 1;
+    min-width: 1;
+    max-width: 1;
+    height: 100%;
+    background: $surface-high;
+    color: $outline;
+    content-align: center middle;
+    text-align: center;
+}
+
+#repository-splitter:hover {
+    background: $accent-soft;
+    color: $text;
+}
+
+#repository-splitter:focus {
+    background: $accent;
+    color: $text;
+    text-style: bold;
 }
 
 #repository-heading {
@@ -369,8 +390,17 @@ ModalScreen {
     align-horizontal: right;
 }
 
-.narrow #repository-rail {
+.narrow #repository-rail,
+.narrow #repository-splitter {
     display: none;
+}
+
+.narrow #path-entry-row {
+    height: 6;
+}
+
+.narrow #path-browse {
+    margin-left: 0;
 }
 
 .narrow .screen-split {

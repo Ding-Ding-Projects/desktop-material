@@ -23,6 +23,7 @@ from textual.widgets import (
 )
 
 from ...application.search import RegexFlags, SearchMode, SearchService
+from ..widgets.responsive_layout import ResponsiveFormRow, ScrollableToolbar
 from ..widgets.search_bar import SearchBar, SearchState
 from .dialogs import DecisionDialog
 
@@ -114,7 +115,7 @@ class GitHubPane(Vertical):
                     placeholder="Search issues…",
                     id="github-issues-search",
                 )
-                with Horizontal(classes="screen-toolbar"):
+                with ScrollableToolbar():
                     yield Button("Refresh", id="issues-refresh")
                     yield Button("Close…", id="issue-close", variant="error")
                 with Horizontal(classes="screen-split"):
@@ -142,7 +143,7 @@ class GitHubPane(Vertical):
                         id="issue-body",
                         tab_behavior="focus",
                     )
-                    with Horizontal(classes="form-row"):
+                    with ResponsiveFormRow():
                         yield Button("Create issue", id="issue-create", variant="primary")
                         yield Input(
                             placeholder="Comment on selected issue",
@@ -157,7 +158,7 @@ class GitHubPane(Vertical):
                     placeholder="Search pull requests…",
                     id="github-pr-search",
                 )
-                with Horizontal(classes="screen-toolbar"):
+                with ScrollableToolbar():
                     yield Button("Refresh", id="prs-refresh")
                     yield Button("Approve", id="pr-approve")
                     yield Button("Request changes", id="pr-request-changes")
@@ -181,7 +182,7 @@ class GitHubPane(Vertical):
                         id="pr-title",
                         select_on_focus=False,
                     )
-                    with Horizontal(classes="form-row"):
+                    with ResponsiveFormRow():
                         yield Input(
                             placeholder="Head branch",
                             id="pr-head",
@@ -207,7 +208,7 @@ class GitHubPane(Vertical):
                     placeholder="Search workflows and runs…",
                     id="github-actions-search",
                 )
-                with Horizontal(classes="screen-toolbar"):
+                with ScrollableToolbar():
                     yield Button("Refresh", id="actions-refresh")
                     yield Button("Rerun", id="action-rerun")
                     yield Button("Cancel…", id="action-cancel", variant="error")
@@ -224,7 +225,7 @@ class GitHubPane(Vertical):
                         id="runs-table",
                         classes="screen-detail",
                     )
-                with Horizontal(classes="form-row"):
+                with ResponsiveFormRow():
                     yield Input(
                         placeholder="Workflow ID or file",
                         id="workflow-id",
@@ -244,7 +245,7 @@ class GitHubPane(Vertical):
                     placeholder="Search releases, packages, and projects…",
                     id="github-releases-search",
                 )
-                with Horizontal(classes="screen-toolbar"):
+                with ScrollableToolbar():
                     yield Button("Refresh", id="releases-refresh")
                 with Horizontal(classes="screen-split"):
                     yield DataTable(
@@ -279,7 +280,7 @@ class GitHubPane(Vertical):
                     "an explicit decision and reject secret-looking fields.",
                     classes="help-copy",
                 )
-                with Horizontal(classes="form-row"):
+                with ResponsiveFormRow():
                     yield Select(
                         tuple(
                             (method, method) for method in ("GET", "POST", "PATCH", "PUT", "DELETE")

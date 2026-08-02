@@ -9,6 +9,7 @@ from git_repository import DeterministicRepository
 from textual import events
 from textual.widgets import Button, Input
 
+from desktop_material_tui.app import DesktopMaterialTUI
 from desktop_material_tui.infrastructure.persistence import XDGPaths
 from desktop_material_tui.ui.screens.dialogs import (
     CloneDialog,
@@ -82,20 +83,36 @@ async def test_clone_destination_uses_normalized_path_input(
     deterministic_repository: DeterministicRepository,
 ) -> None:
     captured: list[CloneRequest | None] = []
+    clone_target = deterministic_repository.path.parent / "clone-target"
 
     async with run_desktop_material(deterministic_repository.path) as (app, pilot):
-        app.push_screen(CloneDialog(), captured.append)
+        app.push_screen(
+            CloneDialog(working_directory=deterministic_repository.path.parent),
+            captured.append,
+        )
         await pilot.pause()
         assert isinstance(app.screen, CloneDialog)
 
         url_input = app.screen.query_one("#clone-url", Input)
         destination_input = app.screen.query_one("#clone-destination", PathInput)
+        assert destination_input.value == str(
+            deterministic_repository.path.parent.resolve() / "repository"
+        )
         url_input.value = "https://github.com/example/repository.git"
+        await pilot.pause()
+        assert destination_input.value == str(
+            deterministic_repository.path.parent.resolve() / "repository"
+        )
         assert await pilot.click("#clone-destination")
         await pilot.pause()
-        await app.on_event(events.Paste(f'  "{deterministic_repository.path}"  '))
+        destination_input.select_all()
+        await app.on_event(events.Paste(f'  "{clone_target}"  '))
         await pilot.pause()
-        assert destination_input.value == str(deterministic_repository.path)
+        assert destination_input.value == str(clone_target)
+
+        url_input.value = "https://github.com/example/renamed.git"
+        await pilot.pause()
+        assert destination_input.value == str(clone_target)
 
         destination_input.value = "''"
         await pilot.press("enter")
@@ -105,27 +122,125 @@ async def test_clone_destination_uses_normalized_path_input(
         assert destination_input.has_focus
         assert captured == []
 
-        app.copy_to_clipboard(f"'{deterministic_repository.path}'")
+        app.copy_to_clipboard(f"'{clone_target}'")
         await pilot.press("ctrl+v")
         await pilot.pause()
-        assert destination_input.value == str(deterministic_repository.path)
+        assert destination_input.value == str(clone_target)
 
         await pilot.press("enter")
         await pilot.pause()
         assert captured == [
             CloneRequest(
-                url="https://github.com/example/repository.git",
-                destination=str(deterministic_repository.path),
+                url="https://github.com/example/renamed.git",
+                destination=str(clone_target),
             )
         ]
+
+
+@pytest.mark.asyncio
+async def test_clone_browser_chooses_parent_and_rejects_occupied_destination(
+    deterministic_repository: DeterministicRepository,
+) -> None:
+    captured: list[CloneRequest | None] = []
+
+    async with run_desktop_material(
+        deterministic_repository.path,
+        size=(80, 24),
+    ) as (app, pilot):
+        app.push_screen(
+            CloneDialog(working_directory=deterministic_repository.path.parent),
+            captured.append,
+        )
+        await pilot.pause()
+        assert isinstance(app.screen, CloneDialog)
+        card = app.screen.query_one("#clone-card")
+        tree = app.screen.query_one("#clone-browser", FolderDirectoryTree)
+        destination = app.screen.query_one("#clone-destination", PathInput)
+        url = app.screen.query_one("#clone-url", Input)
+        assert card.has_class("browser-open")
+        assert tree.display
+
+        url.value = "git@github.com:example/fresh-clone.git"
+        await pilot.pause()
+        await _wait_for_root_children(tree, pilot)
+        repository_node = next(
+            child
+            for child in tree.root.children
+            if child.data is not None
+            and child.data.path.resolve() == deterministic_repository.path.resolve()
+        )
+        tree.move_cursor(repository_node)
+        tree.focus()
+        await pilot.press("enter")
+        await pilot.pause()
+        assert destination.value == str(
+            deterministic_repository.path.resolve() / "fresh-clone"
+        )
+
+        destination.value = str(deterministic_repository.path)
+        assert await pilot.click("#clone-submit")
+        await pilot.pause()
+        assert captured == []
+        assert "already contains" in str(app.screen.query_one("#clone-error").render())
+        assert destination.has_focus
+
+        assert await pilot.click("#clone-browser-working")
+        await pilot.pause()
+        assert Path(tree.path) == deterministic_repository.path.parent.resolve()
+
+        for selector in (
+            "#clone-card",
+            "#clone-url",
+            "#clone-destination-row",
+            "#clone-destination",
+            "#clone-browse",
+            "#clone-browser-toolbar",
+            "#clone-browser-up",
+            "#clone-browser-home",
+            "#clone-browser-working",
+            "#clone-browser",
+            "#clone-cancel",
+            "#clone-submit",
+        ):
+            app.screen.query_one(selector).scroll_visible(
+                animate=False,
+                top=True,
+                force=True,
+                immediate=True,
+            )
+            await pilot.pause()
+            assert_visible_inside_app(app.screen, selector)  # type: ignore[arg-type]
+
+
+@pytest.mark.asyncio
+async def test_clone_dialog_rejects_credentials_embedded_in_http_url(
+    deterministic_repository: DeterministicRepository,
+) -> None:
+    captured: list[CloneRequest | None] = []
+
+    async with run_desktop_material(deterministic_repository.path) as (app, pilot):
+        app.push_screen(
+            CloneDialog(working_directory=deterministic_repository.path.parent),
+            captured.append,
+        )
+        await pilot.pause()
+        url = app.screen.query_one("#clone-url", Input)
+        url.value = "https://token@example.com/owner/repository.git"
+
+        assert await pilot.click("#clone-submit")
+        await pilot.pause()
+
+        assert captured == []
+        assert "credentials" in str(app.screen.query_one("#clone-error").render())
+        assert url.has_focus
 
 
 @pytest.mark.asyncio
 async def test_folder_browser_mouse_keyboard_and_open_flow(
     deterministic_repository: DeterministicRepository,
 ) -> None:
-    hidden_file = deterministic_repository.path.parent / "not-a-folder.txt"
-    hidden_file.write_text("not selectable", encoding="utf-8")
+    visible_file = deterministic_repository.path.parent / "browse-me.txt"
+    visible_file.write_text("selecting me chooses my parent", encoding="utf-8")
 
     async with run_desktop_material(
         deterministic_repository.path,
@@ -135,11 +250,8 @@ async def test_folder_browser_mouse_keyboard_and_open_flow(
         await pilot.pause()
         assert isinstance(app.screen, PathDialog)
 
-        assert await pilot.click("#path-browse")
-        await pilot.pause()
         tree = app.screen.query_one("#path-browser", FolderDirectoryTree)
         path_input = app.screen.query_one("#path-input", PathInput)
-        assert tree.has_focus
         assert tree.display
         assert app.screen.query_one("#path-card").has_class("browser-open")
 
@@ -147,12 +259,25 @@ async def test_folder_browser_mouse_keyboard_and_open_flow(
         child_names = {
             child.data.path.name for child in tree.root.children if child.data is not None
         }
-        assert hidden_file.name not in child_names
+        assert visible_file.name in child_names
+
+        file_node = next(
+            child
+            for child in tree.root.children
+            if child.data is not None and child.data.path.resolve() == visible_file.resolve()
+        )
+        tree.move_cursor(file_node)
+        tree.focus()
+        await pilot.press("enter")
+        await pilot.pause()
+        assert path_input.value == str(visible_file.parent.resolve())
 
         path_input.value = ""
         assert await pilot.click("#path-browser", offset=(4, 1))
         await pilot.pause()
-        assert path_input.value == str(deterministic_repository.path.parent.resolve())
+        selected_path = tree.cursor_node.data.path.resolve()
+        expected_path = selected_path if selected_path.is_dir() else selected_path.parent
+        assert path_input.value == str(expected_path)
 
         await pilot.press("space")
         await pilot.pause()
@@ -213,14 +338,10 @@ async def test_folder_browser_controls_are_keyboard_reachable(
         await pilot.press("tab")
         browse = app.screen.query_one("#path-browse", Button)
         assert browse.has_focus
-        await pilot.press("enter")
-        await pilot.pause()
-
         tree = app.screen.query_one("#path-browser", FolderDirectoryTree)
-        assert tree.has_focus
         original_root = Path(tree.path)
 
-        await pilot.press("shift+tab", "shift+tab")
+        await pilot.press("tab")
         up = app.screen.query_one("#path-browser-up", Button)
         assert up.has_focus
         await pilot.press("enter")
@@ -277,8 +398,6 @@ async def test_folder_browser_reflows_inside_short_terminal(
         await pilot.pause()
         assert isinstance(app.screen, PathDialog)
 
-        assert await pilot.click("#path-browse")
-        await pilot.pause()
         card = app.screen.query_one("#path-card")
         for selector in (
             "#path-entry-row",
@@ -304,8 +423,6 @@ async def test_browser_navigation_does_not_submit_create_dialog(
         assert isinstance(app.screen, PathDialog)
         assert str(app.screen.query_one("#path-open", Button).label) == "Create repository"
 
-        assert await pilot.click("#path-browse")
-        await pilot.pause()
         assert await pilot.click("#path-browser-home")
         await pilot.pause()
 
@@ -322,13 +439,13 @@ async def test_browser_navigation_does_not_submit_create_dialog(
 @pytest.mark.parametrize(
     ("config_name", "expected_labels"),
     [
-        ("english.toml", ("Browse", "Hide", "Up", "Home", "Cancel", "Open")),
-        ("cantonese.toml", ("瀏覽", "收起", "上一層", "主目錄", "取消", "開啟")),
+        ("english.toml", ("Hide", "Browse", "Up", "Home", "Cancel", "Open")),
+        ("cantonese.toml", ("收起", "瀏覽", "上一層", "主目錄", "取消", "開啟")),
         (
             "bilingual.toml",
             (
-                "Browse · 瀏覽",
                 "Hide · 收起",
+                "Browse · 瀏覽",
                 "Up · 上一層",
                 "Home · 主目錄",
                 "Cancel · 取消",
@@ -356,15 +473,79 @@ async def test_localized_browser_controls_fit_at_narrow_width(
         browse = app.screen.query_one("#path-browse", Button)
         assert str(browse.label) == expected_labels[0]
 
-        assert await pilot.click("#path-browse")
-        await pilot.pause()
         selectors = (
-            "#path-browse",
             "#path-browser-up",
             "#path-browser-home",
             "#path-cancel",
             "#path-open",
         )
-        for selector, expected_label in zip(selectors, expected_labels[1:], strict=True):
+        for selector, expected_label in zip(selectors, expected_labels[2:], strict=True):
             assert str(app.screen.query_one(selector, Button).label) == expected_label
+            assert_visible_inside_app(app.screen, selector)  # type: ignore[arg-type]
+
+        assert await pilot.click("#path-browse")
+        await pilot.pause()
+        assert str(browse.label) == expected_labels[1]
+
+
+@pytest.mark.asyncio
+async def test_repository_dialog_controls_remain_reachable_in_narrow_bilingual_layout(
+    deterministic_repository: DeterministicRepository,
+) -> None:
+    app = DesktopMaterialTUI(
+        deterministic_repository.path,
+        language_override="bilingual",
+    )
+    async with app.run_test(size=(40, 24), notifications=False) as pilot:
+        await pilot.pause()
+        await app.workers.wait_for_complete()
+
+        await pilot.press("ctrl+o")
+        await pilot.pause()
+        assert isinstance(app.screen, PathDialog)
+        for selector in (
+            "#path-card",
+            "#path-input",
+            "#path-browse",
+            "#path-browser-up",
+            "#path-browser-home",
+            "#path-browser",
+            "#path-cancel",
+            "#path-open",
+        ):
+            widget = app.screen.query_one(selector)
+            if widget.can_focus:
+                widget.focus()
+                await pilot.pause()
+            widget.scroll_visible(animate=False, force=True, immediate=True)
+            await pilot.pause()
+            assert_visible_inside_app(app.screen, selector)  # type: ignore[arg-type]
+
+        await pilot.press("escape")
+        await pilot.pause()
+        await pilot.press("ctrl+p")
+        await pilot.pause()
+        await type_text(pilot, "clone")
+        await pilot.pause()
+        await pilot.click("#command-clone")
+        await pilot.pause()
+        assert isinstance(app.screen, CloneDialog)
+        for selector in (
+            "#clone-card",
+            "#clone-url",
+            "#clone-destination",
+            "#clone-browse",
+            "#clone-browser-up",
+            "#clone-browser-home",
+            "#clone-browser-working",
+            "#clone-browser",
+            "#clone-cancel",
+            "#clone-submit",
+        ):
+            widget = app.screen.query_one(selector)
+            if widget.can_focus:
+                widget.focus()
+                await pilot.pause()
+            widget.scroll_visible(animate=False, force=True, immediate=True)
+            await pilot.pause()
             assert_visible_inside_app(app.screen, selector)  # type: ignore[arg-type]

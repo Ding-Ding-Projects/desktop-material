@@ -10,7 +10,7 @@ from typing import ClassVar
 from textual import events
 from textual.app import ComposeResult
 from textual.binding import BindingType
-from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.containers import Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import (
     Button,
@@ -23,8 +23,15 @@ from textual.widgets import (
     Static,
 )
 
-from ...application.path_input import normalize_path_input
+from ...application.path_input import (
+    clone_destination_for_url,
+    clone_url_embeds_http_credentials,
+    inspect_clone_destination,
+    normalize_path_input,
+    path_from_user_input,
+)
 from ..i18n import Translator, get_translator
+from ..widgets.responsive_layout import ResponsiveFormRow, ScrollableToolbar
 
 
 class DecisionDialog(ModalScreen[bool]):
@@ -66,7 +73,7 @@ class DecisionDialog(ModalScreen[bool]):
                     id="decision-confirmation",
                     select_on_focus=False,
                 )
-            with Horizontal(classes="modal-actions"):
+            with ScrollableToolbar(classes="modal-actions"):
                 yield Button(self.cancel_label, id="decision-cancel")
                 yield Button(
                     self.confirm_label,
@@ -134,10 +141,7 @@ class PathInput(Input):
 
 
 class FolderDirectoryTree(DirectoryTree):
-    """Terminal-native directory tree that excludes non-selectable files."""
-
-    def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
-        return (path for path in paths if self._safe_is_dir(path))
+    """Terminal-native file browser used to choose repository directories."""
 
 
 def _browser_root(value: str) -> Path:
@@ -194,9 +198,9 @@ class PathDialog(ModalScreen[str | None]):
         self.submit_label = submit_label or self._translator.t("common.open")
 
     def compose(self) -> ComposeResult:
-        with Vertical(id="path-card", classes="modal-card"):
+        with Vertical(id="path-card", classes="modal-card browser-open"):
             yield Label(self.dialog_title, classes="modal-title")
-            with Horizontal(id="path-entry-row"):
+            with ResponsiveFormRow(id="path-entry-row"):
                 yield PathInput(
                     value=self.initial,
                     placeholder=self.placeholder,
@@ -204,12 +208,12 @@ class PathDialog(ModalScreen[str | None]):
                     select_on_focus=False,
                 )
                 yield Button(
-                    self._translator.t("path.browser.browse"),
+                    self._translator.t("path.browser.hide"),
                     id="path-browse",
-                    tooltip=self._translator.t("path.browser.browse_tooltip"),
+                    tooltip=self._translator.t("path.browser.hide_tooltip"),
                 )
             with Vertical(id="path-browser-region"):
-                with Horizontal(id="path-browser-toolbar"):
+                with ScrollableToolbar(id="path-browser-toolbar"):
                     yield Button(
                         self._translator.t("path.browser.up"),
                         id="path-browser-up",
@@ -225,7 +229,7 @@ class PathDialog(ModalScreen[str | None]):
                     id="path-browser",
                     name=self._translator.t("path.browser.name"),
                 )
-            with Horizontal(classes="modal-actions"):
+            with ScrollableToolbar(classes="modal-actions"):
                 yield Button(self._translator.t("common.cancel"), id="path-cancel")
                 yield Button(self.submit_label, id="path-open", variant="primary")
 
@@ -259,6 +263,14 @@ class PathDialog(ModalScreen[str | None]):
         selected_path = str(event.path)
         path_input.value = selected_path
         path_input.cursor_position = len(selected_path)
+
+    def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected) -> None:
+        if event.control.id != "path-browser":
+            return
+        path_input = self.query_one("#path-input", PathInput)
+        selected_parent = str(event.path.parent)
+        path_input.value = selected_parent
+        path_input.cursor_position = len(selected_parent)
 
     def _toggle_browser(self) -> None:
         card = self.query_one("#path-card", Vertical)
@@ -301,28 +313,149 @@ class CloneRequest:
 
 
 class CloneDialog(ModalScreen[CloneRequest | None]):
-    """Clone URL and destination text fields."""
+    """Clone URL, safe working-directory default, and folder browser."""
 
     BINDINGS: ClassVar[list[BindingType]] = [("escape", "cancel", "Cancel")]
+    DEFAULT_CSS = """
+    CloneDialog #clone-card {
+        height: 90vh;
+    }
+
+    CloneDialog #clone-content {
+        width: 100%;
+        height: 1fr;
+    }
+
+    CloneDialog #clone-destination-row {
+        width: 100%;
+        height: 3;
+    }
+
+    .narrow CloneDialog #clone-destination-row {
+        height: 6;
+    }
+
+    CloneDialog #clone-destination {
+        width: 1fr;
+    }
+
+    CloneDialog #clone-browse {
+        width: auto;
+        min-width: 10;
+        margin-left: 1;
+    }
+
+    .narrow CloneDialog #clone-browse {
+        margin-left: 0;
+    }
+
+    CloneDialog #clone-browser-region {
+        width: 100%;
+        height: 1fr;
+        min-height: 8;
+    }
+
+    CloneDialog #clone-browser-toolbar {
+        width: 100%;
+        height: 3;
+        overflow-x: auto;
+    }
+
+    CloneDialog #clone-browser-toolbar Button {
+        width: auto;
+        min-width: 9;
+        margin-right: 1;
+    }
+
+    CloneDialog #clone-browser {
+        width: 100%;
+        height: 1fr;
+        min-height: 4;
+    }
+
+    CloneDialog #clone-error {
+        width: 100%;
+        height: auto;
+        min-height: 1;
+        color: $error;
+    }
+
+    CloneDialog #clone-card.browser-closed #clone-browser-region,
+    CloneDialog #clone-card.browser-closed .clone-parent-label {
+        display: none;
+    }
+    """
+
+    def __init__(self, working_directory: str | Path | None = None) -> None:
+        super().__init__()
+        try:
+            candidate = path_from_user_input(working_directory or Path.cwd()).resolve()
+            self.working_directory = candidate if candidate.is_dir() else Path.cwd().resolve()
+        except (OSError, RuntimeError, ValueError):
+            self.working_directory = _browser_root("")
+        self._translator = get_translator()
+        self._automatic_destination = str(
+            clone_destination_for_url("", self.working_directory)
+        )
+        self._destination_user_edited = False
 
     def compose(self) -> ComposeResult:
-        with Vertical(id="clone-card", classes="modal-card"):
-            yield Label("Clone repository", classes="modal-title")
-            yield Label("Repository URL", classes="field-label")
-            yield Input(
-                placeholder="https://github.com/owner/repository.git",
-                id="clone-url",
-                select_on_focus=False,
-            )
-            yield Label("Destination folder", classes="field-label")
-            yield PathInput(
-                placeholder="/home/you/src/repository",
-                id="clone-destination",
-                select_on_focus=False,
-            )
-            with Horizontal(classes="modal-actions"):
-                yield Button("Cancel", id="clone-cancel")
-                yield Button("Clone", id="clone-submit", variant="primary")
+        with Vertical(id="clone-card", classes="modal-card browser-open"):
+            with VerticalScroll(id="clone-content"):
+                yield Label(self._translator.t("repository.clone"), classes="modal-title")
+                yield Label(self._translator.t("clone.url"), classes="field-label")
+                yield Input(
+                    placeholder="https://github.com/owner/repository.git",
+                    id="clone-url",
+                    select_on_focus=False,
+                )
+                yield Label(self._translator.t("clone.destination"), classes="field-label")
+                with ResponsiveFormRow(id="clone-destination-row"):
+                    yield PathInput(
+                        value=self._automatic_destination,
+                        placeholder="/home/you/src/repository",
+                        id="clone-destination",
+                        select_on_focus=True,
+                    )
+                    yield Button(
+                        self._translator.t("path.browser.hide"),
+                        id="clone-browse",
+                        tooltip=self._translator.t("path.browser.hide_tooltip"),
+                    )
+                yield Label(
+                    self._translator.t("clone.parent"),
+                    classes="field-label clone-parent-label",
+                )
+                with Vertical(id="clone-browser-region"):
+                    with ScrollableToolbar(id="clone-browser-toolbar"):
+                        yield Button(
+                            self._translator.t("path.browser.up"),
+                            id="clone-browser-up",
+                            tooltip=self._translator.t("path.browser.up_tooltip"),
+                        )
+                        yield Button(
+                            self._translator.t("path.browser.home"),
+                            id="clone-browser-home",
+                            tooltip=self._translator.t("path.browser.home_tooltip"),
+                        )
+                        yield Button(
+                            self._translator.t("clone.working"),
+                            id="clone-browser-working",
+                            tooltip=self._translator.t("clone.working_tooltip"),
+                        )
+                    yield FolderDirectoryTree(
+                        self.working_directory,
+                        id="clone-browser",
+                        name=self._translator.t("path.browser.name"),
+                    )
+                yield Static("", id="clone-error")
+            with ScrollableToolbar(classes="modal-actions"):
+                yield Button(self._translator.t("common.cancel"), id="clone-cancel")
+                yield Button(
+                    self._translator.t("repository.clone"),
+                    id="clone-submit",
+                    variant="primary",
+                )
 
     def on_mount(self) -> None:
         self.query_one("#clone-url", Input).focus()
@@ -333,11 +466,99 @@ class CloneDialog(ModalScreen[CloneRequest | None]):
         else:
             self._submit()
 
+    def on_input_changed(self, event: Input.Changed) -> None:
+        if event.input.id == "clone-destination":
+            if event.value != self._automatic_destination:
+                self._destination_user_edited = True
+            return
+        if event.input.id != "clone-url":
+            return
+
+        destination_input = self.query_one("#clone-destination", PathInput)
+        may_replace = (
+            not self._destination_user_edited
+            or destination_input.value == self._automatic_destination
+        )
+        self._automatic_destination = str(
+            clone_destination_for_url(event.value, self.working_directory)
+        )
+        if may_replace:
+            destination_input.value = self._automatic_destination
+            destination_input.cursor_position = len(self._automatic_destination)
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "clone-submit":
             self._submit()
         elif event.button.id == "clone-cancel":
             self.dismiss(None)
+        elif event.button.id == "clone-browse":
+            self._toggle_browser()
+        elif event.button.id == "clone-browser-up":
+            tree = self.query_one("#clone-browser", FolderDirectoryTree)
+            self._set_browser_root(Path(tree.path).parent)
+        elif event.button.id == "clone-browser-home":
+            self._set_browser_root(_browser_root("~"))
+        elif event.button.id == "clone-browser-working":
+            self._set_browser_root(self.working_directory)
+
+    def on_directory_tree_directory_selected(
+        self,
+        event: DirectoryTree.DirectorySelected,
+    ) -> None:
+        if event.control.id != "clone-browser":
+            return
+        destination = str(
+            clone_destination_for_url(
+                self.query_one("#clone-url", Input).value,
+                event.path,
+            )
+        )
+        self._destination_user_edited = True
+        destination_input = self.query_one("#clone-destination", PathInput)
+        destination_input.value = destination
+        destination_input.cursor_position = len(destination)
+        self._clear_error()
+
+    def on_directory_tree_file_selected(self, event: DirectoryTree.FileSelected) -> None:
+        if event.control.id != "clone-browser":
+            return
+        destination = str(
+            clone_destination_for_url(
+                self.query_one("#clone-url", Input).value,
+                event.path.parent,
+            )
+        )
+        self._destination_user_edited = True
+        destination_input = self.query_one("#clone-destination", PathInput)
+        destination_input.value = destination
+        destination_input.cursor_position = len(destination)
+        self._clear_error()
+
+    def _toggle_browser(self) -> None:
+        card = self.query_one("#clone-card", Vertical)
+        browse = self.query_one("#clone-browse", Button)
+        if card.has_class("browser-open"):
+            card.remove_class("browser-open")
+            card.add_class("browser-closed")
+            browse.label = self._translator.t("path.browser.browse")
+            browse.tooltip = self._translator.t("path.browser.browse_tooltip")
+            self.query_one("#clone-destination", PathInput).focus()
+            return
+        card.remove_class("browser-closed")
+        card.add_class("browser-open")
+        browse.label = self._translator.t("path.browser.hide")
+        browse.tooltip = self._translator.t("path.browser.hide_tooltip")
+        self.query_one("#clone-browser", FolderDirectoryTree).focus()
+
+    def _set_browser_root(self, root: Path) -> None:
+        self.query_one("#clone-browser", FolderDirectoryTree).path = _browser_root(str(root))
+
+    def _clear_error(self) -> None:
+        self.query_one("#clone-error", Static).update("")
+
+    def _show_error(self, message: str, *, focus: Input) -> None:
+        self.query_one("#clone-error", Static).update(message)
+        focus.focus()
 
     def _submit(self) -> None:
         url = self.query_one("#clone-url", Input).value.strip()
@@ -345,11 +566,37 @@ class CloneDialog(ModalScreen[CloneRequest | None]):
         destination = normalize_path_input(destination_input.value)
         destination_input.value = destination
         if not url:
-            self.query_one("#clone-url", Input).focus()
+            self._show_error(
+                self._translator.t("clone.error.url"),
+                focus=self.query_one("#clone-url", Input),
+            )
+            return
+        if clone_url_embeds_http_credentials(url):
+            self._show_error(
+                self._translator.t("clone.error.credentials"),
+                focus=self.query_one("#clone-url", Input),
+            )
             return
         if not destination:
-            destination_input.focus()
+            self._show_error(
+                self._translator.t("clone.error.destination"),
+                focus=destination_input,
+            )
             return
+        _destination_path, problem = inspect_clone_destination(destination)
+        if problem is not None:
+            problem_key = {
+                "invalid": "clone.error.destination",
+                "occupied": "clone.error.occupied",
+                "parent": "clone.error.parent",
+                "symlink": "clone.error.symlink",
+            }[problem]
+            self._show_error(
+                self._translator.t(problem_key),
+                focus=destination_input,
+            )
+            return
+        self._clear_error()
         self.dismiss(CloneRequest(url=url, destination=destination))
 
     def action_cancel(self) -> None:

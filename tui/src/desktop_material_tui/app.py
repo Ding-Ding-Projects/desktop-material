@@ -32,7 +32,11 @@ from textual.widgets import (
     Tabs,
 )
 
-from .application.path_input import path_from_user_input
+from .application.path_input import (
+    clone_url_embeds_http_credentials,
+    inspect_clone_destination,
+    path_from_user_input,
+)
 from .ui.screens.advanced import AdvancedPane
 from .ui.screens.cheap_lfs import CheapLfsPane
 from .ui.screens.dialogs import (
@@ -56,10 +60,62 @@ from .ui.screens.repository_panes import (
     StashesPane,
 )
 from .ui.screens.settings import SettingsHistoryDialog, SettingsPane, SettingsValues
+from .ui.widgets.repository_splitter import RepositoryRailSplitter
 from .ui.widgets.search_bar import SearchBar, SearchState
 
 if TYPE_CHECKING:
     from .infrastructure.persistence import RepositoryRecord
+
+
+class _ClonePreflightError(ValueError):
+    """A clone request that became unsafe before Git started."""
+
+
+_CLONE_DESTINATION_ERRORS: dict[str, str] = {
+    "invalid": "The clone destination is not a valid filesystem path.",
+    "occupied": "The clone destination already exists and is not empty.",
+    "parent": "The clone destination parent directory does not exist.",
+    "symlink": "The clone destination is a symbolic link; choose a real directory.",
+}
+
+
+def _validated_clone_request(request: CloneRequest) -> tuple[str, Path]:
+    """Return a safe source and target from a current filesystem inspection."""
+
+    url = request.url.strip()
+    if not url:
+        raise _ClonePreflightError("The clone URL is empty.")
+    if clone_url_embeds_http_credentials(url):
+        raise _ClonePreflightError(
+            "HTTP clone URLs with embedded credentials are not allowed. "
+            "Use a credential helper or an SSH URL."
+        )
+    destination, problem = inspect_clone_destination(request.destination)
+    if problem is not None:
+        raise _ClonePreflightError(_CLONE_DESTINATION_ERRORS[problem])
+    if destination is None:  # Defensive: the inspector always pairs this with a problem.
+        raise _ClonePreflightError("The clone destination is not a valid filesystem path.")
+    return url, destination
+
+
+def _execute_clone_request(
+    request: CloneRequest,
+) -> tuple[Path, subprocess.CompletedProcess[str]]:
+    """Recheck the request immediately before invoking Git without a shell."""
+
+    url, destination = _validated_clone_request(request)
+    git_executable = shutil.which("git")
+    if git_executable is None:
+        raise OSError("Git executable was not found on PATH.")
+    result = subprocess.run(  # noqa: S603 - resolved executable, argv only, no shell
+        [git_executable, "clone", "--", url, str(destination)],
+        capture_output=True,
+        text=True,
+        timeout=600,
+        check=False,
+        shell=False,
+    )
+    return destination, result
 
 
 class RepositoryListItem(ListItem):
@@ -162,6 +218,7 @@ class DesktopMaterialTUI(App[None]):
         self._version_history_service: Any | None = None
         self._settings_undo_stack: list[Any] = []
         self._settings_redo_stack: list[Any] = []
+        self._preferred_repository_rail_width = RepositoryRailSplitter.DEFAULT_WIDTH
         self.language_override = language_override
         self.theme_override = theme_override
         self.english_funny_level_override = english_funny_level_override
@@ -184,6 +241,7 @@ class DesktopMaterialTUI(App[None]):
                     )
                     yield Button("Clone", id="repository-clone", tooltip="Clone from a URL")
                     yield Button("New", id="repository-new", tooltip="Initialize a repository")
+            yield RepositoryRailSplitter(id="repository-splitter")
             with Vertical(id="workspace"):
                 yield Tabs(id="repository-tabs")
                 with Horizontal(id="repository-toolbar"):
@@ -346,8 +404,16 @@ class DesktopMaterialTUI(App[None]):
     def _apply_config(self) -> None:
         if self._config is None:
             self.add_class("comfortable")
+            self._apply_repository_rail_width()
             return
         appearance = getattr(self._config, "appearance", self._config)
+        self._preferred_repository_rail_width = int(
+            getattr(
+                appearance,
+                "repository_rail_width",
+                RepositoryRailSplitter.DEFAULT_WIDTH,
+            )
+        )
         theme = self.theme_override or getattr(appearance, "theme", "dark")
         self.theme = "textual-light" if theme == "light" else "textual-dark"
         density = str(getattr(appearance, "density", "comfortable"))
@@ -357,6 +423,7 @@ class DesktopMaterialTUI(App[None]):
         settings = self.query_one("#settings-pane", SettingsPane)
         settings.load_settings(self._config)
         self._apply_element_overrides(getattr(appearance, "element_overrides", {}))
+        self._apply_repository_rail_width()
         self._localize_shell()
 
     def _localize_shell(self) -> None:
@@ -448,7 +515,94 @@ class DesktopMaterialTUI(App[None]):
         self.set_class(event.size.width < 125, "compact")
         self.set_class(event.size.height < 22, "short")
         if self.is_running:
+            self._apply_repository_rail_width(total_width=event.size.width)
             self._update_tab_labels()
+
+    @on(RepositoryRailSplitter.ResizeRequested)
+    def _on_repository_splitter_resize(
+        self,
+        event: RepositoryRailSplitter.ResizeRequested,
+    ) -> None:
+        """Apply splitter movement live and persist explicit completed actions."""
+
+        width = self._apply_repository_rail_width(width=event.width)
+        if not event.persist:
+            return
+        self._preferred_repository_rail_width = width
+        self._persist_repository_rail_width(width)
+
+    def _apply_repository_rail_width(
+        self,
+        *,
+        width: int | None = None,
+        total_width: int | None = None,
+    ) -> int:
+        """Apply a clamped width while preserving at least 40 workspace cells."""
+
+        available_width = self.size.width if total_width is None else total_width
+        maximum_width = max(
+            RepositoryRailSplitter.MINIMUM_WIDTH,
+            available_width
+            - RepositoryRailSplitter.WORKSPACE_MINIMUM_WIDTH
+            - 1,
+        )
+        requested_width = (
+            self._preferred_repository_rail_width if width is None else width
+        )
+        applied_width = min(
+            max(requested_width, RepositoryRailSplitter.MINIMUM_WIDTH),
+            maximum_width,
+        )
+        rail = self.query_one("#repository-rail", Vertical)
+        splitter = self.query_one("#repository-splitter", RepositoryRailSplitter)
+        rail.styles.width = applied_width
+        splitter.set_width_limits(applied_width, maximum_width)
+        return applied_width
+
+    def _persist_repository_rail_width(self, width: int) -> None:
+        """Persist a completed resize; history failure never rolls it back."""
+
+        if self._config_store is None:
+            return
+
+        previous = self._config
+        try:
+            updated = self._config_store.update(
+                lambda current: replace(
+                    current,
+                    appearance=replace(
+                        current.appearance,
+                        repository_rail_width=width,
+                    ),
+                )
+            )
+        except Exception as error:
+            self.notify(
+                str(error),
+                title="Repository width was not saved",
+                severity="warning",
+            )
+            return
+
+        self._config = updated
+        if previous is not None and previous != updated:
+            self._settings_undo_stack.append(previous)
+            self._settings_redo_stack.clear()
+        if previous == updated:
+            return
+        if self._version_history_service is not None:
+            try:
+                self._version_history_service.record(
+                    asdict(updated),
+                    label="Repository rail resized",
+                )
+            except Exception as error:
+                self.notify(
+                    str(error),
+                    title="Repository width history was not recorded",
+                    severity="warning",
+                )
+        self._update_settings_history_status()
 
     def _make_repository_service(self, path: Path) -> Any:
         from .application.repository_service import RepositoryService
@@ -770,18 +924,28 @@ class DesktopMaterialTUI(App[None]):
     async def _clone_request(self, request: CloneRequest | None) -> None:
         if request is None:
             return
-        destination = await asyncio.to_thread(
-            lambda: path_from_user_input(request.destination).resolve()
-        )
+        try:
+            await asyncio.to_thread(_validated_clone_request, request)
+        except _ClonePreflightError as error:
+            self.notify(str(error), title="Clone failed", severity="error", timeout=15)
+            return
         self.notify("Cloning in the background…", title="Clone")
-        result = await asyncio.to_thread(
-            subprocess.run,
-            ["git", "clone", "--", request.url, str(destination)],
-            capture_output=True,
-            text=True,
-            timeout=600,
-            check=False,
-        )
+        try:
+            destination, result = await asyncio.to_thread(_execute_clone_request, request)
+        except _ClonePreflightError as error:
+            self.notify(str(error), title="Clone failed", severity="error", timeout=15)
+            return
+        except subprocess.TimeoutExpired:
+            self.notify(
+                "git clone timed out after 600 seconds.",
+                title="Clone failed",
+                severity="error",
+                timeout=15,
+            )
+            return
+        except OSError as error:
+            self.notify(str(error), title="Clone failed", severity="error", timeout=15)
+            return
         if result.returncode:
             self.notify(
                 result.stderr.strip() or "git clone failed",

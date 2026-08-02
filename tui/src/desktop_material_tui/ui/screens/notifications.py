@@ -11,6 +11,7 @@ from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, DataTable, TextArea
 
 from ...application.search import RegexFlags, SearchMode, SearchService
+from ..widgets.responsive_layout import ScrollableToolbar
 from ..widgets.search_bar import SearchBar
 
 
@@ -29,7 +30,7 @@ class NotificationCentrePane(Vertical):
             placeholder="Search notification history…",
             id="notifications-search",
         )
-        with Horizontal(classes="screen-toolbar"):
+        with ScrollableToolbar():
             yield Button("Refresh", id="notifications-refresh")
             yield Button("Mark all read", id="notifications-read")
             yield Button("Clear history…", id="notifications-clear", variant="error")
