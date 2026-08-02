@@ -140,6 +140,32 @@ export type InternalBrowserCommand =
   | { readonly type: 'reload'; readonly tabId: string }
   | { readonly type: 'stop'; readonly tabId: string }
   | { readonly type: 'open-external'; readonly tabId: string }
+  // Plain-text find, served by Chromium's own in-page search. It highlights
+  // and scrolls to matches inside the page, which nothing in the trusted
+  // renderer can do for it.
+  | {
+      readonly type: 'find-in-page'
+      readonly tabId: string
+      readonly query: string
+      readonly matchCase: boolean
+      readonly forward: boolean
+      /** True to advance to the next match of a query already being searched. */
+      readonly findNext: boolean
+    }
+  | { readonly type: 'stop-find-in-page'; readonly tabId: string }
+  /**
+   * Read the page's visible text so a regular expression can be evaluated
+   * against it outside the page.
+   *
+   * Chromium's in-page search is plain-substring only, so regex search cannot
+   * be served by it. The text is read by a script in an **isolated world**:
+   * page scripts can neither see it nor tamper with it, it only reads
+   * `innerText`, and it changes nothing. The pattern itself is never sent into
+   * the page — it is evaluated in the trusted renderer under the RE2 bounds,
+   * so a hostile page cannot see what is being searched for and a pathological
+   * pattern cannot hang the page.
+   */
+  | { readonly type: 'read-page-text'; readonly tabId: string }
 
 export interface IInternalBrowserBookmark {
   readonly id: string
@@ -603,4 +629,105 @@ export function canCreateInternalBrowserTab(currentCount: number): boolean {
     currentCount >= 0 &&
     currentCount < MaximumInternalBrowserTabs
   )
+}
+
+/**
+ * The find bar's two search modes.
+ *
+ * They are served by completely different machinery, which is why the mode is
+ * part of the model rather than a flag on one search: `plain` is Chromium's
+ * own in-page search, and `regex` is an RE2 evaluation in the trusted renderer
+ * over text read out of the page.
+ */
+export type InternalBrowserFindMode = 'plain' | 'regex'
+
+/**
+ * Largest amount of page text read for a regular-expression search.
+ *
+ * A page can be arbitrarily large and the text crosses an IPC boundary, so the
+ * read is bounded rather than trusting the page to be reasonable. When a page
+ * exceeds this, the search reports that it was truncated instead of quietly
+ * searching a prefix and calling it a whole-page result.
+ */
+export const MaximumPageTextLength = 2_000_000
+
+/** Longest single match preview retained for the results list. */
+export const MaximumFindPreviewLength = 160
+
+/** How many regular-expression matches the find bar lists. */
+export const MaximumFindResults = 200
+
+/**
+ * The script run in an isolated world to read a page's visible text.
+ *
+ * Deliberately the smallest thing that can work: it reads `innerText`, which
+ * is already the *rendered* text and therefore excludes scripts, styles and
+ * hidden elements, truncates it, and returns it. It defines nothing, stores
+ * nothing, and mutates nothing, so it cannot be observed by the page or leave
+ * anything behind in it.
+ */
+export const PageTextExtractionScript = `(() => {
+  try {
+    const text = document.body ? document.body.innerText : ''
+    return typeof text === 'string' ? text.slice(0, ${MaximumPageTextLength}) : ''
+  } catch {
+    return ''
+  }
+})()`
+
+/** One regular-expression match, with enough context to be recognisable. */
+export interface IInternalBrowserFindMatch {
+  /** UTF-16 offset of the match within the extracted page text. */
+  readonly index: number
+  /** The matched text, bounded. */
+  readonly text: string
+  /** Surrounding text, so a bare match like `\d+` is still identifiable. */
+  readonly context: string
+}
+
+/** What the find bar knows after a search. */
+export interface IInternalBrowserFindResult {
+  readonly mode: InternalBrowserFindMode
+  /** Total matches, or null when the pattern could not be compiled. */
+  readonly total: number | null
+  /** 1-based position of the highlighted match, or null when there is none. */
+  readonly active: number | null
+  /** Compilation failure text for an invalid pattern, else null. */
+  readonly error: string | null
+  /** True when the page was longer than the bounded read. */
+  readonly truncated: boolean
+  /** Regex mode only; plain mode highlights inside the page instead. */
+  readonly matches: ReadonlyArray<IInternalBrowserFindMatch>
+}
+
+/** A find result with nothing searched yet. */
+export const emptyFindResult: IInternalBrowserFindResult = {
+  mode: 'plain',
+  total: null,
+  active: null,
+  error: null,
+  truncated: false,
+  matches: [],
+}
+
+/**
+ * Build the context window around a match.
+ *
+ * Pure so the slicing is testable without a page: a match at the very start or
+ * end of the text must not produce a negative slice or run past the end.
+ */
+export function findMatchContext(
+  text: string,
+  index: number,
+  length: number,
+  window: number = 40
+): string {
+  const start = Math.max(0, index - window)
+  const end = Math.min(text.length, index + length + window)
+  const prefix = start > 0 ? '…' : ''
+  const suffix = end < text.length ? '…' : ''
+  return `${prefix}${text
+    .slice(start, end)
+    .replace(/\s+/g, ' ')
+    .trim()}${suffix}`
 }

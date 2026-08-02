@@ -17,6 +17,8 @@ import {
   normalizeWebURL,
   redactBrowserURL,
   resolveInternalBrowserContentBounds,
+  MaximumPageTextLength,
+  PageTextExtractionScript,
   sanitizeBrowserTitle,
   selectInternalBrowserAuthenticationFlowsForResolution,
   shouldDispatchInternalBrowserAppAction,
@@ -60,6 +62,14 @@ const configuredSessions = new WeakSet<Electron.Session>()
 const downloadBlockedHandlers = new Map<number, () => void>()
 const safeOperatingSystemSchemes = new Set(['mailto:', 'tel:', 'ms-settings:'])
 const minimumContentTop = 128
+/**
+ * Isolated world the page-text read runs in.
+ *
+ * Any id other than 0 (the page's own main world) keeps the script's globals
+ * separate from the page's, so the page can neither observe the read nor
+ * replace what it calls.
+ */
+const PageTextReadWorldId = 1010
 let nextTabId = 1
 
 /**
@@ -298,6 +308,63 @@ export class InternalBrowserWindow {
         }
         return
       }
+      case 'find-in-page': {
+        const contents = this.tabs.get(command.tabId)?.view.webContents
+        if (contents === undefined) {
+          return
+        }
+        // An empty query is a stop, not a search for nothing: Chromium treats
+        // an empty string as an error and would leave the previous highlight
+        // on the page after the user has cleared the box.
+        if (command.query.length === 0) {
+          contents.stopFindInPage('clearSelection')
+          this.sendFindResult(command.tabId, { total: 0, active: 0 })
+          return
+        }
+        contents.findInPage(command.query, {
+          matchCase: command.matchCase,
+          forward: command.forward,
+          findNext: command.findNext,
+        })
+        return
+      }
+      case 'stop-find-in-page': {
+        const contents = this.tabs.get(command.tabId)?.view.webContents
+        if (contents !== undefined) {
+          contents.stopFindInPage('clearSelection')
+        }
+        return
+      }
+      case 'read-page-text': {
+        const contents = this.tabs.get(command.tabId)?.view.webContents
+        if (contents === undefined) {
+          return
+        }
+        // An isolated world, so the page cannot observe the read, cannot
+        // replace the globals it uses, and is left with nothing behind. The
+        // pattern being searched for never enters the page at all — only the
+        // text comes out.
+        contents
+          .executeJavaScriptInIsolatedWorld(PageTextReadWorldId, [
+            { code: PageTextExtractionScript },
+          ])
+          .then(
+            (text: unknown) =>
+              this.sendPageText(
+                command.tabId,
+                typeof text === 'string'
+                  ? text.slice(0, MaximumPageTextLength)
+                  : ''
+              ),
+            (error: Error) => {
+              // A page that refuses to be read is a failed search, not a
+              // failed browser.
+              log.debug(`Internal browser page read failed: ${error.message}`)
+              this.sendPageText(command.tabId, '')
+            }
+          )
+        return
+      }
       case 'open-external': {
         const tab = this.tabs.get(command.tabId)
         if (tab?.url !== null && tab?.url !== undefined) {
@@ -477,6 +544,14 @@ export class InternalBrowserWindow {
         tab.url = normalizeWebURL(url)
         this.refreshTab(tab)
       }
+    })
+    // Chromium reports its own in-page match tally asynchronously; the find bar
+    // has no other way to learn how many matches a plain search found.
+    contents.on('found-in-page', (_event, result) => {
+      this.sendFindResult(tab.id, {
+        total: result.matches,
+        active: result.activeMatchOrdinal,
+      })
     })
     contents.on('page-title-updated', (event, title) => {
       event.preventDefault()
@@ -791,5 +866,38 @@ export class InternalBrowserWindow {
       'internal-browser-state',
       state
     )
+  }
+
+  /** Report Chromium's own in-page match tally to the find bar. */
+  private sendFindResult(
+    tabId: string,
+    result: { readonly total: number; readonly active: number }
+  ) {
+    if (
+      this.window.isDestroyed() ||
+      this.window.webContents.isDestroyed()
+    ) {
+      return
+    }
+    ipcWebContents.send(this.window.webContents, 'internal-browser-find', {
+      tabId,
+      total: result.total,
+      active: result.active,
+    })
+  }
+
+  /** Hand the bounded page text to the trusted renderer for RE2 evaluation. */
+  private sendPageText(tabId: string, text: string) {
+    if (
+      this.window.isDestroyed() ||
+      this.window.webContents.isDestroyed()
+    ) {
+      return
+    }
+    ipcWebContents.send(this.window.webContents, 'internal-browser-page-text', {
+      tabId,
+      text,
+      truncated: text.length >= MaximumPageTextLength,
+    })
   }
 }
