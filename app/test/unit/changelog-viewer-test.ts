@@ -135,21 +135,25 @@ describe('changelog filtering', () => {
       date: '2026-03-10',
       time: '09:30',
       entries: [
-        { category: 'Fixed', text: 'Stop the crash on launch' , commit: null },
-        { category: 'Added', text: 'A regex builder' , commit: null },
+        { category: 'Fixed', text: 'Stop the crash on launch', commit: null },
+        { category: 'Added', text: 'A regex builder', commit: null },
       ],
     },
     {
       version: '1.9.0',
       date: '2026-01-05',
       time: '17:45',
-      entries: [{ category: 'Fixed', text: 'Repair the date picker' , commit: null }],
+      entries: [
+        { category: 'Fixed', text: 'Repair the date picker', commit: null },
+      ],
     },
     {
       version: '1.8.0-beta1',
       date: null,
       time: null,
-      entries: [{ category: null, text: 'An uncategorized change' , commit: null }],
+      entries: [
+        { category: null, text: 'An uncategorized change', commit: null },
+      ],
     },
   ]
 
@@ -413,7 +417,7 @@ describe('changelog export', () => {
       version: '2.0.0',
       date: '2026-03-10',
       time: '09:30',
-      entries: [{ category: 'Fixed', text: 'Stop the crash' , commit: null }],
+      entries: [{ category: 'Fixed', text: 'Stop the crash', commit: null }],
     },
     {
       version: '1.8.0-beta1',

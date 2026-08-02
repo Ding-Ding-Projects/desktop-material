@@ -8,10 +8,7 @@ const styles = Path.resolve(__dirname, '../../styles')
 
 describe('popover clipping contract', () => {
   it('scrolls content that does not fit instead of clipping it away', async () => {
-    const popover = await readFile(
-      Path.join(src, 'ui/lib/popover.tsx'),
-      'utf8'
-    )
+    const popover = await readFile(Path.join(src, 'ui/lib/popover.tsx'), 'utf8')
 
     // `--available-height` caps the content to what fits between the anchor
     // and the viewport edge. Paired with `overflow: hidden` that cap silently
@@ -30,10 +27,7 @@ describe('popover clipping contract', () => {
   })
 
   it('bounds every popover, decorated or not', async () => {
-    const popover = await readFile(
-      Path.join(src, 'ui/lib/popover.tsx'),
-      'utf8'
-    )
+    const popover = await readFile(Path.join(src, 'ui/lib/popover.tsx'), 'utf8')
 
     // The height and width caps used to live only under `.popover-component`,
     // which an undecorated popover never gets — so an undecorated popover was

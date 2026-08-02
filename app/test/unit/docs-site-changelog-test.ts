@@ -142,7 +142,6 @@ const Changelog: IChangelogApi = require_(
   join(repositoryRoot, 'docs', 'assets', 'site', 'docs-changelog.js')
 )
 
-
 /** A full 40-character SHA at the end of an entry, after a dash. */
 const CommitReference = /[-–—]\s*([0-9a-f]{40})\s*$/
 
