@@ -128,6 +128,124 @@ describe('notification-centre model', () => {
       assert.equal(differentBody.entries.length, 2)
     })
 
+    it('keeps notifications about different repositories apart', () => {
+      // Maintenance failures share a fixed title and body and only differ by the
+      // repository, so coalescing on the words alone would lose the first one.
+      const t0 = new Date('2026-07-11T10:00:00.000Z')
+      const failed = {
+        ...baseInput,
+        kind: 'app-error' as const,
+        title: 'Maintenance failed',
+        body: 'Post-commit maintenance did not finish.',
+      }
+      const first = insertNotification(
+        [],
+        {
+          ...failed,
+          repositoryId: 1,
+          action: { kind: 'open-repository', repositoryId: 1 },
+        },
+        'a',
+        t0
+      )
+      const second = insertNotification(
+        first.entries,
+        {
+          ...failed,
+          repositoryId: 2,
+          action: { kind: 'open-repository', repositoryId: 2 },
+        },
+        'b',
+        new Date(t0.getTime() + 1000)
+      )
+
+      assert.equal(second.deduped, false)
+      assert.deepEqual(
+        second.entries.map(e => e.repositoryId),
+        [2, 1]
+      )
+      assert.deepEqual(second.entries[1].action, {
+        kind: 'open-repository',
+        repositoryId: 1,
+      })
+    })
+
+    it('keeps notifications about different accounts apart', () => {
+      const t0 = new Date('2026-07-11T10:00:00.000Z')
+      const first = insertNotification(
+        [],
+        { ...baseInput, accountKey: 'https://api.github.com#1' },
+        'a',
+        t0
+      )
+      const second = insertNotification(
+        first.entries,
+        { ...baseInput, accountKey: 'https://ghe.example.com#2' },
+        'b',
+        new Date(t0.getTime() + 1000)
+      )
+
+      assert.equal(second.deduped, false)
+      assert.deepEqual(
+        second.entries.map(e => e.accountKey),
+        ['https://ghe.example.com#2', 'https://api.github.com#1']
+      )
+    })
+
+    it('never inherits an optional field the new notification omitted', () => {
+      // A repository-scoped entry followed by the same message raised globally:
+      // the global one must not keep routing the user at that repository.
+      const t0 = new Date('2026-07-11T10:00:00.000Z')
+      const scoped = insertNotification(
+        [],
+        {
+          ...baseInput,
+          repositoryId: 7,
+          accountKey: 'https://api.github.com#1',
+          action: { kind: 'open-repository', repositoryId: 7 },
+        },
+        'a',
+        t0
+      )
+
+      // Same words, no repository — so it is a separate entry, and a clean one.
+      const global = insertNotification(
+        scoped.entries,
+        baseInput,
+        'b',
+        new Date(t0.getTime() + 1000)
+      )
+
+      assert.equal(global.deduped, false)
+      assert.equal('repositoryId' in global.entry, false)
+      assert.equal('accountKey' in global.entry, false)
+      assert.equal('action' in global.entry, false)
+    })
+
+    it('drops an optional field when a genuine duplicate omits it', () => {
+      // Same kind, title, body and subject (no repository on either), so these do
+      // coalesce — and the coalesced entry reflects the newer input, not a stale
+      // action left over from the first one.
+      const t0 = new Date('2026-07-11T10:00:00.000Z')
+      const first = insertNotification(
+        [],
+        { ...baseInput, action: { kind: 'open-url', url: 'https://old.test' } },
+        'a',
+        t0
+      )
+      const second = insertNotification(
+        first.entries,
+        baseInput,
+        'b',
+        new Date(t0.getTime() + 1000)
+      )
+
+      assert.equal(second.deduped, true)
+      assert.equal(second.entries.length, 1)
+      assert.equal(second.entries[0].id, 'a')
+      assert.equal('action' in second.entries[0], false)
+    })
+
     it('prunes oldest entries beyond the retention cap', () => {
       let entries: ReadonlyArray<INotificationEntry> = []
       const total = NotificationCentreCap + 5

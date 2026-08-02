@@ -61,9 +61,10 @@ export const NotificationLogVersion = 1
 export const NotificationCentreCap = 500
 
 /**
- * When an identical notification (same kind + title + body) arrives within this
- * window of the previous one, the existing entry is coalesced (moved to the top
- * and re-timestamped) instead of appending a duplicate — a storm guard.
+ * When an identical notification (same kind + title + body, about the same
+ * account and repository) arrives within this window of the previous one, the
+ * existing entry is coalesced (moved to the top and re-timestamped) instead of
+ * appending a duplicate — a storm guard.
  */
 export const NotificationDedupeWindowMs = 60_000
 
@@ -118,20 +119,31 @@ export function insertNotification(
 ): INotificationInsertResult {
   const nowMs = now.getTime()
 
+  // The subject matters as much as the words: many notifications carry a fixed
+  // localized title and body and only differ by which repository or account they
+  // are about, so those have to take part in the match or two genuinely distinct
+  // events (repository A failing, then repository B) collapse into one entry.
   const duplicateIndex = entries.findIndex(
     entry =>
       entry.kind === input.kind &&
       entry.title === input.title &&
       entry.body === input.body &&
+      entry.accountKey === input.accountKey &&
+      entry.repositoryId === input.repositoryId &&
       nowMs - new Date(entry.createdAt).getTime() < dedupeWindowMs
   )
 
   if (duplicateIndex !== -1) {
     const existing = entries[duplicateIndex]
-    const coalesced: INotificationEntry = {
-      ...existing,
-      ...shapeNotificationEntry(input, existing.id, now),
-    }
+    // Rebuilt from the new input alone (keeping only the id, which the panel uses
+    // for selection). Spreading the existing entry underneath would let the new
+    // notification inherit an optional field it deliberately omitted — an action
+    // pointing at a repository the fresh event has nothing to do with.
+    const coalesced: INotificationEntry = shapeNotificationEntry(
+      input,
+      existing.id,
+      now
+    )
     const remaining = entries.filter((_, index) => index !== duplicateIndex)
     return {
       entries: [coalesced, ...remaining],
