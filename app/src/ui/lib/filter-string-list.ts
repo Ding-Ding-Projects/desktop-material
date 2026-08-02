@@ -40,12 +40,15 @@ export function filterByMode<T>(
   mode: FilterMode,
   caseSensitive: boolean
 ): IStringListFilterResult<T> {
-  const trimmed = query.trim()
-  if (trimmed.length === 0) {
+  // Trimming decides whether the user has typed anything at all; it must not
+  // decide what gets matched. A regex of ` +` is a valid search for runs of
+  // spaces that trims to the uncompilable `+`, and a substring of `error: `
+  // deliberately excludes `error:` written without the trailing space.
+  if (query.trim().length === 0) {
     return { items, regexError: null, filtered: false }
   }
 
-  const { results, regexError } = matchWithMode(trimmed, items, getKeys, {
+  const { results, regexError } = matchWithMode(query, items, getKeys, {
     mode,
     caseSensitive,
   })

@@ -105,7 +105,12 @@ export function filterChangelog(
   releases: ReadonlyArray<IChangelogRelease>,
   filter: IChangelogFilter
 ): IChangelogFilterResult {
-  const query = filter.query.trim()
+  // Trimming answers "has the user typed anything", and nothing else: the raw
+  // query is what gets matched. A regex of ` +` searching for runs of spaces
+  // trims to the uncompilable `+`, and a substring of `error: ` is asking for
+  // the space that `error:` does not have.
+  const query = filter.query
+  const hasQuery = query.trim().length > 0
   const hasDateRange = filter.from !== null || filter.to !== null
 
   let hiddenUndatedCount = 0
@@ -135,7 +140,7 @@ export function filterChangelog(
     entries: release.entries.filter(entry => matchesCategory(entry, filter)),
   }))
 
-  if (query.length === 0) {
+  if (!hasQuery) {
     const kept = categoryKept
       .filter(
         candidate =>
