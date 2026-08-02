@@ -41,13 +41,79 @@ const execFile = promisify(execFileCallback)
 
 function deferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void
-  const promise = new Promise<T>(done => {
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((done, fail) => {
     resolve = done
+    reject = fail
   })
-  return { promise, resolve }
+  return { promise, resolve, reject }
 }
 
 describe('AppStore Cheap LFS OCI routing', () => {
+  it('opens a repository before its tracked automatic materialization settles', async () => {
+    const repository = new Repository(
+      'C:/repository-open-background-materialize',
+      188,
+      null,
+      false
+    )
+    const materialize = deferred<void>()
+    const backgroundTasks = new Set<Promise<void>>()
+    const store = Object.create(AppStore.prototype) as AppStore
+    Object.assign(store, {
+      selectedRepository: repository,
+      cheapLfsRepositoryOpenTasks: backgroundTasks,
+      _refreshRepository: async () => undefined,
+      repositoryWithCanonicalRemoteForNetwork: async () => repository,
+      stopBackgroundFetching: () => undefined,
+      stopAutomationScheduler: () => undefined,
+      stopPullRequestUpdater: () => undefined,
+      stopBackgroundPruner: () => undefined,
+      startBackgroundFetching: () => undefined,
+      startAutomationScheduler: () => undefined,
+      startPullRequestUpdater: () => undefined,
+      startBackgroundPruner: () => undefined,
+      addUpstreamRemoteIfNeeded: () => undefined,
+      maybeAutoMaterializeCheapLfs: () => materialize.promise,
+    })
+    const testStore = store as unknown as {
+      _selectRepositoryRefreshTasks(
+        repository: Repository,
+        previouslySelectedRepository: Repository | null
+      ): Promise<Repository | null>
+    }
+
+    let opened: Repository | null | undefined
+    const opening = testStore
+      ._selectRepositoryRefreshTasks(repository, null)
+      .then(result => {
+        opened = result
+        return result
+      })
+
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.equal(opened, repository)
+    assert.equal(backgroundTasks.size, 1)
+
+    materialize.resolve()
+    assert.equal(await opening, repository)
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.equal(backgroundTasks.size, 0)
+
+    const failedMaterialize = deferred<void>()
+    Object.assign(store, {
+      maybeAutoMaterializeCheapLfs: () => failedMaterialize.promise,
+    })
+    const reopened = testStore._selectRepositoryRefreshTasks(repository, null)
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.equal(await reopened, repository)
+    assert.equal(backgroundTasks.size, 1)
+
+    failedMaterialize.reject(new Error('expected background failure'))
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.equal(backgroundTasks.size, 0)
+  })
+
   it('projects unequal multi-object OCI image bytes onto pointer bytes', () => {
     const progressAt = (processedBytes: number) =>
       cheapLfsOciTransferProgress(

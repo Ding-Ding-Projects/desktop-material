@@ -169,14 +169,22 @@ describe('cheap LFS commit entry points', () => {
     )
   })
 
-  it('waits for verified materialization when opening or completing a clone', () => {
-    assert.match(
-      source,
-      /await this\.maybeAutoMaterializeCheapLfs\(refreshedRepository, \{[\s\S]*?requireSelected: true/
+  it('backgrounds repository-open materialization but awaits clone completion', () => {
+    const repositoryOpen = methodBody(
+      'private async _selectRepositoryRefreshTasks(',
+      'private stopBackgroundPruner()'
     )
-    // The loop now also publishes a 'restoring' finalization reading per
-    // repository so the clone popup stays live, but it must still await every
-    // materialization before the batch is allowed to report completion.
+    assert.match(
+      repositoryOpen,
+      /this\.startRepositoryOpenCheapLfsMaterialize\(refreshedRepository, \{[\s\S]*?requireSelected: true/
+    )
+    assert.doesNotMatch(
+      repositoryOpen,
+      /await this\.maybeAutoMaterializeCheapLfs\(/
+    )
+
+    // Batch clone publishes a 'restoring' finalization reading per repository
+    // and must still await every materialization before reporting completion.
     assert.match(
       source,
       /for \(const \[index, registered\] of addedRepositories\.entries\(\)\) \{[\s\S]*?await this\.maybeAutoMaterializeCheapLfs\(registered, \{/

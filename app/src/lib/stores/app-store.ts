@@ -1696,6 +1696,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
    */
   private readonly cheapLfsMaterializeTails = new Map<string, Promise<void>>()
   /**
+   * Automatic Cheap LFS work started by repository selection. The materialize
+   * queue owns each checkout only after pointer discovery reaches it, so keep
+   * the complete detect-and-restore promise observed as well. This lets
+   * repository selection return without leaving preflight work as an
+   * unhandled, untracked promise.
+   */
+  private readonly cheapLfsRepositoryOpenTasks = new Set<Promise<void>>()
+  /**
    * One gate for each checkout whose commit phase currently owns the working
    * tree. A materialize request which arrives after the commit claim waits on
    * this promise; a commit which arrives after a materialize owner registered
@@ -4142,13 +4150,44 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.addUpstreamRemoteIfNeeded(refreshedRepository)
 
     // Detect point: opening a repository may reveal committed cheap-LFS
-    // pointers to auto-materialize. Re-entrant, so re-check the selection.
-    await this.maybeAutoMaterializeCheapLfs(refreshedRepository, {
+    // pointers to auto-materialize. Pointer discovery and provider downloads
+    // can take a long time, so keep that work tracked in the background instead
+    // of blocking the repository-open result. The selected-repository fence is
+    // re-checked inside the task before it can enter the mutation queue.
+    this.startRepositoryOpenCheapLfsMaterialize(refreshedRepository, {
       ...autoMaterializeOptions,
       requireSelected: true,
     })
 
     return refreshedRepository
+  }
+
+  /** Observe repository-open materialization without delaying usable UI state. */
+  private startRepositoryOpenCheapLfsMaterialize(
+    repository: Repository,
+    options: ICheapLfsAutoMaterializeOptions
+  ): void {
+    const materialize = this.maybeAutoMaterializeCheapLfs(repository, options)
+    const tracked = materialize
+      .then(
+        () => undefined,
+        error => {
+          // maybeAutoMaterializeCheapLfs owns its user-facing, non-modal
+          // outcomes and normally never rejects. Keep this final observer so a
+          // future regression cannot turn repository selection into an
+          // unhandled renderer rejection.
+          if ((error as Error)?.name !== 'AbortError') {
+            log.error(
+              'Background repository-open Cheap LFS materialize failed',
+              error
+            )
+          }
+        }
+      )
+      .finally(() => this.cheapLfsRepositoryOpenTasks.delete(tracked))
+
+    this.cheapLfsRepositoryOpenTasks.add(tracked)
+    void tracked.catch(() => undefined)
   }
 
   private stopBackgroundPruner() {
