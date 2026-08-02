@@ -1,0 +1,25 @@
+name: desktop-material-server
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    read_only: true
+    init: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    environment:
+      DESKTOP_MATERIAL_SERVER_CONFIG: /data/config.json
+      DESKTOP_MATERIAL_SERVER_STATE: /data/state.json
+      DESKTOP_MATERIAL_SERVER_HOST: 0.0.0.0
+      DESKTOP_MATERIAL_SERVER_PORT: '8787'
+    volumes:
+      - ./data:/data
+    ports:
+      - '127.0.0.1:${DESKTOP_MATERIAL_SERVER_PORT:-8787}:8787'
