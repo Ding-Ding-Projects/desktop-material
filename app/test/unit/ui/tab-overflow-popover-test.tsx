@@ -12,6 +12,7 @@ import {
   IRepositoryTab,
 } from '../../../src/models/repository-tab'
 import { Dispatcher } from '../../../src/ui/dispatcher'
+import { LanguageModeChangedEvent } from '../../../src/lib/i18n'
 import { RepositoryTabStrip } from '../../../src/ui/repository-tabs/repository-tab-strip'
 import { TabOverflowPopover } from '../../../src/ui/repository-tabs/tab-overflow-popover'
 import {
@@ -25,6 +26,7 @@ let previousIpcSend: typeof ipcRenderer.send
 beforeEach(() => {
   previousIpcSend = ipcRenderer.send
   ipcRenderer.send = () => undefined
+  localStorage.removeItem('language-mode-v1')
   localStorage.removeItem('filter-mode/tab-overflow')
 })
 
@@ -51,6 +53,16 @@ function makeTab(
     customLabel,
     titleStyle: null,
   }
+}
+
+function changeLanguageMode(
+  languageMode: 'english' | 'cantonese' | 'bilingual'
+) {
+  localStorage.setItem('language-mode-v1', languageMode)
+  fireEvent(
+    document,
+    new CustomEvent(LanguageModeChangedEvent, { detail: languageMode })
+  )
 }
 
 const alpha = new Repository('/work/alpha', 1, null, false)
@@ -391,7 +403,10 @@ describe('TabOverflowPopover search', () => {
  */
 function measureStrip(options: {
   readonly tab: number
-  readonly list: number
+  /** Full width shared by the tablist and its sibling overflow control. */
+  readonly tabLane: number
+  /** Width left for the tablist after the sibling control is laid out. */
+  readonly tabList: number
   readonly overflowButton: number
 }): () => void {
   const proto = HTMLElement.prototype
@@ -412,7 +427,12 @@ function measureStrip(options: {
   Object.defineProperty(proto, 'clientWidth', {
     configurable: true,
     get(this: HTMLElement) {
-      return this.classList.contains('repository-tab-list') ? options.list : 0
+      if (this.classList.contains('repository-tab-lane')) {
+        return options.tabLane
+      }
+      return this.classList.contains('repository-tab-list')
+        ? options.tabList
+        : 0
     },
   })
 
@@ -468,6 +488,36 @@ function renderStrip(
 }
 
 describe('RepositoryTabStrip overflow capabilities', () => {
+  it('localizes the strip controls live with concise accessible names', async () => {
+    const store = await createStore([makeTab('alpha', alpha)])
+    renderStrip(store)
+
+    assert.ok(screen.getByRole('tablist', { name: 'Repository tabs' }))
+    assert.ok(screen.getByRole('button', { name: 'Search tabs' }))
+    assert.ok(screen.getByRole('button', { name: 'Arrange tabs' }))
+    assert.ok(
+      screen.getByRole('button', {
+        name: 'Open a repository in a new tab',
+      })
+    )
+
+    changeLanguageMode('cantonese')
+    assert.ok(screen.getByRole('tablist', { name: 'Repo 分頁' }))
+    assert.ok(screen.getByRole('button', { name: '搜尋分頁' }))
+    assert.ok(screen.getByRole('button', { name: '排列分頁' }))
+    assert.ok(screen.getByRole('button', { name: '開個新分頁揀 repository' }))
+
+    changeLanguageMode('bilingual')
+    assert.ok(screen.getByRole('tablist', { name: 'Repository tabs' }))
+    assert.ok(screen.getByRole('button', { name: 'Search tabs' }))
+    assert.ok(screen.getByRole('button', { name: 'Arrange tabs' }))
+    assert.ok(
+      screen.getByRole('button', {
+        name: 'Open a repository in a new tab',
+      })
+    )
+  })
+
   it('bounds cached chip widths to valid groups that still have members', async () => {
     const store = await createStore([
       makeTab('alpha', alpha),
@@ -504,8 +554,79 @@ describe('RepositoryTabStrip overflow capabilities', () => {
     })
   })
 
+  it('keeps the overflow control outside the repository tablist', async () => {
+    const restore = measureStrip({
+      tab: 120,
+      tabLane: 310,
+      tabList: 264,
+      overflowButton: 40,
+    })
+    try {
+      const store = await createStore([
+        makeTab('alpha', alpha),
+        makeTab('material', material, 'Material workspace'),
+        makeTab('omega', omega),
+      ])
+      renderStrip(store)
+
+      const overflowButton = await waitFor(() =>
+        screen.getByRole('button', { name: 'Show 1 more tab' })
+      )
+      const tablist = screen.getByRole('tablist', {
+        name: 'Repository tabs',
+      })
+
+      assert.equal(tablist.contains(overflowButton), false)
+      assert.equal(tablist.parentElement, overflowButton.parentElement)
+      assert.equal(overflowButton.tabIndex, 0)
+      assert.equal(overflowButton.getAttribute('aria-haspopup'), 'dialog')
+      for (const child of Array.from(tablist.children)) {
+        assert.match(child.getAttribute('role') ?? '', /^(presentation|tab)$/)
+      }
+    } finally {
+      restore()
+    }
+  })
+
+  it('reserves the sibling overflow control width exactly once', async () => {
+    const restore = measureStrip({
+      tab: 100,
+      tabLane: 262,
+      tabList: 216,
+      overflowButton: 40,
+    })
+    try {
+      const store = await createStore([
+        makeTab('alpha', alpha),
+        makeTab('material', material, 'Material workspace'),
+        makeTab('omega', omega),
+      ])
+      renderStrip(store)
+
+      assert.ok(
+        await waitFor(() =>
+          screen.getByRole('button', { name: 'Show 1 more tab' })
+        )
+      )
+      assert.equal(
+        screen
+          .getByRole('tablist', { name: 'Repository tabs' })
+          .querySelectorAll('[role="tab"]').length,
+        2,
+        'the already-shrunk tablist must not cause a second button reservation'
+      )
+    } finally {
+      restore()
+    }
+  })
+
   it('uses the singular accessible name when exactly one tab overflows', async () => {
-    const restore = measureStrip({ tab: 120, list: 310, overflowButton: 40 })
+    const restore = measureStrip({
+      tab: 120,
+      tabLane: 310,
+      tabList: 264,
+      overflowButton: 40,
+    })
     try {
       const store = await createStore([
         makeTab('alpha', alpha),
@@ -525,7 +646,12 @@ describe('RepositoryTabStrip overflow capabilities', () => {
   })
 
   it('opens the per-tab appearance editor for a tab that only exists in the dropdown', async () => {
-    const restore = measureStrip({ tab: 120, list: 260, overflowButton: 40 })
+    const restore = measureStrip({
+      tab: 120,
+      tabLane: 260,
+      tabList: 214,
+      overflowButton: 40,
+    })
     try {
       const store = await createStore([
         makeTab('alpha', alpha),
@@ -558,7 +684,12 @@ describe('RepositoryTabStrip overflow capabilities', () => {
   })
 
   it('gives an overflowed row the same command menu a tab in the strip has', async () => {
-    const restore = measureStrip({ tab: 120, list: 260, overflowButton: 40 })
+    const restore = measureStrip({
+      tab: 120,
+      tabLane: 260,
+      tabList: 214,
+      overflowButton: 40,
+    })
     try {
       const store = await createStore([
         makeTab('alpha', alpha),

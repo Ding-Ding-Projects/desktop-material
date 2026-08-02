@@ -28,6 +28,15 @@ import {
   persistFilterMode,
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
+import {
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+  translate,
+  translateForAccessibleName,
+  TranslationKey,
+  TranslationVariables,
+} from '../../lib/i18n'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 
 interface ITabStyleEditorProps {
   readonly tab: IRepositoryTab
@@ -54,6 +63,8 @@ interface ITabStyleEditorState {
   readonly recentColors: ReadonlyArray<string>
   /** Recently picked highlight colors, kept separate from text colors. */
   readonly recentHighlightColors: ReadonlyArray<string>
+  /** Active language mode so open editors update without being remounted. */
+  readonly languageMode: LanguageMode
 }
 
 type TabColorTarget = 'color' | 'backgroundColor'
@@ -124,8 +135,40 @@ export class TabStyleEditor extends React.Component<
       recentColors,
       recentHighlightColors:
         storedHighlightColors.length > 0 ? storedHighlightColors : recentColors,
+      languageMode: getPersistedLanguageMode(),
     }
   }
+
+  public componentDidMount() {
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  public componentWillUnmount() {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    const languageMode = normalizeLanguageMode(
+      (event as CustomEvent<unknown>).detail
+    )
+    if (languageMode !== this.state.languageMode) {
+      this.setState({ languageMode })
+    }
+  }
+
+  private text = (key: TranslationKey, variables: TranslationVariables = {}) =>
+    translate(key, this.state.languageMode, variables)
+
+  private accessibleText = (
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ) => translateForAccessibleName(key, variables, this.state.languageMode)
 
   private get style(): ITabTitleStyle {
     return this.props.tab.titleStyle ?? {}
@@ -316,13 +359,19 @@ export class TabStyleEditor extends React.Component<
 
   private renderAlign(direction: 'left' | 'center' | 'right') {
     const active = this.style.textAlign === direction
+    const labelKey: TranslationKey =
+      direction === 'left'
+        ? 'tabs.style.alignLeftAria'
+        : direction === 'center'
+        ? 'tabs.style.alignCenterAria'
+        : 'tabs.style.alignRightAria'
     return (
       <button
         type="button"
         className={active ? 'tab-style-align active' : 'tab-style-align'}
         value={direction}
         aria-pressed={active}
-        aria-label={`Align ${direction}`}
+        aria-label={this.accessibleText(labelKey)}
         onClick={this.onAlignClick}
       >
         <span className={`align-bars align-${direction}`}>
@@ -358,7 +407,7 @@ export class TabStyleEditor extends React.Component<
     return (
       <div className="tab-style-row tab-style-font">
         <span className="tab-style-label" id="tab-style-font-label">
-          Font
+          {this.text('tabs.style.font')}
         </span>
         <div className="tab-style-font-picker">
           <button
@@ -367,7 +416,7 @@ export class TabStyleEditor extends React.Component<
             style={{ fontFamily: stack }}
             aria-haspopup="listbox"
             aria-expanded={this.state.fontMenuOpen}
-            aria-labelledby="tab-style-font-label"
+            aria-label={this.accessibleText('tabs.style.font')}
             onClick={this.onFontToggle}
           >
             <span className="tab-style-font-name">{label}</span>
@@ -380,11 +429,11 @@ export class TabStyleEditor extends React.Component<
                 <input
                   data-search-surface-id="tab-style-font"
                   type="text"
-                  placeholder="Search fonts"
+                  placeholder={this.text('tabs.style.searchFonts')}
                   value={this.state.fontQuery}
                   autoFocus={true}
                   onChange={this.onFontQueryChange}
-                  aria-label="Search fonts"
+                  aria-label={this.accessibleText('tabs.style.searchFonts')}
                 />
                 <FilterModeControl
                   searchSurfaceId="tab-style-font"
@@ -392,7 +441,7 @@ export class TabStyleEditor extends React.Component<
                   caseSensitive={this.state.fontFilterCaseSensitive}
                   onModeChange={this.onFontFilterModeChange}
                   onCaseSensitiveChange={this.onFontFilterCaseSensitiveChange}
-                  regexBuilderTarget="Fonts"
+                  regexBuilderTarget={this.text('tabs.style.fontsTarget')}
                   getSampleItems={this.getFontSampleItems}
                   filterText={this.state.fontQuery}
                   onRegexPatternApply={this.onFontRegexPatternApply}
@@ -426,7 +475,9 @@ export class TabStyleEditor extends React.Component<
                   )
                 })}
                 {matches.length === 0 && (
-                  <div className="tab-style-font-empty">No matching fonts</div>
+                  <div className="tab-style-font-empty">
+                    {this.text('tabs.style.noMatchingFonts')}
+                  </div>
                 )}
               </div>
             </div>
@@ -445,7 +496,10 @@ export class TabStyleEditor extends React.Component<
     // Compared as colours rather than as strings: `#abc` and `#aabbcc` are the
     // same swatch, and an exact compare showed neither of them as chosen.
     const active = current !== undefined && isSameTabColor(current, color)
-    const targetLabel = target === 'color' ? 'Text color' : 'Highlight color'
+    const labelKey: TranslationKey =
+      target === 'color'
+        ? 'tabs.style.textColorSwatchAria'
+        : 'tabs.style.highlightColorSwatchAria'
     return (
       <button
         type="button"
@@ -454,7 +508,7 @@ export class TabStyleEditor extends React.Component<
         value={color}
         data-target={target}
         style={{ backgroundColor: color }}
-        aria-label={`${targetLabel} ${color}`}
+        aria-label={this.accessibleText(labelKey, { color })}
         aria-pressed={active}
         onClick={this.onColorClick}
       />
@@ -464,7 +518,9 @@ export class TabStyleEditor extends React.Component<
   private renderColors(target: TabColorTarget) {
     const current = this.style[target]
     const isHighlight = target === 'backgroundColor'
-    const label = isHighlight ? 'Highlight' : 'Text color'
+    const labelKey: TranslationKey = isHighlight
+      ? 'tabs.style.highlight'
+      : 'tabs.style.textColor'
     const labelId = isHighlight
       ? 'tab-style-highlight-colors-label'
       : 'tab-style-text-colors-label'
@@ -483,11 +539,11 @@ export class TabStyleEditor extends React.Component<
       <div
         className="tab-style-row tab-style-colors"
         role="group"
-        aria-labelledby={labelId}
+        aria-label={this.accessibleText(labelKey)}
       >
         <div className="tab-style-colors-head">
           <span className="tab-style-colors-label" id={labelId}>
-            {label}
+            {this.text(labelKey)}
           </span>
           <div className="tab-style-color-actions">
             <button
@@ -498,29 +554,37 @@ export class TabStyleEditor extends React.Component<
                   : 'tab-style-clear-color'
               }
               data-target={target}
-              aria-label={
+              aria-label={this.accessibleText(
                 isHighlight
-                  ? 'Use default background color'
-                  : 'Use default text color'
-              }
+                  ? 'tabs.style.useDefaultBackgroundAria'
+                  : 'tabs.style.useDefaultTextAria'
+              )}
               aria-pressed={current === undefined}
               onClick={this.onUseDefaultColor}
             >
-              {isHighlight ? 'No highlight' : 'Default'}
+              {this.text(
+                isHighlight
+                  ? 'tabs.style.noHighlight'
+                  : 'tabs.style.defaultColor'
+              )}
             </button>
             <label className="tab-style-color-custom">
               <span
                 className="tab-style-color-custom-swatch"
                 style={{ backgroundColor: pickerValue }}
               />
-              <span className="tab-style-color-custom-label">Custom…</span>
+              <span className="tab-style-color-custom-label">
+                {this.text('tabs.style.custom')}
+              </span>
               <input
                 type="color"
                 value={pickerValue}
                 data-target={target}
-                aria-label={
-                  isHighlight ? 'Custom highlight color' : 'Custom text color'
-                }
+                aria-label={this.accessibleText(
+                  isHighlight
+                    ? 'tabs.style.customHighlightAria'
+                    : 'tabs.style.customTextColorAria'
+                )}
                 onChange={this.onColorInput}
               />
             </label>
@@ -533,7 +597,9 @@ export class TabStyleEditor extends React.Component<
         </div>
         {recent.length > 0 && (
           <div className="tab-style-recent">
-            <span className="tab-style-recent-label">Recent</span>
+            <span className="tab-style-recent-label">
+              {this.text('tabs.style.recent')}
+            </span>
             <div className="tab-style-swatches">
               {recent.map(color => this.renderSwatch(color, 'recent', target))}
             </div>
@@ -587,14 +653,19 @@ export class TabStyleEditor extends React.Component<
     const title =
       this.props.tab.customLabel ??
       this.props.tab.repositoryPath.split(/[\\/]/).filter(Boolean).pop() ??
-      'Repository tab'
+      this.text('tabs.style.defaultPreviewTitle')
     const css = tabTitleStyleToCss(this.style)
     const textAlign = css.textAlign ?? 'left'
     const textCss = { ...css, textAlign: undefined }
 
     return (
-      <section className="tab-style-preview" aria-label="Live tab preview">
-        <span className="tab-style-preview-label">Preview</span>
+      <section
+        className="tab-style-preview"
+        aria-label={this.accessibleText('tabs.style.previewAria')}
+      >
+        <span className="tab-style-preview-label">
+          {this.text('tabs.style.preview')}
+        </span>
         <div className="tab-style-preview-surface" style={{ textAlign }}>
           <span className="tab-style-preview-text" style={textCss}>
             {title}
@@ -615,26 +686,31 @@ export class TabStyleEditor extends React.Component<
     const editor = (
       <div className="tab-style-editor">
         <div className="tab-style-header">
-          <h3 id="tab-style-editor-title">Tab appearance</h3>
+          <h3
+            id="tab-style-editor-title"
+            aria-label={this.accessibleText('tabs.style.title')}
+          >
+            <span aria-hidden="true">{this.text('tabs.style.title')}</span>
+          </h3>
           <div className="tab-style-header-actions">
             {this.props.onShowHistory !== undefined && (
               <button
                 type="button"
                 className="tab-style-reset tab-style-history"
                 onClick={this.props.onShowHistory}
-                aria-label="Open tab appearance history"
+                aria-label={this.accessibleText('tabs.style.historyAria')}
               >
                 <Octicon symbol={octicons.history} />
-                History
+                {this.text('tabs.style.history')}
               </button>
             )}
             <button
               type="button"
               className="tab-style-reset"
               onClick={this.props.onReset}
-              aria-label="Clear tab formatting"
+              aria-label={this.accessibleText('tabs.style.clearAria')}
             >
-              Clear
+              {this.text('tabs.style.clear')}
             </button>
           </div>
         </div>
@@ -642,14 +718,29 @@ export class TabStyleEditor extends React.Component<
         {this.renderPreview()}
 
         <div className="tab-style-row tab-style-buttons">
-          {this.renderToggle('bold', 'B', 'style-bold', 'Bold')}
-          {this.renderToggle('italic', 'I', 'style-italic', 'Italic')}
-          {this.renderToggle('underline', 'U', 'style-underline', 'Underline')}
+          {this.renderToggle(
+            'bold',
+            'B',
+            'style-bold',
+            this.accessibleText('tabs.style.bold')
+          )}
+          {this.renderToggle(
+            'italic',
+            'I',
+            'style-italic',
+            this.accessibleText('tabs.style.italic')
+          )}
+          {this.renderToggle(
+            'underline',
+            'U',
+            'style-underline',
+            this.accessibleText('tabs.style.underline')
+          )}
           {this.renderToggle(
             'strikeThrough',
             <Octicon symbol={octicons.strikethrough} />,
             'style-strike',
-            'Strikethrough'
+            this.accessibleText('tabs.style.strikethrough')
           )}
           <span className="tab-style-divider" />
           {this.renderAlign('left')}
@@ -660,7 +751,9 @@ export class TabStyleEditor extends React.Component<
         {this.renderFontPicker()}
 
         <div className="tab-style-row tab-style-size">
-          <label htmlFor="tab-style-size-input">Size</label>
+          <label htmlFor="tab-style-size-input">
+            {this.text('tabs.style.size')}
+          </label>
           <input
             id="tab-style-size-input"
             type="range"
@@ -669,28 +762,50 @@ export class TabStyleEditor extends React.Component<
             step={1}
             value={size}
             onChange={this.onSizeChange}
+            aria-label={this.accessibleText('tabs.style.size')}
           />
           <span className="tab-style-size-value">{size}px</span>
         </div>
 
-        <fieldset className="tab-style-control-group">
-          <legend>Letter case</legend>
+        <fieldset
+          className="tab-style-control-group"
+          aria-label={this.accessibleText('tabs.style.letterCase')}
+        >
+          <legend>{this.text('tabs.style.letterCase')}</legend>
           <div className="tab-style-choice-row">
-            {this.renderCaseChoice('normal', 'Aa', 'Normal case')}
-            {this.renderCaseChoice('uppercase', 'AA', 'Uppercase')}
-            {this.renderCaseChoice('lowercase', 'aa', 'Lowercase')}
-            {this.renderCaseChoice('capitalize', 'Ab', 'Capitalize words')}
+            {this.renderCaseChoice(
+              'normal',
+              'Aa',
+              this.accessibleText('tabs.style.normalCase')
+            )}
+            {this.renderCaseChoice(
+              'uppercase',
+              'AA',
+              this.accessibleText('tabs.style.uppercase')
+            )}
+            {this.renderCaseChoice(
+              'lowercase',
+              'aa',
+              this.accessibleText('tabs.style.lowercase')
+            )}
+            {this.renderCaseChoice(
+              'capitalize',
+              'Ab',
+              this.accessibleText('tabs.style.capitalizeWords')
+            )}
             {this.renderToggle(
               'smallCaps',
               'SC',
               'style-small-caps',
-              'Small caps'
+              this.accessibleText('tabs.style.smallCaps')
             )}
           </div>
         </fieldset>
 
         <div className="tab-style-row tab-style-size tab-style-spacing">
-          <label htmlFor="tab-style-spacing-input">Spacing</label>
+          <label htmlFor="tab-style-spacing-input">
+            {this.text('tabs.style.spacing')}
+          </label>
           <input
             id="tab-style-spacing-input"
             type="range"
@@ -699,6 +814,7 @@ export class TabStyleEditor extends React.Component<
             step={0.25}
             value={characterSpacing}
             onChange={this.onCharacterSpacingChange}
+            aria-label={this.accessibleText('tabs.style.spacing')}
           />
           <output
             className="tab-style-size-value"
@@ -708,15 +824,26 @@ export class TabStyleEditor extends React.Component<
           </output>
         </div>
 
-        <fieldset className="tab-style-control-group">
-          <legend>Text effect</legend>
+        <fieldset
+          className="tab-style-control-group"
+          aria-label={this.accessibleText('tabs.style.textEffect')}
+        >
+          <legend>{this.text('tabs.style.textEffect')}</legend>
           <div className="tab-style-choice-row tab-style-effect-row">
-            {this.renderEffectChoice('none', 'None', 'No text effect')}
-            {this.renderEffectChoice('soft-shadow', 'Soft', 'Soft text shadow')}
+            {this.renderEffectChoice(
+              'none',
+              this.text('tabs.style.effectNone'),
+              this.accessibleText('tabs.style.effectNoneAria')
+            )}
+            {this.renderEffectChoice(
+              'soft-shadow',
+              this.text('tabs.style.effectSoft'),
+              this.accessibleText('tabs.style.effectSoftAria')
+            )}
             {this.renderEffectChoice(
               'strong-shadow',
-              'Strong',
-              'Strong text shadow'
+              this.text('tabs.style.effectStrong'),
+              this.accessibleText('tabs.style.effectStrongAria')
             )}
           </div>
         </fieldset>

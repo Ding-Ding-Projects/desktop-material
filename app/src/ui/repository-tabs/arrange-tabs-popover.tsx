@@ -12,7 +12,15 @@ import {
   persistFilterMode,
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
-import { formatVisibleTabCount } from './tab-count-copy'
+import {
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+  translate,
+  translateForAccessibleName,
+  TranslationKey,
+  TranslationVariables,
+} from '../../lib/i18n'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 
 /** The persistence id for the arrange filter's mode. */
 const ArrangeTabsFilterListId = 'arrange-tabs'
@@ -29,10 +37,12 @@ interface IArrangeTabsPopoverProps {
 
 interface IArrangeTabsPopoverState {
   readonly isApplying: boolean
-  readonly announcement: string
+  readonly announcementKey: TranslationKey
+  readonly announcementVariables: TranslationVariables
   readonly query: string
   readonly filterMode: FilterMode
   readonly filterCaseSensitive: boolean
+  readonly languageMode: LanguageMode
 }
 
 /** A Material one-shot arrange surface with accessible manual-order actions. */
@@ -44,26 +54,69 @@ export class ArrangeTabsPopover extends React.Component<
     super(props)
     this.state = {
       isApplying: false,
-      announcement: 'Choose a manual move or a one-time sort.',
+      announcementKey: 'tabs.arrange.initialAnnouncement',
+      announcementVariables: {},
       query: '',
       filterMode: readPersistedFilterMode(ArrangeTabsFilterListId),
       filterCaseSensitive: false,
+      languageMode: getPersistedLanguageMode(),
     }
   }
 
-  private run = (action: () => Promise<void>, announcement: string) => {
+  public componentDidMount() {
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  public componentWillUnmount() {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    const languageMode = normalizeLanguageMode(
+      (event as CustomEvent<unknown>).detail
+    )
+    if (languageMode !== this.state.languageMode) {
+      this.setState({ languageMode })
+    }
+  }
+
+  private text = (key: TranslationKey, variables: TranslationVariables = {}) =>
+    translate(key, this.state.languageMode, variables)
+
+  private accessibleText = (
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ) => translateForAccessibleName(key, variables, this.state.languageMode)
+
+  private run = (
+    action: () => Promise<void>,
+    announcementKey: TranslationKey,
+    announcementVariables: TranslationVariables = {}
+  ) => {
     if (this.state.isApplying) {
       return
     }
     this.setState({ isApplying: true })
     action()
-      .then(() => this.setState({ isApplying: false, announcement }))
+      .then(() =>
+        this.setState({
+          isApplying: false,
+          announcementKey,
+          announcementVariables,
+        })
+      )
       .catch(err => {
         log.error('Failed to arrange repository tabs', err)
         this.setState({
           isApplying: false,
-          announcement:
-            'The tab order could not be saved. Review the current order and try again.',
+          announcementKey: 'tabs.arrange.saveError',
+          announcementVariables: {},
         })
       })
   }
@@ -71,12 +124,13 @@ export class ArrangeTabsPopover extends React.Component<
   private move = (
     tab: IRepositoryTab,
     toIndex: number,
-    destination: string
+    announcementKey: TranslationKey
   ) => {
     const label = this.props.resolveLabel(tab)
     this.run(
       () => this.props.tabsStore.moveTab(tab.id, toIndex),
-      `${label} moved ${destination}.`
+      announcementKey,
+      { label }
     )
   }
 
@@ -85,7 +139,8 @@ export class ArrangeTabsPopover extends React.Component<
     const label = this.props.resolveLabel(tab)
     this.run(
       () => this.props.tabsStore.setTabPinned(tab.id, willPin),
-      `${label} ${willPin ? 'pinned' : 'unpinned'}.`
+      willPin ? 'tabs.arrange.pinned' : 'tabs.arrange.unpinned',
+      { label }
     )
   }
 
@@ -94,9 +149,10 @@ export class ArrangeTabsPopover extends React.Component<
     const label = this.props.resolveLabel(tab)
     this.run(
       () => this.props.tabsStore.setTabFavorite(tab.id, willFavorite),
-      `${label} ${
-        willFavorite ? 'added to favorites' : 'removed from favorites'
-      }.`
+      willFavorite
+        ? 'tabs.arrange.favoriteAdded'
+        : 'tabs.arrange.favoriteRemoved',
+      { label }
     )
   }
 
@@ -121,16 +177,16 @@ export class ArrangeTabsPopover extends React.Component<
         this.toggleFavorite(tab)
         break
       case 'first':
-        this.move(tab, groupStart, 'to first')
+        this.move(tab, groupStart, 'tabs.arrange.movedFirst')
         break
       case 'left':
-        this.move(tab, index - 1, 'left')
+        this.move(tab, index - 1, 'tabs.arrange.movedLeft')
         break
       case 'right':
-        this.move(tab, index + 1, 'right')
+        this.move(tab, index + 1, 'tabs.arrange.movedRight')
         break
       case 'last':
-        this.move(tab, groupEnd, 'to last')
+        this.move(tab, groupEnd, 'tabs.arrange.movedLast')
         break
     }
   }
@@ -152,10 +208,14 @@ export class ArrangeTabsPopover extends React.Component<
         <div className="arrange-tabs-row-label">
           <span>{label}</span>
           {tab.isPinned === true && (
-            <span className="arrange-tabs-chip">Pinned</span>
+            <span className="arrange-tabs-chip">
+              {this.text('tabs.arrange.pinnedChip')}
+            </span>
           )}
           {tab.isFavorite === true && (
-            <span className="arrange-tabs-chip favorite">Favorite</span>
+            <span className="arrange-tabs-chip favorite">
+              {this.text('tabs.arrange.favoriteChip')}
+            </span>
           )}
         </div>
         <div className="arrange-tabs-row-actions">
@@ -165,9 +225,16 @@ export class ArrangeTabsPopover extends React.Component<
             data-action="pin"
             onClick={this.onManualAction}
             disabled={disabled}
-            aria-label={`${tab.isPinned === true ? 'Unpin' : 'Pin'} ${label}`}
+            aria-label={this.accessibleText(
+              tab.isPinned === true
+                ? 'tabs.arrange.unpinAria'
+                : 'tabs.arrange.pinAria',
+              { label }
+            )}
           >
-            {tab.isPinned === true ? 'Unpin' : 'Pin'}
+            {this.text(
+              tab.isPinned === true ? 'tabs.arrange.unpin' : 'tabs.arrange.pin'
+            )}
           </button>
           <button
             type="button"
@@ -175,13 +242,18 @@ export class ArrangeTabsPopover extends React.Component<
             data-action="favorite"
             onClick={this.onManualAction}
             disabled={disabled}
-            aria-label={
-              (tab.isFavorite === true ? 'Unfavorite' : 'Favorite') +
-              ' ' +
-              label
-            }
+            aria-label={this.accessibleText(
+              tab.isFavorite === true
+                ? 'tabs.arrange.unfavoriteAria'
+                : 'tabs.arrange.favoriteAria',
+              { label }
+            )}
           >
-            {tab.isFavorite === true ? 'Unstar' : 'Star'}
+            {this.text(
+              tab.isFavorite === true
+                ? 'tabs.arrange.unstar'
+                : 'tabs.arrange.star'
+            )}
           </button>
           <button
             type="button"
@@ -189,9 +261,11 @@ export class ArrangeTabsPopover extends React.Component<
             data-action="first"
             onClick={this.onManualAction}
             disabled={disabled || atStart}
-            aria-label={`Move ${label} to first`}
+            aria-label={this.accessibleText('tabs.arrange.moveFirstAria', {
+              label,
+            })}
           >
-            First
+            {this.text('tabs.arrange.first')}
           </button>
           <button
             type="button"
@@ -199,9 +273,11 @@ export class ArrangeTabsPopover extends React.Component<
             data-action="left"
             onClick={this.onManualAction}
             disabled={disabled || atStart}
-            aria-label={`Move ${label} left`}
+            aria-label={this.accessibleText('tabs.arrange.moveLeftAria', {
+              label,
+            })}
           >
-            Left
+            {this.text('tabs.arrange.left')}
           </button>
           <button
             type="button"
@@ -209,9 +285,11 @@ export class ArrangeTabsPopover extends React.Component<
             data-action="right"
             onClick={this.onManualAction}
             disabled={disabled || atEnd}
-            aria-label={`Move ${label} right`}
+            aria-label={this.accessibleText('tabs.arrange.moveRightAria', {
+              label,
+            })}
           >
-            Right
+            {this.text('tabs.arrange.right')}
           </button>
           <button
             type="button"
@@ -219,9 +297,11 @@ export class ArrangeTabsPopover extends React.Component<
             data-action="last"
             onClick={this.onManualAction}
             disabled={disabled || atEnd}
-            aria-label={`Move ${label} to last`}
+            aria-label={this.accessibleText('tabs.arrange.moveLastAria', {
+              label,
+            })}
           >
-            Last
+            {this.text('tabs.arrange.last')}
           </button>
         </div>
       </li>
@@ -233,15 +313,17 @@ export class ArrangeTabsPopover extends React.Component<
       () =>
         this.props.tabsStore.arrangeTabsByLabel(order, this.props.resolveLabel),
       order === 'ascending'
-        ? 'Tabs arranged from A to Z.'
-        : 'Tabs arranged from Z to A.'
+        ? 'tabs.arrange.sortedLabelAscending'
+        : 'tabs.arrange.sortedLabelDescending'
     )
   }
 
   private arrangeByOpenedAt = (order: 'newest' | 'oldest') => {
     this.run(
       () => this.props.tabsStore.arrangeTabsByOpenedAt(order),
-      `Tabs arranged by ${order} opened first.`
+      order === 'newest'
+        ? 'tabs.arrange.sortedOpenedNewest'
+        : 'tabs.arrange.sortedOpenedOldest'
     )
   }
 
@@ -255,8 +337,8 @@ export class ArrangeTabsPopover extends React.Component<
           this.props.resolveStatusRank
         ),
       order === 'needs-attention-first'
-        ? 'Tabs needing attention moved first.'
-        : 'Clean tabs moved first.'
+        ? 'tabs.arrange.sortedAttentionFirst'
+        : 'tabs.arrange.sortedCleanFirst'
     )
   }
 
@@ -264,8 +346,8 @@ export class ArrangeTabsPopover extends React.Component<
     this.run(
       () => this.props.tabsStore.arrangeTabsByFavorite(order),
       order === 'favorites-first'
-        ? 'Favorite tabs moved first.'
-        : 'Favorite tabs moved last.'
+        ? 'tabs.arrange.sortedFavoritesFirst'
+        : 'tabs.arrange.sortedFavoritesLast'
     )
   }
 
@@ -343,9 +425,14 @@ export class ArrangeTabsPopover extends React.Component<
     const { tabs } = this.props.tabs
     const disabled = this.state.isApplying || tabs.length < 2
     const filteredTabs = this.getFilteredTabs()
-    const resultSummary = formatVisibleTabCount(
-      filteredTabs.length,
-      tabs.length
+    const resultSummary = this.text(
+      tabs.length === 1
+        ? 'tabs.arrange.filterCountOne'
+        : 'tabs.arrange.filterCountMany',
+      {
+        visible: String(filteredTabs.length),
+        total: String(tabs.length),
+      }
     )
 
     return (
@@ -359,15 +446,19 @@ export class ArrangeTabsPopover extends React.Component<
       >
         <div className="arrange-tabs">
           <header className="arrange-tabs-header">
-            <h3 id="arrange-tabs-title">Arrange tabs</h3>
-            <p>
-              Drag tabs on the strip, or use these keyboard-friendly controls.
-              Pinned tabs remain in the leading group.
-            </p>
+            <h3
+              id="arrange-tabs-title"
+              aria-label={this.accessibleText('tabs.arrange.title')}
+            >
+              <span aria-hidden="true">{this.text('tabs.arrange.title')}</span>
+            </h3>
+            <p>{this.text('tabs.arrange.description')}</p>
           </header>
 
           <div className="arrange-tabs-filter" role="search">
-            <label htmlFor="arrange-tabs-filter-input">Filter tabs</label>
+            <label htmlFor="arrange-tabs-filter-input">
+              {this.text('tabs.arrange.filterLabel')}
+            </label>
             <div className="arrange-tabs-filter-field">
               <input
                 data-search-surface-id="arrange-tabs"
@@ -377,7 +468,8 @@ export class ArrangeTabsPopover extends React.Component<
                 value={this.state.query}
                 onChange={this.onFilterChange}
                 autoFocus={true}
-                placeholder="Name, alias, path, or URL"
+                placeholder={this.text('tabs.arrange.filterPlaceholder')}
+                aria-label={this.accessibleText('tabs.arrange.filterLabel')}
               />
               <FilterModeControl
                 searchSurfaceId="arrange-tabs"
@@ -385,7 +477,7 @@ export class ArrangeTabsPopover extends React.Component<
                 caseSensitive={this.state.filterCaseSensitive}
                 onModeChange={this.onFilterModeChange}
                 onCaseSensitiveChange={this.onFilterCaseSensitiveChange}
-                regexBuilderTarget="Open tabs"
+                regexBuilderTarget={this.text('tabs.arrange.filterTarget')}
                 getSampleItems={this.getFilterSampleItems}
                 filterText={this.state.query}
                 onRegexPatternApply={this.onRegexPatternApply}
@@ -397,10 +489,12 @@ export class ArrangeTabsPopover extends React.Component<
           </div>
 
           <section aria-labelledby="arrange-tabs-manual-title">
-            <h4 id="arrange-tabs-manual-title">Manual order</h4>
+            <h4 id="arrange-tabs-manual-title">
+              {this.text('tabs.arrange.manualOrder')}
+            </h4>
             {filteredTabs.length === 0 ? (
               <p className="arrange-tabs-empty" role="status">
-                No tabs match this filter.
+                {this.text('tabs.arrange.noMatches')}
               </p>
             ) : (
               <ul className="arrange-tabs-list">
@@ -410,9 +504,11 @@ export class ArrangeTabsPopover extends React.Component<
           </section>
 
           <section aria-labelledby="arrange-tabs-sort-title">
-            <h4 id="arrange-tabs-sort-title">Sort once</h4>
+            <h4 id="arrange-tabs-sort-title">
+              {this.text('tabs.arrange.sortOnce')}
+            </h4>
             <p className="arrange-tabs-sort-hint">
-              Sort actions apply to all open tabs, even while filtering.
+              {this.text('tabs.arrange.sortHint')}
             </p>
             <div className="arrange-tabs-sort-grid">
               <button
@@ -420,64 +516,86 @@ export class ArrangeTabsPopover extends React.Component<
                 disabled={disabled}
                 data-sort="label-ascending"
                 onClick={this.onSortClick}
+                aria-label={this.accessibleText(
+                  'tabs.arrange.sortLabelAscending'
+                )}
               >
-                Label A → Z
+                {this.text('tabs.arrange.sortLabelAscending')}
               </button>
               <button
                 type="button"
                 disabled={disabled}
                 data-sort="label-descending"
                 onClick={this.onSortClick}
+                aria-label={this.accessibleText(
+                  'tabs.arrange.sortLabelDescending'
+                )}
               >
-                Label Z → A
+                {this.text('tabs.arrange.sortLabelDescending')}
               </button>
               <button
                 type="button"
                 disabled={disabled}
                 data-sort="opened-newest"
                 onClick={this.onSortClick}
+                aria-label={this.accessibleText(
+                  'tabs.arrange.sortOpenedNewest'
+                )}
               >
-                Newest opened
+                {this.text('tabs.arrange.sortOpenedNewest')}
               </button>
               <button
                 type="button"
                 disabled={disabled}
                 data-sort="opened-oldest"
                 onClick={this.onSortClick}
+                aria-label={this.accessibleText(
+                  'tabs.arrange.sortOpenedOldest'
+                )}
               >
-                Oldest opened
+                {this.text('tabs.arrange.sortOpenedOldest')}
               </button>
               <button
                 type="button"
                 disabled={disabled}
                 data-sort="status-attention"
                 onClick={this.onSortClick}
+                aria-label={this.accessibleText(
+                  'tabs.arrange.sortAttentionFirst'
+                )}
               >
-                Needs attention first
+                {this.text('tabs.arrange.sortAttentionFirst')}
               </button>
               <button
                 type="button"
                 disabled={disabled}
                 data-sort="status-clean"
                 onClick={this.onSortClick}
+                aria-label={this.accessibleText('tabs.arrange.sortCleanFirst')}
               >
-                Clean first
+                {this.text('tabs.arrange.sortCleanFirst')}
               </button>
               <button
                 type="button"
                 disabled={disabled}
                 data-sort="favorites-first"
                 onClick={this.onSortClick}
+                aria-label={this.accessibleText(
+                  'tabs.arrange.sortFavoritesFirst'
+                )}
               >
-                Favorites first
+                {this.text('tabs.arrange.sortFavoritesFirst')}
               </button>
               <button
                 type="button"
                 disabled={disabled}
                 data-sort="favorites-last"
                 onClick={this.onSortClick}
+                aria-label={this.accessibleText(
+                  'tabs.arrange.sortFavoritesLast'
+                )}
               >
-                Favorites last
+                {this.text('tabs.arrange.sortFavoritesLast')}
               </button>
             </div>
           </section>
@@ -488,11 +606,18 @@ export class ArrangeTabsPopover extends React.Component<
             role="status"
             aria-live="polite"
           >
-            {this.state.announcement}
+            {this.text(
+              this.state.announcementKey,
+              this.state.announcementVariables
+            )}
           </div>
           <div className="arrange-tabs-actions">
-            <button type="button" onClick={this.props.onClose}>
-              Done
+            <button
+              type="button"
+              onClick={this.props.onClose}
+              aria-label={this.accessibleText('tabs.arrange.done')}
+            >
+              {this.text('tabs.arrange.done')}
             </button>
           </div>
         </div>

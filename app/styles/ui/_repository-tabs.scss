@@ -16,20 +16,28 @@
   animation: dmDown calc(480ms * var(--mdur, 1)) var(--emph) backwards;
   animation-delay: 40ms;
 
-  .repository-tab-list {
+  .repository-tab-lane {
     display: flex;
     align-items: flex-end;
     gap: 6px;
-    flex: 1;
-    // Tabs that do not fit move into the overflow dropdown instead of scrolling
-    // or clipping, so the row itself never scrolls horizontally. min-width: 0
-    // lets the flex item shrink so its clientWidth reflects the true room.
+    flex: 1 1 auto;
     min-width: 0;
-    overflow: hidden;
-    scrollbar-width: none;
 
-    &::-webkit-scrollbar {
-      display: none;
+    .repository-tab-list {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      flex: 1 1 auto;
+      // Tabs that do not fit move into the overflow dropdown instead of
+      // scrolling or clipping, so the row itself never scrolls horizontally.
+      // min-width: 0 lets this sibling shrink around the overflow control.
+      min-width: 0;
+      overflow: hidden;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
     }
   }
 }

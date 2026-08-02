@@ -6,6 +6,7 @@ import {
   CommitPushAllProgressListener,
   ICommitPushAllResult,
 } from '../../src/lib/automation/commit-push-all'
+import { LanguageModeChangedEvent } from '../../src/lib/i18n'
 import { Dispatcher } from '../../src/ui/dispatcher'
 import { CommitAndPushAllDialog } from '../../src/ui/commit-push-all'
 import { fireEvent, render, screen, waitFor } from '../helpers/ui/render'
@@ -14,6 +15,7 @@ let restoreIpcSend: (() => void) | null = null
 let restoreDialogShow: (() => void) | null = null
 
 beforeEach(async () => {
+  localStorage.removeItem('language-mode-v1')
   const electron = await import('electron')
   const previousSend = electron.ipcRenderer.send
   electron.ipcRenderer.send = () => {}
@@ -42,7 +44,18 @@ afterEach(() => {
   restoreIpcSend?.()
   restoreDialogShow?.()
   document.body.innerHTML = ''
+  localStorage.removeItem('language-mode-v1')
 })
+
+function changeLanguageMode(
+  languageMode: 'english' | 'cantonese' | 'bilingual'
+) {
+  localStorage.setItem('language-mode-v1', languageMode)
+  fireEvent(
+    document,
+    new CustomEvent(LanguageModeChangedEvent, { detail: languageMode })
+  )
+}
 
 interface IDeferred<T> {
   readonly promise: Promise<T>
@@ -73,6 +86,27 @@ const affected = [
 ]
 
 describe('CommitAndPushAllDialog', () => {
+  it('retranslates an untouched default message and preserves user text', () => {
+    const dispatcher = createDispatcher(async () => [])
+    render(
+      React.createElement(CommitAndPushAllDialog, {
+        dispatcher,
+        affectedRepositories: affected,
+        onDismissed: () => {},
+      })
+    )
+
+    const message = screen.getByLabelText('Commit message') as HTMLInputElement
+    assert.equal(message.value, 'Commit local changes')
+
+    changeLanguageMode('cantonese')
+    assert.equal(message.value, 'Commit 本機改動')
+
+    fireEvent.change(message, { target: { value: 'Keep this exact message' } })
+    changeLanguageMode('bilingual')
+    assert.equal(message.value, 'Keep this exact message')
+  })
+
   it('lists affected repositories, requires a message, and invokes the dispatcher', async () => {
     const completion = deferred<ReadonlyArray<ICommitPushAllResult>>()
     let capturedMessage: string | null = null
@@ -244,5 +278,84 @@ describe('CommitAndPushAllDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Done' }))
     assert.equal(dismissed, 1)
     assert.equal(calls, 0)
+  })
+
+  it('localizes confirm and progress views live with stable interpolation', async () => {
+    changeLanguageMode('cantonese')
+    const completion = deferred<ReadonlyArray<ICommitPushAllResult>>()
+    let listener: CommitPushAllProgressListener | undefined
+    const dispatcher = createDispatcher((_message, onProgress) => {
+      listener = onProgress
+      return completion.promise
+    })
+
+    render(
+      React.createElement(CommitAndPushAllDialog, {
+        dispatcher,
+        affectedRepositories: [{ id: 1, name: 'alpha' }],
+        onDismissed: () => {},
+      })
+    )
+
+    assert.ok(
+      screen.getByRole('dialog', {
+        name: 'Commit 同 push 全部 repository',
+      })
+    )
+    const message = screen.getByLabelText('Commit 訊息') as HTMLInputElement
+    assert.equal(message.value, 'Commit 本機改動')
+    assert.ok(screen.getByLabelText('篩選要 commit 同 push 嘅 repository'))
+    assert.ok(screen.getByText('已揀 1 個入面嘅 1 個'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Commit 同 push 全部' }))
+    await waitFor(() => assert.notEqual(listener, undefined))
+    listener?.({
+      completed: 0,
+      total: 1,
+      active: 1,
+      item: { id: 1, name: 'alpha', status: 'pushing', detail: 'Pushing.' },
+    })
+    assert.ok(await screen.findByText('Push 緊'))
+    assert.ok(screen.getByText('而家處理緊：alpha'))
+
+    changeLanguageMode('bilingual')
+    assert.ok(
+      screen.getByText(
+        'Commit and push all repositories · Commit 同 push 全部 repository',
+        { exact: true }
+      )
+    )
+    assert.ok(
+      screen.getByRole('dialog', {
+        name: 'Commit and push all repositories',
+      })
+    )
+    assert.ok(screen.getByText('Pushing · Push 緊'))
+    assert.ok(
+      screen.getByRole('region', {
+        name: 'Commit and push all repository progress',
+      })
+    )
+    assert.ok(screen.getByText('Now working on: alpha · 而家處理緊：alpha'))
+
+    listener?.({
+      completed: 1,
+      total: 1,
+      active: 0,
+      item: {
+        id: 1,
+        name: 'alpha',
+        status: 'done',
+        detail: 'Committed and pushed.',
+      },
+    })
+    completion.resolve([
+      { id: 1, name: 'alpha', status: 'done', detail: 'Committed and pushed.' },
+    ])
+    assert.ok(
+      await screen.findByText(
+        '1 pushed, 0 skipped, 0 failed. · 成功 push 1 個，略過 0 個，失敗 0 個。'
+      )
+    )
   })
 })

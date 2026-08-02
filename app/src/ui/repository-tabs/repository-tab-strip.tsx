@@ -141,6 +141,7 @@ export class RepositoryTabStrip extends React.Component<
   private disposable: Disposable | null = null
   private settingsCommitDisposable: Disposable | null = null
   private readonly stripRef = React.createRef<HTMLDivElement>()
+  private readonly tabLaneRef = React.createRef<HTMLDivElement>()
   private readonly listRef = React.createRef<HTMLDivElement>()
   private readonly overflowButtonRef = React.createRef<HTMLButtonElement>()
   /** Cached outer widths (px) for rendered tabs, keyed by tab id. */
@@ -153,8 +154,8 @@ export class RepositoryTabStrip extends React.Component<
     null
   private commitPulseTimer: ReturnType<typeof setTimeout> | null = null
 
-  /** Tracks whether the ResizeObserver is already watching the current list. */
-  private observedList = false
+  /** Tracks whether the ResizeObserver is already watching the current lane. */
+  private observedTabLane = false
 
   public constructor(props: IRepositoryTabStripProps) {
     super(props)
@@ -224,9 +225,9 @@ export class RepositoryTabStrip extends React.Component<
 
     if (typeof ResizeObserver === 'function') {
       this.resizeObserver = new ResizeObserver(() => this.recomputeOverflow())
-      if (this.listRef.current !== null) {
-        this.resizeObserver.observe(this.listRef.current)
-        this.observedList = true
+      if (this.tabLaneRef.current !== null) {
+        this.resizeObserver.observe(this.tabLaneRef.current)
+        this.observedTabLane = true
       }
     }
     // The initial render lays out every tab (pendingMeasure), so measure now.
@@ -255,17 +256,30 @@ export class RepositoryTabStrip extends React.Component<
     }
   }
 
-  public componentDidUpdate() {
-    // Keep observing the list element even if the ref changed between renders.
+  public componentDidUpdate(
+    prevProps: IRepositoryTabStripProps,
+    prevState: IRepositoryTabStripState
+  ) {
+    void prevProps
+    // Keep observing the lane even if the ref changed between renders.
     if (
       this.resizeObserver !== null &&
-      this.listRef.current !== null &&
-      !this.observedList
+      this.tabLaneRef.current !== null &&
+      !this.observedTabLane
     ) {
-      this.resizeObserver.observe(this.listRef.current)
-      this.observedList = true
+      this.resizeObserver.observe(this.tabLaneRef.current)
+      this.observedTabLane = true
     }
-    if (this.state.pendingMeasure) {
+
+    // The first overflowing render mounts the sibling button. Recompute once
+    // more with its real width (and again if the count changes its width) so
+    // the fallback reserve cannot leave a tab hidden unnecessarily.
+    const overflowChanged =
+      prevState.overflowIds.length !== this.state.overflowIds.length ||
+      prevState.overflowIds.some(
+        (id, index) => id !== this.state.overflowIds[index]
+      )
+    if (this.state.pendingMeasure || overflowChanged) {
       this.recomputeOverflow()
     }
   }
@@ -330,7 +344,8 @@ export class RepositoryTabStrip extends React.Component<
    */
   private recomputeOverflow = () => {
     const list = this.listRef.current
-    if (list === null) {
+    const tabLane = this.tabLaneRef.current
+    if (list === null || tabLane === null) {
       return
     }
 
@@ -408,7 +423,7 @@ export class RepositoryTabStrip extends React.Component<
     // information, so never split on them — show every tab until real,
     // positive measurements arrive.
     const unmeasurable =
-      list.clientWidth <= 0 || measurements.every(m => m.width <= 0)
+      tabLane.clientWidth <= 0 || measurements.every(m => m.width <= 0)
     if (unmeasurable) {
       if (this.state.overflowIds.length > 0 || this.state.pendingMeasure) {
         this.setState({ overflowIds: [], pendingMeasure: false })
@@ -416,8 +431,13 @@ export class RepositoryTabStrip extends React.Component<
       return
     }
 
-    const overflowButtonWidth = this.measureOverflowButtonWidth(gap)
-    const availableWidth = Math.max(0, list.clientWidth - chipFootprint)
+    // Measure the complete lane rather than the already-shrunk tablist. The
+    // overflow button is a sibling of the tablist for honest ARIA ownership,
+    // so using list.clientWidth here would reserve its width a second time.
+    const overflowButtonWidth = this.measureOverflowButtonWidth(
+      this.measureGap(tabLane)
+    )
+    const availableWidth = Math.max(0, tabLane.clientWidth - chipFootprint)
 
     const layout = computeTabOverflowLayout(measurements, {
       availableWidth,
@@ -2046,20 +2066,23 @@ export class RepositoryTabStrip extends React.Component<
           trailing notification, commit, undo/redo and history controls, none of
           which a tablist may own.
         */}
-        <div
-          className="repository-tab-list"
-          ref={this.listRef}
-          role="tablist"
-          aria-label="Repository tabs"
-          onKeyDown={this.onTabKeyDown}
-        >
-          {this.renderRepositoryTabs(tabs, activeTabId, hiddenTabIds)}
+        <div className="repository-tab-lane" ref={this.tabLaneRef}>
+          <div
+            className="repository-tab-list"
+            ref={this.listRef}
+            role="tablist"
+            aria-label={this.accessibleText('tabs.stripLabel')}
+            tabIndex={-1}
+            onKeyDown={this.onTabKeyDown}
+          >
+            {this.renderRepositoryTabs(tabs, activeTabId, hiddenTabIds)}
+          </div>
           {this.renderOverflowButton()}
         </div>
         <button
           className="repository-tab-search"
           data-dm-feature={true}
-          aria-label="Search tabs"
+          aria-label={this.accessibleText('tabs.searchTitle')}
           aria-haspopup="dialog"
           aria-expanded={this.state.searchAnchor !== null}
           onClick={this.onSearchButtonClick}
@@ -2069,7 +2092,7 @@ export class RepositoryTabStrip extends React.Component<
         <button
           className="repository-tab-arrange"
           data-dm-feature={true}
-          aria-label="Arrange tabs"
+          aria-label={this.accessibleText('tabs.arrange.title')}
           aria-haspopup="dialog"
           aria-expanded={this.state.arrangeAnchor !== null}
           onClick={this.onArrangeButtonClick}
@@ -2079,7 +2102,7 @@ export class RepositoryTabStrip extends React.Component<
         <button
           className="repository-tab-new"
           data-dm-feature={true}
-          aria-label="Open a repository in a new tab"
+          aria-label={this.accessibleText('tabs.openRepositoryNewTab')}
           onClick={this.onNewTab}
         >
           <Octicon symbol={octicons.plus} />

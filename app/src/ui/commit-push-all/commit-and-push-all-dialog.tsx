@@ -16,9 +16,21 @@ import { FilterModeControl } from '../lib/filter-mode-control'
 import { filterByMode } from '../lib/filter-string-list'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import {
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+  translate,
+  translateForAccessibleName,
+  TranslationKey,
+  TranslationVariables,
+} from '../../lib/i18n'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 
 /** A suggested default the user can accept or replace before confirming. */
-export const DefaultCommitAndPushAllMessage = 'Commit local changes'
+export const DefaultCommitAndPushAllMessage = translate(
+  'commitPushAll.defaultMessage',
+  'english'
+)
 
 /** The search bar's identity, so its regex builder is its own. */
 export const CommitPushAllSearchSurfaceId =
@@ -48,12 +60,14 @@ interface IRunState {
 interface ICommitAndPushAllDialogState {
   readonly phase: 'confirm' | 'running'
   readonly message: string
+  readonly messageEdited: boolean
   readonly run: IRunState
   /** Repository ids that will actually be committed and pushed. */
   readonly selectedIds: ReadonlySet<number>
   readonly filterText: string
   readonly filterMode: FilterMode
   readonly filterCaseSensitive: boolean
+  readonly languageMode: LanguageMode
 }
 
 interface ICommitPushAllRun {
@@ -157,22 +171,24 @@ function startRun(
   return run
 }
 
-function getProgressStatusLabel(status: CommitPushAllProgressStatus): string {
+function getProgressStatusKey(
+  status: CommitPushAllProgressStatus
+): TranslationKey {
   switch (status) {
     case 'queued':
-      return 'Waiting'
+      return 'commitPushAll.status.waiting'
     case 'pulling':
-      return 'Pulling'
+      return 'commitPushAll.status.pulling'
     case 'committing':
-      return 'Committing'
+      return 'commitPushAll.status.committing'
     case 'pushing':
-      return 'Pushing'
+      return 'commitPushAll.status.pushing'
     case 'done':
-      return 'Done'
+      return 'commitPushAll.status.done'
     case 'skipped':
-      return 'Skipped'
+      return 'commitPushAll.status.skipped'
     case 'failed':
-      return 'Failed'
+      return 'commitPushAll.status.failed'
   }
 }
 
@@ -184,9 +200,11 @@ export class CommitAndPushAllDialog extends React.Component<
 
   public constructor(props: ICommitAndPushAllDialogProps) {
     super(props)
+    const languageMode = getPersistedLanguageMode()
     this.state = {
       phase: 'confirm',
-      message: DefaultCommitAndPushAllMessage,
+      message: translate('commitPushAll.defaultMessage', languageMode),
+      messageEdited: false,
       run: emptyRunState(),
       // Everything with local work starts selected: the action is named "all",
       // and unticking is a smaller surprise than discovering nothing was ticked.
@@ -194,10 +212,15 @@ export class CommitAndPushAllDialog extends React.Component<
       filterText: '',
       filterMode: FilterMode.Substring,
       filterCaseSensitive: false,
+      languageMode,
     }
   }
 
   public componentDidMount(): void {
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
     const existing = commitPushAllRuns.get(this.props.dispatcher)
     if (existing !== undefined) {
       this.run = existing
@@ -205,19 +228,64 @@ export class CommitAndPushAllDialog extends React.Component<
       this.setState({
         phase: 'running',
         message: existing.message,
+        messageEdited: true,
         run: existing.state,
       })
     }
   }
 
   public componentWillUnmount(): void {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
     this.run?.listeners.delete(this.onRunUpdated)
     this.run = null
   }
 
   private onRunUpdated = (run: IRunState) => this.setState({ run })
 
-  private onMessageChanged = (message: string) => this.setState({ message })
+  private onLanguageModeChanged = (event: Event) => {
+    const languageMode = normalizeLanguageMode(
+      (event as CustomEvent<unknown>).detail
+    )
+    this.setState(state =>
+      languageMode === state.languageMode
+        ? null
+        : {
+            languageMode,
+            message:
+              state.phase === 'confirm' && !state.messageEdited
+                ? translate('commitPushAll.defaultMessage', languageMode)
+                : state.message,
+          }
+    )
+  }
+
+  private text = (key: TranslationKey, variables: TranslationVariables = {}) =>
+    translate(key, this.state.languageMode, variables)
+
+  private accessibleText = (
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ) => translateForAccessibleName(key, variables, this.state.languageMode)
+
+  private renderTitle(): string | JSX.Element {
+    if (this.state.languageMode !== 'bilingual') {
+      return this.text('commitPushAll.title')
+    }
+    return (
+      <>
+        <span aria-hidden="true">{this.text('commitPushAll.title')}</span>
+        <span className="sr-only">
+          {this.accessibleText('commitPushAll.title')}
+        </span>
+      </>
+    )
+  }
+
+  private onMessageChanged = (message: string) =>
+    this.setState({ message, messageEdited: true })
 
   private onFilterTextChanged = (filterText: string) =>
     this.setState({ filterText })
@@ -323,24 +391,23 @@ export class CommitAndPushAllDialog extends React.Component<
     return (
       <Dialog
         id="commit-push-all-repositories"
-        title="Commit and push all repositories"
+        title={this.renderTitle()}
+        titleId="commit-push-all-repositories-title"
         onSubmit={this.onCommitAndPush}
         onDismissed={this.props.onDismissed}
       >
         <DialogContent>
           <p className="commit-push-all-intro">
-            Each repository you tick below is pulled, all of its local changes
-            are committed with the message you provide, and the result is
-            pushed. Clean repositories are skipped, and a failure in one
-            repository will not stop the others.
+            {this.text('commitPushAll.intro')}
           </p>
           {hasWork ? (
             <>
               <TextBox
-                label="Commit message"
+                label={this.text('commitPushAll.messageLabel')}
+                ariaLabel={this.accessibleText('commitPushAll.messageLabel')}
                 value={this.state.message}
                 onValueChanged={this.onMessageChanged}
-                placeholder="Describe these changes"
+                placeholder={this.text('commitPushAll.messagePlaceholder')}
                 autoFocus={true}
               />
               <div className="commit-push-all-search">
@@ -349,8 +416,8 @@ export class CommitAndPushAllDialog extends React.Component<
                   displayClearButton={true}
                   value={this.state.filterText}
                   onValueChanged={this.onFilterTextChanged}
-                  placeholder="Filter repositories"
-                  ariaLabel="Filter the repositories to commit and push"
+                  placeholder={this.text('commitPushAll.filterPlaceholder')}
+                  ariaLabel={this.accessibleText('commitPushAll.filterAria')}
                   ariaInvalid={filtered.regexError !== null}
                   ariaDescribedBy={filterErrorId}
                 />
@@ -360,7 +427,7 @@ export class CommitAndPushAllDialog extends React.Component<
                   caseSensitive={this.state.filterCaseSensitive}
                   onModeChange={this.onFilterModeChanged}
                   onCaseSensitiveChange={this.onFilterCaseSensitiveChanged}
-                  regexBuilderTarget="repository name"
+                  regexBuilderTarget={this.text('commitPushAll.filterTarget')}
                   getSampleItems={this.getSampleItems}
                   filterText={this.state.filterText}
                   onRegexPatternApply={this.onRegexPatternApply}
@@ -377,24 +444,37 @@ export class CommitAndPushAllDialog extends React.Component<
               )}
               <div className="commit-push-all-bulk-actions">
                 <span role="status">
-                  {selectedCount} of {affectedRepositories.length} selected
+                  {this.text('commitPushAll.selectionCount', {
+                    selectedCount: String(selectedCount),
+                    totalCount: String(affectedRepositories.length),
+                  })}
                 </span>
-                <button type="button" onClick={this.onSelectAll}>
-                  Select shown
+                <button
+                  type="button"
+                  onClick={this.onSelectAll}
+                  aria-label={this.accessibleText('commitPushAll.selectShown')}
+                >
+                  {this.text('commitPushAll.selectShown')}
                 </button>
-                <button type="button" onClick={this.onSelectNone}>
-                  Clear shown
+                <button
+                  type="button"
+                  onClick={this.onSelectNone}
+                  aria-label={this.accessibleText('commitPushAll.clearShown')}
+                >
+                  {this.text('commitPushAll.clearShown')}
                 </button>
               </div>
               <div
                 className="commit-push-all-affected"
                 role="group"
-                aria-label="Repositories to be committed and pushed"
+                aria-label={this.accessibleText(
+                  'commitPushAll.repositoriesGroupAria'
+                )}
                 tabIndex={0}
               >
                 {filtered.items.length === 0 ? (
                   <p className="commit-push-all-no-matches">
-                    No repository name matches this search.
+                    {this.text('commitPushAll.noMatches')}
                   </p>
                 ) : (
                   <ul>
@@ -417,8 +497,7 @@ export class CommitAndPushAllDialog extends React.Component<
             </>
           ) : (
             <p className="commit-push-all-empty">
-              No repositories have local changes or unpushed commits, so there
-              is nothing to commit and push.
+              {this.text('commitPushAll.empty')}
             </p>
           )}
         </DialogContent>
@@ -427,14 +506,32 @@ export class CommitAndPushAllDialog extends React.Component<
             <OkCancelButtonGroup
               okButtonText={
                 selectedCount === affectedRepositories.length
-                  ? 'Commit & push all'
-                  : `Commit & push ${selectedCount}`
+                  ? this.text('commitPushAll.commitAll')
+                  : this.text('commitPushAll.commitCount', {
+                      count: String(selectedCount),
+                    })
               }
+              okButtonAriaLabel={
+                selectedCount === affectedRepositories.length
+                  ? this.accessibleText('commitPushAll.commitAll')
+                  : this.accessibleText('commitPushAll.commitCount', {
+                      count: String(selectedCount),
+                    })
+              }
+              cancelButtonText={this.text('commitPushAll.cancel')}
+              cancelButtonAriaLabel={this.accessibleText(
+                'commitPushAll.cancel'
+              )}
               okButtonDisabled={messageEmpty || selectedCount === 0}
               onCancelButtonClick={this.props.onDismissed}
             />
           ) : (
-            <Button onClick={this.props.onDismissed}>Done</Button>
+            <Button
+              onClick={this.props.onDismissed}
+              ariaLabel={this.accessibleText('commitPushAll.done')}
+            >
+              {this.text('commitPushAll.done')}
+            </Button>
           )}
         </DialogFooter>
       </Dialog>
@@ -461,40 +558,49 @@ export class CommitAndPushAllDialog extends React.Component<
       )
       .map(item => item.name)
       .join(', ')
+    const repositoriesComplete = this.text(
+      'commitPushAll.repositoriesComplete',
+      {
+        completed: String(completed),
+        total: String(total),
+      }
+    )
+    const repositoryColumn = this.text('commitPushAll.columnRepository')
+    const statusColumn = this.text('commitPushAll.columnStatus')
+    const resultColumn = this.text('commitPushAll.columnResult')
 
     return (
       <Dialog
         id="commit-push-all-repositories"
-        title="Commit and push all repositories"
+        title={this.renderTitle()}
+        titleId="commit-push-all-repositories-title"
         loading={isRunning}
         onDismissed={this.props.onDismissed}
       >
         <DialogContent>
           <section
             className="pull-all-overview"
-            aria-label="Commit and push progress"
+            aria-label={this.accessibleText('commitPushAll.progressAria')}
           >
             <div className="pull-all-progress-heading">
               <div className="pull-all-progress-title-group">
                 <p className="pull-all-overline">
                   {error !== null
-                    ? 'Run stopped'
+                    ? this.text('commitPushAll.overlineStopped')
                     : complete
-                    ? 'Run complete'
-                    : 'Live progress'}
+                    ? this.text('commitPushAll.overlineComplete')
+                    : this.text('commitPushAll.overlineLive')}
                 </p>
                 <h2>
                   {error !== null
-                    ? 'Commit and push all could not finish'
+                    ? this.text('commitPushAll.headingFailed')
                     : complete
-                    ? 'All repositories processed'
-                    : 'Committing and pushing repositories'}
+                    ? this.text('commitPushAll.headingComplete')
+                    : this.text('commitPushAll.headingRunning')}
                 </h2>
               </div>
               <strong className="pull-all-progress-count">
-                <span className="sr-only">
-                  {completed} of {total} repositories complete
-                </span>
+                <span className="sr-only">{repositoriesComplete}</span>
                 <span aria-hidden="true">
                   {completed}/{total}
                 </span>
@@ -503,31 +609,44 @@ export class CommitAndPushAllDialog extends React.Component<
             <div
               className="pull-all-progress-track"
               role="progressbar"
-              aria-label="Repositories committed and pushed"
+              aria-label={this.accessibleText('commitPushAll.progressBarAria')}
               aria-valuemin={0}
               aria-valuemax={total || 1}
               aria-valuenow={completed}
-              aria-valuetext={`${completed} of ${total} repositories complete`}
+              aria-valuetext={repositoriesComplete}
             >
               <span style={{ width: `${percent}%` }} />
             </div>
             <div className="pull-all-progress-metrics">
-              <span>{completed} complete</span>
-              <span>{active} active</span>
-              <span>{Math.max(total - completed - active, 0)} waiting</span>
+              <span>
+                {this.text('commitPushAll.metricComplete', {
+                  count: String(completed),
+                })}
+              </span>
+              <span>
+                {this.text('commitPushAll.metricActive', {
+                  count: String(active),
+                })}
+              </span>
+              <span>
+                {this.text('commitPushAll.metricWaiting', {
+                  count: String(Math.max(total - completed - active, 0)),
+                })}
+              </span>
             </div>
             <p className="pull-all-current" role="status" aria-live="polite">
               {complete
-                ? 'Every repository has a final result.'
+                ? this.text('commitPushAll.allFinal')
                 : activeRepositories.length > 0
-                ? `Now working on: ${activeRepositories}`
-                : 'Waiting for the next repository to start.'}
+                ? this.text('commitPushAll.nowWorking', {
+                    repositories: activeRepositories,
+                  })
+                : this.text('commitPushAll.waitingNext')}
             </p>
             {isRunning && (
               <p className="pull-all-running">
-                <Octicon symbol={octicons.sync} className="spin" /> Up to three
-                repositories are processed at a time. You can leave this dialog
-                open while the work continues.
+                <Octicon symbol={octicons.sync} className="spin" />{' '}
+                {this.text('commitPushAll.concurrencyHint')}
               </p>
             )}
           </section>
@@ -538,40 +657,46 @@ export class CommitAndPushAllDialog extends React.Component<
           )}
           {complete && (
             <p className="pull-all-summary" role="status">
-              {done} pushed, {skipped} skipped, {failed} failed.
+              {this.text('commitPushAll.summary', {
+                done: String(done),
+                skipped: String(skipped),
+                failed: String(failed),
+              })}
             </p>
           )}
           {progress.length === 0 && complete && (
-            <p className="pull-all-empty">There were no repositories to run.</p>
+            <p className="pull-all-empty">
+              {this.text('commitPushAll.noRepositoriesRun')}
+            </p>
           )}
           {progress.length > 0 && (
             <div
               className="pull-all-results-container"
               role="region"
-              aria-label="Commit and push all repository progress"
+              aria-label={this.accessibleText(
+                'commitPushAll.resultsRegionAria'
+              )}
               aria-busy={isRunning}
               tabIndex={0}
             >
               <table className="pull-all-results">
                 <thead>
                   <tr>
-                    <th>Repository</th>
-                    <th>Status</th>
-                    <th>Current operation or result</th>
+                    <th>{repositoryColumn}</th>
+                    <th>{statusColumn}</th>
+                    <th>{resultColumn}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {progress.map(item => (
                     <tr key={item.id}>
-                      <td data-label="Repository">{item.name}</td>
-                      <td data-label="Status">
+                      <td data-label={repositoryColumn}>{item.name}</td>
+                      <td data-label={statusColumn}>
                         <span className={`pull-all-status ${item.status}`}>
-                          {getProgressStatusLabel(item.status)}
+                          {this.text(getProgressStatusKey(item.status))}
                         </span>
                       </td>
-                      <td data-label="Current operation or result">
-                        {item.detail}
-                      </td>
+                      <td data-label={resultColumn}>{item.detail}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -580,8 +705,15 @@ export class CommitAndPushAllDialog extends React.Component<
           )}
         </DialogContent>
         <DialogFooter>
-          <Button onClick={this.props.onDismissed}>
-            {isRunning ? 'Run in background' : 'Done'}
+          <Button
+            onClick={this.props.onDismissed}
+            ariaLabel={this.accessibleText(
+              isRunning ? 'commitPushAll.runInBackground' : 'commitPushAll.done'
+            )}
+          >
+            {isRunning
+              ? this.text('commitPushAll.runInBackground')
+              : this.text('commitPushAll.done')}
           </Button>
         </DialogFooter>
       </Dialog>

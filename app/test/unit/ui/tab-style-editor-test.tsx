@@ -6,6 +6,7 @@ import {
   IRepositoryTab,
   ITabTitleStyle,
 } from '../../../src/models/repository-tab'
+import { LanguageModeChangedEvent } from '../../../src/lib/i18n'
 import { TabStyleEditor } from '../../../src/ui/repository-tabs/tab-style-editor'
 import { fireEvent, render, screen, within } from '../../helpers/ui/render'
 
@@ -58,6 +59,16 @@ function renderEditor(
       onStyleChange={onStyleChange}
       onReset={onReset}
     />
+  )
+}
+
+function changeLanguageMode(
+  languageMode: 'english' | 'cantonese' | 'bilingual'
+) {
+  localStorage.setItem('language-mode-v1', languageMode)
+  fireEvent(
+    document,
+    new CustomEvent(LanguageModeChangedEvent, { detail: languageMode })
   )
 }
 
@@ -122,6 +133,32 @@ describe('TabStyleEditor', () => {
         screen.getByRole('region', { name: 'Live tab preview' })
       ).getByText('Styled repo').style.textTransform,
       ''
+    )
+  })
+
+  it('localizes editor chrome live while keeping bilingual accessible names concise', () => {
+    changeLanguageMode('english')
+    renderEditor({})
+    assert.ok(screen.getByRole('heading', { name: 'Tab appearance' }))
+
+    changeLanguageMode('cantonese')
+    assert.ok(screen.getByRole('heading', { name: '分頁外觀' }))
+    assert.ok(screen.getByRole('button', { name: '粗體' }))
+    assert.ok(screen.getByRole('region', { name: '即時分頁預覽' }))
+    assert.ok(screen.getByRole('button', { name: '文字顏色 #c00000' }))
+
+    fireEvent.click(screen.getByRole('button', { name: '字體' }))
+    assert.ok(screen.getByRole('textbox', { name: '搜尋字體' }))
+
+    changeLanguageMode('bilingual')
+    assert.ok(screen.getByText('Tab appearance · 分頁外觀', { exact: true }))
+    assert.ok(screen.getByRole('heading', { name: 'Tab appearance' }))
+    assert.ok(screen.getByRole('button', { name: 'Bold' }))
+    assert.ok(screen.getByRole('region', { name: 'Live tab preview' }))
+    const fontSearch = screen.getByRole('textbox', { name: 'Search fonts' })
+    assert.equal(
+      fontSearch.getAttribute('placeholder'),
+      'Search fonts · 搜尋字體'
     )
   })
 

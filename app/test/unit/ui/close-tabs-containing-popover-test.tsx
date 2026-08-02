@@ -12,7 +12,8 @@ import {
   CloseTabsContainingPopover,
   CloseTabsExceptContainingPopover,
 } from '../../../src/ui/repository-tabs/close-tabs-containing-popover'
-import { fireEvent, render, screen } from '../../helpers/ui/render'
+import { LanguageModeChangedEvent } from '../../../src/lib/i18n'
+import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 
 const FilterModeKey = 'filter-mode/close-tabs-containing'
 const CaseSensitiveKey = 'filter-case/close-tabs-containing'
@@ -20,12 +21,24 @@ const CaseSensitiveKey = 'filter-case/close-tabs-containing'
 beforeEach(() => {
   localStorage.removeItem(FilterModeKey)
   localStorage.removeItem(CaseSensitiveKey)
+  localStorage.removeItem('language-mode-v1')
 })
 
 afterEach(() => {
   localStorage.removeItem(FilterModeKey)
   localStorage.removeItem(CaseSensitiveKey)
+  localStorage.removeItem('language-mode-v1')
 })
+
+function changeLanguageMode(
+  languageMode: 'english' | 'cantonese' | 'bilingual'
+) {
+  localStorage.setItem('language-mode-v1', languageMode)
+  fireEvent(
+    document,
+    new CustomEvent(LanguageModeChangedEvent, { detail: languageMode })
+  )
+}
 
 function makeTab(id: string, repositoryPath: string): IRepositoryTab {
   return {
@@ -203,5 +216,173 @@ describe('CloseTabsContainingPopover guards', () => {
     // Fuzzily, `dm` also picks the d out of Documents and the m out of
     // material and offers to close both tabs.
     assert.match(statusText(), /1 close, 0 pinned protected/)
+  })
+})
+
+describe('bulk tab close localization', () => {
+  it('retranslates deferred save failures for both close directions', async () => {
+    const forwardStore = await createStore([makeTab('1', '/src/alpha')])
+    forwardStore.closeTabsMatching = async () => {
+      throw new Error('write failed')
+    }
+    const forward = render(
+      <CloseTabsContainingPopover
+        tabsStore={forwardStore}
+        anchor={null}
+        onClosed={() => undefined}
+        onClose={() => undefined}
+      />
+    )
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Close tabs containing' }),
+      { target: { value: 'alpha' } }
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Close 1' }))
+    await waitFor(() =>
+      assert.equal(
+        statusText(),
+        'The change could not be saved. Review open tabs before trying again.'
+      )
+    )
+    changeLanguageMode('cantonese')
+    assert.equal(
+      statusText(),
+      '未能儲存今次改動。請先望清楚而家開住嘅分頁，再試一次。'
+    )
+    forward.unmount()
+
+    const inverseStore = await createStore([
+      makeTab('1', '/src/alpha'),
+      makeTab('2', '/src/beta'),
+    ])
+    inverseStore.closeTabsExceptContaining = async () => {
+      throw new Error('write failed')
+    }
+    render(
+      <CloseTabsExceptContainingPopover
+        tabsStore={inverseStore}
+        anchor={null}
+        resolveAdditionalKeys={() => []}
+        resolveLabel={tab => tab.repositoryPath}
+        onClosed={() => undefined}
+        onClose={() => undefined}
+      />
+    )
+    fireEvent.change(screen.getByLabelText('要保留嘅文字'), {
+      target: { value: 'alpha' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '閂 1 個' }))
+    await waitFor(() =>
+      assert.equal(
+        statusText(),
+        '未能儲存今次改動。請先望清楚而家開住嘅分頁，再試一次。'
+      )
+    )
+    changeLanguageMode('english')
+    assert.equal(
+      statusText(),
+      'The change could not be saved. Review open tabs before trying again.'
+    )
+  })
+
+  it('frames invalid regex details in the selected language', async () => {
+    localStorage.setItem(FilterModeKey, 'regex')
+    changeLanguageMode('cantonese')
+    const store = await createStore([
+      makeTab('1', '/src/alpha'),
+      makeTab('2', '/src/beta'),
+    ])
+
+    const forward = render(
+      <CloseTabsContainingPopover
+        tabsStore={store}
+        anchor={null}
+        onClosed={() => undefined}
+        onClose={() => undefined}
+      />
+    )
+    fireEvent.change(
+      screen.getByRole('textbox', { name: '閂咗含指定文字嘅分頁' }),
+      {
+        target: { value: '(' },
+      }
+    )
+    assert.match(statusText(), /^安全 RE2 樣式無效或者唔支援：.+/)
+    forward.unmount()
+
+    render(
+      <CloseTabsExceptContainingPopover
+        tabsStore={store}
+        anchor={null}
+        resolveAdditionalKeys={() => []}
+        resolveLabel={tab => tab.repositoryPath}
+        onClosed={() => undefined}
+        onClose={() => undefined}
+      />
+    )
+    fireEvent.change(screen.getByLabelText('要保留嘅文字'), {
+      target: { value: '(' },
+    })
+    assert.match(statusText(), /^安全 RE2 樣式無效或者唔支援：.+/)
+  })
+
+  it('updates both close directions live with localized counts and concise accessible names', async () => {
+    changeLanguageMode('english')
+    const store = await createStore([
+      makeTab('1', '/src/alpha'),
+      { ...makeTab('2', '/src/beta'), isPinned: true },
+      makeTab('3', '/src/gamma'),
+    ])
+
+    const forward = render(
+      <CloseTabsContainingPopover
+        tabsStore={store}
+        anchor={null}
+        onClosed={() => undefined}
+        onClose={() => undefined}
+      />
+    )
+    const englishInput = screen.getByRole('textbox', {
+      name: 'Close tabs containing',
+    })
+    fireEvent.change(englishInput, { target: { value: 'src' } })
+    assert.equal(statusText(), '2 close, 1 pinned protected.')
+
+    changeLanguageMode('cantonese')
+    assert.ok(screen.getByRole('heading', { name: '閂咗含指定文字嘅分頁' }))
+    assert.ok(screen.getByRole('textbox', { name: '閂咗含指定文字嘅分頁' }))
+    assert.equal(statusText(), '2 個會閂，1 個置頂分頁受保護。')
+
+    changeLanguageMode('bilingual')
+    assert.ok(
+      screen.getByText('Close tabs containing · 閂咗含指定文字嘅分頁', {
+        exact: true,
+      })
+    )
+    assert.ok(screen.getByRole('heading', { name: 'Close tabs containing' }))
+    assert.equal(
+      statusText(),
+      '2 close, 1 pinned protected. · 2 個會閂，1 個置頂分頁受保護。'
+    )
+    forward.unmount()
+
+    changeLanguageMode('cantonese')
+    render(
+      <CloseTabsExceptContainingPopover
+        tabsStore={store}
+        anchor={null}
+        resolveAdditionalKeys={() => []}
+        resolveLabel={tab => tab.repositoryPath}
+        onClosed={() => undefined}
+        onClose={() => undefined}
+      />
+    )
+    fireEvent.change(screen.getByLabelText('要保留嘅文字'), {
+      target: { value: 'alpha' },
+    })
+    assert.equal(statusText(), '保留 2 個，閂 1 個，另有 1 個置頂分頁受保護。')
+    assert.ok(screen.getByText('置頂，受保護'))
+    assert.ok(screen.getByText('會閂'))
+    assert.ok(screen.getByText('保留'))
   })
 })

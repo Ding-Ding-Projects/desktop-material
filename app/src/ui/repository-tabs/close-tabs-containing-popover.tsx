@@ -14,9 +14,15 @@ import { FilterModeControl } from '../lib/filter-mode-control'
 import { persistFilterMode } from '../lib/filter-list-mode'
 import { getBoolean, getEnum, setBoolean } from '../../lib/local-storage'
 import {
-  formatAllTabsStayOpen,
-  formatRemainingTabCount,
-} from './tab-count-copy'
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+  translate,
+  translateForAccessibleName,
+  translatedVariable,
+  TranslationKey,
+  TranslationVariables,
+} from '../../lib/i18n'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 
 /** The persistence id for the close-matching filter's mode. */
 const CloseTabsFilterListId = 'close-tabs-containing'
@@ -45,15 +51,24 @@ function readCloseTabsCaseSensitive(): boolean {
 }
 
 /** Name the shared predicate for the direction that cannot show its controls. */
-function describeMatching(mode: FilterMode, caseSensitive: boolean): string {
-  const strategy =
+function describeMatching(
+  mode: FilterMode,
+  caseSensitive: boolean,
+  languageMode: LanguageMode
+): string {
+  const strategyKey: TranslationKey =
     mode === FilterMode.Regex
-      ? 'a regular expression'
+      ? 'tabs.close.matchStrategyRegex'
       : mode === FilterMode.Fuzzy
-      ? 'fuzzy matching'
-      : 'a literal substring'
-  const casing = caseSensitive ? 'matches letter case' : 'ignores letter case'
-  return `Matching uses ${strategy} and ${casing}, exactly as “Close tabs containing” does.`
+      ? 'tabs.close.matchStrategyFuzzy'
+      : 'tabs.close.matchStrategySubstring'
+  const casingKey: TranslationKey = caseSensitive
+    ? 'tabs.close.matchCaseSensitive'
+    : 'tabs.close.matchCaseInsensitive'
+  return translate('tabs.close.matchDescription', languageMode, {
+    strategy: translatedVariable(strategyKey),
+    casing: translatedVariable(casingKey),
+  })
 }
 
 interface ICloseTabsContainingPopoverProps {
@@ -77,7 +92,8 @@ interface ICloseTabsContainingPopoverState {
   readonly mode: FilterMode
   readonly caseSensitive: boolean
   readonly isSubmitting: boolean
-  readonly error: string | null
+  readonly errorKey: TranslationKey | null
+  readonly languageMode: LanguageMode
 }
 
 /**
@@ -96,28 +112,60 @@ export class CloseTabsContainingPopover extends React.Component<
       mode: readCloseTabsFilterMode(),
       caseSensitive: readCloseTabsCaseSensitive(),
       isSubmitting: false,
-      error: null,
+      errorKey: null,
+      languageMode: getPersistedLanguageMode(),
     }
   }
 
+  public componentDidMount() {
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  public componentWillUnmount() {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    const languageMode = normalizeLanguageMode(
+      (event as CustomEvent<unknown>).detail
+    )
+    if (languageMode !== this.state.languageMode) {
+      this.setState({ languageMode })
+    }
+  }
+
+  private text = (key: TranslationKey, variables: TranslationVariables = {}) =>
+    translate(key, this.state.languageMode, variables)
+
+  private accessibleText = (
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ) => translateForAccessibleName(key, variables, this.state.languageMode)
+
   private onQueryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({ query: event.currentTarget.value, error: null })
+    this.setState({ query: event.currentTarget.value, errorKey: null })
   }
 
   private onModeChange = (mode: FilterMode) => {
     persistFilterMode(CloseTabsFilterListId, mode)
-    this.setState({ mode, error: null })
+    this.setState({ mode, errorKey: null })
   }
 
   private onCaseSensitiveChange = (caseSensitive: boolean) => {
     // Persisted because the inverse popover has no controls of its own and
     // reads this casing to stay the negation of this action.
     setBoolean(CloseTabsCaseSensitiveKey, caseSensitive)
-    this.setState({ caseSensitive, error: null })
+    this.setState({ caseSensitive, errorKey: null })
   }
 
   private onRegexPatternApply = (pattern: string) => {
-    this.setState({ query: pattern, error: null })
+    this.setState({ query: pattern, errorKey: null })
   }
 
   private getFilterSampleItems = (): ReadonlyArray<string> =>
@@ -155,7 +203,7 @@ export class CloseTabsContainingPopover extends React.Component<
       return
     }
 
-    this.setState({ isSubmitting: true, error: null })
+    this.setState({ isSubmitting: true, errorKey: null })
     this.props.tabsStore
       .closeTabsMatching(
         query,
@@ -171,28 +219,32 @@ export class CloseTabsContainingPopover extends React.Component<
         log.error('Failed to close matching tabs', err)
         this.setState({
           isSubmitting: false,
-          error:
-            'The change could not be saved. Review open tabs before trying again.',
+          errorKey: 'tabs.close.saveError',
         })
       })
   }
 
   public render() {
-    const { query, mode, caseSensitive, isSubmitting, error } = this.state
+    const { query, mode, caseSensitive, isSubmitting, errorKey } = this.state
     const { tabs, regexError } = this.findMatches()
     const closableCount = tabs.filter(tab => tab.isPinned !== true).length
     const protectedCount = tabs.length - closableCount
     const hasQuery = query.trim().length > 0
 
     const status =
-      error ??
+      (errorKey !== null ? this.text(errorKey) : null) ??
       (regexError !== null
-        ? regexError
+        ? this.text('regex.error.invalidOrUnsupported', {
+            detail: regexError,
+          })
         : !hasQuery
-        ? 'Type to preview matches.'
+        ? this.text('tabs.closeContaining.previewPrompt')
         : tabs.length === 0
-        ? 'No tabs match. Nothing will close.'
-        : `${closableCount} close, ${protectedCount} pinned protected.`)
+        ? this.text('tabs.close.noMatches')
+        : this.text('tabs.closeContaining.matchSummary', {
+            closeCount: String(closableCount),
+            pinnedCount: String(protectedCount),
+          }))
 
     return (
       <Popover
@@ -204,18 +256,25 @@ export class CloseTabsContainingPopover extends React.Component<
         onClickOutside={this.props.onClose}
       >
         <div className="close-tabs-containing">
-          <h3 id="close-tabs-containing-title">Close tabs containing</h3>
+          <h3
+            id="close-tabs-containing-title"
+            aria-label={this.accessibleText('tabs.closeContaining.title')}
+          >
+            <span aria-hidden="true">
+              {this.text('tabs.closeContaining.title')}
+            </span>
+          </h3>
           <div className="close-tabs-containing-field">
             <input
               data-search-surface-id="close-tabs-containing"
               type="text"
               className="close-tabs-containing-input"
-              placeholder="Filter by name"
+              placeholder={this.text('tabs.closeContaining.placeholder')}
               value={query}
               autoFocus={true}
               onChange={this.onQueryChange}
               onKeyDown={this.onKeyDown}
-              aria-label="Close tabs containing"
+              aria-label={this.accessibleText('tabs.closeContaining.title')}
               aria-describedby="close-tabs-containing-status"
             />
             <FilterModeControl
@@ -224,7 +283,7 @@ export class CloseTabsContainingPopover extends React.Component<
               caseSensitive={caseSensitive}
               onModeChange={this.onModeChange}
               onCaseSensitiveChange={this.onCaseSensitiveChange}
-              regexBuilderTarget="Open tabs"
+              regexBuilderTarget={this.text('tabs.close.openTabsTarget')}
               getSampleItems={this.getFilterSampleItems}
               filterText={query}
               onRegexPatternApply={this.onRegexPatternApply}
@@ -233,7 +292,7 @@ export class CloseTabsContainingPopover extends React.Component<
           <div
             id="close-tabs-containing-status"
             className={
-              regexError === null && error === null
+              regexError === null && errorKey === null
                 ? 'close-tabs-containing-status'
                 : 'close-tabs-containing-status error'
             }
@@ -248,20 +307,32 @@ export class CloseTabsContainingPopover extends React.Component<
               className="close-tabs-containing-cancel"
               onClick={this.props.onClose}
               disabled={isSubmitting}
+              aria-label={this.accessibleText('tabs.close.cancel')}
             >
-              Cancel
+              {this.text('tabs.close.cancel')}
             </button>
             <button
               type="button"
               className="close-tabs-containing-confirm"
               disabled={closableCount === 0 || isSubmitting}
               onClick={this.onConfirm}
+              aria-label={
+                isSubmitting
+                  ? this.accessibleText('tabs.close.closing')
+                  : closableCount > 0
+                  ? this.accessibleText('tabs.close.count', {
+                      count: String(closableCount),
+                    })
+                  : this.accessibleText('tabs.close.action')
+              }
             >
               {isSubmitting
-                ? 'Closing…'
+                ? this.text('tabs.close.closing')
                 : closableCount > 0
-                ? `Close ${closableCount}`
-                : 'Close'}
+                ? this.text('tabs.close.count', {
+                    count: String(closableCount),
+                  })
+                : this.text('tabs.close.action')}
             </button>
           </div>
         </div>
@@ -287,7 +358,8 @@ interface ICloseTabsExceptContainingPopoverState {
   readonly mode: FilterMode
   readonly caseSensitive: boolean
   readonly isSubmitting: boolean
-  readonly error: string | null
+  readonly errorKey: TranslationKey | null
+  readonly languageMode: LanguageMode
 }
 
 /**
@@ -308,12 +380,44 @@ export class CloseTabsExceptContainingPopover extends React.Component<
       mode: readCloseTabsFilterMode(),
       caseSensitive: readCloseTabsCaseSensitive(),
       isSubmitting: false,
-      error: null,
+      errorKey: null,
+      languageMode: getPersistedLanguageMode(),
     }
   }
 
+  public componentDidMount() {
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  public componentWillUnmount() {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    const languageMode = normalizeLanguageMode(
+      (event as CustomEvent<unknown>).detail
+    )
+    if (languageMode !== this.state.languageMode) {
+      this.setState({ languageMode })
+    }
+  }
+
+  private text = (key: TranslationKey, variables: TranslationVariables = {}) =>
+    translate(key, this.state.languageMode, variables)
+
+  private accessibleText = (
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ) => translateForAccessibleName(key, variables, this.state.languageMode)
+
   private onQueryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({ query: event.currentTarget.value, error: null })
+    this.setState({ query: event.currentTarget.value, errorKey: null })
   }
 
   private onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -340,7 +444,7 @@ export class CloseTabsExceptContainingPopover extends React.Component<
       return
     }
 
-    this.setState({ isSubmitting: true, error: null })
+    this.setState({ isSubmitting: true, errorKey: null })
     this.props.tabsStore
       .closeTabsExceptContaining(
         query,
@@ -356,14 +460,13 @@ export class CloseTabsExceptContainingPopover extends React.Component<
         log.error('Failed to close inverse-matching tabs', err)
         this.setState({
           isSubmitting: false,
-          error:
-            'The change could not be saved. Review open tabs before trying again.',
+          errorKey: 'tabs.close.saveError',
         })
       })
   }
 
   public render() {
-    const { query, mode, caseSensitive, isSubmitting, error } = this.state
+    const { query, mode, caseSensitive, isSubmitting, errorKey } = this.state
     const preview = this.preview()
     const hasQuery = query.trim().length > 0
     const closedIds = new Set(preview.closedTabs.map(tab => tab.id))
@@ -372,20 +475,32 @@ export class CloseTabsExceptContainingPopover extends React.Component<
     ).length
 
     const status =
-      error ??
+      (errorKey !== null ? this.text(errorKey) : null) ??
       (preview.regexError !== null
-        ? preview.regexError
+        ? this.text('regex.error.invalidOrUnsupported', {
+            detail: preview.regexError,
+          })
         : !hasQuery
-        ? 'Type a phrase to preview which tabs stay open.'
+        ? this.text('tabs.closeExcept.previewPrompt')
         : preview.matchingTabs.length === 0
-        ? 'No tabs match. Nothing will close.'
+        ? this.text('tabs.close.noMatches')
         : preview.closedTabs.length === 0
-        ? formatAllTabsStayOpen(preview.keptTabs.length)
-        : `${preview.keptTabs.length} kept, ${
-            preview.closedTabs.length
-          } closed${
-            pinnedProtected > 0 ? `, ${pinnedProtected} pinned protected` : ''
-          }.`)
+        ? this.text(
+            preview.keptTabs.length === 1
+              ? 'tabs.closeExcept.allStayOpenOne'
+              : 'tabs.closeExcept.allStayOpenMany',
+            { count: String(preview.keptTabs.length) }
+          )
+        : this.text(
+            pinnedProtected > 0
+              ? 'tabs.closeExcept.summaryWithPinned'
+              : 'tabs.closeExcept.summary',
+            {
+              keptCount: String(preview.keptTabs.length),
+              closedCount: String(preview.closedTabs.length),
+              pinnedCount: String(pinnedProtected),
+            }
+          ))
 
     // Seed the bounded preview with a representative match, protected pin, and
     // close candidate before filling in strip order. This prevents a long run
@@ -419,32 +534,40 @@ export class CloseTabsExceptContainingPopover extends React.Component<
       >
         <div className="close-tabs-except">
           <header className="close-tabs-except-header">
-            <h3 id="close-tabs-except-title">
-              Close all tabs except those containing…
+            <h3
+              id="close-tabs-except-title"
+              aria-label={this.accessibleText('tabs.closeExcept.title')}
+            >
+              <span aria-hidden="true">
+                {this.text('tabs.closeExcept.title')}
+              </span>
             </h3>
-            <p>{describeMatching(mode, caseSensitive)}</p>
+            <p>
+              {describeMatching(mode, caseSensitive, this.state.languageMode)}
+            </p>
           </header>
           <label
             className="close-tabs-except-field"
             htmlFor="close-tabs-except-query"
           >
-            <span>Text to keep</span>
+            <span>{this.text('tabs.closeExcept.fieldLabel')}</span>
             <input
               id="close-tabs-except-query"
               type="text"
               className="close-tabs-except-input"
-              placeholder="Repository name, alias, or path"
+              placeholder={this.text('tabs.closeExcept.placeholder')}
               value={query}
               autoFocus={true}
               onChange={this.onQueryChange}
               onKeyDown={this.onKeyDown}
+              aria-label={this.accessibleText('tabs.closeExcept.fieldLabel')}
               aria-describedby="close-tabs-except-status"
             />
           </label>
           <div
             id="close-tabs-except-status"
             className={
-              error === null && preview.regexError === null
+              errorKey === null && preview.regexError === null
                 ? 'close-tabs-except-status'
                 : 'close-tabs-except-status error'
             }
@@ -457,23 +580,29 @@ export class CloseTabsExceptContainingPopover extends React.Component<
             <div
               className="close-tabs-except-preview"
               role="region"
-              aria-label="Tab close preview"
+              aria-label={this.accessibleText('tabs.closeExcept.previewAria')}
             >
               <ul>
                 {previewTabs.map(tab => {
                   const disposition =
                     tab.isPinned === true
-                      ? 'Protected pinned'
+                      ? 'pinned'
                       : closedIds.has(tab.id)
-                      ? 'Close'
-                      : 'Keep'
+                      ? 'close'
+                      : 'keep'
+                  const dispositionKey: TranslationKey =
+                    disposition === 'pinned'
+                      ? 'tabs.closeExcept.dispositionPinned'
+                      : disposition === 'close'
+                      ? 'tabs.closeExcept.dispositionClose'
+                      : 'tabs.closeExcept.dispositionKeep'
                   return (
                     <li key={tab.id} data-disposition={disposition}>
                       <span className="close-tabs-except-preview-label">
                         {this.props.resolveLabel(tab)}
                       </span>
                       <span className="close-tabs-except-preview-action">
-                        {disposition}
+                        {this.text(dispositionKey)}
                       </span>
                     </li>
                   )
@@ -481,7 +610,12 @@ export class CloseTabsExceptContainingPopover extends React.Component<
               </ul>
               {remaining > 0 && (
                 <p className="close-tabs-except-more">
-                  {formatRemainingTabCount(remaining)}
+                  {this.text(
+                    remaining === 1
+                      ? 'tabs.closeExcept.remainingOne'
+                      : 'tabs.closeExcept.remainingMany',
+                    { count: String(remaining) }
+                  )}
                 </p>
               )}
             </div>
@@ -492,20 +626,32 @@ export class CloseTabsExceptContainingPopover extends React.Component<
               className="close-tabs-except-cancel"
               onClick={this.props.onClose}
               disabled={isSubmitting}
+              aria-label={this.accessibleText('tabs.close.cancel')}
             >
-              Cancel
+              {this.text('tabs.close.cancel')}
             </button>
             <button
               type="button"
               className="close-tabs-except-confirm"
               disabled={!preview.canClose || isSubmitting}
               onClick={this.onConfirm}
+              aria-label={
+                isSubmitting
+                  ? this.accessibleText('tabs.close.closing')
+                  : preview.closedTabs.length > 0
+                  ? this.accessibleText('tabs.close.count', {
+                      count: String(preview.closedTabs.length),
+                    })
+                  : this.accessibleText('tabs.close.closeTabs')
+              }
             >
               {isSubmitting
-                ? 'Closing…'
+                ? this.text('tabs.close.closing')
                 : preview.closedTabs.length > 0
-                ? `Close ${preview.closedTabs.length}`
-                : 'Close tabs'}
+                ? this.text('tabs.close.count', {
+                    count: String(preview.closedTabs.length),
+                  })
+                : this.text('tabs.close.closeTabs')}
             </button>
           </div>
         </div>

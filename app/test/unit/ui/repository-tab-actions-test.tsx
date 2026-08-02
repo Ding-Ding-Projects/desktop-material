@@ -347,6 +347,53 @@ describe('ArrangeTabsPopover', () => {
     assert.ok(screen.getByText('1 of 1 tab'))
   })
 
+  it('localizes visible copy, accessible names, counts, and announcements live', async () => {
+    localStorage.setItem('language-mode-v1', 'english')
+    const alpha = new Repository('/work/alpha', 1, null, false)
+    const beta = new Repository('/work/beta', 2, null, false)
+    const store = await createStore([
+      makeTab('alpha', alpha),
+      makeTab('beta', beta),
+    ])
+
+    render(
+      <ArrangeHarness store={store} repositories={[alpha, beta]} ranks={{}} />
+    )
+    assert.ok(screen.getByRole('heading', { name: 'Arrange tabs' }))
+    assert.ok(screen.getByText('2 of 2 tabs'))
+
+    localStorage.setItem('language-mode-v1', 'cantonese')
+    fireEvent(
+      document,
+      new CustomEvent(LanguageModeChangedEvent, { detail: 'cantonese' })
+    )
+    assert.ok(screen.getByRole('heading', { name: '排列分頁' }))
+    assert.ok(screen.getByRole('searchbox', { name: '篩選分頁' }))
+    assert.ok(screen.getByText('2 個分頁入面顯示 2 個'))
+
+    fireEvent.click(screen.getByRole('button', { name: '將 alpha 加入最愛' }))
+    await waitFor(() =>
+      assert.equal(
+        screen.getByRole('status').textContent,
+        '已將 alpha 加入最愛。'
+      )
+    )
+
+    localStorage.setItem('language-mode-v1', 'bilingual')
+    fireEvent(
+      document,
+      new CustomEvent(LanguageModeChangedEvent, { detail: 'bilingual' })
+    )
+    assert.ok(screen.getByText('Arrange tabs · 排列分頁', { exact: true }))
+    assert.ok(screen.getByRole('heading', { name: 'Arrange tabs' }))
+    const done = screen.getByRole('button', { name: 'Done' })
+    assert.equal(done.textContent, 'Done · 完成')
+    assert.equal(
+      screen.getByRole('status').textContent,
+      'alpha added to favorites. · 已將 alpha 加入最愛。'
+    )
+  })
+
   it('stars and one-shot arranges favorite tabs accessibly', async () => {
     const alpha = new Repository('/work/alpha', 1, null, false)
     const beta = new Repository('/work/beta', 2, null, false)
