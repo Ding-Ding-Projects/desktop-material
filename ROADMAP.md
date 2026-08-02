@@ -2,6 +2,33 @@
 
 Updated: **August 2, 2026**
 
+## August 2 fleet bug hunt — **23 defects fixed; a handful named and left open**
+
+- Six read-only agents swept disjoint areas of the desktop app and reported
+  around thirty candidate defects; each one was re-read against the code before
+  anything was touched, and every fix carries a test that fails without it.
+- The branch did not typecheck when this started — two IPC channels were being
+  sent and never declared — so the previous entry's claim of a clean `tsc` was
+  wrong. That was fixed first.
+- The worst of them, roughly in order: a profile restore that deleted a settings
+  file was silently undone by its own crash-safe backup; history mutations ran
+  with no repository lease, so a debounced commit could land on a half-restored
+  tree; a synchronous throw on any simplex IPC channel destroyed every window;
+  silent install judged one file and spawned another; and the internal browser's
+  find commands were dropped at the IPC boundary, so page search could never
+  have worked at all.
+- Accessibility and clipping defects were treated as blockers, not polish: the
+  tab strip had no arrow-key navigation, the tab colour picker discarded alpha,
+  an invalid regex listed every row with nothing announced, and the browser's
+  focus rings were clipped by their own scrollers.
+- **Feature:** Commit & push all now lets you pick which repositories run, with
+  a search bar wired to the regex builder. Bulk select and clear act only on
+  what the filter is showing.
+- Deliberately left open and named in `HANDOFF.md`: three tab surfaces and the
+  Commit & push all dialog are still hard-coded English, the profile history
+  page read is still unbounded, and the version-history timeline's `listbox`
+  structure is still wrong.
+
 ## August 2 internal browser — **Defects fixed; page search half-built; three features not started**
 
 - Four real defects fixed: an IPC message per address-bar keystroke, a

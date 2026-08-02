@@ -147,6 +147,10 @@ Material is displaying or how a repository is represented in the application.
   providers only from verified materialized raws, encrypt verified-private
   payloads with the exact shared tracked key, and restore only immutable digest-
   pinned objects through the verified, licensed ORAS runtime.
+- [Commit and push all
+  repositories](commit-and-push-all.md) — pull, commit and push a chosen subset
+  of the repositories that have local work, picked with checkboxes and a search
+  bar whose bulk actions never reach past the filter.
 - [Automatic commit and push
   batching](automatic-commit-push-batching.md) — keep ordinary selections below
   a decimal 1.5 GB push with a 1.4 GB changed-blob budget and bounded proof

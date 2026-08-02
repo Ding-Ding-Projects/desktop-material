@@ -28,33 +28,47 @@ handoff's claim of a clean typecheck was wrong. That was the first thing fixed.
 | [`abb255cbd8`](https://github.com/Ding-Ding-Projects/desktop-material/commit/abb255cbd8) | Silent install judged the release asset's *name* and spawned whatever was at the supplied *path*, with nothing requiring them to match. The review now compares the path's base name too. |
 | [`e4595bc179`](https://github.com/Ding-Ding-Projects/desktop-material/commit/e4595bc179) | `normalizeInternalBrowserCommand` never learned the three page-search commands, so every find request was dropped at the IPC boundary before reaching its handler. The feature could not have worked. |
 
-### Still open from the hunt
+### Landed in the second pass
 
-Reported, verified by reading, and not yet fixed at the time of writing:
+| Commit | What was wrong |
+| --- | --- |
+| [`d324e86952`](https://github.com/Ding-Ding-Projects/desktop-material/commit/d324e86952) | The quick-action window disabled its summary box at "done" while leaving Commit & push enabled, over a snapshot it never re-read — a second click re-committed the files it had just committed. |
+| [`470c78ce2c`](https://github.com/Ding-Ding-Projects/desktop-material/commit/470c78ce2c) | The dim-sum card cancelled its dismissal timer on `focusin` and never restarted it, so tabbing past it once left it up for the session. Changelog copy had no `catch`. |
+| [`7eecf4c227`](https://github.com/Ding-Ding-Projects/desktop-material/commit/7eecf4c227) | `QuickActionWindow` treated any `did-fail-load` as fatal and reported it twice; `notificationWindowOwners` grew without bound; the exception reporter logged the crash instead of the submission failure. |
+| [`e8a16d8ab5`](https://github.com/Ding-Ding-Projects/desktop-material/commit/e8a16d8ab5) | The tab colour picker showed the default over any stored `#rgb` or `#rrggbbaa` and silently flattened alpha on the next touch. |
+| [`953600d6e0`](https://github.com/Ding-Ding-Projects/desktop-material/commit/953600d6e0) | Roving `tabIndex` with no arrow-key roving: only the active tab was keyboard reachable. `role="tablist"` also sat on a container holding seven non-tab controls. |
+| [`754abc062e`](https://github.com/Ding-Ding-Projects/desktop-material/commit/754abc062e) | The date-range picker rewrote the field under the caret and could swap a half-typed value into the other end; the calendar lost its only tab stop once a range was set. |
+| [`84c3ea0e72`](https://github.com/Ding-Ding-Projects/desktop-material/commit/84c3ea0e72) | **Feature:** Commit & push all now selects repositories, with a search bar wired to the regex builder. Bulk select/clear never reach past the filter. |
+| [`1a8ea1a964`](https://github.com/Ding-Ding-Projects/desktop-material/commit/1a8ea1a964) | The two bulk tab closes disagreed on mode, casing and match-key scope, so they were not each other's negation. Whitespace-only queries enabled a dead button; the surface defaulted to fuzzy subsequence over the absolute path. |
+| [`97040068ec`](https://github.com/Ding-Ding-Projects/desktop-material/commit/97040068ec) | Settings search marked no characters in regex mode; version history advertised a file search it could only run against one loaded commit. |
+| [`318616e127`](https://github.com/Ding-Ding-Projects/desktop-material/commit/318616e127) | Notification and log history mutations ran with no profile repository lease, so a debounced commit could land on a half-restored tree and the restore would roll back onto it. |
+| [`ca3cf95a49`](https://github.com/Ding-Ding-Projects/desktop-material/commit/ca3cf95a49) | Six internal-browser defects: renderer leak on window close, address bar reverting on Enter, auth tabs never showing an error, a blank external-open button below 840 px, a 21 px dead band above every page, and clipped focus rings. |
+| [`9c70e73849`](https://github.com/Ding-Ding-Projects/desktop-material/commit/9c70e73849) | The regex builder seeded the user's plain-text query unescaped and then switched the surface to regex — `(WIP)` silently became a capture group. The palette also had no way to insert a literal at all. |
+| [`fc8eafbf12`](https://github.com/Ding-Ding-Projects/desktop-material/commit/fc8eafbf12) | The automation store had the same missing lease as its two siblings. |
 
-- The two bulk-close tab actions do not negate the same predicate — mode, case
-  and match-key scope all drift between "containing" and "not containing".
-- The destructive bulk close defaults to fuzzy subsequence matching over the
-  full absolute path, and `match()` only filters on the first two keys.
-- The tab strip has no arrow-key roving focus, so only the active tab is
-  keyboard reachable, and `role="tablist"` sits on a container holding seven
-  non-tab controls.
-- The tab colour picker truncates any stored 8-digit or 3-digit hex to opaque
-  6-digit, losing alpha without warning.
-- Three tab surfaces (close-tabs, tab style editor, arrange) are hard-coded
-  English while their siblings are fully localized.
-- The date-range picker rewrites the field under the caret while typing and can
-  swap a half-typed value into the other end of the range.
-- The dim-sum card cancels its auto-dismiss timer on focus and never restarts
-  it; the changelog copy action has no `catch`.
-- Notification and log history mutations run without the profile repository
-  lock; history reads walk the whole repository twice, unbounded.
-- `QuickActionWindow` treats any `did-fail-load` as fatal and fires its fallback
-  twice; `notificationWindowOwners` grows without bound.
-- Several internal-browser defects: the external-open button renders empty below
-  840 px, a 21 px dead band above every page, the address bar snaps back on
-  Enter, auth tabs never show an error, tab renderers leak on window close, and
-  focus rings are clipped by the tab and bookmark scrollers.
+### Still open, verified but not fixed
+
+- **Three tab surfaces are hard-coded English** — the close-tabs popovers, the
+  tab style editor and the arrange popover — while their siblings translate.
+  The Commit & push all dialog is likewise English throughout, including the
+  controls added in `84c3ea0e72`. Both are localization work, not defects in the
+  behaviour, and neither was attempted here.
+- **`getProfileHistoryInternal` reads the whole repository twice per page**, with
+  no limit on the `getCommits(repository, 'HEAD')` it uses only for a count.
+  With the log store committing roughly once a second of renderer activity, this
+  is the thing that will make Log history unusable first. `git rev-list --count`
+  is the fix.
+- **The version-history timeline is a `listbox` whose options are not its
+  children**, with no `aria-activedescendant` and no roving `tabIndex`, so arrow
+  keys do not move between commits.
+- **The overflow button renders inside the tablist**, so that row still owns one
+  non-tab control. Moving it out requires changing how `recomputeOverflow`
+  reserves its width, or the reservation double-counts.
+- **The regex block model is dead code** that would emit `(?=` and `(?<=` —
+  constructs RE2 rejects outright — if anyone ever wired it up.
+- **Compact density still starts the browser view 14 px low** until the first
+  real measurement arrives, because the safety floor is the default-density
+  chrome height.
 
 ## 2026-08-02 — Internal browser: page search half-built, three features not started
 
