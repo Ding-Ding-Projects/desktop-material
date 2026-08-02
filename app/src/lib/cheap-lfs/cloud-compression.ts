@@ -8,7 +8,7 @@ import { Repository } from '../../models/repository'
 
 /** Immutable commit containing the reviewed composite compressor action. */
 export const CHEAP_LFS_CLOUD_COMPRESSION_ACTION_SHA =
-  '42e2cbcc9826e681324a0a7189497b84e3aad6e8'
+  'b2a846a9e3f8be30da2530f622f6bbb1f91abbb5'
 
 /** Immutable actions/checkout v6.0.2 commit used by managed callers. */
 const ACTIONS_CHECKOUT_SHA = 'de0fac2e4500dabe0009e67214ff5f5447ce83dd'
