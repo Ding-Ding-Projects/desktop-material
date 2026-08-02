@@ -4,10 +4,11 @@ import { CodingAgentId } from '../../models/agent-session'
 import {
   IAgentRunnerAvailability,
   ICodingAgentOption,
-  getCodingAgentOptionLabel,
   resolveCodingAgentOptions,
 } from '../../lib/agent-sessions'
 import { Select } from '../lib/select'
+import { t } from '../../lib/i18n'
+import { codingAgentDisplayName } from './agent-session-localization'
 
 interface ICodingAgentPickerProps {
   readonly value: CodingAgentId
@@ -31,13 +32,22 @@ export class CodingAgentPicker extends React.Component<ICodingAgentPickerProps> 
   }
 
   private renderOption(option: ICodingAgentOption) {
+    const name = codingAgentDisplayName(option.agent.id)
+    const label =
+      option.unavailableReason === null
+        ? name
+        : option.unavailableReason === 'not authenticated'
+        ? t('agentSessions.agent.notAuthenticated', { name })
+        : option.unavailableReason === 'not detected'
+        ? t('agentSessions.agent.notDetected', { name })
+        : `${name} — ${option.unavailableReason}`
     return (
       <option
         key={option.agent.id}
         value={option.agent.id}
         disabled={option.disabled}
       >
-        {getCodingAgentOptionLabel(option)}
+        {label}
       </option>
     )
   }
@@ -48,7 +58,7 @@ export class CodingAgentPicker extends React.Component<ICodingAgentPickerProps> 
     return (
       <div className="coding-agent-picker">
         <Select
-          label="Coding agent"
+          label={t('agentSessions.codingAgent')}
           value={this.props.value}
           onChange={this.onChange}
           disabled={this.props.disabled}
@@ -56,7 +66,7 @@ export class CodingAgentPicker extends React.Component<ICodingAgentPickerProps> 
           {options.map(option => this.renderOption(option))}
         </Select>
         <p className="coding-agent-picker-hint">
-          &lt;None&gt; creates the worktree and runs nothing.
+          {t('agentSessions.noneHint')}
         </p>
       </div>
     )

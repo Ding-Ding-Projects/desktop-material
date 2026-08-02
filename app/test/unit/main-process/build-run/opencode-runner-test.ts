@@ -32,6 +32,7 @@ class FakeChild extends EventEmitter {
 }
 
 const spawnCalls = new Array<ISpawnCall>()
+let nextExitCode = 0
 
 mock.module('child_process', {
   namedExports: {
@@ -39,7 +40,7 @@ mock.module('child_process', {
       const child = new FakeChild()
       spawnCalls.push({ exe, args, opts, child })
       // Close on a later turn so the runner has attached its listeners first.
-      setImmediate(() => child.emit('close', 0))
+      setImmediate(() => child.emit('close', nextExitCode))
       return child
     },
   },
@@ -59,6 +60,7 @@ before(async () => {
 
 beforeEach(() => {
   spawnCalls.length = 0
+  nextExitCode = 0
 })
 
 describe('OpencodeRunner.runFix argv/stdin discipline', () => {
@@ -77,6 +79,8 @@ describe('OpencodeRunner.runFix argv/stdin discipline', () => {
     )
 
     assert.equal(result.ok, true)
+    assert.equal(result.code, 0)
+    assert.equal(result.cancelled, false)
     assert.equal(spawnCalls.length, 1)
     const call = spawnCalls[0]
     assert.equal(call.child.stdinInput, prompt)
@@ -108,6 +112,23 @@ describe('OpencodeRunner.runFix argv/stdin discipline', () => {
       ['run', '--auto', '--dir', 'C:\\repo\\sub', '--model', 'anthropic/claude']
     )
   })
+
+  it('reports a non-zero terminal exit without changing spawn-only ok', async () => {
+    nextExitCode = 7
+    const result = await new OpencodeRunner().runFix(
+      {
+        repoPath: 'C:\\repo',
+        cwd: 'C:\\repo',
+        autoApprove: false,
+        prompt: 'fix',
+      },
+      () => {},
+      new AbortController().signal,
+      cleanEnv
+    )
+
+    assert.deepStrictEqual(result, { ok: true, code: 7, cancelled: false })
+  })
 })
 
 describe('OpencodeRunner "Send to opencode" (free-form prompt) flow', () => {
@@ -134,6 +155,8 @@ describe('OpencodeRunner "Send to opencode" (free-form prompt) flow', () => {
     )
 
     assert.equal(result.ok, true)
+    assert.equal(result.code, 0)
+    assert.equal(result.cancelled, false)
     assert.equal(spawnCalls.length, 1)
     const call = spawnCalls[0]
     assert.equal(call.child.stdinInput, composed)
@@ -165,6 +188,8 @@ describe('OpencodeRunner "Send to opencode" (free-form prompt) flow', () => {
     // An already-aborted signal means opencode is never spawned.
     assert.equal(spawnCalls.length, 0)
     assert.equal(result.ok, true)
+    assert.equal(result.code, -1)
+    assert.equal(result.cancelled, true)
   })
 })
 

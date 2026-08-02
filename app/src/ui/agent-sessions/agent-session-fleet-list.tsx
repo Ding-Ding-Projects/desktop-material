@@ -1,13 +1,18 @@
 import * as React from 'react'
 
 import { IAgentSession } from '../../models/agent-session'
-import { IAgentSessionRow } from '../../lib/agent-sessions'
+import {
+  IAgentSessionRow,
+  canonicalAgentSessionPath,
+} from '../../lib/agent-sessions'
 import { AgentSessionCard } from './agent-session-card'
+import { t, translateForAccessibleName } from '../../lib/i18n'
 
 interface IAgentSessionFleetListProps {
   readonly rows: ReadonlyArray<IAgentSessionRow>
   readonly selectedPath: string | null
   readonly onSelect: (session: IAgentSession) => void
+  readonly onCancel?: (session: IAgentSession) => void
 }
 
 interface IAgentSessionFleetListState {
@@ -19,9 +24,9 @@ interface IAgentSessionFleetListState {
 /**
  * The fleet: one card per worktree, ordered by how much attention it wants.
  *
- * Keyboard handling is the standard roving-tabindex pattern — one tab stop for
- * the whole list, arrows to move within it, Home/End to jump — so a fleet of
- * twenty sessions costs a keyboard user one tab, not twenty.
+ * Keyboard handling is the standard roving-tabindex pattern for the card set:
+ * arrows move within it and Home/End jump, so twenty sessions cost one card tab
+ * stop. A running card's independent Stop action remains separately reachable.
  */
 export class AgentSessionFleetList extends React.Component<
   IAgentSessionFleetListProps,
@@ -36,13 +41,25 @@ export class AgentSessionFleetList extends React.Component<
 
   private get tabbablePath(): string | null {
     const { rows, selectedPath } = this.props
+    const selectableRows = rows.filter(row => !row.session.isMissing)
     const candidates = [this.state.activePath, selectedPath]
     for (const candidate of candidates) {
-      if (candidate !== null && rows.some(r => r.session.path === candidate)) {
-        return candidate
+      if (
+        candidate !== null &&
+        selectableRows.some(
+          row =>
+            canonicalAgentSessionPath(row.session.path) ===
+            canonicalAgentSessionPath(candidate)
+        )
+      ) {
+        return selectableRows.find(
+          row =>
+            canonicalAgentSessionPath(row.session.path) ===
+            canonicalAgentSessionPath(candidate)
+        )!.session.path
       }
     }
-    return rows.length === 0 ? null : rows[0].session.path
+    return selectableRows.length === 0 ? null : selectableRows[0].session.path
   }
 
   private onButtonRef = (path: string, button: HTMLButtonElement | null) => {
@@ -54,7 +71,7 @@ export class AgentSessionFleetList extends React.Component<
   }
 
   private focusRow(index: number) {
-    const { rows } = this.props
+    const rows = this.props.rows.filter(row => !row.session.isMissing)
     if (rows.length === 0) {
       return
     }
@@ -67,7 +84,8 @@ export class AgentSessionFleetList extends React.Component<
     session: IAgentSession,
     event: React.KeyboardEvent<HTMLButtonElement>
   ) => {
-    const index = this.props.rows.findIndex(
+    const selectableRows = this.props.rows.filter(row => !row.session.isMissing)
+    const index = selectableRows.findIndex(
       row => row.session.path === session.path
     )
     if (index === -1) {
@@ -85,7 +103,7 @@ export class AgentSessionFleetList extends React.Component<
         this.focusRow(0)
         break
       case 'End':
-        this.focusRow(this.props.rows.length - 1)
+        this.focusRow(selectableRows.length - 1)
         break
       default:
         return
@@ -102,22 +120,31 @@ export class AgentSessionFleetList extends React.Component<
     if (rows.length === 0) {
       return (
         <div className="agent-session-fleet-empty">
-          No worktrees yet. Create one to start an agent session.
+          {t('agentSessions.empty')}
         </div>
       )
     }
 
     const tabbablePath = this.tabbablePath
+    const selectedPathKey =
+      selectedPath === null ? null : canonicalAgentSessionPath(selectedPath)
 
     return (
-      <ul className="agent-session-fleet" aria-label="Worktrees">
+      <ul
+        className="agent-session-fleet"
+        aria-label={translateForAccessibleName('agentSessions.worktrees')}
+      >
         {rows.map(row => (
           <AgentSessionCard
             key={row.session.path}
             row={row}
-            isSelected={row.session.path === selectedPath}
+            isSelected={
+              selectedPathKey !== null &&
+              canonicalAgentSessionPath(row.session.path) === selectedPathKey
+            }
             isTabbable={row.session.path === tabbablePath}
             onSelect={this.props.onSelect}
+            onCancel={this.props.onCancel}
             onKeyDown={this.onKeyDown}
             onButtonRef={this.onButtonRef}
           />

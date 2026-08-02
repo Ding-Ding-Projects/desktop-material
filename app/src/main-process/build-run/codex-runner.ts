@@ -101,7 +101,11 @@ export class CodexRunner extends OpencodeRunner {
     )
     // This says only that the child could be started. The renderer always
     // performs a real Build & Run rerun and never trusts the agent exit status.
-    return { ok: !result.spawnError }
+    return {
+      ok: !result.spawnError,
+      code: result.code,
+      cancelled: result.cancelled,
+    }
   }
 }
 

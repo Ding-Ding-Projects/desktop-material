@@ -401,6 +401,216 @@ describe('CLI workbench operation registry', () => {
     }
   })
 
+  it('owns every signing argv and confirmation decision', async () => {
+    const fixture = await createFixture()
+    try {
+      const oid = 'a'.repeat(40)
+      const key = `key::ssh-ed25519 ${Buffer.alloc(32, 4).toString('base64')}`
+      const cases: ReadonlyArray<
+        readonly [CLIWorkbenchOperation, ReadonlyArray<string>, boolean]
+      > = [
+        [
+          {
+            id: 'repository-signing-inspection',
+            scope: 'local',
+            inspection: 'settings',
+          },
+          [
+            'config',
+            '--local',
+            '--null',
+            '--get-regexp',
+            '^(gpg\\.format|commit\\.gpgsign|tag\\.gpgsign)$',
+          ],
+          false,
+        ],
+        [
+          {
+            id: 'repository-signing-inspection',
+            scope: 'global',
+            inspection: 'key-presence',
+          },
+          [
+            'config',
+            '--global',
+            '--null',
+            '--name-only',
+            '--get-regexp',
+            '^user\\.signingkey$',
+          ],
+          false,
+        ],
+        [
+          {
+            id: 'repository-signing-inspection',
+            scope: 'local',
+            inspection: 'key-presence',
+          },
+          [
+            'config',
+            '--local',
+            '--null',
+            '--name-only',
+            '--get-regexp',
+            '^user\\.signingkey$',
+          ],
+          false,
+        ],
+        [
+          {
+            id: 'repository-signing-inspection',
+            scope: 'global',
+            inspection: 'settings',
+          },
+          [
+            'config',
+            '--global',
+            '--null',
+            '--get-regexp',
+            '^(gpg\\.format|commit\\.gpgsign|tag\\.gpgsign)$',
+          ],
+          false,
+        ],
+        [
+          {
+            id: 'repository-signing-update',
+            scope: 'local',
+            operation: 'set-format',
+            format: 'ssh',
+          },
+          ['config', '--local', '--replace-all', 'gpg.format', 'ssh'],
+          true,
+        ],
+        [
+          {
+            id: 'repository-signing-update',
+            scope: 'local',
+            operation: 'set-key',
+            format: 'ssh',
+            key,
+          },
+          ['config', '--local', '--replace-all', 'user.signingkey', key],
+          true,
+        ],
+        [
+          {
+            id: 'repository-signing-update',
+            scope: 'local',
+            operation: 'set-commit-signing',
+            enabled: true,
+          },
+          [
+            'config',
+            '--local',
+            '--type=bool',
+            '--replace-all',
+            'commit.gpgsign',
+            'true',
+          ],
+          true,
+        ],
+        [
+          {
+            id: 'repository-signing-update',
+            scope: 'global',
+            operation: 'set-tag-signing',
+            enabled: false,
+          },
+          [
+            'config',
+            '--global',
+            '--type=bool',
+            '--replace-all',
+            'tag.gpgsign',
+            'false',
+          ],
+          true,
+        ],
+        [
+          { id: 'repository-signing-list-tags' },
+          [
+            'for-each-ref',
+            '--count=100',
+            '--sort=-creatordate',
+            '--format=%(refname:strip=2)%00%(objecttype)%00%(objectname)',
+            'refs/tags',
+          ],
+          false,
+        ],
+        [
+          {
+            id: 'repository-signing-verify',
+            target: 'head',
+            tagName: null,
+            expectedObject: null,
+          },
+          [
+            'log',
+            '-1',
+            '--no-show-signature',
+            '--format=%H%x00%G?%x00%GF%x00%GK',
+            'HEAD',
+          ],
+          false,
+        ],
+        [
+          {
+            id: 'repository-signing-verify',
+            target: 'tag',
+            tagName: 'release/v1.0.0',
+            expectedObject: oid,
+          },
+          [
+            'for-each-ref',
+            '--count=1',
+            '--format=%(objectname)%00%(signature:grade)%00%(signature:fingerprint)%00%(signature:key)',
+            'refs/tags/release/v1.0.0',
+          ],
+          false,
+        ],
+      ]
+
+      for (const [operation, args, requiresConfirmation] of cases) {
+        const result = await resolveCLIWorkbenchOperation(
+          operation,
+          fixture.repositoryPath
+        )
+        assert.deepStrictEqual(result.operation, operation)
+        assert.deepStrictEqual(result.args, args)
+        assert.equal(result.requiresConfirmation, requiresConfirmation)
+        assert.equal(result.tool, 'git')
+        assert.ok(Buffer.byteLength(JSON.stringify(result.args), 'utf8') < 4096)
+      }
+
+      const normalizedFingerprint = await resolveCLIWorkbenchOperation(
+        {
+          id: 'repository-signing-update',
+          scope: 'global',
+          operation: 'set-key',
+          format: 'openpgp',
+          key: '0xabcdef0123456789',
+        },
+        fixture.repositoryPath
+      )
+      assert.deepStrictEqual(normalizedFingerprint.operation, {
+        id: 'repository-signing-update',
+        scope: 'global',
+        operation: 'set-key',
+        format: 'openpgp',
+        key: 'ABCDEF0123456789',
+      })
+      assert.deepStrictEqual(normalizedFingerprint.args, [
+        'config',
+        '--global',
+        '--replace-all',
+        'user.signingkey',
+        'ABCDEF0123456789',
+      ])
+    } finally {
+      await rm(fixture.root, { recursive: true, force: true })
+    }
+  })
+
   it('rejects unknown IDs, extra fields, and injection-shaped values', async () => {
     const fixture = await createFixture()
     try {
@@ -414,6 +624,65 @@ describe('CLI workbench operation registry', () => {
         { id: 'clean-run', requiresConfirmation: false },
         { id: 'clean-run', args: ['clean', '-fdx'] },
         { id: 'clean-preview', paths: ['..'] },
+        {
+          id: 'repository-signing-inspection',
+          scope: 'system',
+          inspection: 'settings',
+        },
+        {
+          id: 'repository-signing-inspection',
+          scope: 'local',
+          inspection: 'secret-key',
+        },
+        {
+          id: 'repository-signing-inspection',
+          scope: 'local',
+          inspection: 'settings',
+          key: 'private',
+        },
+        {
+          id: 'repository-signing-update',
+          scope: 'local',
+          operation: 'set-format',
+          format: 'custom',
+        },
+        {
+          id: 'repository-signing-update',
+          scope: 'local',
+          operation: 'set-key',
+          format: 'ssh',
+          key: 'C:/private/id_ed25519',
+        },
+        {
+          id: 'repository-signing-update',
+          scope: 'local',
+          operation: 'set-commit-signing',
+          enabled: 'yes',
+        },
+        {
+          id: 'repository-signing-update',
+          scope: 'local',
+          operation: 'unset-all',
+        },
+        { id: 'repository-signing-list-tags', count: 1000 },
+        {
+          id: 'repository-signing-verify',
+          target: 'head',
+          tagName: 'release',
+          expectedObject: null,
+        },
+        {
+          id: 'repository-signing-verify',
+          target: 'tag',
+          tagName: '--format=%(contents)',
+          expectedObject: 'a'.repeat(40),
+        },
+        {
+          id: 'repository-signing-verify',
+          target: 'tag',
+          tagName: 'release/v1',
+          expectedObject: 'not-an-object',
+        },
         { id: 'file-blame', path: '/absolute/file.ts' },
         { id: 'file-blame', path: 'C:/absolute/file.ts' },
         { id: 'file-blame', path: '../outside.ts' },

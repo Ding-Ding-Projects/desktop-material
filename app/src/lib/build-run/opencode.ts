@@ -314,6 +314,10 @@ export interface IOpencodeRunResult {
    * the session errored, so the caller must re-run Build & Run to judge success.
    */
   readonly ok: boolean
+  /** The child process exit code, or `-1` when no child could be started. */
+  readonly code?: number
+  /** True when an abort request, rather than a natural exit, ended the run. */
+  readonly cancelled?: boolean
 }
 
 /** Terminal result of an opencode install run. */

@@ -6,6 +6,7 @@ import { IAgentSessionRow } from '../../lib/agent-sessions'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { TooltippedContent } from '../lib/tooltipped-content'
 import { AgentSessionChip } from './agent-session-chip'
+import { t, translateForAccessibleName } from '../../lib/i18n'
 
 interface IAgentSessionCardProps {
   readonly row: IAgentSessionRow
@@ -13,6 +14,7 @@ interface IAgentSessionCardProps {
   /** Roving tabindex: only the active card participates in tab order. */
   readonly isTabbable: boolean
   readonly onSelect: (session: IAgentSession) => void
+  readonly onCancel?: (session: IAgentSession) => void
   readonly onKeyDown: (
     session: IAgentSession,
     event: React.KeyboardEvent<HTMLButtonElement>
@@ -30,7 +32,13 @@ interface IAgentSessionCardProps {
  */
 export class AgentSessionCard extends React.Component<IAgentSessionCardProps> {
   private onClick = () => {
-    this.props.onSelect(this.props.row.session)
+    if (!this.props.row.session.isMissing) {
+      this.props.onSelect(this.props.row.session)
+    }
+  }
+
+  private onCancel = () => {
+    this.props.onCancel?.(this.props.row.session)
   }
 
   private onKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -45,10 +53,10 @@ export class AgentSessionCard extends React.Component<IAgentSessionCardProps> {
     const { session } = this.props.row
     const states: Array<string> = []
     if (session.isLocked) {
-      states.push('Locked')
+      states.push(t('agentSessions.locked'))
     }
     if (session.isMissing) {
-      states.push('Missing')
+      states.push(t('agentSessions.missing'))
     }
     if (states.length === 0) {
       return null
@@ -73,7 +81,9 @@ export class AgentSessionCard extends React.Component<IAgentSessionCardProps> {
             'main-worktree': session.isMainWorktree,
           })}
           ref={this.onButtonRef}
-          tabIndex={isTabbable ? 0 : -1}
+          tabIndex={isTabbable && !session.isMissing ? 0 : -1}
+          disabled={session.isMissing}
+          aria-current={isSelected ? 'true' : undefined}
           onClick={this.onClick}
           onKeyDown={this.onKeyDown}
         >
@@ -96,7 +106,9 @@ export class AgentSessionCard extends React.Component<IAgentSessionCardProps> {
               onlyWhenOverflowed={true}
             >
               <span className="sr-only">
-                {session.branch === null ? 'detached at ' : 'on branch '}
+                {session.branch === null
+                  ? t('agentSessions.detachedAt')
+                  : t('agentSessions.onBranch')}
               </span>
               {branch}
             </TooltippedContent>
@@ -104,6 +116,19 @@ export class AgentSessionCard extends React.Component<IAgentSessionCardProps> {
           {this.renderState()}
           <AgentSessionChip chip={chip} />
         </button>
+        {session.runState === 'running' && this.props.onCancel !== undefined && (
+          <button
+            type="button"
+            className="agent-session-stop"
+            aria-label={`${translateForAccessibleName('buildRun.stop')} — ${
+              session.name
+            }`}
+            onClick={this.onCancel}
+          >
+            <MaterialSymbol name="cancel" size={18} />
+            {t('buildRun.stop')}
+          </button>
+        )}
       </li>
     )
   }

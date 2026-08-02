@@ -17,7 +17,20 @@ if (typeof window !== 'undefined') {
   Object.assign(window, { ResizeObserver: globalThis.ResizeObserver })
 }
 
-const bothInstalled = { codexInstalled: true, opencodeInstalled: true }
+const bothInstalled = {
+  codexInstalled: true,
+  codexAuthenticated: true,
+  opencodeInstalled: true,
+  opencodeAuthenticated: true,
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(resolver => {
+    resolve = resolver
+  })
+  return { promise, resolve }
+}
 
 function session(overrides: Partial<IAgentSession> = {}): IAgentSession {
   return {
@@ -40,7 +53,9 @@ function session(overrides: Partial<IAgentSession> = {}): IAgentSession {
 
 function renderPanel(
   sessions: ReadonlyArray<IAgentSession>,
-  onCreateSession: (request: INewAgentSessionRequest) => void = () => undefined
+  onCreateSession: (
+    request: INewAgentSessionRequest
+  ) => boolean | Promise<boolean> = () => true
 ) {
   return render(
     <AgentSessionsPanel
@@ -113,6 +128,7 @@ describe('AgentSessionsPanel fleet', () => {
     const list = view.getByRole('list', { name: 'Worktrees' })
     const names = within(list)
       .getAllByRole('button')
+      .filter(button => button.classList.contains('agent-session-card'))
       .map(
         button => button.querySelector('.agent-session-card-name')?.textContent
       )
@@ -148,13 +164,90 @@ describe('AgentSessionsPanel fleet', () => {
         existingBranchNames={['main']}
         selectedPath={null}
         onSelectSession={s => picked.push(s.name)}
-        onCreateSession={() => undefined}
+        onCreateSession={() => true}
         isCreating={false}
       />
     )
 
     fireEvent.click(view.getByRole('button', { name: /feature-x/ }))
     assert.deepStrictEqual(picked, ['feature-x'])
+  })
+
+  it('exposes selection with aria-current and makes missing worktrees unavailable', () => {
+    const picked: Array<string> = []
+    const missing = session({
+      name: 'missing',
+      isMainWorktree: true,
+      isMissing: true,
+    })
+    const available = session({ name: 'available' })
+    const view = render(
+      <AgentSessionsPanel
+        sessions={[missing, available]}
+        availability={bothInstalled}
+        baseBranches={['main']}
+        defaultBaseBranch="main"
+        existingBranchNames={['main']}
+        selectedPath="c:/WORK/AVAILABLE/"
+        onSelectSession={selected => picked.push(selected.name)}
+        onCreateSession={() => true}
+        isCreating={false}
+      />
+    )
+
+    const missingButton = view.getByRole('button', { name: /missing/i })
+    const availableButton = view.getByRole('button', { name: /available/i })
+    assert.strictEqual((missingButton as HTMLButtonElement).disabled, true)
+    assert.strictEqual(missingButton.getAttribute('tabindex'), '-1')
+    assert.strictEqual(missingButton.getAttribute('aria-current'), null)
+    assert.strictEqual(availableButton.getAttribute('tabindex'), '0')
+    assert.strictEqual(availableButton.getAttribute('aria-current'), 'true')
+
+    fireEvent.click(missingButton)
+    assert.deepStrictEqual(picked, [])
+  })
+
+  it('skips missing worktrees during roving keyboard navigation', () => {
+    const view = renderPanel([
+      session({ name: 'a-available' }),
+      session({ name: 'b-missing', isMissing: true }),
+      session({ name: 'c-available' }),
+    ])
+    const first = view.getByRole('button', { name: /a-available/i })
+    const missing = view.getByRole('button', { name: /b-missing/i })
+    const last = view.getByRole('button', { name: /c-available/i })
+
+    fireEvent.keyDown(first, { key: 'ArrowDown' })
+    assert.strictEqual(document.activeElement, last)
+    assert.strictEqual(last.getAttribute('tabindex'), '0')
+    assert.strictEqual(missing.getAttribute('tabindex'), '-1')
+  })
+
+  it('renders Stop as a named sibling control and reports its exact session', () => {
+    const cancelled: Array<string> = []
+    const busy = session({ name: 'busy', runState: 'running' })
+    const view = render(
+      <AgentSessionsPanel
+        sessions={[busy]}
+        availability={bothInstalled}
+        baseBranches={['main']}
+        defaultBaseBranch="main"
+        existingBranchNames={['main']}
+        selectedPath={busy.path}
+        onSelectSession={() => undefined}
+        onCancelSession={selected => cancelled.push(selected.path)}
+        onCreateSession={() => true}
+        isCreating={false}
+      />
+    )
+
+    const card = view.getByRole('button', { name: /busy is working/i })
+    const stop = view.getByRole('button', { name: /Stop — busy/i })
+    assert.strictEqual(card.contains(stop), false)
+    assert.strictEqual(card.parentElement, stop.parentElement)
+
+    fireEvent.click(stop)
+    assert.deepStrictEqual(cancelled, [busy.path])
   })
 
   it('says the fleet is empty instead of rendering a bare list', () => {
@@ -194,7 +287,10 @@ describe('AgentSessionsPanel creator', () => {
     // Start is a submit button, so a `disabled` that only sets `aria-disabled`
     // would still submit the form on click.
     const requests: Array<INewAgentSessionRequest> = []
-    const view = renderPanel([], request => requests.push(request))
+    const view = renderPanel([], request => {
+      requests.push(request)
+      return true
+    })
     openCreator(view)
 
     fireEvent.click(view.getByRole('button', { name: 'Start' }))
@@ -203,7 +299,10 @@ describe('AgentSessionsPanel creator', () => {
 
   it('hands the caller the request instead of creating anything itself', () => {
     const requests: Array<INewAgentSessionRequest> = []
-    const view = renderPanel([], request => requests.push(request))
+    const view = renderPanel([], request => {
+      requests.push(request)
+      return true
+    })
     openCreator(view)
 
     fireEvent.change(view.getByLabelText('Worktree name'), {
@@ -223,6 +322,53 @@ describe('AgentSessionsPanel creator', () => {
         prompt: '',
       },
     ])
+  })
+
+  it('keeps the form and its values when creation is rejected', async () => {
+    const result = deferred<boolean>()
+    const view = renderPanel([], () => result.promise)
+    openCreator(view)
+    const name = view.getByLabelText('Worktree name') as HTMLInputElement
+    fireEvent.change(name, { target: { value: 'feature-z' } })
+    fireEvent.click(view.getByRole('button', { name: 'Start' }))
+
+    assert.strictEqual(name.value, 'feature-z')
+    assert.strictEqual(
+      view
+        .getByRole('button', { name: 'Cancel' })
+        .getAttribute('aria-disabled'),
+      'true'
+    )
+
+    result.resolve(false)
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.strictEqual(
+      view
+        .getByRole('button', { name: 'Cancel' })
+        .getAttribute('aria-disabled'),
+      null
+    )
+    assert.strictEqual(
+      (view.getByLabelText('Worktree name') as HTMLInputElement).value,
+      'feature-z'
+    )
+  })
+
+  it('closes only after acceptance and restores focus to New Agent Session', async () => {
+    const result = deferred<boolean>()
+    const view = renderPanel([], () => result.promise)
+    const trigger = view.getByRole('button', { name: /New Agent Session/ })
+    fireEvent.click(trigger)
+    fireEvent.change(view.getByLabelText('Worktree name'), {
+      target: { value: 'feature-z' },
+    })
+    fireEvent.click(view.getByRole('button', { name: 'Start' }))
+    assert.ok(view.getByLabelText('Worktree name'))
+
+    result.resolve(true)
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.strictEqual(view.queryByLabelText('Worktree name'), null)
+    assert.strictEqual(document.activeElement, trigger)
   })
 
   it('refuses to start a real agent with nothing to do', () => {
@@ -260,6 +406,28 @@ describe('AgentSessionsPanel creator', () => {
     assert.strictEqual(toggle.getAttribute('aria-expanded'), 'true')
     assert.strictEqual(panel.hasAttribute('hidden'), false)
   })
+
+  it('renders its controls and validation in Cantonese', () => {
+    const previousLanguageMode = localStorage.getItem('language-mode-v1')
+    localStorage.setItem('language-mode-v1', 'cantonese')
+
+    try {
+      const view = renderPanel([])
+
+      assert.ok(view.getByRole('heading', { name: /工作樹/ }))
+      fireEvent.click(view.getByRole('button', { name: /新增代理工作階段/ }))
+      const name = view.getByLabelText('工作樹名稱')
+      assert.ok(view.getByRole('button', { name: '開始' }))
+      fireEvent.change(name, { target: { value: 'has a space' } })
+      assert.ok(view.getByText(/Git.*名稱/))
+    } finally {
+      if (previousLanguageMode === null) {
+        localStorage.removeItem('language-mode-v1')
+      } else {
+        localStorage.setItem('language-mode-v1', previousLanguageMode)
+      }
+    }
+  })
 })
 
 describe('CodingAgentPicker', () => {
@@ -282,7 +450,12 @@ describe('CodingAgentPicker', () => {
     const view = render(
       <CodingAgentPicker
         value="none"
-        availability={{ codexInstalled: false, opencodeInstalled: true }}
+        availability={{
+          codexInstalled: false,
+          codexAuthenticated: false,
+          opencodeInstalled: true,
+          opencodeAuthenticated: true,
+        }}
         onChange={() => undefined}
       />
     )
@@ -295,6 +468,27 @@ describe('CodingAgentPicker', () => {
     assert.strictEqual(codex.textContent, 'Codex CLI — not detected')
     assert.strictEqual(opencode.disabled, false)
     assert.strictEqual(opencode.textContent, 'OpenCode')
+  })
+
+  it('disables an installed CLI when authentication is not configured', () => {
+    const view = render(
+      <CodingAgentPicker
+        value="none"
+        availability={{
+          codexInstalled: true,
+          codexAuthenticated: false,
+          opencodeInstalled: true,
+          opencodeAuthenticated: true,
+        }}
+        onChange={() => undefined}
+      />
+    )
+
+    const codex = (
+      view.getAllByRole('option') as Array<HTMLOptionElement>
+    ).find(option => option.value === 'codex')!
+    assert.strictEqual(codex.disabled, true)
+    assert.strictEqual(codex.textContent, 'Codex CLI — authentication required')
   })
 
   it('reports the chosen agent', () => {

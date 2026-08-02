@@ -229,9 +229,12 @@ export const TeleportTargetSelectors = {
     '[data-teleport-target="repo-settings-cheap-lfs-cloud-compression"]',
   repoSettingsCheapLfsEncryption:
     '[data-teleport-target="repo-settings-cheap-lfs-encryption"]',
-  repositoryToolsSigning: '[data-teleport-target="repository-tools-signing"]',
 
   // Non-settings surfaces
+  // The signing anchor is the hub's real navigation button. Focusing it selects
+  // and reveals the signing policy panel, so a palette teleport never lands on
+  // a detached or hidden placeholder.
+  repositoryToolsSigning: '[data-teleport-target="repository-tools-signing"]',
   diffOptionsButton: '[data-teleport-target="diff-options-button"]',
   paletteAppearanceButton: '[data-teleport-target="palette-appearance-button"]',
   tabStrip: '[data-teleport-target="tab-strip"]',

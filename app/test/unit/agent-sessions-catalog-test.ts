@@ -8,12 +8,39 @@ import {
   getCodingAgentOptionLabel,
   getSelectableCodingAgentIds,
   resolveCodingAgentOptions,
+  toAgentRunnerAvailability,
 } from '../../src/lib/agent-sessions'
 import { ICodingAgent } from '../../src/models/agent-session'
 
-const everythingInstalled = { codexInstalled: true, opencodeInstalled: true }
+const everythingInstalled = {
+  codexInstalled: true,
+  codexAuthenticated: true,
+  opencodeInstalled: true,
+  opencodeAuthenticated: true,
+}
 
 describe('coding agent catalog', () => {
+  it('preserves authentication separately from CLI installation', () => {
+    assert.deepStrictEqual(
+      toAgentRunnerAvailability(
+        { installed: true, authConfigured: false },
+        { installed: true, authConfigured: true }
+      ),
+      {
+        codexInstalled: true,
+        codexAuthenticated: false,
+        opencodeInstalled: true,
+        opencodeAuthenticated: true,
+      }
+    )
+    assert.deepStrictEqual(toAgentRunnerAvailability(null, null), {
+      codexInstalled: false,
+      codexAuthenticated: false,
+      opencodeInstalled: false,
+      opencodeAuthenticated: false,
+    })
+  })
+
   it('offers exactly the three agents that can be launched, in picker order', () => {
     assert.deepStrictEqual(
       CodingAgents.map(agent => agent.id),
@@ -51,7 +78,9 @@ describe('coding agent catalog', () => {
   it('disables an undetected CLI and says so in the visible label', () => {
     const options = resolveCodingAgentOptions({
       codexInstalled: false,
+      codexAuthenticated: false,
       opencodeInstalled: true,
+      opencodeAuthenticated: true,
     })
 
     const codex = options.find(option => option.agent.id === 'codex')!
@@ -65,6 +94,32 @@ describe('coding agent catalog', () => {
     const opencode = options.find(option => option.agent.id === 'opencode')!
     assert.strictEqual(opencode.disabled, false)
     assert.strictEqual(getCodingAgentOptionLabel(opencode), 'OpenCode')
+  })
+
+  it('disables an installed CLI until its authentication probe succeeds', () => {
+    const options = resolveCodingAgentOptions({
+      codexInstalled: true,
+      codexAuthenticated: false,
+      opencodeInstalled: true,
+      opencodeAuthenticated: true,
+    })
+
+    const codex = options.find(option => option.agent.id === 'codex')!
+    assert.strictEqual(codex.disabled, true)
+    assert.strictEqual(codex.unavailableReason, 'not authenticated')
+    assert.strictEqual(
+      getCodingAgentOptionLabel(codex),
+      'Codex CLI — not authenticated'
+    )
+    assert.deepStrictEqual(
+      getSelectableCodingAgentIds({
+        codexInstalled: true,
+        codexAuthenticated: false,
+        opencodeInstalled: true,
+        opencodeAuthenticated: true,
+      }),
+      ['none', 'opencode']
+    )
   })
 
   it('leaves <None> selectable before detection has run at all', () => {

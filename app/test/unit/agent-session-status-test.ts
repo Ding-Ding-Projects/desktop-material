@@ -59,6 +59,43 @@ describe('deriveAgentSessionChip', () => {
     )
   })
 
+  it('uses the file count when a binary or untracked diff has no line totals', () => {
+    const chip = deriveAgentSessionChip(
+      session({
+        diffStat: { filesChanged: 2, linesAdded: 0, linesDeleted: 0 },
+      })
+    )
+
+    assert.strictEqual(chip.kind, 'diff')
+    assert.strictEqual(chip.label, '2 files')
+    assert.strictEqual(
+      chip.accessibleLabel,
+      'feature-x has 0 lines added and 0 lines deleted across 2 files'
+    )
+  })
+
+  it('localizes visible and accessible status text in Cantonese', () => {
+    const chip = deriveAgentSessionChip(
+      session({ runState: 'running', editedFileCount: 2 }),
+      'cantonese'
+    )
+
+    assert.strictEqual(chip.label, '2')
+    assert.strictEqual(chip.accessibleLabel, 'feature-x 處理中，已改 2 個檔案')
+  })
+
+  it('keeps both languages in a bilingual status announcement', () => {
+    const chip = deriveAgentSessionChip(
+      session({
+        diffStat: { filesChanged: 1, linesAdded: 3, linesDeleted: 2 },
+      }),
+      'bilingual'
+    )
+
+    assert.match(chip.accessibleLabel, /^feature-x has 3 lines added/)
+    assert.match(chip.accessibleLabel, /feature-x 新增 3 行/)
+  })
+
   it('shows the edited file count while an agent is working', () => {
     const chip = deriveAgentSessionChip(
       session({ runState: 'running', editedFileCount: 91 })
@@ -78,6 +115,17 @@ describe('deriveAgentSessionChip', () => {
     assert.strictEqual(chip.kind, 'working')
     assert.strictEqual(chip.label, 'Working')
     assert.strictEqual(chip.accessibleLabel, 'feature-x is working')
+  })
+
+  it('renders cancellation as a neutral terminal outcome, not success', () => {
+    const chip = deriveAgentSessionChip(
+      session({ runState: 'cancelled', diffStat: null })
+    )
+
+    assert.strictEqual(chip.kind, 'clean')
+    assert.strictEqual(chip.label, 'Cancelled')
+    assert.match(chip.accessibleLabel, /feature-x — Cancelled/)
+    assert.strictEqual(chip.showsDot, false)
   })
 
   it('shows the error state with its dot and announces the reason', () => {

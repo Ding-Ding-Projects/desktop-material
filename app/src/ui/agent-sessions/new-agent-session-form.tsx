@@ -17,6 +17,8 @@ import { Select } from '../lib/select'
 import { TextArea } from '../lib/text-area'
 import { TextBox } from '../lib/text-box'
 import { CodingAgentPicker } from './coding-agent-picker'
+import { t } from '../../lib/i18n'
+import { localizeAgentSessionProblem } from './agent-session-localization'
 
 interface INewAgentSessionFormProps {
   readonly availability: IAgentRunnerAvailability
@@ -135,7 +137,9 @@ export class NewAgentSessionForm extends React.Component<
         role="status"
       >
         {shown.map(problem => (
-          <p key={problem.kind}>{problem.message}</p>
+          <p key={problem.kind}>
+            {localizeAgentSessionProblem(problem, this.request)}
+          </p>
         ))}
       </div>
     )
@@ -158,7 +162,7 @@ export class NewAgentSessionForm extends React.Component<
             name="expand_more"
             size={18}
           />
-          Options
+          {t('agentSessions.options')}
         </button>
         <div
           id="new-agent-session-options-panel"
@@ -166,7 +170,7 @@ export class NewAgentSessionForm extends React.Component<
           hidden={!isOptionsExpanded}
         >
           <Select
-            label="Base branch"
+            label={t('agentSessions.baseBranch')}
             value={this.state.baseBranch}
             onChange={this.onBaseBranchChanged}
             disabled={this.props.isStarting}
@@ -185,8 +189,8 @@ export class NewAgentSessionForm extends React.Component<
           />
           {this.state.agent !== 'none' && (
             <TextArea
-              label="Task for the agent"
-              placeholder="What should the agent do in this worktree?"
+              label={t('agentSessions.taskLabel')}
+              placeholder={t('agentSessions.taskPlaceholder')}
               rows={4}
               value={this.state.prompt}
               onValueChanged={this.onPromptChanged}
@@ -200,11 +204,11 @@ export class NewAgentSessionForm extends React.Component<
             disabled={this.props.onConfigureSetupCommands === undefined}
             title={
               this.props.onConfigureSetupCommands === undefined
-                ? 'Setup commands cannot be configured from this panel yet.'
+                ? t('agentSessions.setupUnavailable')
                 : undefined
             }
           >
-            Configure setup commands
+            {t('agentSessions.configureSetup')}
           </LinkButton>
         </div>
       </div>
@@ -220,7 +224,7 @@ export class NewAgentSessionForm extends React.Component<
     return (
       <form className="new-agent-session-form" onSubmit={this.onSubmit}>
         <TextBox
-          label="Worktree name"
+          label={t('agentSessions.worktreeName')}
           placeholder="new-worktree"
           value={this.state.name}
           onValueChanged={this.onNameChanged}
@@ -238,14 +242,14 @@ export class NewAgentSessionForm extends React.Component<
             onClick={this.props.onCancel}
             disabled={this.props.isStarting}
           >
-            Cancel
+            {t('agentSessions.cancel')}
           </Button>
           <Button
             type="submit"
             className="new-agent-session-start"
             disabled={this.props.isStarting || problems.length > 0}
           >
-            Start
+            {t('agentSessions.start')}
           </Button>
         </div>
       </form>

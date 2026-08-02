@@ -105,11 +105,12 @@ export type CLIWorkbenchOperation =
       readonly command: string
       readonly args: ReadonlyArray<string>
     }
+  | RepositorySigningOperation
 
-// Compatibility contracts for the older guided Repository Tools surfaces.
-// The main-process runner above still accepts only CLIWorkbenchOperation; these
-// types keep the already-shipped signed/LFS/patch-series UI contracts explicit
-// while those surfaces finish their migration to named operations.
+// Shared semantic values for the named signing operations below and for older
+// guided Repository Tools surfaces. The main-process runner accepts only
+// CLIWorkbenchOperation; the remaining recipe types are compatibility contracts
+// while those other surfaces finish their migration to named operations.
 export type RepositorySigningScope = 'local' | 'global'
 export type RepositorySigningFormat = 'openpgp' | 'ssh' | 'x509'
 
@@ -128,6 +129,29 @@ export type RepositorySigningUpdate =
       readonly enabled: boolean
     }
 
+/**
+ * Signing operations accepted by the current named-operation workbench.
+ * Renderer code supplies semantic fields only; the main process owns the
+ * executable, argv, confirmation policy, and repository working directory.
+ */
+export type RepositorySigningOperation =
+  | {
+      readonly id: 'repository-signing-inspection'
+      readonly scope: RepositorySigningScope
+      readonly inspection: 'settings' | 'key-presence'
+    }
+  | ({
+      readonly id: 'repository-signing-update'
+      readonly scope: RepositorySigningScope
+    } & RepositorySigningUpdate)
+  | { readonly id: 'repository-signing-list-tags' }
+  | {
+      readonly id: 'repository-signing-verify'
+      readonly target: 'head' | 'tag'
+      readonly tagName: string | null
+      readonly expectedObject: string | null
+    }
+
 export type RepositoryLFSInspectionOperation =
   | 'version'
   | 'patterns'
@@ -142,24 +166,6 @@ export type RepositoryLFSOperation =
   | 'prune'
 
 export type CLICommandRecipe =
-  | {
-      readonly kind: 'repository-signing-inspection'
-      readonly scope: RepositorySigningScope
-      readonly operation: 'settings' | 'key-presence'
-    }
-  | ({
-      readonly kind: 'repository-signing-update'
-      readonly scope: RepositorySigningScope
-    } & RepositorySigningUpdate)
-  | {
-      readonly kind: 'repository-signing-list-tags'
-    }
-  | {
-      readonly kind: 'repository-signing-verify'
-      readonly target: 'head' | 'tag'
-      readonly tagName: string | null
-      readonly expectedObject: string | null
-    }
   | {
       readonly kind: 'repository-lfs-inspection'
       readonly operation: RepositoryLFSInspectionOperation

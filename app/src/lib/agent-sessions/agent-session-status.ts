@@ -3,6 +3,9 @@ import {
   IAgentSession,
   IAgentSessionChip,
 } from '../../models/agent-session'
+import { LanguageMode } from '../../models/language-mode'
+import { translate, translatedVariable } from '../i18n'
+import type { TranslationVariable } from '../i18n'
 
 /** Longest error text carried into a chip's accessible name, in characters. */
 export const ErrorSummaryCap = 160
@@ -54,7 +57,12 @@ export function hasAgentSessionChanges(session: IAgentSession): boolean {
   )
 }
 
-function formatDiffLabel(added: number, deleted: number): string {
+function formatDiffLabel(
+  added: number,
+  deleted: number,
+  filesChanged: number,
+  languageMode: LanguageMode
+): string {
   const parts: Array<string> = []
   if (added > 0) {
     parts.push(`+${added}`)
@@ -64,15 +72,29 @@ function formatDiffLabel(added: number, deleted: number): string {
     // continuation of the addition count at small sizes.
     parts.push(`−${deleted}`)
   }
-  return parts.join(' ')
+  return parts.length > 0
+    ? parts.join(' ')
+    : translate(
+        filesChanged === 1
+          ? 'agentSessions.status.oneFile'
+          : 'agentSessions.status.files',
+        languageMode,
+        { count: String(filesChanged) }
+      )
 }
 
-function pluralFiles(count: number): string {
-  return count === 1 ? '1 file' : `${count} files`
+function pluralFiles(count: number): TranslationVariable {
+  return translatedVariable(
+    count === 1 ? 'agentSessions.status.oneFile' : 'agentSessions.status.files',
+    { count: String(count) }
+  )
 }
 
-function pluralLines(count: number): string {
-  return count === 1 ? '1 line' : `${count} lines`
+function pluralLines(count: number): TranslationVariable {
+  return translatedVariable(
+    count === 1 ? 'agentSessions.status.oneLine' : 'agentSessions.status.lines',
+    { count: String(count) }
+  )
 }
 
 /**
@@ -85,7 +107,8 @@ function pluralLines(count: number): string {
  * "nothing has happened" and "nothing is known yet" stay distinguishable.
  */
 export function deriveAgentSessionChip(
-  session: IAgentSession
+  session: IAgentSession,
+  languageMode: LanguageMode = 'english'
 ): IAgentSessionChip {
   const where = session.name
 
@@ -96,11 +119,16 @@ export function deriveAgentSessionChip(
         : summarizeAgentSessionError(session.errorMessage)
     return {
       kind: 'error',
-      label: 'Error',
+      label: translate('agentSessions.status.errorLabel', languageMode),
       accessibleLabel:
         summary.length === 0
-          ? `${where} failed`
-          : `${where} failed: ${summary}`,
+          ? translate('agentSessions.status.failed', languageMode, {
+              name: where,
+            })
+          : translate('agentSessions.status.failedWithReason', languageMode, {
+              name: where,
+              reason: summary,
+            }),
       showsDot: true,
     }
   }
@@ -109,11 +137,29 @@ export function deriveAgentSessionChip(
     const edited = session.editedFileCount
     return {
       kind: 'working',
-      label: edited === null ? 'Working' : String(edited),
+      label:
+        edited === null
+          ? translate('agentSessions.status.workingLabel', languageMode)
+          : String(edited),
       accessibleLabel:
         edited === null
-          ? `${where} is working`
-          : `${where} is working, ${pluralFiles(edited)} edited`,
+          ? translate('agentSessions.status.working', languageMode, {
+              name: where,
+            })
+          : translate('agentSessions.status.workingEdited', languageMode, {
+              name: where,
+              files: pluralFiles(edited),
+            }),
+      showsDot: false,
+    }
+  }
+
+  if (session.runState === 'cancelled') {
+    const cancelled = translate('buildRun.phase.cancelled', languageMode)
+    return {
+      kind: 'clean',
+      label: cancelled,
+      accessibleLabel: `${where} — ${cancelled}`,
       showsDot: false,
     }
   }
@@ -123,11 +169,18 @@ export function deriveAgentSessionChip(
   if (stat !== null && hasAgentSessionChanges(session)) {
     return {
       kind: 'diff',
-      label: formatDiffLabel(stat.linesAdded, stat.linesDeleted),
-      accessibleLabel:
-        `${where} has ${pluralLines(stat.linesAdded)} added and ` +
-        `${pluralLines(stat.linesDeleted)} deleted across ` +
-        `${pluralFiles(stat.filesChanged)}`,
+      label: formatDiffLabel(
+        stat.linesAdded,
+        stat.linesDeleted,
+        stat.filesChanged,
+        languageMode
+      ),
+      accessibleLabel: translate('agentSessions.status.diff', languageMode, {
+        name: where,
+        added: pluralLines(stat.linesAdded),
+        deleted: pluralLines(stat.linesDeleted),
+        files: pluralFiles(stat.filesChanged),
+      }),
       showsDot: false,
     }
   }
@@ -135,16 +188,22 @@ export function deriveAgentSessionChip(
   if (stat === null) {
     return {
       kind: 'clean',
-      label: 'Not measured',
-      accessibleLabel: `${where} has no measured changes yet`,
+      label: translate('agentSessions.status.notMeasuredLabel', languageMode),
+      accessibleLabel: translate(
+        'agentSessions.status.notMeasured',
+        languageMode,
+        { name: where }
+      ),
       showsDot: false,
     }
   }
 
   return {
     kind: 'clean',
-    label: 'No changes',
-    accessibleLabel: `${where} has no changes`,
+    label: translate('agentSessions.status.noChangesLabel', languageMode),
+    accessibleLabel: translate('agentSessions.status.noChanges', languageMode, {
+      name: where,
+    }),
     showsDot: false,
   }
 }

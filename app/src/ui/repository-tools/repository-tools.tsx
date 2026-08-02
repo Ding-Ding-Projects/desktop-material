@@ -61,17 +61,25 @@ import {
   persistFilterMode,
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
-import { getPersistedLanguageMode, t } from '../../lib/i18n'
+import {
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+  t,
+  translate,
+} from '../../lib/i18n'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import {
   readFunnyLevels,
   translateWithFunnyLevel,
 } from '../../lib/funny-level-text'
 import { ProgressiveLoadState } from '../../lib/progressive-load'
 import { GitHubProjectsWorkspace } from '../github-projects'
+import { RepositorySigning } from './signing'
 import {
   GitHubAPIExplorer,
   IGitHubAPIFunctionRegistry,
 } from '../github-api-explorer'
+import { teleportAnchor } from '../../lib/teleport-targets'
 
 const MaxOutputBytes = 4 * 1024 * 1024
 type RepositoryToolResultID =
@@ -114,6 +122,7 @@ const DirectRepositoryToolMutationIDs = new Set<CLIWorkbenchOperation['id']>([
   'patch-import',
   'patch-session',
   'custom-git-command',
+  'repository-signing-update',
 ])
 
 /** Classify every named CLI recipe that can change a repository checkout. */
@@ -135,7 +144,7 @@ export function isRepositoryToolMutation(
  * panels. No new operation is introduced here; the hub only lists the
  * functions this surface already provides.
  */
-type RepositoryToolsHubToolID =
+export type RepositoryToolsHubToolID =
   | RepositoryToolID
   | 'line-authorship'
   | 'content-search'
@@ -145,6 +154,7 @@ type RepositoryToolsHubToolID =
   | 'bundle-import'
   | 'patch-series'
   | 'custom-git-presets'
+  | 'signing'
   | 'tag-lifecycle'
   | 'github-projects'
   | 'github-api-functions'
@@ -257,6 +267,15 @@ function compareHubEntries(
     : left.title.localeCompare(right.title, 'en')
 }
 
+const SigningHubEntry: IRepositoryToolsHubEntry = {
+  id: 'signing',
+  title: 'Commit and tag signing',
+  description:
+    'Inspect and review the repository or global signing policy for commits and annotated tags.',
+  category: 'Commits & history',
+  icon: octicons.shieldCheck,
+}
+
 const UnsortedHubEntries: ReadonlyArray<IRepositoryToolsHubEntry> = [
   ...RepositoryToolOperations.map(operation => ({
     id: operation.id,
@@ -297,6 +316,7 @@ const UnsortedHubEntries: ReadonlyArray<IRepositoryToolsHubEntry> = [
     category: 'Commits & history',
     icon: octicons.pencil,
   },
+  SigningHubEntry,
   {
     id: 'shallow-history',
     title: 'Deepen a shallow repository',
@@ -457,6 +477,8 @@ export interface IRepositoryToolsProps {
   readonly repository?: Repository
   readonly repositoryPath: string
   readonly onRefreshRepository: () => Promise<void>
+  /** Exact hub destination requested by the lazy Repository view. */
+  readonly initialTool?: RepositoryToolsHubToolID
   readonly client?: IRepositoryToolsClient
   readonly chooseArchiveDestination?: (
     format: RepositoryArchiveFormat,
@@ -557,6 +579,7 @@ interface IRepositoryToolsState {
   readonly shallowHistoryBusy: boolean
   readonly patchSeriesBusy: boolean
   readonly customGitCommandsBusy: boolean
+  readonly signingBusy: boolean
   readonly searchActive: boolean
   readonly searchPattern: string
   readonly searchMode: FilterMode
@@ -571,6 +594,7 @@ interface IRepositoryToolsState {
   readonly toolFilterCaseSensitive: boolean
   readonly toolCategory: RepositoryToolsHubCategoryFilter
   readonly selectedTool: RepositoryToolsHubToolID
+  readonly languageMode: LanguageMode
 }
 
 let nextOperationSequence = 0
@@ -604,6 +628,7 @@ export class RepositoryTools extends React.Component<
 
   public constructor(props: IRepositoryToolsProps) {
     super(props)
+    const selectedTool = this.resolveHubTool(props.initialTool)
     this.state = {
       gitAvailable: false,
       gitVersion: null,
@@ -621,6 +646,7 @@ export class RepositoryTools extends React.Component<
       shallowHistoryBusy: false,
       patchSeriesBusy: false,
       customGitCommandsBusy: false,
+      signingBusy: false,
       searchActive: false,
       searchPattern: '',
       searchMode: normalizeContentSearchMode(
@@ -638,12 +664,31 @@ export class RepositoryTools extends React.Component<
       toolFilterMode: readPersistedFilterMode(RepositoryToolsFilterId),
       toolFilterCaseSensitive: false,
       toolCategory: 'All',
-      selectedTool: DefaultHubTool,
+      selectedTool,
+      languageMode: getPersistedLanguageMode(),
     }
   }
 
   private get client() {
     return this.props.client ?? defaultClient
+  }
+
+  private resolveHubTool(
+    tool: RepositoryToolsHubToolID | undefined
+  ): RepositoryToolsHubToolID {
+    return tool !== undefined &&
+      this.getAllHubEntries().some(entry => entry.id === tool)
+      ? tool
+      : DefaultHubTool
+  }
+
+  /** Select a real hub entry and make it visible regardless of stale filters. */
+  public selectTool(tool: RepositoryToolsHubToolID): void {
+    this.setState({
+      selectedTool: this.resolveHubTool(tool),
+      toolFilter: '',
+      toolCategory: 'All',
+    })
   }
 
   private get temporaryToolsReadOnlyMessage(): string | null {
@@ -659,6 +704,10 @@ export class RepositoryTools extends React.Component<
     this.mounted = true
     this.unsubscribeOutput = this.client.onOutput(this.onOutput)
     this.unsubscribeState = this.client.onState(this.onState)
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
     void this.loadAvailability()
   }
 
@@ -681,6 +730,7 @@ export class RepositoryTools extends React.Component<
         shallowHistoryBusy: false,
         patchSeriesBusy: false,
         customGitCommandsBusy: false,
+        signingBusy: false,
         searchActive: false,
         searchPattern: '',
         searchRevision: '',
@@ -690,8 +740,13 @@ export class RepositoryTools extends React.Component<
         noteRequest: null,
         toolFilter: '',
         toolCategory: 'All',
-        selectedTool: DefaultHubTool,
+        selectedTool: this.resolveHubTool(this.props.initialTool),
       })
+    } else if (
+      prevProps.initialTool !== this.props.initialTool &&
+      this.props.initialTool !== undefined
+    ) {
+      this.selectTool(this.props.initialTool)
     } else if (
       !this.getAllHubEntries().some(
         entry => entry.id === this.state.selectedTool
@@ -713,7 +768,29 @@ export class RepositoryTools extends React.Component<
     this.unsubscribeState?.()
     this.unsubscribeOutput = null
     this.unsubscribeState = null
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
     this.cancelActiveRun()
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    const languageMode = normalizeLanguageMode(
+      (event as CustomEvent<unknown>).detail
+    )
+    if (languageMode !== this.state.languageMode) {
+      this.setState({ languageMode })
+    }
+  }
+
+  private get signingHubEntry(): IRepositoryToolsHubEntry {
+    const languageMode = this.state?.languageMode ?? getPersistedLanguageMode()
+    return {
+      ...SigningHubEntry,
+      title: translate('repositorySigning.title', languageMode),
+      description: translate('repositorySigning.hubDescription', languageMode),
+    }
   }
 
   private cancelActiveRun() {
@@ -756,7 +833,8 @@ export class RepositoryTools extends React.Component<
       this.state.bundleImportBusy ||
       this.state.shallowHistoryBusy ||
       this.state.patchSeriesBusy ||
-      this.state.customGitCommandsBusy
+      this.state.customGitCommandsBusy ||
+      this.state.signingBusy
     )
   }
 
@@ -781,6 +859,12 @@ export class RepositoryTools extends React.Component<
   private onCustomGitCommandsBusyChanged = (customGitCommandsBusy: boolean) => {
     if (this.state.customGitCommandsBusy !== customGitCommandsBusy) {
       this.setState({ customGitCommandsBusy })
+    }
+  }
+
+  private onSigningBusyChanged = (signingBusy: boolean) => {
+    if (this.state.signingBusy !== signingBusy) {
+      this.setState({ signingBusy })
     }
   }
 
@@ -898,6 +982,9 @@ export class RepositoryTools extends React.Component<
       this.props.githubProjects === undefined ||
       this.props.githubProjects.repository.gitHubRepository === null
     const githubAPIFunctionsHidden = this.props.githubAPIFunctions === undefined
+    const baseEntries = RepositoryToolsHubEntries.map(entry =>
+      entry.id === SigningHubEntry.id ? this.signingHubEntry : entry
+    )
 
     if (
       submodulesHidden &&
@@ -907,11 +994,11 @@ export class RepositoryTools extends React.Component<
       githubProjectsHidden &&
       githubAPIFunctionsHidden
     ) {
-      return RepositoryToolsHubEntries
+      return baseEntries
     }
 
     return [
-      ...RepositoryToolsHubEntries,
+      ...baseEntries,
       ...(submodulesHidden ? [] : [SubmoduleManagerHubEntry]),
       ...(subtreesHidden ? [] : [SubtreeManagerHubEntry]),
       ...(cheapLfsHidden ? [] : [CheapLfsHubEntry]),
@@ -1972,6 +2059,26 @@ export class RepositoryTools extends React.Component<
     )
   }
 
+  private renderSigning() {
+    return (
+      <RepositorySigning
+        repositoryPath={this.props.repositoryPath}
+        disabled={
+          this.runId !== null ||
+          this.state.bundleImportBusy ||
+          this.state.shallowHistoryBusy ||
+          this.state.patchSeriesBusy ||
+          this.state.customGitCommandsBusy ||
+          !this.state.gitAvailable ||
+          this.temporaryToolsReadOnlyMessage !== null
+        }
+        client={this.temporarySafeClient}
+        onRefreshRepository={this.props.onRefreshRepository}
+        onBusyChanged={this.onSigningBusyChanged}
+      />
+    )
+  }
+
   private renderPatchSeries() {
     return (
       <RepositoryPatchSeries
@@ -2487,6 +2594,9 @@ export class RepositoryTools extends React.Component<
         key={entry.id}
         className="repository-tools-list-item"
         data-hub-tool={entry.id}
+        {...(entry.id === 'signing'
+          ? teleportAnchor('repository-tools-signing')
+          : {})}
         aria-current={selected ? 'true' : undefined}
         onClick={this.onHubToolClicked}
       >
@@ -2506,7 +2616,9 @@ export class RepositoryTools extends React.Component<
   }
 
   private renderSidebar() {
-    const entries = this.getVisibleHubEntries()
+    const entries = this.getVisibleHubEntries().filter(
+      entry => entry.id !== SigningHubEntry.id
+    )
     const allEntries = this.getAllHubEntries()
     // Only offer category chips that filter to at least one entry; gated
     // categories (Nested repositories) disappear with their entries.
@@ -2518,6 +2630,17 @@ export class RepositoryTools extends React.Component<
     ]
     return (
       <aside className="repository-tools-sidebar">
+        <nav
+          className="repository-tools-functions repository-tools-list"
+          aria-label={translate(
+            'repositorySigning.shortcutLabel',
+            this.state.languageMode === 'bilingual'
+              ? 'english'
+              : this.state.languageMode
+          )}
+        >
+          {this.renderToolListItem(this.signingHubEntry)}
+        </nav>
         <div className="repository-tools-search">
           <Octicon symbol={octicons.search} />
           <input
@@ -2566,7 +2689,7 @@ export class RepositoryTools extends React.Component<
           {entries.map(entry => this.renderToolListItem(entry))}
           {entries.length === 0 && (
             <span className="repository-tools-list-empty">
-              No tools match this search.
+              No other tools match this search.
             </span>
           )}
         </nav>
@@ -2593,6 +2716,9 @@ export class RepositoryTools extends React.Component<
         {selected === 'github-projects' && this.renderGitHubProjects()}
         {selected === 'github-api-functions' && this.renderGitHubAPIFunctions()}
         {selected === 'export-artifacts' && this.renderExport()}
+        <div className="repository-tools-panel" hidden={selected !== 'signing'}>
+          {this.renderSigning()}
+        </div>
         <div
           className="repository-tools-panel"
           hidden={selected !== 'shallow-history'}
@@ -2622,6 +2748,7 @@ export class RepositoryTools extends React.Component<
         {this.renderNoteConfirmation()}
         {selected !== 'github-projects' &&
           selected !== 'github-api-functions' &&
+          selected !== 'signing' &&
           this.renderResults()}
       </section>
     )

@@ -136,6 +136,8 @@ describe('CodexRunner execution', () => {
       cleanEnv
     )
     assert.equal(result.ok, true)
+    assert.equal(result.code, 0)
+    assert.equal(result.cancelled, false)
     assert.equal(spawnCalls.length, 1)
     const call = spawnCalls[0]
     assert.equal(call.opts.cwd, 'C:\\repo with spaces')
@@ -170,6 +172,8 @@ describe('CodexRunner execution', () => {
       cleanEnv
     )
     assert.equal(result.ok, true)
+    assert.equal(result.code, -1)
+    assert.equal(result.cancelled, true)
     assert.equal(spawnCalls.length, 0)
   })
 
@@ -192,6 +196,8 @@ describe('CodexRunner execution', () => {
 
     const result = await resultPromise
     assert.equal(result.ok, true)
+    assert.equal(result.code, -1)
+    assert.equal(result.cancelled, true)
     assert.deepEqual(killedPids, [5150])
 
     await runner.killAll()
@@ -209,6 +215,18 @@ describe('CodexRunner execution', () => {
     )
     assert.equal(lines.length, 2) // safe command line + bounded stdout tail
     assert.ok(lines[1].length <= 16000)
+  })
+
+  it('reports a non-zero terminal exit without calling the task successful', async () => {
+    responses.push({ code: 9 })
+    const result = await new CodexRunner().runCodex(
+      { repoPath: 'C:\\repo', prompt: 'fix', autoApprove: false },
+      () => {},
+      new AbortController().signal,
+      cleanEnv
+    )
+
+    assert.deepStrictEqual(result, { ok: true, code: 9, cancelled: false })
   })
 })
 

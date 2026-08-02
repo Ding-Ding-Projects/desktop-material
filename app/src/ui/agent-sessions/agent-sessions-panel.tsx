@@ -13,11 +13,12 @@ import { Button } from '../lib/button'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { AgentSessionFleetList } from './agent-session-fleet-list'
 import { NewAgentSessionForm } from './new-agent-session-form'
+import { getPersistedLanguageMode, t } from '../../lib/i18n'
 
 export interface IAgentSessionsPanelProps {
   /** Every worktree in the repository, whether or not an agent runs in it. */
   readonly sessions: ReadonlyArray<IAgentSession>
-  /** Which runners the host detection probes found. */
+  /** Which runners the host probes found installed and authenticated. */
   readonly availability: IAgentRunnerAvailability
   /** Short branch names offered as the base for a new session. */
   readonly baseBranches: ReadonlyArray<string>
@@ -26,7 +27,10 @@ export interface IAgentSessionsPanelProps {
   readonly existingBranchNames: ReadonlyArray<string>
   readonly selectedPath: string | null
   readonly onSelectSession: (session: IAgentSession) => void
-  readonly onCreateSession: (request: INewAgentSessionRequest) => void
+  readonly onCancelSession?: (session: IAgentSession) => void
+  readonly onCreateSession: (
+    request: INewAgentSessionRequest
+  ) => boolean | Promise<boolean>
   /** True while a create is in flight. */
   readonly isCreating: boolean
   readonly onConfigureSetupCommands?: () => void
@@ -34,6 +38,7 @@ export interface IAgentSessionsPanelProps {
 
 interface IAgentSessionsPanelState {
   readonly isCreatorOpen: boolean
+  readonly isSubmitting: boolean
 }
 
 /**
@@ -49,6 +54,8 @@ export class AgentSessionsPanel extends React.Component<
   IAgentSessionsPanelState
 > {
   private getFleet = memoizeOne(buildAgentSessionFleet)
+  private readonly newSessionButton = React.createRef<Button>()
+  private mounted = false
 
   private getWorktreeNames = memoizeOne(
     (sessions: ReadonlyArray<IAgentSession>) => sessions.map(s => s.name)
@@ -56,20 +63,57 @@ export class AgentSessionsPanel extends React.Component<
 
   public constructor(props: IAgentSessionsPanelProps) {
     super(props)
-    this.state = { isCreatorOpen: false }
+    this.state = { isCreatorOpen: false, isSubmitting: false }
+  }
+
+  public componentDidMount() {
+    this.mounted = true
+  }
+
+  public componentWillUnmount() {
+    this.mounted = false
   }
 
   private onOpenCreator = () => {
-    this.setState({ isCreatorOpen: true })
+    this.setState({ isCreatorOpen: true, isSubmitting: false })
   }
 
   private onCloseCreator = () => {
-    this.setState({ isCreatorOpen: false })
+    if (this.props.isCreating || this.state.isSubmitting) {
+      return
+    }
+    this.setState({ isCreatorOpen: false }, () =>
+      this.newSessionButton.current?.focus()
+    )
   }
 
-  private onStart = (request: INewAgentSessionRequest) => {
-    this.props.onCreateSession(request)
-    this.setState({ isCreatorOpen: false })
+  private onStart = async (request: INewAgentSessionRequest) => {
+    if (this.props.isCreating || this.state.isSubmitting) {
+      return
+    }
+
+    this.setState({ isSubmitting: true })
+    let accepted = false
+    try {
+      accepted = await this.props.onCreateSession(request)
+    } catch {
+      accepted = false
+    }
+    if (!this.mounted) {
+      return
+    }
+
+    this.setState(
+      {
+        isCreatorOpen: accepted ? false : this.state.isCreatorOpen,
+        isSubmitting: false,
+      },
+      () => {
+        if (accepted) {
+          this.newSessionButton.current?.focus()
+        }
+      }
+    )
   }
 
   private renderCreator() {
@@ -84,7 +128,7 @@ export class AgentSessionsPanel extends React.Component<
         defaultBaseBranch={this.props.defaultBaseBranch}
         existingWorktreeNames={this.getWorktreeNames(this.props.sessions)}
         existingBranchNames={this.props.existingBranchNames}
-        isStarting={this.props.isCreating}
+        isStarting={this.props.isCreating || this.state.isSubmitting}
         onStart={this.onStart}
         onCancel={this.onCloseCreator}
         onConfigureSetupCommands={this.props.onConfigureSetupCommands}
@@ -93,22 +137,27 @@ export class AgentSessionsPanel extends React.Component<
   }
 
   public render() {
-    const rows = this.getFleet(this.props.sessions)
+    const rows = this.getFleet(this.props.sessions, getPersistedLanguageMode())
 
     return (
       <div className="agent-sessions-panel">
         <div className="agent-sessions-header">
           <h2 className="agent-sessions-title">
-            Worktrees
+            {t('agentSessions.worktrees')}
             <span className="agent-sessions-count">{rows.length}</span>
           </h2>
           <Button
+            ref={this.newSessionButton}
             className="new-agent-session-button"
             onClick={this.onOpenCreator}
-            disabled={this.state.isCreatorOpen}
+            disabled={
+              this.state.isCreatorOpen ||
+              this.props.isCreating ||
+              this.state.isSubmitting
+            }
           >
             <MaterialSymbol name="add" size={18} />
-            New Agent Session
+            {t('agentSessions.newSession')}
           </Button>
         </div>
         {this.renderCreator()}
@@ -117,6 +166,7 @@ export class AgentSessionsPanel extends React.Component<
             rows={rows}
             selectedPath={this.props.selectedPath}
             onSelect={this.props.onSelectSession}
+            onCancel={this.props.onCancelSession}
           />
         </div>
       </div>

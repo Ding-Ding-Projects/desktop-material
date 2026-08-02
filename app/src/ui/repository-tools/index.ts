@@ -17,6 +17,7 @@ export type { IRepositoryHooksClient } from './repository-hooks'
 export type {
   IRepositoryToolsClient,
   IRepositoryToolsProps,
+  RepositoryToolsHubToolID,
 } from './repository-tools'
 export {
   getRepositoryToolOperation,

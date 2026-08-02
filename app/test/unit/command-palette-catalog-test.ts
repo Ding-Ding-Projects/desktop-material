@@ -411,6 +411,53 @@ describe('command palette rich controls and homes', () => {
     }
   })
 
+  it('opens all signing rows on the real Repository Tools signing target', () => {
+    const signingEvents = [
+      'palette:set-signing-commits',
+      'palette:set-signing-tags',
+      'palette:signing-policy',
+    ]
+
+    for (const event of signingEvents) {
+      const command = CommandPaletteCatalog.find(
+        candidate => candidate.event === event
+      )
+      assert.ok(command, event)
+      assert.equal(command.home?.kind, 'surface', event)
+      if (command.home?.kind !== 'surface') {
+        continue
+      }
+      assert.equal(
+        command.home.labelKey,
+        'commandPalette.homeRepositoryTools',
+        event
+      )
+      assert.equal(command.home.openEvent, 'show-repository-tools', event)
+      assert.equal(command.home.targetId, 'repositoryToolsSigning', event)
+      assert.equal(command.isAvailable?.(emptyContext), false, event)
+      assert.equal(command.isAvailable?.(repositoryContext), true, event)
+    }
+
+    assert.equal(
+      teleportTargetSelector('repositoryToolsSigning'),
+      '[data-teleport-target="repository-tools-signing"]'
+    )
+  })
+
+  it('opens tag lifecycle through its own exact Repository Tools route', () => {
+    const command = CommandPaletteCatalog.find(
+      candidate => candidate.event === 'palette:tag-lifecycle'
+    )
+    assert.ok(command)
+    assert.equal(command.home?.kind, 'surface')
+    if (command.home?.kind !== 'surface') {
+      return
+    }
+    assert.equal(command.home.labelKey, 'commandPalette.homeRepositoryTools')
+    assert.equal(command.home.openEvent, 'self')
+    assert.equal(command.home.targetId, undefined)
+  })
+
   it('never dispatches a network or destructive command as its own opener', () => {
     for (const event of [
       'push',

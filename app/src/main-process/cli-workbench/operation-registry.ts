@@ -7,6 +7,7 @@ import {
   RepositoryToolOperationID,
 } from '../../lib/cli-workbench'
 import { prepareCustomGitCommand } from '../../lib/custom-git-command'
+import { normalizeRepositorySigningKey } from '../../lib/repository-signing'
 
 const MaximumPathLength = 32_767
 const MaximumRemoteLength = 255
@@ -17,6 +18,7 @@ const MaximumSearchPatternLength = 256
 const MaximumPatchFiles = 256
 const MaximumPatchFileBytes = 16 * 1024 * 1024
 const MaximumPatchSeriesBytes = 64 * 1024 * 1024
+const SigningConfigPattern = '^(gpg\\.format|commit\\.gpgsign|tag\\.gpgsign)$'
 
 export interface IResolvedCLIWorkbenchOperation {
   readonly operation: CLIWorkbenchOperation
@@ -293,6 +295,50 @@ function isValidFullRefName(ref: string): boolean {
     )
 }
 
+function normalizeSigningScope(value: unknown): '--local' | '--global' {
+  if (value === 'local') {
+    return '--local'
+  }
+  if (value === 'global') {
+    return '--global'
+  }
+  throw new Error('Choose a valid signing configuration scope.')
+}
+
+function normalizeSigningFormat(value: unknown): 'openpgp' | 'ssh' | 'x509' {
+  if (value === 'openpgp' || value === 'ssh' || value === 'x509') {
+    return value
+  }
+  throw new Error('Choose a supported signing format.')
+}
+
+function normalizeSigningTagName(value: unknown): string {
+  if (typeof value !== 'string') {
+    throw new Error('Choose a valid annotated tag.')
+  }
+  const tagName = value.trim()
+  if (
+    tagName.length === 0 ||
+    tagName.length > MaximumBranchLength ||
+    tagName === '@' ||
+    tagName.startsWith('-') ||
+    !isValidFullRefName(`refs/tags/${tagName}`)
+  ) {
+    throw new Error('Choose a valid annotated tag.')
+  }
+  return tagName
+}
+
+function normalizeSigningExpectedObject(value: unknown): string {
+  if (
+    typeof value !== 'string' ||
+    !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(value)
+  ) {
+    throw new Error('The reviewed tag object is invalid.')
+  }
+  return value
+}
+
 function normalizeBranchName(value: unknown): string {
   if (typeof value !== 'string') {
     throw new Error('Bundle import branch name is invalid.')
@@ -516,6 +562,167 @@ export async function resolveCLIWorkbenchOperation(
   }
 
   switch (value.id) {
+    case 'repository-signing-inspection': {
+      requireExactFields(value, ['id', 'scope', 'inspection'])
+      const scope = normalizeSigningScope(value.scope)
+      const signingScope = scope === '--local' ? 'local' : 'global'
+      if (
+        value.inspection !== 'settings' &&
+        value.inspection !== 'key-presence'
+      ) {
+        throw new Error('Unknown signing configuration inspection.')
+      }
+      const operation = {
+        id: value.id,
+        scope: signingScope,
+        inspection: value.inspection,
+      } as const
+      return value.inspection === 'settings'
+        ? resolved(
+            operation,
+            ['config', scope, '--null', '--get-regexp', SigningConfigPattern],
+            false
+          )
+        : resolved(
+            operation,
+            [
+              'config',
+              scope,
+              '--null',
+              '--name-only',
+              '--get-regexp',
+              '^user\\.signingkey$',
+            ],
+            false
+          )
+    }
+    case 'repository-signing-update': {
+      const scope = normalizeSigningScope(value.scope)
+      const signingScope = scope === '--local' ? 'local' : 'global'
+      switch (value.operation) {
+        case 'set-format': {
+          requireExactFields(value, ['id', 'scope', 'operation', 'format'])
+          const format = normalizeSigningFormat(value.format)
+          return resolved(
+            {
+              id: value.id,
+              scope: signingScope,
+              operation: value.operation,
+              format,
+            },
+            ['config', scope, '--replace-all', 'gpg.format', format],
+            true
+          )
+        }
+        case 'set-key': {
+          requireExactFields(value, [
+            'id',
+            'scope',
+            'operation',
+            'format',
+            'key',
+          ])
+          if (typeof value.key !== 'string') {
+            throw new Error('Signing-key update is invalid.')
+          }
+          const format = normalizeSigningFormat(value.format)
+          const key = normalizeRepositorySigningKey(format, value.key)
+          return resolved(
+            {
+              id: value.id,
+              scope: signingScope,
+              operation: value.operation,
+              format,
+              key,
+            },
+            ['config', scope, '--replace-all', 'user.signingkey', key],
+            true
+          )
+        }
+        case 'set-commit-signing':
+        case 'set-tag-signing': {
+          requireExactFields(value, ['id', 'scope', 'operation', 'enabled'])
+          if (typeof value.enabled !== 'boolean') {
+            throw new Error('Signing-toggle update is invalid.')
+          }
+          return resolved(
+            {
+              id: value.id,
+              scope: signingScope,
+              operation: value.operation,
+              enabled: value.enabled,
+            },
+            [
+              'config',
+              scope,
+              '--type=bool',
+              '--replace-all',
+              value.operation === 'set-commit-signing'
+                ? 'commit.gpgsign'
+                : 'tag.gpgsign',
+              String(value.enabled),
+            ],
+            true
+          )
+        }
+        default:
+          throw new Error('Unknown signing configuration update.')
+      }
+    }
+    case 'repository-signing-list-tags':
+      requireExactFields(value, ['id'])
+      return resolved(
+        { id: value.id },
+        [
+          'for-each-ref',
+          '--count=100',
+          '--sort=-creatordate',
+          '--format=%(refname:strip=2)%00%(objecttype)%00%(objectname)',
+          'refs/tags',
+        ],
+        false
+      )
+    case 'repository-signing-verify': {
+      requireExactFields(value, ['id', 'target', 'tagName', 'expectedObject'])
+      if (value.target === 'head') {
+        if (value.tagName !== null || value.expectedObject !== null) {
+          throw new Error('HEAD signature verification is invalid.')
+        }
+        return resolved(
+          {
+            id: value.id,
+            target: value.target,
+            tagName: null,
+            expectedObject: null,
+          },
+          [
+            'log',
+            '-1',
+            '--no-show-signature',
+            '--format=%H%x00%G?%x00%GF%x00%GK',
+            'HEAD',
+          ],
+          false
+        )
+      }
+      if (value.target !== 'tag') {
+        throw new Error('Signature-verification request is invalid.')
+      }
+      const tagName = normalizeSigningTagName(value.tagName)
+      const expectedObject = normalizeSigningExpectedObject(
+        value.expectedObject
+      )
+      return resolved(
+        { id: value.id, target: value.target, tagName, expectedObject },
+        [
+          'for-each-ref',
+          '--count=1',
+          '--format=%(objectname)%00%(signature:grade)%00%(signature:fingerprint)%00%(signature:key)',
+          `refs/tags/${tagName}`,
+        ],
+        false
+      )
+    }
     case 'archive-export': {
       requireExactFields(value, ['id', 'format', 'destination'])
       if (value.format !== 'zip' && value.format !== 'tar') {

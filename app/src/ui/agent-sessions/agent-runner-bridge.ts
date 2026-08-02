@@ -1,8 +1,10 @@
 import { CodingAgentId } from '../../models/agent-session'
 import {
   IAgentRunnerAvailability,
-  UnknownAgentRunnerAvailability,
+  AgentSessionRunnerExit,
+  classifyAgentSessionRunnerExit,
   getCodingAgent,
+  toAgentRunnerAvailability,
 } from '../../lib/agent-sessions'
 import {
   cancelCodex,
@@ -32,11 +34,7 @@ export async function detectAgentRunnerAvailability(): Promise<IAgentRunnerAvail
     detectOpencode().catch(() => null),
   ])
 
-  return {
-    ...UnknownAgentRunnerAvailability,
-    codexInstalled: codex?.installed === true,
-    opencodeInstalled: opencode?.installed === true,
-  }
+  return toAgentRunnerAvailability(codex, opencode)
 }
 
 export interface IStartAgentSessionRunOptions {
@@ -57,16 +55,9 @@ export interface IStartAgentSessionRunOptions {
 }
 
 /** What happened when a session's agent was launched. */
-export interface IStartAgentSessionRunResult {
-  /**
-   * True when the agent process exited without a spawn error. It is not a
-   * claim that the task was completed — both runners are known to exit 0 on a
-   * session that errored internally.
-   */
-  readonly ok: boolean
-  /** True when no agent was launched because the session chose `<None>`. */
-  readonly skipped: boolean
-}
+export type IStartAgentSessionRunResult =
+  | { readonly status: 'skipped' }
+  | AgentSessionRunnerExit
 
 /**
  * Launch the chosen agent in a session's worktree.
@@ -80,7 +71,7 @@ export async function startAgentSessionRun(
 ): Promise<IStartAgentSessionRunResult> {
   const runner = getCodingAgent(options.agent)?.runner ?? null
   if (runner === null) {
-    return { ok: true, skipped: true }
+    return { status: 'skipped' }
   }
 
   const request = {
@@ -96,7 +87,7 @@ export async function startAgentSessionRun(
       ? await runCodexPrompt(request)
       : await runOpencodePrompt(request)
 
-  return { ok: result.ok, skipped: false }
+  return classifyAgentSessionRunnerExit(result)
 }
 
 /** Ask a running agent session to stop. */

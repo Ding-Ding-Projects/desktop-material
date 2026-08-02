@@ -49,6 +49,20 @@ describe('CLI workbench runner helpers', () => {
       )
       await assert.rejects(
         validateCLICommandRequest({
+          id: 'run-legacy-signing-recipe',
+          recipe: {
+            kind: 'repository-signing-update',
+            scope: 'local',
+            operation: 'set-commit-signing',
+            enabled: true,
+          },
+          repositoryPath: fixture.repositoryPath,
+          confirmed: true,
+        }),
+        /request fields are invalid/
+      )
+      await assert.rejects(
+        validateCLICommandRequest({
           id: 'run-unknown',
           operation: { id: 'git-alias-shell' },
           repositoryPath: fixture.repositoryPath,
@@ -102,6 +116,34 @@ describe('CLI workbench runner helpers', () => {
       })
       assert.deepEqual(confirmed.args, ['maintenance', 'run'])
       assert.equal(confirmed.confirmed, true)
+
+      const signingRequest = {
+        id: 'run-signing-update',
+        operation: {
+          id: 'repository-signing-update',
+          scope: 'local',
+          operation: 'set-commit-signing',
+          enabled: true,
+        },
+        repositoryPath: fixture.repositoryPath,
+      } as const
+      await assert.rejects(
+        validateCLICommandRequest(signingRequest),
+        /requires confirmation/
+      )
+      const confirmedSigning = await validateCLICommandRequest({
+        ...signingRequest,
+        confirmed: true,
+      })
+      assert.deepEqual(confirmedSigning.args, [
+        'config',
+        '--local',
+        '--type=bool',
+        '--replace-all',
+        'commit.gpgsign',
+        'true',
+      ])
+      assert.equal(confirmedSigning.confirmed, true)
 
       await assert.rejects(
         validateCLICommandRequest({

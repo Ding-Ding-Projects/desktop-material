@@ -4,6 +4,7 @@ import {
   IAgentSessionChip,
 } from '../../models/agent-session'
 import { WorktreeEntry } from '../../models/worktree'
+import { LanguageMode } from '../../models/language-mode'
 import {
   AgentSessionChipAttention,
   deriveAgentSessionChip,
@@ -112,9 +113,13 @@ function compareSessions(a: IAgentSessionRow, b: IAgentSessionRow): number {
  * quiet ones — recency breaking ties inside each tier.
  */
 export function buildAgentSessionFleet(
-  sessions: ReadonlyArray<IAgentSession>
+  sessions: ReadonlyArray<IAgentSession>,
+  languageMode: LanguageMode = 'english'
 ): ReadonlyArray<IAgentSessionRow> {
   return sessions
-    .map(session => ({ session, chip: deriveAgentSessionChip(session) }))
+    .map(session => ({
+      session,
+      chip: deriveAgentSessionChip(session, languageMode),
+    }))
     .sort(compareSessions)
 }

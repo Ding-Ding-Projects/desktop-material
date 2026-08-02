@@ -7,6 +7,10 @@ const repositorySource = readFileSync(
   join(process.cwd(), 'app', 'src', 'ui', 'repository.tsx'),
   'utf8'
 )
+const appSource = readFileSync(
+  join(process.cwd(), 'app', 'src', 'ui', 'app.tsx'),
+  'utf8'
+)
 const appStoreSource = readFileSync(
   join(process.cwd(), 'app', 'src', 'lib', 'stores', 'app-store.ts'),
   'utf8'
@@ -69,6 +73,50 @@ describe('repository section navigation source contract', () => {
       materialCardStyles,
       /#repository > \*:not\(\.repository-rail\)[^{]*:not\(\.cheap-lfs-manager-view\)\s*\{\s*overflow: hidden;/,
       'the higher-specificity card rule must exempt the Cheap LFS scroll owner'
+    )
+  })
+
+  it('carries the tag-lifecycle request through the lazy tools view', () => {
+    assert.match(
+      appSource,
+      /case 'palette:tag-lifecycle':\s*return this\.showRepositoryTools\('tag-lifecycle'\)/
+    )
+    const start = appSource.indexOf('private async showRepositoryTools(')
+    const end = appSource.indexOf(
+      'private async showGitHubAPIExplorer()',
+      start
+    )
+    assert.ok(start >= 0 && end > start)
+    const method = appSource.slice(start, end)
+    assert.ok(
+      method.indexOf('showRepositoryTool(initialTool)') <
+        method.indexOf('changeRepositorySection('),
+      'the exact tool must be queued before the lazy section navigation starts'
+    )
+
+    assert.match(
+      repositorySource,
+      /public showRepositoryTool\([\s\S]*?pendingRepositoryTool[\s\S]*?forceUpdate\(\)/
+    )
+    assert.match(
+      repositorySource,
+      /<module\.RepositoryTools[\s\S]*?initialTool=\{[\s\S]*?pendingRepositoryTool/
+    )
+    assert.doesNotMatch(
+      repositorySource,
+      /from ['"]\.\/repository-tools\/repository-tools['"]/
+    )
+  })
+
+  it('routes every signing palette execution to the Signing tool explicitly', () => {
+    const start = appSource.indexOf('private onPaletteCommand =')
+    const end = appSource.indexOf('private showCreateBranch', start)
+    assert.ok(start >= 0 && end > start)
+    const handler = appSource.slice(start, end)
+
+    assert.match(
+      handler,
+      /case 'palette:set-signing-commits':\s*case 'palette:set-signing-tags':\s*case 'palette:signing-policy':\s*return this\.showRepositoryTools\('signing'\)/
     )
   })
 

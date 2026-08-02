@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as Path from 'path'
+import { randomUUID } from 'crypto'
 import { CompositeDisposable } from 'event-kit'
 
 import { TransitionGroup, CSSTransition } from 'react-transition-group'
@@ -87,6 +88,35 @@ import { TitleBar, ZoomInfo, FullScreenInfo } from './window'
 
 import { RepositoriesList } from './repositories-list'
 import {
+  AgentSessionsPanel,
+  RepositorySidebarTabs,
+  type RepositorySidebarView,
+} from './agent-sessions'
+import {
+  AgentSessionLiveStore,
+  UnknownAgentRunnerAvailability,
+  getSelectableCodingAgentIds,
+  getAgentSessionBranchName,
+  readAgentSessionGitStatus,
+  shouldPollAgentSessionDiffs,
+  toAgentSession,
+  validateNewAgentSession,
+} from '../lib/agent-sessions'
+import type {
+  IAgentSession,
+  INewAgentSessionRequest,
+} from '../models/agent-session'
+import { listWorktrees } from '../lib/git/worktree'
+import {
+  cancelAgentSessionRun,
+  detectAgentRunnerAvailability,
+  startAgentSessionRun,
+} from './agent-sessions/agent-runner-bridge'
+import {
+  codingAgentDisplayName,
+  localizeAgentSessionProblem,
+} from './agent-sessions/agent-session-localization'
+import {
   CheapLfsRestoreProgress,
   ToggleCheapLfsRestoreProgressEvent,
 } from './lib/cheap-lfs-restore-progress'
@@ -128,6 +158,8 @@ import {
   showSaveDialog,
   getPath,
   showFolderContents,
+  onCodexLog,
+  onOpencodeLog,
 } from './main-process-proxy'
 import { DiscardChanges } from './discard-changes'
 import { Welcome } from './welcome'
@@ -613,6 +645,20 @@ export class App extends React.Component<IAppProps, IAppState> {
   /** The dish this launch drew, or null when it missed or was dismissed. */
   private dimSumDish: IDimSumDish | null = null
   private repositoryFileDragDepth = 0
+  private repositorySidebarView: RepositorySidebarView = 'list'
+  private agentRunnerAvailability = UnknownAgentRunnerAvailability
+  private isCreatingAgentSession = false
+  private readonly agentSessionLiveStore = new AgentSessionLiveStore({
+    readDiffStat: readAgentSessionGitStatus,
+    onPollError: error =>
+      log.warn(
+        '[App] failed to refresh an agent session diff stat',
+        asError(error)
+      ),
+  })
+  private disposeAgentSessionStore: (() => void) | null = null
+  private disposeCodexAgentLog: (() => void) | null = null
+  private disposeOpencodeAgentLog: (() => void) | null = null
   private readonly effectiveBranchRulesetCache =
     new EffectiveBranchRulesetCache()
   private readonly getEffectiveBranchRulesClient = memoizeOne(
@@ -694,6 +740,19 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   public constructor(props: IAppProps) {
     super(props)
+
+    this.agentSessionLiveStore.setPollingEnabled(false)
+    this.disposeAgentSessionStore = this.agentSessionLiveStore.subscribe(() => {
+      if (this.mounted) {
+        this.forceUpdate()
+      }
+    })
+    this.disposeCodexAgentLog = onCodexLog((_event, entry) => {
+      this.agentSessionLiveStore.recordLogActivity(entry)
+    })
+    this.disposeOpencodeAgentLog = onOpencodeLog((_event, entry) => {
+      this.agentSessionLiveStore.recordLogActivity(entry)
+    })
 
     props.dispatcher.loadInitialState().then(
       () => {
@@ -830,6 +889,13 @@ export class App extends React.Component<IAppProps, IAppState> {
   public componentWillUnmount() {
     this.mounted = false
     this.disposed = true
+    this.disposeAgentSessionStore?.()
+    this.disposeAgentSessionStore = null
+    this.disposeCodexAgentLog?.()
+    this.disposeCodexAgentLog = null
+    this.disposeOpencodeAgentLog?.()
+    this.disposeOpencodeAgentLog = null
+    this.agentSessionLiveStore.dispose()
     if (this.deferredLaunchHandle !== null) {
       cancelIdleCallback(this.deferredLaunchHandle)
       this.deferredLaunchHandle = null
@@ -1596,7 +1662,11 @@ export class App extends React.Component<IAppProps, IAppState> {
       case 'palette:show-logs-folder':
         return this.showLogsFolder()
       case 'palette:tag-lifecycle':
-        return this.showRepositoryTools()
+        return this.showRepositoryTools('tag-lifecycle')
+      case 'palette:set-signing-commits':
+      case 'palette:set-signing-tags':
+      case 'palette:signing-policy':
+        return this.showRepositoryTools('signing')
       case 'palette:github-api-explorer':
         return this.showGitHubAPIExplorer()
       case 'palette:resolve-conflicts-with-agent':
@@ -2940,12 +3010,17 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
   }
 
-  private async showRepositoryTools() {
+  private async showRepositoryTools(
+    initialTool?: Parameters<RepositoryView['showRepositoryTool']>[0]
+  ) {
     const state = this.state.selectedState
     if (state == null || state.type !== SelectionType.Repository) {
       return
     }
 
+    if (initialTool !== undefined) {
+      this.repositoryViewRef.current?.showRepositoryTool(initialTool)
+    }
     await this.props.dispatcher.closeCurrentFoldout()
     await this.props.dispatcher.changeRepositorySection(
       state.repository,
@@ -3110,6 +3185,15 @@ export class App extends React.Component<IAppProps, IAppState> {
   public componentDidMount() {
     this.mounted = true
     this.disposed = false
+    this.syncAgentSessionWorktrees()
+    this.syncAgentSessionPolling()
+    void detectAgentRunnerAvailability().then(availability => {
+      if (!this.mounted) {
+        return
+      }
+      this.agentRunnerAvailability = availability
+      this.forceUpdate()
+    })
     // componentDidMount is the first committed shell. Reveal the hidden native
     // window here: requestAnimationFrame can be throttled while that window is
     // hidden, and optional startup work must not own its visibility.
@@ -3519,6 +3603,14 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   public componentDidUpdate(prevProps: IAppProps, prevState: IAppState) {
     void prevProps
+    this.syncAgentSessionWorktrees()
+    const resetRepositorySidebar =
+      this.repositorySidebarView === 'agents' &&
+      this.getSelectedRepositoryState() === null
+    if (resetRepositorySidebar) {
+      this.repositorySidebarView = 'list'
+    }
+    this.syncAgentSessionPolling()
     if (this.getWindowTitle(prevState) !== this.getWindowTitle()) {
       this.updateWindowTitle()
     }
@@ -3539,6 +3631,9 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
     this.syncFeatureAppearanceOwners()
+    if (resetRepositorySidebar) {
+      this.forceUpdate()
+    }
   }
 
   private getOnRefreshRepositoryFn(repository: Repository) {
@@ -7483,6 +7578,332 @@ export class App extends React.Component<IAppProps, IAppState> {
     )
   }
 
+  private syncAgentSessionWorktrees() {
+    const selection = this.getSelectedRepositoryState()
+    this.agentSessionLiveStore.syncWorktreePaths(
+      selection === null
+        ? []
+        : selection.state.worktrees.map(worktree => worktree.path)
+    )
+  }
+
+  private syncAgentSessionPolling() {
+    const selection = this.getSelectedRepositoryState()
+    const isRepositoryFoldoutOpen =
+      this.state.currentFoldout?.type === FoldoutType.Repository
+    this.agentSessionLiveStore.setPollingEnabled(
+      shouldPollAgentSessionDiffs({
+        repositoryFoldoutOpen: isRepositoryFoldoutOpen,
+        agentsViewSelected: this.repositorySidebarView === 'agents',
+        hasRepositorySelection: selection !== null,
+        repositoryIsSubmodule:
+          selection?.repository instanceof SubmoduleRepository,
+      })
+    )
+  }
+
+  private onRepositorySidebarViewChanged = (view: RepositorySidebarView) => {
+    if (view === 'agents' && this.getSelectedRepositoryState() === null) {
+      return
+    }
+    this.repositorySidebarView = view
+    this.syncAgentSessionPolling()
+    this.forceUpdate()
+  }
+
+  private onSelectAgentSession = (session: IAgentSession) => {
+    const selection = this.getSelectedRepositoryState()
+    if (selection === null) {
+      return
+    }
+    const normalizedPath = Path.resolve(session.path).toLowerCase()
+    const worktree = selection.state.worktrees.find(
+      candidate => Path.resolve(candidate.path).toLowerCase() === normalizedPath
+    )
+    if (worktree === undefined) {
+      this.props.dispatcher.postNotification({
+        kind: 'app-error',
+        title: t('agentSessions.notification.unavailableTitle'),
+        body: t('agentSessions.notification.unavailableBody', {
+          name: session.name,
+        }),
+      })
+      return
+    }
+    void this.props.dispatcher.switchWorktree(selection.repository, worktree)
+  }
+
+  private onCreateAgentSession = (request: INewAgentSessionRequest) =>
+    this.createAgentSession(request)
+
+  private async createAgentSession(
+    request: INewAgentSessionRequest
+  ): Promise<boolean> {
+    if (this.isCreatingAgentSession) {
+      return false
+    }
+    const selection = this.getSelectedRepositoryState()
+    if (
+      selection === null ||
+      selection.repository instanceof SubmoduleRepository
+    ) {
+      return false
+    }
+
+    const repository = selection.repository
+    const name = request.name.trim()
+    const branchNames = selection.state.branchesState.allBranches.map(
+      branch => branch.name
+    )
+    const defaultBaseBranch =
+      selection.state.branchesState.defaultBranch?.name ??
+      branchNames[0] ??
+      'main'
+    const baseBranches = branchNames.includes(defaultBaseBranch)
+      ? branchNames
+      : [defaultBaseBranch, ...branchNames]
+    const problems = validateNewAgentSession(request, {
+      existingWorktreeNames: selection.state.worktrees.map(
+        worktree => toAgentSession(worktree).name
+      ),
+      existingBranchNames: branchNames,
+      availableBaseBranches: baseBranches,
+      selectableAgentIds: getSelectableCodingAgentIds(
+        this.agentRunnerAvailability
+      ),
+    })
+    if (problems.length > 0) {
+      this.props.dispatcher.postNotification({
+        kind: 'app-error',
+        title: t('agentSessions.notification.invalidTitle'),
+        body: problems
+          .map(problem => localizeAgentSessionProblem(problem, request))
+          .join(' '),
+      })
+      return false
+    }
+    const worktreePath = Path.join(Path.dirname(repository.path), name)
+    let createdWorktreePath = worktreePath
+    this.isCreatingAgentSession = true
+    this.forceUpdate()
+
+    try {
+      await this.props.dispatcher.addWorktree(repository, worktreePath, {
+        createBranch: getAgentSessionBranchName(name),
+        commitish: request.baseBranch,
+      })
+
+      const worktrees = await listWorktrees(repository)
+      const normalizedPath = Path.resolve(worktreePath).toLowerCase()
+      const created = worktrees.find(
+        candidate =>
+          Path.resolve(candidate.path).toLowerCase() === normalizedPath
+      )
+      if (created === undefined) {
+        throw new Error(
+          'Git created the worktree but did not return it in the refreshed worktree list.'
+        )
+      }
+      createdWorktreePath = created.path
+      this.agentSessionLiveStore.syncWorktreePaths(
+        worktrees.map(worktree => worktree.path)
+      )
+      await this.props.dispatcher.refreshRepository(repository)
+    } catch (error) {
+      const message = asError(error).message
+      this.props.dispatcher.postNotification({
+        kind: 'app-error',
+        title: t('agentSessions.notification.createFailedTitle'),
+        body: t('agentSessions.notification.failedBody', {
+          name,
+          error: message,
+        }),
+      })
+      return false
+    } finally {
+      this.isCreatingAgentSession = false
+      if (this.mounted) {
+        this.forceUpdate()
+      }
+    }
+
+    if (!this.mounted || this.disposed) {
+      return false
+    }
+
+    if (request.agent === 'none') {
+      this.props.dispatcher.postNotification({
+        kind: 'info',
+        title: t('agentSessions.notification.createdTitle'),
+        body: t('agentSessions.notification.createdBody', { name }),
+      })
+      return true
+    }
+
+    const operationId = randomUUID()
+    this.agentSessionLiveStore.beginRun(
+      createdWorktreePath,
+      request.agent,
+      operationId
+    )
+
+    void this.runAgentSession(request, name, createdWorktreePath, operationId)
+    return true
+  }
+
+  private async runAgentSession(
+    request: INewAgentSessionRequest,
+    name: string,
+    worktreePath: string,
+    operationId: string
+  ): Promise<void> {
+    try {
+      const result = await startAgentSessionRun({
+        agent: request.agent,
+        worktreePath,
+        operationId,
+        prompt: request.prompt,
+        autoApprove: false,
+      })
+      if (result.status === 'cancelled') {
+        this.agentSessionLiveStore.finishRun(operationId, {
+          ok: false,
+          cancelled: true,
+        })
+        return
+      }
+
+      if (result.status === 'exited') {
+        if (!this.agentSessionLiveStore.finishRun(operationId, { ok: true })) {
+          return
+        }
+        this.props.dispatcher.postNotification({
+          kind: 'info',
+          title: t('agentSessions.notification.endedTitle', {
+            agent: codingAgentDisplayName(request.agent),
+          }),
+          body: t('agentSessions.notification.endedBody', {
+            agent: codingAgentDisplayName(request.agent),
+            name,
+          }),
+        })
+        return
+      }
+
+      const errorMessage =
+        result.status === 'failed' &&
+        result.exitCode !== null &&
+        result.exitCode >= 0
+          ? t('agentSessions.notification.runnerExitedWithCode', {
+              agent: codingAgentDisplayName(request.agent),
+              code: String(result.exitCode),
+            })
+          : t('agentSessions.notification.runnerCouldNotStart', {
+              agent: codingAgentDisplayName(request.agent),
+            })
+      if (
+        !this.agentSessionLiveStore.finishRun(operationId, {
+          ok: false,
+          errorMessage,
+        })
+      ) {
+        return
+      }
+      this.props.dispatcher.postNotification({
+        kind: 'app-error',
+        title: t('agentSessions.notification.failedTitle'),
+        body: t('agentSessions.notification.failedBody', {
+          name,
+          error: errorMessage,
+        }),
+      })
+    } catch (error) {
+      const errorMessage = asError(error).message
+      if (
+        !this.agentSessionLiveStore.finishRun(operationId, {
+          ok: false,
+          errorMessage,
+        })
+      ) {
+        return
+      }
+      this.props.dispatcher.postNotification({
+        kind: 'app-error',
+        title: t('agentSessions.notification.failedTitle'),
+        body: t('agentSessions.notification.failedBody', {
+          name,
+          error: errorMessage,
+        }),
+      })
+    }
+  }
+
+  private onCancelAgentSession = (session: IAgentSession) => {
+    const operationId = this.agentSessionLiveStore.getOperationId(session.path)
+    if (
+      operationId === null ||
+      !this.agentSessionLiveStore.cancelRun(operationId)
+    ) {
+      return
+    }
+
+    void cancelAgentSessionRun(session.agent, operationId).catch(error => {
+      const errorMessage = asError(error).message
+      this.agentSessionLiveStore.recordCancellationFailure(
+        session.path,
+        errorMessage
+      )
+      this.props.dispatcher.postNotification({
+        kind: 'app-error',
+        title: t('agentSessions.notification.failedTitle'),
+        body: t('agentSessions.notification.failedBody', {
+          name: session.name,
+          error: errorMessage,
+        }),
+      })
+    })
+  }
+
+  private renderAgentSessionsPanel() {
+    const selection = this.getSelectedRepositoryState()
+    if (
+      selection === null ||
+      selection.repository instanceof SubmoduleRepository
+    ) {
+      return null
+    }
+
+    const { branchesState, worktrees } = selection.state
+    const branchNames = [
+      ...new Set(branchesState.allBranches.map(branch => branch.name)),
+    ]
+    const defaultBaseBranch =
+      branchesState.defaultBranch?.name ?? branchNames[0] ?? 'main'
+    const baseBranches = branchNames.includes(defaultBaseBranch)
+      ? branchNames
+      : [defaultBaseBranch, ...branchNames]
+
+    return (
+      <AgentSessionsPanel
+        sessions={worktrees.map(worktree =>
+          toAgentSession(
+            worktree,
+            this.agentSessionLiveStore.getOverlay(worktree.path)
+          )
+        )}
+        availability={this.agentRunnerAvailability}
+        baseBranches={baseBranches}
+        defaultBaseBranch={defaultBaseBranch}
+        existingBranchNames={branchNames}
+        selectedPath={selection.repository.path}
+        onSelectSession={this.onSelectAgentSession}
+        onCancelSession={this.onCancelAgentSession}
+        onCreateSession={this.onCreateAgentSession}
+        isCreating={this.isCreatingAgentSession}
+      />
+    )
+  }
+
   private renderRepositoryList = (): JSX.Element => {
     const selectedRepository = this.state.selectedState
       ? this.state.selectedState.repository
@@ -7492,7 +7913,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     const filterText = this.state.repositoryFilterText
     const repositories = this.state.repositories
     const addProgress = this.state.addRepositoriesProgress
-    return (
+    const listContent = (
       <>
         {addProgress !== null && (
           <OperationProgressRow
@@ -7539,6 +7960,23 @@ export class App extends React.Component<IAppProps, IAppState> {
           dispatcher={this.props.dispatcher}
         />
       </>
+    )
+    const selection = this.getSelectedRepositoryState()
+    const agentsDisabled =
+      selection === null || selection.repository instanceof SubmoduleRepository
+    const activeView = agentsDisabled ? 'list' : this.repositorySidebarView
+
+    return (
+      <RepositorySidebarTabs
+        activeView={activeView}
+        tabListLabel={translateForAccessibleName('agentSessions.sidebarLabel')}
+        listLabel={t('agentSessions.listTab')}
+        agentsLabel={t('agentSessions.agentsTab')}
+        agentsDisabled={agentsDisabled}
+        onViewChanged={this.onRepositorySidebarViewChanged}
+        listContent={listContent}
+        agentsContent={this.renderAgentSessionsPanel()}
+      />
     )
   }
 
@@ -7659,6 +8097,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (newState === 'open') {
       this.props.dispatcher.showFoldout({ type: FoldoutType.Repository })
     } else {
+      this.agentSessionLiveStore.setPollingEnabled(false)
       this.props.dispatcher.closeFoldout(FoldoutType.Repository)
     }
   }

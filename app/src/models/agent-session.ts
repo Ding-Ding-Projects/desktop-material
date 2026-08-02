@@ -39,7 +39,7 @@ export interface ICodingAgent {
 }
 
 /** How a session's underlying work is going right now. */
-export type AgentSessionRunState = 'idle' | 'running' | 'error'
+export type AgentSessionRunState = 'idle' | 'running' | 'error' | 'cancelled'
 
 /** The change a session has accumulated in its worktree. */
 export interface IAgentSessionDiffStat {

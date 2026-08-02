@@ -42,13 +42,35 @@ export const CodingAgents: ReadonlyArray<ICodingAgent> = [
 /** What the host detection probes found, per runner. */
 export interface IAgentRunnerAvailability {
   readonly codexInstalled: boolean
+  readonly codexAuthenticated: boolean
   readonly opencodeInstalled: boolean
+  readonly opencodeAuthenticated: boolean
 }
 
 /** Detection has not run yet, so no runner-backed agent can be offered. */
 export const UnknownAgentRunnerAvailability: IAgentRunnerAvailability = {
   codexInstalled: false,
+  codexAuthenticated: false,
   opencodeInstalled: false,
+  opencodeAuthenticated: false,
+}
+
+interface IAgentRunnerProbe {
+  readonly installed: boolean
+  readonly authConfigured: boolean
+}
+
+/** Preserve both installation and authentication results from host probes. */
+export function toAgentRunnerAvailability(
+  codex: IAgentRunnerProbe | null,
+  opencode: IAgentRunnerProbe | null
+): IAgentRunnerAvailability {
+  return {
+    codexInstalled: codex?.installed === true,
+    codexAuthenticated: codex?.authConfigured === true,
+    opencodeInstalled: opencode?.installed === true,
+    opencodeAuthenticated: opencode?.authConfigured === true,
+  }
 }
 
 /** One picker row: the agent plus whether it can be chosen, and why not. */
@@ -72,13 +94,22 @@ function isRunnerInstalled(
     : availability.opencodeInstalled
 }
 
+function isRunnerAuthenticated(
+  runner: CodingAgentRunner,
+  availability: IAgentRunnerAvailability
+): boolean {
+  return runner === 'codex'
+    ? availability.codexAuthenticated
+    : availability.opencodeAuthenticated
+}
+
 /**
  * Split the catalog into selectable and unselectable rows for a given host.
  *
  * An agent with no runner is always disabled — nothing on the host could change
- * that. An agent with a runner is disabled only while its CLI is undetected,
- * which the user can fix by installing it, so the two reasons are worded
- * differently on purpose.
+ * that. A runner-backed agent stays disabled until both its CLI and
+ * authentication are detected; installation and authentication get distinct
+ * visible reasons so the user knows which action can make it available.
  */
 export function resolveCodingAgentOptions(
   availability: IAgentRunnerAvailability,
@@ -98,6 +129,13 @@ export function resolveCodingAgentOptions(
       !isRunnerInstalled(agent.runner, availability)
     ) {
       return { agent, disabled: true, unavailableReason: 'not detected' }
+    }
+
+    if (
+      agent.runner !== null &&
+      !isRunnerAuthenticated(agent.runner, availability)
+    ) {
+      return { agent, disabled: true, unavailableReason: 'not authenticated' }
     }
 
     return { agent, disabled: false, unavailableReason: null }

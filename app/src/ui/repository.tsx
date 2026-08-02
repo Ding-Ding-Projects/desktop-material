@@ -80,6 +80,12 @@ type GitHubAPIModule =
   typeof import('./github-api-explorer/github-api-explorer')
 type RepositoryToolsModule =
   typeof import('./repository-tools/repository-tools')
+type RepositoryToolsInstance = InstanceType<
+  RepositoryToolsModule['RepositoryTools']
+>
+type RepositoryToolsInitialTool = NonNullable<
+  React.ComponentProps<RepositoryToolsModule['RepositoryTools']>['initialTool']
+>
 type CheapLfsModule = typeof import('./repository-tools/cheap-lfs')
 type RepositoryProviderTriageModule =
   typeof import('./repository-tools/provider-triage')
@@ -254,6 +260,11 @@ export class RepositoryView extends React.Component<
   private readonly changesSidebarRef = React.createRef<ChangesSidebar>()
   private readonly compareSidebarRef = React.createRef<CompareSidebar>()
   private readonly railAvatarButtonRef = React.createRef<HTMLButtonElement>()
+  private repositoryToolsRef: RepositoryToolsInstance | null = null
+  private pendingRepositoryTool: {
+    readonly repositoryHash: string
+    readonly tool: RepositoryToolsInitialTool
+  } | null = null
 
   private focusHistoryNeeded: boolean = false
   private focusChangesNeeded: boolean = false
@@ -1464,6 +1475,13 @@ export class RepositoryView extends React.Component<
 
     return (
       <module.RepositoryTools
+        ref={this.onRepositoryToolsRef}
+        initialTool={
+          this.pendingRepositoryTool?.repositoryHash ===
+          this.props.repository.hash
+            ? this.pendingRepositoryTool.tool
+            : undefined
+        }
         repository={this.props.repository}
         repositoryPath={this.props.repository.path}
         onRefreshRepository={this.refreshRepository}
@@ -1600,6 +1618,31 @@ export class RepositoryView extends React.Component<
     )
   }
 
+  private onRepositoryToolsRef = (instance: RepositoryToolsInstance | null) => {
+    this.repositoryToolsRef = instance
+    const pending = this.pendingRepositoryTool
+    if (
+      instance !== null &&
+      pending?.repositoryHash === this.props.repository.hash
+    ) {
+      this.pendingRepositoryTool = null
+      instance.selectTool(pending.tool)
+    }
+  }
+
+  /** Select an exact tool now, or carry the request through the lazy load. */
+  public showRepositoryTool(tool: RepositoryToolsInitialTool): void {
+    if (this.repositoryToolsRef !== null) {
+      this.repositoryToolsRef.selectTool(tool)
+      return
+    }
+    this.pendingRepositoryTool = {
+      repositoryHash: this.props.repository.hash,
+      tool,
+    }
+    this.forceUpdate()
+  }
+
   private onRevertCommit = (commit: Commit) => {
     this.props.dispatcher.revertCommit(this.props.repository, commit)
   }
@@ -1628,6 +1671,8 @@ export class RepositoryView extends React.Component<
 
   public componentDidUpdate(prevProps: IRepositoryViewProps): void {
     if (prevProps.repository.hash !== this.props.repository.hash) {
+      this.repositoryToolsRef = null
+      this.pendingRepositoryTool = null
       const repositoryHash = this.props.repository.hash
       const inventoryState = this.cancelRepositoryInventoryLoads(false)
       this.setState(

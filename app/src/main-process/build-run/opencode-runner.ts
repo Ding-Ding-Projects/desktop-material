@@ -88,6 +88,7 @@ export interface IAgentProcessResult {
   readonly code: number
   readonly output: string
   readonly spawnError: boolean
+  readonly cancelled: boolean
 }
 
 export class OpencodeRunner {
@@ -188,7 +189,11 @@ export class OpencodeRunner {
       onLog,
       signal
     )
-    return { ok: !result.spawnError }
+    return {
+      ok: !result.spawnError,
+      code: result.code,
+      cancelled: result.cancelled,
+    }
   }
 
   /** Tear down every live child before application shutdown continues. */
@@ -233,18 +238,23 @@ export class OpencodeRunner {
   ): Promise<IAgentProcessResult> {
     return new Promise<IAgentProcessResult>(resolve => {
       if (signal.aborted) {
-        resolve({ code: -1, output: '', spawnError: false })
+        resolve({ code: -1, output: '', spawnError: false, cancelled: true })
         return
       }
 
       void resolveSpawn(exe, args, env).then(spec => {
         if ('error' in spec) {
           onLog('meta', spec.error)
-          resolve({ code: -1, output: spec.error, spawnError: true })
+          resolve({
+            code: -1,
+            output: spec.error,
+            spawnError: true,
+            cancelled: false,
+          })
           return
         }
         if (signal.aborted) {
-          resolve({ code: -1, output: '', spawnError: false })
+          resolve({ code: -1, output: '', spawnError: false, cancelled: true })
           return
         }
 
@@ -262,7 +272,12 @@ export class OpencodeRunner {
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err)
           onLog('meta', `Failed to run ${exe}: ${message}`)
-          resolve({ code: -1, output: message, spawnError: true })
+          resolve({
+            code: -1,
+            output: message,
+            spawnError: true,
+            cancelled: false,
+          })
           return
         }
 
@@ -326,7 +341,7 @@ export class OpencodeRunner {
               onLog(name, buffers[name].slice(-STREAM_LINE_CAP))
             }
           }
-          resolve({ code, output, spawnError })
+          resolve({ code, output, spawnError, cancelled: signal.aborted })
         }
 
         child.on('error', err => {

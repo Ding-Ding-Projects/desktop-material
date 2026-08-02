@@ -1,14 +1,13 @@
 import * as React from 'react'
 import {
-  CLICommandRecipe,
   ICLICommandOutputEvent,
-  ICLICommandRequest,
   ICLICommandStateEvent,
+  ICLIWorkbenchOperationRequest,
   RepositorySigningFormat,
+  RepositorySigningOperation,
   RepositorySigningScope,
 } from '../../lib/cli-workbench'
 import {
-  describeRepositorySignatureGrade,
   getEffectiveRepositorySigningConfig,
   getRepositorySigningConfigToken,
   IRepositorySignatureVerification,
@@ -20,7 +19,18 @@ import {
   parseRepositorySigningConfig,
   parseRepositorySigningKeyPresence,
   parseRepositorySigningTags,
+  RepositorySignatureGrade,
 } from '../../lib/repository-signing'
+import {
+  bilingualVariable,
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+  translate,
+  translateForAccessibleName,
+  TranslationKey,
+  TranslationVariables,
+} from '../../lib/i18n'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { Button } from '../lib/button'
 
 const MaximumInspectionOutput = 64 * 1024
@@ -44,7 +54,7 @@ type SigningPhase =
   | 'failed'
 
 interface ISigningClient {
-  readonly start: (request: ICLICommandRequest) => Promise<void>
+  readonly start: (request: ICLIWorkbenchOperationRequest) => Promise<void>
   readonly cancel: (id: string) => Promise<boolean>
   readonly onOutput: (
     handler: (output: ICLICommandOutputEvent) => void
@@ -87,8 +97,21 @@ interface IRepositorySigningState {
   readonly selectedTag: string
   readonly verification: IRepositorySignatureVerification | null
   readonly verificationTarget: string | null
-  readonly status: string
-  readonly error: string | null
+  readonly status: ISigningMessage
+  readonly error: ISigningMessage | null
+  readonly languageMode: LanguageMode
+}
+
+interface ISigningMessage {
+  readonly key: TranslationKey
+  readonly variables?: TranslationVariables
+}
+
+interface IEditableSigningConfig {
+  readonly format: RepositorySigningFormat
+  readonly commitSigning: boolean
+  readonly tagSigning: boolean
+  readonly hasSigningKey: boolean
 }
 
 let nextSigningSequence = 0
@@ -104,8 +127,17 @@ function emptyConfig(scope: RepositorySigningScope): IRepositorySigningConfig {
   }
 }
 
-function scopeLabel(scope: RepositorySigningScope): string {
-  return scope === 'local' ? 'This repository' : 'All repositories'
+function signingMessage(
+  key: TranslationKey,
+  variables?: TranslationVariables
+): ISigningMessage {
+  return variables === undefined ? { key } : { key, variables }
+}
+
+class SigningMessageError extends Error {
+  public constructor(public readonly signingMessage: ISigningMessage) {
+    super(signingMessage.key)
+  }
 }
 
 export class RepositorySigning extends React.Component<
@@ -146,14 +178,19 @@ export class RepositorySigning extends React.Component<
       selectedTag: '',
       verification: null,
       verificationTarget: null,
-      status: 'Inspect signing configuration before making changes.',
+      status: signingMessage('repositorySigning.status.idle'),
       error: null,
+      languageMode: getPersistedLanguageMode(),
     }
   }
 
   public componentDidMount() {
     this.mounted = true
     this.subscribe(this.props.client)
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
   }
 
   public componentDidUpdate(prevProps: IRepositorySigningProps) {
@@ -180,6 +217,84 @@ export class RepositorySigning extends React.Component<
     this.mutationStarted = false
     this.unsubscribe()
     this.cancelRun()
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    const languageMode = normalizeLanguageMode(
+      (event as CustomEvent<unknown>).detail
+    )
+    if (languageMode !== this.state.languageMode) {
+      this.setState({ languageMode })
+    }
+  }
+
+  private text = (key: TranslationKey, variables: TranslationVariables = {}) =>
+    translate(key, this.state.languageMode, variables)
+
+  private accessibleText = (
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ) => translateForAccessibleName(key, variables, this.state.languageMode)
+
+  private renderMessage(message: ISigningMessage): string {
+    return this.text(message.key, message.variables)
+  }
+
+  private errorMessage(
+    error: unknown,
+    fallbackKey: TranslationKey
+  ): ISigningMessage {
+    if (error instanceof SigningMessageError) {
+      return error.signingMessage
+    }
+    if (error instanceof Error) {
+      return signingMessage('repositorySigning.error.detail', {
+        detail: error.message,
+      })
+    }
+    return signingMessage(fallbackKey)
+  }
+
+  private throwMessage(
+    key: TranslationKey,
+    variables?: TranslationVariables
+  ): never {
+    throw new SigningMessageError(signingMessage(key, variables))
+  }
+
+  private scopeText(scope: RepositorySigningScope): string {
+    return this.text(
+      scope === 'local'
+        ? 'repositorySigning.scope.local'
+        : 'repositorySigning.scope.global'
+    )
+  }
+
+  private gradeMessage(grade: RepositorySignatureGrade): ISigningMessage {
+    switch (grade) {
+      case 'good':
+        return signingMessage('repositorySigning.grade.good')
+      case 'bad':
+        return signingMessage('repositorySigning.grade.bad')
+      case 'good-unknown-validity':
+        return signingMessage('repositorySigning.grade.goodUnknownValidity')
+      case 'expired-signature':
+        return signingMessage('repositorySigning.grade.expiredSignature')
+      case 'expired-key':
+        return signingMessage('repositorySigning.grade.expiredKey')
+      case 'revoked-key':
+        return signingMessage('repositorySigning.grade.revokedKey')
+      case 'cannot-verify':
+        return signingMessage('repositorySigning.grade.cannotVerify')
+      case 'unsigned':
+        return signingMessage('repositorySigning.grade.unsigned')
+      default:
+        return signingMessage('repositorySigning.grade.unknown')
+    }
   }
 
   private subscribe(client: ISigningClient) {
@@ -208,7 +323,7 @@ export class RepositorySigning extends React.Component<
 
   private startCommand(
     phase: SigningPhase,
-    recipe: CLICommandRecipe,
+    operation: RepositorySigningOperation,
     confirmed: boolean
   ) {
     if (!this.mounted || this.runId !== null) {
@@ -224,13 +339,13 @@ export class RepositorySigning extends React.Component<
       .start({
         id,
         repositoryPath: this.props.repositoryPath,
-        recipe,
+        operation,
         confirmed,
       })
       .catch(() => {
         if (this.mounted && this.runId === id) {
           this.runId = null
-          this.fail('The signing operation could not be started safely.')
+          this.fail(signingMessage('repositorySigning.error.start'))
         }
       })
   }
@@ -270,14 +385,14 @@ export class RepositorySigning extends React.Component<
         phase: 'cancelled',
         review: null,
         status: mutationStarted
-          ? 'Signing operation cancelled. Some reviewed settings may already be applied; inspect the current state again.'
-          : 'Signing operation cancelled. No reviewed signing update was started.',
+          ? signingMessage('repositorySigning.status.cancelledPartial')
+          : signingMessage('repositorySigning.status.cancelledClean'),
         error: null,
       })
       return
     }
     if (this.commandOutputTruncated) {
-      this.fail('Git returned more signing data than can be reviewed safely.')
+      this.fail(signingMessage('repositorySigning.error.tooMuchData'))
       return
     }
 
@@ -292,18 +407,14 @@ export class RepositorySigning extends React.Component<
       event.exitCode === 1 &&
       this.commandStdout.length === 0
     if (event.state !== 'completed' && !emptyConfigResult) {
-      this.fail('Git could not complete the bounded signing operation.')
+      this.fail(signingMessage('repositorySigning.error.gitFailed'))
       return
     }
 
     try {
       this.advance(phase)
     } catch (error) {
-      this.fail(
-        error instanceof Error
-          ? error.message
-          : 'The signing operation stopped safely.'
-      )
+      this.fail(this.errorMessage(error, 'repositorySigning.status.failedSafe'))
     }
   }
 
@@ -314,9 +425,9 @@ export class RepositorySigning extends React.Component<
         this.startCommand(
           'inspecting-local-key',
           {
-            kind: 'repository-signing-inspection',
+            id: 'repository-signing-inspection',
             scope: 'local',
-            operation: 'key-presence',
+            inspection: 'key-presence',
           },
           false
         )
@@ -331,9 +442,9 @@ export class RepositorySigning extends React.Component<
         this.startCommand(
           'inspecting-global-settings',
           {
-            kind: 'repository-signing-inspection',
+            id: 'repository-signing-inspection',
             scope: 'global',
-            operation: 'settings',
+            inspection: 'settings',
           },
           false
         )
@@ -344,9 +455,9 @@ export class RepositorySigning extends React.Component<
         this.startCommand(
           'inspecting-global-key',
           {
-            kind: 'repository-signing-inspection',
+            id: 'repository-signing-inspection',
             scope: 'global',
-            operation: 'key-presence',
+            inspection: 'key-presence',
           },
           false
         )
@@ -370,7 +481,7 @@ export class RepositorySigning extends React.Component<
           tagSigning: effective.tagSigning,
           signingKey: '',
           review: null,
-          status: 'Signing configuration inspected safely.',
+          status: signingMessage('repositorySigning.status.inspected'),
           error: null,
         })
         return
@@ -380,9 +491,9 @@ export class RepositorySigning extends React.Component<
         this.startCommand(
           'rechecking-key',
           {
-            kind: 'repository-signing-inspection',
+            id: 'repository-signing-inspection',
             scope: this.requireReview().scope,
-            operation: 'key-presence',
+            inspection: 'key-presence',
           },
           false
         )
@@ -395,9 +506,7 @@ export class RepositorySigning extends React.Component<
           parseRepositorySigningKeyPresence(this.commandStdout)
         )
         if (getRepositorySigningConfigToken(current) !== review.configToken) {
-          throw new Error(
-            'Signing configuration changed after review. Inspect and review it again.'
-          )
+          this.throwMessage('repositorySigning.error.configChanged')
         }
         this.setState({ updateIndex: 0 })
         this.startNextUpdate(review, 0)
@@ -420,10 +529,14 @@ export class RepositorySigning extends React.Component<
           selectedTag: tags[0]?.name ?? '',
           status:
             tags.length === 0
-              ? 'No annotated tags are available to verify.'
-              : `Loaded ${tags.length.toLocaleString('en-US')} annotated tag${
-                  tags.length === 1 ? '' : 's'
-                }.`,
+              ? signingMessage('repositorySigning.status.noTags')
+              : signingMessage('repositorySigning.status.loadedTags', {
+                  count: tags.length.toLocaleString(),
+                  noun: bilingualVariable(
+                    tags.length === 1 ? 'tag' : 'tags',
+                    'tag'
+                  ),
+                }),
           error: null,
         })
         return
@@ -433,72 +546,93 @@ export class RepositorySigning extends React.Component<
           candidate => candidate.name === this.state.selectedTag
         )
         if (tag === undefined) {
-          throw new Error('The reviewed annotated tag is no longer available.')
+          this.throwMessage('repositorySigning.error.tagUnavailable')
         }
         const verification = parseRepositorySignatureVerification(
           this.commandStdout
         )
         if (verification.object !== tag.object) {
-          throw new Error(
-            'The annotated tag changed after selection. Reload tags before verifying.'
-          )
+          this.throwMessage('repositorySigning.error.tagChanged')
         }
         this.finishVerification(tag.name, verification)
         return
       }
       default:
-        throw new Error('The signing operation entered an unexpected state.')
+        this.throwMessage('repositorySigning.error.unexpectedState')
     }
   }
 
   private requireReview(): ISigningReview {
     if (this.state.review === null) {
-      throw new Error('The reviewed signing update is no longer available.')
+      this.throwMessage('repositorySigning.error.reviewUnavailable')
     }
     return this.state.review
   }
 
-  private updateRecipes(
+  /** Values belonging to one scope, with inherited values only for local UI. */
+  private editableConfigForScope(
+    scope: RepositorySigningScope
+  ): IEditableSigningConfig {
+    if (scope === 'local') {
+      const effective = this.state.effective
+      return {
+        format: effective?.format ?? 'openpgp',
+        commitSigning: effective?.commitSigning ?? false,
+        tagSigning: effective?.tagSigning ?? false,
+        hasSigningKey: effective?.hasSigningKey ?? false,
+      }
+    }
+
+    const global = this.state.global
+    return {
+      format: global?.format ?? 'openpgp',
+      commitSigning: global?.commitSigning ?? false,
+      tagSigning: global?.tagSigning ?? false,
+      hasSigningKey: global?.hasSigningKey ?? false,
+    }
+  }
+
+  private updateOperations(
     review: ISigningReview
-  ): ReadonlyArray<CLICommandRecipe> {
-    const recipes = new Array<CLICommandRecipe>(
+  ): ReadonlyArray<RepositorySigningOperation> {
+    const operations = new Array<RepositorySigningOperation>(
       {
-        kind: 'repository-signing-update',
+        id: 'repository-signing-update',
         scope: review.scope,
         operation: 'set-format',
         format: review.format,
       },
       {
-        kind: 'repository-signing-update',
+        id: 'repository-signing-update',
         scope: review.scope,
         operation: 'set-commit-signing',
         enabled: review.commitSigning,
       },
       {
-        kind: 'repository-signing-update',
+        id: 'repository-signing-update',
         scope: review.scope,
         operation: 'set-tag-signing',
         enabled: review.tagSigning,
       }
     )
     if (review.key !== null) {
-      recipes.splice(1, 0, {
-        kind: 'repository-signing-update',
+      operations.splice(1, 0, {
+        id: 'repository-signing-update',
         scope: review.scope,
         operation: 'set-key',
         format: review.format,
         key: review.key,
       })
     }
-    return recipes
+    return operations
   }
 
   private startNextUpdate(review: ISigningReview, index: number) {
-    const recipes = this.updateRecipes(review)
-    if (index >= recipes.length) {
+    const operations = this.updateOperations(review)
+    if (index >= operations.length) {
       this.setState({
         phase: 'refreshing',
-        status: 'Signing settings updated. Refreshing repository state…',
+        status: signingMessage('repositorySigning.status.updatedRefreshing'),
       })
       const repositoryPath = this.props.repositoryPath
       const generation = this.repositoryGeneration
@@ -515,9 +649,9 @@ export class RepositorySigning extends React.Component<
             this.startCommand(
               'inspecting-local-settings',
               {
-                kind: 'repository-signing-inspection',
+                id: 'repository-signing-inspection',
                 scope: 'local',
-                operation: 'settings',
+                inspection: 'settings',
               },
               false
             )
@@ -527,12 +661,13 @@ export class RepositorySigning extends React.Component<
     }
     this.setState({
       updateIndex: index,
-      status: `Applying reviewed signing setting ${index + 1} of ${
-        recipes.length
-      }…`,
+      status: signingMessage('repositorySigning.status.applying', {
+        index: (index + 1).toLocaleString(),
+        total: operations.length.toLocaleString(),
+      }),
     })
     this.mutationStarted = true
-    this.startCommand('applying', recipes[index], true)
+    this.startCommand('applying', operations[index], true)
   }
 
   private finishVerification(
@@ -546,14 +681,26 @@ export class RepositorySigning extends React.Component<
       phase: 'ready',
       verification,
       verificationTarget: target,
-      status: `${target}: ${describeRepositorySignatureGrade(
-        verification.grade
-      )}.`,
+      status: signingMessage('repositorySigning.status.verification', {
+        target,
+        state: bilingualVariable(
+          translate(
+            this.gradeMessage(verification.grade).key,
+            'english',
+            this.gradeMessage(verification.grade).variables
+          ),
+          translate(
+            this.gradeMessage(verification.grade).key,
+            'cantonese',
+            this.gradeMessage(verification.grade).variables
+          )
+        ),
+      }),
       error: null,
     })
   }
 
-  private fail(message: string) {
+  private fail(message: ISigningMessage) {
     const mutationStarted = this.mutationStarted
     this.runId = null
     this.cancelRequested = false
@@ -563,10 +710,15 @@ export class RepositorySigning extends React.Component<
       phase: 'failed',
       review: null,
       status: mutationStarted
-        ? 'The signing update did not fully complete.'
-        : 'The signing operation stopped safely.',
+        ? signingMessage('repositorySigning.status.failedPartial')
+        : signingMessage('repositorySigning.status.failedSafe'),
       error: mutationStarted
-        ? `${message} Some reviewed settings may already be applied; inspect signing settings again before another update.`
+        ? signingMessage('repositorySigning.error.partial', {
+            detail: bilingualVariable(
+              translate(message.key, 'english', message.variables),
+              translate(message.key, 'cantonese', message.variables)
+            ),
+          })
         : message,
     })
   }
@@ -580,14 +732,14 @@ export class RepositorySigning extends React.Component<
     this.setState({
       ...this.initialState(),
       phase: 'inspecting-local-settings',
-      status: 'Inspecting repository signing settings…',
+      status: signingMessage('repositorySigning.status.inspecting'),
     })
     this.startCommand(
       'inspecting-local-settings',
       {
-        kind: 'repository-signing-inspection',
+        id: 'repository-signing-inspection',
         scope: 'local',
-        operation: 'settings',
+        inspection: 'settings',
       },
       false
     )
@@ -605,15 +757,21 @@ export class RepositorySigning extends React.Component<
       const current =
         this.state.scope === 'local' ? this.state.local : this.state.global
       if (current === null) {
-        throw new Error('Inspect signing configuration before reviewing it.')
+        this.throwMessage('repositorySigning.error.inspectFirst')
+      }
+      const editable = this.editableConfigForScope(this.state.scope)
+      const replacementKey = this.state.signingKey.trim()
+      if (
+        replacementKey.length === 0 &&
+        editable.hasSigningKey &&
+        editable.format !== this.state.format
+      ) {
+        this.throwMessage('repositorySigning.error.formatNeedsKey')
       }
       const key =
-        this.state.signingKey.trim().length === 0
+        replacementKey.length === 0
           ? null
-          : normalizeRepositorySigningKey(
-              this.state.format,
-              this.state.signingKey
-            )
+          : normalizeRepositorySigningKey(this.state.format, replacementKey)
       const review: ISigningReview = {
         scope: this.state.scope,
         format: this.state.format,
@@ -626,17 +784,14 @@ export class RepositorySigning extends React.Component<
         {
           phase: 'review',
           review,
-          status: 'Review the exact signing settings before applying them.',
+          status: signingMessage('repositorySigning.status.review'),
           error: null,
         },
         () => this.confirmButton?.focus()
       )
     } catch (error) {
       this.setState({
-        error:
-          error instanceof Error
-            ? error.message
-            : 'The signing update could not be prepared safely.',
+        error: this.errorMessage(error, 'repositorySigning.error.prepare'),
       })
     }
   }
@@ -652,13 +807,15 @@ export class RepositorySigning extends React.Component<
       return
     }
     this.setBusy(true)
-    this.setState({ status: 'Rechecking signing settings before applying…' })
+    this.setState({
+      status: signingMessage('repositorySigning.status.rechecking'),
+    })
     this.startCommand(
       'rechecking-settings',
       {
-        kind: 'repository-signing-inspection',
+        id: 'repository-signing-inspection',
         scope: review.scope,
-        operation: 'settings',
+        inspection: 'settings',
       },
       false
     )
@@ -669,11 +826,13 @@ export class RepositorySigning extends React.Component<
       return
     }
     this.setBusy(true)
-    this.setState({ status: 'Checking the HEAD commit signature…' })
+    this.setState({
+      status: signingMessage('repositorySigning.status.verifyingHead'),
+    })
     this.startCommand(
       'verifying-head',
       {
-        kind: 'repository-signing-verify',
+        id: 'repository-signing-verify',
         target: 'head',
         tagName: null,
         expectedObject: null,
@@ -687,10 +846,12 @@ export class RepositorySigning extends React.Component<
       return
     }
     this.setBusy(true)
-    this.setState({ status: 'Loading bounded annotated-tag metadata…' })
+    this.setState({
+      status: signingMessage('repositorySigning.status.loadingTags'),
+    })
     this.startCommand(
       'listing-tags',
-      { kind: 'repository-signing-list-tags' },
+      { id: 'repository-signing-list-tags' },
       false
     )
   }
@@ -703,11 +864,15 @@ export class RepositorySigning extends React.Component<
       return
     }
     this.setBusy(true)
-    this.setState({ status: `Checking the ${tag.name} tag signature…` })
+    this.setState({
+      status: signingMessage('repositorySigning.status.verifyingTag', {
+        tag: tag.name,
+      }),
+    })
     this.startCommand(
       'verifying-tag',
       {
-        kind: 'repository-signing-verify',
+        id: 'repository-signing-verify',
         target: 'tag',
         tagName: tag.name,
         expectedObject: tag.object,
@@ -722,20 +887,30 @@ export class RepositorySigning extends React.Component<
       return
     }
     this.cancelRequested = true
-    this.setState({ status: 'Cancelling the signing operation…', error: null })
+    this.setState({
+      status: signingMessage('repositorySigning.status.cancelling'),
+      error: null,
+    })
     void this.props.client.cancel(id).catch(() => {
       if (this.mounted && this.runId === id) {
         this.cancelRequested = false
         this.setState({
-          error: 'The signing operation could not be cancelled.',
+          error: signingMessage('repositorySigning.error.cancel'),
         })
       }
     })
   }
 
   private onScopeChanged = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const scope = event.currentTarget.value as RepositorySigningScope
+    const editable = this.editableConfigForScope(scope)
     this.setState({
-      scope: event.currentTarget.value as RepositorySigningScope,
+      scope,
+      format: editable.format,
+      commitSigning: editable.commitSigning,
+      tagSigning: editable.tagSigning,
+      signingKey: '',
+      review: null,
       error: null,
     })
   }
@@ -770,7 +945,7 @@ export class RepositorySigning extends React.Component<
     this.setState({
       phase: 'ready',
       review: null,
-      status: 'Change the signing settings or review them again.',
+      status: signingMessage('repositorySigning.status.changeAgain'),
       error: null,
     })
   }
@@ -783,26 +958,42 @@ export class RepositorySigning extends React.Component<
     const effective = this.state.effective
     return (
       <div className="repository-admin-state">
-        <strong>Effective signing policy</strong>
-        <span>{effective === null ? 'Not inspected' : effective.format}</span>
+        <strong>{this.text('repositorySigning.summaryTitle')}</strong>
+        <span>
+          {effective === null
+            ? this.text('repositorySigning.notInspected')
+            : effective.format}
+        </span>
         <dl>
           <div>
-            <dt>Signing key</dt>
+            <dt>{this.text('repositorySigning.keyLabel')}</dt>
             <dd>
               {effective?.hasSigningKey
-                ? `${effective.signingKeyDescription} (${scopeLabel(
+                ? `${effective.signingKeyDescription} (${this.scopeText(
                     effective.signingKeyScope ?? 'local'
                   )})`
-                : 'Not configured'}
+                : this.text('repositorySigning.notConfigured')}
             </dd>
           </div>
           <div>
-            <dt>Commit signing</dt>
-            <dd>{effective?.commitSigning ? 'Enabled' : 'Disabled'}</dd>
+            <dt>{this.text('repositorySigning.commitLabel')}</dt>
+            <dd>
+              {this.text(
+                effective?.commitSigning
+                  ? 'repositorySigning.enabled'
+                  : 'repositorySigning.disabled'
+              )}
+            </dd>
           </div>
           <div>
-            <dt>Tag signing</dt>
-            <dd>{effective?.tagSigning ? 'Enabled' : 'Disabled'}</dd>
+            <dt>{this.text('repositorySigning.tagLabel')}</dt>
+            <dd>
+              {this.text(
+                effective?.tagSigning
+                  ? 'repositorySigning.enabled'
+                  : 'repositorySigning.disabled'
+              )}
+            </dd>
           </div>
         </dl>
       </div>
@@ -815,17 +1006,25 @@ export class RepositorySigning extends React.Component<
     }
     return (
       <div className="repository-admin-form">
-        <label htmlFor="repository-signing-scope">Configuration scope</label>
+        <label htmlFor="repository-signing-scope">
+          {this.text('repositorySigning.scopeLabel')}
+        </label>
         <select
           id="repository-signing-scope"
           value={this.state.scope}
           disabled={this.props.disabled}
           onChange={this.onScopeChanged}
         >
-          <option value="local">This repository</option>
-          <option value="global">All repositories</option>
+          <option value="local">
+            {this.text('repositorySigning.scope.local')}
+          </option>
+          <option value="global">
+            {this.text('repositorySigning.scope.global')}
+          </option>
         </select>
-        <label htmlFor="repository-signing-format">Signing format</label>
+        <label htmlFor="repository-signing-format">
+          {this.text('repositorySigning.formatLabel')}
+        </label>
         <select
           id="repository-signing-format"
           value={this.state.format}
@@ -836,7 +1035,9 @@ export class RepositorySigning extends React.Component<
           <option value="ssh">SSH</option>
           <option value="x509">X.509</option>
         </select>
-        <label htmlFor="repository-signing-key">Replacement public key</label>
+        <label htmlFor="repository-signing-key">
+          {this.text('repositorySigning.replacementKeyLabel')}
+        </label>
         <input
           id="repository-signing-key"
           type="text"
@@ -848,9 +1049,7 @@ export class RepositorySigning extends React.Component<
           onChange={this.onKeyChanged}
         />
         <p id="repository-signing-key-help" className="repository-admin-help">
-          Leave blank to preserve the configured key. OpenPGP and X.509 accept a
-          public fingerprint; SSH accepts an inline key:: public key. Private
-          key paths and comments are rejected.
+          {this.text('repositorySigning.replacementKeyHelp')}
         </p>
         <label className="repository-admin-check">
           <input
@@ -859,7 +1058,7 @@ export class RepositorySigning extends React.Component<
             disabled={this.props.disabled}
             onChange={this.onCommitChanged}
           />
-          Sign commits by default
+          {this.text('repositorySigning.signCommits')}
         </label>
         <label className="repository-admin-check">
           <input
@@ -868,14 +1067,15 @@ export class RepositorySigning extends React.Component<
             disabled={this.props.disabled}
             onChange={this.onTagChanged}
           />
-          Sign annotated tags by default
+          {this.text('repositorySigning.signTags')}
         </label>
         <Button
           className="repository-tool-write-button"
           disabled={this.props.disabled}
           onClick={this.onReview}
+          ariaLabel={this.accessibleText('repositorySigning.reviewAction')}
         >
-          Review signing settings
+          {this.text('repositorySigning.reviewAction')}
         </Button>
       </div>
     )
@@ -894,37 +1094,44 @@ export class RepositorySigning extends React.Component<
         aria-describedby="repository-signing-review-description"
       >
         <strong id="repository-signing-review-title">
-          Apply these signing settings?
+          {this.text('repositorySigning.reviewTitle')}
         </strong>
         <dl>
           <div>
-            <dt>Scope</dt>
-            <dd>{scopeLabel(review.scope)}</dd>
+            <dt>{this.text('repositorySigning.review.scope')}</dt>
+            <dd>{this.scopeText(review.scope)}</dd>
           </div>
           <div>
-            <dt>Format</dt>
+            <dt>{this.text('repositorySigning.review.format')}</dt>
             <dd>{review.format}</dd>
           </div>
           <div>
-            <dt>Public key</dt>
+            <dt>{this.text('repositorySigning.review.publicKey')}</dt>
             <dd>
               {review.key === null
-                ? 'Preserve current key'
-                : 'Replace with reviewed public identifier'}
+                ? this.text('repositorySigning.review.preserveKey')
+                : this.text('repositorySigning.review.replaceKey')}
             </dd>
           </div>
           <div>
-            <dt>Commit / tag defaults</dt>
+            <dt>{this.text('repositorySigning.review.defaults')}</dt>
             <dd>
-              {review.commitSigning ? 'Commit on' : 'Commit off'};{' '}
-              {review.tagSigning ? 'tag on' : 'tag off'}
+              {this.text(
+                review.commitSigning
+                  ? 'repositorySigning.review.commitOn'
+                  : 'repositorySigning.review.commitOff'
+              )}
+              ;{' '}
+              {this.text(
+                review.tagSigning
+                  ? 'repositorySigning.review.tagOn'
+                  : 'repositorySigning.review.tagOff'
+              )}
             </dd>
           </div>
         </dl>
         <p id="repository-signing-review-description">
-          The selected scope is rechecked before fixed Git config updates run.
-          Secret key material, signer programs, and allowed-signers paths are
-          never read or shown.
+          {this.text('repositorySigning.review.description')}
         </p>
         <div className="repository-tool-controls">
           <Button
@@ -932,11 +1139,16 @@ export class RepositorySigning extends React.Component<
             onButtonRef={this.onConfirmButtonRef}
             disabled={this.props.disabled}
             onClick={this.onConfirm}
+            ariaLabel={this.accessibleText('repositorySigning.applyAction')}
           >
-            Apply signing settings
+            {this.text('repositorySigning.applyAction')}
           </Button>
-          <Button disabled={this.props.disabled} onClick={this.onGoBack}>
-            Go back
+          <Button
+            disabled={this.props.disabled}
+            onClick={this.onGoBack}
+            ariaLabel={this.accessibleText('repositorySigning.goBack')}
+          >
+            {this.text('repositorySigning.goBack')}
           </Button>
         </div>
       </div>
@@ -947,24 +1159,28 @@ export class RepositorySigning extends React.Component<
     const verification = this.state.verification
     return (
       <div className="repository-admin-verification">
-        <strong>Safe signature verification</strong>
+        <strong>{this.text('repositorySigning.verificationTitle')}</strong>
         <div className="repository-tool-controls">
           <Button
             disabled={this.props.disabled || this.runId !== null}
             onClick={this.onVerifyHead}
+            ariaLabel={this.accessibleText('repositorySigning.verifyHead')}
           >
-            Verify HEAD commit
+            {this.text('repositorySigning.verifyHead')}
           </Button>
           <Button
             disabled={this.props.disabled || this.runId !== null}
             onClick={this.onLoadTags}
+            ariaLabel={this.accessibleText('repositorySigning.loadTags')}
           >
-            Load annotated tags
+            {this.text('repositorySigning.loadTags')}
           </Button>
         </div>
         {this.state.tags.length > 0 && (
           <div className="repository-admin-inline-form">
-            <label htmlFor="repository-signing-tag">Annotated tag</label>
+            <label htmlFor="repository-signing-tag">
+              {this.text('repositorySigning.annotatedTag')}
+            </label>
             <select
               id="repository-signing-tag"
               value={this.state.selectedTag}
@@ -980,25 +1196,30 @@ export class RepositorySigning extends React.Component<
             <Button
               disabled={this.props.disabled || this.runId !== null}
               onClick={this.onVerifyTag}
+              ariaLabel={this.accessibleText('repositorySigning.verifyTag')}
             >
-              Verify selected tag
+              {this.text('repositorySigning.verifyTag')}
             </Button>
           </div>
         )}
         {verification !== null && (
           <dl className="repository-admin-verification-result">
             <div>
-              <dt>Target</dt>
+              <dt>{this.text('repositorySigning.result.target')}</dt>
               <dd>{this.state.verificationTarget}</dd>
             </div>
             <div>
-              <dt>State</dt>
-              <dd>{describeRepositorySignatureGrade(verification.grade)}</dd>
+              <dt>{this.text('repositorySigning.result.state')}</dt>
+              <dd>
+                {this.renderMessage(this.gradeMessage(verification.grade))}
+              </dd>
             </div>
             <div>
-              <dt>Signer</dt>
+              <dt>{this.text('repositorySigning.result.signer')}</dt>
               <dd>
-                {verification.fingerprint ?? verification.key ?? 'Not reported'}
+                {verification.fingerprint ??
+                  verification.key ??
+                  this.text('repositorySigning.result.notReported')}
               </dd>
             </div>
           </dl>
@@ -1014,15 +1235,13 @@ export class RepositorySigning extends React.Component<
         className="repository-tools-category repository-signing"
         aria-labelledby="repository-signing-title"
       >
-        <h2 id="repository-signing-title">Commit and tag signing</h2>
+        <h2 id="repository-signing-title">
+          {this.text('repositorySigning.title')}
+        </h2>
         <article className="repository-tool-card repository-admin-card">
           <div>
-            <h3>Manage signing policy</h3>
-            <p>
-              Inspect public signing configuration, choose local or global
-              defaults, and verify HEAD or annotated tags without exposing raw
-              verifier output.
-            </p>
+            <h3>{this.text('repositorySigning.cardTitle')}</h3>
+            <p>{this.text('repositorySigning.intro')}</p>
           </div>
           {this.renderSummary()}
           <div className="repository-tool-controls">
@@ -1031,13 +1250,25 @@ export class RepositorySigning extends React.Component<
                 this.props.disabled || active || this.state.phase === 'review'
               }
               onClick={this.onInspect}
+              ariaLabel={this.accessibleText(
+                this.state.effective === null
+                  ? 'repositorySigning.inspectAction'
+                  : 'repositorySigning.inspectAgainAction'
+              )}
             >
               {this.state.effective === null
-                ? 'Inspect signing settings'
-                : 'Inspect signing settings again'}
+                ? this.text('repositorySigning.inspectAction')
+                : this.text('repositorySigning.inspectAgainAction')}
             </Button>
             {active && (
-              <Button onClick={this.onCancel}>Cancel signing operation</Button>
+              <Button
+                onClick={this.onCancel}
+                ariaLabel={this.accessibleText(
+                  'repositorySigning.cancelAction'
+                )}
+              >
+                {this.text('repositorySigning.cancelAction')}
+              </Button>
             )}
           </div>
           {this.renderForm()}
@@ -1047,11 +1278,11 @@ export class RepositorySigning extends React.Component<
             this.renderVerification()}
           <div className="repository-admin-results">
             <div role="status" aria-live="polite">
-              {this.state.status}
+              {this.renderMessage(this.state.status)}
             </div>
             {this.state.error !== null && (
               <p className="repository-tools-error" role="alert">
-                {this.state.error}
+                {this.renderMessage(this.state.error)}
               </p>
             )}
           </div>

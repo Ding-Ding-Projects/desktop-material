@@ -617,6 +617,11 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     group: 'Repository',
     keywords:
       'tag tags create delete push fetch prune sign move lifecycle manage inventory',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeRepositoryTools',
+      openEvent: 'self',
+    },
     isAvailable: whenRepository,
   },
   {
@@ -2688,9 +2693,11 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     keywords: 'commits default sign',
     home: {
       kind: 'surface',
-      labelKey: 'commandPalette.homeSidebar',
+      labelKey: 'commandPalette.homeRepositoryTools',
+      openEvent: 'show-repository-tools',
       targetId: 'repositoryToolsSigning',
     },
+    isAvailable: whenRepository,
   },
   {
     event: 'palette:set-signing-tags',
@@ -2701,8 +2708,10 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     home: {
       kind: 'surface',
       labelKey: 'commandPalette.homeRepositoryTools',
+      openEvent: 'show-repository-tools',
       targetId: 'repositoryToolsSigning',
     },
+    isAvailable: whenRepository,
   },
   {
     event: 'palette:signing-policy',
@@ -2713,8 +2722,10 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     home: {
       kind: 'surface',
       labelKey: 'commandPalette.homeRepositoryTools',
+      openEvent: 'show-repository-tools',
       targetId: 'repositoryToolsSigning',
     },
+    isAvailable: whenRepository,
   },
   {
     event: 'palette:set-diff-auto-expand-context',

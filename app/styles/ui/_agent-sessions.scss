@@ -7,6 +7,62 @@
 // two transitions here are also switched off explicitly at the foot of the
 // file rather than assuming a token will do it.
 
+.repository-sidebar-switcher {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+.repository-sidebar-tabs {
+  background: var(--md-sys-color-surface-container-low);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 4px;
+}
+
+.repository-sidebar-tab {
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  min-height: 40px;
+  padding: 6px var(--spacing-half);
+
+  &[aria-selected='true'] {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: -2px;
+  }
+
+  &:disabled {
+    color: var(--md-sys-color-on-surface);
+    cursor: default;
+    opacity: 0.38;
+  }
+}
+
+.repository-sidebar-panel {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
 .agent-sessions-panel {
   display: flex;
   flex-direction: column;
@@ -79,6 +135,10 @@
 }
 
 .agent-session-card-row {
+  align-items: stretch;
+  display: grid;
+  gap: var(--spacing-half);
+  grid-template-columns: minmax(0, 1fr) auto;
   min-width: 0;
 }
 
@@ -110,6 +170,35 @@
   &.selected {
     background: var(--md-sys-color-secondary-container);
     color: var(--md-sys-color-on-secondary-container);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.62;
+  }
+
+  &:disabled:hover {
+    background: var(--md-sys-color-surface-container-low);
+  }
+}
+
+.agent-session-stop {
+  align-items: center;
+  background: var(--md-sys-color-error-container);
+  border: 0;
+  border-radius: 12px;
+  color: var(--md-sys-color-on-error-container);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 600;
+  gap: 4px;
+  min-height: 40px;
+  padding: 8px 10px;
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
   }
 }
 

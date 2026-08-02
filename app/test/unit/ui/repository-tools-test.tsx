@@ -3,6 +3,7 @@ import assert from 'node:assert'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import * as React from 'react'
+import { act } from 'react-dom/test-utils'
 import {
   ICLICommandOutputEvent,
   ICLICommandStateEvent,
@@ -19,6 +20,8 @@ import {
 } from '../../../src/ui/repository-tools'
 import { Repository, SubmoduleRepository } from '../../../src/models/repository'
 import { ITagLifecycleDispatcher } from '../../../src/ui/tag/tag-lifecycle-manager'
+import { teleportTargetSelector } from '../../../src/lib/teleport-targets'
+import { LanguageModeChangedEvent } from '../../../src/lib/i18n'
 import {
   fireEvent,
   render,
@@ -157,6 +160,14 @@ function distinctCategorySequence(
     )
 }
 
+function setLanguageMode(languageMode: 'english' | 'cantonese' | 'bilingual') {
+  act(() => {
+    document.dispatchEvent(
+      new CustomEvent(LanguageModeChangedEvent, { detail: languageMode })
+    )
+  })
+}
+
 function getSelectedToolCard(title: string) {
   const detail = screen.getByRole('region', {
     name: 'Repository tool detail',
@@ -223,8 +234,25 @@ describe('Repository tools', () => {
     )
     assert.equal(
       isRepositoryToolMutation({
+        id: 'repository-signing-update',
+        scope: 'local',
+        operation: 'set-commit-signing',
+        enabled: true,
+      }),
+      true
+    )
+    assert.equal(
+      isRepositoryToolMutation({
         id: 'patch-export',
         destination: 'C:/patches',
+      }),
+      false
+    )
+    assert.equal(
+      isRepositoryToolMutation({
+        id: 'repository-signing-inspection',
+        scope: 'local',
+        inspection: 'settings',
       }),
       false
     )
@@ -333,6 +361,68 @@ describe('Repository tools', () => {
     assert.ok(screen.getByRole('searchbox', { name: 'Search tools' }))
     assert.equal(screen.queryByRole('textbox'), null)
     assert.equal(screen.queryByText(/command arguments/i), null)
+  })
+
+  it('keeps the signing teleport anchor inert on focus and reveals the real panel on activation', async () => {
+    const client = new FakeRepositoryToolsClient()
+    renderTools(client)
+    await screen.findByText('git version 2.55.0')
+
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Search tools' }), {
+      target: { value: 'no matching repository tool' },
+    })
+    assert.ok(screen.getByText('No other tools match this search.'))
+
+    const selector = teleportTargetSelector('repositoryToolsSigning')
+    const target = document.querySelector<HTMLButtonElement>(selector)
+    assert.ok(target, 'expected the Repository Tools signing teleport target')
+    assert.equal(target.tagName, 'BUTTON')
+    assert.equal(target.disabled, false)
+    assert.match(target.textContent ?? '', /Commit and tag signing/)
+
+    target.focus()
+    assert.equal(
+      screen.queryByRole('heading', { name: 'Commit and tag signing' }),
+      null
+    )
+    assert.equal(document.activeElement, target)
+
+    fireEvent.click(target)
+
+    await screen.findByRole('heading', { name: 'Commit and tag signing' })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Inspect signing settings' })
+    )
+    await waitFor(() => assert.equal(client.starts.length, 1))
+    assert.deepStrictEqual(client.starts[0].operation, {
+      id: 'repository-signing-inspection',
+      scope: 'local',
+      inspection: 'settings',
+    })
+    assert.equal('recipe' in client.starts[0], false)
+  })
+
+  it('updates the fixed signing destination live with concise bilingual names', async () => {
+    const client = new FakeRepositoryToolsClient()
+    renderTools(client)
+    await screen.findByText('git version 2.55.0')
+
+    setLanguageMode('cantonese')
+    const shortcut = await screen.findByRole('navigation', {
+      name: '簽署政策捷徑',
+    })
+    const target = within(shortcut).getByRole('button', {
+      name: /Commit 同 tag 簽署/,
+    })
+    fireEvent.click(target)
+    assert.ok(
+      await screen.findByRole('heading', { name: 'Commit 同 tag 簽署' })
+    )
+
+    setLanguageMode('bilingual')
+    assert.match(target.textContent ?? '', /Commit and tag signing/)
+    assert.match(target.textContent ?? '', /Commit 同 tag 簽署/)
+    assert.ok(screen.getByRole('button', { name: 'Inspect signing settings' }))
   })
 
   it('groups the catalog into plain-language categories ordered for everyday work', async () => {
@@ -629,8 +719,9 @@ describe('Repository tools', () => {
     assert.ok(transferMatches.includes('patch-series'))
   })
 
-  it('discovers the typed tag lifecycle manager when dispatcher wiring exists', async () => {
+  it('opens the requested tag lifecycle tool and clears stale filters on reselection', async () => {
     const client = new FakeRepositoryToolsClient()
+    const toolsRef = React.createRef<RepositoryTools>()
     const tagDispatcher: ITagLifecycleDispatcher = {
       getTagLifecycleInventory: async () => ({
         local: [],
@@ -650,18 +741,40 @@ describe('Repository tools', () => {
     }
     render(
       <RepositoryTools
+        ref={toolsRef}
         repository={new Repository(uiRepositoryPath, 91, null, false)}
         repositoryPath={uiRepositoryPath}
         onRefreshRepository={async () => undefined}
         client={client}
         tagLifecycleDispatcher={tagDispatcher}
+        initialTool="tag-lifecycle"
       />
     )
     await screen.findByText('git version 2.55.0')
-    selectHubTool('tag-lifecycle')
     await screen.findByRole('heading', { name: 'Tag lifecycle' })
+    assert.equal(
+      screen
+        .getByRole('navigation', { name: 'Repository tool list' })
+        .querySelector('[data-hub-tool="tag-lifecycle"]')
+        ?.getAttribute('aria-current'),
+      'true'
+    )
     assert.ok(screen.getByRole('button', { name: 'Create local tag' }))
     assert.equal(screen.queryByRole('textbox', { name: /command/i }), null)
+
+    selectHubTool('status-summary')
+    const searchbox = screen.getByRole('searchbox', { name: 'Search tools' })
+    fireEvent.change(searchbox, { target: { value: 'definitely-no-match' } })
+    assert.equal(
+      screen
+        .getByRole('navigation', { name: 'Repository tool list' })
+        .querySelector('[data-hub-tool="tag-lifecycle"]'),
+      null
+    )
+
+    act(() => toolsRef.current?.selectTool('tag-lifecycle'))
+    await screen.findByRole('heading', { name: 'Tag lifecycle' })
+    assert.equal((searchbox as HTMLInputElement).value, '')
   })
 
   it('mounts custom Git presets with the guarded workbench client', async () => {
