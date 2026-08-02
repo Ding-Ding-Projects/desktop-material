@@ -199,6 +199,190 @@ export type TranslationKey =
   | 'tabs.searchListLabel'
   | 'tabs.searchCountOne'
   | 'tabs.searchCountMany'
+  | 'tabs.close.matchStrategyRegex'
+  | 'tabs.close.matchStrategyFuzzy'
+  | 'tabs.close.matchStrategySubstring'
+  | 'tabs.close.matchCaseSensitive'
+  | 'tabs.close.matchCaseInsensitive'
+  | 'tabs.close.matchDescription'
+  | 'tabs.close.saveError'
+  | 'tabs.close.noMatches'
+  | 'tabs.close.cancel'
+  | 'tabs.close.closing'
+  | 'tabs.close.count'
+  | 'tabs.close.action'
+  | 'tabs.close.closeTabs'
+  | 'tabs.close.openTabsTarget'
+  | 'tabs.stripLabel'
+  | 'tabs.openRepositoryNewTab'
+  | 'tabs.closeContaining.title'
+  | 'tabs.closeContaining.placeholder'
+  | 'tabs.closeContaining.previewPrompt'
+  | 'tabs.closeContaining.matchSummary'
+  | 'tabs.closeExcept.title'
+  | 'tabs.closeExcept.fieldLabel'
+  | 'tabs.closeExcept.placeholder'
+  | 'tabs.closeExcept.previewPrompt'
+  | 'tabs.closeExcept.allStayOpenOne'
+  | 'tabs.closeExcept.allStayOpenMany'
+  | 'tabs.closeExcept.summary'
+  | 'tabs.closeExcept.summaryWithPinned'
+  | 'tabs.closeExcept.previewAria'
+  | 'tabs.closeExcept.dispositionPinned'
+  | 'tabs.closeExcept.dispositionClose'
+  | 'tabs.closeExcept.dispositionKeep'
+  | 'tabs.closeExcept.remainingOne'
+  | 'tabs.closeExcept.remainingMany'
+  | 'tabs.arrange.initialAnnouncement'
+  | 'tabs.arrange.saveError'
+  | 'tabs.arrange.movedFirst'
+  | 'tabs.arrange.movedLeft'
+  | 'tabs.arrange.movedRight'
+  | 'tabs.arrange.movedLast'
+  | 'tabs.arrange.pinned'
+  | 'tabs.arrange.unpinned'
+  | 'tabs.arrange.favoriteAdded'
+  | 'tabs.arrange.favoriteRemoved'
+  | 'tabs.arrange.sortedLabelAscending'
+  | 'tabs.arrange.sortedLabelDescending'
+  | 'tabs.arrange.sortedOpenedNewest'
+  | 'tabs.arrange.sortedOpenedOldest'
+  | 'tabs.arrange.sortedAttentionFirst'
+  | 'tabs.arrange.sortedCleanFirst'
+  | 'tabs.arrange.sortedFavoritesFirst'
+  | 'tabs.arrange.sortedFavoritesLast'
+  | 'tabs.arrange.title'
+  | 'tabs.arrange.description'
+  | 'tabs.arrange.filterLabel'
+  | 'tabs.arrange.filterPlaceholder'
+  | 'tabs.arrange.filterTarget'
+  | 'tabs.arrange.filterCountOne'
+  | 'tabs.arrange.filterCountMany'
+  | 'tabs.arrange.manualOrder'
+  | 'tabs.arrange.noMatches'
+  | 'tabs.arrange.sortOnce'
+  | 'tabs.arrange.sortHint'
+  | 'tabs.arrange.pinnedChip'
+  | 'tabs.arrange.favoriteChip'
+  | 'tabs.arrange.pin'
+  | 'tabs.arrange.unpin'
+  | 'tabs.arrange.star'
+  | 'tabs.arrange.unstar'
+  | 'tabs.arrange.pinAria'
+  | 'tabs.arrange.unpinAria'
+  | 'tabs.arrange.favoriteAria'
+  | 'tabs.arrange.unfavoriteAria'
+  | 'tabs.arrange.moveFirstAria'
+  | 'tabs.arrange.moveLeftAria'
+  | 'tabs.arrange.moveRightAria'
+  | 'tabs.arrange.moveLastAria'
+  | 'tabs.arrange.first'
+  | 'tabs.arrange.left'
+  | 'tabs.arrange.right'
+  | 'tabs.arrange.last'
+  | 'tabs.arrange.sortLabelAscending'
+  | 'tabs.arrange.sortLabelDescending'
+  | 'tabs.arrange.sortOpenedNewest'
+  | 'tabs.arrange.sortOpenedOldest'
+  | 'tabs.arrange.sortAttentionFirst'
+  | 'tabs.arrange.sortCleanFirst'
+  | 'tabs.arrange.sortFavoritesFirst'
+  | 'tabs.arrange.sortFavoritesLast'
+  | 'tabs.arrange.done'
+  | 'tabs.style.alignLeftAria'
+  | 'tabs.style.alignCenterAria'
+  | 'tabs.style.alignRightAria'
+  | 'tabs.style.font'
+  | 'tabs.style.searchFonts'
+  | 'tabs.style.fontsTarget'
+  | 'tabs.style.noMatchingFonts'
+  | 'tabs.style.textColorSwatchAria'
+  | 'tabs.style.highlightColorSwatchAria'
+  | 'tabs.style.highlight'
+  | 'tabs.style.textColor'
+  | 'tabs.style.useDefaultBackgroundAria'
+  | 'tabs.style.useDefaultTextAria'
+  | 'tabs.style.noHighlight'
+  | 'tabs.style.defaultColor'
+  | 'tabs.style.custom'
+  | 'tabs.style.customHighlightAria'
+  | 'tabs.style.customTextColorAria'
+  | 'tabs.style.recent'
+  | 'tabs.style.defaultPreviewTitle'
+  | 'tabs.style.previewAria'
+  | 'tabs.style.preview'
+  | 'tabs.style.title'
+  | 'tabs.style.historyAria'
+  | 'tabs.style.history'
+  | 'tabs.style.clearAria'
+  | 'tabs.style.clear'
+  | 'tabs.style.bold'
+  | 'tabs.style.italic'
+  | 'tabs.style.underline'
+  | 'tabs.style.strikethrough'
+  | 'tabs.style.size'
+  | 'tabs.style.letterCase'
+  | 'tabs.style.normalCase'
+  | 'tabs.style.uppercase'
+  | 'tabs.style.lowercase'
+  | 'tabs.style.capitalizeWords'
+  | 'tabs.style.smallCaps'
+  | 'tabs.style.spacing'
+  | 'tabs.style.textEffect'
+  | 'tabs.style.effectNone'
+  | 'tabs.style.effectNoneAria'
+  | 'tabs.style.effectSoft'
+  | 'tabs.style.effectSoftAria'
+  | 'tabs.style.effectStrong'
+  | 'tabs.style.effectStrongAria'
+  | 'commitPushAll.defaultMessage'
+  | 'commitPushAll.title'
+  | 'commitPushAll.intro'
+  | 'commitPushAll.messageLabel'
+  | 'commitPushAll.messagePlaceholder'
+  | 'commitPushAll.filterPlaceholder'
+  | 'commitPushAll.filterAria'
+  | 'commitPushAll.filterTarget'
+  | 'commitPushAll.selectionCount'
+  | 'commitPushAll.selectShown'
+  | 'commitPushAll.clearShown'
+  | 'commitPushAll.repositoriesGroupAria'
+  | 'commitPushAll.noMatches'
+  | 'commitPushAll.empty'
+  | 'commitPushAll.commitAll'
+  | 'commitPushAll.commitCount'
+  | 'commitPushAll.cancel'
+  | 'commitPushAll.done'
+  | 'commitPushAll.progressAria'
+  | 'commitPushAll.overlineStopped'
+  | 'commitPushAll.overlineComplete'
+  | 'commitPushAll.overlineLive'
+  | 'commitPushAll.headingFailed'
+  | 'commitPushAll.headingComplete'
+  | 'commitPushAll.headingRunning'
+  | 'commitPushAll.repositoriesComplete'
+  | 'commitPushAll.progressBarAria'
+  | 'commitPushAll.metricComplete'
+  | 'commitPushAll.metricActive'
+  | 'commitPushAll.metricWaiting'
+  | 'commitPushAll.allFinal'
+  | 'commitPushAll.nowWorking'
+  | 'commitPushAll.waitingNext'
+  | 'commitPushAll.concurrencyHint'
+  | 'commitPushAll.summary'
+  | 'commitPushAll.noRepositoriesRun'
+  | 'commitPushAll.resultsRegionAria'
+  | 'commitPushAll.columnRepository'
+  | 'commitPushAll.columnStatus'
+  | 'commitPushAll.columnResult'
+  | 'commitPushAll.runInBackground'
+  | 'commitPushAll.status.waiting'
+  | 'commitPushAll.status.pulling'
+  | 'commitPushAll.status.committing'
+  | 'commitPushAll.status.pushing'
+  | 'commitPushAll.status.done'
+  | 'commitPushAll.status.skipped'
+  | 'commitPushAll.status.failed'
   | 'lazyView.loading.plain'
   | 'lazyView.loading.light'
   | 'lazyView.loading.playful'
@@ -3081,6 +3265,161 @@ export type TranslationKey =
   | 'accounts.invalidatedTokenPrompt'
   | 'accounts.invalidatedTokenSignIn'
   | 'accounts.invalidatedTokenLater'
+  | 'agentSessions.sidebarLabel'
+  | 'agentSessions.listTab'
+  | 'agentSessions.agentsTab'
+  | 'agentSessions.worktrees'
+  | 'agentSessions.newSession'
+  | 'agentSessions.empty'
+  | 'agentSessions.locked'
+  | 'agentSessions.missing'
+  | 'agentSessions.detachedAt'
+  | 'agentSessions.onBranch'
+  | 'agentSessions.options'
+  | 'agentSessions.baseBranch'
+  | 'agentSessions.codingAgent'
+  | 'agentSessions.taskLabel'
+  | 'agentSessions.taskPlaceholder'
+  | 'agentSessions.configureSetup'
+  | 'agentSessions.setupUnavailable'
+  | 'agentSessions.worktreeName'
+  | 'agentSessions.cancel'
+  | 'agentSessions.start'
+  | 'agentSessions.agent.none'
+  | 'agentSessions.agent.notDetected'
+  | 'agentSessions.agent.notAuthenticated'
+  | 'agentSessions.noneHint'
+  | 'agentSessions.problem.nameEmpty'
+  | 'agentSessions.problem.nameTooLong'
+  | 'agentSessions.problem.nameSeparator'
+  | 'agentSessions.problem.nameIllegal'
+  | 'agentSessions.problem.nameReserved'
+  | 'agentSessions.problem.duplicateWorktree'
+  | 'agentSessions.problem.duplicateBranch'
+  | 'agentSessions.problem.baseEmpty'
+  | 'agentSessions.problem.baseUnknown'
+  | 'agentSessions.problem.agentUnavailable'
+  | 'agentSessions.problem.promptEmpty'
+  | 'agentSessions.problem.promptTooLong'
+  | 'agentSessions.status.errorLabel'
+  | 'agentSessions.status.failed'
+  | 'agentSessions.status.failedWithReason'
+  | 'agentSessions.status.workingLabel'
+  | 'agentSessions.status.working'
+  | 'agentSessions.status.workingEdited'
+  | 'agentSessions.status.oneFile'
+  | 'agentSessions.status.files'
+  | 'agentSessions.status.oneLine'
+  | 'agentSessions.status.lines'
+  | 'agentSessions.status.diff'
+  | 'agentSessions.status.notMeasuredLabel'
+  | 'agentSessions.status.notMeasured'
+  | 'agentSessions.status.noChangesLabel'
+  | 'agentSessions.status.noChanges'
+  | 'agentSessions.notification.unavailableTitle'
+  | 'agentSessions.notification.unavailableBody'
+  | 'agentSessions.notification.invalidTitle'
+  | 'agentSessions.notification.createFailedTitle'
+  | 'agentSessions.notification.createdTitle'
+  | 'agentSessions.notification.createdBody'
+  | 'agentSessions.notification.finishedTitle'
+  | 'agentSessions.notification.finishedBody'
+  | 'agentSessions.notification.endedTitle'
+  | 'agentSessions.notification.endedBody'
+  | 'agentSessions.notification.failedTitle'
+  | 'agentSessions.notification.failedBody'
+  | 'agentSessions.notification.runnerCouldNotStart'
+  | 'agentSessions.notification.runnerExitedWithCode'
+  | 'repositorySigning.title'
+  | 'repositorySigning.hubDescription'
+  | 'repositorySigning.shortcutLabel'
+  | 'repositorySigning.cardTitle'
+  | 'repositorySigning.intro'
+  | 'repositorySigning.summaryTitle'
+  | 'repositorySigning.notInspected'
+  | 'repositorySigning.keyLabel'
+  | 'repositorySigning.notConfigured'
+  | 'repositorySigning.commitLabel'
+  | 'repositorySigning.tagLabel'
+  | 'repositorySigning.enabled'
+  | 'repositorySigning.disabled'
+  | 'repositorySigning.scopeLabel'
+  | 'repositorySigning.scope.local'
+  | 'repositorySigning.scope.global'
+  | 'repositorySigning.formatLabel'
+  | 'repositorySigning.replacementKeyLabel'
+  | 'repositorySigning.replacementKeyHelp'
+  | 'repositorySigning.signCommits'
+  | 'repositorySigning.signTags'
+  | 'repositorySigning.reviewAction'
+  | 'repositorySigning.reviewTitle'
+  | 'repositorySigning.review.scope'
+  | 'repositorySigning.review.format'
+  | 'repositorySigning.review.publicKey'
+  | 'repositorySigning.review.preserveKey'
+  | 'repositorySigning.review.replaceKey'
+  | 'repositorySigning.review.defaults'
+  | 'repositorySigning.review.commitOn'
+  | 'repositorySigning.review.commitOff'
+  | 'repositorySigning.review.tagOn'
+  | 'repositorySigning.review.tagOff'
+  | 'repositorySigning.review.description'
+  | 'repositorySigning.applyAction'
+  | 'repositorySigning.goBack'
+  | 'repositorySigning.verificationTitle'
+  | 'repositorySigning.verifyHead'
+  | 'repositorySigning.loadTags'
+  | 'repositorySigning.annotatedTag'
+  | 'repositorySigning.verifyTag'
+  | 'repositorySigning.result.target'
+  | 'repositorySigning.result.state'
+  | 'repositorySigning.result.signer'
+  | 'repositorySigning.result.notReported'
+  | 'repositorySigning.inspectAction'
+  | 'repositorySigning.inspectAgainAction'
+  | 'repositorySigning.cancelAction'
+  | 'repositorySigning.status.idle'
+  | 'repositorySigning.status.cancelledPartial'
+  | 'repositorySigning.status.cancelledClean'
+  | 'repositorySigning.status.inspected'
+  | 'repositorySigning.status.noTags'
+  | 'repositorySigning.status.loadedTags'
+  | 'repositorySigning.status.updatedRefreshing'
+  | 'repositorySigning.status.applying'
+  | 'repositorySigning.status.verification'
+  | 'repositorySigning.status.failedPartial'
+  | 'repositorySigning.status.failedSafe'
+  | 'repositorySigning.status.inspecting'
+  | 'repositorySigning.status.review'
+  | 'repositorySigning.status.rechecking'
+  | 'repositorySigning.status.verifyingHead'
+  | 'repositorySigning.status.loadingTags'
+  | 'repositorySigning.status.verifyingTag'
+  | 'repositorySigning.status.cancelling'
+  | 'repositorySigning.status.changeAgain'
+  | 'repositorySigning.error.start'
+  | 'repositorySigning.error.tooMuchData'
+  | 'repositorySigning.error.gitFailed'
+  | 'repositorySigning.error.configChanged'
+  | 'repositorySigning.error.tagUnavailable'
+  | 'repositorySigning.error.tagChanged'
+  | 'repositorySigning.error.unexpectedState'
+  | 'repositorySigning.error.reviewUnavailable'
+  | 'repositorySigning.error.inspectFirst'
+  | 'repositorySigning.error.formatNeedsKey'
+  | 'repositorySigning.error.prepare'
+  | 'repositorySigning.error.cancel'
+  | 'repositorySigning.error.partial'
+  | 'repositorySigning.error.detail'
+  | 'repositorySigning.grade.good'
+  | 'repositorySigning.grade.bad'
+  | 'repositorySigning.grade.goodUnknownValidity'
+  | 'repositorySigning.grade.expiredSignature'
+  | 'repositorySigning.grade.expiredKey'
+  | 'repositorySigning.grade.revokedKey'
+  | 'repositorySigning.grade.cannotVerify'
+  | 'repositorySigning.grade.unsigned'
+  | 'repositorySigning.grade.unknown'
 
 /** Complete base catalog. Every missing locale entry falls back to this. */
 export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
@@ -3346,6 +3685,204 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tabs.searchListLabel': 'Matching repository tabs',
   'tabs.searchCountOne': '1 matching tab',
   'tabs.searchCountMany': '{count} matching tabs',
+  'tabs.close.matchStrategyRegex': 'regular expressions',
+  'tabs.close.matchStrategyFuzzy': 'fuzzy matching',
+  'tabs.close.matchStrategySubstring': 'literal substrings',
+  'tabs.close.matchCaseSensitive': 'matches letter case',
+  'tabs.close.matchCaseInsensitive': 'ignores letter case',
+  'tabs.close.matchDescription':
+    'Matching uses {strategy} and {casing}, exactly as “Close tabs containing” does.',
+  'tabs.close.saveError':
+    'The change could not be saved. Review open tabs before trying again.',
+  'tabs.close.noMatches': 'No tabs match. Nothing will close.',
+  'tabs.close.cancel': 'Cancel',
+  'tabs.close.closing': 'Closing…',
+  'tabs.close.count': 'Close {count}',
+  'tabs.close.action': 'Close',
+  'tabs.close.closeTabs': 'Close tabs',
+  'tabs.close.openTabsTarget': 'Open tabs',
+  'tabs.stripLabel': 'Repository tabs',
+  'tabs.openRepositoryNewTab': 'Open a repository in a new tab',
+  'tabs.closeContaining.title': 'Close tabs containing',
+  'tabs.closeContaining.placeholder': 'Filter by name',
+  'tabs.closeContaining.previewPrompt': 'Type to preview matches.',
+  'tabs.closeContaining.matchSummary':
+    '{closeCount} close, {pinnedCount} pinned protected.',
+  'tabs.closeExcept.title': 'Close all tabs except those containing…',
+  'tabs.closeExcept.fieldLabel': 'Text to keep',
+  'tabs.closeExcept.placeholder': 'Repository name, alias, or path',
+  'tabs.closeExcept.previewPrompt':
+    'Type a phrase to preview which tabs stay open.',
+  'tabs.closeExcept.allStayOpenOne': 'The {count} tab stays open.',
+  'tabs.closeExcept.allStayOpenMany': 'All {count} tabs stay open.',
+  'tabs.closeExcept.summary': '{keptCount} kept, {closedCount} closed.',
+  'tabs.closeExcept.summaryWithPinned':
+    '{keptCount} kept, {closedCount} closed, {pinnedCount} pinned protected.',
+  'tabs.closeExcept.previewAria': 'Tab close preview',
+  'tabs.closeExcept.dispositionPinned': 'Protected pinned',
+  'tabs.closeExcept.dispositionClose': 'Close',
+  'tabs.closeExcept.dispositionKeep': 'Keep',
+  'tabs.closeExcept.remainingOne': 'And {count} more tab',
+  'tabs.closeExcept.remainingMany': 'And {count} more tabs',
+  'tabs.arrange.initialAnnouncement':
+    'Choose a manual move or a one-time sort.',
+  'tabs.arrange.saveError':
+    'The tab order could not be saved. Review the current order and try again.',
+  'tabs.arrange.movedFirst': '{label} moved to first.',
+  'tabs.arrange.movedLeft': '{label} moved left.',
+  'tabs.arrange.movedRight': '{label} moved right.',
+  'tabs.arrange.movedLast': '{label} moved to last.',
+  'tabs.arrange.pinned': '{label} pinned.',
+  'tabs.arrange.unpinned': '{label} unpinned.',
+  'tabs.arrange.favoriteAdded': '{label} added to favorites.',
+  'tabs.arrange.favoriteRemoved': '{label} removed from favorites.',
+  'tabs.arrange.sortedLabelAscending': 'Tabs arranged from A to Z.',
+  'tabs.arrange.sortedLabelDescending': 'Tabs arranged from Z to A.',
+  'tabs.arrange.sortedOpenedNewest': 'Tabs arranged by newest opened first.',
+  'tabs.arrange.sortedOpenedOldest': 'Tabs arranged by oldest opened first.',
+  'tabs.arrange.sortedAttentionFirst': 'Tabs needing attention moved first.',
+  'tabs.arrange.sortedCleanFirst': 'Clean tabs moved first.',
+  'tabs.arrange.sortedFavoritesFirst': 'Favorite tabs moved first.',
+  'tabs.arrange.sortedFavoritesLast': 'Favorite tabs moved last.',
+  'tabs.arrange.title': 'Arrange tabs',
+  'tabs.arrange.description':
+    'Drag tabs on the strip, or use these keyboard-friendly controls. Pinned tabs remain in the leading group.',
+  'tabs.arrange.filterLabel': 'Filter tabs',
+  'tabs.arrange.filterPlaceholder': 'Name, alias, path, or URL',
+  'tabs.arrange.filterTarget': 'Open tabs',
+  'tabs.arrange.filterCountOne': '{visible} of {total} tab',
+  'tabs.arrange.filterCountMany': '{visible} of {total} tabs',
+  'tabs.arrange.manualOrder': 'Manual order',
+  'tabs.arrange.noMatches': 'No tabs match this filter.',
+  'tabs.arrange.sortOnce': 'Sort once',
+  'tabs.arrange.sortHint':
+    'Sort actions apply to all open tabs, even while filtering.',
+  'tabs.arrange.pinnedChip': 'Pinned',
+  'tabs.arrange.favoriteChip': 'Favorite',
+  'tabs.arrange.pin': 'Pin',
+  'tabs.arrange.unpin': 'Unpin',
+  'tabs.arrange.star': 'Star',
+  'tabs.arrange.unstar': 'Unstar',
+  'tabs.arrange.pinAria': 'Pin {label}',
+  'tabs.arrange.unpinAria': 'Unpin {label}',
+  'tabs.arrange.favoriteAria': 'Favorite {label}',
+  'tabs.arrange.unfavoriteAria': 'Unfavorite {label}',
+  'tabs.arrange.moveFirstAria': 'Move {label} to first',
+  'tabs.arrange.moveLeftAria': 'Move {label} left',
+  'tabs.arrange.moveRightAria': 'Move {label} right',
+  'tabs.arrange.moveLastAria': 'Move {label} to last',
+  'tabs.arrange.first': 'First',
+  'tabs.arrange.left': 'Left',
+  'tabs.arrange.right': 'Right',
+  'tabs.arrange.last': 'Last',
+  'tabs.arrange.sortLabelAscending': 'Label A → Z',
+  'tabs.arrange.sortLabelDescending': 'Label Z → A',
+  'tabs.arrange.sortOpenedNewest': 'Newest opened',
+  'tabs.arrange.sortOpenedOldest': 'Oldest opened',
+  'tabs.arrange.sortAttentionFirst': 'Needs attention first',
+  'tabs.arrange.sortCleanFirst': 'Clean first',
+  'tabs.arrange.sortFavoritesFirst': 'Favorites first',
+  'tabs.arrange.sortFavoritesLast': 'Favorites last',
+  'tabs.arrange.done': 'Done',
+  'tabs.style.alignLeftAria': 'Align left',
+  'tabs.style.alignCenterAria': 'Align center',
+  'tabs.style.alignRightAria': 'Align right',
+  'tabs.style.font': 'Font',
+  'tabs.style.searchFonts': 'Search fonts',
+  'tabs.style.fontsTarget': 'Fonts',
+  'tabs.style.noMatchingFonts': 'No matching fonts',
+  'tabs.style.textColorSwatchAria': 'Text color {color}',
+  'tabs.style.highlightColorSwatchAria': 'Highlight color {color}',
+  'tabs.style.highlight': 'Highlight',
+  'tabs.style.textColor': 'Text color',
+  'tabs.style.useDefaultBackgroundAria': 'Use default background color',
+  'tabs.style.useDefaultTextAria': 'Use default text color',
+  'tabs.style.noHighlight': 'No highlight',
+  'tabs.style.defaultColor': 'Default',
+  'tabs.style.custom': 'Custom…',
+  'tabs.style.customHighlightAria': 'Custom highlight color',
+  'tabs.style.customTextColorAria': 'Custom text color',
+  'tabs.style.recent': 'Recent',
+  'tabs.style.defaultPreviewTitle': 'Repository tab',
+  'tabs.style.previewAria': 'Live tab preview',
+  'tabs.style.preview': 'Preview',
+  'tabs.style.title': 'Tab appearance',
+  'tabs.style.historyAria': 'Open tab appearance history',
+  'tabs.style.history': 'History',
+  'tabs.style.clearAria': 'Clear tab formatting',
+  'tabs.style.clear': 'Clear',
+  'tabs.style.bold': 'Bold',
+  'tabs.style.italic': 'Italic',
+  'tabs.style.underline': 'Underline',
+  'tabs.style.strikethrough': 'Strikethrough',
+  'tabs.style.size': 'Size',
+  'tabs.style.letterCase': 'Letter case',
+  'tabs.style.normalCase': 'Normal case',
+  'tabs.style.uppercase': 'Uppercase',
+  'tabs.style.lowercase': 'Lowercase',
+  'tabs.style.capitalizeWords': 'Capitalize words',
+  'tabs.style.smallCaps': 'Small caps',
+  'tabs.style.spacing': 'Spacing',
+  'tabs.style.textEffect': 'Text effect',
+  'tabs.style.effectNone': 'None',
+  'tabs.style.effectNoneAria': 'No text effect',
+  'tabs.style.effectSoft': 'Soft',
+  'tabs.style.effectSoftAria': 'Soft text shadow',
+  'tabs.style.effectStrong': 'Strong',
+  'tabs.style.effectStrongAria': 'Strong text shadow',
+  'commitPushAll.defaultMessage': 'Commit local changes',
+  'commitPushAll.title': 'Commit and push all repositories',
+  'commitPushAll.intro':
+    'Each repository you tick below is pulled, all of its local changes are committed with the message you provide, and the result is pushed. Clean repositories are skipped, and a failure in one repository will not stop the others.',
+  'commitPushAll.messageLabel': 'Commit message',
+  'commitPushAll.messagePlaceholder': 'Describe these changes',
+  'commitPushAll.filterPlaceholder': 'Filter repositories',
+  'commitPushAll.filterAria': 'Filter the repositories to commit and push',
+  'commitPushAll.filterTarget': 'repository name',
+  'commitPushAll.selectionCount': '{selectedCount} of {totalCount} selected',
+  'commitPushAll.selectShown': 'Select shown',
+  'commitPushAll.clearShown': 'Clear shown',
+  'commitPushAll.repositoriesGroupAria':
+    'Repositories to be committed and pushed',
+  'commitPushAll.noMatches': 'No repository name matches this search.',
+  'commitPushAll.empty':
+    'No repositories have local changes or unpushed commits, so there is nothing to commit and push.',
+  'commitPushAll.commitAll': 'Commit & push all',
+  'commitPushAll.commitCount': 'Commit & push {count}',
+  'commitPushAll.cancel': 'Cancel',
+  'commitPushAll.done': 'Done',
+  'commitPushAll.progressAria': 'Commit and push progress',
+  'commitPushAll.overlineStopped': 'Run stopped',
+  'commitPushAll.overlineComplete': 'Run complete',
+  'commitPushAll.overlineLive': 'Live progress',
+  'commitPushAll.headingFailed': 'Commit and push all could not finish',
+  'commitPushAll.headingComplete': 'All repositories processed',
+  'commitPushAll.headingRunning': 'Committing and pushing repositories',
+  'commitPushAll.repositoriesComplete':
+    '{completed} of {total} repositories complete',
+  'commitPushAll.progressBarAria': 'Repositories committed and pushed',
+  'commitPushAll.metricComplete': '{count} complete',
+  'commitPushAll.metricActive': '{count} active',
+  'commitPushAll.metricWaiting': '{count} waiting',
+  'commitPushAll.allFinal': 'Every repository has a final result.',
+  'commitPushAll.nowWorking': 'Now working on: {repositories}',
+  'commitPushAll.waitingNext': 'Waiting for the next repository to start.',
+  'commitPushAll.concurrencyHint':
+    'Up to three repositories are processed at a time. You can leave this dialog open while the work continues.',
+  'commitPushAll.summary': '{done} pushed, {skipped} skipped, {failed} failed.',
+  'commitPushAll.noRepositoriesRun': 'There were no repositories to run.',
+  'commitPushAll.resultsRegionAria': 'Commit and push all repository progress',
+  'commitPushAll.columnRepository': 'Repository',
+  'commitPushAll.columnStatus': 'Status',
+  'commitPushAll.columnResult': 'Current operation or result',
+  'commitPushAll.runInBackground': 'Run in background',
+  'commitPushAll.status.waiting': 'Waiting',
+  'commitPushAll.status.pulling': 'Pulling',
+  'commitPushAll.status.committing': 'Committing',
+  'commitPushAll.status.pushing': 'Pushing',
+  'commitPushAll.status.done': 'Done',
+  'commitPushAll.status.skipped': 'Skipped',
+  'commitPushAll.status.failed': 'Failed',
   // The three bands are the funny-level voice (1-2 plain, 3 light, 4-5
   // playful). Every band states the same fact — these tabs did not fit in the
   // strip and are still fully usable from here — because the voice moves and
@@ -7037,6 +7574,214 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'regex.test.status.matches': '{count} matches',
   'regex.test.heading': 'TEST',
   'regex.test.sampleLabel': 'Sample text for testing the regular expression',
+  'agentSessions.sidebarLabel': 'Repository sidebar',
+  'agentSessions.listTab': 'List',
+  'agentSessions.agentsTab': 'Agents',
+  'agentSessions.worktrees': 'Worktrees',
+  'agentSessions.newSession': 'New Agent Session',
+  'agentSessions.empty':
+    'No worktrees yet. Create one to start an agent session.',
+  'agentSessions.locked': 'Locked',
+  'agentSessions.missing': 'Missing',
+  'agentSessions.detachedAt': 'detached at ',
+  'agentSessions.onBranch': 'on branch ',
+  'agentSessions.options': 'Options',
+  'agentSessions.baseBranch': 'Base branch',
+  'agentSessions.codingAgent': 'Coding agent',
+  'agentSessions.taskLabel': 'Task for the agent',
+  'agentSessions.taskPlaceholder': 'What should the agent do in this worktree?',
+  'agentSessions.configureSetup': 'Configure setup commands',
+  'agentSessions.setupUnavailable':
+    'Setup commands cannot be configured from this panel yet.',
+  'agentSessions.worktreeName': 'Worktree name',
+  'agentSessions.cancel': 'Cancel',
+  'agentSessions.start': 'Start',
+  'agentSessions.agent.none': '<None>',
+  'agentSessions.agent.notDetected': '{name} — not detected',
+  'agentSessions.agent.notAuthenticated': '{name} — authentication required',
+  'agentSessions.noneHint': '<None> creates the worktree and runs nothing.',
+  'agentSessions.problem.nameEmpty': 'Enter a name for the new worktree.',
+  'agentSessions.problem.nameTooLong': 'Use {count} characters or fewer.',
+  'agentSessions.problem.nameSeparator':
+    'A worktree name cannot contain a path separator.',
+  'agentSessions.problem.nameIllegal':
+    'Git will not accept this name. Avoid spaces, control characters, and the characters ~ ^ : ? * [ \\ and consecutive dots.',
+  'agentSessions.problem.nameReserved':
+    '{name} is a reserved device name on Windows.',
+  'agentSessions.problem.duplicateWorktree':
+    'A worktree named {name} already exists.',
+  'agentSessions.problem.duplicateBranch':
+    'A branch named {name} already exists.',
+  'agentSessions.problem.baseEmpty': 'Choose a base branch.',
+  'agentSessions.problem.baseUnknown':
+    '{branch} is not a branch in this repository.',
+  'agentSessions.problem.agentUnavailable':
+    'That coding agent cannot run on this computer.',
+  'agentSessions.problem.promptEmpty':
+    'Describe the task for the agent, or choose <None>.',
+  'agentSessions.problem.promptTooLong': 'Use {count} characters or fewer.',
+  'agentSessions.status.errorLabel': 'Error',
+  'agentSessions.status.failed': '{name} failed',
+  'agentSessions.status.failedWithReason': '{name} failed: {reason}',
+  'agentSessions.status.workingLabel': 'Working',
+  'agentSessions.status.working': '{name} is working',
+  'agentSessions.status.workingEdited': '{name} is working, {files} edited',
+  'agentSessions.status.oneFile': '1 file',
+  'agentSessions.status.files': '{count} files',
+  'agentSessions.status.oneLine': '1 line',
+  'agentSessions.status.lines': '{count} lines',
+  'agentSessions.status.diff':
+    '{name} has {added} added and {deleted} deleted across {files}',
+  'agentSessions.status.notMeasuredLabel': 'Not measured',
+  'agentSessions.status.notMeasured': '{name} has no measured changes yet',
+  'agentSessions.status.noChangesLabel': 'No changes',
+  'agentSessions.status.noChanges': '{name} has no changes',
+  'agentSessions.notification.unavailableTitle': 'Agent session is unavailable',
+  'agentSessions.notification.unavailableBody':
+    '{name} is no longer registered as a worktree. Refresh the repository and try again.',
+  'agentSessions.notification.invalidTitle': 'Agent session request is invalid',
+  'agentSessions.notification.createFailedTitle':
+    'Agent session could not be created',
+  'agentSessions.notification.createdTitle': 'Agent session created',
+  'agentSessions.notification.createdBody':
+    '{name} is ready. No coding agent was started.',
+  'agentSessions.notification.finishedTitle': 'Agent session finished',
+  'agentSessions.notification.finishedBody':
+    '{agent} finished in {name}. Review the worktree before integrating its changes.',
+  'agentSessions.notification.endedTitle': '{agent} exited',
+  'agentSessions.notification.endedBody':
+    '{agent} exited cleanly in {name}. Review the worktree to confirm the task outcome before integrating changes.',
+  'agentSessions.notification.failedTitle': 'Agent session failed',
+  'agentSessions.notification.failedBody': '{name}: {error}',
+  'agentSessions.notification.runnerCouldNotStart':
+    '{agent} could not start cleanly.',
+  'agentSessions.notification.runnerExitedWithCode':
+    '{agent} exited with code {code}.',
+  'repositorySigning.title': 'Commit and tag signing',
+  'repositorySigning.hubDescription':
+    'Inspect and review the repository or global signing policy for commits and annotated tags.',
+  'repositorySigning.shortcutLabel': 'Signing policy shortcut',
+  'repositorySigning.cardTitle': 'Manage signing policy',
+  'repositorySigning.intro':
+    'Inspect public signing configuration, choose local or global defaults, and verify HEAD or annotated tags without exposing raw verifier output.',
+  'repositorySigning.summaryTitle': 'Effective signing policy',
+  'repositorySigning.notInspected': 'Not inspected',
+  'repositorySigning.keyLabel': 'Signing key',
+  'repositorySigning.notConfigured': 'Not configured',
+  'repositorySigning.commitLabel': 'Commit signing',
+  'repositorySigning.tagLabel': 'Tag signing',
+  'repositorySigning.enabled': 'Enabled',
+  'repositorySigning.disabled': 'Disabled',
+  'repositorySigning.scopeLabel': 'Configuration scope',
+  'repositorySigning.scope.local': 'This repository',
+  'repositorySigning.scope.global': 'All repositories',
+  'repositorySigning.formatLabel': 'Signing format',
+  'repositorySigning.replacementKeyLabel': 'Replacement public key',
+  'repositorySigning.replacementKeyHelp':
+    'Leave blank to preserve the configured key. OpenPGP and X.509 accept a public fingerprint; SSH accepts an inline key:: public key. Private key paths and comments are rejected. Changing formats while a key is configured requires a compatible replacement.',
+  'repositorySigning.signCommits': 'Sign commits by default',
+  'repositorySigning.signTags': 'Sign annotated tags by default',
+  'repositorySigning.reviewAction': 'Review signing settings',
+  'repositorySigning.reviewTitle': 'Apply these signing settings?',
+  'repositorySigning.review.scope': 'Scope',
+  'repositorySigning.review.format': 'Format',
+  'repositorySigning.review.publicKey': 'Public key',
+  'repositorySigning.review.preserveKey': 'Preserve current key',
+  'repositorySigning.review.replaceKey':
+    'Replace with reviewed public identifier',
+  'repositorySigning.review.defaults': 'Commit / tag defaults',
+  'repositorySigning.review.commitOn': 'Commit on',
+  'repositorySigning.review.commitOff': 'Commit off',
+  'repositorySigning.review.tagOn': 'tag on',
+  'repositorySigning.review.tagOff': 'tag off',
+  'repositorySigning.review.description':
+    'The selected scope is rechecked before fixed Git config updates run. Secret key material, signer programs, and allowed-signers paths are never read or shown.',
+  'repositorySigning.applyAction': 'Apply signing settings',
+  'repositorySigning.goBack': 'Go back',
+  'repositorySigning.verificationTitle': 'Safe signature verification',
+  'repositorySigning.verifyHead': 'Verify HEAD commit',
+  'repositorySigning.loadTags': 'Load annotated tags',
+  'repositorySigning.annotatedTag': 'Annotated tag',
+  'repositorySigning.verifyTag': 'Verify selected tag',
+  'repositorySigning.result.target': 'Target',
+  'repositorySigning.result.state': 'State',
+  'repositorySigning.result.signer': 'Signer',
+  'repositorySigning.result.notReported': 'Not reported',
+  'repositorySigning.inspectAction': 'Inspect signing settings',
+  'repositorySigning.inspectAgainAction': 'Inspect signing settings again',
+  'repositorySigning.cancelAction': 'Cancel signing operation',
+  'repositorySigning.status.idle':
+    'Inspect signing configuration before making changes.',
+  'repositorySigning.status.cancelledPartial':
+    'Signing operation cancelled. Some reviewed settings may already be applied; inspect the current state again.',
+  'repositorySigning.status.cancelledClean':
+    'Signing operation cancelled. No reviewed signing update was started.',
+  'repositorySigning.status.inspected':
+    'Signing configuration inspected safely.',
+  'repositorySigning.status.noTags':
+    'No annotated tags are available to verify.',
+  'repositorySigning.status.loadedTags': 'Loaded {count} annotated {noun}.',
+  'repositorySigning.status.updatedRefreshing':
+    'Signing settings updated. Refreshing repository state…',
+  'repositorySigning.status.applying':
+    'Applying reviewed signing setting {index} of {total}…',
+  'repositorySigning.status.verification': '{target}: {state}.',
+  'repositorySigning.status.failedPartial':
+    'The signing update did not fully complete.',
+  'repositorySigning.status.failedSafe':
+    'The signing operation stopped safely.',
+  'repositorySigning.status.inspecting':
+    'Inspecting repository signing settings…',
+  'repositorySigning.status.review':
+    'Review the exact signing settings before applying them.',
+  'repositorySigning.status.rechecking':
+    'Rechecking signing settings before applying…',
+  'repositorySigning.status.verifyingHead':
+    'Checking the HEAD commit signature…',
+  'repositorySigning.status.loadingTags':
+    'Loading bounded annotated-tag metadata…',
+  'repositorySigning.status.verifyingTag': 'Checking the {tag} tag signature…',
+  'repositorySigning.status.cancelling': 'Cancelling the signing operation…',
+  'repositorySigning.status.changeAgain':
+    'Change the signing settings or review them again.',
+  'repositorySigning.error.start':
+    'The signing operation could not be started safely.',
+  'repositorySigning.error.tooMuchData':
+    'Git returned more signing data than can be reviewed safely.',
+  'repositorySigning.error.gitFailed':
+    'Git could not complete the bounded signing operation.',
+  'repositorySigning.error.configChanged':
+    'Signing configuration changed after review. Inspect and review it again.',
+  'repositorySigning.error.tagUnavailable':
+    'The reviewed annotated tag is no longer available.',
+  'repositorySigning.error.tagChanged':
+    'The annotated tag changed after selection. Reload tags before verifying.',
+  'repositorySigning.error.unexpectedState':
+    'The signing operation entered an unexpected state.',
+  'repositorySigning.error.reviewUnavailable':
+    'The reviewed signing update is no longer available.',
+  'repositorySigning.error.inspectFirst':
+    'Inspect signing configuration before reviewing it.',
+  'repositorySigning.error.formatNeedsKey':
+    'Changing the signing format while a key is configured requires a compatible replacement public key.',
+  'repositorySigning.error.prepare':
+    'The signing update could not be prepared safely.',
+  'repositorySigning.error.cancel':
+    'The signing operation could not be cancelled.',
+  'repositorySigning.error.partial':
+    '{detail} Some reviewed settings may already be applied; inspect signing settings again before another update.',
+  'repositorySigning.error.detail': '{detail}',
+  'repositorySigning.grade.good': 'Good signature',
+  'repositorySigning.grade.bad': 'Bad signature',
+  'repositorySigning.grade.goodUnknownValidity':
+    'Cryptographically good; trust is unknown',
+  'repositorySigning.grade.expiredSignature':
+    'Good signature made after its expiry',
+  'repositorySigning.grade.expiredKey': 'Good signature made by an expired key',
+  'repositorySigning.grade.revokedKey': 'Good signature made by a revoked key',
+  'repositorySigning.grade.cannotVerify': 'Signature could not be checked',
+  'repositorySigning.grade.unsigned': 'Unsigned',
+  'repositorySigning.grade.unknown': 'Unknown signature state',
 }
 
 /** Hong Kong Cantonese catalog. Missing entries deliberately use English. */
@@ -7296,6 +8041,201 @@ export const cantoneseTranslations: Readonly<
   'tabs.searchListLabel': '符合嘅 repository 分頁',
   'tabs.searchCountOne': '有 1 個符合嘅分頁',
   'tabs.searchCountMany': '有 {count} 個符合嘅分頁',
+  'tabs.close.matchStrategyRegex': '正則表達式',
+  'tabs.close.matchStrategyFuzzy': '模糊配對',
+  'tabs.close.matchStrategySubstring': '原封不動嘅字串片段',
+  'tabs.close.matchCaseSensitive': '會分大小寫',
+  'tabs.close.matchCaseInsensitive': '唔分大小寫',
+  'tabs.close.matchDescription':
+    '配對會用{strategy}，而且{casing}，同「閂咗含指定文字嘅分頁」完全同一套，唔會各自發明玩法。',
+  'tabs.close.saveError':
+    '未能儲存今次改動。請先望清楚而家開住嘅分頁，再試一次。',
+  'tabs.close.noMatches': '冇分頁符合，今次一個都唔會閂。',
+  'tabs.close.cancel': '取消',
+  'tabs.close.closing': '閂緊…',
+  'tabs.close.count': '閂 {count} 個',
+  'tabs.close.action': '閂',
+  'tabs.close.closeTabs': '閂分頁',
+  'tabs.close.openTabsTarget': '已開啟分頁',
+  'tabs.stripLabel': 'Repo 分頁',
+  'tabs.openRepositoryNewTab': '開個新分頁揀 repository',
+  'tabs.closeContaining.title': '閂咗含指定文字嘅分頁',
+  'tabs.closeContaining.placeholder': '按名稱篩選',
+  'tabs.closeContaining.previewPrompt': '打啲字先可以預覽符合項目。',
+  'tabs.closeContaining.matchSummary':
+    '{closeCount} 個會閂，{pinnedCount} 個置頂分頁受保護。',
+  'tabs.closeExcept.title': '閂晒其他分頁，只留低含指定文字嘅…',
+  'tabs.closeExcept.fieldLabel': '要保留嘅文字',
+  'tabs.closeExcept.placeholder': 'Repository 名、別名或者路徑',
+  'tabs.closeExcept.previewPrompt': '打句字先預覽邊啲分頁會留低。',
+  'tabs.closeExcept.allStayOpenOne': '嗰 {count} 個分頁會繼續開住。',
+  'tabs.closeExcept.allStayOpenMany': '全部 {count} 個分頁會繼續開住。',
+  'tabs.closeExcept.summary': '保留 {keptCount} 個，閂 {closedCount} 個。',
+  'tabs.closeExcept.summaryWithPinned':
+    '保留 {keptCount} 個，閂 {closedCount} 個，另有 {pinnedCount} 個置頂分頁受保護。',
+  'tabs.closeExcept.previewAria': '閂分頁預覽',
+  'tabs.closeExcept.dispositionPinned': '置頂，受保護',
+  'tabs.closeExcept.dispositionClose': '會閂',
+  'tabs.closeExcept.dispositionKeep': '保留',
+  'tabs.closeExcept.remainingOne': '另外仲有 {count} 個分頁',
+  'tabs.closeExcept.remainingMany': '另外仲有 {count} 個分頁',
+  'tabs.arrange.initialAnnouncement': '揀手動搬位，或者一次過排好佢。',
+  'tabs.arrange.saveError': '未能儲存分頁次序。請睇清楚而家個排列，再試一次。',
+  'tabs.arrange.movedFirst': '已將 {label} 搬到最前。',
+  'tabs.arrange.movedLeft': '已將 {label} 向左搬。',
+  'tabs.arrange.movedRight': '已將 {label} 向右搬。',
+  'tabs.arrange.movedLast': '已將 {label} 搬到最後。',
+  'tabs.arrange.pinned': '已將 {label} 置頂。',
+  'tabs.arrange.unpinned': '已取消置頂 {label}。',
+  'tabs.arrange.favoriteAdded': '已將 {label} 加入最愛。',
+  'tabs.arrange.favoriteRemoved': '已將 {label} 移出最愛。',
+  'tabs.arrange.sortedLabelAscending': '分頁已經由 A 排到 Z。',
+  'tabs.arrange.sortedLabelDescending': '分頁已經由 Z 排到 A。',
+  'tabs.arrange.sortedOpenedNewest': '最新開啟嘅分頁排咗最前。',
+  'tabs.arrange.sortedOpenedOldest': '最早開啟嘅分頁排咗最前。',
+  'tabs.arrange.sortedAttentionFirst': '要留神嘅分頁已經搬到最前。',
+  'tabs.arrange.sortedCleanFirst': '乾淨嘅分頁已經搬到最前。',
+  'tabs.arrange.sortedFavoritesFirst': '最愛分頁已經搬到最前。',
+  'tabs.arrange.sortedFavoritesLast': '最愛分頁已經搬到最後。',
+  'tabs.arrange.title': '排列分頁',
+  'tabs.arrange.description':
+    '喺分頁列拖動，或者用以下鍵盤友善控制。置頂分頁會繼續企喺最前嗰組。',
+  'tabs.arrange.filterLabel': '篩選分頁',
+  'tabs.arrange.filterPlaceholder': '名稱、別名、路徑或者網址',
+  'tabs.arrange.filterTarget': '已開啟分頁',
+  'tabs.arrange.filterCountOne': '{total} 個分頁入面顯示 {visible} 個',
+  'tabs.arrange.filterCountMany': '{total} 個分頁入面顯示 {visible} 個',
+  'tabs.arrange.manualOrder': '手動排序',
+  'tabs.arrange.noMatches': '冇分頁符合呢個篩選。',
+  'tabs.arrange.sortOnce': '排一次',
+  'tabs.arrange.sortHint': '排序會套用到所有已開啟分頁，就算而家篩選緊都一樣。',
+  'tabs.arrange.pinnedChip': '已置頂',
+  'tabs.arrange.favoriteChip': '最愛',
+  'tabs.arrange.pin': '置頂',
+  'tabs.arrange.unpin': '取消置頂',
+  'tabs.arrange.star': '加星',
+  'tabs.arrange.unstar': '取消星號',
+  'tabs.arrange.pinAria': '置頂 {label}',
+  'tabs.arrange.unpinAria': '取消置頂 {label}',
+  'tabs.arrange.favoriteAria': '將 {label} 加入最愛',
+  'tabs.arrange.unfavoriteAria': '將 {label} 移出最愛',
+  'tabs.arrange.moveFirstAria': '將 {label} 搬到最前',
+  'tabs.arrange.moveLeftAria': '將 {label} 向左搬',
+  'tabs.arrange.moveRightAria': '將 {label} 向右搬',
+  'tabs.arrange.moveLastAria': '將 {label} 搬到最後',
+  'tabs.arrange.first': '最前',
+  'tabs.arrange.left': '向左',
+  'tabs.arrange.right': '向右',
+  'tabs.arrange.last': '最後',
+  'tabs.arrange.sortLabelAscending': '標籤 A → Z',
+  'tabs.arrange.sortLabelDescending': '標籤 Z → A',
+  'tabs.arrange.sortOpenedNewest': '最新開啟先',
+  'tabs.arrange.sortOpenedOldest': '最早開啟先',
+  'tabs.arrange.sortAttentionFirst': '要留神嘅先',
+  'tabs.arrange.sortCleanFirst': '乾淨嘅先',
+  'tabs.arrange.sortFavoritesFirst': '最愛先',
+  'tabs.arrange.sortFavoritesLast': '最愛最後',
+  'tabs.arrange.done': '完成',
+  'tabs.style.alignLeftAria': '靠左對齊',
+  'tabs.style.alignCenterAria': '置中對齊',
+  'tabs.style.alignRightAria': '靠右對齊',
+  'tabs.style.font': '字體',
+  'tabs.style.searchFonts': '搜尋字體',
+  'tabs.style.fontsTarget': '字體',
+  'tabs.style.noMatchingFonts': '冇字體符合',
+  'tabs.style.textColorSwatchAria': '文字顏色 {color}',
+  'tabs.style.highlightColorSwatchAria': '底色 {color}',
+  'tabs.style.highlight': '底色',
+  'tabs.style.textColor': '文字顏色',
+  'tabs.style.useDefaultBackgroundAria': '使用預設背景顏色',
+  'tabs.style.useDefaultTextAria': '使用預設文字顏色',
+  'tabs.style.noHighlight': '冇底色',
+  'tabs.style.defaultColor': '預設',
+  'tabs.style.custom': '自訂…',
+  'tabs.style.customHighlightAria': '自訂底色',
+  'tabs.style.customTextColorAria': '自訂文字顏色',
+  'tabs.style.recent': '最近用過',
+  'tabs.style.defaultPreviewTitle': 'Repository 分頁',
+  'tabs.style.previewAria': '即時分頁預覽',
+  'tabs.style.preview': '預覽',
+  'tabs.style.title': '分頁外觀',
+  'tabs.style.historyAria': '打開分頁外觀歷史',
+  'tabs.style.history': '歷史',
+  'tabs.style.clearAria': '清除分頁格式',
+  'tabs.style.clear': '清除',
+  'tabs.style.bold': '粗體',
+  'tabs.style.italic': '斜體',
+  'tabs.style.underline': '底線',
+  'tabs.style.strikethrough': '刪除線',
+  'tabs.style.size': '大小',
+  'tabs.style.letterCase': '英文字母大小寫',
+  'tabs.style.normalCase': '一般大小寫',
+  'tabs.style.uppercase': '全大寫',
+  'tabs.style.lowercase': '全小寫',
+  'tabs.style.capitalizeWords': '每字首大寫',
+  'tabs.style.smallCaps': '小型大寫字母',
+  'tabs.style.spacing': '字距',
+  'tabs.style.textEffect': '文字效果',
+  'tabs.style.effectNone': '冇',
+  'tabs.style.effectNoneAria': '冇文字效果',
+  'tabs.style.effectSoft': '柔和',
+  'tabs.style.effectSoftAria': '柔和文字陰影',
+  'tabs.style.effectStrong': '明顯',
+  'tabs.style.effectStrongAria': '明顯文字陰影',
+  'commitPushAll.defaultMessage': 'Commit 本機改動',
+  'commitPushAll.title': 'Commit 同 push 全部 repository',
+  'commitPushAll.intro':
+    '下面剔選嘅每個 repository 都會先 pull，再用你提供嘅訊息 commit 所有本機改動，最後 push 結果。乾淨嘅 repository 會略過；其中一個失敗，其他照樣繼續，唔會成隊企定。',
+  'commitPushAll.messageLabel': 'Commit 訊息',
+  'commitPushAll.messagePlaceholder': '形容今次改咗啲咩',
+  'commitPushAll.filterPlaceholder': '篩選 repository',
+  'commitPushAll.filterAria': '篩選要 commit 同 push 嘅 repository',
+  'commitPushAll.filterTarget': 'repository 名稱',
+  'commitPushAll.selectionCount':
+    '已揀 {totalCount} 個入面嘅 {selectedCount} 個',
+  'commitPushAll.selectShown': '揀晒顯示緊嘅',
+  'commitPushAll.clearShown': '清除顯示緊嘅選擇',
+  'commitPushAll.repositoriesGroupAria': '將會 commit 同 push 嘅 repository',
+  'commitPushAll.noMatches': '冇 repository 名稱符合呢個搜尋。',
+  'commitPushAll.empty':
+    '冇 repository 有本機改動或者未 push 嘅 commit，所以今次冇嘢要 commit 同 push。',
+  'commitPushAll.commitAll': 'Commit 同 push 全部',
+  'commitPushAll.commitCount': 'Commit 同 push {count} 個',
+  'commitPushAll.cancel': '取消',
+  'commitPushAll.done': '完成',
+  'commitPushAll.progressAria': 'Commit 同 push 進度',
+  'commitPushAll.overlineStopped': '執行已停止',
+  'commitPushAll.overlineComplete': '執行完成',
+  'commitPushAll.overlineLive': '即時進度',
+  'commitPushAll.headingFailed': '未能完成 commit 同 push 全部項目',
+  'commitPushAll.headingComplete': '全部 repository 已處理',
+  'commitPushAll.headingRunning': 'Commit 同 push 緊 repository',
+  'commitPushAll.repositoriesComplete':
+    '{total} 個 repository 入面完成咗 {completed} 個',
+  'commitPushAll.progressBarAria': '已 commit 同 push 嘅 repository',
+  'commitPushAll.metricComplete': '{count} 個完成',
+  'commitPushAll.metricActive': '{count} 個處理緊',
+  'commitPushAll.metricWaiting': '{count} 個等緊',
+  'commitPushAll.allFinal': '每個 repository 都有最終結果。',
+  'commitPushAll.nowWorking': '而家處理緊：{repositories}',
+  'commitPushAll.waitingNext': '等緊下一個 repository 開始。',
+  'commitPushAll.concurrencyHint':
+    '每次最多同時處理三個 repository。工作繼續期間，你可以由得呢個對話框開住。',
+  'commitPushAll.summary':
+    '成功 push {done} 個，略過 {skipped} 個，失敗 {failed} 個。',
+  'commitPushAll.noRepositoriesRun': '今次冇 repository 要執行。',
+  'commitPushAll.resultsRegionAria': 'Commit 同 push 全部 repository 嘅進度',
+  'commitPushAll.columnRepository': 'Repository',
+  'commitPushAll.columnStatus': '狀態',
+  'commitPushAll.columnResult': '目前操作或者結果',
+  'commitPushAll.runInBackground': '放到背景繼續',
+  'commitPushAll.status.waiting': '等緊',
+  'commitPushAll.status.pulling': 'Pull 緊',
+  'commitPushAll.status.committing': 'Commit 緊',
+  'commitPushAll.status.pushing': 'Push 緊',
+  'commitPushAll.status.done': '完成',
+  'commitPushAll.status.skipped': '已略過',
+  'commitPushAll.status.failed': '失敗',
   'tabs.overflowDescription.plain':
     '呢啲分頁擠唔落條分頁列。喺呢度可以搵、揀，或者改外觀。',
   'tabs.overflowDescription.light':
@@ -10717,4 +11657,180 @@ export const cantoneseTranslations: Readonly<
   'regex.test.status.matches': '{count} 個配對',
   'regex.test.heading': '測試',
   'regex.test.sampleLabel': '用嚟測試正則表達式嘅範例文字',
+  'agentSessions.sidebarLabel': 'Repository 側欄',
+  'agentSessions.listTab': '清單',
+  'agentSessions.agentsTab': '代理',
+  'agentSessions.worktrees': '工作樹',
+  'agentSessions.newSession': '新增代理工作階段',
+  'agentSessions.empty': '未有工作樹。新增一個就可以開始代理工作階段。',
+  'agentSessions.locked': '已鎖定',
+  'agentSessions.missing': '路徑遺失',
+  'agentSessions.detachedAt': '分離於 ',
+  'agentSessions.onBranch': '位於分支 ',
+  'agentSessions.options': '選項',
+  'agentSessions.baseBranch': '基礎分支',
+  'agentSessions.codingAgent': '程式代理',
+  'agentSessions.taskLabel': '交畀代理嘅工作',
+  'agentSessions.taskPlaceholder': '代理要喺呢棵工作樹做乜？',
+  'agentSessions.configureSetup': '設定準備指令',
+  'agentSessions.setupUnavailable': '呢個面板暫時未可以設定準備指令。',
+  'agentSessions.worktreeName': '工作樹名稱',
+  'agentSessions.cancel': '取消',
+  'agentSessions.start': '開始',
+  'agentSessions.agent.none': '<無>',
+  'agentSessions.agent.notDetected': '{name} — 未偵測到',
+  'agentSessions.agent.notAuthenticated': '{name} — 需要先完成登入驗證',
+  'agentSessions.noneHint': '<無> 只會新增工作樹，唔會啟動任何代理。',
+  'agentSessions.problem.nameEmpty': '請輸入新工作樹名稱。',
+  'agentSessions.problem.nameTooLong': '請用 {count} 個字元或以下。',
+  'agentSessions.problem.nameSeparator': '工作樹名稱唔可以包含路徑分隔符號。',
+  'agentSessions.problem.nameIllegal':
+    'Git 唔接受呢個名稱。請避開空格、控制字元、~ ^ : ? * [ \\ 同連續句點。',
+  'agentSessions.problem.nameReserved': '{name} 係 Windows 保留裝置名稱。',
+  'agentSessions.problem.duplicateWorktree': '已經有一棵叫 {name} 嘅工作樹。',
+  'agentSessions.problem.duplicateBranch': '已經有一條叫 {name} 嘅分支。',
+  'agentSessions.problem.baseEmpty': '請揀基礎分支。',
+  'agentSessions.problem.baseUnknown': '{branch} 唔係呢個 repository 嘅分支。',
+  'agentSessions.problem.agentUnavailable': '呢個程式代理喺此電腦未能執行。',
+  'agentSessions.problem.promptEmpty': '請描述代理工作，或者揀 <無>。',
+  'agentSessions.problem.promptTooLong': '請用 {count} 個字元或以下。',
+  'agentSessions.status.errorLabel': '出錯',
+  'agentSessions.status.failed': '{name} 執行失敗',
+  'agentSessions.status.failedWithReason': '{name} 執行失敗：{reason}',
+  'agentSessions.status.workingLabel': '處理中',
+  'agentSessions.status.working': '{name} 處理中',
+  'agentSessions.status.workingEdited': '{name} 處理中，已改 {files}',
+  'agentSessions.status.oneFile': '1 個檔案',
+  'agentSessions.status.files': '{count} 個檔案',
+  'agentSessions.status.oneLine': '1 行',
+  'agentSessions.status.lines': '{count} 行',
+  'agentSessions.status.diff':
+    '{name} 新增 {added}、刪除 {deleted}，涉及 {files}',
+  'agentSessions.status.notMeasuredLabel': '未量度',
+  'agentSessions.status.notMeasured': '{name} 暫時未量度變更',
+  'agentSessions.status.noChangesLabel': '冇變更',
+  'agentSessions.status.noChanges': '{name} 冇變更',
+  'agentSessions.notification.unavailableTitle': '代理工作階段已不可用',
+  'agentSessions.notification.unavailableBody':
+    '{name} 已經唔係已登記工作樹。請重新整理 repository 再試。',
+  'agentSessions.notification.invalidTitle': '代理工作階段要求無效',
+  'agentSessions.notification.createFailedTitle': '未能新增代理工作階段',
+  'agentSessions.notification.createdTitle': '代理工作階段已新增',
+  'agentSessions.notification.createdBody':
+    '{name} 已準備好；今次冇啟動程式代理。',
+  'agentSessions.notification.finishedTitle': '代理工作階段已完成',
+  'agentSessions.notification.finishedBody':
+    '{agent} 已經喺 {name} 完成。整合變更之前，請先檢查工作樹。',
+  'agentSessions.notification.endedTitle': '{agent} 已退出',
+  'agentSessions.notification.endedBody':
+    '{agent} 已經喺 {name} 正常退出。整合變更之前，請檢查工作樹並確認工作結果。',
+  'agentSessions.notification.failedTitle': '代理工作階段失敗',
+  'agentSessions.notification.failedBody': '{name}：{error}',
+  'agentSessions.notification.runnerCouldNotStart': '{agent} 未能正常啟動。',
+  'agentSessions.notification.runnerExitedWithCode':
+    '{agent} 以代碼 {code} 退出。',
+  'repositorySigning.title': 'Commit 同 tag 簽署',
+  'repositorySigning.hubDescription':
+    '檢查同覆核呢個 repository 或全域嘅 commit 同 annotated tag 簽署政策。',
+  'repositorySigning.shortcutLabel': '簽署政策捷徑',
+  'repositorySigning.cardTitle': '管理簽署政策',
+  'repositorySigning.intro':
+    '檢查公開簽署設定、揀呢個 repository 或全域預設，並安全驗證 HEAD 或 annotated tag；原始驗證器輸出唔會顯示。',
+  'repositorySigning.summaryTitle': '目前生效嘅簽署政策',
+  'repositorySigning.notInspected': '未檢查',
+  'repositorySigning.keyLabel': '簽署金鑰',
+  'repositorySigning.notConfigured': '未設定',
+  'repositorySigning.commitLabel': 'Commit 簽署',
+  'repositorySigning.tagLabel': 'Tag 簽署',
+  'repositorySigning.enabled': '已啟用',
+  'repositorySigning.disabled': '已停用',
+  'repositorySigning.scopeLabel': '設定範圍',
+  'repositorySigning.scope.local': '呢個 repository',
+  'repositorySigning.scope.global': '所有 repository',
+  'repositorySigning.formatLabel': '簽署格式',
+  'repositorySigning.replacementKeyLabel': '替代公開金鑰',
+  'repositorySigning.replacementKeyHelp':
+    '留空會保留目前金鑰。OpenPGP 同 X.509 接受公開 fingerprint；SSH 接受 inline key:: public key。私人金鑰路徑同註解會被拒絕。如果已設定金鑰後改格式，必須提供相容嘅替代金鑰。',
+  'repositorySigning.signCommits': '預設簽署 commit',
+  'repositorySigning.signTags': '預設簽署 annotated tag',
+  'repositorySigning.reviewAction': '覆核簽署設定',
+  'repositorySigning.reviewTitle': '套用呢啲簽署設定？',
+  'repositorySigning.review.scope': '範圍',
+  'repositorySigning.review.format': '格式',
+  'repositorySigning.review.publicKey': '公開金鑰',
+  'repositorySigning.review.preserveKey': '保留目前金鑰',
+  'repositorySigning.review.replaceKey': '換成已覆核嘅公開識別碼',
+  'repositorySigning.review.defaults': 'Commit / tag 預設',
+  'repositorySigning.review.commitOn': 'Commit 開啟',
+  'repositorySigning.review.commitOff': 'Commit 關閉',
+  'repositorySigning.review.tagOn': 'tag 開啟',
+  'repositorySigning.review.tagOff': 'tag 關閉',
+  'repositorySigning.review.description':
+    '執行固定 Git 設定更新前，系統會再檢查所選範圍。私人金鑰資料、簽署程式同 allowed-signers 路徑一律唔會讀取或顯示。',
+  'repositorySigning.applyAction': '套用簽署設定',
+  'repositorySigning.goBack': '返回',
+  'repositorySigning.verificationTitle': '安全簽署驗證',
+  'repositorySigning.verifyHead': '驗證 HEAD commit',
+  'repositorySigning.loadTags': '載入 annotated tag',
+  'repositorySigning.annotatedTag': 'Annotated tag',
+  'repositorySigning.verifyTag': '驗證所選 tag',
+  'repositorySigning.result.target': '目標',
+  'repositorySigning.result.state': '狀態',
+  'repositorySigning.result.signer': '簽署者',
+  'repositorySigning.result.notReported': '未有報告',
+  'repositorySigning.inspectAction': '檢查簽署設定',
+  'repositorySigning.inspectAgainAction': '再次檢查簽署設定',
+  'repositorySigning.cancelAction': '取消簽署操作',
+  'repositorySigning.status.idle': '請先檢查簽署設定，再作更改。',
+  'repositorySigning.status.cancelledPartial':
+    '簽署操作已取消。部分已覆核設定可能已經套用；請再次檢查目前狀態。',
+  'repositorySigning.status.cancelledClean':
+    '簽署操作已取消，未有開始任何已覆核簽署更新。',
+  'repositorySigning.status.inspected': '簽署設定已安全檢查。',
+  'repositorySigning.status.noTags': '未有 annotated tag 可供驗證。',
+  'repositorySigning.status.loadedTags': '已載入 {count} 個 annotated {noun}。',
+  'repositorySigning.status.updatedRefreshing':
+    '簽署設定已更新，正重新整理 repository 狀態…',
+  'repositorySigning.status.applying':
+    '正套用第 {index} 項已覆核簽署設定，共 {total} 項…',
+  'repositorySigning.status.verification': '{target}：{state}。',
+  'repositorySigning.status.failedPartial': '簽署更新未有完整完成。',
+  'repositorySigning.status.failedSafe': '簽署操作已安全停止。',
+  'repositorySigning.status.inspecting': '正檢查 repository 簽署設定…',
+  'repositorySigning.status.review': '套用前請覆核確實嘅簽署設定。',
+  'repositorySigning.status.rechecking': '套用前正再次檢查簽署設定…',
+  'repositorySigning.status.verifyingHead': '正檢查 HEAD commit 簽署…',
+  'repositorySigning.status.loadingTags': '正載入有限量 annotated-tag 資料…',
+  'repositorySigning.status.verifyingTag': '正檢查 {tag} tag 簽署…',
+  'repositorySigning.status.cancelling': '正取消簽署操作…',
+  'repositorySigning.status.changeAgain': '請更改簽署設定，或者再次覆核。',
+  'repositorySigning.error.start': '未能安全啟動簽署操作。',
+  'repositorySigning.error.tooMuchData':
+    'Git 傳回嘅簽署資料太多，未能安全覆核。',
+  'repositorySigning.error.gitFailed': 'Git 未能完成有限量簽署操作。',
+  'repositorySigning.error.configChanged':
+    '簽署設定喺覆核後有變。請再次檢查同覆核。',
+  'repositorySigning.error.tagUnavailable':
+    '已覆核嘅 annotated tag 已經唔再可用。',
+  'repositorySigning.error.tagChanged':
+    'Annotated tag 喺揀選後有變。請重新載入 tag 再驗證。',
+  'repositorySigning.error.unexpectedState': '簽署操作進入咗非預期狀態。',
+  'repositorySigning.error.reviewUnavailable': '已覆核嘅簽署更新已經唔再可用。',
+  'repositorySigning.error.inspectFirst': '覆核前請先檢查簽署設定。',
+  'repositorySigning.error.formatNeedsKey':
+    '已有金鑰時更改簽署格式，必須提供相容嘅替代公開金鑰。',
+  'repositorySigning.error.prepare': '未能安全準備簽署更新。',
+  'repositorySigning.error.cancel': '未能取消簽署操作。',
+  'repositorySigning.error.partial':
+    '{detail} 部分已覆核設定可能已經套用；再次更新前請重新檢查簽署設定。',
+  'repositorySigning.error.detail': '{detail}',
+  'repositorySigning.grade.good': '簽署有效',
+  'repositorySigning.grade.bad': '簽署無效',
+  'repositorySigning.grade.goodUnknownValidity': '密碼學上有效；信任狀態未知',
+  'repositorySigning.grade.expiredSignature': '簽署有效，但建立時已過期',
+  'repositorySigning.grade.expiredKey': '簽署有效，但使用咗已過期金鑰',
+  'repositorySigning.grade.revokedKey': '簽署有效，但使用咗已撤銷金鑰',
+  'repositorySigning.grade.cannotVerify': '未能檢查簽署',
+  'repositorySigning.grade.unsigned': '未簽署',
+  'repositorySigning.grade.unknown': '簽署狀態未知',
 }

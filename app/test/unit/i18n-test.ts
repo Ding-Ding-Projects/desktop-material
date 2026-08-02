@@ -513,6 +513,50 @@ describe('recent UI internationalization', () => {
     }
   })
 
+  it('localizes tab management, tab appearance, and commit-all copy in every mode', () => {
+    const variables = {
+      label: 'octo',
+      color: '#123456',
+      closeCount: '2',
+      pinnedCount: '1',
+      selectedCount: '3',
+      totalCount: '4',
+      done: '2',
+      skipped: '1',
+      failed: '1',
+    }
+    for (const key of [
+      'tabs.closeContaining.title',
+      'tabs.closeContaining.matchSummary',
+      'tabs.closeExcept.title',
+      'tabs.arrange.title',
+      'tabs.arrange.movedFirst',
+      'tabs.style.title',
+      'tabs.style.textColorSwatchAria',
+      'commitPushAll.title',
+      'commitPushAll.selectionCount',
+      'commitPushAll.summary',
+      'commitPushAll.status.pushing',
+    ] as const) {
+      const english = translate(key, 'english', variables)
+      const cantonese = translate(key, 'cantonese', variables)
+      assert.notEqual(english, cantonese)
+      assert.equal(
+        translate(key, 'bilingual', variables),
+        `${english} · ${cantonese}`
+      )
+    }
+
+    assert.match(
+      translate('tabs.arrange.movedFirst', 'bilingual', variables),
+      /octo[\s\S]*octo/
+    )
+    assert.match(
+      translate('tabs.style.textColorSwatchAria', 'bilingual', variables),
+      /#123456[\s\S]*#123456/
+    )
+  })
+
   it('translates every key in both catalogs', () => {
     // A key present in English and absent from Cantonese does not fail loudly:
     // `templateFor` falls back to English, so Cantonese mode quietly renders
