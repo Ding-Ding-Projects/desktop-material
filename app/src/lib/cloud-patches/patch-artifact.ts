@@ -1,4 +1,4 @@
-import { createHash } from 'crypto'
+import { createHash, timingSafeEqual } from 'crypto'
 
 export const CloudPatchArtifactVersion = 1 as const
 export const MaximumCloudPatchPatchBytes = 8 * 1024 * 1024
@@ -10,6 +10,8 @@ export const MaximumCloudPatchFiles = 4096
 export const MaximumCloudPatchPathBytes = 4096
 export const MaximumCloudPatchPathSegmentBytes = 255
 export const MaximumCloudPatchPathDepth = 128
+export const MaximumCloudPatchArtifactLifetimeMs = 7 * 24 * 60 * 60 * 1000
+export const CloudPatchFutureClockSkewAllowanceMs = 5 * 60 * 1000
 
 const GitObjectIdPattern = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/
 const RepositoryIdentityPattern = /^sha256:[a-f0-9]{64}$/
@@ -66,6 +68,7 @@ export interface ICloudPatchManifest {
   readonly contentByteLength: number
   readonly fileCount: number
   readonly files: ReadonlyArray<ICloudPatchFileEntry>
+  /** Self-contained integrity checksum; it is not an authenticity claim. */
   readonly sha256: string
 }
 
@@ -74,13 +77,15 @@ export interface ICloudPatchArtifact {
   readonly content: string | null
   /** Exact canonical UTF-8 text. Strings keep the returned artifact immutable. */
   readonly serialized: string
-  /** Digest of the complete canonical artifact, including the terminal LF. */
+  /** Complete canonical checksum, including the terminal LF; not authentication. */
   readonly artifactSha256: string
 }
 
 interface ICloudPatchExpectationBase {
   readonly repositoryId: string
   readonly baseSha: string
+  /** Complete-artifact digest supplied by reviewed out-of-band share metadata. */
+  readonly expectedArtifactSha256: string
 }
 
 export interface ICloudPatchCommitRangeExpectation
@@ -123,6 +128,7 @@ export type CloudPatchArtifactErrorCode =
   | 'length-mismatch'
   | 'file-count-mismatch'
   | 'digest-mismatch'
+  | 'artifact-digest-mismatch'
   | 'repository-mismatch'
   | 'base-mismatch'
   | 'head-mismatch'
@@ -162,6 +168,8 @@ const SafeErrorMessages: Record<CloudPatchArtifactErrorCode, string> = {
   'file-count-mismatch':
     'The Cloud Patch file count does not match its manifest.',
   'digest-mismatch': 'The Cloud Patch digest verification failed.',
+  'artifact-digest-mismatch':
+    'The complete Cloud Patch artifact does not match the reviewed digest.',
   'repository-mismatch':
     'The Cloud Patch belongs to a different repository identity.',
   'base-mismatch': 'The Cloud Patch uses a different base commit.',
@@ -191,9 +199,12 @@ export type CloudPatchSHA256 = (bytes: Uint8Array) => string
 
 export interface ICloudPatchCreateOptions {
   readonly sha256?: CloudPatchSHA256
+  readonly now?: () => number
 }
 
-export interface ICloudPatchParseOptions extends ICloudPatchCreateOptions {
+export type ICloudPatchParseOptions = ICloudPatchCreateOptions
+
+export interface ICloudPatchVerificationOptions {
   readonly now?: () => number
 }
 
@@ -237,6 +248,15 @@ function bytesEqual(left: Uint8Array, right: Uint8Array): boolean {
   )
 }
 
+function sha256DigestsEqual(left: string, right: string): boolean {
+  const leftBytes = encoder.encode(left)
+  const rightBytes = encoder.encode(right)
+  return (
+    leftBytes.byteLength === rightBytes.byteLength &&
+    timingSafeEqual(leftBytes, rightBytes)
+  )
+}
+
 function defaultSHA256(bytes: Uint8Array): string {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`
 }
@@ -274,6 +294,26 @@ function requireTimestamp(value: unknown): number {
     return fail('invalid-time')
   }
   return value
+}
+
+function requireSHA256(
+  value: unknown,
+  code: 'invalid-input' | 'digest-mismatch' = 'digest-mismatch'
+): string {
+  if (typeof value !== 'string' || !Sha256Pattern.test(value)) {
+    return fail(code)
+  }
+  return value
+}
+
+function readClock(now: (() => number) | undefined): number {
+  let value: number
+  try {
+    value = now?.() ?? Date.now()
+  } catch {
+    return fail('invalid-time')
+  }
+  return requireTimestamp(value)
 }
 
 function requireObjectId(value: unknown): string {
@@ -425,10 +465,31 @@ function hasArchiveMagic(bytes: Uint8Array): boolean {
   )
 }
 
-function requireRegularGitMode(mode: string): void {
+type RegularCloudPatchFileMode = Exclude<CloudPatchFileMode, 'deleted'>
+type PatchFileDisposition = 'create' | 'delete' | 'modify'
+type PatchFilePhase = 'metadata' | 'new-side' | 'hunk-header' | 'hunks'
+
+interface IPatchFileState {
+  readonly path: string
+  readonly file: ICloudPatchFileEntry
+  phase: PatchFilePhase
+  sawIndex: boolean
+  indexOldIsNull?: boolean
+  indexNewIsNull?: boolean
+  oldSideIsNull?: boolean
+  newSideIsNull?: boolean
+  indexMode?: RegularCloudPatchFileMode
+  newFileMode?: RegularCloudPatchFileMode
+  deletedFileMode?: RegularCloudPatchFileMode
+  oldMode?: RegularCloudPatchFileMode
+  newMode?: RegularCloudPatchFileMode
+}
+
+function requireRegularGitMode(mode: string): RegularCloudPatchFileMode {
   if (mode !== '100644' && mode !== '100755') {
     fail('unsupported-entry')
   }
+  return mode
 }
 
 function parseDiffHeaderPath(line: string): string {
@@ -452,10 +513,10 @@ function validatePatchSideHeader(
   line: string,
   marker: '---' | '+++',
   currentPath: string
-): void {
+): boolean {
   const value = line.slice(4)
   if (value === '/dev/null') {
-    return
+    return true
   }
   const prefix = marker === '---' ? 'a/' : 'b/'
   if (
@@ -470,6 +531,224 @@ function validatePatchSideHeader(
     fail('unsafe-path')
   }
   if (path !== currentPath) {
+    fail('patch-file-mismatch')
+  }
+  return false
+}
+
+function setPatchMode(
+  state: IPatchFileState,
+  declaration: 'new file mode' | 'deleted file mode' | 'old mode' | 'new mode',
+  mode: RegularCloudPatchFileMode
+): void {
+  const key =
+    declaration === 'new file mode'
+      ? 'newFileMode'
+      : declaration === 'deleted file mode'
+      ? 'deletedFileMode'
+      : declaration === 'old mode'
+      ? 'oldMode'
+      : 'newMode'
+  if (state[key] !== undefined) {
+    fail('invalid-patch')
+  }
+  state[key] = mode
+}
+
+function parsePatchMetadata(line: string, state: IPatchFileState): boolean {
+  const mode =
+    /^(new file mode|deleted file mode|old mode|new mode) ([0-7]{6})$/.exec(
+      line
+    )
+  if (mode !== null) {
+    setPatchMode(
+      state,
+      mode[1] as
+        | 'new file mode'
+        | 'deleted file mode'
+        | 'old mode'
+        | 'new mode',
+      requireRegularGitMode(mode[2])
+    )
+    return true
+  }
+  if (/^(?:new file mode|deleted file mode|old mode|new mode) /.test(line)) {
+    return fail('invalid-patch')
+  }
+
+  if (line.startsWith('index ')) {
+    if (state.sawIndex) {
+      return fail('invalid-patch')
+    }
+    state.sawIndex = true
+    const index =
+      /^index ([a-f0-9]{7,64})\.\.([a-f0-9]{7,64})(?: ([0-7]{6}))?$/.exec(line)
+    if (index === null) {
+      return fail('invalid-patch')
+    }
+    if (index[1].length !== index[2].length) {
+      return fail('invalid-patch')
+    }
+    state.indexOldIsNull = /^0+$/.test(index[1])
+    state.indexNewIsNull = /^0+$/.test(index[2])
+    if (index[3] !== undefined) {
+      state.indexMode = requireRegularGitMode(index[3])
+    }
+    return true
+  }
+
+  if (
+    line === 'GIT binary patch' ||
+    line.startsWith('Binary files ') ||
+    line.startsWith('Submodule ') ||
+    line.startsWith('rename from ') ||
+    line.startsWith('rename to ') ||
+    line.startsWith('copy from ') ||
+    line.startsWith('copy to ') ||
+    line.startsWith('similarity index ') ||
+    line.startsWith('dissimilarity index ')
+  ) {
+    return fail('unsupported-entry')
+  }
+  return false
+}
+
+function patchDisposition(state: IPatchFileState): PatchFileDisposition {
+  if (state.oldSideIsNull === undefined || state.newSideIsNull === undefined) {
+    return fail('invalid-patch')
+  }
+  if (state.oldSideIsNull && state.newSideIsNull) {
+    return fail('invalid-patch')
+  }
+  return state.oldSideIsNull
+    ? 'create'
+    : state.newSideIsNull
+    ? 'delete'
+    : 'modify'
+}
+
+function requirePatchIndex(
+  state: IPatchFileState
+): readonly [oldIsNull: boolean, newIsNull: boolean] {
+  if (
+    !state.sawIndex ||
+    state.indexOldIsNull === undefined ||
+    state.indexNewIsNull === undefined
+  ) {
+    fail('invalid-patch')
+  }
+  return [state.indexOldIsNull, state.indexNewIsNull]
+}
+
+function finishMetadataOnlyPatchFile(state: IPatchFileState): void {
+  const [oldIndexIsNull, newIndexIsNull] = requirePatchIndex(state)
+  const hasModePair = state.oldMode !== undefined && state.newMode !== undefined
+  if ((state.oldMode === undefined) !== (state.newMode === undefined)) {
+    fail('invalid-patch')
+  }
+  if (
+    state.oldSideIsNull !== undefined ||
+    state.newSideIsNull !== undefined ||
+    state.indexMode !== undefined ||
+    state.file.byteLength !== 0 ||
+    oldIndexIsNull === newIndexIsNull
+  ) {
+    fail(state.file.byteLength !== 0 ? 'patch-file-mismatch' : 'invalid-patch')
+  }
+
+  if (oldIndexIsNull) {
+    if (
+      state.newFileMode === undefined ||
+      state.deletedFileMode !== undefined ||
+      hasModePair
+    ) {
+      fail('invalid-patch')
+    }
+    if (
+      state.file.mode === 'deleted' ||
+      state.newFileMode !== state.file.mode
+    ) {
+      fail('patch-file-mismatch')
+    }
+    return
+  }
+
+  if (
+    state.deletedFileMode === undefined ||
+    state.newFileMode !== undefined ||
+    hasModePair
+  ) {
+    fail('invalid-patch')
+  }
+  if (state.file.mode !== 'deleted') {
+    fail('patch-file-mismatch')
+  }
+}
+
+function finishPatchFile(state: IPatchFileState): void {
+  if (state.phase === 'metadata') {
+    finishMetadataOnlyPatchFile(state)
+    return
+  }
+  if (state.phase !== 'hunks') {
+    fail('invalid-patch')
+  }
+  const disposition = patchDisposition(state)
+  const [oldIndexIsNull, newIndexIsNull] = requirePatchIndex(state)
+  if (
+    oldIndexIsNull !== state.oldSideIsNull ||
+    newIndexIsNull !== state.newSideIsNull
+  ) {
+    fail('invalid-patch')
+  }
+  const hasModePair = state.oldMode !== undefined && state.newMode !== undefined
+  if ((state.oldMode === undefined) !== (state.newMode === undefined)) {
+    fail('invalid-patch')
+  }
+
+  if (disposition === 'create') {
+    if (
+      state.newFileMode === undefined ||
+      state.deletedFileMode !== undefined ||
+      hasModePair
+    ) {
+      fail('invalid-patch')
+    }
+    if (
+      state.file.mode === 'deleted' ||
+      state.newFileMode !== state.file.mode ||
+      (state.indexMode !== undefined && state.indexMode !== state.file.mode)
+    ) {
+      fail('patch-file-mismatch')
+    }
+    return
+  }
+
+  if (disposition === 'delete') {
+    if (
+      state.deletedFileMode === undefined ||
+      state.newFileMode !== undefined ||
+      hasModePair
+    ) {
+      fail('invalid-patch')
+    }
+    if (state.file.mode !== 'deleted' || state.indexMode !== undefined) {
+      fail('patch-file-mismatch')
+    }
+    return
+  }
+
+  if (state.newFileMode !== undefined || state.deletedFileMode !== undefined) {
+    fail('invalid-patch')
+  }
+  if (state.file.mode === 'deleted') {
+    fail('patch-file-mismatch')
+  }
+  if (state.indexMode !== undefined && state.indexMode !== state.file.mode) {
+    fail('patch-file-mismatch')
+  }
+  const resultingMode = state.newMode ?? state.indexMode
+  if (resultingMode === undefined || resultingMode !== state.file.mode) {
     fail('patch-file-mismatch')
   }
 }
@@ -498,96 +777,104 @@ function validatePatchContent(
     return fail('invalid-patch')
   }
 
-  const patchPaths = new Array<string>()
-  const dispositions = new Map<string, 'regular' | 'deleted'>()
-  let metadata = false
-  let currentPath: string | null = null
-  for (const line of value.split('\n')) {
+  const filesByPath = new Map(files.map(file => [file.path, file]))
+  const patchPaths = new Set<string>()
+  let current: IPatchFileState | null = null
+  const lines = value.slice(0, -1).split('\n')
+  for (const line of lines) {
     if (line.startsWith('diff --git ')) {
-      currentPath = parseDiffHeaderPath(line)
-      if (dispositions.has(currentPath)) {
+      if (current !== null) {
+        finishPatchFile(current)
+      }
+      const path = parseDiffHeaderPath(line)
+      if (patchPaths.has(path)) {
         return fail('invalid-patch')
       }
-      patchPaths.push(currentPath)
-      dispositions.set(currentPath, 'regular')
-      metadata = true
-      continue
-    }
-    if (!metadata || currentPath === null) {
-      continue
-    }
-    if (line.startsWith('@@')) {
-      metadata = false
-      continue
-    }
-    if (
-      line === 'GIT binary patch' ||
-      line.startsWith('Binary files ') ||
-      line.startsWith('Submodule ')
-    ) {
-      return fail('unsupported-entry')
-    }
-
-    if (line.startsWith('--- ')) {
-      validatePatchSideHeader(line, '---', currentPath)
-      continue
-    }
-    if (line.startsWith('+++ ')) {
-      validatePatchSideHeader(line, '+++', currentPath)
-      continue
-    }
-
-    const mode =
-      /^(?:new file mode|deleted file mode|old mode|new mode) ([0-7]{6})$/.exec(
-        line
-      )
-    if (mode !== null) {
-      requireRegularGitMode(mode[1])
-      if (line.startsWith('deleted file mode')) {
-        dispositions.set(currentPath, 'deleted')
+      const file = filesByPath.get(path)
+      if (file === undefined) {
+        return fail('patch-file-mismatch')
       }
+      patchPaths.add(path)
+      current = { path, file, phase: 'metadata', sawIndex: false }
       continue
     }
-    if (/^(?:new file mode|deleted file mode|old mode|new mode) /.test(line)) {
+    if (current === null) {
       return fail('invalid-patch')
     }
-    if (line.startsWith('index ')) {
-      const indexMode =
-        /^index [a-f0-9]{7,64}\.\.[a-f0-9]{7,64}(?: ([0-7]{6}))?$/.exec(line)
-      if (indexMode === null) {
+
+    if (current.phase === 'hunks') {
+      if (line.startsWith('@@')) {
+        continue
+      }
+      if (
+        line !== '\\ No newline at end of file' &&
+        line[0] !== ' ' &&
+        line[0] !== '+' &&
+        line[0] !== '-'
+      ) {
         return fail('invalid-patch')
       }
-      if (indexMode[1] !== undefined) {
-        requireRegularGitMode(indexMode[1])
+      continue
+    }
+
+    if (line.startsWith('@@')) {
+      if (current.phase !== 'hunk-header') {
+        return fail('invalid-patch')
       }
+      current.phase = 'hunks'
+      continue
+    }
+
+    if (current.phase === 'metadata' && line.startsWith('--- ')) {
+      current.oldSideIsNull = validatePatchSideHeader(line, '---', current.path)
+      current.phase = 'new-side'
+      continue
+    }
+    if (current.phase === 'new-side' && line.startsWith('+++ ')) {
+      current.newSideIsNull = validatePatchSideHeader(line, '+++', current.path)
+      current.phase = 'hunk-header'
+      continue
+    }
+    if (current.phase !== 'metadata') {
+      return fail('invalid-patch')
+    }
+    if (!parsePatchMetadata(line, current)) {
+      return fail('invalid-patch')
     }
   }
 
-  if (patchPaths.length !== files.length) {
-    return fail('file-count-mismatch')
+  if (current === null) {
+    return fail('invalid-patch')
   }
-  const sortedPatchPaths = [...patchPaths].sort((left, right) =>
-    left < right ? -1 : left > right ? 1 : 0
-  )
-  for (let index = 0; index < files.length; index++) {
-    const file = files[index]
-    if (sortedPatchPaths[index] !== file.path) {
-      return fail('patch-file-mismatch')
-    }
-    const disposition = dispositions.get(file.path)
-    if (
-      disposition === undefined ||
-      (file.mode === 'deleted') !== (disposition === 'deleted')
-    ) {
-      return fail('patch-file-mismatch')
-    }
+  finishPatchFile(current)
+  if (patchPaths.size !== files.length) {
+    return fail('file-count-mismatch')
   }
   return value
 }
 
-function validateTimes(createdAtMs: number, expiresAtMs: number): void {
-  if (createdAtMs >= expiresAtMs) {
+function validateTimeRange(createdAtMs: number, expiresAtMs: number): void {
+  if (
+    createdAtMs >= expiresAtMs ||
+    expiresAtMs - createdAtMs > MaximumCloudPatchArtifactLifetimeMs
+  ) {
     fail('invalid-time')
+  }
+}
+
+function validateFreshness(
+  createdAtMs: number,
+  expiresAtMs: number,
+  nowMs: number
+): void {
+  if (
+    createdAtMs > nowMs &&
+    createdAtMs - nowMs > CloudPatchFutureClockSkewAllowanceMs
+  ) {
+    fail('invalid-time')
+  }
+  if (nowMs >= expiresAtMs) {
+    fail('expired')
   }
 }
 
@@ -722,7 +1009,8 @@ export function createCloudPatchArtifact(
   const repositoryId = requireRepositoryId(candidate.repositoryId)
   const createdAtMs = requireTimestamp(candidate.createdAtMs)
   const expiresAtMs = requireTimestamp(candidate.expiresAtMs)
-  validateTimes(createdAtMs, expiresAtMs)
+  validateTimeRange(createdAtMs, expiresAtMs)
+  validateFreshness(createdAtMs, expiresAtMs, readClock(options.now))
   const baseSha = requireObjectId(candidate.baseSha)
   const files = normalizeFiles(candidate.files, true)
 
@@ -815,7 +1103,7 @@ function parseManifest(
   const repositoryId = requireRepositoryId(candidate.repositoryId)
   const createdAtMs = requireTimestamp(candidate.createdAtMs)
   const expiresAtMs = requireTimestamp(candidate.expiresAtMs)
-  validateTimes(createdAtMs, expiresAtMs)
+  validateTimeRange(createdAtMs, expiresAtMs)
   const baseSha = requireObjectId(candidate.baseSha)
   const files = normalizeFiles(candidate.files, false)
   if (
@@ -934,16 +1222,11 @@ function parseArtifactOrThrow(
     return fail('noncanonical-artifact')
   }
 
-  let now: number
-  try {
-    now = options.now?.() ?? Date.now()
-  } catch {
-    return fail('invalid-time')
-  }
-  now = requireTimestamp(now)
-  if (now >= parsed.manifest.expiresAtMs) {
-    return fail('expired')
-  }
+  validateFreshness(
+    parsed.manifest.createdAtMs,
+    parsed.manifest.expiresAtMs,
+    readClock(options.now)
+  )
 
   return freezeArtifact(
     parsed.manifest,
@@ -977,7 +1260,13 @@ function normalizeExpectation(
   const candidate = record(value, 'invalid-input')
   if (candidate.kind === 'commit-range') {
     if (
-      !hasExactKeys(candidate, ['kind', 'repositoryId', 'baseSha', 'headSha'])
+      !hasExactKeys(candidate, [
+        'kind',
+        'repositoryId',
+        'baseSha',
+        'headSha',
+        'expectedArtifactSha256',
+      ])
     ) {
       return fail('invalid-input')
     }
@@ -989,30 +1278,62 @@ function normalizeExpectation(
       repositoryId: requireRepositoryId(candidate.repositoryId),
       baseSha,
       headSha,
+      expectedArtifactSha256: requireSHA256(
+        candidate.expectedArtifactSha256,
+        'invalid-input'
+      ),
     }
   }
   if (candidate.kind === 'working-tree-patch') {
-    if (!hasExactKeys(candidate, ['kind', 'repositoryId', 'baseSha'])) {
+    if (
+      !hasExactKeys(candidate, [
+        'kind',
+        'repositoryId',
+        'baseSha',
+        'expectedArtifactSha256',
+      ])
+    ) {
       return fail('invalid-input')
     }
     return {
       kind: candidate.kind,
       repositoryId: requireRepositoryId(candidate.repositoryId),
       baseSha: requireObjectId(candidate.baseSha),
+      expectedArtifactSha256: requireSHA256(
+        candidate.expectedArtifactSha256,
+        'invalid-input'
+      ),
     }
   }
   return fail('invalid-content-kind')
 }
 
-/** Verify that a parsed artifact is the exact reviewed repository selection. */
+/**
+ * Bind parsed integrity to a complete-artifact digest obtained from separately
+ * reviewed or server-authenticated metadata, then verify repository selection.
+ * This function does not create signatures, trust metadata, or contact a server.
+ */
 export function verifyCloudPatchArtifact(
   bytes: Uint8Array,
   expectation: CloudPatchVerificationExpectation,
-  options: ICloudPatchParseOptions = {}
+  options: ICloudPatchVerificationOptions = {}
 ): CloudPatchVerificationResult {
   try {
     const expected = normalizeExpectation(expectation)
-    const artifact = parseArtifactOrThrow(bytes, options)
+    // Verification always uses the fixed SHA-256 implementation. Hash injection
+    // remains a parse/create test boundary and cannot override reviewed metadata.
+    const artifact = parseArtifactOrThrow(bytes, { now: options.now })
+    if (
+      !sha256DigestsEqual(
+        artifact.artifactSha256,
+        expected.expectedArtifactSha256
+      )
+    ) {
+      return {
+        ok: false,
+        error: new CloudPatchArtifactError('artifact-digest-mismatch'),
+      }
+    }
     const { manifest } = artifact
     if (manifest.repositoryId !== expected.repositoryId) {
       return {

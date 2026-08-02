@@ -1,15 +1,20 @@
 import assert from 'node:assert'
+import { createHash } from 'node:crypto'
 import { describe, it } from 'node:test'
 
 import {
+  CloudPatchFutureClockSkewAllowanceMs,
   CloudPatchArtifactError,
   CloudPatchArtifactInput,
   CloudPatchArtifactErrorCode,
   ICloudPatchArtifact,
   ICloudPatchCommitRangeInput,
+  ICloudPatchCreateOptions,
   ICloudPatchFileEntry,
+  ICloudPatchVerificationOptions,
   ICloudPatchWorkingTreeInput,
   MaximumCloudPatchArtifactBytes,
+  MaximumCloudPatchArtifactLifetimeMs,
   MaximumCloudPatchFileBytes,
   MaximumCloudPatchFiles,
   MaximumCloudPatchManifestBytes,
@@ -17,7 +22,7 @@ import {
   MaximumCloudPatchPathBytes,
   MaximumCloudPatchPathDepth,
   MaximumCloudPatchPathSegmentBytes,
-  createCloudPatchArtifact,
+  createCloudPatchArtifact as createCloudPatchArtifactWithClock,
   parseCloudPatchArtifact,
   verifyCloudPatchArtifact,
 } from '../../src/lib/cloud-patches/patch-artifact'
@@ -140,8 +145,48 @@ function serializeValue(value: unknown): Uint8Array {
   return encoder.encode(`${JSON.stringify(value)}\n`)
 }
 
+function sha256(bytes: Uint8Array): string {
+  return `sha256:${createHash('sha256').update(bytes).digest('hex')}`
+}
+
+function rehashSerialized(value: ReturnType<typeof parseSerialized>): {
+  readonly bytes: Uint8Array
+  readonly artifactSha256: string
+} {
+  const { manifest, content } = value
+  manifest.sha256 = sha256(
+    encoder.encode(
+      `${JSON.stringify({
+        version: manifest.version,
+        repositoryId: manifest.repositoryId,
+        createdAtMs: manifest.createdAtMs,
+        expiresAtMs: manifest.expiresAtMs,
+        contentKind: manifest.contentKind,
+        baseSha: manifest.baseSha,
+        headSha: manifest.headSha,
+        contentByteLength: manifest.contentByteLength,
+        fileCount: manifest.fileCount,
+        files: manifest.files,
+        content,
+      })}\n`
+    )
+  )
+  const bytes = serializeValue(value)
+  return { bytes, artifactSha256: sha256(bytes) }
+}
+
 function validNow() {
   return CreatedAtMs + 1
+}
+
+function createCloudPatchArtifact(
+  input: CloudPatchArtifactInput,
+  options: ICloudPatchCreateOptions = {}
+): ICloudPatchArtifact {
+  return createCloudPatchArtifactWithClock(input, {
+    now: validNow,
+    ...options,
+  })
 }
 
 describe('Cloud Patch canonical artifact', () => {
@@ -170,6 +215,7 @@ describe('Cloud Patch canonical artifact', () => {
         repositoryId: RepositoryId,
         baseSha: BaseSha,
         headSha: HeadSha,
+        expectedArtifactSha256: first.artifactSha256,
       },
       { now: validNow }
     )
@@ -198,6 +244,7 @@ describe('Cloud Patch canonical artifact', () => {
         kind: 'working-tree-patch',
         repositoryId: RepositoryId,
         baseSha: BaseSha,
+        expectedArtifactSha256: first.artifactSha256,
       },
       { now: validNow }
     )
@@ -208,6 +255,80 @@ describe('Cloud Patch canonical artifact', () => {
         assert.match(verified.artifact.content ?? '', new RegExp(secret))
       }
     }
+  })
+
+  it('binds verification to the reviewed complete-artifact digest', () => {
+    const original = createCloudPatchArtifact(workingInput())
+    const altered = createCloudPatchArtifact(
+      workingInput({
+        patch: WorkingPatch.replace(
+          'export const enabled = true',
+          'export const enabled = true // altered after review'
+        ),
+      })
+    )
+
+    assert.notEqual(altered.manifest.sha256, original.manifest.sha256)
+    assert.notEqual(altered.artifactSha256, original.artifactSha256)
+    assert.equal(
+      parseCloudPatchArtifact(artifactBytes(altered), { now: validNow }).ok,
+      true
+    )
+
+    const rejected = verifyCloudPatchArtifact(
+      artifactBytes(altered),
+      {
+        kind: 'working-tree-patch',
+        repositoryId: RepositoryId,
+        baseSha: BaseSha,
+        expectedArtifactSha256: original.artifactSha256,
+      },
+      { now: validNow }
+    )
+    assertParseFailure(rejected, 'artifact-digest-mismatch', SecretMarkers)
+
+    assert.equal(
+      verifyCloudPatchArtifact(
+        artifactBytes(altered),
+        {
+          kind: 'working-tree-patch',
+          repositoryId: RepositoryId,
+          baseSha: BaseSha,
+          expectedArtifactSha256: altered.artifactSha256,
+        },
+        { now: validNow }
+      ).ok,
+      true
+    )
+
+    const malformedExpectation = verifyCloudPatchArtifact(
+      artifactBytes(original),
+      {
+        kind: 'working-tree-patch',
+        repositoryId: RepositoryId,
+        baseSha: BaseSha,
+        expectedArtifactSha256: `sha256:${'A'.repeat(64)}`,
+      },
+      { now: validNow }
+    )
+    assertParseFailure(malformedExpectation, 'invalid-input', SecretMarkers)
+
+    const forged = parseSerialized(altered)
+    forged.manifest.sha256 = original.artifactSha256
+    const rejectedHashOverride = verifyCloudPatchArtifact(
+      serializeValue(forged),
+      {
+        kind: 'working-tree-patch',
+        repositoryId: RepositoryId,
+        baseSha: BaseSha,
+        expectedArtifactSha256: original.artifactSha256,
+      },
+      {
+        now: validNow,
+        sha256: () => original.artifactSha256,
+      } as unknown as ICloudPatchVerificationOptions
+    )
+    assertParseFailure(rejectedHashOverride, 'digest-mismatch', SecretMarkers)
   })
 
   it('requires exactly one reviewed source variant and valid full object ids', () => {
@@ -300,6 +421,7 @@ describe('Cloud Patch canonical artifact', () => {
         repositoryId: OtherRepositoryId,
         baseSha: BaseSha,
         headSha: HeadSha,
+        expectedArtifactSha256: range.artifactSha256,
       },
       options
     )
@@ -312,6 +434,7 @@ describe('Cloud Patch canonical artifact', () => {
         repositoryId: RepositoryId,
         baseSha: OtherBaseSha,
         headSha: HeadSha,
+        expectedArtifactSha256: range.artifactSha256,
       },
       options
     )
@@ -324,6 +447,7 @@ describe('Cloud Patch canonical artifact', () => {
         repositoryId: RepositoryId,
         baseSha: BaseSha,
         headSha: OtherHeadSha,
+        expectedArtifactSha256: range.artifactSha256,
       },
       options
     )
@@ -335,6 +459,7 @@ describe('Cloud Patch canonical artifact', () => {
         kind: 'working-tree-patch',
         repositoryId: RepositoryId,
         baseSha: BaseSha,
+        expectedArtifactSha256: range.artifactSha256,
       },
       options
     )
@@ -348,6 +473,114 @@ describe('Cloud Patch canonical artifact', () => {
       parseCloudPatchArtifact(bytes, { now: () => ExpiresAtMs }),
       'expired',
       SecretMarkers
+    )
+  })
+
+  it('bounds artifact lifetime and future clock skew at create and parse', () => {
+    const now = validNow()
+    const exactLifetime = createCloudPatchArtifact(
+      commitInput({
+        createdAtMs: now,
+        expiresAtMs: now + MaximumCloudPatchArtifactLifetimeMs,
+      }),
+      { now: () => now }
+    )
+    assert.equal(
+      parseCloudPatchArtifact(artifactBytes(exactLifetime), {
+        now: () => now,
+      }).ok,
+      true
+    )
+
+    assertCreateFailure(
+      () =>
+        createCloudPatchArtifact(
+          commitInput({
+            createdAtMs: now,
+            expiresAtMs: now + MaximumCloudPatchArtifactLifetimeMs + 1,
+          }),
+          { now: () => now }
+        ),
+      'invalid-time'
+    )
+
+    const tooLong = parseSerialized(exactLifetime)
+    tooLong.manifest.expiresAtMs =
+      Number(tooLong.manifest.createdAtMs) +
+      MaximumCloudPatchArtifactLifetimeMs +
+      1
+    assertParseFailure(
+      parseCloudPatchArtifact(rehashSerialized(tooLong).bytes, {
+        now: () => now,
+      }),
+      'invalid-time'
+    )
+
+    const exactFuture = createCloudPatchArtifact(
+      commitInput({
+        createdAtMs: now + CloudPatchFutureClockSkewAllowanceMs,
+        expiresAtMs: now + CloudPatchFutureClockSkewAllowanceMs + 60_000,
+      }),
+      { now: () => now }
+    )
+    assert.equal(
+      parseCloudPatchArtifact(artifactBytes(exactFuture), {
+        now: () => now,
+      }).ok,
+      true
+    )
+
+    assertCreateFailure(
+      () =>
+        createCloudPatchArtifact(
+          commitInput({
+            createdAtMs: now + CloudPatchFutureClockSkewAllowanceMs + 1,
+            expiresAtMs: now + CloudPatchFutureClockSkewAllowanceMs + 60_001,
+          }),
+          { now: () => now }
+        ),
+      'invalid-time'
+    )
+
+    const futureCreated = parseSerialized(exactFuture)
+    futureCreated.manifest.createdAtMs =
+      now + CloudPatchFutureClockSkewAllowanceMs + 1
+    futureCreated.manifest.expiresAtMs =
+      Number(futureCreated.manifest.createdAtMs) + 60_000
+    assertParseFailure(
+      parseCloudPatchArtifact(rehashSerialized(futureCreated).bytes, {
+        now: () => now,
+      }),
+      'invalid-time'
+    )
+
+    const twoCenturiesMs = 200 * 365 * 24 * 60 * 60 * 1000
+    assertCreateFailure(
+      () =>
+        createCloudPatchArtifact(
+          commitInput({
+            createdAtMs: now,
+            expiresAtMs: now + twoCenturiesMs,
+          }),
+          { now: () => now }
+        ),
+      'invalid-time'
+    )
+    const multiCentury = parseSerialized(exactLifetime)
+    multiCentury.manifest.expiresAtMs = now + twoCenturiesMs
+    assertParseFailure(
+      parseCloudPatchArtifact(rehashSerialized(multiCentury).bytes, {
+        now: () => now,
+      }),
+      'invalid-time'
+    )
+    assertCreateFailure(
+      () =>
+        createCloudPatchArtifact(
+          commitInput({ createdAtMs: now - 1, expiresAtMs: now }),
+          { now: () => now }
+        ),
+      'expired'
     )
   })
 
@@ -542,7 +775,6 @@ describe('Cloud Patch canonical artifact', () => {
         createCloudPatchArtifact(workingInput({ patch: mismatchedSideHeader })),
       'patch-file-mismatch'
     )
-
     assertCreateFailure(
       () =>
         createCloudPatchArtifact(
@@ -554,6 +786,252 @@ describe('Cloud Patch canonical artifact', () => {
           })
         ),
       'file-count-mismatch'
+    )
+  })
+
+  it('requires one coherent side-header pair and rejects rename or copy metadata', () => {
+    const malformedPairs = [
+      WorkingPatch.replace('+++ b/src/config.ts', '+++ /dev/null'),
+      WorkingPatch.replace('--- a/src/config.ts\n', ''),
+      WorkingPatch.replace('+++ b/src/config.ts\n', ''),
+      WorkingPatch.replace(
+        '--- a/src/config.ts\n',
+        '--- a/src/config.ts\n--- a/src/config.ts\n'
+      ),
+      WorkingPatch.replace(
+        '--- a/src/config.ts\n+++ b/src/config.ts',
+        '+++ b/src/config.ts\n--- a/src/config.ts'
+      ),
+      WorkingPatch.replace('--- a/src/config.ts', '--- /dev/null').replace(
+        '+++ b/src/config.ts',
+        '+++ /dev/null'
+      ),
+    ]
+    for (const patch of malformedPairs) {
+      assertCreateFailure(
+        () => createCloudPatchArtifact(workingInput({ patch })),
+        'invalid-patch'
+      )
+    }
+
+    for (const metadata of [
+      'rename from src/config.ts',
+      'rename to src/renamed.ts',
+      'copy from src/config.ts',
+      'copy to src/copied.ts',
+      'similarity index 100%',
+      'dissimilarity index 90%',
+    ]) {
+      const patch = WorkingPatch.replace(
+        'index 1111111..2222222 100644',
+        `${metadata}\nindex 1111111..2222222 100644`
+      )
+      assertCreateFailure(
+        () => createCloudPatchArtifact(workingInput({ patch })),
+        'unsupported-entry'
+      )
+    }
+  })
+
+  it('binds patch disposition and resulting mode to the file inventory', () => {
+    const mismatchedCreateMode = [
+      'diff --git a/src/config.ts b/src/config.ts',
+      'new file mode 100755',
+      'index 0000000..2222222',
+      '--- /dev/null',
+      '+++ b/src/config.ts',
+      '@@ -0,0 +1 @@',
+      '+content',
+      '',
+    ].join('\n')
+    assertCreateFailure(
+      () =>
+        createCloudPatchArtifact(workingInput({ patch: mismatchedCreateMode })),
+      'patch-file-mismatch'
+    )
+    assertCreateFailure(
+      () =>
+        createCloudPatchArtifact(
+          workingInput({
+            patch: mismatchedCreateMode
+              .replace('new file mode 100755', 'new file mode 100644')
+              .replace('index 0000000..2222222', 'index 1111111..2222222'),
+          })
+        ),
+      'invalid-patch'
+    )
+
+    assertCreateFailure(
+      () =>
+        createCloudPatchArtifact(
+          workingInput({
+            patch: WorkingPatch.replace(
+              'index 1111111..2222222 100644',
+              'index 1111111..2222222 100755'
+            ),
+          })
+        ),
+      'patch-file-mismatch'
+    )
+
+    const modeChange = [
+      'diff --git a/src/config.ts b/src/config.ts',
+      'old mode 100644',
+      'new mode 100755',
+      'index 1111111..2222222',
+      '--- a/src/config.ts',
+      '+++ b/src/config.ts',
+      '@@ -1 +1 @@',
+      '-old',
+      '+new',
+      '',
+    ].join('\n')
+    assertCreateFailure(
+      () => createCloudPatchArtifact(workingInput({ patch: modeChange })),
+      'patch-file-mismatch'
+    )
+    assert.doesNotThrow(() =>
+      createCloudPatchArtifact(
+        workingInput({
+          patch: modeChange,
+          files: [{ path: 'src/config.ts', mode: '100755', byteLength: 256 }],
+        })
+      )
+    )
+    assertCreateFailure(
+      () =>
+        createCloudPatchArtifact(
+          workingInput({
+            patch: modeChange.replace(
+              'index 1111111..2222222',
+              'index 1111111..2222222 100644'
+            ),
+            files: [{ path: 'src/config.ts', mode: '100755', byteLength: 256 }],
+          })
+        ),
+      'patch-file-mismatch'
+    )
+
+    const deletion = [
+      'diff --git a/src/config.ts b/src/config.ts',
+      'deleted file mode 100644',
+      'index 1111111..0000000',
+      '--- a/src/config.ts',
+      '+++ /dev/null',
+      '@@ -1 +0,0 @@',
+      '-content',
+      '',
+    ].join('\n')
+    assert.doesNotThrow(() =>
+      createCloudPatchArtifact(
+        workingInput({
+          patch: deletion,
+          files: [{ path: 'src/config.ts', mode: 'deleted', byteLength: 0 }],
+        })
+      )
+    )
+    assertCreateFailure(
+      () =>
+        createCloudPatchArtifact(
+          workingInput({
+            patch: deletion.replace(
+              'index 1111111..0000000',
+              'index 1111111..2222222'
+            ),
+            files: [{ path: 'src/config.ts', mode: 'deleted', byteLength: 0 }],
+          })
+        ),
+      'invalid-patch'
+    )
+    for (const index of [
+      'index 0000000..2222222 100644',
+      'index 1111111..22222222 100644',
+    ]) {
+      assertCreateFailure(
+        () =>
+          createCloudPatchArtifact(
+            workingInput({
+              patch: WorkingPatch.replace(
+                'index 1111111..2222222 100644',
+                index
+              ),
+            })
+          ),
+        'invalid-patch'
+      )
+    }
+  })
+
+  it('supports only inventory-bound metadata-only empty file changes', () => {
+    const emptyCreate = [
+      'diff --git a/empty.txt b/empty.txt',
+      'new file mode 100644',
+      'index 0000000..e69de29',
+      '',
+    ].join('\n')
+    const created = createCloudPatchArtifact(
+      workingInput({
+        patch: emptyCreate,
+        files: [{ path: 'empty.txt', mode: '100644', byteLength: 0 }],
+      })
+    )
+    assert.equal(
+      parseCloudPatchArtifact(artifactBytes(created), { now: validNow }).ok,
+      true
+    )
+
+    const emptyDelete = [
+      'diff --git a/empty.txt b/empty.txt',
+      'deleted file mode 100644',
+      'index e69de29..0000000',
+      '',
+    ].join('\n')
+    const deleted = createCloudPatchArtifact(
+      workingInput({
+        patch: emptyDelete,
+        files: [{ path: 'empty.txt', mode: 'deleted', byteLength: 0 }],
+      })
+    )
+    assert.equal(
+      parseCloudPatchArtifact(artifactBytes(deleted), { now: validNow }).ok,
+      true
+    )
+
+    assertCreateFailure(
+      () =>
+        createCloudPatchArtifact(
+          workingInput({
+            patch: emptyCreate,
+            files: [{ path: 'empty.txt', mode: '100644', byteLength: 1 }],
+          })
+        ),
+      'patch-file-mismatch'
+    )
+    assertCreateFailure(
+      () =>
+        createCloudPatchArtifact(
+          workingInput({
+            patch: emptyCreate.replace('new file mode 100644\n', ''),
+            files: [{ path: 'empty.txt', mode: '100644', byteLength: 0 }],
+          })
+        ),
+      'invalid-patch'
+    )
+    assertCreateFailure(
+      () =>
+        createCloudPatchArtifact(
+          workingInput({
+            patch: [
+              'diff --git a/empty.txt b/empty.txt',
+              'old mode 100644',
+              'new mode 100755',
+              'index e69de29..e69de29',
+              '',
+            ].join('\n'),
+            files: [{ path: 'empty.txt', mode: '100755', byteLength: 0 }],
+          })
+        ),
+      'invalid-patch'
     )
   })
 
@@ -746,6 +1224,7 @@ describe('Cloud Patch canonical artifact', () => {
         kind: 'working-tree-patch',
         repositoryId: OtherRepositoryId,
         baseSha: BaseSha,
+        expectedArtifactSha256: artifact.artifactSha256,
       },
       { now: validNow }
     )
