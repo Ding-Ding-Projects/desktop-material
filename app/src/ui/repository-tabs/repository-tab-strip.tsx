@@ -594,6 +594,51 @@ export class RepositoryTabStrip extends React.Component<
     }
   }
 
+  /**
+   * Arrow-key roving focus, the missing half of the tabs' roving `tabIndex`.
+   *
+   * Each tab carries `tabIndex={isActive ? 0 : -1}`, so exactly one of them is
+   * in the page's tab sequence. Without the tablist moving focus itself, Tab
+   * lands on the active tab and every other tab is unreachable from the
+   * keyboard — the WAI-ARIA tablist pattern trades the Tab key for the arrows.
+   *
+   * Only the tabs actually laid out in the strip participate: an overflowed tab
+   * has no element here at all and is reached through the overflow dropdown.
+   */
+  private onTabKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement
+    // Only the tab frame roves. A key pressed inside the rename input or one of
+    // the tab's own buttons belongs to that control.
+    if (!target.classList.contains('repository-tab')) {
+      return
+    }
+
+    const tabs = Array.from(
+      this.listRef.current?.querySelectorAll<HTMLElement>(
+        '.repository-tab[data-tab-id]'
+      ) ?? []
+    )
+    const current = tabs.indexOf(target)
+    if (current === -1) {
+      return
+    }
+
+    let next = current
+    if (event.key === 'ArrowRight') {
+      next = (current + 1) % tabs.length
+    } else if (event.key === 'ArrowLeft') {
+      next = (current - 1 + tabs.length) % tabs.length
+    } else if (event.key === 'Home') {
+      next = 0
+    } else if (event.key === 'End') {
+      next = tabs.length - 1
+    } else {
+      return
+    }
+    event.preventDefault()
+    tabs[next].focus()
+  }
+
   /** Re-select the repository for the tab that became active after a close. */
   private selectActiveRepository = (activeId: string | null) => {
     if (activeId === null) {
@@ -1986,14 +2031,23 @@ export class RepositoryTabStrip extends React.Component<
         ref={this.stripRef}
         className="repository-tab-strip"
         {...teleportAnchor('tab-strip')}
-        role="tablist"
-        aria-label="Repository tabs"
-        {...teleportAnchor('tab-strip')}
         data-customization-surface="repository-tabs"
         data-customization-label="Repository tabs"
         data-customization-scope="profile"
       >
-        <div className="repository-tab-list" ref={this.listRef}>
+        {/*
+          The tablist is the row that holds the tabs, not the whole strip: the
+          strip also carries the search, arrange and new-tab buttons plus the
+          trailing notification, commit, undo/redo and history controls, none of
+          which a tablist may own.
+        */}
+        <div
+          className="repository-tab-list"
+          ref={this.listRef}
+          role="tablist"
+          aria-label="Repository tabs"
+          onKeyDown={this.onTabKeyDown}
+        >
           {this.renderRepositoryTabs(tabs, activeTabId, hiddenTabIds)}
           {this.renderOverflowButton()}
         </div>
