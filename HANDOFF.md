@@ -38,12 +38,42 @@ onConfigureSetupCommands?
 plus `startAgentSessionRun` / `cancelAgentSessionRun` /
 `detectAgentRunnerAvailability` from `agent-runner-bridge`.
 
-Mounting means adding a `List` / `Agents` tab beside the repository list and
-feeding `sessions` from real worktree state — `app/src/lib/git/worktree.ts` — so
-the fleet chips show live status rather than the shapes the tests supply. **The
-agent that built the panel had not filed its own mounting note when this was
-written**, so read `agent-sessions-panel.tsx` before wiring rather than trusting
-this paragraph to be complete.
+Mounting means adding a `List` / `Agents` tab beside the repository list, in
+`renderRepositoryList` in `app/src/ui/app.tsx`, and rendering:
+
+```tsx
+<AgentSessionsPanel
+  sessions={this.state.worktrees.map(w => toAgentSession(w))}
+  availability={this.state.agentRunnerAvailability}
+  baseBranches={allBranches.map(b => b.name)}
+  defaultBaseBranch={defaultBranch?.name ?? 'main'}
+  existingBranchNames={allBranches.map(b => b.name)}
+  selectedPath={currentWorktree?.path ?? null}
+  onSelectSession={this.onSelectAgentSession}
+  onCreateSession={this.onCreateAgentSession}
+  isCreating={this.state.isCreatingAgentSession}
+/>
+```
+
+`onCreateAgentSession` calls the existing
+`dispatcher.addWorktree(repository, path, { createBranch: getAgentSessionBranchName(request.name), commitish: request.baseBranch })`,
+then `startAgentSessionRun({ agent, worktreePath, operationId, prompt, autoApprove })`,
+and reports the outcome through `dispatcher.postNotification` — never a modal.
+`availability` comes from `detectAgentRunnerAvailability()` once on mount,
+defaulting to `UnknownAgentRunnerAvailability`.
+
+**The one piece nobody has built yet is the live status feed.** `runState`,
+`diffStat` and `editedFileCount` are props; nothing polls git or subscribes to
+`codex-log` / `opencode-log`, so the fleet chips will render whatever the caller
+passes and no more. That belongs in a store, and until it exists the panel shows
+a static fleet rather than a live one.
+
+Two design decisions worth knowing before reviewing it. The creator has a **Task
+for the agent** field, required once a runnable agent is chosen, because
+otherwise picking Codex spawns a process with nothing to do. And **Start sits
+below the `Options` disclosure, not inside it** — the screenshot reads as
+putting it inside, but a primary action hidden behind a collapsed section is a
+usability defect.
 
 ### Two things found but deliberately not fixed
 
