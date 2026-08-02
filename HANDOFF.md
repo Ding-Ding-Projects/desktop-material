@@ -8140,7 +8140,8 @@ owner requested. The exact run record is
   install/update, treats an already-absent app as an idempotent uninstall,
   stays current-user and hidden, and fails closed on mismatched postconditions.
   PowerShell 5.1 and 7 contract tests pass. The source wiki and the real GitHub
-  wiki are synchronized; wiki commit `9c949202c1` is published.
+  wiki are synchronized; current wiki commit `dc4f9548bb` also carries the
+  zero-test Super Express correction.
 - Every real Actions workflow/run list now shows a truthful elapsed state. The
   focused elapsed-time/UI gate passes **28/28**.
 

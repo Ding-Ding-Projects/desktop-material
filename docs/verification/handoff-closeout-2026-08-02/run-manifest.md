@@ -49,8 +49,9 @@ their complete acceptance criteria are met.
   `8840120256` (2,031,765,772 bytes). Normal CI arm64 also uploaded artifact
   `8840399524` after the release-contract correction.
 - The Pages run for `5259000255` completed successfully.
-- Real GitHub wiki commit `9c949202c1af4ed8ab8232f012fafe62ad0265b2`
-  publishes the same silent installer guidance as `docs/wiki`.
+- Real GitHub wiki commit `dc4f9548bb0f90b96a938065110f9a5add47d131`
+  publishes the same silent installer and zero-test emergency-release guidance
+  as `docs/wiki`.
 
 ## Publication records
 
