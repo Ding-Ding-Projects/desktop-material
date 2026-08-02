@@ -10,6 +10,28 @@ import {
 } from '../../../src/ui/lib/regex-builder/regex-block-model'
 
 describe('regex-block-model', () => {
+  it('exposes only RE2-supported structured block kinds', () => {
+    type PublicKind = `${RegexBlock['kind']}`
+    const publicTypeExcludesLookaround: Extract<
+      PublicKind,
+      'lookaround'
+    > extends never
+      ? true
+      : false = true
+
+    assert.equal(publicTypeExcludesLookaround, true)
+    assert.deepEqual(Object.values(RegexBlockKind), [
+      'literal',
+      'charClass',
+      'anchor',
+      'quantifier',
+      'group',
+      'alternation',
+      'raw',
+    ])
+    assert.equal('Lookaround' in RegexBlockKind, false)
+  })
+
   describe('escapeLiteral', () => {
     it('escapes regex metacharacters', () => {
       assert.equal(escapeLiteral('a.b*c'), 'a\\.b\\*c')
@@ -152,29 +174,38 @@ describe('regex-block-model', () => {
       )
     })
 
-    it('serialises lookaround', () => {
-      assert.equal(
-        blocksToPattern([
-          {
-            kind: RegexBlockKind.Lookaround,
-            direction: 'ahead',
-            negated: false,
-            children: [{ kind: RegexBlockKind.CharClass, value: '\\d' }],
-          },
-        ]),
-        '(?=\\d)'
-      )
+    it('keeps supported structured output free of lookaround syntax', () => {
+      const pattern = blocksToPattern([
+        { kind: RegexBlockKind.Anchor, value: '^' },
+        {
+          kind: RegexBlockKind.Group,
+          groupType: 'nonCapturing',
+          children: [
+            { kind: RegexBlockKind.Literal, value: 'item-' },
+            { kind: RegexBlockKind.CharClass, value: '\\d' },
+            {
+              kind: RegexBlockKind.Quantifier,
+              quantifier: 'plus',
+              lazy: false,
+            },
+          ],
+        },
+        { kind: RegexBlockKind.Anchor, value: '$' },
+      ])
 
+      assert.equal(pattern, '^(?:item-\\d+)$')
+      assert.doesNotMatch(pattern, /\(\?(?:=|!|<=|<!)/)
+    })
+
+    it('emits raw pattern text verbatim', () => {
       assert.equal(
         blocksToPattern([
           {
-            kind: RegexBlockKind.Lookaround,
-            direction: 'behind',
-            negated: true,
-            children: [{ kind: RegexBlockKind.Literal, value: 'x' }],
+            kind: RegexBlockKind.Raw,
+            value: '\\p{L}+',
           },
         ]),
-        '(?<!x)'
+        '\\p{L}+'
       )
     })
 

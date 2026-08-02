@@ -13,7 +13,6 @@ export enum RegexBlockKind {
   Quantifier = 'quantifier',
   Group = 'group',
   Alternation = 'alternation',
-  Lookaround = 'lookaround',
   Raw = 'raw',
 }
 
@@ -78,15 +77,6 @@ export interface IAlternationBlock {
   readonly options: ReadonlyArray<ReadonlyArray<RegexBlock>>
 }
 
-export type LookaroundDirection = 'ahead' | 'behind'
-
-export interface ILookaroundBlock {
-  readonly kind: RegexBlockKind.Lookaround
-  readonly direction: LookaroundDirection
-  readonly negated: boolean
-  readonly children: ReadonlyArray<RegexBlock>
-}
-
 /**
  * An escape hatch for raw pattern text that the user has typed directly. Emitted
  * verbatim and never escaped.
@@ -104,7 +94,6 @@ export type RegexBlock =
   | IQuantifierBlock
   | IGroupBlock
   | IAlternationBlock
-  | ILookaroundBlock
   | IRawBlock
 
 /** The regular expression flags supported by the builder. */
@@ -194,18 +183,6 @@ function blockToPattern(block: RegexBlock): string {
       const branches = block.options.map(o => blocksToPattern(o)).join('|')
       return `(?:${branches})`
     }
-    case RegexBlockKind.Lookaround: {
-      const inner = blocksToPattern(block.children)
-      const prefix =
-        block.direction === 'ahead'
-          ? block.negated
-            ? '(?!'
-            : '(?='
-          : block.negated
-          ? '(?<!'
-          : '(?<='
-      return `${prefix}${inner})`
-    }
     default:
       return ''
   }
@@ -270,12 +247,6 @@ function blockToExplanation(block: RegexBlock): string {
     case RegexBlockKind.Alternation: {
       const branches = block.options.map(o => explainBlocks(o))
       return `either ${branches.join(' or ')}`
-    }
-    case RegexBlockKind.Lookaround: {
-      const inner = explainBlocks(block.children)
-      const dir = block.direction === 'ahead' ? 'followed by' : 'preceded by'
-      const neg = block.negated ? 'not ' : ''
-      return `${neg}${dir} (${inner})`
     }
     default:
       return ''
