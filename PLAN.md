@@ -1,5 +1,70 @@
 # Desktop Material — Feature and Acceptance Plan
 
+## The build plan, August 2 2026
+
+Eighteen roadmap items, mirrored one-to-one into issues **#118-#135**. Two rules
+set by the project owner govern every one of them:
+
+1. **Every screenshotted feature MUST be added.** Not should - must. If it does
+   not exist, it is built from scratch, a web server included, and a way is
+   found. "We don't have that", "that needs a service we don't run" and "that is
+   not possible here" are answers to nothing. Nothing on the list is cut for
+   being hard.
+2. **Anything server-shaped is hosted in Docker, by the user.** No vendor
+   backend anywhere. Installation is a fully automated, wizard-guided flow
+   inside the app.
+
+### Order of work, and why
+
+**Phase 1 - the server, because almost everything else needs it.**
+R1 (self-hosted Docker server + wizard) then R2 (OAuth server: SSO, multi-domain
+SSO, SAML). R13 collaboration, R18 patches, R6 conflict detection and R11's team
+view all sit on top of these, so anything built before them either has to be
+rebuilt or ships single-player only. R1 is the critical path in the literal
+sense: it is the longest chain, and it starts at zero.
+
+**Phase 2 - the gate, before anything sends code anywhere.**
+R14 (admin and AI security controls). Every AI feature - R7 merge resolution,
+R9 compose commits, R10 summarize changes, R12 review suggestions - has to ask
+it what may leave the machine. Building those first means retrofitting a gate
+onto four features instead of building four features against a gate.
+
+**Phase 3 - the two already in flight.**
+R3 (history graph view) and R4 (Agents panel). Neither needs the server. R3 also
+turns out to be a prerequisite for two later items: R8 hangs its context menu
+off the graph, and R15's live-synchronized terminal needs that graph to refresh
+from an external mutation rather than only from the app's own.
+
+**Phase 4 - the palette, which is cheap and large.**
+R5. The audit is done: **108 concrete additions** across both halves. 55 need
+only a `palette:*` case calling one dispatcher method or one `showPopup`. The
+rest need a teleport anchor first, and 16 of those collapse into a single
+`initialTool` prop on the Repository Tools hub. Two shipped rows are also wrong
+and should be fixed in the same pass - `palette:tag-lifecycle` lands on Status
+summary rather than Tag lifecycle, and three signing rows teleport to an anchor
+no element renders.
+
+**Phase 5 - the rest, in rough value order.**
+R7, R9, R10 (the AI trio), R8 (graph context menu), R11 (Launchpad), R12 (PR
+review), R6 (conflict detection), R18 (patches), R13 (collaboration), R15
+(terminal), R16 (issue trackers), R17 (parity gaps).
+
+### What "done" means for an issue
+
+An issue closes when the feature genuinely works and has been verified - not
+when the code compiles and not when a test passes in isolation. For R1 that
+means a wizard run on a clean machine with no Docker, producing a reachable
+server a second machine can join. For anything with a visible surface it means a
+screenshot of that surface, from a real build, posted on the issue.
+
+### Two honesty rules carried forward
+
+- The parity table in `ROADMAP.md` is a **grep-level answer, not a parity
+  claim**. It must not be quoted as evidence that something works.
+- The coding agent picker ships **Codex CLI and OpenCode only**, because those
+  are the two with real runners. Claude Code, Gemini CLI and Copilot CLI were
+  dropped rather than shown as entries that do nothing.
+
 ## Current status
 
 ### July 21 reviewed pull preview

@@ -2,6 +2,43 @@
 
 Updated: **August 2, 2026**
 
+## Planned work — **mirrored one-to-one into GitHub issues**
+
+Every item below has its own issue (**#118–#135**), and the issue is closed only
+when the item is genuinely finished and verified — not when the code compiles. Two rules govern all of them, set by the
+project owner:
+
+- **Every screenshotted feature MUST be added** — not should, must. If it does
+  not exist it is built from scratch, a web server included, and a way is found.
+  A missing back end is a back end to write, never a reason to cut a feature.
+- **Anything server-shaped is hosted in Docker, by the user.** No vendor
+  backend, anywhere. The install is a fully automated, wizard-guided flow inside
+  the app.
+
+Those two together make the self-hosted server and its wizard the critical path,
+ahead of any single feature that depends on it.
+
+| # | Item | State |
+| --- | --- | --- |
+| [R1](https://github.com/Ding-Ding-Projects/desktop-material/issues/118) | Self-hosted Docker server and its guided install wizard | not started — **critical path** |
+| [R2](https://github.com/Ding-Ding-Projects/desktop-material/issues/119) | Custom Docker OAuth server (SSO, multi-domain SSO, SAML) | not started, depends on R1 |
+| [R3](https://github.com/Ding-Ding-Projects/desktop-material/issues/120) | History graph view: Branch/Tag ∣ Graph ∣ Commit Message | in progress |
+| [R4](https://github.com/Ding-Ding-Projects/desktop-material/issues/121) | Agents panel: fleet view, session creator, worktree status | in progress |
+| [R5](https://github.com/Ding-Ding-Projects/desktop-material/issues/122) | Command palette expansion (45 audited additions, plus the git half) | audited, not added |
+| [R6](https://github.com/Ding-Ding-Projects/desktop-material/issues/123) | Proactive conflict detection and predictive merge alerts | not started |
+| [R7](https://github.com/Ding-Ding-Projects/desktop-material/issues/124) | AI merge conflict resolution, with an editable output pane | not started |
+| [R8](https://github.com/Ding-Ding-Projects/desktop-material/issues/125) | Commit context menu in the graph | not started |
+| [R9](https://github.com/Ding-Ding-Projects/desktop-material/issues/126) | Compose commits with AI | not started |
+| [R10](https://github.com/Ding-Ding-Projects/desktop-material/issues/127) | Summarize past changes with AI | not started |
+| [R11](https://github.com/Ding-Ding-Projects/desktop-material/issues/128) | Launchpad, with pinning and snoozing | not started |
+| [R12](https://github.com/Ding-Ding-Projects/desktop-material/issues/129) | In-app pull request review and internal code suggestions | not started |
+| [R13](https://github.com/Ding-Ding-Projects/desktop-material/issues/130) | Team collaboration: shared workspaces, insights, presence, deep links | not started, depends on R1 |
+| [R14](https://github.com/Ding-Ding-Projects/desktop-material/issues/131) | Admin and security controls, including AI security controls | not started, gates R7/R9/R10/R12 |
+| [R15](https://github.com/Ding-Ding-Projects/desktop-material/issues/132) | Integrated terminal with a live synchronized graph | not started |
+| [R16](https://github.com/Ding-Ding-Projects/desktop-material/issues/133) | Issue tracker integrations: Jira, GitLab, Trello | not started |
+| [R17](https://github.com/Ding-Ding-Projects/desktop-material/issues/134) | Parity gaps: lane hiding/soloing, SSH keygen, interactive rebase, Gitflow, in-app editor | not started |
+| [R18](https://github.com/Ding-Ding-Projects/desktop-material/issues/135) | Cloud Patches, self-hosted on your own server | not started, depends on R1 |
+
 ## August 2 fleet bug hunt — **23 defects fixed; a handful named and left open**
 
 - Six read-only agents swept disjoint areas of the desktop app and reported

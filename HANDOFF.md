@@ -10,11 +10,14 @@ description is what the screenshot showed, not a guess at what it meant.
 
 ### The two rules that govern all of it
 
-**1. If it does not exist, build it from scratch.** The user's instruction:
-*"if it doesn't exist, create the feature fully from scratch even if it means
-creating a web server."* So "we don't have that" is not an answer to anything on
-this list. A missing back end is a back end to write, not a reason to cut the
-feature.
+**1. Every screenshotted feature MUST be added. Not should — must.** The user's instructions, in their words: *"if it doesn't exist,
+create the feature fully from scratch even if it means creating a web server"*
+and *"every single feature i screenshotted should be added, if not possible
+create them from scratch and host them in docker"* — corrected immediately after
+to *"not should be, must be added, and find a way to do so."* So "we don't have
+that", "that needs a service we don't run" and "that is not possible here" are
+answers to nothing. A missing back end is a back end to write, and a way is
+found. Nothing on this list is cut for being hard.
 
 **2. Anything server-shaped is hosted in Docker, by the user.** Every one of
 these features that needs somewhere for two machines to meet — collaboration,
@@ -92,10 +95,11 @@ with your changes on `branch`. Review to avoid future conflicts.» With
 changes so they can fetch them, and ignore conflict warnings for your changes on
 that branch. Plus a `Show N overlapping files` disclosure.
 
-**Cloud Patch is explicitly out of scope** — the user said "skip cloud patch".
-Build the banner with the other two options only (push so they can fetch, and
-ignore warnings for this branch) plus the overlapping-files disclosure. Do not
-add a hosted patch service.
+**Cloud Patch is back in** — the user first said "skip cloud patch", then said
+**"even the cloud patch"**. It is built self-hosted, on the user's own Docker
+server, never as a vendor service. So the banner keeps all three options: send
+your changes as a patch, push so they can fetch, and ignore warnings for this
+branch. Tracked as R18.
 
 ### 5. AI-assisted merge conflict resolution — **NOT STARTED**
 
@@ -231,12 +235,10 @@ There is no vendor backend anywhere in this design. Anything a competitor calls
 "cloud" — shared workspaces, patches, insights, team presence, deep links — is
 served by the container the user owns, or it is not built.
 
-**One thing to resolve before building patches:** the user earlier said "skip
-cloud patch", and later supplied a screenshot showing *Cloud Patch Self-Hosted
-Storage* alongside *Cloud Patch Private Storage (coming soon)*. Those are
-consistent if the skip meant "no vendor-hosted patch service" and self-hosted
-patches are still wanted. They are inconsistent if patches are out entirely.
-**Ask before building either.** Recorded rather than guessed.
+**Resolved:** the "skip cloud patch" said earlier meant no *vendor* patch
+service. The user has since said **"even the cloud patch"**, so patches are in,
+self-hosted on that server. Private storage and self-hosted storage collapse
+into the one thing. Tracked as R18.
 
 ### 13c. Admin and security controls — **NOT STARTED**
 
