@@ -3514,6 +3514,7 @@ export class GitHubReleasesView extends React.Component<
         missing: 'githubReleases.silentInstallRefusedMissing',
         'not-a-file': 'githubReleases.silentInstallRefusedNotAFile',
         'size-mismatch': 'githubReleases.silentInstallRefusedSize',
+        'name-mismatch': 'githubReleases.silentInstallRefusedName',
         'not-installable': 'githubReleases.silentInstallRefusedKind',
         'unsupported-platform': 'githubReleases.silentInstallRefusedPlatform',
       }

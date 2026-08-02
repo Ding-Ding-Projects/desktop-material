@@ -147,6 +147,7 @@ export type SilentInstallRefusal =
   | 'missing'
   | 'not-a-file'
   | 'size-mismatch'
+  | 'name-mismatch'
   | 'unsupported-platform'
 
 /** What the release said the asset is. */
@@ -160,6 +161,13 @@ export interface ISilentInstallActual {
   readonly exists: boolean
   readonly isFile: boolean
   readonly sizeInBytes: number
+  /**
+   * The base name of the path that will actually be spawned. Every other gate
+   * here reads the *expected* name, so without this the file that decides
+   * "is this an installer, and which family" and the file that gets executed
+   * are never required to be the same file.
+   */
+  readonly fileName: string
 }
 
 /**
@@ -186,6 +194,16 @@ export function reviewSilentInstallTarget(
   }
   if (!actual.isFile) {
     return 'not-a-file'
+  }
+  // The extension gate above inspected the *release asset's* name; the spawn
+  // runs whatever sits at the path. Requiring them to be the same file is what
+  // makes "only files this table recognizes as installers are offered at all"
+  // true of the thing that actually executes.
+  if (
+    actual.fileName.trim().toLowerCase() !==
+    expected.fileName.trim().toLowerCase()
+  ) {
+    return 'name-mismatch'
   }
   return actual.sizeInBytes === expected.sizeInBytes ? null : 'size-mismatch'
 }

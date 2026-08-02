@@ -106,10 +106,48 @@ describe('silent install flag table', () => {
 
 describe('silent install pre-launch review', () => {
   const expected = { fileName: 'desktop.exe', sizeInBytes: 4096 }
-  const present = { exists: true, isFile: true, sizeInBytes: 4096 }
+  const present = {
+    exists: true,
+    isFile: true,
+    sizeInBytes: 4096,
+    fileName: 'desktop.exe',
+  }
 
   it('permits only the exact downloaded file', () => {
     assert.equal(reviewSilentInstallTarget(expected, present, 'win32'), null)
+  })
+
+  it('refuses a path holding some other file than the asset reviewed', () => {
+    // Every other gate reads the release asset's name while the spawn runs
+    // whatever is at the path, so without this the file that is judged an
+    // installer and the file that executes need never be the same one.
+    assert.equal(
+      reviewSilentInstallTarget(
+        expected,
+        { ...present, fileName: 'some-tool.exe' },
+        'win32'
+      ),
+      'name-mismatch'
+    )
+    assert.equal(
+      reviewSilentInstallTarget(
+        { fileName: 'desktop.msi', sizeInBytes: 4096 },
+        present,
+        'win32'
+      ),
+      'name-mismatch'
+    )
+  })
+
+  it('accepts the same name however Windows cased it', () => {
+    assert.equal(
+      reviewSilentInstallTarget(
+        expected,
+        { ...present, fileName: 'Desktop.EXE' },
+        'win32'
+      ),
+      null
+    )
   })
 
   it('refuses a file that changed, vanished, or was never a file', () => {

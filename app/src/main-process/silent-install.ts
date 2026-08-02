@@ -1,5 +1,6 @@
 import { spawn } from 'child_process'
 import { open, stat } from 'fs/promises'
+import { basename } from 'path'
 
 import {
   ISilentInstallRequest,
@@ -88,6 +89,7 @@ export async function handleSilentInstall(
       exists: true,
       isFile: entry.isFile(),
       sizeInBytes: entry.size,
+      fileName: basename(request.path),
     }
   } catch {
     actual = null

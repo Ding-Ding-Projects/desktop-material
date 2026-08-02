@@ -2550,6 +2550,7 @@ export type TranslationKey =
   | 'githubReleases.silentInstallRefusedMissing'
   | 'githubReleases.silentInstallRefusedNotAFile'
   | 'githubReleases.silentInstallRefusedSize'
+  | 'githubReleases.silentInstallRefusedName'
   | 'githubReleases.silentInstallRefusedKind'
   | 'githubReleases.silentInstallRefusedPlatform'
   | 'githubReleases.sortLabel'
@@ -6168,6 +6169,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'The downloaded location for {file} is not a file, so nothing was run.',
   'githubReleases.silentInstallRefusedSize':
     'The file at the downloaded location no longer matches the size of {file}, so nothing was run. Download it again.',
+  'githubReleases.silentInstallRefusedName':
+    'The downloaded location holds a different file from {file}, so nothing was run. Download it again.',
   'githubReleases.silentInstallRefusedKind':
     '{file} is not an installer this app runs, so nothing was run.',
   'githubReleases.silentInstallRefusedPlatform':
@@ -9894,6 +9897,8 @@ export const cantoneseTranslations: Readonly<
     '{file} 嘅下載位置唔係一個檔案，所以冇執行過任何嘢。',
   'githubReleases.silentInstallRefusedSize':
     '下載位置嗰個檔案嘅大細已經同 {file} 唔一樣，所以冇執行過任何嘢。請重新下載。',
+  'githubReleases.silentInstallRefusedName':
+    '下載位置擺住嘅唔係 {file} 嗰個檔案，所以冇執行過任何嘢。請重新下載。',
   'githubReleases.silentInstallRefusedKind':
     '{file} 唔係本 app 會執行嘅安裝程式，所以冇執行過任何嘢。',
   'githubReleases.silentInstallRefusedPlatform':
