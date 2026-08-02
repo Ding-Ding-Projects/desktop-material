@@ -1,0 +1,287 @@
+.launchpad-view {
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  max-width: 1120px;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--spacing, 8px);
+  margin-inline: auto;
+  padding: var(--spacing-double, 16px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  color: var(--md-sys-color-on-surface);
+
+  &__section {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-large, 16px);
+    background: var(--md-sys-color-surface-container-low);
+  }
+
+  &__section-heading {
+    min-width: 0;
+    margin: 0;
+  }
+
+  &__section-toggle {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    min-height: 48px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--spacing, 8px);
+    padding: var(--spacing, 8px) var(--spacing-double, 16px);
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    transition: background-color 160ms var(--emph, ease);
+
+    &:hover {
+      background: var(--md-sys-color-surface-container);
+    }
+
+    &:focus-visible {
+      position: relative;
+      z-index: 1;
+      outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 45%, transparent);
+      outline-offset: -3px;
+    }
+
+    &[aria-expanded='true'] {
+      border-block-end: 1px solid var(--md-sys-color-outline-variant);
+    }
+  }
+
+  &__section-title {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: var(--font-size-md, 14px);
+    font-weight: var(--font-weight-semibold, 600);
+    line-height: 1.35;
+  }
+
+  &__section-count {
+    display: inline-grid;
+    min-width: 24px;
+    min-height: 24px;
+    flex: none;
+    place-items: center;
+    padding-inline: 7px;
+    border-radius: var(--md-sys-shape-corner-full, 999px);
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    font-size: var(--font-size-sm, 12px);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  &__rows {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__row {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: minmax(7.5rem, 0.3fr) minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--spacing, 8px) var(--spacing-double, 16px);
+    padding: var(--spacing-double, 16px);
+    background: var(--md-sys-color-surface-container-lowest);
+
+    & + & {
+      border-block-start: 1px solid var(--md-sys-color-outline-variant);
+    }
+  }
+
+  &__status {
+    display: flex;
+    min-width: 0;
+    align-items: flex-start;
+    gap: var(--spacing-half, 4px);
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm, 12px);
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  &__status-icon {
+    display: grid;
+    width: 20px;
+    min-width: 20px;
+    height: 20px;
+    flex: none;
+    place-items: center;
+    color: var(--md-sys-color-primary);
+  }
+
+  &__body {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: var(--spacing-half, 4px);
+  }
+
+  &__title {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px var(--spacing-half, 4px);
+    margin: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    font-size: var(--font-size, 13px);
+    font-weight: var(--font-weight-semibold, 600);
+    line-height: 1.4;
+  }
+
+  &__reference {
+    flex: none;
+    color: var(--md-sys-color-on-surface-variant);
+    font-weight: var(--font-weight-normal, 400);
+    white-space: nowrap;
+  }
+
+  &__metadata {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--spacing-half, 4px) var(--spacing, 8px);
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm, 12px);
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  &__age,
+  &__diff {
+    min-width: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__diff {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-half, 4px);
+  }
+
+  &__actions {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--spacing-half, 4px);
+  }
+
+  &__snooze-label {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm, 12px);
+    font-weight: var(--font-weight-semibold, 600);
+  }
+
+  &__action {
+    box-sizing: border-box;
+    min-width: 40px;
+    min-height: 40px;
+    max-width: 100%;
+    padding: 0 var(--spacing, 8px);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-full, 999px);
+    background: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface);
+    font: inherit;
+    line-height: 1.25;
+    white-space: normal;
+    cursor: pointer;
+    transition: background-color 160ms var(--emph, ease), border-color 160ms var(--emph, ease), color 160ms var(--emph, ease);
+
+    &:hover:not(:disabled) {
+      border-color: var(--md-sys-color-outline);
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+    }
+
+    &:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 45%, transparent);
+      outline-offset: 2px;
+    }
+
+    &:disabled,
+    &[aria-disabled='true'] {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+  }
+}
+
+@media (max-width: 800px) {
+  .launchpad-view {
+    &__row {
+      grid-template-columns: minmax(7.5rem, 0.34fr) minmax(0, 1fr);
+    }
+
+    &__actions {
+      grid-column: 1 / -1;
+    }
+  }
+}
+
+@media (max-width: 520px) {
+  .launchpad-view {
+    padding: var(--spacing, 8px);
+
+    &__section-toggle,
+    &__row {
+      padding: var(--spacing, 8px);
+    }
+
+    &__row {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    &__status,
+    &__body,
+    &__actions {
+      grid-column: 1;
+    }
+
+    &__actions {
+      justify-content: flex-start;
+    }
+
+    &__action {
+      flex: 1 1 9rem;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .launchpad-view {
+    scroll-behavior: auto;
+
+    &__section-toggle,
+    &__row,
+    &__action {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+}
