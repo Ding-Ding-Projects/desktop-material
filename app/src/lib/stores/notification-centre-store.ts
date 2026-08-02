@@ -15,6 +15,7 @@ import {
   undoLastProfileChange,
   redoLastProfileChange,
   restoreProfileTo,
+  withProfileRepositoryLock,
 } from '../profiles/profile-git'
 import {
   countUnread,
@@ -74,6 +75,9 @@ export class NotificationCentreStore extends TypedBaseStore<INotificationCentreS
   /** Serializes file writes so the last write always reflects final state. */
   private writeChain: Promise<void> = Promise.resolve()
 
+  /** Serializes every Git mutation behind one repository lease at a time. */
+  private mutationChain: Promise<void> = Promise.resolve()
+
   /** Resolves once initialization has been attempted (success or failure). */
   private initialization: Promise<void> | null = null
 
@@ -93,7 +97,10 @@ export class NotificationCentreStore extends TypedBaseStore<INotificationCentreS
   }
 
   private async initializeOnce(): Promise<void> {
-    const dir = join(await getPath('userData'), 'notifications')
+    await this.initializeAt(join(await getPath('userData'), 'notifications'))
+  }
+
+  private async initializeAt(dir: string): Promise<void> {
     let repository = await ensureProfileRepository(dir)
     let recovered = false
 
@@ -108,7 +115,12 @@ export class NotificationCentreStore extends TypedBaseStore<INotificationCentreS
     }
 
     this.repository = repository
-    this.queue = new ProfileCommitQueue(repository)
+    this.queue = new ProfileCommitQueue(
+      repository,
+      undefined,
+      undefined,
+      flush => this.enqueueRepositoryOperation(flush)
+    )
     this.enabled = true
 
     if (recovered) {
@@ -343,7 +355,7 @@ export class NotificationCentreStore extends TypedBaseStore<INotificationCentreS
       return
     }
     await this.writeChain.catch(() => undefined)
-    await this.queue?.flush()
+    await this.enqueueRepositoryOperation(() => this.flushUnlocked())
   }
 
   // --- History source (consumed by the notification history manager) ---------
@@ -400,11 +412,20 @@ export class NotificationCentreStore extends TypedBaseStore<INotificationCentreS
     action: (repository: Repository) => Promise<void>
   ): Promise<void> {
     await this.initialize()
-    if (!this.enabled || this.repository === null) {
+    const repository = this.repository
+    if (!this.enabled || repository === null) {
       return
     }
-    await this.flush()
-    await action(this.repository)
+    await this.writeChain.catch(() => undefined)
+
+    // The drain and the mutation share one lease. A commit the debounce timer
+    // started in between would run `git add -A` over a half-restored tree and
+    // take the parent the mutation reserved, leaving the restore to fail its
+    // compare-and-swap and roll back onto that unrelated commit.
+    await this.enqueueRepositoryOperation(async () => {
+      await this.flushUnlocked()
+      await action(repository)
+    })
     await this.reload()
   }
 
@@ -412,6 +433,35 @@ export class NotificationCentreStore extends TypedBaseStore<INotificationCentreS
 
   private emitState(): void {
     this.emitUpdate(this.getState())
+  }
+
+  /**
+   * Put every Git mutation for the notification repository behind the same
+   * promise tail and the shared repository lock, the way `ProfileStore` does.
+   * The history helpers assume their caller already holds the lock. Callers
+   * already inside an operation use `flushUnlocked`; enqueueing recursively
+   * would deadlock behind itself.
+   */
+  private enqueueRepositoryOperation<T>(action: () => Promise<T>): Promise<T> {
+    const previous = this.mutationChain
+    const operation = previous.then(() => {
+      const repository = this.repository
+      return repository === null
+        ? action()
+        : withProfileRepositoryLock(repository, action)
+    })
+    const tail = operation.then(
+      () => undefined,
+      () => undefined
+    )
+    this.mutationChain = tail
+
+    return operation
+  }
+
+  /** Drain the commit queue without enqueueing; the caller holds the lock. */
+  private async flushUnlocked(): Promise<void> {
+    await this.queue?.flush()
   }
 
   /**

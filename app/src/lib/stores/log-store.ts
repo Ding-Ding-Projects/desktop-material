@@ -12,6 +12,7 @@ import {
   undoLastProfileChange,
   redoLastProfileChange,
   restoreProfileTo,
+  withProfileRepositoryLock,
 } from '../profiles/profile-git'
 import { IProfileHistoryPage } from '../../models/profile'
 import { LogLevel } from '../logging/log-level'
@@ -48,6 +49,9 @@ export class LogStore {
   /** Serializes file writes so the last write always reflects final state. */
   private writeChain: Promise<void> = Promise.resolve()
 
+  /** Serializes every Git mutation behind one repository lease at a time. */
+  private mutationChain: Promise<void> = Promise.resolve()
+
   /** Resolves once initialization has been attempted (success or failure). */
   private initialization: Promise<void> | null = null
 
@@ -79,7 +83,7 @@ export class LogStore {
       repository,
       () => LogCommitDescription,
       undefined,
-      flush => this.commitHistory(flush)
+      flush => this.commitHistoryLocked(flush)
     )
     this.enabled = true
   }
@@ -130,11 +134,7 @@ export class LogStore {
       return
     }
     await this.writeChain.catch(() => undefined)
-    const queue = this.queue
-    if (!this.enabled || queue === null) {
-      return
-    }
-    await this.commitHistory(() => queue.flush())
+    await this.commitHistoryLocked(() => this.flushUnlocked())
   }
 
   // --- History source (consumed by the log history manager) ------------------
@@ -200,18 +200,60 @@ export class LogStore {
     action: (repository: Repository) => Promise<void>
   ): Promise<void> {
     await this.initialize()
-    if (!this.enabled || this.repository === null) {
+    const repository = this.repository
+    if (!this.enabled || repository === null) {
       return
     }
-    await this.flush()
-    if (!this.enabled) {
-      return
-    }
-    await action(this.repository)
+    await this.writeChain.catch(() => undefined)
+
+    // The drain and the mutation share one lease. A commit the debounce timer
+    // started in between would run `git add -A` over a half-restored tree and
+    // take the parent the mutation reserved, leaving the restore to fail its
+    // compare-and-swap and roll back onto that unrelated commit.
+    await this.enqueueRepositoryOperation(async () => {
+      await this.commitHistory(() => this.flushUnlocked())
+      if (!this.enabled) {
+        return
+      }
+      await action(repository)
+    })
     await this.reload()
   }
 
   // --- Internals -------------------------------------------------------------
+
+  /**
+   * Put every Git mutation for the log repository behind the same promise tail
+   * and the shared repository lock, the way `ProfileStore` does. The history
+   * helpers assume their caller already holds the lock. Callers already inside
+   * an operation use `flushUnlocked`; enqueueing recursively would deadlock
+   * behind itself.
+   */
+  private enqueueRepositoryOperation<T>(action: () => Promise<T>): Promise<T> {
+    const previous = this.mutationChain
+    const operation = previous.then(() => {
+      const repository = this.repository
+      return repository === null
+        ? action()
+        : withProfileRepositoryLock(repository, action)
+    })
+    const tail = operation.then(
+      () => undefined,
+      () => undefined
+    )
+    this.mutationChain = tail
+
+    return operation
+  }
+
+  /** Drain the commit queue without enqueueing; the caller holds the lock. */
+  private async flushUnlocked(): Promise<void> {
+    const queue = this.queue
+    if (!this.enabled || queue === null) {
+      return
+    }
+    await queue.flush()
+  }
 
   /**
    * Commit the log repository without feeding Git's own output back into the
@@ -228,18 +270,44 @@ export class LogStore {
       try {
         await operation()
       } catch (error) {
-        // Disable before reporting the error as a second fail-closed barrier:
-        // even an unexpected sink escape cannot schedule another commit.
-        this.enabled = false
-        this.queue = null
-        try {
-          log.error('LogStore history commit failed; disabled', error)
-        } catch {
-          // A logging transport failure must not escape into the queue's own
-          // failure reporter, which would put us back on the recursive path.
-        }
+        this.disableHistory('LogStore history commit failed; disabled', error)
       }
     })
+  }
+
+  /**
+   * Commit under the repository lease. The lease is taken outside
+   * `commitHistory` so unrelated log lines keep reaching history while this
+   * waits for it, and a lease failure is caught here rather than escaping into
+   * ProfileCommitQueue's generic failure logger, whose message this store would
+   * mirror straight back into another commit.
+   */
+  private async commitHistoryLocked(
+    operation: () => Promise<void>
+  ): Promise<void> {
+    if (!this.enabled) {
+      return
+    }
+
+    try {
+      await this.enqueueRepositoryOperation(() => this.commitHistory(operation))
+    } catch (error) {
+      this.disableHistory('LogStore history lease failed; disabled', error)
+    }
+  }
+
+  /** Fail closed, and report the failure without re-entering the queue. */
+  private disableHistory(message: string, error?: Error): void {
+    // Disable before reporting the error as a second fail-closed barrier: even
+    // an unexpected sink escape cannot schedule another commit.
+    this.enabled = false
+    this.queue = null
+    try {
+      log.error(message, error)
+    } catch {
+      // A logging transport failure must not escape into the queue's own
+      // failure reporter, which would put us back on the recursive path.
+    }
   }
 
   /**
