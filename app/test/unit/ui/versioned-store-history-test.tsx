@@ -195,6 +195,55 @@ describe('versioned store history', () => {
     )
   })
 
+  it('neither searches nor advertises files it has not loaded', async () => {
+    const entries = [
+      historyEntry('11111111', 'Changed theme', at(1)),
+      historyEntry('22222222', 'Changed density', at(2)),
+    ]
+    const source: IVersionedStoreHistorySource = {
+      getHistory: () => Promise.resolve(historyPage(entries, false)),
+      // Every commit touched this file, but only the selected one is ever read.
+      getFiles: () => Promise.resolve(['tabs.json']),
+      getDiff: () => Promise.resolve(''),
+    }
+
+    render(
+      <VersionedStoreHistory
+        title="Settings history"
+        timelineLabel="Settings timeline"
+        description="Test history"
+        source={source}
+        readOnly={true}
+        onDismissed={() => {}}
+      />
+    )
+
+    // The selected commit's files have to be on screen before the query runs,
+    // or there is nothing loaded for the search to have wrongly matched.
+    await waitFor(() => assert.ok(screen.getAllByText('tabs.json').length > 0))
+
+    // Substring rather than the default fuzzy mode: fuzzy only ever admits an
+    // entry on its first two keys, so the extra file keys reached the count
+    // through the contiguous and regex modes.
+    fireEvent.click(screen.getByLabelText(/Filter mode: Fuzzy/))
+    const search = screen.getByLabelText('Search version history')
+    fireEvent.change(search, { target: { value: 'tabs.json' } })
+
+    // Matching the loaded rows against a file list only the selected row holds
+    // reported "1 of 2" for a file every commit touched — a count the user
+    // reads as "one commit changed it".
+    await waitFor(() =>
+      assert.ok(screen.getByText('0 of 2 loaded commits match'))
+    )
+    assert.equal(screen.queryByRole('option', { name: /Changed theme/i }), null)
+
+    // …and the field no longer offers a search it cannot perform.
+    assert.equal(
+      search.getAttribute('placeholder'),
+      'Search messages, hashes, or dates'
+    )
+  })
+
   it('classifies unified diff lines for the read-only viewer', () => {
     assert.equal(classifyVersionHistoryDiffLine('diff --git a/a b/a'), 'header')
     assert.equal(

@@ -104,7 +104,9 @@ export interface IVersionedStoreHistoryStrings {
 export const DefaultVersionedStoreHistoryStrings: IVersionedStoreHistoryStrings =
   {
     searchLabel: 'Search version history',
-    searchPlaceholder: 'Search messages, hashes, dates, or files',
+    // Deliberately no "files": file lists are fetched only for the commit the
+    // user selects, so a filename could never match more than one row.
+    searchPlaceholder: 'Search messages, hashes, or dates',
     regexBuilderTarget: 'version history',
     searchStatus: 'Search the loaded timeline',
     matchingCount: (visible, loaded) =>
@@ -329,7 +331,6 @@ export class VersionedStoreHistory extends React.Component<
       filterText: string,
       filterMode: FilterMode,
       filterCaseSensitive: boolean,
-      filesBySha: IVersionedStoreHistoryState['filesBySha'],
       formatEntrySummary: ((summary: string) => string) | undefined
     ): {
       readonly entries: ReadonlyArray<IVersionHistoryEntry>
@@ -352,7 +353,10 @@ export class VersionedStoreHistory extends React.Component<
           entry.undoOf === null ? '' : 'undo',
           entry.redoOf === null ? '' : 'redo',
           entry.restoreOf === null ? '' : 'restore',
-          ...(filesBySha[entry.sha] ?? []),
+          // Not the changed files: they are read one commit at a time, as the
+          // user selects it, so matching them would silently rank the loaded
+          // timeline against whichever single row happened to be inspected and
+          // report "1 of 50 commits match" for a file that touched forty.
         ],
         { mode: filterMode, caseSensitive: filterCaseSensitive }
       )
@@ -769,14 +773,12 @@ export class VersionedStoreHistory extends React.Component<
   }
 
   private getFilteredEntries() {
-    const { filterText, filterMode, filterCaseSensitive, filesBySha } =
-      this.state
+    const { filterText, filterMode, filterCaseSensitive } = this.state
     return this.filterEntries(
       this.state.page?.entries ?? NoEntries,
       filterText,
       filterMode,
       filterCaseSensitive,
-      filesBySha,
       this.props.formatEntrySummary
     )
   }

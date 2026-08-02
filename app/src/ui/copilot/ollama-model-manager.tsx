@@ -401,7 +401,7 @@ export const DefaultOllamaModelManagerStrings: IOllamaModelManagerStrings = {
     'Every message and setting change is committed in this chat’s own local Git repository. Undo, redo, and restore create new commits.',
   chatHistoryStrings: {
     searchLabel: 'Search chat history',
-    searchPlaceholder: 'Search messages, hashes, dates, or files',
+    searchPlaceholder: 'Search messages, hashes, or dates',
     regexBuilderTarget: 'chat history',
     searchStatus: 'Search the loaded timeline',
     matchingCount: (visible, loaded) =>

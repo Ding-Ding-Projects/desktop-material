@@ -177,28 +177,55 @@ export class SettingsSearch extends React.Component<
   }
 
   /**
-   * Compute which characters of the displayed title to emphasize for the
-   * current query. Works directly on the shown string (case-insensitive
-   * contiguous match) so the highlight is always correct for the active display
-   * language, independent of the language-neutral match keys.
+   * Map the characters the matcher actually matched onto the title this row
+   * displays.
+   *
+   * Re-deriving the highlight from a literal search over the shown string marks
+   * the wrong characters or none at all: a regex pattern is not a substring of
+   * the text it matched, and fuzzy matching is non-contiguous and always
+   * case-insensitive however the case-sensitivity toggle is left. Only the
+   * matcher knows which characters it accepted, so its indices are the ones
+   * rendered.
+   *
+   * Those indices address the language-neutral key `settingsSearchKeys` builds
+   * — the English title, a space, then the Cantonese one — while the row shows
+   * whichever title the active language mode renders, so each index is moved
+   * from its slice of the key onto that slice's position in the shown string.
+   * A match on a title the mode hides has nowhere to land and is dropped.
    */
-  private titleHighlightIndices(title: string): ReadonlyArray<number> {
-    const query = this.props.query.trim()
-    if (query.length === 0) {
+  private titleHighlightIndices(
+    entry: ISettingsSearchEntry,
+    matched: ReadonlyArray<number>
+  ): ReadonlyArray<number> {
+    if (matched.length === 0) {
       return []
     }
 
-    const haystack = this.props.caseSensitive ? title : title.toLowerCase()
-    const needle = this.props.caseSensitive ? query : query.toLowerCase()
-    const at = haystack.indexOf(needle)
-    if (at === -1) {
-      return []
+    const english = translate(entry.titleKey, 'english')
+    const cantonese = translate(entry.titleKey, 'cantonese')
+    const displayed = translate(entry.titleKey, this.props.languageMode)
+
+    const mode = this.props.languageMode
+    const englishAt = mode === 'cantonese' ? -1 : 0
+    const cantoneseAt =
+      mode === 'english' ? -1 : displayed.length - cantonese.length
+
+    const indices = new Array<number>()
+    for (const index of matched) {
+      const inEnglish = index < english.length
+      const start = inEnglish ? englishAt : cantoneseAt
+      // Offset -1 is the space joining the two titles, which belongs to neither.
+      const offset = inEnglish ? index : index - english.length - 1
+      if (start < 0 || offset < 0) {
+        continue
+      }
+
+      const at = start + offset
+      if (at < displayed.length) {
+        indices.push(at)
+      }
     }
 
-    const indices = new Array<number>(needle.length)
-    for (let i = 0; i < needle.length; i++) {
-      indices[i] = at + i
-    }
     return indices
   }
 
@@ -327,7 +354,10 @@ export class SettingsSearch extends React.Component<
                           <strong className="settings-search-result-title">
                             {this.renderHighlighted(
                               title,
-                              this.titleHighlightIndices(title)
+                              this.titleHighlightIndices(
+                                match.item,
+                                match.matches.title
+                              )
                             )}
                           </strong>
                           <span className="settings-search-result-desc">

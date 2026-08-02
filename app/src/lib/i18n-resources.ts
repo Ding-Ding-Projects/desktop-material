@@ -4955,7 +4955,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Every message and setting change is committed in this chat’s own local Git repository. Undo, redo, and restore create new commits.',
   'ollama.manager.chatHistorySearchLabel': 'Search chat history',
   'ollama.manager.chatHistorySearchPlaceholder':
-    'Search messages, hashes, dates, or files',
+    'Search messages, hashes, or dates',
   'ollama.manager.chatHistorySearchStatus': 'Search the loaded timeline',
   'ollama.manager.chatHistoryMatchingCount':
     '{visible} of {loaded} loaded commits match',
@@ -8761,7 +8761,7 @@ export const cantoneseTranslations: Readonly<
   'ollama.manager.chatHistoryDescription':
     '每段訊息同設定變更都會 commit 入呢個對話自己嘅本機 Git repo。復原、重做同還原都會建立新 commit，條歷史唔會失蹤。',
   'ollama.manager.chatHistorySearchLabel': '搜尋對話歷史',
-  'ollama.manager.chatHistorySearchPlaceholder': '搜尋訊息、hash、日期或者檔案',
+  'ollama.manager.chatHistorySearchPlaceholder': '搜尋訊息、hash 或者日期',
   'ollama.manager.chatHistorySearchStatus': '喺已載入嘅時間線度搜尋',
   'ollama.manager.chatHistoryMatchingCount':
     '{visible}/{loaded} 個已載入 commit 符合',
