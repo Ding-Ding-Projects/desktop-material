@@ -8,6 +8,7 @@ import {
   createInternalBrowserOAuthCallbackId,
   getBrowserOpenModePreference,
   InternalBrowserBookmarksStorageKey,
+  MaximumFindQueryLength,
   MaximumInternalBrowserBookmarksJSONLength,
   normalizeAddressInput,
   normalizeInternalBrowserCommand,
@@ -193,6 +194,77 @@ describe('internal browser contracts', () => {
         intent: 'authentication',
         url: 'https://github.com/login/oauth',
       }
+    )
+  })
+
+  it('lets the three page-search commands through the IPC boundary', () => {
+    // The validator is the only route into the main process's handlers, so a
+    // command it does not know is a feature that silently does nothing at all.
+    assert.deepEqual(
+      normalizeInternalBrowserCommand({
+        type: 'find-in-page',
+        tabId: 'browser-tab-3',
+        query: 'release notes',
+        matchCase: false,
+        forward: true,
+        findNext: false,
+      }),
+      {
+        type: 'find-in-page',
+        tabId: 'browser-tab-3',
+        query: 'release notes',
+        matchCase: false,
+        forward: true,
+        findNext: false,
+      }
+    )
+    assert.deepEqual(
+      normalizeInternalBrowserCommand({
+        type: 'stop-find-in-page',
+        tabId: 'browser-tab-3',
+      }),
+      { type: 'stop-find-in-page', tabId: 'browser-tab-3' }
+    )
+    assert.deepEqual(
+      normalizeInternalBrowserCommand({
+        type: 'read-page-text',
+        tabId: 'browser-tab-3',
+      }),
+      { type: 'read-page-text', tabId: 'browser-tab-3' }
+    )
+  })
+
+  it('refuses a find command that is malformed rather than merely unlucky', () => {
+    const valid = {
+      type: 'find-in-page',
+      tabId: 'browser-tab-3',
+      query: 'release',
+      matchCase: false,
+      forward: true,
+      findNext: false,
+    }
+    assert.equal(
+      normalizeInternalBrowserCommand({ ...valid, tabId: 'not-a-tab' }),
+      null
+    )
+    assert.equal(
+      normalizeInternalBrowserCommand({ ...valid, matchCase: 'yes' }),
+      null
+    )
+    assert.equal(
+      normalizeInternalBrowserCommand({ ...valid, query: 'a\u0000b' }),
+      null
+    )
+    assert.equal(
+      normalizeInternalBrowserCommand({
+        ...valid,
+        query: 'a'.repeat(MaximumFindQueryLength + 1),
+      }),
+      null
+    )
+    assert.equal(
+      normalizeInternalBrowserCommand({ type: 'read-page-text' }),
+      null
     )
   })
 

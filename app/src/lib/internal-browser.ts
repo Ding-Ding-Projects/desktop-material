@@ -472,6 +472,37 @@ export function normalizeInternalBrowserCommand(
             tabId: candidate.tabId,
             url: candidate.url,
           }
+    case 'find-in-page': {
+      if (
+        !isBrowserTabID(candidate.tabId) ||
+        typeof candidate.query !== 'string' ||
+        candidate.query.length > MaximumFindQueryLength ||
+        typeof candidate.matchCase !== 'boolean' ||
+        typeof candidate.forward !== 'boolean' ||
+        typeof candidate.findNext !== 'boolean'
+      ) {
+        return null
+      }
+      // A control character cannot appear in rendered page text, so it can only
+      // be an attempt to smuggle something past a log or a label.
+      const queryHasControlCharacters = controlCharacters.test(candidate.query)
+      controlCharacters.lastIndex = 0
+      return queryHasControlCharacters
+        ? null
+        : {
+            type: 'find-in-page',
+            tabId: candidate.tabId,
+            query: candidate.query,
+            matchCase: candidate.matchCase,
+            forward: candidate.forward,
+            findNext: candidate.findNext,
+          }
+    }
+    case 'stop-find-in-page':
+    case 'read-page-text':
+      return isBrowserTabID(candidate.tabId)
+        ? { type: candidate.type, tabId: candidate.tabId }
+        : null
     default:
       return null
   }
@@ -650,6 +681,15 @@ export type InternalBrowserFindMode = 'plain' | 'regex'
  * searching a prefix and calling it a whole-page result.
  */
 export const MaximumPageTextLength = 2_000_000
+
+/**
+ * Longest find query accepted over IPC.
+ *
+ * Generous for anything a person types into a find bar, and small enough that a
+ * malformed send cannot hand Chromium's in-page search — or the RE2 compiler —
+ * a megabyte to chew on.
+ */
+export const MaximumFindQueryLength = 1_024
 
 /** Longest single match preview retained for the results list. */
 export const MaximumFindPreviewLength = 160
