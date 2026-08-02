@@ -426,6 +426,19 @@ jobs:
             --version "$RELEASE_VERSION" \
             --release-sha "$RELEASE_TARGET_SHA" \
             --output "release-payload/release-notes.md"
+      # The shared instructions put the line count in the release rather than
+      # only the README, and require CI to be what measures it: this runs over
+      # the exact commit being released, in the same run that built the
+      # artifacts, so no hand-typed number can drift from the tree.
+      - name: Append the measured line count to the release notes
+        shell: bash
+        run: |
+          {
+            printf '\n## Lines of code\n\n'
+            node script/count-lines.mjs
+            printf '\nCounted by CI over `%s` with `node script/count-lines.mjs`.\n' \
+              "$RELEASE_TARGET_SHA"
+          } >> release-payload/release-notes.md
       - name: Preserve exact release notes
         uses: actions/upload-artifact@v7
         with:

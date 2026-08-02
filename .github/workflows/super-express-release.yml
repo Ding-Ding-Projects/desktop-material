@@ -279,6 +279,14 @@ jobs:
             echo
             git show --no-patch --format='%s%n%n%b' "$RELEASE_TARGET_SHA" | \
               sed 's/^/    /'
+            # Every release carries its own line count, measured by CI over the
+            # exact commit being released rather than typed in by hand.
+            echo
+            echo '## Lines of code'
+            echo
+            node script/count-lines.mjs
+            echo
+            echo "Counted by CI over \`$RELEASE_TARGET_SHA\` with \`node script/count-lines.mjs\`."
           } > release-payload/release-notes.md
 
       - name: Preserve installer and notes artifact

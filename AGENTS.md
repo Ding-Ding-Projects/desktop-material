@@ -148,22 +148,38 @@ These apply to user-facing surfaces in this app.
   sizes and display scales, and adequate hit targets. Validate at narrow widths
   and with the longest localized strings.
 
-## The README reports the line count
+## Every release reports the line count, and CI counts it
 
-- `README.md` states how many lines of code this repository has, **broken down
-  by area** rather than reduced to one number, with total and non-blank lines
-  for each.
+- **Each GitHub Release states how many lines of code the project has at that
+  release.** The release workflows run `node script/count-lines.mjs` over the
+  tagged commit and append its table to the notes, so the figure comes from the
+  same run that built the installers and cannot drift from the tree.
+- The count is **broken down by area**, not reduced to one number, with total
+  and non-blank lines for each.
 - Say plainly what is excluded and why. Vendored trees, dependency
   directories, build output, the historical TUI prototype and the agent
   verification records are not this project's code; they are shown in the
-  table and held out of the project total rather than silently dropped.
+  table and held out of the project total rather than silently dropped. The
+  `Unclassified` row exists so a counted file can never be silently dropped.
 - Separate generated files from hand-written ones wherever the difference is
   large enough to move the number.
-- The figure is **measured, never estimated**: `node script/count-lines.mjs`
-  prints the exact table the README publishes, and the README records the
-  command and the commit it was measured at.
-- Refresh it in the same task that materially moves it, exactly as the landing
-  page and feature articles are updated.
+- `README.md` may carry the latest figure as a **convenience copy** that names
+  the release it came from. The release is the record. Never hand-edit the
+  README to a number no release published, and never let the two disagree.
+
+### Never count lines by hand
+
+- When a count is wanted, run `node script/count-lines.mjs` and read its table.
+  Never rebuild it with an ad-hoc `git ls-files | xargs wc -l`, a grep sweep,
+  or a scratch script.
+- This is a cost rule as much as a correctness one: ad-hoc counting dumps
+  hundreds of per-file lines into context to reach a handful of totals, and CI
+  already publishes the answer on every release.
+- It is also more accurate. A path-prefix bucketing written on the spot
+  silently drops every file matching no prefix — the committed counter has a
+  catch-all row precisely because the first draft lost 283,000 lines that way.
+- If the breakdown is wrong or missing an area, **fix the script** and re-run
+  it rather than working around it by hand.
 - The count is information, never a boast. Do not pad it with generated or
   vendored code, and do not hide test lines to make a ratio look better.
 

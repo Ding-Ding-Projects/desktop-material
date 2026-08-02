@@ -332,6 +332,12 @@ was built rather than the project itself. Binary and asset files are never
 counted; the `Unclassified` row exists so that a counted file can never be
 silently dropped from the total.
 
+**Where the real record lives.** Every GitHub Release carries its own line
+count, measured by CI over the exact commit that release was built from, in the
+same run that produced the installers. That is the record; the table above is a
+convenience copy of the most recent one, so the two never disagree and no
+figure here was ever typed by hand.
+
 **How to reproduce it.** The figure is measured, not estimated:
 
 ```bash
