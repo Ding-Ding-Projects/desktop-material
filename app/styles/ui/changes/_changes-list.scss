@@ -841,17 +841,26 @@
   // Keep one file row reachable without allowing that virtualized child to
   // collapse the content-sized header.
   &.has-inline-filter-chips {
-    flex: 0 0 auto;
-    height: auto;
+    // The container keeps growing to fill the sidebar. It used to switch to
+    // `flex: 0 0 auto` with the row list pinned at 34px, which made opening
+    // the filters collapse the file list to a sliver and float the stashes,
+    // the hidden-changes warning and the commit composer up the panel - the
+    // composer is meant to sit at the bottom and stay there.
+    flex: 1 1 auto;
+    min-height: 0;
     overflow: visible;
 
     > .filter-list {
-      flex: 0 0 auto;
-      min-height: min-content;
+      // The chips are content-sized; the rows below them take what is left,
+      // which is what stops the chip rows painting over the composer without
+      // having to freeze the list's height to do it.
+      display: flex;
+      flex: 1 1 auto;
+      flex-direction: column;
+      min-height: 0;
 
       > .filter-list-container {
-        flex: 0 0 34px;
-        height: 34px;
+        flex: 1 1 auto;
         min-height: 34px;
       }
     }

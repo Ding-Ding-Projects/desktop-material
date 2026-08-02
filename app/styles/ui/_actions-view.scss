@@ -510,11 +510,23 @@
   overflow: hidden;
 }
 
+// The resizable wrapper owns the column's width now, so the column itself
+// fills it. Leaving the old 55% basis here would fight the dragged width and
+// snap the pane back the moment anything re-rendered.
+#actions-run-column {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .actions-run-column {
   display: flex;
-  flex: 1 1 55%;
+  flex: 1 1 auto;
   flex-direction: column;
-  min-width: min(360px, 100%);
+  min-width: 0;
   min-height: 0;
 }
 

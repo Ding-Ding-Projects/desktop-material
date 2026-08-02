@@ -61,6 +61,8 @@ import {
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { LocalizedText } from '../lib/localized-text'
+import { CollapsibleSection } from '../lib/collapsible-section'
+import { collapsibleRepositoryKey } from '../../lib/collapsed-state'
 
 interface ICompareSidebarProps {
   readonly repository: Repository
@@ -682,59 +684,76 @@ export class CompareSidebar extends React.Component<
     }`
 
     return (
-      <div className="history-commit-filter">
-        {this.renderHistoryScopeControl()}
-        <div className="history-commit-filter-row">
-          <TextBox
-            searchSurfaceId="history-commits"
-            className="history-commit-filter-field"
-            type="search"
-            displayClearButton={true}
-            prefixedIcon={octicons.search}
-            placeholder="Search commits"
-            ariaLabel="Search commits by title, message, tag, or hash"
-            value={this.state.commitFilterText}
-            onValueChanged={this.onCommitFilterTextChanged}
-            onSearchCleared={this.onCommitFilterCleared}
-          />
-          <FilterModeControl
-            searchSurfaceId="history-commits"
-            mode={this.state.commitFilterMode}
-            caseSensitive={this.state.commitFilterCaseSensitive}
-            onModeChange={this.onCommitFilterModeChanged}
-            onCaseSensitiveChange={this.onCommitFilterCaseSensitiveChanged}
-            regexBuilderTarget="Commits"
-            getSampleItems={this.getCommitFilterSampleItems}
-            filterText={this.state.commitFilterText}
-            onRegexPatternApply={this.onCommitFilterRegexPatternApply}
-            showRegexBuilder={false}
-          />
-          <Button
-            className={classNames('history-filter-chips-toggle', {
-              active:
-                this.state.showCommitFilterChips ||
-                this.hasActiveCommitFilterChips(),
-            })}
-            ariaLabel={filterOptionsLabel}
-            tooltip={filterOptionsLabel}
-            ariaExpanded={this.state.showCommitFilterChips}
-            onClick={this.onToggleCommitFilterChips}
-          >
-            <Octicon symbol={octicons.filter} />
-          </Button>
-          <Button
-            className="history-commit-graph-toggle"
-            ariaLabel="Show commit graph"
-            tooltip="Show commit graph"
-            ariaPressed={this.state.showCommitGraph}
-            onClick={this.onCommitGraphToggle}
-          >
-            <Octicon symbol={octicons.gitMerge} />
-          </Button>
+      <CollapsibleSection
+        elementId="history-filters"
+        repositoryKey={collapsibleRepositoryKey(this.props.repository)}
+        label="Filters"
+        ariaLabel="Commit filters"
+        // The scope and any live search stay legible while it is closed: a
+        // folded filter row that is quietly narrowing the history is how a
+        // reader concludes commits have gone missing.
+        summary={
+          this.state.commitFilterText.length > 0
+            ? `Searching “${this.state.commitFilterText}”`
+            : activeChipCount > 0
+            ? `${activeChipCount} applied`
+            : 'None applied'
+        }
+      >
+        <div className="history-commit-filter">
+          {this.renderHistoryScopeControl()}
+          <div className="history-commit-filter-row">
+            <TextBox
+              searchSurfaceId="history-commits"
+              className="history-commit-filter-field"
+              type="search"
+              displayClearButton={true}
+              prefixedIcon={octicons.search}
+              placeholder="Search commits"
+              ariaLabel="Search commits by title, message, tag, or hash"
+              value={this.state.commitFilterText}
+              onValueChanged={this.onCommitFilterTextChanged}
+              onSearchCleared={this.onCommitFilterCleared}
+            />
+            <FilterModeControl
+              searchSurfaceId="history-commits"
+              mode={this.state.commitFilterMode}
+              caseSensitive={this.state.commitFilterCaseSensitive}
+              onModeChange={this.onCommitFilterModeChanged}
+              onCaseSensitiveChange={this.onCommitFilterCaseSensitiveChanged}
+              regexBuilderTarget="Commits"
+              getSampleItems={this.getCommitFilterSampleItems}
+              filterText={this.state.commitFilterText}
+              onRegexPatternApply={this.onCommitFilterRegexPatternApply}
+              showRegexBuilder={false}
+            />
+            <Button
+              className={classNames('history-filter-chips-toggle', {
+                active:
+                  this.state.showCommitFilterChips ||
+                  this.hasActiveCommitFilterChips(),
+              })}
+              ariaLabel={filterOptionsLabel}
+              tooltip={filterOptionsLabel}
+              ariaExpanded={this.state.showCommitFilterChips}
+              onClick={this.onToggleCommitFilterChips}
+            >
+              <Octicon symbol={octicons.filter} />
+            </Button>
+            <Button
+              className="history-commit-graph-toggle"
+              ariaLabel="Show commit graph"
+              tooltip="Show commit graph"
+              ariaPressed={this.state.showCommitGraph}
+              onClick={this.onCommitGraphToggle}
+            >
+              <Octicon symbol={octicons.gitMerge} />
+            </Button>
+          </div>
+          {this.renderCommitFilterChips()}
+          {this.renderCommitRegexBuilder()}
         </div>
-        {this.renderCommitFilterChips()}
-        {this.renderCommitRegexBuilder()}
-      </div>
+      </CollapsibleSection>
     )
   }
 

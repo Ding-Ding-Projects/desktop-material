@@ -39,6 +39,11 @@ import { Account } from '../../models/account'
 import { Emoji } from '../../lib/emoji'
 import { createFileHistoryMenuItem } from '../file-history'
 import { EmptyState } from '../lib/empty-state'
+import {
+  collapsibleRepositoryKey,
+  readCollapsibleState,
+  writeCollapsibleState,
+} from '../../lib/collapsed-state'
 
 interface ISelectedCommitsProps {
   readonly repository: Repository
@@ -99,6 +104,9 @@ interface ISelectedCommitsState {
 }
 
 /** The History component. Contains the commit list, commit summary, and diff. */
+/** Identity for the commit detail header's remembered open state. */
+const CommitSummaryElementId = 'commit-summary'
+
 export class SelectedCommits extends React.Component<
   ISelectedCommitsProps,
   ISelectedCommitsState
@@ -109,7 +117,11 @@ export class SelectedCommits extends React.Component<
     super(props)
 
     this.state = {
-      isExpanded: false,
+      isExpanded:
+        readCollapsibleState(
+          CommitSummaryElementId,
+          collapsibleRepositoryKey(props.repository)
+        ) ?? false,
     }
   }
 
@@ -130,7 +142,15 @@ export class SelectedCommits extends React.Component<
     const nextValue = nextProps.selectedCommits.map(c => c.sha).join('')
 
     if (currentValue !== nextValue) {
-      if (this.state.isExpanded) {
+      // Switching commits used to force this closed every time. That is right
+      // only while the user has expressed no preference; once they have, it
+      // is the app reversing their choice several times a minute, which is
+      // what "remember it" was asked for.
+      const remembered = readCollapsibleState(
+        CommitSummaryElementId,
+        collapsibleRepositoryKey(this.props.repository)
+      )
+      if (remembered === undefined && this.state.isExpanded) {
         this.setState({ isExpanded: false })
       }
     }
@@ -229,6 +249,11 @@ export class SelectedCommits extends React.Component<
 
   private onExpandChanged = (isExpanded: boolean) => {
     this.setState({ isExpanded })
+    writeCollapsibleState(
+      CommitSummaryElementId,
+      collapsibleRepositoryKey(this.props.repository),
+      isExpanded
+    )
   }
 
   private onHideWhitespaceInDiffChanged = (hideWhitespaceInDiff: boolean) => {
