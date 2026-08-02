@@ -1,5 +1,148 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-02 — REQUESTED FEATURES, recorded before they are built
+
+**Read this first.** These were asked for in one session, from screenshots of
+GitKraken. They are written down here *before* implementation because the
+machine they were requested from was about to lose power. Nothing below is
+finished unless it says so. Where a screenshot is the only specification, the
+description is what the screenshot showed, not a guess at what it meant.
+
+### 1. History: a toggleable graph view — **IN PROGRESS**
+
+A second view mode for history, alongside the existing list, laid out as three
+columns: **Branch / Tag | Graph | Commit Message**.
+
+- Branch/tag chips down the left, coloured to match their lane, right-aligned
+  against the graph, with the current branch marked.
+- A continuous lane graph, not the per-row clipped SVG the current inline
+  graph draws — lanes must join across rows.
+- Commit summary per row, the row tinted by its lane colour so a branch reads
+  as a horizontal band.
+- Row pitch must equal the graph's row pitch or the lanes stop lining up.
+
+Existing groundwork: `showCommitGraph` in `compare.tsx` (persisted under
+`ShowCommitGraphKey`), `buildCommitGraphRows` in `commit-graph-model.ts`, and
+`CommitGraph` in `commit-graph.tsx`.
+
+### 2. Agents panel — **IN PROGRESS**
+
+A second sidebar tab beside the repository **List**, called **Agents**. Three
+parts, from three screenshots:
+
+- **The fleet.** `Worktrees` + a count, a `+ New Agent Session` button, then one
+  card per worktree showing its name and a live status chip. Observed chips:
+  a green diff stat (`+97`), a red `Error`, and a working indicator (`✏️ 91`).
+  The stated point is *seeing every agent at once* without opening any of them.
+- **The session creator.** Worktree name, an `Options` disclosure holding a
+  **Base branch** picker, a **Coding agent** picker, a `Configure setup commands`
+  link, and `Start`.
+- **The coding agent picker**, exactly these in this order: `<None>`,
+  `Claude Code`, `Codex CLI`, `OpenCode`, `Gemini CLI`, `Copilot CLI`.
+
+Reality check for whoever finishes this: **only Codex and OpenCode have real
+runners today** (`app/src/lib/build-run/codex.ts`, `opencode.ts`, the
+`*-runner.ts` files in `app/src/main-process/build-run/`, and the
+`codex-*`/`opencode-*` IPC channels). Claude Code, Gemini CLI and Copilot CLI
+have none. They must show as unavailable with an honest reason rather than
+appearing to work.
+
+### 3. Command palette: far more commands — **AUDITED, NOT YET ADDED**
+
+The user's screenshot showed `111 of 111 commands`. The catalog is now 246
+unique entries, so that screenshot is an older build — but the point stands:
+whole feature areas have no palette route.
+
+An audit of the settings/app half returned **45 concrete additions**: tab
+management (close/others/left/right, the eight sort orders, favourite, rename,
+move to group, group collapse/delete), the notification centre inbox (which has
+**no** palette route at all — the existing `palette:notification-history` row is
+mistitled and actually opens the Git-backed version history), settings undo/redo,
+sign-in actions, six element appearance editors, and repository-scoped editor
+and default-branch overrides. 27 need only a `palette:*` case in
+`onPaletteCommand`; 18 need a teleport anchor first. The git/repository half of
+the audit was still running.
+
+Also found: `docs/features/design-system/command-palette-coverage-gaps.md` has a
+stale header claiming 112 catalog entries.
+
+### 4. Proactive conflict detection — **NOT STARTED**
+
+A banner: *"Potential conflict detected"* — «X has changes that could conflict
+with your changes on `branch`. Review to avoid future conflicts.» With
+**Other options**: send your changes to that person as a Cloud Patch, push your
+changes so they can fetch them, and ignore conflict warnings for your changes on
+that branch. Plus a `Show N overlapping files` disclosure.
+
+Note: "Cloud Patch" is a hosted-service concept. Desktop Material has no such
+service, so that option needs either a local equivalent (this repo already has
+Cheap LFS release-backed transfer and a patch-series feature) or honest removal.
+
+### 5. AI-assisted merge conflict resolution — **NOT STARTED**
+
+A three-pane conflict editor (ours | result | theirs) with `Auto-resolve with AI`
+and `Open in external merge tool`, plus an **AI Merge Summary** panel giving,
+per conflict, a confidence percentage and a plain-language reason for the choice
+it made.
+
+Existing groundwork: `app/src/lib/copilot-conflict-context.ts` and
+`copilot-conflict-resolution.ts` already exist — start there rather than from
+nothing.
+
+### 6. Commit context menu in the graph — **NOT STARTED**
+
+Right-clicking a commit in the graph view offers: Checkout this commit, Create
+worktree from this commit, Create branch here, Cherry pick N commits, Reset
+`branch` to this commit, Revert commit, **Recompose N commits with AI**, and
+**Recompose N children of `sha` with AI**.
+
+### 7. Compose commits with AI — **NOT STARTED**
+
+Restructure existing history into a cleaner story: take a pile of uncommitted
+WIP, or a mess of coding-agent commits, and reorganize it into logical,
+readable, reviewable commits. This is the feature the context menu's "Recompose"
+entries invoke.
+
+### 8. Summarize past changes with AI — **NOT STARTED**
+
+Select N commits and get a plain-language explanation. The screenshot showed a
+header `Explaining 3 commits`, the commit rows with author and date, then a
+prose summary followed by a **Changes** bullet list naming each modified file
+and what changed in it.
+
+### 9. Launchpad — **NOT STARTED**
+
+A prioritized inbox across issues, pull requests and work in progress, grouped
+into collapsible status sections with counts: **Pinned**, **Ready to merge**,
+**Unassigned**, **CI failing**, **Merge conflicts**. Each row shows age, status
+icons, the item title with its `#number`, and its diff stat (`+102 / -0`), and
+rows can be pinned. Stated purpose: start the day here and act on the most
+important work without juggling apps.
+
+### 10. In-app pull request review — **NOT STARTED**
+
+A `GitHub Pull Request` screen inside the app: the PR number and title, an
+`Open` state badge, «author wants to merge `head` into `base`», a Description
+section, a Comments thread, and a right rail carrying `N files changed`, a
+**Review Code and Suggest Changes** button, a **Submit a Review** button,
+Reviewers and Assignees.
+
+The requested emphasis is **suggesting code changes internally** — writing
+review suggestions from inside the app and posting them as review comments,
+rather than opening the browser. The comment in the screenshot showed a posted
+suggestion block ("Code Suggestion for #212").
+
+### 11. Screenshots belong in a gitignored directory
+
+Requested during this session: reference screenshots go to a gitignored folder.
+`design/reference-screenshots/` is created and ignored for exactly this. Note
+honestly: the agent that recorded these features **could not write the image
+files** — the screenshots were pasted into a conversation, not handed over as
+files on disk, so only the descriptions above exist. Drop the images into that
+folder and the descriptions become checkable against them.
+
+---
+
 ## 2026-08-02 — Fleet bug hunt: six readers, ten fixes so far, more in flight
 
 Six read-only agents were pointed at disjoint areas of the desktop app — the

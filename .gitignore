@@ -235,3 +235,7 @@ _site/
 .coverage
 htmlcov/
 .github/workflows/cheap-lfs-cloud-compression.yml
+
+# Reference screenshots are working material, not project history.
+design/reference-screenshots/*
+!design/reference-screenshots/README.md
