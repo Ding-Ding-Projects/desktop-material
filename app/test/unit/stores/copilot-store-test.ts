@@ -8,6 +8,7 @@ import {
   CommitMessageGenerationCancelledError,
   CopilotConflictResolutionAbortError,
   type CopilotModelRequest,
+  type CopilotProviderConfig,
   CopilotStore,
   DefaultCopilotModel,
   getCopilotGHHost,
@@ -18,8 +19,18 @@ import {
   isCopilotConflictResolutionAbortError,
   runConflictResolutionTurn,
 } from '../../../src/lib/stores/copilot-store'
-import { Account } from '../../../src/models/account'
+import { Account, type AccountProvider } from '../../../src/models/account'
 import { AsyncInMemoryStore, InMemoryStore } from '../../helpers/stores'
+import {
+  AIContentClasses,
+  AISecurityPolicyDeniedError,
+  AISecurityPolicyVersion,
+  IAIProviderBinding,
+  IAISecurityPolicyAuthorization,
+  IAISecurityPolicyV1,
+  getAISecurityPolicyDigest,
+} from '../../../src/lib/ai-security-policy'
+import type { IConflictResolutionContext } from '../../../src/lib/copilot-conflict-context'
 
 const PreviewFeaturesEnv = 'GITHUB_DESKTOP_PREVIEW_FEATURES'
 
@@ -29,6 +40,7 @@ interface IAccountOverrides {
   readonly token?: string
   readonly id?: number
   readonly name?: string
+  readonly provider?: AccountProvider
 }
 
 interface ITestCopilotClient {
@@ -48,6 +60,13 @@ interface ITestableCommitMessageCopilotStore {
   ): Promise<CopilotClient>
 }
 
+interface ITestableConflictResolutionCopilotStore {
+  createClient(
+    account: Account,
+    repositoryPath?: string
+  ): Promise<CopilotClient>
+}
+
 function makeAccount(overrides: IAccountOverrides = {}): Account {
   const login = overrides.login ?? 'monalisa'
 
@@ -59,7 +78,12 @@ function makeAccount(overrides: IAccountOverrides = {}): Account {
     '',
     overrides.id ?? 1,
     overrides.name ?? login,
-    'free'
+    'free',
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    overrides.provider ?? 'github'
   )
 }
 
@@ -138,6 +162,183 @@ function createBYOKRequest(): CopilotModelRequest {
     provider: {
       type: 'openai',
       baseUrl: 'https://example.com',
+    },
+  }
+}
+
+const conflictRepositoryId = 84
+const conflictRepositoryPath = 'C:\\Work\\Repository'
+
+function makeConflictPolicyAuthorization(
+  policyOverrides: Partial<IAISecurityPolicyV1> = {},
+  trustedOverrides: Partial<
+    IAISecurityPolicyAuthorization['trustedMainProcess']
+  > = {},
+  authorizationOverrides: Partial<IAISecurityPolicyAuthorization> = {}
+): IAISecurityPolicyAuthorization {
+  const now = Date.now()
+  const policy: IAISecurityPolicyV1 = {
+    version: AISecurityPolicyVersion,
+    feature: 'conflict-resolution',
+    repositoryId: conflictRepositoryId,
+    canonicalRepositoryPath: 'c:\\work\\repository',
+    provider: {
+      kind: 'github-copilot',
+      type: 'github',
+      endpoint: getDotComAPIEndpoint(),
+      wireApi: null,
+      transport: null,
+      azureApiVersion: null,
+    },
+    allowedContentClasses: AIContentClasses,
+    issuedAtMs: now - 1_000,
+    expiresAtMs: now + 60_000,
+    ...policyOverrides,
+  }
+
+  return {
+    policy,
+    trustedMainProcess: {
+      signatureVerified: true,
+      verifiedPolicyDigest: getAISecurityPolicyDigest(policy) ?? '0'.repeat(64),
+      repositoryId: conflictRepositoryId,
+      canonicalRepositoryPath: 'C:/WORK/REPOSITORY/',
+      ...trustedOverrides,
+    },
+    ...authorizationOverrides,
+  }
+}
+
+function makeConflictResolutionContext(): IConflictResolutionContext {
+  return {
+    ourLabel: 'main',
+    theirLabel: 'feature',
+    files: [
+      {
+        path: 'src/example.ts',
+        hunks: [
+          {
+            oursContent: 'const value = "ours"',
+            theirsContent: 'const value = "theirs"',
+            baseContent: null,
+            contextBefore: '',
+            contextAfter: '',
+          },
+        ],
+        rawContent: [
+          '<<<<<<< HEAD',
+          'const value = "ours"',
+          '=======',
+          'const value = "theirs"',
+          '>>>>>>> feature',
+        ].join('\n'),
+      },
+    ],
+    pullRequests: [],
+    ourCommits: [],
+    theirCommits: [],
+  }
+}
+
+function createConflictResolutionTransportHarness(): {
+  readonly store: CopilotStore
+  readonly clientPaths: ReadonlyArray<string | undefined>
+  readonly sentPrompts: ReadonlyArray<string>
+  readonly sessionProviders: ReadonlyArray<CopilotProviderConfig | undefined>
+  readonly counts: {
+    readonly createClient: () => number
+    readonly createSession: () => number
+    readonly send: () => number
+    readonly disconnect: () => number
+    readonly stop: () => number
+  }
+} {
+  const store = new CopilotStore(createAccountsStore())
+  const clientPaths: Array<string | undefined> = []
+  const sentPrompts: Array<string> = []
+  const sessionProviders: Array<CopilotProviderConfig | undefined> = []
+  let createClientCount = 0
+  let createSessionCount = 0
+  let sendCount = 0
+  let disconnectCount = 0
+  let stopCount = 0
+  const handlers = new Map<string, Array<(event: unknown) => void>>()
+
+  const response = JSON.stringify({
+    resolutions: [
+      {
+        path: 'src/example.ts',
+        hunks: [{ resolvedContent: 'const value = "merged"' }],
+        reasoning: 'Combined both sides.',
+      },
+    ],
+    summary: 'Resolved the conflict.',
+    references: [],
+  })
+
+  const session = {
+    on(event: string, handler: (event: unknown) => void) {
+      const eventHandlers = handlers.get(event) ?? []
+      eventHandlers.push(handler)
+      handlers.set(event, eventHandlers)
+      return () => {
+        const current = handlers.get(event)
+        if (current !== undefined) {
+          handlers.set(
+            event,
+            current.filter(candidate => candidate !== handler)
+          )
+        }
+      }
+    },
+    send(options: { readonly prompt: string }) {
+      sendCount++
+      sentPrompts.push(options.prompt)
+      queueMicrotask(() => {
+        for (const handler of handlers.get('assistant.message') ?? []) {
+          handler({ data: { content: response } })
+        }
+      })
+      return Promise.resolve()
+    },
+    disconnect() {
+      disconnectCount++
+      return Promise.resolve()
+    },
+  } as unknown as CopilotSession
+
+  const client = {
+    createSession: async (config: {
+      readonly provider?: CopilotProviderConfig
+    }) => {
+      createSessionCount++
+      sessionProviders.push(config.provider)
+      return session
+    },
+    stop: async () => {
+      stopCount++
+    },
+  } as unknown as CopilotClient
+
+  const testableStore =
+    store as unknown as ITestableConflictResolutionCopilotStore
+  testableStore.createClient = async (_account, repositoryPath) => {
+    createClientCount++
+    clientPaths.push(repositoryPath)
+    return client
+  }
+
+  return {
+    store,
+    clientPaths,
+    sentPrompts,
+    sessionProviders,
+    counts: {
+      createClient: () => createClientCount,
+      createSession: () => createSessionCount,
+      send: () => sendCount,
+      disconnect: () => disconnectCount,
+      stop: () => stopCount,
     },
   }
 }
@@ -845,6 +1046,431 @@ function createFakeSession() {
     },
   }
 }
+
+describe('CopilotStore conflict resolution AI policy boundary', () => {
+  it('denies every untrusted policy state before progress, client, session, or transport', async () => {
+    const staleNow = Date.now()
+    const byokSecret = 'R14-BYOK-CREDENTIAL-SENTINEL'
+    const wrongProvider: IAIProviderBinding = {
+      kind: 'github-copilot',
+      type: 'github',
+      endpoint: 'https://example.com',
+      wireApi: null,
+      transport: null,
+      azureApiVersion: null,
+    }
+    const malformed = makeConflictPolicyAuthorization()
+    const throwingAuthorization = makeConflictPolicyAuthorization()
+    Object.defineProperty(throwingAuthorization, 'policy', {
+      enumerable: true,
+      get: () => {
+        throw new Error('R14-AUTHORIZATION-GETTER-SENTINEL')
+      },
+    })
+    const verifiedAuthorization = makeConflictPolicyAuthorization()
+    const replayedAuthorization: IAISecurityPolicyAuthorization = {
+      ...verifiedAuthorization,
+      policy: {
+        ...(verifiedAuthorization.policy as IAISecurityPolicyV1),
+        provider: wrongProvider,
+      },
+    }
+    const denialCases: ReadonlyArray<{
+      readonly name: string
+      readonly account?: Account
+      readonly authorization?: IAISecurityPolicyAuthorization
+      readonly repositoryPath?: string
+      readonly request?: CopilotModelRequest | null
+      readonly activeRepositoryId?: number
+      readonly code: string
+      readonly redactedValue?: string
+    }> = [
+      { name: 'missing', authorization: undefined, code: 'policy-missing' },
+      {
+        name: 'malformed',
+        authorization: {
+          ...malformed,
+          policy: {
+            ...(malformed.policy as IAISecurityPolicyV1),
+            prompt: 'R14-MALFORMED-PROMPT-SENTINEL',
+          },
+        },
+        code: 'policy-malformed',
+        redactedValue: 'R14-MALFORMED-PROMPT-SENTINEL',
+      },
+      {
+        name: 'throwing authorization',
+        authorization: throwingAuthorization,
+        code: 'policy-malformed',
+        redactedValue: 'R14-AUTHORIZATION-GETTER-SENTINEL',
+      },
+      {
+        name: 'unverified',
+        authorization: makeConflictPolicyAuthorization(
+          {},
+          {
+            signatureVerified: false,
+          }
+        ),
+        code: 'signature-unverified',
+      },
+      {
+        name: 'replayed verification evidence',
+        authorization: replayedAuthorization,
+        code: 'signature-unverified',
+      },
+      {
+        name: 'stale',
+        authorization: makeConflictPolicyAuthorization({
+          issuedAtMs: staleNow - 2_000,
+          expiresAtMs: staleNow - 1_000,
+        }),
+        code: 'policy-stale',
+      },
+      {
+        name: 'wrong repository',
+        authorization: makeConflictPolicyAuthorization({
+          repositoryId: conflictRepositoryId + 1,
+        }),
+        code: 'repository-mismatch',
+      },
+      {
+        name: 'wrong active repository',
+        authorization: makeConflictPolicyAuthorization(),
+        activeRepositoryId: conflictRepositoryId + 1,
+        code: 'repository-mismatch',
+      },
+      {
+        name: 'missing active repository',
+        authorization: makeConflictPolicyAuthorization(),
+        activeRepositoryId: -1,
+        code: 'request-malformed',
+      },
+      {
+        name: 'wrong provider',
+        authorization: makeConflictPolicyAuthorization({
+          provider: wrongProvider,
+        }),
+        code: 'provider-mismatch',
+      },
+      {
+        name: 'BYOK destination swap',
+        authorization: makeConflictPolicyAuthorization(),
+        request: {
+          kind: 'byok',
+          modelId: 'test-model',
+          provider: {
+            type: 'openai',
+            baseUrl: 'https://byok.example.com',
+            apiKey: byokSecret,
+          },
+        },
+        code: 'provider-mismatch',
+        redactedValue: byokSecret,
+      },
+      {
+        name: 'remote plaintext BYOK provider',
+        authorization: makeConflictPolicyAuthorization({
+          provider: {
+            kind: 'byok',
+            type: 'openai',
+            endpoint: 'http://models.example.com/v1',
+            wireApi: null,
+            transport: null,
+            azureApiVersion: null,
+          },
+        }),
+        request: {
+          kind: 'byok',
+          modelId: 'test-model',
+          provider: {
+            type: 'openai',
+            baseUrl: 'http://models.example.com/v1',
+            apiKey: byokSecret,
+          },
+        },
+        code: 'policy-malformed',
+        redactedValue: byokSecret,
+      },
+      {
+        name: 'unbound BYOK headers',
+        authorization: makeConflictPolicyAuthorization({
+          provider: {
+            kind: 'byok',
+            type: 'openai',
+            endpoint: 'https://byok.example.com',
+            wireApi: null,
+            transport: null,
+            azureApiVersion: null,
+          },
+        }),
+        request: {
+          kind: 'byok',
+          modelId: 'test-model',
+          provider: {
+            type: 'openai',
+            baseUrl: 'https://byok.example.com',
+            apiKey: byokSecret,
+            headers: { 'x-provider-route': 'foreign' },
+          },
+        },
+        code: 'request-malformed',
+        redactedValue: byokSecret,
+      },
+      {
+        name: 'invalid BYOK reasoning effort',
+        authorization: makeConflictPolicyAuthorization({
+          provider: {
+            kind: 'byok',
+            type: 'openai',
+            endpoint: 'https://byok.example.com',
+            wireApi: null,
+            transport: null,
+            azureApiVersion: null,
+          },
+        }),
+        request: {
+          kind: 'byok',
+          modelId: 'test-model',
+          reasoningEffort: 'foreign',
+          provider: {
+            type: 'openai',
+            baseUrl: 'https://byok.example.com',
+            apiKey: byokSecret,
+          },
+        } as unknown as CopilotModelRequest,
+        code: 'request-malformed',
+        redactedValue: byokSecret,
+      },
+      {
+        name: 'non-GitHub built-in account',
+        account: makeAccount({
+          provider: 'gitlab',
+          endpoint: 'https://gitlab.example.com/api/v4',
+        }),
+        authorization: makeConflictPolicyAuthorization({
+          provider: {
+            kind: 'github-copilot',
+            type: 'github',
+            endpoint: 'https://gitlab.example.com/api/v4',
+            wireApi: null,
+            transport: null,
+            azureApiVersion: null,
+          },
+        }),
+        code: 'request-malformed',
+      },
+      {
+        name: 'wrong signed path',
+        authorization: makeConflictPolicyAuthorization({
+          canonicalRepositoryPath: 'C:\\work\\other',
+        }),
+        code: 'path-mismatch',
+      },
+      {
+        name: 'unsafe renderer path',
+        authorization: makeConflictPolicyAuthorization(),
+        repositoryPath: '..\\repository',
+        code: 'path-mismatch',
+      },
+      {
+        name: 'disallowed code',
+        authorization: makeConflictPolicyAuthorization({
+          allowedContentClasses: AIContentClasses.filter(
+            contentClass => contentClass !== 'code'
+          ),
+        }),
+        code: 'content-class-denied',
+      },
+    ]
+
+    for (const denialCase of denialCases) {
+      const harness = createConflictResolutionTransportHarness()
+      let progressCount = 0
+
+      await assert.rejects(
+        harness.store.resolveConflicts(
+          denialCase.account ?? makeAccount(),
+          makeConflictResolutionContext(),
+          denialCase.repositoryPath ?? conflictRepositoryPath,
+          denialCase.request ?? null,
+          () => {
+            progressCount++
+          },
+          undefined,
+          denialCase.authorization,
+          denialCase.activeRepositoryId ?? conflictRepositoryId
+        ),
+        (error: unknown) => {
+          assert.ok(error instanceof AISecurityPolicyDeniedError)
+          assert.strictEqual(error.code, denialCase.code, denialCase.name)
+          if (denialCase.redactedValue !== undefined) {
+            assert.ok(!JSON.stringify(error).includes(denialCase.redactedValue))
+            assert.ok(!error.message.includes(denialCase.redactedValue))
+          }
+          return true
+        },
+        denialCase.name
+      )
+
+      assert.strictEqual(progressCount, 0, denialCase.name)
+      assert.strictEqual(harness.counts.createClient(), 0, denialCase.name)
+      assert.strictEqual(harness.counts.createSession(), 0, denialCase.name)
+      assert.strictEqual(harness.counts.send(), 0, denialCase.name)
+      assert.strictEqual(harness.counts.disconnect(), 0, denialCase.name)
+      assert.strictEqual(harness.counts.stop(), 0, denialCase.name)
+      assert.deepStrictEqual(harness.clientPaths, [], denialCase.name)
+      assert.deepStrictEqual(harness.sentPrompts, [], denialCase.name)
+    }
+  })
+
+  it('rejects a BYOK provider accessor without invoking it or creating transport', async () => {
+    const harness = createConflictResolutionTransportHarness()
+    let baseUrlGetterCalls = 0
+    const provider = {
+      type: 'openai' as const,
+      get baseUrl() {
+        baseUrlGetterCalls++
+        return 'https://byok.example.com'
+      },
+      apiKey: 'R14-BYOK-GETTER-CREDENTIAL',
+    }
+
+    await assert.rejects(
+      harness.store.resolveConflicts(
+        makeAccount(),
+        makeConflictResolutionContext(),
+        conflictRepositoryPath,
+        { kind: 'byok', modelId: 'test-model', provider },
+        undefined,
+        undefined,
+        makeConflictPolicyAuthorization({
+          provider: {
+            kind: 'byok',
+            type: 'openai',
+            endpoint: 'https://byok.example.com',
+            wireApi: null,
+            transport: null,
+            azureApiVersion: null,
+          },
+        }),
+        conflictRepositoryId
+      ),
+      (error: unknown) => {
+        assert.ok(error instanceof AISecurityPolicyDeniedError)
+        assert.strictEqual(error.code, 'request-malformed')
+        assert.ok(!JSON.stringify(error).includes('R14-BYOK-GETTER-CREDENTIAL'))
+        return true
+      }
+    )
+
+    assert.strictEqual(baseUrlGetterCalls, 0)
+    assert.strictEqual(harness.counts.createClient(), 0)
+    assert.strictEqual(harness.counts.createSession(), 0)
+    assert.strictEqual(harness.counts.send(), 0)
+  })
+
+  it('preserves the conflict flow only for a verified allow and uses the trusted path', async () => {
+    const harness = createConflictResolutionTransportHarness()
+    let progressCount = 0
+
+    const result = await harness.store.resolveConflicts(
+      makeAccount(),
+      makeConflictResolutionContext(),
+      'C:/Work/Repository/',
+      null,
+      () => {
+        progressCount++
+      },
+      undefined,
+      makeConflictPolicyAuthorization(),
+      conflictRepositoryId
+    )
+
+    assert.strictEqual(result.resolutions.length, 1)
+    assert.strictEqual(result.resolutions[0].path, 'src/example.ts')
+    assert.strictEqual(
+      result.resolutions[0].resolvedContent,
+      'const value = "merged"'
+    )
+    assert.strictEqual(result.summary, 'Resolved the conflict.')
+    assert.ok(progressCount >= 2)
+    assert.strictEqual(harness.counts.createClient(), 1)
+    assert.strictEqual(harness.counts.createSession(), 1)
+    assert.strictEqual(harness.counts.send(), 1)
+    assert.strictEqual(harness.counts.disconnect(), 1)
+    assert.strictEqual(harness.counts.stop(), 1)
+    assert.deepStrictEqual(harness.clientPaths, ['c:\\work\\repository'])
+    assert.strictEqual(harness.sentPrompts.length, 1)
+    assert.ok(harness.sentPrompts[0].includes('src/example.ts'))
+  })
+
+  it('pins an approved BYOK destination to an allowlisted provider snapshot', async () => {
+    const harness = createConflictResolutionTransportHarness()
+    const byokProvider = {
+      type: 'openai' as const,
+      baseUrl: 'https://byok.example.com',
+      apiKey: 'R14-BYOK-ALLOW-CREDENTIAL',
+    }
+
+    await harness.store.resolveConflicts(
+      makeAccount(),
+      makeConflictResolutionContext(),
+      conflictRepositoryPath,
+      {
+        kind: 'byok',
+        modelId: 'test-model',
+        provider: byokProvider,
+      },
+      undefined,
+      undefined,
+      makeConflictPolicyAuthorization({
+        provider: {
+          kind: 'byok',
+          type: 'openai',
+          endpoint: 'https://byok.example.com',
+          wireApi: null,
+          transport: null,
+          azureApiVersion: null,
+        },
+      }),
+      conflictRepositoryId
+    )
+
+    assert.strictEqual(harness.counts.createClient(), 1)
+    assert.strictEqual(harness.counts.createSession(), 1)
+    assert.strictEqual(harness.counts.send(), 1)
+    assert.strictEqual(harness.sessionProviders.length, 1)
+    assert.strictEqual(
+      harness.sessionProviders[0]?.baseUrl,
+      'https://byok.example.com'
+    )
+    assert.notStrictEqual(harness.sessionProviders[0], byokProvider)
+  })
+
+  it('keeps the local no-files validation transport-free after policy approval', async () => {
+    const harness = createConflictResolutionTransportHarness()
+    const context = makeConflictResolutionContext()
+
+    await assert.rejects(
+      harness.store.resolveConflicts(
+        makeAccount(),
+        { ...context, files: [] },
+        conflictRepositoryPath,
+        null,
+        undefined,
+        undefined,
+        makeConflictPolicyAuthorization(),
+        conflictRepositoryId
+      ),
+      /No resolvable conflicted files/
+    )
+
+    assert.strictEqual(harness.counts.createClient(), 0)
+    assert.strictEqual(harness.counts.createSession(), 0)
+    assert.strictEqual(harness.counts.send(), 0)
+  })
+})
 
 describe('runConflictResolutionTurn', () => {
   it('rejects as aborted and tears down the session when cancelled mid-turn', async () => {

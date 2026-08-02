@@ -50,6 +50,13 @@ import type {
   ModelBillingTokenPrices,
 } from '@github/copilot-sdk/dist/generated/rpc'
 import { isGHE } from '../endpoint-capabilities'
+import {
+  AISecurityPolicyDeniedError,
+  AIContentClass,
+  IAIProviderBinding,
+  IAISecurityPolicyAuthorization,
+  evaluateAISecurityPolicy,
+} from '../ai-security-policy'
 
 /** The default model ID used for Copilot commit message generation. */
 export const DefaultCopilotModel = 'auto'
@@ -125,6 +132,180 @@ interface ICopilotModelCacheEntry {
  * will be used for that feature.
  */
 export type CopilotModelSelections = Partial<Record<CopilotFeature, string>>
+
+const ConflictResolutionAIContentClasses: ReadonlyArray<AIContentClass> =
+  Object.freeze(['metadata', 'path', 'diff', 'code'])
+
+const ConflictBYOKProviderKeys = [
+  'apiKey',
+  'azure',
+  'baseUrl',
+  'bearerToken',
+  'transport',
+  'type',
+  'wireApi',
+] as const
+
+const ConflictModelRequestKeys = [
+  'kind',
+  'modelId',
+  'provider',
+  'reasoningEffort',
+  'timeoutMs',
+] as const
+
+function snapshotAllowedDataProperties(
+  value: unknown,
+  allowedKeys: ReadonlyArray<string>,
+  requiredKeys: ReadonlyArray<string>
+): Readonly<Record<string, unknown>> | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return null
+  }
+
+  const prototype = Object.getPrototypeOf(value)
+  if (prototype !== Object.prototype && prototype !== null) {
+    return null
+  }
+
+  const ownKeys = Reflect.ownKeys(value)
+  const allowed = new Set(allowedKeys)
+  if (
+    ownKeys.some(key => typeof key !== 'string' || !allowed.has(key)) ||
+    requiredKeys.some(key => !ownKeys.includes(key))
+  ) {
+    return null
+  }
+
+  const descriptors = Object.getOwnPropertyDescriptors(value)
+  const snapshot: Record<string, unknown> = Object.create(null)
+  for (const ownKey of ownKeys) {
+    const key = ownKey as string
+    const descriptor = descriptors[key]
+    if (
+      descriptor === undefined ||
+      !descriptor.enumerable ||
+      !('value' in descriptor)
+    ) {
+      return null
+    }
+    snapshot[key] = descriptor.value
+  }
+
+  return Object.freeze(snapshot)
+}
+
+function snapshotConflictBYOKProvider(
+  value: unknown
+): CopilotProviderConfig | null {
+  const provider = snapshotAllowedDataProperties(
+    value,
+    ConflictBYOKProviderKeys,
+    ['baseUrl']
+  )
+  if (provider === null) {
+    return null
+  }
+
+  const type = provider.type
+  const wireApi = provider.wireApi
+  const transport = provider.transport
+  const baseUrl = provider.baseUrl
+  const apiKey = provider.apiKey
+  const bearerToken = provider.bearerToken
+  if (
+    !(
+      type === undefined ||
+      type === 'openai' ||
+      type === 'azure' ||
+      type === 'anthropic'
+    ) ||
+    !(
+      wireApi === undefined ||
+      wireApi === 'completions' ||
+      wireApi === 'responses'
+    ) ||
+    !(
+      transport === undefined ||
+      transport === 'http' ||
+      transport === 'websockets'
+    ) ||
+    typeof baseUrl !== 'string' ||
+    !(apiKey === undefined || typeof apiKey === 'string') ||
+    !(bearerToken === undefined || typeof bearerToken === 'string')
+  ) {
+    return null
+  }
+
+  let azure: CopilotProviderConfig['azure']
+  if (provider.azure !== undefined) {
+    const azureSnapshot = snapshotAllowedDataProperties(
+      provider.azure,
+      ['apiVersion'],
+      []
+    )
+    if (
+      azureSnapshot === null ||
+      (azureSnapshot.apiVersion !== undefined &&
+        typeof azureSnapshot.apiVersion !== 'string') ||
+      type !== 'azure'
+    ) {
+      return null
+    }
+    azure =
+      azureSnapshot.apiVersion === undefined
+        ? {}
+        : { apiVersion: azureSnapshot.apiVersion }
+  }
+
+  return {
+    baseUrl,
+    ...(type === undefined ? {} : { type }),
+    ...(wireApi === undefined ? {} : { wireApi }),
+    ...(transport === undefined ? {} : { transport }),
+    ...(apiKey === undefined ? {} : { apiKey }),
+    ...(bearerToken === undefined ? {} : { bearerToken }),
+    ...(azure === undefined ? {} : { azure }),
+  }
+}
+
+/**
+ * Build a credential-free binding for the destination that will receive
+ * conflict context. Never spread or serialize the SDK provider config here:
+ * it may contain API keys, bearer tokens, and custom authorization headers.
+ */
+function getConflictResolutionAIProviderBinding(
+  account: Account,
+  provider: CopilotProviderConfig | undefined
+): IAIProviderBinding | null {
+  try {
+    if (provider !== undefined) {
+      return {
+        kind: 'byok',
+        type: provider.type ?? 'openai',
+        endpoint: provider.baseUrl,
+        wireApi: provider.wireApi ?? null,
+        transport: provider.transport ?? null,
+        azureApiVersion: provider.azure?.apiVersion ?? null,
+      }
+    }
+
+    if (account.provider !== 'github') {
+      return null
+    }
+
+    return {
+      kind: 'github-copilot',
+      type: 'github',
+      endpoint: account.endpoint,
+      wireApi: null,
+      transport: null,
+      azureApiVersion: null,
+    }
+  } catch {
+    return null
+  }
+}
 
 /**
  * How long to cache the model list before re-fetching from the SDK.
@@ -1071,24 +1252,75 @@ export class CopilotStore extends BaseStore {
    * Resolves a {@link CopilotModelRequest} into the concrete session config
    * (model id, reasoning effort, optional BYOK provider and timeout) used to
    * resolve conflicts. Built-in models fall back to the preferred default and
-   * have their effort clamped to a supported value; BYOK requests pass through
-   * unchanged.
+   * have their effort clamped to a supported value. BYOK requests are copied
+   * through an explicit allowlist so unbound routing fields cannot reach the
+   * SDK session after policy approval.
    */
   private resolveConflictModelConfig(
     account: Account,
     request: CopilotModelRequest | null | undefined
   ): IResolvedConflictModelConfig {
-    if (request && request.kind === 'byok') {
+    const requestSnapshot =
+      request === undefined || request === null
+        ? null
+        : snapshotAllowedDataProperties(request, ConflictModelRequestKeys, [
+            'kind',
+            'modelId',
+          ])
+
+    if (request !== undefined && request !== null && requestSnapshot === null) {
+      throw new Error('Invalid conflict model request')
+    }
+
+    if (requestSnapshot?.kind === 'byok') {
+      const modelId = requestSnapshot.modelId
+      const reasoningEffort = requestSnapshot.reasoningEffort
+      const timeoutMs = requestSnapshot.timeoutMs
+      const provider = snapshotConflictBYOKProvider(requestSnapshot.provider)
+      if (
+        typeof modelId !== 'string' ||
+        modelId.length === 0 ||
+        provider === null ||
+        !(
+          reasoningEffort === undefined ||
+          (typeof reasoningEffort === 'string' &&
+            ReasoningEffortOrder.includes(reasoningEffort as ReasoningEffort))
+        ) ||
+        !(
+          timeoutMs === undefined ||
+          (Number.isSafeInteger(timeoutMs) && (timeoutMs as number) > 0)
+        )
+      ) {
+        throw new Error('Invalid conflict BYOK model request')
+      }
+
       return {
-        modelId: request.modelId,
-        reasoningEffort: request.reasoningEffort,
-        provider: request.provider,
-        timeoutMs: request.timeoutMs,
+        modelId,
+        reasoningEffort: reasoningEffort as ReasoningEffort | undefined,
+        provider,
+        timeoutMs: timeoutMs as number | undefined,
+      }
+    }
+
+    if (requestSnapshot !== null) {
+      if (
+        requestSnapshot.kind !== 'copilot' ||
+        Reflect.ownKeys(requestSnapshot).some(
+          key => key !== 'kind' && key !== 'modelId'
+        ) ||
+        !(
+          requestSnapshot.modelId === null ||
+          typeof requestSnapshot.modelId === 'string'
+        )
+      ) {
+        throw new Error('Invalid conflict Copilot model request')
       }
     }
 
     const requestedModelId =
-      request?.kind === 'copilot' ? request.modelId : null
+      requestSnapshot?.kind === 'copilot'
+        ? (requestSnapshot.modelId as string | null)
+        : null
     // Use whatever model metadata we already have rather than forcing a
     // refresh: resolveConflicts is about to create its own client, so a cold
     // fetch here would double the startup latency. It also keeps us in sync
@@ -1129,6 +1361,11 @@ export class CopilotStore extends BaseStore {
    * @param request - Optional model selection (built-in or BYOK). When omitted
    *   the default conflict-resolution model is used.
    * @param onProgress - Optional callback for streaming progress to the UI
+   * @param policyAuthorization - A signed policy plus independent main-process
+   *   verification evidence. Missing evidence fails closed before any SDK
+   *   client, session, prompt, or context transport is created.
+   * @param activeRepositoryId - Repository identity selected independently by
+   *   the active app state. It must match both policy and trusted evidence.
    * @returns The parsed conflict resolution response
    * @throws Error if the account cannot create a client or if resolution fails
    */
@@ -1138,8 +1375,45 @@ export class CopilotStore extends BaseStore {
     repositoryPath: string,
     request?: CopilotModelRequest | null,
     onProgress?: (progress: IConflictResolutionProgress) => void,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    policyAuthorization?: IAISecurityPolicyAuthorization,
+    activeRepositoryId?: number
   ): Promise<IReassembledConflictResolutionResponse> {
+    let modelConfig: IResolvedConflictModelConfig = {
+      modelId: '',
+      reasoningEffort: undefined,
+      provider: undefined,
+      timeoutMs: undefined,
+    }
+    let providerBinding: IAIProviderBinding | null = null
+    try {
+      // Snapshot the request once before authorization. The same provider copy
+      // that is bound by policy is later passed to createSession, so a mutable
+      // request or getter cannot swap the destination after approval.
+      modelConfig = this.resolveConflictModelConfig(account, request)
+      providerBinding = getConflictResolutionAIProviderBinding(
+        account,
+        modelConfig.provider
+      )
+    } catch {
+      // The evaluator treats the null provider as a malformed request and emits
+      // the same redacted, typed denial as every other fail-closed path.
+    }
+
+    const policyDecision = evaluateAISecurityPolicy(policyAuthorization, {
+      feature: 'conflict-resolution',
+      repositoryId: activeRepositoryId ?? -1,
+      repositoryPath,
+      provider: providerBinding,
+      contentClasses: ConflictResolutionAIContentClasses,
+    })
+    if (!policyDecision.allowed) {
+      throw new AISecurityPolicyDeniedError(
+        policyDecision.denial,
+        policyDecision.auditReceipt
+      )
+    }
+
     const resolvableFiles = context.files.filter(f => !f.skippedReason)
     const filesTotal = resolvableFiles.length
 
@@ -1149,10 +1423,11 @@ export class CopilotStore extends BaseStore {
 
     onProgress?.({ filesResolved: 0, filesTotal })
 
-    const modelConfig = this.resolveConflictModelConfig(account, request)
-
     const clientTimer = startTimer('createClient')
-    const client = await this.createClient(account, repositoryPath)
+    const client = await this.createClient(
+      account,
+      policyDecision.canonicalRepositoryPath
+    )
     clientTimer.done()
 
     try {
