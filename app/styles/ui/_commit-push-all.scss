@@ -25,13 +25,74 @@
     }
 
     ul {
+      list-style: none;
       margin: 0;
-      padding-left: var(--spacing-double);
+      padding-left: 0;
     }
 
     li {
       overflow-wrap: anywhere;
     }
+  }
+
+  // The search bar and its regex builder sit on one row, with the field taking
+  // whatever the builder's controls do not need.
+  .commit-push-all-search {
+    align-items: center;
+    display: flex;
+    gap: var(--spacing-half);
+    margin-top: var(--spacing);
+
+    .text-box-component {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+  }
+
+  .commit-push-all-filter-error {
+    color: var(--md-sys-color-error);
+    margin-top: var(--spacing-half);
+    overflow-wrap: anywhere;
+  }
+
+  .commit-push-all-bulk-actions {
+    align-items: center;
+    // Wraps rather than clipping: the count and both buttons grow with the
+    // longest localized wording and with the display scale.
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-half);
+    margin-top: var(--spacing);
+
+    span {
+      color: var(--md-sys-color-on-surface-variant);
+      margin-right: auto;
+    }
+
+    button {
+      background: none;
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-sys-shape-corner-full);
+      color: var(--md-sys-color-primary);
+      cursor: pointer;
+      // A comfortable target at every display scale rather than a bare word.
+      min-height: 32px;
+      padding: 0 var(--spacing);
+
+      &:hover {
+        background: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+      }
+
+      &:focus-visible {
+        outline: 2px solid var(--md-sys-color-primary);
+        outline-offset: 2px;
+      }
+    }
+  }
+
+  .commit-push-all-no-matches {
+    color: var(--md-sys-color-on-surface-variant);
+    margin: 0;
   }
 
   .commit-push-all-affected-title {

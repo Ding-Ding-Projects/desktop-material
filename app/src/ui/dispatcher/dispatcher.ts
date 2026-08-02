@@ -2077,12 +2077,20 @@ export class Dispatcher {
   /**
    * Pull, commit all local changes, then push every repository that has work,
    * applying the same user-confirmed commit message to each.
+   *
+   * `repositoryIds` narrows the run to the repositories the user ticked;
+   * omitting it keeps the original behaviour of running over all of them.
    */
   public commitAndPushAllRepositories(
     message: string,
-    onProgress?: CommitPushAllProgressListener
+    onProgress?: CommitPushAllProgressListener,
+    repositoryIds?: ReadonlyArray<number>
   ): Promise<ReadonlyArray<ICommitPushAllResult>> {
-    return this.appStore._commitAndPushAllRepositories(message, onProgress)
+    return this.appStore._commitAndPushAllRepositories(
+      message,
+      onProgress,
+      repositoryIds
+    )
   }
 
   /** Fetch a specific refspec for the repository. */

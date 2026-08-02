@@ -13197,7 +13197,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
    */
   public async _commitAndPushAllRepositories(
     message: string,
-    onProgress?: CommitPushAllProgressListener
+    onProgress?: CommitPushAllProgressListener,
+    repositoryIds?: ReadonlyArray<number>
   ): Promise<ReadonlyArray<ICommitPushAllResult>> {
     const summary = message.trim()
     if (summary.length === 0) {
@@ -13206,7 +13207,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
       )
     }
 
-    const repositories = await this.repositoriesStore.getAll()
+    const all = await this.repositoriesStore.getAll()
+    // An explicit selection is a list of what to run, not a filter to be
+    // second-guessed: an empty one runs nothing, rather than falling back to
+    // every repository the user just finished unticking.
+    const selected = repositoryIds === undefined ? null : new Set(repositoryIds)
+    const repositories =
+      selected === null
+        ? all
+        : all.filter(repository => selected.has(repository.id))
     const repositoriesById = new Map(repositories.map(repo => [repo.id, repo]))
 
     return runBoundedCommitPushAll(

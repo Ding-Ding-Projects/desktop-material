@@ -60,7 +60,8 @@ function deferred<T>(): IDeferred<T> {
 function createDispatcher(
   run: (
     message: string,
-    listener?: CommitPushAllProgressListener
+    listener?: CommitPushAllProgressListener,
+    repositoryIds?: ReadonlyArray<number>
   ) => Promise<ReadonlyArray<ICommitPushAllResult>>
 ): Dispatcher {
   return { commitAndPushAllRepositories: run } as unknown as Dispatcher
@@ -153,6 +154,70 @@ describe('CommitAndPushAllDialog', () => {
       { id: 2, name: 'beta', status: 'skipped', detail: 'Nothing to do.' },
     ])
     assert.ok(await screen.findByText('1 pushed, 1 skipped, 0 failed.'))
+  })
+
+  it('runs only the repositories that are still ticked', async () => {
+    let capturedIds: ReadonlyArray<number> | undefined
+    const dispatcher = createDispatcher(async (_message, _onProgress, ids) => {
+      capturedIds = ids
+      return []
+    })
+
+    render(
+      React.createElement(CommitAndPushAllDialog, {
+        dispatcher,
+        affectedRepositories: [...affected, { id: 3, name: 'gamma' }],
+        onDismissed: () => {},
+      })
+    )
+
+    // Everything with local work starts ticked, so the default run is still
+    // every repository — the action is called "all".
+    const beta = screen.getByRole('checkbox', { name: 'beta' })
+    assert.equal(beta.getAttribute('aria-checked') ?? 'true', 'true')
+
+    fireEvent.click(beta)
+    const okButton = await screen.findByRole('button', {
+      name: 'Commit & push 2',
+    })
+    fireEvent.click(okButton)
+
+    await waitFor(() => assert.deepEqual(capturedIds, [1, 3]))
+  })
+
+  it('filters the list by name and never ticks what it is not showing', async () => {
+    let capturedIds: ReadonlyArray<number> | undefined
+    const dispatcher = createDispatcher(async (_message, _onProgress, ids) => {
+      capturedIds = ids
+      return []
+    })
+
+    render(
+      React.createElement(CommitAndPushAllDialog, {
+        dispatcher,
+        affectedRepositories: [...affected, { id: 3, name: 'gamma' }],
+        onDismissed: () => {},
+      })
+    )
+
+    const search = screen.getByLabelText(
+      'Filter the repositories to commit and push'
+    )
+    fireEvent.change(search, { target: { value: 'a' } })
+
+    // 'beta' and 'gamma' contain an 'a'; 'alpha' does too, so narrow further.
+    fireEvent.change(search, { target: { value: 'gam' } })
+    await waitFor(() => assert.equal(screen.queryByText('beta'), null))
+
+    // Clearing the shown selection must not reach past the filter: the two
+    // hidden repositories stay ticked and still run.
+    fireEvent.click(screen.getByRole('button', { name: 'Clear shown' }))
+    const okButton = await screen.findByRole('button', {
+      name: 'Commit & push 2',
+    })
+    fireEvent.click(okButton)
+
+    await waitFor(() => assert.deepEqual(capturedIds, [1, 2]))
   })
 
   it('does not invoke the dispatcher when there is nothing to do', async () => {
