@@ -1647,6 +1647,11 @@ export class RepositoryTabStrip extends React.Component<
       <CloseTabsContainingPopover
         tabsStore={this.props.tabsStore}
         anchor={closeMatchingAnchor}
+        // The same keys the inverse action searches. Without this the two
+        // directions look at different text — a tab findable by its repository
+        // alias could be kept by "close all except" and never matched by
+        // "close containing" — so they would stop being each other's negation.
+        resolveAdditionalKeys={this.matchKeysForTab}
         onClosed={this.selectActiveRepository}
         onClose={this.onCloseMatchingDismiss}
       />

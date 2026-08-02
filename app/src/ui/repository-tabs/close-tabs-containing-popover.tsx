@@ -11,10 +11,8 @@ import {
 import { IRepositoryTab } from '../../models/repository-tab'
 import { FilterMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
-import {
-  persistFilterMode,
-  readPersistedFilterMode,
-} from '../lib/filter-list-mode'
+import { persistFilterMode } from '../lib/filter-list-mode'
+import { getBoolean, getEnum, setBoolean } from '../../lib/local-storage'
 import {
   formatAllTabsStayOpen,
   formatRemainingTabCount,
@@ -23,9 +21,51 @@ import {
 /** The persistence id for the close-matching filter's mode. */
 const CloseTabsFilterListId = 'close-tabs-containing'
 
+/**
+ * Both bulk-close directions read one stored mode and one stored casing, so
+ * the inverse action can never match differently from the action it inverts.
+ * The mode key mirrors the layout `persistFilterMode` writes.
+ */
+const CloseTabsFilterModeKey = `filter-mode/${CloseTabsFilterListId}`
+const CloseTabsCaseSensitiveKey = `filter-case/${CloseTabsFilterListId}`
+
+/**
+ * Bulk close is destructive, and "containing" reads as a substring rather than
+ * as a subsequence scattered across an absolute path: on a first open, `dm`
+ * must not offer to close every tab living under Documents/desktop-material.
+ * A stored choice still wins; only the first-use default differs from the
+ * fuzzy default the ordinary filter lists share.
+ */
+function readCloseTabsFilterMode(): FilterMode {
+  return getEnum(CloseTabsFilterModeKey, FilterMode) ?? FilterMode.Substring
+}
+
+function readCloseTabsCaseSensitive(): boolean {
+  return getBoolean(CloseTabsCaseSensitiveKey, false)
+}
+
+/** Name the shared predicate for the direction that cannot show its controls. */
+function describeMatching(mode: FilterMode, caseSensitive: boolean): string {
+  const strategy =
+    mode === FilterMode.Regex
+      ? 'a regular expression'
+      : mode === FilterMode.Fuzzy
+      ? 'fuzzy matching'
+      : 'a literal substring'
+  const casing = caseSensitive ? 'matches letter case' : 'ignores letter case'
+  return `Matching uses ${strategy} and ${casing}, exactly as “Close tabs containing” does.`
+}
+
 interface ICloseTabsContainingPopoverProps {
   readonly tabsStore: RepositoryTabsStore
   readonly anchor: HTMLElement | null
+  /**
+   * Repository-aware keys (name, alias, GitHub full name) for a tab. The host
+   * must pass the same resolver to this popover and to the inverse one below:
+   * an action whose inverse searches different text disagrees with itself
+   * about the same phrase.
+   */
+  readonly resolveAdditionalKeys?: RepositoryTabMatchKeyResolver
   /** Called with the new active tab id once tabs have been closed. */
   readonly onClosed: (activeTabId: string | null) => void
   /** Called to dismiss the popover without closing any tabs. */
@@ -53,8 +93,8 @@ export class CloseTabsContainingPopover extends React.Component<
     super(props)
     this.state = {
       query: '',
-      mode: readPersistedFilterMode(CloseTabsFilterListId),
-      caseSensitive: false,
+      mode: readCloseTabsFilterMode(),
+      caseSensitive: readCloseTabsCaseSensitive(),
       isSubmitting: false,
       error: null,
     }
@@ -70,6 +110,9 @@ export class CloseTabsContainingPopover extends React.Component<
   }
 
   private onCaseSensitiveChange = (caseSensitive: boolean) => {
+    // Persisted because the inverse popover has no controls of its own and
+    // reads this casing to stay the negation of this action.
+    setBoolean(CloseTabsCaseSensitiveKey, caseSensitive)
     this.setState({ caseSensitive, error: null })
   }
 
@@ -89,26 +132,37 @@ export class CloseTabsContainingPopover extends React.Component<
     }
   }
 
-  private onConfirm = () => {
-    const { query, mode, caseSensitive, isSubmitting } = this.state
-    const { tabs, regexError } = this.props.tabsStore.findMatchingTabs(
+  /**
+   * The single predicate behind the preview, the count, the status line and
+   * the confirm button. Splitting them is what let a whitespace-only query
+   * enable a "Close 3" button that the confirm handler then refused.
+   */
+  private findMatches() {
+    const { query, mode, caseSensitive } = this.state
+    return this.props.tabsStore.findMatchingTabs(
       query,
       mode,
-      caseSensitive
+      caseSensitive,
+      this.props.resolveAdditionalKeys
     )
+  }
+
+  private onConfirm = () => {
+    const { query, mode, caseSensitive, isSubmitting } = this.state
+    const { tabs, regexError } = this.findMatches()
     const closableTabs = tabs.filter(tab => tab.isPinned !== true)
-    if (
-      isSubmitting ||
-      query.trim().length === 0 ||
-      regexError !== null ||
-      closableTabs.length === 0
-    ) {
+    if (isSubmitting || regexError !== null || closableTabs.length === 0) {
       return
     }
 
     this.setState({ isSubmitting: true, error: null })
     this.props.tabsStore
-      .closeTabsMatching(query, mode, caseSensitive)
+      .closeTabsMatching(
+        query,
+        mode,
+        caseSensitive,
+        this.props.resolveAdditionalKeys
+      )
       .then(activeTabId => {
         this.props.onClosed(activeTabId)
         this.props.onClose()
@@ -125,11 +179,7 @@ export class CloseTabsContainingPopover extends React.Component<
 
   public render() {
     const { query, mode, caseSensitive, isSubmitting, error } = this.state
-    const { tabs, regexError } = this.props.tabsStore.findMatchingTabs(
-      query,
-      mode,
-      caseSensitive
-    )
+    const { tabs, regexError } = this.findMatches()
     const closableCount = tabs.filter(tab => tab.isPinned !== true).length
     const protectedCount = tabs.length - closableCount
     const hasQuery = query.trim().length > 0
@@ -223,6 +273,7 @@ export class CloseTabsContainingPopover extends React.Component<
 interface ICloseTabsExceptContainingPopoverProps {
   readonly tabsStore: RepositoryTabsStore
   readonly anchor: HTMLElement | null
+  /** The same repository-aware keys the forward popover must be given. */
   readonly resolveAdditionalKeys: RepositoryTabMatchKeyResolver
   readonly resolveLabel: (tab: IRepositoryTab) => string
   /** Called with the new active tab id once tabs have been closed. */
@@ -233,14 +284,18 @@ interface ICloseTabsExceptContainingPopoverProps {
 
 interface ICloseTabsExceptContainingPopoverState {
   readonly query: string
+  readonly mode: FilterMode
+  readonly caseSensitive: boolean
   readonly isSubmitting: boolean
   readonly error: string | null
 }
 
 /**
- * A bounded Material confirmation for the inverse bulk-close action. Matching
- * is deliberately a case-insensitive literal substring; an empty or zero-match
- * query can never become an accidental close-all.
+ * A bounded Material confirmation for the inverse bulk-close action. It negates
+ * "Close tabs containing" exactly — same mode, same casing, same searched keys —
+ * by reading the stored settings that popover writes, so one phrase can never
+ * mean two different things in the two directions. An empty, invalid or
+ * zero-match query still can never become an accidental close-all.
  */
 export class CloseTabsExceptContainingPopover extends React.Component<
   ICloseTabsExceptContainingPopoverProps,
@@ -248,7 +303,13 @@ export class CloseTabsExceptContainingPopover extends React.Component<
 > {
   public constructor(props: ICloseTabsExceptContainingPopoverProps) {
     super(props)
-    this.state = { query: '', isSubmitting: false, error: null }
+    this.state = {
+      query: '',
+      mode: readCloseTabsFilterMode(),
+      caseSensitive: readCloseTabsCaseSensitive(),
+      isSubmitting: false,
+      error: null,
+    }
   }
 
   private onQueryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -262,19 +323,31 @@ export class CloseTabsExceptContainingPopover extends React.Component<
     }
   }
 
-  private onConfirm = () => {
-    const { query, isSubmitting } = this.state
-    const preview = this.props.tabsStore.previewCloseTabsExceptContaining(
+  /** The inverse half of the predicate the forward popover runs. */
+  private preview() {
+    const { query, mode, caseSensitive } = this.state
+    return this.props.tabsStore.previewCloseTabsExceptContaining(
       query,
+      mode,
+      caseSensitive,
       this.props.resolveAdditionalKeys
     )
-    if (isSubmitting || !preview.canClose) {
+  }
+
+  private onConfirm = () => {
+    const { query, mode, caseSensitive, isSubmitting } = this.state
+    if (isSubmitting || !this.preview().canClose) {
       return
     }
 
     this.setState({ isSubmitting: true, error: null })
     this.props.tabsStore
-      .closeTabsExceptContaining(query, this.props.resolveAdditionalKeys)
+      .closeTabsExceptContaining(
+        query,
+        mode,
+        caseSensitive,
+        this.props.resolveAdditionalKeys
+      )
       .then(activeTabId => {
         this.props.onClosed(activeTabId)
         this.props.onClose()
@@ -290,11 +363,8 @@ export class CloseTabsExceptContainingPopover extends React.Component<
   }
 
   public render() {
-    const { query, isSubmitting, error } = this.state
-    const preview = this.props.tabsStore.previewCloseTabsExceptContaining(
-      query,
-      this.props.resolveAdditionalKeys
-    )
+    const { query, mode, caseSensitive, isSubmitting, error } = this.state
+    const preview = this.preview()
     const hasQuery = query.trim().length > 0
     const closedIds = new Set(preview.closedTabs.map(tab => tab.id))
     const pinnedProtected = preview.keptTabs.filter(
@@ -303,8 +373,10 @@ export class CloseTabsExceptContainingPopover extends React.Component<
 
     const status =
       error ??
-      (!hasQuery
-        ? 'Type a literal phrase to preview which tabs stay open.'
+      (preview.regexError !== null
+        ? preview.regexError
+        : !hasQuery
+        ? 'Type a phrase to preview which tabs stay open.'
         : preview.matchingTabs.length === 0
         ? 'No tabs match. Nothing will close.'
         : preview.closedTabs.length === 0
@@ -350,9 +422,7 @@ export class CloseTabsExceptContainingPopover extends React.Component<
             <h3 id="close-tabs-except-title">
               Close all tabs except those containing…
             </h3>
-            <p>
-              Matching ignores letter case and treats punctuation literally.
-            </p>
+            <p>{describeMatching(mode, caseSensitive)}</p>
           </header>
           <label
             className="close-tabs-except-field"
@@ -374,7 +444,7 @@ export class CloseTabsExceptContainingPopover extends React.Component<
           <div
             id="close-tabs-except-status"
             className={
-              error === null
+              error === null && preview.regexError === null
                 ? 'close-tabs-except-status'
                 : 'close-tabs-except-status error'
             }

@@ -49,6 +49,10 @@ beforeEach(() => {
 afterEach(() => {
   ipcRenderer.send = previousIpcSend
   localStorage.removeItem('language-mode-v1')
+  // Both bulk-close directions share these, so a mode cycled by one test would
+  // otherwise decide how a later test's inverse popover matches.
+  localStorage.removeItem('filter-mode/close-tabs-containing')
+  localStorage.removeItem('filter-case/close-tabs-containing')
 })
 
 function makeTab(
@@ -156,12 +160,8 @@ describe('CloseTabsContainingPopover compatibility', () => {
       />
     )
 
-    // Cycle the shared filter-mode control from its fuzzy default to regex.
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Filter mode: Fuzzy (click to change)',
-      })
-    )
+    // Cycle the filter-mode control from this surface's substring default to
+    // regex.
     fireEvent.click(
       screen.getByRole('button', {
         name: 'Filter mode: Substring (click to change)',

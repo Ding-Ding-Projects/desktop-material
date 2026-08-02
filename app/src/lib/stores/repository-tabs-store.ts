@@ -46,14 +46,16 @@ export interface ITabSessionImportResult {
 }
 
 export interface ICloseTabsExceptPreview {
-  /** Tabs containing the literal query in at least one searchable key. */
+  /** Tabs matching the query in at least one searchable key. */
   readonly matchingTabs: ReadonlyArray<IRepositoryTab>
   /** Tabs that survive because they match or are protected by pinning. */
   readonly keptTabs: ReadonlyArray<IRepositoryTab>
   /** Unpinned tabs that will be closed by confirmation. */
   readonly closedTabs: ReadonlyArray<IRepositoryTab>
-  /** False for empty/zero-match/zero-close previews. */
+  /** False for empty/invalid/zero-match/zero-close previews. */
   readonly canClose: boolean
+  /** The invalid-pattern message to surface, exactly as the forward action. */
+  readonly regexError: string | null
 }
 
 /**
@@ -109,6 +111,27 @@ function tabMatchKeys(tab: IRepositoryTab): ReadonlyArray<string> {
   return tab.customLabel !== null
     ? [tab.customLabel, name, tab.repositoryPath]
     : [name, tab.repositoryPath]
+}
+
+/**
+ * The exact text one bulk-close query is matched against: a tab's own keys plus
+ * any repository-aware keys (name, alias, GitHub full name) the caller can
+ * resolve. Both close directions read their keys from here, so an action and
+ * its inverse can never end up searching different text.
+ */
+function tabMatchKeysWith(
+  resolveAdditionalKeys?: RepositoryTabMatchKeyResolver
+): (tab: IRepositoryTab) => ReadonlyArray<string> {
+  if (resolveAdditionalKeys === undefined) {
+    return tabMatchKeys
+  }
+
+  return tab => [
+    ...tabMatchKeys(tab),
+    // A resolver reads user data (aliases, remote names) that a malformed
+    // profile can leave non-string; matching must not throw on it.
+    ...resolveAdditionalKeys(tab).filter(key => typeof key === 'string'),
+  ]
 }
 
 interface IRepositoryTabBlock {
@@ -617,23 +640,33 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
    * {@link matchWithMode}. An invalid (or over-long) regex matches nothing: the
    * `regexError` is surfaced for the UI while the returned list stays empty so a
    * confirm is a safe no-op.
+   *
+   * A query that is blank once trimmed matches nothing at all. The bulk-close
+   * surfaces disable their confirm button on the same emptiness test, and a
+   * predicate that answered otherwise would offer to close every tab whose path
+   * merely contains a space behind a "type to preview" status line.
    */
   public findMatchingTabs(
     query: string,
     mode: FilterMode,
-    caseSensitive = false
+    caseSensitive = false,
+    resolveAdditionalKeys?: RepositoryTabMatchKeyResolver
   ): {
     readonly tabs: ReadonlyArray<IRepositoryTab>
     readonly regexError: string | null
   } {
-    if (query.length === 0) {
+    if (query.trim().length === 0) {
       return { tabs: [], regexError: null }
     }
 
-    const result = matchWithMode(query, this.state.tabs, tabMatchKeys, {
-      mode,
-      caseSensitive,
-    })
+    // The query is matched exactly as typed: trimming it here would silently
+    // change what a deliberate leading space or a `\s` pattern searches for.
+    const result = matchWithMode(
+      query,
+      this.state.tabs,
+      tabMatchKeysWith(resolveAdditionalKeys),
+      { mode, caseSensitive }
+    )
 
     if (result.regexError !== null) {
       return { tabs: [], regexError: result.regexError }
@@ -650,9 +683,15 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
   public async closeTabsMatching(
     query: string,
     mode: FilterMode,
-    caseSensitive = false
+    caseSensitive = false,
+    resolveAdditionalKeys?: RepositoryTabMatchKeyResolver
   ): Promise<string | null> {
-    const { tabs } = this.findMatchingTabs(query, mode, caseSensitive)
+    const { tabs } = this.findMatchingTabs(
+      query,
+      mode,
+      caseSensitive,
+      resolveAdditionalKeys
+    )
     if (tabs.length === 0) {
       return this.state.activeTabId
     }
@@ -661,39 +700,33 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
   }
 
   /**
-   * Preview the inverse bulk-close action using a case-insensitive literal
-   * substring. Default keys cover the visible fallback label and local path;
-   * callers may safely add repository aliases/names without enabling regex or
-   * interpreting any user-controlled syntax.
+   * Preview the inverse bulk-close action. It is the exact negation of
+   * {@link findMatchingTabs}: the same mode, case sensitivity, searched keys and
+   * query handling decide which tabs are kept, so a phrase can never keep a tab
+   * here that "close tabs containing" refuses to match. `mode` defaults to the
+   * literal substring the inverse action has always used.
    */
   public previewCloseTabsExceptContaining(
     query: string,
+    mode: FilterMode = FilterMode.Substring,
+    caseSensitive = false,
     resolveAdditionalKeys?: RepositoryTabMatchKeyResolver
   ): ICloseTabsExceptPreview {
-    const literal = query.trim().toLowerCase()
-    if (literal.length === 0) {
-      return {
-        matchingTabs: [],
-        keptTabs: [...this.state.tabs],
-        closedTabs: [],
-        canClose: false,
-      }
-    }
+    const { tabs: matchingTabs, regexError } = this.findMatchingTabs(
+      query,
+      mode,
+      caseSensitive,
+      resolveAdditionalKeys
+    )
 
-    const matchingTabs = this.state.tabs.filter(tab => {
-      const additionalKeys = resolveAdditionalKeys?.(tab) ?? []
-      return [...tabMatchKeys(tab), ...additionalKeys].some(
-        key => typeof key === 'string' && key.toLowerCase().includes(literal)
-      )
-    })
-
-    // Never turn an invalid/zero-match query into a close-all operation.
+    // Never turn a blank/invalid/zero-match query into a close-all operation.
     if (matchingTabs.length === 0) {
       return {
         matchingTabs: [],
         keptTabs: [...this.state.tabs],
         closedTabs: [],
         canClose: false,
+        regexError,
       }
     }
 
@@ -708,16 +741,21 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
       keptTabs,
       closedTabs,
       canClose: closedTabs.length > 0,
+      regexError,
     }
   }
 
-  /** Close every unpinned tab except those containing the literal query. */
+  /** Close every unpinned tab except those matching the query. */
   public async closeTabsExceptContaining(
     query: string,
+    mode: FilterMode = FilterMode.Substring,
+    caseSensitive = false,
     resolveAdditionalKeys?: RepositoryTabMatchKeyResolver
   ): Promise<string | null> {
     const preview = this.previewCloseTabsExceptContaining(
       query,
+      mode,
+      caseSensitive,
       resolveAdditionalKeys
     )
     if (!preview.canClose) {

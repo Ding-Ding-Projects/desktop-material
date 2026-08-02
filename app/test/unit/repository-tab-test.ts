@@ -3,8 +3,10 @@ import assert from 'node:assert'
 import {
   clampTabFontSize,
   clampTabCharacterSpacing,
+  isSameTabColor,
   isValidTabColor,
   isValidFontFamily,
+  tabColorParts,
   tabTitleStyleToCss,
   tabFrameStyleToCss,
   tabFontStack,
@@ -1171,6 +1173,8 @@ describe('RepositoryTabsStore pinning and arrangement', () => {
 
     const preview = store.previewCloseTabsExceptContaining(
       'MATERIAL ALIAS',
+      FilterMode.Substring,
+      false,
       aliases
     )
     assert.deepEqual(
@@ -1187,7 +1191,12 @@ describe('RepositoryTabsStore pinning and arrangement', () => {
     )
     assert.equal(preview.canClose, true)
 
-    await store.closeTabsExceptContaining('material alias', aliases)
+    await store.closeTabsExceptContaining(
+      'material alias',
+      FilterMode.Substring,
+      false,
+      aliases
+    )
     assert.deepEqual(ids(store), ['p', 'a'])
     assert.equal(store.getState().activeTabId, 'a')
   })
@@ -1386,5 +1395,26 @@ describe('RepositoryTabsStore pinning and arrangement', () => {
     assert.equal(result.importedCount, 0)
     assert.equal(writes.length, beforeWrites)
     assert.equal(store.getState().tabs[0].id, 'stable-id')
+  })
+})
+
+describe('tab colour normalization', () => {
+  it('reads all three stored spellings as a picker value and an alpha', () => {
+    assert.deepEqual(tabColorParts('#abc'), { rgb: '#aabbcc', alpha: '' })
+    assert.deepEqual(tabColorParts('#AABBCC'), { rgb: '#aabbcc', alpha: '' })
+    assert.deepEqual(tabColorParts('#ff000080'), {
+      rgb: '#ff0000',
+      alpha: '80',
+    })
+    assert.equal(tabColorParts('rgb(1,2,3)'), null)
+  })
+
+  it('treats the same colour as the same swatch however it is spelled', () => {
+    // The editor compared these as strings, so a tab coloured `#abc` showed no
+    // palette swatch as chosen and looked unstyled.
+    assert.equal(isSameTabColor('#abc', '#AABBCC'), true)
+    assert.equal(isSameTabColor('#ff000080', '#ff0000'), false)
+    assert.equal(isSameTabColor('#abc', '#abd'), false)
+    assert.equal(isSameTabColor('not-a-colour', '#abc'), false)
   })
 })
