@@ -21,13 +21,28 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4136,
+    entryCount: 4139,
     releases: [
       {
         v: '3.6.3-material22',
         d: '2026-08-01',
-        t: '17:53',
+        t: '23:53',
         e: [
+          [
+            'Added',
+            'About one launch in ten now shows a photograph of a Hong Kong dim sum dish in the corner, named in English and Traditional Chinese, and clears itself without ever delaying startup or taking focus',
+            'cce086ec7061672c7ba16124929d8fb516fddda6',
+          ],
+          [
+            'Added',
+            'Twelve dim sum photographs ship with the app as local files, so the surprise makes no network request and works with no connection',
+            'cce086ec7061672c7ba16124929d8fb516fddda6',
+          ],
+          [
+            'Improved',
+            'The dim sum surprise stays away on a first run, after a failed startup, during an update, behind a dialog and inside quiet hours, and has no setting that switches it off',
+            'cce086ec7061672c7ba16124929d8fb516fddda6',
+          ],
           [
             'Fixed',
             'Release notes on the Releases page render as formatted markdown instead of showing raw heading marks, link brackets and list dashes',
