@@ -25,6 +25,8 @@ import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import { Dispatcher } from '../dispatcher'
 import { Button } from '../lib/button'
 import { FilterModeControl } from '../lib/filter-mode-control'
+import { CollapsibleSection } from '../lib/collapsible-section'
+import { collapsibleRepositoryKey } from '../../lib/collapsed-state'
 import {
   persistFilterMode,
   readPersistedFilterMode,
@@ -840,140 +842,164 @@ export class GitHubIssuesView extends React.Component<
     )
   }
 
+  /** A one-line description of what the filters are currently doing. */
+  private filterSummary(): string {
+    const { query } = this.state
+    const parts = [query.state === 'all' ? 'Open and closed' : query.state]
+    if (query.search.length > 0) {
+      parts.push(`matching “${query.search}”`)
+    }
+    if (query.labels.length > 0) {
+      parts.push(`${query.labels.length} labels`)
+    }
+    return parts.join(' · ')
+  }
+
   private renderFilters() {
     const metadata = this.state.metadata
     return (
-      <form className="github-issues-filters" onSubmit={this.applyFilters}>
-        <div className="github-issues-search">
-          <label>
-            Search title and description
-            <input
-              data-search-surface-id="github-issues"
-              type="search"
-              value={this.state.query.search}
-              maxLength={256}
-              placeholder="Search this repository"
-              onChange={this.updateSearch}
+      <CollapsibleSection
+        elementId="issues-filters"
+        repositoryKey={collapsibleRepositoryKey(this.props.repository)}
+        label="Filters"
+        ariaLabel="Issue filters"
+        // A collapsed filter row that is quietly excluding results is how a
+        // reader comes to believe the issues are missing, so the active state
+        // and search stay legible while it is closed.
+        summary={this.filterSummary()}
+      >
+        <form className="github-issues-filters" onSubmit={this.applyFilters}>
+          <div className="github-issues-search">
+            <label>
+              Search title and description
+              <input
+                data-search-surface-id="github-issues"
+                type="search"
+                value={this.state.query.search}
+                maxLength={256}
+                placeholder="Search this repository"
+                onChange={this.updateSearch}
+              />
+            </label>
+            <FilterModeControl
+              searchSurfaceId="github-issues"
+              mode={this.state.searchMode}
+              caseSensitive={this.state.searchCaseSensitive}
+              onModeChange={this.onSearchModeChange}
+              onCaseSensitiveChange={this.onSearchCaseSensitiveChange}
+              regexBuilderTarget="Issues"
+              getSampleItems={this.getSearchSampleItems}
+              filterText={this.state.query.search}
+              onRegexPatternApply={this.onSearchPatternApply}
             />
+          </div>
+          <label>
+            State
+            <select
+              value={this.state.query.state}
+              onChange={this.updateStateFilter}
+            >
+              <option value="open">Open</option>
+              <option value="closed">Closed</option>
+              <option value="all">Open and closed</option>
+            </select>
           </label>
-          <FilterModeControl
-            searchSurfaceId="github-issues"
-            mode={this.state.searchMode}
-            caseSensitive={this.state.searchCaseSensitive}
-            onModeChange={this.onSearchModeChange}
-            onCaseSensitiveChange={this.onSearchCaseSensitiveChange}
-            regexBuilderTarget="Issues"
-            getSampleItems={this.getSearchSampleItems}
-            filterText={this.state.query.search}
-            onRegexPatternApply={this.onSearchPatternApply}
-          />
-        </div>
-        <label>
-          State
-          <select
-            value={this.state.query.state}
-            onChange={this.updateStateFilter}
-          >
-            <option value="open">Open</option>
-            <option value="closed">Closed</option>
-            <option value="all">Open and closed</option>
-          </select>
-        </label>
-        <label>
-          Sort
-          <select value={this.state.query.sort} onChange={this.updateSort}>
-            <option value="updated">Recently updated</option>
-            <option value="created">Created</option>
-            <option value="comments">Comment count</option>
-          </select>
-        </label>
-        <label>
-          Direction
-          <select
-            value={this.state.query.direction}
-            onChange={this.updateDirection}
-          >
-            <option value="desc">Newest first</option>
-            <option value="asc">Oldest first</option>
-          </select>
-        </label>
-        <label>
-          Labels
-          <select
-            multiple={true}
-            value={[...this.state.query.labels]}
-            onChange={this.updateLabelFilter}
-            aria-describedby="github-issues-label-help"
-          >
-            {metadata?.labels.map(label => (
-              <option value={label.name} key={label.id}>
-                {label.name}
-              </option>
-            ))}
-          </select>
-          <small id="github-issues-label-help">
-            Use Ctrl or Command to select several.
-          </small>
-        </label>
-        <label>
-          Assignee
-          <select
-            value={this.state.query.assignee ?? ''}
-            onChange={this.updateAssigneeFilter}
-          >
-            <option value="">Anyone</option>
-            {metadata?.assignees.map(login => (
-              <option value={login} key={login}>
-                {login}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Milestone
-          <select
-            value={this.state.query.milestone ?? ''}
-            onChange={this.updateMilestoneFilter}
-            disabled={this.state.query.search.trim().length > 0}
-          >
-            <option value="">Any milestone</option>
-            {metadata?.milestones.map(milestone => (
-              <option value={milestone.number} key={milestone.number}>
-                {milestone.title}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="github-issues-filter-actions">
-          <Button type="submit" disabled={this.state.busy !== null}>
-            Apply filters
-          </Button>
-          <Button
-            type="button"
-            disabled={this.state.busy !== null}
-            onClick={this.resetFilters}
-          >
-            Reset
-          </Button>
-        </div>
-        {metadata !== null && metadata.unavailable.length > 0 && (
-          <p className="github-issues-metadata-note" role="status">
-            Some repository metadata is unavailable:{' '}
-            {metadata.unavailable.join(', ')}. This can mean the provider
-            version or selected account access changed.
-          </p>
-        )}
-        {this.state.metadataLoading && (
-          <p className="github-issues-metadata-note" role="status">
-            Loading repository metadata…
-          </p>
-        )}
-        {this.state.metadataError !== null && (
-          <p className="github-issues-error" role="alert">
-            {this.state.metadataError}
-          </p>
-        )}
-      </form>
+          <label>
+            Sort
+            <select value={this.state.query.sort} onChange={this.updateSort}>
+              <option value="updated">Recently updated</option>
+              <option value="created">Created</option>
+              <option value="comments">Comment count</option>
+            </select>
+          </label>
+          <label>
+            Direction
+            <select
+              value={this.state.query.direction}
+              onChange={this.updateDirection}
+            >
+              <option value="desc">Newest first</option>
+              <option value="asc">Oldest first</option>
+            </select>
+          </label>
+          <label>
+            Labels
+            <select
+              multiple={true}
+              value={[...this.state.query.labels]}
+              onChange={this.updateLabelFilter}
+              aria-describedby="github-issues-label-help"
+            >
+              {metadata?.labels.map(label => (
+                <option value={label.name} key={label.id}>
+                  {label.name}
+                </option>
+              ))}
+            </select>
+            <small id="github-issues-label-help">
+              Use Ctrl or Command to select several.
+            </small>
+          </label>
+          <label>
+            Assignee
+            <select
+              value={this.state.query.assignee ?? ''}
+              onChange={this.updateAssigneeFilter}
+            >
+              <option value="">Anyone</option>
+              {metadata?.assignees.map(login => (
+                <option value={login} key={login}>
+                  {login}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Milestone
+            <select
+              value={this.state.query.milestone ?? ''}
+              onChange={this.updateMilestoneFilter}
+              disabled={this.state.query.search.trim().length > 0}
+            >
+              <option value="">Any milestone</option>
+              {metadata?.milestones.map(milestone => (
+                <option value={milestone.number} key={milestone.number}>
+                  {milestone.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="github-issues-filter-actions">
+            <Button type="submit" disabled={this.state.busy !== null}>
+              Apply filters
+            </Button>
+            <Button
+              type="button"
+              disabled={this.state.busy !== null}
+              onClick={this.resetFilters}
+            >
+              Reset
+            </Button>
+          </div>
+          {metadata !== null && metadata.unavailable.length > 0 && (
+            <p className="github-issues-metadata-note" role="status">
+              Some repository metadata is unavailable:{' '}
+              {metadata.unavailable.join(', ')}. This can mean the provider
+              version or selected account access changed.
+            </p>
+          )}
+          {this.state.metadataLoading && (
+            <p className="github-issues-metadata-note" role="status">
+              Loading repository metadata…
+            </p>
+          )}
+          {this.state.metadataError !== null && (
+            <p className="github-issues-error" role="alert">
+              {this.state.metadataError}
+            </p>
+          )}
+        </form>
+      </CollapsibleSection>
     )
   }
 

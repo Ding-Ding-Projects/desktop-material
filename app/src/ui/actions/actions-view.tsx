@@ -58,6 +58,11 @@ import { IWorkflowTemplate } from './workflow-templates'
 import { ActionsCacheManager } from './actions-cache-manager'
 import { isWorkflowRunCancellableStatus } from '../../lib/actions-workflow-runs'
 import { Dispatcher } from '../dispatcher'
+import {
+  collapsibleRepositoryKey,
+  readCollapsibleState,
+  writeCollapsibleState,
+} from '../../lib/collapsed-state'
 
 type ActionsConfirmation =
   | {
@@ -106,6 +111,15 @@ interface IActionsViewState {
   readonly runQueryMode: FilterMode
   readonly runQueryCaseSensitive: boolean
   readonly filtersOpen: boolean
+  /**
+   * Whether a load-every-remaining-page sweep is running, and how to stop it.
+   *
+   * Null when idle. Held rather than derived because the only honest way to
+   * offer "load all" over a paginated API is to keep asking for the next page,
+   * which can be hundreds of requests on a busy repository - so it has to be
+   * interruptible and it has to say how far it has got.
+   */
+  readonly loadingAllRuns: AbortController | null
   /** Which in-view category tab is showing: runs, workflows, or caches. */
   readonly activeTab: 'runs' | 'workflows' | 'caches'
   readonly catalogOpen: boolean
@@ -156,10 +170,16 @@ const InitialActionsState: IActionsState = {
   cacheUsageLoading: false,
 }
 
+/** Identity for the run-filter row's remembered open/closed state. */
+const ActionsFiltersElementId = 'actions-filters'
+
 const getActionsViewRepositoryKey = (repository: Repository): string =>
   `${repository.id}:${repository.path}#${getActionsRepositoryKey(repository)}`
 
-const initialActionsViewState = (repositoryKey: string): IActionsViewState => ({
+const initialActionsViewState = (
+  repositoryKey: string,
+  repository: Repository
+): IActionsViewState => ({
   repositoryKey,
   actions: InitialActionsState,
   workflow: 'all',
@@ -169,7 +189,12 @@ const initialActionsViewState = (repositoryKey: string): IActionsViewState => ({
   runQuery: '',
   runQueryMode: readPersistedFilterMode(ActionsRunsFilterListId),
   runQueryCaseSensitive: false,
-  filtersOpen: true,
+  filtersOpen:
+    readCollapsibleState(
+      ActionsFiltersElementId,
+      collapsibleRepositoryKey(repository)
+    ) ?? true,
+  loadingAllRuns: null,
   activeTab: 'runs',
   catalogOpen: false,
   selectedRun: null,
@@ -207,7 +232,7 @@ export class ActionsView extends React.Component<
     const repositoryKey = getActionsViewRepositoryKey(props.repository)
     return repositoryKey === state.repositoryKey
       ? null
-      : initialActionsViewState(repositoryKey)
+      : initialActionsViewState(repositoryKey, props.repository)
   }
 
   private subscription: Disposable | null = null
@@ -328,7 +353,8 @@ export class ActionsView extends React.Component<
   public constructor(props: IActionsViewProps) {
     super(props)
     this.state = initialActionsViewState(
-      getActionsViewRepositoryKey(props.repository)
+      getActionsViewRepositoryKey(props.repository),
+      props.repository
     )
   }
 
@@ -371,6 +397,9 @@ export class ActionsView extends React.Component<
     this.cancelJobs()
     this.logController?.abort()
     this.cancellationController?.abort()
+    // A load-all sweep outliving the view would keep hitting the API for runs
+    // nobody is looking at any more.
+    this.state.loadingAllRuns?.abort()
   }
 
   private cancelJobs() {
@@ -630,6 +659,56 @@ export class ActionsView extends React.Component<
   private loadMoreRuns = () => {
     if (this.props.repository.gitHubRepository !== null) {
       void this.props.actionsStore.loadMoreRuns(this.props.repository)
+    }
+  }
+
+  /**
+   * Loads every remaining page of workflow runs, not just the next one.
+   *
+   * Paging one screen at a time is fine for a glance and useless for a search:
+   * filtering 670 runs by branch only works once the runs are actually here.
+   * The sweep stops on request, on unmount, and the moment the store reports
+   * no further page - and it re-reads the store each round rather than
+   * trusting a count captured before the first request.
+   */
+  private loadAllRuns = async () => {
+    if (this.props.repository.gitHubRepository === null) {
+      return
+    }
+    if (this.state.loadingAllRuns !== null) {
+      this.state.loadingAllRuns.abort()
+      return
+    }
+
+    const controller = new AbortController()
+    this.setState({ loadingAllRuns: controller })
+    const generation = this.repositoryGeneration
+
+    try {
+      // A hard ceiling on rounds. The exit condition is the store reporting no
+      // further page, and that is the condition that matters - but a store
+      // that never clears its cursor would otherwise spin against the API
+      // forever, and a runaway loop is a worse bug than an incomplete load.
+      for (let round = 0; round < 500; round++) {
+        if (controller.signal.aborted) {
+          return
+        }
+        // Re-read each round rather than trusting a cursor captured before the
+        // first request: a refresh may have reset it underneath this loop.
+        if (this.state.actions.runsNextPage === null) {
+          return
+        }
+        await this.props.actionsStore.loadMoreRuns(this.props.repository)
+        if (generation !== this.repositoryGeneration) {
+          // The repository changed under us; the runs being loaded are no
+          // longer the ones on screen.
+          return
+        }
+      }
+    } finally {
+      this.setState(state =>
+        state.loadingAllRuns === controller ? { loadingAllRuns: null } : null
+      )
     }
   }
 
@@ -961,7 +1040,17 @@ export class ActionsView extends React.Component<
     }))
 
   private toggleFilters = () =>
-    this.setState(state => ({ filtersOpen: !state.filtersOpen }))
+    this.setState(state => {
+      const filtersOpen = !state.filtersOpen
+      // Per repository: a repository with two workflows does not want this row
+      // taking a quarter of the pane, and the one with sixty does.
+      writeCollapsibleState(
+        ActionsFiltersElementId,
+        collapsibleRepositoryKey(this.props.repository),
+        filtersOpen
+      )
+      return { filtersOpen }
+    })
 
   private onRunQueryModeChange = (runQueryMode: FilterMode) => {
     persistFilterMode(ActionsRunsFilterListId, runQueryMode)
@@ -2207,15 +2296,37 @@ export class ActionsView extends React.Component<
                       workflow runs.
                     </span>
                     {actions.runsNextPage !== null && (
-                      <Button
-                        size="small"
-                        onClick={this.loadMoreRuns}
-                        disabled={actions.runsLoadingMore || actions.loading}
-                      >
-                        {actions.runsLoadingMore
-                          ? 'Loading more…'
-                          : 'Load more runs'}
-                      </Button>
+                      <>
+                        <Button
+                          size="small"
+                          onClick={this.loadMoreRuns}
+                          disabled={
+                            actions.runsLoadingMore ||
+                            actions.loading ||
+                            this.state.loadingAllRuns !== null
+                          }
+                        >
+                          {actions.runsLoadingMore
+                            ? 'Loading more…'
+                            : 'Load more runs'}
+                        </Button>
+                        {/*
+                          Filtering by branch or actor only works on runs that
+                          are actually loaded, so paging one screen at a time
+                          made the filters useless on a busy repository. The
+                          same button stops the sweep, because "load all" on
+                          670 runs is a long enough operation to want out of.
+                        */}
+                        <Button
+                          size="small"
+                          onClick={this.loadAllRuns}
+                          disabled={actions.loading}
+                        >
+                          {this.state.loadingAllRuns !== null
+                            ? 'Stop loading'
+                            : 'Load all runs'}
+                        </Button>
+                      </>
                     )}
                   </div>
                 )}

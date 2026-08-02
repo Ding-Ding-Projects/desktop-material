@@ -70,6 +70,7 @@ import {
   CheapLfsCloneInventoryProbeResult,
 } from '../../lib/cheap-lfs/clone-inventory-probe'
 import { createCheapLfsCloneSelection } from '../../lib/cheap-lfs/clone-inventory'
+import { CollapsibleSection } from '../lib/collapsible-section'
 import {
   getCheapLfsCloneSelectionIdentity,
   ICheapLfsCloneSelection,
@@ -801,43 +802,62 @@ export class CloneRepository extends React.Component<
 
     return (
       <DialogFooter>
-        <div className="clone-history-options">
-          <label
-            className="clone-shallow-toggle"
-            aria-label="Shallow clone. Current branch and recursive submodules"
-          >
-            <input
-              type="checkbox"
-              checked={this.state.shallowClone}
-              onChange={this.onShallowCloneChanged}
-            />
-            <span>
-              <strong>Shallow clone</strong>
-              <small>Current branch and recursive submodules</small>
-            </span>
-          </label>
-          <label className="clone-depth-field">
-            <span>Commit depth</span>
-            <input
-              type="number"
-              min="1"
-              max="2147483647"
-              step="1"
-              inputMode="numeric"
-              value={this.state.cloneDepth}
-              disabled={!this.state.shallowClone}
-              aria-invalid={this.getCloneDepthError() !== null}
-              aria-describedby="clone-depth-guidance"
-              onChange={this.onCloneDepthChanged}
-            />
-          </label>
-          <small id="clone-depth-guidance" role="status">
-            {this.getCloneDepthError() ??
-              (this.state.shallowClone
-                ? 'Fetches less history now; deepen later with Repository tools.'
-                : 'Full history will be cloned.')}
-          </small>
-        </div>
+        {/*
+          Most clones take the default and never touch these, so they fold
+          away - but the summary keeps saying what will actually happen,
+          because a collapsed section that hid "shallow, depth 1" would be
+          hiding the one thing about this clone worth knowing.
+        */}
+        <CollapsibleSection
+          elementId="clone-history-options"
+          repositoryKey={undefined}
+          label="History options"
+          ariaLabel="Clone history options"
+          defaultExpanded={false}
+          summary={
+            this.state.shallowClone
+              ? `Shallow · depth ${this.state.cloneDepth}`
+              : 'Full history'
+          }
+        >
+          <div className="clone-history-options">
+            <label
+              className="clone-shallow-toggle"
+              aria-label="Shallow clone. Current branch and recursive submodules"
+            >
+              <input
+                type="checkbox"
+                checked={this.state.shallowClone}
+                onChange={this.onShallowCloneChanged}
+              />
+              <span>
+                <strong>Shallow clone</strong>
+                <small>Current branch and recursive submodules</small>
+              </span>
+            </label>
+            <label className="clone-depth-field">
+              <span>Commit depth</span>
+              <input
+                type="number"
+                min="1"
+                max="2147483647"
+                step="1"
+                inputMode="numeric"
+                value={this.state.cloneDepth}
+                disabled={!this.state.shallowClone}
+                aria-invalid={this.getCloneDepthError() !== null}
+                aria-describedby="clone-depth-guidance"
+                onChange={this.onCloneDepthChanged}
+              />
+            </label>
+            <small id="clone-depth-guidance" role="status">
+              {this.getCloneDepthError() ??
+                (this.state.shallowClone
+                  ? 'Fetches less history now; deepen later with Repository tools.'
+                  : 'Full history will be cloned.')}
+            </small>
+          </div>
+        </CollapsibleSection>
         <OkCancelButtonGroup okButtonText="Clone" okButtonDisabled={disabled} />
       </DialogFooter>
     )

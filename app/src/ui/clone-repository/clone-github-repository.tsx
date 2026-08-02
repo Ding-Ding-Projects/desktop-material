@@ -475,6 +475,16 @@ export class CloneGithubRepository extends React.PureComponent<
         role="group"
         aria-label={this.localize('clone.filters.metadataAria')}
       >
+        {/*
+          The account belongs inside the filters, not above them: it decides
+          which repositories the list can show at all, which is the same job
+          as every other control in here. Left outside, it also stayed on
+          screen after the filters were collapsed, which read as a control
+          that had failed to fold away.
+        */}
+        {this.props.accounts.length > 1 && (
+          <Row className="account-picker-row">{this.renderAccountPicker()}</Row>
+        )}
         <OrgFilterChips
           organizations={this.props.organizations}
           selectedOrganization={this.props.selectedOrganization}
@@ -565,9 +575,6 @@ export class CloneGithubRepository extends React.PureComponent<
 
     return (
       <DialogContent className="clone-github-repository-content">
-        {this.props.accounts.length > 1 && (
-          <Row className="account-picker-row">{this.renderAccountPicker()}</Row>
-        )}
         {this.renderFilterDisclosure()}
         {this.renderMetadataFilters()}
         {this.props.organizationsError !== null &&

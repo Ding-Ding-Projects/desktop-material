@@ -9,7 +9,10 @@
   // === MD3 restyle (Commit 9 — style(history)) =============================
   // "N changed files" rail header.
   .file-list-header {
-    padding: 12px 14px 8px;
+    // Vertical padding is the shared rule's job now; overriding it here is
+    // what produced the fight that clipped the text.
+    padding-left: 14px;
+    padding-right: 14px;
     font-size: 12.5px;
     font-weight: var(--font-weight-semibold);
     letter-spacing: 0.02em;

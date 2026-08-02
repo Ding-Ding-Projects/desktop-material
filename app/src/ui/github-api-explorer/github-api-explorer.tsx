@@ -43,6 +43,8 @@ import {
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
 import { LinkButton } from '../lib/link-button'
+import { CollapsibleSection } from '../lib/collapsible-section'
+import { collapsibleRepositoryKey } from '../../lib/collapsed-state'
 import {
   createNamedAPIFunctionBinding,
   functionBelongsToBinding,
@@ -1909,140 +1911,153 @@ export class GitHubAPIExplorer extends React.Component<
     )
     const registryAvailable = this.props.functionRegistry !== undefined
     return (
-      <section
-        className="github-api-functions"
-        aria-labelledby="github-api-functions-heading"
+      <CollapsibleSection
+        elementId="api-functions"
+        repositoryKey={collapsibleRepositoryKey(this.props.repository)}
+        label="API functions"
+        ariaLabel="Named API functions"
+        // A repository with no saved functions does not need the editor
+        // occupying the top of the panel, so this starts closed and says how
+        // many there are from the closed state.
+        defaultExpanded={false}
+        summary={`${functions.length} for this repository`}
       >
-        <header>
-          <div>
-            <h2 id="github-api-functions-heading">API functions</h2>
-            <p>
-              Saved, runnable GitHub API calls — bound to this repository and
-              account, with mutations gated by review.
-            </p>
-          </div>
-          <span>{functions.length} for this repository</span>
-        </header>
-        <form
-          className="github-api-function-editor"
-          onSubmit={this.onSaveNamedFunction}
+        <section
+          className="github-api-functions"
+          aria-labelledby="github-api-functions-heading"
         >
-          <label>
-            Function name
-            <input
-              ref={this.functionNameInput}
-              value={this.state.functionName}
-              disabled={!registryAvailable || this.state.loading}
-              maxLength={64}
-              pattern="[a-z][a-z0-9_-]{0,63}"
-              placeholder="list_custom_patterns"
-              onChange={this.onFunctionNameChange}
-            />
-          </label>
-          <label>
-            Function description
-            <input
-              value={this.state.functionDescription}
-              disabled={!registryAvailable || this.state.loading}
-              maxLength={500}
-              placeholder="Describe what this function returns or changes"
-              onChange={this.onFunctionDescriptionChange}
-            />
-          </label>
-          <div className="github-api-explorer-actions">
-            <Button
-              type="submit"
-              className="primary"
-              disabled={!registryAvailable || this.state.loading}
-            >
-              {this.state.editingFunctionId === null
-                ? 'Add current request as function'
-                : 'Update function from current request'}
-            </Button>
-            {this.state.editingFunctionId === null ? null : (
-              <Button onClick={this.onCancelFunctionEdit}>Cancel edit</Button>
-            )}
-          </div>
-        </form>
-        {!registryAvailable ? (
-          <p className="github-api-functions-unavailable" role="status">
-            The app function registry is unavailable in this window.
-          </p>
-        ) : functions.length === 0 ? (
-          <p className="github-api-functions-unavailable" role="status">
-            No functions yet. Open the advanced builder to add a custom one.
-          </p>
-        ) : (
-          <ul aria-label="Named API functions">
-            {functions.map(definition => (
-              <li key={definition.id}>
-                <header>
-                  <div>
-                    <strong>{definition.name}</strong>
-                    <code>{definition.operationId}</code>
+          <header>
+            <div>
+              <h2 id="github-api-functions-heading">API functions</h2>
+              <p>
+                Saved, runnable GitHub API calls — bound to this repository and
+                account, with mutations gated by review.
+              </p>
+            </div>
+          </header>
+          <form
+            className="github-api-function-editor"
+            onSubmit={this.onSaveNamedFunction}
+          >
+            <label>
+              Function name
+              <input
+                ref={this.functionNameInput}
+                value={this.state.functionName}
+                disabled={!registryAvailable || this.state.loading}
+                maxLength={64}
+                pattern="[a-z][a-z0-9_-]{0,63}"
+                placeholder="list_custom_patterns"
+                onChange={this.onFunctionNameChange}
+              />
+            </label>
+            <label>
+              Function description
+              <input
+                value={this.state.functionDescription}
+                disabled={!registryAvailable || this.state.loading}
+                maxLength={500}
+                placeholder="Describe what this function returns or changes"
+                onChange={this.onFunctionDescriptionChange}
+              />
+            </label>
+            <div className="github-api-explorer-actions">
+              <Button
+                type="submit"
+                className="primary"
+                disabled={!registryAvailable || this.state.loading}
+              >
+                {this.state.editingFunctionId === null
+                  ? 'Add current request as function'
+                  : 'Update function from current request'}
+              </Button>
+              {this.state.editingFunctionId === null ? null : (
+                <Button onClick={this.onCancelFunctionEdit}>Cancel edit</Button>
+              )}
+            </div>
+          </form>
+          {!registryAvailable ? (
+            <p className="github-api-functions-unavailable" role="status">
+              The app function registry is unavailable in this window.
+            </p>
+          ) : functions.length === 0 ? (
+            <p className="github-api-functions-unavailable" role="status">
+              No functions yet. Open the advanced builder to add a custom one.
+            </p>
+          ) : (
+            <ul aria-label="Named API functions">
+              {functions.map(definition => (
+                <li key={definition.id}>
+                  <header>
+                    <div>
+                      <strong>{definition.name}</strong>
+                      <code>{definition.operationId}</code>
+                    </div>
+                    <span className={definition.risk}>{definition.risk}</span>
+                  </header>
+                  <p>{definition.description}</p>
+                  <details>
+                    <summary>Parameters</summary>
+                    <pre>
+                      {JSON.stringify(definition.parameterSchema, null, 2)}
+                    </pre>
+                  </details>
+                  <label>
+                    Arguments for {definition.name}
+                    <textarea
+                      value={
+                        this.state.functionArguments[definition.id] ?? '{}'
+                      }
+                      disabled={this.state.loading}
+                      spellCheck={false}
+                      data-function-id={definition.id}
+                      onChange={this.onFunctionArgumentsChange}
+                    />
+                  </label>
+                  <div className="github-api-function-actions">
+                    <button
+                      type="button"
+                      disabled={this.state.loading}
+                      data-function-id={definition.id}
+                      onClick={this.onRunNamedFunction}
+                    >
+                      {definition.risk === 'read'
+                        ? 'Run function'
+                        : 'Review function'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={this.state.loading}
+                      data-function-id={definition.id}
+                      onClick={this.onEditNamedFunction}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      disabled={this.state.loading}
+                      data-function-id={definition.id}
+                      onClick={this.onRemoveNamedFunction}
+                    >
+                      Remove
+                    </button>
                   </div>
-                  <span className={definition.risk}>{definition.risk}</span>
-                </header>
-                <p>{definition.description}</p>
-                <details>
-                  <summary>Parameters</summary>
-                  <pre>
-                    {JSON.stringify(definition.parameterSchema, null, 2)}
-                  </pre>
-                </details>
-                <label>
-                  Arguments for {definition.name}
-                  <textarea
-                    value={this.state.functionArguments[definition.id] ?? '{}'}
-                    disabled={this.state.loading}
-                    spellCheck={false}
-                    data-function-id={definition.id}
-                    onChange={this.onFunctionArgumentsChange}
-                  />
-                </label>
-                <div className="github-api-function-actions">
-                  <button
-                    type="button"
-                    disabled={this.state.loading}
-                    data-function-id={definition.id}
-                    onClick={this.onRunNamedFunction}
-                  >
-                    {definition.risk === 'read'
-                      ? 'Run function'
-                      : 'Review function'}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={this.state.loading}
-                    data-function-id={definition.id}
-                    onClick={this.onEditNamedFunction}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    disabled={this.state.loading}
-                    data-function-id={definition.id}
-                    onClick={this.onRemoveNamedFunction}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-        {this.state.functionError === null ? null : (
-          <div className="github-api-explorer-error" role="alert">
-            {this.state.functionError}
-          </div>
-        )}
-        {this.state.functionMessage === null ? null : (
-          <div className="github-api-explorer-message" role="status">
-            {this.state.functionMessage}
-          </div>
-        )}
-      </section>
+                </li>
+              ))}
+            </ul>
+          )}
+          {this.state.functionError === null ? null : (
+            <div className="github-api-explorer-error" role="alert">
+              {this.state.functionError}
+            </div>
+          )}
+          {this.state.functionMessage === null ? null : (
+            <div className="github-api-explorer-message" role="status">
+              {this.state.functionMessage}
+            </div>
+          )}
+        </section>
+      </CollapsibleSection>
     )
   }
 

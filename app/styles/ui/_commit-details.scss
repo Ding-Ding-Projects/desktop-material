@@ -20,10 +20,19 @@
     background: var(--box-alt-background-color);
     border-bottom: 1px solid var(--md-sys-color-outline-variant);
     border-right: 1px solid var(--md-sys-color-outline-variant);
-    height: 30px;
-    line-height: 30px;
+    // `min-height` rather than `height`, and a line-height that follows the
+    // text rather than pinning it to the box. The fixed pair here fought the
+    // higher-specificity `#history .file-list-header` padding: with
+    // border-box the content area came out at 10px while the line box stayed
+    // 30px, so "1 CHANGED FILE" was sliced off top and bottom. A header that
+    // grows for its own text cannot lose to a padding rule it has never met.
+    min-height: 30px;
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     flex: 0 0 auto;
-    padding: 0 var(--spacing);
+    padding: 6px var(--spacing);
     text-align: center;
     color: var(--md-sys-color-on-surface-variant);
     font-size: var(--font-size-sm);
