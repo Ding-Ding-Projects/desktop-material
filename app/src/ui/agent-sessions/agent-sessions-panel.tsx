@@ -7,12 +7,13 @@ import {
 } from '../../models/agent-session'
 import {
   IAgentRunnerAvailability,
+  IAgentSetupCommand,
   buildAgentSessionFleet,
 } from '../../lib/agent-sessions'
 import { Button } from '../lib/button'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { AgentSessionFleetList } from './agent-session-fleet-list'
-import { NewAgentSessionForm } from './new-agent-session-form'
+import { IAgentSetupRetry, NewAgentSessionForm } from './new-agent-session-form'
 import { getPersistedLanguageMode, t } from '../../lib/i18n'
 
 export interface IAgentSessionsPanelProps {
@@ -29,11 +30,20 @@ export interface IAgentSessionsPanelProps {
   readonly onSelectSession: (session: IAgentSession) => void
   readonly onCancelSession?: (session: IAgentSession) => void
   readonly onCreateSession: (
-    request: INewAgentSessionRequest
+    request: INewAgentSessionRequest,
+    setupCommands: ReadonlyArray<IAgentSetupCommand>,
+    restartSetup: boolean
   ) => boolean | Promise<boolean>
   /** True while a create is in flight. */
   readonly isCreating: boolean
-  readonly onConfigureSetupCommands?: () => void
+  readonly setupCommands: ReadonlyArray<IAgentSetupCommand>
+  readonly setupCommandsAvailable: boolean
+  readonly onSaveSetupCommands: (
+    commands: ReadonlyArray<IAgentSetupCommand>
+  ) => boolean
+  readonly canCancelCreate: boolean
+  readonly onCancelCreate: () => void
+  readonly retryableSetups: ReadonlyArray<IAgentSetupRetry>
 }
 
 interface IAgentSessionsPanelState {
@@ -87,7 +97,11 @@ export class AgentSessionsPanel extends React.Component<
     )
   }
 
-  private onStart = async (request: INewAgentSessionRequest) => {
+  private onStart = async (
+    request: INewAgentSessionRequest,
+    setupCommands: ReadonlyArray<IAgentSetupCommand>,
+    restartSetup: boolean
+  ) => {
     if (this.props.isCreating || this.state.isSubmitting) {
       return
     }
@@ -95,7 +109,11 @@ export class AgentSessionsPanel extends React.Component<
     this.setState({ isSubmitting: true })
     let accepted = false
     try {
-      accepted = await this.props.onCreateSession(request)
+      accepted = await this.props.onCreateSession(
+        request,
+        setupCommands,
+        restartSetup
+      )
     } catch {
       accepted = false
     }
@@ -131,7 +149,12 @@ export class AgentSessionsPanel extends React.Component<
         isStarting={this.props.isCreating || this.state.isSubmitting}
         onStart={this.onStart}
         onCancel={this.onCloseCreator}
-        onConfigureSetupCommands={this.props.onConfigureSetupCommands}
+        setupCommands={this.props.setupCommands}
+        setupCommandsAvailable={this.props.setupCommandsAvailable}
+        onSaveSetupCommands={this.props.onSaveSetupCommands}
+        canCancelStart={this.props.canCancelCreate}
+        onCancelStart={this.props.onCancelCreate}
+        retryableSetups={this.props.retryableSetups}
       />
     )
   }

@@ -161,6 +161,10 @@ import {
   ApplicationQuitPreparationCoordinator,
   ApplicationQuitPreparationFailure,
 } from './application-quit-preparation'
+import {
+  agentSetupCommandRunner,
+  registerAgentSetupCommandRunnerIpc,
+} from './agent-setup-command-runner'
 
 app.setAppLogsPath()
 enableSourceMaps()
@@ -533,6 +537,10 @@ const ownedShutdownTasks: ReadonlyArray<IOwnedShutdownTask> = [
   { name: 'Local Actions runs', run: () => actionsLocalRunner.killAll() },
   { name: 'opencode processes', run: () => opencodeRunner.killAll() },
   { name: 'Codex processes', run: () => codexRunner.killAll() },
+  {
+    name: 'Agent setup commands',
+    run: () => agentSetupCommandRunner.killAll(),
+  },
   { name: 'CLI catalog probes', run: () => cliWorkbenchCatalog.killAll() },
   {
     name: 'CLI workbench processes',
@@ -1271,6 +1279,7 @@ app.on('ready', () => {
   )
 
   registerBuildRunIpc()
+  registerAgentSetupCommandRunnerIpc()
   registerActionsLocalRunIpc()
   registerCLIWorkbenchIpc()
   registerGitHubReleaseTransferIPC(ipcMain)

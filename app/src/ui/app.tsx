@@ -35,7 +35,9 @@ import { updateStore, UpdateStatus } from './lib/update-store'
 import {
   getPersistedLanguageMode,
   t,
+  translatedVariable,
   translateForAccessibleName,
+  type IBilingualVariable,
 } from '../lib/i18n'
 import { RetryAction } from '../models/retry-actions'
 import { FetchType } from '../models/fetch'
@@ -93,13 +95,21 @@ import {
   type RepositorySidebarView,
 } from './agent-sessions'
 import {
+  AgentSetupRunFailureReason,
   AgentSessionLiveStore,
+  IAgentSetupCommand,
   UnknownAgentRunnerAvailability,
+  createAgentSetupRepositoryIdentity,
   getSelectableCodingAgentIds,
   getAgentSessionBranchName,
+  loadAgentSetupCommands,
+  isExpectedAgentSetupWorktree,
   readAgentSessionGitStatus,
+  resumeAgentSetupCommands,
+  saveAgentSetupCommands as persistAgentSetupCommands,
   shouldPollAgentSessionDiffs,
   toAgentSession,
+  validateAgentSetupCommands,
   validateNewAgentSession,
 } from '../lib/agent-sessions'
 import type {
@@ -160,6 +170,8 @@ import {
   showFolderContents,
   onCodexLog,
   onOpencodeLog,
+  cancelAgentSetupCommands,
+  runAgentSetupCommands,
 } from './main-process-proxy'
 import { DiscardChanges } from './discard-changes'
 import { Welcome } from './welcome'
@@ -622,6 +634,78 @@ export function isWithinDimSumQuietHours(now: Date): boolean {
   }
 }
 
+interface IPendingAgentSetupWorktree {
+  readonly repositoryIdentity: string
+  readonly name: string
+  readonly branchName: string
+  readonly baseBranch: string
+  readonly path: string
+  readonly setupCommands: ReadonlyArray<IAgentSetupCommand>
+  readonly nextSetupCommandIndex: number
+}
+
+interface IAgentSetupCommandsState {
+  readonly commands: ReadonlyArray<IAgentSetupCommand>
+  readonly available: boolean
+}
+
+function agentSetupRetryKey(repositoryIdentity: string, name: string): string {
+  return `${repositoryIdentity}\0${name.toLocaleLowerCase('en-US')}`
+}
+
+function cloneAgentSetupCommands(
+  commands: ReadonlyArray<IAgentSetupCommand>
+): ReadonlyArray<IAgentSetupCommand> {
+  return commands.map(command => ({
+    enabled: command.enabled,
+    executable: command.executable,
+    args: [...command.args],
+  }))
+}
+
+function skippedAgentSetupCommandCount(
+  current: ReadonlyArray<IAgentSetupCommand>,
+  pending: IPendingAgentSetupWorktree
+): number {
+  const resumed = resumeAgentSetupCommands(
+    current,
+    pending.setupCommands,
+    pending.nextSetupCommandIndex
+  )
+  return resumed.reduce(
+    (count, command, index) =>
+      count + (current[index]?.enabled && !command.enabled ? 1 : 0),
+    0
+  )
+}
+
+function localizeAgentSetupFailure(
+  reason: AgentSetupRunFailureReason
+): IBilingualVariable {
+  switch (reason) {
+    case 'invalid-request':
+      return translatedVariable('agentSessions.setup.failure.invalidRequest')
+    case 'worktree-unavailable':
+      return translatedVariable(
+        'agentSessions.setup.failure.worktreeUnavailable'
+      )
+    case 'executable-unavailable':
+      return translatedVariable(
+        'agentSessions.setup.failure.executableUnavailable'
+      )
+    case 'spawn-failed':
+      return translatedVariable('agentSessions.setup.failure.spawnFailed')
+    case 'exit-code':
+      return translatedVariable('agentSessions.setup.failure.exitCode')
+    case 'timeout':
+      return translatedVariable('agentSessions.setup.failure.timeout')
+    case 'output-limit':
+      return translatedVariable('agentSessions.setup.failure.outputLimit')
+    default:
+      return assertNever(reason, `Unknown Agent setup failure: ${reason}`)
+  }
+}
+
 export class App extends React.Component<IAppProps, IAppState> {
   private loading = true
   private mounted = false
@@ -648,6 +732,12 @@ export class App extends React.Component<IAppProps, IAppState> {
   private repositorySidebarView: RepositorySidebarView = 'list'
   private agentRunnerAvailability = UnknownAgentRunnerAvailability
   private isCreatingAgentSession = false
+  private activeAgentSetupOperationId: string | null = null
+  private cancelledAgentSetupOperationId: string | null = null
+  private readonly pendingAgentSetupWorktrees = new Map<
+    string,
+    IPendingAgentSetupWorktree
+  >()
   private readonly agentSessionLiveStore = new AgentSessionLiveStore({
     readDiffStat: readAgentSessionGitStatus,
     onPollError: error =>
@@ -7633,11 +7723,81 @@ export class App extends React.Component<IAppProps, IAppState> {
     void this.props.dispatcher.switchWorktree(selection.repository, worktree)
   }
 
-  private onCreateAgentSession = (request: INewAgentSessionRequest) =>
-    this.createAgentSession(request)
+  private onCreateAgentSession = (
+    request: INewAgentSessionRequest,
+    setupCommands: ReadonlyArray<IAgentSetupCommand>,
+    restartSetup: boolean
+  ) => this.createAgentSession(request, setupCommands, restartSetup)
+
+  private loadAgentSetupCommands(
+    repository: Repository
+  ): ReadonlyArray<IAgentSetupCommand> {
+    return loadAgentSetupCommands(
+      localStorage,
+      createAgentSetupRepositoryIdentity(repository.id, repository.path)
+    )
+  }
+
+  private getAgentSetupCommandsState(
+    repository: Repository
+  ): IAgentSetupCommandsState {
+    try {
+      return {
+        commands: this.loadAgentSetupCommands(repository),
+        available: true,
+      }
+    } catch {
+      return { commands: [], available: false }
+    }
+  }
+
+  private saveAgentSetupCommands = (
+    commands: ReadonlyArray<IAgentSetupCommand>
+  ): boolean => {
+    const selection = this.getSelectedRepositoryState()
+    if (
+      selection === null ||
+      selection.repository instanceof SubmoduleRepository
+    ) {
+      return false
+    }
+    const repository = selection.repository
+    try {
+      persistAgentSetupCommands(
+        localStorage,
+        createAgentSetupRepositoryIdentity(repository.id, repository.path),
+        commands
+      )
+      this.forceUpdate()
+      return true
+    } catch {
+      this.props.dispatcher.postNotification({
+        kind: 'app-error',
+        title: t('agentSessions.notification.setupSaveFailedTitle'),
+        body: t('agentSessions.notification.setupSaveFailedBody'),
+      })
+      return false
+    }
+  }
+
+  private onCancelAgentSessionCreate = () => {
+    const operationId = this.activeAgentSetupOperationId
+    if (operationId === null) {
+      return
+    }
+    this.cancelledAgentSetupOperationId = operationId
+    this.activeAgentSetupOperationId = null
+    this.forceUpdate()
+    void cancelAgentSetupCommands(operationId).catch(() => {
+      // The setup invoke owns the final, sanitized user status. A cancellation
+      // race or renderer teardown must never surface raw IPC/process detail.
+    })
+  }
 
   private async createAgentSession(
-    request: INewAgentSessionRequest
+    request: INewAgentSessionRequest,
+    submittedSetupCommands: ReadonlyArray<IAgentSetupCommand>,
+    restartSetup: boolean
   ): Promise<boolean> {
     if (this.isCreatingAgentSession) {
       return false
@@ -7652,6 +7812,36 @@ export class App extends React.Component<IAppProps, IAppState> {
 
     const repository = selection.repository
     const name = request.name.trim()
+    const branchName = getAgentSessionBranchName(name)
+    const repositoryIdentity = createAgentSetupRepositoryIdentity(
+      repository.id,
+      repository.path
+    )
+    // The form submits a deep copy of exactly what it displayed. Do not reload
+    // shared storage here: another window changing it around Start must never
+    // substitute a different native command list after the user's review.
+    const reviewedSetupCommands = cloneAgentSetupCommands(
+      submittedSetupCommands
+    )
+    if (validateAgentSetupCommands(reviewedSetupCommands).length > 0) {
+      this.props.dispatcher.postNotification({
+        kind: 'app-error',
+        title: t('agentSessions.notification.setupLoadFailedTitle'),
+        body: t('agentSessions.notification.setupLoadFailedBody'),
+      })
+      return false
+    }
+    const retryKey = agentSetupRetryKey(repositoryIdentity, name)
+    const pending = this.pendingAgentSetupWorktrees.get(retryKey) ?? null
+    const retryCandidate =
+      pending !== null &&
+      pending.repositoryIdentity === repositoryIdentity &&
+      pending.name === name &&
+      pending.branchName === branchName &&
+      pending.baseBranch === request.baseBranch
+        ? pending
+        : null
+    const isRetry = retryCandidate !== null
     const branchNames = selection.state.branchesState.allBranches.map(
       branch => branch.name
     )
@@ -7662,12 +7852,19 @@ export class App extends React.Component<IAppProps, IAppState> {
     const baseBranches = branchNames.includes(defaultBaseBranch)
       ? branchNames
       : [defaultBaseBranch, ...branchNames]
+    const availableBaseBranches =
+      retryCandidate !== null &&
+      !baseBranches.includes(retryCandidate.baseBranch)
+        ? [retryCandidate.baseBranch, ...baseBranches]
+        : baseBranches
     const problems = validateNewAgentSession(request, {
-      existingWorktreeNames: selection.state.worktrees.map(
-        worktree => toAgentSession(worktree).name
+      existingWorktreeNames: selection.state.worktrees
+        .map(worktree => toAgentSession(worktree).name)
+        .filter(existing => !isRetry || existing !== name),
+      existingBranchNames: branchNames.filter(
+        existing => !isRetry || existing !== branchName
       ),
-      existingBranchNames: branchNames,
-      availableBaseBranches: baseBranches,
+      availableBaseBranches,
       selectableAgentIds: getSelectableCodingAgentIds(
         this.agentRunnerAvailability
       ),
@@ -7682,34 +7879,249 @@ export class App extends React.Component<IAppProps, IAppState> {
       })
       return false
     }
-    const worktreePath = Path.join(Path.dirname(repository.path), name)
+    const worktreePath =
+      isRetry && retryCandidate !== null
+        ? retryCandidate.path
+        : Path.join(Path.dirname(repository.path), name)
     let createdWorktreePath = worktreePath
     this.isCreatingAgentSession = true
     this.forceUpdate()
+    let worktreeMutationCompleted = isRetry
 
     try {
-      await this.props.dispatcher.addWorktree(repository, worktreePath, {
-        createBranch: getAgentSessionBranchName(name),
-        commitish: request.baseBranch,
-      })
+      let worktrees
+      if (retryCandidate !== null) {
+        worktrees = await listWorktrees(repository)
+        if (
+          !worktrees.some(worktree =>
+            isExpectedAgentSetupWorktree(retryCandidate, worktree)
+          )
+        ) {
+          this.pendingAgentSetupWorktrees.delete(retryKey)
+          this.props.dispatcher.postNotification({
+            kind: 'app-error',
+            title: t('agentSessions.notification.setupRetryUnavailableTitle'),
+            body: t('agentSessions.notification.setupRetryUnavailableBody', {
+              name,
+            }),
+          })
+          return false
+        }
+      } else {
+        await this.props.dispatcher.addWorktree(repository, worktreePath, {
+          createBranch: branchName,
+          commitish: request.baseBranch,
+        })
+        worktreeMutationCompleted = true
+        // Git has committed the mutation. Record a provisional retry before
+        // any refresh/list await so a transient follow-up failure cannot strand
+        // the new worktree behind duplicate-name validation.
+        this.pendingAgentSetupWorktrees.set(retryKey, {
+          repositoryIdentity,
+          name,
+          branchName,
+          baseBranch: request.baseBranch,
+          path: worktreePath,
+          setupCommands: reviewedSetupCommands,
+          nextSetupCommandIndex: 0,
+        })
+        worktrees = await listWorktrees(repository)
+      }
 
-      const worktrees = await listWorktrees(repository)
-      const normalizedPath = Path.resolve(worktreePath).toLowerCase()
-      const created = worktrees.find(
-        candidate =>
-          Path.resolve(candidate.path).toLowerCase() === normalizedPath
-      )
+      const expectedWorktree = isRetry
+        ? retryCandidate
+        : this.pendingAgentSetupWorktrees.get(retryKey) ?? null
+      const created =
+        expectedWorktree === null
+          ? undefined
+          : worktrees.find(candidate =>
+              isExpectedAgentSetupWorktree(expectedWorktree, candidate)
+            )
       if (created === undefined) {
-        throw new Error(
-          'Git created the worktree but did not return it in the refreshed worktree list.'
-        )
+        if (isRetry) {
+          this.pendingAgentSetupWorktrees.delete(retryKey)
+          this.props.dispatcher.postNotification({
+            kind: 'app-error',
+            title: t('agentSessions.notification.setupRetryUnavailableTitle'),
+            body: t('agentSessions.notification.setupRetryUnavailableBody', {
+              name,
+            }),
+          })
+        } else {
+          this.props.dispatcher.postNotification({
+            kind: 'app-error',
+            title: t('agentSessions.notification.setupVerificationFailedTitle'),
+            body: t('agentSessions.notification.setupVerificationFailedBody', {
+              name,
+            }),
+          })
+        }
+        return false
       }
       createdWorktreePath = created.path
+      const commands =
+        isRetry && retryCandidate !== null && !restartSetup
+          ? resumeAgentSetupCommands(
+              reviewedSetupCommands,
+              retryCandidate.setupCommands,
+              retryCandidate.nextSetupCommandIndex
+            )
+          : reviewedSetupCommands
+      const firstEnabledSetupCommand = commands.findIndex(
+        command => command.enabled
+      )
+      const setupResumeIndex =
+        firstEnabledSetupCommand < 0
+          ? commands.length
+          : firstEnabledSetupCommand
+      this.pendingAgentSetupWorktrees.set(retryKey, {
+        repositoryIdentity,
+        name,
+        branchName,
+        baseBranch: request.baseBranch,
+        path: created.path,
+        setupCommands: reviewedSetupCommands,
+        nextSetupCommandIndex: setupResumeIndex,
+      })
       this.agentSessionLiveStore.syncWorktreePaths(
         worktrees.map(worktree => worktree.path)
       )
       await this.props.dispatcher.refreshRepository(repository)
+
+      if (!this.mounted || this.disposed) {
+        return false
+      }
+
+      if (commands.some(command => command.enabled)) {
+        const setupOperationId = randomUUID()
+        this.cancelledAgentSetupOperationId = null
+        this.activeAgentSetupOperationId = setupOperationId
+        this.forceUpdate()
+        let setupResult
+        try {
+          setupResult = await runAgentSetupCommands({
+            operationId: setupOperationId,
+            repositoryPath: repository.path,
+            branchName,
+            worktreePath: createdWorktreePath,
+            commands,
+          })
+        } catch {
+          setupResult = {
+            status: 'failed' as const,
+            completed: 0,
+            commandIndex: null,
+            reason: 'spawn-failed' as const,
+          }
+        } finally {
+          if (this.activeAgentSetupOperationId === setupOperationId) {
+            this.activeAgentSetupOperationId = null
+          }
+          if (this.mounted) {
+            this.forceUpdate()
+          }
+        }
+
+        const cancellationRequested =
+          this.cancelledAgentSetupOperationId === setupOperationId
+        if (cancellationRequested) {
+          this.cancelledAgentSetupOperationId = null
+        }
+
+        if (!this.mounted || this.disposed) {
+          return false
+        }
+
+        if (cancellationRequested || setupResult.status === 'cancelled') {
+          const pendingSetup =
+            this.pendingAgentSetupWorktrees.get(retryKey) ?? null
+          if (pendingSetup !== null) {
+            this.pendingAgentSetupWorktrees.set(retryKey, {
+              ...pendingSetup,
+              setupCommands: reviewedSetupCommands,
+              nextSetupCommandIndex:
+                setupResult.status === 'succeeded'
+                  ? reviewedSetupCommands.length
+                  : setupResult.commandIndex ??
+                    pendingSetup.nextSetupCommandIndex,
+            })
+          }
+          this.props.dispatcher.postNotification({
+            kind: 'info',
+            title: t('agentSessions.notification.setupCancelledTitle'),
+            body: t('agentSessions.notification.setupCancelledBody', { name }),
+          })
+          return false
+        }
+        if (setupResult.status === 'failed') {
+          const pendingSetup =
+            this.pendingAgentSetupWorktrees.get(retryKey) ?? null
+          if (pendingSetup !== null) {
+            this.pendingAgentSetupWorktrees.set(retryKey, {
+              ...pendingSetup,
+              setupCommands: reviewedSetupCommands,
+              nextSetupCommandIndex:
+                setupResult.commandIndex ??
+                (setupResult.completed > 0
+                  ? reviewedSetupCommands.length
+                  : pendingSetup.nextSetupCommandIndex),
+            })
+          }
+          this.props.dispatcher.postNotification({
+            kind: 'app-error',
+            title: t('agentSessions.notification.setupFailedTitle'),
+            body:
+              setupResult.commandIndex === null
+                ? setupResult.completed > 0
+                  ? t('agentSessions.notification.setupFailedAfterRunBody', {
+                      name,
+                      count: String(setupResult.completed),
+                      reason: localizeAgentSetupFailure(setupResult.reason),
+                    })
+                  : t('agentSessions.notification.setupFailedBeforeRunBody', {
+                      name,
+                      reason: localizeAgentSetupFailure(setupResult.reason),
+                    })
+                : t('agentSessions.notification.setupFailedBody', {
+                    name,
+                    command: String(setupResult.commandIndex + 1),
+                    reason: localizeAgentSetupFailure(setupResult.reason),
+                  }),
+          })
+          return false
+        }
+      }
+
+      this.pendingAgentSetupWorktrees.delete(retryKey)
+      if (request.agent === 'none') {
+        this.props.dispatcher.postNotification({
+          kind: 'info',
+          title: t('agentSessions.notification.createdTitle'),
+          body: t('agentSessions.notification.createdBody', { name }),
+        })
+        return true
+      }
+
+      const operationId = randomUUID()
+      this.agentSessionLiveStore.beginRun(
+        createdWorktreePath,
+        request.agent,
+        operationId
+      )
+
+      void this.runAgentSession(request, name, createdWorktreePath, operationId)
+      return true
     } catch (error) {
+      if (worktreeMutationCompleted) {
+        this.props.dispatcher.postNotification({
+          kind: 'app-error',
+          title: t('agentSessions.notification.setupVerificationFailedTitle'),
+          body: t('agentSessions.notification.setupVerificationFailedBody', {
+            name,
+          }),
+        })
+        return false
+      }
       const message = asError(error).message
       this.props.dispatcher.postNotification({
         kind: 'app-error',
@@ -7721,34 +8133,13 @@ export class App extends React.Component<IAppProps, IAppState> {
       })
       return false
     } finally {
+      this.activeAgentSetupOperationId = null
+      this.cancelledAgentSetupOperationId = null
       this.isCreatingAgentSession = false
       if (this.mounted) {
         this.forceUpdate()
       }
     }
-
-    if (!this.mounted || this.disposed) {
-      return false
-    }
-
-    if (request.agent === 'none') {
-      this.props.dispatcher.postNotification({
-        kind: 'info',
-        title: t('agentSessions.notification.createdTitle'),
-        body: t('agentSessions.notification.createdBody', { name }),
-      })
-      return true
-    }
-
-    const operationId = randomUUID()
-    this.agentSessionLiveStore.beginRun(
-      createdWorktreePath,
-      request.agent,
-      operationId
-    )
-
-    void this.runAgentSession(request, name, createdWorktreePath, operationId)
-    return true
   }
 
   private async runAgentSession(
@@ -7882,9 +8273,34 @@ export class App extends React.Component<IAppProps, IAppState> {
     const baseBranches = branchNames.includes(defaultBaseBranch)
       ? branchNames
       : [defaultBaseBranch, ...branchNames]
+    const repositoryIdentity = createAgentSetupRepositoryIdentity(
+      selection.repository.id,
+      selection.repository.path
+    )
+    const setupCommandsState = this.getAgentSetupCommandsState(
+      selection.repository
+    )
+    const retryableSetups = [...this.pendingAgentSetupWorktrees.values()]
+      .filter(
+        pending =>
+          pending.repositoryIdentity === repositoryIdentity &&
+          worktrees.some(worktree =>
+            isExpectedAgentSetupWorktree(pending, worktree)
+          )
+      )
+      .map(pending => ({
+        name: pending.name,
+        baseBranch: pending.baseBranch,
+        skippedCommandCount: skippedAgentSetupCommandCount(
+          setupCommandsState.commands,
+          pending
+        ),
+      }))
+      .sort((left, right) => left.name.localeCompare(right.name))
 
     return (
       <AgentSessionsPanel
+        key={`agent-sessions-${repositoryIdentity}`}
         sessions={worktrees.map(worktree =>
           toAgentSession(
             worktree,
@@ -7900,6 +8316,12 @@ export class App extends React.Component<IAppProps, IAppState> {
         onCancelSession={this.onCancelAgentSession}
         onCreateSession={this.onCreateAgentSession}
         isCreating={this.isCreatingAgentSession}
+        setupCommands={setupCommandsState.commands}
+        setupCommandsAvailable={setupCommandsState.available}
+        onSaveSetupCommands={this.saveAgentSetupCommands}
+        canCancelCreate={this.activeAgentSetupOperationId !== null}
+        onCancelCreate={this.onCancelAgentSessionCreate}
+        retryableSetups={retryableSetups}
       />
     )
   }

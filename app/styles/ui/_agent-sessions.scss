@@ -323,6 +323,239 @@
   }
 }
 
+.new-agent-session-setup-link {
+  align-items: flex-start;
+  background: transparent;
+  border: 0;
+  color: var(--md-sys-color-primary);
+  display: flex;
+  flex-direction: column;
+  justify-self: start;
+  min-height: 40px;
+  padding: 4px 6px;
+  text-align: left;
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.new-agent-session-setup-count,
+.agent-setup-commands-count {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.new-agent-session-setup-status {
+  background: var(--md-sys-color-secondary-container);
+  border-radius: 10px;
+  color: var(--md-sys-color-on-secondary-container);
+  display: grid;
+  font-size: var(--font-size-sm);
+  gap: 4px;
+  min-width: 0;
+  padding: var(--spacing-half);
+
+  p {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  label {
+    align-items: center;
+    display: flex;
+    gap: var(--spacing-half);
+    min-height: 40px;
+  }
+}
+
+.agent-setup-commands-editor {
+  background: var(--md-sys-color-surface-container-low);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 12px;
+  display: grid;
+  gap: var(--spacing-half);
+  max-height: min(560px, 65vh);
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: var(--spacing);
+
+  .button-component {
+    min-height: 40px;
+  }
+}
+
+.agent-setup-commands-heading {
+  display: grid;
+  gap: 4px;
+
+  h3,
+  p {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  h3 {
+    color: var(--md-sys-color-on-surface);
+    font-size: var(--font-size);
+  }
+
+  p {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+  }
+}
+
+.agent-setup-commands-count {
+  margin: 0;
+}
+
+.agent-setup-command {
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 10px;
+  display: grid;
+  gap: var(--spacing-half);
+  margin: 0;
+  min-width: 0;
+  padding: var(--spacing-half);
+
+  legend {
+    color: var(--md-sys-color-on-surface);
+    font-weight: 600;
+    padding: 0 4px;
+  }
+}
+
+.agent-setup-command-enabled {
+  align-items: center;
+  display: flex;
+  gap: var(--spacing-half);
+  min-height: 40px;
+}
+
+.agent-setup-command-executable {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+
+  select {
+    background: var(--md-sys-color-surface-container);
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 8px;
+    color: var(--md-sys-color-on-surface);
+    font: inherit;
+    min-height: 40px;
+    min-width: 0;
+    padding: 6px 8px;
+    width: 100%;
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+}
+
+.agent-setup-command-arguments {
+  display: grid;
+  gap: var(--spacing-half);
+  min-width: 0;
+}
+
+.agent-setup-command-argument {
+  align-items: end;
+  display: grid;
+  gap: 4px var(--spacing-half);
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+
+  label {
+    grid-column: 1 / -1;
+  }
+
+  input {
+    background: var(--md-sys-color-surface);
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 8px;
+    color: var(--md-sys-color-on-surface);
+    font: inherit;
+    min-height: 40px;
+    min-width: 0;
+    padding: 6px 8px;
+    width: 100%;
+
+    &[aria-invalid='true'] {
+      border-color: var(--md-sys-color-error);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+}
+
+.agent-setup-command-actions,
+.agent-setup-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-half);
+}
+
+.agent-setup-command-actions {
+  justify-content: flex-end;
+
+  .button-component {
+    min-width: 40px;
+  }
+}
+
+.agent-setup-command-argument > .button-component {
+  min-width: 40px;
+}
+
+.agent-setup-add-command {
+  justify-self: start;
+}
+
+.agent-setup-command-problems {
+  color: var(--md-sys-color-error);
+  font-size: var(--font-size-sm);
+
+  &:empty {
+    display: none;
+  }
+
+  p {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+.agent-setup-editor-actions {
+  justify-content: flex-end;
+}
+
+.agent-setup-save {
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+
+@media (max-width: 420px) {
+  .agent-setup-editor-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .agent-setup-editor-actions > .button-component {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
 .coding-agent-picker {
   display: grid;
   gap: 4px;

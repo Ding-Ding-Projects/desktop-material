@@ -6,19 +6,26 @@ import {
 } from '../../models/agent-session'
 import {
   IAgentRunnerAvailability,
+  IAgentSetupCommand,
   INewAgentSessionProblem,
   getSelectableCodingAgentIds,
   validateNewAgentSession,
 } from '../../lib/agent-sessions'
 import { Button } from '../lib/button'
-import { LinkButton } from '../lib/link-button'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { Select } from '../lib/select'
 import { TextArea } from '../lib/text-area'
 import { TextBox } from '../lib/text-box'
 import { CodingAgentPicker } from './coding-agent-picker'
-import { t } from '../../lib/i18n'
+import { LanguageModeChangedEvent, t } from '../../lib/i18n'
 import { localizeAgentSessionProblem } from './agent-session-localization'
+import { AgentSetupCommandsEditor } from './agent-setup-commands-editor'
+
+export interface IAgentSetupRetry {
+  readonly name: string
+  readonly baseBranch: string
+  readonly skippedCommandCount: number
+}
 
 interface INewAgentSessionFormProps {
   readonly availability: IAgentRunnerAvailability
@@ -30,14 +37,22 @@ interface INewAgentSessionFormProps {
   readonly existingBranchNames: ReadonlyArray<string>
   /** True while a session is being created; the form stays visible but inert. */
   readonly isStarting: boolean
-  readonly onStart: (request: INewAgentSessionRequest) => void
+  readonly onStart: (
+    request: INewAgentSessionRequest,
+    setupCommands: ReadonlyArray<IAgentSetupCommand>,
+    restartSetup: boolean
+  ) => void
   readonly onCancel: () => void
-  /**
-   * Opens the setup-commands editor. Optional because that editor is not part
-   * of this panel — when it is absent the link says so rather than pretending
-   * to be a working control.
-   */
-  readonly onConfigureSetupCommands?: () => void
+  /** Reviewed setup commands persisted for this form's exact repository. */
+  readonly setupCommands: ReadonlyArray<IAgentSetupCommand>
+  /** False when this repository's setup document could not be read safely. */
+  readonly setupCommandsAvailable: boolean
+  readonly onSaveSetupCommands: (
+    commands: ReadonlyArray<IAgentSetupCommand>
+  ) => boolean
+  readonly canCancelStart: boolean
+  readonly onCancelStart: () => void
+  readonly retryableSetups: ReadonlyArray<IAgentSetupRetry>
 }
 
 interface INewAgentSessionFormState {
@@ -46,6 +61,8 @@ interface INewAgentSessionFormState {
   readonly agent: CodingAgentId
   readonly prompt: string
   readonly isOptionsExpanded: boolean
+  readonly isSetupEditorOpen: boolean
+  readonly restartSetup: boolean
 }
 
 /**
@@ -65,6 +82,7 @@ export class NewAgentSessionForm extends React.Component<
   INewAgentSessionFormState
 > {
   private readonly problemsId = 'new-agent-session-problems'
+  private setupButton: HTMLButtonElement | null = null
 
   public constructor(props: INewAgentSessionFormProps) {
     super(props)
@@ -74,7 +92,29 @@ export class NewAgentSessionForm extends React.Component<
       agent: 'none',
       prompt: '',
       isOptionsExpanded: false,
+      isSetupEditorOpen: false,
+      restartSetup: false,
     }
+  }
+
+  public componentDidMount() {
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  public componentWillUnmount() {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  private onLanguageModeChanged = () => this.forceUpdate()
+
+  private onSetupButtonRef = (button: HTMLButtonElement | null) => {
+    this.setupButton = button
   }
 
   private get request(): INewAgentSessionRequest {
@@ -86,22 +126,68 @@ export class NewAgentSessionForm extends React.Component<
     }
   }
 
+  private retryForName(name: string): IAgentSetupRetry | null {
+    const trimmed = name.trim()
+    return (
+      this.props.retryableSetups.find(
+        candidate => candidate.name === trimmed
+      ) ?? null
+    )
+  }
+
+  private get retryCandidate(): IAgentSetupRetry | null {
+    return this.retryForName(this.state.name)
+  }
+
+  private get isExactRetry(): boolean {
+    const retry = this.retryCandidate
+    return retry !== null && this.state.baseBranch === retry.baseBranch
+  }
+
+  private get availableBaseBranches(): ReadonlyArray<string> {
+    const retry = this.retryCandidate
+    return retry !== null && !this.props.baseBranches.includes(retry.baseBranch)
+      ? [retry.baseBranch, ...this.props.baseBranches]
+      : this.props.baseBranches
+  }
+
   private get problems(): ReadonlyArray<INewAgentSessionProblem> {
+    const retry = this.retryCandidate
+    const isRetry = this.isExactRetry
     return validateNewAgentSession(this.request, {
-      existingWorktreeNames: this.props.existingWorktreeNames,
-      existingBranchNames: this.props.existingBranchNames,
-      availableBaseBranches: this.props.baseBranches,
+      existingWorktreeNames: isRetry
+        ? this.props.existingWorktreeNames.filter(name => name !== retry?.name)
+        : this.props.existingWorktreeNames,
+      existingBranchNames: isRetry
+        ? this.props.existingBranchNames.filter(name => name !== retry?.name)
+        : this.props.existingBranchNames,
+      availableBaseBranches: this.availableBaseBranches,
       selectableAgentIds: getSelectableCodingAgentIds(this.props.availability),
     })
   }
 
   private onNameChanged = (name: string) => {
-    this.setState({ name })
+    const retry = this.retryForName(name)
+    this.setState(previous => ({
+      name,
+      baseBranch:
+        retry?.baseBranch ??
+        (this.props.baseBranches.includes(previous.baseBranch)
+          ? previous.baseBranch
+          : this.props.defaultBaseBranch),
+      restartSetup: false,
+    }))
   }
 
   private onBaseBranchChanged = (event: React.FormEvent<HTMLSelectElement>) => {
-    this.setState({ baseBranch: event.currentTarget.value })
+    this.setState({
+      baseBranch: event.currentTarget.value,
+      restartSetup: false,
+    })
   }
+
+  private onRestartSetupChanged = (event: React.FormEvent<HTMLInputElement>) =>
+    this.setState({ restartSetup: event.currentTarget.checked })
 
   private onAgentChanged = (agent: CodingAgentId) => {
     this.setState({ agent })
@@ -114,15 +200,49 @@ export class NewAgentSessionForm extends React.Component<
   private onToggleOptions = () => {
     this.setState(previous => ({
       isOptionsExpanded: !previous.isOptionsExpanded,
+      isSetupEditorOpen: previous.isOptionsExpanded
+        ? false
+        : previous.isSetupEditorOpen,
     }))
+  }
+
+  private onOpenSetupEditor = () => {
+    this.setState({ isSetupEditorOpen: true })
+  }
+
+  private onCloseSetupEditor = () => {
+    this.setState({ isSetupEditorOpen: false }, () => this.setupButton?.focus())
+  }
+
+  private onSaveSetupCommands = (
+    commands: ReadonlyArray<IAgentSetupCommand>
+  ): boolean => {
+    const saved = this.props.onSaveSetupCommands(commands)
+    if (saved) {
+      this.onCloseSetupEditor()
+    }
+    return saved
   }
 
   private onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (this.props.isStarting || this.problems.length > 0) {
+    if (
+      this.props.isStarting ||
+      this.state.isSetupEditorOpen ||
+      !this.props.setupCommandsAvailable ||
+      this.problems.length > 0
+    ) {
       return
     }
-    this.props.onStart(this.request)
+    this.props.onStart(
+      this.request,
+      this.props.setupCommands.map(command => ({
+        enabled: command.enabled,
+        executable: command.executable,
+        args: [...command.args],
+      })),
+      this.state.restartSetup
+    )
   }
 
   private renderProblems(problems: ReadonlyArray<INewAgentSessionProblem>) {
@@ -175,7 +295,7 @@ export class NewAgentSessionForm extends React.Component<
             onChange={this.onBaseBranchChanged}
             disabled={this.props.isStarting}
           >
-            {this.props.baseBranches.map(branch => (
+            {this.availableBaseBranches.map(branch => (
               <option key={branch} value={branch}>
                 {branch}
               </option>
@@ -198,19 +318,80 @@ export class NewAgentSessionForm extends React.Component<
               ariaDescribedBy={this.problemsId}
             />
           )}
-          <LinkButton
+          <Button
             className="new-agent-session-setup-link"
-            onClick={this.props.onConfigureSetupCommands}
-            disabled={this.props.onConfigureSetupCommands === undefined}
-            title={
-              this.props.onConfigureSetupCommands === undefined
-                ? t('agentSessions.setupUnavailable')
-                : undefined
+            dataVerification="agent-setup-configure"
+            onClick={this.onOpenSetupEditor}
+            onButtonRef={this.onSetupButtonRef}
+            ariaExpanded={this.state.isSetupEditorOpen}
+            ariaControls="agent-setup-commands-editor"
+            disabled={
+              this.props.isStarting || !this.props.setupCommandsAvailable
             }
           >
             {t('agentSessions.configureSetup')}
-          </LinkButton>
+            <span className="new-agent-session-setup-count">
+              {!this.props.setupCommandsAvailable
+                ? t('agentSessions.setup.count.unavailable')
+                : this.props.setupCommands.length === 0
+                ? t('agentSessions.setup.count.none')
+                : this.props.setupCommands.length === 1
+                ? t('agentSessions.setup.count.one')
+                : t('agentSessions.setup.count.some', {
+                    count: String(this.props.setupCommands.length),
+                  })}
+            </span>
+          </Button>
+          {this.state.isSetupEditorOpen &&
+            this.props.setupCommandsAvailable && (
+              <AgentSetupCommandsEditor
+                commands={this.props.setupCommands}
+                onSave={this.onSaveSetupCommands}
+                onCancel={this.onCloseSetupEditor}
+              />
+            )}
         </div>
+      </div>
+    )
+  }
+
+  private renderSetupStatus() {
+    if (!this.props.setupCommandsAvailable) {
+      return (
+        <p className="new-agent-session-setup-status" role="status">
+          {t('agentSessions.setup.unavailable')}
+        </p>
+      )
+    }
+
+    const retry = this.retryCandidate
+    if (retry === null || !this.isExactRetry) {
+      return null
+    }
+    const plan = this.state.restartSetup
+      ? t('agentSessions.setup.retryPlan.restart')
+      : retry.skippedCommandCount === 0
+      ? t('agentSessions.setup.retryPlan.all')
+      : retry.skippedCommandCount === 1
+      ? t('agentSessions.setup.retryPlan.one')
+      : t('agentSessions.setup.retryPlan.some', {
+          count: String(retry.skippedCommandCount),
+        })
+
+    return (
+      <div className="new-agent-session-setup-status">
+        <p role="status">{plan}</p>
+        {retry.skippedCommandCount > 0 && (
+          <label>
+            <input
+              type="checkbox"
+              checked={this.state.restartSetup}
+              onChange={this.onRestartSetupChanged}
+              disabled={this.props.isStarting}
+            />
+            {t('agentSessions.setup.restart')}
+          </label>
+        )}
       </div>
     )
   }
@@ -236,18 +417,30 @@ export class NewAgentSessionForm extends React.Component<
           }
         />
         {this.renderOptions()}
+        {this.renderSetupStatus()}
         {this.renderProblems(problems)}
         <div className="new-agent-session-actions">
           <Button
-            onClick={this.props.onCancel}
-            disabled={this.props.isStarting}
+            onClick={
+              this.props.isStarting
+                ? this.props.onCancelStart
+                : this.props.onCancel
+            }
+            disabled={this.props.isStarting && !this.props.canCancelStart}
           >
-            {t('agentSessions.cancel')}
+            {this.props.isStarting
+              ? t('agentSessions.setup.cancelRun')
+              : t('agentSessions.cancel')}
           </Button>
           <Button
             type="submit"
             className="new-agent-session-start"
-            disabled={this.props.isStarting || problems.length > 0}
+            disabled={
+              this.props.isStarting ||
+              this.state.isSetupEditorOpen ||
+              !this.props.setupCommandsAvailable ||
+              problems.length > 0
+            }
           >
             {t('agentSessions.start')}
           </Button>

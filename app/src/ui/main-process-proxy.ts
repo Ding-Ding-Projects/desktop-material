@@ -547,6 +547,15 @@ export const runCodexPrompt = invokeProxy('codex-run-prompt', 1)
 /** Cancel one Codex process tree. */
 export const cancelCodex = invokeProxy('codex-cancel', 1)
 
+/** Run a reviewed Agent setup list in its newly created Git worktree. */
+export const runAgentSetupCommands = invokeProxy('run-agent-setup-commands', 1)
+
+/** Cancel only the setup operation owned by this renderer. */
+export const cancelAgentSetupCommands = invokeProxy(
+  'cancel-agent-setup-commands',
+  1
+)
+
 /** Subscribe to bounded Codex stdout/stderr lines. */
 export function onCodexLog(
   handler: (event: Electron.IpcRendererEvent, log: ICodexLogEvent) => void

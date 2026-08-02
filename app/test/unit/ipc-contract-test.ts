@@ -185,6 +185,8 @@ describe('IPC channel contract', () => {
     'codex-run-fix',
     'codex-run-prompt',
     'codex-cancel',
+    'run-agent-setup-commands',
+    'cancel-agent-setup-commands',
     'get-cli-workbench-runtime',
     'start-cli-command',
     'cancel-cli-command',
@@ -272,6 +274,27 @@ describe('IPC channel contract', () => {
       const hasNoRawFields: RawFields extends never ? true : never = true
 
       assert.equal(hasNoRawFields, true)
+    })
+
+    it('keeps setup execution free of command lines, shells, env, and cwd overrides', () => {
+      type SetupRequest = Parameters<
+        RequestResponseChannels['run-agent-setup-commands']
+      >[0]
+      type UnsafeFields = Extract<
+        keyof SetupRequest,
+        'commandLine' | 'shell' | 'env' | 'cwd'
+      >
+      const hasNoUnsafeFields: UnsafeFields extends never ? true : never = true
+      type MissingIdentityFields = Exclude<
+        'repositoryPath' | 'branchName',
+        keyof SetupRequest
+      >
+      const bindsRepositoryAndBranch: MissingIdentityFields extends never
+        ? true
+        : never = true
+
+      assert.equal(hasNoUnsafeFields, true)
+      assert.equal(bindsRepositoryAndBranch, true)
     })
   })
 })

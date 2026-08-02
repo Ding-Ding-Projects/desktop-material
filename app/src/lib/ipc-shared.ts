@@ -112,6 +112,10 @@ import {
   CheapLfsPayloadCredentialCleanupResult,
   ICheapLfsPayloadCredentialCleanupRequest,
 } from './cheap-lfs/payload-encryption-credential-cleanup'
+import {
+  AgentSetupRunResult,
+  IAgentSetupRunRequest,
+} from './agent-sessions/setup-commands'
 
 /**
  * Defines the simplex IPC channel names we use from the renderer
@@ -424,6 +428,10 @@ export type RequestResponseChannels = {
     request: ICodexRunPromptRequest
   ) => Promise<ICodexRunResult>
   'codex-cancel': (operationId: string) => Promise<void>
+  'run-agent-setup-commands': (
+    request: IAgentSetupRunRequest
+  ) => Promise<AgentSetupRunResult>
+  'cancel-agent-setup-commands': (operationId: string) => Promise<boolean>
   'get-cli-workbench-runtime': () => Promise<ICLIWorkbenchRuntime>
   'start-cli-command': (request: ICLIWorkbenchOperationRequest) => Promise<void>
   'cancel-cli-command': (id: string) => Promise<boolean>

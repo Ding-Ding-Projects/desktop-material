@@ -10,6 +10,7 @@ export { AgentSessionChip } from './agent-session-chip'
 export { AgentSessionFleetList } from './agent-session-fleet-list'
 export { CodingAgentPicker } from './coding-agent-picker'
 export { NewAgentSessionForm } from './new-agent-session-form'
+export { AgentSetupCommandsEditor } from './agent-setup-commands-editor'
 export {
   cancelAgentSessionRun,
   detectAgentRunnerAvailability,

@@ -3281,7 +3281,40 @@ export type TranslationKey =
   | 'agentSessions.taskLabel'
   | 'agentSessions.taskPlaceholder'
   | 'agentSessions.configureSetup'
-  | 'agentSessions.setupUnavailable'
+  | 'agentSessions.setup.title'
+  | 'agentSessions.setup.description'
+  | 'agentSessions.setup.count.none'
+  | 'agentSessions.setup.count.one'
+  | 'agentSessions.setup.count.some'
+  | 'agentSessions.setup.count.unavailable'
+  | 'agentSessions.setup.unavailable'
+  | 'agentSessions.setup.retryPlan.all'
+  | 'agentSessions.setup.retryPlan.one'
+  | 'agentSessions.setup.retryPlan.some'
+  | 'agentSessions.setup.retryPlan.restart'
+  | 'agentSessions.setup.restart'
+  | 'agentSessions.setup.commandLabel'
+  | 'agentSessions.setup.enabled'
+  | 'agentSessions.setup.executable'
+  | 'agentSessions.setup.argumentLabel'
+  | 'agentSessions.setup.removeArgument'
+  | 'agentSessions.setup.addArgument'
+  | 'agentSessions.setup.moveUp'
+  | 'agentSessions.setup.moveDown'
+  | 'agentSessions.setup.removeCommand'
+  | 'agentSessions.setup.addCommand'
+  | 'agentSessions.setup.save'
+  | 'agentSessions.setup.cancelRun'
+  | 'agentSessions.setup.problem.tooManyCommands'
+  | 'agentSessions.setup.problem.missingArgument'
+  | 'agentSessions.setup.problem.emptyArgument'
+  | 'agentSessions.setup.problem.tooManyArguments'
+  | 'agentSessions.setup.problem.argumentTooLong'
+  | 'agentSessions.setup.problem.credential'
+  | 'agentSessions.setup.problem.cwdOverride'
+  | 'agentSessions.setup.problem.commandString'
+  | 'agentSessions.setup.problem.unsafeArgument'
+  | 'agentSessions.setup.problem.saveFailed'
   | 'agentSessions.worktreeName'
   | 'agentSessions.cancel'
   | 'agentSessions.start'
@@ -3330,6 +3363,27 @@ export type TranslationKey =
   | 'agentSessions.notification.failedBody'
   | 'agentSessions.notification.runnerCouldNotStart'
   | 'agentSessions.notification.runnerExitedWithCode'
+  | 'agentSessions.notification.setupSaveFailedTitle'
+  | 'agentSessions.notification.setupSaveFailedBody'
+  | 'agentSessions.notification.setupLoadFailedTitle'
+  | 'agentSessions.notification.setupLoadFailedBody'
+  | 'agentSessions.notification.setupRetryUnavailableTitle'
+  | 'agentSessions.notification.setupRetryUnavailableBody'
+  | 'agentSessions.notification.setupVerificationFailedTitle'
+  | 'agentSessions.notification.setupVerificationFailedBody'
+  | 'agentSessions.notification.setupFailedTitle'
+  | 'agentSessions.notification.setupFailedBody'
+  | 'agentSessions.notification.setupFailedBeforeRunBody'
+  | 'agentSessions.notification.setupFailedAfterRunBody'
+  | 'agentSessions.notification.setupCancelledTitle'
+  | 'agentSessions.notification.setupCancelledBody'
+  | 'agentSessions.setup.failure.invalidRequest'
+  | 'agentSessions.setup.failure.worktreeUnavailable'
+  | 'agentSessions.setup.failure.executableUnavailable'
+  | 'agentSessions.setup.failure.spawnFailed'
+  | 'agentSessions.setup.failure.exitCode'
+  | 'agentSessions.setup.failure.timeout'
+  | 'agentSessions.setup.failure.outputLimit'
   | 'repositorySigning.title'
   | 'repositorySigning.hubDescription'
   | 'repositorySigning.shortcutLabel'
@@ -7591,15 +7645,64 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'agentSessions.taskLabel': 'Task for the agent',
   'agentSessions.taskPlaceholder': 'What should the agent do in this worktree?',
   'agentSessions.configureSetup': 'Configure setup commands',
-  'agentSessions.setupUnavailable':
-    'Setup commands cannot be configured from this panel yet.',
+  'agentSessions.setup.title': 'Setup commands',
+  'agentSessions.setup.description':
+    'Review the executable and each separate argument. Enabled commands run in order after Git creates the worktree and before the coding agent starts.',
+  'agentSessions.setup.count.none': 'No setup commands configured',
+  'agentSessions.setup.count.one': '1 setup command configured',
+  'agentSessions.setup.count.some': '{count} setup commands configured',
+  'agentSessions.setup.count.unavailable': 'Setup commands unavailable',
+  'agentSessions.setup.unavailable':
+    'Setup commands could not be read safely. Restore local storage access before starting.',
+  'agentSessions.setup.retryPlan.all':
+    'This preserved worktree will retry every enabled setup command.',
+  'agentSessions.setup.retryPlan.one':
+    '1 unchanged completed command will be skipped. Setup continues with the next reviewed command.',
+  'agentSessions.setup.retryPlan.some':
+    '{count} unchanged completed commands will be skipped. Setup continues with the next reviewed command.',
+  'agentSessions.setup.retryPlan.restart':
+    'Every enabled setup command will run again from command 1.',
+  'agentSessions.setup.restart': 'Run setup again from command 1',
+  'agentSessions.setup.commandLabel': 'Command {count}',
+  'agentSessions.setup.enabled': 'Run this command',
+  'agentSessions.setup.executable': 'Executable',
+  'agentSessions.setup.argumentLabel': 'Argument {count}',
+  'agentSessions.setup.removeArgument': 'Remove argument {count}',
+  'agentSessions.setup.addArgument': 'Add argument',
+  'agentSessions.setup.moveUp': 'Move command {count} up',
+  'agentSessions.setup.moveDown': 'Move command {count} down',
+  'agentSessions.setup.removeCommand': 'Remove command {count}',
+  'agentSessions.setup.addCommand': 'Add command',
+  'agentSessions.setup.save': 'Save setup commands',
+  'agentSessions.setup.cancelRun': 'Cancel setup',
+  'agentSessions.setup.problem.tooManyCommands':
+    'Keep at most {count} setup commands.',
+  'agentSessions.setup.problem.missingArgument':
+    'Command {command} needs at least one non-empty argument.',
+  'agentSessions.setup.problem.emptyArgument':
+    'Command {command}, argument {argument} cannot be empty.',
+  'agentSessions.setup.problem.tooManyArguments':
+    'Command {command} may have at most {count} arguments.',
+  'agentSessions.setup.problem.argumentTooLong':
+    'Command {command}, argument {argument} is too long.',
+  'agentSessions.setup.problem.credential':
+    'Command {command}, argument {argument} looks like a credential. Setup commands never store secrets.',
+  'agentSessions.setup.problem.cwdOverride':
+    'Command {command}, argument {argument} would change the reviewed worktree directory.',
+  'agentSessions.setup.problem.commandString':
+    'Command {command}, argument {argument} would evaluate a command string. Choose a script file instead.',
+  'agentSessions.setup.problem.unsafeArgument':
+    'Command {command}, argument {argument} contains unsupported shell, expansion, or control syntax.',
+  'agentSessions.setup.problem.saveFailed':
+    'The setup commands could not be saved. The previous list is unchanged.',
   'agentSessions.worktreeName': 'Worktree name',
   'agentSessions.cancel': 'Cancel',
   'agentSessions.start': 'Start',
   'agentSessions.agent.none': '<None>',
   'agentSessions.agent.notDetected': '{name} — not detected',
   'agentSessions.agent.notAuthenticated': '{name} — authentication required',
-  'agentSessions.noneHint': '<None> creates the worktree and runs nothing.',
+  'agentSessions.noneHint':
+    '<None> runs configured setup commands but starts no coding agent.',
   'agentSessions.problem.nameEmpty': 'Enter a name for the new worktree.',
   'agentSessions.problem.nameTooLong': 'Use {count} characters or fewer.',
   'agentSessions.problem.nameSeparator':
@@ -7657,6 +7760,45 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     '{agent} could not start cleanly.',
   'agentSessions.notification.runnerExitedWithCode':
     '{agent} exited with code {code}.',
+  'agentSessions.notification.setupSaveFailedTitle':
+    'Setup commands could not be saved',
+  'agentSessions.notification.setupSaveFailedBody':
+    'The reviewed list for this repository is unchanged. Check local storage access and try again.',
+  'agentSessions.notification.setupLoadFailedTitle':
+    'Setup commands could not be read',
+  'agentSessions.notification.setupLoadFailedBody':
+    "No worktree was created. Restore local storage access, review this repository's setup list, and try again.",
+  'agentSessions.notification.setupRetryUnavailableTitle':
+    'Worktree setup cannot be retried',
+  'agentSessions.notification.setupRetryUnavailableBody':
+    '{name} no longer matches the preserved linked worktree path and branch. No setup command ran. Review the current worktree before creating a replacement.',
+  'agentSessions.notification.setupVerificationFailedTitle':
+    'Worktree setup could not be verified',
+  'agentSessions.notification.setupVerificationFailedBody':
+    '{name} was kept, but its linked path and branch could not be verified. No setup command or coding agent started. Refresh the repository and retry.',
+  'agentSessions.notification.setupFailedTitle': 'Worktree setup failed',
+  'agentSessions.notification.setupFailedBody':
+    '{name} was kept. Command {command} did not finish: {reason} Review the setup list, then select Start again to retry.',
+  'agentSessions.notification.setupFailedBeforeRunBody':
+    '{name} was kept. Setup did not start: {reason} Review the setup list, then select Start again to retry.',
+  'agentSessions.notification.setupFailedAfterRunBody':
+    '{name} was kept. {count} setup command(s) finished, but final worktree verification failed: {reason} Review the worktree before retrying.',
+  'agentSessions.notification.setupCancelledTitle': 'Worktree setup cancelled',
+  'agentSessions.notification.setupCancelledBody':
+    '{name} was kept. Review the setup list, then select Start again to retry.',
+  'agentSessions.setup.failure.invalidRequest':
+    'the reviewed command list was invalid.',
+  'agentSessions.setup.failure.worktreeUnavailable':
+    'the Git worktree was unavailable.',
+  'agentSessions.setup.failure.executableUnavailable':
+    'the selected native executable was not available.',
+  'agentSessions.setup.failure.spawnFailed':
+    'the selected executable could not be started.',
+  'agentSessions.setup.failure.exitCode':
+    'the executable returned a non-zero exit code.',
+  'agentSessions.setup.failure.timeout': 'the fixed execution timeout expired.',
+  'agentSessions.setup.failure.outputLimit':
+    'the fixed private-output limit was exceeded.',
   'repositorySigning.title': 'Commit and tag signing',
   'repositorySigning.hubDescription':
     'Inspect and review the repository or global signing policy for commits and annotated tags.',
@@ -11673,14 +11815,63 @@ export const cantoneseTranslations: Readonly<
   'agentSessions.taskLabel': '交畀代理嘅工作',
   'agentSessions.taskPlaceholder': '代理要喺呢棵工作樹做乜？',
   'agentSessions.configureSetup': '設定準備指令',
-  'agentSessions.setupUnavailable': '呢個面板暫時未可以設定準備指令。',
+  'agentSessions.setup.title': '準備指令',
+  'agentSessions.setup.description':
+    '請逐項覆核執行檔同每個獨立參數。Git 建好工作樹之後，已啟用指令會依次執行，全部成功先至啟動程式代理。',
+  'agentSessions.setup.count.none': '未設定準備指令',
+  'agentSessions.setup.count.one': '已設定 1 條準備指令',
+  'agentSessions.setup.count.some': '已設定 {count} 條準備指令',
+  'agentSessions.setup.count.unavailable': '準備指令暫時不可用',
+  'agentSessions.setup.unavailable':
+    '未能安全讀取準備指令。請恢復本機儲存權限先再開始。',
+  'agentSessions.setup.retryPlan.all':
+    '呢棵已保留工作樹會重試全部已啟用準備指令。',
+  'agentSessions.setup.retryPlan.one':
+    '會略過 1 條內容無變而且已完成嘅指令，再由下一條已覆核指令繼續。',
+  'agentSessions.setup.retryPlan.some':
+    '會略過 {count} 條內容無變而且已完成嘅指令，再由下一條已覆核指令繼續。',
+  'agentSessions.setup.retryPlan.restart':
+    '全部已啟用準備指令會由第一條重新執行。',
+  'agentSessions.setup.restart': '由第一條重新執行準備指令',
+  'agentSessions.setup.commandLabel': '指令 {count}',
+  'agentSessions.setup.enabled': '執行呢條指令',
+  'agentSessions.setup.executable': '執行檔',
+  'agentSessions.setup.argumentLabel': '參數 {count}',
+  'agentSessions.setup.removeArgument': '移除參數 {count}',
+  'agentSessions.setup.addArgument': '加入參數',
+  'agentSessions.setup.moveUp': '將指令 {count} 上移',
+  'agentSessions.setup.moveDown': '將指令 {count} 下移',
+  'agentSessions.setup.removeCommand': '移除指令 {count}',
+  'agentSessions.setup.addCommand': '加入指令',
+  'agentSessions.setup.save': '儲存準備指令',
+  'agentSessions.setup.cancelRun': '取消準備',
+  'agentSessions.setup.problem.tooManyCommands':
+    '最多保留 {count} 條準備指令。',
+  'agentSessions.setup.problem.missingArgument':
+    '指令 {command} 至少要有一個非空白參數。',
+  'agentSessions.setup.problem.emptyArgument':
+    '指令 {command} 嘅參數 {argument} 唔可以留空。',
+  'agentSessions.setup.problem.tooManyArguments':
+    '指令 {command} 最多可以有 {count} 個參數。',
+  'agentSessions.setup.problem.argumentTooLong':
+    '指令 {command} 嘅參數 {argument} 太長。',
+  'agentSessions.setup.problem.credential':
+    '指令 {command} 嘅參數 {argument} 似係憑證。準備指令唔會儲存秘密。',
+  'agentSessions.setup.problem.cwdOverride':
+    '指令 {command} 嘅參數 {argument} 會離開已覆核嘅工作樹目錄。',
+  'agentSessions.setup.problem.commandString':
+    '指令 {command} 嘅參數 {argument} 會直接執行指令字串；請改用腳本檔案。',
+  'agentSessions.setup.problem.unsafeArgument':
+    '指令 {command} 嘅參數 {argument} 包含唔支援嘅 shell、展開或控制語法。',
+  'agentSessions.setup.problem.saveFailed':
+    '未能儲存準備指令；原有清單保持不變。',
   'agentSessions.worktreeName': '工作樹名稱',
   'agentSessions.cancel': '取消',
   'agentSessions.start': '開始',
   'agentSessions.agent.none': '<無>',
   'agentSessions.agent.notDetected': '{name} — 未偵測到',
   'agentSessions.agent.notAuthenticated': '{name} — 需要先完成登入驗證',
-  'agentSessions.noneHint': '<無> 只會新增工作樹，唔會啟動任何代理。',
+  'agentSessions.noneHint': '<無> 會先跑已設定嘅準備指令，但唔會啟動程式代理。',
   'agentSessions.problem.nameEmpty': '請輸入新工作樹名稱。',
   'agentSessions.problem.nameTooLong': '請用 {count} 個字元或以下。',
   'agentSessions.problem.nameSeparator': '工作樹名稱唔可以包含路徑分隔符號。',
@@ -11729,6 +11920,37 @@ export const cantoneseTranslations: Readonly<
   'agentSessions.notification.runnerCouldNotStart': '{agent} 未能正常啟動。',
   'agentSessions.notification.runnerExitedWithCode':
     '{agent} 以代碼 {code} 退出。',
+  'agentSessions.notification.setupSaveFailedTitle': '未能儲存準備指令',
+  'agentSessions.notification.setupSaveFailedBody':
+    '呢個 repository 嘅已覆核清單保持不變。請檢查本機儲存權限再試。',
+  'agentSessions.notification.setupLoadFailedTitle': '未能讀取準備指令',
+  'agentSessions.notification.setupLoadFailedBody':
+    '未有新增工作樹。請恢復本機儲存權限、覆核呢個 repository 嘅準備清單，再試一次。',
+  'agentSessions.notification.setupRetryUnavailableTitle': '未能重試工作樹準備',
+  'agentSessions.notification.setupRetryUnavailableBody':
+    '已保留嘅 {name} 已經唔再符合原本連結工作樹路徑同分支。未有執行準備指令。請先檢查現有工作樹，再決定係咪新增替代品。',
+  'agentSessions.notification.setupVerificationFailedTitle':
+    '未能驗證工作樹準備',
+  'agentSessions.notification.setupVerificationFailedBody':
+    '已保留 {name}，但未能驗證佢嘅連結路徑同分支。未有執行準備指令或啟動程式代理。請重新整理 repository 再重試。',
+  'agentSessions.notification.setupFailedTitle': '工作樹準備失敗',
+  'agentSessions.notification.setupFailedBody':
+    '已保留 {name}。指令 {command} 未完成：{reason} 請覆核準備清單，再揀「開始」重試。',
+  'agentSessions.notification.setupFailedBeforeRunBody':
+    '已保留 {name}。準備程序未有啟動：{reason} 請覆核準備清單，再揀「開始」重試。',
+  'agentSessions.notification.setupFailedAfterRunBody':
+    '已保留 {name}。有 {count} 條準備指令完成，但最後工作樹驗證失敗：{reason} 請先檢查工作樹再重試。',
+  'agentSessions.notification.setupCancelledTitle': '已取消工作樹準備',
+  'agentSessions.notification.setupCancelledBody':
+    '已保留 {name}。請覆核準備清單，再揀「開始」重試，棵樹唔會走佬。',
+  'agentSessions.setup.failure.invalidRequest': '已覆核指令清單無效。',
+  'agentSessions.setup.failure.worktreeUnavailable': 'Git 工作樹不可用。',
+  'agentSessions.setup.failure.executableUnavailable':
+    '揀選嘅原生執行檔不可用。',
+  'agentSessions.setup.failure.spawnFailed': '未能啟動揀選嘅執行檔。',
+  'agentSessions.setup.failure.exitCode': '執行檔傳回非零退出代碼。',
+  'agentSessions.setup.failure.timeout': '已超過固定執行時限。',
+  'agentSessions.setup.failure.outputLimit': '已超過固定私人輸出上限。',
   'repositorySigning.title': 'Commit 同 tag 簽署',
   'repositorySigning.hubDescription':
     '檢查同覆核呢個 repository 或全域嘅 commit 同 annotated tag 簽署政策。',

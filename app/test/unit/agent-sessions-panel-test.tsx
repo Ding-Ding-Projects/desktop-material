@@ -2,13 +2,17 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import * as React from 'react'
 
-import { AgentSessionsPanel } from '../../src/ui/agent-sessions/agent-sessions-panel'
+import {
+  AgentSessionsPanel,
+  IAgentSessionsPanelProps,
+} from '../../src/ui/agent-sessions/agent-sessions-panel'
 import { CodingAgentPicker } from '../../src/ui/agent-sessions/coding-agent-picker'
 import {
   IAgentSession,
   INewAgentSessionRequest,
 } from '../../src/models/agent-session'
 import { fireEvent, render, within } from '../helpers/ui/render'
+import { LanguageModeChangedEvent } from '../../src/lib/i18n'
 
 // The panel's own controls do not mount the shared List, but the Select and
 // TextBox it uses share the UI setup that constructs an observer from
@@ -22,6 +26,23 @@ const bothInstalled = {
   codexAuthenticated: true,
   opencodeInstalled: true,
   opencodeAuthenticated: true,
+}
+
+const setupProps: Pick<
+  IAgentSessionsPanelProps,
+  | 'setupCommands'
+  | 'setupCommandsAvailable'
+  | 'onSaveSetupCommands'
+  | 'canCancelCreate'
+  | 'onCancelCreate'
+  | 'retryableSetups'
+> = {
+  setupCommands: [],
+  setupCommandsAvailable: true,
+  onSaveSetupCommands: () => true,
+  canCancelCreate: false,
+  onCancelCreate: () => undefined,
+  retryableSetups: [],
 }
 
 function deferred<T>() {
@@ -53,12 +74,12 @@ function session(overrides: Partial<IAgentSession> = {}): IAgentSession {
 
 function renderPanel(
   sessions: ReadonlyArray<IAgentSession>,
-  onCreateSession: (
-    request: INewAgentSessionRequest
-  ) => boolean | Promise<boolean> = () => true
+  onCreateSession: IAgentSessionsPanelProps['onCreateSession'] = () => true,
+  setupOverrides: Partial<IAgentSessionsPanelProps> = {}
 ) {
   return render(
     <AgentSessionsPanel
+      {...setupProps}
       sessions={sessions}
       availability={bothInstalled}
       baseBranches={['main', 'release']}
@@ -68,6 +89,7 @@ function renderPanel(
       onSelectSession={() => undefined}
       onCreateSession={onCreateSession}
       isCreating={false}
+      {...setupOverrides}
     />
   )
 }
@@ -157,6 +179,7 @@ describe('AgentSessionsPanel fleet', () => {
     const picked: Array<string> = []
     const view = render(
       <AgentSessionsPanel
+        {...setupProps}
         sessions={[session({ name: 'feature-x' })]}
         availability={bothInstalled}
         baseBranches={['main']}
@@ -183,6 +206,7 @@ describe('AgentSessionsPanel fleet', () => {
     const available = session({ name: 'available' })
     const view = render(
       <AgentSessionsPanel
+        {...setupProps}
         sessions={[missing, available]}
         availability={bothInstalled}
         baseBranches={['main']}
@@ -228,6 +252,7 @@ describe('AgentSessionsPanel fleet', () => {
     const busy = session({ name: 'busy', runState: 'running' })
     const view = render(
       <AgentSessionsPanel
+        {...setupProps}
         sessions={[busy]}
         availability={bothInstalled}
         baseBranches={['main']}
@@ -297,12 +322,29 @@ describe('AgentSessionsPanel creator', () => {
     assert.deepStrictEqual(requests, [])
   })
 
-  it('hands the caller the request instead of creating anything itself', () => {
+  it('hands the caller the request and a detached reviewed setup snapshot', () => {
     const requests: Array<INewAgentSessionRequest> = []
-    const view = renderPanel([], request => {
-      requests.push(request)
-      return true
-    })
+    const configured: IAgentSessionsPanelProps['setupCommands'] = [
+      {
+        enabled: true,
+        executable: 'node' as const,
+        args: ['scripts/setup.js'],
+      },
+    ]
+    const snapshots = new Array<typeof configured>()
+    const restartModes = new Array<boolean>()
+    const view = renderPanel(
+      [],
+      (request, setupCommands, restartSetup) => {
+        requests.push(request)
+        snapshots.push(setupCommands)
+        restartModes.push(restartSetup)
+        return true
+      },
+      {
+        setupCommands: configured,
+      }
+    )
     openCreator(view)
 
     fireEvent.change(view.getByLabelText('Worktree name'), {
@@ -322,6 +364,11 @@ describe('AgentSessionsPanel creator', () => {
         prompt: '',
       },
     ])
+    assert.deepStrictEqual(snapshots, [configured])
+    assert.notStrictEqual(snapshots[0], configured)
+    assert.notStrictEqual(snapshots[0][0], configured[0])
+    assert.notStrictEqual(snapshots[0][0].args, configured[0].args)
+    assert.deepStrictEqual(restartModes, [false])
   })
 
   it('keeps the form and its values when creation is rejected', async () => {
@@ -335,7 +382,7 @@ describe('AgentSessionsPanel creator', () => {
     assert.strictEqual(name.value, 'feature-z')
     assert.strictEqual(
       view
-        .getByRole('button', { name: 'Cancel' })
+        .getByRole('button', { name: 'Cancel setup' })
         .getAttribute('aria-disabled'),
       'true'
     )
@@ -407,6 +454,380 @@ describe('AgentSessionsPanel creator', () => {
     assert.strictEqual(panel.hasAttribute('hidden'), false)
   })
 
+  it('opens a real setup editor and restores focus after Escape', () => {
+    const view = renderPanel([])
+    openCreator(view)
+    fireEvent.change(view.getByLabelText('Worktree name'), {
+      target: { value: 'feature-setup' },
+    })
+    const start = view.getByRole('button', { name: 'Start' })
+    assert.strictEqual(start.getAttribute('aria-disabled'), null)
+    fireEvent.click(view.getByRole('button', { name: /^Options$/ }))
+
+    const configure = view.getByRole('button', {
+      name: /Configure setup commands No setup commands configured/,
+    })
+    assert.strictEqual(configure.getAttribute('aria-disabled'), null)
+    fireEvent.click(configure)
+    assert.strictEqual(start.getAttribute('aria-disabled'), 'true')
+
+    const editor = view.getByRole('dialog', { name: 'Setup commands' })
+    assert.strictEqual(editor.getAttribute('aria-modal'), 'false')
+    assert.strictEqual(
+      document.activeElement,
+      within(editor).getByRole('button', { name: /Add command/ })
+    )
+
+    fireEvent.keyDown(editor, { key: 'Escape' })
+    assert.strictEqual(view.queryByRole('dialog'), null)
+    assert.strictEqual(document.activeElement, configure)
+    assert.strictEqual(start.getAttribute('aria-disabled'), null)
+  })
+
+  it('switches the setup editor live through English, Cantonese, and bilingual modes', () => {
+    const previousLanguageMode = localStorage.getItem('language-mode-v1')
+    localStorage.setItem('language-mode-v1', 'english')
+    const view = renderPanel([])
+
+    try {
+      openCreator(view)
+      fireEvent.click(view.getByRole('button', { name: /^Options$/ }))
+      assert.ok(
+        view.getByText(
+          '<None> runs configured setup commands but starts no coding agent.'
+        )
+      )
+      fireEvent.click(
+        view.getByRole('button', { name: /Configure setup commands/ })
+      )
+      assert.ok(view.getByRole('heading', { name: 'Setup commands' }))
+
+      localStorage.setItem('language-mode-v1', 'cantonese')
+      fireEvent(
+        document,
+        new CustomEvent(LanguageModeChangedEvent, { detail: 'cantonese' })
+      )
+      assert.ok(view.getByRole('heading', { name: '準備指令' }))
+
+      localStorage.setItem('language-mode-v1', 'bilingual')
+      fireEvent(
+        document,
+        new CustomEvent(LanguageModeChangedEvent, { detail: 'bilingual' })
+      )
+      const bilingual = view.getByRole('heading', { name: /Setup commands/ })
+      assert.match(bilingual.textContent ?? '', /準備指令/)
+    } finally {
+      if (previousLanguageMode === null) {
+        localStorage.removeItem('language-mode-v1')
+      } else {
+        localStorage.setItem('language-mode-v1', previousLanguageMode)
+      }
+      fireEvent(
+        document,
+        new CustomEvent(LanguageModeChangedEvent, {
+          detail: previousLanguageMode ?? 'english',
+        })
+      )
+    }
+  })
+
+  it('adds, removes, reorders, toggles, validates, and saves structured argv', () => {
+    const saved: Array<
+      ReadonlyArray<{
+        readonly enabled: boolean
+        readonly executable: string
+        readonly args: ReadonlyArray<string>
+      }>
+    > = []
+    const view = renderPanel([], () => true, {
+      setupCommands: [
+        { enabled: true, executable: 'git', args: ['status'] },
+        { enabled: true, executable: 'node', args: ['scripts/setup.js'] },
+      ],
+      onSaveSetupCommands: commands => {
+        saved.push(commands)
+        return true
+      },
+    })
+    openCreator(view)
+    fireEvent.click(view.getByRole('button', { name: /^Options$/ }))
+    const configure = view.getByRole('button', {
+      name: /Configure setup commands 2 setup commands configured/,
+    })
+    fireEvent.click(configure)
+
+    fireEvent.click(view.getByRole('button', { name: 'Add command' }))
+    let groups = view.getAllByRole('group', { name: /Command \d/ })
+    assert.strictEqual(groups.length, 3)
+    fireEvent.click(
+      within(groups[2]).getByRole('button', { name: 'Remove command 3' })
+    )
+    groups = view.getAllByRole('group', { name: /Command \d/ })
+    assert.strictEqual(groups.length, 2)
+    assert.ok(groups[1].contains(document.activeElement))
+
+    fireEvent.click(
+      within(groups[1]).getByRole('button', { name: 'Move command 2 up' })
+    )
+    groups = view.getAllByRole('group', { name: /Command \d/ })
+    fireEvent.click(within(groups[0]).getByLabelText('Run this command'))
+    fireEvent.click(
+      within(groups[0]).getByRole('button', { name: 'Add argument' })
+    )
+    assert.ok(view.getByText('Command 1, argument 2 cannot be empty.'))
+    assert.strictEqual(
+      within(groups[0])
+        .getByLabelText('Argument 2')
+        .getAttribute('aria-invalid'),
+      'true'
+    )
+    fireEvent.change(within(groups[0]).getByLabelText('Argument 2'), {
+      target: { value: '--check' },
+    })
+    fireEvent.click(
+      within(groups[0]).getByRole('button', { name: 'Remove argument 2' })
+    )
+    const addArgument = within(groups[0]).getByRole('button', {
+      name: 'Add argument',
+    })
+    assert.strictEqual(
+      document.activeElement,
+      within(groups[0]).getByLabelText('Argument 1')
+    )
+    fireEvent.click(addArgument)
+    fireEvent.change(within(groups[0]).getByLabelText('Argument 2'), {
+      target: { value: '--check' },
+    })
+
+    fireEvent.click(view.getByRole('button', { name: 'Save setup commands' }))
+    assert.deepStrictEqual(saved, [
+      [
+        {
+          enabled: false,
+          executable: 'node',
+          args: ['scripts/setup.js', '--check'],
+        },
+        { enabled: true, executable: 'git', args: ['status'] },
+      ],
+    ])
+    assert.strictEqual(view.queryByRole('dialog'), null)
+    assert.strictEqual(document.activeElement, configure)
+  })
+
+  it('blocks credential-shaped argv and Cancel keeps the saved list unchanged', () => {
+    let saves = 0
+    const view = renderPanel([], () => true, {
+      onSaveSetupCommands: () => {
+        saves++
+        return true
+      },
+    })
+    openCreator(view)
+    fireEvent.click(view.getByRole('button', { name: /^Options$/ }))
+    const configure = view.getByRole('button', {
+      name: /Configure setup commands/,
+    })
+    fireEvent.click(configure)
+    fireEvent.click(view.getByRole('button', { name: 'Add command' }))
+    fireEvent.change(view.getByLabelText('Argument 1'), {
+      target: { value: '--token=ghp_abcdefghijklmnopqrstuvwxyz012345' },
+    })
+
+    assert.ok(view.getByText(/looks like a credential/))
+    assert.strictEqual(
+      view
+        .getByRole('button', { name: 'Save setup commands' })
+        .getAttribute('aria-disabled'),
+      'true'
+    )
+    fireEvent.click(
+      within(view.getByRole('dialog')).getByRole('button', { name: 'Cancel' })
+    )
+    assert.strictEqual(saves, 0)
+    assert.strictEqual(view.queryByRole('dialog'), null)
+    assert.strictEqual(document.activeElement, configure)
+  })
+
+  it('offers an enabled Cancel setup action while setup is in flight', async () => {
+    const result = deferred<boolean>()
+    let cancels = 0
+    const view = renderPanel([], () => result.promise, {
+      canCancelCreate: true,
+      onCancelCreate: () => cancels++,
+    })
+    openCreator(view)
+    fireEvent.change(view.getByLabelText('Worktree name'), {
+      target: { value: 'feature-z' },
+    })
+    fireEvent.click(view.getByRole('button', { name: 'Start' }))
+
+    const cancelSetup = view.getByRole('button', { name: 'Cancel setup' })
+    assert.strictEqual(cancelSetup.getAttribute('aria-disabled'), null)
+    fireEvent.click(cancelSetup)
+    assert.strictEqual(cancels, 1)
+
+    result.resolve(false)
+    await new Promise<void>(resolve => setImmediate(resolve))
+  })
+
+  it('fails closed visibly when repository setup storage is unavailable', () => {
+    let creates = 0
+    const view = renderPanel(
+      [],
+      () => {
+        creates++
+        return true
+      },
+      {
+        setupCommandsAvailable: false,
+      }
+    )
+    openCreator(view)
+    fireEvent.change(view.getByLabelText('Worktree name'), {
+      target: { value: 'feature-z' },
+    })
+
+    assert.ok(view.getByText(/could not be read safely/))
+    assert.strictEqual(
+      view.getByRole('button', { name: 'Start' }).getAttribute('aria-disabled'),
+      'true'
+    )
+    fireEvent.click(view.getByRole('button', { name: /^Options$/ }))
+    assert.strictEqual(
+      view
+        .getByRole('button', { name: /Configure setup commands/ })
+        .getAttribute('aria-disabled'),
+      'true'
+    )
+    fireEvent.click(view.getByRole('button', { name: 'Start' }))
+    assert.strictEqual(creates, 0)
+  })
+
+  it('keeps independent retries and offers their deleted historical bases', () => {
+    const view = renderPanel(
+      [session({ name: 'feature-z' }), session({ name: 'feature-y' })],
+      () => true,
+      {
+        baseBranches: ['release'],
+        defaultBaseBranch: 'release',
+        existingBranchNames: ['release', 'feature-z', 'feature-y'],
+        retryableSetups: [
+          { name: 'feature-z', baseBranch: 'main', skippedCommandCount: 1 },
+          {
+            name: 'feature-y',
+            baseBranch: 'legacy',
+            skippedCommandCount: 2,
+          },
+        ],
+      }
+    )
+    openCreator(view)
+    fireEvent.change(view.getByLabelText('Worktree name'), {
+      target: { value: 'feature-z' },
+    })
+    const start = view.getByRole('button', { name: 'Start' })
+    assert.strictEqual(start.getAttribute('aria-disabled'), null)
+    assert.strictEqual(view.queryByText(/already exists/), null)
+    assert.ok(view.getByText(/1 unchanged completed/))
+
+    fireEvent.click(view.getByRole('button', { name: /^Options$/ }))
+    const base = view.getByLabelText('Base branch') as HTMLSelectElement
+    assert.strictEqual(base.value, 'main')
+    assert.ok([...base.options].some(option => option.value === 'main'))
+    fireEvent.change(view.getByLabelText('Base branch'), {
+      target: { value: 'release' },
+    })
+    assert.strictEqual(start.getAttribute('aria-disabled'), 'true')
+    assert.ok(view.getAllByText(/already exists/).length > 0)
+
+    fireEvent.change(view.getByLabelText('Worktree name'), {
+      target: { value: 'feature-y' },
+    })
+    assert.strictEqual(base.value, 'legacy')
+    assert.ok([...base.options].some(option => option.value === 'legacy'))
+    assert.strictEqual(start.getAttribute('aria-disabled'), null)
+    assert.ok(view.getByText(/2 unchanged completed/))
+  })
+
+  it('discloses the resume plan and lets the user restart setup', async () => {
+    const restartModes = new Array<boolean>()
+    const view = renderPanel(
+      [session({ name: 'feature-z' })],
+      (_request, _commands, restartSetup) => {
+        restartModes.push(restartSetup)
+        return false
+      },
+      {
+        existingBranchNames: ['main', 'release', 'feature-z'],
+        retryableSetups: [
+          { name: 'feature-z', baseBranch: 'main', skippedCommandCount: 1 },
+        ],
+      }
+    )
+    openCreator(view)
+    fireEvent.change(view.getByLabelText('Worktree name'), {
+      target: { value: 'feature-z' },
+    })
+    assert.ok(view.getByText(/will be skipped/))
+
+    fireEvent.click(view.getByRole('button', { name: 'Start' }))
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepStrictEqual(restartModes, [false])
+
+    fireEvent.click(view.getByLabelText('Run setup again from command 1'))
+    assert.ok(view.getByText(/will run again/))
+    fireEvent.click(view.getByRole('button', { name: 'Start' }))
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepStrictEqual(restartModes, [false, true])
+  })
+
+  it('switches the retry plan live through all three language modes', () => {
+    const previousLanguageMode = localStorage.getItem('language-mode-v1')
+    localStorage.setItem('language-mode-v1', 'english')
+    const view = renderPanel([session({ name: 'feature-z' })], () => false, {
+      existingBranchNames: ['main', 'feature-z'],
+      retryableSetups: [
+        { name: 'feature-z', baseBranch: 'main', skippedCommandCount: 1 },
+      ],
+    })
+
+    try {
+      openCreator(view)
+      fireEvent.change(view.getByLabelText('Worktree name'), {
+        target: { value: 'feature-z' },
+      })
+      assert.ok(view.getByText(/1 unchanged completed command/))
+
+      localStorage.setItem('language-mode-v1', 'cantonese')
+      fireEvent(
+        document,
+        new CustomEvent(LanguageModeChangedEvent, { detail: 'cantonese' })
+      )
+      assert.ok(view.getByText(/略過 1 條內容無變/))
+      assert.ok(view.getByLabelText('由第一條重新執行準備指令'))
+
+      localStorage.setItem('language-mode-v1', 'bilingual')
+      fireEvent(
+        document,
+        new CustomEvent(LanguageModeChangedEvent, { detail: 'bilingual' })
+      )
+      const bilingual = view.getByText(/1 unchanged completed command/)
+      assert.match(bilingual.textContent ?? '', /略過 1 條內容無變/)
+    } finally {
+      if (previousLanguageMode === null) {
+        localStorage.removeItem('language-mode-v1')
+      } else {
+        localStorage.setItem('language-mode-v1', previousLanguageMode)
+      }
+      fireEvent(
+        document,
+        new CustomEvent(LanguageModeChangedEvent, {
+          detail: previousLanguageMode ?? 'english',
+        })
+      )
+    }
+  })
+
   it('renders its controls and validation in Cantonese', () => {
     const previousLanguageMode = localStorage.getItem('language-mode-v1')
     localStorage.setItem('language-mode-v1', 'cantonese')
@@ -418,6 +839,8 @@ describe('AgentSessionsPanel creator', () => {
       fireEvent.click(view.getByRole('button', { name: /新增代理工作階段/ }))
       const name = view.getByLabelText('工作樹名稱')
       assert.ok(view.getByRole('button', { name: '開始' }))
+      fireEvent.click(view.getByRole('button', { name: /^選項$/ }))
+      assert.ok(view.getByText(/會先跑已設定嘅準備指令/))
       fireEvent.change(name, { target: { value: 'has a space' } })
       assert.ok(view.getByText(/Git.*名稱/))
     } finally {
