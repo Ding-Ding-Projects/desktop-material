@@ -77,9 +77,12 @@ describe('settings history dialog', () => {
       />
     )
 
-    await waitFor(() =>
-      assert.ok(screen.getByRole('option', { name: /Open alpha tab/i }))
-    )
+    await waitFor(() => {
+      const selectedEntry = screen.getByRole('button', {
+        name: /Open alpha tab/i,
+      })
+      assert.equal(selectedEntry.getAttribute('aria-pressed'), 'true')
+    })
 
     // The scope is forwarded so the history read is filtered to the tab.
     assert.deepEqual(dispatcher.historyScopes, [scope])

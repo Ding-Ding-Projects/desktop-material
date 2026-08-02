@@ -65,9 +65,14 @@ describe('material context menu contracts', () => {
     assert.match(tabStrip, /icon: octicons\.pin,/)
     assert.match(tabStrip, /icon: octicons\.x,/)
 
-    const commitList = read('src', 'ui', 'history', 'commit-list.tsx')
-    assert.match(commitList, /icon: octicons\.gitBranch,/)
-    assert.match(commitList, /icon: octicons\.copy,/)
-    assert.match(commitList, /icon: octicons\.fileDirectory,/)
+    const commitContextMenu = read(
+      'src',
+      'ui',
+      'history',
+      'commit-context-menu.ts'
+    )
+    assert.match(commitContextMenu, /icon: octicons\.gitBranch,/)
+    assert.match(commitContextMenu, /icon: octicons\.copy,/)
+    assert.match(commitContextMenu, /icon: octicons\.fileDirectory,/)
   })
 })
