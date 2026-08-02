@@ -453,6 +453,28 @@
     overflow-wrap: break-word;
     word-break: normal;
   }
+
+  // The literal-text composer takes the same panel as a token category, so it
+  // is laid out as a column rather than the chips' grid.
+  .regex-builder-literal {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 4px 0;
+
+    .text-box-component {
+      min-width: 0;
+    }
+  }
+
+  .regex-builder-literal-preview {
+    margin: 0;
+    min-width: 0;
+    // The escaped form of a long literal must wrap rather than push the panel
+    // wider than the builder, which is anchored to a search field.
+    overflow-wrap: anywhere;
+  }
 }
 
 .regex-test-area {

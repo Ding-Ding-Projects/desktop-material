@@ -11,6 +11,7 @@ import {
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { RegexBuilder } from './regex-builder/regex-builder'
+import { escapeLiteral } from './regex-builder/regex-block-model'
 
 /** The cycle order of filter modes when the mode button is pressed. */
 const ModeCycle: ReadonlyArray<FilterMode> = [
@@ -29,6 +30,29 @@ const ModeLabelKeys: Record<FilterMode, TranslationKey> = {
 export function nextFilterMode(mode: FilterMode): FilterMode {
   const index = ModeCycle.indexOf(mode)
   return ModeCycle[(index + 1) % ModeCycle.length]
+}
+
+/**
+ * The pattern the regex builder opens with, given the query the user has
+ * already typed and the mode that query was written for.
+ *
+ * Applying from the builder always switches the surface into regex mode, so a
+ * Fuzzy or Substring query has to arrive as a pattern that means the same
+ * thing. Handing the raw text over instead breaks it in two ways, both of them
+ * the user's own working query turning against them: `c++` stops compiling, so
+ * the builder greets them with a red invalid marker and a disabled Apply, and
+ * `(WIP)` keeps compiling but silently becomes a capture group matching `WIP`,
+ * so the parentheses they were searching for stop being searched for and the
+ * result set changes with no warning at all.
+ *
+ * A query already written in Regex mode is a pattern, not literal text, and is
+ * seeded verbatim — escaping it would double-escape what the user authored.
+ */
+export function seedRegexBuilderPattern(
+  mode: FilterMode,
+  filterText: string
+): string {
+  return mode === FilterMode.Regex ? filterText : escapeLiteral(filterText)
 }
 
 interface IFilterModeControlProps {
@@ -186,7 +210,10 @@ export class FilterModeControl extends React.Component<
       <RegexBuilder
         searchSurfaceId={this.props.searchSurfaceId}
         targetLabel={this.props.regexBuilderTarget}
-        initialPattern={this.props.filterText}
+        initialPattern={seedRegexBuilderPattern(
+          this.props.mode,
+          this.props.filterText
+        )}
         caseSensitive={this.props.caseSensitive}
         sampleItems={this.props.getSampleItems()}
         restoreFocusOnUnmount={this.props.enabled !== false}

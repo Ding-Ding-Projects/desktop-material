@@ -2910,6 +2910,11 @@ export type TranslationKey =
   | 'filter.case.match'
   | 'filter.regexBuilder.open'
   | 'filter.regexBuilder.label'
+  | 'filter.regexBuilder.literalCategory'
+  | 'filter.regexBuilder.literalField'
+  | 'filter.regexBuilder.literalPlaceholder'
+  | 'filter.regexBuilder.literalInsert'
+  | 'filter.regexBuilder.literalPreview'
   | 'regex.builder.viewsLabel'
   | 'regex.builder.view.build'
   | 'regex.builder.view.guide'
@@ -6925,6 +6930,11 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'filter.case.match': 'Match case',
   'filter.regexBuilder.open': 'Open regex builder',
   'filter.regexBuilder.label': 'Regex builder',
+  'filter.regexBuilder.literalCategory': 'Literal text',
+  'filter.regexBuilder.literalField': 'Text to match exactly',
+  'filter.regexBuilder.literalPlaceholder': 'e.g. c++',
+  'filter.regexBuilder.literalInsert': 'Insert as literal',
+  'filter.regexBuilder.literalPreview': 'Inserts',
   'regex.builder.viewsLabel': 'Regex builder views',
   'regex.builder.view.build': 'Build',
   'regex.builder.view.guide': 'How regex works',
@@ -10605,6 +10615,11 @@ export const cantoneseTranslations: Readonly<
   'filter.case.match': '分大小寫',
   'filter.regexBuilder.open': '打開正則表達式砌法器',
   'filter.regexBuilder.label': '正則表達式砌法器',
+  'filter.regexBuilder.literalCategory': '純文字',
+  'filter.regexBuilder.literalField': '要一字不差搵到嘅文字',
+  'filter.regexBuilder.literalPlaceholder': '例如 c++',
+  'filter.regexBuilder.literalInsert': '加入做純文字',
+  'filter.regexBuilder.literalPreview': '會加入',
   'regex.builder.viewsLabel': '正則表達式砌法器檢視',
   'regex.builder.view.build': '砌樣式',
   'regex.builder.view.guide': '正則表達式點運作',

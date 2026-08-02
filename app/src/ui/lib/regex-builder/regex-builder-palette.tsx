@@ -4,7 +4,11 @@ import {
   translateForAccessibleName,
   TranslationKey,
 } from '../../../lib/i18n'
+import { MaxRegexPatternLength } from '../../../lib/safe-regex'
 import { LanguageMode } from '../../../models/language-mode'
+import { Button } from '../button'
+import { TextBox } from '../text-box'
+import { escapeLiteral } from './regex-block-model'
 
 /** A single insertable token in the regex builder palette. */
 export interface IRegexToken {
@@ -198,15 +202,108 @@ class RegexTokenChip extends React.Component<IRegexTokenChipProps> {
   }
 }
 
+interface IRegexLiteralComposerProps {
+  readonly languageMode: LanguageMode
+  readonly onInsertToken: (token: string) => void
+}
+
+interface IRegexLiteralComposerState {
+  readonly value: string
+}
+
+/**
+ * The guided way to search for text that is not a pattern.
+ *
+ * Every other chip in the palette inserts regex syntax, so a user hunting for
+ * `c++` or `(WIP)` had no guided route at all: they had to know which of the
+ * characters they typed carry meaning to the engine and hand-escape each one.
+ * This routes the typed text through {@link escapeLiteral} instead, which is
+ * also what makes that helper reachable in production for the first time.
+ */
+class RegexLiteralComposer extends React.Component<
+  IRegexLiteralComposerProps,
+  IRegexLiteralComposerState
+> {
+  public constructor(props: IRegexLiteralComposerProps) {
+    super(props)
+    this.state = { value: '' }
+  }
+
+  // Bound to the compiler's own pattern ceiling so the escaped result cannot
+  // grow without limit while the user types.
+  private onValueChanged = (value: string) => {
+    this.setState({ value: value.slice(0, MaxRegexPatternLength) })
+  }
+
+  private onInsert = () => {
+    const { value } = this.state
+    if (value.length === 0) {
+      return
+    }
+    this.props.onInsertToken(escapeLiteral(value))
+    this.setState({ value: '' })
+  }
+
+  public render() {
+    const { languageMode } = this.props
+    const { value } = this.state
+
+    return (
+      <div className="regex-builder-literal">
+        <TextBox
+          label={translate('filter.regexBuilder.literalField', languageMode)}
+          ariaLabel={translateForAccessibleName(
+            'filter.regexBuilder.literalField',
+            {},
+            languageMode
+          )}
+          placeholder={translate(
+            'filter.regexBuilder.literalPlaceholder',
+            languageMode
+          )}
+          value={value}
+          spellcheck={false}
+          onValueChanged={this.onValueChanged}
+          onEnterPressed={this.onInsert}
+        />
+        <Button
+          disabled={value.length === 0}
+          ariaLabel={translateForAccessibleName(
+            'filter.regexBuilder.literalInsert',
+            {},
+            languageMode
+          )}
+          onClick={this.onInsert}
+        >
+          {translate('filter.regexBuilder.literalInsert', languageMode)}
+        </Button>
+        {value.length === 0 ? null : (
+          <p className="regex-builder-literal-preview">
+            <span className="regex-builder-token-desc">
+              {translate('filter.regexBuilder.literalPreview', languageMode)}
+            </span>{' '}
+            <span className="regex-builder-token-glyph">
+              {escapeLiteral(value)}
+            </span>
+          </p>
+        )}
+      </div>
+    )
+  }
+}
+
 export class RegexBuilderPalette extends React.Component<IRegexBuilderPaletteProps> {
+  // The literal composer occupies the rail slot after the token categories, so
+  // every count the rail derives — roving focus included — has to include it.
+  private get literalCategoryIndex() {
+    return this.props.categories.length
+  }
+
   private onCategoryKeyDown = (
     event: React.KeyboardEvent<HTMLButtonElement>,
     currentIndex: number
   ) => {
-    const categoryCount = this.props.categories.length
-    if (categoryCount === 0) {
-      return
-    }
+    const categoryCount = this.literalCategoryIndex + 1
 
     let nextIndex = currentIndex
     switch (event.key) {
@@ -235,6 +332,8 @@ export class RegexBuilderPalette extends React.Component<IRegexBuilderPalettePro
 
   public render() {
     const { categories, activeCategory, languageMode } = this.props
+    const literalIndex = this.literalCategoryIndex
+    const showLiteral = activeCategory === literalIndex
     const active = categories[activeCategory] ?? categories[0]
 
     return (
@@ -263,6 +362,21 @@ export class RegexBuilderPalette extends React.Component<IRegexBuilderPalettePro
               onKeyDown={this.onCategoryKeyDown}
             />
           ))}
+          <RegexCategoryTab
+            name={translate(
+              'filter.regexBuilder.literalCategory',
+              languageMode
+            )}
+            accessibleName={translateForAccessibleName(
+              'filter.regexBuilder.literalCategory',
+              {},
+              languageMode
+            )}
+            index={literalIndex}
+            selected={showLiteral}
+            onCategoryChange={this.props.onCategoryChange}
+            onKeyDown={this.onCategoryKeyDown}
+          />
         </div>
         <div
           id="regex-builder-token-list"
@@ -270,14 +384,21 @@ export class RegexBuilderPalette extends React.Component<IRegexBuilderPalettePro
           role="tabpanel"
           aria-labelledby={`regex-builder-category-${activeCategory}`}
         >
-          {active.tokens.map(t => (
-            <RegexTokenChip
-              key={t.token}
-              token={t}
+          {showLiteral ? (
+            <RegexLiteralComposer
               languageMode={languageMode}
               onInsertToken={this.props.onInsertToken}
             />
-          ))}
+          ) : (
+            (active?.tokens ?? []).map(t => (
+              <RegexTokenChip
+                key={t.token}
+                token={t}
+                languageMode={languageMode}
+                onInsertToken={this.props.onInsertToken}
+              />
+            ))
+          )}
         </div>
       </div>
     )
