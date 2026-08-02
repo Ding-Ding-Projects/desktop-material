@@ -15,7 +15,9 @@ import {
   MinTabCharacterSpacing,
   MaxTabCharacterSpacing,
   DefaultTabCharacterSpacing,
+  isSameTabColor,
   isValidTabColor,
+  tabColorParts,
   tabFontOptions,
   tabTitleStyleToCss,
 } from '../../models/repository-tab'
@@ -231,12 +233,17 @@ export class TabStyleEditor extends React.Component<
   }
 
   private onColorInput = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.applyColor(
-      event.currentTarget.value,
+    const target: TabColorTarget =
       event.currentTarget.dataset.target === 'backgroundColor'
         ? 'backgroundColor'
         : 'color'
-    )
+    // `<input type="color">` can only ever emit opaque six-digit hex, so taking
+    // its value verbatim silently flattened a semi-transparent colour the user
+    // had set. Nudging the hue must not also discard the alpha.
+    const existing = this.style[target]
+    const alpha =
+      existing === undefined ? '' : tabColorParts(existing)?.alpha ?? ''
+    this.applyColor(`${event.currentTarget.value}${alpha}`, target)
   }
 
   private onUseDefaultColor = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -435,8 +442,9 @@ export class TabStyleEditor extends React.Component<
     target: TabColorTarget
   ) {
     const current = this.style[target]
-    const active =
-      current !== undefined && current.toLowerCase() === color.toLowerCase()
+    // Compared as colours rather than as strings: `#abc` and `#aabbcc` are the
+    // same swatch, and an exact compare showed neither of them as chosen.
+    const active = current !== undefined && isSameTabColor(current, color)
     const targetLabel = target === 'color' ? 'Text color' : 'Highlight color'
     return (
       <button
@@ -463,10 +471,13 @@ export class TabStyleEditor extends React.Component<
     const recent = isHighlight
       ? this.state.recentHighlightColors
       : this.state.recentColors
+    // The native picker speaks only six-digit hex, so a stored `#abc` or
+    // `#rrggbbaa` has to be shown as its six-digit body rather than replaced
+    // with the default, which claimed the tab had no colour at all.
     const pickerValue =
-      current !== undefined && /^#[0-9a-f]{6}$/i.test(current)
-        ? current
-        : DefaultPickerColor
+      current === undefined
+        ? DefaultPickerColor
+        : tabColorParts(current)?.rgb ?? DefaultPickerColor
 
     return (
       <div

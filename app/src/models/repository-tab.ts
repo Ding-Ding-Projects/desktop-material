@@ -340,6 +340,46 @@ export function isValidTabColor(color: string): boolean {
   return hexColorPattern.test(color)
 }
 
+/** A hex colour split into the part a native picker can show and the rest. */
+export interface ITabColorParts {
+  /** Always `#rrggbb`, so it can be compared and fed to `<input type="color">`. */
+  readonly rgb: string
+  /** The alpha pair, or the empty string when the colour is opaque. */
+  readonly alpha: string
+}
+
+/**
+ * Split a stored tab colour into its six-digit body and its alpha.
+ *
+ * Three spellings are stored — `#rgb`, `#rrggbb` and `#rrggbbaa` — but
+ * `<input type="color">` understands only the middle one, and an exact string
+ * compare against a palette entry only ever matches that one too. Normalizing
+ * here is what lets the editor show a stored colour rather than silently
+ * reporting the tab as unstyled, and lets the alpha be put back afterwards
+ * instead of being dropped by a control that cannot represent it.
+ */
+export function tabColorParts(color: string): ITabColorParts | null {
+  if (!isValidTabColor(color)) {
+    return null
+  }
+  const body = color.slice(1)
+  if (body.length === 3) {
+    const [r, g, b] = body
+    return { rgb: `#${r}${r}${g}${g}${b}${b}`.toLowerCase(), alpha: '' }
+  }
+  return {
+    rgb: `#${body.slice(0, 6)}`.toLowerCase(),
+    alpha: body.slice(6).toLowerCase(),
+  }
+}
+
+/** Whether two stored tab colours name the same colour, however spelled. */
+export function isSameTabColor(left: string, right: string): boolean {
+  const a = tabColorParts(left)
+  const b = tabColorParts(right)
+  return a !== null && b !== null && a.rgb === b.rgb && a.alpha === b.alpha
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
