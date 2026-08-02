@@ -74,9 +74,10 @@ with your changes on `branch`. Review to avoid future conflicts.» With
 changes so they can fetch them, and ignore conflict warnings for your changes on
 that branch. Plus a `Show N overlapping files` disclosure.
 
-Note: "Cloud Patch" is a hosted-service concept. Desktop Material has no such
-service, so that option needs either a local equivalent (this repo already has
-Cheap LFS release-backed transfer and a patch-series feature) or honest removal.
+**Cloud Patch is explicitly out of scope** — the user said "skip cloud patch".
+Build the banner with the other two options only (push so they can fetch, and
+ignore warnings for this branch) plus the overlapping-files disclosure. Do not
+add a hosted patch service.
 
 ### 5. AI-assisted merge conflict resolution — **NOT STARTED**
 
@@ -131,6 +132,149 @@ The requested emphasis is **suggesting code changes internally** — writing
 review suggestions from inside the app and posting them as review comments,
 rather than opening the browser. The comment in the screenshot showed a posted
 suggestion block ("Code Suggestion for #212").
+
+### 12. Feature parity checklist — **a target list, not a claim**
+
+Three more screenshots supplied a competitor's feature checklist. Below is that
+list with what a quick codebase check found. **The "here?" column is a grep-level
+answer, not a verified parity claim** — anything marked `partial` or `?` needs
+someone to open the app and look before it is called done.
+
+| Feature | Here? | Evidence / what is missing |
+| --- | --- | --- |
+| Git LFS | partial | Cheap LFS (release-backed) is extensive; ordinary Git LFS is a separate thing — see `docs/features/repository-management/cheap-lfs-vs-git-lfs.md` |
+| Git Worktrees | yes | `app/src/ui/worktrees/`, `app/src/lib/git/worktree.ts` |
+| File history & blame | partial | 10 files mention blame; whether there is a blame *view* needs checking |
+| View & create pull requests | partial | Creating exists; the in-app PR review screen is item 10 above |
+| Hiding & soloing | **no** | zero hits — graph lane hide/solo does not exist |
+| Auto-Gen SSH key | **no** | 3 incidental hits only |
+| Git hooks support | yes | extensive, including a hooks proxy |
+| Submodules | yes | `app/src/ui/repository-settings/submodules.tsx` and more |
+| Visual Interactive Rebase | **no** | zero hits for interactive rebase |
+| Visual Interactive Cherry Pick | partial | cherry-pick is everywhere (42 files); the *visual interactive* form is the gap |
+| One-click undo & redo Git operations | partial | undo exists; a general redo of Git operations needs checking |
+| Command Palette | yes | 246 entries — and item 3 above is about growing it |
+| GPG commit signing | partial | 10 files mention gpg |
+| Keyboard shortcuts | yes | throughout |
+| Dark, Light & Custom Themes | yes | full appearance customization system |
+| Local Workspaces | partial | repository groups exist; "workspace" appears in 45 files, needs checking |
+| Cloud Workspaces | **no** | hosted service, and out of step with this app's local-first design |
+| Merge Conflict Tool | partial | conflict handling exists; the three-pane tool is item 5 above |
+| Merge Conflict Output Editor | **no** | the editable result pane of item 5 |
+| Code Editor | **no** | external editors are supported; there is no in-app editor |
+| Pull or fetch multiple repos | yes | Pull all, and Commit & push all |
+| Multiple Profiles | partial | a profile store exists (22 files); a user-facing profile switcher needs checking |
+| Gitflow support | **no** | zero hits |
+
+And the agent-specific checklist:
+
+| Feature | Here? | Note |
+| --- | --- | --- |
+| Agent Sessions View | in progress | item 2 above |
+| Launch Agent Sessions | in progress | item 2 above |
+| Independent Terminal Sessions | partial | `create-terminal-stream.ts` and a CLI workbench exist; per-session terminals do not |
+| Worktree Status | in progress | the fleet status chips in item 2 |
+| Claude Code | **no runner** | picker entry only |
+| Codex CLI | yes | real runner and IPC |
+| OpenCode | yes | real runner and IPC |
+| Copilot CLI | **no runner** | picker entry only |
+| Gemini CLI | **no runner** | picker entry only |
+
+### 13. Team collaboration — **self-hosted, wizard-guided, NOT STARTED**
+
+A team-collaboration feature set, from a screenshot: Code Suggest, shared
+workspaces, Insights, Launchpad with pinning and snoozing, a Team View both in
+the Launchpad and as live activity status in the left panel, Conflict
+Prevention, predictive merge-conflict alerts, filtering the commit graph by
+team, and sharing with deep links.
+
+**The user's explicit design decision: there is no vendor cloud. The user hosts
+their own Docker server, and setting it up must be a fully wizard-guided,
+automated flow inside the app.** That is what makes this set buildable here at
+all — everything above needs a place for two machines to meet, and the answer is
+a container the user owns rather than a service they rent.
+
+So the first deliverable is not a feature from that list; it is the **wizard**:
+detect or install Docker, generate the server's configuration and credentials,
+start the container, verify it is reachable, and hand back a join URL — with
+every step recoverable and nothing asking the user to type a command. The
+collaboration features are then built against that server.
+
+Constraints that already apply here: secrets never go through chat or a log,
+the server's credentials are generated rather than typed, and the app must
+degrade honestly to single-player when no server is configured. `Cloud Patches`
+from that screenshot stays out, per the earlier decision. `Share Cloud
+Workspaces` becomes "share a workspace through your own server", or it is cut.
+
+### 13b. Every "cloud" function runs on that Docker server
+
+Said plainly by the user: **use the Docker server for the cloud functions.**
+There is no vendor backend anywhere in this design. Anything a competitor calls
+"cloud" — shared workspaces, patches, insights, team presence, deep links — is
+served by the container the user owns, or it is not built.
+
+**One thing to resolve before building patches:** the user earlier said "skip
+cloud patch", and later supplied a screenshot showing *Cloud Patch Self-Hosted
+Storage* alongside *Cloud Patch Private Storage (coming soon)*. Those are
+consistent if the skip meant "no vendor-hosted patch service" and self-hosted
+patches are still wanted. They are inconsistent if patches are out entirely.
+**Ask before building either.** Recorded rather than guessed.
+
+### 13c. Admin and security controls — **NOT STARTED**
+
+From a screenshot: AI security controls, and patch storage that is private
+and/or self-hosted. With the self-hosted decision above, "private storage" and
+"self-hosted storage" collapse into one thing: storage on the user's own server.
+
+AI security controls means the administrator deciding what may be sent to a
+model at all — which repositories, which files, whether diffs leave the machine,
+and which provider is permitted. Every AI feature in this list (items 5, 7, 8
+and Code Suggest) has to be gated by it, so it is a prerequisite for them rather
+than a companion to them.
+
+### 13d. Access management — the Docker server is also the identity provider
+
+From a screenshot: Single Sign-On, Multi-Domain SSO, SAML. The user's direction:
+**a custom Docker OAuth server.** So the same container the user hosts issues
+the identities — it is the OAuth authorization server, and SSO and SAML are
+things it federates, not things a vendor sells.
+
+This makes the wizard in item 13 bigger and more important, not smaller: it now
+has to provision an OAuth server, which means real key material, correct
+redirect handling, and token lifetimes — generated by the wizard, never typed by
+the user and never shown in a log.
+
+Two things this app already knows that apply directly: it has **no OAuth
+loopback HTTP listener** — sign-in uses the `x-github-desktop-auth` protocol
+deep link (recorded in the peer-closed-stream entry further down this file) — so
+a self-hosted OAuth flow must decide deliberately between that deep link and a
+loopback listener rather than assuming one exists. And the internal browser
+already has a hardened private-session OAuth path with partition rotation and
+callback correlation, which is the right place to run this flow.
+
+### 15. Integrated terminal — **NOT STARTED**
+
+From a screenshot: a Git-enhanced terminal, a commit graph that stays live and
+synchronized with what the terminal is doing, CLI diff/blame/history views, and
+auto-suggest plus auto-complete for Git commands.
+
+Existing groundwork: `app/src/lib/create-terminal-stream.ts`, the CLI workbench
+(`app/src/lib/cli-workbench.ts`, `cli-workbench-catalog.ts`), and the
+`start-cli-command` / `cli-command-output` / `cli-command-state` IPC channels.
+The live-synchronized graph is the interesting half: it means the graph view of
+item 1 has to be able to refresh from an external mutation, not only from the
+app's own.
+
+### 14. Issue tracker integrations — **NOT STARTED**
+
+From a screenshot: Jira Cloud, Jira Data Center, the Git Integration for Jira
+app, GitHub, GitHub Enterprise, GitLab, GitLab Self-Managed, and Trello.
+
+GitHub and GitHub Enterprise are already first-class in this app, and there is
+existing GitLab and Bitbucket account plumbing (see the submodule provider
+sign-in strings). Jira and Trello are entirely absent. Each integration needs
+its own credential path, and every one of them must obey the rule that a token
+is never rendered, logged, or pasted into a conversation.
 
 ### 11. Screenshots belong in a gitignored directory
 
