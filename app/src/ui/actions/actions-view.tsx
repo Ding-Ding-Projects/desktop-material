@@ -58,6 +58,8 @@ import { IWorkflowTemplate } from './workflow-templates'
 import { ActionsCacheManager } from './actions-cache-manager'
 import { isWorkflowRunCancellableStatus } from '../../lib/actions-workflow-runs'
 import { Dispatcher } from '../dispatcher'
+import { Resizable } from '../resizable'
+import { getNumber, setNumber } from '../../lib/local-storage'
 import {
   collapsibleRepositoryKey,
   readCollapsibleState,
@@ -120,6 +122,8 @@ interface IActionsViewState {
    * interruptible and it has to say how far it has got.
    */
   readonly loadingAllRuns: AbortController | null
+  /** Width of the run list column, in pixels, remembered per repository. */
+  readonly runColumnWidth: number
   /** Which in-view category tab is showing: runs, workflows, or caches. */
   readonly activeTab: 'runs' | 'workflows' | 'caches'
   readonly catalogOpen: boolean
@@ -170,6 +174,15 @@ const InitialActionsState: IActionsState = {
   cacheUsageLoading: false,
 }
 
+/** Starting width of the run list column, matching the previous 55% split. */
+const DefaultActionsRunColumnWidth = 560
+const ActionsRunColumnMinWidth = 360
+const ActionsRunColumnMaxWidth = 1100
+
+/** Where this repository's run-column width is remembered. */
+const actionsRunColumnWidthKey = (repository: Repository) =>
+  `actions-run-column-width:${repository.path}`
+
 /** Identity for the run-filter row's remembered open/closed state. */
 const ActionsFiltersElementId = 'actions-filters'
 
@@ -195,6 +208,11 @@ const initialActionsViewState = (
       collapsibleRepositoryKey(repository)
     ) ?? true,
   loadingAllRuns: null,
+  runColumnWidth:
+    getNumber(
+      actionsRunColumnWidthKey(repository),
+      DefaultActionsRunColumnWidth
+    ) ?? DefaultActionsRunColumnWidth,
   activeTab: 'runs',
   catalogOpen: false,
   selectedRun: null,
@@ -710,6 +728,19 @@ export class ActionsView extends React.Component<
         state.loadingAllRuns === controller ? { loadingAllRuns: null } : null
       )
     }
+  }
+
+  private onRunColumnResize = (runColumnWidth: number) => {
+    this.setState({ runColumnWidth })
+    setNumber(actionsRunColumnWidthKey(this.props.repository), runColumnWidth)
+  }
+
+  private onRunColumnReset = () => {
+    this.setState({ runColumnWidth: DefaultActionsRunColumnWidth })
+    setNumber(
+      actionsRunColumnWidthKey(this.props.repository),
+      DefaultActionsRunColumnWidth
+    )
   }
 
   private selectRun = (selectedRun: IAPIWorkflowRun) => {
@@ -2271,66 +2302,84 @@ export class ActionsView extends React.Component<
               <div className="actions-loading">Loading workflows…</div>
             )}
             <div className="actions-content">
-              <div className="actions-run-column">
-                <RunList
-                  runs={filteredRuns}
-                  selectedRunId={selectedRun?.id ?? null}
-                  selectedRunIds={this.state.selectedRunIds}
-                  busyRunId={this.state.busyRunId}
-                  bulkBusy={this.state.bulkRunBusy}
-                  onSelect={this.selectRun}
-                  onToggleSelection={this.toggleRunSelection}
-                  onRerun={this.rerun}
-                  onRerunFailed={this.rerunFailed}
-                  onRequestCancel={this.requestCancelRun}
-                />
-                {(actions.runs.length > 0 || actions.runsNextPage !== null) && (
-                  <div
-                    className="actions-run-pagination"
-                    role="status"
-                    aria-live="polite"
-                  >
-                    <span>
-                      Showing {filteredRuns.length} matching from{' '}
-                      {actions.runs.length} loaded of {actions.runsTotalCount}{' '}
-                      workflow runs.
-                    </span>
-                    {actions.runsNextPage !== null && (
-                      <>
-                        <Button
-                          size="small"
-                          onClick={this.loadMoreRuns}
-                          disabled={
-                            actions.runsLoadingMore ||
-                            actions.loading ||
-                            this.state.loadingAllRuns !== null
-                          }
-                        >
-                          {actions.runsLoadingMore
-                            ? 'Loading more…'
-                            : 'Load more runs'}
-                        </Button>
-                        {/*
+              {/*
+                The run list and the detail pane were a fixed 55/45 split, so
+                a long workflow name and a long job log competed for room and
+                neither could be given more. The divider is draggable now, and
+                the width is remembered per repository because the right
+                balance depends on how long that repository's names are.
+              */}
+              <Resizable
+                width={this.state.runColumnWidth}
+                minimumWidth={ActionsRunColumnMinWidth}
+                maximumWidth={ActionsRunColumnMaxWidth}
+                onResize={this.onRunColumnResize}
+                onReset={this.onRunColumnReset}
+                description="Workflow run list"
+                id="actions-run-column"
+              >
+                <div className="actions-run-column">
+                  <RunList
+                    runs={filteredRuns}
+                    selectedRunId={selectedRun?.id ?? null}
+                    selectedRunIds={this.state.selectedRunIds}
+                    busyRunId={this.state.busyRunId}
+                    bulkBusy={this.state.bulkRunBusy}
+                    onSelect={this.selectRun}
+                    onToggleSelection={this.toggleRunSelection}
+                    onRerun={this.rerun}
+                    onRerunFailed={this.rerunFailed}
+                    onRequestCancel={this.requestCancelRun}
+                  />
+                  {(actions.runs.length > 0 ||
+                    actions.runsNextPage !== null) && (
+                    <div
+                      className="actions-run-pagination"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      <span>
+                        Showing {filteredRuns.length} matching from{' '}
+                        {actions.runs.length} loaded of {actions.runsTotalCount}{' '}
+                        workflow runs.
+                      </span>
+                      {actions.runsNextPage !== null && (
+                        <>
+                          <Button
+                            size="small"
+                            onClick={this.loadMoreRuns}
+                            disabled={
+                              actions.runsLoadingMore ||
+                              actions.loading ||
+                              this.state.loadingAllRuns !== null
+                            }
+                          >
+                            {actions.runsLoadingMore
+                              ? 'Loading more…'
+                              : 'Load more runs'}
+                          </Button>
+                          {/*
                           Filtering by branch or actor only works on runs that
                           are actually loaded, so paging one screen at a time
                           made the filters useless on a busy repository. The
                           same button stops the sweep, because "load all" on
                           670 runs is a long enough operation to want out of.
                         */}
-                        <Button
-                          size="small"
-                          onClick={this.loadAllRuns}
-                          disabled={actions.loading}
-                        >
-                          {this.state.loadingAllRuns !== null
-                            ? 'Stop loading'
-                            : 'Load all runs'}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
+                          <Button
+                            size="small"
+                            onClick={this.loadAllRuns}
+                            disabled={actions.loading}
+                          >
+                            {this.state.loadingAllRuns !== null
+                              ? 'Stop loading'
+                              : 'Load all runs'}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Resizable>
               {selectedRun && this.props.repository.gitHubRepository && (
                 <RunDetails
                   dispatcher={this.props.dispatcher}
