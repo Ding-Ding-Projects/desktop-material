@@ -13,6 +13,7 @@ import * as octicons from '../octicons/octicons.generated'
 import { IAvatarUser } from '../../models/avatar'
 import { lookupPreferredEmail } from '../../lib/email'
 import { assertNever } from '../../lib/fatal-error'
+import { getProviderAuthErrorMessage } from '../../lib/provider-auth-error'
 import { Button } from '../lib/button'
 import { Row } from '../lib/row'
 import { DialogContent, DialogPreferredFocusClassName } from '../dialog'
@@ -235,9 +236,7 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
       this.setState({
         authenticatingProvider: null,
         providerErrorFor: 'gitlab',
-        providerError: `Unable to connect to GitLab: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        providerError: getProviderAuthErrorMessage('gitlab', error),
       })
     }
   }
@@ -264,9 +263,7 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
       this.setState({
         authenticatingProvider: null,
         providerErrorFor: 'bitbucket',
-        providerError: `Unable to connect to Bitbucket: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        providerError: getProviderAuthErrorMessage('bitbucket', error),
       })
     }
   }
