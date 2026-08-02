@@ -668,6 +668,13 @@
 
 .github-release-row-title,
 .github-release-row-tag,
+.github-release-row-relative {
+  // Quieter than the exact stamp beside it: the date is the fact, "3 hours
+  // ago" is the reading aid.
+  color: var(--md-sys-color-on-surface-variant);
+  white-space: nowrap;
+}
+
 .github-release-row-date {
   overflow: hidden;
   text-overflow: ellipsis;

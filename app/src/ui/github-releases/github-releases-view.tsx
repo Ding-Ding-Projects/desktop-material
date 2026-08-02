@@ -89,6 +89,7 @@ import {
   writeCollapsibleState,
 } from '../../lib/collapsed-state'
 import { isCheapLfsReleaseBucket } from '../../lib/cheap-lfs/asset-version'
+import { formatRelative } from '../../lib/format-relative'
 
 const ReleasesSearchFilterId = 'github-releases-search'
 
@@ -396,10 +397,29 @@ function formatTimestamp(date: Date): string {
   })
 }
 
-function ReleaseTimestamp(props: { readonly date: Date }) {
+function ReleaseTimestamp(props: {
+  readonly date: Date
+  /**
+   * Also show how long ago it was.
+   *
+   * An absolute stamp answers "exactly when", which is what you want when
+   * comparing two releases or quoting one. It does not answer "is this
+   * recent?", which is the question a list is usually being scanned for, and
+   * working that out from a date is the reader doing arithmetic the app could
+   * have done. Both, with the exact time kept as the tooltip.
+   */
+  readonly relative?: boolean
+}) {
+  const absolute = formatTimestamp(props.date)
+  if (props.relative !== true) {
+    return <time dateTime={props.date.toISOString()}>{absolute}</time>
+  }
   return (
-    <time dateTime={props.date.toISOString()}>
-      {formatTimestamp(props.date)}
+    <time dateTime={props.date.toISOString()} title={absolute}>
+      {absolute}{' '}
+      <span className="github-release-row-relative">
+        ({formatRelative(props.date.getTime() - Date.now())})
+      </span>
     </time>
   )
 }
@@ -2456,7 +2476,7 @@ export class GitHubReleasesView extends React.Component<
           <span className="github-release-row-tag">{release.tagName}</span>
           <span className="github-release-row-date">
             {release.draft ? 'Created' : 'Published'}{' '}
-            <ReleaseTimestamp date={date} />
+            <ReleaseTimestamp date={date} relative={true} />
           </span>
         </button>
       </div>
@@ -3311,7 +3331,7 @@ export class GitHubReleasesView extends React.Component<
             <div>
               <dt>Created</dt>
               <dd>
-                <ReleaseTimestamp date={release.createdAt} />
+                <ReleaseTimestamp date={release.createdAt} relative={true} />
               </dd>
             </div>
             <div>
@@ -3320,7 +3340,10 @@ export class GitHubReleasesView extends React.Component<
                 {release.publishedAt === null ? (
                   'Not published'
                 ) : (
-                  <ReleaseTimestamp date={release.publishedAt} />
+                  <ReleaseTimestamp
+                    date={release.publishedAt}
+                    relative={true}
+                  />
                 )}
               </dd>
             </div>
