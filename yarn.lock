@@ -1046,10 +1046,12 @@
   resolved "https://registry.yarnpkg.com/@types/unist/-/unist-2.0.11.tgz#11af57b127e32487774841f7a4e54eab166d03c4"
   integrity sha512-CmBKiL6NNo/OqgmMn95Fk9Whlp2mtvIv+KNpQKN2F4SjvrEesubTRWGYSg+BnWZOnlCaSTU1sMpsBOzgbYhnsA==
 
-"@types/untildify@^3.0.0":
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/@types/untildify/-/untildify-3.0.0.tgz#cd3e6624e46ccf292d3823fb48fa90dda0deaec0"
-  integrity sha512-FTktI3Y1h+gP9GTjTvXBP5v8xpH4RU6uS9POoBcGy4XkS2Np6LNtnP1eiNNth4S7P+qw2c/rugkwBasSHFzJEg==
+"@types/untildify@^4.0.0":
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/@types/untildify/-/untildify-4.0.0.tgz#48f51e62b38baf7244fa527eacd3d9f605540e14"
+  integrity sha512-AoSIFVSN4k0l6yD2QKw2TWQkhH3sKsDpke2ozD69WfjPiDmoNJjah+oPUfiJTdCZZqC7pdEq8c5p8vdm5hvn9Q==
+  dependencies:
+    untildify "*"
 
 "@types/username@^3.0.0":
   version "3.0.0"
@@ -6267,6 +6269,11 @@ universalify@^2.0.0:
   version "2.0.1"
   resolved "https://registry.yarnpkg.com/universalify/-/universalify-2.0.1.tgz#168efc2180964e6386d061e094df61afe239b18d"
   integrity sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw==
+
+untildify@*:
+  version "6.0.0"
+  resolved "https://registry.yarnpkg.com/untildify/-/untildify-6.0.0.tgz#95d532bb8a7f555613deb11c1379d1b7cf5a1755"
+  integrity sha512-sA2YTBvW2F463GvSbiZtso+dpuQV+B7xX9saX30SGrR5Fyx4AUcvA/zN+ShAkABKUKVyDaHECsJrHv5ToTuHsQ==
 
 update-browserslist-db@^1.2.3:
   version "1.2.3"
