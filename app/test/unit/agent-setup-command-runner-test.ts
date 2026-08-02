@@ -1,4 +1,5 @@
 import assert from 'node:assert'
+import { readFileSync } from 'node:fs'
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -27,6 +28,22 @@ const requestIdentity = { repositoryPath, branchName }
 const validDirectory = { isGitWorktree: async () => true }
 
 describe('AgentSetupCommandRunner', () => {
+  it('does not pull the renderer agent-session barrel into main startup', () => {
+    const source = readFileSync(
+      join(
+        process.cwd(),
+        'app',
+        'src',
+        'main-process',
+        'agent-setup-command-runner.ts'
+      ),
+      'utf8'
+    )
+
+    assert.match(source, /from '\.\.\/lib\/agent-sessions\/setup-commands'/)
+    assert.doesNotMatch(source, /from '\.\.\/lib\/agent-sessions'/)
+  })
+
   it('runs enabled commands sequentially in the exact canonical Git path', async () => {
     const calls = new Array<{
       executable: string

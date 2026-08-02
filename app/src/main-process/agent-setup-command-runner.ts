@@ -8,7 +8,7 @@ import {
   AgentSetupRunResult,
   IAgentSetupCommand,
   validateAgentSetupCommands,
-} from '../lib/agent-sessions'
+} from '../lib/agent-sessions/setup-commands'
 import { resolveRunEnv } from '../lib/build-run/resolve-user-path'
 import { resolveExecutable } from './build-run/runner'
 import { killTreeAndWait } from './build-run/kill-tree'
