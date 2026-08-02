@@ -5,6 +5,10 @@
   full-screen search view: inline switches/boxes/steppers/selects for
   settings rows, and click/Enter teleporting to the exact control that owns
   each feature (Ctrl+Enter to run instead).
+- [Command palette coverage](command-palette-coverage-gaps.md) — the complete
+  133-command coverage survey and shipped status, distinguishing live controls,
+  teleport-only destinations, deliberate exclusions, and remaining catalog
+  prerequisites.
 - [Command palette rows and
   appearance](command-palette-appearance.md) — icon/keyword/group rows, the
   compact aligned Customize appearance editor, stable random-per-repository

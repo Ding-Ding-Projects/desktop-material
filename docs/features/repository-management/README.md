@@ -79,11 +79,6 @@ Material is displaying or how a repository is represented in the application.
   dissolve a custom group from the list itself, with a searchable member picker
   wired to the regex builder and a removal that clears the label only and never
   removes a repository.
-- [Publish organization
-  picker](publish-organization-picker.md) — choose a personal or organization
-  owner from a non-collapsing, keyboard-operable listbox with fuzzy,
-  substring, and bounded-regex search, bilingual copy, and narrow-window
-  containment.
 - [Tag lifecycle management](tag-lifecycle-management.md) — inventory, create,
   move, sign, push, fetch, prune, and explicitly delete local and remote tags
   through stale-safe reviewed operations.

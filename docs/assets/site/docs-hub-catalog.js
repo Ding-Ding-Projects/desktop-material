@@ -172,7 +172,7 @@
       h: 'features/collaboration/pull-request-review-workspace.html',
       s: 'features/collaboration/pull-request-review-workspace.md',
       c: 'features',
-      d: "Open a pull request's context menu and choose Manage Pull Request… to load a single account-bound workspace. The summary remains visible while five keyboard-accessible tabs…",
+      d: "Open a pull request's context menu and choose Manage Pull Request… to load a single account-bound workspace. A fixed header names the current pull request, shows an Open,…",
     },
     {
       t: 'Collaboration features',
@@ -782,6 +782,13 @@
       s: 'features/repository-management/clone-queue-settings.md',
       c: 'features',
       d: 'Desktop Material exposes its account-scoped automatic-clone policy at Settings → Clone queue. This page is the durable configuration surface for background discovery; it does…',
+    },
+    {
+      t: 'Commit and push all repositories',
+      h: 'features/repository-management/commit-and-push-all.html',
+      s: 'features/repository-management/commit-and-push-all.md',
+      c: 'features',
+      d: 'One action that walks every repository Desktop Material knows about, pulls it, commits everything in its working directory under a single message you supply, and pushes the…',
     },
     {
       t: 'Deleted upstream pull recovery',
@@ -1510,6 +1517,13 @@
       s: 'verification/funny-level-sliders-2026-07-28/README.md',
       c: 'verification',
       d: 'Visual evidence for issue #83 (restore the missing English and Cantonese funny-level sliders).',
+    },
+    {
+      t: 'Handoff closeout verification run',
+      h: 'verification/handoff-closeout-2026-08-02/run-manifest.html',
+      s: 'verification/handoff-closeout-2026-08-02/run-manifest.md',
+      c: 'verification',
+      d: 'Run ID: handoff-closeout-20260802',
     },
     {
       t: 'Built app launched on an off-screen desktop — 2026-07-28',

@@ -3,6 +3,10 @@
 - [Central diagnostic logging](central-diagnostic-logging.md) — opt-in
   local/remote/both client logging plus an authenticated, redacted, bounded
   ARM64 Docker service for operators and troubleshooting agents.
+- [Supply-chain and CI
+  hardening](supply-chain-and-ci-hardening.md) — dependency-update proposals,
+  frozen lock-file installs, blocking package provenance checks, advisory
+  reporting, and concurrency rules that preserve every release-producing run.
 
 This category documents cross-cutting responsiveness, lifecycle, and recovery
 contracts that span more than one user workflow.
