@@ -12,8 +12,9 @@ and manage collaboration state without leaving Desktop Material.
   repository templates, review title/body/draft and provider-backed metadata,
   then create through the exact authenticated GitHub account and local head.
 - [Native pull request review workspace](pull-request-review-workspace.md) —
-  inspect a bounded, exact-head pull request workspace; review files, commits,
-  conversation, and checks; queue inline comments and replies; submit a review;
+  inspect a bounded, exact-head pull request workspace with a fixed summary and
+  right rail; review files, commits, conversation, and checks; queue inline
+  comments, safe fenced replacement suggestions, and replies; submit a review;
   and close, reopen, or merge with explicit confirmation.
 - [Rich pull-request context and
   actions](pull-request-context-and-actions.md) — keep exact head/base context,

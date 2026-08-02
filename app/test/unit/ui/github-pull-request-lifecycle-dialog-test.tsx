@@ -1,4 +1,6 @@
 import assert from 'node:assert'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
 import * as React from 'react'
 
@@ -314,6 +316,66 @@ function dialog(
 }
 
 describe('GitHubPullRequestLifecycleDialog', () => {
+  it('keeps a truthful header and summary rail visible across workspace navigation', async () => {
+    const dispatcher = new TestDispatcher()
+    render(dialog(dispatcher))
+
+    assert.ok(
+      await screen.findByRole('heading', { name: 'GitHub Pull Request' })
+    )
+    assert.ok(screen.getByRole('heading', { name: '#42 Lifecycle PR' }))
+    assert.equal(
+      screen.getByText('Pull request state:').parentElement?.textContent,
+      'Pull request state: Open'
+    )
+    assert.match(
+      document.body.textContent ?? '',
+      /octocat wants to merge octocat\/material:feature into main\./
+    )
+    assert.ok(
+      screen.getByRole('complementary', { name: 'Pull request summary' })
+    )
+    assert.ok(screen.getByRole('main', { name: 'Pull request details' }))
+    assert.equal(
+      screen.getByText('Files changed').nextElementSibling?.textContent,
+      '1'
+    )
+    assert.equal(
+      screen.getByText('Reviewers').nextElementSibling?.textContent,
+      'old-reviewer'
+    )
+    const assigneeTerm = screen
+      .getAllByText('Assignees')
+      .find(element => element.tagName === 'DT')
+    assert.equal(assigneeTerm?.nextElementSibling?.textContent, 'old-assignee')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Review files (1)' }))
+    assert.equal(
+      screen
+        .getByRole('tab', { name: 'Files (1)' })
+        .getAttribute('aria-selected'),
+      'true'
+    )
+    assert.equal(
+      document.activeElement,
+      screen.getByRole('tabpanel', { name: 'Files (1)' })
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Open conversation (2)' })
+    )
+    assert.equal(
+      screen
+        .getByRole('tab', { name: 'Conversation (2)' })
+        .getAttribute('aria-selected'),
+      'true'
+    )
+    assert.equal(
+      document.activeElement,
+      screen.getByRole('tabpanel', { name: 'Conversation (2)' })
+    )
+  })
+
   it('inspects and reviews exact title, body, base, reviewers, assignees, and labels', async () => {
     const dispatcher = new TestDispatcher()
     render(dialog(dispatcher))
@@ -497,6 +559,46 @@ describe('GitHubPullRequestLifecycleDialog', () => {
     })
   })
 
+  it('queues replacement text as a safe exact-head suggestion review comment', async () => {
+    const dispatcher = new TestDispatcher()
+    render(dialog(dispatcher))
+    await screen.findByRole('button', { name: 'Review files (1)' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Review files (1)' }))
+    assert.ok(screen.getByRole('group', { name: 'Suggest a replacement' }))
+    fireEvent.change(screen.getByLabelText('Inline comment line'), {
+      target: { value: '1' },
+    })
+    fireEvent.change(screen.getByLabelText('Suggested replacement text'), {
+      target: { value: 'before\n```\nafter' },
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Queue suggested change' })
+    )
+    assert.ok(screen.getByText('Suggested change queued for README.md:1.'))
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Open conversation (2)' })
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Review submission' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Submit review' }))
+
+    await waitFor(() => assert.equal(dispatcher.reviewCalls.length, 1))
+    assert.equal(dispatcher.reviewCalls[0].expectedHeadSHA, 'a'.repeat(40))
+    assert.deepEqual(dispatcher.reviewCalls[0].review, {
+      event: 'COMMENT',
+      body: '',
+      comments: [
+        {
+          path: 'README.md',
+          line: 1,
+          side: 'RIGHT',
+          body: '````suggestion\nbefore\n```\nafter\n````',
+        },
+      ],
+    })
+  })
+
   it('confirms closing an unchanged pull request and exposes checks context', async () => {
     const dispatcher = new TestDispatcher()
     render(dialog(dispatcher))
@@ -511,6 +613,12 @@ describe('GitHubPullRequestLifecycleDialog', () => {
       expectedHeadSHA: 'a'.repeat(40),
       state: 'closed',
     })
+    await waitFor(() =>
+      assert.equal(
+        screen.getByText('Pull request state:').parentElement?.textContent,
+        'Pull request state: Closed'
+      )
+    )
 
     fireEvent.click(screen.getByRole('tab', { name: 'Checks' }))
     assert.match(
@@ -574,5 +682,34 @@ describe('GitHubPullRequestLifecycleDialog', () => {
       key: 'Home',
     })
     assert.equal(overview.getAttribute('aria-selected'), 'true')
+  })
+
+  it('keeps the fixed desktop workspace and stacks it without clipping at narrow sizes', () => {
+    const styleIndex = readFileSync(
+      join(process.cwd(), 'app/styles/_ui.scss'),
+      'utf8'
+    )
+    const styles = readFileSync(
+      join(process.cwd(), 'app/styles/ui/_github-pull-request-lifecycle.scss'),
+      'utf8'
+    )
+
+    assert.match(styleIndex, /@import 'ui\/github-pull-request-lifecycle';/)
+    assert.match(
+      styles,
+      /\.github-pull-request-lifecycle-workspace-content\s*\{[\s\S]*?grid-template-rows: auto minmax\(0, 1fr\);[\s\S]*?overflow: hidden !important;/
+    )
+    assert.match(
+      styles,
+      /\.github-pull-request-lifecycle-workspace\s*\{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) minmax\(220px, 280px\);[\s\S]*?min-height: 0;/
+    )
+    assert.match(
+      styles,
+      /@media \(max-width: 800px\)[\s\S]*?\.github-pull-request-lifecycle-workspace\s*\{[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/
+    )
+    assert.match(
+      styles,
+      /@media \(max-width: 680px\)[\s\S]*?\.github-pull-request-lifecycle-composers\s*\{[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/
+    )
   })
 })

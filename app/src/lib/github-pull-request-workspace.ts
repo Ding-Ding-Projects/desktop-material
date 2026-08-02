@@ -470,6 +470,43 @@ function normalizePendingBody(value: string, kind: string): string {
   return value
 }
 
+/**
+ * Formats replacement text as one GitHub suggested-change block.
+ *
+ * The fence is always longer than every run of backticks in the replacement,
+ * so user-controlled text cannot close the block early or append review copy
+ * outside the suggestion. The resulting body is then subject to the same
+ * bounded validation as every other pending inline comment.
+ */
+export function createGitHubPullRequestSuggestionBody(
+  replacement: string
+): string {
+  if (typeof replacement !== 'string' || /\u0000/.test(replacement)) {
+    throw new Error('Suggested replacement text contains invalid characters.')
+  }
+  if (replacement.length > GitHubPullRequestBodyMaximumLength) {
+    throw new Error(
+      `Suggested replacements must fit within ${GitHubPullRequestBodyMaximumLength} characters after formatting.`
+    )
+  }
+
+  const normalizedReplacement = replacement.replace(/\r\n?/g, '\n')
+  let longestBacktickRun = 0
+  for (const match of normalizedReplacement.matchAll(/`+/g)) {
+    longestBacktickRun = Math.max(longestBacktickRun, match[0].length)
+  }
+  const fence = '`'.repeat(Math.max(3, longestBacktickRun + 1))
+  const finalLineBreak =
+    normalizedReplacement === '' || normalizedReplacement.endsWith('\n')
+      ? ''
+      : '\n'
+
+  return normalizePendingBody(
+    `${fence}suggestion\n${normalizedReplacement}${finalLineBreak}${fence}`,
+    'Suggested replacements'
+  )
+}
+
 export function normalizeGitHubPullRequestPendingInlineComment(
   comment: IGitHubPullRequestPendingInlineComment
 ): IGitHubPullRequestPendingInlineComment {

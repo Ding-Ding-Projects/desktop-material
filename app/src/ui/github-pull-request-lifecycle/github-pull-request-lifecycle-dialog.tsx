@@ -13,6 +13,7 @@ import {
   parseGitHubPullRequestMetadataField,
 } from '../../lib/github-pull-request'
 import {
+  createGitHubPullRequestSuggestionBody,
   GitHubPullRequestDiffSide,
   GitHubPullRequestPendingCommentMaximumItems,
   IGitHubPullRequestPendingInlineComment,
@@ -80,6 +81,7 @@ interface IGitHubPullRequestLifecycleDialogState {
   readonly inlineLine: string
   readonly inlineSide: GitHubPullRequestDiffSide
   readonly inlineBody: string
+  readonly suggestionBody: string
   readonly pendingInlineComments: ReadonlyArray<IGitHubPullRequestPendingInlineComment>
   readonly replyTargetId: number | null
   readonly replyBody: string
@@ -248,6 +250,7 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
       inlineLine: '',
       inlineSide: 'RIGHT',
       inlineBody: '',
+      suggestionBody: '',
       pendingInlineComments: [],
       replyTargetId: null,
       replyBody: '',
@@ -295,6 +298,7 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
         workspace: null,
         pendingInlineComments: [],
         pendingReplies: [],
+        suggestionBody: '',
         replyTargetId: null,
         replyBody: '',
       })
@@ -362,6 +366,7 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
         reviewBody: '',
         pendingInlineComments: [],
         pendingReplies: [],
+        suggestionBody: '',
         replyTargetId: null,
         replyBody: '',
       })
@@ -733,6 +738,7 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
         workspace: null,
         pendingInlineComments: [],
         pendingReplies: [],
+        suggestionBody: '',
         replyTargetId: null,
         replyBody: '',
         error:
@@ -756,6 +762,7 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
         workspace: null,
         pendingInlineComments: [],
         pendingReplies: [],
+        suggestionBody: '',
         replyTargetId: null,
         replyBody: '',
       },
@@ -795,6 +802,9 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
     })
   private onInlineBodyChanged = (event: React.FormEvent<HTMLTextAreaElement>) =>
     this.setState({ inlineBody: event.currentTarget.value, error: null })
+  private onSuggestionBodyChanged = (
+    event: React.FormEvent<HTMLTextAreaElement>
+  ) => this.setState({ suggestionBody: event.currentTarget.value, error: null })
   private onReplyBodyChanged = (event: React.FormEvent<HTMLTextAreaElement>) =>
     this.setState({ replyBody: event.currentTarget.value, error: null })
   private onMergeMethodChanged = (event: React.FormEvent<HTMLSelectElement>) =>
@@ -806,33 +816,51 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
     event: React.FormEvent<HTMLInputElement>
   ) => this.setState({ mergeConfirmation: event.currentTarget.value })
   private backToDetails = () => this.setState({ mode: 'details', error: null })
-  private setActiveTab = (activeTab: LifecycleTab) =>
-    this.setState({ activeTab, error: null })
+  private setActiveTab = (activeTab: LifecycleTab, focusPanel = false) =>
+    this.setState({ activeTab, error: null }, () => {
+      if (focusPanel) {
+        document.getElementById(`pull-request-${activeTab}-panel`)?.focus()
+      }
+    })
+
+  private navigateToFiles = () => this.setActiveTab('files', true)
+  private navigateToConversation = () => this.setActiveTab('conversation', true)
+
+  private createPendingInlineComment(
+    body: string
+  ): IGitHubPullRequestPendingInlineComment {
+    const snapshot = this.state.snapshot
+    const workspace = this.state.workspace
+    if (
+      snapshot === null ||
+      workspace === null ||
+      workspace.headSHA !== snapshot.headSHA
+    ) {
+      throw new Error('Refresh the file list before queuing this comment.')
+    }
+    if (!workspace.files.some(file => file.path === this.state.inlinePath)) {
+      throw new Error('Refresh the file list before queuing this comment.')
+    }
+    if (
+      this.state.pendingInlineComments.length +
+        this.state.pendingReplies.length >=
+      GitHubPullRequestPendingCommentMaximumItems
+    ) {
+      throw new Error(
+        `Queue no more than ${GitHubPullRequestPendingCommentMaximumItems} inline comments and replies per review.`
+      )
+    }
+    return normalizeGitHubPullRequestPendingInlineComment({
+      path: this.state.inlinePath,
+      line: Number(this.state.inlineLine),
+      side: this.state.inlineSide,
+      body,
+    })
+  }
 
   private queueInlineComment = () => {
-    const workspace = this.state.workspace
     try {
-      if (
-        workspace === null ||
-        !workspace.files.some(file => file.path === this.state.inlinePath)
-      ) {
-        throw new Error('Refresh the file list before queuing this comment.')
-      }
-      if (
-        this.state.pendingInlineComments.length +
-          this.state.pendingReplies.length >=
-        GitHubPullRequestPendingCommentMaximumItems
-      ) {
-        throw new Error(
-          `Queue no more than ${GitHubPullRequestPendingCommentMaximumItems} inline comments and replies per review.`
-        )
-      }
-      const comment = normalizeGitHubPullRequestPendingInlineComment({
-        path: this.state.inlinePath,
-        line: Number(this.state.inlineLine),
-        side: this.state.inlineSide,
-        body: this.state.inlineBody,
-      })
+      const comment = this.createPendingInlineComment(this.state.inlineBody)
       this.setState({
         pendingInlineComments: [...this.state.pendingInlineComments, comment],
         inlineLine: '',
@@ -846,6 +874,29 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
           error instanceof Error
             ? error.message
             : 'Review this inline comment.',
+      })
+    }
+  }
+
+  private queueSuggestedChange = () => {
+    try {
+      const body = createGitHubPullRequestSuggestionBody(
+        this.state.suggestionBody
+      )
+      const comment = this.createPendingInlineComment(body)
+      this.setState({
+        pendingInlineComments: [...this.state.pendingInlineComments, comment],
+        inlineLine: '',
+        suggestionBody: '',
+        notice: `Suggested change queued for ${comment.path}:${comment.line}.`,
+        error: null,
+      })
+    } catch (error) {
+      this.setState({
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Review this suggested change.',
       })
     }
   }
@@ -1199,11 +1250,12 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
         </section>
         <section aria-labelledby="pull-request-inline-comment-heading">
           <h2 id="pull-request-inline-comment-heading">
-            Queue an inline comment
+            Review code and suggest changes
           </h2>
           <p>
             Choose a line shown by the current GitHub patch. GitHub validates
-            the final line and side when the review is submitted.
+            the final line and side against the inspected head when the review
+            is submitted.
           </p>
           <div className="github-pull-request-lifecycle-grid">
             <label className="github-pull-request-lifecycle-field github-pull-request-lifecycle-wide">
@@ -1246,23 +1298,64 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
               </select>
             </label>
           </div>
-          <label className="github-pull-request-lifecycle-field">
-            <span>Comment</span>
-            <textarea
-              rows={3}
-              aria-label="Inline review comment"
-              value={this.state.inlineBody}
-              disabled={!canMutate}
-              onChange={this.onInlineBodyChanged}
-            />
-          </label>
-          <Button
-            type="button"
-            disabled={!canMutate || workspace.files.length === 0}
-            onClick={this.queueInlineComment}
-          >
-            Queue inline comment
-          </Button>
+          <div className="github-pull-request-lifecycle-composers">
+            <div
+              className="github-pull-request-lifecycle-composer"
+              role="group"
+              aria-labelledby="pull-request-comment-composer-heading"
+            >
+              <h3 id="pull-request-comment-composer-heading">
+                Comment on this line
+              </h3>
+              <label className="github-pull-request-lifecycle-field">
+                <span>Comment</span>
+                <textarea
+                  rows={5}
+                  aria-label="Inline review comment"
+                  value={this.state.inlineBody}
+                  disabled={!canMutate}
+                  onChange={this.onInlineBodyChanged}
+                />
+              </label>
+              <Button
+                type="button"
+                disabled={!canMutate || workspace.files.length === 0}
+                onClick={this.queueInlineComment}
+              >
+                Queue inline comment
+              </Button>
+            </div>
+            <div
+              className="github-pull-request-lifecycle-composer github-pull-request-lifecycle-suggestion-composer"
+              role="group"
+              aria-labelledby="pull-request-suggestion-composer-heading"
+            >
+              <h3 id="pull-request-suggestion-composer-heading">
+                Suggest a replacement
+              </h3>
+              <p>
+                Enter the exact replacement text. Leave it empty to suggest
+                deleting the selected line.
+              </p>
+              <label className="github-pull-request-lifecycle-field">
+                <span>Replacement text</span>
+                <textarea
+                  rows={5}
+                  aria-label="Suggested replacement text"
+                  value={this.state.suggestionBody}
+                  disabled={!canMutate}
+                  onChange={this.onSuggestionBodyChanged}
+                />
+              </label>
+              <Button
+                type="button"
+                disabled={!canMutate || workspace.files.length === 0}
+                onClick={this.queueSuggestedChange}
+              >
+                Queue suggested change
+              </Button>
+            </div>
+          </div>
         </section>
       </>
     )
@@ -1493,6 +1586,94 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
     )
   }
 
+  private renderWorkspaceHeader(snapshot: IGitHubPullRequestLifecycle) {
+    const stateLabel = snapshot.merged
+      ? 'Merged'
+      : snapshot.state === 'open'
+      ? 'Open'
+      : 'Closed'
+    return (
+      <header className="github-pull-request-lifecycle-workspace-header">
+        <div className="github-pull-request-lifecycle-title-row">
+          <h2 id="pull-request-workspace-title">
+            #{snapshot.number} {snapshot.title}
+          </h2>
+          <span
+            className="github-pull-request-lifecycle-state-badge"
+            data-state={stateLabel.toLowerCase()}
+          >
+            <span className="sr-only">Pull request state: </span>
+            {stateLabel}
+          </span>
+        </div>
+        <p>
+          <strong>{this.props.pullRequest.author}</strong> wants to merge{' '}
+          <code>
+            {snapshot.headRepository}:{snapshot.headRef}
+          </code>{' '}
+          into <code>{snapshot.base}</code>.
+        </p>
+      </header>
+    )
+  }
+
+  private renderWorkspaceRail(
+    snapshot: IGitHubPullRequestLifecycle,
+    workspace: IGitHubPullRequestWorkspace,
+    conversationCount: number,
+    cappedKinds: ReadonlyArray<string>
+  ) {
+    const reviewers = snapshot.metadata.reviewers.join(', ') || 'None'
+    const assignees = snapshot.metadata.assignees.join(', ') || 'None'
+    return (
+      <aside
+        className="github-pull-request-lifecycle-rail"
+        aria-labelledby="pull-request-summary-heading"
+      >
+        <h2 id="pull-request-summary-heading">Pull request summary</h2>
+        <dl>
+          <div>
+            <dt>Files changed</dt>
+            <dd>{workspace.files.length}</dd>
+          </div>
+          <div>
+            <dt>Reviewers</dt>
+            <dd>{reviewers}</dd>
+          </div>
+          <div>
+            <dt>Assignees</dt>
+            <dd>{assignees}</dd>
+          </div>
+        </dl>
+        <nav aria-label="Pull request workspace shortcuts">
+          <h3>Navigate</h3>
+          <Button type="button" onClick={this.navigateToFiles}>
+            Review files ({workspace.files.length})
+          </Button>
+          <Button type="button" onClick={this.navigateToConversation}>
+            Open conversation ({conversationCount})
+          </Button>
+        </nav>
+        <div className="github-pull-request-lifecycle-rail-status">
+          <span>
+            {snapshot.draft ? 'Draft' : 'Ready'} · head{' '}
+            {snapshot.headSHA.slice(0, 12)}
+          </span>
+          <span>
+            Merge status: {snapshot.mergeableState}
+            {snapshot.mergeable === null ? ' (computing)' : ''}
+          </span>
+          {cappedKinds.length > 0 && (
+            <span role="status">
+              Safety limit reached for {cappedKinds.join(', ')}. Open on GitHub
+              for the remaining items.
+            </span>
+          )}
+        </div>
+      </aside>
+    )
+  }
+
   private renderDetails(snapshot: IGitHubPullRequestLifecycle) {
     const workspace = this.state.workspace
     if (workspace === null || workspace.headSHA !== snapshot.headSHA) {
@@ -1539,69 +1720,56 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
       .map(([kind]) => kind.replace(/([A-Z])/g, ' $1').toLowerCase())
     return (
       <>
-        <DialogContent className="github-pull-request-lifecycle-content">
-          <section className="github-pull-request-lifecycle-summary">
-            <strong>
-              {this.props.pullRequest.base.gitHubRepository.fullName} #
-              {snapshot.number}
-            </strong>
-            <span>
-              {snapshot.headRepository}:{snapshot.headRef} → {snapshot.base}
-            </span>
-            <span>
-              {snapshot.draft ? 'Draft' : 'Ready'} · {snapshot.state} · head{' '}
-              {snapshot.headSHA.slice(0, 12)}
-            </span>
-            <span>
-              {workspace.files.length} files · {workspace.commits.length}{' '}
-              commits · {conversationCount} conversation items
-            </span>
-            <span>
-              Merge status: {snapshot.mergeableState}
-              {snapshot.mergeable === null ? ' (computing)' : ''}
-            </span>
-            {cappedKinds.length > 0 && (
-              <span role="status">
-                Safety limit reached for {cappedKinds.join(', ')}. Open on
-                GitHub for the remaining items.
-              </span>
-            )}
-          </section>
-          <div
-            className="github-pull-request-lifecycle-tabs"
-            role="tablist"
-            aria-label="Pull request workspace"
-          >
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                id={`pull-request-${tab.id}-tab`}
-                type="button"
-                role="tab"
-                aria-selected={this.state.activeTab === tab.id}
-                aria-controls={`pull-request-${tab.id}-panel`}
-                tabIndex={this.state.activeTab === tab.id ? 0 : -1}
-                data-tab={tab.id}
-                onClick={this.onTabSelected}
-                onKeyDown={this.onTabKeyDown}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          {tabs.map(tab => (
-            <div
-              key={tab.id}
-              id={`pull-request-${tab.id}-panel`}
-              className="github-pull-request-lifecycle-tab-panel"
-              role="tabpanel"
-              aria-labelledby={`pull-request-${tab.id}-tab`}
-              tabIndex={this.state.activeTab === tab.id ? 0 : -1}
-              hidden={this.state.activeTab !== tab.id}
+        <DialogContent className="github-pull-request-lifecycle-content github-pull-request-lifecycle-workspace-content">
+          {this.renderWorkspaceHeader(snapshot)}
+          <div className="github-pull-request-lifecycle-workspace">
+            <main
+              className="github-pull-request-lifecycle-main"
+              aria-label="Pull request details"
             >
-              {this.state.activeTab === tab.id ? tabContent : null}
-            </div>
-          ))}
+              <div
+                className="github-pull-request-lifecycle-tabs"
+                role="tablist"
+                aria-label="Pull request workspace"
+              >
+                {tabs.map(tab => (
+                  <button
+                    key={tab.id}
+                    id={`pull-request-${tab.id}-tab`}
+                    type="button"
+                    role="tab"
+                    aria-selected={this.state.activeTab === tab.id}
+                    aria-controls={`pull-request-${tab.id}-panel`}
+                    tabIndex={this.state.activeTab === tab.id ? 0 : -1}
+                    data-tab={tab.id}
+                    onClick={this.onTabSelected}
+                    onKeyDown={this.onTabKeyDown}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+              {tabs.map(tab => (
+                <div
+                  key={tab.id}
+                  id={`pull-request-${tab.id}-panel`}
+                  className="github-pull-request-lifecycle-tab-panel"
+                  role="tabpanel"
+                  aria-labelledby={`pull-request-${tab.id}-tab`}
+                  tabIndex={this.state.activeTab === tab.id ? 0 : -1}
+                  hidden={this.state.activeTab !== tab.id}
+                >
+                  {this.state.activeTab === tab.id ? tabContent : null}
+                </div>
+              ))}
+            </main>
+            {this.renderWorkspaceRail(
+              snapshot,
+              workspace,
+              conversationCount,
+              cappedKinds
+            )}
+          </div>
         </DialogContent>
         <DialogFooter>
           <div className="button-group">
@@ -1808,7 +1976,7 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
       <Dialog
         id="github-pull-request-lifecycle"
         className="github-pull-request-lifecycle-dialog"
-        title={`Pull request #${this.props.pullRequest.pullRequestNumber}`}
+        title="GitHub Pull Request"
         onSubmit={this.onSubmit}
         onDismissed={this.onDismissed}
         dismissDisabled={this.state.busy !== null}

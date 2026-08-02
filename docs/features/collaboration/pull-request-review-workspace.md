@@ -3,14 +3,19 @@
 ## Behavior
 
 Open a pull request's context menu and choose **Manage Pull Request…** to load a
-single account-bound workspace. The summary remains visible while five
-keyboard-accessible tabs organize the workflow:
+single account-bound workspace. A fixed header names the current pull request,
+shows an Open, Closed, or Merged badge, and states who wants to merge the exact
+head into which base. A persistent right rail shows files changed, reviewers,
+and assignees, with direct keyboard-accessible actions for Files and
+Conversation. Five keyboard-accessible tabs organize the workflow:
 
 - **Overview** edits the title, description, base branch, requested reviewers,
   assignees, and labels. It also confirms close/reopen and merge actions.
 - **Files** shows per-file change totals and the bounded patch returned by
   GitHub. A pending inline comment records an exact file path, line, and old or
-  new diff side.
+  new diff side. The replacement-text composer queues the exact text as a
+  GitHub fenced `suggestion` comment; an empty replacement proposes deleting
+  the selected line.
 - **Commits** lists the bounded commits for the pull request head.
 - **Conversation** combines reviews, issue comments, inline review comments,
   and replies into a chronological timeline. It holds the pending review queue
@@ -74,8 +79,13 @@ Every read and mutation is routed through the exact base repository and matching
 account endpoint. Workspace data is revalidated before and after the parallel
 collection reads. Mutations require the most recently inspected head SHA, and
 the store checks inline paths and reply identifiers against that head's loaded
-workspace before transport. Provider response bodies are not echoed into error
-copy. Patches are display-only and never written to the worktree.
+workspace before transport. Suggested replacements use a Markdown fence longer
+than every run of backticks in the replacement, so replacement text cannot end
+the suggestion block early or append a second review payload. The completed
+body then passes the same length, null-character, path, line, queue, account,
+and head-SHA checks as an ordinary inline comment. Provider response bodies are
+not echoed into error copy. Patches are display-only and never written to the
+worktree.
 
 ## Verification
 
@@ -83,4 +93,7 @@ Focused tests cover parser bounds and path rejection, strict pagination,
 pre/post head checks, account-scoped store caching, stale inline/reply rejection,
 review payload anchoring, close/reopen state, accessible dialog tabs, pending
 queue confirmation, checks fallback, responsive patch scrolling, and the
-deterministic guided-proof fixture routes.
+deterministic guided-proof fixture routes. Layout tests also pin the fixed
+desktop header/two-column rail, its narrow single-column fallback, accessible
+summary and state names, focus-moving navigation actions, and injection-safe
+suggestion transport.

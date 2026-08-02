@@ -2,6 +2,7 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 
 import {
+  createGitHubPullRequestSuggestionBody,
   GitHubPullRequestPendingCommentMaximumItems,
   parseGitHubPullRequestFiles,
   parseGitHubPullRequestReviewComments,
@@ -9,6 +10,29 @@ import {
 } from '../../src/lib/github-pull-request-workspace'
 
 describe('GitHub pull request review workspace', () => {
+  it('formats bounded replacement text as an injection-safe suggestion', () => {
+    assert.equal(
+      createGitHubPullRequestSuggestionBody('const answer = 42'),
+      '```suggestion\nconst answer = 42\n```'
+    )
+    assert.equal(
+      createGitHubPullRequestSuggestionBody('before\n```\nafter'),
+      '````suggestion\nbefore\n```\nafter\n````'
+    )
+    assert.equal(
+      createGitHubPullRequestSuggestionBody('line one\r\nline two'),
+      '```suggestion\nline one\nline two\n```'
+    )
+    assert.equal(
+      createGitHubPullRequestSuggestionBody(''),
+      '```suggestion\n```'
+    )
+    assert.throws(() => createGitHubPullRequestSuggestionBody('bad\u0000text'))
+    assert.throws(() =>
+      createGitHubPullRequestSuggestionBody('x'.repeat(65_536))
+    )
+  })
+
   it('parses bounded files and rejects unsafe repository-relative paths', () => {
     assert.deepEqual(
       parseGitHubPullRequestFiles([
