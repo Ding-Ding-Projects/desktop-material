@@ -12,6 +12,21 @@ import { Octicon, OcticonSymbol } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { isWorkflowRunCancellableStatus } from '../../lib/actions-workflow-runs'
 import { getWorkflowFileName } from './workflow-templates'
+import {
+  DefaultWorkflowRunElapsedClock,
+  formatWorkflowRunElapsed,
+  getWorkflowRunElapsed,
+  hasRunningWorkflowRun,
+  IWorkflowRunElapsedClock,
+  WorkflowRunElapsedRefreshIntervalMs,
+} from '../../lib/actions-workflow-run-elapsed'
+import {
+  getPersistedLanguageMode,
+  getPrimaryLanguageMode,
+  LanguageModeChangedEvent,
+  translate,
+} from '../../lib/i18n'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 
 interface IRunListProps {
   readonly runs: ReadonlyArray<IAPIWorkflowRun>
@@ -28,6 +43,13 @@ interface IRunListProps {
     trigger: HTMLButtonElement,
     fallback: HTMLButtonElement | null
   ) => void
+  /** Deterministic clock/scheduler boundary for live elapsed labels. */
+  readonly elapsedClock?: IWorkflowRunElapsedClock
+}
+
+interface IRunListState {
+  readonly now: number
+  readonly languageMode: LanguageMode
 }
 
 export const isWorkflowRunActive = (run: IAPIWorkflowRun) =>
@@ -94,7 +116,11 @@ export function getRunStatusGlyph(run: IAPIWorkflowRun): {
 }
 
 class RunListItem extends React.PureComponent<
-  IRunListProps & { readonly run: IAPIWorkflowRun }
+  IRunListProps & {
+    readonly run: IAPIWorkflowRun
+    readonly now: number
+    readonly languageMode: LanguageMode
+  }
 > {
   private selectButton: HTMLButtonElement | null = null
   private select = () => this.props.onSelect(this.props.run)
@@ -127,6 +153,8 @@ class RunListItem extends React.PureComponent<
       selectedRunIds = new Set<number>(),
       busyRunId,
       bulkBusy = false,
+      now,
+      languageMode,
     } = this.props
     const status = getRunTone(run)
     const glyph = getRunStatusGlyph(run)
@@ -136,6 +164,23 @@ class RunListItem extends React.PureComponent<
     const title = run.display_title || run.name
     const branch = run.head_branch ?? 'detached'
     const workflowFile = run.path ? getWorkflowFileName(run.path) : run.name
+    const elapsed = getWorkflowRunElapsed(run, now)
+    const elapsedKey =
+      elapsed.kind === 'pending'
+        ? 'actions.elapsed.pending'
+        : elapsed.kind === 'unavailable'
+        ? 'actions.elapsed.unavailable'
+        : 'actions.elapsed.run'
+    const elapsedVariables =
+      elapsed.kind === 'completed' || elapsed.kind === 'running'
+        ? { duration: formatWorkflowRunElapsed(elapsed.milliseconds) }
+        : undefined
+    const elapsedLabel = translate(elapsedKey, languageMode, elapsedVariables)
+    const elapsedAccessibleLabel = translate(
+      elapsedKey,
+      getPrimaryLanguageMode(languageMode),
+      elapsedVariables
+    )
 
     return (
       <li>
@@ -183,6 +228,10 @@ class RunListItem extends React.PureComponent<
                     {actor.login}
                   </span>
                 )}
+                <span className="actions-run-elapsed" aria-hidden="true">
+                  {elapsedLabel}
+                </span>
+                <span className="sr-only">{elapsedAccessibleLabel}</span>
                 <RelativeTime date={new Date(run.created_at)} />
               </span>
             </span>
@@ -232,9 +281,99 @@ class RunListItem extends React.PureComponent<
   }
 }
 
-export class RunList extends React.PureComponent<IRunListProps> {
+export class RunList extends React.PureComponent<IRunListProps, IRunListState> {
+  private elapsedInterval: number | null = null
+
+  public constructor(props: IRunListProps) {
+    super(props)
+    this.state = {
+      now: this.clock.now(),
+      languageMode: getPersistedLanguageMode(),
+    }
+  }
+
+  private get clock(): IWorkflowRunElapsedClock {
+    return this.props.elapsedClock ?? DefaultWorkflowRunElapsedClock
+  }
+
+  public componentDidMount() {
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+    document.addEventListener('visibilitychange', this.onVisibilityChanged)
+    this.syncElapsedInterval()
+  }
+
+  public componentDidUpdate(prevProps: IRunListProps) {
+    if (prevProps.elapsedClock !== this.props.elapsedClock) {
+      this.clearElapsedInterval(prevProps.elapsedClock)
+      this.setState({ now: this.clock.now() })
+    }
+    if (
+      prevProps.runs !== this.props.runs ||
+      prevProps.elapsedClock !== this.props.elapsedClock
+    ) {
+      this.syncElapsedInterval()
+    }
+  }
+
+  public componentWillUnmount() {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+    document.removeEventListener('visibilitychange', this.onVisibilityChanged)
+    this.clearElapsedInterval()
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    this.setState({
+      languageMode: normalizeLanguageMode(
+        (event as CustomEvent<unknown>).detail
+      ),
+    })
+  }
+
+  private onVisibilityChanged = () => {
+    if (document.visibilityState !== 'hidden') {
+      this.setState({ now: this.clock.now() })
+    }
+    this.syncElapsedInterval()
+  }
+
+  private onElapsedInterval = () => this.setState({ now: this.clock.now() })
+
+  private syncElapsedInterval() {
+    const shouldRun =
+      document.visibilityState !== 'hidden' &&
+      hasRunningWorkflowRun(this.props.runs, this.state.now)
+    if (shouldRun && this.elapsedInterval === null) {
+      this.elapsedInterval = this.clock.setInterval(
+        this.onElapsedInterval,
+        WorkflowRunElapsedRefreshIntervalMs
+      )
+    } else if (!shouldRun) {
+      this.clearElapsedInterval()
+    }
+  }
+
+  private clearElapsedInterval(clock = this.props.elapsedClock) {
+    if (this.elapsedInterval !== null) {
+      const elapsedClock = clock ?? DefaultWorkflowRunElapsedClock
+      elapsedClock.clearInterval(this.elapsedInterval)
+      this.elapsedInterval = null
+    }
+  }
+
   private renderRun = (run: IAPIWorkflowRun) => (
-    <RunListItem key={run.id} {...this.props} run={run} />
+    <RunListItem
+      key={run.id}
+      {...this.props}
+      run={run}
+      now={this.state.now}
+      languageMode={this.state.languageMode}
+    />
   )
 
   public render() {

@@ -2,9 +2,12 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import { IAPIWorkflow, IAPIWorkflowRun } from '../../../src/lib/api'
 import {
-  formatRunDuration,
-  getLastRunDuration,
-} from '../../../src/ui/actions/workflow-manager'
+  formatWorkflowRunElapsed,
+  getLatestWorkflowRunElapsed,
+  getWorkflowRunElapsed,
+  hasRunningLatestWorkflowRun,
+  hasRunningWorkflowRun,
+} from '../../../src/lib/actions-workflow-run-elapsed'
 
 function workflow(id: number): IAPIWorkflow {
   return {
@@ -27,74 +30,261 @@ function run(
     event: 'push',
     name: 'run',
     status: 'completed',
-    created_at: '2026-07-30T10:00:00Z',
+    created_at: '2026-07-30T09:59:00Z',
+    run_started_at: '2026-07-30T10:00:00Z',
     updated_at: '2026-07-30T10:01:00Z',
     ...overrides,
   } as IAPIWorkflowRun
 }
 
-describe('workflow run duration', () => {
-  it('formats seconds, minutes and hours the way a glance reads them', () => {
-    assert.equal(formatRunDuration(0), '1s')
-    assert.equal(formatRunDuration(1_500), '2s')
-    assert.equal(formatRunDuration(45_000), '45s')
-    assert.equal(formatRunDuration(60_000), '1m')
-    assert.equal(formatRunDuration(252_000), '4m 12s')
-    assert.equal(formatRunDuration(3_600_000), '1h')
-    assert.equal(formatRunDuration(4_500_000), '1h 15m')
+const now = Date.parse('2026-07-30T10:02:00Z')
+
+describe('workflow run elapsed time', () => {
+  it('formats bounded glanceable durations without inventing a full second', () => {
+    assert.equal(formatWorkflowRunElapsed(0), '<1s')
+    assert.equal(formatWorkflowRunElapsed(999), '<1s')
+    assert.equal(formatWorkflowRunElapsed(1_500), '2s')
+    assert.equal(formatWorkflowRunElapsed(45_000), '45s')
+    assert.equal(formatWorkflowRunElapsed(60_000), '1m')
+    assert.equal(formatWorkflowRunElapsed(252_000), '4m 12s')
+    assert.equal(formatWorkflowRunElapsed(3_600_000), '1h')
+    assert.equal(formatWorkflowRunElapsed(4_500_000), '1h 15m')
+    assert.equal(formatWorkflowRunElapsed(90_061_000), '1d 1h 1m 1s')
+    assert.throws(() => formatWorkflowRunElapsed(Number.NaN), /finite/)
+    assert.throws(() => formatWorkflowRunElapsed(-1), /finite/)
   })
 
-  it('reports the newest completed run of that workflow only', () => {
-    const runs = [
-      run({
-        workflow_id: 7,
-        created_at: '2026-07-30T10:00:00Z',
-        updated_at: '2026-07-30T10:05:00Z',
-      }),
-      run({
-        workflow_id: 7,
-        created_at: '2026-07-30T12:00:00Z',
-        updated_at: '2026-07-30T12:00:30Z',
-      }),
-      run({
-        workflow_id: 8,
-        created_at: '2026-07-30T13:00:00Z',
-        updated_at: '2026-07-30T13:40:00Z',
-      }),
-    ]
-
-    assert.equal(getLastRunDuration(workflow(7), runs), 30_000)
-    assert.equal(getLastRunDuration(workflow(8), runs), 2_400_000)
-  })
-
-  it('reports nothing rather than a partial time for unfinished work', () => {
-    const w = workflow(7)
-    assert.equal(getLastRunDuration(w, []), null)
-    assert.equal(
-      getLastRunDuration(w, [run({ workflow_id: 7, status: 'in_progress' })]),
-      null
+  it('uses the execution start before the queued creation fallback', () => {
+    assert.deepEqual(getWorkflowRunElapsed(run({ workflow_id: 7 }), now), {
+      kind: 'completed',
+      milliseconds: 60_000,
+    })
+    assert.deepEqual(
+      getWorkflowRunElapsed(
+        run({ workflow_id: 7, run_started_at: undefined }),
+        now
+      ),
+      { kind: 'completed', milliseconds: 120_000 }
     )
-    assert.equal(
-      getLastRunDuration(w, [run({ workflow_id: 7, updated_at: undefined })]),
-      null
+    assert.deepEqual(
+      getWorkflowRunElapsed(
+        run({ workflow_id: 7, run_started_at: 'not-a-date' }),
+        now
+      ),
+      { kind: 'unavailable' }
     )
-    assert.equal(
-      getLastRunDuration(w, [
-        run({ workflow_id: 7, updated_at: 'not a date' }),
-      ]),
-      null
+    assert.deepEqual(
+      getWorkflowRunElapsed(run({ workflow_id: 7, run_started_at: '0' }), now),
+      { kind: 'unavailable' }
     )
-    // A clock skew that ends the run before it started is discarded, not shown
-    // as a negative duration.
-    assert.equal(
-      getLastRunDuration(w, [
+    assert.deepEqual(
+      getWorkflowRunElapsed(
         run({
           workflow_id: 7,
-          created_at: '2026-07-30T10:05:00Z',
-          updated_at: '2026-07-30T10:00:00Z',
+          run_started_at: '2026-02-30T10:00:00Z',
         }),
-      ]),
-      null
+        now
+      ),
+      { kind: 'unavailable' }
+    )
+  })
+
+  it('measures a running workflow against the injected wall clock', () => {
+    const running = run({ workflow_id: 7, status: 'in_progress' })
+    assert.deepEqual(getWorkflowRunElapsed(running, now), {
+      kind: 'running',
+      milliseconds: 120_000,
+    })
+    assert.equal(hasRunningWorkflowRun([running], now), true)
+    assert.equal(
+      hasRunningWorkflowRun(
+        [run({ workflow_id: 7, status: 'completed' })],
+        now
+      ),
+      false
+    )
+    assert.equal(
+      hasRunningWorkflowRun(
+        [
+          run({
+            workflow_id: 7,
+            status: 'in_progress',
+            run_started_at: undefined,
+            created_at: 'not-a-date',
+          }),
+        ],
+        now
+      ),
+      false
+    )
+  })
+
+  it('distinguishes not-started states from unavailable provider timing', () => {
+    for (const status of [
+      'queued',
+      'waiting',
+      'pending',
+      'requested',
+    ] as const) {
+      assert.deepEqual(
+        getWorkflowRunElapsed(run({ workflow_id: 7, status }), now),
+        { kind: 'pending' },
+        status
+      )
+    }
+
+    assert.deepEqual(
+      getWorkflowRunElapsed(
+        run({
+          workflow_id: 7,
+          status: 'in_progress',
+          run_started_at: undefined,
+          created_at: 'not-a-date',
+        }),
+        now
+      ),
+      { kind: 'unavailable' }
+    )
+    assert.deepEqual(
+      getWorkflowRunElapsed(
+        run({
+          workflow_id: 7,
+          run_started_at: '2026-07-30T11:00:00Z',
+          updated_at: '2026-07-30T11:01:00Z',
+        }),
+        now
+      ),
+      { kind: 'unavailable' }
+    )
+    assert.deepEqual(
+      getWorkflowRunElapsed(
+        run({
+          workflow_id: 7,
+          updated_at: '2026-07-30T11:00:00Z',
+        }),
+        now
+      ),
+      { kind: 'unavailable' }
+    )
+    assert.deepEqual(
+      getWorkflowRunElapsed(
+        run({ workflow_id: 7, updated_at: undefined }),
+        now
+      ),
+      { kind: 'unavailable' }
+    )
+    assert.deepEqual(
+      getWorkflowRunElapsed(
+        run({ workflow_id: 7, updated_at: 'not-a-date' }),
+        now
+      ),
+      { kind: 'unavailable' }
+    )
+    assert.deepEqual(
+      getWorkflowRunElapsed(
+        run({
+          workflow_id: 7,
+          updated_at: '2026-07-30T09:00:00Z',
+        }),
+        now
+      ),
+      { kind: 'unavailable' }
+    )
+    assert.deepEqual(
+      getWorkflowRunElapsed(
+        run({
+          workflow_id: 7,
+          status: 'in_progress',
+          run_started_at: '2026-07-30T11:00:00Z',
+        }),
+        now
+      ),
+      { kind: 'unavailable' }
+    )
+  })
+
+  it('reports the newest loaded run of the requested workflow', () => {
+    const runs = [
+      run({
+        id: 1,
+        workflow_id: 7,
+        created_at: '2026-07-30T10:00:00Z',
+        run_started_at: '2026-07-30T10:01:00Z',
+        updated_at: '2026-07-30T10:06:00Z',
+      }),
+      run({
+        id: 2,
+        workflow_id: 7,
+        status: 'in_progress',
+        created_at: '2026-07-30T11:00:00Z',
+        run_started_at: '2026-07-30T11:01:00Z',
+      }),
+      run({ id: 3, workflow_id: 8 }),
+    ]
+
+    assert.deepEqual(
+      getLatestWorkflowRunElapsed(
+        workflow(7),
+        runs,
+        Date.parse('2026-07-30T11:03:00Z')
+      ),
+      { kind: 'running', milliseconds: 120_000 }
+    )
+    assert.deepEqual(getLatestWorkflowRunElapsed(workflow(9), runs, now), {
+      kind: 'none',
+    })
+  })
+
+  it('does not promote a malformed matching run to a false duration', () => {
+    assert.deepEqual(
+      getLatestWorkflowRunElapsed(
+        workflow(7),
+        [
+          run({
+            id: 1,
+            workflow_id: 7,
+            created_at: '2026-07-30T09:00:00Z',
+            run_started_at: '2026-07-30T09:01:00Z',
+            updated_at: '2026-07-30T09:02:00Z',
+          }),
+          run({
+            id: 2,
+            workflow_id: 7,
+            created_at: 'not-a-date',
+            run_started_at: '2026-07-30T10:00:00Z',
+          }),
+        ],
+        now
+      ),
+      { kind: 'unavailable' }
+    )
+  })
+
+  it('ticks only when the latest rendered workflow run is running', () => {
+    const w = workflow(7)
+    const running = run({
+      id: 1,
+      workflow_id: 7,
+      status: 'in_progress',
+      created_at: '2026-07-30T09:59:00Z',
+      run_started_at: '2026-07-30T10:00:00Z',
+    })
+    assert.equal(hasRunningLatestWorkflowRun([w], [running], now), true)
+
+    const newerCompleted = run({
+      id: 2,
+      workflow_id: 7,
+      created_at: '2026-07-30T10:01:00Z',
+      run_started_at: '2026-07-30T10:01:00Z',
+      updated_at: '2026-07-30T10:02:00Z',
+    })
+    assert.equal(
+      hasRunningLatestWorkflowRun([w], [running, newerCompleted], now),
+      false
+    )
+    assert.equal(
+      hasRunningLatestWorkflowRun([], [running, newerCompleted], now),
+      false
     )
   })
 })

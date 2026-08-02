@@ -2309,6 +2309,14 @@ export type TranslationKey =
   | 'buildRun.estimatedFinishUnknown'
   | 'conflicts.resolveWithAgent'
   | 'actions.fixCiWithAgent'
+  | 'actions.elapsed.run'
+  | 'actions.elapsed.pending'
+  | 'actions.elapsed.unavailable'
+  | 'actions.elapsed.workflowCompleted'
+  | 'actions.elapsed.workflowRunning'
+  | 'actions.elapsed.workflowPending'
+  | 'actions.elapsed.workflowUnavailable'
+  | 'actions.elapsed.workflowNone'
   | 'githubReleaseTransfer.stalled'
   | 'githubReleaseTransfer.cliUnavailable'
   | 'githubReleaseTransfer.cliFailed'
@@ -6314,6 +6322,14 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Finish time becomes available when measurable',
   'conflicts.resolveWithAgent': 'Resolve with Codex/OpenCode',
   'actions.fixCiWithAgent': 'Fix CI with Codex/OpenCode',
+  'actions.elapsed.run': 'Elapsed {duration}',
+  'actions.elapsed.pending': 'Elapsed: waiting to start',
+  'actions.elapsed.unavailable': 'Elapsed: unavailable',
+  'actions.elapsed.workflowCompleted': 'Last run {duration}',
+  'actions.elapsed.workflowRunning': 'Current run {duration}',
+  'actions.elapsed.workflowPending': 'Latest run: waiting to start',
+  'actions.elapsed.workflowUnavailable': 'Latest run time unavailable',
+  'actions.elapsed.workflowNone': 'No loaded run time',
   'githubReleaseTransfer.stalled':
     'The release asset upload stopped making network progress. Retry it or use Manual upload.',
   'githubReleaseTransfer.cliUnavailable':
@@ -10567,6 +10583,14 @@ export const cantoneseTranslations: Readonly<
   'buildRun.estimatedFinishUnknown': '量度到先會顯示估計完成時間',
   'conflicts.resolveWithAgent': '用 Codex/OpenCode 執衝突',
   'actions.fixCiWithAgent': '用 Codex/OpenCode 執 CI',
+  'actions.elapsed.run': '行咗 {duration}',
+  'actions.elapsed.pending': '已用時間：等緊開跑',
+  'actions.elapsed.unavailable': '已用時間：暫時量唔到',
+  'actions.elapsed.workflowCompleted': '上次行咗 {duration}',
+  'actions.elapsed.workflowRunning': '今次行咗 {duration}',
+  'actions.elapsed.workflowPending': '最新一次：等緊開跑',
+  'actions.elapsed.workflowUnavailable': '最新一次暫時量唔到時間',
+  'actions.elapsed.workflowNone': '未載入到執行時間',
   'githubReleaseTransfer.stalled':
     'Release 資產上載停止咗網絡進度。請重試，或者使用手動上載。',
   'githubReleaseTransfer.cliUnavailable':

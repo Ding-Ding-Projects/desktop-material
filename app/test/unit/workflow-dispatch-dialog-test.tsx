@@ -1,12 +1,13 @@
 import assert from 'node:assert'
 import { beforeEach, describe, it } from 'node:test'
 import * as React from 'react'
+import { act } from 'react-dom/test-utils'
 
 import {
   WorkflowDispatchDialog,
   WorkflowDispatchPickerSearchSurfaceId,
 } from '../../src/ui/actions/workflow-dispatch-dialog'
-import { IAPIWorkflow } from '../../src/lib/api'
+import { IAPIWorkflow, IAPIWorkflowRun } from '../../src/lib/api'
 import { Repository } from '../../src/models/repository'
 import { ActionsStore } from '../../src/lib/stores/actions-store'
 import { SearchSurfaceRegistry } from '../../src/lib/collection-surface-registry'
@@ -17,6 +18,7 @@ import {
   waitFor,
   within,
 } from '../helpers/ui/render'
+import { IWorkflowRunElapsedClock } from '../../src/lib/actions-workflow-run-elapsed'
 
 // Language and filter-mode state leak through localStorage between suites, so
 // reset both before each assertion runs.
@@ -68,6 +70,7 @@ function renderDialog(
       <WorkflowDispatchDialog
         repository={repository}
         workflows={workflows}
+        runs={[]}
         initialWorkflowId={1}
         branchNames={['main']}
         initialRef="main"
@@ -77,6 +80,51 @@ function renderDialog(
         {...overrides}
       />
     ),
+  }
+}
+
+class FakeElapsedClock implements IWorkflowRunElapsedClock {
+  private callback: (() => void) | null = null
+
+  public constructor(private currentTime: number) {}
+
+  public readonly now = () => this.currentTime
+  public readonly setInterval = (callback: () => void) => {
+    this.callback = callback
+    return 1
+  }
+  public readonly clearInterval = () => {
+    this.callback = null
+  }
+  public advance(milliseconds: number) {
+    this.currentTime += milliseconds
+    this.callback?.()
+  }
+  public get active(): boolean {
+    return this.callback !== null
+  }
+}
+
+function run(
+  id: number,
+  workflowId: number,
+  status: IAPIWorkflowRun['status'],
+  startedAt: string,
+  updatedAt?: string
+): IAPIWorkflowRun {
+  return {
+    id,
+    workflow_id: workflowId,
+    cancel_url: '',
+    created_at: startedAt,
+    run_started_at: startedAt,
+    updated_at: updatedAt,
+    logs_url: '',
+    name: 'run',
+    rerun_url: '',
+    check_suite_id: id,
+    event: 'push',
+    status,
   }
 }
 
@@ -111,6 +159,81 @@ describe('WorkflowDispatchDialog workflow picker', () => {
     assert.ok(screen.getByText('ci.yml'))
     assert.ok(screen.getByText('build-installers.yml'))
     assert.ok(screen.getByText('codeql.yml'))
+  })
+
+  it('shows elapsed time on every row and advances the current run', async () => {
+    const start = Date.parse('2026-08-02T12:00:00Z')
+    const elapsedClock = new FakeElapsedClock(start + 120_000)
+    const view = renderDialog({
+      elapsedClock,
+      runs: [
+        run(1, 1, 'in_progress', new Date(start).toISOString()),
+        run(
+          2,
+          2,
+          'completed',
+          new Date(start).toISOString(),
+          new Date(start + 60_000).toISOString()
+        ),
+      ],
+    })
+
+    assert.equal(screen.getAllByText('Current run 2m').length, 2)
+    assert.equal(screen.getAllByText('Last run 1m').length, 2)
+    assert.equal(screen.getAllByText('No loaded run time').length, 2)
+    assert.equal(elapsedClock.active, true)
+
+    act(() => elapsedClock.advance(1_000))
+    assert.equal(screen.getAllByText('Current run 2m 1s').length, 2)
+
+    await waitFor(() => {
+      assert.equal(
+        (
+          screen.getByRole('button', {
+            name: 'Run workflow',
+          }) as HTMLButtonElement
+        ).disabled,
+        false
+      )
+    })
+
+    view.unmount()
+    assert.equal(elapsedClock.active, false)
+  })
+
+  it('ticks only for filtered rows whose latest run is running', async () => {
+    const start = Date.parse('2026-08-02T12:00:00Z')
+    const elapsedClock = new FakeElapsedClock(start + 300_000)
+    const view = renderDialog({
+      elapsedClock,
+      runs: [
+        run(1, 1, 'in_progress', new Date(start).toISOString()),
+        run(
+          2,
+          1,
+          'completed',
+          new Date(start + 120_000).toISOString(),
+          new Date(start + 180_000).toISOString()
+        ),
+        run(3, 2, 'in_progress', new Date(start + 60_000).toISOString()),
+      ],
+    })
+
+    assert.equal(elapsedClock.active, true)
+    await cycleFilterMode(1) // Fuzzy -> Substring
+    fireEvent.change(screen.getByRole('searchbox'), {
+      target: { value: 'build installers' },
+    })
+    await waitFor(() => assert.equal(screen.getAllByRole('option').length, 1))
+    assert.equal(elapsedClock.active, false)
+
+    fireEvent.change(screen.getByRole('searchbox'), {
+      target: { value: 'CI' },
+    })
+    await waitFor(() => assert.equal(screen.getAllByRole('option').length, 1))
+    assert.equal(elapsedClock.active, true)
+    view.unmount()
+    assert.equal(elapsedClock.active, false)
   })
 
   it('narrows the rows with a substring filter', async () => {

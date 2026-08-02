@@ -11,71 +11,32 @@ import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { getWorkflowStateAction } from './workflow-state-control'
 import { getWorkflowFileName, getWorkflowGlyph } from './workflow-templates'
+import {
+  DefaultWorkflowRunElapsedClock,
+  formatWorkflowRunElapsed,
+  getLatestWorkflowRunElapsed,
+  hasRunningLatestWorkflowRun,
+  IWorkflowRunElapsedClock,
+  LatestWorkflowRunElapsed,
+  WorkflowRunElapsedRefreshIntervalMs,
+} from '../../lib/actions-workflow-run-elapsed'
+import {
+  getPersistedLanguageMode,
+  getPrimaryLanguageMode,
+  LanguageModeChangedEvent,
+  translate,
+} from '../../lib/i18n'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 
 /** localStorage key used to persist the workflow filter mode. */
 const WorkflowManagerFilterListId = 'actions-workflows'
 
-/**
- * Renders a run duration the way a glance wants it: seconds under a minute,
- * minutes and seconds under an hour, hours and minutes above that. Never zero —
- * a run that finished inside the same second still took some time.
- */
-export function formatRunDuration(milliseconds: number): string {
-  const totalSeconds = Math.max(1, Math.round(milliseconds / 1000))
-  if (totalSeconds < 60) {
-    return `${totalSeconds}s`
-  }
-  const minutes = Math.floor(totalSeconds / 60)
-  if (minutes < 60) {
-    const seconds = totalSeconds % 60
-    return seconds === 0 ? `${minutes}m` : `${minutes}m ${seconds}s`
-  }
-  const hours = Math.floor(minutes / 60)
-  const remainingMinutes = minutes % 60
-  return remainingMinutes === 0 ? `${hours}h` : `${hours}h ${remainingMinutes}m`
-}
-
-/**
- * How long a workflow's most recent finished run took, in milliseconds, or null
- * when no run of it has completed. GitHub reports no explicit duration on the
- * run resource, so this is `updated_at - created_at` of the newest completed
- * run — the same span the Actions web UI shows. Queued time is included, which
- * is the honest number for "how long until it was done"; a still-running or
- * never-run workflow reports nothing rather than a misleading partial time.
- */
-export function getLastRunDuration(
-  workflow: IAPIWorkflow,
-  runs: ReadonlyArray<IAPIWorkflowRun>
-): number | null {
-  let newestStart = Number.NEGATIVE_INFINITY
-  let duration: number | null = null
-
-  for (const run of runs) {
-    if (run.workflow_id !== workflow.id || run.status !== 'completed') {
-      continue
-    }
-    if (run.updated_at === undefined) {
-      continue
-    }
-    const started = Date.parse(run.created_at)
-    const ended = Date.parse(run.updated_at)
-    if (Number.isNaN(started) || Number.isNaN(ended) || ended < started) {
-      continue
-    }
-    if (started > newestStart) {
-      newestStart = started
-      duration = ended - started
-    }
-  }
-
-  return duration
-}
-
 interface IWorkflowManagerRowProps {
   readonly workflow: IAPIWorkflow
   readonly busyWorkflowId: number | null
-  /** Duration of this workflow's most recent completed run, in milliseconds. */
-  readonly lastRunDuration: number | null
+  /** Truthful elapsed state of this workflow's newest loaded run. */
+  readonly elapsed: LatestWorkflowRunElapsed
+  readonly languageMode: LanguageMode
   readonly index: number
   readonly onRequestChange: (workflow: IAPIWorkflow, enabled: boolean) => void
 }
@@ -90,12 +51,31 @@ class WorkflowManagerRow extends React.PureComponent<IWorkflowManagerRowProps> {
   }
 
   public render() {
-    const { workflow, busyWorkflowId, lastRunDuration, index } = this.props
+    const { workflow, busyWorkflowId, elapsed, languageMode, index } =
+      this.props
     const enabled = workflow.state === 'active'
     const action = getWorkflowStateAction(workflow)
     const stateLabel = workflow.state.replace(/_/g, ' ')
-    const durationLabel =
-      lastRunDuration === null ? null : formatRunDuration(lastRunDuration)
+    const durationVariables =
+      elapsed.kind === 'completed' || elapsed.kind === 'running'
+        ? { duration: formatWorkflowRunElapsed(elapsed.milliseconds) }
+        : undefined
+    const elapsedKey =
+      elapsed.kind === 'completed'
+        ? 'actions.elapsed.workflowCompleted'
+        : elapsed.kind === 'running'
+        ? 'actions.elapsed.workflowRunning'
+        : elapsed.kind === 'pending'
+        ? 'actions.elapsed.workflowPending'
+        : elapsed.kind === 'unavailable'
+        ? 'actions.elapsed.workflowUnavailable'
+        : 'actions.elapsed.workflowNone'
+    const elapsedLabel = translate(elapsedKey, languageMode, durationVariables)
+    const elapsedAccessibleLabel = translate(
+      elapsedKey,
+      getPrimaryLanguageMode(languageMode),
+      durationVariables
+    )
     const style = { animationDelay: `${Math.min(index, 8) * 40}ms` }
     return (
       <div
@@ -111,14 +91,11 @@ class WorkflowManagerRow extends React.PureComponent<IWorkflowManagerRowProps> {
           <strong>{workflow.name}</strong>
           <span className="actions-workflow-row-file">
             {getWorkflowFileName(workflow.path)} · {stateLabel}
-            {durationLabel !== null && (
-              <>
-                {' · '}
-                <span className="actions-workflow-row-duration">
-                  last run {durationLabel}
-                </span>
-              </>
-            )}
+            {' · '}
+            <span className="actions-workflow-row-duration" aria-hidden="true">
+              {elapsedLabel}
+            </span>
+            <span className="sr-only">{elapsedAccessibleLabel}</span>
           </span>
         </span>
         <button
@@ -146,6 +123,8 @@ interface IWorkflowManagerProps {
   readonly busyWorkflowId: number | null
   readonly onRequestChange: (workflow: IAPIWorkflow, enabled: boolean) => void
   readonly onNewWorkflow: () => void
+  /** Deterministic clock/scheduler boundary for live elapsed labels. */
+  readonly elapsedClock?: IWorkflowRunElapsedClock
 }
 
 interface IWorkflowManagerState {
@@ -153,6 +132,8 @@ interface IWorkflowManagerState {
   readonly filterText: string
   readonly filterMode: FilterMode
   readonly filterCaseSensitive: boolean
+  readonly now: number
+  readonly languageMode: LanguageMode
 }
 
 /**
@@ -164,10 +145,103 @@ export class WorkflowManager extends React.PureComponent<
   IWorkflowManagerProps,
   IWorkflowManagerState
 > {
-  public state: IWorkflowManagerState = {
-    filterText: '',
-    filterMode: readPersistedFilterMode(WorkflowManagerFilterListId),
-    filterCaseSensitive: false,
+  private elapsedInterval: number | null = null
+
+  public constructor(props: IWorkflowManagerProps) {
+    super(props)
+    this.state = {
+      filterText: '',
+      filterMode: readPersistedFilterMode(WorkflowManagerFilterListId),
+      filterCaseSensitive: false,
+      now: this.clock.now(),
+      languageMode: getPersistedLanguageMode(),
+    }
+  }
+
+  private get clock(): IWorkflowRunElapsedClock {
+    return this.props.elapsedClock ?? DefaultWorkflowRunElapsedClock
+  }
+
+  public componentDidMount() {
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+    document.addEventListener('visibilitychange', this.onVisibilityChanged)
+    this.syncElapsedInterval()
+  }
+
+  public componentDidUpdate(
+    prevProps: IWorkflowManagerProps,
+    prevState: IWorkflowManagerState
+  ) {
+    if (prevProps.elapsedClock !== this.props.elapsedClock) {
+      this.clearElapsedInterval(prevProps.elapsedClock)
+      this.setState({ now: this.clock.now() })
+    }
+    if (
+      prevProps.runs !== this.props.runs ||
+      prevProps.workflows !== this.props.workflows ||
+      prevState.filterText !== this.state.filterText ||
+      prevState.filterMode !== this.state.filterMode ||
+      prevState.filterCaseSensitive !== this.state.filterCaseSensitive ||
+      prevProps.elapsedClock !== this.props.elapsedClock
+    ) {
+      this.syncElapsedInterval()
+    }
+  }
+
+  public componentWillUnmount() {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+    document.removeEventListener('visibilitychange', this.onVisibilityChanged)
+    this.clearElapsedInterval()
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    this.setState({
+      languageMode: normalizeLanguageMode(
+        (event as CustomEvent<unknown>).detail
+      ),
+    })
+  }
+
+  private onVisibilityChanged = () => {
+    if (document.visibilityState !== 'hidden') {
+      this.setState({ now: this.clock.now() })
+    }
+    this.syncElapsedInterval()
+  }
+
+  private onElapsedInterval = () => this.setState({ now: this.clock.now() })
+
+  private syncElapsedInterval() {
+    const visibleWorkflows = this.getVisibleWorkflows().workflows
+    const shouldRun =
+      document.visibilityState !== 'hidden' &&
+      hasRunningLatestWorkflowRun(
+        visibleWorkflows,
+        this.props.runs,
+        this.state.now
+      )
+    if (shouldRun && this.elapsedInterval === null) {
+      this.elapsedInterval = this.clock.setInterval(
+        this.onElapsedInterval,
+        WorkflowRunElapsedRefreshIntervalMs
+      )
+    } else if (!shouldRun) {
+      this.clearElapsedInterval()
+    }
+  }
+
+  private clearElapsedInterval(clock = this.props.elapsedClock) {
+    if (this.elapsedInterval !== null) {
+      const elapsedClock = clock ?? DefaultWorkflowRunElapsedClock
+      elapsedClock.clearInterval(this.elapsedInterval)
+      this.elapsedInterval = null
+    }
   }
 
   private onFilterChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,7 +288,12 @@ export class WorkflowManager extends React.PureComponent<
       key={workflow.id}
       workflow={workflow}
       busyWorkflowId={this.props.busyWorkflowId}
-      lastRunDuration={getLastRunDuration(workflow, this.props.runs)}
+      elapsed={getLatestWorkflowRunElapsed(
+        workflow,
+        this.props.runs,
+        this.state.now
+      )}
+      languageMode={this.state.languageMode}
       index={index}
       onRequestChange={this.props.onRequestChange}
     />

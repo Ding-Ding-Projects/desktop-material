@@ -53,6 +53,7 @@ import { WorkflowDispatchDialog } from './workflow-dispatch-dialog'
 import { JobLogViewer } from './job-log-viewer'
 import { ActionsConfirmationDialog } from './actions-confirmation-dialog'
 import { WorkflowManager } from './workflow-manager'
+import { WorkflowRunReviewList } from './workflow-run-review-list'
 import { WorkflowCatalogDialog } from './workflow-catalog-dialog'
 import { IWorkflowTemplate } from './workflow-templates'
 import { ActionsCacheManager } from './actions-cache-manager'
@@ -2428,6 +2429,7 @@ export class ActionsView extends React.Component<
           <WorkflowDispatchDialog
             repository={this.props.repository}
             workflows={actions.workflows.filter(x => x.state === 'active')}
+            runs={actions.runs}
             initialWorkflowId={
               this.state.workflow === 'all' ? null : Number(this.state.workflow)
             }
@@ -2575,15 +2577,7 @@ export class ActionsView extends React.Component<
                       ? 'Cancellation failures and uncertain timeouts stay selected while the rest of the reviewed batch continues.'
                       : 'Re-run processing stops on the first changed or failed run.'}
                   </p>
-                  <ul className="actions-bulk-run-review-list">
-                    {bulkRunConfirmation.runs.map(run => (
-                      <li key={run.id}>
-                        <strong>{run.display_title || run.name}</strong>{' '}
-                        <span>#{run.run_number ?? run.id}</span>{' '}
-                        <code>{run.head_branch ?? 'detached'}</code>
-                      </li>
-                    ))}
-                  </ul>
+                  <WorkflowRunReviewList runs={bulkRunConfirmation.runs} />
                 </>
               }
               confirmLabel={

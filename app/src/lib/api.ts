@@ -880,6 +880,8 @@ export interface IAPIWorkflowRun {
   readonly head_sha?: string
   readonly status?: ActionsWorkflowRunStatus
   readonly conclusion?: ActionsWorkflowRunConclusion | null
+  /** Provider-reported execution start, excluding time spent queued. */
+  readonly run_started_at?: string
   readonly updated_at?: string
   readonly html_url?: string
   readonly actor?: IAPIIdentity
