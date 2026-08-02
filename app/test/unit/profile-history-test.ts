@@ -242,6 +242,91 @@ describe('profile git history', () => {
     assert.equal(secondPage.hasMore, false)
   })
 
+  it('counts independently and bounds every commit query for later pages', async t => {
+    const repository = await createProfileRepository(t)
+
+    for (const size of ['2', '4', '6', '8', '10']) {
+      await writeSettings(repository, { 'tab-size': size })
+      await commitAllChanges(repository, `Set tab size to ${size}`)
+    }
+    await undoLastProfileChange(repository)
+
+    const traceDirectory = await createTempDirectory(t)
+    const tracePath = join(traceDirectory, 'profile-history-git-trace.jsonl')
+    const previousTrace = process.env.GIT_TRACE2_EVENT
+    process.env.GIT_TRACE2_EVENT = tracePath
+
+    let page
+    try {
+      page = await getProfileHistory(repository, 2, 2)
+    } finally {
+      if (previousTrace === undefined) {
+        delete process.env.GIT_TRACE2_EVENT
+      } else {
+        process.env.GIT_TRACE2_EVENT = previousTrace
+      }
+    }
+
+    assert.deepEqual(
+      page.entries.map(entry => entry.summary),
+      ['Set tab size to 8', 'Set tab size to 6']
+    )
+    assert.equal(page.total, 6)
+    assert.equal(page.hasMore, true)
+    assert.equal(page.canUndo, true)
+    assert.equal(page.canRedo, true)
+
+    const commands = (await readFile(tracePath, 'utf8'))
+      .split(/\r?\n/g)
+      .filter(Boolean)
+      .map(line => JSON.parse(line) as { event?: string; argv?: string[] })
+      .filter(
+        (event): event is { event: string; argv: string[] } =>
+          event.event === 'start' && Array.isArray(event.argv)
+      )
+      .map(event => event.argv)
+
+    const countCommands = commands.filter(command =>
+      command.includes('rev-list')
+    )
+    assert.equal(countCommands.length, 1)
+    const pinnedRevision = countCommands[0].at(-2)
+    assert.match(pinnedRevision ?? '', /^[0-9a-f]{40}$/)
+    assert.deepEqual(countCommands[0].slice(-4), [
+      'rev-list',
+      '--count',
+      pinnedRevision,
+      '--',
+    ])
+
+    const logCommands = commands.filter(command => command.includes('log'))
+    assert.ok(logCommands.length >= 2)
+    assert.ok(
+      logCommands.every(command =>
+        command.some(argument => argument.startsWith('--max-count='))
+      )
+    )
+    const pinnedLogCommands = logCommands.filter(command =>
+      command.includes(pinnedRevision!)
+    )
+    assert.ok(pinnedLogCommands.length >= 2)
+    assert.equal(logCommands.length - pinnedLogCommands.length, 1)
+    assert.ok(
+      logCommands
+        .filter(command => !command.includes(pinnedRevision!))
+        .every(
+          command =>
+            command.includes('HEAD') && command.includes('--max-count=1')
+        )
+    )
+    assert.ok(
+      pinnedLogCommands.some(
+        command =>
+          command.includes('--max-count=2') && command.includes('--skip=2')
+      )
+    )
+  })
+
   it('loads changed files and unified diffs lazily', async t => {
     const repository = await createProfileRepository(t)
     await writeSettings(repository, { 'tab-size': '2' })

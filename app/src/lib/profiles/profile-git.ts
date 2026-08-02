@@ -659,15 +659,15 @@ export function getProfileHistoryWithBatchObserverForTesting(
   repository: Repository,
   skip: number,
   limit: number,
-  filter: IProfileHistoryFilter,
-  onTabHistoryBatch: (batchIndex: number) => Promise<void>
+  filter: IProfileHistoryFilter | undefined,
+  onHistoryBatch: (batchIndex: number) => Promise<void>
 ): Promise<IProfileHistoryPage> {
   return getProfileHistoryInternal(
     repository,
     skip,
     limit,
     filter,
-    onTabHistoryBatch
+    onHistoryBatch
   )
 }
 
@@ -683,12 +683,12 @@ async function getProfileHistoryInternal(
     ProfileHistoryPageSize,
     Math.max(1, normalizeNonNegativeInteger(limit))
   )
+  const revision = await resolveProfileHistoryRevision(repository)
+  if (revision === null) {
+    return emptyProfileHistoryPage()
+  }
 
   if (filter !== undefined) {
-    const revision = await resolveProfileHistoryRevision(repository)
-    if (revision === null) {
-      return emptyProfileHistoryPage()
-    }
     return getTabProfileHistory(
       repository,
       revision,
@@ -699,20 +699,130 @@ async function getProfileHistoryInternal(
     )
   }
 
-  const [commits, allCommits] = await Promise.all([
-    getCommits(repository, 'HEAD', normalizedLimit, normalizedSkip),
-    getCommits(repository, 'HEAD'),
+  const [commits, total] = await Promise.all([
+    getCommits(repository, revision, normalizedLimit, normalizedSkip),
+    countProfileHistoryCommits(repository, revision),
   ])
-  const total = allCommits.length
+  if (total === 0) {
+    return emptyProfileHistoryPage()
+  }
 
-  const traversal = buildProfileHistoryTraversal(allCommits)
+  const availability = await getProfileHistoryAvailability(
+    repository,
+    revision,
+    normalizedSkip === 0 ? commits : [],
+    onTabHistoryBatch
+  )
 
   return {
     entries: commits.map(toProfileHistoryEntry),
     total,
     hasMore: normalizedSkip + commits.length < total,
-    canUndo: traversal.undoable.length > 0,
-    canRedo: traversal.redoable.length > 0,
+    ...availability,
+  }
+}
+
+/** Count history without materializing each commit and its message metadata. */
+async function countProfileHistoryCommits(
+  repository: Repository,
+  revision: string
+): Promise<number> {
+  const result = await git(
+    ['rev-list', '--count', revision, '--'],
+    repository.path,
+    'profileHistoryCount',
+    { successExitCodes: new Set([0, 128]) }
+  )
+  if (result.exitCode === 128) {
+    return 0
+  }
+
+  const output = result.stdout.trim()
+  if (!/^\d+$/.test(output)) {
+    throw new Error(`Git returned an invalid profile history count: ${output}`)
+  }
+
+  const total = Number(output)
+  if (!Number.isSafeInteger(total)) {
+    throw new Error(`Git returned an unsafe profile history count: ${output}`)
+  }
+  return total
+}
+
+interface IProfileHistoryAvailability {
+  readonly canUndo: boolean
+  readonly canRedo: boolean
+}
+
+/**
+ * Resolve action availability from bounded newest-first batches.
+ *
+ * An ordinary commit clears the redo stack and contributes a known undo
+ * target. Once one such target survives replay, older history cannot change
+ * either boolean. A fully-undone timeline may require older batches, but no
+ * individual Git log request is unbounded.
+ */
+async function getProfileHistoryAvailability(
+  repository: Repository,
+  revision: string,
+  initialCommits: ReadonlyArray<Commit>,
+  onBatch?: (batchIndex: number) => Promise<void>
+): Promise<IProfileHistoryAvailability> {
+  const newestFirst = [...initialCommits]
+  let nextSkip = newestFirst.length
+  let batchIndex = 0
+
+  while (true) {
+    if (newestFirst.length === 0) {
+      await onBatch?.(batchIndex++)
+      const batch = await getCommits(
+        repository,
+        revision,
+        ProfileHistoryScanBatchSize,
+        nextSkip
+      )
+      if (batch.length === 0) {
+        return { canUndo: false, canRedo: false }
+      }
+      newestFirst.push(...batch)
+      nextSkip += batch.length
+    }
+
+    const traversal = buildProfileHistoryTraversal(newestFirst)
+    const oldest = newestFirst.at(-1)!
+    const hasOrdinaryCommit = newestFirst.some(
+      commit =>
+        trailerValue(commit, ProfileUndoTrailer) === null &&
+        trailerValue(commit, ProfileRedoTrailer) === null
+    )
+
+    if (
+      oldest.parentSHAs.length === 0 ||
+      (hasOrdinaryCommit &&
+        !traversal.dependsOnEarlierCommits &&
+        traversal.undoable.length > 0)
+    ) {
+      return {
+        canUndo: traversal.undoable.length > 0,
+        canRedo: traversal.redoable.length > 0,
+      }
+    }
+
+    await onBatch?.(batchIndex++)
+    const batch = await getCommits(
+      repository,
+      revision,
+      ProfileHistoryScanBatchSize,
+      nextSkip
+    )
+    if (batch.length === 0) {
+      return {
+        canUndo: traversal.undoable.length > 0,
+        canRedo: traversal.redoable.length > 0,
+      }
+    }
+    newestFirst.push(...batch)
+    nextSkip += batch.length
   }
 }
 
@@ -1084,6 +1194,8 @@ interface IProfileHistoryTraversal {
   readonly head: Commit | null
   readonly undoable: ReadonlyArray<Commit>
   readonly redoable: ReadonlyArray<IProfileRedoTarget>
+  /** Whether a bounded suffix needs older commits to classify an operation. */
+  readonly dependsOnEarlierCommits: boolean
 }
 
 /**
@@ -1097,6 +1209,8 @@ function buildProfileHistoryTraversal(
 ): IProfileHistoryTraversal {
   const undoable = new Array<Commit>()
   const redoable = new Array<IProfileRedoTarget>()
+  let dependsOnEarlierCommits = false
+  let sawOrdinaryCommit = false
 
   for (const commit of [...newestFirst].reverse()) {
     const undoOf = trailerValue(commit, ProfileUndoTrailer)
@@ -1105,6 +1219,8 @@ function buildProfileHistoryTraversal(
       if (target !== undefined && target.sha === undoOf) {
         undoable.pop()
         redoable.push({ change: target, undo: commit })
+      } else if (target === undefined) {
+        dependsOnEarlierCommits = true
       }
       continue
     }
@@ -1115,10 +1231,14 @@ function buildProfileHistoryTraversal(
       if (target !== undefined && target.undo.sha === redoOf) {
         redoable.pop()
         undoable.push(target.change)
+      } else if (target === undefined && !sawOrdinaryCommit) {
+        dependsOnEarlierCommits = true
       }
       continue
     }
 
+    sawOrdinaryCommit = true
+    dependsOnEarlierCommits = false
     redoable.length = 0
     if (commit.parentSHAs.length > 0) {
       undoable.push(commit)
@@ -1129,6 +1249,7 @@ function buildProfileHistoryTraversal(
     head: newestFirst[0] ?? null,
     undoable,
     redoable,
+    dependsOnEarlierCommits,
   }
 }
 
