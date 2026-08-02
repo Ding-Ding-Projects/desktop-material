@@ -192,9 +192,12 @@
   }
 
   &__snooze-label {
+    min-width: 0;
     color: var(--md-sys-color-on-surface-variant);
     font-size: var(--font-size-sm, 12px);
     font-weight: var(--font-weight-semibold, 600);
+    line-height: 1.4;
+    overflow-wrap: anywhere;
   }
 
   &__action {
@@ -213,7 +216,7 @@
     cursor: pointer;
     transition: background-color 160ms var(--emph, ease), border-color 160ms var(--emph, ease), color 160ms var(--emph, ease);
 
-    &:hover:not(:disabled) {
+    &:hover:not(:disabled):not([aria-disabled='true']) {
       border-color: var(--md-sys-color-outline);
       background: var(--md-sys-color-secondary-container);
       color: var(--md-sys-color-on-secondary-container);
