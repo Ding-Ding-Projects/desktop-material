@@ -163,15 +163,30 @@ button:disabled {
   font-weight: var(--browser-toolbar-font-weight, 400);
 }
 
-.internal-browser-tabs {
+// The new-tab button is a sibling of the tab list rather than a child of it,
+// because a `tablist` may only own tabs. This row keeps them side by side, and
+// keeps the button reachable when the tabs themselves overflow and scroll.
+.internal-browser-tab-strip {
   display: flex;
   min-height: 48px;
   align-items: end;
-  gap: 4px;
   padding: 6px 10px 0;
-  overflow-x: auto;
   background: var(--browser-surface-container);
+}
+
+.internal-browser-tabs {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: end;
+  gap: 4px;
+  overflow-x: auto;
   scrollbar-width: thin;
+}
+
+.internal-browser-new-tab {
+  flex: 0 0 auto;
+  margin-inline-start: 4px;
 }
 
 .internal-browser-tab {
@@ -384,7 +399,7 @@ body[data-dm-toolbar-density='compact'] {
 }
 
 body[data-dm-tab-density='compact'] {
-  .internal-browser-tabs {
+  .internal-browser-tab-strip {
     min-height: 44px;
   }
 

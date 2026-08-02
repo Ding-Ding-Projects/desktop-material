@@ -45,6 +45,9 @@ const emptyBrowserState: IInternalBrowserState = {
  */
 const BoundsMeasurementFallbackDelay = 120
 
+/** Id of the geometry element the tabs declare as their panel. */
+const ContentViewportId = 'internal-browser-content-viewport'
+
 function activeTab(
   state: IInternalBrowserState
 ): IInternalBrowserTabState | null {
@@ -129,10 +132,39 @@ export class InternalBrowserApp extends React.Component<
     prevState: IInternalBrowserAppState
   ) {
     void prevProps
-    if (prevState.languageMode !== this.state.languageMode) {
+    if (
+      prevState.languageMode !== this.state.languageMode ||
+      activeTab(prevState.browser)?.title !== activeTab(this.state.browser)?.title
+    ) {
       this.updateDocumentTitle()
     }
-    this.queueBoundsUpdate()
+    // Only when the chrome's own height can actually have changed. Measuring on
+    // every update meant every keystroke in the address bar cancelled a frame,
+    // rescheduled a timer and sent the native view a fresh set of identical
+    // bounds — an IPC message per character, for a rectangle that had not
+    // moved.
+    if (this.chromeLayoutKey(prevState) !== this.chromeLayoutKey(this.state)) {
+      this.queueBoundsUpdate()
+    }
+  }
+
+  /**
+   * Everything that changes the height of the chrome above the page.
+   *
+   * The native content view is positioned from a measurement of the viewport
+   * element, so it only needs re-measuring when one of these changes: the tab
+   * strip's contents, whether the bookmarks bar is present, and which notice
+   * (if any) is showing.
+   */
+  private chromeLayoutKey(state: IInternalBrowserAppState): string {
+    const tab = activeTab(state.browser)
+    return [
+      state.browser.tabs.length,
+      state.bookmarks.length === 0 ? 'no-bookmarks' : 'bookmarks',
+      tab?.intent ?? 'none',
+      tab?.error ?? 'none',
+      state.languageMode,
+    ].join('|')
   }
 
   public componentWillUnmount() {
@@ -155,8 +187,17 @@ export class InternalBrowserApp extends React.Component<
 
   private t = (key: TranslationKey) => translate(key, this.state.languageMode)
 
+  /**
+   * Name the window after the page it is showing, the way a browser does.
+   *
+   * It previously only ever said "Browser": a user with several browser
+   * windows open had nothing in the taskbar or the window switcher to tell
+   * them apart.
+   */
   private updateDocumentTitle() {
-    document.title = translate('browser.title', this.state.languageMode)
+    const base = translate('browser.title', this.state.languageMode)
+    const title = sanitizeBrowserTitle(activeTab(this.state.browser)?.title)
+    document.title = title.length === 0 ? base : `${title} — ${base}`
   }
 
   private applyAppearance = () => {
@@ -391,13 +432,19 @@ export class InternalBrowserApp extends React.Component<
           const active = tab.id === browser.activeTabId
           return (
             <div
+              // A tablist owns its tabs directly; a plain grouping element in
+              // between breaks that relationship, so the wrapper is marked as
+              // presentational and the button keeps the tab role.
+              role="presentation"
               className={`internal-browser-tab${active ? ' active' : ''}`}
               key={tab.id}
             >
               <button
                 type="button"
                 role="tab"
+                id={`internal-browser-tab-${tab.id}`}
                 aria-selected={active}
+                aria-controls={ContentViewportId}
                 tabIndex={active ? 0 : -1}
                 className="internal-browser-tab-select"
                 ref={element => {
@@ -437,20 +484,36 @@ export class InternalBrowserApp extends React.Component<
             </div>
           )
         })}
-        <button
-          type="button"
-          className="internal-browser-icon-button"
-          onClick={this.onNewTab}
-          aria-label={this.t('browser.newTab')}
-        >
-          <MaterialSymbol name="add" size={22} />
-        </button>
       </div>
     )
   }
 
+  /**
+   * The new-tab control sits beside the tab strip, not inside it.
+   *
+   * A `tablist` may only own tabs; a button that is not a tab inside one makes
+   * assistive technology announce a tab count that does not match what it can
+   * reach.
+   */
+  private renderNewTabButton() {
+    return (
+      <button
+        type="button"
+        className="internal-browser-icon-button internal-browser-new-tab"
+        onClick={this.onNewTab}
+        aria-label={this.t('browser.newTab')}
+      >
+        <MaterialSymbol name="add" size={22} />
+      </button>
+    )
+  }
+
   private renderToolbar(tab: IInternalBrowserTabState | null) {
-    const safeURL = tab?.url === null ? null : bookmarkSafeURL(tab?.url ?? '')
+    // `tab?.url` is undefined when there is no tab at all, which the previous
+    // `=== null` check missed, so it fell through to validating an empty
+    // string on every render with no tab open.
+    const safeURL =
+      tab === null || tab.url === null ? null : bookmarkSafeURL(tab.url)
     const bookmarked =
       safeURL !== null &&
       this.state.bookmarks.some(bookmark => bookmark.url === safeURL)
@@ -620,16 +683,31 @@ export class InternalBrowserApp extends React.Component<
     return (
       <main className="internal-browser-window">
         <header className="internal-browser-chrome">
-          {this.renderTabs()}
+          <div className="internal-browser-tab-strip">
+            {this.renderTabs()}
+            {this.renderNewTabButton()}
+          </div>
           {this.renderToolbar(tab)}
           {this.renderBookmarks()}
           {this.renderNotice(tab)}
         </header>
         <div
           ref={this.contentViewport}
+          id={ContentViewportId}
           className="internal-browser-content-viewport"
-          aria-hidden="true"
-        />
+          // The tabs declare this as their panel, so it has to exist in the
+          // accessibility tree rather than being hidden from it. The page
+          // itself is rendered by a separate native view with its own
+          // accessibility tree, which is why this element is empty — the note
+          // below says so rather than leaving a reader at an unexplained blank
+          // panel.
+          role="tabpanel"
+          aria-labelledby={
+            tab === null ? undefined : `internal-browser-tab-${tab.id}`
+          }
+        >
+          <p className="sr-only">{this.t('browser.contentRegionNote')}</p>
+        </div>
       </main>
     )
   }

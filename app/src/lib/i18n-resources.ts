@@ -1682,6 +1682,7 @@ export type TranslationKey =
   | 'browser.error.externalOpenFailedTitle'
   | 'browser.error.externalOpenFailed'
   | 'browser.title'
+  | 'browser.contentRegionNote'
   | 'browser.tabs'
   | 'browser.newTab'
   | 'browser.closeTab'
@@ -5191,6 +5192,11 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'browser.error.externalOpenFailed':
     'Desktop Material could not open this web link in the system browser. Nothing else was opened. Check your default browser and retry, or deliberately choose Inside Desktop Material under Settings → Advanced.',
   'browser.title': 'Desktop Material browser',
+  // The page is drawn by a separate native view with its own accessibility
+  // tree, so this element is deliberately empty. Said out loud rather than
+  // leaving a screen-reader user at a blank panel with no explanation.
+  'browser.contentRegionNote':
+    'The page is shown by the browser view itself. Move focus into the page to read it.',
   'browser.tabs': 'Browser tabs',
   'browser.newTab': 'New tab',
   'browser.closeTab': 'Close tab',
@@ -8950,6 +8956,8 @@ export const cantoneseTranslations: Readonly<
   'browser.error.externalOpenFailed':
     'Desktop Material 未能喺系統瀏覽器開呢條網頁連結，亦冇改用其他方法開。請檢查預設瀏覽器再試；或者去「設定 → 進階」明確揀「喺 Desktop Material 入面」。',
   'browser.title': 'Desktop Material 瀏覽器',
+  'browser.contentRegionNote':
+    '網頁內容由瀏覽器檢視本身顯示。要睇內容，將焦點移入個頁面。',
   'browser.tabs': '瀏覽器分頁',
   'browser.newTab': '新分頁',
   'browser.closeTab': '關閉分頁',
