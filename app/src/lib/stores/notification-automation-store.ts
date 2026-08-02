@@ -14,6 +14,7 @@ import {
   undoLastProfileChange,
   redoLastProfileChange,
   restoreProfileTo,
+  withProfileRepositoryLock,
 } from '../profiles/profile-git'
 import {
   INotificationAutomationConfig,
@@ -64,6 +65,9 @@ export class NotificationAutomationStore extends TypedBaseStore<INotificationAut
   /** Serializes file writes so the last write always reflects final state. */
   private writeChain: Promise<void> = Promise.resolve()
 
+  /** Serializes Git mutations behind the shared repository lease. */
+  private mutationChain: Promise<void> = Promise.resolve()
+
   /** Resolves once initialization has been attempted (success or failure). */
   private initialization: Promise<void> | null = null
 
@@ -98,7 +102,14 @@ export class NotificationAutomationStore extends TypedBaseStore<INotificationAut
     }
 
     this.repository = repository
-    this.queue = new ProfileCommitQueue(repository)
+    // The debounced commit takes the same lease as everything else here, or it
+    // fires mid-restore and commits a half-restored tree.
+    this.queue = new ProfileCommitQueue(
+      repository,
+      undefined,
+      undefined,
+      flush => this.enqueueRepositoryOperation(flush)
+    )
     this.enabled = true
     this.emitState()
   }
@@ -196,8 +207,40 @@ export class NotificationAutomationStore extends TypedBaseStore<INotificationAut
     if (!this.enabled) {
       return
     }
+    await this.enqueueRepositoryOperation(() => this.flushUnlocked())
+  }
+
+  /** Drain the commit queue without enqueueing; the caller holds the lease. */
+  private async flushUnlocked(): Promise<void> {
+    if (!this.enabled) {
+      return
+    }
     await this.writeChain.catch(() => undefined)
     await this.queue?.flush()
+  }
+
+  /**
+   * Put every Git mutation for the automation repository behind the same
+   * promise tail and the shared repository lock, the way `ProfileStore` does.
+   * The history helpers assume their caller already holds the lock. Callers
+   * already inside an operation use `flushUnlocked`; enqueueing recursively
+   * would deadlock behind itself.
+   */
+  private enqueueRepositoryOperation<T>(action: () => Promise<T>): Promise<T> {
+    const previous = this.mutationChain
+    const operation = previous.then(() => {
+      const repository = this.repository
+      return repository === null
+        ? action()
+        : withProfileRepositoryLock(repository, action)
+    })
+    const tail = operation.then(
+      () => undefined,
+      () => undefined
+    )
+    this.mutationChain = tail
+
+    return operation
   }
 
   // --- History source (consumed by the automation history manager) -----------
@@ -254,11 +297,19 @@ export class NotificationAutomationStore extends TypedBaseStore<INotificationAut
     action: (repository: Repository) => Promise<void>
   ): Promise<void> {
     await this.initialize()
-    if (!this.enabled || this.repository === null) {
+    const repository = this.repository
+    if (!this.enabled || repository === null) {
       return
     }
-    await this.flush()
-    await action(this.repository)
+    // Drain and mutate under one lease. Split across two, the debounced writer
+    // slips in between and commits over the tree the mutation is rewriting.
+    await this.enqueueRepositoryOperation(async () => {
+      await this.flushUnlocked()
+      if (!this.enabled) {
+        return
+      }
+      await action(repository)
+    })
     await this.reload()
   }
 
