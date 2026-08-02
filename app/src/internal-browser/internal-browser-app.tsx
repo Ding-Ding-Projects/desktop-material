@@ -12,12 +12,14 @@ import { LanguageModeStorageKey } from '../lib/language-preference'
 import {
   bookmarkSafeURL,
   IInternalBrowserBookmark,
+  IInternalBrowserPendingAddress,
   IInternalBrowserState,
   IInternalBrowserTabState,
   InternalBrowserBookmarksStorageKey,
   InternalBrowserCommand,
   InternalBrowserTabError,
   readInternalBrowserBookmarks,
+  resolveInternalBrowserAddressBar,
   sanitizeBrowserTitle,
   writeInternalBrowserBookmarks,
 } from '../lib/internal-browser'
@@ -28,6 +30,8 @@ interface IInternalBrowserAppState {
   readonly browser: IInternalBrowserState
   readonly address: string
   readonly addressDirty: boolean
+  /** A submitted address still waiting for its tab's URL to move. */
+  readonly pendingAddress: IInternalBrowserPendingAddress | null
   readonly bookmarks: ReadonlyArray<IInternalBrowserBookmark>
   readonly languageMode: LanguageMode
 }
@@ -96,6 +100,7 @@ export class InternalBrowserApp extends React.Component<
       browser: emptyBrowserState,
       address: '',
       addressDirty: false,
+      pendingAddress: null,
       bookmarks: readInternalBrowserBookmarks(),
       languageMode: getPersistedLanguageMode(),
     }
@@ -134,7 +139,8 @@ export class InternalBrowserApp extends React.Component<
     void prevProps
     if (
       prevState.languageMode !== this.state.languageMode ||
-      activeTab(prevState.browser)?.title !== activeTab(this.state.browser)?.title
+      activeTab(prevState.browser)?.title !==
+        activeTab(this.state.browser)?.title
     ) {
       this.updateDocumentTitle()
     }
@@ -221,16 +227,11 @@ export class InternalBrowserApp extends React.Component<
     _event: unknown,
     browser: IInternalBrowserState
   ) => {
-    const current = activeTab(browser)
     const activeChanged = browser.activeTabId !== this.lastActiveTabId
     this.lastActiveTabId = browser.activeTabId
     this.setState(previous => ({
       browser,
-      address:
-        activeChanged || !previous.addressDirty
-          ? current?.url ?? ''
-          : previous.address,
-      addressDirty: activeChanged ? false : previous.addressDirty,
+      ...resolveInternalBrowserAddressBar(previous, browser, activeChanged),
     }))
   }
 
@@ -319,6 +320,9 @@ export class InternalBrowserApp extends React.Component<
     this.setState({
       address: event.currentTarget.value,
       addressDirty: true,
+      // Typing composes a new address, which supersedes whatever earlier
+      // submission was still waiting to land.
+      pendingAddress: null,
     })
   }
 
@@ -327,14 +331,22 @@ export class InternalBrowserApp extends React.Component<
     const tab = activeTab(this.state.browser)
     if (tab === null) {
       this.sendCommand({ type: 'new-tab', url: this.state.address })
-    } else {
-      this.sendCommand({
-        type: 'navigate',
-        tabId: tab.id,
-        url: this.state.address,
-      })
+      this.setState({ addressDirty: false, pendingAddress: null })
+      return
     }
-    this.setState({ addressDirty: false })
+    this.sendCommand({
+      type: 'navigate',
+      tabId: tab.id,
+      url: this.state.address,
+    })
+    // The submitted address holds the field until this tab's own URL moves.
+    // Main pushes state the moment the load starts, while the tab still reports
+    // the address being navigated away from, so releasing the field here showed
+    // the previous page's URL mid-load — and permanently when the load failed,
+    // since a failed load never commits a URL for the bar to catch up to.
+    this.setState({
+      pendingAddress: { tabId: tab.id, submittedFromURL: tab.url },
+    })
   }
 
   private onNewTab = () => this.sendCommand({ type: 'new-tab' })
@@ -644,38 +656,48 @@ export class InternalBrowserApp extends React.Component<
     )
   }
 
-  private renderNotice(tab: IInternalBrowserTabState | null) {
-    if (tab?.intent === 'authentication') {
-      return (
-        <aside className="internal-browser-auth-notice" role="status">
-          <span>
-            <strong>{this.t('browser.authNoticeTitle')}</strong>{' '}
-            {this.t('browser.authNoticeBody')}
-          </span>
-          <button
-            type="button"
-            onClick={() =>
-              this.sendCommand({ type: 'open-external', tabId: tab.id })
-            }
+  /**
+   * The standing sign-in banner and the tab's current error are independent.
+   *
+   * Returning one *instead of* the other left an authentication tab unable to
+   * report anything at all: a certificate failure, a dead renderer or a blocked
+   * download during sign-in showed only the reassuring private-session banner —
+   * and sign-in is exactly where a silent certificate failure matters most.
+   */
+  private renderNotices(tab: IInternalBrowserTabState | null) {
+    if (tab === null) {
+      return null
+    }
+    return (
+      <>
+        {tab.intent === 'authentication' && (
+          <aside className="internal-browser-auth-notice" role="status">
+            <span>
+              <strong>{this.t('browser.authNoticeTitle')}</strong>{' '}
+              {this.t('browser.authNoticeBody')}
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                this.sendCommand({ type: 'open-external', tabId: tab.id })
+              }
+            >
+              <MaterialSymbol name="open_in_new" size={19} />
+              <span>{this.t('browser.openAuthExternal')}</span>
+            </button>
+          </aside>
+        )}
+        {tab.error !== null && (
+          <aside
+            className="internal-browser-error-notice"
+            role="alert"
+            aria-live="assertive"
           >
-            <MaterialSymbol name="open_in_new" size={19} />
-            <span>{this.t('browser.openAuthExternal')}</span>
-          </button>
-        </aside>
-      )
-    }
-    if (tab?.error !== null && tab?.error !== undefined) {
-      return (
-        <aside
-          className="internal-browser-error-notice"
-          role="alert"
-          aria-live="assertive"
-        >
-          {this.t(errorTranslationKey(tab.error))}
-        </aside>
-      )
-    }
-    return null
+            {this.t(errorTranslationKey(tab.error))}
+          </aside>
+        )}
+      </>
+    )
   }
 
   public render() {
@@ -689,7 +711,7 @@ export class InternalBrowserApp extends React.Component<
           </div>
           {this.renderToolbar(tab)}
           {this.renderBookmarks()}
-          {this.renderNotice(tab)}
+          {this.renderNotices(tab)}
         </header>
         <div
           ref={this.contentViewport}

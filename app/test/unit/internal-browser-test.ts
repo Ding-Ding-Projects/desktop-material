@@ -15,10 +15,15 @@ import {
   normalizeInternalBrowserContentBounds,
   normalizeInternalBrowserOAuthCallbackReceipt,
   normalizeWebURL,
+  IInternalBrowserAddressBarState,
+  IInternalBrowserState,
+  IInternalBrowserTabState,
   MaximumInternalBrowserTabs,
+  MinimumInternalBrowserContentTop,
   normalizeBrowserOpenMode,
   parseInternalBrowserBookmarks,
   redactBrowserURL,
+  resolveInternalBrowserAddressBar,
   resolveInternalBrowserContentBounds,
   rotateAuthenticationPartition,
   sanitizeBrowserTitle,
@@ -455,32 +460,37 @@ describe('internal browser contracts', () => {
 
 describe('internal browser content bounds', () => {
   const measured = { x: 12, y: 140, width: 900, height: 500 }
+  const floor = MinimumInternalBrowserContentTop
 
-  it('uses the full area below the chrome before the renderer has measured', () => {
+  it('parks an unmeasured view exactly where the chrome ends', () => {
     // A hidden BrowserWindow suspends requestAnimationFrame, so the first
     // report can arrive long after the tab exists. Zero means unmeasured, and
     // an unmeasured tab must still be visible.
+    //
+    // The floor is the chrome's own height, so nothing is left over: a floor
+    // above it shows a blank strip across the top of every page.
+    assert.equal(floor, 107)
     assert.deepStrictEqual(
       resolveInternalBrowserContentBounds(
-        { x: 0, y: 128, width: 0, height: 0 },
+        { x: 0, y: floor, width: 0, height: 0 },
         1160,
         780,
-        128
+        floor
       ),
-      { x: 0, y: 128, width: 1160, height: 652 }
+      { x: 0, y: 107, width: 1160, height: 673 }
     )
   })
 
   it('honours a real measurement', () => {
     assert.deepStrictEqual(
-      resolveInternalBrowserContentBounds(measured, 1160, 780, 128),
+      resolveInternalBrowserContentBounds(measured, 1160, 780, floor),
       { x: 12, y: 140, width: 900, height: 500 }
     )
   })
 
   it('never lets a measurement escape the window or ride over the chrome', () => {
     assert.deepStrictEqual(
-      resolveInternalBrowserContentBounds(measured, 400, 300, 128),
+      resolveInternalBrowserContentBounds(measured, 400, 300, floor),
       { x: 12, y: 140, width: 388, height: 160 }
     )
     assert.deepStrictEqual(
@@ -488,9 +498,142 @@ describe('internal browser content bounds', () => {
         { x: 0, y: 4, width: 900, height: 500 },
         1160,
         780,
-        128
+        floor
       ).y,
-      128
+      floor
+    )
+  })
+
+  it('measures the height from where a clamped view actually lands', () => {
+    // A measurement above the chrome is pushed down to the floor. Sizing the
+    // view from the raw measurement instead handed it the full window height
+    // starting 107px down, so its bottom edge fell outside the window.
+    const clamped = resolveInternalBrowserContentBounds(
+      { x: 0, y: 0, width: 1160, height: 780 },
+      1160,
+      780,
+      floor
+    )
+    assert.deepStrictEqual(clamped, {
+      x: 0,
+      y: 107,
+      width: 1160,
+      height: 673,
+    })
+    assert.equal(clamped.y + clamped.height, 780)
+  })
+})
+
+describe('internal browser address bar', () => {
+  const tab: IInternalBrowserTabState = {
+    id: 'browser-tab-1',
+    title: 'Old',
+    url: 'https://old.example/',
+    intent: 'default',
+    isLoading: false,
+    canGoBack: false,
+    canGoForward: false,
+    canBookmark: true,
+    error: null,
+  }
+
+  function browserState(
+    overrides: Partial<IInternalBrowserTabState> = {}
+  ): IInternalBrowserState {
+    return { tabs: [{ ...tab, ...overrides }], activeTabId: tab.id }
+  }
+
+  const submitted: IInternalBrowserAddressBarState = {
+    address: 'new.example',
+    addressDirty: true,
+    pendingAddress: { tabId: tab.id, submittedFromURL: tab.url },
+  }
+
+  it('keeps the submitted address while the load has not committed yet', () => {
+    // Main pushes state the moment the load starts, while the tab still reports
+    // the URL it is navigating away from.
+    assert.deepStrictEqual(
+      resolveInternalBrowserAddressBar(
+        submitted,
+        browserState({ isLoading: true }),
+        false
+      ),
+      submitted
+    )
+  })
+
+  it('keeps the submitted address when the load fails outright', () => {
+    // A failed load never commits a URL, so nothing will ever arrive for the
+    // bar to catch up to. Reverting here would show the old address beside the
+    // failure notice with no way back to the one that was actually attempted.
+    assert.deepStrictEqual(
+      resolveInternalBrowserAddressBar(
+        submitted,
+        browserState({ error: 'load-failed' }),
+        false
+      ),
+      submitted
+    )
+  })
+
+  it('adopts the tab URL once the navigation commits', () => {
+    assert.deepStrictEqual(
+      resolveInternalBrowserAddressBar(
+        submitted,
+        browserState({ url: 'https://new.example/' }),
+        false
+      ),
+      {
+        address: 'https://new.example/',
+        addressDirty: false,
+        pendingAddress: null,
+      }
+    )
+  })
+
+  it('releases an address whose tab has gone away', () => {
+    assert.deepStrictEqual(
+      resolveInternalBrowserAddressBar(
+        submitted,
+        { tabs: [], activeTabId: null },
+        false
+      ),
+      { address: '', addressDirty: false, pendingAddress: null }
+    )
+  })
+
+  it("shows the newly active tab's own address when tabs are switched", () => {
+    assert.deepStrictEqual(
+      resolveInternalBrowserAddressBar(submitted, browserState(), true),
+      {
+        address: 'https://old.example/',
+        addressDirty: false,
+        pendingAddress: null,
+      }
+    )
+  })
+
+  it('leaves half-typed text alone and refreshes an untouched bar', () => {
+    const typing: IInternalBrowserAddressBarState = {
+      address: 'half-typ',
+      addressDirty: true,
+      pendingAddress: null,
+    }
+    assert.deepStrictEqual(
+      resolveInternalBrowserAddressBar(typing, browserState(), false),
+      typing
+    )
+    assert.deepStrictEqual(
+      resolveInternalBrowserAddressBar(
+        { address: '', addressDirty: false, pendingAddress: null },
+        browserState(),
+        false
+      ),
+      {
+        address: 'https://old.example/',
+        addressDirty: false,
+        pendingAddress: null,
+      }
     )
   })
 })

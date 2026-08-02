@@ -617,6 +617,32 @@ export function normalizeInternalBrowserOAuthCallbackReceipt(
 }
 
 /**
+ * The heights the browser chrome's own stylesheet guarantees, in CSS pixels.
+ *
+ * They mirror `internal-browser.scss` exactly: `.internal-browser-tab-strip`
+ * and `.internal-browser-toolbar` each declare a `min-height`, and
+ * `.internal-browser-chrome` adds a one-pixel bottom border under both. They
+ * are named and summed here rather than written as one number so the floor can
+ * be checked against the stylesheet that actually produces it.
+ */
+export const InternalBrowserTabStripMinimumHeight = 48
+export const InternalBrowserToolbarMinimumHeight = 58
+export const InternalBrowserChromeBorderHeight = 1
+
+/**
+ * Lowest position a tab's native view may be given.
+ *
+ * The native view is parked here whenever the renderer's measurement is
+ * missing or implausibly small, so it has to be the height the chrome really
+ * is. A floor above that height leaves a blank strip across the top of every
+ * page — the chrome ends, and the page starts somewhere below it.
+ */
+export const MinimumInternalBrowserContentTop =
+  InternalBrowserTabStripMinimumHeight +
+  InternalBrowserToolbarMinimumHeight +
+  InternalBrowserChromeBorderHeight
+
+/**
  * The area a tab's native view should occupy, given the chrome renderer's
  * latest measurement and the window's current content size.
  *
@@ -646,11 +672,16 @@ export function resolveInternalBrowserContentBounds(
   }
 
   const x = Math.max(0, Math.min(measured.x, width))
+  // Both remaining dimensions are measured from where the view is actually
+  // placed. Subtracting the raw `measured.y` while `y` was clamped up to the
+  // floor made a low measurement produce a view taller than the room left under
+  // it, whose bottom edge fell outside the window.
+  const y = Math.max(minimumTop, Math.min(measured.y, height))
   return {
     x,
-    y: Math.max(minimumTop, Math.min(measured.y, height)),
+    y,
     width: Math.max(0, Math.min(measured.width, width - x)),
-    height: Math.max(0, Math.min(measured.height, height - measured.y)),
+    height: Math.max(0, Math.min(measured.height, height - y)),
   }
 }
 
@@ -660,6 +691,63 @@ export function canCreateInternalBrowserTab(currentCount: number): boolean {
     currentCount >= 0 &&
     currentCount < MaximumInternalBrowserTabs
   )
+}
+
+/** An address the user submitted whose navigation has not landed yet. */
+export interface IInternalBrowserPendingAddress {
+  readonly tabId: string
+  /** The URL that tab was showing when the address was submitted. */
+  readonly submittedFromURL: string | null
+}
+
+/** Everything the address bar owns between two state pushes from main. */
+export interface IInternalBrowserAddressBarState {
+  readonly address: string
+  /** True while the field holds text the user typed and has not submitted. */
+  readonly addressDirty: boolean
+  readonly pendingAddress: IInternalBrowserPendingAddress | null
+}
+
+/**
+ * What the address bar should show once main reports new browser state.
+ *
+ * Main pushes state as soon as a load *starts*, and a tab's URL only moves when
+ * the navigation actually commits. So between the two the tab still reports the
+ * address it is leaving, and a submitted address that stopped defending itself
+ * at submit time would be overwritten by the page it was navigating away from —
+ * mid-load, and then permanently if the load fails, because a failed load never
+ * commits a URL at all. The submitted address therefore stands until that tab's
+ * own URL genuinely changes (or the tab goes away).
+ */
+export function resolveInternalBrowserAddressBar(
+  previous: IInternalBrowserAddressBarState,
+  browser: IInternalBrowserState,
+  activeTabChanged: boolean
+): IInternalBrowserAddressBarState {
+  const active =
+    browser.tabs.find(tab => tab.id === browser.activeTabId) ?? null
+  const adopted: IInternalBrowserAddressBarState = {
+    address: active?.url ?? '',
+    addressDirty: false,
+    pendingAddress: null,
+  }
+
+  // Switching tabs shows that tab's address, whatever was being typed or
+  // awaited in the one left behind.
+  if (activeTabChanged) {
+    return adopted
+  }
+
+  const pending = previous.pendingAddress
+  if (pending !== null) {
+    const pendingTab =
+      browser.tabs.find(tab => tab.id === pending.tabId) ?? null
+    return pendingTab !== null && pendingTab.url === pending.submittedFromURL
+      ? previous
+      : adopted
+  }
+
+  return previous.addressDirty ? previous : adopted
 }
 
 /**

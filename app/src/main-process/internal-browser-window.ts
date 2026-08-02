@@ -13,6 +13,7 @@ import {
   InternalBrowserOAuthCallbackResult,
   InternalBrowserCommand,
   InternalBrowserTabError,
+  MinimumInternalBrowserContentTop,
   normalizeAddressInput,
   normalizeWebURL,
   redactBrowserURL,
@@ -61,7 +62,6 @@ const internalRemoteWebContents = new Set<number>()
 const configuredSessions = new WeakSet<Electron.Session>()
 const downloadBlockedHandlers = new Map<number, () => void>()
 const safeOperatingSystemSchemes = new Set(['mailto:', 'tel:', 'ms-settings:'])
-const minimumContentTop = 128
 /**
  * Isolated world the page-text read runs in.
  *
@@ -104,7 +104,7 @@ export class InternalBrowserWindow {
   private activeTabId: string | null = null
   private contentBounds: Electron.Rectangle = {
     x: 0,
-    y: minimumContentTop,
+    y: MinimumInternalBrowserContentTop,
     width: 0,
     height: 0,
   }
@@ -148,18 +148,27 @@ export class InternalBrowserWindow {
       }
     )
     this.window.on('resize', () => this.applyContentBounds())
-    this.window.once('closed', () => {
+    // Closing the window destroys its own webContents, but never a child view's:
+    // every open tab keeps its renderer process alive unless it is closed the
+    // way `closeTab` closes one. `close` rather than `closed`, because by the
+    // time the window reports `closed` it is already destroyed and its child
+    // views can no longer be reached to close them.
+    this.window.once('close', () => {
       const authenticationFlowIds = [...this.authenticationFlows.keys()]
       for (const tab of this.tabs.values()) {
+        this.window.contentView.removeChildView(tab.view)
         internalRemoteWebContents.delete(tab.view.webContents.id)
         downloadBlockedHandlers.delete(tab.view.webContents.id)
+        if (!tab.view.webContents.isDestroyed()) {
+          tab.view.webContents.close()
+        }
       }
       this.tabs.clear()
       for (const authenticationFlowId of authenticationFlowIds) {
         void this.clearAuthenticationStorage(authenticationFlowId)
       }
-      this.options.onClosed()
     })
+    this.window.once('closed', () => this.options.onClosed())
 
     void this.window
       .loadURL(encodePathAsUrl(__dirname, 'internal-browser.html'))
@@ -226,7 +235,7 @@ export class InternalBrowserWindow {
     const [windowWidth, windowHeight] = this.window.getContentSize()
     const x = Math.max(0, Math.min(Math.trunc(bounds.x), windowWidth))
     const y = Math.max(
-      minimumContentTop,
+      MinimumInternalBrowserContentTop,
       Math.min(Math.trunc(bounds.y), windowHeight)
     )
     this.contentBounds = {
@@ -815,7 +824,7 @@ export class InternalBrowserWindow {
       this.contentBounds,
       width,
       height,
-      minimumContentTop
+      MinimumInternalBrowserContentTop
     )
   }
 
@@ -873,10 +882,7 @@ export class InternalBrowserWindow {
     tabId: string,
     result: { readonly total: number; readonly active: number }
   ) {
-    if (
-      this.window.isDestroyed() ||
-      this.window.webContents.isDestroyed()
-    ) {
+    if (this.window.isDestroyed() || this.window.webContents.isDestroyed()) {
       return
     }
     ipcWebContents.send(this.window.webContents, 'internal-browser-find', {
@@ -888,10 +894,7 @@ export class InternalBrowserWindow {
 
   /** Hand the bounded page text to the trusted renderer for RE2 evaluation. */
   private sendPageText(tabId: string, text: string) {
-    if (
-      this.window.isDestroyed() ||
-      this.window.webContents.isDestroyed()
-    ) {
+    if (this.window.isDestroyed() || this.window.webContents.isDestroyed()) {
       return
     }
     ipcWebContents.send(this.window.webContents, 'internal-browser-page-text', {

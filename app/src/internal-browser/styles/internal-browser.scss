@@ -361,6 +361,17 @@ button:disabled {
   white-space: nowrap;
 }
 
+// Both strips scroll horizontally, and `overflow-x: auto` makes `overflow-y`
+// compute to `auto` as well — so anything painted outside a child's own box is
+// clipped on the vertical axis too. The global focus ring is 2px wide at a 2px
+// offset, four pixels neither strip has, which cut the ring off every tab and
+// every bookmark. Draw it inside the item instead, where the scroller cannot
+// reach it.
+.internal-browser-tabs :focus-visible,
+.internal-browser-bookmarks :focus-visible {
+  outline-offset: -2px;
+}
+
 .internal-browser-auth-notice,
 .internal-browser-error-notice {
   display: flex;
@@ -435,7 +446,9 @@ body[data-dm-motion='reduced'] {
     min-width: 40px;
     padding: 0;
 
-    span {
+    // Only the text label collapses. The icon is a span too, so hiding every
+    // span in here left a 40px button with nothing drawn inside it at all.
+    span:not(.material-symbol) {
       position: absolute;
       width: 1px;
       height: 1px;
