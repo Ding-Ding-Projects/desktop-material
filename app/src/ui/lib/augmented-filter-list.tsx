@@ -528,6 +528,12 @@ export class AugmentedSectionFilterList<
 
         {this.renderFilterRow()}
 
+        {this.state.regexError !== null && (
+          <p className="filter-list-regex-message" role="alert">
+            {this.state.regexError}
+          </p>
+        )}
+
         <div className="filter-list-container">{this.renderContent()}</div>
       </div>
     )
