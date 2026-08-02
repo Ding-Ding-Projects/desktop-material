@@ -79,7 +79,10 @@ jobs:
       # --frozen-lockfile turns a lock file that no longer matches the manifests
       # into an immediate, named failure instead of a silent re-resolution that
       # only the working-directory check at the end of this job would catch.
-      - run: yarn install --frozen-lockfile
+      # Lint is static and must not rebuild Electron-targeted native modules:
+      # doing so adds an unrelated remote header download and native toolchain
+      # failure boundary to a job that never loads those binaries.
+      - run: yarn install --frozen-lockfile --ignore-scripts --non-interactive
       - run: yarn validate-electron-version
       - run: yarn lint
       - run: yarn validate-changelog
