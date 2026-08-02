@@ -120,6 +120,9 @@ export async function reportError(
     })
     log.info('Error report submitted')
   } catch (e) {
-    log.error('Failed submitting error report', error)
+    // The submission failure, not the crash being submitted — logging the
+    // latter here made a broken reporting endpoint indistinguishable from a
+    // successful report of the same error.
+    log.error('Failed submitting error report', e)
   }
 }

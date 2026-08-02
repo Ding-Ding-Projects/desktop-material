@@ -4,6 +4,7 @@ import { encodePathAsUrl } from '../lib/path'
 import { IQuickActionRequest } from '../lib/quick-action'
 import { registerWindowStateChangedEvents } from '../lib/window-state'
 import * as ipcWebContents from './ipc-webcontents'
+import { isFatalRendererLoadFailure } from './renderer-failure'
 import { addTrustedIPCSender } from './trusted-ipc-sender'
 
 /**
@@ -28,6 +29,7 @@ export class QuickActionWindow {
 
   private hasFinishedLoading = false
   private hasSentReadyEvent = false
+  private hasReportedLoadFailure = false
 
   public constructor(request: IQuickActionRequest, launchedAt: number) {
     this.request = request
@@ -77,10 +79,20 @@ export class QuickActionWindow {
       this.maybeSendRequest()
     })
 
-    this.window.webContents.on('did-fail-load', (_event, errorCode) => {
-      log.error(`Quick action window failed to load (${errorCode})`)
-      this.emitter.emit('did-fail-load', null)
-    })
+    this.window.webContents.on(
+      'did-fail-load',
+      (_event, errorCode, _description, _url, isMainFrame) => {
+        // A subframe failing, or a navigation Chromium deliberately replaced,
+        // is not this window dying. Treating either as fatal tore the window
+        // down and booted the full app — the exact cold start this feature
+        // exists to avoid.
+        if (!isFatalRendererLoadFailure(errorCode, isMainFrame)) {
+          return
+        }
+        log.error(`Quick action window failed to load (${errorCode})`)
+        this.reportLoadFailure()
+      }
+    )
 
     registerWindowStateChangedEvents(this.window)
 
@@ -90,8 +102,24 @@ export class QuickActionWindow {
       .loadURL(encodePathAsUrl(__dirname, 'quick-action.html'))
       .catch(error => {
         log.error('Quick action window load rejected', error)
-        this.emitter.emit('did-fail-load', null)
+        this.reportLoadFailure()
       })
+  }
+
+  /**
+   * Announce a failed load exactly once.
+   *
+   * A genuine failure reports itself twice — `did-fail-load` fires *and*
+   * `loadURL` rejects — and the subscriber's response is to close this window
+   * and hand the folder to the full app. Reported twice, the full app is asked
+   * to open the same repository twice.
+   */
+  private reportLoadFailure() {
+    if (this.hasReportedLoadFailure) {
+      return
+    }
+    this.hasReportedLoadFailure = true
+    this.emitter.emit('did-fail-load', null)
   }
 
   /** Called once the renderer signals it is listening. */

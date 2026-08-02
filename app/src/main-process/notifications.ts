@@ -13,6 +13,17 @@ const notificationWindows = new Set<BrowserWindow>()
 const notificationWindowOwners = new Map<string, BrowserWindow>()
 let notificationCallbackInstalled = false
 
+/**
+ * How many toast-to-window associations to keep.
+ *
+ * An association is only removed when its toast produces an event or its window
+ * closes, and a toast the user simply lets expire produces neither. Without a
+ * cap a long single-window session accumulates one entry per ignored
+ * notification, forever. Insertion order is oldest-first, so the oldest
+ * association is the one whose toast is least likely to still be interactive.
+ */
+const MaximumNotificationWindowOwners = 256
+
 export function initializeDesktopNotifications() {
   if (__LINUX__) {
     // notifications not currently supported
@@ -117,4 +128,12 @@ export function associateNotificationWithWindow(
 ) {
   notificationWindows.add(window)
   notificationWindowOwners.set(notificationId, window)
+
+  while (notificationWindowOwners.size > MaximumNotificationWindowOwners) {
+    const oldest = notificationWindowOwners.keys().next()
+    if (oldest.done === true) {
+      break
+    }
+    notificationWindowOwners.delete(oldest.value)
+  }
 }
