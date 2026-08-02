@@ -22,23 +22,15 @@ const releasePullRequestWorkflow = readFileSync(
 )
 
 describe('Super Express Release workflow', () => {
-  it('is manual-only and tests before building a bounded production package', () => {
+  it('is manual-only and skips desktop tests for the fastest bounded package', () => {
     assert.match(workflow, /on:\s*\n\s+workflow_dispatch:/)
     assert.doesNotMatch(workflow, /\n\s+(?:push|workflow_run):/)
     assert.match(workflow, /Require a main-branch manual dispatch/)
     assert.match(workflow, /ref: \$\{\{ env\.RELEASE_TARGET_SHA \}\}/)
-    assert.match(workflow, /run: yarn test:unit/)
-    assert.match(workflow, /run: yarn test:script/)
+    assert.doesNotMatch(workflow, /run: yarn test:unit/)
+    assert.doesNotMatch(workflow, /run: yarn test:script/)
     assert.match(workflow, /yarn build:prod/)
     assert.match(workflow, /yarn package/)
-    assert.ok(
-      workflow.indexOf('run: yarn test:unit') <
-        workflow.indexOf('run: yarn build:prod')
-    )
-    assert.ok(
-      workflow.indexOf('run: yarn test:script') <
-        workflow.indexOf('run: yarn build:prod')
-    )
     assert.doesNotMatch(workflow, /run:\s*yarn lint/)
     assert.doesNotMatch(workflow, /validate-changelog/)
   })

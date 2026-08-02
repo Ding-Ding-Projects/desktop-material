@@ -1,7 +1,8 @@
 name: Super Express Release
 
-# Manual emergency lane. It omits the desktop lint and E2E lanes, but still
-# requires the complete desktop unit/script suites and the TUI parity, tests,
+# Manual emergency lane. It deliberately omits the desktop lint, unit, script,
+# and E2E lanes. The ordinary CI and Express Release workflows remain the
+# tested release paths. This fastest lane still requires TUI parity, tests,
 # lint, types, fresh-wheel smoke, production builds, and exact asset checks
 # before publishing an immutable release.
 on:
@@ -63,12 +64,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           arch: x64
-
-      - name: Run unit tests
-        run: yarn test:unit
-
-      - name: Run script tests
-        run: yarn test:script
 
       - uses: actions/setup-python@v7
         with:
