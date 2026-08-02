@@ -1,0 +1,273 @@
+// The Agents panel — the fleet view that shows every agent session (one per
+// worktree) at once, plus the session creator.
+//
+// Registered in `_ui.scss`. Every colour comes from an --md-sys-color-* token
+// and every duration is scaled by --mdur, so the panel follows the app theme
+// and the reduced-motion setting without a second implementation.
+
+.agent-sessions-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+}
+
+.agent-sessions-header {
+  align-items: center;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: var(--spacing-half);
+  justify-content: space-between;
+  padding: var(--spacing);
+}
+
+.agent-sessions-title {
+  align-items: center;
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  font-size: var(--font-size);
+  font-weight: 600;
+  gap: var(--spacing-half);
+  margin: 0;
+  min-width: 0;
+}
+
+.agent-sessions-count {
+  background: var(--md-sys-color-surface-container-highest);
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  padding: 0 8px;
+}
+
+.new-agent-session-button {
+  align-items: center;
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  display: inline-flex;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.agent-sessions-fleet-scroller {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.agent-session-fleet {
+  display: grid;
+  gap: var(--spacing-half);
+  list-style: none;
+  margin: 0;
+  min-width: 0;
+  padding: var(--spacing);
+}
+
+.agent-session-fleet-empty {
+  color: var(--md-sys-color-on-surface-variant);
+  padding: var(--spacing);
+  // The empty state is a full sentence, so it wraps rather than truncating.
+  overflow-wrap: anywhere;
+}
+
+.agent-session-card-row {
+  min-width: 0;
+}
+
+.agent-session-card {
+  align-items: center;
+  background: var(--md-sys-color-surface-container-low);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: var(--spacing-half);
+  min-width: 0;
+  padding: 10px var(--spacing);
+  text-align: left;
+  transition: background calc(120ms * var(--mdur)) ease;
+  width: 100%;
+
+  &:hover {
+    background: var(--md-sys-color-surface-container);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+
+  &.selected {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+  }
+}
+
+.agent-session-card-icon {
+  color: var(--md-sys-color-on-surface-variant);
+  flex-shrink: 0;
+}
+
+// The text column is the only flexible part of the card: it shrinks so the chip
+// is never pushed out of the card at a narrow sidebar width or a large display
+// scale. `min-width: 0` is what lets the ellipsis below actually engage.
+.agent-session-card-text {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.agent-session-card-name,
+.agent-session-card-branch {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-session-card-branch {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--font-size-sm);
+}
+
+.agent-session-card-state {
+  color: var(--md-sys-color-on-surface-variant);
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+}
+
+.agent-session-chip {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  gap: 4px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.agent-session-chip-dot {
+  background: currentColor;
+  border-radius: 50%;
+  height: 6px;
+  width: 6px;
+}
+
+.agent-session-chip-diff {
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+}
+
+.agent-session-chip-error {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.agent-session-chip-working {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.agent-session-chip-clean {
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+// ---- Session creator ------------------------------------------------------
+
+.new-agent-session-form {
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  display: grid;
+  flex-shrink: 0;
+  gap: var(--spacing-half);
+  min-width: 0;
+  padding: var(--spacing);
+}
+
+.new-agent-session-options-toggle {
+  align-items: center;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-weight: 600;
+  gap: 4px;
+  justify-self: start;
+  padding: 4px 6px;
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.new-agent-session-options-chevron {
+  transition: transform calc(160ms * var(--mdur)) ease;
+}
+
+.new-agent-session-options-toggle[aria-expanded='false'] .new-agent-session-options-chevron {
+  transform: rotate(-90deg);
+}
+
+.new-agent-session-options-panel {
+  display: grid;
+  gap: var(--spacing-half);
+  min-width: 0;
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+.coding-agent-picker {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.coding-agent-picker-hint,
+.new-agent-session-problems p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.coding-agent-picker-hint {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--font-size-sm);
+}
+
+.new-agent-session-problems {
+  color: var(--md-sys-color-error);
+  display: grid;
+  font-size: var(--font-size-sm);
+  gap: 2px;
+
+  // An empty problem list must not leave a gap in the form grid.
+  &:empty {
+    display: none;
+  }
+}
+
+.new-agent-session-actions {
+  display: flex;
+  gap: var(--spacing-half);
+  justify-content: flex-end;
+}
+
+.new-agent-session-start {
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
