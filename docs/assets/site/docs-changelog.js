@@ -1285,12 +1285,12 @@
           entry.commit === null
             ? ''
             : markdown
-              ? ' ([`' +
-                entry.commit.slice(0, 7) +
-                '`](' +
-                commitUrl(entry.commit) +
-                '))'
-              : ' (' + commitUrl(entry.commit) + ')'
+            ? ' ([`' +
+              entry.commit.slice(0, 7) +
+              '`](' +
+              commitUrl(entry.commit) +
+              '))'
+            : ' (' + commitUrl(entry.commit) + ')'
         if (markdown) {
           lines.push('- **' + category + '** — ' + entry.text + suffix)
         } else {
