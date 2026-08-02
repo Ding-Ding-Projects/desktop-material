@@ -5,7 +5,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { getDimSumDish, getDimSumDishes } from '../../src/lib/dim-sum-assets'
-import { readPngSize } from '../../../script/generate-dim-sum-assets.mjs'
+import { readPngSize } from '../../src/lib/png-header'
 
 const assetRoot = join(process.cwd(), 'app', 'static', 'dim-sum')
 

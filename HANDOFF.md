@@ -32,7 +32,7 @@ The website has served a dim sum dish on one visit in ten since
 **The pictures**
 
 Twelve dishes, ~27 MiB, copied byte for byte from the shared catalog by
-`script/generate-dim-sum-assets.mjs`. Twelve rather than the whole catalog
+`script/generate-dim-sum-assets.ts`. Twelve rather than the whole catalog
 because each is a multi-megabyte lossless PNG the installer pays for; the
 twelve span steamed, baked, fried, rolled, bakery, dessert and drink.
 `script/build.ts` copies `app/static/dim-sum` to `out/static/dim-sum`, matching

@@ -11,7 +11,7 @@ Updated: **August 1, 2026**
 - Twelve real photographs are copied byte for byte out of the shared dim sum
   catalog into `app/static/dim-sum/` (~27 MiB) with a manifest recording each
   file's dimensions and SHA-256. Nothing is generated, fetched, or re-encoded,
-  and `script/generate-dim-sum-assets.mjs` verifies every PNG decodes before it
+  and `script/generate-dim-sum-assets.ts` verifies every PNG decodes before it
   copies it.
 - The draw is spent once per launch whether it hits or misses, comes from a
   uniform CSPRNG rather than a biased source, and is suppressed on first run,

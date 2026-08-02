@@ -83,7 +83,7 @@ turning a small delight into a download.
 ### Regenerating them
 
 ```bash
-node script/generate-dim-sum-assets.mjs [catalogDirectory]
+yarn generate-dim-sum-assets [catalogDirectory]
 ```
 
 The catalog directory defaults to `$DIM_SUM_CATALOG_DIR`, then to an

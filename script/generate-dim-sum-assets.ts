@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env ts-node
 
 /**
  * Copies the bundled dim sum surprise pictures out of the shared dim sum
@@ -7,17 +7,21 @@
  * The catalog is the only permitted source of these pictures. Nothing here
  * generates, downloads, resizes, or re-encodes an image: each selected PNG is
  * copied byte for byte from its indexed path, and the copy is rejected unless
- * the bytes decode as a PNG whose dimensions match the catalog's stated
- * minimum. A dish whose picture is missing or undecodable is reported and
- * skipped rather than replaced by a substitute.
+ * the bytes decode as a PNG whose header and terminating chunk are intact. A
+ * dish whose picture is missing or undecodable is reported and skipped rather
+ * than replaced by a substitute.
+ *
+ * The structural PNG check is deliberately imported from the app rather than
+ * reimplemented here, so the verification that gates a copy and the one
+ * `app/test/unit/dim-sum-assets-test.ts` runs against the committed bytes can
+ * never drift apart.
  *
  * This script is a maintenance tool, not a build step. The manifest and the
  * pictures are committed, so a build, a test run, and CI never need the
- * catalog to be present. `app/test/unit/dim-sum-assets-test.ts` re-verifies the
- * committed bytes against the committed manifest on every run.
+ * catalog to be present.
  *
  * Usage:
- *   node script/generate-dim-sum-assets.mjs [catalogDirectory]
+ *   yarn generate-dim-sum-assets [catalogDirectory]
  *
  * The catalog directory defaults to $DIM_SUM_CATALOG_DIR, then to the
  * `agent-global-memory/dim-sum` checkout inside the current user's GitHub
@@ -32,16 +36,18 @@ import {
   readdirSync,
   rmSync,
   writeFileSync,
-} from 'node:fs'
-import { createHash } from 'node:crypto'
-import { homedir } from 'node:os'
-import { join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+} from 'fs'
+import { createHash } from 'crypto'
+import { homedir } from 'os'
+import * as path from 'path'
 
-const repositoryRoot = fileURLToPath(new URL('../', import.meta.url))
+import { readPngSize } from '../app/src/lib/png-header'
+import { IDimSumDish } from '../app/src/models/dim-sum'
+
+const projectRoot = path.dirname(__dirname)
 
 /** Where the committed pictures and manifest live. */
-export const AssetDirectory = resolve(repositoryRoot, 'app/static/dim-sum')
+export const AssetDirectory = path.join(projectRoot, 'app', 'static', 'dim-sum')
 /** Filename of the manifest inside {@link AssetDirectory}. */
 export const ManifestFile = 'manifest.json'
 /** Format version of the emitted manifest. */
@@ -56,7 +62,7 @@ export const ManifestVersion = 1
  * rolled, bakery, dessert and drink without turning a small delight into a
  * download. Add to the list here, then re-run this script.
  */
-export const BundledDishIds = [
+export const BundledDishIds: ReadonlyArray<string> = [
   'hk-dish-0001', // 蝦餃 — the dish every tea house is judged on
   'hk-dish-0011', // 燒賣
   'hk-dish-0027', // 豉汁蒸鳳爪
@@ -71,54 +77,36 @@ export const BundledDishIds = [
   'hk-dish-0676', // 港式奶茶
 ]
 
-/** The eight bytes every PNG file starts with. */
-const PngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])
-
-/**
- * Read a PNG's dimensions from its header, or throw when the bytes are not a
- * PNG whose first chunk is a well-formed IHDR.
- *
- * This is a structural decode rather than a full one: it proves the file is a
- * real image with real dimensions, which is what distinguishes a copied
- * picture from a truncated download or a renamed text file.
- */
-export function readPngSize(bytes) {
-  if (bytes.length < 24 || !bytes.subarray(0, 8).equals(PngSignature)) {
-    throw new Error('not a PNG: the eight-byte signature is missing')
+/** The shape of one record in the shared catalog's index. */
+interface ICatalogDish {
+  readonly id: string
+  readonly slug: string
+  readonly name: { readonly en: string; readonly zhHant: string }
+  readonly jyutping?: string
+  readonly category?: string
+  readonly image: {
+    readonly path: string
+    readonly alt: { readonly en: string; readonly yue: string }
   }
-  if (bytes.subarray(12, 16).toString('latin1') !== 'IHDR') {
-    throw new Error('not a PNG: the first chunk is not IHDR')
-  }
-
-  const width = bytes.readUInt32BE(16)
-  const height = bytes.readUInt32BE(20)
-  if (width === 0 || height === 0) {
-    throw new Error(`degenerate PNG dimensions ${width}x${height}`)
-  }
-
-  // A PNG always ends with the twelve-byte IEND chunk. Checking it catches the
-  // one corruption a header check cannot: a file cut off part-way through.
-  if (
-    bytes.subarray(bytes.length - 8, bytes.length - 4).toString('latin1') !==
-    'IEND'
-  ) {
-    throw new Error('truncated PNG: no IEND chunk at the end of the file')
-  }
-
-  return { width, height }
 }
 
 /** Resolve the catalog directory without hard-coding a machine or account. */
-export function resolveCatalogDirectory(explicit) {
+export function resolveCatalogDirectory(explicit?: string): string {
   const candidates = [
     explicit,
     process.env.DIM_SUM_CATALOG_DIR,
-    join(homedir(), 'Documents', 'GitHub', 'agent-global-memory', 'dim-sum'),
-    join(homedir(), 'GitHub', 'agent-global-memory', 'dim-sum'),
-  ].filter(candidate => typeof candidate === 'string' && candidate.length > 0)
+    path.join(
+      homedir(),
+      'Documents',
+      'GitHub',
+      'agent-global-memory',
+      'dim-sum'
+    ),
+    path.join(homedir(), 'GitHub', 'agent-global-memory', 'dim-sum'),
+  ].filter((c): c is string => typeof c === 'string' && c.length > 0)
 
   for (const candidate of candidates) {
-    if (existsSync(join(candidate, 'index.json'))) {
+    if (existsSync(path.join(candidate, 'index.json'))) {
       return candidate
     }
   }
@@ -130,14 +118,18 @@ export function resolveCatalogDirectory(explicit) {
 }
 
 /** Project one catalog record into the manifest's much smaller shape. */
-export function projectDish(dish, file, bytes) {
+export function projectDish(
+  dish: ICatalogDish,
+  file: string,
+  bytes: Buffer
+): IDimSumDish {
   const { width, height } = readPngSize(bytes)
   return {
     id: dish.id,
     slug: dish.slug,
     name: { en: dish.name.en, zhHant: dish.name.zhHant },
     jyutping: dish.jyutping ?? '',
-    category: dish.category,
+    category: dish.category ?? '',
     alt: { en: dish.image.alt.en, yue: dish.image.alt.yue },
     file,
     bytes: bytes.length,
@@ -152,12 +144,12 @@ function main() {
   console.log(`Reading the dim sum catalog from ${catalogDirectory}`)
 
   const index = JSON.parse(
-    readFileSync(join(catalogDirectory, 'index.json'), 'utf8')
-  )
+    readFileSync(path.join(catalogDirectory, 'index.json'), 'utf8')
+  ) as { schemaVersion?: string; dishes: ReadonlyArray<ICatalogDish> }
   const byId = new Map(index.dishes.map(dish => [dish.id, dish]))
 
-  const dishes = []
-  const skipped = []
+  const dishes: Array<IDimSumDish> = []
+  const skipped: Array<string> = []
 
   for (const id of BundledDishIds) {
     const dish = byId.get(id)
@@ -166,7 +158,7 @@ function main() {
       continue
     }
 
-    const source = join(catalogDirectory, dish.image.path)
+    const source = path.join(catalogDirectory, dish.image.path)
     if (!existsSync(source)) {
       skipped.push(`${id}: the indexed picture ${dish.image.path} is missing`)
       continue
@@ -177,12 +169,12 @@ function main() {
     try {
       dishes.push(projectDish(dish, file, bytes))
     } catch (error) {
-      skipped.push(`${id}: ${error.message}`)
+      skipped.push(`${id}: ${(error as Error).message}`)
       continue
     }
 
     mkdirSync(AssetDirectory, { recursive: true })
-    copyFileSync(source, join(AssetDirectory, file))
+    copyFileSync(source, path.join(AssetDirectory, file))
     console.log(`  ${file} (${(bytes.length / 1024 / 1024).toFixed(2)} MiB)`)
   }
 
@@ -195,7 +187,7 @@ function main() {
   const keep = new Set([ManifestFile, ...dishes.map(dish => dish.file)])
   for (const entry of readdirSync(AssetDirectory)) {
     if (!keep.has(entry)) {
-      rmSync(join(AssetDirectory, entry), { recursive: true, force: true })
+      rmSync(path.join(AssetDirectory, entry), { recursive: true, force: true })
       console.log(`  removed stale ${entry}`)
     }
   }
@@ -210,7 +202,7 @@ function main() {
     dishes,
   }
   writeFileSync(
-    join(AssetDirectory, ManifestFile),
+    path.join(AssetDirectory, ManifestFile),
     JSON.stringify(manifest, null, 2) + '\n'
   )
 
@@ -227,6 +219,6 @@ function main() {
   }
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (require.main === module) {
   main()
 }

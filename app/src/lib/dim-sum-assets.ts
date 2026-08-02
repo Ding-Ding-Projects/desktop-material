@@ -6,7 +6,7 @@
  * rather than the app's startup. The renderer turns the filenames returned
  * here into `file://` URLs; nothing in this module reaches the network.
  *
- * `script/generate-dim-sum-assets.mjs` writes the manifest and copies the
+ * `script/generate-dim-sum-assets.ts` writes the manifest and copies the
  * pictures byte for byte out of the shared dim sum catalog. Nothing generates,
  * downloads or re-encodes an image at any point.
  */
