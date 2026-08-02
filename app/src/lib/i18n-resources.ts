@@ -2515,6 +2515,9 @@ export type TranslationKey =
   | 'githubPackages.scopeRecovery'
   | 'githubPackages.signInAgain'
   | 'githubReleases.filterSummary'
+  | 'githubReleases.dismissDownload'
+  | 'githubReleases.metadataLabel'
+  | 'githubReleases.metadataSummary'
   | 'githubReleases.openFile'
   | 'githubReleases.showInFolder'
   | 'githubReleases.openFileError'
@@ -6092,6 +6095,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'githubPackages.signInAgain': 'Sign in again',
   'githubReleases.filterSummary':
     'Filtering {visible} of {total} loaded releases',
+  'githubReleases.dismissDownload': 'OK',
+  'githubReleases.metadataLabel': 'Release details',
+  'githubReleases.metadataSummary': '{status} · {assets} assets',
   'githubReleases.openFile': 'Open file',
   'githubReleases.showInFolder': 'Show in folder',
   'githubReleases.openFileError':
@@ -9769,6 +9775,9 @@ export const cantoneseTranslations: Readonly<
   'githubPackages.signInAgain': '重新登入',
   'githubReleases.filterSummary':
     '篩選緊已載入 Release 入面嘅 {visible}/{total} 個',
+  'githubReleases.dismissDownload': '知道喇',
+  'githubReleases.metadataLabel': '發行詳情',
+  'githubReleases.metadataSummary': '{status} · {assets} 個檔案',
   'githubReleases.openFile': '開啟檔案',
   'githubReleases.showInFolder': '喺資料夾顯示',
   'githubReleases.openFileError':

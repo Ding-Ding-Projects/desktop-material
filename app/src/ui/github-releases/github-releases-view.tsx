@@ -7,7 +7,6 @@ import { t, translateForAccessibleName } from '../../lib/i18n'
 import { TranslationKey } from '../../lib/i18n-resources'
 import { Account } from '../../models/account'
 import { Repository } from '../../models/repository'
-import { getBoolean, setBoolean } from '../../lib/local-storage'
 import {
   getGitHubReleasesAccount,
   getGitHubReleasesAvailability,
@@ -83,6 +82,12 @@ import {
   externalOpenTarget,
 } from '../../lib/external-open-guard'
 import { ExternalOpenBusy } from '../lib/external-open-busy'
+import { CollapsibleSection } from '../lib/collapsible-section'
+import {
+  collapsibleRepositoryKey,
+  readCollapsibleState,
+  writeCollapsibleState,
+} from '../../lib/collapsed-state'
 import { isCheapLfsReleaseBucket } from '../../lib/cheap-lfs/asset-version'
 
 const ReleasesSearchFilterId = 'github-releases-search'
@@ -328,9 +333,20 @@ function initialState(
     statusFilter: 'all',
     showCheapLfsReleases: false,
     sortOrder: readPersistedReleaseSortOrder(ReleasesSearchFilterId),
-    toolsExpandedPreference: getBoolean(ReleasesToolsExpandedKey),
+    toolsExpandedPreference: readCollapsibleState(
+      'releases-tools',
+      collapsibleRepositoryKey(props.repository),
+      { legacyKey: ReleasesToolsExpandedKey }
+    ),
     toolsPanelNarrow: false,
-    statsExpanded: getBoolean(ReleasesStatsExpandedKey, false),
+    statsExpanded:
+      readCollapsibleState(
+        'releases-stats',
+        collapsibleRepositoryKey(props.repository),
+        {
+          legacyKey: ReleasesStatsExpandedKey,
+        }
+      ) ?? false,
     assets: [],
     assetPage: 0,
     nextAssetPage: null,
@@ -443,6 +459,17 @@ export class GitHubReleasesView extends React.Component<
    * a stuttered double-click is refused before the re-render that disables the
    * button ever happens.
    */
+  /**
+   * Which repository this view's collapsed sections are remembered under.
+   *
+   * Derived rather than threaded through as a prop: the view already has the
+   * repository, and a second source for the same identity is a second thing
+   * that can disagree.
+   */
+  private get collapseKey(): string | undefined {
+    return collapsibleRepositoryKey(this.props.repository)
+  }
+
   private silentInstallGuard: InFlightGuardState = EmptyInFlightGuard
   private silentInstallTimer: ReturnType<typeof setInterval> | null = null
   private lastProgressAt = 0
@@ -1120,14 +1147,14 @@ export class GitHubReleasesView extends React.Component<
   private toggleReleaseStats = () =>
     this.setState(state => {
       const statsExpanded = !state.statsExpanded
-      setBoolean(ReleasesStatsExpandedKey, statsExpanded)
+      writeCollapsibleState('releases-stats', this.collapseKey, statsExpanded)
       return { statsExpanded }
     })
 
   private toggleCompactReleaseTools = () =>
     this.setState(state => {
       const expanded = !this.releaseToolsExpanded(state)
-      setBoolean(ReleasesToolsExpandedKey, expanded)
+      writeCollapsibleState('releases-tools', this.collapseKey, expanded)
       return { toolsExpandedPreference: expanded }
     })
 
@@ -2178,6 +2205,11 @@ export class GitHubReleasesView extends React.Component<
         }
       }
     )
+  }
+
+  /** Puts the finished-download panel away, along with its status message. */
+  private dismissDownloadResult = () => {
+    this.setState({ completedDownload: null, message: null })
   }
 
   private openDownload = async () => {
@@ -3249,42 +3281,61 @@ export class GitHubReleasesView extends React.Component<
             </Button>
           </div>
         </header>
-        <dl className="github-release-metadata" aria-label="Release metadata">
-          <div>
-            <dt>Status</dt>
-            <dd>{releaseStatusLabel(release)}</dd>
-          </div>
-          <div>
-            <dt>Author</dt>
-            <dd>@{release.authorLogin}</dd>
-          </div>
-          <div>
-            <dt>Created</dt>
-            <dd>
-              <ReleaseTimestamp date={release.createdAt} />
-            </dd>
-          </div>
-          <div>
-            <dt>Published</dt>
-            <dd>
-              {release.publishedAt === null ? (
-                'Not published'
-              ) : (
-                <ReleaseTimestamp date={release.publishedAt} />
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt>Target</dt>
-            <dd>{release.targetCommitish}</dd>
-          </div>
-          <div>
-            <dt>Loaded assets</dt>
-            <dd>
-              {this.state.assets.length} · {downloadCount} downloads
-            </dd>
-          </div>
-        </dl>
+        <CollapsibleSection
+          elementId="releases-metadata"
+          repositoryKey={this.collapseKey}
+          label={t('githubReleases.metadataLabel')}
+          ariaLabel="Release metadata"
+          // The status and the target are what a reader checks a release for,
+          // so they stay visible while the grid is closed - collapsing costs
+          // the glance nothing, it only reclaims the six cards.
+          summary={t('githubReleases.metadataSummary', {
+            status: releaseStatusLabel(release),
+            assets: this.state.assets.length.toString(),
+          })}
+        >
+          {/*
+            The wrapping region carries the name now; labelling the list as
+            well made a screen reader announce "Release metadata" twice for
+            one thing.
+          */}
+          <dl className="github-release-metadata">
+            <div>
+              <dt>Status</dt>
+              <dd>{releaseStatusLabel(release)}</dd>
+            </div>
+            <div>
+              <dt>Author</dt>
+              <dd>@{release.authorLogin}</dd>
+            </div>
+            <div>
+              <dt>Created</dt>
+              <dd>
+                <ReleaseTimestamp date={release.createdAt} />
+              </dd>
+            </div>
+            <div>
+              <dt>Published</dt>
+              <dd>
+                {release.publishedAt === null ? (
+                  'Not published'
+                ) : (
+                  <ReleaseTimestamp date={release.publishedAt} />
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt>Target</dt>
+              <dd>{release.targetCommitish}</dd>
+            </div>
+            <div>
+              <dt>Loaded assets</dt>
+              <dd>
+                {this.state.assets.length} · {downloadCount} downloads
+              </dd>
+            </div>
+          </dl>
+        </CollapsibleSection>
         <div className="github-release-notes">
           <h3>Release notes</h3>
           {/*
@@ -3563,6 +3614,16 @@ export class GitHubReleasesView extends React.Component<
                 )}
               </ExternalOpenBusy>
               {this.renderSilentInstallButton(this.state.completedDownload)}
+              {/*
+                The panel reported a finished download and then stayed on
+                screen for the rest of the session with no way to put it away,
+                so the next download's result appeared under a stale one. It
+                dismisses now, and dismissing clears the digest message with
+                it because the two describe the same event.
+              */}
+              <Button onClick={this.dismissDownloadResult}>
+                {t('githubReleases.dismissDownload')}
+              </Button>
             </div>
           </div>
         )}

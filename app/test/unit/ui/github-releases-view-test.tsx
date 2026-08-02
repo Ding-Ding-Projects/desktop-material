@@ -1481,8 +1481,13 @@ describe('GitHub Releases view', () => {
     assert.equal(toggle.getAttribute('aria-expanded'), 'false')
     // The helper's own encoding is its business; what matters is that a
     // choice was recorded at all, and that the remount below honours it.
-    assert.notEqual(
-      window.localStorage.getItem('github-releases-tools-expanded'),
+    const toolsKey = `collapsed:releases-tools:${repositoryPath}`
+    assert.notEqual(window.localStorage.getItem(toolsKey), null)
+
+    // Recorded against this repository, not globally. Sharing one flag meant
+    // collapsing the filters here silently collapsed them everywhere else.
+    assert.equal(
+      window.localStorage.getItem('collapsed:releases-tools:other/path'),
       null
     )
 
@@ -1500,7 +1505,7 @@ describe('GitHub Releases view', () => {
       name: /Filters and selection/,
     })
     assert.equal(remounted.getAttribute('aria-expanded'), 'false')
-    window.localStorage.removeItem('github-releases-tools-expanded')
+    window.localStorage.removeItem(toolsKey)
   })
 
   it('localizes compact release tools in Cantonese and bilingual modes', async () => {
