@@ -22,13 +22,21 @@ const releasePullRequestWorkflow = readFileSync(
 )
 
 describe('Super Express Release workflow', () => {
-  it('is manual-only and skips desktop tests for the fastest bounded package', () => {
+  it('is manual-only and builds directly without any test lane', () => {
     assert.match(workflow, /on:\s*\n\s+workflow_dispatch:/)
     assert.doesNotMatch(workflow, /\n\s+(?:push|workflow_run):/)
     assert.match(workflow, /Require a main-branch manual dispatch/)
     assert.match(workflow, /ref: \$\{\{ env\.RELEASE_TARGET_SHA \}\}/)
     assert.doesNotMatch(workflow, /run: yarn test:unit/)
     assert.doesNotMatch(workflow, /run: yarn test:script/)
+    assert.doesNotMatch(workflow, /generate-parity-contract/)
+    assert.doesNotMatch(workflow, /\bpytest\b/)
+    assert.doesNotMatch(workflow, /\bruff\b/)
+    assert.doesNotMatch(workflow, /\bmypy\b/)
+    assert.doesNotMatch(workflow, /uv venv/)
+    assert.doesNotMatch(workflow, /uv pip install/)
+    assert.doesNotMatch(workflow, /desktop-material-tui\.exe/)
+    assert.match(workflow, /uv build --clear/)
     assert.match(workflow, /yarn build:prod/)
     assert.match(workflow, /yarn package/)
     assert.doesNotMatch(workflow, /run:\s*yarn lint/)

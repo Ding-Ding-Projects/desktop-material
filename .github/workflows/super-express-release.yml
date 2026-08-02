@@ -1,15 +1,14 @@
 name: Super Express Release
 
-# Manual emergency lane. It deliberately omits the desktop lint, unit, script,
-# and E2E lanes. The ordinary CI and Express Release workflows remain the
-# tested release paths. This fastest lane still requires TUI parity, tests,
-# lint, types, fresh-wheel smoke, production builds, and exact asset checks
-# before publishing an immutable release.
+# Manual emergency lane. It deliberately runs no tests, lint, type checks,
+# parity checks, or smoke tests. The ordinary CI and Express Release workflows
+# remain the tested release paths. Super Express builds the production desktop
+# and TUI packages directly, collects the required assets, and publishes them.
 on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish the verified package as a GitHub Release
+        description: Publish the built package as a GitHub Release
         required: true
         default: true
         type: boolean
@@ -76,10 +75,6 @@ jobs:
           enable-cache: true
           cache-dependency-glob: tui/uv.lock
 
-      - name: Install locked TUI environment
-        working-directory: tui
-        run: uv sync --locked --extra dev --python 3.12
-
       - name: Discover exact TUI package version
         id: tui_version
         shell: pwsh
@@ -93,24 +88,11 @@ jobs:
           "version=$version" >> $env:GITHUB_OUTPUT
           "TUI_VERSION=$version" >> $env:GITHUB_ENV
 
-      - name: Verify generated parity contract
-        run: node tui/tools/generate-parity-contract.mjs --check
-
-      - name: Run TUI tests
-        working-directory: tui
-        run: uv run --python 3.12 pytest
-
-      - name: Run TUI lint and types
-        working-directory: tui
-        run: |
-          uv run --python 3.12 ruff check .
-          uv run --python 3.12 mypy src
-
       - name: Build TUI wheel and source distribution
         working-directory: tui
         run: uv build --clear
 
-      - name: Verify, smoke-test, and collect exact TUI payload
+      - name: Collect built TUI payload
         id: tui_payload
         shell: pwsh
         run: |
@@ -127,25 +109,6 @@ jobs:
             $sdists[0].Name -ne $expectedSdist
           ) {
             throw "Built TUI package names do not match pyproject.toml version $env:TUI_VERSION."
-          }
-
-          $smoke = Join-Path $env:RUNNER_TEMP 'desktop-material-tui-release-smoke'
-          uv venv $smoke --python 3.12 --clear
-          if ($LASTEXITCODE -ne 0) { throw 'Unable to create TUI smoke environment.' }
-          $smokePython = Join-Path $smoke 'Scripts/python.exe'
-          $env:UV_NO_CACHE = '1'
-          uv pip install --python $smokePython $wheels[0].FullName
-          if ($LASTEXITCODE -ne 0) { throw 'Fresh TUI wheel installation failed.' }
-          $installed = (
-            & $smokePython -c "import importlib.metadata; print(importlib.metadata.version('desktop-material-tui'))"
-          ).Trim()
-          if ($installed -ne $env:TUI_VERSION) {
-            throw "Fresh wheel installed version $installed, expected $env:TUI_VERSION."
-          }
-          $entryPoint = Join-Path $smoke 'Scripts/desktop-material-tui.exe'
-          $reported = (& $entryPoint --version).Trim()
-          if ($reported -ne "desktop-material-tui $env:TUI_VERSION") {
-            throw "Fresh wheel entry point reported '$reported'."
           }
 
           New-Item -ItemType Directory -Force 'release-payload/tui' | Out-Null
