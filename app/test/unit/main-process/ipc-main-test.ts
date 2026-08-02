@@ -72,4 +72,58 @@ describe('main-process IPC', () => {
       log.error = previousLogError
     }
   })
+
+  it('logs a synchronously thrown simplex listener without rethrowing', () => {
+    // A throw that escapes here reaches `uncaughtException`, which destroys
+    // every window and shows the crash dialog — so a malformed payload on any
+    // simplex channel would take the whole app down rather than being dropped.
+    const mutableIPCMain = ipcMain as unknown as MutableIPCMain
+    const previousOn = mutableIPCMain.on
+    const previousRemoveListener = mutableIPCMain.removeListener
+    const previousLogError = log.error
+    const failure = new Error('Invalid URL')
+    const errors = new Array<{ message: string; error?: Error }>()
+    let registeredListener: SimplexListener | undefined
+    let removeTrustedSender: (() => void) | undefined
+
+    mutableIPCMain.on = (_channel, listener) => {
+      registeredListener = listener
+    }
+    mutableIPCMain.removeListener = () => undefined
+    log.error = (message, error) => errors.push({ message, error })
+
+    const sender = {
+      id: 43,
+      on: (event: string, listener: () => void) => {
+        if (event === 'destroyed') {
+          removeTrustedSender = listener
+        }
+        return sender
+      },
+    } as unknown as WebContents
+    addTrustedIPCSender(sender)
+
+    try {
+      on('install-windows-cli', () => {
+        throw failure
+      })
+      assert.notEqual(registeredListener, undefined)
+
+      assert.doesNotThrow(() =>
+        registeredListener?.({ sender } as IpcMainEvent)
+      )
+
+      assert.deepEqual(errors, [
+        {
+          message: 'Simplex IPC listener "install-windows-cli" failed',
+          error: failure,
+        },
+      ])
+    } finally {
+      removeTrustedSender?.()
+      mutableIPCMain.on = previousOn
+      mutableIPCMain.removeListener = previousRemoveListener
+      log.error = previousLogError
+    }
+  })
 })

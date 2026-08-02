@@ -74,7 +74,19 @@ function safeSimplexListener<T extends keyof RequestChannels>(
   const trustedListener = safeListener(listener)
 
   return (event: IpcMainEvent, ...args: Parameters<RequestChannels[T]>) => {
-    const result = trustedListener(event, ...args)
+    // A simplex channel has no reply, so a listener that throws has nobody to
+    // report to. `ipcMain.handle` turns a synchronous throw into a rejected
+    // invoke; `ipcMain.on` lets it escape into the event loop, where
+    // `uncaughtException` destroys every window and shows the crash dialog.
+    // Containing the asynchronous half and not the synchronous one meant a
+    // malformed payload on any simplex channel could take the whole app down.
+    let result: void | Promise<void>
+    try {
+      result = trustedListener(event, ...args)
+    } catch (error) {
+      log.error(`Simplex IPC listener "${channel}" failed`, error)
+      return
+    }
 
     if (result !== undefined) {
       void Promise.resolve(result).catch(error => {
