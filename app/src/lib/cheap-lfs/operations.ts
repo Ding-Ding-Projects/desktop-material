@@ -744,6 +744,64 @@ function parseNulPaths(value: Buffer, revisionPrefix?: string): string[] {
   )
 }
 
+/**
+ * How many bytes of pathspec one `git grep` invocation may carry.
+ *
+ * Windows refuses a command line over 32,767 characters and POSIX refuses one
+ * over `ARG_MAX`; either way the spawn fails with `ENAMETOOLONG` before Git
+ * runs at all, so a large enough selection turned the whole pointer inventory
+ * into an error dialog. The cap is deliberately well under the smaller of the
+ * two limits, because the pathspec is only part of what gets spawned - the
+ * fixed arguments, the repository path, and the large-repository options all
+ * share the same line.
+ *
+ * Raising the batch size trades fewer Git invocations for a closer shave
+ * against a limit whose exact value depends on the platform, the shell, and
+ * the length of the repository path. It is not worth the shave: the batches
+ * run against an already-warm index.
+ */
+const CheapLfsPathspecBudgetBytes = 24_000
+
+/**
+ * Splits a pathspec into batches that each fit the budget.
+ *
+ * Hashing or truncating a path is not an option here even though the error is
+ * about length: `git grep -- :(literal)<path>` matches the path it is given,
+ * so a shortened pathspec matches nothing and the inventory reports zero
+ * pointers. That reads exactly like a clean repository, which is a far worse
+ * outcome than the error it would replace.
+ *
+ * A single entry larger than the budget still gets its own batch rather than
+ * being dropped. It will fail loudly if the OS refuses it, which is the honest
+ * result - silently omitting one path would understate the inventory.
+ */
+export function batchCheapLfsPathspec(
+  pathspec: ReadonlyArray<string>,
+  budgetBytes: number = CheapLfsPathspecBudgetBytes
+): ReadonlyArray<ReadonlyArray<string>> {
+  const batches = new Array<Array<string>>()
+  let current = new Array<string>()
+  let used = 0
+
+  for (const path of pathspec) {
+    // `:(literal)` and the argument separator ride along with every entry, so
+    // they are counted here rather than discovered at the limit.
+    const cost = Buffer.byteLength(`:(literal)${path}`, 'utf8') + 1
+    if (current.length > 0 && used + cost > budgetBytes) {
+      batches.push(current)
+      current = []
+      used = 0
+    }
+    current.push(path)
+    used += cost
+  }
+
+  if (current.length > 0) {
+    batches.push(current)
+  }
+  return batches
+}
+
 async function gitPointerPaths(
   root: string,
   source: 'working-tree' | 'index' | 'head',
@@ -853,23 +911,43 @@ async function gitPointerPaths(
   // matched with `:(literal)` so a filename containing pathspec glob magic
   // (`*`, `[`, ...) still matches itself exactly, mirroring the caller's own
   // exact-path narrowing.
-  if (pathspec !== undefined) {
-    args.push(...pathspec.map(path => `:(literal)${path}`))
-  }
-  const result = await git(args, root, `listCheapLfs${source}Pointers`, {
-    successExitCodes: new Set([0, 1, 128]),
-    encoding: 'buffer',
-    maxBuffer: Infinity,
-  })
-  if (result.exitCode === 128) {
-    if (source === 'head') {
-      return []
+  // One invocation per batch, so a large selection cannot overflow the command
+  // line the OS is willing to spawn. With no pathspec there is nothing to
+  // batch and this runs exactly once, as it always did.
+  const batches =
+    pathspec === undefined ? [undefined] : batchCheapLfsPathspec(pathspec)
+  const revisionPrefix = source === 'head' ? 'HEAD:' : undefined
+  const paths = new Array<string>()
+  const seen = new Set<string>()
+
+  for (const batch of batches) {
+    const batchArgs =
+      batch === undefined
+        ? args
+        : [...args, ...batch.map(path => `:(literal)${path}`)]
+    const result = await git(batchArgs, root, `listCheapLfs${source}Pointers`, {
+      successExitCodes: new Set([0, 1, 128]),
+      encoding: 'buffer',
+      maxBuffer: Infinity,
+    })
+    if (result.exitCode === 128) {
+      if (source === 'head') {
+        return []
+      }
+      throw new Error(
+        `Git could not inventory Cheap LFS ${source} pointer metadata.`
+      )
     }
-    throw new Error(
-      `Git could not inventory Cheap LFS ${source} pointer metadata.`
-    )
+    // Batches are disjoint, but a pathspec the caller supplied twice would
+    // otherwise report its pointer twice.
+    for (const path of parseNulPaths(result.stdout, revisionPrefix)) {
+      if (!seen.has(path)) {
+        seen.add(path)
+        paths.push(path)
+      }
+    }
   }
-  return parseNulPaths(result.stdout, source === 'head' ? 'HEAD:' : undefined)
+  return paths
 }
 
 interface ICheapLfsGitPointerTextRequest {
