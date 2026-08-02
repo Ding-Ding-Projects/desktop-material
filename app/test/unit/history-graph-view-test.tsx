@@ -10,6 +10,7 @@ import { CommitIdentity } from '../../src/models/commit-identity'
 import {
   buildCommitGraph,
   buildCommitGraphRows,
+  resolveCommitGraphLaneVisibility,
 } from '../../src/ui/history/commit-graph-model'
 import {
   CommitGraphBoundaryOverlap,
@@ -19,6 +20,7 @@ import {
 } from '../../src/ui/history/commit-graph'
 import {
   buildRefs,
+  describeLaneControl,
   describeRef,
   getHistoryGraphViewport,
   HistoryGraphRowHeight,
@@ -171,6 +173,162 @@ describe('commit graph model: lanes', () => {
       buildCommitGraph(mergeHistory).rows
     )
   })
+
+  it('keeps lane and canonical ref identities stable when newer history arrives', () => {
+    const refs = buildRefs(
+      [makeBranch('main', 'main'), makeBranch('topic', 'topic')],
+      makeBranch('main', 'main')
+    )
+    const original = buildCommitGraph(mergeHistory, refs)
+    const extended = buildCommitGraph(
+      [makeCommit('newest', ['merge']), ...mergeHistory],
+      refs
+    )
+
+    for (const sha of mergeHistory.map(commit => commit.sha)) {
+      assert.equal(
+        extended.rows.find(row => row.sha === sha)?.laneId,
+        original.rows.find(row => row.sha === sha)?.laneId,
+        `${sha} changed lane identity when a descendant was added`
+      )
+    }
+
+    for (const refId of ['branch:refs/heads/main', 'branch:refs/heads/topic']) {
+      const originalControl = original.laneControls.find(
+        control => control.id === refId
+      )
+      const extendedControl = extended.laneControls.find(
+        control => control.id === refId
+      )
+      assert.ok(originalControl !== undefined)
+      assert.ok(extendedControl !== undefined)
+      assert.equal(extendedControl.laneId, originalControl.laneId)
+    }
+  })
+
+  it('labels merge curves with both endpoint lanes', () => {
+    const graph = buildCommitGraph(mergeHistory)
+    const mergePaths = graph.rows[0].connections
+
+    assert.equal(mergePaths.length, 2)
+    assert.equal(mergePaths[0].fromLaneId, mergePaths[0].toLaneId)
+    assert.notEqual(mergePaths[1].fromLaneId, mergePaths[1].toLaneId)
+    assert.ok(graph.laneIds.includes(mergePaths[1].fromLaneId))
+    assert.ok(graph.laneIds.includes(mergePaths[1].toLaneId))
+  })
+
+  it('labels a converging continuation with its surviving destination lane', () => {
+    const history = [
+      makeCommit('A', ['C', 'E']),
+      makeCommit('E', ['D']),
+      makeCommit('C', ['D']),
+      makeCommit('D', []),
+    ]
+    const current = makeBranch('topic', 'E')
+    const graph = buildCommitGraph(history, buildRefs([], current))
+    const cRow = graph.rows.find(row => row.sha === 'C')
+    assert.ok(cRow !== undefined)
+
+    const converging = cRow.continuations.find(
+      path => path.fromColumn !== path.toColumn
+    )
+    assert.ok(converging !== undefined)
+    assert.notEqual(converging.fromLaneId, converging.toLaneId)
+    assert.equal(converging.toLaneId, graph.rows[3].laneId)
+
+    const visibility = resolveCommitGraphLaneVisibility(
+      graph,
+      new Set(
+        graph.laneControls
+          .filter(control => control.laneId === converging.toLaneId)
+          .map(control => control.id)
+      ),
+      null
+    )
+    assert.equal(visibility.visibleLaneIds.has(converging.toLaneId), false)
+  })
+
+  it('uses unique fallback names when lane anchors share a short SHA prefix', () => {
+    const graph = buildCommitGraph([
+      makeCommit('abcdef012345A', []),
+      makeCommit('abcdef012345B', []),
+    ])
+    const fallbackNames = graph.laneControls
+      .filter(control => control.kind === 'commit')
+      .map(control => control.name)
+
+    assert.deepEqual(fallbackNames.sort(), ['abcdef012345A', 'abcdef012345B'])
+    assert.equal(new Set(fallbackNames).size, 2)
+  })
+})
+
+describe('commit graph model: lane visibility', () => {
+  const threeLaneHistory = [
+    makeCommit('merge-three', ['main-three', 'topic-three', 'side-three']),
+    makeCommit('main-three', ['base-three']),
+    makeCommit('topic-three', ['base-three']),
+    makeCommit('side-three', ['base-three']),
+    makeCommit('base-three', []),
+  ]
+  const refs = buildRefs(
+    [
+      makeBranch('main', 'main-three'),
+      makeBranch('topic', 'topic-three'),
+      makeBranch('side', 'side-three'),
+    ],
+    makeBranch('main', 'main-three')
+  )
+
+  it('protects current and HEAD lanes from hide while solo keeps both visible', () => {
+    const graph = buildCommitGraph(threeLaneHistory, refs)
+    const main = graph.laneControls.find(control => control.name === 'main')
+    const topic = graph.laneControls.find(control => control.name === 'topic')
+    const side = graph.laneControls.find(control => control.name === 'side')
+    assert.ok(main !== undefined)
+    assert.ok(topic !== undefined)
+    assert.ok(side !== undefined)
+
+    const hidden = resolveCommitGraphLaneVisibility(
+      graph,
+      new Set(graph.laneControls.map(control => control.id)),
+      null
+    )
+    assert.ok(hidden.visibleLaneIds.has(main.laneId))
+    assert.ok(hidden.protectedLaneIds.has(graph.rows[0].laneId))
+    assert.equal(hidden.hiddenLaneIds.has(main.laneId), false)
+
+    const solo = resolveCommitGraphLaneVisibility(graph, new Set(), topic.id)
+    assert.ok(solo.visibleLaneIds.has(main.laneId))
+    assert.ok(solo.visibleLaneIds.has(topic.laneId))
+    assert.equal(solo.visibleLaneIds.has(side.laneId), false)
+  })
+
+  it('falls back to all lanes for a stale solo identity', () => {
+    const graph = buildCommitGraph(threeLaneHistory, refs)
+    const visibility = resolveCommitGraphLaneVisibility(
+      graph,
+      new Set(),
+      'branch:refs/heads/deleted'
+    )
+
+    assert.equal(visibility.soloLaneId, null)
+    assert.deepEqual(
+      [...visibility.visibleLaneIds].sort(),
+      [...graph.laneIds].sort()
+    )
+  })
+
+  it('keeps a visible anchor when no current branch identity is available', () => {
+    const graph = buildCommitGraph(threeLaneHistory)
+    const visibility = resolveCommitGraphLaneVisibility(
+      graph,
+      new Set(graph.laneControls.map(control => control.id)),
+      null
+    )
+
+    assert.ok(visibility.visibleLaneIds.has(graph.rows[0].laneId))
+    assert.ok(visibility.visibleLaneIds.size > 0)
+  })
 })
 
 describe('commit graph model: ref chips', () => {
@@ -227,6 +385,82 @@ describe('commit graph model: ref chips', () => {
     )
   })
 
+  it('deduplicates a caller tag without an explicit identity against the commit tag', () => {
+    const graph = buildCommitGraph(
+      [makeCommit('tagged', [], ['release'])],
+      [
+        {
+          name: 'release',
+          sha: 'tagged',
+          kind: 'tag',
+          isCurrent: false,
+        },
+      ]
+    )
+
+    assert.deepEqual(
+      graph.rows[0].refs.map(ref => ref.refId),
+      ['tag:refs/tags/release']
+    )
+    assert.deepEqual(
+      graph.laneControls.map(control => control.id),
+      ['tag:refs/tags/release']
+    )
+  })
+
+  it('keeps same-named branch and tag controls distinct', () => {
+    const graph = buildCommitGraph(
+      [makeCommit('same-ref', [], ['release'])],
+      buildRefs([makeBranch('release', 'same-ref')], null)
+    )
+
+    assert.deepEqual(graph.laneControls.map(control => control.id).sort(), [
+      'branch:refs/heads/release',
+      'tag:refs/tags/release',
+    ])
+    assert.equal(
+      new Set(graph.laneControls.map(control => control.laneId)).size,
+      1
+    )
+  })
+
+  it('keeps canonical same-named branch refs distinct and marks only the true current ref', () => {
+    const local = new Branch(
+      'main',
+      null,
+      { sha: 'same-tip' },
+      BranchType.Local,
+      'refs/heads/main'
+    )
+    const remote = new Branch(
+      'main',
+      null,
+      { sha: 'same-tip' },
+      BranchType.Remote,
+      'refs/remotes/origin/main'
+    )
+    const graph = buildCommitGraph(
+      [makeCommit('same-tip', [])],
+      buildRefs([remote], local)
+    )
+
+    assert.deepEqual(graph.laneControls.map(control => control.id).sort(), [
+      'branch:refs/heads/main',
+      'branch:refs/remotes/origin/main',
+    ])
+    assert.deepEqual(
+      graph.laneControls
+        .filter(control => control.isCurrent)
+        .map(control => control.id),
+      ['branch:refs/heads/main']
+    )
+    assert.deepEqual(graph.laneControls.map(control => control.name).sort(), [
+      'main (refs/heads/main)',
+      'main (refs/remotes/origin/main)',
+    ])
+    assert.equal(new Set(graph.laneControls.map(describeLaneControl)).size, 2)
+  })
+
   it('drops refs pointing outside the loaded commits', () => {
     const { rows } = buildCommitGraph(
       [makeCommit('a', [])],
@@ -263,6 +497,18 @@ describe('commit graph model: ref chips', () => {
     assert.equal(
       describeRef({ name: 'v1.0', sha: 'a', kind: 'tag', isCurrent: false }),
       'v1.0 (tag)'
+    )
+    assert.equal(
+      describeLaneControl({
+        id: 'branch:refs/heads/main',
+        laneId: 'lane:a',
+        name: 'main',
+        kind: 'branch',
+        color: 'var(--md-sys-color-primary)',
+        isCurrent: true,
+        isHead: true,
+      }),
+      'current branch main'
     )
   })
 })
@@ -478,6 +724,65 @@ describe('history graph view', () => {
     assert.equal(topicChip?.classList.contains('current'), false)
   })
 
+  it('visibly distinguishes same-named branch and tag lane controls', async () => {
+    const history = [
+      makeCommit('branch-tip', []),
+      makeCommit('tag-tip', [], ['release']),
+    ]
+    await renderRows({
+      commitSHAs: history.map(commit => commit.sha),
+      commitLookup: new Map(
+        history.map(commit => [commit.sha, commit] as const)
+      ),
+      localCommitSHAs: [],
+      branches: [makeBranch('release', 'branch-tip')],
+      currentBranch: null,
+    })
+
+    assert.ok(screen.getByText('release · branch'))
+    assert.ok(screen.getByText('release · tag'))
+  })
+
+  it('visibly and accessibly distinguishes same-named canonical branch controls', async () => {
+    const local = new Branch(
+      'main',
+      null,
+      { sha: 'local-tip' },
+      BranchType.Local,
+      'refs/heads/main'
+    )
+    const remote = new Branch(
+      'main',
+      null,
+      { sha: 'remote-tip' },
+      BranchType.Remote,
+      'refs/remotes/origin/main'
+    )
+    const history = [makeCommit('local-tip', []), makeCommit('remote-tip', [])]
+    await renderRows({
+      commitSHAs: history.map(commit => commit.sha),
+      commitLookup: new Map(
+        history.map(commit => [commit.sha, commit] as const)
+      ),
+      localCommitSHAs: [],
+      branches: [local, remote],
+      currentBranch: null,
+    })
+
+    assert.ok(screen.getByText('main (refs/heads/main) · branch'))
+    assert.ok(screen.getByText('main (refs/remotes/origin/main) · branch'))
+    assert.ok(
+      screen.getByRole('button', {
+        name: 'Hide branch main (refs/heads/main) lane',
+      })
+    )
+    assert.ok(
+      screen.getByRole('button', {
+        name: 'Hide branch main (refs/remotes/origin/main) lane',
+      })
+    )
+  })
+
   it('names every row with its summary and its refs spelled out in full', async () => {
     const { container } = await renderRows()
 
@@ -507,6 +812,222 @@ describe('history graph view', () => {
     for (const selection of selections) {
       assert.deepEqual(selection, [['topic'], true])
     }
+  })
+
+  it('hides and restores a lane without changing rows, selection, or context targets', async () => {
+    const clipboard = captureClipboardWrites()
+
+    try {
+      const { container } = await renderRows({ selectedSHAs: ['topic'] })
+      const optionLabels = Array.from(
+        container.querySelectorAll<HTMLElement>('[role="option"]')
+      ).map(option => option.getAttribute('aria-label'))
+      const viewportWidth = container
+        .querySelector('svg.history-graph-viewport-svg')
+        ?.getAttribute('width')
+      const topicControl = screen.getByRole('group', {
+        name: 'branch topic lane',
+      })
+      const topicLaneId = topicControl.getAttribute('data-lane-id')
+      assert.ok(topicLaneId !== null)
+      const laneDrawingSelector = [
+        `[data-lane-id="${topicLaneId}"]`,
+        `[data-from-lane-id="${topicLaneId}"]`,
+        `[data-to-lane-id="${topicLaneId}"]`,
+      ].join(',')
+
+      const hideCurrent = screen.getByRole('button', {
+        name: 'Hide current branch main lane',
+      })
+      assert.equal(hideCurrent.getAttribute('aria-disabled'), 'true')
+      fireEvent.click(hideCurrent)
+      assert.equal(hideCurrent.getAttribute('aria-pressed'), 'false')
+
+      const hideTopic = screen.getByRole('button', {
+        name: 'Hide branch topic lane',
+      })
+      assert.equal(hideTopic.tagName, 'BUTTON')
+      assert.equal(hideTopic.tabIndex, 0)
+      hideTopic.focus()
+      assert.equal(document.activeElement, hideTopic)
+      fireEvent.click(hideTopic)
+
+      await waitFor(() =>
+        assert.equal(
+          screen
+            .getByRole('button', { name: 'Hide branch topic lane' })
+            .getAttribute('aria-pressed'),
+          'true'
+        )
+      )
+      const filteredSvg = container.querySelector(
+        'svg.history-graph-viewport-svg'
+      )
+      assert.equal(filteredSvg?.querySelector(laneDrawingSelector), null)
+      assert.equal(filteredSvg?.getAttribute('width'), viewportWidth)
+
+      const options = Array.from(
+        container.querySelectorAll<HTMLElement>('[role="option"]')
+      )
+      assert.deepEqual(
+        options.map(option => option.getAttribute('aria-label')),
+        optionLabels
+      )
+      assert.equal(options[2].getAttribute('aria-selected'), 'true')
+      assert.equal(
+        options.some(option => option.querySelector('button') !== null),
+        false,
+        'lane controls became interactive descendants of listbox options'
+      )
+      assert.ok(options[2].querySelector('.history-graph-row.lane-hidden'))
+
+      fireEvent.contextMenu(options[2], { button: 2 })
+      await waitFor(() => assert.ok(screen.getByRole('menu')))
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Copy SHA' }))
+      await waitFor(() => assert.deepEqual(clipboard.writes, ['topic']))
+
+      fireEvent.click(screen.getByRole('button', { name: 'Show all' }))
+      await waitFor(() => {
+        assert.ok(
+          container
+            .querySelector('svg.history-graph-viewport-svg')
+            ?.querySelector(laneDrawingSelector)
+        )
+        assert.equal(
+          screen
+            .getByRole('button', { name: 'Hide branch topic lane' })
+            .getAttribute('aria-pressed'),
+          'false'
+        )
+      })
+    } finally {
+      clipboard.restore()
+    }
+  })
+
+  it('solos one lane while keeping the current and HEAD lane visible', async () => {
+    const history = [
+      makeCommit('merge-three', ['main-three', 'topic-three', 'side-three']),
+      makeCommit('main-three', ['base-three']),
+      makeCommit('topic-three', ['base-three']),
+      makeCommit('side-three', ['base-three']),
+      makeCommit('base-three', []),
+    ]
+    const shas = history.map(commit => commit.sha)
+    const { container } = await renderRows({
+      commitSHAs: shas,
+      commitLookup: new Map(
+        history.map(commit => [commit.sha, commit] as const)
+      ),
+      localCommitSHAs: shas,
+      branches: [
+        makeBranch('main', 'main-three'),
+        makeBranch('topic', 'topic-three'),
+        makeBranch('side', 'side-three'),
+      ],
+      currentBranch: makeBranch('main', 'main-three'),
+    })
+
+    const laneId = (name: string) => {
+      const value = screen
+        .getByRole('group', { name })
+        .getAttribute('data-lane-id')
+      assert.ok(value !== null)
+      return value
+    }
+    const mainLaneId = laneId('current branch main lane')
+    const topicLaneId = laneId('branch topic lane')
+    const sideLaneId = laneId('branch side lane')
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Solo branch topic lane' })
+    )
+    await waitFor(() =>
+      assert.equal(
+        screen
+          .getByRole('button', { name: 'Solo branch topic lane' })
+          .getAttribute('aria-pressed'),
+        'true'
+      )
+    )
+
+    const svg = container.querySelector('svg.history-graph-viewport-svg')
+    assert.ok(svg?.querySelector(`[data-lane-id="${mainLaneId}"]`))
+    assert.ok(svg?.querySelector(`[data-lane-id="${topicLaneId}"]`))
+    assert.equal(
+      svg?.querySelector(
+        `[data-lane-id="${sideLaneId}"], [data-from-lane-id="${sideLaneId}"], [data-to-lane-id="${sideLaneId}"]`
+      ),
+      null
+    )
+    assert.equal(
+      screen
+        .getByRole('button', { name: 'Hide branch side lane' })
+        .getAttribute('aria-pressed'),
+      'false'
+    )
+    assert.match(
+      screen.getByText('HEAD and the current branch always stay visible.')
+        .textContent ?? '',
+      /always stay visible/
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show all' }))
+    await waitFor(() =>
+      assert.ok(
+        container
+          .querySelector('svg.history-graph-viewport-svg')
+          ?.querySelector(`[data-lane-id="${sideLaneId}"]`)
+      )
+    )
+  })
+
+  it('suspends a hidden lane when it becomes current without a contradictory pressed state', async () => {
+    const branches = [makeBranch('main', 'main'), makeBranch('topic', 'topic')]
+    const { container, rerender } = await renderRows({ branches })
+    const hideTopic = screen.getByRole('button', {
+      name: 'Hide branch topic lane',
+    })
+    const topicLaneId = hideTopic.getAttribute('data-lane-control-id')
+    assert.ok(topicLaneId !== null)
+    fireEvent.click(hideTopic)
+
+    await waitFor(() =>
+      assert.equal(hideTopic.getAttribute('aria-pressed'), 'true')
+    )
+
+    rerender(
+      <HistoryGraphView
+        gitHubRepository={null}
+        commitSHAs={commitSHAs}
+        commitLookup={commitLookup}
+        selectedSHAs={[]}
+        localCommitSHAs={commitSHAs}
+        branches={branches}
+        currentBranch={makeBranch('topic', 'topic')}
+        emoji={new Map()}
+      />
+    )
+
+    const protectedTopic = screen.getByRole('button', {
+      name: 'Hide current branch topic lane',
+    })
+    assert.equal(protectedTopic.getAttribute('aria-disabled'), 'true')
+    assert.equal(protectedTopic.getAttribute('aria-pressed'), 'false')
+    assert.equal(
+      screen.getByRole('button', { name: 'Show all' }).hasAttribute('disabled'),
+      false
+    )
+
+    const protectedLaneId = screen
+      .getByRole('group', { name: 'current branch topic lane' })
+      .getAttribute('data-lane-id')
+    assert.ok(protectedLaneId !== null)
+    assert.ok(
+      container
+        .querySelector('svg.history-graph-viewport-svg')
+        ?.querySelector(`[data-lane-id="${protectedLaneId}"]`)
+    )
   })
 
   it('opens the shared commit actions and targets the right-clicked row', async () => {
@@ -686,10 +1207,47 @@ describe('history graph view: wiring', () => {
     )
   })
 
-  it('respects reduced motion', () => {
+  it('keeps lane controls focus-visible, adequately sized, and scrollable when narrow', () => {
+    const style = read('styles', 'ui', '_history-graph-view.scss')
+
     assert.match(
-      read('styles', 'ui', '_history-graph-view.scss'),
-      /@media \(prefers-reduced-motion: reduce\)/
+      style,
+      /\.history-graph-lane-controls \{[\s\S]*?min-height: 48px;[\s\S]*?overflow-x: auto;[\s\S]*?overflow-y: hidden;/
+    )
+    assert.match(
+      style,
+      /\.history-graph-lane-control \{[\s\S]*?flex: 0 0 auto;[\s\S]*?min-width: max-content;/
+    )
+    assert.match(
+      style,
+      /\.history-graph-show-all-lanes,[\s\S]*?\.history-graph-lane-visibility-button \{[\s\S]*?min-width: 48px;[\s\S]*?min-height: 40px;[\s\S]*?&:focus-visible \{/
+    )
+    const laneNameRule = style.match(
+      /\.history-graph-lane-control-name \{([^}]*)\}/
+    )
+    assert.ok(laneNameRule !== null)
+    assert.doesNotMatch(
+      laneNameRule[1],
+      /max-width|overflow|text-overflow/,
+      'lane names were clipped instead of remaining reachable by horizontal scroll'
+    )
+    const focusableDisabledRule = style.match(
+      /&\[aria-disabled='true'\] \{([^}]*)\}/
+    )
+    assert.ok(focusableDisabledRule !== null)
+    assert.doesNotMatch(
+      focusableDisabledRule[1],
+      /opacity/,
+      'a focusable unavailable Hide control dimmed its focus indicator'
+    )
+  })
+
+  it('respects reduced motion', () => {
+    const style = read('styles', 'ui', '_history-graph-view.scss')
+    assert.match(style, /@media \(prefers-reduced-motion: reduce\)/)
+    assert.match(
+      style,
+      /prefers-reduced-motion: reduce[\s\S]*?history-graph-lane-visibility-button[\s\S]*?transition: none;/
     )
   })
 

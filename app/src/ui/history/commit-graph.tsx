@@ -34,7 +34,19 @@ function renderPath(
       key={key}
       d={`M ${fromX} ${startY} C ${fromX} ${middleY}, ${toX} ${middleY}, ${toX} ${endY}`}
       stroke={path.color}
+      data-from-lane-id={path.fromLaneId}
+      data-to-lane-id={path.toLaneId}
     />
+  )
+}
+
+function isPathVisible(
+  path: ICommitGraphPath,
+  visibleLaneIds: ReadonlySet<string> | undefined
+) {
+  return (
+    visibleLaneIds === undefined ||
+    (visibleLaneIds.has(path.fromLaneId) && visibleLaneIds.has(path.toLaneId))
   )
 }
 
@@ -54,12 +66,16 @@ interface ICommitGraphProps {
    * has to line up across rows passes the graph-wide count here.
    */
   readonly columnCount?: number
+
+  /** Lanes to paint; omitted means the complete graph. Geometry is unchanged. */
+  readonly visibleLaneIds?: ReadonlySet<string>
 }
 
 export function CommitGraph({
   row,
   rowHeight,
   columnCount,
+  visibleLaneIds,
 }: ICommitGraphProps) {
   const height = rowHeight ?? DefaultRowHeight
   const nodeY = height / 2
@@ -75,20 +91,32 @@ export function CommitGraph({
       aria-hidden="true"
     >
       {row.continuations.map((path, index) =>
-        renderPath(path, 0, height, `continuation-${index}`)
+        isPathVisible(path, visibleLaneIds)
+          ? renderPath(path, 0, height, `continuation-${index}`)
+          : null
       )}
-      {row.hasTopLine ? (
-        <path d={`M ${nodeX} 0 L ${nodeX} ${nodeY}`} stroke={row.color} />
+      {row.hasTopLine &&
+      (visibleLaneIds === undefined || visibleLaneIds.has(row.laneId)) ? (
+        <path
+          d={`M ${nodeX} 0 L ${nodeX} ${nodeY}`}
+          stroke={row.color}
+          data-lane-id={row.laneId}
+        />
       ) : null}
       {row.connections.map((path, index) =>
-        renderPath(path, nodeY, height, `connection-${index}`)
+        isPathVisible(path, visibleLaneIds)
+          ? renderPath(path, nodeY, height, `connection-${index}`)
+          : null
       )}
-      <circle
-        cx={nodeX}
-        cy={nodeY}
-        r={CommitGraphNodeRadius}
-        fill={row.color}
-      />
+      {visibleLaneIds === undefined || visibleLaneIds.has(row.laneId) ? (
+        <circle
+          cx={nodeX}
+          cy={nodeY}
+          r={CommitGraphNodeRadius}
+          fill={row.color}
+          data-lane-id={row.laneId}
+        />
+      ) : null}
     </svg>
   )
 }
@@ -100,6 +128,8 @@ interface ICommitGraphViewportProps {
   readonly viewportHeight: number
   readonly firstRow: number
   readonly lastRow: number
+  /** Lanes to paint; omitted means the complete graph. Geometry is unchanged. */
+  readonly visibleLaneIds?: ReadonlySet<string>
 }
 
 function renderViewportPath(
@@ -121,6 +151,8 @@ function renderViewportPath(
       stroke={path.color}
       data-row={row}
       data-segment={segment}
+      data-from-lane-id={path.fromLaneId}
+      data-to-lane-id={path.toLaneId}
       data-start-y={startY}
       data-end-y={endY}
     />
@@ -139,6 +171,7 @@ export function CommitGraphViewport({
   viewportHeight,
   firstRow,
   lastRow,
+  visibleLaneIds,
 }: ICommitGraphViewportProps) {
   const width = (graph.maxColumn + 1) * CommitGraphColumnWidth
   const drawings = new Array<JSX.Element>()
@@ -155,6 +188,9 @@ export function CommitGraphViewport({
     const nodeX = xForColumn(row.column)
 
     row.continuations.forEach((path, index) => {
+      if (!isPathVisible(path, visibleLaneIds)) {
+        return
+      }
       drawings.push(
         renderViewportPath(
           path,
@@ -167,7 +203,10 @@ export function CommitGraphViewport({
       )
     })
 
-    if (row.hasTopLine) {
+    if (
+      row.hasTopLine &&
+      (visibleLaneIds === undefined || visibleLaneIds.has(row.laneId))
+    ) {
       drawings.push(
         <path
           key={`${rowIndex}-top`}
@@ -177,6 +216,7 @@ export function CommitGraphViewport({
           stroke={row.color}
           data-row={rowIndex}
           data-segment="top"
+          data-lane-id={row.laneId}
           data-start-y={rowTop - CommitGraphBoundaryOverlap}
           data-end-y={nodeY}
         />
@@ -184,6 +224,9 @@ export function CommitGraphViewport({
     }
 
     row.connections.forEach((path, index) => {
+      if (!isPathVisible(path, visibleLaneIds)) {
+        return
+      }
       drawings.push(
         renderViewportPath(
           path,
@@ -196,17 +239,20 @@ export function CommitGraphViewport({
       )
     })
 
-    drawings.push(
-      <circle
-        key={`${rowIndex}-node`}
-        cx={nodeX}
-        cy={nodeY}
-        r={CommitGraphNodeRadius}
-        fill={row.color}
-        data-row={rowIndex}
-        data-segment="node"
-      />
-    )
+    if (visibleLaneIds === undefined || visibleLaneIds.has(row.laneId)) {
+      drawings.push(
+        <circle
+          key={`${rowIndex}-node`}
+          cx={nodeX}
+          cy={nodeY}
+          r={CommitGraphNodeRadius}
+          fill={row.color}
+          data-row={rowIndex}
+          data-segment="node"
+          data-lane-id={row.laneId}
+        />
+      )
+    }
   }
 
   return (

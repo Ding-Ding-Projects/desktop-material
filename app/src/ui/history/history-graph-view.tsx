@@ -14,8 +14,11 @@ import { CommitGraphColumnWidth, CommitGraphViewport } from './commit-graph'
 import {
   buildCommitGraph,
   ICommitGraph,
+  ICommitGraphLaneControl,
+  ICommitGraphLaneVisibility,
   ICommitGraphRef,
   ICommitGraphRefLabel,
+  resolveCommitGraphLaneVisibility,
 } from './commit-graph-model'
 import {
   ICommitContextMenuProps,
@@ -29,6 +32,19 @@ import {
  */
 export const HistoryGraphRowHeight = 56
 const HistoryGraphViewportOverscan = 1
+
+/** A concise, unambiguous name for lane visibility controls. */
+export function describeLaneControl(control: ICommitGraphLaneControl): string {
+  if (control.kind === 'commit') {
+    return `commit ${control.name}`
+  }
+
+  if (control.isCurrent) {
+    return `current branch ${control.name}`
+  }
+
+  return `${control.kind} ${control.name}`
+}
 
 export interface IHistoryGraphViewport {
   readonly scrollTop: number
@@ -116,6 +132,8 @@ interface IHistoryGraphViewProps extends ICommitContextMenuProps {
 interface IHistoryGraphViewState {
   readonly scrollTop: number
   readonly clientHeight: number
+  readonly hiddenLaneControlIds: ReadonlySet<string>
+  readonly soloLaneControlId: string | null
 }
 
 /** A three-column Branch / Graph / Message view over the same commits. */
@@ -146,10 +164,20 @@ export class HistoryGraphView extends React.Component<
       return buildCommitGraph(commits, buildRefs(branches, currentBranch))
     }
   )
+  private laneVisibility = memoizeOne(
+    (
+      graph: ICommitGraph,
+      hiddenControlIds: ReadonlySet<string>,
+      soloControlId: string | null
+    ) =>
+      resolveCommitGraphLaneVisibility(graph, hiddenControlIds, soloControlId)
+  )
 
   public state: IHistoryGraphViewState = {
     scrollTop: this.props.compareListScrollTop ?? 0,
     clientHeight: 0,
+    hiddenLaneControlIds: new Set(),
+    soloLaneControlId: null,
   }
 
   public componentDidMount() {
@@ -194,6 +222,14 @@ export class HistoryGraphView extends React.Component<
   private getGraph() {
     const { commitSHAs, commitLookup, branches, currentBranch } = this.props
     return this.graph(commitSHAs, commitLookup, branches, currentBranch)
+  }
+
+  private getLaneVisibility(graph = this.getGraph()) {
+    return this.laneVisibility(
+      graph,
+      this.state.hiddenLaneControlIds,
+      this.state.soloLaneControlId
+    )
   }
 
   private rowForSHA(sha: string) {
@@ -258,6 +294,74 @@ export class HistoryGraphView extends React.Component<
     showCommitContextMenu(row, event, this.props)
   }
 
+  private getLaneControlFromEvent(
+    event: React.MouseEvent<HTMLButtonElement>
+  ): ICommitGraphLaneControl | undefined {
+    const controlId = event.currentTarget.dataset.laneControlId
+    return this.getGraph().laneControls.find(
+      control => control.id === controlId
+    )
+  }
+
+  private onToggleLaneHidden = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const control = this.getLaneControlFromEvent(event)
+    if (control === undefined) {
+      return
+    }
+
+    const graph = this.getGraph()
+    if (this.getLaneVisibility(graph).protectedLaneIds.has(control.laneId)) {
+      return
+    }
+
+    this.setState(state => {
+      const controlsForLane = graph.laneControls.filter(
+        candidate => candidate.laneId === control.laneId
+      )
+      const wasHidden = controlsForLane.some(candidate =>
+        state.hiddenLaneControlIds.has(candidate.id)
+      )
+      const hiddenLaneControlIds = new Set(state.hiddenLaneControlIds)
+
+      // Aliases such as a branch and tag on the same lane are one visual lane,
+      // so showing it through either control clears every alias for that lane.
+      for (const candidate of controlsForLane) {
+        hiddenLaneControlIds.delete(candidate.id)
+      }
+      if (!wasHidden) {
+        hiddenLaneControlIds.add(control.id)
+      }
+
+      return { hiddenLaneControlIds, soloLaneControlId: null }
+    })
+  }
+
+  private onToggleLaneSolo = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const control = this.getLaneControlFromEvent(event)
+    if (control === undefined) {
+      return
+    }
+
+    const graph = this.getGraph()
+    this.setState(state => {
+      const currentSoloLaneId = graph.laneControls.find(
+        candidate => candidate.id === state.soloLaneControlId
+      )?.laneId
+
+      return {
+        soloLaneControlId:
+          currentSoloLaneId === control.laneId ? null : control.id,
+      }
+    })
+  }
+
+  private onShowAllLanes = () => {
+    this.setState({
+      hiddenLaneControlIds: new Set(),
+      soloLaneControlId: null,
+    })
+  }
+
   private updateViewport(scrollTop: number, clientHeight: number) {
     if (
       scrollTop !== this.state.scrollTop ||
@@ -305,9 +409,14 @@ export class HistoryGraphView extends React.Component<
       return null
     }
 
+    const visibility = this.getLaneVisibility(graph)
+    const laneHidden = visibility.hiddenLaneIds.has(graphRow.laneId)
+
     return (
       <div
-        className="history-graph-row"
+        className={classNames('history-graph-row', {
+          'lane-hidden': laneHidden,
+        })}
         style={
           {
             '--history-graph-lane-color': graphRow.color,
@@ -315,7 +424,9 @@ export class HistoryGraphView extends React.Component<
         }
       >
         <div className="history-graph-cell history-graph-refs">
-          {graphRow.refs.map(ref => this.renderRefChip(ref))}
+          {graphRow.refs.map(ref =>
+            this.renderRefChip(ref, visibility.hiddenLaneIds.has(ref.laneId))
+          )}
         </div>
         <div
           className="history-graph-cell history-graph-lanes"
@@ -333,12 +444,13 @@ export class HistoryGraphView extends React.Component<
     )
   }
 
-  private renderRefChip(ref: ICommitGraphRefLabel) {
+  private renderRefChip(ref: ICommitGraphRefLabel, laneHidden: boolean) {
     return (
       <span
-        key={`${ref.kind}-${ref.name}`}
+        key={ref.refId}
         className={classNames('history-graph-ref-chip', ref.kind, {
           current: ref.isCurrent,
+          'lane-hidden': laneHidden,
         })}
         style={
           { '--history-graph-ref-color': ref.color } as React.CSSProperties
@@ -355,6 +467,102 @@ export class HistoryGraphView extends React.Component<
           {ref.name}
         </TooltippedContent>
       </span>
+    )
+  }
+
+  private renderLaneControls(
+    graph: ICommitGraph,
+    visibility: ICommitGraphLaneVisibility
+  ) {
+    const explicitlyHiddenLaneIds = new Set(
+      graph.laneControls
+        .filter(control => this.state.hiddenLaneControlIds.has(control.id))
+        .map(control => control.laneId)
+    )
+    const hasStoredFilter =
+      this.state.hiddenLaneControlIds.size > 0 ||
+      this.state.soloLaneControlId !== null
+    const protectionNoteId = 'history-graph-lane-protection-note'
+    const protectionNote =
+      this.props.currentBranch === null
+        ? 'The first displayed lane stays visible while HEAD is detached.'
+        : 'HEAD and the current branch always stay visible.'
+
+    return (
+      <div
+        className="history-graph-lane-controls"
+        role="group"
+        aria-label="Graph lane visibility"
+      >
+        <button
+          type="button"
+          className="history-graph-show-all-lanes"
+          onClick={this.onShowAllLanes}
+          disabled={!hasStoredFilter}
+        >
+          Show all
+        </button>
+        <span
+          id={protectionNoteId}
+          className="history-graph-lane-protection-note"
+        >
+          {protectionNote}
+        </span>
+        {graph.laneControls.map(control => {
+          const description = describeLaneControl(control)
+          const protectedLane = visibility.protectedLaneIds.has(control.laneId)
+          // Report effective visibility, not a suspended stored preference. A
+          // hidden lane that becomes current/HEAD is protected and visible.
+          const hidden =
+            explicitlyHiddenLaneIds.has(control.laneId) &&
+            visibility.hiddenLaneIds.has(control.laneId)
+          const soloed = visibility.soloLaneId === control.laneId
+
+          return (
+            <div
+              key={control.id}
+              className="history-graph-lane-control"
+              role="group"
+              aria-label={`${description} lane`}
+              data-lane-control-id={control.id}
+              data-lane-id={control.laneId}
+              style={
+                {
+                  '--history-graph-control-color': control.color,
+                } as React.CSSProperties
+              }
+            >
+              <span className="history-graph-lane-control-name">
+                {control.name} ·{' '}
+                {control.isCurrent ? 'current branch' : control.kind}
+              </span>
+              <button
+                type="button"
+                className="history-graph-lane-visibility-button"
+                aria-label={`Hide ${description} lane`}
+                aria-describedby={protectionNoteId}
+                aria-pressed={hidden}
+                aria-disabled={protectedLane}
+                data-lane-control-id={control.id}
+                onClick={this.onToggleLaneHidden}
+              >
+                Hide
+              </button>
+              <button
+                type="button"
+                className="history-graph-lane-visibility-button"
+                aria-label={`Solo ${description} lane`}
+                aria-describedby={protectionNoteId}
+                aria-pressed={soloed}
+                data-lane-control-id={control.id}
+                onClick={this.onToggleLaneSolo}
+              >
+                Solo
+              </button>
+            </div>
+          )
+        })}
+      </div>
     )
   }
 
@@ -379,7 +587,10 @@ export class HistoryGraphView extends React.Component<
     )
   }
 
-  private renderViewportGraph(graph: ICommitGraph) {
+  private renderViewportGraph(
+    graph: ICommitGraph,
+    visibility: ICommitGraphLaneVisibility
+  ) {
     const viewport = getHistoryGraphViewport(
       graph.rows.length,
       this.state.scrollTop,
@@ -413,6 +624,7 @@ export class HistoryGraphView extends React.Component<
             viewportHeight={viewport.height}
             firstRow={viewport.firstRenderedRow}
             lastRow={viewport.lastRenderedRow}
+            visibleLaneIds={visibility.visibleLaneIds}
           />
         </div>
         <div className="history-graph-cell history-graph-summary" />
@@ -436,10 +648,12 @@ export class HistoryGraphView extends React.Component<
       .filter(row => row !== -1)
 
     const graph = this.getGraph()
+    const visibility = this.getLaneVisibility(graph)
 
     return (
       <div id="history-graph-view">
         {this.renderHeader()}
+        {this.renderLaneControls(graph, visibility)}
         <div className="history-graph-body" ref={this.bodyRef}>
           <List
             ariaLabel="Commit graph"
@@ -460,10 +674,12 @@ export class HistoryGraphView extends React.Component<
               branches: this.props.branches,
               currentBranch: this.props.currentBranch,
               commitLookup: this.props.commitLookup,
+              hiddenLaneControlIds: this.state.hiddenLaneControlIds,
+              soloLaneControlId: this.state.soloLaneControlId,
             }}
             setScrollTop={this.props.compareListScrollTop}
           />
-          {this.renderViewportGraph(graph)}
+          {this.renderViewportGraph(graph, visibility)}
         </div>
       </div>
     )
@@ -480,14 +696,29 @@ export function buildRefs(
   branches: ReadonlyArray<Branch>,
   currentBranch: Branch | null
 ): ReadonlyArray<ICommitGraphRef> {
-  return branches
-    .filter(branch => !branch.isDesktopForkRemoteBranch)
-    .map(branch => ({
+  const seen = new Set<string>()
+  const refs = new Array<ICommitGraphRef>()
+
+  // Compare's branch picker omits the checked-out branch. Put it back into the
+  // graph's ref inventory so All refs and detached ordering do not confuse a
+  // merely newest row with attached HEAD.
+  const graphBranches =
+    currentBranch === null ? branches : [currentBranch, ...branches]
+  for (const branch of graphBranches) {
+    if (branch.isDesktopForkRemoteBranch || seen.has(branch.ref)) {
+      continue
+    }
+    seen.add(branch.ref)
+    refs.push({
+      refId: `branch:${branch.ref}`,
       name: branch.name,
       sha: branch.tip.sha,
-      kind: 'branch' as const,
-      isCurrent: currentBranch !== null && branch.name === currentBranch.name,
-    }))
+      kind: 'branch',
+      isCurrent: currentBranch !== null && branch.ref === currentBranch.ref,
+    })
+  }
+
+  return refs
 }
 
 /** The spoken form of a chip, which also serves as its hover tooltip. */

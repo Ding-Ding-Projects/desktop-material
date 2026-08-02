@@ -90,6 +90,97 @@
     }
   }
 
+  .history-graph-lane-controls {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: var(--spacing-half);
+    min-height: 48px;
+    box-sizing: border-box;
+    padding: var(--spacing-half) var(--spacing);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-gutter: stable;
+    border-bottom: var(--base-border);
+    background: var(--md-sys-color-surface-container-lowest);
+    color: var(--md-sys-color-on-surface);
+  }
+
+  .history-graph-lane-control {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 4px;
+    min-width: max-content;
+    min-height: 40px;
+    padding: 3px;
+    box-sizing: border-box;
+    border: 1px solid var(--history-graph-control-color);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--history-graph-control-color) 10%, var(--md-sys-color-surface));
+  }
+
+  .history-graph-lane-control-name,
+  .history-graph-lane-protection-note {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-size: var(--font-size-sm);
+  }
+
+  .history-graph-lane-control-name {
+    padding-left: 8px;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .history-graph-lane-protection-note {
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  .history-graph-show-all-lanes,
+  .history-graph-lane-visibility-button {
+    flex: 0 0 auto;
+    min-width: 48px;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 999px;
+    background: var(--md-sys-color-surface-container);
+    color: var(--md-sys-color-on-surface);
+    font: inherit;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+
+    &[aria-pressed='true'] {
+      border-color: var(--md-sys-color-primary);
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+      font-weight: var(--font-weight-semibold);
+    }
+
+    &[aria-disabled='true'] {
+      cursor: not-allowed;
+      border-color: var(--md-sys-color-outline-variant);
+      background: var(--md-sys-color-surface-container-low);
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+  }
+
+  .history-graph-show-all-lanes {
+    min-width: max-content;
+  }
+
   .history-graph-body {
     display: flex;
     flex-direction: column;
@@ -122,6 +213,10 @@
       // The lane colour tints the whole row so one branch reads as a single
       // horizontal band down the view.
       background: color-mix(in srgb, var(--history-graph-lane-color) 7%, transparent);
+
+      &.lane-hidden {
+        background: transparent;
+      }
     }
   }
 
@@ -186,6 +281,11 @@
       border-style: dashed;
     }
 
+    &.lane-hidden {
+      opacity: 0.55;
+      text-decoration: line-through;
+    }
+
     .ref-chip-check {
       flex: 0 0 auto;
       width: 12px;
@@ -221,7 +321,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   #history-graph-view .list-item,
-  #history-graph-view .history-graph-row {
+  #history-graph-view .history-graph-row,
+  #history-graph-view .history-graph-show-all-lanes,
+  #history-graph-view .history-graph-lane-visibility-button {
     transition: none;
   }
 }
