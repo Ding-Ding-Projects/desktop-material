@@ -914,8 +914,7 @@ export class VersionedStoreHistory extends React.Component<
           <button
             type="button"
             className="versioned-store-history-entry-select"
-            role="option"
-            aria-selected={selected}
+            aria-pressed={selected}
             // eslint-disable-next-line react/jsx-no-bind
             onClick={() => this.selectEntry(entry.sha)}
           >
@@ -1013,7 +1012,10 @@ export class VersionedStoreHistory extends React.Component<
             <span>{this.strings.noMatchesDescription}</span>
           </div>
         ) : (
-          <ol className="versioned-store-history-list" role="listbox">
+          <ol
+            className="versioned-store-history-list"
+            aria-label={this.props.timelineLabel}
+          >
             {result.entries.map(entry =>
               this.renderEntry(entry, indexBySha.get(entry.sha) ?? -1)
             )}

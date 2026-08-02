@@ -127,7 +127,12 @@ describe('versioned store history', () => {
 
     const view = render(panel(first, 'alpha'))
     await waitFor(() =>
-      assert.ok(screen.getByRole('option', { name: /Alpha element change/i }))
+      assert.ok(
+        screen.getByRole('button', {
+          name: /Alpha element change/i,
+          pressed: true,
+        })
+      )
     )
 
     view.rerender(panel(second, 'beta'))
@@ -135,10 +140,18 @@ describe('versioned store history', () => {
     // The previous repository's commits cannot remain in a timeline that now
     // describes a different repository.
     await waitFor(() =>
-      assert.ok(screen.getByRole('option', { name: /Beta element change/i }))
+      assert.ok(
+        screen.getByRole('button', {
+          name: /Beta element change/i,
+          pressed: true,
+        })
+      )
     )
     assert.equal(
-      screen.queryByRole('option', { name: /Alpha element change/i }),
+      screen.queryByRole('button', {
+        name: /Alpha element change/i,
+        pressed: true,
+      }),
       null
     )
     assert.deepStrictEqual(requestedSkips, [0, 0])
@@ -179,18 +192,31 @@ describe('versioned store history', () => {
     )
 
     await waitFor(() =>
-      assert.ok(screen.getByRole('option', { name: /Third snapshot/i }))
+      assert.ok(
+        screen.getByRole('button', {
+          name: /Third snapshot/i,
+          pressed: true,
+        })
+      )
     )
     fireEvent.click(screen.getByRole('button', { name: 'Load more' }))
     await waitFor(() =>
-      assert.ok(screen.getByRole('option', { name: /First snapshot/i }))
+      assert.ok(
+        screen.getByRole('button', {
+          name: /First snapshot/i,
+          pressed: false,
+        })
+      )
     )
 
     // Two entries were read even though one was dropped as a repeat, so the
     // next page has to skip two — otherwise the same window is fetched forever.
     assert.deepStrictEqual(requestedSkips, [0, 2])
     assert.equal(
-      screen.getAllByRole('option', { name: /Second snapshot/i }).length,
+      screen.getAllByRole('button', {
+        name: /Second snapshot/i,
+        pressed: false,
+      }).length,
       1
     )
   })
@@ -235,7 +261,13 @@ describe('versioned store history', () => {
     await waitFor(() =>
       assert.ok(screen.getByText('0 of 2 loaded commits match'))
     )
-    assert.equal(screen.queryByRole('option', { name: /Changed theme/i }), null)
+    assert.equal(
+      screen.queryByRole('button', {
+        name: /Changed theme/i,
+        pressed: true,
+      }),
+      null
+    )
 
     // …and the field no longer offers a search it cannot perform.
     assert.equal(
@@ -383,10 +415,77 @@ describe('versioned store history', () => {
     await waitFor(() => assert.deepEqual(requestedFiles, [first.sha]))
     assert.equal(screen.getAllByText('Select to inspect').length, 2)
 
-    fireEvent.click(screen.getByRole('option', { name: /Second snapshot/i }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /Second snapshot/i,
+        pressed: false,
+      })
+    )
     await waitFor(() =>
       assert.deepEqual(requestedFiles, [first.sha, second.sha])
     )
+  })
+
+  it('uses list and toggle-button semantics for the selectable timeline', async () => {
+    const first = historyEntry('11111111', 'First snapshot')
+    const second = historyEntry('22222222', 'Second snapshot')
+    const source: IVersionedStoreHistorySource = {
+      getHistory: () => Promise.resolve(historyPage([first, second], false)),
+      getFiles: () => Promise.resolve([]),
+      getDiff: () => Promise.resolve(''),
+      undoLastChange: () => Promise.resolve(),
+      redoLastChange: () => Promise.resolve(),
+      restoreTo: () => Promise.resolve(),
+    }
+
+    const view = render(
+      <VersionedStoreHistory
+        title="Settings history"
+        timelineLabel="Settings timeline"
+        description="Test history"
+        source={source}
+        onDismissed={() => {}}
+      />
+    )
+
+    const timeline = await waitFor(() =>
+      screen.getByRole('list', { name: 'Settings timeline' })
+    )
+
+    assert.equal(screen.queryByRole('listbox'), null)
+    assert.equal(view.container.querySelector('[role="option"]'), null)
+    assert.equal(timeline.tagName, 'OL')
+    assert.equal(timeline.children.length, 2)
+    assert.ok(Array.from(timeline.children).every(row => row.tagName === 'LI'))
+    assert.ok(
+      screen.getByRole('button', {
+        name: /First snapshot/i,
+        pressed: true,
+      })
+    )
+    const secondSelection = screen.getByRole('button', {
+      name: /Second snapshot/i,
+      pressed: false,
+    })
+    assert.ok(screen.getByRole('button', { name: 'Restore First snapshot' }))
+    assert.ok(screen.getByRole('button', { name: 'Restore Second snapshot' }))
+
+    fireEvent.click(secondSelection)
+
+    await waitFor(() => {
+      assert.ok(
+        screen.getByRole('button', {
+          name: /First snapshot/i,
+          pressed: false,
+        })
+      )
+      assert.ok(
+        screen.getByRole('button', {
+          name: /Second snapshot/i,
+          pressed: true,
+        })
+      )
+    })
   })
 
   it('hides undo, redo, and restore in read-only mode', async () => {
@@ -412,7 +511,12 @@ describe('versioned store history', () => {
     )
 
     await waitFor(() =>
-      assert.ok(screen.getByRole('option', { name: /Snapshot/i }))
+      assert.ok(
+        screen.getByRole('button', {
+          name: /Snapshot/i,
+          pressed: true,
+        })
+      )
     )
     assert.equal(screen.queryByRole('button', { name: 'Undo' }), null)
     assert.equal(screen.queryByRole('button', { name: 'Redo' }), null)
@@ -449,18 +553,29 @@ describe('versioned store history', () => {
     )
 
     await waitFor(() =>
-      assert.ok(screen.getByRole('option', { name: /Changed theme/i }))
+      assert.ok(
+        screen.getByRole('button', {
+          name: /Changed theme/i,
+          pressed: true,
+        })
+      )
     )
     fireEvent.change(screen.getByLabelText('Search version history'), {
       target: { value: 'notification' },
     })
     await waitFor(() => {
       assert.equal(
-        screen.queryByRole('option', { name: /Changed theme/i }),
+        screen.queryByRole('button', {
+          name: /Changed theme/i,
+          pressed: true,
+        }),
         null
       )
       assert.ok(
-        screen.getByRole('option', { name: /Marked notification read/i })
+        screen.getByRole('button', {
+          name: /Marked notification read/i,
+          pressed: false,
+        })
       )
     })
 
@@ -470,7 +585,12 @@ describe('versioned store history', () => {
       target: { value: '^Restored' },
     })
     await waitFor(() =>
-      assert.ok(screen.getByRole('option', { name: /Restored settings/i }))
+      assert.ok(
+        screen.getByRole('button', {
+          name: /Restored settings/i,
+          pressed: false,
+        })
+      )
     )
   })
 
@@ -499,7 +619,12 @@ describe('versioned store history', () => {
     )
 
     await waitFor(() =>
-      assert.ok(screen.getByRole('option', { name: /Snapshot/i }))
+      assert.ok(
+        screen.getByRole('button', {
+          name: /Snapshot/i,
+          pressed: true,
+        })
+      )
     )
     assert.ok(screen.getByLabelText(/Filter mode: Fuzzy/))
     assert.ok(screen.getByLabelText('Match case'))
@@ -537,10 +662,16 @@ describe('versioned store history', () => {
     })
     await waitFor(() => {
       assert.ok(
-        screen.getByRole('option', { name: /Marked notification read/i })
+        screen.getByRole('button', {
+          name: /Marked notification read/i,
+          pressed: false,
+        })
       )
       assert.equal(
-        screen.queryByRole('option', { name: /Changed theme/i }),
+        screen.queryByRole('button', {
+          name: /Changed theme/i,
+          pressed: true,
+        }),
         null
       )
     })
