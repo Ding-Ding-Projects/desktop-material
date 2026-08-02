@@ -1,5 +1,79 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-02 — Internal browser: page search half-built, three features not started
+
+**Read this before touching `app/src/internal-browser/`.** The main-process half
+of page search is on `main` and working; the renderer half does not exist yet, so
+the feature is currently reachable by nothing. Four commits landed, three
+requested features were not started.
+
+### Landed
+
+| Commit | What |
+| --- | --- |
+| [`af9b60b787`](https://github.com/Ding-Ding-Projects/desktop-material/commit/af9b60b787) | Four real defects fixed (below) |
+| [`abee1ad199`](https://github.com/Ding-Ding-Projects/desktop-material/commit/abee1ad199) | Page-search plumbing: commands, main-process handlers, IPC back-channels |
+
+The four defects, each found by reading rather than from a report:
+
+1. **An IPC message per keystroke.** `componentDidUpdate` re-measured the content
+   viewport on every state change, and typing in the address bar is one state
+   change per character — each cancelling a frame, rescheduling a 120 ms timer,
+   and sending the native view an identical rectangle. Now gated on
+   `chromeLayoutKey`, which changes only when the chrome's height can.
+2. **A `tablist` with no panel and non-tabs inside it.** Wrapper `div`s sat
+   between the tablist and its tabs, the new-tab button was a non-tab child, and
+   nothing declared itself the panel. Wrappers are `role="presentation"`, the
+   button moved out, the viewport is the panel, and a `sr-only` line explains the
+   panel is empty because a separate native view draws the page.
+3. **The window was called "Browser" forever** — several browser windows were
+   indistinguishable in the taskbar. It now names the active tab.
+4. **A null check that missed.** `tab?.url === null` is false when there is no
+   tab (undefined is not null), so it validated an empty string every render.
+
+### The security decision, stated plainly
+
+Page search in regular-expression mode **runs a script inside the page**. This is
+the first time this browser has ever done so, it was an explicit user decision
+after the constraint was raised, and it happens on every regex search on every
+site. It is built as tightly as the platform allows:
+
+- an **isolated world** (`PageTextReadWorldId = 1010`), so page scripts can
+  neither observe the read nor replace the globals it uses;
+- it reads `innerText` only, truncates to `MaximumPageTextLength` (2 MB), and
+  returns — defining nothing, storing nothing, mutating nothing;
+- **the pattern never enters the page.** It is evaluated in the trusted renderer
+  under the existing RE2 bounds, so a hostile page never learns what is being
+  searched for and a pathological pattern cannot hang it.
+
+A successor changing any of this should treat it as a security boundary, not an
+implementation detail.
+
+### Known limitation, by design
+
+**Regex mode cannot highlight or scroll to matches in the page.** Doing that
+means mutating the page's DOM, which is a far larger boundary than reading text.
+Plain mode gets real in-page highlighting from Chromium's `findInPage`; regex
+mode gets a match count and a results list with surrounding context
+(`findMatchContext` builds the window). This must be documented in the UI, not
+left to look like a bug.
+
+### Not started
+
+| Feature | Notes for whoever picks it up |
+| --- | --- |
+| **Find bar UI** | The only missing piece of page search. Renderer must listen to `internal-browser-find` (`{tabId, total, active}`) and `internal-browser-page-text` (`{tabId, text, truncated}`), and send `find-in-page` / `stop-find-in-page` / `read-page-text`. The anchored regex builder lives at `app/src/ui/lib/regex-builder/`; RE2 evaluation and every bound are in `app/src/lib/safe-regex.ts`. Plain text stays the default with regex an explicit opt-in. |
+| **Funny-level sliders** | It reads `languageMode` and uses `t()` for 37 strings but never consults `readFunnyLevels()`, so its copy ignores a setting the rest of the app honours. Pattern to copy: `app/src/lib/dim-sum-copy.ts`. |
+| **Non-blocking notifications** | It has no toast surface; the error notice is `role="alert"` `aria-live="assertive"` in the header, which interrupts and shifts layout. |
+| **Dim sum surprise** | The browser is a separate renderer entry point and takes no part in the 10% draw. Model, copy and card all exist — see `app/src/models/dim-sum.ts` and `app/src/ui/dim-sum/`. Needs its own suppression rules (an authentication tab is mid-task and must not be interrupted). |
+
+### Verification state
+
+`tsc --noEmit` clean, Prettier and ESLint clean, SCSS compiles. **No new tests
+were written for the page-search plumbing** — `findMatchContext` and the command
+model are pure and should get them. The renderer half being absent means nothing
+exercises the new IPC end to end yet.
+
 ## 2026-08-01 — The dim sum surprise reaches the app
 
 The website has served a dim sum dish on one visit in ten since

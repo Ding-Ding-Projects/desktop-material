@@ -1,6 +1,34 @@
 # Desktop Material roadmap
 
-Updated: **August 1, 2026**
+Updated: **August 2, 2026**
+
+## August 2 internal browser — **Defects fixed; page search half-built; three features not started**
+
+- Four real defects fixed: an IPC message per address-bar keystroke, a
+  `tablist` with no panel and non-tabs inside it, a window title that never
+  named the page, and a null check that missed `undefined`.
+- Page search: the main-process half is done (plain search via Chromium's
+  `findInPage`; pattern search by reading page text in an isolated world and
+  evaluating RE2 outside the page). **The renderer find bar does not exist, so
+  the feature is reachable by nothing yet.**
+- Regex mode deliberately cannot highlight in-page matches — that needs DOM
+  mutation. Plain mode highlights; regex mode lists matches with context.
+- Running any script inside a page is new for this browser and was an explicit
+  decision. See `HANDOFF.md` for the boundary it keeps.
+- Not started: the find bar UI, funny-level sliders, non-blocking
+  notifications, and the dim sum surprise in the browser window.
+
+## August 1 line counts move into releases — **Implemented and dewed**
+
+- Every release now carries its own line count, measured by CI over the exact
+  commit it was built from, via the committed `script/count-lines.mjs`.
+- The count is broken down by area, gives both a project total and a grand
+  total, names its exclusions, and separates generated from hand-written.
+- It also reports how many lines agents wrote versus people, attributed per
+  surviving line with `git blame` rather than by summing added lines.
+- `agent-global-memory` got the same treatment, and deliberately does **not**
+  publish an agent share: 718 of its 750 commits are authored under the owner's
+  identity with no agent trailer, so the figure would be precisely wrong.
 
 ## August 1 dim sum surprise in the app — **Implemented and locally verified**
 
