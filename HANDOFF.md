@@ -1,5 +1,61 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-02 — Fleet bug hunt: six readers, ten fixes so far, more in flight
+
+Six read-only agents were pointed at disjoint areas of the desktop app — the
+internal browser, appearance and tabs, the regex builder and every search
+surface, localization/changelog/dim-sum, main-process and IPC, and the local
+version history plus notifications. Between them they reported around thirty
+candidate defects. Each one below was re-read against the code before it was
+touched, and each fix carries a test that fails against the old code.
+
+**The branch did not typecheck when this started.** `tsc --noEmit` failed on two
+`ipcWebContents.send` calls in `internal-browser-window.ts`, so the previous
+handoff's claim of a clean typecheck was wrong. That was the first thing fixed.
+
+### Landed
+
+| Commit | What was wrong |
+| --- | --- |
+| [`2714c53345`](https://github.com/Ding-Ding-Projects/desktop-material/commit/2714c53345) | `internal-browser-find` / `internal-browser-page-text` were sent but never declared in `RequestChannels` — the branch failed `tsc`. Both now carry named payload types and appear in the IPC contract test. |
+| [`1dbeca53ff`](https://github.com/Ding-Ding-Projects/desktop-material/commit/1dbeca53ff) | Pinned tabs went into the overflow dropdown whenever the active tab sat past the leading run. The layout now takes `pinnedCount` and lays the pinned run out first. |
+| [`cb29c34dbc`](https://github.com/Ding-Ding-Projects/desktop-material/commit/cb29c34dbc) | Notification dedupe matched on kind/title/body only, so repository A's failure and repository B's collapsed into one row pointing at B. `accountKey` and `repositoryId` now take part, and the coalesced entry no longer inherits fields the new notification omitted. |
+| [`dff4f9c9fb`](https://github.com/Ding-Ding-Projects/desktop-material/commit/dff4f9c9fb) | 24 keys existed only in English, so Cantonese mode rendered the submodule Create-remote tab in English and bilingual mode rendered it twice. Both catalogs are now asserted key-for-key and placeholder-for-placeholder. Two mojibake ellipses repaired. |
+| [`ae4ba15421`](https://github.com/Ding-Ding-Projects/desktop-material/commit/ae4ba15421) | `safeSimplexListener` caught rejections and not synchronous throws, so one malformed `update-accounts` payload reached `uncaughtException` and destroyed every window. |
+| [`19940edffb`](https://github.com/Ding-Ding-Projects/desktop-material/commit/19940edffb) | Filter surfaces trimmed the query and then searched with the trimmed string: the regex ` +` became the uncompilable `+`, and a substring with a deliberate trailing space matched text without it. |
+| [`4d9e6216e3`](https://github.com/Ding-Ding-Projects/desktop-material/commit/4d9e6216e3) | `FilterList` and `AugmentedSectionFilterList` computed `regexError` and rendered only a red border, so an invalid pattern listed every item with nothing announced. They now render the same `role="alert"` message `SectionFilterList` already had. |
+| [`3df847fcfa`](https://github.com/Ding-Ding-Projects/desktop-material/commit/3df847fcfa) | A profile restore that deletes a state file unlinked only the primary, leaving the git-ignored crash-safe backup; the next read recovered from it and resurrected the file. Now uses `clearCrashSafeFile`. |
+| [`abb255cbd8`](https://github.com/Ding-Ding-Projects/desktop-material/commit/abb255cbd8) | Silent install judged the release asset's *name* and spawned whatever was at the supplied *path*, with nothing requiring them to match. The review now compares the path's base name too. |
+| [`e4595bc179`](https://github.com/Ding-Ding-Projects/desktop-material/commit/e4595bc179) | `normalizeInternalBrowserCommand` never learned the three page-search commands, so every find request was dropped at the IPC boundary before reaching its handler. The feature could not have worked. |
+
+### Still open from the hunt
+
+Reported, verified by reading, and not yet fixed at the time of writing:
+
+- The two bulk-close tab actions do not negate the same predicate — mode, case
+  and match-key scope all drift between "containing" and "not containing".
+- The destructive bulk close defaults to fuzzy subsequence matching over the
+  full absolute path, and `match()` only filters on the first two keys.
+- The tab strip has no arrow-key roving focus, so only the active tab is
+  keyboard reachable, and `role="tablist"` sits on a container holding seven
+  non-tab controls.
+- The tab colour picker truncates any stored 8-digit or 3-digit hex to opaque
+  6-digit, losing alpha without warning.
+- Three tab surfaces (close-tabs, tab style editor, arrange) are hard-coded
+  English while their siblings are fully localized.
+- The date-range picker rewrites the field under the caret while typing and can
+  swap a half-typed value into the other end of the range.
+- The dim-sum card cancels its auto-dismiss timer on focus and never restarts
+  it; the changelog copy action has no `catch`.
+- Notification and log history mutations run without the profile repository
+  lock; history reads walk the whole repository twice, unbounded.
+- `QuickActionWindow` treats any `did-fail-load` as fatal and fires its fallback
+  twice; `notificationWindowOwners` grows without bound.
+- Several internal-browser defects: the external-open button renders empty below
+  840 px, a 21 px dead band above every page, the address bar snaps back on
+  Enter, auth tabs never show an error, tab renderers leak on window close, and
+  focus rings are clipped by the tab and bookmark scrollers.
+
 ## 2026-08-02 — Internal browser: page search half-built, three features not started
 
 **Read this before touching `app/src/internal-browser/`.** The main-process half
