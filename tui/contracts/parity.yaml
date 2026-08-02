@@ -4,9 +4,9 @@
   "generator": "tui/tools/generate-parity-contract.mjs",
   "source": {
     "path": "docs/readme-tabs/complete-feature-list.md",
-    "sha256": "0bfb908eafb59cff05ad1505a21f1656ccfeed16ad9d337419b72f5bc5f862f4",
-    "declared_feature_count": 201,
-    "parsed_feature_count": 201,
+    "sha256": "423ba80e7cbc71f747d7335e657b0b2d798828a391563ae13e1a3eadfedf01ec",
+    "declared_feature_count": 202,
+    "parsed_feature_count": 202,
     "section_count": 17
   },
   "semantics": {
@@ -17,7 +17,7 @@
   },
   "status_summary": {
     "adapted": 14,
-    "not_yet_available": 132,
+    "not_yet_available": 133,
     "partial": 53,
     "terminal_owned": 2
   },
@@ -315,6 +315,17 @@
       "title": "Repository-themed music",
       "upstream_relation": "added",
       "desktop_documentation": "../features/design-system/repository-theme-music.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "2-the-dim-sum-surprise",
+      "section": 2,
+      "section_title": "Language, tone, and audio",
+      "title": "The dim sum surprise",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/design-system/dim-sum-surprise.md",
       "tui_status": "not_yet_available",
       "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
       "evidence": []

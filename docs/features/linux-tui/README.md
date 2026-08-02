@@ -36,7 +36,7 @@ slice:
   accessibility, and search preferences through XDG paths;
 - retain reviewable notifications and isolated Git-backed settings history.
 
-This was not complete parity with the 201-row desktop inventory. The
+This was not complete parity with the 202-row desktop inventory. The
 generated [parity contract](../../../tui/contracts/parity.yaml) defaults every
 unmapped row to `not_yet_available`; its current summary is 14 adapted, 53
 partial, 132 not yet available, and 2 terminal-owned capabilities. The contract
