@@ -118,10 +118,3 @@ export function buildAgentSessionFleet(
     .map(session => ({ session, chip: deriveAgentSessionChip(session) }))
     .sort(compareSessions)
 }
-
-/** The header count — every worktree, not only the ones running an agent. */
-export function getAgentFleetCount(
-  sessions: ReadonlyArray<IAgentSession>
-): number {
-  return sessions.length
-}

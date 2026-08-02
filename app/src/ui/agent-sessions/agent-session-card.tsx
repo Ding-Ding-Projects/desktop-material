@@ -4,6 +4,7 @@ import classNames from 'classnames'
 import { IAgentSession } from '../../models/agent-session'
 import { IAgentSessionRow } from '../../lib/agent-sessions'
 import { MaterialSymbol } from '../lib/material-symbol'
+import { TooltippedContent } from '../lib/tooltipped-content'
 import { AgentSessionChip } from './agent-session-chip'
 
 interface IAgentSessionCardProps {
@@ -75,7 +76,6 @@ export class AgentSessionCard extends React.Component<IAgentSessionCardProps> {
           tabIndex={isTabbable ? 0 : -1}
           onClick={this.onClick}
           onKeyDown={this.onKeyDown}
-          title={session.path}
         >
           <MaterialSymbol
             className="agent-session-card-icon"
@@ -83,13 +83,23 @@ export class AgentSessionCard extends React.Component<IAgentSessionCardProps> {
             size={18}
           />
           <span className="agent-session-card-text">
-            <span className="agent-session-card-name">{session.name}</span>
-            <span className="agent-session-card-branch">
+            <TooltippedContent
+              className="agent-session-card-name"
+              tooltip={session.path}
+              onlyWhenOverflowed={true}
+            >
+              {session.name}
+            </TooltippedContent>
+            <TooltippedContent
+              className="agent-session-card-branch"
+              tooltip={branch}
+              onlyWhenOverflowed={true}
+            >
               <span className="sr-only">
                 {session.branch === null ? 'detached at ' : 'on branch '}
               </span>
               {branch}
-            </span>
+            </TooltippedContent>
           </span>
           {this.renderState()}
           <AgentSessionChip chip={chip} />

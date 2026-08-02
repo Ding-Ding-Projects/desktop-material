@@ -1,5 +1,70 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-02 — Session close: 51 commits, all on `main`
+
+**Start here.** Everything below is dewed; `origin/main` contains all of it and
+no worktree holds uncommitted work.
+
+### What landed
+
+- **23 defects fixed** across the desktop app, each with a test that fails
+  without the fix. The branch did not typecheck when the session started.
+- **All nine Dependabot branches merged**, with **four bumps held back** because
+  they genuinely break the build — `tsx` 4.23.1 (stops all 930 test files
+  loading), `@types/request` 2.48.13 (fails `postinstall`),
+  `@github/copilot-sdk` 1.0.8 (ships `.d.ts` naming four types it never
+  declares), `@types/react-virtualized` 9.22.3 (removes `Grid.propTypes`).
+- **Repository selection in Commit & push all**, with a search bar on the regex
+  builder whose bulk actions never reach past the filter.
+- **The history graph view** — finished, toggled from the Filters row.
+- **The Agents panel** — pure logic and components complete and tested, **not
+  mounted**.
+- **18 issues, #118–#135**, one per roadmap item, linked from `ROADMAP.md`, with
+  the build order and its reasoning in `PLAN.md`.
+
+Full suite: **7,670 tests pass** across 930 files. `tsc --noEmit` clean.
+
+### The next concrete step: mount the Agents panel
+
+It is built and green but reachable from nothing. `app/src/ui/agent-sessions/`
+exports `AgentSessionsPanel` with `IAgentSessionsPanelProps`:
+
+```
+sessions, availability, baseBranches, defaultBaseBranch, existingBranchNames,
+selectedPath, onSelectSession, onCreateSession, isCreating,
+onConfigureSetupCommands?
+```
+
+plus `startAgentSessionRun` / `cancelAgentSessionRun` /
+`detectAgentRunnerAvailability` from `agent-runner-bridge`.
+
+Mounting means adding a `List` / `Agents` tab beside the repository list and
+feeding `sessions` from real worktree state — `app/src/lib/git/worktree.ts` — so
+the fleet chips show live status rather than the shapes the tests supply. **The
+agent that built the panel had not filed its own mounting note when this was
+written**, so read `agent-sessions-panel.tsx` before wiring rather than trusting
+this paragraph to be complete.
+
+### Two things found but deliberately not fixed
+
+- **The palette audit is done and unapplied.** 108 concrete additions across
+  both halves; 55 need only a `palette:*` case. Two shipped rows are wrong:
+  `palette:tag-lifecycle` lands on Status summary rather than Tag lifecycle, and
+  three signing rows teleport to an anchor no element in `app/src` renders.
+  Structural finding: the catalog already holds **all 68 non-test menu events**,
+  so there is no cheap addition left — the palette has exhausted the menu.
+- **Right-clicking a graph row does nothing.** The per-commit menu lives in
+  `commit-list.tsx`; wiring it into the graph view is R8 (#125).
+
+### Still open from the bug hunt
+
+Three tab surfaces and the Commit & push all dialog are hard-coded English; the
+profile history page read is unbounded; the version-history timeline is a
+`listbox` whose options are not its children; the overflow button sits inside
+the tablist; the regex block model is dead code emitting constructs RE2 rejects;
+compact density starts the browser view 14 px low.
+
+
 ## 2026-08-02 — REQUESTED FEATURES, recorded before they are built
 
 **Read this first.** These were asked for in one session, from screenshots of

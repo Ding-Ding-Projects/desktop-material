@@ -2,8 +2,10 @@
 // worktree) at once, plus the session creator.
 //
 // Registered in `_ui.scss`. Every colour comes from an --md-sys-color-* token
-// and every duration is scaled by --mdur, so the panel follows the app theme
-// and the reduced-motion setting without a second implementation.
+// and every duration is scaled by the shared --mdur motion multiplier. That
+// multiplier does not currently track the OS reduced-motion setting, so the
+// two transitions here are also switched off explicitly at the foot of the
+// file rather than assuming a token will do it.
 
 .agent-sessions-panel {
   display: flex;
@@ -270,4 +272,11 @@
 .new-agent-session-start {
   background: var(--md-sys-color-primary);
   color: var(--md-sys-color-on-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-session-card,
+  .new-agent-session-options-chevron {
+    transition: none;
+  }
 }
