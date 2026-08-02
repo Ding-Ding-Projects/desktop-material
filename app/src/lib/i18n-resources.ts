@@ -3498,9 +3498,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Repository descriptions must be 350 characters or fewer.',
   'submodule.addRemoteDescriptionCharactersError':
     'The repository description contains unsupported control characters.',
-  'submodule.addCreatingRemoteProgress': 'Creating the remote repositoryâ€¦',
+  'submodule.addCreatingRemoteProgress': 'Creating the remote repository…',
   'submodule.addRemoteCreatedProgress':
-    'Remote created. Adding it as a submoduleâ€¦',
+    'Remote created. Adding it as a submodule…',
   'submodule.addRemoteCreatedButAddFailed':
     'The remote repository was created at {repository}, but Desktop could not add it as a submodule: {error}. Retry to use the existing remote.',
   'submodule.addRemoteCreateFailed':
@@ -7403,6 +7403,39 @@ export const cantoneseTranslations: Readonly<
   'submodule.addProviderAccountAction': '新增供應商帳戶',
   'submodule.addProviderSignInGuidance':
     '去「設定」新增 GitLab 或 Bitbucket 帳戶，就可以瀏覽佢嘅 repo。',
+  'submodule.addCreateRemoteTab': '開新遠端',
+  'submodule.addCreateAndAddAction': '開埋加埋做子模組',
+  'submodule.addCreateRemoteSignInGuidance':
+    '登入 GitHub.com 或者 GitHub Enterprise，先可以幫今次子模組開個遠端 repo。',
+  'submodule.addRemoteCreatedHeading': '遠端 repo 開好咗',
+  'submodule.addRemoteCreatedRetryHelp':
+    '遠端已經準備好。撳「再試一次」就會用返現成嗰個，唔會再開多個。',
+  'submodule.addRemoteOwnerLabel': '擁有者',
+  'submodule.addRemoteNameLabel': 'Repo 名',
+  'submodule.addRemoteDescriptionLabel': '描述（可以唔填）',
+  'submodule.addRemotePrivateLabel': '將呢個 repo 設做私人',
+  'submodule.addRemoteNameHelp': '填清楚要喺揀咗嘅 GitHub 主機開嘅名。',
+  'submodule.addRemoteDescriptionHelp': '幫新遠端 repo 寫句簡短描述。',
+  'submodule.addRemoteInitializeHelp':
+    'Desktop 會幫遠端整個第一個 commit，Git 先可以即刻當佢係子模組咁追蹤。',
+  'submodule.addRemoteAccountRequiredError':
+    '開遠端 repo 之前，要先揀一個已經登入嘅 GitHub 帳戶。',
+  'submodule.addRemoteOwnerUnavailableError':
+    '揀咗嘅組織已經唔屬於呢個帳戶。請再揀過擁有者。',
+  'submodule.addRemoteNameRequiredError': '請幫新遠端 repo 改個名。',
+  'submodule.addRemoteNameLengthError': 'Repo 名最多 100 個字元。',
+  'submodule.addRemoteNameCharactersError':
+    'Repo 名淨係可以用英文字母、數字、句號、連字號同底線。',
+  'submodule.addRemoteDescriptionLengthError': 'Repo 描述最多 350 個字元。',
+  'submodule.addRemoteDescriptionCharactersError':
+    'Repo 描述入面有唔支援嘅控制字元。',
+  'submodule.addCreatingRemoteProgress': '開緊遠端 repo…',
+  'submodule.addRemoteCreatedProgress': '遠端開好喇，而家加緊佢做子模組…',
+  'submodule.addRemoteCreatedButAddFailed':
+    '遠端 repo 已經喺 {repository} 開咗，不過 Desktop 加唔到佢做子模組：{error}。撳「再試一次」就會用返現成嗰個。',
+  'submodule.addRemoteCreateFailed': 'Desktop 開唔到遠端 repo：{error}',
+  'submodule.addRemoteCreateCancelledUncertain':
+    '開 repo 嘅請求喺 Desktop 收到結果之前就完咗。遠端主機可能已經開咗個 repo，再試之前記得去睇清楚，唔好開重複。',
   'submodule.addOrganizationLoadFailed': 'Desktop 未能載入組織嘅所有 repo。',
   'submodule.addTryAgainAction': '再試一次',
   'submodule.addRepositoryListLabel': '揀一個 repo 做子模組',

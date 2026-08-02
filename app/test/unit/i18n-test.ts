@@ -7,6 +7,10 @@ import {
   translatedVariable,
   TranslationKey,
 } from '../../src/lib/i18n'
+import {
+  cantoneseTranslations,
+  englishTranslations,
+} from '../../src/lib/i18n-resources'
 
 describe('recent UI internationalization', () => {
   it('maps Chinese locale hints to Cantonese without adding another UI mode', () => {
@@ -507,6 +511,40 @@ describe('recent UI internationalization', () => {
       assert.match(translate(band, 'cantonese'), /分頁/)
       assert.notEqual(translate(band, 'english'), translate(band, 'cantonese'))
     }
+  })
+
+  it('translates every key in both catalogs', () => {
+    // A key present in English and absent from Cantonese does not fail loudly:
+    // `templateFor` falls back to English, so Cantonese mode quietly renders
+    // English and bilingual mode renders the same English string twice, with
+    // the separator between them. Nothing else in the app notices, which is
+    // exactly why this has to be asserted here.
+    const missing = Object.keys(englishTranslations).filter(
+      key => !(key in cantoneseTranslations)
+    )
+    assert.deepEqual(missing, [])
+
+    const untranslated = Object.keys(cantoneseTranslations).filter(
+      key => !(key in englishTranslations)
+    )
+    assert.deepEqual(untranslated, [])
+  })
+
+  it('interpolates the same placeholders in both catalogs', () => {
+    // A placeholder that exists in one language and not the other renders a
+    // literal `{name}` to whoever reads that language.
+    const placeholders = (template: string) =>
+      (template.match(/\{[a-zA-Z0-9_]+\}/g) ?? []).sort()
+
+    const mismatched = Object.keys(englishTranslations).filter(key => {
+      const english = placeholders(englishTranslations[key as TranslationKey])
+      const cantonese = placeholders(
+        cantoneseTranslations[key as TranslationKey] ?? ''
+      )
+      return english.join(',') !== cantonese.join(',')
+    })
+
+    assert.deepEqual(mismatched, [])
   })
 
   it('uses only an explicit persisted language mode', () => {
