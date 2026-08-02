@@ -244,6 +244,33 @@ describe('CI workflow safety', () => {
     assert.doesNotMatch(ciWorkflow, /macos|APPLE_/i)
   })
 
+  it('preserves Windows installers when normal CI tests fail', () => {
+    const windowsBuildJob = ciWorkflow.match(
+      /\r?\n  build:\r?\n([\s\S]*?)(?=\r?\n  e2e-smoke:\r?\n)/
+    )
+    assert.notEqual(windowsBuildJob, null)
+    const source = windowsBuildJob?.[1] ?? ''
+
+    assert.match(
+      source,
+      /name: Build production app\s+id: production_build\s+if: \$\{\{ always\(\) \}\}/
+    )
+    assert.match(
+      source,
+      /uses: \.\/\.github\/actions\/setup-windows-signing\s+id: windows_signing\s+if: \$\{\{ always\(\) && steps\.production_build\.outcome == 'success' \}\}/
+    )
+    assert.match(
+      source,
+      /name: Package production app\s+id: installer_package\s+if:[\s\S]*?always\(\) && steps\.production_build\.outcome == 'success' &&[\s\S]*?steps\.windows_signing\.outcome == 'success'/
+    )
+    assert.match(
+      source,
+      /name: Upload artifacts[\s\S]*?if:[\s\S]*?always\(\) && steps\.installer_package\.outcome == 'success' &&[\s\S]*?github\.event_name != 'workflow_call' \|\| inputs\.upload-artifacts/
+    )
+    assert.match(source, /dist\/GitHubDesktopSetup-\$\{\{matrix\.arch\}\}\.exe/)
+    assert.match(source, /if-no-files-found: error/)
+  })
+
   it('scans the real default branch and supports manual dispatch', () => {
     assert.match(codeQLWorkflow, /push:\s*\n\s*branches: \['main'\]/)
     assert.match(codeQLWorkflow, /pull_request:\s*\n\s*branches: \['main'\]/)

@@ -363,6 +363,8 @@ jobs:
           yarn install --frozen-lockfile
           yarn test
       - name: Build production app
+        id: production_build
+        if: ${{ always() }}
         run: yarn build:prod
         env:
           DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
@@ -378,13 +380,20 @@ jobs:
         if: matrix.arch == 'x64'
         run: yarn test:unit
       - name: Run script tests
+        if: ${{ always() && steps.production_build.outcome == 'success' }}
         run: yarn test:script
       - uses: ./.github/actions/setup-windows-signing
+        id: windows_signing
+        if: ${{ always() && steps.production_build.outcome == 'success' }}
         with:
           enabled: ${{ inputs.sign }}
           azure-client-id: ${{ secrets.AZURE_CODE_SIGNING_CLIENT_ID }}
           azure-tenant-id: ${{ secrets.AZURE_CODE_SIGNING_TENANT_ID }}
       - name: Package production app
+        id: installer_package
+        if:
+          ${{ always() && steps.production_build.outcome == 'success' &&
+          steps.windows_signing.outcome == 'success' }}
         run: yarn package
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -392,7 +401,12 @@ jobs:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CODE_SIGNING_CLIENT_ID }}
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
-        if: ${{ inputs.upload-artifacts }}
+        # Preserve a usable installer even when a test step fails. The job
+        # still reports the original test failure; this only keeps its build
+        # output available for diagnosis and recovery.
+        if:
+          ${{ always() && steps.installer_package.outcome == 'success' &&
+          (github.event_name != 'workflow_call' || inputs.upload-artifacts) }}
         with:
           name: ${{matrix.friendlyName}}-${{matrix.arch}}
           path: |
