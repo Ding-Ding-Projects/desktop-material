@@ -8,6 +8,24 @@ machine they were requested from was about to lose power. Nothing below is
 finished unless it says so. Where a screenshot is the only specification, the
 description is what the screenshot showed, not a guess at what it meant.
 
+### The two rules that govern all of it
+
+**1. If it does not exist, build it from scratch.** The user's instruction:
+*"if it doesn't exist, create the feature fully from scratch even if it means
+creating a web server."* So "we don't have that" is not an answer to anything on
+this list. A missing back end is a back end to write, not a reason to cut the
+feature.
+
+**2. Anything server-shaped is hosted in Docker, by the user.** Every one of
+these features that needs somewhere for two machines to meet — collaboration,
+patches, insights, presence, deep links, single sign-on, SAML, the OAuth
+authorization server — runs in a container the user hosts, stood up by a fully
+automated, wizard-guided flow inside the app. There is no vendor backend
+anywhere in this design, and none is to be introduced.
+
+Together those two rules say: write the server, ship it as a container, and make
+the wizard install it. That, not any individual feature, is the critical path.
+
 ### 1. History: a toggleable graph view — **IN PROGRESS**
 
 A second view mode for history, alongside the existing list, laid out as three
@@ -37,15 +55,15 @@ parts, from three screenshots:
 - **The session creator.** Worktree name, an `Options` disclosure holding a
   **Base branch** picker, a **Coding agent** picker, a `Configure setup commands`
   link, and `Start`.
-- **The coding agent picker**, exactly these in this order: `<None>`,
-  `Claude Code`, `Codex CLI`, `OpenCode`, `Gemini CLI`, `Copilot CLI`.
+- **The coding agent picker**: `<None>`, `Codex CLI`, `OpenCode` — and nothing
+  else. The first screenshot showed six entries including Claude Code, Gemini
+  CLI and Copilot CLI, but the user then said **"only use codex and opencode"**,
+  which settles it: the picker contains only agents that genuinely run. Keep the
+  catalog extensible so a third can be added when it has a real runner.
 
-Reality check for whoever finishes this: **only Codex and OpenCode have real
-runners today** (`app/src/lib/build-run/codex.ts`, `opencode.ts`, the
-`*-runner.ts` files in `app/src/main-process/build-run/`, and the
-`codex-*`/`opencode-*` IPC channels). Claude Code, Gemini CLI and Copilot CLI
-have none. They must show as unavailable with an honest reason rather than
-appearing to work.
+Both shipped agents are real: `app/src/lib/build-run/codex.ts` and
+`opencode.ts`, the `*-runner.ts` files in `app/src/main-process/build-run/`, and
+the `codex-*` / `opencode-*` IPC channels already exist and work.
 
 ### 3. Command palette: far more commands — **AUDITED, NOT YET ADDED**
 
