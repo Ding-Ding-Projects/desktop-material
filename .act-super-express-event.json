@@ -1,0 +1,6 @@
+{
+  "ref": "refs/heads/main",
+  "inputs": {
+    "publish": false
+  }
+}

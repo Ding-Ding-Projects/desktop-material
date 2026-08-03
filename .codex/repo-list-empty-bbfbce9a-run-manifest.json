@@ -1,0 +1,32 @@
+{
+  "mode": "publish",
+  "milestone": "repair-empty-repository-list",
+  "expectedUiState": "The Repositories list renders at least the disposable repository opened with --cli-open; it must not remain blank.",
+  "backgroundInteractions": [
+    "preflight the fixed Lowlevel MCP HTTP server",
+    "build the unpackaged Windows desktop application",
+    "create an owned disposable Git repository and isolated Electron user-data directory",
+    "create one uniquely named off-screen Win32 desktop",
+    "launch Desktop Material with the disposable repository via --cli-open",
+    "open and inspect the Repositories list using HWND-targeted input only",
+    "capture and visually inspect the repaired list",
+    "gracefully close the owned window and remove only owned temporary paths"
+  ],
+  "disposableFixturePath": "%TEMP%\\desktop-material-repo-list-bbfbce9a\\fixture-repository",
+  "screenshot": {
+    "target": "%TEMP%\\desktop-material-repo-list-bbfbce9a\\repository-list-fixed.png",
+    "theme": "dark",
+    "dimensions": "1280x900",
+    "clientOnly": true
+  },
+  "documentationAllowlist": [],
+  "tests": [
+    "focused repository-list regression coverage",
+    "renderer typecheck or lint checks relevant to changed files",
+    "production unpackaged Windows build",
+    "headless repository-list acceptance"
+  ],
+  "remote": "origin",
+  "expectedBranch": "main",
+  "cleanupLedger": "%TEMP%\\desktop-material-repo-list-bbfbce9a\\cleanup-ledger.json"
+}

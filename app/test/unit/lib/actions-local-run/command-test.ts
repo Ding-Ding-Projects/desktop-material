@@ -4,7 +4,25 @@ import {
   ActionsLocalRunCommandError,
   buildActArgs,
   buildSecretFileContents,
+  DefaultActPlatforms,
 } from '../../../../src/lib/actions-local-run/command'
+
+/**
+ * Drop the `-P label=image` pairs every run carries so a test can assert the
+ * part of the argv it actually cares about. The platform flags have their own
+ * dedicated coverage below.
+ */
+function withoutPlatforms(args: ReadonlyArray<string>): ReadonlyArray<string> {
+  const rest: string[] = []
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '-P') {
+      i++
+      continue
+    }
+    rest.push(args[i])
+  }
+  return rest
+}
 
 const base = {
   workflowRelativePath: '.github/workflows/ci.yml',
@@ -17,7 +35,7 @@ const base = {
 
 describe('buildActArgs', () => {
   it('builds a minimal push run addressing the exact workflow file', () => {
-    assert.deepStrictEqual(buildActArgs(base), [
+    assert.deepStrictEqual(withoutPlatforms(buildActArgs(base)), [
       'push',
       '-W',
       '.github/workflows/ci.yml',
@@ -25,13 +43,10 @@ describe('buildActArgs', () => {
   })
 
   it('adds the job selector', () => {
-    assert.deepStrictEqual(buildActArgs({ ...base, job: 'build' }), [
-      'push',
-      '-W',
-      '.github/workflows/ci.yml',
-      '-j',
-      'build',
-    ])
+    assert.deepStrictEqual(
+      withoutPlatforms(buildActArgs({ ...base, job: 'build' })),
+      ['push', '-W', '.github/workflows/ci.yml', '-j', 'build']
+    )
   })
 
   it('adds the dry-run flag', () => {
@@ -133,6 +148,42 @@ describe('buildSecretFileContents', () => {
     assert.throws(
       () => buildSecretFileContents([{ name: 'TOKEN', value: 'a\nb' }]),
       ActionsLocalRunCommandError
+    )
+  })
+})
+
+describe('act default platforms', () => {
+  it('always supplies platforms so act never opens its image chooser', () => {
+    // Without these, act stops on an arrow-key menu asking for a default
+    // image. Spawned with no terminal on stdin it cannot read the keypress and
+    // dies with the Windows console error "Incorrect function.", which names
+    // the failed console read and never mentions images.
+    const args = buildActArgs(base)
+    assert.ok(args.includes('-P'), 'every run must carry platform mappings')
+
+    for (const [label, image] of DefaultActPlatforms) {
+      assert.ok(
+        args.includes(`${label}=${image}`),
+        `${label} should map to ${image}`
+      )
+    }
+  })
+
+  it('maps ubuntu to a real image and Windows/macOS to self-hosted', () => {
+    const mapped = new Map(DefaultActPlatforms)
+    // act drives Linux containers, so there is no image that could host a
+    // Windows or macOS job; -self-hosted runs them on the host instead of
+    // failing to pull something that does not exist.
+    assert.match(mapped.get('ubuntu-latest') ?? '', /^catthehacker\/ubuntu:/)
+    assert.strictEqual(mapped.get('windows-latest'), '-self-hosted')
+    assert.strictEqual(mapped.get('macos-latest'), '-self-hosted')
+  })
+
+  it('puts the platforms before the user-chosen job', () => {
+    const args = buildActArgs({ ...base, job: 'build' })
+    assert.ok(
+      args.indexOf('-P') < args.indexOf('-j'),
+      'platforms must be settled before the run selection'
     )
   })
 })

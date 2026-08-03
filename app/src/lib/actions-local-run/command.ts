@@ -16,6 +16,39 @@ const EventNameRegex = /^[a-z][a-z0-9_]*$/
 /** Job ids and input names accepted on the command line. */
 const IdentifierRegex = /^[A-Za-z_][A-Za-z0-9_-]*$/
 
+/**
+ * Runner-label to container-image mappings passed as `-P` on every run.
+ *
+ * `act` has no built-in default image. When it is started with no platform
+ * configuration and no `~/.actrc`, it stops and asks the user to pick one from
+ * an arrow-key menu — Large, Medium, or Micro. That menu needs a real console:
+ * driven from a spawned process whose stdin is not a terminal, it cannot read
+ * the keypress and dies with the Windows console error `Incorrect function.`,
+ * which describes the failed console read and says nothing about images. The
+ * run appears to fail for no reason at all.
+ *
+ * Supplying platforms up front means `act` never has to ask. These are the
+ * same Medium-size images `act`'s own chooser would have written, which keeps
+ * a run started from here identical to one started from a terminal.
+ *
+ * Windows and macOS labels map to `-self-hosted`: `act` drives Linux
+ * containers, so there is no image that could host them, and `-self-hosted`
+ * is its documented way of running those jobs directly on the host instead of
+ * failing to pull an image that does not exist.
+ */
+export const DefaultActPlatforms: ReadonlyArray<readonly [string, string]> = [
+  ['ubuntu-latest', 'catthehacker/ubuntu:act-latest'],
+  ['ubuntu-24.04', 'catthehacker/ubuntu:act-24.04'],
+  ['ubuntu-22.04', 'catthehacker/ubuntu:act-22.04'],
+  ['ubuntu-20.04', 'catthehacker/ubuntu:act-20.04'],
+  ['windows-latest', '-self-hosted'],
+  ['windows-2022', '-self-hosted'],
+  ['windows-2019', '-self-hosted'],
+  ['macos-latest', '-self-hosted'],
+  ['macos-14', '-self-hosted'],
+  ['macos-13', '-self-hosted'],
+]
+
 /** Thrown when a value that would reach the `act` argv fails validation. */
 export class ActionsLocalRunCommandError extends Error {
   public constructor(message: string) {
@@ -74,6 +107,12 @@ export function buildActArgs(options: IActArgsOptions): ReadonlyArray<string> {
   }
 
   const args: string[] = [options.event, '-W', options.workflowRelativePath]
+
+  // Before anything the user chose, so a run never stops on the interactive
+  // image chooser it cannot answer. See DefaultActPlatforms.
+  for (const [label, image] of DefaultActPlatforms) {
+    args.push('-P', `${label}=${image}`)
+  }
 
   if (options.job !== null) {
     if (!IdentifierRegex.test(options.job)) {
