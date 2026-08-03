@@ -53,6 +53,14 @@
     cursor: pointer;
     display: flex;
     flex-direction: column;
+    // Keep every entry at its natural height. The rail is a column flex box
+    // that already scrolls, so when the entries do not fit the rail should
+    // scroll — not squeeze them. A flex item defaults to shrinking, and with
+    // `min-height: 0` it will shrink below its own content, which clipped the
+    // last label ("Branches" losing its lower half) rather than revealing a
+    // scrollbar. Shrinking is what makes a control look broken; scrolling is
+    // what the container was built to do.
+    flex: none;
     gap: 5px;
     justify-content: center;
     margin: 0;
