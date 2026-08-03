@@ -823,7 +823,7 @@
       h: 'features/repository-management/named-stash-manager.html',
       s: 'features/repository-management/named-stash-manager.md',
       c: 'features',
-      d: 'The repository-wide Stash Manager inventories up to 500 entries and supports more than one Desktop-managed stash per branch. A new stash can have a printable name, creation…',
+      d: 'The repository-wide Stash Manager inventories every stash entry returned by Git without a Desktop entry-count cap and supports more than one Desktop-managed stash per branch. A…',
     },
     {
       t: 'Network and WSL repository paths',
@@ -943,6 +943,13 @@
       s: 'features/repository-management/sparse-checkout.md',
       c: 'features',
       d: 'Desktop Material manages cone-mode sparse checkout through a three-step Choose/Adjust/Restore → Review selection → Apply and refresh guide. The workflow changes which tracked…',
+    },
+    {
+      t: 'Stash export and recovery dialog',
+      h: 'features/repository-management/stash-export.html',
+      s: 'features/repository-management/stash-export.md',
+      c: 'features',
+      d: "The Stash Manager's separate non-blocking dialog has Manage, Export, History, and Appearance and voice tabs. Export searches names, branch associations, and exact stash object…",
     },
     {
       t: 'Temporary submodule repository navigation',
@@ -1615,6 +1622,13 @@
       s: 'verification/repository-group-management-2026-07-28/README.md',
       c: 'verification',
       d: 'Visual evidence for issue #81 (first-class repository and tab group management).',
+    },
+    {
+      t: 'Repository list and agent-session dialog verification run',
+      h: 'verification/repository-list-agent-dialog-2026-08-02/run-manifest.html',
+      s: 'verification/repository-list-agent-dialog-2026-08-02/run-manifest.md',
+      c: 'verification',
+      d: 'Run ID: repository-list-agent-dialog-20260802',
     },
     {
       t: 'Responsive surface matrix — 2026-07-17',
