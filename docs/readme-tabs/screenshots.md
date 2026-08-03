@@ -116,6 +116,10 @@ the app.
 
 ![History commit hover card showing an exact timestamp and relative age](../assets/screenshots/material-history-hover-time.png)
 
+| History view tabs — List | History view tabs — Graph |
+| --- | --- |
+| <img src="../assets/screenshots/material-history-view-tabs-list.png" alt="Built Desktop Material History surface with the Commit list tab selected" width="560"><br><sub>Commit list</sub> | <img src="../assets/screenshots/material-history-view-tabs-graph.png" alt="Built Desktop Material History surface with the Graph tab selected" width="560"><br><sub>Graph</sub> |
+
 | GitHub API functions |
 | --- |
 | <img src="../assets/screenshots/material-github-api-explorer.png" alt="Repository-bound GitHub API functions with runnable buttons and an advanced request builder" width="720"><br><sub>Auto-added read functions · hideable API rail item · reviewed custom requests</sub> |

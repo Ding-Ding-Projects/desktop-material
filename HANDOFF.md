@@ -7,8 +7,14 @@ tab strip rather than hiding the graph mode behind an icon-only toggle. The
 selected view remains persisted, the tabs use roving focus with arrow/Home/End
 navigation, and both views share the existing commit actions and filter state.
 The three-column graph continues to use the virtualized continuous lane
-renderer. Focused source/style verification is pending in this checkout; a
-fresh hidden Windows capture is the remaining R3 acceptance gate.
+renderer. Focused source/style verification passed, and the exact production
+build was exercised on a hidden Win32 desktop with a disposable Git fixture.
+The inspected 1443×992 captures are
+`material-history-view-tabs-list.png` (List selected) and
+`material-history-view-tabs-graph.png` (Graph selected); the CDP receipt also
+confirmed the `tablist`/`tab`/`tabpanel` relationship. R3 still retains its
+broader graph-scale and multi-branch acceptance work, but the missing view-tab
+surface is now runtime-proven.
 
 ## 2026-08-03 — Bug-hunt and Ollama interface checkpoint
 

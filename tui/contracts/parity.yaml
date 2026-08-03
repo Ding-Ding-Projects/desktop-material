@@ -4,9 +4,9 @@
   "generator": "tui/tools/generate-parity-contract.mjs",
   "source": {
     "path": "docs/readme-tabs/complete-feature-list.md",
-    "sha256": "423ba80e7cbc71f747d7335e657b0b2d798828a391563ae13e1a3eadfedf01ec",
-    "declared_feature_count": 202,
-    "parsed_feature_count": 202,
+    "sha256": "00539f8ee25e95d9d5a7377e7cc527ca9c3aecf032e3c78d7e4a13e009b2d6bd",
+    "declared_feature_count": 203,
+    "parsed_feature_count": 203,
     "section_count": 17
   },
   "semantics": {
@@ -17,7 +17,7 @@
   },
   "status_summary": {
     "adapted": 14,
-    "not_yet_available": 133,
+    "not_yet_available": 134,
     "partial": 53,
     "terminal_owned": 2
   },
@@ -398,6 +398,17 @@
       "section": 3,
       "section_title": "Repository tabs and windows",
       "title": "Pin, favourite, and manual arrange",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/tab-groups.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "3-fancy-drag-preview-and-tab-history",
+      "section": 3,
+      "section_title": "Repository tabs and windows",
+      "title": "Fancy drag preview and tab history",
       "upstream_relation": "added",
       "desktop_documentation": "../features/identity-and-workspace/tab-groups.md",
       "tui_status": "not_yet_available",

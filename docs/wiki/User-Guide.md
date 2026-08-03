@@ -1835,6 +1835,15 @@ and an auto-updating relative line such as **2 minutes ago**.
 
 ![History search and commit graph](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-power-tools.png)
 
+History now exposes the two view modes as explicit, keyboard-accessible tabs:
+choose **Commit list** for the dense review list or **Graph** for the continuous
+branch lanes. The selected view persists with the repository tab, and arrow,
+Home, and End keys move through the tab strip.
+
+![History Commit list tab from the built Windows app](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-view-tabs-list.png)
+
+![History Graph tab from the built Windows app](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-view-tabs-graph.png)
+
 ![History commit row with its named More actions control and hover hint](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-context-actions.png)
 
 ![History commit hover card showing an exact timestamp and relative age](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-hover-time.png)
