@@ -2,6 +2,20 @@
 
 Updated: **August 3, 2026**
 
+## August 3 — stash manager export slice
+
+- The Stash Manager inventory no longer imposes the former 500-entry count cap;
+  Git and the bounded metadata byte budget remain the practical limits.
+- A separate non-blocking, keyboard-tabbed dialog now covers Manage, Export,
+  History, and Appearance and voice. Export search uses the shared regex builder
+  and can copy exact stash identities to a directory or ZIP, or configure 7z
+  method, level, dictionary, match finder, fast bytes, solid mode, threads,
+  split volumes, password, and encrypted headers.
+- The focused Git/stash suites pass 40/40 and the new 7z mapping suite passes
+  2/2. A fresh production compile and hidden Windows runtime capture are still
+  required before this slice is called runtime-verified; remote CI and release
+  proof remain separate.
+
 ## August 3 audit checkpoint — **Scoped fixes verified; browser page search now usable**
 
 - The Agents creator is now mounted through the shared modal dialog layer and
