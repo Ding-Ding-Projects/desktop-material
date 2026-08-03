@@ -1,4 +1,6 @@
 import assert from 'node:assert'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it } from 'node:test'
 import * as React from 'react'
 
@@ -25,6 +27,19 @@ function renderTabs(
 }
 
 describe('RepositorySidebarTabs', () => {
+  it('preserves the full-height chain used by the virtualized repository list', () => {
+    const styles = readFileSync(
+      join(process.cwd(), 'app', 'styles', 'ui', '_agent-sessions.scss'),
+      'utf8'
+    )
+    const switcherRule = styles.match(
+      /\.repository-sidebar-switcher\s*\{([^}]*)\}/
+    )
+
+    assert.ok(switcherRule)
+    assert.match(switcherRule[1], /(?:^|\n)\s*height:\s*100%;/)
+  })
+
   it('exposes a named tablist and only the selected panel', () => {
     const view = renderTabs('list')
     const tabs = view.getByRole('tablist', { name: 'Repository sidebar' })
