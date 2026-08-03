@@ -1455,6 +1455,58 @@ export type TranslationKey =
   | 'stashManager.filterMatchPlural'
   | 'stashManager.noMatches'
   | 'stashManager.invalidFilterPattern'
+  | 'stashManager.openDialogAction'
+  | 'stashManager.dialogTitle'
+  | 'stashManager.dialogDescription'
+  | 'stashManager.dialogTabsAria'
+  | 'stashManager.manageTab'
+  | 'stashManager.exportTab'
+  | 'stashManager.historyTab'
+  | 'stashManager.appearanceTab'
+  | 'stashManager.closeDialogAction'
+  | 'stashManager.historyHeading'
+  | 'stashManager.historyDescription'
+  | 'stashManager.appearanceHeading'
+  | 'stashManager.appearanceDescription'
+  | 'stashManager.editAppearanceAction'
+  | 'stashManager.appearanceHint'
+  | 'stashManager.exportPanelAria'
+  | 'stashManager.exportDescription'
+  | 'stashManager.exportSearchLabel'
+  | 'stashManager.exportSearchAria'
+  | 'stashManager.exportSearchRegexTarget'
+  | 'stashManager.selectVisible'
+  | 'stashManager.invertVisible'
+  | 'stashManager.exportSelectedCount'
+  | 'stashManager.exportFormatLabel'
+  | 'stashManager.exportDirectory'
+  | 'stashManager.exportSecurityNote'
+  | 'stashManager.exportComplete'
+  | 'stashManager.openExportInEditor'
+  | 'stashManager.exportAction'
+  | 'stashManager.exportingAction'
+  | 'stashManager.exportSelectionRequired'
+  | 'stashManager.exportFailed'
+  | 'stashManager.chooseDirectoryTitle'
+  | 'stashManager.chooseArchiveTitle'
+  | 'stashManager.sevenZipOptionsHeading'
+  | 'stashManager.sevenZipMethod'
+  | 'stashManager.sevenZipLevel'
+  | 'stashManager.sevenZipDictionary'
+  | 'stashManager.sevenZipWordSize'
+  | 'stashManager.sevenZipMatchFinder'
+  | 'stashManager.sevenZipFastBytes'
+  | 'stashManager.sevenZipThreads'
+  | 'stashManager.sevenZipSplitVolumes'
+  | 'stashManager.sevenZipSolid'
+  | 'stashManager.sevenZipPassword'
+  | 'stashManager.sevenZipEncryptHeaders'
+  | 'stashManager.historySearchLabel'
+  | 'stashManager.historySearchAria'
+  | 'stashManager.historySearchRegexTarget'
+  | 'stashManager.appearanceSearchLabel'
+  | 'stashManager.appearanceSearchAria'
+  | 'stashManager.appearanceSearchRegexTarget'
   | 'tagLifecycle.rejectedError'
   | 'tagLifecycle.operationFailedError'
   | 'tagLifecycle.createdStatus'
@@ -5327,6 +5379,68 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'stashManager.filterMatchPlural': '{count} stashes match',
   'stashManager.noMatches': 'No stashes match this filter.',
   'stashManager.invalidFilterPattern': 'Invalid search pattern: {error}',
+  'stashManager.openDialogAction': 'Open full manager',
+  'stashManager.dialogTitle': 'Stash manager',
+  'stashManager.dialogDescription':
+    'Name, search, review, restore, and export every local stash. The inventory has no entry-count cap; Git storage and the bounded metadata read are the practical limits.',
+  'stashManager.dialogTabsAria': 'Stash manager sections',
+  'stashManager.manageTab': 'Manage',
+  'stashManager.exportTab': 'Export',
+  'stashManager.historyTab': 'History',
+  'stashManager.appearanceTab': 'Appearance and voice',
+  'stashManager.closeDialogAction': 'Close manager',
+  'stashManager.historyHeading': 'Recoverable stash history',
+  'stashManager.historyDescription':
+    'Each row keeps the exact stash object identity, branch association, and name visible for review before an action changes anything.',
+  'stashManager.appearanceHeading': 'Make this dialog yours',
+  'stashManager.appearanceDescription':
+    'This surface inherits the app appearance, language mode, funny-level sliders, focus treatment, reduced-motion behavior, and notification history. Open Settings to change the shared values; the dialog refreshes when they change.',
+  'stashManager.editAppearanceAction': 'Open appearance settings',
+  'stashManager.appearanceHint':
+    'Search remains plain text by default, regex is opt-in, destructive actions stay reviewable, and errors remain factual at every voice level.',
+  'stashManager.exportPanelAria': 'Export selected stashes',
+  'stashManager.exportDescription':
+    'Select any number of named or external stashes and copy their metadata plus exact Git trees to a directory, ZIP, or 7z archive.',
+  'stashManager.exportSearchLabel': 'Search stashes to export',
+  'stashManager.exportSearchAria':
+    'Search exportable stashes by name, branch, or object ID',
+  'stashManager.exportSearchRegexTarget': 'Exportable stashes',
+  'stashManager.selectVisible': 'Select visible',
+  'stashManager.invertVisible': 'Invert visible selection',
+  'stashManager.exportSelectedCount': '{count} selected for export',
+  'stashManager.exportFormatLabel': 'Export format',
+  'stashManager.exportDirectory': 'Directory copy',
+  'stashManager.exportSecurityNote':
+    'Archive passwords are used only for this export. Header encryption hides 7z filenames when a password is present; passwords are never saved in the stash metadata.',
+  'stashManager.exportComplete': 'Export complete',
+  'stashManager.openExportInEditor': 'Open export in VS Code',
+  'stashManager.exportAction': 'Export selected stashes',
+  'stashManager.exportingAction': 'Exporting…',
+  'stashManager.exportSelectionRequired':
+    'Select at least one stash to export.',
+  'stashManager.exportFailed': 'The stash export failed.',
+  'stashManager.chooseDirectoryTitle': 'Choose a directory for the stash copy',
+  'stashManager.chooseArchiveTitle': 'Choose the stash archive destination',
+  'stashManager.sevenZipOptionsHeading': '7z options',
+  'stashManager.sevenZipMethod': 'Compression method',
+  'stashManager.sevenZipLevel': 'Compression level (0–9)',
+  'stashManager.sevenZipDictionary': 'Dictionary size',
+  'stashManager.sevenZipWordSize': 'Word size',
+  'stashManager.sevenZipMatchFinder': 'Match finder',
+  'stashManager.sevenZipFastBytes': 'Fast bytes',
+  'stashManager.sevenZipThreads': 'Threads',
+  'stashManager.sevenZipSplitVolumes': 'Split volumes (for example 100m)',
+  'stashManager.sevenZipSolid': 'Solid archive',
+  'stashManager.sevenZipPassword': 'Password',
+  'stashManager.sevenZipEncryptHeaders': 'Encrypt 7z headers and filenames',
+  'stashManager.historySearchLabel': 'Search stash history',
+  'stashManager.historySearchAria':
+    'Search stash history by name, branch, or object ID',
+  'stashManager.historySearchRegexTarget': 'Stash history',
+  'stashManager.appearanceSearchLabel': 'Search appearance and voice controls',
+  'stashManager.appearanceSearchAria':
+    'Search this dialog appearance and voice controls',
+  'stashManager.appearanceSearchRegexTarget': 'Appearance and voice controls',
   'tagLifecycle.rejectedError':
     'Git rejected the tag operation. Review the application error for details.',
   'tagLifecycle.operationFailedError': 'The tag operation failed.',
@@ -9672,6 +9786,64 @@ export const cantoneseTranslations: Readonly<
   'stashManager.filterMatchPlural': '中咗 {count} 個 stash',
   'stashManager.noMatches': '冇 stash 啱呢個篩選。',
   'stashManager.invalidFilterPattern': '搜尋格式唔啱：{error}',
+  'stashManager.openDialogAction': '打開完整管理員',
+  'stashManager.dialogTitle': 'Stash 管理員',
+  'stashManager.dialogDescription':
+    '可以命名、搜尋、覆核、還原同匯出所有本機 stash。清單冇項目數上限；實際界線係 Git 儲存量同有界 metadata 讀取。',
+  'stashManager.dialogTabsAria': 'Stash 管理員分區',
+  'stashManager.manageTab': '管理',
+  'stashManager.exportTab': '匯出',
+  'stashManager.historyTab': '歷史',
+  'stashManager.appearanceTab': '外觀同語氣',
+  'stashManager.closeDialogAction': '關閉管理員',
+  'stashManager.historyHeading': '可以復原嘅 stash 歷史',
+  'stashManager.historyDescription':
+    '每行都會顯示精確 stash 物件身份、分支關聯同名稱，改動之前先俾你睇清楚，唔玩估估下。',
+  'stashManager.appearanceHeading': '整到呢個對話框啱你心水',
+  'stashManager.appearanceDescription':
+    '呢個介面會跟隨應用程式外觀、語言模式、兩個搞笑程度滑桿、焦點顯示、減少動畫同通知歷史。去設定改共享值；值一變，對話框會即時更新。',
+  'stashManager.editAppearanceAction': '打開外觀設定',
+  'stashManager.appearanceHint':
+    '預設係普通文字搜尋，regex 要你主動開；破壞性操作一定可以覆核，而錯誤訊息無論幾搞笑都會講足事實。',
+  'stashManager.exportPanelAria': '匯出已揀 stash',
+  'stashManager.exportDescription':
+    '揀任意數量嘅命名或外部 stash，將 metadata 同精確 Git tree 複製到目錄、ZIP 或 7z 封存。',
+  'stashManager.exportSearchLabel': '搜尋要匯出嘅 stash',
+  'stashManager.exportSearchAria': '按名稱、分支或者物件 ID 搜尋可匯出 stash',
+  'stashManager.exportSearchRegexTarget': '可匯出 stash',
+  'stashManager.selectVisible': '揀晒目前顯示',
+  'stashManager.invertVisible': '反轉目前顯示選取',
+  'stashManager.exportSelectedCount': '已揀 {count} 個匯出',
+  'stashManager.exportFormatLabel': '匯出格式',
+  'stashManager.exportDirectory': '目錄副本',
+  'stashManager.exportSecurityNote':
+    '封存密碼只用於今次匯出。有密碼時，header 加密會連 7z 檔名都遮埋；密碼唔會寫入 stash metadata。',
+  'stashManager.exportComplete': '匯出完成',
+  'stashManager.openExportInEditor': '用 VS Code 打開匯出',
+  'stashManager.exportAction': '匯出已揀 stash',
+  'stashManager.exportingAction': '匯出緊…',
+  'stashManager.exportSelectionRequired': '至少揀一個 stash 先可以匯出。',
+  'stashManager.exportFailed': 'Stash 匯出失敗。',
+  'stashManager.chooseDirectoryTitle': '揀 stash 副本嘅目錄',
+  'stashManager.chooseArchiveTitle': '揀 stash 封存目的地',
+  'stashManager.sevenZipOptionsHeading': '7z 選項',
+  'stashManager.sevenZipMethod': '壓縮方法',
+  'stashManager.sevenZipLevel': '壓縮級別（0–9）',
+  'stashManager.sevenZipDictionary': '字典大小',
+  'stashManager.sevenZipWordSize': '字詞大小',
+  'stashManager.sevenZipMatchFinder': '配對搜尋器',
+  'stashManager.sevenZipFastBytes': '快速 bytes',
+  'stashManager.sevenZipThreads': '執行緒',
+  'stashManager.sevenZipSplitVolumes': '分拆 volumes（例如 100m）',
+  'stashManager.sevenZipSolid': 'Solid 封存',
+  'stashManager.sevenZipPassword': '密碼',
+  'stashManager.sevenZipEncryptHeaders': '加密 7z header 同檔名',
+  'stashManager.historySearchLabel': '搜尋 stash 歷史',
+  'stashManager.historySearchAria': '按名稱、分支或者物件 ID 搜尋 stash 歷史',
+  'stashManager.historySearchRegexTarget': 'Stash 歷史',
+  'stashManager.appearanceSearchLabel': '搜尋外觀同語氣控制',
+  'stashManager.appearanceSearchAria': '搜尋呢個對話框嘅外觀同語氣控制',
+  'stashManager.appearanceSearchRegexTarget': '外觀同語氣控制',
   'tagLifecycle.rejectedError': 'Git 拒絕咗標籤操作；請查看應用程式錯誤詳情。',
   'tagLifecycle.operationFailedError': '標籤操作未能完成。',
   'tagLifecycle.createdStatus': '已建立本機標籤 {name}。',

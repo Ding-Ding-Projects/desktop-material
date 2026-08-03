@@ -1,5 +1,18 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-03 — Stash manager export slice
+
+The new isolated checkout `codex/stash-manager-20260803` contains a separate
+tabbed Stash Manager dialog with searchable exact-identity export to directory,
+ZIP, and configurable 7z, plus History and shared language/funny-level
+controls. `getStashes` no longer truncates by entry count. Focused verification
+currently passes 42/42 (40 existing Git/UI assertions plus 2 7z argument
+assertions). The production build emitted `out/main.js` before the final
+appearance/options edits; rerun the exact build and headless Windows capture
+after those edits. Do not claim runtime verification until the dialog is
+opened in the real built artifact and the export surface is exercised.
+
+
 ## 2026-08-03 — Bug-hunt and Ollama interface checkpoint
 
 This checkpoint is the current source of truth for the active audit. The main

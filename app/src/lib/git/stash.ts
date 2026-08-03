@@ -20,15 +20,14 @@ import { coerceToString } from './coerce-to-string'
 export const DesktopStashEntryMarker = '!!GitHub_Desktop'
 export const DesktopMaterialStashEntryMarker = '!!Desktop_Material_Stash_v2:'
 
-/** Keep repository-wide stash inventory and metadata reads bounded. */
-export const MaximumStashEntries = 500
+/** Keep individual metadata reads bounded without imposing an entry-count cap. */
 export const MaximumReviewedStashes = 100
 export const MaximumStashDisplayNameLength = 120
 const MaximumStashDisplayNameBytes = 512
 const MaximumBranchNameBytes = 1024
 const MaximumSelectedPaths = 500
 const MaximumSelectedPathBytes = 64 * 1024
-const StashInventoryOutputLimit = 4 * 1024 * 1024
+const StashInventoryOutputLimit = 64 * 1024 * 1024
 
 /**
  * RegEx for determining if a stash entry is created by Desktop
@@ -69,10 +68,10 @@ export type StashResult = {
    */
   readonly stashEntryCount: number
 
-  /** Entries not carrying a recognized Desktop marker in the bounded page. */
+  /** Entries not carrying a recognized Desktop marker. */
   readonly foreignStashEntryCount: number
 
-  /** Whether more stash reflog entries exist beyond the bounded inventory. */
+  /** Retained for store compatibility; the inventory is no longer count-truncated. */
   readonly isTruncated: boolean
 }
 
@@ -132,14 +131,7 @@ export async function getStashes(
   })
 
   const result = await git(
-    [
-      'log',
-      '-g',
-      `--max-count=${MaximumStashEntries + 1}`,
-      ...formatArgs,
-      'refs/stash',
-      '--',
-    ],
+    ['log', '-g', ...formatArgs, 'refs/stash', '--'],
     repository.path,
     'getStashEntries',
     {
@@ -167,8 +159,8 @@ export async function getStashes(
   const files: StashedFileChanges = { kind: StashedChangesLoadStates.NotLoaded }
 
   const parsedEntries = parse(result.stdout)
-  const isTruncated = parsedEntries.length > MaximumStashEntries
-  const entries = parsedEntries.slice(0, MaximumStashEntries)
+  const isTruncated = false
+  const entries = parsedEntries
 
   for (const { name, message, stashSha, tree, parents, createdAt } of entries) {
     const metadata = extractDesktopMetadataFromMessage(message)

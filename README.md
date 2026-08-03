@@ -4,6 +4,11 @@
 
 # Desktop Material
 
+> **Stash recovery manager:** the Windows app now keeps every Git stash entry
+> without a Desktop entry-count cap and provides a separate searchable dialog
+> for exact-identity recovery and export to a directory, ZIP, or configurable
+> 7z archive. See [stash export and recovery](docs/features/repository-management/stash-export.md).
+
 > **Local repair and background progress — July 30, 2026:** conflict and failed
 > CI surfaces launch bounded Codex/OpenCode tasks; long work has hideable
 > elapsed/ETA progress; Cheap LFS restore details collapse; and every action is

@@ -1844,7 +1844,8 @@ and an auto-updating relative line such as **2 minutes ago**.
 ## Multiple stashes
 
 Create a stash from the Changes workflow whenever work must be set aside. Desktop Material keeps
-all stash entries instead of treating only the newest one as available:
+all stash entries instead of treating only the newest one as available; the inventory has no
+Desktop entry-count cap:
 
 1. Expand **Stashes** in Changes and select an entry by its label.
 2. Inspect that stash's file list and individual diffs before acting.
@@ -1856,6 +1857,13 @@ Switching branches can still offer to stash local work, and the resulting entry 
 list.
 
 ![Repository-wide stash manager with an exact selected entry](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
+
+Choose **Open full manager** for the complete workflow. Its tabs provide a regex-capable search
+and multi-selection export to a directory, ZIP, or 7z. The 7z panel exposes compression method,
+level, dictionary, match finder, fast bytes, solid mode, threads, split volumes, password, and
+encrypted headers. The History tab keeps exact object IDs visible for recovery review, while
+Appearance and voice exposes the shared language mode and both independent funny-level sliders
+before routing to full appearance settings.
 
 ---
 
