@@ -2,6 +2,26 @@
 
 Updated: **August 3, 2026**
 
+## August 3 — the site lays out on a phone
+
+- The rebuilt site pushed the page 717px wide inside a 375px viewport. Every
+  multi-column grid now collapses below 760px, grid items are allowed to shrink
+  below their own min-content width, and the two inline minimums wider than a
+  phone are relaxed.
+- The app bar's 300px search field becomes a search button opening the same
+  panel — a phone has no room for the field and no `Ctrl+F` to open the panel
+  with. The brand subtitle, the keyboard hint, the gutters, and the tab heights
+  all give ground, taking the sticky header from 256px to about 200px without
+  dropping a control.
+- Both tab strips scroll horizontally instead of pushing the page. A sticky
+  header goes static below 520px of viewport height, so a phone held sideways
+  gets its screen back. Footer links get a real tap target.
+- Teleporting to a section measures the app bar rather than assuming 160px,
+  which had been landing every target underneath a wrapped header.
+- Measured in bilingual mode at 135% text scale across all six pages and all
+  six overlay panels: no horizontal scroll and no clipped text at 320px or
+  375px, and the desktop layout unchanged above the breakpoint.
+
 ## August 3 — the published site becomes one Material Design 3 component
 
 - The homepage, the Cheap LFS guide, and the Cheap LFS versus Git LFS atlas

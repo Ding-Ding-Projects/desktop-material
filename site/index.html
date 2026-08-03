@@ -64,6 +64,93 @@ mark{background:var(--md-sys-color-tertiary-container);color:var(--md-sys-color-
 [data-dm-motion='off'] *{animation:none !important;transition:none !important;}
 [data-dm-contrast='high']{--md-sys-color-outline:#3a4046;--md-sys-color-outline-variant:#6b7178;--md-sys-color-on-surface-variant:#22262a;}
 [data-dm-contrast='high'][data-dm-theme='dark']{--md-sys-color-outline:#cfd5dc;--md-sys-color-outline-variant:#9aa0a7;--md-sys-color-on-surface-variant:#eef0f5;}
+
+/* -------------------------------------------------------------------------
+   Phones and narrow windows.
+
+   Every layout on this page is expressed as an inline style, and no
+   stylesheet can override an inline style without !important — so these
+   rules are deliberately loud. They are keyed on the property the template
+   sets rather than on a hook attribute, so re-importing the design from the
+   design tool cannot quietly drop them. Nothing here applies above the width
+   at which the desktop layout stops fitting.
+------------------------------------------------------------------------- */
+@media (max-width:760px){
+  /* Every multi-column grid on this page asks for columns of at least
+     200px. Below this width there is room for exactly one. */
+  [style*="grid-template-columns"]{grid-template-columns:1fr !important;}
+  /* A grid item defaults to min-width:auto, so it refuses to shrink below
+     its own min-content width — one long token in a card is enough to push
+     the column wider than the column it was given. */
+  [style*="grid-template-columns"] > *{min-width:0 !important;}
+  /* And the token itself wraps rather than setting that min-content width. */
+  main{overflow-wrap:anywhere;}
+
+  /* An inline minimum wider than the viewport is what drags the whole page
+     sideways: the app bar stops fitting, the sticky header inherits that
+     width, and the tab strips below it then measure their own
+     overflow-x:auto against a container far wider than the screen — so they
+     never scroll, they just push. Marked with an attribute rather than
+     matched on the style string, because React re-serialises inline styles
+     and a selector that depends on its spacing silently stops matching. */
+  [data-dm-fluid]{min-width:0 !important;}
+
+  /* The app bar's action row is a single unwrapping flex line: search field
+     plus five 44px buttons. On a phone it wraps, the search takes a line of
+     its own above the buttons, and the flexible spacer that pushes the row
+     right on a desktop collapses so nothing is left stranded. */
+  [data-dm-actions]{flex-wrap:wrap !important;justify-content:flex-end;}
+  [data-dm-spacer]{display:none !important;}
+
+  /* The inline search field becomes a button that opens the search panel,
+     which is the only reason the app bar still fits on two lines. */
+  [data-dm-actions] > [data-dm-fluid]{display:none !important;}
+  [data-dm-search-button]{display:grid !important;}
+
+  /* The subtitle under the wordmark is the first thing to give up its line. */
+  [data-appear="brand"] small{display:none !important;}
+
+  /* The header is sticky and holds the site's whole navigation, so every
+     pixel it keeps is a pixel of the article nobody can read. Trimming the
+     gutters and the tab heights buys back about a fifth of it without
+     dropping a control or taking any touch target below 34px. */
+  header > div:first-child{padding:6px 12px !important;min-height:0 !important;}
+  [role="tablist"]{padding:4px 10px !important;}
+  [role="tablist"] [role="tab"]{height:36px !important;padding:0 12px !important;}
+  /* Kept the same height as the tab it closes, or it sets the row height. */
+  [data-dm-touch]{height:36px !important;margin-bottom:0 !important;}
+
+  /* Footer links are a list of destinations, not prose, so they get a real
+     target rather than a 15px line box. */
+  footer a{display:inline-flex !important;align-items:center;min-height:32px;}
+
+  /* Give the content back the margins the desktop gutters take. */
+  main{padding-left:14px !important;padding-right:14px !important;}
+
+  /* Both tab strips scroll rather than wrap, with momentum, and without
+     a scrollbar sitting on top of the tabs. */
+  [role="tablist"]{-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  [role="tablist"]::-webkit-scrollbar{display:none;}
+
+  /* A keyboard shortcut hint on a device with no keyboard is only taking
+     room away from the field it sits in. */
+  header kbd{display:none !important;}
+
+  /* Secondary controls reach a real touch target instead of the 24px they
+     can get away with under a mouse pointer. */
+  [data-dm-touch]{width:36px !important;margin-left:-6px !important;}
+
+  /* Long unbroken strings — install commands, hashes, run ids — scroll
+     inside their own block rather than widening the page. */
+  pre,code{overflow-x:auto;max-width:100%;}
+}
+
+/* A phone held sideways has around 380px of height. A sticky header carrying
+   the app bar and both tab strips would take half of it, so there it scrolls
+   away with the page and the reader gets the screen back. */
+@media (max-height:520px){
+  header[data-appear="appbar"]{position:static !important;}
+}
 </style>
 </helmet>
 
@@ -79,10 +166,10 @@ mark{background:var(--md-sys-color-tertiary-container);color:var(--md-sys-color-
         </span>
       </div>
 
-      <div style="flex:1;min-width:120px"></div>
+      <div data-dm-spacer style="flex:1;min-width:120px"></div>
 
-      <div style="display:flex;align-items:center;gap:4px">
-        <div style="position:relative;display:flex;align-items:center;gap:8px;height:44px;padding:0 6px 0 14px;border-radius:999px;border:1px solid var(--md-sys-color-outline-variant);background:var(--md-sys-color-surface-container-high);min-width:300px">
+      <div data-dm-actions style="display:flex;align-items:center;gap:4px">
+        <div data-dm-fluid style="position:relative;display:flex;align-items:center;gap:8px;height:44px;padding:0 6px 0 14px;border-radius:999px;border:1px solid var(--md-sys-color-outline-variant);background:var(--md-sys-color-surface-container-high);min-width:300px">
           <span style="font-family:'Material Symbols Outlined';font-size:20px;color:var(--md-sys-color-on-surface-variant)" aria-hidden="true">search</span>
           <input value="{{ searchQuery }}" onChange="{{ setQuery }}" placeholder="{{ t.search }}" aria-label="Search this site" style="flex:1;min-width:80px;height:40px;border:0;background:transparent;font-size:14px;outline:none" />
           <sc-if value="{{ barHasResults }}" hint-placeholder-val="{{ false }}">
@@ -103,6 +190,13 @@ mark{background:var(--md-sys-color-tertiary-container);color:var(--md-sys-color-
             </div>
           </sc-if>
         </div>
+        <!-- A phone has no room for a 300px field in the app bar and no
+             Ctrl+F to open the search panel with, so below 760px the field
+             collapses into this button and the panel does the searching.
+             It is hidden above that width, where the field itself is live. -->
+        <button type="button" data-dm-search-button onClick="{{ openSearchPanel }}" aria-label="Search this site" title="Search this site" style="display:none;width:44px;height:44px;border-radius:999px;border:0;background:transparent;cursor:pointer;place-items:center" style-hover="background:var(--md-sys-color-surface-container-highest)">
+          <span style="font-family:'Material Symbols Outlined';font-size:22px" aria-hidden="true">search</span>
+        </button>
         <button type="button" onClick="{{ openTabTools }}" aria-label="Tab tools" title="Tab tools" style="width:44px;height:44px;border-radius:999px;border:0;background:transparent;cursor:pointer;display:grid;place-items:center" style-hover="background:var(--md-sys-color-surface-container-highest)">
           <span style="font-family:'Material Symbols Outlined';font-size:22px" aria-hidden="true">tab_group</span>
         </button>
@@ -144,7 +238,7 @@ mark{background:var(--md-sys-color-tertiary-container);color:var(--md-sys-color-
                   <span style="font-family:'Material Symbols Outlined';font-size:18px" aria-hidden="true">{{ tab.icon }}</span>
                   <span style="white-space:nowrap">{{ tab.label }}</span>
                 </button>
-                <button type="button" onClick="{{ tab.close }}" aria-label="Close tab" title="Close tab" style="{{ tab.closeStyle }}">
+                <button type="button" data-dm-touch onClick="{{ tab.close }}" aria-label="Close tab" title="Close tab" style="{{ tab.closeStyle }}">
                   <span style="font-family:'Material Symbols Outlined';font-size:16px" aria-hidden="true">close</span>
                 </button>
               </div>
@@ -780,7 +874,7 @@ mark{background:var(--md-sys-color-tertiary-container);color:var(--md-sys-color-
           <section data-appear="atlas-matrix" style="display:flex;flex-direction:column;gap:16px">
             <h2 style="margin:0;font-size:28px">Filter the differences without losing the receipts</h2>
             <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
-              <input value="{{ atlasQuery }}" onChange="{{ setAtlasQuery }}" placeholder="Search decisions" aria-label="Search the matrix" style="height:44px;min-width:240px;flex:1;padding:0 16px;border-radius:14px;border:1px solid var(--md-sys-color-outline);background:var(--md-sys-color-surface-container-lowest)" />
+              <input value="{{ atlasQuery }}" onChange="{{ setAtlasQuery }}" placeholder="Search decisions" aria-label="Search the matrix" data-dm-fluid style="height:44px;min-width:240px;flex:1;padding:0 16px;border-radius:14px;border:1px solid var(--md-sys-color-outline);background:var(--md-sys-color-surface-container-lowest)" />
               <button type="button" onClick="{{ rxAtlas.toggle }}" title="Treat the query as a regular expression" style="{{ rxAtlas.style }}"><span style="font-family:'Roboto Mono',monospace">.*</span>Regex</button>
               <button type="button" onClick="{{ rxAtlas.build }}" style="height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--md-sys-color-outline-variant);background:transparent;cursor:pointer;font-size:12px;font-weight:600;color:var(--md-sys-color-on-surface-variant)">Builder</button>
               <button type="button" onClick="{{ clearAtlasCats }}" style="height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--md-sys-color-outline-variant);background:transparent;cursor:pointer;font-size:13px">Clear filters</button>
@@ -1801,7 +1895,11 @@ class Component extends DCLogic {
     setTimeout(() => {
       const el = document.querySelector('[data-appear="' + (appearId || section) + '"]');
       if (!el) return;
-      const y = el.getBoundingClientRect().top + window.pageYOffset - 160;
+      // The app bar is sticky and grows taller as it wraps, so a fixed
+      // offset lands the target underneath it on a phone. Measure it.
+      const bar = document.querySelector('header[data-appear="appbar"]');
+      const clearance = (bar ? bar.getBoundingClientRect().height : 140) + 20;
+      const y = el.getBoundingClientRect().top + window.pageYOffset - clearance;
       window.scrollTo({ top: y < 0 ? 0 : y, behavior: 'smooth' });
       const prev = el.style.boxShadow;
       el.style.boxShadow = '0 0 0 3px var(--md-sys-color-primary)';
@@ -2366,6 +2464,7 @@ class Component extends DCLogic {
       barResults: (st.query ? searchResults.slice(0, 6) : []),
       barHasResults: !!st.query && searchResults.length > 0,
       barShowAll: () => this.setState({ panel: 'search' }),
+      openSearchPanel: () => this.setState({ panel: 'search' }),
       clearQuery: () => this.setState({ query: '' }),
       scaleValue: st.scale, accentValue: st.accent, uiFontValue: st.uiFont, monoFontValue: st.monoFont,
       motionOn: st.motion === 'on', contrastOn: st.contrast === 'high',

@@ -113,6 +113,40 @@ redirects to `/#lfs` and `/#atlas`, carrying a canonical link, a meta refresh, a
 scripted replace, and — for a reader whose browser blocked the refresh — a
 sentence saying where the page went and a link to it.
 
+## Narrow windows and phones
+
+Every layout on this page is an inline style, and no stylesheet overrides an
+inline style without `!important` — so the responsive rules in the helmet are
+deliberately loud. They are keyed on the *property the template sets* rather
+than on per-element hooks wherever possible, so re-importing the design from
+the design tool cannot quietly drop them. Nothing in them applies above
+**760px**, where the desktop layout is untouched.
+
+Below that width:
+
+| Rule | Why |
+| --- | --- |
+| Every `grid-template-columns` collapses to `1fr`, and its items get `min-width: 0` | Each grid asks for columns of at least 200px. A grid item defaults to `min-width: auto`, so without the second half one long token in a card widens the whole page — visible at 320px, not at 375px. |
+| `[data-dm-fluid]` drops its `min-width` | Two elements declare a minimum wider than a phone. That is what drags the page sideways: the app bar stops fitting, the sticky header inherits its width, and both tab strips then measure their own `overflow-x: auto` against a container far wider than the screen — so they never scroll, they just push. |
+| The app bar's search field becomes a search button | A 300px field plus five 44px buttons does not fit, and there is no <kbd>Ctrl</kbd>+<kbd>F</kbd> on a phone to open the panel with. The button opens the same search panel. |
+| The brand subtitle and the keyboard hint are hidden; gutters and tab heights shrink | The header is sticky and holds the whole navigation, so every pixel it keeps is a pixel of the article nobody can read. This trims it from 256px to about 200px without dropping a control or taking a target below 34px. |
+| Footer links get `min-height: 32px` | They are a list of destinations, not prose, and a 15px line box is not a tap target. |
+| A sticky header goes `position: static` below **520px of height** | A phone held sideways has around 380px of height; a sticky header would take half of it. |
+
+> [!NOTE]
+> `[data-dm-fluid]` is an attribute rather than a `[style*="min-width:300px"]`
+> selector on purpose. React re-serialises inline styles, so a selector keyed
+> on the spacing it happens to emit silently stops matching.
+
+The teleport helper measures the app bar instead of assuming a fixed offset,
+because the bar is two or three lines tall on a phone and a fixed 160px landed
+every teleported section underneath it.
+
+**Measured**, in bilingual mode at the maximum 135% text scale, on all six
+pages and all six overlay panels: no horizontal page scroll and no clipped text
+at **320px** or **375px**, no touch target under 30px, and the desktop layout
+unchanged above the breakpoint.
+
 ## Accessibility
 
 The tab strips are real tab strips: `role="tablist"` around `role="tab"`

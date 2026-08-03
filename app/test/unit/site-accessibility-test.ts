@@ -197,6 +197,78 @@ describe('Pages accessibility contracts', () => {
     )
   })
 
+  it('lays out on a phone without pushing the page sideways', () => {
+    const markup = read('site/index.html')
+    const mobile = markup.slice(
+      markup.indexOf('@media (max-width:760px)'),
+      markup.indexOf('@media (max-height:520px)')
+    )
+    assert.ok(mobile.length > 0, 'the narrow-window media block is gone')
+
+    // Every multi-column grid collapses, and its items are allowed to shrink
+    // below their own min-content width — a grid item defaults to
+    // min-width:auto, so one long token in a card is enough to widen the page.
+    assert.match(mobile, /\[style\*="grid-template-columns"\]\{grid-template-columns:1fr !important;\}/)
+    assert.match(mobile, /\[style\*="grid-template-columns"\] > \*\{min-width:0 !important;\}/)
+    assert.match(mobile, /main\{overflow-wrap:anywhere;\}/)
+
+    // The inline minimums that are wider than a phone are marked rather than
+    // matched on the style string, because React re-serialises inline styles
+    // and a selector keyed on its spacing silently stops matching.
+    assert.match(mobile, /\[data-dm-fluid\]\{min-width:0 !important;\}/)
+    // Two elements carry it: the app bar's search field and the atlas matrix
+    // search. Both declare an inline minimum wider than a phone.
+    assert.equal((markup.match(/data-dm-fluid style="/g) ?? []).length, 2)
+    for (const [, style] of markup.matchAll(/data-dm-fluid style="([^"]+)"/g)) {
+      assert.match(
+        style,
+        /min-width:(2[3-9]\d|[3-9]\d\d)px/,
+        `data-dm-fluid on an element with no wide minimum: ${style.slice(0, 60)}`
+      )
+    }
+
+    // Below the breakpoint the app bar's search field becomes a button, which
+    // is the only reason the bar still fits.
+    assert.match(mobile, /\[data-dm-actions\] > \[data-dm-fluid\]\{display:none !important;\}/)
+    assert.match(mobile, /\[data-dm-search-button\]\{display:grid !important;\}/)
+    assert.match(mobile, /header kbd\{display:none !important;\}/)
+
+    // A phone held sideways gets the screen back.
+    assert.match(
+      markup,
+      /@media \(max-height:520px\)\{\s*header\[data-appear="appbar"\]\{position:static !important;\}/
+    )
+  })
+
+  it('gives the phone search button a name and a working action', () => {
+    const markup = read('site/index.html')
+    const button = markup.match(/<button[^>]*data-dm-search-button[^>]*>/)?.[0]
+
+    assert.ok(button, 'the phone search button is gone')
+    assert.match(button, /aria-label="Search this site"/)
+    assert.match(button, /onClick="\{\{ openSearchPanel \}\}"/)
+    // Hidden by default so it never doubles the desktop search field; the
+    // media query is what reveals it.
+    assert.match(button, /style="display:none;/)
+    assert.match(markup, /openSearchPanel: \(\) => this\.setState\(\{ panel: 'search' \}\)/)
+  })
+
+  it('scrolls a teleport clear of a sticky header of any height', () => {
+    const markup = read('site/index.html')
+
+    // A fixed offset lands the target underneath the app bar once it wraps
+    // onto three lines on a phone, so the clearance is measured.
+    assert.match(
+      markup,
+      /const bar = document\.querySelector\('header\[data-appear="appbar"\]'\)/
+    )
+    assert.match(
+      markup,
+      /const clearance = \(bar \? bar\.getBoundingClientRect\(\)\.height : 140\) \+ 20/
+    )
+    assert.doesNotMatch(markup, /window\.pageYOffset - 160/)
+  })
+
   it('keeps the imported Listbox operable and named', () => {
     const markup = read('site/Listbox.dc.html')
 
