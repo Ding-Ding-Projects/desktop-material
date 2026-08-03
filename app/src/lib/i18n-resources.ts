@@ -1160,6 +1160,11 @@ export type TranslationKey =
   | 'batchSync.statusFailed'
   | 'repositoryPicker.status'
   | 'repositoryPicker.filters'
+  | 'repositoryPicker.emptyTitle'
+  | 'repositoryPicker.emptyBody'
+  | 'repositoryPicker.emptyClone'
+  | 'repositoryPicker.emptyAdd'
+  | 'repositoryPicker.emptyCreate'
   | 'repositoryPicker.filtersActive'
   | 'repositoryPicker.all'
   | 'repositoryPicker.clean'
@@ -5007,6 +5012,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'batchSync.statusFailed': 'Failed',
   'repositoryPicker.status': 'Repository status',
   'repositoryPicker.filters': 'Filters',
+  'repositoryPicker.emptyTitle': 'No repositories yet',
+  'repositoryPicker.emptyBody':
+    'Clone one from a remote, add a folder you already have, or start a brand new repository.',
+  'repositoryPicker.emptyClone': 'Clone repository',
+  'repositoryPicker.emptyAdd': 'Add local repository',
+  'repositoryPicker.emptyCreate': 'Create new repository',
   'repositoryPicker.filtersActive': 'Filters · {count}',
   'repositoryPicker.all': 'All',
   'repositoryPicker.clean': 'Clean',
@@ -9472,6 +9483,12 @@ export const cantoneseTranslations: Readonly<
   'batchSync.statusFailed': '失敗',
   'repositoryPicker.status': 'Repo 狀態',
   'repositoryPicker.filters': '篩選器',
+  'repositoryPicker.emptyTitle': '一個倉庫都未有',
+  'repositoryPicker.emptyBody':
+    'Clone 個返嚟、加返部電腦入面已經有嘅資料夾，或者由零開個新倉庫都得。',
+  'repositoryPicker.emptyClone': 'Clone 倉庫',
+  'repositoryPicker.emptyAdd': '加入本機倉庫',
+  'repositoryPicker.emptyCreate': '開個新倉庫',
   'repositoryPicker.filtersActive': '篩選器 · {count}',
   'repositoryPicker.all': '全部',
   'repositoryPicker.clean': '乾淨',
