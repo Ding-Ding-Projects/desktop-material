@@ -42,6 +42,21 @@ if (typeof HTMLDialogElement !== 'undefined') {
   }
 }
 
+/**
+ * Compare two DOM nodes by identity without letting a failure explode.
+ *
+ * `assert.strictEqual` builds its failure message by deep-inspecting both
+ * operands, and a jsdom element drags in its parent chain, its document and its
+ * window. When a focus assertion in this file failed, generating that message
+ * allocated for over three minutes before dying with `RangeError: Array buffer
+ * allocation failed` — an error that mentions neither focus nor the test, and
+ * that masked the real assertion underneath it. `assert.ok` on a `===` check
+ * reports the same fact in milliseconds.
+ */
+function assertSameNode(actual: unknown, expected: unknown, message?: string) {
+  assert.ok(actual === expected, message ?? 'expected the same DOM node')
+}
+
 const bothInstalled = {
   codexInstalled: true,
   codexAuthenticated: true,
@@ -193,7 +208,7 @@ describe('AgentSessionsPanel fleet', () => {
     fireEvent.keyDown(first, { key: 'ArrowDown' })
     assert.strictEqual(second.getAttribute('tabindex'), '0')
     assert.strictEqual(first.getAttribute('tabindex'), '-1')
-    assert.strictEqual(document.activeElement, second)
+    assertSameNode(document.activeElement, second)
   })
 
   it('reports the selected session rather than acting on its own', () => {
@@ -263,7 +278,7 @@ describe('AgentSessionsPanel fleet', () => {
     const last = view.getByRole('button', { name: /c-available/i })
 
     fireEvent.keyDown(first, { key: 'ArrowDown' })
-    assert.strictEqual(document.activeElement, last)
+    assertSameNode(document.activeElement, last)
     assert.strictEqual(last.getAttribute('tabindex'), '0')
     assert.strictEqual(missing.getAttribute('tabindex'), '-1')
   })
@@ -300,7 +315,10 @@ describe('AgentSessionsPanel fleet', () => {
     const view = renderPanel([])
 
     assert.ok(view.getByText(/No worktrees yet/))
-    assert.strictEqual(view.queryByRole('list', { name: 'Worktrees' }), null)
+    assert.ok(
+      view.queryByRole('list', { name: 'Worktrees' }) === null,
+      'the fleet list should be absent'
+    )
   })
 })
 
@@ -448,7 +466,7 @@ describe('AgentSessionsPanel creator', () => {
     result.resolve(true)
     await new Promise<void>(resolve => setImmediate(resolve))
     assert.strictEqual(view.queryByLabelText('Worktree name'), null)
-    assert.strictEqual(document.activeElement, trigger)
+    assertSameNode(document.activeElement, trigger)
   })
 
   it('refuses to start a real agent with nothing to do', () => {
@@ -512,8 +530,11 @@ describe('AgentSessionsPanel creator', () => {
     )
 
     fireEvent.keyDown(editor, { key: 'Escape' })
-    assert.strictEqual(view.queryByRole('dialog'), null)
-    assert.strictEqual(document.activeElement, configure)
+    assert.ok(
+      view.queryByRole('dialog') === null,
+      'the dialog should be closed'
+    )
+    assertSameNode(document.activeElement, configure)
     assert.strictEqual(start.getAttribute('aria-disabled'), null)
   })
 
@@ -643,8 +664,11 @@ describe('AgentSessionsPanel creator', () => {
         { enabled: true, executable: 'git', args: ['status'] },
       ],
     ])
-    assert.strictEqual(view.queryByRole('dialog'), null)
-    assert.strictEqual(document.activeElement, configure)
+    assert.ok(
+      view.queryByRole('dialog') === null,
+      'the dialog should be closed'
+    )
+    assertSameNode(document.activeElement, configure)
   })
 
   it('blocks credential-shaped argv and Cancel keeps the saved list unchanged', () => {
@@ -677,8 +701,11 @@ describe('AgentSessionsPanel creator', () => {
       within(view.getByRole('dialog')).getByRole('button', { name: 'Cancel' })
     )
     assert.strictEqual(saves, 0)
-    assert.strictEqual(view.queryByRole('dialog'), null)
-    assert.strictEqual(document.activeElement, configure)
+    assert.ok(
+      view.queryByRole('dialog') === null,
+      'the dialog should be closed'
+    )
+    assertSameNode(document.activeElement, configure)
   })
 
   it('offers an enabled Cancel setup action while setup is in flight', async () => {
