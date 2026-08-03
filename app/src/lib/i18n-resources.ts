@@ -119,6 +119,18 @@ export type TranslationKey =
   | 'tabs.settingsCommitCommitted'
   | 'tabs.settingsCommitTitle'
   | 'tabs.settingsHistory'
+  | 'tabs.closedHistory'
+  | 'tabs.closedHistoryTitle'
+  | 'tabs.closedHistoryDescription'
+  | 'tabs.closedHistoryEmpty'
+  | 'tabs.closedHistoryNoMatches'
+  | 'tabs.closedHistorySearch'
+  | 'tabs.closedHistorySearchPlaceholder'
+  | 'tabs.closedHistorySearchTarget'
+  | 'tabs.closedHistoryForget'
+  | 'tabs.closedHistoryClear'
+  | 'tabs.closedHistoryCountOne'
+  | 'tabs.closedHistoryCountMany'
   | 'tabs.undoSettingsChange'
   | 'tabs.redoSettingsChange'
   | 'tabs.settingsChangeUndone'
@@ -3672,6 +3684,19 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tabs.settingsCommitTitle':
     "Every tab and settings change commits to this account's local settings repo.",
   'tabs.settingsHistory': 'Settings history',
+  'tabs.closedHistory': 'Recently closed tabs',
+  'tabs.closedHistoryTitle': 'Tab history',
+  'tabs.closedHistoryDescription':
+    'Restore a tab you closed recently, or forget it permanently.',
+  'tabs.closedHistoryEmpty': 'No recently closed tabs.',
+  'tabs.closedHistoryNoMatches': 'No closed tabs match this search.',
+  'tabs.closedHistorySearch': 'Search closed tabs',
+  'tabs.closedHistorySearchPlaceholder': 'Name, alias, or path',
+  'tabs.closedHistorySearchTarget': 'Closed tabs',
+  'tabs.closedHistoryForget': 'Forget closed tab {name}',
+  'tabs.closedHistoryClear': 'Clear history',
+  'tabs.closedHistoryCountOne': '1 closed tab',
+  'tabs.closedHistoryCountMany': '{count} closed tabs',
   'tabs.undoSettingsChange': 'Undo last settings change',
   'tabs.redoSettingsChange': 'Redo settings change',
   'tabs.settingsChangeUndone': 'Settings change undone.',
@@ -8145,6 +8170,18 @@ export const cantoneseTranslations: Readonly<
   'tabs.settingsCommitTitle':
     '每次改分頁或設定，都會即刻 commit 落呢個帳戶嘅本機設定 repo。',
   'tabs.settingsHistory': '設定歷史',
+  'tabs.closedHistory': '最近關閉嘅分頁',
+  'tabs.closedHistoryTitle': '分頁歷史',
+  'tabs.closedHistoryDescription': '可以還原啱啱關閉嘅分頁，或者永久忘記佢。',
+  'tabs.closedHistoryEmpty': '暫時冇最近關閉嘅分頁。',
+  'tabs.closedHistoryNoMatches': '冇關閉分頁符合呢個搜尋。',
+  'tabs.closedHistorySearch': '搜尋關閉咗嘅分頁',
+  'tabs.closedHistorySearchPlaceholder': '名、別名或者路徑',
+  'tabs.closedHistorySearchTarget': '關閉咗嘅分頁',
+  'tabs.closedHistoryForget': '忘記關閉咗嘅分頁「{name}」',
+  'tabs.closedHistoryClear': '清除歷史',
+  'tabs.closedHistoryCountOne': '有 1 個關閉咗嘅分頁',
+  'tabs.closedHistoryCountMany': '有 {count} 個關閉咗嘅分頁',
   'tabs.undoSettingsChange': '復原上一個設定改動',
   'tabs.redoSettingsChange': '重做設定改動',
   'tabs.settingsChangeUndone': '已復原設定改動。',

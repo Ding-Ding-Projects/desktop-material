@@ -281,6 +281,8 @@ export interface IProfileTabsState {
    * groups existed load without a rewrite.
    */
   readonly groups?: ReadonlyArray<ITabGroup>
+  /** Most recently closed tabs, newest first, for quick restoration. */
+  readonly closedTabs?: ReadonlyArray<IRepositoryTab>
 }
 
 /** The empty tab state used before any tabs are opened. */
@@ -288,6 +290,7 @@ export const emptyProfileTabsState: IProfileTabsState = {
   tabs: [],
   activeTabId: null,
   groups: [],
+  closedTabs: [],
 }
 
 /** Allowed font-size range (px) for a tab title. */

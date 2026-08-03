@@ -1287,6 +1287,29 @@ describe('RepositoryTabStrip drag arrangement', () => {
     fireEvent.dragStart(screen.getByRole('tab', { name: 'beta' }), {
       dataTransfer,
     })
+    await waitFor(() =>
+      assert.ok(
+        screen.getByRole('tab', { name: 'beta' }).className.includes('dragging')
+      )
+    )
+    const alphaTab = screen.getByRole('tab', { name: 'alpha' })
+    Object.defineProperty(alphaTab, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({ left: 0, width: 100, top: 0, right: 100, bottom: 40 }),
+    })
+    fireEvent.dragOver(alphaTab, { dataTransfer, clientX: 0 })
+    await waitFor(() => assert.ok(alphaTab.className.includes('drag-over')))
+    fireEvent.dragEnd(screen.getByRole('tab', { name: 'beta' }), {
+      dataTransfer,
+    })
+    fireEvent.dragStart(screen.getByRole('tab', { name: 'beta' }), {
+      dataTransfer,
+    })
+    await waitFor(() =>
+      assert.ok(
+        screen.getByRole('tab', { name: 'beta' }).className.includes('dragging')
+      )
+    )
     fireEvent.drop(screen.getByRole('tab', { name: 'alpha' }), {
       dataTransfer,
       clientX: 0,
@@ -1319,6 +1342,49 @@ describe('RepositoryTabStrip drag arrangement', () => {
     assert.ok(screen.getByRole('dialog', { name: 'Arrange tabs' }))
     fireEvent.click(screen.getByRole('button', { name: 'Done' }))
     await waitFor(() => assert.equal(document.activeElement, arrangeButton))
+  })
+
+  it('shows recently closed tabs and restores them from the tab strip', async () => {
+    const alpha = new Repository('/work/alpha', 1, null, false)
+    const beta = new Repository('/work/beta', 2, null, false)
+    const store = await createStore([
+      makeTab('alpha', alpha),
+      makeTab('beta', beta),
+    ])
+    const dispatcher = {
+      selectRepository: () => undefined,
+      showFoldout: () => undefined,
+      setNotificationCentreOpen: () => undefined,
+    } as unknown as Dispatcher
+    const stateManager = {
+      get: () => {
+        throw new Error('status cache should not be read during history')
+      },
+    } as unknown as RepositoryStateCache
+
+    render(
+      <RepositoryTabStrip
+        tabsStore={store}
+        repositories={[alpha, beta]}
+        dispatcher={dispatcher}
+        repositoryStateManager={stateManager}
+        unreadNotificationCount={0}
+        isNotificationCentreOpen={false}
+      />
+    )
+
+    await store.closeTab('beta')
+    await waitFor(() =>
+      assert.equal(screen.queryByRole('tab', { name: 'beta' }), null)
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Recently closed tabs' })
+    )
+    assert.ok(screen.getByRole('dialog', { name: 'Tab history' }))
+    fireEvent.click(
+      document.querySelector('.tab-history-restore') as HTMLElement
+    )
+    await waitFor(() => assert.ok(screen.getByRole('tab', { name: 'beta' })))
   })
 
   it('switches a searched tab through the existing selection path and scrolls it into view', async () => {

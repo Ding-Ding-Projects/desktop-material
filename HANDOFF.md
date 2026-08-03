@@ -7544,6 +7544,11 @@ The interaction gate verified:
 - guarded inverse tab close with literal matching, live counts, zero-match and
   pinned-tab protection, plus drag/keyboard arrangement and six stable one-shot
   sorts that persist without reacting continuously to status changes;
+- a raised, reduced-motion-safe drag preview with a live before/after insertion
+  rail, plus a bounded per-profile/window recently-closed tab history surface.
+  History restores the original tab object, including group, pin, favorite,
+  label, and appearance, and exposes search, regex opt-in, forget, restore, and
+  clear actions;
 - exact workflow-run cancellation identity/status revalidation, one normal
   cancellation request, duplicate suppression, accepted-response polling to a
   terminal state, and no force-cancel request;
