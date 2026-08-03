@@ -214,6 +214,7 @@ describe('internal browser contracts', () => {
         matchCase: false,
         forward: true,
         findNext: false,
+        requestId: 7,
       }),
       {
         type: 'find-in-page',
@@ -222,6 +223,7 @@ describe('internal browser contracts', () => {
         matchCase: false,
         forward: true,
         findNext: false,
+        requestId: 7,
       }
     )
     assert.deepEqual(
@@ -235,8 +237,9 @@ describe('internal browser contracts', () => {
       normalizeInternalBrowserCommand({
         type: 'read-page-text',
         tabId: 'browser-tab-3',
+        requestId: 8,
       }),
-      { type: 'read-page-text', tabId: 'browser-tab-3' }
+      { type: 'read-page-text', tabId: 'browser-tab-3', requestId: 8 }
     )
   })
 
@@ -248,6 +251,7 @@ describe('internal browser contracts', () => {
       matchCase: false,
       forward: true,
       findNext: false,
+      requestId: 9,
     }
     assert.equal(
       normalizeInternalBrowserCommand({ ...valid, tabId: 'not-a-tab' }),
@@ -270,6 +274,14 @@ describe('internal browser contracts', () => {
     )
     assert.equal(
       normalizeInternalBrowserCommand({ type: 'read-page-text' }),
+      null
+    )
+    assert.equal(
+      normalizeInternalBrowserCommand({
+        type: 'read-page-text',
+        tabId: 'browser-tab-3',
+        requestId: -1,
+      }),
       null
     )
   })

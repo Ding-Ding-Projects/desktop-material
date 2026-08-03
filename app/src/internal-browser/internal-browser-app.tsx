@@ -6,6 +6,7 @@ import {
   translate,
   translateForAccessibleName,
   TranslationKey,
+  TranslationVariables,
 } from '../lib/i18n'
 import { LanguageMode } from '../models/language-mode'
 import { LanguageModeStorageKey } from '../lib/language-preference'
@@ -17,13 +18,24 @@ import {
   IInternalBrowserTabState,
   InternalBrowserBookmarksStorageKey,
   InternalBrowserCommand,
+  InternalBrowserFindMode,
+  IInternalBrowserFindResult,
+  IInternalBrowserFindTally,
+  IInternalBrowserPageText,
   InternalBrowserTabError,
+  emptyFindResult,
+  findMatchContext,
+  MaximumFindQueryLength,
+  MaximumFindResults,
   readInternalBrowserBookmarks,
   resolveInternalBrowserAddressBar,
   sanitizeBrowserTitle,
   writeInternalBrowserBookmarks,
 } from '../lib/internal-browser'
+import { compileSafeRegex } from '../lib/safe-regex'
 import { MaterialSymbol } from '../ui/lib/material-symbol'
+import { escapeLiteral } from '../ui/lib/regex-builder/regex-block-model'
+import { RegexBuilder } from '../ui/lib/regex-builder/regex-builder'
 import { applyPersistedInternalBrowserAppearance } from './internal-browser-appearance'
 
 interface IInternalBrowserAppState {
@@ -34,6 +46,12 @@ interface IInternalBrowserAppState {
   readonly pendingAddress: IInternalBrowserPendingAddress | null
   readonly bookmarks: ReadonlyArray<IInternalBrowserBookmark>
   readonly languageMode: LanguageMode
+  readonly findOpen: boolean
+  readonly findQuery: string
+  readonly findMode: InternalBrowserFindMode
+  readonly findCaseSensitive: boolean
+  readonly findResult: IInternalBrowserFindResult
+  readonly regexBuilderOpen: boolean
 }
 
 const emptyBrowserState: IInternalBrowserState = {
@@ -86,6 +104,7 @@ export class InternalBrowserApp extends React.Component<
   IInternalBrowserAppState
 > {
   private readonly addressInput = React.createRef<HTMLInputElement>()
+  private readonly findInput = React.createRef<HTMLInputElement>()
   private readonly contentViewport = React.createRef<HTMLDivElement>()
   private resizeObserver: ResizeObserver | null = null
   private boundsFrame: number | null = null
@@ -93,6 +112,7 @@ export class InternalBrowserApp extends React.Component<
   private lastActiveTabId: string | null = null
   private colorSchemeMedia: MediaQueryList | null = null
   private readonly tabButtons = new Map<string, HTMLButtonElement>()
+  private findRequestId = 0
 
   public constructor(props: {}) {
     super(props)
@@ -103,11 +123,19 @@ export class InternalBrowserApp extends React.Component<
       pendingAddress: null,
       bookmarks: readInternalBrowserBookmarks(),
       languageMode: getPersistedLanguageMode(),
+      findOpen: false,
+      findQuery: '',
+      findMode: 'plain',
+      findCaseSensitive: false,
+      findResult: emptyFindResult,
+      regexBuilderOpen: false,
     }
   }
 
   public componentDidMount() {
     ipcRenderer.on('internal-browser-state', this.onBrowserState)
+    ipcRenderer.on('internal-browser-find', this.onFindTally)
+    ipcRenderer.on('internal-browser-page-text', this.onPageText)
     window.addEventListener('keydown', this.onKeyDown)
     window.addEventListener('resize', this.queueBoundsUpdate)
     window.addEventListener('storage', this.onStorage)
@@ -175,11 +203,14 @@ export class InternalBrowserApp extends React.Component<
       tab?.intent ?? 'none',
       tab?.error ?? 'none',
       state.languageMode,
+      state.findOpen ? 'find-open' : 'find-closed',
     ].join('|')
   }
 
   public componentWillUnmount() {
     ipcRenderer.removeListener('internal-browser-state', this.onBrowserState)
+    ipcRenderer.removeListener('internal-browser-find', this.onFindTally)
+    ipcRenderer.removeListener('internal-browser-page-text', this.onPageText)
     window.removeEventListener('keydown', this.onKeyDown)
     window.removeEventListener('resize', this.queueBoundsUpdate)
     window.removeEventListener('storage', this.onStorage)
@@ -196,7 +227,8 @@ export class InternalBrowserApp extends React.Component<
     }
   }
 
-  private t = (key: TranslationKey) => translate(key, this.state.languageMode)
+  private t = (key: TranslationKey, variables: TranslationVariables = {}) =>
+    translate(key, this.state.languageMode, variables)
 
   /**
    * Name the window after the page it is showing, the way a browser does.
@@ -234,10 +266,91 @@ export class InternalBrowserApp extends React.Component<
   ) => {
     const activeChanged = browser.activeTabId !== this.lastActiveTabId
     this.lastActiveTabId = browser.activeTabId
+    this.setState(
+      previous => ({
+        browser,
+        ...resolveInternalBrowserAddressBar(previous, browser, activeChanged),
+      }),
+      () => {
+        if (activeChanged && this.state.findOpen) {
+          this.runFind()
+        }
+      }
+    )
+  }
+
+  private onFindTally = (_event: unknown, tally: IInternalBrowserFindTally) => {
+    const tab = activeTab(this.state.browser)
+    if (
+      this.state.findMode !== 'plain' ||
+      tab?.id !== tally.tabId ||
+      tally.requestId !== this.findRequestId
+    ) {
+      return
+    }
     this.setState(previous => ({
-      browser,
-      ...resolveInternalBrowserAddressBar(previous, browser, activeChanged),
+      findResult: {
+        ...previous.findResult,
+        mode: 'plain',
+        total: tally.total,
+        active: tally.total === 0 ? 0 : tally.active,
+        error: null,
+        matches: [],
+      },
     }))
+  }
+
+  private onPageText = (
+    _event: unknown,
+    pageText: IInternalBrowserPageText
+  ) => {
+    const tab = activeTab(this.state.browser)
+    if (
+      this.state.findMode !== 'regex' ||
+      tab?.id !== pageText.tabId ||
+      pageText.requestId !== this.findRequestId
+    ) {
+      return
+    }
+
+    const query = this.state.findQuery
+    if (query.length === 0) {
+      return
+    }
+    const compilation = compileSafeRegex(query, this.state.findCaseSensitive)
+    if (compilation.regex === null) {
+      this.setState({
+        findResult: {
+          mode: 'regex',
+          total: null,
+          active: null,
+          error: compilation.error,
+          truncated: pageText.truncated,
+          matches: [],
+        },
+      })
+      return
+    }
+
+    const evaluated = compilation.regex.findAll(
+      pageText.text,
+      MaximumFindResults
+    )
+    const matches = evaluated.matches.map(match => ({
+      index: match.index,
+      text: match.text,
+      context: findMatchContext(pageText.text, match.index, match.text.length),
+    }))
+    this.setState({
+      findResult: {
+        mode: 'regex',
+        total: matches.length,
+        active: matches.length === 0 ? 0 : 1,
+        error: null,
+        truncated: pageText.truncated || evaluated.truncated,
+        matches,
+      },
+    })
   }
 
   private sendCommand(command: InternalBrowserCommand) {
@@ -274,6 +387,10 @@ export class InternalBrowserApp extends React.Component<
         }
         return
       }
+      case 'f':
+        event.preventDefault()
+        this.onOpenFind()
+        return
     }
   }
 
@@ -319,6 +436,329 @@ export class InternalBrowserApp extends React.Component<
       }
       this.sendContentBounds()
     }, BoundsMeasurementFallbackDelay)
+  }
+
+  private nextFindRequestId() {
+    this.findRequestId =
+      this.findRequestId >= Number.MAX_SAFE_INTEGER ? 0 : this.findRequestId + 1
+    return this.findRequestId
+  }
+
+  /** Start the current search against the active native page. */
+  private runFind = () => {
+    const mode = this.state.findMode
+    const query = this.state.findQuery
+    const tab = activeTab(this.state.browser)
+    const requestId = this.nextFindRequestId()
+
+    this.setState({
+      findResult: {
+        ...emptyFindResult,
+        mode,
+      },
+    })
+
+    if (tab === null || query.length === 0) {
+      if (tab !== null) {
+        this.sendCommand({
+          type: 'find-in-page',
+          tabId: tab.id,
+          query: '',
+          matchCase: this.state.findCaseSensitive,
+          forward: true,
+          findNext: false,
+          requestId,
+        })
+      }
+      return
+    }
+
+    if (mode === 'plain') {
+      this.sendCommand({
+        type: 'find-in-page',
+        tabId: tab.id,
+        query,
+        matchCase: this.state.findCaseSensitive,
+        forward: true,
+        findNext: false,
+        requestId,
+      })
+      return
+    }
+
+    this.sendCommand({
+      type: 'read-page-text',
+      tabId: tab.id,
+      requestId,
+    })
+  }
+
+  private onOpenFind = () => {
+    this.setState({ findOpen: true }, () => {
+      this.findInput.current?.focus()
+      this.findInput.current?.select()
+      this.runFind()
+    })
+  }
+
+  private onCloseFind = () => {
+    const tab = activeTab(this.state.browser)
+    if (tab !== null) {
+      this.sendCommand({ type: 'stop-find-in-page', tabId: tab.id })
+    }
+    this.nextFindRequestId()
+    this.setState({
+      findOpen: false,
+      regexBuilderOpen: false,
+      findResult: { ...emptyFindResult, mode: this.state.findMode },
+    })
+  }
+
+  private onFindQueryChanged = (event: React.FormEvent<HTMLInputElement>) => {
+    const query = event.currentTarget.value.slice(0, MaximumFindQueryLength)
+    this.setState({ findQuery: query }, this.runFind)
+  }
+
+  private onFindSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    this.onFindNavigate(true)
+  }
+
+  private onFindKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      this.onCloseFind()
+    }
+  }
+
+  private onFindModeToggle = () => {
+    const mode: InternalBrowserFindMode =
+      this.state.findMode === 'plain' ? 'regex' : 'plain'
+    const tab = activeTab(this.state.browser)
+    if (tab !== null) {
+      this.sendCommand({ type: 'stop-find-in-page', tabId: tab.id })
+    }
+    this.setState(
+      {
+        findMode: mode,
+        regexBuilderOpen: false,
+        findResult: { ...emptyFindResult, mode },
+      },
+      this.runFind
+    )
+  }
+
+  private onFindCaseToggle = () => {
+    this.setState(
+      state => ({ findCaseSensitive: !state.findCaseSensitive }),
+      this.runFind
+    )
+  }
+
+  private onFindNavigate = (forward: boolean) => {
+    const tab = activeTab(this.state.browser)
+    if (tab === null || this.state.findQuery.length === 0) {
+      return
+    }
+    if (this.state.findMode === 'regex') {
+      const total = this.state.findResult.matches.length
+      if (total === 0) {
+        return
+      }
+      this.setState(state => {
+        const current = state.findResult.active ?? (forward ? 0 : total + 1)
+        const next = forward
+          ? (current % total) + 1
+          : ((current - 2 + total) % total) + 1
+        return { findResult: { ...state.findResult, active: next } }
+      })
+      return
+    }
+    const requestId = this.nextFindRequestId()
+    this.sendCommand({
+      type: 'find-in-page',
+      tabId: tab.id,
+      query: this.state.findQuery,
+      matchCase: this.state.findCaseSensitive,
+      forward,
+      findNext: true,
+      requestId,
+    })
+  }
+
+  private onOpenRegexBuilder = () => {
+    this.setState({ regexBuilderOpen: true })
+  }
+
+  private onCloseRegexBuilder = () => {
+    this.setState({ regexBuilderOpen: false })
+  }
+
+  private onApplyRegexPattern = (pattern: string, caseSensitive: boolean) => {
+    this.setState(
+      {
+        findMode: 'regex',
+        findQuery: pattern.slice(0, MaximumFindQueryLength),
+        findCaseSensitive: caseSensitive,
+        regexBuilderOpen: false,
+      },
+      this.runFind
+    )
+  }
+
+  private renderFindBuilder() {
+    if (!this.state.regexBuilderOpen) {
+      return null
+    }
+    return (
+      <RegexBuilder
+        searchSurfaceId="internal-browser-find"
+        targetLabel={this.t('browser.findTarget')}
+        initialPattern={
+          this.state.findMode === 'plain'
+            ? escapeLiteral(this.state.findQuery)
+            : this.state.findQuery
+        }
+        caseSensitive={this.state.findCaseSensitive}
+        sampleItems={this.state.findResult.matches.map(match => match.context)}
+        onApply={this.onApplyRegexPattern}
+        onDismissed={this.onCloseRegexBuilder}
+      />
+    )
+  }
+
+  private renderFindBar() {
+    if (!this.state.findOpen) {
+      return null
+    }
+    const result = this.state.findResult
+    const count =
+      this.state.findQuery.length === 0
+        ? ''
+        : result.error !== null
+        ? result.error
+        : result.total === null
+        ? this.t('browser.findSearching')
+        : result.total === 0
+        ? this.t('browser.findNoMatches')
+        : this.t('browser.findCount', {
+            active: String(result.active ?? 0),
+            total: String(result.total),
+          })
+    return (
+      <form
+        className="internal-browser-find-bar"
+        role="search"
+        aria-label={this.t('browser.findLabel')}
+        onSubmit={this.onFindSubmit}
+      >
+        <label className="internal-browser-find-input">
+          <span className="sr-only">{this.t('browser.findQueryLabel')}</span>
+          <input
+            ref={this.findInput}
+            type="search"
+            value={this.state.findQuery}
+            maxLength={MaximumFindQueryLength}
+            onChange={this.onFindQueryChanged}
+            onKeyDown={this.onFindKeyDown}
+            placeholder={this.t('browser.findPlaceholder')}
+            aria-describedby="internal-browser-find-status"
+          />
+        </label>
+        <button
+          type="button"
+          className={`internal-browser-find-mode${
+            this.state.findMode === 'regex' ? ' selected' : ''
+          }`}
+          aria-label={this.t('browser.findMode')}
+          aria-pressed={this.state.findMode === 'regex'}
+          onClick={this.onFindModeToggle}
+        >
+          {this.state.findMode === 'regex' ? '.*' : 'Aa'}
+        </button>
+        <button
+          type="button"
+          className="internal-browser-find-builder"
+          onClick={this.onOpenRegexBuilder}
+          aria-label={this.t('browser.findBuilder')}
+        >
+          .* {this.t('browser.findBuilder')}
+        </button>
+        <button
+          type="button"
+          className={`internal-browser-find-case${
+            this.state.findCaseSensitive ? ' selected' : ''
+          }`}
+          aria-label={this.t('browser.findCaseSensitive')}
+          aria-pressed={this.state.findCaseSensitive}
+          onClick={this.onFindCaseToggle}
+        >
+          Aa
+        </button>
+        <button
+          type="button"
+          className="internal-browser-find-nav"
+          aria-label={this.t('browser.findPrevious')}
+          disabled={result.total === 0}
+          onClick={() => this.onFindNavigate(false)}
+        >
+          <MaterialSymbol name="arrow_upward" size={18} />
+        </button>
+        <button
+          type="button"
+          className="internal-browser-find-nav"
+          aria-label={this.t('browser.findNext')}
+          disabled={result.total === 0}
+          onClick={() => this.onFindNavigate(true)}
+        >
+          <MaterialSymbol name="keyboard_arrow_down" size={18} />
+        </button>
+        <output
+          id="internal-browser-find-status"
+          className={`internal-browser-find-status${
+            result.error !== null ? ' error' : ''
+          }`}
+          aria-live="polite"
+        >
+          {count}
+          {result.truncated && ` · ${this.t('browser.findTruncated')}`}
+        </output>
+        <button
+          type="button"
+          className="internal-browser-find-close"
+          aria-label={this.t('browser.findClose')}
+          onClick={this.onCloseFind}
+        >
+          <MaterialSymbol name="close" size={19} />
+        </button>
+        {result.mode === 'regex' && result.matches.length > 0 && (
+          <ol
+            className="internal-browser-find-results"
+            aria-label={this.t('browser.findResults')}
+          >
+            {result.matches.map((match, index) => (
+              <li key={`${match.index}-${index}`}>
+                <button
+                  type="button"
+                  aria-current={result.active === index + 1}
+                  aria-label={this.t('browser.findMatch', {
+                    number: String(index + 1),
+                  })}
+                  onClick={() =>
+                    this.setState(state => ({
+                      findResult: { ...state.findResult, active: index + 1 },
+                    }))
+                  }
+                >
+                  {match.context}
+                </button>
+              </li>
+            ))}
+          </ol>
+        )}
+        {this.renderFindBuilder()}
+      </form>
+    )
   }
 
   private onAddressChanged = (event: React.FormEvent<HTMLInputElement>) => {
@@ -632,6 +1072,14 @@ export class InternalBrowserApp extends React.Component<
           <MaterialSymbol name="open_in_new" size={19} />
           <span>{this.t('browser.openExternal')}</span>
         </button>
+        <button
+          type="button"
+          className="internal-browser-icon-button internal-browser-find-open"
+          aria-label={this.t('browser.findOpen')}
+          onClick={this.onOpenFind}
+        >
+          <MaterialSymbol name="search" size={21} />
+        </button>
       </form>
     )
   }
@@ -715,6 +1163,7 @@ export class InternalBrowserApp extends React.Component<
             {this.renderNewTabButton()}
           </div>
           {this.renderToolbar(tab)}
+          {this.renderFindBar()}
           {this.renderBookmarks()}
           {this.renderNotices(tab)}
         </header>

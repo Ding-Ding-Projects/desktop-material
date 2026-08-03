@@ -2,7 +2,7 @@
 
 Updated: **August 3, 2026**
 
-## August 3 audit checkpoint — **Scoped fixes verified; roadmap work remains factual**
+## August 3 audit checkpoint — **Scoped fixes verified; browser page search now usable**
 
 - The Agents creator is now mounted through the shared modal dialog layer and
   keeps its Options disclosure disabled during creation. The live store and
@@ -10,6 +10,14 @@ Updated: **August 3, 2026**
 - The Ollama model manager now has a localized Clear search action that resets
   only the query and preserves the active search mode. Its focused unit suite
   passes 14/14.
+- The internal browser now exposes page search from its toolbar and `Ctrl+F`.
+  Plain mode uses Chromium's in-page highlighting; regex mode reads bounded
+  isolated-world page text and evaluates it with the existing safe RE2 engine.
+  Both modes have case control, previous/next navigation, an anchored regex
+  builder route, bounded request tokens, and localized result/status copy.
+- The browser page-search contracts and chrome tests pass 32/32 across the
+  focused contract and UI files. A real Windows bundle and hidden-desktop
+  smoke remain required before this slice is called runtime-verified.
 - The required production bundle launched on the hidden Windows desktop and
   produced a real first-paint frame. CDP interaction was interrupted by the
   first-run/checklist overlay, so no Ollama screenshot is claimed from that
@@ -83,21 +91,21 @@ ahead of any single feature that depends on it.
   page read is still unbounded, and the version-history timeline's `listbox`
   structure is still wrong.
 
-## August 2 internal browser — **Defects fixed; page search half-built; three features not started**
+## August 2 internal browser — **Defects fixed; page search renderer completed; three features remain**
 
 - Four real defects fixed: an IPC message per address-bar keystroke, a
   `tablist` with no panel and non-tabs inside it, a window title that never
   named the page, and a null check that missed `undefined`.
-- Page search: the main-process half is done (plain search via Chromium's
-  `findInPage`; pattern search by reading page text in an isolated world and
-  evaluating RE2 outside the page). **The renderer find bar does not exist, so
-  the feature is reachable by nothing yet.**
+- Page search now has its renderer find bar as well as the main-process half:
+  plain search uses Chromium's `findInPage`; pattern search reads page text in
+  an isolated world and evaluates RE2 outside the page. Stale replies are
+  discarded by request token, and regex results expose bounded context buttons.
 - Regex mode deliberately cannot highlight in-page matches — that needs DOM
   mutation. Plain mode highlights; regex mode lists matches with context.
 - Running any script inside a page is new for this browser and was an explicit
   decision. See `HANDOFF.md` for the boundary it keeps.
-- Not started: the find bar UI, funny-level sliders, non-blocking
-  notifications, and the dim sum surprise in the browser window.
+- Still not started: funny-level sliders, non-blocking notifications, and the
+  dim sum surprise in the browser window.
 
 ## August 1 line counts move into releases — **Implemented and dewed**
 

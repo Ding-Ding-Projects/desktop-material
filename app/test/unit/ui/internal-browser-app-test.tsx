@@ -69,25 +69,48 @@ class BrowserWithAuthTab extends BrowserWithTabs {
 describe('internal browser chrome', () => {
   let rawIpcRenderer: Electron.IpcRenderer
   let previousSend: Electron.IpcRenderer['send']
+  let previousOn: Electron.IpcRenderer['on']
   let previousRemoveListener: Electron.IpcRenderer['removeListener']
   let sends: Array<{ channel: string; args: ReadonlyArray<unknown> }>
+  let listeners: Map<string, Array<(...args: unknown[]) => void>>
 
   beforeEach(async () => {
     localStorage.clear()
     sends = []
+    listeners = new Map()
     rawIpcRenderer = (await import('electron')).ipcRenderer
     previousSend = rawIpcRenderer.send
+    previousOn = rawIpcRenderer.on
     previousRemoveListener = rawIpcRenderer.removeListener
     rawIpcRenderer.send = (channel: string, ...args: unknown[]) => {
       sends.push({ channel, args })
     }
+    rawIpcRenderer.on = ((
+      channel: string,
+      listener: (...args: unknown[]) => void
+    ) => {
+      const existing = listeners.get(channel) ?? []
+      existing.push(listener)
+      listeners.set(channel, existing)
+      return rawIpcRenderer
+    }) as Electron.IpcRenderer['on']
     rawIpcRenderer.removeListener = () => rawIpcRenderer
   })
 
   afterEach(() => {
     rawIpcRenderer.send = previousSend
-    rawIpcRenderer.removeListener = previousRemoveListener
+    rawIpcRenderer.on = previousOn
+    rawIpcRenderer.removeListener =
+      typeof previousRemoveListener === 'function'
+        ? previousRemoveListener
+        : () => rawIpcRenderer
   })
+
+  const emit = (channel: string, ...args: unknown[]) => {
+    for (const listener of listeners.get(channel) ?? []) {
+      listener({}, ...args)
+    }
+  }
 
   it('implements roving tab focus and activation keys', () => {
     const view = render(<BrowserWithTabs />)
@@ -139,6 +162,111 @@ describe('internal browser chrome', () => {
       })
     )
     assert.ok(screen.getByRole('button', { name: 'Close tab: New tab' }))
+    view.unmount()
+  })
+
+  it('opens the find bar from Ctrl+F and sends bounded plain searches', () => {
+    const view = render(<BrowserWithTabs />)
+
+    fireEvent.keyDown(window, { key: 'f', ctrlKey: true })
+    const find = screen.getByRole('search')
+    const input = screen.getByRole('searchbox', {
+      name: 'Find text or pattern',
+    })
+    assert.ok(find)
+
+    fireEvent.change(input, { target: { value: 'release' } })
+    const command = sends
+      .map(entry => entry.args[0])
+      .reverse()
+      .find(
+        value =>
+          typeof value === 'object' &&
+          value !== null &&
+          (value as { type?: unknown }).type === 'find-in-page'
+      ) as {
+      type: string
+      tabId: string
+      query: string
+      requestId: number
+    }
+    assert.deepEqual(
+      {
+        type: command.type,
+        tabId: command.tabId,
+        query: command.query,
+      },
+      { type: 'find-in-page', tabId: 'browser-tab-1', query: 'release' }
+    )
+    assert.equal(Number.isSafeInteger(command.requestId), true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close find bar' }))
+    assert.deepEqual(sends[sends.length - 1], {
+      channel: 'internal-browser-command',
+      args: [{ type: 'stop-find-in-page', tabId: 'browser-tab-1' }],
+    })
+    view.unmount()
+  })
+
+  it('evaluates regex searches from page text and exposes match navigation', () => {
+    const view = render(<BrowserWithTabs />)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Find in page (Ctrl+F)' })
+    )
+    const input = screen.getByRole('searchbox', {
+      name: 'Find text or pattern',
+    })
+    fireEvent.change(input, { target: { value: 'release' } })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Toggle plain-text or regex mode' })
+    )
+
+    const command = sends
+      .map(entry => entry.args[0])
+      .reverse()
+      .find(
+        value =>
+          typeof value === 'object' &&
+          value !== null &&
+          (value as { type?: unknown }).type === 'read-page-text'
+      ) as { type: string; tabId: string; requestId: number }
+    assert.equal(command.type, 'read-page-text')
+    assert.equal(command.tabId, 'browser-tab-1')
+    assert.equal(Number.isSafeInteger(command.requestId), true)
+
+    emit('internal-browser-page-text', {
+      tabId: command.tabId,
+      requestId: command.requestId,
+      text: 'release notes: release safely',
+      truncated: false,
+    })
+
+    assert.ok(screen.getByText('1 of 2'))
+    const matchButtons = screen.getAllByRole('button', {
+      name: /Go to match/i,
+    })
+    assert.equal(matchButtons.length, 2)
+    fireEvent.click(matchButtons[1])
+    assert.equal(matchButtons[1].getAttribute('aria-current'), 'true')
+
+    fireEvent.change(input, { target: { value: '(' } })
+    const invalidCommand = sends
+      .map(entry => entry.args[0])
+      .reverse()
+      .find(
+        value =>
+          typeof value === 'object' &&
+          value !== null &&
+          (value as { type?: unknown }).type === 'read-page-text'
+      ) as { type: string; tabId: string; requestId: number }
+    emit('internal-browser-page-text', {
+      tabId: invalidCommand.tabId,
+      requestId: invalidCommand.requestId,
+      text: 'release',
+      truncated: false,
+    })
+    assert.ok(screen.getByRole('status').textContent?.trim())
     view.unmount()
   })
 })

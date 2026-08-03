@@ -497,7 +497,12 @@ Refresh/Stop, a labelled address field, Go, ordinary bookmarks, and **Open
 externally**. A bare host such as `example.com/docs` becomes HTTPS. Arbitrary
 words are not sent to a search engine. HTTP(S) redirects stay in the current
 tab; a page's `window.open` target is captured into a new app-hosted tab instead
-of receiving an unrestricted popup.
+of receiving an unrestricted popup. Use the toolbar search button or
+<kbd>Ctrl</kbd>+<kbd>F</kbd> to search the active page. Plain text is the default
+and highlights through Chromium; regex is an explicit opt-in with the shared
+regex builder, case matching, previous/next navigation, and bounded context
+results. Regex reads capped page text in an isolated world and does not mutate
+remote page DOM, so it reports matches without pretending to highlight them.
 
 Sign-in tabs show a **SIGN IN** marker and private-session notice. They cannot
 be bookmarked, use an in-memory session shared only with their sign-in popups,
@@ -517,7 +522,9 @@ in the browser chrome with a refresh or external-browser recovery path.
 <sub>**香港粵語速讀。** **Settings → Advanced → Open web links** 預設兼建議用系統
 瀏覽器，特別係 app 內瀏覽器一片空白嗰陣；真係想用先明確揀 app 入面。App 入面有分頁、網址列、前後頁、重新整理、Go、書籤同外部逃生門；網頁
 自己就鎖喺 sandbox view，冇 Node、冇 app IPC、冇權限，壞憑證唔會夾硬放行。登入
-分頁係記憶體工作階段、加唔到書籤，閂咗會清資料，亦永遠可以轉去系統瀏覽器。呢
+分頁係記憶體工作階段、加唔到書籤，閂咗會清資料，亦永遠可以轉去系統瀏覽器。撳工具列搵嘢掣或者
+<kbd>Ctrl</kbd>+<kbd>F</kbd> 就可以搵目前頁面；預設係純文字高亮，亦可以揀 regex 建構器、大小寫、上一個／下一個同配對摘要。
+呢
 本機正式 build 同 hidden-desktop 驗收已經過關；遠端發佈證據另外計。</sub>
 
 See [App-hosted browser](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/integrations/app-hosted-browser.md) for

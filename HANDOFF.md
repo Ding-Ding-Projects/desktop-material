@@ -15,6 +15,13 @@ added the following scoped fixes:
 - The Ollama model manager now has a localized, accessible Clear search action
   beside its inventory search. It clears only the query and preserves the
   selected plain-text/regex filter mode and case behavior.
+- The internal browser now has a toolbar and `Ctrl+F` find bar. Plain-text
+  searches retain Chromium highlighting; regex searches read bounded text from
+  an isolated world and evaluate it with the safe RE2 adapter. The bar exposes
+  case control, previous/next navigation, bounded regex match context, the
+  shared regex builder, and localized accessible labels. Main-process and
+  renderer request IDs prevent stale asynchronous tallies from repainting a
+  newer query.
 - The repository-list flex containment adjustment and its existing test remain
   in the task diff; they were preserved rather than discarded during this
   audit.
@@ -23,9 +30,10 @@ Verification so far: the required production webpack build emitted the current
 `out/main.js` bundle; the hidden Win32 desktop launched it with a disposable
 profile and fixture and produced a nonblank 1443×992 first-paint capture;
 `ollama-model-manager-test.tsx` passed 14/14; the focused rejected-creation
-Agents test passed 1/1; Prettier and `tsc --noEmit` are clean. Direct ESLint
-invocation is not a valid repository lint entry point because it lacks the
-repository rule plugin; use the repository lint script/CI for that gate.
+Agents test passed 1/1; the focused internal-browser contract and UI files pass
+32/32; Prettier, `tsc --noEmit`, and the targeted repository ESLint rules are
+clean. The new browser slice still needs a fresh exact build and runtime smoke;
+the prior first-run/checklist overlay prevented a truthful Ollama capture.
 
 The three roadmap audits confirm that R3/R4/R5/R8 have substantial local
 foundations but still need built-app captures or remaining live wiring, while
@@ -512,12 +520,11 @@ handoff's claim of a clean typecheck was wrong. That was the first thing fixed.
   real measurement arrives, because the safety floor is the default-density
   chrome height.
 
-## 2026-08-02 — Internal browser: page search half-built, three features not started
+## 2026-08-02 — Internal browser: page search renderer completed, three features remain
 
-**Read this before touching `app/src/internal-browser/`.** The main-process half
-of page search is on `main` and working; the renderer half does not exist yet, so
-the feature is currently reachable by nothing. Four commits landed, three
-requested features were not started.
+**Read this before touching `app/src/internal-browser/`.** The main-process and
+renderer halves of page search are now present. Four commits established the
+browser defects/plumbing, and the current slice makes the feature reachable.
 
 ### Landed
 
@@ -574,17 +581,18 @@ left to look like a bug.
 
 | Feature | Notes for whoever picks it up |
 | --- | --- |
-| **Find bar UI** | The only missing piece of page search. Renderer must listen to `internal-browser-find` (`{tabId, total, active}`) and `internal-browser-page-text` (`{tabId, text, truncated}`), and send `find-in-page` / `stop-find-in-page` / `read-page-text`. The anchored regex builder lives at `app/src/ui/lib/regex-builder/`; RE2 evaluation and every bound are in `app/src/lib/safe-regex.ts`. Plain text stays the default with regex an explicit opt-in. |
+| **Find bar UI** | Implemented in `app/src/internal-browser/internal-browser-app.tsx`. The renderer listens to `internal-browser-find` and `internal-browser-page-text`, sends bounded request-token commands, keeps plain text as the default, and offers regex mode plus the shared anchored builder. Focused contract/UI tests pass 32/32; exact Windows build and runtime smoke are still pending for this checkpoint. |
 | **Funny-level sliders** | It reads `languageMode` and uses `t()` for 37 strings but never consults `readFunnyLevels()`, so its copy ignores a setting the rest of the app honours. Pattern to copy: `app/src/lib/dim-sum-copy.ts`. |
 | **Non-blocking notifications** | It has no toast surface; the error notice is `role="alert"` `aria-live="assertive"` in the header, which interrupts and shifts layout. |
 | **Dim sum surprise** | The browser is a separate renderer entry point and takes no part in the 10% draw. Model, copy and card all exist — see `app/src/models/dim-sum.ts` and `app/src/ui/dim-sum/`. Needs its own suppression rules (an authentication tab is mid-task and must not be interrupted). |
 
 ### Verification state
 
-`tsc --noEmit` clean, Prettier and ESLint clean, SCSS compiles. **No new tests
-were written for the page-search plumbing** — `findMatchContext` and the command
-model are pure and should get them. The renderer half being absent means nothing
-exercises the new IPC end to end yet.
+`tsc --noEmit` clean, Prettier and targeted ESLint clean, SCSS compiles. The
+focused internal-browser contract and chrome suites pass **32/32**, including
+plain and regex query dispatch, request-token matching, regex result navigation,
+and close behavior. The exact Windows build and runtime smoke are the remaining
+verification boundary for this checkpoint.
 
 ## 2026-08-01 — The dim sum surprise reaches the app
 

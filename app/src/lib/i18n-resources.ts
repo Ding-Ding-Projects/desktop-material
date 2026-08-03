@@ -1889,6 +1889,23 @@ export type TranslationKey =
   | 'browser.authNoticeTitle'
   | 'browser.authNoticeBody'
   | 'browser.openAuthExternal'
+  | 'browser.findOpen'
+  | 'browser.findLabel'
+  | 'browser.findQueryLabel'
+  | 'browser.findPlaceholder'
+  | 'browser.findMode'
+  | 'browser.findBuilder'
+  | 'browser.findCaseSensitive'
+  | 'browser.findPrevious'
+  | 'browser.findNext'
+  | 'browser.findClose'
+  | 'browser.findTarget'
+  | 'browser.findSearching'
+  | 'browser.findNoMatches'
+  | 'browser.findCount'
+  | 'browser.findTruncated'
+  | 'browser.findResults'
+  | 'browser.findMatch'
   | 'browser.error.invalidAddress'
   | 'browser.error.loadFailed'
   | 'browser.error.certificate'
@@ -5827,6 +5844,23 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'browser.authNoticeBody':
     'This tab shares an in-memory session only with sign-in popups. Its address and data are cleared when sign-in closes, and it cannot be bookmarked.',
   'browser.openAuthExternal': 'Continue in system browser',
+  'browser.findOpen': 'Find in page (Ctrl+F)',
+  'browser.findLabel': 'Find in page',
+  'browser.findQueryLabel': 'Find text or pattern',
+  'browser.findPlaceholder': 'Find in page…',
+  'browser.findMode': 'Toggle plain-text or regex mode',
+  'browser.findBuilder': 'Regex builder',
+  'browser.findCaseSensitive': 'Match case',
+  'browser.findPrevious': 'Find previous',
+  'browser.findNext': 'Find next',
+  'browser.findClose': 'Close find bar',
+  'browser.findTarget': 'this page',
+  'browser.findSearching': 'Searching…',
+  'browser.findNoMatches': 'No matches',
+  'browser.findCount': '{active} of {total}',
+  'browser.findTruncated': 'page text capped',
+  'browser.findResults': 'Regex matches',
+  'browser.findMatch': 'Go to match {number}',
   'browser.error.invalidAddress': 'Enter a valid HTTP or HTTPS web address.',
   'browser.error.loadFailed': 'This page could not be loaded.',
   'browser.error.certificate':
@@ -10129,6 +10163,23 @@ export const cantoneseTranslations: Readonly<
   'browser.authNoticeBody':
     '呢個分頁只會同登入彈出分頁共享記憶體內嘅工作階段；關閉登入後會清走網址同資料，而且唔可以加書籤。',
   'browser.openAuthExternal': '轉去系統瀏覽器繼續',
+  'browser.findOpen': '喺頁面搵嘢（Ctrl+F）',
+  'browser.findLabel': '喺頁面搵嘢',
+  'browser.findQueryLabel': '搵文字或者樣式',
+  'browser.findPlaceholder': '喺頁面搵嘢…',
+  'browser.findMode': '切換純文字或者 regex 模式',
+  'browser.findBuilder': 'Regex 建構器',
+  'browser.findCaseSensitive': '分大小寫',
+  'browser.findPrevious': '搵上一個',
+  'browser.findNext': '搵下一個',
+  'browser.findClose': '關閉搵嘢列',
+  'browser.findTarget': '呢頁',
+  'browser.findSearching': '搵緊…',
+  'browser.findNoMatches': '搵唔到配對',
+  'browser.findCount': '第 {active} 個，共 {total} 個',
+  'browser.findTruncated': '頁面文字已封頂',
+  'browser.findResults': 'Regex 配對',
+  'browser.findMatch': '去第 {number} 個配對',
   'browser.error.invalidAddress': '請輸入有效嘅 HTTP 或 HTTPS 網址。',
   'browser.error.loadFailed': '載入唔到呢個頁面。',
   'browser.error.certificate': '頁面憑證驗證唔到，已經安全擋住。',
