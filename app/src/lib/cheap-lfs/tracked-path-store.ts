@@ -719,12 +719,22 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
       )
     }
     const requestedRoot = resolve(repositoryPath)
-    const repositoryRoot = await realpath(requestedRoot).catch(() => null)
-    if (repositoryRoot === null) {
-      throw new CheapLfsTrackedPathError(
-        'Cheap LFS could not canonicalize the repository root.'
-      )
-    }
+    // Every way this can fail used to arrive as the same sentence, which told
+    // the user that canonicalization did not happen but never which of the
+    // very different causes it was: the repository moved or was deleted
+    // (ENOENT), it sits behind permissions this process cannot open for a
+    // final-path query (EACCES/EPERM — routine on Windows, where realpath has
+    // to open a handle), or the path is a redirection loop (ELOOP). Those need
+    // different actions from the user, so the message now names the one that
+    // actually happened and the path it happened to.
+    const repositoryRoot = await realpath(requestedRoot).catch(
+      (error: NodeJS.ErrnoException) => {
+        throw new CheapLfsTrackedPathError(
+          `Cheap LFS could not canonicalize the repository root ` +
+            `${requestedRoot}: ${error.code ?? error.message}.`
+        )
+      }
+    )
     const rootEntry = await lstat(repositoryRoot, { bigint: true })
     if (rootEntry.isSymbolicLink() || !rootEntry.isDirectory()) {
       throw new CheapLfsTrackedPathError(

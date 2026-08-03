@@ -382,6 +382,20 @@ leaves the reviewed original intact. UI persistence and workflow setup are also
 bound to the originating repository so switching repositories during a private
 opt-in cannot apply that consent elsewhere.
 
+Every tracked-path operation starts by canonicalizing the repository root, and
+when that step fails the reported error names the path it failed on and the
+operating system's own error code rather than stating only that
+canonicalization did not happen. The distinction matters because the causes
+call for different responses and are not otherwise distinguishable from the
+message: `ENOENT` means the repository moved or was deleted out from under the
+open window, `EACCES` or `EPERM` means the process cannot open the directory
+for a final-path query (which on Windows is a handle-opening operation, so
+permissions, exclusive locks, and unhydrated cloud-backed folders all surface
+here), and `ELOOP` means the path redirects to itself. The check itself is
+unchanged and still fails closed: a root that cannot be canonicalized is never
+assumed safe, because canonicalization is what proves the root has not been
+redirected by a symlink, junction, or other reparse point.
+
 The caller pins both `actions/checkout` and Desktop Material's reviewed
 composite compressor to immutable commit SHAs. Checkout materializes only
 `.github`; the worker then refetches the exact event commit with an exclusive

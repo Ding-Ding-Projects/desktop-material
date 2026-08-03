@@ -502,3 +502,39 @@ describe('Cheap LFS tracked path store', () => {
     await assertMissing(canceledTemp)
   })
 })
+
+describe('Cheap LFS repository root canonicalization', () => {
+  it('names the reason the root could not be canonicalized', async t => {
+    const root = await repository(t)
+    const store = new CheapLfsTrackedPathStore()
+    // A root that is simply not there. Before, every distinct cause collapsed
+    // into one sentence that told the user canonicalization had failed but
+    // never which failure it was, so there was nothing to act on.
+    const missing = join(root, 'was-moved-or-deleted')
+
+    const error = await store
+      .proveExisting(missing, 'payload.bin')
+      .then(
+        () => null,
+        (raised: unknown) => raised as CheapLfsTrackedPathError
+      )
+
+    assert.ok(error instanceof CheapLfsTrackedPathError)
+    assert.match(error.message, /could not canonicalize the repository root/)
+    // The two things that make it actionable: which path, and which errno.
+    assert.ok(
+      error.message.includes(missing),
+      `message should name the path it failed on: ${error.message}`
+    )
+    assert.match(error.message, /ENOENT/)
+  })
+
+  it('still canonicalizes a healthy root without complaint', async t => {
+    const root = await repository(t)
+    const store = new CheapLfsTrackedPathStore()
+    await writeFile(join(root, 'payload.bin'), 'raw payload')
+
+    const proof = await store.proveExisting(root, 'payload.bin')
+    assert.equal(proof.exists, true)
+  })
+})
