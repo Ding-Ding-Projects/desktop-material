@@ -24,7 +24,28 @@ import { version } from './package.json'
  */
 export const AppDisplayName = 'Desktop Material'
 
-const devClientId = '3a723b10ac5575cc5bb9'
+// Desktop Material's own GitHub App client id. This is a public identifier —
+// it travels in the authorization URL every sign-in builds, so it is not a
+// secret and belongs in the source. The paired secret is not: it stays in
+// DESKTOP_OAUTH_CLIENT_SECRET and is never committed.
+//
+// A build still overrides this with DESKTOP_OAUTH_CLIENT_ID when one is set,
+// so a fork or a local experiment can point at its own app without editing
+// this file — and that is also how to switch to the fallback below without a
+// code change.
+//
+// `Iv23li…` is a GitHub *App* client id; `Ov23li…` is a classic *OAuth App*
+// client id. They authorize through the same endpoints but are not
+// interchangeable in behaviour: a GitHub App's access is scoped by its
+// installation, so a repository the app is not installed on stays invisible
+// even to a user who can see it, whereas an OAuth App gets whatever the
+// authorizing user granted. If sign-in works but repositories are missing,
+// that difference is the first thing to check, and the OAuth App id is the
+// fallback to try.
+export const GitHubAppClientId = 'Iv23liPCatYTLpipKJYS'
+export const OAuthAppClientId = 'Ov23liJJhHYC2YP1iTFN'
+
+const devClientId = GitHubAppClientId
 const devClientSecret = '22c34d87789a365981ed921352a7b9a8c3f69d54'
 
 const channel = getChannel()
