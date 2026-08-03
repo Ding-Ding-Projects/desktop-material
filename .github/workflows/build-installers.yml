@@ -175,7 +175,9 @@ jobs:
       - name: Run desktop-trampoline tests
         run: |
           cd vendor/desktop-trampoline
-          yarn install
+          yarn install --frozen-lockfile --production=false
+          npx --no-install node-gyp rebuild
+          yarn build
           yarn test
       - name: Prepare testing environment
         run: yarn test:setup
