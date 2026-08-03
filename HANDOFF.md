@@ -80,6 +80,16 @@ repair — both were ruled out by substitution (restoring the pre-repair
 section-list still reproduces it; so does raising the heap back to 4 GB), and it
 was already taking 127 s in CI before either landed. Do not re-test those two.
 
+DOM accumulation is ruled out too: rendering the panel repeatedly leaves 13
+elements and one body child every time, so Testing Library cleanup is working
+and the queries are not scanning a growing document.
+
+The per-test ceiling cannot help here, and the reason is worth knowing before
+anyone retries it: `node --test` can only time a test out between awaits, and
+these tests are synchronous. Whatever is burning the time is blocking the event
+loop, which also means the cost is inside a synchronous call — a render or a
+query — rather than in anything being waited on.
+
 `a2c25bf537` added a 120-second per-test ceiling so a wedged test names itself
 instead of the batch failing at file level with nothing to act on. It has not
 had the effect hoped for here: the run still ends at file level rather than
