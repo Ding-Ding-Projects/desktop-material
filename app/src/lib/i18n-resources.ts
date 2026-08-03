@@ -2976,6 +2976,7 @@ export type TranslationKey =
   | 'repositorySettings.cheapLfsTab'
   | 'repositorySettings.automationTab'
   | 'repositorySettings.appearanceTab'
+  | 'repositorySettings.searchLabel'
   | 'repositorySettings.appearance.intro'
   | 'repositorySettings.appearance.introHint'
   | 'repositorySettings.appearance.loading'
@@ -6708,6 +6709,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositorySettings.cheapLfsTab': 'Cheap LFS',
   'repositorySettings.automationTab': 'Automation (this repository)',
   'repositorySettings.appearanceTab': 'Appearance',
+  'repositorySettings.searchLabel': 'Search settings',
   'repositorySettings.appearance.intro':
     'Everything here belongs to this repository alone. Each section edits the same owner — the same setting, the same local Git repository, and the same history — that you reach by Shift+right-clicking the actual element.',
   'repositorySettings.appearance.introHint':
@@ -11063,6 +11065,7 @@ export const cantoneseTranslations: Readonly<
   'repositorySettings.cheapLfsTab': 'Cheap LFS 大檔案',
   'repositorySettings.automationTab': '自動化（呢個存放庫）',
   'repositorySettings.appearanceTab': '外觀',
+  'repositorySettings.searchLabel': '搵設定',
   'repositorySettings.appearance.intro':
     '呢度全部只係屬於呢個 repo。每一段都係改緊同一個主人——同一份設定、同一個本機 Git 倉、同一段歷史，即係你撳住 Shift 再右 click 個實物時開嗰個。',
   'repositorySettings.appearance.introHint':

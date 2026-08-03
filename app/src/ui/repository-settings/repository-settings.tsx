@@ -1,4 +1,8 @@
 import * as React from 'react'
+import { OcticonSymbol } from '../octicons'
+import { FilterMode } from '../../lib/fuzzy-find'
+import { filterByMode } from '../lib/filter-string-list'
+import { FilterModeControl } from '../lib/filter-mode-control'
 import { TabBar, TabBarType } from '../tab-bar'
 import { Remote } from './remote'
 import { GitIgnore } from './git-ignore'
@@ -85,8 +89,26 @@ interface IRemoteApplyProgress {
   readonly total: number
 }
 
+/**
+ * One row in the settings navigation, carrying the identity it selects.
+ *
+ * `searchText` exists because a label may be a `<LocalizedText>` element
+ * rather than a string, and a search has to match words the user can read.
+ */
+interface IRepositorySettingsTabDescriptor {
+  readonly tab: RepositorySettingsTab
+  readonly icon: OcticonSymbol
+  readonly label: React.ReactNode
+  readonly searchText?: string
+}
+
 interface IRepositorySettingsState {
   readonly selectedTab: RepositorySettingsTab
+
+  /** The settings search: its query, and the mode the regex builder set. */
+  readonly tabFilter: string
+  readonly tabFilterMode: FilterMode
+  readonly tabFilterCaseSensitive: boolean
   /** The last bounded, credential-redacted Remote Manager inspection. */
   readonly remoteSnapshot: IRemoteManagementSnapshot | null
   readonly remoteManagementDirty: boolean
@@ -141,6 +163,9 @@ export class RepositorySettings extends React.Component<
     this.state = {
       selectedTab:
         this.props.initialSelectedTab || RepositorySettingsTab.Remote,
+      tabFilter: '',
+      tabFilterMode: FilterMode.Substring,
+      tabFilterCaseSensitive: false,
       remoteSnapshot: null,
       remoteManagementDirty: false,
       remoteManagementPlan: null,
@@ -308,9 +333,7 @@ export class RepositorySettings extends React.Component<
   }
 
   public render() {
-    const showForkSettings = isRepositoryWithForkedGitHubRepository(
-      this.props.repository
-    )
+    const visibleTabs = this.visibleTabs
     const dialogBusy =
       this.state.disabled || this.state.subtreeOperationInProgress
 
@@ -333,58 +356,19 @@ export class RepositorySettings extends React.Component<
         {this.renderErrors()}
 
         <div className="tab-container">
+          {this.renderTabSearch()}
           <TabBar
             onTabClicked={this.onTabClicked}
-            selectedIndex={this.state.selectedTab}
+            selectedIndex={this.visibleTabIndex(visibleTabs)}
             type={TabBarType.Vertical}
             disabled={dialogBusy}
           >
-            <span>
-              <Octicon className="icon" symbol={octicons.server} />
-              Remote
-            </span>
-            <span>
-              <Octicon className="icon" symbol={octicons.file} />
-              {__DARWIN__ ? 'Ignored Files' : 'Ignored files'}
-            </span>
-            <span>
-              <Octicon className="icon" symbol={octicons.gitCommit} />
-              {__DARWIN__ ? 'Git Config' : 'Git config'}
-            </span>
-            <span>
-              <Octicon className="icon" symbol={octicons.play} />
-              <LocalizedText translationKey="repositorySettings.buildRunTab" />
-            </span>
-            <span>
-              <Octicon className="icon" symbol={octicons.database} />
-              <LocalizedText translationKey="repositorySettings.cheapLfsTab" />
-            </span>
-            <span>
-              <Octicon className="icon" symbol={octicons.fileSubmodule} />
-              <LocalizedText translationKey="submodule.title" />
-            </span>
-            <span>
-              <Octicon className="icon" symbol={octicons.gitMerge} />
-              <LocalizedText translationKey="subtree.title" />
-            </span>
-            <span>
-              <Octicon className="icon" symbol={octicons.sync} />
-              <LocalizedText translationKey="repositorySettings.automationTab" />
-            </span>
-            <span>
-              <Octicon className="icon" symbol={octicons.gear} />
-              Metadata
-            </span>
-            <span>
-              <Octicon className="icon" symbol={octicons.paintbrush} />
-              <LocalizedText translationKey="repositorySettings.appearanceTab" />
-            </span>
-            {showForkSettings && (
-              <span>
-                <Octicon className="icon" symbol={octicons.repoForked} />
-                {__DARWIN__ ? 'Fork Behavior' : 'Fork behavior'}
+            {visibleTabs.map(descriptor => (
+              <span key={descriptor.tab}>
+                <Octicon className="icon" symbol={descriptor.icon} />
+                {descriptor.label}
               </span>
-            )}
+            ))}
           </TabBar>
 
           <div className="active-tab">{this.renderActiveTab()}</div>
@@ -907,9 +891,199 @@ export class RepositorySettings extends React.Component<
     }
   }
 
+  /**
+   * Every tab, in display order, paired with the identity it selects.
+   *
+   * The enum used to be positional — its values were defined to equal the
+   * TabBar's child indices, with a note asking integrators to keep them
+   * contiguous. That held only while the list was a fixed run of children.
+   * A search filters the list, so the third visible row is no longer the
+   * third tab, and an index passed straight through would open whichever
+   * settings page happened to sit at that position. Identity travels with
+   * each descriptor instead, so the mapping survives both filtering and the
+   * conditionally-rendered fork tab.
+   */
+  private get tabDescriptors(): ReadonlyArray<IRepositorySettingsTabDescriptor> {
+    const showForkSettings = isRepositoryWithForkedGitHubRepository(
+      this.props.repository
+    )
+
+    const descriptors: Array<IRepositorySettingsTabDescriptor> = [
+      {
+        tab: RepositorySettingsTab.Remote,
+        icon: octicons.server,
+        label: 'Remote',
+      },
+      {
+        tab: RepositorySettingsTab.IgnoredFiles,
+        icon: octicons.file,
+        label: __DARWIN__ ? 'Ignored Files' : 'Ignored files',
+      },
+      {
+        tab: RepositorySettingsTab.GitConfig,
+        icon: octicons.gitCommit,
+        label: __DARWIN__ ? 'Git Config' : 'Git config',
+      },
+      {
+        tab: RepositorySettingsTab.BuildRun,
+        icon: octicons.play,
+        label: (
+          <LocalizedText translationKey="repositorySettings.buildRunTab" />
+        ),
+        searchText: 'Build and run',
+      },
+      {
+        tab: RepositorySettingsTab.CheapLfs,
+        icon: octicons.database,
+        label: (
+          <LocalizedText translationKey="repositorySettings.cheapLfsTab" />
+        ),
+        searchText: 'Cheap LFS',
+      },
+      {
+        tab: RepositorySettingsTab.Submodules,
+        icon: octicons.fileSubmodule,
+        label: <LocalizedText translationKey="submodule.title" />,
+        searchText: 'Submodules',
+      },
+      {
+        tab: RepositorySettingsTab.Subtrees,
+        icon: octicons.gitMerge,
+        label: <LocalizedText translationKey="subtree.title" />,
+        searchText: 'Subtrees',
+      },
+      {
+        tab: RepositorySettingsTab.Automation,
+        icon: octicons.sync,
+        label: (
+          <LocalizedText translationKey="repositorySettings.automationTab" />
+        ),
+        searchText: 'Automation',
+      },
+      {
+        tab: RepositorySettingsTab.Metadata,
+        icon: octicons.gear,
+        label: 'Metadata',
+      },
+      {
+        tab: RepositorySettingsTab.Appearance,
+        icon: octicons.paintbrush,
+        label: (
+          <LocalizedText translationKey="repositorySettings.appearanceTab" />
+        ),
+        searchText: 'Appearance',
+      },
+    ]
+
+    if (showForkSettings) {
+      descriptors.push({
+        tab: RepositorySettingsTab.ForkSettings,
+        icon: octicons.repoForked,
+        label: __DARWIN__ ? 'Fork Behavior' : 'Fork behavior',
+        searchText: 'Fork behavior',
+      })
+    }
+
+    return descriptors
+  }
+
+  /** The tabs surviving the current filter, never fewer than the selected one. */
+  private get visibleTabs(): ReadonlyArray<IRepositorySettingsTabDescriptor> {
+    const all = this.tabDescriptors
+    const filtered = filterByMode(
+      all,
+      descriptor => [descriptor.searchText ?? String(descriptor.label)],
+      this.state.tabFilter,
+      this.state.tabFilterMode,
+      this.state.tabFilterCaseSensitive
+    ).items
+
+    // Never filter the open tab out from under the panel beside it: the panel
+    // keeps rendering that tab's content, so a strip that no longer lists it
+    // would show a selection the user cannot see or return to.
+    if (filtered.some(d => d.tab === this.state.selectedTab)) {
+      return filtered
+    }
+    const selected = all.find(d => d.tab === this.state.selectedTab)
+    return selected === undefined ? filtered : [selected, ...filtered]
+  }
+
+  /** Where the selected tab sits in the filtered strip, for TabBar. */
+  private visibleTabIndex(
+    visibleTabs: ReadonlyArray<IRepositorySettingsTabDescriptor>
+  ): number {
+    const index = visibleTabs.findIndex(d => d.tab === this.state.selectedTab)
+    return index === -1 ? 0 : index
+  }
+
+  private renderTabSearch() {
+    return (
+      <div className="repository-settings-tab-search">
+        <label htmlFor="repository-settings-tab-filter">
+          <LocalizedText translationKey="repositorySettings.searchLabel" />
+        </label>
+        <div className="repository-settings-tab-filter-field">
+          <input
+            id="repository-settings-tab-filter"
+            data-search-surface-id="repository-settings-tabs"
+            type="search"
+            value={this.state.tabFilter}
+            onChange={this.onTabFilterChanged}
+            aria-label="Search repository settings"
+          />
+          <FilterModeControl
+            searchSurfaceId="repository-settings-tabs"
+            mode={this.state.tabFilterMode}
+            caseSensitive={this.state.tabFilterCaseSensitive}
+            onModeChange={this.onTabFilterModeChanged}
+            onCaseSensitiveChange={this.onTabFilterCaseChanged}
+            regexBuilderTarget="repository settings"
+            getSampleItems={this.getTabSampleItems}
+            filterText={this.state.tabFilter}
+            onRegexPatternApply={this.onTabFilterPatternApply}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  private onTabFilterChanged = (event: React.FormEvent<HTMLInputElement>) => {
+    this.setState({ tabFilter: event.currentTarget.value })
+  }
+
+  private onTabFilterModeChanged = (mode: FilterMode) => {
+    this.setState({ tabFilterMode: mode })
+  }
+
+  private onTabFilterCaseChanged = (caseSensitive: boolean) => {
+    this.setState({ tabFilterCaseSensitive: caseSensitive })
+  }
+
+  private onTabFilterPatternApply = (
+    pattern: string,
+    caseSensitive: boolean
+  ) => {
+    this.setState({
+      tabFilter: pattern,
+      tabFilterMode: FilterMode.Regex,
+      tabFilterCaseSensitive: caseSensitive,
+    })
+  }
+
+  private getTabSampleItems = () =>
+    this.tabDescriptors.map(d => d.searchText ?? String(d.label))
+
+  /**
+   * TabBar reports the row that was clicked. That row's identity comes from
+   * the filtered list, never from the number itself.
+   */
   private onTabClicked = (index: number) => {
-    if (!this.state.subtreeOperationInProgress) {
-      this.setState({ selectedTab: index })
+    if (this.state.subtreeOperationInProgress) {
+      return
+    }
+    const descriptor = this.visibleTabs[index]
+    if (descriptor !== undefined) {
+      this.setState({ selectedTab: descriptor.tab })
     }
   }
 

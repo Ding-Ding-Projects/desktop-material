@@ -60,6 +60,12 @@ mock.module('electron', {
     shell: {},
     ipcRenderer: {
       on: mock.fn(x => {}),
+      // `send` is fire-and-forget in the real renderer, so a no-op is a
+      // faithful stub. Without it a component that merely announces something
+      // on mount takes the whole render down with a TypeError, which looks
+      // like a bug in the component rather than a gap in this mock.
+      send: mock.fn(() => {}),
+      removeListener: mock.fn(() => {}),
       // Real `invoke` always returns a promise, so the stub rejects rather than
       // throwing synchronously: a component that probes the main process on
       // mount must exercise its own error path here, not crash the render.
