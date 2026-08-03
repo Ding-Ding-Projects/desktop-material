@@ -1624,13 +1624,6 @@
       d: 'Visual evidence for issue #81 (first-class repository and tab group management).',
     },
     {
-      t: 'Repository list and agent-session dialog verification run',
-      h: 'verification/repository-list-agent-dialog-2026-08-02/run-manifest.html',
-      s: 'verification/repository-list-agent-dialog-2026-08-02/run-manifest.md',
-      c: 'verification',
-      d: 'Run ID: repository-list-agent-dialog-20260802',
-    },
-    {
       t: 'Responsive surface matrix — 2026-07-17',
       h: 'verification/responsive-surface-matrix-2026-07-17.html',
       s: 'verification/responsive-surface-matrix-2026-07-17.md',
