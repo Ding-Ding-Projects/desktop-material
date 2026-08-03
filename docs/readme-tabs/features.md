@@ -397,7 +397,7 @@ matches ask you to choose. Account credentials are never returned in a result.
 
 **Power-user history, stashes, and windows**
 - Search History by title, message, tag, or hash and toggle a lane graph that visualizes commit ancestry
-- Use the repository-wide Stash Manager to create, inspect, apply, pop, rename, branch from, or delete an exact stash while retaining partial-failure context
+- Use the repository-wide Stash Manager to create, inspect, apply, pop, rename, branch from, or delete an exact stash while retaining partial-failure context; the separate tabbed manager searches every Git stash without a 500-entry cap, keeps recovery identities visible, and exports selected entries as a directory, ZIP, or configurable 7z archive
 - Pull every repository from the repositories sheet with per-repository results; an ambiguous HTTPS authentication or not-found response can retry every remaining token-bearing signed-in account for that exact origin without displaying an identity or token
 - Deepen or unshallow a repository from History/Repository Tools with the same exact-origin Desktop credential trampoline and bounded signed-in-account recovery when the default credential is rejected
 - Use repository pinning/grouping, branch presets/default-branch controls, and per-repository editor overrides

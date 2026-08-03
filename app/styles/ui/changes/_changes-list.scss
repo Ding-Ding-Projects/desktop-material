@@ -716,6 +716,144 @@
   }
 }
 
+.stash-manager-dialog {
+  .dialog-content {
+    min-width: min(760px, 80vw);
+    max-width: min(920px, 88vw);
+    max-height: min(78vh, 900px);
+    overflow: auto;
+  }
+
+  .stash-dialog-description,
+  .stash-manager-caption {
+    overflow-wrap: anywhere;
+  }
+
+  .stash-dialog-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 8px 0;
+    background: var(--md-sys-color-surface);
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  }
+
+  .stash-dialog-tabs [role='tab'] {
+    min-height: 40px;
+    padding: 8px 12px;
+    border: 0;
+    border-radius: 999px;
+    color: var(--md-sys-color-on-surface-variant);
+    background: transparent;
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible,
+    &.selected {
+      color: var(--md-sys-color-on-secondary-container);
+      background: var(--md-sys-color-secondary-container);
+    }
+  }
+
+  .stash-dialog-tab-panel {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+    padding: 12px 0;
+  }
+
+  .stash-dialog-history-list,
+  .stash-export-entry-list {
+    display: grid;
+    gap: 8px;
+    max-height: 36vh;
+    margin: 0;
+    padding: 0;
+    overflow: auto;
+    list-style: none;
+  }
+
+  .stash-dialog-history-list li,
+  .stash-export-entry-list li {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 4px 10px;
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 12px;
+    background: var(--md-sys-color-surface-container-low);
+
+    > * {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .stash-export-search,
+  .stash-export-bulk-actions,
+  .stash-export-format,
+  .stash-export-seven-zip-options,
+  .stash-dialog-tab-panel > label {
+    display: grid;
+    gap: 6px;
+  }
+
+  .stash-export-bulk-actions {
+    grid-template-columns: repeat(auto-fit, minmax(150px, max-content));
+    align-items: center;
+  }
+
+  .stash-export-format,
+  .stash-export-seven-zip-options {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  .stash-export-format legend,
+  .stash-export-seven-zip-options legend {
+    grid-column: 1 / -1;
+  }
+
+  .stash-export-format label,
+  .stash-export-seven-zip-options label,
+  .stash-dialog-tab-panel > label {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .stash-export-seven-zip-options input[type='text'],
+  .stash-export-seven-zip-options input[type='password'],
+  .stash-export-seven-zip-options input[type='number'],
+  .stash-export-seven-zip-options select,
+  .stash-dialog-tab-panel select {
+    min-width: 0;
+    flex: 1 1 130px;
+  }
+
+  .stash-export-result {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--md-sys-color-secondary-container);
+
+    code {
+      overflow-wrap: anywhere;
+    }
+  }
+}
+
 .undo-enter {
   max-height: 0;
   overflow: hidden;

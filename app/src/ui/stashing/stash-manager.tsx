@@ -1,3 +1,4 @@
+/* eslint-disable react/jsx-no-bind, @typescript-eslint/no-use-before-define */
 import * as React from 'react'
 
 import { StashManagerError } from '../../lib/git/stash'
@@ -25,13 +26,23 @@ import {
   TranslationVariables,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
+import { PopupType } from '../../models/popup'
+import { setLanguageModePreference } from '../../lib/language-preference'
+import {
+  clampFunnyLevel,
+  IAudioSystemSettings,
+} from '../../lib/audio/audio-settings'
+import { getAudioCueStore } from '../../lib/audio/audio-cue-store'
+import { readFunnyLevels } from '../../lib/funny-level-text'
 import { LocalizedText } from '../lib/localized-text'
 import { FilterMode, IFilterOptions, matchWithMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
+import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import {
   persistFilterMode,
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
+import { StashExportPanel } from './stash-export-panel'
 
 const StashManagerPanelId = 'desktop-material-stash-manager-panel'
 const StashNameInputId = 'desktop-material-stash-name'
@@ -197,7 +208,7 @@ interface IConfirmation {
 
 type EditorKind = 'metadata' | 'new-branch'
 
-interface IStashManagerProps {
+export interface IStashManagerProps {
   readonly repository: Repository
   readonly dispatcher: Dispatcher
   readonly branch: string | null
@@ -209,6 +220,10 @@ interface IStashManagerProps {
   readonly selectedStashEntry: IStashEntry | null
   readonly isShowingStashEntry: boolean
   readonly hasConflicts: boolean
+  /** Render only the manager body, for the dedicated dialog shell. */
+  readonly showHeader?: boolean
+  /** Start the body expanded when it is hosted by another surface. */
+  readonly initialExpanded?: boolean
 }
 
 interface IStashManagerState {
@@ -233,6 +248,7 @@ interface IStashManagerState {
   readonly inventoryFilterMode: FilterMode
   /** Whether Substring / Regex inventory matching is case sensitive. */
   readonly inventoryFilterCaseSensitive: boolean
+  readonly dialogOpen: boolean
 }
 
 /** A native, task-specific manager for Desktop-managed repository stashes. */
@@ -247,7 +263,7 @@ export class StashManager extends React.Component<
   public constructor(props: IStashManagerProps) {
     super(props)
     this.state = {
-      expanded: false,
+      expanded: props.initialExpanded ?? false,
       createName: '',
       createScope: 'all',
       includeUntracked: false,
@@ -267,6 +283,7 @@ export class StashManager extends React.Component<
         StashInventoryFilterSurfaceId
       ),
       inventoryFilterCaseSensitive: false,
+      dialogOpen: false,
     }
   }
 
@@ -467,6 +484,9 @@ export class StashManager extends React.Component<
       confirmation: null,
       editor: null,
     }))
+
+  private toggleDialog = () =>
+    this.setState(state => ({ dialogOpen: !state.dialogOpen }))
 
   private cancelOperation = () => {
     if (this.operationController !== null) {
@@ -1257,7 +1277,65 @@ export class StashManager extends React.Component<
     )
   }
 
+  private renderPanel() {
+    return (
+      <div
+        id={StashManagerPanelId}
+        className="stash-manager-panel"
+        role="region"
+        aria-label={this.accessibleText('stashManager.controlsAria')}
+      >
+        {this.renderCreateForm()}
+        {this.renderInventory()}
+        {this.state.busyOperation !== null ? (
+          <div className="stash-manager-busy">
+            <span>
+              {this.localized('stashManager.operationProgress', {
+                operation: translatedVariable(
+                  this.state.busyOperation.key,
+                  this.state.busyOperation.variables
+                ),
+              })}
+            </span>
+            <Button size="small" onClick={this.cancelOperation}>
+              {this.localized('stashManager.cancelOperationAction')}
+            </Button>
+          </div>
+        ) : null}
+        <div
+          className="stash-manager-announcement"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {this.state.error !== null ? (
+            <p className="stash-manager-error" role="alert">
+              {typeof this.state.error === 'string'
+                ? this.state.error
+                : this.renderMessage(this.state.error)}
+            </p>
+          ) : this.state.status !== null ? (
+            <p className="stash-manager-status">
+              {this.renderMessage(this.state.status)}
+            </p>
+          ) : null}
+        </div>
+      </div>
+    )
+  }
+
   public render() {
+    const showHeader = this.props.showHeader !== false
+    if (!showHeader) {
+      return (
+        <section
+          className="stashed-changes-section stash-manager stash-manager-embedded"
+          aria-label={this.accessibleText('stashManager.managerAria')}
+          aria-busy={this.state.busyOperation !== null}
+        >
+          {this.renderPanel()}
+        </section>
+      )
+    }
     const count = this.props.allStashEntries.length
     const currentCount = this.props.allStashEntries.filter(
       entry => entry.branchName === this.props.branch
@@ -1300,51 +1378,458 @@ export class StashManager extends React.Component<
                 : 'stashManager.manageAction'
             )}
           </Button>
+          <Button size="small" onClick={this.toggleDialog}>
+            {this.localized('stashManager.openDialogAction')}
+          </Button>
         </div>
-        {this.state.expanded ? (
-          <div
-            id={StashManagerPanelId}
-            className="stash-manager-panel"
-            role="region"
-            aria-label={this.accessibleText('stashManager.controlsAria')}
-          >
-            {this.renderCreateForm()}
-            {this.renderInventory()}
-            {this.state.busyOperation !== null ? (
-              <div className="stash-manager-busy">
-                <span>
-                  {this.localized('stashManager.operationProgress', {
-                    operation: translatedVariable(
-                      this.state.busyOperation.key,
-                      this.state.busyOperation.variables
-                    ),
-                  })}
-                </span>
-                <Button size="small" onClick={this.cancelOperation}>
-                  {this.localized('stashManager.cancelOperationAction')}
-                </Button>
-              </div>
-            ) : null}
-            <div
-              className="stash-manager-announcement"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              {this.state.error !== null ? (
-                <p className="stash-manager-error" role="alert">
-                  {typeof this.state.error === 'string'
-                    ? this.state.error
-                    : this.renderMessage(this.state.error)}
-                </p>
-              ) : this.state.status !== null ? (
-                <p className="stash-manager-status">
-                  {this.renderMessage(this.state.status)}
-                </p>
-              ) : null}
-            </div>
-          </div>
+        {this.state.expanded ? this.renderPanel() : null}
+        {this.state.dialogOpen ? (
+          <StashManagerDialog {...this.props} onDismissed={this.toggleDialog} />
         ) : null}
       </section>
+    )
+  }
+}
+
+interface IStashManagerDialogProps extends IStashManagerProps {
+  readonly onDismissed: () => void
+}
+
+type StashDialogTab = 'manage' | 'export' | 'history' | 'appearance'
+
+interface IStashDialogState {
+  readonly tab: StashDialogTab
+  readonly languageMode: LanguageMode
+  readonly funnyLevelEnglish: number
+  readonly funnyLevelCantonese: number
+  readonly historyFilter: string
+  readonly historyFilterMode: FilterMode
+  readonly historyCaseSensitive: boolean
+  readonly appearanceFilter: string
+  readonly appearanceFilterMode: FilterMode
+  readonly appearanceCaseSensitive: boolean
+}
+
+/** Dedicated tabbed stash surface. The inline manager remains available for quick review. */
+export class StashManagerDialog extends React.Component<
+  IStashManagerDialogProps,
+  IStashDialogState
+> {
+  public constructor(props: IStashManagerDialogProps) {
+    super(props)
+    const funnyLevels = readFunnyLevels()
+    this.state = {
+      tab: 'manage',
+      languageMode: getPersistedLanguageMode(),
+      funnyLevelEnglish: funnyLevels.english,
+      funnyLevelCantonese: funnyLevels.cantonese,
+      historyFilter: '',
+      historyFilterMode: readPersistedFilterMode('stash-dialog-history'),
+      historyCaseSensitive: false,
+      appearanceFilter: '',
+      appearanceFilterMode: readPersistedFilterMode('stash-dialog-appearance'),
+      appearanceCaseSensitive: false,
+    }
+  }
+
+  public componentDidMount() {
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  public componentWillUnmount() {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    const languageMode = normalizeLanguageMode(
+      (event as CustomEvent<unknown>).detail
+    )
+    const funnyLevels = readFunnyLevels()
+    this.setState({
+      languageMode,
+      funnyLevelEnglish: funnyLevels.english,
+      funnyLevelCantonese: funnyLevels.cantonese,
+    })
+  }
+
+  private changeLanguageMode = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const languageMode = setLanguageModePreference(event.currentTarget.value)
+    this.setState({ languageMode })
+    document.dispatchEvent(
+      new CustomEvent(LanguageModeChangedEvent, { detail: languageMode })
+    )
+  }
+
+  private changeFunnyLevel = (
+    key: 'funnyLevelEnglish' | 'funnyLevelCantonese',
+    rawValue: string
+  ) => {
+    const value = clampFunnyLevel(Number(rawValue), 3)
+    const store = getAudioCueStore()
+    const settings: IAudioSystemSettings = {
+      ...store.getSettings(),
+      [key]: value,
+    }
+    store.setSettings(settings)
+    this.setState({ [key]: value } as Pick<IStashDialogState, typeof key>)
+  }
+
+  private matchingDialogEntries(
+    filter: string,
+    mode: FilterMode,
+    caseSensitive: boolean
+  ): ReadonlyArray<IStashEntry> {
+    if (!filter.trim()) {
+      return this.props.allStashEntries
+    }
+    return matchWithMode(
+      filter.trim(),
+      this.props.allStashEntries,
+      entry => [stashEntryTitle(entry), entry.branchName, entry.stashSha],
+      { mode, caseSensitive }
+    ).results.map(result => result.item)
+  }
+
+  private renderDialogSearch(
+    surfaceId: string,
+    filter: string,
+    mode: FilterMode,
+    caseSensitive: boolean,
+    labelKey: TranslationKey,
+    ariaKey: TranslationKey,
+    targetKey: TranslationKey,
+    onFilter: (value: string) => void,
+    onMode: (value: FilterMode) => void,
+    onCase: (value: boolean) => void,
+    samples: ReadonlyArray<string>
+  ) {
+    return (
+      <div className="stash-dialog-search">
+        <label htmlFor={`${surfaceId}-input`}>{this.localized(labelKey)}</label>
+        <div className="stash-manager-filter-field">
+          <input
+            id={`${surfaceId}-input`}
+            type="search"
+            value={filter}
+            onChange={event => onFilter(event.currentTarget.value)}
+            aria-label={this.accessibleText(ariaKey)}
+          />
+          <FilterModeControl
+            searchSurfaceId={surfaceId}
+            mode={mode}
+            caseSensitive={caseSensitive}
+            onModeChange={onMode}
+            onCaseSensitiveChange={onCase}
+            regexBuilderTarget={this.accessibleText(targetKey)}
+            getSampleItems={() => samples}
+            filterText={filter}
+            onRegexPatternApply={onFilter}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  private selectTab = (event: React.MouseEvent<HTMLButtonElement>) =>
+    this.setState({ tab: event.currentTarget.dataset.tab as StashDialogTab })
+
+  private renderTab(tab: StashDialogTab, label: TranslationKey) {
+    const selected = this.state.tab === tab
+    return (
+      <button
+        type="button"
+        role="tab"
+        aria-selected={selected}
+        aria-controls={`stash-dialog-panel-${tab}`}
+        className={selected ? 'selected' : undefined}
+        data-tab={tab}
+        onClick={this.selectTab}
+        onKeyDown={this.onTabKeyDown}
+      >
+        {this.localized(label)}
+      </button>
+    )
+  }
+
+  private localized(key: TranslationKey, variables: TranslationVariables = {}) {
+    return (
+      <LocalizedText
+        translationKey={key}
+        variables={variables}
+        languageMode={this.state.languageMode}
+      />
+    )
+  }
+
+  private accessibleText(
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ): string {
+    return translateForAccessibleName(key, variables, this.state.languageMode)
+  }
+
+  private renderHistory() {
+    const entries = this.matchingDialogEntries(
+      this.state.historyFilter,
+      this.state.historyFilterMode,
+      this.state.historyCaseSensitive
+    )
+    return (
+      <section
+        id="stash-dialog-panel-history"
+        role="tabpanel"
+        className="stash-dialog-tab-panel"
+      >
+        <h3>{this.localized('stashManager.historyHeading')}</h3>
+        <p>{this.localized('stashManager.historyDescription')}</p>
+        {this.renderDialogSearch(
+          'stash-dialog-history',
+          this.state.historyFilter,
+          this.state.historyFilterMode,
+          this.state.historyCaseSensitive,
+          'stashManager.historySearchLabel',
+          'stashManager.historySearchAria',
+          'stashManager.historySearchRegexTarget',
+          value => this.setState({ historyFilter: value }),
+          value => {
+            persistFilterMode('stash-dialog-history', value)
+            this.setState({ historyFilterMode: value })
+          },
+          value => this.setState({ historyCaseSensitive: value }),
+          this.props.allStashEntries.map(entry => stashEntryTitle(entry))
+        )}
+        <ul className="stash-dialog-history-list">
+          {entries.map(entry => (
+            <li key={entry.stashSha}>
+              <strong>{stashEntryTitle(entry)}</strong>
+              <code>{entry.stashSha}</code>
+              <span>{entry.branchName}</span>
+            </li>
+          ))}
+        </ul>
+        {entries.length === 0 ? (
+          <p className="stash-manager-empty">
+            {this.localized('stashManager.emptyInventory')}
+          </p>
+        ) : null}
+      </section>
+    )
+  }
+
+  private renderAppearance() {
+    const languageMode = this.state.languageMode
+    const appearanceMatches = (values: ReadonlyArray<string>) => {
+      if (!this.state.appearanceFilter.trim()) {
+        return true
+      }
+      return (
+        matchWithMode(
+          this.state.appearanceFilter.trim(),
+          values,
+          value => [value],
+          {
+            mode: this.state.appearanceFilterMode,
+            caseSensitive: this.state.appearanceCaseSensitive,
+          }
+        ).results.length > 0
+      )
+    }
+    const showLanguage = appearanceMatches(['language', 'language mode'])
+    const showEnglish = appearanceMatches(['English', 'funny', 'playfulness'])
+    const showCantonese = appearanceMatches([
+      'Cantonese',
+      'funny',
+      'playfulness',
+    ])
+    return (
+      <section
+        id="stash-dialog-panel-appearance"
+        role="tabpanel"
+        className="stash-dialog-tab-panel"
+      >
+        <h3>{this.localized('stashManager.appearanceHeading')}</h3>
+        <p>{this.localized('stashManager.appearanceDescription')}</p>
+        {this.renderDialogSearch(
+          'stash-dialog-appearance',
+          this.state.appearanceFilter,
+          this.state.appearanceFilterMode,
+          this.state.appearanceCaseSensitive,
+          'stashManager.appearanceSearchLabel',
+          'stashManager.appearanceSearchAria',
+          'stashManager.appearanceSearchRegexTarget',
+          value => this.setState({ appearanceFilter: value }),
+          value => {
+            persistFilterMode('stash-dialog-appearance', value)
+            this.setState({ appearanceFilterMode: value })
+          },
+          value => this.setState({ appearanceCaseSensitive: value }),
+          [
+            'language mode',
+            'English funny level',
+            'Cantonese funny level',
+            'full appearance settings',
+          ]
+        )}
+        {showLanguage ? (
+          <label>
+            {translate('appearance.languageMode', languageMode)}
+            <select value={languageMode} onChange={this.changeLanguageMode}>
+              <option value="english">
+                {translate('language.english', languageMode)}
+              </option>
+              <option value="cantonese">
+                {translate('language.cantonese', languageMode)}
+              </option>
+              <option value="bilingual">
+                {translate('language.bilingual', languageMode)}
+              </option>
+            </select>
+          </label>
+        ) : null}
+        <p className="stash-manager-caption">
+          {translate('appearance.languageModeDescription', languageMode)}
+        </p>
+        {showEnglish ? (
+          <label>
+            {translate('appearance.englishPlayfulness', languageMode)}
+            <input
+              type="range"
+              min={1}
+              max={5}
+              step={1}
+              value={this.state.funnyLevelEnglish}
+              onChange={event =>
+                this.changeFunnyLevel(
+                  'funnyLevelEnglish',
+                  event.currentTarget.value
+                )
+              }
+            />
+            <output>{this.state.funnyLevelEnglish}</output>
+          </label>
+        ) : null}
+        {showCantonese ? (
+          <label>
+            {translate('appearance.cantonesePlayfulness', languageMode)}
+            <input
+              type="range"
+              min={1}
+              max={5}
+              step={1}
+              value={this.state.funnyLevelCantonese}
+              onChange={event =>
+                this.changeFunnyLevel(
+                  'funnyLevelCantonese',
+                  event.currentTarget.value
+                )
+              }
+            />
+            <output>{this.state.funnyLevelCantonese}</output>
+          </label>
+        ) : null}
+        <Button
+          className="stash-dialog-appearance-control"
+          onClick={() =>
+            this.props.dispatcher.showPopup({ type: PopupType.Preferences })
+          }
+        >
+          {this.localized('stashManager.editAppearanceAction')}
+        </Button>
+        <p className="stash-manager-caption">
+          {this.localized('stashManager.appearanceHint')}
+        </p>
+      </section>
+    )
+  }
+
+  private onTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    const key = event.key
+    if (
+      key !== 'ArrowLeft' &&
+      key !== 'ArrowRight' &&
+      key !== 'Home' &&
+      key !== 'End'
+    ) {
+      return
+    }
+    event.preventDefault()
+    const buttons = Array.from(
+      event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
+        '[role="tab"]'
+      ) ?? []
+    )
+    const index = buttons.indexOf(event.currentTarget)
+    if (index < 0 || buttons.length === 0) {
+      return
+    }
+    const next =
+      key === 'Home'
+        ? 0
+        : key === 'End'
+        ? buttons.length - 1
+        : (index + (key === 'ArrowRight' ? 1 : -1) + buttons.length) %
+          buttons.length
+    buttons[next].focus()
+    buttons[next].click()
+  }
+
+  public render() {
+    return (
+      <Dialog
+        id="desktop-material-stash-manager-dialog"
+        title={translate('stashManager.dialogTitle', this.state.languageMode)}
+        className="stash-manager-dialog"
+        onDismissed={this.props.onDismissed}
+        modal={false}
+      >
+        <DialogContent>
+          <p className="stash-dialog-description">
+            {this.localized('stashManager.dialogDescription')}
+          </p>
+          <div
+            className="stash-dialog-tabs"
+            role="tablist"
+            aria-label={translate(
+              'stashManager.dialogTabsAria',
+              this.state.languageMode
+            )}
+          >
+            {this.renderTab('manage', 'stashManager.manageTab')}
+            {this.renderTab('export', 'stashManager.exportTab')}
+            {this.renderTab('history', 'stashManager.historyTab')}
+            {this.renderTab('appearance', 'stashManager.appearanceTab')}
+          </div>
+          {this.state.tab === 'manage' ? (
+            <StashManager
+              {...this.props}
+              showHeader={false}
+              initialExpanded={true}
+            />
+          ) : null}
+          {this.state.tab === 'export' ? (
+            <StashExportPanel
+              repository={this.props.repository}
+              dispatcher={this.props.dispatcher}
+              entries={this.props.allStashEntries}
+            />
+          ) : null}
+          {this.state.tab === 'history' ? this.renderHistory() : null}
+          {this.state.tab === 'appearance' ? this.renderAppearance() : null}
+        </DialogContent>
+        <DialogFooter>
+          <Button onClick={this.props.onDismissed}>
+            {this.localized('stashManager.closeDialogAction')}
+          </Button>
+        </DialogFooter>
+      </Dialog>
     )
   }
 }
