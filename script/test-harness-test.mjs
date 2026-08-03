@@ -11,6 +11,7 @@ import {
   testConcurrency,
   withWorkerHeapLimit,
   workerHeapMegabytes,
+  testTimeoutMilliseconds,
 } from './test.mjs'
 
 const GB = 1024 * 1024 * 1024
@@ -225,6 +226,28 @@ describe('test worker memory budget', () => {
     assert.equal(
       withWorkerHeapLimit('--max-old-space-size=8192', 2048),
       '--max-old-space-size=8192'
+    )
+  })
+})
+
+describe('test timeout ceiling', () => {
+  it('bounds a single test so a wedged one is named, not just slow', () => {
+    // Without a ceiling the batch fails at file level with no test named,
+    // which is what made a two-minute component test unactionable in CI.
+    assert.ok(
+      testTimeoutMilliseconds > 0,
+      'a timeout of zero or less would fail every test instantly'
+    )
+  })
+
+  it('leaves generous room above the slowest legitimate test', () => {
+    // The Windows portable ZIP packaging test is the slowest in the suite at
+    // roughly 1.5s. The ceiling is not a performance budget: set near real
+    // durations it would fire on a loaded machine, which is the very
+    // situation it exists to diagnose.
+    assert.ok(
+      testTimeoutMilliseconds >= 60_000,
+      'too tight a ceiling turns machine load into a test failure'
     )
   })
 })

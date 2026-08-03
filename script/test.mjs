@@ -71,6 +71,24 @@ export function shouldUseGitHubReporter(isGitHubActions, fileCount) {
 // MB, so this ceiling bounds runaway growth without constraining real tests.
 export const workerHeapMegabytes = 2048
 
+/**
+ * The longest any single test may run before the runner gives up on it.
+ *
+ * `node --test` has no timeout by default, so a test that wedges or degrades
+ * pathologically simply runs. Observed in CI: a component test that finishes
+ * in 44ms on an idle machine took over two minutes, and the batch failed at
+ * file level with no test named and nothing to act on — the slow test and the
+ * failure looked unrelated.
+ *
+ * A ceiling turns that into a named failure that says which test and that it
+ * timed out. It is set well above the slowest legitimate test in the suite
+ * (the Windows packaging tests take a couple of seconds) so it only ever fires
+ * on something genuinely wrong, and it is deliberately not a performance
+ * budget — tightening it into one would make the suite flaky on a loaded
+ * machine, which is the situation it exists to diagnose.
+ */
+export const testTimeoutMilliseconds = 120_000
+
 // Leave most of the machine to everything the tests themselves spawn — git,
 // the coordinator, jsdom's native bits, and the OS. Workers are the only part
 // this harness controls, so they get a deliberately modest share.
@@ -308,9 +326,10 @@ async function main() {
     '--conditions=import',
     ...['--import', 'tsx'],
     ...['--import', './app/test/globals.mts'],
-    // Before `switchArgs`, so an explicit --test-concurrency on the command
-    // line still wins over the memory-derived default.
+    // Before `switchArgs`, so an explicit --test-concurrency or --test-timeout
+    // on the command line still wins over these defaults.
     `--test-concurrency=${testConcurrency(totalmem(), availableParallelism())}`,
+    `--test-timeout=${testTimeoutMilliseconds}`,
     ...switchArgs,
     '--test',
     ...reporter('spec'),
