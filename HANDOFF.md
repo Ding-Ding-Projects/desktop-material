@@ -98,6 +98,69 @@ not firing for them before spending more time on the underlying slowness.
 
 # Desktop Material — Active parity handoff
 
+## 2026-08-03 — Integrate-and-clean pass, and the Linux TUI is back on main
+
+The TUI scope was reopened by the user during this session, so the revival
+branch was integrated rather than kept aside. `main` now carries it.
+
+### What was preserved before anything was touched
+
+The linked worktree at `desktop-material-linux-tui-revival` was holding **20
+modified and 39 new files, all under `tui/`** — uncommitted, which is the only
+kind of work a wiped directory takes with it permanently. Committed first as
+`dbbb3431c8`, before any merge: multi-account sign-in with keyring-backed
+secrets, a bounded agent surface (CLI, client, access policy, local server) with
+its Postman collection, GitLab and Bitbucket provider clients, Build & Run with
+local AI repair and Ollama, automation, an audio system with bundled melody
+cues, a `gh push` fallback, Help and Changelog screens, settings palette search,
+and the Section 6 advanced Git and workspace surfaces — 309 files, +17,694
+lines including roughly 4,000 lines of tests.
+
+> That commit is a **checkpoint, not a verified release**. The TUI suite has not
+> been run against it, so the parity contract is claimed rather than proven
+> until it has. This is the first thing a successor should do.
+
+### The one merge conflict, and why it was not resolved by picking a side
+
+`tui/contracts/parity.yaml`'s `status_summary` is a **derived** number. The
+branch claimed 89 rows `not_yet_available`, `main` claimed 135, and the merged
+row set actually holds **91** — so neither side was right, and taking either
+would have published a total the file itself contradicts. The contract was
+regenerated from its source of truth
+(`tui/tools/generate-parity-contract.mjs`, which reads
+`docs/readme-tabs/complete-feature-list.md` plus the overrides). It produced the
+same counts a hand recount did, and fixed 26 further lines a hand resolution
+would have left stale. Merge commit `05528e87d1`; `main` then fast-forwarded.
+
+### The site's count guard earned its keep
+
+Merging the TUI branch added four `docs/**/*.md` articles, and
+`script/site-dc-pages-test.mjs` immediately failed with *"the Docs hub
+advertises article counts that docs/ no longer matches"*. One
+`node script/sync-site-doc-counts.mjs` and the site went from advertising 249
+articles to the real 253. That is exactly the drift this guard exists to catch,
+on the first merge after it shipped.
+
+### Deleted, kept, and left alone
+
+| Item | Outcome |
+| --- | --- |
+| `codex/revive-linux-tui` + its worktree | **Deleted** after its tip was proved an ancestor of the dewed `origin/main` |
+| `origin/claude/pensive-visvesvaraya-e86ef2` | **Deleted** — proved already an ancestor of `origin/main` |
+| Nine `dependabot/**` branches | **Kept.** Each backs an open pull request (#137–#145). Deleting them closes those PRs, and they are neither agent task branches nor merged |
+| Stashes | None existed |
+| `app/test/unit/agent-sessions-panel-test.tsx` | **Left uncommitted.** Another agent's `MARK …` timing probes, added to diagnose a wedged test. Debug instrumentation, not work — committing it would ship `console.log` into the suite, and reverting it would destroy their investigation |
+| `.act-*`, `.codex/repo-list-*` | **Left uncommitted, and now ignored.** They kept reappearing as untracked noise in this shared checkout and being swept into unrelated commits; the patterns now cover the family |
+
+### Concurrency, again
+
+Three separate agents committed into this working tree during the session. One
+of them swept an earlier task's staged `git rm` deletions into its own commits
+(`ba452e4017`, `dbea7be82f`) and dewed them, briefly leaving `main` publishing
+the old homepage with its stylesheet and both Cheap LFS pages deleted.
+**Stage explicit paths, never `git add -A`, and re-read `git log` before
+committing** — the index may not still be yours.
+
 ## 2026-08-03 — The published site is one Material Design 3 component
 
 Commit `80d05e73b881d6b2cd4da4f5a99465be5ad2df98` replaces every hand-built page

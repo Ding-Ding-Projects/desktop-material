@@ -240,8 +240,15 @@ htmlcov/
 design/reference-screenshots/*
 !design/reference-screenshots/README.md
 
-# Agent scratch and probe files, never part of the project.
+# Agent scratch and probe files, never part of the project. These keep turning
+# up as untracked noise in a shared checkout and get swept into unrelated
+# commits by whoever tidies up next, so the patterns cover the whole family
+# rather than the one file that was in the way at the time.
 /.t-*.txt
 /.act-in.txt
 /.act-*-event.json
+/.act-*-launch.ps1
+/.act-run*.log
+/.act-run*.pid
 /.codex/*-run-manifest.json
+/.codex/repo-list-*.json

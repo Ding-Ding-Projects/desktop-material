@@ -126,7 +126,7 @@ jobs:
           "TUI_SDIST_NAME=$expectedSdist" >> $env:GITHUB_ENV
 
       - name: Restore the desktop packaging Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
         with:
           python-version: '3.11'
 
