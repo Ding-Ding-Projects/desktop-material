@@ -5,7 +5,7 @@ import { Repository } from '../../models/repository'
 import { Dialog, DialogContent, DialogFooter, DialogError } from '../dialog'
 import { Button } from '../lib/button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
-import { Select } from '../lib/select'
+import { SearchableSelect } from '../lib/searchable-select'
 import { TextBox } from '../lib/text-box'
 import { LinkButton } from '../lib/link-button'
 import { Octicon } from '../octicons'
@@ -371,16 +371,19 @@ export class ActionsLocalRunDialog extends React.Component<
     this.logEndRef = ref
   }
 
-  private onWorkflowChanged = (event: React.FormEvent<HTMLSelectElement>) => {
-    this.selectWorkflow(event.currentTarget.value)
+  // The searchable listbox reports the chosen value rather than a DOM event,
+  // since the option that was picked may have been reached by keyboard from a
+  // filtered list and there is no <select> element to read it back off.
+  private onWorkflowSelected = (value: string) => {
+    this.selectWorkflow(value)
   }
 
-  private onEventChanged = (event: React.FormEvent<HTMLSelectElement>) => {
-    this.setState({ selectedEvent: event.currentTarget.value })
+  private onEventSelected = (value: string) => {
+    this.setState({ selectedEvent: value })
   }
 
-  private onJobChanged = (event: React.FormEvent<HTMLSelectElement>) => {
-    this.setState({ selectedJob: event.currentTarget.value })
+  private onJobSelected = (value: string) => {
+    this.setState({ selectedJob: value })
   }
 
   private onDryRunChanged = (event: React.FormEvent<HTMLInputElement>) => {
@@ -576,17 +579,17 @@ export class ActionsLocalRunDialog extends React.Component<
 
     return (
       <div className="actions-local-run-config">
-        <Select
+        <SearchableSelect
           label={t('actionsLocalRun.workflowLabel')}
-          value={this.state.selectedWorkflowPath ?? undefined}
-          onChange={this.onWorkflowChanged}
-        >
-          {workflows.map(w => (
-            <option key={w.relativePath} value={w.relativePath}>
-              {w.name !== null ? `${w.name} (${w.fileName})` : w.fileName}
-            </option>
-          ))}
-        </Select>
+          value={this.state.selectedWorkflowPath ?? ''}
+          searchSurfaceId="actions-local-run-workflow"
+          regexBuilderTarget="workflows"
+          onChange={this.onWorkflowSelected}
+          options={workflows.map(w => ({
+            value: w.relativePath,
+            label: w.name !== null ? `${w.name} (${w.fileName})` : w.fileName,
+          }))}
+        />
 
         {workflow !== null && this.renderWorkflowDetail(workflow)}
       </div>
@@ -608,31 +611,30 @@ export class ActionsLocalRunDialog extends React.Component<
           </div>
         )}
 
-        <Select
+        <SearchableSelect
           label={t('actionsLocalRun.eventLabel')}
           value={this.state.selectedEvent}
-          onChange={this.onEventChanged}
-        >
-          {events.map(e => (
-            <option key={e} value={e}>
-              {e}
-            </option>
-          ))}
-        </Select>
+          searchSurfaceId="actions-local-run-event"
+          regexBuilderTarget="events"
+          onChange={this.onEventSelected}
+          options={events.map(e => ({ value: e, label: e }))}
+        />
 
         {workflow.jobs.length > 0 && (
-          <Select
+          <SearchableSelect
             label={t('actionsLocalRun.jobLabel')}
             value={this.state.selectedJob}
-            onChange={this.onJobChanged}
-          >
-            <option value="">{t('actionsLocalRun.allJobs')}</option>
-            {workflow.jobs.map(j => (
-              <option key={j.id} value={j.id}>
-                {j.name !== null ? `${j.name} (${j.id})` : j.id}
-              </option>
-            ))}
-          </Select>
+            searchSurfaceId="actions-local-run-job"
+            regexBuilderTarget="jobs"
+            onChange={this.onJobSelected}
+            options={[
+              { value: '', label: t('actionsLocalRun.allJobs') },
+              ...workflow.jobs.map(j => ({
+                value: j.id,
+                label: j.name !== null ? `${j.name} (${j.id})` : j.id,
+              })),
+            ]}
+          />
         )}
 
         {this.renderInputs(workflow)}
