@@ -1867,6 +1867,12 @@ list.
 
 ![Repository-wide stash manager with an exact selected entry](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
 
+The full manager is rendered through the shared dialog layer, keeping every
+tab and export control centered and usable above the Changes pane. The hidden
+Windows capture below is the accepted 1443×992 runtime proof.
+
+![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
+
 Choose **Open full manager** for the complete workflow. Its tabs provide a regex-capable search
 and multi-selection export to a directory, ZIP, or 7z. The 7z panel exposes compression method,
 level, dictionary, match finder, fast bytes, solid mode, threads, split volumes, password, and

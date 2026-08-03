@@ -37,7 +37,12 @@ import { readFunnyLevels } from '../../lib/funny-level-text'
 import { LocalizedText } from '../lib/localized-text'
 import { FilterMode, IFilterOptions, matchWithMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
-import { Dialog, DialogContent, DialogFooter } from '../dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogLayerPortal,
+} from '../dialog'
 import {
   persistFilterMode,
   readPersistedFilterMode,
@@ -1783,53 +1788,55 @@ export class StashManagerDialog extends React.Component<
 
   public render() {
     return (
-      <Dialog
-        id="desktop-material-stash-manager-dialog"
-        title={translate('stashManager.dialogTitle', this.state.languageMode)}
-        className="stash-manager-dialog"
-        onDismissed={this.props.onDismissed}
-        modal={false}
-      >
-        <DialogContent>
-          <p className="stash-dialog-description">
-            {this.localized('stashManager.dialogDescription')}
-          </p>
-          <div
-            className="stash-dialog-tabs"
-            role="tablist"
-            aria-label={translate(
-              'stashManager.dialogTabsAria',
-              this.state.languageMode
-            )}
-          >
-            {this.renderTab('manage', 'stashManager.manageTab')}
-            {this.renderTab('export', 'stashManager.exportTab')}
-            {this.renderTab('history', 'stashManager.historyTab')}
-            {this.renderTab('appearance', 'stashManager.appearanceTab')}
-          </div>
-          {this.state.tab === 'manage' ? (
-            <StashManager
-              {...this.props}
-              showHeader={false}
-              initialExpanded={true}
-            />
-          ) : null}
-          {this.state.tab === 'export' ? (
-            <StashExportPanel
-              repository={this.props.repository}
-              dispatcher={this.props.dispatcher}
-              entries={this.props.allStashEntries}
-            />
-          ) : null}
-          {this.state.tab === 'history' ? this.renderHistory() : null}
-          {this.state.tab === 'appearance' ? this.renderAppearance() : null}
-        </DialogContent>
-        <DialogFooter>
-          <Button onClick={this.props.onDismissed}>
-            {this.localized('stashManager.closeDialogAction')}
-          </Button>
-        </DialogFooter>
-      </Dialog>
+      <DialogLayerPortal>
+        <Dialog
+          id="desktop-material-stash-manager-dialog"
+          title={translate('stashManager.dialogTitle', this.state.languageMode)}
+          className="stash-manager-dialog"
+          onDismissed={this.props.onDismissed}
+          modal={false}
+        >
+          <DialogContent>
+            <p className="stash-dialog-description">
+              {this.localized('stashManager.dialogDescription')}
+            </p>
+            <div
+              className="stash-dialog-tabs"
+              role="tablist"
+              aria-label={translate(
+                'stashManager.dialogTabsAria',
+                this.state.languageMode
+              )}
+            >
+              {this.renderTab('manage', 'stashManager.manageTab')}
+              {this.renderTab('export', 'stashManager.exportTab')}
+              {this.renderTab('history', 'stashManager.historyTab')}
+              {this.renderTab('appearance', 'stashManager.appearanceTab')}
+            </div>
+            {this.state.tab === 'manage' ? (
+              <StashManager
+                {...this.props}
+                showHeader={false}
+                initialExpanded={true}
+              />
+            ) : null}
+            {this.state.tab === 'export' ? (
+              <StashExportPanel
+                repository={this.props.repository}
+                dispatcher={this.props.dispatcher}
+                entries={this.props.allStashEntries}
+              />
+            ) : null}
+            {this.state.tab === 'history' ? this.renderHistory() : null}
+            {this.state.tab === 'appearance' ? this.renderAppearance() : null}
+          </DialogContent>
+          <DialogFooter>
+            <Button onClick={this.props.onDismissed}>
+              {this.localized('stashManager.closeDialogAction')}
+            </Button>
+          </DialogFooter>
+        </Dialog>
+      </DialogLayerPortal>
     )
   }
 }

@@ -1,5 +1,23 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-03 — Stash manager portal runtime correction
+
+The stash manager is now rendered through the shared dialog portal, so its
+Manage, Export, History, and Appearance and voice tabs paint above the Changes
+pane instead of being clipped inside it. The accepted hidden-Windows capture
+`material-stash-manager-centered-20260803.png` is 1443×992 and has SHA-256
+`B733BC06C0B3DB455BF634381409D64B898773D6D742A97097F2E9AF130F4A01`.
+Additional inspected captures proved the complete 7z option set, the
+appearance/funny-level controls, and the History tab. A disposable fixture
+also created a real Git stash with subject `Named headless stash`; the manager
+surface itself did not refresh its inventory before the final capture, so that
+Git result is recorded as operation proof rather than as a UI-row claim.
+
+Focused manager/export tests passed 17/17, targeted ESLint passed, and the
+full TypeScript check passed. The exact fix checkout's webpack compilation
+completed; the later packaging script stopped only because the isolated
+checkout lacked ignored generated `choosealicense.com/_licenses` data.
+
 ## 2026-08-03 — History view tabs checkpoint
 
 The History surface now exposes a real, keyboard-accessible `List` / `Graph`
