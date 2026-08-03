@@ -9,6 +9,8 @@
 > for exact-identity recovery and export to a directory, ZIP, or configurable
 > 7z archive. See [stash export and recovery](docs/features/repository-management/stash-export.md).
 
+![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
+
 > **Local repair and background progress — July 30, 2026:** conflict and failed
 > CI surfaces launch bounded Codex/OpenCode tasks; long work has hideable
 > elapsed/ETA progress; Cheap LFS restore details collapse; and every action is

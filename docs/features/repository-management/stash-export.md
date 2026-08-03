@@ -41,7 +41,10 @@ mapping, split volumes, password handling, and the requirement that encrypted
 headers never activate without a password. The existing Git stash and manager
 suites cover named entries, exact identity checks, conflicts, recovery, and
 live language switching. Production webpack compilation and hidden Windows
-desktop capture remain the final runtime boundary for this feature.
+desktop capture now prove the centered dialog, all four tabs, and the complete
+7z control surface. The fixture also created a real named Git stash; the final
+inventory screenshot did not refresh its row before capture, so the Git
+command result is the authoritative named-stash operation evidence.
 
 ## Suggested articles
 
