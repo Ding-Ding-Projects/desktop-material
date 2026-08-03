@@ -57,6 +57,8 @@ import { isAttributableEmailFor } from '../../lib/email'
 import {
   getPersistedLanguageMode,
   LanguageModeChangedEvent,
+  translate,
+  TranslationKey,
   translateForAccessibleName,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
@@ -762,15 +764,6 @@ export class CompareSidebar extends React.Component<
             >
               <Octicon symbol={octicons.gitMerge} />
             </Button>
-            <Button
-              className="history-graph-view-toggle"
-              ariaLabel="Graph view"
-              tooltip="Graph view"
-              ariaPressed={this.state.showGraphView}
-              onClick={this.onGraphViewToggle}
-            >
-              <Octicon symbol={octicons.table} />
-            </Button>
           </div>
           {this.renderCommitFilterChips()}
           {this.renderCommitRegexBuilder()}
@@ -959,12 +952,93 @@ export class CompareSidebar extends React.Component<
     })
   }
 
-  private onGraphViewToggle = () => {
-    this.setState(state => {
-      const showGraphView = !state.showGraphView
-      setBoolean(ShowGraphViewKey, showGraphView)
-      return { showGraphView }
+  private historyViewText(key: TranslationKey): string {
+    return translate(key, this.state.languageMode)
+  }
+
+  private setHistoryView = (showGraphView: boolean) => {
+    setBoolean(ShowGraphViewKey, showGraphView)
+    this.setState({ showGraphView })
+  }
+
+  private onHistoryViewTabClick = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    this.setHistoryView(event.currentTarget.dataset.view === 'graph')
+  }
+
+  private onHistoryViewTabKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>
+  ) => {
+    const current = event.currentTarget.dataset.view
+    const next =
+      event.key === 'ArrowRight' || event.key === 'ArrowDown'
+        ? current === 'list'
+          ? 'graph'
+          : 'list'
+        : event.key === 'ArrowLeft' || event.key === 'ArrowUp'
+        ? current === 'graph'
+          ? 'list'
+          : 'graph'
+        : event.key === 'Home'
+        ? 'list'
+        : event.key === 'End'
+        ? 'graph'
+        : null
+
+    if (next === null) {
+      return
+    }
+
+    event.preventDefault()
+    this.setHistoryView(next === 'graph')
+    this.setState({}, () => {
+      document.getElementById(`history-view-tab-${next}`)?.focus()
     })
+  }
+
+  private renderHistoryViewTabs() {
+    const graphSelected = this.state.showGraphView
+    const listTabId = 'history-view-tab-list'
+    const graphTabId = 'history-view-tab-graph'
+    const panelId = 'history-view-panel'
+
+    return (
+      <div
+        className="history-view-tabs"
+        role="tablist"
+        aria-label={this.historyViewText('history.viewMode')}
+      >
+        <button
+          id={listTabId}
+          type="button"
+          role="tab"
+          className="history-view-tab"
+          data-view="list"
+          aria-selected={!graphSelected}
+          aria-controls={panelId}
+          tabIndex={graphSelected ? -1 : 0}
+          onClick={this.onHistoryViewTabClick}
+          onKeyDown={this.onHistoryViewTabKeyDown}
+        >
+          {this.historyViewText('history.viewMode.list')}
+        </button>
+        <button
+          id={graphTabId}
+          type="button"
+          role="tab"
+          className="history-view-tab"
+          data-view="graph"
+          aria-selected={graphSelected}
+          aria-controls={panelId}
+          tabIndex={graphSelected ? 0 : -1}
+          onClick={this.onHistoryViewTabClick}
+          onKeyDown={this.onHistoryViewTabKeyDown}
+        >
+          {this.historyViewText('history.viewMode.graph')}
+        </button>
+      </div>
+    )
   }
 
   private renderCommitList() {
@@ -1015,21 +1089,85 @@ export class CompareSidebar extends React.Component<
     if (isHistory && this.state.showGraphView) {
       return (
         <>
-          {this.renderCommitFilter()}
-          <HistoryGraphView
-            ref={this.historyGraphViewRef}
+          {this.renderHistoryViewTabs()}
+          <div
+            id="history-view-panel"
+            className="history-view-panel"
+            role="tabpanel"
+            aria-labelledby="history-view-tab-graph"
+          >
+            {this.renderCommitFilter()}
+            <HistoryGraphView
+              ref={this.historyGraphViewRef}
+              gitHubRepository={this.props.repository.gitHubRepository}
+              commitLookup={this.props.commitLookup}
+              commitSHAs={filteredCommitSHAs}
+              selectedSHAs={this.props.selectedCommitShas}
+              localCommitSHAs={this.props.localCommitSHAs}
+              canResetToCommits={allowHistoryOps}
+              canUndoCommits={allowHistoryOps}
+              canAmendCommits={allowHistoryOps}
+              branches={this.props.compareState.branches}
+              currentBranch={this.props.currentBranch}
+              emoji={this.props.emoji}
+              emptyListMessage={emptyListMessage}
+              onViewCommitOnGitHub={this.props.onViewCommitOnGitHub}
+              onUndoCommit={this.onUndoCommit}
+              onResetToCommit={this.onResetToCommit}
+              onRevertCommit={
+                ableToRevertCommit(this.props.compareState.formState)
+                  ? this.props.onRevertCommit
+                  : undefined
+              }
+              onAmendCommit={this.props.onAmendCommit}
+              onCommitsSelected={this.onCommitsSelected}
+              onScroll={this.onScroll}
+              onCreateBranch={this.onCreateBranch}
+              onCreateWorktreeFromCommit={this.onCreateWorktreeFromCommit}
+              onCheckoutCommit={this.onCheckoutCommit}
+              onCreateTag={this.onCreateTag}
+              onDeleteTag={this.onDeleteTag}
+              onCherryPick={this.onCherryPick}
+              onKeyboardReorder={this.onKeyboardReorder}
+              onSquash={this.onSquash}
+              onCompareListScrolled={this.props.onCompareListScrolled}
+              compareListScrollTop={this.props.compareListScrollTop}
+              tagsToPush={this.props.tagsToPush ?? []}
+              disableReordering={!allowHistoryOps}
+              disableSquashing={!allowHistoryOps}
+              isMultiCommitOperationInProgress={
+                this.props.isMultiCommitOperationInProgress
+              }
+            />
+          </div>
+        </>
+      )
+    }
+
+    return (
+      <>
+        {isHistory ? this.renderHistoryViewTabs() : null}
+        <div
+          id={isHistory ? 'history-view-panel' : undefined}
+          className={isHistory ? 'history-view-panel' : undefined}
+          role={isHistory ? 'tabpanel' : undefined}
+          aria-labelledby={isHistory ? 'history-view-tab-list' : undefined}
+        >
+          {isHistory ? this.renderCommitFilter() : null}
+          <CommitList
+            ref={this.commitListRef}
             gitHubRepository={this.props.repository.gitHubRepository}
+            isLocalRepository={this.props.isLocalRepository}
             commitLookup={this.props.commitLookup}
             commitSHAs={filteredCommitSHAs}
             selectedSHAs={this.props.selectedCommitShas}
+            shasToHighlight={this.props.shasToHighlight}
             localCommitSHAs={this.props.localCommitSHAs}
             canResetToCommits={allowHistoryOps}
             canUndoCommits={allowHistoryOps}
             canAmendCommits={allowHistoryOps}
-            branches={this.props.compareState.branches}
-            currentBranch={this.props.currentBranch}
             emoji={this.props.emoji}
-            emptyListMessage={emptyListMessage}
+            reorderingEnabled={allowHistoryOps}
             onViewCommitOnGitHub={this.props.onViewCommitOnGitHub}
             onUndoCommit={this.onUndoCommit}
             onResetToCommit={this.onResetToCommit}
@@ -1047,77 +1185,29 @@ export class CompareSidebar extends React.Component<
             onCreateTag={this.onCreateTag}
             onDeleteTag={this.onDeleteTag}
             onCherryPick={this.onCherryPick}
+            onDropCommitInsertion={this.onDropCommitInsertion}
             onKeyboardReorder={this.onKeyboardReorder}
+            onCancelKeyboardReorder={this.onCancelKeyboardReorder}
             onSquash={this.onSquash}
+            emptyListMessage={emptyListMessage}
             onCompareListScrolled={this.props.onCompareListScrolled}
             compareListScrollTop={this.props.compareListScrollTop}
             tagsToPush={this.props.tagsToPush ?? []}
+            onRenderCommitDragElement={this.onRenderCommitDragElement}
+            onRemoveCommitDragElement={this.onRemoveCommitDragElement}
             disableReordering={!allowHistoryOps}
             disableSquashing={!allowHistoryOps}
             isMultiCommitOperationInProgress={
               this.props.isMultiCommitOperationInProgress
             }
+            keyboardReorderData={this.state.keyboardReorderData}
+            accounts={this.props.accounts}
+            preferAbsoluteDates={this.props.preferAbsoluteDates}
+            showCommitGraph={
+              isHistory && this.state.showCommitGraph && !isCommitFilterActive
+            }
           />
-        </>
-      )
-    }
-
-    return (
-      <>
-        {isHistory ? this.renderCommitFilter() : null}
-        <CommitList
-          ref={this.commitListRef}
-          gitHubRepository={this.props.repository.gitHubRepository}
-          isLocalRepository={this.props.isLocalRepository}
-          commitLookup={this.props.commitLookup}
-          commitSHAs={filteredCommitSHAs}
-          selectedSHAs={this.props.selectedCommitShas}
-          shasToHighlight={this.props.shasToHighlight}
-          localCommitSHAs={this.props.localCommitSHAs}
-          canResetToCommits={allowHistoryOps}
-          canUndoCommits={allowHistoryOps}
-          canAmendCommits={allowHistoryOps}
-          emoji={this.props.emoji}
-          reorderingEnabled={allowHistoryOps}
-          onViewCommitOnGitHub={this.props.onViewCommitOnGitHub}
-          onUndoCommit={this.onUndoCommit}
-          onResetToCommit={this.onResetToCommit}
-          onRevertCommit={
-            ableToRevertCommit(this.props.compareState.formState)
-              ? this.props.onRevertCommit
-              : undefined
-          }
-          onAmendCommit={this.props.onAmendCommit}
-          onCommitsSelected={this.onCommitsSelected}
-          onScroll={this.onScroll}
-          onCreateBranch={this.onCreateBranch}
-          onCreateWorktreeFromCommit={this.onCreateWorktreeFromCommit}
-          onCheckoutCommit={this.onCheckoutCommit}
-          onCreateTag={this.onCreateTag}
-          onDeleteTag={this.onDeleteTag}
-          onCherryPick={this.onCherryPick}
-          onDropCommitInsertion={this.onDropCommitInsertion}
-          onKeyboardReorder={this.onKeyboardReorder}
-          onCancelKeyboardReorder={this.onCancelKeyboardReorder}
-          onSquash={this.onSquash}
-          emptyListMessage={emptyListMessage}
-          onCompareListScrolled={this.props.onCompareListScrolled}
-          compareListScrollTop={this.props.compareListScrollTop}
-          tagsToPush={this.props.tagsToPush ?? []}
-          onRenderCommitDragElement={this.onRenderCommitDragElement}
-          onRemoveCommitDragElement={this.onRemoveCommitDragElement}
-          disableReordering={!allowHistoryOps}
-          disableSquashing={!allowHistoryOps}
-          isMultiCommitOperationInProgress={
-            this.props.isMultiCommitOperationInProgress
-          }
-          keyboardReorderData={this.state.keyboardReorderData}
-          accounts={this.props.accounts}
-          preferAbsoluteDates={this.props.preferAbsoluteDates}
-          showCommitGraph={
-            isHistory && this.state.showCommitGraph && !isCommitFilterActive
-          }
-        />
+        </div>
       </>
     )
   }

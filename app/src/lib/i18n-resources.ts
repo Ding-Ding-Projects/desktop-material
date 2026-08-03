@@ -646,6 +646,9 @@ export type TranslationKey =
   | 'history.scope'
   | 'history.scope.currentBranch'
   | 'history.scope.allRefs'
+  | 'history.viewMode'
+  | 'history.viewMode.list'
+  | 'history.viewMode.graph'
   | 'diff.structured.viewSwitcher'
   | 'diff.structured.code'
   | 'diff.structured.table'
@@ -4291,6 +4294,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'history.scope': 'History scope',
   'history.scope.currentBranch': 'Current branch',
   'history.scope.allRefs': 'All branches & tags',
+  'history.viewMode': 'History view',
+  'history.viewMode.list': 'Commit list',
+  'history.viewMode.graph': 'Graph',
   'diff.structured.viewSwitcher': 'Structured diff view',
   'diff.structured.code': 'Code',
   'diff.structured.table': 'Table',
@@ -8741,6 +8747,9 @@ export const cantoneseTranslations: Readonly<
   'history.scope': '歷史範圍',
   'history.scope.currentBranch': '而家呢條分支',
   'history.scope.allRefs': '全部分支同標籤',
+  'history.viewMode': '歷史檢視',
+  'history.viewMode.list': '提交清單',
+  'history.viewMode.graph': '圖表',
   'diff.structured.viewSwitcher': '結構化差異檢視',
   'diff.structured.code': '程式碼',
   'diff.structured.table': '表格',

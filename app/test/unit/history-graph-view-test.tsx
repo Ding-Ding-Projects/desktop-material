@@ -1108,11 +1108,13 @@ describe('history graph view: wiring', () => {
 
   const compare = read('src', 'ui', 'history', 'compare.tsx')
 
-  it('offers a toggle that reports its pressed state', () => {
+  it('offers accessible list and graph history tabs with selected state', () => {
     assert.match(
       compare,
-      /className="history-graph-view-toggle"[\s\S]*?ariaLabel="Graph view"[\s\S]*?ariaPressed=\{this\.state\.showGraphView\}[\s\S]*?onClick=\{this\.onGraphViewToggle\}/
+      /className="history-view-tabs"[\s\S]*?role="tablist"[\s\S]*?className="history-view-tab"[\s\S]*?data-view="list"[\s\S]*?aria-selected=\{!graphSelected\}[\s\S]*?data-view="graph"[\s\S]*?aria-selected=\{graphSelected\}/
     )
+    assert.match(compare, /onKeyDown=\{this\.onHistoryViewTabKeyDown\}/)
+    assert.match(compare, /aria-controls=\{panelId\}/)
   })
 
   it('persists the chosen view the way the commit-graph toggle does', () => {
@@ -1123,13 +1125,17 @@ describe('history graph view: wiring', () => {
     )
     assert.match(
       compare,
-      /const showGraphView = !state\.showGraphView\s*\n\s*setBoolean\(ShowGraphViewKey, showGraphView\)/
+      /private setHistoryView = \(showGraphView: boolean\)[\s\S]*?setBoolean\(ShowGraphViewKey, showGraphView\)[\s\S]*?this\.setState\(\{ showGraphView \}\)/
     )
   })
 
   it('keeps the commit list as the other view rather than replacing it', () => {
     assert.match(compare, /isHistory && this\.state\.showGraphView/)
     assert.match(compare, /<CommitList/)
+    assert.match(
+      compare,
+      /id=\{isHistory \? 'history-view-panel' : undefined\}/
+    )
   })
 
   it('shares one context-menu builder and the same production action wiring', () => {
@@ -1191,6 +1197,23 @@ describe('history graph view: wiring', () => {
     assert.match(
       read('styles', '_ui.scss'),
       /@import 'ui\/history-graph-view';/
+    )
+  })
+
+  it('styles the history tabs for narrow widths and reduced motion', () => {
+    const style = read('styles', 'ui', 'history', '_history.scss')
+
+    assert.match(
+      style,
+      /\.history-view-tabs \{[\s\S]*?min-height: 48px;[\s\S]*?overflow-x: auto;/
+    )
+    assert.match(
+      style,
+      /\.history-view-tab \{[\s\S]*?min-width: 104px;[\s\S]*?min-height: 44px;[\s\S]*?&:focus-visible \{/
+    )
+    assert.match(
+      style,
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.history-view-tab \{[\s\S]*?transition: none;/
     )
   })
 

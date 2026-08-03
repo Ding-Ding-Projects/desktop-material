@@ -1,5 +1,15 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-03 — History view tabs checkpoint
+
+The History surface now exposes a real, keyboard-accessible `List` / `Graph`
+tab strip rather than hiding the graph mode behind an icon-only toggle. The
+selected view remains persisted, the tabs use roving focus with arrow/Home/End
+navigation, and both views share the existing commit actions and filter state.
+The three-column graph continues to use the virtualized continuous lane
+renderer. Focused source/style verification is pending in this checkout; a
+fresh hidden Windows capture is the remaining R3 acceptance gate.
+
 ## 2026-08-03 — Bug-hunt and Ollama interface checkpoint
 
 This checkpoint is the current source of truth for the active audit. The main
@@ -70,7 +80,9 @@ no worktree holds uncommitted work.
   declares), `@types/react-virtualized` 9.22.3 (removes `Grid.propTypes`).
 - **Repository selection in Commit & push all**, with a search bar on the regex
   builder whose bulk actions never reach past the filter.
-- **The history graph view** — finished, toggled from the Filters row.
+- **The history graph view** — implemented with explicit List/Graph tabs,
+  continuous lanes, and shared commit actions; built-app capture remains the
+  final acceptance gate.
 - **The Agents panel** — pure logic and components complete and tested, **not
   mounted**.
 - **18 issues, #118–#135**, one per roadmap item, linked from `ROADMAP.md`, with
