@@ -4,9 +4,9 @@
   "generator": "tui/tools/generate-parity-contract.mjs",
   "source": {
     "path": "docs/readme-tabs/complete-feature-list.md",
-    "sha256": "00539f8ee25e95d9d5a7377e7cc527ca9c3aecf032e3c78d7e4a13e009b2d6bd",
-    "declared_feature_count": 203,
-    "parsed_feature_count": 203,
+    "sha256": "caf9c7341fd62b0ccc5ae1c0faf3c55ccd200f2d5a12f3ca30e220c654bfa77f",
+    "declared_feature_count": 204,
+    "parsed_feature_count": 204,
     "section_count": 17
   },
   "semantics": {
@@ -17,7 +17,7 @@
   },
   "status_summary": {
     "adapted": 14,
-    "not_yet_available": 134,
+    "not_yet_available": 135,
     "partial": 53,
     "terminal_owned": 2
   },
@@ -1095,6 +1095,17 @@
       "evidence": [
         "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
       ]
+    },
+    {
+      "id": "6-stash-export-and-recovery-dialog",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Stash export and recovery dialog",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/stash-export.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
     },
     {
       "id": "6-external-stash-interoperability",
