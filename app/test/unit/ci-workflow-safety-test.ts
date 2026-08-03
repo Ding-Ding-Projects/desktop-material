@@ -34,6 +34,17 @@ const workflowSources = readdirSync(workflowDirectory)
   }))
 
 describe('CI workflow safety', () => {
+  it('keeps the static lint install independent of native lifecycle scripts', () => {
+    const lintJob = ciWorkflow.match(
+      /\r?\n  lint:\r?\n([\s\S]*?)(?=\r?\n  [a-z-]+:\r?\n)/
+    )
+    assert.notEqual(lintJob, null)
+    assert.match(
+      lintJob?.[1] ?? '',
+      /yarn install --frozen-lockfile --ignore-scripts --non-interactive/
+    )
+  })
+
   it('uses one configurable loopback endpoint for the E2E build and server', () => {
     assert.deepEqual(getMockUpdateEndpoint('http://127.0.0.1:43123/update'), {
       host: '127.0.0.1',
