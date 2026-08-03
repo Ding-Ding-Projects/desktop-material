@@ -24,6 +24,13 @@ pictures that never change.
 `<link href=`, `url(…)`, and `@import` against absolute and protocol-relative
 URLs. Navigation links to `github.com` are not assets and are allowed.
 
+`script/site-dc-pages-test.mjs` asserts the same constraint over the homepage,
+which needs a different proof: its runtime *names* the CDN URLs it would fall
+back to, so the test checks that every one of them is remapped onto a vendored
+copy rather than banning the strings outright. See
+[the Material Design 3 site](../features/design-system/material-design-3-site.md)
+for how the vendoring works.
+
 ## Build steps
 
 | Step | What it does |
@@ -32,7 +39,7 @@ URLs. Navigation links to `github.com` are not assets and are allowed.
 | Assemble publish directory | Copies `site/` into `_site/`, drops the files that are build inputs rather than pages, and copies `docs/assets/screenshots`. |
 | Render documentation to HTML | Runs `pandoc --from gfm --to html5` over every `docs/**/*.md` and every root-level `*.md`, through `site/docs-template.html` and the `site/md-links.lua` link rewriter. |
 | Publish the documentation hub | Renders `docs/README.md` to `/docs/README.html` and copies the hand-built Material Design 3 hub to `/docs/index.html`. |
-| Validate the Cheap LFS Pages surfaces | Runs the existing 30-row product-guide contract and the standalone 72-row comparison-atlas contract against the assembled `_site`, after the shared regex runner and worker have been copied. |
+| Validate the Material Design 3 site | Runs `script/site-dc-pages-test.mjs _site --expect-docs` over the assembled tree: the Design Component and its vendored runtime and font subsets all shipped, nothing reaches a third-party host, every icon ligature and Cantonese character the copy uses is covered by its subset, every image resolves, the two retired URLs still redirect, and the Docs hub's article counts and category links match the tree rendered above. |
 | Install the Mermaid pre-renderer | Installs `@mermaid-js/mermaid-cli` and `puppeteer` into `$RUNNER_TEMP`, outside the checkout, then downloads Chromium. |
 | Pre-render Mermaid diagrams | Runs `site/render-mermaid.mjs` over `_site`. |
 | Build documentation search index | Runs `site/build-search-index.js`, which extracts each page's text into `docs/search-index.json`. |
@@ -42,35 +49,42 @@ The pre-render step runs **before** the search index, so the text inside a
 diagram is indexed as part of the page and a reader can find a page by a node
 label.
 
-### Standalone Cheap LFS comparison route
+### The two retired routes
 
-`site/cheap-lfs-vs-git-lfs.html` publishes at
-`/desktop-material/cheap-lfs-vs-git-lfs.html`. It uses only repository-owned
-CSS, JavaScript, and two self-contained SVG diagrams. The route also loads:
+The Cheap LFS guide and the Cheap LFS versus Git LFS atlas used to be pages of
+their own at `/cheap-lfs.html` and `/cheap-lfs-vs-git-lfs.html`. They are now
+pages of the Material Design 3 site, at `/#lfs` and `/#atlas`.
 
-```text
-docs/assets/site/docs-regex-job.js
-docs/assets/site/docs-hub-regex-worker.js
-```
+Both files still exist, as redirects. Every README link, documentation
+cross-reference, bookmark, and search result ever made to those URLs still
+reaches the guide it was pointing at rather than a 404, and a reader whose
+browser blocked the refresh is told where the page went and given the link.
+`script/site-dc-pages-test.mjs` asserts both stubs and their targets, so
+deleting one is a red build rather than a quiet loss of every inbound link.
 
-Those URLs do not exist beneath raw `site/`. They become valid only after the
-**Publish the documentation hub** step copies `docs/assets/site/` into
-`_site/docs/assets/site/`. Local browser acceptance must therefore serve an
-assembled `_site` tree, or map that path to the repository's `docs/assets/site`
-directory. Serving raw `site/` and reporting a broken regex worker is a false
-failure.
+Their old contracts — `cheap-lfs-pages-test.mjs` and
+`cheap-lfs-vs-git-lfs-pages-test.mjs` — were retired with the pages they
+described. The content they protected is the same content, so the shape of the
+guarantee changed rather than disappearing: the site contract now proves the
+whole homepage, and the two guides are two of its six pages.
 
-The route contract is:
+### Previewing the site locally
+
+The homepage is a Design Component: a template plus a logic class, rendered in
+the browser. Opening `site/index.html` from the file system will not work — the
+runtime fetches its sibling component over HTTP — so serve it:
 
 ```sh
-node script/cheap-lfs-vs-git-lfs-pages-test.mjs _site
+node script/serve-site.mjs site
 ```
 
-It holds the data model at 72 criteria across 12 categories, resolves every
-row-level source ID, checks the exact Cheap/Git push commands and caveats,
-exercises tab/filter/fit/language/tone state, and refuses a page-thread regular
-expression implementation. The existing `cheap-lfs-pages-test.mjs` continues
-to protect the 30-row teaching guide independently.
+Screenshots and the rendered documentation live under `docs/`, which the
+workflow copies in beside the site. To preview them together, assemble a
+`_site` the way the workflow does and serve that instead:
+
+```sh
+node script/serve-site.mjs _site
+```
 
 ## Mermaid diagrams
 
@@ -201,5 +215,8 @@ re-checking a long-labelled diagram.
 
 ```sh
 node script/test.mjs script          # includes script/render-mermaid-test.mjs
+node script/site-dc-pages-test.mjs site
+node script/sync-site-doc-counts.mjs --check
+node script/test.mjs app/test/unit/site-accessibility-test.ts
 npx prettier --check site/docs-template.html .github/workflows/pages.yml
 ```

@@ -41,5 +41,10 @@
   synthesized looping theme per repository (no bundled files) seeded from its
   identity, with per-repo custom-track/mute overrides persisted in a Git-backed
   dedicated setting and a one-time migration from localStorage.
+- [The Material Design 3 site](material-design-3-site.md) — the published site
+  as one Design Component: six pages in a browser-style tab strip, React and
+  four content-subsetted font families vendored so nothing loads from another
+  host, real URLs for a single-page site, and the contract test that proves it
+  all shipped.
 
 This category has no HTTP API. Postman collections are not applicable.

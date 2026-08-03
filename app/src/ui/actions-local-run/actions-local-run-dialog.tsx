@@ -5,7 +5,7 @@ import { Repository } from '../../models/repository'
 import { Dialog, DialogContent, DialogFooter, DialogError } from '../dialog'
 import { Button } from '../lib/button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
-import { Select } from '../lib/select'
+import { SearchableSelect } from '../lib/searchable-select'
 import { TextBox } from '../lib/text-box'
 import { LinkButton } from '../lib/link-button'
 import { Octicon } from '../octicons'
@@ -22,6 +22,7 @@ import {
 } from './actions-local-run-log-filter'
 import {
   detectActionsLocalTools,
+  installActionsLocalAct,
   listActionsWorkflows,
   startActionsLocalRun,
   cancelActionsLocalRun,
@@ -79,6 +80,10 @@ interface IActionsLocalRunDialogState {
   readonly logFilter: string
   readonly logFilterMode: FilterMode
   readonly logFilterCaseSensitive: boolean
+  /** True while act is being downloaded and installed for the user. */
+  readonly installingAct: boolean
+  /** Why the automatic act install failed, or null while it is fine. */
+  readonly actInstallError: string | null
 }
 
 interface IActionsLocalRunInputRowProps {
@@ -195,6 +200,8 @@ export class ActionsLocalRunDialog extends React.Component<
       logFilter: '',
       logFilterMode: readPersistedFilterMode(LogFilterListId),
       logFilterCaseSensitive: false,
+      installingAct: false,
+      actInstallError: null,
     }
   }
 
@@ -235,6 +242,13 @@ export class ActionsLocalRunDialog extends React.Component<
       const tools = await detectActionsLocalTools()
       if (this.mounted) {
         this.setState({ tools })
+        // Missing act is a solved problem, so solve it rather than reporting
+        // it. Only when the user has not already failed an install this
+        // session — retrying the same failing download on every probe would
+        // replace one dead end with a louder one.
+        if (!tools.actAvailable && this.state.actInstallError === null) {
+          void this.installActAutomatically()
+        }
       }
     } catch (error) {
       if (this.mounted) {
@@ -357,16 +371,19 @@ export class ActionsLocalRunDialog extends React.Component<
     this.logEndRef = ref
   }
 
-  private onWorkflowChanged = (event: React.FormEvent<HTMLSelectElement>) => {
-    this.selectWorkflow(event.currentTarget.value)
+  // The searchable listbox reports the chosen value rather than a DOM event,
+  // since the option that was picked may have been reached by keyboard from a
+  // filtered list and there is no <select> element to read it back off.
+  private onWorkflowSelected = (value: string) => {
+    this.selectWorkflow(value)
   }
 
-  private onEventChanged = (event: React.FormEvent<HTMLSelectElement>) => {
-    this.setState({ selectedEvent: event.currentTarget.value })
+  private onEventSelected = (value: string) => {
+    this.setState({ selectedEvent: value })
   }
 
-  private onJobChanged = (event: React.FormEvent<HTMLSelectElement>) => {
-    this.setState({ selectedJob: event.currentTarget.value })
+  private onJobSelected = (value: string) => {
+    this.setState({ selectedJob: value })
   }
 
   private onDryRunChanged = (event: React.FormEvent<HTMLInputElement>) => {
@@ -484,7 +501,10 @@ export class ActionsLocalRunDialog extends React.Component<
         <ul>
           {!tools.actAvailable && (
             <li>
-              {t('actionsLocalRun.actMissing')}{' '}
+              {this.state.installingAct
+                ? t('actionsLocalRun.actInstalling')
+                : this.state.actInstallError ??
+                  t('actionsLocalRun.actInstallingAutomatically')}{' '}
               <LinkButton uri={ActInstallDocsUrl}>
                 {t('actionsLocalRun.installActLink')}
               </LinkButton>
@@ -508,8 +528,38 @@ export class ActionsLocalRunDialog extends React.Component<
   }
 
   private onRetryDetection = () => {
-    this.setState({ tools: null })
+    this.setState({ tools: null, actInstallError: null })
     void this.detect()
+  }
+
+  /**
+   * Install `act` without being asked to.
+   *
+   * Docker is deliberately not installed for the user: it is a machine-wide
+   * service install that wants elevation and, on Windows, a reboot. `act` is a
+   * single binary that drops into the app's own data directory, so there is
+   * nothing to consent to and nothing to undo — which is why one is automatic
+   * and the other still links out.
+   */
+  private installActAutomatically = async () => {
+    if (this.state.installingAct) {
+      return
+    }
+    this.setState({ installingAct: true, actInstallError: null })
+    try {
+      const tools = await installActionsLocalAct()
+      this.setState({ tools, installingAct: false })
+    } catch (error) {
+      this.setState({
+        installingAct: false,
+        // The install failed, so say why here rather than leaving the panel
+        // claiming an install is in progress that has already stopped.
+        actInstallError:
+          error instanceof Error
+            ? error.message
+            : t('actionsLocalRun.actInstallFailed'),
+      })
+    }
   }
 
   private renderConfiguration() {
@@ -529,17 +579,17 @@ export class ActionsLocalRunDialog extends React.Component<
 
     return (
       <div className="actions-local-run-config">
-        <Select
+        <SearchableSelect
           label={t('actionsLocalRun.workflowLabel')}
-          value={this.state.selectedWorkflowPath ?? undefined}
-          onChange={this.onWorkflowChanged}
-        >
-          {workflows.map(w => (
-            <option key={w.relativePath} value={w.relativePath}>
-              {w.name !== null ? `${w.name} (${w.fileName})` : w.fileName}
-            </option>
-          ))}
-        </Select>
+          value={this.state.selectedWorkflowPath ?? ''}
+          searchSurfaceId="actions-local-run-workflow"
+          regexBuilderTarget="workflows"
+          onChange={this.onWorkflowSelected}
+          options={workflows.map(w => ({
+            value: w.relativePath,
+            label: w.name !== null ? `${w.name} (${w.fileName})` : w.fileName,
+          }))}
+        />
 
         {workflow !== null && this.renderWorkflowDetail(workflow)}
       </div>
@@ -561,31 +611,30 @@ export class ActionsLocalRunDialog extends React.Component<
           </div>
         )}
 
-        <Select
+        <SearchableSelect
           label={t('actionsLocalRun.eventLabel')}
           value={this.state.selectedEvent}
-          onChange={this.onEventChanged}
-        >
-          {events.map(e => (
-            <option key={e} value={e}>
-              {e}
-            </option>
-          ))}
-        </Select>
+          searchSurfaceId="actions-local-run-event"
+          regexBuilderTarget="events"
+          onChange={this.onEventSelected}
+          options={events.map(e => ({ value: e, label: e }))}
+        />
 
         {workflow.jobs.length > 0 && (
-          <Select
+          <SearchableSelect
             label={t('actionsLocalRun.jobLabel')}
             value={this.state.selectedJob}
-            onChange={this.onJobChanged}
-          >
-            <option value="">{t('actionsLocalRun.allJobs')}</option>
-            {workflow.jobs.map(j => (
-              <option key={j.id} value={j.id}>
-                {j.name !== null ? `${j.name} (${j.id})` : j.id}
-              </option>
-            ))}
-          </Select>
+            searchSurfaceId="actions-local-run-job"
+            regexBuilderTarget="jobs"
+            onChange={this.onJobSelected}
+            options={[
+              { value: '', label: t('actionsLocalRun.allJobs') },
+              ...workflow.jobs.map(j => ({
+                value: j.id,
+                label: j.name !== null ? `${j.name} (${j.id})` : j.id,
+              })),
+            ]}
+          />
         )}
 
         {this.renderInputs(workflow)}

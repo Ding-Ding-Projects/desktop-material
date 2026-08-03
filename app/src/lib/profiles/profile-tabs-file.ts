@@ -12,6 +12,7 @@ interface IProfileTabsFile {
   readonly tabs?: unknown
   readonly activeTabId?: unknown
   readonly groups?: unknown
+  readonly closedTabs?: unknown
   readonly windows?: unknown
 }
 
@@ -72,6 +73,7 @@ function asTabsState(value: unknown): IProfileTabsState | null {
     readonly tabs?: unknown
     readonly activeTabId?: unknown
     readonly groups?: unknown
+    readonly closedTabs?: unknown
   }
   if (!Array.isArray(candidate.tabs)) {
     return null
@@ -88,6 +90,9 @@ function asTabsState(value: unknown): IProfileTabsState | null {
     tabs: candidate.tabs,
     activeTabId: candidate.activeTabId ?? null,
     ...(groups === undefined ? {} : { groups }),
+    ...(Array.isArray(candidate.closedTabs)
+      ? { closedTabs: candidate.closedTabs }
+      : {}),
   }
 }
 
@@ -145,6 +150,9 @@ export function mergeWindowTabsState(
     tabs: primary.tabs,
     activeTabId: primary.activeTabId,
     ...(primary.groups === undefined ? {} : { groups: primary.groups }),
+    ...(primary.closedTabs === undefined
+      ? {}
+      : { closedTabs: primary.closedTabs }),
     windows: states,
   }
 }

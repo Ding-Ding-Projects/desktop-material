@@ -45,6 +45,7 @@ const ollamaManagerTranslationKeys: ReadonlyArray<TranslationKey> = [
   'ollama.manager.refreshing',
   'ollama.manager.searchLabel',
   'ollama.manager.searchPlaceholder',
+  'ollama.manager.clearSearch',
   'ollama.manager.scopeLabel',
   'ollama.manager.allModels',
   'ollama.manager.runningModels',
@@ -225,7 +226,7 @@ describe('Ollama model manager internationalization', () => {
     const expectedKeys = [...ollamaManagerTranslationKeys].sort()
 
     assert.deepEqual(actualKeys, expectedKeys)
-    assert.equal(ollamaManagerTranslationKeys.length, 185)
+    assert.equal(ollamaManagerTranslationKeys.length, 186)
 
     for (const key of ollamaManagerTranslationKeys) {
       assert.equal(typeof englishTranslations[key], 'string', key)

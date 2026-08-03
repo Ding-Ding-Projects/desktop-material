@@ -373,6 +373,12 @@
     .filter-regex-builder-label {
       display: none;
     }
+
+    .ollama-clear-search {
+      flex: none;
+      min-height: 32px;
+      padding-inline: 8px;
+    }
   }
 
   .ollama-filter-error {

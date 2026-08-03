@@ -21,6 +21,18 @@ remote-site/.wrangler/
 
 # The standalone parity generator owns this deterministic JSON/YAML formatting.
 tui/contracts/parity.yaml
+
+# The published site is a Design Component authored in a design tool and
+# re-imported wholesale. `site/index.html` and `site/Listbox.dc.html` are that
+# artifact: reformatting them would turn every future re-import into an
+# unreviewable diff, and the runtime's template encoder is sensitive to the
+# whitespace before a camelCase attribute. `site/support.js` is the runtime,
+# checked in byte-for-byte from upstream so its subresource-integrity digests
+# still describe the file that shipped. The hand-written redirect stubs beside
+# them are deliberately not exempt.
+site/index.html
+site/Listbox.dc.html
+site/support.js
 tui/.mypy_cache/
 tui/.pytest_cache/
 tui/.ruff_cache/

@@ -46,6 +46,7 @@ import { RepositoryStateCache } from '../../lib/stores/repository-state-cache'
 import { ArrangeTabsPopover } from './arrange-tabs-popover'
 import { TabSearchPopover } from './tab-search-popover'
 import { TabOverflowPopover } from './tab-overflow-popover'
+import { TabHistoryPopover } from './tab-history-popover'
 import { computeTabOverflowLayout, ITabWidthMeasurement } from './tab-overflow'
 import {
   repositoryTabMatchKeys,
@@ -85,6 +86,9 @@ interface IRepositoryTabStripState {
   readonly searchAnchor: HTMLElement | null
   readonly overflowAnchor: HTMLElement | null
   readonly draggingTabId: string | null
+  readonly dragOverTabId: string | null
+  readonly dragOverPosition: 'before' | 'after' | null
+  readonly closedHistoryAnchor: HTMLElement | null
   readonly announcement: string
   /** The tab awaiting a name for the new group it will start. */
   readonly createGroupForTab: IRepositoryTab | null
@@ -144,6 +148,7 @@ export class RepositoryTabStrip extends React.Component<
   private readonly tabLaneRef = React.createRef<HTMLDivElement>()
   private readonly listRef = React.createRef<HTMLDivElement>()
   private readonly overflowButtonRef = React.createRef<HTMLButtonElement>()
+  private readonly closedHistoryButtonRef = React.createRef<HTMLButtonElement>()
   /** Cached outer widths (px) for rendered tabs, keyed by tab id. */
   private readonly tabWidthCache = new Map<string, number>()
   /** Cached outer widths (px) for rendered group chips, keyed by group id. */
@@ -171,6 +176,9 @@ export class RepositoryTabStrip extends React.Component<
       searchAnchor: null,
       overflowAnchor: null,
       draggingTabId: null,
+      dragOverTabId: null,
+      dragOverPosition: null,
+      closedHistoryAnchor: null,
       announcement: '',
       createGroupForTab: null,
       moveGroupTabId: null,
@@ -543,6 +551,38 @@ export class RepositoryTabStrip extends React.Component<
 
   private onOpenSettingsHistory = () => {
     this.props.dispatcher.showPopup({ type: PopupType.SettingsHistory })
+  }
+
+  private onClosedHistoryButtonClick = () => {
+    this.setState(state => ({
+      closedHistoryAnchor:
+        state.closedHistoryAnchor === null
+          ? this.closedHistoryButtonRef.current
+          : null,
+    }))
+  }
+
+  private onClosedHistoryDismiss = () => {
+    this.setState({ closedHistoryAnchor: null })
+  }
+
+  private onRestoreClosedTab = (tab: IRepositoryTab) => {
+    void this.props.tabsStore
+      .restoreClosedTab(tab.id)
+      .then(this.selectActiveRepository)
+      .catch(err => log.error('Failed to restore closed repository tab', err))
+  }
+
+  private onForgetClosedTab = (tab: IRepositoryTab) => {
+    void this.props.tabsStore
+      .forgetClosedTab(tab.id)
+      .catch(err => log.error('Failed to forget closed repository tab', err))
+  }
+
+  private onClearClosedTabs = () => {
+    void this.props.tabsStore
+      .clearClosedTabs()
+      .catch(err => log.error('Failed to clear closed repository tabs', err))
   }
 
   /**
@@ -1519,6 +1559,8 @@ export class RepositoryTabStrip extends React.Component<
     event.dataTransfer.setData('text/plain', tab.id)
     this.setState({
       draggingTabId: tab.id,
+      dragOverTabId: null,
+      dragOverPosition: null,
       announcement: `Moving ${this.labelForTab(tab)}.`,
     })
   }
@@ -1536,6 +1578,21 @@ export class RepositoryTabStrip extends React.Component<
     ) {
       event.preventDefault()
       event.dataTransfer.dropEffect = 'move'
+      const bounds = event.currentTarget.getBoundingClientRect()
+      const position =
+        event.clientX <= bounds.left + bounds.width / 2 ? 'before' : 'after'
+      if (
+        this.state.dragOverTabId !== target.id ||
+        this.state.dragOverPosition !== position
+      ) {
+        this.setState({
+          dragOverTabId: target.id,
+          dragOverPosition: position,
+          announcement: `${
+            position === 'before' ? 'Before' : 'After'
+          } ${this.labelForTab(target)}.`,
+        })
+      }
     }
   }
 
@@ -1557,13 +1614,18 @@ export class RepositoryTabStrip extends React.Component<
     ) {
       this.setState({
         draggingTabId: null,
+        dragOverTabId: null,
+        dragOverPosition: null,
         announcement: 'Pinned and unpinned tabs stay in separate groups.',
       })
       return
     }
 
     const bounds = event.currentTarget.getBoundingClientRect()
-    const dropAfter = event.clientX > bounds.left + bounds.width / 2
+    const dropAfter =
+      this.state.dragOverTabId === target.id
+        ? this.state.dragOverPosition === 'after'
+        : event.clientX > bounds.left + bounds.width / 2
     let toIndex = targetIndex + (dropAfter ? 1 : 0)
     if (sourceIndex < toIndex) {
       toIndex--
@@ -1573,17 +1635,27 @@ export class RepositoryTabStrip extends React.Component<
       .then(() =>
         this.setState({
           draggingTabId: null,
+          dragOverTabId: null,
+          dragOverPosition: null,
           announcement: `${this.labelForTab(source)} moved.`,
         })
       )
       .catch(err => {
-        this.setState({ draggingTabId: null })
+        this.setState({
+          draggingTabId: null,
+          dragOverTabId: null,
+          dragOverPosition: null,
+        })
         log.error('Failed to drag repository tab', err)
       })
   }
 
   private onDragEnd = () => {
-    this.setState({ draggingTabId: null })
+    this.setState({
+      draggingTabId: null,
+      dragOverTabId: null,
+      dragOverPosition: null,
+    })
   }
 
   private renderStyleEditor() {
@@ -1736,6 +1808,26 @@ export class RepositoryTabStrip extends React.Component<
         onCustomize={this.onOverflowCustomize}
         onContextMenu={this.onOverflowContextMenu}
         onClose={this.onOverflowDismiss}
+      />
+    )
+  }
+
+  private renderClosedHistoryPopover() {
+    const { closedHistoryAnchor } = this.state
+    if (closedHistoryAnchor === null) {
+      return null
+    }
+    return (
+      <TabHistoryPopover
+        tabs={this.state.tabs.closedTabs ?? []}
+        anchor={closedHistoryAnchor}
+        languageMode={this.state.languageMode}
+        resolveLabel={this.labelForTab}
+        resolveMatchKeys={this.matchKeysForTab}
+        onRestore={this.onRestoreClosedTab}
+        onForget={this.onForgetClosedTab}
+        onClear={this.onClearClosedTabs}
+        onClose={this.onClosedHistoryDismiss}
       />
     )
   }
@@ -1927,6 +2019,12 @@ export class RepositoryTabStrip extends React.Component<
         repository={this.repositoryForTab(tab)}
         isActive={tab.id === activeTabId}
         isDragging={tab.id === this.state.draggingTabId}
+        isDragOver={tab.id === this.state.dragOverTabId}
+        dragOverPosition={
+          tab.id === this.state.dragOverTabId
+            ? this.state.dragOverPosition
+            : null
+        }
         onSelect={this.onSelect}
         onClose={this.onClose}
         onToggleFavorite={this.onToggleFavorite}
@@ -2115,6 +2213,17 @@ export class RepositoryTabStrip extends React.Component<
           />
           {this.renderCommitChip()}
           <button
+            ref={this.closedHistoryButtonRef}
+            className="repository-tab-closed-history"
+            data-dm-feature={true}
+            aria-label={this.accessibleText('tabs.closedHistory')}
+            aria-haspopup="dialog"
+            aria-expanded={this.state.closedHistoryAnchor !== null}
+            onClick={this.onClosedHistoryButtonClick}
+          >
+            <MaterialSymbol name="history" size={18} />
+          </button>
+          <button
             className="repository-tab-undo"
             data-dm-feature={true}
             aria-label={t('tabs.undoSettingsChange')}
@@ -2148,6 +2257,7 @@ export class RepositoryTabStrip extends React.Component<
         {this.renderArrangePopover()}
         {this.renderSearchPopover()}
         {this.renderOverflowPopover()}
+        {this.renderClosedHistoryPopover()}
         {this.renderGroupMembersPopover()}
         {this.renderCreateGroupDialog()}
         {this.renderMoveGroupDialog()}

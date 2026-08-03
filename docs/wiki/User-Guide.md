@@ -497,7 +497,12 @@ Refresh/Stop, a labelled address field, Go, ordinary bookmarks, and **Open
 externally**. A bare host such as `example.com/docs` becomes HTTPS. Arbitrary
 words are not sent to a search engine. HTTP(S) redirects stay in the current
 tab; a page's `window.open` target is captured into a new app-hosted tab instead
-of receiving an unrestricted popup.
+of receiving an unrestricted popup. Use the toolbar search button or
+<kbd>Ctrl</kbd>+<kbd>F</kbd> to search the active page. Plain text is the default
+and highlights through Chromium; regex is an explicit opt-in with the shared
+regex builder, case matching, previous/next navigation, and bounded context
+results. Regex reads capped page text in an isolated world and does not mutate
+remote page DOM, so it reports matches without pretending to highlight them.
 
 Sign-in tabs show a **SIGN IN** marker and private-session notice. They cannot
 be bookmarked, use an in-memory session shared only with their sign-in popups,
@@ -517,7 +522,9 @@ in the browser chrome with a refresh or external-browser recovery path.
 <sub>**香港粵語速讀。** **Settings → Advanced → Open web links** 預設兼建議用系統
 瀏覽器，特別係 app 內瀏覽器一片空白嗰陣；真係想用先明確揀 app 入面。App 入面有分頁、網址列、前後頁、重新整理、Go、書籤同外部逃生門；網頁
 自己就鎖喺 sandbox view，冇 Node、冇 app IPC、冇權限，壞憑證唔會夾硬放行。登入
-分頁係記憶體工作階段、加唔到書籤，閂咗會清資料，亦永遠可以轉去系統瀏覽器。呢
+分頁係記憶體工作階段、加唔到書籤，閂咗會清資料，亦永遠可以轉去系統瀏覽器。撳工具列搵嘢掣或者
+<kbd>Ctrl</kbd>+<kbd>F</kbd> 就可以搵目前頁面；預設係純文字高亮，亦可以揀 regex 建構器、大小寫、上一個／下一個同配對摘要。
+呢
 本機正式 build 同 hidden-desktop 驗收已經過關；遠端發佈證據另外計。</sub>
 
 See [App-hosted browser](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/integrations/app-hosted-browser.md) for
@@ -537,8 +544,10 @@ The manager keeps service discovery, inventory, and mutations explicit:
 
 1. Check the endpoint health and Ollama version. Installed and running models
    load independently, so a partial response does not erase usable data.
-2. Search all installed models or filter to running models. Select one to
-   inspect bounded size, digest, family, format, parameter, quantization,
+2. Search all installed models or filter to running models. While a query is
+   present, **Clear search** removes it without changing the selected filter
+   mode or case-sensitivity setting. Select one to inspect bounded size,
+   digest, family, format, parameter, quantization,
    capability, license, and runtime details when Ollama reports them.
 3. Pull a model by name and follow streamed progress; cancel only that pull if
    needed. Copy a model, or rename it through copy-then-delete with a visible
@@ -1826,6 +1835,15 @@ and an auto-updating relative line such as **2 minutes ago**.
 
 ![History search and commit graph](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-power-tools.png)
 
+History now exposes the two view modes as explicit, keyboard-accessible tabs:
+choose **Commit list** for the dense review list or **Graph** for the continuous
+branch lanes. The selected view persists with the repository tab, and arrow,
+Home, and End keys move through the tab strip.
+
+![History Commit list tab from the built Windows app](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-view-tabs-list.png)
+
+![History Graph tab from the built Windows app](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-view-tabs-graph.png)
+
 ![History commit row with its named More actions control and hover hint](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-context-actions.png)
 
 ![History commit hover card showing an exact timestamp and relative age](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-hover-time.png)
@@ -1835,7 +1853,8 @@ and an auto-updating relative line such as **2 minutes ago**.
 ## Multiple stashes
 
 Create a stash from the Changes workflow whenever work must be set aside. Desktop Material keeps
-all stash entries instead of treating only the newest one as available:
+all stash entries instead of treating only the newest one as available; the inventory has no
+Desktop entry-count cap:
 
 1. Expand **Stashes** in Changes and select an entry by its label.
 2. Inspect that stash's file list and individual diffs before acting.
@@ -1847,6 +1866,19 @@ Switching branches can still offer to stash local work, and the resulting entry 
 list.
 
 ![Repository-wide stash manager with an exact selected entry](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
+
+The full manager is rendered through the shared dialog layer, keeping every
+tab and export control centered and usable above the Changes pane. The hidden
+Windows capture below is the accepted 1443×992 runtime proof.
+
+![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
+
+Choose **Open full manager** for the complete workflow. Its tabs provide a regex-capable search
+and multi-selection export to a directory, ZIP, or 7z. The 7z panel exposes compression method,
+level, dictionary, match finder, fast bytes, solid mode, threads, split volumes, password, and
+encrypted headers. The History tab keeps exact object IDs visible for recovery review, while
+Appearance and voice exposes the shared language mode and both independent funny-level sliders
+before routing to full appearance settings.
 
 ---
 

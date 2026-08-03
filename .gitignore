@@ -239,3 +239,9 @@ htmlcov/
 # Reference screenshots are working material, not project history.
 design/reference-screenshots/*
 !design/reference-screenshots/README.md
+
+# Agent scratch and probe files, never part of the project.
+/.t-*.txt
+/.act-in.txt
+/.act-*-event.json
+/.codex/*-run-manifest.json

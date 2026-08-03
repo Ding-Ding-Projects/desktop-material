@@ -1,6 +1,7 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import * as React from 'react'
+import { ipcRenderer } from 'electron'
 
 import {
   AgentSessionsPanel,
@@ -14,11 +15,31 @@ import {
 import { fireEvent, render, within } from '../helpers/ui/render'
 import { LanguageModeChangedEvent } from '../../src/lib/i18n'
 
+// Dialog sends a renderer lifecycle event in the real app. Keep this focused
+// component suite independent of Electron's main process while still mounting
+// the production Dialog implementation.
+ipcRenderer.send = () => undefined
+
 // The panel's own controls do not mount the shared List, but the Select and
 // TextBox it uses share the UI setup that constructs an observer from
 // `window.ResizeObserver` while the shared setup only polyfills the global.
 if (typeof window !== 'undefined') {
   Object.assign(window, { ResizeObserver: globalThis.ResizeObserver })
+}
+
+// jsdom does not implement the native dialog opening methods. Mark the
+// element open so Testing Library exercises the same visible subtree the
+// Chromium app presents.
+if (typeof HTMLDialogElement !== 'undefined') {
+  HTMLDialogElement.prototype.show = function () {
+    this.setAttribute('open', '')
+  }
+  HTMLDialogElement.prototype.showModal = function () {
+    this.setAttribute('open', '')
+  }
+  HTMLDialogElement.prototype.close = function () {
+    this.removeAttribute('open')
+  }
 }
 
 const bothInstalled = {
@@ -292,6 +313,14 @@ describe('AgentSessionsPanel creator', () => {
     const view = renderPanel([session({ name: 'feature-x' })])
     openCreator(view)
 
+    const dialog = view.getByRole('dialog', { name: 'New Agent Session' })
+    assert.strictEqual(dialog.querySelectorAll('form').length, 1)
+    assert.strictEqual(
+      dialog.querySelector('.new-agent-session-form')?.tagName,
+      'DIV'
+    )
+    assert.strictEqual(dialog.getAttribute('data-modal'), 'true')
+
     const start = view.getByRole('button', { name: 'Start' })
     const name = view.getByLabelText('Worktree name')
     assert.strictEqual(start.getAttribute('aria-disabled'), 'true')
@@ -385,6 +414,10 @@ describe('AgentSessionsPanel creator', () => {
         .getByRole('button', { name: 'Cancel setup' })
         .getAttribute('aria-disabled'),
       'true'
+    )
+    assert.strictEqual(
+      view.getByRole('button', { name: /^Options$/ }).getAttribute('disabled'),
+      ''
     )
 
     result.resolve(false)

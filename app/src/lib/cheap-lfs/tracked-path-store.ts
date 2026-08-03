@@ -64,6 +64,80 @@ const TimestampProbeSampleLimit = 64
  */
 const MaximumSettleWaitNanoseconds = 2_500_000_000n
 const SettleAttemptLimit = 4
+
+/**
+ * Canonicalization failures that say "not right now" rather than "not safe".
+ *
+ * On Windows `realpath` has to open a handle to ask for the final path, so it
+ * competes with every other opener of that directory — an on-access virus
+ * scanner, an indexer, a backup agent, or Git itself rewriting the working
+ * tree. Under a large commit that contention is routine and momentary, and it
+ * surfaces as a sharing violation or a refused open rather than as anything
+ * structurally wrong with the path.
+ *
+ * `ENOENT` is deliberately absent: a repository that is not there is not busy,
+ * and waiting will not conjure it back. That fails on the first attempt.
+ */
+const TransientCanonicalizationCodes = new Set([
+  'EACCES',
+  'EAGAIN',
+  'EBUSY',
+  'EIO',
+  'EMFILE',
+  'ENFILE',
+  'EPERM',
+  'UNKNOWN',
+])
+
+const CanonicalizeAttemptLimit = 4
+const CanonicalizeRetryDelayMs = 25
+
+/**
+ * Canonicalize a repository root, riding out momentary contention.
+ *
+ * This retries only; it never relaxes. A root that still will not canonicalize
+ * after the last attempt throws, and the caller's reparse-point, directory,
+ * and containment checks all still run against whatever path this returns —
+ * so a redirected root is refused exactly as before. The only thing the retry
+ * changes is whether a virus scanner holding a handle for a few milliseconds
+ * gets to abort a commit of eighteen thousand files.
+ */
+export async function canonicalizeRepositoryRoot(
+  requestedRoot: string,
+  realpathImpl: (path: string) => Promise<string> = realpath,
+  waitMs: (ms: number) => Promise<unknown> = delay
+): Promise<string> {
+  let lastError: NodeJS.ErrnoException | null = null
+
+  for (let attempt = 0; attempt < CanonicalizeAttemptLimit; attempt++) {
+    try {
+      return await realpathImpl(requestedRoot)
+    } catch (error) {
+      lastError = error as NodeJS.ErrnoException
+      if (!TransientCanonicalizationCodes.has(lastError.code ?? '')) {
+        break
+      }
+      if (attempt < CanonicalizeAttemptLimit - 1) {
+        await waitMs(CanonicalizeRetryDelayMs * (attempt + 1))
+      }
+    }
+  }
+
+  // Every distinct cause used to arrive as one sentence that said
+  // canonicalization had not happened and nothing else, so a repository that
+  // had moved, one that could not be opened, and one that redirected to itself
+  // were indistinguishable and none of them suggested an action.
+  // Declared below this function. The reference is evaluated when the
+  // function runs, never while the module is being defined, so the class is
+  // always constructed by the time this line can execute. Keeping the helper
+  // beside the constants it uses reads better than ordering the file around a
+  // lint rule about a hazard that cannot occur here.
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
+  throw new CheapLfsTrackedPathError(
+    `Cheap LFS could not canonicalize the repository root ${requestedRoot}: ` +
+      `${lastError?.code ?? lastError?.message ?? 'unknown error'}.`
+  )
+}
 const SettleSlackNanoseconds = 1_000_000n
 
 const timestampGranularityByDevice = new Map<string, Promise<bigint>>()
@@ -719,12 +793,7 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
       )
     }
     const requestedRoot = resolve(repositoryPath)
-    const repositoryRoot = await realpath(requestedRoot).catch(() => null)
-    if (repositoryRoot === null) {
-      throw new CheapLfsTrackedPathError(
-        'Cheap LFS could not canonicalize the repository root.'
-      )
-    }
+    const repositoryRoot = await canonicalizeRepositoryRoot(requestedRoot)
     const rootEntry = await lstat(repositoryRoot, { bigint: true })
     if (rootEntry.isSymbolicLink() || !rootEntry.isDirectory()) {
       throw new CheapLfsTrackedPathError(

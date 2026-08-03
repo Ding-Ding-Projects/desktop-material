@@ -53,6 +53,8 @@ interface INewAgentSessionFormProps {
   readonly canCancelStart: boolean
   readonly onCancelStart: () => void
   readonly retryableSetups: ReadonlyArray<IAgentSetupRetry>
+  /** Render the fields inside the shared Dialog form instead of a nested form. */
+  readonly insideDialog?: boolean
 }
 
 interface INewAgentSessionFormState {
@@ -224,8 +226,7 @@ export class NewAgentSessionForm extends React.Component<
     return saved
   }
 
-  private onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+  public submit = () => {
     if (
       this.props.isStarting ||
       this.state.isSetupEditorOpen ||
@@ -243,6 +244,11 @@ export class NewAgentSessionForm extends React.Component<
       })),
       this.state.restartSetup
     )
+  }
+
+  private onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    this.submit()
   }
 
   private renderProblems(problems: ReadonlyArray<INewAgentSessionProblem>) {
@@ -276,6 +282,7 @@ export class NewAgentSessionForm extends React.Component<
           aria-expanded={isOptionsExpanded}
           aria-controls="new-agent-session-options-panel"
           onClick={this.onToggleOptions}
+          disabled={this.props.isStarting}
         >
           <MaterialSymbol
             className="new-agent-session-options-chevron"
@@ -402,8 +409,8 @@ export class NewAgentSessionForm extends React.Component<
       problem.kind.startsWith('name-')
     )
 
-    return (
-      <form className="new-agent-session-form" onSubmit={this.onSubmit}>
+    const content = (
+      <>
         <TextBox
           label={t('agentSessions.worktreeName')}
           placeholder="new-worktree"
@@ -445,6 +452,14 @@ export class NewAgentSessionForm extends React.Component<
             {t('agentSessions.start')}
           </Button>
         </div>
+      </>
+    )
+
+    return this.props.insideDialog ? (
+      <div className="new-agent-session-form">{content}</div>
+    ) : (
+      <form className="new-agent-session-form" onSubmit={this.onSubmit}>
+        {content}
       </form>
     )
   }

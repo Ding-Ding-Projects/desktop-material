@@ -151,6 +151,8 @@ export type InternalBrowserCommand =
       readonly forward: boolean
       /** True to advance to the next match of a query already being searched. */
       readonly findNext: boolean
+      /** Monotonic renderer token used to discard stale Chromium tallies. */
+      readonly requestId: number
     }
   | { readonly type: 'stop-find-in-page'; readonly tabId: string }
   /**
@@ -165,7 +167,12 @@ export type InternalBrowserCommand =
    * so a hostile page cannot see what is being searched for and a pathological
    * pattern cannot hang the page.
    */
-  | { readonly type: 'read-page-text'; readonly tabId: string }
+  | {
+      readonly type: 'read-page-text'
+      readonly tabId: string
+      /** Monotonic renderer token used to discard stale page-text replies. */
+      readonly requestId: number
+    }
 
 export interface IInternalBrowserBookmark {
   readonly id: string
@@ -479,7 +486,10 @@ export function normalizeInternalBrowserCommand(
         candidate.query.length > MaximumFindQueryLength ||
         typeof candidate.matchCase !== 'boolean' ||
         typeof candidate.forward !== 'boolean' ||
-        typeof candidate.findNext !== 'boolean'
+        typeof candidate.findNext !== 'boolean' ||
+        typeof candidate.requestId !== 'number' ||
+        !Number.isSafeInteger(candidate.requestId) ||
+        candidate.requestId < 0
       ) {
         return null
       }
@@ -496,12 +506,23 @@ export function normalizeInternalBrowserCommand(
             matchCase: candidate.matchCase,
             forward: candidate.forward,
             findNext: candidate.findNext,
+            requestId: candidate.requestId,
           }
     }
     case 'stop-find-in-page':
-    case 'read-page-text':
       return isBrowserTabID(candidate.tabId)
         ? { type: candidate.type, tabId: candidate.tabId }
+        : null
+    case 'read-page-text':
+      return isBrowserTabID(candidate.tabId) &&
+        typeof candidate.requestId === 'number' &&
+        Number.isSafeInteger(candidate.requestId) &&
+        candidate.requestId >= 0
+        ? {
+            type: candidate.type,
+            tabId: candidate.tabId,
+            requestId: candidate.requestId,
+          }
         : null
     default:
       return null
@@ -805,7 +826,9 @@ export const MaximumFindResults = 200
 export const PageTextExtractionScript = `(() => {
   try {
     const text = document.body ? document.body.innerText : ''
-    return typeof text === 'string' ? text.slice(0, ${MaximumPageTextLength}) : ''
+    return typeof text === 'string' ? text.slice(0, ${
+      MaximumPageTextLength + 1
+    }) : ''
   } catch {
     return ''
   }
@@ -845,6 +868,8 @@ export interface IInternalBrowserFindResult {
  */
 export interface IInternalBrowserFindTally {
   readonly tabId: string
+  /** The renderer token that caused this Chromium search. */
+  readonly requestId: number
   readonly total: number
   readonly active: number
 }
@@ -852,6 +877,8 @@ export interface IInternalBrowserFindTally {
 /** Main -> chrome: the bounded page text a regular-expression search reads. */
 export interface IInternalBrowserPageText {
   readonly tabId: string
+  /** The renderer token that caused this read. */
+  readonly requestId: number
   readonly text: string
   /** True when the page was longer than {@link MaximumPageTextLength}. */
   readonly truncated: boolean

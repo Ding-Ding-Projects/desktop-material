@@ -852,6 +852,33 @@ describe('RepositoryTabsStore range and match close', () => {
     assert.equal(result.regexError, null)
     assert.equal(result.tabs.length, 0)
   })
+
+  it('keeps a bounded reopen history and restores the original tab object', async () => {
+    const { store } = await makeStore(layout(), 'a')
+    const original = store.getState().tabs.find(tab => tab.id === 'b')
+    assert.notEqual(original, undefined)
+
+    await store.closeTab('b')
+    assert.deepEqual(
+      store.getState().closedTabs?.map(tab => tab.id),
+      ['b']
+    )
+
+    const restoredId = await store.restoreClosedTab('b')
+    assert.equal(restoredId, 'b')
+    assert.deepEqual(store.getState().closedTabs ?? [], [])
+    assert.deepEqual(
+      store.getState().tabs.find(tab => tab.id === 'b'),
+      original
+    )
+  })
+
+  it('does not add repository-removal cleanup to reopen history', async () => {
+    const repositoryId = 2
+    const { store } = await makeStore(layout(), 'a')
+    await store.closeTabsForRepository(repositoryId)
+    assert.deepEqual(store.getState().closedTabs ?? [], [])
+  })
 })
 
 describe('RepositoryTabsStore window scope', () => {

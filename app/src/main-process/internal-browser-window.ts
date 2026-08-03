@@ -97,6 +97,7 @@ export function isInternalBrowserRemoteWebContents(
 export class InternalBrowserWindow {
   private readonly window: BrowserWindow
   private readonly tabs = new Map<string, IInternalBrowserTab>()
+  private readonly findRequestIds = new Map<string, number>()
   private readonly authenticationFlows = new Map<
     string,
     IInternalBrowserAuthenticationFlow
@@ -323,12 +324,16 @@ export class InternalBrowserWindow {
         if (contents === undefined) {
           return
         }
+        this.findRequestIds.set(command.tabId, command.requestId)
         // An empty query is a stop, not a search for nothing: Chromium treats
         // an empty string as an error and would leave the previous highlight
         // on the page after the user has cleared the box.
         if (command.query.length === 0) {
           contents.stopFindInPage('clearSelection')
-          this.sendFindResult(command.tabId, { total: 0, active: 0 })
+          this.sendFindResult(command.tabId, command.requestId, {
+            total: 0,
+            active: 0,
+          })
           return
         }
         contents.findInPage(command.query, {
@@ -359,18 +364,20 @@ export class InternalBrowserWindow {
             { code: PageTextExtractionScript },
           ])
           .then(
-            (text: unknown) =>
+            (text: unknown) => {
+              const rawText = typeof text === 'string' ? text : ''
               this.sendPageText(
                 command.tabId,
-                typeof text === 'string'
-                  ? text.slice(0, MaximumPageTextLength)
-                  : ''
-              ),
+                command.requestId,
+                rawText.slice(0, MaximumPageTextLength),
+                rawText.length > MaximumPageTextLength
+              )
+            },
             (error: Error) => {
               // A page that refuses to be read is a failed search, not a
               // failed browser.
               log.debug(`Internal browser page read failed: ${error.message}`)
-              this.sendPageText(command.tabId, '')
+              this.sendPageText(command.tabId, command.requestId, '', false)
             }
           )
         return
@@ -558,7 +565,7 @@ export class InternalBrowserWindow {
     // Chromium reports its own in-page match tally asynchronously; the find bar
     // has no other way to learn how many matches a plain search found.
     contents.on('found-in-page', (_event, result) => {
-      this.sendFindResult(tab.id, {
+      this.sendFindResult(tab.id, this.findRequestIds.get(tab.id) ?? 0, {
         total: result.matches,
         active: result.activeMatchOrdinal,
       })
@@ -713,6 +720,7 @@ export class InternalBrowserWindow {
     const closedIndex = orderedIds.indexOf(tabId)
     this.window.contentView.removeChildView(tab.view)
     this.tabs.delete(tabId)
+    this.findRequestIds.delete(tabId)
     internalRemoteWebContents.delete(tab.view.webContents.id)
     downloadBlockedHandlers.delete(tab.view.webContents.id)
     if (!tab.view.webContents.isDestroyed()) {
@@ -882,6 +890,7 @@ export class InternalBrowserWindow {
   /** Report Chromium's own in-page match tally to the find bar. */
   private sendFindResult(
     tabId: string,
+    requestId: number,
     result: { readonly total: number; readonly active: number }
   ) {
     if (this.window.isDestroyed() || this.window.webContents.isDestroyed()) {
@@ -889,20 +898,27 @@ export class InternalBrowserWindow {
     }
     ipcWebContents.send(this.window.webContents, 'internal-browser-find', {
       tabId,
+      requestId,
       total: result.total,
       active: result.active,
     })
   }
 
   /** Hand the bounded page text to the trusted renderer for RE2 evaluation. */
-  private sendPageText(tabId: string, text: string) {
+  private sendPageText(
+    tabId: string,
+    requestId: number,
+    text: string,
+    truncated: boolean
+  ) {
     if (this.window.isDestroyed() || this.window.webContents.isDestroyed()) {
       return
     }
     ipcWebContents.send(this.window.webContents, 'internal-browser-page-text', {
       tabId,
+      requestId,
       text,
-      truncated: text.length >= MaximumPageTextLength,
+      truncated,
     })
   }
 }

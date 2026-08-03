@@ -1,5 +1,260 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-03 — App fixes: repository list, Cheap LFS, local Actions, CI
+
+A session of defect work across the app and the test harness. Everything below
+is on `main` and dewed; the one item that is *not* finished is named at the end
+rather than left for someone to discover.
+
+**The Repositories list rendered nothing while holding repositories.**
+`SectionList` tested one value and constructed another: the capability guard
+asked about the global `ResizeObserver` while the constructor used
+`window.ResizeObserver`. Whenever the two disagreed the guard passed and `new`
+threw on undefined — and a throw in a component constructor unmounts the
+subtree rather than degrading it, so the panel came up empty instead of falling
+back to an unobserved list. Fixed in `bcd832d40e`; the guard now asks whether
+the value it is about to construct is callable. A separate change gives the
+genuinely-empty case real copy and the three creation paths as operable
+buttons, because the old empty state apologised for failing to find a
+repository the user had never searched for.
+
+**Cheap LFS aborted a large commit on a momentary lock.** "Could not
+canonicalize the repository root" turned out not to be about the root at all:
+probing that exact repository afterwards canonicalizes cleanly. On Windows
+`realpath` must open a handle to ask for the final path, so it queues behind
+virus scanners, indexers, and Git's own working-tree writes; during an
+18,750-file commit that contention is routine and lasts milliseconds.
+`0612c7c538` retries the transient codes (EACCES, EAGAIN, EBUSY, EIO, EMFILE,
+ENFILE, EPERM, UNKNOWN) and excludes ENOENT on purpose — a repository that is
+not there is not busy. It still fails closed, and the reparse-point checks
+still run on whatever comes back; only the waiting changed.
+
+**Local Actions runs work without a manual install.** `act` stops on an
+arrow-key menu asking for a default image when it has no platform
+configuration; spawned from the app its stdin is not a terminal, so the console
+read fails and Windows reports `Incorrect function` — an error that never
+mentions images. `d023f5ef92` passes the platform mappings up front. `act`
+itself is now installed automatically into the app's own data directory
+(`ccad989359`), user-scoped, no elevation, and a PATH-resolved copy always
+wins. Two things worth keeping: the asset spellings are the release's own
+(`x86_64`, not `x64`), and extraction must use the absolute System32 bsdtar —
+where Git for Windows or MSYS is installed their GNU tar shadows it and reads
+`C:\...` as `host:path`, failing a purely local copy with `Cannot connect to
+C: resolve failed`.
+
+**Settings tabs are no longer positional.** The `RepositorySettingsTab` enum
+was *defined* to equal the TabBar's child indices, with a note asking
+integrators to keep them contiguous. That holds only while the list is a fixed
+run of children — the moment a filter removes earlier rows, clicking one opens
+whichever page sits at that number. `eb7fadc805` gives each row a descriptor
+carrying the tab it selects and resolves clicks through the filtered list, then
+adds the search field the shared rules require. The open tab stays listed even
+when it does not match, so the strip can never empty and strand a selection the
+panel is still rendering.
+
+**CI: memory exhaustion was real, and it was not the tests.** `node --test`
+runs one worker per file and V8 sizes each worker's old-space from the
+machine's memory, so four workers on a 16 GB runner were entitled to the whole
+machine before git or Windows asked for anything. Windows charges reserved
+commit, so it hit the limit long before the tests wanted the memory, and the
+damage landed as scattered, unrelated-looking failures: "paging file is too
+small", "Not enough memory resources", `spawn UNKNOWN`, git "Out of memory",
+V8 "Array buffer allocation failed". `b02a3ff611` bounds per-worker heap and
+derives concurrency from memory as well as cores. Verified: none of those
+strings appear in the CI unit log afterwards.
+
+**Testing notes worth reusing.** Module mocks in a `.tsx` test must be followed
+by `require`, not a static import — the file compiles to CommonJS, so `require`
+resolves at call time and picks the mocks up while a static import hoists above
+them, and top-level `await import` is a parse error under that output format.
+Dialogs render inside a `<dialog>` element that jsdom treats as closed, so role
+queries against them need `{ hidden: true }`. Stub git per test file rather than
+in the shared globals: several suites run git against real repositories on
+purpose and a global stub disarms them silently.
+
+### Open: `agent-sessions-panel-test.tsx` is pathologically slow
+
+Two tests that complete in ~44 ms on an idle machine take 250–500 s, and the
+file fails. This is *not* caused by the worker heap cap or by the section-list
+repair — both were ruled out by substitution (restoring the pre-repair
+section-list still reproduces it; so does raising the heap back to 4 GB), and it
+was already taking 127 s in CI before either landed. Do not re-test those two.
+
+DOM accumulation is ruled out too: rendering the panel repeatedly leaves 13
+elements and one body child every time, so Testing Library cleanup is working
+and the queries are not scanning a growing document.
+
+The per-test ceiling cannot help here, and the reason is worth knowing before
+anyone retries it: `node --test` can only time a test out between awaits, and
+these tests are synchronous. Whatever is burning the time is blocking the event
+loop, which also means the cost is inside a synchronous call — a render or a
+query — rather than in anything being waited on.
+
+`a2c25bf537` added a 120-second per-test ceiling so a wedged test names itself
+instead of the batch failing at file level with nothing to act on. It has not
+had the effect hoped for here: the run still ends at file level rather than
+naming the two tests, so the next step is to establish why `--test-timeout` is
+not firing for them before spending more time on the underlying slowness.
+
+# Desktop Material — Active parity handoff
+
+## 2026-08-03 — The published site is one Material Design 3 component
+
+Commit `80d05e73b881d6b2cd4da4f5a99465be5ad2df98` replaces every hand-built page
+under `site/` with a single Design Component: `site/index.html` holds the
+template and its logic class, `site/Listbox.dc.html` is the searchable select it
+imports, and `site/support.js` is the byte-for-byte upstream runtime.
+
+**Vendoring.** `site/support.js` hard-codes the unpkg URLs it loads React from.
+Rather than fork it, `script/vendor-site-assets.mjs` downloads those builds,
+re-hashes them against the SRI digests the runtime itself pins, and points it at
+the local copies through the `window.__resources` map it already consults —
+`site/vendor/dc-resources.js`, which must load *before* `support.js`. The same
+script subsets Material Symbols Outlined by `icon_names` and Noto Sans HK by
+`text`, both derived from the page source on every run. 420 KiB on disk;
+provenance, digests, and licences in `site/vendor/manifest.json`.
+
+**Verified.** A headless Chrome on an off-screen desktop, against an assembled
+`_site` served locally: no console errors, `performance.getEntriesByType`
+reporting zero third-party hosts, all six pages rendering with content and
+correct `aria-labelledby`, all eight overlay panels opening and closing on
+Escape, the language switch reaching Cantonese with all three Noto Sans HK
+weights loading, the playfulness slider changing the voice line across levels 1
+and 5, the regex builder naming its dialect and reporting a syntax error, the
+four tab searches and both close modes previewing with counts and protection,
+and the appearance editor applying and persisting per element.
+
+**Five defects found and fixed during that pass.**
+
+1. Every listbox selection was a silent no-op. The page is parsed from the
+   browser's own document, where HTML lowercases attribute names, so the
+   callback arrived as `onpick` while the component read `onPick`. It now reads
+   both. This is the failure mode to remember for any Design Component used as
+   a page rather than previewed from source text.
+2. The accent seed replaced `--md-sys-color-primary` without
+   `--md-sys-color-on-primary`, leaving the dark theme's `#00344f` on `#006493`
+   — a **2.02:1** primary call to action. `onColor()` now derives black or white
+   from WCAG relative luminance; all four accents measure 6.4:1 in both themes.
+3. Both tab strips had `role="tab"` with no `tabpanel`, no `aria-controls`, and
+   no roving `tabindex`.
+4. Three range inputs and the Bold/Italic/Underline toggles had no accessible
+   name or pressed state.
+5. Seven drag-and-drop upload placeholders shipped as empty boxes; they now hold
+   captures this repository already had.
+
+**Concurrency note.** Two commits made by another agent in this same checkout —
+`ba452e4017` and `dbea7be82f` — swept this task's staged `git rm` deletions into
+themselves and were dewed, leaving `main` briefly publishing the old homepage
+with its stylesheet and both Cheap LFS pages deleted. Commit
+`80d05e73b881d6b2cd4da4f5a99465be5ad2df98` restores a coherent tree. When
+several agents share one working tree, stage explicit paths and re-check
+`git log` before assuming the index is still yours.
+
+**Known, not caused here.** `app/test/unit/wiki-function-gallery-test.ts` fails
+two assertions (88 raw-main images against 86 catalog rows). It fails
+identically with this work stashed.
+
+## 2026-08-03 — Stash manager portal runtime correction
+
+The stash manager is now rendered through the shared dialog portal, so its
+Manage, Export, History, and Appearance and voice tabs paint above the Changes
+pane instead of being clipped inside it. The accepted hidden-Windows capture
+`material-stash-manager-centered-20260803.png` is 1443×992 and has SHA-256
+`B733BC06C0B3DB455BF634381409D64B898773D6D742A97097F2E9AF130F4A01`.
+Additional inspected captures proved the complete 7z option set, the
+appearance/funny-level controls, and the History tab. A disposable fixture
+also created a real Git stash with subject `Named headless stash`; the manager
+surface itself did not refresh its inventory before the final capture, so that
+Git result is recorded as operation proof rather than as a UI-row claim.
+
+Focused manager/export tests passed 17/17, targeted ESLint passed, and the
+full TypeScript check passed. The exact fix checkout's webpack compilation
+completed; the later packaging script stopped only because the isolated
+checkout lacked ignored generated `choosealicense.com/_licenses` data.
+
+## 2026-08-03 — History view tabs checkpoint
+
+The History surface now exposes a real, keyboard-accessible `List` / `Graph`
+tab strip rather than hiding the graph mode behind an icon-only toggle. The
+selected view remains persisted, the tabs use roving focus with arrow/Home/End
+navigation, and both views share the existing commit actions and filter state.
+The three-column graph continues to use the virtualized continuous lane
+renderer. Focused source/style verification passed, and the exact production
+build was exercised on a hidden Win32 desktop with a disposable Git fixture.
+The inspected 1443×992 captures are
+`material-history-view-tabs-list.png` (List selected) and
+`material-history-view-tabs-graph.png` (Graph selected); the CDP receipt also
+confirmed the `tablist`/`tab`/`tabpanel` relationship. R3 still retains its
+broader graph-scale and multi-branch acceptance work, but the missing view-tab
+surface is now runtime-proven.
+
+## 2026-08-03 — Stash manager export slice
+
+The new isolated checkout `codex/stash-manager-20260803` contains a separate
+tabbed Stash Manager dialog with searchable exact-identity export to directory,
+ZIP, and configurable 7z, plus History and shared language/funny-level
+controls. `getStashes` no longer truncates by entry count. Focused verification
+currently passes 42/42 (40 existing Git/UI assertions plus 2 7z argument
+assertions). The production build emitted `out/main.js` before the final
+appearance/options edits; rerun the exact build and headless Windows capture
+after those edits. Do not claim runtime verification until the dialog is
+opened in the real built artifact and the export surface is exercised.
+
+
+## 2026-08-03 — Bug-hunt and Ollama interface checkpoint
+
+This checkpoint is the current source of truth for the active audit. The main
+checkout started at `79d5d59662dd7639664a878b390706f0c3975f2c` with unrelated
+working-tree material already present. The audit kept that material intact and
+added the following scoped fixes:
+
+- The Windows CI and Express Release unit-test steps now give the complete
+  Node test coordinator a 4 GiB heap. The previous `a0d7b4a598` CI run passed
+  all 7,238 assertions but died at 318 MiB while the long Agents test batch was
+  still emitting its accounting summary; the new workflow change is awaiting
+  its own GitHui run for proof.
+
+- The Agents creator now uses the shared modal dialog layer, exposes dialog
+  semantics, avoids a nested form, and disables the Options disclosure while
+  creation is running. The live Agents store and app mount are present; final
+  built-app acceptance capture remains pending because the first-run/checklist
+  overlay interrupted the CDP interaction path.
+- The Ollama model manager now has a localized, accessible Clear search action
+  beside its inventory search. It clears only the query and preserves the
+  selected plain-text/regex filter mode and case behavior.
+- The internal browser now has a toolbar and `Ctrl+F` find bar. Plain-text
+  searches retain Chromium highlighting; regex searches read bounded text from
+  an isolated world and evaluate it with the safe RE2 adapter. The bar exposes
+  case control, previous/next navigation, bounded regex match context, the
+  shared regex builder, and localized accessible labels. Main-process and
+  renderer request IDs prevent stale asynchronous tallies from repainting a
+  newer query.
+- The repository-list flex containment adjustment and its existing test remain
+  in the task diff; they were preserved rather than discarded during this
+  audit.
+
+Verification so far: the required production webpack build emitted the current
+`out/main.js` bundle; the hidden Win32 desktop launched it with a disposable
+profile and fixture and produced a nonblank 1443×992 first-paint capture;
+`ollama-model-manager-test.tsx` passed 14/14; the focused rejected-creation
+Agents test passed 1/1; the focused internal-browser contract and UI files pass
+32/32; Prettier, `tsc --noEmit`, and the targeted repository ESLint rules are
+clean. The new browser slice still needs a fresh exact build and runtime smoke;
+the prior first-run/checklist overlay prevented a truthful Ollama capture.
+
+The three roadmap audits confirm that R3/R4/R5/R8 have substantial local
+foundations but still need built-app captures or remaining live wiring, while
+R1/R2/R6/R7/R9–R18 retain the server, provider, adapter, or integration work
+listed below. No roadmap item is marked complete merely because source tests
+passed. Open issues were re-read at the checkpoint: desktop-material remains
+open on #23 and #118–#135; agent-global-memory has no open issues.
+
+The hidden verification service was reached at the documented loopback MCP
+endpoint. Its scheduled task could not be enabled because Windows returned
+Access Denied, so the exact documented server command was run as a hidden,
+task-owned process for this capture. The disposable fixture, profile, desktop,
+and Electron process must be removed after final evidence is recorded.
+
 ## 2026-08-02 — Session close: 51 commits, all on `main`
 
 **Start here.** Everything below is dewed; `origin/main` contains all of it and
@@ -16,7 +271,9 @@ no worktree holds uncommitted work.
   declares), `@types/react-virtualized` 9.22.3 (removes `Grid.propTypes`).
 - **Repository selection in Commit & push all**, with a search bar on the regex
   builder whose bulk actions never reach past the filter.
-- **The history graph view** — finished, toggled from the Filters row.
+- **The history graph view** — implemented with explicit List/Graph tabs,
+  continuous lanes, and shared commit actions; built-app capture remains the
+  final acceptance gate.
 - **The Agents panel** — pure logic and components complete and tested, **not
   mounted**.
 - **18 issues, #118–#135**, one per roadmap item, linked from `ROADMAP.md`, with
@@ -472,12 +729,11 @@ handoff's claim of a clean typecheck was wrong. That was the first thing fixed.
   real measurement arrives, because the safety floor is the default-density
   chrome height.
 
-## 2026-08-02 — Internal browser: page search half-built, three features not started
+## 2026-08-02 — Internal browser: page search renderer completed, three features remain
 
-**Read this before touching `app/src/internal-browser/`.** The main-process half
-of page search is on `main` and working; the renderer half does not exist yet, so
-the feature is currently reachable by nothing. Four commits landed, three
-requested features were not started.
+**Read this before touching `app/src/internal-browser/`.** The main-process and
+renderer halves of page search are now present. Four commits established the
+browser defects/plumbing, and the current slice makes the feature reachable.
 
 ### Landed
 
@@ -534,17 +790,18 @@ left to look like a bug.
 
 | Feature | Notes for whoever picks it up |
 | --- | --- |
-| **Find bar UI** | The only missing piece of page search. Renderer must listen to `internal-browser-find` (`{tabId, total, active}`) and `internal-browser-page-text` (`{tabId, text, truncated}`), and send `find-in-page` / `stop-find-in-page` / `read-page-text`. The anchored regex builder lives at `app/src/ui/lib/regex-builder/`; RE2 evaluation and every bound are in `app/src/lib/safe-regex.ts`. Plain text stays the default with regex an explicit opt-in. |
+| **Find bar UI** | Implemented in `app/src/internal-browser/internal-browser-app.tsx`. The renderer listens to `internal-browser-find` and `internal-browser-page-text`, sends bounded request-token commands, keeps plain text as the default, and offers regex mode plus the shared anchored builder. Focused contract/UI tests pass 32/32; exact Windows build and runtime smoke are still pending for this checkpoint. |
 | **Funny-level sliders** | It reads `languageMode` and uses `t()` for 37 strings but never consults `readFunnyLevels()`, so its copy ignores a setting the rest of the app honours. Pattern to copy: `app/src/lib/dim-sum-copy.ts`. |
 | **Non-blocking notifications** | It has no toast surface; the error notice is `role="alert"` `aria-live="assertive"` in the header, which interrupts and shifts layout. |
 | **Dim sum surprise** | The browser is a separate renderer entry point and takes no part in the 10% draw. Model, copy and card all exist — see `app/src/models/dim-sum.ts` and `app/src/ui/dim-sum/`. Needs its own suppression rules (an authentication tab is mid-task and must not be interrupted). |
 
 ### Verification state
 
-`tsc --noEmit` clean, Prettier and ESLint clean, SCSS compiles. **No new tests
-were written for the page-search plumbing** — `findMatchContext` and the command
-model are pure and should get them. The renderer half being absent means nothing
-exercises the new IPC end to end yet.
+`tsc --noEmit` clean, Prettier and targeted ESLint clean, SCSS compiles. The
+focused internal-browser contract and chrome suites pass **32/32**, including
+plain and regex query dispatch, request-token matching, regex result navigation,
+and close behavior. The exact Windows build and runtime smoke are the remaining
+verification boundary for this checkpoint.
 
 ## 2026-08-01 — The dim sum surprise reaches the app
 
@@ -7490,6 +7747,11 @@ The interaction gate verified:
 - guarded inverse tab close with literal matching, live counts, zero-match and
   pinned-tab protection, plus drag/keyboard arrangement and six stable one-shot
   sorts that persist without reacting continuously to status changes;
+- a raised, reduced-motion-safe drag preview with a live before/after insertion
+  rail, plus a bounded per-profile/window recently-closed tab history surface.
+  History restores the original tab object, including group, pin, favorite,
+  label, and appearance, and exposes search, regex opt-in, forget, restore, and
+  clear actions;
 - exact workflow-run cancellation identity/status revalidation, one normal
   cancellation request, duplicate suppression, accepted-response polling to a
   terminal state, and no force-cancel request;

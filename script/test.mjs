@@ -1,7 +1,7 @@
 import { spawn } from 'child_process'
 import { join, resolve } from 'path'
 import { mkdtemp, readdir, readFile, rm, stat } from 'fs/promises'
-import { tmpdir } from 'os'
+import { availableParallelism, tmpdir, totalmem } from 'os'
 import { pathToFileURL } from 'url'
 import { parseEnv } from 'util'
 
@@ -45,6 +45,93 @@ export const maximumGitHubReporterFiles = 250
 
 export function shouldUseGitHubReporter(isGitHubActions, fileCount) {
   return isGitHubActions && fileCount <= maximumGitHubReporterFiles
+}
+
+// `node --test` runs one worker process per test file, several at a time, and
+// V8 sizes each worker's old-space generation from the *machine's* memory
+// rather than from how many workers are running. On a 64-bit host that ceiling
+// is about 4 GB per worker, so a hosted Windows runner (4 CPUs, 16 GB RAM, and
+// a small pagefile) can have four workers entitled to ~16 GB between them
+// before the OS has given anything to git, the coordinator, or itself.
+//
+// Windows charges reserved commit, not just resident pages, so the machine
+// hits its commit limit long before the tests actually need that memory. The
+// failure is not one clean out-of-memory error in one test either — it lands
+// as scattered, load-dependent damage across whichever files happen to be
+// running: "The paging file is too small for this operation to complete",
+// "Not enough memory resources are available to process this command",
+// `spawn UNKNOWN`, git dying with "fatal: Out of memory", and V8's own
+// "Array buffer allocation failed" / "JavaScript heap out of memory". Those
+// read like unrelated flaky tests, which is exactly why this is worth pinning
+// down here rather than retrying the suite.
+//
+// Cap each worker's heap so V8 collects instead of growing into commit it will
+// never need, and keep the worst case for the whole fleet inside a fraction of
+// the machine. The suite's heaviest single file peaks in the low hundreds of
+// MB, so this ceiling bounds runaway growth without constraining real tests.
+export const workerHeapMegabytes = 2048
+
+/**
+ * The longest any single test may run before the runner gives up on it.
+ *
+ * `node --test` has no timeout by default, so a test that wedges or degrades
+ * pathologically simply runs. Observed in CI: a component test that finishes
+ * in 44ms on an idle machine took over two minutes, and the batch failed at
+ * file level with no test named and nothing to act on — the slow test and the
+ * failure looked unrelated.
+ *
+ * A ceiling turns that into a named failure that says which test and that it
+ * timed out. It is set well above the slowest legitimate test in the suite
+ * (the Windows packaging tests take a couple of seconds) so it only ever fires
+ * on something genuinely wrong, and it is deliberately not a performance
+ * budget — tightening it into one would make the suite flaky on a loaded
+ * machine, which is the situation it exists to diagnose.
+ */
+export const testTimeoutMilliseconds = 120_000
+
+// Leave most of the machine to everything the tests themselves spawn — git,
+// the coordinator, jsdom's native bits, and the OS. Workers are the only part
+// this harness controls, so they get a deliberately modest share.
+export const workerMemoryBudgetRatio = 0.5
+
+/**
+ * How many test files to run at once.
+ *
+ * Bounded by the CPU count (more workers than cores only adds contention) and
+ * by how many worker heaps of `heapMegabytes` fit inside `budgetRatio` of the
+ * machine's memory. Always at least one, so a very small machine still runs
+ * the suite serially rather than not at all.
+ */
+export function testConcurrency(
+  totalMemoryBytes,
+  cpuCount,
+  heapMegabytes = workerHeapMegabytes,
+  budgetRatio = workerMemoryBudgetRatio
+) {
+  const budget = Math.floor(
+    (totalMemoryBytes * budgetRatio) / (heapMegabytes * 1024 * 1024)
+  )
+  return Math.max(1, Math.min(cpuCount, budget))
+}
+
+/**
+ * Add the per-worker heap cap to NODE_OPTIONS.
+ *
+ * The cap has to travel in the environment rather than in this harness's own
+ * argv: the workers are spawned by `node --test`, not by us, so an execArgv
+ * flag would bound only the coordinator — the process that uses the least
+ * memory of any of them. Existing NODE_OPTIONS are preserved, and an explicit
+ * caller-supplied `--max-old-space-size` wins so this stays overridable.
+ */
+export function withWorkerHeapLimit(
+  nodeOptions,
+  heapMegabytes = workerHeapMegabytes
+) {
+  const existing = nodeOptions ?? ''
+  if (existing.includes('--max-old-space-size')) {
+    return existing
+  }
+  return `${existing} --max-old-space-size=${heapMegabytes}`.trim()
 }
 
 export function estimateCommandLength(args) {
@@ -199,6 +286,10 @@ function runNode(args) {
     const child = spawn('node', args, {
       stdio: 'inherit',
       cwd: resolve(import.meta.dirname, '..'),
+      env: {
+        ...process.env,
+        NODE_OPTIONS: withWorkerHeapLimit(process.env.NODE_OPTIONS),
+      },
     })
 
     child.on('error', spawnError => {
@@ -235,6 +326,10 @@ async function main() {
     '--conditions=import',
     ...['--import', 'tsx'],
     ...['--import', './app/test/globals.mts'],
+    // Before `switchArgs`, so an explicit --test-concurrency or --test-timeout
+    // on the command line still wins over these defaults.
+    `--test-concurrency=${testConcurrency(totalmem(), availableParallelism())}`,
+    `--test-timeout=${testTimeoutMilliseconds}`,
     ...switchArgs,
     '--test',
     ...reporter('spec'),

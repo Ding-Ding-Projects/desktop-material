@@ -50,6 +50,16 @@ The app-hosted window has one trusted local chrome renderer and one sandboxed
 - bookmark add/remove plus a bookmark bar for ordinary tabs; and
 - **Open externally** on every navigable tab.
 
+The toolbar's search button and <kbd>Ctrl</kbd>+<kbd>F</kbd> open a non-blocking
+find bar for the active page. Plain text is the default and uses Chromium's
+native in-page highlighting, with case matching and previous/next navigation.
+Regex is an explicit opt-in: the shared anchored regex builder supplies the
+pattern, and the trusted renderer evaluates it through the bounded RE2 adapter
+against capped page text read in an isolated world. Regex results show a
+bounded context list and never mutate the remote page to fake highlighting.
+Every request carries a renderer token; late native tallies or page-text
+responses are ignored when they belong to an older query, tab, or mode.
+
 Typing a full HTTP or HTTPS address navigates directly. A bare hostname is
 promoted to HTTPS. Arbitrary words are not silently sent to a search provider.
 Ordinary same-tab HTTP(S) navigation and redirects remain in that view.
@@ -163,7 +173,9 @@ Tabs expose tab roles and selected state, controls have accessible labels,
 disabled navigation reflects real history state, authentication guidance uses
 a status region, and page errors use an assertive alert. Browser and Settings
 copy is available in English, playful Hong Kong-style Cantonese, and bilingual
-mode. Error and security copy stays direct at every funny level.
+mode. The find bar labels its input, mode, case, navigation, result context,
+and close controls; its status is live and its layout wraps at narrow widths.
+Error and security copy stays direct at every funny level.
 
 ## Verification
 
@@ -190,6 +202,11 @@ immutable historical blob, not mutable `main` and not the current refresh.
 Pages/wiki publication and packaged Windows E2E were verified at that dated
 checkpoint. Installer/Release verification remained pending then; the archived
 TUI correction is outside the supported-product gate.
+
+The current page-search renderer slice adds focused contract and chrome coverage
+of **32/32 tests**. Its exact production build and hidden-desktop smoke are
+tracked in the active handoff and must be re-run after the next source commit;
+the historical screenshot above does not claim find-bar runtime coverage.
 
 ## API applicability
 

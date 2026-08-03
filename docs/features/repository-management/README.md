@@ -12,6 +12,10 @@ Material is displaying or how a repository is represented in the application.
   retained result phase.
 - [Named multi-stash manager](named-stash-manager.md) — create, inspect, apply,
   pop, rename, branch from, and clear exact object-identified stashes.
+- [Stash export and recovery dialog](stash-export.md) — search and select any
+  number of stashes, copy them to a directory or ZIP, configure 7z compression
+  and encryption options, and review exact recovery identities in a separate
+  tabbed dialog.
 - [Advanced history
   discovery](advanced-history-discovery.md) — search rich commit metadata and
   page commits across local branches, remote-tracking branches, and tags while

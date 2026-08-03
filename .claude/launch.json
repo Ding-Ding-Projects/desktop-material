@@ -20,6 +20,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "remote-site", "run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "pages-site",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["script/serve-site.mjs", "site", "--port", "4173"],
+      "port": 4173
     }
   ]
 }

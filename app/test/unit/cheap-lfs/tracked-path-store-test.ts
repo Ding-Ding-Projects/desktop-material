@@ -17,6 +17,7 @@ import { join } from 'node:path'
 import { describe, it } from 'node:test'
 import type { TestContext } from 'node:test'
 import {
+  canonicalizeRepositoryRoot,
   CheapLfsTrackedPathError,
   CheapLfsTrackedPathStore,
 } from '../../../src/lib/cheap-lfs/tracked-path-store'
@@ -500,5 +501,109 @@ describe('Cheap LFS tracked path store', () => {
     )
     assert.equal(await readFile(canceled, 'utf8'), 'pointer')
     await assertMissing(canceledTemp)
+  })
+})
+
+describe('Cheap LFS repository root canonicalization', () => {
+  it('names the reason the root could not be canonicalized', async t => {
+    const root = await repository(t)
+    const store = new CheapLfsTrackedPathStore()
+    // A root that is simply not there. Before, every distinct cause collapsed
+    // into one sentence that told the user canonicalization had failed but
+    // never which failure it was, so there was nothing to act on.
+    const missing = join(root, 'was-moved-or-deleted')
+
+    const error = await store.proveExisting(missing, 'payload.bin').then(
+      () => null,
+      (raised: unknown) => raised as CheapLfsTrackedPathError
+    )
+
+    assert.ok(error instanceof CheapLfsTrackedPathError)
+    assert.match(error.message, /could not canonicalize the repository root/)
+    // The two things that make it actionable: which path, and which errno.
+    assert.ok(
+      error.message.includes(missing),
+      `message should name the path it failed on: ${error.message}`
+    )
+    assert.match(error.message, /ENOENT/)
+  })
+
+  it('still canonicalizes a healthy root without complaint', async t => {
+    const root = await repository(t)
+    const store = new CheapLfsTrackedPathStore()
+    await writeFile(join(root, 'payload.bin'), 'raw payload')
+
+    const proof = await store.proveExisting(root, 'payload.bin')
+    assert.equal(proof.exists, true)
+  })
+})
+
+describe('Cheap LFS root canonicalization contention', () => {
+  const errno = (code: string) =>
+    Object.assign(new Error(code), { code }) as NodeJS.ErrnoException
+
+  it('rides out a momentary sharing violation instead of aborting', async () => {
+    // The reported failure: a commit of eighteen thousand files lost a race
+    // with something holding a handle on the root for a few milliseconds.
+    let attempts = 0
+    const realpath = async (path: string) => {
+      attempts++
+      if (attempts < 3) {
+        throw errno('EBUSY')
+      }
+      return path
+    }
+
+    const resolved = await canonicalizeRepositoryRoot(
+      'C:\repo',
+      realpath,
+      async () => undefined
+    )
+
+    assert.equal(resolved, 'C:\repo')
+    assert.equal(attempts, 3)
+  })
+
+  it('fails closed when the contention never clears', async () => {
+    let attempts = 0
+    const realpath = async () => {
+      attempts++
+      throw errno('EPERM')
+    }
+
+    const error = await canonicalizeRepositoryRoot(
+      'C:\repo',
+      realpath,
+      async () => undefined
+    ).then(
+      () => null,
+      (raised: unknown) => raised as CheapLfsTrackedPathError
+    )
+
+    // Retrying is not relenting: it still refuses, and it names the reason.
+    assert.ok(error instanceof CheapLfsTrackedPathError)
+    assert.match(error.message, /EPERM/)
+    assert.ok(attempts > 1, 'a transient code should have been retried')
+  })
+
+  it('does not wait around for a repository that is simply gone', async () => {
+    let attempts = 0
+    const realpath = async () => {
+      attempts++
+      throw errno('ENOENT')
+    }
+
+    const error = await canonicalizeRepositoryRoot(
+      'C:\repo',
+      realpath,
+      async () => undefined
+    ).then(
+      () => null,
+      (raised: unknown) => raised as CheapLfsTrackedPathError
+    )
+
+    assert.ok(error instanceof CheapLfsTrackedPathError)
+    assert.match(error.message, /ENOENT/)
+    assert.equal(attempts, 1, 'a missing root is not contention')
   })
 })

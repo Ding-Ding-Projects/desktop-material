@@ -69,7 +69,11 @@ const GeneratedPatterns = [
  * path under `app/test` is a test before it is anything else.
  */
 const Areas = [
-  { name: 'Vendored / third-party', test: /^(vendor|gemoji)\//, project: false },
+  {
+    name: 'Vendored / third-party',
+    test: /^(vendor|gemoji)\//,
+    project: false,
+  },
   {
     name: 'Linux TUI tests',
     test: /^tui\/tests\//,
@@ -186,11 +190,9 @@ async function attributeLines(files, agents, concurrency = 8) {
 
   async function blameOne(file) {
     const sha = await new Promise(resolve => {
-      const child = spawn(
-        'git',
-        ['blame', '--line-porcelain', '--', file],
-        { stdio: ['ignore', 'pipe', 'ignore'] }
-      )
+      const child = spawn('git', ['blame', '--line-porcelain', '--', file], {
+        stdio: ['ignore', 'pipe', 'ignore'],
+      })
       let buffered = ''
       const counts = { agent: 0, human: 0 }
       child.stdout.setEncoding('utf8')
@@ -354,9 +356,11 @@ function markdown(result) {
     )}** | **${number(result.project.nonBlank)}** |`
   )
   lines.push(
-    `| **Everything counted** | **${number(result.everything.files)}** | **${number(
-      result.everything.lines
-    )}** | **${number(result.everything.nonBlank)}** |`
+    `| **Everything counted** | **${number(
+      result.everything.files
+    )}** | **${number(result.everything.lines)}** | **${number(
+      result.everything.nonBlank
+    )}** |`
   )
   lines.push('')
   lines.push(
@@ -368,7 +372,8 @@ function markdown(result) {
   if (result.authored !== null) {
     const { agent, human } = result.authored
     const attributed = agent + human
-    const share = attributed === 0 ? 0 : Math.round((agent / attributed) * 1000) / 10
+    const share =
+      attributed === 0 ? 0 : Math.round((agent / attributed) * 1000) / 10
     lines.push('')
     lines.push('| Written by | Lines | Share |')
     lines.push('| --- | ---: | ---: |')
@@ -376,12 +381,14 @@ function markdown(result) {
     lines.push(
       `| People | ${number(human)} | ${Math.round((100 - share) * 10) / 10}% |`
     )
-    lines.push(`| **Total attributed** | **${number(attributed)}** | **100%** |`)
+    lines.push(
+      `| **Total attributed** | **${number(attributed)}** | **100%** |`
+    )
     lines.push('')
     lines.push(
       'Attribution is per surviving line via `git blame`, not lines added: a ' +
         'line written and later deleted counts for nobody. A commit counts as ' +
-        "agent-written when its author is an automation identity or it carries a " +
+        'agent-written when its author is an automation identity or it carries a ' +
         '`Co-Authored-By` trailer naming an agent.'
     )
   }
@@ -391,9 +398,7 @@ function markdown(result) {
 
 const invokedDirectly =
   process.argv[1] !== undefined &&
-  import.meta.url.endsWith(
-    process.argv[1].split(/[\\/]/).pop() ?? ' '
-  )
+  import.meta.url.endsWith(process.argv[1].split(/[\\/]/).pop() ?? ' ')
 
 if (invokedDirectly) {
   const result = await countRepository({

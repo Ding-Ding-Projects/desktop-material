@@ -1,7 +1,7 @@
 # External stash interoperability
 
-Desktop Material inventories the newest 500 entries in `refs/stash`, including
-stashes created by the Git CLI, another desktop client, or an editor. External
+Desktop Material inventories every entry returned from `refs/stash` within the
+bounded metadata-read budget, including stashes created by the Git CLI, another desktop client, or an editor. External
 entries carry an **External** badge and sit beside Desktop-managed entries in
 the repository stash manager.
 

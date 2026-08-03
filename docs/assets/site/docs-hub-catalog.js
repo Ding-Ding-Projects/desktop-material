@@ -224,6 +224,13 @@
       d: 'Roughly one launch in ten, Desktop Material puts a small photograph of a Hong Kong dim sum dish in the bottom-left corner, names it in English and Traditional Chinese, and…',
     },
     {
+      t: 'The Material Design 3 site',
+      h: 'features/design-system/material-design-3-site.html',
+      s: 'features/design-system/material-design-3-site.md',
+      c: 'features',
+      d: 'The published site at is a full Material Design 3 rebuild of the landing page, the Cheap LFS guide, the Cheap LFS versus Git LFS atlas, and the documentation front end. It is a',
+    },
+    {
       t: 'Material ripple state layer and theme reveal pulse',
       h: 'features/design-system/material-ripple-and-theme-reveal.html',
       s: 'features/design-system/material-ripple-and-theme-reveal.md',
@@ -802,7 +809,7 @@
       h: 'features/repository-management/external-stash-interoperability.html',
       s: 'features/repository-management/external-stash-interoperability.md',
       c: 'features',
-      d: 'Desktop Material inventories the newest 500 entries in refs/stash, including stashes created by the Git CLI, another desktop client, or an editor. External entries carry an…',
+      d: 'Desktop Material inventories every entry returned from refs/stash within the bounded metadata-read budget, including stashes created by the Git CLI, another desktop client, or…',
     },
     {
       t: 'History commit hover time',
@@ -823,7 +830,7 @@
       h: 'features/repository-management/named-stash-manager.html',
       s: 'features/repository-management/named-stash-manager.md',
       c: 'features',
-      d: 'The repository-wide Stash Manager inventories up to 500 entries and supports more than one Desktop-managed stash per branch. A new stash can have a printable name, creation…',
+      d: 'The repository-wide Stash Manager inventories every stash entry returned by Git without a Desktop entry-count cap and supports more than one Desktop-managed stash per branch. A…',
     },
     {
       t: 'Network and WSL repository paths',
@@ -943,6 +950,13 @@
       s: 'features/repository-management/sparse-checkout.md',
       c: 'features',
       d: 'Desktop Material manages cone-mode sparse checkout through a three-step Choose/Adjust/Restore → Review selection → Apply and refresh guide. The workflow changes which tracked…',
+    },
+    {
+      t: 'Stash export and recovery dialog',
+      h: 'features/repository-management/stash-export.html',
+      s: 'features/repository-management/stash-export.md',
+      c: 'features',
+      d: "The Stash Manager's separate non-blocking dialog has Manage, Export, History, and Appearance and voice tabs. Export searches names, branch associations, and exact stash object…",
     },
     {
       t: 'Temporary submodule repository navigation',

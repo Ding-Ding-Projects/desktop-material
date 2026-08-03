@@ -175,11 +175,12 @@ fails closed instead of falling back to an uninterruptible UI-thread regex.
 
 ## Verification
 
-The route contract is
-`script/cheap-lfs-vs-git-lfs-pages-test.mjs`. It checks the route, links,
-assets, 72-row/12-category data contract, row-level source resolution,
-bilingual semantics, six push stages, safe commands, tabs, filters, fit finder,
-shared worker isolation, language/tone controls, and responsive CSS.
+The atlas is now a page of the
+[Material Design 3 site](../design-system/material-design-3-site.md) at
+`/#atlas` rather than a file of its own, and `/cheap-lfs-vs-git-lfs.html`
+redirects there so every link ever made to it still arrives. Its contract moved
+with it: `script/site-dc-pages-test.mjs` covers the whole site, including this
+page, the redirect, and the assets it renders.
 
 The Lowlevel MCP acceptance driver is
 `.codex/verification/verify_cheap_lfs_vs_git_lfs_page.js`. It serves an

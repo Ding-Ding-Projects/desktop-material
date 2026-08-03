@@ -4,6 +4,13 @@
 
 # Desktop Material
 
+> **Stash recovery manager:** the Windows app now keeps every Git stash entry
+> without a Desktop entry-count cap and provides a separate searchable dialog
+> for exact-identity recovery and export to a directory, ZIP, or configurable
+> 7z archive. See [stash export and recovery](docs/features/repository-management/stash-export.md).
+
+![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
+
 > **Local repair and background progress — July 30, 2026:** conflict and failed
 > CI surfaces launch bounded Codex/OpenCode tasks; long work has hideable
 > elapsed/ETA progress; Cheap LFS restore details collapse; and every action is
@@ -56,6 +63,21 @@ path. The installer also supplies GitHub CLI's `gh` and configures `PATH`.
 />
 
 ![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci.yml/badge.svg?branch=main)
+
+> **The site is one Material Design 3 component — August 3, 2026:** the
+> [project site](https://ding-ding-projects.github.io/desktop-material/) is
+> rebuilt as six pages behind a browser-style tab strip — Overview, Cheap LFS,
+> Cheap LFS vs Git LFS, Docs hub, the regex-builder article, and Docs search —
+> with the three language modes, both playfulness sliders, the regex builder on
+> every search bar, all four tab searches, the anchored per-element appearance
+> editor, the notification centre, and export all working rather than described.
+> It loads nothing from another host: React and four font families are served
+> from the site itself, with the icon and Hong Kong Chinese faces cut to only
+> the characters the pages use. The two previous standalone Cheap LFS addresses
+> redirect, and the 249 rendered Markdown articles keep publishing under
+> [`/docs/`](https://ding-ding-projects.github.io/desktop-material/docs/). How
+> it is built, changed, and verified is in
+> [its own article](docs/features/design-system/material-design-3-site.md).
 
 > **Cheap LFS hook bypass and central diagnostics — July 29, 2026:** the
 > app-authored cloud-compression workflow commit now runs against an owned,

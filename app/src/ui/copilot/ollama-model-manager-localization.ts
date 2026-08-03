@@ -85,6 +85,7 @@ export function getOllamaModelManagerStrings(
     refreshing: text('ollama.manager.refreshing'),
     searchLabel: text('ollama.manager.searchLabel'),
     searchPlaceholder: text('ollama.manager.searchPlaceholder'),
+    clearSearch: text('ollama.manager.clearSearch'),
     scopeLabel: text('ollama.manager.scopeLabel'),
     allModels: text('ollama.manager.allModels'),
     runningModels: text('ollama.manager.runningModels'),

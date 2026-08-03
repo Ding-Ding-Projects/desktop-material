@@ -1,6 +1,97 @@
 # Desktop Material roadmap
 
-Updated: **August 2, 2026**
+Updated: **August 3, 2026**
+
+## August 3 — the site lays out on a phone
+
+- The rebuilt site pushed the page 717px wide inside a 375px viewport. Every
+  multi-column grid now collapses below 760px, grid items are allowed to shrink
+  below their own min-content width, and the two inline minimums wider than a
+  phone are relaxed.
+- The app bar's 300px search field becomes a search button opening the same
+  panel — a phone has no room for the field and no `Ctrl+F` to open the panel
+  with. The brand subtitle, the keyboard hint, the gutters, and the tab heights
+  all give ground, taking the sticky header from 256px to about 200px without
+  dropping a control.
+- Both tab strips scroll horizontally instead of pushing the page. A sticky
+  header goes static below 520px of viewport height, so a phone held sideways
+  gets its screen back. Footer links get a real tap target.
+- Teleporting to a section measures the app bar rather than assuming 160px,
+  which had been landing every target underneath a wrapped header.
+- Measured in bilingual mode at 135% text scale across all six pages and all
+  six overlay panels: no horizontal scroll and no clipped text at 320px or
+  375px, and the desktop layout unchanged above the breakpoint.
+
+## August 3 — the published site becomes one Material Design 3 component
+
+- The homepage, the Cheap LFS guide, and the Cheap LFS versus Git LFS atlas
+  were three hand-built pages sharing a stylesheet. They are now six pages of
+  one Design Component behind a browser-style tab strip: Overview, Cheap LFS,
+  Cheap LFS vs Git LFS, Docs hub, the regex-builder article, and Docs search.
+- The site carries the standing per-surface rules as working controls rather
+  than descriptions: three language modes, two independent playfulness sliders,
+  a regex builder on every search bar, all four tab searches with
+  close-containing and its inverse, the anchored per-element appearance editor,
+  the notification centre with bulk actions, and export to Markdown, JSON,
+  HTML, and CSV.
+- Nothing loads from another host. `script/vendor-site-assets.mjs` vendors
+  React and four font families, content-subsetting the icon face to the 54
+  ligatures the site names and Noto Sans HK to the 231 characters the Cantonese
+  copy renders — 420 KiB on disk.
+- Five defects found and fixed while verifying: dropdown selections were silent
+  no-ops, the dark-theme primary call to action sat at 2.02:1, both tab strips
+  had no `tabpanel` or roving focus, three sliders and the appearance toggles
+  had no accessible name or state, and the Screenshots section shipped seven
+  empty upload placeholders.
+- `/cheap-lfs.html` and `/cheap-lfs-vs-git-lfs.html` redirect rather than 404.
+  The 249 rendered Markdown articles keep publishing under `/docs/`, and the
+  Docs hub links into them with counts derived from the tree.
+- Verified in a headless browser against an assembled `_site`: no console
+  errors, zero third-party requests, all six pages and all eight overlay panels
+  live, and every accent clearing 6.4:1 in both themes.
+
+## August 3 — stash manager export slice
+
+- The Stash Manager inventory no longer imposes the former 500-entry count cap;
+  Git and the bounded metadata byte budget remain the practical limits.
+- A separate non-blocking, keyboard-tabbed dialog now covers Manage, Export,
+  History, and Appearance and voice. Export search uses the shared regex builder
+  and can copy exact stash identities to a directory or ZIP, or configure 7z
+  method, level, dictionary, match finder, fast bytes, solid mode, threads,
+  split volumes, password, and encrypted headers.
+- The focused Git/stash suites pass 40/40 and the new 7z mapping suite passes
+  2/2. A fresh production compile and hidden Windows runtime capture are still
+  required before this slice is called runtime-verified; remote CI and release
+  proof remain separate.
+
+## August 3 audit checkpoint — **Scoped fixes verified; browser page search now usable**
+
+- The Agents creator is now mounted through the shared modal dialog layer and
+  keeps its Options disclosure disabled during creation. The live store and
+  mount are present; built-app acceptance capture is still pending.
+- The Ollama model manager now has a localized Clear search action that resets
+  only the query and preserves the active search mode. Its focused unit suite
+  passes 14/14.
+- The internal browser now exposes page search from its toolbar and `Ctrl+F`.
+  Plain mode uses Chromium's in-page highlighting; regex mode reads bounded
+  isolated-world page text and evaluates it with the existing safe RE2 engine.
+  Both modes have case control, previous/next navigation, an anchored regex
+  builder route, bounded request tokens, and localized result/status copy.
+- The browser page-search contracts and chrome tests pass 32/32 across the
+  focused contract and UI files. A real Windows bundle and hidden-desktop
+  smoke remain required before this slice is called runtime-verified.
+- The previous Windows CI run passed its assertions but exhausted the Node
+  heap before test accounting completed. CI and Express Release now scope a
+  4 GiB heap to their unit-test coordinators; the fix is pending remote-run
+  proof rather than being called green locally.
+- The required production bundle launched on the hidden Windows desktop and
+  produced a real first-paint frame. CDP interaction was interrupted by the
+  first-run/checklist overlay, so no Ollama screenshot is claimed from that
+  run.
+- The roadmap audit did not promote any item to complete without its remaining
+  runtime, adapter, server, or capture evidence. R1/R2/R6/R7/R9–R18 therefore
+  remain at their existing states; R3/R4/R5/R8 retain their documented capture
+  or live-wiring gaps.
 
 ## Planned work — **mirrored one-to-one into GitHub issues**
 
@@ -22,7 +113,7 @@ ahead of any single feature that depends on it.
 | --- | --- | --- |
 | [R1](https://github.com/Ding-Ding-Projects/desktop-material/issues/118) | Self-hosted Docker server and its guided install wizard | trust, provisioning, and build-context foundations implemented; guided UI and live transport pending — **critical path** |
 | [R2](https://github.com/Ding-Ding-Projects/desktop-material/issues/119) | Custom Docker OAuth server (SSO, multi-domain SSO, SAML) | authority foundation implemented; server flows and capture pending, depends on R1 |
-| [R3](https://github.com/Ding-Ding-Projects/desktop-material/issues/120) | History graph view: Branch/Tag ∣ Graph ∣ Commit Message | graph, context actions, and lane visibility implemented; final built-app capture pending |
+| [R3](https://github.com/Ding-Ding-Projects/desktop-material/issues/120) | History graph view: Branch/Tag ∣ Graph ∣ Commit Message | graph, context actions, lane visibility, and explicit keyboard-accessible List/Graph tabs implemented; 1443×992 built-app List/Graph captures and semantic tab receipt verified; broader graph-scale acceptance remains |
 | [R4](https://github.com/Ding-Ding-Projects/desktop-material/issues/121) | Agents panel: fleet view, session creator, worktree status | operational foundation implemented; final acceptance and capture pending |
 | [R5](https://github.com/Ding-Ding-Projects/desktop-material/issues/122) | Command palette expansion (45 audited additions, plus the git half) | catalog audited and partial routes added; remaining live commands and capture pending |
 | [R6](https://github.com/Ding-Ding-Projects/desktop-material/issues/123) | Proactive conflict detection and predictive merge alerts | native-accurate forecast foundation implemented; observation adapter, live warning UI, and capture pending |
@@ -66,21 +157,21 @@ ahead of any single feature that depends on it.
   page read is still unbounded, and the version-history timeline's `listbox`
   structure is still wrong.
 
-## August 2 internal browser — **Defects fixed; page search half-built; three features not started**
+## August 2 internal browser — **Defects fixed; page search renderer completed; three features remain**
 
 - Four real defects fixed: an IPC message per address-bar keystroke, a
   `tablist` with no panel and non-tabs inside it, a window title that never
   named the page, and a null check that missed `undefined`.
-- Page search: the main-process half is done (plain search via Chromium's
-  `findInPage`; pattern search by reading page text in an isolated world and
-  evaluating RE2 outside the page). **The renderer find bar does not exist, so
-  the feature is reachable by nothing yet.**
+- Page search now has its renderer find bar as well as the main-process half:
+  plain search uses Chromium's `findInPage`; pattern search reads page text in
+  an isolated world and evaluates RE2 outside the page. Stale replies are
+  discarded by request token, and regex results expose bounded context buttons.
 - Regex mode deliberately cannot highlight in-page matches — that needs DOM
   mutation. Plain mode highlights; regex mode lists matches with context.
 - Running any script inside a page is new for this browser and was an explicit
   decision. See `HANDOFF.md` for the boundary it keeps.
-- Not started: the find bar UI, funny-level sliders, non-blocking
-  notifications, and the dim sum surprise in the browser window.
+- Still not started: funny-level sliders, non-blocking notifications, and the
+  dim sum surprise in the browser window.
 
 ## August 1 line counts move into releases — **Implemented and dewed**
 
@@ -1479,7 +1570,7 @@ The following items track the current cycle's progress against all six acceptanc
 | July 21 responsiveness hardening | **Local implementation complete** | Deterministic regressions verified for remote scan terminator, late termination rejection, same-URL proxy coalescing, strict clone barrier, every prompt family, 500-update burst, failed request-ID reuse, and 25 Markdown reloads |
 | M25 Repository-bound API functions | **Implementation complete** | Built-in function seeding verified; function-button execution tested; per-repository rail visibility persistence checked; responsive Explorer styles verified |
 | Agent HTTP API | **Implemented** | All eight shipped route patterns audited; all 24 static command names verified; unit coverage spans REST forms, MCP discovery and calls, dynamic named functions, token rejection/rotation, Host/Origin policy, body limits, pairing expiry, device revocation, LAN mode boundaries, gateway policy, browser-link generation, unavailable-mode handling, queue bounds, shutdown, and redaction |
-| M24 Guided sparse checkout | **Local acceptance complete** | Verified case-insensitive literal inverse-close matching, counts/preview/zero-match protection, pinned-tab safety, drag and keyboard movement, pin-group boundaries, stable one-shot label/opened/status sorts, persisted order, focus, announcements, and multi-window isolation |
+| M24 Guided sparse checkout | **Local acceptance complete** | Verified case-insensitive literal inverse-close matching, counts/preview/zero-match protection, pinned-tab safety, drag and keyboard movement, pin-group boundaries, stable one-shot label/opened/status sorts, persisted order, focus, announcements, and multi-window isolation. The current tab milestone also adds a reduced-motion-safe before/after drag preview and a bounded, persistent recently-closed tab history with restore/forget/clear actions; focused UI/store coverage is green, while the hosted Windows build remains the release gate. |
 | Actions workflow-run cancellation | **Complete** | Verified exact repository/account/run revalidation, cancellable-status gating, one normal cancel request with duplicate suppression, accepted-response polling, stale and terminal transitions, bounded provider errors, focus return, and compact confirmation layout |
 | Reviewed current-branch rebase | **Complete** | Verified target search, current→target and ahead/behind context, bounded commit preview, fresh dirty/conflict/operation guards, exact ref/SHA revalidation, cancel-before-start, conflict continue/abort routing, protected-branch guidance, and no automatic force push |
 | Provider account binding and OAuth scope alignment | **Complete; Git transport routing verified locally** | Verified repository-settings binding propagation without reopening, unique-match auto-binding, explicit multiple-account choice, no-match/stale/permission/SSO recovery, generation safety, no silent replacement of a valid binding, and the bounded `repo user workflow notifications read:org` sign-in scope set. HTTPS fetch, pull, push, post-push refresh, scheduled sync, refspec fetch, and remote-HEAD routing now preserve the exact stable repository account key; unbound organization remotes prefer a verified write-capable identity and missing explicit bindings fail closed |

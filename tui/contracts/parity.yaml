@@ -4,9 +4,9 @@
   "generator": "tui/tools/generate-parity-contract.mjs",
   "source": {
     "path": "docs/readme-tabs/complete-feature-list.md",
-    "sha256": "423ba80e7cbc71f747d7335e657b0b2d798828a391563ae13e1a3eadfedf01ec",
-    "declared_feature_count": 202,
-    "parsed_feature_count": 202,
+    "sha256": "caf9c7341fd62b0ccc5ae1c0faf3c55ccd200f2d5a12f3ca30e220c654bfa77f",
+    "declared_feature_count": 204,
+    "parsed_feature_count": 204,
     "section_count": 17
   },
   "semantics": {
@@ -17,7 +17,7 @@
   },
   "status_summary": {
     "adapted": 49,
-    "not_yet_available": 89,
+    "not_yet_available": 91,
     "partial": 62,
     "terminal_owned": 2
   },
@@ -434,6 +434,17 @@
         "tui/tests/application/test_repository_workspace.py",
         "tui/tests/ui/test_tab_management.py"
       ]
+    },
+    {
+      "id": "3-fancy-drag-preview-and-tab-history",
+      "section": 3,
+      "section_title": "Repository tabs and windows",
+      "title": "Fancy drag preview and tab history",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/tab-groups.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
     },
     {
       "id": "3-search-tabs-arrange-tabs",
@@ -1186,6 +1197,17 @@
         "tui/tests/integration/test_repository_service.py",
         "tui/tests/ui/test_repository_parity.py"
       ]
+    },
+    {
+      "id": "6-stash-export-and-recovery-dialog",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Stash export and recovery dialog",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/stash-export.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
     },
     {
       "id": "6-external-stash-interoperability",

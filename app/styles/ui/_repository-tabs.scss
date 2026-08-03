@@ -70,6 +70,36 @@
 
   &.dragging {
     opacity: 0.45;
+    transform: translateY(-3px) rotate(-1.5deg) scale(1.02);
+    box-shadow: var(--md-sys-elevation-level2);
+    filter: saturate(1.15);
+  }
+
+  &.drag-over {
+    z-index: 1;
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    transform: translateY(-2px) scale(1.015);
+  }
+
+  &.drag-over::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    width: 4px;
+    border-radius: 999px;
+    background: var(--md-sys-color-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary) 22%, transparent), 0 0 14px color-mix(in srgb, var(--md-sys-color-primary) 80%, transparent);
+    animation: dmTabDropPulse 700ms var(--emph) infinite alternate;
+  }
+
+  &.drag-over-before::after {
+    left: -5px;
+  }
+
+  &.drag-over-after::after {
+    right: -5px;
   }
 
   &.active {
@@ -375,7 +405,8 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
 
 .repository-tab-undo,
 .repository-tab-redo,
-.repository-tab-history {
+.repository-tab-history,
+.repository-tab-closed-history {
   // v2 prototype tab-strip trailing cluster: 32×32 radius-10 icon buttons for
   // undo/redo of profile settings commits and the settings-history manager;
   // press squashes to scale(.82).
@@ -421,6 +452,209 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
   &:hover {
     background: var(--md-sys-color-secondary-container);
     color: var(--md-sys-color-on-secondary-container);
+  }
+}
+
+.repository-tab-closed-history {
+  position: relative;
+
+  &:hover,
+  &[aria-expanded='true'] {
+    background: var(--md-sys-color-tertiary-container);
+    color: var(--md-sys-color-on-tertiary-container);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--md-sys-color-tertiary);
+    opacity: 0.75;
+  }
+}
+
+@keyframes dmTabDropPulse {
+  from {
+    opacity: 0.65;
+    transform: scaleY(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1.05);
+  }
+}
+
+.tab-history-popover {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(360px, calc(100vw - 32px));
+  max-height: min(520px, calc(var(--available-height, 520px) - 8px));
+  overflow: auto;
+  padding: 14px;
+  color: var(--md-sys-color-on-surface);
+}
+
+.tab-history-header h3,
+.tab-history-header p {
+  margin: 0;
+}
+
+.tab-history-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tab-history-header h3 {
+  font-size: 16px;
+}
+
+.tab-history-header p,
+.tab-history-path,
+.tab-history-footer {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+}
+
+.tab-history-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tab-history-input {
+  min-width: 0;
+  flex: 1;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 10px;
+  background: var(--md-sys-color-surface-container-lowest);
+  color: var(--md-sys-color-on-surface);
+}
+
+.tab-history-input:focus-visible,
+.tab-history-restore:focus-visible,
+.tab-history-forget:focus-visible,
+.tab-history-clear:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+.tab-history-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tab-history-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.tab-history-restore,
+.tab-history-forget,
+.tab-history-clear {
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.tab-history-restore {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  background: transparent;
+  text-align: left;
+}
+
+.tab-history-restore:hover {
+  background: var(--md-sys-color-secondary-container);
+}
+
+.tab-history-label,
+.tab-history-path {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-history-label {
+  font-weight: var(--font-weight-semibold);
+}
+
+.tab-history-forget {
+  flex: 0 0 34px;
+  border-radius: 9px;
+  background: transparent;
+  font-size: 20px;
+}
+
+.tab-history-forget:hover {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.tab-history-empty,
+.tab-history-error {
+  margin: 0;
+  padding: 12px;
+  border-radius: 9px;
+  background: var(--md-sys-color-surface-container-high);
+}
+
+.tab-history-error {
+  color: var(--md-sys-color-error);
+}
+
+.tab-history-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tab-history-clear {
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 9px;
+  background: var(--md-sys-color-surface-container-high);
+}
+
+.tab-history-clear:hover:not(:disabled) {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.tab-history-clear:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .repository-tab.dragging,
+  .repository-tab.drag-over {
+    transform: none;
+  }
+
+  .repository-tab.drag-over::after {
+    animation: none;
   }
 }
 

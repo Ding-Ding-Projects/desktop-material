@@ -272,7 +272,6 @@ import {
   remoteEquals,
 } from '../../models/remote'
 import {
-  ILocalRepositoryState,
   nameOf,
   Repository,
   isRepositoryWithGitHubRepository,
@@ -653,6 +652,10 @@ import { WindowState } from '../window-state'
 import { TypedBaseStore } from './base-store'
 import { MergeTreeResult } from '../../models/merge'
 import { promiseWithMinimumTimeout } from '../promise'
+import {
+  loadIndicatorCache,
+  saveIndicatorCache,
+} from './helpers/repository-indicator-cache'
 import { BackgroundFetcher } from './helpers/background-fetcher'
 import { RepositoryStateCache } from './repository-state-cache'
 import { readEmoji } from '../read-emoji'
@@ -1744,10 +1747,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private currentBanner: Banner | null = null
   private emitQueued = false
 
-  private readonly localRepositoryStateLookup = new Map<
-    number,
-    ILocalRepositoryState
-  >()
+  /**
+   * Sidebar indicators, seeded from the last session so the repository list
+   * paints something true on the very first frame instead of showing every row
+   * blank until a `git status` has walked each repository. Each refresh
+   * overwrites its entry, so the cache is only ever ahead of the truth for the
+   * moment between the list appearing and the status landing.
+   */
+  private readonly localRepositoryStateLookup = loadIndicatorCache()
 
   /** Map from shortcut (e.g., :+1:) to on disk URL. */
   private emoji = new Map<string, Emoji>()
@@ -8240,6 +8247,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       branchName: status.currentBranch ?? null,
       defaultBranchName,
     })
+    saveIndicatorCache(lookup)
   }
   /**
    * Refresh indicator in repository list for a specific repository

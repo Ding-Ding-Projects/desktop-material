@@ -134,11 +134,34 @@ height, or minimum width. Successful changes announce what happened and return
 focus to the chip when a collapse, expansion, or move would otherwise remove
 the focused tab from view.
 
+## Drag preview and recently closed tabs
+
+Dragging now has a visible, bounded drop target: the lifted tab rises with a
+small tilt and shadow, the compatible target gains a tonal highlight, and a
+pulsing accent rail marks whether the drop will land before or after it. The
+preview is cleared on drop, cancellation, or a rejected pinned/unpinned
+boundary crossing. Keyboard movement remains available, so drag is an
+enhancement rather than the only route to reorder tabs. Reduced-motion users
+get the same target and announcement without the transforms or pulse.
+
+The trailing tab-strip history button opens **Tab history**, a local list of up
+to twelve recently closed tabs. It has its own plain-text search with explicit
+substring/regex modes and the shared regex builder. **Restore** returns the
+original tab object, including its group, pin, favorite, label, and appearance;
+**Forget** removes one entry, and **Clear history** removes the list without
+touching open tabs. Repository-removal cleanup is intentionally excluded from
+the reopen list because the repository is no longer available. The list is
+stored per profile and window, with older profiles treating the optional list
+as empty.
+
 Groups are stored per profile and per window alongside the tabs themselves.
 Open, close, bulk-close, session-import, reload, and legacy-primary mirroring
 preserve the group array, so names, colors, membership, collapse state, and
 unknown forward-compatible fields survive restart, profile/window switching,
 and settings-history restore.
+
+`IProfileTabsState.closedTabs` is optional and bounded by the store; profiles
+written before tab history existed continue to load with no reopen entries.
 
 All group actions, dialog copy, state announcements, accessible names, color
 names, and chip descriptions follow the persisted language mode: English,

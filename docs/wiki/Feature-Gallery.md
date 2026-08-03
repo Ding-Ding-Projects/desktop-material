@@ -574,7 +574,9 @@ the corrected exact-source frame promoted after the four-scale proof.
 
 **Settings → Copilot → Providers → Manage models** opens a bounded workspace for
 one configured Ollama endpoint. Health/version, installed inventory, running
-state, search/filter, and model details stay separately refreshable. Pull shows
+state, search/filter, and model details stay separately refreshable; a visible
+Clear search action removes an active query without resetting its filter mode.
+Pull shows
 streamed progress and supports cancellation; copy and copy-then-delete rename,
 load/unload, and exact-name confirmed deletion keep partial and failure states
 visible. Successful inventory changes synchronize installed names back to the
@@ -686,6 +688,10 @@ reachable without page-level horizontal clipping.
 ![History commit hover card showing an exact timestamp and relative age](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-hover-time.png)
 
 ![Searchable History and commit ancestry graph](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-power-tools.png)
+
+![History Commit list tab from the built Windows app](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-view-tabs-list.png)
+
+![History Graph tab from the built Windows app](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-view-tabs-graph.png)
 
 ![Layered automation schedules and account overrides](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-automation.png)
 

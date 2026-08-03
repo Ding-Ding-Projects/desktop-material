@@ -119,6 +119,18 @@ export type TranslationKey =
   | 'tabs.settingsCommitCommitted'
   | 'tabs.settingsCommitTitle'
   | 'tabs.settingsHistory'
+  | 'tabs.closedHistory'
+  | 'tabs.closedHistoryTitle'
+  | 'tabs.closedHistoryDescription'
+  | 'tabs.closedHistoryEmpty'
+  | 'tabs.closedHistoryNoMatches'
+  | 'tabs.closedHistorySearch'
+  | 'tabs.closedHistorySearchPlaceholder'
+  | 'tabs.closedHistorySearchTarget'
+  | 'tabs.closedHistoryForget'
+  | 'tabs.closedHistoryClear'
+  | 'tabs.closedHistoryCountOne'
+  | 'tabs.closedHistoryCountMany'
   | 'tabs.undoSettingsChange'
   | 'tabs.redoSettingsChange'
   | 'tabs.settingsChangeUndone'
@@ -634,6 +646,9 @@ export type TranslationKey =
   | 'history.scope'
   | 'history.scope.currentBranch'
   | 'history.scope.allRefs'
+  | 'history.viewMode'
+  | 'history.viewMode.list'
+  | 'history.viewMode.graph'
   | 'diff.structured.viewSwitcher'
   | 'diff.structured.code'
   | 'diff.structured.table'
@@ -1145,6 +1160,11 @@ export type TranslationKey =
   | 'batchSync.statusFailed'
   | 'repositoryPicker.status'
   | 'repositoryPicker.filters'
+  | 'repositoryPicker.emptyTitle'
+  | 'repositoryPicker.emptyBody'
+  | 'repositoryPicker.emptyClone'
+  | 'repositoryPicker.emptyAdd'
+  | 'repositoryPicker.emptyCreate'
   | 'repositoryPicker.filtersActive'
   | 'repositoryPicker.all'
   | 'repositoryPicker.clean'
@@ -1455,6 +1475,58 @@ export type TranslationKey =
   | 'stashManager.filterMatchPlural'
   | 'stashManager.noMatches'
   | 'stashManager.invalidFilterPattern'
+  | 'stashManager.openDialogAction'
+  | 'stashManager.dialogTitle'
+  | 'stashManager.dialogDescription'
+  | 'stashManager.dialogTabsAria'
+  | 'stashManager.manageTab'
+  | 'stashManager.exportTab'
+  | 'stashManager.historyTab'
+  | 'stashManager.appearanceTab'
+  | 'stashManager.closeDialogAction'
+  | 'stashManager.historyHeading'
+  | 'stashManager.historyDescription'
+  | 'stashManager.appearanceHeading'
+  | 'stashManager.appearanceDescription'
+  | 'stashManager.editAppearanceAction'
+  | 'stashManager.appearanceHint'
+  | 'stashManager.exportPanelAria'
+  | 'stashManager.exportDescription'
+  | 'stashManager.exportSearchLabel'
+  | 'stashManager.exportSearchAria'
+  | 'stashManager.exportSearchRegexTarget'
+  | 'stashManager.selectVisible'
+  | 'stashManager.invertVisible'
+  | 'stashManager.exportSelectedCount'
+  | 'stashManager.exportFormatLabel'
+  | 'stashManager.exportDirectory'
+  | 'stashManager.exportSecurityNote'
+  | 'stashManager.exportComplete'
+  | 'stashManager.openExportInEditor'
+  | 'stashManager.exportAction'
+  | 'stashManager.exportingAction'
+  | 'stashManager.exportSelectionRequired'
+  | 'stashManager.exportFailed'
+  | 'stashManager.chooseDirectoryTitle'
+  | 'stashManager.chooseArchiveTitle'
+  | 'stashManager.sevenZipOptionsHeading'
+  | 'stashManager.sevenZipMethod'
+  | 'stashManager.sevenZipLevel'
+  | 'stashManager.sevenZipDictionary'
+  | 'stashManager.sevenZipWordSize'
+  | 'stashManager.sevenZipMatchFinder'
+  | 'stashManager.sevenZipFastBytes'
+  | 'stashManager.sevenZipThreads'
+  | 'stashManager.sevenZipSplitVolumes'
+  | 'stashManager.sevenZipSolid'
+  | 'stashManager.sevenZipPassword'
+  | 'stashManager.sevenZipEncryptHeaders'
+  | 'stashManager.historySearchLabel'
+  | 'stashManager.historySearchAria'
+  | 'stashManager.historySearchRegexTarget'
+  | 'stashManager.appearanceSearchLabel'
+  | 'stashManager.appearanceSearchAria'
+  | 'stashManager.appearanceSearchRegexTarget'
   | 'tagLifecycle.rejectedError'
   | 'tagLifecycle.operationFailedError'
   | 'tagLifecycle.createdStatus'
@@ -1563,6 +1635,7 @@ export type TranslationKey =
   | 'ollama.manager.refreshing'
   | 'ollama.manager.searchLabel'
   | 'ollama.manager.searchPlaceholder'
+  | 'ollama.manager.clearSearch'
   | 'ollama.manager.scopeLabel'
   | 'ollama.manager.allModels'
   | 'ollama.manager.runningModels'
@@ -1888,6 +1961,23 @@ export type TranslationKey =
   | 'browser.authNoticeTitle'
   | 'browser.authNoticeBody'
   | 'browser.openAuthExternal'
+  | 'browser.findOpen'
+  | 'browser.findLabel'
+  | 'browser.findQueryLabel'
+  | 'browser.findPlaceholder'
+  | 'browser.findMode'
+  | 'browser.findBuilder'
+  | 'browser.findCaseSensitive'
+  | 'browser.findPrevious'
+  | 'browser.findNext'
+  | 'browser.findClose'
+  | 'browser.findTarget'
+  | 'browser.findSearching'
+  | 'browser.findNoMatches'
+  | 'browser.findCount'
+  | 'browser.findTruncated'
+  | 'browser.findResults'
+  | 'browser.findMatch'
   | 'browser.error.invalidAddress'
   | 'browser.error.loadFailed'
   | 'browser.error.certificate'
@@ -2394,6 +2484,9 @@ export type TranslationKey =
   | 'actionsLocalRun.checkingTools'
   | 'actionsLocalRun.toolsMissingTitle'
   | 'actionsLocalRun.actMissing'
+  | 'actionsLocalRun.actInstalling'
+  | 'actionsLocalRun.actInstallingAutomatically'
+  | 'actionsLocalRun.actInstallFailed'
   | 'actionsLocalRun.dockerMissing'
   | 'actionsLocalRun.installHint'
   | 'actionsLocalRun.installActLink'
@@ -2883,6 +2976,7 @@ export type TranslationKey =
   | 'repositorySettings.cheapLfsTab'
   | 'repositorySettings.automationTab'
   | 'repositorySettings.appearanceTab'
+  | 'repositorySettings.searchLabel'
   | 'repositorySettings.appearance.intro'
   | 'repositorySettings.appearance.introHint'
   | 'repositorySettings.appearance.loading'
@@ -3654,6 +3748,19 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tabs.settingsCommitTitle':
     "Every tab and settings change commits to this account's local settings repo.",
   'tabs.settingsHistory': 'Settings history',
+  'tabs.closedHistory': 'Recently closed tabs',
+  'tabs.closedHistoryTitle': 'Tab history',
+  'tabs.closedHistoryDescription':
+    'Restore a tab you closed recently, or forget it permanently.',
+  'tabs.closedHistoryEmpty': 'No recently closed tabs.',
+  'tabs.closedHistoryNoMatches': 'No closed tabs match this search.',
+  'tabs.closedHistorySearch': 'Search closed tabs',
+  'tabs.closedHistorySearchPlaceholder': 'Name, alias, or path',
+  'tabs.closedHistorySearchTarget': 'Closed tabs',
+  'tabs.closedHistoryForget': 'Forget closed tab {name}',
+  'tabs.closedHistoryClear': 'Clear history',
+  'tabs.closedHistoryCountOne': '1 closed tab',
+  'tabs.closedHistoryCountMany': '{count} closed tabs',
   'tabs.undoSettingsChange': 'Undo last settings change',
   'tabs.redoSettingsChange': 'Redo settings change',
   'tabs.settingsChangeUndone': 'Settings change undone.',
@@ -4248,6 +4355,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'history.scope': 'History scope',
   'history.scope.currentBranch': 'Current branch',
   'history.scope.allRefs': 'All branches & tags',
+  'history.viewMode': 'History view',
+  'history.viewMode.list': 'Commit list',
+  'history.viewMode.graph': 'Graph',
   'diff.structured.viewSwitcher': 'Structured diff view',
   'diff.structured.code': 'Code',
   'diff.structured.table': 'Table',
@@ -4906,6 +5016,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'batchSync.statusFailed': 'Failed',
   'repositoryPicker.status': 'Repository status',
   'repositoryPicker.filters': 'Filters',
+  'repositoryPicker.emptyTitle': 'No repositories yet',
+  'repositoryPicker.emptyBody':
+    'Clone one from a remote, add a folder you already have, or start a brand new repository.',
+  'repositoryPicker.emptyClone': 'Clone repository',
+  'repositoryPicker.emptyAdd': 'Add local repository',
+  'repositoryPicker.emptyCreate': 'Create new repository',
   'repositoryPicker.filtersActive': 'Filters · {count}',
   'repositoryPicker.all': 'All',
   'repositoryPicker.clean': 'Clean',
@@ -5309,6 +5425,68 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'stashManager.filterMatchPlural': '{count} stashes match',
   'stashManager.noMatches': 'No stashes match this filter.',
   'stashManager.invalidFilterPattern': 'Invalid search pattern: {error}',
+  'stashManager.openDialogAction': 'Open full manager',
+  'stashManager.dialogTitle': 'Stash manager',
+  'stashManager.dialogDescription':
+    'Name, search, review, restore, and export every local stash. The inventory has no entry-count cap; Git storage and the bounded metadata read are the practical limits.',
+  'stashManager.dialogTabsAria': 'Stash manager sections',
+  'stashManager.manageTab': 'Manage',
+  'stashManager.exportTab': 'Export',
+  'stashManager.historyTab': 'History',
+  'stashManager.appearanceTab': 'Appearance and voice',
+  'stashManager.closeDialogAction': 'Close manager',
+  'stashManager.historyHeading': 'Recoverable stash history',
+  'stashManager.historyDescription':
+    'Each row keeps the exact stash object identity, branch association, and name visible for review before an action changes anything.',
+  'stashManager.appearanceHeading': 'Make this dialog yours',
+  'stashManager.appearanceDescription':
+    'This surface inherits the app appearance, language mode, funny-level sliders, focus treatment, reduced-motion behavior, and notification history. Open Settings to change the shared values; the dialog refreshes when they change.',
+  'stashManager.editAppearanceAction': 'Open appearance settings',
+  'stashManager.appearanceHint':
+    'Search remains plain text by default, regex is opt-in, destructive actions stay reviewable, and errors remain factual at every voice level.',
+  'stashManager.exportPanelAria': 'Export selected stashes',
+  'stashManager.exportDescription':
+    'Select any number of named or external stashes and copy their metadata plus exact Git trees to a directory, ZIP, or 7z archive.',
+  'stashManager.exportSearchLabel': 'Search stashes to export',
+  'stashManager.exportSearchAria':
+    'Search exportable stashes by name, branch, or object ID',
+  'stashManager.exportSearchRegexTarget': 'Exportable stashes',
+  'stashManager.selectVisible': 'Select visible',
+  'stashManager.invertVisible': 'Invert visible selection',
+  'stashManager.exportSelectedCount': '{count} selected for export',
+  'stashManager.exportFormatLabel': 'Export format',
+  'stashManager.exportDirectory': 'Directory copy',
+  'stashManager.exportSecurityNote':
+    'Archive passwords are used only for this export. Header encryption hides 7z filenames when a password is present; passwords are never saved in the stash metadata.',
+  'stashManager.exportComplete': 'Export complete',
+  'stashManager.openExportInEditor': 'Open export in VS Code',
+  'stashManager.exportAction': 'Export selected stashes',
+  'stashManager.exportingAction': 'Exporting…',
+  'stashManager.exportSelectionRequired':
+    'Select at least one stash to export.',
+  'stashManager.exportFailed': 'The stash export failed.',
+  'stashManager.chooseDirectoryTitle': 'Choose a directory for the stash copy',
+  'stashManager.chooseArchiveTitle': 'Choose the stash archive destination',
+  'stashManager.sevenZipOptionsHeading': '7z options',
+  'stashManager.sevenZipMethod': 'Compression method',
+  'stashManager.sevenZipLevel': 'Compression level (0–9)',
+  'stashManager.sevenZipDictionary': 'Dictionary size',
+  'stashManager.sevenZipWordSize': 'Word size',
+  'stashManager.sevenZipMatchFinder': 'Match finder',
+  'stashManager.sevenZipFastBytes': 'Fast bytes',
+  'stashManager.sevenZipThreads': 'Threads',
+  'stashManager.sevenZipSplitVolumes': 'Split volumes (for example 100m)',
+  'stashManager.sevenZipSolid': 'Solid archive',
+  'stashManager.sevenZipPassword': 'Password',
+  'stashManager.sevenZipEncryptHeaders': 'Encrypt 7z headers and filenames',
+  'stashManager.historySearchLabel': 'Search stash history',
+  'stashManager.historySearchAria':
+    'Search stash history by name, branch, or object ID',
+  'stashManager.historySearchRegexTarget': 'Stash history',
+  'stashManager.appearanceSearchLabel': 'Search appearance and voice controls',
+  'stashManager.appearanceSearchAria':
+    'Search this dialog appearance and voice controls',
+  'stashManager.appearanceSearchRegexTarget': 'Appearance and voice controls',
   'tagLifecycle.rejectedError':
     'Git rejected the tag operation. Review the application error for details.',
   'tagLifecycle.operationFailedError': 'The tag operation failed.',
@@ -5442,6 +5620,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'ollama.manager.refreshing': 'Refreshing…',
   'ollama.manager.searchLabel': 'Search installed models',
   'ollama.manager.searchPlaceholder': 'Search by name, family, or capability…',
+  'ollama.manager.clearSearch': 'Clear search',
   'ollama.manager.scopeLabel': 'Model inventory filter',
   'ollama.manager.allModels': 'All models',
   'ollama.manager.runningModels': 'Running only',
@@ -5825,6 +6004,23 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'browser.authNoticeBody':
     'This tab shares an in-memory session only with sign-in popups. Its address and data are cleared when sign-in closes, and it cannot be bookmarked.',
   'browser.openAuthExternal': 'Continue in system browser',
+  'browser.findOpen': 'Find in page (Ctrl+F)',
+  'browser.findLabel': 'Find in page',
+  'browser.findQueryLabel': 'Find text or pattern',
+  'browser.findPlaceholder': 'Find in page…',
+  'browser.findMode': 'Toggle plain-text or regex mode',
+  'browser.findBuilder': 'Regex builder',
+  'browser.findCaseSensitive': 'Match case',
+  'browser.findPrevious': 'Find previous',
+  'browser.findNext': 'Find next',
+  'browser.findClose': 'Close find bar',
+  'browser.findTarget': 'this page',
+  'browser.findSearching': 'Searching…',
+  'browser.findNoMatches': 'No matches',
+  'browser.findCount': '{active} of {total}',
+  'browser.findTruncated': 'page text capped',
+  'browser.findResults': 'Regex matches',
+  'browser.findMatch': 'Go to match {number}',
   'browser.error.invalidAddress': 'Enter a valid HTTP or HTTPS web address.',
   'browser.error.loadFailed': 'This page could not be loaded.',
   'browser.error.certificate':
@@ -6438,6 +6634,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'actionsLocalRun.toolsMissingTitle': 'Local runner tools are missing',
   'actionsLocalRun.actMissing':
     'act (nektos/act) was not found on your PATH. It runs your workflows locally.',
+  'actionsLocalRun.actInstalling':
+    'Installing act (nektos/act) for you. It runs your workflows locally, and it is going into this app’s own folder — nothing is installed system-wide.',
+  'actionsLocalRun.actInstallingAutomatically':
+    'act (nektos/act) is not installed yet. It runs your workflows locally, and the app is fetching it for you now.',
+  'actionsLocalRun.actInstallFailed':
+    'act could not be installed automatically. Install it yourself and it will be picked up from your PATH.',
   'actionsLocalRun.dockerMissing':
     'Docker was not found on your PATH. act needs a running Docker engine to execute jobs.',
   'actionsLocalRun.installHint':
@@ -6507,6 +6709,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositorySettings.cheapLfsTab': 'Cheap LFS',
   'repositorySettings.automationTab': 'Automation (this repository)',
   'repositorySettings.appearanceTab': 'Appearance',
+  'repositorySettings.searchLabel': 'Search settings',
   'repositorySettings.appearance.intro':
     'Everything here belongs to this repository alone. Each section edits the same owner — the same setting, the same local Git repository, and the same history — that you reach by Shift+right-clicking the actual element.',
   'repositorySettings.appearance.introHint':
@@ -8109,6 +8312,18 @@ export const cantoneseTranslations: Readonly<
   'tabs.settingsCommitTitle':
     '每次改分頁或設定，都會即刻 commit 落呢個帳戶嘅本機設定 repo。',
   'tabs.settingsHistory': '設定歷史',
+  'tabs.closedHistory': '最近關閉嘅分頁',
+  'tabs.closedHistoryTitle': '分頁歷史',
+  'tabs.closedHistoryDescription': '可以還原啱啱關閉嘅分頁，或者永久忘記佢。',
+  'tabs.closedHistoryEmpty': '暫時冇最近關閉嘅分頁。',
+  'tabs.closedHistoryNoMatches': '冇關閉分頁符合呢個搜尋。',
+  'tabs.closedHistorySearch': '搜尋關閉咗嘅分頁',
+  'tabs.closedHistorySearchPlaceholder': '名、別名或者路徑',
+  'tabs.closedHistorySearchTarget': '關閉咗嘅分頁',
+  'tabs.closedHistoryForget': '忘記關閉咗嘅分頁「{name}」',
+  'tabs.closedHistoryClear': '清除歷史',
+  'tabs.closedHistoryCountOne': '有 1 個關閉咗嘅分頁',
+  'tabs.closedHistoryCountMany': '有 {count} 個關閉咗嘅分頁',
   'tabs.undoSettingsChange': '復原上一個設定改動',
   'tabs.redoSettingsChange': '重做設定改動',
   'tabs.settingsChangeUndone': '已復原設定改動。',
@@ -8668,6 +8883,9 @@ export const cantoneseTranslations: Readonly<
   'history.scope': '歷史範圍',
   'history.scope.currentBranch': '而家呢條分支',
   'history.scope.allRefs': '全部分支同標籤',
+  'history.viewMode': '歷史檢視',
+  'history.viewMode.list': '提交清單',
+  'history.viewMode.graph': '圖表',
   'diff.structured.viewSwitcher': '結構化差異檢視',
   'diff.structured.code': '程式碼',
   'diff.structured.table': '表格',
@@ -9276,6 +9494,12 @@ export const cantoneseTranslations: Readonly<
   'batchSync.statusFailed': '失敗',
   'repositoryPicker.status': 'Repo 狀態',
   'repositoryPicker.filters': '篩選器',
+  'repositoryPicker.emptyTitle': '一個倉庫都未有',
+  'repositoryPicker.emptyBody':
+    'Clone 個返嚟、加返部電腦入面已經有嘅資料夾，或者由零開個新倉庫都得。',
+  'repositoryPicker.emptyClone': 'Clone 倉庫',
+  'repositoryPicker.emptyAdd': '加入本機倉庫',
+  'repositoryPicker.emptyCreate': '開個新倉庫',
   'repositoryPicker.filtersActive': '篩選器 · {count}',
   'repositoryPicker.all': '全部',
   'repositoryPicker.clean': '乾淨',
@@ -9636,6 +9860,64 @@ export const cantoneseTranslations: Readonly<
   'stashManager.filterMatchPlural': '中咗 {count} 個 stash',
   'stashManager.noMatches': '冇 stash 啱呢個篩選。',
   'stashManager.invalidFilterPattern': '搜尋格式唔啱：{error}',
+  'stashManager.openDialogAction': '打開完整管理員',
+  'stashManager.dialogTitle': 'Stash 管理員',
+  'stashManager.dialogDescription':
+    '可以命名、搜尋、覆核、還原同匯出所有本機 stash。清單冇項目數上限；實際界線係 Git 儲存量同有界 metadata 讀取。',
+  'stashManager.dialogTabsAria': 'Stash 管理員分區',
+  'stashManager.manageTab': '管理',
+  'stashManager.exportTab': '匯出',
+  'stashManager.historyTab': '歷史',
+  'stashManager.appearanceTab': '外觀同語氣',
+  'stashManager.closeDialogAction': '關閉管理員',
+  'stashManager.historyHeading': '可以復原嘅 stash 歷史',
+  'stashManager.historyDescription':
+    '每行都會顯示精確 stash 物件身份、分支關聯同名稱，改動之前先俾你睇清楚，唔玩估估下。',
+  'stashManager.appearanceHeading': '整到呢個對話框啱你心水',
+  'stashManager.appearanceDescription':
+    '呢個介面會跟隨應用程式外觀、語言模式、兩個搞笑程度滑桿、焦點顯示、減少動畫同通知歷史。去設定改共享值；值一變，對話框會即時更新。',
+  'stashManager.editAppearanceAction': '打開外觀設定',
+  'stashManager.appearanceHint':
+    '預設係普通文字搜尋，regex 要你主動開；破壞性操作一定可以覆核，而錯誤訊息無論幾搞笑都會講足事實。',
+  'stashManager.exportPanelAria': '匯出已揀 stash',
+  'stashManager.exportDescription':
+    '揀任意數量嘅命名或外部 stash，將 metadata 同精確 Git tree 複製到目錄、ZIP 或 7z 封存。',
+  'stashManager.exportSearchLabel': '搜尋要匯出嘅 stash',
+  'stashManager.exportSearchAria': '按名稱、分支或者物件 ID 搜尋可匯出 stash',
+  'stashManager.exportSearchRegexTarget': '可匯出 stash',
+  'stashManager.selectVisible': '揀晒目前顯示',
+  'stashManager.invertVisible': '反轉目前顯示選取',
+  'stashManager.exportSelectedCount': '已揀 {count} 個匯出',
+  'stashManager.exportFormatLabel': '匯出格式',
+  'stashManager.exportDirectory': '目錄副本',
+  'stashManager.exportSecurityNote':
+    '封存密碼只用於今次匯出。有密碼時，header 加密會連 7z 檔名都遮埋；密碼唔會寫入 stash metadata。',
+  'stashManager.exportComplete': '匯出完成',
+  'stashManager.openExportInEditor': '用 VS Code 打開匯出',
+  'stashManager.exportAction': '匯出已揀 stash',
+  'stashManager.exportingAction': '匯出緊…',
+  'stashManager.exportSelectionRequired': '至少揀一個 stash 先可以匯出。',
+  'stashManager.exportFailed': 'Stash 匯出失敗。',
+  'stashManager.chooseDirectoryTitle': '揀 stash 副本嘅目錄',
+  'stashManager.chooseArchiveTitle': '揀 stash 封存目的地',
+  'stashManager.sevenZipOptionsHeading': '7z 選項',
+  'stashManager.sevenZipMethod': '壓縮方法',
+  'stashManager.sevenZipLevel': '壓縮級別（0–9）',
+  'stashManager.sevenZipDictionary': '字典大小',
+  'stashManager.sevenZipWordSize': '字詞大小',
+  'stashManager.sevenZipMatchFinder': '配對搜尋器',
+  'stashManager.sevenZipFastBytes': '快速 bytes',
+  'stashManager.sevenZipThreads': '執行緒',
+  'stashManager.sevenZipSplitVolumes': '分拆 volumes（例如 100m）',
+  'stashManager.sevenZipSolid': 'Solid 封存',
+  'stashManager.sevenZipPassword': '密碼',
+  'stashManager.sevenZipEncryptHeaders': '加密 7z header 同檔名',
+  'stashManager.historySearchLabel': '搜尋 stash 歷史',
+  'stashManager.historySearchAria': '按名稱、分支或者物件 ID 搜尋 stash 歷史',
+  'stashManager.historySearchRegexTarget': 'Stash 歷史',
+  'stashManager.appearanceSearchLabel': '搜尋外觀同語氣控制',
+  'stashManager.appearanceSearchAria': '搜尋呢個對話框嘅外觀同語氣控制',
+  'stashManager.appearanceSearchRegexTarget': '外觀同語氣控制',
   'tagLifecycle.rejectedError': 'Git 拒絕咗標籤操作；請查看應用程式錯誤詳情。',
   'tagLifecycle.operationFailedError': '標籤操作未能完成。',
   'tagLifecycle.createdStatus': '已建立本機標籤 {name}。',
@@ -9764,6 +10046,7 @@ export const cantoneseTranslations: Readonly<
   'ollama.manager.refreshing': '重新整理緊…',
   'ollama.manager.searchLabel': '搜尋已安裝模型',
   'ollama.manager.searchPlaceholder': '用名稱、系列或者能力搜尋…',
+  'ollama.manager.clearSearch': '清除搜尋',
   'ollama.manager.scopeLabel': '模型清單篩選',
   'ollama.manager.allModels': '全部模型',
   'ollama.manager.runningModels': '只睇運行緊',
@@ -10126,6 +10409,23 @@ export const cantoneseTranslations: Readonly<
   'browser.authNoticeBody':
     '呢個分頁只會同登入彈出分頁共享記憶體內嘅工作階段；關閉登入後會清走網址同資料，而且唔可以加書籤。',
   'browser.openAuthExternal': '轉去系統瀏覽器繼續',
+  'browser.findOpen': '喺頁面搵嘢（Ctrl+F）',
+  'browser.findLabel': '喺頁面搵嘢',
+  'browser.findQueryLabel': '搵文字或者樣式',
+  'browser.findPlaceholder': '喺頁面搵嘢…',
+  'browser.findMode': '切換純文字或者 regex 模式',
+  'browser.findBuilder': 'Regex 建構器',
+  'browser.findCaseSensitive': '分大小寫',
+  'browser.findPrevious': '搵上一個',
+  'browser.findNext': '搵下一個',
+  'browser.findClose': '關閉搵嘢列',
+  'browser.findTarget': '呢頁',
+  'browser.findSearching': '搵緊…',
+  'browser.findNoMatches': '搵唔到配對',
+  'browser.findCount': '第 {active} 個，共 {total} 個',
+  'browser.findTruncated': '頁面文字已封頂',
+  'browser.findResults': 'Regex 配對',
+  'browser.findMatch': '去第 {number} 個配對',
   'browser.error.invalidAddress': '請輸入有效嘅 HTTP 或 HTTPS 網址。',
   'browser.error.loadFailed': '載入唔到呢個頁面。',
   'browser.error.certificate': '頁面憑證驗證唔到，已經安全擋住。',
@@ -10690,6 +10990,12 @@ export const cantoneseTranslations: Readonly<
   'actionsLocalRun.toolsMissingTitle': '本機執行工具唔齊',
   'actionsLocalRun.actMissing':
     '喺你嘅 PATH 搵唔到 act（nektos/act），佢係負責喺本機行 workflow 嘅。',
+  'actionsLocalRun.actInstalling':
+    '而家幫緊你裝 act（nektos/act）。佢負責喺本機行 workflow，只會落喺 app 自己個資料夾度，唔會裝入成部電腦。',
+  'actionsLocalRun.actInstallingAutomatically':
+    '你部機仲未裝 act（nektos/act）。佢負責喺本機行 workflow，app 而家幫你搏緊落載。',
+  'actionsLocalRun.actInstallFailed':
+    '自動裝 act 失敗咗。你自己裝一次，app 就會喺 PATH 揾到佢。',
   'actionsLocalRun.dockerMissing':
     '喺你嘅 PATH 搵唔到 Docker。act 要有個行緊嘅 Docker engine 先可以執行啲 job。',
   'actionsLocalRun.installHint':
@@ -10759,6 +11065,7 @@ export const cantoneseTranslations: Readonly<
   'repositorySettings.cheapLfsTab': 'Cheap LFS 大檔案',
   'repositorySettings.automationTab': '自動化（呢個存放庫）',
   'repositorySettings.appearanceTab': '外觀',
+  'repositorySettings.searchLabel': '搵設定',
   'repositorySettings.appearance.intro':
     '呢度全部只係屬於呢個 repo。每一段都係改緊同一個主人——同一份設定、同一個本機 Git 倉、同一段歷史，即係你撳住 Shift 再右 click 個實物時開嗰個。',
   'repositorySettings.appearance.introHint':

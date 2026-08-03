@@ -38,6 +38,9 @@ export type RepositoryTabOpenedOrder = 'newest' | 'oldest'
 export type RepositoryTabStatusOrder = 'needs-attention-first' | 'clean-first'
 export type RepositoryTabFavoriteOrder = 'favorites-first' | 'favorites-last'
 
+/** Keep enough recently closed tabs to make an accidental close recoverable. */
+export const MaxClosedRepositoryTabs = 12
+
 export interface ITabSessionImportResult {
   readonly importedCount: number
   readonly skippedCount: number
@@ -506,6 +509,7 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
 
     const closed = this.state.tabs[index]
     const tabs = this.state.tabs.filter(t => t.id !== id)
+    const closedTabs = this.rememberClosedTabs(closed)
     let activeTabId = this.state.activeTabId
     if (activeTabId === id) {
       const neighbor = tabs[index] ?? tabs[index - 1] ?? null
@@ -513,7 +517,7 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
     }
 
     await this.persist(
-      { ...this.state, tabs, activeTabId },
+      { ...this.state, tabs, activeTabId, closedTabs },
       `Close tab: ${closed.customLabel ?? '#' + closed.repositoryId}`
     )
     this.tabStyleRevisions.delete(id)
@@ -530,7 +534,12 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
     if (ids.size === 0) {
       return
     }
-    await this.closeTabsByIds(ids, 'Close tabs for removed repository', false)
+    await this.closeTabsByIds(
+      ids,
+      'Close tabs for removed repository',
+      false,
+      false
+    )
   }
 
   /**
@@ -568,7 +577,8 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
   private async closeTabsByIds(
     ids: ReadonlySet<string>,
     description: string,
-    protectPinned = true
+    protectPinned = true,
+    rememberClosed = true
   ): Promise<string | null> {
     if (ids.size === 0) {
       return this.state.activeTabId
@@ -599,11 +609,69 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
       activeTabId = this.pickNeighbor(oldTabs, survivors, activeTabId)
     }
 
-    await this.persist({ ...this.state, tabs, activeTabId }, description)
+    const closedTabs = rememberClosed
+      ? this.rememberClosedTabs(
+          ...oldTabs.filter(tab => closableIds.has(tab.id)).reverse()
+        )
+      : this.state.closedTabs
+    await this.persist(
+      { ...this.state, tabs, activeTabId, closedTabs },
+      description
+    )
     for (const id of closableIds) {
       this.tabStyleRevisions.delete(id)
     }
     return activeTabId
+  }
+
+  private rememberClosedTabs(
+    ...tabs: ReadonlyArray<IRepositoryTab>
+  ): ReadonlyArray<IRepositoryTab> {
+    const existing = this.state.closedTabs ?? []
+    const next = [...tabs, ...existing].filter(
+      (tab, index, all) =>
+        all.findIndex(candidate => candidate.id === tab.id) === index
+    )
+    return next.slice(0, MaxClosedRepositoryTabs)
+  }
+
+  /** Restore one recently closed tab without losing its group or appearance. */
+  public async restoreClosedTab(id: string): Promise<string | null> {
+    const closed = (this.state.closedTabs ?? []).find(tab => tab.id === id)
+    if (closed === undefined || this.state.tabs.some(tab => tab.id === id)) {
+      return this.state.activeTabId
+    }
+    const closedTabs = (this.state.closedTabs ?? []).filter(
+      tab => tab.id !== id
+    )
+    const tabs = groupPinnedTabs([...this.state.tabs, closed])
+    await this.persist(
+      { ...this.state, tabs, closedTabs, activeTabId: id },
+      `Restore closed tab: ${closed.customLabel ?? '#' + closed.repositoryId}`
+    )
+    return id
+  }
+
+  /** Forget the selected entry without changing any open tab. */
+  public async forgetClosedTab(id: string): Promise<void> {
+    const closedTabs = (this.state.closedTabs ?? []).filter(
+      tab => tab.id !== id
+    )
+    if (closedTabs.length === (this.state.closedTabs ?? []).length) {
+      return
+    }
+    await this.persist({ ...this.state, closedTabs }, 'Forget closed tab')
+  }
+
+  /** Clear the reopen list while leaving all open tabs untouched. */
+  public async clearClosedTabs(): Promise<void> {
+    if ((this.state.closedTabs ?? []).length === 0) {
+      return
+    }
+    await this.persist(
+      { ...this.state, closedTabs: [] },
+      'Clear closed tab history'
+    )
   }
 
   /** Close every tab positioned before `id`. Returns the new active tab id. */

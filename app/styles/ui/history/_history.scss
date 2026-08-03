@@ -40,6 +40,74 @@
     min-height: 0;
   }
 
+  .history-view-panel {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .history-view-tabs {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 4px;
+    min-height: 48px;
+    align-items: end;
+    overflow-x: auto;
+    padding: 0 var(--spacing) 0;
+    border-bottom: var(--base-border);
+    background: var(--md-sys-color-surface-container-lowest);
+    scrollbar-width: thin;
+  }
+
+  .history-view-tab {
+    position: relative;
+    flex: 0 0 auto;
+    min-width: 104px;
+    min-height: 44px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 12px 12px 0 0;
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    font: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: background-color 160ms ease, color 160ms ease;
+
+    &::after {
+      position: absolute;
+      right: 12px;
+      bottom: -1px;
+      left: 12px;
+      height: 3px;
+      border-radius: 999px 999px 0 0;
+      background: transparent;
+      content: '';
+    }
+
+    &:hover {
+      background: var(--md-sys-color-surface-container-high);
+      color: var(--md-sys-color-on-surface);
+    }
+
+    &:focus-visible {
+      z-index: 1;
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: -3px;
+    }
+
+    &[aria-selected='true'] {
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+
+      &::after {
+        background: var(--md-sys-color-primary);
+      }
+    }
+  }
+
   .merge-status {
     background: var(--background-color);
     border-width: 0 var(--spacing-half);
@@ -236,8 +304,8 @@
     }
   }
 
-  // The search field plus its trailing control cluster (mode control, filter
-  // chips toggle, graph toggle) wrap as one row; the chip row sits below.
+  // The search field plus its trailing control cluster (mode control and filter
+  // chips toggle) wrap as one row; the chip row sits below.
   .history-commit-filter-row {
     display: flex;
     flex-wrap: wrap;
@@ -320,20 +388,11 @@
       }
     }
   }
+}
 
-  .history-commit-graph-toggle.button-component {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    padding: 0;
-    border-radius: 999px;
-    color: var(--md-sys-color-on-surface-variant);
-    background: var(--md-sys-color-surface-container-high);
-
-    &[aria-pressed='true'] {
-      color: var(--md-sys-color-on-secondary-container);
-      background: var(--md-sys-color-secondary-container);
-    }
+@media (prefers-reduced-motion: reduce) {
+  #compare-view .history-view-tab {
+    transition: none;
   }
 }
 

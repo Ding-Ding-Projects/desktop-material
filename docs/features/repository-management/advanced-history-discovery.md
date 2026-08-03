@@ -5,6 +5,12 @@ full/short object ID using fuzzy, substring, or regular-expression matching.
 Its filter chips narrow the result to unpushed, tagged, or signed-in-user
 commits, and the graph can be shown or hidden without changing the query.
 
+History also has an explicit keyboard-accessible view tab strip. **Commit list**
+keeps the dense row view and optional inline ancestry graph; **Graph** opens the
+virtualized three-column view with Branch / Tag, a continuous lane drawing, and
+Commit Message columns. `ArrowLeft`/`ArrowRight`, `Home`, and `End` move the
+roving tab focus, while the selected view persists across launches.
+
 ## Ref scope
 
 The scope selector above search has two explicit modes:
@@ -32,6 +38,11 @@ The all-ref query asks Git for branches, remote-tracking branches, and tags. It
 does not traverse reflogs, stash refs, replacement refs, or arbitrary objects.
 Remote-only commits appear after a successful fetch; if a network operation
 failed, retry fetch and then reopen or refresh History.
+
+The Graph view shares commit selection, context actions, scrolling, and the
+same loaded commit set with the list. Filtering disables history-mutating
+operations until the query is cleared, so a virtual row cannot silently act on
+the wrong commit.
 
 ## Security and verification
 

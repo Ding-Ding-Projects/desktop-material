@@ -382,6 +382,34 @@ leaves the reviewed original intact. UI persistence and workflow setup are also
 bound to the originating repository so switching repositories during a private
 opt-in cannot apply that consent elsewhere.
 
+Every tracked-path operation starts by canonicalizing the repository root, and
+when that step fails the reported error names the path it failed on and the
+operating system's own error code rather than stating only that
+canonicalization did not happen. The distinction matters because the causes
+call for different responses and are not otherwise distinguishable from the
+message: `ENOENT` means the repository moved or was deleted out from under the
+open window, `EACCES` or `EPERM` means the process cannot open the directory
+for a final-path query (which on Windows is a handle-opening operation, so
+permissions, exclusive locks, and unhydrated cloud-backed folders all surface
+here), and `ELOOP` means the path redirects to itself.
+
+Codes that mean "not right now" rather than "not safe" — `EACCES`, `EAGAIN`,
+`EBUSY`, `EIO`, `EMFILE`, `ENFILE`, `EPERM`, and `UNKNOWN` — are retried up to
+four times with a short growing pause. Because `realpath` has to open a handle
+on Windows, it competes with on-access virus scanners, indexers, backup agents,
+and Git's own working-tree writes, and under a large commit that contention is
+routine and momentary; without the retry a handle held for a few milliseconds
+could abort a commit of many thousands of files. `ENOENT` is excluded on
+purpose: a repository that is not there is not busy, so it fails on the first
+attempt instead of pausing.
+
+Retrying is not relenting. A root that still will not canonicalize after the
+last attempt fails closed, and the reparse-point, directory, and containment
+checks all still run against whatever path canonicalization returns — a root
+redirected by a symlink, junction, or other reparse point is refused exactly as
+before. The retry changes only how long the check is willing to wait, never
+what it accepts.
+
 The caller pins both `actions/checkout` and Desktop Material's reviewed
 composite compressor to immutable commit SHAs. Checkout materializes only
 `.github`; the worker then refetches the exact event commit with an exclusive

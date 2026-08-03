@@ -1827,6 +1827,17 @@ export class RepositoriesList extends React.Component<
   }
 
   private renderNoItems = () => {
+    // Two different situations reach an empty list, and they need different
+    // answers. A search that matched nothing is a dead end the user can back
+    // out of by editing the filter. Having no repositories at all is not a
+    // failed search — the user has nothing to back out to, and telling them
+    // "I can't find that repository" when they never asked for one reads as a
+    // bug and offers no way forward. That case gets real copy and the actual
+    // creation paths instead.
+    if (this.props.repositories.length === 0) {
+      return this.renderNoRepositories()
+    }
+
     return (
       <div className="no-items no-results-found">
         <div className="blankslate-symbol" aria-hidden="true">
@@ -1847,6 +1858,58 @@ export class RepositoriesList extends React.Component<
             />
           </div>{' '}
           to clone from anywhere within the app
+        </div>
+      </div>
+    )
+  }
+
+  /**
+   * The genuinely-empty state: no repositories exist yet.
+   *
+   * These are real buttons wired to the same dispatcher paths the toolbar and
+   * the menu use, not an illustration of them — an empty surface that only
+   * describes what the user could do elsewhere is the placeholder this
+   * codebase does not ship.
+   */
+  private renderNoRepositories = () => {
+    const languageMode = this.state.languageMode
+
+    return (
+      <div className="no-items no-repositories">
+        <div className="blankslate-symbol" aria-hidden="true">
+          <MaterialSymbol name="stacks" size={34} />
+        </div>
+        <div className="title">
+          <LocalizedText
+            translationKey="repositoryPicker.emptyTitle"
+            languageMode={languageMode}
+          />
+        </div>
+        <div className="description">
+          <LocalizedText
+            translationKey="repositoryPicker.emptyBody"
+            languageMode={languageMode}
+          />
+        </div>
+        <div className="no-repositories-actions">
+          <Button type="submit" onClick={this.onCloneRepository}>
+            <LocalizedText
+              translationKey="repositoryPicker.emptyClone"
+              languageMode={languageMode}
+            />
+          </Button>
+          <Button onClick={this.onAddExistingRepository}>
+            <LocalizedText
+              translationKey="repositoryPicker.emptyAdd"
+              languageMode={languageMode}
+            />
+          </Button>
+          <Button onClick={this.onCreateNewRepository}>
+            <LocalizedText
+              translationKey="repositoryPicker.emptyCreate"
+              languageMode={languageMode}
+            />
+          </Button>
         </div>
       </div>
     )

@@ -33,6 +33,8 @@ interface IRepositoryTabProps {
   readonly repository: Repository | CloningRepository | null
   readonly isActive: boolean
   readonly isDragging: boolean
+  readonly isDragOver?: boolean
+  readonly dragOverPosition?: 'before' | 'after' | null
   /** The group this tab belongs to, or null when it is ungrouped. */
   readonly group?: ITabGroup | null
   /** Concise localized label naming both this tab and its declared group. */
@@ -319,7 +321,8 @@ export class RepositoryTab extends React.Component<
   }
 
   public render() {
-    const { tab, isActive, isDragging } = this.props
+    const { tab, isActive, isDragging, isDragOver, dragOverPosition } =
+      this.props
     const group = this.props.group ?? null
     const className = [
       'repository-tab',
@@ -327,6 +330,10 @@ export class RepositoryTab extends React.Component<
       tab.isPinned === true ? 'pinned' : null,
       tab.isFavorite === true ? 'favorite' : null,
       isDragging ? 'dragging' : null,
+      isDragOver ? 'drag-over' : null,
+      isDragOver && dragOverPosition !== null
+        ? `drag-over-${dragOverPosition}`
+        : null,
       group !== null ? 'grouped' : null,
       group !== null
         ? `tab-group--${normalizeTabGroupColor(group.color)}`

@@ -555,6 +555,33 @@
     }
   }
 
+  // The genuinely-empty state stacks its copy above real creation buttons and
+  // stays centred in whatever height the sheet gives it. It is deliberately
+  // laid out here rather than relying on the shared `.no-items` block alone,
+  // which is sized for a one-line "no match" message with no controls under it.
+  .no-repositories {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-half);
+
+    .description {
+      color: var(--md-sys-color-on-surface-variant);
+      max-width: 32ch;
+    }
+
+    .no-repositories-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: var(--spacing-half);
+      margin-top: var(--spacing);
+      width: 100%;
+      max-width: 32ch;
+    }
+  }
+
   .no-items {
     text-align: center;
     padding: var(--spacing);
@@ -660,6 +687,27 @@ body[data-dm-repository-list-density='compact'] #foldout-container .repository-l
   // Stack the in-sheet header above the filter list (the base rule lays the
   // list out as a row for the legacy Add-repository foldout).
   flex-direction: column;
+
+  // The filter list owns the remaining sheet height. Without an explicit
+  // minimum it uses its content-sized flex basis, so the virtualized rows (or
+  // the empty state) can be laid out below the foldout's overflow clip.
+  > .filter-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+
+    > .filter-list-container {
+      min-height: 0;
+      min-width: 0;
+
+      > .no-items {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+      }
+    }
+  }
 
   // Uppercase group labels (RECENT / <account login>) per the design spec.
   .filter-list-group-header {

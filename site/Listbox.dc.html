@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="position:relative;display:flex;flex-direction:column;gap:6px;min-width:0">
+  <button type="button" onClick="{{ toggle }}" aria-haspopup="listbox" aria-expanded="{{ open }}" aria-label="{{ triggerLabel }}" style="display:flex;align-items:center;gap:10px;width:100%;height:46px;padding:0 14px;border-radius:14px;border:1px solid var(--md-sys-color-outline);background:var(--md-sys-color-surface-container-lowest);cursor:pointer;font-size:13.5px;text-align:left">
+    <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ currentLabel }}</span>
+    <span style="font-family:'Material Symbols Outlined';font-size:20px;color:var(--md-sys-color-on-surface-variant)" aria-hidden="true">arrow_drop_down</span>
+  </button>
+
+  <sc-if value="{{ open }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;top:52px;left:0;right:0;z-index:95;padding:10px;border-radius:18px;background:var(--md-sys-color-surface-container-high);border:1px solid var(--md-sys-color-outline-variant);box-shadow:0 4px 8px 3px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.12);display:flex;flex-direction:column;gap:8px;min-width:240px">
+      <div style="display:flex;align-items:center;gap:6px;height:40px;padding:0 10px;border-radius:12px;border:1px solid var(--md-sys-color-outline-variant);background:var(--md-sys-color-surface-container-lowest)">
+        <span style="font-family:'Material Symbols Outlined';font-size:18px;color:var(--md-sys-color-on-surface-variant)" aria-hidden="true">search</span>
+        <input value="{{ query }}" onChange="{{ setQuery }}" placeholder="Filter options" aria-label="Filter options" style="flex:1;min-width:0;height:38px;border:0;background:transparent;font-size:13px;outline:none" />
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button type="button" onClick="{{ toggleRegex }}" style="{{ regexStyle }}">.*</button>
+        <button type="button" onClick="{{ openBuilder }}" style="flex:1;height:30px;padding:0 10px;border-radius:999px;border:1px solid var(--md-sys-color-outline-variant);background:transparent;cursor:pointer;font-size:11.5px;font-weight:600;color:var(--md-sys-color-on-surface-variant)">Regex builder</button>
+      </div>
+      <sc-if value="{{ builderOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:14px;background:var(--md-sys-color-surface-container-lowest);border:1px solid var(--md-sys-color-outline-variant)">
+          <small style="font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--md-sys-color-on-surface-variant)">JavaScript RegExp · {{ matchCount }} of {{ totalCount }} match</small>
+          <div style="display:flex;flex-wrap:wrap;gap:4px">
+            <sc-for list="{{ constructs }}" as="c" hint-placeholder-count="8">
+              <button type="button" onClick="{{ c.insert }}" title="{{ c.label }}" style="height:26px;padding:0 8px;border-radius:999px;border:1px solid var(--md-sys-color-outline-variant);background:transparent;cursor:pointer;font-family:'Roboto Mono',monospace;font-size:11px;color:var(--md-sys-color-primary)">{{ c.token }}</button>
+            </sc-for>
+          </div>
+          <sc-if value="{{ hasError }}" hint-placeholder-val="{{ false }}">
+            <small style="font-family:'Roboto Mono',monospace;font-size:10.5px;color:var(--md-sys-color-error)">{{ error }}</small>
+          </sc-if>
+        </div>
+      </sc-if>
+      <div role="listbox" aria-label="{{ label }}" style="display:flex;flex-direction:column;gap:2px;max-height:240px;overflow-y:auto">
+        <sc-for list="{{ rows }}" as="row" hint-placeholder-count="4">
+          <button type="button" role="option" aria-selected="{{ row.selected }}" onClick="{{ row.pick }}" style="{{ row.style }}">
+            <span style="font-family:'Material Symbols Outlined';font-size:18px;flex:none;opacity:{{ row.checkOpacity }}" aria-hidden="true">check</span>
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ row.label }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}">
+        <small style="padding:4px 6px;font-size:12px;color:var(--md-sys-color-on-surface-variant)">No option matches that filter.</small>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:320,&quot;height&quot;:420},&quot;label&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Options&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;value&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;placeholder&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Select…&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;options&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{value:string,label:string}[]&quot;},&quot;onPick&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(value:string)=&gt;void&quot;}}">
+class Component extends DCLogic {
+  state = { open: false, query: '', regex: false, builderOpen: false };
+
+  renderVals() {
+    const options = this.props.options || [];
+    const value = this.props.value;
+    // The page that imports this component is the browser's own document, and
+    // HTML lowercases attribute names while parsing it — so the callback
+    // arrives as `onpick` there and as `onPick` only when a host parses the
+    // template from source text. Reading just one spelling makes every
+    // selection a no-op on the published site, which looks exactly like a
+    // broken control. Accept both.
+    const onPick = this.props.onPick || this.props.onpick;
+    const q = this.state.query;
+    let error = '';
+    let test = () => true;
+    if (q) {
+      if (this.state.regex) {
+        try { const re = new RegExp(q, 'i'); test = (s) => re.test(s); }
+        catch (e) { error = e.message; test = () => false; }
+      } else {
+        const n = q.toLowerCase();
+        test = (s) => s.toLowerCase().indexOf(n) !== -1;
+      }
+    }
+    const rows = options.filter(o => test(String(o.label))).map(o => {
+      const selected = String(o.value) === String(value);
+      return {
+        id: 'lb-' + o.value, label: o.label, selected,
+        checkOpacity: selected ? '1' : '0',
+        style: 'display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:8px 10px;border:0;border-radius:10px;cursor:pointer;font-size:13px;text-align:left;background:' + (selected ? 'var(--md-sys-color-secondary-container)' : 'transparent') + ';color:' + (selected ? 'var(--md-sys-color-on-secondary-container)' : 'inherit'),
+        pick: () => {
+          if (onPick) onPick(o.value);
+          this.setState({ open: false, query: '' });
+        }
+      };
+    });
+    const current = options.filter(o => String(o.value) === String(value))[0];
+    // The trigger renders only the chosen option, so on its own it announces
+    // "English" with no hint that it selects the language mode. Naming it
+    // "<what it chooses>: <what is chosen>" keeps the visible text inside the
+    // accessible name, which is what WCAG's label-in-name rule asks for.
+    const currentText = current ? current.label : (this.props.placeholder || 'Select…');
+    const constructs = ['\\d', '\\w', '\\s', '.', '^', '$', '\\b', '+', '*', '?', '[a-z]', 'a|b'].map((tok, i) => ({
+      id: 'k' + i, token: tok, label: tok,
+      insert: () => this.setState(s => ({ query: s.query + tok, regex: true }))
+    }));
+    return {
+      open: this.state.open,
+      label: this.props.label || 'Options',
+      currentLabel: currentText,
+      triggerLabel: (this.props.label || 'Options') + ': ' + currentText,
+      query: q,
+      rows, empty: rows.length === 0,
+      matchCount: rows.length, totalCount: options.length,
+      hasError: !!error, error,
+      constructs,
+      builderOpen: this.state.builderOpen,
+      regexStyle: 'width:34px;height:30px;border-radius:999px;cursor:pointer;font-family:"Roboto Mono",monospace;font-size:11px;font-weight:700;border:1px solid ' + (this.state.regex ? 'transparent' : 'var(--md-sys-color-outline-variant)') + ';background:' + (this.state.regex ? 'var(--md-sys-color-secondary-container)' : 'transparent') + ';color:' + (this.state.regex ? 'var(--md-sys-color-on-secondary-container)' : 'var(--md-sys-color-on-surface-variant)'),
+      toggle: () => this.setState(s => ({ open: !s.open, query: '' })),
+      setQuery: (e) => this.setState({ query: e.target.value }),
+      toggleRegex: () => this.setState(s => ({ regex: !s.regex, builderOpen: !s.regex ? true : s.builderOpen })),
+      openBuilder: () => this.setState(s => ({ builderOpen: !s.builderOpen, regex: true }))
+    };
+  }
+}
+
+</script>
+</body>
+</html>
