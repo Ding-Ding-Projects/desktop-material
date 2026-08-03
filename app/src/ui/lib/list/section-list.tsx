@@ -487,10 +487,20 @@ export class SectionList extends React.Component<
       scrollTop: 0,
     }
 
-    const ResizeObserverClass: typeof ResizeObserver = (window as any)
-      .ResizeObserver
+    // Guard and construct from the same value. This used to test the global
+    // `ResizeObserver` while constructing from `window.ResizeObserver`, so
+    // whenever those two disagreed the guard passed and the constructor threw
+    // — and a throw in a component constructor takes the whole subtree down.
+    // The list did not degrade to an unobserved list; it rendered nothing at
+    // all, which reads as "I have repositories and the panel is empty" rather
+    // than as an error anyone could trace back to a resize observer.
+    //
+    // `|| false` also made the old guard's intent unclear: it is a capability
+    // check, so check that the thing being constructed is actually callable.
+    const ResizeObserverClass: typeof ResizeObserver | undefined =
+      (window as any)?.ResizeObserver ?? (globalThis as any).ResizeObserver
 
-    if (ResizeObserver || false) {
+    if (typeof ResizeObserverClass === 'function') {
       this.resizeObserver = new ResizeObserverClass(entries => {
         for (const { target, contentRect } of entries) {
           if (target === this.list && this.list !== null) {
