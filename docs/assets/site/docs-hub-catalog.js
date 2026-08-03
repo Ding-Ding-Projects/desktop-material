@@ -802,7 +802,7 @@
       h: 'features/repository-management/external-stash-interoperability.html',
       s: 'features/repository-management/external-stash-interoperability.md',
       c: 'features',
-      d: 'Desktop Material inventories the newest 500 entries in refs/stash, including stashes created by the Git CLI, another desktop client, or an editor. External entries carry an…',
+      d: 'Desktop Material inventories every entry returned from refs/stash within the bounded metadata-read budget, including stashes created by the Git CLI, another desktop client, or…',
     },
     {
       t: 'History commit hover time',

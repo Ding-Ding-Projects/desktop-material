@@ -8,7 +8,12 @@ import {
   parseReportedTests,
   shouldUseGitHubReporter,
   summarizeRun,
+  testConcurrency,
+  withWorkerHeapLimit,
+  workerHeapMegabytes,
 } from './test.mjs'
+
+const GB = 1024 * 1024 * 1024
 
 // A completed batch: spawned, exited normally, and emitted a reporter summary.
 function completedBatch(files, exitCode, reportedTests) {
@@ -177,5 +182,49 @@ describe('test harness run accounting', () => {
     )
     assert.equal(summary.reportedTests, 5)
     assert.deepEqual(summary.missingFiles, ['b'])
+  })
+})
+
+describe('test worker memory budget', () => {
+  // The configuration that was actually failing: a hosted windows-2022 runner
+  // is 4 CPUs and 16 GB, and Node would otherwise let all four workers grow to
+  // ~4 GB each — the machine's whole memory, before git or the OS get any.
+  it('keeps the hosted Windows runner fleet inside its memory', () => {
+    const concurrency = testConcurrency(16 * GB, 4)
+    assert.ok(
+      concurrency * workerHeapMegabytes * 1024 * 1024 <= 16 * GB * 0.5,
+      `${concurrency} workers of ${workerHeapMegabytes} MB exceeds the budget`
+    )
+  })
+
+  it('never exceeds the CPU count, however much memory the machine has', () => {
+    assert.equal(testConcurrency(512 * GB, 4), 4)
+  })
+
+  it('runs serially rather than not at all on a tiny machine', () => {
+    assert.equal(testConcurrency(1 * GB, 8), 1)
+  })
+
+  it('lets memory rather than cores bound a many-core, small-RAM machine', () => {
+    // 8 GB at a 0.5 ratio funds 4 GB of workers: two 2 GB heaps, not 32.
+    assert.equal(testConcurrency(8 * GB, 32, 2048, 0.5), 2)
+  })
+
+  it('caps the worker heap through NODE_OPTIONS, keeping existing options', () => {
+    assert.equal(
+      withWorkerHeapLimit('--no-warnings', 2048),
+      '--no-warnings --max-old-space-size=2048'
+    )
+    assert.equal(
+      withWorkerHeapLimit(undefined, 2048),
+      '--max-old-space-size=2048'
+    )
+  })
+
+  it('leaves an explicitly chosen heap size alone', () => {
+    assert.equal(
+      withWorkerHeapLimit('--max-old-space-size=8192', 2048),
+      '--max-old-space-size=8192'
+    )
   })
 })
