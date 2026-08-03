@@ -6,6 +6,7 @@ import asyncio
 import os
 import shlex
 import shutil
+import sqlite3
 import subprocess
 from collections.abc import Callable
 from contextlib import suppress
@@ -52,12 +53,15 @@ from .ui.screens.dialogs import (
     CloneRequest,
     CommandPaletteDialog,
     DecisionDialog,
-    HelpDialog,
+    PaletteBuilderRequest,
     PaletteCommand,
+    PaletteResult,
+    PaletteSelection,
     PathDialog,
 )
 from .ui.screens.file_browser import FileBrowserPane
 from .ui.screens.github import GitHubPane
+from .ui.screens.help import HelpPane
 from .ui.screens.notifications import NotificationCentrePane
 from .ui.screens.regex_builder import RegexBuilderPane
 from .ui.screens.repository_panes import (
@@ -68,7 +72,12 @@ from .ui.screens.repository_panes import (
     RepositoryToolsPane,
     StashesPane,
 )
-from .ui.screens.settings import SettingsHistoryDialog, SettingsPane, SettingsValues
+from .ui.screens.settings import (
+    SETTINGS_TARGETS,
+    SettingsHistoryDialog,
+    SettingsPane,
+    SettingsValues,
+)
 from .ui.screens.tab_management import RepositoryTabsPane
 from .ui.widgets.dim_sum_card import DimSumSurpriseCard
 from .ui.widgets.png_picture import decode_png_picture, render_terminal_picture
@@ -76,6 +85,7 @@ from .ui.widgets.repository_splitter import RepositoryRailSplitter
 from .ui.widgets.search_bar import SearchBar, SearchState
 
 if TYPE_CHECKING:
+    from .application.shell_state import PaletteSize
     from .infrastructure.persistence import RepositoryRecord
 
 
@@ -186,6 +196,7 @@ class DesktopMaterialTUI(App[None]):
         "#--content-tab-advanced-tab": "nav.advanced",
         "#--content-tab-github-tab": "nav.api",
         "#--content-tab-regex-tab": "search.regex_builder",
+        "#--content-tab-help-tab": "nav.help",
         "#--content-tab-settings-tab": "common.settings",
         "#--content-tab-notifications-tab": "notifications.title",
     }
@@ -201,6 +212,7 @@ class DesktopMaterialTUI(App[None]):
         "#--content-tab-advanced-tab": "Adv",
         "#--content-tab-github-tab": "GH",
         "#--content-tab-regex-tab": "RE2",
+        "#--content-tab-help-tab": "Help",
         "#--content-tab-settings-tab": "Set",
         "#--content-tab-notifications-tab": "Bell",
     }
@@ -255,6 +267,10 @@ class DesktopMaterialTUI(App[None]):
         self._repository_tab_render_generation = 0
         self._translator: Any | None = None
         self._version_history_service: Any | None = None
+        self._shell_state_service: Any | None = None
+        self._palette_size: PaletteSize = "card"
+        self._palette_search_state = SearchState()
+        self._search_origin_tabs: dict[str, str] = {}
         self._settings_undo_stack: list[Any] = []
         self._settings_redo_stack: list[Any] = []
         self._preferred_repository_rail_width = RepositoryRailSplitter.DEFAULT_WIDTH
@@ -331,6 +347,8 @@ class DesktopMaterialTUI(App[None]):
                         )
                     with TabPane("Regex", id="regex-tab"):
                         yield RegexBuilderPane(id="regex-pane", classes="screen-layout")
+                    with TabPane("Help", id="help-tab"):
+                        yield HelpPane(id="help-pane", classes="screen-layout")
                     with TabPane("Settings", id="settings-tab"):
                         yield SettingsPane(id="settings-pane", classes="screen-layout")
                     with TabPane("Notifications", id="notifications-tab"):
@@ -454,6 +472,8 @@ class DesktopMaterialTUI(App[None]):
             self._persistence_database = None
             self._repository_workspace = None
             self._version_history_service = None
+            self._shell_state_service = None
+            self._palette_size = "card"
         else:
             try:
                 from .application.notifications import NotificationService
@@ -476,6 +496,21 @@ class DesktopMaterialTUI(App[None]):
                     )
                 except (ImportError, OSError, ValueError):
                     self._repository_workspace = None
+                try:
+                    from .application.shell_state import ShellStateService
+
+                    profile = str(getattr(self._config, "active_profile", "local"))
+                    self._shell_state_service = ShellStateService(
+                        self._persistence_database,
+                        profile,
+                    )
+                    self._palette_size = self._shell_state_service.load().palette_size
+                except (ImportError, OSError, ValueError, sqlite3.Error):
+                    self._shell_state_service = None
+                    self._palette_size = "card"
+            else:
+                self._shell_state_service = None
+                self._palette_size = "card"
             try:
                 from .application.version_history import VersionHistoryService
 
@@ -564,6 +599,7 @@ class DesktopMaterialTUI(App[None]):
         for search_bar in self.query(SearchBar):
             search_bar.localize(translator)
         self.query_one("#cheap-lfs-pane", CheapLfsPane).localize(translator)
+        self.query_one("#help-pane", HelpPane).localize(translator)
 
     def _update_tab_labels(self) -> None:
         """Keep every workspace destination visible at compact widths."""
@@ -575,6 +611,7 @@ class DesktopMaterialTUI(App[None]):
         fallback_labels = {
             "nav.files": "Files",
             "nav.repository_tabs": "Tabs",
+            "nav.help": "Help",
         }
         for selector, key in self._TAB_KEYS.items():
             tab = self.query_one(selector, Tab)
@@ -640,13 +677,9 @@ class DesktopMaterialTUI(App[None]):
         available_width = self.size.width if total_width is None else total_width
         maximum_width = max(
             RepositoryRailSplitter.MINIMUM_WIDTH,
-            available_width
-            - RepositoryRailSplitter.WORKSPACE_MINIMUM_WIDTH
-            - 1,
+            available_width - RepositoryRailSplitter.WORKSPACE_MINIMUM_WIDTH - 1,
         )
-        requested_width = (
-            self._preferred_repository_rail_width if width is None else width
-        )
+        requested_width = self._preferred_repository_rail_width if width is None else width
         applied_width = min(
             max(requested_width, RepositoryRailSplitter.MINIMUM_WIDTH),
             maximum_width,
@@ -840,9 +873,7 @@ class DesktopMaterialTUI(App[None]):
             return False
         restored_paths = set(restored_services)
         preferred_active = (
-            workspace_snapshot.active_repository_path
-            if workspace_snapshot is not None
-            else None
+            workspace_snapshot.active_repository_path if workspace_snapshot is not None else None
         )
         if preferred_active in restored_paths:
             self.active_repository = preferred_active
@@ -980,8 +1011,7 @@ class DesktopMaterialTUI(App[None]):
                 overflow_paths.update(
                     record.path
                     for record in records
-                    if record.group_name == entry.group_name
-                    and record.pinned == entry.pinned
+                    if record.group_name == entry.group_name and record.pinned == entry.pinned
                 )
         overflow_count = len(overflow_paths)
         menu = self.query_one("#repository-tabs-menu", Button)
@@ -1235,9 +1265,7 @@ class DesktopMaterialTUI(App[None]):
         }
         preferred = snapshot.active_repository_path
         self.active_repository = (
-            preferred
-            if preferred in reconciled
-            else next(iter(reconciled), None)
+            preferred if preferred in reconciled else next(iter(reconciled), None)
         )
         self._refresh_repository_navigation()
         self._bind_repository(self.active_service)
@@ -1508,56 +1536,168 @@ class DesktopMaterialTUI(App[None]):
         self.refresh_repository()
 
     def action_command_palette(self) -> None:
-        self.push_screen(CommandPaletteDialog(self._palette_commands()), self._run_palette_command)
+        self.push_screen(
+            CommandPaletteDialog(
+                self._palette_commands(),
+                size=self._palette_size,
+                initial_search=self._palette_search_state,
+                on_size_changed=self._save_palette_size,
+            ),
+            self._run_palette_result,
+        )
 
     def _palette_commands(self) -> tuple[PaletteCommand, ...]:
-        return (
-            PaletteCommand("open", "Open repository", "Add an existing local repository", "Ctrl+O"),
-            PaletteCommand("clone", "Clone repository", "Clone a Git URL"),
-            PaletteCommand("new", "Create repository", "Initialize a new Git repository"),
+        commands = (
             PaletteCommand(
-                "refresh", "Refresh repository", "Reload status and all panes", "Ctrl+R"
+                "open",
+                "Open repository",
+                "Add an existing local repository",
+                "Ctrl+O",
+                "Repository",
             ),
-            PaletteCommand("fetch", "Fetch", "Download remote refs", "F5"),
-            PaletteCommand("pull", "Pull", "Fetch and integrate the upstream branch"),
-            PaletteCommand("push", "Push", "Publish local commits", "Ctrl+Shift+P"),
-            PaletteCommand("changes", "Show Changes", "Stage, diff, and commit"),
-            PaletteCommand("files", "Show Files", "Browse and preview repository files"),
+            PaletteCommand("clone", "Clone repository", "Clone a Git URL", group="Repository"),
+            PaletteCommand(
+                "new",
+                "Create repository",
+                "Initialize a new Git repository",
+                group="Repository",
+            ),
+            PaletteCommand(
+                "refresh",
+                "Refresh repository",
+                "Reload status and all panes",
+                "Ctrl+R",
+                "Repository",
+            ),
+            PaletteCommand("fetch", "Fetch", "Download remote refs", "F5", "Repository"),
+            PaletteCommand(
+                "pull", "Pull", "Fetch and integrate the upstream branch", group="Repository"
+            ),
+            PaletteCommand("push", "Push", "Publish local commits", "Ctrl+Shift+P", "Repository"),
+            PaletteCommand("changes", "Show Changes", "Stage, diff, and commit", group="Navigate"),
+            PaletteCommand(
+                "files", "Show Files", "Browse and preview repository files", group="Navigate"
+            ),
             PaletteCommand(
                 "repository-tabs",
                 "Manage repository tabs",
                 "Search, arrange, group, import, export, or close tabs",
                 "Ctrl+Shift+T",
+                "Navigate",
             ),
-            PaletteCommand("history", "Show History", "Browse commits"),
-            PaletteCommand("branches", "Show Branches", "Checkout, merge, create, or delete"),
-            PaletteCommand("stashes", "Show Stashes", "Create, apply, pop, or drop"),
-            PaletteCommand("tools", "Show Repository tools", "Remotes, tags, and diagnostics"),
+            PaletteCommand("history", "Show History", "Browse commits", group="Navigate"),
+            PaletteCommand(
+                "branches",
+                "Show Branches",
+                "Checkout, merge, create, or delete",
+                group="Navigate",
+            ),
+            PaletteCommand(
+                "stashes", "Show Stashes", "Create, apply, pop, or drop", group="Navigate"
+            ),
+            PaletteCommand(
+                "tools", "Show Repository tools", "Remotes, tags, and diagnostics", group="Navigate"
+            ),
             PaletteCommand(
                 "cheap-lfs",
                 "Show Cheap LFS",
                 "Preview, track, verify, and restore large files",
+                group="Navigate",
             ),
             PaletteCommand(
                 "advanced",
                 "Show Advanced tools",
                 "Worktrees, submodules, sparse checkout, reflog, build, and run",
+                group="Navigate",
             ),
-            PaletteCommand("github", "Show GitHub", "Issues, PRs, Actions, releases, packages"),
             PaletteCommand(
-                "regex", "Open regex builder", "Guided RE2 construction", "Ctrl+Shift+F"
+                "github",
+                "Show GitHub",
+                "Issues, PRs, Actions, releases, packages",
+                group="Navigate",
             ),
-            PaletteCommand("settings", "Open Settings", "Appearance, language, sound, editor"),
-            PaletteCommand("notifications", "Open Notifications", "Review notification history"),
-            PaletteCommand("editor", "Open external editor", "Use the configured editor"),
             PaletteCommand(
-                "help", "Open Help", "Mouse, keyboard, text field, and safety guide", "F1"
+                "regex",
+                "Open regex builder",
+                "Guided RE2 construction",
+                "Ctrl+Shift+F",
+                "Navigate",
+            ),
+            PaletteCommand(
+                "changelog",
+                "Release history",
+                "Search, copy, and export every recorded release",
+                group="Help",
+                keywords=("changelog", "versions", "更新記錄", "版本歷史"),
+            ),
+            PaletteCommand(
+                "settings",
+                "Open Settings",
+                "Appearance, language, sound, editor",
+                group="Navigate",
+            ),
+            PaletteCommand(
+                "notifications",
+                "Open Notifications",
+                "Review notification history",
+                group="Navigate",
+            ),
+            PaletteCommand(
+                "editor", "Open external editor", "Use the configured editor", group="Repository"
+            ),
+            PaletteCommand(
+                "help",
+                "Open Help",
+                "Mouse, keyboard, text field, and safety guide",
+                "F1",
+                "Help",
             ),
             PaletteCommand("quit", "Quit", "Close Desktop Material TUI", "Ctrl+Q"),
         )
+        setting_commands = tuple(
+            PaletteCommand(
+                f"setting-{target.key}",
+                target.english_name,
+                target.english_description,
+                group="Settings",
+                keywords=(
+                    target.cantonese_name,
+                    target.cantonese_description,
+                    *target.keywords,
+                ),
+            )
+            for target in SETTINGS_TARGETS
+        )
+        return commands + setting_commands
+
+    def _run_palette_result(self, result: PaletteResult | None) -> None:
+        if isinstance(result, PaletteBuilderRequest):
+            self._palette_search_state = result.state
+            builder = self.query_one("#regex-pane", RegexBuilderPane)
+            builder.load_state(result.state, "palette")
+            self.query_one("#main-tabs", TabbedContent).active = "regex-tab"
+            self.call_after_refresh(self.query_one("#regex-pattern", Input).focus)
+            return
+        if isinstance(result, PaletteSelection):
+            self._palette_search_state = SearchState()
+            # A modal result callback runs while Textual is still resuming the
+            # underlying screen. ContentTabs also completes its activation
+            # messages on the next update tick, so route after that settle
+            # window rather than letting the old tab overwrite the command.
+            self.set_timer(
+                0.1,
+                lambda: self._run_palette_command(result.command_id),
+            )
 
     def _run_palette_command(self, command_id: str | None) -> None:
         if command_id is None:
+            return
+        if command_id.startswith("setting-"):
+            target = command_id.removeprefix("setting-")
+            self.screen.set_focus(None)
+            self.query_one("#main-tabs", TabbedContent).active = "settings-tab"
+            settings = self.query_one("#settings-pane", SettingsPane)
+            self.call_after_refresh(settings.focus_target, target)
             return
         tab_map = {
             "changes": "changes-tab",
@@ -1575,6 +1715,10 @@ class DesktopMaterialTUI(App[None]):
             "notifications": "notifications-tab",
         }
         if command_id in tab_map:
+            # The modal restores the control that was focused underneath it.
+            # Clear that focus before switching panes so a focused control in
+            # the previous pane cannot reactivate its TabPane afterward.
+            self.screen.set_focus(None)
             self.query_one("#main-tabs", TabbedContent).active = tab_map[command_id]
             return
         if command_id == "quit":
@@ -1590,6 +1734,7 @@ class DesktopMaterialTUI(App[None]):
             "push": self.action_push,
             "editor": self.open_external_editor,
             "help": self.action_help,
+            "changelog": self.action_changelog,
         }
         action = actions.get(command_id)
         if action:
@@ -1600,12 +1745,20 @@ class DesktopMaterialTUI(App[None]):
         self.query_one("#regex-pattern", Input).focus()
 
     def on_search_bar_builder_requested(self, event: SearchBar.BuilderRequested) -> None:
+        active_tab = self.query_one("#main-tabs", TabbedContent).active
+        if active_tab is not None:
+            self._search_origin_tabs[event.surface_id] = active_tab
         builder = self.query_one("#regex-pane", RegexBuilderPane)
         builder.load_state(event.state, event.surface_id)
         self.query_one("#main-tabs", TabbedContent).active = "regex-tab"
         self.query_one("#regex-pattern", Input).focus()
 
     def apply_regex_builder(self, surface_id: str, state: SearchState) -> None:
+        if surface_id == "palette":
+            self._palette_search_state = state
+            self.notify("Regex applied to command search.", title="Search")
+            self.call_later(self.action_command_palette)
+            return
         bar = self.search_bars.get(surface_id)
         if bar is None:
             self.notify(
@@ -1613,11 +1766,39 @@ class DesktopMaterialTUI(App[None]):
                 severity="warning",
             )
             return
-        bar.set_state(state, emit=True)
+        origin_tab = self._search_origin_tabs.pop(surface_id, None)
+        if origin_tab is not None:
+            self.query_one("#main-tabs", TabbedContent).active = origin_tab
+
+        def apply_to_origin() -> None:
+            bar.set_state(state, emit=True)
+            bar.query_one(Input).focus()
+
+        # Applying while the origin is hidden races its resume-time widget
+        # messages. Restore the tab first, then synchronize the mounted bar.
+        self.call_after_refresh(apply_to_origin)
         self.notify("Regex applied to search.", title="Search")
 
     def action_help(self) -> None:
-        self.push_screen(HelpDialog())
+        self.query_one("#main-tabs", TabbedContent).active = "help-tab"
+        self.query_one("#help-pane", HelpPane).open_guide()
+
+    def action_changelog(self) -> None:
+        self.query_one("#main-tabs", TabbedContent).active = "help-tab"
+        self.query_one("#help-pane", HelpPane).open_changelog()
+
+    def _save_palette_size(self, size: PaletteSize) -> None:
+        self._palette_size = size
+        if self._shell_state_service is None:
+            self.notify(
+                "The command palette size changed for this session but could not be persisted.",
+                severity="warning",
+            )
+            return
+        try:
+            self._shell_state_service.save_palette_size(size)
+        except (OSError, ValueError, sqlite3.Error) as error:
+            self.notify(str(error), title="Palette size was not saved", severity="error")
 
     async def action_quit(self) -> None:
         cheap_lfs = self.query_one("#cheap-lfs-pane", CheapLfsPane)

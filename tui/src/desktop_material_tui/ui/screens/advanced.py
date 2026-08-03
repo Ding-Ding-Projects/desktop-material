@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import threading
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, ClassVar, cast
@@ -17,6 +18,7 @@ from textual.widgets import (
     DataTable,
     Input,
     Label,
+    Select,
     Static,
     TabbedContent,
     TabPane,
@@ -30,6 +32,10 @@ from ...application.advanced_workspace import (
     WorkspaceCommandService,
 )
 from ...infrastructure.git.advanced import (
+    BatchSyncResult,
+    BatchSyncReview,
+    GitFailureDiagnosis,
+    MergeAllReview,
     ReflogRecord,
     RepositoryDiagnostics,
     SparseCheckoutState,
@@ -58,6 +64,20 @@ class AdvancedPane(RepositoryPane):
 
     BINDINGS: ClassVar[list[BindingType]] = [("f6", "reload", "Refresh advanced tools")]
 
+    DEFAULT_CSS = """
+    AdvancedPane #advanced-sync-tab {
+        overflow-y: auto;
+    }
+
+    AdvancedPane #batch-repositories,
+    AdvancedPane #batch-output,
+    AdvancedPane #failure-text,
+    AdvancedPane #failure-output {
+        height: 5;
+        min-height: 5;
+    }
+    """
+
     def __init__(self, *children: Any, **kwargs: Any) -> None:
         super().__init__(*children, **kwargs)
         self.git: AdvancedGitService | None = None
@@ -65,6 +85,10 @@ class AdvancedPane(RepositoryPane):
         self.worktrees: list[WorktreeRecord] = []
         self.submodules: list[SubmoduleRecord] = []
         self.reflog_entries: list[ReflogRecord] = []
+        self.batch_review: BatchSyncReview | None = None
+        self.merge_all_review: MergeAllReview | None = None
+        self.batch_cancellation = threading.Event()
+        self.last_git_diagnosis: GitFailureDiagnosis | None = None
 
     def compose(self) -> ComposeResult:
         with TabbedContent(initial="advanced-worktrees-tab", id="advanced-tabs"):
@@ -205,6 +229,65 @@ class AdvancedPane(RepositoryPane):
                         classes="screen-detail",
                     )
 
+            with TabPane("Sync & integrate", id="advanced-sync-tab"):
+                yield Label(
+                    "Exact repository roots, one per line",
+                    classes="field-label",
+                )
+                yield TextArea(
+                    "",
+                    placeholder="/home/you/src/repository-one\n/home/you/src/repository-two",
+                    soft_wrap=False,
+                    tab_behavior="focus",
+                    id="batch-repositories",
+                    classes="advanced-editor",
+                )
+                with ScrollableToolbar():
+                    yield Select(
+                        (("Fetch only", "fetch"), ("Pull active branches", "pull")),
+                        value="fetch",
+                        allow_blank=False,
+                        id="batch-operation",
+                    )
+                    yield Button("Review batch…", id="batch-review", variant="primary")
+                    yield Button("Cancel batch", id="batch-cancel")
+                    yield Button("Review merge all…", id="merge-all-review")
+                yield TextArea(
+                    "Review an exact subset before network or merge operations begin.",
+                    read_only=True,
+                    soft_wrap=False,
+                    tab_behavior="focus",
+                    id="batch-output",
+                    classes="advanced-command-output",
+                )
+                yield Label(
+                    "Bounded Git failure diagnosis (no automatic history rewrite)",
+                    classes="field-label",
+                )
+                yield Input(
+                    value="git operation",
+                    placeholder="operation name",
+                    id="failure-operation",
+                    select_on_focus=False,
+                )
+                yield TextArea(
+                    "",
+                    placeholder="Paste the reported Git error (bounded to 16 KiB)",
+                    soft_wrap=True,
+                    tab_behavior="focus",
+                    id="failure-text",
+                    classes="advanced-editor",
+                )
+                yield Button("Diagnose safely", id="failure-diagnose")
+                yield TextArea(
+                    "Diagnosis and a work-preserving recovery prompt appear here.",
+                    read_only=True,
+                    soft_wrap=True,
+                    tab_behavior="focus",
+                    id="failure-output",
+                    classes="advanced-command-output",
+                )
+
             with (
                 TabPane("Build & run", id="advanced-commands-tab"),
                 Vertical(classes="advanced-command-form"),
@@ -276,6 +359,10 @@ class AdvancedPane(RepositoryPane):
         self.worktrees = []
         self.submodules = []
         self.reflog_entries = []
+        self.batch_review = None
+        self.merge_all_review = None
+        self.batch_cancellation.set()
+        self.batch_cancellation = threading.Event()
         if service is None:
             self.git = None
             self.commands = None
@@ -287,6 +374,8 @@ class AdvancedPane(RepositoryPane):
             self.git.validate()
             self.commands = WorkspaceCommandService(path)
             self._load_command_profile()
+            if self.is_mounted:
+                self.query_one("#batch-repositories", TextArea).text = str(path)
         except Exception as error:
             self.git = None
             self.commands = None
@@ -533,6 +622,18 @@ class AdvancedPane(RepositoryPane):
             self._confirm_sparse_disable()
         elif button_id == "reflog-copy":
             self._copy_reflog_hash()
+        elif button_id == "batch-review":
+            self._review_batch_sync()
+        elif button_id == "batch-cancel":
+            self.batch_cancellation.set()
+            self.app.notify(
+                "Cancellation requested; running Git commands finish, queued repositories stop.",
+                title="Batch sync",
+            )
+        elif button_id == "merge-all-review":
+            self._review_merge_all()
+        elif button_id == "failure-diagnose":
+            self._diagnose_failure()
         elif button_id == "advanced-run-build":
             self._run_workspace_command("Build", "#advanced-build-command")
         elif button_id == "advanced-run-app":
@@ -546,6 +647,169 @@ class AdvancedPane(RepositoryPane):
 
     def action_reload(self) -> None:
         self.reload()
+
+    @work(exclusive=True, group="batch-review")
+    async def _review_batch_sync(self) -> None:
+        raw_paths = tuple(
+            line.strip()
+            for line in self.query_one("#batch-repositories", TextArea).text.splitlines()
+            if line.strip()
+        )
+        selected = self.query_one("#batch-operation", Select).value
+        operation = selected if isinstance(selected, str) else "fetch"
+        output = self.query_one("#batch-output", TextArea)
+        output.text = "Validating the exact repository subset…"
+        try:
+            review = await asyncio.to_thread(
+                AdvancedGitService.review_batch_sync,
+                raw_paths,
+                operation=operation,
+            )
+        except Exception as error:
+            output.text = str(error)
+            self._error("Review batch sync", error)
+            return
+        self.batch_review = review
+        rows = "\n".join(
+            f"- `{snapshot.path}` · branch {snapshot.current_branch or '(none)'} · "
+            f"upstream {snapshot.upstream_ref or '(none)'}"
+            for snapshot in review.repositories
+        )
+
+        def resolved(confirmed: bool | None) -> None:
+            if confirmed:
+                self._run_batch_sync(review)
+
+        self.app.push_screen(
+            DecisionDialog(
+                f"Run reviewed {review.operation} for {len(review.repositories)} repositories?",
+                f"{rows}\n\nAt most three repositories run concurrently. Results stay isolated, "
+                "and Cancel stops queued work after already-running Git commands finish. "
+                "Pull mode uses a fresh fetch and exact-object review per repository.",
+                confirm_label=f"Start reviewed {review.operation}",
+            ),
+            resolved,
+        )
+
+    @work(exclusive=True, group="batch-run")
+    async def _run_batch_sync(self, review: BatchSyncReview) -> None:
+        self.batch_cancellation.set()
+        self.batch_cancellation = threading.Event()
+        output = self.query_one("#batch-output", TextArea)
+        output.text = f"Starting reviewed {review.operation}…"
+        progress_lines: list[str] = []
+
+        def progress(completed: int, total: int, result: BatchSyncResult) -> None:
+            progress_lines.append(
+                f"[{completed}/{total}] {result.status}: {result.path} · {result.detail}"
+            )
+            try:
+                self.app.call_from_thread(setattr, output, "text", "\n".join(progress_lines))
+            except RuntimeError:
+                self.batch_cancellation.set()
+
+        try:
+            results = await asyncio.to_thread(
+                AdvancedGitService.apply_batch_sync,
+                review,
+                max_concurrency=3,
+                cancellation=self.batch_cancellation,
+                progress=progress,
+            )
+        except Exception as error:
+            output.text = str(error)
+            self._error("Run reviewed batch sync", error)
+            return
+        output.text = "\n".join(
+            f"{result.status}: {result.path} · {result.detail}" for result in results
+        )
+        succeeded = sum(result.status == "success" for result in results)
+        failed = sum(result.status == "failed" for result in results)
+        skipped = len(results) - succeeded - failed
+        self.app.notify(
+            f"{succeeded} succeeded, {failed} failed, {skipped} skipped/cancelled.",
+            title="Batch sync finished",
+            severity="error" if failed else "information",
+            timeout=15,
+        )
+
+    @work(exclusive=True, group="merge-all-review")
+    async def _review_merge_all(self) -> None:
+        git = self.git
+        output = self.query_one("#batch-output", TextArea)
+        if git is None:
+            self.app.notify("Open a repository first.", severity="warning")
+            return
+        output.text = "Reviewing exact branch and linked-worktree tips…"
+        try:
+            review = await asyncio.to_thread(git.review_merge_all)
+        except Exception as error:
+            output.text = str(error)
+            self._error("Review merge all", error)
+            return
+        self.merge_all_review = review
+        rows = "\n".join(
+            f"- `{target.label}` at `{target.oid}` · conflicts: "
+            f"{', '.join(target.conflicting_paths) or 'none detected'}"
+            for target in review.targets
+        )
+        if not review.targets:
+            output.text = "No distinct local branch or linked-worktree tips need merging."
+            return
+
+        def resolved(confirmed: bool | None) -> None:
+            if confirmed:
+                self._apply_merge_all(review)
+
+        self.app.push_screen(
+            DecisionDialog(
+                f"Merge {len(review.targets)} reviewed tip(s) into {review.current_branch}?",
+                f"Current: `{review.current_oid}`\n\n{rows}\n\n"
+                "Every branch/worktree tip and clean worktree is revalidated before mutation. "
+                "Predicted conflicts block the whole batch; no provider is claimed or contacted.",
+                confirm_label="Merge reviewed clean tips",
+            ),
+            resolved,
+        )
+
+    @work(exclusive=True, group="merge-all-run")
+    async def _apply_merge_all(self, review: MergeAllReview) -> None:
+        git = self.git
+        output = self.query_one("#batch-output", TextArea)
+        if git is None:
+            return
+        output.text = "Merging reviewed tips one at a time…"
+        try:
+            results = await asyncio.to_thread(git.apply_merge_all, review)
+        except Exception as error:
+            output.text = str(error)
+            self._error("Merge reviewed tips", error)
+            return
+        output.text = "\n".join(
+            f"{'merged' if result.merged else 'stopped'}: {result.label} · {result.oid[:12]}"
+            + (f" · {result.error}" if result.error else "")
+            for result in results
+        )
+        self.app.notify("Merge-all results are available in the progress pane.", title="Merge all")
+        self.reload()
+
+    def _diagnose_failure(self) -> None:
+        operation = self.query_one("#failure-operation", Input).value.strip() or "git operation"
+        error_text = self.query_one("#failure-text", TextArea).text[:16_384]
+        diagnosis = AdvancedGitService.diagnose_failure(
+            operation,
+            error_text,
+            repository=self.git.path if self.git is not None else None,
+        )
+        self.last_git_diagnosis = diagnosis
+        self.query_one("#failure-output", TextArea).text = (
+            f"Classification: {diagnosis.kind}\nSummary: {diagnosis.summary}\n\n"
+            f"Recovery prompt\n{diagnosis.recovery_prompt}"
+        )
+        self.app.notify(
+            "Diagnosis is advisory and forbids history-destroying remedies.",
+            title="Git recovery",
+        )
 
     async def _git_operation(
         self,

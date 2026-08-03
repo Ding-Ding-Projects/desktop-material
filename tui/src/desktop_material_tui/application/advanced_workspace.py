@@ -86,6 +86,99 @@ class WorkspaceCommandResult:
         return self.exit_code == 0 and not self.timed_out and not self.output_truncated
 
 
+@dataclass(frozen=True)
+class BranchViewPreferences:
+    """Repository-scoped visibility choices stored outside the repository."""
+
+    pinned: tuple[str, ...] = ()
+    hidden: tuple[str, ...] = ()
+    solo: str | None = None
+    default_branch: str | None = None
+
+
+class BranchPreferenceStore:
+    """Persist branch pin/hide/solo/default choices in the private XDG area."""
+
+    def __init__(self, repository: str | Path, *, preference_file: Path | None = None) -> None:
+        self.repository = Path(repository).expanduser().resolve()
+        if not self.repository.is_dir():
+            raise WorkspaceCommandError("Repository path is not a directory")
+        self.preference_file = preference_file or self._default_preference_file()
+
+    def load(self) -> BranchViewPreferences:
+        if not self.preference_file.exists():
+            return BranchViewPreferences()
+        try:
+            document = json.loads(self.preference_file.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as error:
+            raise WorkspaceCommandError(f"Could not read branch preferences: {error}") from error
+        if not isinstance(document, dict) or document.get("repository") != str(self.repository):
+            raise WorkspaceCommandError("Branch preferences belong to another repository")
+        preferences = BranchViewPreferences(
+            pinned=self._names(document.get("pinned", ())),
+            hidden=self._names(document.get("hidden", ())),
+            solo=self._optional_name(document.get("solo")),
+            default_branch=self._optional_name(document.get("default_branch")),
+        )
+        return preferences
+
+    def save(self, preferences: BranchViewPreferences) -> None:
+        normalized = BranchViewPreferences(
+            pinned=self._names(preferences.pinned),
+            hidden=self._names(preferences.hidden),
+            solo=self._optional_name(preferences.solo),
+            default_branch=self._optional_name(preferences.default_branch),
+        )
+        document = {
+            "default_branch": normalized.default_branch,
+            "hidden": list(normalized.hidden),
+            "pinned": list(normalized.pinned),
+            "repository": str(self.repository),
+            "solo": normalized.solo,
+        }
+        atomic_write_text(
+            self.preference_file,
+            json.dumps(document, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            mode=0o600,
+        )
+
+    def _default_preference_file(self) -> Path:
+        paths = XDGPaths.discover().ensure()
+        digest = hashlib.sha256(str(self.repository).encode("utf-8")).hexdigest()[:24]
+        return paths.config_dir / "branch-preferences" / f"{digest}.json"
+
+    @staticmethod
+    def _optional_name(value: object) -> str | None:
+        if value is None or value == "":
+            return None
+        names = BranchPreferenceStore._names((value,))
+        return names[0]
+
+    @staticmethod
+    def _names(values: object) -> tuple[str, ...]:
+        if not isinstance(values, (list, tuple)):
+            raise WorkspaceCommandError("Branch preference names must be a list")
+        if len(values) > 500:
+            raise WorkspaceCommandError("Branch preferences cannot exceed 500 names")
+        names: list[str] = []
+        seen: set[str] = set()
+        for value in values:
+            if not isinstance(value, str):
+                raise WorkspaceCommandError("Branch preference names must be text")
+            if (
+                not value
+                or len(value) > 1_024
+                or value.startswith("-")
+                or "\x00" in value
+                or any(character in value for character in ("\r", "\n"))
+            ):
+                raise WorkspaceCommandError("Branch preference contains an unsafe name")
+            if value not in seen:
+                seen.add(value)
+                names.append(value)
+        return tuple(names)
+
+
 class WorkspaceCommandService:
     """Run bounded repository commands and persist their non-secret profile."""
 
@@ -377,6 +470,8 @@ class WorkspaceCommandService:
 
 
 __all__ = [
+    "BranchPreferenceStore",
+    "BranchViewPreferences",
     "WorkspaceCommandError",
     "WorkspaceCommandProfile",
     "WorkspaceCommandResult",

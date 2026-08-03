@@ -62,6 +62,20 @@ def test_runner_rejects_nul_arguments(tmp_path) -> None:
         runner.run(["bad\x00argument"], cwd=tmp_path)
 
 
+def test_runner_can_bind_an_isolated_gh_profile_without_a_credential(tmp_path) -> None:
+    profile = tmp_path / "opaque-profile"
+    profile.mkdir()
+    runner = SubprocessGitRunner.for_github_profile(profile, executable=sys.executable)
+
+    result = runner.run(
+        ["-c", "import os; print(os.environ['GH_CONFIG_DIR'])"],
+        cwd=tmp_path,
+    )
+
+    assert result.stdout.strip() == str(profile.resolve())
+    assert runner.environment == {"GH_CONFIG_DIR": str(profile.resolve())}
+
+
 @pytest.mark.parametrize(
     ("argument", "expected"),
     [

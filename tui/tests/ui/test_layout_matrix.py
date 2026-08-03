@@ -33,6 +33,7 @@ _MAIN_SURFACES = (
     ("advanced-tab", "#advanced-pane"),
     ("github-tab", "#github-pane"),
     ("regex-tab", "#regex-pane"),
+    ("help-tab", "#help-pane"),
     ("settings-tab", "#settings-pane"),
     ("notifications-tab", "#notifications-pane"),
 )
@@ -287,6 +288,8 @@ def test_screen_modules_use_responsive_containers() -> None:
         "regex_builder.py",
         "notifications.py",
         "settings.py",
+        "help.py",
+        "changelog.py",
     ):
         source = (screens / name).read_text(encoding="utf-8")
         assert 'Horizontal(classes="screen-toolbar")' not in source

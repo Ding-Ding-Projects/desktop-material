@@ -1,5 +1,6 @@
 """Durable, Linux-first infrastructure owned by the TUI."""
 
+from ...domain.accounts import AccountEmail, AccountMetadata, AccountProvider
 from .config import (
     AppConfig,
     AppearanceConfig,
@@ -33,6 +34,9 @@ from .profile_history import (
 __all__ = [
     "APPLICATION_ID",
     "CURRENT_SCHEMA_VERSION",
+    "AccountEmail",
+    "AccountMetadata",
+    "AccountProvider",
     "AppConfig",
     "AppPaths",
     "AppearanceConfig",

@@ -104,6 +104,32 @@ ENGLISH_CATALOG: Mapping[str, MessageValue] = MappingProxyType(
         "nav.triage": "Triage",
         "nav.api": "GitHub API",
         "nav.cheap_lfs": "Cheap LFS",
+        "nav.help": "Help",
+        "help.guide": "Guide",
+        "help.copy_docs_url": "Copy documentation URL",
+        "help.guide_markdown": (
+            "## Point, click, or stay on the keyboard\n\n"
+            "Every main action is a focusable terminal control. Use the mouse, or use "
+            "`Tab` / `Shift+Tab` to move and `Enter` / `Space` to activate.\n\n"
+            "| Input | Action |\n| --- | --- |\n"
+            "| `Ctrl+P` | Open the command palette |\n"
+            "| `Ctrl+O` | Open a repository |\n"
+            "| `Ctrl+R` | Refresh the current repository |\n"
+            "| `Ctrl+Shift+F` | Open the full RE2 builder |\n"
+            "| `F1` | Open this guide |\n"
+            "| `Ctrl+Q` | Quit |\n\n"
+            "## Safety\n\n"
+            "Informational work uses corner notifications. Only decisions, consent, "
+            "credentials, or destructive actions use blocking confirmation. Git commands "
+            "run as argument arrays without a shell.\n\n"
+            "Full documentation: {documentation_url}"
+        ),
+        "changelog.title": "Release history",
+        "changelog.include_unrecorded": "Include date-unrecorded releases",
+        "changelog.reset": "Reset filters",
+        "changelog.copy": "Copy filtered view",
+        "changelog.copy_commit": "Copy selected commit",
+        "changelog.export": "Export Markdown",
         "cheap_lfs.title": "Cheap LFS",
         "cheap_lfs.verification_title": "Cheap LFS verification",
         "cheap_lfs.filter": "Filter pointers and >100 MiB candidates…",
@@ -373,6 +399,31 @@ CANTONESE_CATALOG: Mapping[str, MessageValue] = MappingProxyType(
         "nav.triage": "分流",
         "nav.api": "GitHub API",
         "nav.cheap_lfs": "慳錢 LFS",
+        "nav.help": "幫助",
+        "help.guide": "使用指南",
+        "help.copy_docs_url": "複製文件網址",
+        "help.guide_markdown": (
+            "## 用滑鼠、鍵盤，兩樣都得\n\n"
+            "每個主要操作都可以聚焦。你可以用滑鼠，亦可以用 `Tab` / "
+            "`Shift+Tab` 移動，再用 `Enter` / `Space` 執行。\n\n"
+            "| 按鍵 | 操作 |\n| --- | --- |\n"
+            "| `Ctrl+P` | 開啟指令面板 |\n"
+            "| `Ctrl+O` | 開啟倉庫 |\n"
+            "| `Ctrl+R` | 重新整理目前倉庫 |\n"
+            "| `Ctrl+Shift+F` | 開啟完整 RE2 建構器 |\n"
+            "| `F1` | 開啟呢份指南 |\n"
+            "| `Ctrl+Q` | 離開 |\n\n"
+            "## 安全\n\n"
+            "一般資訊會用角落通知；只有決定、同意、認證或者破壞性操作先會阻擋。"
+            "Git 指令會用參數陣列執行，唔會經 shell 亂兜。\n\n"
+            "完整文件：{documentation_url}"
+        ),
+        "changelog.title": "版本歷史",
+        "changelog.include_unrecorded": "包括未記錄日期嘅版本",
+        "changelog.reset": "重設篩選",
+        "changelog.copy": "複製目前篩選結果",
+        "changelog.copy_commit": "複製所選 commit",
+        "changelog.export": "匯出 Markdown",
         "cheap_lfs.title": "慳錢 LFS",
         "cheap_lfs.verification_title": "慳錢 LFS 驗證",
         "cheap_lfs.filter": "篩選 pointer 同大過 100 MiB 嘅候選檔案…",

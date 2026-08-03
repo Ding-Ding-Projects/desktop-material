@@ -378,11 +378,67 @@
         "tui/tests/ui/test_repository_parity.py"
       ]
     },
+    "Effective Git author disclosure": {
+      "status": "adapted",
+      "reason": "The commit composer resolves the effective user.name and user.email through Git, then discloses each value's active scope and origin before a commit is created. Missing values remain explicit instead of being replaced with placeholders.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/infrastructure/git/advanced.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_section6_advanced_git.py",
+        "tui/tests/ui/test_section6_parity_wave.py"
+      ]
+    },
+    "Copilot commit-message controls": {
+      "status": "partial",
+      "reason": "The composer provides deterministic concise or detailed offline drafts from bounded staged metadata and preserves a non-empty user draft behind confirmation. No Copilot provider, model selector, provider telemetry, or network claim exists, so this is deliberately presented as offline assistance rather than Copilot.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_section6_advanced_git.py",
+        "tui/tests/ui/test_section6_parity_wave.py"
+      ]
+    },
     "History search and lane graph": {
       "status": "partial",
-      "reason": "History is searchable and selectable; the graphical lane graph is not reproduced in the terminal yet.",
+      "reason": "History searches bounded commit messages, authors, hashes, and decorations across the current branch or all refs, and identifies merge rows. A graphical lane graph is not reproduced in the terminal yet.",
       "evidence": [
-        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_section6_advanced_git.py",
+        "tui/tests/ui/test_section6_parity_wave.py"
+      ]
+    },
+    "Advanced history discovery": {
+      "status": "adapted",
+      "reason": "The History pane switches between current-branch and read-only all-ref discovery, loads bounded 100-record pages, searches ref decorations, and exposes exact selected-commit checkout, branch, and tag actions. All-ref mode disables branch-mutating revert and cherry-pick actions.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/infrastructure/git/advanced.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_section6_advanced_git.py",
+        "tui/tests/ui/test_section6_parity_wave.py"
+      ]
+    },
+    "Selection-aware commit context menu": {
+      "status": "partial",
+      "reason": "A selected History row drives keyboard-reachable copy, reviewed revert/cherry-pick, detached checkout, create-branch, and create-tag actions. The terminal surface does not yet provide a context menu or selection-aware squash, reorder, and reset actions.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/ui/test_repository_parity.py",
+        "tui/tests/ui/test_section6_parity_wave.py"
+      ]
+    },
+    "Merge commits in History": {
+      "status": "adapted",
+      "reason": "History parses parent cardinality, keeps merge commits in both current and all-ref result sets, and marks them with a distinct merge kind and terminal emphasis without changing their factual message.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/infrastructure/git/advanced.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_section6_advanced_git.py",
+        "tui/tests/ui/test_section6_parity_wave.py"
       ]
     },
     "File history": {
@@ -444,6 +500,27 @@
         "tui/tests/ui/test_repository_parity.py"
       ]
     },
+    "Reviewed bulk branch deletion": {
+      "status": "adapted",
+      "reason": "A bounded multi-selection review excludes current, default, protected, and checked-out worktree branches, displays every exact branch tip, and revalidates all refs before deleting any. Each successful deletion reports its retained recovery object ID, while stale or failed candidates remain isolated and visible.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/infrastructure/git/advanced.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_section6_advanced_git.py",
+        "tui/tests/ui/test_section6_parity_wave.py"
+      ]
+    },
+    "Branch pin, hide, solo, and restore": {
+      "status": "partial",
+      "reason": "The Branches pane provides pin/unpin, hide, solo, restore-hidden, and default-branch actions backed by atomic repository-scoped XDG persistence outside the repository. Named preference presets and import/export are not yet present.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_workspace.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/application/test_branch_preferences.py",
+        "tui/tests/ui/test_section6_parity_wave.py"
+      ]
+    },
     "Branch sorting": {
       "status": "partial",
       "reason": "The Branches pane switches live between last-activity and alphabetical ordering. The choice is not yet persisted or exposed from Settings → Appearance.",
@@ -474,6 +551,66 @@
         "tui/tests/ui/test_repository_parity.py"
       ]
     },
+    "Reviewed ordinary pull previews": {
+      "status": "adapted",
+      "reason": "The Branches pane fetches the configured upstream, displays the exact local and fetched object IDs, integration route, bounded incoming commits, and changed files, then revalidates route and refs before the confirmed pull runs. Dirty trees and ambiguous upstreams are refused before mutation.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/infrastructure/git/advanced.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_section6_advanced_git.py"
+      ]
+    },
+    "Deleted-upstream pull recovery": {
+      "status": "partial",
+      "reason": "An explicit recovery action proves the configured upstream is absent with ls-remote, reviews switching to the default branch, and keeps deletion of the stale local branch as a separate opt-in. Failed pulls are not yet intercepted automatically and there is no batch recovery surface.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/infrastructure/git/advanced.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_section6_advanced_git.py"
+      ]
+    },
+    "Reviewed rebase onto a searched target": {
+      "status": "adapted",
+      "reason": "A terminal target field accepts an exact local branch, remote ref, or tag, previews current/target object IDs and bounded replay commits, refuses dirty trees, and revalidates both tips immediately before the confirmed rebase. It never pushes or rewrites an unreviewed target.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/infrastructure/git/advanced.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_section6_advanced_git.py"
+      ]
+    },
+    "Reviewed batch repository sync": {
+      "status": "adapted",
+      "reason": "The Sync & integrate tab validates an exact newline-delimited repository subset, reviews fetch or pull per repository, caps concurrency at three, supports cancellation between commands, and reports isolated per-repository results without shell execution.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/infrastructure/git/advanced.py",
+        "tui/src/desktop_material_tui/ui/screens/advanced.py",
+        "tui/tests/integration/test_section6_advanced_git.py",
+        "tui/tests/ui/test_section6_parity_wave.py"
+      ]
+    },
+    "Pull all repositories": {
+      "status": "partial",
+      "reason": "Reviewed batch sync can pull every explicitly listed validated repository with bounded concurrency, cancellation, and isolated outcomes. It does not yet discover every persisted repository automatically or retry ambiguous multi-account credentials.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/ui/screens/advanced.py",
+        "tui/tests/integration/test_section6_advanced_git.py"
+      ]
+    },
+    "Deepen or unshallow": {
+      "status": "partial",
+      "reason": "History detects shallow state and provides reviewed bounded deepen and unshallow operations against the current repository. Credential-helper failures remain visible, but the desktop edition's signed-in account re-authentication route is absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/infrastructure/git/advanced.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_section6_advanced_git.py"
+      ]
+    },
     "Tag creation": {
       "status": "adapted",
       "reason": "Repository Tools provides keyboard- and mouse-operable tag name, target commit, and optional annotation inputs backed by validated local Git tag creation, plus typed-confirm local deletion.",
@@ -492,6 +629,28 @@
         "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
         "tui/tests/integration/test_repository_service.py",
         "tui/tests/ui/test_repository_parity.py"
+      ]
+    },
+    "Merge all branches or worktrees": {
+      "status": "partial",
+      "reason": "A bounded review enumerates exact local-branch and registered-worktree tips, refuses dirty worktrees and predicted merge-tree conflicts, and revalidates every source before sequential merges with per-target receipts. Automated conflict resolution and editable AI output are not present.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/infrastructure/git/advanced.py",
+        "tui/src/desktop_material_tui/ui/screens/advanced.py",
+        "tui/tests/integration/test_section6_advanced_git.py"
+      ]
+    },
+    "Git operation auto-fix": {
+      "status": "partial",
+      "reason": "Repository failures are classified from bounded text and produce a visible recovery prompt containing the exact operation and error while forbidding force-push, history rewrite, commit dropping, branch switching, ref deletion, reset, discard, and implicit stashing. No automatic remediation action runs yet.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/infrastructure/git/advanced.py",
+        "tui/src/desktop_material_tui/ui/screens/advanced.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_section6_advanced_git.py",
+        "tui/tests/ui/test_section6_parity_wave.py"
       ]
     },
     "Text diffs with syntax highlighting and word diff": {
@@ -753,14 +912,18 @@
     },
     "Fuzzy / substring / regex filter modes": {
       "status": "adapted",
-      "reason": "The shared search bar provides literal, fuzzy, and explicit RE2 modes with synchronized flags.",
+      "reason": "The shared search bar provides literal, fuzzy, and explicit RE2 modes with synchronized flags across repository, GitHub, notification, Settings, and changelog collections.",
       "evidence": [
         "tui/src/desktop_material_tui/application/search.py",
+        "tui/src/desktop_material_tui/ui/screens/changelog.py",
         "tui/src/desktop_material_tui/ui/screens/github.py",
         "tui/src/desktop_material_tui/ui/screens/notifications.py",
         "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
         "tui/src/desktop_material_tui/ui/widgets/search_bar.py",
-        "tui/tests/ui/test_search_surfaces.py"
+        "tui/tests/ui/test_help_changelog.py",
+        "tui/tests/ui/test_search_surfaces.py",
+        "tui/tests/ui/test_settings_palette_search.py"
       ]
     },
     "Safe RE2 regex builder": {
@@ -783,10 +946,33 @@
     },
     "Command palette": {
       "status": "partial",
-      "reason": "Ctrl+P opens a searchable command dialog with real keyboard focus and 20 clickable actions. The desktop palette's 87 localized commands, six groups, and richer row metadata are absent.",
+      "reason": "Ctrl+P opens a literal, fuzzy, or regex-searchable palette with 50 real commands and exact Settings destinations in five groups, keyboard focus, clickable rows, and a persisted bounded/full-window size. The desktop palette's 87 fully localized commands and richer inline setting controls remain absent.",
       "evidence": [
         "tui/src/desktop_material_tui/app.py",
-        "tui/src/desktop_material_tui/ui/screens/dialogs.py"
+        "tui/src/desktop_material_tui/application/shell_state.py",
+        "tui/src/desktop_material_tui/ui/screens/dialogs.py",
+        "tui/tests/ui/test_settings_palette_search.py"
+      ]
+    },
+    "Command-palette appearance editor": {
+      "status": "partial",
+      "reason": "The palette persists a user-selected bounded-card or full-terminal presentation and applies it live. Per-element typography, colour, spacing, and shape editing from the desktop appearance editor are not implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/application/shell_state.py",
+        "tui/src/desktop_material_tui/ui/screens/dialogs.py",
+        "tui/src/desktop_material_tui/ui/styles.tcss",
+        "tui/tests/application/test_shell_state.py",
+        "tui/tests/ui/test_settings_palette_search.py"
+      ]
+    },
+    "Settings search": {
+      "status": "adapted",
+      "reason": "The mounted Settings tab searches English and Cantonese names, descriptions, keywords, and current values through literal, fuzzy, or bounded RE2 modes; every result focuses its exact control and the full builder returns to the originating field.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
+        "tui/tests/ui/test_settings_palette_search.py"
       ]
     },
     "Dialog wheel and trackpad scrolling": {
@@ -815,8 +1001,11 @@
     },
     "MD3 Preferences dialog": {
       "status": "adapted",
-      "reason": "A terminal-native Settings tab exposes appearance, language, interaction, editor, narrator, accessibility, and history controls.",
-      "evidence": ["tui/src/desktop_material_tui/ui/screens/settings.py"]
+      "reason": "A terminal-native Settings tab exposes appearance, language, interaction, editor, narrator, accessibility, and history controls, plus bilingual/current-value search and exact-control navigation.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
+        "tui/tests/ui/test_settings_palette_search.py"
+      ]
     },
     "External editor discovery and opening": {
       "status": "adapted",
@@ -877,6 +1066,28 @@
         "tui/src/desktop_material_tui/ui/screens/dialogs.py",
         "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
         "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    "Documentation hub": {
+      "status": "partial",
+      "reason": "A persistent terminal Help tab provides a keyboard/mouse/safety guide, a direct route to the searchable in-app release history, and a copyable live documentation URL. The desktop site's full article hierarchy and suggested-article navigation remain external.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/help.py",
+        "tui/tests/ui/test_help_changelog.py"
+      ]
+    },
+    "In-app version history": {
+      "status": "adapted",
+      "reason": "The Help tab embeds a bounded catalog of all 707 recorded releases with typed date filters, literal/fuzzy/RE2 search, unrecorded-date control, lazy per-release entries, commit-SHA copy, and non-overwriting Markdown export.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/changelog.py",
+        "tui/src/desktop_material_tui/assets/changelog-catalog.json",
+        "tui/src/desktop_material_tui/ui/screens/changelog.py",
+        "tui/src/desktop_material_tui/ui/screens/help.py",
+        "tui/tests/application/test_changelog.py",
+        "tui/tests/ui/test_help_changelog.py",
+        "tui/tools/generate-tui-changelog-catalog.mjs"
       ]
     },
     "Categorized feature documentation": {

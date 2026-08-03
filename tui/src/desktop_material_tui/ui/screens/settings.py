@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any, ClassVar, TypedDict
 
 from textual import on, work
@@ -17,14 +18,19 @@ from textual.widgets import (
     DataTable,
     Input,
     Label,
+    ListItem,
+    ListView,
     Select,
     SelectionList,
     Static,
     TextArea,
 )
 
+from ...application.search import RegexFlags, SearchMode, SearchService
 from ...application.version_history import VersionEntry, VersionHistoryService
+from ..i18n import LanguageMode, Translator, get_translator
 from ..widgets.responsive_layout import ResponsiveFormRow, ScrollableToolbar
+from ..widgets.search_bar import SearchBar, SearchState
 
 
 class ElementOverride(TypedDict):
@@ -54,6 +60,275 @@ class SettingsValues(TypedDict):
     reduced_motion: bool
     yield_to_screen_reader: bool
     element_overrides: dict[str, ElementOverride]
+
+
+@dataclass(frozen=True)
+class SettingTarget:
+    """One searchable, focusable setting or settings-owned action."""
+
+    key: str
+    selector: str
+    english_name: str
+    cantonese_name: str
+    english_description: str
+    cantonese_description: str
+    keywords: tuple[str, ...] = ()
+
+    def name(self, translator: Translator) -> str:
+        mode = translator.preferences.mode
+        if mode is LanguageMode.CANTONESE:
+            return self.cantonese_name
+        if mode is LanguageMode.BILINGUAL:
+            return f"{self.english_name} · {self.cantonese_name}"
+        return self.english_name
+
+    def description(self, translator: Translator) -> str:
+        mode = translator.preferences.mode
+        if mode is LanguageMode.CANTONESE:
+            return self.cantonese_description
+        if mode is LanguageMode.BILINGUAL:
+            return f"{self.english_description} · {self.cantonese_description}"
+        return self.english_description
+
+
+SETTINGS_TARGETS: tuple[SettingTarget, ...] = (
+    SettingTarget(
+        "theme",
+        "#settings-theme",
+        "Theme",
+        "主題",
+        "Light, dark, or system theme.",
+        "淺色、深色或者跟系統主題。",
+        ("appearance", "外觀"),
+    ),
+    SettingTarget(
+        "density",
+        "#settings-density",
+        "Density",
+        "密度",
+        "Comfortable or compact control spacing.",
+        "舒適或者緊湊嘅控制間距。",
+        ("appearance", "spacing", "外觀", "間距"),
+    ),
+    SettingTarget(
+        "accent",
+        "#settings-accent",
+        "Accent colour",
+        "強調色",
+        "Seed colour used by interactive controls.",
+        "互動控制使用嘅主色。",
+        ("appearance", "color", "colour", "外觀", "顏色"),
+    ),
+    SettingTarget(
+        "language",
+        "#settings-language",
+        "Language mode",
+        "語言模式",
+        "English, Cantonese, or bilingual copy.",
+        "英文、廣東話或者雙語介面。",
+        ("locale", "translation", "語言", "翻譯"),
+    ),
+    SettingTarget(
+        "funny-en",
+        "#settings-funny-en",
+        "English funny level",
+        "英文搞笑程度",
+        "Choose the English voice from serious to playful.",
+        "揀英文語氣由認真到玩味。",
+        ("tone", "playful", "語氣", "搞笑"),
+    ),
+    SettingTarget(
+        "funny-yue",
+        "#settings-funny-yue",
+        "Cantonese funny level",
+        "廣東話搞笑程度",
+        "Choose the Cantonese voice from serious to playful.",
+        "揀廣東話語氣由認真到玩味。",
+        ("tone", "playful", "語氣", "搞笑"),
+    ),
+    SettingTarget(
+        "editor",
+        "#settings-editor",
+        "External editor",
+        "外部編輯器",
+        "Command used to open files and repositories.",
+        "用嚟開檔案同倉庫嘅指令。",
+        ("code", "vscode", "編輯器"),
+    ),
+    SettingTarget(
+        "detect-editors",
+        "#settings-detect-editors",
+        "Detect editors",
+        "偵測編輯器",
+        "Find supported editors installed on this computer.",
+        "搵出呢部電腦已安裝嘅支援編輯器。",
+        ("discover", "installed", "偵測", "已安裝"),
+    ),
+    SettingTarget(
+        "terminal",
+        "#settings-terminal",
+        "Terminal command",
+        "終端指令",
+        "Optional command for opening a terminal.",
+        "開終端用嘅可選指令。",
+        ("shell", "console", "終端", "命令列"),
+    ),
+    SettingTarget(
+        "narrator",
+        "#settings-narrator",
+        "Spoken narrator",
+        "語音旁述",
+        "Enable optional spoken app events.",
+        "開啟可選嘅 app 事件語音旁述。",
+        ("speech", "tts", "聲音", "旁述"),
+    ),
+    SettingTarget(
+        "narrator-language",
+        "#settings-narrator-language",
+        "Narrator language",
+        "旁述語言",
+        "Speak English, Cantonese, or both in order.",
+        "依次用英文、廣東話或者兩者旁述。",
+        ("speech", "tts", "語音"),
+    ),
+    SettingTarget(
+        "quiet-start",
+        "#settings-quiet-start",
+        "Quiet hours start",
+        "靜音時段開始",
+        "Time when optional sounds become quiet.",
+        "可選聲音開始靜音嘅時間。",
+        ("sound", "time", "靜音", "時間"),
+    ),
+    SettingTarget(
+        "quiet-end",
+        "#settings-quiet-end",
+        "Quiet hours end",
+        "靜音時段結束",
+        "Time when optional sounds resume.",
+        "可選聲音恢復嘅時間。",
+        ("sound", "time", "靜音", "時間"),
+    ),
+    SettingTarget(
+        "reduced-sound",
+        "#settings-reduced-sound",
+        "Reduced sound",
+        "減少聲音",
+        "Reduce optional sound effects and narration.",
+        "減少可選音效同旁述。",
+        ("audio", "quiet", "聲音", "靜音"),
+    ),
+    SettingTarget(
+        "reduced-motion",
+        "#settings-reduced-motion",
+        "Reduced motion",
+        "減少動效",
+        "Reduce non-essential interface motion.",
+        "減少非必要介面動效。",
+        ("accessibility", "animation", "無障礙", "動畫"),
+    ),
+    SettingTarget(
+        "screen-reader",
+        "#settings-screen-reader",
+        "Yield to screen readers",
+        "讓路俾螢幕閱讀器",
+        "Keep optional narration from competing with assistive technology.",
+        "避免可選旁述同輔助科技一齊講。",
+        ("accessibility", "assistive", "無障礙", "螢幕閱讀器"),
+    ),
+    SettingTarget(
+        "element",
+        "#settings-element",
+        "Appearance target",
+        "外觀目標",
+        "Choose which rendered surface to customize.",
+        "揀要自訂嘅介面元素。",
+        ("element", "surface", "外觀", "元素"),
+    ),
+    SettingTarget(
+        "element-foreground",
+        "#settings-element-foreground",
+        "Foreground colour",
+        "前景色",
+        "Text colour for the selected appearance target.",
+        "所選外觀目標嘅文字顏色。",
+        ("text", "color", "colour", "文字", "顏色"),
+    ),
+    SettingTarget(
+        "element-background",
+        "#settings-element-background",
+        "Background colour",
+        "背景色",
+        "Surface colour for the selected appearance target.",
+        "所選外觀目標嘅表面顏色。",
+        ("surface", "color", "colour", "背景", "顏色"),
+    ),
+    SettingTarget(
+        "element-style",
+        "#settings-element-style",
+        "Text and border styles",
+        "文字同邊框樣式",
+        "Bold, italic, underline, and heavy border options.",
+        "粗體、斜體、底線同粗邊框選項。",
+        ("typography", "border", "字款", "邊框"),
+    ),
+    SettingTarget(
+        "preview",
+        "#settings-preview",
+        "Preview settings",
+        "預覽設定",
+        "Apply appearance changes for this session.",
+        "今次工作階段即時套用外觀變更。",
+        ("appearance", "apply", "外觀", "套用"),
+    ),
+    SettingTarget(
+        "reset-element",
+        "#settings-reset-element",
+        "Reset element appearance",
+        "重設元素外觀",
+        "Return the selected element to theme defaults.",
+        "將所選元素還原到主題預設值。",
+        ("appearance", "default", "外觀", "預設"),
+    ),
+    SettingTarget(
+        "save",
+        "#settings-save",
+        "Save settings",
+        "儲存設定",
+        "Persist settings and record a local history snapshot.",
+        "保存設定並記錄本機歷史快照。",
+        ("persist", "history", "保存", "歷史"),
+    ),
+    SettingTarget(
+        "undo",
+        "#settings-undo",
+        "Undo settings",
+        "復原設定",
+        "Restore the previous settings snapshot.",
+        "還原上一個設定快照。",
+        ("history", "restore", "歷史", "還原"),
+    ),
+    SettingTarget(
+        "redo",
+        "#settings-redo",
+        "Redo settings",
+        "重做設定",
+        "Reapply the next settings snapshot.",
+        "重新套用下一個設定快照。",
+        ("history", "restore", "歷史", "重做"),
+    ),
+    SettingTarget(
+        "history",
+        "#settings-history",
+        "Open settings history",
+        "開啟設定歷史",
+        "Browse, compare, and restore local settings versions.",
+        "瀏覽、比較同還原本機設定版本。",
+        ("versions", "snapshots", "版本", "快照"),
+    ),
+)
+
+_SETTINGS_TARGET_BY_KEY = {target.key: target for target in SETTINGS_TARGETS}
 
 
 class SettingsHistoryDialog(ModalScreen[str | None]):
@@ -160,8 +435,21 @@ class SettingsPane(VerticalScroll):
         self.element_overrides: dict[str, ElementOverride] = {}
         self._active_element = "workspace"
         self._loading_element = False
+        self._search_state = SearchState()
 
     def compose(self) -> ComposeResult:
+        yield Label("Search settings", id="settings-search-title", classes="modal-title")
+        yield SearchBar(
+            surface_id="settings",
+            placeholder="Search setting names, descriptions, values, or keywords…",
+            id="settings-search",
+        )
+        yield Static(
+            "Search in English or Cantonese, then activate a result to focus its control.",
+            id="settings-search-status",
+        )
+        yield ListView(id="settings-search-results")
+
         yield Label("Appearance", classes="modal-title")
         with ResponsiveFormRow():
             yield Select(
@@ -304,6 +592,121 @@ class SettingsPane(VerticalScroll):
             yield Button("Undo", id="settings-undo")
             yield Button("Redo", id="settings-redo")
             yield Button("Open history", id="settings-history")
+
+    def on_mount(self) -> None:
+        self.query_one("#settings-search-results", ListView).display = False
+
+    @on(SearchBar.Changed, "#settings-search")
+    async def _settings_search_changed(self, event: SearchBar.Changed) -> None:
+        self._search_state = event.state
+        await self._populate_settings_search()
+
+    @on(ListView.Selected, "#settings-search-results")
+    def _settings_result_selected(self, event: ListView.Selected) -> None:
+        item_id = event.item.id or ""
+        prefix = "settings-result-"
+        if item_id.startswith(prefix):
+            self.focus_target(item_id.removeprefix(prefix))
+
+    async def _populate_settings_search(self) -> None:
+        results = self.query_one("#settings-search-results", ListView)
+        status = self.query_one("#settings-search-status", Static)
+        query = self._search_state.query.strip()
+        if not query:
+            await results.clear()
+            results.display = False
+            status.update(
+                "Search in English or Cantonese, then activate a result to focus its control."
+            )
+            return
+        try:
+            mode = SearchMode(self._search_state.mode)
+        except ValueError:
+            mode = SearchMode.LITERAL
+        flags = RegexFlags(
+            ignore_case=not self._search_state.case_sensitive or "i" in self._search_state.flags,
+            multiline="m" in self._search_state.flags,
+            dot_all="s" in self._search_state.flags,
+        )
+        result = SearchService().search(
+            SETTINGS_TARGETS,
+            query,
+            mode=mode,
+            flags=flags,
+            get_text=self._target_search_text,
+        )
+        translator = get_translator()
+        items = [
+            ListItem(
+                Static(
+                    f"[b]{target.name(translator)}[/]\n"
+                    f"[dim]{target.description(translator)} · "
+                    f"Current: {self._target_current_value(target)}[/]",
+                    markup=True,
+                ),
+                id=f"settings-result-{target.key}",
+            )
+            for target in result.items
+        ]
+        await results.clear()
+        await results.extend(items)
+        results.display = bool(items)
+        if result.error is not None:
+            status.update(f"[red]{result.error}[/] · Existing settings remain available.")
+        elif items:
+            status.update(f"{len(items)} matching setting(s). Activate one to focus it.")
+        else:
+            status.update(f"No settings match {query!r}.")
+
+    def _target_search_text(self, target: SettingTarget) -> tuple[str, ...]:
+        return (
+            target.english_name,
+            target.cantonese_name,
+            target.english_description,
+            target.cantonese_description,
+            *target.keywords,
+            self._target_current_value(target),
+        )
+
+    def _target_current_value(self, target: SettingTarget) -> str:
+        widget = self.query_one(target.selector)
+        if isinstance(widget, Input):
+            return widget.value or "empty"
+        if isinstance(widget, Select):
+            return "blank" if widget.value is Select.BLANK else str(widget.value)
+        if isinstance(widget, Checkbox):
+            return "enabled" if widget.value else "disabled"
+        if isinstance(widget, SelectionList):
+            return ", ".join(str(value) for value in widget.selected) or "default"
+        if isinstance(widget, Button):
+            return str(widget.label)
+        return "available"
+
+    def focus_target(self, key: str) -> bool:
+        """Clear the result rail and focus one exact setting control."""
+
+        target = _SETTINGS_TARGET_BY_KEY.get(key)
+        if target is None:
+            return False
+        results = self.query_one("#settings-search-results", ListView)
+        results.display = False
+        widget = self.query_one(target.selector)
+        widget.scroll_visible(animate=False)
+        widget.focus()
+        # ListView completes its own selection/focus bookkeeping after the
+        # Selected handler returns. Reassert the destination once that refresh
+        # finishes so mouse and keyboard activation both land on the setting,
+        # rather than bouncing back to the now-hidden result rail.
+        self.call_after_refresh(widget.focus)
+        self.query_one("#settings-search-status", Static).update(
+            f"Focused {target.name(get_translator())}."
+        )
+        return True
+
+    def palette_targets(self) -> tuple[SettingTarget, ...]:
+        """Expose the same canonical destinations to the command palette."""
+
+        return SETTINGS_TARGETS
 
     def load_settings(self, config: Any) -> None:
         """Load whichever typed config implementation the application provides."""

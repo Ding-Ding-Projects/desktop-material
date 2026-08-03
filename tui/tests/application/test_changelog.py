@@ -27,9 +27,7 @@ def test_real_packaged_catalog_loads_and_matches_its_canonical_sources() -> None
     assert catalog.unrecorded_count == 39
     assert catalog.releases[0].version == "3.6.3-material22"
     assert catalog.releases[0].date_label == "2026-08-01 23:53"
-    assert catalog.releases[0].entries[0].commit == (
-        "cce086ec7061672c7ba16124929d8fb516fddda6"
-    )
+    assert catalog.releases[0].entries[0].commit == ("cce086ec7061672c7ba16124929d8fb516fddda6")
     assert catalog.changelog_sha256 == _sha256(REPOSITORY_ROOT / "changelog.json")
     assert catalog.release_dates_sha256 == _sha256(
         REPOSITORY_ROOT / "app" / "src" / "lib" / "changelog" / "release-dates.ts"

@@ -80,7 +80,7 @@ def test_opening_version_one_database_migrates_notifications(tmp_path: Path) -> 
 
     database = SQLiteStore(path)
     try:
-        assert database.schema_version == 2
+        assert database.schema_version == CURRENT_SCHEMA_VERSION
         saved = database.save_notification(
             PersistentNotificationRecord(
                 notification_id="migration-proof",

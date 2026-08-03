@@ -13,9 +13,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import cast
 
+from ...domain.accounts import (
+    MAX_ACCOUNTS,
+    AccountEmail,
+    AccountMetadata,
+    AccountProvider,
+    AccountValidationError,
+    deduplicate_accounts,
+)
 from .paths import XDGPaths
 
-CURRENT_SCHEMA_VERSION = 2
+CURRENT_SCHEMA_VERSION = 3
 
 
 class PersistenceError(RuntimeError):
@@ -144,6 +152,35 @@ MIGRATIONS: Sequence[Migration] = (
             """
             CREATE INDEX notifications_unread_idx
                 ON notifications(read_at, dismissed_at, created_at DESC)
+            """,
+        ),
+    ),
+    (
+        3,
+        (
+            """
+            CREATE TABLE accounts (
+                account_key TEXT PRIMARY KEY,
+                provider TEXT NOT NULL
+                    CHECK (provider IN ('github', 'gitlab', 'bitbucket')),
+                endpoint TEXT NOT NULL,
+                provider_id TEXT NOT NULL,
+                login TEXT NOT NULL,
+                display_name TEXT,
+                avatar_url TEXT,
+                emails_json TEXT NOT NULL DEFAULT '[]',
+                scopes_json TEXT NOT NULL DEFAULT '[]',
+                credential_ref TEXT,
+                gh_profile_id TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                UNIQUE(provider, endpoint, provider_id),
+                CHECK (credential_ref IS NULL OR gh_profile_id IS NULL)
+            )
+            """,
+            """
+            CREATE INDEX accounts_provider_login_idx
+                ON accounts(provider, endpoint, login)
             """,
         ),
     ),
@@ -322,6 +359,106 @@ class SQLiteStore:
         with self.transaction() as connection:
             cursor = connection.execute(
                 "DELETE FROM repositories WHERE path = ?", (str(canonical_path),)
+            )
+        return cursor.rowcount > 0
+
+    # Credential-free account metadata ---------------------------------
+
+    def save_account(self, account: AccountMetadata) -> AccountMetadata:
+        return self.save_accounts((account,))[0]
+
+    def save_accounts(
+        self,
+        accounts: Sequence[AccountMetadata],
+    ) -> list[AccountMetadata]:
+        try:
+            normalized = deduplicate_accounts(tuple(accounts))
+        except AccountValidationError as error:
+            raise PersistenceError(str(error)) from error
+        if not normalized:
+            return []
+        now = datetime.now(timezone.utc)
+        keys = tuple(account.account_key for account in normalized)
+        placeholders = ",".join("?" for _key in keys)
+        with self.transaction() as connection:
+            existing = int(
+                connection.execute(
+                    f"SELECT COUNT(*) FROM accounts WHERE account_key IN ({placeholders})",  # noqa: S608
+                    keys,
+                ).fetchone()[0]
+            )
+            total = int(connection.execute("SELECT COUNT(*) FROM accounts").fetchone()[0])
+            if total + len(normalized) - existing > MAX_ACCOUNTS:
+                raise PersistenceError(f"cannot retain more than {MAX_ACCOUNTS} accounts")
+            for account in normalized:
+                connection.execute(
+                    """
+                    INSERT INTO accounts(
+                        account_key, provider, endpoint, provider_id, login,
+                        display_name, avatar_url, emails_json, scopes_json,
+                        credential_ref, gh_profile_id, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(account_key) DO UPDATE SET
+                        login = excluded.login,
+                        display_name = excluded.display_name,
+                        avatar_url = excluded.avatar_url,
+                        emails_json = excluded.emails_json,
+                        scopes_json = excluded.scopes_json,
+                        credential_ref = excluded.credential_ref,
+                        gh_profile_id = excluded.gh_profile_id,
+                        updated_at = excluded.updated_at
+                    """,
+                    (
+                        account.account_key,
+                        account.provider.value,
+                        account.endpoint,
+                        account.provider_id,
+                        account.login,
+                        account.display_name,
+                        account.avatar_url,
+                        _json_array_dumps([email.as_dict() for email in account.emails]),
+                        _json_array_dumps(list(account.granted_scopes)),
+                        account.credential_ref,
+                        account.gh_profile_id,
+                        _to_iso(account.created_at),
+                        _to_iso(now),
+                    ),
+                )
+            all_rows = connection.execute("SELECT * FROM accounts").fetchall()
+            try:
+                deduplicate_accounts(tuple(_account_from_row(row) for row in all_rows))
+            except AccountValidationError as error:
+                raise PersistenceError(str(error)) from error
+            rows = connection.execute(
+                f"SELECT * FROM accounts WHERE account_key IN ({placeholders})",  # noqa: S608
+                keys,
+            ).fetchall()
+        parsed = [_account_from_row(row) for row in rows]
+        records = {account.account_key: account for account in parsed}
+        return [records[key] for key in keys]
+
+    def get_account(self, account_key: str) -> AccountMetadata | None:
+        with self._lock:
+            row = self._connection.execute(
+                "SELECT * FROM accounts WHERE account_key = ?",
+                (account_key,),
+            ).fetchone()
+        return None if row is None else _account_from_row(row)
+
+    def list_accounts(self, *, limit: int = MAX_ACCOUNTS) -> list[AccountMetadata]:
+        bounded_limit = max(0, min(limit, MAX_ACCOUNTS))
+        with self._lock:
+            rows = self._connection.execute(
+                "SELECT * FROM accounts ORDER BY updated_at DESC, account_key LIMIT ?",
+                (bounded_limit,),
+            ).fetchall()
+        return [_account_from_row(row) for row in rows]
+
+    def delete_account(self, account_key: str) -> bool:
+        with self.transaction() as connection:
+            cursor = connection.execute(
+                "DELETE FROM accounts WHERE account_key = ?",
+                (account_key,),
             )
         return cursor.rowcount > 0
 
@@ -587,6 +724,48 @@ def _notification_from_row(row: sqlite3.Row) -> PersistentNotificationRecord:
     )
 
 
+def _account_from_row(row: sqlite3.Row) -> AccountMetadata:
+    emails_value = _json_array_loads(str(row["emails_json"]), "account emails")
+    emails: list[AccountEmail] = []
+    for item in emails_value:
+        if not isinstance(item, dict):
+            raise PersistenceError("Stored account email must be an object")
+        try:
+            emails.append(
+                AccountEmail(
+                    address=str(item["address"]),
+                    primary=bool(item.get("primary", False)),
+                    verified=bool(item.get("verified", False)),
+                    visibility=cast(str | None, item.get("visibility")),
+                )
+            )
+        except (KeyError, AccountValidationError) as error:
+            raise PersistenceError("Stored account email is invalid") from error
+    scopes_value = _json_array_loads(str(row["scopes_json"]), "account scopes")
+    if any(not isinstance(scope, str) for scope in scopes_value):
+        raise PersistenceError("Stored account scopes must contain text only")
+    try:
+        account = AccountMetadata(
+            provider=AccountProvider(str(row["provider"])),
+            endpoint=str(row["endpoint"]),
+            provider_id=str(row["provider_id"]),
+            login=str(row["login"]),
+            display_name=cast(str | None, row["display_name"]),
+            avatar_url=cast(str | None, row["avatar_url"]),
+            emails=tuple(emails),
+            granted_scopes=tuple(cast(list[str], scopes_value)),
+            credential_ref=cast(str | None, row["credential_ref"]),
+            gh_profile_id=cast(str | None, row["gh_profile_id"]),
+            created_at=_from_iso(str(row["created_at"])),
+            updated_at=_from_iso(str(row["updated_at"])),
+        )
+    except (AccountValidationError, ValueError) as error:
+        raise PersistenceError("Stored account metadata is invalid") from error
+    if account.account_key != str(row["account_key"]):
+        raise PersistenceError("Stored account key does not match its provider identity")
+    return account
+
+
 def _json_dumps(value: Mapping[str, object]) -> str:
     try:
         return json.dumps(
@@ -607,6 +786,23 @@ def _json_loads(value: str) -> Mapping[str, object]:
     if not isinstance(decoded, dict):
         raise PersistenceError("Stored JSON must be an object")
     return cast(dict[str, object], decoded)
+
+
+def _json_array_dumps(value: list[object]) -> str:
+    try:
+        return json.dumps(value, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    except (TypeError, ValueError) as error:
+        raise PersistenceError(f"State is not JSON serializable: {error}") from error
+
+
+def _json_array_loads(value: str, label: str) -> list[object]:
+    try:
+        decoded = json.loads(value)
+    except json.JSONDecodeError as error:
+        raise PersistenceError(f"Stored {label} JSON is corrupt") from error
+    if not isinstance(decoded, list):
+        raise PersistenceError(f"Stored {label} must be an array")
+    return cast(list[object], decoded)
 
 
 def _to_iso(value: datetime | None) -> str | None:

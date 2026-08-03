@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import ClassVar
 
-from textual import events
+from textual import events, on
 from textual.app import ComposeResult
 from textual.binding import BindingType
-from textual.containers import Vertical, VerticalScroll
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import (
     Button,
@@ -30,8 +30,11 @@ from ...application.path_input import (
     normalize_path_input,
     path_from_user_input,
 )
+from ...application.search import RegexFlags, SearchMode, SearchService
+from ...application.shell_state import PaletteSize
 from ..i18n import Translator, get_translator
 from ..widgets.responsive_layout import ResponsiveFormRow, ScrollableToolbar
+from ..widgets.search_bar import SearchBar, SearchState
 
 
 class DecisionDialog(ModalScreen[bool]):
@@ -394,9 +397,7 @@ class CloneDialog(ModalScreen[CloneRequest | None]):
         except (OSError, RuntimeError, ValueError):
             self.working_directory = _browser_root("")
         self._translator = get_translator()
-        self._automatic_destination = str(
-            clone_destination_for_url("", self.working_directory)
-        )
+        self._automatic_destination = str(clone_destination_for_url("", self.working_directory))
         self._destination_user_edited = False
 
     def compose(self) -> ComposeResult:
@@ -609,52 +610,126 @@ class PaletteCommand:
     title: str
     description: str = ""
     shortcut: str = ""
+    group: str = "App"
+    keywords: tuple[str, ...] = ()
 
 
-class CommandPaletteDialog(ModalScreen[str | None]):
+@dataclass(frozen=True)
+class PaletteSelection:
+    """A command chosen from the palette."""
+
+    command_id: str
+
+
+@dataclass(frozen=True)
+class PaletteBuilderRequest:
+    """A modal palette search asking the mounted full builder for help."""
+
+    state: SearchState
+
+
+PaletteResult = PaletteSelection | PaletteBuilderRequest
+
+
+class CommandPaletteDialog(ModalScreen[PaletteResult | None]):
     """Searchable command palette with click and keyboard activation."""
 
     BINDINGS: ClassVar[list[BindingType]] = [("escape", "cancel", "Cancel")]
 
-    def __init__(self, commands: Iterable[PaletteCommand]) -> None:
+    def __init__(
+        self,
+        commands: Iterable[PaletteCommand],
+        *,
+        size: PaletteSize = "card",
+        initial_search: SearchState | None = None,
+        on_size_changed: Callable[[PaletteSize], None] | None = None,
+    ) -> None:
         super().__init__()
         self.commands = tuple(commands)
+        self.palette_size = size
+        self.search_state = initial_search or SearchState()
+        self.on_size_changed = on_size_changed
 
     def compose(self) -> ComposeResult:
-        with Vertical(id="palette-card", classes="modal-card"):
-            yield Label("Command palette", classes="modal-title")
-            yield Input(
-                placeholder="Type a command…",
-                id="palette-query",
-                select_on_focus=False,
+        with Vertical(
+            id="palette-card",
+            classes=f"modal-card palette-{self.palette_size}",
+        ):
+            with Horizontal(id="palette-header"):
+                yield Label("Command palette", classes="modal-title")
+                yield Button(
+                    self._size_button_label(),
+                    id="palette-size-toggle",
+                    tooltip="Switch between a bounded card and the full terminal window",
+                )
+            yield SearchBar(
+                surface_id="palette",
+                placeholder="Type a command or setting…",
+                initial=self.search_state,
+                id="palette-search",
             )
+            yield Static("All commands", id="palette-status")
             yield ListView(id="palette-list")
 
     async def on_mount(self) -> None:
-        await self._populate("")
+        await self._populate(self.search_state)
         self.query_one("#palette-query", Input).focus()
 
-    async def _populate(self, query: str) -> None:
-        query = query.casefold().strip()
+    async def _populate(self, state: SearchState) -> None:
         list_view = self.query_one("#palette-list", ListView)
+        try:
+            mode = SearchMode(state.mode)
+        except ValueError:
+            mode = SearchMode.LITERAL
+        flags = RegexFlags(
+            ignore_case=not state.case_sensitive or "i" in state.flags,
+            multiline="m" in state.flags,
+            dot_all="s" in state.flags,
+        )
+        result = SearchService().search(
+            self.commands,
+            state.query,
+            mode=mode,
+            flags=flags,
+            get_text=lambda command: (
+                command.title,
+                command.description,
+                command.shortcut,
+                command.group,
+                *command.keywords,
+            ),
+        )
         items: list[ListItem] = []
-        for command in self.commands:
-            haystack = f"{command.title} {command.description} {command.shortcut}".casefold()
-            if query and all(part not in haystack for part in query.split()):
-                continue
+        for command in result.items:
             shortcut = f"  [dim]{command.shortcut}[/]" if command.shortcut else ""
             description = f"\n[dim]{command.description}[/]" if command.description else ""
             item = ListItem(
-                Static(f"[b]{command.title}[/]{shortcut}{description}", markup=True),
+                Static(
+                    f"[b]{command.title}[/]{shortcut}  [dim]{command.group}[/]{description}",
+                    markup=True,
+                ),
                 id=f"command-{command.id}",
             )
             items.append(item)
         await list_view.clear()
         await list_view.extend(items)
+        status = self.query_one("#palette-status", Static)
+        if result.error is not None:
+            status.update(f"[red]{result.error}[/] · Commands remain available.")
+        elif state.query.strip():
+            status.update(f"{len(items)} matching command(s).")
+        else:
+            status.update(f"{len(items)} commands and settings.")
 
-    async def on_input_changed(self, event: Input.Changed) -> None:
-        if event.input.id == "palette-query":
-            await self._populate(event.value)
+    @on(SearchBar.Changed, "#palette-search")
+    async def _search_changed(self, event: SearchBar.Changed) -> None:
+        self.search_state = event.state
+        await self._populate(event.state)
+
+    @on(SearchBar.BuilderRequested, "#palette-search")
+    def _builder_requested(self, event: SearchBar.BuilderRequested) -> None:
+        event.stop()
+        self.dismiss(PaletteBuilderRequest(event.state))
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         if event.input.id != "palette-query":
@@ -668,7 +743,21 @@ class CommandPaletteDialog(ModalScreen[str | None]):
 
     def _choose(self, item: ListItem) -> None:
         if item.id and item.id.startswith("command-"):
-            self.dismiss(item.id.removeprefix("command-"))
+            self.dismiss(PaletteSelection(item.id.removeprefix("command-")))
+
+    @on(Button.Pressed, "#palette-size-toggle")
+    def _toggle_size(self, _event: Button.Pressed) -> None:
+        next_size: PaletteSize = "full" if self.palette_size == "card" else "card"
+        self.palette_size = next_size
+        card = self.query_one("#palette-card", Vertical)
+        card.remove_class("palette-card", "palette-full")
+        card.add_class(f"palette-{next_size}")
+        self.query_one("#palette-size-toggle", Button).label = self._size_button_label()
+        if self.on_size_changed is not None:
+            self.on_size_changed(next_size)
+
+    def _size_button_label(self) -> str:
+        return "Full window" if self.palette_size == "card" else "Bounded card"
 
     def action_cancel(self) -> None:
         self.dismiss(None)

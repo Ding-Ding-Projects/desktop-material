@@ -36,6 +36,11 @@ from ..infrastructure.git.porcelain import (
     parse_tags,
 )
 from ..infrastructure.git.runner import SubprocessGitRunner, redact_git_argument
+from .gh_push_fallback import (
+    GH_CREDENTIAL_CONFIG_ARGS,
+    GitHubPushFallbackContext,
+    GitHubPushFallbackPolicy,
+)
 from .path_input import path_from_user_input
 
 _HTTP_USER_INFO = re.compile(r"(?i)^https?://[^/@\s]+@")
@@ -55,6 +60,7 @@ class RepositoryService:
         *,
         timeout: float = 30.0,
         network_timeout: float = 120.0,
+        github_push_fallback: GitHubPushFallbackPolicy | None = None,
     ) -> None:
         requested_path = path_from_user_input(path)
         if timeout <= 0 or network_timeout <= 0:
@@ -64,6 +70,7 @@ class RepositoryService:
         self._runner = runner or SubprocessGitRunner(default_timeout=timeout)
         self.timeout = float(timeout)
         self.network_timeout = float(network_timeout)
+        self._github_push_fallback = github_push_fallback or GitHubPushFallbackPolicy()
 
     @property
     def path(self) -> Path:
@@ -382,6 +389,7 @@ class RepositoryService:
         set_upstream: bool = False,
         force_with_lease: bool = False,
         tags: bool = False,
+        github_fallback_context: GitHubPushFallbackContext | None = None,
     ) -> GitCommandResult:
         if branch is not None and remote is None:
             raise InvalidGitArgumentError("push branch", "requires an explicit remote")
@@ -398,7 +406,21 @@ class RepositoryService:
             args.append(self._validate_remote_name(remote))
         if branch is not None:
             args.append(self._validate_refish(branch, "push branch"))
-        return self._run(args, timeout=self.network_timeout)
+        try:
+            return self._run(args, timeout=self.network_timeout)
+        except GitCommandError as original_error:
+            if github_fallback_context is None or not self._github_push_fallback.should_retry(
+                original_error,
+                github_fallback_context,
+            ):
+                raise
+            try:
+                return self._run(
+                    [*GH_CREDENTIAL_CONFIG_ARGS, *args],
+                    timeout=self.network_timeout,
+                )
+            except Exception as retry_error:
+                raise original_error from retry_error
 
     def create_branch(
         self,

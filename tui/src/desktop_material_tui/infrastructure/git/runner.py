@@ -67,6 +67,28 @@ class SubprocessGitRunner:
         self.default_timeout = float(default_timeout)
         self.environment = dict(environment or {})
 
+    @classmethod
+    def for_github_profile(
+        cls,
+        profile_directory: Path,
+        *,
+        executable: str | Path = "git",
+        default_timeout: float = 30.0,
+    ) -> SubprocessGitRunner:
+        """Bind Git to an isolated gh profile without putting a token in env."""
+
+        resolved = profile_directory.expanduser().resolve()
+        if not resolved.is_dir():
+            raise InvalidGitArgumentError(
+                "GitHub profile directory",
+                "must be an existing directory",
+            )
+        return cls(
+            executable,
+            default_timeout=default_timeout,
+            environment={"GH_CONFIG_DIR": os.fspath(resolved)},
+        )
+
     def run(
         self,
         args: Sequence[str],

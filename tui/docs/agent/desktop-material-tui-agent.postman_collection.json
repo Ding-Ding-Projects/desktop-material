@@ -1,0 +1,199 @@
+{
+  "info": {
+    "_postman_id": "d173f933-29c4-46cc-8138-6cb357bce151",
+    "name": "Desktop Material Linux TUI — Local Agent",
+    "description": "Loopback-only REST and sessionless MCP contract. Defaults are unreachable and contain no credentials. Put live values only in a private, unexported Postman environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{agentToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "REST",
+      "item": [
+        {
+          "name": "Information and command catalog",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{agentBaseUrl}}/v1/info",
+            "description": "Returns non-secret protocol and command metadata. The connection capability is never returned."
+          }
+        },
+        {
+          "name": "Read repository status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"get-status\",\n  \"arguments\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/v1/command",
+            "description": "Invokes a read-only command advertised by /v1/info."
+          }
+        },
+        {
+          "name": "Reviewed mutation template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"fetch\",\n  \"arguments\": {},\n  \"reviewToken\": \"{{reviewToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/v1/command",
+            "description": "Mutation example. It fails closed until the visible TUI has approved these exact arguments and supplied a fresh single-use review capability."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sessionless MCP",
+      "item": [
+        {
+          "name": "Initialize",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"initialize\",\n  \"params\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/mcp"
+          }
+        },
+        {
+          "name": "Ping",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 2,\n  \"method\": \"ping\",\n  \"params\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/mcp"
+          }
+        },
+        {
+          "name": "List tools",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/list\",\n  \"params\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/mcp"
+          }
+        },
+        {
+          "name": "Call read tool",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 4,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"get-status\",\n    \"arguments\": {}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/mcp"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "agentBaseUrl",
+      "value": "http://127.0.0.1:0",
+      "type": "string",
+      "description": "Replace privately with the exact ephemeral endpoint. Port 0 is intentionally unreachable."
+    },
+    {
+      "key": "agentToken",
+      "value": "",
+      "type": "string",
+      "description": "Keep the live bearer capability only in a private, unexported environment."
+    },
+    {
+      "key": "reviewToken",
+      "value": "",
+      "type": "string",
+      "description": "Fresh, single-use capability minted only after visible TUI mutation review."
+    }
+  ]
+}
