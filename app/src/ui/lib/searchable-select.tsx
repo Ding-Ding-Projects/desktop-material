@@ -5,6 +5,9 @@ import { FilterMode } from '../../lib/fuzzy-find'
 import { filterByMode } from './filter-string-list'
 import { FilterModeControl } from './filter-mode-control'
 
+/** Distinguishes one instance's listbox id from another's within a document. */
+let instanceCount = 0
+
 /** One selectable entry. `label` is what the user reads and searches. */
 export interface ISearchableSelectOption {
   readonly value: string
@@ -56,9 +59,10 @@ export class SearchableSelect extends React.Component<
 > {
   private buttonRef = React.createRef<HTMLButtonElement>()
   private searchRef = React.createRef<HTMLInputElement>()
-  private listboxId = `searchable-select-${Math.random()
-    .toString(36)
-    .slice(2, 10)}`
+  // A counter rather than a random suffix: this only has to be unique within
+  // the document so `aria-controls` points at one listbox, and a predictable
+  // id also keeps snapshots and test selectors stable.
+  private listboxId = `searchable-select-${++instanceCount}`
 
   public constructor(props: ISearchableSelectProps) {
     super(props)
@@ -160,6 +164,39 @@ export class SearchableSelect extends React.Component<
     this.setState({ activeIndex: 0, query: event.currentTarget.value })
   }
 
+  /** Resolve the clicked option from the list, ignoring clicks on the gaps. */
+  private onOptionClick = (event: React.MouseEvent<HTMLUListElement>) => {
+    const option = (event.target as HTMLElement).closest('[data-value]')
+    const value = option?.getAttribute('data-value')
+    if (value !== null && value !== undefined) {
+      this.choose(value)
+    }
+  }
+
+  private onToggle = () => {
+    if (this.state.open) {
+      this.close()
+    } else {
+      this.open()
+    }
+  }
+
+  private onModeChange = (mode: FilterMode) => this.setState({ mode })
+
+  private onCaseSensitiveChange = (caseSensitive: boolean) =>
+    this.setState({ caseSensitive })
+
+  private getSampleItems = () => this.props.options.map(o => o.label)
+
+  private onRegexPatternApply = (pattern: string, caseSensitive: boolean) => {
+    this.setState({
+      mode: FilterMode.Regex,
+      query: pattern,
+      caseSensitive,
+      activeIndex: 0,
+    })
+  }
+
   public render() {
     const { label, disabled, searchSurfaceId } = this.props
 
@@ -176,7 +213,7 @@ export class SearchableSelect extends React.Component<
           aria-controls={this.listboxId}
           aria-haspopup="listbox"
           disabled={disabled}
-          onClick={this.state.open ? () => this.close() : this.open}
+          onClick={this.onToggle}
           onKeyDown={this.onButtonKeyDown}
         >
           {this.selectedLabel}
@@ -208,28 +245,29 @@ export class SearchableSelect extends React.Component<
             searchSurfaceId={searchSurfaceId}
             mode={this.state.mode}
             caseSensitive={this.state.caseSensitive}
-            onModeChange={mode => this.setState({ mode })}
-            onCaseSensitiveChange={caseSensitive =>
-              this.setState({ caseSensitive })
-            }
+            onModeChange={this.onModeChange}
+            onCaseSensitiveChange={this.onCaseSensitiveChange}
             regexBuilderTarget={regexBuilderTarget}
-            getSampleItems={() => this.props.options.map(o => o.label)}
+            getSampleItems={this.getSampleItems}
             filterText={this.state.query}
-            onRegexPatternApply={(pattern: string, caseSensitive: boolean) =>
-              this.setState({
-                mode: FilterMode.Regex,
-                query: pattern,
-                caseSensitive,
-                activeIndex: 0,
-              })
-            }
+            onRegexPatternApply={this.onRegexPatternApply}
           />
         </div>
+        {/*
+          The click is delegated to the list rather than bound per option, so
+          the handler count does not grow with the option count and every
+          option stays a plain, cheap node. Keyboard operation lives on the
+          search field, which is what actually holds focus in this pattern —
+          the options are addressed through aria-activedescendant, so none of
+          them is a focus target that could receive a key event of its own.
+        */}
+        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
         <ul
           id={this.listboxId}
           className="searchable-select-listbox"
           role="listbox"
           aria-label={regexBuilderTarget}
+          onClick={this.onOptionClick}
         >
           {options.length === 0 && (
             <li className="searchable-select-empty" role="presentation">
@@ -240,11 +278,11 @@ export class SearchableSelect extends React.Component<
             <li
               key={option.value}
               role="option"
+              data-value={option.value}
               aria-selected={option.value === this.props.value}
               className={classNames('searchable-select-option', {
                 active: index === this.state.activeIndex,
               })}
-              onClick={() => this.choose(option.value)}
             >
               {option.label}
             </li>

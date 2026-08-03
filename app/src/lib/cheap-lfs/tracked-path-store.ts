@@ -127,6 +127,12 @@ export async function canonicalizeRepositoryRoot(
   // canonicalization had not happened and nothing else, so a repository that
   // had moved, one that could not be opened, and one that redirected to itself
   // were indistinguishable and none of them suggested an action.
+  // Declared below this function. The reference is evaluated when the
+  // function runs, never while the module is being defined, so the class is
+  // always constructed by the time this line can execute. Keeping the helper
+  // beside the constants it uses reads better than ordering the file around a
+  // lint rule about a hazard that cannot occur here.
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
   throw new CheapLfsTrackedPathError(
     `Cheap LFS could not canonicalize the repository root ${requestedRoot}: ` +
       `${lastError?.code ?? lastError?.message ?? 'unknown error'}.`

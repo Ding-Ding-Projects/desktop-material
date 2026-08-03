@@ -513,12 +513,10 @@ describe('Cheap LFS repository root canonicalization', () => {
     // never which failure it was, so there was nothing to act on.
     const missing = join(root, 'was-moved-or-deleted')
 
-    const error = await store
-      .proveExisting(missing, 'payload.bin')
-      .then(
-        () => null,
-        (raised: unknown) => raised as CheapLfsTrackedPathError
-      )
+    const error = await store.proveExisting(missing, 'payload.bin').then(
+      () => null,
+      (raised: unknown) => raised as CheapLfsTrackedPathError
+    )
 
     assert.ok(error instanceof CheapLfsTrackedPathError)
     assert.match(error.message, /could not canonicalize the repository root/)
