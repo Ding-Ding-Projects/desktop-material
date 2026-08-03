@@ -292,6 +292,9 @@ describe('OllamaModelManager', () => {
     fireEvent.change(search, { target: { value: 'tools' } })
     assert.ok(screen.getByRole('button', { name: 'Select Alpha' }))
     assert.ok(screen.getByRole('button', { name: 'Select beta' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search' }))
+    assert.strictEqual((search as HTMLInputElement).value, '')
+    assert.ok(screen.getByRole('button', { name: 'Select Alpha' }))
 
     fireEvent.change(search, { target: { value: 'Q4_K_M' } })
     assert.ok(screen.getByRole('button', { name: 'Select Alpha' }))

@@ -15,6 +15,7 @@ import { MaterialSymbol } from '../lib/material-symbol'
 import { AgentSessionFleetList } from './agent-session-fleet-list'
 import { IAgentSetupRetry, NewAgentSessionForm } from './new-agent-session-form'
 import { getPersistedLanguageMode, t } from '../../lib/i18n'
+import { Dialog, DialogContent, DialogLayerPortal } from '../dialog'
 
 export interface IAgentSessionsPanelProps {
   /** Every worktree in the repository, whether or not an agent runs in it. */
@@ -65,6 +66,7 @@ export class AgentSessionsPanel extends React.Component<
 > {
   private getFleet = memoizeOne(buildAgentSessionFleet)
   private readonly newSessionButton = React.createRef<Button>()
+  private readonly newSessionForm = React.createRef<NewAgentSessionForm>()
   private mounted = false
 
   private getWorktreeNames = memoizeOne(
@@ -95,6 +97,10 @@ export class AgentSessionsPanel extends React.Component<
     this.setState({ isCreatorOpen: false }, () =>
       this.newSessionButton.current?.focus()
     )
+  }
+
+  private onDialogSubmit = () => {
+    this.newSessionForm.current?.submit()
   }
 
   private onStart = async (
@@ -140,22 +146,38 @@ export class AgentSessionsPanel extends React.Component<
     }
 
     return (
-      <NewAgentSessionForm
-        availability={this.props.availability}
-        baseBranches={this.props.baseBranches}
-        defaultBaseBranch={this.props.defaultBaseBranch}
-        existingWorktreeNames={this.getWorktreeNames(this.props.sessions)}
-        existingBranchNames={this.props.existingBranchNames}
-        isStarting={this.props.isCreating || this.state.isSubmitting}
-        onStart={this.onStart}
-        onCancel={this.onCloseCreator}
-        setupCommands={this.props.setupCommands}
-        setupCommandsAvailable={this.props.setupCommandsAvailable}
-        onSaveSetupCommands={this.props.onSaveSetupCommands}
-        canCancelStart={this.props.canCancelCreate}
-        onCancelStart={this.props.onCancelCreate}
-        retryableSetups={this.props.retryableSetups}
-      />
+      <DialogLayerPortal>
+        <Dialog
+          title={t('agentSessions.newSession')}
+          className="new-agent-session-dialog"
+          modal={true}
+          loading={this.props.isCreating || this.state.isSubmitting}
+          dismissDisabled={this.props.isCreating || this.state.isSubmitting}
+          onDismissed={this.onCloseCreator}
+          onSubmit={this.onDialogSubmit}
+        >
+          <DialogContent>
+            <NewAgentSessionForm
+              ref={this.newSessionForm}
+              insideDialog={true}
+              availability={this.props.availability}
+              baseBranches={this.props.baseBranches}
+              defaultBaseBranch={this.props.defaultBaseBranch}
+              existingWorktreeNames={this.getWorktreeNames(this.props.sessions)}
+              existingBranchNames={this.props.existingBranchNames}
+              isStarting={this.props.isCreating || this.state.isSubmitting}
+              onStart={this.onStart}
+              onCancel={this.onCloseCreator}
+              setupCommands={this.props.setupCommands}
+              setupCommandsAvailable={this.props.setupCommandsAvailable}
+              onSaveSetupCommands={this.props.onSaveSetupCommands}
+              canCancelStart={this.props.canCancelCreate}
+              onCancelStart={this.props.onCancelCreate}
+              retryableSetups={this.props.retryableSetups}
+            />
+          </DialogContent>
+        </Dialog>
+      </DialogLayerPortal>
     )
   }
 
@@ -173,6 +195,7 @@ export class AgentSessionsPanel extends React.Component<
             ref={this.newSessionButton}
             className="new-agent-session-button"
             onClick={this.onOpenCreator}
+            ariaHaspopup="dialog"
             disabled={
               this.state.isCreatorOpen ||
               this.props.isCreating ||

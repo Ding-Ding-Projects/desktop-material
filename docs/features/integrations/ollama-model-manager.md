@@ -53,7 +53,9 @@ currently running models independently. A partial response keeps usable data
 visible and identifies the unavailable scope instead of clearing the whole
 workspace.
 
-- Search the installed inventory or filter it to running models.
+- Search the installed inventory or filter it to running models. A visible
+  **Clear search** action appears as soon as a query is present, clearing the
+  query without changing the selected filter mode or case-sensitivity setting.
 - Select a model to inspect its size, digest, modification time, format,
   family, parameter and quantization metadata, capabilities, bounded license
   text, and current runtime allocation when Ollama reports those fields.

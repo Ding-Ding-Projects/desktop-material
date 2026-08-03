@@ -1,5 +1,45 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-03 — Bug-hunt and Ollama interface checkpoint
+
+This checkpoint is the current source of truth for the active audit. The main
+checkout started at `79d5d59662dd7639664a878b390706f0c3975f2c` with unrelated
+working-tree material already present. The audit kept that material intact and
+added the following scoped fixes:
+
+- The Agents creator now uses the shared modal dialog layer, exposes dialog
+  semantics, avoids a nested form, and disables the Options disclosure while
+  creation is running. The live Agents store and app mount are present; final
+  built-app acceptance capture remains pending because the first-run/checklist
+  overlay interrupted the CDP interaction path.
+- The Ollama model manager now has a localized, accessible Clear search action
+  beside its inventory search. It clears only the query and preserves the
+  selected plain-text/regex filter mode and case behavior.
+- The repository-list flex containment adjustment and its existing test remain
+  in the task diff; they were preserved rather than discarded during this
+  audit.
+
+Verification so far: the required production webpack build emitted the current
+`out/main.js` bundle; the hidden Win32 desktop launched it with a disposable
+profile and fixture and produced a nonblank 1443×992 first-paint capture;
+`ollama-model-manager-test.tsx` passed 14/14; the focused rejected-creation
+Agents test passed 1/1; Prettier and `tsc --noEmit` are clean. Direct ESLint
+invocation is not a valid repository lint entry point because it lacks the
+repository rule plugin; use the repository lint script/CI for that gate.
+
+The three roadmap audits confirm that R3/R4/R5/R8 have substantial local
+foundations but still need built-app captures or remaining live wiring, while
+R1/R2/R6/R7/R9–R18 retain the server, provider, adapter, or integration work
+listed below. No roadmap item is marked complete merely because source tests
+passed. Open issues were re-read at the checkpoint: desktop-material remains
+open on #23 and #118–#135; agent-global-memory has no open issues.
+
+The hidden verification service was reached at the documented loopback MCP
+endpoint. Its scheduled task could not be enabled because Windows returned
+Access Denied, so the exact documented server command was run as a hidden,
+task-owned process for this capture. The disposable fixture, profile, desktop,
+and Electron process must be removed after final evidence is recorded.
+
 ## 2026-08-02 — Session close: 51 commits, all on `main`
 
 **Start here.** Everything below is dewed; `origin/main` contains all of it and

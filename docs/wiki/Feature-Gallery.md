@@ -574,7 +574,9 @@ the corrected exact-source frame promoted after the four-scale proof.
 
 **Settings → Copilot → Providers → Manage models** opens a bounded workspace for
 one configured Ollama endpoint. Health/version, installed inventory, running
-state, search/filter, and model details stay separately refreshable. Pull shows
+state, search/filter, and model details stay separately refreshable; a visible
+Clear search action removes an active query without resetting its filter mode.
+Pull shows
 streamed progress and supports cancellation; copy and copy-then-delete rename,
 load/unload, and exact-name confirmed deletion keep partial and failure states
 visible. Successful inventory changes synchronize installed names back to the

@@ -285,6 +285,23 @@
   padding: var(--spacing);
 }
 
+// The creator is owned by the dialog layer rather than the narrow Agents
+// panel. Keep the form scrollable inside the viewport-bounded dialog so long
+// bilingual labels and expanded setup options never clip the action row.
+dialog.new-agent-session-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+
+  .dialog-content {
+    padding: 0;
+  }
+
+  .new-agent-session-form {
+    border-bottom: 0;
+    padding: var(--spacing-double);
+  }
+}
+
 .new-agent-session-options-toggle {
   align-items: center;
   background: none;

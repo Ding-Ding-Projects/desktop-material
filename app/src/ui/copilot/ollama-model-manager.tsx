@@ -163,6 +163,7 @@ export interface IOllamaModelManagerStrings
   readonly refreshing: string
   readonly searchLabel: string
   readonly searchPlaceholder: string
+  readonly clearSearch: string
   readonly scopeLabel: string
   readonly allModels: string
   readonly runningModels: string
@@ -275,6 +276,7 @@ export const DefaultOllamaModelManagerStrings: IOllamaModelManagerStrings = {
   refreshing: 'Refreshing…',
   searchLabel: 'Search installed models',
   searchPlaceholder: 'Search by name, family, or capability…',
+  clearSearch: 'Clear search',
   scopeLabel: 'Model inventory filter',
   allModels: 'All models',
   runningModels: 'Running only',
@@ -1225,6 +1227,17 @@ export class OllamaModelManager extends React.Component<
                   : searchErrorId
               }
             />
+            {this.state.query !== '' && (
+              <Button
+                size="small"
+                className="ollama-clear-search"
+                dataVerification="ollama-clear-search"
+                ariaLabel={strings.clearSearch}
+                onClick={this.onClearQuery}
+              >
+                {strings.clearSearch}
+              </Button>
+            )}
             <FilterModeControl
               searchSurfaceId="ollama-models"
               mode={this.state.filterMode}
@@ -1830,6 +1843,10 @@ export class OllamaModelManager extends React.Component<
 
   private onQueryChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({ query: event.currentTarget.value })
+  }
+
+  private onClearQuery = () => {
+    this.setState({ query: '' })
   }
 
   private onFilterModeChanged = (filterMode: FilterMode) => {

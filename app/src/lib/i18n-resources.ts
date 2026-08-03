@@ -1563,6 +1563,7 @@ export type TranslationKey =
   | 'ollama.manager.refreshing'
   | 'ollama.manager.searchLabel'
   | 'ollama.manager.searchPlaceholder'
+  | 'ollama.manager.clearSearch'
   | 'ollama.manager.scopeLabel'
   | 'ollama.manager.allModels'
   | 'ollama.manager.runningModels'
@@ -5442,6 +5443,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'ollama.manager.refreshing': 'Refreshing…',
   'ollama.manager.searchLabel': 'Search installed models',
   'ollama.manager.searchPlaceholder': 'Search by name, family, or capability…',
+  'ollama.manager.clearSearch': 'Clear search',
   'ollama.manager.scopeLabel': 'Model inventory filter',
   'ollama.manager.allModels': 'All models',
   'ollama.manager.runningModels': 'Running only',
@@ -9764,6 +9766,7 @@ export const cantoneseTranslations: Readonly<
   'ollama.manager.refreshing': '重新整理緊…',
   'ollama.manager.searchLabel': '搜尋已安裝模型',
   'ollama.manager.searchPlaceholder': '用名稱、系列或者能力搜尋…',
+  'ollama.manager.clearSearch': '清除搜尋',
   'ollama.manager.scopeLabel': '模型清單篩選',
   'ollama.manager.allModels': '全部模型',
   'ollama.manager.runningModels': '只睇運行緊',

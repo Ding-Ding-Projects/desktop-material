@@ -1,6 +1,23 @@
 # Desktop Material roadmap
 
-Updated: **August 2, 2026**
+Updated: **August 3, 2026**
+
+## August 3 audit checkpoint — **Scoped fixes verified; roadmap work remains factual**
+
+- The Agents creator is now mounted through the shared modal dialog layer and
+  keeps its Options disclosure disabled during creation. The live store and
+  mount are present; built-app acceptance capture is still pending.
+- The Ollama model manager now has a localized Clear search action that resets
+  only the query and preserves the active search mode. Its focused unit suite
+  passes 14/14.
+- The required production bundle launched on the hidden Windows desktop and
+  produced a real first-paint frame. CDP interaction was interrupted by the
+  first-run/checklist overlay, so no Ollama screenshot is claimed from that
+  run.
+- The roadmap audit did not promote any item to complete without its remaining
+  runtime, adapter, server, or capture evidence. R1/R2/R6/R7/R9–R18 therefore
+  remain at their existing states; R3/R4/R5/R8 retain their documented capture
+  or live-wiring gaps.
 
 ## Planned work — **mirrored one-to-one into GitHub issues**
 

@@ -537,8 +537,10 @@ The manager keeps service discovery, inventory, and mutations explicit:
 
 1. Check the endpoint health and Ollama version. Installed and running models
    load independently, so a partial response does not erase usable data.
-2. Search all installed models or filter to running models. Select one to
-   inspect bounded size, digest, family, format, parameter, quantization,
+2. Search all installed models or filter to running models. While a query is
+   present, **Clear search** removes it without changing the selected filter
+   mode or case-sensitivity setting. Select one to inspect bounded size,
+   digest, family, format, parameter, quantization,
    capability, license, and runtime details when Ollama reports them.
 3. Pull a model by name and follow streamed progress; cancel only that pull if
    needed. Copy a model, or rename it through copy-then-delete with a visible

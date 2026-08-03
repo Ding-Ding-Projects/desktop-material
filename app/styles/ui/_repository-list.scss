@@ -661,6 +661,27 @@ body[data-dm-repository-list-density='compact'] #foldout-container .repository-l
   // list out as a row for the legacy Add-repository foldout).
   flex-direction: column;
 
+  // The filter list owns the remaining sheet height. Without an explicit
+  // minimum it uses its content-sized flex basis, so the virtualized rows (or
+  // the empty state) can be laid out below the foldout's overflow clip.
+  > .filter-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+
+    > .filter-list-container {
+      min-height: 0;
+      min-width: 0;
+
+      > .no-items {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+      }
+    }
+  }
+
   // Uppercase group labels (RECENT / <account login>) per the design spec.
   .filter-list-group-header {
     color: var(--md-sys-color-on-surface-variant);
