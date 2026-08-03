@@ -170,6 +170,7 @@ describe('IPC channel contract', () => {
     'start-build-run',
     'cancel-build-run',
     'detect-actions-local-tools',
+    'install-actions-local-act',
     'list-actions-workflows',
     'start-actions-local-run',
     'cancel-actions-local-run',

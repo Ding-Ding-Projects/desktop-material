@@ -22,6 +22,7 @@ import {
 } from './actions-local-run-log-filter'
 import {
   detectActionsLocalTools,
+  installActionsLocalAct,
   listActionsWorkflows,
   startActionsLocalRun,
   cancelActionsLocalRun,
@@ -79,6 +80,10 @@ interface IActionsLocalRunDialogState {
   readonly logFilter: string
   readonly logFilterMode: FilterMode
   readonly logFilterCaseSensitive: boolean
+  /** True while act is being downloaded and installed for the user. */
+  readonly installingAct: boolean
+  /** Why the automatic act install failed, or null while it is fine. */
+  readonly actInstallError: string | null
 }
 
 interface IActionsLocalRunInputRowProps {
@@ -195,6 +200,8 @@ export class ActionsLocalRunDialog extends React.Component<
       logFilter: '',
       logFilterMode: readPersistedFilterMode(LogFilterListId),
       logFilterCaseSensitive: false,
+      installingAct: false,
+      actInstallError: null,
     }
   }
 
@@ -235,6 +242,13 @@ export class ActionsLocalRunDialog extends React.Component<
       const tools = await detectActionsLocalTools()
       if (this.mounted) {
         this.setState({ tools })
+        // Missing act is a solved problem, so solve it rather than reporting
+        // it. Only when the user has not already failed an install this
+        // session — retrying the same failing download on every probe would
+        // replace one dead end with a louder one.
+        if (!tools.actAvailable && this.state.actInstallError === null) {
+          void this.installActAutomatically()
+        }
       }
     } catch (error) {
       if (this.mounted) {
@@ -484,7 +498,10 @@ export class ActionsLocalRunDialog extends React.Component<
         <ul>
           {!tools.actAvailable && (
             <li>
-              {t('actionsLocalRun.actMissing')}{' '}
+              {this.state.installingAct
+                ? t('actionsLocalRun.actInstalling')
+                : this.state.actInstallError ??
+                  t('actionsLocalRun.actInstallingAutomatically')}{' '}
               <LinkButton uri={ActInstallDocsUrl}>
                 {t('actionsLocalRun.installActLink')}
               </LinkButton>
@@ -508,8 +525,38 @@ export class ActionsLocalRunDialog extends React.Component<
   }
 
   private onRetryDetection = () => {
-    this.setState({ tools: null })
+    this.setState({ tools: null, actInstallError: null })
     void this.detect()
+  }
+
+  /**
+   * Install `act` without being asked to.
+   *
+   * Docker is deliberately not installed for the user: it is a machine-wide
+   * service install that wants elevation and, on Windows, a reboot. `act` is a
+   * single binary that drops into the app's own data directory, so there is
+   * nothing to consent to and nothing to undo — which is why one is automatic
+   * and the other still links out.
+   */
+  private installActAutomatically = async () => {
+    if (this.state.installingAct) {
+      return
+    }
+    this.setState({ installingAct: true, actInstallError: null })
+    try {
+      const tools = await installActionsLocalAct()
+      this.setState({ tools, installingAct: false })
+    } catch (error) {
+      this.setState({
+        installingAct: false,
+        // The install failed, so say why here rather than leaving the panel
+        // claiming an install is in progress that has already stopped.
+        actInstallError:
+          error instanceof Error
+            ? error.message
+            : t('actionsLocalRun.actInstallFailed'),
+      })
+    }
   }
 
   private renderConfiguration() {

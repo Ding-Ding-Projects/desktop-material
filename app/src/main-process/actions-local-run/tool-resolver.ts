@@ -57,6 +57,21 @@ export async function locateExecutable(
   return null
 }
 
+/**
+ * The app-managed `act` if one has been installed, otherwise null.
+ *
+ * Loaded lazily so this module keeps working in the unit tests, which import
+ * it without an Electron `app` to ask for a userData directory.
+ */
+async function managedActFallback(): Promise<string | null> {
+  try {
+    const { managedActInstalled, managedActPath } = await import('./installer')
+    return (await managedActInstalled()) ? managedActPath() : null
+  } catch {
+    return null
+  }
+}
+
 /** Best-effort `<exe> --version`, resolving the first output line or null. */
 function readVersion(exe: string): Promise<string | null> {
   return new Promise<string | null>(resolve => {
@@ -103,10 +118,16 @@ function readVersion(exe: string): Promise<string | null> {
 export async function detectActionsLocalTools(
   env: NodeJS.ProcessEnv = process.env
 ): Promise<IActionsLocalToolAvailability> {
-  const [actPath, dockerPath] = await Promise.all([
+  const [pathAct, dockerPath] = await Promise.all([
     locateExecutable('act', env),
     locateExecutable('docker', env),
   ])
+
+  // A copy the user installed themselves always wins: they chose its version
+  // and they expect the app to use it. The managed copy the app downloads is
+  // only consulted when PATH has nothing, so installing here can never
+  // shadow or silently downgrade someone's own installation.
+  const actPath = pathAct ?? (await managedActFallback())
 
   const actVersion = actPath !== null ? await readVersion(actPath) : null
 

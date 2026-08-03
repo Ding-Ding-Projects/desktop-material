@@ -2484,6 +2484,9 @@ export type TranslationKey =
   | 'actionsLocalRun.checkingTools'
   | 'actionsLocalRun.toolsMissingTitle'
   | 'actionsLocalRun.actMissing'
+  | 'actionsLocalRun.actInstalling'
+  | 'actionsLocalRun.actInstallingAutomatically'
+  | 'actionsLocalRun.actInstallFailed'
   | 'actionsLocalRun.dockerMissing'
   | 'actionsLocalRun.installHint'
   | 'actionsLocalRun.installActLink'
@@ -6630,6 +6633,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'actionsLocalRun.toolsMissingTitle': 'Local runner tools are missing',
   'actionsLocalRun.actMissing':
     'act (nektos/act) was not found on your PATH. It runs your workflows locally.',
+  'actionsLocalRun.actInstalling':
+    'Installing act (nektos/act) for you. It runs your workflows locally, and it is going into this app’s own folder — nothing is installed system-wide.',
+  'actionsLocalRun.actInstallingAutomatically':
+    'act (nektos/act) is not installed yet. It runs your workflows locally, and the app is fetching it for you now.',
+  'actionsLocalRun.actInstallFailed':
+    'act could not be installed automatically. Install it yourself and it will be picked up from your PATH.',
   'actionsLocalRun.dockerMissing':
     'Docker was not found on your PATH. act needs a running Docker engine to execute jobs.',
   'actionsLocalRun.installHint':
@@ -10979,6 +10988,12 @@ export const cantoneseTranslations: Readonly<
   'actionsLocalRun.toolsMissingTitle': '本機執行工具唔齊',
   'actionsLocalRun.actMissing':
     '喺你嘅 PATH 搵唔到 act（nektos/act），佢係負責喺本機行 workflow 嘅。',
+  'actionsLocalRun.actInstalling':
+    '而家幫緊你裝 act（nektos/act）。佢負責喺本機行 workflow，只會落喺 app 自己個資料夾度，唔會裝入成部電腦。',
+  'actionsLocalRun.actInstallingAutomatically':
+    '你部機仲未裝 act（nektos/act）。佢負責喺本機行 workflow，app 而家幫你搏緊落載。',
+  'actionsLocalRun.actInstallFailed':
+    '自動裝 act 失敗咗。你自己裝一次，app 就會喺 PATH 揾到佢。',
   'actionsLocalRun.dockerMissing':
     '喺你嘅 PATH 搵唔到 Docker。act 要有個行緊嘅 Docker engine 先可以執行啲 job。',
   'actionsLocalRun.installHint':

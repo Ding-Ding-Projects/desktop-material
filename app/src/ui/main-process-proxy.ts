@@ -471,6 +471,15 @@ export const detectActionsLocalTools = invokeProxy(
   0
 )
 
+/**
+ * Download and install `act` into the app's own data directory, resolving to a
+ * fresh availability probe so the caller never has to re-detect afterwards.
+ */
+export const installActionsLocalAct = invokeProxy(
+  'install-actions-local-act',
+  0
+)
+
 /** List and parse the workflows under a repository's `.github/workflows`. */
 export const listActionsWorkflows = invokeProxy('list-actions-workflows', 1)
 

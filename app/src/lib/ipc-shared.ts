@@ -397,6 +397,7 @@ export type RequestResponseChannels = {
   'start-build-run': (plan: IBuildRunPlan) => Promise<void>
   'cancel-build-run': (runId: string) => Promise<void>
   'detect-actions-local-tools': () => Promise<IActionsLocalToolAvailability>
+  'install-actions-local-act': () => Promise<IActionsLocalToolAvailability>
   'list-actions-workflows': (
     repositoryPath: string
   ) => Promise<ReadonlyArray<IActionsWorkflow>>
