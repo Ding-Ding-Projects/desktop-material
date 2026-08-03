@@ -7,8 +7,9 @@ on:
     paths:
       - 'site/**'
       - 'docs/**'
-      - 'script/cheap-lfs-pages-test.mjs'
-      - 'script/cheap-lfs-vs-git-lfs-pages-test.mjs'
+      - 'script/site-dc-assets.mjs'
+      - 'script/site-dc-pages-test.mjs'
+      - 'script/sync-site-doc-counts.mjs'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -134,22 +135,24 @@ jobs:
             test -f _site/docs/assets/site/docs-screenshot-strings.js
           fi
 
-      - name: Set up Node.js for the Cheap LFS guide contract
+      - name: Set up Node.js for the site contract and search index
         uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
           cache: yarn
 
-      - name: Install the locked Cheap LFS guide test dependencies
+      - name: Install the locked site tooling dependencies
         run: yarn install --frozen-lockfile --ignore-scripts --non-interactive
 
-      - name: Validate the Cheap LFS visual guide
+      # The homepage is one Design Component rendered by a client-side runtime,
+      # so its failure modes are quiet: a vendored font or React build that did
+      # not ship still produces a page that "loads". This proves the whole
+      # bundle arrived, that nothing reaches a third-party host, that the icon
+      # and Hong Kong Chinese subsets still cover the copy, and that the Docs
+      # hub's article counts and category links match the tree rendered above.
+      - name: Validate the Material Design 3 site
         run: |
-          node script/cheap-lfs-pages-test.mjs _site
-
-      - name: Validate the Cheap LFS comparison atlas
-        run: |
-          node script/cheap-lfs-vs-git-lfs-pages-test.mjs _site
+          node script/site-dc-pages-test.mjs _site --expect-docs
 
       # GitHub renders ```mermaid fences natively; pandoc turns them into
       # <pre> blocks, so the published site used to show diagram source. The

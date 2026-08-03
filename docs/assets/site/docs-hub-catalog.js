@@ -224,6 +224,13 @@
       d: 'Roughly one launch in ten, Desktop Material puts a small photograph of a Hong Kong dim sum dish in the bottom-left corner, names it in English and Traditional Chinese, and…',
     },
     {
+      t: 'The Material Design 3 site',
+      h: 'features/design-system/material-design-3-site.html',
+      s: 'features/design-system/material-design-3-site.md',
+      c: 'features',
+      d: 'The published site at is a full Material Design 3 rebuild of the landing page, the Cheap LFS guide, the Cheap LFS versus Git LFS atlas, and the documentation front end. It is a',
+    },
+    {
       t: 'Material ripple state layer and theme reveal pulse',
       h: 'features/design-system/material-ripple-and-theme-reveal.html',
       s: 'features/design-system/material-ripple-and-theme-reveal.md',
