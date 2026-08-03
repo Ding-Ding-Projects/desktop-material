@@ -1,9 +1,5 @@
 # TUI language, appearance, and notifications
 
-> **Historical prototype record:** This page preserves the July 27, 2026 TUI
-> experiment. It is not current supported-product guidance or a Windows-release
-> blocker.
-
 ## Language and tone
 
 Settings persists exactly three application language modes:
@@ -13,11 +9,34 @@ Settings persists exactly three application language modes:
 - bilingual, with compact primary/secondary labels.
 
 English is the fallback for a missing Cantonese key. Independent English and
-Cantonese funny levels run from 1 (professional) to 5 (most playful). Tone can
-change wording but never changes repository names, paths, SHAs, error facts,
-security guidance, destructive targets, or the meaning of a choice.
+Cantonese funny levels run from 1 (professional) to 5 (most playful). Every
+catalog entry that offers tone variants produces distinct output at all five
+positions. Tone can change wording but never changes repository names, paths,
+SHAs, error facts, security guidance, destructive targets, or the meaning of a
+choice.
 
-The first preview localizes the shell and shared controls; its catalog is not
+the graphical edition's 2,000-plus-key catalog. Missing terminal copy therefore
+falls back rather than being counted as complete desktop localization parity.
+The shell and shared controls use the catalog; it is not yet the graphical
+edition's 2,000-plus-key catalog. Missing terminal copy therefore falls back
+rather than being counted as complete desktop localization parity.
+
+## Dim-sum startup surprise
+
+An eligible launch makes one fresh cryptographic random draw. Values in the
+bottom 10% select one dish using a second independent draw from the bundled,
+verified local catalog. The card shows the factual English and Traditional
+Chinese names, Jyutping when available, meaningful bilingual alt text, and a
+terminal true-color rendering decoded from the tracked PNG. It never fetches an
+image or sends telemetry.
+
+The card mounts after the shell is usable, never changes focus, stays within the
+viewport, dismisses automatically, and has a keyboard/mouse dismiss action. A
+first run, startup error, update, open modal, or configured quiet-hours window
+spends the launch's opportunity without showing or loading the art; clearing
+that condition later cannot trigger a delayed ambush. There is no disable
+setting. Decoder byte, pixel, format, and checksum bounds make an invalid asset
+fail closed without turning the optional delight into a startup failure.
 the graphical edition's 2,000-plus-key catalog. Missing terminal copy therefore
 falls back rather than being counted as complete desktop localization parity.
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 from collections.abc import Sequence
@@ -24,12 +25,17 @@ from desktop_material_tui.infrastructure.github import (
     ReviewDecision,
     SubprocessGhTransport,
 )
+from desktop_material_tui.infrastructure.github.transport import GhBinaryProcessResult
 
 
 class FakeGhTransport:
-    def __init__(self, *responses: GhProcessResult | BaseException) -> None:
+    def __init__(
+        self,
+        *responses: GhProcessResult | GhBinaryProcessResult | BaseException,
+    ) -> None:
         self.responses = list(responses)
         self.calls: list[tuple[tuple[str, ...], float, str | None]] = []
+        self.binary_calls: list[tuple[tuple[str, ...], float, int]] = []
 
     def run(
         self,
@@ -44,7 +50,31 @@ class FakeGhTransport:
         response = self.responses.pop(0)
         if isinstance(response, BaseException):
             raise response
+        if isinstance(response, GhBinaryProcessResult):
+            raise AssertionError("Binary fake response used by text gh invocation")
         return GhProcessResult(
+            argv=tuple(argv),
+            return_code=response.return_code,
+            stdout=response.stdout,
+            stderr=response.stderr,
+        )
+
+    def run_binary(
+        self,
+        argv: Sequence[str],
+        *,
+        timeout_seconds: float,
+        maximum_bytes: int,
+    ) -> GhBinaryProcessResult:
+        self.binary_calls.append((tuple(argv), timeout_seconds, maximum_bytes))
+        if not self.responses:
+            raise AssertionError(f"Unexpected binary gh invocation: {tuple(argv)!r}")
+        response = self.responses.pop(0)
+        if isinstance(response, BaseException):
+            raise response
+        if isinstance(response, GhProcessResult):
+            raise AssertionError("Text fake response used by binary gh invocation")
+        return GhBinaryProcessResult(
             argv=tuple(argv),
             return_code=response.return_code,
             stdout=response.stdout,
@@ -64,6 +94,20 @@ def result(
         argv=("fake-gh",),
         return_code=return_code,
         stdout=rendered,
+        stderr=stderr,
+    )
+
+
+def binary_result(
+    payload: bytes,
+    *,
+    stderr: str = "",
+    return_code: int = 0,
+) -> GhBinaryProcessResult:
+    return GhBinaryProcessResult(
+        argv=("fake-gh",),
+        return_code=return_code,
+        stdout=payload,
         stderr=stderr,
     )
 
@@ -153,6 +197,30 @@ def test_real_transport_never_inherits_tui_stdin(
     assert captured["shell"] is False
     assert captured["stdin"] is subprocess.DEVNULL
     assert "input" not in captured
+
+
+def test_real_binary_transport_caps_bytes_loaded_into_memory(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_run(argv: Sequence[str], **kwargs: Any) -> subprocess.CompletedProcess[bytes]:
+        captured.update(kwargs)
+        kwargs["stdout"].write(b"0123456789")
+        return subprocess.CompletedProcess(argv, 0, stdout=None, stderr=b"")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    transport = SubprocessGhTransport()
+
+    response = transport.run_binary(
+        ("gh", "api", "repos/acme/widgets/actions/artifacts/1/zip"),
+        timeout_seconds=1,
+        maximum_bytes=4,
+    )
+
+    assert response.stdout == b"01234"
+    assert captured["shell"] is False
+    assert captured["stdin"] is subprocess.DEVNULL
 
 
 def test_command_prefix_is_runtime_validated() -> None:
@@ -330,15 +398,14 @@ def test_pull_request_operations_use_typed_json_and_stdin(
         ).number
         == 10
     )
-    assert (
-        client.review_pull_request(
-            repository,
-            9,
-            event=ReviewDecision.APPROVE,
-            body="Looks good",
-        ).author.login
-        == "reviewer"
+    submitted_review = client.review_pull_request(
+        repository,
+        9,
+        event=ReviewDecision.APPROVE,
+        body="Looks good",
     )
+    assert submitted_review.author is not None
+    assert submitted_review.author.login == "reviewer"
     merged = client.merge_pull_request(
         repository,
         9,
@@ -358,6 +425,147 @@ def test_pull_request_operations_use_typed_json_and_stdin(
     assert json.loads(review_stdin)["event"] == "APPROVE"
     assert merge_stdin is not None
     assert json.loads(merge_stdin)["merge_method"] == "squash"
+
+
+def test_pull_request_review_inventory_is_paginated_bounded_and_normalized(
+    repository: RepositoryRef,
+) -> None:
+    files = [
+        {
+            "sha": "a" * 40,
+            "filename": f"src/file-{index}.py",
+            "status": "modified",
+            "additions": 2,
+            "deletions": 1,
+            "changes": 3,
+            "patch": "x" * 120_001 if index == 101 else "@@ -1 +1 @@",
+        }
+        for index in range(1, 102)
+    ]
+    check_run = {
+        "id": 301,
+        "name": "Linux",
+        "status": "completed",
+        "conclusion": "success",
+        "details_url": "https://github.com/acme/widgets/actions/runs/1",
+        "output": {"title": "Tests", "summary": "All green"},
+    }
+    status = {
+        "id": 302,
+        "context": "release/gate",
+        "state": "pending",
+        "description": "Waiting for approval",
+        "target_url": "https://github.com/acme/widgets/actions/runs/2",
+    }
+    transport = FakeGhTransport(
+        result(files[:100]),
+        result(files[100:]),
+        result({"total_count": 1, "check_runs": [check_run]}),
+        result([status]),
+    )
+    client = GhClient(transport=transport)
+
+    listed_files = client.list_pull_request_files(repository, 9, limit=101)
+    checks = client.list_pull_request_checks(repository, "a" * 40, limit=3)
+
+    assert len(listed_files) == 101
+    assert listed_files[-1].patch is not None
+    assert len(listed_files[-1].patch) == 120_000
+    assert listed_files[-1].patch_truncated
+    assert [check.source for check in checks] == ["check-run", "commit-status"]
+    assert checks[0].description == "Tests · All green"
+    assert checks[1].conclusion == "pending"
+    assert "page=2" in transport.calls[1][0][2]
+    assert "commits%2F" not in transport.calls[2][0][2]
+    assert f"commits/{'a' * 40}/check-runs" in transport.calls[2][0][2]
+
+
+def test_review_comments_are_exact_head_and_line_scoped(
+    repository: RepositoryRef,
+) -> None:
+    review_comment = {
+        "id": 401,
+        "pull_request_review_id": 55,
+        "body": "Please keep this bounded.",
+        "path": "src/app.py",
+        "line": 42,
+        "side": "RIGHT",
+        "commit_id": "a" * 40,
+        "user": {"login": "reviewer"},
+        "created_at": "2026-08-02T12:00:00Z",
+        "html_url": "https://github.com/acme/widgets/pull/9#discussion_r401",
+    }
+    transport = FakeGhTransport(result([review_comment]), result(review_comment))
+    client = GhClient(transport=transport)
+
+    listed = client.list_pull_request_review_comments(repository, 9, limit=10)
+    created = client.create_pull_request_review_comment(
+        repository,
+        9,
+        body="Please keep this bounded.",
+        commit_id="a" * 40,
+        path="src/app.py",
+        line=42,
+        side="RIGHT",
+    )
+
+    assert listed[0].author is not None
+    assert listed[0].author.login == "reviewer"
+    assert created.line == 42
+    create_stdin = transport.calls[1][2]
+    assert create_stdin is not None
+    assert json.loads(create_stdin) == {
+        "body": "Please keep this bounded.",
+        "commit_id": "a" * 40,
+        "path": "src/app.py",
+        "line": 42,
+        "side": "RIGHT",
+    }
+
+
+def test_effective_rules_and_repository_notifications_are_explicitly_scoped(
+    repository: RepositoryRef,
+) -> None:
+    rule = {
+        "type": "required_status_checks",
+        "ruleset_source_type": "Repository",
+        "ruleset_source": "acme/widgets",
+        "ruleset_id": 77,
+        "parameters": {"required_status_checks": [{"context": "Linux"}]},
+    }
+    notification = {
+        "id": "987",
+        "unread": True,
+        "reason": "review_requested",
+        "updated_at": "2026-08-02T12:00:00Z",
+        "subject": {
+            "title": "Add keyboard and mouse support",
+            "type": "PullRequest",
+            "url": "https://api.github.com/repos/acme/widgets/pulls/9",
+        },
+        "repository": {"full_name": "acme/widgets"},
+    }
+    transport = FakeGhTransport(result([rule]), result([notification]), result(stdout=""))
+    client = GhClient(transport=transport)
+
+    rules = client.list_effective_branch_rules(repository, "feature/input", limit=10)
+    notifications = client.list_repository_notifications(repository, limit=10)
+    receipt = client.mark_notification_read(repository, "987")
+
+    assert rules[0].parameters["required_status_checks"][0]["context"] == "Linux"
+    assert notifications[0].repository_full_name == "acme/widgets"
+    assert notifications[0].subject_type == "PullRequest"
+    assert receipt.operation == "mark-notification-read"
+    assert "rules/branches/feature%2Finput" in transport.calls[0][0][2]
+    assert "repos/acme/widgets/notifications" in transport.calls[1][0][2]
+    assert "notifications/threads/987" in transport.calls[2][0][2]
+
+    call_count = len(transport.calls)
+    with pytest.raises(GitHubValidationError, match="exact branch"):
+        client.list_effective_branch_rules(repository, "release/*")
+    with pytest.raises(GitHubValidationError, match="decimal digits"):
+        client.mark_notification_read(repository, "987/../../read-all")
+    assert len(transport.calls) == call_count
 
 
 def test_actions_read_and_control_operations(repository: RepositoryRef) -> None:
@@ -437,6 +645,133 @@ def test_actions_read_and_control_operations(repository: RepositoryRef) -> None:
     assert json.loads(dispatch_stdin) == {"ref": "main", "inputs": {"mode": "full"}}
 
 
+def test_actions_caches_are_paginated_and_delete_is_id_scoped(
+    repository: RepositoryRef,
+) -> None:
+    caches = [
+        {
+            "id": index,
+            "key": f"linux-{index}",
+            "ref": "refs/heads/main",
+            "version": f"version-{index}",
+            "size_in_bytes": index * 10,
+            "created_at": "2026-08-01T10:00:00Z",
+            "last_accessed_at": "2026-08-02T10:00:00Z",
+        }
+        for index in range(1, 102)
+    ]
+    transport = FakeGhTransport(
+        result({"total_count": 101, "actions_caches": caches[:100]}),
+        result({"total_count": 101, "actions_caches": caches[100:]}),
+        result(stdout=""),
+    )
+    client = GhClient(transport=transport)
+
+    listed = client.list_actions_caches(repository, limit=101)
+    assert len(listed) == 101
+    assert listed[0].key == "linux-1"
+    assert listed[-1].id == 101
+    assert "page=1" in transport.calls[0][0][2]
+    assert "page=2" in transport.calls[1][0][2]
+    assert client.delete_actions_cache(repository, 101).operation == "delete-cache"
+    assert any("actions/caches/101" in item for item in transport.calls[2][0])
+
+
+def test_artifacts_are_paginated_and_downloaded_with_digest_verification(
+    repository: RepositoryRef,
+    tmp_path: Any,
+) -> None:
+    archive = b"PK\x03\x04fake-workflow-artifact"
+    digest = f"sha256:{hashlib.sha256(archive).hexdigest()}"
+    artifacts = [
+        {
+            "id": index,
+            "name": f"linux-{index}",
+            "size_in_bytes": len(archive),
+            "expired": False,
+            "digest": digest,
+            "workflow_run": {
+                "id": 900 + index,
+                "head_branch": "main",
+                "head_sha": "c" * 40,
+            },
+        }
+        for index in range(1, 102)
+    ]
+    selected = artifacts[-1]
+    transport = FakeGhTransport(
+        result({"total_count": 101, "artifacts": artifacts[:100]}),
+        result({"total_count": 101, "artifacts": artifacts[100:]}),
+        result(selected),
+        binary_result(archive),
+    )
+    client = GhClient(transport=transport, maximum_download_bytes=1024)
+
+    listed = client.list_workflow_artifacts(repository, limit=101)
+    assert len(listed) == 101
+    assert listed[-1].workflow_run_id == 1001
+    destination = tmp_path / "linux-101.zip"
+    receipt = client.download_workflow_artifact(repository, 101, destination)
+    assert destination.read_bytes() == archive
+    assert receipt.verified
+    assert receipt.sha256 == digest.removeprefix("sha256:")
+    binary_argv = transport.binary_calls[0][0]
+    assert any("actions/artifacts/101/zip" in item for item in binary_argv)
+    assert "Accept: application/octet-stream" in binary_argv
+
+
+def test_artifact_download_rejects_digest_mismatch_without_writing(
+    repository: RepositoryRef,
+    tmp_path: Any,
+) -> None:
+    artifact = {
+        "id": 88,
+        "name": "wrong.zip",
+        "size_in_bytes": 4,
+        "expired": False,
+        "digest": f"sha256:{'0' * 64}",
+    }
+    client = GhClient(
+        transport=FakeGhTransport(result(artifact), binary_result(b"nope")),
+        maximum_download_bytes=1024,
+    )
+    destination = tmp_path / "wrong.zip"
+
+    with pytest.raises(GitHubResponseError, match="did not match"):
+        client.download_workflow_artifact(repository, 88, destination)
+    assert not destination.exists()
+
+    missing_digest_transport = FakeGhTransport(result({**artifact, "digest": None}))
+    missing_digest = GhClient(
+        transport=missing_digest_transport,
+        maximum_download_bytes=1024,
+    )
+    with pytest.raises(GitHubResponseError, match="verified artifact download"):
+        missing_digest.download_workflow_artifact(
+            repository,
+            88,
+            tmp_path / "missing-digest.zip",
+        )
+    assert not missing_digest_transport.binary_calls
+
+
+def test_job_log_inspection_is_binary_safe_and_bounded(repository: RepositoryRef) -> None:
+    transport = FakeGhTransport(binary_result(b"step one\nall green\n"))
+    client = GhClient(transport=transport, maximum_response_bytes=1024)
+
+    log = client.get_job_log(repository, 30)
+    assert log.text.splitlines() == ["step one", "all green"]
+    assert log.byte_count == 19
+    assert any("actions/jobs/30/logs" in item for item in transport.binary_calls[0][0])
+
+    oversized = GhClient(
+        transport=FakeGhTransport(binary_result(b"x" * 1025)),
+        maximum_response_bytes=1024,
+    )
+    with pytest.raises(GitHubResponseTooLargeError):
+        oversized.get_job_log(repository, 30)
+
+
 def test_release_package_and_project_metadata_are_read_only(
     repository: RepositoryRef,
 ) -> None:
@@ -490,7 +825,9 @@ def test_release_package_and_project_metadata_are_read_only(
     assert client.list_releases(repository)[0].assets[0].digest == "sha256:abc"
     assert client.get_release(repository, "v1.0.0").tag_name == "v1.0.0"
     assert client.list_release_assets(repository, 1)[0].download_count == 4
-    assert client.list_packages(repository)[0].owner.login == "acme"
+    listed_package = client.list_packages(repository)[0]
+    assert listed_package.owner is not None
+    assert listed_package.owner.login == "acme"
     assert client.get_package(repository, "desktop-material").package_type == "container"
     assert client.list_package_versions(repository, "desktop-material")[0].id == 4
     assert client.list_projects(repository)[0].number == 5
@@ -501,6 +838,74 @@ def test_release_package_and_project_metadata_are_read_only(
     assert "--method" in package_argv
     assert "GET" in package_argv
     assert project_argv[:3] == ("gh", "project", "list")
+
+
+def test_release_mutations_and_verified_asset_download(
+    repository: RepositoryRef,
+    tmp_path: Any,
+) -> None:
+    payload = b"release-installer"
+    digest = f"sha256:{hashlib.sha256(payload).hexdigest()}"
+    asset = {
+        "id": 72,
+        "name": "desktop-material.tar.gz",
+        "state": "uploaded",
+        "size": len(payload),
+        "download_count": 0,
+        "content_type": "application/gzip",
+        "digest": digest,
+    }
+    draft = {
+        "id": 70,
+        "tag_name": "v2.0.0",
+        "name": "2.0.0",
+        "body": "Draft notes",
+        "draft": True,
+        "prerelease": False,
+        "target_commitish": "main",
+        "assets": [],
+    }
+    published = {**draft, "draft": False, "body": "Published notes", "assets": [asset]}
+    transport = FakeGhTransport(
+        result(draft),
+        result(published),
+        result(asset),
+        binary_result(payload),
+        result(stdout=""),
+    )
+    client = GhClient(transport=transport, maximum_download_bytes=1024)
+
+    created = client.create_release(
+        repository,
+        tag_name="v2.0.0",
+        target_commitish="main",
+        name="2.0.0",
+        body="Draft notes",
+    )
+    assert created.draft
+    updated = client.update_release(
+        repository,
+        70,
+        tag_name="v2.0.0",
+        target_commitish="main",
+        name="2.0.0",
+        body="Published notes",
+        draft=False,
+        prerelease=False,
+    )
+    assert not updated.draft
+    destination = tmp_path / "desktop-material.tar.gz"
+    receipt = client.download_release_asset(repository, 72, destination)
+    assert receipt.verified
+    assert destination.read_bytes() == payload
+    assert client.delete_release(repository, 70).operation == "delete-release"
+
+    create_payload = transport.calls[0][2]
+    update_payload = transport.calls[1][2]
+    assert create_payload is not None
+    assert update_payload is not None
+    assert json.loads(create_payload)["draft"] is True
+    assert json.loads(update_payload)["draft"] is False
 
 
 def test_rest_and_graphql_explorers_are_bounded_and_confirm_mutations(

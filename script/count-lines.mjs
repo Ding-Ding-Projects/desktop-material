@@ -59,6 +59,9 @@ const GeneratedPatterns = [
   /^changelog\.json$/,
   /^app\/static\/dim-sum\/manifest\.json$/,
   /^app\/static\/audio\/manifest\.json$/,
+  /^tui\/contracts\/parity\.yaml$/,
+  /^tui\/src\/desktop_material_tui\/assets\/changelog-catalog\.json$/,
+  /^tui\/src\/desktop_material_tui\/assets\/dim-sum\/manifest\.json$/,
 ]
 
 /**
@@ -68,9 +71,24 @@ const GeneratedPatterns = [
 const Areas = [
   { name: 'Vendored / third-party', test: /^(vendor|gemoji)\//, project: false },
   {
-    name: 'Linux TUI prototype (historical)',
+    name: 'Linux TUI tests',
+    test: /^tui\/tests\//,
+    project: true,
+  },
+  {
+    name: 'Linux TUI styles',
+    test: /^tui\/.*\.(?:tcss|css)$/,
+    project: true,
+  },
+  {
+    name: 'Linux TUI source',
+    test: /^tui\/src\//,
+    project: true,
+  },
+  {
+    name: 'Linux TUI packaging and contracts',
     test: /^tui\//,
-    project: false,
+    project: true,
   },
   { name: 'App tests', test: /^app\/test\//, project: true },
   { name: 'App source', test: /^app\/src\//, project: true },

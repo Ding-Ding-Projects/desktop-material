@@ -14,40 +14,34 @@ non-PTY CLI, Cheap LFS compatibility core, and Windows Terminal launch path are
 also tested on Windows with Python 3.12. The Electron application remains the
 full Windows GUI.
 
-This `0.1.0` preview does not yet claim all 202 desktop capabilities. The
-generated `contracts/parity.yaml` ledger marks 14 rows adapted, 53 partial, 132
-not yet available, and 2 terminal-owned, with source evidence for every
-non-default mapping.
+The generated `contracts/parity.yaml` ledger tracks all 202 desktop
+capabilities and records the exact terminal adaptation, partial boundary, or
+remaining gap for each row. The ledger is an implementation contract, not a
+claim that a terminal can reproduce desktop-only window chrome.
 
 ## One-line install
 
-These commands require Git and
-[uv](https://docs.astral.sh/uv/getting-started/installation/). They clone the
-trusted repository, install the TUI as an isolated user tool, and add uv's tool
-directory to future shells.
-
-Linux shell:
+This single command is designed for a fresh glibc-based Linux installation with
+no developer tools preinstalled. It supports `apt-get`, `dnf5`, `dnf`, `yum`,
+`zypper`, and `pacman`; installs native dependencies with root, `sudo`, or
+`doas`; then installs pinned user-owned copies of Python, `uv`, GitHub CLI's
+`gh`, and the verified release wheel. It configures supported shell startup
+files so `github`, `dmt`, `gh`, and `desktop-material-tui` are on `PATH` in the
+next shell.
 
 <!-- markdownlint-disable MD013 -->
 
 ```bash
-git clone https://github.com/Ding-Ding-Projects/desktop-material.git && cd desktop-material && uv tool install ./tui && uv tool update-shell
-```
-
-Windows PowerShell:
-
-```powershell
-git clone https://github.com/Ding-Ding-Projects/desktop-material.git; if ($LASTEXITCODE -ne 0) { throw 'git clone failed' }; Set-Location .\desktop-material; uv tool install .\tui; if ($LASTEXITCODE -ne 0) { throw 'uv tool install failed' }; uv tool update-shell
+sh -c 'set -eu; if ! command -v curl >/dev/null 2>&1; then p=; for x in apt-get dnf5 dnf yum zypper pacman; do if command -v "$x" >/dev/null 2>&1; then p=$x; break; fi; done; [ -n "$p" ] || { echo "No supported package manager was found." >&2; exit 1; }; s=; if [ "$(id -u)" != 0 ]; then if command -v sudo >/dev/null 2>&1; then s=sudo; elif command -v doas >/dev/null 2>&1; then s=doas; else echo "Installing curl requires root, sudo, or doas." >&2; exit 1; fi; fi; case "$p" in apt-get) $s env DEBIAN_FRONTEND=noninteractive apt-get -qq update; $s env DEBIAN_FRONTEND=noninteractive apt-get install -qq -y --no-install-recommends ca-certificates curl;; dnf5|dnf|yum) $s "$p" install -y ca-certificates curl;; zypper) $s zypper --non-interactive refresh; $s zypper --non-interactive install --no-recommends ca-certificates curl;; pacman) $s pacman -Syu --needed --noconfirm ca-certificates curl;; esac; fi; f=$(mktemp /tmp/desktop-material-tui-bootstrap.XXXXXX); trap "rm -f -- $f" EXIT HUP INT TERM; curl --proto =https --proto-redir =https --tlsv1.2 --fail --silent --show-error --location --output "$f" https://github.com/Ding-Ding-Projects/desktop-material/releases/latest/download/bootstrap-linux-tui.sh; n=$(wc -c <"$f" | tr -d "[:space:]"); case "$n" in ""|*[!0-9]*) echo "Downloaded bootstrap size is invalid." >&2; exit 1;; esac; [ "$n" -le 1048576 ] && [ "$(sed -n 1p "$f")" = "#!/bin/sh" ] || { echo "Downloaded bootstrap failed validation." >&2; exit 1; }; sh "$f"'
 ```
 
 <!-- markdownlint-enable MD013 -->
 
-Close and reopen the terminal after the command finishes so the updated
-`PATH` is loaded, then launch a repository with
-`github /path/to/repository` on Linux or
-`github C:\path\to\repository` on Windows. The interactive product remains
-Linux-first; its Windows Terminal launch path and cross-platform core are also
-tested.
+The installation is idempotent and refuses to replace unrelated executables in
+its managed paths. Close and reopen the terminal after it finishes, then run
+`github` from a repository or `github /path/to/repository`. The Open and Clone
+flows begin at the current working directory and include a clickable folder
+browser.
 
 ## Development quick start
 

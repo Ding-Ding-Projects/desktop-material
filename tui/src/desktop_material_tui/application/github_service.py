@@ -29,6 +29,17 @@ from desktop_material_tui.infrastructure.github import (
     WorkflowLogMetadata,
     WorkflowRun,
 )
+from desktop_material_tui.infrastructure.github.models import (
+    ActionsCache,
+    DownloadReceipt,
+    EffectiveBranchRule,
+    PullRequestCheck,
+    PullRequestFile,
+    PullRequestReviewComment,
+    RepositoryNotification,
+    WorkflowArtifact,
+    WorkflowLogContent,
+)
 
 
 class GitHubService:
@@ -275,6 +286,112 @@ class GitHubService:
             timeout_seconds=timeout_seconds,
         )
 
+    def list_pull_request_files(
+        self,
+        number: int,
+        *,
+        limit: int = 500,
+        timeout_seconds: float | None = None,
+    ) -> tuple[PullRequestFile, ...]:
+        return self._client.list_pull_request_files(
+            self._repository,
+            number,
+            limit=limit,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def list_pull_request_checks(
+        self,
+        ref: str,
+        *,
+        limit: int = 500,
+        timeout_seconds: float | None = None,
+    ) -> tuple[PullRequestCheck, ...]:
+        return self._client.list_pull_request_checks(
+            self._repository,
+            ref,
+            limit=limit,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def list_pull_request_review_comments(
+        self,
+        number: int,
+        *,
+        limit: int = 500,
+        timeout_seconds: float | None = None,
+    ) -> tuple[PullRequestReviewComment, ...]:
+        return self._client.list_pull_request_review_comments(
+            self._repository,
+            number,
+            limit=limit,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def create_pull_request_review_comment(
+        self,
+        number: int,
+        *,
+        body: str,
+        commit_id: str,
+        path: str,
+        line: int,
+        side: str,
+        timeout_seconds: float | None = None,
+    ) -> PullRequestReviewComment:
+        return self._client.create_pull_request_review_comment(
+            self._repository,
+            number,
+            body=body,
+            commit_id=commit_id,
+            path=path,
+            line=line,
+            side=side,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def list_effective_branch_rules(
+        self,
+        branch: str,
+        *,
+        limit: int = 500,
+        timeout_seconds: float | None = None,
+    ) -> tuple[EffectiveBranchRule, ...]:
+        return self._client.list_effective_branch_rules(
+            self._repository,
+            branch,
+            limit=limit,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def list_repository_notifications(
+        self,
+        *,
+        all_notifications: bool = True,
+        participating: bool = False,
+        limit: int = 500,
+        timeout_seconds: float | None = None,
+    ) -> tuple[RepositoryNotification, ...]:
+        return self._client.list_repository_notifications(
+            self._repository,
+            all_notifications=all_notifications,
+            participating=participating,
+            limit=limit,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def mark_notification_read(
+        self,
+        thread_id: str,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> ActionReceipt:
+        return self._client.mark_notification_read(
+            self._repository,
+            thread_id,
+            timeout_seconds=timeout_seconds,
+        )
+
     # Actions
 
     def list_workflows(
@@ -356,6 +473,98 @@ class GitHubService:
         return self._client.get_job_log_metadata(
             self._repository,
             job_id,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def get_job_log(
+        self,
+        job_id: int,
+        *,
+        maximum_bytes: int | None = None,
+        timeout_seconds: float | None = None,
+    ) -> WorkflowLogContent:
+        return self._client.get_job_log(
+            self._repository,
+            job_id,
+            maximum_bytes=maximum_bytes,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def list_actions_caches(
+        self,
+        *,
+        key: str | None = None,
+        ref: str | None = None,
+        sort: str = "last_accessed_at",
+        direction: str = "desc",
+        limit: int = 500,
+        timeout_seconds: float | None = None,
+    ) -> tuple[ActionsCache, ...]:
+        return self._client.list_actions_caches(
+            self._repository,
+            key=key,
+            ref=ref,
+            sort=sort,
+            direction=direction,
+            limit=limit,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def delete_actions_cache(
+        self,
+        cache_id: int,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> ActionReceipt:
+        return self._client.delete_actions_cache(
+            self._repository,
+            cache_id,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def list_workflow_artifacts(
+        self,
+        *,
+        run_id: int | None = None,
+        name: str | None = None,
+        limit: int = 500,
+        timeout_seconds: float | None = None,
+    ) -> tuple[WorkflowArtifact, ...]:
+        return self._client.list_workflow_artifacts(
+            self._repository,
+            run_id=run_id,
+            name=name,
+            limit=limit,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def get_workflow_artifact(
+        self,
+        artifact_id: int,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> WorkflowArtifact:
+        return self._client.get_workflow_artifact(
+            self._repository,
+            artifact_id,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def download_workflow_artifact(
+        self,
+        artifact_id: int,
+        destination: str,
+        *,
+        maximum_bytes: int | None = None,
+        overwrite: bool = False,
+        timeout_seconds: float | None = None,
+    ) -> DownloadReceipt:
+        return self._client.download_workflow_artifact(
+            self._repository,
+            artifact_id,
+            destination,
+            maximum_bytes=maximum_bytes,
+            overwrite=overwrite,
             timeout_seconds=timeout_seconds,
         )
 
@@ -441,7 +650,95 @@ class GitHubService:
             timeout_seconds=timeout_seconds,
         )
 
-    # Read-only Packages and Projects
+    def get_release_asset(
+        self,
+        asset_id: int,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> ReleaseAsset:
+        return self._client.get_release_asset(
+            self._repository,
+            asset_id,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def create_release(
+        self,
+        *,
+        tag_name: str,
+        target_commitish: str,
+        name: str,
+        body: str = "",
+        draft: bool = True,
+        prerelease: bool = False,
+        timeout_seconds: float | None = None,
+    ) -> Release:
+        return self._client.create_release(
+            self._repository,
+            tag_name=tag_name,
+            target_commitish=target_commitish,
+            name=name,
+            body=body,
+            draft=draft,
+            prerelease=prerelease,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def update_release(
+        self,
+        release_id: int,
+        *,
+        tag_name: str,
+        target_commitish: str,
+        name: str,
+        body: str,
+        draft: bool,
+        prerelease: bool,
+        timeout_seconds: float | None = None,
+    ) -> Release:
+        return self._client.update_release(
+            self._repository,
+            release_id,
+            tag_name=tag_name,
+            target_commitish=target_commitish,
+            name=name,
+            body=body,
+            draft=draft,
+            prerelease=prerelease,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def delete_release(
+        self,
+        release_id: int,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> ActionReceipt:
+        return self._client.delete_release(
+            self._repository,
+            release_id,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def download_release_asset(
+        self,
+        asset_id: int,
+        destination: str,
+        *,
+        maximum_bytes: int | None = None,
+        overwrite: bool = False,
+        timeout_seconds: float | None = None,
+    ) -> DownloadReceipt:
+        return self._client.download_release_asset(
+            self._repository,
+            asset_id,
+            destination,
+            maximum_bytes=maximum_bytes,
+            overwrite=overwrite,
+            timeout_seconds=timeout_seconds,
+        )
+
+    # Packages and Projects
 
     def list_packages(
         self,

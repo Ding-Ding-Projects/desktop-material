@@ -1,5 +1,7 @@
 # Linux TUI revival verification manifest
 
+<!-- markdownlint-disable MD013 -->
+
 This receipt tracks the 2026-08-02 revival of the interactive Linux terminal
 edition. It is updated only with observed evidence; a planned check is not a
 passing check.
@@ -50,12 +52,20 @@ that fallback must be labelled as Docker/Xvfb evidence rather than WSL evidence.
 | 2026-08-02 | Fresh-Linux installer isolated contract | 144 assertions passed; ShellCheck and actionlint passed |
 | 2026-08-02 | Fresh Debian slim install | First install and idempotent repeat install passed with the built wheel and lock-derived constraints |
 | 2026-08-02 | Installed command smoke | `github`, `dmt`, `desktop-material-tui`, `gh`, Git, SSH, managed Python, and RE2 checks passed from the managed PATH |
+| 2026-08-02 | Desktop-parity service and UI slices | Repository tabs/Files, diff/history/Git, GitHub review/Actions/releases/packages, dim-sum startup, and offline changelog slices passed their focused tests |
+| 2026-08-02 | Search and clipping regressions | The three integrated regressions passed together in 17.21 seconds; search refresh state, live-only repository reconciliation, and 80-column main tabs remained correct |
+| 2026-08-02 | Responsive size/language matrix | 6 passed in 80.81 seconds; focused overflow controls used stable virtual coordinates and remained fully reachable |
+| 2026-08-02 | Integrated Python suite | 406 passed, 1 expected Windows-host Linux-PTY skip in 569.52 seconds |
+| 2026-08-02 | Integrated Ruff and strict mypy | Ruff passed; mypy passed across 61 source files |
+| 2026-08-02 | Generated contract checks | The 202-row parity contract and 707-release offline changelog catalog matched their committed generators |
+| 2026-08-02 | Revived package build | Wheel and source distribution built; the 28,861,781-byte wheel contains all 12 verified dim-sum PNGs, their manifest, the 471,843-byte changelog catalog, and all three TUI command entry points |
+| 2026-08-02 | Current parity summary | 40 adapted, 52 partial, 108 unavailable, 2 terminal-owned |
 
 ## Required completion evidence
 
-- [ ] Full Python suite on the integrated source.
-- [ ] Ruff and strict mypy.
-- [ ] Generated parity contract check.
+- [x] Full Python suite on the integrated source.
+- [x] Ruff and strict mypy.
+- [x] Generated parity contract check.
 - [x] Fresh Debian installer run from no project dependencies, repeated twice.
 - [x] `github`, `dmt`, `desktop-material-tui`, and `gh` launch from the managed PATH.
 - [ ] Xvfb terminal capture at wide, narrow, short, and bilingual layouts.

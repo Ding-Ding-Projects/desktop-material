@@ -134,6 +134,21 @@ class Branch:
     behind: int = 0
     committed_at: datetime | None = None
     symbolic_target: str | None = None
+    upstream_gone: bool = False
+
+
+@dataclass(frozen=True)
+class MergePreview:
+    """Immutable, stale-checkable preview of one ordinary branch merge."""
+
+    current_branch: str
+    current_oid: str
+    source_branch: str
+    source_oid: str
+    merge_base_oid: str
+    incoming_commits: tuple[Commit, ...]
+    changed_files: tuple[str, ...]
+    conflicting_paths: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -171,6 +186,7 @@ class DiffResult:
     staged: bool
     revision: str | None
     paths: tuple[str, ...]
+    word_diff: bool = False
 
     @property
     def is_empty(self) -> bool:

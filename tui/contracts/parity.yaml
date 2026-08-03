@@ -16,8 +16,8 @@
     "terminal_owned": "The terminal emulator or operating environment owns this behavior; the TUI documents the boundary."
   },
   "status_summary": {
-    "adapted": 15,
-    "not_yet_available": 133,
+    "adapted": 40,
+    "not_yet_available": 108,
     "partial": 52,
     "terminal_owned": 2
   },
@@ -265,9 +265,10 @@
       "upstream_relation": "added",
       "desktop_documentation": "../features/design-system/audio-system.md",
       "tui_status": "partial",
-      "reason": "Independent persisted English and Cantonese choices from 1 to 5 are exposed and safety/error copy remains factual. Catalog tone variants currently exist at levels 1, 3, and 5, so levels 2 and 4 do not yet produce distinct wording.",
+      "reason": "Independent persisted English and Cantonese choices from 1 to 5 are exposed, and every catalog entry that offers tone variants now produces distinct output at all five positions without changing facts. A substantial amount of repository and provider copy remains outside the shared tone catalog, so the whole product is not yet wired.",
       "evidence": [
         "tui/src/desktop_material_tui/ui/i18n/__init__.py",
+        "tui/src/desktop_material_tui/ui/i18n/catalogs.py",
         "tui/src/desktop_material_tui/ui/screens/settings.py",
         "tui/tests/ui/i18n/test_i18n.py"
       ]
@@ -326,9 +327,19 @@
       "title": "The dim sum surprise",
       "upstream_relation": "added",
       "desktop_documentation": "../features/design-system/dim-sum-surprise.md",
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "adapted",
+      "reason": "An exactly-once fresh 10% launch draw selects from the verified bundled catalog, renders the local PNG as bounded terminal true-color blocks with bilingual factual names and alt text, never steals focus, auto-dismisses, and suppresses first-run, error, update, modal, and quiet-hours launches without a later ambush or opt-out.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/dim_sum.py",
+        "tui/src/desktop_material_tui/assets/dim-sum/manifest.json",
+        "tui/src/desktop_material_tui/ui/widgets/png_picture.py",
+        "tui/src/desktop_material_tui/ui/widgets/dim_sum_card.py",
+        "tui/src/desktop_material_tui/app.py",
+        "tui/tests/application/test_dim_sum.py",
+        "tui/tests/ui/test_png_picture.py",
+        "tui/tests/ui/test_dim_sum_card.py",
+        "tui/tests/ui/test_dim_sum_app_integration.py"
+      ]
     },
     {
       "id": "2-quiet-hours-reduced-sound-and-screen-reader-coexistence",
@@ -338,10 +349,14 @@
       "upstream_relation": "added",
       "desktop_documentation": "../features/design-system/audio-system.md",
       "tui_status": "partial",
-      "reason": "The preferences persist, but narrator playback policy is not yet active.",
+      "reason": "The preferences persist and the startup dim-sum card obeys the configured quiet-hours window. Narrator playback policy is not yet active.",
       "evidence": [
+        "tui/src/desktop_material_tui/application/dim_sum.py",
+        "tui/src/desktop_material_tui/app.py",
         "tui/src/desktop_material_tui/ui/screens/settings.py",
-        "tui/src/desktop_material_tui/infrastructure/persistence/config.py"
+        "tui/src/desktop_material_tui/infrastructure/persistence/config.py",
+        "tui/tests/application/test_dim_sum.py",
+        "tui/tests/ui/test_dim_sum_app_integration.py"
       ]
     },
     {
@@ -351,13 +366,15 @@
       "title": "Repository tabs",
       "upstream_relation": "added",
       "desktop_documentation": "../features/identity-and-workspace/tab-strip-settings-commit-chip.md",
-      "tui_status": "partial",
-      "reason": "Opened repositories get persisted, clickable, keyboard-selectable terminal tabs. Per-account tab ownership and inline rename are absent.",
+      "tui_status": "adapted",
+      "reason": "Repository tabs now restore from a profile-keyed SQLite SessionRecord, keep a stable manual order, expose aliases and metadata, and remain mouse- and keyboard-selectable through a bounded terminal strip plus the complete Tabs pane.",
       "evidence": [
         "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/application/repository_workspace.py",
+        "tui/src/desktop_material_tui/ui/screens/tab_management.py",
         "tui/src/desktop_material_tui/infrastructure/persistence/database.py",
-        "tui/tests/infrastructure/persistence/test_database.py",
-        "tui/tests/ui/test_app_interactions.py"
+        "tui/tests/application/test_repository_workspace.py",
+        "tui/tests/ui/test_tab_management.py"
       ]
     },
     {
@@ -378,9 +395,14 @@
       "title": "Tab groups",
       "upstream_relation": "added",
       "desktop_documentation": "../features/identity-and-workspace/tab-groups.md",
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "partial",
+      "reason": "Named groups, membership editing, contiguous group blocks, pin-boundary validation, and persisted collapse/expand state are live. Curated group colors and the desktop chip/member-popover presentation are not reproduced in the terminal edition.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/repository_workspace.py",
+        "tui/src/desktop_material_tui/ui/screens/tab_management.py",
+        "tui/tests/application/test_repository_workspace.py",
+        "tui/tests/ui/test_tab_management.py"
+      ]
     },
     {
       "id": "3-group-persistence-boundaries",
@@ -389,9 +411,13 @@
       "title": "Group persistence boundaries",
       "upstream_relation": "added",
       "desktop_documentation": "../features/identity-and-workspace/tab-groups.md",
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "partial",
+      "reason": "Group membership survives restart and tab close, collapsed groups persist in the profile-keyed SessionRecord, imports preserve existing destination groups, and named groups cannot cross the pin boundary. Repository group membership remains shared by the local repository record rather than duplicated per window.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/repository_workspace.py",
+        "tui/src/desktop_material_tui/infrastructure/persistence/database.py",
+        "tui/tests/application/test_repository_workspace.py"
+      ]
     },
     {
       "id": "3-pin-favourite-and-manual-arrange",
@@ -400,9 +426,14 @@
       "title": "Pin, favourite, and manual arrange",
       "upstream_relation": "added",
       "desktop_documentation": "../features/identity-and-workspace/tab-groups.md",
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "adapted",
+      "reason": "The terminal Tabs pane persists pin and favourite state, moves tabs or named groups through keyboard-reachable up/down actions, and offers one-shot label, opened-time, repository-status, and favourites sorts without continuously reshuffling later.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/repository_workspace.py",
+        "tui/src/desktop_material_tui/ui/screens/tab_management.py",
+        "tui/tests/application/test_repository_workspace.py",
+        "tui/tests/ui/test_tab_management.py"
+      ]
     },
     {
       "id": "3-search-tabs-arrange-tabs",
@@ -411,10 +442,12 @@
       "title": "Search tabs / Arrange tabs",
       "upstream_relation": "added",
       "desktop_documentation": "../features/identity-and-workspace/tab-groups.md",
-      "tui_status": "partial",
-      "reason": "The repository rail filters by name and path; aliases, arrangement, and the full desktop tab-search contract are not yet present.",
+      "tui_status": "adapted",
+      "reason": "A dedicated Tabs pane searches visible labels, aliases, groups, names, and paths with the shared literal, fuzzy, and bounded RE2 control, while manual movement and persisted one-shot arrangements keep named groups together.",
       "evidence": [
-        "tui/src/desktop_material_tui/app.py"
+        "tui/src/desktop_material_tui/application/repository_workspace.py",
+        "tui/src/desktop_material_tui/ui/screens/tab_management.py",
+        "tui/tests/application/test_repository_workspace.py"
       ]
     },
     {
@@ -424,9 +457,15 @@
       "title": "Close Tabs Containing… and its guarded inverse",
       "upstream_relation": "added",
       "desktop_documentation": "../features/identity-and-workspace/collection-bulk-and-regex-safety.md",
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "adapted",
+      "reason": "Both close predicates use one synchronized literal/fuzzy/RE2 search state, show bounded live close/keep/protected counts, reject empty, invalid, or zero-match reviews, exclude pinned tabs by default, require an explicit review checkbox, and recheck working-tree and commit-draft safety immediately before closing only the session tabs.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/application/repository_workspace.py",
+        "tui/src/desktop_material_tui/ui/screens/tab_management.py",
+        "tui/tests/application/test_repository_workspace.py",
+        "tui/tests/ui/test_tab_management.py"
+      ]
     },
     {
       "id": "3-tab-strip-overflow-dropdown",
@@ -435,9 +474,14 @@
       "title": "Tab-strip overflow dropdown",
       "upstream_relation": "added",
       "desktop_documentation": "../features/identity-and-workspace/tab-overflow-dropdown.md",
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "adapted",
+      "reason": "The terminal strip keeps pinned and active entries visible within a bounded capacity, reports the overflow count on a persistent Tabs button, and opens the complete searchable tab list where every overflowed or collapsed repository remains activatable and manageable.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/application/repository_workspace.py",
+        "tui/src/desktop_material_tui/ui/screens/tab_management.py",
+        "tui/tests/application/test_repository_workspace.py"
+      ]
     },
     {
       "id": "3-tab-session-export-import",
@@ -446,9 +490,14 @@
       "title": "Tab session export / import",
       "upstream_relation": "added",
       "desktop_documentation": "../features/identity-and-workspace/tab-groups.md",
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "partial",
+      "reason": "The Tabs pane atomically exports and imports bounded UTF-8 JSON with stable order, active repository, aliases, pins, and favourites; imports merge or replace open tabs while preserving existing destination groups. Per-tab graphical appearance is not part of the terminal session format.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/repository_workspace.py",
+        "tui/src/desktop_material_tui/ui/screens/tab_management.py",
+        "tui/tests/application/test_repository_workspace.py",
+        "tui/tests/ui/test_tab_management.py"
+      ]
     },
     {
       "id": "3-drag-a-folder-onto-the-app",
@@ -684,10 +733,13 @@
       "title": "Repository list filter and alias",
       "upstream_relation": "inherited",
       "desktop_documentation": null,
-      "tui_status": "partial",
-      "reason": "The rail provides literal, fuzzy, and RE2 filtering by name/path; aliases are not yet implemented.",
+      "tui_status": "adapted",
+      "reason": "The repository rail and complete Tabs pane render persisted per-repository aliases and filter aliases, names, paths, and group names through the shared literal, fuzzy, and bounded RE2 search service.",
       "evidence": [
-        "tui/src/desktop_material_tui/app.py"
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/application/repository_workspace.py",
+        "tui/src/desktop_material_tui/ui/screens/tab_management.py",
+        "tui/tests/ui/test_tab_management.py"
       ]
     },
     {
@@ -965,9 +1017,14 @@
       "title": "Co-authors, revert, cherry-pick, squash, and reorder",
       "upstream_relation": "inherited",
       "desktop_documentation": null,
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "partial",
+      "reason": "The commit composer validates and writes multiple Co-authored-by trailers, and selected History commits have reviewed revert and cherry-pick actions. Squash and reorder are not yet implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/repository_service.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_repository_service.py",
+        "tui/tests/ui/test_repository_parity.py"
+      ]
     },
     {
       "id": "6-effective-git-author-disclosure",
@@ -1044,9 +1101,14 @@
       "title": "File history",
       "upstream_relation": "extended",
       "desktop_documentation": null,
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "adapted",
+      "reason": "History accepts a repository-bound file path, follows renames through bounded Git log output, and offers a bounded blame view with author and line detail.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/repository_service.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_repository_service.py",
+        "tui/tests/ui/test_repository_parity.py"
+      ]
     },
     {
       "id": "6-stashing",
@@ -1069,9 +1131,14 @@
       "title": "Selective stashes",
       "upstream_relation": "extended",
       "desktop_documentation": "../features/repository-management/selective-stashes.md",
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "adapted",
+      "reason": "The stash pane accepts an exact newline-delimited set of whole files, shows that set for review before Git runs, and the service rejects paths outside the repository before constructing literal pathspec arguments.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/repository_service.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_repository_service.py",
+        "tui/tests/ui/test_repository_parity.py"
+      ]
     },
     {
       "id": "6-named-multi-stash-manager",
@@ -1081,9 +1148,12 @@
       "upstream_relation": "extended",
       "desktop_documentation": "../features/repository-management/named-stash-manager.md",
       "tui_status": "partial",
-      "reason": "The stashes pane lists multiple named stashes and provides apply, pop, create, and guarded drop actions. Rename, branch-from, exact object identity, and retained partial-failure context are absent.",
+      "reason": "The pane creates, inspects, applies, pops, branches from, and guardedly drops multiple named stashes. Every selected action revalidates the exact object ID before Git runs; stash rename and explicit retained partial-failure receipts are not yet implemented.",
       "evidence": [
-        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+        "tui/src/desktop_material_tui/application/repository_service.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_repository_service.py",
+        "tui/tests/ui/test_repository_parity.py"
       ]
     },
     {
@@ -1093,11 +1163,14 @@
       "title": "External stash interoperability",
       "upstream_relation": "extended",
       "desktop_documentation": "../features/repository-management/external-stash-interoperability.md",
-      "tui_status": "partial",
-      "reason": "The pane reads the repository's real Git stash list, including entries created outside the TUI, and can apply, pop, or guardedly drop them. Explicit restore/branch-from flows and metadata-specific safety are absent.",
+      "tui_status": "adapted",
+      "reason": "The pane reads externally created Git stashes, inspects their exact object and patch, and can apply, pop, branch from, or explicitly guardedly drop them. Every action revalidates ref-to-object identity and does not rewrite stash metadata.",
       "evidence": [
+        "tui/src/desktop_material_tui/application/repository_service.py",
         "tui/src/desktop_material_tui/infrastructure/git/porcelain.py",
-        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_repository_service.py",
+        "tui/tests/ui/test_repository_parity.py"
       ]
     },
     {
@@ -1107,11 +1180,13 @@
       "title": "Branch create, rename, delete, switch, and merge",
       "upstream_relation": "inherited",
       "desktop_documentation": null,
-      "tui_status": "partial",
-      "reason": "The branches pane exposes create, switch, merge, and guarded deletion. Rename exists at the service boundary but is not yet exposed in the pane.",
+      "tui_status": "adapted",
+      "reason": "The branches pane exposes create, rename, switch, guarded delete, and stale-checked reviewed merge. Merge-tree reports conflicting paths before mutation, and any confirmed Git conflicts remain visible in Changes for explicit resolution.",
       "evidence": [
         "tui/src/desktop_material_tui/application/repository_service.py",
-        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_repository_service.py",
+        "tui/tests/ui/test_repository_parity.py"
       ]
     },
     {
@@ -1143,9 +1218,12 @@
       "title": "Branch sorting",
       "upstream_relation": "added",
       "desktop_documentation": "../features/identity-and-workspace/branch-switcher-workflows.md",
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "partial",
+      "reason": "The Branches pane switches live between last-activity and alphabetical ordering. The choice is not yet persisted or exposed from Settings → Appearance.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/ui/test_repository_parity.py"
+      ]
     },
     {
       "id": "6-publish-indicator-for-local-only-branches",
@@ -1154,9 +1232,15 @@
       "title": "Publish indicator for local-only branches",
       "upstream_relation": "extended",
       "desktop_documentation": null,
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "adapted",
+      "reason": "Each branch row and detail view distinguish published, local-only, remote, and configured-upstream-gone states from real for-each-ref metadata.",
+      "evidence": [
+        "tui/src/desktop_material_tui/domain/models.py",
+        "tui/src/desktop_material_tui/infrastructure/git/porcelain.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/unit/test_git_porcelain.py",
+        "tui/tests/ui/test_repository_parity.py"
+      ]
     },
     {
       "id": "6-merge-tree-conflict-preview",
@@ -1165,9 +1249,15 @@
       "title": "Merge-tree conflict preview",
       "upstream_relation": "extended",
       "desktop_documentation": null,
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "adapted",
+      "reason": "A clean-tree preview computes current, source, merge-base, incoming commits, changed files, and exact merge-tree conflict paths without changing index or worktree. Confirmation revalidates both reviewed tips before merging.",
+      "evidence": [
+        "tui/src/desktop_material_tui/domain/models.py",
+        "tui/src/desktop_material_tui/application/repository_service.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_repository_service.py",
+        "tui/tests/ui/test_repository_parity.py"
+      ]
     },
     {
       "id": "6-reviewed-ordinary-pull-previews",
@@ -1242,9 +1332,14 @@
       "title": "Tag creation",
       "upstream_relation": "inherited",
       "desktop_documentation": null,
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "adapted",
+      "reason": "Repository Tools provides keyboard- and mouse-operable tag name, target commit, and optional annotation inputs backed by validated local Git tag creation, plus typed-confirm local deletion.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/repository_service.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_repository_service.py",
+        "tui/tests/ui/test_repository_parity.py"
+      ]
     },
     {
       "id": "6-complete-tag-lifecycle",
@@ -1254,10 +1349,12 @@
       "upstream_relation": "extended",
       "desktop_documentation": "../features/repository-management/tag-lifecycle-management.md",
       "tui_status": "partial",
-      "reason": "Local list/create/delete operations exist; the full reviewed local/remote lifecycle is not yet mapped.",
+      "reason": "Local inventory, lightweight or annotated creation on an exact commit, and typed-confirm deletion are exposed and tested. Move, sign, push, fetch, prune, remote deletion, and recovery receipts are not yet implemented.",
       "evidence": [
         "tui/src/desktop_material_tui/application/repository_service.py",
-        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_repository_service.py",
+        "tui/tests/ui/test_repository_parity.py"
       ]
     },
     {
@@ -1289,10 +1386,13 @@
       "title": "Text diffs with syntax highlighting and word diff",
       "upstream_relation": "inherited",
       "desktop_documentation": null,
-      "tui_status": "partial",
-      "reason": "Selectable changed files load scrollable text diffs with line numbers; syntax and word-diff parity is incomplete.",
+      "tui_status": "adapted",
+      "reason": "The Changes pane exposes ordinary or native Git word diffs, plain copyable patches or Rich diff-syntax highlighting, and bounded context selection. Every mode reads the same exact repository path and staged/working-tree side.",
       "evidence": [
-        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+        "tui/src/desktop_material_tui/application/repository_service.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_repository_service.py",
+        "tui/tests/ui/test_diff_parity.py"
       ]
     },
     {
@@ -1302,9 +1402,15 @@
       "title": "Image diffs",
       "upstream_relation": "inherited",
       "desktop_documentation": null,
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "partial",
+      "reason": "Exact before/after bytes for supported PNG changes render locally as bounded true-color terminal half blocks. The dependency-free decoder rejects oversized, corrupt, interlaced, palette, grayscale, TGA, SVG, and other unsupported image inputs without executing or fetching content.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/repository_service.py",
+        "tui/src/desktop_material_tui/ui/widgets/png_picture.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/ui/test_png_picture.py",
+        "tui/tests/ui/test_diff_parity.py"
+      ]
     },
     {
       "id": "7-changed-file-tree-view",
@@ -1313,9 +1419,14 @@
       "title": "Changed-file tree view",
       "upstream_relation": "extended",
       "desktop_documentation": "../features/review-and-diff/changed-file-tree-view.md",
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "adapted",
+      "reason": "Changes switches live between the multi-select flat list and a deterministic directory tree. Only bounded, control-free repository-relative paths are grouped; unsafe labels remain inert root leaves, and file actions retain the exact original Git path.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/diff_preview.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/application/test_diff_preview.py",
+        "tui/tests/ui/test_diff_parity.py"
+      ]
     },
     {
       "id": "7-expanded-diff-context",
@@ -1324,9 +1435,14 @@
       "title": "Expanded diff context",
       "upstream_relation": "extended",
       "desktop_documentation": "../features/review-and-diff/expanded-diff-context.md",
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "adapted",
+      "reason": "A live diff control selects 3, 20, 50, 100, or a bounded 10,000 context lines and reloads the exact staged or working-tree patch without modifying repository state.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/repository_service.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_repository_service.py",
+        "tui/tests/ui/test_diff_parity.py"
+      ]
     },
     {
       "id": "7-structured-csv-and-tsv-diffs",
@@ -1335,9 +1451,15 @@
       "title": "Structured CSV and TSV diffs",
       "upstream_relation": "added",
       "desktop_documentation": "../features/review-and-diff/structured-csv-and-tsv-diffs.md",
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "adapted",
+      "reason": "Bounded UTF-8 CSV and TSV previews parse quoting, CRLF/LF, embedded newlines, row insertion/removal, and changed cells into a semantic terminal table. The table is presentation-only, and malformed, binary, or over-limit input fails closed without generating a patch.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/diff_preview.py",
+        "tui/src/desktop_material_tui/application/repository_service.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/application/test_diff_preview.py",
+        "tui/tests/ui/test_diff_parity.py"
+      ]
     },
     {
       "id": "7-tga-image-previews",
@@ -1379,9 +1501,15 @@
       "title": "Sandboxed Markdown previews",
       "upstream_relation": "extended",
       "desktop_documentation": "../features/quality-and-reliability/responsiveness-and-resource-lifecycle.md",
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "adapted",
+      "reason": "Bounded repository-confined UTF-8 Markdown renders through Textual's terminal-native parser, which has no browser DOM or script execution. Automatic link opening is disabled and image syntax remains inert alt text, so previewing performs no network or filesystem navigation.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/diff_preview.py",
+        "tui/src/desktop_material_tui/application/repository_service.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/application/test_diff_preview.py",
+        "tui/tests/ui/test_diff_parity.py"
+      ]
     },
     {
       "id": "8-pull-request-list-and-branch-checkout",
@@ -1391,10 +1519,12 @@
       "upstream_relation": "inherited",
       "desktop_documentation": null,
       "tui_status": "partial",
-      "reason": "Pull requests can be listed and inspected; full fork/branch checkout parity is not yet mapped.",
+      "reason": "The pull-request list opens a bounded detail workspace with exact head/base refs, review state, activity counts, changed-file metadata, and patch inspection. Fork discovery and branch checkout are still not implemented.",
       "evidence": [
+        "tui/src/desktop_material_tui/infrastructure/github/client.py",
         "tui/src/desktop_material_tui/application/github_service.py",
-        "tui/src/desktop_material_tui/ui/screens/github.py"
+        "tui/src/desktop_material_tui/ui/screens/github.py",
+        "tui/tests/ui/test_github_pull_request_review_surface.py"
       ]
     },
     {
@@ -1404,9 +1534,15 @@
       "title": "Check runs and CI status",
       "upstream_relation": "inherited",
       "desktop_documentation": null,
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "adapted",
+      "reason": "Selecting a pull request loads its exact head SHA, then combines paginated latest check runs with legacy commit statuses under one 500-item cap. The TUI exposes source, state, conclusion, timestamps, bounded summary text, and the GitHub details URL.",
+      "evidence": [
+        "tui/src/desktop_material_tui/infrastructure/github/client.py",
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py",
+        "tui/tests/unit/infrastructure/github/test_client.py",
+        "tui/tests/ui/test_github_pull_request_review_surface.py"
+      ]
     },
     {
       "id": "8-in-app-pull-request-review-workspace",
@@ -1415,9 +1551,16 @@
       "title": "In-app pull-request review workspace",
       "upstream_relation": "added",
       "desktop_documentation": "../features/collaboration/pull-request-review-workspace.md",
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "partial",
+      "reason": "The terminal workspace loads bounded pull-request details, changed files and patches, checks/statuses, conversation activity, and review comments; it submits explicit approve/comment/request-changes reviews and exact-head line comments. Thread replies/resolution, code-suggestion authoring, full diff context expansion, and internal suggestion workflows remain unavailable.",
+      "evidence": [
+        "tui/src/desktop_material_tui/infrastructure/github/models.py",
+        "tui/src/desktop_material_tui/infrastructure/github/client.py",
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py",
+        "tui/tests/unit/infrastructure/github/test_client.py",
+        "tui/tests/ui/test_github_pull_request_review_surface.py"
+      ]
     },
     {
       "id": "8-in-app-pull-request-creation",
@@ -1441,10 +1584,13 @@
       "upstream_relation": "added",
       "desktop_documentation": "../features/collaboration/pull-request-context-and-actions.md",
       "tui_status": "partial",
-      "reason": "Comment, review, and merge operations are available; the desktop edition's complete lifecycle workspace is broader.",
+      "reason": "Creation and reviewed merge remain available; reviews are now explicit approve/comment/request-changes mutations bound to the loaded head SHA, and line comments require an exact file, side, and diff line. Thread replies/resolution, account selection, branch checkout, and the desktop edition's broader lifecycle controls remain unavailable.",
       "evidence": [
+        "tui/src/desktop_material_tui/infrastructure/github/client.py",
         "tui/src/desktop_material_tui/application/github_service.py",
-        "tui/src/desktop_material_tui/ui/screens/github.py"
+        "tui/src/desktop_material_tui/ui/screens/github.py",
+        "tui/tests/unit/infrastructure/github/test_client.py",
+        "tui/tests/ui/test_github_pull_request_review_surface.py"
       ]
     },
     {
@@ -1454,9 +1600,15 @@
       "title": "Pull-request activity notifications",
       "upstream_relation": "extended",
       "desktop_documentation": "../features/collaboration/pull-request-activity-notifications.md",
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "partial",
+      "reason": "A repository-scoped GitHub notification inbox lists, searches, and inspects up to 500 threads and can mark only the selected numeric thread as read. Operating-system delivery, failed-check routing, and cross-source de-duplication are not implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/infrastructure/github/client.py",
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py",
+        "tui/tests/unit/infrastructure/github/test_client.py",
+        "tui/tests/ui/test_github_pull_request_review_surface.py"
+      ]
     },
     {
       "id": "8-fork-branch-checkout",
@@ -1515,9 +1667,15 @@
       "title": "Branch and repository rules",
       "upstream_relation": "inherited",
       "desktop_documentation": null,
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "partial",
+      "reason": "The TUI can inspect, search, and render the parameters of up to 500 active repository- and organization-level rules that effectively apply to one exact branch. Raw ruleset inventory, disabled/evaluate rules, wildcard-target inspection, and ruleset mutation are not implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/infrastructure/github/client.py",
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py",
+        "tui/tests/unit/infrastructure/github/test_client.py",
+        "tui/tests/ui/test_github_pull_request_review_surface.py"
+      ]
     },
     {
       "id": "9-actions-run-browser",
@@ -1526,11 +1684,13 @@
       "title": "Actions run browser",
       "upstream_relation": "added",
       "desktop_documentation": null,
-      "tui_status": "partial",
-      "reason": "Workflow and run tables provide mouse/keyboard selection, refresh, and shared text/regex search. Dedicated workflow, branch, event, and status filters are absent, and event is not in the current search fields.",
+      "tui_status": "adapted",
+      "reason": "Workflow and run tables provide keyboard/mouse selection, refresh, bounded text/regex search, visible event data, and dedicated workflow, branch, event, and status filters backed by the GitHub Actions REST query.",
       "evidence": [
+        "tui/src/desktop_material_tui/infrastructure/github/client.py",
         "tui/src/desktop_material_tui/application/github_service.py",
-        "tui/src/desktop_material_tui/ui/screens/github.py"
+        "tui/src/desktop_material_tui/ui/screens/github.py",
+        "tui/tests/ui/test_github_actions_surface.py"
       ]
     },
     {
@@ -1540,11 +1700,14 @@
       "title": "Job, step, and log inspection",
       "upstream_relation": "added",
       "desktop_documentation": null,
-      "tui_status": "partial",
-      "reason": "Jobs and bounded metadata are inspectable; complete streamed log browsing parity is not yet established.",
+      "tui_status": "adapted",
+      "reason": "Selecting a run loads its jobs and run-log metadata; selecting a job renders every reported step, and job log text is fetched through a strict byte and timeout bound into a scrollable inspector.",
       "evidence": [
+        "tui/src/desktop_material_tui/infrastructure/github/client.py",
         "tui/src/desktop_material_tui/application/github_service.py",
-        "tui/src/desktop_material_tui/ui/screens/github.py"
+        "tui/src/desktop_material_tui/ui/screens/github.py",
+        "tui/tests/unit/infrastructure/github/test_client.py",
+        "tui/tests/ui/test_github_actions_surface.py"
       ]
     },
     {
@@ -1554,11 +1717,14 @@
       "title": "Re-run all or failed jobs",
       "upstream_relation": "extended",
       "desktop_documentation": null,
-      "tui_status": "partial",
-      "reason": "The service supports full or failed-job rerun requests, but the terminal UI exposes only a full rerun button.",
+      "tui_status": "adapted",
+      "reason": "The selected run exposes separate full-rerun and failed-jobs-only controls, both mapped to the matching GitHub Actions REST endpoints and covered by fake-transport and UI tests.",
       "evidence": [
+        "tui/src/desktop_material_tui/infrastructure/github/client.py",
         "tui/src/desktop_material_tui/application/github_service.py",
-        "tui/src/desktop_material_tui/ui/screens/github.py"
+        "tui/src/desktop_material_tui/ui/screens/github.py",
+        "tui/tests/unit/infrastructure/github/test_client.py",
+        "tui/tests/ui/test_github_actions_surface.py"
       ]
     },
     {
@@ -1569,10 +1735,12 @@
       "upstream_relation": "added",
       "desktop_documentation": null,
       "tui_status": "partial",
-      "reason": "Workflow dispatch is available with a ref; arbitrary typed workflow input discovery is not yet complete.",
+      "reason": "Workflow dispatch accepts a ref plus a validated JSON object of up to 25 scalar input values. Workflow-file input-schema discovery and generated choice/boolean controls are not yet present.",
       "evidence": [
+        "tui/src/desktop_material_tui/infrastructure/github/client.py",
         "tui/src/desktop_material_tui/application/github_service.py",
-        "tui/src/desktop_material_tui/ui/screens/github.py"
+        "tui/src/desktop_material_tui/ui/screens/github.py",
+        "tui/tests/ui/test_github_actions_surface.py"
       ]
     },
     {
@@ -1596,9 +1764,16 @@
       "title": "Actions caches",
       "upstream_relation": "added",
       "desktop_documentation": null,
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "adapted",
+      "reason": "The cache tab paginates real Actions cache metadata, provides bounded text/regex search, and requires review plus typed cache-id confirmation before ID-scoped deletion. Cache archive download is explicitly unavailable because GitHub exposes no supported archive-download endpoint.",
+      "evidence": [
+        "tui/src/desktop_material_tui/infrastructure/github/models.py",
+        "tui/src/desktop_material_tui/infrastructure/github/client.py",
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py",
+        "tui/tests/unit/infrastructure/github/test_client.py",
+        "tui/tests/ui/test_github_actions_surface.py"
+      ]
     },
     {
       "id": "9-actions-artifacts",
@@ -1607,9 +1782,17 @@
       "title": "Actions artifacts",
       "upstream_relation": "added",
       "desktop_documentation": null,
-      "tui_status": "not_yet_available",
-      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
-      "evidence": []
+      "tui_status": "adapted",
+      "reason": "The artifact tab paginates repository or run artifacts, provides bounded text/regex search, rejects expired or oversized archives, and saves only SHA-256-verified bytes to a non-existing destination through the no-shell gh transport.",
+      "evidence": [
+        "tui/src/desktop_material_tui/infrastructure/github/models.py",
+        "tui/src/desktop_material_tui/infrastructure/github/transport.py",
+        "tui/src/desktop_material_tui/infrastructure/github/client.py",
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py",
+        "tui/tests/unit/infrastructure/github/test_client.py",
+        "tui/tests/ui/test_github_actions_surface.py"
+      ]
     },
     {
       "id": "9-local-github-actions-runner",
@@ -1630,10 +1813,13 @@
       "upstream_relation": "added",
       "desktop_documentation": "../features/integrations/repository-releases-dashboard.md",
       "tui_status": "partial",
-      "reason": "Release inventory and detail are available; editing, asset upload, and the desktop dashboard's complete filtering are not yet present.",
+      "reason": "Release inventory, detail, draft creation, editing, publish, typed-confirmation deletion, asset inventory, and bounded asset download with SHA-256 verification when GitHub supplies a digest are available. Multipart asset upload and the desktop dashboard's complete filtering remain unavailable and are labeled in the pane.",
       "evidence": [
+        "tui/src/desktop_material_tui/infrastructure/github/client.py",
         "tui/src/desktop_material_tui/application/github_service.py",
-        "tui/src/desktop_material_tui/ui/screens/github.py"
+        "tui/src/desktop_material_tui/ui/screens/github.py",
+        "tui/tests/unit/infrastructure/github/test_client.py",
+        "tui/tests/ui/test_github_actions_surface.py"
       ]
     },
     {
@@ -1644,10 +1830,12 @@
       "upstream_relation": "added",
       "desktop_documentation": "../features/integrations/github-packages-explorer.md",
       "tui_status": "partial",
-      "reason": "A read-only package inventory is exposed; version file transfer parity is not yet implemented.",
+      "reason": "Package inventory and selected-package version metadata are exposed with local search. GitHub's Packages REST API does not provide registry content download, so file transfer remains explicitly delegated to each package type's registry-native client.",
       "evidence": [
+        "tui/src/desktop_material_tui/infrastructure/github/client.py",
         "tui/src/desktop_material_tui/application/github_service.py",
-        "tui/src/desktop_material_tui/ui/screens/github.py"
+        "tui/src/desktop_material_tui/ui/screens/github.py",
+        "tui/tests/ui/test_github_actions_surface.py"
       ]
     },
     {

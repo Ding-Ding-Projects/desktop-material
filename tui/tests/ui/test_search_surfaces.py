@@ -8,6 +8,9 @@ from types import SimpleNamespace
 import pytest
 from textual.widgets import DataTable, Input, ListView, TextArea
 
+from desktop_material_tui.app import DesktopMaterialTUI
+from desktop_material_tui.application.repository_workspace import WorkspaceSnapshot
+from desktop_material_tui.infrastructure.persistence import RepositoryRecord
 from desktop_material_tui.ui.screens.github import GitHubPane
 from desktop_material_tui.ui.screens.notifications import NotificationCentrePane
 from desktop_material_tui.ui.widgets.search_bar import SearchBar, SearchState
@@ -25,6 +28,8 @@ async def test_repository_notification_and_github_search_bars_filter_models(
         app.repository_services = {alpha: object(), beta: object()}
         app._refresh_repository_list()
         await app.workers.wait_for_complete()
+        repositories = app.query_one("#repository-list", ListView)
+        assert len(repositories.children) == 2
 
         repository_search = app.query_one("#repositories-search", SearchBar)
         repository_search.set_state(SearchState(query="beta"), emit=True)
@@ -32,7 +37,6 @@ async def test_repository_notification_and_github_search_bars_filter_models(
         await pilot.pause()
         await app.workers.wait_for_complete()
         await pilot.pause()
-        repositories = app.query_one("#repository-list", ListView)
         assert len(repositories.children) == 1
         assert "beta-project" in repositories.children[0].path.name
 
@@ -96,6 +100,31 @@ async def test_repository_notification_and_github_search_bars_filter_models(
         issue_table = app.query_one("#issues-table", DataTable)
         assert issue_table.row_count == 1
         assert github._selected_issue().number == 2
+
+
+def test_live_repository_missing_from_persisted_snapshot_stays_discoverable(
+    tmp_path: Path,
+) -> None:
+    """A failed persistence write must not hide an otherwise open repository."""
+
+    alpha = (tmp_path / "alpha-project").resolve()
+    beta = (tmp_path / "beta-project").resolve()
+    app = DesktopMaterialTUI()
+    app.repository_services = {beta: object(), alpha: object()}
+    persisted = RepositoryRecord(path=alpha, alias="Saved alpha")
+    app._repository_workspace = SimpleNamespace(
+        snapshot=lambda: WorkspaceSnapshot(
+            records=(persisted,),
+            active_repository_path=alpha,
+            collapsed_groups=frozenset(),
+        )
+    )
+
+    records = app._open_repository_records()
+
+    assert records[0] is persisted
+    assert records[0].alias == "Saved alpha"
+    assert [record.path for record in records] == [alpha, beta]
 
 
 @pytest.mark.asyncio

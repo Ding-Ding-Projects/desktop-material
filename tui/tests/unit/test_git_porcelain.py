@@ -119,16 +119,20 @@ def test_parse_branches_filters_symbolic_remote_head() -> None:
         "\x00*\x002023-11-14T22:13:20+00:00\x00\x00\n"
         f"refs/remotes/origin/main\x00origin/main\x00{OID_B}\x00\x00\x00 \x00"
         "2023-11-14T22:13:20+00:00\x00\x00\n"
+        f"refs/heads/gone\x00gone\x00{OID_C}\x00origin/gone\x00gone\x00 \x00"
+        "2023-11-14T22:13:20+00:00\x00\x00\n"
         f"refs/remotes/origin/HEAD\x00origin/HEAD\x00{OID_B}\x00\x00\x00 \x00"
         "2023-11-14T22:13:20+00:00\x00refs/remotes/origin/main\x00\n"
     )
 
     branches = parse_branches(output)
 
-    assert [branch.name for branch in branches] == ["main", "origin/main"]
+    assert [branch.name for branch in branches] == ["main", "origin/main", "gone"]
     assert branches[0].is_current
     assert (branches[0].ahead, branches[0].behind) == (2, 1)
     assert branches[1].is_remote
+    assert not branches[0].upstream_gone
+    assert branches[2].upstream_gone
 
 
 def test_parse_stashes_and_tags() -> None:

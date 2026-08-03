@@ -8,6 +8,7 @@ import shlex
 import shutil
 import subprocess
 from collections.abc import Callable
+from contextlib import suppress
 from dataclasses import asdict, replace
 from datetime import datetime, timezone
 from pathlib import Path
@@ -30,8 +31,15 @@ from textual.widgets import (
     TabbedContent,
     TabPane,
     Tabs,
+    TextArea,
 )
 
+from .application.dim_sum import (
+    DimSumLaunchContext,
+    DimSumSurpriseController,
+    is_within_quiet_hours,
+    load_dim_sum_catalog,
+)
 from .application.path_input import (
     clone_url_embeds_http_credentials,
     inspect_clone_destination,
@@ -48,6 +56,7 @@ from .ui.screens.dialogs import (
     PaletteCommand,
     PathDialog,
 )
+from .ui.screens.file_browser import FileBrowserPane
 from .ui.screens.github import GitHubPane
 from .ui.screens.notifications import NotificationCentrePane
 from .ui.screens.regex_builder import RegexBuilderPane
@@ -60,6 +69,9 @@ from .ui.screens.repository_panes import (
     StashesPane,
 )
 from .ui.screens.settings import SettingsHistoryDialog, SettingsPane, SettingsValues
+from .ui.screens.tab_management import RepositoryTabsPane
+from .ui.widgets.dim_sum_card import DimSumSurpriseCard
+from .ui.widgets.png_picture import decode_png_picture, render_terminal_picture
 from .ui.widgets.repository_splitter import RepositoryRailSplitter
 from .ui.widgets.search_bar import SearchBar, SearchState
 
@@ -130,16 +142,30 @@ class RepositoryListItem(ListItem):
         ahead: int = 0,
         behind: int = 0,
         changes: int = 0,
+        label: str | None = None,
+        group_name: str | None = None,
+        pinned: bool = False,
+        favorite: bool = False,
     ) -> None:
         self.path = path
         marker = "●" if active else " "
+        badges = " ".join(
+            badge
+            for badge, enabled in (
+                ("[yellow]PIN[/]", pinned),
+                ("[yellow]★[/]", favorite),
+            )
+            if enabled
+        )
+        display_label = label or path.name or str(path)
+        group = f" · {group_name}" if group_name else ""
         state = (
             f"\n[dim]{branch or 'detached'} · "
-            f"[green]↑{ahead}[/] [yellow]↓{behind}[/] · {changes} change(s)[/]"
+            f"[green]↑{ahead}[/] [yellow]↓{behind}[/] · {changes} change(s){group}[/]"
         )
         super().__init__(
             Static(
-                f"{marker} [b]{path.name or path}[/]\n[dim]{path}[/]{state}",
+                f"{marker} [b]{display_label}[/] {badges}\n[dim]{path}[/]{state}",
                 markup=True,
             )
         )
@@ -150,6 +176,8 @@ class DesktopMaterialTUI(App[None]):
 
     _TAB_KEYS: ClassVar[dict[str, str]] = {
         "#--content-tab-changes-tab": "nav.changes",
+        "#--content-tab-files-tab": "nav.files",
+        "#--content-tab-tab-manager-tab": "nav.repository_tabs",
         "#--content-tab-history-tab": "nav.history",
         "#--content-tab-branches-tab": "repository.branch",
         "#--content-tab-stashes-tab": "repository.stash",
@@ -163,6 +191,8 @@ class DesktopMaterialTUI(App[None]):
     }
     _COMPACT_TAB_LABELS: ClassVar[dict[str, str]] = {
         "#--content-tab-changes-tab": "Chg",
+        "#--content-tab-files-tab": "Files",
+        "#--content-tab-tab-manager-tab": "Tabs",
         "#--content-tab-history-tab": "Hist",
         "#--content-tab-branches-tab": "Br",
         "#--content-tab-stashes-tab": "St",
@@ -179,6 +209,7 @@ class DesktopMaterialTUI(App[None]):
     SUB_TITLE = "Linux-first Git workspace"
     CSS_PATH = "ui/styles.tcss"
     ENABLE_COMMAND_PALETTE = False
+    _STARTUP_MARKER_FILENAME = "startup-complete"
 
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("ctrl+q", "quit", "Quit", priority=True),
@@ -186,6 +217,7 @@ class DesktopMaterialTUI(App[None]):
         Binding("ctrl+o", "open_repository", "Open", priority=True),
         Binding("ctrl+r", "refresh_repository", "Refresh"),
         Binding("ctrl+shift+f", "regex_builder", "Regex"),
+        Binding("ctrl+shift+t", "manage_repository_tabs", "Tabs"),
         Binding("f1", "help", "Help"),
         Binding("f5", "fetch", "Fetch"),
         Binding("ctrl+shift+p", "push", "Push"),
@@ -199,6 +231,7 @@ class DesktopMaterialTUI(App[None]):
         theme_override: str | None = None,
         english_funny_level_override: int | None = None,
         cantonese_funny_level_override: int | None = None,
+        dim_sum_random_draw: Callable[[], float] | None = None,
     ) -> None:
         super().__init__()
         self.initial_repository = (
@@ -214,11 +247,22 @@ class DesktopMaterialTUI(App[None]):
         self._config: Any | None = None
         self._notification_service: Any | None = None
         self._persistence_database: Any | None = None
+        self._repository_workspace: Any | None = None
+        self._repository_tab_paths: dict[str, Path] = {}
+        self._repository_group_tabs: dict[str, str] = {}
+        self._repository_close_protection: dict[Path, str] = {}
+        self._refreshing_repository_tabs = False
+        self._repository_tab_render_generation = 0
         self._translator: Any | None = None
         self._version_history_service: Any | None = None
         self._settings_undo_stack: list[Any] = []
         self._settings_redo_stack: list[Any] = []
         self._preferred_repository_rail_width = RepositoryRailSplitter.DEFAULT_WIDTH
+        self._first_run = True
+        self._startup_had_error = False
+        self._dim_sum_started = False
+        self._dim_sum_random_draw = dim_sum_random_draw
+        self._dim_sum_controller: DimSumSurpriseController | None = None
         self.language_override = language_override
         self.theme_override = theme_override
         self.english_funny_level_override = english_funny_level_override
@@ -243,7 +287,13 @@ class DesktopMaterialTUI(App[None]):
                     yield Button("New", id="repository-new", tooltip="Initialize a repository")
             yield RepositoryRailSplitter(id="repository-splitter")
             with Vertical(id="workspace"):
-                yield Tabs(id="repository-tabs")
+                with Horizontal(id="repository-tab-strip"):
+                    yield Tabs(id="repository-tabs")
+                    yield Button(
+                        "Tabs…",
+                        id="repository-tabs-menu",
+                        tooltip="Search, arrange, group, import, export, or close tabs",
+                    )
                 with Horizontal(id="repository-toolbar"):
                     yield Static(
                         "No repository open", id="active-repository", classes="toolbar-title"
@@ -255,6 +305,13 @@ class DesktopMaterialTUI(App[None]):
                 with TabbedContent(initial="changes-tab", id="main-tabs"):
                     with TabPane("Changes", id="changes-tab"):
                         yield ChangesPane(id="changes-pane", classes="screen-layout")
+                    with TabPane("Files", id="files-tab"):
+                        yield FileBrowserPane(id="files-pane", classes="screen-layout")
+                    with TabPane("Tabs", id="tab-manager-tab"):
+                        yield RepositoryTabsPane(
+                            id="repository-tabs-pane",
+                            classes="screen-layout",
+                        )
                     with TabPane("History", id="history-tab"):
                         yield HistoryPane(id="history-pane", classes="screen-layout")
                     with TabPane("Branches", id="branches-tab"):
@@ -285,6 +342,11 @@ class DesktopMaterialTUI(App[None]):
 
     def on_mount(self) -> None:
         self._initialize_services()
+        self.query_one("#repository-tabs-pane", RepositoryTabsPane).bind_workspace(
+            self._repository_workspace,
+            on_changed=self._workspace_changed,
+            on_close_requested=self._request_repository_tab_close,
+        )
         self._index_search_bars()
         self._apply_config()
         restored = self._restore_saved_repositories()
@@ -302,6 +364,8 @@ class DesktopMaterialTUI(App[None]):
                 "Click Open or press Ctrl+O to choose a repository.",
                 title="Welcome",
             )
+        self._refresh_repository_tab_safety()
+        self.call_after_refresh(self._start_dim_sum_surprise)
 
     def on_unmount(self) -> None:
         """Release owned database handles and other lifecycle resources."""
@@ -322,6 +386,8 @@ class DesktopMaterialTUI(App[None]):
     ) -> None:
         """Show a corner notification and retain a reviewable local record."""
 
+        if severity == "error":
+            self._startup_had_error = True
         super().notify(
             message,
             title=title,
@@ -367,14 +433,26 @@ class DesktopMaterialTUI(App[None]):
             from .infrastructure.persistence import ConfigStore, XDGPaths
 
             paths = XDGPaths.discover().ensure()
+            startup_marker = paths.state_dir / self._STARTUP_MARKER_FILENAME
+            self._first_run = not startup_marker.exists()
+            if self._first_run:
+                startup_marker.write_text("completed\n", encoding="utf-8")
+                with suppress(OSError):
+                    startup_marker.chmod(0o600)
             self._config_store = ConfigStore(paths)
-            self._config = self._config_store.load_or_default()
+            try:
+                self._config = self._config_store.load()
+            except (OSError, ValueError):
+                self._startup_had_error = True
+                self._config = self._config_store.load_or_default()
         except (ImportError, OSError, ValueError):
+            self._startup_had_error = True
             self._config_store = None
             self._config = None
         if paths is None:
             self._notification_service = None
             self._persistence_database = None
+            self._repository_workspace = None
             self._version_history_service = None
         else:
             try:
@@ -385,6 +463,19 @@ class DesktopMaterialTUI(App[None]):
             except (ImportError, OSError, ValueError):
                 self._notification_service = None
                 self._persistence_database = None
+            if self._persistence_database is not None:
+                try:
+                    from .application.repository_workspace import (
+                        RepositoryWorkspaceService,
+                    )
+
+                    profile = str(getattr(self._config, "active_profile", "local"))
+                    self._repository_workspace = RepositoryWorkspaceService(
+                        self._persistence_database,
+                        profile,
+                    )
+                except (ImportError, OSError, ValueError):
+                    self._repository_workspace = None
             try:
                 from .application.version_history import VersionHistoryService
 
@@ -481,9 +572,15 @@ class DesktopMaterialTUI(App[None]):
         if translator is None:
             return
         compact = self.has_class("compact")
+        fallback_labels = {
+            "nav.files": "Files",
+            "nav.repository_tabs": "Tabs",
+        }
         for selector, key in self._TAB_KEYS.items():
             tab = self.query_one(selector, Tab)
             full_label = translator.t(key)
+            if full_label == key:
+                full_label = fallback_labels.get(key, full_label)
             tab.label = self._COMPACT_TAB_LABELS[selector] if compact else full_label
             tab.tooltip = full_label
         self._update_header_copy()
@@ -517,6 +614,7 @@ class DesktopMaterialTUI(App[None]):
         if self.is_running:
             self._apply_repository_rail_width(total_width=event.size.width)
             self._update_tab_labels()
+            self._render_repository_tabs()
 
     @on(RepositoryRailSplitter.ResizeRequested)
     def _on_repository_splitter_resize(
@@ -604,6 +702,91 @@ class DesktopMaterialTUI(App[None]):
                 )
         self._update_settings_history_status()
 
+    def _start_dim_sum_surprise(self) -> None:
+        """Begin the one allowed startup draw after the main shell is usable."""
+
+        if self._dim_sum_started:
+            return
+        self._dim_sum_started = True
+        self.run_worker(
+            self._consider_dim_sum_surprise(),
+            group="dim-sum-surprise",
+            exclusive=True,
+        )
+
+    async def _consider_dim_sum_surprise(self) -> None:
+        """Load, verify, decode, and mount an eligible bundled dish off-thread."""
+
+        interaction = getattr(self._config, "interaction", self._config)
+        quiet_hours = False
+        if interaction is not None:
+            quiet_hours = is_within_quiet_hours(
+                str(getattr(interaction, "quiet_hours_start", "")),
+                str(getattr(interaction, "quiet_hours_end", "")),
+            )
+        context = DimSumLaunchContext(
+            first_run=self._first_run,
+            error_state=self._startup_had_error,
+            updating=os.environ.get("DMT_UPDATE_IN_PROGRESS") == "1",
+            modal_open=len(self.screen_stack) > 1,
+            quiet_hours=quiet_hours,
+        )
+
+        # A suppressed launch spends its one opportunity immediately. It must not
+        # load 28 MiB of optional art or ambush the user after the condition clears.
+        if any(
+            (
+                context.first_run,
+                context.error_state,
+                context.updating,
+                context.modal_open,
+                context.quiet_hours,
+            )
+        ):
+            self._dim_sum_controller = DimSumSurpriseController(
+                (), random_draw=self._dim_sum_random_draw
+            )
+            self._dim_sum_controller.consider(context)
+            return
+
+        asset_root = Path(__file__).parent / "assets" / "dim-sum"
+        try:
+            dishes = await asyncio.to_thread(
+                load_dim_sum_catalog,
+                asset_root / "manifest.json",
+                asset_root,
+            )
+            self._dim_sum_controller = DimSumSurpriseController(
+                dishes,
+                random_draw=self._dim_sum_random_draw,
+            )
+            decision = self._dim_sum_controller.consider(context)
+            if decision.dish is None:
+                return
+            picture = await asyncio.to_thread(
+                decode_png_picture,
+                decision.dish.image_path,
+                columns=24,
+                terminal_rows=8,
+            )
+            rendered_picture = render_terminal_picture(picture)
+        except (OSError, TypeError, ValueError):
+            # The optional delight may fail closed, but it never turns startup
+            # into an error dialog or a delayed interruption.
+            self._startup_had_error = True
+            return
+
+        if len(self.screen_stack) > 1 or self._startup_had_error:
+            return
+        await self.mount(
+            DimSumSurpriseCard(
+                decision.dish,
+                rendered_picture,
+                translator=self._translator,
+                id="dim-sum-surprise",
+            )
+        )
+
     def _make_repository_service(self, path: Path) -> Any:
         from .application.repository_service import RepositoryService
 
@@ -618,17 +801,30 @@ class DesktopMaterialTUI(App[None]):
         if database is None:
             return False
         try:
-            records = database.list_repositories(include_hidden=False)
+            workspace_snapshot = (
+                self._repository_workspace.snapshot()
+                if self._repository_workspace is not None
+                else None
+            )
+            records = (
+                list(workspace_snapshot.records)
+                if workspace_snapshot is not None
+                else database.list_repositories(include_hidden=False)
+            )
         except Exception:
             return False
         valid_records: list[RepositoryRecord] = []
+        skipped_paths: list[Path] = []
+        restored_services: dict[Path, Any] = {}
         for record in records:
             path = Path(getattr(record, "path", "")).expanduser().resolve()
             if not path.exists():
+                skipped_paths.append(path)
                 continue
             try:
-                self.repository_services[path] = self._make_repository_service(path)
+                restored_services[path] = self._make_repository_service(path)
             except Exception as error:
+                skipped_paths.append(path)
                 self.notify(
                     f"{path}: {error}",
                     title="Skipped saved repository",
@@ -636,15 +832,29 @@ class DesktopMaterialTUI(App[None]):
                 )
                 continue
             valid_records.append(record)
+        if skipped_paths and self._repository_workspace is not None:
+            with suppress(OSError, RuntimeError, ValueError):
+                self._repository_workspace.close_repositories(skipped_paths)
+        self.repository_services = restored_services
         if not valid_records:
             return False
-        latest = max(
-            valid_records,
-            key=lambda record: (
-                getattr(record, "last_opened_at", None) or datetime.min.replace(tzinfo=timezone.utc)
-            ),
+        restored_paths = set(restored_services)
+        preferred_active = (
+            workspace_snapshot.active_repository_path
+            if workspace_snapshot is not None
+            else None
         )
-        self.active_repository = Path(latest.path).resolve()
+        if preferred_active in restored_paths:
+            self.active_repository = preferred_active
+        else:
+            latest = max(
+                valid_records,
+                key=lambda record: (
+                    getattr(record, "last_opened_at", None)
+                    or datetime.min.replace(tzinfo=timezone.utc)
+                ),
+            )
+            self.active_repository = Path(latest.path).resolve()
         return True
 
     def _remember_repository(self, path: Path) -> None:
@@ -664,7 +874,9 @@ class DesktopMaterialTUI(App[None]):
                 )
             )
             database.save_repository(record)
-        except (OSError, ValueError):
+            if self._repository_workspace is not None:
+                self._repository_workspace.open_repository(path)
+        except (OSError, RuntimeError, ValueError):
             return
 
     def open_repository_path(self, path: str | Path) -> None:
@@ -688,35 +900,142 @@ class DesktopMaterialTUI(App[None]):
         self._remember_repository(repository_path)
         self._refresh_repository_navigation()
         self._bind_repository(service)
+        self._refresh_repository_tab_safety()
         self.notify(str(repository_path), title="Repository opened")
 
     def _refresh_repository_navigation(self) -> None:
-        tabs = self.query_one("#repository-tabs", Tabs)
-        existing_tab_ids = {tab.id for tab in tabs.query(Tab)}
-        active_tab_id: str | None = None
-        repository_paths = tuple(self.repository_services)
         self._refresh_repository_list()
-        for index, path in enumerate(repository_paths):
-            is_active = path == self.active_repository
-            tab_id = f"repo-{index}"
-            if tab_id not in existing_tab_ids:
-                tabs.add_tab(Tab(path.name or str(path), id=tab_id))
-            if is_active:
-                active_tab_id = tab_id
-        if active_tab_id:
-            tabs.active = active_tab_id
+        self._render_repository_tabs()
         active = self.active_repository
         self.query_one("#active-repository", Static).update(
             f"[b]{active.name}[/]  [dim]{active}[/]" if active else "No repository open"
         )
+
+    def _open_repository_records(self) -> tuple[RepositoryRecord, ...]:
+        from .infrastructure.persistence import RepositoryRecord
+
+        live_paths: dict[str, Path] = {}
+        for path in self.repository_services:
+            resolved = path.expanduser().resolve()
+            live_paths.setdefault(os.path.normcase(str(resolved)), resolved)
+
+        def live_records() -> tuple[RepositoryRecord, ...]:
+            return tuple(RepositoryRecord(path=path) for path in live_paths.values())
+
+        workspace = self._repository_workspace
+        if workspace is None:
+            return live_records()
+        try:
+            snapshot = workspace.snapshot()
+        except (OSError, RuntimeError, ValueError):
+            return live_records()
+
+        records: list[RepositoryRecord] = []
+        retained_keys: set[str] = set()
+        for record in snapshot.records:
+            key = os.path.normcase(str(record.path.expanduser().resolve()))
+            if key not in live_paths or key in retained_keys:
+                continue
+            records.append(record)
+            retained_keys.add(key)
+        records.extend(
+            RepositoryRecord(path=path)
+            for key, path in live_paths.items()
+            if key not in retained_keys
+        )
+        return tuple(records)
+
+    @work(exclusive=True, group="repository-tabs-render")
+    async def _render_repository_tabs(self) -> None:
+        tabs = self.query_one("#repository-tabs", Tabs)
+        records = self._open_repository_records()
+        workspace = self._repository_workspace
+        if workspace is not None:
+            workspace_width = max(40, self.size.width - self._preferred_repository_rail_width)
+            maximum_visible = max(2, min(8, workspace_width // 18))
+            projection = workspace.strip_projection(maximum_visible)
+            entries = projection.visible
+            overflow_entries = projection.overflow
+        else:
+            from .application.repository_workspace import TabStripEntry
+
+            entries = tuple(
+                TabStripEntry(
+                    identifier=f"repository-{index}",
+                    label=record.path.name or str(record.path),
+                    path=record.path,
+                    group_name=None,
+                    pinned=False,
+                    favorite=False,
+                )
+                for index, record in enumerate(records)
+            )
+            overflow_entries = ()
+
+        overflow_paths: set[Path] = set()
+        for entry in overflow_entries:
+            if entry.path is not None:
+                overflow_paths.add(entry.path)
+            elif entry.group_name is not None:
+                overflow_paths.update(
+                    record.path
+                    for record in records
+                    if record.group_name == entry.group_name
+                    and record.pinned == entry.pinned
+                )
+        overflow_count = len(overflow_paths)
+        menu = self.query_one("#repository-tabs-menu", Button)
+        menu.label = f"Tabs… +{overflow_count}" if overflow_count else "Tabs…"
+        menu.tooltip = (
+            f"Open the complete tab list; {overflow_count} tab(s) are in overflow."
+            if overflow_count
+            else "Search, arrange, group, import, export, or close tabs"
+        )
+        pane = self.query_one("#repository-tabs-pane", RepositoryTabsPane)
+        pane.set_overflow_paths(overflow_paths)
+
+        self._repository_tab_paths.clear()
+        self._repository_group_tabs.clear()
+        active_tab_id: str | None = None
+        active_record = next(
+            (record for record in records if record.path == self.active_repository),
+            None,
+        )
+        self._repository_tab_render_generation += 1
+        generation = self._repository_tab_render_generation
+        self._refreshing_repository_tabs = True
+        try:
+            await tabs.clear()
+            for entry in entries:
+                if entry.path is not None:
+                    self._repository_tab_paths[entry.identifier] = entry.path
+                    if entry.path == self.active_repository:
+                        active_tab_id = entry.identifier
+                elif entry.group_name is not None:
+                    self._repository_group_tabs[entry.identifier] = entry.group_name
+                    if (
+                        active_record is not None
+                        and active_record.group_name == entry.group_name
+                        and active_record.pinned == entry.pinned
+                    ):
+                        active_tab_id = entry.identifier
+                await tabs.add_tab(Tab(entry.label, id=entry.identifier))
+            if active_tab_id is not None:
+                tabs.active = active_tab_id
+        finally:
+            self.call_after_refresh(self._complete_repository_tab_render, generation)
+
+    def _complete_repository_tab_render(self, generation: int) -> None:
+        if generation == self._repository_tab_render_generation:
+            self._refreshing_repository_tabs = False
 
     @work(exclusive=True, group="repository-list")
     async def _refresh_repository_list(self) -> None:
         """Rebuild the filtered rail without racing asynchronous removals."""
 
         repo_list = self.query_one("#repository-list", ListView)
-        repository_paths = tuple(self.repository_services)
-        visible_paths: tuple[Path, ...] = repository_paths
+        repository_records = self._open_repository_records()
+        visible_records = repository_records
         try:
             state = self.query_one("#repositories-search", SearchBar).state
             from .application.search import RegexFlags, SearchMode, SearchService
@@ -728,26 +1047,37 @@ class DesktopMaterialTUI(App[None]):
                 dot_all="s" in state.flags,
             )
             result = SearchService().search(
-                repository_paths,
+                repository_records,
                 state.query,
                 mode=mode,
                 flags=flags,
-                get_text=lambda path: (path.name, str(path)),
+                get_text=lambda record: (
+                    record.alias or record.path.name,
+                    record.path.name,
+                    str(record.path),
+                    record.group_name or "",
+                ),
             )
             if result.error is None:
-                visible_paths = tuple(result.items)
+                visible_records = tuple(result.items)
         except (ValueError, LookupError):
-            visible_paths = repository_paths
+            visible_records = repository_records
+        visible_paths = tuple(record.path for record in visible_records)
+        summaries = dict(await self._repository_summaries(visible_paths))
         items = [
             RepositoryListItem(
-                path,
-                active=path == self.active_repository,
-                branch=summary[0],
-                ahead=summary[1],
-                behind=summary[2],
-                changes=summary[3],
+                record.path,
+                active=record.path == self.active_repository,
+                branch=summaries[record.path][0],
+                ahead=summaries[record.path][1],
+                behind=summaries[record.path][2],
+                changes=summaries[record.path][3],
+                label=record.alias,
+                group_name=record.group_name,
+                pinned=record.pinned,
+                favorite=record.favorite,
             )
-            for path, summary in await self._repository_summaries(visible_paths)
+            for record in visible_records
         ]
         await repo_list.clear()
         await repo_list.extend(items)
@@ -791,9 +1121,10 @@ class DesktopMaterialTUI(App[None]):
     def _filter_repositories(self, _event: SearchBar.Changed) -> None:
         self._refresh_repository_list()
 
-    def _bind_repository(self, service: Any) -> None:
+    def _bind_repository(self, service: Any | None) -> None:
         for pane in self.query(RepositoryPane):
             pane.bind_repository(service)
+        self.query_one("#files-pane", FileBrowserPane).bind_repository(service)
         self.query_one("#github-pane", GitHubPane).bind_git_repository(service)
         self._update_toolbar_status()
 
@@ -833,14 +1164,25 @@ class DesktopMaterialTUI(App[None]):
         self._activate_repository(event.item.path)
 
     def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
-        if event.tabs.id != "repository-tabs" or not event.tab.id:
+        if (
+            event.tabs.id != "repository-tabs"
+            or not event.tab.id
+            or self._refreshing_repository_tabs
+        ):
+            return
+        path = self._repository_tab_paths.get(event.tab.id)
+        if path is not None:
+            self._activate_repository(path)
+            return
+        group_name = self._repository_group_tabs.get(event.tab.id)
+        if group_name is None or self._repository_workspace is None:
             return
         try:
-            index = int(event.tab.id.removeprefix("repo-"))
-            path = tuple(self.repository_services)[index]
-        except (ValueError, IndexError):
+            self._repository_workspace.set_group_collapsed(group_name, False)
+        except (OSError, RuntimeError, ValueError) as error:
+            self.notify(str(error), title="Could not expand tab group", severity="error")
             return
-        self._activate_repository(path)
+        self._workspace_changed()
 
     def _activate_repository(self, path: Path) -> None:
         if path not in self.repository_services:
@@ -848,8 +1190,153 @@ class DesktopMaterialTUI(App[None]):
         if path == self.active_repository:
             return
         self.active_repository = path
+        if self._repository_workspace is not None:
+            with suppress(OSError, RuntimeError, ValueError):
+                self._repository_workspace.set_active(path)
         self._refresh_repository_navigation()
         self._bind_repository(self.repository_services[path])
+
+    def _workspace_changed(self) -> None:
+        """Reconcile runtime services with the durable ordered tab session."""
+
+        workspace = self._repository_workspace
+        if workspace is None:
+            return
+        try:
+            snapshot = workspace.snapshot()
+        except (OSError, RuntimeError, ValueError) as error:
+            self.notify(str(error), title="Workspace refresh failed", severity="error")
+            return
+        reconciled: dict[Path, Any] = {}
+        invalid: list[Path] = []
+        for record in snapshot.records:
+            path = record.path.expanduser().resolve()
+            service = self.repository_services.get(path)
+            if service is None:
+                try:
+                    service = self._make_repository_service(path)
+                except Exception as error:
+                    invalid.append(path)
+                    self.notify(
+                        f"{path}: {error}",
+                        title="Skipped session repository",
+                        severity="warning",
+                    )
+                    continue
+            reconciled[path] = service
+        if invalid:
+            with suppress(OSError, RuntimeError, ValueError):
+                snapshot = workspace.close_repositories(invalid)
+        self.repository_services = reconciled
+        self.repository_summaries = {
+            path: summary
+            for path, summary in self.repository_summaries.items()
+            if path in reconciled
+        }
+        preferred = snapshot.active_repository_path
+        self.active_repository = (
+            preferred
+            if preferred in reconciled
+            else next(iter(reconciled), None)
+        )
+        self._refresh_repository_navigation()
+        self._bind_repository(self.active_service)
+        self.query_one("#repository-tabs-pane", RepositoryTabsPane).reload()
+        self._refresh_repository_tab_safety()
+
+    def _request_repository_tab_close(self, paths: tuple[Path, ...]) -> None:
+        self._close_repository_tabs(paths)
+
+    @work(exclusive=True, group="repository-tab-close")
+    async def _close_repository_tabs(self, paths: tuple[Path, ...]) -> None:
+        """Revalidate every reviewed candidate immediately before closing."""
+
+        workspace = self._repository_workspace
+        if workspace is None:
+            return
+        current_paths = {record.path for record in workspace.snapshot().records}
+        requested = tuple(dict.fromkeys(path.expanduser().resolve() for path in paths))
+        if not requested or any(path not in current_paths for path in requested):
+            self.notify(
+                "The tab set changed after preview; review the close list again.",
+                title="Tabs stayed open",
+                severity="warning",
+            )
+            return
+        blockers = await self._repository_close_blockers(requested)
+        if blockers:
+            self._repository_close_protection.update(blockers)
+            self.query_one("#repository-tabs-pane", RepositoryTabsPane).set_protected_paths(
+                self._repository_close_protection
+            )
+            detail = ", ".join(f"{path.name}: {reason}" for path, reason in blockers.items())
+            self.notify(
+                detail,
+                title="Tabs stayed open because work is protected",
+                severity="warning",
+                timeout=20,
+            )
+            return
+        try:
+            workspace.close_repositories(requested)
+        except (OSError, RuntimeError, ValueError) as error:
+            self.notify(str(error), title="Close tabs failed", severity="error")
+            return
+        self._workspace_changed()
+        self.notify(
+            f"Closed {len(requested)} repository tab(s). No directory or Git state was deleted.",
+            title="Repository tabs",
+        )
+
+    async def _repository_close_blockers(
+        self,
+        paths: tuple[Path, ...],
+    ) -> dict[Path, str]:
+        blockers = self._draft_close_protection(paths)
+
+        async def inspect(path: Path) -> tuple[Path, str | None]:
+            service = self.repository_services.get(path)
+            if service is None:
+                return path, "repository service is unavailable"
+            try:
+                status = await asyncio.to_thread(service.status)
+            except Exception:
+                return path, "repository status could not be verified"
+            if getattr(status, "changes", ()):
+                return path, "working-tree changes are present"
+            return path, None
+
+        results = await asyncio.gather(*(inspect(path) for path in paths))
+        blockers.update({path: reason for path, reason in results if reason is not None})
+        return blockers
+
+    def _draft_close_protection(self, paths: tuple[Path, ...]) -> dict[Path, str]:
+        active = self.active_repository
+        if active is None or active not in paths:
+            return {}
+        try:
+            summary = self.query_one("#commit-summary", Input).value.strip()
+            body = self.query_one("#commit-body", TextArea).text.strip()
+        except (AttributeError, LookupError):
+            return {active: "commit draft status could not be verified"}
+        return {active: "an unsubmitted commit message is present"} if summary or body else {}
+
+    @work(exclusive=True, group="repository-tab-safety")
+    async def _refresh_repository_tab_safety(self) -> None:
+        paths = tuple(self.repository_services)
+        if not paths:
+            self._repository_close_protection = {}
+        else:
+            self._repository_close_protection = await self._repository_close_blockers(paths)
+        self.query_one("#repository-tabs-pane", RepositoryTabsPane).set_protected_paths(
+            self._repository_close_protection
+        )
+
+    def action_manage_repository_tabs(self) -> None:
+        self.query_one("#main-tabs", TabbedContent).active = "tab-manager-tab"
+        self.query_one("#repository-tabs-pane", RepositoryTabsPane).reload()
+        self._refresh_repository_tab_safety()
+        self.call_later(self.query_one("#repository-tabs-query", Input).focus)
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         button_id = event.button.id
@@ -867,6 +1354,8 @@ class DesktopMaterialTUI(App[None]):
             self.action_push()
         elif button_id == "toolbar-editor":
             self.open_external_editor()
+        elif button_id == "repository-tabs-menu":
+            self.action_manage_repository_tabs()
         elif button_id == "settings-save":
             self._save_settings()
         elif button_id == "settings-preview":
@@ -988,7 +1477,9 @@ class DesktopMaterialTUI(App[None]):
         self._refresh_repository_list()
         for pane in self.query(RepositoryPane):
             pane.reload()
+        self.query_one("#files-pane", FileBrowserPane).reload()
         self._update_toolbar_status()
+        self._refresh_repository_tab_safety()
 
     @work(exclusive=True, group="network")
     async def action_fetch(self) -> None:
@@ -1031,6 +1522,13 @@ class DesktopMaterialTUI(App[None]):
             PaletteCommand("pull", "Pull", "Fetch and integrate the upstream branch"),
             PaletteCommand("push", "Push", "Publish local commits", "Ctrl+Shift+P"),
             PaletteCommand("changes", "Show Changes", "Stage, diff, and commit"),
+            PaletteCommand("files", "Show Files", "Browse and preview repository files"),
+            PaletteCommand(
+                "repository-tabs",
+                "Manage repository tabs",
+                "Search, arrange, group, import, export, or close tabs",
+                "Ctrl+Shift+T",
+            ),
             PaletteCommand("history", "Show History", "Browse commits"),
             PaletteCommand("branches", "Show Branches", "Checkout, merge, create, or delete"),
             PaletteCommand("stashes", "Show Stashes", "Create, apply, pop, or drop"),
@@ -1063,6 +1561,8 @@ class DesktopMaterialTUI(App[None]):
             return
         tab_map = {
             "changes": "changes-tab",
+            "files": "files-tab",
+            "repository-tabs": "tab-manager-tab",
             "history": "history-tab",
             "branches": "branches-tab",
             "stashes": "stashes-tab",
@@ -1432,6 +1932,30 @@ class DesktopMaterialTUI(App[None]):
         if self.active_repository is None:
             self.notify("Open a repository first.", severity="warning")
             return
+        self._open_external_editor_target(
+            self.active_repository,
+            workspace_root=self.active_repository,
+        )
+
+    @on(FileBrowserPane.OpenRequested)
+    def _open_file_browser_selection(self, event: FileBrowserPane.OpenRequested) -> None:
+        repository = self.active_repository
+        if repository is None:
+            self.notify("Open a repository first.", severity="warning")
+            return
+        try:
+            selected = event.path.expanduser().resolve(strict=True)
+            selected.relative_to(repository.expanduser().resolve(strict=True))
+        except (OSError, ValueError) as error:
+            self.notify(
+                str(error),
+                title="File is outside the active repository",
+                severity="error",
+            )
+            return
+        self._open_external_editor_target(selected, workspace_root=repository)
+
+    def _open_external_editor_target(self, target: Path, *, workspace_root: Path) -> None:
         editor = ""
         if self._config is not None:
             interaction = getattr(self._config, "interaction", self._config)
@@ -1452,9 +1976,13 @@ class DesktopMaterialTUI(App[None]):
         except ValueError as error:
             self.notify(str(error), title="Invalid editor command", severity="error")
             return
-        argv.append(str(self.active_repository))
         executable = Path(argv[0]).name.lower()
         terminal_editors = {"vi", "vim", "nvim", "nano", "emacs", "helix", "hx"}
+        visual_studio_code = {"code", "code-insiders", "codium"}
+        if executable in visual_studio_code and target != workspace_root:
+            argv.extend((str(workspace_root), "--goto", str(target)))
+        else:
+            argv.append(str(target))
         try:
             if executable in terminal_editors:
                 with self.suspend():
@@ -1466,12 +1994,12 @@ class DesktopMaterialTUI(App[None]):
             else:
                 subprocess.Popen(  # noqa: S603 - argv is explicit; no shell
                     argv,
-                    cwd=self.active_repository,
+                    cwd=workspace_root,
                     stdin=subprocess.DEVNULL,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
                     start_new_session=os.name != "nt",
                 )
-                self.notify(f"Opened {self.active_repository.name} in {argv[0]}.")
+                self.notify(f"Opened {target.name} in {argv[0]}.")
         except OSError as error:
             self.notify(str(error), title="Could not open editor", severity="error")

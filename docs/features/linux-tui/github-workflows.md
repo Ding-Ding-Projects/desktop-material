@@ -1,9 +1,5 @@
 # TUI GitHub workflows
 
-> **Historical prototype record:** This page preserves the July 27, 2026 TUI
-> experiment. It is not current supported-product guidance or a Windows-release
-> blocker.
-
 ## Prerequisite and authentication
 
 GitHub features use the installed `gh` executable. Authenticate outside the app
@@ -42,33 +38,50 @@ project mutation, and every timeline event are not claimed.
 ## Pull requests
 
 The Pull Requests tab can list and inspect requests, create one from base/head,
-title, and body inputs, submit an approval or request-changes review, and merge
-after confirmation. The service boundary supports more request metadata and an
-expected-head SHA, but the pane does not yet expose template discovery, draft
-or maintainer settings, exact-account selection, or every merge safeguard.
+title, and body inputs, submit explicit review states, and merge after
+confirmation. Its nested Review surface loads paginated files with a 120 KiB
+per-patch bound, combines exact-head check runs with legacy commit statuses,
+lists review activity, and creates a comment only against an exact commit SHA,
+path, line, and side. The Effective rules surface inspects active rules for one
+exact branch without pretending to administer them.
 
-Full graphical review, inline multi-file conversations, fork checkout, branch
-rules, and offline review parity remain partial or unavailable.
+Template discovery, draft/maintainer settings, exact-account selection,
+multi-line suggestion editing, offline review, fork checkout, and complete
+rule administration remain partial or unavailable and are labelled in the
+surface rather than hidden.
 
 ## Actions
 
-The Actions tab supports workflow/run browsing, a job table, bounded log
-metadata, ref-only workflow dispatch, full rerun, and confirmation-gated
-cancellation. The service can request failed-job reruns, but the pane does not
-yet expose that choice. Typed workflow-input discovery, cancellable-state and
-identity revalidation, duplicate suppression, and polling until terminal state
-are also not complete.
+The Actions tab supports paginated workflow/run browsing with workflow, branch,
+event, and status filters; jobs, steps, run logs, and bounded job-log inspection;
+JSON-scalar dispatch inputs; full and failed-only reruns; and
+confirmation-gated cancellation. Independent Caches and Artifacts surfaces use
+their own regex-capable searches. Cache deletion requires a reviewed numeric
+ID. Artifact download rejects expired or oversized records, uses bounded binary
+transport and an atomic destination, and requires a matching SHA-256 digest.
+
+Cache archive download, arbitrary dispatch field widgets, deployment approval,
+and a local Actions runner are not claimed.
 
 ## Releases, packages, and projects
 
-Release and package inventories are read-only in the general GitHub pane.
-General asset upload, package file transfer, release authoring, and update-feed
-behavior are not claimed. The dedicated [Cheap LFS manager](cheap-lfs.md) is a
+The Releases surface lists releases and assets and provides reviewed
+create/update/publish/delete operations plus bounded, atomic asset download.
+The Packages surface exposes versions and metadata. Multipart release upload,
+package content transfer, and update-feed behavior are not claimed. The
+dedicated [Cheap LFS manager](cheap-lfs.md) is a
 narrow exception: after an explicit plan and confirmation it may create or add
 verified immutable assets to an app-managed storage prerelease. It cannot edit
 an ordinary Release. Projects inventory is also read-only and requires the
 token scopes that GitHub enforces; a missing `read:project` scope is reported
 rather than silently returning an empty workspace.
+
+## Repository notifications
+
+The Notifications surface lists the active repository's inbox with an
+independent regex-capable search, selected-thread detail, and an explicit
+mark-selected-read action. It does not silently mark every notification read or
+claim a cross-provider global inbox.
 
 ## Bounded API explorer
 

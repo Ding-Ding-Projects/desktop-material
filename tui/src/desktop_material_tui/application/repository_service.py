@@ -17,6 +17,7 @@ from ..domain.models import (
     Commit,
     DiffResult,
     GitCommandResult,
+    MergePreview,
     Remote,
     RepositoryStatus,
     StashEntry,
@@ -39,6 +40,9 @@ from .path_input import path_from_user_input
 
 _HTTP_USER_INFO = re.compile(r"(?i)^https?://[^/@\s]+@")
 _STASH_REF = re.compile(r"^stash@\{\d+}$")
+_OBJECT_ID = re.compile(r"^[0-9a-fA-F]{40,64}$")
+_CO_AUTHOR = re.compile(r"^(?P<name>[^<>\r\n]+?)\s*<(?P<email>[^<>\s@]+@[^<>\s@]+)>$")
+_MAX_PREVIEW_BYTES = 8 * 1024 * 1024
 
 
 class RepositoryService:
@@ -126,6 +130,56 @@ class RepositoryService:
         args.append("--")
         return parse_history(self._run(args).stdout)
 
+    def file_history(
+        self,
+        path: str | Path,
+        *,
+        limit: int = 250,
+    ) -> tuple[Commit, ...]:
+        """Return bounded, rename-following history for one repository path."""
+
+        if not 1 <= limit <= 10_000:
+            raise InvalidGitArgumentError("history limit", "must be between 1 and 10000")
+        normalized = self._normalize_paths((path,))[0]
+        result = self._run(
+            [
+                "log",
+                "--follow",
+                "--no-decorate",
+                f"--max-count={limit}",
+                f"--format={HISTORY_FORMAT}",
+                "--",
+                self._literal_pathspec(normalized),
+            ]
+        )
+        return parse_history(result.stdout)
+
+    def blame(
+        self,
+        path: str | Path,
+        *,
+        revision: str = "HEAD",
+        max_lines: int = 5_000,
+    ) -> str:
+        """Return a bounded, human-readable blame view for one tracked file."""
+
+        if not 1 <= max_lines <= 5_000:
+            raise InvalidGitArgumentError("blame lines", "must be between 1 and 5000")
+        normalized = self._normalize_paths((path,))[0]
+        resolved_revision = self._validate_refish(revision, "blame revision")
+        return self._run(
+            [
+                "blame",
+                "--date=iso-strict",
+                "--show-email",
+                "-L",
+                f"1,+{max_lines}",
+                resolved_revision,
+                "--",
+                normalized,
+            ]
+        ).stdout
+
     def branches(self, include_remote: bool = True) -> tuple[Branch, ...]:
         args = ["for-each-ref", f"--format={BRANCH_FORMAT}", "refs/heads"]
         if include_remote:
@@ -168,6 +222,7 @@ class RepositoryService:
         staged: bool = False,
         revision: str | None = None,
         context_lines: int = 3,
+        word_diff: bool = False,
     ) -> DiffResult:
         if not 0 <= context_lines <= 10_000:
             raise InvalidGitArgumentError("diff context", "must be between 0 and 10000 lines")
@@ -178,6 +233,8 @@ class RepositoryService:
             "--no-color",
             f"--unified={context_lines}",
         ]
+        if word_diff:
+            args.append("--word-diff=plain")
         if staged:
             args.append("--cached")
         if revision is not None:
@@ -190,6 +247,32 @@ class RepositoryService:
             staged=staged,
             revision=revision,
             paths=normalized_paths,
+            word_diff=word_diff,
+        )
+
+    def diff_file_versions(
+        self,
+        path: str | Path,
+        *,
+        staged: bool,
+        max_bytes: int = _MAX_PREVIEW_BYTES,
+    ) -> tuple[bytes | None, bytes | None]:
+        """Read exact before/after bytes for one bounded repository-confined diff."""
+
+        if not 1 <= max_bytes <= _MAX_PREVIEW_BYTES:
+            raise InvalidGitArgumentError(
+                "preview byte limit",
+                f"must be between 1 and {_MAX_PREVIEW_BYTES}",
+            )
+        normalized = self._normalize_paths((path,))[0]
+        if staged:
+            return (
+                self._read_git_blob(f"HEAD:{normalized}", max_bytes=max_bytes),
+                self._read_git_blob(f":{normalized}", max_bytes=max_bytes),
+            )
+        return (
+            self._read_git_blob(f":{normalized}", max_bytes=max_bytes),
+            self._read_worktree_file(normalized, max_bytes=max_bytes),
         )
 
     def stage(self, paths: Sequence[str | Path]) -> GitCommandResult:
@@ -236,6 +319,7 @@ class RepositoryService:
         body: str | None = None,
         amend: bool = False,
         signoff: bool = False,
+        co_authors: Sequence[str] = (),
     ) -> Commit:
         self._validate_commit_summary(summary)
         if body is not None and "\x00" in body:
@@ -243,6 +327,9 @@ class RepositoryService:
         args = ["commit", "-m", summary]
         if body:
             args.extend(["-m", body])
+        trailers = tuple(self._validate_co_author(value) for value in co_authors)
+        if trailers:
+            args.extend(["-m", "\n".join(f"Co-authored-by: {value}" for value in trailers)])
         if amend:
             args.append("--amend")
         if signoff:
@@ -348,6 +435,93 @@ class RepositoryService:
         args.append(branch_name)
         return self._run(args)
 
+    def merge_preview(self, name: str, *, commit_limit: int = 25) -> MergePreview:
+        """Compute a stale-checkable merge preview without touching index or worktree."""
+
+        if not 1 <= commit_limit <= 250:
+            raise InvalidGitArgumentError("merge preview limit", "must be between 1 and 250")
+        status = self.status()
+        if not status.is_clean:
+            raise InvalidGitArgumentError(
+                "merge preview", "requires a clean working tree and index"
+            )
+        if status.is_detached or not status.branch_head:
+            raise InvalidGitArgumentError("merge preview", "requires a checked-out branch")
+        source_branch = self._validate_refish(name, "merge branch")
+        current_oid = self._resolve_commit("HEAD", "current branch")
+        source_oid = self._resolve_commit(source_branch, "merge branch")
+        merge_base_oid = self._run(
+            ["merge-base", current_oid, source_oid]
+        ).stdout.strip()
+        if not _OBJECT_ID.fullmatch(merge_base_oid):
+            raise InvalidRepositoryError(self.validate(), "Git returned an invalid merge base")
+        commits = self.history(
+            limit=commit_limit,
+            revision=f"{current_oid}..{source_oid}",
+        )
+        changed_output = self._run(
+            [
+                "diff",
+                "--name-only",
+                "-z",
+                merge_base_oid,
+                source_oid,
+                "--",
+            ]
+        ).stdout
+        changed_files = tuple(path for path in changed_output.split("\0") if path)
+        tree = self._run(
+            [
+                "merge-tree",
+                "--write-tree",
+                "--name-only",
+                "-z",
+                current_oid,
+                source_oid,
+            ],
+            allowed_exit_codes=(0, 1),
+        )
+        conflicts = self._merge_tree_conflicts(tree.stdout) if tree.exit_code == 1 else ()
+        return MergePreview(
+            current_branch=status.branch_head,
+            current_oid=current_oid,
+            source_branch=source_branch,
+            source_oid=source_oid,
+            merge_base_oid=merge_base_oid,
+            incoming_commits=commits,
+            changed_files=changed_files,
+            conflicting_paths=conflicts,
+        )
+
+    def apply_merge_preview(self, preview: MergePreview) -> GitCommandResult:
+        """Revalidate both reviewed tips, then merge the exact source object."""
+
+        status = self.status()
+        if not status.is_clean:
+            raise InvalidGitArgumentError("reviewed merge", "working tree changed after review")
+        if status.branch_head != preview.current_branch:
+            raise InvalidGitArgumentError("reviewed merge", "current branch changed after review")
+        if self._resolve_commit("HEAD", "current branch") != preview.current_oid:
+            raise InvalidGitArgumentError(
+                "reviewed merge", "current branch tip changed after review"
+            )
+        if (
+            self._resolve_commit(preview.source_branch, "merge branch")
+            != preview.source_oid
+        ):
+            raise InvalidGitArgumentError(
+                "reviewed merge", "source branch tip changed after review"
+            )
+        return self._run(["merge", "--no-edit", preview.source_oid])
+
+    def revert_commit(self, revision: str) -> GitCommandResult:
+        oid = self._resolve_commit(revision, "revert commit")
+        return self._run(["revert", "--no-edit", oid])
+
+    def cherry_pick_commit(self, revision: str) -> GitCommandResult:
+        oid = self._resolve_commit(revision, "cherry-pick commit")
+        return self._run(["cherry-pick", oid])
+
     def stash_push(
         self,
         message: str | None = None,
@@ -378,16 +552,39 @@ class RepositoryService:
         ref: str = "stash@{0}",
         pop: bool = False,
         index: bool = False,
+        expected_oid: str | None = None,
     ) -> GitCommandResult:
-        stash_ref = self._validate_stash_ref(ref)
+        stash_ref = self._verify_stash(ref, expected_oid)
         args = ["stash", "pop" if pop else "apply"]
         if index:
             args.append("--index")
         args.append(stash_ref)
         return self._run(args)
 
-    def stash_drop(self, ref: str = "stash@{0}") -> GitCommandResult:
-        return self._run(["stash", "drop", self._validate_stash_ref(ref)])
+    def stash_drop(
+        self,
+        ref: str = "stash@{0}",
+        *,
+        expected_oid: str | None = None,
+    ) -> GitCommandResult:
+        return self._run(["stash", "drop", self._verify_stash(ref, expected_oid)])
+
+    def stash_diff(self, ref: str, *, expected_oid: str | None = None) -> str:
+        stash_ref = self._verify_stash(ref, expected_oid)
+        return self._run(
+            ["stash", "show", "--stat", "--patch", "--no-color", stash_ref]
+        ).stdout
+
+    def stash_branch(
+        self,
+        branch: str,
+        ref: str,
+        *,
+        expected_oid: str | None = None,
+    ) -> GitCommandResult:
+        branch_name = self._validate_branch_name(branch)
+        stash_ref = self._verify_stash(ref, expected_oid)
+        return self._run(["stash", "branch", branch_name, stash_ref])
 
     def add_remote(self, name: str, url: str) -> Remote:
         remote_name = self._validate_remote_name(name)
@@ -566,6 +763,112 @@ class RepositoryService:
             )
         if len(summary) > 10_000:
             raise InvalidGitArgumentError("commit summary", "must not exceed 10000 characters")
+
+    @staticmethod
+    def _validate_co_author(value: str) -> str:
+        normalized = value.strip()
+        match = _CO_AUTHOR.fullmatch(normalized)
+        name = match.group("name").strip() if match is not None else ""
+        if match is None or not name or len(normalized) > 512:
+            raise InvalidGitArgumentError(
+                "co-author", "must use the form Name <email@example.com>"
+            )
+        return f"{name} <{match.group('email')}>"
+
+    def _resolve_commit(self, revision: str, field: str) -> str:
+        validated = self._validate_refish(revision, field)
+        oid = self._run(["rev-parse", "--verify", f"{validated}^{{commit}}"]).stdout.strip()
+        if not _OBJECT_ID.fullmatch(oid):
+            raise InvalidGitArgumentError(field, "did not resolve to one commit object")
+        return oid
+
+    def _verify_stash(self, ref: str, expected_oid: str | None) -> str:
+        stash_ref = self._validate_stash_ref(ref)
+        actual_oid = self._resolve_commit(stash_ref, "stash reference")
+        if expected_oid is not None:
+            if not _OBJECT_ID.fullmatch(expected_oid):
+                raise InvalidGitArgumentError("stash object", "must be a full Git object ID")
+            if actual_oid.casefold() != expected_oid.casefold():
+                raise InvalidGitArgumentError(
+                    "stash reference", "changed after selection; refresh and review it again"
+                )
+        return stash_ref
+
+    @staticmethod
+    def _merge_tree_conflicts(output: str) -> tuple[str, ...]:
+        """Read the name-only section of merge-tree's NUL format."""
+
+        fields = output.split("\0")
+        conflicts: list[str] = []
+        # Field zero is the synthetic tree object. Name-only conflict paths
+        # follow it until an empty separator; messages follow that separator.
+        for field in fields[1:]:
+            value = field.strip("\r\n")
+            if not value:
+                break
+            if "\n" in value or value.startswith("CONFLICT "):
+                break
+            conflicts.append(value)
+        return tuple(conflicts)
+
+    def _read_git_blob(self, object_spec: str, *, max_bytes: int) -> bytes | None:
+        size_result = self._run(
+            ["cat-file", "-s", object_spec],
+            allowed_exit_codes=(0, 1, 128),
+        )
+        if size_result.exit_code != 0:
+            return None
+        try:
+            byte_count = int(size_result.stdout.strip())
+        except ValueError as error:
+            raise InvalidRepositoryError(
+                self.validate(), "Git returned an invalid blob size"
+            ) from error
+        if byte_count < 0 or byte_count > max_bytes:
+            raise InvalidGitArgumentError(
+                "preview file",
+                f"exceeds the {max_bytes:,}-byte preview limit",
+            )
+        result = self._run(["cat-file", "blob", object_spec])
+        payload = result.stdout.encode("utf-8", errors="surrogateescape")
+        if len(payload) != byte_count:
+            raise InvalidRepositoryError(
+                self.validate(), "Git blob bytes did not match the reviewed size"
+            )
+        return payload
+
+    def _read_worktree_file(self, path: str, *, max_bytes: int) -> bytes | None:
+        root = self.validate().resolve()
+        target = root.joinpath(Path(path))
+        if target.is_symlink():
+            raise InvalidGitArgumentError(
+                "preview file", "symbolic links are not followed by repository previews"
+            )
+        try:
+            resolved = target.resolve(strict=True)
+        except FileNotFoundError:
+            return None
+        try:
+            resolved.relative_to(root)
+        except ValueError as error:
+            raise InvalidGitArgumentError(
+                "preview file", "must stay within the repository"
+            ) from error
+        if not resolved.is_file():
+            return None
+        if resolved.stat().st_size > max_bytes:
+            raise InvalidGitArgumentError(
+                "preview file",
+                f"exceeds the {max_bytes:,}-byte preview limit",
+            )
+        with resolved.open("rb") as file:
+            payload = file.read(max_bytes + 1)
+        if len(payload) > max_bytes:
+            raise InvalidGitArgumentError(
+                "preview file",
+                f"exceeds the {max_bytes:,}-byte preview limit",
+            )
+        return payload
 
     def _branch_by_name(self, name: str) -> Branch:
         for branch in self.branches(include_remote=False):

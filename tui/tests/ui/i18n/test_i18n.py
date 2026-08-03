@@ -1,9 +1,13 @@
 # ruff: noqa: RUF001
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 import pytest
 
 from desktop_material_tui.ui.i18n import (
+    CANTONESE_CATALOG,
+    ENGLISH_CATALOG,
     LanguageMode,
     LocalePreferences,
     Translator,
@@ -69,3 +73,14 @@ def test_language_parser_safely_falls_back_to_english() -> None:
     assert LanguageMode.parse("zh-HK") is LanguageMode.CANTONESE
     assert LanguageMode.parse("not-a-locale") is LanguageMode.ENGLISH
     assert LocalePreferences(mode="zh-HK").mode is LanguageMode.CANTONESE  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("catalog", [ENGLISH_CATALOG, CANTONESE_CATALOG])
+def test_every_tone_varying_message_is_distinct_at_all_five_levels(
+    catalog: Mapping[str, object],
+) -> None:
+    for key, value in catalog.items():
+        if not isinstance(value, Mapping):
+            continue
+        assert set(value) == {1, 2, 3, 4, 5}, key
+        assert len(set(value.values())) == 5, key

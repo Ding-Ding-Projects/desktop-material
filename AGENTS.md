@@ -10,17 +10,20 @@ infrastructure details are deliberately omitted from this copy.
 A current explicit request from the user, and any higher-priority safety or
 platform policy, always takes precedence over what is written here.
 
-## Windows-only product boundary
+## Product platform boundary
 
-- Desktop Material is a Windows-only application. Support, build, packaging,
-  runtime, and end-to-end acceptance work targets Windows only.
+- Desktop Material has two supported application surfaces: the Windows
+  Electron desktop application and the Linux-first Python/Textual terminal
+  application. The TUI adapts desktop user outcomes to terminal-native
+  interaction; it does not claim a Linux Electron build.
 - Keep Windows x64/arm64 CI, Windows x64 packaged E2E, and the Windows x64
-  installer/release path healthy. Do not add or require macOS/Linux app jobs,
-  packages, compatibility work, or release blockers unless the user explicitly
-  changes the product boundary.
-- Non-Windows runners may host platform-neutral repository automation such as
-  lint, Pages, static analysis, release metadata, or issue triage; that does
-  not make those operating systems supported application targets.
+  installer/release path healthy. Keep the Linux TUI wheel, source distribution,
+  fresh-machine installer, Linux test matrix, and real terminal/Xvfb acceptance
+  healthy. A failure in either supported release payload is a release blocker
+  for that payload and must be reported honestly.
+- macOS is not a supported application target. Non-Windows runners may still
+  host platform-neutral repository automation such as lint, Pages, static
+  analysis, release metadata, or issue triage.
 
 ## Git and completion
 
@@ -157,9 +160,10 @@ These apply to user-facing surfaces in this app.
 - The count is **broken down by area**, not reduced to one number, with total
   and non-blank lines for each.
 - Say plainly what is excluded and why. Vendored trees, dependency
-  directories, build output, the historical TUI prototype and the agent
-  verification records are not this project's code; they are shown in the
-  table and held out of the project total rather than silently dropped. The
+  directories, build output, and agent verification records are not this
+  project's code; they are shown in the table and held out of the project total
+  rather than silently dropped. The supported Linux TUI is project code and is
+  broken into source, tests, styles, and packaging/contracts rows. The
   `Unclassified` row exists so a counted file can never be silently dropped.
 - Separate generated files from hand-written ones wherever the difference is
   large enough to move the number.

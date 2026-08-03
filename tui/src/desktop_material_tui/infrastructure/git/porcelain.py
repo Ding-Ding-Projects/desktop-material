@@ -307,6 +307,7 @@ def parse_branches(output: str) -> tuple[Branch, ...]:
                     allow_empty=True,
                 ),
                 symbolic_target=symbolic_target or None,
+                upstream_gone="gone" in track.casefold(),
             )
         )
     return tuple(branches)

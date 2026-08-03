@@ -123,6 +123,118 @@ def test_branch_lifecycle(repository: RepositoryService) -> None:
     assert [branch.name for branch in repository.branches(False)] == ["main"]
 
 
+def test_file_history_blame_coauthors_revert_and_cherry_pick(
+    repository: RepositoryService,
+    git_runner: SubprocessGitRunner,
+) -> None:
+    first_oid = commit_file(repository, "story.txt", "first\n", "Write first line")
+    second_oid = commit_file(
+        repository,
+        "story.txt",
+        "first\nsecond\n",
+        "Write second line",
+    )
+
+    file_history = repository.file_history("story.txt")
+    assert [commit.oid for commit in file_history] == [second_oid, first_oid]
+    blame = repository.blame("story.txt")
+    assert "<tui-test@example.test>" in blame
+    assert "second" in blame
+
+    target = repository.validate() / "story.txt"
+    target.write_text("first\nsecond\nthird\n", encoding="utf-8")
+    repository.stage(("story.txt",))
+    coauthored = repository.commit(
+        "Write third line",
+        co_authors=("Pair Pilot <pair@example.test>",),
+    )
+    message = git_runner.run(
+        ["show", "-s", "--format=%B", coauthored.oid], cwd=repository.validate()
+    ).stdout
+    assert "Co-authored-by: Pair Pilot <pair@example.test>" in message
+
+    repository.revert_commit(coauthored.oid)
+    assert target.read_text(encoding="utf-8") == "first\nsecond\n"
+
+    repository.create_branch("feature/cherry")
+    feature_oid = commit_file(repository, "feature.txt", "picked\n", "Pick this commit")
+    repository.checkout_branch("main")
+    repository.cherry_pick_commit(feature_oid)
+    assert (repository.validate() / "feature.txt").read_text(encoding="utf-8") == "picked\n"
+
+
+def test_merge_preview_applies_exact_reviewed_tip(repository: RepositoryService) -> None:
+    commit_file(repository, "base.txt", "base\n", "Initial")
+    repository.create_branch("feature/clean")
+    feature_oid = commit_file(repository, "feature.txt", "feature\n", "Feature change")
+    repository.checkout_branch("main")
+
+    preview = repository.merge_preview("feature/clean")
+    assert preview.current_branch == "main"
+    assert preview.source_oid == feature_oid
+    assert preview.conflicting_paths == ()
+    assert preview.changed_files == ("feature.txt",)
+    assert [commit.oid for commit in preview.incoming_commits] == [feature_oid]
+
+    repository.apply_merge_preview(preview)
+    assert (repository.validate() / "feature.txt").read_text(encoding="utf-8") == "feature\n"
+
+
+def test_merge_preview_reports_conflicts_without_touching_worktree(
+    repository: RepositoryService,
+) -> None:
+    commit_file(repository, "shared.txt", "base\n", "Initial")
+    repository.create_branch("feature/conflict")
+    commit_file(repository, "shared.txt", "feature\n", "Feature edit")
+    repository.checkout_branch("main")
+    main_oid = commit_file(repository, "shared.txt", "main\n", "Main edit")
+
+    preview = repository.merge_preview("feature/conflict")
+
+    assert preview.current_oid == main_oid
+    assert preview.conflicting_paths == ("shared.txt",)
+    assert (repository.validate() / "shared.txt").read_text(encoding="utf-8") == "main\n"
+    assert repository.status().is_clean
+
+
+def test_word_diff_context_and_exact_file_preview_versions(
+    repository: RepositoryService,
+) -> None:
+    commit_file(repository, "table.csv", "name,value\nHar Gow,one\n", "Add table")
+    target = repository.validate() / "table.csv"
+    target.write_bytes(b"name,value\nHar Gow,two words\n")
+
+    word = repository.diff(("table.csv",), context_lines=20, word_diff=True)
+    assert word.word_diff
+    assert "[-Gow,one-]" in word.text
+    assert "{+Gow,two words+}" in word.text
+    before, after = repository.diff_file_versions("table.csv", staged=False)
+    assert before == b"name,value\nHar Gow,one\n"
+    assert after == b"name,value\nHar Gow,two words\n"
+
+    repository.stage(("table.csv",))
+    before, after = repository.diff_file_versions("table.csv", staged=True)
+    assert before == b"name,value\nHar Gow,one\n"
+    assert after == b"name,value\nHar Gow,two words\n"
+
+    with pytest.raises(InvalidGitArgumentError, match="preview limit"):
+        repository.diff_file_versions("table.csv", staged=True, max_bytes=4)
+
+
+def test_merge_preview_refuses_changed_reviewed_tip(
+    repository: RepositoryService,
+) -> None:
+    commit_file(repository, "base.txt", "base\n", "Initial")
+    repository.create_branch("feature/stale")
+    commit_file(repository, "feature.txt", "feature\n", "Feature")
+    repository.checkout_branch("main")
+    preview = repository.merge_preview("feature/stale")
+    commit_file(repository, "main.txt", "changed after review\n", "Advance main")
+
+    with pytest.raises(InvalidGitArgumentError, match="tip changed after review"):
+        repository.apply_merge_preview(preview)
+
+
 def test_stash_push_apply_pop_and_drop(repository: RepositoryService) -> None:
     commit_file(repository, "tracked.txt", "base\n", "Initial")
     target = repository.validate() / "tracked.txt"
@@ -142,6 +254,42 @@ def test_stash_push_apply_pop_and_drop(repository: RepositoryService) -> None:
     target.write_text("work two\n", encoding="utf-8")
     repository.stash_push("drop me")
     repository.stash_drop()
+    assert repository.stashes() == ()
+
+
+def test_selective_stash_exact_identity_diff_and_branch(
+    repository: RepositoryService,
+) -> None:
+    commit_file(repository, "a.txt", "a base\n", "Add A")
+    commit_file(repository, "b.txt", "b base\n", "Add B")
+    root = repository.validate()
+    (root / "a.txt").write_text("a selected\n", encoding="utf-8")
+    (root / "b.txt").write_text("b stays\n", encoding="utf-8")
+
+    repository.stash_push("only A", paths=("a.txt",))
+    selected = repository.stashes()[0]
+    assert (root / "a.txt").read_text(encoding="utf-8") == "a base\n"
+    assert (root / "b.txt").read_text(encoding="utf-8") == "b stays\n"
+    assert "a selected" in repository.stash_diff(selected.ref, expected_oid=selected.oid)
+
+    with pytest.raises(InvalidGitArgumentError, match="changed after selection"):
+        repository.stash_apply(selected.ref, expected_oid="0" * 40)
+
+    repository.stash_apply(selected.ref, expected_oid=selected.oid)
+    assert (root / "a.txt").read_text(encoding="utf-8") == "a selected\n"
+    repository.stash_drop(selected.ref, expected_oid=selected.oid)
+    repository.discard(("a.txt", "b.txt"))
+
+    (root / "a.txt").write_text("branch payload\n", encoding="utf-8")
+    repository.stash_push("branch stash", paths=("a.txt",))
+    branched = repository.stashes()[0]
+    repository.stash_branch(
+        "recovered/stash",
+        branched.ref,
+        expected_oid=branched.oid,
+    )
+    assert repository.status().branch_head == "recovered/stash"
+    assert (root / "a.txt").read_text(encoding="utf-8") == "branch payload\n"
     assert repository.stashes() == ()
 
 
@@ -211,3 +359,7 @@ def test_inputs_cannot_escape_repository_or_become_options(
             "unsafe",
             "https://user:secret@example.test/repository.git",
         )
+    with pytest.raises(InvalidGitArgumentError, match=r"Name <email@example\.com>"):
+        repository.commit("Invalid co-author", co_authors=("missing-email",))
+    with pytest.raises(InvalidGitArgumentError, match=r"Name <email@example\.com>"):
+        repository.commit("Nameless co-author", co_authors=(" <pair@example.test>",))

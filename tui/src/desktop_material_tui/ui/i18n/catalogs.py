@@ -15,7 +15,17 @@ def _levels(
     warm: str,
     playful: str,
 ) -> Mapping[int, str]:
-    return MappingProxyType({1: professional, 3: warm, 5: playful})
+    # Every slider position is visibly distinct. Levels two and four add only
+    # a tonal marker, so facts and actionable details remain untouched.
+    return MappingProxyType(
+        {
+            1: professional,
+            2: f"{professional} 🙂",
+            3: warm,
+            4: f"{warm} ✨",
+            5: playful,
+        }
+    )
 
 
 # Destructive, security, accessibility, and error copy intentionally stays at
@@ -28,6 +38,18 @@ ENGLISH_CATALOG: Mapping[str, MessageValue] = MappingProxyType(
             warm="A comfortable home for Git in your terminal.",
             playful="Git workflows, now wearing their finest terminal pixels.",
         ),
+        "dim_sum.title": _levels(
+            "Dim sum surprise",
+            warm="A little tea-break surprise",
+            playful="The dim sum trolley found your terminal!",
+        ),
+        "dim_sum.lead": _levels(
+            "A bundled dish from the verified local catalog.",
+            warm="A small bundled tea-break hello from the local catalog.",
+            playful="No network, no tracking—just one tiny steamer basket rolling past.",
+        ),
+        "dim_sum.romanization": "Jyutping: {jyutping}",
+        "dim_sum.dismiss": "Dismiss",
         "common.add": "Add",
         "common.apply": "Apply",
         "common.back": "Back",
@@ -285,6 +307,18 @@ CANTONESE_CATALOG: Mapping[str, MessageValue] = MappingProxyType(
             warm="畀 Git 喺終端機有個舒服嘅屋企。",
             playful="Git 著好晒終端機靚衫，準備開工。",
         ),
+        "dim_sum.title": _levels(
+            "點心小驚喜",
+            warm="茶歇送到嘅小驚喜",
+            playful="點心車碌咗入你個終端機喇！",
+        ),
+        "dim_sum.lead": _levels(
+            "呢款點心來自已驗證嘅本機 bundled catalog。",
+            warm="本機 catalog 送上小小茶歇招呼。",
+            playful="唔上網、唔追蹤，得一籠迷你點心車輕輕碌過。",
+        ),
+        "dim_sum.romanization": "粵拼: {jyutping}",
+        "dim_sum.dismiss": "收起",
         "common.add": "加入",
         "common.apply": "套用",
         "common.back": "返回",

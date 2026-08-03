@@ -36,14 +36,18 @@
 
 Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [GitHub Desktop](https://github.com/desktop/desktop). It rebuilds the entire application shell around Material Design 3 while keeping GitHub Desktop's full Git workflow and the same underlying stack: [TypeScript](https://www.typescriptlang.org), [React](https://react.dev), [Electron](https://www.electronjs.org), and [Sass](https://sass-lang.com). This project is in active development.
 
-> **Platform support:** Desktop Material is a Windows-only product. Its
-> supported runtime, build, packaging, installer, release, and end-to-end
-> acceptance paths are Windows: x64 installer/portable ZIP, x64/arm64 build
-> validation, and packaged x64 E2E. The retained
-> [Linux TUI prototype](docs/features/linux-tui/README.md), its package notes,
-> and its five Xvfb captures are historical July 27 evidence only. They are not
-> a supported product edition, a current release target, or a blocker for the
-> Windows application.
+> **Platform support:** Desktop Material ships a Windows Electron desktop
+> application and a revived Linux-first
+> [terminal application](docs/features/linux-tui/README.md). Windows keeps the
+> x64 installer/portable ZIP, x64/arm64 build validation, and packaged x64 E2E.
+> Linux gets a separately packaged Textual TUI, a fresh-machine installer, and
+> real terminal/Xvfb acceptance; it adapts desktop workflows without claiming
+> that a terminal owns graphical window chrome.
+
+Fresh Linux, including machines with no developer tools installed: copy the
+single command from the [Install tab](docs/readme-tabs/install.md#install-the-linux-tui-on-a-fresh-machine).
+After reopening the shell, run `github` in the current repository or pass a
+path. The installer also supplies GitHub CLI's `gh` and configures `PATH`.
 
 <img
   width="1072"

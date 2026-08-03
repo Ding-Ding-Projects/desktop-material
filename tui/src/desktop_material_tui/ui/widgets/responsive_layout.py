@@ -6,6 +6,7 @@ from textual import events
 from textual.containers import Horizontal, HorizontalScroll
 from textual.geometry import Size
 from textual.layout import DockArrangeResult
+from textual.widget import Widget
 
 
 class ScrollableToolbar(HorizontalScroll):
@@ -50,11 +51,18 @@ class ScrollableToolbar(HorizontalScroll):
     def on_descendant_focus(self, event: events.DescendantFocus) -> None:
         """Follow keyboard focus through controls beyond the visible edge."""
 
+        # The region is already valid when Textual emits DescendantFocus. Move
+        # immediately as well as after refresh so a rapid tab activation/focus
+        # sequence cannot leave the correction queued behind the next layout.
+        self._reveal_focused_control(event.widget)
         self.call_after_refresh(
             self.scroll_to_widget,
             event.widget,
             animate=False,
-            origin_visible=True,
+            # A button's leading edge may already be visible while its label
+            # and trailing border are still clipped. Require the whole target
+            # region instead of treating that visible origin as success.
+            origin_visible=False,
             force=True,
             immediate=True,
         )
@@ -64,6 +72,38 @@ class ScrollableToolbar(HorizontalScroll):
             force=True,
             immediate=True,
         )
+        self.call_after_refresh(self._reveal_focused_control, event.widget)
+
+    def _reveal_focused_control(self, widget: Widget) -> None:
+        """Finish the reveal from stable virtual-content coordinates.
+
+        ``Widget.region`` is an absolute, post-scroll region. During the focus
+        message it can still describe the previous paint even though
+        ``scroll_x`` has already changed, which used to leave the trailing
+        three columns of a wide control clipped. The virtual region does not
+        move while the toolbar scrolls, so compute one absolute target offset
+        from it instead of adding a delta derived from stale screen geometry.
+        """
+
+        viewport_width = self.scrollable_content_region.width
+        target = widget.virtual_region_with_margin
+        if viewport_width <= 0 or not target:
+            return
+
+        current = round(self.scroll_x)
+        if target.width >= viewport_width or target.x < current:
+            destination = target.x
+        elif target.right > current + viewport_width:
+            destination = target.right - viewport_width
+        else:
+            return
+        self.scroll_to(
+            x=destination,
+            animate=False,
+            force=True,
+            immediate=True,
+        )
+
 
 class ResponsiveFormRow(Horizontal):
     """A wide horizontal form row that stacks its controls in narrow mode."""

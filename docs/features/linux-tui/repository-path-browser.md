@@ -1,10 +1,7 @@
 # Repository path browser and quoted paste
 
-> **Historical prototype record:** This page preserves the July 27, 2026 TUI
-> experiment. It is not current supported-product guidance or a Windows-release
-> blocker.
-
-The terminal edition's **Open repository** and **Create repository** dialogs
+The terminal edition's **Open repository**, **Create repository**, and **Clone
+repository** dialogs
 combine a real editable path field with a terminal-native folder browser. A
 user can paste or type a path, or click through directories without leaving the
 TUI.
@@ -19,6 +16,9 @@ TUI.
 - The Open/Create action and Enter submit the same normalized field value.
 - Escape and Cancel dismiss the dialog without opening, creating, or changing
   a repository.
+- Clone initially selects the process's current working directory as its parent
+  folder; **Working** returns to that exact launch directory after browsing
+  elsewhere.
 
 The browser begins at the nearest existing directory represented by the field.
 For a not-yet-created path, it walks up to an existing parent. Empty input starts
@@ -92,8 +92,9 @@ keyboard and mouse opening, directory selection, Home/Up navigation, immediate
 bracketed-paste normalization, clipboard paste, submission, cancellation, and
 narrow geometry.
 
-The dated
-[headless Linux verification record](../../verification/linux-tui-path-browser-wrapper-2026-07-27/run-manifest.md)
-captures the packaged wheel in a real Xvfb terminal and is the authority for
-the real mouse/browser/paste acceptance state. Unit tests alone are not
-presented as visual evidence.
+The current
+[revival verification record](../../verification/linux-tui-revival-2026-08-02/run-manifest.md)
+owns the packaged-wheel Clone/current-directory and browser acceptance. The
+[July 27 record](../../verification/linux-tui-path-browser-wrapper-2026-07-27/run-manifest.md)
+remains historical evidence for the earlier Open/Create implementation. Unit
+tests alone are not presented as visual evidence.

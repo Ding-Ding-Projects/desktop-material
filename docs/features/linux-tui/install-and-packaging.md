@@ -1,25 +1,24 @@
-# Historical Linux TUI installation and packaging record
+# Linux TUI installation and packaging
 
-> **Unsupported archive:** These requirements, commands, package checks, and
-> failure modes reproduce the July 27, 2026 prototype receipt. Desktop Material
-> is supported and released on Windows only. The TUI is not a current package
-> or release target, and failures in this archived lane do not block the
-> Windows application.
+> **Current release path:** the Linux TUI wheel, source distribution, locked
+> runtime constraints, bootstrap, and installer are built and tested as release
+> payloads. The Windows Electron packaging lanes remain separate.
 
-## Historical requirements
+## Runtime boundary
 
-- Linux with Python 3.10 through 3.13;
-- Git on `PATH`;
+- x86-64 or ARM64 GNU/Linux with glibc (musl is not currently compatible with
+  the required published RE2 wheel);
 - a UTF-8 terminal with at least 80 columns; 100 or more is recommended;
 - terminal mouse reporting for click and wheel interaction;
-- optional `gh` on `PATH` for GitHub features;
-- optional `uv` or `pipx` for an isolated user install.
+- network access to the project release and pinned upstream tool releases during
+  installation.
 
-The TUI is pure Python except for the published `google-re2` wheel. Installation
-must fail rather than silently replacing RE2 with Python's backtracking
-regular-expression engine.
+The fresh-machine installer supplies Git, SSH, certificates, `gh`, `uv`, and a
+managed Python 3.12 runtime. The TUI is pure Python except for the published
+`google-re2` wheel. Installation fails rather than silently replacing RE2 with
+Python's backtracking regular-expression engine.
 
-## Historical checkout route
+## Contributor checkout route
 
 The locked contributor path is:
 
@@ -51,32 +50,34 @@ uv run desktop-material-tui --help
 `--theme dark|light|system` and `--language en|yue-HK|bilingual` are accepted
 run-level choices. Persistent choices live in Settings.
 
-## Historical user-installation route
+## Fresh-machine installation route
 
-Git and [uv](https://docs.astral.sh/uv/getting-started/installation/) are
-required. For a fresh Linux shell installation, clone the trusted repository,
-install the isolated tool, and add uv's tool directory to future shells in one
-line:
+Use the single copy-and-paste command in the repository's
+[Install guide](../../readme-tabs/install.md#install-the-linux-tui-on-a-fresh-machine).
+The command has no preinstalled developer-tool requirement: it detects the
+native package manager and installs `ca-certificates` plus `curl` before running
+the release bootstrap. The checked-in source of that bootstrap is
+[`script/bootstrap-linux-tui.sh`](../../../script/bootstrap-linux-tui.sh); it
+downloads the full installer to a bounded temporary file, validates its shell
+header, and delegates the remaining work.
 
-<!-- markdownlint-disable MD013 -->
+The full installer:
 
-```bash
-git clone https://github.com/Ding-Ding-Projects/desktop-material.git && cd desktop-material && uv tool install ./tui && uv tool update-shell
-```
+- supports `apt-get`, `dnf5`, `dnf`, `yum`, `zypper`, and `pacman`;
+- uses root, `sudo`, or `doas` only for the fixed native package list;
+- pins and verifies the supported `gh` archive by architecture and SHA-256;
+- resolves a non-draft project release whose wheel and constraints carry
+  GitHub-provided SHA-256 digests, then verifies size and digest again locally;
+- installs into a user-owned `uv tool` environment and refuses path collisions
+  with unrelated executables;
+- writes one managed, replaceable `PATH` block to supported shell profiles;
+- records owned paths so a repeat run is idempotent without claiming unrelated
+  files;
+- never asks for or embeds a credential.
 
-The equivalent one-line Windows PowerShell installation is:
-
-```powershell
-git clone https://github.com/Ding-Ding-Projects/desktop-material.git; if ($LASTEXITCODE -ne 0) { throw 'git clone failed' }; Set-Location .\desktop-material; uv tool install .\tui; if ($LASTEXITCODE -ne 0) { throw 'uv tool install failed' }; uv tool update-shell
-```
-
-<!-- markdownlint-enable MD013 -->
-
-Close and reopen the terminal after either command so the updated `PATH` is
-loaded. Then open a repository with `github /path/to/repository` on Linux or
-`github C:\path\to\repository` on Windows. The fully interactive acceptance
-target remains Linux; the Windows Terminal launch path and cross-platform core
-are also tested.
+Close and reopen the terminal so the updated `PATH` is loaded. Then run
+`github` in the current repository or `github /path/to/repository`. Open and
+Clone default their folder chooser to the process's current working directory.
 
 From an existing trusted local checkout:
 
@@ -107,18 +108,16 @@ through. See
 [Repository path browser and quoted paste](repository-path-browser.md) and the
 [Cheap LFS Git wrapper](cheap-lfs-git-wrapper.md) for their exact contracts.
 
-`pipx install ./tui` is the corresponding pipx route. A wheel built by CI can
+`pipx install ./tui` is an optional checkout route. A release wheel can
 be installed with:
 
 ```bash
-uv tool install ./desktop_material_tui-0.1.0-py3-none-any.whl
+uv tool install ./desktop_material_tui-0.2.0-py3-none-any.whl
 ```
 
-Do not download an artifact from an unrelated workflow or fork and present it as
-a project release. The initial CI lane uploads the wheel and source distribution
-as a short-lived `desktop-material-tui-python` workflow artifact; a signed or
-immutable Linux release asset is not claimed until a release actually publishes
-one.
+Do not download an artifact from an unrelated workflow or fork and present it
+as a project release. The installer accepts only a complete payload attached to
+a non-draft, non-prerelease release in the expected repository.
 
 ## Build and inspect packages
 
@@ -130,22 +129,28 @@ python -m zipfile -l dist/desktop_material_tui-0.1.0-py3-none-any.whl
 
 The build produces:
 
-- `desktop_material_tui-0.1.0-py3-none-any.whl`;
-- `desktop_material_tui-0.1.0.tar.gz`.
+- `desktop_material_tui-0.2.0-py3-none-any.whl`;
+- `desktop_material_tui-0.2.0.tar.gz`.
 
 The wheel must contain the console entry points, `py.typed`, the Python
-packages, and `ui/styles.tcss`. The source distribution additionally carries
+packages, `ui/styles.tcss`, and the verified local dim-sum catalog. The source distribution additionally carries
 tests, the locked environment, and the parity contract. Generated `dist/`,
 virtual environments, bytecode, and coverage data are build outputs and are not
 source.
 
 ## CI contract
 
-The `Linux TUI` job in `.github/workflows/ci.yml` runs on Ubuntu for Python 3.10,
-3.12, and 3.13. All three environments install from `uv.lock` and run the test
-suite. Python 3.12 additionally checks the generated parity contract, runs Ruff
-and mypy, builds both distributions, installs the wheel into a fresh virtual
-environment, checks its version entry point, and uploads the two packages.
+The `Linux TUI` job in `.github/workflows/ci.yml` runs on Ubuntu for the declared
+Python matrix. Environments install from `uv.lock` and run the test suite. The
+packaging lane additionally checks the generated parity contract, runs Ruff and
+mypy, builds both distributions, installs the wheel into a fresh virtual
+environment, checks its version entry point, and uploads the packages.
+
+The release workflow attaches the wheel, source distribution, lock-derived
+runtime constraints, `bootstrap-linux-tui.sh`, and `install-linux-tui.sh`. Its
+clean Debian acceptance container runs the installer twice and verifies the
+managed Python, `uv`, RE2, `gh`, `github`, `dmt`, and
+`desktop-material-tui` commands after each pass.
 
 A separate Windows Server 2022/Python 3.12 lane runs the non-PTY unit,
 application, infrastructure, Cheap LFS, lint, and type-check core. It is a
@@ -183,11 +188,10 @@ boundary, SELinux note, and failure modes are in the
 - unsupported Python: the package installer refuses it.
 - RE2 wheel unavailable for a platform: installation fails closed; do not
   substitute a different regex engine.
-- `github` not found after installation: `uv tool update-shell` updates future
-  shells, so open a new terminal or source the updated profile. Inspect the
-  executable directory with `uv tool dir --bin`. If another program or alias
-  already owns `github`, use the identical `dmt` or `desktop-material-tui`
-  launcher.
+- `github` not found after installation: open a new terminal or source the
+  installer-managed profile block. If another program or alias already owns
+  `github`, use the identical `dmt` or `desktop-material-tui` launcher; the
+  installer refuses to overwrite an unrelated executable.
 - narrow terminal: content reflows and scrolls, but a terminal below the
   documented minimum may be impractical.
 - wheel omits `styles.tcss`: packaged startup is a release blocker.

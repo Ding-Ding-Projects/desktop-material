@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
+import os
 import re
 import subprocess
 from collections.abc import Mapping, Sequence
+from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Any
 from urllib.parse import quote, urlencode
 
@@ -26,6 +30,9 @@ from .errors import (
 )
 from .models import (
     ActionReceipt,
+    ActionsCache,
+    DownloadReceipt,
+    EffectiveBranchRule,
     ExplorerResponse,
     GitHubAuthStatus,
     Issue,
@@ -36,18 +43,29 @@ from .models import (
     PackageVersion,
     Project,
     PullRequest,
+    PullRequestCheck,
+    PullRequestFile,
     PullRequestMergeResult,
     PullRequestReview,
+    PullRequestReviewComment,
     Release,
     ReleaseAsset,
+    RepositoryNotification,
     RepositoryRef,
     ReviewDecision,
     Workflow,
+    WorkflowArtifact,
     WorkflowJob,
+    WorkflowLogContent,
     WorkflowLogMetadata,
     WorkflowRun,
 )
-from .transport import GhProcessResult, GhTransport, SubprocessGhTransport
+from .transport import (
+    GhBinaryProcessResult,
+    GhProcessResult,
+    GhTransport,
+    SubprocessGhTransport,
+)
 
 _NO_PAYLOAD = object()
 _AUTH_LOGIN = re.compile(r"account\s+([A-Za-z0-9_.-]+)", re.IGNORECASE)
@@ -102,6 +120,7 @@ class GhClient:
         maximum_timeout_seconds: float = 120.0,
         maximum_response_bytes: int = 2_000_000,
         maximum_request_bytes: int = 65_536,
+        maximum_download_bytes: int = 128_000_000,
         maximum_graphql_depth: int = 12,
     ) -> None:
         if (
@@ -120,7 +139,11 @@ class GhClient:
             or default_timeout_seconds > maximum_timeout_seconds
         ):
             raise GitHubValidationError("Invalid GitHub CLI timeout configuration.")
-        if maximum_response_bytes < 1024 or maximum_request_bytes < 256:
+        if (
+            maximum_response_bytes < 1024
+            or maximum_request_bytes < 256
+            or maximum_download_bytes < 1024
+        ):
             raise GitHubValidationError("GitHub CLI size limits are too small.")
         if not 1 <= maximum_graphql_depth <= 32:
             raise GitHubValidationError("GraphQL depth limit must be between 1 and 32.")
@@ -131,6 +154,7 @@ class GhClient:
         self._maximum_timeout_seconds = maximum_timeout_seconds
         self._maximum_response_bytes = maximum_response_bytes
         self._maximum_request_bytes = maximum_request_bytes
+        self._maximum_download_bytes = maximum_download_bytes
         self._maximum_graphql_depth = maximum_graphql_depth
 
     # Authentication -----------------------------------------------------
@@ -533,6 +557,173 @@ class GhClient:
             timeout_seconds=timeout_seconds,
         )
 
+    def list_pull_request_files(
+        self,
+        repository: RepositoryRef,
+        number: int,
+        *,
+        limit: int = 500,
+        timeout_seconds: float | None = None,
+    ) -> tuple[PullRequestFile, ...]:
+        items = self._paginated_sequence_items(
+            repository,
+            f"pulls/{self._positive_id(number, 'pull request')}/files",
+            fixed_query={},
+            limit=self._collection_limit(limit),
+            operation="list pull-request files",
+            timeout_seconds=timeout_seconds,
+        )
+        return tuple(PullRequestFile.from_json(item) for item in items)
+
+    def list_pull_request_checks(
+        self,
+        repository: RepositoryRef,
+        ref: str,
+        *,
+        limit: int = 500,
+        timeout_seconds: float | None = None,
+    ) -> tuple[PullRequestCheck, ...]:
+        normalized_limit = self._collection_limit(limit)
+        normalized_ref = quote(self._ref(ref, "check ref"), safe="")
+        check_runs = self._paginated_mapping_items(
+            repository,
+            f"commits/{normalized_ref}/check-runs",
+            key="check_runs",
+            fixed_query={"filter": "latest"},
+            limit=normalized_limit,
+            operation="list pull-request check runs",
+            timeout_seconds=timeout_seconds,
+        )
+        remaining = normalized_limit - len(check_runs)
+        statuses: tuple[object, ...] = ()
+        if remaining:
+            statuses = self._paginated_sequence_items(
+                repository,
+                f"commits/{normalized_ref}/statuses",
+                fixed_query={},
+                limit=remaining,
+                operation="list pull-request commit statuses",
+                timeout_seconds=timeout_seconds,
+            )
+        return (
+            *(PullRequestCheck.from_check_run_json(item) for item in check_runs),
+            *(PullRequestCheck.from_status_json(item) for item in statuses),
+        )
+
+    def list_pull_request_review_comments(
+        self,
+        repository: RepositoryRef,
+        number: int,
+        *,
+        limit: int = 500,
+        timeout_seconds: float | None = None,
+    ) -> tuple[PullRequestReviewComment, ...]:
+        items = self._paginated_sequence_items(
+            repository,
+            f"pulls/{self._positive_id(number, 'pull request')}/comments",
+            fixed_query={"sort": "created", "direction": "asc"},
+            limit=self._collection_limit(limit),
+            operation="list pull-request review comments",
+            timeout_seconds=timeout_seconds,
+        )
+        return tuple(PullRequestReviewComment.from_json(item) for item in items)
+
+    def create_pull_request_review_comment(
+        self,
+        repository: RepositoryRef,
+        number: int,
+        *,
+        body: str,
+        commit_id: str,
+        path: str,
+        line: int,
+        side: str,
+        timeout_seconds: float | None = None,
+    ) -> PullRequestReviewComment:
+        value = self._api_json(
+            repository,
+            "POST",
+            f"pulls/{self._positive_id(number, 'pull request')}/comments",
+            payload={
+                "body": self._nonempty_body(body),
+                "commit_id": self._sha(commit_id),
+                "path": self._single_line(path, "review path", maximum=1_024),
+                "line": self._positive_id(line, "review line"),
+                "side": self._choice(side.upper(), {"LEFT", "RIGHT"}, "review side"),
+            },
+            operation="create pull-request review comment",
+            timeout_seconds=timeout_seconds,
+        )
+        return PullRequestReviewComment.from_json(value)
+
+    def list_effective_branch_rules(
+        self,
+        repository: RepositoryRef,
+        branch: str,
+        *,
+        limit: int = 500,
+        timeout_seconds: float | None = None,
+    ) -> tuple[EffectiveBranchRule, ...]:
+        normalized_branch = self._ref(branch, "branch")
+        if any(character in normalized_branch for character in "*?["):
+            raise GitHubValidationError(
+                "Effective branch-rule inspection requires an exact branch name.",
+                operation="list effective branch rules",
+            )
+        items = self._paginated_sequence_items(
+            repository,
+            f"rules/branches/{quote(normalized_branch, safe='')}",
+            fixed_query={},
+            limit=self._collection_limit(limit),
+            operation="list effective branch rules",
+            timeout_seconds=timeout_seconds,
+        )
+        return tuple(EffectiveBranchRule.from_json(item) for item in items)
+
+    def list_repository_notifications(
+        self,
+        repository: RepositoryRef,
+        *,
+        all_notifications: bool = True,
+        participating: bool = False,
+        limit: int = 500,
+        timeout_seconds: float | None = None,
+    ) -> tuple[RepositoryNotification, ...]:
+        items = self._paginated_sequence_items(
+            repository,
+            "notifications",
+            fixed_query={
+                "all": str(all_notifications).lower(),
+                "participating": str(participating).lower(),
+            },
+            limit=self._collection_limit(limit),
+            operation="list repository notifications",
+            timeout_seconds=timeout_seconds,
+        )
+        return tuple(RepositoryNotification.from_json(item) for item in items)
+
+    def mark_notification_read(
+        self,
+        repository: RepositoryRef,
+        thread_id: str,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> ActionReceipt:
+        normalized_id = self._single_line(thread_id, "notification thread id", maximum=100)
+        if not normalized_id.isdigit():
+            raise GitHubValidationError(
+                "Notification thread id must contain decimal digits only.",
+                operation="mark notification read",
+            )
+        self._global_api_json(
+            repository.host,
+            "PATCH",
+            f"notifications/threads/{quote(normalized_id, safe='')}",
+            operation="mark notification read",
+            timeout_seconds=timeout_seconds,
+        )
+        return ActionReceipt(operation="mark-notification-read", accepted=True)
+
     # GitHub Actions -----------------------------------------------------
 
     def list_workflows(
@@ -655,6 +846,198 @@ class GhClient:
             timeout_seconds=timeout_seconds,
         )
 
+    def get_job_log(
+        self,
+        repository: RepositoryRef,
+        job_id: int,
+        *,
+        maximum_bytes: int | None = None,
+        timeout_seconds: float | None = None,
+    ) -> WorkflowLogContent:
+        normalized_id = self._positive_id(job_id, "workflow job")
+        limit = self._download_limit(
+            maximum_bytes,
+            ceiling=self._maximum_response_bytes,
+            operation="inspect workflow job log",
+        )
+        payload = self._api_binary(
+            repository,
+            "GET",
+            f"actions/jobs/{normalized_id}/logs",
+            accept="text/plain",
+            maximum_bytes=limit,
+            operation="inspect workflow job log",
+            timeout_seconds=timeout_seconds,
+        )
+        return WorkflowLogContent(
+            resource_kind="job",
+            resource_id=normalized_id,
+            text=payload.decode("utf-8", errors="replace"),
+            byte_count=len(payload),
+        )
+
+    def list_actions_caches(
+        self,
+        repository: RepositoryRef,
+        *,
+        key: str | None = None,
+        ref: str | None = None,
+        sort: str = "last_accessed_at",
+        direction: str = "desc",
+        limit: int = 500,
+        timeout_seconds: float | None = None,
+    ) -> tuple[ActionsCache, ...]:
+        total_limit = self._collection_limit(limit)
+        normalized_sort = self._choice(
+            sort,
+            {"created_at", "last_accessed_at", "size_in_bytes"},
+            "cache sort",
+        )
+        normalized_direction = self._choice(
+            direction,
+            {"asc", "desc"},
+            "cache direction",
+        )
+        fixed_query: dict[str, object] = {
+            "sort": normalized_sort,
+            "direction": normalized_direction,
+        }
+        if key is not None:
+            fixed_query["key"] = self._single_line(key, "cache key", maximum=512)
+        if ref is not None:
+            fixed_query["ref"] = self._ref(ref, "cache ref")
+        return tuple(
+            ActionsCache.from_json(item)
+            for item in self._paginated_mapping_items(
+                repository,
+                "actions/caches",
+                key="actions_caches",
+                fixed_query=fixed_query,
+                limit=total_limit,
+                operation="list Actions caches",
+                timeout_seconds=timeout_seconds,
+            )
+        )
+
+    def delete_actions_cache(
+        self,
+        repository: RepositoryRef,
+        cache_id: int,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> ActionReceipt:
+        normalized_id = self._positive_id(cache_id, "Actions cache")
+        self._api_empty(
+            repository,
+            "DELETE",
+            f"actions/caches/{normalized_id}",
+            operation="delete Actions cache",
+            timeout_seconds=timeout_seconds,
+        )
+        return ActionReceipt(operation="delete-cache", accepted=True)
+
+    def list_workflow_artifacts(
+        self,
+        repository: RepositoryRef,
+        *,
+        run_id: int | None = None,
+        name: str | None = None,
+        limit: int = 500,
+        timeout_seconds: float | None = None,
+    ) -> tuple[WorkflowArtifact, ...]:
+        total_limit = self._collection_limit(limit)
+        suffix = "actions/artifacts"
+        if run_id is not None:
+            suffix = f"actions/runs/{self._positive_id(run_id, 'workflow run')}/artifacts"
+        fixed_query: dict[str, object] = {}
+        if name is not None:
+            fixed_query["name"] = self._single_line(name, "artifact name", maximum=255)
+        return tuple(
+            WorkflowArtifact.from_json(item)
+            for item in self._paginated_mapping_items(
+                repository,
+                suffix,
+                key="artifacts",
+                fixed_query=fixed_query,
+                limit=total_limit,
+                operation="list workflow artifacts",
+                timeout_seconds=timeout_seconds,
+            )
+        )
+
+    def get_workflow_artifact(
+        self,
+        repository: RepositoryRef,
+        artifact_id: int,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> WorkflowArtifact:
+        normalized_id = self._positive_id(artifact_id, "workflow artifact")
+        value = self._api_json(
+            repository,
+            "GET",
+            f"actions/artifacts/{normalized_id}",
+            operation="view workflow artifact",
+            timeout_seconds=timeout_seconds,
+        )
+        return WorkflowArtifact.from_json(value)
+
+    def download_workflow_artifact(
+        self,
+        repository: RepositoryRef,
+        artifact_id: int,
+        destination: str | os.PathLike[str],
+        *,
+        maximum_bytes: int | None = None,
+        overwrite: bool = False,
+        timeout_seconds: float | None = None,
+    ) -> DownloadReceipt:
+        artifact = self.get_workflow_artifact(
+            repository,
+            artifact_id,
+            timeout_seconds=timeout_seconds,
+        )
+        if artifact.expired:
+            raise GitHubValidationError(
+                "Expired workflow artifacts cannot be downloaded.",
+                operation="download workflow artifact",
+            )
+        if artifact.digest is None:
+            raise GitHubResponseError(
+                "GitHub did not provide a SHA-256 digest; verified artifact "
+                "download is unavailable.",
+                operation="download workflow artifact",
+            )
+        limit = self._download_limit(
+            maximum_bytes,
+            ceiling=self._maximum_download_bytes,
+            operation="download workflow artifact",
+        )
+        if artifact.size_in_bytes > limit:
+            raise GitHubResponseTooLargeError(
+                artifact.size_in_bytes,
+                limit,
+                operation="download workflow artifact",
+            )
+        payload = self._api_binary(
+            repository,
+            "GET",
+            f"actions/artifacts/{artifact.id}/zip",
+            accept="application/octet-stream",
+            maximum_bytes=limit,
+            operation="download workflow artifact",
+            timeout_seconds=timeout_seconds,
+        )
+        return self._store_download(
+            payload,
+            destination,
+            resource_kind="artifact",
+            resource_id=artifact.id,
+            expected_digest=artifact.digest,
+            overwrite=overwrite,
+            operation="download workflow artifact",
+        )
+
     def dispatch_workflow(
         self,
         repository: RepositoryRef,
@@ -666,9 +1049,9 @@ class GhClient:
     ) -> ActionReceipt:
         payload: dict[str, Any] = {"ref": self._ref(ref, "workflow ref")}
         if inputs is not None:
-            if len(inputs) > 50:
+            if len(inputs) > 25:
                 raise GitHubValidationError(
-                    "Workflow dispatch accepts at most 50 inputs.",
+                    "Workflow dispatch accepts at most 25 inputs.",
                     operation="dispatch workflow",
                 )
             payload["inputs"] = {
@@ -782,7 +1165,148 @@ class GhClient:
             for item in self._json_sequence(value, "list release assets")
         )
 
-    # Packages and Projects (read-only) ---------------------------------
+    def get_release_asset(
+        self,
+        repository: RepositoryRef,
+        asset_id: int,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> ReleaseAsset:
+        normalized_id = self._positive_id(asset_id, "release asset")
+        value = self._api_json(
+            repository,
+            "GET",
+            f"releases/assets/{normalized_id}",
+            operation="view release asset",
+            timeout_seconds=timeout_seconds,
+        )
+        return ReleaseAsset.from_json(value)
+
+    def create_release(
+        self,
+        repository: RepositoryRef,
+        *,
+        tag_name: str,
+        target_commitish: str,
+        name: str,
+        body: str = "",
+        draft: bool = True,
+        prerelease: bool = False,
+        timeout_seconds: float | None = None,
+    ) -> Release:
+        payload = {
+            "tag_name": self._ref(tag_name, "release tag"),
+            "target_commitish": self._ref(target_commitish, "release target"),
+            "name": self._single_line(name, "release name", maximum=255),
+            "body": self._body(body),
+            "draft": bool(draft),
+            "prerelease": bool(prerelease),
+        }
+        value = self._api_json(
+            repository,
+            "POST",
+            "releases",
+            payload=payload,
+            operation="create release",
+            timeout_seconds=timeout_seconds,
+        )
+        return Release.from_json(value)
+
+    def update_release(
+        self,
+        repository: RepositoryRef,
+        release_id: int,
+        *,
+        tag_name: str,
+        target_commitish: str,
+        name: str,
+        body: str,
+        draft: bool,
+        prerelease: bool,
+        timeout_seconds: float | None = None,
+    ) -> Release:
+        normalized_id = self._positive_id(release_id, "release")
+        payload = {
+            "tag_name": self._ref(tag_name, "release tag"),
+            "target_commitish": self._ref(target_commitish, "release target"),
+            "name": self._single_line(name, "release name", maximum=255),
+            "body": self._body(body),
+            "draft": bool(draft),
+            "prerelease": bool(prerelease),
+        }
+        value = self._api_json(
+            repository,
+            "PATCH",
+            f"releases/{normalized_id}",
+            payload=payload,
+            operation="update release",
+            timeout_seconds=timeout_seconds,
+        )
+        return Release.from_json(value)
+
+    def delete_release(
+        self,
+        repository: RepositoryRef,
+        release_id: int,
+        *,
+        timeout_seconds: float | None = None,
+    ) -> ActionReceipt:
+        normalized_id = self._positive_id(release_id, "release")
+        self._api_empty(
+            repository,
+            "DELETE",
+            f"releases/{normalized_id}",
+            operation="delete release",
+            timeout_seconds=timeout_seconds,
+        )
+        return ActionReceipt(operation="delete-release", accepted=True)
+
+    def download_release_asset(
+        self,
+        repository: RepositoryRef,
+        asset_id: int,
+        destination: str | os.PathLike[str],
+        *,
+        maximum_bytes: int | None = None,
+        overwrite: bool = False,
+        timeout_seconds: float | None = None,
+    ) -> DownloadReceipt:
+        asset = self.get_release_asset(
+            repository,
+            asset_id,
+            timeout_seconds=timeout_seconds,
+        )
+        limit = self._download_limit(
+            maximum_bytes,
+            ceiling=self._maximum_download_bytes,
+            operation="download release asset",
+        )
+        if asset.size > limit:
+            raise GitHubResponseTooLargeError(
+                asset.size,
+                limit,
+                operation="download release asset",
+            )
+        payload = self._api_binary(
+            repository,
+            "GET",
+            f"releases/assets/{asset.id}",
+            accept="application/octet-stream",
+            maximum_bytes=limit,
+            operation="download release asset",
+            timeout_seconds=timeout_seconds,
+        )
+        return self._store_download(
+            payload,
+            destination,
+            resource_kind="release-asset",
+            resource_id=asset.id,
+            expected_digest=asset.digest,
+            overwrite=overwrite,
+            operation="download release asset",
+        )
+
+    # Packages and Projects ---------------------------------------------
 
     def list_packages(
         self,
@@ -1093,6 +1617,59 @@ class GhClient:
             self._raise_process_error(result, operation=operation)
         return result
 
+    def _execute_binary(
+        self,
+        args: Sequence[str],
+        *,
+        operation: str,
+        timeout_seconds: float | None,
+        maximum_bytes: int,
+    ) -> GhBinaryProcessResult:
+        timeout = self._timeout(timeout_seconds)
+        argv = (*self._command_prefix, *args)
+        try:
+            result = self._transport.run_binary(
+                argv,
+                timeout_seconds=timeout,
+                maximum_bytes=maximum_bytes,
+            )
+        except FileNotFoundError as error:
+            raise GitHubCliNotFoundError(operation=operation) from error
+        except subprocess.TimeoutExpired as error:
+            raise GitHubTimeoutError(timeout, operation=operation) from error
+        except OSError as error:
+            raise GitHubCommandError(
+                sanitize_cli_text(str(error)) or "GitHub CLI could not be launched.",
+                operation=operation,
+                exit_code=-1,
+            ) from error
+
+        diagnostics_size = len(result.stderr.encode("utf-8", errors="replace"))
+        actual_size = len(result.stdout)
+        if actual_size > maximum_bytes:
+            raise GitHubResponseTooLargeError(
+                actual_size,
+                maximum_bytes,
+                operation=operation,
+            )
+        if diagnostics_size > self._maximum_response_bytes:
+            raise GitHubResponseTooLargeError(
+                diagnostics_size,
+                self._maximum_response_bytes,
+                operation=operation,
+            )
+        if result.return_code != 0:
+            self._raise_process_error(
+                GhProcessResult(
+                    argv=result.argv,
+                    return_code=result.return_code,
+                    stdout=result.stdout.decode("utf-8", errors="replace"),
+                    stderr=result.stderr,
+                ),
+                operation=operation,
+            )
+        return result
+
     def _raise_process_error(self, result: GhProcessResult, *, operation: str) -> None:
         combined = f"{result.stderr}\n{result.stdout}"
         required_scopes = extract_required_scopes(combined)
@@ -1163,6 +1740,98 @@ class GhClient:
             operation=operation,
             timeout_seconds=timeout_seconds,
         )
+
+    def _api_binary(
+        self,
+        repository: RepositoryRef,
+        method: str,
+        suffix: str,
+        *,
+        accept: str,
+        maximum_bytes: int,
+        operation: str,
+        timeout_seconds: float | None,
+    ) -> bytes:
+        endpoint = f"repos/{repository.slug}/{suffix.lstrip('/')}"
+        result = self._execute_binary(
+            (
+                "api",
+                endpoint,
+                "--hostname",
+                repository.host,
+                "--method",
+                method,
+                "--header",
+                f"Accept: {accept}",
+                "--header",
+                "X-GitHub-Api-Version: 2022-11-28",
+            ),
+            operation=operation,
+            timeout_seconds=timeout_seconds,
+            maximum_bytes=maximum_bytes,
+        )
+        return result.stdout
+
+    def _paginated_mapping_items(
+        self,
+        repository: RepositoryRef,
+        suffix: str,
+        *,
+        key: str,
+        fixed_query: Mapping[str, object],
+        limit: int,
+        operation: str,
+        timeout_seconds: float | None,
+    ) -> tuple[object, ...]:
+        items: list[object] = []
+        page = 1
+        while len(items) < limit:
+            page_size = min(100, limit - len(items))
+            query = {**fixed_query, "per_page": page_size, "page": page}
+            value = self._api_json(
+                repository,
+                "GET",
+                suffix,
+                query=query,
+                operation=operation,
+                timeout_seconds=timeout_seconds,
+            )
+            batch = tuple(self._mapping_sequence(value, key, operation))
+            items.extend(batch[:page_size])
+            if len(batch) < page_size:
+                break
+            page += 1
+        return tuple(items[:limit])
+
+    def _paginated_sequence_items(
+        self,
+        repository: RepositoryRef,
+        suffix: str,
+        *,
+        fixed_query: Mapping[str, object],
+        limit: int,
+        operation: str,
+        timeout_seconds: float | None,
+    ) -> tuple[object, ...]:
+        items: list[object] = []
+        page = 1
+        while len(items) < limit:
+            page_size = min(100, limit - len(items))
+            query = {**fixed_query, "per_page": page_size, "page": page}
+            value = self._api_json(
+                repository,
+                "GET",
+                suffix,
+                query=query,
+                operation=operation,
+                timeout_seconds=timeout_seconds,
+            )
+            batch = tuple(self._json_sequence(value, operation))
+            items.extend(batch[:page_size])
+            if len(batch) < page_size:
+                break
+            page += 1
+        return tuple(items[:limit])
 
     def _global_api_json(
         self,
@@ -1343,6 +2012,79 @@ class GhClient:
             data = self._decode_json(body_text, operation=operation)
         return status, tuple(headers), data
 
+    @staticmethod
+    def _store_download(
+        payload: bytes,
+        destination: str | os.PathLike[str],
+        *,
+        resource_kind: str,
+        resource_id: int,
+        expected_digest: str | None,
+        overwrite: bool,
+        operation: str,
+    ) -> DownloadReceipt:
+        target = Path(destination).expanduser().resolve()
+        if not target.name or not target.parent.is_dir():
+            raise GitHubValidationError(
+                "Download destination must be a file inside an existing directory.",
+                operation=operation,
+            )
+        if target.exists() and not overwrite:
+            raise GitHubValidationError(
+                "Download destination already exists; choose a new path.",
+                operation=operation,
+            )
+
+        actual_sha256 = hashlib.sha256(payload).hexdigest()
+        verified = False
+        if expected_digest:
+            algorithm, separator, expected_value = expected_digest.partition(":")
+            if algorithm.casefold() != "sha256" or not separator:
+                raise GitHubResponseError(
+                    "GitHub returned an unsupported download digest.",
+                    operation=operation,
+                )
+            if not re.fullmatch(r"[0-9a-fA-F]{64}", expected_value):
+                raise GitHubResponseError(
+                    "GitHub returned a malformed SHA-256 download digest.",
+                    operation=operation,
+                )
+            if actual_sha256 != expected_value.casefold():
+                raise GitHubResponseError(
+                    "Downloaded bytes did not match GitHub's SHA-256 digest.",
+                    operation=operation,
+                )
+            verified = True
+
+        temporary_name: str | None = None
+        try:
+            with NamedTemporaryFile(
+                mode="wb",
+                dir=target.parent,
+                prefix=f".{target.name}.",
+                suffix=".part",
+                delete=False,
+            ) as temporary:
+                temporary.write(payload)
+                temporary.flush()
+                os.fsync(temporary.fileno())
+                temporary_name = temporary.name
+            Path(temporary_name).replace(target)
+            temporary_name = None
+        finally:
+            if temporary_name is not None:
+                Path(temporary_name).unlink(missing_ok=True)
+
+        return DownloadReceipt(
+            resource_kind=resource_kind,
+            resource_id=resource_id,
+            destination=str(target),
+            byte_count=len(payload),
+            sha256=actual_sha256,
+            verified=verified,
+            expected_digest=expected_digest,
+        )
+
     # Validation helpers -------------------------------------------------
 
     def _timeout(self, timeout_seconds: float | None) -> float:
@@ -1365,6 +2107,31 @@ class GhClient:
         if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 100:
             raise GitHubValidationError("List limit must be between 1 and 100.")
         return value
+
+    @staticmethod
+    def _collection_limit(value: int) -> int:
+        if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= 1000:
+            raise GitHubValidationError("Collection limit must be between 1 and 1000.")
+        return value
+
+    @staticmethod
+    def _download_limit(
+        value: int | None,
+        *,
+        ceiling: int,
+        operation: str,
+    ) -> int:
+        normalized = ceiling if value is None else value
+        if (
+            isinstance(normalized, bool)
+            or not isinstance(normalized, int)
+            or not 1 <= normalized <= ceiling
+        ):
+            raise GitHubValidationError(
+                f"Download limit must be between 1 and {ceiling} bytes.",
+                operation=operation,
+            )
+        return normalized
 
     @staticmethod
     def _choice(value: str, choices: set[str] | frozenset[str], label: str) -> str:

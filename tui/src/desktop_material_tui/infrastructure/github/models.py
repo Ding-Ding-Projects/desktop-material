@@ -33,6 +33,17 @@ def _optional_string(value: object) -> str | None:
     return value if isinstance(value, str) and value else None
 
 
+def _bounded_utf8(value: object, *, maximum_bytes: int) -> tuple[str | None, bool]:
+    """Return optional text without retaining an unexpectedly large API field."""
+
+    if not isinstance(value, str) or not value:
+        return None, False
+    encoded = value.encode("utf-8")
+    if len(encoded) <= maximum_bytes:
+        return value, False
+    return encoded[:maximum_bytes].decode("utf-8", errors="ignore"), True
+
+
 def _integer(value: object, default: int = 0) -> int:
     if isinstance(value, bool):
         return default
@@ -469,6 +480,280 @@ class WorkflowLogMetadata:
     content_type: str | None
     content_length: int | None
     etag: str | None
+
+
+@dataclass(frozen=True)
+class WorkflowLogContent:
+    resource_kind: str
+    resource_id: int
+    text: str
+    byte_count: int
+
+
+@dataclass(frozen=True)
+class ActionsCache:
+    id: int
+    key: str
+    ref: str
+    version: str
+    size_in_bytes: int
+    created_at: datetime | None
+    last_accessed_at: datetime | None
+
+    @classmethod
+    def from_json(cls, value: object) -> ActionsCache:
+        mapping = _required_mapping(value, operation="parse Actions cache")
+        return cls(
+            id=_integer(mapping.get("id")),
+            key=_string(mapping.get("key")),
+            ref=_string(mapping.get("ref")),
+            version=_string(mapping.get("version")),
+            size_in_bytes=_integer(_first(mapping, "size_in_bytes", "sizeInBytes")),
+            created_at=_timestamp(_first(mapping, "created_at", "createdAt")),
+            last_accessed_at=_timestamp(
+                _first(mapping, "last_accessed_at", "lastAccessedAt")
+            ),
+        )
+
+
+@dataclass(frozen=True)
+class PullRequestFile:
+    sha: str
+    filename: str
+    status: str
+    additions: int
+    deletions: int
+    changes: int
+    previous_filename: str | None
+    blob_url: str | None
+    raw_url: str | None
+    contents_url: str | None
+    patch: str | None
+    patch_truncated: bool
+
+    @classmethod
+    def from_json(cls, value: object) -> PullRequestFile:
+        mapping = _required_mapping(value, operation="parse pull-request file")
+        patch, patch_truncated = _bounded_utf8(mapping.get("patch"), maximum_bytes=120_000)
+        return cls(
+            sha=_string(mapping.get("sha")),
+            filename=_string(mapping.get("filename")),
+            status=_string(mapping.get("status")),
+            additions=_integer(mapping.get("additions")),
+            deletions=_integer(mapping.get("deletions")),
+            changes=_integer(mapping.get("changes")),
+            previous_filename=_optional_string(mapping.get("previous_filename")),
+            blob_url=_optional_string(mapping.get("blob_url")),
+            raw_url=_optional_string(mapping.get("raw_url")),
+            contents_url=_optional_string(mapping.get("contents_url")),
+            patch=patch,
+            patch_truncated=patch_truncated,
+        )
+
+
+@dataclass(frozen=True)
+class PullRequestCheck:
+    id: int
+    source: str
+    name: str
+    status: str
+    conclusion: str | None
+    description: str
+    details_url: str | None
+    started_at: datetime | None
+    completed_at: datetime | None
+
+    @classmethod
+    def from_check_run_json(cls, value: object) -> PullRequestCheck:
+        mapping = _required_mapping(value, operation="parse pull-request check run")
+        output = _mapping(mapping.get("output"))
+        summary, _ = _bounded_utf8(output.get("summary"), maximum_bytes=16_000)
+        title = _string(output.get("title"))
+        return cls(
+            id=_integer(mapping.get("id")),
+            source="check-run",
+            name=_string(mapping.get("name")),
+            status=_string(mapping.get("status")),
+            conclusion=_optional_string(mapping.get("conclusion")),
+            description=" · ".join(part for part in (title, summary or "") if part),
+            details_url=_optional_string(
+                _first(mapping, "details_url", "html_url", "url")
+            ),
+            started_at=_timestamp(mapping.get("started_at")),
+            completed_at=_timestamp(mapping.get("completed_at")),
+        )
+
+    @classmethod
+    def from_status_json(cls, value: object) -> PullRequestCheck:
+        mapping = _required_mapping(value, operation="parse pull-request commit status")
+        state = _string(mapping.get("state"))
+        description, _ = _bounded_utf8(mapping.get("description"), maximum_bytes=16_000)
+        return cls(
+            id=_integer(mapping.get("id")),
+            source="commit-status",
+            name=_string(mapping.get("context"), "Status"),
+            status=state,
+            conclusion=state or None,
+            description=description or "",
+            details_url=_optional_string(_first(mapping, "target_url", "url")),
+            started_at=_timestamp(mapping.get("created_at")),
+            completed_at=_timestamp(mapping.get("updated_at")),
+        )
+
+
+@dataclass(frozen=True)
+class PullRequestReviewComment:
+    id: int
+    review_id: int | None
+    body: str
+    path: str
+    line: int | None
+    side: str | None
+    start_line: int | None
+    start_side: str | None
+    commit_id: str | None
+    original_commit_id: str | None
+    author: GitHubUser | None
+    in_reply_to_id: int | None
+    created_at: datetime | None
+    updated_at: datetime | None
+    url: str | None
+
+    @classmethod
+    def from_json(cls, value: object) -> PullRequestReviewComment:
+        mapping = _required_mapping(value, operation="parse pull-request review comment")
+        body, _ = _bounded_utf8(mapping.get("body"), maximum_bytes=65_536)
+        review_id = _integer(mapping.get("pull_request_review_id"))
+        line = _integer(mapping.get("line"))
+        start_line = _integer(mapping.get("start_line"))
+        in_reply_to_id = _integer(mapping.get("in_reply_to_id"))
+        return cls(
+            id=_integer(mapping.get("id")),
+            review_id=review_id or None,
+            body=body or "",
+            path=_string(mapping.get("path")),
+            line=line or None,
+            side=_optional_string(mapping.get("side")),
+            start_line=start_line or None,
+            start_side=_optional_string(mapping.get("start_side")),
+            commit_id=_optional_string(mapping.get("commit_id")),
+            original_commit_id=_optional_string(mapping.get("original_commit_id")),
+            author=_user(mapping.get("user")),
+            in_reply_to_id=in_reply_to_id or None,
+            created_at=_timestamp(mapping.get("created_at")),
+            updated_at=_timestamp(mapping.get("updated_at")),
+            url=_optional_string(mapping.get("html_url")),
+        )
+
+
+@dataclass(frozen=True)
+class EffectiveBranchRule:
+    type: str
+    ruleset_source_type: str
+    ruleset_source: str
+    ruleset_id: int | None
+    parameters: Mapping[str, Any]
+
+    @classmethod
+    def from_json(cls, value: object) -> EffectiveBranchRule:
+        mapping = _required_mapping(value, operation="parse effective branch rule")
+        ruleset_id = _integer(mapping.get("ruleset_id"))
+        return cls(
+            type=_string(mapping.get("type")),
+            ruleset_source_type=_string(mapping.get("ruleset_source_type")),
+            ruleset_source=_string(mapping.get("ruleset_source")),
+            ruleset_id=ruleset_id or None,
+            parameters=_mapping(mapping.get("parameters")),
+        )
+
+
+@dataclass(frozen=True)
+class RepositoryNotification:
+    id: str
+    reason: str
+    unread: bool
+    updated_at: datetime | None
+    last_read_at: datetime | None
+    subject_title: str
+    subject_type: str
+    subject_url: str | None
+    latest_comment_url: str | None
+    repository_full_name: str
+    url: str | None
+
+    @classmethod
+    def from_json(cls, value: object) -> RepositoryNotification:
+        mapping = _required_mapping(value, operation="parse repository notification")
+        subject = _mapping(mapping.get("subject"))
+        repository = _mapping(mapping.get("repository"))
+        owner = _mapping(repository.get("owner"))
+        repository_full_name = _string(repository.get("full_name"))
+        if not repository_full_name:
+            owner_login = _string(owner.get("login"))
+            repository_name = _string(repository.get("name"))
+            repository_full_name = "/".join(
+                part for part in (owner_login, repository_name) if part
+            )
+        return cls(
+            id=str(mapping.get("id") or ""),
+            reason=_string(mapping.get("reason")),
+            unread=_boolean(mapping.get("unread")),
+            updated_at=_timestamp(mapping.get("updated_at")),
+            last_read_at=_timestamp(mapping.get("last_read_at")),
+            subject_title=_string(subject.get("title")),
+            subject_type=_string(subject.get("type")),
+            subject_url=_optional_string(subject.get("url")),
+            latest_comment_url=_optional_string(subject.get("latest_comment_url")),
+            repository_full_name=repository_full_name,
+            url=_optional_string(mapping.get("url")),
+        )
+
+
+@dataclass(frozen=True)
+class WorkflowArtifact:
+    id: int
+    name: str
+    size_in_bytes: int
+    expired: bool
+    created_at: datetime | None
+    updated_at: datetime | None
+    expires_at: datetime | None
+    digest: str | None
+    workflow_run_id: int | None
+    head_branch: str | None
+    head_sha: str | None
+
+    @classmethod
+    def from_json(cls, value: object) -> WorkflowArtifact:
+        mapping = _required_mapping(value, operation="parse workflow artifact")
+        workflow_run = _mapping(mapping.get("workflow_run"))
+        run_id = _integer(workflow_run.get("id"))
+        return cls(
+            id=_integer(mapping.get("id")),
+            name=_string(mapping.get("name")),
+            size_in_bytes=_integer(_first(mapping, "size_in_bytes", "sizeInBytes")),
+            expired=_boolean(mapping.get("expired")),
+            created_at=_timestamp(_first(mapping, "created_at", "createdAt")),
+            updated_at=_timestamp(_first(mapping, "updated_at", "updatedAt")),
+            expires_at=_timestamp(_first(mapping, "expires_at", "expiresAt")),
+            digest=_optional_string(mapping.get("digest")),
+            workflow_run_id=run_id or None,
+            head_branch=_optional_string(
+                _first(workflow_run, "head_branch", "headBranch")
+            ),
+            head_sha=_optional_string(_first(workflow_run, "head_sha", "headSha")),
+        )
+
+
+@dataclass(frozen=True)
+class DownloadReceipt:
+    resource_kind: str
+    resource_id: int
+    destination: str
+    byte_count: int
+    sha256: str
+    verified: bool
+    expected_digest: str | None
 
 
 @dataclass(frozen=True)

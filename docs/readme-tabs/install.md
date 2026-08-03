@@ -4,42 +4,47 @@
 
 # Supported platform
 
-Desktop Material is supported, built, packaged, released, and accepted on
-Windows only. Use [Install on Windows](#install-on-windows) for the current
-product. The TUI material below is an archived July 27 prototype record: it is
-not a supported package or release target, and its compatibility or packaging
-state does not block Windows releases.
+Desktop Material ships as a Windows desktop application and as a Linux-first
+terminal application. The terminal package keeps the clickable Git and GitHub
+workflows, repository tabs, file browser, responsive layout, and terminal-safe
+counterparts of desktop features without requiring a graphical desktop.
 
-# Historical Linux TUI prototype record (unsupported)
+# Install the Linux TUI on a fresh machine
 
-The terminal prototype was a distinct Python/Textual experiment, not a Linux
-Electron build. The following commands are retained to preserve the exact
-historical acceptance record; they are not a current installation
-recommendation.
+Paste the following single command into a fresh glibc-based Linux installation.
+It detects `apt-get`, `dnf5`, `dnf`, `yum`, `zypper`, or `pacman`; obtains root
+through `sudo` or `doas` only for native packages; installs HTTPS certificates
+and `curl` when missing; and then runs the bounded release bootstrap. The
+bootstrap installs Git, SSH, terminal/editor helpers, a pinned user-owned Python
+runtime, `uv`, GitHub CLI's `gh`, and Desktop Material TUI. It also adds the
+user bin directory to supported shell startup files so `github`, `dmt`, `gh`,
+and `desktop-material-tui` are on `PATH` in the next shell.
 
-Linux shell, from a fresh parent directory:
-
-<!-- markdownlint-disable MD013 -->
+<!-- markdownlint-disable MD013 MD046 -->
 
 ```bash
-git clone https://github.com/Ding-Ding-Projects/desktop-material.git && cd desktop-material && uv tool install ./tui && uv tool update-shell
+sh -c 'set -eu; if ! command -v curl >/dev/null 2>&1; then p=; for x in apt-get dnf5 dnf yum zypper pacman; do if command -v "$x" >/dev/null 2>&1; then p=$x; break; fi; done; [ -n "$p" ] || { echo "No supported package manager was found." >&2; exit 1; }; s=; if [ "$(id -u)" != 0 ]; then if command -v sudo >/dev/null 2>&1; then s=sudo; elif command -v doas >/dev/null 2>&1; then s=doas; else echo "Installing curl requires root, sudo, or doas." >&2; exit 1; fi; fi; case "$p" in apt-get) $s env DEBIAN_FRONTEND=noninteractive apt-get -qq update; $s env DEBIAN_FRONTEND=noninteractive apt-get install -qq -y --no-install-recommends ca-certificates curl;; dnf5|dnf|yum) $s "$p" install -y ca-certificates curl;; zypper) $s zypper --non-interactive refresh; $s zypper --non-interactive install --no-recommends ca-certificates curl;; pacman) $s pacman -Syu --needed --noconfirm ca-certificates curl;; esac; fi; f=$(mktemp /tmp/desktop-material-tui-bootstrap.XXXXXX); trap "rm -f -- $f" EXIT HUP INT TERM; curl --proto =https --proto-redir =https --tlsv1.2 --fail --silent --show-error --location --output "$f" https://github.com/Ding-Ding-Projects/desktop-material/releases/latest/download/bootstrap-linux-tui.sh; n=$(wc -c <"$f" | tr -d "[:space:]"); case "$n" in ""|*[!0-9]*) echo "Downloaded bootstrap size is invalid." >&2; exit 1;; esac; [ "$n" -le 1048576 ] && [ "$(sed -n 1p "$f")" = "#!/bin/sh" ] || { echo "Downloaded bootstrap failed validation." >&2; exit 1; }; sh "$f"'
 ```
 
-Windows PowerShell, from a fresh parent directory:
+The command is idempotent: running it again reuses verified matching tools and
+refreshes the managed TUI installation. It never overwrites an unrelated
+executable that already occupies one of its owned paths. ARM64 and x86-64 are
+supported on GNU libc; musl distributions are rejected with an explicit
+compatibility explanation because the required RE2 wheel is unavailable.
 
-```powershell
-git clone https://github.com/Ding-Ding-Projects/desktop-material.git; if ($LASTEXITCODE -ne 0) { throw 'git clone failed' }; Set-Location .\desktop-material; uv tool install .\tui; if ($LASTEXITCODE -ne 0) { throw 'uv tool install failed' }; uv tool update-shell
+For an already-provisioned machine with `curl`, the shorter release bootstrap
+is equivalent:
+
+```bash
+curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSL https://github.com/Ding-Ding-Projects/desktop-material/releases/latest/download/bootstrap-linux-tui.sh | sh
 ```
 
-<!-- markdownlint-enable MD013 -->
+<!-- markdownlint-enable MD013 MD046 -->
 
-Both one-liners require Git and
-[uv](https://docs.astral.sh/uv/getting-started/installation/). Close and reopen
-the terminal afterward so the updated `PATH` is loaded, then run
-`github /path/to/repository` on Linux or
-`github C:\path\to\repository` on Windows. The interactive acceptance target
-was Linux-first; the Windows Terminal launch path and cross-platform core were
-also tested at that checkpoint.
+Close and reopen the terminal afterward, then run `github` from inside a
+repository or `github /path/to/repository`. The Open and Clone flows initially
+select the process's current working directory, while their folder browser lets
+you choose another destination without typing a path.
 
 `github`, `dmt`, and `desktop-material-tui` are identical launchers for the
 terminal edition; the alias does not replace GitHub CLI's `gh`. If another
@@ -70,13 +75,13 @@ uv sync --locked --extra dev
 uv run desktop-material-tui
 ```
 
-At that checkpoint, a CI lane built a wheel and source distribution and
-smoke-installed the wheel in a fresh environment. The archived package, XDG,
-security, mouse/text-box, and parity details remain in the
-[historical Linux TUI guide](../features/linux-tui/README.md).
-
-The historical record also includes the tracked non-root image and its
-copy-paste [container instructions](../features/linux-tui/container.md).
+The release workflow builds a wheel and source distribution, derives a locked
+runtime constraint file, installs the published payload in a clean Debian
+container twice, and verifies all four launch commands before publication. The
+[Linux TUI guide](../features/linux-tui/README.md) documents XDG persistence,
+security boundaries, mouse and keyboard interaction, the file browser, Git
+workflows, GitHub surfaces, and parity status. A tracked non-root image remains
+available through the [container instructions](../features/linux-tui/container.md).
 
 # Install on Windows
 
