@@ -7,6 +7,12 @@ checkout started at `79d5d59662dd7639664a878b390706f0c3975f2c` with unrelated
 working-tree material already present. The audit kept that material intact and
 added the following scoped fixes:
 
+- The Windows CI and Express Release unit-test steps now give the complete
+  Node test coordinator a 4 GiB heap. The previous `a0d7b4a598` CI run passed
+  all 7,238 assertions but died at 318 MiB while the long Agents test batch was
+  still emitting its accounting summary; the new workflow change is awaiting
+  its own GitHui run for proof.
+
 - The Agents creator now uses the shared modal dialog layer, exposes dialog
   semantics, avoids a nested form, and disables the Options disclosure while
   creation is running. The live Agents store and app mount are present; final

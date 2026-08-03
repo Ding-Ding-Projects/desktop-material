@@ -184,6 +184,10 @@ jobs:
           TARGET_ARCH: x64
       - name: Run unit tests
         run: yarn test:unit
+        env:
+          # Match the Windows CI unit-test budget; without it the coordinator
+          # can exhaust its default heap after the assertions have passed.
+          NODE_OPTIONS: --max-old-space-size=4096
       - name: Run script tests
         run: yarn test:script
 

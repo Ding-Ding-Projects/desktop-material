@@ -18,6 +18,10 @@ Updated: **August 3, 2026**
 - The browser page-search contracts and chrome tests pass 32/32 across the
   focused contract and UI files. A real Windows bundle and hidden-desktop
   smoke remain required before this slice is called runtime-verified.
+- The previous Windows CI run passed its assertions but exhausted the Node
+  heap before test accounting completed. CI and Express Release now scope a
+  4 GiB heap to their unit-test coordinators; the fix is pending remote-run
+  proof rather than being called green locally.
 - The required production bundle launched on the hidden Windows desktop and
   produced a real first-paint frame. CDP interaction was interrupted by the
   first-run/checklist overlay, so no Ollama screenshot is claimed from that
