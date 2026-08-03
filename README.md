@@ -60,6 +60,21 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 
 ![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci.yml/badge.svg?branch=main)
 
+> **The site is one Material Design 3 component — August 3, 2026:** the
+> [project site](https://ding-ding-projects.github.io/desktop-material/) is
+> rebuilt as six pages behind a browser-style tab strip — Overview, Cheap LFS,
+> Cheap LFS vs Git LFS, Docs hub, the regex-builder article, and Docs search —
+> with the three language modes, both playfulness sliders, the regex builder on
+> every search bar, all four tab searches, the anchored per-element appearance
+> editor, the notification centre, and export all working rather than described.
+> It loads nothing from another host: React and four font families are served
+> from the site itself, with the icon and Hong Kong Chinese faces cut to only
+> the characters the pages use. The two previous standalone Cheap LFS addresses
+> redirect, and the 249 rendered Markdown articles keep publishing under
+> [`/docs/`](https://ding-ding-projects.github.io/desktop-material/docs/). How
+> it is built, changed, and verified is in
+> [its own article](docs/features/design-system/material-design-3-site.md).
+
 > **Cheap LFS hook bypass and central diagnostics — July 29, 2026:** the
 > app-authored cloud-compression workflow commit now runs against an owned,
 > empty hooks directory, so a broken Git LFS post-commit hook cannot falsely

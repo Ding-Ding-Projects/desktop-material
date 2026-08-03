@@ -2,6 +2,34 @@
 
 Updated: **August 3, 2026**
 
+## August 3 — the published site becomes one Material Design 3 component
+
+- The homepage, the Cheap LFS guide, and the Cheap LFS versus Git LFS atlas
+  were three hand-built pages sharing a stylesheet. They are now six pages of
+  one Design Component behind a browser-style tab strip: Overview, Cheap LFS,
+  Cheap LFS vs Git LFS, Docs hub, the regex-builder article, and Docs search.
+- The site carries the standing per-surface rules as working controls rather
+  than descriptions: three language modes, two independent playfulness sliders,
+  a regex builder on every search bar, all four tab searches with
+  close-containing and its inverse, the anchored per-element appearance editor,
+  the notification centre with bulk actions, and export to Markdown, JSON,
+  HTML, and CSV.
+- Nothing loads from another host. `script/vendor-site-assets.mjs` vendors
+  React and four font families, content-subsetting the icon face to the 54
+  ligatures the site names and Noto Sans HK to the 231 characters the Cantonese
+  copy renders — 420 KiB on disk.
+- Five defects found and fixed while verifying: dropdown selections were silent
+  no-ops, the dark-theme primary call to action sat at 2.02:1, both tab strips
+  had no `tabpanel` or roving focus, three sliders and the appearance toggles
+  had no accessible name or state, and the Screenshots section shipped seven
+  empty upload placeholders.
+- `/cheap-lfs.html` and `/cheap-lfs-vs-git-lfs.html` redirect rather than 404.
+  The 249 rendered Markdown articles keep publishing under `/docs/`, and the
+  Docs hub links into them with counts derived from the tree.
+- Verified in a headless browser against an assembled `_site`: no console
+  errors, zero third-party requests, all six pages and all eight overlay panels
+  live, and every accent clearing 6.4:1 in both themes.
+
 ## August 3 — stash manager export slice
 
 - The Stash Manager inventory no longer imposes the former 500-entry count cap;

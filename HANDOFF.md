@@ -1,5 +1,61 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-03 — The published site is one Material Design 3 component
+
+Commit `80d05e73b881d6b2cd4da4f5a99465be5ad2df98` replaces every hand-built page
+under `site/` with a single Design Component: `site/index.html` holds the
+template and its logic class, `site/Listbox.dc.html` is the searchable select it
+imports, and `site/support.js` is the byte-for-byte upstream runtime.
+
+**Vendoring.** `site/support.js` hard-codes the unpkg URLs it loads React from.
+Rather than fork it, `script/vendor-site-assets.mjs` downloads those builds,
+re-hashes them against the SRI digests the runtime itself pins, and points it at
+the local copies through the `window.__resources` map it already consults —
+`site/vendor/dc-resources.js`, which must load *before* `support.js`. The same
+script subsets Material Symbols Outlined by `icon_names` and Noto Sans HK by
+`text`, both derived from the page source on every run. 420 KiB on disk;
+provenance, digests, and licences in `site/vendor/manifest.json`.
+
+**Verified.** A headless Chrome on an off-screen desktop, against an assembled
+`_site` served locally: no console errors, `performance.getEntriesByType`
+reporting zero third-party hosts, all six pages rendering with content and
+correct `aria-labelledby`, all eight overlay panels opening and closing on
+Escape, the language switch reaching Cantonese with all three Noto Sans HK
+weights loading, the playfulness slider changing the voice line across levels 1
+and 5, the regex builder naming its dialect and reporting a syntax error, the
+four tab searches and both close modes previewing with counts and protection,
+and the appearance editor applying and persisting per element.
+
+**Five defects found and fixed during that pass.**
+
+1. Every listbox selection was a silent no-op. The page is parsed from the
+   browser's own document, where HTML lowercases attribute names, so the
+   callback arrived as `onpick` while the component read `onPick`. It now reads
+   both. This is the failure mode to remember for any Design Component used as
+   a page rather than previewed from source text.
+2. The accent seed replaced `--md-sys-color-primary` without
+   `--md-sys-color-on-primary`, leaving the dark theme's `#00344f` on `#006493`
+   — a **2.02:1** primary call to action. `onColor()` now derives black or white
+   from WCAG relative luminance; all four accents measure 6.4:1 in both themes.
+3. Both tab strips had `role="tab"` with no `tabpanel`, no `aria-controls`, and
+   no roving `tabindex`.
+4. Three range inputs and the Bold/Italic/Underline toggles had no accessible
+   name or pressed state.
+5. Seven drag-and-drop upload placeholders shipped as empty boxes; they now hold
+   captures this repository already had.
+
+**Concurrency note.** Two commits made by another agent in this same checkout —
+`ba452e4017` and `dbea7be82f` — swept this task's staged `git rm` deletions into
+themselves and were dewed, leaving `main` briefly publishing the old homepage
+with its stylesheet and both Cheap LFS pages deleted. Commit
+`80d05e73b881d6b2cd4da4f5a99465be5ad2df98` restores a coherent tree. When
+several agents share one working tree, stage explicit paths and re-check
+`git log` before assuming the index is still yours.
+
+**Known, not caused here.** `app/test/unit/wiki-function-gallery-test.ts` fails
+two assertions (88 raw-main images against 86 catalog rows). It fails
+identically with this work stashed.
+
 ## 2026-08-03 — Stash manager portal runtime correction
 
 The stash manager is now rendered through the shared dialog portal, so its

@@ -102,8 +102,7 @@ export function fontRequests({ iconNames, cjkText }) {
     {
       id: 'roboto-flex',
       family: 'Roboto Flex',
-      query:
-        'family=Roboto+Flex:opsz,wght@8..144,400..700&display=swap',
+      query: 'family=Roboto+Flex:opsz,wght@8..144,400..700&display=swap',
       subsets: ['latin', 'latin-ext'],
     },
     {

@@ -77,7 +77,8 @@ createServer((request, response) => {
         return
       }
       response.writeHead(200, {
-        'Content-Type': TYPES[extname(target).toLowerCase()] ?? 'application/octet-stream',
+        'Content-Type':
+          TYPES[extname(target).toLowerCase()] ?? 'application/octet-stream',
         'Cache-Control': 'no-store',
       })
       createReadStream(target).pipe(response)

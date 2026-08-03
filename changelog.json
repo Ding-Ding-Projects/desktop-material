@@ -1,6 +1,13 @@
 {
   "releases": {
     "3.6.3-material22": [
+      "[Improved] The website is rebuilt in Material Design 3 as six pages behind a browser-style tab strip, with the language modes, both playfulness sliders, the regex builder, four tab searches, the per-element appearance editor, the notification centre and export all working rather than described - 80d05e73b881d6b2cd4da4f5a99465be5ad2df98",
+      "[Improved] The website loads nothing from another host: React and four font families are served from the site itself, with the icon and Hong Kong Chinese faces cut down to only the characters the pages actually use - 80d05e73b881d6b2cd4da4f5a99465be5ad2df98",
+      "[Fixed] Choosing an option in any dropdown on the website now applies it instead of silently closing the list - 80d05e73b881d6b2cd4da4f5a99465be5ad2df98",
+      "[Fixed] The website's main call to action is readable in the dark theme again, for every accent colour, instead of dark text on a dark blue button - 80d05e73b881d6b2cd4da4f5a99465be5ad2df98",
+      "[Fixed] The website's tab strips can be worked with the arrow keys and announce which page the content below belongs to - 80d05e73b881d6b2cd4da4f5a99465be5ad2df98",
+      "[Fixed] The website's Screenshots section shows real captures instead of six empty upload boxes - 80d05e73b881d6b2cd4da4f5a99465be5ad2df98",
+      "[Improved] The Cheap LFS guide and the Cheap LFS versus Git LFS atlas are now pages of the website; their previous addresses redirect, so existing links still arrive - 80d05e73b881d6b2cd4da4f5a99465be5ad2df98",
       "[Added] About one launch in ten now shows a photograph of a Hong Kong dim sum dish in the corner, named in English and Traditional Chinese, and clears itself without ever delaying startup or taking focus - cce086ec7061672c7ba16124929d8fb516fddda6",
       "[Added] Twelve dim sum photographs ship with the app as local files, so the surprise makes no network request and works with no connection - cce086ec7061672c7ba16124929d8fb516fddda6",
       "[Improved] The dim sum surprise stays away on a first run, after a failed startup, during an update, behind a dialog and inside quiet hours, and has no setting that switches it off - cce086ec7061672c7ba16124929d8fb516fddda6",

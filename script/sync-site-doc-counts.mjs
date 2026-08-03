@@ -63,14 +63,23 @@ export function applyCounts(html, expected) {
   }
   // Both language labels quote the same site-wide total.
   next = next
-    .replace(/docsOpenAll: 'Open all \d+ articles'/, `docsOpenAll: 'Open all ${expected.total} articles'`)
-    .replace(/docsOpenAll: '打開全部 \d+ 篇文'/, `docsOpenAll: '打開全部 ${expected.total} 篇文'`)
+    .replace(
+      /docsOpenAll: 'Open all \d+ articles'/,
+      `docsOpenAll: 'Open all ${expected.total} articles'`
+    )
+    .replace(
+      /docsOpenAll: '打開全部 \d+ 篇文'/,
+      `docsOpenAll: '打開全部 ${expected.total} 篇文'`
+    )
   return next
 }
 
 // Importable without side effects: site-dc-pages-test.mjs reuses the two
 // functions above, and only a direct invocation touches the file.
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   const pagePath = join(repositoryRoot, 'site', 'index.html')
   const before = readFileSync(pagePath, 'utf8')
   const expected = expectedCounts()

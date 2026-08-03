@@ -170,7 +170,9 @@ const missingCjk = requiredCjkCharacters(sources).filter(
 )
 check(
   missingCjk.length === 0,
-  `the Hong Kong Chinese subset is missing ${missingCjk.join('')} — that copy ` +
+  `the Hong Kong Chinese subset is missing ${missingCjk.join(
+    ''
+  )} — that copy ` +
     'renders as tofu. Re-run: node script/vendor-site-assets.mjs'
 )
 
@@ -249,7 +251,9 @@ check(
   'the tab strips have no roving tabindex, so a keyboard user tabs through ' +
     'every tab to reach the content'
 )
-for (const match of page.matchAll(/<input type="range"(?![^>]*aria-label)[^>]*>/g)) {
+for (const match of page.matchAll(
+  /<input type="range"(?![^>]*aria-label)[^>]*>/g
+)) {
   check(false, `a range input has no accessible name: ${match[0].slice(0, 90)}`)
 }
 // The accent seed replaces --md-sys-color-primary at runtime. Setting it
