@@ -1,5 +1,93 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-03 — App fixes: repository list, Cheap LFS, local Actions, CI
+
+A session of defect work across the app and the test harness. Everything below
+is on `main` and dewed; the one item that is *not* finished is named at the end
+rather than left for someone to discover.
+
+**The Repositories list rendered nothing while holding repositories.**
+`SectionList` tested one value and constructed another: the capability guard
+asked about the global `ResizeObserver` while the constructor used
+`window.ResizeObserver`. Whenever the two disagreed the guard passed and `new`
+threw on undefined — and a throw in a component constructor unmounts the
+subtree rather than degrading it, so the panel came up empty instead of falling
+back to an unobserved list. Fixed in `bcd832d40e`; the guard now asks whether
+the value it is about to construct is callable. A separate change gives the
+genuinely-empty case real copy and the three creation paths as operable
+buttons, because the old empty state apologised for failing to find a
+repository the user had never searched for.
+
+**Cheap LFS aborted a large commit on a momentary lock.** "Could not
+canonicalize the repository root" turned out not to be about the root at all:
+probing that exact repository afterwards canonicalizes cleanly. On Windows
+`realpath` must open a handle to ask for the final path, so it queues behind
+virus scanners, indexers, and Git's own working-tree writes; during an
+18,750-file commit that contention is routine and lasts milliseconds.
+`0612c7c538` retries the transient codes (EACCES, EAGAIN, EBUSY, EIO, EMFILE,
+ENFILE, EPERM, UNKNOWN) and excludes ENOENT on purpose — a repository that is
+not there is not busy. It still fails closed, and the reparse-point checks
+still run on whatever comes back; only the waiting changed.
+
+**Local Actions runs work without a manual install.** `act` stops on an
+arrow-key menu asking for a default image when it has no platform
+configuration; spawned from the app its stdin is not a terminal, so the console
+read fails and Windows reports `Incorrect function` — an error that never
+mentions images. `d023f5ef92` passes the platform mappings up front. `act`
+itself is now installed automatically into the app's own data directory
+(`ccad989359`), user-scoped, no elevation, and a PATH-resolved copy always
+wins. Two things worth keeping: the asset spellings are the release's own
+(`x86_64`, not `x64`), and extraction must use the absolute System32 bsdtar —
+where Git for Windows or MSYS is installed their GNU tar shadows it and reads
+`C:\...` as `host:path`, failing a purely local copy with `Cannot connect to
+C: resolve failed`.
+
+**Settings tabs are no longer positional.** The `RepositorySettingsTab` enum
+was *defined* to equal the TabBar's child indices, with a note asking
+integrators to keep them contiguous. That holds only while the list is a fixed
+run of children — the moment a filter removes earlier rows, clicking one opens
+whichever page sits at that number. `eb7fadc805` gives each row a descriptor
+carrying the tab it selects and resolves clicks through the filtered list, then
+adds the search field the shared rules require. The open tab stays listed even
+when it does not match, so the strip can never empty and strand a selection the
+panel is still rendering.
+
+**CI: memory exhaustion was real, and it was not the tests.** `node --test`
+runs one worker per file and V8 sizes each worker's old-space from the
+machine's memory, so four workers on a 16 GB runner were entitled to the whole
+machine before git or Windows asked for anything. Windows charges reserved
+commit, so it hit the limit long before the tests wanted the memory, and the
+damage landed as scattered, unrelated-looking failures: "paging file is too
+small", "Not enough memory resources", `spawn UNKNOWN`, git "Out of memory",
+V8 "Array buffer allocation failed". `b02a3ff611` bounds per-worker heap and
+derives concurrency from memory as well as cores. Verified: none of those
+strings appear in the CI unit log afterwards.
+
+**Testing notes worth reusing.** Module mocks in a `.tsx` test must be followed
+by `require`, not a static import — the file compiles to CommonJS, so `require`
+resolves at call time and picks the mocks up while a static import hoists above
+them, and top-level `await import` is a parse error under that output format.
+Dialogs render inside a `<dialog>` element that jsdom treats as closed, so role
+queries against them need `{ hidden: true }`. Stub git per test file rather than
+in the shared globals: several suites run git against real repositories on
+purpose and a global stub disarms them silently.
+
+### Open: `agent-sessions-panel-test.tsx` is pathologically slow
+
+Two tests that complete in ~44 ms on an idle machine take 250–500 s, and the
+file fails. This is *not* caused by the worker heap cap or by the section-list
+repair — both were ruled out by substitution (restoring the pre-repair
+section-list still reproduces it; so does raising the heap back to 4 GB), and it
+was already taking 127 s in CI before either landed. Do not re-test those two.
+
+`a2c25bf537` added a 120-second per-test ceiling so a wedged test names itself
+instead of the batch failing at file level with nothing to act on. It has not
+had the effect hoped for here: the run still ends at file level rather than
+naming the two tests, so the next step is to establish why `--test-timeout` is
+not firing for them before spending more time on the underlying slowness.
+
+# Desktop Material — Active parity handoff
+
 ## 2026-08-03 — The published site is one Material Design 3 component
 
 Commit `80d05e73b881d6b2cd4da4f5a99465be5ad2df98` replaces every hand-built page
