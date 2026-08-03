@@ -1522,6 +1522,11 @@ export class StashManagerDialog extends React.Component<
         <div className="stash-manager-filter-field">
           <input
             id={`${surfaceId}-input`}
+            // Each dialog search is its own surface, so the field carries the
+            // same id its FilterModeControl below declares; sharing one id
+            // across dialogs would let a pattern built in one silently apply
+            // to another.
+            data-search-surface-id={surfaceId}
             type="search"
             value={filter}
             onChange={event => onFilter(event.currentTarget.value)}
