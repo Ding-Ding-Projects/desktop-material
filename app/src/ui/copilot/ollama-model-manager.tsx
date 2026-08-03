@@ -548,11 +548,21 @@ const MaximumCapabilities = 10
 const OllamaModelsSearchSurfaceId = 'ollama-models'
 let managerInstance = 0
 
-function settle<T>(promise: Promise<T>): Promise<ISettledResult<T>> {
-  return promise.then(
-    value => ({ succeeded: true, value }),
-    () => ({ succeeded: false, value: null })
-  )
+function settle<T>(
+  promiseOrFactory: Promise<T> | (() => Promise<T>)
+): Promise<ISettledResult<T>> {
+  try {
+    const promise =
+      typeof promiseOrFactory === 'function'
+        ? promiseOrFactory()
+        : promiseOrFactory
+    return promise.then(
+      value => ({ succeeded: true, value }),
+      () => ({ succeeded: false, value: null })
+    )
+  } catch {
+    return Promise.resolve({ succeeded: false, value: null })
+  }
 }
 
 function normalizedName(model: IOllamaModelRecord): string {
@@ -970,7 +980,11 @@ export class OllamaModelManager extends React.Component<
     const controller = new AbortController()
     this.detailController = controller
     this.setState({ detailsLoading: true, detailsUnavailable: false })
-    const result = await settle(
+    // `show` validates the model name synchronously before returning its
+    // promise. Keep invocation inside `settle` so a malformed name from an
+    // Ollama endpoint becomes an unavailable-details state rather than an
+    // unhandled rejection from the selection callback.
+    const result = await settle(() =>
       client.show(model, { signal: controller.signal })
     )
 
