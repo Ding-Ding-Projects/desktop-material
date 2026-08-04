@@ -106,11 +106,41 @@ function normalizePins(ids: ReadonlyArray<string>): ReadonlyArray<string> {
   return out
 }
 
-/** The pinned page ids for a strip, in the order they were pinned. */
+/**
+ * The pinned page ids for a strip, in the order they were pinned.
+ *
+ * Never throws. `LocalStorage.getStringArray` reads `localStorage.getItem`
+ * outside its own try/catch, and touching `localStorage` is not always allowed
+ * — a sandboxed origin or blocked site data raises `SecurityError` on the
+ * property access itself. This is read from the strip's constructor, and a
+ * throw in a React constructor does not degrade the component: it unmounts the
+ * subtree, so the settings dialog would come up with no navigation at all.
+ * That failure mode has already been paid for once in this codebase, in
+ * SectionList's resize-observer guard.
+ */
 export function getPinnedSettingsTabs(
   strip: SettingsTabStripId
 ): ReadonlyArray<string> {
-  return normalizePins(LocalStorage.getStringArray(pinKey(strip)))
+  try {
+    return normalizePins(LocalStorage.getStringArray(pinKey(strip)))
+  } catch (e) {
+    log.warn('Could not read the pinned settings tabs; continuing unpinned.', e)
+    return []
+  }
+}
+
+/**
+ * Write pins, treating storage as something that may simply refuse.
+ *
+ * A pin is a convenience. Losing one is not worth an error dialog, and it is
+ * certainly not worth taking the dialog down mid-click.
+ */
+function writePins(strip: SettingsTabStripId, ids: ReadonlyArray<string>) {
+  try {
+    LocalStorage.setStringArray(pinKey(strip), normalizePins(ids))
+  } catch (e) {
+    log.warn('Could not save the pinned settings tabs.', e)
+  }
 }
 
 /** Pin a page, or do nothing when it is already pinned. */
@@ -119,13 +149,13 @@ export function pinSettingsTab(strip: SettingsTabStripId, id: string): void {
   if (pinned.includes(id)) {
     return
   }
-  LocalStorage.setStringArray(pinKey(strip), normalizePins([...pinned, id]))
+  writePins(strip, [...pinned, id])
 }
 
 /** Unpin a page, or do nothing when it was not pinned. */
 export function unpinSettingsTab(strip: SettingsTabStripId, id: string): void {
-  LocalStorage.setStringArray(
-    pinKey(strip),
+  writePins(
+    strip,
     getPinnedSettingsTabs(strip).filter(pinned => pinned !== id)
   )
 }

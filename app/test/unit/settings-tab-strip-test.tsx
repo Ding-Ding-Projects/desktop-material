@@ -99,6 +99,36 @@ describe('settings tab pinning', () => {
     }
   })
 
+  it('survives storage that refuses to be read at all', () => {
+    // Touching `localStorage` is not always permitted — a sandboxed origin or
+    // blocked site data raises on the property access itself, and
+    // `getStringArray` reads it outside its own try/catch. This is called from
+    // the strip's constructor, and a throw there does not degrade the
+    // component: React unmounts the subtree, so the dialog would open with no
+    // navigation at all. SectionList already paid for this exact shape once.
+    const real = Object.getOwnPropertyDescriptor(
+      globalThis,
+      'localStorage'
+    ) as PropertyDescriptor
+
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new Error('Access is denied for this document.')
+      },
+    })
+
+    try {
+      assert.deepStrictEqual(getPinnedSettingsTabs('preferences'), [])
+      // Writing must be just as quiet: losing a pin is not worth taking the
+      // dialog down mid-click.
+      assert.doesNotThrow(() => pinSettingsTab('preferences', 'sound'))
+      assert.doesNotThrow(() => unpinSettingsTab('preferences', 'sound'))
+    } finally {
+      Object.defineProperty(globalThis, 'localStorage', real)
+    }
+  })
+
   it('orders pinned pages first without scrambling either run', () => {
     const { ordered, pinnedCount } = orderSettingsTabs(PAGES, [
       'sound',
