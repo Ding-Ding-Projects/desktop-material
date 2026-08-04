@@ -100,9 +100,12 @@ interface IActiveBuildRun {
 }
 
 const WorkflowBuilds: ReadonlyArray<IWorkflowBuild> = [
+  // CI is one workflow per operating system. This asks whether a newer
+  // *desktop* build is on its way, so it watches the Windows lane; the Linux
+  // lane builds the terminal edition, which this update path never ships.
   {
-    file: 'ci.yml',
-    path: '.github/workflows/ci.yml',
+    file: 'ci-windows.yml',
+    path: '.github/workflows/ci-windows.yml',
     events: new Set(['push']),
   },
   {

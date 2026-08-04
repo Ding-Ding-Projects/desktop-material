@@ -9,7 +9,8 @@ name: Build Installers / Express Release
 on:
   workflow_run:
     workflows:
-      - CI
+      - CI Linux
+      - CI Windows
     types:
       - completed
     branches:
@@ -35,8 +36,11 @@ jobs:
       sha: ${{ steps.target.outputs.sha }}
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
+      proceed: ${{ steps.target.outputs.proceed }}
       publish: ${{ steps.target.outputs.publish }}
       block_reason: ${{ steps.target.outputs.block_reason }}
+      windows_ok: ${{ steps.target.outputs.windows_ok }}
+      linux_ok: ${{ steps.target.outputs.linux_ok }}
     steps:
       - name: Require a successful main CI or a main dispatch
         id: target
@@ -47,11 +51,16 @@ jobs:
           DISPATCH_SHA: ${{ github.sha }}
           CI_EVENT: ${{ github.event.workflow_run.event }}
           CI_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          CI_LANE: ${{ github.event.workflow_run.name }}
+          CI_UPDATED_AT: ${{ github.event.workflow_run.updated_at }}
           CI_BRANCH: ${{ github.event.workflow_run.head_branch }}
           CI_REPOSITORY:
             ${{ github.event.workflow_run.head_repository.full_name }}
           CI_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          windows_ok=true
+          linux_ok=true
           if [ "$EVENT_NAME" = "workflow_run" ]; then
             if [ "$CI_EVENT" != "push" ] || \
                [ "$CI_BRANCH" != "main" ] || \
@@ -60,7 +69,56 @@ jobs:
               exit 1
             fi
             target="$CI_SHA"
-            if [ "$CI_CONCLUSION" = "success" ]; then
+
+            # The two lanes are separate workflows so neither can withhold the
+            # other's assets, but this commit still gets exactly one Release.
+            # Whichever lane finishes last publishes; the one that finishes
+            # first stands down, because its sibling is still running and the
+            # Release would be short its half of the payload.
+            case "$CI_LANE" in
+              "CI Windows") sibling="CI Linux" ;;
+              "CI Linux") sibling="CI Windows" ;;
+              *)
+                echo "Installer packaging blocked: '$CI_LANE' is not a known CI lane." >&2
+                exit 1
+                ;;
+            esac
+            sibling_run=$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$CI_SHA&event=push&per_page=100" \
+              --jq "[.workflow_runs[] | select(.name == \"$sibling\")]
+                    | sort_by(.run_number) | last // empty")
+            if [ -z "$sibling_run" ]; then
+              echo "Installer packaging blocked: no $sibling run found for $CI_SHA." >&2
+              exit 1
+            fi
+            sibling_status=$(printf '%s' "$sibling_run" | jq -r '.status')
+            sibling_conclusion=$(printf '%s' "$sibling_run" | jq -r '.conclusion // ""')
+            sibling_updated=$(printf '%s' "$sibling_run" | jq -r '.updated_at')
+            if [ "$sibling_status" != "completed" ]; then
+              echo "$sibling is still $sibling_status; it will publish this commit once it finishes."
+              echo "proceed=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            # Both are done. On the vanishingly rare identical timestamp the
+            # Windows lane is the tie-breaker, so the pair still elects one.
+            if [ "$sibling_updated" \> "$CI_UPDATED_AT" ] || \
+               { [ "$sibling_updated" = "$CI_UPDATED_AT" ] && [ "$CI_LANE" != "CI Windows" ]; }; then
+              echo "$sibling finished later; it publishes this commit."
+              echo "proceed=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            if [ "$CI_LANE" = "CI Windows" ]; then
+              [ "$CI_CONCLUSION" = "success" ] || windows_ok=false
+              [ "$sibling_conclusion" = "success" ] || linux_ok=false
+            else
+              [ "$CI_CONCLUSION" = "success" ] || linux_ok=false
+              [ "$sibling_conclusion" = "success" ] || windows_ok=false
+            fi
+
+            # A lane withholds only its own assets. The Release still happens
+            # as long as one lane vouched for something to put in it.
+            if [ "$windows_ok" = true ] || [ "$linux_ok" = true ]; then
               ci_can_publish=true
               block_reason=
             else
@@ -68,6 +126,8 @@ jobs:
               block_reason=ci-failed
               echo "CI concluded '$CI_CONCLUSION'; packaging an artifact but blocking Release publication."
             fi
+            [ "$windows_ok" = true ] || echo "CI Windows failed; this Release ships without the desktop installers."
+            [ "$linux_ok" = true ] || echo "CI Linux failed; this Release ships without the terminal edition package."
           else
             if [ "$DISPATCH_REF" != "refs/heads/main" ]; then
               echo "Express Release must be dispatched from main." >&2
@@ -85,17 +145,22 @@ jobs:
           # Every exact successful main build gets its own immutable Release,
           # even when a newer main commit arrives while jobs overlap.
           publish="$ci_can_publish"
+          echo "proceed=true" >> "$GITHUB_OUTPUT"
+          echo "windows_ok=$windows_ok" >> "$GITHUB_OUTPUT"
+          echo "linux_ok=$linux_ok" >> "$GITHUB_OUTPUT"
           echo "sha=$target" >> "$GITHUB_OUTPUT"
           echo "publish=$publish" >> "$GITHUB_OUTPUT"
           echo "block_reason=$block_reason" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v7
+        if: steps.target.outputs.proceed == 'true'
         with:
           ref: ${{ steps.target.outputs.sha }}
           fetch-depth: 0
 
       - name: Stamp cross-lane monotonic release version
         id: version
+        if: steps.target.outputs.proceed == 'true'
         shell: bash
         env:
           RELEASE_TARGET_SHA: ${{ steps.target.outputs.sha }}
@@ -111,7 +176,9 @@ jobs:
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
       - name: Require a new immutable release tag
-        if: steps.target.outputs.publish == 'true'
+        if:
+          steps.target.outputs.proceed == 'true' && steps.target.outputs.publish
+          == 'true'
         shell: bash
         env:
           RELEASE_TAG: ${{ steps.version.outputs.tag }}
@@ -193,9 +260,70 @@ jobs:
       - name: Run script tests
         run: yarn test:script
 
+  release_notes:
+    name: Release notes
+    # Notes describe the commit, not a platform, so they are built off both
+    # lanes. Leaving them inside the Windows job meant a red Windows lane took
+    # the notes down with the installers and left nothing to publish at all.
+    if: needs.prepare.outputs.proceed == 'true'
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+          submodules: recursive
+      - uses: ./.github/actions/setup-ci-environment
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          arch: x64
+      - run: mkdir -p release-payload
+      - name: Generate bounded exact-SHA release notes
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          yarn --silent ts-node -P script/tsconfig.json \
+            script/generate-automated-release-notes.ts \
+            --repository "$GITHUB_REPOSITORY" \
+            --version "$RELEASE_VERSION" \
+            --release-sha "$RELEASE_TARGET_SHA" \
+            --output "release-payload/release-notes.md"
+      # The shared instructions put the line count in the release rather than
+      # only the README, and require CI to be what measures it: this runs over
+      # the exact commit being released, in the same run that built the
+      # artifacts, so no hand-typed number can drift from the tree.
+      - name: Append the measured line count to the release notes
+        shell: bash
+        run: |
+          {
+            printf '\n## Lines of code\n\n'
+            node script/count-lines.mjs
+            printf '\nCounted by CI over `%s` with `node script/count-lines.mjs`.\n' \
+              "$RELEASE_TARGET_SHA"
+          } >> release-payload/release-notes.md
+      - name: Preserve exact release notes
+        uses: actions/upload-artifact@v7
+        with:
+          name:
+            express-release-notes-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-payload/release-notes.md
+          if-no-files-found: error
+          retention-days: 3
+
   tui_package:
     name: Linux TUI packages
-    if: needs.prepare.outputs.publish == 'true'
+    # Built only when the Linux lane vouched for it. A red Windows lane costs
+    # this Release its installers, never its terminal edition.
+    if:
+      needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.linux_ok
+      == 'true'
     needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -369,6 +497,11 @@ jobs:
 
   package:
     name: Windows x64
+    # The mirror of `tui_package`: a red Linux lane costs this Release its
+    # terminal edition, never its installers.
+    if:
+      needs.prepare.outputs.proceed == 'true' &&
+      needs.prepare.outputs.windows_ok == 'true'
     needs: prepare
     runs-on: windows-2022
     timeout-minutes: 60
@@ -469,38 +602,6 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 3
-      - name: Generate bounded exact-SHA release notes
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          yarn --silent ts-node -P script/tsconfig.json \
-            script/generate-automated-release-notes.ts \
-            --repository "$GITHUB_REPOSITORY" \
-            --version "$RELEASE_VERSION" \
-            --release-sha "$RELEASE_TARGET_SHA" \
-            --output "release-payload/release-notes.md"
-      # The shared instructions put the line count in the release rather than
-      # only the README, and require CI to be what measures it: this runs over
-      # the exact commit being released, in the same run that built the
-      # artifacts, so no hand-typed number can drift from the tree.
-      - name: Append the measured line count to the release notes
-        shell: bash
-        run: |
-          {
-            printf '\n## Lines of code\n\n'
-            node script/count-lines.mjs
-            printf '\nCounted by CI over `%s` with `node script/count-lines.mjs`.\n' \
-              "$RELEASE_TARGET_SHA"
-          } >> release-payload/release-notes.md
-      - name: Preserve exact release notes
-        uses: actions/upload-artifact@v7
-        with:
-          name:
-            express-release-notes-${{ github.run_id }}-${{ github.run_attempt }}
-          path: release-payload/release-notes.md
-          if-no-files-found: error
-          retention-days: 3
       - name: Preserve the upstream CI failure result
         if: needs.prepare.outputs.block_reason == 'ci-failed'
         shell: bash
@@ -514,12 +615,21 @@ jobs:
       - prepare
       - lint
       - test
+      - release_notes
       - tui_package
       - package
+    # A packaging job that was skipped because its lane was red is not a
+    # failure here — it is the whole point of splitting the lanes. What is
+    # still refused: a job that ran and failed, and a Release with nothing in
+    # it because neither lane produced anything.
     if: >-
-      always() && needs.prepare.result == 'success' && needs.package.result ==
-      'success' && needs.tui_package.result == 'success' &&
-      needs.prepare.outputs.publish == 'true' && (github.event_name ==
+      always() && needs.prepare.result == 'success' &&
+      needs.prepare.outputs.proceed == 'true' && needs.prepare.outputs.publish
+      == 'true' && needs.release_notes.result == 'success' &&
+      needs.package.result != 'failure' && needs.package.result != 'cancelled'
+      && needs.tui_package.result != 'failure' && needs.tui_package.result !=
+      'cancelled' && (needs.package.result == 'success' ||
+      needs.tui_package.result == 'success') && (github.event_name ==
       'workflow_run' ||
        (needs.lint.result == 'success' && needs.test.result == 'success'))
     runs-on: ubuntu-latest
@@ -549,6 +659,7 @@ jobs:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
       - uses: actions/download-artifact@v8
+        if: needs.package.result == 'success'
         with:
           name: express-release-${{ github.run_id }}-${{ github.run_attempt }}
           path: release-payload/installers
@@ -558,6 +669,7 @@ jobs:
             express-release-notes-${{ github.run_id }}-${{ github.run_attempt }}
           path: release-payload
       - uses: actions/download-artifact@v8
+        if: needs.tui_package.result == 'success'
         with:
           name: express-tui-${{ github.run_id }}-${{ github.run_attempt }}
           path: release-payload/tui
@@ -582,33 +694,65 @@ jobs:
           esac
       - name: Verify downloaded release payload
         shell: bash
+        env:
+          HAVE_INSTALLERS: ${{ needs.package.result == 'success' }}
+          HAVE_TUI: ${{ needs.tui_package.result == 'success' }}
         run: |
-          required=(
-            release-payload/installers/RELEASES
-            "release-payload/installers/GitHub Desktop-x64.zip"
-            release-payload/installers/GitHubDesktopSetup-x64.exe
-            release-payload/installers/GitHubDesktopSetup-x64.msi
-            "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-full.nupkg"
-            "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"
-            "release-payload/tui/$TUI_WHEEL_NAME"
-            "release-payload/tui/$TUI_SDIST_NAME"
-            "release-payload/tui/$TUI_CONSTRAINTS_NAME"
-            "release-payload/tui/$TUI_INSTALLER_NAME"
-            "release-payload/tui/$TUI_BOOTSTRAP_NAME"
-            release-payload/release-notes.md
-          )
+          # Each family is demanded in full or not at all. A lane that was red
+          # contributes nothing and says so; a lane that was green may not
+          # contribute a half-built payload.
+          required=(release-payload/release-notes.md)
+          if [ "$HAVE_INSTALLERS" = true ]; then
+            required+=(
+              release-payload/installers/RELEASES
+              "release-payload/installers/GitHub Desktop-x64.zip"
+              release-payload/installers/GitHubDesktopSetup-x64.exe
+              release-payload/installers/GitHubDesktopSetup-x64.msi
+              "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-full.nupkg"
+              "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"
+            )
+          else
+            echo "CI Windows did not pass; this Release ships without the desktop installers."
+          fi
+          if [ "$HAVE_TUI" = true ]; then
+            required+=(
+              "release-payload/tui/$TUI_WHEEL_NAME"
+              "release-payload/tui/$TUI_SDIST_NAME"
+              "release-payload/tui/$TUI_CONSTRAINTS_NAME"
+              "release-payload/tui/$TUI_INSTALLER_NAME"
+              "release-payload/tui/$TUI_BOOTSTRAP_NAME"
+            )
+          else
+            echo "CI Linux did not pass; this Release ships without the terminal edition package."
+          fi
           for asset in "${required[@]}"; do
             if [ ! -s "$asset" ]; then
               echo "Missing or empty downloaded release payload: $asset" >&2
               exit 1
             fi
           done
+
+          # Say in the Release itself which half is absent, so nobody reads a
+          # missing download as a lost upload.
+          if [ "$HAVE_INSTALLERS" != true ] || [ "$HAVE_TUI" != true ]; then
+            {
+              printf '\n## Partial release\n\n'
+              [ "$HAVE_INSTALLERS" = true ] || \
+                printf -- '- The Windows installers are absent: `CI Windows` did not pass for this commit.\n'
+              [ "$HAVE_TUI" = true ] || \
+                printf -- '- The Linux terminal edition is absent: `CI Linux` did not pass for this commit.\n'
+              printf '\nThe other edition was built and verified from this exact commit.\n'
+            } >> release-payload/release-notes.md
+          fi
       - name: Publish GitHub release
         shell: bash
         run: |
           set +e
+          shopt -s nullglob
+          assets=(release-payload/installers/* release-payload/tui/*)
+          shopt -u nullglob
           gh release create "$RELEASE_TAG" \
-            release-payload/installers/* release-payload/tui/* \
+            "${assets[@]}" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$RELEASE_TARGET_SHA" \
             --title "Desktop Material $RELEASE_VERSION" \

@@ -161,7 +161,7 @@ describe('update coming soon', () => {
                 event: 'push',
                 head_branch: 'main',
                 head_sha: buildSHA,
-                path: '.github/workflows/ci.yml',
+                path: '.github/workflows/ci-windows.yml',
               },
             ],
           })
@@ -176,7 +176,7 @@ describe('update coming soon', () => {
       true
     )
     assert.equal(requests.length, 3)
-    assert.match(requests[0], /actions\/workflows\/ci\.yml\/runs\?/)
+    assert.match(requests[0], /actions\/workflows\/ci-windows\.yml\/runs\?/)
     assert.match(requests[0], /status=in_progress/)
     assert.match(requests[1], new RegExp(`/runs/${ciRunID}/jobs\\?`))
     assert.match(requests[1], /filter=latest/)
@@ -191,7 +191,7 @@ describe('update coming soon', () => {
     const fetcher = async (input: RequestInfo) => {
       const url = input.toString()
       requests.push(url)
-      if (url.includes('/workflows/ci.yml/runs?')) {
+      if (url.includes('/workflows/ci-windows.yml/runs?')) {
         return jsonResponse({ workflow_runs: [] })
       }
       if (url.includes('/jobs?')) {
@@ -231,7 +231,7 @@ describe('update coming soon', () => {
       true
     )
     assert.equal(requests.length, 4)
-    assert.match(requests[0], /actions\/workflows\/ci\.yml\/runs\?/)
+    assert.match(requests[0], /actions\/workflows\/ci-windows\.yml\/runs\?/)
     assert.match(
       requests[1],
       /actions\/workflows\/build-installers\.yml\/runs\?/
@@ -302,7 +302,7 @@ describe('update coming soon', () => {
         fetcher: async input => {
           manualRequests++
           const url = input.toString()
-          if (url.includes('/workflows/ci.yml/runs?')) {
+          if (url.includes('/workflows/ci-windows.yml/runs?')) {
             return jsonResponse({ workflow_runs: [] })
           }
           return url.includes('/jobs?')
@@ -342,7 +342,7 @@ describe('update coming soon', () => {
       event: 'push',
       head_branch: 'main',
       head_sha: buildSHA,
-      path: '.github/workflows/ci.yml',
+      path: '.github/workflows/ci-windows.yml',
     }
     for (const run of [
       { ...baseRun, event: 'pull_request' },
@@ -360,7 +360,9 @@ describe('update coming soon', () => {
             jobsRequested = true
           }
           return jsonResponse({
-            workflow_runs: url.includes('/workflows/ci.yml/runs?') ? [run] : [],
+            workflow_runs: url.includes('/workflows/ci-windows.yml/runs?')
+              ? [run]
+              : [],
           })
         },
       })
@@ -403,7 +405,7 @@ describe('update coming soon', () => {
           if (url.includes('/compare/')) {
             compareRequested = true
           }
-          if (url.includes('/workflows/ci.yml/runs?')) {
+          if (url.includes('/workflows/ci-windows.yml/runs?')) {
             return jsonResponse({ workflow_runs: [baseRun] })
           }
           if (url.includes('/jobs?')) {
@@ -537,7 +539,7 @@ describe('update coming soon', () => {
             ],
           })
         }
-        return url.includes('/workflows/ci.yml/runs?')
+        return url.includes('/workflows/ci-windows.yml/runs?')
           ? jsonResponse({
               workflow_runs: [
                 {
@@ -546,7 +548,7 @@ describe('update coming soon', () => {
                   event: 'push',
                   head_branch: 'main',
                   head_sha: buildSHA,
-                  path: '.github/workflows/ci.yml',
+                  path: '.github/workflows/ci-windows.yml',
                 },
               ],
             })
@@ -569,7 +571,7 @@ describe('update coming soon', () => {
       onDegraded: degradation => degradations.push(degradation),
       fetcher: async input => {
         const url = input.toString()
-        if (url.includes('/workflows/ci.yml/runs?')) {
+        if (url.includes('/workflows/ci-windows.yml/runs?')) {
           return oversizedResponse()
         }
         if (url.includes('/jobs?')) {
@@ -986,7 +988,7 @@ describe('update coming soon', () => {
               event: 'push',
               head_branch: 'main',
               head_sha: buildSHA,
-              path: '.github/workflows/ci.yml',
+              path: '.github/workflows/ci-windows.yml',
               html_url: `https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/${ciRunID}`,
               run_started_at: isoDate(now - 5 * minute),
             },
