@@ -848,6 +848,25 @@ mark{background:var(--md-sys-color-tertiary-container);color:var(--md-sys-color-
                 <li>Treat compression as an optimization; a failed compression stays raw and cloneable.</li>
                 <li>Give restorers storage access, not just repository access.</li>
               </ul>
+              <!--
+                The Cheap LFS pages summarise; the reference lives in docs/.
+                Until this block existed the summary was a dead end: seven
+                documents, some thousands of lines, and not one link to any of
+                them from the pages that introduce the feature.
+              -->
+              <section aria-labelledby="cheap-lfs-reference" style="display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:22px;border:1px solid var(--md-sys-color-outline-variant);background:var(--md-sys-color-surface-container-low)">
+                <h3 id="cheap-lfs-reference" style="margin:0;font-size:18px">The full reference</h3>
+                <p style="margin:0;font-size:14px;color:var(--md-sys-color-on-surface-variant)">These pages are the tour. Every claim above is written out at length in the documentation.</p>
+                <ul style="margin:0;padding-left:20px;font-size:15px;line-height:1.9">
+                  <li><a href="./docs/features/repository-management/release-backed-cheap-lfs.html">Release-backed Cheap LFS</a> &mdash; the complete guide: pointers, batching, the Release anchor, restore and verification.</li>
+                  <li><a href="./docs/features/repository-management/cheap-lfs-vs-git-lfs.html">Cheap LFS vs Git LFS</a> &mdash; the comparison atlas in full, with the receipts behind each row.</li>
+                  <li><a href="./docs/features/repository-management/cheap-lfs-oci-registry-backend.html">OCI registry backend</a> &mdash; storing payloads in a container registry instead of releases.</li>
+                  <li><a href="./docs/features/repository-management/cheap-lfs-asset-versioning.html">Asset versioning</a> &mdash; how successive versions of one asset are tracked.</li>
+                  <li><a href="./docs/features/repository-management/cheap-lfs-release-payload-encryption.html">Release payload encryption</a> &mdash; encrypting payloads before they leave the machine.</li>
+                  <li><a href="./docs/features/linux-tui/cheap-lfs.html">Cheap LFS in the Linux TUI</a> &mdash; the same feature without a desktop.</li>
+                  <li><a href="./docs/features/linux-tui/cheap-lfs-git-wrapper.html">The Cheap LFS Git wrapper</a> &mdash; what the wrapper intercepts and why.</li>
+                </ul>
+              </section>
               <figure style="margin:0;border-radius:22px;overflow:hidden;border:1px solid var(--md-sys-color-outline-variant)"><img src="assets/cheap-lfs/integrity-safety.webp" alt="Integrity and safety diagram" style="display:block;width:100%;height:auto" /></figure>
             </div>
           </section>
