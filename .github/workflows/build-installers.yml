@@ -329,7 +329,8 @@ jobs:
         env:
           TUI_VERSION: ${{ steps.tui_version.outputs.version }}
           TUI_WHEEL_NAME: ${{ steps.tui_payload.outputs.wheel_name }}
-          TUI_CONSTRAINTS_NAME: ${{ steps.tui_payload.outputs.constraints_name }}
+          TUI_CONSTRAINTS_NAME:
+            ${{ steps.tui_payload.outputs.constraints_name }}
         run: |
           smoke="$RUNNER_TEMP/desktop-material-tui-release-smoke"
           uv venv "$smoke" --python 3.12 --clear
@@ -352,7 +353,8 @@ jobs:
         shell: bash
         env:
           TUI_WHEEL_NAME: ${{ steps.tui_payload.outputs.wheel_name }}
-          TUI_CONSTRAINTS_NAME: ${{ steps.tui_payload.outputs.constraints_name }}
+          TUI_CONSTRAINTS_NAME:
+            ${{ steps.tui_payload.outputs.constraints_name }}
         run: >-
           sh script/install-linux-tui-test.sh --debian-container
           "release-payload/tui/$TUI_WHEEL_NAME"

@@ -22,6 +22,11 @@ remote-site/.wrangler/
 # The standalone parity generator owns this deterministic JSON/YAML formatting.
 tui/contracts/parity.yaml
 
+# Same arrangement: `tui/tools/generate-tui-changelog-catalog.mjs` owns this
+# file's layout, one release per line. Reformatting it only means the next
+# regeneration shows up as an unreviewable whole-file diff.
+tui/src/desktop_material_tui/assets/changelog-catalog.json
+
 # The published site is a Design Component authored in a design tool and
 # re-imported wholesale. `site/index.html` and `site/Listbox.dc.html` are that
 # artifact: reformatting them would turn every future re-import into an

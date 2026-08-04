@@ -32,7 +32,10 @@ describe('Pages accessibility contracts', () => {
 
     // Both strips: an id, the panel they control, a roving tabindex, and the
     // arrow-key handler that makes the roving tabindex navigable.
-    for (const strip of [/role="tab" id="\{\{ tab\./, /role="tab" id="\{\{ s\./]) {
+    for (const strip of [
+      /role="tab" id="\{\{ tab\./,
+      /role="tab" id="\{\{ s\./,
+    ]) {
       const tag = markup.match(new RegExp(`<button[^>]*${strip.source}[^>]*>`))
       assert.ok(tag, `no tab button matching ${strip}`)
       assert.match(tag[0], /aria-controls="dm-page-panel"/)
@@ -155,7 +158,10 @@ describe('Pages accessibility contracts', () => {
       markup,
       /pages = \['landing', 'docs', 'article', 'search', 'lfs', 'atlas'\]/
     )
-    assert.match(markup, /window\.addEventListener\('popstate', this\.onRoute\)/)
+    assert.match(
+      markup,
+      /window\.addEventListener\('popstate', this\.onRoute\)/
+    )
     assert.match(
       markup,
       /window\.addEventListener\('hashchange', this\.onRoute\)/
@@ -190,7 +196,10 @@ describe('Pages accessibility contracts', () => {
       /\[data-dm-motion='off'\] \*\{animation:none !important;transition:none !important;\}/
     )
     assert.match(markup, /\[data-dm-contrast='high'\]\{/)
-    assert.match(markup, /\[data-dm-contrast='high'\]\[data-dm-theme='dark'\]\{/)
+    assert.match(
+      markup,
+      /\[data-dm-contrast='high'\]\[data-dm-theme='dark'\]\{/
+    )
     assert.match(
       markup,
       /:focus-visible\{outline:3px solid var\(--md-sys-color-primary\);outline-offset:2px;\}/
@@ -208,8 +217,14 @@ describe('Pages accessibility contracts', () => {
     // Every multi-column grid collapses, and its items are allowed to shrink
     // below their own min-content width — a grid item defaults to
     // min-width:auto, so one long token in a card is enough to widen the page.
-    assert.match(mobile, /\[style\*="grid-template-columns"\]\{grid-template-columns:1fr !important;\}/)
-    assert.match(mobile, /\[style\*="grid-template-columns"\] > \*\{min-width:0 !important;\}/)
+    assert.match(
+      mobile,
+      /\[style\*="grid-template-columns"\]\{grid-template-columns:1fr !important;\}/
+    )
+    assert.match(
+      mobile,
+      /\[style\*="grid-template-columns"\] > \*\{min-width:0 !important;\}/
+    )
     assert.match(mobile, /main\{overflow-wrap:anywhere;\}/)
 
     // The inline minimums that are wider than a phone are marked rather than
@@ -223,14 +238,23 @@ describe('Pages accessibility contracts', () => {
       assert.match(
         style,
         /min-width:(2[3-9]\d|[3-9]\d\d)px/,
-        `data-dm-fluid on an element with no wide minimum: ${style.slice(0, 60)}`
+        `data-dm-fluid on an element with no wide minimum: ${style.slice(
+          0,
+          60
+        )}`
       )
     }
 
     // Below the breakpoint the app bar's search field becomes a button, which
     // is the only reason the bar still fits.
-    assert.match(mobile, /\[data-dm-actions\] > \[data-dm-fluid\]\{display:none !important;\}/)
-    assert.match(mobile, /\[data-dm-search-button\]\{display:grid !important;\}/)
+    assert.match(
+      mobile,
+      /\[data-dm-actions\] > \[data-dm-fluid\]\{display:none !important;\}/
+    )
+    assert.match(
+      mobile,
+      /\[data-dm-search-button\]\{display:grid !important;\}/
+    )
     assert.match(mobile, /header kbd\{display:none !important;\}/)
 
     // A phone held sideways gets the screen back.
@@ -250,7 +274,10 @@ describe('Pages accessibility contracts', () => {
     // Hidden by default so it never doubles the desktop search field; the
     // media query is what reveals it.
     assert.match(button, /style="display:none;/)
-    assert.match(markup, /openSearchPanel: \(\) => this\.setState\(\{ panel: 'search' \}\)/)
+    assert.match(
+      markup,
+      /openSearchPanel: \(\) => this\.setState\(\{ panel: 'search' \}\)/
+    )
   })
 
   it('scrolls a teleport clear of a sticky header of any height', () => {
@@ -276,7 +303,10 @@ describe('Pages accessibility contracts', () => {
     assert.match(markup, /aria-expanded="\{\{ open \}\}"/)
     assert.match(markup, /aria-label="\{\{ triggerLabel \}\}"/)
     assert.match(markup, /role="listbox" aria-label="\{\{ label \}\}"/)
-    assert.match(markup, /role="option" aria-selected="\{\{ row\.selected \}\}"/)
+    assert.match(
+      markup,
+      /role="option" aria-selected="\{\{ row\.selected \}\}"/
+    )
 
     // The importing page is the browser's own document, where HTML lowercases
     // attribute names, so the callback arrives as `onpick` there and `onPick`
