@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from datetime import date
 from pathlib import Path
 
@@ -15,10 +14,8 @@ from desktop_material_tui.application.changelog import (
 )
 from desktop_material_tui.application.search import RegexFlags, SearchMode
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 
-
-def test_real_packaged_catalog_loads_and_matches_its_canonical_sources() -> None:
+def test_real_packaged_catalog_loads_with_its_recorded_counts_and_digests() -> None:
     catalog = ChangelogCatalog.load_default()
 
     assert len(catalog.releases) == 707
@@ -28,21 +25,14 @@ def test_real_packaged_catalog_loads_and_matches_its_canonical_sources() -> None
     assert catalog.releases[0].version == "3.6.3-material22"
     assert catalog.releases[0].date_label == "2026-08-01 23:53"
     assert catalog.releases[0].entries[0].commit == ("ab8c26d7535c9861f81b761e73798d1363bd78e1")
-    assert catalog.changelog_sha256 == _sha256(REPOSITORY_ROOT / "changelog.json")
-    assert catalog.release_dates_sha256 == _sha256(
-        REPOSITORY_ROOT / "app" / "src" / "lib" / "changelog" / "release-dates.ts"
-    )
-
-
-def test_hashed_sources_are_pinned_to_one_line_ending() -> None:
-    # The assertions above re-hash these two files from the working tree, so
-    # their bytes have to be the same bytes on every platform. Without a pinned
-    # ending a Windows checkout rewrites them to CRLF and the digests stop
-    # matching there — and only there — for files nobody edited.
-    attributes = (REPOSITORY_ROOT / ".gitattributes").read_text(encoding="utf-8")
-
-    for pinned in ("/changelog.json", "/app/src/lib/changelog/release-dates.ts"):
-        assert f"{pinned} text eol=lf" in attributes, f"{pinned} needs a pinned line ending"
+    # Digest verification is switched off by request. The catalog still
+    # carries both digests, and they are still checked for shape when it
+    # loads, so the provenance they record is intact — this no longer re-reads
+    # the two source files and compares. What that removes is the check that
+    # the packaged catalog was generated from the tree it ships with, so a
+    # stale catalog now passes here and has to be caught by regenerating it.
+    assert len(catalog.changelog_sha256) == 64
+    assert len(catalog.release_dates_sha256) == 64
 
 
 def test_text_regex_and_date_filters_are_bounded_and_keep_undated_records_truthful() -> None:
@@ -105,7 +95,3 @@ def test_markdown_export_carries_commit_links_and_refuses_overwrite(tmp_path: Pa
     ) in rendered
     with pytest.raises(ChangelogError, match="already exists"):
         catalog.export_markdown(releases, destination)
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
