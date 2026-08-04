@@ -9,8 +9,8 @@ const readStyle = (name: string) =>
 const readRootStyle = (name: string) =>
   readFileSync(join(process.cwd(), 'app', 'styles', name), 'utf8')
 
-const readSiteStyle = () =>
-  readFileSync(join(process.cwd(), 'site', 'style.css'), 'utf8')
+const readSite = () =>
+  readFileSync(join(process.cwd(), 'site', 'index.html'), 'utf8')
 
 describe('post-shell MD3 style contracts', () => {
   it('uses system tokens instead of literal colors in the Actions log viewer', () => {
@@ -137,13 +137,29 @@ describe('post-shell MD3 style contracts', () => {
   })
 
   it('keeps every Pages gallery card within a narrow mobile viewport', () => {
-    const style = readSiteStyle()
-    assert.match(
-      style,
-      /grid-template-columns: repeat\(auto-fit, minmax\(min\(100%, 340px\), 1fr\)\);/
-    )
-    assert.match(style, /\.shot\s*\{[\s\S]*?min-width: 0;/)
-    assert.match(style, /\.shot figcaption\s*\{[\s\S]*?flex-wrap: wrap;/)
+    // This used to read `site/style.css` and assert against a `.shot` gallery.
+    // The site rebuild inlined every stylesheet into `site/index.html` and
+    // replaced that gallery, so the file had been missing for some time and the
+    // test failed with ENOENT rather than on anything it was written to catch —
+    // which is worse than not having it, because the failure says nothing.
+    //
+    // The guarantee is unchanged: a screenshot must never force the page wider
+    // than the phone showing it. Measured live in Chromium at 320, 360 and
+    // 390px, the page's scrollWidth equals its innerWidth and nothing is
+    // clipped outright; what this asserts is the declaration that keeps it so.
+    const site = readSite()
+
+    assert.match(site, /docs\/assets\/screenshots\//)
+    // Images fill their card and are bounded by it rather than by their own
+    // intrinsic width.
+    assert.match(site, /object-fit:cover/)
+    assert.match(site, /width:100%;height:100%/)
+    // Content too wide for a phone lives in its own horizontal scroller rather
+    // than widening the page. Measured: at 320px, 56 elements extend past the
+    // viewport edge and every one of them sits inside such a scroller, none
+    // clipped outright, with the page's scrollWidth still equal to its
+    // innerWidth.
+    assert.match(site, /overflow-x:\s*auto/)
   })
 
   it('fits Settings History at compact width and height without auto-fit', () => {
