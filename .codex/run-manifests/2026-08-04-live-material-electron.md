@@ -85,3 +85,13 @@ and Code scanning run [30931582659](https://github.com/Ding-Ding-Projects/deskto
 Cheap LFS is verified green; the CI and Code scanning runs are queued or still
 running at this checkpoint. The remaining TUI catalog formatting is outside
 the closed desktop scope.
+
+Commit `a9c69adfde9bb97cd03e48a99783ff6e6a5a87f1` formats the desktop
+`app/test/unit/site-accessibility-test.ts` only. Its focused accessibility
+contract suite passes 11/11, and file-scoped Prettier passes. The commit was
+pushed to `main` and is covered by CI run
+[30932145369](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30932145369)
+and Cheap LFS run
+[30932145377](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30932145377),
+both queued at this checkpoint. The only known remaining formatter finding is
+the closed-scope TUI catalog.

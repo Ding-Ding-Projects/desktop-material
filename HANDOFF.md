@@ -71,6 +71,16 @@ Git whitespace check passed, and the commit is on `main`.
 The remaining TUI catalog formatting and stale TUI documentation output are
 not changed because the Windows Electron task keeps the TUI scope closed.
 
+### Desktop lint correction
+
+Commit `a9c69adfde9bb97cd03e48a99783ff6e6a5a87f1` formats only the desktop
+`app/test/unit/site-accessibility-test.ts`. Its focused accessibility contract
+suite passes **11/11**, and file-scoped Prettier passes. The commit is on
+`main` and is covered by [CI 30932145369](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30932145369)
+and [Cheap LFS 30932145377](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30932145377),
+which were queued behind earlier Windows/TUI work at this handoff update.
+The remaining formatter finding is the closed-scope TUI catalog.
+
 ## 2026-08-03 — App fixes: repository list, Cheap LFS, local Actions, CI
 
 A session of defect work across the app and the test harness. Everything below
