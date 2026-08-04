@@ -55,7 +55,11 @@ describe('Remote Manager integration styles', () => {
     )
     assert.match(
       styles,
-      /@media \(max-height: 550px\)[\s\S]*?\.tab-container > \.tab-bar\.vertical\s*\{[\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;/
+      // The compact-height rule targets the shared settings strip now; the
+      // dialog stopped rendering a TabBar when both settings dialogs moved to
+      // it. The guarantee is unchanged: at a short viewport the page list is
+      // the thing that scrolls, and it never scrolls sideways.
+      /@media \(max-height: 550px\)[\s\S]*?\.tab-container \.settings-tab-strip-list\s*\{[\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;/
     )
   })
 
