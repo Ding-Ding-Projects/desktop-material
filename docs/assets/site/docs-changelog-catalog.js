@@ -21,13 +21,73 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4139,
+    entryCount: 4151,
     releases: [
       {
         v: '3.6.3-material22',
         d: '2026-08-01',
         t: '23:53',
         e: [
+          [
+            'Fixed',
+            'Closing Repository Settings while its startup reads are pending no longer lets an unmounted React component update state, so the console stays quiet and the dialog cleanup is safe',
+            'ab8c26d7535c9861f81b761e73798d1363bd78e1',
+          ],
+          [
+            'Fixed',
+            'The website fits a phone screen instead of making the whole page scroll sideways',
+            '0da917390e7fcd7f45c164ae086bfb3c4d492b1d',
+          ],
+          [
+            'Improved',
+            'On a phone the website search box becomes a search button that opens the same search panel, and both tab strips scroll instead of pushing the page',
+            '0da917390e7fcd7f45c164ae086bfb3c4d492b1d',
+          ],
+          [
+            'Improved',
+            'The website header takes about a fifth less room on a phone, and stops sticking to the top when the screen is too short to spare it',
+            '0da917390e7fcd7f45c164ae086bfb3c4d492b1d',
+          ],
+          [
+            'Fixed',
+            'Jumping to a section of the website no longer lands it underneath the header on a narrow window',
+            '0da917390e7fcd7f45c164ae086bfb3c4d492b1d',
+          ],
+          [
+            'Improved',
+            'The website is rebuilt in Material Design 3 as six pages behind a browser-style tab strip, with the language modes, both playfulness sliders, the regex builder, four tab searches, the per-element appearance editor, the notification centre and export all working rather than described',
+            '80d05e73b881d6b2cd4da4f5a99465be5ad2df98',
+          ],
+          [
+            'Improved',
+            'The website loads nothing from another host: React and four font families are served from the site itself, with the icon and Hong Kong Chinese faces cut down to only the characters the pages actually use',
+            '80d05e73b881d6b2cd4da4f5a99465be5ad2df98',
+          ],
+          [
+            'Fixed',
+            'Choosing an option in any dropdown on the website now applies it instead of silently closing the list',
+            '80d05e73b881d6b2cd4da4f5a99465be5ad2df98',
+          ],
+          [
+            'Fixed',
+            "The website's main call to action is readable in the dark theme again, for every accent colour, instead of dark text on a dark blue button",
+            '80d05e73b881d6b2cd4da4f5a99465be5ad2df98',
+          ],
+          [
+            'Fixed',
+            "The website's tab strips can be worked with the arrow keys and announce which page the content below belongs to",
+            '80d05e73b881d6b2cd4da4f5a99465be5ad2df98',
+          ],
+          [
+            'Fixed',
+            "The website's Screenshots section shows real captures instead of six empty upload boxes",
+            '80d05e73b881d6b2cd4da4f5a99465be5ad2df98',
+          ],
+          [
+            'Improved',
+            'The Cheap LFS guide and the Cheap LFS versus Git LFS atlas are now pages of the website; their previous addresses redirect, so existing links still arrive',
+            '80d05e73b881d6b2cd4da4f5a99465be5ad2df98',
+          ],
           [
             'Added',
             'About one launch in ten now shows a photograph of a Hong Kong dim sum dish in the corner, named in English and Traditional Chinese, and clears itself without ever delaying startup or taking focus',

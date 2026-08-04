@@ -2307,6 +2307,7 @@ export type TranslationKey =
   | 'palette.repositoryAutomation'
   | 'palette.tagLifecycle'
   | 'palette.githubApiExplorer'
+  | 'palette.notificationCentre'
   | 'palette.notificationHistory'
   | 'palette.notificationAutomations'
   | 'palette.copyRepoPath'
@@ -2318,6 +2319,7 @@ export type TranslationKey =
   | 'palette.showBackgroundProgress'
   | 'palette.toggleCheapLfsProgress'
   | 'commandPalette.homeDialog'
+  | 'commandPalette.homeNotificationCentre'
   | 'commandPalette.homeToolbar'
   | 'commandPalette.homeSidebar'
   | 'commandPalette.homeChangesView'
@@ -6402,7 +6404,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'palette.repositoryAutomation': 'Automation overrides (this repository)',
   'palette.tagLifecycle': 'Tag lifecycle manager',
   'palette.githubApiExplorer': 'GitHub API explorer',
-  'palette.notificationHistory': 'Open notification centre',
+  'palette.notificationCentre': 'Open notification centre',
+  'palette.notificationHistory': 'Notification history',
   'palette.notificationAutomations': 'Notification automations',
   'palette.copyRepoPath': 'Copy repository path',
   'palette.copyBranchName': 'Copy current branch name',
@@ -6414,6 +6417,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'palette.toggleCheapLfsProgress':
     'Expand/collapse Cheap LFS restore progress',
   'commandPalette.homeDialog': 'Opens as a dialog',
+  'commandPalette.homeNotificationCentre': 'Notification centre',
   'commandPalette.homeToolbar': 'Toolbar',
   'commandPalette.homeSidebar': 'Repository rail',
   'commandPalette.homeChangesView': 'Changes view',
@@ -10781,7 +10785,8 @@ export const cantoneseTranslations: Readonly<
   'palette.repositoryAutomation': '自動化覆寫（呢個存放庫）',
   'palette.tagLifecycle': '標籤生命週期管理員',
   'palette.githubApiExplorer': 'GitHub API 瀏覽器',
-  'palette.notificationHistory': '打開通知中心',
+  'palette.notificationCentre': '打開通知中心',
+  'palette.notificationHistory': '通知歷史',
   'palette.notificationAutomations': '通知自動化',
   'palette.copyRepoPath': '複製倉庫路徑',
   'palette.copyBranchName': '複製而家分支個名',
@@ -10792,6 +10797,7 @@ export const cantoneseTranslations: Readonly<
   'palette.showBackgroundProgress': '顯示背景進度',
   'palette.toggleCheapLfsProgress': '展開／收埋 Cheap LFS 還原進度',
   'commandPalette.homeDialog': '按咗就彈對話框',
+  'commandPalette.homeNotificationCentre': '通知中心',
   'commandPalette.homeToolbar': '工具列',
   'commandPalette.homeSidebar': '倉庫側邊欄',
   'commandPalette.homeChangesView': '變更畫面',

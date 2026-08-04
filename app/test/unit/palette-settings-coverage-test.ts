@@ -186,6 +186,33 @@ describe('palette settings coverage', () => {
     }
   })
 
+  it('keeps the live notification centre separate from local history', async () => {
+    const app = await readFile(Path.join(src, 'ui/app.tsx'), 'utf8')
+    const centre = CommandPaletteCatalog.find(
+      command => command.event === 'palette:notification-centre'
+    )
+    const history = CommandPaletteCatalog.find(
+      command => command.event === 'palette:notification-history'
+    )
+
+    assert.equal(centre?.titleKey, 'palette.notificationCentre')
+    assert.equal(history?.titleKey, 'palette.notificationHistory')
+    assert.equal(centre?.home?.kind, 'surface')
+    assert.equal(
+      centre?.home?.kind === 'surface' ? centre.home.labelKey : undefined,
+      'commandPalette.homeNotificationCentre'
+    )
+    assert.notEqual(centre?.title, history?.title)
+    assert.match(
+      app,
+      /case 'palette:notification-centre':\s*return this\.props\.dispatcher\.setNotificationCentreOpen\(true\)/
+    )
+    assert.match(
+      app,
+      /case 'palette:notification-history':\s*return this\.props\.dispatcher\.showPopup\(\{\s*type: PopupType\.NotificationHistory/
+    )
+  })
+
   it('dispatches every repository settings row to a real handler', async () => {
     const app = await readFile(Path.join(src, 'ui/app.tsx'), 'utf8')
     for (const command of CommandPaletteCatalog) {

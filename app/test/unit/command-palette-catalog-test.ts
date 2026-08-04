@@ -64,6 +64,7 @@ const NewCommandEvents = [
   'palette:repository-automation',
   'palette:tag-lifecycle',
   'palette:github-api-explorer',
+  'palette:notification-centre',
   'palette:notification-history',
   'palette:notification-automations',
   'palette:copy-repo-path',

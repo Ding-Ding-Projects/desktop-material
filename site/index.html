@@ -177,7 +177,7 @@ mark{background:var(--md-sys-color-tertiary-container);color:var(--md-sys-color-
           </sc-if>
           <button type="button" onClick="{{ rxBar.toggle }}" aria-label="Treat the query as a regular expression" title="Treat the query as a regular expression" style="{{ rxBar.style }}">.*</button>
           <button type="button" onClick="{{ rxBar.build }}" aria-label="Open the regex builder" title="Open the regex builder" style="width:32px;height:32px;border-radius:999px;border:1px solid var(--md-sys-color-outline-variant);background:transparent;cursor:pointer;display:grid;place-items:center;flex:none"><span style="font-family:'Material Symbols Outlined';font-size:17px" aria-hidden="true">build</span></button>
-          <kbd style="font-family:'Roboto Mono',monospace;font-size:11px;padding:2px 6px;border-radius:6px;background:var(--md-sys-color-surface-container-lowest);border:1px solid var(--md-sys-color-outline-variant);flex:none">Ctrl+F</kbd>
+          <kbd aria-label="Ctrl+F opens site search; Ctrl+Shift+F opens the command palette" style="font-family:'Roboto Mono',monospace;font-size:11px;padding:2px 6px;border-radius:6px;background:var(--md-sys-color-surface-container-lowest);border:1px solid var(--md-sys-color-outline-variant);flex:none">Ctrl+F · Ctrl+Shift+F</kbd>
           <sc-if value="{{ barHasResults }}" hint-placeholder-val="{{ false }}">
             <div style="position:absolute;top:52px;left:0;right:0;z-index:60;max-height:60vh;overflow:auto;padding:8px;border-radius:20px;background:var(--md-sys-color-surface-container-high);border:1px solid var(--md-sys-color-outline-variant);box-shadow:var(--dm-shadow-3);display:flex;flex-direction:column;gap:4px">
               <sc-for list="{{ barResults }}" as="hit" hint-placeholder-count="3">
@@ -191,7 +191,8 @@ mark{background:var(--md-sys-color-tertiary-container);color:var(--md-sys-color-
           </sc-if>
         </div>
         <!-- A phone has no room for a 300px field in the app bar and no
-             Ctrl+F to open the search panel with, so below 760px the field
+             Ctrl+F to open the search panel with (Ctrl+Shift+F opens the
+             command palette), so below 760px the field
              collapses into this button and the panel does the searching.
              It is hidden above that width, where the field itself is live. -->
         <button type="button" data-dm-search-button onClick="{{ openSearchPanel }}" aria-label="Search this site" title="Search this site" style="display:none;width:44px;height:44px;border-radius:999px;border:0;background:transparent;cursor:pointer;place-items:center" style-hover="background:var(--md-sys-color-surface-container-highest)">
@@ -519,10 +520,10 @@ mark{background:var(--md-sys-color-tertiary-container);color:var(--md-sys-color-
             <span style="font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--md-sys-color-primary)">Take a look</span>
             <h2 style="margin:0;font-size:34px;line-height:1.15">Screenshots</h2>
             <p style="margin:0;max-width:80ch;font-size:16px;line-height:1.65;color:var(--md-sys-color-on-surface-variant);text-wrap:pretty">
-              Guided task forms wrap text and stack controls as space narrows, avoiding page-level sideways scrolling; spatial code, diff, and log content is the exception. The current refresh contract targets 86 Windows scenes. Six of them are below; open one for the full-size capture.
+              Guided task forms wrap text and stack controls as space narrows, avoiding page-level sideways scrolling; spatial code, diff, and log content is the exception. The current refresh contract targets 88 Windows scenes. Seven of them are below; open one for the full-size capture.
             </p>
             <a href="./docs/screenshots/" style="align-self:flex-start;display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 20px;border-radius:999px;border:1px solid var(--md-sys-color-outline);color:var(--md-sys-color-primary);font-weight:500;text-decoration:none" style-hover="background:var(--md-sys-color-surface-container-high)">
-              <span style="font-family:'Material Symbols Outlined';font-size:20px" aria-hidden="true">explore</span>Browse all 86 scenes
+              <span style="font-family:'Material Symbols Outlined';font-size:20px" aria-hidden="true">explore</span>Browse all 88 scenes
             </a>
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
               <figure style="margin:0;display:flex;flex-direction:column;gap:8px">
@@ -536,6 +537,10 @@ mark{background:var(--md-sys-color-tertiary-container);color:var(--md-sys-color-
               <figure style="margin:0;display:flex;flex-direction:column;gap:8px">
                 <div style="aspect-ratio:16/10;border-radius:16px;overflow:hidden;border:1px solid var(--md-sys-color-outline-variant)"><a href="docs/assets/screenshots/material-command-palette-appearance.png" target="_blank" rel="noopener" style="display:block;width:100%;height:100%"><img src="docs/assets/screenshots/material-command-palette-appearance.png" alt="The command palette listing appearance settings as rich rows with their live controls." loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover;object-position:top" /></a></div>
                 <figcaption style="font-size:13px;font-weight:500">Command palette <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--md-sys-color-surface-container-high);color:var(--md-sys-color-on-surface-variant)">Full-app · teleport</span></figcaption>
+              </figure>
+              <figure style="margin:0;display:flex;flex-direction:column;gap:8px">
+                <div style="aspect-ratio:16/10;border-radius:16px;overflow:hidden;border:1px solid var(--md-sys-color-outline-variant)"><a href="docs/assets/screenshots/material-command-palette-notification-after.png" target="_blank" rel="noopener" style="display:block;width:100%;height:100%"><img src="docs/assets/screenshots/material-command-palette-notification-after.png" alt="The command palette showing separate notification centre and notification history commands." loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover;object-position:top" /></a></div>
+                <figcaption style="font-size:13px;font-weight:500">Notification routes <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;background:var(--md-sys-color-surface-container-high);color:var(--md-sys-color-on-surface-variant)">Centre · history</span></figcaption>
               </figure>
               <figure style="margin:0;display:flex;flex-direction:column;gap:8px">
                 <div style="aspect-ratio:16/10;border-radius:16px;overflow:hidden;border:1px solid var(--md-sys-color-outline-variant)"><a href="docs/assets/screenshots/material-tab-groups.png" target="_blank" rel="noopener" style="display:block;width:100%;height:100%"><img src="docs/assets/screenshots/material-tab-groups.png" alt="Named, colour-coded repository tab groups in the tab strip, one collapsed and one expanded." loading="lazy" decoding="async" style="display:block;width:100%;height:100%;object-fit:cover;object-position:top" /></a></div>
@@ -1613,7 +1618,7 @@ class Component extends DCLogic {
     { page: 'landing', section: 'features', title: 'Language modes and playfulness', text: 'English, playful Hong Kong-style Cantonese, or a compact bilingual view. Two independent 1-5 playfulness sliders, one per language, style the voice of every message. The level never changes the facts.' },
     { page: 'landing', section: 'features', title: 'Guarded tab control', text: 'Close tabs containing text and its inverse, close tabs not containing text, with counts, preview, pinning, keyboard movement, and persistent ordering. A named group holds pinned or unpinned tabs, never both.' },
     { page: 'landing', section: 'features', title: 'Notification centre', text: 'A Git-backed Local view plus an account-aware GitHub inbox with search, filters, select-visible bulk actions, and an explicit Local Clear all control.' },
-    { page: 'landing', section: 'screenshots', title: 'Screenshots', text: 'The current refresh contract targets 86 Windows scenes. Guided task forms wrap text and stack controls as space narrows.' },
+    { page: 'landing', section: 'screenshots', title: 'Screenshots', text: 'The current refresh contract targets 88 Windows scenes. Guided task forms wrap text and stack controls as space narrows.' },
     { page: 'docs', section: 'categories', title: 'Feature documentation index', text: 'Every feature has its own categorized Markdown file and every category has a README index: design system, repository management, review and diff, collaboration, integrations, agent API, quality and reliability, identity and workspace.' },
     { page: 'docs', section: 'start', title: 'Start here', text: 'Installation, known issues, regex guide, wiki home, user guide, developer guide, automation, feature gallery, Agent API.' },
     { page: 'docs', section: 'coverage', title: 'Rule coverage on this site', text: 'Language modes, playfulness sliders, search with regex builder, four tab searches, close containing and not containing, per-element appearance editor, non-blocking notifications, export formats, and bulk actions all render on this documentation surface, not only in the app.' },
@@ -2459,7 +2464,7 @@ class Component extends DCLogic {
         { id: 'ds4', label: 'User guide', note: 'Working surfaces: tabs, appearance scope, notifications, palette.', run: () => this.teleport('landing', 'features') },
         { id: 'ds5', label: 'Cheap LFS', note: 'Provider-first pointer commits and restore.', run: () => this.teleport('lfs', 'how') },
         { id: 'ds6', label: 'Comparison atlas', note: '72 sourced decisions across 12 categories.', run: () => this.teleport('atlas', 'matrix') },
-        { id: 'ds7', label: 'Feature gallery', note: '86 Windows scenes under the current refresh contract.', run: () => this.teleport('landing', 'screenshots') },
+        { id: 'ds7', label: 'Feature gallery', note: '88 Windows scenes under the current refresh contract.', run: () => this.teleport('landing', 'screenshots') },
         { id: 'ds8', label: 'Agent API', note: 'Bounded agent access and the CLI surface.', run: () => this.teleport('docs', 'categories') }
       ],
       coverageRules: [

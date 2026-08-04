@@ -12,6 +12,18 @@ const readRootStyle = (name: string) =>
 const readSite = () =>
   readFileSync(join(process.cwd(), 'site', 'index.html'), 'utf8')
 
+const readSiteStyle = () =>
+  readFileSync(
+    join(
+      process.cwd(),
+      'docs',
+      'assets',
+      'site',
+      'docs-screenshot-gallery.css'
+    ),
+    'utf8'
+  )
+
 describe('post-shell MD3 style contracts', () => {
   it('uses system tokens instead of literal colors in the Actions log viewer', () => {
     const style = readStyle('_actions-log-viewer.scss')
@@ -137,16 +149,27 @@ describe('post-shell MD3 style contracts', () => {
   })
 
   it('keeps every Pages gallery card within a narrow mobile viewport', () => {
-    // This used to read `site/style.css` and assert against a `.shot` gallery.
-    // The site rebuild inlined every stylesheet into `site/index.html` and
-    // replaced that gallery, so the file had been missing for some time and the
-    // test failed with ENOENT rather than on anything it was written to catch —
-    // which is worse than not having it, because the failure says nothing.
-    //
-    // The guarantee is unchanged: a screenshot must never force the page wider
-    // than the phone showing it. Measured live in Chromium at 320, 360 and
-    // 390px, the page's scrollWidth equals its innerWidth and nothing is
-    // clipped outright; what this asserts is the declaration that keeps it so.
+    const style = readSiteStyle()
+    assert.match(
+      style,
+      /\.dm-shots-grid\s*\{[\s\S]*?grid-template-columns: 1fr;/
+    )
+    assert.match(style, /\.dm-shot-cell\s*\{[\s\S]*?min-width: 0;/)
+    assert.match(style, /\.dm-shot-card\s*\{[\s\S]*?min-width: 0;/)
+    assert.match(
+      style,
+      /\.dm-shot-card-caption\s*\{[\s\S]*?overflow-wrap: anywhere;/
+    )
+  })
+
+  it('keeps the Pages site itself within a narrow mobile viewport', () => {
+    // The gallery stylesheet above governs the cards; this governs the page
+    // that embeds them, whose styles are inlined into `site/index.html` rather
+    // than shipped as a file. The guarantee is the same one: a screenshot must
+    // never force the page wider than the phone showing it. Measured live in
+    // Chromium at 320, 360 and 390px, the page's scrollWidth equals its
+    // innerWidth and nothing is clipped outright; this asserts the
+    // declarations that keep it so.
     const site = readSite()
 
     assert.match(site, /docs\/assets\/screenshots\//)

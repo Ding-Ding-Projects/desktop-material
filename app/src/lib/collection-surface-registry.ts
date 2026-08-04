@@ -271,6 +271,12 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
       implementation: 'standalone',
     },
     {
+      id: 'repository-settings-tabs',
+      label: 'Repository Settings tabs',
+      source: 'repository-settings/repository-settings.tsx',
+      implementation: 'standalone',
+    },
+    {
       id: 'submodules',
       label: 'Submodules',
       source: 'repository-settings/submodules.tsx',

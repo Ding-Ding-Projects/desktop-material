@@ -42,8 +42,68 @@ renderer file passes its targeted ESLint check. The TUI scope is explicitly
 closed, so those unrelated TUI failures are recorded rather than changed in
 this Windows Electron milestone.
 
+The follow-up run for `0969cbbb76ed18fe4f6d79d33ad95b6ae96a38d9`,
+[30929478484](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30929478484),
+has the same Lint/TUI failures. Windows arm64 also built and uploaded its
+artifact, then failed `Run script tests` because the committed documentation
+hub catalog and index are stale relative to the already-merged TUI articles.
+Running `yarn generate-docs-hub-catalog` followed by `yarn test:script` passes
+locally (**214 tests, 213 passed, 1 optional skip**), but the generated diff
+is entirely for the closed TUI documentation surface and is intentionally not
+carried into this Windows Electron task. Windows x64 and E2E remain remote
+checks in progress at this handoff update.
+
 The local package/signing step was not part of this proof and no signing policy
 was changed. No release is claimed by this handoff entry.
+
+### CI formatting follow-up
+
+Commit `a89900dd419e4dd78031516dea10c4edb1df9b38` formats the two installer
+workflow `TUI_CONSTRAINTS_NAME` environment assignments reported by the remote
+Lint job. It is a formatting-only change: installer behavior and the
+intentional skip-signing contract are unchanged. File-scoped Prettier and the
+Git whitespace check passed, and the commit is on `main`.
+
+- CI: [30931585531](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30931585531) — queued at this handoff update.
+- Cheap LFS: [30931582576](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30931582576) — verified green.
+- Code scanning: [30931582659](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30931582659) — queued or still running.
+
+The remaining TUI catalog formatting and stale TUI documentation output are
+not changed because the Windows Electron task keeps the TUI scope closed.
+
+### Desktop lint correction
+
+Commit `a9c69adfde9bb97cd03e48a99783ff6e6a5a87f1` formats only the desktop
+`app/test/unit/site-accessibility-test.ts`. Its focused accessibility contract
+suite passes **11/11**, and file-scoped Prettier passes. The commit is on
+`main` and is covered by [CI 30932145369](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30932145369)
+and [Cheap LFS 30932145377](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30932145377),
+which were queued behind earlier Windows/TUI work at this handoff update.
+The remaining formatter finding is the closed-scope TUI catalog.
+
+## 2026-08-04 — Search registry and changelog catalog correction
+
+Commit `77c7b1ebc6cee54c9e0b1febf5a6b67496477891` registers the repository
+settings tab surface in the collection search registry, updates its appearance
+contract test for the descriptor-based UI, and aligns the Pages screenshot
+gallery contract test with the tracked CSS. The focused suites pass **39/39**;
+Prettier and the Git whitespace check pass.
+
+Commit `0b004744bb3f228651fdc8a2c693d57d9f933da1` restores the 12 newest
+`3.6.3-material22` records already present in `changelog.json` and updates the
+catalog count to **4151**. The changelog suite passes **24/24**, with one
+explicit release-tag date skip because this checkout has no matching
+`release-*` tags; historical dates were not rewritten from incomplete local
+metadata.
+
+The full script suite currently reports **214 tests: 210 passed, 3 failed,
+1 optional skip**. All three failures are the already-closed TUI documentation
+scope: a stale committed docs-hub catalog and two missing Linux TUI pages. No
+desktop script contract failed. CI run
+[30935849771](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30935849771)
+is queued; no release or installer success is claimed here. The Squirrel
+Windows packaging job continues to skip signing as required by the current
+contract.
 
 ## 2026-08-03 — App fixes: repository list, Cheap LFS, local Actions, CI
 
@@ -8559,3 +8619,42 @@ uncommitted TUI work on `codex/revive-linux-tui`. Its recorded branch tip is an
 ancestor of `origin/main`, but its working files are not clean or proven
 complete. They were preserved exactly and were neither staged, committed,
 merged, nor deleted by this Windows closeout.
+
+## 2026-08-04 command-palette routes and shortcut contract
+
+The command-palette coverage work now keeps the live notification centre and
+the Git-backed notification-history dialog as separate commands. The former
+opens the live side sheet; the latter opens the local history surface. The
+desktop menu now names the command palette directly and binds it to
+`CmdOrCtrl+Shift+F`, matching the app-wide shortcut contract. The old `Ctrl+F`
+binding was removed from that menu; `Ctrl+F` remains reserved for find-in-page
+where that surface owns it.
+
+Verification for this checkpoint:
+
+- Focused catalog, coverage, and menu tests: **49/49**.
+- Documentation hub and search tests: **48/48**; site contract: **1/1**.
+- Full `yarn test:script`: **213/214** passed, **0** failed, and **1** optional
+  Mermaid-toolchain test was skipped because `DESKTOP_MERMAID_TOOLCHAIN` is not
+  configured.
+- `yarn build:prod` completed in **287.51s** with
+  `DESKTOP_SKIP_PACKAGE=1`; the build printed `Skipping packaging` and did not
+  invoke Squirrel packaging or signing.
+- The label-only rebuild after the home-label correction completed in
+  **282.18s** after one transient native V8 allocation crash; the retry
+  compiled all targets successfully. The final `yarn compile:prod` after the
+  `find` keyword correction completed in **280.75s**, again compiling all
+  targets successfully with warnings only.
+- A genuine hidden Windows Electron capture used the cheap Lowlevel route and
+  dynamic HWND resolution. It showed separate notification rows, opened the
+  live notification centre side sheet, and showed the Edit-menu
+  `Command palette` / `Ctrl+Shift+F` entry. The cheap background key helper did
+  not deliver the accelerator reliably, so the menu contract is the static
+  shortcut proof and the menu click supplied the visual palette proof.
+- Public evidence is stored in
+  `docs/assets/screenshots/material-command-palette-notification-before.png`,
+  `docs/assets/screenshots/material-command-palette-notification-after.png`,
+  and `docs/assets/screenshots/material-notification-centre-route.png`.
+
+The release/installer path was intentionally not exercised in this checkpoint;
+the user's skip-signing contract remains in force.

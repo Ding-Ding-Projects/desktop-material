@@ -211,9 +211,9 @@ export function buildDefaultMenuTemplate(
       },
       separator,
       {
-        id: 'find',
-        label: __DARWIN__ ? 'Find' : '&Find',
-        accelerator: 'CmdOrCtrl+F',
+        id: 'command-palette',
+        label: __DARWIN__ ? 'Command palette' : 'Command pal&ette',
+        accelerator: 'CmdOrCtrl+Shift+F',
         click: emit('find-text'),
       },
     ],

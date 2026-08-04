@@ -417,7 +417,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     event: 'palette:find-in-view',
     title: 'Find in current view',
     group: 'Navigate',
-    keywords: 'search text diff filter',
+    keywords: 'search text diff filter find',
   },
 
   // Repository. Push, pull, fetch and force push all live on the toolbar's
@@ -1274,11 +1274,25 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
 
   // Notifications
   {
-    event: 'palette:notification-history',
+    event: 'palette:notification-centre',
     title: 'Open notification centre',
+    titleKey: 'palette.notificationCentre',
+    group: 'App',
+    materialSymbol: 'notifications',
+    keywords: 'notifications centre center alerts inbox unread',
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeNotificationCentre',
+      openEvent: 'self',
+    },
+  },
+  {
+    event: 'palette:notification-history',
+    title: 'Notification history',
     titleKey: 'palette.notificationHistory',
     group: 'App',
-    keywords: 'notifications centre center history alerts inbox',
+    materialSymbol: 'history',
+    keywords: 'notifications history undo redo restore local changes',
   },
   {
     event: 'palette:notification-automations',

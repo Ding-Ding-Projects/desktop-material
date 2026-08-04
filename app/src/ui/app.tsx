@@ -1367,7 +1367,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       case 'hide-stashed-changes':
         return this.hideStashedChanges()
       case 'find-text':
-        // Ctrl+F opens the master command palette; the previous find-in-view
+        // Ctrl+Shift+F opens the master command palette; the previous find-in-view
         // behavior remains available as the palette's "Find in current view".
         return this.props.dispatcher.showPopup({
           type: PopupType.CommandPalette,
@@ -1771,6 +1771,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return document.dispatchEvent(
           new Event(ToggleCheapLfsRestoreProgressEvent)
         )
+      case 'palette:notification-centre':
+        return this.props.dispatcher.setNotificationCentreOpen(true)
       case 'palette:notification-history':
         return this.props.dispatcher.showPopup({
           type: PopupType.NotificationHistory,
