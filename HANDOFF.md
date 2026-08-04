@@ -81,6 +81,30 @@ and [Cheap LFS 30932145377](https://github.com/Ding-Ding-Projects/desktop-materi
 which were queued behind earlier Windows/TUI work at this handoff update.
 The remaining formatter finding is the closed-scope TUI catalog.
 
+## 2026-08-04 — Search registry and changelog catalog correction
+
+Commit `77c7b1ebc6cee54c9e0b1febf5a6b67496477891` registers the repository
+settings tab surface in the collection search registry, updates its appearance
+contract test for the descriptor-based UI, and aligns the Pages screenshot
+gallery contract test with the tracked CSS. The focused suites pass **39/39**;
+Prettier and the Git whitespace check pass.
+
+Commit `0b004744bb3f228651fdc8a2c693d57d9f933da1` restores the 12 newest
+`3.6.3-material22` records already present in `changelog.json` and updates the
+catalog count to **4151**. The changelog suite passes **24/24**, with one
+explicit release-tag date skip because this checkout has no matching
+`release-*` tags; historical dates were not rewritten from incomplete local
+metadata.
+
+The full script suite currently reports **214 tests: 210 passed, 3 failed,
+1 optional skip**. All three failures are the already-closed TUI documentation
+scope: a stale committed docs-hub catalog and two missing Linux TUI pages. No
+desktop script contract failed. CI run
+[30935849771](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30935849771)
+is queued; no release or installer success is claimed here. The Squirrel
+Windows packaging job continues to skip signing as required by the current
+contract.
+
 ## 2026-08-03 — App fixes: repository list, Cheap LFS, local Actions, CI
 
 A session of defect work across the app and the test harness. Everything below

@@ -95,3 +95,18 @@ and Cheap LFS run
 [30932145377](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30932145377),
 both queued at this checkpoint. The only known remaining formatter finding is
 the closed-scope TUI catalog.
+
+The follow-up commits `77c7b1ebc6cee54c9e0b1febf5a6b67496477891` and
+`0b004744bb3f228651fdc8a2c693d57d9f933da1` are published on `main`. The first
+registers `repository-settings-tabs`, updates the descriptor-based appearance
+test, and aligns the Pages screenshot-gallery style contract; its focused
+checks pass **39/39**. The second restores the 12 newest `3.6.3-material22`
+changelog tuples and count **4151**; the changelog suite passes **24/24** with
+one explicit release-tag date skip. Historical dates were preserved because
+the checkout has no matching `release-*` tags.
+
+The full script suite is **214 tests: 210 passed, 3 failed, 1 optional skip**.
+The three failures are the closed-scope TUI docs-hub catalog and two missing
+Linux TUI pages; no desktop script contract failed. CI run
+[30935849771](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30935849771)
+is queued. The installer workflow's skip-signing setting remains unchanged.
