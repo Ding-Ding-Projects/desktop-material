@@ -3,4 +3,11 @@
 /app/static/common/licenses/fonts/*.txt text eol=lf -whitespace
 /.codex/verification/design_reference_supplied_images.json text eol=lf
 
+# The TUI changelog catalog records a sha256 of each of these files and a test
+# re-hashes them from the working tree. Without a pinned ending, a Windows
+# checkout converts them to CRLF, the hash changes, and the check fails there
+# and only there — for a file nobody edited.
+/changelog.json text eol=lf
+/app/src/lib/changelog/release-dates.ts text eol=lf
+
 .github/workflows/*.lock.yml linguist-generated=true merge=ours

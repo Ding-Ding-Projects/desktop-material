@@ -34,6 +34,17 @@ def test_real_packaged_catalog_loads_and_matches_its_canonical_sources() -> None
     )
 
 
+def test_hashed_sources_are_pinned_to_one_line_ending() -> None:
+    # The assertions above re-hash these two files from the working tree, so
+    # their bytes have to be the same bytes on every platform. Without a pinned
+    # ending a Windows checkout rewrites them to CRLF and the digests stop
+    # matching there — and only there — for files nobody edited.
+    attributes = (REPOSITORY_ROOT / ".gitattributes").read_text(encoding="utf-8")
+
+    for pinned in ("/changelog.json", "/app/src/lib/changelog/release-dates.ts"):
+        assert f"{pinned} text eol=lf" in attributes, f"{pinned} needs a pinned line ending"
+
+
 def test_text_regex_and_date_filters_are_bounded_and_keep_undated_records_truthful() -> None:
     catalog = ChangelogCatalog.load_default()
 
