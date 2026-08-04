@@ -58,4 +58,34 @@ describe('compact settings style contracts', () => {
     )
     assert.match(style, /\.submodule-row\s*\{[\s\S]*?flex-direction: column;/)
   })
+
+  // Both settings dialogs navigate by a vertical strip that is taller than the
+  // dialog holding it — Preferences always, Repository Settings on a short
+  // window. The strips already scrolled, but Chromium draws an overlay
+  // scrollbar there: it reserves no space and appears only once the list is
+  // already moving. A strip that shows eight of thirteen pages and looks
+  // finished is indistinguishable from a settings dialog that does not have
+  // the other five, which is how it gets reported.
+  it('reserves a visible scrollbar on the settings navigation strips', () => {
+    for (const [name, rule] of [
+      [
+        '_preferences.scss',
+        /\.tab-bar\.vertical\s*\{([\s\S]*?)\n {6}\.tab-bar-item/,
+      ],
+      [
+        'dialogs/_repository-settings.scss',
+        /> \.tab-bar\.vertical\s*\{([\s\S]*?)\n {4}\}/,
+      ],
+    ] as ReadonlyArray<[string, RegExp]>) {
+      const block = readStyle(name).match(rule)
+
+      assert.ok(block, `could not find the vertical strip rule in ${name}`)
+      assert.match(
+        block[1],
+        /scrollbar-gutter: stable;/,
+        `${name} must reserve the gutter, or the overflow stays invisible`
+      )
+      assert.match(block[1], /overflow-y: auto;/, `${name} must still scroll`)
+    }
+  })
 })

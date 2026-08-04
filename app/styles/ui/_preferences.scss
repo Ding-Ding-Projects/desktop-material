@@ -382,6 +382,17 @@
       gap: 2px;
       padding: 0;
       overflow-y: auto;
+      // The rail is a 660px card holding fourteen settings pages, so the list
+      // always overflows — Agent access, Automation, Clone queue, Sound and
+      // Ollama sit below the fold on every window size. Chromium draws an
+      // overlay scrollbar there, which reserves no space and only appears once
+      // you are already scrolling, and the "Desktop Material x.y.z" line
+      // directly beneath the list reads as the end of it. The result is a
+      // settings dialog that looks like it simply does not have those pages.
+      // Reserve the gutter so a real, persistent scrollbar says otherwise.
+      scrollbar-gutter: stable;
+      scrollbar-width: thin;
+      overscroll-behavior: contain;
 
       .tab-bar-item {
         min-height: 44px;
