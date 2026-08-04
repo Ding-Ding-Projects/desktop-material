@@ -18,6 +18,7 @@ const historicalLinuxAssets = [
 const historicalGalleryAssets = [
   ...historicalLinuxAssets,
   'auto-updater-update-ready.png',
+  'material-command-palette-notification-before.png',
 ].sort()
 
 describe('wiki function screenshot catalog', () => {
@@ -36,7 +37,7 @@ describe('wiki function screenshot catalog', () => {
       ),
     ].map(([, asset]) => asset)
 
-    assert.equal(rows.length, 86)
+    assert.equal(rows.length, 91)
     assert.equal(new Set(rows.map(row => row.asset)).size, rows.length)
     assert.equal(new Set(rows.map(row => row.name)).size, rows.length)
     assert.deepEqual(archivedRows.sort(), historicalGalleryAssets)

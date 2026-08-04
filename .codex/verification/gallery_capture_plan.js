@@ -13,7 +13,7 @@
 const fs = require('fs')
 const path = require('path')
 
-const ExpectedPublishedGalleryCount = 86
+const ExpectedPublishedGalleryCount = 91
 const CanonicalCandidateCount = 68
 const DeferredCanonicalOutputs = Object.freeze([
   'material-cheap-lfs-preparing',
@@ -288,6 +288,41 @@ const SpecialistCaptureEntries = Object.freeze([
     batch: 'windows-ui-state-lowlevel',
     interaction:
       'Open the command palette, type ollama, open its appearance editor, exercise deterministic random-per-repository mode, and leave a full screen of rich results (at least eight) plus the aligned, fully contained editor and Reset control visible at 1000x687.',
+  },
+  {
+    output: 'material-command-palette-notification-after',
+    scene: 'command-palette-notification-routes',
+    batch: 'windows-ui-state-lowlevel',
+    interaction:
+      'Open the command palette in the isolated production profile, leave the distinct live notification-centre and local notification-history routes visible, and preserve the route-selection evidence at 1000x687.',
+  },
+  {
+    output: 'material-notification-centre-route',
+    scene: 'notification-centre-route',
+    batch: 'windows-ui-state-lowlevel',
+    interaction:
+      'Activate the notification-centre command from the isolated production profile and preserve the live Notifications side sheet with its Local and GitHub tabs, filters, bulk controls, and caught-up state at 1000x687.',
+  },
+  {
+    output: 'material-history-view-tabs-list',
+    scene: 'history-view-tabs-list',
+    batch: 'windows-ui-state-lowlevel',
+    interaction:
+      'Open the built History surface in the isolated production profile, select its Commit list tab, and preserve the real tab strip, commit list, and accessible selected state at the reviewed capture size.',
+  },
+  {
+    output: 'material-history-view-tabs-graph',
+    scene: 'history-view-tabs-graph',
+    batch: 'windows-ui-state-lowlevel',
+    interaction:
+      'Open the built History surface in the isolated production profile, select its Graph tab, and preserve the real tab strip, ancestry graph, and accessible selected state at the reviewed capture size.',
+  },
+  {
+    output: 'material-stash-manager-centered-20260803',
+    scene: 'stash-manager-centered',
+    batch: 'windows-ui-state-lowlevel',
+    interaction:
+      'Open the built repository stash manager in the isolated production profile and preserve its centered Material dialog with Manage, Export, History, and Appearance and voice tabs at the reviewed capture size.',
   },
   {
     output: 'material-history-hover-time',
