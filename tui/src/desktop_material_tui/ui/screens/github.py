@@ -6,11 +6,13 @@ import asyncio
 import json
 import re
 from collections.abc import Callable
-from typing import Any
+from typing import Any, TypeVar
 
 from textual import on, work
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
+from textual.css.query import NoMatches
+from textual.widget import Widget
 from textual.widgets import (
     Button,
     DataTable,
@@ -78,6 +80,9 @@ def _source_index(table: DataTable[str]) -> int | None:
         return int(source_key) if source_key is not None else None
     except (KeyError, TypeError, ValueError):
         return None
+
+
+_W = TypeVar("_W", bound=Widget)
 
 
 class GitHubPane(Vertical):
@@ -746,6 +751,22 @@ class GitHubPane(Vertical):
             self.app.notify("Connect a GitHub-backed repository first.", severity="warning")
         return self.github
 
+    def _live(self, selector: str, kind: type[_W]) -> _W | None:
+        """The named widget, or nothing if this pane can no longer be reached.
+
+        `_torn_down` catches the pane that has stopped running. It does not
+        catch the pane that is still running with its children already gone,
+        which is the same late arrival wearing a different hat and still
+        raises `NoMatches` from inside the worker. Asking for the widget and
+        accepting its absence covers both.
+        """
+        if self._torn_down:
+            return None
+        try:
+            return self.query_one(selector, kind)
+        except NoMatches:
+            return None
+
     @property
     def _torn_down(self) -> bool:
         """Whether this pane has stopped running and its widgets are gone.
@@ -772,9 +793,9 @@ class GitHubPane(Vertical):
         self._render_issues(self.issues)
 
     def _render_issues(self, issues: tuple[object, ...] | list[object]) -> None:
-        if self._torn_down:
+        table = self._live("#issues-table", DataTable)
+        if table is None:
             return
-        table = self.query_one("#issues-table", DataTable)
         table.clear()
         source_indices = {id(issue): index for index, issue in enumerate(self.issues)}
         for issue in issues:
@@ -848,10 +869,12 @@ class GitHubPane(Vertical):
         except Exception as error:
             self.app.notify(str(error), title="Create issue failed", severity="error")
             return
-        if self._torn_down:
+        title_input = self._live("#issue-title", Input)
+        body_area = self._live("#issue-body", TextArea)
+        if title_input is None or body_area is None:
             return
-        self.query_one("#issue-title", Input).value = ""
-        self.query_one("#issue-body", TextArea).text = ""
+        title_input.value = ""
+        body_area.text = ""
         self.app.notify(f"Created issue #{_field(issue, 'number')}.", title="GitHub")
         self._load_issues()
 
@@ -868,9 +891,10 @@ class GitHubPane(Vertical):
         except Exception as error:
             self.app.notify(str(error), title="Comment failed", severity="error")
             return
-        if self._torn_down:
+        comment_input = self._live("#issue-comment-body", Input)
+        if comment_input is None:
             return
-        self.query_one("#issue-comment-body", Input).value = ""
+        comment_input.value = ""
         self.app.notify("Comment posted.", title="GitHub")
         self._load_issues()
 
@@ -932,9 +956,9 @@ class GitHubPane(Vertical):
         self,
         pull_requests: tuple[object, ...] | list[object],
     ) -> None:
-        if self._torn_down:
+        table = self._live("#prs-table", DataTable)
+        if table is None:
             return
-        table = self.query_one("#prs-table", DataTable)
         table.clear()
         source_indices = {id(pr): index for index, pr in enumerate(self.pull_requests)}
         for pr in pull_requests:
@@ -978,11 +1002,12 @@ class GitHubPane(Vertical):
         self._load_pull_request_review(int(_field(pr, "number")))
 
     def _render_pull_request_detail(self, pr: object) -> None:
-        if self._torn_down:
+        detail = self._live("#pr-detail", TextArea)
+        if detail is None:
             return
         reviews = _field(pr, "reviews", ())
         comments = _field(pr, "comments", ())
-        self.query_one("#pr-detail", TextArea).text = (
+        detail.text = (
             f"#{_field(pr, 'number')} · {_state(pr)}"
             f"{' · DRAFT' if _field(pr, 'draft', False) else ''}\n"
             f"{_field(pr, 'title')}\n"
@@ -1064,9 +1089,9 @@ class GitHubPane(Vertical):
         return []
 
     def _render_pull_request_files(self, files: list[object] | tuple[object, ...]) -> None:
-        if self._torn_down:
+        table = self._live("#pr-files-table", DataTable)
+        if table is None:
             return
-        table = self.query_one("#pr-files-table", DataTable)
         table.clear()
         source_indices = {id(file): index for index, file in enumerate(self.pull_request_files)}
         for file in files:
@@ -1080,9 +1105,9 @@ class GitHubPane(Vertical):
             )
 
     def _render_pull_request_checks(self, checks: list[object] | tuple[object, ...]) -> None:
-        if self._torn_down:
+        table = self._live("#pr-checks-table", DataTable)
+        if table is None:
             return
-        table = self.query_one("#pr-checks-table", DataTable)
         table.clear()
         source_indices = {id(check): index for index, check in enumerate(self.pull_request_checks)}
         for check in checks:
@@ -1098,9 +1123,9 @@ class GitHubPane(Vertical):
         self,
         comments: list[object] | tuple[object, ...],
     ) -> None:
-        if self._torn_down:
+        table = self._live("#pr-review-comments-table", DataTable)
+        if table is None:
             return
-        table = self.query_one("#pr-review-comments-table", DataTable)
         table.clear()
         source_indices = {
             id(comment): index for index, comment in enumerate(self.pull_request_review_comments)
@@ -1331,7 +1356,10 @@ class GitHubPane(Vertical):
         if self._torn_down:
             return
         self._render_branch_rules(self.effective_branch_rules)
-        self.query_one("#rule-detail", TextArea).text = (
+        rule_detail = self._live("#rule-detail", TextArea)
+        if rule_detail is None:
+            return
+        rule_detail.text = (
             f"{len(self.effective_branch_rules)} active effective rule(s) apply to "
             f"the exact branch {branch!r}."
         )
@@ -1342,9 +1370,9 @@ class GitHubPane(Vertical):
         *,
         search_state: SearchState | None = None,
     ) -> None:
-        if self._torn_down:
+        table = self._live("#rules-table", DataTable)
+        if table is None:
             return
-        table = self.query_one("#rules-table", DataTable)
         table.clear()
         active_state = search_state or self.query_one("#github-rules-search", SearchBar).state
         visible_rules = _filtered(
@@ -1421,9 +1449,9 @@ class GitHubPane(Vertical):
         *,
         search_state: SearchState | None = None,
     ) -> None:
-        if self._torn_down:
+        table = self._live("#notifications-table", DataTable)
+        if table is None:
             return
-        table = self.query_one("#notifications-table", DataTable)
         table.clear()
         active_state = search_state or self.query_one(
             "#github-notifications-search", SearchBar
@@ -1571,10 +1599,12 @@ class GitHubPane(Vertical):
         workflows: tuple[object, ...] | list[object],
         runs: tuple[object, ...] | list[object],
     ) -> None:
-        if self._torn_down:
+        workflows_table = self._live("#workflows-table", DataTable)
+        if workflows_table is None:
             return
-        workflows_table = self.query_one("#workflows-table", DataTable)
-        runs_table = self.query_one("#runs-table", DataTable)
+        runs_table = self._live("#runs-table", DataTable)
+        if runs_table is None:
+            return
         workflows_table.clear()
         runs_table.clear()
         workflow_indices = {id(workflow): index for index, workflow in enumerate(self.workflows)}
@@ -1666,9 +1696,9 @@ class GitHubPane(Vertical):
         )
 
     def _render_jobs(self, jobs: tuple[object, ...] | list[object]) -> None:
-        if self._torn_down:
+        table = self._live("#jobs-table", DataTable)
+        if table is None:
             return
-        table = self.query_one("#jobs-table", DataTable)
         table.clear()
         source_indices = {id(job): index for index, job in enumerate(self.jobs)}
         for job in jobs:
@@ -1746,9 +1776,9 @@ class GitHubPane(Vertical):
         self._render_caches(self.caches)
 
     def _render_caches(self, caches: tuple[object, ...] | list[object]) -> None:
-        if self._torn_down:
+        table = self._live("#caches-table", DataTable)
+        if table is None:
             return
-        table = self.query_one("#caches-table", DataTable)
         table.clear()
         source_indices = {id(cache): index for index, cache in enumerate(self.caches)}
         for cache in caches:
@@ -1837,9 +1867,9 @@ class GitHubPane(Vertical):
         self._render_artifacts(self.artifacts)
 
     def _render_artifacts(self, artifacts: tuple[object, ...] | list[object]) -> None:
-        if self._torn_down:
+        table = self._live("#artifacts-table", DataTable)
+        if table is None:
             return
-        table = self.query_one("#artifacts-table", DataTable)
         table.clear()
         source_indices = {
             id(artifact): index for index, artifact in enumerate(self.artifacts)
@@ -2040,11 +2070,13 @@ class GitHubPane(Vertical):
         packages: tuple[object, ...] | list[object],
         projects: tuple[object, ...] | list[object],
     ) -> None:
-        if self._torn_down:
+        release_table = self._live("#releases-table", DataTable)
+        if release_table is None:
             return
-        release_table = self.query_one("#releases-table", DataTable)
-        package_table = self.query_one("#packages-table", DataTable)
-        project_table = self.query_one("#projects-table", DataTable)
+        package_table = self._live("#packages-table", DataTable)
+        project_table = self._live("#projects-table", DataTable)
+        if package_table is None or project_table is None:
+            return
         release_table.clear()
         package_table.clear()
         project_table.clear()
@@ -2150,9 +2182,9 @@ class GitHubPane(Vertical):
         return self.releases[source_index]
 
     def _render_release_assets(self, assets: tuple[object, ...] | list[object]) -> None:
-        if self._torn_down:
+        table = self._live("#release-assets-table", DataTable)
+        if table is None:
             return
-        table = self.query_one("#release-assets-table", DataTable)
         table.clear()
         source_indices = {id(asset): index for index, asset in enumerate(self.release_assets)}
         for asset in assets:
