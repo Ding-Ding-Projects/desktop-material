@@ -214,15 +214,30 @@ export class RepositorySettings extends React.Component<
 
   public componentDidMount() {
     this.isMounted = true
+    // The settings dialog reads several independent sources on startup. Keep
+    // that work out of componentWillMount: React may render and discard a
+    // component before it ever mounts, leaving an async lifecycle method free
+    // to call setState on a tree that no longer exists.
+    void this.loadInitialSettings()
   }
 
-  public async componentWillMount() {
+  private async loadInitialSettings() {
     await this.loadRemoteManagementSnapshot()
+
+    if (!this.isMounted) {
+      return
+    }
 
     try {
       const ignoreText = await readGitIgnoreAtRoot(this.props.repository)
+      if (!this.isMounted) {
+        return
+      }
       this.setState({ ignoreText })
     } catch (e) {
+      if (!this.isMounted) {
+        return
+      }
       log.error(
         `RepositorySettings: unable to read root .gitignore file for ${this.props.repository.path}`,
         e
@@ -232,8 +247,14 @@ export class RepositorySettings extends React.Component<
 
     try {
       const editors = await getAvailableEditors()
+      if (!this.isMounted) {
+        return
+      }
       this.setState({ availableEditors: editors.map(editor => editor.editor) })
     } catch (e) {
+      if (!this.isMounted) {
+        return
+      }
       log.warn('RepositorySettings: unable to find external editors', e)
     }
 
@@ -251,6 +272,10 @@ export class RepositorySettings extends React.Component<
     const globalCommitterName = (await getGlobalConfigValue('user.name')) || ''
     const globalCommitterEmail =
       (await getGlobalConfigValue('user.email')) || ''
+
+    if (!this.isMounted) {
+      return
+    }
 
     const gitConfigLocation =
       localCommitterName === null && localCommitterEmail === null
@@ -296,7 +321,10 @@ export class RepositorySettings extends React.Component<
         this.props.repository,
         this.remoteManagementAbortController.signal
       )
-      if (!this.remoteManagementAbortController.signal.aborted) {
+      if (
+        this.isMounted &&
+        !this.remoteManagementAbortController.signal.aborted
+      ) {
         this.setState({
           remoteSnapshot,
           remoteManagementDirty: false,
@@ -304,7 +332,10 @@ export class RepositorySettings extends React.Component<
         })
       }
     } catch (e) {
-      if (this.remoteManagementAbortController.signal.aborted) {
+      if (
+        !this.isMounted ||
+        this.remoteManagementAbortController.signal.aborted
+      ) {
         return
       }
       log.error(
