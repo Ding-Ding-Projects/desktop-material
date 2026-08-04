@@ -2042,25 +2042,33 @@
         text-align: center;
       }
 
-      .tab-bar.vertical {
+      .settings-tab-strip-list {
         align-items: center;
         gap: 2px;
+      }
 
-        .tab-bar-item {
-          width: 48px;
-          min-width: 48px;
-          min-height: 40px;
-          justify-content: center;
+      .settings-tab-strip-item {
+        font-size: 0;
+        justify-content: center;
+        margin: 0;
+        min-height: 40px;
+        min-width: 48px;
+        padding: 0;
+        width: 48px;
+
+        .icon {
+          height: 18px;
           margin: 0;
-          padding: 0;
-          font-size: 0;
-
-          .icon {
-            width: 18px;
-            height: 18px;
-            margin: 0;
-          }
+          width: 18px;
         }
+      }
+
+      // The action row's labels have nowhere to go at 72px; the count and the
+      // glyph still fit, and the buttons keep their accessible names.
+      .settings-tab-strip-action {
+        font-size: 10px;
+        gap: 2px;
+        padding: 0 6px;
       }
 
       .preferences-version {

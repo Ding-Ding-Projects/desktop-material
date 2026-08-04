@@ -1221,26 +1221,29 @@
     .tab-container {
       flex-direction: column;
 
-      > .tab-bar.vertical {
+      > .settings-tab-rail {
+        padding: 4px 8px;
+        width: 100%;
+      }
+
+      .settings-tab-strip-list {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
-        width: 100%;
-        padding: 4px 8px;
         overflow: visible;
+      }
 
-        .tab-bar-item {
-          min-width: 40px;
-          min-height: 40px;
+      .settings-tab-strip-item {
+        font-size: 0;
+        justify-content: center;
+        margin: 0;
+        min-height: 40px;
+        min-width: 40px;
+        padding: 8px;
+
+        .icon {
+          height: 18px;
           margin: 0;
-          padding: 8px;
-          justify-content: center;
-          font-size: 0;
-
-          .icon {
-            width: 18px;
-            height: 18px;
-            margin: 0;
-          }
+          width: 18px;
         }
       }
 
@@ -1283,7 +1286,7 @@
       overflow: hidden;
     }
 
-    .tab-container > .tab-bar.vertical {
+    .tab-container .settings-tab-strip-list {
       max-height: none !important;
       overflow-x: hidden;
       overflow-y: auto;

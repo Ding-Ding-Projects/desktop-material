@@ -229,3 +229,16 @@
   font-size: 12px;
   margin: var(--spacing-half) 0 0;
 }
+
+// The rail staggers its rows in with `dmLeft`, whose first keyframe is
+// `opacity: 0`, held through the row's delay by `animation-fill-mode: both`.
+// That is a deliberate entrance, but it means "not yet animated" and "not
+// there" look identical, and this rail is the one surface where a reader has
+// already been told once that pages were missing. Under a reduced-motion
+// preference there is no animation to wait for at all — which is both what the
+// preference asks for and one fewer way for the strip to come up blank.
+@media (prefers-reduced-motion: reduce) {
+  .settings-tab-strip-item {
+    animation: none !important;
+  }
+}

@@ -48,9 +48,16 @@ describe('compact settings style contracts', () => {
       style,
       /> form\s*\{[\s\S]*?flex: 1;[\s\S]*?height: auto;[\s\S]*?overflow: hidden;/
     )
+    // The compact rail collapses into a row of icon buttons. It targets the
+    // shared strip now, not the TabBar this dialog used to render.
     assert.match(
       style,
-      /> \.tab-bar\.vertical\s*\{[\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;/
+      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?\.settings-tab-strip-list\s*\{[\s\S]*?grid-template-columns: repeat\(auto-fit, minmax\(40px, 1fr\)\);/
+    )
+    assert.doesNotMatch(
+      style,
+      /\.tab-bar/,
+      'no rule may still target the TabBar this dialog no longer renders'
     )
     assert.match(
       style,
@@ -80,6 +87,20 @@ describe('compact settings style contracts', () => {
       'the gutter must be reserved, or the overflow stays invisible'
     )
     assert.match(list[1], /overflow-y: auto;/, 'the strip must still scroll')
+  })
+
+  it('does not leave a row invisible when motion is turned down', () => {
+    // The rail staggers its rows in from `opacity: 0`, held through each row's
+    // delay by `animation-fill-mode: both`. That makes "not yet animated" and
+    // "not there" look the same on the one surface that has already been
+    // reported as missing its pages.
+    const style = readStyle('_settings-tab-strip.scss')
+
+    assert.match(
+      style,
+      /@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]*?\.settings-tab-strip-item\s*\{[\s\S]*?animation: none/,
+      'the strip must drop its entrance animation under reduced motion'
+    )
   })
 
   it('refuses to let a settings row shrink below its own label', () => {
