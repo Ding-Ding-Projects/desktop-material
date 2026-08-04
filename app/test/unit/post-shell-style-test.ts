@@ -10,7 +10,16 @@ const readRootStyle = (name: string) =>
   readFileSync(join(process.cwd(), 'app', 'styles', name), 'utf8')
 
 const readSiteStyle = () =>
-  readFileSync(join(process.cwd(), 'site', 'style.css'), 'utf8')
+  readFileSync(
+    join(
+      process.cwd(),
+      'docs',
+      'assets',
+      'site',
+      'docs-screenshot-gallery.css'
+    ),
+    'utf8'
+  )
 
 describe('post-shell MD3 style contracts', () => {
   it('uses system tokens instead of literal colors in the Actions log viewer', () => {
@@ -140,10 +149,14 @@ describe('post-shell MD3 style contracts', () => {
     const style = readSiteStyle()
     assert.match(
       style,
-      /grid-template-columns: repeat\(auto-fit, minmax\(min\(100%, 340px\), 1fr\)\);/
+      /\.dm-shots-grid\s*\{[\s\S]*?grid-template-columns: 1fr;/
     )
-    assert.match(style, /\.shot\s*\{[\s\S]*?min-width: 0;/)
-    assert.match(style, /\.shot figcaption\s*\{[\s\S]*?flex-wrap: wrap;/)
+    assert.match(style, /\.dm-shot-cell\s*\{[\s\S]*?min-width: 0;/)
+    assert.match(style, /\.dm-shot-card\s*\{[\s\S]*?min-width: 0;/)
+    assert.match(
+      style,
+      /\.dm-shot-card-caption\s*\{[\s\S]*?overflow-wrap: anywhere;/
+    )
   })
 
   it('fits Settings History at compact width and height without auto-fit', () => {

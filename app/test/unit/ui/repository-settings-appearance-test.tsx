@@ -399,15 +399,19 @@ describe('Repository Settings appearance tab registration', () => {
       readFile('app/src/models/repository-settings.ts', 'utf8'),
     ])
 
-    // The enum value must equal the TabBar position, and the conditionally
-    // rendered fork tab must stay last.
+    // The enum order stays stable while descriptors carry each tab's identity;
+    // the conditionally appended fork tab must still stay last.
     assert.match(
       modelSource,
       /Automation,\s*Metadata,\s*Appearance,\s*ForkSettings,/
     )
     assert.match(
       source,
-      /symbol=\{octicons\.paintbrush\}[\s\S]*?translationKey="repositorySettings\.appearanceTab"[\s\S]*?\{showForkSettings && \(/
+      /tab: RepositorySettingsTab\.Appearance,[\s\S]*?icon: octicons\.paintbrush,[\s\S]*?translationKey="repositorySettings\.appearanceTab"/
+    )
+    assert.match(
+      source,
+      /if \(showForkSettings\) \{[\s\S]*?RepositorySettingsTab\.ForkSettings/
     )
     assert.match(
       source,
