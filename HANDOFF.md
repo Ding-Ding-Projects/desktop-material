@@ -1,5 +1,50 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-04 — Live Material renderer proof and startup cleanup
+
+The design reference is now verified against the real production Electron
+renderer rather than only the static `design/` file. Commit
+`ab8c26d7535c9861f81b761e73798d1363bd78e1` also fixes a startup race in
+`app/src/ui/repository-settings/repository-settings.tsx`: asynchronous initial
+settings reads now begin after mount and stop updating state after unmount.
+That removes the React warning that appeared when the settings surface closed
+while its reads were still pending.
+
+### Verification
+
+- Focused Material/UI contract suite: **47 passed, 0 failed**; the unmounted
+  state-update warning is absent.
+- Targeted ESLint for `repository-settings.tsx`: **passed**.
+- Cheap headless production build:
+  `npx --no-install cross-env RELEASE_CHANNEL=development
+  DESKTOP_SKIP_PACKAGE=1 yarn build:prod` — **exit 0 in 291.45s**. The build
+  emitted the renderer and main outputs and completed its shell-extension,
+  license, and stylesheet checks; existing Sass/Node deprecation warnings are
+  non-fatal. Packaging was intentionally skipped for this renderer proof.
+- Hidden-desktop runtime: **verified**. The built `out/main.js` launched on a
+  uniquely named hidden desktop, showed first-run setup, completed the
+  no-sign-in path, added a disposable Git fixture, and reached the live
+  repository workspace with Changes, History, Triage, Repository tools, and
+  Branches surfaces visible.
+- Cleanup: **verified**. The exact launch PID was closed and the owned hidden
+  desktop/temp root were removed.
+
+### Remote checks and boundaries
+
+Run [30928494987](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30928494987)
+is still in progress. Its Lint job reports four pre-existing formatting
+findings (`.act-super-express-event.json`,
+`.github/workflows/build-installers.yml`,
+`app/test/unit/site-accessibility-test.ts`, and
+`tui/src/desktop_material_tui/assets/changelog-catalog.json`), while TUI jobs
+have also failed; Windows x64/arm64 and CodeQL are still running. The changed
+renderer file passes its targeted ESLint check. The TUI scope is explicitly
+closed, so those unrelated TUI failures are recorded rather than changed in
+this Windows Electron milestone.
+
+The local package/signing step was not part of this proof and no signing policy
+was changed. No release is claimed by this handoff entry.
+
 ## 2026-08-03 — App fixes: repository list, Cheap LFS, local Actions, CI
 
 A session of defect work across the app and the test harness. Everything below

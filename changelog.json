@@ -1,6 +1,7 @@
 {
   "releases": {
     "3.6.3-material22": [
+      "[Fixed] Closing Repository Settings while its startup reads are pending no longer lets an unmounted React component update state, so the console stays quiet and the dialog cleanup is safe - ab8c26d7535c9861f81b761e73798d1363bd78e1",
       "[Fixed] The website fits a phone screen instead of making the whole page scroll sideways - 0da917390e7fcd7f45c164ae086bfb3c4d492b1d",
       "[Improved] On a phone the website search box becomes a search button that opens the same search panel, and both tab strips scroll instead of pushing the page - 0da917390e7fcd7f45c164ae086bfb3c4d492b1d",
       "[Improved] The website header takes about a fifth less room on a phone, and stops sticking to the top when the screen is too short to spare it - 0da917390e7fcd7f45c164ae086bfb3c4d492b1d",
