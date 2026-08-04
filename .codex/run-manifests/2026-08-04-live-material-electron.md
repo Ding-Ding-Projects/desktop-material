@@ -64,3 +64,12 @@ is still in progress. Its Lint job currently fails on pre-existing formatting
 findings in four files, and TUI jobs have also failed; Windows x64/arm64 and
 CodeQL remain in progress. The changed renderer file passes its targeted ESLint
 check. The TUI scope remains closed for this task.
+
+Follow-up run [30929478484](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30929478484)
+for commit `0969cbbb76ed18fe4f6d79d33ad95b6ae96a38d9` has the same Lint/TUI
+failures. Its Windows arm64 job built and uploaded the artifact, then failed
+the script-test step because the committed docs hub catalog/index are stale
+relative to already-merged TUI articles. The generator plus `yarn test:script`
+passes locally (214 tests, 213 passed, 1 optional skip), but its output would
+modify the closed TUI documentation surface and was not committed. Windows
+x64 and E2E remain in progress at this update.

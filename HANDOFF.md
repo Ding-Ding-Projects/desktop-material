@@ -42,6 +42,17 @@ renderer file passes its targeted ESLint check. The TUI scope is explicitly
 closed, so those unrelated TUI failures are recorded rather than changed in
 this Windows Electron milestone.
 
+The follow-up run for `0969cbbb76ed18fe4f6d79d33ad95b6ae96a38d9`,
+[30929478484](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30929478484),
+has the same Lint/TUI failures. Windows arm64 also built and uploaded its
+artifact, then failed `Run script tests` because the committed documentation
+hub catalog and index are stale relative to the already-merged TUI articles.
+Running `yarn generate-docs-hub-catalog` followed by `yarn test:script` passes
+locally (**214 tests, 213 passed, 1 optional skip**), but the generated diff
+is entirely for the closed TUI documentation surface and is intentionally not
+carried into this Windows Electron task. Windows x64 and E2E remain remote
+checks in progress at this handoff update.
+
 The local package/signing step was not part of this proof and no signing policy
 was changed. No release is claimed by this handoff entry.
 
