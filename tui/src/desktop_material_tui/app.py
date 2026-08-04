@@ -264,6 +264,18 @@ class DesktopMaterialTUI(App[None]):
         self._repository_group_tabs: dict[str, str] = {}
         self._repository_close_protection: dict[Path, str] = {}
         self._refreshing_repository_tabs = False
+        # The tab this app activated itself when it last rebuilt the strip.
+        #
+        # `_refreshing_repository_tabs` alone cannot cover it: assigning
+        # `tabs.active` *posts* a message, and the flag is cleared on a refresh
+        # boundary that the message queue can drain past. Textual also posts
+        # `TabActivated` more than once for a single activation, so consuming
+        # one message is not enough either — the survivor is read as the user
+        # clicking a collapsed group chip, and collapsing a group immediately
+        # expands it again. Holding the id until some *other* tab is activated
+        # costs nothing: re-activating the already-active tab posts nothing at
+        # all, so no real gesture hides behind this.
+        self._app_activated_tab: str | None = None
         self._repository_tab_render_generation = 0
         self._translator: Any | None = None
         self._version_history_service: Any | None = None
@@ -1050,6 +1062,7 @@ class DesktopMaterialTUI(App[None]):
                     ):
                         active_tab_id = entry.identifier
                 await tabs.add_tab(Tab(entry.label, id=entry.identifier))
+            self._app_activated_tab = active_tab_id
             if active_tab_id is not None:
                 tabs.active = active_tab_id
         finally:
@@ -1200,6 +1213,12 @@ class DesktopMaterialTUI(App[None]):
             or self._refreshing_repository_tabs
         ):
             return
+        # An activation this app performed is not the user asking for anything.
+        if event.tab.id == self._app_activated_tab:
+            return
+        # Some other tab: the user has moved on, so the rebuild's own
+        # activation is spent and coming back to it counts again.
+        self._app_activated_tab = None
         path = self._repository_tab_paths.get(event.tab.id)
         if path is not None:
             self._activate_repository(path)
