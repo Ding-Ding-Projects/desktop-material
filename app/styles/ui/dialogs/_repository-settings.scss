@@ -152,18 +152,17 @@
     min-height: 0;
     overflow: hidden;
 
-    > .tab-bar.vertical {
+    // The navigation column: the search field, then the page strip beneath it.
+    // The strip owns the remaining height and does its own scrolling, so this
+    // wrapper only has to stop growing past the dialog.
+    > .settings-tab-rail {
+      display: flex;
+      flex: none;
+      flex-direction: column;
       min-height: 0;
-      overflow-x: hidden;
-      overflow-y: auto;
-      // Eleven settings pages in a dialog bounded by the viewport: on a short
-      // window the last of them (Metadata, Appearance, Fork behavior) fall
-      // below the fold. Chromium's overlay scrollbar reserves no space and
-      // shows nothing until the list is already moving, so the strip reads as
-      // complete when it is not. Reserve the gutter and keep the bar visible.
-      scrollbar-gutter: stable;
-      scrollbar-width: thin;
-      overscroll-behavior: contain;
+      min-width: 0;
+      padding: var(--spacing) var(--spacing) var(--spacing) var(--spacing-double);
+      width: 260px;
     }
 
     .active-tab {

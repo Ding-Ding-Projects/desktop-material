@@ -67,25 +67,29 @@ describe('compact settings style contracts', () => {
   // finished is indistinguishable from a settings dialog that does not have
   // the other five, which is how it gets reported.
   it('reserves a visible scrollbar on the settings navigation strips', () => {
-    for (const [name, rule] of [
-      [
-        '_preferences.scss',
-        /\.tab-bar\.vertical\s*\{([\s\S]*?)\n {6}\.tab-bar-item/,
-      ],
-      [
-        'dialogs/_repository-settings.scss',
-        /> \.tab-bar\.vertical\s*\{([\s\S]*?)\n {4}\}/,
-      ],
-    ] as ReadonlyArray<[string, RegExp]>) {
-      const block = readStyle(name).match(rule)
+    // One assertion now covers both dialogs: they navigate through the same
+    // shared strip, so the guarantee lives with it rather than being restated
+    // once per dialog and drifting apart.
+    const style = readStyle('_settings-tab-strip.scss')
+    const list = style.match(/\.settings-tab-strip-list\s*\{([\s\S]*?)\n\}/)
 
-      assert.ok(block, `could not find the vertical strip rule in ${name}`)
-      assert.match(
-        block[1],
-        /scrollbar-gutter: stable;/,
-        `${name} must reserve the gutter, or the overflow stays invisible`
-      )
-      assert.match(block[1], /overflow-y: auto;/, `${name} must still scroll`)
-    }
+    assert.ok(list, 'could not find the strip list rule')
+    assert.match(
+      list[1],
+      /scrollbar-gutter: stable;/,
+      'the gutter must be reserved, or the overflow stays invisible'
+    )
+    assert.match(list[1], /overflow-y: auto;/, 'the strip must still scroll')
+  })
+
+  it('refuses to let a settings row shrink below its own label', () => {
+    // A flex item defaults to shrinking. When the rail ran out of room it
+    // squeezed its rows instead of scrolling, which is what clipped "Branches"
+    // in the navigation rail before the same rule was applied there.
+    const style = readStyle('_settings-tab-strip.scss')
+    const item = style.match(/\.settings-tab-strip-item\s*\{([\s\S]*?)\n\}/)
+
+    assert.ok(item, 'could not find the strip item rule')
+    assert.match(item[1], /(?:^|\n)\s*flex: none;/)
   })
 })

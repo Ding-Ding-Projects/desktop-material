@@ -1,0 +1,231 @@
+// The shared settings navigation strip.
+//
+// Both settings dialogs navigate a vertical list of pages that is taller than
+// the dialog holding it. The strip scrolls — that was never the problem. The
+// problem was that nothing said so: Chromium's overlay scrollbar reserves no
+// space and only appears once the list is already moving, so a strip showing
+// eight of fourteen pages looked like a complete list. The action row at the
+// foot is the fix: it names how many pages did not fit and opens a surface
+// listing them, the way a browser tab strip does.
+//
+// Colour, motion and shape come from --md-sys-* / --spring / --emph tokens.
+
+.settings-tab-strip {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.settings-tab-strip-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  // Reserve the gutter so the scrollbar is a permanent statement that there is
+  // more, not something that appears only after you have already found out.
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  overscroll-behavior: contain;
+}
+
+.settings-tab-strip-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: flex;
+  // Never shrink below the content. A flex item defaults to shrinking, and a
+  // rail that squeezes its rows instead of scrolling is the failure this strip
+  // exists to avoid.
+  flex: none;
+  font: inherit;
+  font-size: 13.5px;
+  gap: 12px;
+  min-height: 44px;
+  min-width: 0;
+  padding: 0 14px;
+  text-align: left;
+  transition: background-color 160ms var(--emph), color 160ms var(--emph);
+
+  .octicon,
+  .material-symbol {
+    flex: none;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface);
+  }
+
+  &.selected {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    font-weight: var(--font-weight-bold);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.38;
+  }
+
+  &:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+    outline-offset: 1px;
+  }
+}
+
+.settings-tab-strip-label {
+  flex: 1;
+  min-width: 0;
+  // Long page names wrap rather than truncating: the row already refuses to
+  // shrink, so wrapping costs height the strip can scroll, while truncation
+  // would cost the user the name of the page.
+  overflow-wrap: anywhere;
+}
+
+.settings-tab-strip-pin {
+  flex: none;
+  opacity: 0.7;
+  width: 12px;
+}
+
+.settings-tab-strip-actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: var(--spacing-half);
+  padding: var(--spacing-half) 0 0;
+}
+
+.settings-tab-strip-action {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 1 auto;
+  font: inherit;
+  font-size: 12px;
+  gap: 6px;
+  min-height: 32px;
+  min-width: 0;
+  padding: 0 12px;
+  transition: background-color 160ms var(--emph);
+
+  &:hover {
+    background: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface);
+  }
+
+  &:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+    outline-offset: 1px;
+  }
+
+  // The overflow count is the one piece of chrome that must read as "there is
+  // something here you have not seen", so it carries the accent rather than the
+  // neutral outline the search button uses.
+  &.overflow {
+    background: var(--md-sys-color-primary-container);
+    border-color: transparent;
+    color: var(--md-sys-color-on-primary-container);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .octicon {
+    flex: none;
+    width: 14px;
+  }
+}
+
+// --- The picker: overflow surface and search, which are one list ------------
+
+.settings-tab-picker {
+  max-width: min(360px, calc(100vw - 32px));
+  min-width: 260px;
+}
+
+.settings-tab-picker-field {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-half);
+  margin-bottom: var(--spacing-half);
+
+  input[type='search'] {
+    flex: 1 1 auto;
+    min-width: 140px;
+  }
+}
+
+.settings-tab-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  max-height: min(50vh, 320px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+.settings-tab-picker-item {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--md-sys-shape-corner-medium, 12px);
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 10px;
+  text-align: left;
+  width: 100%;
+
+  .octicon,
+  .material-symbol {
+    flex: none;
+  }
+
+  &:hover,
+  &.highlighted {
+    background: var(--md-sys-color-surface-container-high);
+  }
+
+  &.selected {
+    color: var(--md-sys-color-primary);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  &:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+    outline-offset: -1px;
+  }
+}
+
+.settings-tab-picker-label {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.settings-tab-picker-empty {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+  margin: var(--spacing-half) 0 0;
+}
