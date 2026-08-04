@@ -348,7 +348,7 @@
         data-screenshot-search="auto-updater-update-ready auto-updater-update-ready.png July 22 published legacy migration retained-historical Historical updater evidence (outside the current gallery)"
       >
         <div class="section__head">
-          <p class="eyebrow">Frame 87 of 95 · retained-historical</p>
+          <p class="eyebrow">Frame 92 of 98 · retained-historical</p>
           <h1 class="md-headline">auto-updater-update-ready.png</h1>
           <p class="md-body">960 × 660 px · 49,195 bytes · no capture batch</p>
           <p class="md-body" lang="zh-HK">
@@ -2111,6 +2111,101 @@
             ]
           },
           {
+            "output": "material-command-palette-notification-after",
+            "file": "material-command-palette-notification-after.png",
+            "caption": "Separate command-palette routes for the live notification centre and local notification history",
+            "altText": "Command palette showing separate live notification-centre and local notification-history routes",
+            "scene": "command-palette-notification-routes",
+            "batch": "windows-ui-state-lowlevel",
+            "platform": "windows-headless",
+            "section": "Tab groups and command palette",
+            "interaction": "Open the command palette in the isolated production profile, leave the distinct live notification-centre and local notification-history routes visible, and preserve the route-selection evidence at 1000x687.",
+            "width": 976,
+            "height": 668,
+            "bytes": 87057,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-notification-centre-route",
+            "file": "material-notification-centre-route.png",
+            "caption": "The corrected notification-centre command opening the live side sheet",
+            "altText": "The command-palette notification-centre route opening the live notification side sheet",
+            "scene": "notification-centre-route",
+            "batch": "windows-ui-state-lowlevel",
+            "platform": "windows-headless",
+            "section": "Tab groups and command palette",
+            "interaction": "Activate the notification-centre command from the isolated production profile and preserve the live Notifications side sheet with its Local and GitHub tabs, filters, bulk controls, and caught-up state at 1000x687.",
+            "width": 976,
+            "height": 668,
+            "bytes": 90413,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-history-view-tabs-list",
+            "file": "material-history-view-tabs-list.png",
+            "caption": "Built History Commit list tab with its real tab strip and selected state",
+            "altText": "History Commit list tab from the built Windows app",
+            "scene": "history-view-tabs-list",
+            "batch": "windows-ui-state-lowlevel",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Open the built History surface in the isolated production profile, select its Commit list tab, and preserve the real tab strip, commit list, and accessible selected state at the reviewed capture size.",
+            "width": 1443,
+            "height": 992,
+            "bytes": 138792,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-history-view-tabs-graph",
+            "file": "material-history-view-tabs-graph.png",
+            "caption": "Built History Graph tab with its real tab strip and ancestry graph",
+            "altText": "History Graph tab from the built Windows app",
+            "scene": "history-view-tabs-graph",
+            "batch": "windows-ui-state-lowlevel",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Open the built History surface in the isolated production profile, select its Graph tab, and preserve the real tab strip, ancestry graph, and accessible selected state at the reviewed capture size.",
+            "width": 1443,
+            "height": 992,
+            "bytes": 138835,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-stash-manager-centered-20260803",
+            "file": "material-stash-manager-centered-20260803.png",
+            "caption": "Centered Material stash manager with Manage, Export, History, and Appearance and voice tabs",
+            "altText": "Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs",
+            "scene": "stash-manager-centered",
+            "batch": "windows-ui-state-lowlevel",
+            "platform": "windows-headless",
+            "section": "Repository administration",
+            "interaction": "Open the built repository stash manager in the isolated production profile and preserve its centered Material dialog with Manage, Export, History, and Appearance and voice tabs at the reviewed capture size.",
+            "width": 1443,
+            "height": 992,
+            "bytes": 88986,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
             "output": "material-tab-groups",
             "file": "material-tab-groups.png",
             "caption": "Restart-restored named group chip with visible repository membership and real collapse/expand behavior",
@@ -2399,50 +2494,18 @@
             ]
           },
           {
-            "output": "material-history-view-tabs-graph",
-            "file": "material-history-view-tabs-graph.png",
+            "output": "material-command-palette-notification-before",
+            "file": "material-command-palette-notification-before.png",
             "caption": null,
-            "altText": "History Graph tab from the built Windows app",
+            "altText": "Desktop Material screenshot material-command-palette-notification-before.png, filed under Historical notification palette evidence (outside the current gallery). The Feature Gallery records no alt text and no caption describing this frame.",
             "scene": null,
             "batch": "retained-historical",
             "platform": null,
-            "section": "Search, history, accounts, and automation",
+            "section": "Historical notification palette evidence (outside the current gallery)",
             "interaction": null,
-            "width": 1443,
-            "height": 992,
-            "bytes": 138835,
-            "commands": [],
-            "datedReceipts": []
-          },
-          {
-            "output": "material-history-view-tabs-list",
-            "file": "material-history-view-tabs-list.png",
-            "caption": null,
-            "altText": "History Commit list tab from the built Windows app",
-            "scene": null,
-            "batch": "retained-historical",
-            "platform": null,
-            "section": "Search, history, accounts, and automation",
-            "interaction": null,
-            "width": 1443,
-            "height": 992,
-            "bytes": 138792,
-            "commands": [],
-            "datedReceipts": []
-          },
-          {
-            "output": "material-stash-manager-centered-20260803",
-            "file": "material-stash-manager-centered-20260803.png",
-            "caption": null,
-            "altText": "Desktop Material screenshot material-stash-manager-centered-20260803.png. The Feature Gallery records no alt text and no caption describing this frame.",
-            "scene": null,
-            "batch": "retained-historical",
-            "platform": null,
-            "section": null,
-            "interaction": null,
-            "width": 1443,
-            "height": 992,
-            "bytes": 88986,
+            "width": 976,
+            "height": 668,
+            "bytes": 87292,
             "commands": [],
             "datedReceipts": []
           }

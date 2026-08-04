@@ -8658,3 +8658,36 @@ Verification for this checkpoint:
 
 The release/installer path was intentionally not exercised in this checkpoint;
 the user's skip-signing contract remains in force.
+
+## 2026-08-04 screenshot catalog and Windows unit-test contract correction
+
+The Windows desktop job in CI run
+[`30940885403`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30940885403)
+packaged the application and uploaded its Squirrel.Windows files, but its unit
+test step was red. The failure combined a stale screenshot-docs contract with
+three assertions that queried the parent `New Agent Session` dialog after the
+nested setup editor had closed. The setup editor itself already handled Escape
+through its native key listener; the test needed to identify the nested dialog
+by its accessible name rather than treating both dialog layers as one node.
+
+This checkpoint refreshes the committed gallery plan and generated screenshot
+pages to **91 published gallery outputs**, retains the historical notification
+frame separately, and scopes the setup-editor close assertions to `Setup
+commands`. The generated docs now contain **98 screenshot pages** plus the
+index, with **7 retained historical frames**.
+
+Verification for this correction:
+
+- Focused desktop, screenshot-docs, accessibility, and wiki-catalog tests:
+  **64/64 passed**.
+- Targeted ESLint: passed.
+- Prettier check over all changed JavaScript, TypeScript, Markdown, and HTML:
+  passed.
+- `git diff --check`: passed.
+- The previous remote E2E job packaged, installed, and passed its packaged smoke
+  tests. Its signing setup was deliberately skipped (`sign=false`); Azure Code
+  Signing installation and Azure Login were both skipped. No signing secret was
+  added or enabled.
+- The prior aggregate CI run remains unverified for this correction: its result
+  is red because TUI jobs fail outside the Windows desktop scope, while the
+  next commit will rerun the corrected Windows unit contract.

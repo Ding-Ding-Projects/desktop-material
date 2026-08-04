@@ -531,7 +531,7 @@ describe('AgentSessionsPanel creator', () => {
 
     fireEvent.keyDown(editor, { key: 'Escape' })
     assert.ok(
-      view.queryByRole('dialog') === null,
+      view.queryByRole('dialog', { name: 'Setup commands' }) === null,
       'the dialog should be closed'
     )
     assertSameNode(document.activeElement, configure)
@@ -665,7 +665,7 @@ describe('AgentSessionsPanel creator', () => {
       ],
     ])
     assert.ok(
-      view.queryByRole('dialog') === null,
+      view.queryByRole('dialog', { name: 'Setup commands' }) === null,
       'the dialog should be closed'
     )
     assertSameNode(document.activeElement, configure)
@@ -698,11 +698,14 @@ describe('AgentSessionsPanel creator', () => {
       'true'
     )
     fireEvent.click(
-      within(view.getByRole('dialog')).getByRole('button', { name: 'Cancel' })
+      within(view.getByRole('dialog', { name: 'Setup commands' })).getByRole(
+        'button',
+        { name: 'Cancel' }
+      )
     )
     assert.strictEqual(saves, 0)
     assert.ok(
-      view.queryByRole('dialog') === null,
+      view.queryByRole('dialog', { name: 'Setup commands' }) === null,
       'the dialog should be closed'
     )
     assertSameNode(document.activeElement, configure)

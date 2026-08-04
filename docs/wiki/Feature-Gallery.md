@@ -4,7 +4,7 @@
 
 Treat every gallery entry as part of a workflow: find the capability, open its named surface, review the exact scope, and keep the resulting evidence.
 
-This page maps 86 named, user-facing visual functions and states to a
+This page maps 91 named, user-facing visual functions and states to a
 one-screenshot-per-function Windows acceptance target. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata except the purpose-built live Cheap LFS acceptance repositories. No personal path,
@@ -26,7 +26,7 @@ outside this Windows target set.
 > light-English canonical batch, and the History commit hover card is published
 > as its own specialist scene. The searchable Publish
 > organization owner picker is accepted and published, completing the
-> 86-image Windows set. The real production bundle ran against an owned
+> 91-image Windows set. The real production bundle ran against an owned
 > no-remote repository and deterministic three-organization provider on an
 > isolated hidden Win32 desktop, with zero provider mutations. Its bilingual
 > dialog passed the physical 390×844 auto-fit gate with a non-collapsing
@@ -89,7 +89,7 @@ outside this Windows target set.
 ## Cheap LFS Pages acceptance
 
 These are Pages-guide captures, not additional Desktop Material app-gallery
-scenes, so they do not change the 90-function catalog count below. The first
+scenes, so they do not change the 91-function catalog count below. The first
 pair documents the standalone 72-row Cheap LFS versus Git LFS atlas: a
 1440×960 bilingual marketing overview with its code-native product-orbit
 graphic, then the 390×844 dark Cantonese publication handoff. The assembled
@@ -178,6 +178,7 @@ active profile's style, label, and explicit language mode.
 | `material-remote-manager.png` | Reviewed named-remote administration |
 | `material-native-pull-request.png` | Native pull-request creation with bounded metadata |
 | `material-stash-manager.png` | Repository-wide stash selection and exact-entry actions |
+| `material-stash-manager-centered-20260803.png` | Centered Material stash manager with Manage, Export, History, and Appearance and voice tabs |
 | `advanced-workflows.png` | Tag lifecycle inventory with local-only, pushed, and remote-only states and bounded actions |
 | `material-actions-job-log.png` | Searchable in-app Actions job log |
 | `material-github-api-explorer.png` | Repository-bound REST/GraphQL API Explorer with mutation review and bounded responses |
@@ -199,6 +200,8 @@ active profile's style, label, and explicit language mode.
 | `material-history.png` | Core History browsing and selected-commit inspection |
 | `material-history-context-actions.png` | Selection-aware History commit More/right-click actions and button hint |
 | `material-history-hover-time.png` | Commit hover/focus card with exact authored timestamp and relative age |
+| `material-history-view-tabs-list.png` | Built History Commit list tab with its real tab strip and selected state |
+| `material-history-view-tabs-graph.png` | Built History Graph tab with its real tab strip and ancestry graph |
 | `material-settings.png` | Responsive Material Settings dialog |
 | `auto-updater-current-source-ready.png` | Current-source production UI after a genuine Electron/Squirrel update-downloaded path with a disclosed inert verifier payload and no published-payload claim |
 | `settings-history-manager.png` | Git-backed Settings history side sheet |
@@ -252,7 +255,7 @@ The five original Linux terminal captures and their exact hashes remain
 preserved with the
 [July 27 Debian/Xvfb run manifest](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/verification/linux-tui-2026-07-27/run-manifest.md).
 They document what was accepted at that time, but they are out of scope for the
-current Windows-only 86-scene target, Pages manifest, and refresh campaign.
+current Windows-only 88-scene target, Pages manifest, and refresh campaign.
 They are retained rather than relabelled or presented as current Windows
 evidence.
 
@@ -279,6 +282,15 @@ It is not overwritten or relabelled as current-source evidence.
 | `auto-updater-update-ready.png` | July 22 published legacy migration | Excluded from the current Windows gallery |
 
 ![Historical legacy Super Express installation with a newer alphabetic-z update ready](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/923dbb51acad8f01f01f1c100c6945c7a2e08e23/docs/assets/screenshots/auto-updater-update-ready.png)
+
+## Historical notification palette evidence (outside the current gallery)
+
+The pre-fix command-palette frame is retained as before-state evidence for the
+notification-centre route correction. It is not presented as the fixed state.
+
+| Archived asset | Historical receipt | Current status |
+| --- | --- | --- |
+| `material-command-palette-notification-before.png` | 2026-08-04 command-palette route correction | Excluded from the current Windows gallery |
 
 ## App-hosted browser
 
@@ -471,6 +483,8 @@ path; it never force-pushes automatically.
 ![Reviewed named-remote administration](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-remote-manager.png)
 
 ![Repository-wide stash manager with an exact selected entry](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
+
+![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
 
 ![Advanced tag lifecycle workspace with local-only, pushed, and remote-only states](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/advanced-workflows.png)
 
