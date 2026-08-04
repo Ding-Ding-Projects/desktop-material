@@ -553,6 +553,13 @@
       d: "Settings includes editable editor and terminal command preferences plus editor detection. The toolbar's Editor action opens the active repository with the chosen program. The…",
     },
     {
+      t: 'Repository file browser',
+      h: 'features/linux-tui/file-browser.html',
+      s: 'features/linux-tui/file-browser.md',
+      c: 'features',
+      d: 'The Files workspace tab is a first-class, terminal-native browser for the active repository. It lists the real working tree, filters paths locally, shows a bounded preview, and…',
+    },
+    {
       t: 'TUI GitHub workflows',
       h: 'features/linux-tui/github-workflows.html',
       s: 'features/linux-tui/github-workflows.md',
@@ -560,11 +567,11 @@
       d: "GitHub features use the installed gh executable. Authenticate outside the app with the GitHub CLI's normal device/browser flow:",
     },
     {
-      t: 'Historical Linux TUI installation and packaging record',
+      t: 'Linux TUI installation and packaging',
       h: 'features/linux-tui/install-and-packaging.html',
       s: 'features/linux-tui/install-and-packaging.md',
       c: 'features',
-      d: 'Linux with Python 3.10 through 3.13;',
+      d: 'x86-64 or ARM64 GNU/Linux with glibc (musl is not currently compatible with',
     },
     {
       t: 'TUI interaction and accessibility',
@@ -581,11 +588,11 @@
       d: 'Settings persists exactly three application language modes:',
     },
     {
-      t: 'Historical Linux TUI prototype — archived July 27, 2026',
+      t: 'Linux TUI — revived August 2, 2026',
       h: 'features/linux-tui/',
       s: 'features/linux-tui/README.md',
       c: 'features',
-      d: 'Desktop Material TUI was a separate, terminal-native prototype built with Textual. It targeted Linux first; it did not turn the Windows Electron application into a…',
+      d: "Desktop Material TUI is a separate terminal-native application built with Textual. It targets Linux first and shares the desktop edition's repository, Git, GitHub, search,…",
     },
     {
       t: 'TUI repository and Git workflows',
@@ -599,7 +606,14 @@
       h: 'features/linux-tui/repository-path-browser.html',
       s: 'features/linux-tui/repository-path-browser.md',
       c: 'features',
-      d: "The terminal edition's Open repository and Create repository dialogs combine a real editable path field with a terminal-native folder browser. A user can paste or type a path,…",
+      d: "The terminal edition's Open repository, Create repository, and Clone repository dialogs combine a real editable path field with a terminal-native folder browser. A user can…",
+    },
+    {
+      t: 'Repository tabs and saved sessions',
+      h: 'features/linux-tui/repository-tabs.html',
+      s: 'features/linux-tui/repository-tabs.md',
+      c: 'features',
+      d: 'Desktop Material TUI keeps every open repository in a persistent, profile-scoped tab session. The compact strip provides immediate switching; the Tabs workspace provides…',
     },
     {
       t: 'TUI search and RE2',
@@ -1194,7 +1208,7 @@
       h: 'readme-tabs/install.html',
       s: 'readme-tabs/install.md',
       c: 'readme-tabs',
-      d: 'Desktop Material is supported, built, packaged, released, and accepted on Windows only. Use Install on Windows for the current product. The TUI material below is an archived…',
+      d: 'Desktop Material ships as a Windows desktop application and as a Linux-first terminal application. The terminal package keeps the clickable Git and GitHub workflows, repository…',
     },
     {
       t: 'Roadmap & receipts',
@@ -1580,6 +1594,20 @@
       s: 'verification/linux-tui-path-browser-wrapper-2026-07-27/run-manifest.md',
       c: 'verification',
       d: 'Run ID: linux-tui-path-browser-wrapper-2026-07-27-019fa510',
+    },
+    {
+      t: 'Linux TUI revival cleanup ledger',
+      h: 'verification/linux-tui-revival-2026-08-02/cleanup-ledger.html',
+      s: 'verification/linux-tui-revival-2026-08-02/cleanup-ledger.md',
+      c: 'verification',
+      d: 'No existing container, checkout, user repository, or unrelated workload is in the cleanup scope.',
+    },
+    {
+      t: 'Linux TUI revival verification manifest',
+      h: 'verification/linux-tui-revival-2026-08-02/run-manifest.html',
+      s: 'verification/linux-tui-revival-2026-08-02/run-manifest.md',
+      c: 'verification',
+      d: 'This receipt tracks the 2026-08-02 revival of the interactive Linux terminal edition. It is updated only with observed evidence; a planned check is not a passing check.',
     },
     {
       t: 'MD3 Compliance Audit Report',
