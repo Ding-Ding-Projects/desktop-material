@@ -197,7 +197,7 @@ The design shipped six drag-and-drop upload placeholders and a hero slot. On a
 published page those are empty boxes, so they were replaced with the captures
 the repository already holds, each lazily loaded, each with alt text, and each
 opening its full-size image. The Screenshots section links to the full
-86-scene gallery at `/docs/screenshots/`; the count comes from
+88-scene gallery at `/docs/screenshots/`; the count comes from
 `docs/wiki/Feature-Gallery.md` and the contract test checks the two agree.
 
 ## Failure modes

@@ -188,7 +188,7 @@ receipts as acceptance evidence.
   file/part ordinals, logical and actual bytes, phases, queue, elapsed time,
   rate, ETA, failures, and cancellation without weakening size/SHA-256 or
   unchanged-pointer verification.
-- **Rich command palette** — `Ctrl+F` shows icon/title/search-term/group rows and an anchored
+- **Rich command palette** — `Ctrl+Shift+F` shows icon/title/search-term/group rows and an anchored
   appearance editor for comfortable/compact density plus independent icon, group, and keyword
   visibility. The palette, tab groups, state announcements, and accessible names follow English,
   playful Hong Kong-style Cantonese, or bilingual mode.

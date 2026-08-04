@@ -331,7 +331,7 @@ sandboxed `WebContentsView`，冇 Node、冇 preload、冇 app IPC 信任、冇�
   groups/captures, alternation, the honestly supported ignore-case flag, and a
   live match/capture tester — reachable from the search bars; unsupported
   lookaround and backreferences are explained before Apply
-- The `Ctrl+F` command palette uses wider, richer rows with a leading icon, title, optional search-term line, and localized group chip. Its anchored **Customize appearance** editor persists comfortable/compact density and independent icon/group/keyword visibility; Escape closes only the editor and restores toggle focus
+- The `Ctrl+Shift+F` command palette uses wider, richer rows with a leading icon, title, optional search-term line, and localized group chip. Its anchored **Customize appearance** editor persists comfortable/compact density and independent icon/group/keyword visibility; Escape closes only the editor and restores toggle focus
 
 **Repository safety and cleanup**
 - A context-menu option can permanently discard changes without sending files to the trash, including untracked files, for large cleanup operations where the regular discard flow would be slow

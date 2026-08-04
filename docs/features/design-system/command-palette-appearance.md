@@ -1,6 +1,6 @@
 # Command palette rows and appearance
 
-The Ctrl+F command palette lists every named app function. Its result list is
+The Ctrl+Shift+F command palette lists every named app function. Its result list is
 built for scanning: each row carries an icon, the command title, an optional
 keyword line, and a group chip, and the reader controls how much of that is
 shown.

@@ -1,6 +1,6 @@
 # Command palette: full-app coverage, rich controls and teleport
 
-The Ctrl+F master command palette is Material Design 3's full-screen search
+The Ctrl+Shift+F master command palette is Material Design 3's full-screen search
 view: it covers the entire app below the title bar rather than floating as a
 small card, and its rows are no longer just names to dispatch — a row that is
 a setting renders the setting's live control inline, and choosing any row

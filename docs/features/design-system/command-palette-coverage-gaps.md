@@ -14,8 +14,11 @@
 
 ## Status
 
-**131 of the 133 surveyed commands are in the palette. 49 of them carry a live
-control** the reader can change from the row itself; the rest teleport to the
+The shipped catalog currently contains **247 unique commands** (**246 are
+Windows-eligible before live availability predicates**). In a fresh Windows
+workspace with no signed-in provider account, the built palette renders 244
+eligible commands. Of the 133 surveyed commands, 131 are in the palette; 49 of them carry a live
+control the reader can change from the row itself; the rest teleport to the
 setting, which for a destination is the whole of what a row can do.
 
 Nothing in the catalog is inert: every row either goes somewhere, changes a
@@ -159,7 +162,7 @@ value in place, or runs a handler, and a test fails the build if one does not.
 
 ## The original survey
 
-**Sources read:** `app/src/lib/command-palette-catalog.ts` (112 entries), `app/src/lib/teleport-targets.ts` (31 target keys), `app/src/models/preferences.ts` (14 `PreferencesTab` members), `app/src/ui/repository-settings/repository-settings.tsx` (11 `RepositorySettingsTab` members), `app/src/main-process/menu/menu-event.ts` (69 `MenuEvent` members) + `build-default-menu.ts`, `app/src/ui/app.tsx` (`onPaletteCommand` 1306, `getPaletteControlValues` 1451, `onPaletteControlChange` 1511), `app/test/unit/command-palette-catalog-test.ts`, `app/src/ui/preferences/prompts.tsx`, `app/src/lib/audio/audio-settings.ts`.
+**Sources read:** `app/src/lib/command-palette-catalog.ts` (247 entries; 246 Windows-eligible before availability predicates), `app/src/lib/teleport-targets.ts` (31 target keys), `app/src/models/preferences.ts` (14 `PreferencesTab` members), `app/src/ui/repository-settings/repository-settings.tsx` (11 `RepositorySettingsTab` members), `app/src/main-process/menu/menu-event.ts` (69 `MenuEvent` members) + `build-default-menu.ts`, `app/src/ui/app.tsx` (`onPaletteCommand`, `getPaletteControlValues`, `onPaletteControlChange`), `app/test/unit/command-palette-catalog-test.ts`, `app/src/ui/preferences/prompts.tsx`, `app/src/lib/audio/audio-settings.ts`.
 
 **Result: 133 gap entries (G1–G133).** Every one is stated as event id / title / group / control kind / teleport target. Teleport targets follow the file's real convention: a camelCase key in `TeleportTargetSelectors` whose value is `[data-teleport-target="<kebab-id>"]`, with the owning element spreading `teleportAnchor('<kebab-id>')`.
 
@@ -202,7 +205,22 @@ Each needs a Cantonese value too, and every `palette:` event below needs its `ti
 | **G1** | `increase-active-resizable-width` | Expand the active resizable pane | `App` | none | `home: { kind: 'surface', labelKey: 'commandPalette.homeSidebar', targetId: 'repositorySidebar' }` — **no `openEvent`**: teleport must show the pane edge, not resize it |
 | **G2** | `decrease-active-resizable-width` | Contract the active resizable pane | `App` | none | same as G1 |
 
-`find-text` (Edit ▸ Find, `CmdOrCtrl+F`) is **not a gap** — `palette:find-in-view` already dispatches `this.findText()` in `onPaletteCommand`. Add `find` to its `keywords` so the menu name is searchable.
+`find-text` (Edit ▸ Command palette, `CmdOrCtrl+Shift+F`) is **not a gap** — the menu opener dispatches the master palette, while `palette:find-in-view` dispatches `this.findText()` in `onPaletteCommand` and carries `find` in its keywords.
+
+The notification routes are intentionally separate: `palette:notification-centre`
+opens the live notification centre, while `palette:notification-history` opens
+the local Git-backed history dialog. The menu shortcut is the same
+`CmdOrCtrl+Shift+F` contract on every supported desktop platform.
+
+![Before the route fix, the notification search returned one misleading Open notification centre row](../../assets/screenshots/material-command-palette-notification-before.png)
+
+![After the route fix, the notification search exposes separate centre and history commands](../../assets/screenshots/material-command-palette-notification-after.png)
+
+Selecting the centre row was also exercised against the built artifact; it
+opened the live local/GitHub notification centre without leaving the palette
+route behind.
+
+![The corrected command-palette route opens the live notification centre side sheet](../../assets/screenshots/material-notification-centre-route.png)
 
 ### A2. Menu items whose click handler is main-process-only (no `MenuEvent` exists)
 

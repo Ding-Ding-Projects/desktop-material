@@ -157,6 +157,8 @@ active profile's style, label, and explicit language mode.
 | `material-tab-search.png` | Runtime tab search across names, aliases, paths, and clone URLs |
 | `material-tab-groups.png` | Restart-restored named group chip with visible repository membership and real collapse/expand behavior |
 | `material-command-palette-appearance.png` | Rich command results beside the compact aligned appearance editor with stable random-per-repository mode |
+| `material-command-palette-notification-after.png` | Separate command-palette routes for the live notification centre and local notification history |
+| `material-notification-centre-route.png` | The corrected notification-centre command opening the live side sheet |
 | `cheap-lfs-ui-acceptance.png` | Live private-repository Cheap LFS pin result with the verified pointer and Materialize action |
 | `cheap-lfs-cloud-compression.png` | Bilingual persisted private opt-in routed through the encrypted public builder, with no private-repository workflow and one verified 99.9%-compressed pointer |
 | `cheap-lfs-commit-progress.png` | Three-worker Cheap LFS terminal with queue, provider, reason, timing, ETA, manual-phase, and keyboard-disclosure context |
@@ -324,6 +326,10 @@ open.
 ![Restart-restored named tab-group chip with its visible repository member](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-tab-groups.png)
 
 ![Full-app command palette showing matched commands with their live settings controls beside the compact aligned row appearance editor](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-command-palette-appearance.png)
+
+![Command palette showing separate live notification-centre and local notification-history routes](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-command-palette-notification-after.png)
+
+![The command-palette notification-centre route opening the live notification side sheet](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-notification-centre-route.png)
 
 ## Clone, pull, and working-tree scope
 

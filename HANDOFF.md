@@ -8619,3 +8619,42 @@ uncommitted TUI work on `codex/revive-linux-tui`. Its recorded branch tip is an
 ancestor of `origin/main`, but its working files are not clean or proven
 complete. They were preserved exactly and were neither staged, committed,
 merged, nor deleted by this Windows closeout.
+
+## 2026-08-04 command-palette routes and shortcut contract
+
+The command-palette coverage work now keeps the live notification centre and
+the Git-backed notification-history dialog as separate commands. The former
+opens the live side sheet; the latter opens the local history surface. The
+desktop menu now names the command palette directly and binds it to
+`CmdOrCtrl+Shift+F`, matching the app-wide shortcut contract. The old `Ctrl+F`
+binding was removed from that menu; `Ctrl+F` remains reserved for find-in-page
+where that surface owns it.
+
+Verification for this checkpoint:
+
+- Focused catalog, coverage, and menu tests: **49/49**.
+- Documentation hub and search tests: **48/48**; site contract: **1/1**.
+- Full `yarn test:script`: **213/214** passed, **0** failed, and **1** optional
+  Mermaid-toolchain test was skipped because `DESKTOP_MERMAID_TOOLCHAIN` is not
+  configured.
+- `yarn build:prod` completed in **287.51s** with
+  `DESKTOP_SKIP_PACKAGE=1`; the build printed `Skipping packaging` and did not
+  invoke Squirrel packaging or signing.
+- The label-only rebuild after the home-label correction completed in
+  **282.18s** after one transient native V8 allocation crash; the retry
+  compiled all targets successfully. The final `yarn compile:prod` after the
+  `find` keyword correction completed in **280.75s**, again compiling all
+  targets successfully with warnings only.
+- A genuine hidden Windows Electron capture used the cheap Lowlevel route and
+  dynamic HWND resolution. It showed separate notification rows, opened the
+  live notification centre side sheet, and showed the Edit-menu
+  `Command palette` / `Ctrl+Shift+F` entry. The cheap background key helper did
+  not deliver the accelerator reliably, so the menu contract is the static
+  shortcut proof and the menu click supplied the visual palette proof.
+- Public evidence is stored in
+  `docs/assets/screenshots/material-command-palette-notification-before.png`,
+  `docs/assets/screenshots/material-command-palette-notification-after.png`,
+  and `docs/assets/screenshots/material-notification-centre-route.png`.
+
+The release/installer path was intentionally not exercised in this checkpoint;
+the user's skip-signing contract remains in force.

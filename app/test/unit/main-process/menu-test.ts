@@ -202,6 +202,20 @@ describe('main-process menu', () => {
       assert.equal(repositoryTools?.accelerator, 'CmdOrCtrl+4')
     })
 
+    it('exposes the command palette on Ctrl+Shift+F', () => {
+      const template = buildDefaultMenuTemplate(baseParams)
+      const editMenu = template.find(
+        item => item.label?.replaceAll('&', '') === 'Edit'
+      )
+      assert.ok(editMenu && Array.isArray(editMenu.submenu))
+      const commandPalette = editMenu.submenu.find(
+        item => item.id === 'command-palette'
+      )
+      assert.equal(commandPalette?.accelerator, 'CmdOrCtrl+Shift+F')
+      assert.equal(commandPalette?.label, 'Command pal&ette')
+      assert.equal(commandPalette?.click instanceof Function, true)
+    })
+
     it('routes native Help links through the injected browser launcher', async () => {
       const opened: Array<string> = []
       const template = buildDefaultMenuTemplate(baseParams, async url => {
