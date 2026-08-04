@@ -56,6 +56,21 @@ checks in progress at this handoff update.
 The local package/signing step was not part of this proof and no signing policy
 was changed. No release is claimed by this handoff entry.
 
+### CI formatting follow-up
+
+Commit `a89900dd419e4dd78031516dea10c4edb1df9b38` formats the two installer
+workflow `TUI_CONSTRAINTS_NAME` environment assignments reported by the remote
+Lint job. It is a formatting-only change: installer behavior and the
+intentional skip-signing contract are unchanged. File-scoped Prettier and the
+Git whitespace check passed, and the commit is on `main`.
+
+- CI: [30931585531](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30931585531) — queued at this handoff update.
+- Cheap LFS: [30931582576](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30931582576) — verified green.
+- Code scanning: [30931582659](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30931582659) — queued or still running.
+
+The remaining TUI catalog formatting and stale TUI documentation output are
+not changed because the Windows Electron task keeps the TUI scope closed.
+
 ## 2026-08-03 — App fixes: repository list, Cheap LFS, local Actions, CI
 
 A session of defect work across the app and the test harness. Everything below

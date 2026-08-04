@@ -73,3 +73,15 @@ relative to already-merged TUI articles. The generator plus `yarn test:script`
 passes locally (214 tests, 213 passed, 1 optional skip), but its output would
 modify the closed TUI documentation surface and was not committed. Windows
 x64 and E2E remain in progress at this update.
+
+Commit `a89900dd419e4dd78031516dea10c4edb1df9b38` formats the two installer
+workflow `TUI_CONSTRAINTS_NAME` environment assignments that the remote Lint
+job rejected. The change is formatting-only; it does not alter installer
+behavior or the intentional skip-signing contract. File-scoped Prettier and
+the Git whitespace check pass. It was pushed to `main`, where it is covered by
+CI run [30931585531](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30931585531),
+Cheap LFS run [30931582576](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30931582576),
+and Code scanning run [30931582659](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30931582659).
+Cheap LFS is verified green; the CI and Code scanning runs are queued or still
+running at this checkpoint. The remaining TUI catalog formatting is outside
+the closed desktop scope.
