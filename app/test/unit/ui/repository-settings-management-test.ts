@@ -98,7 +98,7 @@ describe('Repository Settings repository-management surfaces', () => {
     const settings = read(
       'app/src/ui/repository-settings/repository-settings.tsx'
     )
-    const tabBar = read('app/src/ui/tab-bar.tsx')
+    const strip = read('app/src/ui/settings-tabs/settings-tab-strip.tsx')
 
     assert.match(
       settings,
@@ -112,14 +112,21 @@ describe('Repository Settings repository-management surfaces', () => {
       settings,
       /disabled=\{dialogBusy\}[\s\S]*?dismissDisabled=\{this\.state\.subtreeOperationInProgress\}/
     )
-    assert.match(settings, /<TabBar[\s\S]*?disabled=\{dialogBusy\}/)
+    assert.match(settings, /<SettingsTabStrip[\s\S]*?disabled=\{dialogBusy\}/)
     assert.match(
       settings,
       /okButtonDisabled=\{[\s\S]*?this\.state\.subtreeOperationInProgress[\s\S]*?cancelButtonDisabled=\{this\.state\.subtreeOperationInProgress\}/
     )
+    // The strip must refuse the navigation itself, not merely look disabled:
+    // a fenced dialog that still changes pages mid-mutation is the thing this
+    // guards against.
     assert.match(
-      tabBar,
-      /readonly disabled\?: boolean[\s\S]*?if \(this\.props\.disabled\) \{[\s\S]*?return/
+      strip,
+      /readonly disabled\?: boolean[\s\S]*?if \(this\.props\.disabled === true\) \{[\s\S]*?return/
+    )
+    assert.match(
+      strip,
+      /onRowClick[\s\S]*?if \(this\.props\.disabled !== true\) \{/
     )
   })
 

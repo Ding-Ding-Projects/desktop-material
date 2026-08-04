@@ -50,6 +50,7 @@ describe('appearance customization style contracts', () => {
       preferences,
       repositoryTabs,
       notificationBell,
+      settingsTabStrip,
     ] = await Promise.all([
       readFile(Path.join(styles, 'ui/_feature-highlights.scss'), 'utf8'),
       readFile(Path.join(app, 'src/ui/preferences/appearance.tsx'), 'utf8'),
@@ -61,6 +62,10 @@ describe('appearance customization style contracts', () => {
       ),
       readFile(
         Path.join(app, 'src/ui/notifications/notification-bell-button.tsx'),
+        'utf8'
+      ),
+      readFile(
+        Path.join(app, 'src/ui/settings-tabs/settings-tab-strip.tsx'),
         'utf8'
       ),
     ])
@@ -97,7 +102,15 @@ describe('appearance customization style contracts', () => {
       )
     }
 
-    assert.match(preferences, /data-dm-feature=\{isFeature \|\| undefined\}/)
+    // The marker moved off the rail markup and onto the shared strip's row
+    // when both settings dialogs adopted it. The palette's teleport highlight
+    // selects on this attribute, so where it is emitted matters less than that
+    // it still is.
+    assert.match(
+      settingsTabStrip,
+      /data-dm-feature=\{item\.isFeature === true \|\| undefined\}/
+    )
+    assert.match(preferences, /isFeature,/)
     assert.match(
       preferences,
       /renderRailTab\(\s*PreferencesTab\.AgentAccess,[\s\S]*?true\s*\)/
