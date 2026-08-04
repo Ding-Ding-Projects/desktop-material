@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+
+# `datetime.UTC` is 3.11+, and this package declares `requires-python = ">=3.10"`
+# — so on the 3.10 leg of the matrix this import failed and pytest never reached
+# a single one of the 649 tests it had collected.
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -169,7 +173,7 @@ def test_pull_guard_skips_every_unsafe_state(
 
 
 def test_fallback_message_matches_desktop_offline_contract() -> None:
-    now = datetime(2026, 8, 2, 12, 34, 56, tzinfo=UTC)
+    now = datetime(2026, 8, 2, 12, 34, 56, tzinfo=timezone.utc)
 
     summary, description = build_fallback_commit_message(("a.txt", "b.py"), now)
 
@@ -180,7 +184,7 @@ def test_fallback_message_matches_desktop_offline_contract() -> None:
 def test_real_commit_push_creates_a_commit_pushes_and_records_audit(tmp_path: Path) -> None:
     repo, origin, runner = _repository_with_origin(tmp_path)
     store = _store(tmp_path)
-    fixed = datetime(2026, 8, 2, 13, 0, tzinfo=UTC)
+    fixed = datetime(2026, 8, 2, 13, 0, tzinfo=timezone.utc)
     (repo / "tracked.txt").write_text("changed\n", encoding="utf-8")
     service = RepositoryAutomationService(
         repo,
@@ -310,7 +314,7 @@ def test_scheduler_applies_overrides_intervals_and_isolates_failures(tmp_path: P
             return AutomationRunResult(action, "done", "ok")  # type: ignore[arg-type]
 
     scheduler = AutomationScheduler(store, service_factory=FakeService)
-    instant = datetime(2026, 8, 2, 10, 0, tzinfo=UTC)
+    instant = datetime(2026, 8, 2, 10, 0, tzinfo=timezone.utc)
     targets = (
         AutomationTarget(first, repository_key="first-key", draft_commit_message="draft"),
         AutomationTarget(second, repository_key="second-key"),

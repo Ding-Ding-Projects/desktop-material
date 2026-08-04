@@ -746,6 +746,19 @@ class GitHubPane(Vertical):
             self.app.notify("Connect a GitHub-backed repository first.", severity="warning")
         return self.github
 
+    @property
+    def _torn_down(self) -> bool:
+        """Whether this pane has stopped running and its widgets are gone.
+
+        Every loader below reaches the DOM again *after* awaiting network work,
+        and the pane can be taken down inside that window — marking a
+        notification read even starts a fresh load as its last act, once
+        whoever asked has finished waiting on workers. Querying a torn-down
+        pane raises `NoMatches` from inside the worker, which Textual reports
+        as a crashed worker rather than as the harmless late arrival it is.
+        """
+        return not self.is_running
+
     @work(exclusive=True, group="issues-load")
     async def _load_issues(self) -> None:
         service = self._require_service()
@@ -759,6 +772,8 @@ class GitHubPane(Vertical):
         self._render_issues(self.issues)
 
     def _render_issues(self, issues: tuple[object, ...] | list[object]) -> None:
+        if self._torn_down:
+            return
         table = self.query_one("#issues-table", DataTable)
         table.clear()
         source_indices = {id(issue): index for index, issue in enumerate(self.issues)}
@@ -833,6 +848,8 @@ class GitHubPane(Vertical):
         except Exception as error:
             self.app.notify(str(error), title="Create issue failed", severity="error")
             return
+        if self._torn_down:
+            return
         self.query_one("#issue-title", Input).value = ""
         self.query_one("#issue-body", TextArea).text = ""
         self.app.notify(f"Created issue #{_field(issue, 'number')}.", title="GitHub")
@@ -850,6 +867,8 @@ class GitHubPane(Vertical):
             await asyncio.to_thread(service.comment_issue, _field(issue, "number"), body)
         except Exception as error:
             self.app.notify(str(error), title="Comment failed", severity="error")
+            return
+        if self._torn_down:
             return
         self.query_one("#issue-comment-body", Input).value = ""
         self.app.notify("Comment posted.", title="GitHub")
@@ -913,6 +932,8 @@ class GitHubPane(Vertical):
         self,
         pull_requests: tuple[object, ...] | list[object],
     ) -> None:
+        if self._torn_down:
+            return
         table = self.query_one("#prs-table", DataTable)
         table.clear()
         source_indices = {id(pr): index for index, pr in enumerate(self.pull_requests)}
@@ -957,6 +978,8 @@ class GitHubPane(Vertical):
         self._load_pull_request_review(int(_field(pr, "number")))
 
     def _render_pull_request_detail(self, pr: object) -> None:
+        if self._torn_down:
+            return
         reviews = _field(pr, "reviews", ())
         comments = _field(pr, "comments", ())
         self.query_one("#pr-detail", TextArea).text = (
@@ -1041,6 +1064,8 @@ class GitHubPane(Vertical):
         return []
 
     def _render_pull_request_files(self, files: list[object] | tuple[object, ...]) -> None:
+        if self._torn_down:
+            return
         table = self.query_one("#pr-files-table", DataTable)
         table.clear()
         source_indices = {id(file): index for index, file in enumerate(self.pull_request_files)}
@@ -1055,6 +1080,8 @@ class GitHubPane(Vertical):
             )
 
     def _render_pull_request_checks(self, checks: list[object] | tuple[object, ...]) -> None:
+        if self._torn_down:
+            return
         table = self.query_one("#pr-checks-table", DataTable)
         table.clear()
         source_indices = {id(check): index for index, check in enumerate(self.pull_request_checks)}
@@ -1071,6 +1098,8 @@ class GitHubPane(Vertical):
         self,
         comments: list[object] | tuple[object, ...],
     ) -> None:
+        if self._torn_down:
+            return
         table = self.query_one("#pr-review-comments-table", DataTable)
         table.clear()
         source_indices = {
@@ -1299,6 +1328,8 @@ class GitHubPane(Vertical):
         except Exception as error:
             self.app.notify(str(error), title="Effective rules failed", severity="error")
             return
+        if self._torn_down:
+            return
         self._render_branch_rules(self.effective_branch_rules)
         self.query_one("#rule-detail", TextArea).text = (
             f"{len(self.effective_branch_rules)} active effective rule(s) apply to "
@@ -1311,6 +1342,8 @@ class GitHubPane(Vertical):
         *,
         search_state: SearchState | None = None,
     ) -> None:
+        if self._torn_down:
+            return
         table = self.query_one("#rules-table", DataTable)
         table.clear()
         active_state = search_state or self.query_one("#github-rules-search", SearchBar).state
@@ -1388,6 +1421,8 @@ class GitHubPane(Vertical):
         *,
         search_state: SearchState | None = None,
     ) -> None:
+        if self._torn_down:
+            return
         table = self.query_one("#notifications-table", DataTable)
         table.clear()
         active_state = search_state or self.query_one(
@@ -1536,6 +1571,8 @@ class GitHubPane(Vertical):
         workflows: tuple[object, ...] | list[object],
         runs: tuple[object, ...] | list[object],
     ) -> None:
+        if self._torn_down:
+            return
         workflows_table = self.query_one("#workflows-table", DataTable)
         runs_table = self.query_one("#runs-table", DataTable)
         workflows_table.clear()
@@ -1629,6 +1666,8 @@ class GitHubPane(Vertical):
         )
 
     def _render_jobs(self, jobs: tuple[object, ...] | list[object]) -> None:
+        if self._torn_down:
+            return
         table = self.query_one("#jobs-table", DataTable)
         table.clear()
         source_indices = {id(job): index for index, job in enumerate(self.jobs)}
@@ -1707,6 +1746,8 @@ class GitHubPane(Vertical):
         self._render_caches(self.caches)
 
     def _render_caches(self, caches: tuple[object, ...] | list[object]) -> None:
+        if self._torn_down:
+            return
         table = self.query_one("#caches-table", DataTable)
         table.clear()
         source_indices = {id(cache): index for index, cache in enumerate(self.caches)}
@@ -1796,6 +1837,8 @@ class GitHubPane(Vertical):
         self._render_artifacts(self.artifacts)
 
     def _render_artifacts(self, artifacts: tuple[object, ...] | list[object]) -> None:
+        if self._torn_down:
+            return
         table = self.query_one("#artifacts-table", DataTable)
         table.clear()
         source_indices = {
@@ -1997,6 +2040,8 @@ class GitHubPane(Vertical):
         packages: tuple[object, ...] | list[object],
         projects: tuple[object, ...] | list[object],
     ) -> None:
+        if self._torn_down:
+            return
         release_table = self.query_one("#releases-table", DataTable)
         package_table = self.query_one("#packages-table", DataTable)
         project_table = self.query_one("#projects-table", DataTable)
@@ -2105,6 +2150,8 @@ class GitHubPane(Vertical):
         return self.releases[source_index]
 
     def _render_release_assets(self, assets: tuple[object, ...] | list[object]) -> None:
+        if self._torn_down:
+            return
         table = self.query_one("#release-assets-table", DataTable)
         table.clear()
         source_indices = {id(asset): index for index, asset in enumerate(self.release_assets)}

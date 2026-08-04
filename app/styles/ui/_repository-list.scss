@@ -688,6 +688,21 @@ body[data-dm-repository-list-density='compact'] #foldout-container .repository-l
   // list out as a row for the legacy Add-repository foldout).
   flex-direction: column;
 
+  // Fill the sheet the sidebar panel hands us, on both axes.
+  //
+  // The base rule carries `height: 100%` and `min-width: inherit` — written
+  // when this list was the foldout's only child, so it inherited the sheet's
+  // 390px minimum directly. The sidebar tab wrapper now sits in between and
+  // declares `min-width: 0`, so `inherit` resolves to zero and the list has no
+  // width of its own. Say the width here instead of inheriting it, and take the
+  // height from the flex line rather than from `height: 100%`, which would
+  // overcommit the panel whenever the add-repositories progress row shares it.
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+
   // The filter list owns the remaining sheet height. Without an explicit
   // minimum it uses its content-sized flex basis, so the virtualized rows (or
   // the empty state) can be laid out below the foldout's overflow clip.

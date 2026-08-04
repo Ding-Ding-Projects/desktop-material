@@ -66,7 +66,9 @@ Update the following files with the new Node.js version:
    nodejs NEW_NODE_VERSION
    ```
 
-4. **`.github/workflows/ci.yml`** - Update the `NODE_VERSION` environment variable:
+4. **`.github/workflows/ci-linux.yml` and `.github/workflows/ci-windows.yml`** -
+   CI is one workflow per operating system and each carries its own copy.
+   Update the `NODE_VERSION` environment variable in both:
    ```yaml
    env:
      NODE_VERSION: NEW_NODE_VERSION
@@ -152,11 +154,12 @@ Use descriptive commit messages:
 git add package.json app/.npmrc script/validate-electron-version.ts
 git commit -m "Bump Electron to v39.0.0"
 
-# Step 3: Update Node.js version in .nvmrc, .node-version, .tool-versions, and ci.yml
+# Step 3: Update Node.js version in .nvmrc, .node-version, .tool-versions, and both CI lanes
 # ... make edits ...
 
 # Step 4: Commit Node.js changes
-git add .nvmrc .node-version .tool-versions .github/workflows/ci.yml
+git add .nvmrc .node-version .tool-versions \
+  .github/workflows/ci-linux.yml .github/workflows/ci-windows.yml
 git commit -m "Bump Node.js to v22.20.0"
 
 # Step 5: Install dependencies and verify

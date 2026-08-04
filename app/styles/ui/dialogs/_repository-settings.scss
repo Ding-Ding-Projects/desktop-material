@@ -152,10 +152,17 @@
     min-height: 0;
     overflow: hidden;
 
-    > .tab-bar.vertical {
+    // The navigation column: the search field, then the page strip beneath it.
+    // The strip owns the remaining height and does its own scrolling, so this
+    // wrapper only has to stop growing past the dialog.
+    > .settings-tab-rail {
+      display: flex;
+      flex: none;
+      flex-direction: column;
       min-height: 0;
-      overflow-x: hidden;
-      overflow-y: auto;
+      min-width: 0;
+      padding: var(--spacing) var(--spacing) var(--spacing) var(--spacing-double);
+      width: 260px;
     }
 
     .active-tab {
@@ -1214,26 +1221,29 @@
     .tab-container {
       flex-direction: column;
 
-      > .tab-bar.vertical {
+      > .settings-tab-rail {
+        padding: 4px 8px;
+        width: 100%;
+      }
+
+      .settings-tab-strip-list {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
-        width: 100%;
-        padding: 4px 8px;
         overflow: visible;
+      }
 
-        .tab-bar-item {
-          min-width: 40px;
-          min-height: 40px;
+      .settings-tab-strip-item {
+        font-size: 0;
+        justify-content: center;
+        margin: 0;
+        min-height: 40px;
+        min-width: 40px;
+        padding: 8px;
+
+        .icon {
+          height: 18px;
           margin: 0;
-          padding: 8px;
-          justify-content: center;
-          font-size: 0;
-
-          .icon {
-            width: 18px;
-            height: 18px;
-            margin: 0;
-          }
+          width: 18px;
         }
       }
 
@@ -1276,7 +1286,7 @@
       overflow: hidden;
     }
 
-    .tab-container > .tab-bar.vertical {
+    .tab-container .settings-tab-strip-list {
       max-height: none !important;
       overflow-x: hidden;
       overflow-y: auto;

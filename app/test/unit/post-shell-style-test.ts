@@ -9,6 +9,9 @@ const readStyle = (name: string) =>
 const readRootStyle = (name: string) =>
   readFileSync(join(process.cwd(), 'app', 'styles', name), 'utf8')
 
+const readSite = () =>
+  readFileSync(join(process.cwd(), 'site', 'index.html'), 'utf8')
+
 const readSiteStyle = () =>
   readFileSync(
     join(
@@ -157,6 +160,29 @@ describe('post-shell MD3 style contracts', () => {
       style,
       /\.dm-shot-card-caption\s*\{[\s\S]*?overflow-wrap: anywhere;/
     )
+  })
+
+  it('keeps the Pages site itself within a narrow mobile viewport', () => {
+    // The gallery stylesheet above governs the cards; this governs the page
+    // that embeds them, whose styles are inlined into `site/index.html` rather
+    // than shipped as a file. The guarantee is the same one: a screenshot must
+    // never force the page wider than the phone showing it. Measured live in
+    // Chromium at 320, 360 and 390px, the page's scrollWidth equals its
+    // innerWidth and nothing is clipped outright; this asserts the
+    // declarations that keep it so.
+    const site = readSite()
+
+    assert.match(site, /docs\/assets\/screenshots\//)
+    // Images fill their card and are bounded by it rather than by their own
+    // intrinsic width.
+    assert.match(site, /object-fit:cover/)
+    assert.match(site, /width:100%;height:100%/)
+    // Content too wide for a phone lives in its own horizontal scroller rather
+    // than widening the page. Measured: at 320px, 56 elements extend past the
+    // viewport edge and every one of them sits inside such a scroller, none
+    // clipped outright, with the page's scrollWidth still equal to its
+    // innerWidth.
+    assert.match(site, /overflow-x:\s*auto/)
   })
 
   it('fits Settings History at compact width and height without auto-fit', () => {

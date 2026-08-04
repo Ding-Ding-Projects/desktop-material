@@ -48,14 +48,69 @@ describe('compact settings style contracts', () => {
       style,
       /> form\s*\{[\s\S]*?flex: 1;[\s\S]*?height: auto;[\s\S]*?overflow: hidden;/
     )
+    // The compact rail collapses into a row of icon buttons. It targets the
+    // shared strip now, not the TabBar this dialog used to render.
     assert.match(
       style,
-      /> \.tab-bar\.vertical\s*\{[\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;/
+      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?\.settings-tab-strip-list\s*\{[\s\S]*?grid-template-columns: repeat\(auto-fit, minmax\(40px, 1fr\)\);/
+    )
+    assert.doesNotMatch(
+      style,
+      /\.tab-bar/,
+      'no rule may still target the TabBar this dialog no longer renders'
     )
     assert.match(
       style,
       /@media \(max-height: 550px\)[\s\S]*?\.dialog-content\s*\{[\s\S]*?max-height: none !important;[\s\S]*?min-height: 0 !important;[\s\S]*?\.tab-container\s*\{[\s\S]*?max-height: none !important;/
     )
     assert.match(style, /\.submodule-row\s*\{[\s\S]*?flex-direction: column;/)
+  })
+
+  // Both settings dialogs navigate by a vertical strip that is taller than the
+  // dialog holding it — Preferences always, Repository Settings on a short
+  // window. The strips already scrolled, but Chromium draws an overlay
+  // scrollbar there: it reserves no space and appears only once the list is
+  // already moving. A strip that shows eight of thirteen pages and looks
+  // finished is indistinguishable from a settings dialog that does not have
+  // the other five, which is how it gets reported.
+  it('reserves a visible scrollbar on the settings navigation strips', () => {
+    // One assertion now covers both dialogs: they navigate through the same
+    // shared strip, so the guarantee lives with it rather than being restated
+    // once per dialog and drifting apart.
+    const style = readStyle('_settings-tab-strip.scss')
+    const list = style.match(/\.settings-tab-strip-list\s*\{([\s\S]*?)\n\}/)
+
+    assert.ok(list, 'could not find the strip list rule')
+    assert.match(
+      list[1],
+      /scrollbar-gutter: stable;/,
+      'the gutter must be reserved, or the overflow stays invisible'
+    )
+    assert.match(list[1], /overflow-y: auto;/, 'the strip must still scroll')
+  })
+
+  it('does not leave a row invisible when motion is turned down', () => {
+    // The rail staggers its rows in from `opacity: 0`, held through each row's
+    // delay by `animation-fill-mode: both`. That makes "not yet animated" and
+    // "not there" look the same on the one surface that has already been
+    // reported as missing its pages.
+    const style = readStyle('_settings-tab-strip.scss')
+
+    assert.match(
+      style,
+      /@media \(prefers-reduced-motion: reduce\)\s*\{[\s\S]*?\.settings-tab-strip-item\s*\{[\s\S]*?animation: none/,
+      'the strip must drop its entrance animation under reduced motion'
+    )
+  })
+
+  it('refuses to let a settings row shrink below its own label', () => {
+    // A flex item defaults to shrinking. When the rail ran out of room it
+    // squeezed its rows instead of scrolling, which is what clipped "Branches"
+    // in the navigation rail before the same rule was applied there.
+    const style = readStyle('_settings-tab-strip.scss')
+    const item = style.match(/\.settings-tab-strip-item\s*\{([\s\S]*?)\n\}/)
+
+    assert.ok(item, 'could not find the strip item rule')
+    assert.match(item[1], /(?:^|\n)\s*flex: none;/)
   })
 })

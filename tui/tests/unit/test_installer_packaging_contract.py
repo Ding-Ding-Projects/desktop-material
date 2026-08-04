@@ -118,7 +118,10 @@ def test_every_supported_native_package_manager_has_a_contract() -> None:
 
 
 def test_ci_publishes_and_exercises_the_complete_payload() -> None:
-    ci = _read(REPOSITORY_ROOT / ".github" / "workflows" / "ci.yml")
+    # CI is split per operating system so neither lane can withhold the
+    # other's release assets. The terminal edition's packaging lives in the
+    # Linux lane.
+    ci = _read(REPOSITORY_ROOT / ".github" / "workflows" / "ci-linux.yml")
     release = _read(
         REPOSITORY_ROOT / ".github" / "workflows" / "build-installers.yml"
     )

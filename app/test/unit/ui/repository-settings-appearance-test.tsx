@@ -399,8 +399,10 @@ describe('Repository Settings appearance tab registration', () => {
       readFile('app/src/models/repository-settings.ts', 'utf8'),
     ])
 
-    // The enum order stays stable while descriptors carry each tab's identity;
-    // the conditionally appended fork tab must still stay last.
+    // The enum no longer has to equal a position — the descriptors carry each
+    // tab's identity and the strip navigates by it — but the declared order is
+    // still the order the strip shows, and the conditionally appended fork tab
+    // must stay last.
     assert.match(
       modelSource,
       /Automation,\s*Metadata,\s*Appearance,\s*ForkSettings,/

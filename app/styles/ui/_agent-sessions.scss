@@ -55,6 +55,15 @@
 
 .repository-sidebar-panel {
   display: flex;
+  // Stack, don't sit side by side. A panel holds a vertical stack — the
+  // repository list panel is an optional add-repositories progress row above
+  // the list — and `row` both put that row beside the list and, worse, made
+  // the list a shrink-to-fit item: with no `flex` and no width of its own it
+  // sized to its own content instead of the 390px sheet. The virtualized list
+  // takes its width from that measurement, so the rows were laid out against a
+  // box the sheet never gave them. This is the width half of the same chain
+  // whose height half had to be restored in `.repository-sidebar-switcher`.
+  flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
@@ -67,6 +76,9 @@
 .agent-sessions-panel {
   display: flex;
   flex-direction: column;
+  // Owns the panel's remaining height now that the panel stacks its children
+  // rather than stretching a single row item to full height.
+  flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
   width: 100%;

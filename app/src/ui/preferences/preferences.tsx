@@ -2,7 +2,8 @@ import * as React from 'react'
 import { Account, isDotComAccount } from '../../models/account'
 import { PreferencesTab } from '../../models/preferences'
 import { Dispatcher } from '../dispatcher'
-import { TabBar, TabBarType } from '../tab-bar'
+import { SettingsTabStrip } from '../settings-tabs/settings-tab-strip'
+import { ISettingsTabItem } from '../settings-tabs/settings-tab-model'
 import { Accounts } from './accounts'
 import { Advanced } from './advanced'
 import { Git } from './git'
@@ -458,22 +459,130 @@ export class Preferences extends React.Component<
     tab: PreferencesTab,
     symbol: typeof octicons.home,
     label: React.ReactNode,
+    searchText: string,
     isFeature = false
-  ) {
+  ): ISettingsTabItem {
     const isSearching = this.state.settingsSearchQuery.trim().length > 0
-    const noMatch = isSearching && !this.settingsMatchedTabs.has(tab)
 
-    return (
-      <span
-        id={this.getTabId(tab)}
-        data-dm-feature={isFeature || undefined}
-        data-settings-no-match={noMatch || undefined}
-      >
-        <Octicon className="icon" symbol={symbol} />
-        {label}
-        {this.renderTabMatchBadge(tab)}
-      </span>
+    return {
+      id: String(tab),
+      domId: this.getTabId(tab),
+      label,
+      searchText,
+      icon: <Octicon className="icon" symbol={symbol} />,
+      badge: this.renderTabMatchBadge(tab),
+      isFeature,
+      noSearchMatch: isSearching && !this.settingsMatchedTabs.has(tab),
+    }
+  }
+
+  /**
+   * Every settings page, in rail order.
+   *
+   * Built as data rather than as a run of children because the strip keys
+   * navigation by identity. The rail used to be positional — the enum's values
+   * were its child indices — and the conditionally rendered Copilot page meant
+   * two functions existed purely to add and subtract one from every index after
+   * it. A page that is simply absent from this array cannot be selected by
+   * accident.
+   */
+  private get railTabs(): ReadonlyArray<ISettingsTabItem> {
+    const tabs: Array<ISettingsTabItem> = [
+      this.renderRailTab(
+        PreferencesTab.Accounts,
+        octicons.home,
+        'Accounts',
+        'Accounts'
+      ),
+      this.renderRailTab(
+        PreferencesTab.Integrations,
+        octicons.person,
+        'Integrations',
+        'Integrations'
+      ),
+    ]
+
+    if (this.isCopilotSdkEnabled) {
+      tabs.push(
+        this.renderRailTab(
+          PreferencesTab.Copilot,
+          octicons.copilot,
+          'Copilot',
+          'Copilot'
+        )
+      )
+    }
+
+    tabs.push(
+      this.renderRailTab(PreferencesTab.Git, octicons.gitCommit, 'Git', 'Git'),
+      this.renderRailTab(
+        PreferencesTab.Appearance,
+        octicons.paintbrush,
+        'Appearance',
+        'Appearance'
+      ),
+      this.renderRailTab(
+        PreferencesTab.Notifications,
+        octicons.bell,
+        'Notifications',
+        'Notifications'
+      ),
+      this.renderRailTab(
+        PreferencesTab.Prompts,
+        octicons.question,
+        'Prompts',
+        'Prompts'
+      ),
+      this.renderRailTab(
+        PreferencesTab.Advanced,
+        octicons.gear,
+        'Advanced',
+        'Advanced'
+      ),
+      this.renderRailTab(
+        PreferencesTab.Accessibility,
+        octicons.accessibility,
+        'Accessibility',
+        'Accessibility'
+      ),
+      this.renderRailTab(
+        PreferencesTab.AgentAccess,
+        octicons.server,
+        'Agent access',
+        'Agent access',
+        true
+      ),
+      this.renderRailTab(
+        PreferencesTab.Automation,
+        octicons.sync,
+        'Automation',
+        'Automation',
+        true
+      ),
+      this.renderRailTab(
+        PreferencesTab.Queue,
+        octicons.stack,
+        <LocalizedText translationKey="settings.queueTab" />,
+        'Clone queue',
+        true
+      ),
+      this.renderRailTab(
+        PreferencesTab.Sound,
+        octicons.unmute,
+        <LocalizedText translationKey="settings.soundTab" />,
+        'Sound',
+        true
+      ),
+      this.renderRailTab(
+        PreferencesTab.Ollama,
+        octicons.hubot,
+        <LocalizedText translationKey="settings.ollamaTab" />,
+        'Ollama',
+        true
+      )
     )
+
+    return tabs
   }
 
   public async componentWillMount() {
@@ -589,88 +698,13 @@ export class Preferences extends React.Component<
               Settings
             </h2>
             {this.renderSettingsSearch()}
-            <TabBar
-              onTabClicked={this.onTabClicked}
-              selectedIndex={this.tabToVisualIndex(this.state.selectedIndex)}
-              type={TabBarType.Vertical}
-            >
-              {this.renderRailTab(
-                PreferencesTab.Accounts,
-                octicons.home,
-                'Accounts'
-              )}
-              {this.renderRailTab(
-                PreferencesTab.Integrations,
-                octicons.person,
-                'Integrations'
-              )}
-              {this.isCopilotSdkEnabled &&
-                this.renderRailTab(
-                  PreferencesTab.Copilot,
-                  octicons.copilot,
-                  'Copilot'
-                )}
-              {this.renderRailTab(
-                PreferencesTab.Git,
-                octicons.gitCommit,
-                'Git'
-              )}
-              {this.renderRailTab(
-                PreferencesTab.Appearance,
-                octicons.paintbrush,
-                'Appearance'
-              )}
-              {this.renderRailTab(
-                PreferencesTab.Notifications,
-                octicons.bell,
-                'Notifications'
-              )}
-              {this.renderRailTab(
-                PreferencesTab.Prompts,
-                octicons.question,
-                'Prompts'
-              )}
-              {this.renderRailTab(
-                PreferencesTab.Advanced,
-                octicons.gear,
-                'Advanced'
-              )}
-              {this.renderRailTab(
-                PreferencesTab.Accessibility,
-                octicons.accessibility,
-                'Accessibility'
-              )}
-              {this.renderRailTab(
-                PreferencesTab.AgentAccess,
-                octicons.server,
-                'Agent access',
-                true
-              )}
-              {this.renderRailTab(
-                PreferencesTab.Automation,
-                octicons.sync,
-                'Automation',
-                true
-              )}
-              {this.renderRailTab(
-                PreferencesTab.Queue,
-                octicons.stack,
-                <LocalizedText translationKey="settings.queueTab" />,
-                true
-              )}
-              {this.renderRailTab(
-                PreferencesTab.Sound,
-                octicons.unmute,
-                <LocalizedText translationKey="settings.soundTab" />,
-                true
-              )}
-              {this.renderRailTab(
-                PreferencesTab.Ollama,
-                octicons.hubot,
-                <LocalizedText translationKey="settings.ollamaTab" />,
-                true
-              )}
-            </TabBar>
+            <SettingsTabStrip
+              strip="preferences"
+              title="settings"
+              items={this.railTabs}
+              selectedId={String(this.state.selectedIndex)}
+              onSelect={this.onTabSelected}
+            />
             <div className="preferences-version">Desktop Material 0.1.0</div>
           </div>
 
@@ -1636,25 +1670,22 @@ export class Preferences extends React.Component<
     this.props.onDismissed()
   }
 
-  private onTabClicked = (visualIndex: number) => {
-    this.setState({ selectedIndex: this.visualIndexToTab(visualIndex) })
+  /**
+   * The strip reports the page's own id, so no index arithmetic is involved.
+   *
+   * This replaced a pair of functions that added and subtracted one from every
+   * index above Copilot depending on whether that page was rendered — the kind
+   * of correction that is only ever one conditional page away from opening the
+   * wrong screen.
+   */
+  private onTabSelected = (id: string) => {
+    const tab = this.railTabs.find(item => item.id === id)
+    if (tab !== undefined) {
+      this.setState({ selectedIndex: Number(tab.id) as PreferencesTab })
+    }
   }
 
   private get isCopilotSdkEnabled(): boolean {
     return this.props.accounts.some(enableCopilotSdkCommitMessageGeneration)
-  }
-
-  private tabToVisualIndex(tab: PreferencesTab): number {
-    if (!this.isCopilotSdkEnabled && tab > PreferencesTab.Copilot) {
-      return tab - 1
-    }
-    return tab
-  }
-
-  private visualIndexToTab(index: number): PreferencesTab {
-    if (!this.isCopilotSdkEnabled && index >= PreferencesTab.Copilot) {
-      return index + 1
-    }
-    return index
   }
 }

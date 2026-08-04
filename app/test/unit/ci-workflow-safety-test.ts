@@ -5,10 +5,21 @@ import { describe, it } from 'node:test'
 import { getMockUpdateEndpoint } from '../e2e/mock-update-server'
 
 const root = process.cwd()
-const ciWorkflow = readFileSync(
-  join(root, '.github', 'workflows', 'ci.yml'),
+// CI is two workflows, one per operating system, so a red terminal test can
+// never withhold the desktop installers and a red desktop build can never
+// withhold the terminal package. Both still feed the one Release.
+const linuxWorkflow = readFileSync(
+  join(root, '.github', 'workflows', 'ci-linux.yml'),
   'utf8'
 )
+const windowsWorkflow = readFileSync(
+  join(root, '.github', 'workflows', 'ci-windows.yml'),
+  'utf8'
+)
+const ciWorkflows = [
+  { name: 'ci-linux.yml', source: linuxWorkflow },
+  { name: 'ci-windows.yml', source: windowsWorkflow },
+]
 const installerWorkflow = readFileSync(
   join(root, '.github', 'workflows', 'build-installers.yml'),
   'utf8'
@@ -35,7 +46,7 @@ const workflowSources = readdirSync(workflowDirectory)
 
 describe('CI workflow safety', () => {
   it('keeps the static lint install independent of native lifecycle scripts', () => {
-    const lintJob = ciWorkflow.match(
+    const lintJob = linuxWorkflow.match(
       /\r?\n  lint:\r?\n([\s\S]*?)(?=\r?\n  [a-z-]+:\r?\n)/
     )
     assert.notEqual(lintJob, null)
@@ -54,10 +65,12 @@ describe('CI workflow safety', () => {
       controlURL: 'http://127.0.0.1:43123/_control',
     })
     assert.match(
-      ciWorkflow,
+      windowsWorkflow,
       /uses: \.\/\.github\/actions\/setup-e2e-update-port/
     )
-    assert.doesNotMatch(ciWorkflow, /127\.0\.0\.1:51789/)
+    for (const { name, source } of ciWorkflows) {
+      assert.doesNotMatch(source, /127\.0\.0\.1:51789/, name)
+    }
   })
 
   it('rejects unsafe or ambiguous E2E update endpoints', () => {
@@ -74,7 +87,10 @@ describe('CI workflow safety', () => {
 
   it('publishes once after automatic CI or parallel express gates succeed', () => {
     assert.match(installerWorkflow, /workflow_run:/)
-    assert.match(installerWorkflow, /workflows:\s*\n\s*- CI/)
+    assert.match(
+      installerWorkflow,
+      /workflows:\s*\n\s*- CI Linux\s*\n\s*- CI Windows/
+    )
     assert.doesNotMatch(installerWorkflow, /^  push:/m)
     assert.match(installerWorkflow, /CI_CONCLUSION.*workflow_run\.conclusion/)
     assert.match(installerWorkflow, /CI_CONCLUSION" = "success"/)
@@ -90,10 +106,28 @@ describe('CI workflow safety', () => {
       /\r?\n  tui_package:\r?\n([\s\S]*?)(?=\r?\n  [a-z_]+:\r?\n)/
     )
     assert.notEqual(tuiPackageJob, null)
+    // Each packaging job answers to its own lane, and the publisher is
+    // elected so the pair still produces exactly one Release per commit.
     assert.match(
       tuiPackageJob?.[1] ?? '',
-      /if: needs\.prepare\.outputs\.publish == 'true'/
+      /needs\.prepare\.outputs\.publish == 'true' &&\s*needs\.prepare\.outputs\.linux_ok\s*== 'true'/
     )
+    assert.match(
+      installerWorkflow,
+      /needs\.prepare\.outputs\.proceed == 'true' &&\s*needs\.prepare\.outputs\.windows_ok == 'true'/
+    )
+    assert.match(
+      installerWorkflow,
+      /it will publish this commit once it finishes/
+    )
+    assert.match(installerWorkflow, /finished later; it publishes this commit/)
+    // A Release still happens when one lane is red — missing its half, and
+    // saying so — but never when both are.
+    assert.match(
+      installerWorkflow,
+      /needs\.package\.result == 'success' \|\|\s*needs\.tui_package\.result == 'success'/
+    )
+    assert.match(installerWorkflow, /## Partial release/)
     assert.match(installerWorkflow, /name: Express lint/)
     assert.match(installerWorkflow, /name: Express tests Windows x64/)
     assert.match(
@@ -148,9 +182,21 @@ describe('CI workflow safety', () => {
       installerWorkflow,
       /Generate bounded exact-SHA release notes[\s\S]*?generate-automated-release-notes\.ts[\s\S]*?--release-sha "\$RELEASE_TARGET_SHA"/
     )
+    // The notes no longer trail the installers: they describe the commit, not
+    // a platform, so they are built off both lanes and a red Windows lane no
+    // longer takes them down with the installers. What still has to hold is
+    // that each stage is ordered within itself, and that publishing comes last.
     assert.match(
       installerWorkflow,
-      /Verify required release assets[\s\S]*?Preserve express installer payload[\s\S]*?Generate bounded exact-SHA release notes[\s\S]*?Preserve exact release notes[\s\S]*?Revalidate immutable release tag before publishing[\s\S]*?Verify downloaded release payload[\s\S]*?Publish GitHub release[\s\S]*?Verify published release target[\s\S]*?Reconcile Latest to the newest main release/
+      /Generate bounded exact-SHA release notes[\s\S]*?Preserve exact release notes/
+    )
+    assert.match(
+      installerWorkflow,
+      /Verify required release assets[\s\S]*?Preserve express installer payload/
+    )
+    assert.match(
+      installerWorkflow,
+      /Revalidate immutable release tag before publishing[\s\S]*?Verify downloaded release payload[\s\S]*?Publish GitHub release[\s\S]*?Verify published release target[\s\S]*?Reconcile Latest to the newest main release/
     )
     assert.match(
       installerWorkflow,
@@ -202,20 +248,37 @@ describe('CI workflow safety', () => {
   })
 
   it('runs every overlapping workflow without replacing older running or pending work', () => {
-    assert.match(ciWorkflow, /on:\s*\n\s*push:\s*\n/)
-    const pushTrigger = ciWorkflow.match(
-      /on:\s*\n\s*push:\s*\n([\s\S]*?)\s+pull_request:/
-    )
-    assert.notEqual(pushTrigger, null)
-    assert.doesNotMatch(pushTrigger?.[1] ?? '', /branches:/)
-    assert.doesNotMatch(pushTrigger?.[1] ?? '', /^\s*(?:paths|paths-ignore):/m)
+    // Each lane keeps the unconditional push trigger and its own unique
+    // concurrency group, so neither queues behind nor cancels the other.
+    for (const { name, source } of ciWorkflows) {
+      assert.match(source, /on:\s*\n\s*push:\s*\n/, name)
+      const pushTrigger = source.match(
+        /on:\s*\n\s*push:\s*\n([\s\S]*?)\s+pull_request:/
+      )
+      assert.notEqual(pushTrigger, null, name)
+      assert.doesNotMatch(pushTrigger?.[1] ?? '', /branches:/, name)
+      assert.doesNotMatch(
+        pushTrigger?.[1] ?? '',
+        /^\s*(?:paths|paths-ignore):/m,
+        name
+      )
+      assert.match(source, /cancel-in-progress: false/, name)
+    }
     assert.match(
-      ciWorkflow,
-      /group: ci-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
+      linuxWorkflow,
+      /group: ci-linux-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
     )
-    assert.match(ciWorkflow, /cancel-in-progress: false/)
+    assert.match(
+      windowsWorkflow,
+      /group: ci-windows-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
+    )
 
-    for (const required of ['ci.yml', 'build-installers.yml', 'pages.yml']) {
+    for (const required of [
+      'ci-linux.yml',
+      'ci-windows.yml',
+      'build-installers.yml',
+      'pages.yml',
+    ]) {
       const workflow = workflowSources.find(({ file }) => file === required)
       assert.notEqual(workflow, undefined, `${required} must exist`)
       assert.match(
@@ -248,15 +311,17 @@ describe('CI workflow safety', () => {
   })
 
   it('builds, packages, and exercises the Windows application only', () => {
-    assert.match(ciWorkflow, /os: \[windows-2022\]/)
-    assert.match(ciWorkflow, /arch: \[x64, arm64\]/)
-    assert.match(ciWorkflow, /friendlyName: Windows/)
-    assert.match(ciWorkflow, /Install app on Windows/)
-    assert.doesNotMatch(ciWorkflow, /macos|APPLE_/i)
+    assert.match(windowsWorkflow, /os: \[windows-2022\]/)
+    assert.match(windowsWorkflow, /arch: \[x64, arm64\]/)
+    assert.match(windowsWorkflow, /friendlyName: Windows/)
+    assert.match(windowsWorkflow, /Install app on Windows/)
+    for (const { name, source } of ciWorkflows) {
+      assert.doesNotMatch(source, /macos|APPLE_/i, name)
+    }
   })
 
   it('preserves Windows installers when normal CI tests fail', () => {
-    const windowsBuildJob = ciWorkflow.match(
+    const windowsBuildJob = windowsWorkflow.match(
       /\r?\n  build:\r?\n([\s\S]*?)(?=\r?\n  e2e-smoke:\r?\n)/
     )
     assert.notEqual(windowsBuildJob, null)

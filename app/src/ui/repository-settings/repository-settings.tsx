@@ -3,7 +3,8 @@ import { OcticonSymbol } from '../octicons'
 import { FilterMode } from '../../lib/fuzzy-find'
 import { filterByMode } from '../lib/filter-string-list'
 import { FilterModeControl } from '../lib/filter-mode-control'
-import { TabBar, TabBarType } from '../tab-bar'
+import { SettingsTabStrip } from '../settings-tabs/settings-tab-strip'
+import { ISettingsTabItem } from '../settings-tabs/settings-tab-model'
 import { Remote } from './remote'
 import { GitIgnore } from './git-ignore'
 import { BuildRunSettings } from './build-run-settings'
@@ -101,6 +102,22 @@ interface IRepositorySettingsTabDescriptor {
   readonly label: React.ReactNode
   readonly searchText?: string
 }
+
+/**
+ * Adapt a settings page to the shared strip's vocabulary.
+ *
+ * The strip keys everything by a string id because it is shared between two
+ * dialogs whose page enums have nothing to do with each other; stringifying the
+ * enum keeps the identity stable without leaking the enum into the strip.
+ */
+const toSettingsTabItem = (
+  descriptor: IRepositorySettingsTabDescriptor
+): ISettingsTabItem => ({
+  id: String(descriptor.tab),
+  label: descriptor.label,
+  searchText: descriptor.searchText ?? String(descriptor.label),
+  icon: <Octicon className="icon" symbol={descriptor.icon} />,
+})
 
 interface IRepositorySettingsState {
   readonly selectedTab: RepositorySettingsTab
@@ -387,20 +404,17 @@ export class RepositorySettings extends React.Component<
         {this.renderErrors()}
 
         <div className="tab-container">
-          {this.renderTabSearch()}
-          <TabBar
-            onTabClicked={this.onTabClicked}
-            selectedIndex={this.visibleTabIndex(visibleTabs)}
-            type={TabBarType.Vertical}
-            disabled={dialogBusy}
-          >
-            {visibleTabs.map(descriptor => (
-              <span key={descriptor.tab}>
-                <Octicon className="icon" symbol={descriptor.icon} />
-                {descriptor.label}
-              </span>
-            ))}
-          </TabBar>
+          <div className="settings-tab-rail">
+            {this.renderTabSearch()}
+            <SettingsTabStrip
+              strip="repository-settings"
+              title="repository settings"
+              items={visibleTabs.map(toSettingsTabItem)}
+              selectedId={String(this.state.selectedTab)}
+              onSelect={this.onTabSelected}
+              disabled={dialogBusy}
+            />
+          </div>
 
           <div className="active-tab">{this.renderActiveTab()}</div>
         </div>
@@ -1039,14 +1053,6 @@ export class RepositorySettings extends React.Component<
     return selected === undefined ? filtered : [selected, ...filtered]
   }
 
-  /** Where the selected tab sits in the filtered strip, for TabBar. */
-  private visibleTabIndex(
-    visibleTabs: ReadonlyArray<IRepositorySettingsTabDescriptor>
-  ): number {
-    const index = visibleTabs.findIndex(d => d.tab === this.state.selectedTab)
-    return index === -1 ? 0 : index
-  }
-
   private renderTabSearch() {
     return (
       <div className="repository-settings-tab-search">
@@ -1105,14 +1111,18 @@ export class RepositorySettings extends React.Component<
     this.tabDescriptors.map(d => d.searchText ?? String(d.label))
 
   /**
-   * TabBar reports the row that was clicked. That row's identity comes from
-   * the filtered list, never from the number itself.
+   * The strip reports the page's own id, never a position.
+   *
+   * The enum used to be positional — its values were defined to equal the tab
+   * bar's child indices — so once a filter removed earlier rows, an index
+   * passed straight through opened whichever page happened to sit at that
+   * number. Identity travels with the row instead.
    */
-  private onTabClicked = (index: number) => {
+  private onTabSelected = (id: string) => {
     if (this.state.subtreeOperationInProgress) {
       return
     }
-    const descriptor = this.visibleTabs[index]
+    const descriptor = this.tabDescriptors.find(d => String(d.tab) === id)
     if (descriptor !== undefined) {
       this.setState({ selectedTab: descriptor.tab })
     }
