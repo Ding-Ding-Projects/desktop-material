@@ -218,6 +218,7 @@ export enum PopupType {
   CommitAndPushAll = 'CommitAndPushAll',
   OpencodeFix = 'OpencodeFix',
   OpencodeSend = 'OpencodeSend',
+  SummarizeCommitsWithAI = 'SummarizeCommitsWithAI',
 }
 
 interface IBasePopup {
@@ -865,6 +866,11 @@ export type PopupDetail =
       type: PopupType.OpencodeSend
       repository: Repository
       context: IOpencodeSendContext
+    }
+  | {
+      type: PopupType.SummarizeCommitsWithAI
+      repository: Repository
+      commits: ReadonlyArray<Commit>
     }
 export type Popup = IBasePopup & PopupDetail
 

@@ -17,6 +17,7 @@ export const AIFeatures = [
   'commit-message-generation',
   'conflict-resolution',
   'commit-composition',
+  'commit-summary',
 ] as const
 
 export type AIFeature = typeof AIFeatures[number]

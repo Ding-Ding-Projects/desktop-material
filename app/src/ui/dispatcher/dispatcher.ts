@@ -175,6 +175,7 @@ import { BatchCloneMode, IBatchCloneItem } from '../../models/batch-clone'
 import { CloningRepository } from '../../models/cloning-repository'
 import { Commit, ICommitContext, CommitOneLine } from '../../models/commit'
 import { IInteractiveRebasePlan } from '../../lib/interactive-rebase/interactive-rebase-plan'
+import { IChangeSummaryResult } from '../../lib/change-summary/change-summary-model'
 import { ICommitMessage } from '../../models/commit-message'
 import { DiffSelection, ImageDiffType, ITextDiff } from '../../models/diff'
 import { FetchType } from '../../models/fetch'
@@ -2804,10 +2805,45 @@ export class Dispatcher {
     commits: ReadonlyArray<Commit>,
     signal?: AbortSignal
   ): Promise<
-    | { readonly kind: 'plan'; readonly plan: IInteractiveRebasePlan; readonly summary: string | null }
+    | {
+        readonly kind: 'plan'
+        readonly plan: IInteractiveRebasePlan
+        readonly summary: string | null
+      }
     | { readonly kind: 'denied'; readonly reason: string }
   > {
     return this.appStore._proposeComposeCommitsPlan(repository, commits, signal)
+  }
+
+  /**
+   * R10 "Summarize past changes with AI": open the "Explaining N commits"
+   * dialog for the given commits.
+   */
+  public showSummarizeCommitsDialog(
+    repository: Repository,
+    commits: ReadonlyArray<Commit>
+  ): void {
+    this.appStore._showPopup({
+      type: PopupType.SummarizeCommitsWithAI,
+      repository,
+      commits,
+    })
+  }
+
+  /**
+   * R10 "Summarize past changes with AI": ask the AI provider for a
+   * plain-language explanation of the given commits — a prose summary plus
+   * one description per changed file.
+   */
+  public summarizeCommitsWithAI(
+    repository: Repository,
+    commits: ReadonlyArray<Commit>,
+    signal?: AbortSignal
+  ): Promise<
+    | { readonly kind: 'result'; readonly result: IChangeSummaryResult }
+    | { readonly kind: 'denied'; readonly reason: string }
+  > {
+    return this.appStore._summarizeCommitsWithAI(repository, commits, signal)
   }
 
   /**
