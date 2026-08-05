@@ -27,7 +27,10 @@ import {
   UpstreamRemoteName,
 } from '.'
 import type { CopilotFeature, CopilotModelSelections } from './copilot-store'
-import { CommitMessageGenerationCancelledError } from './copilot-store'
+import {
+  CommitMessageGenerationCancelledError,
+  getConflictResolutionAIProviderBinding,
+} from './copilot-store'
 import { FileBatchCloneStagingManager } from './batch-clone-staging'
 import {
   getGitHubReleasesAccount,
@@ -435,11 +438,17 @@ import {
 import { formatCommitMessage } from '../format-commit-message'
 import {
   getAccountForCommitMessageGeneration,
+  getAccountForComposeCommitsWithAI,
   getAccountForCopilotConflictResolution,
   getAccountForRepository,
   getRepositoryCredentialAccountKey,
   getRepositoryOwnerAccountToPromote,
 } from '../get-account-for-repository'
+import {
+  evaluateAIAdminGate,
+  issueAISecurityPolicyAuthorization,
+} from '../ai-security-policy'
+import { IInteractiveRebasePlan } from '../interactive-rebase/interactive-rebase-plan'
 import {
   autoSwitchAccountToRepositoryOwnerDefault,
   autoSwitchAccountToRepositoryOwnerKey,
@@ -508,6 +517,7 @@ import {
   getBranchesDifferingFromUpstream,
   deleteLocalBranch,
   deleteReviewedLocalBranches,
+  executeComposeCommitsPlan,
   deleteRemoteBranch,
   IReviewedBranchDeletion,
   IReviewedBranchDeletionResult,
@@ -15282,6 +15292,142 @@ export class AppStore extends TypedBaseStore<IAppState> {
     } finally {
       totalTimer.done()
     }
+  }
+
+  /**
+   * R9 "compose commits with AI": ask the AI provider to propose a rebase
+   * plan reorganizing a reviewed set of commits. This shouldn't be called
+   * directly. See `Dispatcher.proposeComposeCommitsPlan`.
+   *
+   * Every request goes through {@link evaluateAIAdminGate} and a freshly
+   * issued {@link issueAISecurityPolicyAuthorization} first — a denied gate
+   * or an unresolvable account fails closed with a denial reason and never
+   * reaches the AI provider. The returned plan only ever covers the exact
+   * `commits` passed in; it is meant to prefill the interactive-rebase
+   * editor for the user to review and edit, never to execute automatically.
+   */
+  public async _proposeComposeCommitsPlan(
+    repository: Repository,
+    commits: ReadonlyArray<Commit>,
+    signal?: AbortSignal
+  ): Promise<
+    | { readonly kind: 'plan'; readonly plan: IInteractiveRebasePlan; readonly summary: string | null }
+    | { readonly kind: 'denied'; readonly reason: string }
+  > {
+    if (commits.length === 0) {
+      return { kind: 'denied', reason: 'There are no commits to compose.' }
+    }
+
+    const account = getAccountForComposeCommitsWithAI(this.accounts, repository)
+    if (account === undefined) {
+      return {
+        kind: 'denied',
+        reason:
+          'No signed-in account is eligible to use AI for this repository.',
+      }
+    }
+
+    const providerBinding = getConflictResolutionAIProviderBinding(
+      account,
+      undefined
+    )
+    if (providerBinding === null) {
+      return {
+        kind: 'denied',
+        reason: 'Could not determine an AI provider for this account.',
+      }
+    }
+
+    const adminGate = evaluateAIAdminGate({
+      feature: 'commit-composition',
+      repositoryId: repository.id,
+      repositoryPath: repository.path,
+      filePaths: [],
+      providerKind: providerBinding.kind,
+    })
+    if (!adminGate.allowed) {
+      return { kind: 'denied', reason: adminGate.reason }
+    }
+
+    const policyAuthorization = issueAISecurityPolicyAuthorization(
+      'commit-composition',
+      repository.id,
+      repository.path,
+      [],
+      providerBinding,
+      ['metadata']
+    )
+    if (policyAuthorization === null) {
+      return {
+        kind: 'denied',
+        reason: 'Could not authorize this AI request.',
+      }
+    }
+
+    try {
+      const result = await this.copilotStore.proposeComposeCommitsPlan(
+        account,
+        repository.path,
+        commits.map(commit => ({
+          commitId: commit.sha,
+          subject: commit.summary,
+          body: commit.body,
+        })),
+        undefined,
+        signal,
+        policyAuthorization,
+        repository.id
+      )
+      return { kind: 'plan', plan: result.plan, summary: result.summary }
+    } catch (e) {
+      if (signal?.aborted) {
+        log.info('AppStore: Compose-commits plan proposal aborted by user')
+        return {
+          kind: 'denied',
+          reason: 'The AI request was cancelled.',
+        }
+      }
+      log.warn('AppStore: Compose-commits plan proposal failed', e)
+      return {
+        kind: 'denied',
+        reason:
+          e instanceof Error
+            ? e.message
+            : 'The AI provider could not propose a plan.',
+      }
+    }
+  }
+
+  /**
+   * R9 "compose commits with AI": execute an already-reviewed and
+   * confirmed rebase plan. This shouldn't be called directly. See
+   * `Dispatcher.executeComposeCommitsPlan`.
+   *
+   * Callers must have already shown the confirmation step (final commit
+   * list, and an explicit pushed-history warning when applicable) — this
+   * method performs no AI call and no confirmation of its own, only the
+   * real `git rebase -i` run.
+   */
+  public async _executeComposeCommitsPlan(
+    repository: Repository,
+    plan: IInteractiveRebasePlan
+  ): Promise<RebaseResult> {
+    if (!this.isTemporaryRepositoryActive(repository)) {
+      return RebaseResult.Error
+    }
+
+    const progressCallback =
+      this.getMultiCommitOperationProgressCallBack(repository)
+    const gitStore = this.gitStoreCache.get(repository)
+    const result = await gitStore.performFailableOperation(() =>
+      this.withTemporaryRepositoryMutationGuard(repository, () =>
+        executeComposeCommitsPlan(repository, plan, progressCallback)
+      )
+    )
+
+    await this._refreshRepository(repository)
+
+    return result ?? RebaseResult.Error
   }
 
   /**

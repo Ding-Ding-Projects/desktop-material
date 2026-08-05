@@ -57,6 +57,14 @@ import {
   IAISecurityPolicyAuthorization,
   evaluateAISecurityPolicy,
 } from '../ai-security-policy'
+import {
+  ComposeCommitsWithAISystemPrompt,
+  ComposeCommitsWithAIValidationError,
+  IComposeCommitsSourceCommit,
+  buildComposeCommitsPrompt,
+  parseComposeCommitsPlanResponse,
+} from '../interactive-rebase/compose-commits-with-ai'
+import { IInteractiveRebasePlan } from '../interactive-rebase/interactive-rebase-plan'
 
 /** The default model ID used for Copilot commit message generation. */
 export const DefaultCopilotModel = 'auto'
@@ -135,6 +143,14 @@ export type CopilotModelSelections = Partial<Record<CopilotFeature, string>>
 
 const ConflictResolutionAIContentClasses: ReadonlyArray<AIContentClass> =
   Object.freeze(['metadata', 'path', 'diff', 'code'])
+
+/**
+ * Compose-commits proposals send only commit subjects/bodies — never diffs,
+ * file paths, or file contents — so the model can reorganize a reviewed
+ * commit set without ever seeing code.
+ */
+const ComposeCommitsAIContentClasses: ReadonlyArray<AIContentClass> =
+  Object.freeze(['metadata'])
 
 const ConflictBYOKProviderKeys = [
   'apiKey',
@@ -274,7 +290,7 @@ function snapshotConflictBYOKProvider(
  * conflict context. Never spread or serialize the SDK provider config here:
  * it may contain API keys, bearer tokens, and custom authorization headers.
  */
-function getConflictResolutionAIProviderBinding(
+export function getConflictResolutionAIProviderBinding(
   account: Account,
   provider: CopilotProviderConfig | undefined
 ): IAIProviderBinding | null {
@@ -1539,6 +1555,157 @@ export class CopilotStore extends BaseStore {
         summary: firstSummary,
         references: firstReferences,
       }
+    } finally {
+      this.stopClient(client)
+    }
+  }
+
+  /**
+   * Ask the AI provider to propose a rebase plan reorganizing a reviewed set
+   * of commits (from R9 "compose commits with AI"). Only commit metadata
+   * (id/subject/body) is sent — no diffs or file contents — and the result
+   * is a fully validated {@link IInteractiveRebasePlan} covering exactly the
+   * reviewed commits, meant to be handed to the interactive-rebase editor
+   * for the user to review and edit before anything executes.
+   *
+   * Gated by {@link evaluateAISecurityPolicy} exactly like
+   * {@link resolveConflicts} — a missing or denied policy authorization
+   * fails closed before any client, session, or prompt is created.
+   *
+   * Reuses the conflict-resolution model/provider resolution helpers: this
+   * app has one Copilot model-selection surface today, and a dedicated
+   * "compose commits" model preference is a natural follow-up, not a
+   * requirement to reuse the same models safely.
+   */
+  public async proposeComposeCommitsPlan(
+    account: Account,
+    repositoryPath: string,
+    commits: ReadonlyArray<IComposeCommitsSourceCommit>,
+    request?: CopilotModelRequest | null,
+    signal?: AbortSignal,
+    policyAuthorization?: IAISecurityPolicyAuthorization,
+    activeRepositoryId?: number
+  ): Promise<{
+    readonly plan: IInteractiveRebasePlan
+    readonly summary: string | null
+  }> {
+    let modelConfig: IResolvedConflictModelConfig = {
+      modelId: '',
+      reasoningEffort: undefined,
+      provider: undefined,
+      timeoutMs: undefined,
+    }
+    let providerBinding: IAIProviderBinding | null = null
+    try {
+      modelConfig = this.resolveConflictModelConfig(account, request)
+      providerBinding = getConflictResolutionAIProviderBinding(
+        account,
+        modelConfig.provider
+      )
+    } catch {
+      // Treated as a malformed request below; evaluateAISecurityPolicy emits
+      // the same redacted, typed denial as every other fail-closed path.
+    }
+
+    const policyDecision = evaluateAISecurityPolicy(policyAuthorization, {
+      feature: 'commit-composition',
+      repositoryId: activeRepositoryId ?? -1,
+      repositoryPath,
+      provider: providerBinding,
+      contentClasses: ComposeCommitsAIContentClasses,
+    })
+    if (!policyDecision.allowed) {
+      throw new AISecurityPolicyDeniedError(
+        policyDecision.denial,
+        policyDecision.auditReceipt
+      )
+    }
+
+    if (commits.length === 0) {
+      throw new Error('No reviewed commits to compose a plan for')
+    }
+
+    const prompt = buildComposeCommitsPrompt(commits)
+    const allowedCommits = commits.map(commit => ({
+      commitId: commit.commitId,
+      subject: commit.subject,
+    }))
+
+    const client = await this.createClient(
+      account,
+      policyDecision.canonicalRepositoryPath
+    )
+
+    try {
+      let lastError: Error | undefined
+
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (signal?.aborted) {
+          throw new CopilotConflictResolutionAbortError()
+        }
+
+        const session = await client.createSession({
+          model: modelConfig.modelId,
+          reasoningEffort: modelConfig.reasoningEffort,
+          provider: modelConfig.provider,
+          streaming: true,
+          availableTools: [],
+          enableSessionStore: false,
+          createSessionFsProvider: createCopilotInMemorySessionFsProvider,
+          systemMessage: {
+            mode: 'append',
+            content: ComposeCommitsWithAISystemPrompt,
+          },
+          onPermissionRequest: async () => ({
+            kind: 'reject',
+          }),
+        })
+
+        if (signal?.aborted) {
+          await session.disconnect().catch(() => {})
+          throw new CopilotConflictResolutionAbortError()
+        }
+
+        try {
+          const responseContent = await runConflictResolutionTurn(
+            session,
+            prompt,
+            {
+              timeoutMs: modelConfig.timeoutMs ?? 600_000,
+              signal,
+            }
+          )
+
+          return parseComposeCommitsPlanResponse(
+            responseContent,
+            allowedCommits
+          )
+        } catch (e) {
+          lastError = e instanceof Error ? e : new Error(String(e))
+
+          if (isCopilotConflictResolutionAbortError(lastError)) {
+            throw lastError
+          }
+
+          const isRetryable =
+            lastError instanceof ComposeCommitsWithAIValidationError
+
+          if (!isRetryable || attempt > 0) {
+            break
+          }
+
+          log.warn(
+            'CopilotStore: Compose-commits plan parse/validation failed, retrying',
+            e
+          )
+        }
+      }
+
+      log.warn(
+        'CopilotStore: Failed to propose a compose-commits plan after retry',
+        lastError
+      )
+      throw lastError ?? new Error('Compose-commits plan proposal failed')
     } finally {
       this.stopClient(client)
     }

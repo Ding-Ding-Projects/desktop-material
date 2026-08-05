@@ -355,6 +355,7 @@ import { ChangeRepositoryAlias } from './change-repository-alias/change-reposito
 import { ChangeRepositoryGroupName } from './change-repository-group-name/change-repository-group-name-dialog'
 import { ManageRepositoryGroupDialog } from './repository-groups/manage-repository-group-dialog'
 import { ThankYou } from './thank-you'
+import { ComposeCommitsWithAIDialog } from './interactive-rebase/compose-commits-with-ai-dialog'
 import {
   getUserContributions,
   hasUserAlreadyBeenCheckedOrThanked,
@@ -5743,6 +5744,17 @@ export class App extends React.Component<IAppProps, IAppState> {
             signOffCommits={repositoryState.signOffCommits}
             allowEmptyCommit={repositoryState.allowEmptyCommit}
             onUpdateCommitOptions={this.onUpdateCommitOptions}
+          />
+        )
+      case PopupType.ComposeCommitsWithAI:
+        return (
+          <ComposeCommitsWithAIDialog
+            key="compose-commits-with-ai"
+            dispatcher={this.props.dispatcher}
+            repository={popup.repository}
+            commits={popup.commits}
+            localCommitSHAs={popup.localCommitSHAs}
+            onDismissed={onPopupDismissedFn}
           />
         )
       case PopupType.MultiCommitOperation: {

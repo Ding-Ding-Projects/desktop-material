@@ -174,6 +174,8 @@ import type { CloneOptions } from '../../models/clone-options'
 import { BatchCloneMode, IBatchCloneItem } from '../../models/batch-clone'
 import { CloningRepository } from '../../models/cloning-repository'
 import { Commit, ICommitContext, CommitOneLine } from '../../models/commit'
+import { RebaseResult } from '../../lib/git'
+import { IInteractiveRebasePlan } from '../../lib/interactive-rebase/interactive-rebase-plan'
 import { ICommitMessage } from '../../models/commit-message'
 import { DiffSelection, ImageDiffType, ITextDiff } from '../../models/diff'
 import { FetchType } from '../../models/fetch'
@@ -2790,6 +2792,50 @@ export class Dispatcher {
     readonly summary: ICopilotResolutionSummary
   } | null> {
     return this.appStore._resolveConflictsWithCopilot(repository, onProgress)
+  }
+
+  /**
+   * R9 "compose commits with AI": ask the AI provider to propose a rebase
+   * plan reorganizing the given reviewed commits. The returned plan is meant
+   * to prefill the interactive-rebase editor for the user to review and edit
+   * — it is never executed automatically.
+   */
+  public proposeComposeCommitsPlan(
+    repository: Repository,
+    commits: ReadonlyArray<Commit>,
+    signal?: AbortSignal
+  ): Promise<
+    | { readonly kind: 'plan'; readonly plan: IInteractiveRebasePlan; readonly summary: string | null }
+    | { readonly kind: 'denied'; readonly reason: string }
+  > {
+    return this.appStore._proposeComposeCommitsPlan(repository, commits, signal)
+  }
+
+  /**
+   * R9 "compose commits with AI": execute an already-reviewed and confirmed
+   * rebase plan produced by the interactive-rebase editor. Callers must have
+   * already shown the confirmation step (final commit list, and an explicit
+   * pushed-history warning when applicable).
+   */
+  public executeComposeCommitsPlan(
+    repository: Repository,
+    plan: IInteractiveRebasePlan
+  ): Promise<RebaseResult> {
+    return this.appStore._executeComposeCommitsPlan(repository, plan)
+  }
+
+  /** Show the "compose commits with AI" dialog for a reviewed commit set. */
+  public showComposeCommitsWithAI(
+    repository: Repository,
+    commits: ReadonlyArray<Commit>,
+    localCommitSHAs: ReadonlyArray<string>
+  ) {
+    this.showPopup({
+      type: PopupType.ComposeCommitsWithAI,
+      repository,
+      commits,
+      localCommitSHAs,
+    })
   }
 
   /**
