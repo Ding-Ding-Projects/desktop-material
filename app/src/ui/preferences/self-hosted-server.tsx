@@ -2,6 +2,9 @@ import * as React from 'react'
 import { DialogContent } from '../dialog'
 import { Button } from '../lib/button'
 import { TextBox } from '../lib/text-box'
+import { TextArea } from '../lib/text-area'
+import { Dispatcher } from '../dispatcher'
+import { SignInResult } from '../../lib/stores/sign-in-store'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import * as ipcRenderer from '../../lib/ipc-renderer'
@@ -11,10 +14,20 @@ import {
   ISelfHostedServerWizardState,
   SelfHostedServerProvisioningPhaseLabel,
   SelfHostedServerProvisioningPhaseOrder,
+  SelfHostedServerWizardAction,
   initialSelfHostedServerWizardState,
   reduceSelfHostedServerWizardState,
   wizardStepState,
 } from './self-hosted-server-wizard-state'
+
+interface ISelfHostedServerPreferencesState extends ISelfHostedServerWizardState {
+  readonly samlMetadataXml: string
+  readonly signedInAs: string | null
+}
+
+interface ISelfHostedServerPreferencesProps {
+  readonly dispatcher: Dispatcher
+}
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback
@@ -27,13 +40,26 @@ function errorMessage(error: unknown, fallback: string): string {
  * again after a failure is always safe.
  */
 export class SelfHostedServerPreferences extends React.Component<
-  {},
-  ISelfHostedServerWizardState
+  ISelfHostedServerPreferencesProps,
+  ISelfHostedServerPreferencesState
 > {
-  public constructor(props: {}) {
+  public constructor(props: ISelfHostedServerPreferencesProps) {
     super(props)
-    this.state = initialSelfHostedServerWizardState()
+    this.state = {
+      ...initialSelfHostedServerWizardState(),
+      samlMetadataXml: '',
+      signedInAs: null,
+    }
   }
+
+  private reduceWizardState = (
+    state: ISelfHostedServerPreferencesState,
+    action: SelfHostedServerWizardAction
+  ): ISelfHostedServerPreferencesState => ({
+    ...reduceSelfHostedServerWizardState(state, action),
+    samlMetadataXml: state.samlMetadataXml,
+    signedInAs: state.signedInAs,
+  })
 
   public componentDidMount() {
     ipcRenderer.on('self-hosted-server-provisioning-progress', this.onProgress)
@@ -52,7 +78,7 @@ export class SelfHostedServerPreferences extends React.Component<
     progress: ISelfHostedServerProvisioningProgress
   ) => {
     this.setState(state =>
-      reduceSelfHostedServerWizardState(state, { type: 'progress', progress })
+      this.reduceWizardState(state, { type: 'progress', progress })
     )
   }
 
@@ -61,7 +87,7 @@ export class SelfHostedServerPreferences extends React.Component<
       .invoke('get-self-hosted-server-status')
       .then(status =>
         this.setState(state =>
-          reduceSelfHostedServerWizardState(state, {
+          this.reduceWizardState(state, {
             type: 'status-loaded',
             status,
           })
@@ -74,7 +100,7 @@ export class SelfHostedServerPreferences extends React.Component<
 
   private onPublicOriginChanged = (value: string) => {
     this.setState(state =>
-      reduceSelfHostedServerWizardState(state, {
+      this.reduceWizardState(state, {
         type: 'origin-changed',
         value,
       })
@@ -87,24 +113,27 @@ export class SelfHostedServerPreferences extends React.Component<
     }
     const origin = this.state.publicOriginInput
     this.setState(state =>
-      reduceSelfHostedServerWizardState(state, { type: 'run-started' })
+      this.reduceWizardState(state, { type: 'run-started' })
     )
     ipcRenderer
       .invoke('provision-self-hosted-server', {
         publicOrigin: origin,
         installDockerIfMissing: true,
+        ...(this.state.samlMetadataXml.trim().length === 0
+          ? {}
+          : { samlMetadataXml: this.state.samlMetadataXml }),
       })
       .then(reply => {
         if (reply.ok) {
           this.setState(state =>
-            reduceSelfHostedServerWizardState(state, {
+            this.reduceWizardState(state, {
               type: 'completed',
               result: reply.result,
             })
           )
         } else {
           this.setState(state =>
-            reduceSelfHostedServerWizardState(state, {
+            this.reduceWizardState(state, {
               type: 'failed',
               failure: reply,
             })
@@ -114,7 +143,7 @@ export class SelfHostedServerPreferences extends React.Component<
       })
       .catch(error => {
         this.setState(state =>
-          reduceSelfHostedServerWizardState(state, {
+          this.reduceWizardState(state, {
             type: 'failed',
             failure: {
               code: 'unknown',
@@ -125,9 +154,28 @@ export class SelfHostedServerPreferences extends React.Component<
       })
   }
 
+  private onSamlMetadataChanged = (value: string) => {
+    this.setState({ samlMetadataXml: value })
+  }
+
+  private onSelfHostedSignIn = () => {
+    const origin = this.state.status?.publicOrigin
+    if (origin === null || origin === undefined) {
+      return
+    }
+    this.props.dispatcher.beginSelfHostedSignIn(
+      origin,
+      (result: SignInResult) => {
+        if (result.kind === 'success') {
+          this.setState({ signedInAs: result.account.friendlyName })
+        }
+      }
+    )
+  }
+
   private onCancel = () => {
     this.setState(state =>
-      reduceSelfHostedServerWizardState(state, { type: 'cancel-requested' })
+      this.reduceWizardState(state, { type: 'cancel-requested' })
     )
     ipcRenderer.invoke('cancel-self-hosted-server-provisioning').catch(() => {
       // Cancellation is best-effort; the in-flight step will still surface
@@ -199,6 +247,22 @@ export class SelfHostedServerPreferences extends React.Component<
               onValueChanged={this.onPublicOriginChanged}
             />
 
+            {!status.configured && (
+              <TextArea
+                label="Optional SAML identity-provider metadata XML"
+                rows={6}
+                value={this.state.samlMetadataXml}
+                disabled={running}
+                onValueChanged={this.onSamlMetadataChanged}
+                ariaDescribedBy="self-hosted-saml-metadata-help"
+              />
+            )}
+            <p id="self-hosted-saml-metadata-help">
+              Metadata is validated and exposed for a future signed SAML
+              adapter. This wizard does not claim to authenticate through an
+              identity provider yet; OAuth remains the active sign-in path.
+            </p>
+
             {this.renderSteps()}
 
             {progress !== null && (
@@ -233,6 +297,17 @@ export class SelfHostedServerPreferences extends React.Component<
                   Give this link to the second machine. It expires after one use
                   or fifteen minutes, whichever comes first.
                 </p>
+              </div>
+            )}
+
+            {status.configured && (
+              <div className="self-hosted-server-sign-in">
+                <Button onClick={this.onSelfHostedSignIn} disabled={running}>
+                  Sign in to self-hosted server
+                </Button>
+                {this.state.signedInAs !== null && (
+                  <p role="status">Signed in as {this.state.signedInAs}.</p>
+                )}
               </div>
             )}
 

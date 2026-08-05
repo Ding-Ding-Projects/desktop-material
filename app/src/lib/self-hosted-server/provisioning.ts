@@ -79,6 +79,8 @@ export interface IExistingSelfHostedServerBootstrap {
 export interface ISelfHostedServerProvisioningRequest {
   readonly publicOrigin: string
   readonly installDockerIfMissing: boolean
+  /** Optional public SAML IdP metadata for a future federation adapter. */
+  readonly samlMetadataXml?: string
 }
 
 export interface ISelfHostedServerProvisioningResult {
@@ -194,6 +196,23 @@ function hashSecret(secret: string): string {
   return createHash('sha256').update(secret, 'utf8').digest('base64url')
 }
 
+export function validateSamlMetadataXml(value: string): string {
+  const metadata = value.trim()
+  if (
+    metadata.length === 0 ||
+    metadata.length > 256 * 1024 ||
+    /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(metadata) ||
+    /<!DOCTYPE|<!ENTITY/i.test(metadata) ||
+    !/<(?:[A-Za-z_][\w.-]*:)?EntityDescriptor\b/i.test(metadata) ||
+    !/\bentityID\s*=\s*["'][^"']+["']/i.test(metadata) ||
+    !/<(?:[A-Za-z_][\w.-]*:)?SingleSignOnService\b/i.test(metadata) ||
+    !/<(?:[A-Za-z_][\w.-]*:)?X509Certificate\b[^>]*>[^<]+<\//i.test(metadata)
+  ) {
+    throw new Error('Invalid SAML identity-provider metadata')
+  }
+  return metadata
+}
+
 /**
  * The self-hosted OAuth authorization server's signing key material, minted
  * once by the wizard and written straight into the server's own bootstrap
@@ -229,13 +248,18 @@ function createOAuthKeyMaterial(): {
  */
 export function createSelfHostedServerBootstrap(
   publicOriginValue: string,
-  now: number = Date.now()
+  now: number = Date.now(),
+  options: { readonly samlMetadataXml?: string } = {}
 ): ISelfHostedServerBootstrap {
   const publicOrigin = normalizePublicOrigin(publicOriginValue)
   const serverId = randomUUID()
   const adminToken = token()
   const initialJoinToken = token()
   const oauthKeyMaterial = createOAuthKeyMaterial()
+  const samlMetadataXml =
+    options.samlMetadataXml === undefined
+      ? undefined
+      : validateSamlMetadataXml(options.samlMetadataXml)
   const oauthClients = [
     {
       id: SelfHostedOAuthClientId,
@@ -263,6 +287,7 @@ export function createSelfHostedServerBootstrap(
       oauthSigningKeyPem: oauthKeyMaterial.signingKeyPem,
       oauthSigningPublicJwkJson: oauthKeyMaterial.publicJwkJson,
       oauthKeyId: oauthKeyMaterial.keyId,
+      ...(samlMetadataXml === undefined ? {} : { samlMetadataXml }),
     },
     null,
     2
@@ -436,7 +461,13 @@ export class SelfHostedServerProvisioner {
     }
 
     if (existing === null) {
-      const bootstrap = createSelfHostedServerBootstrap(publicOrigin)
+      const bootstrap = createSelfHostedServerBootstrap(
+        publicOrigin,
+        Date.now(),
+        {
+          samlMetadataXml: request.samlMetadataXml,
+        }
+      )
       let storedAdminToken = false
       try {
         await this.driver.storeAdminToken(
