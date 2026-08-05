@@ -10,3 +10,4 @@
 [submodule "vendor/lowlevel-computer-use-mcp"]
 	path = vendor/lowlevel-computer-use-mcp
 	url = https://github.com/codingmachineedge/lowlevel-computer-use-mcp.git
+	update = none

@@ -16,6 +16,7 @@ const windowsWorkflow = readFileSync(
   join(root, '.github', 'workflows', 'ci-windows.yml'),
   'utf8'
 )
+const gitmodules = readFileSync(join(root, '.gitmodules'), 'utf8')
 const ciWorkflows = [
   { name: 'ci-linux.yml', source: linuxWorkflow },
   { name: 'ci-windows.yml', source: windowsWorkflow },
@@ -49,6 +50,13 @@ const workflowSources = readdirSync(workflowDirectory)
   }))
 
 describe('CI workflow safety', () => {
+  it('does not make hosted CI clone agent-only tooling', () => {
+    assert.match(
+      gitmodules,
+      /\[submodule "vendor\/lowlevel-computer-use-mcp"\][\s\S]*?\tpath = vendor\/lowlevel-computer-use-mcp[\s\S]*?\tupdate = none(?:\r?\n|$)/
+    )
+  })
+
   it('passes the Git trailer format as an argument instead of shell syntax', () => {
     assert.match(lineCounter, /import \{ execFileSync, execSync, spawn \}/)
     assert.match(
