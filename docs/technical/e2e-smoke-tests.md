@@ -188,7 +188,7 @@ The tests use it to:
 
 ## CI Design
 
-The `e2e-smoke` job in `.github/workflows/ci.yml` runs separately from the main
+The `e2e-smoke` job in `.github/workflows/ci-windows.yml` runs separately from the main
 `build` job.
 
 It currently:
