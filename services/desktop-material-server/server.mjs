@@ -17,14 +17,36 @@ import {
   SelfHostedSsoSessionStore,
   signIdToken,
 } from './oauth.mjs'
+import {
+  CloudPatchMaximumArtifactBytes,
+  CloudPatchStoreError,
+  createCloudPatchStore,
+} from './cloud-patch-store.mjs'
 
 const ApiVersion = 1
 const MaximumBodyBytes = 16 * 1024
+const MaximumPatchBodyBytes = CloudPatchMaximumArtifactBytes + 8 * 1024
 const MaximumDevices = 500
 const DefaultJoinLifetimeMs = 15 * 60 * 1000
 const MaximumJoinLifetimeMs = 24 * 60 * 60 * 1000
 const FailedJoinWindowMs = 60 * 1000
 const MaximumFailedJoinsPerWindow = 10
+const DefaultPatchShareLifetimeMs = 24 * 60 * 60 * 1000
+const MaximumPatchShareLifetimeMs = 7 * 24 * 60 * 60 * 1000
+const PatchShareIdPattern = /^cp_[a-f0-9]{64}$/
+const CloudPatchStoreErrorStatus = {
+  'invalid-configuration': 500,
+  'invalid-input': 400,
+  'invalid-expiry': 400,
+  'digest-mismatch': 400,
+  'capacity-exceeded': 507,
+  'access-denied': 404,
+  'revoke-denied': 404,
+  'corrupt-store': 500,
+  'integrity-failure': 500,
+  'storage-failure': 500,
+  'randomness-failure': 500,
+}
 
 function hasExactKeys(value, keys) {
   return (
@@ -97,6 +119,9 @@ const OptionalOAuthConfigurationKeys = [
   'oauthSigningPublicJwkJson',
   'oauthKeyId',
 ]
+// Cloud Patch storage is optional too: a server bootstrapped before this
+// capability existed simply runs without patch storage/sharing endpoints.
+const OptionalCloudPatchConfigurationKeys = ['cloudPatchEncryptionKeyBase64']
 
 function hasValidConfigurationKeys(value) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) {
@@ -118,8 +143,33 @@ function hasValidConfigurationKeys(value) {
   const allowedKeys = [
     ...RequiredConfigurationKeys,
     ...OptionalOAuthConfigurationKeys,
+    ...OptionalCloudPatchConfigurationKeys,
   ]
   return keys.every(key => allowedKeys.includes(key))
+}
+
+function parseCloudPatchEncryptionKey(parsed) {
+  if (
+    !Object.prototype.hasOwnProperty.call(
+      parsed,
+      'cloudPatchEncryptionKeyBase64'
+    )
+  ) {
+    return null
+  }
+  const encoded = requiredString(
+    parsed.cloudPatchEncryptionKeyBase64,
+    'cloudPatchEncryptionKeyBase64',
+    64
+  )
+  if (!/^[A-Za-z0-9_-]{43}$/.test(encoded)) {
+    throw new Error('Invalid Cloud Patch encryption key')
+  }
+  const key = Buffer.from(encoded, 'base64url')
+  if (key.byteLength !== 32) {
+    throw new Error('Invalid Cloud Patch encryption key')
+  }
+  return key
 }
 
 function parseOAuthConfiguration(parsed) {
@@ -242,6 +292,7 @@ async function loadConfiguration(path) {
     allowInsecureHttp: parsed.allowInsecureHttp === true,
     transport: parsed.transport,
     oauth: parseOAuthConfiguration(parsed),
+    cloudPatchEncryptionKey: parseCloudPatchEncryptionKey(parsed),
   }
 }
 
@@ -378,7 +429,7 @@ function sendJson(response, status, body) {
   response.end(data)
 }
 
-async function readJson(request) {
+async function readJson(request, maximumBytes = MaximumBodyBytes) {
   if (
     request.headers['content-type']?.split(';', 1)[0].trim() !==
     'application/json'
@@ -388,7 +439,7 @@ async function readJson(request) {
     throw error
   }
   const declaredLength = Number(request.headers['content-length'] ?? 0)
-  if (declaredLength > MaximumBodyBytes) {
+  if (declaredLength > maximumBytes) {
     const error = new Error('Request body is too large')
     error.statusCode = 413
     throw error
@@ -398,7 +449,7 @@ async function readJson(request) {
   let size = 0
   for await (const chunk of request) {
     size += chunk.length
-    if (size > MaximumBodyBytes) {
+    if (size > maximumBytes) {
       const error = new Error('Request body is too large')
       error.statusCode = 413
       throw error
@@ -412,6 +463,17 @@ async function readJson(request) {
     error.statusCode = 400
     throw error
   }
+}
+
+function statusForCloudPatchError(error) {
+  if (error instanceof CloudPatchStoreError) {
+    return CloudPatchStoreErrorStatus[error.code] ?? 500
+  }
+  return 500
+}
+
+function cloudPatchErrorCode(error) {
+  return error instanceof CloudPatchStoreError ? error.code : 'storage-failure'
 }
 
 function bearerToken(request) {
@@ -470,6 +532,18 @@ export async function createDesktopMaterialServer(options) {
         })
   const ssoSessions =
     configuration.oauth === null ? null : new SelfHostedSsoSessionStore(clock)
+  const cloudPatchDataDirectory =
+    options.cloudPatchDataDirectory ??
+    `${dirname(options.statePath)}/cloud-patches`
+  const cloudPatchStore =
+    configuration.cloudPatchEncryptionKey === null
+      ? null
+      : await createCloudPatchStore({
+          dataDirectory: cloudPatchDataDirectory,
+          encryptionKey: configuration.cloudPatchEncryptionKey,
+          clock,
+          randomBytes: length => randomBytes(length),
+        })
 
   function requireAdmin(request) {
     const authorization = request.headers.authorization
@@ -698,10 +772,171 @@ export async function createDesktopMaterialServer(options) {
           capabilities: {
             identity: oauthAuthority !== null,
             collaboration: false,
-            patches: false,
-            storage: false,
+            patches: cloudPatchStore !== null,
+            storage: cloudPatchStore !== null,
           },
         })
+        return
+      }
+
+      if (request.method === 'POST' && pathname === '/v1/patches') {
+        if (cloudPatchStore === null) {
+          status = 404
+          sendJson(response, status, { error: 'not-found' })
+          return
+        }
+        const device = await authenticatedDevice(request)
+        if (device === null) {
+          status = 401
+          sendJson(response, status, { error: 'device-auth-required' })
+          return
+        }
+        const body = await readJson(request, MaximumPatchBodyBytes)
+        const allowedPatchUploadKeys = [
+          'recipientDeviceIds',
+          'expectedArtifactSha256',
+          'artifactBase64',
+          'lifetimeMs',
+        ]
+        if (
+          body === null ||
+          typeof body !== 'object' ||
+          Array.isArray(body) ||
+          !Object.keys(body).every(key => allowedPatchUploadKeys.includes(key)) ||
+          !['recipientDeviceIds', 'expectedArtifactSha256', 'artifactBase64'].every(
+            key => Object.prototype.hasOwnProperty.call(body, key)
+          ) ||
+          typeof body.artifactBase64 !== 'string'
+        ) {
+          status = 400
+          sendJson(response, status, { error: 'invalid-patch-upload' })
+          return
+        }
+        if (
+          !/^[A-Za-z0-9_-]*$/.test(body.artifactBase64) ||
+          body.artifactBase64.length > MaximumPatchBodyBytes
+        ) {
+          status = 400
+          sendJson(response, status, { error: 'invalid-patch-encoding' })
+          return
+        }
+        const artifact = Buffer.from(body.artifactBase64, 'base64url')
+        const lifetimeMs =
+          body.lifetimeMs === undefined
+            ? DefaultPatchShareLifetimeMs
+            : body.lifetimeMs
+        if (
+          !Number.isSafeInteger(lifetimeMs) ||
+          lifetimeMs < 60_000 ||
+          lifetimeMs > MaximumPatchShareLifetimeMs
+        ) {
+          status = 400
+          sendJson(response, status, { error: 'invalid-patch-lifetime' })
+          return
+        }
+        try {
+          const share = await cloudPatchStore.createShare({
+            ownerDeviceId: device.id,
+            recipientDeviceIds: body.recipientDeviceIds,
+            expectedArtifactSha256: body.expectedArtifactSha256,
+            artifact: Uint8Array.from(artifact),
+            expiresAtMs: clock() + lifetimeMs,
+          })
+          status = 201
+          sendJson(response, status, {
+            shareId: share.shareId,
+            shareSecret: share.shareSecret,
+            shareUrl: `${configuration.publicOrigin}/patches/${share.shareId}#${share.shareSecret}`,
+            expiresAtMs: share.expiresAtMs,
+          })
+        } catch (error) {
+          status = statusForCloudPatchError(error)
+          sendJson(response, status, {
+            error: cloudPatchErrorCode(error),
+          })
+        }
+        return
+      }
+
+      if (
+        request.method === 'GET' &&
+        /^\/v1\/patches\/cp_[a-f0-9]{64}$/.test(pathname)
+      ) {
+        if (cloudPatchStore === null) {
+          status = 404
+          sendJson(response, status, { error: 'not-found' })
+          return
+        }
+        const device = await authenticatedDevice(request)
+        if (device === null) {
+          status = 401
+          sendJson(response, status, { error: 'device-auth-required' })
+          return
+        }
+        const shareId = pathname.slice('/v1/patches/'.length)
+        const shareSecret = requestUrl.searchParams.get('shareSecret') ?? ''
+        if (!PatchShareIdPattern.test(shareId)) {
+          status = 400
+          sendJson(response, status, { error: 'invalid-input' })
+          return
+        }
+        try {
+          const artifact = await cloudPatchStore.openShare({
+            shareId,
+            shareSecret,
+            requestingDeviceId: device.id,
+          })
+          status = 200
+          sendJson(response, status, {
+            shareId,
+            artifactBase64: Buffer.from(artifact).toString('base64url'),
+          })
+        } catch (error) {
+          status = statusForCloudPatchError(error)
+          sendJson(response, status, {
+            error: cloudPatchErrorCode(error),
+          })
+        }
+        return
+      }
+
+      if (
+        request.method === 'POST' &&
+        /^\/v1\/patches\/cp_[a-f0-9]{64}\/revoke$/.test(pathname)
+      ) {
+        if (cloudPatchStore === null) {
+          status = 404
+          sendJson(response, status, { error: 'not-found' })
+          return
+        }
+        const device = await authenticatedDevice(request)
+        if (device === null) {
+          status = 401
+          sendJson(response, status, { error: 'device-auth-required' })
+          return
+        }
+        const shareId = pathname.slice(
+          '/v1/patches/'.length,
+          pathname.length - '/revoke'.length
+        )
+        if (!PatchShareIdPattern.test(shareId)) {
+          status = 400
+          sendJson(response, status, { error: 'invalid-input' })
+          return
+        }
+        try {
+          const result = await cloudPatchStore.revokeShare({
+            shareId,
+            requestingDeviceId: device.id,
+          })
+          status = 200
+          sendJson(response, status, result)
+        } catch (error) {
+          status = statusForCloudPatchError(error)
+          sendJson(response, status, {
+            error: cloudPatchErrorCode(error),
+          })
+        }
         return
       }
 

@@ -135,4 +135,11 @@ export type Banner =
       readonly onPush: () => void
       /** callback to ignore future conflict warnings for this branch */
       readonly onIgnore: () => void
+      /**
+       * Send the current working changes to `theirBranch`'s owner as a Cloud
+       * Patch link (R18/#135), reusing the local patch-series export and the
+       * configured R1 self-hosted server's `/v1/patches` storage. Omitted
+       * when no R1 server is configured for this repository.
+       */
+      readonly onSendAsPatch?: () => void
     }

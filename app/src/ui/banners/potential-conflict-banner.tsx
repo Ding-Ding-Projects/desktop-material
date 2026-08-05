@@ -15,6 +15,14 @@ interface IPotentialConflictBannerProps {
   readonly onPush: () => void
   /** callback to ignore future conflict warnings for this branch */
   readonly onIgnore: () => void
+  /**
+   * Callback to send the current working changes to `theirBranch`'s owner as
+   * a Cloud Patch link (R18/#135) instead of pushing. Omitted entirely when
+   * no R1 self-hosted server is configured — the banner then has no Cloud
+   * Patch option at all, the "honest single-player degrade" the issue calls
+   * for, rather than a button that would fail.
+   */
+  readonly onSendAsPatch?: () => void
   /** callback to fire to dismiss the banner */
   readonly onDismissed: () => void
 }
@@ -40,6 +48,11 @@ export class PotentialConflictBanner extends React.Component<
   private onIgnore = () => {
     this.props.onDismissed()
     this.props.onIgnore()
+  }
+
+  private onSendAsPatch = () => {
+    this.props.onDismissed()
+    this.props.onSendAsPatch?.()
   }
 
   private onToggleOverlappingFiles = () => {
@@ -86,6 +99,11 @@ export class PotentialConflictBanner extends React.Component<
             <LinkButton onClick={this.onPush}>
               Push your changes so they can fetch them
             </LinkButton>
+            {this.props.onSendAsPatch !== undefined && (
+              <LinkButton onClick={this.onSendAsPatch}>
+                Send your changes to {theirBranch} as a patch
+              </LinkButton>
+            )}
             <LinkButton onClick={this.onIgnore}>
               Ignore conflict warnings for your changes on {ourBranch}
             </LinkButton>

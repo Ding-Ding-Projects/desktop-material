@@ -180,6 +180,7 @@ export function renderBanner(
           overlappingFiles={banner.overlappingFiles}
           onPush={banner.onPush}
           onIgnore={banner.onIgnore}
+          onSendAsPatch={banner.onSendAsPatch}
           onDismissed={onDismissed}
           key={'potential-conflict'}
         />
