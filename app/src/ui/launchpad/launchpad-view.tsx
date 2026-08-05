@@ -13,6 +13,7 @@ import {
   isLaunchpadProviderItemKey,
 } from '../../lib/launchpad/launchpad-model'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
+import { ITeamMember } from '../../lib/self-hosted-server/team-client'
 
 export type LaunchpadSectionId = LaunchpadBucket
 export type ILaunchpadViewItem = LaunchpadItem
@@ -89,6 +90,17 @@ export interface ILaunchpadViewProps {
     itemKey: LaunchpadProviderItemKey,
     durationMs: LaunchpadSnoozeDurationMs
   ) => void
+  /**
+   * Team View is an honest degrade: omit this prop (or pass `null`) when no
+   * self-hosted server is configured and reachable, and the toggle will not
+   * render at all. Passing a non-null value means a real server responded to
+   * `GET /v1/team/members`; the view never fabricates members.
+   */
+  readonly team?: {
+    readonly members: ReadonlyArray<ITeamMember> | null
+    readonly selected: boolean
+    readonly onSelect: (selected: boolean) => void
+  }
 }
 
 interface ILaunchpadViewState {
@@ -629,12 +641,108 @@ export class LaunchpadView extends React.Component<
     )
   }
 
+  private onTeamViewToggleClick = () => {
+    const team = this.props.team
+    if (team !== undefined) {
+      team.onSelect(!team.selected)
+    }
+  }
+
+  private renderTeamViewToggle() {
+    const team = this.props.team
+    if (team === undefined) {
+      return null
+    }
+
+    return (
+      <button
+        type="button"
+        className="launchpad-view__team-toggle"
+        aria-pressed={team.selected}
+        onClick={this.onTeamViewToggleClick}
+      >
+        <MaterialSymbol name="group_add" />
+        Team View
+      </button>
+    )
+  }
+
+  private renderPresenceDot(status: ITeamMember['status']) {
+    return (
+      <span
+        className={`launchpad-view__presence-dot launchpad-view__presence-dot--${status}`}
+        aria-hidden="true"
+      />
+    )
+  }
+
+  private describePresence(member: ITeamMember): string {
+    if (member.status === 'offline') {
+      return `${member.deviceName}, offline`
+    }
+    const activity = member.activity ? `, ${member.activity}` : ''
+    return `${member.deviceName}, ${member.status}${activity}`
+  }
+
+  private renderTeamView() {
+    const team = this.props.team
+    if (team === undefined || !team.selected) {
+      return null
+    }
+
+    if (team.members === null) {
+      return (
+        <div className="launchpad-view__team-status" role="status">
+          Loading team activity from your self-hosted server…
+        </div>
+      )
+    }
+
+    if (team.members.length === 0) {
+      return (
+        <div className="launchpad-view__team-status" role="status">
+          No teammates have joined this server yet.
+        </div>
+      )
+    }
+
+    return (
+      <ul className="launchpad-view__team-members" aria-label="Team activity">
+        {team.members.map(member => (
+          <li
+            key={member.deviceId}
+            className="launchpad-view__team-member"
+            aria-label={this.describePresence(member)}
+          >
+            {this.renderPresenceDot(member.status)}
+            <span className="launchpad-view__team-member-name">
+              {member.deviceName}
+            </span>
+            {member.activity && (
+              <span className="launchpad-view__team-member-activity">
+                {member.activity}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    )
+  }
+
   public render() {
     const sections = normalizeSections(this.props.result.sections)
+    const showingTeamView = this.props.team?.selected === true
     return (
       <div className="launchpad-view">
-        {this.renderAccountingStatus()}
-        {sections.map(section => this.renderSection(section))}
+        {this.renderTeamViewToggle()}
+        {showingTeamView ? (
+          this.renderTeamView()
+        ) : (
+          <>
+            {this.renderAccountingStatus()}
+            {sections.map(section => this.renderSection(section))}
+          </>
+        )}
       </div>
     )
   }
