@@ -139,6 +139,26 @@
         text-align: center;
       }
     }
+
+    .copilot-conflicts-editor-tab {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+
+      .copilot-changes-file-list {
+        border-right: var(--base-border);
+        width: 200px;
+        min-width: 200px;
+      }
+
+      .copilot-conflicts-editor-content {
+        flex: 1;
+        min-width: 0;
+        overflow-y: auto;
+        padding: var(--spacing);
+      }
+    }
   }
 
   .dialog-header {

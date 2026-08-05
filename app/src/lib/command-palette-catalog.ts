@@ -284,6 +284,7 @@ const RepositorySettingsTabSlug: Readonly<
   [RepositorySettingsTab.Automation]: 'automation',
   [RepositorySettingsTab.Metadata]: 'metadata',
   [RepositorySettingsTab.Appearance]: 'appearance',
+  [RepositorySettingsTab.AISecurity]: 'ai-security',
   [RepositorySettingsTab.ForkSettings]: 'fork-settings',
 }
 
@@ -1287,12 +1288,16 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     },
   },
   {
+    // This opens the Git-backed version history of the notification store
+    // (undo/redo/restore), not the notification inbox itself - that is
+    // `palette:notification-centre`. The title says so directly so the two
+    // rows are never confused for one another.
     event: 'palette:notification-history',
-    title: 'Notification history',
+    title: 'Notification version history (undo, redo, restore)',
     titleKey: 'palette.notificationHistory',
     group: 'App',
     materialSymbol: 'history',
-    keywords: 'notifications history undo redo restore local changes',
+    keywords: 'notifications history undo redo restore local changes version',
   },
   {
     event: 'palette:notification-automations',
@@ -3036,6 +3041,192 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
       labelKey: 'commandPalette.homeWorkspace',
       targetId: 'appWorkspace',
     },
+  },
+  // Tab management. These execute directly against the active tab (close,
+  // favorite, the eight sort orders) rather than teleporting, since each one
+  // is a real one-shot action the existing repository-tabs store already
+  // supports - the same shape as the pin/unpin rows above.
+  {
+    event: 'palette:close-tab',
+    title: 'Close the current tab',
+    titleKey: 'palette.closeTab',
+    group: 'App',
+    keywords: 'close current tab the',
+    isAvailable: whenRepository,
+  },
+  {
+    event: 'palette:close-other-tabs',
+    title: 'Close other tabs',
+    titleKey: 'palette.closeOtherTabs',
+    group: 'App',
+    keywords: 'close other tabs',
+    isAvailable: whenRepository,
+  },
+  {
+    event: 'palette:close-tabs-to-left',
+    title: 'Close tabs to the left',
+    titleKey: 'palette.closeTabsToLeft',
+    group: 'App',
+    keywords: 'close left tabs the to',
+    isAvailable: whenRepository,
+  },
+  {
+    event: 'palette:close-tabs-to-right',
+    title: 'Close tabs to the right',
+    titleKey: 'palette.closeTabsToRight',
+    group: 'App',
+    keywords: 'close right tabs the to',
+    isAvailable: whenRepository,
+  },
+  {
+    event: 'palette:favorite-tab',
+    title: 'Favorite the current tab',
+    titleKey: 'palette.favoriteTab',
+    group: 'App',
+    keywords: 'current favorite favourite star tab the',
+    isAvailable: whenRepository,
+  },
+  {
+    event: 'palette:rename-tab',
+    title: 'Rename the current tab',
+    titleKey: 'palette.renameTab',
+    group: 'App',
+    keywords: 'current label rename tab the',
+    isAvailable: whenRepository,
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeTabStrip',
+      targetId: 'tabStrip',
+    },
+  },
+  {
+    event: 'palette:move-tab-to-group',
+    title: 'Move the current tab to a group',
+    titleKey: 'palette.moveTabToGroup',
+    group: 'App',
+    keywords: 'current group move tab the to',
+    isAvailable: whenRepository,
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeTabStrip',
+      targetId: 'tabStrip',
+    },
+  },
+  {
+    event: 'palette:collapse-tab-group',
+    title: 'Collapse the current tab group',
+    titleKey: 'palette.collapseTabGroup',
+    group: 'App',
+    keywords: 'collapse current group tab the',
+    isAvailable: whenRepository,
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeTabStrip',
+      targetId: 'tabStrip',
+    },
+  },
+  {
+    event: 'palette:delete-tab-group',
+    title: 'Delete the current tab group',
+    titleKey: 'palette.deleteTabGroup',
+    group: 'App',
+    keywords: 'current delete group tab the',
+    isAvailable: whenRepository,
+    home: {
+      kind: 'surface',
+      labelKey: 'commandPalette.homeTabStrip',
+      targetId: 'tabStrip',
+    },
+  },
+  {
+    event: 'palette:sort-tabs-label-ascending',
+    title: 'Sort tabs A to Z',
+    titleKey: 'palette.sortTabsLabelAscending',
+    group: 'App',
+    keywords: 'a alphabetical ascending label sort tabs to z',
+  },
+  {
+    event: 'palette:sort-tabs-label-descending',
+    title: 'Sort tabs Z to A',
+    titleKey: 'palette.sortTabsLabelDescending',
+    group: 'App',
+    keywords: 'a alphabetical descending label sort tabs to z',
+  },
+  {
+    event: 'palette:sort-tabs-opened-newest',
+    title: 'Sort tabs newest first',
+    titleKey: 'palette.sortTabsOpenedNewest',
+    group: 'App',
+    keywords: 'first newest opened sort tabs',
+  },
+  {
+    event: 'palette:sort-tabs-opened-oldest',
+    title: 'Sort tabs oldest first',
+    titleKey: 'palette.sortTabsOpenedOldest',
+    group: 'App',
+    keywords: 'first oldest opened sort tabs',
+  },
+  {
+    event: 'palette:sort-tabs-status-attention-first',
+    title: 'Sort tabs by status, needs attention first',
+    titleKey: 'palette.sortTabsStatusAttentionFirst',
+    group: 'App',
+    keywords: 'attention conflicts needs sort status tabs',
+  },
+  {
+    event: 'palette:sort-tabs-status-clean-first',
+    title: 'Sort tabs by status, clean first',
+    titleKey: 'palette.sortTabsStatusCleanFirst',
+    group: 'App',
+    keywords: 'clean first sort status tabs',
+  },
+  {
+    event: 'palette:sort-tabs-favorite-first',
+    title: 'Sort tabs, favorites first',
+    titleKey: 'palette.sortTabsFavoriteFirst',
+    group: 'App',
+    keywords: 'favorite favourite first sort tabs',
+  },
+  {
+    event: 'palette:sort-tabs-favorite-last',
+    title: 'Sort tabs, favorites last',
+    titleKey: 'palette.sortTabsFavoriteLast',
+    group: 'App',
+    keywords: 'favorite favourite last sort tabs',
+  },
+  // Settings undo/redo. Mirrors the same undo/redo/restore surface already
+  // shipped in the tab strip's settings-history side sheet.
+  {
+    event: 'palette:undo-settings-change',
+    title: 'Undo the last settings change',
+    titleKey: 'palette.undoSettingsChange',
+    group: 'App',
+    materialSymbol: 'undo',
+    keywords: 'change last settings undo',
+  },
+  {
+    event: 'palette:redo-settings-change',
+    title: 'Redo the last settings change',
+    titleKey: 'palette.redoSettingsChange',
+    group: 'App',
+    materialSymbol: 'redo',
+    keywords: 'change last redo settings',
+  },
+  // Sign-in. Reuses the existing dot-com and Enterprise sign-in dialogs
+  // already reachable from Preferences: Accounts.
+  {
+    event: 'palette:sign-in-dotcom',
+    title: 'Sign in to GitHub.com',
+    titleKey: 'palette.signInDotcom',
+    group: 'App',
+    keywords: 'account com dotcom github in login sign',
+  },
+  {
+    event: 'palette:sign-in-enterprise',
+    title: 'Sign in to GitHub Enterprise',
+    titleKey: 'palette.signInEnterprise',
+    group: 'App',
+    keywords: 'account enterprise github in login sign',
   },
 ]
 

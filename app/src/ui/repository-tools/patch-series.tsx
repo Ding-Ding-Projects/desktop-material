@@ -63,6 +63,20 @@ export interface IRepositoryPatchSeriesProps {
     defaultPath: string
   ) => Promise<string | null>
   readonly choosePatchFiles?: () => Promise<ReadonlyArray<string>>
+  /**
+   * R18/#135: share the most recent local patch export with a teammate via
+   * the configured R1 self-hosted server's Cloud Patch storage, producing a
+   * shareable link. Omitted when no R1 server is configured for this
+   * repository — the honest single-player degrade, matching the conflict
+   * banner's `onSendAsPatch`.
+   */
+  readonly onShareLastExportAsCloudPatch?: () => void
+  /**
+   * R18/#135: fetch a Cloud Patch by a pasted share link and apply it
+   * locally (reusing the same `git am` plumbing as "Apply patch series").
+   * Omitted when no R1 server is configured for this repository.
+   */
+  readonly onApplyCloudPatchLink?: () => void
 }
 
 interface IRepositoryPatchSeriesState {
@@ -748,6 +762,24 @@ export class RepositoryPatchSeries extends React.Component<
                 languageMode={languageMode}
               />
             </Button>
+            {this.props.onShareLastExportAsCloudPatch !== undefined && (
+              <Button
+                ariaLabel="Send as a Cloud Patch link"
+                disabled={this.props.disabled || running}
+                onClick={this.props.onShareLastExportAsCloudPatch}
+              >
+                Send as a Cloud Patch link
+              </Button>
+            )}
+            {this.props.onApplyCloudPatchLink !== undefined && (
+              <Button
+                ariaLabel="Apply patch from link"
+                disabled={this.props.disabled || running}
+                onClick={this.props.onApplyCloudPatchLink}
+              >
+                Apply patch from link
+              </Button>
+            )}
             {running && (
               <Button
                 ariaLabel={this.aria('patchSeries.cancelAction')}

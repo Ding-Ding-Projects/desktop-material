@@ -597,6 +597,30 @@ describe('Windows self-hosted server provisioning driver', () => {
     )
   })
 
+  it('rejects a bootstrap with only some of the four OAuth fields present', async () => {
+    const { dependencies } = createDependencies()
+    const driver = new WindowsSelfHostedServerProvisioningDriver(dependencies)
+    const bootstrap = createSelfHostedServerBootstrap(PublicOrigin)
+    const configuration = JSON.parse(bootstrap.configurationJson) as Record<
+      string,
+      unknown
+    >
+    delete configuration.oauthKeyId
+    const tampered = {
+      ...persistedBootstrap(bootstrap),
+      configurationJson: `${JSON.stringify(configuration, null, 2)}\n`,
+    }
+
+    await assert.rejects(
+      driver.writeBootstrap(tampered, new AbortController().signal),
+      (error: unknown) => {
+        assert.ok(error instanceof SelfHostedServerProvisioningDriverError)
+        assert.equal(error.code, 'configuration-invalid')
+        return true
+      }
+    )
+  })
+
   it('retries transient atomic reads and returns an honest missing-vault state', async () => {
     let scheduledReads = 0
     const { dependencies, fileSystem } = createDependencies({

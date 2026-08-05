@@ -1,0 +1,66 @@
+#preferences .self-hosted-server-unsupported,
+#preferences .self-hosted-server-status {
+  color: var(--md-sys-color-on-surface-variant);
+  margin-bottom: 12px;
+}
+
+#preferences .self-hosted-server-wizard-steps {
+  list-style: none;
+  margin: 16px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .wizard-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--md-sys-color-on-surface-variant);
+
+    svg {
+      flex-shrink: 0;
+    }
+
+    &.wizard-step-done {
+      color: var(--md-sys-color-on-surface);
+    }
+
+    &.wizard-step-active {
+      color: var(--md-sys-color-primary);
+      font-weight: var(--font-weight-semibold);
+    }
+  }
+}
+
+#preferences .self-hosted-server-progress-detail {
+  color: var(--md-sys-color-on-surface-variant);
+  font-style: italic;
+}
+
+#preferences .self-hosted-server-error {
+  border: 1px solid var(--md-sys-color-error);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 12px 0;
+
+  strong {
+    color: var(--md-sys-color-error);
+  }
+}
+
+#preferences .self-hosted-server-join-url {
+  margin: 12px 0;
+
+  .self-hosted-server-join-url-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+#preferences .self-hosted-server-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}

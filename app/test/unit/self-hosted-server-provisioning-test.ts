@@ -132,6 +132,38 @@ describe('self-hosted server provisioning', () => {
       new RegExp(bootstrap.adminToken)
     )
     assert.equal(new URL(configuration.publicOrigin).search, '')
+
+    const clients = JSON.parse(configuration.oauthClientsJson)
+    assert.equal(clients.length, 1)
+    assert.equal(clients[0].id, 'desktop-material-windows')
+    assert.deepEqual(clients[0].redirectUris, [
+      'x-github-desktop-auth://self-hosted/oauth',
+    ])
+    assert.match(
+      configuration.oauthSigningKeyPem,
+      /^-----BEGIN PRIVATE KEY-----/
+    )
+    assert.doesNotMatch(bootstrap.configurationJson, /BEGIN EC PRIVATE KEY/)
+    const publicJwk = JSON.parse(configuration.oauthSigningPublicJwkJson)
+    assert.equal(publicJwk.kty, 'EC')
+    assert.equal(publicJwk.crv, 'P-256')
+    assert.equal(typeof publicJwk.d, 'undefined')
+    assert.match(configuration.oauthKeyId, /^key-[a-f0-9]{16}$/)
+  })
+
+  it('generates a fresh, unlinkable signing key on every provisioning run', () => {
+    const first = createSelfHostedServerBootstrap(PublicOrigin)
+    const second = createSelfHostedServerBootstrap(PublicOrigin)
+    const firstConfiguration = JSON.parse(first.configurationJson)
+    const secondConfiguration = JSON.parse(second.configurationJson)
+    assert.notEqual(
+      firstConfiguration.oauthSigningKeyPem,
+      secondConfiguration.oauthSigningKeyPem
+    )
+    assert.notEqual(
+      firstConfiguration.oauthKeyId,
+      secondConfiguration.oauthKeyId
+    )
   })
 
   it('boots the committed server through the Compose listener contract', async () => {
@@ -175,6 +207,33 @@ describe('self-hosted server provisioning', () => {
       }
       assert.equal(health.status, 'ok')
       assert.equal(health.serverId, bootstrap.serverId)
+
+      // The wizard's OAuth key material actually boots a working
+      // authorization server, not just a config file the server ignores.
+      const discoveryResponse = await fetch(
+        `http://127.0.0.1:${port}/.well-known/oauth-authorization-server`
+      )
+      assert.equal(discoveryResponse.status, 200)
+      const discovery = (await discoveryResponse.json()) as {
+        readonly issuer: string
+        readonly authorization_endpoint: string
+      }
+      assert.equal(discovery.issuer, 'http://127.0.0.1:8787')
+      assert.equal(
+        discovery.authorization_endpoint,
+        'http://127.0.0.1:8787/oauth/authorize'
+      )
+      const jwksResponse = await fetch(
+        `http://127.0.0.1:${port}/oauth/jwks.json`
+      )
+      const jwks = (await jwksResponse.json()) as {
+        readonly keys: ReadonlyArray<{ readonly kid: string }>
+      }
+      assert.equal(jwks.keys.length, 1)
+      assert.equal(
+        jwks.keys[0].kid,
+        JSON.parse(bootstrap.configurationJson).oauthKeyId
+      )
     } finally {
       await server?.close()
       await rm(directory, { recursive: true, force: true })

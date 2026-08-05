@@ -1,5 +1,9 @@
 import { createHash } from 'crypto'
 import { win32 } from 'path'
+import {
+  getAIAdminPolicySettings,
+  resolveRepositoryAIEligibility,
+} from './ai-admin-policy'
 
 export const AISecurityPolicyVersion = 1 as const
 export const AISecurityPolicyAuditReceiptVersion = 1 as const
@@ -12,6 +16,9 @@ export type AIContentClass = typeof AIContentClasses[number]
 export const AIFeatures = [
   'commit-message-generation',
   'conflict-resolution',
+  'commit-composition',
+  'commit-summary',
+  'pr-review-suggestion',
 ] as const
 
 export type AIFeature = typeof AIFeatures[number]
@@ -835,4 +842,138 @@ export function isAISecurityPolicyDeniedError(
   error: unknown
 ): error is AISecurityPolicyDeniedError {
   return error instanceof AISecurityPolicyDeniedError
+}
+
+// ---------------------------------------------------------------------------
+// Administrator gate
+//
+// Everything above this point verifies a *signed* policy document. The
+// functions below are the actual reusable enforcement point every AI
+// feature must call first: they read the administrator's live settings
+// (`ai-admin-policy.ts`) and decide, in plain terms, whether a request for a
+// repository/path may proceed at all. Only a request this gate allows is
+// ever turned into a signed policy and handed to `evaluateAISecurityPolicy`.
+// ---------------------------------------------------------------------------
+
+/** A minimal description of an AI request, used only to decide admin policy. */
+export interface IAIAdminGateRequest {
+  readonly feature: AIFeature
+  readonly repositoryId: number
+  readonly repositoryPath: string
+  /** Repository-relative file paths the feature wants to send. May be empty for repo-wide features. */
+  readonly filePaths: ReadonlyArray<string>
+  readonly providerKind: AIProviderKind
+}
+
+export type AIAdminGateDecision =
+  | { readonly allowed: true }
+  | { readonly allowed: false; readonly reason: string }
+
+/**
+ * Evaluate a request against the administrator's live AI policy settings
+ * (master kill switch, provider allow-list, per-repository eligibility).
+ *
+ * This is the single, central gate every AI feature must call before
+ * building a prompt or reading a diff/file for a model. It never logs or
+ * returns file contents/diffs — only the decision, keyed by repository and
+ * path, is ever surfaced to callers or logs.
+ */
+export function evaluateAIAdminGate(
+  request: IAIAdminGateRequest
+): AIAdminGateDecision {
+  const settings = getAIAdminPolicySettings()
+
+  if (!settings.aiFeaturesEnabled) {
+    return {
+      allowed: false,
+      reason:
+        'An administrator has disabled sending diffs or file contents to AI providers on this machine.',
+    }
+  }
+
+  if (!settings.allowedProviderKinds.includes(request.providerKind)) {
+    return {
+      allowed: false,
+      reason: `An administrator has not authorized the "${request.providerKind}" AI provider.`,
+    }
+  }
+
+  const eligibility = resolveRepositoryAIEligibility(
+    settings,
+    request.repositoryPath
+  )
+  if (eligibility !== 'allow') {
+    return {
+      allowed: false,
+      reason:
+        'An administrator has not authorized AI features for this repository.',
+    }
+  }
+
+  return { allowed: true }
+}
+
+/**
+ * Build a signed-shape {@link IAISecurityPolicyAuthorization} for a request
+ * that the administrator gate allows, so it can be handed to
+ * {@linkcode evaluateAISecurityPolicy}. Returns `null` when the admin gate
+ * denies the request, the repository path cannot be normalized, or the
+ * policy cannot be digested — callers must treat `null` the same as any
+ * other denial and must not fall back to sending the request unauthorized.
+ *
+ * This app has no separate main-process boundary for AI policy today, so
+ * the policy is issued and "verified" in the same process that evaluates
+ * it; `signatureVerified` reflects that the administrator settings were
+ * read and applied, not a cross-process cryptographic signature.
+ */
+export function issueAISecurityPolicyAuthorization(
+  feature: AIFeature,
+  repositoryId: number,
+  repositoryPath: string,
+  filePaths: ReadonlyArray<string>,
+  provider: IAIProviderBinding,
+  contentClasses: ReadonlyArray<AIContentClass>
+): IAISecurityPolicyAuthorization | null {
+  const gate = evaluateAIAdminGate({
+    feature,
+    repositoryId,
+    repositoryPath,
+    filePaths,
+    providerKind: provider.kind,
+  })
+  if (!gate.allowed) {
+    return null
+  }
+
+  const canonicalRepositoryPath = normalizeAIPolicyWindowsPath(repositoryPath)
+  if (canonicalRepositoryPath === null) {
+    return null
+  }
+
+  const issuedAtMs = Date.now()
+  const policy: IAISecurityPolicyV1 = {
+    version: AISecurityPolicyVersion,
+    feature,
+    repositoryId,
+    canonicalRepositoryPath,
+    provider,
+    allowedContentClasses: contentClasses,
+    issuedAtMs,
+    expiresAtMs: issuedAtMs + MaxAISecurityPolicyLifetimeMs,
+  }
+
+  const verifiedPolicyDigest = getAISecurityPolicyDigest(policy)
+  if (verifiedPolicyDigest === null) {
+    return null
+  }
+
+  return {
+    policy,
+    trustedMainProcess: {
+      signatureVerified: true,
+      verifiedPolicyDigest,
+      repositoryId,
+      canonicalRepositoryPath,
+    },
+  }
 }

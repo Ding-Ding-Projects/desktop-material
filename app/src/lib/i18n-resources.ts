@@ -15,6 +15,7 @@ export type TranslationKey =
   | 'repositorySection.issues'
   | 'repositorySection.triage'
   | 'repositorySection.tools'
+  | 'repositorySection.launchpad'
   | 'update.downloadingLabel'
   | 'update.downloadingValue'
   | 'update.comingSoon'
@@ -2103,6 +2104,7 @@ export type TranslationKey =
   | 'repositorySettings.tabAutomation'
   | 'repositorySettings.tabMetadata'
   | 'repositorySettings.tabAppearance'
+  | 'repositorySettings.tabAISecurity'
   | 'repositorySettings.tabForkSettings'
   | 'commandPalette.homeRepositorySettings'
   | 'palette.repositorySettingsRemote'
@@ -2266,6 +2268,27 @@ export type TranslationKey =
   | 'palette.manageRepositoryGroups'
   | 'palette.repositoryAccount'
   | 'palette.regexBuilder'
+  | 'palette.closeTab'
+  | 'palette.closeOtherTabs'
+  | 'palette.closeTabsToLeft'
+  | 'palette.closeTabsToRight'
+  | 'palette.favoriteTab'
+  | 'palette.renameTab'
+  | 'palette.moveTabToGroup'
+  | 'palette.collapseTabGroup'
+  | 'palette.deleteTabGroup'
+  | 'palette.sortTabsLabelAscending'
+  | 'palette.sortTabsLabelDescending'
+  | 'palette.sortTabsOpenedNewest'
+  | 'palette.sortTabsOpenedOldest'
+  | 'palette.sortTabsStatusAttentionFirst'
+  | 'palette.sortTabsStatusCleanFirst'
+  | 'palette.sortTabsFavoriteFirst'
+  | 'palette.sortTabsFavoriteLast'
+  | 'palette.undoSettingsChange'
+  | 'palette.redoSettingsChange'
+  | 'palette.signInDotcom'
+  | 'palette.signInEnterprise'
   | 'commandPalette.homeRepositoryTools'
   | 'commandPalette.homePalette'
   | 'commandPalette.homeTabStrip'
@@ -2923,6 +2946,11 @@ export type TranslationKey =
   | 'settingsSearch.tabName.queue'
   | 'settingsSearch.tabName.sound'
   | 'settingsSearch.tabName.ollama'
+  | 'settingsSearch.tabName.ai'
+  | 'settingsSearch.entry.aiMasterSwitch.title'
+  | 'settingsSearch.entry.aiMasterSwitch.desc'
+  | 'settingsSearch.entry.aiRepositoryEligibility.title'
+  | 'settingsSearch.entry.aiRepositoryEligibility.desc'
   | 'settingsSearch.entry.accountsSignIn.title'
   | 'settingsSearch.entry.accountsSignIn.desc'
   | 'settingsSearch.entry.accountsEnterprise.title'
@@ -3624,6 +3652,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositorySection.issues': 'Issues',
   'repositorySection.triage': 'Triage',
   'repositorySection.tools': 'Repository tools',
+  'repositorySection.launchpad': 'Launchpad',
   'update.downloadingLabel': 'Downloading app update',
   'update.downloadingValue': 'Downloading',
   'update.comingSoon': 'New update coming soon',
@@ -6181,6 +6210,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositorySettings.tabAutomation': 'Automation',
   'repositorySettings.tabMetadata': 'Metadata',
   'repositorySettings.tabAppearance': 'Appearance',
+  'repositorySettings.tabAISecurity': 'AI features',
   'repositorySettings.tabForkSettings': 'Fork settings',
   'commandPalette.homeRepositorySettings': 'Repository settings ▸ {tab}',
   'palette.repositorySettingsRemote': 'Repository remotes',
@@ -6363,6 +6393,28 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'palette.manageRepositoryGroups': 'Manage repository groups',
   'palette.repositoryAccount': 'Repository account',
   'palette.regexBuilder': 'Open the regex builder',
+  'palette.closeTab': 'Close the current tab',
+  'palette.closeOtherTabs': 'Close other tabs',
+  'palette.closeTabsToLeft': 'Close tabs to the left',
+  'palette.closeTabsToRight': 'Close tabs to the right',
+  'palette.favoriteTab': 'Favorite the current tab',
+  'palette.renameTab': 'Rename the current tab',
+  'palette.moveTabToGroup': 'Move the current tab to a group',
+  'palette.collapseTabGroup': 'Collapse the current tab group',
+  'palette.deleteTabGroup': 'Delete the current tab group',
+  'palette.sortTabsLabelAscending': 'Sort tabs A to Z',
+  'palette.sortTabsLabelDescending': 'Sort tabs Z to A',
+  'palette.sortTabsOpenedNewest': 'Sort tabs newest first',
+  'palette.sortTabsOpenedOldest': 'Sort tabs oldest first',
+  'palette.sortTabsStatusAttentionFirst':
+    'Sort tabs by status, needs attention first',
+  'palette.sortTabsStatusCleanFirst': 'Sort tabs by status, clean first',
+  'palette.sortTabsFavoriteFirst': 'Sort tabs, favorites first',
+  'palette.sortTabsFavoriteLast': 'Sort tabs, favorites last',
+  'palette.undoSettingsChange': 'Undo the last settings change',
+  'palette.redoSettingsChange': 'Redo the last settings change',
+  'palette.signInDotcom': 'Sign in to GitHub.com',
+  'palette.signInEnterprise': 'Sign in to GitHub Enterprise',
   'commandPalette.homeRepositoryTools': 'Repository tools',
   'commandPalette.homePalette': 'The command palette itself',
   'commandPalette.homeTabStrip': 'The repository tab strip',
@@ -6405,7 +6457,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'palette.tagLifecycle': 'Tag lifecycle manager',
   'palette.githubApiExplorer': 'GitHub API explorer',
   'palette.notificationCentre': 'Open notification centre',
-  'palette.notificationHistory': 'Notification history',
+  'palette.notificationHistory':
+    'Notification version history (undo, redo, restore)',
   'palette.notificationAutomations': 'Notification automations',
   'palette.copyRepoPath': 'Copy repository path',
   'palette.copyBranchName': 'Copy current branch name',
@@ -7345,6 +7398,14 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settingsSearch.tabName.queue': 'Clone queue',
   'settingsSearch.tabName.sound': 'Sound',
   'settingsSearch.tabName.ollama': 'Ollama',
+  'settingsSearch.tabName.ai': 'AI',
+  'settingsSearch.entry.aiMasterSwitch.title': 'AI kill switch',
+  'settingsSearch.entry.aiMasterSwitch.desc':
+    'Turn AI features on or off, and choose which providers are permitted.',
+  'settingsSearch.entry.aiRepositoryEligibility.title':
+    'Repository AI eligibility',
+  'settingsSearch.entry.aiRepositoryEligibility.desc':
+    'Set the default whether repositories may send diffs to an AI provider.',
   'settingsSearch.entry.accountsSignIn.title': 'Sign in to GitHub',
   'settingsSearch.entry.accountsSignIn.desc':
     'Add a GitHub.com account to Desktop Material.',
@@ -8195,6 +8256,7 @@ export const cantoneseTranslations: Readonly<
   'repositorySection.issues': '問題',
   'repositorySection.triage': '分流',
   'repositorySection.tools': 'Repo 工具',
+  'repositorySection.launchpad': '發射台',
   'update.downloadingLabel': '下載緊應用程式更新',
   'update.downloadingValue': '下載緊',
   'update.comingSoon': '新版本就快焗好出爐',
@@ -10578,6 +10640,7 @@ export const cantoneseTranslations: Readonly<
   'repositorySettings.tabAutomation': '自動化',
   'repositorySettings.tabMetadata': '中繼資料',
   'repositorySettings.tabAppearance': '外觀',
+  'repositorySettings.tabAISecurity': 'AI 功能',
   'repositorySettings.tabForkSettings': 'Fork 設定',
   'commandPalette.homeRepositorySettings': '儲存庫設定 ▸ {tab}',
   'palette.repositorySettingsRemote': '遠端設定',
@@ -10744,6 +10807,27 @@ export const cantoneseTranslations: Readonly<
   'palette.manageRepositoryGroups': '管理 repo 群組',
   'palette.repositoryAccount': 'Repo 帳戶',
   'palette.regexBuilder': '打開 regex 砌法器',
+  'palette.closeTab': '閂咗依個 tab',
+  'palette.closeOtherTabs': '閂晒其他 tab',
+  'palette.closeTabsToLeft': '閂晒左邊嘅 tab',
+  'palette.closeTabsToRight': '閂晒右邊嘅 tab',
+  'palette.favoriteTab': '收藏依個 tab',
+  'palette.renameTab': '改依個 tab 個名',
+  'palette.moveTabToGroup': '搬依個 tab 去個 group',
+  'palette.collapseTabGroup': '收埋依個 tab group',
+  'palette.deleteTabGroup': '刪除依個 tab group',
+  'palette.sortTabsLabelAscending': 'Tab 由 A 排到 Z',
+  'palette.sortTabsLabelDescending': 'Tab 由 Z 排到 A',
+  'palette.sortTabsOpenedNewest': 'Tab 新開嘅排前面',
+  'palette.sortTabsOpenedOldest': 'Tab 舊開嘅排前面',
+  'palette.sortTabsStatusAttentionFirst': 'Tab 照狀態排，要留意嘅排前面',
+  'palette.sortTabsStatusCleanFirst': 'Tab 照狀態排，乾淨嘅排前面',
+  'palette.sortTabsFavoriteFirst': 'Tab 收藏咗嘅排前面',
+  'palette.sortTabsFavoriteLast': 'Tab 收藏咗嘅排後面',
+  'palette.undoSettingsChange': '復原上一次設定改動',
+  'palette.redoSettingsChange': '重做上一次設定改動',
+  'palette.signInDotcom': '登入 GitHub.com',
+  'palette.signInEnterprise': '登入 GitHub Enterprise',
   'commandPalette.homeRepositoryTools': '儲存庫工具',
   'commandPalette.homePalette': '指令板本身',
   'commandPalette.homeTabStrip': '上面條 repo 分頁',
@@ -10786,7 +10870,7 @@ export const cantoneseTranslations: Readonly<
   'palette.tagLifecycle': '標籤生命週期管理員',
   'palette.githubApiExplorer': 'GitHub API 瀏覽器',
   'palette.notificationCentre': '打開通知中心',
-  'palette.notificationHistory': '通知歷史',
+  'palette.notificationHistory': '通知版本歷史（復原、重做、還原）',
   'palette.notificationAutomations': '通知自動化',
   'palette.copyRepoPath': '複製倉庫路徑',
   'palette.copyBranchName': '複製而家分支個名',
@@ -11666,6 +11750,13 @@ export const cantoneseTranslations: Readonly<
   'settingsSearch.tabName.queue': 'Clone 隊列',
   'settingsSearch.tabName.sound': '聲音',
   'settingsSearch.tabName.ollama': 'Ollama 本地模型',
+  'settingsSearch.tabName.ai': 'AI',
+  'settingsSearch.entry.aiMasterSwitch.title': 'AI 總開關',
+  'settingsSearch.entry.aiMasterSwitch.desc':
+    '開關 AI 功能，仲可以揀邊個 provider 準用。',
+  'settingsSearch.entry.aiRepositoryEligibility.title': 'Repository AI 資格',
+  'settingsSearch.entry.aiRepositoryEligibility.desc':
+    '設定 repository 預設可唔可以將 diff 送去 AI provider。',
   'settingsSearch.entry.accountsSignIn.title': '登入 GitHub',
   'settingsSearch.entry.accountsSignIn.desc':
     '喺 Desktop Material 加個 GitHub.com 帳戶。',

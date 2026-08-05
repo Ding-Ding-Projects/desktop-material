@@ -104,6 +104,7 @@ import {
   registerActionsLocalRunIpc,
 } from './actions-local-run'
 import { AgentServerController } from './agent-server'
+import { SelfHostedServerController } from './self-hosted-server/controller'
 import {
   cancelActionsTransfer,
   handleActionsArtifactTransfer,
@@ -186,6 +187,7 @@ const profileRepositoryLockSenders = new WeakMap<
 let internalBrowserWindow: InternalBrowserWindow | null = null
 let browserOpenMode: BrowserOpenMode = 'external'
 let agentServerController: AgentServerController | null = null
+let selfHostedServerController: SelfHostedServerController | null = null
 const internalBrowserOAuthCallbackTimeoutMs = 60_000
 
 interface IPendingInternalBrowserOAuthCallback {
@@ -1162,6 +1164,16 @@ app.on('ready', () => {
     }
   )
 
+  selfHostedServerController = new SelfHostedServerController(
+    app.getPath('userData'),
+    Path.join(app.getAppPath(), 'services', 'desktop-material-server'),
+    progress => {
+      for (const window of getAppWindows()) {
+        window.sendSelfHostedServerProvisioningProgress(progress)
+      }
+    }
+  )
+
   ipcMain.handle('set-agent-server-enabled', async (_event, enabled) =>
     agentServerController!.setEnabled(enabled)
   )
@@ -1197,6 +1209,15 @@ app.on('ready', () => {
   ipcMain.handle('set-agent-server-remote-site-url', async (_event, value) =>
     agentServerController!.setRemoteSiteURL(value)
   )
+  ipcMain.handle('get-self-hosted-server-status', async () =>
+    selfHostedServerController!.getStatus()
+  )
+  ipcMain.handle('provision-self-hosted-server', async (_event, request) =>
+    selfHostedServerController!.provision(request)
+  )
+  ipcMain.handle('cancel-self-hosted-server-provisioning', async () => {
+    selfHostedServerController!.cancel()
+  })
   ipcMain.handle('download-actions-artifact', (event, request) =>
     handleActionsArtifactTransfer(event.sender, request)
   )

@@ -39,6 +39,8 @@ import { PreferencesTab } from '../../../models/preferences'
 import { MultiCommitOperationKind } from '../../../models/multi-commit-operation'
 import { TabBar, TabBarType } from '../../tab-bar'
 import { CopilotConflictsChanges } from './copilot-conflicts-changes'
+import { CopilotConflictsEditor } from './copilot-conflicts-editor'
+import { writeFile } from 'fs/promises'
 
 import {
   CopilotFileResolutionChoice,
@@ -60,17 +62,26 @@ interface ICopilotConflictsDialogProps {
   readonly onContinueAfterConflicts: () => Promise<void>
   readonly onAbort: () => Promise<void>
   readonly onDismissed: () => void
+  /** Re-runs the (R14-gated) Copilot conflict resolution pipeline. */
+  readonly onResolveWithCopilot: () => void
   readonly emoji: Map<string, Emoji>
 }
 
 enum CopilotConflictsTab {
   Summary,
   Changes,
+  Editor,
 }
 
 interface ICopilotConflictsDialogState {
   readonly isContinuing: boolean
   readonly selectedTab: CopilotConflictsTab
+  /**
+   * Hand-edited result content, keyed by file path, from the Editor tab's
+   * editable result pane. Written to disk (overriding the Copilot
+   * resolution for that file) when the user continues the operation.
+   */
+  readonly editedResults: ReadonlyMap<string, string>
 }
 
 const CopilotConflictsDialogTitleId = 'Dialog_Copilot_Conflicts'
@@ -94,6 +105,7 @@ export class CopilotConflictsDialog extends React.Component<
     this.state = {
       isContinuing: false,
       selectedTab: CopilotConflictsTab.Summary,
+      editedResults: new Map(),
     }
   }
 
@@ -125,11 +137,37 @@ export class CopilotConflictsDialog extends React.Component<
       await this.props.dispatcher.applyCopilotConflictResolutions(
         this.props.repository
       )
+      // Then let any hand-edits made in the Editor tab's result pane
+      // override those files on disk — the user's explicit edit always
+      // wins over whatever Copilot (or ours/theirs) produced.
+      await this.applyEditedResults()
       await this.props.onContinueAfterConflicts()
     } catch (e) {
       this.setState({ isContinuing: false })
       throw e
     }
+  }
+
+  private async applyEditedResults(): Promise<void> {
+    const { editedResults } = this.state
+    if (editedResults.size === 0) {
+      return
+    }
+
+    const { repository } = this.props
+    await Promise.all(
+      [...editedResults].map(([path, text]) =>
+        writeFile(join(repository.path, path), text, 'utf8')
+      )
+    )
+  }
+
+  private onEditedResultChange = (path: string, text: string) => {
+    this.setState(prev => {
+      const next = new Map(prev.editedResults)
+      next.set(path, text)
+      return { editedResults: next }
+    })
   }
 
   private onAbort = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -419,6 +457,25 @@ export class CopilotConflictsDialog extends React.Component<
       }
       case CopilotConflictsTab.Summary:
         return this.renderSummaryContent(unmergedFiles)
+      case CopilotConflictsTab.Editor: {
+        const conflictedFiles = unmergedFiles.filter(f =>
+          isConflictedFile(f.status)
+        )
+        return (
+          <CopilotConflictsEditor
+            repository={this.props.repository}
+            conflictedFiles={conflictedFiles}
+            copilotResolutions={this.props.copilotResolutions}
+            ourBranch={this.props.conflictState.ourBranch}
+            theirBranch={this.props.conflictState.theirBranch}
+            resolvedExternalEditor={this.props.resolvedExternalEditor}
+            openFileInExternalEditor={this.props.openFileInExternalEditor}
+            onResolveWithCopilot={this.props.onResolveWithCopilot}
+            onEditedResultChange={this.onEditedResultChange}
+            editedResults={this.state.editedResults}
+          />
+        )
+      }
       default:
         return assertNever(
           this.state.selectedTab,
@@ -476,6 +533,7 @@ export class CopilotConflictsDialog extends React.Component<
           >
             <span>Summary</span>
             <span>Changes</span>
+            <span>Editor</span>
           </TabBar>
           {this.renderTabContent(unmergedFiles)}
         </DialogContent>

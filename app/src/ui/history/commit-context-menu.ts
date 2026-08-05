@@ -52,6 +52,19 @@ export interface ICommitContextMenuProps {
     lastRetainedCommitRef: string | null,
     isInvokedByContextMenu: boolean
   ) => void
+  /**
+   * R9 "compose commits with AI": reorganize the given commits (oldest
+   * first) into a cleaner history via an AI-proposed, user-reviewed
+   * interactive-rebase plan. Never executes anything itself — it only opens
+   * the review/confirm flow.
+   */
+  readonly onComposeCommitsWithAI?: (commits: ReadonlyArray<Commit>) => void
+  /**
+   * R10 "Summarize past changes with AI": open a plain-language "Explaining
+   * N commits" explanation for the given commits (author/date rows, a
+   * prose summary, and a per-file Changes list).
+   */
+  readonly onSummarizeCommits?: (commits: ReadonlyArray<Commit>) => void
 }
 
 /**
@@ -96,6 +109,35 @@ function canSquash(props: ICommitContextMenuProps): boolean {
     props.disableSquashing === false &&
     props.isMultiCommitOperationInProgress === false
   )
+}
+
+function canComposeCommitsWithAI(props: ICommitContextMenuProps): boolean {
+  return (
+    props.onComposeCommitsWithAI !== undefined &&
+    props.isMultiCommitOperationInProgress === false
+  )
+}
+
+/** Order commits oldest-first — the replay order a rebase plan requires. */
+function orderCommitsOldestFirst(
+  commitSHAs: ReadonlyArray<string>,
+  commits: ReadonlyArray<Commit>
+): ReadonlyArray<Commit> {
+  return [...commits].sort(
+    (a, b) => commitSHAs.indexOf(b.sha) - commitSHAs.indexOf(a.sha)
+  )
+}
+
+/** Every commit newer than `row` (rows `0..row-1`), oldest first. */
+function getChildrenOldestFirst(
+  props: ICommitContextMenuProps,
+  row: number
+): ReadonlyArray<Commit> {
+  const childShas = props.commitSHAs.slice(0, row)
+  const children = childShas
+    .map(sha => props.commitLookup.get(sha))
+    .filter((commit): commit is Commit => commit !== undefined)
+  return orderCommitsOldestFirst(props.commitSHAs, children)
 }
 
 function getLastRetainedCommitRef(
@@ -245,6 +287,40 @@ function getContextMenuForSingleCommit(
     items.push({ type: 'separator' }, deleteTagsMenuItem)
   }
 
+  const children = getChildrenOldestFirst(props, row)
+  items.push(
+    { type: 'separator' },
+    {
+      label: __DARWIN__
+        ? 'Recompose Commit with AI…'
+        : 'Recompose commit with AI…',
+      action: () => props.onComposeCommitsWithAI?.([commit]),
+      enabled: canComposeCommitsWithAI(props),
+    }
+  )
+  if (children.length > 0) {
+    items.push({
+      label: __DARWIN__
+        ? `Recompose ${children.length} Children of \`${commit.sha.slice(
+            0,
+            7
+          )}\` with AI…`
+        : `Recompose ${children.length} children of \`${commit.sha.slice(
+            0,
+            7
+          )}\` with AI…`,
+      action: () => props.onComposeCommitsWithAI?.([...children, commit]),
+      enabled: canComposeCommitsWithAI(props),
+    })
+  }
+  items.push({
+    label: __DARWIN__
+      ? 'Summarize Commit with AI…'
+      : 'Summarize commit with AI…',
+    action: () => props.onSummarizeCommits?.([commit]),
+    enabled: props.onSummarizeCommits !== undefined,
+  })
+
   const darwinTagsLabel = commit.tags.length > 1 ? 'Copy Tags' : 'Copy Tag'
   const windowsTagsLabel = commit.tags.length > 1 ? 'Copy tags' : 'Copy tag'
   items.push(
@@ -303,6 +379,24 @@ function getContextMenuForMultipleCommits(
         : `Reorder ${count} commits…`,
       action: () => props.onKeyboardReorder?.(selectedCommits),
       enabled: canReorder(props),
+    },
+    { type: 'separator' },
+    {
+      label: __DARWIN__
+        ? `Recompose ${count} Commits with AI…`
+        : `Recompose ${count} commits with AI…`,
+      action: () =>
+        props.onComposeCommitsWithAI?.(
+          orderCommitsOldestFirst(props.commitSHAs, selectedCommits)
+        ),
+      enabled: canComposeCommitsWithAI(props),
+    },
+    {
+      label: __DARWIN__
+        ? `Summarize ${count} Commits with AI…`
+        : `Summarize ${count} commits with AI…`,
+      action: () => props.onSummarizeCommits?.(selectedCommits),
+      enabled: props.onSummarizeCommits !== undefined,
     },
   ]
 }

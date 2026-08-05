@@ -17,6 +17,7 @@ export enum BannerType {
   SuccessfulReorder = 'SuccessfulReorder',
   ConflictsFound = 'ConflictsFound',
   OSVersionNoLongerSupported = 'OSVersionNoLongerSupported',
+  PotentialConflictDetected = 'PotentialConflictDetected',
 }
 
 export type Banner =
@@ -122,3 +123,23 @@ export type Banner =
       readonly onOpenConflictsDialog: () => void
     }
   | { readonly type: BannerType.OSVersionNoLongerSupported }
+  | {
+      readonly type: BannerType.PotentialConflictDetected
+      /** name of the branch we're on locally */
+      readonly ourBranch: string
+      /** name of the remote-tracking branch that has diverged, e.g. `origin/main` */
+      readonly theirBranch: string
+      /** paths changed on both sides since the branches diverged */
+      readonly overlappingFiles: ReadonlyArray<string>
+      /** callback to push the current branch */
+      readonly onPush: () => void
+      /** callback to ignore future conflict warnings for this branch */
+      readonly onIgnore: () => void
+      /**
+       * Send the current working changes to `theirBranch`'s owner as a Cloud
+       * Patch link (R18/#135), reusing the local patch-series export and the
+       * configured R1 self-hosted server's `/v1/patches` storage. Omitted
+       * when no R1 server is configured for this repository.
+       */
+      readonly onSendAsPatch?: () => void
+    }

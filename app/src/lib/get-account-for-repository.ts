@@ -150,3 +150,25 @@ export function getAccountForCopilotConflictResolution(
 
   return accounts.find(isAccountEligibleForCopilotConflictResolution)
 }
+
+/**
+ * Get the authenticated account to use for AI-composed commit history
+ * (R9 "compose commits with AI"). Reuses the same Copilot SDK eligibility
+ * gate as conflict resolution — this app has one Copilot-eligibility
+ * surface today, and both features send the SDK metadata-only or diff
+ * content under the same admin/account gate.
+ */
+export function getAccountForComposeCommitsWithAI(
+  accounts: ReadonlyArray<Account>,
+  repository: Repository
+): Account | undefined {
+  const repositoryAccount = getAccountForRepository(accounts, repository)
+  if (
+    repositoryAccount !== null &&
+    isAccountEligibleForCopilotConflictResolution(repositoryAccount)
+  ) {
+    return repositoryAccount
+  }
+
+  return accounts.find(isAccountEligibleForCopilotConflictResolution)
+}

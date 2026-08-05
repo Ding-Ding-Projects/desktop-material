@@ -164,6 +164,7 @@ export enum PopupType {
   ThankYou = 'ThankYou',
   CommitMessage = 'CommitMessage',
   MultiCommitOperation = 'MultiCommitOperation',
+  ComposeCommitsWithAI = 'ComposeCommitsWithAI',
   WarnLocalChangesBeforeUndo = 'WarnLocalChangesBeforeUndo',
   WarnUndoPushedCommit = 'WarnUndoPushedCommit',
   WarningBeforeReset = 'WarningBeforeReset',
@@ -217,6 +218,7 @@ export enum PopupType {
   CommitAndPushAll = 'CommitAndPushAll',
   OpencodeFix = 'OpencodeFix',
   OpencodeSend = 'OpencodeSend',
+  SummarizeCommitsWithAI = 'SummarizeCommitsWithAI',
 }
 
 interface IBasePopup {
@@ -594,6 +596,22 @@ export type PopupDetail =
       repository: Repository
     }
   | {
+      type: PopupType.ComposeCommitsWithAI
+      repository: Repository
+      /**
+       * The reviewed commits this rebase plan will cover, oldest first —
+       * the exact replay order Git will use. The dialog never fetches its
+       * own commit set; it only ever proposes and executes over this one.
+       */
+      commits: ReadonlyArray<Commit>
+      /**
+       * SHAs from this set that have not yet reached the tracked upstream.
+       * Any commit NOT in this list is treated as already pushed, and the
+       * confirmation step must warn explicitly before allowing execution.
+       */
+      localCommitSHAs: ReadonlyArray<string>
+    }
+  | {
       type: PopupType.WarnLocalChangesBeforeUndo
       repository: Repository
       commit: Commit
@@ -848,6 +866,11 @@ export type PopupDetail =
       type: PopupType.OpencodeSend
       repository: Repository
       context: IOpencodeSendContext
+    }
+  | {
+      type: PopupType.SummarizeCommitsWithAI
+      repository: Repository
+      commits: ReadonlyArray<Commit>
     }
 export type Popup = IBasePopup & PopupDetail
 
