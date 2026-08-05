@@ -1,5 +1,33 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-05 — Partial Releases no longer steal the Windows update feed
+
+Commit `a4ce485037138f24d7534452a861a1fb7749beeb` hardens
+`.github/scripts/promote-current-release.sh`: a published Release may own the
+Windows `Latest` alias only when it includes both the Squirrel `RELEASES`
+manifest and a `*-full.nupkg` package. This prevents a newer Linux/TUI-only
+partial Release from making `releases/latest/download/RELEASES` return 404 to
+the Windows app.
+
+### Verification
+
+- Focused version-order, CI-workflow-safety, and automated-release-notes
+  suites: **29 passed, 0 failed**.
+- The previously broken live alias was repaired to the existing
+  Windows-capable Release `v3.6.3-beta3-zadwftypqg`, whose assets include
+  `RELEASES` and both full Squirrel packages. The exact
+  `releases/latest/download/RELEASES` URL now returns **HTTP 200**.
+- The required Cheap headless production build was attempted, but terminated
+  after about 800 seconds before emitting the renderer output; no About-dialog
+  screenshot is claimed from that incomplete artifact. The direct release
+  metadata and HTTP feed proof above are the available runtime evidence.
+
+### Remote state
+
+The fix is on branch `codex/update-check-404-fix` and has been pushed as
+`a4ce485037138f24d7534452a861a1fb7749beeb`. Integration into `main` and its
+remote workflow verdict remain pending at this handoff update.
+
 ## 2026-08-04 — Live Material renderer proof and startup cleanup
 
 The design reference is now verified against the real production Electron

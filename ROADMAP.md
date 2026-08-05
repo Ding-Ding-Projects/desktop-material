@@ -1,6 +1,19 @@
 # Desktop Material roadmap
 
-Updated: **August 3, 2026**
+Updated: **August 5, 2026**
+
+## August 5 — Windows updates survive partial Releases
+
+- The release promoter now considers only published Windows-capable Releases
+  for the `Latest` update alias. A candidate must carry the Squirrel
+  `RELEASES` manifest and a full `*-full.nupkg` package, so a newer Linux/TUI
+  partial Release cannot turn the Windows feed into a 404.
+- The existing live alias was repaired to
+  `v3.6.3-beta3-zadwftypqg`; `releases/latest/download/RELEASES` returns HTTP
+  200 and serves the expected manifest.
+- The focused regression suites pass **29/29**. A Cheap headless production
+  build was attempted but ended before renderer output was available, so the
+  About-dialog capture remains explicitly unverified for this change.
 
 ## August 3 — the site lays out on a phone
 

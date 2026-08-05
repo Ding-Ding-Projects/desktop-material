@@ -273,6 +273,16 @@ assets or tags.
 
 ## Verification
 
+The partial-Release regression guard landed in commit
+`a4ce485037138f24d7534452a861a1fb7749beeb`. The focused version-order,
+CI-workflow-safety, and automated-release-notes suites pass **29/29**. On
+2026-08-05 the live `Latest` alias was repaired to the existing
+Windows-capable Release `v3.6.3-beta3-zadwftypqg`; the exact
+`releases/latest/download/RELEASES` URL returned HTTP 200 and served the
+Squirrel manifest. The required Cheap headless production build ended before
+renderer output was emitted, so no About-dialog screenshot is presented as
+runtime evidence for this regression.
+
 Focused acceptance covers safe feed parsing, bounded Actions data, exact
 CI/installer job/run/SHA binding, ahead-of comparison, manual-dispatch and
 malformed/stale fail-closed behavior, transient storage, the updater-event race,
