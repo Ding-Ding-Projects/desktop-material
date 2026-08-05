@@ -48,6 +48,7 @@ import { RepositoryBundleImport } from './bundle-import'
 import { RepositoryShallowHistory } from './shallow-history'
 import { RepositoryPatchSeries } from './patch-series'
 import { CustomGitCommands } from './custom-git-commands'
+import { GitTerminal } from '../integrated-terminal/git-terminal'
 import {
   ITagLifecycleDispatcher,
   TagLifecycleManager,
@@ -154,6 +155,7 @@ export type RepositoryToolsHubToolID =
   | 'bundle-import'
   | 'patch-series'
   | 'custom-git-presets'
+  | 'terminal'
   | 'signing'
   | 'tag-lifecycle'
   | 'github-projects'
@@ -305,6 +307,14 @@ const UnsortedHubEntries: ReadonlyArray<IRepositoryToolsHubEntry> = [
     title: 'Custom Git presets',
     description:
       'Save and run reviewed, allowlisted Git argument presets without a shell or editable executable.',
+    category: 'Search & inspect',
+    icon: octicons.terminal,
+  },
+  {
+    id: 'terminal',
+    title: 'Git terminal',
+    description:
+      'Type Git commands directly — status, diff, blame, log, and more — with subcommand and flag auto-complete. Runs through the same allowlisted Git argv as the rest of Repository tools and refreshes the repository (including the history graph) after every command.',
     category: 'Search & inspect',
     icon: octicons.terminal,
   },
@@ -579,6 +589,7 @@ interface IRepositoryToolsState {
   readonly shallowHistoryBusy: boolean
   readonly patchSeriesBusy: boolean
   readonly customGitCommandsBusy: boolean
+  readonly terminalBusy: boolean
   readonly signingBusy: boolean
   readonly searchActive: boolean
   readonly searchPattern: string
@@ -646,6 +657,7 @@ export class RepositoryTools extends React.Component<
       shallowHistoryBusy: false,
       patchSeriesBusy: false,
       customGitCommandsBusy: false,
+      terminalBusy: false,
       signingBusy: false,
       searchActive: false,
       searchPattern: '',
@@ -730,6 +742,7 @@ export class RepositoryTools extends React.Component<
         shallowHistoryBusy: false,
         patchSeriesBusy: false,
         customGitCommandsBusy: false,
+        terminalBusy: false,
         signingBusy: false,
         searchActive: false,
         searchPattern: '',
@@ -834,6 +847,7 @@ export class RepositoryTools extends React.Component<
       this.state.shallowHistoryBusy ||
       this.state.patchSeriesBusy ||
       this.state.customGitCommandsBusy ||
+      this.state.terminalBusy ||
       this.state.signingBusy
     )
   }
@@ -859,6 +873,12 @@ export class RepositoryTools extends React.Component<
   private onCustomGitCommandsBusyChanged = (customGitCommandsBusy: boolean) => {
     if (this.state.customGitCommandsBusy !== customGitCommandsBusy) {
       this.setState({ customGitCommandsBusy })
+    }
+  }
+
+  private onTerminalBusyChanged = (terminalBusy: boolean) => {
+    if (this.state.terminalBusy !== terminalBusy) {
+      this.setState({ terminalBusy })
     }
   }
 
@@ -2116,6 +2136,26 @@ export class RepositoryTools extends React.Component<
     )
   }
 
+  private renderTerminal() {
+    return (
+      <GitTerminal
+        repositoryPath={this.props.repositoryPath}
+        disabled={
+          this.runId !== null ||
+          this.state.bundleImportBusy ||
+          this.state.shallowHistoryBusy ||
+          this.state.patchSeriesBusy ||
+          this.state.customGitCommandsBusy ||
+          !this.state.gitAvailable ||
+          this.temporaryToolsReadOnlyMessage !== null
+        }
+        client={this.temporarySafeClient}
+        onRefreshRepository={this.props.onRefreshRepository}
+        onBusyChanged={this.onTerminalBusyChanged}
+      />
+    )
+  }
+
   private renderShallowHistory() {
     return (
       <RepositoryShallowHistory
@@ -2742,6 +2782,12 @@ export class RepositoryTools extends React.Component<
           hidden={selected !== 'custom-git-presets'}
         >
           {this.renderCustomGitCommands()}
+        </div>
+        <div
+          className="repository-tools-panel repository-tools-terminal-panel"
+          hidden={selected !== 'terminal'}
+        >
+          {selected === 'terminal' && this.renderTerminal()}
         </div>
         {this.renderConfirmation()}
         {this.renderArchiveConfirmation()}
