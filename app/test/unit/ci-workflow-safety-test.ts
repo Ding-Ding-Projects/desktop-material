@@ -24,6 +24,10 @@ const installerWorkflow = readFileSync(
   join(root, '.github', 'workflows', 'build-installers.yml'),
   'utf8'
 )
+const lineCounter = readFileSync(
+  join(root, 'script', 'count-lines.mjs'),
+  'utf8'
+)
 const releasePromotionScript = readFileSync(
   join(root, '.github', 'scripts', 'promote-current-release.sh'),
   'utf8'
@@ -45,6 +49,15 @@ const workflowSources = readdirSync(workflowDirectory)
   }))
 
 describe('CI workflow safety', () => {
+  it('passes the Git trailer format as an argument instead of shell syntax', () => {
+    assert.match(lineCounter, /import \{ execFileSync, spawn \}/)
+    assert.match(
+      lineCounter,
+      /execFileSync\(\s*'git',\s*\[\s*'log',\s*'--format=%H%x01%an%x01%\(trailers:key=Co-Authored-By,valueonly,separator=%x02\)',\s*\]/
+    )
+    assert.doesNotMatch(lineCounter, /execSync\(\s*['"]git log/)
+  })
+
   it('keeps the static lint install independent of native lifecycle scripts', () => {
     const lintJob = linuxWorkflow.match(
       /\r?\n  lint:\r?\n([\s\S]*?)(?=\r?\n  [a-z-]+:\r?\n)/

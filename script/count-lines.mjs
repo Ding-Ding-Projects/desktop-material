@@ -19,7 +19,7 @@
  * Usage: node script/count-lines.mjs [--json]
  */
 
-import { execSync, spawn } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import { readFileSync, statSync } from 'node:fs'
 
 /** Extensions counted as source. Binaries and assets are not code. */
@@ -157,8 +157,12 @@ const AgentTrailerPattern = /claude|codex|opencode/i
  * blame that follows.
  */
 export function agentCommits() {
-  const raw = execSync(
-    'git log --format=%H%x01%an%x01%(trailers:key=Co-Authored-By,valueonly,separator=%x02)',
+  const raw = execFileSync(
+    'git',
+    [
+      'log',
+      '--format=%H%x01%an%x01%(trailers:key=Co-Authored-By,valueonly,separator=%x02)',
+    ],
     { maxBuffer: 1 << 28 }
   ).toString('utf8')
 
