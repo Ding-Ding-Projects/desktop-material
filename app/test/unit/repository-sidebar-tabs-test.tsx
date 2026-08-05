@@ -1,4 +1,6 @@
 import assert from 'node:assert'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, it } from 'node:test'
 import * as React from 'react'
 
@@ -64,5 +66,46 @@ describe('RepositorySidebarTabs', () => {
       key: 'ArrowRight',
     })
     assert.deepStrictEqual(selected, [])
+  })
+
+  // The switcher is the repository sheet's only child, and it is what the sheet
+  // hands its height to. Sized to content instead, every flex child below it —
+  // the list panel, the filter list, the virtualized row container — resolves
+  // to a zero-height scrolling region, the repository list measures a 0px
+  // viewport, and it renders no rows at all while its toolbar stays visible.
+  // The Agents fleet scroller collapses the same way. Asserted against the
+  // stylesheet because that height is the whole of the fix.
+  it('gives the switcher the sheet height so its panels can scroll', () => {
+    const style = readFileSync(
+      join(process.cwd(), 'app', 'styles', 'ui', '_agent-sessions.scss'),
+      'utf8'
+    )
+
+    assert.match(
+      style,
+      /\.repository-sidebar-switcher\s*\{[^}]*?\bheight: 100%;/,
+      'the switcher must take the sheet height, or its panels collapse to 0px'
+    )
+    assert.match(
+      style,
+      /\.repository-sidebar-panel\s*\{[^}]*?\bflex: 1 1 auto;[^}]*?\bmin-height: 0;/
+    )
+  })
+
+  // The panel is a flex row, so whatever it holds shrink-wraps unless told to
+  // grow. The repository list sizes itself for the legacy Add-repository
+  // foldout, which leaves it narrower than the side sheet and strands an empty
+  // strip down the right of every row.
+  it('lets each panel fill the sheet width', () => {
+    const style = readFileSync(
+      join(process.cwd(), 'app', 'styles', 'ui', '_agent-sessions.scss'),
+      'utf8'
+    )
+
+    assert.match(
+      style,
+      /\.repository-sidebar-panel\s*\{[\s\S]*?>\s*\*\s*\{[^}]*?\bflex: 1 1 auto;[^}]*?\bmin-width: 0;/,
+      'panel children must grow, or the list renders narrower than the sheet'
+    )
   })
 })
