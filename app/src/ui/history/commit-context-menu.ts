@@ -59,6 +59,12 @@ export interface ICommitContextMenuProps {
    * the review/confirm flow.
    */
   readonly onComposeCommitsWithAI?: (commits: ReadonlyArray<Commit>) => void
+  /**
+   * R10 "Summarize past changes with AI": open a plain-language "Explaining
+   * N commits" explanation for the given commits (author/date rows, a
+   * prose summary, and a per-file Changes list).
+   */
+  readonly onSummarizeCommits?: (commits: ReadonlyArray<Commit>) => void
 }
 
 /**
@@ -303,11 +309,17 @@ function getContextMenuForSingleCommit(
             0,
             7
           )}\` with AI…`,
-      action: () =>
-        props.onComposeCommitsWithAI?.([...children, commit]),
+      action: () => props.onComposeCommitsWithAI?.([...children, commit]),
       enabled: canComposeCommitsWithAI(props),
     })
   }
+  items.push({
+    label: __DARWIN__
+      ? 'Summarize Commit with AI…'
+      : 'Summarize commit with AI…',
+    action: () => props.onSummarizeCommits?.([commit]),
+    enabled: props.onSummarizeCommits !== undefined,
+  })
 
   const darwinTagsLabel = commit.tags.length > 1 ? 'Copy Tags' : 'Copy Tag'
   const windowsTagsLabel = commit.tags.length > 1 ? 'Copy tags' : 'Copy tag'
@@ -378,6 +390,13 @@ function getContextMenuForMultipleCommits(
           orderCommitsOldestFirst(props.commitSHAs, selectedCommits)
         ),
       enabled: canComposeCommitsWithAI(props),
+    },
+    {
+      label: __DARWIN__
+        ? `Summarize ${count} Commits with AI…`
+        : `Summarize ${count} commits with AI…`,
+      action: () => props.onSummarizeCommits?.(selectedCommits),
+      enabled: props.onSummarizeCommits !== undefined,
     },
   ]
 }

@@ -66,6 +66,16 @@ import {
   parseComposeCommitsPlanResponse,
 } from '../interactive-rebase/compose-commits-with-ai'
 import { IInteractiveRebasePlan } from '../interactive-rebase/interactive-rebase-plan'
+import {
+  CommitSummarySystemPrompt,
+  formatCommitSummaryPromptForReview,
+  parseCopilotCommitSummaryResponse,
+} from '../copilot-commit-summary'
+import {
+  IChangeSummaryReview,
+  IChangeSummaryResult,
+  createChangeSummaryResult,
+} from '../change-summary/change-summary-model'
 
 /** The default model ID used for Copilot commit message generation. */
 export const DefaultCopilotModel = 'auto'
@@ -152,6 +162,14 @@ const ConflictResolutionAIContentClasses: ReadonlyArray<AIContentClass> =
  */
 const ComposeCommitsAIContentClasses: ReadonlyArray<AIContentClass> =
   Object.freeze(['metadata'])
+
+/**
+ * Commit summaries are built only from commit metadata (author, date,
+ * subject) and per-file paths/line counts — never full diffs or file
+ * contents in this first build.
+ */
+const CommitSummaryAIContentClasses: ReadonlyArray<AIContentClass> =
+  Object.freeze(['metadata', 'path'])
 
 const ConflictBYOKProviderKeys = [
   'apiKey',
@@ -1726,6 +1744,147 @@ export class CopilotStore extends BaseStore {
         lastError
       )
       throw lastError ?? new Error('Compose-commits plan proposal failed')
+    } finally {
+      this.stopClient(client)
+    }
+  }
+
+  /**
+   * Use the Copilot SDK to produce a plain-language explanation of a
+   * reviewed set of commits: a short prose summary plus one description per
+   * changed file.
+   *
+   * Follows the same gate-then-call shape as `resolveConflicts` and
+   * `proposeComposeCommitsPlan`: the request is denied before any
+   * client, session, or prompt is built unless `policyAuthorization` is a
+   * fresh, independently verified authorization for the `commit-summary`
+   * feature. The model's raw response is untrusted output — it is
+   * reconciled against `review` via {@link createChangeSummaryResult}, which
+   * guarantees every reviewed path gets exactly one result entry and
+   * rejects any path the model invented. Paths the model's response omits
+   * are filled in here as explicitly "unavailable" so the reconciliation
+   * always succeeds instead of discarding an otherwise-good response over a
+   * partial one.
+   *
+   * @param review - The exact reviewed evidence (commits, file paths, line
+   *   counts) that bounds what the model may talk about.
+   * @param policyAuthorization - A signed policy plus independent
+   *   main-process verification evidence, scoped to the `commit-summary`
+   *   feature. Missing evidence fails closed before any SDK client, session,
+   *   or prompt is created.
+   * @param activeRepositoryId - Repository identity selected independently
+   *   of the review. It must match both policy and trusted evidence.
+   */
+  public async summarizeCommits(
+    account: Account,
+    review: IChangeSummaryReview,
+    repositoryPath: string,
+    request?: CopilotModelRequest | null,
+    policyAuthorization?: IAISecurityPolicyAuthorization,
+    activeRepositoryId?: number,
+    signal?: AbortSignal
+  ): Promise<IChangeSummaryResult> {
+    let modelConfig: IResolvedConflictModelConfig = {
+      modelId: '',
+      reasoningEffort: undefined,
+      provider: undefined,
+      timeoutMs: undefined,
+    }
+    let providerBinding: IAIProviderBinding | null = null
+    try {
+      // Reuses the conflict-resolution model resolver: same account/BYOK
+      // shape, and a per-feature default is not yet warranted here.
+      modelConfig = this.resolveConflictModelConfig(account, request)
+      providerBinding = getConflictResolutionAIProviderBinding(
+        account,
+        modelConfig.provider
+      )
+    } catch {
+      // The evaluator treats the null provider as a malformed request and
+      // emits the same redacted, typed denial as every other fail-closed
+      // path.
+    }
+
+    const policyDecision = evaluateAISecurityPolicy(policyAuthorization, {
+      feature: 'commit-summary',
+      repositoryId: activeRepositoryId ?? -1,
+      repositoryPath,
+      provider: providerBinding,
+      contentClasses: CommitSummaryAIContentClasses,
+    })
+    if (!policyDecision.allowed) {
+      throw new AISecurityPolicyDeniedError(
+        policyDecision.denial,
+        policyDecision.auditReceipt
+      )
+    }
+
+    if (signal?.aborted) {
+      throw new CopilotConflictResolutionAbortError()
+    }
+
+    const client = await this.createClient(
+      account,
+      policyDecision.canonicalRepositoryPath
+    )
+
+    try {
+      const prompt = formatCommitSummaryPromptForReview(review)
+      const session = await client.createSession({
+        model: modelConfig.modelId,
+        reasoningEffort: modelConfig.reasoningEffort,
+        provider: modelConfig.provider,
+        streaming: true,
+        availableTools: [],
+        enableSessionStore: false,
+        createSessionFsProvider: createCopilotInMemorySessionFsProvider,
+        systemMessage: {
+          mode: 'append',
+          content: CommitSummarySystemPrompt,
+        },
+        onPermissionRequest: async () => ({
+          kind: 'reject',
+        }),
+      })
+
+      if (signal?.aborted) {
+        await session.disconnect().catch(() => {})
+        throw new CopilotConflictResolutionAbortError()
+      }
+
+      const responseContent = await runConflictResolutionTurn(session, prompt, {
+        timeoutMs: modelConfig.timeoutMs ?? 600_000,
+        signal,
+      })
+
+      const candidate = parseCopilotCommitSummaryResponse(responseContent)
+
+      // The model may omit paths, especially in a large selection. Every
+      // reviewed path still needs exactly one entry for
+      // createChangeSummaryResult to accept the result, so fill any gap
+      // honestly instead of fabricating a description or dropping the
+      // response.
+      const byPath = new Map(candidate.changes.map(c => [c.path, c]))
+      const changes = review.reviewedPaths.map(path => {
+        const described = byPath.get(path)
+        return described !== undefined
+          ? {
+              path,
+              availability: 'value' as const,
+              description: described.description,
+            }
+          : {
+              path,
+              availability: 'unavailable' as const,
+              explanation: 'The AI response did not describe this file.',
+            }
+      })
+
+      return createChangeSummaryResult(review, {
+        authorization: review.authorization,
+        summary: candidate.summary,
+        changes,
+      })
     } finally {
       this.stopClient(client)
     }

@@ -450,6 +450,11 @@ import {
 } from '../ai-security-policy'
 import { IInteractiveRebasePlan } from '../interactive-rebase/interactive-rebase-plan'
 import {
+  IChangeSummaryReview,
+  IChangeSummaryResult,
+  createChangeSummaryReview,
+} from '../change-summary/change-summary-model'
+import {
   autoSwitchAccountToRepositoryOwnerDefault,
   autoSwitchAccountToRepositoryOwnerKey,
 } from '../auto-switch-account-preference'
@@ -15396,7 +15401,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
     commits: ReadonlyArray<Commit>,
     signal?: AbortSignal
   ): Promise<
-    | { readonly kind: 'plan'; readonly plan: IInteractiveRebasePlan; readonly summary: string | null }
+    | {
+        readonly kind: 'plan'
+        readonly plan: IInteractiveRebasePlan
+        readonly summary: string | null
+      }
     | { readonly kind: 'denied'; readonly reason: string }
   > {
     if (commits.length === 0) {
@@ -15479,6 +15488,165 @@ export class AppStore extends TypedBaseStore<IAppState> {
           e instanceof Error
             ? e.message
             : 'The AI provider could not propose a plan.',
+      }
+    }
+  }
+
+  /**
+   * R10 "Summarize past changes with AI": build the reviewed evidence for a
+   * plain-language explanation of the given commits, then ask Copilot to
+   * explain them. This shouldn't be called directly. See
+   * `Dispatcher.summarizeCommitsWithAI`.
+   *
+   * Every request goes through {@link evaluateAIAdminGate} and a freshly
+   * issued {@link issueAISecurityPolicyAuthorization} first — a denied gate
+   * or an unresolvable account fails closed with a denial reason and never
+   * reaches the AI provider.
+   *
+   * Line-added/deleted counts are marked "unavailable" for every file: the
+   * app's commit changed-files lookup only exposes changeset-wide totals
+   * today, not a genuine per-file breakdown, and the reviewed-evidence
+   * contract (`change-summary-model.ts`) requires reporting missing facts
+   * honestly rather than fabricating them.
+   */
+  public async _summarizeCommitsWithAI(
+    repository: Repository,
+    commits: ReadonlyArray<Commit>,
+    signal?: AbortSignal
+  ): Promise<
+    | { readonly kind: 'result'; readonly result: IChangeSummaryResult }
+    | { readonly kind: 'denied'; readonly reason: string }
+  > {
+    if (commits.length === 0) {
+      return { kind: 'denied', reason: 'There are no commits to summarize.' }
+    }
+
+    const account = getAccountForCopilotConflictResolution(
+      this.accounts,
+      repository
+    )
+    if (account === undefined) {
+      return {
+        kind: 'denied',
+        reason:
+          'No signed-in account is eligible to use AI for this repository.',
+      }
+    }
+
+    const providerBinding = getConflictResolutionAIProviderBinding(
+      account,
+      undefined
+    )
+    if (providerBinding === null) {
+      return {
+        kind: 'denied',
+        reason: 'Could not determine an AI provider for this account.',
+      }
+    }
+
+    const adminGate = evaluateAIAdminGate({
+      feature: 'commit-summary',
+      repositoryId: repository.id,
+      repositoryPath: repository.path,
+      filePaths: [],
+      providerKind: providerBinding.kind,
+    })
+    if (!adminGate.allowed) {
+      return { kind: 'denied', reason: adminGate.reason }
+    }
+
+    const policyAuthorization = issueAISecurityPolicyAuthorization(
+      'commit-summary',
+      repository.id,
+      repository.path,
+      [],
+      providerBinding,
+      ['metadata', 'path']
+    )
+    if (policyAuthorization === null) {
+      return { kind: 'denied', reason: 'Could not authorize this AI request.' }
+    }
+
+    const reviewCommits = await Promise.all(
+      commits.map(async commit => {
+        let files: ReadonlyArray<{ readonly path: string }> = []
+        try {
+          const changeset = await getChangedFiles(repository, commit.sha)
+          files = changeset.files
+        } catch {
+          files = []
+        }
+
+        return {
+          commitId: commit.sha,
+          author:
+            commit.author.name.length > 0
+              ? ({ availability: 'value', value: commit.author.name } as const)
+              : ({ availability: 'unavailable' } as const),
+          authoredAt: Number.isNaN(commit.author.date.getTime())
+            ? ({ availability: 'unavailable' } as const)
+            : ({
+                availability: 'value',
+                value: commit.author.date.toISOString(),
+              } as const),
+          subject:
+            commit.summary.length > 0
+              ? ({ availability: 'value', value: commit.summary } as const)
+              : ({ availability: 'value', value: '(no subject)' } as const),
+          files: files.map(file => ({
+            path: file.path,
+            addedLines: { availability: 'unavailable' } as const,
+            deletedLines: { availability: 'unavailable' } as const,
+          })),
+        }
+      })
+    )
+
+    if (signal?.aborted) {
+      return { kind: 'denied', reason: 'The AI request was cancelled.' }
+    }
+
+    let review: IChangeSummaryReview
+    try {
+      review = createChangeSummaryReview({
+        authorization: {
+          version: 1,
+          authorizationId: `r14-authorization-v1:${policyAuthorization.trustedMainProcess.verifiedPolicyDigest}`,
+          evidenceId: `r14-evidence-v1:${policyAuthorization.trustedMainProcess.verifiedPolicyDigest}`,
+        },
+        commits: reviewCommits,
+      })
+    } catch (e) {
+      log.warn('AppStore: Could not build commit-summary review evidence', e)
+      return {
+        kind: 'denied',
+        reason: 'Could not build reviewed evidence for these commits.',
+      }
+    }
+
+    try {
+      const result = await this.copilotStore.summarizeCommits(
+        account,
+        review,
+        repository.path,
+        undefined,
+        policyAuthorization,
+        repository.id,
+        signal
+      )
+      return { kind: 'result', result }
+    } catch (e) {
+      if (signal?.aborted) {
+        log.info('AppStore: Commit summary generation aborted by user')
+        return { kind: 'denied', reason: 'The AI request was cancelled.' }
+      }
+      log.warn('AppStore: Commit summary generation failed', e)
+      return {
+        kind: 'denied',
+        reason:
+          e instanceof Error
+            ? e.message
+            : 'The AI provider could not summarize these commits.',
       }
     }
   }

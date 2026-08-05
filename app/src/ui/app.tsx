@@ -395,6 +395,7 @@ import { SSHUserPassword } from './ssh/ssh-user-password'
 import { CheapLfsPayloadPassword } from './dialog/cheap-lfs-payload-password'
 import { showContextualMenu } from '../lib/menu-item'
 import { UnreachableCommitsDialog } from './history/unreachable-commits-dialog'
+import { CommitSummaryDialog } from './history/commit-summary-dialog'
 import { OpenPullRequestDialog } from './open-pull-request/open-pull-request-dialog'
 import { sendNonFatalException } from '../lib/helpers/non-fatal-exception'
 import { ICustomIntegration } from '../lib/custom-integration'
@@ -5892,6 +5893,18 @@ export class App extends React.Component<IAppProps, IAppState> {
             repository={popup.repository}
             commits={popup.commits}
             localCommitSHAs={popup.localCommitSHAs}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.SummarizeCommitsWithAI:
+        return (
+          <CommitSummaryDialog
+            key="commit-summary-dialog"
+            dispatcher={this.props.dispatcher}
+            repository={popup.repository}
+            commits={popup.commits}
+            accounts={this.state.accounts}
+            preferAbsoluteDates={this.state.preferAbsoluteDates}
             onDismissed={onPopupDismissedFn}
           />
         )
