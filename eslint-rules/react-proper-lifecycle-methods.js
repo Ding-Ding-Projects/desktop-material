@@ -16,7 +16,7 @@
  * @typedef {import('@typescript-eslint/experimental-utils').TSESTree.Node} Node
  * @typedef {import('@typescript-eslint/experimental-utils').TSESTree.Parameter} Parameter
  * @typedef {import("@typescript-eslint/experimental-utils").TSESTree.MethodDefinition} MethodDefinition
- * @typedef {import('@typescript-eslint/experimental-utils').TSESLint.RuleModule} RuleModule
+ * @typedef {import('@typescript-eslint/experimental-utils').TSESLint.RuleModule<string>} RuleModule
  */
 
 /**

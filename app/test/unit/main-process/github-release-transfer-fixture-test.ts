@@ -126,7 +126,7 @@ describe('GitHub release transfer loopback GHES fixture', () => {
         await fetch(url, {
           method: 'POST',
           headers,
-          body: await readFile(source.path),
+          body: new Uint8Array(await readFile(source.path)),
           redirect: 'manual',
           signal,
         }),
