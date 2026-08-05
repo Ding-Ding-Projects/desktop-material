@@ -90,6 +90,7 @@ import {
   setShowCommitAuthorInfo,
 } from '../../models/commit-author-display'
 import { AgentAccess } from './agent-access'
+import { SelfHostedServerPreferences } from './self-hosted-server'
 import { ErrorPresentationStyle } from '../../models/error-presentation'
 import { QueuePreferences } from './queue'
 import { SoundPreferences } from './sound'
@@ -553,6 +554,13 @@ export class Preferences extends React.Component<
         true
       ),
       this.renderRailTab(
+        PreferencesTab.SelfHostedServer,
+        octicons.server,
+        'Self-hosted server',
+        'Self-hosted server',
+        true
+      ),
+      this.renderRailTab(
         PreferencesTab.Automation,
         octicons.sync,
         'Automation',
@@ -759,6 +767,9 @@ export class Preferences extends React.Component<
         break
       case PreferencesTab.AgentAccess:
         suffix = 'agent-access'
+        break
+      case PreferencesTab.SelfHostedServer:
+        suffix = 'self-hosted-server'
         break
       case PreferencesTab.Automation:
         suffix = 'automation'
@@ -1109,6 +1120,9 @@ export class Preferences extends React.Component<
         break
       case PreferencesTab.AgentAccess:
         View = <AgentAccess openInBrowser={this.openInBrowser} />
+        break
+      case PreferencesTab.SelfHostedServer:
+        View = <SelfHostedServerPreferences />
         break
       case PreferencesTab.Automation:
         View = (
