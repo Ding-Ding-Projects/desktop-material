@@ -88,6 +88,12 @@ creates one wheel and one source distribution, `uv export --locked` creates
 the matching runtime constraints, and both checked-in shell installers pass
 `sh -n` and are copied as executable release assets.
 
+The Linux TUI lane also has its own `workflow_dispatch` trigger. Dispatching
+it from `main` with an optional exact commit SHA runs the same packaging-only
+lane and uploads a verified TUI artifact without publishing a Release. Use the
+combined `.github/workflows/super-express-release.yml` dispatcher when the
+Windows and Linux payloads must be published together.
+
 The dispatcher downloads the verified Windows and TUI artifacts and publishes
 one combined immutable Release. The TUI wheel, source distribution, runtime
 constraints, `install-linux-tui.sh`, and `bootstrap-linux-tui.sh` therefore

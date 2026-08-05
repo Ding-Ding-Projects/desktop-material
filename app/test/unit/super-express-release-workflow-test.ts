@@ -67,6 +67,13 @@ describe('Super Express Release workflow', () => {
     assert.doesNotMatch(workflow, /validate-changelog/)
 
     assert.match(windowsWorkflow, /workflow_call:/)
+    assert.match(windowsWorkflow, /workflow_dispatch:/)
+    assert.match(windowsWorkflow, /inputs\.release_target_sha \|\| github\.sha/)
+    assert.match(windowsWorkflow, /Resolve release package version/)
+    assert.match(
+      windowsWorkflow,
+      /Direct Super Express Windows dispatches must use main/
+    )
     assert.match(windowsWorkflow, /runs-on: windows-2022/)
     assert.match(windowsWorkflow, /yarn build:prod/)
     assert.match(windowsWorkflow, /yarn package/)
@@ -77,6 +84,12 @@ describe('Super Express Release workflow', () => {
     )
 
     assert.match(tuiWorkflow, /workflow_call:/)
+    assert.match(tuiWorkflow, /workflow_dispatch:/)
+    assert.match(tuiWorkflow, /inputs\.release_target_sha \|\| github\.sha/)
+    assert.match(
+      tuiWorkflow,
+      /Direct Super Express Linux TUI dispatches must use main/
+    )
     assert.match(tuiWorkflow, /runs-on: ubuntu-latest/)
     assert.match(tuiWorkflow, /uv build --clear/)
     assert.match(

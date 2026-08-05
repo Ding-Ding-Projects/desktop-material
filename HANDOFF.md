@@ -1,5 +1,14 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-05 — Direct Super Express lane dispatch actions
+
+The Windows and Linux TUI Super Express packaging workflows now each expose a
+manual `workflow_dispatch` action in addition to their reusable `workflow_call`
+entry point. Direct dispatches are restricted to `main`, default to the
+dispatched commit, validate the same packaging payload, and upload an
+artifact-only recovery result. They never publish independently, preserving the
+combined dispatcher's one-Release update/bootstrap contract.
+
 ## 2026-08-05 — Super Express packaging lanes parallelized
 
 The manual Super Express dispatcher now keeps one combined immutable Release

@@ -10,6 +10,13 @@ on:
         description: Exact commit SHA selected by the dispatcher
         required: true
         type: string
+  workflow_dispatch:
+    inputs:
+      release_target_sha:
+        description:
+          Exact main-branch commit to package; blank uses the dispatched commit
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -20,12 +27,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      RELEASE_TARGET_SHA: ${{ inputs.release_target_sha }}
+      RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ inputs.release_target_sha }}
+          ref: ${{ inputs.release_target_sha || github.sha }}
           fetch-depth: 0
+
+      - name: Require a main-branch manual dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Direct Super Express Linux TUI dispatches must use main." >&2
+            exit 1
+          fi
 
       - name: Require the exact release commit
         shell: bash

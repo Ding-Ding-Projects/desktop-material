@@ -14,6 +14,18 @@ on:
         description: Squirrel-compatible version selected by the dispatcher
         required: true
         type: string
+  workflow_dispatch:
+    inputs:
+      release_target_sha:
+        description:
+          Exact main-branch commit to package; blank uses the dispatched commit
+        required: false
+        type: string
+      release_version:
+        description:
+          Squirrel-compatible version; blank derives one from the run ID
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -27,14 +39,23 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 60
     env:
-      RELEASE_TARGET_SHA: ${{ inputs.release_target_sha }}
+      RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
       RELEASE_VERSION: ${{ inputs.release_version }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ inputs.release_target_sha }}
+          ref: ${{ inputs.release_target_sha || github.sha }}
           fetch-depth: 0
           submodules: recursive
+
+      - name: Require a main-branch manual dispatch
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Direct Super Express Windows dispatches must use main." >&2
+            exit 1
+          fi
 
       - name: Require the exact release commit
         shell: bash
@@ -49,6 +70,15 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           arch: x64
+
+      - name: Resolve release package version
+        shell: bash
+        run: |
+          if [ -z "$RELEASE_VERSION" ]; then
+            base=$(node -p "require('./app/package.json').version")
+            version=$(node script/release-version.js create "$base" "$GITHUB_RUN_ID")
+            echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
+          fi
 
       - name: Apply the release package version
         shell: bash

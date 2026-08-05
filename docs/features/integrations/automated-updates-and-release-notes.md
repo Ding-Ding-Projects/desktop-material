@@ -138,6 +138,14 @@ tag once, then calls two reusable lanes in parallel:
   to build the Linux TUI wheel, source distribution, locked runtime
   constraints, bootstrap, and installer.
 
+Each packaging lane also exposes its own `workflow_dispatch` action for a
+manual, packaging-only recovery run. A direct Windows dispatch accepts an
+optional exact `main` SHA and Squirrel version; a direct Linux TUI dispatch
+accepts an optional exact `main` SHA. Blank inputs use the dispatched commit
+and derive the Windows version from the run ID. These direct lane runs upload
+their verified artifact but never publish a Release; use the combined
+dispatcher when both payloads must ship together.
+
 Both lanes run no unit, script, TUI, lint, type, parity, smoke, trampoline, or
 packaged E2E tests, and they omit history-generated release notes. The ordinary
 CI and tested Express Release paths remain the default release gates.

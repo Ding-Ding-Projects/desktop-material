@@ -153,6 +153,8 @@ The emergency Super Express dispatcher has its own native Ubuntu packaging
 workflow, `.github/workflows/super-express-release-linux-tui.yml`, which skips
 those tests for speed but still builds the same complete TUI payload and
 publishes it beside the Windows assets in one combined Release.
+That Linux lane is also directly dispatchable from `main` for a packaging-only
+recovery artifact; it does not publish by itself.
 
 A separate Windows Server 2022/Python 3.12 lane runs the non-PTY unit,
 application, infrastructure, Cheap LFS, lint, and type-check core. It is a
