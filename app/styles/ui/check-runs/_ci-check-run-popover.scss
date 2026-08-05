@@ -28,6 +28,11 @@
 
     .ci-check-run-list-title-container {
       flex: 1;
+      // The popover is a fixed 440px and its content clips overflow-x (see
+      // popover.tsx), so without this a long combined-status summary can
+      // force the header wider than the popover and get hard-clipped instead
+      // of wrapping onto a second line.
+      min-width: 0;
       align-items: center;
 
       .title {
@@ -48,6 +53,7 @@
         color: var(--text-secondary-color);
         font-weight: var(--text-secondary-color);
         font-size: var(--font-size-sm);
+        overflow-wrap: anywhere;
       }
     }
 

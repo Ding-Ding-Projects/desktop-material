@@ -675,6 +675,16 @@
   white-space: nowrap;
 }
 
+// The title and tag sit in the row grid's shrinkable `minmax(0, 1fr)` column,
+// but the shared rule above only stops wrapping — it never told the browser
+// what to do with the overflow. Without this, a long release name or tag
+// silently hard-clips against the row shell's `overflow: hidden` (no ellipsis)
+// instead of truncating like the date already does.
+.github-release-row-title,
+.github-release-row-tag {
+  @include ellipsis;
+}
+
 .github-release-row-date {
   overflow: hidden;
   text-overflow: ellipsis;
