@@ -24,6 +24,12 @@
 
     .job-step-status-symbol,
     .job-step-duration {
+      // Never give up width to the step name: without this a long step name
+      // shares the shrink budget with the icon and the duration once the row
+      // runs out of room, squeezing the status glyph and clipping the
+      // duration/timestamp instead of leaving all the shrinking to the name's
+      // own ellipsis.
+      flex-shrink: 0;
       padding: var(--spacing-half) var(--spacing);
       margin-top: 2px;
     }
@@ -34,6 +40,7 @@
 
     .job-step-name {
       flex-grow: 1;
+      min-width: 0;
       text-overflow: ellipsis;
       white-space: nowrap;
       overflow: hidden;
@@ -45,6 +52,7 @@
 
     .button-component {
       // Remove button styles
+      flex-shrink: 0;
       border: 1px solid var(--box-alt-background-color);
       height: 100%;
       text-align: unset;
