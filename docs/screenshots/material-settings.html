@@ -350,7 +350,7 @@
         data-screenshot-search="material-settings material-settings.png Responsive Material Settings dialog windows-canonical-cdp settings Material shell and accessibility"
       >
         <div class="section__head">
-          <p class="eyebrow">Frame 6 of 92 · windows-canonical-cdp</p>
+          <p class="eyebrow">Frame 6 of 95 · windows-canonical-cdp</p>
           <h1 class="md-headline">Responsive Material Settings dialog</h1>
           <p class="md-body">
             1440 × 960 px · 134,475 bytes · batch windows-canonical-cdp
@@ -1874,6 +1874,44 @@
             "datedReceipts": []
           },
           {
+            "output": "material-history-view-tabs-list",
+            "file": "material-history-view-tabs-list.png",
+            "caption": "Explicit keyboard-accessible Commit list tab in the built Windows History view",
+            "altText": "History Commit list tab from the built Windows app",
+            "scene": "history-view-tabs-list",
+            "batch": "windows-history-tabs",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Open History in the built Windows app, leave the explicit Commit list tab selected, and preserve the real List/Graph tab strip with its accessible relationships.",
+            "width": 1443,
+            "height": 992,
+            "bytes": 138792,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the exact production build with an owned History fixture, switch between the explicit Commit list and Graph tabs, then capture each original client-only frame to \u003cowned-temp-run-root>\\captures\\\u003coutput>.png"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-history-view-tabs-graph",
+            "file": "material-history-view-tabs-graph.png",
+            "caption": "Explicit keyboard-accessible Graph tab in the built Windows History view",
+            "altText": "History Graph tab from the built Windows app",
+            "scene": "history-view-tabs-graph",
+            "batch": "windows-history-tabs",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Open History in the built Windows app, select Graph through the real tab control, and preserve the real List/Graph tab strip with its accessible relationships.",
+            "width": 1443,
+            "height": 992,
+            "bytes": 138835,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the exact production build with an owned History fixture, switch between the explicit Commit list and Graph tabs, then capture each original client-only frame to \u003cowned-temp-run-root>\\captures\\\u003coutput>.png"
+            ],
+            "datedReceipts": []
+          },
+          {
             "output": "material-repositories-sheet",
             "file": "material-repositories-sheet.png",
             "caption": "Collapsible repository filters with compact Add, Select, and More actions",
@@ -2039,7 +2077,7 @@
             "output": "material-command-palette-appearance",
             "file": "material-command-palette-appearance.png",
             "caption": "Rich command results beside the compact aligned appearance editor with stable random-per-repository mode",
-            "altText": "Command palette showing Ollama results beside the compact aligned row appearance editor with random per repository mode",
+            "altText": "Full-app command palette showing matched commands with their live settings controls beside the compact aligned row appearance editor",
             "scene": "command-palette-appearance",
             "batch": "windows-ui-state-lowlevel",
             "platform": "windows-headless",
@@ -2343,6 +2381,22 @@
               "docs/verification/linux-tui-2026-07-27/cleanup-ledger.md",
               "docs/verification/linux-tui-2026-07-27/run-manifest.md"
             ]
+          },
+          {
+            "output": "material-stash-manager-centered-20260803",
+            "file": "material-stash-manager-centered-20260803.png",
+            "caption": null,
+            "altText": "Desktop Material screenshot material-stash-manager-centered-20260803.png. The Feature Gallery records no alt text and no caption describing this frame.",
+            "scene": null,
+            "batch": "retained-historical",
+            "platform": null,
+            "section": null,
+            "interaction": null,
+            "width": 1443,
+            "height": 992,
+            "bytes": 88986,
+            "commands": [],
+            "datedReceipts": []
           }
         ]
       }

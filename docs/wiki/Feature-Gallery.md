@@ -197,6 +197,8 @@ active profile's style, label, and explicit language mode.
 | `material-history.png` | Core History browsing and selected-commit inspection |
 | `material-history-context-actions.png` | Selection-aware History commit More/right-click actions and button hint |
 | `material-history-hover-time.png` | Commit hover/focus card with exact authored timestamp and relative age |
+| `material-history-view-tabs-list.png` | Explicit keyboard-accessible Commit list tab in the built Windows History view |
+| `material-history-view-tabs-graph.png` | Explicit keyboard-accessible Graph tab in the built Windows History view |
 | `material-settings.png` | Responsive Material Settings dialog |
 | `auto-updater-current-source-ready.png` | Current-source production UI after a genuine Electron/Squirrel update-downloaded path with a disclosed inert verifier payload and no published-payload claim |
 | `settings-history-manager.png` | Git-backed Settings history side sheet |

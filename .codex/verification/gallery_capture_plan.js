@@ -13,7 +13,7 @@
 const fs = require('fs')
 const path = require('path')
 
-const ExpectedPublishedGalleryCount = 86
+const ExpectedPublishedGalleryCount = 88
 const CanonicalCandidateCount = 68
 const DeferredCanonicalOutputs = Object.freeze([
   'material-cheap-lfs-preparing',
@@ -110,6 +110,17 @@ const CaptureBatches = Object.freeze({
       'Fresh owned P0 run root, isolated user data, disposable provider-backed Git fixture, and the exact production bundle on a hidden Win32 desktop.',
     privacyGate:
       'The scene requires the real contained hover card, both localized relative phrases, bundled fonts, and the renderer privacy assertion before capture.',
+  }),
+  'windows-history-tabs': Object.freeze({
+    platform: 'windows-headless',
+    commands: Object.freeze([
+      'npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod',
+      'Lowlevel launch the exact production build with an owned History fixture, switch between the explicit Commit list and Graph tabs, then capture each original client-only frame to <owned-temp-run-root>\\captures\\<output>.png',
+    ]),
+    fixture:
+      'Fresh owned History fixture, isolated profile, exact production bundle, and hidden Win32 desktop.',
+    privacyGate:
+      'Require the tablist/tab/tabpanel semantic receipt, focused keyboard path, contained bilingual tabs, and the renderer privacy assertion before capture.',
   }),
   'windows-repositories-sheet': Object.freeze({
     platform: 'windows-headless',
@@ -295,6 +306,20 @@ const SpecialistCaptureEntries = Object.freeze([
     batch: 'windows-history-hover',
     interaction:
       'Open History on the disposable repository, focus one real commit row, require a contained hover card with both its exact authored timestamp and a relative age, then preserve that card.',
+  },
+  {
+    output: 'material-history-view-tabs-list',
+    scene: 'history-view-tabs-list',
+    batch: 'windows-history-tabs',
+    interaction:
+      'Open History in the built Windows app, leave the explicit Commit list tab selected, and preserve the real List/Graph tab strip with its accessible relationships.',
+  },
+  {
+    output: 'material-history-view-tabs-graph',
+    scene: 'history-view-tabs-graph',
+    batch: 'windows-history-tabs',
+    interaction:
+      'Open History in the built Windows app, select Graph through the real tab control, and preserve the real List/Graph tab strip with its accessible relationships.',
   },
   {
     output: 'material-repositories-sheet',
