@@ -28,12 +28,40 @@ describe('popover clipping contract', () => {
 
   it('bounds every popover, decorated or not', async () => {
     const popover = await readFile(Path.join(src, 'ui/lib/popover.tsx'), 'utf8')
+    const dropdown = await readFile(
+      Path.join(styles, 'ui/_popover-dropdown.scss'),
+      'utf8'
+    )
 
     // The height and width caps used to live only under `.popover-component`,
     // which an undecorated popover never gets — so an undecorated popover was
     // unbounded and painted straight over whatever was behind it.
+    assert.match(
+      popover,
+      /containerDiv\.style\.setProperty\(\s*'--available-height'/
+    )
+    assert.match(
+      popover,
+      /containerDiv\.style\.setProperty\(\s*'--available-width'/
+    )
+    const containerStyle = popover.match(
+      /const style: React\.CSSProperties = \{([\s\S]*?)\n    \}/
+    )
+    assert.ok(containerStyle, 'the positioned container style must exist')
+    assert.match(
+      containerStyle[1],
+      /maxHeight: 'var\(--available-height, calc\(100vh - 20px\)\)'/
+    )
+    assert.match(
+      containerStyle[1],
+      /maxWidth: 'var\(--available-width, calc\(100vw - 20px\)\)'/
+    )
     assert.match(popover, /maxHeight: 'var\(--available-height\)'/)
     assert.match(popover, /maxWidth: 'var\(--available-width\)'/)
+    assert.match(
+      dropdown,
+      /min-height: min\(200px, var\(--available-height, 200px\)\);/
+    )
   })
 
   it('gives the changelog date picker a real surface to sit on', async () => {
