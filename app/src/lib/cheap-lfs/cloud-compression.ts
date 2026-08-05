@@ -10,8 +10,8 @@ import { Repository } from '../../models/repository'
 export const CHEAP_LFS_CLOUD_COMPRESSION_ACTION_SHA =
   'b2a846a9e3f8be30da2530f622f6bbb1f91abbb5'
 
-/** Immutable actions/checkout v6.0.2 commit used by managed callers. */
-const ACTIONS_CHECKOUT_SHA = 'de0fac2e4500dabe0009e67214ff5f5447ce83dd'
+/** Immutable actions/checkout v7.0.1 commit used by managed callers. */
+const ACTIONS_CHECKOUT_SHA = '3d3c42e5aac5ba805825da76410c181273ba90b1'
 
 /** Repository-relative location of the small managed caller workflow. */
 export const CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH =
