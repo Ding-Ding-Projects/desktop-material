@@ -49,9 +49,14 @@ the Windows app.
 
 ### Remote state
 
-The fix is on branch `codex/update-check-404-fix` and has been pushed as
-`a4ce485037138f24d7534452a861a1fb7749beeb`. Integration into `main` and its
-remote workflow verdict remain pending at this handoff update.
+The fix was merged into `main` as `6f5cf66c30`, with source commit
+`a4ce485037138f24d7534452a861a1fb7749beeb` and documentation commit
+`96fcc0a2d14cd2f791fd51f6b470ae7f225695aa`. The integrated tree passes the
+focused suite with the repository's pinned Node `24.15.0` invocation: **29
+passed, 0 failed**. The repository wrapper's additional `--conditions=import`
+flag is not used for this proof because its current `tsx` loader path changes
+the `whatwg-encoding` JSON import shape before the test can start. `main` is
+ready to dew; its remote workflow verdict remains pending until that dew.
 
 ## 2026-08-04 — Live Material renderer proof and startup cleanup
 
