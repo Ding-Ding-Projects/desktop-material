@@ -195,6 +195,7 @@ export const TeleportTargetSelectors = {
   settingsCopilotAlwaysConflicts:
     '[data-teleport-target="settings-copilot-always-conflicts"]',
   settingsOllamaEndpoint: '[data-teleport-target="settings-ollama-endpoint"]',
+  settingsAiMasterSwitch: '[data-teleport-target="settings-ai-master-switch"]',
 
   // Repository settings
   repoSettingsAccount: '[data-teleport-target="repo-settings-account"]',

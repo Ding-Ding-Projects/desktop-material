@@ -94,6 +94,7 @@ import { ErrorPresentationStyle } from '../../models/error-presentation'
 import { QueuePreferences } from './queue'
 import { SoundPreferences } from './sound'
 import { OllamaPreferences } from './ollama'
+import { AIPreferences } from './ai'
 import { getAudioCueStore } from '../../lib/audio/audio-cue-store'
 import { LocalizedText } from '../lib/localized-text'
 import { SettingsSearch, SettingsSearchSurfaceId } from './settings-search'
@@ -579,6 +580,13 @@ export class Preferences extends React.Component<
         <LocalizedText translationKey="settings.ollamaTab" />,
         'Ollama',
         true
+      ),
+      this.renderRailTab(
+        PreferencesTab.AI,
+        octicons.shield,
+        'AI',
+        'AI security',
+        true
       )
     )
 
@@ -771,6 +779,9 @@ export class Preferences extends React.Component<
         break
       case PreferencesTab.Ollama:
         suffix = 'ollama'
+        break
+      case PreferencesTab.AI:
+        suffix = 'ai'
         break
       default:
         return assertNever(tab, `Unknown tab type: ${tab}`)
@@ -1142,6 +1153,9 @@ export class Preferences extends React.Component<
             onUpdateBYOKProvider={this.onUpdateBYOKProvider}
           />
         )
+        break
+      case PreferencesTab.AI:
+        View = <AIPreferences />
         break
       default:
         return assertNever(index, `Unknown tab index: ${index}`)

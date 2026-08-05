@@ -13,4 +13,5 @@ export enum PreferencesTab {
   Queue,
   Sound,
   Ollama,
+  AI,
 }

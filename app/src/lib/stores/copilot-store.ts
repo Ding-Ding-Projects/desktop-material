@@ -56,6 +56,7 @@ import {
   IAIProviderBinding,
   IAISecurityPolicyAuthorization,
   evaluateAISecurityPolicy,
+  issueAISecurityPolicyAuthorization,
 } from '../ai-security-policy'
 
 /** The default model ID used for Copilot commit message generation. */
@@ -1400,7 +1401,26 @@ export class CopilotStore extends BaseStore {
       // the same redacted, typed denial as every other fail-closed path.
     }
 
-    const policyDecision = evaluateAISecurityPolicy(policyAuthorization, {
+    // The renderer is the only place that knows the destination provider and
+    // the repository being asked about, so it is responsible for consulting
+    // the administrator's AI policy (`ai-admin-policy.ts`, via the gate in
+    // `ai-security-policy.ts`) and, if allowed, issuing the authorization
+    // this request is evaluated against below. Callers that already hold an
+    // authorization (e.g. reusing one across a batch) may pass it directly.
+    const authorization =
+      policyAuthorization ??
+      (providerBinding === null
+        ? null
+        : issueAISecurityPolicyAuthorization(
+            'conflict-resolution',
+            activeRepositoryId ?? -1,
+            repositoryPath,
+            context.files.map(f => f.path),
+            providerBinding,
+            ConflictResolutionAIContentClasses
+          ) ?? undefined)
+
+    const policyDecision = evaluateAISecurityPolicy(authorization, {
       feature: 'conflict-resolution',
       repositoryId: activeRepositoryId ?? -1,
       repositoryPath,

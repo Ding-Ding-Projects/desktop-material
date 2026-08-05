@@ -15244,7 +15244,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
           repository.path,
           modelRequest,
           onProgress,
-          signal
+          signal,
+          undefined,
+          repository.id
         )
         if (signal?.aborted || !this.isTemporaryRepositoryActive(repository)) {
           return null
