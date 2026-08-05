@@ -4,6 +4,7 @@ import {
   parseAppURL,
   IOpenRepositoryFromURLAction,
   IOAuthAction,
+  ISelfHostedOAuthAction,
 } from '../../src/lib/parse-app-url'
 
 describe('parseAppURL', () => {
@@ -20,6 +21,33 @@ describe('parseAppURL', () => {
 
       const openRepo = result as IOAuthAction
       assert.equal(openRepo.code, '18142422')
+    })
+  })
+
+  describe('self-hosted oauth', () => {
+    it('parses the self-hosted server callback into its own distinct action', () => {
+      const result = parseAppURL(
+        'x-github-desktop-auth://self-hosted/oauth?code=abc123&state=xyz789'
+      )
+      assert.equal(result.name, 'self-hosted-oauth')
+      const action = result as ISelfHostedOAuthAction
+      assert.equal(action.code, 'abc123')
+      assert.equal(action.state, 'xyz789')
+    })
+
+    it('does not confuse a self-hosted callback with a dotcom oauth callback', () => {
+      const result = parseAppURL(
+        'x-github-desktop-auth://oauth?code=abc123&state=xyz789'
+      )
+      assert.equal(result.name, 'oauth')
+    })
+
+    it('is unknown without both code and state', () => {
+      assert.equal(
+        parseAppURL('x-github-desktop-auth://self-hosted/oauth?code=abc123')
+          .name,
+        'unknown'
+      )
     })
   })
 

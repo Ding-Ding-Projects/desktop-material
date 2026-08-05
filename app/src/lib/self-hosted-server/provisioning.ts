@@ -1,4 +1,28 @@
-import { createHash, randomBytes, randomUUID } from 'crypto'
+import {
+  createHash,
+  generateKeyPairSync,
+  randomBytes,
+  randomUUID,
+} from 'crypto'
+
+/**
+ * Redirect targets the self-hosted OAuth authorization server will accept.
+ *
+ * Sign-in deliberately reuses the app's existing `x-github-desktop-auth`
+ * protocol deep link rather than opening a loopback HTTP listener: this app
+ * has no loopback OAuth callback listener at all (see
+ * `app/src/main-process/main.ts`'s `possibleProtocols` and
+ * `internal-browser-window.ts`'s authentication-flow handling), and the
+ * codebase's hardened OAuth callback path already keys off that protocol.
+ */
+export const SelfHostedOAuthClientId = 'desktop-material-windows'
+export const SelfHostedOAuthRedirectUri =
+  'x-github-desktop-auth://self-hosted/oauth'
+export const SelfHostedOAuthScopes = [
+  'openid',
+  'profile',
+  'collaboration',
+] as const
 
 export type SelfHostedServerProvisioningPhase =
   | 'detecting-docker'
@@ -171,9 +195,37 @@ function hashSecret(secret: string): string {
 }
 
 /**
- * Generate bootstrap material without ever putting a plaintext token in the
- * on-disk server configuration. The caller must vault `adminToken` and then
- * discard it from ordinary state/logging.
+ * The self-hosted OAuth authorization server's signing key material, minted
+ * once by the wizard and written straight into the server's own bootstrap
+ * configuration file (never into renderer state, never logged). The server
+ * uses the private key to sign `id_token`s; the public JWK is served back
+ * from its own `/oauth/jwks.json` so registered clients can verify them.
+ */
+function createOAuthKeyMaterial(): {
+  readonly signingKeyPem: string
+  readonly publicJwkJson: string
+  readonly keyId: string
+} {
+  const { privateKey, publicKey } = generateKeyPairSync('ec', {
+    namedCurve: 'prime256v1',
+  })
+  const keyId = `key-${randomBytes(8).toString('hex')}`
+  return {
+    signingKeyPem: privateKey.export({
+      type: 'pkcs8',
+      format: 'pem',
+    }) as string,
+    publicJwkJson: JSON.stringify(publicKey.export({ format: 'jwk' })),
+    keyId,
+  }
+}
+
+/**
+ * Generate bootstrap material without ever putting a plaintext token or
+ * private key in renderer-reachable state. The caller must vault
+ * `adminToken` and then discard it, along with this whole object, from
+ * ordinary state/logging; only `configurationJson` is written to disk, and
+ * that disk file is what makes the OAuth signing key durable.
  */
 export function createSelfHostedServerBootstrap(
   publicOriginValue: string,
@@ -183,6 +235,14 @@ export function createSelfHostedServerBootstrap(
   const serverId = randomUUID()
   const adminToken = token()
   const initialJoinToken = token()
+  const oauthKeyMaterial = createOAuthKeyMaterial()
+  const oauthClients = [
+    {
+      id: SelfHostedOAuthClientId,
+      redirectUris: [SelfHostedOAuthRedirectUri],
+      scopes: [...SelfHostedOAuthScopes],
+    },
+  ]
   const configurationJson = `${JSON.stringify(
     {
       version: 1,
@@ -195,6 +255,14 @@ export function createSelfHostedServerBootstrap(
       // The container listens on 0.0.0.0 and is reached only through Docker's
       // loopback publication or the HTTPS boundary provisioned by the wizard.
       transport: 'reverse-proxy',
+      // The self-hosted OAuth authorization server this same container runs.
+      // See services/desktop-material-server/oauth.mjs: it federates SSO
+      // across every client registered here rather than delegating identity
+      // to a third-party vendor.
+      oauthClientsJson: JSON.stringify(oauthClients),
+      oauthSigningKeyPem: oauthKeyMaterial.signingKeyPem,
+      oauthSigningPublicJwkJson: oauthKeyMaterial.publicJwkJson,
+      oauthKeyId: oauthKeyMaterial.keyId,
     },
     null,
     2

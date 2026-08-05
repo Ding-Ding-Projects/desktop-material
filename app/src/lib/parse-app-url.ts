@@ -7,6 +7,20 @@ export interface IOAuthAction {
   readonly state: string
 }
 
+/**
+ * A callback from a self-hosted server's own OAuth authorization server
+ * (`services/desktop-material-server/oauth.mjs`), delivered through the same
+ * `x-github-desktop-auth` deep link dotcom sign-in already uses — this app
+ * has no loopback OAuth listener, so the callback has to arrive this way.
+ * Kept distinct from `IOAuthAction` so a self-hosted callback can never be
+ * mistaken for, or substituted into, a dotcom sign-in in progress.
+ */
+export interface ISelfHostedOAuthAction {
+  readonly name: 'self-hosted-oauth'
+  readonly code: string
+  readonly state: string
+}
+
 export interface IOpenRepositoryFromURLAction {
   readonly name: 'open-repository-from-url'
 
@@ -30,6 +44,7 @@ export interface IUnknownAction {
 
 export type URLActionType =
   | IOAuthAction
+  | ISelfHostedOAuthAction
   | IOpenRepositoryFromURLAction
   | IUnknownAction
 
@@ -79,6 +94,18 @@ export function parseAppURL(url: string): URLActionType {
     const state = getQueryStringValue(query, 'state')
     if (code != null && state != null) {
       return { name: 'oauth', code, state }
+    } else {
+      return unknown
+    }
+  }
+
+  // `x-github-desktop-auth://self-hosted/oauth?code=…&state=…`, the
+  // redirect_uri every self-hosted OAuth client this app registers uses.
+  if (actionName === 'self-hosted' && parsedURL.pathname === '/oauth') {
+    const code = getQueryStringValue(query, 'code')
+    const state = getQueryStringValue(query, 'state')
+    if (code != null && state != null) {
+      return { name: 'self-hosted-oauth', code, state }
     } else {
       return unknown
     }
