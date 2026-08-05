@@ -1,4 +1,5 @@
 import * as URL from 'url'
+import { URL as WhatwgURL } from 'url'
 import { testForInvalidChars } from './sanitize-ref-name'
 
 export interface IOAuthAction {
@@ -23,6 +24,18 @@ export interface IOpenRepositoryFromURLAction {
   readonly filepath: string | null
 }
 
+/**
+ * A deep link to a workspace shared through the sender's self-hosted server
+ * (see `services/desktop-material-server`). `server` is the origin the
+ * receiving app must already trust — this action never causes the app to
+ * silently start talking to a server it hasn't been configured to use.
+ */
+export interface IOpenTeamWorkspaceAction {
+  readonly name: 'open-team-workspace'
+  readonly shareToken: string
+  readonly server: string
+}
+
 export interface IUnknownAction {
   readonly name: 'unknown'
   readonly url: string
@@ -31,6 +44,7 @@ export interface IUnknownAction {
 export type URLActionType =
   | IOAuthAction
   | IOpenRepositoryFromURLAction
+  | IOpenTeamWorkspaceAction
   | IUnknownAction
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -74,6 +88,27 @@ export function parseAppURL(url: string): URLActionType {
   const query = parsedURL.query
 
   const actionName = hostname.toLowerCase()
+  if (actionName === 'openteamworkspace') {
+    const pathName = parsedURL.pathname
+    const shareToken =
+      pathName && pathName.length > 1 ? pathName.substring(1) : null
+    const server = getQueryStringValue(query, 'server')
+    if (
+      shareToken == null ||
+      !/^[A-Za-z0-9_-]{32,256}$/.test(shareToken) ||
+      server == null
+    ) {
+      return unknown
+    }
+    let serverOrigin: string
+    try {
+      serverOrigin = new WhatwgURL(server).origin
+    } catch {
+      return unknown
+    }
+    return { name: 'open-team-workspace', shareToken, server: serverOrigin }
+  }
+
   if (actionName === 'oauth') {
     const code = getQueryStringValue(query, 'code')
     const state = getQueryStringValue(query, 'state')

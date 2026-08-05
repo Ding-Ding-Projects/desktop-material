@@ -79,9 +79,15 @@ import {
 import { isGitOnPath } from '../../lib/is-git-on-path'
 import {
   IOpenRepositoryFromURLAction,
+  IOpenTeamWorkspaceAction,
   IUnknownAction,
   URLActionType,
 } from '../../lib/parse-app-url'
+import {
+  fetchSharedWorkspace,
+  TeamClientError,
+} from '../../lib/self-hosted-server/team-client'
+import { getTeamConnection } from '../../lib/self-hosted-server/team-connection'
 import type { InternalBrowserOAuthCallbackResult } from '../../lib/internal-browser'
 import {
   matchExistingRepository,
@@ -4604,6 +4610,54 @@ export class Dispatcher {
     }
   }
 
+  /**
+   * Resolves a `x-github-client://openteamworkspace/<token>?server=<origin>`
+   * deep link against a real self-hosted server. The link's `server` value is
+   * never trusted on its own: this device must already be connected to that
+   * exact origin (see `../../lib/self-hosted-server/team-connection`), or the
+   * link is refused. This keeps the honest single-player degrade intact —
+   * a device with no self-hosted server configured cannot be made to talk to
+   * one just by opening a link.
+   */
+  private async openTeamWorkspaceFromUrl(
+    action: IOpenTeamWorkspaceAction
+  ): Promise<void> {
+    const connection = await getTeamConnection()
+    if (connection === null) {
+      log.warn(
+        'Ignoring a shared-workspace link: no self-hosted server is configured on this device.'
+      )
+      return
+    }
+    if (connection.publicOrigin !== action.server) {
+      log.warn(
+        `Refusing a shared-workspace link for ${action.server}: this device is connected to ${connection.publicOrigin}.`
+      )
+      return
+    }
+
+    let workspace
+    try {
+      workspace = await fetchSharedWorkspace(
+        { publicOrigin: connection.publicOrigin, deviceToken: connection.deviceToken },
+        action.shareToken
+      )
+    } catch (error) {
+      const message =
+        error instanceof TeamClientError
+          ? error.message
+          : 'Could not reach your self-hosted server.'
+      log.error(`Failed to resolve shared workspace link: ${message}`)
+      return
+    }
+
+    if (workspace.branch !== null) {
+      await this.openBranchNameFromUrl(workspace.repositoryUrl, workspace.branch)
+    } else {
+      await this.openOrCloneRepository(workspace.repositoryUrl)
+    }
+  }
+
   private async openBranchNameFromUrl(
     url: string,
     branchName: string
@@ -4759,6 +4813,10 @@ export class Dispatcher {
 
       case 'open-repository-from-url':
         this.openRepositoryFromUrl(action)
+        return null
+
+      case 'open-team-workspace':
+        await this.openTeamWorkspaceFromUrl(action)
         return null
 
       default:
