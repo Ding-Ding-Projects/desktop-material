@@ -7,7 +7,3 @@
 [submodule "app/static/common/choosealicense.com"]
 	path = app/static/common/choosealicense.com
 	url = https://github.com/github/choosealicense.com.git
-[submodule "vendor/lowlevel-computer-use-mcp"]
-	path = vendor/lowlevel-computer-use-mcp
-	url = https://github.com/codingmachineedge/lowlevel-computer-use-mcp.git
-	update = none
