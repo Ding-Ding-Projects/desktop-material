@@ -52,14 +52,24 @@ dialog.push-protection-error-dialog {
           display: flex;
           flex-direction: row;
           margin-bottom: var(--spacing-half);
+          min-width: 0;
 
+          // The secret's description (e.g. "GitHub Access Token") gets its id
+          // appended in parens when more than one secret shares the same
+          // description. That id is a single unbroken token, and the parent
+          // list clips horizontal overflow (`overflow-x: hidden`), so without
+          // letting this shrink and wrap it can run under the Bypass button
+          // and be cut off with no ellipsis to show it was truncated.
           span:first-child {
             font-weight: var(--font-weight-semibold);
             flex-grow: 1;
+            min-width: 0;
+            overflow-wrap: anywhere;
           }
 
           .bypass-success {
             display: flex;
+            flex-shrink: 0;
 
             .octicon {
               margin-left: var(--spacing-half);

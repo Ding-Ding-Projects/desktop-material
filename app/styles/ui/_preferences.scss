@@ -931,6 +931,10 @@
         // 44px avatar per the design spec.
         width: 44px;
         height: 44px;
+        // Long account names/logins in .user-info below can otherwise eat
+        // into this fixed-size avatar's flex-shrink share, squashing the
+        // circle into an oval.
+        flex-shrink: 0;
 
         align-self: center;
       }
@@ -949,6 +953,10 @@
         font-size: 11.5px;
         font-weight: var(--font-weight-bold);
         white-space: nowrap;
+        // A long account title/login next to this pill can otherwise shrink
+        // it below its content size (no ellipsis here), spilling the "Active"
+        // label and check icon out past the pill and into the Sign out button.
+        flex-shrink: 0;
 
         .account-active-check {
           width: 13px;
