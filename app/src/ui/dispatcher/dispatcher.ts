@@ -79,9 +79,15 @@ import {
 import { isGitOnPath } from '../../lib/is-git-on-path'
 import {
   IOpenRepositoryFromURLAction,
+  IOpenTeamWorkspaceAction,
   IUnknownAction,
   URLActionType,
 } from '../../lib/parse-app-url'
+import {
+  fetchSharedWorkspace,
+  TeamClientError,
+} from '../../lib/self-hosted-server/team-client'
+import { getTeamConnection } from '../../lib/self-hosted-server/team-connection'
 import type { InternalBrowserOAuthCallbackResult } from '../../lib/internal-browser'
 import {
   matchExistingRepository,
@@ -174,6 +180,8 @@ import type { CloneOptions } from '../../models/clone-options'
 import { BatchCloneMode, IBatchCloneItem } from '../../models/batch-clone'
 import { CloningRepository } from '../../models/cloning-repository'
 import { Commit, ICommitContext, CommitOneLine } from '../../models/commit'
+import { IInteractiveRebasePlan } from '../../lib/interactive-rebase/interactive-rebase-plan'
+import { IChangeSummaryResult } from '../../lib/change-summary/change-summary-model'
 import { ICommitMessage } from '../../models/commit-message'
 import { DiffSelection, ImageDiffType, ITextDiff } from '../../models/diff'
 import { FetchType } from '../../models/fetch'
@@ -2793,6 +2801,118 @@ export class Dispatcher {
   }
 
   /**
+   * R9 "compose commits with AI": ask the AI provider to propose a rebase
+   * plan reorganizing the given reviewed commits. The returned plan is meant
+   * to prefill the interactive-rebase editor for the user to review and edit
+   * — it is never executed automatically.
+   */
+  public proposeComposeCommitsPlan(
+    repository: Repository,
+    commits: ReadonlyArray<Commit>,
+    signal?: AbortSignal
+  ): Promise<
+    | {
+        readonly kind: 'plan'
+        readonly plan: IInteractiveRebasePlan
+        readonly summary: string | null
+      }
+    | { readonly kind: 'denied'; readonly reason: string }
+  > {
+    return this.appStore._proposeComposeCommitsPlan(repository, commits, signal)
+  }
+
+  /**
+   * R10 "Summarize past changes with AI": open the "Explaining N commits"
+   * dialog for the given commits.
+   */
+  public showSummarizeCommitsDialog(
+    repository: Repository,
+    commits: ReadonlyArray<Commit>
+  ): void {
+    this.appStore._showPopup({
+      type: PopupType.SummarizeCommitsWithAI,
+      repository,
+      commits,
+    })
+  }
+
+  /**
+   * R10 "Summarize past changes with AI": ask the AI provider for a
+   * plain-language explanation of the given commits — a prose summary plus
+   * one description per changed file.
+   */
+  public summarizeCommitsWithAI(
+    repository: Repository,
+    commits: ReadonlyArray<Commit>,
+    signal?: AbortSignal
+  ): Promise<
+    | { readonly kind: 'result'; readonly result: IChangeSummaryResult }
+    | { readonly kind: 'denied'; readonly reason: string }
+  > {
+    return this.appStore._summarizeCommitsWithAI(repository, commits, signal)
+  }
+
+  /**
+   * R12 "Suggest a fix" (#129): ask the AI provider to propose one code
+   * change for the file/line/diff-hunk the reviewer selected inside the
+   * in-app pull request review composer. The returned replacement text is
+   * untrusted model output — callers must still run it through
+   * `createGitHubPullRequestSuggestionBody` before it can be queued or
+   * posted, exactly like a human-written suggestion.
+   */
+  public suggestPullRequestReviewCodeChangeWithAI(
+    repository: Repository,
+    path: string,
+    diffHunk: string,
+    selectedLine: number,
+    instruction: string,
+    signal?: AbortSignal
+  ): Promise<
+    | {
+        readonly kind: 'result'
+        readonly replacement: string
+        readonly explanation: string
+      }
+    | { readonly kind: 'denied'; readonly reason: string }
+  > {
+    return this.appStore._suggestPullRequestReviewCodeChangeWithAI(
+      repository,
+      path,
+      diffHunk,
+      selectedLine,
+      instruction,
+      signal
+    )
+  }
+
+  /**
+   * R9 "compose commits with AI": execute an already-reviewed and confirmed
+   * rebase plan produced by the interactive-rebase editor. Callers must have
+   * already shown the confirmation step (final commit list, and an explicit
+   * pushed-history warning when applicable).
+   */
+  public executeComposeCommitsPlan(
+    repository: Repository,
+    plan: IInteractiveRebasePlan
+  ): Promise<RebaseResult> {
+    return this.appStore._executeComposeCommitsPlan(repository, plan)
+  }
+
+  /** Show the "compose commits with AI" dialog for a reviewed commit set. */
+  public showComposeCommitsWithAI(
+    repository: Repository,
+    commits: ReadonlyArray<Commit>,
+    localCommitSHAs: ReadonlyArray<string>
+  ) {
+    this.showPopup({
+      type: PopupType.ComposeCommitsWithAI,
+      repository,
+      commits,
+      localCommitSHAs,
+    })
+  }
+
+  /**
    * Start the full Copilot conflict resolution flow: call the API and
    * transition to the result dialog.
    */
@@ -4604,6 +4724,54 @@ export class Dispatcher {
     }
   }
 
+  /**
+   * Resolves a `x-github-client://openteamworkspace/<token>?server=<origin>`
+   * deep link against a real self-hosted server. The link's `server` value is
+   * never trusted on its own: this device must already be connected to that
+   * exact origin (see `../../lib/self-hosted-server/team-connection`), or the
+   * link is refused. This keeps the honest single-player degrade intact —
+   * a device with no self-hosted server configured cannot be made to talk to
+   * one just by opening a link.
+   */
+  private async openTeamWorkspaceFromUrl(
+    action: IOpenTeamWorkspaceAction
+  ): Promise<void> {
+    const connection = await getTeamConnection()
+    if (connection === null) {
+      log.warn(
+        'Ignoring a shared-workspace link: no self-hosted server is configured on this device.'
+      )
+      return
+    }
+    if (connection.publicOrigin !== action.server) {
+      log.warn(
+        `Refusing a shared-workspace link for ${action.server}: this device is connected to ${connection.publicOrigin}.`
+      )
+      return
+    }
+
+    let workspace
+    try {
+      workspace = await fetchSharedWorkspace(
+        { publicOrigin: connection.publicOrigin, deviceToken: connection.deviceToken },
+        action.shareToken
+      )
+    } catch (error) {
+      const message =
+        error instanceof TeamClientError
+          ? error.message
+          : 'Could not reach your self-hosted server.'
+      log.error(`Failed to resolve shared workspace link: ${message}`)
+      return
+    }
+
+    if (workspace.branch !== null) {
+      await this.openBranchNameFromUrl(workspace.repositoryUrl, workspace.branch)
+    } else {
+      await this.openOrCloneRepository(workspace.repositoryUrl)
+    }
+  }
+
   private async openBranchNameFromUrl(
     url: string,
     branchName: string
@@ -4759,6 +4927,24 @@ export class Dispatcher {
 
       case 'open-repository-from-url':
         this.openRepositoryFromUrl(action)
+        return null
+
+      case 'self-hosted-oauth':
+        // The self-hosted OAuth authorize/token round trip (issue #119, R2)
+        // is implemented server-side and in
+        // `lib/self-hosted-server/oauth-sign-in.ts`, but nothing yet stores
+        // the PKCE code verifier across the browser round trip or lands the
+        // resulting tokens in the app's account store — that's the
+        // remaining gap tracked in #119, not something to fake here.
+        if (__DEV__) {
+          log.warn(
+            `Received self-hosted OAuth callback (state: ${action.state}) but sign-in completion is not wired yet (#119)`
+          )
+        }
+        return null
+
+      case 'open-team-workspace':
+        await this.openTeamWorkspaceFromUrl(action)
         return null
 
       default:

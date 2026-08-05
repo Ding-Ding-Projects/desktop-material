@@ -1130,6 +1130,8 @@ export class CompareSidebar extends React.Component<
               onCherryPick={this.onCherryPick}
               onKeyboardReorder={this.onKeyboardReorder}
               onSquash={this.onSquash}
+              onComposeCommitsWithAI={this.onComposeCommitsWithAI}
+              onSummarizeCommits={this.onSummarizeCommits}
               onCompareListScrolled={this.props.onCompareListScrolled}
               compareListScrollTop={this.props.compareListScrollTop}
               tagsToPush={this.props.tagsToPush ?? []}
@@ -1189,6 +1191,8 @@ export class CompareSidebar extends React.Component<
             onKeyboardReorder={this.onKeyboardReorder}
             onCancelKeyboardReorder={this.onCancelKeyboardReorder}
             onSquash={this.onSquash}
+            onComposeCommitsWithAI={this.onComposeCommitsWithAI}
+            onSummarizeCommits={this.onSummarizeCommits}
             emptyListMessage={emptyListMessage}
             onCompareListScrolled={this.props.onCompareListScrolled}
             compareListScrollTop={this.props.compareListScrollTop}
@@ -1678,6 +1682,18 @@ export class CompareSidebar extends React.Component<
         return true
       },
     })
+  }
+
+  private onComposeCommitsWithAI = (commits: ReadonlyArray<Commit>) => {
+    const { dispatcher, repository, localCommitSHAs } = this.props
+    dispatcher.showComposeCommitsWithAI(repository, commits, localCommitSHAs)
+  }
+
+  private onSummarizeCommits = (commits: ReadonlyArray<Commit>) => {
+    this.props.dispatcher.showSummarizeCommitsDialog(
+      this.props.repository,
+      commits
+    )
   }
 }
 

@@ -1,6 +1,14 @@
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+import {
+  createHash,
+  createPrivateKey,
+  randomBytes,
+  sign as cryptoSign,
+  timingSafeEqual,
+} from 'node:crypto'
 
 export const OAuthAuthorizationRequestLifetimeMs = 5 * 60 * 1000
+export const OAuthIdTokenLifetimeMs = 15 * 60 * 1000
+export const OAuthSsoSessionLifetimeMs = 8 * 60 * 60 * 1000
 export const OAuthAuthorizationCodeLifetimeMs = 60 * 1000
 export const OAuthAccessTokenLifetimeMs = 15 * 60 * 1000
 export const OAuthRefreshTokenLifetimeMs = 30 * 24 * 60 * 60 * 1000
@@ -545,4 +553,112 @@ export function createPkceChallenge(verifier) {
     fail('invalid-code-verifier')
   }
   return sha256(verifier)
+}
+
+function base64url(value) {
+  return Buffer.from(value).toString('base64url')
+}
+
+/**
+ * Signs a compact ES256 JWT (an OIDC-style `id_token`) with the key material
+ * the provisioning wizard generated. The private key never leaves this
+ * process: callers pass the PEM in, get a token string out, and are expected
+ * to discard the PEM reference once the server has loaded it once.
+ */
+export function signIdToken(options) {
+  if (
+    !objectWithKeys(
+      options,
+      ['privateKeyPem', 'keyId', 'issuer', 'subject', 'audience', 'now'],
+      ['privateKeyPem', 'keyId', 'issuer', 'subject', 'audience', 'now']
+    ) ||
+    typeof options.privateKeyPem !== 'string' ||
+    !safeIdentifierLike(options.keyId) ||
+    !safeIdentifierLike(options.audience)
+  ) {
+    fail('invalid-signing-request')
+  }
+  const issuer = normalizeIssuer(options.issuer)
+  const subject = safeIdentifier(options.subject, 'invalid-subject')
+  const now = options.now
+  if (!Number.isSafeInteger(now) || now < 0) {
+    fail('oauth-clock-unavailable')
+  }
+  let privateKey
+  try {
+    privateKey = createPrivateKey(options.privateKeyPem)
+  } catch {
+    return fail('invalid-signing-key')
+  }
+  if (privateKey.asymmetricKeyType !== 'ec') {
+    fail('invalid-signing-key')
+  }
+  const header = { alg: 'ES256', typ: 'JWT', kid: options.keyId }
+  const payload = {
+    iss: issuer,
+    sub: subject,
+    aud: options.audience,
+    iat: Math.floor(now / 1000),
+    exp: Math.floor((now + OAuthIdTokenLifetimeMs) / 1000),
+  }
+  const signingInput = `${base64url(JSON.stringify(header))}.${base64url(
+    JSON.stringify(payload)
+  )}`
+  let signature
+  try {
+    signature = cryptoSign(null, Buffer.from(signingInput), {
+      key: privateKey,
+      dsaEncoding: 'ieee-p1363',
+    })
+  } catch {
+    return fail('signing-failed')
+  }
+  return `${signingInput}.${signature.toString('base64url')}`
+}
+
+function safeIdentifierLike(value) {
+  return typeof value === 'string' && OpaqueIdentifier.test(value)
+}
+
+/**
+ * In-memory SSO session registry, shared by every client (domain) registered
+ * with this authority. A session created while approving one client's
+ * `/oauth/authorize` request lets a later request from a *different*
+ * registered client skip re-authentication for the session lifetime — the
+ * single-sign-on and multi-domain-SSO behavior this server provides. It is
+ * intentionally process-local: a restart requires operators to sign in again.
+ */
+export class SelfHostedSsoSessionStore {
+  constructor(clock = Date.now) {
+    this.clock = clock
+    this.sessions = new Map()
+  }
+
+  create(subject) {
+    this.prune()
+    const id = randomBytes(32).toString('base64url')
+    this.sessions.set(sha256(id), {
+      subject,
+      expiresAt: this.clock() + OAuthSsoSessionLifetimeMs,
+    })
+    return id
+  }
+
+  subjectFor(id) {
+    this.prune()
+    if (typeof id !== 'string' || id.length === 0 || id.length > 256) {
+      return null
+    }
+    const entry = this.sessions.get(sha256(id))
+    return entry ? entry.subject : null
+  }
+
+  prune() {
+    const now = this.clock()
+    for (const [key, value] of this.sessions) {
+      if (value.expiresAt <= now) {
+        this.sessions.delete(key)
+      }
+    }
+  }
 }

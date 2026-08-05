@@ -2,7 +2,7 @@ FROM node:24.15.0-alpine@sha256:8e2c930fda481a6ec141fe5a88e8c249c69f8102fe98af50
 
 WORKDIR /srv/desktop-material
 
-COPY --chown=node:node package.json server.mjs ./
+COPY --chown=node:node package.json server.mjs oauth.mjs cloud-patch-store.mjs ./
 
 ENV NODE_ENV=production \
     DESKTOP_MATERIAL_SERVER_CONFIG=/data/config.json \

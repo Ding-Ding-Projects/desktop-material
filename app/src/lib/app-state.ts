@@ -618,6 +618,7 @@ export enum RepositorySectionTab {
   Triage,
   GitHubAPI,
   CheapLfs,
+  Launchpad,
 }
 
 /**

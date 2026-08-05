@@ -13,4 +13,6 @@ export enum PreferencesTab {
   Queue,
   Sound,
   Ollama,
+  SelfHostedServer,
+  AI,
 }

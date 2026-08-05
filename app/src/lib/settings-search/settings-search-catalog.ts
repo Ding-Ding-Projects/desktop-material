@@ -71,6 +71,8 @@ export function settingsTabNameKey(tab: PreferencesTab): TranslationKey {
       return 'settingsSearch.tabName.sound'
     case PreferencesTab.Ollama:
       return 'settingsSearch.tabName.ollama'
+    case PreferencesTab.AI:
+      return 'settingsSearch.tabName.ai'
     default:
       return 'settingsSearch.tabName.accounts'
   }
@@ -168,6 +170,42 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
       titleKey: 'settingsSearch.entry.ollamaChat.title',
       descriptionKey: 'settingsSearch.entry.ollamaChat.desc',
       keywords: ['ollama', 'chat', 'prompt', 'llm', 'local', '對話', '傾偈'],
+    },
+    // AI (administrator security controls)
+    {
+      id: 'ai-master-switch',
+      tab: PreferencesTab.AI,
+      titleKey: 'settingsSearch.entry.aiMasterSwitch.title',
+      descriptionKey: 'settingsSearch.entry.aiMasterSwitch.desc',
+      keywords: [
+        'ai',
+        'kill switch',
+        'admin',
+        'administrator',
+        'security',
+        'provider',
+        'allow-list',
+        'allowlist',
+        '關掉',
+        '安全',
+      ],
+    },
+    {
+      id: 'ai-repository-eligibility',
+      tab: PreferencesTab.AI,
+      titleKey: 'settingsSearch.entry.aiRepositoryEligibility.title',
+      descriptionKey: 'settingsSearch.entry.aiRepositoryEligibility.desc',
+      keywords: [
+        'ai',
+        'repository',
+        'eligible',
+        'eligibility',
+        'deny',
+        'allow',
+        'admin',
+        'security',
+        '倉庫',
+      ],
     },
     {
       id: 'copilot-conflict',

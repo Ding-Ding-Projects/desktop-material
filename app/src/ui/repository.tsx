@@ -89,6 +89,7 @@ type RepositoryToolsInitialTool = NonNullable<
 type CheapLfsModule = typeof import('./repository-tools/cheap-lfs')
 type RepositoryProviderTriageModule =
   typeof import('./repository-tools/provider-triage')
+type LaunchpadModule = typeof import('./launchpad/launchpad-container')
 
 const loadActionsModule = () =>
   import(/* webpackChunkName: "repository-actions" */ './actions/actions-view')
@@ -115,6 +116,10 @@ const loadCheapLfsModule = () =>
 const loadRepositoryProviderTriageModule = () =>
   import(
     /* webpackChunkName: "repository-provider-triage" */ './repository-tools/provider-triage'
+  )
+const loadLaunchpadModule = () =>
+  import(
+    /* webpackChunkName: "repository-launchpad" */ './launchpad/launchpad-container'
   )
 
 interface IRepositoryViewProps {
@@ -669,6 +674,22 @@ export class RepositoryView extends React.Component<
             <span className="rail-label">{t('githubApi.railLabel')}</span>
           </span>
         )}
+        <span className="rail-item" id="launchpad-tab" data-dm-feature={true}>
+          <span className="rail-pill">
+            <span className="rail-icon">
+              <MaterialSymbol
+                name="low_priority"
+                size={22}
+                fill={
+                  selectedSection === RepositorySectionTab.Launchpad ? 1 : 0
+                }
+              />
+            </span>
+          </span>
+          <span className="rail-label">
+            {t('repositorySection.launchpad')}
+          </span>
+        </span>
         <span className="rail-item" id="triage-tab" data-dm-feature={true}>
           <span className="rail-pill">
             <span className="rail-icon">
@@ -1050,7 +1071,8 @@ export class RepositoryView extends React.Component<
       selectedSection === RepositorySectionTab.Issues ||
       selectedSection === RepositorySectionTab.GitHubAPI ||
       selectedSection === RepositorySectionTab.Triage ||
-      selectedSection === RepositorySectionTab.RepositoryTools
+      selectedSection === RepositorySectionTab.RepositoryTools ||
+      selectedSection === RepositorySectionTab.Launchpad
     ) {
       return null
     } else {
@@ -1463,6 +1485,16 @@ export class RepositoryView extends React.Component<
     />
   )
 
+  private renderLaunchpadModule = (
+    module: LaunchpadModule
+  ): React.ReactNode => (
+    <module.LaunchpadContainer
+      repository={this.props.repository}
+      state={this.props.state}
+      dispatcher={this.props.dispatcher}
+    />
+  )
+
   private renderRepositoryToolsModule = (
     module: RepositoryToolsModule
   ): React.ReactNode => {
@@ -1589,6 +1621,16 @@ export class RepositoryView extends React.Component<
           load={loadRepositoryProviderTriageModule}
           onError={this.onLazyViewLoadFailed}
           render={this.renderProviderTriageModule}
+        />
+      )
+    } else if (selectedSection === RepositorySectionTab.Launchpad) {
+      return (
+        <LazyView<LaunchpadModule>
+          key="launchpad"
+          name={t('repositorySection.launchpad')}
+          load={loadLaunchpadModule}
+          onError={this.onLazyViewLoadFailed}
+          render={this.renderLaunchpadModule}
         />
       )
     } else if (selectedSection === RepositorySectionTab.RepositoryTools) {

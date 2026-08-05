@@ -27,7 +27,10 @@ import {
   UpstreamRemoteName,
 } from '.'
 import type { CopilotFeature, CopilotModelSelections } from './copilot-store'
-import { CommitMessageGenerationCancelledError } from './copilot-store'
+import {
+  CommitMessageGenerationCancelledError,
+  getConflictResolutionAIProviderBinding,
+} from './copilot-store'
 import { FileBatchCloneStagingManager } from './batch-clone-staging'
 import {
   getGitHubReleasesAccount,
@@ -435,11 +438,22 @@ import {
 import { formatCommitMessage } from '../format-commit-message'
 import {
   getAccountForCommitMessageGeneration,
+  getAccountForComposeCommitsWithAI,
   getAccountForCopilotConflictResolution,
   getAccountForRepository,
   getRepositoryCredentialAccountKey,
   getRepositoryOwnerAccountToPromote,
 } from '../get-account-for-repository'
+import {
+  evaluateAIAdminGate,
+  issueAISecurityPolicyAuthorization,
+} from '../ai-security-policy'
+import { IInteractiveRebasePlan } from '../interactive-rebase/interactive-rebase-plan'
+import {
+  IChangeSummaryReview,
+  IChangeSummaryResult,
+  createChangeSummaryReview,
+} from '../change-summary/change-summary-model'
 import {
   autoSwitchAccountToRepositoryOwnerDefault,
   autoSwitchAccountToRepositoryOwnerKey,
@@ -508,6 +522,7 @@ import {
   getBranchesDifferingFromUpstream,
   deleteLocalBranch,
   deleteReviewedLocalBranches,
+  executeComposeCommitsPlan,
   deleteRemoteBranch,
   IReviewedBranchDeletion,
   IReviewedBranchDeletionResult,
@@ -515,6 +530,7 @@ import {
   GitResetMode,
   reset,
   getBranchAheadBehind,
+  findPotentialConflict,
   getRebaseInternalState,
   getCommit,
   appendIgnoreFile,
@@ -6146,6 +6162,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       case RepositorySectionTab.GitHubAPI:
       case RepositorySectionTab.Triage:
       case RepositorySectionTab.RepositoryTools:
+      case RepositorySectionTab.Launchpad:
         break
       default:
         return assertNever(
@@ -8155,7 +8172,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       section === RepositorySectionTab.Issues ||
       section === RepositorySectionTab.GitHubAPI ||
       section === RepositorySectionTab.Triage ||
-      section === RepositorySectionTab.RepositoryTools
+      section === RepositorySectionTab.RepositoryTools ||
+      section === RepositorySectionTab.Launchpad
     ) {
       refreshSectionPromise = Promise.resolve()
     } else {
@@ -14486,6 +14504,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
         await this._refreshRepository(repository)
 
+        // A fetch is the only moment the local repository learns anything
+        // new about the tracked remote branch, so it's the only sensible
+        // moment to re-run this local-only heuristic.
+        await this.maybeShowPotentialConflictBanner(repository)
+
         // A distinct "fetched" cue for user-initiated fetches only; frequent
         // background fetches stay silent so they never chatter.
         if (fetchType === FetchType.UserInitiatedTask) {
@@ -14504,6 +14527,83 @@ export class AppStore extends TypedBaseStore<IAppState> {
           void this.maybeAutoMaterializeCheapLfs(repository)
         }
       }
+    })
+  }
+
+  /**
+   * The local storage key used to remember that the user asked to stop
+   * seeing potential-conflict warnings for a given branch. Scoped to the
+   * repository's local path and the branch name, since "ignore" is a
+   * per-branch decision - the same branch name in a different clone, or a
+   * different branch in the same repository, should still warn.
+   */
+  private getIgnorePotentialConflictKey(
+    repository: Repository,
+    branch: Branch
+  ) {
+    return `potential-conflict-ignored/${repository.path}/${branch.name}`
+  }
+
+  /**
+   * A best-effort, local-only heuristic for the "R6 - proactive conflict
+   * detection" idea: after a fetch brings down new commits on the current
+   * branch's upstream, check whether the commits we haven't pushed yet and
+   * the commits we haven't pulled yet touch any of the same files. If they
+   * do, that's a reasonable (if imperfect) signal that pushing or merging
+   * will produce a conflict, so we surface it before the user runs into it.
+   *
+   * This intentionally does not attempt to know about anyone else's
+   * uncommitted work - that would require a server tracking more than this
+   * repository's own git data, which is out of scope here.
+   */
+  private async maybeShowPotentialConflictBanner(repository: Repository) {
+    const state = this.repositoryStateCache.get(repository)
+    const { tip } = state.branchesState
+
+    if (tip.kind !== TipState.Valid) {
+      return
+    }
+
+    const branch = tip.branch
+    if (branch.upstream === null) {
+      return
+    }
+
+    if (getBoolean(this.getIgnorePotentialConflictKey(repository, branch))) {
+      return
+    }
+
+    const aheadBehind = await getBranchAheadBehind(repository, branch)
+    const potentialConflict = await findPotentialConflict(
+      repository,
+      branch,
+      aheadBehind
+    )
+
+    if (potentialConflict === null) {
+      return
+    }
+
+    // Don't clobber a banner the user is already looking at, and don't
+    // re-show the same warning on every subsequent background fetch.
+    if (
+      this.currentBanner !== null &&
+      this.currentBanner.type === BannerType.PotentialConflictDetected
+    ) {
+      return
+    }
+
+    this._setBanner({
+      type: BannerType.PotentialConflictDetected,
+      ourBranch: branch.name,
+      theirBranch: branch.upstream,
+      overlappingFiles: potentialConflict.overlappingFiles,
+      onPush: () => {
+        this._push(repository)
+      },
+      onIgnore: () => {
+        setBoolean(this.getIgnorePotentialConflictKey(repository, branch), true)
+      },
     })
   }
 
@@ -15244,7 +15344,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
           repository.path,
           modelRequest,
           onProgress,
-          signal
+          signal,
+          undefined,
+          repository.id
         )
         if (signal?.aborted || !this.isTemporaryRepositoryActive(repository)) {
           return null
@@ -15282,6 +15384,423 @@ export class AppStore extends TypedBaseStore<IAppState> {
     } finally {
       totalTimer.done()
     }
+  }
+
+  /**
+   * R9 "compose commits with AI": ask the AI provider to propose a rebase
+   * plan reorganizing a reviewed set of commits. This shouldn't be called
+   * directly. See `Dispatcher.proposeComposeCommitsPlan`.
+   *
+   * Every request goes through {@link evaluateAIAdminGate} and a freshly
+   * issued {@link issueAISecurityPolicyAuthorization} first — a denied gate
+   * or an unresolvable account fails closed with a denial reason and never
+   * reaches the AI provider. The returned plan only ever covers the exact
+   * `commits` passed in; it is meant to prefill the interactive-rebase
+   * editor for the user to review and edit, never to execute automatically.
+   */
+  public async _proposeComposeCommitsPlan(
+    repository: Repository,
+    commits: ReadonlyArray<Commit>,
+    signal?: AbortSignal
+  ): Promise<
+    | {
+        readonly kind: 'plan'
+        readonly plan: IInteractiveRebasePlan
+        readonly summary: string | null
+      }
+    | { readonly kind: 'denied'; readonly reason: string }
+  > {
+    if (commits.length === 0) {
+      return { kind: 'denied', reason: 'There are no commits to compose.' }
+    }
+
+    const account = getAccountForComposeCommitsWithAI(this.accounts, repository)
+    if (account === undefined) {
+      return {
+        kind: 'denied',
+        reason:
+          'No signed-in account is eligible to use AI for this repository.',
+      }
+    }
+
+    const providerBinding = getConflictResolutionAIProviderBinding(
+      account,
+      undefined
+    )
+    if (providerBinding === null) {
+      return {
+        kind: 'denied',
+        reason: 'Could not determine an AI provider for this account.',
+      }
+    }
+
+    const adminGate = evaluateAIAdminGate({
+      feature: 'commit-composition',
+      repositoryId: repository.id,
+      repositoryPath: repository.path,
+      filePaths: [],
+      providerKind: providerBinding.kind,
+    })
+    if (!adminGate.allowed) {
+      return { kind: 'denied', reason: adminGate.reason }
+    }
+
+    const policyAuthorization = issueAISecurityPolicyAuthorization(
+      'commit-composition',
+      repository.id,
+      repository.path,
+      [],
+      providerBinding,
+      ['metadata']
+    )
+    if (policyAuthorization === null) {
+      return {
+        kind: 'denied',
+        reason: 'Could not authorize this AI request.',
+      }
+    }
+
+    try {
+      const result = await this.copilotStore.proposeComposeCommitsPlan(
+        account,
+        repository.path,
+        commits.map(commit => ({
+          commitId: commit.sha,
+          subject: commit.summary,
+          body: commit.body,
+        })),
+        undefined,
+        signal,
+        policyAuthorization,
+        repository.id
+      )
+      return { kind: 'plan', plan: result.plan, summary: result.summary }
+    } catch (e) {
+      if (signal?.aborted) {
+        log.info('AppStore: Compose-commits plan proposal aborted by user')
+        return {
+          kind: 'denied',
+          reason: 'The AI request was cancelled.',
+        }
+      }
+      log.warn('AppStore: Compose-commits plan proposal failed', e)
+      return {
+        kind: 'denied',
+        reason:
+          e instanceof Error
+            ? e.message
+            : 'The AI provider could not propose a plan.',
+      }
+    }
+  }
+
+  /**
+   * R10 "Summarize past changes with AI": build the reviewed evidence for a
+   * plain-language explanation of the given commits, then ask Copilot to
+   * explain them. This shouldn't be called directly. See
+   * `Dispatcher.summarizeCommitsWithAI`.
+   *
+   * Every request goes through {@link evaluateAIAdminGate} and a freshly
+   * issued {@link issueAISecurityPolicyAuthorization} first — a denied gate
+   * or an unresolvable account fails closed with a denial reason and never
+   * reaches the AI provider.
+   *
+   * Line-added/deleted counts are marked "unavailable" for every file: the
+   * app's commit changed-files lookup only exposes changeset-wide totals
+   * today, not a genuine per-file breakdown, and the reviewed-evidence
+   * contract (`change-summary-model.ts`) requires reporting missing facts
+   * honestly rather than fabricating them.
+   */
+  public async _summarizeCommitsWithAI(
+    repository: Repository,
+    commits: ReadonlyArray<Commit>,
+    signal?: AbortSignal
+  ): Promise<
+    | { readonly kind: 'result'; readonly result: IChangeSummaryResult }
+    | { readonly kind: 'denied'; readonly reason: string }
+  > {
+    if (commits.length === 0) {
+      return { kind: 'denied', reason: 'There are no commits to summarize.' }
+    }
+
+    const account = getAccountForCopilotConflictResolution(
+      this.accounts,
+      repository
+    )
+    if (account === undefined) {
+      return {
+        kind: 'denied',
+        reason:
+          'No signed-in account is eligible to use AI for this repository.',
+      }
+    }
+
+    const providerBinding = getConflictResolutionAIProviderBinding(
+      account,
+      undefined
+    )
+    if (providerBinding === null) {
+      return {
+        kind: 'denied',
+        reason: 'Could not determine an AI provider for this account.',
+      }
+    }
+
+    const adminGate = evaluateAIAdminGate({
+      feature: 'commit-summary',
+      repositoryId: repository.id,
+      repositoryPath: repository.path,
+      filePaths: [],
+      providerKind: providerBinding.kind,
+    })
+    if (!adminGate.allowed) {
+      return { kind: 'denied', reason: adminGate.reason }
+    }
+
+    const policyAuthorization = issueAISecurityPolicyAuthorization(
+      'commit-summary',
+      repository.id,
+      repository.path,
+      [],
+      providerBinding,
+      ['metadata', 'path']
+    )
+    if (policyAuthorization === null) {
+      return { kind: 'denied', reason: 'Could not authorize this AI request.' }
+    }
+
+    const reviewCommits = await Promise.all(
+      commits.map(async commit => {
+        let files: ReadonlyArray<{ readonly path: string }> = []
+        try {
+          const changeset = await getChangedFiles(repository, commit.sha)
+          files = changeset.files
+        } catch {
+          files = []
+        }
+
+        return {
+          commitId: commit.sha,
+          author:
+            commit.author.name.length > 0
+              ? ({ availability: 'value', value: commit.author.name } as const)
+              : ({ availability: 'unavailable' } as const),
+          authoredAt: Number.isNaN(commit.author.date.getTime())
+            ? ({ availability: 'unavailable' } as const)
+            : ({
+                availability: 'value',
+                value: commit.author.date.toISOString(),
+              } as const),
+          subject:
+            commit.summary.length > 0
+              ? ({ availability: 'value', value: commit.summary } as const)
+              : ({ availability: 'value', value: '(no subject)' } as const),
+          files: files.map(file => ({
+            path: file.path,
+            addedLines: { availability: 'unavailable' } as const,
+            deletedLines: { availability: 'unavailable' } as const,
+          })),
+        }
+      })
+    )
+
+    if (signal?.aborted) {
+      return { kind: 'denied', reason: 'The AI request was cancelled.' }
+    }
+
+    let review: IChangeSummaryReview
+    try {
+      review = createChangeSummaryReview({
+        authorization: {
+          version: 1,
+          authorizationId: `r14-authorization-v1:${policyAuthorization.trustedMainProcess.verifiedPolicyDigest}`,
+          evidenceId: `r14-evidence-v1:${policyAuthorization.trustedMainProcess.verifiedPolicyDigest}`,
+        },
+        commits: reviewCommits,
+      })
+    } catch (e) {
+      log.warn('AppStore: Could not build commit-summary review evidence', e)
+      return {
+        kind: 'denied',
+        reason: 'Could not build reviewed evidence for these commits.',
+      }
+    }
+
+    try {
+      const result = await this.copilotStore.summarizeCommits(
+        account,
+        review,
+        repository.path,
+        undefined,
+        policyAuthorization,
+        repository.id,
+        signal
+      )
+      return { kind: 'result', result }
+    } catch (e) {
+      if (signal?.aborted) {
+        log.info('AppStore: Commit summary generation aborted by user')
+        return { kind: 'denied', reason: 'The AI request was cancelled.' }
+      }
+      log.warn('AppStore: Commit summary generation failed', e)
+      return {
+        kind: 'denied',
+        reason:
+          e instanceof Error
+            ? e.message
+            : 'The AI provider could not summarize these commits.',
+      }
+    }
+  }
+
+  /**
+   * R12 "Suggest a fix" (#129): propose one AI-generated pull request review
+   * suggestion for the file/line/diff-hunk the reviewer selected inside the
+   * in-app PR review composer. This shouldn't be called directly. See
+   * `Dispatcher.suggestPullRequestReviewCodeChangeWithAI`.
+   *
+   * Every request goes through {@link evaluateAIAdminGate} and a freshly
+   * issued {@link issueAISecurityPolicyAuthorization} first — a denied gate
+   * or an unresolvable account fails closed with a denial reason and never
+   * reaches the AI provider. The model only ever sees the one diff hunk the
+   * caller supplies, never the rest of the repository. The returned
+   * replacement text is untrusted model output: the caller must still run it
+   * through `createGitHubPullRequestSuggestionBody` before it can be queued
+   * or posted, exactly like a human-written suggestion.
+   */
+  public async _suggestPullRequestReviewCodeChangeWithAI(
+    repository: Repository,
+    path: string,
+    diffHunk: string,
+    selectedLine: number,
+    instruction: string,
+    signal?: AbortSignal
+  ): Promise<
+    | {
+        readonly kind: 'result'
+        readonly replacement: string
+        readonly explanation: string
+      }
+    | { readonly kind: 'denied'; readonly reason: string }
+  > {
+    if (diffHunk.trim().length === 0) {
+      return {
+        kind: 'denied',
+        reason: 'Select a file and line with a diff to suggest a fix for.',
+      }
+    }
+
+    const account = getAccountForCopilotConflictResolution(
+      this.accounts,
+      repository
+    )
+    if (account === undefined) {
+      return {
+        kind: 'denied',
+        reason:
+          'No signed-in account is eligible to use AI for this repository.',
+      }
+    }
+
+    const providerBinding = getConflictResolutionAIProviderBinding(
+      account,
+      undefined
+    )
+    if (providerBinding === null) {
+      return {
+        kind: 'denied',
+        reason: 'Could not determine an AI provider for this account.',
+      }
+    }
+
+    const adminGate = evaluateAIAdminGate({
+      feature: 'pr-review-suggestion',
+      repositoryId: repository.id,
+      repositoryPath: repository.path,
+      filePaths: [path],
+      providerKind: providerBinding.kind,
+    })
+    if (!adminGate.allowed) {
+      return { kind: 'denied', reason: adminGate.reason }
+    }
+
+    const policyAuthorization = issueAISecurityPolicyAuthorization(
+      'pr-review-suggestion',
+      repository.id,
+      repository.path,
+      [path],
+      providerBinding,
+      ['path', 'diff', 'code']
+    )
+    if (policyAuthorization === null) {
+      return { kind: 'denied', reason: 'Could not authorize this AI request.' }
+    }
+
+    if (signal?.aborted) {
+      return { kind: 'denied', reason: 'The AI request was cancelled.' }
+    }
+
+    try {
+      const candidate = await this.copilotStore.suggestCodeChange(
+        account,
+        { path, diffHunk, selectedLine, instruction },
+        repository.path,
+        undefined,
+        policyAuthorization,
+        repository.id,
+        signal
+      )
+      return {
+        kind: 'result',
+        replacement: candidate.replacement,
+        explanation: candidate.explanation,
+      }
+    } catch (e) {
+      if (signal?.aborted) {
+        log.info('AppStore: PR review suggestion generation aborted by user')
+        return { kind: 'denied', reason: 'The AI request was cancelled.' }
+      }
+      log.warn('AppStore: PR review suggestion generation failed', e)
+      return {
+        kind: 'denied',
+        reason:
+          e instanceof Error
+            ? e.message
+            : 'The AI provider could not suggest a change for this line.',
+      }
+    }
+  }
+
+  /**
+   * R9 "compose commits with AI": execute an already-reviewed and
+   * confirmed rebase plan. This shouldn't be called directly. See
+   * `Dispatcher.executeComposeCommitsPlan`.
+   *
+   * Callers must have already shown the confirmation step (final commit
+   * list, and an explicit pushed-history warning when applicable) — this
+   * method performs no AI call and no confirmation of its own, only the
+   * real `git rebase -i` run.
+   */
+  public async _executeComposeCommitsPlan(
+    repository: Repository,
+    plan: IInteractiveRebasePlan
+  ): Promise<RebaseResult> {
+    if (!this.isTemporaryRepositoryActive(repository)) {
+      return RebaseResult.Error
+    }
+
+    const progressCallback =
+      this.getMultiCommitOperationProgressCallBack(repository)
+    const gitStore = this.gitStoreCache.get(repository)
+    const result = await gitStore.performFailableOperation(() =>
+      this.withTemporaryRepositoryMutationGuard(repository, () =>
+        executeComposeCommitsPlan(repository, plan, progressCallback)
+      )
+    )
+
+    await this._refreshRepository(repository)
+
+    return result ?? RebaseResult.Error
   }
 
   /**

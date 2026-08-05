@@ -56,7 +56,33 @@ import {
   IAIProviderBinding,
   IAISecurityPolicyAuthorization,
   evaluateAISecurityPolicy,
+  issueAISecurityPolicyAuthorization,
 } from '../ai-security-policy'
+import {
+  ComposeCommitsWithAISystemPrompt,
+  ComposeCommitsWithAIValidationError,
+  IComposeCommitsSourceCommit,
+  buildComposeCommitsPrompt,
+  parseComposeCommitsPlanResponse,
+} from '../interactive-rebase/compose-commits-with-ai'
+import { IInteractiveRebasePlan } from '../interactive-rebase/interactive-rebase-plan'
+import {
+  CommitSummarySystemPrompt,
+  formatCommitSummaryPromptForReview,
+  parseCopilotCommitSummaryResponse,
+} from '../copilot-commit-summary'
+import {
+  IChangeSummaryReview,
+  IChangeSummaryResult,
+  createChangeSummaryResult,
+} from '../change-summary/change-summary-model'
+import {
+  ICopilotPRSuggestionCandidate,
+  IPRSuggestionReview,
+  PRSuggestionSystemPrompt,
+  formatPRSuggestionPromptForReview,
+  parseCopilotPRSuggestionResponse,
+} from '../copilot-pr-suggestion'
 
 /** The default model ID used for Copilot commit message generation. */
 export const DefaultCopilotModel = 'auto'
@@ -135,6 +161,30 @@ export type CopilotModelSelections = Partial<Record<CopilotFeature, string>>
 
 const ConflictResolutionAIContentClasses: ReadonlyArray<AIContentClass> =
   Object.freeze(['metadata', 'path', 'diff', 'code'])
+
+/**
+ * Compose-commits proposals send only commit subjects/bodies — never diffs,
+ * file paths, or file contents — so the model can reorganize a reviewed
+ * commit set without ever seeing code.
+ */
+const ComposeCommitsAIContentClasses: ReadonlyArray<AIContentClass> =
+  Object.freeze(['metadata'])
+
+/**
+ * Commit summaries are built only from commit metadata (author, date,
+ * subject) and per-file paths/line counts — never full diffs or file
+ * contents in this first build.
+ */
+const CommitSummaryAIContentClasses: ReadonlyArray<AIContentClass> =
+  Object.freeze(['metadata', 'path'])
+
+/**
+ * PR review suggestions send the one reviewed diff hunk and file path the
+ * reviewer selected — real code, so both 'diff' and 'code' content classes
+ * are declared honestly rather than understated.
+ */
+const PRSuggestionAIContentClasses: ReadonlyArray<AIContentClass> =
+  Object.freeze(['path', 'diff', 'code'])
 
 const ConflictBYOKProviderKeys = [
   'apiKey',
@@ -274,7 +324,7 @@ function snapshotConflictBYOKProvider(
  * conflict context. Never spread or serialize the SDK provider config here:
  * it may contain API keys, bearer tokens, and custom authorization headers.
  */
-function getConflictResolutionAIProviderBinding(
+export function getConflictResolutionAIProviderBinding(
   account: Account,
   provider: CopilotProviderConfig | undefined
 ): IAIProviderBinding | null {
@@ -1400,7 +1450,26 @@ export class CopilotStore extends BaseStore {
       // the same redacted, typed denial as every other fail-closed path.
     }
 
-    const policyDecision = evaluateAISecurityPolicy(policyAuthorization, {
+    // The renderer is the only place that knows the destination provider and
+    // the repository being asked about, so it is responsible for consulting
+    // the administrator's AI policy (`ai-admin-policy.ts`, via the gate in
+    // `ai-security-policy.ts`) and, if allowed, issuing the authorization
+    // this request is evaluated against below. Callers that already hold an
+    // authorization (e.g. reusing one across a batch) may pass it directly.
+    const authorization =
+      policyAuthorization ??
+      (providerBinding === null
+        ? null
+        : issueAISecurityPolicyAuthorization(
+            'conflict-resolution',
+            activeRepositoryId ?? -1,
+            repositoryPath,
+            context.files.map(f => f.path),
+            providerBinding,
+            ConflictResolutionAIContentClasses
+          ) ?? undefined)
+
+    const policyDecision = evaluateAISecurityPolicy(authorization, {
       feature: 'conflict-resolution',
       repositoryId: activeRepositoryId ?? -1,
       repositoryPath,
@@ -1539,6 +1608,409 @@ export class CopilotStore extends BaseStore {
         summary: firstSummary,
         references: firstReferences,
       }
+    } finally {
+      this.stopClient(client)
+    }
+  }
+
+  /**
+   * Ask the AI provider to propose a rebase plan reorganizing a reviewed set
+   * of commits (from R9 "compose commits with AI"). Only commit metadata
+   * (id/subject/body) is sent — no diffs or file contents — and the result
+   * is a fully validated {@link IInteractiveRebasePlan} covering exactly the
+   * reviewed commits, meant to be handed to the interactive-rebase editor
+   * for the user to review and edit before anything executes.
+   *
+   * Gated by {@link evaluateAISecurityPolicy} exactly like `resolveConflicts`
+   * — a missing or denied policy authorization fails closed before any
+   * client, session, or prompt is created.
+   *
+   * Reuses the conflict-resolution model/provider resolution helpers: this
+   * app has one Copilot model-selection surface today, and a dedicated
+   * "compose commits" model preference is a natural follow-up, not a
+   * requirement to reuse the same models safely.
+   */
+  public async proposeComposeCommitsPlan(
+    account: Account,
+    repositoryPath: string,
+    commits: ReadonlyArray<IComposeCommitsSourceCommit>,
+    request?: CopilotModelRequest | null,
+    signal?: AbortSignal,
+    policyAuthorization?: IAISecurityPolicyAuthorization,
+    activeRepositoryId?: number
+  ): Promise<{
+    readonly plan: IInteractiveRebasePlan
+    readonly summary: string | null
+  }> {
+    let modelConfig: IResolvedConflictModelConfig = {
+      modelId: '',
+      reasoningEffort: undefined,
+      provider: undefined,
+      timeoutMs: undefined,
+    }
+    let providerBinding: IAIProviderBinding | null = null
+    try {
+      modelConfig = this.resolveConflictModelConfig(account, request)
+      providerBinding = getConflictResolutionAIProviderBinding(
+        account,
+        modelConfig.provider
+      )
+    } catch {
+      // Treated as a malformed request below; evaluateAISecurityPolicy emits
+      // the same redacted, typed denial as every other fail-closed path.
+    }
+
+    const policyDecision = evaluateAISecurityPolicy(policyAuthorization, {
+      feature: 'commit-composition',
+      repositoryId: activeRepositoryId ?? -1,
+      repositoryPath,
+      provider: providerBinding,
+      contentClasses: ComposeCommitsAIContentClasses,
+    })
+    if (!policyDecision.allowed) {
+      throw new AISecurityPolicyDeniedError(
+        policyDecision.denial,
+        policyDecision.auditReceipt
+      )
+    }
+
+    if (commits.length === 0) {
+      throw new Error('No reviewed commits to compose a plan for')
+    }
+
+    const prompt = buildComposeCommitsPrompt(commits)
+    const allowedCommits = commits.map(commit => ({
+      commitId: commit.commitId,
+      subject: commit.subject,
+    }))
+
+    const client = await this.createClient(
+      account,
+      policyDecision.canonicalRepositoryPath
+    )
+
+    try {
+      let lastError: Error | undefined
+
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (signal?.aborted) {
+          throw new CopilotConflictResolutionAbortError()
+        }
+
+        const session = await client.createSession({
+          model: modelConfig.modelId,
+          reasoningEffort: modelConfig.reasoningEffort,
+          provider: modelConfig.provider,
+          streaming: true,
+          availableTools: [],
+          enableSessionStore: false,
+          createSessionFsProvider: createCopilotInMemorySessionFsProvider,
+          systemMessage: {
+            mode: 'append',
+            content: ComposeCommitsWithAISystemPrompt,
+          },
+          onPermissionRequest: async () => ({
+            kind: 'reject',
+          }),
+        })
+
+        if (signal?.aborted) {
+          await session.disconnect().catch(() => {})
+          throw new CopilotConflictResolutionAbortError()
+        }
+
+        try {
+          const responseContent = await runConflictResolutionTurn(
+            session,
+            prompt,
+            {
+              timeoutMs: modelConfig.timeoutMs ?? 600_000,
+              signal,
+            }
+          )
+
+          return parseComposeCommitsPlanResponse(
+            responseContent,
+            allowedCommits
+          )
+        } catch (e) {
+          lastError = e instanceof Error ? e : new Error(String(e))
+
+          if (isCopilotConflictResolutionAbortError(lastError)) {
+            throw lastError
+          }
+
+          const isRetryable =
+            lastError instanceof ComposeCommitsWithAIValidationError
+
+          if (!isRetryable || attempt > 0) {
+            break
+          }
+
+          log.warn(
+            'CopilotStore: Compose-commits plan parse/validation failed, retrying',
+            e
+          )
+        }
+      }
+
+      log.warn(
+        'CopilotStore: Failed to propose a compose-commits plan after retry',
+        lastError
+      )
+      throw lastError ?? new Error('Compose-commits plan proposal failed')
+    } finally {
+      this.stopClient(client)
+    }
+  }
+
+  /**
+   * Use the Copilot SDK to produce a plain-language explanation of a
+   * reviewed set of commits: a short prose summary plus one description per
+   * changed file.
+   *
+   * Follows the same gate-then-call shape as `resolveConflicts` and
+   * `proposeComposeCommitsPlan`: the request is denied before any
+   * client, session, or prompt is built unless `policyAuthorization` is a
+   * fresh, independently verified authorization for the `commit-summary`
+   * feature. The model's raw response is untrusted output — it is
+   * reconciled against `review` via {@link createChangeSummaryResult}, which
+   * guarantees every reviewed path gets exactly one result entry and
+   * rejects any path the model invented. Paths the model's response omits
+   * are filled in here as explicitly "unavailable" so the reconciliation
+   * always succeeds instead of discarding an otherwise-good response over a
+   * partial one.
+   *
+   * @param review - The exact reviewed evidence (commits, file paths, line
+   *   counts) that bounds what the model may talk about.
+   * @param policyAuthorization - A signed policy plus independent
+   *   main-process verification evidence, scoped to the `commit-summary`
+   *   feature. Missing evidence fails closed before any SDK client, session,
+   *   or prompt is created.
+   * @param activeRepositoryId - Repository identity selected independently
+   *   of the review. It must match both policy and trusted evidence.
+   */
+  public async summarizeCommits(
+    account: Account,
+    review: IChangeSummaryReview,
+    repositoryPath: string,
+    request?: CopilotModelRequest | null,
+    policyAuthorization?: IAISecurityPolicyAuthorization,
+    activeRepositoryId?: number,
+    signal?: AbortSignal
+  ): Promise<IChangeSummaryResult> {
+    let modelConfig: IResolvedConflictModelConfig = {
+      modelId: '',
+      reasoningEffort: undefined,
+      provider: undefined,
+      timeoutMs: undefined,
+    }
+    let providerBinding: IAIProviderBinding | null = null
+    try {
+      // Reuses the conflict-resolution model resolver: same account/BYOK
+      // shape, and a per-feature default is not yet warranted here.
+      modelConfig = this.resolveConflictModelConfig(account, request)
+      providerBinding = getConflictResolutionAIProviderBinding(
+        account,
+        modelConfig.provider
+      )
+    } catch {
+      // The evaluator treats the null provider as a malformed request and
+      // emits the same redacted, typed denial as every other fail-closed
+      // path.
+    }
+
+    const policyDecision = evaluateAISecurityPolicy(policyAuthorization, {
+      feature: 'commit-summary',
+      repositoryId: activeRepositoryId ?? -1,
+      repositoryPath,
+      provider: providerBinding,
+      contentClasses: CommitSummaryAIContentClasses,
+    })
+    if (!policyDecision.allowed) {
+      throw new AISecurityPolicyDeniedError(
+        policyDecision.denial,
+        policyDecision.auditReceipt
+      )
+    }
+
+    if (signal?.aborted) {
+      throw new CopilotConflictResolutionAbortError()
+    }
+
+    const client = await this.createClient(
+      account,
+      policyDecision.canonicalRepositoryPath
+    )
+
+    try {
+      const prompt = formatCommitSummaryPromptForReview(review)
+      const session = await client.createSession({
+        model: modelConfig.modelId,
+        reasoningEffort: modelConfig.reasoningEffort,
+        provider: modelConfig.provider,
+        streaming: true,
+        availableTools: [],
+        enableSessionStore: false,
+        createSessionFsProvider: createCopilotInMemorySessionFsProvider,
+        systemMessage: {
+          mode: 'append',
+          content: CommitSummarySystemPrompt,
+        },
+        onPermissionRequest: async () => ({
+          kind: 'reject',
+        }),
+      })
+
+      if (signal?.aborted) {
+        await session.disconnect().catch(() => {})
+        throw new CopilotConflictResolutionAbortError()
+      }
+
+      const responseContent = await runConflictResolutionTurn(session, prompt, {
+        timeoutMs: modelConfig.timeoutMs ?? 600_000,
+        signal,
+      })
+
+      const candidate = parseCopilotCommitSummaryResponse(responseContent)
+
+      // The model may omit paths, especially in a large selection. Every
+      // reviewed path still needs exactly one entry for
+      // createChangeSummaryResult to accept the result, so fill any gap
+      // honestly instead of fabricating a description or dropping the
+      // response.
+      const byPath = new Map(candidate.changes.map(c => [c.path, c]))
+      const changes = review.reviewedPaths.map(path => {
+        const described = byPath.get(path)
+        return described !== undefined
+          ? {
+              path,
+              availability: 'value' as const,
+              description: described.description,
+            }
+          : {
+              path,
+              availability: 'unavailable' as const,
+              explanation: 'The AI response did not describe this file.',
+            }
+      })
+
+      return createChangeSummaryResult(review, {
+        authorization: review.authorization,
+        summary: candidate.summary,
+        changes,
+      })
+    } finally {
+      this.stopClient(client)
+    }
+  }
+
+  /**
+   * Propose one AI-generated pull request review suggestion (R12/#129), for
+   * the "Suggest a fix" affordance inside the in-app PR review composer.
+   *
+   * Follows the same gate-then-call shape as `resolveConflicts`,
+   * `proposeComposeCommitsPlan`, and `summarizeCommits`: the request is
+   * denied before any client, session, or prompt is built unless
+   * `policyAuthorization` is a fresh, independently verified authorization
+   * for the `pr-review-suggestion` feature. The model only ever sees the one
+   * reviewed diff hunk supplied by the caller — never the rest of the
+   * repository — and its raw response is untrusted output returned to the
+   * caller unmodified; the caller is responsible for running it back through
+   * `createGitHubPullRequestSuggestionBody` (the same fencing/validation a
+   * human-written suggestion goes through) before it can be queued or
+   * posted.
+   *
+   * @param review - The exact reviewed diff hunk, path, and selected line
+   *   that bounds what the model may talk about.
+   * @param policyAuthorization - A signed policy plus independent
+   *   main-process verification evidence, scoped to the
+   *   `pr-review-suggestion` feature. Missing evidence fails closed before
+   *   any SDK client, session, or prompt is created.
+   */
+  public async suggestCodeChange(
+    account: Account,
+    review: IPRSuggestionReview,
+    repositoryPath: string,
+    request?: CopilotModelRequest | null,
+    policyAuthorization?: IAISecurityPolicyAuthorization,
+    activeRepositoryId?: number,
+    signal?: AbortSignal
+  ): Promise<ICopilotPRSuggestionCandidate> {
+    let modelConfig: IResolvedConflictModelConfig = {
+      modelId: '',
+      reasoningEffort: undefined,
+      provider: undefined,
+      timeoutMs: undefined,
+    }
+    let providerBinding: IAIProviderBinding | null = null
+    try {
+      // Reuses the conflict-resolution model resolver: same account/BYOK
+      // shape, and a per-feature default is not yet warranted here.
+      modelConfig = this.resolveConflictModelConfig(account, request)
+      providerBinding = getConflictResolutionAIProviderBinding(
+        account,
+        modelConfig.provider
+      )
+    } catch {
+      // The evaluator treats the null provider as a malformed request and
+      // emits the same redacted, typed denial as every other fail-closed
+      // path.
+    }
+
+    const policyDecision = evaluateAISecurityPolicy(policyAuthorization, {
+      feature: 'pr-review-suggestion',
+      repositoryId: activeRepositoryId ?? -1,
+      repositoryPath,
+      provider: providerBinding,
+      contentClasses: PRSuggestionAIContentClasses,
+    })
+    if (!policyDecision.allowed) {
+      throw new AISecurityPolicyDeniedError(
+        policyDecision.denial,
+        policyDecision.auditReceipt
+      )
+    }
+
+    if (signal?.aborted) {
+      throw new CopilotConflictResolutionAbortError()
+    }
+
+    const client = await this.createClient(
+      account,
+      policyDecision.canonicalRepositoryPath
+    )
+
+    try {
+      const prompt = formatPRSuggestionPromptForReview(review)
+      const session = await client.createSession({
+        model: modelConfig.modelId,
+        reasoningEffort: modelConfig.reasoningEffort,
+        provider: modelConfig.provider,
+        streaming: true,
+        availableTools: [],
+        enableSessionStore: false,
+        createSessionFsProvider: createCopilotInMemorySessionFsProvider,
+        systemMessage: {
+          mode: 'append',
+          content: PRSuggestionSystemPrompt,
+        },
+        onPermissionRequest: async () => ({
+          kind: 'reject',
+        }),
+      })
+
+      if (signal?.aborted) {
+        await session.disconnect().catch(() => {})
+        throw new CopilotConflictResolutionAbortError()
+      }
+
+      const responseContent = await runConflictResolutionTurn(session, prompt, {
+        timeoutMs: modelConfig.timeoutMs ?? 600_000,
+        signal,
+      })
+
+      return parseCopilotPRSuggestionResponse(responseContent)
     } finally {
       this.stopClient(client)
     }

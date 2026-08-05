@@ -21,6 +21,7 @@ export function getRepositorySections(
   if (supportsGitHubAPI) {
     sections.push(RepositorySectionTab.GitHubAPI)
   }
+  sections.push(RepositorySectionTab.Launchpad)
   sections.push(RepositorySectionTab.Triage)
   sections.push(RepositorySectionTab.RepositoryTools)
   return sections

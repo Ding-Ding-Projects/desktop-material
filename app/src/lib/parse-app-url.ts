@@ -1,8 +1,23 @@
 import * as URL from 'url'
+import { URL as WhatwgURL } from 'url'
 import { testForInvalidChars } from './sanitize-ref-name'
 
 export interface IOAuthAction {
   readonly name: 'oauth'
+  readonly code: string
+  readonly state: string
+}
+
+/**
+ * A callback from a self-hosted server's own OAuth authorization server
+ * (`services/desktop-material-server/oauth.mjs`), delivered through the same
+ * `x-github-desktop-auth` deep link dotcom sign-in already uses — this app
+ * has no loopback OAuth listener, so the callback has to arrive this way.
+ * Kept distinct from `IOAuthAction` so a self-hosted callback can never be
+ * mistaken for, or substituted into, a dotcom sign-in in progress.
+ */
+export interface ISelfHostedOAuthAction {
+  readonly name: 'self-hosted-oauth'
   readonly code: string
   readonly state: string
 }
@@ -23,6 +38,18 @@ export interface IOpenRepositoryFromURLAction {
   readonly filepath: string | null
 }
 
+/**
+ * A deep link to a workspace shared through the sender's self-hosted server
+ * (see `services/desktop-material-server`). `server` is the origin the
+ * receiving app must already trust — this action never causes the app to
+ * silently start talking to a server it hasn't been configured to use.
+ */
+export interface IOpenTeamWorkspaceAction {
+  readonly name: 'open-team-workspace'
+  readonly shareToken: string
+  readonly server: string
+}
+
 export interface IUnknownAction {
   readonly name: 'unknown'
   readonly url: string
@@ -30,7 +57,9 @@ export interface IUnknownAction {
 
 export type URLActionType =
   | IOAuthAction
+  | ISelfHostedOAuthAction
   | IOpenRepositoryFromURLAction
+  | IOpenTeamWorkspaceAction
   | IUnknownAction
 
 // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -74,11 +103,44 @@ export function parseAppURL(url: string): URLActionType {
   const query = parsedURL.query
 
   const actionName = hostname.toLowerCase()
+  if (actionName === 'openteamworkspace') {
+    const pathName = parsedURL.pathname
+    const shareToken =
+      pathName && pathName.length > 1 ? pathName.substring(1) : null
+    const server = getQueryStringValue(query, 'server')
+    if (
+      shareToken == null ||
+      !/^[A-Za-z0-9_-]{32,256}$/.test(shareToken) ||
+      server == null
+    ) {
+      return unknown
+    }
+    let serverOrigin: string
+    try {
+      serverOrigin = new WhatwgURL(server).origin
+    } catch {
+      return unknown
+    }
+    return { name: 'open-team-workspace', shareToken, server: serverOrigin }
+  }
+
   if (actionName === 'oauth') {
     const code = getQueryStringValue(query, 'code')
     const state = getQueryStringValue(query, 'state')
     if (code != null && state != null) {
       return { name: 'oauth', code, state }
+    } else {
+      return unknown
+    }
+  }
+
+  // `x-github-desktop-auth://self-hosted/oauth?code=…&state=…`, the
+  // redirect_uri every self-hosted OAuth client this app registers uses.
+  if (actionName === 'self-hosted' && parsedURL.pathname === '/oauth') {
+    const code = getQueryStringValue(query, 'code')
+    const state = getQueryStringValue(query, 'state')
+    if (code != null && state != null) {
+      return { name: 'self-hosted-oauth', code, state }
     } else {
       return unknown
     }

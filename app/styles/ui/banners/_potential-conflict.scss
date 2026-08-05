@@ -1,0 +1,45 @@
+#potential-conflict-banner {
+  // MD3 tonal warning banner - distinct from the error-toned conflict
+  // banners since nothing has actually gone wrong yet, this is a heads up.
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+
+  height: auto;
+  min-height: 48px;
+  padding-top: var(--spacing-half);
+  padding-bottom: var(--spacing-half);
+
+  .alert-icon {
+    fill: var(--md-sys-color-on-tertiary-container);
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: var(--spacing-half);
+  }
+
+  .contents {
+    align-items: flex-start;
+  }
+
+  .banner-message {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 0 1ex;
+    gap: var(--spacing-half);
+  }
+
+  .potential-conflict-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing);
+  }
+
+  .potential-conflict-overlapping-files {
+    margin: 0;
+    padding-left: var(--spacing-double);
+    max-height: 160px;
+    overflow-y: auto;
+    font-family: var(--font-family-monospace, monospace);
+    font-size: var(--font-size-sm, 12px);
+  }
+}

@@ -21,6 +21,22 @@ import { Avatar } from '../lib/avatar'
 import { CallToAction } from '../lib/call-to-action'
 import { TextBox } from '../lib/text-box'
 import { PasswordTextBox } from '../lib/password-text-box'
+import {
+  deleteJiraCredential,
+  deleteTrelloCredential,
+  setJiraCredential,
+  setTrelloCredential,
+} from '../../lib/issue-trackers/issue-tracker-credentials'
+import {
+  fetchJiraMyself,
+  IJiraUser,
+  JiraAuthMode,
+} from '../../lib/issue-trackers/jira-client'
+import {
+  fetchTrelloMember,
+  ITrelloMember,
+} from '../../lib/issue-trackers/trello-client'
+import { getIssueTrackerAuthErrorMessage } from '../../lib/issue-trackers/issue-tracker-auth-error'
 
 interface IAccountsProps {
   readonly accounts: ReadonlyArray<Account>
@@ -46,6 +62,21 @@ interface IAccountsState {
   readonly authenticatingProvider: 'gitlab' | 'bitbucket' | null
   readonly providerError: string | null
   readonly providerErrorFor: 'gitlab' | 'bitbucket' | null
+
+  readonly jiraMode: JiraAuthMode
+  readonly jiraEndpoint: string
+  readonly jiraEmail: string
+  readonly jiraToken: string
+  readonly jiraConnecting: boolean
+  readonly jiraConnectedUser: IJiraUser | null
+  readonly jiraError: string | null
+
+  readonly trelloEndpoint: string
+  readonly trelloKey: string
+  readonly trelloToken: string
+  readonly trelloConnecting: boolean
+  readonly trelloConnectedMember: ITrelloMember | null
+  readonly trelloError: string | null
 }
 
 enum SignInType {
@@ -62,6 +93,21 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
     authenticatingProvider: null,
     providerError: null,
     providerErrorFor: null,
+
+    jiraMode: 'basic-email-token',
+    jiraEndpoint: 'https://team.atlassian.net',
+    jiraEmail: '',
+    jiraToken: '',
+    jiraConnecting: false,
+    jiraConnectedUser: null,
+    jiraError: null,
+
+    trelloEndpoint: 'https://api.trello.com',
+    trelloKey: '',
+    trelloToken: '',
+    trelloConnecting: false,
+    trelloConnectedMember: null,
+    trelloError: null,
   }
 
   public render() {
@@ -92,7 +138,186 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
 
         {this.renderGitLabAccounts()}
         {this.renderBitbucketAccounts()}
+        {this.renderJiraAccounts()}
+        {this.renderTrelloAccounts()}
       </DialogContent>
+    )
+  }
+
+  private renderJiraAccounts() {
+    const loading = this.state.jiraConnecting
+    const isCloud = this.state.jiraMode === 'basic-email-token'
+    return (
+      <section className="account-section" aria-labelledby="jira-accounts">
+        <div className="account-section-header">
+          <div>
+            <h2 id="jira-accounts">Jira</h2>
+            <p>
+              Connect Jira Cloud with an account email and API token, or Jira
+              Data Center / the Git Integration for Jira app with a personal
+              access token.
+            </p>
+          </div>
+        </div>
+        {this.state.jiraConnectedUser !== null && (
+          <div className="account-card-list">
+            <Row className="account-info account-card">
+              <div className="user-info-container">
+                <div className="user-info">
+                  <div className="name">
+                    {this.state.jiraConnectedUser.displayName || 'Jira user'}
+                  </div>
+                  <div className="login">{this.state.jiraEndpoint}</div>
+                </div>
+                <span className="account-active-chip">
+                  <Octicon
+                    className="account-active-check"
+                    symbol={octicons.check}
+                  />
+                  Connected
+                </span>
+              </div>
+              <Button onClick={this.disconnectJira}>Disconnect</Button>
+            </Row>
+          </div>
+        )}
+        <div className="provider-sign-in-card">
+          <Row>
+            <label htmlFor="jira-mode-select">Jira deployment</label>
+            <select
+              id="jira-mode-select"
+              value={this.state.jiraMode}
+              disabled={loading}
+              onChange={this.onJiraModeChanged}
+            >
+              <option value="basic-email-token">
+                Jira Cloud (email + API token)
+              </option>
+              <option value="bearer-token">
+                Jira Data Center / Git Integration for Jira (personal access
+                token)
+              </option>
+            </select>
+          </Row>
+          <TextBox
+            label="Jira server"
+            placeholder="https://team.atlassian.net"
+            value={this.state.jiraEndpoint}
+            disabled={loading}
+            onValueChanged={this.onJiraEndpointChanged}
+          />
+          {isCloud && (
+            <TextBox
+              label="Account email"
+              placeholder="you@example.com"
+              value={this.state.jiraEmail}
+              disabled={loading}
+              onValueChanged={this.onJiraEmailChanged}
+            />
+          )}
+          <PasswordTextBox
+            label={isCloud ? 'API token' : 'Personal access token'}
+            placeholder={isCloud ? 'Jira API token' : 'Jira PAT'}
+            value={this.state.jiraToken}
+            disabled={loading}
+            onValueChanged={this.onJiraTokenChanged}
+          />
+          <Button
+            onClick={this.connectJira}
+            disabled={
+              loading ||
+              this.state.jiraEndpoint.trim().length === 0 ||
+              this.state.jiraToken.length === 0 ||
+              (isCloud && this.state.jiraEmail.trim().length === 0)
+            }
+          >
+            {loading ? 'Connecting…' : 'Connect Jira'}
+          </Button>
+        </div>
+        {this.state.jiraError !== null && !loading && (
+          <p className="provider-sign-in-error" role="alert">
+            {this.state.jiraError}
+          </p>
+        )}
+      </section>
+    )
+  }
+
+  private renderTrelloAccounts() {
+    const loading = this.state.trelloConnecting
+    return (
+      <section className="account-section" aria-labelledby="trello-accounts">
+        <div className="account-section-header">
+          <div>
+            <h2 id="trello-accounts">Trello</h2>
+            <p>Connect Trello with an application key and a member token.</p>
+          </div>
+        </div>
+        {this.state.trelloConnectedMember !== null && (
+          <div className="account-card-list">
+            <Row className="account-info account-card">
+              <div className="user-info-container">
+                <div className="user-info">
+                  <div className="name">
+                    {this.state.trelloConnectedMember.fullName ||
+                      `@${this.state.trelloConnectedMember.username}`}
+                  </div>
+                  <div className="login">
+                    @{this.state.trelloConnectedMember.username}
+                  </div>
+                </div>
+                <span className="account-active-chip">
+                  <Octicon
+                    className="account-active-check"
+                    symbol={octicons.check}
+                  />
+                  Connected
+                </span>
+              </div>
+              <Button onClick={this.disconnectTrello}>Disconnect</Button>
+            </Row>
+          </div>
+        )}
+        <div className="provider-sign-in-card">
+          <TextBox
+            label="Trello API server"
+            placeholder="https://api.trello.com"
+            value={this.state.trelloEndpoint}
+            disabled={loading}
+            onValueChanged={this.onTrelloEndpointChanged}
+          />
+          <TextBox
+            label="API key"
+            placeholder="Trello application key"
+            value={this.state.trelloKey}
+            disabled={loading}
+            onValueChanged={this.onTrelloKeyChanged}
+          />
+          <PasswordTextBox
+            label="Token"
+            placeholder="Trello member token"
+            value={this.state.trelloToken}
+            disabled={loading}
+            onValueChanged={this.onTrelloTokenChanged}
+          />
+          <Button
+            onClick={this.connectTrello}
+            disabled={
+              loading ||
+              this.state.trelloEndpoint.trim().length === 0 ||
+              this.state.trelloKey.trim().length === 0 ||
+              this.state.trelloToken.length === 0
+            }
+          >
+            {loading ? 'Connecting…' : 'Connect Trello'}
+          </Button>
+        </div>
+        {this.state.trelloError !== null && !loading && (
+          <p className="provider-sign-in-error" role="alert">
+            {this.state.trelloError}
+          </p>
+        )}
+      </section>
     )
   }
 
@@ -266,6 +491,92 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
         providerError: getProviderAuthErrorMessage('bitbucket', error),
       })
     }
+  }
+
+  private onJiraModeChanged = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    this.setState({ jiraMode: event.currentTarget.value as JiraAuthMode })
+  }
+
+  private onJiraEndpointChanged = (jiraEndpoint: string) => {
+    this.setState({ jiraEndpoint })
+  }
+
+  private onJiraEmailChanged = (jiraEmail: string) => {
+    this.setState({ jiraEmail })
+  }
+
+  private onJiraTokenChanged = (jiraToken: string) => {
+    this.setState({ jiraToken })
+  }
+
+  private connectJira = async () => {
+    this.setState({ jiraConnecting: true, jiraError: null })
+    const endpoint = this.state.jiraEndpoint.trim()
+    const email = this.state.jiraEmail.trim()
+    const { jiraMode, jiraToken } = this.state
+    try {
+      const user = await fetchJiraMyself(endpoint, jiraMode, email, jiraToken)
+      // Only persist the credential once the connection has been verified,
+      // so a token is never stored without evidence that it is valid.
+      await setJiraCredential(endpoint, email, jiraToken)
+      this.setState({
+        jiraConnecting: false,
+        jiraConnectedUser: user,
+        jiraToken: '',
+        jiraError: null,
+      })
+    } catch (error) {
+      this.setState({
+        jiraConnecting: false,
+        jiraConnectedUser: null,
+        jiraError: getIssueTrackerAuthErrorMessage('jira', error),
+      })
+    }
+  }
+
+  private disconnectJira = async () => {
+    await deleteJiraCredential(this.state.jiraEndpoint.trim())
+    this.setState({ jiraConnectedUser: null })
+  }
+
+  private onTrelloEndpointChanged = (trelloEndpoint: string) => {
+    this.setState({ trelloEndpoint })
+  }
+
+  private onTrelloKeyChanged = (trelloKey: string) => {
+    this.setState({ trelloKey })
+  }
+
+  private onTrelloTokenChanged = (trelloToken: string) => {
+    this.setState({ trelloToken })
+  }
+
+  private connectTrello = async () => {
+    this.setState({ trelloConnecting: true, trelloError: null })
+    const endpoint = this.state.trelloEndpoint.trim()
+    const key = this.state.trelloKey.trim()
+    const { trelloToken } = this.state
+    try {
+      const member = await fetchTrelloMember(endpoint, key, trelloToken)
+      await setTrelloCredential(endpoint, key, trelloToken)
+      this.setState({
+        trelloConnecting: false,
+        trelloConnectedMember: member,
+        trelloToken: '',
+        trelloError: null,
+      })
+    } catch (error) {
+      this.setState({
+        trelloConnecting: false,
+        trelloConnectedMember: null,
+        trelloError: getIssueTrackerAuthErrorMessage('trello', error),
+      })
+    }
+  }
+
+  private disconnectTrello = async () => {
+    await deleteTrelloCredential(this.state.trelloEndpoint.trim())
+    this.setState({ trelloConnectedMember: null })
   }
 
   private renderMultipleDotComAccounts() {

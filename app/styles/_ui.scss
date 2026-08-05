@@ -60,6 +60,7 @@
 @import 'ui/material-opencode-fix';
 @import 'ui/operation-progress';
 @import 'ui/repository-tools';
+@import 'ui/integrated-terminal';
 @import 'ui/cheap-lfs';
 @import 'ui/sparse-checkout';
 @import 'ui/branch-rules';
@@ -85,6 +86,7 @@
 @import 'ui/foldout';
 @import 'ui/preferences';
 @import 'ui/agent-access';
+@import 'ui/self-hosted-server';
 @import 'ui/queue-preferences';
 @import 'ui/sound-preferences';
 @import 'ui/copilot-preferences';
@@ -192,4 +194,6 @@
 @import 'ui/account-switcher';
 @import 'ui/call-to-action-bubble';
 @import 'ui/copilot-conflict-resolution';
+@import 'ui/ai-merge-editor';
 @import 'ui/feature-highlights';
+@import 'ui/launchpad';

@@ -576,6 +576,92 @@ describe('Launchpad view', () => {
   })
 })
 
+describe('Launchpad view team surface', () => {
+  it('renders no team toggle when no server is configured', () => {
+    const fixture = presentationFixture()
+    render(<LaunchpadView result={fixture.result} />)
+    assert.equal(
+      screen.queryByRole('button', { name: /team view/i }),
+      null
+    )
+  })
+
+  it('toggles into a real team roster and back, never fabricating members', () => {
+    const fixture = presentationFixture()
+    let selected = false
+    const onSelect = (value: boolean) => {
+      selected = value
+    }
+    const { rerender } = render(
+      <LaunchpadView
+        result={fixture.result}
+        team={{
+          members: [
+            {
+              deviceId: 'device-1',
+              deviceName: 'Alice laptop',
+              status: 'online',
+              activity: 'reviewing',
+              updatedAt: '2026-08-02T12:00:00.000Z',
+            },
+            {
+              deviceId: 'device-2',
+              deviceName: 'Bob desktop',
+              status: 'offline',
+              activity: null,
+              updatedAt: null,
+            },
+          ],
+          selected,
+          onSelect,
+        }}
+      />
+    )
+
+    const toggle = screen.getByRole('button', { name: /team view/i })
+    assert.equal(toggle.getAttribute('aria-pressed'), 'false')
+    fireEvent.click(toggle)
+    assert.equal(selected, true)
+
+    rerender(
+      <LaunchpadView
+        result={fixture.result}
+        team={{
+          members: [
+            {
+              deviceId: 'device-1',
+              deviceName: 'Alice laptop',
+              status: 'online',
+              activity: 'reviewing',
+              updatedAt: '2026-08-02T12:00:00.000Z',
+            },
+          ],
+          selected: true,
+          onSelect,
+        }}
+      />
+    )
+
+    assert.ok(screen.getByText('Alice laptop'))
+    assert.equal(screen.queryByText('Bob desktop'), null)
+    assert.equal(screen.queryByText('Pinned documentation pass'), null)
+  })
+
+  it('shows an honest loading state instead of fabricating a roster', () => {
+    const fixture = presentationFixture()
+    render(
+      <LaunchpadView
+        result={fixture.result}
+        team={{ members: null, selected: true, onSelect: () => {} }}
+      />
+    )
+    assert.match(
+      screen.getByRole('status').textContent ?? '',
+      /loading team activity/i
+    )
+  })
+})
+
 describe('Launchpad view styles', () => {
   it('keeps long rows shrink-safe and actions reachable at narrow widths', () => {
     assert.match(styles, /^\.launchpad-view\s*\{/m)
@@ -593,6 +679,8 @@ describe('Launchpad view styles', () => {
     assert.match(styles, /&__section-toggle\s*\{[\s\S]*?min-height:\s*48px;/)
     assert.match(styles, /&__action\s*\{[\s\S]*?min-height:\s*40px;/)
     assert.match(styles, /&__snooze-label\s*\{/)
+    assert.match(styles, /&__team-toggle\s*\{/)
+    assert.match(styles, /&__presence-dot\s*\{[\s\S]*?&--online\s*\{/)
   })
 
   it('removes nonessential motion without removing the layout', () => {
