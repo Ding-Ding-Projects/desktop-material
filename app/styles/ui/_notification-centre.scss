@@ -451,6 +451,7 @@
     border-radius: 10px;
     background: var(--md-sys-color-surface);
     color: var(--md-sys-color-on-surface);
+    white-space: nowrap;
     text-overflow: ellipsis;
   }
 }
