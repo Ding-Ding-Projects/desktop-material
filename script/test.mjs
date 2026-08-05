@@ -235,6 +235,10 @@ async function main() {
     '--conditions=import',
     ...['--import', 'tsx'],
     ...['--import', './app/test/globals.mts'],
+    // The Windows hosted runner can terminate the Node test worker pool with
+    // native OOM before a batch emits its accounting report. Serial workers
+    // keep the complete suite deterministic while preserving every assertion.
+    ...(process.platform === 'win32' ? ['--test-concurrency=1'] : []),
     ...switchArgs,
     '--test',
     ...reporter('spec'),
