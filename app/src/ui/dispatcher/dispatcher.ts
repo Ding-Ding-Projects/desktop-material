@@ -4806,6 +4806,20 @@ export class Dispatcher {
         this.openRepositoryFromUrl(action)
         return null
 
+      case 'self-hosted-oauth':
+        // The self-hosted OAuth authorize/token round trip (issue #119, R2)
+        // is implemented server-side and in
+        // `lib/self-hosted-server/oauth-sign-in.ts`, but nothing yet stores
+        // the PKCE code verifier across the browser round trip or lands the
+        // resulting tokens in the app's account store — that's the
+        // remaining gap tracked in #119, not something to fake here.
+        if (__DEV__) {
+          log.warn(
+            `Received self-hosted OAuth callback (state: ${action.state}) but sign-in completion is not wired yet (#119)`
+          )
+        }
+        return null
+
       default:
         const unknownAction: IUnknownAction = action
         log.warn(
