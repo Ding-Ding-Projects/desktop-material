@@ -1570,9 +1570,9 @@ re2js@^2.0.1:
   integrity sha512-X59sWAF3UaMKfsVZT5/kJk1kBK10artA4jxScW4dPYtIuyDAWITcTDgkgEf9GPaqCKMVPgL2oEJGib9jN4WnkQ==
 
 react-confetti@^6.1.0:
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/react-confetti/-/react-confetti-6.1.0.tgz#03dc4340d955acd10b174dbf301f374a06e29ce6"
-  integrity sha512-7Ypx4vz0+g8ECVxr88W9zhcQpbeujJAVqL14ZnXJ3I23mOI9/oBVTQ3dkJhUmB0D6XOtCZEM6N0Gm9PMngkORw==
+  version "6.4.0"
+  resolved "https://registry.yarnpkg.com/react-confetti/-/react-confetti-6.4.0.tgz#e9416b5b3c8baf6f0bb1c5a8e1e3c89babd2c837"
+  integrity sha512-5MdGUcqxrTU26I2EU7ltkWPwxvucQTuqMm8dUz72z2YMqTD6s9vMcDUysk7n9jnC+lXuCPeJJ7Knf98VEYE9Rg==
   dependencies:
     tween-functions "^1.2.0"
 
