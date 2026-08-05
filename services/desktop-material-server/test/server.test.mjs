@@ -200,6 +200,129 @@ describe('Desktop Material self-hosted server', () => {
     assert.deepEqual(capabilities.body, { error: 'device-auth-required' })
   })
 
+  it('tracks team presence and lists team members', async () => {
+    const paths = await fixture()
+    let now = paths.now
+    const instance = await startFixture(paths, () => now)
+
+    const first = await jsonRequest(instance.origin, '/v1/join', {
+      method: 'POST',
+      body: { token: InitialJoinToken, deviceName: 'Alice laptop' },
+    })
+    assert.equal(first.response.status, 201)
+
+    const rotated = await jsonRequest(instance.origin, '/v1/admin/join-links', {
+      method: 'POST',
+      token: AdminToken,
+      body: {},
+    })
+    const joinToken = decodeURIComponent(
+      new URL(rotated.body.joinUrl).hash.slice('#token='.length)
+    )
+    const second = await jsonRequest(instance.origin, '/v1/join', {
+      method: 'POST',
+      body: { token: joinToken, deviceName: 'Bob desktop' },
+    })
+    assert.equal(second.response.status, 201)
+
+    const badHeartbeat = await jsonRequest(
+      instance.origin,
+      '/v1/team/heartbeat',
+      {
+        method: 'POST',
+        token: first.body.deviceToken,
+        body: { status: 'not-a-status' },
+      }
+    )
+    assert.equal(badHeartbeat.response.status, 400)
+
+    const heartbeat = await jsonRequest(instance.origin, '/v1/team/heartbeat', {
+      method: 'POST',
+      token: first.body.deviceToken,
+      body: { status: 'online', activity: 'reviewing' },
+    })
+    assert.equal(heartbeat.response.status, 200)
+    assert.equal(heartbeat.body.ok, true)
+
+    const members = await jsonRequest(instance.origin, '/v1/team/members', {
+      token: second.body.deviceToken,
+    })
+    assert.equal(members.response.status, 200)
+    assert.equal(members.body.members.length, 2)
+    const alice = members.body.members.find(
+      member => member.deviceId === first.body.deviceId
+    )
+    assert.equal(alice.status, 'online')
+    assert.equal(alice.activity, 'reviewing')
+    const bob = members.body.members.find(
+      member => member.deviceId === second.body.deviceId
+    )
+    assert.equal(bob.status, 'offline')
+    assert.equal(bob.activity, null)
+
+    now += 3 * 60 * 1000
+    const staleMembers = await jsonRequest(instance.origin, '/v1/team/members', {
+      token: second.body.deviceToken,
+    })
+    const staleAlice = staleMembers.body.members.find(
+      member => member.deviceId === first.body.deviceId
+    )
+    assert.equal(staleAlice.status, 'offline')
+
+    const noAuth = await jsonRequest(instance.origin, '/v1/team/members')
+    assert.equal(noAuth.response.status, 401)
+  })
+
+  it('registers and resolves a shared workspace by deep-link token', async () => {
+    const paths = await fixture()
+    const instance = await startFixture(paths)
+
+    const joined = await jsonRequest(instance.origin, '/v1/join', {
+      method: 'POST',
+      body: { token: InitialJoinToken, deviceName: 'Alice laptop' },
+    })
+
+    const invalid = await jsonRequest(instance.origin, '/v1/workspaces', {
+      method: 'POST',
+      token: joined.body.deviceToken,
+      body: { name: 'Payments', repositoryUrl: 'not-a-url' },
+    })
+    assert.equal(invalid.response.status, 400)
+
+    const created = await jsonRequest(instance.origin, '/v1/workspaces', {
+      method: 'POST',
+      token: joined.body.deviceToken,
+      body: {
+        name: 'Payments backend',
+        repositoryUrl: 'https://example.com/org/payments.git',
+        branch: 'main',
+      },
+    })
+    assert.equal(created.response.status, 201)
+    assert.match(created.body.shareUrl, /^x-github-client:\/\/openteamworkspace\//)
+    assert.match(created.body.shareToken, /^[A-Za-z0-9_-]{43}$/)
+
+    const fetched = await jsonRequest(
+      instance.origin,
+      `/v1/workspaces/${encodeURIComponent(created.body.shareToken)}`,
+      { token: joined.body.deviceToken }
+    )
+    assert.equal(fetched.response.status, 200)
+    assert.deepEqual(fetched.body, {
+      name: 'Payments backend',
+      repositoryUrl: 'https://example.com/org/payments.git',
+      branch: 'main',
+      createdAt: fetched.body.createdAt,
+    })
+
+    const missing = await jsonRequest(
+      instance.origin,
+      `/v1/workspaces/${'x'.repeat(43)}`,
+      { token: joined.body.deviceToken }
+    )
+    assert.equal(missing.response.status, 404)
+  })
+
   it('refuses a non-loopback clear-text listener without a trusted proxy', async () => {
     const paths = await fixture()
     await assert.rejects(
