@@ -52,6 +52,13 @@ export interface ICommitContextMenuProps {
     lastRetainedCommitRef: string | null,
     isInvokedByContextMenu: boolean
   ) => void
+  /**
+   * R9 "compose commits with AI": reorganize the given commits (oldest
+   * first) into a cleaner history via an AI-proposed, user-reviewed
+   * interactive-rebase plan. Never executes anything itself — it only opens
+   * the review/confirm flow.
+   */
+  readonly onComposeCommitsWithAI?: (commits: ReadonlyArray<Commit>) => void
 }
 
 /**
@@ -98,6 +105,35 @@ function canSquash(props: ICommitContextMenuProps): boolean {
   )
 }
 
+function canComposeCommitsWithAI(props: ICommitContextMenuProps): boolean {
+  return (
+    props.onComposeCommitsWithAI !== undefined &&
+    props.isMultiCommitOperationInProgress === false
+  )
+}
+
+/** Order commits oldest-first — the replay order a rebase plan requires. */
+function orderCommitsOldestFirst(
+  commitSHAs: ReadonlyArray<string>,
+  commits: ReadonlyArray<Commit>
+): ReadonlyArray<Commit> {
+  return [...commits].sort(
+    (a, b) => commitSHAs.indexOf(b.sha) - commitSHAs.indexOf(a.sha)
+  )
+}
+
+/** Every commit newer than `row` (rows `0..row-1`), oldest first. */
+function getChildrenOldestFirst(
+  props: ICommitContextMenuProps,
+  row: number
+): ReadonlyArray<Commit> {
+  const childShas = props.commitSHAs.slice(0, row)
+  const children = childShas
+    .map(sha => props.commitLookup.get(sha))
+    .filter((commit): commit is Commit => commit !== undefined)
+  return orderCommitsOldestFirst(props.commitSHAs, children)
+}
+
 function getLastRetainedCommitRef(
   commitSHAs: ReadonlyArray<string>,
   commits: ReadonlyArray<Commit>
@@ -121,34 +157,6 @@ function squash(
     getLastRetainedCommitRef(props.commitSHAs, [...toSquash, squashOnto]),
     true
   )
-}
-
-/**
- * AI-assisted commit recomposition (R9, tracked in issue #126) does not exist
- * yet. The "Recompose … with AI" menu items stay wired and visible so the
- * affordance is discoverable, but they are disabled and call this
- * clearly-named handler instead of fabricating any AI behavior.
- */
-function recomposeWithAINotYetImplemented(): void {
-  if (__DEV__) {
-    log.warn(
-      '[CommitContextMenu]: AI commit recomposition (R9, issue #126) is not implemented yet'
-    )
-  }
-}
-
-/** Commits whose first parent is `sha`, in no particular order. */
-function getChildCommits(
-  props: ICommitContextMenuProps,
-  sha: string
-): ReadonlyArray<Commit> {
-  const children: Commit[] = []
-  for (const commit of props.commitLookup.values()) {
-    if (commit.parentSHAs.includes(sha)) {
-      children.push(commit)
-    }
-  }
-  return children
 }
 
 function getDeleteTagsMenuItem(
@@ -273,6 +281,34 @@ function getContextMenuForSingleCommit(
     items.push({ type: 'separator' }, deleteTagsMenuItem)
   }
 
+  const children = getChildrenOldestFirst(props, row)
+  items.push(
+    { type: 'separator' },
+    {
+      label: __DARWIN__
+        ? 'Recompose Commit with AI…'
+        : 'Recompose commit with AI…',
+      action: () => props.onComposeCommitsWithAI?.([commit]),
+      enabled: canComposeCommitsWithAI(props),
+    }
+  )
+  if (children.length > 0) {
+    items.push({
+      label: __DARWIN__
+        ? `Recompose ${children.length} Children of \`${commit.sha.slice(
+            0,
+            7
+          )}\` with AI…`
+        : `Recompose ${children.length} children of \`${commit.sha.slice(
+            0,
+            7
+          )}\` with AI…`,
+      action: () =>
+        props.onComposeCommitsWithAI?.([...children, commit]),
+      enabled: canComposeCommitsWithAI(props),
+    })
+  }
+
   const darwinTagsLabel = commit.tags.length > 1 ? 'Copy Tags' : 'Copy Tag'
   const windowsTagsLabel = commit.tags.length > 1 ? 'Copy tags' : 'Copy tag'
   items.push(
@@ -280,24 +316,6 @@ function getContextMenuForSingleCommit(
       label: __DARWIN__ ? 'Cherry-pick Commit…' : 'Cherry-pick commit…',
       action: () => props.onCherryPick?.([commit]),
       enabled: canCherryPick(props),
-    },
-    { type: 'separator' },
-    // TODO(#126, R9): wire these to the real AI recompose backend once it
-    // exists. Left disabled/no-op until then so the affordance is
-    // discoverable without fabricating AI behavior.
-    {
-      label: __DARWIN__
-        ? 'Recompose Commit with AI…'
-        : 'Recompose commit with AI…',
-      action: recomposeWithAINotYetImplemented,
-      enabled: false,
-    },
-    {
-      label: __DARWIN__
-        ? `Recompose ${getChildCommits(props, commit.sha).length} Children of ${commit.sha.substring(0, 7)} with AI…`
-        : `Recompose ${getChildCommits(props, commit.sha).length} children of ${commit.sha.substring(0, 7)} with AI…`,
-      action: recomposeWithAINotYetImplemented,
-      enabled: false,
     },
     { type: 'separator' },
     {
@@ -351,13 +369,15 @@ function getContextMenuForMultipleCommits(
       enabled: canReorder(props),
     },
     { type: 'separator' },
-    // TODO(#126, R9): wire to the real AI recompose backend once it exists.
     {
       label: __DARWIN__
         ? `Recompose ${count} Commits with AI…`
         : `Recompose ${count} commits with AI…`,
-      action: recomposeWithAINotYetImplemented,
-      enabled: false,
+      action: () =>
+        props.onComposeCommitsWithAI?.(
+          orderCommitsOldestFirst(props.commitSHAs, selectedCommits)
+        ),
+      enabled: canComposeCommitsWithAI(props),
     },
   ]
 }

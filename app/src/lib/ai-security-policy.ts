@@ -16,6 +16,7 @@ export type AIContentClass = typeof AIContentClasses[number]
 export const AIFeatures = [
   'commit-message-generation',
   'conflict-resolution',
+  'commit-composition',
 ] as const
 
 export type AIFeature = typeof AIFeatures[number]
