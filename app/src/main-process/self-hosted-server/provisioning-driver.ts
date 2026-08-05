@@ -540,9 +540,28 @@ function parseBootstrapConfiguration(value: string): {
     'allowInsecureHttp',
     'transport',
   ]
+  // OAuth key material is written alongside the base fields but, unlike
+  // them, this driver only bounds-checks it: deep validation of client
+  // registrations and the signing key belongs to the server that actually
+  // uses them (services/desktop-material-server/server.mjs), matching how
+  // this function already treats adminTokenHash as an opaque, bounded blob.
+  const oauthKeys = [
+    'oauthClientsJson',
+    'oauthSigningKeyPem',
+    'oauthSigningPublicJwkJson',
+    'oauthKeyId',
+  ]
+  const presentOAuthKeys = oauthKeys.filter(key => key in config)
   if (
-    Object.keys(config).length !== expectedKeys.length ||
-    !Object.keys(config).every(key => expectedKeys.includes(key)) ||
+    presentOAuthKeys.length !== 0 &&
+    presentOAuthKeys.length !== oauthKeys.length
+  ) {
+    throw new SelfHostedServerProvisioningDriverError('configuration-invalid')
+  }
+  const allowedKeys = [...expectedKeys, ...oauthKeys]
+  if (
+    !Object.keys(config).every(key => allowedKeys.includes(key)) ||
+    !expectedKeys.every(key => key in config) ||
     config.version !== 1 ||
     typeof config.serverId !== 'string' ||
     typeof config.publicOrigin !== 'string' ||
@@ -554,6 +573,22 @@ function parseBootstrapConfiguration(value: string): {
     !Number.isFinite(Date.parse(config.initialJoinExpiresAt)) ||
     typeof config.allowInsecureHttp !== 'boolean' ||
     config.transport !== 'reverse-proxy'
+  ) {
+    throw new SelfHostedServerProvisioningDriverError('configuration-invalid')
+  }
+  if (
+    presentOAuthKeys.length === oauthKeys.length &&
+    (typeof config.oauthClientsJson !== 'string' ||
+      config.oauthClientsJson.length === 0 ||
+      config.oauthClientsJson.length > 16_384 ||
+      typeof config.oauthSigningKeyPem !== 'string' ||
+      !config.oauthSigningKeyPem.startsWith('-----BEGIN PRIVATE KEY-----') ||
+      config.oauthSigningKeyPem.length > 4_096 ||
+      typeof config.oauthSigningPublicJwkJson !== 'string' ||
+      config.oauthSigningPublicJwkJson.length === 0 ||
+      config.oauthSigningPublicJwkJson.length > 2_048 ||
+      typeof config.oauthKeyId !== 'string' ||
+      !/^[A-Za-z0-9._-]{1,128}$/.test(config.oauthKeyId))
   ) {
     throw new SelfHostedServerProvisioningDriverError('configuration-invalid')
   }
