@@ -1,5 +1,16 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-05 — Keep private tooling out of hosted CI checkout
+
+The first remote Windows verification after the dependency repair reached the
+runner but failed while recursively cloning
+`vendor/lowlevel-computer-use-mcp`: that submodule is agent tooling whose
+history is not available to the hosted workflow token. The desktop build does
+not consume it; the three public product submodules remain available. Marking
+this one submodule `update = none` keeps recursive checkout from attempting the
+unavailable agent-only clone while preserving the URL for an explicit local
+tooling checkout. Remote verification of this correction is pending.
+
 ## 2026-08-05 — Direct Super Express lane dispatch actions
 
 The Windows and Linux TUI Super Express packaging workflows now each expose a
@@ -17,7 +28,11 @@ TypeScript 6 rejected the repository's legacy project layout, and the newer
 request declarations introduced an incompatible `tough-cookie` type graph in
 the vendored compile. The dependency manifest and lockfile now restore
 TypeScript `5.8.2` and `@types/request` `2.0.9`, the versions compatible with
-the current setup action and vendor sources.
+the current setup action and vendor sources. The same dependency group also
+carried `tsx` `4.23.1`, which transforms JSON imports incorrectly under the
+test runner, and `@types/react-virtualized` `9.22.3`, which removed the
+`Grid.propTypes` declaration used by the app; those are restored to `4.19.3`
+and `9.7.14` as well.
 
 The same correction refreshes the Pages Docs hub from **254** to **264**
 rendered articles using `node script/sync-site-doc-counts.mjs`; the committed
