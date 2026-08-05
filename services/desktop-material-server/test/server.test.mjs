@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { randomBytes, createHash } from 'node:crypto'
 import { mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -9,6 +10,7 @@ import { createDesktopMaterialServer, hashSecret } from '../server.mjs'
 const InitialJoinToken =
   'initial-join-token-with-more-than-thirty-two-characters'
 const AdminToken = 'admin-token-with-more-than-thirty-two-characters'
+const CloudPatchEncryptionKeyBase64 = randomBytes(32).toString('base64url')
 
 const runningServers = new Set()
 
@@ -34,6 +36,7 @@ async function fixture() {
         initialJoinExpiresAt: new Date(now + 60_000).toISOString(),
         allowInsecureHttp: false,
         transport: 'direct',
+        cloudPatchEncryptionKeyBase64: CloudPatchEncryptionKeyBase64,
       },
       null,
       2
@@ -208,5 +211,120 @@ describe('Desktop Material self-hosted server', () => {
       }),
       /requires TLS or a declared reverse proxy/
     )
+  })
+
+  it('stores, shares, and revokes a Cloud Patch between two joined devices', async () => {
+    const paths = await fixture()
+    const instance = await startFixture(paths)
+
+    const capabilities0 = await jsonRequest(
+      instance.origin,
+      '/v1/capabilities',
+      { token: undefined }
+    )
+    assert.equal(capabilities0.response.status, 401)
+
+    const owner = await jsonRequest(instance.origin, '/v1/join', {
+      method: 'POST',
+      body: { token: InitialJoinToken, deviceName: 'Owner laptop' },
+    })
+    assert.equal(owner.response.status, 201)
+
+    const rotated = await jsonRequest(instance.origin, '/v1/admin/join-links', {
+      method: 'POST',
+      token: AdminToken,
+      body: {},
+    })
+    assert.equal(rotated.response.status, 201)
+    const secondToken = decodeURIComponent(
+      new URL(rotated.body.joinUrl).hash.slice('#token='.length)
+    )
+    const teammate = await jsonRequest(instance.origin, '/v1/join', {
+      method: 'POST',
+      body: { token: secondToken, deviceName: 'Teammate desktop' },
+    })
+    assert.equal(teammate.response.status, 201)
+
+    const capabilities = await jsonRequest(
+      instance.origin,
+      '/v1/capabilities',
+      { token: owner.body.deviceToken }
+    )
+    assert.equal(capabilities.response.status, 200)
+    assert.equal(capabilities.body.capabilities.patches, true)
+    assert.equal(capabilities.body.capabilities.storage, true)
+
+    const artifact = Buffer.from(
+      'diff --git a/file.txt b/file.txt\nnew file mode 100644\n'
+    )
+    const artifactBase64 = artifact.toString('base64url')
+    const expectedArtifactSha256 = `sha256:${createHash('sha256')
+      .update(artifact)
+      .digest('hex')}`
+
+    const denied = await jsonRequest(instance.origin, '/v1/patches', {
+      method: 'POST',
+      body: {
+        recipientDeviceIds: [teammate.body.deviceId],
+        expectedArtifactSha256,
+        artifactBase64,
+      },
+    })
+    assert.equal(denied.response.status, 401)
+
+    const created = await jsonRequest(instance.origin, '/v1/patches', {
+      method: 'POST',
+      token: owner.body.deviceToken,
+      body: {
+        recipientDeviceIds: [teammate.body.deviceId],
+        expectedArtifactSha256,
+        artifactBase64,
+      },
+    })
+    assert.equal(created.response.status, 201)
+    assert.match(created.body.shareId, /^cp_[a-f0-9]{64}$/)
+    assert.match(created.body.shareSecret, /^cps_[A-Za-z0-9_-]{43}$/)
+    assert.equal(
+      created.body.shareUrl,
+      `https://desktop-material.example/patches/${created.body.shareId}#${created.body.shareSecret}`
+    )
+
+    const wrongSecret = await jsonRequest(
+      instance.origin,
+      `/v1/patches/${created.body.shareId}?shareSecret=wrong`,
+      { token: teammate.body.deviceToken }
+    )
+    assert.equal(wrongSecret.response.status, 404)
+    assert.deepEqual(wrongSecret.body, { error: 'access-denied' })
+
+    const fetched = await jsonRequest(
+      instance.origin,
+      `/v1/patches/${created.body.shareId}?shareSecret=${created.body.shareSecret}`,
+      { token: teammate.body.deviceToken }
+    )
+    assert.equal(fetched.response.status, 200)
+    assert.equal(fetched.body.artifactBase64, artifactBase64)
+
+    const otherDeviceDenied = await jsonRequest(
+      instance.origin,
+      `/v1/patches/${created.body.shareId}?shareSecret=${created.body.shareSecret}`,
+      { token: owner.body.deviceToken }
+    )
+    assert.equal(otherDeviceDenied.response.status, 200)
+
+    const revoked = await jsonRequest(
+      instance.origin,
+      `/v1/patches/${created.body.shareId}/revoke`,
+      { method: 'POST', token: owner.body.deviceToken, body: {} }
+    )
+    assert.equal(revoked.response.status, 200)
+    assert.deepEqual(revoked.body, { revoked: true })
+
+    const afterRevoke = await jsonRequest(
+      instance.origin,
+      `/v1/patches/${created.body.shareId}?shareSecret=${created.body.shareSecret}`,
+      { token: teammate.body.deviceToken }
+    )
+    assert.equal(afterRevoke.response.status, 404)
   })
 })
