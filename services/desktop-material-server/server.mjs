@@ -17,6 +17,16 @@ const DefaultJoinLifetimeMs = 15 * 60 * 1000
 const MaximumJoinLifetimeMs = 24 * 60 * 60 * 1000
 const FailedJoinWindowMs = 60 * 1000
 const MaximumFailedJoinsPerWindow = 10
+const PresenceStaleMs = 2 * 60 * 1000
+const MaximumWorkspaces = 200
+const ValidPresenceStatuses = ['online', 'away']
+const ValidPresenceActivities = [
+  'idle',
+  'reviewing',
+  'committing',
+  'branching',
+  'syncing',
+]
 
 function hasExactKeys(value, keys) {
   return (
@@ -147,6 +157,8 @@ function initialState(configuration) {
     joinExpiresAt: configuration.initialJoinExpiresAt,
     joinConsumedAt: null,
     devices: [],
+    presence: [],
+    workspaces: [],
   }
 }
 
@@ -158,6 +170,8 @@ function validateState(value) {
       'joinExpiresAt',
       'joinConsumedAt',
       'devices',
+      'presence',
+      'workspaces',
     ]) ||
     value.version !== ApiVersion ||
     typeof value.joinTokenHash !== 'string' ||
@@ -165,7 +179,11 @@ function validateState(value) {
     (value.joinConsumedAt !== null &&
       typeof value.joinConsumedAt !== 'string') ||
     !Array.isArray(value.devices) ||
-    value.devices.length > MaximumDevices
+    value.devices.length > MaximumDevices ||
+    !Array.isArray(value.presence) ||
+    value.presence.length > MaximumDevices ||
+    !Array.isArray(value.workspaces) ||
+    value.workspaces.length > MaximumWorkspaces
   ) {
     throw new Error('Invalid self-hosted server state')
   }
@@ -178,6 +196,38 @@ function validateState(value) {
       !Number.isFinite(Date.parse(device.createdAt))
     ) {
       throw new Error('Invalid self-hosted device state')
+    }
+  }
+  for (const entry of value.presence) {
+    if (
+      !hasExactKeys(entry, ['deviceId', 'status', 'activity', 'updatedAt']) ||
+      typeof entry.deviceId !== 'string' ||
+      !ValidPresenceStatuses.includes(entry.status) ||
+      (entry.activity !== null &&
+        !ValidPresenceActivities.includes(entry.activity)) ||
+      !Number.isFinite(Date.parse(entry.updatedAt))
+    ) {
+      throw new Error('Invalid self-hosted presence state')
+    }
+  }
+  for (const workspace of value.workspaces) {
+    if (
+      !hasExactKeys(workspace, [
+        'tokenHash',
+        'name',
+        'ownerDeviceId',
+        'repositoryUrl',
+        'branch',
+        'createdAt',
+      ]) ||
+      typeof workspace.tokenHash !== 'string' ||
+      normalizeDeviceName(workspace.name) !== workspace.name ||
+      typeof workspace.ownerDeviceId !== 'string' ||
+      typeof workspace.repositoryUrl !== 'string' ||
+      (workspace.branch !== null && typeof workspace.branch !== 'string') ||
+      !Number.isFinite(Date.parse(workspace.createdAt))
+    ) {
+      throw new Error('Invalid self-hosted workspace state')
     }
   }
   return value
@@ -335,6 +385,52 @@ function joinUrl(publicOrigin, token) {
   const url = new URL('/join', publicOrigin)
   url.hash = `token=${encodeURIComponent(token)}`
   return url.toString()
+}
+
+function normalizeWorkspaceName(value) {
+  return normalizeDeviceName(value)
+}
+
+function normalizeRepositoryUrl(value) {
+  if (typeof value !== 'string' || value.length === 0 || value.length > 1024) {
+    return null
+  }
+  try {
+    const url = new URL(value)
+    if (url.protocol !== 'https:' && url.protocol !== 'ssh:') {
+      return null
+    }
+  } catch {
+    return null
+  }
+  return value
+}
+
+function normalizeBranchName(value) {
+  if (value === undefined || value === null) {
+    return null
+  }
+  if (typeof value !== 'string' || value.length === 0 || value.length > 255) {
+    return null
+  }
+  return value
+}
+
+function presenceOf(state, deviceId) {
+  return state.presence.find(entry => entry.deviceId === deviceId) ?? null
+}
+
+function teamMemberView(device, presenceEntry, now) {
+  const stale =
+    presenceEntry === null ||
+    now - Date.parse(presenceEntry.updatedAt) > PresenceStaleMs
+  return {
+    deviceId: device.id,
+    deviceName: device.name,
+    status: stale ? 'offline' : presenceEntry.status,
+    activity: stale ? null : presenceEntry.activity,
+    updatedAt: presenceEntry?.updatedAt ?? null,
+  }
 }
 
 export async function createDesktopMaterialServer(options) {
@@ -512,10 +608,157 @@ export async function createDesktopMaterialServer(options) {
           version: ApiVersion,
           capabilities: {
             identity: false,
-            collaboration: false,
+            collaboration: true,
             patches: false,
             storage: false,
           },
+        })
+        return
+      }
+
+      if (request.method === 'POST' && pathname === '/v1/team/heartbeat') {
+        const device = await authenticatedDevice(request)
+        if (device === null) {
+          status = 401
+          sendJson(response, status, { error: 'device-auth-required' })
+          return
+        }
+        const body = await readJson(request)
+        const requestedStatus =
+          typeof body?.status === 'string' ? body.status : 'online'
+        const activity = body?.activity === undefined ? null : body.activity
+        if (
+          !ValidPresenceStatuses.includes(requestedStatus) ||
+          (activity !== null && !ValidPresenceActivities.includes(activity))
+        ) {
+          status = 400
+          sendJson(response, status, { error: 'invalid-heartbeat' })
+          return
+        }
+        const updatedAt = new Date(clock()).toISOString()
+        await store.mutate(state => {
+          const existing = state.presence.find(
+            entry => entry.deviceId === device.id
+          )
+          if (existing) {
+            existing.status = requestedStatus
+            existing.activity = activity
+            existing.updatedAt = updatedAt
+          } else {
+            state.presence.push({
+              deviceId: device.id,
+              status: requestedStatus,
+              activity,
+              updatedAt,
+            })
+          }
+        })
+        status = 200
+        sendJson(response, status, { ok: true, updatedAt })
+        return
+      }
+
+      if (request.method === 'GET' && pathname === '/v1/team/members') {
+        const device = await authenticatedDevice(request)
+        if (device === null) {
+          status = 401
+          sendJson(response, status, { error: 'device-auth-required' })
+          return
+        }
+        const state = await store.read()
+        const now = clock()
+        status = 200
+        sendJson(response, status, {
+          members: state.devices.map(entry =>
+            teamMemberView(entry, presenceOf(state, entry.id), now)
+          ),
+        })
+        return
+      }
+
+      if (request.method === 'POST' && pathname === '/v1/workspaces') {
+        const device = await authenticatedDevice(request)
+        if (device === null) {
+          status = 401
+          sendJson(response, status, { error: 'device-auth-required' })
+          return
+        }
+        const body = await readJson(request)
+        const name = normalizeWorkspaceName(body?.name)
+        const repositoryUrl = normalizeRepositoryUrl(body?.repositoryUrl)
+        const branch = normalizeBranchName(body?.branch)
+        if (name === null || repositoryUrl === null) {
+          status = 400
+          sendJson(response, status, { error: 'invalid-workspace-request' })
+          return
+        }
+        const result = await store.mutate(state => {
+          if (state.workspaces.length >= MaximumWorkspaces) {
+            return { error: 'workspace-limit-reached' }
+          }
+          const shareToken = randomSecret()
+          const workspace = {
+            tokenHash: hashSecret(shareToken),
+            name,
+            ownerDeviceId: device.id,
+            repositoryUrl,
+            branch,
+            createdAt: new Date(clock()).toISOString(),
+          }
+          state.workspaces.push(workspace)
+          return { workspace, shareToken }
+        })
+        if (result.error !== undefined) {
+          status = 409
+          sendJson(response, status, { error: result.error })
+          return
+        }
+        status = 201
+        sendJson(response, status, {
+          name: result.workspace.name,
+          repositoryUrl: result.workspace.repositoryUrl,
+          branch: result.workspace.branch,
+          shareToken: result.shareToken,
+          shareUrl: `x-github-client://openteamworkspace/${encodeURIComponent(
+            result.shareToken
+          )}?server=${encodeURIComponent(configuration.publicOrigin)}`,
+        })
+        return
+      }
+
+      if (
+        request.method === 'GET' &&
+        pathname.startsWith('/v1/workspaces/')
+      ) {
+        const device = await authenticatedDevice(request)
+        if (device === null) {
+          status = 401
+          sendJson(response, status, { error: 'device-auth-required' })
+          return
+        }
+        const shareToken = decodeURIComponent(
+          pathname.slice('/v1/workspaces/'.length)
+        )
+        if (shareToken.length < 32 || shareToken.length > 256) {
+          status = 404
+          sendJson(response, status, { error: 'workspace-not-found' })
+          return
+        }
+        const state = await store.read()
+        const workspace = state.workspaces.find(entry =>
+          secretMatches(shareToken, entry.tokenHash)
+        )
+        if (workspace === undefined) {
+          status = 404
+          sendJson(response, status, { error: 'workspace-not-found' })
+          return
+        }
+        status = 200
+        sendJson(response, status, {
+          name: workspace.name,
+          repositoryUrl: workspace.repositoryUrl,
+          branch: workspace.branch,
+          createdAt: workspace.createdAt,
         })
         return
       }
