@@ -515,6 +515,7 @@ import {
   GitResetMode,
   reset,
   getBranchAheadBehind,
+  findPotentialConflict,
   getRebaseInternalState,
   getCommit,
   appendIgnoreFile,
@@ -14486,6 +14487,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
         await this._refreshRepository(repository)
 
+        // A fetch is the only moment the local repository learns anything
+        // new about the tracked remote branch, so it's the only sensible
+        // moment to re-run this local-only heuristic.
+        await this.maybeShowPotentialConflictBanner(repository)
+
         // A distinct "fetched" cue for user-initiated fetches only; frequent
         // background fetches stay silent so they never chatter.
         if (fetchType === FetchType.UserInitiatedTask) {
@@ -14504,6 +14510,83 @@ export class AppStore extends TypedBaseStore<IAppState> {
           void this.maybeAutoMaterializeCheapLfs(repository)
         }
       }
+    })
+  }
+
+  /**
+   * The local storage key used to remember that the user asked to stop
+   * seeing potential-conflict warnings for a given branch. Scoped to the
+   * repository's local path and the branch name, since "ignore" is a
+   * per-branch decision - the same branch name in a different clone, or a
+   * different branch in the same repository, should still warn.
+   */
+  private getIgnorePotentialConflictKey(
+    repository: Repository,
+    branch: Branch
+  ) {
+    return `potential-conflict-ignored/${repository.path}/${branch.name}`
+  }
+
+  /**
+   * A best-effort, local-only heuristic for the "R6 - proactive conflict
+   * detection" idea: after a fetch brings down new commits on the current
+   * branch's upstream, check whether the commits we haven't pushed yet and
+   * the commits we haven't pulled yet touch any of the same files. If they
+   * do, that's a reasonable (if imperfect) signal that pushing or merging
+   * will produce a conflict, so we surface it before the user runs into it.
+   *
+   * This intentionally does not attempt to know about anyone else's
+   * uncommitted work - that would require a server tracking more than this
+   * repository's own git data, which is out of scope here.
+   */
+  private async maybeShowPotentialConflictBanner(repository: Repository) {
+    const state = this.repositoryStateCache.get(repository)
+    const { tip } = state.branchesState
+
+    if (tip.kind !== TipState.Valid) {
+      return
+    }
+
+    const branch = tip.branch
+    if (branch.upstream === null) {
+      return
+    }
+
+    if (getBoolean(this.getIgnorePotentialConflictKey(repository, branch))) {
+      return
+    }
+
+    const aheadBehind = await getBranchAheadBehind(repository, branch)
+    const potentialConflict = await findPotentialConflict(
+      repository,
+      branch,
+      aheadBehind
+    )
+
+    if (potentialConflict === null) {
+      return
+    }
+
+    // Don't clobber a banner the user is already looking at, and don't
+    // re-show the same warning on every subsequent background fetch.
+    if (
+      this.currentBanner !== null &&
+      this.currentBanner.type === BannerType.PotentialConflictDetected
+    ) {
+      return
+    }
+
+    this._setBanner({
+      type: BannerType.PotentialConflictDetected,
+      ourBranch: branch.name,
+      theirBranch: branch.upstream,
+      overlappingFiles: potentialConflict.overlappingFiles,
+      onPush: () => {
+        this._push(repository)
+      },
+      onIgnore: () => {
+        setBoolean(this.getIgnorePotentialConflictKey(repository, branch), true)
+      },
     })
   }
 

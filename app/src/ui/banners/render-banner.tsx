@@ -19,6 +19,7 @@ import { SuccessfulSquash } from './successful-squash'
 import { SuccessBanner } from './success-banner'
 import { ConflictsFoundBanner } from './conflicts-found-banner'
 import { OSVersionNoLongerSupportedBanner } from './os-version-no-longer-supported-banner'
+import { PotentialConflictBanner } from './potential-conflict-banner'
 
 export function renderBanner(
   banner: Banner,
@@ -171,6 +172,18 @@ export function renderBanner(
       )
     case BannerType.OSVersionNoLongerSupported:
       return <OSVersionNoLongerSupportedBanner onDismissed={onDismissed} />
+    case BannerType.PotentialConflictDetected:
+      return (
+        <PotentialConflictBanner
+          ourBranch={banner.ourBranch}
+          theirBranch={banner.theirBranch}
+          overlappingFiles={banner.overlappingFiles}
+          onPush={banner.onPush}
+          onIgnore={banner.onIgnore}
+          onDismissed={onDismissed}
+          key={'potential-conflict'}
+        />
+      )
     default:
       return assertNever(banner, `Unknown popup type: ${banner}`)
   }
