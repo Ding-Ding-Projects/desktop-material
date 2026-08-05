@@ -235,6 +235,8 @@ describe('CI workflow safety', () => {
     )
     assert.doesNotMatch(installerWorkflow, /^\s+--latest\s*$/m)
     assert.match(releasePromotionScript, /select_highest_target_tag/)
+    assert.match(releasePromotionScript, /index\("RELEASES"\) != null/)
+    assert.match(releasePromotionScript, /endswith\("-full\.nupkg"\)/)
     assert.match(releasePromotionScript, /-f make_latest=true/)
     assert.match(releasePromotionScript, /-f make_latest=false/)
     assert.match(

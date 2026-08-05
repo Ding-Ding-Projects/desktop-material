@@ -9,11 +9,13 @@
 # installer build was running stranded Latest on an older release forever —
 # and Squirrel auto-update polls releases/latest/download/, so installed apps
 # silently stopped receiving fixes. Reconciliation is monotonic instead: among
-# the published, non-draft, non-prerelease releases whose tags resolve to
-# commits reachable from main, the tip-most commit wins, and same-commit ties
-# go to the highest Squirrel version tag. A superseded-but-on-main release
-# therefore still moves Latest forward, while a release for a commit that is
-# not on main can never own Latest.
+# the published, non-draft, non-prerelease Windows-capable releases whose tags
+# resolve to commits reachable from main, the tip-most commit wins, and
+# same-commit ties go to the highest Squirrel version tag. A partial release
+# without the Windows `RELEASES` feed is deliberately ineligible, so a newer
+# Linux-only release cannot turn the Windows updater URL into a 404. A
+# superseded-but-on-main release therefore still moves Latest forward, while
+# a release for a commit that is not on main can never own Latest.
 
 set -euo pipefail
 
@@ -44,18 +46,27 @@ fetch_reconcile_objects() {
     git fetch --quiet origin '+refs/tags/*:refs/tags/*'
 }
 
-# List published, non-draft, non-prerelease release tags (newest 100). The
-# page bound is deliberate: Latest is always a recent release, and older pages
-# cannot outrank a newer on-main commit. A failed listing must abort the
-# reconcile — an empty answer here is how a transient API error could
+# List published, non-draft, non-prerelease Windows-capable release tags
+# (newest 100). A partial release may contain only the Linux/TUI payload; it
+# must not own Latest because Squirrel would request a missing `RELEASES`
+# asset. The page bound is deliberate: Latest is always a recent release, and
+# older pages cannot outrank a newer on-main commit. A failed listing must
+# abort the reconcile — an empty answer here is how a transient API error could
 # otherwise masquerade as "no promotable releases" and trigger a demotion.
 published_release_tags() {
   gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
-    --jq '.[] | select(.draft == false and .prerelease == false) | .tag_name'
+    --jq '.[] |
+      select(
+        .draft == false and
+        .prerelease == false and
+        ([.assets[].name] | index("RELEASES") != null) and
+        ([.assets[].name | select(endswith("-full.nupkg"))] | length > 0)
+      ) |
+      .tag_name'
 }
 
-# Print "tag<TAB>sha" for every published release tag that resolves locally to
-# a commit reachable from main.
+# Print "tag<TAB>sha" for every published Windows-capable release tag that
+# resolves locally to a commit reachable from main.
 promotable_releases() {
   local main_sha="$1" release_tags="$2" tag sha
   while IFS= read -r tag; do

@@ -93,10 +93,14 @@ existing Release.
 
 Every Release is created non-latest. The shared promotion helper first proves
 the source is still current `main`, then examines the newest 100 published
-Releases for that exact SHA and promotes the greatest valid package version.
-It rechecks both the same-SHA maximum and `main` after promotion, reconciling an
-overlapping higher release or demoting a newly stale candidate. Thus an older
-job can finish independently without moving the update feed backward.
+Windows-capable Releases — each must carry both `RELEASES` and a full Squirrel
+package — and promotes the greatest valid package version. A partial
+Linux/TUI-only Release can still be published and documented, but it is never
+allowed to own the Windows `Latest` feed. The helper rechecks both the same-SHA
+maximum and `main` after promotion, reconciling an overlapping higher release
+or demoting a newly stale candidate. Thus an older job can finish
+independently without moving the update feed backward or replacing it with a
+404-producing partial release.
 
 The packaging job uploads the verified installer directory as an uncompressed,
 three-day Actions artifact before release-note generation, then preserves the
@@ -181,7 +185,12 @@ manifest for this package, and an unreadable running version all return
 `indeterminate`, so the guard never blocks an update check it could not
 actually evaluate.
 
-Only the update feed is guarded. A Squirrel bootstrapper invoked as
+Only the update feed is guarded. The release promoter also refuses to select a
+published release without the `RELEASES` manifest and a full Squirrel package,
+because GitHub's `releases/latest/download/` path is an asset lookup rather
+than a release-directory listing. This keeps a valid older Windows feed active
+when a newer release contains only the Linux/TUI payload. A Squirrel
+bootstrapper invoked as
 `Setup.exe --install . --checkInstall` reads its own bundled `RELEASES` from
 `%LOCALAPPDATA%\SquirrelTemp`, logs `First run, starting from scratch`, and
 applies whatever version it carries without consulting the installed
