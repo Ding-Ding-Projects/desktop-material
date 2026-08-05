@@ -1,5 +1,6 @@
 import {
   createHash,
+  createPrivateKey,
   randomBytes,
   randomUUID,
   timingSafeEqual,
@@ -9,6 +10,13 @@ import { createServer as createHttpServer } from 'node:http'
 import { createServer as createHttpsServer } from 'node:https'
 import { dirname } from 'node:path'
 import { pathToFileURL } from 'node:url'
+
+import {
+  SelfHostedOAuthAuthority,
+  SelfHostedOAuthError,
+  SelfHostedSsoSessionStore,
+  signIdToken,
+} from './oauth.mjs'
 
 const ApiVersion = 1
 const MaximumBodyBytes = 16 * 1024
@@ -70,21 +78,117 @@ function randomSecret() {
   return randomBytes(32).toString('base64url')
 }
 
+const RequiredConfigurationKeys = [
+  'version',
+  'serverId',
+  'publicOrigin',
+  'adminTokenHash',
+  'initialJoinTokenHash',
+  'initialJoinExpiresAt',
+  'allowInsecureHttp',
+  'transport',
+]
+// OAuth key material is optional: an older bootstrap, or one written before
+// the wizard grew OAuth provisioning, simply runs without the identity
+// capability. All four fields must be present together or not at all.
+const OptionalOAuthConfigurationKeys = [
+  'oauthClientsJson',
+  'oauthSigningKeyPem',
+  'oauthSigningPublicJwkJson',
+  'oauthKeyId',
+]
+
+function hasValidConfigurationKeys(value) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return false
+  }
+  const keys = Object.keys(value)
+  if (!RequiredConfigurationKeys.every(key => keys.includes(key))) {
+    return false
+  }
+  const oauthKeysPresent = OptionalOAuthConfigurationKeys.filter(key =>
+    keys.includes(key)
+  )
+  if (
+    oauthKeysPresent.length !== 0 &&
+    oauthKeysPresent.length !== OptionalOAuthConfigurationKeys.length
+  ) {
+    return false
+  }
+  const allowedKeys = [
+    ...RequiredConfigurationKeys,
+    ...OptionalOAuthConfigurationKeys,
+  ]
+  return keys.every(key => allowedKeys.includes(key))
+}
+
+function parseOAuthConfiguration(parsed) {
+  if (!Object.prototype.hasOwnProperty.call(parsed, 'oauthClientsJson')) {
+    return null
+  }
+  const clientsJson = requiredString(
+    parsed.oauthClientsJson,
+    'oauthClientsJson',
+    16_384
+  )
+  let clients
+  try {
+    clients = JSON.parse(clientsJson)
+  } catch {
+    throw new Error('Invalid OAuth client configuration')
+  }
+  if (!Array.isArray(clients) || clients.length < 1 || clients.length > 32) {
+    throw new Error('Invalid OAuth client configuration')
+  }
+  const signingKeyPem = requiredString(
+    parsed.oauthSigningKeyPem,
+    'oauthSigningKeyPem',
+    4_096
+  )
+  let privateKey
+  try {
+    privateKey = createPrivateKey(signingKeyPem)
+  } catch {
+    throw new Error('Invalid OAuth signing key')
+  }
+  if (privateKey.asymmetricKeyType !== 'ec') {
+    throw new Error('Invalid OAuth signing key')
+  }
+  const publicJwkJson = requiredString(
+    parsed.oauthSigningPublicJwkJson,
+    'oauthSigningPublicJwkJson',
+    2_048
+  )
+  let publicJwk
+  try {
+    publicJwk = JSON.parse(publicJwkJson)
+  } catch {
+    throw new Error('Invalid OAuth signing public key')
+  }
+  if (
+    !hasExactKeys(publicJwk, ['kty', 'crv', 'x', 'y']) ||
+    publicJwk.kty !== 'EC' ||
+    publicJwk.crv !== 'P-256' ||
+    typeof publicJwk.x !== 'string' ||
+    typeof publicJwk.y !== 'string'
+  ) {
+    throw new Error('Invalid OAuth signing public key')
+  }
+  const keyId = requiredString(parsed.oauthKeyId, 'oauthKeyId', 128)
+  if (!/^[A-Za-z0-9._-]{1,128}$/.test(keyId)) {
+    throw new Error('Invalid OAuth signing key id')
+  }
+  return {
+    clients,
+    signingKeyPem,
+    publicJwk: { ...publicJwk, kid: keyId },
+    keyId,
+  }
+}
+
 async function loadConfiguration(path) {
   const parsed = JSON.parse(await readFile(path, 'utf8'))
-  if (
-    !hasExactKeys(parsed, [
-      'version',
-      'serverId',
-      'publicOrigin',
-      'adminTokenHash',
-      'initialJoinTokenHash',
-      'initialJoinExpiresAt',
-      'allowInsecureHttp',
-      'transport',
-    ]) ||
-    parsed.version !== ApiVersion
-  ) {
+  if (!hasValidConfigurationKeys(parsed) || parsed.version !== ApiVersion) {
     throw new Error('Unsupported self-hosted server configuration')
   }
 
@@ -137,6 +241,7 @@ async function loadConfiguration(path) {
     initialJoinExpiresAt: new Date(initialJoinExpiresAt).toISOString(),
     allowInsecureHttp: parsed.allowInsecureHttp === true,
     transport: parsed.transport,
+    oauth: parseOAuthConfiguration(parsed),
   }
 }
 
@@ -355,6 +460,86 @@ export async function createDesktopMaterialServer(options) {
   const store = new AtomicStateStore(options.statePath, configuration)
   await store.read()
   const limiter = new FailedJoinLimiter(clock)
+  const oauthAuthority =
+    configuration.oauth === null
+      ? null
+      : new SelfHostedOAuthAuthority({
+          issuer: configuration.publicOrigin,
+          clients: configuration.oauth.clients,
+          clock,
+        })
+  const ssoSessions =
+    configuration.oauth === null ? null : new SelfHostedSsoSessionStore(clock)
+
+  function requireAdmin(request) {
+    const authorization = request.headers.authorization
+    if (typeof authorization !== 'string') {
+      return false
+    }
+    const match = /^Basic ([A-Za-z0-9+/]+=*)$/.exec(authorization)
+    if (match === null) {
+      return false
+    }
+    let decoded
+    try {
+      decoded = Buffer.from(match[1], 'base64').toString('utf8')
+    } catch {
+      return false
+    }
+    const separator = decoded.indexOf(':')
+    if (separator === -1) {
+      return false
+    }
+    const username = decoded.slice(0, separator)
+    const password = decoded.slice(separator + 1)
+    return (
+      username === 'admin' &&
+      password.length >= 32 &&
+      password.length <= 256 &&
+      secretMatches(password, configuration.adminTokenHash)
+    )
+  }
+
+  /**
+   * The only identity this server issues OAuth grants for today is its own
+   * administrator — the operator who holds the vaulted admin credential. A
+   * self-hosted single-tenant server has exactly one trusted human at
+   * bootstrap; broader per-user accounts are not implemented.
+   */
+  const OAuthAdminSubject = 'admin'
+
+  function parseCookies(request) {
+    const header = request.headers.cookie
+    const cookies = new Map()
+    if (typeof header !== 'string') {
+      return cookies
+    }
+    for (const part of header.split(';')) {
+      const separator = part.indexOf('=')
+      if (separator === -1) {
+        continue
+      }
+      cookies.set(
+        part.slice(0, separator).trim(),
+        part.slice(separator + 1).trim()
+      )
+    }
+    return cookies
+  }
+
+  function ssoCookieHeader(sessionId) {
+    const attributes = [
+      `dm_sso=${sessionId}`,
+      'Path=/oauth',
+      'HttpOnly',
+      'SameSite=Lax',
+      `Max-Age=${8 * 60 * 60}`,
+    ]
+    if (!configuration.allowInsecureHttp) {
+      attributes.push('Secure')
+    }
+    return attributes.join('; ')
+  }
 
   async function authenticatedDevice(request) {
     const token = bearerToken(request)
@@ -511,11 +696,206 @@ export async function createDesktopMaterialServer(options) {
         sendJson(response, status, {
           version: ApiVersion,
           capabilities: {
-            identity: false,
+            identity: oauthAuthority !== null,
             collaboration: false,
             patches: false,
             storage: false,
           },
+        })
+        return
+      }
+
+      if (
+        request.method === 'GET' &&
+        (pathname === '/.well-known/oauth-authorization-server' ||
+          pathname === '/.well-known/openid-configuration')
+      ) {
+        if (oauthAuthority === null) {
+          status = 404
+          sendJson(response, status, { error: 'not-found' })
+          return
+        }
+        status = 200
+        sendJson(response, status, {
+          ...oauthAuthority.metadata(),
+          jwks_uri: `${configuration.publicOrigin}/oauth/jwks.json`,
+          id_token_signing_alg_values_supported: ['ES256'],
+          subject_types_supported: ['public'],
+        })
+        return
+      }
+
+      if (request.method === 'GET' && pathname === '/oauth/jwks.json') {
+        if (oauthAuthority === null) {
+          status = 404
+          sendJson(response, status, { error: 'not-found' })
+          return
+        }
+        status = 200
+        sendJson(response, status, {
+          keys: [
+            { use: 'sig', alg: 'ES256', ...configuration.oauth.publicJwk },
+          ],
+        })
+        return
+      }
+
+      if (request.method === 'GET' && pathname === '/oauth/authorize') {
+        if (oauthAuthority === null) {
+          status = 404
+          sendJson(response, status, { error: 'not-found' })
+          return
+        }
+        // A self-hosted single-tenant identity: the operator authenticates
+        // once (Basic auth against the vaulted admin credential, the same
+        // identity `/v1/admin/join-links` trusts) and receives an SSO
+        // session cookie. Any subsequently registered client (a different
+        // domain, a different app) presenting that cookie is signed in
+        // without re-authenticating — single sign-on across every client
+        // this authority knows about.
+        const cookies = parseCookies(request)
+        let subject = ssoSessions.subjectFor(cookies.get('dm_sso') ?? null)
+        let setCookie = null
+        if (subject === null) {
+          if (!requireAdmin(request)) {
+            status = 401
+            response.setHeader(
+              'WWW-Authenticate',
+              'Basic realm="Desktop Material self-hosted server"'
+            )
+            sendJson(response, status, { error: 'sso-auth-required' })
+            return
+          }
+          subject = OAuthAdminSubject
+          setCookie = ssoCookieHeader(ssoSessions.create(subject))
+        }
+        let beginResult
+        try {
+          beginResult = oauthAuthority.beginAuthorization({
+            subject,
+            clientId: requestUrl.searchParams.get('client_id') ?? '',
+            redirectUri: requestUrl.searchParams.get('redirect_uri') ?? '',
+            state: requestUrl.searchParams.get('state') ?? '',
+            codeChallenge: requestUrl.searchParams.get('code_challenge') ?? '',
+            scopes: (requestUrl.searchParams.get('scope') ?? '')
+              .split(' ')
+              .filter(value => value.length > 0),
+          })
+        } catch (error) {
+          status = 400
+          if (setCookie !== null) {
+            response.setHeader('Set-Cookie', setCookie)
+          }
+          sendJson(response, status, {
+            error:
+              error instanceof SelfHostedOAuthError
+                ? error.code
+                : 'invalid-authorization-request',
+          })
+          return
+        }
+        const redirectLocation = oauthAuthority.approveAuthorization(
+          beginResult.requestId,
+          subject
+        )
+        status = 302
+        if (setCookie !== null) {
+          response.setHeader('Set-Cookie', setCookie)
+        }
+        response.setHeader('Location', redirectLocation)
+        securityHeaders(response)
+        response.statusCode = status
+        response.end()
+        return
+      }
+
+      if (request.method === 'POST' && pathname === '/oauth/token') {
+        if (oauthAuthority === null) {
+          status = 404
+          sendJson(response, status, { error: 'not-found' })
+          return
+        }
+        const body = await readJson(request)
+        let grant
+        try {
+          if (body?.grant_type === 'authorization_code') {
+            grant = oauthAuthority.exchangeAuthorizationCode({
+              clientId:
+                typeof body.client_id === 'string' ? body.client_id : '',
+              redirectUri:
+                typeof body.redirect_uri === 'string' ? body.redirect_uri : '',
+              code: typeof body.code === 'string' ? body.code : '',
+              codeVerifier:
+                typeof body.code_verifier === 'string'
+                  ? body.code_verifier
+                  : '',
+            })
+          } else if (body?.grant_type === 'refresh_token') {
+            grant = oauthAuthority.refresh({
+              clientId:
+                typeof body.client_id === 'string' ? body.client_id : '',
+              refreshToken:
+                typeof body.refresh_token === 'string'
+                  ? body.refresh_token
+                  : '',
+            })
+          } else {
+            status = 400
+            sendJson(response, status, { error: 'unsupported-grant-type' })
+            return
+          }
+        } catch (error) {
+          status = 400
+          sendJson(response, status, {
+            error:
+              error instanceof SelfHostedOAuthError
+                ? error.code
+                : 'invalid-grant',
+          })
+          return
+        }
+        const authenticated = oauthAuthority.authenticate(grant.accessToken)
+        const idToken = grant.scope.split(' ').includes('openid')
+          ? signIdToken({
+              privateKeyPem: configuration.oauth.signingKeyPem,
+              keyId: configuration.oauth.keyId,
+              issuer: configuration.publicOrigin,
+              subject: authenticated.subject,
+              audience: authenticated.clientId,
+              now: clock(),
+            })
+          : undefined
+        status = 200
+        sendJson(response, status, {
+          token_type: grant.tokenType,
+          access_token: grant.accessToken,
+          expires_in: grant.expiresIn,
+          refresh_token: grant.refreshToken,
+          scope: grant.scope,
+          ...(idToken === undefined ? {} : { id_token: idToken }),
+        })
+        return
+      }
+
+      if (request.method === 'GET' && pathname === '/oauth/userinfo') {
+        if (oauthAuthority === null) {
+          status = 404
+          sendJson(response, status, { error: 'not-found' })
+          return
+        }
+        const token = bearerToken(request)
+        const authenticated =
+          token === null ? null : oauthAuthority.authenticate(token)
+        if (authenticated === null) {
+          status = 401
+          response.setHeader('WWW-Authenticate', 'Bearer')
+          sendJson(response, status, { error: 'invalid-token' })
+          return
+        }
+        status = 200
+        sendJson(response, status, {
+          sub: authenticated.subject,
+          scope: authenticated.scopes.join(' '),
         })
         return
       }
