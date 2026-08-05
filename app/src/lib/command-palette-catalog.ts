@@ -284,6 +284,7 @@ const RepositorySettingsTabSlug: Readonly<
   [RepositorySettingsTab.Automation]: 'automation',
   [RepositorySettingsTab.Metadata]: 'metadata',
   [RepositorySettingsTab.Appearance]: 'appearance',
+  [RepositorySettingsTab.AISecurity]: 'ai-security',
   [RepositorySettingsTab.ForkSettings]: 'fork-settings',
 }
 

@@ -2104,6 +2104,7 @@ export type TranslationKey =
   | 'repositorySettings.tabAutomation'
   | 'repositorySettings.tabMetadata'
   | 'repositorySettings.tabAppearance'
+  | 'repositorySettings.tabAISecurity'
   | 'repositorySettings.tabForkSettings'
   | 'commandPalette.homeRepositorySettings'
   | 'palette.repositorySettingsRemote'
@@ -6209,6 +6210,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositorySettings.tabAutomation': 'Automation',
   'repositorySettings.tabMetadata': 'Metadata',
   'repositorySettings.tabAppearance': 'Appearance',
+  'repositorySettings.tabAISecurity': 'AI features',
   'repositorySettings.tabForkSettings': 'Fork settings',
   'commandPalette.homeRepositorySettings': 'Repository settings ▸ {tab}',
   'palette.repositorySettingsRemote': 'Repository remotes',
@@ -10638,6 +10640,7 @@ export const cantoneseTranslations: Readonly<
   'repositorySettings.tabAutomation': '自動化',
   'repositorySettings.tabMetadata': '中繼資料',
   'repositorySettings.tabAppearance': '外觀',
+  'repositorySettings.tabAISecurity': 'AI 功能',
   'repositorySettings.tabForkSettings': 'Fork 設定',
   'commandPalette.homeRepositorySettings': '儲存庫設定 ▸ {tab}',
   'palette.repositorySettingsRemote': '遠端設定',

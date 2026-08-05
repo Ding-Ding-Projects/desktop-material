@@ -1071,7 +1071,8 @@ export class RepositoryView extends React.Component<
       selectedSection === RepositorySectionTab.Issues ||
       selectedSection === RepositorySectionTab.GitHubAPI ||
       selectedSection === RepositorySectionTab.Triage ||
-      selectedSection === RepositorySectionTab.RepositoryTools
+      selectedSection === RepositorySectionTab.RepositoryTools ||
+      selectedSection === RepositorySectionTab.Launchpad
     ) {
       return null
     } else {

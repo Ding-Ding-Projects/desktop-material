@@ -6157,6 +6157,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       case RepositorySectionTab.GitHubAPI:
       case RepositorySectionTab.Triage:
       case RepositorySectionTab.RepositoryTools:
+      case RepositorySectionTab.Launchpad:
         break
       default:
         return assertNever(
@@ -8166,7 +8167,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       section === RepositorySectionTab.Issues ||
       section === RepositorySectionTab.GitHubAPI ||
       section === RepositorySectionTab.Triage ||
-      section === RepositorySectionTab.RepositoryTools
+      section === RepositorySectionTab.RepositoryTools ||
+      section === RepositorySectionTab.Launchpad
     ) {
       refreshSectionPromise = Promise.resolve()
     } else {

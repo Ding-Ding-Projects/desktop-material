@@ -122,6 +122,8 @@ function repositorySettingsTabNameKey(
       return 'repositorySettings.tabMetadata'
     case RepositorySettingsTab.Appearance:
       return 'repositorySettings.tabAppearance'
+    case RepositorySettingsTab.AISecurity:
+      return 'repositorySettings.tabAISecurity'
     case RepositorySettingsTab.ForkSettings:
       return 'repositorySettings.tabForkSettings'
   }

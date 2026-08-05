@@ -1588,9 +1588,9 @@ export class CopilotStore extends BaseStore {
    * reviewed commits, meant to be handed to the interactive-rebase editor
    * for the user to review and edit before anything executes.
    *
-   * Gated by {@link evaluateAISecurityPolicy} exactly like
-   * {@link resolveConflicts} — a missing or denied policy authorization
-   * fails closed before any client, session, or prompt is created.
+   * Gated by {@link evaluateAISecurityPolicy} exactly like `resolveConflicts`
+   * — a missing or denied policy authorization fails closed before any
+   * client, session, or prompt is created.
    *
    * Reuses the conflict-resolution model/provider resolution helpers: this
    * app has one Copilot model-selection surface today, and a dedicated
