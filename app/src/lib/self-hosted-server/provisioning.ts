@@ -63,6 +63,31 @@ export interface ISelfHostedServerProvisioningResult {
   readonly joinUrl: string
 }
 
+/** Renderer-facing status; never carries the vaulted admin token. */
+export interface ISelfHostedServerControllerStatus {
+  /** False on any platform the wizard cannot run on, e.g. not Windows. */
+  readonly supported: boolean
+  readonly configured: boolean
+  readonly publicOrigin: string | null
+  readonly serverId: string | null
+  readonly running: boolean
+}
+
+export interface ISelfHostedServerProvisioningOutcome {
+  readonly ok: true
+  readonly result: ISelfHostedServerProvisioningResult
+}
+
+export interface ISelfHostedServerProvisioningFailure {
+  readonly ok: false
+  readonly code: string
+  readonly recovery: string
+}
+
+export type SelfHostedServerProvisioningReply =
+  | ISelfHostedServerProvisioningOutcome
+  | ISelfHostedServerProvisioningFailure
+
 export interface ISelfHostedServerProvisioningDriver {
   readonly probeDocker: (
     signal: AbortSignal

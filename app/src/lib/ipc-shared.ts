@@ -62,6 +62,12 @@ import {
   IAgentServerStatus,
 } from './agent-commands'
 import {
+  ISelfHostedServerControllerStatus,
+  ISelfHostedServerProvisioningProgress,
+  ISelfHostedServerProvisioningRequest,
+  SelfHostedServerProvisioningReply,
+} from './self-hosted-server/provisioning'
+import {
   ICLICommandOutputEvent,
   ICLICommandStateEvent,
   ICLIWorkbenchOperationRequest,
@@ -142,6 +148,9 @@ export type RequestChannels = {
   'agent-command': (command: IAgentCommandEnvelope) => void
   'agent-command-result': (id: string, result: AgentCommandResult) => void
   'agent-server-status': (status: IAgentServerStatus) => void
+  'self-hosted-server-provisioning-progress': (
+    progress: ISelfHostedServerProvisioningProgress
+  ) => void
   'select-all-window-contents': () => void
   'dialog-did-open': () => void
   'update-menu-state': (
@@ -339,6 +348,11 @@ export type RequestResponseChannels = {
   'set-agent-server-remote-site-url': (
     value: string
   ) => Promise<IAgentServerStatus>
+  'get-self-hosted-server-status': () => Promise<ISelfHostedServerControllerStatus>
+  'provision-self-hosted-server': (
+    request: ISelfHostedServerProvisioningRequest
+  ) => Promise<SelfHostedServerProvisioningReply>
+  'cancel-self-hosted-server-provisioning': () => Promise<void>
   'get-windows-context-menu-state': (
     labels: IWindowsContextMenuLabels
   ) => Promise<IWindowsContextMenuState>

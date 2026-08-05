@@ -31,6 +31,7 @@ import {
   IAgentCommandEnvelope,
   IAgentServerStatus,
 } from '../lib/agent-commands'
+import { ISelfHostedServerProvisioningProgress } from '../lib/self-hosted-server/provisioning'
 import {
   AppWindowRendererFailure,
   isFatalRendererLoadFailure,
@@ -597,6 +598,17 @@ export class AppWindow {
   /** Reflect agent server lifecycle changes in the Preferences pane. */
   public sendAgentServerStatus(status: IAgentServerStatus) {
     ipcWebContents.send(this.window.webContents, 'agent-server-status', status)
+  }
+
+  /** Streams live wizard progress to the self-hosted server preferences pane. */
+  public sendSelfHostedServerProvisioningProgress(
+    progress: ISelfHostedServerProvisioningProgress
+  ) {
+    ipcWebContents.send(
+      this.window.webContents,
+      'self-hosted-server-provisioning-progress',
+      progress
+    )
   }
 
   public sendAccountsChanged() {
