@@ -288,6 +288,9 @@ import {
 } from './github-packages'
 import { createGitHubAPIRequestHeaders } from './github-rest-api-version'
 import { GitHubOAuthScopes } from './github-oauth-scopes'
+
+/** The OS callback registered by the built-in GitHub OAuth application. */
+export const GitHubOAuthRedirectURI = 'x-github-client://oauth'
 import {
   GitHubAPIWorkbenchRequest,
   IGitHubAPIWorkbenchResponse,
@@ -6172,9 +6175,10 @@ export function getOAuthAuthorizationURL(
 ): string {
   const urlBase = getHTMLURL(endpoint)
   const scope = encodeURIComponent(GitHubOAuthScopes.join(' '))
+  const redirectURI = encodeURIComponent(GitHubOAuthRedirectURI)
 
   return new window.URL(
-    `/login/oauth/authorize?client_id=${ClientID}&scope=${scope}&state=${state}`,
+    `/login/oauth/authorize?client_id=${ClientID}&redirect_uri=${redirectURI}&scope=${scope}&state=${state}`,
     urlBase
   ).toString()
 }
@@ -6193,6 +6197,7 @@ export async function requestOAuthToken(
       {
         client_id: ClientID,
         client_secret: ClientSecret,
+        redirect_uri: GitHubOAuthRedirectURI,
         code: code,
       }
     )
