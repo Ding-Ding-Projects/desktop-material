@@ -2945,6 +2945,11 @@ export type TranslationKey =
   | 'settingsSearch.tabName.queue'
   | 'settingsSearch.tabName.sound'
   | 'settingsSearch.tabName.ollama'
+  | 'settingsSearch.tabName.ai'
+  | 'settingsSearch.entry.aiMasterSwitch.title'
+  | 'settingsSearch.entry.aiMasterSwitch.desc'
+  | 'settingsSearch.entry.aiRepositoryEligibility.title'
+  | 'settingsSearch.entry.aiRepositoryEligibility.desc'
   | 'settingsSearch.entry.accountsSignIn.title'
   | 'settingsSearch.entry.accountsSignIn.desc'
   | 'settingsSearch.entry.accountsEnterprise.title'
@@ -7391,6 +7396,14 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settingsSearch.tabName.queue': 'Clone queue',
   'settingsSearch.tabName.sound': 'Sound',
   'settingsSearch.tabName.ollama': 'Ollama',
+  'settingsSearch.tabName.ai': 'AI',
+  'settingsSearch.entry.aiMasterSwitch.title': 'AI kill switch',
+  'settingsSearch.entry.aiMasterSwitch.desc':
+    'Turn AI features on or off, and choose which providers are permitted.',
+  'settingsSearch.entry.aiRepositoryEligibility.title':
+    'Repository AI eligibility',
+  'settingsSearch.entry.aiRepositoryEligibility.desc':
+    'Set the default whether repositories may send diffs to an AI provider.',
   'settingsSearch.entry.accountsSignIn.title': 'Sign in to GitHub',
   'settingsSearch.entry.accountsSignIn.desc':
     'Add a GitHub.com account to Desktop Material.',
@@ -11734,6 +11747,13 @@ export const cantoneseTranslations: Readonly<
   'settingsSearch.tabName.queue': 'Clone 隊列',
   'settingsSearch.tabName.sound': '聲音',
   'settingsSearch.tabName.ollama': 'Ollama 本地模型',
+  'settingsSearch.tabName.ai': 'AI',
+  'settingsSearch.entry.aiMasterSwitch.title': 'AI 總開關',
+  'settingsSearch.entry.aiMasterSwitch.desc':
+    '開關 AI 功能，仲可以揀邊個 provider 準用。',
+  'settingsSearch.entry.aiRepositoryEligibility.title': 'Repository AI 資格',
+  'settingsSearch.entry.aiRepositoryEligibility.desc':
+    '設定 repository 預設可唔可以將 diff 送去 AI provider。',
   'settingsSearch.entry.accountsSignIn.title': '登入 GitHub',
   'settingsSearch.entry.accountsSignIn.desc':
     '喺 Desktop Material 加個 GitHub.com 帳戶。',

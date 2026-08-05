@@ -58,6 +58,12 @@ import {
 } from '../../lib/automation/automation-settings'
 import { RepositoryMetadata } from './repository-metadata'
 import { RepositoryAppearance } from './repository-appearance'
+import { AISecurityOverrides } from './ai-security-overrides'
+import {
+  getAIAdminPolicySettings,
+  setAIAdminPolicySettings,
+  withRepositoryOverride,
+} from '../../lib/ai-admin-policy'
 import { getAvailableEditors } from '../../lib/editors/lookup'
 import {
   ICustomIntegration,
@@ -165,6 +171,7 @@ interface IRepositorySettingsState {
   readonly selectedExternalEditor: string | null
   readonly useCustomEditor: boolean
   readonly customEditor: ICustomIntegration
+  readonly aiAdminPolicySettings: ReturnType<typeof getAIAdminPolicySettings>
 }
 
 export class RepositorySettings extends React.Component<
@@ -226,6 +233,7 @@ export class RepositorySettings extends React.Component<
         path: '',
         arguments: TargetPathArgument,
       },
+      aiAdminPolicySettings: getAIAdminPolicySettings(),
     }
   }
 
@@ -542,6 +550,15 @@ export class RepositorySettings extends React.Component<
           <RepositoryAppearance
             repository={this.props.repository}
             dispatcher={this.props.dispatcher}
+          />
+        )
+      }
+      case RepositorySettingsTab.AISecurity: {
+        return (
+          <AISecurityOverrides
+            repositoryPath={this.props.repository.path}
+            settings={this.state.aiAdminPolicySettings}
+            onOverrideChanged={this.onAISecurityOverrideChanged}
           />
         )
       }
@@ -919,6 +936,16 @@ export class RepositorySettings extends React.Component<
     this.setState({ automationOverrides })
   }
 
+  private onAISecurityOverrideChanged = (override: 'allow' | 'deny' | null) => {
+    const updated = withRepositoryOverride(
+      this.state.aiAdminPolicySettings,
+      this.props.repository.path,
+      override
+    )
+    setAIAdminPolicySettings(updated)
+    this.setState({ aiAdminPolicySettings: updated })
+  }
+
   private onAppearanceCustomizationChanged = (
     appearanceCustomization: IAppearanceCustomization
   ) => {
@@ -1017,6 +1044,12 @@ export class RepositorySettings extends React.Component<
           <LocalizedText translationKey="repositorySettings.appearanceTab" />
         ),
         searchText: 'Appearance',
+      },
+      {
+        tab: RepositorySettingsTab.AISecurity,
+        icon: octicons.shield,
+        label: __DARWIN__ ? 'AI Features' : 'AI features',
+        searchText: 'AI security',
       },
     ]
 

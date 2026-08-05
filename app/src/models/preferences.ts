@@ -14,4 +14,5 @@ export enum PreferencesTab {
   Sound,
   Ollama,
   SelfHostedServer,
+  AI,
 }

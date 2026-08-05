@@ -23,5 +23,6 @@ export enum RepositorySettingsTab {
   Automation,
   Metadata,
   Appearance,
+  AISecurity,
   ForkSettings,
 }
