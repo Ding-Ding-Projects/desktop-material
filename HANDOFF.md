@@ -9,6 +9,21 @@ dispatched commit, validate the same packaging payload, and upload an
 artifact-only recovery result. They never publish independently, preserving the
 combined dispatcher's one-Release update/bootstrap contract.
 
+## 2026-08-05 — Restore CI-compatible dependency pins
+
+The Dependabot upgrades to TypeScript `6.0.3` and `@types/request` `2.48.13`
+made the Windows setup action fail before the desktop tests could start:
+TypeScript 6 rejected the repository's legacy project layout, and the newer
+request declarations introduced an incompatible `tough-cookie` type graph in
+the vendored compile. The dependency manifest and lockfile now restore
+TypeScript `5.8.2` and `@types/request` `2.0.9`, the versions compatible with
+the current setup action and vendor sources.
+
+The same correction refreshes the Pages Docs hub from **254** to **264**
+rendered articles using `node script/sync-site-doc-counts.mjs`; the committed
+check now agrees with the current `docs/` tree. Remote CI verification is
+pending for the resulting default-branch commit.
+
 ## 2026-08-05 — Super Express packaging lanes parallelized
 
 The manual Super Express dispatcher now keeps one combined immutable Release
