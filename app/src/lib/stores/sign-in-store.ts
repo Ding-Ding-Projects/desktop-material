@@ -1,4 +1,5 @@
 import { Disposable } from 'event-kit'
+import { createHash } from 'crypto'
 import { Account, AccountProvider } from '../../models/account'
 import { fatalError } from '../fatal-error'
 import {
@@ -18,10 +19,15 @@ import {
 } from '../../lib/api'
 
 import { TypedBaseStore } from './base-store'
-import { IOAuthAction } from '../parse-app-url'
+import { IOAuthAction, ISelfHostedOAuthAction } from '../parse-app-url'
 import { shell } from '../app-shell'
 import noop from 'lodash/noop'
 import { InternalBrowserOAuthCallbackResult } from '../internal-browser'
+import {
+  createSelfHostedOAuthSignInRequest,
+  exchangeSelfHostedOAuthCode,
+  fetchSelfHostedOAuthUserInfo,
+} from '../self-hosted-server/oauth-sign-in'
 
 export interface ISignInOAuthCallbackServices {
   readonly requestOAuthToken: (
@@ -31,10 +37,21 @@ export interface ISignInOAuthCallbackServices {
   readonly fetchUser: (endpoint: string, token: string) => Promise<Account>
 }
 
+export interface ISelfHostedOAuthCallbackServices {
+  readonly exchangeCode: typeof exchangeSelfHostedOAuthCode
+  readonly fetchUserInfo: typeof fetchSelfHostedOAuthUserInfo
+}
+
 const defaultOAuthCallbackServices: ISignInOAuthCallbackServices = {
   requestOAuthToken,
   fetchUser,
 }
+
+const defaultSelfHostedOAuthCallbackServices: ISelfHostedOAuthCallbackServices =
+  {
+    exchangeCode: exchangeSelfHostedOAuthCode,
+    fetchUserInfo: fetchSelfHostedOAuthUserInfo,
+  }
 
 /**
  * An enumeration of the possible steps that the sign in
@@ -137,13 +154,24 @@ export interface IAuthenticationState extends ISignInState {
 
   readonly resultCallback: (result: SignInResult) => void
 
-  readonly oauthState?: {
-    state: string
-    endpoint: string
-    onAuthCompleted: (account: Account) => void
-    onAuthError: (error: Error) => void
-    callbackResult: Promise<InternalBrowserOAuthCallbackResult>
-  }
+  readonly oauthState?:
+    | {
+        kind: 'github'
+        state: string
+        endpoint: string
+        onAuthCompleted: (account: Account) => void
+        onAuthError: (error: Error) => void
+        callbackResult: Promise<InternalBrowserOAuthCallbackResult>
+      }
+    | {
+        kind: 'self-hosted'
+        state: string
+        endpoint: string
+        codeVerifier: string
+        onAuthCompleted: (account: Account) => void
+        onAuthError: (error: Error) => void
+        callbackResult: Promise<InternalBrowserOAuthCallbackResult>
+      }
 }
 
 /**
@@ -173,7 +201,8 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
   private state: SignInState | null = null
 
   public constructor(
-    private readonly oauthCallbackServices: ISignInOAuthCallbackServices = defaultOAuthCallbackServices
+    private readonly oauthCallbackServices: ISignInOAuthCallbackServices = defaultOAuthCallbackServices,
+    private readonly selfHostedOAuthCallbackServices: ISelfHostedOAuthCallbackServices = defaultSelfHostedOAuthCallbackServices
   ) {
     super()
   }
@@ -267,7 +296,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
    * the resulting Account follows the normal secure account persistence path.
    */
   public async authenticateProviderWithToken(
-    provider: Exclude<AccountProvider, 'github'>,
+    provider: Exclude<AccountProvider, 'github' | 'self-hosted'>,
     endpoint: string,
     token: string
   ): Promise<Account> {
@@ -320,6 +349,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
         error: null,
         loading: true,
         oauthState: {
+          kind: 'github',
           state: csrfToken,
           endpoint,
           onAuthCompleted: resolve,
@@ -383,6 +413,9 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
     }
 
     const oauthState = currentState.oauthState
+    if (oauthState.kind !== 'github') {
+      return 'rejected'
+    }
     if (oauthState.state !== action.state) {
       log.warn(
         'requestAuthenticatedUser was not called with valid OAuth state. This is likely due to a browser reloading the callback URL. Contact GitHub Support if you believe this is an error'
@@ -427,6 +460,154 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
           ? error
           : new Error('Failed retrieving authenticated user')
       )
+      return oauthState.callbackResult
+    }
+  }
+
+  /** Start a PKCE-protected sign-in against the configured self-hosted tenant. */
+  public beginSelfHostedSignIn(
+    publicOrigin: string,
+    resultCallback?: (result: SignInResult) => void
+  ) {
+    if (this.state !== null) {
+      this.reset()
+    }
+
+    const request = createSelfHostedOAuthSignInRequest(publicOrigin)
+    let settleOAuthCallback:
+      | ((result: InternalBrowserOAuthCallbackResult) => void)
+      | null = null
+    const callbackResult = new Promise<InternalBrowserOAuthCallbackResult>(
+      resolve => {
+        settleOAuthCallback = resolve
+      }
+    )
+    const endpoint = new URL(request.authorizeUrl).origin
+    new Promise<Account>((resolve, reject) => {
+      this.setState({
+        kind: SignInStep.Authentication,
+        endpoint,
+        error: null,
+        loading: true,
+        resultCallback: resultCallback ?? noop,
+        oauthState: {
+          kind: 'self-hosted',
+          state: request.state,
+          endpoint,
+          codeVerifier: request.codeVerifier,
+          onAuthCompleted: resolve,
+          onAuthError: reject,
+          callbackResult,
+        },
+      })
+      void shell
+        .openExternal(request.authorizeUrl, { intent: 'authentication' })
+        .catch(reject)
+    })
+      .then(account => {
+        if (
+          this.state?.kind !== SignInStep.Authentication ||
+          this.state.oauthState?.kind !== 'self-hosted' ||
+          this.state.oauthState.state !== request.state
+        ) {
+          settleOAuthCallback?.('rejected')
+          return
+        }
+        if (!this.emitAuthenticate(account)) {
+          settleOAuthCallback?.('succeeded')
+          return
+        }
+        this.setState({ kind: SignInStep.Success, resultCallback: noop })
+        settleOAuthCallback?.('succeeded')
+      })
+      .catch(error => {
+        if (
+          this.state?.kind === SignInStep.Authentication &&
+          this.state.oauthState?.kind === 'self-hosted' &&
+          this.state.oauthState.state === request.state
+        ) {
+          const normalizedError =
+            error instanceof Error
+              ? error
+              : new Error('self-hosted-oauth-launch-failed')
+          this.setState({
+            ...this.state,
+            loading: false,
+            error: normalizedError,
+          })
+          settleOAuthCallback?.('failed')
+        } else {
+          settleOAuthCallback?.('rejected')
+        }
+      })
+  }
+
+  public async resolveSelfHostedOAuthRequest(
+    action: ISelfHostedOAuthAction
+  ): Promise<InternalBrowserOAuthCallbackResult> {
+    const currentState = this.state
+    if (
+      currentState?.kind !== SignInStep.Authentication ||
+      currentState.oauthState?.kind !== 'self-hosted'
+    ) {
+      return 'rejected'
+    }
+    const oauthState = currentState.oauthState
+    if (oauthState.state !== action.state) {
+      return 'rejected'
+    }
+    const isCurrentOAuthSession = () =>
+      this.state?.kind === SignInStep.Authentication &&
+      this.state.oauthState === oauthState
+    try {
+      const tokens = await this.selfHostedOAuthCallbackServices.exchangeCode(
+        oauthState.endpoint,
+        action.code,
+        oauthState.codeVerifier
+      )
+      if (!isCurrentOAuthSession()) {
+        return 'rejected'
+      }
+      const userInfo = await this.selfHostedOAuthCallbackServices.fetchUserInfo(
+        oauthState.endpoint,
+        tokens.accessToken
+      )
+      if (!isCurrentOAuthSession()) {
+        return 'rejected'
+      }
+      const id = Number.parseInt(
+        createHash('sha256')
+          .update(`${oauthState.endpoint}\u0000${userInfo.sub}`, 'utf8')
+          .digest('hex')
+          .slice(0, 13),
+        16
+      )
+      oauthState.onAuthCompleted(
+        new Account(
+          userInfo.sub,
+          oauthState.endpoint,
+          tokens.accessToken,
+          [],
+          '',
+          id,
+          userInfo.sub,
+          'self-hosted',
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          'self-hosted' as AccountProvider
+        )
+      )
+      return oauthState.callbackResult
+    } catch (error) {
+      if (!isCurrentOAuthSession()) {
+        return 'rejected'
+      }
+      const normalizedError =
+        error instanceof Error ? error : new Error('self-hosted-oauth-failed')
+      oauthState.onAuthError(normalizedError)
+      this.setState({ ...this.state, loading: false, error: normalizedError })
       return oauthState.callbackResult
     }
   }

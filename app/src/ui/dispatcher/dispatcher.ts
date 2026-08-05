@@ -3780,6 +3780,13 @@ export class Dispatcher {
     this.appStore._beginDotComSignIn(resultCallback)
   }
 
+  public beginSelfHostedSignIn(
+    publicOrigin: string,
+    resultCallback?: (result: SignInResult) => void
+  ) {
+    this.appStore._beginSelfHostedSignIn(publicOrigin, resultCallback)
+  }
+
   public beginBrowserBasedSignIn(
     endpoint: string,
     resultCallback?: (result: SignInResult) => void
@@ -4753,7 +4760,10 @@ export class Dispatcher {
     let workspace
     try {
       workspace = await fetchSharedWorkspace(
-        { publicOrigin: connection.publicOrigin, deviceToken: connection.deviceToken },
+        {
+          publicOrigin: connection.publicOrigin,
+          deviceToken: connection.deviceToken,
+        },
         action.shareToken
       )
     } catch (error) {
@@ -4766,7 +4776,10 @@ export class Dispatcher {
     }
 
     if (workspace.branch !== null) {
-      await this.openBranchNameFromUrl(workspace.repositoryUrl, workspace.branch)
+      await this.openBranchNameFromUrl(
+        workspace.repositoryUrl,
+        workspace.branch
+      )
     } else {
       await this.openOrCloneRepository(workspace.repositoryUrl)
     }
@@ -4930,18 +4943,7 @@ export class Dispatcher {
         return null
 
       case 'self-hosted-oauth':
-        // The self-hosted OAuth authorize/token round trip (issue #119, R2)
-        // is implemented server-side and in
-        // `lib/self-hosted-server/oauth-sign-in.ts`, but nothing yet stores
-        // the PKCE code verifier across the browser round trip or lands the
-        // resulting tokens in the app's account store — that's the
-        // remaining gap tracked in #119, not something to fake here.
-        if (__DEV__) {
-          log.warn(
-            `Received self-hosted OAuth callback (state: ${action.state}) but sign-in completion is not wired yet (#119)`
-          )
-        }
-        return null
+        return this.appStore._resolveSelfHostedOAuthRequest(action)
 
       case 'open-team-workspace':
         await this.openTeamWorkspaceFromUrl(action)

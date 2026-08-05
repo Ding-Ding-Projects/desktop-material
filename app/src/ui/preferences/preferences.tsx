@@ -1133,7 +1133,9 @@ export class Preferences extends React.Component<
         View = <AgentAccess openInBrowser={this.openInBrowser} />
         break
       case PreferencesTab.SelfHostedServer:
-        View = <SelfHostedServerPreferences />
+        View = (
+          <SelfHostedServerPreferences dispatcher={this.props.dispatcher} />
+        )
         break
       case PreferencesTab.Automation:
         View = (

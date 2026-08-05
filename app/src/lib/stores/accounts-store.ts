@@ -77,6 +77,7 @@ const supportedAccountProviders = new Set<AccountProvider>([
   'github',
   'gitlab',
   'bitbucket',
+  'self-hosted',
 ])
 
 interface IPersistedAccountsParseResult {

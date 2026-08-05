@@ -951,7 +951,7 @@ import {
   useExternalCredentialHelper,
   useExternalCredentialHelperDefault,
 } from '../trampoline/use-external-credential-helper'
-import { IOAuthAction } from '../parse-app-url'
+import { IOAuthAction, ISelfHostedOAuthAction } from '../parse-app-url'
 import {
   ICustomIntegration,
   migratedCustomIntegration,
@@ -21659,6 +21659,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return this.signInStore.resolveOAuthRequest(action)
   }
 
+  public _resolveSelfHostedOAuthRequest(action: ISelfHostedOAuthAction) {
+    return this.signInStore.resolveSelfHostedOAuthRequest(action)
+  }
+
   public _resetSignInState(): Promise<void> {
     this.signInStore.reset()
     return Promise.resolve()
@@ -21666,6 +21670,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   public _beginDotComSignIn(resultCallback?: (result: SignInResult) => void) {
     return this.signInStore.beginDotComSignIn(resultCallback)
+  }
+
+  public _beginSelfHostedSignIn(
+    publicOrigin: string,
+    resultCallback?: (result: SignInResult) => void
+  ) {
+    return this.signInStore.beginSelfHostedSignIn(publicOrigin, resultCallback)
   }
 
   public _beginEnterpriseSignIn(

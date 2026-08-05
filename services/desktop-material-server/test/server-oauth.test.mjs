@@ -32,7 +32,7 @@ function generateSigningMaterial() {
   }
 }
 
-async function fixture(clients) {
+async function fixture(clients, samlMetadataXml) {
   const root = await mkdtemp(join(tmpdir(), 'desktop-material-server-oauth-'))
   const configPath = join(root, 'config.json')
   const statePath = join(root, 'state.json')
@@ -62,6 +62,7 @@ async function fixture(clients) {
         oauthSigningKeyPem: signingKeyPem,
         oauthSigningPublicJwkJson: JSON.stringify(publicJwk),
         oauthKeyId: 'key-1',
+        ...(samlMetadataXml === undefined ? {} : { samlMetadataXml }),
       },
       null,
       2
@@ -113,6 +114,26 @@ async function authorize(
 }
 
 describe('Desktop Material self-hosted OAuth authorization server', () => {
+  it('serves validated SAML metadata without pretending to perform SAML login', async () => {
+    const metadata = `<EntityDescriptor entityID="https://idp.example.test/metadata"><IDPSSODescriptor><SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://idp.example.test/sso"/><KeyDescriptor use="signing"><KeyInfo><X509Data><X509Certificate>${'A'.repeat(
+      128
+    )}</X509Certificate></X509Data></KeyInfo></KeyDescriptor></IDPSSODescriptor></EntityDescriptor>`
+    const paths = await fixture(undefined, metadata)
+    const instance = await startFixture(paths)
+    const response = await fetch(`${instance.origin}/oauth/saml/metadata`)
+    assert.equal(response.status, 200)
+    assert.deepEqual(await response.json(), {
+      entityId: 'https://idp.example.test/metadata',
+      singleSignOnServices: [
+        {
+          binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
+          location: 'https://idp.example.test/sso',
+        },
+      ],
+      signingCertificates: ['A'.repeat(128)],
+    })
+  })
+
   it('advertises capabilities and discovery metadata once OAuth is provisioned', async () => {
     const paths = await fixture()
     const instance = await startFixture(paths)

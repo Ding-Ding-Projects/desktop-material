@@ -7,6 +7,7 @@ import {
   OAuthMaximumAuthorizationCodes,
   SelfHostedOAuthAuthority,
   SelfHostedOAuthError,
+  parseSamlMetadata,
 } from '../oauth.mjs'
 
 const Issuer = 'https://identity.example.test'
@@ -76,6 +77,41 @@ function exchange(instance, code, overrides = {}) {
 }
 
 describe('self-hosted OAuth authority', () => {
+  it('normalizes bounded SAML metadata and rejects unsafe XML inputs', () => {
+    const metadata = `<EntityDescriptor entityID="https://idp.example.test/metadata"><IDPSSODescriptor><SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://idp.example.test/sso"/><KeyDescriptor use="signing"><KeyInfo><X509Data><X509Certificate>${'A'.repeat(
+      128
+    )}</X509Certificate></X509Data></KeyInfo></KeyDescriptor></IDPSSODescriptor></EntityDescriptor>`
+    assert.deepEqual(parseSamlMetadata(metadata), {
+      entityId: 'https://idp.example.test/metadata',
+      singleSignOnServices: [
+        {
+          binding: 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
+          location: 'https://idp.example.test/sso',
+        },
+      ],
+      signingCertificates: ['A'.repeat(128)],
+    })
+    assert.throws(
+      () =>
+        parseSamlMetadata('<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///x">]>'),
+      error =>
+        error instanceof SelfHostedOAuthError &&
+        error.code === 'invalid-saml-metadata'
+    )
+    assert.throws(
+      () =>
+        parseSamlMetadata(
+          metadata.replace(
+            'https://idp.example.test/sso',
+            'http://idp.example.test/sso'
+          )
+        ),
+      error =>
+        error instanceof SelfHostedOAuthError &&
+        error.code === 'invalid-saml-metadata'
+    )
+  })
+
   it('publishes only the PKCE authorization-code contract', () => {
     const { instance } = authority()
     assert.deepEqual(instance.metadata(), {
