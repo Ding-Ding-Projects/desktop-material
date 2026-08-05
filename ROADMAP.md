@@ -1308,12 +1308,13 @@ six-asset Windows x64 Release are verified for the `main` push recorded in
   source before writing pointers, and records a version-2 manifest of original
   nested paths and flat asset ranges.
 - **Super Express Release fast lane**: A workflow_dispatch-only emergency
-  release path checks out the exact SHA, restores the dependency cache, and
-  builds/packages Windows x64 directly. It runs no unit, script, TUI, lint,
-  type, parity, smoke, or E2E tests and skips history-generated notes. It verifies the
-  Squirrel/installer/portable payload, writes a local note from the checked-out
-  commit, preserves an uncompressed artifact, and publishes one uniquely tagged
-  release.
+  dispatcher checks out the exact SHA and creates one monotonic tag, then runs
+  separate zero-test Windows x64 and native Ubuntu Linux TUI packaging
+  workflows in parallel. The lanes restore the desktop dependency cache where
+  needed, build the complete Windows/TUI payload, verify every asset, and
+  preserve uncompressed lane artifacts. One publisher combines them into a
+  uniquely tagged Release so the shared Squirrel update feed and TUI bootstrap
+  URL never point at a half-release.
 - **Cross-lane updater ordering**: Automatic and Super Express packages now use
   one validated `z` plus fixed-width, nine-letter base-26 GitHub run-ID
   namespace. It sorts above the legacy `b…`/`s…` lanes that stranded Super

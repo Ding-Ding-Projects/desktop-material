@@ -146,11 +146,13 @@ packaging lane additionally checks the generated parity contract, runs Ruff and
 mypy, builds both distributions, installs the wheel into a fresh virtual
 environment, checks its version entry point, and uploads the packages.
 
-The release workflow attaches the wheel, source distribution, lock-derived
-runtime constraints, `bootstrap-linux-tui.sh`, and `install-linux-tui.sh`. Its
-clean Debian acceptance container runs the installer twice and verifies the
-managed Python, `uv`, RE2, `gh`, `github`, `dmt`, and
-`desktop-material-tui` commands after each pass.
+The tested Express release workflow attaches the wheel, source distribution,
+lock-derived runtime constraints, `bootstrap-linux-tui.sh`, and
+`install-linux-tui.sh` after its Linux tests and Debian acceptance container.
+The emergency Super Express dispatcher has its own native Ubuntu packaging
+workflow, `.github/workflows/super-express-release-linux-tui.yml`, which skips
+those tests for speed but still builds the same complete TUI payload and
+publishes it beside the Windows assets in one combined Release.
 
 A separate Windows Server 2022/Python 3.12 lane runs the non-PTY unit,
 application, infrastructure, Cheap LFS, lint, and type-check core. It is a

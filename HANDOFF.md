@@ -1,5 +1,21 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-05 — Super Express packaging lanes parallelized
+
+The manual Super Express dispatcher now keeps one combined immutable Release
+but runs Windows x64 and Linux TUI packaging in separate reusable workflows.
+The Windows lane owns the desktop dependency cache, build, Squirrel payload,
+portable ZIP, and installer assets on `windows-2022`. The TUI lane builds on
+`ubuntu-latest` with `uv build` and locked runtime constraints, and carries the
+bootstrap and installer scripts as executable assets. A single publisher
+downloads both lane artifacts so the shared Squirrel `latest` feed and TUI
+bootstrap URL cannot land on separate partial Releases.
+
+Local proof for this change is **16/16** application workflow-contract tests,
+**10/10** TUI installer-contract tests, passing Prettier/YAML parsing, and
+`sh -n` success for both checked-in TUI shell scripts. No remote Actions run
+or Release is claimed by this handoff entry yet.
+
 ## 2026-08-04 — Live Material renderer proof and startup cleanup
 
 The design reference is now verified against the real production Electron
