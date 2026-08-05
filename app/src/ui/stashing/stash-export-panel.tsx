@@ -411,14 +411,14 @@ export class StashExportPanel extends React.Component<
               // Binds the field itself to the surface its FilterModeControl
               // already declares. Without it the field and its regex builder
               // are two unrelated controls that merely sit next to each other.
-              data-search-surface-id={exportSurfaceId}
+              data-search-surface-id="stash-export"
               type="search"
               value={this.state.filter}
               onChange={this.onFilterChanged}
               aria-label={this.accessible('stashManager.exportSearchAria')}
             />
             <FilterModeControl
-              searchSurfaceId={exportSurfaceId}
+              searchSurfaceId="stash-export"
               mode={this.state.filterMode}
               caseSensitive={this.state.caseSensitive}
               onModeChange={this.onFilterModeChanged}

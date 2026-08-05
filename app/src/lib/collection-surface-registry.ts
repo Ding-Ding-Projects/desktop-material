@@ -343,6 +343,24 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
       implementation: 'standalone',
     },
     {
+      id: 'stash-export',
+      label: 'Exportable stashes',
+      source: 'stashing/stash-export-panel.tsx',
+      implementation: 'standalone',
+    },
+    {
+      id: 'stash-dialog-history',
+      label: 'Stash history',
+      source: 'stashing/stash-manager.tsx',
+      implementation: 'standalone',
+    },
+    {
+      id: 'stash-dialog-appearance',
+      label: 'Stash appearance settings',
+      source: 'stashing/stash-manager.tsx',
+      implementation: 'standalone',
+    },
+    {
       id: 'tag-lifecycle-inventory',
       label: 'Tags',
       source: 'tag/tag-lifecycle-manager.tsx',
