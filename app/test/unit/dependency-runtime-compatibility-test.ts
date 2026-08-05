@@ -1,0 +1,32 @@
+import assert from 'node:assert'
+import { describe, it } from 'node:test'
+import * as React from 'react'
+import { compare } from 'compare-versions'
+import Confetti from 'react-confetti'
+
+describe('updated app dependency compatibility', () => {
+  it('loads react-confetti through the React 16 JSX runtime', () => {
+    const jsxRuntime = require('react/jsx-runtime') as {
+      readonly jsx?: unknown
+      readonly jsxs?: unknown
+    }
+
+    assert.equal(typeof jsxRuntime.jsx, 'function')
+    assert.equal(typeof jsxRuntime.jsxs, 'function')
+    assert.equal(
+      React.isValidElement(
+        React.createElement(Confetti, {
+          height: 1,
+          numberOfPieces: 0,
+          width: 1,
+        })
+      ),
+      true
+    )
+  })
+
+  it('keeps the compare-versions 6 API used by the Windows version guards', () => {
+    assert.equal(compare('10.0.26100', '10.0.22000', '>='), true)
+    assert.equal(compare('10.0.19045', '10.0.22000', '<'), true)
+  })
+})
