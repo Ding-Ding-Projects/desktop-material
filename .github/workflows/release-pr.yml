@@ -18,16 +18,18 @@ jobs:
         if: |
           startsWith(github.ref, 'refs/heads/releases/') && !contains(github.ref, 'test')
         run: |
-          PR_TITLE=`./script/draft-release/release-pr-content.sh title ${GITHUB_REF#refs/heads/}`
-          PR_BODY=`./script/draft-release/release-pr-content.sh body ${GITHUB_REF#refs/heads/}`
+          release_branch=${GITHUB_REF#refs/heads/}
+          PR_TITLE=$(./script/draft-release/release-pr-content.sh title "$release_branch")
+          PR_BODY=$(./script/draft-release/release-pr-content.sh body "$release_branch")
 
-          echo "PR_BODY<<EOF" >> $GITHUB_ENV
-          echo "$PR_BODY" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-          echo "PR_TITLE<<EOF" >> $GITHUB_ENV
-          echo "$PR_TITLE" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          {
+            echo "PR_BODY<<EOF"
+            echo "$PR_BODY"
+            echo "EOF"
+            echo "PR_TITLE<<EOF"
+            echo "$PR_TITLE"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
 
       - uses: actions/create-github-app-token@v3
         id: generate-token

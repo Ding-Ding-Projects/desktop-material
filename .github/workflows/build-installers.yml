@@ -145,12 +145,14 @@ jobs:
           # Every exact successful main build gets its own immutable Release,
           # even when a newer main commit arrives while jobs overlap.
           publish="$ci_can_publish"
-          echo "proceed=true" >> "$GITHUB_OUTPUT"
-          echo "windows_ok=$windows_ok" >> "$GITHUB_OUTPUT"
-          echo "linux_ok=$linux_ok" >> "$GITHUB_OUTPUT"
-          echo "sha=$target" >> "$GITHUB_OUTPUT"
-          echo "publish=$publish" >> "$GITHUB_OUTPUT"
-          echo "block_reason=$block_reason" >> "$GITHUB_OUTPUT"
+          {
+            echo "proceed=true"
+            echo "windows_ok=$windows_ok"
+            echo "linux_ok=$linux_ok"
+            echo "sha=$target"
+            echo "publish=$publish"
+            echo "block_reason=$block_reason"
+          } >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v7.0.1
         if: steps.target.outputs.proceed == 'true'
@@ -305,7 +307,7 @@ jobs:
           {
             printf '\n## Lines of code\n\n'
             node script/count-lines.mjs
-            printf '\nCounted by CI over `%s` with `node script/count-lines.mjs`.\n' \
+            printf '\nCounted by CI over \140%s\140 with \140node script/count-lines.mjs\140.\n' \
               "$RELEASE_TARGET_SHA"
           } >> release-payload/release-notes.md
       - name: Preserve exact release notes
@@ -447,11 +449,13 @@ jobs:
           test -s "release-payload/tui/$constraints_name"
           test -x "release-payload/tui/$installer_name"
           test -x "release-payload/tui/$bootstrap_name"
-          echo "wheel_name=$wheel_name" >> "$GITHUB_OUTPUT"
-          echo "sdist_name=$sdist_name" >> "$GITHUB_OUTPUT"
-          echo "constraints_name=$constraints_name" >> "$GITHUB_OUTPUT"
-          echo "installer_name=$installer_name" >> "$GITHUB_OUTPUT"
-          echo "bootstrap_name=$bootstrap_name" >> "$GITHUB_OUTPUT"
+          {
+            echo "wheel_name=$wheel_name"
+            echo "sdist_name=$sdist_name"
+            echo "constraints_name=$constraints_name"
+            echo "installer_name=$installer_name"
+            echo "bootstrap_name=$bootstrap_name"
+          } >> "$GITHUB_OUTPUT"
       - name: Smoke-test the fresh TUI wheel
         shell: bash
         env:
@@ -569,11 +573,20 @@ jobs:
               [ -z "$name" ] && continue
               [ -e "release-payload/installers/$name" ] && continue
               case "$name" in
-                *-full.nupkg) src=$(ls dist/*-full.nupkg 2>/dev/null | head -n1) ;;
-                *-delta.nupkg) src=$(ls dist/*-delta.nupkg 2>/dev/null | head -n1) ;;
+                *-full.nupkg)
+                  src=$(find dist -maxdepth 1 -type f -name '*-full.nupkg' -print | LC_ALL=C sort | sed -n '1p')
+                  ;;
+                *-delta.nupkg)
+                  src=$(find dist -maxdepth 1 -type f -name '*-delta.nupkg' -print | LC_ALL=C sort | sed -n '1p')
+                  ;;
                 *) src="" ;;
               esac
-              [ -n "$src" ] && [ -e "$src" ] && cp "$src" "release-payload/installers/$name"
+              if [[ "$name" == *-full.nupkg || "$name" == *-delta.nupkg ]] && \
+                 [ -z "$src" ]; then
+                echo "RELEASES names $name, but no matching source package exists." >&2
+                exit 1
+              fi
+              [ -n "$src" ] && cp "$src" "release-payload/installers/$name"
             done < release-payload/installers/RELEASES
           fi
           ls -la release-payload/installers
@@ -738,9 +751,9 @@ jobs:
             {
               printf '\n## Partial release\n\n'
               [ "$HAVE_INSTALLERS" = true ] || \
-                printf -- '- The Windows installers are absent: `CI Windows` did not pass for this commit.\n'
+                printf -- '- The Windows installers are absent: \140CI Windows\140 did not pass for this commit.\n'
               [ "$HAVE_TUI" = true ] || \
-                printf -- '- The Linux terminal edition is absent: `CI Linux` did not pass for this commit.\n'
+                printf -- '- The Linux terminal edition is absent: \140CI Linux\140 did not pass for this commit.\n'
               printf '\nThe other edition was built and verified from this exact commit.\n'
             } >> release-payload/release-notes.md
           fi
