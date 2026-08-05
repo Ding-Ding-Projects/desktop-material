@@ -15654,6 +15654,124 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /**
+   * R12 "Suggest a fix" (#129): propose one AI-generated pull request review
+   * suggestion for the file/line/diff-hunk the reviewer selected inside the
+   * in-app PR review composer. This shouldn't be called directly. See
+   * `Dispatcher.suggestPullRequestReviewCodeChangeWithAI`.
+   *
+   * Every request goes through {@link evaluateAIAdminGate} and a freshly
+   * issued {@link issueAISecurityPolicyAuthorization} first — a denied gate
+   * or an unresolvable account fails closed with a denial reason and never
+   * reaches the AI provider. The model only ever sees the one diff hunk the
+   * caller supplies, never the rest of the repository. The returned
+   * replacement text is untrusted model output: the caller must still run it
+   * through `createGitHubPullRequestSuggestionBody` before it can be queued
+   * or posted, exactly like a human-written suggestion.
+   */
+  public async _suggestPullRequestReviewCodeChangeWithAI(
+    repository: Repository,
+    path: string,
+    diffHunk: string,
+    selectedLine: number,
+    instruction: string,
+    signal?: AbortSignal
+  ): Promise<
+    | {
+        readonly kind: 'result'
+        readonly replacement: string
+        readonly explanation: string
+      }
+    | { readonly kind: 'denied'; readonly reason: string }
+  > {
+    if (diffHunk.trim().length === 0) {
+      return {
+        kind: 'denied',
+        reason: 'Select a file and line with a diff to suggest a fix for.',
+      }
+    }
+
+    const account = getAccountForCopilotConflictResolution(
+      this.accounts,
+      repository
+    )
+    if (account === undefined) {
+      return {
+        kind: 'denied',
+        reason:
+          'No signed-in account is eligible to use AI for this repository.',
+      }
+    }
+
+    const providerBinding = getConflictResolutionAIProviderBinding(
+      account,
+      undefined
+    )
+    if (providerBinding === null) {
+      return {
+        kind: 'denied',
+        reason: 'Could not determine an AI provider for this account.',
+      }
+    }
+
+    const adminGate = evaluateAIAdminGate({
+      feature: 'pr-review-suggestion',
+      repositoryId: repository.id,
+      repositoryPath: repository.path,
+      filePaths: [path],
+      providerKind: providerBinding.kind,
+    })
+    if (!adminGate.allowed) {
+      return { kind: 'denied', reason: adminGate.reason }
+    }
+
+    const policyAuthorization = issueAISecurityPolicyAuthorization(
+      'pr-review-suggestion',
+      repository.id,
+      repository.path,
+      [path],
+      providerBinding,
+      ['path', 'diff', 'code']
+    )
+    if (policyAuthorization === null) {
+      return { kind: 'denied', reason: 'Could not authorize this AI request.' }
+    }
+
+    if (signal?.aborted) {
+      return { kind: 'denied', reason: 'The AI request was cancelled.' }
+    }
+
+    try {
+      const candidate = await this.copilotStore.suggestCodeChange(
+        account,
+        { path, diffHunk, selectedLine, instruction },
+        repository.path,
+        undefined,
+        policyAuthorization,
+        repository.id,
+        signal
+      )
+      return {
+        kind: 'result',
+        replacement: candidate.replacement,
+        explanation: candidate.explanation,
+      }
+    } catch (e) {
+      if (signal?.aborted) {
+        log.info('AppStore: PR review suggestion generation aborted by user')
+        return { kind: 'denied', reason: 'The AI request was cancelled.' }
+      }
+      log.warn('AppStore: PR review suggestion generation failed', e)
+      return {
+        kind: 'denied',
+        reason:
+          e instanceof Error
+            ? e.message
+            : 'The AI provider could not suggest a change for this line.',
+      }
+    }
+  }
+
+  /**
    * R9 "compose commits with AI": execute an already-reviewed and
    * confirmed rebase plan. This shouldn't be called directly. See
    * `Dispatcher.executeComposeCommitsPlan`.

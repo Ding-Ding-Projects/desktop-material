@@ -2847,6 +2847,39 @@ export class Dispatcher {
   }
 
   /**
+   * R12 "Suggest a fix" (#129): ask the AI provider to propose one code
+   * change for the file/line/diff-hunk the reviewer selected inside the
+   * in-app pull request review composer. The returned replacement text is
+   * untrusted model output — callers must still run it through
+   * `createGitHubPullRequestSuggestionBody` before it can be queued or
+   * posted, exactly like a human-written suggestion.
+   */
+  public suggestPullRequestReviewCodeChangeWithAI(
+    repository: Repository,
+    path: string,
+    diffHunk: string,
+    selectedLine: number,
+    instruction: string,
+    signal?: AbortSignal
+  ): Promise<
+    | {
+        readonly kind: 'result'
+        readonly replacement: string
+        readonly explanation: string
+      }
+    | { readonly kind: 'denied'; readonly reason: string }
+  > {
+    return this.appStore._suggestPullRequestReviewCodeChangeWithAI(
+      repository,
+      path,
+      diffHunk,
+      selectedLine,
+      instruction,
+      signal
+    )
+  }
+
+  /**
    * R9 "compose commits with AI": execute an already-reviewed and confirmed
    * rebase plan produced by the interactive-rebase editor. Callers must have
    * already shown the confirmation step (final commit list, and an explicit

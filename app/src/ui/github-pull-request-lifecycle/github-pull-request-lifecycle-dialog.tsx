@@ -82,6 +82,9 @@ interface IGitHubPullRequestLifecycleDialogState {
   readonly inlineSide: GitHubPullRequestDiffSide
   readonly inlineBody: string
   readonly suggestionBody: string
+  readonly aiSuggestionInstruction: string
+  readonly aiSuggestionBusy: boolean
+  readonly aiSuggestionExplanation: string | null
   readonly pendingInlineComments: ReadonlyArray<IGitHubPullRequestPendingInlineComment>
   readonly replyTargetId: number | null
   readonly replyBody: string
@@ -251,6 +254,9 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
       inlineSide: 'RIGHT',
       inlineBody: '',
       suggestionBody: '',
+      aiSuggestionInstruction: '',
+      aiSuggestionBusy: false,
+      aiSuggestionExplanation: null,
       pendingInlineComments: [],
       replyTargetId: null,
       replyBody: '',
@@ -805,6 +811,13 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
   private onSuggestionBodyChanged = (
     event: React.FormEvent<HTMLTextAreaElement>
   ) => this.setState({ suggestionBody: event.currentTarget.value, error: null })
+  private onAISuggestionInstructionChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) =>
+    this.setState({
+      aiSuggestionInstruction: event.currentTarget.value,
+      error: null,
+    })
   private onReplyBodyChanged = (event: React.FormEvent<HTMLTextAreaElement>) =>
     this.setState({ replyBody: event.currentTarget.value, error: null })
   private onMergeMethodChanged = (event: React.FormEvent<HTMLSelectElement>) =>
@@ -899,6 +912,74 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
             : 'Review this suggested change.',
       })
     }
+  }
+
+  /**
+   * R12 "Suggest a fix" (#129): ask the AI provider to draft a replacement
+   * for the currently selected file/line, gated exactly like every other
+   * R7/R9/R10 AI affordance in this app — through
+   * `Dispatcher.suggestPullRequestReviewCodeChangeWithAI`, which fails
+   * closed through `evaluateAIAdminGate` before any model call. The
+   * response only ever prefills the suggestion textarea: it still has to be
+   * reviewed and queued through `queueSuggestedChange` like any
+   * human-written suggestion before it can be posted.
+   */
+  private suggestChangeWithAI = () => {
+    const { workspace, inlinePath, inlineLine } = this.state
+    const file = workspace?.files.find(candidate => candidate.path === inlinePath)
+    if (workspace === null || file === undefined || file.patch === null) {
+      this.setState({
+        error: 'Select a file with a visible diff before asking AI to suggest a fix.',
+      })
+      return
+    }
+    const selectedLine = Number(inlineLine)
+    if (!Number.isSafeInteger(selectedLine) || selectedLine < 1) {
+      this.setState({ error: 'Select a line to suggest a fix for.' })
+      return
+    }
+
+    this.setState({
+      aiSuggestionBusy: true,
+      aiSuggestionExplanation: null,
+      error: null,
+    })
+
+    void this.props.dispatcher
+      .suggestPullRequestReviewCodeChangeWithAI(
+        this.props.repository,
+        file.path,
+        file.patch,
+        selectedLine,
+        this.state.aiSuggestionInstruction
+      )
+      .then(outcome => {
+        if (!this.mounted) {
+          return
+        }
+        if (outcome.kind === 'denied') {
+          this.setState({ aiSuggestionBusy: false, error: outcome.reason })
+          return
+        }
+        this.setState({
+          aiSuggestionBusy: false,
+          suggestionBody: outcome.replacement,
+          aiSuggestionExplanation: outcome.explanation,
+          notice: 'AI drafted a suggestion. Review it before queuing.',
+        })
+      })
+      .catch(error => {
+        if (!this.mounted) {
+          return
+        }
+        this.setState({
+          aiSuggestionBusy: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : 'The AI provider could not suggest a change for this line.',
+        })
+      })
   }
 
   private removeInlineComment = (index: number) => {
@@ -1337,6 +1418,37 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
                 Enter the exact replacement text. Leave it empty to suggest
                 deleting the selected line.
               </p>
+              <label className="github-pull-request-lifecycle-field">
+                <span>Ask AI what to suggest (optional)</span>
+                <input
+                  type="text"
+                  aria-label="Instruction for AI-generated suggestion"
+                  placeholder="e.g. fix the off-by-one error"
+                  value={this.state.aiSuggestionInstruction}
+                  disabled={!canMutate || this.state.aiSuggestionBusy}
+                  onChange={this.onAISuggestionInstructionChanged}
+                />
+              </label>
+              <Button
+                type="button"
+                disabled={
+                  !canMutate ||
+                  workspace.files.length === 0 ||
+                  this.state.inlinePath === '' ||
+                  this.state.inlineLine === '' ||
+                  this.state.aiSuggestionBusy
+                }
+                onClick={this.suggestChangeWithAI}
+              >
+                {this.state.aiSuggestionBusy
+                  ? 'Asking AI…'
+                  : 'Suggest a fix with AI'}
+              </Button>
+              {this.state.aiSuggestionExplanation !== null && (
+                <p className="github-pull-request-lifecycle-ai-explanation">
+                  AI: {this.state.aiSuggestionExplanation}
+                </p>
+              )}
               <label className="github-pull-request-lifecycle-field">
                 <span>Replacement text</span>
                 <textarea
