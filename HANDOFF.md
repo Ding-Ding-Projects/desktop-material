@@ -70,8 +70,22 @@ The fix was merged into `main` as `6f5cf66c30`, with source commit
 focused suite with the repository's pinned Node `24.15.0` invocation: **29
 passed, 0 failed**. The repository wrapper's additional `--conditions=import`
 flag is not used for this proof because its current `tsx` loader path changes
-the `whatwg-encoding` JSON import shape before the test can start. `main` is
-ready to dew; its remote workflow verdict remains pending until that dew.
+the `whatwg-encoding` JSON import shape before the test can start.
+
+The dewed integrated tip was `bc63986119e2c71cc28d98e1465c9c8501c25f58`.
+Its current-SHA remote evidence is recorded precisely: `Deploy Pages` run
+[31056983826](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31056983826)
+passed; **CI Windows run
+[31056982528](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31056982528)
+failed** because the Windows jobs could not clone the configured
+`codingmachineedge/lowlevel-computer-use-mcp` submodule (`repository not found`),
+and the follow-on production step could not find `cross-env`. The dependent
+`Build Installers / Express Release` run
+[31057063196](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31057063196)
+was blocked because its trigger was `workflow_dispatch`, not this repository's
+main push CI, so no Release was published. These are external CI/submodule
+blockers; the updater guard's local tests and live HTTP feed proof remain
+verified.
 
 ## 2026-08-04 — Live Material renderer proof and startup cleanup
 
