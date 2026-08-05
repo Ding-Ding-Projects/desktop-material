@@ -26,6 +26,7 @@ function renderAccounts(
       onProviderSignIn={onProviderSignIn}
       onLogout={() => {}}
       onMakeActive={() => {}}
+      onOpenInBrowser={async () => true}
     />
   )
 }
@@ -111,6 +112,7 @@ describe('Accounts preferences', () => {
         onProviderSignIn={async () => accounts[0]}
         onLogout={() => {}}
         onMakeActive={() => {}}
+        onOpenInBrowser={async () => true}
       />
     )
 
@@ -161,6 +163,7 @@ describe('Accounts preferences', () => {
         onProviderSignIn={async () => accounts[0]}
         onLogout={() => {}}
         onMakeActive={() => {}}
+        onOpenInBrowser={async () => true}
       />
     )
 
