@@ -401,7 +401,7 @@ export function buildAutomatedReleaseNotes(
   ]
   const suffix = [
     '',
-    'This release doubles as the auto-update feed. Its `RELEASES` manifest and `*-full.nupkg` are consumed from `releases/latest/download/`.',
+    'Windows-capable Releases are eligible to own the auto-update feed. The promotion helper only selects a Release carrying `RELEASES` and `*-full.nupkg`; Squirrel consumes those assets from `releases/latest/download/`.',
   ]
   const commitLines = input.commits.map(commit => {
     const sha = objectID(commit.sha, 'Commit SHA')
