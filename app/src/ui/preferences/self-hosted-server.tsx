@@ -2,6 +2,9 @@ import * as React from 'react'
 import { DialogContent } from '../dialog'
 import { Button } from '../lib/button'
 import { TextBox } from '../lib/text-box'
+import { TextArea } from '../lib/text-area'
+import { Dispatcher } from '../dispatcher'
+import { SignInResult } from '../../lib/stores/sign-in-store'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import * as ipcRenderer from '../../lib/ipc-renderer'
@@ -19,6 +22,12 @@ interface ISelfHostedServerPreferencesState {
   readonly progress: ISelfHostedServerProvisioningProgress | null
   readonly joinUrl: string | null
   readonly error: { readonly code: string; readonly recovery: string } | null
+  readonly samlMetadataXml: string
+  readonly signedInAs: string | null
+}
+
+interface ISelfHostedServerPreferencesProps {
+  readonly dispatcher: Dispatcher
 }
 
 const PhaseOrder: ReadonlyArray<SelfHostedServerProvisioningPhase> = [
@@ -56,10 +65,10 @@ function errorMessage(error: unknown, fallback: string): string {
  * again after a failure is always safe.
  */
 export class SelfHostedServerPreferences extends React.Component<
-  {},
+  ISelfHostedServerPreferencesProps,
   ISelfHostedServerPreferencesState
 > {
-  public constructor(props: {}) {
+  public constructor(props: ISelfHostedServerPreferencesProps) {
     super(props)
     this.state = {
       status: null,
@@ -68,6 +77,8 @@ export class SelfHostedServerPreferences extends React.Component<
       progress: null,
       joinUrl: null,
       error: null,
+      samlMetadataXml: '',
+      signedInAs: null,
     }
   }
 
@@ -115,6 +126,9 @@ export class SelfHostedServerPreferences extends React.Component<
       .invoke('provision-self-hosted-server', {
         publicOrigin: this.state.publicOriginInput,
         installDockerIfMissing: true,
+        ...(this.state.samlMetadataXml.trim().length === 0
+          ? {}
+          : { samlMetadataXml: this.state.samlMetadataXml }),
       })
       .then(reply => {
         if (reply.ok) {
@@ -133,6 +147,25 @@ export class SelfHostedServerPreferences extends React.Component<
           },
         })
       })
+  }
+
+  private onSamlMetadataChanged = (value: string) => {
+    this.setState({ samlMetadataXml: value })
+  }
+
+  private onSelfHostedSignIn = () => {
+    const origin = this.state.status?.publicOrigin
+    if (origin === null || origin === undefined) {
+      return
+    }
+    this.props.dispatcher.beginSelfHostedSignIn(
+      origin,
+      (result: SignInResult) => {
+        if (result.kind === 'success') {
+          this.setState({ signedInAs: result.account.friendlyName })
+        }
+      }
+    )
   }
 
   private onCancel = () => {
@@ -219,6 +252,22 @@ export class SelfHostedServerPreferences extends React.Component<
               onValueChanged={this.onPublicOriginChanged}
             />
 
+            {!status.configured && (
+              <TextArea
+                label="Optional SAML identity-provider metadata XML"
+                rows={6}
+                value={this.state.samlMetadataXml}
+                disabled={running}
+                onValueChanged={this.onSamlMetadataChanged}
+                ariaDescribedBy="self-hosted-saml-metadata-help"
+              />
+            )}
+            <p id="self-hosted-saml-metadata-help">
+              Metadata is validated and exposed for a future signed SAML
+              adapter. This wizard does not claim to authenticate through an
+              identity provider yet; OAuth remains the active sign-in path.
+            </p>
+
             {this.renderSteps()}
 
             {progress !== null && (
@@ -245,6 +294,17 @@ export class SelfHostedServerPreferences extends React.Component<
                   Give this link to the second machine. It expires after one use
                   or fifteen minutes, whichever comes first.
                 </p>
+              </div>
+            )}
+
+            {status.configured && (
+              <div className="self-hosted-server-sign-in">
+                <Button onClick={this.onSelfHostedSignIn} disabled={running}>
+                  Sign in to self-hosted server
+                </Button>
+                {this.state.signedInAs !== null && (
+                  <p role="status">Signed in as {this.state.signedInAs}.</p>
+                )}
               </div>
             )}
 
