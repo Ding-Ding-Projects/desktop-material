@@ -102,6 +102,13 @@ main push CI, so no Release was published. These are external CI/submodule
 blockers; the updater guard's local tests and live HTTP feed proof remain
 verified.
 
+The enabled GitHub Wiki recovery note was committed as
+`34cb7157716cd846117ad9e86fe876dd70c389b2` and is now published on its
+`master` branch. An initial publication attempt used a stale Git credential
+and returned HTTP 403; `gh auth setup-git --hostname github.com` refreshed the
+credential path, after which the exact commit landed and the Wiki checkout is
+clean.
+
 ## 2026-08-04 — Live Material renderer proof and startup cleanup
 
 The design reference is now verified against the real production Electron
