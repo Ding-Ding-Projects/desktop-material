@@ -201,11 +201,20 @@ jobs:
               [ -z "$name" ] && continue
               [ -e "release-payload/installers/$name" ] && continue
               case "$name" in
-                *-full.nupkg) source=$(ls dist/*-full.nupkg 2>/dev/null | head -n1) ;;
-                *-delta.nupkg) source=$(ls dist/*-delta.nupkg 2>/dev/null | head -n1) ;;
+                *-full.nupkg)
+                  source=$(find dist -maxdepth 1 -type f -name '*-full.nupkg' -print | LC_ALL=C sort | sed -n '1p')
+                  ;;
+                *-delta.nupkg)
+                  source=$(find dist -maxdepth 1 -type f -name '*-delta.nupkg' -print | LC_ALL=C sort | sed -n '1p')
+                  ;;
                 *) source="" ;;
               esac
-              [ -n "$source" ] && [ -e "$source" ] && \
+              if [[ "$name" == *-full.nupkg || "$name" == *-delta.nupkg ]] && \
+                 [ -z "$source" ]; then
+                echo "RELEASES names $name, but no matching source package exists." >&2
+                exit 1
+              fi
+              [ -n "$source" ] && \
                 cp "$source" "release-payload/installers/$name"
             done < release-payload/installers/RELEASES
           fi

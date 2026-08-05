@@ -105,29 +105,37 @@ jobs:
 
           # Step summary
           if [ "$CHANNEL" = "production" ]; then
-            echo "## Production Release Notes — $NEXT" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "Aggregated $COUNT entries from beta releases since $PREVIOUS:" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "$ENTRIES" | jq -r '.[]' >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo "## Production Release Notes — $NEXT"
+              echo ""
+              echo "Aggregated $COUNT entries from beta releases since $PREVIOUS:"
+              echo ""
+              echo "$ENTRIES" | jq -r '.[]'
+            } >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "## Draft Release Notes — $NEXT" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "$RELEASE_NOTES" >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo "## Draft Release Notes — $NEXT"
+              echo ""
+              echo "$RELEASE_NOTES"
+            } >> "$GITHUB_STEP_SUMMARY"
 
             if [ -n "$UNCERTAIN" ] && [ "$UNCERTAIN" != "[]" ] && [ "$UNCERTAIN" != "" ]; then
-              echo "" >> "$GITHUB_STEP_SUMMARY"
-              echo "### ⚠️ Entries needing human review" >> "$GITHUB_STEP_SUMMARY"
-              echo "$UNCERTAIN" >> "$GITHUB_STEP_SUMMARY"
+              {
+                echo ""
+                echo "### ⚠️ Entries needing human review"
+                echo "$UNCERTAIN"
+              } >> "$GITHUB_STEP_SUMMARY"
             fi
 
             if [ -n "$SKIPPED" ] && [ "$SKIPPED" != "[]" ] && [ "$SKIPPED" != "" ]; then
               SKIPPED_COUNT=$(echo "$SKIPPED" | jq 'length' 2>/dev/null || echo 0)
-              echo "" >> "$GITHUB_STEP_SUMMARY"
-              echo "<details><summary>$SKIPPED_COUNT PRs excluded from notes</summary>" >> "$GITHUB_STEP_SUMMARY"
-              echo "" >> "$GITHUB_STEP_SUMMARY"
-              echo "$SKIPPED" >> "$GITHUB_STEP_SUMMARY"
-              echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+              {
+                echo ""
+                echo "<details><summary>$SKIPPED_COUNT PRs excluded from notes</summary>"
+                echo ""
+                echo "$SKIPPED"
+                echo "</details>"
+              } >> "$GITHUB_STEP_SUMMARY"
             fi
           fi
 
