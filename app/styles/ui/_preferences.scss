@@ -896,6 +896,51 @@
       font-size: var(--font-size-sm);
     }
 
+    .issue-tracker-reference {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing);
+      padding: var(--spacing);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 18px;
+      background: var(--md-sys-color-surface-container-lowest);
+    }
+
+    .issue-tracker-reference-header {
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h3 {
+        color: var(--md-sys-color-on-surface);
+        font-size: var(--font-size-sm);
+      }
+
+      p {
+        color: var(--md-sys-color-on-surface-variant);
+        margin-top: var(--spacing-half);
+      }
+    }
+
+    .issue-tracker-reference-fields {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+      align-items: end;
+      gap: var(--spacing);
+
+      .button-component {
+        min-height: 40px;
+        white-space: nowrap;
+      }
+    }
+
+    .issue-tracker-reference-status {
+      margin: 0;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: var(--font-size-sm);
+    }
+
     .account-card {
       // v2 prototype: a flat filled surface with no outline.
       background: var(--md-sys-color-surface);
@@ -1017,6 +1062,14 @@
 
     @media (max-width: 600px) {
       .provider-sign-in-card {
+        grid-template-columns: minmax(0, 1fr);
+
+        .button-component {
+          width: 100%;
+        }
+      }
+
+      .issue-tracker-reference-fields {
         grid-template-columns: minmax(0, 1fr);
 
         .button-component {
