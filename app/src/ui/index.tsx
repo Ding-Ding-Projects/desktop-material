@@ -798,7 +798,10 @@ ipcRenderer.on('cli-action', (_, action) =>
     delete defaults?.[k]
     delete types?.[k]
   })
-})(Grid.defaultProps, Grid.propTypes)
+})(
+  Grid.defaultProps,
+  (Grid as typeof Grid & { propTypes?: Record<string, unknown> }).propTypes
+)
 
 ReactDOM.render(
   <CrashProofBoundary name="Desktop Material" root={true}>
