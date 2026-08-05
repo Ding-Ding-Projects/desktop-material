@@ -14,6 +14,7 @@ import {
 } from '../../lib/hooks/config'
 import { GlobalIgnoreEditor } from './global-ignore'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { SSHKeyGenerator } from './ssh-key-generator'
 
 interface IGitProps {
   readonly name: string
@@ -162,6 +163,7 @@ export class Git extends React.Component<IGitProps> {
           <span>Default branch</span>
           <span>Hooks</span>
           <span>Global ignore</span>
+          <span>SSH key</span>
         </TabBar>
         <div className="git-preferences-content">{this.renderCurrentTab()}</div>
       </DialogContent>
@@ -177,6 +179,8 @@ export class Git extends React.Component<IGitProps> {
       return this.renderHooksSettings()
     } else if (this.selectedTabIndex === 3) {
       return <GlobalIgnoreEditor />
+    } else if (this.selectedTabIndex === 4) {
+      return <SSHKeyGenerator email={this.props.email} />
     }
 
     return null
