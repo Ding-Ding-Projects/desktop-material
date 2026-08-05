@@ -123,6 +123,34 @@ function squash(
   )
 }
 
+/**
+ * AI-assisted commit recomposition (R9, tracked in issue #126) does not exist
+ * yet. The "Recompose … with AI" menu items stay wired and visible so the
+ * affordance is discoverable, but they are disabled and call this
+ * clearly-named handler instead of fabricating any AI behavior.
+ */
+function recomposeWithAINotYetImplemented(): void {
+  if (__DEV__) {
+    log.warn(
+      '[CommitContextMenu]: AI commit recomposition (R9, issue #126) is not implemented yet'
+    )
+  }
+}
+
+/** Commits whose first parent is `sha`, in no particular order. */
+function getChildCommits(
+  props: ICommitContextMenuProps,
+  sha: string
+): ReadonlyArray<Commit> {
+  const children: Commit[] = []
+  for (const commit of props.commitLookup.values()) {
+    if (commit.parentSHAs.includes(sha)) {
+      children.push(commit)
+    }
+  }
+  return children
+}
+
 function getDeleteTagsMenuItem(
   props: ICommitContextMenuProps,
   commit: Commit
@@ -254,6 +282,24 @@ function getContextMenuForSingleCommit(
       enabled: canCherryPick(props),
     },
     { type: 'separator' },
+    // TODO(#126, R9): wire these to the real AI recompose backend once it
+    // exists. Left disabled/no-op until then so the affordance is
+    // discoverable without fabricating AI behavior.
+    {
+      label: __DARWIN__
+        ? 'Recompose Commit with AI…'
+        : 'Recompose commit with AI…',
+      action: recomposeWithAINotYetImplemented,
+      enabled: false,
+    },
+    {
+      label: __DARWIN__
+        ? `Recompose ${getChildCommits(props, commit.sha).length} Children of ${commit.sha.substring(0, 7)} with AI…`
+        : `Recompose ${getChildCommits(props, commit.sha).length} children of ${commit.sha.substring(0, 7)} with AI…`,
+      action: recomposeWithAINotYetImplemented,
+      enabled: false,
+    },
+    { type: 'separator' },
     {
       label: 'Copy SHA',
       icon: octicons.copy,
@@ -303,6 +349,15 @@ function getContextMenuForMultipleCommits(
         : `Reorder ${count} commits…`,
       action: () => props.onKeyboardReorder?.(selectedCommits),
       enabled: canReorder(props),
+    },
+    { type: 'separator' },
+    // TODO(#126, R9): wire to the real AI recompose backend once it exists.
+    {
+      label: __DARWIN__
+        ? `Recompose ${count} Commits with AI…`
+        : `Recompose ${count} commits with AI…`,
+      action: recomposeWithAINotYetImplemented,
+      enabled: false,
     },
   ]
 }
