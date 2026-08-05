@@ -2,13 +2,14 @@ name: Super Express Release
 
 # Manual emergency lane. It deliberately runs no tests, lint, type checks,
 # parity checks, or smoke tests. The ordinary CI and Express Release workflows
-# remain the tested release paths. Super Express builds the production desktop
-# and TUI packages directly, collects the required assets, and publishes them.
+# remain the tested release paths. The Windows and Linux TUI build workflows
+# run in parallel, then one publisher creates the combined Release so the
+# Squirrel update feed and the TUI bootstrap URL still point at one payload.
 on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish the built package as a GitHub Release
+        description: Publish the built packages as a GitHub Release
         required: true
         default: true
         type: boolean
@@ -22,19 +23,17 @@ env:
   NODE_VERSION: 24.15.0
 
 jobs:
-  build-and-release:
-    name: Build Windows x64 and release
-    runs-on: windows-2022
-    timeout-minutes: 60
+  prepare:
+    name: Prepare exact release target
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      sha: ${{ steps.target.outputs.sha }}
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
     env:
       RELEASE_TARGET_SHA: ${{ github.sha }}
-      # RELEASE_TOKEN (a fine-grained PAT with Contents write on this repo)
-      # takes precedence when configured: since 2026-07-26 the workflow token
-      # is refused by POST /releases (issue #44), while a user PAT publishes
-      # fine. An empty/absent secret falls back to the workflow token.
-      GH_TOKEN:
-        ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN
-        }}
     steps:
       - name: Require a main-branch manual dispatch
         shell: bash
@@ -48,7 +47,6 @@ jobs:
         with:
           ref: ${{ env.RELEASE_TARGET_SHA }}
           fetch-depth: 0
-          submodules: recursive
 
       - name: Require the exact dispatched commit
         shell: bash
@@ -59,76 +57,9 @@ jobs:
             exit 1
           fi
 
-      - uses: ./.github/actions/setup-ci-environment
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          arch: x64
-
-      - uses: actions/setup-python@v7
-        with:
-          python-version: '3.12'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-        with:
-          version: 0.11.26
-          enable-cache: true
-          cache-dependency-glob: tui/uv.lock
-
-      - name: Discover exact TUI package version
-        id: tui_version
-        shell: pwsh
-        run: |
-          $version = (
-            python -c "import tomllib; print(tomllib.load(open('tui/pyproject.toml', 'rb'))['project']['version'])"
-          ).Trim()
-          if (-not $version -or $version -match '\s') {
-            throw 'TUI pyproject.toml did not provide one usable package version.'
-          }
-          "version=$version" >> $env:GITHUB_OUTPUT
-          "TUI_VERSION=$version" >> $env:GITHUB_ENV
-
-      - name: Build TUI wheel and source distribution
-        working-directory: tui
-        run: uv build --clear
-
-      - name: Collect built TUI payload
-        id: tui_payload
-        shell: pwsh
-        run: |
-          $wheels = @(Get-ChildItem -LiteralPath 'tui/dist' -Filter '*.whl')
-          $sdists = @(Get-ChildItem -LiteralPath 'tui/dist' -Filter '*.tar.gz')
-          if ($wheels.Count -ne 1 -or $sdists.Count -ne 1) {
-            throw 'Expected exactly one TUI wheel and one source distribution.'
-          }
-
-          $expectedWheel = "desktop_material_tui-$env:TUI_VERSION-py3-none-any.whl"
-          $expectedSdist = "desktop_material_tui-$env:TUI_VERSION.tar.gz"
-          if (
-            $wheels[0].Name -ne $expectedWheel -or
-            $sdists[0].Name -ne $expectedSdist
-          ) {
-            throw "Built TUI package names do not match pyproject.toml version $env:TUI_VERSION."
-          }
-
-          New-Item -ItemType Directory -Force 'release-payload/tui' | Out-Null
-          Copy-Item -LiteralPath $wheels[0].FullName -Destination 'release-payload/tui'
-          Copy-Item -LiteralPath $sdists[0].FullName -Destination 'release-payload/tui'
-          if (
-            (Get-Item "release-payload/tui/$expectedWheel").Length -eq 0 -or
-            (Get-Item "release-payload/tui/$expectedSdist").Length -eq 0
-          ) {
-            throw 'Collected TUI release payload contains an empty package.'
-          }
-          "wheel_name=$expectedWheel" >> $env:GITHUB_OUTPUT
-          "sdist_name=$expectedSdist" >> $env:GITHUB_OUTPUT
-          "TUI_WHEEL_NAME=$expectedWheel" >> $env:GITHUB_ENV
-          "TUI_SDIST_NAME=$expectedSdist" >> $env:GITHUB_ENV
-
-      - name: Restore the desktop packaging Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
-        with:
-          python-version: '3.11'
 
       - name: Create a cross-lane monotonic package version
         id: version
@@ -136,15 +67,14 @@ jobs:
         run: |
           base=$(node -p "require('./app/package.json').version")
           version=$(node script/release-version.js create "$base" "$GITHUB_RUN_ID")
-          tag="v${version}"
-          RELEASE_VERSION="$version" node -e "const fs=require('fs');const f='./app/package.json';const p=require(f);p.version=process.env.RELEASE_VERSION;fs.writeFileSync(f, JSON.stringify(p, null, 2) + '\n')"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
-          echo "RELEASE_TAG=$tag" >> "$GITHUB_ENV"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
       - name: Require an unused immutable tag
+        id: target
         shell: bash
+        env:
+          RELEASE_TAG: v${{ steps.version.outputs.version }}
         run: |
           set +e
           git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1
@@ -161,64 +91,87 @@ jobs:
               exit "$status"
               ;;
           esac
+          echo "sha=$RELEASE_TARGET_SHA" >> "$GITHUB_OUTPUT"
 
-      - name: Build production app
-        run: yarn build:prod
-        env:
-          DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
-          DESKTOP_ERROR_REPORTING_ENDPOINT:
-            ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
-          DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
-            ${{ secrets.DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT }}
-          npm_config_arch: x64
-          TARGET_ARCH: x64
+  windows:
+    name: Super Express Windows x64
+    needs: prepare
+    uses: ./.github/workflows/super-express-release-windows.yml
+    with:
+      release_target_sha: ${{ needs.prepare.outputs.sha }}
+      release_version: ${{ needs.prepare.outputs.version }}
+    secrets: inherit
 
-      - name: Package Windows x64
-        run: yarn package
-        env:
-          npm_config_arch: x64
-          TARGET_ARCH: x64
+  tui:
+    name: Super Express Linux TUI
+    needs: prepare
+    uses: ./.github/workflows/super-express-release-linux-tui.yml
+    with:
+      release_target_sha: ${{ needs.prepare.outputs.sha }}
+    secrets: inherit
 
-      - name: Collect and verify release payload
+  publish:
+    name: Publish combined GitHub Release
+    needs:
+      - prepare
+      - windows
+      - tui
+    if: >-
+      always() && needs.prepare.result == 'success' && needs.windows.result ==
+      'success' && needs.tui.result == 'success' && inputs.publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      GH_TOKEN:
+        ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN
+        }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Discover exact TUI package version
+        id: tui_version
+        working-directory: tui
         shell: bash
         run: |
-          mkdir -p release-payload/installers
-          shopt -s nullglob
-          for file in \
-            "dist/GitHub Desktop-x64.zip" \
-            dist/GitHubDesktop-*.nupkg \
-            "dist/GitHubDesktopSetup-x64.exe" \
-            "dist/GitHubDesktopSetup-x64.msi"; do
-            [ -e "$file" ] && cp "$file" release-payload/installers/
-          done
-
-          if [ -e dist/RELEASES ]; then
-            # Squirrel installs the highest version the manifest names, so the
-            # published feed must only ever name this package at this version.
-            node script/release-version.js filter "$RELEASE_VERSION" \
-              < dist/RELEASES > release-payload/installers/RELEASES
-            while read -r _sha name _size || [[ -n "$name" ]]; do
-              [ -z "$name" ] && continue
-              [ -e "release-payload/installers/$name" ] && continue
-              case "$name" in
-                *-full.nupkg)
-                  source=$(find dist -maxdepth 1 -type f -name '*-full.nupkg' -print | LC_ALL=C sort | sed -n '1p')
-                  ;;
-                *-delta.nupkg)
-                  source=$(find dist -maxdepth 1 -type f -name '*-delta.nupkg' -print | LC_ALL=C sort | sed -n '1p')
-                  ;;
-                *) source="" ;;
-              esac
-              if [[ "$name" == *-full.nupkg || "$name" == *-delta.nupkg ]] && \
-                 [ -z "$source" ]; then
-                echo "RELEASES names $name, but no matching source package exists." >&2
-                exit 1
-              fi
-              [ -n "$source" ] && \
-                cp "$source" "release-payload/installers/$name"
-            done < release-payload/installers/RELEASES
+          version=$(python -c \
+            'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          if [ -z "$version" ] || [[ "$version" == *[[:space:]]* ]]; then
+            echo "TUI pyproject.toml did not provide one usable package version." >&2
+            exit 1
           fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
+      - uses: actions/download-artifact@v8
+        with:
+          name:
+            super-express-windows-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-payload/installers
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: super-express-tui-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-payload/tui
+
+      - name: Verify downloaded release payload
+        shell: bash
+        env:
+          TUI_VERSION: ${{ steps.tui_version.outputs.version }}
+        run: |
           required=(
             release-payload/installers/RELEASES
             "release-payload/installers/GitHub Desktop-x64.zip"
@@ -226,15 +179,20 @@ jobs:
             release-payload/installers/GitHubDesktopSetup-x64.msi
             "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-full.nupkg"
             "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"
-            "release-payload/tui/$TUI_WHEEL_NAME"
-            "release-payload/tui/$TUI_SDIST_NAME"
+            "release-payload/tui/desktop_material_tui-${TUI_VERSION}-py3-none-any.whl"
+            "release-payload/tui/desktop_material_tui-${TUI_VERSION}.tar.gz"
+            "release-payload/tui/desktop_material_tui-${TUI_VERSION}-runtime-requirements.txt"
+            release-payload/tui/install-linux-tui.sh
+            release-payload/tui/bootstrap-linux-tui.sh
           )
           for asset in "${required[@]}"; do
             if [ ! -s "$asset" ]; then
-              echo "Missing or empty release asset: $asset" >&2
+              echo "Missing or empty downloaded release asset: $asset" >&2
               exit 1
             fi
           done
+          test -x release-payload/tui/install-linux-tui.sh
+          test -x release-payload/tui/bootstrap-linux-tui.sh
 
       - name: Write fast local commit note
         shell: bash
@@ -242,12 +200,13 @@ jobs:
           {
             echo "Super Express package for commit \`$RELEASE_TARGET_SHA\`."
             echo
+            echo 'Windows x64 and Linux TUI packages were built in parallel.'
+            echo 'This emergency lane deliberately runs no test or lint gates.'
+            echo
             echo '### Commit'
             echo
             git show --no-patch --format='%s%n%n%b' "$RELEASE_TARGET_SHA" | \
               sed 's/^/    /'
-            # Every release carries its own line count, measured by CI over the
-            # exact commit being released rather than typed in by hand.
             echo
             echo '## Lines of code'
             echo
@@ -256,7 +215,7 @@ jobs:
             echo "Counted by CI over \`$RELEASE_TARGET_SHA\` with \`node script/count-lines.mjs\`."
           } > release-payload/release-notes.md
 
-      - name: Preserve installer and notes artifact
+      - name: Preserve combined payload and notes artifact
         uses: actions/upload-artifact@v7
         with:
           name: super-express-${{ github.run_id }}-${{ github.run_attempt }}
@@ -266,12 +225,14 @@ jobs:
           retention-days: 7
 
       - name: Publish immutable GitHub Release
-        if: ${{ inputs.publish }}
         shell: bash
         run: |
           set +e
+          shopt -s nullglob
+          assets=(release-payload/installers/* release-payload/tui/*)
+          shopt -u nullglob
           gh release create "$RELEASE_TAG" \
-            release-payload/installers/* release-payload/tui/* \
+            "${assets[@]}" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$RELEASE_TARGET_SHA" \
             --title "Desktop Material $RELEASE_VERSION" \
@@ -282,10 +243,7 @@ jobs:
           if [ "$create_status" -ne 0 ]; then
             # 2026-07-26: the workflow token began receiving 403s from
             # POST /releases for non-prerelease creation while prerelease
-            # creation kept succeeding (runs 30187367300, 30187848822).
-            # Recover by creating the release as a prerelease, uploading the
-            # same assets, then clearing the flag. If the final edit also
-            # fails, the run fails loudly with the prerelease left intact.
+            # creation kept succeeding. Recover without replacing the tag.
             echo "Direct release creation failed with status $create_status;" \
               "falling back to prerelease-then-clear." >&2
             gh api --method POST "repos/$GITHUB_REPOSITORY/releases" \
@@ -296,16 +254,17 @@ jobs:
               -f make_latest=false \
               -F body=@release-payload/release-notes.md >/dev/null
             gh release upload "$RELEASE_TAG" \
-              release-payload/installers/* release-payload/tui/* \
+              "${assets[@]}" \
               --repo "$GITHUB_REPOSITORY"
             gh release edit "$RELEASE_TAG" \
               --repo "$GITHUB_REPOSITORY" \
               --prerelease=false --latest=false
           fi
 
-      - name: Verify published release target
-        if: ${{ inputs.publish }}
+      - name: Verify published release target and assets
         shell: bash
+        env:
+          TUI_VERSION: ${{ steps.tui_version.outputs.version }}
         run: |
           git fetch origin "refs/tags/$RELEASE_TAG"
           published=$(git rev-parse 'FETCH_HEAD^{commit}')
@@ -313,22 +272,30 @@ jobs:
             echo "Published tag resolves to $published, expected $RELEASE_TARGET_SHA." >&2
             exit 1
           fi
-          draft=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
-            --json isDraft --jq .isDraft)
-          if [ "$draft" != "false" ]; then
+          if [ "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != "false" ]; then
             echo "Published release unexpectedly remained a draft." >&2
             exit 1
           fi
           published_assets=$(gh release view "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
-          for expected in "$TUI_WHEEL_NAME" "$TUI_SDIST_NAME"; do
+          for expected in \
+            'RELEASES' \
+            'GitHub Desktop-x64.zip' \
+            'GitHubDesktopSetup-x64.exe' \
+            'GitHubDesktopSetup-x64.msi' \
+            "GitHubDesktop-${RELEASE_VERSION}-full.nupkg" \
+            "GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg" \
+            "desktop_material_tui-${TUI_VERSION}-py3-none-any.whl" \
+            "desktop_material_tui-${TUI_VERSION}.tar.gz" \
+            "desktop_material_tui-${TUI_VERSION}-runtime-requirements.txt" \
+            'install-linux-tui.sh' \
+            'bootstrap-linux-tui.sh'; do
             if ! grep -Fqx "$expected" <<<"$published_assets"; then
-              echo "Published release is missing TUI asset $expected." >&2
+              echo "Published release is missing asset $expected." >&2
               exit 1
             fi
           done
 
       - name: Reconcile Latest to the newest main release
-        if: ${{ inputs.publish }}
         shell: bash
         run: bash .github/scripts/promote-current-release.sh

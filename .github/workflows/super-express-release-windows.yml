@@ -1,0 +1,138 @@
+name: Super Express Release / Windows
+
+# Reusable zero-test Windows lane for Super Express Release. The caller owns
+# release-tag creation and publication so this lane can run beside the Linux
+# TUI lane without creating a split update feed.
+on:
+  workflow_call:
+    inputs:
+      release_target_sha:
+        description: Exact commit SHA selected by the dispatcher
+        required: true
+        type: string
+      release_version:
+        description: Squirrel-compatible version selected by the dispatcher
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 24.15.0
+
+jobs:
+  build:
+    name: Build Windows x64 package
+    runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      RELEASE_TARGET_SHA: ${{ inputs.release_target_sha }}
+      RELEASE_VERSION: ${{ inputs.release_version }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.release_target_sha }}
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Require the exact release commit
+        shell: bash
+        run: |
+          checked_out=$(git rev-parse HEAD)
+          if [ "$checked_out" != "$RELEASE_TARGET_SHA" ]; then
+            echo "Checked-out commit $checked_out does not match $RELEASE_TARGET_SHA." >&2
+            exit 1
+          fi
+
+      - uses: ./.github/actions/setup-ci-environment
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          arch: x64
+
+      - name: Apply the release package version
+        shell: bash
+        run: |
+          RELEASE_VERSION="$RELEASE_VERSION" node -e "const fs=require('fs');const f='./app/package.json';const p=require(f);p.version=process.env.RELEASE_VERSION;fs.writeFileSync(f, JSON.stringify(p, null, 2) + '\\n')"
+
+      - name: Build production app
+        run: yarn build:prod
+        env:
+          DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
+          DESKTOP_ERROR_REPORTING_ENDPOINT:
+            ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
+          DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
+            ${{ secrets.DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT }}
+          npm_config_arch: x64
+          TARGET_ARCH: x64
+
+      - name: Package Windows x64
+        run: yarn package
+        env:
+          npm_config_arch: x64
+          TARGET_ARCH: x64
+
+      - name: Collect and verify Windows release payload
+        shell: bash
+        run: |
+          mkdir -p release-payload/installers
+          shopt -s nullglob
+          for file in \
+            "dist/GitHub Desktop-x64.zip" \
+            dist/GitHubDesktop-*.nupkg \
+            "dist/GitHubDesktopSetup-x64.exe" \
+            "dist/GitHubDesktopSetup-x64.msi"; do
+            [ -e "$file" ] && cp "$file" release-payload/installers/
+          done
+
+          if [ -e dist/RELEASES ]; then
+            # Squirrel installs the highest version the manifest names, so the
+            # published feed must only ever name this package at this version.
+            node script/release-version.js filter "$RELEASE_VERSION" \
+              < dist/RELEASES > release-payload/installers/RELEASES
+            while read -r _sha name _size || [[ -n "$name" ]]; do
+              [ -z "$name" ] && continue
+              [ -e "release-payload/installers/$name" ] && continue
+              case "$name" in
+                *-full.nupkg)
+                  source=$(find dist -maxdepth 1 -type f -name '*-full.nupkg' -print | LC_ALL=C sort | sed -n '1p')
+                  ;;
+                *-delta.nupkg)
+                  source=$(find dist -maxdepth 1 -type f -name '*-delta.nupkg' -print | LC_ALL=C sort | sed -n '1p')
+                  ;;
+                *) source="" ;;
+              esac
+              if [[ "$name" == *-full.nupkg || "$name" == *-delta.nupkg ]] && \
+                 [ -z "$source" ]; then
+                echo "RELEASES names $name, but no matching source package exists." >&2
+                exit 1
+              fi
+              [ -n "$source" ] && \
+                cp "$source" "release-payload/installers/$name"
+            done < release-payload/installers/RELEASES
+          fi
+
+          required=(
+            release-payload/installers/RELEASES
+            "release-payload/installers/GitHub Desktop-x64.zip"
+            release-payload/installers/GitHubDesktopSetup-x64.exe
+            release-payload/installers/GitHubDesktopSetup-x64.msi
+            "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-full.nupkg"
+            "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"
+          )
+          for asset in "${required[@]}"; do
+            if [ ! -s "$asset" ]; then
+              echo "Missing or empty Windows release asset: $asset" >&2
+              exit 1
+            fi
+          done
+
+      - name: Preserve Windows payload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name:
+            super-express-windows-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-payload/installers/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7

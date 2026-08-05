@@ -76,6 +76,26 @@ an ordinary Release. Projects inventory is also read-only and requires the
 token scopes that GitHub enforces; a missing `read:project` scope is reported
 rather than silently returning an empty workspace.
 
+### Super Express Linux TUI lane
+
+The manual `.github/workflows/super-express-release.yml` dispatcher calls
+`.github/workflows/super-express-release-linux-tui.yml` on `ubuntu-latest` in
+parallel with the Windows x64 lane. This is an emergency zero-test path: it
+does not run the TUI suite, parity generation, Ruff, mypy, installer smoke, or
+the Debian acceptance container. It does run the packaging-only checks needed
+to avoid a misleading payload: the exact commit is checked out, `uv build`
+creates one wheel and one source distribution, `uv export --locked` creates
+the matching runtime constraints, and both checked-in shell installers pass
+`sh -n` and are copied as executable release assets.
+
+The dispatcher downloads the verified Windows and TUI artifacts and publishes
+one combined immutable Release. The TUI wheel, source distribution, runtime
+constraints, `install-linux-tui.sh`, and `bootstrap-linux-tui.sh` therefore
+remain beside the Windows `RELEASES` feed, portable ZIP, installer, and NuGet
+package under the same `latest` redirect. A failed lane prevents publication
+but retains its artifact for recovery; clearing the dispatch `publish` input
+also retains both lane artifacts without creating a Release.
+
 ## Repository notifications
 
 The Notifications surface lists the active repository's inbox with an

@@ -129,24 +129,32 @@ concurrency group, including CodeQL, remain independently runnable.
 ## Super Express release
 
 `.github/workflows/super-express-release.yml` is a separate, manual-only
-emergency lane. Dispatching it from `main` goes directly from the exact
-dependency cache into the Windows x64 production build and package. It runs no
-unit, script, TUI, lint, type, parity, smoke, trampoline, or packaged E2E tests,
-and it omits history-generated release notes. The ordinary CI and tested
-Express Release paths remain the default release gates.
+emergency dispatcher. Dispatching it from `main` checks the exact commit and
+tag once, then calls two reusable lanes in parallel:
 
-The direct lane still fails closed around the produced executable content. It
-requires the exact dispatched commit, uses the same validated run-ID package
-version as the automatic lane, rejects an existing tag, requires every
-installer, portable ZIP, Squirrel package, and `RELEASES` entry to be non-empty,
-and writes a local note from the exact checked-out commit subject/body. It does
-not inspect release history or invoke the TypeScript release-note generator, so
-that optional metadata path cannot block an emergency package. It uploads the
-complete payload as an uncompressed seven-day Actions artifact before the
-optional create-only GitHub Release step. The `publish` dispatch checkbox
-defaults on but can be cleared to build a recovery artifact without creating a
-Release. Published Super Express Releases use the same current-main and
-highest-same-SHA promotion helper as automatic Releases.
+- `.github/workflows/super-express-release-windows.yml` restores the exact
+  desktop dependency cache and builds the Windows x64 production package;
+- `.github/workflows/super-express-release-linux-tui.yml` uses an Ubuntu runner
+  to build the Linux TUI wheel, source distribution, locked runtime
+  constraints, bootstrap, and installer.
+
+Both lanes run no unit, script, TUI, lint, type, parity, smoke, trampoline, or
+packaged E2E tests, and they omit history-generated release notes. The ordinary
+CI and tested Express Release paths remain the default release gates.
+
+The direct lanes still fail closed around their produced content. They require
+the exact dispatched commit, use the same validated run-ID package version as
+the automatic lane, reject an existing tag, and require every Windows and TUI
+asset to be non-empty. The publisher downloads both lane artifacts, writes a
+local note from the exact checked-out commit subject/body, and creates one
+combined Release. Keeping one publisher preserves both the Squirrel update feed
+and the TUI bootstrap URL; two independent Releases would make the shared
+`latest` redirect point at an incomplete payload. The complete payload is
+uploaded as an uncompressed seven-day Actions artifact before the optional
+create-only GitHub Release step. The `publish` dispatch checkbox defaults on but
+can be cleared to build recovery artifacts without creating a Release.
+Published Super Express Releases use the same current-main and highest-same-SHA
+promotion helper as automatic Releases.
 
 No shared concurrency group is declared, so overlapping manual invocations can
 finish independently. Tags and Releases are immutable: a same-tag race has one
@@ -198,7 +206,8 @@ updater to undo them.
 - `DESKTOP_UPDATES_REPO` selects the GitHub `owner/repository` used by the
   default release feed.
 - The runtime provider contract expects the active workflow files to remain
-  `.github/workflows/ci-windows.yml` and `.github/workflows/build-installers.yml`.
+  `.github/workflows/ci-windows.yml`, `.github/workflows/build-installers.yml`,
+  and the three Super Express workflow files.
 - The release-note step receives `GITHUB_TOKEN` through its environment. It is
   never accepted as a command-line value or written to the notes. This applies
   to the tested Express path; Super Express deliberately uses only local Git

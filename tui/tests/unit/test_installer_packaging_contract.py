@@ -136,3 +136,24 @@ def test_ci_publishes_and_exercises_the_complete_payload() -> None:
     assert "TUI_CONSTRAINTS_NAME" in release
     assert "TUI_INSTALLER_NAME" in release
     assert "TUI_BOOTSTRAP_NAME" in release
+
+
+def test_super_express_uses_a_native_linux_zero_test_packaging_lane() -> None:
+    lane = _read(
+        REPOSITORY_ROOT
+        / ".github"
+        / "workflows"
+        / "super-express-release-linux-tui.yml"
+    )
+
+    assert "workflow_call:" in lane
+    assert "runs-on: ubuntu-latest" in lane
+    assert "uv build --clear" in lane
+    assert "uv export --locked --no-dev --no-emit-project --no-hashes" in lane
+    assert "install-linux-tui.sh" in lane
+    assert "bootstrap-linux-tui.sh" in lane
+    assert "actions/upload-artifact@v7" in lane
+    assert "pytest" not in lane
+    assert "ruff" not in lane
+    assert "mypy" not in lane
+    assert "install-linux-tui-test.sh" not in lane
