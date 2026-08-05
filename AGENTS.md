@@ -27,6 +27,10 @@ platform policy, always takes precedence over what is written here.
 
 ## Git and completion
 
+- Every new user request and every new agent session starts in a fresh linked
+  worktree. Create a new worktree and task branch before reading or editing
+  task files; do not reuse the main checkout or another task's worktree. If a
+  fresh worktree cannot be created, stop and report the blocker.
 - Every task that changes this repository ends with all intended work committed
   and pushed. Push frequently — one push per completed fix rather than a single
   push at the end of a long session.
