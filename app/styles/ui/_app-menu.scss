@@ -74,6 +74,7 @@
 
     .label {
       flex-grow: 1;
+      min-width: 0;
       margin-left: var(--spacing-double);
       margin-right: var(--spacing);
       @include ellipsis;

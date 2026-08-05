@@ -170,6 +170,7 @@
 
   .repository-tab-label {
     flex: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2495,6 +2496,7 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
   }
 
   .repository-tab-group-label {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
