@@ -30,7 +30,7 @@
     "codemirror-mode-elixir": "^1.1.2",
     "codemirror-mode-luau": "^1.0.2",
     "codemirror-mode-zig": "^1.0.7",
-    "compare-versions": "^3.6.0",
+    "compare-versions": "^6.1.1",
     "date-fns": "^4.1.0",
     "deep-equal": "^1.0.1",
     "desktop-notifications": "file:../vendor/desktop-notifications",
