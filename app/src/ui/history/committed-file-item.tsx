@@ -20,9 +20,15 @@ export class CommittedFileItem extends React.Component<ICommittedFileItemProps> 
     const { status } = file
     const fileStatus = mapStatus(status)
 
-    const listItemPadding = 10 * 2
-    const statusWidth = 16
-    const filePathPadding = 5
+    // `#history .file-list .file` pads 4px on the left and 10px on the
+    // right (see history/_file-list.scss), not the 10px/10px the base
+    // `.file-list .file` rule uses elsewhere.
+    const listItemPadding = 4 + 10
+    // The status Material Symbol is a 16px glyph in a content-box chip with
+    // 2px padding on all sides, so it actually occupies 16 + 2*2 = 20px.
+    const statusWidth = 20
+    // Matches `.path-label-component`'s `margin-right` in history/_file-list.scss.
+    const filePathPadding = 6
     const availablePathWidth =
       this.props.availableWidth -
       listItemPadding -

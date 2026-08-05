@@ -57,8 +57,12 @@ export class ChangedFile extends React.Component<IChangedFileProps, {}> {
 
     const listItemPadding = 10 * 2
     const checkboxWidth = 20
-    const statusWidth = 16
-    const filePadding = 5
+    // The status Material Symbol is a 16px glyph in a content-box chip with
+    // 2px padding on all sides (see `#changes-list .file .status` in
+    // _changes-list.scss), so it actually occupies 16 + 2*2 = 20px.
+    const statusWidth = 20
+    // Matches `.path-label-component`'s `margin-right` in _changes-list.scss.
+    const filePadding = 6
 
     const availablePathWidth =
       availableWidth -
