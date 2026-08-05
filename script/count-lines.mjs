@@ -19,7 +19,7 @@
  * Usage: node script/count-lines.mjs [--json]
  */
 
-import { execFileSync, spawn } from 'node:child_process'
+import { execFileSync, execSync, spawn } from 'node:child_process'
 import { readFileSync, statSync } from 'node:fs'
 
 /** Extensions counted as source. Binaries and assets are not code. */
