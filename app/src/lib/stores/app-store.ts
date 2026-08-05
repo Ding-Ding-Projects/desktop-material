@@ -827,6 +827,14 @@ import { createTutorialRepository } from './helpers/create-tutorial-repository'
 import { sendNonFatalException } from '../helpers/non-fatal-exception'
 import { ProgressiveLoad } from '../progressive-load'
 import { getDefaultDir } from '../../ui/lib/default-dir'
+import {
+  applyCloudPatch,
+  shareCloudPatch,
+} from '../cloud-patches/cloud-patch-orchestration'
+import type {
+  CloudPatchApplyResult,
+  CloudPatchShareResult,
+} from '../cloud-patches/cloud-patch-orchestration'
 import { WorkflowPreferences } from '../../models/workflow-preferences'
 import {
   defaultBuildRunPreferences,
@@ -3696,6 +3704,33 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return newCommits.length
     }
     return 0
+  }
+
+  /** Share a reviewed commit range through the joined self-hosted server. */
+  public _shareCloudPatch(
+    repository: Repository,
+    baseRevision: string,
+    headRevision: string,
+    recipientDeviceIds: ReadonlyArray<string>
+  ): Promise<CloudPatchShareResult> {
+    return shareCloudPatch(
+      repository,
+      baseRevision,
+      headRevision,
+      recipientDeviceIds
+    )
+  }
+
+  /** Fetch, verify, and apply a Cloud Patch, then refresh the repository state. */
+  public async _applyCloudPatch(
+    repository: Repository,
+    link: string
+  ): Promise<CloudPatchApplyResult> {
+    const result = await applyCloudPatch(repository, link)
+    if (result.kind === 'applied') {
+      await this._refreshRepository(repository)
+    }
+    return result
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */

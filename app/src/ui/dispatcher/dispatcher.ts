@@ -88,6 +88,10 @@ import {
   TeamClientError,
 } from '../../lib/self-hosted-server/team-client'
 import { getTeamConnection } from '../../lib/self-hosted-server/team-connection'
+import type {
+  CloudPatchApplyResult,
+  CloudPatchShareResult,
+} from '../../lib/cloud-patches/cloud-patch-orchestration'
 import type { InternalBrowserOAuthCallbackResult } from '../../lib/internal-browser'
 import {
   matchExistingRepository,
@@ -1330,6 +1334,29 @@ export class Dispatcher {
    */
   public refreshRepository(repository: Repository): Promise<void> {
     return this.appStore._refreshOrRecoverRepository(repository)
+  }
+
+  /** Share a commit range through the joined self-hosted Cloud Patch server. */
+  public shareCloudPatch(
+    repository: Repository,
+    baseRevision: string,
+    headRevision: string,
+    recipientDeviceIds: ReadonlyArray<string>
+  ): Promise<CloudPatchShareResult> {
+    return this.appStore._shareCloudPatch(
+      repository,
+      baseRevision,
+      headRevision,
+      recipientDeviceIds
+    )
+  }
+
+  /** Fetch and apply a Cloud Patch, preserving the truthful no-server result. */
+  public applyCloudPatch(
+    repository: Repository,
+    link: string
+  ): Promise<CloudPatchApplyResult> {
+    return this.appStore._applyCloudPatch(repository, link)
   }
 
   /** Fetch a reviewed shallow-history recipe through Desktop authentication. */
