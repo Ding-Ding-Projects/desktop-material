@@ -604,10 +604,7 @@ describe('Launchpad view team surface', () => {
   it('renders no team toggle when no server is configured', () => {
     const fixture = presentationFixture()
     render(<LaunchpadView result={fixture.result} />)
-    assert.equal(
-      screen.queryByRole('button', { name: /team view/i }),
-      null
-    )
+    assert.equal(screen.queryByRole('button', { name: /team view/i }), null)
   })
 
   it('toggles into a real team roster and back, never fabricating members', () => {

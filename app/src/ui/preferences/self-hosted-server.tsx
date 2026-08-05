@@ -20,7 +20,8 @@ import {
   wizardStepState,
 } from './self-hosted-server-wizard-state'
 
-interface ISelfHostedServerPreferencesState extends ISelfHostedServerWizardState {
+interface ISelfHostedServerPreferencesState
+  extends ISelfHostedServerWizardState {
   readonly samlMetadataXml: string
   readonly signedInAs: string | null
 }

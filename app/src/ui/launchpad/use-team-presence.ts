@@ -83,7 +83,10 @@ export function useTeamPresence(): IUseTeamPresenceResult {
 
       await heartbeat()
       await poll()
-      heartbeatTimer = setInterval(() => void heartbeat(), TeamHeartbeatIntervalMs)
+      heartbeatTimer = setInterval(
+        () => void heartbeat(),
+        TeamHeartbeatIntervalMs
+      )
       pollTimer = setInterval(() => void poll(), RosterPollIntervalMs)
     }
 

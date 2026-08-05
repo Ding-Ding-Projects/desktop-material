@@ -6,10 +6,7 @@ import { IRepositoryState } from '../../lib/app-state'
 import { Dispatcher } from '../dispatcher'
 import { TipState } from '../../models/tip'
 import { getPullRequestCommitRef } from '../../models/pull-request'
-import {
-  APICheckConclusion,
-  APICheckStatus,
-} from '../../lib/api'
+import { APICheckConclusion, APICheckStatus } from '../../lib/api'
 import { ICombinedRefCheck } from '../../lib/ci-checks/ci-checks'
 import {
   ILaunchpadItemIdentity,
@@ -245,7 +242,8 @@ class LaunchpadContainerView extends React.Component<
           // pull request fetch this app already does, so this is reported
           // honestly rather than estimated.
           diffStat: LaunchpadUnavailable,
-          ciStatus: ciStatus === null ? LaunchpadUnavailable : launchpadValue(ciStatus),
+          ciStatus:
+            ciStatus === null ? LaunchpadUnavailable : launchpadValue(ciStatus),
           attention: {
             readyToMerge,
             // PR assignees aren't part of the bulk pull request fetch either.
