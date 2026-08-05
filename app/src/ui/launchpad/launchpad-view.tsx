@@ -14,6 +14,7 @@ import {
 } from '../../lib/launchpad/launchpad-model'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
 import { ITeamMember } from '../../lib/self-hosted-server/team-client'
+import type { IUseTeamPresenceResult } from './use-team-presence'
 
 export type LaunchpadSectionId = LaunchpadBucket
 export type ILaunchpadViewItem = LaunchpadItem
@@ -44,6 +45,28 @@ export type LaunchpadSnoozeDurationMs =
 export interface ILaunchpadSnoozeOption {
   readonly durationMs: LaunchpadSnoozeDurationMs
   readonly label: string
+}
+
+export interface ILaunchpadTeamViewProps {
+  readonly members: ReadonlyArray<ITeamMember> | null
+  readonly selected: boolean
+  readonly onSelect: (selected: boolean) => void
+}
+
+export function createLaunchpadTeamViewProps(
+  presence: IUseTeamPresenceResult,
+  selected: boolean,
+  onSelect: (selected: boolean) => void
+): ILaunchpadTeamViewProps | undefined {
+  if (!presence.available) {
+    return undefined
+  }
+
+  return {
+    members: presence.members ?? null,
+    selected,
+    onSelect,
+  }
 }
 
 /** The only durations the view can send to its callback. */
@@ -91,16 +114,13 @@ export interface ILaunchpadViewProps {
     durationMs: LaunchpadSnoozeDurationMs
   ) => void
   /**
-   * Team View is an honest degrade: omit this prop (or pass `null`) when no
-   * self-hosted server is configured and reachable, and the toggle will not
-   * render at all. Passing a non-null value means a real server responded to
-   * `GET /v1/team/members`; the view never fabricates members.
+   * Team View is an honest degrade: omit this prop when no self-hosted server
+   * is configured and reachable, and the toggle will not render at all. A
+   * non-null value means the device has a real persisted connection; `members`
+   * is null while the first `GET /v1/team/members` response is pending. The
+   * view never fabricates members.
    */
-  readonly team?: {
-    readonly members: ReadonlyArray<ITeamMember> | null
-    readonly selected: boolean
-    readonly onSelect: (selected: boolean) => void
-  }
+  readonly team?: ILaunchpadTeamViewProps
 }
 
 interface ILaunchpadViewState {

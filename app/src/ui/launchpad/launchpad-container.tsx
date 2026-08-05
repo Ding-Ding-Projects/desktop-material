@@ -25,14 +25,21 @@ import {
   ILaunchpadSnoozePreference,
 } from '../../lib/launchpad/launchpad-preferences'
 import {
+  createLaunchpadTeamViewProps,
+  ILaunchpadTeamViewProps,
   LaunchpadSnoozeDurationMs,
   LaunchpadView,
 } from './launchpad-view'
+import { useTeamPresence } from './use-team-presence'
 
-interface ILaunchpadContainerProps {
+interface ILaunchpadContainerBaseProps {
   readonly repository: Repository
   readonly state: IRepositoryState
   readonly dispatcher: Dispatcher
+}
+
+interface ILaunchpadContainerProps extends ILaunchpadContainerBaseProps {
+  readonly team?: ILaunchpadTeamViewProps
 }
 
 interface ILaunchpadContainerState {
@@ -98,7 +105,7 @@ function ciStatusFromCheck(
  * fabricated. See the Launchpad section of the R11 (#128) implementation
  * notes for the full list.
  */
-export class LaunchpadContainer extends React.Component<
+class LaunchpadContainerView extends React.Component<
   ILaunchpadContainerProps,
   ILaunchpadContainerState
 > {
@@ -330,9 +337,24 @@ export class LaunchpadContainer extends React.Component<
         now={this.state.now}
         onPinChange={this.onPinChange}
         onSnooze={this.onSnooze}
+        team={this.props.team}
       />
     )
   }
+}
+
+export function LaunchpadContainer(
+  props: ILaunchpadContainerBaseProps
+): JSX.Element {
+  const presence = useTeamPresence()
+  const [teamSelected, setTeamSelected] = React.useState(false)
+  const team = createLaunchpadTeamViewProps(
+    presence,
+    teamSelected,
+    setTeamSelected
+  )
+
+  return <LaunchpadContainerView {...props} team={team} />
 }
 
 function launchpadPreferencesNamespace(repository: Repository): string {
