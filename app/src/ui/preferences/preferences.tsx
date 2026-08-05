@@ -887,6 +887,7 @@ export class Preferences extends React.Component<
             onProviderSignIn={this.onProviderSignIn}
             onLogout={this.onLogout}
             onMakeActive={this.onMakeActive}
+            onOpenInBrowser={this.openInBrowser}
           />
         )
         break

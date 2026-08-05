@@ -37,6 +37,7 @@ import {
   ITrelloMember,
 } from '../../lib/issue-trackers/trello-client'
 import { getIssueTrackerAuthErrorMessage } from '../../lib/issue-trackers/issue-tracker-auth-error'
+import { IssueTrackerReference } from './issue-tracker-reference'
 
 interface IAccountsProps {
   readonly accounts: ReadonlyArray<Account>
@@ -52,6 +53,9 @@ interface IAccountsProps {
 
   /** Called when the user makes the given signed-in account active. */
   readonly onMakeActive: (account: Account) => void
+
+  /** Opens a validated issue-tracker item without exposing credentials. */
+  readonly onOpenInBrowser: (url: string) => Promise<boolean>
 }
 
 interface IAccountsState {
@@ -181,6 +185,17 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
             </Row>
           </div>
         )}
+        <IssueTrackerReference
+          provider={
+            this.state.jiraMode === 'basic-email-token'
+              ? 'jira-cloud'
+              : 'jira-data-center'
+          }
+          endpoint={this.state.jiraEndpoint.trim()}
+          accountId={this.state.jiraConnectedUser?.accountId ?? null}
+          connected={this.state.jiraConnectedUser !== null}
+          onOpenInBrowser={this.props.onOpenInBrowser}
+        />
         <div className="provider-sign-in-card">
           <Row>
             <label htmlFor="jira-mode-select">Jira deployment</label>
@@ -278,6 +293,13 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
             </Row>
           </div>
         )}
+        <IssueTrackerReference
+          provider="trello"
+          endpoint={this.state.trelloEndpoint.trim()}
+          accountId={this.state.trelloConnectedMember?.id ?? null}
+          connected={this.state.trelloConnectedMember !== null}
+          onOpenInBrowser={this.props.onOpenInBrowser}
+        />
         <div className="provider-sign-in-card">
           <TextBox
             label="Trello API server"
@@ -494,11 +516,14 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
   }
 
   private onJiraModeChanged = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    this.setState({ jiraMode: event.currentTarget.value as JiraAuthMode })
+    this.setState({
+      jiraMode: event.currentTarget.value as JiraAuthMode,
+      jiraConnectedUser: null,
+    })
   }
 
   private onJiraEndpointChanged = (jiraEndpoint: string) => {
-    this.setState({ jiraEndpoint })
+    this.setState({ jiraEndpoint, jiraConnectedUser: null })
   }
 
   private onJiraEmailChanged = (jiraEmail: string) => {
@@ -540,7 +565,7 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
   }
 
   private onTrelloEndpointChanged = (trelloEndpoint: string) => {
-    this.setState({ trelloEndpoint })
+    this.setState({ trelloEndpoint, trelloConnectedMember: null })
   }
 
   private onTrelloKeyChanged = (trelloKey: string) => {
