@@ -1217,7 +1217,8 @@ removing arm64 must not be treated as removing coverage: check which test
 batches the arm64 legs were carrying and make sure the x64 legs still run all
 of them, or the suite will get quieter without getting greener.
 
-Search starting points: `.github/workflows/ci.yml`,
+Search starting points: `.github/workflows/ci-linux.yml`,
+`.github/workflows/ci-windows.yml`,
 `.github/workflows/build-installers.yml`, and any `arch`/`matrix` entries
 naming `arm64`.
 

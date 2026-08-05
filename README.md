@@ -62,7 +62,7 @@ path. The installer also supplies GitHub CLI's `gh` and configures `PATH`.
   alt="Desktop Material workspace with a profile-customized app name and logo, a favorite repository tab, the Material navigation rail, and the Changes view"
 />
 
-![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci.yml/badge.svg?branch=main)
+![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci-windows.yml/badge.svg?branch=main)
 
 > **The site is one Material Design 3 component — August 3, 2026:** the
 > [project site](https://ding-ding-projects.github.io/desktop-material/) is

@@ -198,7 +198,7 @@ updater to undo them.
 - `DESKTOP_UPDATES_REPO` selects the GitHub `owner/repository` used by the
   default release feed.
 - The runtime provider contract expects the active workflow files to remain
-  `.github/workflows/ci.yml` and `.github/workflows/build-installers.yml`.
+  `.github/workflows/ci-windows.yml` and `.github/workflows/build-installers.yml`.
 - The release-note step receives `GITHUB_TOKEN` through its environment. It is
   never accepted as a command-line value or written to the notes. This applies
   to the tested Express path; Super Express deliberately uses only local Git

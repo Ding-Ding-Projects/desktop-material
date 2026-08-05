@@ -36,7 +36,7 @@ trusting this page:
 
 | Tool | Pin | Where it is pinned |
 | --- | --- | --- |
-| Node.js | `24.15.0` | [`.node-version`](../../.node-version), [`.nvmrc`](../../.nvmrc), [`.tool-versions`](../../.tool-versions), and `NODE_VERSION` in [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) |
+| Node.js | `24.15.0` | [`.node-version`](../../.node-version), [`.nvmrc`](../../.nvmrc), [`.tool-versions`](../../.tool-versions), and `NODE_VERSION` in [`ci-linux.yml`](../../.github/workflows/ci-linux.yml) and [`ci-windows.yml`](../../.github/workflows/ci-windows.yml) |
 | Yarn | `1.21.1` (Yarn Classic) | [`.yarnrc`](../../.yarnrc) sets `yarn-path` to the vendored `vendor/yarn-1.21.1.js`, so a repository-local `yarn` reports `1.21.1` whatever you have installed globally |
 
 `package.json` declares a looser floor of `node >= 22` and `yarn >= 1.9` for
@@ -58,7 +58,7 @@ rather than picking a winner:**
 | [`.tool-versions`](../../.tool-versions) | `3.9.5` | inherited toolchain pin |
 | [`setup-windows.md`](./setup-windows.md) | `3.9.x` | `node-gyp` native-module builds |
 | [`super-express-release.yml`](../../.github/workflows/super-express-release.yml) | `3.11` | the Python the desktop packaging job restores |
-| [`ci.yml`](../../.github/workflows/ci.yml) | `3.10`, `3.12`, `3.13` | the `linux-tui` / `windows-tui-core` test matrix |
+| [`ci-linux.yml`](../../.github/workflows/ci-linux.yml) and [`ci-windows.yml`](../../.github/workflows/ci-windows.yml) | `3.10`, `3.12`, `3.13` | the `linux-tui` / `windows-tui-core` test matrix |
 
 Nothing in CI installs Python 3.9, so no green run is evidence that `3.9` still
 works here; the versions with passing runs behind them are `3.10` through `3.13`.

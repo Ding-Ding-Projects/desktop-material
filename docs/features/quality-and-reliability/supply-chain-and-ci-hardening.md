@@ -237,7 +237,7 @@ Investigate — no Release is published for a cancelled `main` run.
 Performed on 2026-07-31 against the working tree, before any push:
 
 - Both YAML files parse. `js-yaml` 4.3.0 and PyYAML both load
-  `.github/workflows/ci.yml` and `.github/dependabot.yml`; the folded
+  `.github/workflows/ci-linux.yml` and `.github/dependabot.yml`; the folded
   concurrency expressions collapse to single-line strings with no embedded
   newlines.
 - Both `run:` scripts in the `supply-chain` job were extracted from the parsed

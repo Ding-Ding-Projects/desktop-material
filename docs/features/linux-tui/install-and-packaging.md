@@ -140,7 +140,7 @@ source.
 
 ## CI contract
 
-The `Linux TUI` job in `.github/workflows/ci.yml` runs on Ubuntu for the declared
+The `Linux TUI` job in `.github/workflows/ci-linux.yml` runs on Ubuntu for the declared
 Python matrix. Environments install from `uv.lock` and run the test suite. The
 packaging lane additionally checks the generated parity contract, runs Ruff and
 mypy, builds both distributions, installs the wheel into a fresh virtual
