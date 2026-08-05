@@ -186,6 +186,11 @@ import { Preferences } from './preferences'
 import { SettingsHistoryDialog } from './settings-history'
 import { IVersionedStoreHistorySource } from './version-history'
 import { NotificationHistoryDialog } from './notifications/notification-history-dialog'
+import {
+  repositoryForTab,
+  repositoryTabStatusRank,
+} from './repository-tabs/tab-action-helpers'
+import { IRepositoryTab } from '../models/repository-tab'
 import { NotificationAutomationsDialog } from './notifications/notification-automations-dialog'
 import { LogHistoryDialog } from './log-history/log-history-dialog'
 import { FileHistory } from './file-history'
@@ -1787,6 +1792,58 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.copyCurrentBranchName()
       case 'palette:copy-commit-sha':
         return this.copyCurrentCommitSha()
+      case 'palette:pin-tab':
+        return this.setActiveTabPinned(true)
+      case 'palette:unpin-tab':
+        return this.setActiveTabPinned(false)
+      case 'palette:close-tab':
+        return this.closeActiveTab()
+      case 'palette:close-other-tabs':
+        return this.closeOtherTabsFromActive()
+      case 'palette:close-tabs-to-left':
+        return this.closeTabsToLeftOfActive()
+      case 'palette:close-tabs-to-right':
+        return this.closeTabsToRightOfActive()
+      case 'palette:favorite-tab':
+        return this.toggleActiveTabFavorite()
+      case 'palette:sort-tabs-label-ascending':
+        return this.props.repositoryTabsStore.arrangeTabsByLabel('ascending')
+      case 'palette:sort-tabs-label-descending':
+        return this.props.repositoryTabsStore.arrangeTabsByLabel('descending')
+      case 'palette:sort-tabs-opened-newest':
+        return this.props.repositoryTabsStore.arrangeTabsByOpenedAt('newest')
+      case 'palette:sort-tabs-opened-oldest':
+        return this.props.repositoryTabsStore.arrangeTabsByOpenedAt('oldest')
+      case 'palette:sort-tabs-status-attention-first':
+        return this.props.repositoryTabsStore.arrangeTabsByRepositoryStatus(
+          'needs-attention-first',
+          this.statusRankForTab
+        )
+      case 'palette:sort-tabs-status-clean-first':
+        return this.props.repositoryTabsStore.arrangeTabsByRepositoryStatus(
+          'clean-first',
+          this.statusRankForTab
+        )
+      case 'palette:sort-tabs-favorite-first':
+        return this.props.repositoryTabsStore.arrangeTabsByFavorite(
+          'favorites-first'
+        )
+      case 'palette:sort-tabs-favorite-last':
+        return this.props.repositoryTabsStore.arrangeTabsByFavorite(
+          'favorites-last'
+        )
+      case 'palette:undo-settings-change':
+        return this.props.dispatcher
+          .undoLastSettingsChange()
+          .catch(err => log.error('Failed to undo settings change', err))
+      case 'palette:redo-settings-change':
+        return this.props.dispatcher
+          .redoLastSettingsChange()
+          .catch(err => log.error('Failed to redo settings change', err))
+      case 'palette:sign-in-dotcom':
+        return this.props.dispatcher.showDotComSignInDialog()
+      case 'palette:sign-in-enterprise':
+        return this.props.dispatcher.showEnterpriseSignInDialog()
       default:
         // A `palette:` id is a palette-only action, never a menu event. One
         // that reaches here is a settings row whose whole meaning is its
@@ -1868,6 +1925,87 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (tip !== undefined && tip.kind === TipState.Valid) {
       clipboard.writeText(tip.branch.tip.sha)
     }
+  }
+
+  /** Re-select the repository for the tab that became active after a close. */
+  private selectActiveTabRepository = (activeId: string | null) => {
+    if (activeId === null) {
+      return
+    }
+    const activeTab = this.props.repositoryTabsStore
+      .getState()
+      .tabs.find(t => t.id === activeId)
+    const repository =
+      activeTab !== undefined
+        ? repositoryForTab(activeTab, this.state.repositories)
+        : null
+    if (repository !== null) {
+      this.props.dispatcher.selectRepository(repository)
+    }
+  }
+
+  private statusRankForTab = (tab: IRepositoryTab): number =>
+    repositoryTabStatusRank(
+      repositoryForTab(tab, this.state.repositories),
+      this.props.repositoryStateManager
+    )
+
+  private setActiveTabPinned(isPinned: boolean) {
+    const tab = this.props.repositoryTabsStore.getActiveTab()
+    if (tab !== null) {
+      this.props.repositoryTabsStore.setTabPinned(tab.id, isPinned)
+    }
+  }
+
+  private toggleActiveTabFavorite() {
+    const tab = this.props.repositoryTabsStore.getActiveTab()
+    if (tab !== null) {
+      this.props.repositoryTabsStore.toggleTabFavorite(tab.id)
+    }
+  }
+
+  private closeActiveTab() {
+    const tab = this.props.repositoryTabsStore.getActiveTab()
+    if (tab === null) {
+      return
+    }
+    this.props.repositoryTabsStore
+      .closeTab(tab.id)
+      .then(this.selectActiveTabRepository)
+      .catch(err => log.error('Failed to close tab', err))
+  }
+
+  private closeOtherTabsFromActive() {
+    const tab = this.props.repositoryTabsStore.getActiveTab()
+    if (tab === null) {
+      return
+    }
+    this.props.repositoryTabsStore
+      .closeOtherTabs(tab.id)
+      .then(this.selectActiveTabRepository)
+      .catch(err => log.error('Failed to close other tabs', err))
+  }
+
+  private closeTabsToLeftOfActive() {
+    const tab = this.props.repositoryTabsStore.getActiveTab()
+    if (tab === null) {
+      return
+    }
+    this.props.repositoryTabsStore
+      .closeTabsToLeft(tab.id)
+      .then(this.selectActiveTabRepository)
+      .catch(err => log.error('Failed to close tabs to the left', err))
+  }
+
+  private closeTabsToRightOfActive() {
+    const tab = this.props.repositoryTabsStore.getActiveTab()
+    if (tab === null) {
+      return
+    }
+    this.props.repositoryTabsStore
+      .closeTabsToRight(tab.id)
+      .then(this.selectActiveTabRepository)
+      .catch(err => log.error('Failed to close tabs to the right', err))
   }
 
   /**

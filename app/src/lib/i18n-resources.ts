@@ -2266,6 +2266,27 @@ export type TranslationKey =
   | 'palette.manageRepositoryGroups'
   | 'palette.repositoryAccount'
   | 'palette.regexBuilder'
+  | 'palette.closeTab'
+  | 'palette.closeOtherTabs'
+  | 'palette.closeTabsToLeft'
+  | 'palette.closeTabsToRight'
+  | 'palette.favoriteTab'
+  | 'palette.renameTab'
+  | 'palette.moveTabToGroup'
+  | 'palette.collapseTabGroup'
+  | 'palette.deleteTabGroup'
+  | 'palette.sortTabsLabelAscending'
+  | 'palette.sortTabsLabelDescending'
+  | 'palette.sortTabsOpenedNewest'
+  | 'palette.sortTabsOpenedOldest'
+  | 'palette.sortTabsStatusAttentionFirst'
+  | 'palette.sortTabsStatusCleanFirst'
+  | 'palette.sortTabsFavoriteFirst'
+  | 'palette.sortTabsFavoriteLast'
+  | 'palette.undoSettingsChange'
+  | 'palette.redoSettingsChange'
+  | 'palette.signInDotcom'
+  | 'palette.signInEnterprise'
   | 'commandPalette.homeRepositoryTools'
   | 'commandPalette.homePalette'
   | 'commandPalette.homeTabStrip'
@@ -6363,6 +6384,28 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'palette.manageRepositoryGroups': 'Manage repository groups',
   'palette.repositoryAccount': 'Repository account',
   'palette.regexBuilder': 'Open the regex builder',
+  'palette.closeTab': 'Close the current tab',
+  'palette.closeOtherTabs': 'Close other tabs',
+  'palette.closeTabsToLeft': 'Close tabs to the left',
+  'palette.closeTabsToRight': 'Close tabs to the right',
+  'palette.favoriteTab': 'Favorite the current tab',
+  'palette.renameTab': 'Rename the current tab',
+  'palette.moveTabToGroup': 'Move the current tab to a group',
+  'palette.collapseTabGroup': 'Collapse the current tab group',
+  'palette.deleteTabGroup': 'Delete the current tab group',
+  'palette.sortTabsLabelAscending': 'Sort tabs A to Z',
+  'palette.sortTabsLabelDescending': 'Sort tabs Z to A',
+  'palette.sortTabsOpenedNewest': 'Sort tabs newest first',
+  'palette.sortTabsOpenedOldest': 'Sort tabs oldest first',
+  'palette.sortTabsStatusAttentionFirst':
+    'Sort tabs by status, needs attention first',
+  'palette.sortTabsStatusCleanFirst': 'Sort tabs by status, clean first',
+  'palette.sortTabsFavoriteFirst': 'Sort tabs, favorites first',
+  'palette.sortTabsFavoriteLast': 'Sort tabs, favorites last',
+  'palette.undoSettingsChange': 'Undo the last settings change',
+  'palette.redoSettingsChange': 'Redo the last settings change',
+  'palette.signInDotcom': 'Sign in to GitHub.com',
+  'palette.signInEnterprise': 'Sign in to GitHub Enterprise',
   'commandPalette.homeRepositoryTools': 'Repository tools',
   'commandPalette.homePalette': 'The command palette itself',
   'commandPalette.homeTabStrip': 'The repository tab strip',
@@ -6405,7 +6448,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'palette.tagLifecycle': 'Tag lifecycle manager',
   'palette.githubApiExplorer': 'GitHub API explorer',
   'palette.notificationCentre': 'Open notification centre',
-  'palette.notificationHistory': 'Notification history',
+  'palette.notificationHistory':
+    'Notification version history (undo, redo, restore)',
   'palette.notificationAutomations': 'Notification automations',
   'palette.copyRepoPath': 'Copy repository path',
   'palette.copyBranchName': 'Copy current branch name',
@@ -10744,6 +10788,27 @@ export const cantoneseTranslations: Readonly<
   'palette.manageRepositoryGroups': '管理 repo 群組',
   'palette.repositoryAccount': 'Repo 帳戶',
   'palette.regexBuilder': '打開 regex 砌法器',
+  'palette.closeTab': '閂咗依個 tab',
+  'palette.closeOtherTabs': '閂晒其他 tab',
+  'palette.closeTabsToLeft': '閂晒左邊嘅 tab',
+  'palette.closeTabsToRight': '閂晒右邊嘅 tab',
+  'palette.favoriteTab': '收藏依個 tab',
+  'palette.renameTab': '改依個 tab 個名',
+  'palette.moveTabToGroup': '搬依個 tab 去個 group',
+  'palette.collapseTabGroup': '收埋依個 tab group',
+  'palette.deleteTabGroup': '刪除依個 tab group',
+  'palette.sortTabsLabelAscending': 'Tab 由 A 排到 Z',
+  'palette.sortTabsLabelDescending': 'Tab 由 Z 排到 A',
+  'palette.sortTabsOpenedNewest': 'Tab 新開嘅排前面',
+  'palette.sortTabsOpenedOldest': 'Tab 舊開嘅排前面',
+  'palette.sortTabsStatusAttentionFirst': 'Tab 照狀態排，要留意嘅排前面',
+  'palette.sortTabsStatusCleanFirst': 'Tab 照狀態排，乾淨嘅排前面',
+  'palette.sortTabsFavoriteFirst': 'Tab 收藏咗嘅排前面',
+  'palette.sortTabsFavoriteLast': 'Tab 收藏咗嘅排後面',
+  'palette.undoSettingsChange': '復原上一次設定改動',
+  'palette.redoSettingsChange': '重做上一次設定改動',
+  'palette.signInDotcom': '登入 GitHub.com',
+  'palette.signInEnterprise': '登入 GitHub Enterprise',
   'commandPalette.homeRepositoryTools': '儲存庫工具',
   'commandPalette.homePalette': '指令板本身',
   'commandPalette.homeTabStrip': '上面條 repo 分頁',
@@ -10786,7 +10851,7 @@ export const cantoneseTranslations: Readonly<
   'palette.tagLifecycle': '標籤生命週期管理員',
   'palette.githubApiExplorer': 'GitHub API 瀏覽器',
   'palette.notificationCentre': '打開通知中心',
-  'palette.notificationHistory': '通知歷史',
+  'palette.notificationHistory': '通知版本歷史（復原、重做、還原）',
   'palette.notificationAutomations': '通知自動化',
   'palette.copyRepoPath': '複製倉庫路徑',
   'palette.copyBranchName': '複製而家分支個名',

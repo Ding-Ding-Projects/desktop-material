@@ -14,10 +14,13 @@
 
 ## Status
 
-The shipped catalog currently contains **247 unique commands** (**246 are
-Windows-eligible before live availability predicates**). In a fresh Windows
-workspace with no signed-in provider account, the built palette renders 244
-eligible commands. Of the 133 surveyed commands, 131 are in the palette; 49 of them carry a live
+The shipped catalog currently contains **268 unique commands**. The R5
+command-palette expansion (see below) added 21 of those: tab management
+(close/close-others/close-to-left/close-to-right, favorite, rename, move to
+group, group collapse, group delete, and all eight sort orders), settings
+undo/redo, and dot-com/Enterprise sign-in — every one wired to the app's
+existing dispatcher and store methods rather than new business logic. Of the
+133 surveyed commands, 131 are in the palette; 49 of them carry a live
 control the reader can change from the row itself; the rest teleport to the
 setting, which for a destination is the whole of what a row can do.
 
