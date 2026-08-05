@@ -15,6 +15,7 @@ export type TranslationKey =
   | 'repositorySection.issues'
   | 'repositorySection.triage'
   | 'repositorySection.tools'
+  | 'repositorySection.launchpad'
   | 'update.downloadingLabel'
   | 'update.downloadingValue'
   | 'update.comingSoon'
@@ -3645,6 +3646,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositorySection.issues': 'Issues',
   'repositorySection.triage': 'Triage',
   'repositorySection.tools': 'Repository tools',
+  'repositorySection.launchpad': 'Launchpad',
   'update.downloadingLabel': 'Downloading app update',
   'update.downloadingValue': 'Downloading',
   'update.comingSoon': 'New update coming soon',
@@ -8239,6 +8241,7 @@ export const cantoneseTranslations: Readonly<
   'repositorySection.issues': '問題',
   'repositorySection.triage': '分流',
   'repositorySection.tools': 'Repo 工具',
+  'repositorySection.launchpad': '發射台',
   'update.downloadingLabel': '下載緊應用程式更新',
   'update.downloadingValue': '下載緊',
   'update.comingSoon': '新版本就快焗好出爐',
