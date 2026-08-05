@@ -353,6 +353,7 @@ export abstract class BaseMultiCommitOperation extends React.Component<IMultiCom
             onContinueAfterConflicts={this.onContinueAfterConflicts}
             onAbort={this.onConfirmingAbort}
             onDismissed={this.onConflictsDialogDismissed}
+            onResolveWithCopilot={this.onResolveWithCopilot}
             emoji={this.props.emoji}
           />
         )

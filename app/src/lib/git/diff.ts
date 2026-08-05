@@ -538,6 +538,43 @@ export async function getResolutionDiff(
   }
 }
 
+/** The two sides of a conflicted file's merge index, as full file text. */
+export interface IConflictStageContents {
+  /** Stage 2 — the current branch's version of the file. */
+  readonly ours: string
+  /** Stage 3 — the incoming version of the file. */
+  readonly theirs: string
+}
+
+/**
+ * Read both sides of a conflicted file's merge index (`git show :2:<path>`
+ * and `git show :3:<path>`) as plain text, for display in a three-pane
+ * conflict editor. Mirrors the stage convention documented on
+ * {@link getResolutionDiff}: `ours` is stage 2, `theirs` is stage 3, and
+ * during a rebase git swaps what those mean relative to the user-facing
+ * branch labels — the caller maps labels to sides.
+ *
+ * A side that has no blob in the merge index (e.g. a modify/delete
+ * conflict) resolves to an empty string rather than throwing.
+ */
+export async function getConflictStageContents(
+  repository: Repository,
+  filePath: string
+): Promise<IConflictStageContents> {
+  const readStage = async (stage: ':2' | ':3'): Promise<string> => {
+    try {
+      const buffer = await getBlobContents(repository, stage, filePath)
+      return buffer.toString('utf-8')
+    } catch {
+      return ''
+    }
+  }
+
+  const [ours, theirs] = await Promise.all([readStage(':2'), readStage(':3')])
+
+  return { ours, theirs }
+}
+
 /**
  * Render the diff for a list of files within the repository working directory.
  * The files will be compared against HEAD if it's tracked, if not it'll be
