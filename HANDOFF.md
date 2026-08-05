@@ -87,6 +87,14 @@ main push CI, so no Release was published. These are external CI/submodule
 blockers; the updater guard's local tests and live HTTP feed proof remain
 verified.
 
+The enabled GitHub Wiki also received a local recovery-note commit,
+`34cb7157716cd846117ad9e86fe876dd70c389b2`, but its separate repository
+rejected publication with HTTP 403: `Permission to
+Ding-Ding-Projects/desktop-material.wiki.git denied to codingmachineedge`.
+The commit is preserved locally and is not claimed as published; Wiki write
+permission is the only remaining external dependency for that documentation
+surface.
+
 ## 2026-08-04 — Live Material renderer proof and startup cleanup
 
 The design reference is now verified against the real production Electron
