@@ -408,13 +408,14 @@ export class StashExportPanel extends React.Component<
           <div className="stash-manager-filter-field">
             <input
               id="stash-export-search-input"
+              data-search-surface-id="stash-export"
               type="search"
               value={this.state.filter}
               onChange={this.onFilterChanged}
               aria-label={this.accessible('stashManager.exportSearchAria')}
             />
             <FilterModeControl
-              searchSurfaceId={exportSurfaceId}
+              searchSurfaceId="stash-export"
               mode={this.state.filterMode}
               caseSensitive={this.state.caseSensitive}
               onModeChange={this.onFilterModeChanged}

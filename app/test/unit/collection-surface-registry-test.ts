@@ -112,8 +112,23 @@ describe('collection surface registries', () => {
 
     const nativeInputs = markedTags(sources, 'input', 'data-search-surface-id')
     const textBoxes = markedTags(sources, 'TextBox', 'searchSurfaceId')
-    const inputs = [...nativeInputs, ...textBoxes]
     const controls = markedTags(sources, 'FilterModeControl', 'searchSurfaceId')
+    // Stash history and appearance share one renderer helper, so their
+    // literal call-site IDs are the static proof for the dynamic JSX marker
+    // and FilterModeControl props emitted by that helper.
+    const helperSearches = [...sources].flatMap(([relativePath, contents]) =>
+      relativePath === 'stashing/stash-manager.tsx'
+        ? [...contents.matchAll(/this\.renderDialogSearch\(\s*'([^']+)'/g)].map(
+            match => ({
+              id: match[1],
+              source: relativePath,
+              tag: match[0],
+            })
+          )
+        : []
+    )
+    const auditedInputs = [...nativeInputs, ...textBoxes, ...helperSearches]
+    const auditedControls = [...controls, ...helperSearches]
     const directBuilders = markedTags(
       sources,
       'RegexBuilder',
@@ -124,12 +139,12 @@ describe('collection surface registries', () => {
     )
 
     assert.deepStrictEqual(
-      inputs.map(input => input.id).sort(),
+      auditedInputs.map(input => input.id).sort(),
       standalone.map(surface => surface.id).sort(),
       'Every standalone search input, including plain inputs, must have exactly one registered ID'
     )
     assert.deepStrictEqual(
-      controls.map(control => control.id).sort(),
+      auditedControls.map(control => control.id).sort(),
       standalone.map(surface => surface.id).sort(),
       'Every standalone search control must have exactly one registered ID'
     )
@@ -144,13 +159,13 @@ describe('collection surface registries', () => {
       assert.ok(contents !== undefined, `Missing ${surface.source}`)
       if (surface.implementation === 'standalone') {
         assert.strictEqual(
-          inputs.filter(
+          auditedInputs.filter(
             input => input.source === surface.source && input.id === surface.id
           ).length,
           1,
           `${surface.label} must have one input marked ${surface.id}`
         )
-        const matchingControls = controls.filter(
+        const matchingControls = auditedControls.filter(
           control =>
             control.source === surface.source && control.id === surface.id
         )
@@ -181,7 +196,7 @@ describe('collection surface registries', () => {
       }
     }
 
-    const externalControlIds = controls
+    const externalControlIds = auditedControls
       .filter(control => control.tag.includes('showRegexBuilder={false}'))
       .map(control => control.id)
       .sort()

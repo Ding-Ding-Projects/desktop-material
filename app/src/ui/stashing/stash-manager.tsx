@@ -1522,6 +1522,7 @@ export class StashManagerDialog extends React.Component<
         <div className="stash-manager-filter-field">
           <input
             id={`${surfaceId}-input`}
+            data-search-surface-id={surfaceId}
             type="search"
             value={filter}
             onChange={event => onFilter(event.currentTarget.value)}
