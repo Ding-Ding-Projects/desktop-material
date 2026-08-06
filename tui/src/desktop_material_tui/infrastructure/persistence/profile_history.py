@@ -279,6 +279,10 @@ class GitProfileHistory:
                         or initialized.stderr.strip()
                         or "Unable to initialize profile history"
                     )
+        # Profile history is a separate repository, so it cannot inherit the
+        # checkout's Git configuration. Keep its object database usable on
+        # Windows when the app-owned data path is longer than the legacy limit.
+        self._run_text(("config", "--local", "core.longpaths", "true"))
         self._run_text(("config", "--local", "user.name", "Desktop Material TUI"))
         self._run_text(
             (
