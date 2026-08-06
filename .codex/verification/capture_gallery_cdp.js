@@ -768,6 +768,8 @@ function prepareTabGroupManagementEvidenceFixture() {
 
 const DefaultWidth = 1440
 const DefaultHeight = 960
+const RepositoryToolsScrollCaptureWidth = 1000
+const RepositoryToolsScrollCaptureHeight = 679
 const CaptureWidth = Number(args.get('width') ?? DefaultWidth)
 const CaptureHeight = Number(args.get('height') ?? DefaultHeight)
 let currentViewportWidth = CaptureWidth
@@ -4625,9 +4627,14 @@ scene('repository-tools-scroll', async () => {
     'Repository Tools sidebar'
   )
   await maskRepositoryToolsIntroduction()
-  await setViewport(960, 420)
+  await setViewport(
+    RepositoryToolsScrollCaptureWidth,
+    RepositoryToolsScrollCaptureHeight
+  )
   const scrolled = await evaluate(`(() => {
-    const scroller = document.querySelector('.repository-tools-functions')
+    const scroller = document.querySelector(
+      'nav.repository-tools-functions[aria-label="Repository tool list"]'
+    )
     if (!(scroller instanceof HTMLElement)) return false
     scroller.scrollTop = scroller.scrollHeight
     return scroller.scrollTop > 0

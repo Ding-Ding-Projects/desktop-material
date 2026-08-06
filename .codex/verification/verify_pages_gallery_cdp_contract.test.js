@@ -76,7 +76,7 @@ describe('Pages gallery CDP verifier contracts', () => {
     })
     assert.deepEqual(
       acceptedImageDimensions['material-responsive-overflow-fixed.png'],
-      { width: 1450, height: 997 }
+      { width: 640, height: 480 }
     )
     assert.deepEqual(
       acceptedImageDimensions['repository-list-sync-summary.png'],
