@@ -73,6 +73,12 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 > source remote remains reachable as `upstream` when needed. See the
 > [repository transfer guide](docs/features/repository-management/repository-transfer.md).
 
+> **Multi-remote fetch:** a repository with one configured remote keeps the
+> familiar **Fetch `<remote>`** action. When more than one remote is configured,
+> the toolbar says **Fetch all remotes** and fetches every configured remote in a
+> stable current-first order. See the [multi-remote fetch sync
+> guide](docs/features/repository-management/multi-remote-fetch-sync.md).
+
 > **Platform support:** Desktop Material ships a Windows Electron desktop
 > application and a revived Linux-first
 > [terminal application](docs/features/linux-tui/README.md). Windows keeps the

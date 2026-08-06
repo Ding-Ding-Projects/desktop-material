@@ -1,5 +1,38 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-05 — Multi-remote fetch sync
+
+The ordinary Fetch path now uses every configured remote when a repository has
+more than one. A single-remote repository retains the existing `Fetch <remote>`
+copy and focused selection. Multi-remote repositories expose `Fetch all
+remotes` in the toolbar and dropdown, with a status description that names the
+expanded scope. The store keeps current/default/upstream remotes first and then
+adds the remaining configured remotes once each.
+
+Changed implementation and test files:
+
+- `app/src/lib/stores/git-store.ts`
+- `app/src/lib/app-state.ts`
+- `app/src/lib/stores/app-store.ts`
+- `app/src/lib/stores/repository-state-cache.ts`
+- `app/src/ui/app.tsx`
+- `app/src/ui/toolbar/push-pull-button.tsx`
+- `app/src/ui/toolbar/push-pull-button-dropdown.tsx`
+- `app/test/unit/git-store-test.ts`
+- `app/test/unit/ui/push-pull-button-test.tsx`
+
+Focused verification is **19/19** tests passing. The exact Windows production
+build completed with packaging skipped. The real hidden-desktop renderer
+displayed **Fetch all remotes** and **Fetch the latest changes from every
+configured remote** for a two-hui fixture without clipping in the inspected
+frame. The unmodified development renderer still logs its existing
+`__webpack_module__ is not defined` startup error, so the visual probe used a
+temporary CDP startup shim and does not claim packaged-release proof. A later
+capture-only DOM-removal attempt triggered the disposable app's crash boundary;
+that contaminated frame was discarded. Documentation is in
+`docs/features/repository-management/multi-remote-fetch-sync.md` with index,
+README, roadmap, and feature-list references.
+
 ## 2026-08-05 — Harden the Windows dependency cache and preserve Team View styling
 
 The CI dependency-cache hit path now validates the actual Electron runtime,
