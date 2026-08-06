@@ -223,11 +223,25 @@ describe('CI environment setup', () => {
     const selfHostedRestoreKey = String(selfHostedRestore.with?.key ?? '')
     const selfHostedSaveKey = String(selfHostedSave.with?.key ?? '')
     assert.notEqual(hostedKey, '')
-    assert.equal(selfHostedRestoreKey, hostedKey)
-    assert.equal(selfHostedSaveKey, hostedKey)
+    assert.notEqual(selfHostedRestoreKey, '')
+    assert.equal(selfHostedSaveKey, selfHostedRestoreKey)
     assert.match(
       hostedKey,
       /\.github\/scripts\/ensure-windows-arm64-build-tools\.ps1/
+    )
+    assert.doesNotMatch(hostedKey, /windows-toolchain/)
+    assert.match(
+      selfHostedRestoreKey,
+      /steps\.windows-toolchain\.outputs\.cache-suffix/
+    )
+    assert.match(selfHostedRestoreKey, /runner-/)
+    assert.match(
+      setupAction,
+      /Capture Windows native toolchain fingerprint[\s\S]*?SHA256Managed[\s\S]*?BitConverter[\s\S]*?cache-suffix=/
+    )
+    assert.doesNotMatch(
+      setupAction,
+      /Capture Windows native toolchain fingerprint[\s\S]*?(?:ToHexString|HashData)/
     )
     assert.equal(
       String(selfHostedRestore.with?.['restore-keys'] ?? '').includes(
@@ -252,6 +266,10 @@ describe('CI environment setup', () => {
     )
     assert.match(
       selfHostedSave.if ?? '',
+      /dependency-cache-check\.outputs\.complete != 'true'/
+    )
+    assert.match(
+      selfHostedSave.if ?? '',
       /verify-dependencies\.outcome == 'success'/
     )
     assert.equal(
@@ -263,7 +281,7 @@ describe('CI environment setup', () => {
       String(selfHostedSave.with?.path ?? '')
     )
     const snapshotIndex = getNamedStepIndex(
-      'Snapshot dependency manifests before cross-compilation install'
+      'Snapshot dependency manifests before dependency install'
     )
     const crossInstallIndex = getNamedStepIndex(
       'Install cross-compilation copilot package'
@@ -281,11 +299,16 @@ describe('CI environment setup', () => {
     assert.ok(crossInstallIndex < restoreManifestIndex)
     assert.ok(restoreManifestIndex < verifyIndex)
     assert.ok(verifyIndex < saveIndex)
+    assert.ok(
+      getNamedStepIndex('Capture Windows native toolchain fingerprint') <
+        getNamedStepIndex(
+          'Restore exact installed dependencies on Windows self-hosted runners'
+        )
+    )
     assert.match(
-      getNamedStep(
-        'Snapshot dependency manifests before cross-compilation install'
-      ).run ?? '',
-      /RUNNER_TEMP[\s\S]*app-package\.json[\s\S]*app-yarn\.lock/
+      getNamedStep('Snapshot dependency manifests before dependency install')
+        .run ?? '',
+      /RUNNER_TEMP[\s\S]*root-package\.json[\s\S]*root-yarn\.lock[\s\S]*app-package\.json[\s\S]*app-yarn\.lock/
     )
     assert.match(
       getNamedStep(
@@ -299,7 +322,7 @@ describe('CI environment setup', () => {
     )
     assert.match(
       setupAction,
-      /Install and build dependencies[\s\S]*?cache-hit != 'true'/
+      /Install and build dependencies[\s\S]*?cache-hit != 'true'[\s\S]*?yarn --frozen-lockfile/
     )
     assert.match(setupAction, /Check cached dependencies/)
     assert.match(setupAction, /dependency-cache-check/)

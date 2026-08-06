@@ -30,6 +30,14 @@ const superExpressWorkflow = readFileSync(
   join(root, '.github', 'workflows', 'super-express-release.yml'),
   'utf8'
 )
+const superExpressWindowsWorkflow = readFileSync(
+  join(root, '.github', 'workflows', 'super-express-release-windows.yml'),
+  'utf8'
+)
+const superExpressLinuxTuiWorkflow = readFileSync(
+  join(root, '.github', 'workflows', 'super-express-release-linux-tui.yml'),
+  'utf8'
+)
 const githubCliAction = readFileSync(
   join(root, '.github', 'actions', 'setup-github-cli', 'action.yml'),
   'utf8'
@@ -67,12 +75,12 @@ const selfHostedSuperExpressWorkflows = new Set([
   'super-express-release-linux-tui.yml',
 ])
 const windowsDesktopRunnerExpression =
-  "${{ github.event_name == 'workflow_dispatch' && inputs.runner_mode == 'self-hosted' && 'desktop-material-windows-local' || 'windows-2022' }}"
+  '${{ github.event_name == \'workflow_dispatch\' && inputs.runner_mode == \'self-hosted\' && fromJSON(\'["self-hosted","Windows","X64","desktop-material-windows-local"]\') || \'windows-2022\' }}'
 
 function evaluateWindowsDesktopRunnerExpression(
   expression: string,
   context: { eventName: string; runnerMode?: string }
-): string {
+): string | string[] {
   const normalized = expression.replace(/\s+/g, ' ').trim()
   assert.match(normalized, /^\$\{\{ .+ \}\}$/)
   const body = normalized.slice(3, -3).trim()
@@ -84,13 +92,15 @@ function evaluateWindowsDesktopRunnerExpression(
     "inputs.runner_mode == 'self-hosted'",
   ])
   assert.equal(conditionAndSelection.length, 3)
-  const selectedRunner = /^'([^']+)'$/.exec(conditionAndSelection[2])
+  const selectedRunner = /^fromJSON\('(\[.*\])'\)$/.exec(
+    conditionAndSelection[2]
+  )
   const fallbackRunner = /^'([^']+)'$/.exec(branches[1])
   assert.notEqual(selectedRunner, null)
   assert.notEqual(fallbackRunner, null)
   return context.eventName === 'workflow_dispatch' &&
     context.runnerMode === 'self-hosted'
-    ? selectedRunner?.[1] ?? ''
+    ? JSON.parse(selectedRunner?.[1] ?? '[]')
     : fallbackRunner?.[1] ?? ''
 }
 
@@ -575,6 +585,31 @@ describe('CI workflow safety', () => {
     )
   })
 
+  it('gates reusable self-hosted Super Express lanes to protected main callers', () => {
+    for (const [name, source] of [
+      ['super-express-release-windows.yml', superExpressWindowsWorkflow],
+      ['super-express-release-linux-tui.yml', superExpressLinuxTuiWorkflow],
+    ] as const) {
+      assert.match(
+        source,
+        /build:\s+name:[\s\S]*?if:\s+>-/,
+        `${name} must restrict reusable self-hosted callers`
+      )
+      assert.match(
+        source,
+        /github\.event_name\s*==\s*'workflow_dispatch'/,
+        name
+      )
+      assert.match(source, /github\.event_name\s*==\s*'workflow_call'/, name)
+      assert.match(
+        source,
+        /github\.repository\s*==\s*'Ding-Ding-Projects\/desktop-material'/,
+        name
+      )
+      assert.match(source, /github\.ref\s*==\s*'refs\/heads\/main'/, name)
+    }
+  })
+
   it('bootstraps GitHub CLI before self-hosted release API calls', () => {
     assert.match(githubCliAction, /default: '2\.97\.0'/)
     assert.match(
@@ -664,7 +699,12 @@ describe('CI workflow safety', () => {
       {
         eventName: 'workflow_dispatch',
         runnerMode: 'self-hosted',
-        expected: 'desktop-material-windows-local',
+        expected: [
+          'self-hosted',
+          'Windows',
+          'X64',
+          'desktop-material-windows-local',
+        ],
       },
       {
         eventName: 'workflow_dispatch',
@@ -673,7 +713,7 @@ describe('CI workflow safety', () => {
       },
     ]
     for (const { eventName, runnerMode, expected } of cases) {
-      assert.equal(
+      assert.deepEqual(
         evaluateWindowsDesktopRunnerExpression(expression, {
           eventName,
           runnerMode,

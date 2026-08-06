@@ -28,6 +28,12 @@ permissions:
 jobs:
   build:
     name: Build Linux TUI packages (self-hosted)
+    # Reusable calls may only come from this repository's protected main
+    # workflow. Manual emergency dispatch remains the only direct caller.
+    if: >-
+      github.event_name == 'workflow_dispatch' || (github.event_name ==
+      'workflow_call' && github.repository ==
+      'Ding-Ding-Projects/desktop-material' && github.ref == 'refs/heads/main')
     runs-on:
       - self-hosted
       - Linux

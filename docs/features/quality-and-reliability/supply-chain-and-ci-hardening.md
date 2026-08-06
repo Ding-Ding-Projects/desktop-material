@@ -55,11 +55,13 @@ Older `installed-deps-v5` and `installed-deps-v4` caches may be restored only as
 a warm start; their non-hit status still forces the current lock files through
 the complete install. The cross-compilation install restores its package
 manifests before the exact cache key is saved, and both Windows toolset scripts
-participate in key invalidation. Hosted jobs retain the ordinary cache post
-step, while self-hosted jobs avoid an unbounded post-job archive hook. Build
-output, installers, Release assets, credentials, and runtime configuration
-remain uncached. The focused contract test checks both the runner selection and
-this restore/verify/save split.
+participate in key invalidation. Self-hosted keys also include the runner
+identity and selected Visual Studio/MSVC, ClangCL, and Windows SDK fingerprint;
+the install uses `yarn --frozen-lockfile`. Hosted jobs retain the ordinary
+cache post step, while self-hosted jobs avoid an unbounded post-job archive
+hook. Build output, installers, Release assets, credentials, and runtime
+configuration remain uncached. The focused contract test checks both the runner
+selection and this restore/verify/save split.
 
 The hosted Windows E2E lane does not install a second system-wide FFmpeg package.
 The repository post-install step provisions Playwright's pinned FFmpeg payload,

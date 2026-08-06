@@ -29,6 +29,71 @@ runs:
         }
         Split-Path $gitBash -Parent | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+    - name: Install Windows arm64 C++ toolset when missing
+      if:
+        ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' &&
+        inputs.arch == 'arm64' }}
+      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+      run:
+        '&
+        "$env:GITHUB_WORKSPACE\.github\scripts\ensure-windows-arm64-build-tools.ps1"
+        -TargetArchitecture "${{ inputs.arch }}"'
+
+    - name: Install Windows ClangCL toolset when missing
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+      run:
+        '& "$env:GITHUB_WORKSPACE\\.github\\scripts\\ensure-windows-clang.ps1"
+        -TargetArchitecture "${{ inputs.arch }}"'
+
+    - name: Capture Windows native toolchain fingerprint
+      id: windows-toolchain
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+      run: |
+        $installationPath = $env:npm_config_msvs_version
+        if (-not $installationPath -or -not (Test-Path -LiteralPath $installationPath)) {
+          throw 'The Windows native toolchain did not expose its selected Visual Studio installation path.'
+        }
+        $msvcRoot = Join-Path $installationPath 'VC\Tools\MSVC'
+        $msvcVersions = @(
+          Get-ChildItem -LiteralPath $msvcRoot -Directory -ErrorAction SilentlyContinue |
+            Sort-Object Name |
+            Select-Object -ExpandProperty Name
+        ) -join ','
+        $platform = if ('${{ inputs.arch }}' -eq 'arm64') { 'ARM64' } else { 'x64' }
+        $clangCandidates = @(
+          (Join-Path $installationPath "VC\Tools\Llvm\$platform\bin\clang-cl.exe")
+          (Join-Path $installationPath 'VC\Tools\Llvm\bin\clang-cl.exe')
+        ) | Where-Object { Test-Path -LiteralPath $_ }
+        $clangVersion = if ($clangCandidates) {
+          (Get-Item -LiteralPath ($clangCandidates | Select-Object -First 1)).VersionInfo.FileVersion
+        } else {
+          'missing'
+        }
+        $sdkVersions = @(
+          Get-ChildItem -LiteralPath 'C:\Program Files (x86)\Windows Kits\10\Include' -Directory -ErrorAction SilentlyContinue |
+            Sort-Object Name |
+            Select-Object -ExpandProperty Name
+        ) -join ','
+        $payload = @(
+          $installationPath
+          $msvcVersions
+          $clangVersion
+          $sdkVersions
+          '${{ inputs.arch }}'
+        ) -join '|'
+        $hasher = New-Object -TypeName System.Security.Cryptography.SHA256Managed
+        try {
+          $digest = $hasher.ComputeHash([Text.Encoding]::UTF8.GetBytes($payload))
+        } finally {
+          $hasher.Dispose()
+        }
+        $sha = ([BitConverter]::ToString($digest)).Replace('-', '').ToLowerInvariant()
+        $runnerName = if ($env:RUNNER_NAME) { $env:RUNNER_NAME } else { 'self-hosted' }
+        $runnerKey = [regex]::Replace($runnerName, '[^A-Za-z0-9_.-]', '-')
+        "cache-suffix=$runnerKey-$sha" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
     - name: Restore exact installed dependencies on hosted runners
       id: installed-dependencies
       # The self-hosted runners keep their own dependency directories. The
@@ -68,11 +133,11 @@ runs:
           ~/.cache/ms-playwright
           ~/AppData/Local/ms-playwright
         key: >-
-          installed-deps-v6-${{ runner.os }}-${{ runner.arch }}-target-${{
-          inputs.arch }}-node-${{ inputs.node-version }}-py311-${{
-          hashFiles('package.json', 'yarn.lock', 'app/package.json',
-          'app/yarn.lock', '.yarnrc', 'app/.yarnrc', 'app/.npmrc',
-          'script/post-install.ts',
+          installed-deps-v6-${{ runner.os }}-${{ runner.arch }}-runner-${{
+          steps.windows-toolchain.outputs.cache-suffix }}-target-${{ inputs.arch
+          }}-node-${{ inputs.node-version }}-py311-${{ hashFiles('package.json',
+          'yarn.lock', 'app/package.json', 'app/yarn.lock', '.yarnrc',
+          'app/.yarnrc', 'app/.npmrc', 'script/post-install.ts',
           '.github/actions/setup-ci-environment/action.yml',
           '.github/actions/setup-windows-signing/action.yml',
           '.github/scripts/ensure-windows-arm64-build-tools.ps1',
@@ -83,6 +148,9 @@ runs:
         # A legacy cache is only a warm start. Its cache-hit output remains
         # false, so the current lock files still drive a complete install.
         restore-keys: |
+          installed-deps-v6-${{ runner.os }}-${{ runner.arch }}-runner-${{
+          steps.windows-toolchain.outputs.cache-suffix }}-target-${{
+          inputs.arch }}-node-${{ inputs.node-version }}-py311-
           installed-deps-v5-${{ runner.os }}-${{ runner.arch }}-target-${{
           inputs.arch }}-node-${{ inputs.node-version }}-py311-
           installed-deps-v4-${{ runner.os }}-${{ runner.arch }}-target-${{
@@ -147,23 +215,6 @@ runs:
         fi
         echo "npm_config_python=$python_path" >> "$GITHUB_ENV"
         echo 'UV_PYTHON=3.11' >> "$GITHUB_ENV"
-
-    - name: Install Windows arm64 C++ toolset when missing
-      if:
-        ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' &&
-        inputs.arch == 'arm64' }}
-      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
-      run:
-        '&
-        "$env:GITHUB_WORKSPACE\.github\scripts\ensure-windows-arm64-build-tools.ps1"
-        -TargetArchitecture "${{ inputs.arch }}"'
-
-    - name: Install Windows ClangCL toolset when missing
-      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
-      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
-      run:
-        '& "$env:GITHUB_WORKSPACE\\.github\\scripts\\ensure-windows-clang.ps1"
-        -TargetArchitecture "${{ inputs.arch }}"'
 
     - name: Provide repository-pinned Yarn to self-hosted Windows actions
       if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
@@ -294,6 +345,19 @@ runs:
       with:
         node-version: ${{ inputs.node-version }}
 
+    - name: Snapshot dependency manifests before dependency install
+      if:
+        ${{ steps.installed-dependencies-status.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true' }}
+      shell: bash
+      run: |
+        manifest_backup="$RUNNER_TEMP/desktop-material-manifests-before-cross-compilation"
+        mkdir -p "$manifest_backup"
+        cp package.json "$manifest_backup/root-package.json"
+        cp yarn.lock "$manifest_backup/root-yarn.lock"
+        cp app/package.json "$manifest_backup/app-package.json"
+        cp app/yarn.lock "$manifest_backup/app-yarn.lock"
+
     - name: Install and build dependencies
       if:
         ${{ steps.installed-dependencies-status.outputs.cache-hit != 'true' ||
@@ -305,7 +369,7 @@ runs:
         # retry the complete install a small, bounded number of times.
         max_attempts=3
         for attempt in $(seq 1 "$max_attempts"); do
-          if yarn; then
+          if yarn --frozen-lockfile; then
             exit 0
           fi
 
@@ -320,17 +384,6 @@ runs:
       env:
         npm_config_arch: ${{ inputs.arch }}
         TARGET_ARCH: ${{ inputs.arch }}
-
-    - name: Snapshot dependency manifests before cross-compilation install
-      if:
-        ${{ steps.installed-dependencies-status.outputs.cache-hit != 'true' ||
-        steps.dependency-cache-check.outputs.complete != 'true' }}
-      shell: bash
-      run: |
-        manifest_backup="$RUNNER_TEMP/desktop-material-manifests-before-cross-compilation"
-        mkdir -p "$manifest_backup"
-        cp app/package.json "$manifest_backup/app-package.json"
-        cp app/yarn.lock "$manifest_backup/app-yarn.lock"
 
     - name: Install cross-compilation copilot package
       if:
@@ -376,9 +429,13 @@ runs:
       shell: bash
       run: |
         manifest_backup="$RUNNER_TEMP/desktop-material-manifests-before-cross-compilation"
+        cp "$manifest_backup/root-package.json" package.json
+        cp "$manifest_backup/root-yarn.lock" yarn.lock
         cp "$manifest_backup/app-package.json" app/package.json
         cp "$manifest_backup/app-yarn.lock" app/yarn.lock
-        if ! cmp -s "$manifest_backup/app-package.json" app/package.json ||
+        if ! cmp -s "$manifest_backup/root-package.json" package.json ||
+          ! cmp -s "$manifest_backup/root-yarn.lock" yarn.lock ||
+          ! cmp -s "$manifest_backup/app-package.json" app/package.json ||
           ! cmp -s "$manifest_backup/app-yarn.lock" app/yarn.lock; then
           echo 'Cross-compilation dependency install changed a cache-key manifest.' >&2
           exit 1
@@ -445,7 +502,8 @@ runs:
     - name: Save exact installed dependencies from Windows self-hosted runners
       if:
         ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' &&
-        steps.installed-dependencies-self-hosted.outputs.cache-hit != 'true' &&
+        (steps.installed-dependencies-self-hosted.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true') &&
         steps.verify-dependencies.outcome == 'success' }}
       uses: actions/cache/save@v5
       with:
@@ -455,11 +513,11 @@ runs:
           ~/.cache/ms-playwright
           ~/AppData/Local/ms-playwright
         key: >-
-          installed-deps-v6-${{ runner.os }}-${{ runner.arch }}-target-${{
-          inputs.arch }}-node-${{ inputs.node-version }}-py311-${{
-          hashFiles('package.json', 'yarn.lock', 'app/package.json',
-          'app/yarn.lock', '.yarnrc', 'app/.yarnrc', 'app/.npmrc',
-          'script/post-install.ts',
+          installed-deps-v6-${{ runner.os }}-${{ runner.arch }}-runner-${{
+          steps.windows-toolchain.outputs.cache-suffix }}-target-${{ inputs.arch
+          }}-node-${{ inputs.node-version }}-py311-${{ hashFiles('package.json',
+          'yarn.lock', 'app/package.json', 'app/yarn.lock', '.yarnrc',
+          'app/.yarnrc', 'app/.npmrc', 'script/post-install.ts',
           '.github/actions/setup-ci-environment/action.yml',
           '.github/actions/setup-windows-signing/action.yml',
           '.github/scripts/ensure-windows-arm64-build-tools.ps1',

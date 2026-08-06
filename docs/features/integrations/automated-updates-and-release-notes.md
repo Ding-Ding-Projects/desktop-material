@@ -128,9 +128,11 @@ caches can warm a self-hosted Windows miss, but neither is treated as exact and
 the current lockfiles still drive installation. The cross-compilation Copilot
 install restores `app/package.json` and `app/yarn.lock` before the exact cache
 key is computed, preventing a post-install manifest from making the saved cache
-unreachable. Python setup remains unconditional for native builds. Build
-output, `dist`, installers, Release assets, credentials, and runtime
-configuration are never cached.
+unreachable. Self-hosted keys include the runner identity and selected
+Visual Studio/MSVC, ClangCL, and Windows SDK fingerprint; dependency installs
+use `yarn --frozen-lockfile`. Python setup remains unconditional for native
+builds. Build output, `dist`, installers, Release assets, credentials, and
+runtime configuration are never cached.
 
 The hosted Windows packaged-E2E lane launches the Squirrel installer without
 PowerShell's descendant-inclusive `Start-Process -Wait`. It waits at most 300
@@ -149,8 +151,9 @@ GitHub-hosted runners and unique run-ID/run-attempt concurrency groups with
 publication opportunity. CI handles pushes, pull requests, manual dispatches,
 and reusable calls on clean hosted machines by default. The Windows manual
 dispatch offers a `cloud` or `self-hosted` choice for only the desktop build and
-packaged smoke jobs; the self-hosted option maps to the fixed
-`desktop-material-windows-local` label and never accepts a raw runner label.
+packaged smoke jobs; the self-hosted option requires the fixed
+`self-hosted`, `Windows`, `X64`, and `desktop-material-windows-local` label set
+and never accepts a raw runner label.
 The Windows TUI core job remains hosted. Pages publication retains the same
 non-cancelling run-and-attempt contract.
 

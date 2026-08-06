@@ -4,9 +4,10 @@
 
 `CI Windows` remains cloud-first for pushes, pull requests, and reusable calls,
 but its manual `workflow_dispatch` form now offers `cloud` or `self-hosted` for
-the desktop build and packaged smoke jobs. The self-hosted option maps only to
-the fixed `desktop-material-windows-local` label; the Windows TUI core job stays
-on `windows-2022`, and no raw runner label is accepted from workflow input.
+the desktop build and packaged smoke jobs. The self-hosted option requires the
+fixed `self-hosted`, `Windows`, `X64`, and `desktop-material-windows-local`
+label set; the Windows TUI core job stays on `windows-2022`, and no raw runner
+label is accepted from workflow input.
 
 The shared Windows dependency setup now restores an exact `installed-deps-v6`
 cache on self-hosted jobs without a post-job cache hook, verifies its required
@@ -15,9 +16,12 @@ verified miss. The previous `installed-deps-v5` and older `installed-deps-v4`
 entries may provide a warm starting tree, but their non-hit result still runs
 the current lockfile install. The cache key includes the manifests, lockfiles,
 setup/signing actions, both Windows toolset scripts, pinned Yarn, and
-native-vendor inputs. The cross-compilation install restores its manifests
-before verification and cache save, so the exact key remains reachable. Build
-outputs and installers remain uncached.
+native-vendor inputs. Self-hosted keys also include the runner identity and a
+fingerprint of the selected Visual Studio/MSVC, ClangCL, and Windows SDK
+toolchain. Dependency installation uses `yarn --frozen-lockfile`, and the
+cross-compilation install restores all hashed manifests before verification and
+cache save, so the exact key remains reachable. Build outputs and installers
+remain uncached.
 
 Local evidence on the task branch: the CI environment and workflow safety
 contracts pass **18/18**, the combined CI/release contracts pass **32/32**, all

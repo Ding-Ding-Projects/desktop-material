@@ -112,7 +112,9 @@ jobs:
     name: ${{ matrix.friendlyName }} ${{ matrix.arch }}
     runs-on:
       ${{ github.event_name == 'workflow_dispatch' && inputs.runner_mode ==
-      'self-hosted' && 'desktop-material-windows-local' || 'windows-2022' }}
+      'self-hosted' &&
+      fromJSON('["self-hosted","Windows","X64","desktop-material-windows-local"]')
+      || 'windows-2022' }}
     permissions:
       contents: read
       id-token: write
@@ -216,7 +218,9 @@ jobs:
     name: E2E Smoke ${{ matrix.friendlyName }} ${{ matrix.arch }}
     runs-on:
       ${{ github.event_name == 'workflow_dispatch' && inputs.runner_mode ==
-      'self-hosted' && 'desktop-material-windows-local' || 'windows-2022' }}
+      'self-hosted' &&
+      fromJSON('["self-hosted","Windows","X64","desktop-material-windows-local"]')
+      || 'windows-2022' }}
     permissions:
       contents: read
       id-token: write
