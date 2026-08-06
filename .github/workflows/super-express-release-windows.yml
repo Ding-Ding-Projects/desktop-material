@@ -14,6 +14,10 @@ on:
         description: Squirrel-compatible version selected by the dispatcher
         required: true
         type: string
+      runner:
+        description: JSON runner-label array selected by the dispatcher
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       release_target_sha:
@@ -26,6 +30,12 @@ on:
           Squirrel-compatible version; blank derives one from the run ID
         required: false
         type: string
+      runner:
+        description:
+          Optional JSON runner-label array override; blank auto-selects
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -34,9 +44,63 @@ env:
   NODE_VERSION: 24.15.0
 
 jobs:
+  runner_selection:
+    name: Select self-hosted runner or cloud fallback
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      runner: ${{ steps.select.outputs.runner }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REQUESTED_RUNNER: ${{ inputs.runner }}
+    steps:
+      - name: Select available Windows x64 runner labels
+        id: select
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -n "${REQUESTED_RUNNER:-}" ]; then
+            if ! jq -e 'type == "array" and length > 0' <<<"$REQUESTED_RUNNER" >/dev/null; then
+              echo "The runner override must be a non-empty JSON label array." >&2
+              exit 1
+            fi
+            printf 'runner=%s\n' "$REQUESTED_RUNNER" >> "$GITHUB_OUTPUT"
+            echo "runner: caller-selected"
+            exit 0
+          fi
+
+          if ! inventory=$(gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/actions/runners?per_page=100"); then
+            echo "::warning::Could not inspect self-hosted runners; using windows-2022."
+            inventory='[]'
+          fi
+
+          if jq -e '
+            [ .[] | .runners[]? |
+              select(.status == "online" and .busy == false) |
+              [ .labels[]?.name | ascii_downcase ] as $labels |
+              select(($labels | index("self-hosted")) != null) |
+              select(($labels | index("windows")) != null) |
+              select(($labels | index("x64")) != null)
+            ] | length > 0
+          ' <<<"$inventory" >/dev/null; then
+            runner='["self-hosted","Windows","X64"]'
+            selected_from='self-hosted/Windows/X64'
+          else
+            runner='["windows-2022"]'
+            selected_from='windows-2022'
+          fi
+
+          printf 'runner=%s\n' "$runner" >> "$GITHUB_OUTPUT"
+          echo "runner: $selected_from"
+
   build:
     name: Build Windows x64 package
-    runs-on: windows-2022
+    needs: runner_selection
+    runs-on: ${{ fromJSON(needs.runner_selection.outputs.runner) }}
     timeout-minutes: 60
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}

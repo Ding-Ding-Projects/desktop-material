@@ -137,10 +137,23 @@ emergency dispatcher. Dispatching it from `main` checks the exact commit and
 tag once, then calls two reusable lanes in parallel:
 
 - `.github/workflows/super-express-release-windows.yml` restores the exact
-  desktop dependency cache and builds the Windows x64 production package;
-- `.github/workflows/super-express-release-linux-tui.yml` uses an Ubuntu runner
-  to build the Linux TUI wheel, source distribution, locked runtime
-  constraints, bootstrap, and installer.
+  desktop dependency cache and builds the Windows x64 production package on
+  an online, idle `self-hosted` Windows x64 runner when one is available;
+- `.github/workflows/super-express-release-linux-tui.yml` builds the Linux TUI
+  wheel, source distribution, locked runtime constraints, bootstrap, and
+  installer on an online, idle `self-hosted` Linux x64 runner when one is
+  available.
+
+The dispatcher starts with a small hosted selector job because a queued
+`self-hosted` job cannot discover that its runner pool is unavailable and then
+move itself to the cloud. The selector reads the repository runner inventory
+through `gh api`, accepts only online and idle runners carrying the matching
+OS and `X64` labels, and passes JSON runner-label arrays to each reusable lane.
+If the inventory cannot be read or no matching runner is idle, the affected
+lane falls back independently to `windows-2022` or `ubuntu-latest`; the Linux
+preparation and publisher jobs use the same Linux self-hosted preference and
+fallback. This keeps an unavailable local runner from leaving an emergency
+release queued forever while still preferring the local fast path.
 
 Each packaging lane also exposes its own `workflow_dispatch` action for a
 manual, packaging-only recovery run. A direct Windows dispatch accepts an

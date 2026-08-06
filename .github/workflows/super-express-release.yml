@@ -23,15 +23,87 @@ env:
   NODE_VERSION: 24.15.0
 
 jobs:
+  runner_selection:
+    name: Select self-hosted runners or cloud fallbacks
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      prepare_runner: ${{ steps.select.outputs.prepare_runner }}
+      windows_runner: ${{ steps.select.outputs.windows_runner }}
+      tui_runner: ${{ steps.select.outputs.tui_runner }}
+      publish_runner: ${{ steps.select.outputs.publish_runner }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Select available runner labels
+        id: select
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! inventory=$(gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/actions/runners?per_page=100"); then
+            echo "::warning::Could not inspect self-hosted runners; using cloud fallbacks."
+            inventory='[]'
+          fi
+
+          has_idle_runner() {
+            local os_label="$1"
+            jq -e --arg os_label "$os_label" '
+              [ .[] | .runners[]? |
+                select(.status == "online" and .busy == false) |
+                [ .labels[]?.name | ascii_downcase ] as $labels |
+                select(($labels | index("self-hosted")) != null) |
+                select(($labels | index(($os_label | ascii_downcase))) != null) |
+                select(($labels | index("x64")) != null)
+              ] | length > 0
+            ' <<<"$inventory" >/dev/null
+          }
+
+          choose_runner() {
+            local output_name="$1"
+            local os_label="$2"
+            local cloud_label="$3"
+            local runner_json
+            local selected_from
+
+            if has_idle_runner "$os_label"; then
+              runner_json=$(jq -cn --arg os_label "$os_label" \
+                '["self-hosted", $os_label, "X64"]')
+              selected_from="self-hosted/$os_label/X64"
+            else
+              runner_json=$(jq -cn --arg cloud_label "$cloud_label" \
+                '[$cloud_label]')
+              selected_from="$cloud_label"
+            fi
+
+            printf '%s=%s\n' "$output_name" "$runner_json" >> "$GITHUB_OUTPUT"
+            echo "$output_name: $selected_from"
+          }
+
+          # A runner is selected only when it is online and idle at dispatch
+          # time. If the inventory is unavailable or no matching runner is
+          # idle, the corresponding lane uses its hosted cloud runner.
+          choose_runner prepare_runner Linux ubuntu-latest
+          choose_runner windows_runner Windows windows-2022
+          choose_runner tui_runner Linux ubuntu-latest
+          choose_runner publish_runner Linux ubuntu-latest
+
   prepare:
     name: Prepare exact release target
-    runs-on: ubuntu-latest
+    needs: runner_selection
+    runs-on: ${{ fromJSON(needs.runner_selection.outputs.prepare_runner) }}
     permissions:
       contents: read
     outputs:
       sha: ${{ steps.target.outputs.sha }}
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
+      windows_runner: ${{ needs.runner_selection.outputs.windows_runner }}
+      tui_runner: ${{ needs.runner_selection.outputs.tui_runner }}
+      publish_runner: ${{ needs.runner_selection.outputs.publish_runner }}
     env:
       RELEASE_TARGET_SHA: ${{ github.sha }}
     steps:
@@ -100,6 +172,7 @@ jobs:
     with:
       release_target_sha: ${{ needs.prepare.outputs.sha }}
       release_version: ${{ needs.prepare.outputs.version }}
+      runner: ${{ needs.prepare.outputs.windows_runner }}
     secrets: inherit
 
   tui:
@@ -108,6 +181,7 @@ jobs:
     uses: ./.github/workflows/super-express-release-linux-tui.yml
     with:
       release_target_sha: ${{ needs.prepare.outputs.sha }}
+      runner: ${{ needs.prepare.outputs.tui_runner }}
     secrets: inherit
 
   publish:
@@ -119,7 +193,7 @@ jobs:
     if: >-
       always() && needs.prepare.result == 'success' && needs.windows.result ==
       'success' && needs.tui.result == 'success' && inputs.publish
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(needs.prepare.outputs.publish_runner) }}
     permissions:
       contents: write
     env:

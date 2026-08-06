@@ -10,6 +10,10 @@ on:
         description: Exact commit SHA selected by the dispatcher
         required: true
         type: string
+      runner:
+        description: JSON runner-label array selected by the dispatcher
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       release_target_sha:
@@ -17,14 +21,74 @@ on:
           Exact main-branch commit to package; blank uses the dispatched commit
         required: false
         type: string
+      runner:
+        description:
+          Optional JSON runner-label array override; blank auto-selects
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
 
 jobs:
+  runner_selection:
+    name: Select self-hosted runner or cloud fallback
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      runner: ${{ steps.select.outputs.runner }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REQUESTED_RUNNER: ${{ inputs.runner }}
+    steps:
+      - name: Select available Linux x64 runner labels
+        id: select
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -n "${REQUESTED_RUNNER:-}" ]; then
+            if ! jq -e 'type == "array" and length > 0' <<<"$REQUESTED_RUNNER" >/dev/null; then
+              echo "The runner override must be a non-empty JSON label array." >&2
+              exit 1
+            fi
+            printf 'runner=%s\n' "$REQUESTED_RUNNER" >> "$GITHUB_OUTPUT"
+            echo "runner: caller-selected"
+            exit 0
+          fi
+
+          if ! inventory=$(gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/actions/runners?per_page=100"); then
+            echo "::warning::Could not inspect self-hosted runners; using ubuntu-latest."
+            inventory='[]'
+          fi
+
+          if jq -e '
+            [ .[] | .runners[]? |
+              select(.status == "online" and .busy == false) |
+              [ .labels[]?.name | ascii_downcase ] as $labels |
+              select(($labels | index("self-hosted")) != null) |
+              select(($labels | index("linux")) != null) |
+              select(($labels | index("x64")) != null)
+            ] | length > 0
+          ' <<<"$inventory" >/dev/null; then
+            runner='["self-hosted","Linux","X64"]'
+            selected_from='self-hosted/Linux/X64'
+          else
+            runner='["ubuntu-latest"]'
+            selected_from='ubuntu-latest'
+          fi
+
+          printf 'runner=%s\n' "$runner" >> "$GITHUB_OUTPUT"
+          echo "runner: $selected_from"
+
   build:
     name: Build Linux TUI packages
-    runs-on: ubuntu-latest
+    needs: runner_selection
+    runs-on: ${{ fromJSON(needs.runner_selection.outputs.runner) }}
     timeout-minutes: 30
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
