@@ -115,9 +115,9 @@ jobs:
     name: Build Linux TUI packages
     needs: runner_selection
     runs-on:
-      - ${{ needs.runner_selection.outputs.label_1 }}
-      - ${{ needs.runner_selection.outputs.label_2 }}
-      - ${{ needs.runner_selection.outputs.label_3 }}
+      - '${{ needs.runner_selection.outputs.label_1 }}'
+      - '${{ needs.runner_selection.outputs.label_2 }}'
+      - '${{ needs.runner_selection.outputs.label_3 }}'
     timeout-minutes: 30
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
