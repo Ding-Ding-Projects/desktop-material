@@ -8920,6 +8920,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         aheadBehind={state.aheadBehind}
         numTagsToPush={state.tagsToPush !== null ? state.tagsToPush.length : 0}
         remoteName={remoteName}
+        remoteCount={state.remotes.length}
         lastFetched={state.lastFetched}
         networkActionInProgress={state.isPushPullFetchInProgress}
         progress={progress}

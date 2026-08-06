@@ -97,6 +97,11 @@ summary.
   History; inspect remote-only commits; preview an ordinary manual pull after
   a successful fetch; and run a reviewed pull/fetch batch across an exact
   repository subset
+- When a repository has more than one configured remote, the ordinary Fetch
+  action says **Fetch all remotes** and fetches the complete remote set in a
+  stable current-first order; a one-remote repository keeps its existing
+  **Fetch `<remote>`** behavior. See the [multi-remote fetch sync
+  guide](../features/repository-management/multi-remote-fetch-sync.md).
 - Review and create pull requests without leaving the app: inspect files in a
   tree, expand diff context, comment, reply, resolve, approve, request changes,
   edit metadata, inspect checks, receive activity notifications, and safely

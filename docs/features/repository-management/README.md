@@ -42,6 +42,10 @@ Material is displaying or how a repository is represented in the application.
   or transfer before network work while preserving transport, web origin,
   unrelated remotes, and deliberately divergent push targets; scheduled Git
   fails without opening credential, hook, signing, or SSH prompts.
+- [Multi-remote fetch
+  sync](multi-remote-fetch-sync.md) — keep the focused `Fetch <remote>` action
+  for a single-remote checkout and fetch every configured remote, in a stable
+  current-first order, when more than one remote exists.
 - [Reviewed batch repository sync](reviewed-batch-sync.md) — pull active
   branches or fetch only across an exact reviewed subset with bounded
   concurrency and isolated results.

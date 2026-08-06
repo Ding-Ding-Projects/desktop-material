@@ -15,6 +15,24 @@ Updated: **August 5, 2026**
   and the Unicode/space-path PowerShell plus Git Bash probe passes. Remote
   Super Express verification remains required after publication.
 
+## August 5 — multi-remote fetch sync
+
+- The ordinary repository Fetch action now fetches every configured remote when
+  a checkout has more than one, while preserving the existing focused
+  `Fetch <remote>` behavior for one-remote checkouts. Current/default/upstream
+  remotes remain first in the deterministic sequence, followed by any other
+  configured remotes.
+- The toolbar and dropdown now say **Fetch all remotes** and explain the wider
+  scope in the status description. Remote configuration and the existing
+  account-aware fetch path are unchanged.
+- Focused verification passes **19/19** tests across the GitStore selection
+  and toolbar surfaces. The exact Windows production build completed with
+  packaging skipped, and the real hidden-desktop renderer displayed **Fetch
+  all remotes** plus its expanded scope description for a two-remote fixture. The
+  unmodified development renderer still logs its existing
+  `__webpack_module__ is not defined` startup error, so the visual probe used
+  a temporary CDP startup shim and does not claim packaged-release proof.
+
 ## August 5 — account-aware repository transfer
 
 - The Windows desktop app now exposes **Transfer repository** from the

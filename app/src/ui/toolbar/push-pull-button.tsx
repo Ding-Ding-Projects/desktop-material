@@ -48,6 +48,9 @@ interface IPushPullButtonProps {
   /** The name of the remote. */
   readonly remoteName: string | null
 
+  /** The number of configured remotes in the repository. */
+  readonly remoteCount?: number
+
   /** Is a push/pull/fetch in progress? */
   readonly networkActionInProgress: boolean
 
@@ -203,6 +206,18 @@ function renderLastFetched(lastFetched: Date | null): JSX.Element | string {
   } else {
     return 'Never fetched'
   }
+}
+
+function renderFetchDescription(
+  lastFetched: Date | null,
+  remoteCount: number
+): JSX.Element | string {
+  const lastFetchedDescription = renderLastFetched(lastFetched)
+  if (remoteCount <= 1) {
+    return lastFetchedDescription
+  }
+
+  return <span>{lastFetchedDescription} · Fetches all configured remotes</span>
 }
 
 /**
@@ -470,6 +485,7 @@ export class PushPullButton extends React.Component<
         <PushPullButtonDropDown
           itemTypes={itemTypes}
           remoteName={this.props.remoteName}
+          remoteCount={this.props.remoteCount}
           fetch={this.fetch}
           forcePushWithLease={this.forcePushWithLease}
           resolvePushIssues={this.props.onResolvePushIssues}
@@ -673,12 +689,13 @@ export class PushPullButton extends React.Component<
     lastFetched: Date | null,
     onClick: () => void
   ) {
-    const title = `Fetch ${remoteName}`
+    const remoteCount = this.props.remoteCount ?? 0
+    const title = remoteCount > 1 ? 'Fetch all remotes' : `Fetch ${remoteName}`
     return (
       <ToolbarButton
         {...this.defaultButtonProps('fetch')}
         title={title}
-        description={renderLastFetched(lastFetched)}
+        description={renderFetchDescription(lastFetched, remoteCount)}
         materialSymbol="sync"
         materialSymbolSize={22}
         onClick={onClick}

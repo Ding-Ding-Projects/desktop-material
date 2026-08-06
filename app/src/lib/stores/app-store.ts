@@ -3098,6 +3098,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       aheadBehind: gitStore.aheadBehind,
       tagsToPush: gitStore.tagsToPush,
       remote: gitStore.currentRemote,
+      remotes: gitStore.remotes,
       lastFetched: gitStore.lastFetched,
     }))
 
