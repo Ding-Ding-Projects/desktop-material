@@ -517,6 +517,7 @@ import {
   saveGitIgnore,
   appendIgnoreRule,
   createMergeCommit,
+  getBranches,
   getBranchesPointedAt,
   abortRebase,
   continueRebase,
@@ -10511,9 +10512,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
         )
         await this._refreshWorktrees(repository)
       }
-      await this.withTemporaryRepositoryMutationGuard(repository, () =>
-        deleteLocalBranch(repository, candidate.branch.name)
-      )
+      const [deletion] = await this._deleteReviewedBranches(repository, [
+        {
+          name: candidate.branch.name,
+          expectedSha: candidate.branch.tip.sha,
+        },
+      ])
+      if (deletion?.status !== 'deleted') {
+        return {
+          ...base,
+          status,
+          detail: `Merge completed, but cleanup was not applied: ${
+            deletion?.detail ?? 'The exact branch tip could not be verified.'
+          }`,
+        }
+      }
       return {
         ...base,
         status,
@@ -10862,8 +10875,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository,
     branch: Branch,
     includeUpstream?: boolean,
-    toCheckout?: Branch | null
-  ): Promise<void> {
+    toCheckout?: Branch | null,
+    expectedSha?: string
+  ): Promise<boolean> {
     return this.withRefreshedGitHubRepository(repository, async repository => {
       const gitStore = this.gitStoreCache.get(repository)
 
@@ -10888,18 +10902,47 @@ export class AppStore extends TypedBaseStore<IAppState> {
           throw new Error(`Could not determine remote url from: ${branch.ref}.`)
         }
 
-        await gitStore.performFailableOperation(() =>
+        const deleted = await gitStore.performFailableOperation(() =>
           this.withTemporaryRepositoryMutationGuard(repository, () =>
-            deleteRemoteBranch(repository, remote, nameWithoutRemote)
+            deleteRemoteBranch(
+              repository,
+              remote,
+              nameWithoutRemote,
+              expectedSha
+            )
           )
         )
+
+        if (deleted !== true) {
+          return false
+        }
 
         // We log the remote branch's sha so that the user can recover it.
         log.info(
           `Deleted branch ${branch.upstreamWithoutRemote} (was ${tip.sha})`
         )
 
-        return this._refreshRepository(repository)
+        await this._refreshRepository(repository)
+        return true
+      }
+
+      if (expectedSha !== undefined) {
+        await this._refreshRepository(repository)
+        const refreshedState = this.repositoryStateCache.get(repository)
+        const refreshedTip = refreshedState.branchesState.tip
+        if (
+          (refreshedTip.kind === TipState.Valid &&
+            refreshedTip.branch.name === branch.name) ||
+          refreshedState.branchesState.defaultBranch?.name === branch.name
+        ) {
+          this.postNotification({
+            kind: 'app-error',
+            title: 'Branch kept',
+            body: `The reviewed branch ${branch.name} is current or default and was not deleted.`,
+            repositoryId: repository.id,
+          })
+          return false
+        }
       }
 
       // If a local branch, user may have the branch to delete checked out and
@@ -10908,24 +10951,32 @@ export class AppStore extends TypedBaseStore<IAppState> {
         toCheckout ?? this.getBranchToCheckoutAfterDelete(branch, repository)
 
       if (branchToCheckout !== null) {
-        await gitStore.performFailableOperation(() =>
+        const checkedOut = await gitStore.performFailableOperation(() =>
           this.withTemporaryRepositoryMutationGuard(repository, () =>
             checkoutBranch(repository, branchToCheckout, gitStore.currentRemote)
           )
         )
+        if (checkedOut !== true) {
+          return false
+        }
       }
 
-      await gitStore.performFailableOperation(() => {
+      const deleted = await gitStore.performFailableOperation(() => {
         return this.withTemporaryRepositoryMutationGuard(repository, () =>
           this.deleteLocalBranchAndUpstreamBranch(
             repository,
             branch,
-            includeUpstream
+            includeUpstream,
+            expectedSha
           )
         )
       })
+      if (deleted !== true) {
+        return false
+      }
 
-      return this._refreshRepository(repository)
+      await this._refreshRepository(repository)
+      return true
     })
   }
 
@@ -10939,6 +10990,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       result: IReviewedBranchDeletionResult
     ) => void
   ): Promise<ReadonlyArray<IReviewedBranchDeletionResult>> {
+    await this._refreshRepository(repository)
     const state = this.repositoryStateCache.get(repository).branchesState
     const protectedNames = new Set<string>()
     if (state.tip.kind === TipState.Valid) {
@@ -10973,11 +11025,40 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private async deleteLocalBranchAndUpstreamBranch(
     repository: Repository,
     branch: Branch,
-    includeUpstream?: boolean
-  ): Promise<void> {
-    await this.withTemporaryRepositoryMutationGuard(repository, () =>
-      deleteLocalBranch(repository, branch.name)
-    )
+    includeUpstream?: boolean,
+    expectedSha?: string
+  ): Promise<true> {
+    let expectedUpstreamSha: string | undefined
+    if (
+      includeUpstream === true &&
+      branch.upstreamRemoteName !== null &&
+      branch.upstreamWithoutRemote !== null
+    ) {
+      const remoteTrackingRef = `refs/remotes/${branch.upstreamRemoteName}/${branch.upstreamWithoutRemote}`
+      const [remoteTrackingBranch] = await getBranches(
+        repository,
+        remoteTrackingRef
+      )
+      expectedUpstreamSha = remoteTrackingBranch?.tip.sha
+      if (expectedSha !== undefined && expectedUpstreamSha === undefined) {
+        throw new Error('The upstream branch tip could not be verified.')
+      }
+    }
+
+    if (expectedSha === undefined) {
+      await this.withTemporaryRepositoryMutationGuard(repository, () =>
+        deleteLocalBranch(repository, branch.name)
+      )
+    } else {
+      const [result] = await deleteReviewedLocalBranches(repository, [
+        { name: branch.name, expectedSha },
+      ])
+      if (result?.status !== 'deleted') {
+        throw new Error(
+          result?.detail ?? 'The reviewed branch tip could not be deleted.'
+        )
+      }
+    }
 
     if (
       includeUpstream === true &&
@@ -10999,10 +11080,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
       }
 
       await this.withTemporaryRepositoryMutationGuard(repository, () =>
-        deleteRemoteBranch(repository, remote, upstreamWithoutRemote)
+        deleteRemoteBranch(
+          repository,
+          remote,
+          upstreamWithoutRemote,
+          expectedUpstreamSha
+        )
       )
     }
-    return
+    return true
   }
 
   private getBranchToCheckoutAfterDelete(
@@ -17000,6 +17086,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
         operationDetail: { ...opState.operationDetail, sourceBranch },
       })
     )
+    const operationAtStart =
+      this.repositoryStateCache.get(repository).multiCommitOperationState
 
     const gitStore = this.gitStoreCache.get(repository)
 
@@ -17034,7 +17122,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return this._refreshRepository(repository)
     }
 
+    // The dialog can be cancelled while Git is still running, and a later
+    // operation can replace the shared state. A late success must never clean
+    // up a branch for an operation that is no longer the active one.
+    if (
+      this.repositoryStateCache.get(repository).multiCommitOperationState !==
+      operationAtStart
+    ) {
+      log.warn('Ignoring a late merge result after the operation ended.')
+      return this._refreshRepository(repository)
+    }
+
     const { tip } = gitStore
+    const deleteAfterSuccessfulMerge =
+      opState.operationDetail.kind === MultiCommitOperationKind.Merge &&
+      opState.operationDetail.deleteAfterSuccessfulMerge === true
 
     if (mergeResult === MergeResult.Success && tip.kind === TipState.Valid) {
       this._setBanner({
@@ -17048,6 +17150,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
         // successfully after conflicts in `dispatcher.finishConflictedMerge`.
         this.statsStore.increment('squashMergeSuccessfulCount')
       }
+      if (deleteAfterSuccessfulMerge) {
+        await this._deleteMergedBranchAfterSuccessfulMerge(
+          repository,
+          sourceBranch
+        )
+      }
       this._endMultiCommitOperation(repository)
     } else if (
       mergeResult === MergeResult.AlreadyUpToDate &&
@@ -17058,10 +17166,78 @@ export class AppStore extends TypedBaseStore<IAppState> {
         ourBranch: tip.branch.name,
         theirBranch: sourceBranch.name,
       })
+      if (deleteAfterSuccessfulMerge) {
+        await this._deleteMergedBranchAfterSuccessfulMerge(
+          repository,
+          sourceBranch
+        )
+      }
       this._endMultiCommitOperation(repository)
     }
 
     return this._refreshRepository(repository)
+  }
+
+  /**
+   * Delete the selected local source branch only after Git reports that its
+   * merge completed or was already up to date. The exact reviewed SHA is
+   * checked again so a branch that moved during the merge is kept safely.
+   */
+  public async _deleteMergedBranchAfterSuccessfulMerge(
+    repository: Repository,
+    sourceBranch: Branch
+  ): Promise<void> {
+    if (sourceBranch.type !== BranchType.Local) {
+      return
+    }
+
+    const branchesState =
+      this.repositoryStateCache.get(repository).branchesState
+    const currentBranch =
+      branchesState.tip.kind === TipState.Valid
+        ? branchesState.tip.branch
+        : null
+    if (
+      currentBranch === null ||
+      sourceBranch.name === currentBranch.name ||
+      sourceBranch.name === branchesState.defaultBranch?.name
+    ) {
+      return
+    }
+
+    try {
+      const [result] = await this._deleteReviewedBranches(repository, [
+        { name: sourceBranch.name, expectedSha: sourceBranch.tip.sha },
+      ])
+      if (result?.status === 'deleted') {
+        this.postNotification({
+          kind: 'info',
+          title: 'Merge complete; branch deleted',
+          body: `The merge into ${currentBranch.name} completed successfully, and the local source branch ${sourceBranch.name} was deleted.`,
+          repositoryId: repository.id,
+        })
+        return
+      }
+
+      this.postNotification({
+        kind: 'app-error',
+        title: 'Merge completed; branch kept',
+        body: `The merge succeeded, but ${sourceBranch.name} was kept because its reviewed tip could not be deleted safely.`,
+        repositoryId: repository.id,
+      })
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
+      log.warn(
+        `Merge completed but local branch cleanup failed for ${sourceBranch.name}`,
+        error
+      )
+      this.postNotification({
+        kind: 'app-error',
+        title: 'Merge completed; branch kept',
+        body: `The merge succeeded, but ${sourceBranch.name} was kept because deletion failed: ${detail}`,
+        repositoryId: repository.id,
+      })
+    }
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */

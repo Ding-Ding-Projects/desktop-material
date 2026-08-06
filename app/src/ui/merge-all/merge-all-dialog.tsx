@@ -49,8 +49,10 @@ export class MergeAllDialog extends React.Component<IMergeAllDialogProps> {
       <Dialog id="merge-all" title={title} onDismissed={this.onDismissed}>
         <DialogContent>
           <p className="merge-all-intro">
-            Branches are merged one at a time into the default branch. Copilot
-            resolves conflicts when possible; failures are skipped safely.
+            Branches are merged one at a time into the default branch. A branch
+            is deleted only after Git reports a successful merge or that it is
+            already up to date. Copilot resolves conflicts when possible;
+            failures stay available.
           </p>
           {state?.currentBranch && (
             <div className="merge-all-current" role="status">
