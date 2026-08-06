@@ -23,6 +23,26 @@ because the Windows actionlint/shellcheck pipe can hang), Prettier, and
 `git diff --check` pass. A fresh remote dispatch with `publish=false` is the
 remaining verification step after this correction reaches `main`.
 
+## 2026-08-05 — Close remaining Windows TypeScript build gaps
+
+The merged default-branch tree exposed five additional TypeScript diagnostics
+across three seams after the dependency and stylesheet failures were
+corrected. The provider
+triage label switch now handles the `self-hosted` account provider. The
+self-hosted OAuth error path now captures and validates the active
+authentication state before updating it, so a nullable store state cannot be
+spread into an invalid sign-in state and a callback race cannot overwrite a
+replacement flow. The SignInStore regression fixture now records callback
+accounts in a typed list and asserts exactly one authenticated account before
+checking its provider, endpoint, and login.
+
+Local evidence for this follow-up is **41/41** focused tests across SignInStore,
+provider triage, and CI workflow safety; passing ESLint type-checking; and an
+isolated production renderer compile with **0** Webpack errors. The compile
+also emitted only the existing Sass deprecation warnings and no Koffi,
+JSX-runtime, Sass parent-selector, or TypeScript errors. Fresh remote Windows
+and Pages verification for the integrated fix is pending.
+
 ## 2026-08-05 — Restore Windows production build compatibility
 
 The final Windows verification of the retired tooling correction reached the
