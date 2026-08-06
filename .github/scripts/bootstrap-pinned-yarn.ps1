@@ -3,11 +3,6 @@ if ($null -eq $nodeCommand) {
   throw 'Node.js is required on a self-hosted Windows runner before Yarn bootstrap.'
 }
 
-$nodePath = $nodeCommand.Source
-if ([string]::IsNullOrWhiteSpace($nodePath)) {
-  $nodePath = $nodeCommand.Path
-}
-
 $yarnScript = Join-Path $env:GITHUB_WORKSPACE 'vendor\yarn-1.21.1.js'
 if (-not (Test-Path -LiteralPath $yarnScript -PathType Leaf)) {
   throw "The repository-pinned Yarn runtime is missing: $yarnScript"
@@ -15,47 +10,28 @@ if (-not (Test-Path -LiteralPath $yarnScript -PathType Leaf)) {
 
 $shimRoot = Join-Path $env:RUNNER_TEMP 'desktop-material-pinned-yarn'
 New-Item -ItemType Directory -Path $shimRoot -Force | Out-Null
+$shimScript = Join-Path $shimRoot 'yarn-1.21.1.js'
 $shimPath = Join-Path $shimRoot 'yarn.cmd'
-$bashShimPath = Join-Path $shimRoot 'yarn'
-$shim = "@echo off`r`n`"$nodePath`" `"$yarnScript`" %*`r`n"
+$posixShimPath = Join-Path $shimRoot 'yarn'
+[System.IO.File]::Copy($yarnScript, $shimScript, $true)
+$shim = "@echo off`r`nnode `"%~dp0yarn-1.21.1.js`" %*`r`n"
 [System.IO.File]::WriteAllText(
   $shimPath,
   $shim,
   [System.Text.Encoding]::ASCII
 )
-
-$bashYarnScript = ($yarnScript -replace '\\', '/') -replace '"', '\\"'
-$bashShim = @'
+$posixShim = @'
 #!/usr/bin/env bash
-exec node "__YARN_SCRIPT__" "$@"
-'@.Replace('__YARN_SCRIPT__', $bashYarnScript)
+exec node "$(dirname "$0")/yarn-1.21.1.js" "$@"
+'@
+$posixShim = $posixShim.Replace("`r`n", "`n").Replace("`r", "")
 [System.IO.File]::WriteAllText(
-  $bashShimPath,
-  $bashShim,
-  [System.Text.UTF8Encoding]::new($false)
+  $posixShimPath,
+  $posixShim,
+  [System.Text.Encoding]::ASCII
 )
 
-$git = Get-Command git.exe -ErrorAction SilentlyContinue
-if ($null -eq $git) {
-  throw 'Git is required on a self-hosted Windows runner before enabling the Bash Yarn shim.'
-}
-$gitRoot = Split-Path (Split-Path $git.Source -Parent) -Parent
-$gitBash = Join-Path $gitRoot 'bin\bash.exe'
-if (-not (Test-Path -LiteralPath $gitBash -PathType Leaf)) {
-  throw "Git Bash is required to make the Yarn shim executable: $gitBash"
-}
-$bashShimForGit = $bashShimPath -replace '\\', '/'
-& $gitBash -lc "chmod +x '$bashShimForGit'"
-if ($LASTEXITCODE -ne 0) {
-  throw "Git Bash could not mark the Yarn shim executable: $bashShimPath"
-}
-$bashShimRootForGit = $shimRoot -replace '\\', '/'
-if ($bashShimRootForGit -match '^(?<drive>[A-Za-z]):/(?<path>.*)$') {
-  $bashShimRootForGit = "/$($matches.drive.ToLower())/$($matches.path)"
-}
-
-$shimRoot | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-$bashShimRootForGit | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+$shimRoot | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append -ErrorAction Stop
 
 & $shimPath --version
 if ($LASTEXITCODE -ne 0) {
