@@ -69,7 +69,8 @@ An on-demand action that consolidates work into the default branch of the select
 2. On conflicts, invokes **Copilot conflict resolution** to resolve them automatically.
 3. If a branch **cannot** be merged cleanly (Copilot resolution fails or is inconclusive), that
    branch is **skipped** — it is left untouched rather than force-merged or half-merged.
-4. **Deletes the branches that were successfully merged.**
+4. **Deletes only the branches that were successfully merged or already up to
+   date.** A failed, skipped, conflicted, or cancelled merge keeps its branch.
 5. **Pushes** the updated default branch.
 
 Because merge-all only deletes branches it **successfully** merged and **skips on failure**, a

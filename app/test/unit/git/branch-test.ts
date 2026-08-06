@@ -367,5 +367,54 @@ describe('git/branch', () => {
       assert.equal((await getBranches(mockLocal, remoteRef)).length, 0)
       assert.equal((await getBranches(mockRemote, localRef)).length, 0)
     })
+
+    it('keeps a remote branch when its reviewed tip moved', async t => {
+      const path = await setupFixtureRepository(t, 'test-repo')
+      const mockRemote = new Repository(path, -1, null, false)
+
+      const name = 'test-branch'
+      const branch = await createBranch(mockRemote, name, null)
+      assert(branch !== null)
+
+      const mockLocal = await setupLocalForkOfRepository(t, mockRemote)
+      const remoteRef = `refs/remotes/origin/${name}`
+      const [remoteBranch] = await getBranches(mockLocal, remoteRef)
+      assert(remoteBranch !== undefined)
+      await checkoutBranch(mockLocal, remoteBranch, null)
+      await git(['checkout', '-'], mockLocal.path, 'checkoutPrevious')
+      const [localBranch] = await getBranches(mockLocal, `refs/heads/${name}`)
+      assert(localBranch !== undefined)
+      assert(localBranch.upstreamRemoteName !== null)
+      assert(localBranch.upstreamWithoutRemote !== null)
+      const reviewedSha = localBranch.tip.sha
+
+      const [remoteBranchToMove] = await getBranches(
+        mockRemote,
+        `refs/heads/${name}`
+      )
+      assert(remoteBranchToMove !== undefined)
+      await checkoutBranch(mockRemote, remoteBranchToMove, null)
+      await exec(
+        ['commit', '--allow-empty', '-m', 'move branch'],
+        mockRemote.path
+      )
+
+      await assert.rejects(
+        () =>
+          deleteRemoteBranch(
+            mockLocal,
+            { name: localBranch.upstreamRemoteName!, url: '' },
+            localBranch.upstreamWithoutRemote!,
+            reviewedSha
+          ),
+        /stale info|reviewed remote branch moved/
+      )
+
+      assert.equal(
+        (await getBranches(mockRemote, `refs/heads/${name}`)).length,
+        1
+      )
+      assert.equal((await getBranches(mockLocal, remoteRef)).length, 1)
+    })
   })
 })

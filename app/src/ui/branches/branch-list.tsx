@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import { Branch } from '../../models/branch'
+import { Branch, BranchType } from '../../models/branch'
 
 import { assertNever } from '../../lib/fatal-error'
 
@@ -156,6 +156,12 @@ interface IBranchListProps {
 
   /** Optional: Callback for if delete context menu should exist */
   readonly onDeleteBranch?: (branchName: string) => void
+
+  /** Optional: Callback to merge the branch into the checked-out branch. */
+  readonly onMergeBranch?: (branch: Branch) => void
+
+  /** Optional: Callback to merge the branch and delete it after success. */
+  readonly onMergeAndDeleteBranch?: (branch: Branch) => void
 
   /** Optional: Callback to checkout a branch in a new worktree */
   readonly onCheckoutInNewWorktree?: (branch: Branch) => void
@@ -338,6 +344,8 @@ export class BranchList extends React.Component<
     const {
       onRenameBranch,
       onDeleteBranch,
+      onMergeBranch,
+      onMergeAndDeleteBranch,
       onCheckoutInNewWorktree,
       onSwitchToWorktree,
     } = this.props
@@ -353,6 +361,19 @@ export class BranchList extends React.Component<
       branch,
       onRenameBranch,
       onDeleteBranch,
+      onMergeBranch:
+        this.props.currentBranch === null ||
+        branch.name === this.props.currentBranch.name
+          ? undefined
+          : onMergeBranch,
+      onMergeAndDeleteBranch:
+        linkedWorktree === undefined &&
+        this.props.currentBranch !== null &&
+        branch.type === BranchType.Local &&
+        branch.name !== this.props.currentBranch.name &&
+        branch.name !== this.props.defaultBranch?.name
+          ? onMergeAndDeleteBranch
+          : undefined,
       onCheckoutInNewWorktree:
         linkedWorktree === undefined ? onCheckoutInNewWorktree : undefined,
       onSwitchToWorktree:

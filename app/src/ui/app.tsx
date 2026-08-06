@@ -4629,6 +4629,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             repository={popup.repository}
             branch={popup.branch}
             existsOnRemote={popup.existsOnRemote}
+            expectedSha={popup.expectedSha}
             onDismissed={onPopupDismissedFn}
             onDeleted={this.onBranchDeleted}
           />
@@ -4640,6 +4641,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             dispatcher={this.props.dispatcher}
             repository={popup.repository}
             branch={popup.branch}
+            expectedSha={popup.expectedSha}
             onDismissed={onPopupDismissedFn}
             onDeleted={this.onBranchDeleted}
           />
