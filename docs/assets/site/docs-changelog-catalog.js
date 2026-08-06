@@ -21,13 +21,28 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4165,
+    entryCount: 4168,
     releases: [
       {
         v: '3.6.3-material22',
         d: '2026-08-06',
-        t: '04:29',
+        t: '14:34',
         e: [
+          [
+            'Improved',
+            'Ordinary Windows and Linux CI plus tested Express Release now use clean GitHub-hosted runners again, while only the three Super Express emergency workflows stay on their dedicated self-hosted pools',
+            '196ead823c9d683992dc58f9931fac7c0e21bc8b',
+          ],
+          [
+            'Fixed',
+            'Unit tests no longer inherit a workflow-wide 4 GiB heap that made the memory-aware harness underestimate every worker, and Windows installer smoke now has a bounded 300-second wait with scoped late-process cleanup',
+            '196ead823c9d683992dc58f9931fac7c0e21bc8b',
+          ],
+          [
+            'Fixed',
+            'Cloud-gate regressions now cover CodeMirror accessibility, complete Settings search and command-palette destinations, generated changelog and screenshot catalogs, Copilot policy intent, lazy-section inventory, and unique native-menu access keys',
+            '196ead823c9d683992dc58f9931fac7c0e21bc8b',
+          ],
           [
             'Fixed',
             'The Linux Python 3.13 TUI check now runs non-UI tests together and each UI test file in a fresh interpreter, preserving all coverage while preventing Textual native syntax state from carrying a segfault into the next app-heavy file',

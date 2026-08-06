@@ -19,8 +19,11 @@ Updated: **August 6, 2026**
   process, kills that installer tree on timeout, and repeatedly cleans up only
   newly launched same-session application processes while preserving anything
   that was already running.
-- The implementation and focused local verification are still in progress. A
-  new hosted CI/tested-Express wave and its Release result remain required; no
+- Commit `196ead823c9d683992dc58f9931fac7c0e21bc8b` carries the migration and
+  its regression repairs. Focused checks pass **182/182**, script checks report
+  **217 tests with zero failures**, and the one final full-suite mnemonic defect
+  now passes its exhaustive **17/17** menu matrix. A complete final rerun plus a
+  new hosted CI/tested-Express wave and Release result remain required; no
   remote success is claimed yet.
 
 ## August 6 — Keep Python 3.13 TUI UI tests process-safe

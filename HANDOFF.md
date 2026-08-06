@@ -24,9 +24,14 @@ from the installer's session while preserving process IDs that predated the
 test. It still requires a freshly written executable for the exact application
 version before packaged smoke tests start.
 
-These workflow and documentation changes are uncommitted at this checkpoint.
-Focused local checks and a new hosted CI/tested-Express wave are still required;
-no remote green run or Release is claimed yet. Historical entries below remain
+Implementation commit `196ead823c9d683992dc58f9931fac7c0e21bc8b`
+carries the workflow migration and the stale contracts exposed by the exact
+Node 24.15.0 gate. Focused verification passes **182/182**, the script suite
+reports **217 tests with zero failures**, `actionlint` passes, and the complete
+987-file unit run reached **8,339/8,340** before exposing one duplicate native
+menu mnemonic; its corrected exhaustive menu matrix passes **17/17**. The final
+complete rerun and a new hosted CI/tested-Express wave are still required, so no
+remote green run or Release is claimed yet. Historical entries below remain
 useful failure receipts, but their claims that ordinary CI or tested Express are
 self-hosted or ref-cancelling are explicitly superseded by this section.
 
