@@ -48,13 +48,17 @@ const workflowSources = readdirSync(workflowDirectory)
     file,
     source: readFileSync(join(workflowDirectory, file), 'utf8'),
   }))
+const selfHostedSuperExpressWorkflows = new Set([
+  'build-installers.yml',
+  'super-express-release.yml',
+  'super-express-release-windows.yml',
+  'super-express-release-linux-tui.yml',
+])
+const selfHostedCiWorkflows = new Set(['ci-linux.yml', 'ci-windows.yml'])
 
 describe('CI workflow safety', () => {
   it('does not make hosted CI clone agent-only tooling', () => {
-    assert.match(
-      gitmodules,
-      /\[submodule "vendor\/lowlevel-computer-use-mcp"\][\s\S]*?\tpath = vendor\/lowlevel-computer-use-mcp[\s\S]*?\tupdate = none(?:\r?\n|$)/
-    )
+    assert.doesNotMatch(gitmodules, /lowlevel-computer-use-mcp/)
   })
 
   it('passes the Git trailer format as an argument instead of shell syntax', () => {
@@ -75,6 +79,17 @@ describe('CI workflow safety', () => {
       lintJob?.[1] ?? '',
       /yarn install --frozen-lockfile --ignore-scripts --non-interactive/
     )
+  })
+
+  it('installs Node before the self-hosted Linux TUI invokes Node', () => {
+    const tuiJob = linuxWorkflow.match(
+      /\r?\n  linux-tui:\r?\n([\s\S]*?)(?=\r?\n  [a-z-]+:\r?\n|$)/
+    )
+    assert.notEqual(tuiJob, null)
+    const source = tuiJob?.[1] ?? ''
+    assert.match(source, /uses: actions\/setup-node@v7/)
+    assert.match(source, /node-version: \$\{\{ env\.NODE_VERSION \}\}/)
+    assert.match(source, /node tui\/tools\/generate-parity-contract\.mjs/)
   })
 
   it('uses one configurable loopback endpoint for the E2E build and server', () => {
@@ -270,31 +285,25 @@ describe('CI workflow safety', () => {
     assert.doesNotMatch(installerWorkflow, /^\s+body: \|/m)
   })
 
-  it('runs every overlapping workflow without replacing older running or pending work', () => {
-    // Each lane keeps the unconditional push trigger and its own unique
-    // concurrency group, so neither queues behind nor cancels the other.
+  it('cancels prior trusted CI runs and scopes self-hosted cancellation', () => {
+    // CI is trusted push/manual/workflow-call automation. It deliberately has
+    // no pull_request trigger because every CI job now runs self-hosted.
     for (const { name, source } of ciWorkflows) {
       assert.match(source, /on:\s*\n\s*push:\s*\n/, name)
-      const pushTrigger = source.match(
-        /on:\s*\n\s*push:\s*\n([\s\S]*?)\s+pull_request:/
+      assert.match(source, /workflow_dispatch:/, name)
+      assert.doesNotMatch(source, /\n\s+pull_request:/, name)
+      assert.match(source, /cancel-in-progress: true/, name)
+      assert.match(source, /repository:\s*\n\s*default:\s*''/, name)
+      assert.equal(
+        source.match(
+          /github\.repository == 'Ding-Ding-Projects\/desktop-material'/g
+        )?.length,
+        3,
+        `${name} must guard every self-hosted job against external callers`
       )
-      assert.notEqual(pushTrigger, null, name)
-      assert.doesNotMatch(pushTrigger?.[1] ?? '', /branches:/, name)
-      assert.doesNotMatch(
-        pushTrigger?.[1] ?? '',
-        /^\s*(?:paths|paths-ignore):/m,
-        name
-      )
-      assert.match(source, /cancel-in-progress: false/, name)
     }
-    assert.match(
-      linuxWorkflow,
-      /group: ci-linux-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
-    )
-    assert.match(
-      windowsWorkflow,
-      /group: ci-windows-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
-    )
+    assert.match(linuxWorkflow, /group: ci-linux-\$\{\{ github\.ref \}\}/)
+    assert.match(windowsWorkflow, /group: ci-windows-\$\{\{ github\.ref \}\}/)
 
     for (const required of [
       'ci-linux.yml',
@@ -312,6 +321,22 @@ describe('CI workflow safety', () => {
     }
 
     for (const { file, source } of workflowSources) {
+      if (
+        selfHostedSuperExpressWorkflows.has(file) ||
+        selfHostedCiWorkflows.has(file)
+      ) {
+        assert.match(
+          source,
+          /cancel-in-progress:\s*true/,
+          `${file} may cancel an older trusted self-hosted run`
+        )
+        assert.match(
+          source,
+          /^  group: (?:ci-(?:linux|windows)-|super-express-release)[^\r\n]*\$\{\{ github\.ref \}\}\s*$/m,
+          `${file} must scope cancellation to the dispatched ref`
+        )
+        continue
+      }
       assert.doesNotMatch(
         source,
         /cancel-in-progress:\s*true/,
@@ -333,11 +358,57 @@ describe('CI workflow safety', () => {
     }
   })
 
+  it('keeps every Express Release job on the registered self-hosted pool', () => {
+    assert.doesNotMatch(
+      installerWorkflow,
+      /(?:ubuntu-latest|windows-2022|macos-[A-Za-z0-9.]+)/i
+    )
+    assert.match(
+      installerWorkflow,
+      /^  group: super-express-release-\$\{\{ github\.ref \}\}$/m
+    )
+    assert.match(installerWorkflow, /cancel-in-progress:\s*true/)
+    assert.equal(
+      installerWorkflow.match(
+        /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/g
+      )?.length,
+      5
+    )
+    assert.equal(
+      installerWorkflow.match(
+        /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/g
+      )?.length,
+      2
+    )
+  })
+
   it('builds, packages, and exercises the Windows application only', () => {
-    assert.match(windowsWorkflow, /os: \[windows-2022\]/)
+    assert.doesNotMatch(windowsWorkflow, /windows-2022|ubuntu-latest/)
     assert.match(windowsWorkflow, /arch: \[x64, arm64\]/)
     assert.match(windowsWorkflow, /friendlyName: Windows/)
     assert.match(windowsWorkflow, /Install app on Windows/)
+    assert.match(
+      windowsWorkflow,
+      /Enable Git long paths for Windows TUI tests\s+run: git config core\.longpaths true/
+    )
+    assert.match(
+      windowsWorkflow,
+      /defaults:\s+run:\s+shell: powershell -NoProfile -ExecutionPolicy Bypass -Command \"\. '\{0\}'\"/
+    )
+    assert.doesNotMatch(windowsWorkflow, /shell: pwsh/)
+    assert.equal(
+      windowsWorkflow.match(
+        /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/g
+      )?.length,
+      3
+    )
+    assert.doesNotMatch(linuxWorkflow, /windows-2022|ubuntu-latest/)
+    assert.equal(
+      linuxWorkflow.match(
+        /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/g
+      )?.length,
+      3
+    )
     for (const { name, source } of ciWorkflows) {
       assert.doesNotMatch(source, /macos|APPLE_/i, name)
     }
@@ -352,7 +423,7 @@ describe('CI workflow safety', () => {
 
     assert.match(
       source,
-      /name: Build production app\s+id: production_build\s+if: \$\{\{ always\(\) \}\}/
+      /name: Build production app\s+id: production_build\s+if: \$\{\{ always\(\) && steps\.setup_ci\.outcome == 'success' \}\}/
     )
     assert.match(
       source,
@@ -368,6 +439,19 @@ describe('CI workflow safety', () => {
     )
     assert.match(source, /dist\/GitHubDesktopSetup-\$\{\{matrix\.arch\}\}\.exe/)
     assert.match(source, /if-no-files-found: error/)
+
+    const e2eJob = windowsWorkflow.match(
+      /\r?\n  e2e-smoke:\r?\n([\s\S]*?)(?=\r?\n  [a-z-]+:\r?\n|$)/
+    )
+    assert.notEqual(e2eJob, null)
+    const e2eSource = e2eJob?.[1] ?? ''
+    assert.match(
+      e2eSource,
+      /Start-Process -FilePath \$setupExe -ArgumentList "\/S" -PassThru -Wait/
+    )
+    assert.match(e2eSource, /\$installer\.ExitCode -ne 0/)
+    assert.match(e2eSource, /app-\$expectedVersion\\GitHubDesktop\.exe/)
+    assert.match(e2eSource, /LastWriteTimeUtc -ge \$installStartedAt/)
   })
 
   it('scans the real default branch and supports manual dispatch', () => {

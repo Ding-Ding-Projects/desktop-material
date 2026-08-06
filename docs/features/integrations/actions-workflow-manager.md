@@ -91,6 +91,33 @@ Because it is derived from runs already loaded into the Actions view, the
 figure reflects that bounded provider window. A refresh or store update replaces
 it when a newer run arrives; older history is never presented as newer.
 
+## Recovering transient job-log 404 responses
+
+GitHub can briefly answer `404` for a completed job's log endpoint while the log
+archive is still being prepared or retained. The endpoint is valid in this
+case; treating the first response as permanent made the viewer look broken
+until the user reopened the run.
+
+The main-process transfer now retries only this job-log API response, with
+bounded waits of **250 ms**, **750 ms**, and **1,500 ms**. Every retry starts at
+the original API endpoint and obtains a fresh signed redirect, so a stale blob
+URL is never retried and the API bearer is never sent to the cross-origin log
+host. Artifact downloads and other HTTP failures keep their existing behavior.
+
+After the bounded sequence is exhausted, the viewer names the actual `HTTP
+404` and explains the three likely provider states. It keeps the failure
+non-blocking inside the log surface and offers **Retry** plus **Open on GitHub**;
+Retry starts the same job again without losing the selected run.
+
+There is no user setting to tune. The fixed bound prevents an unavailable
+provider from keeping a renderer request alive indefinitely. Retry attempts do
+not consume the separate redirect-hop budget, and the existing abort signal
+cancels an in-flight retry delay before another network request can start.
+
+![Actions job-log recovery state with the provider 404 explanation, Retry action, and Open on GitHub link](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-job-log-404-recovery.png)
+
+![Actions job log loaded after Retry obtains the now-available archive](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-job-log-404-recovered.png)
+
 ## Force-cancelling a stuck run
 
 A run that ignores an ordinary cancellation cannot be stopped from the Actions
@@ -137,6 +164,17 @@ region, avoiding a new announcement every second. Existing row roles, selection
 semantics, switch targets, and focus order are unchanged.
 
 ## Verification
+
+`app/test/unit/main-process/actions-transfer-test.ts` covers a transient API
+404 followed by a fresh API redirect and successful blob transfer, the exact
+250/750/1,500 ms retry budget, a multi-hop redirect chain after all retries,
+abort during backoff without a refetch, bearer-header scope including signed
+blob 404s, and the final bounded 404. `app/test/unit/ui/job-log-viewer-test.tsx`
+covers the visible error, Retry button, and Open on GitHub link destination and
+activation. The built Windows Electron artifact was also
+exercised through the cheap headless desktop route: the fixture produced four
+bounded 404 attempts, then one successful request after the user activated
+Retry, and the captured viewer shows both expected log lines.
 
 `app/test/unit/actions-run-cancellation-store-test.ts` covers force cancellation:
 a forced request POSTs to `force-cancel` while a concurrent normal request still

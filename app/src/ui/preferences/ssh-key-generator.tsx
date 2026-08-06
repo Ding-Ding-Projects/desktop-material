@@ -80,10 +80,7 @@ export class SSHKeyGenerator extends React.Component<
     return (
       <div className="ssh-key-generator">
         <h2 id="ssh-key-generator-heading">SSH key</h2>
-        <p
-          id="ssh-key-generator-description"
-          className="settings-description"
-        >
+        <p id="ssh-key-generator-description" className="settings-description">
           Generate a new Ed25519 SSH key pair for authenticating with Git
           remotes. The private key is stored securely in{' '}
           {__DARWIN__
@@ -91,8 +88,8 @@ export class SSHKeyGenerator extends React.Component<
             : __WIN32__
             ? 'Windows Credential Manager'
             : 'your system credential store'}{' '}
-          and is never shown. Copy the public key below and add it to your
-          Git host's SSH keys settings.
+          and is never shown. Copy the public key below and add it to your Git
+          host's SSH keys settings.
         </p>
 
         <Button
@@ -109,8 +106,8 @@ export class SSHKeyGenerator extends React.Component<
 
         {hasStoredKey && !isGenerating && publicKey === null && (
           <p className="settings-description">
-            A generated key is already stored. Generate a new one to replace
-            it and see its public key here.
+            A generated key is already stored. Generate a new one to replace it
+            and see its public key here.
           </p>
         )}
 
@@ -133,10 +130,7 @@ export class SSHKeyGenerator extends React.Component<
                 value={publicKey}
                 onFocus={this.onPublicKeyFocus}
               />
-              <CopyButton
-                copyContent={publicKey}
-                ariaLabel="Copy public key"
-              />
+              <CopyButton copyContent={publicKey} ariaLabel="Copy public key" />
             </div>
           </div>
         )}

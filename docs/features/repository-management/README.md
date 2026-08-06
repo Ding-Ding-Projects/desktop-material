@@ -23,9 +23,10 @@ Material is displaying or how a repository is represented in the application.
 - [History commit hover
   time](history-commit-hover-time.md) — show the exact authored date and an
   auto-updating relative age together in the commit row's hover/focus card.
-- [Reviewed bulk branch
-  deletion](reviewed-bulk-branch-deletion.md) — select exact local branch tips,
-  protect current/default/remote refs, and retain per-branch recovery IDs.
+- [Reviewed bulk branch deletion and merge
+  cleanup](reviewed-bulk-branch-deletion.md) — merge one branch, merge and
+  delete only after success, or review exact local branch tips in bulk while
+  protecting current/default/remote refs and retaining per-branch recovery IDs.
 - [Network and WSL repository
   paths](network-and-wsl-repository-paths.md) — retain UNC roots, detect mapped
   drives and WSL shares, and provide offline reconnection guidance.
@@ -41,6 +42,10 @@ Material is displaying or how a repository is represented in the application.
   or transfer before network work while preserving transport, web origin,
   unrelated remotes, and deliberately divergent push targets; scheduled Git
   fails without opening credential, hook, signing, or SSH prompts.
+- [Multi-remote fetch
+  sync](multi-remote-fetch-sync.md) — keep the focused `Fetch <remote>` action
+  for a single-remote checkout and fetch every configured remote, in a stable
+  current-first order, when more than one remote exists.
 - [Reviewed batch repository sync](reviewed-batch-sync.md) — pull active
   branches or fetch only across an exact reviewed subset with bounded
   concurrency and isolated results.
@@ -61,6 +66,10 @@ Material is displaying or how a repository is represented in the application.
   picker](publish-organization-picker.md) — choose a personal or organization
   owner from an anchored searchable listbox with fuzzy, substring, safe-RE2,
   and the full Regex Builder while stale account requests fail closed.
+- [Repository transfer](repository-transfer.md) — choose another signed-in
+  GitHub account or organization, publish either every local ref with its
+  history or one clean root snapshot, verify the destination, and retarget
+  `origin` while preserving a recoverable source remote.
 - [Repository list sync summary](repository-list-sync-summary.md) — a
   low-emphasis line under each repository name giving the exact commits waiting
   to push and to pull, an honest unknown state for anything never checked, and

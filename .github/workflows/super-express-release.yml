@@ -2,9 +2,12 @@ name: Super Express Release
 
 # Manual emergency lane. It deliberately runs no tests, lint, type checks,
 # parity checks, or smoke tests. The ordinary CI and Express Release workflows
-# remain the tested release paths. The Windows and Linux TUI build workflows
-# run in parallel, then one publisher creates the combined Release so the
-# Squirrel update feed and the TUI bootstrap URL still point at one payload.
+# remain the tested release paths. Every job in this emergency lane runs on a
+# registered self-hosted runner: Linux jobs use the WSL runner and the Windows
+# package uses the native Windows runner. The Windows and Linux TUI build jobs
+# run in parallel, then one Linux self-hosted publisher creates the combined
+# Release so the Squirrel update feed and the TUI bootstrap URL still point at
+# one payload.
 on:
   workflow_dispatch:
     inputs:
@@ -14,8 +17,13 @@ on:
         default: true
         type: boolean
 
-# Do not add a shared concurrency group: overlapping manual releases must be
-# allowed to finish independently.
+# Super Express is the one release lane allowed to supersede an older run.
+# Its self-hosted pool is scarce, so a newer dispatch for the same ref cancels
+# the stale release instead of leaving it consuming a local runner indefinitely.
+concurrency:
+  group: super-express-release-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -25,7 +33,10 @@ env:
 jobs:
   prepare:
     name: Prepare exact release target
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
     permissions:
       contents: read
     outputs:
@@ -93,55 +104,9 @@ jobs:
           esac
           echo "sha=$RELEASE_TARGET_SHA" >> "$GITHUB_OUTPUT"
 
-  windows_runner_selection:
-    name: Select Windows self-hosted runner or cloud fallback
-    needs: prepare
-    if: needs.prepare.result == 'success'
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-    outputs:
-      use_self_hosted: ${{ steps.select.outputs.use_self_hosted }}
-    env:
-      GH_TOKEN:
-        ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN
-        }}
-    steps:
-      - name: Check for an idle Windows x64 runner
-        id: select
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if ! inventory=$(gh api --paginate --slurp \
-            "repos/$GITHUB_REPOSITORY/actions/runners?per_page=100"); then
-            echo "::warning::Could not inspect self-hosted runners; using windows-2022."
-            inventory='[]'
-          fi
-
-          if jq -e '
-            [ .[] | .runners[]? |
-              select(.status == "online" and .busy == false) |
-              [ .labels[]?.name | ascii_downcase ] as $labels |
-              select(($labels | index("self-hosted")) != null) |
-              select(($labels | index("windows")) != null) |
-              select(($labels | index("x64")) != null)
-            ] | length > 0
-          ' <<<"$inventory" >/dev/null; then
-            echo "use_self_hosted=true" >> "$GITHUB_OUTPUT"
-            echo "selected runner: self-hosted/Windows/X64"
-          else
-            echo "use_self_hosted=false" >> "$GITHUB_OUTPUT"
-            echo "selected runner: windows-2022"
-          fi
-
-  windows_self_hosted:
+  windows_build:
     name: Build Windows x64 package (self-hosted)
-    needs:
-      - prepare
-      - windows_runner_selection
-    if: needs.windows_runner_selection.outputs.use_self_hosted == 'true'
+    needs: prepare
     runs-on:
       - self-hosted
       - Windows
@@ -166,82 +131,9 @@ jobs:
           DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
             ${{ secrets.DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT }}
 
-  windows_cloud:
-    name: Build Windows x64 package (cloud fallback)
-    needs:
-      - prepare
-      - windows_runner_selection
-    if: needs.windows_runner_selection.outputs.use_self_hosted != 'true'
-    runs-on: windows-2022
-    timeout-minutes: 60
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ needs.prepare.outputs.sha }}
-          fetch-depth: 0
-          submodules: recursive
-
-      - uses: ./.github/actions/super-express-windows-build
-        with:
-          release_target_sha: ${{ needs.prepare.outputs.sha }}
-          release_version: ${{ needs.prepare.outputs.version }}
-          node_version: ${{ env.NODE_VERSION }}
-        env:
-          DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
-          DESKTOP_ERROR_REPORTING_ENDPOINT:
-            ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
-          DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
-            ${{ secrets.DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT }}
-
-  tui_runner_selection:
-    name: Select Linux self-hosted runner or cloud fallback
-    needs: prepare
-    if: needs.prepare.result == 'success'
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-    outputs:
-      use_self_hosted: ${{ steps.select.outputs.use_self_hosted }}
-    env:
-      GH_TOKEN:
-        ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN
-        }}
-    steps:
-      - name: Check for an idle Linux x64 runner
-        id: select
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if ! inventory=$(gh api --paginate --slurp \
-            "repos/$GITHUB_REPOSITORY/actions/runners?per_page=100"); then
-            echo "::warning::Could not inspect self-hosted runners; using ubuntu-latest."
-            inventory='[]'
-          fi
-
-          if jq -e '
-            [ .[] | .runners[]? |
-              select(.status == "online" and .busy == false) |
-              [ .labels[]?.name | ascii_downcase ] as $labels |
-              select(($labels | index("self-hosted")) != null) |
-              select(($labels | index("linux")) != null) |
-              select(($labels | index("x64")) != null)
-            ] | length > 0
-          ' <<<"$inventory" >/dev/null; then
-            echo "use_self_hosted=true" >> "$GITHUB_OUTPUT"
-            echo "selected runner: self-hosted/Linux/X64"
-          else
-            echo "use_self_hosted=false" >> "$GITHUB_OUTPUT"
-            echo "selected runner: ubuntu-latest"
-          fi
-
-  tui_self_hosted:
+  tui_build:
     name: Build Linux TUI packages (self-hosted)
-    needs:
-      - prepare
-      - tui_runner_selection
-    if: needs.tui_runner_selection.outputs.use_self_hosted == 'true'
+    needs: prepare
     runs-on:
       - self-hosted
       - Linux
@@ -257,38 +149,20 @@ jobs:
         with:
           release_target_sha: ${{ needs.prepare.outputs.sha }}
 
-  tui_cloud:
-    name: Build Linux TUI packages (cloud fallback)
-    needs:
-      - prepare
-      - tui_runner_selection
-    if: needs.tui_runner_selection.outputs.use_self_hosted != 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ needs.prepare.outputs.sha }}
-          fetch-depth: 0
-
-      - uses: ./.github/actions/super-express-linux-tui-build
-        with:
-          release_target_sha: ${{ needs.prepare.outputs.sha }}
-
   publish:
     name: Publish combined GitHub Release
     needs:
       - prepare
-      - windows_self_hosted
-      - windows_cloud
-      - tui_self_hosted
-      - tui_cloud
+      - windows_build
+      - tui_build
     if: >-
       always() && needs.prepare.result == 'success' &&
-      (needs.windows_self_hosted.result == 'success' ||
-      needs.windows_cloud.result == 'success') && (needs.tui_self_hosted.result
-      == 'success' || needs.tui_cloud.result == 'success') && inputs.publish
-    runs-on: ubuntu-latest
+      needs.windows_build.result == 'success' && needs.tui_build.result ==
+      'success' && inputs.publish
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
     permissions:
       contents: write
     env:
@@ -308,16 +182,23 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - uses: actions/setup-python@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
-          python-version: '3.12'
+          version: 0.11.26
+          enable-cache: true
+          cache-dependency-glob: tui/uv.lock
+
+      - name: Install managed Python 3.12
+        shell: bash
+        run: uv python install 3.12
 
       - name: Discover exact TUI package version
         id: tui_version
         working-directory: tui
         shell: bash
         run: |
-          version=$(python -c \
+          version=$(uv run --python 3.12 python -c \
             'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
           if [ -z "$version" ] || [[ "$version" == *[[:space:]]* ]]; then
             echo "TUI pyproject.toml did not provide one usable package version." >&2

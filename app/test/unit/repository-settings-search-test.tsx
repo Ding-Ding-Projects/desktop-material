@@ -63,7 +63,7 @@ function renderSettings(overrides: Record<string, unknown> = {}) {
   )
 }
 
-const SearchLabel = 'Search repository settings'
+const SearchLabel = 'Search settings'
 
 // The dialog renders inside a <dialog> element, which jsdom treats as closed,
 // so its contents are hidden from the accessibility tree.
@@ -71,6 +71,23 @@ const tabsOf = (view: ReturnType<typeof renderSettings>) =>
   view.getAllByRole('tab', { hidden: true })
 
 describe('Repository settings search', () => {
+  it('uses browser-style tabs with a linked active panel', () => {
+    const view = renderSettings()
+    const tablist = view.getByRole('tablist', { hidden: true })
+    const selected = tabsOf(view).find(
+      tab => tab.getAttribute('aria-selected') === 'true'
+    )
+    const panel = view.getByRole('tabpanel', { hidden: true })
+
+    assert.equal(tablist.getAttribute('aria-orientation'), 'horizontal')
+    assert.ok(selected)
+    assert.equal(selected?.getAttribute('aria-controls'), panel.id)
+    assert.equal(
+      panel.getAttribute('aria-labelledby'),
+      selected?.getAttribute('id')
+    )
+  })
+
   it('carries its own search field wired to a regex builder surface', () => {
     const view = renderSettings()
 

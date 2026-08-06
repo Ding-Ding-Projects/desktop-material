@@ -16,6 +16,24 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Prefer Git Bash on Windows self-hosted runners
+      if: ${{ runner.os == 'Windows' }}
+      # This runner has Windows PowerShell, while PowerShell Core is not part
+      # of the runner contract. Use the built-in Windows shell for the small
+      # PATH repair, then let subsequent bash steps resolve Git Bash.
+      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+      run: |
+        $git = Get-Command git.exe -ErrorAction SilentlyContinue
+        if ($null -eq $git) {
+          throw 'Git is required on a Windows self-hosted runner.'
+        }
+        $gitRoot = Split-Path (Split-Path $git.Source -Parent) -Parent
+        $gitBash = Join-Path $gitRoot 'bin\bash.exe'
+        if (-not (Test-Path -LiteralPath $gitBash)) {
+          throw "Git Bash is required on a Windows self-hosted runner: $gitBash"
+        }
+        Split-Path $gitBash -Parent | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
     - name: Restore exact installed dependencies
       id: installed-dependencies
       uses: actions/cache@v5
@@ -32,13 +50,145 @@ runs:
           'app/yarn.lock', '.yarnrc', 'app/.yarnrc', 'app/.npmrc',
           'script/post-install.ts',
           '.github/actions/setup-ci-environment/action.yml',
-          'vendor/yarn-1.21.1.js', 'vendor/printenvz/**',
-          'vendor/windows-argv-parser/**', 'vendor/desktop-notifications/**',
-          'vendor/desktop-trampoline/**') }}
+          '.github/scripts/bootstrap-pinned-yarn.ps1', 'vendor/yarn-1.21.1.js',
+          'vendor/printenvz/**', 'vendor/windows-argv-parser/**',
+          'vendor/desktop-notifications/**', 'vendor/desktop-trampoline/**') }}
+
+    - name:
+        Use Node.js ${{ inputs.node-version }} before self-hosted Yarn bootstrap
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Install uv for self-hosted Windows Python
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      with:
+        version: 0.11.26
+        enable-cache: true
+
+    - name: Install managed Python 3.11 on self-hosted Windows
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      shell: bash
+      run: |
+        uv python install 3.11
+        python_path=$(uv python find 3.11)
+        if [ -z "$python_path" ]; then
+          echo 'uv did not return a Python 3.11 interpreter path.' >&2
+          exit 1
+        fi
+        echo "npm_config_python=$python_path" >> "$GITHUB_ENV"
+        echo 'UV_PYTHON=3.11' >> "$GITHUB_ENV"
+
+    - name: Install Windows arm64 C++ toolset when missing
+      if:
+        ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' &&
+        inputs.arch == 'arm64' }}
+      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+      run:
+        '&
+        "$env:GITHUB_WORKSPACE\.github\scripts\ensure-windows-arm64-build-tools.ps1"
+        -TargetArchitecture "${{ inputs.arch }}"'
+
+    - name: Provide repository-pinned Yarn to self-hosted Windows actions
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+      run: '& "$env:GITHUB_WORKSPACE\.github\scripts\bootstrap-pinned-yarn.ps1"'
+
+    - name: Expose repository-pinned Yarn to Git Bash
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      shell: bash
+      run: |
+        # GitHub's Windows PATH bridge keeps the Windows spelling for later
+        # PowerShell/cmd actions. Git Bash needs the same directory in MSYS
+        # form, otherwise the following cache and install steps cannot find
+        # the freshly-created yarn.cmd shim.
+        shim_root="$(cygpath -u "$RUNNER_TEMP/desktop-material-pinned-yarn")"
+        if [ ! -f "$shim_root/yarn.cmd" ]; then
+          echo "Pinned Yarn shim is missing: $shim_root/yarn.cmd" >&2
+          exit 1
+        fi
+        if [ ! -f "$shim_root/yarn" ]; then
+          echo "Git Bash Yarn shim is missing: $shim_root/yarn" >&2
+          exit 1
+        fi
+        chmod +x "$shim_root/yarn"
+        echo "$shim_root" >> "$GITHUB_PATH"
+        export PATH="$shim_root:$PATH"
+        hash -r
+        resolved_yarn="$(command -v yarn || true)"
+        if [ "$resolved_yarn" != "$shim_root/yarn" ]; then
+          echo "Git Bash resolved an unexpected Yarn command: ${resolved_yarn:-<none>}" >&2
+          exit 1
+        fi
+        yarn --version
 
     - uses: actions/setup-python@v6
+      if: ${{ runner.os != 'Windows' || runner.environment != 'self-hosted' }}
       with:
         python-version: '3.11'
+
+    - name: Check cached dependencies
+      id: dependency-cache-check
+      if: steps.installed-dependencies.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        required=(
+          node_modules/webpack/package.json
+          node_modules/electron/package.json
+          app/node_modules/dugite/package.json
+          app/node_modules/@github/copilot/package.json
+          app/node_modules/react/package.json
+          app/node_modules/react/jsx-runtime.js
+          app/node_modules/react-confetti/package.json
+          app/node_modules/react-confetti/dist/react-confetti.mjs
+        )
+        case "$RUNNER_OS" in
+          Windows)
+            required+=(
+              node_modules/electron/dist/electron.exe
+              "app/node_modules/@github/copilot-win32-${{ inputs.arch }}/package.json"
+            )
+            ;;
+          macOS)
+            required+=(
+              node_modules/electron/dist/Electron.app/Contents/MacOS/Electron
+              "app/node_modules/@github/copilot-darwin-${{ inputs.arch }}/package.json"
+            )
+            ;;
+          Linux)
+            required+=(
+              node_modules/electron/dist/electron
+              "app/node_modules/@github/copilot-linux-${{ inputs.arch }}/package.json"
+            )
+            ;;
+        esac
+        cache_complete=true
+        for path in "${required[@]}"; do
+          if [ ! -f "$path" ]; then
+            echo "Cached dependency is incomplete: $path" >&2
+            cache_complete=false
+          fi
+        done
+        playwright_ffmpeg=false
+        for root in "$HOME/.cache/ms-playwright" "$HOME/AppData/Local/ms-playwright"; do
+          if [ -d "$root" ] && find "$root" \
+            -mindepth 2 \
+            -maxdepth 2 \
+            -type f \
+            -path "$root/ffmpeg-*/*" \
+            \( -name ffmpeg-linux -o -name ffmpeg-mac -o -name ffmpeg-win64.exe \) \
+            -print -quit | grep -q .; then
+            playwright_ffmpeg=true
+            break
+          fi
+        done
+        if [ "$playwright_ffmpeg" != true ]; then
+          echo "Cached dependency is missing Playwright ffmpeg." >&2
+          cache_complete=false
+        fi
+        echo "complete=$cache_complete" >> "$GITHUB_OUTPUT"
 
     - name: Use Node.js ${{ inputs.node-version }} with installed dependencies
       if: steps.installed-dependencies.outputs.cache-hit == 'true'
@@ -47,7 +197,9 @@ runs:
         node-version: ${{ inputs.node-version }}
 
     - name: Use Node.js ${{ inputs.node-version }} with Yarn download cache
-      if: steps.installed-dependencies.outputs.cache-hit != 'true'
+      if:
+        ${{ steps.installed-dependencies.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true' }}
       uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}
@@ -62,7 +214,9 @@ runs:
       run: choco install ffmpeg --yes --no-progress
 
     - name: Install and build dependencies
-      if: steps.installed-dependencies.outputs.cache-hit != 'true'
+      if:
+        ${{ steps.installed-dependencies.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true' }}
       shell: bash
       run: |
         # Native packages such as dugite download platform archives during
@@ -87,7 +241,9 @@ runs:
         TARGET_ARCH: ${{ inputs.arch }}
 
     - name: Install cross-compilation copilot package
-      if: steps.installed-dependencies.outputs.cache-hit != 'true'
+      if:
+        ${{ steps.installed-dependencies.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true' }}
       shell: bash
       run: |
         # Map runner.os to Node's process.platform naming
@@ -129,6 +285,10 @@ runs:
           node_modules/electron/package.json
           app/node_modules/dugite/package.json
           app/node_modules/@github/copilot/package.json
+          app/node_modules/react/package.json
+          app/node_modules/react/jsx-runtime.js
+          app/node_modules/react-confetti/package.json
+          app/node_modules/react-confetti/dist/react-confetti.mjs
         )
         case "$RUNNER_OS" in
           Windows)

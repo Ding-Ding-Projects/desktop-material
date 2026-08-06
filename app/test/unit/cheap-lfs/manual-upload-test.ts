@@ -1015,7 +1015,7 @@ describe('manual cheap LFS upload', () => {
       await writeFile(sourcePath, sourceBytes)
       const controller = new AbortController()
       let uploaded: IGitHubReleaseAsset | undefined
-      let uploadedBytes = Buffer.alloc(0)
+      let uploadedBytes: Buffer<ArrayBufferLike> = Buffer.alloc(0)
       let hashCalls = 0
       let pointerWrites = 0
       const releases = gateway({

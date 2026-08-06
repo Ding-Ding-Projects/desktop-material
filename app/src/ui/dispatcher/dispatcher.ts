@@ -325,6 +325,10 @@ import {
 import { UnreachableCommitsTab } from '../history/unreachable-commits-dialog'
 import { sendNonFatalException } from '../../lib/helpers/non-fatal-exception'
 import { SignInResult } from '../../lib/stores/sign-in-store'
+import type {
+  IRepositoryTransferProgress,
+  RepositoryTransferMode,
+} from '../../lib/repository-transfer'
 import { ICustomIntegration } from '../../lib/custom-integration'
 import { IBranchNamePreset } from '../../models/branch-preset'
 import { isAbsolute, join } from 'path'
@@ -2424,9 +2428,16 @@ export class Dispatcher {
   public deleteLocalBranch(
     repository: Repository,
     branch: Branch,
-    includeUpstream?: boolean
-  ): Promise<void> {
-    return this.appStore._deleteBranch(repository, branch, includeUpstream)
+    includeUpstream?: boolean,
+    expectedSha?: string
+  ): Promise<boolean> {
+    return this.appStore._deleteBranch(
+      repository,
+      branch,
+      includeUpstream,
+      undefined,
+      expectedSha
+    )
   }
 
   /**
@@ -2434,9 +2445,16 @@ export class Dispatcher {
    */
   public deleteRemoteBranch(
     repository: Repository,
-    branch: Branch
-  ): Promise<void> {
-    return this.appStore._deleteBranch(repository, branch)
+    branch: Branch,
+    expectedSha?: string
+  ): Promise<boolean> {
+    return this.appStore._deleteBranch(
+      repository,
+      branch,
+      undefined,
+      undefined,
+      expectedSha
+    )
   }
 
   public deleteReviewedBranches(
@@ -3270,6 +3288,15 @@ export class Dispatcher {
     // get manual resolutions in case there are manual conflicts
     const repositoryState = this.repositoryStateManager.get(repository)
     const { conflictState } = repositoryState.changesState
+    const operationDetail =
+      repositoryState.multiCommitOperationState?.operationDetail
+    const deleteAfterSuccessfulMerge =
+      operationDetail?.kind === MultiCommitOperationKind.Merge &&
+      operationDetail.deleteAfterSuccessfulMerge === true
+    const sourceBranch =
+      operationDetail?.kind === MultiCommitOperationKind.Merge
+        ? operationDetail.sourceBranch
+        : null
     if (conflictState === null) {
       // if this doesn't exist, something is very wrong and we shouldn't proceed 😢
       log.error(
@@ -3291,6 +3318,12 @@ export class Dispatcher {
         // to capture all successful squash merges under this metric.
         this.statsStore.increment('squashMergeSuccessfulCount')
         this.statsStore.increment('squashMergeSuccessfulWithConflictsCount')
+      }
+      if (deleteAfterSuccessfulMerge && sourceBranch !== null) {
+        await this.appStore._deleteMergedBranchAfterSuccessfulMerge(
+          repository,
+          sourceBranch
+        )
       }
     }
   }
@@ -3901,6 +3934,18 @@ export class Dispatcher {
     repository: RepositoryWithGitHubRepository
   ): Promise<void> {
     await this.appStore._showCreateForkDialog(repository)
+  }
+
+  /** Show the account-aware repository transfer workflow. */
+  public async showTransferRepositoryDialog(
+    repository: RepositoryWithGitHubRepository,
+    onCompleted?: () => void
+  ): Promise<void> {
+    this.appStore._showPopup({
+      type: PopupType.TransferRepository,
+      repository,
+      onCompleted,
+    })
   }
 
   public async showUnknownAuthorsCommitWarning(
@@ -5732,6 +5777,28 @@ export class Dispatcher {
     )
   }
 
+  public transferRepository(
+    repository: Repository,
+    account: Account,
+    org: IAPIOrganization | null,
+    name: string,
+    description: string,
+    private_: boolean,
+    mode: RepositoryTransferMode,
+    onProgress?: (progress: IRepositoryTransferProgress) => void
+  ): Promise<Repository> {
+    return this.appStore._transferRepository(
+      repository,
+      account,
+      org,
+      name,
+      description,
+      private_,
+      mode,
+      onProgress
+    )
+  }
+
   public async convertRepositoryToFork(
     repository: RepositoryWithGitHubRepository,
     fork: IAPIFullRepository
@@ -7554,7 +7621,8 @@ export class Dispatcher {
   public startMergeBranchOperation(
     repository: Repository,
     isSquash: boolean = false,
-    initialBranch?: Branch | null
+    initialBranch?: Branch | null,
+    deleteAfterSuccessfulMerge: boolean = false
   ) {
     const { branchesState } = this.repositoryStateManager.get(repository)
     const { defaultBranch, allBranches, recentBranches, tip } = branchesState
@@ -7568,7 +7636,12 @@ export class Dispatcher {
       )
     }
 
-    this.initializeMergeOperation(repository, isSquash, null)
+    this.initializeMergeOperation(
+      repository,
+      isSquash,
+      null,
+      deleteAfterSuccessfulMerge
+    )
 
     this.setMultiCommitOperationStep(repository, {
       kind: MultiCommitOperationStepKind.ChooseBranch,
@@ -7597,7 +7670,8 @@ export class Dispatcher {
   public initializeMergeOperation(
     repository: Repository,
     isSquash: boolean,
-    sourceBranch: Branch | null
+    sourceBranch: Branch | null,
+    deleteAfterSuccessfulMerge: boolean = false
   ) {
     const {
       branchesState: { tip },
@@ -7619,6 +7693,7 @@ export class Dispatcher {
         kind: MultiCommitOperationKind.Merge,
         isSquash,
         sourceBranch,
+        deleteAfterSuccessfulMerge,
       },
       currentBranch,
       [],

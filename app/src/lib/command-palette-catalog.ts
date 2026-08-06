@@ -499,6 +499,13 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     group: 'Repository',
   },
   {
+    event: 'transfer-repository',
+    title: 'Transfer the repository to another account',
+    group: 'Repository',
+    keywords: 'remote account owner history clean snapshot login move',
+    isAvailable: whenGitHubRepository,
+  },
+  {
     event: 'view-repository-on-github',
     title: 'View on GitHub',
     group: 'Repository',

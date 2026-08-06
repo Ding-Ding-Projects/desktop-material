@@ -764,6 +764,9 @@ export interface IRepositoryState {
   /** The remote currently associated with the repository, if defined in the configuration */
   readonly remote: IRemote | null
 
+  /** Every configured remote, used to describe and execute multi-remote sync. */
+  readonly remotes: ReadonlyArray<IRemote>
+
   /** The state of the current branch in relation to its upstream. */
   readonly aheadBehind: IAheadBehind | null
 

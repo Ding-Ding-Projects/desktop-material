@@ -65,7 +65,10 @@ export function completeGitTerminalInput(
   const { tokens, trailingSpace } = tokenizeForCompletion(line)
   const leading = tokens[0] === 'git' ? 1 : 0
 
-  if (tokens.length - leading <= 0 || (tokens.length - leading === 1 && !trailingSpace)) {
+  if (
+    tokens.length - leading <= 0 ||
+    (tokens.length - leading === 1 && !trailingSpace)
+  ) {
     // Completing the Git subcommand itself (the first real token).
     const prefix = trailingSpace ? '' : tokens[leading] ?? ''
     return {
@@ -83,9 +86,7 @@ export function completeGitTerminalInput(
   const prefix = trailingSpace ? '' : tokens[lastIndex] ?? ''
   return {
     prefix,
-    candidates: flagTable
-      .filter(flag => flag.startsWith(prefix))
-      .sort(),
+    candidates: flagTable.filter(flag => flag.startsWith(prefix)).sort(),
     tokenIndex: trailingSpace ? tokens.length : lastIndex,
   }
 }

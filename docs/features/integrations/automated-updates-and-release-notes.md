@@ -9,7 +9,7 @@ message.
 
 After Squirrel reports that no update is available, the renderer derives the
 GitHub repository from the configured `releases/latest/download/` feed. It asks
-GitHub for bounded provider data from both `ci.yml` and
+GitHub for bounded provider data from both `ci-linux.yml`/`ci-windows.yml` and
 `build-installers.yml`, and shows **New update coming soon** only when all of
 these checks pass:
 
@@ -114,57 +114,93 @@ operating system, runner and target
 architecture, Node/Python versions, both lockfiles and package manifests,
 install configuration, the post-install script, the setup action, pinned Yarn,
 and local native-vendor sources. A hit must contain reviewed generic,
-target-specific Copilot, Electron-runtime, and Playwright sentinels; there are
-no partial restore keys. Python setup remains unconditional for native builds.
-Build output, `dist`, installers, Release assets, credentials, and runtime
-configuration are never cached.
+target-specific Copilot, Electron-runtime, React JSX-runtime, `react-confetti`,
+and Playwright sentinels. If a hit is incomplete, the setup action records the
+missing paths and reruns the bounded dependency install automatically rather
+than handing the broken cache to webpack. There are no partial restore keys.
+Python setup remains unconditional for native builds. Build output, `dist`,
+installers, Release assets, credentials, and runtime configuration are never
+cached.
 
 ## Workflow concurrency
 
-CI, installer, and Pages invocations each use their unique GitHub run ID and
-attempt as the concurrency group with `cancel-in-progress: false`. Newer runs
-can therefore start without cancelling a running invocation or replacing the
-single older pending slot that GitHub otherwise retains for a shared group.
-Source-contract tests scan every local workflow, reject
-`cancel-in-progress: true`, and require every declared concurrency group to
-include both `github.run_id` and `github.run_attempt`. Workflows without a
-concurrency group, including CodeQL, remain independently runnable.
+CI uses a ref-scoped concurrency group with `cancel-in-progress: true`, so a
+newer trusted push or manual dispatch replaces older CI work for the same ref.
+Installer and Pages publication retain unique GitHub run-and-attempt groups
+with `cancel-in-progress: false`; publication runs must finish independently.
+The self-hosted Super Express release family also uses ref-scoped cancellation,
+so a newer dispatch can release a scarce local runner from an obsolete release.
+Source-contract tests enforce this allowlist. The CI workflows have no
+`pull_request` trigger, keeping untrusted PR code off the self-hosted pool.
+Workflows without a concurrency group, including CodeQL, remain independently
+runnable.
 
 ## Super Express release
 
 `.github/workflows/super-express-release.yml` is a separate, manual-only
 emergency dispatcher. Dispatching it from `main` checks the exact commit and
-tag once, then calls two reusable lanes in parallel:
+tag once, then runs two inline packaging lanes in parallel. Every job in this
+dispatcher is self-hosted-only: the coordinator and publisher use the
+registered Linux x64 WSL runner, while the desktop package uses the registered
+Windows x64 runner. If either runner is offline or busy, the run queues or
+fails; it never moves to a GitHub-hosted machine.
 
 - `.github/workflows/super-express-release-windows.yml` restores the exact
   desktop dependency cache and builds the Windows x64 production package on
-  an online, idle self-hosted Windows x64 runner when one is available, or on
-  the hosted `windows-2022` runner otherwise;
+  `[self-hosted, Windows, X64]`;
 - `.github/workflows/super-express-release-linux-tui.yml` builds the Linux TUI
   wheel, source distribution, locked runtime constraints, bootstrap, and
-  installer on an online, idle self-hosted Linux x64 runner when one is
-  available, or on the hosted `ubuntu-latest` runner otherwise.
+  installer on `[self-hosted, Linux, X64]`.
 
-Each reusable packaging lane starts with a small hosted selector because a
-queued `self-hosted` job cannot discover that its runner pool is unavailable
-and then move itself to the cloud. The selector reads the repository runner
-inventory through `gh api` using the `RELEASE_TOKEN`, `ORG_TOKEN`, then
-`GITHUB_TOKEN` fallback chain, accepts only online and idle runners carrying
-the matching OS and `X64` labels, and sets a boolean choice. Exactly one of two
-static-target jobs then runs: `[self-hosted, Windows, X64]` or `windows-2022`
-for the desktop package, and `[self-hosted, Linux, X64]` or `ubuntu-latest`
-for the TUI package. The coordinator and publisher remain on
-`ubuntu-latest`, where their repository/API work is deterministic. If the
-inventory cannot be read or no matching runner is idle, the affected package
-lane falls back immediately to its hosted target. Static conditional jobs are
-deliberate: a dynamic `runs-on` label array from a previous job can make
-GitHub reject the workflow during planning before the selector runs.
+There is no hosted selector and no cloud fallback in these workflows. Static
+runner labels make the placement visible during workflow planning and ensure a
+release cannot accidentally consume hosted minutes or expose its build to a
+different machine. The publisher still uses the `RELEASE_TOKEN`, `ORG_TOKEN`,
+then `GITHUB_TOKEN` authorization chain for GitHub API operations, but the
+token never chooses a runner.
 
-The combined dispatcher keeps the same static conditional shape inline rather
-than calling those reusable workflows. GitHub had been rejecting the caller
-before it created any job even after the reusable lanes were repaired; inline
-selector/build jobs leave the dispatcher with only statically declared runner
-targets while preserving the direct reusable lanes for packaging-only recovery.
+The combined dispatcher keeps its packaging jobs inline because GitHub had
+previously rejected the caller before creating any job when the runner labels
+were generated dynamically. The direct reusable workflow files remain
+available for packaging-only recovery, and they use the same static
+self-hosted-only targets.
+
+The Linux TUI action installs the pinned `uv` tool first and runs
+`uv python install 3.12`; this avoids relying on `actions/setup-python`'s
+distribution manifest, which does not list Python 3.12 for Debian 13 on the
+registered WSL runner. Version discovery runs through
+`uv run --python 3.12`, so the wheel, source distribution, and runtime
+constraints use the same managed interpreter.
+
+The Windows self-hosted actions run a small PowerShell preflight before any
+`shell: bash` step. Each PowerShell step uses an explicit, per-process
+`-NoProfile -ExecutionPolicy Bypass` invocation; the machine execution policy
+is not changed. The preflight resolves the installed `git.exe`, verifies the
+matching Git Bash executable, and prepends its `bin` directory through
+`GITHUB_PATH` so the deprecated Windows WSL launcher cannot be selected
+accidentally. A host without Git or Git Bash fails with that exact prerequisite
+instead of reaching the packaging commands in a misleading shell state.
+
+Self-hosted Windows setup also avoids the hosted toolcache installer for the
+native-module Python dependency: pinned `uv` installs Python 3.11 locally and
+the action exports the interpreter returned by `uv python find 3.11` as
+`npm_config_python`. GitHub-hosted and non-Windows runners retain
+`actions/setup-python@v6`.
+
+Before `actions/setup-node@v6` asks Yarn for its cache directory, the same
+self-hosted Windows path runs
+[`bootstrap-pinned-yarn.ps1`](../../../.github/scripts/bootstrap-pinned-yarn.ps1).
+That script creates a runner-temporary `yarn.cmd` shim for Windows actions and
+an executable `yarn` shim for Git Bash steps; both call the repository-pinned
+`vendor/yarn-1.21.1.js` through the runner's existing Node.js. It adds both the
+Windows directory and its `/c/...` Git Bash form through `GITHUB_PATH`, so
+`setup-node` and later `shell: bash` commands resolve the same runtime. Nothing
+is installed globally, committed, or reused outside the job. This repairs a
+bare registered runner where Node is present but Yarn is not, while keeping the
+lockfile's declared Yarn runtime authoritative. If Node, Git Bash, or the
+vendored runtime is missing, the preflight fails with the exact prerequisite
+instead of letting a later step emit the less useful `yarn: command not found`
+message.
 
 Each packaging lane also exposes its own `workflow_dispatch` action for a
 manual, packaging-only recovery run. A direct Windows dispatch accepts an
@@ -192,9 +228,11 @@ can be cleared to build recovery artifacts without creating a Release.
 Published Super Express Releases use the same current-main and highest-same-SHA
 promotion helper as automatic Releases.
 
-No shared concurrency group is declared, so overlapping manual invocations can
-finish independently. Tags and Releases are immutable: a same-tag race has one
-winner, and later attempts fail without replacing it.
+The Super Express workflow family uses ref-scoped concurrency with
+`cancel-in-progress: true`. A newer dispatch on the same ref replaces an older
+self-hosted release, while independent refs retain separate groups. Tags and
+Releases are immutable: a same-tag race has one winner, and later attempts fail
+without replacing it.
 
 ## Downgrade guard
 

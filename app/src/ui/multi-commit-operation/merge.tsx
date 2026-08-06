@@ -125,6 +125,9 @@ export abstract class Merge extends BaseMultiCommitOperation {
         recentBranches={recentBranches}
         currentBranch={currentBranch}
         initialBranch={initialBranch}
+        deleteAfterSuccessfulMerge={
+          operationDetail.deleteAfterSuccessfulMerge === true
+        }
         operation={
           isSquash
             ? MultiCommitOperationKind.Squash

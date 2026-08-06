@@ -14,6 +14,9 @@ interface IPushPullButtonDropDownProps {
   /** The name of the remote. */
   readonly remoteName: string | null
 
+  /** The number of configured remotes in the repository. */
+  readonly remoteCount?: number
+
   /** Will the app prompt the user to confirm a force push? */
   readonly askForConfirmationOnForcePush: boolean
 
@@ -74,12 +77,17 @@ export class PushPullButtonDropDown extends React.Component<IPushPullButtonDropD
 
   private getDropdownItemWithType(type: DropdownItemType): DropdownItem {
     const { remoteName } = this.props
+    const hasMultipleRemotes = (this.props.remoteCount ?? 0) > 1
 
     switch (type) {
       case DropdownItemType.Fetch:
         return {
-          title: `Fetch ${remoteName}`,
-          description: `Fetch the latest changes from ${remoteName}`,
+          title: hasMultipleRemotes
+            ? 'Fetch all remotes'
+            : `Fetch ${remoteName}`,
+          description: hasMultipleRemotes
+            ? 'Fetch the latest changes from every configured remote'
+            : `Fetch the latest changes from ${remoteName}`,
           action: this.props.fetch,
           icon: syncClockwise,
           materialSymbol: 'sync',

@@ -149,26 +149,48 @@
   .tab-container {
     display: flex;
     flex: 1;
+    flex-direction: column;
     min-height: 0;
     overflow: hidden;
 
-    // The navigation column: the search field, then the page strip beneath it.
-    // The strip owns the remaining height and does its own scrolling, so this
-    // wrapper only has to stop growing past the dialog.
-    > .settings-tab-rail {
+    // The search belongs to the same full-width browser chrome as the tabs.
+    > .repository-settings-browser-toolbar {
       display: flex;
       flex: none;
       flex-direction: column;
-      min-height: 0;
       min-width: 0;
-      padding: var(--spacing) var(--spacing) var(--spacing) var(--spacing-double);
-      width: 260px;
+      padding: var(--spacing) var(--spacing-double) var(--spacing-half);
+
+      .repository-settings-tab-search {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--spacing-half);
+
+        > label {
+          flex: 0 0 auto;
+          font-size: var(--font-size-sm);
+          font-weight: var(--font-weight-semibold);
+        }
+
+        .repository-settings-tab-filter-field {
+          display: flex;
+          flex: 1 1 280px;
+          min-width: 0;
+          align-items: center;
+          gap: var(--spacing-half);
+
+          input {
+            flex: 1 1 auto;
+            min-width: 0;
+          }
+        }
+      }
     }
 
     .active-tab {
       container-name: repository-settings-pane;
       container-type: inline-size;
-      border-left: var(--base-border);
       flex: 1;
       min-width: 0;
       min-height: 0;
@@ -201,6 +223,13 @@
     .remote-manager-intro {
       display: grid;
       gap: var(--spacing-half);
+
+      .remote-manager-intro-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing);
+        margin-top: var(--spacing-half);
+      }
 
       p {
         color: var(--md-sys-color-on-surface-variant);
@@ -1221,34 +1250,12 @@
     .tab-container {
       flex-direction: column;
 
-      > .settings-tab-rail {
+      > .repository-settings-browser-toolbar {
         padding: 4px 8px;
         width: 100%;
       }
 
-      .settings-tab-strip-list {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
-        overflow: visible;
-      }
-
-      .settings-tab-strip-item {
-        font-size: 0;
-        justify-content: center;
-        margin: 0;
-        min-height: 40px;
-        min-width: 40px;
-        padding: 8px;
-
-        .icon {
-          height: 18px;
-          margin: 0;
-          width: 18px;
-        }
-      }
-
       .active-tab {
-        border-top: var(--base-border);
         border-left: 0;
       }
     }

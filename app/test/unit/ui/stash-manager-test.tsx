@@ -1,4 +1,4 @@
-import { describe, it } from 'node:test'
+import { beforeEach, describe, it } from 'node:test'
 import assert from 'node:assert'
 import * as React from 'react'
 
@@ -7,6 +7,7 @@ import {
   filterManagedStashInventory,
   groupManagedStashes,
   StashManager,
+  StashManagerDialog,
 } from '../../../src/ui/stashing/stash-manager'
 import { FilterMode } from '../../../src/lib/fuzzy-find'
 import {
@@ -53,6 +54,8 @@ const externalEntry: IStashEntry = {
   parents: ['3'.repeat(40)],
   files: { kind: StashedChangesLoadStates.NotLoaded },
 }
+
+beforeEach(() => localStorage.clear())
 
 class FakeStashDispatcher {
   public readonly creates: unknown[] = []
@@ -144,7 +147,71 @@ function renderManager(
   return fake
 }
 
+function renderDialog(
+  fake = new FakeStashDispatcher(),
+  entries: ReadonlyArray<IStashEntry> = [featureEntry, mainEntry]
+) {
+  const repository = new Repository('C:\\repo', 1, null, false)
+  render(
+    <StashManagerDialog
+      repository={repository}
+      dispatcher={fake as unknown as Dispatcher}
+      branch="main"
+      workingDirectory={WorkingDirectoryStatus.fromFiles([])}
+      selectedFileIDs={[]}
+      allStashEntries={entries}
+      foreignStashEntryCount={2}
+      stashInventoryTruncated={false}
+      selectedStashEntry={null}
+      isShowingStashEntry={false}
+      hasConflicts={false}
+      onDismissed={() => {}}
+    />
+  )
+  return fake
+}
+
 describe('stash manager', () => {
+  it('uses the shared browser tab strip for every dialog page', () => {
+    renderDialog()
+
+    const tablist = screen.getByRole('tablist', { hidden: true })
+    assert.equal(tablist.getAttribute('aria-orientation'), 'horizontal')
+    assert.equal(screen.getAllByRole('tab', { hidden: true }).length, 4)
+    assert.equal(
+      screen.getByRole('tabpanel', { hidden: true }).id,
+      'stash-dialog-panel-manage'
+    )
+
+    fireEvent.click(screen.getByRole('tab', { name: /Export/, hidden: true }))
+    assert.equal(
+      screen.getByRole('tabpanel', { hidden: true }).id,
+      'stash-dialog-panel-export'
+    )
+  })
+
+  it('selects a neighboring page before closing the active page', () => {
+    renderDialog()
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Close Manage tab',
+        hidden: true,
+      })
+    )
+    assert.equal(screen.getAllByRole('tab', { hidden: true }).length, 3)
+    assert.equal(
+      screen.getByRole('tabpanel', { hidden: true }).id,
+      'stash-dialog-panel-export'
+    )
+    assert.ok(
+      screen.getByRole('button', {
+        name: 'Open a Stash manager page in a new tab',
+        hidden: true,
+      })
+    )
+  })
+
   it('groups the current branch first without losing repository entries', () => {
     const groups = groupManagedStashes([featureEntry, mainEntry], 'main')
     assert.deepEqual(

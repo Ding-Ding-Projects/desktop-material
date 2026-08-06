@@ -18,7 +18,7 @@ runs:
   steps:
     - name: Install Azure Code Signing Client
       if: ${{ runner.os == 'Windows' && inputs.enabled == 'true' }}
-      shell: pwsh
+      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
       run: |
         $acsZip = Join-Path $env:RUNNER_TEMP "acs.zip"
         $acsDir = Join-Path $env:RUNNER_TEMP "acs"

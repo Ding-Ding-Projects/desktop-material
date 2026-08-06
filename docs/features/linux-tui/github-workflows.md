@@ -79,14 +79,17 @@ rather than silently returning an empty workspace.
 ### Super Express Linux TUI lane
 
 The manual `.github/workflows/super-express-release.yml` dispatcher calls
-`.github/workflows/super-express-release-linux-tui.yml` on `ubuntu-latest` in
-parallel with the Windows x64 lane. This is an emergency zero-test path: it
-does not run the TUI suite, parity generation, Ruff, mypy, installer smoke, or
-the Debian acceptance container. It does run the packaging-only checks needed
-to avoid a misleading payload: the exact commit is checked out, `uv build`
-creates one wheel and one source distribution, `uv export --locked` creates
-the matching runtime constraints, and both checked-in shell installers pass
-`sh -n` and are copied as executable release assets.
+`.github/workflows/super-express-release-linux-tui.yml` on the registered
+`[self-hosted, Linux, X64]` WSL runner in parallel with the Windows x64 lane.
+The coordinator and publisher use that same Linux runner; no Super Express job
+uses a GitHub-hosted cloud runner. This is an emergency zero-test path: it does
+not run the TUI suite, parity generation, Ruff, mypy, installer smoke, or the
+Debian acceptance container. It does run the packaging-only checks needed to
+avoid a misleading payload: the exact commit is checked out, managed Python
+3.12 is installed through `uv python install 3.12`, `uv build` creates one
+wheel and one source distribution, `uv export --locked` creates the matching
+runtime constraints, and both checked-in shell installers pass `sh -n` and are
+copied as executable release assets.
 
 The Linux TUI lane also has its own `workflow_dispatch` trigger. Dispatching
 it from `main` with an optional exact commit SHA runs the same packaging-only

@@ -57,7 +57,7 @@ rather than picking a winner:**
 | [`.python-version`](../../.python-version) | `3.9` | inherited toolchain pin |
 | [`.tool-versions`](../../.tool-versions) | `3.9.5` | inherited toolchain pin |
 | [`setup-windows.md`](./setup-windows.md) | `3.9.x` | `node-gyp` native-module builds |
-| [`super-express-release.yml`](../../.github/workflows/super-express-release.yml) | `3.11` | the Python the desktop packaging job restores |
+| [`super-express-release.yml`](../../.github/workflows/super-express-release.yml) | `3.12` | the managed Python the self-hosted Super Express publisher and TUI lane install through `uv` |
 | [`ci-linux.yml`](../../.github/workflows/ci-linux.yml) and [`ci-windows.yml`](../../.github/workflows/ci-windows.yml) | `3.10`, `3.12`, `3.13` | the `linux-tui` / `windows-tui-core` test matrix |
 
 Nothing in CI installs Python 3.9, so no green run is evidence that `3.9` still

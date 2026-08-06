@@ -336,6 +336,7 @@ import { TutorialStep, isValidTutorialStep } from '../models/tutorial-step'
 import { WorkflowPushRejectedDialog } from './workflow-push-rejected/workflow-push-rejected'
 import { SAMLReauthRequiredDialog } from './saml-reauth-required/saml-reauth-required'
 import { CreateForkDialog } from './forks/create-fork-dialog'
+import { RepositoryTransferDialog } from './repository-transfer/repository-transfer-dialog'
 import { findContributionTargetDefaultBranch } from '../lib/branch'
 import {
   GitHubRepository,
@@ -1255,6 +1256,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.fetch()
       case 'fork-repository':
         return this.forkRepository(this.getRepository())
+      case 'transfer-repository':
+        return this.transferRepository(this.getRepository())
       case 'show-changes':
         return this.showChanges(true)
       case 'show-history':
@@ -4270,6 +4273,18 @@ export class App extends React.Component<IAppProps, IAppState> {
     return this.props.dispatcher.showCreateForkDialog(eligibility.repository)
   }
 
+  private transferRepository = (
+    repository: Repository | CloningRepository | null
+  ) => {
+    if (!(repository instanceof Repository)) {
+      return
+    }
+    if (!isRepositoryWithGitHubRepository(repository)) {
+      return
+    }
+    return this.props.dispatcher.showTransferRepositoryDialog(repository)
+  }
+
   private showRepositoryAccountSettings = () => {
     this.showRepositorySettings(RepositorySettingsTab.Remote)
   }
@@ -4613,6 +4628,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             repository={popup.repository}
             branch={popup.branch}
             existsOnRemote={popup.existsOnRemote}
+            expectedSha={popup.expectedSha}
             onDismissed={onPopupDismissedFn}
             onDeleted={this.onBranchDeleted}
           />
@@ -4624,6 +4640,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             dispatcher={this.props.dispatcher}
             repository={popup.repository}
             branch={popup.branch}
+            expectedSha={popup.expectedSha}
             onDismissed={onPopupDismissedFn}
             onDeleted={this.onBranchDeleted}
           />
@@ -5734,6 +5751,16 @@ export class App extends React.Component<IAppProps, IAppState> {
             repository={popup.repository}
             account={popup.account}
             accounts={this.state.accounts}
+          />
+        )
+      case PopupType.TransferRepository:
+        return (
+          <RepositoryTransferDialog
+            onDismissed={onPopupDismissedFn}
+            dispatcher={this.props.dispatcher}
+            repository={popup.repository}
+            accounts={this.state.accounts}
+            onCompleted={popup.onCompleted}
           />
         )
       case PopupType.CreateTag: {
@@ -8538,6 +8565,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           onRemoveRepository={this.removeRepository}
           onViewOnGitHub={this.viewOnGitHub}
           onForkRepository={this.forkRepository}
+          onTransferRepository={this.transferRepository}
           onOpenInNewWindow={this.openRepositoryInNewWindow}
           onOpenInShell={this.openInShell}
           onShowRepository={this.showRepository}
@@ -8820,6 +8848,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       onRemoveRepositoryGroupName: onRemoveRepositoryGroupName,
       onViewOnGitHub: this.viewOnGitHub,
       onForkRepository: this.forkRepository,
+      onTransferRepository: this.transferRepository,
       onOpenInNewWindow: this.openRepositoryInNewWindow,
       onCreateWorktree: enableWorktreeSupport() ? onCreateWorktree : undefined,
       onShowWorktrees: enableWorktreeSupport() ? onShowWorktrees : undefined,
@@ -8891,6 +8920,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         aheadBehind={state.aheadBehind}
         numTagsToPush={state.tagsToPush !== null ? state.tagsToPush.length : 0}
         remoteName={remoteName}
+        remoteCount={state.remotes.length}
         lastFetched={state.lastFetched}
         networkActionInProgress={state.isPushPullFetchInProgress}
         progress={progress}

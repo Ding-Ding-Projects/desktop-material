@@ -49,7 +49,7 @@ remote CI caught a macOS error-ordering defect without publishing; correction
 `98d93ccc` passed its full remote CI gate and published
 `v3.6.3-beta3-b0000000165`. Exact publication receipts are in `HANDOFF.md`.
 
-The [Guided Feature Gallery](Feature-Gallery) declares the canonical 86-scene
+The [Guided Feature Gallery](Feature-Gallery) declares the canonical 91-scene
 Windows visual target: every catalogued function or state must own one distinct
 screenshot rather than borrow an overview image. The current-source updater
 frame is accepted and published as its own target; it does not replace the
@@ -382,6 +382,11 @@ GitHub.com accounts, or a work and a personal GitHub Enterprise identity side by
 Each account keeps its **own tabs, repositories, and settings**. Switching the active account
 switches the whole workspace to that identity's context.
 
+The **Active** chip and **Make active** action in **Settings → Accounts** use
+the same one-account-global rule as the rail switcher, including across
+GitHub.com, Enterprise, GitLab, and Bitbucket sections. A repository with an
+explicit **Repository account** binding remains on that exact identity.
+
 Open the repositories side sheet to narrow cloned repositories by **Repository account** and
 **Repository service**. The filters combine: for example, choose one exact account and GitLab, or
 choose **No available account** and **Local only**. Signed-out/stale bindings remain explicit under
@@ -467,6 +472,36 @@ window, so a generic host's rename is detected even when its old branch still ex
 child-process close event cannot hang the completed fetch. Concurrent preparations for the same
 remote URL share one in-flight system proxy lookup instead of multiplying resolver work after a
 timeout. Clone cancellation remains stricter and waits for the owned process to close completely.
+
+### Transfer a repository to another account
+
+Open **Repository → Transfer repository…**, choose **Transfer repository** from
+the repository-list context menu or Command Palette, or use the button in
+**Repository settings → Remote**. The dialog starts with the source repository
+and offers every signed-in GitHub identity. Choose **Sign in to another
+account…** when the destination identity is not present; the normal GitHub.com
+or GitHub Enterprise sign-in flow returns to this dialog without exposing the
+credential to the page.
+
+Choose a personal or organization owner, keep the existing repository name or
+enter a custom provider-safe name, and choose whether the destination is
+private. **Full history** creates a temporary bare clone and pushes every local
+branch and tag. **Clean state** creates one new root commit from the current
+files, pushes the current branch, and keeps the previous tip in a local
+`refs/desktop-material/transfer-backups/` recovery ref. Both modes require a
+valid Git operation state; full-history mode requires a clean worktree, while
+clean-state mode intentionally includes the current Git-visible changes. Both
+show real progress, verify the destination branch, and only then retarget
+`origin`; the original source remains available as `upstream` when the
+repository did not already have one.
+
+The final review names the destination, mode, privacy, and remote change. Two
+independent confirmations plus the full-range authorization slider are
+required. If provider creation or publication succeeds but local retargeting
+fails, the dialog says that the destination may already exist and leaves the
+old remote in place when possible. See the [repository transfer feature
+article](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/repository-management/repository-transfer.md)
+for recovery, security, and verification details.
 
 ---
 
@@ -866,15 +901,21 @@ interactive while a dialog is open.
   own range first, then the outer dialog continues at the nested edge.
 - OS-native pickers (file open/save) stay native.
 
-**Preferences** is the reference surface: an MD3 940×660 dialog with a left navigation rail, an
-**Active** chip on the current section, and a pill footer. The **repository** and **branch** pickers
+**Preferences** is the reference surface: an MD3 940×660 dialog with browser-style horizontal tabs,
+an **Active** chip on the current section, and a pill footer. The same shared tab surface is used by
+**Repository settings** and **Stash Manager**, so opening a new page, closing a page, finding overflow,
+and moving with `Left`, `Right`, `Home`, or `End` behaves consistently across all three dialogs. The
+open-page session is local to each surface; filtering the strip does not close hidden pages, and stale
+stored page IDs are discarded safely. The **repository** and **branch** pickers
 open as MD3 **side sheets** rather than blocking modals. The repository sheet keeps **Add** and
 **Select** visible, while **More** holds group creation, workspace sync, and commit/push-all so
 all five actions stay available without wrapping into a cluttered multi-line block. Its
 **Filters** disclosure folds account, service, status, search, and regex controls together;
 active values remain applied and are counted on the pill while the panel is collapsed.
 
-![Preferences as an MD3 dialog](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-settings.png)
+![Global Settings as an MD3 dialog with browser-style tabs, close actions, search, and overflow](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-settings.png)
+
+![Repository Settings with the shared browser-style tabs and Remote page selected](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-remote-manager.png)
 
 ![Dark repository side sheet with collapsed Filters and compact Add, Select, and More actions](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-repositories-sheet.png)
 
@@ -1635,12 +1676,13 @@ The **Actions** panel brings CI into the app:
 - The repository's **Super Express Release** emergency lane runs no unit,
   script, TUI, lint, type, parity, smoke, or E2E tests. It goes directly to the
   Windows x64 production build/package, asset verification, and optional
-  release; preparation and publication use `ubuntu-latest`, while each
-  packaging lane selects an online, idle matching self-hosted runner when
-  available and otherwise uses `windows-2022` or `ubuntu-latest`. Static
-  conditional jobs keep the workflow schedulable before any job starts.
-  Ordinary CI and tested Express remain the default gates. A release pull
-  request targets the Windows product's `main` default branch.
+  release. Every job is self-hosted-only: preparation and publication use the
+  registered Linux x64 WSL runner, the Windows lane uses `[self-hosted,
+  Windows, X64]`, and the TUI lane uses `[self-hosted, Linux, X64]`. A missing
+  or busy local runner queues or fails the release; it never falls back to a
+  GitHub-hosted runner. Ordinary CI and tested Express remain the default
+  gates. A release pull request targets the Windows product's `main` default
+  branch.
 - Automatic and Super Express installers share one monotonic `z` package-version
   namespace. Releases are immutable and initially non-latest; only the greatest
   release for freshly revalidated current `main` is promoted to the Squirrel
@@ -1698,6 +1740,17 @@ headers before any cross-origin hop. Download errors also omit signed URLs and q
 live Windows x64 proof below shows the resulting searchable, collapsible log viewer.
 
 ![Windows x64 GitHub Actions job log loaded securely in the searchable in-app viewer](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-job-log.png)
+
+If GitHub is still preparing a completed job's archive, the log endpoint can
+temporarily return `HTTP 404`. The viewer now retries that API response with a
+bounded 250/750/1,500 ms schedule and obtains a fresh signed redirect on each
+attempt. When the bound is exhausted, it explains the provider state and keeps
+**Retry** and **Open on GitHub** available; it never sends the API bearer to the
+cross-origin log host.
+
+![Actions job-log recovery state with Retry and Open on GitHub](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-job-log-404-recovery.png)
+
+![Actions job log loaded after the provider archive becomes available](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-job-log-404-recovered.png)
 
 ---
 
@@ -1876,7 +1929,7 @@ Desktop entry-count cap:
 Switching branches can still offer to stash local work, and the resulting entry appears in the same
 list.
 
-![Repository-wide stash manager with an exact selected entry](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
+![Stash Manager with browser-style Manage, Export, History, and Appearance and voice pages](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
 
 The full manager is rendered through the shared dialog layer, keeping every
 tab and export control centered and usable above the Changes pane. The hidden
@@ -1884,7 +1937,9 @@ Windows capture below is the accepted 1443×992 runtime proof.
 
 ![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
 
-Choose **Open full manager** for the complete workflow. Its tabs provide a regex-capable search
+Choose **Open full manager** for the complete workflow. Its browser-style tabs keep Manage, Export,
+History, and Appearance and voice as independently closable pages; use the plus and overflow actions
+to reopen a page without losing the current stash review. Its tabs provide a regex-capable search
 and multi-selection export to a directory, ZIP, or 7z. The 7z panel exposes compression method,
 level, dictionary, match finder, fast bytes, solid mode, threads, split volumes, password, and
 encrypted headers. The History tab keeps exact object IDs visible for recovery review, while

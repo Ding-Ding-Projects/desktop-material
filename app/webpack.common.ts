@@ -26,6 +26,12 @@ const commonConfig: webpack.Configuration = {
   module: {
     rules: [
       {
+        test: /\.m?js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+      },
+      {
         test: /\.tsx?$/,
         include: path.resolve(__dirname, 'src'),
         use: [
@@ -34,14 +40,6 @@ const commonConfig: webpack.Configuration = {
           },
         ],
         exclude: /node_modules/,
-      },
-      {
-        // Some modern ESM packages import React's JSX runtime without the
-        // .js suffix. Allow webpack to resolve that request in the .mjs graph.
-        test: /\.m?js$/,
-        resolve: {
-          fullySpecified: false,
-        },
       },
       {
         test: /\.node$/,
@@ -54,12 +52,20 @@ const commonConfig: webpack.Configuration = {
   },
   resolve: {
     extensions: ['.js', '.ts', '.tsx'],
-    // The Copilot SDK also publishes an ESM entry that uses `import.meta` to
-    // locate its native CLI package. Webpack's Electron renderer runtime
-    // cannot provide the generated `__webpack_module__` reference for that
-    // entry, so use the SDK's equivalent CommonJS build when bundling the
-    // desktop application.
+    // react-confetti's ESM build imports the React 16 JSX runtime without the
+    // extension. Webpack treats that import as fully specified, so resolve
+    // the exact backported runtime file instead of weakening ESM resolution
+    // for every dependency.
     alias: {
+      'react/jsx-runtime$': path.resolve(
+        __dirname,
+        'node_modules/react/jsx-runtime.js'
+      ),
+      // The Copilot SDK also publishes an ESM entry that uses `import.meta` to
+      // locate its native CLI package. Webpack's Electron renderer runtime
+      // cannot provide the generated `__webpack_module__` reference for that
+      // entry, so use the SDK's equivalent CommonJS build when bundling the
+      // desktop application.
       '@github/copilot-sdk$': path.resolve(
         __dirname,
         'node_modules/@github/copilot-sdk/dist/cjs/index.js'
@@ -141,6 +147,10 @@ export const renderer = merge({}, commonConfig, {
   resolve: {
     // Prevent the renderer from using browser-specific versions of modules
     aliasFields: [],
+    // A few dependency ESM entry points import React's JSX runtime without
+    // the .js suffix. Keep webpack's resolver compatible with React 16's
+    // extension-bearing runtime files.
+    fullySpecified: false,
   },
 })
 

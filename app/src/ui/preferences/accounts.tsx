@@ -2,6 +2,7 @@ import * as React from 'react'
 import classNames from 'classnames'
 import {
   Account,
+  accountEquals,
   getAccountKey,
   isBitbucketAccount,
   isDotComAccount,
@@ -358,7 +359,12 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
           </div>
         </div>
         <div className="account-card-list">
-          {accounts.map(account => this.renderAccount(account))}
+          {accounts.map(account =>
+            this.renderAccount(account, {
+              active: this.isActiveAccount(account),
+              canMakeActive: this.props.accounts.length > 1,
+            })
+          )}
         </div>
         <div className="provider-sign-in-card">
           <TextBox
@@ -403,7 +409,12 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
           </div>
         </div>
         <div className="account-card-list">
-          {accounts.map(account => this.renderAccount(account))}
+          {accounts.map(account =>
+            this.renderAccount(account, {
+              active: this.isActiveAccount(account),
+              canMakeActive: this.props.accounts.length > 1,
+            })
+          )}
         </div>
         <div className="provider-sign-in-card">
           <TextBox
@@ -604,6 +615,11 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
     this.setState({ trelloConnectedMember: null })
   }
 
+  private isActiveAccount(account: Account) {
+    const activeAccount = this.props.accounts[0]
+    return activeAccount !== undefined && accountEquals(account, activeAccount)
+  }
+
   private renderMultipleDotComAccounts() {
     const dotComAccounts = this.props.accounts.filter(isDotComAccount)
 
@@ -612,8 +628,8 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
         <div className="account-card-list">
           {dotComAccounts.map((account, index) =>
             this.renderAccount(account, {
-              active: index === 0,
-              canMakeActive: dotComAccounts.length > 1,
+              active: this.isActiveAccount(account),
+              canMakeActive: this.props.accounts.length > 1,
               preferredFocus: index === 0,
             })
           )}
@@ -637,8 +653,8 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
         <div className="account-card-list">
           {enterpriseAccounts.map((account, index) =>
             this.renderAccount(account, {
-              active: index === 0,
-              canMakeActive: enterpriseAccounts.length > 1,
+              active: this.isActiveAccount(account),
+              canMakeActive: this.props.accounts.length > 1,
             })
           )}
         </div>

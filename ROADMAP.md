@@ -2,6 +2,67 @@
 
 Updated: **August 5, 2026**
 
+## August 5 — self-hosted Windows dependency bootstrap
+
+- The Windows self-hosted setup selects the requested Node.js version before
+  creating the repository-pinned Yarn launcher, then exposes both a Windows
+  `yarn.cmd` launcher and a POSIX `yarn` launcher to later actions.
+- The Git Bash preflight converts the temporary launcher directory to an MSYS
+  path, marks the POSIX launcher executable, verifies that bare `yarn` resolves
+  to that exact path, and only then allows cache probing and dependency
+  installation to run.
+- Focused CI tests pass **2/2**, the frozen local dependency install passes,
+  and the Unicode/space-path PowerShell plus Git Bash probe passes. Remote
+  Super Express verification remains required after publication.
+
+## August 5 — multi-remote fetch sync
+
+- The ordinary repository Fetch action now fetches every configured remote when
+  a checkout has more than one, while preserving the existing focused
+  `Fetch <remote>` behavior for one-remote checkouts. Current/default/upstream
+  remotes remain first in the deterministic sequence, followed by any other
+  configured remotes.
+- The toolbar and dropdown now say **Fetch all remotes** and explain the wider
+  scope in the status description. Remote configuration and the existing
+  account-aware fetch path are unchanged.
+- Focused verification passes **19/19** tests across the GitStore selection
+  and toolbar surfaces. The exact Windows production build completed with
+  packaging skipped, and the real hidden-desktop renderer displayed **Fetch
+  all remotes** plus its expanded scope description for a two-remote fixture. The
+  unmodified development renderer still logs its existing
+  `__webpack_module__ is not defined` startup error, so the visual probe used
+  a temporary CDP startup shim and does not claim packaged-release proof.
+
+## August 5 — account-aware repository transfer
+
+- The Windows desktop app now exposes **Transfer repository** from the
+  Repository menu, repository-list context menu, Command Palette, and Remote
+  Manager. The workflow can use an existing signed-in GitHub identity or open
+  the normal GitHub/GitHub Enterprise sign-in flow for another account.
+- **Full history** publishes every local branch and tag through a temporary bare
+  clone. **Clean state** publishes the current files as one new root commit and
+  keeps the old tip under a local `refs/desktop-material/transfer-backups/`
+  recovery ref. Both modes verify the exact destination tip before retargeting
+  `origin`; the source remote remains available as `upstream` when needed.
+- The destination name, owner, privacy, mode, two confirmations, and full-range
+  authorization slider are reviewed before the provider mutation. Focused
+  contract tests pass **7/7**; the exact production build reached bundling but
+  remains blocked by existing TypeScript 6 errors, so hidden-desktop runtime
+  proof is not claimed.
+
+## August 5 — account cards share one active identity across providers
+
+- Settings → Accounts now compares every provider card with the single global
+  `accounts[0]` identity instead of treating the first card in each provider
+  section as active. With one GitHub.com account and one Enterprise account,
+  exactly one row is marked **Active** and the other exposes **Make active**.
+- The correction uses the same stable account identity and promotion path as
+  the rail switcher; explicit repository account bindings remain authoritative.
+- Focused account/store/routing/UI verification passes **39/39**. The required
+  Lowlevel production build is pending because the shared endpoint is currently
+  servicing another long-running build; no hidden-desktop runtime success is
+  claimed yet.
+
 ## August 5 — Windows updates survive partial Releases
 
 - The release promoter now considers only published Windows-capable Releases
@@ -26,6 +87,43 @@ Updated: **August 5, 2026**
   store, repository-owner, and click-handler suites report **55/55**. The
   required hidden build was attempted through Lowlevel, but its client stalled
   after the compiler worker stopped and no runtime evidence is claimed.
+
+## August 5 — transient Actions job-log 404 recovery
+
+- GitHub may return `HTTP 404` for a valid completed-job log endpoint while its
+  archive is still being prepared. The Windows transfer path now retries only
+  that API response after bounded **250 ms**, **750 ms**, and **1,500 ms** waits,
+  returning to the API endpoint for a fresh signed redirect each time. Blob
+  URLs never retry and API bearer headers never cross the redirect boundary.
+- The in-app Job Log surface now explains the provider state and keeps explicit
+  **Retry** and **Open on GitHub** recovery actions visible. The existing
+  expired-log (`410`) behavior is unchanged.
+- A follow-up audit keeps transient 404 retries outside the redirect-hop
+  budget, stops before refetch when cancellation arrives during backoff,
+  asserts that signed-blob 404s receive no bearer header, and verifies the
+  external recovery link's destination and activation.
+- Local evidence: focused transfer/viewer tests pass **20/20**; TypeScript,
+  changed-file ESLint, and Prettier pass; the cheap headless Windows artifact
+  shows the final 404 state and then both expected log lines after Retry. The
+  standalone renderer diagnostic reports `hasErrors:false`; the production
+  build also required and now includes a minimal Launchpad Sass brace fix so
+  its declared renderer path compiles.
+
+## August 5 — settings surfaces share browser-style tabs
+
+- Global Settings, Repository Settings, and Stash Manager now use the shared
+  horizontal browser-tab surface instead of separate vertical rails or bespoke
+  pill rows. Pages can be opened, closed, discovered through overflow, and
+  reached with `Left`, `Right`, `Home`, and `End`.
+- The tab model persists open pages independently for each surface, preserves
+  the full page catalogue while a search narrows the visible list, and cleans
+  stale or malformed stored IDs before rendering. Active panels now carry the
+  matching `tabpanel` and focus returns to a surviving tab after close/open.
+- Combined focused UI, style, documentation, and wiki coverage passes
+  **111/111**. The exact production build exits 0, and
+  the built Electron artifact has inspected 1440×960 hidden-desktop frames for
+  all three surfaces. The current-source frames are evidence for the UI
+  milestone, not installer or release evidence.
 
 ## August 3 — the site lays out on a phone
 
@@ -1334,10 +1432,12 @@ six-asset Windows x64 Release are verified for the `main` push recorded in
   nested paths and flat asset ranges.
 - **Super Express Release fast lane**: A workflow_dispatch-only emergency
   dispatcher checks out the exact SHA and creates one monotonic tag, then runs
-  separate zero-test Windows x64 and native Ubuntu Linux TUI packaging
-  workflows in parallel. Each packaging workflow also exposes a direct,
-  artifact-only workflow_dispatch action for recovery builds. The lanes restore
-  the desktop dependency cache where
+  separate zero-test Windows x64 and registered self-hosted Linux x64 TUI
+  packaging workflows in parallel. Preparation and publication also run on
+  the registered Linux x64 WSL runner; no Super Express job uses a cloud
+  runner. Each packaging workflow also exposes a direct, artifact-only
+  workflow_dispatch action for recovery builds. The lanes restore the desktop
+  dependency cache where
   needed, build the complete Windows/TUI payload, verify every asset, and
   preserve uncompressed lane artifacts. One publisher combines them into a
   uniquely tagged Release so the shared Squirrel update feed and TUI bootstrap

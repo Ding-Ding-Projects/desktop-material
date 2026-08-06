@@ -21,6 +21,7 @@ interface IRepositoryListItemContextMenuConfig {
   askForConfirmationOnRemoveRepository: boolean
   onViewOnGitHub: (repository: Repositoryish) => void
   onForkRepository?: (repository: Repositoryish) => void
+  onTransferRepository?: (repository: Repositoryish) => void
   onOpenInNewWindow: (repository: Repositoryish) => void
   onOpenInShell: (repository: Repositoryish) => void
   onShowRepository: (repository: Repositoryish) => void
@@ -151,6 +152,11 @@ export const generateRepositoryListContextMenu = (
       label: __DARWIN__ ? 'Fork Repository…' : 'Fork repository…',
       action: () => config.onForkRepository?.(repository),
       enabled: forkEligibility.canFork && config.onForkRepository !== undefined,
+    },
+    {
+      label: __DARWIN__ ? 'Transfer Repository…' : 'Transfer repository…',
+      action: () => config.onTransferRepository?.(repository),
+      enabled: github && !missing && config.onTransferRepository !== undefined,
     },
     {
       label: openInShell,

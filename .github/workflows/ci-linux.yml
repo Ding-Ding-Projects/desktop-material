@@ -3,17 +3,19 @@
 # Windows lane so that a red terminal test can never withhold the desktop
 # installers, and a red desktop build can never withhold the terminal package.
 # Both lanes feed the one Release; `build-installers.yml` waits for both to
-# finish and then ships whatever each lane vouched for.
+# finish and then ships whatever each lane vouched for. This workflow is
+# self-hosted-only for trusted pushes, manual dispatches, and workflow calls.
+# It deliberately has no pull_request trigger: untrusted PR code must never run
+# on the public repository's self-hosted machine.
 name: CI Linux
 
 on:
   push:
-  pull_request:
   workflow_dispatch:
   workflow_call:
     inputs:
       repository:
-        default: desktop/desktop
+        default: ''
         required: false
         type: string
       ref:
@@ -43,19 +45,13 @@ on:
       DESKTOP_OAUTH_CLIENT_ID:
       DESKTOP_OAUTH_CLIENT_SECRET:
 
-# Every invocation owns a unique group so a newer push, pull request, manual
-# dispatch, or installer verification can run immediately without cancelling
-# or queueing an older in-progress run.
-#
-# This is a deliberate safety contract, enforced by
-# app/test/unit/ci-workflow-safety-test.ts: the installer workflow triggers on
-# this workflow's `workflow_run` completion, so a cancelled main run silently
-# skips a release — and a queued one is just as dangerous, because a third run
-# entering an occupied group cancels the pending one. Saving runner minutes by
-# cancelling superseded runs is not worth a release that quietly never ships.
+# A newer trusted run for the same ref supersedes the older run. This keeps the
+# self-hosted runner from spending its scarce slot on a commit that has already
+# been replaced, while the missing pull_request trigger keeps untrusted code off
+# the machine.
 concurrency:
-  group: ci-linux-${{ github.run_id }}-${{ github.run_attempt }}
-  cancel-in-progress: false
+  group: ci-linux-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   NODE_VERSION: 24.15.0
@@ -66,7 +62,14 @@ env:
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    if:
+      ${{ github.repository == 'Ding-Ding-Projects/desktop-material' &&
+      (inputs.repository == '' || inputs.repository ==
+      'Ding-Ding-Projects/desktop-material') }}
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
     permissions:
       contents: read
     env:
@@ -95,7 +98,14 @@ jobs:
         run: git diff --name-status --exit-code
   supply-chain:
     name: Supply chain
-    runs-on: ubuntu-latest
+    if:
+      ${{ github.repository == 'Ding-Ding-Projects/desktop-material' &&
+      (inputs.repository == '' || inputs.repository ==
+      'Ding-Ding-Projects/desktop-material') }}
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
     permissions:
       contents: read
     timeout-minutes: 15
@@ -225,7 +235,14 @@ jobs:
           exit 0
   linux-tui:
     name: Linux TUI · Python ${{ matrix.python-version }}
-    runs-on: ubuntu-latest
+    if:
+      ${{ github.repository == 'Ding-Ding-Projects/desktop-material' &&
+      (inputs.repository == '' || inputs.repository ==
+      'Ding-Ding-Projects/desktop-material') }}
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
     permissions:
       contents: read
     timeout-minutes: 35
@@ -238,6 +255,10 @@ jobs:
         with:
           repository: ${{ inputs.repository || github.repository }}
           ref: ${{ inputs.ref }}
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:

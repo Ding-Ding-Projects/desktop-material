@@ -7,6 +7,25 @@ that: Dependabot proposes dependency updates instead of letting pins rot, every
 install in CI is pinned to the committed lock file, and a dedicated **Supply
 chain** job checks lock-file provenance and reports npm advisories.
 
+The trusted CI and Super Express paths are self-hosted-only. CI jobs and all
+seven jobs in `Build Installers / Express Release` use static `self-hosted`
+plus operating-system and architecture labels. CI and Super Express
+concurrency are ref-scoped, so obsolete trusted runs are cancelled while other
+publication workflows retain their immutable run-and-attempt history.
+Reusable CI calls are accepted only from `Ding-Ding-Projects/desktop-material`
+and only check out that repository, so an external caller cannot turn the local
+runner into a general-purpose executor.
+
+The fresh-install contract is checked against the repository's pinned
+toolchain: the parity generator and generated YAML must declare the same 206
+desktop features, and the TypeScript configurations must remain valid for the
+pinned TypeScript 5.8.2 release. The dependency compatibility test guards
+those settings so a TypeScript 6-only option or a script root that cannot
+resolve repository imports fails locally before consuming a self-hosted run.
+The settings-tab migration map is intentionally consumed by persistence code
+in a class method; its lint annotation documents that ownership rather than
+hiding an unused property.
+
 ## Behaviour
 
 ### Dependency update proposals
@@ -64,8 +83,8 @@ and would only produce pull requests nobody is allowed to act on.
 
 Every CI install now resolves exactly what the committed lock file says.
 
-- `ci.yml` → `lint` runs `yarn install --frozen-lockfile`.
-- `ci.yml` → `build` → "Run desktop-trampoline tests" runs
+- `ci-linux.yml` → `lint` runs `yarn install --frozen-lockfile`.
+- `ci-windows.yml` → `build` → "Run desktop-trampoline tests" runs
   `yarn install --frozen-lockfile` inside `vendor/desktop-trampoline`.
 - `pages.yml` → docs build already ran
   `yarn install --frozen-lockfile --ignore-scripts --non-interactive` before
@@ -94,6 +113,17 @@ than assumed closed:
   but only after the fact.
 - `.github/workflows/build-installers.yml` runs a plain `yarn install` for the
   desktop-trampoline tests in the release lane.
+
+On self-hosted Windows arm64 jobs, the setup action also discovers Visual Studio
+with `vswhere.exe`, reads `Microsoft.VCToolsVersion.default.txt`, and installs
+the `Microsoft.VisualStudio.Component.VC.Tools.ARM64` and
+`Microsoft.VisualStudio.Component.VC.Tools.x86.x64` components when the exact
+default MSVC version lacks `VC\Tools\MSVC\<version>\bin\Hostx64\arm64\cl.exe`.
+The action handles a runner where the MSVC directory is absent, verifies the
+compiler after installation, and fails before production build if setup did not
+complete. The installer smoke test checks the Squirrel process exit code and
+requires the exact package version's newly written executable, preventing a
+stale persistent runner installation from being accepted.
 
 ### Lock-file provenance and integrity (blocking)
 
@@ -151,40 +181,21 @@ the exit code, which is ambiguous between "found advisories" and "failed".
 
 ### Run concurrency
 
-The workflow's concurrency group used to be
-`ci-${{ github.run_id }}-${{ github.run_attempt }}` — unique to every run, so
-it could never deduplicate anything. Ten pushes to one pull-request branch ran
-ten full Windows build matrices.
+The self-hosted CI and Express Release groups are keyed by ref and cancel older
+trusted runs; other installer and Pages publication workflows retain unique
+run-and-attempt groups:
 
-It is now keyed on the ref, with one deliberate exemption:
+| Workflow family                              | Group                   | `cancel-in-progress` |
+| --------------------------------------------- | ----------------------- | -------------------- |
+| Push and manual CI validation                 | Per ref                 | Yes                  |
+| Express Release self-hosted release           | Per ref                 | Yes                  |
+| Other installer and Pages publication         | Per run and attempt     | No                   |
 
-| Trigger                            | Group        | `cancel-in-progress` |
-| ---------------------------------- | ------------ | -------------------- |
-| `pull_request`                     | Per PR number | Yes                  |
-| `push` to a non-default branch     | Per ref       | Yes                  |
-| `push` to the default branch       | Unique per run | No                 |
-| `workflow_dispatch`                | Unique per run | No                 |
-
-Default-branch pushes keep a unique group because `build-installers.yml`
-triggers on this workflow's `workflow_run` completion and publishes a Release
-only when the CI conclusion is `success`. Cancelling a `main` run would
-therefore skip a release silently. A *queued* `main` run is just as dangerous:
-GitHub keeps only one pending run per group, so a third run entering an occupied
-group cancels the pending one — a middle commit would lose its release with
-nothing failing. Unique groups avoid both. Manual dispatches get the same
-treatment: an explicitly requested verification run must never wait behind, or
-be discarded by, someone else's push.
-
-`workflow_call` has no row of its own because it cannot have one. Inside a
-reusable workflow the `github` context belongs to the caller, so
-`github.event_name` reports the event that started the *caller* and never the
-string `workflow_call`; a called run is therefore keyed by whichever row matches
-that caller's event. No workflow in this repository currently calls `ci.yml`,
-so today this is theory rather than observed behaviour.
-
-The default branch is read from `github.event.repository.default_branch` with a
-`main` fallback, so renaming the default branch does not silently start
-cancelling release runs.
+Ten pushes to one branch now leave only the newest trusted CI run active. The
+registered self-hosted pool is scarce, so cancelling obsolete work keeps the
+runner focused on the commit that can still ship. The workflow safety test
+allows this behavior only for `ci-linux.yml`, `ci-windows.yml`,
+`build-installers.yml`, and the three `super-express-release*.yml` files.
 
 ## Security considerations
 
@@ -194,10 +205,15 @@ cancelling release runs.
   already in the commit, so it cannot be influenced by the network at run time.
 - `--frozen-lockfile` closes the window where a compromised or merely careless
   manifest edit causes CI to resolve a version nobody reviewed.
-- No job in this workflow runs on a self-hosted runner. That matters because
-  `ci.yml` has a `pull_request` trigger: on a self-hosted runner that
-  combination lets anyone who can open a pull request execute code on the
-  machine. Keep every job here on GitHub-hosted runners.
+- CI jobs run on registered self-hosted Linux or Windows runners for trusted
+  pushes, manual dispatches, and workflow calls. The CI workflows deliberately
+  have no `pull_request` trigger, because untrusted PR code must never execute
+  on the public repository's self-hosted machines.
+- The Linux TUI job installs the repository's pinned Node.js version before
+  parity generation. The Windows TUI job enables repository-local Git long
+  paths before Git-backed history tests, because the profile fixture can exceed
+  the Windows default path limit. These steps are local runner preparation,
+  not cloud-runner fallback.
 - The `supply-chain` job requests only `contents: read` and installs nothing,
   so a malicious postinstall script has no opportunity to run in it.
 - Dependabot pull requests are proposals, not deployments: nothing in this
@@ -215,7 +231,7 @@ updated `yarn.lock`.
 **`Lock file provenance` error annotation.** A `resolved` URL points somewhere
 unexpected, or an `integrity` line is missing. Review the `yarn.lock` diff
 before merging. A legitimately new registry has to be added to the allowlist in
-`ci.yml` deliberately.
+`ci-linux.yml` deliberately.
 
 **Warning annotation "Dependency advisories".** `yarn audit` found advisories.
 Read the job summary; upgrade if a fix exists, otherwise record the accepted
@@ -225,12 +241,26 @@ risk. CI stays green either way.
 complete. Treat that run as carrying **no** advisory evidence and re-run once
 the registry is reachable.
 
-**A pull-request run says "Canceled".** A newer commit superseded it. Expected:
-only the newest commit's run matters.
+**A trusted CI run says "Canceled".** A newer push or manual dispatch for the
+same ref superseded it. This is expected: only the newest trusted commit's run
+matters. CI has no pull-request trigger; review validation runs on a trusted
+push or explicit manual dispatch instead.
 
-**A `main` run says "Canceled".** Something other than this concurrency
-configuration cancelled it, because default-branch runs hold a unique group.
-Investigate — no Release is published for a cancelled `main` run.
+**A `main` run says "Canceled".** A newer trusted `main` run may have
+superseded it. The installer workflow will only publish from a successful CI
+conclusion, so inspect the newest same-ref run for the release evidence.
+
+**The Windows TUI job reports `Filename too long` while writing profile
+history.** The checkout did not have `core.longpaths` enabled. Confirm the
+workflow's repository-local Git setting runs immediately after checkout and
+rerun the newest same-ref CI run; do not switch the job to a hosted runner.
+
+**The Windows arm64 dependency setup reports a missing MSVC toolset.** The
+self-hosted setup discovers the installed Visual Studio instance, installs its
+arm64 C++ components when absent, and verifies `Hostx64\arm64\cl.exe` before
+`node-gyp` runs. If installation cannot complete, the job reports that setup
+failure and skips the production build instead of emitting misleading missing
+module errors from a build guarded by `always()`.
 
 ## Verification
 

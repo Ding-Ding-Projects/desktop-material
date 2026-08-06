@@ -45,13 +45,6 @@ function createDotComAccount(login = 'octocat'): Account {
   )
 }
 
-function requireAuthenticatedAccount(account: Account | null): Account {
-  if (account === null) {
-    throw new Error('Expected an authenticated self-hosted account')
-  }
-  return account
-}
-
 function createEnterpriseAccount(
   login = 'enterprise-user',
   endpoint = 'https://github.example.com/api/v3'
@@ -388,9 +381,9 @@ describe('SignInStore', () => {
         },
       }
       const callbackStore = new SignInStore(undefined, services)
-      let authenticated: Account | null = null
+      const authenticatedAccounts: Account[] = []
       callbackStore.onDidAuthenticate(account => {
-        authenticated = account
+        authenticatedAccounts.push(account)
       })
       const openExternal = mock.method(shell, 'openExternal', async () => true)
 
@@ -412,7 +405,11 @@ describe('SignInStore', () => {
         })
         assert.equal(result, 'succeeded')
         assert.equal(callbackStore.getState()?.kind, SignInStep.Success)
-        const authenticatedAccount = requireAuthenticatedAccount(authenticated)
+        assert.equal(authenticatedAccounts.length, 1)
+        const authenticatedAccount = authenticatedAccounts[0]
+        if (authenticatedAccount === undefined) {
+          throw new Error('Expected an authenticated self-hosted account')
+        }
         assert.equal(authenticatedAccount.provider, 'self-hosted')
         assert.equal(authenticatedAccount.endpoint, 'https://tenant.example')
         assert.equal(authenticatedAccount.login, 'admin')
