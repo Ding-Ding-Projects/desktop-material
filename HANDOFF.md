@@ -16,15 +16,27 @@ The entry points are the Repository menu, repository-list context menu, Command
 Palette, and **Repository settings → Remote**. The transfer dialog requires two
 independent confirmations plus a full-range authorization slider, and displays
 real checking, creation, preparation, publication, retargeting, and completion
-progress. Focused direct Node contract tests pass **7/7**. Targeted ESLint and
-the TypeScript changed-file check pass; the repository-wide test harness is
-currently blocked before test discovery by the existing malformed
-`whatwg-encoding` dependency payload. Exact Windows production build and
-hidden-desktop runtime evidence are still pending; no hosted CI or Release
-success is claimed here. Implementation commit
-`6c3a4ec8297e79226968a89e3232ba281c539357` contains the code, tests, and
-documentation update; it is not yet merged to the default branch at this
-handoff point.
+progress. Focused direct Node contract tests pass **7/7**. Targeted ESLint
+passes, and the changed-path TypeScript check reports no diagnostics in the
+transfer files although the repository-wide command exits on existing
+TypeScript 6 findings. The exact Windows production build was run twice
+through the cheap Lowlevel MCP route. After rebuilding the missing local
+file-package outputs, webpack reached the full renderer/main bundle but still
+exited nonzero on four existing TypeScript 6 errors in `dds-converter.ts`, two
+fixture typings, and `ui/index.tsx`; it did not report a transfer-path error
+and did not emit a runnable `out/main.js`. The repository-wide test harness
+remains blocked before test discovery by the existing malformed
+`whatwg-encoding` dependency payload. Hidden-desktop runtime evidence is
+therefore blocked by the baseline build tree; no hosted CI or Release success
+is claimed here. The reproducible run manifest is
+[`docs/verification/repository-transfer-2026-08-05/run-manifest.md`](docs/verification/repository-transfer-2026-08-05/run-manifest.md).
+
+Implementation commit
+`6c3a4ec8297e79226968a89e3232ba281c539357` contains the feature, tests, and
+documentation update. Hardening commit
+`5e96aad79e82bc597b5c1233fccd17c0b37ce7fa` preserves known-private defaults
+and verifies the exact destination tip before retargeting. Changelog commit
+and default-branch integration are still pending at this handoff point.
 
 ## 2026-08-05 — Super Express packaging lanes parallelized
 
