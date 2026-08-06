@@ -31,8 +31,13 @@ describe('CI environment setup', () => {
     assert.match(setupAction, /GITHUB_PATH/)
     assert.match(setupAction, /bin\\bash\.exe/)
     assert.match(setupAction, /Install uv for self-hosted Windows Python/)
+    assert.match(setupAction, /Install uv for self-hosted Linux Python/)
     assert.match(setupAction, /uv python install 3\.11/)
     assert.match(setupAction, /npm_config_python=\$python_path/)
+    assert.match(
+      setupAction,
+      /Install managed Python 3\.11 on self-hosted Linux[\s\S]*?runner\.os == 'Linux' && runner\.environment == 'self-hosted'/
+    )
     assert.match(
       setupAction,
       /Install Windows arm64 C\+\+ toolset when missing[\s\S]*?ensure-windows-arm64-build-tools\.ps1/
@@ -74,7 +79,7 @@ describe('CI environment setup', () => {
     assert.match(yarnBootstrap, /LASTEXITCODE/)
     assert.match(
       setupAction,
-      /uses: actions\/setup-python@v6[\s\S]*?runner\.environment != 'self-hosted'/
+      /uses: actions\/setup-python@v6[\s\S]*?if: \$\{\{ runner\.environment != 'self-hosted' \}\}/
     )
     assert.match(setupAction, /uses: actions\/cache@v5/)
     assert.match(setupAction, /node_modules\s+app\/node_modules/)
