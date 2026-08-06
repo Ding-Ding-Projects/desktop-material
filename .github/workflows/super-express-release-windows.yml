@@ -26,6 +26,10 @@ on:
         required: false
         type: string
 
+concurrency:
+  group: super-express-release-windows-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
