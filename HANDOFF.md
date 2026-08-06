@@ -1,5 +1,31 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Repair the blank Windows startup renderer
+
+The packaged Windows renderer failed before React mounted with
+`ReferenceError: __webpack_module__ is not defined`. The cause was the
+Node-oriented `@github/copilot-sdk` ESM graph being concatenated into the
+renderer through `CopilotStore`; the empty root and hidden-until-ready window
+then presented as a blank white launch. `app/webpack.common.ts` now
+externalizes the SDK, and `script/build.ts` fails before packaging if either
+renderer bundle contains the undefined binding.
+
+The implementation commit is
+`5fbc28b6cfe458943cdecd456fdc3622a4719fc1`, followed by the documentation
+commit `b75de4f106c808764ae3ae13383d2f024ad2e26c`. The exact pre-guard
+artifact launched on the hidden desktop, reloaded through CDP with
+`readyState=complete`, one populated `#desktop-app-container` child, and no
+captured runtime exceptions. The genuine Lowlevel MCP capture is tracked at
+`docs/assets/screenshots/material-blank-startup-fixed-20260806.png`, `960x660`,
+SHA-256 `00D8BD6FCE0EFA10107523BF92BEA54E80DDA6ED66B8E3700B21297D6CBF2A82`,
+and shows the first-run Desktop Material surface. The detailed behavior,
+failure modes, security notes, and verification record are in
+`docs/features/quality-and-reliability/renderer-startup-bundle-safety.md` and
+`.codex/run-manifests/2026-08-06-blank-startup.md`.
+
+The post-integration production build and hidden-desktop verification remain
+required before this handoff is complete.
+
 ## 2026-08-05 — Repair the self-hosted Windows test bootstrap
 
 The first complete self-hosted Windows TUI run found two test-environment

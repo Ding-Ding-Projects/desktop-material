@@ -1,6 +1,20 @@
 # Desktop Material roadmap
 
-Updated: **August 5, 2026**
+Updated: **August 6, 2026**
+
+## August 6 — Windows renderer startup bundle safety
+
+- The Node-oriented `@github/copilot-sdk` now stays outside the browser
+  renderer bundle and is installed as a packaged external dependency.
+- `script/build.ts` rejects a missing renderer bundle or an emitted
+  `__webpack_module__` binding before packaging, with focused regression
+  coverage for both failure and success paths.
+- The exact Windows artifact launches on the hidden desktop and paints the
+  first-run Desktop Material surface. The CDP reload check reports one
+  populated `#desktop-app-container` child, no startup exceptions, and both
+  renderer bundles contain zero `__webpack_module__` tokens.
+- Details and failure modes are documented in
+  `docs/features/quality-and-reliability/renderer-startup-bundle-safety.md`.
 
 ## August 5 — self-hosted Windows dependency bootstrap
 

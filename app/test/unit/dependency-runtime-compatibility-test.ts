@@ -35,6 +35,11 @@ describe('updated app dependency compatibility', () => {
     )
   })
 
+  it('loads the Node-side Copilot SDK outside the renderer bundle', () => {
+    const configuredExternals = renderer.externals as ReadonlyArray<string>
+    assert.equal(configuredExternals.includes('@github/copilot-sdk'), true)
+  })
+
   it('keeps the compare-versions 6 API used by the Windows version guards', () => {
     assert.equal(compare('10.0.26100', '10.0.22000', '>='), true)
     assert.equal(compare('10.0.19045', '10.0.22000', '<'), true)

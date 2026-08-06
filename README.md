@@ -17,6 +17,16 @@
 > built-app recovery proof is documented in the [Actions workflow manager
 > guide](docs/features/integrations/actions-workflow-manager.md).
 
+> **Windows startup renderer repair — August 6, 2026:** the Node-oriented
+> Copilot SDK is now packaged as an external instead of being concatenated into
+> the browser renderer. The build rejects both renderer bundles if the
+> undefined `__webpack_module__` binding returns, preventing the packaged app
+> from opening as a blank white window. The exact Windows artifact now reaches
+> the first-run surface in a hidden-desktop capture; see the [renderer startup
+> bundle safety guide](docs/features/quality-and-reliability/renderer-startup-bundle-safety.md).
+
+![Packaged Windows Desktop Material first-run surface after the renderer startup fix](docs/assets/screenshots/material-blank-startup-fixed-20260806.png)
+
 ![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
 > **Browser-style settings tabs:** Global Settings, Repository Settings, and
 > Stash Manager now share horizontal tabs with open/close/reopen actions,
