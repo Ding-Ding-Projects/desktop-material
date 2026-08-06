@@ -1,5 +1,32 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-05 — Restore Windows production build compatibility
+
+The final Windows verification of the retired tooling correction reached the
+production compiler but failed on three dependency and stylesheet edges. The
+application now pins `@github/copilot-sdk` back to `1.0.5`, which removes the
+Koffi native dependency introduced by `1.0.8`; the supplied dependency-install
+trace showed the retrying native failure while Koffi's optional platform
+packages were being resolved. The version-specific `1.0.8` declaration shim is
+removed with the rollback.
+
+`react-confetti` `6.4.0` keeps its React 16 JSX-runtime support, but its ESM
+entry asks Webpack for `react/jsx-runtime` without an extension. The common
+Webpack configuration now aliases that exact request to the installed
+`react/jsx-runtime.js` file, preserving strict ESM resolution for other
+dependencies. The Launchpad Team View styles are also nested under their
+`.launchpad-view` parent so Dart Sass no longer rejects a top-level `&` selector.
+The CI workflow guard now matches the integrated removal of the retired
+agent-only submodule instead of requiring a stale `.gitmodules` block.
+
+Local evidence for this correction is **3/3** dependency compatibility tests,
+**13/13** Launchpad tests, **12/12** CI workflow-safety tests, passing ESLint
+type-checking, and an isolated production renderer compile with **0** Webpack
+errors. The earlier full production compile showed the other five compilers
+finishing successfully; the renderer's two reported errors are covered by the
+isolated rerun. Fresh remote Windows and Pages verification for this correction
+is pending.
+
 ## 2026-08-05 — Keep private tooling out of hosted CI checkout
 
 The first remote Windows verification after the dependency repair reached the
