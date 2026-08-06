@@ -8,14 +8,16 @@ install in CI is pinned to the committed lock file, and a dedicated **Supply
 chain** job checks lock-file provenance and reports npm advisories.
 
 Ordinary CI and all seven jobs in `Build Installers / Express Release` run on
-GitHub-hosted `ubuntu-latest` or `windows-2022` machines. Each invocation uses a
-unique run-ID/run-attempt concurrency group with `cancel-in-progress: false`, so
-the release gate for one commit cannot be silently replaced by a later commit.
-The CI workflows also accept pull requests because untrusted code stays on a
-disposable hosted machine. Manual dispatches use those same hosted runners;
-ordinary CI exposes no runner selector and cannot claim the local pool.
+GitHub-hosted `ubuntu-latest` or `windows-2022` machines by default. Each
+invocation uses a unique run-ID/run-attempt concurrency group with
+`cancel-in-progress: false`, so the release gate for one commit cannot be
+silently replaced by a later commit. The CI workflows also accept pull requests
+because untrusted code stays on a disposable hosted machine. `CI Windows`
+manual dispatches from `refs/heads/main` may opt the desktop build and packaged
+E2E jobs into the exact registered Windows self-hosted labels; all other
+triggers and the Windows TUI core job remain hosted.
 
-Only the Super Express emergency family is self-hosted and ref-cancelling. Its
+The Super Express emergency family is also self-hosted and ref-cancelling. Its
 Windows jobs require `desktop-material-windows-local`, and its Linux/WSL jobs
 require `desktop-material-wsl-local`; those labels keep an incomplete local
 machine from claiming a direct release job accidentally. Reusable Super Express
@@ -295,11 +297,12 @@ groups. Only Super Express cancels an older dispatch for the same ref:
 | Super Express emergency release               | Per ref                 | Yes                  |
 
 Ten pushes to one branch now retain ten independent hosted CI results. The
-registered self-hosted pool is reserved exclusively for explicit Super Express
-work; ordinary manual dispatches, pull requests, and reusable calls cannot
-select it. The workflow safety test permits `cancel-in-progress: true` only in
-the three `super-express-release*.yml` files and requires every other job to
-declare one literal GitHub-hosted runner.
+registered self-hosted pool remains unavailable to pushes, pull requests, and
+reusable calls; only an explicit `main` `workflow_dispatch` can select it for
+the Windows desktop build and packaged E2E jobs, while Super Express continues
+to use its own fixed labels. The workflow safety test permits
+`cancel-in-progress: true` only in the three `super-express-release*.yml` files
+and checks the protected runner-selection expression separately.
 
 ## Security considerations
 
@@ -310,8 +313,9 @@ declare one literal GitHub-hosted runner.
 - `--frozen-lockfile` closes the window where a compromised or merely careless
   manifest edit causes CI to resolve a version nobody reviewed.
 - CI jobs run on GitHub-hosted Linux or Windows runners for pushes, pull
-  requests, manual dispatches, and workflow calls. Only manual Super Express
-  jobs run repository code on the registered local machines.
+  requests, and workflow calls. A `main` manual `CI Windows` dispatch may run
+  only its desktop build and packaged E2E jobs on the exact registered local
+  Windows labels; all other manual paths remain hosted.
 - The Linux TUI job installs the repository's pinned Node.js version before
   parity generation. The Windows TUI job enables repository-local Git long
   paths before Git-backed history tests, because the profile fixture can exceed

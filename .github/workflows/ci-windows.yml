@@ -6,14 +6,25 @@
 # one Release; `build-installers.yml` waits for both to finish and then ships
 # whatever each lane vouched for.
 # Ordinary CI uses GitHub-hosted Windows runners so every push, pull request,
-# manual dispatch, and workflow call gets a clean, reproducible machine.
-# Self-hosted runners are reserved for the Super Express emergency workflows.
+# and workflow call gets a clean, reproducible machine. A manual dispatch from
+# the protected main branch may explicitly select the registered Windows
+# self-hosted pool for desktop build and packaged smoke jobs when local
+# hardware is wanted; the Windows TUI core job remains hosted.
 name: CI Windows
 
 on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      runner_mode:
+        description: Runner pool for the Windows desktop jobs
+        required: true
+        default: cloud
+        type: choice
+        options:
+          - cloud
+          - self-hosted
   workflow_call:
     inputs:
       repository:
@@ -100,7 +111,11 @@ jobs:
           uv run mypy src
   build:
     name: ${{ matrix.friendlyName }} ${{ matrix.arch }}
-    runs-on: windows-2022
+    runs-on:
+      ${{ github.event_name == 'workflow_dispatch' && github.ref ==
+      'refs/heads/main' && inputs.runner_mode == 'self-hosted' &&
+      fromJSON('["self-hosted","Windows","X64","desktop-material-windows-local"]')
+      || 'windows-2022' }}
     permissions:
       contents: read
       id-token: write
@@ -202,7 +217,11 @@ jobs:
           if-no-files-found: error
   e2e-smoke:
     name: E2E Smoke ${{ matrix.friendlyName }} ${{ matrix.arch }}
-    runs-on: windows-2022
+    runs-on:
+      ${{ github.event_name == 'workflow_dispatch' && github.ref ==
+      'refs/heads/main' && inputs.runner_mode == 'self-hosted' &&
+      fromJSON('["self-hosted","Windows","X64","desktop-material-windows-local"]')
+      || 'windows-2022' }}
     permissions:
       contents: read
       id-token: write
