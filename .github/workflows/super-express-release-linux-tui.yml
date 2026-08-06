@@ -12,7 +12,8 @@ on:
         type: string
       runner:
         description: JSON runner-label array selected by the dispatcher
-        required: true
+        required: false
+        default: ''
         type: string
   workflow_dispatch:
     inputs:

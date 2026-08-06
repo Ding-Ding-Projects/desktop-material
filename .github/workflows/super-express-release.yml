@@ -210,7 +210,6 @@ jobs:
     with:
       release_target_sha: ${{ needs.prepare.outputs.sha }}
       release_version: ${{ needs.prepare.outputs.version }}
-      runner: ${{ needs.prepare.outputs.windows_runner }}
     secrets: inherit
 
   tui:
@@ -219,7 +218,6 @@ jobs:
     uses: ./.github/workflows/super-express-release-linux-tui.yml
     with:
       release_target_sha: ${{ needs.prepare.outputs.sha }}
-      runner: ${{ needs.prepare.outputs.tui_runner }}
     secrets: inherit
 
   publish:

@@ -52,13 +52,13 @@ describe('Super Express Release workflow', () => {
     )
     assert.match(workflow, /Require a main-branch manual dispatch/)
     assert.match(workflow, /ref: \$\{\{ env\.RELEASE_TARGET_SHA \}\}/)
-    assert.match(
+    assert.doesNotMatch(
       workflow,
-      /uses: \.\/\.github\/workflows\/super-express-release-windows\.yml[\s\S]*?runner: \$\{\{ needs\.prepare\.outputs\.windows_runner \}\}/
+      /uses: \.\/\.github\/workflows\/super-express-release-windows\.yml[\s\S]*?\n\s+runner:/
     )
-    assert.match(
+    assert.doesNotMatch(
       workflow,
-      /uses: \.\/\.github\/workflows\/super-express-release-linux-tui\.yml[\s\S]*?runner: \$\{\{ needs\.prepare\.outputs\.tui_runner \}\}/
+      /uses: \.\/\.github\/workflows\/super-express-release-linux-tui\.yml[\s\S]*?\n\s+runner:/
     )
     assert.match(
       workflow,
