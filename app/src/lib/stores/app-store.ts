@@ -827,6 +827,14 @@ import { createTutorialRepository } from './helpers/create-tutorial-repository'
 import { sendNonFatalException } from '../helpers/non-fatal-exception'
 import { ProgressiveLoad } from '../progressive-load'
 import { getDefaultDir } from '../../ui/lib/default-dir'
+import {
+  applyCloudPatch,
+  shareCloudPatch,
+} from '../cloud-patches/cloud-patch-orchestration'
+import type {
+  CloudPatchApplyResult,
+  CloudPatchShareResult,
+} from '../cloud-patches/cloud-patch-orchestration'
 import { WorkflowPreferences } from '../../models/workflow-preferences'
 import {
   defaultBuildRunPreferences,
@@ -951,7 +959,7 @@ import {
   useExternalCredentialHelper,
   useExternalCredentialHelperDefault,
 } from '../trampoline/use-external-credential-helper'
-import { IOAuthAction } from '../parse-app-url'
+import { IOAuthAction, ISelfHostedOAuthAction } from '../parse-app-url'
 import {
   ICustomIntegration,
   migratedCustomIntegration,
@@ -3696,6 +3704,33 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return newCommits.length
     }
     return 0
+  }
+
+  /** Share a reviewed commit range through the joined self-hosted server. */
+  public _shareCloudPatch(
+    repository: Repository,
+    baseRevision: string,
+    headRevision: string,
+    recipientDeviceIds: ReadonlyArray<string>
+  ): Promise<CloudPatchShareResult> {
+    return shareCloudPatch(
+      repository,
+      baseRevision,
+      headRevision,
+      recipientDeviceIds
+    )
+  }
+
+  /** Fetch, verify, and apply a Cloud Patch, then refresh the repository state. */
+  public async _applyCloudPatch(
+    repository: Repository,
+    link: string
+  ): Promise<CloudPatchApplyResult> {
+    const result = await applyCloudPatch(repository, link)
+    if (result.kind === 'applied') {
+      await this._refreshRepository(repository)
+    }
+    return result
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
@@ -9761,9 +9796,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     // Reorder via the AccountsStore directly (a pure array reorder + save; no
-    // token re-fetch). NOTE: GitHub.com accounts always sort ahead of
-    // Enterprise accounts, so an Enterprise-owned repo cannot become
-    // `accounts[0]` while any GitHub.com account is signed in.
+    // token re-fetch). AccountsStore keeps the promoted account at
+    // `accounts[0]` even when it is an Enterprise account.
     this.accountsStore.promoteAccount(owner)
   }
 
@@ -21666,6 +21700,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return this.signInStore.resolveOAuthRequest(action)
   }
 
+  public _resolveSelfHostedOAuthRequest(action: ISelfHostedOAuthAction) {
+    return this.signInStore.resolveSelfHostedOAuthRequest(action)
+  }
+
   public _resetSignInState(): Promise<void> {
     this.signInStore.reset()
     return Promise.resolve()
@@ -21673,6 +21711,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   public _beginDotComSignIn(resultCallback?: (result: SignInResult) => void) {
     return this.signInStore.beginDotComSignIn(resultCallback)
+  }
+
+  public _beginSelfHostedSignIn(
+    publicOrigin: string,
+    resultCallback?: (result: SignInResult) => void
+  ) {
+    return this.signInStore.beginSelfHostedSignIn(publicOrigin, resultCallback)
   }
 
   public _beginEnterpriseSignIn(

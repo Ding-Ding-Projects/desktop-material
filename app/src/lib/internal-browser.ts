@@ -6,7 +6,11 @@
  * headers, response bodies, or credentials.
  */
 
-import { IOAuthAction, URLActionType } from './parse-app-url'
+import {
+  IOAuthAction,
+  ISelfHostedOAuthAction,
+  URLActionType,
+} from './parse-app-url'
 
 export const BrowserOpenModeStorageKey = 'browser-open-mode-v1'
 export const InternalBrowserBookmarksStorageKey =
@@ -562,10 +566,10 @@ export function shouldDispatchInternalBrowserAppAction(
   intent: BrowserOpenIntent,
   action: URLActionType,
   expectedOAuthState: string | null
-): action is IOAuthAction {
+): action is IOAuthAction | ISelfHostedOAuthAction {
   return (
     intent === 'authentication' &&
-    action.name === 'oauth' &&
+    (action.name === 'oauth' || action.name === 'self-hosted-oauth') &&
     expectedOAuthState !== null &&
     action.state === expectedOAuthState
   )

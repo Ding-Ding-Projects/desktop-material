@@ -81,6 +81,8 @@ import {
   IGitHubAPIFunctionRegistry,
 } from '../github-api-explorer'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { GitflowManager } from './gitflow'
+import { RepositoryCommitRewrite } from './commit-rewrite'
 
 const MaxOutputBytes = 4 * 1024 * 1024
 type RepositoryToolResultID =
@@ -163,6 +165,8 @@ export type RepositoryToolsHubToolID =
   | 'submodule-manager'
   | 'subtree-manager'
   | 'cheap-lfs'
+  | 'gitflow'
+  | 'interactive-rebase'
 
 type RepositoryToolsHubCategory =
   | RepositoryToolCategory
@@ -325,6 +329,22 @@ const UnsortedHubEntries: ReadonlyArray<IRepositoryToolsHubEntry> = [
       'Save, replace, or remove the Git note attached to one commit without rewriting it.',
     category: 'Commits & history',
     icon: octicons.pencil,
+  },
+  {
+    id: 'gitflow',
+    title: 'Gitflow operations',
+    description:
+      'Start and finish feature, release, and hotfix branches with a reviewed non-fast-forward merge.',
+    category: 'Commits & history',
+    icon: octicons.gitBranch,
+  },
+  {
+    id: 'interactive-rebase',
+    title: 'Interactive rebase',
+    description:
+      'Inspect, reorder, fold, or drop local commits through a reviewed visual plan before Git rewrites history.',
+    category: 'Commits & history',
+    icon: octicons.history,
   },
   SigningHubEntry,
   {
@@ -591,6 +611,7 @@ interface IRepositoryToolsState {
   readonly customGitCommandsBusy: boolean
   readonly terminalBusy: boolean
   readonly signingBusy: boolean
+  readonly commitRewriteBusy: boolean
   readonly searchActive: boolean
   readonly searchPattern: string
   readonly searchMode: FilterMode
@@ -659,6 +680,7 @@ export class RepositoryTools extends React.Component<
       customGitCommandsBusy: false,
       terminalBusy: false,
       signingBusy: false,
+      commitRewriteBusy: false,
       searchActive: false,
       searchPattern: '',
       searchMode: normalizeContentSearchMode(
@@ -744,6 +766,7 @@ export class RepositoryTools extends React.Component<
         customGitCommandsBusy: false,
         terminalBusy: false,
         signingBusy: false,
+        commitRewriteBusy: false,
         searchActive: false,
         searchPattern: '',
         searchRevision: '',
@@ -848,7 +871,8 @@ export class RepositoryTools extends React.Component<
       this.state.patchSeriesBusy ||
       this.state.customGitCommandsBusy ||
       this.state.terminalBusy ||
-      this.state.signingBusy
+      this.state.signingBusy ||
+      this.state.commitRewriteBusy
     )
   }
 
@@ -885,6 +909,12 @@ export class RepositoryTools extends React.Component<
   private onSigningBusyChanged = (signingBusy: boolean) => {
     if (this.state.signingBusy !== signingBusy) {
       this.setState({ signingBusy })
+    }
+  }
+
+  private onCommitRewriteBusyChanged = (commitRewriteBusy: boolean) => {
+    if (this.state.commitRewriteBusy !== commitRewriteBusy) {
+      this.setState({ commitRewriteBusy })
     }
   }
 
@@ -2172,6 +2202,43 @@ export class RepositoryTools extends React.Component<
     )
   }
 
+  private renderGitflow() {
+    const repository = this.props.repository
+    if (repository === undefined) {
+      return null
+    }
+    return (
+      <GitflowManager
+        repository={repository}
+        disabled={
+          this.isBusy() ||
+          !this.state.gitAvailable ||
+          this.temporaryToolsReadOnlyMessage !== null
+        }
+        onRefreshRepository={this.props.onRefreshRepository}
+      />
+    )
+  }
+
+  private renderInteractiveRebase() {
+    const repository = this.props.repository
+    if (repository === undefined) {
+      return null
+    }
+    return (
+      <RepositoryCommitRewrite
+        repository={repository}
+        disabled={
+          this.isBusy() ||
+          !this.state.gitAvailable ||
+          this.temporaryToolsReadOnlyMessage !== null
+        }
+        onRefreshRepository={this.props.onRefreshRepository}
+        onBusyChanged={this.onCommitRewriteBusyChanged}
+      />
+    )
+  }
+
   private renderConfirmation() {
     const id = this.state.confirmationOperation
     if (id === null) {
@@ -2756,6 +2823,15 @@ export class RepositoryTools extends React.Component<
         {selected === 'github-projects' && this.renderGitHubProjects()}
         {selected === 'github-api-functions' && this.renderGitHubAPIFunctions()}
         {selected === 'export-artifacts' && this.renderExport()}
+        <div className="repository-tools-panel" hidden={selected !== 'gitflow'}>
+          {selected === 'gitflow' && this.renderGitflow()}
+        </div>
+        <div
+          className="repository-tools-panel"
+          hidden={selected !== 'interactive-rebase'}
+        >
+          {selected === 'interactive-rebase' && this.renderInteractiveRebase()}
+        </div>
         <div className="repository-tools-panel" hidden={selected !== 'signing'}>
           {this.renderSigning()}
         </div>
