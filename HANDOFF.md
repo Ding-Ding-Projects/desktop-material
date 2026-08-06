@@ -1,5 +1,25 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Restore hosted Super Express scheduling
+
+The latest self-hosted-only release dispatch reached the registered Windows
+runner, but its first prerequisite failed because that machine had no WSL
+distribution installed. The exact remote failure was `Windows Subsystem for
+Linux has no installed distributions`, so the Windows package never reached
+dependency setup or compilation even though the Linux package passed.
+
+The release-critical Super Express lanes now use fixed GitHub-hosted labels:
+`ubuntu-latest` for preparation, Linux TUI packaging, and publication, and
+`windows-2022` for the Windows package. The direct reusable Windows and Linux
+TUI workflows use the same static labels. This keeps the workflow schedulable
+without probing a runner that may lack required tooling; `uv python install
+3.12` remains responsible for the Linux TUI's pinned interpreter.
+
+The workflow contract test was updated to assert these labels and reject
+runner-selection or self-hosted-only shapes. Focused workflow tests, Prettier,
+and `git diff --check` are the local gates; the next remote Super Express run
+is the required post-fix evidence.
+
 ## 2026-08-05 — Harden the Windows dependency cache and preserve Team View styling
 
 The CI dependency-cache hit path now validates the actual Electron runtime,
