@@ -24,3 +24,8 @@ $shim = "@echo off`r`n`"$nodePath`" `"$yarnScript`" %*`r`n"
 )
 
 $shimRoot | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+& $shimPath --version
+if ($LASTEXITCODE -ne 0) {
+  throw "The repository-pinned Yarn runtime could not start: $shimPath"
+}

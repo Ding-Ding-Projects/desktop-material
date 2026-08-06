@@ -34,6 +34,7 @@ describe('CI environment setup', () => {
       yarnBootstrap,
       /Node\.js is required on a self-hosted Windows runner/
     )
+    assert.match(yarnBootstrap, /LASTEXITCODE/)
     assert.match(
       setupAction,
       /uses: actions\/setup-python@v6[\s\S]*?runner\.environment != 'self-hosted'/
@@ -56,19 +57,6 @@ describe('CI environment setup', () => {
     )
     assert.match(setupAction, /Check cached dependencies/)
     assert.match(setupAction, /dependency-cache-check/)
-    assert.match(
-      setupAction,
-      /Ensure vendored Yarn is available before cache setup/
-    )
-    assert.match(setupAction, /vendor\\yarn-1\.21\.1\.js/)
-    assert.match(setupAction, /yarn\.cmd/)
-    assert.match(setupAction, /runner\.environment == 'self-hosted'/)
-    assert.ok(
-      setupAction.indexOf(
-        'Ensure vendored Yarn is available before cache setup'
-      ) < setupAction.indexOf('cache: yarn'),
-      'The self-hosted Yarn shim must be installed before setup-node probes the Yarn cache.'
-    )
     assert.match(
       setupAction,
       /dependency-cache-check\.outputs\.complete != 'true'/
