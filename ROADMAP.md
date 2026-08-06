@@ -2,6 +2,20 @@
 
 Updated: **August 6, 2026**
 
+## August 6 — Give Windows CI a trusted runner choice and warm cache
+
+- The manual `CI Windows` dispatch now offers `cloud` (the default) or the
+  fixed `desktop-material-windows-local` label for the desktop build and
+  packaged smoke jobs. Push, pull-request, reusable-call, and Windows TUI core
+  jobs remain on hosted runners.
+- Windows self-hosted jobs restore exact installed dependencies without a
+  post-job archive hook, verify the restored sentinels, and explicitly save a
+  verified miss. A legacy cache can warm the install, but the current lockfiles
+  still determine the final dependency tree.
+- Local contracts pass **17/17**, the edited YAML parses, Prettier and
+  `actionlint -shellcheck=` pass, and `git diff --check` passes. Remote
+  verification remains pending for the new commit.
+
 ## August 6 — Dock settings tabs on any side
 
 - Preferences and Repository Settings now support independent persisted tab

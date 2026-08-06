@@ -1700,6 +1700,10 @@ The **Actions** panel brings CI into the app:
   confirmation. It is never inferred from a deployment decision.
 - Trigger manual workflows with the **`workflow_dispatch` dialog** — pick the workflow, ref, and
   inputs, and dispatch.
+- When dispatching **CI Windows**, choose `cloud` (the default) or `self-hosted` for the desktop
+  build and packaged smoke jobs. The self-hosted choice is mapped to the fixed
+  `desktop-material-windows-local` label; pushes, pull requests, reusable calls, and the Windows
+  TUI core job remain on hosted runners.
 - The repository's **Super Express Release** emergency lane runs no unit,
   script, TUI, lint, type, parity, smoke, or E2E tests. It goes directly to the
   Windows x64 production build/package, asset verification, and release. A
@@ -1717,10 +1721,10 @@ The **Actions** panel brings CI into the app:
   default gates, run on clean GitHub-hosted machines, and keep unique
   non-cancelling run/attempt groups. Only Super Express retains local packaging
   placement and same-ref cancellation. A release pull request targets the
-  Windows product's `main` default branch. Self-hosted dependency setup remains automatic, but
-  skips optional
-  cache-save post hooks so a completed build does not leave the local runner
-  occupied by archive cleanup. The TUI's isolated profile-history repository
+  Windows product's `main` default branch. Windows self-hosted dependency setup
+  restores an exact verified cache without a post-job archive hook, explicitly
+  saves a verified miss, and can use an older cache only as a warm start while
+  the current lockfiles still drive installation. The TUI's isolated profile-history repository
   also enables Git `core.longpaths` locally, so Windows history writes do not
   depend on the checkout's separate Git configuration.
 - Ordinary Windows unit tests leave `NODE_OPTIONS` to `script/test.mjs`, which

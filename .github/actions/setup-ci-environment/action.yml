@@ -29,11 +29,12 @@ runs:
         }
         Split-Path $gitBash -Parent | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-    - name: Restore exact installed dependencies
+    - name: Restore exact installed dependencies on hosted runners
       id: installed-dependencies
       # The self-hosted runners keep their own dependency directories. The
       # actions/cache post step can hold a runner for an unbounded upload after
-      # the real job has finished, so only hosted runners use this cache.
+      # the real job has finished, so hosted runners retain the post-step cache
+      # while Windows self-hosted runners use an explicit restore/save pair.
       if: ${{ runner.environment != 'self-hosted' }}
       uses: actions/cache@v5
       with:
@@ -43,16 +44,56 @@ runs:
           ~/.cache/ms-playwright
           ~/AppData/Local/ms-playwright
         key: >-
-          installed-deps-v4-${{ runner.os }}-${{ runner.arch }}-target-${{
+          installed-deps-v5-${{ runner.os }}-${{ runner.arch }}-target-${{
           inputs.arch }}-node-${{ inputs.node-version }}-py311-${{
           hashFiles('package.json', 'yarn.lock', 'app/package.json',
           'app/yarn.lock', '.yarnrc', 'app/.yarnrc', 'app/.npmrc',
           'script/post-install.ts',
           '.github/actions/setup-ci-environment/action.yml',
+          '.github/actions/setup-windows-signing/action.yml',
           '.github/scripts/ensure-windows-clang.ps1',
           '.github/scripts/bootstrap-pinned-yarn.ps1', 'vendor/yarn-1.21.1.js',
           'vendor/printenvz/**', 'vendor/windows-argv-parser/**',
           'vendor/desktop-notifications/**', 'vendor/desktop-trampoline/**') }}
+
+    - name: Restore exact installed dependencies on Windows self-hosted runners
+      id: installed-dependencies-self-hosted
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      uses: actions/cache/restore@v5
+      with:
+        path: |
+          node_modules
+          app/node_modules
+          ~/.cache/ms-playwright
+          ~/AppData/Local/ms-playwright
+        key: >-
+          installed-deps-v5-${{ runner.os }}-${{ runner.arch }}-target-${{
+          inputs.arch }}-node-${{ inputs.node-version }}-py311-${{
+          hashFiles('package.json', 'yarn.lock', 'app/package.json',
+          'app/yarn.lock', '.yarnrc', 'app/.yarnrc', 'app/.npmrc',
+          'script/post-install.ts',
+          '.github/actions/setup-ci-environment/action.yml',
+          '.github/actions/setup-windows-signing/action.yml',
+          '.github/scripts/ensure-windows-clang.ps1',
+          '.github/scripts/bootstrap-pinned-yarn.ps1', 'vendor/yarn-1.21.1.js',
+          'vendor/printenvz/**', 'vendor/windows-argv-parser/**',
+          'vendor/desktop-notifications/**', 'vendor/desktop-trampoline/**') }}
+        # A legacy cache is only a warm start. Its cache-hit output remains
+        # false, so the current lock files still drive a complete install.
+        restore-keys: |
+          installed-deps-v4-${{ runner.os }}-${{ runner.arch }}-target-${{
+          inputs.arch }}-node-${{ inputs.node-version }}-py311-
+
+    - name: Select installed dependency cache result
+      id: installed-dependencies-status
+      shell: bash
+      run: |
+        if [ "${{ steps.installed-dependencies.outputs.cache-hit }}" = 'true' ] ||
+          [ "${{ steps.installed-dependencies-self-hosted.outputs.cache-hit }}" = 'true' ]; then
+          echo 'cache-hit=true' >> "$GITHUB_OUTPUT"
+        else
+          echo 'cache-hit=false' >> "$GITHUB_OUTPUT"
+        fi
 
     - name:
         Use Node.js ${{ inputs.node-version }} before self-hosted Yarn bootstrap
@@ -160,7 +201,7 @@ runs:
 
     - name: Check cached dependencies
       id: dependency-cache-check
-      if: steps.installed-dependencies.outputs.cache-hit == 'true'
+      if: steps.installed-dependencies-status.outputs.cache-hit == 'true'
       shell: bash
       run: |
         required=(
@@ -220,14 +261,14 @@ runs:
         echo "complete=$cache_complete" >> "$GITHUB_OUTPUT"
 
     - name: Use Node.js ${{ inputs.node-version }} with installed dependencies
-      if: steps.installed-dependencies.outputs.cache-hit == 'true'
+      if: steps.installed-dependencies-status.outputs.cache-hit == 'true'
       uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}
 
     - name: Use Node.js ${{ inputs.node-version }} with Yarn download cache
       if:
-        ${{ (steps.installed-dependencies.outputs.cache-hit != 'true' ||
+        ${{ (steps.installed-dependencies-status.outputs.cache-hit != 'true' ||
         steps.dependency-cache-check.outputs.complete != 'true') &&
         runner.environment != 'self-hosted' }}
       uses: actions/setup-node@v6
@@ -242,7 +283,7 @@ runs:
         Use Node.js ${{ inputs.node-version }} before self-hosted dependency
         install
       if:
-        ${{ (steps.installed-dependencies.outputs.cache-hit != 'true' ||
+        ${{ (steps.installed-dependencies-status.outputs.cache-hit != 'true' ||
         steps.dependency-cache-check.outputs.complete != 'true') &&
         runner.environment == 'self-hosted' }}
       uses: actions/setup-node@v6
@@ -251,7 +292,7 @@ runs:
 
     - name: Install and build dependencies
       if:
-        ${{ steps.installed-dependencies.outputs.cache-hit != 'true' ||
+        ${{ steps.installed-dependencies-status.outputs.cache-hit != 'true' ||
         steps.dependency-cache-check.outputs.complete != 'true' }}
       shell: bash
       run: |
@@ -278,7 +319,7 @@ runs:
 
     - name: Install cross-compilation copilot package
       if:
-        ${{ steps.installed-dependencies.outputs.cache-hit != 'true' ||
+        ${{ steps.installed-dependencies-status.outputs.cache-hit != 'true' ||
         steps.dependency-cache-check.outputs.complete != 'true' }}
       shell: bash
       run: |
@@ -314,6 +355,7 @@ runs:
         fi
 
     - name: Verify installed dependencies before use
+      id: verify-dependencies
       shell: bash
       run: |
         required=(
@@ -369,3 +411,28 @@ runs:
           echo "Installed dependencies are missing Playwright ffmpeg; refusing to save or use this exact cache key." >&2
           exit 1
         fi
+
+    - name: Save exact installed dependencies from Windows self-hosted runners
+      if:
+        ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' &&
+        steps.installed-dependencies-self-hosted.outputs.cache-hit != 'true' &&
+        steps.verify-dependencies.outcome == 'success' }}
+      uses: actions/cache/save@v5
+      with:
+        path: |
+          node_modules
+          app/node_modules
+          ~/.cache/ms-playwright
+          ~/AppData/Local/ms-playwright
+        key: >-
+          installed-deps-v5-${{ runner.os }}-${{ runner.arch }}-target-${{
+          inputs.arch }}-node-${{ inputs.node-version }}-py311-${{
+          hashFiles('package.json', 'yarn.lock', 'app/package.json',
+          'app/yarn.lock', '.yarnrc', 'app/.yarnrc', 'app/.npmrc',
+          'script/post-install.ts',
+          '.github/actions/setup-ci-environment/action.yml',
+          '.github/actions/setup-windows-signing/action.yml',
+          '.github/scripts/ensure-windows-clang.ps1',
+          '.github/scripts/bootstrap-pinned-yarn.ps1', 'vendor/yarn-1.21.1.js',
+          'vendor/printenvz/**', 'vendor/windows-argv-parser/**',
+          'vendor/desktop-notifications/**', 'vendor/desktop-trampoline/**') }}

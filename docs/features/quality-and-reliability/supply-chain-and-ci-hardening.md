@@ -12,7 +12,11 @@ GitHub-hosted `ubuntu-latest` or `windows-2022` machines. Each invocation uses a
 unique run-ID/run-attempt concurrency group with `cancel-in-progress: false`, so
 the release gate for one commit cannot be silently replaced by a later commit.
 The CI workflows also accept pull requests because untrusted code stays on a
-disposable hosted machine.
+disposable hosted machine. The Windows `workflow_dispatch` form additionally
+offers a `cloud` (the default) or `self-hosted` choice for the desktop build and
+packaged smoke jobs. Only the exact `self-hosted` choice on a manual dispatch
+maps to `desktop-material-windows-local`; pushes, pull requests, reusable calls,
+and the Windows TUI core job remain hosted.
 
 Only the Super Express emergency family is self-hosted and ref-cancelling. Its
 Windows jobs require `desktop-material-windows-local`, and its Linux/WSL jobs
@@ -42,15 +46,17 @@ Debian 13, where the hosted Python manifest does not contain the requested
 3.11 x64 entry; relying on that action would fail before the actual lint or
 package work starts.
 
-Self-hosted setup deliberately does not register archive-cache post hooks.
-The exact installed-dependency cache, uv cache upload, and setup-node Yarn
-download cache remain available to hosted jobs, but self-hosted jobs install
-their declared dependencies directly. On a persistent local runner, a cache
-save runs after the real build has finished and can keep the runner marked busy
-while it uploads a large tree; disabling those optional hooks keeps the
-runner available without weakening the dependency install itself. The
-focused contract test checks the split so a future cache optimization cannot
-quietly reintroduce the long post-run hold.
+Windows self-hosted setup restores the exact installed-dependency cache with an
+explicit `actions/cache/restore` step and saves a verified miss with an explicit
+`actions/cache/save` step before the build starts. The key includes both lock
+files and manifests, the post-install/setup/signing actions, pinned Yarn, local
+native-vendor sources, the target architecture, and the Node/Python versions.
+An older `installed-deps-v4` cache may be restored only as a warm start; its
+non-hit status still forces the current lock files through the complete install.
+Hosted jobs retain the ordinary cache post step, while self-hosted jobs avoid an
+unbounded post-job archive hook. Build output, installers, Release assets,
+credentials, and runtime configuration remain uncached. The focused contract
+test checks both the runner selection and this restore/verify/save split.
 
 The hosted Windows E2E lane does not install a second system-wide FFmpeg package.
 The repository post-install step provisions Playwright's pinned FFmpeg payload,
@@ -287,11 +293,11 @@ groups. Only Super Express cancels an older dispatch for the same ref:
 | Super Express emergency release               | Per ref                 | Yes                  |
 
 Ten pushes to one branch now retain ten independent hosted CI results. The
-registered self-hosted pool is reserved for explicit Super Express work, where
-cancelling an obsolete same-ref dispatch keeps the local runner focused on the
-operator's newest emergency request. The workflow safety test permits
-`cancel-in-progress: true` and `self-hosted` placement only in the three
-`super-express-release*.yml` files.
+registered self-hosted pool is reserved for explicit Super Express work and the
+trusted manual Windows CI desktop choice; pull requests and reusable calls
+cannot select it. The workflow safety test permits `cancel-in-progress: true`
+only in the three `super-express-release*.yml` files and checks that the Windows
+CI expression can select only the fixed local label on a manual dispatch.
 
 ## Security considerations
 
@@ -430,10 +436,10 @@ ClangCL bootstrap verification performed on 2026-08-06:
   release lane.
 
 Current hosted-runner restoration verification is also pending. The committed
-contract must prove that ordinary CI and tested Express use only
-`ubuntu-latest`/`windows-2022`, accept pull requests only through hosted CI,
-retain unique non-cancelling groups, and leave self-hosted placement plus
-ref-scoped cancellation exclusively to Super Express. The Windows unit workflow
+contract must prove that ordinary CI and tested Express use
+`ubuntu-latest`/`windows-2022` by default, accept pull requests only through
+hosted CI, retain unique non-cancelling groups, and limit self-hosted placement
+to the trusted manual Windows CI desktop choice or Super Express. The Windows unit workflow
 must leave worker memory to `script/test.mjs`, and the named installer step must
 contain exactly one bounded `WaitForExit(300000)`, timeout tree cleanup, and
 repeated same-session/pre-existing-PID-scoped application cleanup. No remote

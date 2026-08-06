@@ -114,17 +114,18 @@ run for manual recovery whenever the Windows build/package itself succeeded.
 
 Windows jobs restore an exact-content cache of the installed root and app
 `node_modules` trees plus Playwright's external FFmpeg payload. Its key includes
-operating system, runner and target
-architecture, Node/Python versions, both lockfiles and package manifests,
-install configuration, the post-install script, the setup action, pinned Yarn,
-and local native-vendor sources. A hit must contain reviewed generic,
-target-specific Copilot, Electron-runtime, React JSX-runtime, `react-confetti`,
-and Playwright sentinels. If a hit is incomplete, the setup action records the
-missing paths and reruns the bounded dependency install automatically rather
-than handing the broken cache to webpack. There are no partial restore keys.
-Python setup remains unconditional for native builds. Build output, `dist`,
-installers, Release assets, credentials, and runtime configuration are never
-cached.
+operating system, runner and target architecture, Node/Python versions, both
+lockfiles and package manifests, install configuration, the post-install,
+environment-setup, and signing actions, pinned Yarn, and local native-vendor
+sources. A hit must contain reviewed generic, target-specific Copilot,
+Electron-runtime, React JSX-runtime, `react-confetti`, and Playwright
+sentinels. If a hit is incomplete, the setup action records the missing paths
+and reruns the bounded dependency install automatically rather than handing the
+broken cache to webpack. A legacy `installed-deps-v4` cache can warm a
+self-hosted Windows miss, but it is never treated as exact and the current
+lockfiles still drive installation. Python setup remains unconditional for
+native builds. Build output, `dist`, installers, Release assets, credentials,
+and runtime configuration are never cached.
 
 The hosted Windows packaged-E2E lane launches the Squirrel installer without
 PowerShell's descendant-inclusive `Start-Process -Wait`. It waits at most 300
@@ -141,7 +142,11 @@ Ordinary Linux/Windows CI and `Build Installers / Express Release` use
 GitHub-hosted runners and unique run-ID/run-attempt concurrency groups with
 `cancel-in-progress: false`; every commit keeps its independent validation and
 publication opportunity. CI handles pushes, pull requests, manual dispatches,
-and reusable calls on clean hosted machines. Pages publication retains the same
+and reusable calls on clean hosted machines by default. The Windows manual
+dispatch offers a `cloud` or `self-hosted` choice for only the desktop build and
+packaged smoke jobs; the self-hosted option maps to the fixed
+`desktop-material-windows-local` label and never accepts a raw runner label.
+The Windows TUI core job remains hosted. Pages publication retains the same
 non-cancelling run-and-attempt contract.
 
 Only the self-hosted Super Express release family uses ref-scoped cancellation,

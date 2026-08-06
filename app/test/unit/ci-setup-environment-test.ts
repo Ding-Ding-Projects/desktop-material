@@ -37,7 +37,7 @@ interface ICompositeActionDocument {
 const setupActionDocument = parse(setupAction) as ICompositeActionDocument
 
 describe('CI environment setup', () => {
-  it('uses an exact installed-dependency cache and skips cold setup only on a hit', () => {
+  it('uses exact dependency caches and keeps self-hosted cache writes explicit', () => {
     const preferGitBashStep = setupActionDocument.runs?.steps?.find(
       step => step.name === 'Prefer Git Bash on Windows self-hosted runners'
     )
@@ -66,6 +66,15 @@ describe('CI environment setup', () => {
     assert.match(
       setupAction,
       /Restore exact installed dependencies[\s\S]*?runner\.environment != 'self-hosted'/
+    )
+    assert.match(
+      setupAction,
+      /Restore exact installed dependencies on Windows self-hosted runners[\s\S]*?if: \$\{\{ runner\.os == 'Windows' && runner\.environment == 'self-hosted' \}\}[\s\S]*?actions\/cache\/restore@v5/
+    )
+    assert.match(setupAction, /Select installed dependency cache result/)
+    assert.match(
+      setupAction,
+      /Save exact installed dependencies from Windows self-hosted runners[\s\S]*?actions\/cache\/save@v5/
     )
     assert.match(setupAction, /uv python install 3\.11/)
     assert.match(setupAction, /npm_config_python=\$python_path/)
@@ -174,9 +183,12 @@ describe('CI environment setup', () => {
     assert.match(setupAction, /AppData\/Local\/ms-playwright/)
     assert.match(
       setupAction,
-      /installed-deps-v4-\$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}-target-/
+      /installed-deps-v5-\$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}-target-/
     )
-    assert.doesNotMatch(setupAction, /restore-keys:/)
+    assert.match(
+      setupAction,
+      /Restore exact installed dependencies on Windows self-hosted runners[\s\S]*?restore-keys:[\s\S]*?installed-deps-v4-\$\{\{ runner\.os \}\}/
+    )
     assert.match(
       setupAction,
       /Verify installed dependencies before use[\s\S]*?Installed dependency cache is incomplete/

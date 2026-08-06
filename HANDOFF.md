@@ -1,5 +1,27 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Add a trusted Windows CI runner choice and self-hosted cache
+
+`CI Windows` remains cloud-first for pushes, pull requests, and reusable calls,
+but its manual `workflow_dispatch` form now offers `cloud` or `self-hosted` for
+the desktop build and packaged smoke jobs. The self-hosted option maps only to
+the fixed `desktop-material-windows-local` label; the Windows TUI core job stays
+on `windows-2022`, and no raw runner label is accepted from workflow input.
+
+The shared Windows dependency setup now restores an exact `installed-deps-v5`
+cache on self-hosted jobs without a post-job cache hook, verifies its required
+Electron, Copilot, React, and Playwright sentinels, and explicitly saves a
+verified miss. An older `installed-deps-v4` entry may provide a warm starting
+tree, but its non-hit result still runs the current lockfile install. The cache
+key includes the manifests, lockfiles, setup/signing actions, pinned Yarn, and
+native-vendor inputs. Build outputs and installers remain uncached.
+
+Local evidence on the task branch: the CI environment and workflow safety
+contracts pass **17/17**, both edited YAML documents parse, Prettier passes on
+the changed files, `actionlint -shellcheck=` passes, and `git diff --check`
+passes. A fresh remote Windows run is still required after the change; no GitHub
+green result is claimed yet.
+
 ## 2026-08-06 — Add four-way docking to browser-style settings tabs
 
 Preferences and Repository Settings now keep the current browser-style tab
@@ -1492,7 +1514,7 @@ added the following scoped fixes:
   Node test coordinator a 4 GiB heap. The previous `a0d7b4a598` CI run passed
   all 7,238 assertions but died at 318 MiB while the long Agents test batch was
   still emitting its accounting summary; the new workflow change is awaiting
-  its own GitHui run for proof.
+  its own GitHub Actions run for proof.
 
 - The Agents creator now uses the shared modal dialog layer, exposes dialog
   semantics, avoids a nested form, and disables the Options disclosure while

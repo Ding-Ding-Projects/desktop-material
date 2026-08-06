@@ -66,6 +66,8 @@ const selfHostedSuperExpressWorkflows = new Set([
   'super-express-release-windows.yml',
   'super-express-release-linux-tui.yml',
 ])
+const windowsDesktopRunnerExpression =
+  "${{ github.event_name == 'workflow_dispatch' && inputs.runner_mode == 'self-hosted' && 'desktop-material-windows-local' || 'windows-2022' }}"
 
 interface IWorkflowStep {
   name?: string
@@ -471,6 +473,20 @@ describe('CI workflow safety', () => {
         continue
       }
       for (const [jobName, job] of jobsWithRunners) {
+        if (
+          file === 'ci-windows.yml' &&
+          ['build', 'e2e-smoke'].includes(jobName)
+        ) {
+          assert.equal(
+            job['runs-on'],
+            windowsDesktopRunnerExpression,
+            file +
+              ':' +
+              jobName +
+              ' must expose the cloud/self-hosted runner choice'
+          )
+          continue
+        }
         assert.equal(
           typeof job['runs-on'],
           'string',
@@ -565,8 +581,12 @@ describe('CI workflow safety', () => {
   })
 
   it('builds, packages, and exercises the app on hosted CI runners', () => {
-    for (const jobName of ['windows-tui-core', 'build', 'e2e-smoke']) {
-      assertJobRunsOn(windowsWorkflowDocument, jobName, 'windows-2022')
+    assertJobRunsOn(windowsWorkflowDocument, 'windows-tui-core', 'windows-2022')
+    for (const jobName of ['build', 'e2e-smoke']) {
+      assert.equal(
+        getJob(windowsWorkflowDocument, jobName)['runs-on'],
+        windowsDesktopRunnerExpression
+      )
     }
     for (const jobName of ['lint', 'supply-chain', 'linux-tui']) {
       assertJobRunsOn(linuxWorkflowDocument, jobName, 'ubuntu-latest')
@@ -575,6 +595,11 @@ describe('CI workflow safety', () => {
     assert.deepEqual(getSelfHostedJobNames(linuxWorkflowDocument), [])
     assert.match(windowsWorkflow, /arch: \[x64, arm64\]/)
     assert.match(windowsWorkflow, /friendlyName: Windows/)
+    assert.match(
+      windowsWorkflow,
+      /workflow_dispatch:\s+inputs:\s+runner_mode:[\s\S]*?default: cloud[\s\S]*?type: choice[\s\S]*?options:\s+- cloud\s+- self-hosted/
+    )
+    assert.match(windowsWorkflow, /workflow_call:\s+inputs:\s+repository:/)
     assert.match(windowsWorkflow, /Install app on Windows/)
     assert.match(
       windowsWorkflow,

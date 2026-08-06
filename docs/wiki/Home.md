@@ -265,9 +265,12 @@ the tonal workspace preview hides when a compact window needs the space.
   load later artifact pages before a native download with local digest comparison and explicit
   attestation-presence context.
 - **Runner boundary** — ordinary Linux/Windows CI and tested Express run on clean GitHub-hosted
-  runners and keep unique non-cancelling run/attempt groups. Only Super Express uses the registered
-  local Windows/WSL pool and ref-scoped cancellation. Its self-hosted setup installs declared Node
-  and Python dependencies directly and skips optional cache-save post hooks.
+  runners and keep unique non-cancelling run/attempt groups. The Windows CI manual dispatch also
+  offers a cloud/self-hosted choice for the desktop build and packaged smoke jobs, mapping only to
+  the fixed `desktop-material-windows-local` label; pushes, pull requests, reusable calls, and the
+  Windows TUI core job remain hosted. Super Express still uses the registered local Windows/WSL
+  pool and ref-scoped cancellation. Its self-hosted setup restores exact dependencies without an
+  unbounded post-job cache hook, verifies the cache, and explicitly saves a verified miss.
 - **Windows test memory and installation** — `script/test.mjs` owns both the per-worker heap and
   memory-aware concurrency; workflows do not impose a 4 GiB value inherited by every worker. The
   packaged smoke lane waits at most 300 seconds for the Squirrel installer process, kills that tree
