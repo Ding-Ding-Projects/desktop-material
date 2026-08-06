@@ -115,8 +115,9 @@ describe('Super Express Release workflow', () => {
     )
     assert.match(
       windowsBuildAction,
-      /Prefer Git Bash on Windows self-hosted runners[\s\S]*?GITHUB_PATH/
+      /Prefer Git Bash on Windows self-hosted runners[\s\S]*?shell: powershell[\s\S]*?GITHUB_PATH/
     )
+    assert.doesNotMatch(windowsBuildAction, /shell: pwsh/)
     assert.doesNotMatch(
       windowsWorkflow,
       /cloud|fallback|runner_selection|use_self_hosted/

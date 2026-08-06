@@ -15,7 +15,10 @@ runs:
   using: composite
   steps:
     - name: Prefer Git Bash on Windows self-hosted runners
-      shell: pwsh
+      # This runner has Windows PowerShell, while PowerShell Core is not part
+      # of the runner contract. Use the built-in Windows shell for the small
+      # PATH repair, then let subsequent bash steps resolve Git Bash.
+      shell: powershell
       run: |
         $git = Get-Command git.exe -ErrorAction SilentlyContinue
         if ($null -eq $git) {
