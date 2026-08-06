@@ -18,11 +18,13 @@
       "surfaces": [
         { "member": "Changes", "label": "Changes" },
         { "member": "History", "label": "History" },
+        { "member": "HistoryGraph", "label": "Graph" },
         { "member": "Actions", "label": "Actions" },
         { "member": "RepositoryTools", "label": "Tools" },
         { "member": "Releases", "label": "Releases" },
         { "member": "CheapLfs", "label": "Cheap LFS" },
         { "member": "Issues", "label": "Issues" },
+        { "member": "Launchpad", "label": "Launchpad" },
         { "member": "Triage", "label": "Triage" },
         { "member": "GitHubAPI", "label": "API" }
       ]
@@ -45,7 +47,9 @@
         { "member": "Automation", "label": "Automation" },
         { "member": "Queue", "label": "Clone queue" },
         { "member": "Sound", "label": "Sound" },
-        { "member": "Ollama", "label": "Ollama" }
+        { "member": "Ollama", "label": "Ollama" },
+        { "member": "SelfHostedServer", "label": "Self-hosted server" },
+        { "member": "AI", "label": "AI" }
       ]
     },
     "repositorySettings": {
@@ -63,6 +67,7 @@
         { "member": "Automation", "label": "Automation" },
         { "member": "Metadata", "label": "Metadata" },
         { "member": "Appearance", "label": "Appearance" },
+        { "member": "AISecurity", "label": "AI security" },
         {
           "member": "ForkSettings",
           "label": "Fork behavior",

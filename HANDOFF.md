@@ -6,10 +6,13 @@ The first remote Windows verification after the dependency repair reached the
 runner but failed while recursively cloning
 `vendor/lowlevel-computer-use-mcp`: that submodule is agent tooling whose
 history is not available to the hosted workflow token. The desktop build does
-not consume it; the three public product submodules remain available. Marking
-this one submodule `update = none` keeps recursive checkout from attempting the
-unavailable agent-only clone while preserving the URL for an explicit local
-tooling checkout. Remote verification of this correction is pending.
+not consume it; the three public product submodules remain available. The first
+correction used `update = none` to keep recursive checkout from attempting the
+unavailable agent-only clone. The subsequent integration at
+`883c1b6c6b01ca1371d590d2971e756ff5ed9039` removed that retired gitlink and
+its registry entry entirely, leaving only the three public product submodules
+in `.gitmodules`. Fresh remote verification of that integrated correction is
+pending.
 
 ## 2026-08-05 — Direct Super Express lane dispatch actions
 
@@ -448,6 +451,31 @@ Focused manager/export tests passed 17/17, targeted ESLint passed, and the
 full TypeScript check passed. The exact fix checkout's webpack compilation
 completed; the later packaging script stopped only because the isolated
 checkout lacked ignored generated `choosealicense.com/_licenses` data.
+
+## 2026-08-05 — Dedicated History Graph repository page
+
+The graph now has a first-class HistoryGraph repository section appended to
+the persisted RepositorySectionTab enum, so existing saved section values do
+not move. The repository rail labels the page **Graph** and routes it directly
+to the shared compare renderer in full-width page mode: the branch filter,
+history scope, commit search, filter chips, lane controls, selection, and
+commit actions are retained, while the narrow History sidebar is not mounted.
+The page has its own localized title and accessible panel relationship. The
+responsive surface catalog and repository section-order tests include the page
+and the previously drifted Launchpad, preference, AI-security, and repository-
+settings entries now match their source enums again.
+
+Focused verification is **85/85** across graph behavior, repository
+navigation, section ordering, feature registration, and the responsive surface
+catalog. npx --no-install tsc --noEmit still stops on two unrelated dirty
+test fixtures (app/test/unit/ui/merge-choose-branch-dialog-test.tsx, lines
+84 and 117), where the existing "Merge" fixture is not a
+MultiCommitOperationKind; that dirty work was preserved. The required
+Lowlevel preflight and checkout identity checks passed, but the MCP build
+receipt did not: the first exact build produced refreshed output and then
+wedged its client, while a retry returned an unhandled TaskGroup error while
+another checkout was building through the same service. No built-app capture
+is claimed from that unverified receipt.
 
 ## 2026-08-03 — History view tabs checkpoint
 

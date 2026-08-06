@@ -390,8 +390,9 @@ the tonal workspace preview hides when a compact window needs the space.
 
 ### History, stashes, repositories, and windows
 
-- **History power tools** — search commits by title, message, tag, or hash and toggle a commit graph
-  that renders ancestry lanes beside the filtered history.
+- **History power tools** — search commits by title, message, tag, or hash; use the
+  compact History view when reviewing rows; or open the dedicated **Graph** repository
+  page when the ancestry lanes need the full workspace width.
 - **Multiple stashes** — create and keep multiple entries, select one to inspect its files and diffs,
   then restore or discard that exact stash.
 - **Repository power tools** — pin and group repositories, pull all with a per-repository result,
@@ -417,7 +418,7 @@ the tonal workspace preview hides when a compact window needs the space.
 
 ![History Commit list tab from the built Windows app](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-view-tabs-list.png)
 
-![History Graph tab from the built Windows app](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-view-tabs-graph.png)
+![History Graph view from the built Windows app](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-view-tabs-graph.png)
 
 ![Provider accounts for GitLab and Bitbucket](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-provider-accounts.png)
 
