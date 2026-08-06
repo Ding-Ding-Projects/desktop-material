@@ -54,6 +54,26 @@ runs:
           app/node_modules/react/jsx-runtime.js
           app/node_modules/react-confetti/package.json
         )
+        case "$RUNNER_OS" in
+          Windows)
+            required+=(
+              node_modules/electron/dist/electron.exe
+              "app/node_modules/@github/copilot-win32-${{ inputs.arch }}/package.json"
+            )
+            ;;
+          macOS)
+            required+=(
+              node_modules/electron/dist/Electron.app/Contents/MacOS/Electron
+              "app/node_modules/@github/copilot-darwin-${{ inputs.arch }}/package.json"
+            )
+            ;;
+          Linux)
+            required+=(
+              node_modules/electron/dist/electron
+              "app/node_modules/@github/copilot-linux-${{ inputs.arch }}/package.json"
+            )
+            ;;
+        esac
         cache_complete=true
         for path in "${required[@]}"; do
           if [ ! -f "$path" ]; then
@@ -61,6 +81,23 @@ runs:
             cache_complete=false
           fi
         done
+        playwright_ffmpeg=false
+        for root in "$HOME/.cache/ms-playwright" "$HOME/AppData/Local/ms-playwright"; do
+          if [ -d "$root" ] && find "$root" \
+            -mindepth 2 \
+            -maxdepth 2 \
+            -type f \
+            -path "$root/ffmpeg-*/*" \
+            \( -name ffmpeg-linux -o -name ffmpeg-mac -o -name ffmpeg-win64.exe \) \
+            -print -quit | grep -q .; then
+            playwright_ffmpeg=true
+            break
+          fi
+        done
+        if [ "$playwright_ffmpeg" != true ]; then
+          echo "Cached dependency is missing Playwright ffmpeg." >&2
+          cache_complete=false
+        fi
         echo "complete=$cache_complete" >> "$GITHUB_OUTPUT"
 
     - name: Use Node.js ${{ inputs.node-version }} with installed dependencies
