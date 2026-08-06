@@ -134,18 +134,15 @@ describe('self-hosted team client (against a real server instance)', () => {
       'Bob desktop',
       // second device needs a fresh join link; reuse admin rotation directly
       await (async () => {
-        const rotated = await fetch(
-          `${instance.origin}/v1/admin/join-links`,
-          {
-            method: 'POST',
-            headers: {
-              'content-type': 'application/json',
-              authorization:
-                'Bearer admin-token-with-more-than-thirty-two-characters',
-            },
-            body: '{}',
-          }
-        ).then(response => response.json() as Promise<{ joinUrl: string }>)
+        const rotated = await fetch(`${instance.origin}/v1/admin/join-links`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization:
+              'Bearer admin-token-with-more-than-thirty-two-characters',
+          },
+          body: '{}',
+        }).then(response => response.json() as Promise<{ joinUrl: string }>)
         const url = new URL(rotated.joinUrl)
         return decodeURIComponent(url.hash.slice('#token='.length))
       })()

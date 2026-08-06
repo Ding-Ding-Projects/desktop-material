@@ -399,7 +399,7 @@
         "tui/tests/ui/test_section6_parity_wave.py"
       ]
     },
-    "History search and lane graph": {
+    "History search and dedicated lane graph page": {
       "status": "partial",
       "reason": "History searches bounded commit messages, authors, hashes, and decorations across the current branch or all refs, and identifies merge rows. A graphical lane graph is not reproduced in the terminal yet.",
       "evidence": [

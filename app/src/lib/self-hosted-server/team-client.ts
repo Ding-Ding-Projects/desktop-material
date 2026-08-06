@@ -42,10 +42,7 @@ export interface ISharedWorkspaceCreated extends ISharedWorkspaceReference {
 }
 
 export class TeamClientError extends Error {
-  public constructor(
-    public readonly status: number,
-    message: string
-  ) {
+  public constructor(public readonly status: number, message: string) {
     super(message)
   }
 }
@@ -151,7 +148,7 @@ export async function fetchTeamMembers(
   ) {
     throw new TeamClientError(502, 'Malformed team member response')
   }
-  const members = ((body as { members: unknown[] }).members)
+  const members = (body as { members: unknown[] }).members
     .map(asTeamMember)
     .filter((member): member is ITeamMember => member !== null)
   return members

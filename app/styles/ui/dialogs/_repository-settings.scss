@@ -710,9 +710,7 @@
           gap: 10px;
           padding: 8px 12px;
           border-radius: 14px;
-          transition:
-            background-color 200ms var(--emph),
-            border-radius 260ms var(--spring);
+          transition: background-color 200ms var(--emph), border-radius 260ms var(--spring);
 
           &:hover {
             background: var(--md-sys-color-surface-container-high);

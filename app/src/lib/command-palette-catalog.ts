@@ -138,7 +138,11 @@ export interface IPaletteDynamicChoiceControl {
 
 /** The runtime lists a dynamic choice can name. */
 export type PaletteDynamicOptionsId =
-  'external-editors' | 'shells' | 'accounts' | 'date-formats' | 'time-formats'
+  | 'external-editors'
+  | 'shells'
+  | 'accounts'
+  | 'date-formats'
+  | 'time-formats'
 
 /** A resolved option for a dynamic choice. Labels are values, not keys. */
 export interface IPaletteDynamicOption {
@@ -160,7 +164,9 @@ export type PaletteControlValue = boolean | string | number
  * or side-effecting commands simply omit it and spotlight their control.
  */
 export type IPaletteHome =
-  IPaletteSurfaceHome | IPaletteSettingsHome | IPaletteRepositorySettingsHome
+  | IPaletteSurfaceHome
+  | IPaletteSettingsHome
+  | IPaletteRepositorySettingsHome
 
 export interface IPaletteSurfaceHome {
   readonly kind: 'surface'

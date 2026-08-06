@@ -1256,8 +1256,8 @@ function cheapLfsRestoreLane(
     foregroundPart !== undefined
       ? foregroundPart.processedBytes
       : partTotal === undefined
-        ? lane.processedBytes
-        : (lane.partTransferredBytes ?? 0)
+      ? lane.processedBytes
+      : lane.partTransferredBytes ?? 0
   const totalBytes = partTotal ?? lane.totalBytes
   return {
     provider: cheapLfsRestoreProvider(lane.provider),
@@ -1928,7 +1928,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   /** The function to resolve the current Open in Desktop flow. */
   private resolveOpenInDesktop:
-    ((repository: Repository | null) => void) | null = null
+    | ((repository: Repository | null) => void)
+    | null = null
 
   private selectedCloneRepositoryTab = CloneRepositoryTab.DotCom
 
@@ -1973,7 +1974,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private popupManager = new PopupManager()
 
   private pullRequestSuggestedNextAction:
-    PullRequestSuggestedNextAction | undefined = undefined
+    | PullRequestSuggestedNextAction
+    | undefined = undefined
 
   private showDiffCheckMarks: boolean = showDiffCheckMarksDefault
 
@@ -6662,11 +6664,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
     const remoteName =
       tip.kind === TipState.Valid
-        ? (tip.branch.upstreamRemoteName ?? defaultRemote.name)
+        ? tip.branch.upstreamRemoteName ?? defaultRemote.name
         : defaultRemote.name
     const remoteBranchName =
       tip.kind === TipState.Valid
-        ? (tip.branch.upstreamWithoutRemote ?? tip.branch.name)
+        ? tip.branch.upstreamWithoutRemote ?? tip.branch.name
         : localBranchRef.slice('refs/heads/'.length)
     const remote =
       this.gitStoreCache
@@ -7794,7 +7796,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.cheapLfsAnnotations = claim.state
     const previous = claim.accepted
       ? Promise.resolve()
-      : (this.cheapLfsAnnotationChain.get(target) ?? Promise.resolve())
+      : this.cheapLfsAnnotationChain.get(target) ?? Promise.resolve()
     const pass = previous
       .then(async () => {
         await annotateCheapLfsPinnedAssets(
@@ -7923,7 +7925,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   public _changeFileIncluded(
     repository: Repository,
     file:
-      WorkingDirectoryFileChange | ReadonlyArray<WorkingDirectoryFileChange>,
+      | WorkingDirectoryFileChange
+      | ReadonlyArray<WorkingDirectoryFileChange>,
     include: boolean
   ): Promise<void> {
     const files = Array.isArray(file) ? file : [file]
@@ -11943,10 +11946,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const remote =
       remoteName === null
         ? null
-        : (gitStore.remotes.find(candidate => candidate.name === remoteName) ??
+        : gitStore.remotes.find(candidate => candidate.name === remoteName) ??
           (gitStore.currentRemote?.name === remoteName
             ? gitStore.currentRemote
-            : null))
+            : null)
 
     const facts: IFailedPullFacts = {
       reportedMissingRemoteRef: signals.reportedMissingRemoteRef,
@@ -13552,9 +13555,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
           reviewedPreview !== undefined && tip.kind === TipState.Valid
             ? tip.branch.upstreamRemoteName === null
               ? null
-              : (gitStore.remotes.find(
+              : gitStore.remotes.find(
                   candidate => candidate.name === tip.branch.upstreamRemoteName
-                ) ?? null)
+                ) ?? null
             : gitStore.currentRemote
 
         if (!remote) {
@@ -14426,7 +14429,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       )
       await gitStore.loadRemotes()
       throw new Error(
-        `The destination was created and published, but the local remote could not be retargeted: ${String(error)}`
+        `The destination was created and published, but the local remote could not be retargeted: ${String(
+          error
+        )}`
       )
     }
     await gitStore.loadRemotes()
@@ -17661,9 +17666,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     const persistedParent = isSubmoduleRepository(parentRepository)
       ? this.getCurrentSubmoduleParent(parentRepository)
-      : (this.repositories.find(
-          repository => repository === parentRepository
-        ) ?? null)
+      : this.repositories.find(repository => repository === parentRepository) ??
+        null
     if (persistedParent === null) {
       throw new Error('The parent repository is no longer available.')
     }
@@ -20257,7 +20261,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             totalBytes:
               reportedTotal > 0
                 ? Math.max(previous?.totalBytes ?? 0, reportedTotal)
-                : (previous?.totalBytes ?? null),
+                : previous?.totalBytes ?? null,
           })
         }
 
@@ -20333,7 +20337,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             provider: batchProvider,
             phase: materializeSignal.aborted
               ? 'canceling'
-              : (currentLane?.phase ?? 'preparing'),
+              : currentLane?.phase ?? 'preparing',
             filesSucceeded: succeeded,
             filesFailed: failed,
             filesRemaining: Math.max(0, batch.totalFiles - succeeded - failed),
@@ -23369,10 +23373,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const configuredTarget = getNonForkGitHubRepository(repository)
     const configuredTargetRemoteName =
       configuredTarget.hash === source.hash
-        ? (sourceRemote?.name ?? null)
+        ? sourceRemote?.name ?? null
         : configuredTarget.hash === source.parent?.hash
-          ? UpstreamRemoteName
-          : null
+        ? UpstreamRemoteName
+        : null
     this._showPopup({
       type: PopupType.CreateGitHubPullRequest,
       repository,
@@ -23494,10 +23498,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const source = repository.gitHubRepository
     const remoteName =
       target.hash === source.hash
-        ? (repositoryState.remote?.name ?? null)
+        ? repositoryState.remote?.name ?? null
         : target.hash === source.parent?.hash
-          ? UpstreamRemoteName
-          : null
+        ? UpstreamRemoteName
+        : null
     const names = new Set<string>([pullRequest.base.ref])
     if (remoteName !== null) {
       for (const branch of repositoryState.branchesState.allBranches) {

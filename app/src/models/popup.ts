@@ -78,7 +78,11 @@ export interface IOpencodeSendContext {
 
 /** The operation requesting a Cheap LFS payload password. */
 export type CheapLfsPayloadPasswordPurpose =
-  'encrypt' | 'decrypt' | 'change' | 'forget' | 'forget-stale'
+  | 'encrypt'
+  | 'decrypt'
+  | 'change'
+  | 'forget'
+  | 'forget-stale'
 
 /** Why an encryption prompt is blocking the current operation. */
 export type CheapLfsPayloadPasswordContext = 'commit-auto-pin'

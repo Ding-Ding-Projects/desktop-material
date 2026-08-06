@@ -154,14 +154,9 @@ export const generateRepositoryListContextMenu = (
       enabled: forkEligibility.canFork && config.onForkRepository !== undefined,
     },
     {
-      label: __DARWIN__
-        ? 'Transfer Repository…'
-        : 'Transfer repository…',
+      label: __DARWIN__ ? 'Transfer Repository…' : 'Transfer repository…',
       action: () => config.onTransferRepository?.(repository),
-      enabled:
-        github &&
-        !missing &&
-        config.onTransferRepository !== undefined,
+      enabled: github && !missing && config.onTransferRepository !== undefined,
     },
     {
       label: openInShell,
