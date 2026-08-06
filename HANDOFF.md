@@ -1,5 +1,20 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Run trusted CI on the self-hosted pool
+
+The Linux and Windows CI workflows now run every job on the registered static
+labels `[self-hosted, Linux, X64]` and `[self-hosted, Windows, X64]`. Their
+`push`, `workflow_dispatch`, and reusable-call paths are self-hosted-only, and
+their ref-scoped concurrency groups use `cancel-in-progress: true` so a newer
+trusted commit replaces obsolete work. The public `pull_request` trigger was
+removed from both workflows so untrusted PR code cannot execute on the local
+machines. Windows CI now uses uv-managed Python and process-local Windows
+PowerShell/Git Bash paths rather than assuming hosted `pwsh` or toolcache
+installers.
+
+The focused workflow, self-hosted bootstrap, and cloud-compression contracts
+must pass before the first remote self-hosted CI run is treated as evidence.
+
 ## 2026-08-06 — Verify Super Express on the self-hosted pool
 
 The pure self-hosted Super Express path now has remote runner evidence. Run
@@ -24,14 +39,14 @@ because the external cancellations occurred before packaging.
 
 ## 2026-08-06 — Scope run cancellation to Super Express
 
-Ordinary push-triggered CI, installer, and Pages workflows continue to use
-unique run-and-attempt concurrency groups with `cancel-in-progress: false`, so
-a new push cannot cancel an earlier validation or publication run. The three
-Super Express workflow files are the only exception: each uses a ref-scoped
-`cancel-in-progress: true` group. A newer Super Express dispatch can therefore
-free the scarce self-hosted runner from an obsolete release, while normal push
-runs remain independent. The focused workflow safety tests now enforce this
-allowlist and the group scope.
+Installer and Pages publication workflows continue to use unique run-and-attempt
+concurrency groups with `cancel-in-progress: false`, so publication can finish
+independently. The Linux and Windows CI workflows now use ref-scoped
+`cancel-in-progress: true` groups, and the three Super Express workflow files
+keep the same cancellation policy for their self-hosted release dispatches. A
+newer trusted run can therefore free the scarce self-hosted runner from
+obsolete work, while publication runs remain independent. The focused workflow
+safety tests enforce this allowlist and the group scope.
 
 ## 2026-08-06 — Bootstrap every self-hosted Windows dependency shell
 

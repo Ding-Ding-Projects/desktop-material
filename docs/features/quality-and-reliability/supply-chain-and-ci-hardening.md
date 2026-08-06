@@ -64,8 +64,8 @@ and would only produce pull requests nobody is allowed to act on.
 
 Every CI install now resolves exactly what the committed lock file says.
 
-- `ci.yml` → `lint` runs `yarn install --frozen-lockfile`.
-- `ci.yml` → `build` → "Run desktop-trampoline tests" runs
+- `ci-linux.yml` → `lint` runs `yarn install --frozen-lockfile`.
+- `ci-windows.yml` → `build` → "Run desktop-trampoline tests" runs
   `yarn install --frozen-lockfile` inside `vendor/desktop-trampoline`.
 - `pages.yml` → docs build already ran
   `yarn install --frozen-lockfile --ignore-scripts --non-interactive` before
@@ -151,21 +151,20 @@ the exit code, which is ambiguous between "found advisories" and "failed".
 
 ### Run concurrency
 
-The current CI, installer, and Pages workflow groups are unique to each
-`github.run_id` and `github.run_attempt`, with `cancel-in-progress: false`:
+The self-hosted CI workflow groups are keyed by ref and cancel older trusted
+runs; installer and Pages publication retain unique run-and-attempt groups:
 
 | Workflow family                              | Group                   | `cancel-in-progress` |
 | --------------------------------------------- | ----------------------- | -------------------- |
-| Push and pull-request validation              | Per run and attempt     | No                   |
+| Push and manual CI validation                 | Per ref                 | Yes                  |
 | Installer and Pages publication               | Per run and attempt     | No                   |
 | Super Express self-hosted release             | Per dispatched ref      | Yes                  |
 
-Ten pushes to one branch can therefore finish their validation independently,
-and an explicitly requested ordinary publication run is not discarded by a
-newer push. Super Express is the deliberate exception: its registered
-self-hosted pool is scarce, so a newer dispatch on the same ref may cancel an
-obsolete release. The workflow safety test keeps this exception allowlisted to
-the three `super-express-release*.yml` files.
+Ten pushes to one branch now leave only the newest trusted CI run active. The
+registered self-hosted pool is scarce, so cancelling obsolete work keeps the
+runner focused on the commit that can still ship. The workflow safety test
+allows this behavior only for `ci-linux.yml`, `ci-windows.yml`, and the three
+`super-express-release*.yml` files.
 
 ## Security considerations
 
@@ -175,10 +174,10 @@ the three `super-express-release*.yml` files.
   already in the commit, so it cannot be influenced by the network at run time.
 - `--frozen-lockfile` closes the window where a compromised or merely careless
   manifest edit causes CI to resolve a version nobody reviewed.
-- No job in this workflow runs on a self-hosted runner. That matters because
-  `ci.yml` has a `pull_request` trigger: on a self-hosted runner that
-  combination lets anyone who can open a pull request execute code on the
-  machine. Keep every job here on GitHub-hosted runners.
+- CI jobs run on registered self-hosted Linux or Windows runners for trusted
+  pushes, manual dispatches, and workflow calls. The CI workflows deliberately
+  have no `pull_request` trigger, because untrusted PR code must never execute
+  on the public repository's self-hosted machines.
 - The `supply-chain` job requests only `contents: read` and installs nothing,
   so a malicious postinstall script has no opportunity to run in it.
 - Dependabot pull requests are proposals, not deployments: nothing in this
@@ -196,7 +195,7 @@ updated `yarn.lock`.
 **`Lock file provenance` error annotation.** A `resolved` URL points somewhere
 unexpected, or an `integrity` line is missing. Review the `yarn.lock` diff
 before merging. A legitimately new registry has to be added to the allowlist in
-`ci.yml` deliberately.
+`ci-linux.yml` deliberately.
 
 **Warning annotation "Dependency advisories".** `yarn audit` found advisories.
 Read the job summary; upgrade if a fix exists, otherwise record the accepted
@@ -206,12 +205,14 @@ risk. CI stays green either way.
 complete. Treat that run as carrying **no** advisory evidence and re-run once
 the registry is reachable.
 
-**A pull-request run says "Canceled".** A newer commit superseded it. Expected:
-only the newest commit's run matters.
+**A trusted CI run says "Canceled".** A newer push or manual dispatch for the
+same ref superseded it. This is expected: only the newest trusted commit's run
+matters. CI has no pull-request trigger; review validation runs on a trusted
+push or explicit manual dispatch instead.
 
-**A `main` run says "Canceled".** Something other than this concurrency
-configuration cancelled it, because default-branch runs hold a unique group.
-Investigate — no Release is published for a cancelled `main` run.
+**A `main` run says "Canceled".** A newer trusted `main` run may have
+superseded it. The installer workflow will only publish from a successful CI
+conclusion, so inspect the newest same-ref run for the release evidence.
 
 ## Verification
 

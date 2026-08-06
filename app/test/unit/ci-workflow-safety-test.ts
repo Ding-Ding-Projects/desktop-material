@@ -53,6 +53,7 @@ const selfHostedSuperExpressWorkflows = new Set([
   'super-express-release-windows.yml',
   'super-express-release-linux-tui.yml',
 ])
+const selfHostedCiWorkflows = new Set(['ci-linux.yml', 'ci-windows.yml'])
 
 describe('CI workflow safety', () => {
   it('does not make hosted CI clone agent-only tooling', () => {
@@ -272,31 +273,17 @@ describe('CI workflow safety', () => {
     assert.doesNotMatch(installerWorkflow, /^\s+body: \|/m)
   })
 
-  it('keeps push runs independent and scopes cancellation to Super Express', () => {
-    // Each lane keeps the unconditional push trigger and its own unique
-    // concurrency group, so neither queues behind nor cancels the other.
+  it('cancels prior trusted CI runs and scopes self-hosted cancellation', () => {
+    // CI is trusted push/manual/workflow-call automation. It deliberately has
+    // no pull_request trigger because every CI job now runs self-hosted.
     for (const { name, source } of ciWorkflows) {
       assert.match(source, /on:\s*\n\s*push:\s*\n/, name)
-      const pushTrigger = source.match(
-        /on:\s*\n\s*push:\s*\n([\s\S]*?)\s+pull_request:/
-      )
-      assert.notEqual(pushTrigger, null, name)
-      assert.doesNotMatch(pushTrigger?.[1] ?? '', /branches:/, name)
-      assert.doesNotMatch(
-        pushTrigger?.[1] ?? '',
-        /^\s*(?:paths|paths-ignore):/m,
-        name
-      )
-      assert.match(source, /cancel-in-progress: false/, name)
+      assert.match(source, /workflow_dispatch:/, name)
+      assert.doesNotMatch(source, /\n\s+pull_request:/, name)
+      assert.match(source, /cancel-in-progress: true/, name)
     }
-    assert.match(
-      linuxWorkflow,
-      /group: ci-linux-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
-    )
-    assert.match(
-      windowsWorkflow,
-      /group: ci-windows-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
-    )
+    assert.match(linuxWorkflow, /group: ci-linux-\$\{\{ github\.ref \}\}/)
+    assert.match(windowsWorkflow, /group: ci-windows-\$\{\{ github\.ref \}\}/)
 
     for (const required of [
       'ci-linux.yml',
@@ -314,15 +301,18 @@ describe('CI workflow safety', () => {
     }
 
     for (const { file, source } of workflowSources) {
-      if (selfHostedSuperExpressWorkflows.has(file)) {
+      if (
+        selfHostedSuperExpressWorkflows.has(file) ||
+        selfHostedCiWorkflows.has(file)
+      ) {
         assert.match(
           source,
           /cancel-in-progress:\s*true/,
-          `${file} may cancel an older self-hosted Super Express run`
+          `${file} may cancel an older trusted self-hosted run`
         )
         assert.match(
           source,
-          /^  group: super-express-release[^\r\n]*\$\{\{ github\.ref \}\}\s*$/m,
+          /^  group: (?:ci-(?:linux|windows)-|super-express-release)[^\r\n]*\$\{\{ github\.ref \}\}\s*$/m,
           `${file} must scope cancellation to the dispatched ref`
         )
         continue
@@ -349,10 +339,28 @@ describe('CI workflow safety', () => {
   })
 
   it('builds, packages, and exercises the Windows application only', () => {
-    assert.match(windowsWorkflow, /os: \[windows-2022\]/)
+    assert.doesNotMatch(windowsWorkflow, /windows-2022|ubuntu-latest/)
     assert.match(windowsWorkflow, /arch: \[x64, arm64\]/)
     assert.match(windowsWorkflow, /friendlyName: Windows/)
     assert.match(windowsWorkflow, /Install app on Windows/)
+    assert.match(
+      windowsWorkflow,
+      /defaults:\s+run:\s+shell: powershell -NoProfile -ExecutionPolicy Bypass -Command \"\. '\{0\}'\"/
+    )
+    assert.doesNotMatch(windowsWorkflow, /shell: pwsh/)
+    assert.equal(
+      windowsWorkflow.match(
+        /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/g
+      )?.length,
+      3
+    )
+    assert.doesNotMatch(linuxWorkflow, /windows-2022|ubuntu-latest/)
+    assert.equal(
+      linuxWorkflow.match(
+        /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/g
+      )?.length,
+      3
+    )
     for (const { name, source } of ciWorkflows) {
       assert.doesNotMatch(source, /macos|APPLE_/i, name)
     }

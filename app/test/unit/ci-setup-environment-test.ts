@@ -11,6 +11,10 @@ const yarnBootstrap = readFileSync(
   join(process.cwd(), '.github/scripts/bootstrap-pinned-yarn.ps1'),
   'utf8'
 )
+const windowsSigningAction = readFileSync(
+  join(process.cwd(), '.github/actions/setup-windows-signing/action.yml'),
+  'utf8'
+)
 
 describe('CI environment setup', () => {
   it('uses an exact installed-dependency cache and skips cold setup only on a hit', () => {
@@ -116,6 +120,11 @@ describe('CI environment setup', () => {
     assert.match(setupAction, /-name ffmpeg-win64\.exe/)
     assert.doesNotMatch(setupAction, /-name ['"]?ffmpeg\*['"]?/)
     assert.match(setupAction, /copilot-win32-\$\{\{ inputs\.arch \}\}/)
+    assert.match(
+      windowsSigningAction,
+      /shell: powershell -NoProfile -ExecutionPolicy Bypass/
+    )
+    assert.doesNotMatch(windowsSigningAction, /shell: pwsh/)
   })
 
   it('pins and retries the cross-compilation Copilot package install', () => {

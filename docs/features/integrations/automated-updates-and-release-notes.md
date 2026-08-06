@@ -9,7 +9,7 @@ message.
 
 After Squirrel reports that no update is available, the renderer derives the
 GitHub repository from the configured `releases/latest/download/` feed. It asks
-GitHub for bounded provider data from both `ci.yml` and
+GitHub for bounded provider data from both `ci-linux.yml`/`ci-windows.yml` and
 `build-installers.yml`, and shows **New update coming soon** only when all of
 these checks pass:
 
@@ -124,15 +124,14 @@ cached.
 
 ## Workflow concurrency
 
-CI, installer, and Pages invocations each use their unique GitHub run ID and
-attempt as the concurrency group with `cancel-in-progress: false`. Newer runs
-can therefore start without cancelling a running invocation or replacing the
-single older pending slot that GitHub otherwise retains for a shared group.
-The only exception is the self-hosted Super Express release family: its
-combined, Windows, and Linux TUI workflows use a ref-scoped group with
-`cancel-in-progress: true`, so a newer Super Express dispatch can release a
-scarce local runner from an obsolete release. Ordinary pushes cannot cancel
-their runs. Source-contract tests enforce both sides of this boundary.
+CI uses a ref-scoped concurrency group with `cancel-in-progress: true`, so a
+newer trusted push or manual dispatch replaces older CI work for the same ref.
+Installer and Pages publication retain unique GitHub run-and-attempt groups
+with `cancel-in-progress: false`; publication runs must finish independently.
+The self-hosted Super Express release family also uses ref-scoped cancellation,
+so a newer dispatch can release a scarce local runner from an obsolete release.
+Source-contract tests enforce this allowlist. The CI workflows have no
+`pull_request` trigger, keeping untrusted PR code off the self-hosted pool.
 Workflows without a concurrency group, including CodeQL, remain independently
 runnable.
 
