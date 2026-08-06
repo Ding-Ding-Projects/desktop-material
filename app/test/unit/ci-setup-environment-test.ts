@@ -13,6 +13,13 @@ describe('CI environment setup', () => {
     assert.match(setupAction, /Prefer Git Bash on Windows self-hosted runners/)
     assert.match(setupAction, /GITHUB_PATH/)
     assert.match(setupAction, /bin\\bash\.exe/)
+    assert.match(setupAction, /Install uv for self-hosted Windows Python/)
+    assert.match(setupAction, /uv python install 3\.11/)
+    assert.match(setupAction, /npm_config_python=\$python_path/)
+    assert.match(
+      setupAction,
+      /uses: actions\/setup-python@v6[\s\S]*?runner\.environment != 'self-hosted'/
+    )
     assert.match(setupAction, /uses: actions\/cache@v5/)
     assert.match(setupAction, /node_modules\s+app\/node_modules/)
     assert.match(setupAction, /AppData\/Local\/ms-playwright/)

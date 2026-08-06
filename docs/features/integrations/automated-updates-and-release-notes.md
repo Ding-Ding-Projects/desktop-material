@@ -177,6 +177,12 @@ the deprecated Windows WSL launcher cannot be selected accidentally. A host
 without Git or Git Bash fails with that exact prerequisite instead of reaching
 the packaging commands in a misleading shell state.
 
+Self-hosted Windows setup also avoids the hosted toolcache installer for the
+native-module Python dependency: pinned `uv` installs Python 3.11 locally and
+the action exports the interpreter returned by `uv python find 3.11` as
+`npm_config_python`. GitHub-hosted and non-Windows runners retain
+`actions/setup-python@v6`.
+
 Each packaging lane also exposes its own `workflow_dispatch` action for a
 manual, packaging-only recovery run. A direct Windows dispatch accepts an
 optional exact `main` SHA and Squirrel version; a direct Linux TUI dispatch

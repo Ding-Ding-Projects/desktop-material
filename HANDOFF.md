@@ -103,6 +103,17 @@ shared setup action now prepend the installed Git Bash directory to
 is absent. That repair is in the next pushed revision; no Release was created
 because this run used `publish=false`.
 
+Follow-up pure self-hosted run
+`31063591401 <https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31063591401>`_
+at `4a9afbbbf7` proved preparation and the complete Linux TUI package on
+`linux`, and reached the Windows build on `CLAUDE` with Git Bash selected. It
+then failed in the shared `actions/setup-python@v6` step while installing
+Python 3.11 into the self-hosted toolcache (`Error happened during Python
+installation`). The next repair keeps hosted runners on `setup-python`, but
+uses pinned `uv`, `uv python install 3.11`, and its discovered interpreter path
+for `npm_config_python` on self-hosted Windows. This run also used
+`publish=false`, so it created no Release.
+
 ## 2026-08-05 — Fix Super Express workflow startup planning and repair build prerequisites
 
 The Super Express dispatcher keeps preparation and publication on
