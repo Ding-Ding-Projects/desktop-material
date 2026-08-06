@@ -26,6 +26,17 @@ describe('CI environment setup', () => {
       setupAction,
       /Install and build dependencies[\s\S]*?cache-hit != 'true'/
     )
+    assert.match(setupAction, /Check cached dependencies/)
+    assert.match(setupAction, /dependency-cache-check/)
+    assert.match(
+      setupAction,
+      /dependency-cache-check\.outputs\.complete != 'true'/
+    )
+    assert.match(setupAction, /app\/node_modules\/react\/jsx-runtime\.js/)
+    assert.match(
+      setupAction,
+      /app\/node_modules\/react-confetti\/package\.json/
+    )
     assert.match(setupAction, /cache-dependency-path:[\s\S]*?app\/yarn\.lock/)
     assert.match(setupAction, /actions\/setup-python@v6/)
     assert.match(setupAction, /missing Playwright ffmpeg/)

@@ -114,10 +114,13 @@ operating system, runner and target
 architecture, Node/Python versions, both lockfiles and package manifests,
 install configuration, the post-install script, the setup action, pinned Yarn,
 and local native-vendor sources. A hit must contain reviewed generic,
-target-specific Copilot, Electron-runtime, and Playwright sentinels; there are
-no partial restore keys. Python setup remains unconditional for native builds.
-Build output, `dist`, installers, Release assets, credentials, and runtime
-configuration are never cached.
+target-specific Copilot, Electron-runtime, React JSX-runtime, `react-confetti`,
+and Playwright sentinels. If a hit is incomplete, the setup action records the
+missing paths and reruns the bounded dependency install automatically rather
+than handing the broken cache to webpack. There are no partial restore keys.
+Python setup remains unconditional for native builds. Build output, `dist`,
+installers, Release assets, credentials, and runtime configuration are never
+cached.
 
 ## Workflow concurrency
 
@@ -134,7 +137,7 @@ concurrency group, including CodeQL, remain independently runnable.
 
 `.github/workflows/super-express-release.yml` is a separate, manual-only
 emergency dispatcher. Dispatching it from `main` checks the exact commit and
-tag once, then calls two reusable lanes in parallel:
+tag once, then runs two inline packaging lanes in parallel:
 
 - `.github/workflows/super-express-release-windows.yml` restores the exact
   desktop dependency cache and builds the Windows x64 production package on
@@ -160,11 +163,12 @@ lane falls back immediately to its hosted target. Static conditional jobs are
 deliberate: a dynamic `runs-on` label array from a previous job can make
 GitHub reject the workflow during planning before the selector runs.
 
-The combined dispatcher keeps the same static conditional shape inline rather
-than calling those reusable workflows. GitHub had been rejecting the caller
-before it created any job even after the reusable lanes were repaired; inline
-selector/build jobs leave the dispatcher with only statically declared runner
-targets while preserving the direct reusable lanes for packaging-only recovery.
+The direct reusable workflow files remain available for packaging-only recovery,
+but the combined dispatcher keeps its selector/build jobs inline. GitHub had
+been rejecting the caller before it created any job even after the reusable
+lanes were repaired; inline selector/build jobs leave the dispatcher with only
+statically declared runner targets while preserving the direct reusable lanes
+for recovery.
 
 Each packaging lane also exposes its own `workflow_dispatch` action for a
 manual, packaging-only recovery run. A direct Windows dispatch accepts an

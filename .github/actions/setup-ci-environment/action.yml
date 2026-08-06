@@ -40,6 +40,29 @@ runs:
       with:
         python-version: '3.11'
 
+    - name: Check cached dependencies
+      id: dependency-cache-check
+      if: steps.installed-dependencies.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        required=(
+          node_modules/webpack/package.json
+          node_modules/electron/package.json
+          app/node_modules/dugite/package.json
+          app/node_modules/@github/copilot/package.json
+          app/node_modules/react/package.json
+          app/node_modules/react/jsx-runtime.js
+          app/node_modules/react-confetti/package.json
+        )
+        cache_complete=true
+        for path in "${required[@]}"; do
+          if [ ! -f "$path" ]; then
+            echo "Cached dependency is incomplete: $path" >&2
+            cache_complete=false
+          fi
+        done
+        echo "complete=$cache_complete" >> "$GITHUB_OUTPUT"
+
     - name: Use Node.js ${{ inputs.node-version }} with installed dependencies
       if: steps.installed-dependencies.outputs.cache-hit == 'true'
       uses: actions/setup-node@v6
@@ -47,7 +70,9 @@ runs:
         node-version: ${{ inputs.node-version }}
 
     - name: Use Node.js ${{ inputs.node-version }} with Yarn download cache
-      if: steps.installed-dependencies.outputs.cache-hit != 'true'
+      if:
+        ${{ steps.installed-dependencies.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true' }}
       uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}
@@ -62,7 +87,9 @@ runs:
       run: choco install ffmpeg --yes --no-progress
 
     - name: Install and build dependencies
-      if: steps.installed-dependencies.outputs.cache-hit != 'true'
+      if:
+        ${{ steps.installed-dependencies.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true' }}
       shell: bash
       run: |
         # Native packages such as dugite download platform archives during
@@ -87,7 +114,9 @@ runs:
         TARGET_ARCH: ${{ inputs.arch }}
 
     - name: Install cross-compilation copilot package
-      if: steps.installed-dependencies.outputs.cache-hit != 'true'
+      if:
+        ${{ steps.installed-dependencies.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true' }}
       shell: bash
       run: |
         # Map runner.os to Node's process.platform naming
@@ -129,6 +158,9 @@ runs:
           node_modules/electron/package.json
           app/node_modules/dugite/package.json
           app/node_modules/@github/copilot/package.json
+          app/node_modules/react/package.json
+          app/node_modules/react/jsx-runtime.js
+          app/node_modules/react-confetti/package.json
         )
         case "$RUNNER_OS" in
           Windows)
