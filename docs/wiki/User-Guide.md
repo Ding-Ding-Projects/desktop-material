@@ -49,7 +49,7 @@ remote CI caught a macOS error-ordering defect without publishing; correction
 `98d93ccc` passed its full remote CI gate and published
 `v3.6.3-beta3-b0000000165`. Exact publication receipts are in `HANDOFF.md`.
 
-The [Guided Feature Gallery](Feature-Gallery) declares the canonical 86-scene
+The [Guided Feature Gallery](Feature-Gallery) declares the canonical 91-scene
 Windows visual target: every catalogued function or state must own one distinct
 screenshot rather than borrow an overview image. The current-source updater
 frame is accepted and published as its own target; it does not replace the
@@ -861,15 +861,21 @@ interactive while a dialog is open.
   own range first, then the outer dialog continues at the nested edge.
 - OS-native pickers (file open/save) stay native.
 
-**Preferences** is the reference surface: an MD3 940×660 dialog with a left navigation rail, an
-**Active** chip on the current section, and a pill footer. The **repository** and **branch** pickers
+**Preferences** is the reference surface: an MD3 940×660 dialog with browser-style horizontal tabs,
+an **Active** chip on the current section, and a pill footer. The same shared tab surface is used by
+**Repository settings** and **Stash Manager**, so opening a new page, closing a page, finding overflow,
+and moving with `Left`, `Right`, `Home`, or `End` behaves consistently across all three dialogs. The
+open-page session is local to each surface; filtering the strip does not close hidden pages, and stale
+stored page IDs are discarded safely. The **repository** and **branch** pickers
 open as MD3 **side sheets** rather than blocking modals. The repository sheet keeps **Add** and
 **Select** visible, while **More** holds group creation, workspace sync, and commit/push-all so
 all five actions stay available without wrapping into a cluttered multi-line block. Its
 **Filters** disclosure folds account, service, status, search, and regex controls together;
 active values remain applied and are counted on the pill while the panel is collapsed.
 
-![Preferences as an MD3 dialog](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-settings.png)
+![Global Settings as an MD3 dialog with browser-style tabs, close actions, search, and overflow](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-settings.png)
+
+![Repository Settings with the shared browser-style tabs and Remote page selected](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-remote-manager.png)
 
 ![Dark repository side sheet with collapsed Filters and compact Add, Select, and More actions](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-repositories-sheet.png)
 
@@ -1865,7 +1871,7 @@ Desktop entry-count cap:
 Switching branches can still offer to stash local work, and the resulting entry appears in the same
 list.
 
-![Repository-wide stash manager with an exact selected entry](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
+![Stash Manager with browser-style Manage, Export, History, and Appearance and voice pages](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
 
 The full manager is rendered through the shared dialog layer, keeping every
 tab and export control centered and usable above the Changes pane. The hidden
@@ -1873,7 +1879,9 @@ Windows capture below is the accepted 1443×992 runtime proof.
 
 ![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
 
-Choose **Open full manager** for the complete workflow. Its tabs provide a regex-capable search
+Choose **Open full manager** for the complete workflow. Its browser-style tabs keep Manage, Export,
+History, and Appearance and voice as independently closable pages; use the plus and overflow actions
+to reopen a page without losing the current stash review. Its tabs provide a regex-capable search
 and multi-selection export to a directory, ZIP, or 7z. The 7z panel exposes compression method,
 level, dictionary, match finder, fast bytes, solid mode, threads, split volumes, password, and
 encrypted headers. The History tab keeps exact object IDs visible for recovery review, while

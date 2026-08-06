@@ -175,9 +175,9 @@ active profile's style, label, and explicit language mode.
 | `material-pull-all-account-fallback.png` | Pull all with per-repository results and exact-origin account retry |
 | `material-sparse-checkout-safe.png` | Persistent guided review with the locked editor and exact normalized selection |
 | `material-history-deepen.png` | Deepen-history result without exposing the account used |
-| `material-remote-manager.png` | Reviewed named-remote administration |
+| `material-remote-manager.png` | Repository Settings with browser-style pages and the Remote page selected |
 | `material-native-pull-request.png` | Native pull-request creation with bounded metadata |
-| `material-stash-manager.png` | Repository-wide stash selection and exact-entry actions |
+| `material-stash-manager.png` | Stash Manager with browser-style Manage, Export, History, and Appearance and voice pages |
 | `material-stash-manager-centered-20260803.png` | Centered Material stash manager with Manage, Export, History, and Appearance and voice tabs |
 | `advanced-workflows.png` | Tag lifecycle inventory with local-only, pushed, and remote-only states and bounded actions |
 | `material-actions-job-log.png` | Searchable in-app Actions job log |
@@ -202,7 +202,7 @@ active profile's style, label, and explicit language mode.
 | `material-history-hover-time.png` | Commit hover/focus card with exact authored timestamp and relative age |
 | `material-history-view-tabs-list.png` | Built History Commit list tab with its real tab strip and selected state |
 | `material-history-view-tabs-graph.png` | Built History Graph tab with its real tab strip and ancestry graph |
-| `material-settings.png` | Responsive Material Settings dialog |
+| `material-settings.png` | Global Settings with browser-style tabs, close actions, search, and overflow |
 | `auto-updater-current-source-ready.png` | Current-source production UI after a genuine Electron/Squirrel update-downloaded path with a disclosed inert verifier payload and no published-payload claim |
 | `settings-history-manager.png` | Git-backed Settings history side sheet |
 | `material-repositories-sheet.png` | Collapsible repository filters with compact Add, Select, and More actions |
@@ -480,9 +480,9 @@ rebase uses searched target selection, ahead/behind context, a bounded commit
 preview, fresh safety/ref checks, and the existing conflict continue/abort
 path; it never force-pushes automatically.
 
-![Reviewed named-remote administration](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-remote-manager.png)
+![Repository Settings with browser-style tabs and the Remote page selected](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-remote-manager.png)
 
-![Repository-wide stash manager with an exact selected entry](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
+![Stash Manager with browser-style Manage, Export, History, and Appearance and voice pages](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
 
 ![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
 
@@ -681,7 +681,7 @@ owner.
 
 ![Material Changes workspace and commit flow](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-workspace-changes.png)
 
-![Responsive Material Settings dialog](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-settings.png)
+![Global Settings with browser-style tabs, close actions, search, and overflow](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-settings.png)
 
 ![Git-backed Settings history side sheet](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/settings-history-manager.png)
 

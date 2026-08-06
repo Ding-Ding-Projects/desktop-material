@@ -2,6 +2,8 @@
   "compilerOptions": {
     "module": "esnext",
     "moduleResolution": "node",
+    "rootDir": ".",
+    "ignoreDeprecations": "6.0",
     "target": "ES2022",
     "esModuleInterop": true,
     "resolveJsonModule": true,

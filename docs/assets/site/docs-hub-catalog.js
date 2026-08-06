@@ -49,6 +49,13 @@
       d: "GitHub Desktop doesn't currently support Linux in an official capacity, but many in the community have already been experimenting and testing it on their preferred distributions.",
     },
     {
+      t: 'Desktop Material — contributing',
+      h: 'contributing/',
+      s: 'contributing/README.md',
+      c: 'contributing',
+      d: 'building arm64',
+    },
+    {
       t: 'Setting Up Development Dependencies on Linux',
       h: 'contributing/setup-linux.html',
       s: 'contributing/setup-linux.md',
@@ -200,7 +207,7 @@
       h: 'features/design-system/command-palette-coverage-gaps.html',
       s: 'features/design-system/command-palette-coverage-gaps.md',
       c: 'features',
-      d: 'The shipped catalog currently contains 247 unique commands (246 are Windows-eligible before live availability predicates). In a fresh Windows workspace with no signed-in…',
+      d: 'The shipped catalog currently contains 268 unique commands. The R5 command-palette expansion (see below) added 21 of those: tab management…',
     },
     {
       t: 'Command palette: full-app coverage, rich controls and teleport',
@@ -320,6 +327,13 @@
       s: 'features/identity-and-workspace/repository-sidebar-and-pinning.md',
       c: 'features',
       d: 'The repository sheet is a searchable workspace switcher rather than a flat recent list. It groups pinned repositories first, can show or hide the Recent group, and keeps…',
+    },
+    {
+      t: 'Browser-style settings tabs',
+      h: 'features/identity-and-workspace/settings-browser-tabs.html',
+      s: 'features/identity-and-workspace/settings-browser-tabs.md',
+      c: 'features',
+      d: 'Global Settings, Repository Settings, and Stash Manager use the same horizontal browser-style tab surface. Each page has a stable identity, a visible active state, a close…',
     },
     {
       t: 'Settings search / 設定搜尋',
@@ -1057,6 +1071,13 @@
       d: 'Date: 2026-07-24. gh CLI is LOCKED to DingDingChae — do NOT gh auth switch and do not let Cheap LFS / push-fallback change it.',
     },
     {
+      t: 'Desktop Material — handoff',
+      h: 'handoff/',
+      s: 'handoff/README.md',
+      c: 'handoff',
+      d: '2026 07 24 session',
+    },
+    {
       t: 'Installing Desktop Material',
       h: 'installation.html',
       s: 'installation.md',
@@ -1085,6 +1106,13 @@
       d: 'GitHub Desktop now provides support for Git Credential Manager (GCM), which makes the task of authenticating to GitLab repositories easy and secure. This feature can be enabled…',
     },
     {
+      t: 'Desktop Material — Integrations n nIntegrations cover how the app connects to external services, editors, shells, nand operating-system surfaces. Each document describes setup, authentication, nfailure modes, and what the user sees when the integration is active or broken. n n- Azure DevOps — authenticating through Git Credential Manager or PATs.',
+      h: 'integrations/',
+      s: 'integrations/README.md',
+      c: 'integrations',
+      d: '',
+    },
+    {
       t: 'Table of contents',
       h: 'known-issues.html',
       s: 'known-issues.md',
@@ -1092,11 +1120,25 @@
       d: 'macOS',
     },
     {
+      t: 'Desktop Material — learn more',
+      h: 'learn-more/',
+      s: 'learn-more/README.md',
+      c: 'learn-more',
+      d: 'unreachable commits',
+    },
+    {
       t: 'Reachable and Unreachable Commits',
       h: 'learn-more/unreachable-commits.html',
       s: 'learn-more/unreachable-commits.md',
       c: 'learn-more',
       d: 'In Git, every commit will have at least one parent commit except the very first. Additionally, a repository may have any number of branches that begin at any particular commit.…',
+    },
+    {
+      t: 'Desktop Material — postman',
+      h: 'postman/',
+      s: 'postman/README.md',
+      c: 'postman',
+      d: 'desktop material.postman_collection.json',
     },
     {
       t: 'Issue Triage',
@@ -1139,6 +1181,13 @@
       s: 'process/quality-process.md',
       c: 'process',
       d: 'This document is a general outline of Quality Engineering practices for Desktop, both for scheduled and ad-hoc testing. The manual test cases used to test Desktop in both Mac…',
+    },
+    {
+      t: 'Desktop Material — process',
+      h: 'process/',
+      s: 'process/README.md',
+      c: 'process',
+      d: 'issue triage',
     },
     {
       t: 'Release Planning',
@@ -1211,6 +1260,13 @@
       d: 'Desktop Material ships as a Windows desktop application and as a Linux-first terminal application. The terminal package keeps the clickable Git and GitHub workflows, repository…',
     },
     {
+      t: 'Desktop Material — readme tabs',
+      h: 'readme-tabs/',
+      s: 'readme-tabs/README.md',
+      c: 'readme-tabs',
+      d: 'complete feature list',
+    },
+    {
       t: 'Roadmap & receipts',
       h: 'readme-tabs/roadmap-and-receipts.html',
       s: 'readme-tabs/roadmap-and-receipts.md',
@@ -1237,6 +1293,13 @@
       s: 'regex-guide.md',
       c: 'root',
       d: 'Every search bar in Desktop Material (Changes, History, Branches, Repositories, Clone, Actions) has three power tools:',
+    },
+    {
+      t: 'Desktop Material — screenshots',
+      h: 'screenshots/',
+      s: 'screenshots/README.md',
+      c: 'screenshots',
+      d: 'add submodule dialog.html',
     },
     {
       t: 'Adding tests to the project',
@@ -1356,6 +1419,13 @@
       s: 'technical/pull-requests.md',
       c: 'technical',
       d: 'PR #3602 introduced the ability to checkout a branch from a forked repository. In order to accomplish this, we needed a way to manage remotes on your behalf. This document is…',
+    },
+    {
+      t: 'Desktop Material — technical',
+      h: 'technical/',
+      s: 'technical/README.md',
+      c: 'technical',
+      d: 'adding tests',
     },
     {
       t: 'Rebase Flow',
@@ -1659,6 +1729,13 @@
       d: 'Visual evidence for issue #81 (first-class repository and tab group management).',
     },
     {
+      t: 'Repository list and agent-session dialog verification run',
+      h: 'verification/repository-list-agent-dialog-2026-08-02/run-manifest.html',
+      s: 'verification/repository-list-agent-dialog-2026-08-02/run-manifest.md',
+      c: 'verification',
+      d: 'Run ID: repository-list-agent-dialog-20260802',
+    },
+    {
       t: 'Responsive surface matrix — 2026-07-17',
       h: 'verification/responsive-surface-matrix-2026-07-17.html',
       s: 'verification/responsive-surface-matrix-2026-07-17.md',
@@ -1762,6 +1839,13 @@
       s: 'wiki/Home.md',
       c: 'wiki',
       d: 'Use this map to choose a starting point: learn the daily workflow in the User Guide, browse shipped surfaces in the Feature Gallery, or open a specialist guide for deeper details.',
+    },
+    {
+      t: 'Desktop Material — wiki',
+      h: 'wiki/',
+      s: 'wiki/README.md',
+      c: 'wiki',
+      d: 'agent api',
     },
     {
       t: 'Regex guide — how search works in Desktop Material',

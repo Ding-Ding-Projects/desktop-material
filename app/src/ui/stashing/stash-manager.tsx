@@ -37,6 +37,8 @@ import { readFunnyLevels } from '../../lib/funny-level-text'
 import { LocalizedText } from '../lib/localized-text'
 import { FilterMode, IFilterOptions, matchWithMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
+import { SettingsTabStrip } from '../settings-tabs/settings-tab-strip'
+import { ISettingsTabItem } from '../settings-tabs/settings-tab-model'
 import {
   Dialog,
   DialogContent,
@@ -1503,6 +1505,43 @@ export class StashManagerDialog extends React.Component<
     ).results.map(result => result.item)
   }
 
+  private get dialogTabItems(): ReadonlyArray<ISettingsTabItem> {
+    return [
+      {
+        id: 'manage',
+        domId: 'stash-dialog-tab-manage',
+        label: this.localized('stashManager.manageTab'),
+        searchText: 'Manage',
+        accessibleLabel: this.accessibleText('stashManager.manageTab'),
+        icon: <Octicon symbol={octicons.stack} />,
+      },
+      {
+        id: 'export',
+        domId: 'stash-dialog-tab-export',
+        label: this.localized('stashManager.exportTab'),
+        searchText: 'Export',
+        accessibleLabel: this.accessibleText('stashManager.exportTab'),
+        icon: <Octicon symbol={octicons.download} />,
+      },
+      {
+        id: 'history',
+        domId: 'stash-dialog-tab-history',
+        label: this.localized('stashManager.historyTab'),
+        searchText: 'History',
+        accessibleLabel: this.accessibleText('stashManager.historyTab'),
+        icon: <Octicon symbol={octicons.history} />,
+      },
+      {
+        id: 'appearance',
+        domId: 'stash-dialog-tab-appearance',
+        label: this.localized('stashManager.appearanceTab'),
+        searchText: 'Appearance and voice',
+        accessibleLabel: this.accessibleText('stashManager.appearanceTab'),
+        icon: <Octicon symbol={octicons.paintbrush} />,
+      },
+    ]
+  }
+
   private renderDialogSearch(
     surfaceId: string,
     filter: string,
@@ -1548,26 +1587,11 @@ export class StashManagerDialog extends React.Component<
     )
   }
 
-  private selectTab = (event: React.MouseEvent<HTMLButtonElement>) =>
-    this.setState({ tab: event.currentTarget.dataset.tab as StashDialogTab })
-
-  private renderTab(tab: StashDialogTab, label: TranslationKey) {
-    const selected = this.state.tab === tab
-    return (
-      <button
-        type="button"
-        role="tab"
-        aria-selected={selected}
-        aria-controls={`stash-dialog-panel-${tab}`}
-        className={selected ? 'selected' : undefined}
-        data-tab={tab}
-        onClick={this.selectTab}
-        onKeyDown={this.onTabKeyDown}
-      >
-        {this.localized(label)}
-      </button>
-    )
+  private onTabSelected = (id: string) => {
+    this.setState({ tab: id as StashDialogTab })
   }
+
+  private getTabPanelId = (id: string) => `stash-dialog-panel-${id}`
 
   private localized(key: TranslationKey, variables: TranslationVariables = {}) {
     return (
@@ -1596,6 +1620,7 @@ export class StashManagerDialog extends React.Component<
       <section
         id="stash-dialog-panel-history"
         role="tabpanel"
+        aria-labelledby="stash-dialog-tab-history"
         className="stash-dialog-tab-panel"
       >
         <h3>{this.localized('stashManager.historyHeading')}</h3>
@@ -1663,6 +1688,7 @@ export class StashManagerDialog extends React.Component<
       <section
         id="stash-dialog-panel-appearance"
         role="tabpanel"
+        aria-labelledby="stash-dialog-tab-appearance"
         className="stash-dialog-tab-panel"
       >
         <h3>{this.localized('stashManager.appearanceHeading')}</h3>
@@ -1760,37 +1786,6 @@ export class StashManagerDialog extends React.Component<
     )
   }
 
-  private onTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
-    const key = event.key
-    if (
-      key !== 'ArrowLeft' &&
-      key !== 'ArrowRight' &&
-      key !== 'Home' &&
-      key !== 'End'
-    ) {
-      return
-    }
-    event.preventDefault()
-    const buttons = Array.from(
-      event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>(
-        '[role="tab"]'
-      ) ?? []
-    )
-    const index = buttons.indexOf(event.currentTarget)
-    if (index < 0 || buttons.length === 0) {
-      return
-    }
-    const next =
-      key === 'Home'
-        ? 0
-        : key === 'End'
-        ? buttons.length - 1
-        : (index + (key === 'ArrowRight' ? 1 : -1) + buttons.length) %
-          buttons.length
-    buttons[next].focus()
-    buttons[next].click()
-  }
-
   public render() {
     return (
       <DialogLayerPortal>
@@ -1805,32 +1800,76 @@ export class StashManagerDialog extends React.Component<
             <p className="stash-dialog-description">
               {this.localized('stashManager.dialogDescription')}
             </p>
-            <div
-              className="stash-dialog-tabs"
-              role="tablist"
-              aria-label={translate(
+            <SettingsTabStrip
+              strip="stash-manager"
+              title={translate(
                 'stashManager.dialogTabsAria',
                 this.state.languageMode
               )}
-            >
-              {this.renderTab('manage', 'stashManager.manageTab')}
-              {this.renderTab('export', 'stashManager.exportTab')}
-              {this.renderTab('history', 'stashManager.historyTab')}
-              {this.renderTab('appearance', 'stashManager.appearanceTab')}
-            </div>
+              items={this.dialogTabItems}
+              selectedId={this.state.tab}
+              onSelect={this.onTabSelected}
+              variant="browser"
+              showNewTab={true}
+              openStateScope={this.props.repository.path}
+              getTabPanelId={this.getTabPanelId}
+              accessibleLabels={{
+                tabList: this.accessibleText('stashManager.dialogTabsAria'),
+                search: this.accessibleText('settings.browserTabSearch', {
+                  surface: this.accessibleText('stashManager.dialogTabsAria'),
+                }),
+                pickerTitle: this.accessibleText(
+                  'settings.browserTabPickerTitle',
+                  {
+                    surface: this.accessibleText('stashManager.dialogTabsAria'),
+                  }
+                ),
+                noMatches: this.accessibleText('settings.browserTabNoMatches', {
+                  surface: this.accessibleText('stashManager.dialogTabsAria'),
+                }),
+                closeTab: page =>
+                  this.accessibleText('settings.browserTabClose', { page }),
+                pinTab: page =>
+                  this.accessibleText('settings.browserTabPin', { page }),
+                unpinTab: page =>
+                  this.accessibleText('settings.browserTabUnpin', { page }),
+                openNewTab: this.accessibleText(
+                  'stashManager.openNewTabAction'
+                ),
+                allPagesOpen: this.accessibleText('stashManager.allPagesOpen'),
+                morePages: count =>
+                  this.accessibleText('stashManager.morePages', {
+                    count: String(count),
+                  }),
+              }}
+            />
             {this.state.tab === 'manage' ? (
-              <StashManager
-                {...this.props}
-                showHeader={false}
-                initialExpanded={true}
-              />
+              <section
+                id="stash-dialog-panel-manage"
+                role="tabpanel"
+                aria-labelledby="stash-dialog-tab-manage"
+                className="stash-dialog-tab-panel stash-dialog-manage-panel"
+              >
+                <StashManager
+                  {...this.props}
+                  showHeader={false}
+                  initialExpanded={true}
+                />
+              </section>
             ) : null}
             {this.state.tab === 'export' ? (
-              <StashExportPanel
-                repository={this.props.repository}
-                dispatcher={this.props.dispatcher}
-                entries={this.props.allStashEntries}
-              />
+              <section
+                id="stash-dialog-panel-export"
+                role="tabpanel"
+                aria-labelledby="stash-dialog-tab-export"
+                className="stash-dialog-tab-panel stash-dialog-export-panel"
+              >
+                <StashExportPanel
+                  repository={this.props.repository}
+                  dispatcher={this.props.dispatcher}
+                  entries={this.props.allStashEntries}
+                />
+              </section>
             ) : null}
             {this.state.tab === 'history' ? this.renderHistory() : null}
             {this.state.tab === 'appearance' ? this.renderAppearance() : null}

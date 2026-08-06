@@ -30,6 +30,7 @@ import { getRemoteManagementSnapshot, readGitIgnoreAtRoot } from '../../lib/git'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { OperationProgressRow } from '../lib/operation-progress-row'
 import { t, translateForAccessibleName } from '../../lib/i18n'
+import type { TranslationKey } from '../../lib/i18n'
 import { ForkSettings } from './fork-settings'
 import { ForkContributionTarget } from '../../models/workflow-preferences'
 import { GitConfigLocation, GitConfig } from './git-config'
@@ -106,7 +107,47 @@ interface IRepositorySettingsTabDescriptor {
   readonly tab: RepositorySettingsTab
   readonly icon: OcticonSymbol
   readonly label: React.ReactNode
+  readonly translationKey: TranslationKey
   readonly searchText?: string
+}
+
+const RepositorySettingsTabIds: Readonly<
+  Record<RepositorySettingsTab, string>
+> = {
+  [RepositorySettingsTab.Remote]: 'remote',
+  [RepositorySettingsTab.IgnoredFiles]: 'ignored-files',
+  [RepositorySettingsTab.GitConfig]: 'git-config',
+  [RepositorySettingsTab.BuildRun]: 'build-run',
+  [RepositorySettingsTab.CheapLfs]: 'cheap-lfs',
+  [RepositorySettingsTab.Submodules]: 'submodules',
+  [RepositorySettingsTab.Subtrees]: 'subtrees',
+  [RepositorySettingsTab.Automation]: 'automation',
+  [RepositorySettingsTab.Metadata]: 'metadata',
+  [RepositorySettingsTab.Appearance]: 'appearance',
+  [RepositorySettingsTab.AISecurity]: 'ai-security',
+  [RepositorySettingsTab.ForkSettings]: 'fork-settings',
+}
+
+const RepositorySettingsTabById: Readonly<
+  Record<string, RepositorySettingsTab>
+> = Object.fromEntries(
+  Object.entries(RepositorySettingsTabIds).map(([tab, id]) => [id, Number(tab)])
+)
+
+/** Numeric ids written before browser tabs used stable string identities. */
+const LegacyRepositorySettingsTabIds: Readonly<Record<string, string>> = {
+  '0': 'remote',
+  '1': 'ignored-files',
+  '2': 'git-config',
+  '3': 'build-run',
+  '4': 'cheap-lfs',
+  '5': 'submodules',
+  '6': 'subtrees',
+  '7': 'automation',
+  '8': 'metadata',
+  '9': 'appearance',
+  '10': 'ai-security',
+  '11': 'fork-settings',
 }
 
 /**
@@ -119,9 +160,13 @@ interface IRepositorySettingsTabDescriptor {
 const toSettingsTabItem = (
   descriptor: IRepositorySettingsTabDescriptor
 ): ISettingsTabItem => ({
-  id: String(descriptor.tab),
+  id: RepositorySettingsTabIds[descriptor.tab],
+  domId: `repository-settings-tab-${RepositorySettingsTabIds[descriptor.tab]}`,
   label: descriptor.label,
-  searchText: descriptor.searchText ?? String(descriptor.label),
+  searchText:
+    descriptor.searchText ??
+    translateForAccessibleName(descriptor.translationKey, {}, 'english'),
+  accessibleLabel: translateForAccessibleName(descriptor.translationKey),
   icon: <Octicon className="icon" symbol={descriptor.icon} />,
 })
 
@@ -390,13 +435,14 @@ export class RepositorySettings extends React.Component<
 
   public render() {
     const visibleTabs = this.visibleTabs
+    const allTabItems = this.tabDescriptors.map(toSettingsTabItem)
     const dialogBusy =
       this.state.disabled || this.state.subtreeOperationInProgress
 
     return (
       <Dialog
         id="repository-settings"
-        title="Repository settings"
+        title={translateForAccessibleName('repositorySettings.dialogTitle')}
         onDismissed={this.props.onDismissed}
         onSubmit={this.onSubmit}
         disabled={dialogBusy}
@@ -412,19 +458,37 @@ export class RepositorySettings extends React.Component<
         {this.renderErrors()}
 
         <div className="tab-container">
-          <div className="settings-tab-rail">
+          <div className="repository-settings-browser-toolbar">
             {this.renderTabSearch()}
-            <SettingsTabStrip
-              strip="repository-settings"
-              title="repository settings"
-              items={visibleTabs.map(toSettingsTabItem)}
-              selectedId={String(this.state.selectedTab)}
-              onSelect={this.onTabSelected}
-              disabled={dialogBusy}
-            />
           </div>
+          <SettingsTabStrip
+            strip="repository-settings"
+            title={this.getRepositoryBrowserTabLabels().surface}
+            items={visibleTabs.map(toSettingsTabItem)}
+            allItems={allTabItems}
+            selectedId={RepositorySettingsTabIds[this.state.selectedTab]}
+            onSelect={this.onTabSelected}
+            disabled={dialogBusy}
+            openStateScope={this.props.repository.path}
+            legacyTabIdMap={LegacyRepositorySettingsTabIds}
+            variant="browser"
+            showNewTab={true}
+            getTabPanelId={this.getTabPanelId}
+            accessibleLabels={this.getRepositoryBrowserTabLabels()}
+          />
 
-          <div className="active-tab">{this.renderActiveTab()}</div>
+          <div
+            className="active-tab"
+            id={this.getTabPanelId(
+              RepositorySettingsTabIds[this.state.selectedTab]
+            )}
+            role="tabpanel"
+            aria-labelledby={`repository-settings-tab-${
+              RepositorySettingsTabIds[this.state.selectedTab]
+            }`}
+          >
+            {this.renderActiveTab()}
+          </div>
         </div>
         {this.renderRemoteApplyProgress()}
         <DialogFooter>
@@ -984,17 +1048,24 @@ export class RepositorySettings extends React.Component<
       {
         tab: RepositorySettingsTab.Remote,
         icon: octicons.server,
-        label: 'Remote',
+        label: <LocalizedText translationKey="repositorySettings.tabRemote" />,
+        translationKey: 'repositorySettings.tabRemote',
       },
       {
         tab: RepositorySettingsTab.IgnoredFiles,
         icon: octicons.file,
-        label: __DARWIN__ ? 'Ignored Files' : 'Ignored files',
+        label: (
+          <LocalizedText translationKey="repositorySettings.tabIgnoredFiles" />
+        ),
+        translationKey: 'repositorySettings.tabIgnoredFiles',
       },
       {
         tab: RepositorySettingsTab.GitConfig,
         icon: octicons.gitCommit,
-        label: __DARWIN__ ? 'Git Config' : 'Git config',
+        label: (
+          <LocalizedText translationKey="repositorySettings.tabGitConfig" />
+        ),
+        translationKey: 'repositorySettings.tabGitConfig',
       },
       {
         tab: RepositorySettingsTab.BuildRun,
@@ -1002,6 +1073,7 @@ export class RepositorySettings extends React.Component<
         label: (
           <LocalizedText translationKey="repositorySettings.buildRunTab" />
         ),
+        translationKey: 'repositorySettings.buildRunTab',
         searchText: 'Build and run',
       },
       {
@@ -1010,18 +1082,21 @@ export class RepositorySettings extends React.Component<
         label: (
           <LocalizedText translationKey="repositorySettings.cheapLfsTab" />
         ),
+        translationKey: 'repositorySettings.cheapLfsTab',
         searchText: 'Cheap LFS',
       },
       {
         tab: RepositorySettingsTab.Submodules,
         icon: octicons.fileSubmodule,
         label: <LocalizedText translationKey="submodule.title" />,
+        translationKey: 'submodule.title',
         searchText: 'Submodules',
       },
       {
         tab: RepositorySettingsTab.Subtrees,
         icon: octicons.gitMerge,
         label: <LocalizedText translationKey="subtree.title" />,
+        translationKey: 'subtree.title',
         searchText: 'Subtrees',
       },
       {
@@ -1030,12 +1105,16 @@ export class RepositorySettings extends React.Component<
         label: (
           <LocalizedText translationKey="repositorySettings.automationTab" />
         ),
+        translationKey: 'repositorySettings.automationTab',
         searchText: 'Automation',
       },
       {
         tab: RepositorySettingsTab.Metadata,
         icon: octicons.gear,
-        label: 'Metadata',
+        label: (
+          <LocalizedText translationKey="repositorySettings.tabMetadata" />
+        ),
+        translationKey: 'repositorySettings.tabMetadata',
       },
       {
         tab: RepositorySettingsTab.Appearance,
@@ -1043,12 +1122,16 @@ export class RepositorySettings extends React.Component<
         label: (
           <LocalizedText translationKey="repositorySettings.appearanceTab" />
         ),
+        translationKey: 'repositorySettings.appearanceTab',
         searchText: 'Appearance',
       },
       {
         tab: RepositorySettingsTab.AISecurity,
         icon: octicons.shield,
-        label: __DARWIN__ ? 'AI Features' : 'AI features',
+        label: (
+          <LocalizedText translationKey="repositorySettings.tabAISecurity" />
+        ),
+        translationKey: 'repositorySettings.tabAISecurity',
         searchText: 'AI security',
       },
     ]
@@ -1057,7 +1140,10 @@ export class RepositorySettings extends React.Component<
       descriptors.push({
         tab: RepositorySettingsTab.ForkSettings,
         icon: octicons.repoForked,
-        label: __DARWIN__ ? 'Fork Behavior' : 'Fork behavior',
+        label: (
+          <LocalizedText translationKey="repositorySettings.tabForkSettings" />
+        ),
+        translationKey: 'repositorySettings.tabForkSettings',
         searchText: 'Fork behavior',
       })
     }
@@ -1070,7 +1156,10 @@ export class RepositorySettings extends React.Component<
     const all = this.tabDescriptors
     const filtered = filterByMode(
       all,
-      descriptor => [descriptor.searchText ?? String(descriptor.label)],
+      descriptor => [
+        descriptor.searchText ??
+          translateForAccessibleName(descriptor.translationKey, {}, 'english'),
+      ],
       this.state.tabFilter,
       this.state.tabFilterMode,
       this.state.tabFilterCaseSensitive
@@ -1099,7 +1188,9 @@ export class RepositorySettings extends React.Component<
             type="search"
             value={this.state.tabFilter}
             onChange={this.onTabFilterChanged}
-            aria-label="Search repository settings"
+            aria-label={translateForAccessibleName(
+              'repositorySettings.searchLabel'
+            )}
           />
           <FilterModeControl
             searchSurfaceId="repository-settings-tabs"
@@ -1141,7 +1232,11 @@ export class RepositorySettings extends React.Component<
   }
 
   private getTabSampleItems = () =>
-    this.tabDescriptors.map(d => d.searchText ?? String(d.label))
+    this.tabDescriptors.map(
+      d =>
+        d.searchText ??
+        translateForAccessibleName(d.translationKey, {}, 'english')
+    )
 
   /**
    * The strip reports the page's own id, never a position.
@@ -1155,9 +1250,50 @@ export class RepositorySettings extends React.Component<
     if (this.state.subtreeOperationInProgress) {
       return
     }
-    const descriptor = this.tabDescriptors.find(d => String(d.tab) === id)
+    const tab = RepositorySettingsTabById[id]
+    const descriptor =
+      tab === undefined
+        ? undefined
+        : this.tabDescriptors.find(d => d.tab === tab)
     if (descriptor !== undefined) {
       this.setState({ selectedTab: descriptor.tab })
+    }
+  }
+
+  private getTabPanelId = (id: string) => `repository-settings-panel-${id}`
+
+  private getRepositoryBrowserTabLabels = () => {
+    const surface = translateForAccessibleName('repositorySettings.tabsLabel')
+    return {
+      surface,
+      tabList: surface,
+      search: translateForAccessibleName('settings.browserTabSearch', {
+        surface,
+      }),
+      openNewTab: translateForAccessibleName('settings.browserTabOpenNew', {
+        surface,
+      }),
+      allPagesOpen: translateForAccessibleName('settings.browserTabAllOpen', {
+        surface,
+      }),
+      morePages: (count: number) =>
+        translateForAccessibleName('settings.browserTabMore', {
+          count: String(count),
+          surface,
+        }),
+      closeTab: (page: string) =>
+        translateForAccessibleName('settings.browserTabClose', { page }),
+      pinTab: (page: string) =>
+        translateForAccessibleName('settings.browserTabPin', { page }),
+      unpinTab: (page: string) =>
+        translateForAccessibleName('settings.browserTabUnpin', { page }),
+      pickerTitle: translateForAccessibleName(
+        'settings.browserTabPickerTitle',
+        { surface }
+      ),
+      noMatches: translateForAccessibleName('settings.browserTabNoMatches', {
+        surface,
+      }),
     }
   }
 

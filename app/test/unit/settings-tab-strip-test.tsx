@@ -4,9 +4,11 @@ import * as React from 'react'
 
 import { SettingsTabStrip } from '../../src/ui/settings-tabs/settings-tab-strip'
 import {
+  getOpenSettingsTabs,
   getPinnedSettingsTabs,
   orderSettingsTabs,
   pinSettingsTab,
+  setOpenSettingsTabs,
   toggleSettingsTabPin,
   unpinSettingsTab,
 } from '../../src/ui/settings-tabs/settings-tab-model'
@@ -58,6 +60,47 @@ describe('settings tab pinning', () => {
     // Settings must not reorder anything in Repository Settings.
     assert.deepStrictEqual(getPinnedSettingsTabs('repository-settings'), [])
     assert.deepStrictEqual(getPinnedSettingsTabs('preferences'), ['sound'])
+  })
+
+  it('keeps repository pins separate between repository sessions', () => {
+    const repoA = { scope: 'C:\\repo-a' } as const
+    const repoB = { scope: 'C:\\repo-b' } as const
+
+    pinSettingsTab('repository-settings', 'remote', repoA)
+    pinSettingsTab('repository-settings', 'appearance', repoB)
+
+    assert.deepStrictEqual(
+      getPinnedSettingsTabs('repository-settings', repoA),
+      ['remote']
+    )
+    assert.deepStrictEqual(
+      getPinnedSettingsTabs('repository-settings', repoB),
+      ['appearance']
+    )
+    assert.deepStrictEqual(getPinnedSettingsTabs('repository-settings'), [])
+  })
+
+  it('migrates scoped legacy pin ids and prunes unknown pages before the cap', () => {
+    const scope = 'C:\\repo-a'
+    const key = `settings-tab-pins.repository-settings.${encodeURIComponent(
+      scope
+    )}`
+    localStorage.setItem(key, JSON.stringify(['0', 'removed-page', '11', '0']))
+
+    const options = {
+      scope,
+      legacyIdMap: { '0': 'remote', '11': 'fork-settings' },
+      allowedIds: ['remote', 'fork-settings'],
+    } as const
+
+    assert.deepStrictEqual(
+      getPinnedSettingsTabs('repository-settings', options),
+      ['remote', 'fork-settings']
+    )
+    assert.strictEqual(
+      localStorage.getItem(key),
+      JSON.stringify(['remote', 'fork-settings'])
+    )
   })
 
   it('never pins the same page twice and unpins only that page', () => {
@@ -198,6 +241,22 @@ describe('SettingsTabStrip', () => {
     assert.strictEqual(tabsOf(view)[1].hasAttribute('disabled'), true)
   })
 
+  it('does not handle a tab context menu while disabled', () => {
+    const { view } = renderStrip({ disabled: true })
+    const event = new MouseEvent('contextmenu', {
+      bubbles: true,
+      cancelable: true,
+    })
+
+    tabsOf(view)[0].dispatchEvent(event)
+
+    assert.strictEqual(
+      event.defaultPrevented,
+      false,
+      'a disabled dialog must not open a pinning menu'
+    )
+  })
+
   it('carries the attributes the palette and the search rely on', () => {
     const { view } = renderStrip({
       items: [
@@ -237,5 +296,284 @@ describe('SettingsTabStrip', () => {
     fireEvent.keyDown(tabs[0], { key: 'ArrowUp' })
 
     assert.deepStrictEqual(selected, ['ignored', 'sound'])
+  })
+
+  it('renders a horizontal browser tab lane with a new-page action', () => {
+    const { view } = renderStrip({ variant: 'browser', showNewTab: true })
+
+    const tablist = view.getByRole('tablist', { hidden: true })
+    assert.strictEqual(tablist.getAttribute('aria-orientation'), 'horizontal')
+    assert.strictEqual(tabsOf(view).length, PAGES.length)
+    assert.strictEqual(
+      tablist.querySelectorAll('button').length,
+      0,
+      'close controls must not become tablist-owned descendants'
+    )
+    assert.match(
+      tablist.getAttribute('aria-owns') ?? '',
+      /settings-preferences-tab-remote/
+    )
+    assert.strictEqual(
+      view
+        .getByRole('button', { name: 'Open a settings page in a new tab' })
+        .hasAttribute('disabled'),
+      true,
+      'the new-page action is disabled when every declared page is already open'
+    )
+  })
+
+  it('keeps the complete catalogue open on a first filtered visit', () => {
+    const { view } = renderStrip({
+      items: [PAGES[0]],
+      allItems: PAGES,
+      variant: 'browser',
+      showNewTab: true,
+    })
+
+    assert.strictEqual(tabsOf(view).length, 1)
+    assert.strictEqual(
+      view
+        .getByRole('button', { name: 'Open a settings page in a new tab' })
+        .hasAttribute('disabled'),
+      true,
+      'hidden pages in the complete catalogue are already open, even when the visible list is filtered'
+    )
+  })
+
+  it('closes and reopens page tabs without losing stable identity', () => {
+    const { view, selected } = renderStrip({
+      variant: 'browser',
+      showNewTab: true,
+    })
+
+    fireEvent.click(
+      view.getByRole('button', { name: 'Close Ignored files tab' })
+    )
+    assert.strictEqual(tabsOf(view).length, 2)
+    assert.deepStrictEqual(getOpenSettingsTabs('preferences'), [
+      'remote',
+      'sound',
+    ])
+
+    fireEvent.click(
+      view.getByRole('button', { name: 'Open a settings page in a new tab' })
+    )
+    fireEvent.click(view.getByRole('option', { name: 'Ignored files' }))
+
+    assert.strictEqual(tabsOf(view).length, PAGES.length)
+    assert.deepStrictEqual(selected, ['ignored'])
+    assert.deepStrictEqual(getOpenSettingsTabs('preferences'), [
+      'remote',
+      'sound',
+      'ignored',
+    ])
+  })
+
+  it('reconciles stale stored pages before they can crowd out real pages', () => {
+    setOpenSettingsTabs('preferences', ['removed-page', 'remote'])
+
+    const { view } = renderStrip({ variant: 'browser', showNewTab: true })
+
+    assert.deepStrictEqual(
+      tabsOf(view).map(tab => tab.getAttribute('value')),
+      ['remote']
+    )
+    assert.deepStrictEqual(getOpenSettingsTabs('preferences'), ['remote'])
+  })
+
+  it('keeps a valid page after many stale stored ids', () => {
+    setOpenSettingsTabs(
+      'preferences',
+      Array.from({ length: 64 }, (_, index) => `removed-${index}`)
+    )
+    localStorage.setItem(
+      'settings-tab-open.preferences',
+      JSON.stringify([
+        ...Array.from({ length: 64 }, (_, index) => `removed-${index}`),
+        'remote',
+      ])
+    )
+
+    const { view } = renderStrip({ variant: 'browser', showNewTab: true })
+
+    assert.deepStrictEqual(
+      tabsOf(view).map(tab => tab.getAttribute('value')),
+      ['remote']
+    )
+    assert.deepStrictEqual(getOpenSettingsTabs('preferences'), ['remote'])
+  })
+
+  it('returns focus to a surviving tab after close and after reopening', () => {
+    const { view } = renderStrip({ variant: 'browser', showNewTab: true })
+
+    fireEvent.click(
+      view.getByRole('button', { name: 'Close Ignored files tab' })
+    )
+    assert.strictEqual(
+      document.activeElement,
+      tabsOf(view).find(tab => tab.getAttribute('value') === 'sound')
+    )
+
+    fireEvent.click(
+      view.getByRole('button', { name: 'Open a settings page in a new tab' })
+    )
+    fireEvent.click(view.getByRole('option', { name: 'Ignored files' }))
+    assert.strictEqual(
+      document.activeElement,
+      tabsOf(view).find(tab => tab.getAttribute('value') === 'ignored')
+    )
+  })
+
+  it('uses horizontal arrow keys and exposes the selected panel link', () => {
+    const { view, selected } = renderStrip({
+      variant: 'browser',
+      items: PAGES.map(page => ({
+        ...page,
+        domId: `settings-tab-${page.id}`,
+      })),
+    })
+    const tabs = tabsOf(view)
+
+    fireEvent.keyDown(tabs[0], { key: 'ArrowRight' })
+    fireEvent.keyDown(tabs[1], { key: 'Home' })
+
+    assert.deepStrictEqual(selected, ['ignored', 'remote'])
+    assert.strictEqual(
+      tabs[0].getAttribute('aria-controls'),
+      'settings-tab-remote-panel'
+    )
+    assert.strictEqual(tabs[1].hasAttribute('aria-controls'), false)
+  })
+
+  it('round-trips open page ids and bounds malformed storage', () => {
+    assert.strictEqual(getOpenSettingsTabs('preferences'), null)
+    setOpenSettingsTabs('preferences', [
+      'remote',
+      'remote',
+      '',
+      'x'.repeat(129),
+      'sound',
+    ])
+
+    assert.deepStrictEqual(getOpenSettingsTabs('preferences'), [
+      'remote',
+      'sound',
+    ])
+  })
+
+  it('keeps repository page sessions separate and migrates numeric ids once', () => {
+    localStorage.setItem(
+      'settings-tab-open.repository-settings',
+      JSON.stringify(['0', '11'])
+    )
+
+    const legacyOptions = {
+      scope: 'C:\\repo-a',
+      legacyIdMap: { '0': 'remote', '11': 'fork-settings' },
+    } as const
+
+    assert.deepStrictEqual(
+      getOpenSettingsTabs(
+        'repository-settings',
+        ['remote', 'fork-settings'],
+        legacyOptions
+      ),
+      ['remote', 'fork-settings']
+    )
+
+    setOpenSettingsTabs(
+      'repository-settings',
+      ['remote', 'fork-settings'],
+      legacyOptions
+    )
+    setOpenSettingsTabs('repository-settings', ['remote'], {
+      scope: 'C:\\repo-b',
+      legacyIdMap: legacyOptions.legacyIdMap,
+    })
+
+    assert.deepStrictEqual(
+      getOpenSettingsTabs(
+        'repository-settings',
+        ['remote', 'fork-settings'],
+        legacyOptions
+      ),
+      ['remote', 'fork-settings']
+    )
+    assert.deepStrictEqual(
+      getOpenSettingsTabs('repository-settings', ['remote', 'fork-settings'], {
+        scope: 'C:\\repo-b',
+        legacyIdMap: legacyOptions.legacyIdMap,
+      }),
+      ['remote']
+    )
+    assert.strictEqual(
+      localStorage.getItem('settings-tab-open.repository-settings'),
+      JSON.stringify(['0', '11'])
+    )
+  })
+
+  it('keeps picker controls linked to their list and active option', () => {
+    setOpenSettingsTabs('preferences', ['remote', 'sound'])
+    const { view } = renderStrip({ variant: 'browser', showNewTab: true })
+
+    const trigger = view.getByRole('button', {
+      name: 'Open a settings page in a new tab',
+    })
+    const pickerId = trigger.getAttribute('aria-controls')
+    assert.ok(pickerId)
+
+    fireEvent.click(trigger)
+
+    const picker = view.getByRole('dialog', { hidden: true })
+    const list = view.getByRole('listbox', { hidden: true })
+    const input = view.getByRole('combobox', { hidden: true })
+    assert.strictEqual(picker.id, pickerId)
+    assert.strictEqual(input.getAttribute('aria-controls'), list.id)
+    assert.strictEqual(
+      input.getAttribute('aria-activedescendant'),
+      view.getByRole('option', { name: 'Ignored files' }).id
+    )
+  })
+
+  it('keeps the all-pages search reachable even when no tab overflows', () => {
+    const { view } = renderStrip({ variant: 'browser', showNewTab: true })
+    const search = view.getByRole('button', { name: 'Search settings' })
+
+    fireEvent.click(search)
+
+    assert.ok(view.getByRole('dialog', { hidden: true }))
+    assert.ok(view.getByRole('option', { name: 'Ignored files' }))
+  })
+
+  it('keeps the combobox linked to an empty result list', () => {
+    const { view } = renderStrip({ variant: 'browser', showNewTab: true })
+    fireEvent.click(view.getByRole('button', { name: 'Search settings' }))
+
+    const input = view.getByRole('combobox', { hidden: true })
+    fireEvent.change(input, {
+      target: { value: 'definitely-no-settings-page' },
+    })
+
+    const listId = input.getAttribute('aria-controls')
+    assert.ok(listId)
+    assert.strictEqual(input.getAttribute('aria-expanded'), 'true')
+    assert.strictEqual(view.container.querySelector(`#${listId}`)?.id, listId)
+    assert.match(view.getByRole('status').textContent ?? '', /No settings page/)
+    assert.strictEqual(
+      view.queryAllByRole('option', { hidden: true }).length,
+      0
+    )
+  })
+
+  it('returns focus to the picker trigger after outside dismissal', () => {
+    const { view } = renderStrip({ variant: 'browser', showNewTab: true })
+    const trigger = view.getByRole('button', { name: 'Search settings' })
+
+    fireEvent.click(trigger)
+    assert.notStrictEqual(document.activeElement, trigger)
+
+    fireEvent.click(document.body)
+
+    assert.strictEqual(document.activeElement, trigger)
   })
 })

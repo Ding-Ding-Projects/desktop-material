@@ -26,6 +26,12 @@ const commonConfig: webpack.Configuration = {
   module: {
     rules: [
       {
+        test: /\.m?js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+      },
+      {
         test: /\.tsx?$/,
         include: path.resolve(__dirname, 'src'),
         use: [
@@ -122,6 +128,10 @@ export const renderer = merge({}, commonConfig, {
   resolve: {
     // Prevent the renderer from using browser-specific versions of modules
     aliasFields: [],
+    // A few dependency ESM entry points import React's JSX runtime without
+    // the .js suffix. Keep webpack's resolver compatible with React 16's
+    // extension-bearing runtime files.
+    fullySpecified: false,
   },
 })
 
