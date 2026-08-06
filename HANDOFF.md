@@ -480,17 +480,58 @@ before the session is rendered.
   while that pre-existing contract expects `1000×679`. This settings milestone
   does not modify that asset.
 
+### Integrated delivery state
+
+The feature lane was merged into `main` as
+`35c92c4f942ac9d6853b7ee407e1e95b49f617bb`; the follow-up Pages count repair
+is `29b4923cb339446dc3dc72d670dde0665ada68b9`. The local and GitHub `main`
+tips both resolve to `29b4923cb339446dc3dc72d670dde0665ada68b9`, with zero
+ahead/behind commits, and the feature tip is proven an ancestor of that tip.
+
+The merged-tree screenshot regeneration now reports **101 pages written**
+(100 screenshot pages plus the index), **100 PNGs on disk**, **91/91 current
+gallery outputs**, **9 retained historical frames**, **14/14 capture batches**,
+and **60 verification documents**, with zero stale files pruned. The earlier
+98-page count in this entry referred to the pre-integration feature checkout
+and is superseded by these merged-tree figures.
+
+Hosted remote evidence for `29b4923cb339446dc3dc72d670dde0665ada68b9` is
+mixed and is not presented as a green release gate:
+
+- [Deploy Pages run 31069841382](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31069841382)
+  passed its build, Material Design 3 contract, search-index, and deployment
+  jobs.
+- [Code scanning run 31069841432](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31069841432)
+  completed successfully.
+- [Cheap LFS cloud compression run 31069841425](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31069841425)
+  completed successfully.
+- **CI is red:** [CI Linux run 31069841414](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31069841414)
+  fails the TUI parity contract because it expected 205 feature rows and
+  parsed 206, and its hosted TypeScript lint fails with `TS5103` for the
+  existing `ignoreDeprecations` configuration. The current desktop task does
+  not enter the repository's separately closed TUI scope.
+- [CI Windows run 31069841417](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31069841417)
+  remains in progress at this handoff: the E2E smoke and Windows TUI core
+  jobs failed during setup, Windows arm64 failed during setup/build, and the
+  Windows x64 job is still executing. Its live result is therefore not
+  claimed.
+- The exact-SHA release attempts completed their note/gate work but skipped
+  publication, and the release inventory has no new tag for
+  `29b4923cb339446dc3dc72d670dde0665ada68b9`; no installer or release is
+  claimed for this change.
+
 ### Documentation
 
 - Added the categorized feature article
   `docs/features/identity-and-workspace/settings-browser-tabs.md` and linked it
   from the category index, wiki User Guide, README feature summary, roadmap,
   landing-page feature card, screenshot tab, and current gallery frames.
-- Regenerated the docs hub after the article update. The three existing gallery
-  filenames now contain the accepted browser-tab frames, so screenshot-page
-  contracts keep 91 published gallery outputs plus 7 retained historical PNG
-  frames, for 98 generated screenshot pages; the 91-frame Pages acceptance gate
-  remains separate and has no orphan assets.
+- Regenerated the docs hub after the article update and again after main
+  integration. The three existing gallery filenames now contain the accepted
+  browser-tab frames, and the merged screenshot catalog contains 91 published
+  gallery outputs plus 9 retained historical PNG frames, for 100 screenshot
+  pages plus the index. The 91-frame Pages acceptance gate remains separate
+  and has no orphan assets.
 
 ### Build recovery notes
 
