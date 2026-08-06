@@ -9,8 +9,8 @@ Material installation manages many identities, repositories, and branches.
   identity](multiple-accounts-and-repository-identity.md)
 - [Repository sidebar and
   pinning](repository-sidebar-and-pinning.md)
-- [Branch switcher
-  workflows](branch-switcher-workflows.md)
+- [Branch switcher workflows](branch-switcher-workflows.md) — branch discovery,
+  dirty-worktree switching, and the **Not updated with main** merge filter
 - [Owner-scoped appearance and
   history](owner-scoped-appearance-and-history.md)
 - [Tab-strip settings commit

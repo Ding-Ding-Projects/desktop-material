@@ -15,6 +15,33 @@ submodule, and in-progress-operation protections. Filter and visibility choices
 do not delete refs. Invalid preset output is treated as display input and the
 final branch name remains subject to Git ref validation.
 
+## Merge chooser freshness filter
+
+When the current branch is the repository's default branch, the **Choose a
+branch to merge into main** sheet offers a **Not updated with main** filter.
+The filter is additive to the existing text and regex controls: selecting it
+shows branches whose current tip does not contain the default branch tip, while
+leaving the existing branch selection and merge preview behavior unchanged.
+The default branch itself is never returned as a stale result. A branch that
+diverged after incorporating `main` is considered updated, because its history
+already contains the default tip.
+
+The implementation asks Git once for the refs containing the default tip and
+canonicalizes both local and remote refs before comparing them with the branch
+models. This prevents a remote-tracking ref from incorrectly making a local
+branch look stale. The chip is localized as **Not updated with {branch}** in
+English, **未追齊 {branch}** in Hong Kong-style Cantonese, and the same two
+labels together in bilingual mode. The result refreshes when the repository,
+default branch, branch tips, or branch set changes; a stale asynchronous result
+is ignored.
+
+If the default branch or its tip cannot be resolved, or Git returns a known
+repository/revision error, the freshness chip is omitted rather than showing a
+misleading all-stale list. The read-only ancestry query does not fetch, write
+refs, change the checkout, or require credentials. Unexpected failures are
+logged through the existing Git error path and the normal branch chooser stays
+usable.
+
 When the current worktree has uncommitted changes, the switch dialog also
 offers **Leave my changes here**. This keeps the current branch and its working
 files exactly where they are, then opens the existing Add worktree flow with
@@ -36,7 +63,19 @@ Verification includes `branch-preset-test.ts`,
 `stash-and-switch-branch-dialog-test.tsx`, branch grouping/filter suites,
 recent-branch Git tests, the checkout/branch dispatcher suites, and a real
 Windows hidden-desktop capture of the dirty-worktree dialog and the prefilled
-Add worktree flow.
+Add worktree flow. The freshness filter adds
+`for-each-ref-test.ts`, `not-updated-with-default-test.ts`,
+`merge-branch-filters-test.ts`, and the integrated merge chooser/filter suite.
+The focused integrated run passed **28/28** tests, TypeScript and changed-file
+ESLint passed, and the development build completed through Windows resource
+preparation. The built-app capture below is the exact client-only frame from
+the disposable `main` fixture: **960×660**, SHA-256
+`DA046E4BC768324BAFF001B5DE0C7954F53F1CD498C25338081E8FDB83990346`.
+
+![Merge into main chooser with Not updated with main active, showing only the stale fixture branch](../../assets/screenshots/not-updated-with-main-filter.png)
+
+The capture shows `codex/not-updated-with-main` remaining visible while
+`codex/updated-with-main` is removed by the active filter.
 
 ## Acceptance captures
 

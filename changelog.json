@@ -1,6 +1,7 @@
 {
   "releases": {
     "3.6.3-material22": [
+      "[Added] The Merge into main branch chooser now offers a Not updated with main filter based on default-branch Git ancestry, keeping diverged branches that already contain main out of the stale results and localizing the chip in English, Hong Kong-style Cantonese, and bilingual mode - 81faa869aa3eed8401070f37ae7e324f49db398a",
       "[Fixed] Every ordinary Windows CI trigger now stays on clean GitHub-hosted runners with no manual self-hosted escape hatch, while Super Express retains its dedicated local runner pools - d75bf057e6552688adc87daa7b9d71ff08a23eb9",
       "[Fixed] The generated parity contract now includes Settings tab docking as desktop feature 207, so Linux packaging no longer stops at the stale 206-row declaration - d75bf057e6552688adc87daa7b9d71ff08a23eb9",
       "[Fixed] Every Super Express job, including the direct Windows release publisher, now stays on the registered self-hosted Windows and Linux pools, while ordinary CI and tested Express remain on GitHub-hosted runners - 9d9dd4f8f1b6b9b86f226aa37885fba6e0a02c1c",

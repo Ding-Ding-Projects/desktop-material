@@ -1,5 +1,29 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Add the merge chooser freshness filter
+
+The **Merge into main** chooser now exposes **Not updated with main**. It uses
+one read-only `git for-each-ref --contains` query against the default branch
+tip, canonicalizes local and remote refs, excludes the default branch, and
+keeps diverged branches that already contain `main` out of the stale result.
+English, Hong Kong-style Cantonese, and bilingual labels are covered. Missing
+or invalid default ancestry fails closed by omitting the chip rather than
+mislabeling every branch.
+
+Implementation commit: `81faa869aa3eed8401070f37ae7e324f49db398a`.
+The current task branch also contains the current `origin/main` baseline in
+merge commit `3ce7c42d04d7f2cf9af20462a8b5ae2c6dac337f`.
+
+Local evidence: the integrated focused suite passed **28/28**, TypeScript,
+changed-file ESLint, and `git diff --check` passed, and the development build
+completed through Windows resource preparation with packaging intentionally
+skipped. The hidden-desktop capture is
+`docs/assets/screenshots/not-updated-with-main-filter.png`, a 960×660
+client-only frame with SHA-256
+`DA046E4BC768324BAFF001B5DE0C7954F53F1CD498C25338081E8FDB83990346`.
+The task branch is pushed. Default-branch integration, CI, Pages, and wiki
+publication remain pending.
+
 ## 2026-08-06 — Keep ordinary Windows CI cloud-only and harden local caches
 
 `CI Windows` uses `windows-2022` for pushes, pull requests, manual dispatches,

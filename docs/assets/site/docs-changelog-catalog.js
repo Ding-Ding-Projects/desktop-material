@@ -21,13 +21,18 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4171,
+    entryCount: 4173,
     releases: [
       {
         v: '3.6.3-material22',
         d: '2026-08-06',
         t: '18:41',
         e: [
+          [
+            'Added',
+            'The Merge into main branch chooser now offers a Not updated with main filter based on default-branch Git ancestry, keeping diverged branches that already contain main out of the stale results and localizing the chip in English, Hong Kong-style Cantonese, and bilingual mode',
+            '81faa869aa3eed8401070f37ae7e324f49db398a',
+          ],
           [
             'Fixed',
             'Every ordinary Windows CI trigger now stays on clean GitHub-hosted runners with no manual self-hosted escape hatch, while Super Express retains its dedicated local runner pools',
@@ -105,6 +110,11 @@
             'Fixed',
             'Settings > Accounts now uses one global active identity across GitHub.com, Enterprise, GitLab, and Bitbucket sections, so a cross-provider switch exposes Make active and never leaves two rows marked Active',
             '7a757f5b75d627e1b4b7ae5ed47b2181638fefa0',
+          ],
+          [
+            'Fixed',
+            'Making an account active now also applies it to the selected same-host GitHub repository before its next authenticated operation, while preserving other repository and provider bindings',
+            '5235d4fff9efbd605a5083a5dec58970d8797863',
           ],
           [
             'Added',

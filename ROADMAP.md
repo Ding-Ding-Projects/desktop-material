@@ -2,6 +2,19 @@
 
 Updated: **August 6, 2026**
 
+## August 6 — Filter merge candidates that have not caught up with main
+
+- The **Merge into main** branch chooser now offers **Not updated with main**.
+  It compares each branch tip with the default branch tip through Git ancestry,
+  keeps diverged branches that already contain `main` out of the stale result,
+  and preserves the existing text/regex filters.
+- The chip is localized in English, Hong Kong-style Cantonese, and bilingual
+  mode. The freshness query is read-only and fails closed when the default tip
+  cannot be resolved.
+- Focused integrated evidence is **28/28** tests passed, TypeScript and
+  changed-file ESLint passed, the Windows development build passed, and the
+  built-app hidden-desktop capture is recorded in the branch-switcher guide.
+
 ## August 6 — Keep Windows CI hosted and harden the Super Express cache
 
 - Every `CI Windows` trigger uses `windows-2022`; manual dispatches expose no

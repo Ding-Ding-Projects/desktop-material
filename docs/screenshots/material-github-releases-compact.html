@@ -351,7 +351,7 @@
         data-screenshot-search="material-github-releases-compact material-github-releases-compact.png 200%-scaled compact Releases catalog with one complete row and keyboard-reachable tools windows-releases-compact releases-compact-200-percent Historical Actions job-log recovery evidence (outside the current gallery)"
       >
         <div class="section__head">
-          <p class="eyebrow">Frame 88 of 101 · windows-releases-compact</p>
+          <p class="eyebrow">Frame 90 of 103 · windows-releases-compact</p>
           <h1 class="md-headline">
             200%-scaled compact Releases catalog with one complete row and
             keyboard-reachable tools
@@ -2138,6 +2138,44 @@
             "width": 1443,
             "height": 992,
             "bytes": 138792,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-launchpad-empty-full-width-20260806",
+            "file": "material-launchpad-empty-full-width-20260806.png",
+            "caption": "Full-width Launchpad empty state with truthful zero-count groups",
+            "altText": "Launchpad full-width empty state with five truthful zero-count groups and no blank sidebar",
+            "scene": "launchpad-empty-full-width",
+            "batch": "windows-ui-state-lowlevel",
+            "platform": "windows-headless",
+            "section": "Repository administration",
+            "interaction": "Open Launchpad for the disposable repository with no attention items, preserve all five truthful zero-count groups and the full-width empty state, then inspect and promote the original client-only frame.",
+            "width": 960,
+            "height": 660,
+            "bytes": 58370,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
+            "output": "not-updated-with-main-filter",
+            "file": "not-updated-with-main-filter.png",
+            "caption": "Merge into main chooser filtered to branches not updated with main",
+            "altText": "Merge into main chooser with Not updated with main active",
+            "scene": "merge-chooser-not-updated-with-main",
+            "batch": "windows-ui-state-lowlevel",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Open Choose a branch to merge into main for the disposable repository, activate Not updated with main, verify the stale branch remains while the branch containing main is hidden, then inspect and promote the original client-only frame.",
+            "width": 960,
+            "height": 660,
+            "bytes": 90354,
             "commands": [
               "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
               "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"

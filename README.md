@@ -57,6 +57,15 @@
 > [branch-switcher workflow](docs/features/identity-and-workspace/branch-switcher-workflows.md)
 > and its [runtime capture](docs/verification/dirty-worktree-worktree-option-20260805/dirty-worktree-switch-dialog.png).
 
+> **Merge chooser freshness filter — August 6, 2026:** **Merge into main** now
+> offers **Not updated with main**, using the default branch tip's Git ancestry
+> to show only branches that still need an update. Local and remote refs are
+> canonicalized, diverged-but-updated branches stay out of the result, and the
+> chip is localized in English, Hong Kong-style Cantonese, and bilingual mode.
+> See the [branch-switcher workflow guide](docs/features/identity-and-workspace/branch-switcher-workflows.md).
+
+![Merge into main chooser with the Not updated with main filter active](docs/assets/screenshots/not-updated-with-main-filter.png)
+
 > **Full-width History Graph page — August 5, 2026:** the repository rail now
 > gives the ancestry graph its own **Graph** page, so Branch / Tag, Graph, and
 > Commit Message columns can use the full workspace width while retaining the
