@@ -33,32 +33,22 @@ describe('Super Express Release workflow', () => {
   it('is manual-only and dispatches independent zero-test build lanes', () => {
     assert.match(workflow, /on:\s*\n\s+workflow_dispatch:/)
     assert.doesNotMatch(workflow, /\n\s+(?:push|workflow_run):/)
-    assert.match(workflow, /runner_selection:/)
-    assert.match(workflow, /gh api --paginate --slurp/)
-    assert.match(workflow, /status == "online" and \.busy == false/)
-    assert.match(workflow, /\["self-hosted", \$os_label, "X64"\]/)
-    assert.match(workflow, /\[\$cloud_label\]/)
-    assert.match(workflow, /choose_runner prepare_runner Linux ubuntu-latest/)
-    assert.match(workflow, /choose_runner windows_runner Windows windows-2022/)
-    assert.match(workflow, /choose_runner tui_runner Linux ubuntu-latest/)
-    assert.match(workflow, /choose_runner publish_runner Linux ubuntu-latest/)
+    assert.doesNotMatch(workflow, /runner_selection:/)
+    assert.doesNotMatch(workflow, /fromJSON\(needs\./)
     assert.match(
       workflow,
-      /runs-on:\s*\n\s+- ['"]\$\{\{ needs\.runner_selection\.outputs\.prepare_label_1 \}\}['"]/
+      /prepare:\s*\n\s+name: Prepare exact release target\s*\n\s+runs-on: ubuntu-latest/
     )
+    assert.match(workflow, /publish:\s*[\s\S]*?runs-on: ubuntu-latest/)
     assert.match(
       workflow,
-      /runs-on:\s*\n\s+- ['"]\$\{\{ needs\.prepare\.outputs\.publish_label_1 \}\}['"]/
+      /uses: \.\/\.github\/workflows\/super-express-release-windows\.yml[\s\S]*?release_version: \$\{\{ needs\.prepare\.outputs\.version \}\}/
     )
     assert.match(workflow, /Require a main-branch manual dispatch/)
     assert.match(workflow, /ref: \$\{\{ env\.RELEASE_TARGET_SHA \}\}/)
     assert.match(
       workflow,
-      /uses: \.\/\.github\/workflows\/super-express-release-windows\.yml[\s\S]*?runner: \$\{\{ needs\.prepare\.outputs\.windows_runner \}\}/
-    )
-    assert.match(
-      workflow,
-      /uses: \.\/\.github\/workflows\/super-express-release-linux-tui\.yml[\s\S]*?runner: \$\{\{ needs\.prepare\.outputs\.tui_runner \}\}/
+      /uses: \.\/\.github\/workflows\/super-express-release-linux-tui\.yml[\s\S]*?release_target_sha: \$\{\{ needs\.prepare\.outputs\.sha \}\}/
     )
     assert.match(
       workflow,
@@ -91,17 +81,8 @@ describe('Super Express Release workflow', () => {
       windowsWorkflow,
       /Direct Super Express Windows dispatches must use main/
     )
-    assert.match(
-      windowsWorkflow,
-      /runner:\s*\n\s+description: JSON runner-label array/
-    )
-    assert.match(windowsWorkflow, /runner_selection:/)
-    assert.match(windowsWorkflow, /gh api --paginate --slurp/)
-    assert.match(windowsWorkflow, /needs: runner_selection/)
-    assert.match(
-      windowsWorkflow,
-      /runs-on:\s*\n\s+- ['"]\$\{\{ needs\.runner_selection\.outputs\.label_1 \}\}['"]/
-    )
+    assert.doesNotMatch(windowsWorkflow, /runner_selection:|fromJSON\(needs\./)
+    assert.match(windowsWorkflow, /runs-on: windows-2022/)
     assert.match(windowsWorkflow, /yarn build:prod/)
     assert.match(windowsWorkflow, /yarn package/)
     assert.match(windowsWorkflow, /actions\/upload-artifact@v7/)
@@ -117,17 +98,8 @@ describe('Super Express Release workflow', () => {
       tuiWorkflow,
       /Direct Super Express Linux TUI dispatches must use main/
     )
-    assert.match(
-      tuiWorkflow,
-      /runner:\s*\n\s+description: JSON runner-label array/
-    )
-    assert.match(tuiWorkflow, /runner_selection:/)
-    assert.match(tuiWorkflow, /gh api --paginate --slurp/)
-    assert.match(tuiWorkflow, /needs: runner_selection/)
-    assert.match(
-      tuiWorkflow,
-      /runs-on:\s*\n\s+- ['"]\$\{\{ needs\.runner_selection\.outputs\.label_1 \}\}['"]/
-    )
+    assert.doesNotMatch(tuiWorkflow, /runner_selection:|fromJSON\(needs\./)
+    assert.match(tuiWorkflow, /runs-on: ubuntu-latest/)
     assert.match(tuiWorkflow, /uv build --clear/)
     assert.match(
       tuiWorkflow,
