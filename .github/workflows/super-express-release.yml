@@ -17,8 +17,13 @@ on:
         default: true
         type: boolean
 
-# Do not add a shared concurrency group: overlapping manual releases must be
-# allowed to finish independently.
+# Super Express is the one release lane allowed to supersede an older run.
+# Its self-hosted pool is scarce, so a newer dispatch for the same ref cancels
+# the stale release instead of leaving it consuming a local runner indefinitely.
+concurrency:
+  group: super-express-release-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 

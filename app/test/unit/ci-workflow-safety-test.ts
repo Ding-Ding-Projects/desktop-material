@@ -48,6 +48,11 @@ const workflowSources = readdirSync(workflowDirectory)
     file,
     source: readFileSync(join(workflowDirectory, file), 'utf8'),
   }))
+const selfHostedSuperExpressWorkflows = new Set([
+  'super-express-release.yml',
+  'super-express-release-windows.yml',
+  'super-express-release-linux-tui.yml',
+])
 
 describe('CI workflow safety', () => {
   it('does not make hosted CI clone agent-only tooling', () => {
@@ -267,7 +272,7 @@ describe('CI workflow safety', () => {
     assert.doesNotMatch(installerWorkflow, /^\s+body: \|/m)
   })
 
-  it('runs every overlapping workflow without replacing older running or pending work', () => {
+  it('keeps push runs independent and scopes cancellation to Super Express', () => {
     // Each lane keeps the unconditional push trigger and its own unique
     // concurrency group, so neither queues behind nor cancels the other.
     for (const { name, source } of ciWorkflows) {
@@ -309,6 +314,19 @@ describe('CI workflow safety', () => {
     }
 
     for (const { file, source } of workflowSources) {
+      if (selfHostedSuperExpressWorkflows.has(file)) {
+        assert.match(
+          source,
+          /cancel-in-progress:\s*true/,
+          `${file} may cancel an older self-hosted Super Express run`
+        )
+        assert.match(
+          source,
+          /^  group: super-express-release[^\r\n]*\$\{\{ github\.ref \}\}\s*$/m,
+          `${file} must scope cancellation to the dispatched ref`
+        )
+        continue
+      }
       assert.doesNotMatch(
         source,
         /cancel-in-progress:\s*true/,

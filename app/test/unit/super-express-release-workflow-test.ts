@@ -104,6 +104,10 @@ describe('Super Express Release workflow', () => {
     assert.doesNotMatch(workflow, /yarn package/)
     assert.doesNotMatch(workflow, /run:\s*yarn lint/)
     assert.doesNotMatch(workflow, /validate-changelog/)
+    assert.match(
+      workflow,
+      /concurrency:\s*\n\s+group: super-express-release-\$\{\{ github\.ref \}\}\s*\n\s+cancel-in-progress: true/
+    )
 
     assert.match(windowsWorkflow, /workflow_call:/)
     assert.match(windowsWorkflow, /workflow_dispatch:/)
@@ -126,6 +130,10 @@ describe('Super Express Release workflow', () => {
     assert.match(
       windowsWorkflow,
       /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/
+    )
+    assert.match(
+      windowsWorkflow,
+      /concurrency:\s*\n\s+group: super-express-release-windows-\$\{\{ github\.ref \}\}\s*\n\s+cancel-in-progress: true/
     )
     assert.match(windowsWorkflow, /super-express-windows-build/)
     assert.match(windowsBuildAction, /yarn build:prod/)
@@ -151,6 +159,10 @@ describe('Super Express Release workflow', () => {
     assert.match(
       tuiWorkflow,
       /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/
+    )
+    assert.match(
+      tuiWorkflow,
+      /concurrency:\s*\n\s+group: super-express-release-linux-tui-\$\{\{ github\.ref \}\}\s*\n\s+cancel-in-progress: true/
     )
     assert.match(tuiWorkflow, /super-express-linux-tui-build/)
     assert.match(tuiBuildAction, /uv python install 3\.12/)
@@ -203,7 +215,7 @@ describe('Super Express Release workflow', () => {
     // Latest forward, and only a provably off-main Latest may be demoted.
     assert.match(promotionScript, /merge-base --is-ancestor/)
     assert.match(promotionScript, /git rev-list --count/)
-    assert.doesNotMatch(workflow, /cancel-in-progress:\s*true/)
+    assert.match(workflow, /cancel-in-progress:\s*true/)
   })
 
   it('uses one Squirrel-monotonic version namespace across release lanes', () => {

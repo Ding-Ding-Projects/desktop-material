@@ -22,6 +22,17 @@ created. Self-hosted placement and prerequisite repair are verified, while a
 completed Windows package/artifact and combined Release remain unverified
 because the external cancellations occurred before packaging.
 
+## 2026-08-06 — Scope run cancellation to Super Express
+
+Ordinary push-triggered CI, installer, and Pages workflows continue to use
+unique run-and-attempt concurrency groups with `cancel-in-progress: false`, so
+a new push cannot cancel an earlier validation or publication run. The three
+Super Express workflow files are the only exception: each uses a ref-scoped
+`cancel-in-progress: true` group. A newer Super Express dispatch can therefore
+free the scarce self-hosted runner from an obsolete release, while normal push
+runs remain independent. The focused workflow safety tests now enforce this
+allowlist and the group scope.
+
 ## 2026-08-06 — Bootstrap every self-hosted Windows dependency shell
 
 The self-hosted Windows dependency setup now selects the requested Node.js

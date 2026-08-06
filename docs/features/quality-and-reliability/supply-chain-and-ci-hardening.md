@@ -151,40 +151,21 @@ the exit code, which is ambiguous between "found advisories" and "failed".
 
 ### Run concurrency
 
-The workflow's concurrency group used to be
-`ci-${{ github.run_id }}-${{ github.run_attempt }}` — unique to every run, so
-it could never deduplicate anything. Ten pushes to one pull-request branch ran
-ten full Windows build matrices.
+The current CI, installer, and Pages workflow groups are unique to each
+`github.run_id` and `github.run_attempt`, with `cancel-in-progress: false`:
 
-It is now keyed on the ref, with one deliberate exemption:
+| Workflow family                              | Group                   | `cancel-in-progress` |
+| --------------------------------------------- | ----------------------- | -------------------- |
+| Push and pull-request validation              | Per run and attempt     | No                   |
+| Installer and Pages publication               | Per run and attempt     | No                   |
+| Super Express self-hosted release             | Per dispatched ref      | Yes                  |
 
-| Trigger                            | Group        | `cancel-in-progress` |
-| ---------------------------------- | ------------ | -------------------- |
-| `pull_request`                     | Per PR number | Yes                  |
-| `push` to a non-default branch     | Per ref       | Yes                  |
-| `push` to the default branch       | Unique per run | No                 |
-| `workflow_dispatch`                | Unique per run | No                 |
-
-Default-branch pushes keep a unique group because `build-installers.yml`
-triggers on this workflow's `workflow_run` completion and publishes a Release
-only when the CI conclusion is `success`. Cancelling a `main` run would
-therefore skip a release silently. A *queued* `main` run is just as dangerous:
-GitHub keeps only one pending run per group, so a third run entering an occupied
-group cancels the pending one — a middle commit would lose its release with
-nothing failing. Unique groups avoid both. Manual dispatches get the same
-treatment: an explicitly requested verification run must never wait behind, or
-be discarded by, someone else's push.
-
-`workflow_call` has no row of its own because it cannot have one. Inside a
-reusable workflow the `github` context belongs to the caller, so
-`github.event_name` reports the event that started the *caller* and never the
-string `workflow_call`; a called run is therefore keyed by whichever row matches
-that caller's event. No workflow in this repository currently calls `ci.yml`,
-so today this is theory rather than observed behaviour.
-
-The default branch is read from `github.event.repository.default_branch` with a
-`main` fallback, so renaming the default branch does not silently start
-cancelling release runs.
+Ten pushes to one branch can therefore finish their validation independently,
+and an explicitly requested ordinary publication run is not discarded by a
+newer push. Super Express is the deliberate exception: its registered
+self-hosted pool is scarce, so a newer dispatch on the same ref may cancel an
+obsolete release. The workflow safety test keeps this exception allowlisted to
+the three `super-express-release*.yml` files.
 
 ## Security considerations
 

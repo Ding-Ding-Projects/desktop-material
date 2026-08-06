@@ -128,10 +128,13 @@ CI, installer, and Pages invocations each use their unique GitHub run ID and
 attempt as the concurrency group with `cancel-in-progress: false`. Newer runs
 can therefore start without cancelling a running invocation or replacing the
 single older pending slot that GitHub otherwise retains for a shared group.
-Source-contract tests scan every local workflow, reject
-`cancel-in-progress: true`, and require every declared concurrency group to
-include both `github.run_id` and `github.run_attempt`. Workflows without a
-concurrency group, including CodeQL, remain independently runnable.
+The only exception is the self-hosted Super Express release family: its
+combined, Windows, and Linux TUI workflows use a ref-scoped group with
+`cancel-in-progress: true`, so a newer Super Express dispatch can release a
+scarce local runner from an obsolete release. Ordinary pushes cannot cancel
+their runs. Source-contract tests enforce both sides of this boundary.
+Workflows without a concurrency group, including CodeQL, remain independently
+runnable.
 
 ## Super Express release
 
@@ -226,9 +229,11 @@ can be cleared to build recovery artifacts without creating a Release.
 Published Super Express Releases use the same current-main and highest-same-SHA
 promotion helper as automatic Releases.
 
-No shared concurrency group is declared, so overlapping manual invocations can
-finish independently. Tags and Releases are immutable: a same-tag race has one
-winner, and later attempts fail without replacing it.
+The Super Express workflow family uses ref-scoped concurrency with
+`cancel-in-progress: true`. A newer dispatch on the same ref replaces an older
+self-hosted release, while independent refs retain separate groups. Tags and
+Releases are immutable: a same-tag race has one winner, and later attempts fail
+without replacing it.
 
 ## Downgrade guard
 
