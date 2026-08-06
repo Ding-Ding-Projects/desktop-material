@@ -108,6 +108,11 @@ M21 adds progressively disclosed controls around the familiar Desktop flow:
   Tools exposes tag creation, fetch, push, move, signing, pruning, and deletion;
   destructive tag and bulk-branch actions identify the exact refs first and
   retain recovery information.
+- When switching away from a dirty branch, choose **Leave my changes here** to
+  keep the current files in place and open Add worktree with the destination
+  branch and a suggested worktree name already filled in. The current worktree
+  is not stashed or checked out to the destination; creation happens only after
+  the path review succeeds.
 - In Changes, switch the file list to a directory tree, choose persisted diff
   context, compare CSV/TSV rows and cells, and preview TGA images. Editor actions
   understand the expanded editor catalog plus WSL paths. Settings and Repository
