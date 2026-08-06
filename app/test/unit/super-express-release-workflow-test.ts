@@ -53,6 +53,10 @@ describe('Super Express Release workflow', () => {
     assert.doesNotMatch(workflow, /fromJSON\(needs\./)
     assert.match(workflow, /Require a main-branch manual dispatch/)
     assert.match(workflow, /ref: \$\{\{ env\.RELEASE_TARGET_SHA \}\}/)
+    assert.match(
+      workflow,
+      /uses: \.\/\.github\/workflows\/super-express-release-linux-tui\.yml[\s\S]*?release_target_sha: \$\{\{ needs\.prepare\.outputs\.sha \}\}/
+    )
     assert.doesNotMatch(
       workflow,
       /uses: \.\/\.github\/workflows\/super-express-release-windows\.yml[\s\S]*?\n\s+runner:/

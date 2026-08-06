@@ -1,5 +1,25 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Fix Super Express workflow startup planning
+
+The Super Express dispatcher keeps preparation and publication on
+`ubuntu-latest`, while each reusable packaging lane now checks the repository
+runner inventory on a hosted selector. When an online, idle matching runner is
+available, exactly one static conditional job uses `[self-hosted, Windows,
+X64]` or `[self-hosted, Linux, X64]`; otherwise the lane uses `windows-2022` or
+`ubuntu-latest`. The earlier dynamic self-hosted fallback tried to build a
+multi-label `runs-on` value from job outputs; GitHub marked those dispatches
+`startup_failure` before creating a job, so no runner log existed to diagnose.
+Static conditional jobs retain schedulability while allowing the requested
+self-hosted-first behavior and keeping the zero-test emergency lane and direct
+artifact-only lane behavior unchanged.
+
+The workflow contract test now asserts the fixed labels and rejects the
+dynamic runner-selection shape. Local actionlint (with shellcheck disabled
+because the Windows actionlint/shellcheck pipe can hang), Prettier, and
+`git diff --check` pass. A fresh remote dispatch with `publish=false` is the
+remaining verification step after this correction reaches `main`.
+
 ## 2026-08-05 — Keep private tooling out of hosted CI checkout
 
 The first remote Windows verification after the dependency repair reached the

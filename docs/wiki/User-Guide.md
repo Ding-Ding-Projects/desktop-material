@@ -1635,10 +1635,12 @@ The **Actions** panel brings CI into the app:
 - The repository's **Super Express Release** emergency lane runs no unit,
   script, TUI, lint, type, parity, smoke, or E2E tests. It goes directly to the
   Windows x64 production build/package, asset verification, and optional
-  release; each lane prefers an online, idle matching `self-hosted` x64 runner
-  and falls back to its hosted cloud runner when none is available. Ordinary CI
-  and tested Express remain the default gates. A release pull request targets
-  the Windows product's `main` default branch.
+  release; preparation and publication use `ubuntu-latest`, while each
+  packaging lane selects an online, idle matching self-hosted runner when
+  available and otherwise uses `windows-2022` or `ubuntu-latest`. Static
+  conditional jobs keep the workflow schedulable before any job starts.
+  Ordinary CI and tested Express remain the default gates. A release pull
+  request targets the Windows product's `main` default branch.
 - Automatic and Super Express installers share one monotonic `z` package-version
   namespace. Releases are immutable and initially non-latest; only the greatest
   release for freshly revalidated current `main` is promoted to the Squirrel

@@ -138,11 +138,12 @@ tag once, then calls two reusable lanes in parallel:
 
 - `.github/workflows/super-express-release-windows.yml` restores the exact
   desktop dependency cache and builds the Windows x64 production package on
-  an online, idle `self-hosted` Windows x64 runner when one is available;
+  an online, idle self-hosted Windows x64 runner when one is available, or on
+  the hosted `windows-2022` runner otherwise;
 - `.github/workflows/super-express-release-linux-tui.yml` builds the Linux TUI
   wheel, source distribution, locked runtime constraints, bootstrap, and
-  installer on an online, idle `self-hosted` Linux x64 runner when one is
-  available.
+  installer on an online, idle self-hosted Linux x64 runner when one is
+  available, or on the hosted `ubuntu-latest` runner otherwise.
 
 Each reusable packaging lane starts with a small hosted selector because a
 queued `self-hosted` job cannot discover that its runner pool is unavailable
