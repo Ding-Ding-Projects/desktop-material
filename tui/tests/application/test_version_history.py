@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -38,8 +39,18 @@ def test_version_history_records_diffs_and_append_only_restore(tmp_path: Path) -
 
     history_path = Path(service.repository_path).resolve()
     assert history_path.is_relative_to(paths.profile_history_root.resolve())
-    long_paths = subprocess.run(  # noqa: S603 - fixed Git executable and argv
-        ("git", "-C", str(history_path), "config", "--get", "core.longpaths"),  # noqa: S607 - fixed executable
+    git_executable = shutil.which("git")
+    assert git_executable is not None
+    long_paths = subprocess.run(  # noqa: S603 - resolved Git executable and fixed argv
+        (
+            git_executable,
+            "-C",
+            str(history_path),
+            "config",
+            "--local",
+            "--get",
+            "core.longpaths",
+        ),
         check=True,
         capture_output=True,
         text=True,

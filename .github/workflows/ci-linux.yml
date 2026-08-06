@@ -279,7 +279,12 @@ jobs:
         run: node tui/tools/generate-parity-contract.mjs --check
       - name: Run TUI tests
         working-directory: tui
-        run: uv run --python "${{ matrix.python-version }}" pytest
+        run: |
+          if [ "${{ matrix.python-version }}" = "3.13" ]; then
+            uv run --python "${{ matrix.python-version }}" python tools/run-tests-isolated.py
+          else
+            uv run --python "${{ matrix.python-version }}" pytest
+          fi
       - name: Run TUI lint and types
         if: matrix.python-version == '3.12'
         working-directory: tui
