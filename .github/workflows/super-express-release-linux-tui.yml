@@ -31,7 +31,9 @@ jobs:
     outputs:
       use_self_hosted: ${{ steps.select.outputs.use_self_hosted }}
     env:
-      GH_TOKEN: ${{ github.token }}
+      GH_TOKEN:
+        ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN
+        }}
     steps:
       - name: Check for an idle Linux x64 runner
         id: select

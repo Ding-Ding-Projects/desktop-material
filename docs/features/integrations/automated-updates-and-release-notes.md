@@ -148,8 +148,9 @@ tag once, then calls two reusable lanes in parallel:
 Each reusable packaging lane starts with a small hosted selector because a
 queued `self-hosted` job cannot discover that its runner pool is unavailable
 and then move itself to the cloud. The selector reads the repository runner
-inventory through `gh api`, accepts only online and idle runners carrying the
-matching OS and `X64` labels, and sets a boolean choice. Exactly one of two
+inventory through `gh api` using the `RELEASE_TOKEN`, `ORG_TOKEN`, then
+`GITHUB_TOKEN` fallback chain, accepts only online and idle runners carrying
+the matching OS and `X64` labels, and sets a boolean choice. Exactly one of two
 static-target jobs then runs: `[self-hosted, Windows, X64]` or `windows-2022`
 for the desktop package, and `[self-hosted, Linux, X64]` or `ubuntu-latest`
 for the TUI package. The coordinator and publisher remain on

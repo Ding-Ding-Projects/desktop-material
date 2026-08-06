@@ -54,6 +54,10 @@ describe('Super Express Release workflow', () => {
     assert.match(workflow, /tui_runner_selection:/)
     assert.match(
       workflow,
+      /GH_TOKEN:\s*\n\s+\$\{\{ secrets\.RELEASE_TOKEN \|\| secrets\.ORG_TOKEN \|\| secrets\.GITHUB_TOKEN \}\}/
+    )
+    assert.match(
+      workflow,
       /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/
     )
     assert.match(
@@ -105,6 +109,10 @@ describe('Super Express Release workflow', () => {
     )
     assert.match(windowsWorkflow, /runner_selection:/)
     assert.match(windowsWorkflow, /gh api --paginate --slurp/)
+    assert.match(
+      windowsWorkflow,
+      /GH_TOKEN:\s*\n\s+\$\{\{ secrets\.RELEASE_TOKEN \|\| secrets\.ORG_TOKEN \|\| secrets\.GITHUB_TOKEN \}\}/
+    )
     assert.match(windowsWorkflow, /use_self_hosted=true/)
     assert.match(windowsWorkflow, /use_self_hosted=false/)
     assert.match(windowsWorkflow, /build_self_hosted:/)
@@ -132,6 +140,10 @@ describe('Super Express Release workflow', () => {
     )
     assert.match(tuiWorkflow, /runner_selection:/)
     assert.match(tuiWorkflow, /gh api --paginate --slurp/)
+    assert.match(
+      tuiWorkflow,
+      /GH_TOKEN:\s*\n\s+\$\{\{ secrets\.RELEASE_TOKEN \|\| secrets\.ORG_TOKEN \|\| secrets\.GITHUB_TOKEN \}\}/
+    )
     assert.match(tuiWorkflow, /use_self_hosted=true/)
     assert.match(tuiWorkflow, /use_self_hosted=false/)
     assert.match(tuiWorkflow, /build_self_hosted:/)
