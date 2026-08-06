@@ -8,13 +8,14 @@ Updated: **August 6, 2026**
   fixed `desktop-material-windows-local` label for the desktop build and
   packaged smoke jobs. Push, pull-request, reusable-call, and Windows TUI core
   jobs remain on hosted runners.
-- Windows self-hosted jobs restore exact installed dependencies without a
-  post-job archive hook, verify the restored sentinels, and explicitly save a
-  verified miss. A legacy cache can warm the install, but the current lockfiles
-  still determine the final dependency tree.
-- Local contracts pass **17/17**, the edited YAML parses, Prettier and
+- Windows self-hosted jobs restore exact `installed-deps-v6` dependencies
+  without a post-job archive hook, verify the restored sentinels, and explicitly
+  save a verified miss. `installed-deps-v5` and `installed-deps-v4` are warm
+  starts only; the cross-compilation manifest restore keeps the exact key
+  reachable, and both Windows toolset scripts invalidate it.
+- Local CI/release contracts pass **32/32**, the edited YAML parses, Prettier and
   `actionlint -shellcheck=` pass, and `git diff --check` passes. Remote
-  verification remains pending for the new commit.
+  verification remains pending for the hardening commit.
 
 ## August 6 — Include Super Express in Latest release selection
 

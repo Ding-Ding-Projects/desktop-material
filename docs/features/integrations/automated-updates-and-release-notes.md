@@ -123,11 +123,14 @@ sources. A hit must contain reviewed generic, target-specific Copilot,
 Electron-runtime, React JSX-runtime, `react-confetti`, and Playwright
 sentinels. If a hit is incomplete, the setup action records the missing paths
 and reruns the bounded dependency install automatically rather than handing the
-broken cache to webpack. A legacy `installed-deps-v4` cache can warm a
-self-hosted Windows miss, but it is never treated as exact and the current
-lockfiles still drive installation. Python setup remains unconditional for
-native builds. Build output, `dist`, installers, Release assets, credentials,
-and runtime configuration are never cached.
+broken cache to webpack. Legacy `installed-deps-v5` and `installed-deps-v4`
+caches can warm a self-hosted Windows miss, but neither is treated as exact and
+the current lockfiles still drive installation. The cross-compilation Copilot
+install restores `app/package.json` and `app/yarn.lock` before the exact cache
+key is computed, preventing a post-install manifest from making the saved cache
+unreachable. Python setup remains unconditional for native builds. Build
+output, `dist`, installers, Release assets, credentials, and runtime
+configuration are never cached.
 
 The hosted Windows packaged-E2E lane launches the Squirrel installer without
 PowerShell's descendant-inclusive `Start-Process -Wait`. It waits at most 300

@@ -44,13 +44,14 @@ runs:
           ~/.cache/ms-playwright
           ~/AppData/Local/ms-playwright
         key: >-
-          installed-deps-v5-${{ runner.os }}-${{ runner.arch }}-target-${{
+          installed-deps-v6-${{ runner.os }}-${{ runner.arch }}-target-${{
           inputs.arch }}-node-${{ inputs.node-version }}-py311-${{
           hashFiles('package.json', 'yarn.lock', 'app/package.json',
           'app/yarn.lock', '.yarnrc', 'app/.yarnrc', 'app/.npmrc',
           'script/post-install.ts',
           '.github/actions/setup-ci-environment/action.yml',
           '.github/actions/setup-windows-signing/action.yml',
+          '.github/scripts/ensure-windows-arm64-build-tools.ps1',
           '.github/scripts/ensure-windows-clang.ps1',
           '.github/scripts/bootstrap-pinned-yarn.ps1', 'vendor/yarn-1.21.1.js',
           'vendor/printenvz/**', 'vendor/windows-argv-parser/**',
@@ -67,13 +68,14 @@ runs:
           ~/.cache/ms-playwright
           ~/AppData/Local/ms-playwright
         key: >-
-          installed-deps-v5-${{ runner.os }}-${{ runner.arch }}-target-${{
+          installed-deps-v6-${{ runner.os }}-${{ runner.arch }}-target-${{
           inputs.arch }}-node-${{ inputs.node-version }}-py311-${{
           hashFiles('package.json', 'yarn.lock', 'app/package.json',
           'app/yarn.lock', '.yarnrc', 'app/.yarnrc', 'app/.npmrc',
           'script/post-install.ts',
           '.github/actions/setup-ci-environment/action.yml',
           '.github/actions/setup-windows-signing/action.yml',
+          '.github/scripts/ensure-windows-arm64-build-tools.ps1',
           '.github/scripts/ensure-windows-clang.ps1',
           '.github/scripts/bootstrap-pinned-yarn.ps1', 'vendor/yarn-1.21.1.js',
           'vendor/printenvz/**', 'vendor/windows-argv-parser/**',
@@ -81,6 +83,8 @@ runs:
         # A legacy cache is only a warm start. Its cache-hit output remains
         # false, so the current lock files still drive a complete install.
         restore-keys: |
+          installed-deps-v5-${{ runner.os }}-${{ runner.arch }}-target-${{
+          inputs.arch }}-node-${{ inputs.node-version }}-py311-
           installed-deps-v4-${{ runner.os }}-${{ runner.arch }}-target-${{
           inputs.arch }}-node-${{ inputs.node-version }}-py311-
 
@@ -317,6 +321,17 @@ runs:
         npm_config_arch: ${{ inputs.arch }}
         TARGET_ARCH: ${{ inputs.arch }}
 
+    - name: Snapshot dependency manifests before cross-compilation install
+      if:
+        ${{ steps.installed-dependencies-status.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true' }}
+      shell: bash
+      run: |
+        manifest_backup="$RUNNER_TEMP/desktop-material-manifests-before-cross-compilation"
+        mkdir -p "$manifest_backup"
+        cp app/package.json "$manifest_backup/app-package.json"
+        cp app/yarn.lock "$manifest_backup/app-yarn.lock"
+
     - name: Install cross-compilation copilot package
       if:
         ${{ steps.installed-dependencies-status.outputs.cache-hit != 'true' ||
@@ -352,6 +367,21 @@ runs:
             echo "Failed to install ${PKG}@${PKG_VERSION} after 3 attempts."
             exit 1
           fi
+        fi
+
+    - name: Restore dependency manifests after cross-compilation install
+      if:
+        ${{ steps.installed-dependencies-status.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true' }}
+      shell: bash
+      run: |
+        manifest_backup="$RUNNER_TEMP/desktop-material-manifests-before-cross-compilation"
+        cp "$manifest_backup/app-package.json" app/package.json
+        cp "$manifest_backup/app-yarn.lock" app/yarn.lock
+        if ! cmp -s "$manifest_backup/app-package.json" app/package.json ||
+          ! cmp -s "$manifest_backup/app-yarn.lock" app/yarn.lock; then
+          echo 'Cross-compilation dependency install changed a cache-key manifest.' >&2
+          exit 1
         fi
 
     - name: Verify installed dependencies before use
@@ -425,13 +455,14 @@ runs:
           ~/.cache/ms-playwright
           ~/AppData/Local/ms-playwright
         key: >-
-          installed-deps-v5-${{ runner.os }}-${{ runner.arch }}-target-${{
+          installed-deps-v6-${{ runner.os }}-${{ runner.arch }}-target-${{
           inputs.arch }}-node-${{ inputs.node-version }}-py311-${{
           hashFiles('package.json', 'yarn.lock', 'app/package.json',
           'app/yarn.lock', '.yarnrc', 'app/.yarnrc', 'app/.npmrc',
           'script/post-install.ts',
           '.github/actions/setup-ci-environment/action.yml',
           '.github/actions/setup-windows-signing/action.yml',
+          '.github/scripts/ensure-windows-arm64-build-tools.ps1',
           '.github/scripts/ensure-windows-clang.ps1',
           '.github/scripts/bootstrap-pinned-yarn.ps1', 'vendor/yarn-1.21.1.js',
           'vendor/printenvz/**', 'vendor/windows-argv-parser/**',

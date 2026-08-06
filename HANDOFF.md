@@ -8,19 +8,23 @@ the desktop build and packaged smoke jobs. The self-hosted option maps only to
 the fixed `desktop-material-windows-local` label; the Windows TUI core job stays
 on `windows-2022`, and no raw runner label is accepted from workflow input.
 
-The shared Windows dependency setup now restores an exact `installed-deps-v5`
+The shared Windows dependency setup now restores an exact `installed-deps-v6`
 cache on self-hosted jobs without a post-job cache hook, verifies its required
 Electron, Copilot, React, and Playwright sentinels, and explicitly saves a
-verified miss. An older `installed-deps-v4` entry may provide a warm starting
-tree, but its non-hit result still runs the current lockfile install. The cache
-key includes the manifests, lockfiles, setup/signing actions, pinned Yarn, and
-native-vendor inputs. Build outputs and installers remain uncached.
+verified miss. The previous `installed-deps-v5` and older `installed-deps-v4`
+entries may provide a warm starting tree, but their non-hit result still runs
+the current lockfile install. The cache key includes the manifests, lockfiles,
+setup/signing actions, both Windows toolset scripts, pinned Yarn, and
+native-vendor inputs. The cross-compilation install restores its manifests
+before verification and cache save, so the exact key remains reachable. Build
+outputs and installers remain uncached.
 
 Local evidence on the task branch: the CI environment and workflow safety
-contracts pass **17/17**, both edited YAML documents parse, Prettier passes on
-the changed files, `actionlint -shellcheck=` passes, and `git diff --check`
-passes. A fresh remote Windows run is still required after the change; no GitHub
-green result is claimed yet.
+contracts pass **18/18**, the combined CI/release contracts pass **32/32**, all
+four workflow/action YAML documents parse, Prettier passes on the changed files,
+`actionlint -shellcheck=` passes, and `git diff --check` passes. A fresh remote
+Windows run is still required after the hardening change; no GitHub green result
+is claimed yet.
 
 ## 2026-08-06 — Mark Super Express releases as Latest
 

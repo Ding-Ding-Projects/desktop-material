@@ -28,6 +28,10 @@ const clangToolsetScript = readFileSync(
 interface ICompositeActionStep {
   name?: string
   if?: string
+  run?: string
+  shell?: string
+  uses?: string
+  with?: Record<string, unknown>
 }
 
 interface ICompositeActionDocument {
@@ -35,6 +39,23 @@ interface ICompositeActionDocument {
 }
 
 const setupActionDocument = parse(setupAction) as ICompositeActionDocument
+
+function getNamedStep(name: string): ICompositeActionStep {
+  const step = setupActionDocument.runs?.steps?.find(
+    candidate => candidate.name === name
+  )
+  assert.notEqual(step, undefined, `workflow step ${name} must exist`)
+  return step ?? {}
+}
+
+function getNamedStepIndex(name: string): number {
+  const index = setupActionDocument.runs?.steps?.findIndex(
+    candidate => candidate.name === name
+  )
+  assert.notEqual(index, undefined, `workflow step ${name} must exist`)
+  assert.notEqual(index, -1, `workflow step ${name} must exist`)
+  return index ?? -1
+}
 
 describe('CI environment setup', () => {
   it('uses exact dependency caches and keeps self-hosted cache writes explicit', () => {
@@ -183,11 +204,94 @@ describe('CI environment setup', () => {
     assert.match(setupAction, /AppData\/Local\/ms-playwright/)
     assert.match(
       setupAction,
-      /installed-deps-v5-\$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}-target-/
+      /installed-deps-v6-\$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}-target-/
     )
     assert.match(
       setupAction,
-      /Restore exact installed dependencies on Windows self-hosted runners[\s\S]*?restore-keys:[\s\S]*?installed-deps-v4-\$\{\{ runner\.os \}\}/
+      /Restore exact installed dependencies on Windows self-hosted runners[\s\S]*?restore-keys:[\s\S]*?installed-deps-v5-\$\{\{ runner\.os \}\}[\s\S]*?installed-deps-v4-\$\{\{ runner\.os \}\}/
+    )
+    const hostedCache = getNamedStep(
+      'Restore exact installed dependencies on hosted runners'
+    )
+    const selfHostedRestore = getNamedStep(
+      'Restore exact installed dependencies on Windows self-hosted runners'
+    )
+    const selfHostedSave = getNamedStep(
+      'Save exact installed dependencies from Windows self-hosted runners'
+    )
+    const hostedKey = String(hostedCache.with?.key ?? '')
+    const selfHostedRestoreKey = String(selfHostedRestore.with?.key ?? '')
+    const selfHostedSaveKey = String(selfHostedSave.with?.key ?? '')
+    assert.notEqual(hostedKey, '')
+    assert.equal(selfHostedRestoreKey, hostedKey)
+    assert.equal(selfHostedSaveKey, hostedKey)
+    assert.match(
+      hostedKey,
+      /\.github\/scripts\/ensure-windows-arm64-build-tools\.ps1/
+    )
+    assert.equal(
+      String(selfHostedRestore.with?.['restore-keys'] ?? '').includes(
+        'installed-deps-v5-'
+      ),
+      true
+    )
+    assert.equal(
+      String(selfHostedRestore.with?.['restore-keys'] ?? '').includes(
+        'installed-deps-v4-'
+      ),
+      true
+    )
+    assert.equal(
+      selfHostedSave.uses,
+      'actions/cache/save@v5',
+      'self-hosted Windows cache writes must use the explicit save action'
+    )
+    assert.match(
+      selfHostedSave.if ?? '',
+      /installed-dependencies-self-hosted\.outputs\.cache-hit != 'true'/
+    )
+    assert.match(
+      selfHostedSave.if ?? '',
+      /verify-dependencies\.outcome == 'success'/
+    )
+    assert.equal(
+      String(hostedCache.with?.path ?? ''),
+      String(selfHostedRestore.with?.path ?? '')
+    )
+    assert.equal(
+      String(selfHostedRestore.with?.path ?? ''),
+      String(selfHostedSave.with?.path ?? '')
+    )
+    const snapshotIndex = getNamedStepIndex(
+      'Snapshot dependency manifests before cross-compilation install'
+    )
+    const crossInstallIndex = getNamedStepIndex(
+      'Install cross-compilation copilot package'
+    )
+    const restoreManifestIndex = getNamedStepIndex(
+      'Restore dependency manifests after cross-compilation install'
+    )
+    const verifyIndex = getNamedStepIndex(
+      'Verify installed dependencies before use'
+    )
+    const saveIndex = getNamedStepIndex(
+      'Save exact installed dependencies from Windows self-hosted runners'
+    )
+    assert.ok(snapshotIndex < crossInstallIndex)
+    assert.ok(crossInstallIndex < restoreManifestIndex)
+    assert.ok(restoreManifestIndex < verifyIndex)
+    assert.ok(verifyIndex < saveIndex)
+    assert.match(
+      getNamedStep(
+        'Snapshot dependency manifests before cross-compilation install'
+      ).run ?? '',
+      /RUNNER_TEMP[\s\S]*app-package\.json[\s\S]*app-yarn\.lock/
+    )
+    assert.match(
+      getNamedStep(
+        'Restore dependency manifests after cross-compilation install'
+      ).run ?? '',
+      /app-package\.json[\s\S]*app\/package\.json[\s\S]*app-yarn\.lock[\s\S]*app\/yarn\.lock[\s\S]*cmp -s/
     )
     assert.match(
       setupAction,

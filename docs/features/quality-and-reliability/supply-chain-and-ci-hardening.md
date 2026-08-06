@@ -51,12 +51,15 @@ explicit `actions/cache/restore` step and saves a verified miss with an explicit
 `actions/cache/save` step before the build starts. The key includes both lock
 files and manifests, the post-install/setup/signing actions, pinned Yarn, local
 native-vendor sources, the target architecture, and the Node/Python versions.
-An older `installed-deps-v4` cache may be restored only as a warm start; its
-non-hit status still forces the current lock files through the complete install.
-Hosted jobs retain the ordinary cache post step, while self-hosted jobs avoid an
-unbounded post-job archive hook. Build output, installers, Release assets,
-credentials, and runtime configuration remain uncached. The focused contract
-test checks both the runner selection and this restore/verify/save split.
+Older `installed-deps-v5` and `installed-deps-v4` caches may be restored only as
+a warm start; their non-hit status still forces the current lock files through
+the complete install. The cross-compilation install restores its package
+manifests before the exact cache key is saved, and both Windows toolset scripts
+participate in key invalidation. Hosted jobs retain the ordinary cache post
+step, while self-hosted jobs avoid an unbounded post-job archive hook. Build
+output, installers, Release assets, credentials, and runtime configuration
+remain uncached. The focused contract test checks both the runner selection and
+this restore/verify/save split.
 
 The hosted Windows E2E lane does not install a second system-wide FFmpeg package.
 The repository post-install step provisions Playwright's pinned FFmpeg payload,
