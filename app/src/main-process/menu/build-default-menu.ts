@@ -454,7 +454,7 @@ export function buildDefaultMenuTemplate(
       separator,
       {
         id: 'create-worktree',
-        label: __DARWIN__ ? 'New Worktree…' : 'New work&tree…',
+        label: __DARWIN__ ? 'New Worktree…' : 'N&ew worktree…',
         click: emit('create-worktree'),
         accelerator: 'CmdOrCtrl+Shift+W',
         visible: enableWorktreeSupport(),

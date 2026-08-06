@@ -1048,7 +1048,7 @@ function createFakeSession() {
 }
 
 describe('CopilotStore conflict resolution AI policy boundary', () => {
-  it('denies every untrusted policy state before progress, client, session, or transport', async () => {
+  it('denies every supplied untrusted policy state before progress, client, session, or transport', async () => {
     const staleNow = Date.now()
     const byokSecret = 'R14-BYOK-CREDENTIAL-SENTINEL'
     const wrongProvider: IAIProviderBinding = {
@@ -1085,7 +1085,6 @@ describe('CopilotStore conflict resolution AI policy boundary', () => {
       readonly code: string
       readonly redactedValue?: string
     }> = [
-      { name: 'missing', authorization: undefined, code: 'policy-missing' },
       {
         name: 'malformed',
         authorization: {

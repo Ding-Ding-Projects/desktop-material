@@ -1698,12 +1698,21 @@ The **Actions** panel brings CI into the app:
   Windows, X64]`, and the TUI lane uses `[self-hosted, Linux, X64]`. A missing
   or busy local runner queues or fails the release; it never falls back to a
   GitHub-hosted runner. Ordinary CI and tested Express remain the default
-  gates. A release pull request targets the Windows product's `main` default
-  branch. Self-hosted dependency setup remains automatic, but skips optional
+  gates, run on clean GitHub-hosted machines, and keep unique non-cancelling
+  run/attempt groups. Only Super Express retains local-runner placement and
+  same-ref cancellation. A release pull request targets the Windows product's
+  `main` default branch. Self-hosted dependency setup remains automatic, but
+  skips optional
   cache-save post hooks so a completed build does not leave the local runner
   occupied by archive cleanup. The TUI's isolated profile-history repository
   also enables Git `core.longpaths` locally, so Windows history writes do not
   depend on the checkout's separate Git configuration.
+- Ordinary Windows unit tests leave `NODE_OPTIONS` to `script/test.mjs`, which
+  owns both the per-worker heap and memory-aware concurrency. Packaged E2E waits
+  at most 300 seconds for the Squirrel installer process, terminates that tree
+  on timeout, and repeatedly stops only newly launched same-session application
+  processes while preserving any process that predated the test. Remote proof
+  of this hosted workflow repair is still pending.
 - Automatic and Super Express installers share one monotonic `z` package-version
   namespace. Releases are immutable and initially non-latest; only the greatest
   release for freshly revalidated current `main` is promoted to the Squirrel

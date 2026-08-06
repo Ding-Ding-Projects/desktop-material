@@ -1711,6 +1711,10 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showPreferencesTab(PreferencesTab.AgentAccess)
       case 'palette:preferences-sound':
         return this.showPreferencesTab(PreferencesTab.Sound)
+      case 'palette:preferences-self-hosted-server':
+        return this.showPreferencesTab(PreferencesTab.SelfHostedServer)
+      case 'palette:preferences-ai':
+        return this.showPreferencesTab(PreferencesTab.AI)
       case 'palette:preferences-copilot':
         return this.showPreferencesTab(PreferencesTab.Copilot)
       case 'palette:ollama-model-manager':
@@ -1747,6 +1751,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showRepositorySettings(RepositorySettingsTab.Metadata)
       case 'palette:repository-settings-appearance':
         return this.showRepositorySettings(RepositorySettingsTab.Appearance)
+      case 'palette:repository-settings-ai-security':
+        return this.showRepositorySettings(RepositorySettingsTab.AISecurity)
       case 'palette:repository-settings-fork-settings':
         return this.showRepositorySettings(RepositorySettingsTab.ForkSettings)
       // The Help menu's links had no palette route at all: they live only as

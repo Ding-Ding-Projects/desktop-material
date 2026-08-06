@@ -2,6 +2,7 @@ import assert from 'node:assert'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
+import { parse } from 'yaml'
 
 const setupAction = readFileSync(
   join(process.cwd(), '.github/actions/setup-ci-environment/action.yml'),
@@ -24,9 +25,27 @@ const clangToolsetScript = readFileSync(
   'utf8'
 )
 
+interface ICompositeActionStep {
+  name?: string
+  if?: string
+}
+
+interface ICompositeActionDocument {
+  runs?: { steps?: ICompositeActionStep[] }
+}
+
+const setupActionDocument = parse(setupAction) as ICompositeActionDocument
+
 describe('CI environment setup', () => {
   it('uses an exact installed-dependency cache and skips cold setup only on a hit', () => {
-    assert.match(setupAction, /Prefer Git Bash on Windows self-hosted runners/)
+    const preferGitBashStep = setupActionDocument.runs?.steps?.find(
+      step => step.name === 'Prefer Git Bash on Windows self-hosted runners'
+    )
+    assert.notEqual(preferGitBashStep, undefined)
+    assert.equal(
+      preferGitBashStep?.if,
+      "${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}"
+    )
     assert.match(
       setupAction,
       /shell: powershell -NoProfile -ExecutionPolicy Bypass/
@@ -83,18 +102,30 @@ describe('CI environment setup', () => {
       clangToolsetScript,
       /Microsoft\.VisualStudio\.Component\.VC\.Tools\.x86\.x64/
     )
-    assert.match(clangToolsetScript, /--installPath=\$\(\$instance\.installationPath\)/)
-    assert.match(arm64ToolsetScript, /--installPath=\$\(\$instance\.installationPath\)/)
+    assert.match(
+      clangToolsetScript,
+      /--installPath=\$\(\$instance\.installationPath\)/
+    )
+    assert.match(
+      arm64ToolsetScript,
+      /--installPath=\$\(\$instance\.installationPath\)/
+    )
     assert.match(clangToolsetScript, /--quiet/)
     assert.match(clangToolsetScript, /--norestart/)
     assert.doesNotMatch(clangToolsetScript, /--wait/)
     assert.match(clangToolsetScript, /maxToolsetChecks = 120/)
     assert.match(clangToolsetScript, /Start-Sleep -Seconds 5/)
-    assert.match(clangToolsetScript, /acceptedInstallerExitCodes = \@\(0, 3010, 1001, 1618\)/)
+    assert.match(
+      clangToolsetScript,
+      /acceptedInstallerExitCodes = \@\(0, 3010, 1001, 1618\)/
+    )
     assert.match(arm64ToolsetScript, /maxCompilerChecks = 120/)
     assert.match(arm64ToolsetScript, /Start-Sleep -Seconds 5/)
     assert.match(arm64ToolsetScript, /npm_config_msvs_version=/)
-    assert.match(arm64ToolsetScript, /acceptedInstallerExitCodes = \@\(0, 3010, 1001, 1618\)/)
+    assert.match(
+      arm64ToolsetScript,
+      /acceptedInstallerExitCodes = \@\(0, 3010, 1001, 1618\)/
+    )
     assert.ok(
       setupAction.indexOf('Install Windows arm64 C++ toolset when missing') <
         setupAction.indexOf('Install Windows ClangCL toolset when missing')
@@ -116,7 +147,7 @@ describe('CI environment setup', () => {
     )
     assert.match(
       setupAction,
-      /Provide repository-pinned Yarn to self-hosted Windows actions[\s\S]*?Expose repository-pinned Yarn to Git Bash[\s\S]*?cygpath -u[\s\S]*?GITHUB_PATH[\s\S]*?yarn --version[\s\S]*?Use Node\.js .*?with Yarn download cache[\s\S]*?runner\.environment != 'self-hosted'[\s\S]*?Use Node\.js .*?before self-hosted dependency install/
+      /Provide repository-pinned Yarn to self-hosted Windows actions[\s\S]*?Expose repository-pinned Yarn to Git Bash[\s\S]*?cygpath -u[\s\S]*?GITHUB_PATH[\s\S]*?yarn --version[\s\S]*?Use Node\.js .*?with Yarn download cache[\s\S]*?runner\.environment != 'self-hosted'[\s\S]*?Use Node\.js[\s\S]*?before self-hosted dependency[\s\S]*?install/
     )
     assert.match(yarnBootstrap, /vendor\\yarn-1\.21\.1\.js/)
     assert.match(yarnBootstrap, /System\.IO\.File\]::Copy/)

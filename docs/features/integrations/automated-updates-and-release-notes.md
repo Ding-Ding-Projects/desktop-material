@@ -122,16 +122,28 @@ Python setup remains unconditional for native builds. Build output, `dist`,
 installers, Release assets, credentials, and runtime configuration are never
 cached.
 
+The hosted Windows packaged-E2E lane launches the Squirrel installer without
+PowerShell's descendant-inclusive `Start-Process -Wait`. It waits at most 300
+seconds for `Setup.exe` itself and terminates that process tree on timeout. A
+scoped cleanup records the pre-existing `GitHubDesktop` process IDs and the
+installer session, then repeatedly stops only newly launched processes from
+that session while Squirrel finishes writing the exact-version executable.
+This prevents the launched application from holding the installer step open
+without terminating an unrelated process that was already running.
+
 ## Workflow concurrency
 
-CI uses a ref-scoped concurrency group with `cancel-in-progress: true`, so a
-newer trusted push or manual dispatch replaces older CI work for the same ref.
-Installer and Pages publication retain unique GitHub run-and-attempt groups
-with `cancel-in-progress: false`; publication runs must finish independently.
-The self-hosted Super Express release family also uses ref-scoped cancellation,
-so a newer dispatch can release a scarce local runner from an obsolete release.
-Source-contract tests enforce this allowlist. The CI workflows have no
-`pull_request` trigger, keeping untrusted PR code off the self-hosted pool.
+Ordinary Linux/Windows CI and `Build Installers / Express Release` use
+GitHub-hosted runners and unique run-ID/run-attempt concurrency groups with
+`cancel-in-progress: false`; every commit keeps its independent validation and
+publication opportunity. CI handles pushes, pull requests, manual dispatches,
+and reusable calls on clean hosted machines. Pages publication retains the same
+non-cancelling run-and-attempt contract.
+
+Only the self-hosted Super Express release family uses ref-scoped cancellation,
+so a newer emergency dispatch can release a scarce local runner from an obsolete
+release. Source-contract tests enforce both halves of this boundary and reject a
+self-hosted runner declaration in every other workflow.
 Workflows without a concurrency group, including CodeQL, remain independently
 runnable.
 
@@ -366,14 +378,18 @@ Focused acceptance covers safe feed parsing, bounded Actions data, exact
 CI/installer job/run/SHA binding, ahead-of comparison, manual-dispatch and
 malformed/stale fail-closed behavior, transient storage, the updater-event race,
 all three language modes, non-cancelling independent CI/installer/Pages runs,
-workflow wiring, exact Git range collection, subject sanitization, output
-limits, and first-release handling. The app and script TypeScript
+hosted-runner placement, pull-request CI, workflow wiring, exact Git range
+collection, subject sanitization, output limits, and first-release handling.
+The app and script TypeScript
 projects, targeted formatting/lint, workflow YAML, express-path gates,
 create-only publication, retained artifacts, and exact dependency-cache keys
 are also checked locally. The Super Express source contract additionally proves
 manual-only triggering, exact-SHA packaging, unit/script-before-build ordering,
-omitted lint/E2E/history paths, non-cancelling overlap, retained artifacts,
-immutable tag checks, and exact release targeting. Downgrade-guard tests use the
+omitted lint/E2E/history paths, ref-scoped cancellation, retained artifacts,
+self-hosted-only placement, immutable tag checks, and exact release targeting.
+The hosted runner split, worker-memory ownership, and bounded installer wait are
+working-tree changes whose remote verification is still pending.
+Downgrade-guard tests use the
 real observed strings — `3.6.2`, `3.6.3-beta3-b0000040888`,
 `3.6.3-beta3-s000000000401`, `3.6.3-beta3-zadtjbevjx`, `3.6.3-beta3-zadtofsepy`,
 `3.6.3-beta3-zadtorqoxa` — and the live manifest line the feed actually served.

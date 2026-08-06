@@ -1,5 +1,35 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Return ordinary CI and tested Express to hosted runners
+
+The current working-tree repair supersedes the same-day interim contracts below
+that placed ordinary CI and `Build Installers / Express Release` on the scarce
+local runner pool. `CI Linux` now uses `ubuntu-latest`, while `CI Windows` uses
+`windows-2022`; tested Express uses the same hosted split. Those ordinary gates
+accept their documented events, including pull-request validation for CI, and
+use unique run-ID/run-attempt concurrency groups with
+`cancel-in-progress: false`, so a newer commit cannot silently erase an older
+commit's release-gate result. Only the three Super Express workflow files remain
+self-hosted and ref-cancelling. Their project-specific Windows and WSL labels,
+dependency bootstrap, and cache-hook protections remain intentional.
+
+The Windows unit-test steps no longer set a workflow-level 4 GiB
+`NODE_OPTIONS`. That value reached every `node --test` worker, while
+`script/test.mjs` calculated concurrency against its smaller per-worker heap
+budget. The harness now owns both values again. The packaged E2E installer also
+launches `Setup.exe` without PowerShell's descendant-inclusive `-Wait`, waits at
+most 300 seconds for the installer process itself, terminates its process tree
+on timeout, and repeatedly stops only newly launched `GitHubDesktop` processes
+from the installer's session while preserving process IDs that predated the
+test. It still requires a freshly written executable for the exact application
+version before packaged smoke tests start.
+
+These workflow and documentation changes are uncommitted at this checkpoint.
+Focused local checks and a new hosted CI/tested-Express wave are still required;
+no remote green run or Release is claimed yet. Historical entries below remain
+useful failure receipts, but their claims that ordinary CI or tested Express are
+self-hosted or ref-cancelling are explicitly superseded by this section.
+
 ## 2026-08-06 — Keep Python 3.13 TUI UI tests process-safe
 
 The corrected `main` wave `31082985235` reached the Linux TUI Python 3.13

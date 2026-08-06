@@ -7,31 +7,34 @@ that: Dependabot proposes dependency updates instead of letting pins rot, every
 install in CI is pinned to the committed lock file, and a dedicated **Supply
 chain** job checks lock-file provenance and reports npm advisories.
 
-The trusted CI and Super Express paths are self-hosted-only. CI jobs and all
-seven jobs in `Build Installers / Express Release` use static `self-hosted`
-plus operating-system and architecture labels. The Windows jobs additionally
-require `desktop-material-windows-local`, and Linux/WSL jobs require
-`desktop-material-wsl-local`; those custom labels are attached to the project's
-registered local Windows and WSL runners so another incomplete self-hosted
-machine cannot claim a release job accidentally. CI and Super Express
-concurrency are ref-scoped, so obsolete trusted runs are cancelled while other
-publication workflows retain their immutable run-and-attempt history.
-Reusable CI calls are accepted only from `Ding-Ding-Projects/desktop-material`
-and only check out that repository, so an external caller cannot turn the local
-runner into a general-purpose executor.
+Ordinary CI and all seven jobs in `Build Installers / Express Release` run on
+GitHub-hosted `ubuntu-latest` or `windows-2022` machines. Each invocation uses a
+unique run-ID/run-attempt concurrency group with `cancel-in-progress: false`, so
+the release gate for one commit cannot be silently replaced by a later commit.
+The CI workflows also accept pull requests because untrusted code stays on a
+disposable hosted machine.
+
+Only the Super Express emergency family is self-hosted and ref-cancelling. Its
+Windows jobs require `desktop-material-windows-local`, and its Linux/WSL jobs
+require `desktop-material-wsl-local`; those labels keep an incomplete local
+machine from claiming a direct release job accidentally. Reusable Super Express
+calls are accepted only from `Ding-Ding-Projects/desktop-material` and only
+check out that repository, so an external caller cannot turn the local runner
+into a general-purpose executor.
 
 The fresh-install contract is checked against the repository's pinned
 toolchain: the parity generator and generated YAML must declare the same 206
 desktop features, and the TypeScript configurations must remain valid for the
 pinned TypeScript 5.8.2 release. The dependency compatibility test guards
 those settings so a TypeScript 6-only option or a script root that cannot
-resolve repository imports fails locally before consuming a self-hosted run.
+resolve repository imports fails locally before consuming runner minutes.
 The settings-tab migration map is intentionally consumed by persistence code
 in a class method; its lint annotation documents that ownership rather than
 hiding an unused property.
 
-The composite dependency setup also treats Linux and Windows self-hosted
-runners as first-class environments. It installs uv 0.11.26, provisions the
+The composite dependency setup treats hosted CI and the remaining Linux and
+Windows self-hosted Super Express runners as first-class environments. It
+installs uv 0.11.26, provisions the
 pinned Python 3.11 interpreter with `uv python install`, exports the resolved
 interpreter to `npm_config_python`, and skips `actions/setup-python`'s hosted
 tool cache whenever `runner.environment` is `self-hosted`. This matters on
@@ -49,12 +52,11 @@ runner available without weakening the dependency install itself. The
 focused contract test checks the split so a future cache optimization cannot
 quietly reintroduce the long post-run hold.
 
-The Windows E2E lane does not install a second system-wide FFmpeg package.
+The hosted Windows E2E lane does not install a second system-wide FFmpeg package.
 The repository post-install step provisions Playwright's pinned FFmpeg payload,
 and the dependency-cache sentinel verifies that payload before a cache is used.
-Avoiding a Chocolatey install keeps the self-hosted Windows service usable
-without administrator rights and prevents a stale system package lock from
-blocking the entire E2E job.
+Avoiding a Chocolatey install keeps the job reproducible and prevents a stale
+system package lock from blocking the entire E2E job.
 
 ## Python 3.13 UI test process isolation
 
@@ -77,10 +79,11 @@ keeps the UI/non-UI sets disjoint, and includes representative root and layout
 tests. Local WSL verification passed 574 non-UI tests and 99 UI tests with the
 boundary; the remote Python 3.13 result remains the release gate.
 
-The self-hosted Linux release lanes also bootstrap the pinned GitHub CLI when
-the runner image does not provide `gh`. The bootstrap reuses an existing CLI or
-downloads the canonical Linux archive into `RUNNER_TEMP`, verifies its published
-SHA-256 checksum, and adds only that temporary bin directory to `GITHUB_PATH`.
+The self-hosted Linux Super Express lanes also bootstrap the pinned GitHub CLI
+when the runner image does not provide `gh`. The bootstrap reuses an existing
+CLI or downloads the canonical Linux archive into `RUNNER_TEMP`, verifies its
+published SHA-256 checksum, and adds only that temporary bin directory to
+`GITHUB_PATH`.
 Release-gate API calls therefore do not depend on a cloud-runner convenience
 package or a system-wide install. The sibling-run lookup also uses the CLI's
 built-in `--jq` evaluator and returns one tab-separated record, so it does not
@@ -177,8 +180,9 @@ than assumed closed:
 - `.github/workflows/build-installers.yml` runs a plain `yarn install` for the
   desktop-trampoline tests in the release lane.
 
-On self-hosted Windows arm64 jobs, the setup action also discovers Visual Studio
-with `vswhere.exe`, reads `Microsoft.VCToolsVersion.default.txt`, and installs
+On self-hosted Windows arm64 Super Express jobs, the setup action also
+discovers Visual Studio with `vswhere.exe`, reads
+`Microsoft.VCToolsVersion.default.txt`, and installs
 the `Microsoft.VisualStudio.Component.VC.Tools.ARM64` and
 `Microsoft.VisualStudio.Component.VC.Tools.x86.x64` components when the exact
 default MSVC version lacks `VC\Tools\MSVC\<version>\bin\Hostx64\arm64\cl.exe`.
@@ -187,10 +191,14 @@ compiler after a quiet installer return, and exports the selected instance in
 `npm_config_msvs_version` so the later ClangCL check cannot silently choose a
 different installation. The action handles a runner where the MSVC directory
 is absent, verifies the compiler after installation, and fails before
-production build if setup did not complete. The installer smoke test checks the
-Squirrel process exit code and requires the exact package version's newly
-written executable, preventing a stale persistent runner installation from
-being accepted.
+production build if setup did not complete. The hosted installer smoke test
+starts `Setup.exe` without PowerShell's descendant-inclusive `-Wait`, waits at
+most 300 seconds for that installer process, and terminates its process tree if
+the bound expires. It records pre-existing `GitHubDesktop` process IDs and the
+installer session, then repeats a scoped cleanup while polling for the exact
+package version's newly written executable. This prevents a Squirrel-launched
+app from holding the step open, does not kill an unrelated process that
+predated the test, and prevents a stale installation from being accepted.
 
 All self-hosted Windows jobs also verify the architecture-specific ClangCL
 toolset required by the `vendor/desktop-trampoline` native test. The setup
@@ -268,21 +276,22 @@ the exit code, which is ambiguous between "found advisories" and "failed".
 
 ### Run concurrency
 
-The self-hosted CI and Express Release groups are keyed by ref and cancel older
-trusted runs; other installer and Pages publication workflows retain unique
-run-and-attempt groups:
+Ordinary CI, tested Express, and Pages publication retain unique run-and-attempt
+groups. Only Super Express cancels an older dispatch for the same ref:
 
 | Workflow family                              | Group                   | `cancel-in-progress` |
 | --------------------------------------------- | ----------------------- | -------------------- |
-| Push and manual CI validation                 | Per ref                 | Yes                  |
-| Express Release self-hosted release           | Per ref                 | Yes                  |
-| Other installer and Pages publication         | Per run and attempt     | No                   |
+| Push, pull-request, manual, and reusable CI    | Per run and attempt     | No                   |
+| Tested Express Release                        | Per run and attempt     | No                   |
+| Pages publication                             | Per run and attempt     | No                   |
+| Super Express emergency release               | Per ref                 | Yes                  |
 
-Ten pushes to one branch now leave only the newest trusted CI run active. The
-registered self-hosted pool is scarce, so cancelling obsolete work keeps the
-runner focused on the commit that can still ship. The workflow safety test
-allows this behavior only for `ci-linux.yml`, `ci-windows.yml`,
-`build-installers.yml`, and the three `super-express-release*.yml` files.
+Ten pushes to one branch now retain ten independent hosted CI results. The
+registered self-hosted pool is reserved for explicit Super Express work, where
+cancelling an obsolete same-ref dispatch keeps the local runner focused on the
+operator's newest emergency request. The workflow safety test permits
+`cancel-in-progress: true` and `self-hosted` placement only in the three
+`super-express-release*.yml` files.
 
 ## Security considerations
 
@@ -292,17 +301,16 @@ allows this behavior only for `ci-linux.yml`, `ci-windows.yml`,
   already in the commit, so it cannot be influenced by the network at run time.
 - `--frozen-lockfile` closes the window where a compromised or merely careless
   manifest edit causes CI to resolve a version nobody reviewed.
-- CI jobs run on registered self-hosted Linux or Windows runners for trusted
-  pushes, manual dispatches, and workflow calls. The CI workflows deliberately
-  have no `pull_request` trigger, because untrusted PR code must never execute
-  on the public repository's self-hosted machines.
+- CI jobs run on GitHub-hosted Linux or Windows runners for pushes, pull
+  requests, manual dispatches, and workflow calls. Only manual Super Express
+  jobs run repository code on the registered local machines.
 - The Linux TUI job installs the repository's pinned Node.js version before
   parity generation. The Windows TUI job enables repository-local Git long
   paths before Git-backed history tests, because the profile fixture can exceed
   the Windows default path limit. The TUI's app-owned profile-history
   repository enables the same setting locally because it cannot inherit the
-  checkout repository's configuration. These steps are local runner
-  preparation, not cloud-runner fallback.
+  checkout repository's configuration. These are deterministic job setup steps
+  on the selected hosted runner, not a fallback to another execution pool.
 - The `supply-chain` job requests only `contents: read` and installs nothing,
   so a malicious postinstall script has no opportunity to run in it.
 - Dependabot pull requests are proposals, not deployments: nothing in this
@@ -330,41 +338,42 @@ risk. CI stays green either way.
 complete. Treat that run as carrying **no** advisory evidence and re-run once
 the registry is reachable.
 
-**A trusted CI run says "Canceled".** A newer push or manual dispatch for the
-same ref superseded it. This is expected: only the newest trusted commit's run
-matters. CI has no pull-request trigger; review validation runs on a trusted
-push or explicit manual dispatch instead.
+**An ordinary CI or tested Express run says "Canceled".** A newer run must not
+have cancelled it: those workflows use unique groups with
+`cancel-in-progress: false`. Inspect manual cancellation, runner loss, or a
+GitHub-side interruption and rerun the exact commit; do not treat a later
+commit's result as a substitute.
 
-**A `main` run says "Canceled".** A newer trusted `main` run may have
-superseded it. The installer workflow will only publish from a successful CI
-conclusion, so inspect the newest same-ref run for the release evidence.
+**A Super Express run says "Canceled".** A newer dispatch for the same ref may
+have superseded it intentionally. Confirm the replacement run targets the same
+or newer requested commit before using its artifact or Release as evidence.
 
 **The Windows TUI job reports `Filename too long` while writing profile
 history.** Both the checkout and the app-owned profile-history repository need
 `core.longpaths`. Confirm the workflow's repository-local setting runs
 immediately after checkout and that `GitProfileHistory` configures its isolated
-repository before it stages files. Rerun the newest same-ref CI run; do not
-switch the job to a hosted runner.
+repository before it stages files, then rerun the exact hosted CI commit.
 
-**The Windows arm64 dependency setup reports a missing MSVC toolset.** The
+**A Super Express Windows arm64 setup reports a missing MSVC toolset.** The
 self-hosted setup discovers the installed Visual Studio instance, installs its
 arm64 C++ components when absent, and verifies `Hostx64\arm64\cl.exe` before
 `node-gyp` runs. If installation cannot complete, the job reports that setup
 failure and skips the production build instead of emitting misleading missing
 module errors from a build guarded by `always()`.
 
-**The Windows x64 job stalls in `desktop-trampoline` native tests.** Check the
-setup log for `MSB8020` naming `ClangCL`. The shared self-hosted setup now
+**A Super Express Windows x64 job stalls in `desktop-trampoline` native
+tests.** Check the setup log for `MSB8020` naming `ClangCL`. The shared
+self-hosted setup now
 selects and exports a complete architecture-specific ClangCL instance before
 the test; a failure to install it is a setup failure, not a test timeout to
 ignore.
 
-**A canceled Windows CI or release run keeps working.** Recovery steps
+**A canceled Windows or release run keeps working.** Recovery steps
 intentionally use `always()` so a genuine test failure can still leave a
 diagnostic installer, but every heavy recovery, packaging, artifact-upload, and
 release-publisher condition also checks `!cancelled()`. A newer push or release
-dispatch therefore releases the self-hosted runner instead of allowing a stale
-canceled run to continue its build or publish side effects.
+dispatch therefore stops stale side effects. For Super Express this also frees
+the scarce self-hosted runner.
 
 ## Verification
 
@@ -416,9 +425,19 @@ ClangCL bootstrap verification performed on 2026-08-06:
   Studio instance, and verifies the x64 MSVC/MSBuild prerequisites; the focused
   setup contract passes **32/32** across its four suites, and direct local
   probes pass for both x64 ClangCL and arm64 MSVC discovery.
-- A new GitHub Actions run is still required to verify the registered
-  self-hosted runner's own Visual Studio instance and the resulting Windows
-  x64/arm64 CI and release lanes.
+- A new Super Express run is still required to verify the registered
+  self-hosted runner's own Visual Studio instance and its direct Windows
+  release lane.
+
+Current hosted-runner restoration verification is also pending. The committed
+contract must prove that ordinary CI and tested Express use only
+`ubuntu-latest`/`windows-2022`, accept pull requests only through hosted CI,
+retain unique non-cancelling groups, and leave self-hosted placement plus
+ref-scoped cancellation exclusively to Super Express. The Windows unit workflow
+must leave worker memory to `script/test.mjs`, and the named installer step must
+contain exactly one bounded `WaitForExit(300000)`, timeout tree cleanup, and
+repeated same-session/pre-existing-PID-scoped application cleanup. No remote
+green result is claimed for that working-tree repair yet.
 
 Not verified locally, and not verifiable without a run on GitHub:
 

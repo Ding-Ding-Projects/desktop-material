@@ -86,6 +86,11 @@ const heavyModules = [
     direct: './repository-tools/provider-triage',
     loader: 'loadRepositoryProviderTriageModule',
   },
+  {
+    barrel: './launchpad',
+    direct: './launchpad/launchpad-container',
+    loader: 'loadLaunchpadModule',
+  },
 ] as const
 
 describe('progressive startup source contract', () => {
@@ -159,7 +164,7 @@ describe('progressive startup source contract', () => {
 })
 
 describe('lazy repository module source contract', () => {
-  it('uses direct asynchronous chunks for all seven inactive sections', () => {
+  it('uses direct asynchronous chunks for all eight inactive sections', () => {
     assert.doesNotMatch(repositorySource, /webpackMode:\s*["']eager["']/)
 
     for (const { barrel, direct, loader } of heavyModules) {
@@ -185,8 +190,15 @@ describe('lazy repository module source contract', () => {
       assert.match(loaderSource, new RegExp(`'${escapedDirect}'`))
     }
 
-    assert.equal(repositorySource.match(/<LazyView</g)?.length, 7)
-    for (const key of ['actions', 'releases', 'issues', 'triage', 'tools']) {
+    assert.equal(repositorySource.match(/<LazyView</g)?.length, 8)
+    for (const key of [
+      'actions',
+      'releases',
+      'issues',
+      'triage',
+      'launchpad',
+      'tools',
+    ]) {
       assert.match(
         repositorySource,
         new RegExp(`name=\\{t\\('repositorySection\\.${key}'\\)\\}`)

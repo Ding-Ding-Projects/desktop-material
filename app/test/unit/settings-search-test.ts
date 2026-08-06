@@ -101,6 +101,16 @@ describe('filterSettingsEntries', () => {
     assert.strictEqual(match!.item.tab, PreferencesTab.Appearance)
   })
 
+  it('finds the self-hosted server setup in both languages', () => {
+    const english = filterSettingsEntries('join link', substring).results
+    assert.ok(english.some(r => r.item.id === 'self-hosted-server-setup'))
+
+    const cantonese = filterSettingsEntries('自託管', substring).results
+    const match = cantonese.find(r => r.item.id === 'self-hosted-server-setup')
+    assert.ok(match)
+    assert.strictEqual(match!.item.tab, PreferencesTab.SelfHostedServer)
+  })
+
   it('matches settings across more than one tab for a broad query', () => {
     const results = filterSettingsEntries('auto', substring).results
     const tabs = settingsTabsWithMatches(results)

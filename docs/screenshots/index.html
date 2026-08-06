@@ -6,7 +6,7 @@
     <title>Screenshot documentation · Desktop Material</title>
     <meta
       name="description"
-      content="One documentation page per Desktop Material gallery screenshot: 100 frames across 14 capture batches, with recorded scene, fixture, privacy gate, regeneration commands, dimensions and receipts."
+      content="One documentation page per Desktop Material gallery screenshot: 101 frames across 14 capture batches, with recorded scene, fixture, privacy gate, regeneration commands, dimensions and receipts."
     />
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="../assets/site/docs-hub.css" />
@@ -363,7 +363,7 @@
           <dl class="shot-facts">
             <dt class="shot-facts__key">Pages generated</dt>
             <dd class="shot-facts__value">
-              100, one per PNG in <code>docs/assets/screenshots/</code>
+              101, one per PNG in <code>docs/assets/screenshots/</code>
             </dd>
             <dt class="shot-facts__key">Published gallery outputs</dt>
             <dd class="shot-facts__value">
@@ -371,7 +371,7 @@
             </dd>
             <dt class="shot-facts__key">Retained historical frames</dt>
             <dd class="shot-facts__value">
-              9, on disk with no capture-plan entry
+              10, on disk with no capture-plan entry
             </dd>
             <dt class="shot-facts__key">Capture batches</dt>
             <dd class="shot-facts__value">
@@ -379,18 +379,18 @@
             </dd>
             <dt class="shot-facts__key">Frames with a dated receipt</dt>
             <dd class="shot-facts__value">
-              17 of 100; 83 have no dated document under
+              17 of 101; 84 have no dated document under
               <code>docs/verification/</code> naming them
             </dd>
             <dt class="shot-facts__key">Frames with the wiki's own alt text</dt>
             <dd class="shot-facts__value">
-              94 of 100; 0 fall back to their asset-table caption and 6 to their
+              95 of 101; 0 fall back to their asset-table caption and 6 to their
               file name and section, because the Feature Gallery embeds no image
               for them
             </dd>
             <dt class="shot-facts__key">Fields reported as unavailable</dt>
             <dd class="shot-facts__value">
-              155 across all pages, each stated in words on the page that lacks
+              164 across all pages, each stated in words on the page that lacks
               it
             </dd>
           </dl>
@@ -477,7 +477,7 @@
             </li>
             <li>
               <a href="#batch-retained-historical"
-                ><code>retained-historical</code> — 9</a
+                ><code>retained-historical</code> — 10</a
               >
             </li>
           </ul>
@@ -947,8 +947,8 @@
                 <img
                   class="shot-card__thumb"
                   src="../assets/screenshots/material-repository-tools-scroll.png"
-                  width="960"
-                  height="420"
+                  width="1000"
+                  height="679"
                   alt="Short Repository Tools workspace scrolled to its reachable final results surface"
                   loading="lazy"
                   decoding="async"
@@ -961,7 +961,7 @@
                   results surface</span
                 >
                 <span class="card__meta"
-                  >material-repository-tools-scroll.png · 960×420 px · 65,395
+                  >material-repository-tools-scroll.png · 1000×679 px · 77,668
                   bytes</span
                 >
               </a>
@@ -3435,7 +3435,7 @@
             captioning, deliberately outside the current Windows gallery target.
           </p>
           <p class="md-body">
-            <strong>9</strong>
+            <strong>10</strong>
             screenshots in this group.
           </p>
           <ul class="card-grid shot-grid">
@@ -3692,6 +3692,39 @@
                 <span class="card__meta"
                   >material-actions-job-log-404-recovery.png · 1400×1000 px ·
                   29,625 bytes</span
+                >
+              </a>
+            </li>
+            <li class="shot-card">
+              <a
+                class="card shot-card__link"
+                href="material-blank-startup-fixed-20260806.html"
+                data-screenshot-output="material-blank-startup-fixed-20260806"
+                data-screenshot-file="material-blank-startup-fixed-20260806.png"
+                data-screenshot-batch="retained-historical"
+                data-screenshot-scene=""
+                data-screenshot-search="material-blank-startup-fixed-20260806 material-blank-startup-fixed-20260806.png August 6 packaged blank-startup recovery retained-historical Historical startup recovery evidence (outside the current gallery)"
+              >
+                <img
+                  class="shot-card__thumb"
+                  src="../assets/screenshots/material-blank-startup-fixed-20260806.png"
+                  width="960"
+                  height="660"
+                  alt="Packaged Desktop Material first-run surface rendered after the blank-startup bundle regression was fixed"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <span class="card__kicker md-label">no scene recorded</span>
+                <span class="card__title"
+                  >material-blank-startup-fixed-20260806.png — the Feature
+                  Gallery lists this file only as historical evidence
+                  (&quot;August 6 packaged blank-startup recovery&quot;,
+                  Excluded from the current Windows gallery) and records no
+                  caption describing the frame.</span
+                >
+                <span class="card__meta"
+                  >material-blank-startup-fixed-20260806.png · 960×660 px ·
+                  87,007 bytes</span
                 >
               </a>
             </li>
@@ -4035,9 +4068,9 @@
             "platform": "windows-headless",
             "section": "Repository administration",
             "interaction": "Run the registered repository-tools-scroll scene in the complete canonical batch; promote only this output after the exact-set, semantic, geometry, font, and hash gates pass.",
-            "width": 960,
-            "height": 420,
-            "bytes": 65395,
+            "width": 1000,
+            "height": 679,
+            "bytes": 77668,
             "commands": [
               "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
               "node .codex/verification/capture_gallery_cdp.js --canonical true --run-root \u003cowned-p0-run-root> --fixture-path \u003cowned-p0-run-root>\\fixture --out \u003cowned-p0-run-root>\\captures\\gallery --port \u003cowned-cdp-port> --theme light --language-mode english"
@@ -5637,6 +5670,22 @@
             "width": 1400,
             "height": 1000,
             "bytes": 29625,
+            "commands": [],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-blank-startup-fixed-20260806",
+            "file": "material-blank-startup-fixed-20260806.png",
+            "caption": null,
+            "altText": "Packaged Desktop Material first-run surface rendered after the blank-startup bundle regression was fixed",
+            "scene": null,
+            "batch": "retained-historical",
+            "platform": null,
+            "section": "Historical startup recovery evidence (outside the current gallery)",
+            "interaction": null,
+            "width": 960,
+            "height": 660,
+            "bytes": 87007,
             "commands": [],
             "datedReceipts": []
           },
