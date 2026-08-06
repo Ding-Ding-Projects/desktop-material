@@ -98,6 +98,26 @@ rendered articles using `node script/sync-site-doc-counts.mjs`; the committed
 check now agrees with the current `docs/` tree. Remote CI verification is
 pending for the resulting default-branch commit.
 
+## 2026-08-05 — Cross-provider account switching correction
+
+The rail account switcher was calling the real `promoteAccount` path, but the
+account store immediately re-sorted a selected GitHub Enterprise account behind
+GitHub.com. Because the rail derives its active indicator from `accounts[0]`,
+the UI appeared to switch and then silently returned to the previous account.
+The store now preserves the promoted account at `accounts[0]` across providers,
+sorts only the remaining accounts, and persists that order for the next launch.
+
+### Verification
+
+- `node script/test.mjs app/test/unit/accounts-store-test.ts` — **21/21**.
+- `node script/test.mjs app/test/unit/get-account-for-repository-test.ts` —
+  **12/12**.
+- Combined account-switcher contracts and interaction coverage — **55/55**,
+  including the new real click-handler test.
+- The required production build was attempted through the hidden Lowlevel
+  route. Its compiler worker stopped without a returned client exit status, so
+  the rail surface has no runtime capture and no runtime success is claimed.
+
 ## 2026-08-05 — Super Express packaging lanes parallelized
 
 The manual Super Express dispatcher now keeps one combined immutable Release
