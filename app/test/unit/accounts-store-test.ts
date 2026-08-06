@@ -131,7 +131,10 @@ describe('AccountsStore', () => {
       )
     })
 
-    it('keeps GitHub.com accounts ahead of Enterprise when promoting Enterprise', async () => {
+    it('keeps the promoted account active across providers and restarts', async () => {
+      const dataStore = new InMemoryStore()
+      const secureStore = new AsyncInMemoryStore()
+      accountsStore = new AccountsStore(dataStore, secureStore)
       await accountsStore.addAccount(
         new Account('dotcom-user', dotcom, 'token-a', [], '', 1, '', 'free')
       )
@@ -149,12 +152,16 @@ describe('AccountsStore', () => {
 
       await accountsStore.promoteAccount(enterpriseAccount)
 
-      // The dotcom-before-enterprise sort wins, so the Enterprise account
-      // cannot become accounts[0] while a GitHub.com account is signed in.
       const users = await accountsStore.getAll()
       assert.deepStrictEqual(
         users.map(x => x.login),
-        ['dotcom-user', 'enterprise-user']
+        ['enterprise-user', 'dotcom-user']
+      )
+
+      const reloadedStore = new AccountsStore(dataStore, secureStore)
+      assert.deepStrictEqual(
+        (await reloadedStore.getAll()).map(x => x.login),
+        ['enterprise-user', 'dotcom-user']
       )
     })
 

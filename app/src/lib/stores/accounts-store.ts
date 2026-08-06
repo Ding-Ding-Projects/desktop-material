@@ -14,19 +14,30 @@ import { isGHE } from '../endpoint-capabilities'
 import { compare, compareDescending } from '../compare'
 import { t } from '../i18n'
 
-// Ensure that GitHub.com accounts appear first followed by Enterprise
-// accounts, sorted by the order in which they were added.
-const sortAccounts = (accounts: ReadonlyArray<Account>) =>
-  accounts
-    .map((account, ix) => [account, ix] as const)
-    .sort(
-      ([xAccount, xIx], [yAccount, yIx]) =>
-        compareDescending(
-          isDotComAccount(xAccount),
-          isDotComAccount(yAccount)
-        ) || compare(xIx, yIx)
-    )
-    .map(([account]) => account)
+// Keep the first account as the active identity. Sort the remaining accounts
+// with GitHub.com first, preserving their existing order within each provider
+// class. The first position is deliberately not re-sorted: `accounts[0]` is
+// the active account used by the rail indicator and endpoint fallbacks.
+const sortAccounts = (accounts: ReadonlyArray<Account>) => {
+  const [active, ...remaining] = accounts
+  if (active === undefined) {
+    return []
+  }
+
+  return [
+    active,
+    ...remaining
+      .map((account, ix) => [account, ix] as const)
+      .sort(
+        ([xAccount, xIx], [yAccount, yIx]) =>
+          compareDescending(
+            isDotComAccount(xAccount),
+            isDotComAccount(yAccount)
+          ) || compare(xIx, yIx)
+      )
+      .map(([account]) => account),
+  ]
+}
 
 /** The data-only interface for storage. */
 interface IEmail {
@@ -351,8 +362,8 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
   /**
    * Move the given account ahead of its peers so every surface that
    * resolves a single account (clone tabs, blankslate, API operations)
-   * treats it as the active identity. GitHub.com accounts stay ahead of
-   * Enterprise accounts; within each class the promoted account leads.
+   * treats it as the active identity. The active account stays first across
+   * providers; the remaining accounts keep the normal provider grouping.
    */
   public async promoteAccount(account: Account): Promise<void> {
     await this.loadingPromise
