@@ -171,11 +171,13 @@ registered WSL runner. Version discovery runs through
 constraints use the same managed interpreter.
 
 The Windows self-hosted actions run a small PowerShell preflight before any
-`shell: bash` step. It resolves the installed `git.exe`, verifies the matching
-Git Bash executable, and prepends its `bin` directory through `GITHUB_PATH` so
-the deprecated Windows WSL launcher cannot be selected accidentally. A host
-without Git or Git Bash fails with that exact prerequisite instead of reaching
-the packaging commands in a misleading shell state.
+`shell: bash` step. Each PowerShell step uses an explicit, per-process
+`-NoProfile -ExecutionPolicy Bypass` invocation; the machine execution policy
+is not changed. The preflight resolves the installed `git.exe`, verifies the
+matching Git Bash executable, and prepends its `bin` directory through
+`GITHUB_PATH` so the deprecated Windows WSL launcher cannot be selected
+accidentally. A host without Git or Git Bash fails with that exact prerequisite
+instead of reaching the packaging commands in a misleading shell state.
 
 Self-hosted Windows setup also avoids the hosted toolcache installer for the
 native-module Python dependency: pinned `uv` installs Python 3.11 locally and
@@ -184,14 +186,18 @@ the action exports the interpreter returned by `uv python find 3.11` as
 `actions/setup-python@v6`.
 
 Before `actions/setup-node@v6` asks Yarn for its cache directory, the same
-self-hosted Windows path creates a runner-temporary `yarn.cmd` shim that calls
-the repository-pinned `vendor/yarn-1.21.1.js` through the runner's existing
-Node.js. The shim directory is added through `GITHUB_PATH`; it is not installed
-globally, committed, or reused outside the job. This repairs a bare registered
-runner where Node is present but Yarn is not, while keeping the lockfile's
-declared Yarn runtime authoritative. If Node or the vendored runtime is
-missing, the preflight fails with the exact prerequisite instead of letting
-`setup-node` emit the less useful "Unable to locate executable file: yarn"
+self-hosted Windows path runs
+[`bootstrap-pinned-yarn.ps1`](../../../.github/scripts/bootstrap-pinned-yarn.ps1).
+That script creates a runner-temporary `yarn.cmd` shim for Windows actions and
+an executable `yarn` shim for Git Bash steps; both call the repository-pinned
+`vendor/yarn-1.21.1.js` through the runner's existing Node.js. It adds both the
+Windows directory and its `/c/...` Git Bash form through `GITHUB_PATH`, so
+`setup-node` and later `shell: bash` commands resolve the same runtime. Nothing
+is installed globally, committed, or reused outside the job. This repairs a
+bare registered runner where Node is present but Yarn is not, while keeping the
+lockfile's declared Yarn runtime authoritative. If Node, Git Bash, or the
+vendored runtime is missing, the preflight fails with the exact prerequisite
+instead of letting a later step emit the less useful `yarn: command not found`
 message.
 
 Each packaging lane also exposes its own `workflow_dispatch` action for a
