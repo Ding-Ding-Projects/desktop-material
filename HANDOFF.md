@@ -590,6 +590,28 @@ production build has not yet returned because its shared endpoint is servicing
 another long-running build. No hidden-desktop capture or runtime success is
 claimed until that route is healthy.
 
+## 2026-08-06 — Make active updates the selected repository identity
+
+The preceding account-card fix correctly changed the global active identity,
+but a selected repository that already had an explicit `accountKey` continued
+to use that older identity for its next network operation. That is why the
+visible action could be followed by the **Remote URL needs attention** warning
+shown in the reported capture: canonical-remote verification was still running
+under the repository's stale binding.
+
+The follow-up now deliberately rebinds the selected repository when **Make
+active** promotes a GitHub identity on the same API endpoint. It leaves every
+other repository binding alone and never crosses a host or provider boundary.
+Source commit
+`5235d4fff9efbd605a5083a5dec58970d8797863` contains the helper, AppStore
+integration, and regression tests.
+
+The focused account/store/routing/UI run passes **131/131**; targeted ESLint,
+TypeScript no-emit, Prettier, and `git diff --check` pass. The required hidden
+Lowlevel build and runtime capture remain pending because the shared endpoint
+is occupied by another checkout's production build; no runtime success is
+claimed yet.
+
 ## 2026-08-05 — Account-aware repository transfer (verification in progress)
 
 The Windows Electron app now has an account-aware **Transfer repository**

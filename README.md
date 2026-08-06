@@ -26,6 +26,12 @@
 > install now brings in the root and app dependencies before packaging; see the
 > [renderer startup bundle safety guide](docs/features/quality-and-reliability/renderer-startup-bundle-safety.md).
 
+> **Active account follows the selected repository — August 6, 2026:**
+> deliberately choosing **Make active** now applies the selected same-host
+> GitHub identity to that repository before its next authenticated operation,
+> while other repositories and cross-host/provider bindings remain unchanged.
+> See [multiple accounts and repository identity](docs/features/identity-and-workspace/multiple-accounts-and-repository-identity.md).
+
 ![Packaged Windows Desktop Material first-run surface after the renderer startup fix](docs/assets/screenshots/material-blank-startup-fixed-20260806.png)
 
 ![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
