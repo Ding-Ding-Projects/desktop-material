@@ -267,7 +267,8 @@ async function fetchRedirectChain(
   let requireHTTPS = endpoint.protocol === 'https:'
   let notFoundRetryCount = 0
 
-  for (let redirects = 0; ; redirects++) {
+  let redirects = 0
+  for (;;) {
     const headers = createGitHubAPIRequestHeaders(endpoint.toString(), path, {
       Accept: 'application/vnd.github+json',
       'User-Agent': 'GitHubDesktop-ActionsTransfer',
@@ -291,6 +292,7 @@ async function fetchRedirectChain(
       if (redirects >= ActionsTransferMaximumRedirects) {
         throw new TransferFailure('too-many-redirects')
       }
+      redirects += 1
       const location = response.headers.get('location')
       if (location === null) {
         throw new TransferFailure('missing-location')
