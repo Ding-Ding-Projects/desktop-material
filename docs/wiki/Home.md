@@ -276,10 +276,13 @@ the tonal workspace preview hides when a compact window needs the space.
   on a separate repository's local Git configuration.
 - **Release gates** — the manual Super Express emergency lane runs no tests and
   goes directly to its Windows x64 build/package, asset verification, and
-  optional release. Every job is self-hosted-only: preparation and publication
-  use the registered Linux x64 WSL runner, the Windows lane uses
-  `[self-hosted, Windows, X64]`, and the TUI lane uses `[self-hosted, Linux, X64]`.
-  If a required runner is unavailable, the release queues or fails rather than
+  release. Every job is self-hosted-only: preparation and publication use the
+  registered Linux x64 WSL runner, the Windows lane uses `[self-hosted,
+  Windows, X64]`, and the TUI lane uses `[self-hosted, Linux, X64]`. A direct
+  Windows lane dispatch publishes its own immutable non-latest Windows Release;
+  direct Linux TUI and reusable packaging calls remain artifact-only so the
+  combined dispatcher can publish one complete cross-platform Release. If a
+  required runner is unavailable, the release queues or fails rather than
   moving to a GitHub-hosted cloud runner. Ordinary CI and tested Express remain
   the default gates; release pull requests target the Windows product's `main`
   default branch.

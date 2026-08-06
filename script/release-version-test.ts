@@ -6,6 +6,7 @@ import {
   createReleaseVersion,
   filterReleasesManifest,
   selectHighestReleaseTag,
+  validateReleaseVersion,
 } from './release-version'
 
 const sha = (digit: string) => digit.repeat(40)
@@ -30,7 +31,7 @@ describe('release version ordering', () => {
     }
   })
 
-  it('encodes a fixed-width run ID without changing rerun identity', () => {
+  it('encodes a fixed-width run ID and separates rerun attempts', () => {
     assert.equal(
       createReleaseVersion('3.6.3-beta3', '1'),
       '3.6.3-beta3-zaaaaaaaab'
@@ -38,6 +39,20 @@ describe('release version ordering', () => {
     assert.equal(
       createReleaseVersion('3.6.3-beta3', '29976419466'),
       createReleaseVersion('3.6.3-beta3', '29976419466')
+    )
+    assert.equal(
+      createReleaseVersion('3.6.3-beta3', '29976419466', '1'),
+      '3.6.3-beta3-zadtazjjug'
+    )
+    const rerun = createReleaseVersion('3.6.3-beta3', '29976419466', '2')
+    assert.notEqual(rerun, createReleaseVersion('3.6.3-beta3', '29976419466'))
+    assert.match(rerun, /-r[a-z]{2}$/)
+    assert.equal(
+      compareReleaseVersions(
+        rerun,
+        createReleaseVersion('3.6.3-beta3', '29976419466')
+      ),
+      1
     )
     assert.equal(
       compareReleaseVersions(
@@ -70,9 +85,21 @@ describe('release version ordering', () => {
     for (const runId of ['', '0', '01', '-1', '1.5', 'abc', '1000000000000']) {
       assert.throws(() => createReleaseVersion('3.6.3-beta3', runId))
     }
+    for (const runAttempt of ['', '0', '01', '-1', '1.5', 'abc', '676']) {
+      assert.throws(() => createReleaseVersion('3.6.3-beta3', '1', runAttempt))
+    }
 
     assert.throws(() => createReleaseVersion('3.6.3', '1'))
     assert.throws(() => createReleaseVersion('3.6.3-extra-long-channel', '1'))
+  })
+
+  it('validates manual overrides against the generated namespace', () => {
+    const generated = createReleaseVersion('3.6.3-beta3', '29976419466')
+    assert.equal(validateReleaseVersion(generated, '3.6.3-beta3'), generated)
+    assert.throws(() => validateReleaseVersion('3.6.3', '3.6.3-beta3'))
+    assert.throws(() =>
+      validateReleaseVersion('3.6.3-beta3-s000000000201', '3.6.3-beta3')
+    )
   })
 
   it('selects the greatest valid same-source release regardless of finish order', () => {

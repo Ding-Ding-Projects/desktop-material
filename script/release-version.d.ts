@@ -1,4 +1,13 @@
-export function createReleaseVersion(baseVersion: string, runId: string): string
+export function createReleaseVersion(
+  baseVersion: string,
+  runId: string,
+  runAttempt?: string
+): string
+
+export function validateReleaseVersion(
+  version: string,
+  baseVersion?: string
+): string
 
 export function compareReleaseVersions(
   leftVersion: string,

@@ -39,6 +39,12 @@ env:
 jobs:
   build:
     name: Build Windows x64 package (self-hosted)
+    permissions:
+      contents: read
+    outputs:
+      release_version: ${{ steps.package.outputs.release_version }}
+      release_tag: ${{ steps.package.outputs.release_tag }}
+      artifact_name: ${{ steps.package.outputs.artifact_name }}
     runs-on:
       - self-hosted
       - Windows
@@ -55,7 +61,8 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - uses: ./.github/actions/super-express-windows-build
+      - id: package
+        uses: ./.github/actions/super-express-windows-build
         with:
           release_target_sha: ${{ inputs.release_target_sha || github.sha }}
           release_version: ${{ inputs.release_version }}
@@ -66,3 +73,171 @@ jobs:
             ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
           DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
             ${{ secrets.DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT }}
+
+  publish:
+    name: Publish direct Windows GitHub Release
+    if: >-
+      !cancelled() && github.event_name == 'workflow_dispatch' &&
+      needs.build.result == 'success'
+    needs: build
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
+      - desktop-material-wsl-local
+    permissions:
+      contents: write
+      actions: read
+    env:
+      RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
+      RELEASE_VERSION: ${{ needs.build.outputs.release_version }}
+      RELEASE_TAG: ${{ needs.build.outputs.release_tag }}
+      GH_TOKEN:
+        ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN
+        }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ env.RELEASE_TARGET_SHA }}
+          fetch-depth: 0
+
+      - name: Require the exact packaged commit
+        shell: bash
+        run: |
+          checked_out=$(git rev-parse HEAD)
+          if [ "$checked_out" != "$RELEASE_TARGET_SHA" ]; then
+            echo "Checked-out commit $checked_out does not match $RELEASE_TARGET_SHA." >&2
+            exit 1
+          fi
+
+      - uses: ./.github/actions/setup-github-cli
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.build.outputs.artifact_name }}
+          path: release-payload/installers
+
+      - name: Verify downloaded Windows release payload
+        shell: bash
+        run: |
+          required=(
+            release-payload/installers/RELEASES
+            "release-payload/installers/GitHub Desktop-x64.zip"
+            release-payload/installers/GitHubDesktopSetup-x64.exe
+            release-payload/installers/GitHubDesktopSetup-x64.msi
+            "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-full.nupkg"
+            "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"
+          )
+          for asset in "${required[@]}"; do
+            if [ ! -s "$asset" ]; then
+              echo "Missing or empty downloaded Windows release asset: $asset" >&2
+              exit 1
+            fi
+          done
+
+      - name: Require an unused immutable tag
+        shell: bash
+        run: |
+          set +e
+          git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1
+          status=$?
+          set -e
+          case "$status" in
+            2) ;;
+            0)
+              echo "Release tag $RELEASE_TAG already exists; refusing to replace it." >&2
+              exit 1
+              ;;
+            *)
+              echo "Unable to prove $RELEASE_TAG is unused (status $status)." >&2
+              exit "$status"
+              ;;
+          esac
+
+      - name: Write Windows release notes
+        shell: bash
+        run: |
+          {
+            echo "Windows x64 Super Express package for commit \`$RELEASE_TARGET_SHA\`."
+            echo
+            echo 'This direct manual lane publishes a Windows-only recovery release.'
+            echo 'The combined Super Express dispatcher remains the source of the cross-platform release.'
+            echo 'This emergency lane deliberately runs no test or lint gates.'
+            echo
+            echo '### Commit'
+            echo
+            git show --no-patch --format='%s%n%n%b' "$RELEASE_TARGET_SHA" | \
+              sed 's/^/    /'
+            echo
+            echo '## Lines of code'
+            echo
+            node script/count-lines.mjs
+            echo
+            echo "Counted by CI over \`$RELEASE_TARGET_SHA\` with \`node script/count-lines.mjs\`."
+          } > release-payload/release-notes.md
+
+      - name: Publish immutable Windows-only GitHub Release
+        shell: bash
+        run: |
+          set +e
+          shopt -s nullglob
+          assets=(release-payload/installers/*)
+          shopt -u nullglob
+          gh release create "$RELEASE_TAG" \
+            "${assets[@]}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$RELEASE_TARGET_SHA" \
+            --title "Desktop Material Windows x64 $RELEASE_VERSION" \
+            --notes-file release-payload/release-notes.md \
+            --latest=false
+          create_status=$?
+          set -e
+          if [ "$create_status" -ne 0 ]; then
+            echo "Direct release creation failed with status $create_status;" \
+              "falling back to prerelease-then-clear." >&2
+            gh api --method POST "repos/$GITHUB_REPOSITORY/releases" \
+              -f tag_name="$RELEASE_TAG" \
+              -f target_commitish="$RELEASE_TARGET_SHA" \
+              -f name="Desktop Material Windows x64 $RELEASE_VERSION" \
+              -F prerelease=true \
+              -f make_latest=false \
+              -F body=@release-payload/release-notes.md >/dev/null
+            gh release upload "$RELEASE_TAG" \
+              "${assets[@]}" \
+              --repo "$GITHUB_REPOSITORY"
+            gh release edit "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --prerelease=false --latest=false
+          fi
+
+      - name: Verify published Windows release target and assets
+        shell: bash
+        run: |
+          git fetch origin "refs/tags/$RELEASE_TAG"
+          published=$(git rev-parse 'FETCH_HEAD^{commit}')
+          if [ "$published" != "$RELEASE_TARGET_SHA" ]; then
+            echo "Published tag resolves to $published, expected $RELEASE_TARGET_SHA." >&2
+            exit 1
+          fi
+          if [ "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != "false" ]; then
+            echo "Published release unexpectedly remained a draft." >&2
+            exit 1
+          fi
+          published_assets=$(gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          for expected in \
+            'RELEASES' \
+            'GitHub Desktop-x64.zip' \
+            'GitHubDesktopSetup-x64.exe' \
+            'GitHubDesktopSetup-x64.msi' \
+            "GitHubDesktop-${RELEASE_VERSION}-full.nupkg" \
+            "GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"; do
+            if ! grep -Fqx "$expected" <<<"$published_assets"; then
+              echo "Published Windows release is missing asset $expected." >&2
+              exit 1
+            fi
+          done

@@ -37,12 +37,15 @@ download flow as soon as the release is published.
 
 Both release lanes stamp Squirrel packages through
 `script/release-version.js` as
-`<base>-z<9-letter-base-26-GitHub-run-ID>`. One shared namespace matters because
+`<base>-z<9-letter-base-26-GitHub-run-ID>`. Execution attempts after the first
+append `-r<2-letter-base-26-attempt>` so a rerun can publish a fresh ordered
+tag without replacing the first attempt. One shared namespace matters because
 the historical Super Express `s…` namespace sorted above every normal `b…`
 build and could make a newer release look like a downgrade. The `z…` migration
 sorts above both legacy lanes, while the fixed-width alphabetic encoding retains
-numeric run-ID order under lexical comparison and cannot overflow Squirrel's
-legacy integer parser.
+numeric run-ID and attempt order under lexical comparison and cannot overflow
+Squirrel's legacy integer parser. Manual version overrides are accepted only
+when they pass the same generated `z` namespace validator.
 
 ## Automated release notes
 
@@ -84,8 +87,9 @@ The same workflow has two deliberately different entry paths:
 
 The version is derived from the package version plus the workflow's unique
 GitHub run ID, encoded as nine fixed-width base-26 letters in the shared `z…`
-namespace. Re-running the same run therefore selects the same immutable tag and
-fails closed instead of replacing published assets. Immediately before
+namespace. A rerun keeps the first-attempt tag but uses an ordered attempt
+suffix from attempt two onward, so every execution attempt has a distinct
+immutable tag and never replaces an existing Release. Immediately before
 publication, the workflow proves that the tag is still absent. One create-only
 `gh release create` command publishes the installer, MSI, Squirrel packages,
 `RELEASES`, portable ZIP, and generated notes. It never edits or replaces an
@@ -202,13 +206,15 @@ vendored runtime is missing, the preflight fails with the exact prerequisite
 instead of letting a later step emit the less useful `yarn: command not found`
 message.
 
-Each packaging lane also exposes its own `workflow_dispatch` action for a
-manual, packaging-only recovery run. A direct Windows dispatch accepts an
-optional exact `main` SHA and Squirrel version; a direct Linux TUI dispatch
-accepts an optional exact `main` SHA. Blank inputs use the dispatched commit
-and derive the Windows version from the run ID. These direct lane runs upload
-their verified artifact but never publish a Release; use the combined
-dispatcher when both payloads must ship together.
+Each packaging lane also exposes its own `workflow_dispatch` action. A direct
+Windows dispatch accepts an optional exact `main` SHA and Squirrel version; a
+direct Linux TUI dispatch accepts an optional exact `main` SHA. Blank inputs
+use the dispatched commit and derive the Windows version from the run ID plus
+execution attempt. The Windows direct lane uploads its verified artifact and
+publishes a standalone immutable, non-latest Windows x64 Release. The Linux
+direct lane remains artifact-only. The reusable `workflow_call` entry point
+for the Windows lane is also artifact-only, so the combined dispatcher still
+has one publisher for one complete cross-platform Release.
 
 Both lanes run no unit, script, TUI, lint, type, parity, smoke, trampoline, or
 packaged E2E tests, and they omit history-generated release notes. The ordinary
@@ -217,14 +223,18 @@ CI and tested Express Release paths remain the default release gates.
 The direct lanes still fail closed around their produced content. They require
 the exact dispatched commit, use the same validated run-ID package version as
 the automatic lane, reject an existing tag, and require every Windows and TUI
-asset to be non-empty. The publisher downloads both lane artifacts, writes a
+asset to be non-empty. The Windows direct publisher downloads its lane
+artifact, writes a local note from the exact checked-out commit subject/body,
+and creates the Windows-only Release without promoting it to the shared
+`latest` feed. The combined publisher downloads both lane artifacts, writes a
 local note from the exact checked-out commit subject/body, and creates one
-combined Release. Keeping one publisher preserves both the Squirrel update feed
-and the TUI bootstrap URL; two independent Releases would make the shared
-`latest` redirect point at an incomplete payload. The complete payload is
-uploaded as an uncompressed seven-day Actions artifact before the optional
-create-only GitHub Release step. The `publish` dispatch checkbox defaults on but
-can be cleared to build recovery artifacts without creating a Release.
+complete Release. Keeping the combined publisher as the only cross-platform
+publisher preserves both the Squirrel update feed and the TUI bootstrap URL;
+two independent cross-platform Releases would make the shared `latest`
+redirect point at an incomplete payload. Every lane artifact remains
+uncompressed for seven days. The combined dispatch `publish` checkbox defaults
+on but can be cleared to build recovery artifacts without creating its
+combined Release.
 Published Super Express Releases use the same current-main and highest-same-SHA
 promotion helper as automatic Releases.
 
@@ -300,10 +310,13 @@ updater to undo them.
   and history-note generation. Use it only when that direct build/package path
   is the explicit operator choice. Clearing its `publish` input retains
   artifacts without creating a Release.
-- Release run IDs must be positive decimal values of at most 12 digits. The
-  shared generator converts them to a nine-letter base-26 payload and rejects a
-  stable base without a prerelease channel, malformed versions, and a NuGet
-  special-version label over 20 characters.
+- Release run IDs must be positive decimal values of at most 12 digits, and
+  execution attempts must be positive decimal values representable by the
+  two-letter base-26 attempt suffix (at most 675). The shared generator
+  converts run IDs to a nine-letter base-26 payload, rejects a stable base
+  without a prerelease channel, malformed versions, and a NuGet special-version
+  label over 20 characters. Manual overrides must also remain in the generated
+  `z` namespace for the checked-out base version.
 
 ## Failure modes and security
 
@@ -384,8 +397,8 @@ that manifest filtering drops foreign packages and lower lanes while keeping the
 matching delta, and that the feed probe fails open on network, HTTP, and
 non-manifest responses. Release-version tests cover
 the exact legacy `s…` versus `b…` failure, fixed-width alphabetic `z…` ordering,
-rerun identity, malformed/overflow rejection, and out-of-order same-SHA
-selection.
+distinct ordered rerun attempts, manual namespace validation,
+malformed/overflow rejection, and out-of-order same-SHA selection.
 
 Remote and installed acceptance is complete. Exact-source
 [CI `29977738533`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29977738533)

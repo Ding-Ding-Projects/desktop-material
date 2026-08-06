@@ -78,7 +78,7 @@ jobs:
         shell: bash
         run: |
           base=$(node -p "require('./app/package.json').version")
-          version=$(node script/release-version.js create "$base" "$GITHUB_RUN_ID")
+          version=$(node script/release-version.js create "$base" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT")
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
@@ -108,6 +108,8 @@ jobs:
   windows_build:
     name: Build Windows x64 package (self-hosted)
     needs: prepare
+    outputs:
+      artifact_name: ${{ steps.package.outputs.artifact_name }}
     runs-on:
       - self-hosted
       - Windows
@@ -121,7 +123,8 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - uses: ./.github/actions/super-express-windows-build
+      - id: package
+        uses: ./.github/actions/super-express-windows-build
         with:
           release_target_sha: ${{ needs.prepare.outputs.sha }}
           release_version: ${{ needs.prepare.outputs.version }}
@@ -136,6 +139,8 @@ jobs:
   tui_build:
     name: Build Linux TUI packages (self-hosted)
     needs: prepare
+    outputs:
+      artifact_name: ${{ steps.package.outputs.artifact_name }}
     runs-on:
       - self-hosted
       - Linux
@@ -148,7 +153,8 @@ jobs:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
 
-      - uses: ./.github/actions/super-express-linux-tui-build
+      - id: package
+        uses: ./.github/actions/super-express-linux-tui-build
         with:
           release_target_sha: ${{ needs.prepare.outputs.sha }}
 
@@ -214,14 +220,19 @@ jobs:
 
       - uses: actions/download-artifact@v8
         with:
-          name:
-            super-express-windows-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ${{ needs.windows_build.outputs.artifact_name }}
           path: release-payload/installers
 
       - uses: actions/download-artifact@v8
         with:
-          name: super-express-tui-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ${{ needs.tui_build.outputs.artifact_name }}
           path: release-payload/tui
+
+      - name: Restore executable bits on downloaded TUI scripts
+        shell: bash
+        run:
+          chmod 0755 release-payload/tui/install-linux-tui.sh
+          release-payload/tui/bootstrap-linux-tui.sh
 
       - name: Verify downloaded release payload
         shell: bash

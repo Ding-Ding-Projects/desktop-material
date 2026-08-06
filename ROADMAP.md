@@ -1488,17 +1488,19 @@ six-asset Windows x64 Release are verified for the `main` push recorded in
   separate zero-test Windows x64 and registered self-hosted Linux x64 TUI
   packaging workflows in parallel. Preparation and publication also run on
   the registered Linux x64 WSL runner; no Super Express job uses a cloud
-  runner. Each packaging workflow also exposes a direct, artifact-only
-  workflow_dispatch action for recovery builds. The lanes restore the desktop
-  dependency cache where
-  needed, build the complete Windows/TUI payload, verify every asset, and
-  preserve uncompressed lane artifacts. One publisher combines them into a
-  uniquely tagged Release so the shared Squirrel update feed and TUI bootstrap
-  URL never point at a half-release.
+  runner. The direct Windows workflow_dispatch action preserves its verified
+  payload and publishes a uniquely tagged immutable non-latest Windows
+  Release; the direct Linux TUI action remains artifact-only, and reusable
+  calls remain artifact-only. The lanes restore the desktop dependency cache
+  where needed, build the complete Windows/TUI payload, verify every asset, and
+  preserve uncompressed lane artifacts. One combined publisher still joins
+  both lanes into a uniquely tagged Release so the shared Squirrel update feed
+  and TUI bootstrap URL never point at a half-release.
 - **Cross-lane updater ordering**: Automatic and Super Express packages now use
   one validated `z` plus fixed-width, nine-letter base-26 GitHub run-ID
   namespace. It sorts above the legacy `b…`/`s…` lanes that stranded Super
-  Express installations, keeps reruns deterministic, and avoids the legacy
+  Express installations, keeps separate execution attempts unique and ordered,
+  and avoids the legacy
   Squirrel `Int32` overflow caused by long numeric prerelease tails. Both
   workflows create
   immutable non-latest Releases, then revalidate current `main` and reconcile

@@ -1692,8 +1692,12 @@ The **Actions** panel brings CI into the app:
   inputs, and dispatch.
 - The repository's **Super Express Release** emergency lane runs no unit,
   script, TUI, lint, type, parity, smoke, or E2E tests. It goes directly to the
-  Windows x64 production build/package, asset verification, and optional
-  release. Every job is self-hosted-only: preparation and publication use the
+  Windows x64 production build/package, asset verification, and release. A
+  direct Windows `workflow_dispatch` publishes an immutable non-latest Windows
+  Release after preserving its verified artifact; the direct Linux TUI action
+  and reusable packaging calls remain artifact-only so the combined dispatcher
+  publishes one complete cross-platform Release. Every job is self-hosted-only:
+  preparation and publication use the
   registered Linux x64 WSL runner, the Windows lane uses `[self-hosted,
   Windows, X64]`, and the TUI lane uses `[self-hosted, Linux, X64]`. A missing
   or busy local runner queues or fails the release; it never falls back to a

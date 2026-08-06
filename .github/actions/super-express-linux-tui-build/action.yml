@@ -4,6 +4,10 @@ inputs:
   release_target_sha:
     description: Exact commit SHA being packaged
     required: true
+outputs:
+  artifact_name:
+    description: Actions artifact name containing the Linux TUI release payload
+    value: super-express-tui-${{ github.run_id }}-${{ github.run_attempt }}
 runs:
   using: composite
   steps:

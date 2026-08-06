@@ -1,5 +1,26 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Publish a release from every direct Windows Super Express run
+
+The direct `.github/workflows/super-express-release-windows.yml` workflow now
+publishes a standalone immutable, non-latest Windows x64 Release after its
+verified package artifact is available. Its `workflow_call` entry point stays
+artifact-only, so the combined Super Express dispatcher remains the sole
+publisher of the complete Windows-plus-Linux payload. The direct Windows
+publisher checks the exact packaged commit, rejects an existing tag, writes
+commit and CI-generated line-count notes, uploads the Squirrel assets, and
+revalidates the published tag and every required installer asset. The version
+helper includes `GITHUB_RUN_ATTEMPT` for reruns after attempt one, preserving
+the existing first-attempt tag while making later execution attempts distinct
+and ordered.
+
+Local focused evidence before remote publication: workflow and release-version
+contracts pass **13/13**, CI workflow safety passes **15/15**, Prettier and
+`git diff --check` pass, and `actionlint -shellcheck=` passes its Windows-safe
+structural check. The prior artifact-only Windows Super Express run
+`31123931589` is packaging evidence, not evidence of this new publisher; the
+post-dew run and its Release still need verification.
+
 ## 2026-08-06 — Keep Python 3.13 TUI UI tests process-safe
 
 The corrected `main` wave `31082985235` reached the Linux TUI Python 3.13

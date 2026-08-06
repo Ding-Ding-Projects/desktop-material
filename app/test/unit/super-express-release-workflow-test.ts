@@ -115,6 +115,23 @@ describe('Super Express Release workflow', () => {
     assert.match(windowsBuildAction, /Resolve release package version/)
     assert.match(
       windowsBuildAction,
+      /outputs:[\s\S]*?value: \$\{\{ steps\.resolve_version\.outputs\.release_version \}\}/
+    )
+    assert.match(
+      windowsBuildAction,
+      /artifact_name:[\s\S]*?value: super-express-windows-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
+    )
+    assert.match(windowsBuildAction, /id: resolve_version/)
+    assert.match(
+      windowsBuildAction,
+      /release-version\.js create "\$base" "\$GITHUB_RUN_ID" "\$GITHUB_RUN_ATTEMPT"/
+    )
+    assert.match(
+      windowsBuildAction,
+      /release-version\.js validate "\$RELEASE_VERSION" "\$base"/
+    )
+    assert.match(
+      windowsBuildAction,
       /Direct Super Express Windows dispatches must use main/
     )
     assert.match(
@@ -127,6 +144,34 @@ describe('Super Express Release workflow', () => {
       /cloud|fallback|runner_selection|use_self_hosted/
     )
     assert.match(windowsWorkflow, /build:/)
+    assert.match(
+      windowsWorkflow,
+      /build:[\s\S]*?permissions:\s*\n\s+contents: read/
+    )
+    assert.match(
+      windowsWorkflow,
+      /publish:[\s\S]*?permissions:\s*\n\s+contents: write\s*\n\s+actions: read/
+    )
+    assert.match(windowsWorkflow, /permissions:\s*\n\s+contents: write/)
+    assert.match(
+      windowsWorkflow,
+      /publish:[\s\S]*?if: >-[\s\S]*?github\.event_name == 'workflow_dispatch'[\s\S]*?needs\.build\.result == 'success'/
+    )
+    assert.match(
+      windowsWorkflow,
+      /publish:[\s\S]*?actions\/download-artifact@v8[\s\S]*?name: \$\{\{ needs\.build\.outputs\.artifact_name \}\}/
+    )
+    assert.match(windowsWorkflow, /gh release create "\$RELEASE_TAG"/)
+    assert.match(windowsWorkflow, /--target "\$RELEASE_TARGET_SHA"/)
+    assert.match(windowsWorkflow, /--latest=false/)
+    assert.match(
+      windowsWorkflow,
+      /git ls-remote --exit-code --tags origin "refs\/tags\/\$RELEASE_TAG"/
+    )
+    assert.doesNotMatch(
+      windowsWorkflow,
+      /publish:[\s\S]*?promote-current-release\.sh/
+    )
     assert.match(
       windowsWorkflow,
       /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/
@@ -172,6 +217,10 @@ describe('Super Express Release workflow', () => {
       tuiBuildAction,
       /uv export --locked --no-dev --no-emit-project --no-hashes/
     )
+    assert.match(
+      tuiBuildAction,
+      /artifact_name:[\s\S]*?value: super-express-tui-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
+    )
     assert.match(tuiBuildAction, /install-linux-tui\.sh/)
     assert.match(tuiBuildAction, /bootstrap-linux-tui\.sh/)
     assert.match(tuiBuildAction, /actions\/upload-artifact@v7/)
@@ -192,16 +241,22 @@ describe('Super Express Release workflow', () => {
     assert.match(workflow, /--latest=false/)
     assert.doesNotMatch(workflow, /^\s+--latest\s*$/m)
     assert.match(workflow, /git rev-parse 'FETCH_HEAD\^\{commit\}'/)
+    assert.match(workflow, /needs\.windows_build\.outputs\.artifact_name/)
+    assert.match(workflow, /needs\.tui_build\.outputs\.artifact_name/)
     assert.match(
       workflow,
-      /super-express-windows-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
+      /windows_build:[\s\S]*?steps\.package\.outputs\.artifact_name/
     )
     assert.match(
       workflow,
-      /super-express-tui-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
+      /tui_build:[\s\S]*?steps\.package\.outputs\.artifact_name/
     )
     assert.match(workflow, /install-linux-tui\.sh/)
     assert.match(workflow, /bootstrap-linux-tui\.sh/)
+    assert.match(
+      workflow,
+      /Restore executable bits on downloaded TUI scripts[\s\S]*?chmod 0755 release-payload\/tui\/install-linux-tui\.sh[\s\S]*?release-payload\/tui\/bootstrap-linux-tui\.sh/
+    )
     assert.match(
       workflow,
       /Reconcile Latest to the newest main release[\s\S]*?bash \.github\/scripts\/promote-current-release\.sh/
@@ -222,7 +277,7 @@ describe('Super Express Release workflow', () => {
     for (const source of [installerWorkflow, workflow]) {
       assert.match(
         source,
-        /version=\$\(node script\/release-version\.js create "\$base" "\$GITHUB_RUN_ID"\)/
+        /version=\$\(node script\/release-version\.js create "\$base" "\$GITHUB_RUN_ID" "\$GITHUB_RUN_ATTEMPT"\)/
       )
     }
 
