@@ -292,6 +292,14 @@ describe('CI workflow safety', () => {
       assert.match(source, /workflow_dispatch:/, name)
       assert.doesNotMatch(source, /\n\s+pull_request:/, name)
       assert.match(source, /cancel-in-progress: true/, name)
+      assert.match(source, /repository:\s*\n\s*default:\s*''/, name)
+      assert.equal(
+        source.match(
+          /github\.repository == 'Ding-Ding-Projects\/desktop-material'/g
+        )?.length,
+        3,
+        `${name} must guard every self-hosted job against external callers`
+      )
     }
     assert.match(linuxWorkflow, /group: ci-linux-\$\{\{ github\.ref \}\}/)
     assert.match(windowsWorkflow, /group: ci-windows-\$\{\{ github\.ref \}\}/)
@@ -356,6 +364,10 @@ describe('CI workflow safety', () => {
     assert.match(windowsWorkflow, /Install app on Windows/)
     assert.match(
       windowsWorkflow,
+      /Enable Git long paths for Windows TUI tests\s+run: git config core\.longpaths true/
+    )
+    assert.match(
+      windowsWorkflow,
       /defaults:\s+run:\s+shell: powershell -NoProfile -ExecutionPolicy Bypass -Command \"\. '\{0\}'\"/
     )
     assert.doesNotMatch(windowsWorkflow, /shell: pwsh/)
@@ -386,7 +398,7 @@ describe('CI workflow safety', () => {
 
     assert.match(
       source,
-      /name: Build production app\s+id: production_build\s+if: \$\{\{ always\(\) \}\}/
+      /name: Build production app\s+id: production_build\s+if: \$\{\{ always\(\) && steps\.setup_ci\.outcome == 'success' \}\}/
     )
     assert.match(
       source,
@@ -402,6 +414,19 @@ describe('CI workflow safety', () => {
     )
     assert.match(source, /dist\/GitHubDesktopSetup-\$\{\{matrix\.arch\}\}\.exe/)
     assert.match(source, /if-no-files-found: error/)
+
+    const e2eJob = windowsWorkflow.match(
+      /\r?\n  e2e-smoke:\r?\n([\s\S]*?)(?=\r?\n  [a-z-]+:\r?\n|$)/
+    )
+    assert.notEqual(e2eJob, null)
+    const e2eSource = e2eJob?.[1] ?? ''
+    assert.match(
+      e2eSource,
+      /Start-Process -FilePath \$setupExe -ArgumentList "\/S" -PassThru -Wait/
+    )
+    assert.match(e2eSource, /\$installer\.ExitCode -ne 0/)
+    assert.match(e2eSource, /app-\$expectedVersion\\GitHubDesktop\.exe/)
+    assert.match(e2eSource, /LastWriteTimeUtc -ge \$installStartedAt/)
   })
 
   it('scans the real default branch and supports manual dispatch', () => {

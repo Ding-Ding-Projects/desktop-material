@@ -1,5 +1,34 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-05 — Repair the self-hosted Windows test bootstrap
+
+The first complete self-hosted Windows TUI run found two test-environment
+assumptions that only surfaced on the registered machine. The Super Express
+packaging contract still looked for the retired `ubuntu-latest` lane, and the
+Windows Git checkout rejected the long profile-history path used by
+`test_version_history_records_diffs_and_append_only_restore` with `Filename too
+long`. The contract now follows the self-hosted Linux composite action and the
+Windows TUI job enables repository-local `core.longpaths` immediately after
+checkout. The focused Python contract/history tests pass **14/14** and the
+workflow safety suite covers the new Windows bootstrap step.
+
+The same remote run also exposed a separate Windows arm64 dependency-setup
+failure: `printenvz` asked `node-gyp` for the runner's missing `v145` toolset,
+then the production build continued under `always()` with missing CodeMirror
+modules. The self-hosted setup now discovers the installed Visual Studio
+instance, reads its default MSVC toolset version, installs the matching arm64
+C++ components when that exact version is absent (including when the MSVC
+directory does not exist yet), verifies `Hostx64\arm64\cl.exe`, and blocks the
+diagnostic build when dependency setup fails. The next self-hosted run must
+verify that bootstrap on the registered Windows runner.
+
+The reusable CI jobs now allow only calls originating from
+`Ding-Ding-Projects/desktop-material` and only check out that repository; an
+external caller cannot use the self-hosted labels to execute an arbitrary
+repository. The Windows packaged smoke test also checks the installer exit
+code, the exact `app/<version>` Squirrel directory, and a post-install file
+timestamp so a stale installation cannot masquerade as a fresh build.
+
 ## 2026-08-06 — Run trusted CI on the self-hosted pool
 
 The Linux and Windows CI workflows now run every job on the registered static

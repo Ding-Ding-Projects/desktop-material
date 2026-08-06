@@ -7,6 +7,14 @@ that: Dependabot proposes dependency updates instead of letting pins rot, every
 install in CI is pinned to the committed lock file, and a dedicated **Supply
 chain** job checks lock-file provenance and reports npm advisories.
 
+The trusted CI and Super Express paths are self-hosted-only. CI jobs use static
+`self-hosted` plus operating-system and architecture labels, and ref-scoped
+concurrency cancels obsolete validation runs while publication workflows retain
+their immutable run-and-attempt history. Reusable CI calls are accepted only
+from `Ding-Ding-Projects/desktop-material` and only check out that repository,
+so an external caller cannot turn the local runner into a general-purpose
+executor.
+
 ## Behaviour
 
 ### Dependency update proposals
@@ -95,6 +103,17 @@ than assumed closed:
 - `.github/workflows/build-installers.yml` runs a plain `yarn install` for the
   desktop-trampoline tests in the release lane.
 
+On self-hosted Windows arm64 jobs, the setup action also discovers Visual Studio
+with `vswhere.exe`, reads `Microsoft.VCToolsVersion.default.txt`, and installs
+the `Microsoft.VisualStudio.Component.VC.Tools.ARM64` and
+`Microsoft.VisualStudio.Component.VC.Tools.x86.x64` components when the exact
+default MSVC version lacks `VC\Tools\MSVC\<version>\bin\Hostx64\arm64\cl.exe`.
+The action handles a runner where the MSVC directory is absent, verifies the
+compiler after installation, and fails before production build if setup did not
+complete. The installer smoke test checks the Squirrel process exit code and
+requires the exact package version's newly written executable, preventing a
+stale persistent runner installation from being accepted.
+
 ### Lock-file provenance and integrity (blocking)
 
 The `supply-chain` job's first step reads `yarn.lock` and `app/yarn.lock` and
@@ -178,6 +197,11 @@ allows this behavior only for `ci-linux.yml`, `ci-windows.yml`, and the three
   pushes, manual dispatches, and workflow calls. The CI workflows deliberately
   have no `pull_request` trigger, because untrusted PR code must never execute
   on the public repository's self-hosted machines.
+- The Linux TUI job installs the repository's pinned Node.js version before
+  parity generation. The Windows TUI job enables repository-local Git long
+  paths before Git-backed history tests, because the profile fixture can exceed
+  the Windows default path limit. These steps are local runner preparation,
+  not cloud-runner fallback.
 - The `supply-chain` job requests only `contents: read` and installs nothing,
   so a malicious postinstall script has no opportunity to run in it.
 - Dependabot pull requests are proposals, not deployments: nothing in this
@@ -213,6 +237,18 @@ push or explicit manual dispatch instead.
 **A `main` run says "Canceled".** A newer trusted `main` run may have
 superseded it. The installer workflow will only publish from a successful CI
 conclusion, so inspect the newest same-ref run for the release evidence.
+
+**The Windows TUI job reports `Filename too long` while writing profile
+history.** The checkout did not have `core.longpaths` enabled. Confirm the
+workflow's repository-local Git setting runs immediately after checkout and
+rerun the newest same-ref CI run; do not switch the job to a hosted runner.
+
+**The Windows arm64 dependency setup reports a missing MSVC toolset.** The
+self-hosted setup discovers the installed Visual Studio instance, installs its
+arm64 C++ components when absent, and verifies `Hostx64\arm64\cl.exe` before
+`node-gyp` runs. If installation cannot complete, the job reports that setup
+failure and skips the production build instead of emitting misleading missing
+module errors from a build guarded by `always()`.
 
 ## Verification
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -145,15 +146,28 @@ def test_super_express_uses_a_native_linux_zero_test_packaging_lane() -> None:
         / "workflows"
         / "super-express-release-linux-tui.yml"
     )
+    build_action = _read(
+        REPOSITORY_ROOT
+        / ".github"
+        / "actions"
+        / "super-express-linux-tui-build"
+        / "action.yml"
+    )
 
     assert "workflow_call:" in lane
-    assert "runs-on: ubuntu-latest" in lane
-    assert "uv build --clear" in lane
-    assert "uv export --locked --no-dev --no-emit-project --no-hashes" in lane
-    assert "install-linux-tui.sh" in lane
-    assert "bootstrap-linux-tui.sh" in lane
-    assert "actions/upload-artifact@v7" in lane
-    assert "pytest" not in lane
-    assert "ruff" not in lane
-    assert "mypy" not in lane
-    assert "install-linux-tui-test.sh" not in lane
+    assert re.search(
+        r"runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64\s*$",
+        lane,
+        re.MULTILINE,
+    )
+    assert not re.search(r"\b(?:ubuntu|windows|macos)[-_][A-Za-z0-9.]+\b", lane, re.IGNORECASE)
+    assert "./.github/actions/super-express-linux-tui-build" in lane
+    assert "uv build --clear" in build_action
+    assert "uv export --locked --no-dev --no-emit-project --no-hashes" in build_action
+    assert "install-linux-tui.sh" in build_action
+    assert "bootstrap-linux-tui.sh" in build_action
+    assert "actions/upload-artifact@v7" in build_action
+    assert "pytest" not in build_action
+    assert "ruff" not in build_action
+    assert "mypy" not in build_action
+    assert "install-linux-tui-test.sh" not in build_action
