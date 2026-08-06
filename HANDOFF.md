@@ -49,6 +49,27 @@ rights. The focused setup contract now rejects both the removed input and any
 Chocolatey FFmpeg install; the next main CI wave must verify Windows E2E on the
 local runner.
 
+## 2026-08-06 — Bootstrap ClangCL for self-hosted Windows native tests
+
+The latest pure-self-hosted CI wave reached the Windows x64 runner but stayed
+in `desktop-trampoline` setup because MSBuild reported `MSB8020`: the installed
+Visual Studio instance had the MSVC compiler but not its ClangCL toolset. The
+same gap reproduces locally when `npx --no-install node-gyp rebuild` runs in
+`vendor/desktop-trampoline`; the native test cannot start until
+`VC\\Tools\\Llvm\\<architecture>\\bin\\clang-cl.exe` and its matching MSBuild
+toolset files exist.
+
+The shared Windows setup now discovers complete architecture-specific Visual
+Studio instances with `vswhere.exe`, including the ClangCL MSBuild props and
+targets, and exports the selected install through `npm_config_msvs_version` so
+node-gyp uses the same instance. If no complete instance is available, it adds
+`Microsoft.VisualStudio.Component.VC.Llvm.Clang` through the existing installer
+with `--wait`, then verifies the compiler and MSBuild files. The existing arm64
+MSVC bootstrap remains separate. Locally, the exact Windows x64 native command
+passes through all three ClangCL targets after selecting the complete Community
+instance; the next self-hosted CI wave must verify the native test, Windows
+x64/arm64 builds, E2E smoke, and the pure self-hosted release.
+
 ## 2026-08-06 — Bootstrap GitHub CLI on self-hosted release Linux
 
 The next pure-self-hosted main wave reached the local Linux `prepare` runner,

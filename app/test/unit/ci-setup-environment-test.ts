@@ -19,6 +19,10 @@ const arm64ToolsetScript = readFileSync(
   join(process.cwd(), '.github/scripts/ensure-windows-arm64-build-tools.ps1'),
   'utf8'
 )
+const clangToolsetScript = readFileSync(
+  join(process.cwd(), '.github/scripts/ensure-windows-clang.ps1'),
+  'utf8'
+)
 
 describe('CI environment setup', () => {
   it('uses an exact installed-dependency cache and skips cold setup only on a hit', () => {
@@ -42,6 +46,26 @@ describe('CI environment setup', () => {
       setupAction,
       /Install Windows arm64 C\+\+ toolset when missing[\s\S]*?ensure-windows-arm64-build-tools\.ps1/
     )
+    assert.match(
+      setupAction,
+      /Install Windows ClangCL toolset when missing[\s\S]*?ensure-windows-clang\.ps1/
+    )
+    assert.match(
+      clangToolsetScript,
+      /Microsoft\.VisualStudio\.Component\.VC\.Llvm\.Clang/
+    )
+    assert.match(clangToolsetScript, /VC\\Tools\\Llvm\\\$platform/)
+    assert.match(clangToolsetScript, /bin\\clang-cl\.exe/)
+    assert.match(clangToolsetScript, /TargetArchitecture = 'x64'/)
+    assert.match(
+      setupAction,
+      /ensure-windows-clang\.ps1[\s\S]*?TargetArchitecture/
+    )
+    assert.match(clangToolsetScript, /npm_config_msvs_version=/)
+    assert.match(clangToolsetScript, /Toolset\.props/)
+    assert.match(clangToolsetScript, /Toolset\.targets/)
+    assert.match(clangToolsetScript, /--norestart/)
+    assert.match(clangToolsetScript, /--wait/)
     assert.match(
       arm64ToolsetScript,
       /Microsoft\.VisualStudio\.Component\.VC\.Tools\.ARM64/
