@@ -50,6 +50,7 @@ runs:
           'app/yarn.lock', '.yarnrc', 'app/.yarnrc', 'app/.npmrc',
           'script/post-install.ts',
           '.github/actions/setup-ci-environment/action.yml',
+          '.github/scripts/bootstrap-pinned-yarn.ps1',
           'vendor/yarn-1.21.1.js', 'vendor/printenvz/**',
           'vendor/windows-argv-parser/**', 'vendor/desktop-notifications/**',
           'vendor/desktop-trampoline/**') }}
@@ -73,6 +74,11 @@ runs:
         fi
         echo "npm_config_python=$python_path" >> "$GITHUB_ENV"
         echo 'UV_PYTHON=3.11' >> "$GITHUB_ENV"
+
+    - name: Provide repository-pinned Yarn to self-hosted Windows actions
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      shell: powershell
+      run: '& "$env:GITHUB_WORKSPACE\.github\scripts\bootstrap-pinned-yarn.ps1"'
 
     - uses: actions/setup-python@v6
       if: ${{ runner.os != 'Windows' || runner.environment != 'self-hosted' }}

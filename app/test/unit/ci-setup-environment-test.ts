@@ -7,6 +7,10 @@ const setupAction = readFileSync(
   join(process.cwd(), '.github/actions/setup-ci-environment/action.yml'),
   'utf8'
 )
+const yarnBootstrap = readFileSync(
+  join(process.cwd(), '.github/scripts/bootstrap-pinned-yarn.ps1'),
+  'utf8'
+)
 
 describe('CI environment setup', () => {
   it('uses an exact installed-dependency cache and skips cold setup only on a hit', () => {
@@ -18,6 +22,18 @@ describe('CI environment setup', () => {
     assert.match(setupAction, /Install uv for self-hosted Windows Python/)
     assert.match(setupAction, /uv python install 3\.11/)
     assert.match(setupAction, /npm_config_python=\$python_path/)
+    assert.match(
+      setupAction,
+      /Provide repository-pinned Yarn to self-hosted Windows actions[\s\S]*?bootstrap-pinned-yarn\.ps1/
+    )
+    assert.match(yarnBootstrap, /vendor\\yarn-1\.21\.1\.js/)
+    assert.match(yarnBootstrap, /yarn\.cmd/)
+    assert.match(yarnBootstrap, /GITHUB_PATH/)
+    assert.match(yarnBootstrap, /RUNNER_TEMP/)
+    assert.match(
+      yarnBootstrap,
+      /Node\.js is required on a self-hosted Windows runner/
+    )
     assert.match(
       setupAction,
       /uses: actions\/setup-python@v6[\s\S]*?runner\.environment != 'self-hosted'/

@@ -183,6 +183,17 @@ the action exports the interpreter returned by `uv python find 3.11` as
 `npm_config_python`. GitHub-hosted and non-Windows runners retain
 `actions/setup-python@v6`.
 
+Before `actions/setup-node@v6` asks Yarn for its cache directory, the same
+self-hosted Windows path creates a runner-temporary `yarn.cmd` shim that calls
+the repository-pinned `vendor/yarn-1.21.1.js` through the runner's existing
+Node.js. The shim directory is added through `GITHUB_PATH`; it is not installed
+globally, committed, or reused outside the job. This repairs a bare registered
+runner where Node is present but Yarn is not, while keeping the lockfile's
+declared Yarn runtime authoritative. If Node or the vendored runtime is
+missing, the preflight fails with the exact prerequisite instead of letting
+`setup-node` emit the less useful "Unable to locate executable file: yarn"
+message.
+
 Each packaging lane also exposes its own `workflow_dispatch` action for a
 manual, packaging-only recovery run. A direct Windows dispatch accepts an
 optional exact `main` SHA and Squirrel version; a direct Linux TUI dispatch
