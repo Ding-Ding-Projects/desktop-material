@@ -40,6 +40,9 @@ jobs:
       contents: read
     outputs:
       runner: ${{ steps.select.outputs.runner }}
+      label_1: ${{ steps.select.outputs.label_1 }}
+      label_2: ${{ steps.select.outputs.label_2 }}
+      label_3: ${{ steps.select.outputs.label_3 }}
     env:
       GH_TOKEN: ${{ github.token }}
       REQUESTED_RUNNER: ${{ inputs.runner }}
@@ -55,7 +58,19 @@ jobs:
               echo "The runner override must be a non-empty JSON label array." >&2
               exit 1
             fi
-            printf 'runner=%s\n' "$REQUESTED_RUNNER" >> "$GITHUB_OUTPUT"
+            labels=$(jq -r '.[]' <<<"$REQUESTED_RUNNER")
+            label_1=$(sed -n '1p' <<<"$labels")
+            label_2=$(sed -n '2p' <<<"$labels")
+            label_3=$(sed -n '3p' <<<"$labels")
+            label_1=${label_1:-ubuntu-latest}
+            label_2=${label_2:-$label_1}
+            label_3=${label_3:-$label_1}
+            {
+              printf 'runner=%s\n' "$REQUESTED_RUNNER"
+              printf 'label_1=%s\n' "$label_1"
+              printf 'label_2=%s\n' "$label_2"
+              printf 'label_3=%s\n' "$label_3"
+            } >> "$GITHUB_OUTPUT"
             echo "runner: caller-selected"
             exit 0
           fi
@@ -76,19 +91,33 @@ jobs:
             ] | length > 0
           ' <<<"$inventory" >/dev/null; then
             runner='["self-hosted","Linux","X64"]'
+            label_1='self-hosted'
+            label_2='Linux'
+            label_3='X64'
             selected_from='self-hosted/Linux/X64'
           else
             runner='["ubuntu-latest"]'
+            label_1='ubuntu-latest'
+            label_2='ubuntu-latest'
+            label_3='ubuntu-latest'
             selected_from='ubuntu-latest'
           fi
 
-          printf 'runner=%s\n' "$runner" >> "$GITHUB_OUTPUT"
+          {
+            printf 'runner=%s\n' "$runner"
+            printf 'label_1=%s\n' "$label_1"
+            printf 'label_2=%s\n' "$label_2"
+            printf 'label_3=%s\n' "$label_3"
+          } >> "$GITHUB_OUTPUT"
           echo "runner: $selected_from"
 
   build:
     name: Build Linux TUI packages
     needs: runner_selection
-    runs-on: ${{ fromJSON(needs.runner_selection.outputs.runner) }}
+    runs-on:
+      - ${{ needs.runner_selection.outputs.label_1 }}
+      - ${{ needs.runner_selection.outputs.label_2 }}
+      - ${{ needs.runner_selection.outputs.label_3 }}
     timeout-minutes: 30
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}

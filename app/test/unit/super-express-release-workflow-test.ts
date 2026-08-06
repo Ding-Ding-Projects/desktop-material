@@ -44,11 +44,11 @@ describe('Super Express Release workflow', () => {
     assert.match(workflow, /choose_runner publish_runner Linux ubuntu-latest/)
     assert.match(
       workflow,
-      /runs-on: \$\{\{ fromJSON\(needs\.runner_selection\.outputs\.prepare_runner\) \}\}/
+      /runs-on:\s*\n\s+- \$\{\{ needs\.runner_selection\.outputs\.prepare_label_1 \}\}/
     )
     assert.match(
       workflow,
-      /runs-on: \$\{\{ fromJSON\(needs\.prepare\.outputs\.publish_runner\) \}\}/
+      /runs-on:\s*\n\s+- \$\{\{ needs\.prepare\.outputs\.publish_label_1 \}\}/
     )
     assert.match(workflow, /Require a main-branch manual dispatch/)
     assert.match(workflow, /ref: \$\{\{ env\.RELEASE_TARGET_SHA \}\}/)
@@ -100,7 +100,7 @@ describe('Super Express Release workflow', () => {
     assert.match(windowsWorkflow, /needs: runner_selection/)
     assert.match(
       windowsWorkflow,
-      /runs-on: \$\{\{ fromJSON\(needs\.runner_selection\.outputs\.runner\) \}\}/
+      /runs-on:\s*\n\s+- \$\{\{ needs\.runner_selection\.outputs\.label_1 \}\}/
     )
     assert.match(windowsWorkflow, /yarn build:prod/)
     assert.match(windowsWorkflow, /yarn package/)
@@ -126,7 +126,7 @@ describe('Super Express Release workflow', () => {
     assert.match(tuiWorkflow, /needs: runner_selection/)
     assert.match(
       tuiWorkflow,
-      /runs-on: \$\{\{ fromJSON\(needs\.runner_selection\.outputs\.runner\) \}\}/
+      /runs-on:\s*\n\s+- \$\{\{ needs\.runner_selection\.outputs\.label_1 \}\}/
     )
     assert.match(tuiWorkflow, /uv build --clear/)
     assert.match(
