@@ -23,6 +23,7 @@ import { getMergeOptions } from '../../lib/update-branch'
 import { getDefaultAriaLabelForBranch } from '../../branches/branch-renderer'
 import { ComputedAction } from '../../../models/computed-action'
 import { Button } from '../../lib/button'
+import { IListFilter } from '../../lib/filter-list-mode'
 
 export function canStartOperation(
   selectedBranch: Branch | null,
@@ -98,6 +99,9 @@ export interface IBaseChooseBranchDialogProps {
    * ways described in the Dialog component's dismissable prop.
    */
   readonly onDismissed: () => void
+
+  /** Optional predicate filters rendered below the branch search field. */
+  readonly customFilters?: ReadonlyArray<IListFilter<IBranchListItem>>
 }
 
 export interface IChooseBranchDialogProps extends IBaseChooseBranchDialogProps {
@@ -266,6 +270,7 @@ export class ChooseBranchDialog extends React.Component<
             renderBranch={this.renderBranch}
             getBranchAriaLabel={this.getBranchAriaLabel}
             onItemClick={this.onItemClick}
+            customFilters={this.props.customFilters}
           />
         </DialogContent>
         <DialogFooter>

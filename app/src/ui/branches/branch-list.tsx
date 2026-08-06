@@ -21,6 +21,7 @@ import { SelectionDirection, ClickSource } from '../lib/list'
 import { generateBranchContextMenuItems } from './branch-list-item-context-menu'
 import { showContextualMenu } from '../../lib/menu-item'
 import { SectionFilterList } from '../lib/section-filter-list'
+import { IListFilter } from '../lib/filter-list-mode'
 import memoizeOne from 'memoize-one'
 import { getAuthors } from '../../lib/git/log'
 import { Repository } from '../../models/repository'
@@ -73,6 +74,9 @@ interface IBranchListProps {
   readonly recentBranches: ReadonlyArray<Branch>
 
   readonly branchSortOrder?: BranchSortOrder
+
+  /** Optional predicate filters rendered below the branch search field. */
+  readonly customFilters?: ReadonlyArray<IListFilter<IBranchListItem>>
 
   /**
    * The currently selected branch in the list, see the onSelectionChanged prop.
@@ -325,6 +329,7 @@ export class BranchList extends React.Component<
         onItemContextMenu={this.onBranchContextMenu}
         getItemAriaLabel={this.getItemAriaLabel}
         getGroupAriaLabel={this.getGroupAriaLabel}
+        customFilters={this.props.customFilters}
       />
     )
   }

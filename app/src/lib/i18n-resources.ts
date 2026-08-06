@@ -3233,6 +3233,7 @@ export type TranslationKey =
   | 'filter.regexBuilder.literalPlaceholder'
   | 'filter.regexBuilder.literalInsert'
   | 'filter.regexBuilder.literalPreview'
+  | 'branch.filter.notUpdatedWith'
   | 'regex.builder.viewsLabel'
   | 'regex.builder.view.build'
   | 'regex.builder.view.guide'
@@ -7814,6 +7815,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'filter.regexBuilder.literalPlaceholder': 'e.g. c++',
   'filter.regexBuilder.literalInsert': 'Insert as literal',
   'filter.regexBuilder.literalPreview': 'Inserts',
+  'branch.filter.notUpdatedWith': 'Not updated with {branch}',
   'regex.builder.viewsLabel': 'Regex builder views',
   'regex.builder.view.build': 'Build',
   'regex.builder.view.guide': 'How regex works',
@@ -12136,6 +12138,7 @@ export const cantoneseTranslations: Readonly<
   'filter.regexBuilder.literalPlaceholder': '例如 c++',
   'filter.regexBuilder.literalInsert': '加入做純文字',
   'filter.regexBuilder.literalPreview': '會加入',
+  'branch.filter.notUpdatedWith': '未追齊 {branch}',
   'regex.builder.viewsLabel': '正則表達式砌法器檢視',
   'regex.builder.view.build': '砌樣式',
   'regex.builder.view.guide': '正則表達式點運作',
