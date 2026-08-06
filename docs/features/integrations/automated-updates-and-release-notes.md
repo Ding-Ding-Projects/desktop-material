@@ -170,6 +170,13 @@ registered WSL runner. Version discovery runs through
 `uv run --python 3.12`, so the wheel, source distribution, and runtime
 constraints use the same managed interpreter.
 
+The Windows self-hosted actions run a small PowerShell preflight before any
+`shell: bash` step. It resolves the installed `git.exe`, verifies the matching
+Git Bash executable, and prepends its `bin` directory through `GITHUB_PATH` so
+the deprecated Windows WSL launcher cannot be selected accidentally. A host
+without Git or Git Bash fails with that exact prerequisite instead of reaching
+the packaging commands in a misleading shell state.
+
 Each packaging lane also exposes its own `workflow_dispatch` action for a
 manual, packaging-only recovery run. A direct Windows dispatch accepts an
 optional exact `main` SHA and Squirrel version; a direct Linux TUI dispatch

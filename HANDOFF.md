@@ -74,8 +74,16 @@ previously lacked a Debian 13 Python 3.12 entry.
 
 The focused workflow contract now asserts that all three workflow files
 contain only the expected static self-hosted labels and no hosted target or
-fallback selector. Remote execution of this exact revision is the next
-verification step; no Release is claimed from the source edit alone.
+fallback selector. Pure self-hosted run
+`31063281760 <https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31063281760>`_
+at `eb5a769c51` proved `Prepare exact release target` and the Linux TUI package
+on runner `linux`; the Windows package reached runner `COMPUTER` but stopped
+before its build because `shell: bash` resolved to the Windows WSL launcher,
+which reported that no WSL distribution was installed. The Windows action and
+shared setup action now prepend the installed Git Bash directory to
+`GITHUB_PATH`, and fail with a direct prerequisite message if Git or Git Bash
+is absent. That repair is in the next pushed revision; no Release was created
+because this run used `publish=false`.
 
 ## 2026-08-05 — Fix Super Express workflow startup planning and repair build prerequisites
 

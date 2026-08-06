@@ -113,6 +113,10 @@ describe('Super Express Release workflow', () => {
       windowsBuildAction,
       /Direct Super Express Windows dispatches must use main/
     )
+    assert.match(
+      windowsBuildAction,
+      /Prefer Git Bash on Windows self-hosted runners[\s\S]*?GITHUB_PATH/
+    )
     assert.doesNotMatch(
       windowsWorkflow,
       /ubuntu-latest|windows-2022|cloud|fallback|runner_selection|use_self_hosted/

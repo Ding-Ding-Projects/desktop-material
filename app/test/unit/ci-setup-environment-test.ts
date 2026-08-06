@@ -10,6 +10,9 @@ const setupAction = readFileSync(
 
 describe('CI environment setup', () => {
   it('uses an exact installed-dependency cache and skips cold setup only on a hit', () => {
+    assert.match(setupAction, /Prefer Git Bash on Windows self-hosted runners/)
+    assert.match(setupAction, /GITHUB_PATH/)
+    assert.match(setupAction, /bin\\bash\.exe/)
     assert.match(setupAction, /uses: actions\/cache@v5/)
     assert.match(setupAction, /node_modules\s+app\/node_modules/)
     assert.match(setupAction, /AppData\/Local\/ms-playwright/)
@@ -41,10 +44,7 @@ describe('CI environment setup', () => {
       setupAction,
       /app\/node_modules\/react-confetti\/dist\/react-confetti\.mjs/
     )
-    assert.match(
-      setupAction,
-      /node_modules\/electron\/dist\/electron\.exe/
-    )
+    assert.match(setupAction, /node_modules\/electron\/dist\/electron\.exe/)
     assert.match(
       setupAction,
       /app\/node_modules\/@github\/copilot-win32-\$\{\{ inputs\.arch \}\}\/package\.json/
