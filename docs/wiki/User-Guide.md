@@ -1682,7 +1682,9 @@ The **Actions** panel brings CI into the app:
   or busy local runner queues or fails the release; it never falls back to a
   GitHub-hosted runner. Ordinary CI and tested Express remain the default
   gates. A release pull request targets the Windows product's `main` default
-  branch.
+  branch. Self-hosted dependency setup remains automatic, but skips optional
+  cache-save post hooks so a completed build does not leave the local runner
+  occupied by archive cleanup.
 - Automatic and Super Express installers share one monotonic `z` package-version
   namespace. Releases are immutable and initially non-latest; only the greatest
   release for freshly revalidated current `main` is promoted to the Squirrel

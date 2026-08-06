@@ -1,5 +1,24 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Stop self-hosted dependency caches from holding runners
+
+The Windows arm64 job in superseded run `31078432686` completed dependency
+setup, production build, packaging, and artifact upload, then spent more than
+35 minutes in `Post Run ./.github/actions/setup-ci-environment`. The runner
+trace shows the `setup-node` Yarn cache save and the `actions/cache` save
+processes holding the worker after the real job was done; `setup-uv` also had a
+post-run cache hook registered. That stale run was canceled after its actual
+work had completed, and the project-labeled Windows runner became available
+again.
+
+Commit `255eb9de1cc32ecafe4490ed3b25136e0e77b812` keeps dependency installation
+automatic but disables those optional archive-cache post hooks on self-hosted
+lanes. Hosted jobs retain their exact dependency and Yarn caches. The focused
+setup/workflow contract passes **17/17** tests and `actionlint` passes locally.
+The next `main` wave must confirm that Windows, Linux, and the release follow-up
+reach terminal states without the post-run runner hold; no application-code
+failure was present in the queue incident.
+
 ## 2026-08-06 — Repair the blank Windows startup renderer
 
 The packaged Windows renderer failed before React mounted with

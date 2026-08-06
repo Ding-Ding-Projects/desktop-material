@@ -2,6 +2,18 @@
 
 Updated: **August 6, 2026**
 
+## August 6 — Keep self-hosted CI runners available after dependency setup
+
+- Self-hosted Windows and Linux dependency setup still installs every declared
+  dependency directly, but no longer registers `actions/cache`, `setup-uv`, or
+  `setup-node` archive-cache post hooks. Hosted jobs retain their exact caches.
+- The repair closes a real queue failure: a completed Windows arm64 job stayed
+  marked busy while cache save/cleanup ran for more than 35 minutes, so the
+  next `main` CI wave could not start.
+- Focused CI setup and workflow safety verification passes **17/17** tests;
+  `actionlint` passes. Remote verification is the new `main` wave created by
+  commit `255eb9de1cc32ecafe4490ed3b25136e0e77b812`.
+
 ## August 6 — Windows renderer startup bundle safety
 
 - The Node-oriented `@github/copilot-sdk` now stays outside the browser

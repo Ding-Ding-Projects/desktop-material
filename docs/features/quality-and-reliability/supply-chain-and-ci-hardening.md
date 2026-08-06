@@ -39,6 +39,16 @@ Debian 13, where the hosted Python manifest does not contain the requested
 3.11 x64 entry; relying on that action would fail before the actual lint or
 package work starts.
 
+Self-hosted setup deliberately does not register archive-cache post hooks.
+The exact installed-dependency cache, uv cache upload, and setup-node Yarn
+download cache remain available to hosted jobs, but self-hosted jobs install
+their declared dependencies directly. On a persistent local runner, a cache
+save runs after the real build has finished and can keep the runner marked busy
+while it uploads a large tree; disabling those optional hooks keeps the
+runner available without weakening the dependency install itself. The
+focused contract test checks the split so a future cache optimization cannot
+quietly reintroduce the long post-run hold.
+
 The Windows E2E lane does not install a second system-wide FFmpeg package.
 The repository post-install step provisions Playwright's pinned FFmpeg payload,
 and the dependency-cache sentinel verifies that payload before a cache is used.

@@ -264,6 +264,9 @@ the tonal workspace preview hides when a compact window needs the space.
   approve or reject eligible deployments; approve an eligible fork run; dispatch a workflow; and
   load later artifact pages before a native download with local digest comparison and explicit
   attestation-presence context.
+- **Self-hosted dependency setup** — install the declared Node and Python dependencies directly on
+  the registered local runners. Hosted jobs may use exact archive caches, while self-hosted lanes
+  skip optional cache-save post hooks so a completed build is not kept busy uploading its leftovers.
 - **Release gates** — the manual Super Express emergency lane runs no tests and
   goes directly to its Windows x64 build/package, asset verification, and
   optional release. Every job is self-hosted-only: preparation and publication

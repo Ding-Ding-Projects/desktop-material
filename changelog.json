@@ -1,6 +1,7 @@
 {
   "releases": {
     "3.6.3-material22": [
+      "[Fixed] Self-hosted dependency setup still installs every declared package but no longer registers actions/cache, setup-uv, or setup-node archive-cache post hooks, so a completed build does not leave its runner busy with cleanup - 255eb9de1c",
       "[Fixed] Windows native dependency setup now repairs arm64 before ClangCL, keeps both checks on one Visual Studio instance, verifies x64 MSVC and MSBuild, polls arm64 files after a quiet install, and uses an installer path format accepted across Visual Studio versions - 87ec5b3452",
       "[Fixed] Self-hosted Windows dependency setup now waits for Visual Studio to materialize the verified x64 or arm64 ClangCL compiler and MSBuild toolset after the quiet installer returns, instead of declaring a still-running install broken - b5e6b7f825",
       "[Improved] Trusted CI, Express Release, and Super Express now target the registered local Windows and WSL runners with explicit labels, so incomplete alternate self-hosted machines cannot claim release jobs - c3cf40d0af",
