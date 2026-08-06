@@ -16,6 +16,17 @@ const tuiWorkflow = readFileSync(
   join(process.cwd(), '.github/workflows/super-express-release-linux-tui.yml'),
   'utf8'
 )
+const windowsBuildAction = readFileSync(
+  join(process.cwd(), '.github/actions/super-express-windows-build/action.yml'),
+  'utf8'
+)
+const tuiBuildAction = readFileSync(
+  join(
+    process.cwd(),
+    '.github/actions/super-express-linux-tui-build/action.yml'
+  ),
+  'utf8'
+)
 const installerWorkflow = readFileSync(
   join(process.cwd(), '.github/workflows/build-installers.yml'),
   'utf8'
@@ -33,23 +44,13 @@ describe('Super Express Release workflow', () => {
   it('is manual-only and dispatches independent zero-test build lanes', () => {
     assert.match(workflow, /on:\s*\n\s+workflow_dispatch:/)
     assert.doesNotMatch(workflow, /\n\s+(?:push|workflow_run):/)
-    assert.match(workflow, /runner_selection:/)
-    assert.match(workflow, /gh api --paginate --slurp/)
-    assert.match(workflow, /status == "online" and \.busy == false/)
-    assert.match(workflow, /\["self-hosted", \$os_label, "X64"\]/)
-    assert.match(workflow, /\[\$cloud_label\]/)
-    assert.match(workflow, /choose_runner prepare_runner Linux ubuntu-latest/)
-    assert.match(workflow, /choose_runner windows_runner Windows windows-2022/)
-    assert.match(workflow, /choose_runner tui_runner Linux ubuntu-latest/)
-    assert.match(workflow, /choose_runner publish_runner Linux ubuntu-latest/)
+    assert.doesNotMatch(workflow, /runner_selection:/)
     assert.match(
       workflow,
-      /runs-on:\s*\n\s+- ['"]\$\{\{ needs\.runner_selection\.outputs\.prepare_label_1 \}\}['"]/
+      /prepare:\s*\n\s+name: Prepare exact release target\s*\n\s+runs-on: ubuntu-latest/
     )
-    assert.match(
-      workflow,
-      /runs-on:\s*\n\s+- ['"]\$\{\{ needs\.prepare\.outputs\.publish_label_1 \}\}['"]/
-    )
+    assert.match(workflow, /publish:[\s\S]*?runs-on: ubuntu-latest/)
+    assert.doesNotMatch(workflow, /fromJSON\(needs\./)
     assert.match(workflow, /Require a main-branch manual dispatch/)
     assert.match(workflow, /ref: \$\{\{ env\.RELEASE_TARGET_SHA \}\}/)
     assert.doesNotMatch(
@@ -86,27 +87,28 @@ describe('Super Express Release workflow', () => {
     assert.match(windowsWorkflow, /workflow_call:/)
     assert.match(windowsWorkflow, /workflow_dispatch:/)
     assert.match(windowsWorkflow, /inputs\.release_target_sha \|\| github\.sha/)
-    assert.match(windowsWorkflow, /Resolve release package version/)
+    assert.match(windowsBuildAction, /Resolve release package version/)
     assert.match(
-      windowsWorkflow,
+      windowsBuildAction,
       /Direct Super Express Windows dispatches must use main/
-    )
-    assert.match(
-      windowsWorkflow,
-      /runner:\s*\n\s+description: JSON runner-label array/
     )
     assert.match(windowsWorkflow, /runner_selection:/)
     assert.match(windowsWorkflow, /gh api --paginate --slurp/)
-    assert.match(windowsWorkflow, /needs: runner_selection/)
+    assert.match(windowsWorkflow, /use_self_hosted=true/)
+    assert.match(windowsWorkflow, /use_self_hosted=false/)
+    assert.match(windowsWorkflow, /build_self_hosted:/)
+    assert.match(windowsWorkflow, /build_cloud:/)
     assert.match(
       windowsWorkflow,
-      /runs-on:\s*\n\s+- ['"]\$\{\{ needs\.runner_selection\.outputs\.label_1 \}\}['"]/
+      /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/
     )
-    assert.match(windowsWorkflow, /yarn build:prod/)
-    assert.match(windowsWorkflow, /yarn package/)
-    assert.match(windowsWorkflow, /actions\/upload-artifact@v7/)
+    assert.match(windowsWorkflow, /runs-on: windows-2022/)
+    assert.match(windowsWorkflow, /super-express-windows-build/)
+    assert.match(windowsBuildAction, /yarn build:prod/)
+    assert.match(windowsBuildAction, /yarn package/)
+    assert.match(windowsBuildAction, /actions\/upload-artifact@v7/)
     assert.doesNotMatch(
-      windowsWorkflow,
+      windowsBuildAction,
       /uv build|pytest|ruff|mypy|yarn test|yarn lint/
     )
 
@@ -114,30 +116,31 @@ describe('Super Express Release workflow', () => {
     assert.match(tuiWorkflow, /workflow_dispatch:/)
     assert.match(tuiWorkflow, /inputs\.release_target_sha \|\| github\.sha/)
     assert.match(
-      tuiWorkflow,
+      tuiBuildAction,
       /Direct Super Express Linux TUI dispatches must use main/
-    )
-    assert.match(
-      tuiWorkflow,
-      /runner:\s*\n\s+description: JSON runner-label array/
     )
     assert.match(tuiWorkflow, /runner_selection:/)
     assert.match(tuiWorkflow, /gh api --paginate --slurp/)
-    assert.match(tuiWorkflow, /needs: runner_selection/)
+    assert.match(tuiWorkflow, /use_self_hosted=true/)
+    assert.match(tuiWorkflow, /use_self_hosted=false/)
+    assert.match(tuiWorkflow, /build_self_hosted:/)
+    assert.match(tuiWorkflow, /build_cloud:/)
     assert.match(
       tuiWorkflow,
-      /runs-on:\s*\n\s+- ['"]\$\{\{ needs\.runner_selection\.outputs\.label_1 \}\}['"]/
+      /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/
     )
-    assert.match(tuiWorkflow, /uv build --clear/)
+    assert.match(tuiWorkflow, /runs-on: ubuntu-latest/)
+    assert.match(tuiWorkflow, /super-express-linux-tui-build/)
+    assert.match(tuiBuildAction, /uv build --clear/)
     assert.match(
-      tuiWorkflow,
+      tuiBuildAction,
       /uv export --locked --no-dev --no-emit-project --no-hashes/
     )
-    assert.match(tuiWorkflow, /install-linux-tui\.sh/)
-    assert.match(tuiWorkflow, /bootstrap-linux-tui\.sh/)
-    assert.match(tuiWorkflow, /actions\/upload-artifact@v7/)
+    assert.match(tuiBuildAction, /install-linux-tui\.sh/)
+    assert.match(tuiBuildAction, /bootstrap-linux-tui\.sh/)
+    assert.match(tuiBuildAction, /actions\/upload-artifact@v7/)
     assert.doesNotMatch(
-      tuiWorkflow,
+      tuiBuildAction,
       /pytest|ruff|mypy|yarn test|yarn lint|generate-parity-contract/
     )
   })
@@ -199,7 +202,7 @@ describe('Super Express Release workflow', () => {
   })
 
   it('publishes a RELEASES manifest bounded to the release being built', () => {
-    for (const source of [installerWorkflow, windowsWorkflow]) {
+    for (const source of [installerWorkflow, windowsBuildAction]) {
       assert.match(
         source,
         /node script\/release-version\.js filter "\$RELEASE_VERSION"[\s\S]*?> release-payload\/installers\/RELEASES/

@@ -1,8 +1,8 @@
 name: Super Express Release / Windows
 
-# Reusable zero-test Windows lane for Super Express Release. The caller owns
-# release-tag creation and publication so this lane can run beside the Linux
-# TUI lane without creating a split update feed.
+# Reusable zero-test Windows lane for Super Express Release. The selector runs
+# on a hosted runner, then exactly one static-target build job runs: the idle
+# self-hosted Windows x64 runner when available, or windows-2022 otherwise.
 on:
   workflow_call:
     inputs:
@@ -13,11 +13,6 @@ on:
       release_version:
         description: Squirrel-compatible version selected by the dispatcher
         required: true
-        type: string
-      runner:
-        description: JSON runner-label array selected by the dispatcher
-        required: false
-        default: ''
         type: string
   workflow_dispatch:
     inputs:
@@ -31,12 +26,6 @@ on:
           Squirrel-compatible version; blank derives one from the run ID
         required: false
         type: string
-      runner:
-        description:
-          Optional JSON runner-label array override; blank auto-selects
-        required: false
-        default: ''
-        type: string
 
 permissions:
   contents: read
@@ -46,47 +35,21 @@ env:
 
 jobs:
   runner_selection:
-    name: Select self-hosted runner or cloud fallback
+    name: Select Windows self-hosted runner or cloud fallback
     runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
     outputs:
-      runner: ${{ steps.select.outputs.runner }}
-      label_1: ${{ steps.select.outputs.label_1 }}
-      label_2: ${{ steps.select.outputs.label_2 }}
-      label_3: ${{ steps.select.outputs.label_3 }}
+      use_self_hosted: ${{ steps.select.outputs.use_self_hosted }}
     env:
       GH_TOKEN: ${{ github.token }}
-      REQUESTED_RUNNER: ${{ inputs.runner }}
     steps:
-      - name: Select available Windows x64 runner labels
+      - name: Check for an idle Windows x64 runner
         id: select
         shell: bash
         run: |
           set -euo pipefail
-
-          if [ -n "${REQUESTED_RUNNER:-}" ]; then
-            if ! jq -e 'type == "array" and length > 0' <<<"$REQUESTED_RUNNER" >/dev/null; then
-              echo "The runner override must be a non-empty JSON label array." >&2
-              exit 1
-            fi
-            labels=$(jq -r '.[]' <<<"$REQUESTED_RUNNER")
-            label_1=$(sed -n '1p' <<<"$labels")
-            label_2=$(sed -n '2p' <<<"$labels")
-            label_3=$(sed -n '3p' <<<"$labels")
-            label_1=${label_1:-windows-2022}
-            label_2=${label_2:-$label_1}
-            label_3=${label_3:-$label_1}
-            {
-              printf 'runner=%s\n' "$REQUESTED_RUNNER"
-              printf 'label_1=%s\n' "$label_1"
-              printf 'label_2=%s\n' "$label_2"
-              printf 'label_3=%s\n' "$label_3"
-            } >> "$GITHUB_OUTPUT"
-            echo "runner: caller-selected"
-            exit 0
-          fi
 
           if ! inventory=$(gh api --paginate --slurp \
             "repos/$GITHUB_REPOSITORY/actions/runners?per_page=100"); then
@@ -103,34 +66,21 @@ jobs:
               select(($labels | index("x64")) != null)
             ] | length > 0
           ' <<<"$inventory" >/dev/null; then
-            runner='["self-hosted","Windows","X64"]'
-            label_1='self-hosted'
-            label_2='Windows'
-            label_3='X64'
-            selected_from='self-hosted/Windows/X64'
+            echo "use_self_hosted=true" >> "$GITHUB_OUTPUT"
+            echo "selected runner: self-hosted/Windows/X64"
           else
-            runner='["windows-2022"]'
-            label_1='windows-2022'
-            label_2='windows-2022'
-            label_3='windows-2022'
-            selected_from='windows-2022'
+            echo "use_self_hosted=false" >> "$GITHUB_OUTPUT"
+            echo "selected runner: windows-2022"
           fi
 
-          {
-            printf 'runner=%s\n' "$runner"
-            printf 'label_1=%s\n' "$label_1"
-            printf 'label_2=%s\n' "$label_2"
-            printf 'label_3=%s\n' "$label_3"
-          } >> "$GITHUB_OUTPUT"
-          echo "runner: $selected_from"
-
-  build:
-    name: Build Windows x64 package
+  build_self_hosted:
+    name: Build Windows x64 package (self-hosted)
     needs: runner_selection
+    if: needs.runner_selection.outputs.use_self_hosted == 'true'
     runs-on:
-      - '${{ needs.runner_selection.outputs.label_1 }}'
-      - '${{ needs.runner_selection.outputs.label_2 }}'
-      - '${{ needs.runner_selection.outputs.label_3 }}'
+      - self-hosted
+      - Windows
+      - X64
     timeout-minutes: 60
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
@@ -142,121 +92,42 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - name: Require a main-branch manual dispatch
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        shell: bash
-        run: |
-          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
-            echo "Direct Super Express Windows dispatches must use main." >&2
-            exit 1
-          fi
-
-      - name: Require the exact release commit
-        shell: bash
-        run: |
-          checked_out=$(git rev-parse HEAD)
-          if [ "$checked_out" != "$RELEASE_TARGET_SHA" ]; then
-            echo "Checked-out commit $checked_out does not match $RELEASE_TARGET_SHA." >&2
-            exit 1
-          fi
-
-      - uses: ./.github/actions/setup-ci-environment
+      - uses: ./.github/actions/super-express-windows-build
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          arch: x64
-
-      - name: Resolve release package version
-        shell: bash
-        run: |
-          if [ -z "$RELEASE_VERSION" ]; then
-            base=$(node -p "require('./app/package.json').version")
-            version=$(node script/release-version.js create "$base" "$GITHUB_RUN_ID")
-            echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
-          fi
-
-      - name: Apply the release package version
-        shell: bash
-        run: |
-          RELEASE_VERSION="$RELEASE_VERSION" node -e "const fs=require('fs');const f='./app/package.json';const p=require(f);p.version=process.env.RELEASE_VERSION;fs.writeFileSync(f, JSON.stringify(p, null, 2) + '\\n')"
-
-      - name: Build production app
-        run: yarn build:prod
+          release_target_sha: ${{ inputs.release_target_sha || github.sha }}
+          release_version: ${{ inputs.release_version }}
+          node_version: ${{ env.NODE_VERSION }}
         env:
           DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
           DESKTOP_ERROR_REPORTING_ENDPOINT:
             ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
           DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
             ${{ secrets.DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT }}
-          npm_config_arch: x64
-          TARGET_ARCH: x64
 
-      - name: Package Windows x64
-        run: yarn package
-        env:
-          npm_config_arch: x64
-          TARGET_ARCH: x64
-
-      - name: Collect and verify Windows release payload
-        shell: bash
-        run: |
-          mkdir -p release-payload/installers
-          shopt -s nullglob
-          for file in \
-            "dist/GitHub Desktop-x64.zip" \
-            dist/GitHubDesktop-*.nupkg \
-            "dist/GitHubDesktopSetup-x64.exe" \
-            "dist/GitHubDesktopSetup-x64.msi"; do
-            [ -e "$file" ] && cp "$file" release-payload/installers/
-          done
-
-          if [ -e dist/RELEASES ]; then
-            # Squirrel installs the highest version the manifest names, so the
-            # published feed must only ever name this package at this version.
-            node script/release-version.js filter "$RELEASE_VERSION" \
-              < dist/RELEASES > release-payload/installers/RELEASES
-            while read -r _sha name _size || [[ -n "$name" ]]; do
-              [ -z "$name" ] && continue
-              [ -e "release-payload/installers/$name" ] && continue
-              case "$name" in
-                *-full.nupkg)
-                  source=$(find dist -maxdepth 1 -type f -name '*-full.nupkg' -print | LC_ALL=C sort | sed -n '1p')
-                  ;;
-                *-delta.nupkg)
-                  source=$(find dist -maxdepth 1 -type f -name '*-delta.nupkg' -print | LC_ALL=C sort | sed -n '1p')
-                  ;;
-                *) source="" ;;
-              esac
-              if [[ "$name" == *-full.nupkg || "$name" == *-delta.nupkg ]] && \
-                 [ -z "$source" ]; then
-                echo "RELEASES names $name, but no matching source package exists." >&2
-                exit 1
-              fi
-              [ -n "$source" ] && \
-                cp "$source" "release-payload/installers/$name"
-            done < release-payload/installers/RELEASES
-          fi
-
-          required=(
-            release-payload/installers/RELEASES
-            "release-payload/installers/GitHub Desktop-x64.zip"
-            release-payload/installers/GitHubDesktopSetup-x64.exe
-            release-payload/installers/GitHubDesktopSetup-x64.msi
-            "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-full.nupkg"
-            "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"
-          )
-          for asset in "${required[@]}"; do
-            if [ ! -s "$asset" ]; then
-              echo "Missing or empty Windows release asset: $asset" >&2
-              exit 1
-            fi
-          done
-
-      - name: Preserve Windows payload artifact
-        uses: actions/upload-artifact@v7
+  build_cloud:
+    name: Build Windows x64 package (cloud fallback)
+    needs: runner_selection
+    if: needs.runner_selection.outputs.use_self_hosted != 'true'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
+      RELEASE_VERSION: ${{ inputs.release_version }}
+    steps:
+      - uses: actions/checkout@v7.0.1
         with:
-          name:
-            super-express-windows-${{ github.run_id }}-${{ github.run_attempt }}
-          path: release-payload/installers/
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 7
+          ref: ${{ inputs.release_target_sha || github.sha }}
+          fetch-depth: 0
+          submodules: recursive
+
+      - uses: ./.github/actions/super-express-windows-build
+        with:
+          release_target_sha: ${{ inputs.release_target_sha || github.sha }}
+          release_version: ${{ inputs.release_version }}
+          node_version: ${{ env.NODE_VERSION }}
+        env:
+          DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
+          DESKTOP_ERROR_REPORTING_ENDPOINT:
+            ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
+          DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
+            ${{ secrets.DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT }}

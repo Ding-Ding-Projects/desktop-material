@@ -144,16 +144,19 @@ tag once, then calls two reusable lanes in parallel:
   installer on an online, idle `self-hosted` Linux x64 runner when one is
   available.
 
-The dispatcher starts with a small hosted selector job because a queued
-`self-hosted` job cannot discover that its runner pool is unavailable and then
-move itself to the cloud. The selector reads the repository runner inventory
-through `gh api`, accepts only online and idle runners carrying the matching
-OS and `X64` labels, and passes JSON runner-label arrays to each reusable lane.
-If the inventory cannot be read or no matching runner is idle, the affected
-lane falls back independently to `windows-2022` or `ubuntu-latest`; the Linux
-preparation and publisher jobs use the same Linux self-hosted preference and
-fallback. This keeps an unavailable local runner from leaving an emergency
-release queued forever while still preferring the local fast path.
+Each reusable packaging lane starts with a small hosted selector because a
+queued `self-hosted` job cannot discover that its runner pool is unavailable
+and then move itself to the cloud. The selector reads the repository runner
+inventory through `gh api`, accepts only online and idle runners carrying the
+matching OS and `X64` labels, and sets a boolean choice. Exactly one of two
+static-target jobs then runs: `[self-hosted, Windows, X64]` or `windows-2022`
+for the desktop package, and `[self-hosted, Linux, X64]` or `ubuntu-latest`
+for the TUI package. The coordinator and publisher remain on
+`ubuntu-latest`, where their repository/API work is deterministic. If the
+inventory cannot be read or no matching runner is idle, the affected package
+lane falls back immediately to its hosted target. Static conditional jobs are
+deliberate: a dynamic `runs-on` label array from a previous job can make
+GitHub reject the workflow during planning before the selector runs.
 
 Each packaging lane also exposes its own `workflow_dispatch` action for a
 manual, packaging-only recovery run. A direct Windows dispatch accepts an

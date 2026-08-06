@@ -23,125 +23,15 @@ env:
   NODE_VERSION: 24.15.0
 
 jobs:
-  runner_selection:
-    name: Select self-hosted runners or cloud fallbacks
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-    outputs:
-      prepare_runner: ${{ steps.select.outputs.prepare_runner }}
-      windows_runner: ${{ steps.select.outputs.windows_runner }}
-      tui_runner: ${{ steps.select.outputs.tui_runner }}
-      publish_runner: ${{ steps.select.outputs.publish_runner }}
-      prepare_label_1: ${{ steps.select.outputs.prepare_label_1 }}
-      prepare_label_2: ${{ steps.select.outputs.prepare_label_2 }}
-      prepare_label_3: ${{ steps.select.outputs.prepare_label_3 }}
-      windows_label_1: ${{ steps.select.outputs.windows_label_1 }}
-      windows_label_2: ${{ steps.select.outputs.windows_label_2 }}
-      windows_label_3: ${{ steps.select.outputs.windows_label_3 }}
-      tui_label_1: ${{ steps.select.outputs.tui_label_1 }}
-      tui_label_2: ${{ steps.select.outputs.tui_label_2 }}
-      tui_label_3: ${{ steps.select.outputs.tui_label_3 }}
-      publish_label_1: ${{ steps.select.outputs.publish_label_1 }}
-      publish_label_2: ${{ steps.select.outputs.publish_label_2 }}
-      publish_label_3: ${{ steps.select.outputs.publish_label_3 }}
-    env:
-      GH_TOKEN: ${{ github.token }}
-    steps:
-      - name: Select available runner labels
-        id: select
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if ! inventory=$(gh api --paginate --slurp \
-            "repos/$GITHUB_REPOSITORY/actions/runners?per_page=100"); then
-            echo "::warning::Could not inspect self-hosted runners; using cloud fallbacks."
-            inventory='[]'
-          fi
-
-          has_idle_runner() {
-            local os_label="$1"
-            jq -e --arg os_label "$os_label" '
-              [ .[] | .runners[]? |
-                select(.status == "online" and .busy == false) |
-                [ .labels[]?.name | ascii_downcase ] as $labels |
-                select(($labels | index("self-hosted")) != null) |
-                select(($labels | index(($os_label | ascii_downcase))) != null) |
-                select(($labels | index("x64")) != null)
-              ] | length > 0
-            ' <<<"$inventory" >/dev/null
-          }
-
-          choose_runner() {
-            local output_name="$1"
-            local os_label="$2"
-            local cloud_label="$3"
-            local runner_json
-            local selected_from
-            local label_1
-            local label_2
-            local label_3
-
-            if has_idle_runner "$os_label"; then
-              runner_json=$(jq -cn --arg os_label "$os_label" \
-                '["self-hosted", $os_label, "X64"]')
-              selected_from="self-hosted/$os_label/X64"
-              label_1='self-hosted'
-              label_2="$os_label"
-              label_3='X64'
-            else
-              runner_json=$(jq -cn --arg cloud_label "$cloud_label" \
-                '[$cloud_label]')
-              selected_from="$cloud_label"
-              label_1="$cloud_label"
-              label_2="$cloud_label"
-              label_3="$cloud_label"
-            fi
-
-            {
-              printf '%s=%s\n' "$output_name" "$runner_json"
-              printf '%s_label_1=%s\n' "$output_name" "$label_1"
-              printf '%s_label_2=%s\n' "$output_name" "$label_2"
-              printf '%s_label_3=%s\n' "$output_name" "$label_3"
-            } >> "$GITHUB_OUTPUT"
-            echo "$output_name: $selected_from"
-          }
-
-          # A runner is selected only when it is online and idle at dispatch
-          # time. If the inventory is unavailable or no matching runner is
-          # idle, the corresponding lane uses its hosted cloud runner.
-          choose_runner prepare_runner Linux ubuntu-latest
-          choose_runner windows_runner Windows windows-2022
-          choose_runner tui_runner Linux ubuntu-latest
-          choose_runner publish_runner Linux ubuntu-latest
-
   prepare:
     name: Prepare exact release target
-    needs: runner_selection
-    runs-on:
-      - '${{ needs.runner_selection.outputs.prepare_label_1 }}'
-      - '${{ needs.runner_selection.outputs.prepare_label_2 }}'
-      - '${{ needs.runner_selection.outputs.prepare_label_3 }}'
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     outputs:
       sha: ${{ steps.target.outputs.sha }}
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
-      windows_runner: ${{ needs.runner_selection.outputs.windows_runner }}
-      tui_runner: ${{ needs.runner_selection.outputs.tui_runner }}
-      publish_runner: ${{ needs.runner_selection.outputs.publish_runner }}
-      windows_label_1: ${{ needs.runner_selection.outputs.windows_label_1 }}
-      windows_label_2: ${{ needs.runner_selection.outputs.windows_label_2 }}
-      windows_label_3: ${{ needs.runner_selection.outputs.windows_label_3 }}
-      tui_label_1: ${{ needs.runner_selection.outputs.tui_label_1 }}
-      tui_label_2: ${{ needs.runner_selection.outputs.tui_label_2 }}
-      tui_label_3: ${{ needs.runner_selection.outputs.tui_label_3 }}
-      publish_label_1: ${{ needs.runner_selection.outputs.publish_label_1 }}
-      publish_label_2: ${{ needs.runner_selection.outputs.publish_label_2 }}
-      publish_label_3: ${{ needs.runner_selection.outputs.publish_label_3 }}
     env:
       RELEASE_TARGET_SHA: ${{ github.sha }}
     steps:
@@ -229,10 +119,7 @@ jobs:
     if: >-
       always() && needs.prepare.result == 'success' && needs.windows.result ==
       'success' && needs.tui.result == 'success' && inputs.publish
-    runs-on:
-      - '${{ needs.prepare.outputs.publish_label_1 }}'
-      - '${{ needs.prepare.outputs.publish_label_2 }}'
-      - '${{ needs.prepare.outputs.publish_label_3 }}'
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
