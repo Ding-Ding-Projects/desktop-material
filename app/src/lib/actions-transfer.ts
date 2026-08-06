@@ -5,6 +5,12 @@ import {
 import { IActionsArtifactWorkflowRun } from './actions-artifacts'
 
 export const ActionsTransferMaximumRedirects = 5
+/**
+ * GitHub can return 404 for a short window while a completed job's log is
+ * still being materialized. Retry the whole request so each attempt receives
+ * a fresh, one-minute redirect URL instead of retrying an expired blob URL.
+ */
+export const ActionsJobLogNotFoundRetryDelaysMs = [250, 750, 1_500] as const
 export const ActionsJobLogMaximumBytes = 5 * 1024 * 1024
 export const ActionsJobLogTruncationMarker =
   '\n\n--- Log truncated after 5 MB by Desktop Material ---\n'
@@ -105,6 +111,9 @@ export function actionsTransferFailureMessage(
     case 'network':
       return `GitHub could not transfer the ${subject} because of a network error.`
     case 'http':
+      if (subject === 'job logs' && failure.status === 404) {
+        return 'GitHub could not find these workflow job logs (HTTP 404). The job may still be running, or GitHub may still be preparing or retaining the log file. Retry after the job finishes, or open the job on GitHub.'
+      }
       return `GitHub could not transfer the ${subject} (HTTP ${
         failure.status ?? 'unknown'
       }).`

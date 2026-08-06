@@ -1690,6 +1690,17 @@ live Windows x64 proof below shows the resulting searchable, collapsible log vie
 
 ![Windows x64 GitHub Actions job log loaded securely in the searchable in-app viewer](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-job-log.png)
 
+If GitHub is still preparing a completed job's archive, the log endpoint can
+temporarily return `HTTP 404`. The viewer now retries that API response with a
+bounded 250/750/1,500 ms schedule and obtains a fresh signed redirect on each
+attempt. When the bound is exhausted, it explains the provider state and keeps
+**Retry** and **Open on GitHub** available; it never sends the API bearer to the
+cross-origin log host.
+
+![Actions job-log recovery state with Retry and Open on GitHub](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-job-log-404-recovery.png)
+
+![Actions job log loaded after the provider archive becomes available](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-job-log-404-recovered.png)
+
 ---
 
 ## Repository Releases
