@@ -10,6 +10,10 @@ on:
         description: Exact commit SHA selected by the dispatcher
         required: true
         type: string
+      runner:
+        description: JSON runner-label array selected by the dispatcher
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -17,7 +21,7 @@ permissions:
 jobs:
   build:
     name: Build Linux TUI packages
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 30
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha }}

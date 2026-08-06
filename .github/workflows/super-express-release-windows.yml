@@ -14,6 +14,10 @@ on:
         description: Squirrel-compatible version selected by the dispatcher
         required: true
         type: string
+      runner:
+        description: JSON runner-label array selected by the dispatcher
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -24,7 +28,7 @@ env:
 jobs:
   build:
     name: Build Windows x64 package
-    runs-on: windows-2022
+    runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 60
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha }}

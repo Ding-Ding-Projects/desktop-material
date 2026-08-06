@@ -261,8 +261,11 @@ the tonal workspace preview hides when a compact window needs the space.
   attestation-presence context.
 - **Release gates** — the manual Super Express emergency lane runs no tests and
   goes directly to its Windows x64 build/package, asset verification, and
-  optional release. Ordinary CI and tested Express remain the default gates;
-  release pull requests target the Windows product's `main` default branch.
+  optional release. It prefers matching online, idle `self-hosted` x64 runners
+  per lane and falls back independently to `windows-2022` or `ubuntu-latest`
+  when the local pool is unavailable. Ordinary CI and tested Express remain
+  the default gates; release pull requests target the Windows product's `main`
+  default branch.
 - **Compact Repository Releases** — the corrected 800×560 combined gate keeps the list ahead of
   overview/detail content and retains one complete row. One physical 960×660 gate passed at 100%,
   125% (768×528 CSS), 150%, and 200% (480×330 CSS); compact scales keep a 176 px panel, at least
