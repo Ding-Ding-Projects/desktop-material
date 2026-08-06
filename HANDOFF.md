@@ -35,6 +35,18 @@ failure modes, security notes, and verification record are in
 
 Remote CI and default-branch publication remain the final external checks.
 
+## 2026-08-06 — Pin trusted CI to the local Windows and WSL runners
+
+The generic `self-hosted` labels also matched an alternate Windows runner whose
+Visual Studio installation could not provide the ClangCL MSBuild toolset. The
+project's registered local Windows runner has a complete Community installation,
+and its registered WSL Linux runner is the environment used for the Linux lanes.
+Both now carry project-specific labels: `desktop-material-windows-local` and
+`desktop-material-wsl-local`. CI, Express Release, and Super Express require the
+matching custom label in addition to the operating-system and architecture
+labels, so a missing or incomplete alternate runner remains out of the trusted
+release path instead of turning setup drift into a build failure.
+
 ## 2026-08-06 — Use supported Visual Studio Installer flags
 
 The first exact-main E2E run containing the ClangCL bootstrap,

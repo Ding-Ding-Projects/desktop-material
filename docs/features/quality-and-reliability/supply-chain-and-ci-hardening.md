@@ -9,7 +9,11 @@ chain** job checks lock-file provenance and reports npm advisories.
 
 The trusted CI and Super Express paths are self-hosted-only. CI jobs and all
 seven jobs in `Build Installers / Express Release` use static `self-hosted`
-plus operating-system and architecture labels. CI and Super Express
+plus operating-system and architecture labels. The Windows jobs additionally
+require `desktop-material-windows-local`, and Linux/WSL jobs require
+`desktop-material-wsl-local`; those custom labels are attached to the project's
+registered local Windows and WSL runners so another incomplete self-hosted
+machine cannot claim a release job accidentally. CI and Super Express
 concurrency are ref-scoped, so obsolete trusted runs are cancelled while other
 publication workflows retain their immutable run-and-attempt history.
 Reusable CI calls are accepted only from `Ding-Ding-Projects/desktop-material`

@@ -37,6 +37,7 @@ jobs:
       - self-hosted
       - Linux
       - X64
+      - desktop-material-wsl-local
     permissions:
       contents: read
     outputs:
@@ -111,6 +112,7 @@ jobs:
       - self-hosted
       - Windows
       - X64
+      - desktop-material-windows-local
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7.0.1
@@ -138,6 +140,7 @@ jobs:
       - self-hosted
       - Linux
       - X64
+      - desktop-material-wsl-local
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7.0.1
@@ -163,6 +166,7 @@ jobs:
       - self-hosted
       - Linux
       - X64
+      - desktop-material-wsl-local
     permissions:
       contents: write
     env:

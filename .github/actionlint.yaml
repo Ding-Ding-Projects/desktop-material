@@ -1,0 +1,4 @@
+self-hosted-runner:
+  labels:
+    - desktop-material-windows-local
+    - desktop-material-wsl-local

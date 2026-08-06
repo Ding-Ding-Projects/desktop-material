@@ -75,6 +75,7 @@ jobs:
       - self-hosted
       - Windows
       - X64
+      - desktop-material-windows-local
     permissions:
       contents: read
     timeout-minutes: 20
@@ -116,6 +117,7 @@ jobs:
       - self-hosted
       - Windows
       - X64
+      - desktop-material-windows-local
     permissions:
       contents: read
       id-token: write
@@ -228,6 +230,7 @@ jobs:
       - self-hosted
       - Windows
       - X64
+      - desktop-material-windows-local
     permissions:
       contents: read
       id-token: write

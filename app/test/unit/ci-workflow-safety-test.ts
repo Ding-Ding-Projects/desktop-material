@@ -388,6 +388,22 @@ describe('CI workflow safety', () => {
       )?.length,
       2
     )
+    assert.match(
+      installerWorkflow,
+      /- Windows\s*\n\s+- X64\s*\n\s+- desktop-material-windows-local/
+    )
+    assert.match(
+      installerWorkflow,
+      /- Linux\s*\n\s+- X64\s*\n\s+- desktop-material-wsl-local/
+    )
+    assert.match(
+      superExpressWorkflow,
+      /- Windows\s*\n\s+- X64\s*\n\s+- desktop-material-windows-local/
+    )
+    assert.match(
+      superExpressWorkflow,
+      /- Linux\s*\n\s+- X64\s*\n\s+- desktop-material-wsl-local/
+    )
   })
 
   it('bootstraps GitHub CLI before self-hosted release API calls', () => {
@@ -440,12 +456,20 @@ describe('CI workflow safety', () => {
       )?.length,
       3
     )
+    assert.match(
+      windowsWorkflow,
+      /- Windows\s*\n\s+- X64\s*\n\s+- desktop-material-windows-local/
+    )
     assert.doesNotMatch(linuxWorkflow, /windows-2022|ubuntu-latest/)
     assert.equal(
       linuxWorkflow.match(
         /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/g
       )?.length,
       3
+    )
+    assert.match(
+      linuxWorkflow,
+      /- Linux\s*\n\s+- X64\s*\n\s+- desktop-material-wsl-local/
     )
     for (const { name, source } of ciWorkflows) {
       assert.doesNotMatch(source, /macos|APPLE_/i, name)
