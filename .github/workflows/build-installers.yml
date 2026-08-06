@@ -91,17 +91,16 @@ jobs:
                 exit 1
                 ;;
             esac
-            sibling_run=$(gh api \
+            sibling_fields=$(gh api \
               "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$CI_SHA&event=push&per_page=100" \
               --jq "[.workflow_runs[] | select(.name == \"$sibling\")]
-                    | sort_by(.run_number) | last // empty")
-            if [ -z "$sibling_run" ]; then
+                    | sort_by(.run_number) | last // empty
+                    | [.status, (.conclusion // \"\"), .updated_at] | @tsv")
+            if [ -z "$sibling_fields" ]; then
               echo "Installer packaging blocked: no $sibling run found for $CI_SHA." >&2
               exit 1
             fi
-            sibling_status=$(printf '%s' "$sibling_run" | jq -r '.status')
-            sibling_conclusion=$(printf '%s' "$sibling_run" | jq -r '.conclusion // ""')
-            sibling_updated=$(printf '%s' "$sibling_run" | jq -r '.updated_at')
+            IFS=$'\t' read -r sibling_status sibling_conclusion sibling_updated <<< "$sibling_fields"
             if [ "$sibling_status" != "completed" ]; then
               echo "$sibling is still $sibling_status; it will publish this commit once it finishes."
               echo "proceed=false" >> "$GITHUB_OUTPUT"

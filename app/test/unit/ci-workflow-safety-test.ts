@@ -409,6 +409,18 @@ describe('CI workflow safety', () => {
       superExpressWorkflow,
       /ref: \$\{\{ needs\.prepare\.outputs\.sha \}\}[\s\S]*?setup-github-cli[\s\S]*?actions\/setup-node@v7/
     )
+    assert.match(
+      installerWorkflow,
+      /sibling_fields=\$\(gh api[\s\S]*?--jq[\s\S]*?@tsv/
+    )
+    assert.match(
+      installerWorkflow,
+      /IFS=\$'\\t' read -r sibling_status sibling_conclusion sibling_updated <<< "\$sibling_fields"/
+    )
+    assert.doesNotMatch(
+      installerWorkflow,
+      /printf '%s' "\$sibling_run" \| jq/
+    )
   })
 
   it('builds, packages, and exercises the Windows application only', () => {
