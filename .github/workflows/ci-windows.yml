@@ -5,11 +5,13 @@
 # desktop build can never withhold the terminal package. Both lanes feed the
 # one Release; `build-installers.yml` waits for both to finish and then ships
 # whatever each lane vouched for.
+# This workflow is self-hosted-only for trusted pushes, manual dispatches, and
+# workflow calls. It deliberately has no pull_request trigger: untrusted PR
+# code must never run on the public repository's self-hosted machine.
 name: CI Windows
 
 on:
   push:
-  pull_request:
   workflow_dispatch:
   workflow_call:
     inputs:
@@ -44,19 +46,13 @@ on:
       DESKTOP_OAUTH_CLIENT_ID:
       DESKTOP_OAUTH_CLIENT_SECRET:
 
-# Every invocation owns a unique group so a newer push, pull request, manual
-# dispatch, or installer verification can run immediately without cancelling
-# or queueing an older in-progress run.
-#
-# This is a deliberate safety contract, enforced by
-# app/test/unit/ci-workflow-safety-test.ts: the installer workflow triggers on
-# this workflow's `workflow_run` completion, so a cancelled main run silently
-# skips a release — and a queued one is just as dangerous, because a third run
-# entering an occupied group cancels the pending one. Saving runner minutes by
-# cancelling superseded runs is not worth a release that quietly never ships.
+# A newer trusted run for the same ref supersedes the older run. This keeps the
+# self-hosted runner from spending its scarce slot on a commit that has already
+# been replaced, while the missing pull_request trigger keeps untrusted code off
+# the machine.
 concurrency:
-  group: ci-windows-${{ github.run_id }}-${{ github.run_attempt }}
-  cancel-in-progress: false
+  group: ci-windows-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   NODE_VERSION: 24.15.0
@@ -64,10 +60,17 @@ env:
   DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
     ${{ inputs.non-fatal-error-reporting-endpoint }}
 
+defaults:
+  run:
+    shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+
 jobs:
   windows-tui-core:
     name: Windows TUI core · Python 3.12
-    runs-on: windows-2022
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
     permissions:
       contents: read
     timeout-minutes: 20
@@ -76,16 +79,14 @@ jobs:
         with:
           repository: ${{ inputs.repository || github.repository }}
           ref: ${{ inputs.ref }}
-      - name: Install Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.12'
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: 0.11.26
           enable-cache: true
           cache-dependency-glob: tui/uv.lock
+      - name: Install managed Python 3.12
+        run: uv python install 3.12
       - name: Install locked TUI environment
         working-directory: tui
         run: uv sync --locked --extra dev --python 3.12
@@ -101,17 +102,21 @@ jobs:
           uv run mypy src
   build:
     name: ${{ matrix.friendlyName }} ${{ matrix.arch }}
-    runs-on: ${{ matrix.os }}
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
     permissions:
       contents: read
       id-token: write
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2022]
         arch: [x64, arm64]
         include:
-          - os: windows-2022
+          - arch: x64
+            friendlyName: Windows
+          - arch: arm64
             friendlyName: Windows
     timeout-minutes: 60
     environment: ${{ inputs.environment }}
@@ -198,7 +203,10 @@ jobs:
           if-no-files-found: error
   e2e-smoke:
     name: E2E Smoke ${{ matrix.friendlyName }} ${{ matrix.arch }}
-    runs-on: ${{ matrix.os }}
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
     permissions:
       contents: read
       id-token: write
@@ -206,8 +214,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-2022
-            friendlyName: Windows
+          - friendlyName: Windows
             arch: x64
     timeout-minutes: 60
     environment: ${{ inputs.environment }}
@@ -250,7 +257,6 @@ jobs:
           AZURE_TENANT_ID: ${{ secrets.AZURE_CODE_SIGNING_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CODE_SIGNING_CLIENT_ID }}
       - name: Install app on Windows
-        shell: pwsh
         run: |
           function Write-SquirrelLogs {
             $logPaths = @(
