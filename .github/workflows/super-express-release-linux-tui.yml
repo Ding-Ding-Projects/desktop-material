@@ -1,8 +1,8 @@
 name: Super Express Release / Linux TUI
 
-# Reusable zero-test Linux TUI lane for Super Express Release. The selector
-# runs on a hosted runner, then exactly one static-target build job runs: the
-# idle self-hosted Linux x64 runner when available, or ubuntu-latest otherwise.
+# Reusable zero-test Linux TUI lane for Super Express Release. It is
+# deliberately self-hosted-only and queues until the registered Linux x64 WSL
+# runner is ready.
 on:
   workflow_call:
     inputs:
@@ -22,73 +22,12 @@ permissions:
   contents: read
 
 jobs:
-  runner_selection:
-    name: Select Linux self-hosted runner or cloud fallback
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-    outputs:
-      use_self_hosted: ${{ steps.select.outputs.use_self_hosted }}
-    env:
-      GH_TOKEN:
-        ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN
-        }}
-    steps:
-      - name: Check for an idle Linux x64 runner
-        id: select
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if ! inventory=$(gh api --paginate --slurp \
-            "repos/$GITHUB_REPOSITORY/actions/runners?per_page=100"); then
-            echo "::warning::Could not inspect self-hosted runners; using ubuntu-latest."
-            inventory='[]'
-          fi
-
-          if jq -e '
-            [ .[] | .runners[]? |
-              select(.status == "online" and .busy == false) |
-              [ .labels[]?.name | ascii_downcase ] as $labels |
-              select(($labels | index("self-hosted")) != null) |
-              select(($labels | index("linux")) != null) |
-              select(($labels | index("x64")) != null)
-            ] | length > 0
-          ' <<<"$inventory" >/dev/null; then
-            echo "use_self_hosted=true" >> "$GITHUB_OUTPUT"
-            echo "selected runner: self-hosted/Linux/X64"
-          else
-            echo "use_self_hosted=false" >> "$GITHUB_OUTPUT"
-            echo "selected runner: ubuntu-latest"
-          fi
-
-  build_self_hosted:
+  build:
     name: Build Linux TUI packages (self-hosted)
-    needs: runner_selection
-    if: needs.runner_selection.outputs.use_self_hosted == 'true'
     runs-on:
       - self-hosted
       - Linux
       - X64
-    timeout-minutes: 30
-    env:
-      RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ inputs.release_target_sha || github.sha }}
-          fetch-depth: 0
-
-      - uses: ./.github/actions/super-express-linux-tui-build
-        with:
-          release_target_sha: ${{ inputs.release_target_sha || github.sha }}
-
-  build_cloud:
-    name: Build Linux TUI packages (cloud fallback)
-    needs: runner_selection
-    if: needs.runner_selection.outputs.use_self_hosted != 'true'
-    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
