@@ -1,5 +1,27 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Verify Super Express on the self-hosted pool
+
+The pure self-hosted Super Express path now has remote runner evidence. Run
+`31064587087 <https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31064587087>`_
+at `60f32baf76` completed preparation and Linux TUI packaging on `linux`, then
+ran the Windows lane on `CLAUDE`. The Windows lane passed the Git Bash
+preflight, AllSigned-compatible PowerShell helpers, uv-managed Python 3.11,
+the pinned Yarn shim, setup-node's Yarn cache probe, dependency installation,
+and reached `Build production app`. GitHub's runner control channel cancelled
+the job at `2026-08-06T02:26:44Z` before `Package Windows`.
+
+Run
+`31065485291 <https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31065485291>`_
+at `3fe381f5f9` repeated the same self-hosted-only path on `COMPUTER`; Linux
+TUI passed, the Windows setup and dependency stages passed, and the Windows
+production build started. The runner control channel cancelled it at
+`2026-08-06T02:46:25Z`, again before `Package Windows`. Both runs finished
+`cancelled`, not `success`; both used `publish=false`, so no Release was
+created. Self-hosted placement and prerequisite repair are verified, while a
+completed Windows package/artifact and combined Release remain unverified
+because the external cancellations occurred before packaging.
+
 ## 2026-08-06 — Bootstrap every self-hosted Windows dependency shell
 
 The self-hosted Windows dependency setup now selects the requested Node.js
