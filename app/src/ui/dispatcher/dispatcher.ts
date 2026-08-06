@@ -667,7 +667,7 @@ export class Dispatcher {
 
   /** Commit exactly one repository-owned appearance value. */
   public setRepositoryAppearanceElement<
-    K extends RepositoryAppearanceElementId,
+    K extends RepositoryAppearanceElementId
   >(
     repository: Repository,
     id: K,
@@ -1067,11 +1067,11 @@ export class Dispatcher {
     const selectedRepository =
       activeTab === null
         ? null
-        : (repositories.find(
+        : repositories.find(
             repository => repository.id === activeTab.repositoryId
           ) ??
           matchExistingRepository(repositories, activeTab.repositoryPath) ??
-          null)
+          null
 
     if (selectedRepository !== null) {
       this.repositoryTabsStore.rebindActiveTabToRepository(selectedRepository)
@@ -1305,7 +1305,8 @@ export class Dispatcher {
   public changeFileIncluded(
     repository: Repository,
     file:
-      WorkingDirectoryFileChange | ReadonlyArray<WorkingDirectoryFileChange>,
+      | WorkingDirectoryFileChange
+      | ReadonlyArray<WorkingDirectoryFileChange>,
     include: boolean
   ): Promise<void> {
     return this.appStore._changeFileIncluded(repository, file, include)

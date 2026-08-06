@@ -926,10 +926,13 @@ export class GitHubPullRequestLifecycleDialog extends React.Component<
    */
   private suggestChangeWithAI = () => {
     const { workspace, inlinePath, inlineLine } = this.state
-    const file = workspace?.files.find(candidate => candidate.path === inlinePath)
+    const file = workspace?.files.find(
+      candidate => candidate.path === inlinePath
+    )
     if (workspace === null || file === undefined || file.patch === null) {
       this.setState({
-        error: 'Select a file with a visible diff before asking AI to suggest a fix.',
+        error:
+          'Select a file with a visible diff before asking AI to suggest a fix.',
       })
       return
     }

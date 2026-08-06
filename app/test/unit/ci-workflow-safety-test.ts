@@ -80,6 +80,17 @@ describe('CI workflow safety', () => {
     )
   })
 
+  it('installs Node before the self-hosted Linux TUI invokes Node', () => {
+    const tuiJob = linuxWorkflow.match(
+      /\r?\n  linux-tui:\r?\n([\s\S]*?)(?=\r?\n  [a-z-]+:\r?\n|$)/
+    )
+    assert.notEqual(tuiJob, null)
+    const source = tuiJob?.[1] ?? ''
+    assert.match(source, /uses: actions\/setup-node@v7/)
+    assert.match(source, /node-version: \$\{\{ env\.NODE_VERSION \}\}/)
+    assert.match(source, /node tui\/tools\/generate-parity-contract\.mjs/)
+  })
+
   it('uses one configurable loopback endpoint for the E2E build and server', () => {
     assert.deepEqual(getMockUpdateEndpoint('http://127.0.0.1:43123/update'), {
       host: '127.0.0.1',

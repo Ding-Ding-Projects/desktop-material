@@ -36,7 +36,11 @@ interface ITransferOwner {
 }
 
 type RepositoryTransferDialogStage =
-  'form' | 'review' | 'running' | 'complete' | 'error'
+  | 'form'
+  | 'review'
+  | 'running'
+  | 'complete'
+  | 'error'
 
 interface IRepositoryTransferDialogProps {
   readonly dispatcher: Dispatcher
@@ -554,8 +558,8 @@ export class RepositoryTransferDialog extends React.Component<
               <code>{destination}</code>.
             </p>
             <p>
-              Mode: <strong>{modeLabel}</strong>. The destination account
-              will receive the repository according to its privacy setting. This
+              Mode: <strong>{modeLabel}</strong>. The destination account will
+              receive the repository according to its privacy setting. This
               local checkout will retarget <code>origin</code> only after the
               destination reports a successful push.
             </p>
@@ -700,8 +704,8 @@ export class RepositoryTransferDialog extends React.Component<
       this.state.stage === 'review'
         ? 'Confirm repository transfer'
         : this.state.stage === 'complete'
-          ? 'Repository transfer complete'
-          : 'Transfer repository'
+        ? 'Repository transfer complete'
+        : 'Transfer repository'
 
     return (
       <Dialog
