@@ -1026,6 +1026,51 @@ the same shared tab surface.
 No installer, Release, or remote CI result is claimed from this capture-only
 proof; `gh run list` returned no run for the pushed task branch at the time of
 this handoff update.
+## 2026-08-06 — Rich account picker and repository-list Cheap LFS boundary
+
+Implementation commit
+[`ba966baff0fb5282f8c98c683e5a3f32dc17a6e9`](https://github.com/Ding-Ding-Projects/desktop-material/commit/ba966baff0fb5282f8c98c683e5a3f32dc17a6e9)
+on `codex/account-picker-cheap-lfs-20260806` adds rich account metadata and
+search to both account surfaces. Rows show friendly name, `@login · host`,
+provider, plan, and display email; the shared search metadata excludes tokens
+and uses stable `endpoint#id` identity. Plain, fuzzy, substring, and bounded
+safe-regex modes are available through the shared Regex Builder, with localized
+English/Cantonese/bilingual copy, keyboard navigation, invalid-pattern and
+no-match states, and an always-available add-account action.
+
+Repository-list transfer remains a sanitized URL-only recipe. Imported clones
+enter the same post-clone `maybeAutoMaterializeCheapLfs` finalization path as
+normal clones, with the enabled-by-default **Download large files after
+cloning** preference. Account-bound selections and credentials remain local;
+release-backed pointers still require an eligible selected account, while
+public OCI pointers can restore anonymously.
+
+### Verification
+
+- Focused tests: **46 passed, 0 failed across 10 suites**, including account
+  metadata/search, rich picker contract, switcher style/keyboard contract,
+  transfer Cheap LFS wiring, and existing repository-list file contracts.
+- Changed-file ESLint: **passed**.
+- Prettier: **passed** for all changed source, test, and documentation files.
+- Strict TypeScript command with process-local TypeScript 6 compatibility
+  flags: **failed only in pre-existing dependency/notification/IPC/Dexie and
+  unrelated existing test files**; no changed production source is in the
+  diagnostic set.
+- Exact hidden-verifier production command: **failed before bundling** on the
+  checkout's TypeScript 6 `TS5011`/`TS5107` migration diagnostics. A
+  compatibility-only webpack retry timed out after ten minutes and was cleaned
+  up. No fresh build artifact exists, so no hidden-desktop window or screenshot
+  was created and no runtime success is claimed.
+- Lowlevel headless service: installed/running; the bundled client preflight
+  returned `client_ok: true`, and the service checkout was
+  `ae648ae6c994e8135c874cc895291896f60b8c19`.
+
+### Remote state and remaining work
+
+- The task branch is dewed hui at the implementation commit above; this
+  handoff/roadmap/README follow-up records the same branch-only state.
+- Default-branch integration, a fresh Windows runtime capture, and remote CI
+  verification remain pending. No installer or release is claimed.
 
 ## 2026-08-05 — Super Express packaging lanes parallelized
 

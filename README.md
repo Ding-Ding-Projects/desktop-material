@@ -4,6 +4,19 @@
 
 # Desktop Material
 
+> **Rich account picking and repository-list transfer — August 6, 2026:** the
+> account picker and navigation-rail switcher now show friendly identity,
+> provider, plan, host, and email metadata with a searchable plain/fuzzy/
+> substring/bounded-regex field and the shared Regex Builder. Repository-list
+> transfer stays safely URL-only; imported clones enter the same post-clone
+> Cheap LFS materialization path as normal clones, with account-bound selections
+> intentionally kept local. Focused verification is **46/46 tests**, plus
+> changed-file ESLint and Prettier. The exact production build is currently
+> blocked by the checkout's TypeScript 6 migration diagnostics, so no fresh
+> runtime capture or release is claimed. Implementation commit
+> [`ba966baff0`](https://github.com/Ding-Ding-Projects/desktop-material/commit/ba966baff0fb5282f8c98c683e5a3f32dc17a6e9)
+> is on the task branch; default-branch integration remains pending.
+
 > **Stash recovery manager:** the Windows app now keeps every Git stash entry
 > without a Desktop entry-count cap and provides a separate searchable dialog
 > for exact-identity recovery and export to a directory, ZIP, or configurable

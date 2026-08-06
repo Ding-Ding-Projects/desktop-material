@@ -5,7 +5,7 @@ Material installation manages many identities, repositories, and branches.
 
 ## Features
 
-- [Multiple accounts and repository
+- [Multiple accounts, rich account picker, and repository
   identity](multiple-accounts-and-repository-identity.md)
 - [Repository sidebar and
   pinning](repository-sidebar-and-pinning.md)

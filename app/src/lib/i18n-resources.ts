@@ -2596,6 +2596,7 @@ export type TranslationKey =
   | 'batchClone.filterRegexTarget'
   | 'batchClone.filterStatusCount'
   | 'batchClone.filterStatusNone'
+  | 'repositoryTransfer.cheapLfsNote'
   | 'branchRules.filterPlaceholder'
   | 'branchRules.filterLabel'
   | 'branchRules.filterRegexTarget'
@@ -3456,6 +3457,16 @@ export type TranslationKey =
   | 'accounts.keychainLocked'
   | 'accounts.tokenWriteFailed'
   | 'accounts.credentialUnavailable'
+  | 'accounts.picker.label'
+  | 'accounts.picker.title'
+  | 'accounts.picker.searchLabel'
+  | 'accounts.picker.searchPlaceholder'
+  | 'accounts.picker.countOne'
+  | 'accounts.picker.countMany'
+  | 'accounts.picker.matchCount'
+  | 'accounts.picker.noAccounts'
+  | 'accounts.picker.noMatch'
+  | 'accounts.picker.add'
   | 'accounts.invalidatedTokenTitle'
   | 'accounts.invalidatedTokenTitleDarwin'
   | 'accounts.invalidatedTokenBody'
@@ -6855,6 +6866,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'batchClone.filterRegexTarget': 'Clone queue',
   'batchClone.filterStatusCount': '{matched} of {total} repositories',
   'batchClone.filterStatusNone': 'No repositories match',
+  'repositoryTransfer.cheapLfsNote':
+    'After each clone, Cheap LFS restores large files according to the repository setting “Download large files after cloning” (enabled by default). The shared list carries URLs only, so account affinity and explicit file selections stay local; when restore is disabled or no eligible provider account is available, pointer files remain ready for a later restore.',
   'branchRules.filterPlaceholder': 'Filter results',
   'branchRules.filterLabel': 'Filter branch rule results',
   'branchRules.filterRegexTarget': 'Branch rule results',
@@ -7854,6 +7867,17 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Desktop Material could not save the sign-in token for {login}, so that account was not added. Please sign in again. ({error})',
   'accounts.credentialUnavailable':
     'Desktop Material could not read the saved sign-in token for {logins}. Please sign in again to restore access.',
+  'accounts.picker.label': 'Accounts',
+  'accounts.picker.title': 'Accounts · {host}',
+  'accounts.picker.searchLabel': 'Search accounts',
+  'accounts.picker.searchPlaceholder':
+    'Search accounts by name, login, or host',
+  'accounts.picker.countOne': '{count} signed-in account',
+  'accounts.picker.countMany': '{count} signed-in accounts',
+  'accounts.picker.matchCount': '{matched} of {total} accounts match',
+  'accounts.picker.noAccounts': 'No signed-in accounts.',
+  'accounts.picker.noMatch': 'No accounts match “{query}”.',
+  'accounts.picker.add': 'Add another account',
   'accounts.invalidatedTokenTitle': 'Invalidated account token',
   'accounts.invalidatedTokenTitleDarwin': 'Invalidated Account Token',
   'accounts.invalidatedTokenBody':
@@ -11325,6 +11349,8 @@ export const cantoneseTranslations: Readonly<
   'batchClone.filterRegexTarget': 'Clone 佇列',
   'batchClone.filterStatusCount': '{total} 個 repo 揀到 {matched} 個',
   'batchClone.filterStatusNone': '冇 repo 啱',
+  'repositoryTransfer.cheapLfsNote':
+    '每次 clone 完，Cheap LFS 會按 repo 個「clone 後下載大檔案」設定（預設開啟）還原大檔。分享清單只帶 URL，所以帳戶綁定同逐檔揀選留喺本機；如果關咗還原，或者冇合資格嘅 provider 帳戶，大檔會留低 pointer，之後再還原都得。',
   'branchRules.filterPlaceholder': '篩選結果',
   'branchRules.filterLabel': '篩選分支規則結果',
   'branchRules.filterRegexTarget': '分支規則結果',
@@ -12260,6 +12286,16 @@ export const cantoneseTranslations: Readonly<
     'Desktop Material 儲存唔到 {login} 嘅登入權杖，所以個帳戶未加到入去。請重新登入一次。（{error}）',
   'accounts.credentialUnavailable':
     'Desktop Material 讀唔到 {logins} 已儲存嘅登入權杖。請重新登入一次，先可以用返呢啲帳戶。',
+  'accounts.picker.label': '帳戶',
+  'accounts.picker.title': '帳戶 · {host}',
+  'accounts.picker.searchLabel': '搜尋帳戶',
+  'accounts.picker.searchPlaceholder': '按名稱、登入名稱或主機搜尋帳戶',
+  'accounts.picker.countOne': '{count} 個已登入帳戶',
+  'accounts.picker.countMany': '{count} 個已登入帳戶',
+  'accounts.picker.matchCount': '{total} 個帳戶入面有 {matched} 個啱',
+  'accounts.picker.noAccounts': '冇已登入帳戶。',
+  'accounts.picker.noMatch': '冇帳戶啱「{query}」。',
+  'accounts.picker.add': '新增另一個帳戶',
   'accounts.invalidatedTokenTitle': '帳戶權杖已經失效',
   'accounts.invalidatedTokenTitleDarwin': '帳戶權杖已經失效',
   'accounts.invalidatedTokenBody':

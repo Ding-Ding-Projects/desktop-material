@@ -279,6 +279,21 @@ Updated: **August 6, 2026**
 - The feature article is
   `docs/features/identity-and-workspace/settings-tab-docking.md`; no installer,
   Release, or branch CI result is claimed from the capture-only run.
+## August 6 — rich account picking and transfer large-file behavior
+
+- The repository account picker and navigation-rail switcher now show friendly
+  identity metadata and provide a plain-text search bar with fuzzy, substring,
+  and bounded safe-regex modes through the shared Regex Builder. The active
+  account remains explicit, row identity uses `endpoint#id`, and credential
+  tokens never enter searchable metadata.
+- Repository-list transfer remains a URL-only clone recipe. Imported clones
+  reach the same post-clone Cheap LFS materialization path as normal clones;
+  account-bound selections stay local because they are tied to the destination
+  manifest, branch, and selected provider account.
+- Focused verification passes **46/46 tests**, changed-file ESLint, and
+  Prettier. The exact production build is blocked by existing TypeScript 6
+  configuration/dependency diagnostics, so the Windows runtime capture remains
+  pending and no release is claimed for this branch-only milestone.
 
 ## August 3 — the site lays out on a phone
 
