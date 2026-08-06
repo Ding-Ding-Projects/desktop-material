@@ -138,35 +138,35 @@ concurrency group, including CodeQL, remain independently runnable.
 `.github/workflows/super-express-release.yml` is a separate, manual-only
 emergency dispatcher. Dispatching it from `main` checks the exact commit and
 tag once, then runs two inline packaging lanes in parallel. Every job in this
-dispatcher uses a fixed GitHub-hosted label: the coordinator and publisher use
-`ubuntu-latest`, while the desktop package uses `windows-2022`. Fixed labels
-let GitHub schedule the workflow without depending on a runner inventory or
-machine-specific tooling.
+dispatcher is self-hosted-only: the coordinator and publisher use the
+registered Linux x64 WSL runner, while the desktop package uses the registered
+Windows x64 runner. If either runner is offline or busy, the run queues or
+fails; it never moves to a GitHub-hosted machine.
 
 - `.github/workflows/super-express-release-windows.yml` restores the exact
   desktop dependency cache and builds the Windows x64 production package on
-  `windows-2022`;
+  `[self-hosted, Windows, X64]`;
 - `.github/workflows/super-express-release-linux-tui.yml` builds the Linux TUI
   wheel, source distribution, locked runtime constraints, bootstrap, and
-  installer on `ubuntu-latest`.
+  installer on `[self-hosted, Linux, X64]`.
 
-There is no hosted selector, runner-inventory branch, or dynamic `runs-on`
-value in these workflows. The fixed labels avoid the previous planner failure
-where GitHub rejected a runner-label array assembled from another job's
-outputs, and they avoid a self-hosted machine failing before the build because
-its required WSL distribution is missing. The publisher still uses the
-`RELEASE_TOKEN`, `ORG_TOKEN`, then `GITHUB_TOKEN` authorization chain for
-GitHub API operations.
+There is no hosted selector and no cloud fallback in these workflows. Static
+runner labels make the placement visible during workflow planning and ensure a
+release cannot accidentally consume hosted minutes or expose its build to a
+different machine. The publisher still uses the `RELEASE_TOKEN`, `ORG_TOKEN`,
+then `GITHUB_TOKEN` authorization chain for GitHub API operations, but the
+token never chooses a runner.
 
 The combined dispatcher keeps its packaging jobs inline because GitHub had
 previously rejected the caller before creating any job when the runner labels
 were generated dynamically. The direct reusable workflow files remain
-available for packaging-only recovery, and they use the same static hosted
-targets.
+available for packaging-only recovery, and they use the same static
+self-hosted-only targets.
 
 The Linux TUI action installs the pinned `uv` tool first and runs
-`uv python install 3.12`; this keeps the pinned interpreter independent of the
-runner image's `actions/setup-python` distribution manifest. Version discovery runs through
+`uv python install 3.12`; this avoids relying on `actions/setup-python`'s
+distribution manifest, which does not list Python 3.12 for Debian 13 on the
+registered WSL runner. Version discovery runs through
 `uv run --python 3.12`, so the wheel, source distribution, and runtime
 constraints use the same managed interpreter.
 

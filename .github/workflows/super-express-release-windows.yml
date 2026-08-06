@@ -1,7 +1,7 @@
 name: Super Express Release / Windows
 
-# Reusable zero-test Windows lane for Super Express Release. It uses the fixed
-# windows-2022 hosted label so GitHub can schedule it without runner discovery.
+# Reusable zero-test Windows lane for Super Express Release. It is deliberately
+# self-hosted-only and queues until the registered Windows x64 runner is ready.
 on:
   workflow_call:
     inputs:
@@ -34,8 +34,11 @@ env:
 
 jobs:
   build:
-    name: Build Windows x64 package (GitHub-hosted)
-    runs-on: windows-2022
+    name: Build Windows x64 package (self-hosted)
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
     timeout-minutes: 60
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}

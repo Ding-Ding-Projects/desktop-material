@@ -79,10 +79,10 @@ rather than silently returning an empty workspace.
 ### Super Express Linux TUI lane
 
 The manual `.github/workflows/super-express-release.yml` dispatcher calls
-`.github/workflows/super-express-release-linux-tui.yml` on the fixed
-`ubuntu-latest` hosted runner in parallel with the Windows x64 lane. The
-coordinator and publisher use the same hosted label; this is an emergency
-zero-test path: it does
+`.github/workflows/super-express-release-linux-tui.yml` on the registered
+`[self-hosted, Linux, X64]` WSL runner in parallel with the Windows x64 lane.
+The coordinator and publisher use that same Linux runner; no Super Express job
+uses a GitHub-hosted cloud runner. This is an emergency zero-test path: it does
 not run the TUI suite, parity generation, Ruff, mypy, installer smoke, or the
 Debian acceptance container. It does run the packaging-only checks needed to
 avoid a misleading payload: the exact commit is checked out, managed Python

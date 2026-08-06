@@ -2,11 +2,12 @@ name: Super Express Release
 
 # Manual emergency lane. It deliberately runs no tests, lint, type checks,
 # parity checks, or smoke tests. The ordinary CI and Express Release workflows
-# remain the tested release paths. Every job in this emergency lane uses a
-# fixed GitHub-hosted label: Linux jobs use ubuntu-latest and the Windows
-# package uses windows-2022. The Windows and Linux TUI build jobs run in
-# parallel, then one hosted publisher creates the combined Release so the
-# Squirrel update feed and the TUI bootstrap URL still point at one payload.
+# remain the tested release paths. Every job in this emergency lane runs on a
+# registered self-hosted runner: Linux jobs use the WSL runner and the Windows
+# package uses the native Windows runner. The Windows and Linux TUI build jobs
+# run in parallel, then one Linux self-hosted publisher creates the combined
+# Release so the Squirrel update feed and the TUI bootstrap URL still point at
+# one payload.
 on:
   workflow_dispatch:
     inputs:
@@ -27,7 +28,10 @@ env:
 jobs:
   prepare:
     name: Prepare exact release target
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
     permissions:
       contents: read
     outputs:
@@ -96,9 +100,12 @@ jobs:
           echo "sha=$RELEASE_TARGET_SHA" >> "$GITHUB_OUTPUT"
 
   windows_build:
-    name: Build Windows x64 package (GitHub-hosted)
+    name: Build Windows x64 package (self-hosted)
     needs: prepare
-    runs-on: windows-2022
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v7.0.1
@@ -120,9 +127,12 @@ jobs:
             ${{ secrets.DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT }}
 
   tui_build:
-    name: Build Linux TUI packages (GitHub-hosted)
+    name: Build Linux TUI packages (self-hosted)
     needs: prepare
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7.0.1
@@ -144,7 +154,10 @@ jobs:
       always() && needs.prepare.result == 'success' &&
       needs.windows_build.result == 'success' && needs.tui_build.result ==
       'success' && inputs.publish
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
     permissions:
       contents: write
     env:

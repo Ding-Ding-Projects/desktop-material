@@ -1670,11 +1670,13 @@ The **Actions** panel brings CI into the app:
 - The repository's **Super Express Release** emergency lane runs no unit,
   script, TUI, lint, type, parity, smoke, or E2E tests. It goes directly to the
   Windows x64 production build/package, asset verification, and optional
-  release. Preparation and publication use `ubuntu-latest`, the Windows lane
-  uses `windows-2022`, and the Linux TUI lane uses `ubuntu-latest`. Fixed
-  hosted labels keep the workflow schedulable before any job starts. Ordinary
-  CI and tested Express remain the default gates. A release pull request
-  targets the Windows product's `main` default branch.
+  release. Every job is self-hosted-only: preparation and publication use the
+  registered Linux x64 WSL runner, the Windows lane uses `[self-hosted,
+  Windows, X64]`, and the TUI lane uses `[self-hosted, Linux, X64]`. A missing
+  or busy local runner queues or fails the release; it never falls back to a
+  GitHub-hosted runner. Ordinary CI and tested Express remain the default
+  gates. A release pull request targets the Windows product's `main` default
+  branch.
 - Automatic and Super Express installers share one monotonic `z` package-version
   namespace. Releases are immutable and initially non-latest; only the greatest
   release for freshly revalidated current `main` is promoted to the Squirrel

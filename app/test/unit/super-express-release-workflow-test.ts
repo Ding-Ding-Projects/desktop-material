@@ -41,14 +41,17 @@ const releasePullRequestWorkflow = readFileSync(
 )
 
 describe('Super Express Release workflow', () => {
-  it('is manual-only and dispatches fixed-hosted zero-test build lanes', () => {
+  it('is manual-only and dispatches self-hosted-only zero-test build lanes', () => {
     assert.match(workflow, /on:\s*\n\s+workflow_dispatch:/)
     assert.doesNotMatch(workflow, /\n\s+(?:push|workflow_run):/)
     assert.match(
       workflow,
-      /prepare:\s*\n\s+name: Prepare exact release target\s*\n\s+runs-on: ubuntu-latest/
+      /prepare:\s*\n\s+name: Prepare exact release target\s*\n\s+runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/
     )
-    assert.match(workflow, /publish:[\s\S]*?runs-on: ubuntu-latest/)
+    assert.match(
+      workflow,
+      /publish:[\s\S]*?runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/
+    )
     assert.doesNotMatch(workflow, /fromJSON\(needs\./)
     assert.doesNotMatch(
       workflow,
@@ -58,8 +61,14 @@ describe('Super Express Release workflow', () => {
       workflow,
       /GH_TOKEN:\s*\n\s+\$\{\{ secrets\.RELEASE_TOKEN \|\| secrets\.ORG_TOKEN \|\| secrets\.GITHUB_TOKEN\s*\}\}/
     )
-    assert.match(workflow, /runs-on: windows-2022/)
-    assert.match(workflow, /runs-on: ubuntu-latest/)
+    assert.match(
+      workflow,
+      /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/
+    )
+    assert.match(
+      workflow,
+      /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/
+    )
     assert.match(
       workflow,
       /uses: \.\/\.github\/actions\/super-express-windows-build/
@@ -113,7 +122,10 @@ describe('Super Express Release workflow', () => {
       /cloud|fallback|runner_selection|use_self_hosted/
     )
     assert.match(windowsWorkflow, /build:/)
-    assert.match(windowsWorkflow, /runs-on: windows-2022/)
+    assert.match(
+      windowsWorkflow,
+      /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/
+    )
     assert.match(windowsWorkflow, /super-express-windows-build/)
     assert.match(windowsBuildAction, /yarn build:prod/)
     assert.match(windowsBuildAction, /yarn package/)
@@ -135,7 +147,10 @@ describe('Super Express Release workflow', () => {
       /cloud|fallback|runner_selection|use_self_hosted/
     )
     assert.match(tuiWorkflow, /build:/)
-    assert.match(tuiWorkflow, /runs-on: ubuntu-latest/)
+    assert.match(
+      tuiWorkflow,
+      /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/
+    )
     assert.match(tuiWorkflow, /super-express-linux-tui-build/)
     assert.match(tuiBuildAction, /uv python install 3\.12/)
     assert.doesNotMatch(tuiBuildAction, /actions\/setup-python@v7/)
