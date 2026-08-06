@@ -2,6 +2,18 @@
 
 Updated: **August 6, 2026**
 
+## August 6 — Keep Python 3.13 TUI UI tests process-safe
+
+- The Linux Python 3.13 lane now runs all non-UI tests together and launches
+  each UI test file in a fresh interpreter. This preserves the complete test
+  set while preventing Textual's native syntax state from crossing app-heavy
+  file boundaries.
+- The corrected wave `31082985235` exposed the process-lifetime segfault after
+  64% of 673 tests. Local WSL reproduction passed 574 non-UI tests and all 99
+  UI tests with the new boundary. Commit
+  `cbfa45f5d728e75ade4a93a74b7c2d9b922827d8` carries the runner and its
+  discovery contract; remote verification is the next `main` wave.
+
 ## August 6 — Make app-owned profile history Windows-long-path safe
 
 - The TUI's isolated Git-backed profile-history repository now enables

@@ -291,6 +291,23 @@ Review the tracked script before running any remote command.
 
 ---
 
+## CI test reliability
+
+The supported Windows build and the retained Linux TUI checks install their
+declared dependencies from the committed manifests. The Linux Python 3.13
+check runs non-UI tests together and gives every UI test file a fresh Python
+interpreter because Textual's native syntax state can otherwise segfault after
+several app-heavy files share one process. All test files still run; only the
+process boundary changes. Python 3.10 and 3.12 use the ordinary full-suite
+command.
+
+The same runner can be inspected at
+[`tui/tools/run-tests-isolated.py`](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/tui/tools/run-tests-isolated.py).
+It discovers test files rather than maintaining a hand-written allowlist, so
+adding a new UI file does not silently remove it from CI.
+
+---
+
 ## The shell
 
 Desktop Material rebuilds the GitHub Desktop shell around Material Design 3. The chrome you work in

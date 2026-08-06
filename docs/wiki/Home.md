@@ -267,6 +267,10 @@ the tonal workspace preview hides when a compact window needs the space.
 - **Self-hosted dependency setup** — install the declared Node and Python dependencies directly on
   the registered local runners. Hosted jobs may use exact archive caches, while self-hosted lanes
   skip optional cache-save post hooks so a completed build is not kept busy uploading its leftovers.
+- **Python 3.13 TUI verification** — the Linux lane runs all non-UI tests together, then gives each
+  UI test file a fresh interpreter. This preserves the complete suite while preventing a native
+  Textual syntax-state segfault from crossing app-heavy test files; Python 3.10 and 3.12 keep the
+  ordinary full-suite path.
 - **Windows profile history** — the TUI configures `core.longpaths` inside its own isolated Git
   history repository as well as in CI checkout preparation, so Windows history writes do not rely
   on a separate repository's local Git configuration.

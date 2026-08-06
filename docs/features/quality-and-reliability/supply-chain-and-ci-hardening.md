@@ -56,6 +56,27 @@ Avoiding a Chocolatey install keeps the self-hosted Windows service usable
 without administrator rights and prevents a stale system package lock from
 blocking the entire E2E job.
 
+## Python 3.13 UI test process isolation
+
+The Linux TUI matrix keeps Python 3.10 and 3.12 on the ordinary full-suite
+command. Python 3.13 uses `tui/tools/run-tests-isolated.py`: it discovers every
+test file, runs all non-UI files together, and launches each `tests/ui` file in
+its own interpreter. This is a test-process boundary only; no product feature
+or test assertion is disabled, and future UI files are included automatically.
+
+The failure mode is a Python 3.13 native-process segfault after several
+app-heavy Textual files share one interpreter. The fatal trace can appear in a
+pure-Python stylesheet update while `tree_sitter_json._binding` is loaded, so
+retrying the same monolithic command is not a useful diagnosis. The safe
+recovery is to run the affected UI file in a fresh process and preserve the
+full result set. The runner uses the current locked interpreter and
+repository-owned paths only; it does not evaluate test paths from the network
+or accept shell fragments, so the isolation adds no remote execution surface.
+The committed unit contract verifies that the runner discovers all test files,
+keeps the UI/non-UI sets disjoint, and includes representative root and layout
+tests. Local WSL verification passed 574 non-UI tests and 99 UI tests with the
+boundary; the remote Python 3.13 result remains the release gate.
+
 The self-hosted Linux release lanes also bootstrap the pinned GitHub CLI when
 the runner image does not provide `gh`. The bootstrap reuses an existing CLI or
 downloads the canonical Linux archive into `RUNNER_TEMP`, verifies its published

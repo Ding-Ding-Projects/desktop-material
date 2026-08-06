@@ -1,5 +1,26 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Keep Python 3.13 TUI UI tests process-safe
+
+The corrected `main` wave `31082985235` reached the Linux TUI Python 3.13
+lane and failed in job `92555930082` with exit 139 after 64% of 673 tests.
+The fatal trace landed in Textual stylesheet updates while
+`tree_sitter_json._binding` was loaded. The same crash reproduced locally in
+WSL with the locked environment: a fresh process passed the layout matrix and
+the dim-sum integration file, while sharing one interpreter across app-heavy
+UI files eventually segfaulted. This was a native process-lifetime failure,
+not a failed assertion or a missing dependency.
+
+Commit `cbfa45f5d728e75ade4a93a74b7c2d9b922827d8` adds
+`tui/tools/run-tests-isolated.py`. Python 3.13 now runs all non-UI test files
+together and starts a fresh interpreter for every UI test file; Python 3.10
+and 3.12 retain the ordinary full-suite command. The runner discovers every
+`test_*.py` file, so the isolation does not skip coverage. Local evidence is
+574 non-UI tests passed, 99 UI tests passed one file per process, the runner
+contract and long-path regression passed, Ruff passed, and `actionlint`
+passed with ShellCheck 0.11.0. The next `main` wave must verify the new lane
+and the release follow-up; remote verification is not claimed yet.
+
 ## 2026-08-06 — Make app-owned profile history Windows-long-path safe
 
 The authoritative `main` run `31081357217` reached the Windows arm64 lane
