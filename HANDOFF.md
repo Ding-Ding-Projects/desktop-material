@@ -35,7 +35,7 @@ and verifies the exact destination tip before retargeting. Verification and
 changelog commit `8ac2bf5cfce2f4645fa4ead4e7cf05e23cd59478` records the run
 manifest and current evidence.
 
-## 2026-08-06 — Fix Super Express workflow startup planning
+## 2026-08-06 — Fix Super Express workflow startup planning and repair build prerequisites
 
 The Super Express dispatcher keeps preparation and publication on
 `ubuntu-latest`, while its combined packaging jobs and its two direct reusable
@@ -53,10 +53,29 @@ self-hosted-first behavior and keeping the zero-test emergency lane and direct
 artifact-only lane behavior unchanged.
 
 The workflow contract test now asserts the fixed labels and rejects the
-dynamic runner-selection shape. Local actionlint (with shellcheck disabled
-because the Windows actionlint/shellcheck pipe can hang), Prettier, and
-`git diff --check` pass. A fresh remote dispatch with `publish=false` is the
-remaining verification step after this correction reaches `main`.
+dynamic runner-selection shape. The setup action now checks cached React JSX
+runtime and `react-confetti` files before use; an incomplete cache automatically
+returns to the bounded dependency install path. The source Sass error at
+`app/styles/ui/_launchpad.scss:278` was corrected by replacing the invalid
+the team selectors under `.launchpad-view` inside the media query, so Sass can
+resolve every `&__…` selector against its real parent.
+
+Local verification is **9/9** focused CI/dependency/workflow tests, YAML
+parsing, Prettier, and `git diff --check`. The full production compile was
+attempted with the repository-pinned TypeScript and a supported local Node 24
+runtime, but the webpack process exceeded the four-minute local bound without
+returning a client verdict; no production-build success is claimed from that
+attempt. The earlier cloud Windows fallback run `31060316032` was red at the
+Sass error and also reported `react/jsx-runtime` resolution from its incomplete
+dependency cache. The cache repair and Sass correction address those reported
+causes.
+
+The matching Windows and Linux self-hosted runners were online and idle during
+inventory checks. Follow-up combined dispatches `31060759025`, `31061020998`,
+and `31061157152` created the selector and static build jobs but were cancelled
+by an external concurrent-run sweep before any selector or build step ran.
+Self-hosted execution and a post-fix remote green build therefore remain
+unverified; no Release was published by these `publish=false` dispatches.
 
 ## 2026-08-05 — Close remaining Windows TypeScript build gaps
 
