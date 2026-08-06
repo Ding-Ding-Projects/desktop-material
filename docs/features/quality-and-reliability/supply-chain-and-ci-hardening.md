@@ -42,6 +42,13 @@ Avoiding a Chocolatey install keeps the self-hosted Windows service usable
 without administrator rights and prevents a stale system package lock from
 blocking the entire E2E job.
 
+The self-hosted Linux release lanes also bootstrap the pinned GitHub CLI when
+the runner image does not provide `gh`. The bootstrap reuses an existing CLI or
+downloads the canonical Linux archive into `RUNNER_TEMP`, verifies its published
+SHA-256 checksum, and adds only that temporary bin directory to `GITHUB_PATH`.
+Release-gate API calls therefore do not depend on a cloud-runner convenience
+package or a system-wide install.
+
 ## Behaviour
 
 ### Dependency update proposals

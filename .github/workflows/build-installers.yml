@@ -45,6 +45,11 @@ jobs:
       windows_ok: ${{ steps.target.outputs.windows_ok }}
       linux_ok: ${{ steps.target.outputs.linux_ok }}
     steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: ./.github/actions/setup-github-cli
       - name: Require a successful main CI or a main dispatch
         id: target
         shell: bash
@@ -697,6 +702,7 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
+      - uses: ./.github/actions/setup-github-cli
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}

@@ -48,6 +48,19 @@ keeps the self-hosted service user-scoped and avoids requiring administrator
 rights. The focused setup contract now rejects both the removed input and any
 Chocolatey FFmpeg install; the next main CI wave must verify Windows E2E on the
 local runner.
+
+## 2026-08-06 — Bootstrap GitHub CLI on self-hosted release Linux
+
+The next pure-self-hosted main wave reached the local Linux `prepare` runner,
+but the Express release gate stopped before packaging because that WSL image did
+not have `gh` installed (`gh: command not found`). The release correctly created
+no artifact or Release. Express and Super Express now check out the exact
+trusted commit before their Linux release API steps, reuse an installed GitHub
+CLI when present, or download pinned `gh` 2.97.0 into `RUNNER_TEMP` and verify
+the upstream SHA-256 checksum before adding it to `GITHUB_PATH`. The focused
+workflow contract guards this bootstrap in both release workflows; the next
+stable main wave must verify the gate, Windows package, Linux TUI package, and
+publication on the registered self-hosted pool.
 ## 2026-08-06 — Bootstrap Python on self-hosted Linux
 
 The direct pure-self-hosted Express Release dispatch reached `linux` and

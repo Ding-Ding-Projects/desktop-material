@@ -25,6 +25,14 @@ const installerWorkflow = readFileSync(
   join(root, '.github', 'workflows', 'build-installers.yml'),
   'utf8'
 )
+const superExpressWorkflow = readFileSync(
+  join(root, '.github', 'workflows', 'super-express-release.yml'),
+  'utf8'
+)
+const githubCliAction = readFileSync(
+  join(root, '.github', 'actions', 'setup-github-cli', 'action.yml'),
+  'utf8'
+)
 const lineCounter = readFileSync(
   join(root, 'script', 'count-lines.mjs'),
   'utf8'
@@ -379,6 +387,27 @@ describe('CI workflow safety', () => {
         /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/g
       )?.length,
       2
+    )
+  })
+
+  it('bootstraps GitHub CLI before self-hosted release API calls', () => {
+    assert.match(githubCliAction, /default: '2\.97\.0'/)
+    assert.match(
+      githubCliAction,
+      /cli\/cli\/releases\/download\/v\$\{GH_CLI_VERSION\}/
+    )
+    assert.match(githubCliAction, /sha256sum -c -/)
+    assert.match(
+      installerWorkflow,
+      /ref: main[\s\S]*?setup-github-cli[\s\S]*?Require a successful main CI/
+    )
+    assert.match(
+      installerWorkflow,
+      /ref: \$\{\{ needs\.prepare\.outputs\.sha \}\}[\s\S]*?setup-github-cli[\s\S]*?actions\/setup-node@v7/
+    )
+    assert.match(
+      superExpressWorkflow,
+      /ref: \$\{\{ needs\.prepare\.outputs\.sha \}\}[\s\S]*?setup-github-cli[\s\S]*?actions\/setup-node@v7/
     )
   })
 
