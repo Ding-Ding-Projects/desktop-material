@@ -449,6 +449,7 @@ import {
   getAccountForComposeCommitsWithAI,
   getAccountForCopilotConflictResolution,
   getAccountForRepository,
+  getRepositoryAccountKeyForActiveAccount,
   getRepositoryCredentialAccountKey,
   getRepositoryOwnerAccountToPromote,
 } from '../get-account-for-repository'
@@ -22448,6 +22449,31 @@ export class AppStore extends TypedBaseStore<IAppState> {
       `[AppStore] promoting account ${account.login} to the active identity`
     )
     await this.accountsStore.promoteAccount(account)
+
+    // A repository that has already been auto-bound keeps using its stable
+    // account key for network work. A deliberate Make active action must also
+    // align the selected same-host repository, otherwise the rail changes
+    // while the next push still authenticates as the previous account.
+    const activeAccount = this.accounts.find(
+      candidate => getAccountKey(candidate) === getAccountKey(account)
+    )
+    const selectedRepository = this.selectedRepository
+    if (
+      activeAccount === undefined ||
+      !(selectedRepository instanceof Repository)
+    ) {
+      return
+    }
+
+    const accountKey = getRepositoryAccountKeyForActiveAccount(
+      activeAccount,
+      selectedRepository
+    )
+    if (accountKey === null || selectedRepository.accountKey === accountKey) {
+      return
+    }
+
+    await this._updateRepositoryAccount(selectedRepository, accountKey)
   }
 
   private async _addAccount(account: Account): Promise<void> {
