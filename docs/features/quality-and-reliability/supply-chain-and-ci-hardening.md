@@ -151,27 +151,35 @@ with `vswhere.exe`, reads `Microsoft.VCToolsVersion.default.txt`, and installs
 the `Microsoft.VisualStudio.Component.VC.Tools.ARM64` and
 `Microsoft.VisualStudio.Component.VC.Tools.x86.x64` components when the exact
 default MSVC version lacks `VC\Tools\MSVC\<version>\bin\Hostx64\arm64\cl.exe`.
-The action handles a runner where the MSVC directory is absent, verifies the
-compiler after installation, and fails before production build if setup did not
-complete. The installer smoke test checks the Squirrel process exit code and
-requires the exact package version's newly written executable, preventing a
-stale persistent runner installation from being accepted.
+The arm64 helper runs before ClangCL, waits up to 120 five-second checks for the
+compiler after a quiet installer return, and exports the selected instance in
+`npm_config_msvs_version` so the later ClangCL check cannot silently choose a
+different installation. The action handles a runner where the MSVC directory
+is absent, verifies the compiler after installation, and fails before
+production build if setup did not complete. The installer smoke test checks the
+Squirrel process exit code and requires the exact package version's newly
+written executable, preventing a stale persistent runner installation from
+being accepted.
 
 All self-hosted Windows jobs also verify the architecture-specific ClangCL
 toolset required by the `vendor/desktop-trampoline` native test. The setup
-action selects a complete Visual Studio instance with the matching
-`Toolset.props`, `Toolset.targets`, and `VC\Tools\Llvm\<architecture>\bin\clang-cl.exe`,
-then exports that instance through `npm_config_msvs_version` so node-gyp does
-not choose a different incomplete installation. When no complete instance is
-available, it asks the installed Visual Studio instance to add
-`Microsoft.VisualStudio.Component.VC.Llvm.Clang` with the installer's supported
-quiet/no-restart flags. Because that invocation can return before the installer
-has materialized the files, the script then polls for the compiler and both
-MSBuild toolset files for up to 120 five-second checks before failing with an
-explicit setup error. The installer has no `--wait` option on the runner's
-Visual Studio Installer 4.7.25, so the setup contract rejects that unsupported
-flag. This keeps the native test from racing an in-progress installation while
-still failing closed when the runner never receives a usable toolset.
+action selects one Visual Studio instance with the matching `Toolset.props`,
+`Toolset.targets`, `MSBuild\Current\Bin\MSBuild.exe`, x64 MSVC compiler, and
+`VC\Tools\Llvm\<architecture>\bin\clang-cl.exe`, then exports that instance
+through `npm_config_msvs_version` so node-gyp does not choose a different
+incomplete installation. When no complete instance is available, it asks the
+installed Visual Studio instance to add both
+`Microsoft.VisualStudio.Component.VC.Llvm.Clang` and
+`Microsoft.VisualStudio.Component.VC.Tools.x86.x64` with the installer's
+supported quiet/no-restart flags. Because that invocation can return before
+the installer has materialized the files, the script then polls for the
+compiler and both MSBuild toolset files for up to 120 five-second checks before
+failing with an explicit setup error. Installer status codes `0`, `3010`,
+`1001`, and `1618` remain eligible for that bounded verification; other codes
+fail immediately. The installer has no `--wait` option on the runner's Visual
+Studio Installer 4.7.25, so the setup contract rejects that unsupported flag.
+This keeps the native test from racing an in-progress installation while still
+failing closed when the runner never receives a usable toolset.
 
 ### Lock-file provenance and integrity (blocking)
 
@@ -368,7 +376,11 @@ ClangCL bootstrap verification performed on 2026-08-06:
   setup sequence then exposed that quiet installation can return before the
   toolset files are visible; commit `b5e6b7f825` added the bounded five-second
   poll, and the focused setup contract now covers both the unsupported-flag
-  guard and the asynchronous completion path.
+  guard and the asynchronous completion path. Commit `87ec5b3452` extends
+  that protection to arm64, keeps the two architecture helpers on one Visual
+  Studio instance, and verifies the x64 MSVC/MSBuild prerequisites; the focused
+  setup contract passes **32/32** across its four suites, and direct local
+  probes pass for both x64 ClangCL and arm64 MSVC discovery.
 - A new GitHub Actions run is still required to verify the registered
   self-hosted runner's own Visual Studio instance and the resulting Windows
   x64/arm64 CI and release lanes.

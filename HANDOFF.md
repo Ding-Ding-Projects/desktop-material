@@ -35,6 +35,23 @@ failure modes, security notes, and verification record are in
 
 Remote CI and default-branch publication remain the final external checks.
 
+## 2026-08-06 — Keep the Windows native toolchain on one VS instance
+
+The dependency bootstrap had two remaining clean-runner races after the first
+ClangCL poll: the arm64 helper checked its compiler immediately and could
+repair a different Visual Studio instance from the one ClangCL had exported to
+node-gyp. Commit `87ec5b3452` runs the arm64 repair first, preserves its
+`npm_config_msvs_version` selection, makes ClangCL prefer that same instance,
+and requires x64 MSVC plus `MSBuild.exe` alongside the ClangCL files before the
+path is exported. Both installer calls use the portable
+`--installPath=<path>` form, accept only the known success/reboot/async status
+codes, and poll the actual compiler files for up to 120 five-second checks.
+
+The local host probe now selects its real Visual Studio Community instance for
+both x64 ClangCL and arm64 MSVC and writes the same `npm_config_msvs_version`
+path in each case. A new exact-main Windows wave must verify the cold repair on
+the registered runner and continue through the packaged E2E smoke test.
+
 ## 2026-08-06 — Wait for asynchronous ClangCL installation completion
 
 The replacement Visual Studio bootstrap reached the supported `--quiet
@@ -109,15 +126,17 @@ toolset files exist.
 
 The shared Windows setup now discovers complete architecture-specific Visual
 Studio instances with `vswhere.exe`, including the ClangCL MSBuild props and
-targets, and exports the selected install through `npm_config_msvs_version` so
-node-gyp uses the same instance. If no complete instance is available, it adds
-`Microsoft.VisualStudio.Component.VC.Llvm.Clang` through the existing installer
-with its supported quiet/no-restart flags, then verifies the compiler and MSBuild
-files. The existing arm64
-MSVC bootstrap remains separate. Locally, the exact Windows x64 native command
-passes through all three ClangCL targets after selecting the complete Community
-instance; the next self-hosted CI wave must verify the native test, Windows
-x64/arm64 builds, E2E smoke, and the pure self-hosted release.
+targets, x64 MSVC, and MSBuild itself, and exports the selected install through
+`npm_config_msvs_version` so node-gyp uses the same instance. The arm64 helper
+runs first when needed, installs both cross-compiler components, waits for the
+compiler to materialize, and exports that instance before ClangCL setup. If no
+complete instance is available, the ClangCL step adds the Clang and x64 MSVC
+components through the existing installer with its supported quiet/no-restart
+flags, then verifies the compiler and MSBuild files. Locally, the exact Windows
+x64 native command passes through all three ClangCL targets after selecting the
+complete Community instance; the next self-hosted CI wave must verify the
+native test, Windows x64/arm64 builds, E2E smoke, and the pure self-hosted
+release.
 
 ## 2026-08-06 — Stop canceled Windows CI builds from continuing
 
