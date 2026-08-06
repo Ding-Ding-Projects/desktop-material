@@ -259,6 +259,11 @@ syntax error discovered while producing the required renderer artifact.
   activated Retry. The final recapture used the same built artifact after the
   fixture was reset and also rendered both states. No credential, token, or
   personal path appears in either promoted image.
+- Teardown evidence: the exact Electron process, fixture server, isolated
+  headless desktop, and isolated MCP server were stopped; the fixture listener
+  is absent and three owned keytar entries were removed. The host shell policy
+  blocked deletion of the explicitly named temporary capture roots and helper
+  scripts, so those recoverable artifacts remain outside the repository.
 
 The task-branch workflows were cancelled by workflow concurrency, so no remote
 green result is claimed here. Release publication remains an external
