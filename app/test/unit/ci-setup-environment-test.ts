@@ -36,6 +36,18 @@ describe('CI environment setup', () => {
     assert.match(setupAction, /bin\\bash\.exe/)
     assert.match(setupAction, /Install uv for self-hosted Windows Python/)
     assert.match(setupAction, /Install uv for self-hosted Linux Python/)
+    assert.match(
+      setupAction,
+      /Install uv for self-hosted Windows Python[\s\S]*?enable-cache: false/
+    )
+    assert.match(
+      setupAction,
+      /Install uv for self-hosted Linux Python[\s\S]*?enable-cache: false/
+    )
+    assert.match(
+      setupAction,
+      /Restore exact installed dependencies[\s\S]*?runner\.environment != 'self-hosted'/
+    )
     assert.match(setupAction, /uv python install 3\.11/)
     assert.match(setupAction, /npm_config_python=\$python_path/)
     assert.match(
@@ -104,7 +116,7 @@ describe('CI environment setup', () => {
     )
     assert.match(
       setupAction,
-      /Provide repository-pinned Yarn to self-hosted Windows actions[\s\S]*?Expose repository-pinned Yarn to Git Bash[\s\S]*?cygpath -u[\s\S]*?GITHUB_PATH[\s\S]*?yarn --version[\s\S]*?Use Node\.js .*?with Yarn download cache/
+      /Provide repository-pinned Yarn to self-hosted Windows actions[\s\S]*?Expose repository-pinned Yarn to Git Bash[\s\S]*?cygpath -u[\s\S]*?GITHUB_PATH[\s\S]*?yarn --version[\s\S]*?Use Node\.js .*?with Yarn download cache[\s\S]*?runner\.environment != 'self-hosted'[\s\S]*?Use Node\.js .*?before self-hosted dependency install/
     )
     assert.match(yarnBootstrap, /vendor\\yarn-1\.21\.1\.js/)
     assert.match(yarnBootstrap, /System\.IO\.File\]::Copy/)

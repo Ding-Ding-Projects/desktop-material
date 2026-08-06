@@ -31,6 +31,10 @@ runs:
 
     - name: Restore exact installed dependencies
       id: installed-dependencies
+      # The self-hosted runners keep their own dependency directories. The
+      # actions/cache post step can hold a runner for an unbounded upload after
+      # the real job has finished, so only hosted runners use this cache.
+      if: ${{ runner.environment != 'self-hosted' }}
       uses: actions/cache@v5
       with:
         path: |
@@ -62,14 +66,16 @@ runs:
       uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
       with:
         version: 0.11.26
-        enable-cache: true
+        # Do not register setup-uv's post-run cache upload on self-hosted
+        # runners. Dependency installation remains explicit and reproducible.
+        enable-cache: false
 
     - name: Install uv for self-hosted Linux Python
       if: ${{ runner.os == 'Linux' && runner.environment == 'self-hosted' }}
       uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
       with:
         version: 0.11.26
-        enable-cache: true
+        enable-cache: false
 
     - name: Install managed Python 3.11 on self-hosted Windows
       if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
@@ -221,8 +227,9 @@ runs:
 
     - name: Use Node.js ${{ inputs.node-version }} with Yarn download cache
       if:
-        ${{ steps.installed-dependencies.outputs.cache-hit != 'true' ||
-        steps.dependency-cache-check.outputs.complete != 'true' }}
+        ${{ (steps.installed-dependencies.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true') &&
+        runner.environment != 'self-hosted' }}
       uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}
@@ -230,6 +237,15 @@ runs:
         cache-dependency-path: |
           yarn.lock
           app/yarn.lock
+
+    - name: Use Node.js ${{ inputs.node-version }} before self-hosted dependency install
+      if:
+        ${{ (steps.installed-dependencies.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true') &&
+        runner.environment == 'self-hosted' }}
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
 
     - name: Install and build dependencies
       if:
