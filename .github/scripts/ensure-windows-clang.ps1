@@ -27,10 +27,33 @@ function Find-ClangToolset([string]$InstallationPath) {
     $toolsetRoot = Join-Path $InstallationPath "MSBuild\Microsoft\VC\v170\Platforms\$platform\PlatformToolsets\ClangCL"
     $toolsetProps = Join-Path $toolsetRoot 'Toolset.props'
     $toolsetTargets = Join-Path $toolsetRoot 'Toolset.targets'
+    $msbuild = Join-Path $InstallationPath 'MSBuild\Current\Bin\MSBuild.exe'
+    $msvcRoot = Join-Path $InstallationPath 'VC\Tools\MSVC'
     $llvmRoots = @(
         (Join-Path $InstallationPath "VC\Tools\Llvm\$platform")
         (Join-Path $InstallationPath 'VC\Tools\Llvm')
     )
+
+    if (-not (Test-Path -LiteralPath $msbuild) -or
+        -not (Test-Path -LiteralPath $msvcRoot)) {
+        return $null
+    }
+
+    $msvcCompiler = $null
+    $msvcVersionDirectories = @(
+        Get-ChildItem -LiteralPath $msvcRoot -Directory -ErrorAction SilentlyContinue |
+            Sort-Object Name -Descending
+    )
+    foreach ($versionDirectory in $msvcVersionDirectories) {
+        $candidate = Join-Path $versionDirectory.FullName 'bin\Hostx64\x64\cl.exe'
+        if (Test-Path -LiteralPath $candidate) {
+            $msvcCompiler = Get-Item -LiteralPath $candidate
+            break
+        }
+    }
+    if (-not $msvcCompiler) {
+        return $null
+    }
 
     foreach ($llvmRoot in $llvmRoots) {
         $compiler = Join-Path $llvmRoot 'bin\clang-cl.exe'
@@ -39,6 +62,8 @@ function Find-ClangToolset([string]$InstallationPath) {
             (Test-Path -LiteralPath $toolsetTargets)) {
             return [pscustomobject]@{
                 Compiler = Get-Item -LiteralPath $compiler
+                MsvcCompiler = $msvcCompiler
+                MSBuild = Get-Item -LiteralPath $msbuild
                 Props = Get-Item -LiteralPath $toolsetProps
                 Targets = Get-Item -LiteralPath $toolsetTargets
             }
@@ -55,6 +80,19 @@ $installableInstances = @(
 )
 if ($installableInstances.Count -eq 0) {
     throw 'Visual Studio discovery returned no installable instance for the Windows native tests.'
+}
+
+$configuredInstallationPath = $env:npm_config_msvs_version
+if ($configuredInstallationPath) {
+    $configuredInstance = $installableInstances |
+        Where-Object { $_.installationPath -eq $configuredInstallationPath } |
+        Select-Object -First 1
+    if ($configuredInstance) {
+        $installableInstances = @($configuredInstance) + @(
+            $installableInstances |
+                Where-Object { $_.installationPath -ne $configuredInstallationPath }
+        )
+    }
 }
 
 $instance = $null
@@ -88,18 +126,27 @@ if (-not (Test-Path -LiteralPath $setup)) {
 
 $arguments = @(
     'modify'
-    '--installPath'
-    $instance.installationPath
+    "--installPath=$($instance.installationPath)"
     '--add'
     'Microsoft.VisualStudio.Component.VC.Llvm.Clang'
+    '--add'
+    'Microsoft.VisualStudio.Component.VC.Tools.x86.x64'
     '--quiet'
     '--norestart'
 )
+if ($TargetArchitecture -eq 'arm64') {
+    $arguments += @(
+        '--add'
+        'Microsoft.VisualStudio.Component.VC.Tools.ARM64'
+    )
+}
 
 Write-Host "Installing the missing Windows ClangCL toolset for $TargetArchitecture with $setup."
 & $setup @arguments
-if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
-    throw "Visual Studio ClangCL toolset installation failed with exit code $LASTEXITCODE."
+$setupExitCode = $LASTEXITCODE
+$acceptedInstallerExitCodes = @(0, 3010, 1001, 1618)
+if ($null -ne $setupExitCode -and $acceptedInstallerExitCodes -notcontains $setupExitCode) {
+    throw "Visual Studio ClangCL toolset installation failed with exit code $setupExitCode."
 }
 
 $maxToolsetChecks = 120

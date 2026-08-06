@@ -64,11 +64,29 @@ describe('CI environment setup', () => {
     assert.match(clangToolsetScript, /npm_config_msvs_version=/)
     assert.match(clangToolsetScript, /Toolset\.props/)
     assert.match(clangToolsetScript, /Toolset\.targets/)
+    assert.match(clangToolsetScript, /MSBuild\\Current\\Bin\\MSBuild\.exe/)
+    assert.match(clangToolsetScript, /VC\\Tools\\MSVC/)
+    assert.match(clangToolsetScript, /Hostx64\\x64\\cl\.exe/)
+    assert.match(
+      clangToolsetScript,
+      /Microsoft\.VisualStudio\.Component\.VC\.Tools\.x86\.x64/
+    )
+    assert.match(clangToolsetScript, /--installPath=\$\(\$instance\.installationPath\)/)
+    assert.match(arm64ToolsetScript, /--installPath=\$\(\$instance\.installationPath\)/)
     assert.match(clangToolsetScript, /--quiet/)
     assert.match(clangToolsetScript, /--norestart/)
     assert.doesNotMatch(clangToolsetScript, /--wait/)
     assert.match(clangToolsetScript, /maxToolsetChecks = 120/)
     assert.match(clangToolsetScript, /Start-Sleep -Seconds 5/)
+    assert.match(clangToolsetScript, /acceptedInstallerExitCodes = \@\(0, 3010, 1001, 1618\)/)
+    assert.match(arm64ToolsetScript, /maxCompilerChecks = 120/)
+    assert.match(arm64ToolsetScript, /Start-Sleep -Seconds 5/)
+    assert.match(arm64ToolsetScript, /npm_config_msvs_version=/)
+    assert.match(arm64ToolsetScript, /acceptedInstallerExitCodes = \@\(0, 3010, 1001, 1618\)/)
+    assert.ok(
+      setupAction.indexOf('Install Windows arm64 C++ toolset when missing') <
+        setupAction.indexOf('Install Windows ClangCL toolset when missing')
+    )
     assert.match(
       arm64ToolsetScript,
       /Microsoft\.VisualStudio\.Component\.VC\.Tools\.ARM64/

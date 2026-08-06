@@ -74,6 +74,18 @@ $instancesWithoutCxx = @($installableInstances | Where-Object {
     -not (Test-Path -LiteralPath (Join-Path $_.installationPath 'VC\Tools\MSVC'))
 })
 $orderedInstances = @($instancesWithCxx) + @($instancesWithoutCxx)
+$configuredInstallationPath = $env:npm_config_msvs_version
+if ($configuredInstallationPath) {
+    $configuredInstance = $orderedInstances |
+        Where-Object { $_.installationPath -eq $configuredInstallationPath } |
+        Select-Object -First 1
+    if ($configuredInstance) {
+        $orderedInstances = @($configuredInstance) + @(
+            $orderedInstances |
+                Where-Object { $_.installationPath -ne $configuredInstallationPath }
+        )
+    }
+}
 
 $instance = $null
 $compiler = $null
@@ -95,6 +107,7 @@ if (-not $instance) {
 }
 
 if ($compiler) {
+    "npm_config_msvs_version=$($instance.installationPath)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
     Write-Host "Windows arm64 compiler is available at $($compiler.FullName)."
     exit 0
 }
@@ -109,8 +122,7 @@ if (-not (Test-Path -LiteralPath $setup)) {
 
 $arguments = @(
     'modify'
-    '--installPath'
-    $instance.installationPath
+    "--installPath=$($instance.installationPath)"
     '--add'
     'Microsoft.VisualStudio.Component.VC.Tools.ARM64'
     '--add'
@@ -121,15 +133,31 @@ $arguments = @(
 
 Write-Host "Installing the missing Windows arm64 C++ toolset with $setup."
 & $setup @arguments
-if ($LASTEXITCODE -ne 0) {
-    throw "Visual Studio arm64 toolset installation failed with exit code $LASTEXITCODE."
+$setupExitCode = $LASTEXITCODE
+$acceptedInstallerExitCodes = @(0, 3010, 1001, 1618)
+if ($null -ne $setupExitCode -and $acceptedInstallerExitCodes -notcontains $setupExitCode) {
+    throw "Visual Studio arm64 toolset installation failed with exit code $setupExitCode."
 }
 
-$defaultMsvcVersion = Get-DefaultMsvcVersion $instance.installationPath
-$compiler = Find-Arm64Compiler $instance.installationPath $defaultMsvcVersion
+$maxCompilerChecks = 120
+for ($check = 1; $check -le $maxCompilerChecks; $check++) {
+    $defaultMsvcVersion = Get-DefaultMsvcVersion $instance.installationPath
+    $compiler = Find-Arm64Compiler $instance.installationPath $defaultMsvcVersion
+    if ($compiler) {
+        break
+    }
+    if ($check -lt $maxCompilerChecks) {
+        if (($check % 12) -eq 0) {
+            Write-Host "Waiting for Visual Studio to expose the arm64 C++ toolset ($check/$maxCompilerChecks)."
+        }
+        Start-Sleep -Seconds 5
+    }
+}
+
 if (-not $compiler) {
     $expected = if ($defaultMsvcVersion) { " for MSVC $defaultMsvcVersion" } else { '' }
     throw "Visual Studio arm64 toolset installation completed without an arm64 compiler$expected under $($instance.installationPath)."
 }
 
+"npm_config_msvs_version=$($instance.installationPath)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 Write-Host "Windows arm64 compiler is ready at $($compiler.FullName)."
