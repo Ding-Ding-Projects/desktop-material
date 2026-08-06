@@ -1,5 +1,18 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Make Express Release entirely self-hosted
+
+The first repaired `main` dispatch proved that the ordinary CI jobs were
+landing on the registered Linux and Windows runners, but it also exposed a
+remaining gap: `Build Installers / Express Release` still placed `prepare`,
+`Release notes`, and `Publish GitHub release` on GitHub-hosted Linux and its
+Windows build jobs on `windows-2022`. The workflow now places all seven jobs on
+the static self-hosted Linux or Windows x64 labels, installs the pinned Node
+version in its direct release-note and publisher jobs, and uses a ref-scoped
+`cancel-in-progress: true` group. The obsolete hosted Express runs were
+cancelled before they could publish; the next `main` release dispatch must
+verify the complete release path on the registered pool.
+
 ## 2026-08-05 — Repair fresh-install self-hosted CI contracts
 
 The first manual self-hosted verification of `main` reached the registered
