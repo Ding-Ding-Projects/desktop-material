@@ -402,7 +402,11 @@ switches the whole workspace to that identity's context.
 The **Active** chip and **Make active** action in **Settings → Accounts** use
 the same one-account-global rule as the rail switcher, including across
 GitHub.com, Enterprise, GitLab, and Bitbucket sections. A repository with an
-explicit **Repository account** binding remains on that exact identity.
+explicit **Repository account** binding remains on that exact identity until a
+user deliberately promotes another GitHub identity on the same API endpoint
+while that repository is selected; the selected repository then follows the
+choice for its next authenticated operation. Other repositories, hosts, and
+providers keep their existing bindings.
 
 Open the repositories side sheet to narrow cloned repositories by **Repository account** and
 **Repository service**. The filters combine: for example, choose one exact account and GitLab, or

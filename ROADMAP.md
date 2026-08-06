@@ -212,6 +212,22 @@ Updated: **August 6, 2026**
   required hidden build was attempted through Lowlevel, but its client stalled
   after the compiler worker stopped and no runtime evidence is claimed.
 
+## August 6 — Make active follows the selected repository
+
+- Choosing **Make active** now also updates the selected repository's binding
+  when the promoted identity is a GitHub account on the same API endpoint. The
+  next fetch, push, pull request, or other authenticated operation therefore
+  uses the identity the user deliberately selected instead of a stale automatic
+  binding.
+- Other repositories retain their explicit bindings, and accounts from another
+  host or provider never cross that boundary.
+- Source commit
+  [`5235d4fff9efbd605a5083a5dec58970d8797863`](https://github.com/Ding-Ding-Projects/desktop-material/commit/5235d4fff9efbd605a5083a5dec58970d8797863)
+  adds the same-host binding helper and AppStore regression coverage. The
+  combined focused run passes **131/131**; the required hidden-desktop build
+  and capture remain pending while the shared Lowlevel endpoint serves another
+  checkout's production build.
+
 ## August 5 — transient Actions job-log 404 recovery
 
 - GitHub may return `HTTP 404` for a valid completed-job log endpoint while its
