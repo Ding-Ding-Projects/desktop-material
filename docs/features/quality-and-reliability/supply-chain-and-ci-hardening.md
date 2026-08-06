@@ -153,6 +153,18 @@ complete. The installer smoke test checks the Squirrel process exit code and
 requires the exact package version's newly written executable, preventing a
 stale persistent runner installation from being accepted.
 
+All self-hosted Windows jobs also verify the architecture-specific ClangCL
+toolset required by the `vendor/desktop-trampoline` native test. The setup
+action selects a complete Visual Studio instance with the matching
+`Toolset.props`, `Toolset.targets`, and `VC\Tools\Llvm\<architecture>\bin\clang-cl.exe`,
+then exports that instance through `npm_config_msvs_version` so node-gyp does
+not choose a different incomplete installation. When no complete instance is
+available, it asks the installed Visual Studio instance to add
+`Microsoft.VisualStudio.Component.VC.Llvm.Clang`, waits for the installer, and
+fails with an explicit setup error if the compiler and MSBuild toolset are
+still absent. This keeps the native test from hanging in MSBuild while waiting
+for a toolset that the runner never installed.
+
 ### Lock-file provenance and integrity (blocking)
 
 The `supply-chain` job's first step reads `yarn.lock` and `app/yarn.lock` and
@@ -290,6 +302,12 @@ arm64 C++ components when absent, and verifies `Hostx64\arm64\cl.exe` before
 failure and skips the production build instead of emitting misleading missing
 module errors from a build guarded by `always()`.
 
+**The Windows x64 job stalls in `desktop-trampoline` native tests.** Check the
+setup log for `MSB8020` naming `ClangCL`. The shared self-hosted setup now
+selects and exports a complete architecture-specific ClangCL instance before
+the test; a failure to install it is a setup failure, not a test timeout to
+ignore.
+
 ## Verification
 
 Performed on 2026-07-31 against the working tree, before any push:
@@ -317,6 +335,21 @@ Performed on 2026-07-31 against the working tree, before any push:
   plus the in-repo `vendor/` path dependencies, none of which are git
   submodules.
 - `npx prettier --write` was run on both YAML files.
+
+ClangCL bootstrap verification performed on 2026-08-06:
+
+- `.github/scripts/ensure-windows-clang.ps1` selected the complete Visual
+  Studio Community instance for both `x64` and `arm64`, verified the matching
+  compiler plus MSBuild props and targets, and wrote
+  `npm_config_msvs_version` to the runner environment file.
+- The exact Windows x64 native sequence passed locally: `node-gyp rebuild`
+  produced all three trampoline executables, `yarn build` passed, and
+  `yarn test` passed all 9 tests.
+- `yarn test:unit app/test/unit/ci-setup-environment-test.ts` passed all 2
+  focused setup-contract tests.
+- A new GitHub Actions run is still required to verify the registered
+  self-hosted runner's own Visual Studio instance and the resulting Windows
+  x64/arm64 CI and release lanes.
 
 Not verified locally, and not verifiable without a run on GitHub:
 
