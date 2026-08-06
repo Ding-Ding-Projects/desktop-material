@@ -343,6 +343,13 @@
       d: "A search box at the top of the Settings (Preferences) dialog's left rail lets you find a setting by name, description, or keyword across every tab, and jump straight to the tab…",
     },
     {
+      t: 'Settings tab docking',
+      h: 'features/identity-and-workspace/settings-tab-docking.html',
+      s: 'features/identity-and-workspace/settings-tab-docking.md',
+      c: 'features',
+      d: 'Repository Settings and application Settings use the same browser-style tab strip. The strip can be docked on the left, top, bottom, or right of its content. Left is the…',
+    },
+    {
       t: 'Tab groups',
       h: 'features/identity-and-workspace/tab-groups.html',
       s: 'features/identity-and-workspace/tab-groups.md',
@@ -866,6 +873,13 @@
       s: 'features/repository-management/ignored-files-to-local-submodule.md',
       c: 'features',
       d: 'A reviewed workflow that copies working files Git itself currently proves are ignored into a newly created local Git repository and registers that repository as a submodule of…',
+    },
+    {
+      t: 'Launchpad',
+      h: 'features/repository-management/launchpad.html',
+      s: 'features/repository-management/launchpad.md',
+      c: 'features',
+      d: 'Launchpad is the repository workspace for reviewing the items that need attention first. It groups repository-backed work into Pinned, Ready to merge, Unassigned, CI failing,…',
     },
     {
       t: 'Multi-remote fetch sync',
