@@ -15,6 +15,10 @@ const appStoreSource = readFileSync(
   join(process.cwd(), 'app', 'src', 'lib', 'stores', 'app-store.ts'),
   'utf8'
 )
+const compareSource = readFileSync(
+  join(process.cwd(), 'app', 'src', 'ui', 'history', 'compare.tsx'),
+  'utf8'
+)
 const cheapLfsStyles = readFileSync(
   join(process.cwd(), 'app', 'styles', 'ui', '_cheap-lfs.scss'),
   'utf8'
@@ -46,6 +50,38 @@ describe('repository section navigation source contract', () => {
     assert.match(
       repositorySource,
       /const section = this\.getVisibleRepositorySections\(\)\[visualIndex\]/
+    )
+  })
+
+  it('routes History Graph to its own full-width repository page', () => {
+    assert.match(
+      repositorySource,
+      /id="history-graph-tab"[\s\S]*?repositorySection\.historyGraph/
+    )
+    assert.match(
+      repositorySource,
+      /selectedSection === RepositorySectionTab\.HistoryGraph[\s\S]*?return null/
+    )
+    assert.match(
+      repositorySource,
+      /selectedSection === RepositorySectionTab\.HistoryGraph\) \{\s*return this\.renderCompareSidebar\(true\)/
+    )
+    assert.match(
+      repositorySource,
+      /<CompareSidebar[\s\S]*?graphOnly=\{graphOnly\}/
+    )
+    assert.match(
+      compareSource,
+      /className=\{classNames\(\{ 'history-graph-page': this\.props\.graphOnly \}\)\}/
+    )
+    assert.match(
+      compareSource,
+      /this\.props\.graphOnly \|\| this\.state\.showGraphView/
+    )
+    assert.match(compareSource, /history-graph-page-title/)
+    assert.match(
+      appStoreSource,
+      /case RepositorySectionTab\.HistoryGraph:[\s\S]*?refreshHistorySection/
     )
   })
 

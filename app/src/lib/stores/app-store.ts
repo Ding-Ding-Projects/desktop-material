@@ -6155,6 +6155,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     switch (selectedSection) {
       case RepositorySectionTab.Changes:
       case RepositorySectionTab.History:
+      case RepositorySectionTab.HistoryGraph:
       case RepositorySectionTab.Actions:
       case RepositorySectionTab.Releases:
       case RepositorySectionTab.CheapLfs:
@@ -6207,7 +6208,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
 
-    if (selectedSection === RepositorySectionTab.History) {
+    if (
+      selectedSection === RepositorySectionTab.History ||
+      selectedSection === RepositorySectionTab.HistoryGraph
+    ) {
       await this.refreshHistorySection(repository)
     } else if (selectedSection === RepositorySectionTab.Changes) {
       await this.refreshChangesSection(repository, {
@@ -8158,7 +8162,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const section = state.selectedSection
     let refreshSectionPromise: Promise<void>
 
-    if (section === RepositorySectionTab.History) {
+    if (
+      section === RepositorySectionTab.History ||
+      section === RepositorySectionTab.HistoryGraph
+    ) {
       refreshSectionPromise = this.refreshHistorySection(repository)
     } else if (section === RepositorySectionTab.Changes) {
       refreshSectionPromise = this.refreshChangesSection(repository, {

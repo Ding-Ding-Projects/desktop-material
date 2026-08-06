@@ -1130,11 +1130,32 @@ describe('history graph view: wiring', () => {
   })
 
   it('keeps the commit list as the other view rather than replacing it', () => {
-    assert.match(compare, /isHistory && this\.state\.showGraphView/)
+    assert.match(
+      compare,
+      /isHistory && \(this\.props\.graphOnly \|\| this\.state\.showGraphView\)/
+    )
     assert.match(compare, /<CommitList/)
     assert.match(
       compare,
       /id=\{isHistory \? 'history-view-panel' : undefined\}/
+    )
+  })
+
+  it('supports a dedicated full-width repository page without nested view tabs', () => {
+    assert.match(compare, /readonly graphOnly\?: boolean/)
+    assert.match(compare, /if \(this\.props\.graphOnly\) \{\s*return null\s*\}/)
+    assert.match(
+      compare,
+      /isHistory && \(this\.props\.graphOnly \|\| this\.state\.showGraphView\)/
+    )
+    assert.match(compare, /role=\{graphPage \? 'region' : 'tabpanel'\}/)
+    assert.match(
+      compare,
+      /!this\.props\.graphOnly && \(\s*<Button[\s\S]*?history-commit-graph-toggle/
+    )
+    assert.match(
+      compare,
+      /onKeyboardReorder=\{\s*graphPage \? undefined : this\.onKeyboardReorder\s*\}/
     )
   })
 
@@ -1185,7 +1206,7 @@ describe('history graph view: wiring', () => {
     assert.ok(handler !== undefined)
     assert.match(
       handler,
-      /if \(this\.state\.showGraphView\) \{[\s\S]*?this\.setState\(\{ showGraphView: false \}, \(\) => \{[\s\S]*?this\.setState\(\{ keyboardReorderData \}\)[\s\S]*?\}\)[\s\S]*?return/
+      /if \(this\.state\.showGraphView && !this\.props\.graphOnly\) \{[\s\S]*?this\.setState\(\{ showGraphView: false \}, \(\) => \{[\s\S]*?this\.setState\(\{ keyboardReorderData \}\)[\s\S]*?\}\)[\s\S]*?return/
     )
     assert.doesNotMatch(
       handler,

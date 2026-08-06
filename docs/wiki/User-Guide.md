@@ -1824,7 +1824,9 @@ Copilot conflict assistance is available, it participates inside the same guarde
 
 Open **History** and use the search field to match a commit's title, message, tag, or hash. The
 results retain the normal commit detail view. Toggle **Show commit graph** to add ancestry lanes and
-merge edges beside the unfiltered list; turn the graph off when a compact list is more useful.
+merge edges beside the unfiltered list; turn the graph off when a compact list is more useful. For
+readable three-column ancestry work, choose **Graph** in the repository navigation rail: it is a
+dedicated full-width page with the same scope, filters, lane controls, selection, and commit actions.
 
 Right-click a commit row for reset, checkout, reorder, revert, branch, tag, cherry-pick, copy, and
 provider actions. The row's named **More actions** button, the Context Menu key, and `Shift+F10`
@@ -1835,7 +1837,7 @@ and an auto-updating relative line such as **2 minutes ago**.
 
 ![History search and commit graph](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-power-tools.png)
 
-History now exposes the two view modes as explicit, keyboard-accessible tabs:
+History also exposes the two view modes as explicit, keyboard-accessible tabs:
 choose **Commit list** for the dense review list or **Graph** for the continuous
 branch lanes. The selected view persists with the repository tab, and arrow,
 Home, and End keys move through the tab strip.

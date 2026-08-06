@@ -619,6 +619,8 @@ export enum RepositorySectionTab {
   GitHubAPI,
   CheapLfs,
   Launchpad,
+  /** Full-width ancestry graph page; keep new values appended for persistence. */
+  HistoryGraph,
 }
 
 /**

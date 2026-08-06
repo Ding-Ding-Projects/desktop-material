@@ -444,6 +444,8 @@ describe('repository section order', () => {
     assert.deepStrictEqual(getRepositorySections(false), [
       RepositorySectionTab.Changes,
       RepositorySectionTab.History,
+      RepositorySectionTab.HistoryGraph,
+      RepositorySectionTab.Launchpad,
       RepositorySectionTab.Triage,
       RepositorySectionTab.RepositoryTools,
     ])
@@ -452,7 +454,7 @@ describe('repository section order', () => {
         RepositorySectionTab.RepositoryTools,
         false
       ),
-      3
+      5
     )
   })
 
@@ -460,7 +462,9 @@ describe('repository section order', () => {
     assert.deepStrictEqual(getRepositorySections(true), [
       RepositorySectionTab.Changes,
       RepositorySectionTab.History,
+      RepositorySectionTab.HistoryGraph,
       RepositorySectionTab.Actions,
+      RepositorySectionTab.Launchpad,
       RepositorySectionTab.Triage,
       RepositorySectionTab.RepositoryTools,
     ])
@@ -469,7 +473,7 @@ describe('repository section order', () => {
         RepositorySectionTab.RepositoryTools,
         true
       ),
-      4
+      6
     )
   })
 
@@ -477,11 +481,13 @@ describe('repository section order', () => {
     assert.deepStrictEqual(getRepositorySections(true, true, true, true), [
       RepositorySectionTab.Changes,
       RepositorySectionTab.History,
+      RepositorySectionTab.HistoryGraph,
       RepositorySectionTab.Actions,
       RepositorySectionTab.Releases,
       RepositorySectionTab.CheapLfs,
       RepositorySectionTab.Issues,
       RepositorySectionTab.GitHubAPI,
+      RepositorySectionTab.Launchpad,
       RepositorySectionTab.Triage,
       RepositorySectionTab.RepositoryTools,
     ])
@@ -493,7 +499,7 @@ describe('repository section order', () => {
         true,
         true
       ),
-      6
+      7
     )
   })
 })
