@@ -222,6 +222,47 @@ The enabled GitHub Wiki recovery note was committed as
 and returned HTTP 403; `gh auth setup-git --hostname github.com` refreshed the
 credential path, after which the exact commit landed and the Wiki checkout is
 clean.
+## 2026-08-05 — Actions job-log transient 404 recovery
+
+This Windows Electron fix was developed in the new linked worktree branch
+`codex/job-log-404-fix` at commit `33f54a69825d97083dc8f0b1fb134b353e9686ca`,
+and the integration checkout carries that commit into the default branch.
+GitHub can briefly return `HTTP 404`
+while a valid completed-job log archive is being prepared. The main-process
+transfer now retries only that API response after 250/750/1,500 ms waits,
+restarts from the original API endpoint for a fresh signed redirect, and keeps
+the bearer header off cross-origin blob requests. The log viewer explains the
+provider state and exposes **Retry** and **Open on GitHub**. The unrelated
+Launchpad Sass brace correction is included because it was the build-blocking
+syntax error discovered while producing the required renderer artifact.
+
+### Verification receipts
+
+- Focused transfer/viewer tests: **18 passed, 0 failed**.
+- `tsc --noEmit -p tsconfig.json`: passed.
+- Changed-file ESLint and Prettier checks: passed.
+- `git diff --check`: passed before documentation and capture promotion.
+- Standalone renderer diagnostic: `hasErrors:false`. The final exact
+  `yarn build:prod` command completed with the fresh Node 24.15.0 runtime in
+  **512.78s**, passed the Sass/license checks, produced fresh
+  `out/renderer.js`, `out/main.js`, stylesheet, and `out/index.html` outputs,
+  and packaged `dist\\GitHubDesktop-win32-x64`. Signing was not run.
+- Genuine hidden-desktop capture at **1400×1000** from the built artifact:
+  `docs/assets/screenshots/material-actions-job-log-404-recovery.png` shows the
+  final 404 explanation and both recovery controls (SHA-256
+  `444AA612720799BCB6107BFD7B3CEED66E56252E82E724B1C26559F347968972`).
+  `docs/assets/screenshots/material-actions-job-log-404-recovered.png` shows
+  the two expected log lines after Retry (SHA-256
+  `83D9704989173353467E8C5B079B8D3905A0C52AF6283AC7C09FAB92D2B15A78`).
+- In the dedicated 404-to-Retry acceptance sequence, the fixture recorded four
+  bounded 404 attempts followed by one successful transfer after the user
+  activated Retry. The final recapture used the same built artifact after the
+  fixture was reset and also rendered both states. No credential, token, or
+  personal path appears in either promoted image.
+
+The task-branch workflows were cancelled by workflow concurrency, so no remote
+green result is claimed here. Release publication remains an external
+follow-up after the default-branch workflow produces its verified installer.
 
 ## 2026-08-04 — Live Material renderer proof and startup cleanup
 

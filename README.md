@@ -9,6 +9,14 @@
 > for exact-identity recovery and export to a directory, ZIP, or configurable
 > 7z archive. See [stash export and recovery](docs/features/repository-management/stash-export.md).
 
+> **Actions job-log recovery — August 5, 2026:** a completed GitHub Actions job
+> can briefly report `HTTP 404` while its log archive is being prepared. The
+> Windows viewer now retries that API response with bounded 250/750/1,500 ms
+> waits, refreshes the signed redirect each time, and offers **Retry** plus
+> **Open on GitHub** when the provider still has not produced the archive. The
+> built-app recovery proof is documented in the [Actions workflow manager
+> guide](docs/features/integrations/actions-workflow-manager.md).
+
 ![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
 
 > **Full-width History Graph page — August 5, 2026:** the repository rail now

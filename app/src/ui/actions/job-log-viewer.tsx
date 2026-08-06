@@ -70,6 +70,7 @@ interface IJobLogViewerProps {
   readonly loading: boolean
   readonly error: Error | null
   readonly onClose: () => void
+  readonly onRetry: () => void
 }
 
 interface IJobLogViewerState {
@@ -500,10 +501,23 @@ export class JobLogViewer extends React.Component<
           {this.props.loading ? (
             <div className="actions-loading">Downloading job log…</div>
           ) : this.props.error ? (
-            <div className="actions-inline-error" role="alert">
-              {expired
-                ? 'These workflow logs have expired on GitHub.'
-                : this.props.error.message}
+            <div className="actions-log-error">
+              <div className="actions-inline-error" role="alert">
+                {expired
+                  ? 'These workflow logs have expired on GitHub.'
+                  : this.props.error.message}
+              </div>
+              <div className="actions-log-error-actions">
+                <Button size="small" onClick={this.props.onRetry}>
+                  Retry
+                </Button>
+                <LinkButton
+                  uri={this.props.job.htmlUrl}
+                  ariaLabel={`Open ${this.props.job.name} on GitHub`}
+                >
+                  Open on GitHub
+                </LinkButton>
+              </div>
             </div>
           ) : (
             <div className="actions-log-list">

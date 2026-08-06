@@ -43,6 +43,22 @@ Updated: **August 5, 2026**
   store, repository-owner, and click-handler suites report **55/55**. The
   required hidden build was attempted through Lowlevel, but its client stalled
   after the compiler worker stopped and no runtime evidence is claimed.
+## August 5 — transient Actions job-log 404 recovery
+
+- GitHub may return `HTTP 404` for a valid completed-job log endpoint while its
+  archive is still being prepared. The Windows transfer path now retries only
+  that API response after bounded **250 ms**, **750 ms**, and **1,500 ms** waits,
+  returning to the API endpoint for a fresh signed redirect each time. Blob
+  URLs never retry and API bearer headers never cross the redirect boundary.
+- The in-app Job Log surface now explains the provider state and keeps explicit
+  **Retry** and **Open on GitHub** recovery actions visible. The existing
+  expired-log (`410`) behavior is unchanged.
+- Local evidence: focused transfer/viewer tests pass **18/18**; TypeScript,
+  changed-file ESLint, and Prettier pass; the cheap headless Windows artifact
+  shows the final 404 state and then both expected log lines after Retry. The
+  standalone renderer diagnostic reports `hasErrors:false`; the production
+  build also required and now includes a minimal Launchpad Sass brace fix so
+  its declared renderer path compiles.
 
 ## August 3 — the site lays out on a phone
 
