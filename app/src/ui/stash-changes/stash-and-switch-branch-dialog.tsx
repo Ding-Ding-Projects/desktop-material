@@ -6,12 +6,14 @@ import { VerticalSegmentedControl } from '../lib/vertical-segmented-control'
 import { Row } from '../lib/row'
 import { Branch } from '../../models/branch'
 import { UncommittedChangesStrategy } from '../../models/uncommitted-changes-strategy'
+import { PopupType } from '../../models/popup'
 import { startTimer } from '../lib/timing'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 
 enum StashAction {
   StashOnCurrentBranch,
   MoveToNewBranch,
+  CreateWorktree,
 }
 
 interface ISwitchBranchProps {
@@ -63,7 +65,15 @@ export class StashAndSwitchBranch extends React.Component<
         <DialogContent>{this.renderStashActions()}</DialogContent>
         <DialogFooter>
           <OkCancelButtonGroup
-            okButtonText={__DARWIN__ ? 'Switch Branch' : 'Switch branch'}
+            okButtonText={
+              this.state.selectedStashAction === StashAction.CreateWorktree
+                ? __DARWIN__
+                  ? 'Create Worktree…'
+                  : 'Create worktree…'
+                : __DARWIN__
+                ? 'Switch Branch'
+                : 'Switch branch'
+            }
           />
         </DialogFooter>
       </Dialog>
@@ -83,6 +93,11 @@ export class StashAndSwitchBranch extends React.Component<
         title: `Bring my changes to ${branchToCheckout.name}`,
         description: 'Your in-progress work will follow you to the new branch',
         key: StashAction.MoveToNewBranch,
+      },
+      {
+        title: 'Leave my changes here',
+        description: `Create a separate worktree for ${branchToCheckout.name}. Your current worktree will stay on ${this.state.currentBranchName} with your in-progress work.`,
+        key: StashAction.CreateWorktree,
       },
     ]
 
@@ -105,6 +120,20 @@ export class StashAndSwitchBranch extends React.Component<
   private onSubmit = async () => {
     const { repository, branchToCheckout, dispatcher } = this.props
     const { selectedStashAction } = this.state
+
+    if (selectedStashAction === StashAction.CreateWorktree) {
+      // Keep the dirty worktree exactly where it is. The existing Add worktree
+      // flow performs the actual creation and switches the app only after the
+      // user has chosen and confirmed a destination path.
+      this.props.onDismissed()
+      await dispatcher.showPopup({
+        type: PopupType.AddWorktree,
+        repository,
+        initialBranchName: branchToCheckout.name,
+        initialWorktreeName: `${repository.name}-${branchToCheckout.nameWithoutRemote}`,
+      })
+      return
+    }
 
     this.setState({ isStashingChanges: true })
 
