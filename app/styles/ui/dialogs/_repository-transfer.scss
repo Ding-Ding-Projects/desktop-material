@@ -1,0 +1,280 @@
+dialog#repository-transfer {
+  width: min(680px, calc(100vw - 32px));
+
+  .repository-transfer-intro {
+    margin-bottom: 18px;
+
+    strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--md-sys-color-on-surface);
+      font-size: 15px;
+      font-weight: var(--font-weight-semibold);
+    }
+
+    p,
+    .repository-transfer-note {
+      margin: 0;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 12.5px;
+      line-height: 1.55;
+    }
+  }
+
+  .repository-transfer-route {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+
+    > div {
+      min-width: 0;
+      padding: 12px 14px;
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 16px;
+      background: var(--md-sys-color-surface-container);
+
+      &:last-child {
+        border-color: transparent;
+        color: var(--md-sys-color-on-primary-container);
+        background: var(--md-sys-color-primary-container);
+      }
+
+      > span {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--md-sys-color-on-surface-variant);
+        font-size: 10.5px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      > strong {
+        display: block;
+        overflow-wrap: anywhere;
+        font-family: var(--font-family-monospace);
+        font-size: 12px;
+        line-height: 1.4;
+      }
+
+      &:last-child > span {
+        color: var(--md-sys-color-on-primary-container);
+        opacity: 0.75;
+      }
+    }
+  }
+
+  .repository-transfer-arrow {
+    justify-self: center;
+    color: var(--md-sys-color-primary);
+    font-size: 24px;
+    font-weight: 700;
+  }
+
+  .repository-transfer-destination {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .repository-transfer-sign-in {
+    justify-self: start;
+  }
+
+  .repository-transfer-note,
+  .repository-transfer-validation {
+    margin: 8px 0 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 12px;
+    line-height: 1.55;
+
+    code {
+      padding: 2px 5px;
+      border-radius: 6px;
+      color: var(--md-sys-color-on-surface);
+      background: var(--md-sys-color-surface-container-high);
+      font-family: var(--font-family-monospace);
+    }
+  }
+
+  .repository-transfer-validation {
+    color: var(--md-sys-color-error);
+  }
+
+  .repository-transfer-mode {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 4px 10px;
+    margin: 16px 0 10px;
+    padding: 12px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 16px;
+
+    legend {
+      grid-column: 1 / -1;
+      padding: 0 4px;
+      color: var(--md-sys-color-on-surface);
+      font-size: 12px;
+      font-weight: var(--font-weight-semibold);
+    }
+
+    .radio-button-component {
+      min-width: 0;
+    }
+
+    p {
+      align-self: center;
+      margin: 0;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+  }
+
+  .repository-transfer-review {
+    margin-bottom: 16px;
+    padding: 14px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 16px;
+    color: var(--md-sys-color-on-surface);
+    background: var(--md-sys-color-surface-container);
+    line-height: 1.55;
+
+    p {
+      margin: 8px 0 0;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 12px;
+    }
+
+    code {
+      overflow-wrap: anywhere;
+      font-family: var(--font-family-monospace);
+    }
+  }
+
+  .repository-transfer-slider-label {
+    display: block;
+    margin-top: 18px;
+    color: var(--md-sys-color-on-surface);
+    font-size: 12px;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .repository-transfer-slider {
+    display: block;
+    width: 100%;
+    min-height: 32px;
+    margin: 6px 0 0;
+    accent-color: var(--md-sys-color-primary);
+  }
+
+  .repository-transfer-slider-output {
+    display: block;
+    color: var(--md-sys-color-on-surface-variant);
+    font-family: var(--font-family-monospace);
+    font-size: 12px;
+    text-align: right;
+  }
+
+  .repository-transfer-progress {
+    padding: 12px 0;
+
+    > strong {
+      display: block;
+      color: var(--md-sys-color-on-surface);
+      line-height: 1.5;
+    }
+
+    ol {
+      display: grid;
+      gap: 8px;
+      margin: 18px 0 0;
+      padding: 0;
+      list-style: none;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 12px;
+      text-transform: capitalize;
+    }
+
+    li {
+      position: relative;
+      padding-left: 24px;
+
+      &::before {
+        position: absolute;
+        top: 0.15em;
+        left: 0;
+        width: 12px;
+        height: 12px;
+        border: 2px solid var(--md-sys-color-outline);
+        border-radius: 50%;
+        content: '';
+      }
+
+      &.is-complete {
+        color: var(--md-sys-color-primary);
+
+        &::before {
+          border-color: var(--md-sys-color-primary);
+          background: var(--md-sys-color-primary);
+          animation: dmPop calc(260ms * var(--mdur, 1)) var(--spring-fast);
+        }
+      }
+    }
+  }
+
+  .repository-transfer-error-copy,
+  .repository-transfer-complete {
+    line-height: 1.55;
+
+    p {
+      margin: 8px 0 0;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+  }
+
+  .repository-transfer-complete {
+    padding: 14px;
+    border: 1px solid var(--md-sys-color-primary);
+    border-radius: 16px;
+    color: var(--md-sys-color-on-primary-container);
+    background: var(--md-sys-color-primary-container);
+    animation: dmPop calc(420ms * var(--mdur, 1)) var(--spring-fast);
+  }
+
+  details {
+    margin-top: var(--spacing-double);
+
+    pre {
+      overflow-wrap: break-word;
+      white-space: pre-wrap;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .repository-transfer-route {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .repository-transfer-arrow {
+      transform: rotate(90deg);
+    }
+
+    .repository-transfer-mode {
+      grid-template-columns: minmax(0, 1fr);
+
+      p {
+        margin: 0 0 6px 28px;
+      }
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .repository-transfer-progress li::before,
+    .repository-transfer-complete {
+      animation: none;
+    }
+  }
+}

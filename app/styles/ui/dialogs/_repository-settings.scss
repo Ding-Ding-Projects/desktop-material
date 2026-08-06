@@ -202,6 +202,13 @@
       display: grid;
       gap: var(--spacing-half);
 
+      .remote-manager-intro-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing);
+        margin-top: var(--spacing-half);
+      }
+
       p {
         color: var(--md-sys-color-on-surface-variant);
         font-size: var(--font-size-sm);
@@ -703,7 +710,9 @@
           gap: 10px;
           padding: 8px 12px;
           border-radius: 14px;
-          transition: background-color 200ms var(--emph), border-radius 260ms var(--spring);
+          transition:
+            background-color 200ms var(--emph),
+            border-radius 260ms var(--spring);
 
           &:hover {
             background: var(--md-sys-color-surface-container-high);

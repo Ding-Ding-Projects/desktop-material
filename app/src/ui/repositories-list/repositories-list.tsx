@@ -170,6 +170,9 @@ interface IRepositoriesListProps {
   /** Called when an eligible GitHub repository should be forked. */
   readonly onForkRepository?: (repository: Repositoryish) => void
 
+  /** Called when a GitHub repository should be transferred to another account. */
+  readonly onTransferRepository?: (repository: Repositoryish) => void
+
   /** Called when the repository should be opened in another app window. */
   readonly onOpenInNewWindow: (repository: Repositoryish) => void
 
@@ -1236,6 +1239,7 @@ export class RepositoriesList extends React.Component<
       onRemoveRepositoryGroupName: this.onRemoveRepositoryGroupName,
       onViewOnGitHub: this.props.onViewOnGitHub,
       onForkRepository: this.props.onForkRepository,
+      onTransferRepository: this.props.onTransferRepository,
       onOpenInNewWindow: this.props.onOpenInNewWindow,
       onCreateWorktree: enableWorktreeSupport()
         ? this.onCreateWorktree

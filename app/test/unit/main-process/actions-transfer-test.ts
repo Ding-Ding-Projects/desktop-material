@@ -672,6 +672,115 @@ describe('main-process Actions transfer', () => {
     assert.deepEqual(requests, ['Bearer selected-account-token', null])
   })
 
+  it('retries a transient job-log 404 from the API before following a fresh redirect', async () => {
+    const requests = new Array<{
+      readonly url: string
+      readonly authorization: string | null
+    }>()
+    const responses = [
+      new Response(null, { status: 404 }),
+      new Response(null, {
+        status: 302,
+        headers: { Location: 'https://blob.example.test/job.txt' },
+      }),
+      new Response('job log contents'),
+    ]
+    const delays = new Array<number>()
+
+    const result = await handleActionsJobLogTransfer(
+      new TestSender(27),
+      logRequest(),
+      async (input, init) => {
+        requests.push({
+          url: input,
+          authorization: new Headers(init.headers).get('Authorization'),
+        })
+        return responses.shift() ?? new Response(null, { status: 500 })
+      },
+      async (milliseconds, signal) => {
+        assert.equal(signal.aborted, false)
+        delays.push(milliseconds)
+      }
+    )
+
+    assert.deepEqual(result, {
+      ok: true,
+      log: 'job log contents',
+      truncated: false,
+    })
+    assert.deepEqual(delays, [250])
+    assert.deepEqual(requests, [
+      {
+        url: 'https://api.github.com/repos/owner/repo/actions/jobs/7/logs',
+        authorization: 'Bearer selected-account-token',
+      },
+      {
+        url: 'https://api.github.com/repos/owner/repo/actions/jobs/7/logs',
+        authorization: 'Bearer selected-account-token',
+      },
+      {
+        url: 'https://blob.example.test/job.txt',
+        authorization: null,
+      },
+    ])
+  })
+
+  it('reports a job-log 404 after bounded retries', async () => {
+    let fetches = 0
+    const delays = new Array<number>()
+    const result = await handleActionsJobLogTransfer(
+      new TestSender(28),
+      logRequest(),
+      async () => {
+        fetches += 1
+        return new Response(null, { status: 404 })
+      },
+      async milliseconds => {
+        delays.push(milliseconds)
+      }
+    )
+
+    assert.deepEqual(result, {
+      ok: false,
+      reason: 'http',
+      status: 404,
+    })
+    assert.equal(fetches, 4)
+    assert.deepEqual(delays, [250, 750, 1_500])
+  })
+
+  it('does not retry a 404 returned by the signed log blob', async () => {
+    const requests = new Array<string>()
+    const delays = new Array<number>()
+    const result = await handleActionsJobLogTransfer(
+      new TestSender(29),
+      logRequest(),
+      async input => {
+        requests.push(input)
+        return requests.length === 1
+          ? new Response(null, {
+              status: 302,
+              headers: { Location: 'https://blob.example.test/job.txt' },
+            })
+          : new Response(null, { status: 404 })
+      },
+      async milliseconds => {
+        delays.push(milliseconds)
+      }
+    )
+
+    assert.deepEqual(result, {
+      ok: false,
+      reason: 'http',
+      status: 404,
+    })
+    assert.deepEqual(requests, [
+      'https://api.github.com/repos/owner/repo/actions/jobs/7/logs',
+      'https://blob.example.test/job.txt',
+    ])
+    assert.deepEqual(delays, [])
+  })
+
   it('reports cancellation that occurs while a job-log read is pending', async () => {
     let readStarted!: () => void
     const reading = new Promise<void>(resolve => (readStarted = resolve))

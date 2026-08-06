@@ -13,6 +13,7 @@
 @import 'dialogs/commit-conflicts-warning';
 @import 'dialogs/create-tutorial-repository';
 @import 'dialogs/create-fork';
+@import 'dialogs/repository-transfer';
 @import 'dialogs/fork-settings';
 @import 'dialogs/cherry-pick';
 @import 'dialogs/thank-you';
@@ -129,7 +130,9 @@ dialog {
     &-exit-active {
       opacity: 0.01;
       transform: scale(0.25);
-      transition: opacity 100ms ease-in, transform 100ms var(--easing-ease-in-back);
+      transition:
+        opacity 100ms ease-in,
+        transform 100ms var(--easing-ease-in-back);
 
       &::backdrop {
         opacity: 0.01;

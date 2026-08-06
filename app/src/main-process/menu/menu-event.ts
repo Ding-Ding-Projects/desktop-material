@@ -5,6 +5,7 @@ export type MenuEvent =
   | 'pull'
   | 'fetch'
   | 'fork-repository'
+  | 'transfer-repository'
   | 'show-changes'
   | 'show-history'
   | 'show-repository-tools'
@@ -111,7 +112,7 @@ const TestMenuEvents = [
   'test-cli-action',
 ] as const
 
-export type TestMenuEvent = typeof TestMenuEvents[number]
+export type TestMenuEvent = (typeof TestMenuEvents)[number]
 
 export function isTestMenuEvent(value: any): value is TestMenuEvent {
   return TestMenuEvents.includes(value)
