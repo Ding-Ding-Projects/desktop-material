@@ -67,15 +67,6 @@ const commonConfig: webpack.Configuration = {
         __dirname,
         'node_modules/react/jsx-runtime.js'
       ),
-      // The Copilot SDK also publishes an ESM entry that uses `import.meta` to
-      // locate its native CLI package. Webpack's Electron renderer runtime
-      // cannot provide the generated `__webpack_module__` reference for that
-      // entry, so use the SDK's equivalent CommonJS build when bundling the
-      // desktop application.
-      '@github/copilot-sdk$': path.resolve(
-        __dirname,
-        'node_modules/@github/copilot-sdk/dist/cjs/index.js'
-      ),
     },
   },
   node: {
