@@ -6,9 +6,11 @@ import * as octicons from '../octicons/octicons.generated'
 import { showContextualMenu, IMenuItem } from '../../lib/menu-item'
 import { SettingsTabPickerPopover } from './settings-tab-picker-popover'
 import {
+  DefaultSettingsTabDockPosition,
   getPinnedSettingsTabs,
   ISettingsTabItem,
   orderSettingsTabs,
+  SettingsTabDockPosition,
   SettingsTabStripId,
   toggleSettingsTabPin,
 } from './settings-tab-model'
@@ -24,6 +26,8 @@ interface ISettingsTabStripProps {
   readonly onSelect: (id: string) => void
   /** Blocks navigation while the dialog owns a mutation. */
   readonly disabled?: boolean
+  /** Where the owning settings surface has docked this strip. */
+  readonly dockPosition?: SettingsTabDockPosition
 
   /**
    * Whether the strip offers its own search button.
@@ -112,7 +116,8 @@ export class SettingsTabStrip extends React.Component<
   public componentDidUpdate(prevProps: ISettingsTabStripProps) {
     if (
       prevProps.items !== this.props.items ||
-      prevProps.selectedId !== this.props.selectedId
+      prevProps.selectedId !== this.props.selectedId ||
+      prevProps.dockPosition !== this.props.dockPosition
     ) {
       this.scheduleMeasure()
     }
@@ -157,7 +162,10 @@ export class SettingsTabStrip extends React.Component<
       // A row counts as reachable only when it is wholly inside the scrollport.
       // A half-visible row is exactly the state that made the list look
       // finished when it was not.
-      if (box.top < port.top - 1 || box.bottom > port.bottom + 1) {
+      const outside = this.isHorizontal
+        ? box.left < port.left - 1 || box.right > port.right + 1
+        : box.top < port.top - 1 || box.bottom > port.bottom + 1
+      if (outside) {
         overflowIds.push(id)
       }
     }
@@ -208,6 +216,14 @@ export class SettingsTabStrip extends React.Component<
     return orderSettingsTabs(this.props.items, this.state.pinnedIds)
   }
 
+  private get dockPosition(): SettingsTabDockPosition {
+    return this.props.dockPosition ?? DefaultSettingsTabDockPosition
+  }
+
+  private get isHorizontal(): boolean {
+    return this.dockPosition === 'top' || this.dockPosition === 'bottom'
+  }
+
   private onRowClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (this.props.disabled !== true) {
       this.props.onSelect(event.currentTarget.value)
@@ -218,7 +234,9 @@ export class SettingsTabStrip extends React.Component<
     if (this.props.disabled === true) {
       return
     }
-    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
+    const previousKey = this.isHorizontal ? 'ArrowLeft' : 'ArrowUp'
+    const nextKey = this.isHorizontal ? 'ArrowRight' : 'ArrowDown'
+    if (event.key !== previousKey && event.key !== nextKey) {
       return
     }
 
@@ -230,7 +248,7 @@ export class SettingsTabStrip extends React.Component<
       return
     }
 
-    const delta = event.key === 'ArrowDown' ? 1 : -1
+    const delta = event.key === nextKey ? 1 : -1
     // http://javascript.about.com/od/problemsolving/a/modulobug.htm
     const next = ordered[(index + delta + ordered.length) % ordered.length]
     this.props.onSelect(next.id)
@@ -270,7 +288,10 @@ export class SettingsTabStrip extends React.Component<
     this.setState({ pickerAnchor: null, pickerScope: null })
     this.props.onSelect(id)
     // Bring the chosen page into view; it is very often one that did not fit.
-    this.rowRefs.get(id)?.scrollIntoView({ block: 'nearest' })
+    this.rowRefs.get(id)?.scrollIntoView({
+      block: 'nearest',
+      inline: 'nearest',
+    })
   }
 
   private renderPicker() {
@@ -336,13 +357,18 @@ export class SettingsTabStrip extends React.Component<
   public render() {
     const { ordered, pinnedCount } = this.ordered
     const { selectedId, disabled } = this.props
+    const orientation = this.isHorizontal ? 'horizontal' : 'vertical'
 
     return (
-      <div className="settings-tab-strip">
+      <div
+        className="settings-tab-strip"
+        data-settings-tab-dock-position={this.dockPosition}
+        data-settings-tab-dock-orientation={orientation}
+      >
         <div
           className="settings-tab-strip-list"
           role="tablist"
-          aria-orientation="vertical"
+          aria-orientation={orientation}
           ref={this.onListRef}
         >
           {ordered.map((item, index) => {

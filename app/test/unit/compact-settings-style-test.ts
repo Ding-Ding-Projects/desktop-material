@@ -34,7 +34,7 @@ describe('compact settings style contracts', () => {
     assert.match(style, /overflow-x: hidden;/)
     assert.match(
       style,
-      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?grid-template-columns: repeat\(auto-fit, minmax\(40px, 1fr\)\);/
+      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?\.tab-container\[data-settings-tab-dock-position='top'\][\s\S]*?flex-direction: column;/
     )
     assert.match(
       style,
@@ -48,11 +48,12 @@ describe('compact settings style contracts', () => {
       style,
       /> form\s*\{[\s\S]*?flex: 1;[\s\S]*?height: auto;[\s\S]*?overflow: hidden;/
     )
-    // The compact rail collapses into a row of icon buttons. It targets the
-    // shared strip now, not the TabBar this dialog used to render.
+    // The compact rail keeps the chosen dock: top/bottom stay horizontal while
+    // left/right retain a narrow vertical rail. It targets the shared strip
+    // now, not the TabBar this dialog used to render.
     assert.match(
       style,
-      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?\.settings-tab-strip-list\s*\{[\s\S]*?grid-template-columns: repeat\(auto-fit, minmax\(40px, 1fr\)\);/
+      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?\.tab-container\[data-settings-tab-dock-position='top'\][\s\S]*?\.settings-tab-strip-list\s*\{[\s\S]*?flex-direction: row;/
     )
     assert.doesNotMatch(
       style,

@@ -1,9 +1,10 @@
 import assert from 'node:assert'
-import { describe, it, mock } from 'node:test'
+import { beforeEach, describe, it, mock } from 'node:test'
 import * as React from 'react'
 
 import { RepositorySettingsTab } from '../../src/models/repository-settings'
 import { Repository } from '../../src/models/repository'
+import { getSettingsTabDockPosition } from '../../src/ui/settings-tabs/settings-tab-model'
 import { fireEvent, render } from '../helpers/ui/render'
 
 // The dialog reads the remote snapshot and git config the moment it mounts.
@@ -70,7 +71,31 @@ const SearchLabel = 'Search repository settings'
 const tabsOf = (view: ReturnType<typeof renderSettings>) =>
   view.getAllByRole('tab', { hidden: true })
 
+beforeEach(() => {
+  localStorage.removeItem('settings-tab-dock-position.repository-settings')
+})
+
 describe('Repository settings search', () => {
+  it('defaults to the left dock and persists a changed dock position', () => {
+    const view = renderSettings()
+    const select = view.getByRole('combobox', {
+      hidden: true,
+      name: 'Settings tab position',
+    }) as HTMLSelectElement
+
+    assert.equal(select.value, 'left')
+    fireEvent.change(select, { target: { value: 'right' } })
+
+    assert.equal(select.value, 'right')
+    assert.equal(getSettingsTabDockPosition('repository-settings'), 'right')
+    assert.equal(
+      view.container
+        .querySelector('.tab-container')
+        ?.getAttribute('data-settings-tab-dock-position'),
+      'right'
+    )
+  })
+
   it('carries its own search field wired to a regex builder surface', () => {
     const view = renderSettings()
 

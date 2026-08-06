@@ -3,10 +3,15 @@ import { describe, it, beforeEach } from 'node:test'
 import * as React from 'react'
 
 import { SettingsTabStrip } from '../../src/ui/settings-tabs/settings-tab-strip'
+import { SettingsTabDockControl } from '../../src/ui/settings-tabs/settings-tab-dock-control'
 import {
+  DefaultSettingsTabDockPosition,
+  getSettingsTabDockPosition,
   getPinnedSettingsTabs,
   orderSettingsTabs,
   pinSettingsTab,
+  setSettingsTabDockPosition,
+  SettingsTabDockPosition,
   toggleSettingsTabPin,
   unpinSettingsTab,
 } from '../../src/ui/settings-tabs/settings-tab-model'
@@ -155,6 +160,59 @@ describe('settings tab pinning', () => {
   })
 })
 
+describe('settings tab docking', () => {
+  beforeEach(() => localStorage.clear())
+
+  it('defaults every surface to the historical left rail', () => {
+    assert.strictEqual(
+      getSettingsTabDockPosition('preferences'),
+      DefaultSettingsTabDockPosition
+    )
+    assert.strictEqual(
+      getSettingsTabDockPosition('repository-settings'),
+      DefaultSettingsTabDockPosition
+    )
+  })
+
+  it('persists each surface independently and rejects invalid stored values', () => {
+    setSettingsTabDockPosition('preferences', 'bottom')
+    setSettingsTabDockPosition('repository-settings', 'right')
+
+    assert.strictEqual(getSettingsTabDockPosition('preferences'), 'bottom')
+    assert.strictEqual(
+      getSettingsTabDockPosition('repository-settings'),
+      'right'
+    )
+
+    localStorage.setItem('settings-tab-dock-position.preferences', 'diagonal')
+    assert.strictEqual(
+      getSettingsTabDockPosition('preferences'),
+      DefaultSettingsTabDockPosition
+    )
+  })
+
+  it('exposes all four positions through a keyboard-reachable control', () => {
+    const changes: SettingsTabDockPosition[] = []
+    const view = render(
+      <SettingsTabDockControl
+        strip="preferences"
+        position="left"
+        onChange={position => changes.push(position)}
+      />
+    )
+
+    const select = view.getByRole('combobox', {
+      name: 'Settings tab position',
+    }) as HTMLSelectElement
+    assert.deepStrictEqual(
+      Array.from(select.options).map(option => option.value),
+      ['left', 'top', 'bottom', 'right']
+    )
+    fireEvent.change(select, { target: { value: 'right' } })
+    assert.deepStrictEqual(changes, ['right'])
+  })
+})
+
 describe('SettingsTabStrip', () => {
   beforeEach(() => localStorage.clear())
 
@@ -227,6 +285,29 @@ describe('SettingsTabStrip', () => {
         .getAttribute('aria-orientation'),
       'vertical'
     )
+  })
+
+  it('switches to a horizontal tablist and arrow direction for top and bottom docks', () => {
+    const { view, selected } = renderStrip({ dockPosition: 'top' })
+    const tabs = tabsOf(view)
+
+    assert.strictEqual(
+      view
+        .getByRole('tablist', { hidden: true })
+        .getAttribute('aria-orientation'),
+      'horizontal'
+    )
+    assert.strictEqual(
+      view.container
+        .querySelector('.settings-tab-strip')
+        ?.getAttribute('data-settings-tab-dock-position'),
+      'top'
+    )
+
+    fireEvent.keyDown(tabs[0], { key: 'ArrowRight' })
+    fireEvent.keyDown(tabs[0], { key: 'ArrowDown' })
+
+    assert.deepStrictEqual(selected, ['ignored'])
   })
 
   it('moves the selection with the arrow keys, wrapping at the ends', () => {

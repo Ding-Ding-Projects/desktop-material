@@ -4,7 +4,13 @@ import { FilterMode } from '../../lib/fuzzy-find'
 import { filterByMode } from '../lib/filter-string-list'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import { SettingsTabStrip } from '../settings-tabs/settings-tab-strip'
-import { ISettingsTabItem } from '../settings-tabs/settings-tab-model'
+import { SettingsTabDockControl } from '../settings-tabs/settings-tab-dock-control'
+import {
+  getSettingsTabDockPosition,
+  ISettingsTabItem,
+  setSettingsTabDockPosition,
+  SettingsTabDockPosition,
+} from '../settings-tabs/settings-tab-model'
 import { Remote } from './remote'
 import { GitIgnore } from './git-ignore'
 import { BuildRunSettings } from './build-run-settings'
@@ -127,6 +133,7 @@ const toSettingsTabItem = (
 
 interface IRepositorySettingsState {
   readonly selectedTab: RepositorySettingsTab
+  readonly tabDockPosition: SettingsTabDockPosition
 
   /** The settings search: its query, and the mode the regex builder set. */
   readonly tabFilter: string
@@ -187,6 +194,7 @@ export class RepositorySettings extends React.Component<
     this.state = {
       selectedTab:
         this.props.initialSelectedTab || RepositorySettingsTab.Remote,
+      tabDockPosition: getSettingsTabDockPosition('repository-settings'),
       tabFilter: '',
       tabFilterMode: FilterMode.Substring,
       tabFilterCaseSensitive: false,
@@ -411,9 +419,23 @@ export class RepositorySettings extends React.Component<
       >
         {this.renderErrors()}
 
-        <div className="tab-container">
-          <div className="settings-tab-rail">
-            {this.renderTabSearch()}
+        <div
+          className="tab-container"
+          data-settings-tab-dock-position={this.state.tabDockPosition}
+        >
+          <div
+            className="settings-tab-rail"
+            data-settings-tab-dock-position={this.state.tabDockPosition}
+          >
+            <div className="settings-tab-rail-header">
+              {this.renderTabSearch()}
+              <SettingsTabDockControl
+                strip="repository-settings"
+                position={this.state.tabDockPosition}
+                onChange={this.onTabDockPositionChanged}
+                disabled={dialogBusy}
+              />
+            </div>
             <SettingsTabStrip
               strip="repository-settings"
               title="repository settings"
@@ -421,10 +443,16 @@ export class RepositorySettings extends React.Component<
               selectedId={String(this.state.selectedTab)}
               onSelect={this.onTabSelected}
               disabled={dialogBusy}
+              dockPosition={this.state.tabDockPosition}
             />
           </div>
 
-          <div className="active-tab">{this.renderActiveTab()}</div>
+          <div
+            className="active-tab"
+            data-settings-tab-dock-position={this.state.tabDockPosition}
+          >
+            {this.renderActiveTab()}
+          </div>
         </div>
         {this.renderRemoteApplyProgress()}
         <DialogFooter>
@@ -1159,6 +1187,13 @@ export class RepositorySettings extends React.Component<
     if (descriptor !== undefined) {
       this.setState({ selectedTab: descriptor.tab })
     }
+  }
+
+  private onTabDockPositionChanged = (
+    tabDockPosition: SettingsTabDockPosition
+  ) => {
+    setSettingsTabDockPosition('repository-settings', tabDockPosition)
+    this.setState({ tabDockPosition })
   }
 
   private onForkContributionTargetChanged = (

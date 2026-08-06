@@ -3,7 +3,13 @@ import { Account, isDotComAccount } from '../../models/account'
 import { PreferencesTab } from '../../models/preferences'
 import { Dispatcher } from '../dispatcher'
 import { SettingsTabStrip } from '../settings-tabs/settings-tab-strip'
-import { ISettingsTabItem } from '../settings-tabs/settings-tab-model'
+import { SettingsTabDockControl } from '../settings-tabs/settings-tab-dock-control'
+import {
+  getSettingsTabDockPosition,
+  ISettingsTabItem,
+  setSettingsTabDockPosition,
+  SettingsTabDockPosition,
+} from '../settings-tabs/settings-tab-model'
 import { Accounts } from './accounts'
 import { Advanced } from './advanced'
 import { Git } from './git'
@@ -169,6 +175,7 @@ interface IPreferencesProps {
 
 interface IPreferencesState {
   readonly selectedIndex: PreferencesTab
+  readonly tabDockPosition: SettingsTabDockPosition
   readonly committerName: string
   readonly committerEmail: string
   readonly defaultBranch: string
@@ -291,6 +298,7 @@ export class Preferences extends React.Component<
 
     this.state = {
       selectedIndex: this.props.initialSelectedTab || PreferencesTab.Accounts,
+      tabDockPosition: getSettingsTabDockPosition('preferences'),
       committerName: '',
       committerEmail: '',
       defaultBranch: '',
@@ -708,11 +716,21 @@ export class Preferences extends React.Component<
         onSubmit={this.onSave}
       >
         {this.renderDisallowedCharactersError()}
-        <div className="preferences-container">
+        <div
+          className="preferences-container"
+          data-settings-tab-dock-position={this.state.tabDockPosition}
+        >
           <div className="preferences-rail">
-            <h2 id={PreferencesTitleId} className="preferences-title">
-              Settings
-            </h2>
+            <div className="preferences-rail-header">
+              <h2 id={PreferencesTitleId} className="preferences-title">
+                Settings
+              </h2>
+              <SettingsTabDockControl
+                strip="preferences"
+                position={this.state.tabDockPosition}
+                onChange={this.onTabDockPositionChanged}
+              />
+            </div>
             {this.renderSettingsSearch()}
             <SettingsTabStrip
               strip="preferences"
@@ -720,6 +738,7 @@ export class Preferences extends React.Component<
               items={this.railTabs}
               selectedId={String(this.state.selectedIndex)}
               onSelect={this.onTabSelected}
+              dockPosition={this.state.tabDockPosition}
             />
             <div className="preferences-version">Desktop Material 0.1.0</div>
           </div>
@@ -1711,6 +1730,13 @@ export class Preferences extends React.Component<
     if (tab !== undefined) {
       this.setState({ selectedIndex: Number(tab.id) as PreferencesTab })
     }
+  }
+
+  private onTabDockPositionChanged = (
+    tabDockPosition: SettingsTabDockPosition
+  ) => {
+    setSettingsTabDockPosition('preferences', tabDockPosition)
+    this.setState({ tabDockPosition })
   }
 
   private get isCopilotSdkEnabled(): boolean {
