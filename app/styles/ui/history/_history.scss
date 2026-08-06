@@ -217,6 +217,14 @@
   }
 }
 
+// The ancestry graph can also be the repository's full-width page. Keep the
+// page and its graph panel shrinkable so the rail is the only fixed-width
+// chrome and the three graph columns consume the available surface.
+#compare-view.history-graph-page,
+#compare-view.history-graph-page .history-graph-page-panel {
+  min-width: 0;
+}
+
 // === MD3 restyle (Commit 9 — style(history)) =================================
 // The History sidebar's compare/branch-filter box → 46px pill search field per
 // design-spec-shell §6.2 (surface-container-high fill, radius-999, 2px border

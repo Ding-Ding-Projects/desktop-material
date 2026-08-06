@@ -16,6 +16,7 @@ export type TranslationKey =
   | 'repositorySection.triage'
   | 'repositorySection.tools'
   | 'repositorySection.launchpad'
+  | 'repositorySection.historyGraph'
   | 'update.downloadingLabel'
   | 'update.downloadingValue'
   | 'update.comingSoon'
@@ -650,6 +651,7 @@ export type TranslationKey =
   | 'history.viewMode'
   | 'history.viewMode.list'
   | 'history.viewMode.graph'
+  | 'history.graphPageTitle'
   | 'diff.structured.viewSwitcher'
   | 'diff.structured.code'
   | 'diff.structured.table'
@@ -3653,6 +3655,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositorySection.triage': 'Triage',
   'repositorySection.tools': 'Repository tools',
   'repositorySection.launchpad': 'Launchpad',
+  'repositorySection.historyGraph': 'Graph',
   'update.downloadingLabel': 'Downloading app update',
   'update.downloadingValue': 'Downloading',
   'update.comingSoon': 'New update coming soon',
@@ -4389,6 +4392,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'history.viewMode': 'History view',
   'history.viewMode.list': 'Commit list',
   'history.viewMode.graph': 'Graph',
+  'history.graphPageTitle': 'History graph',
   'diff.structured.viewSwitcher': 'Structured diff view',
   'diff.structured.code': 'Code',
   'diff.structured.table': 'Table',
@@ -8257,6 +8261,7 @@ export const cantoneseTranslations: Readonly<
   'repositorySection.triage': '分流',
   'repositorySection.tools': 'Repo 工具',
   'repositorySection.launchpad': '發射台',
+  'repositorySection.historyGraph': '圖表',
   'update.downloadingLabel': '下載緊應用程式更新',
   'update.downloadingValue': '下載緊',
   'update.comingSoon': '新版本就快焗好出爐',
@@ -8952,6 +8957,7 @@ export const cantoneseTranslations: Readonly<
   'history.viewMode': '歷史檢視',
   'history.viewMode.list': '提交清單',
   'history.viewMode.graph': '圖表',
+  'history.graphPageTitle': '歷史圖表',
   'diff.structured.viewSwitcher': '結構化差異檢視',
   'diff.structured.code': '程式碼',
   'diff.structured.table': '表格',

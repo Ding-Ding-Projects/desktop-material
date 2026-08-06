@@ -711,7 +711,7 @@ reachable without page-level horizontal clipping.
 
 ![History Commit list tab from the built Windows app](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-view-tabs-list.png)
 
-![History Graph tab from the built Windows app](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-view-tabs-graph.png)
+![History Graph view from the built Windows app](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-view-tabs-graph.png)
 
 ![Layered automation schedules and account overrides](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-automation.png)
 

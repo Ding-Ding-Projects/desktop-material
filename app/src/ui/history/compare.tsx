@@ -94,6 +94,8 @@ interface ICompareSidebarProps {
   readonly shasToHighlight: ReadonlyArray<string>
   readonly accounts: ReadonlyArray<Account>
   readonly preferAbsoluteDates: boolean
+  /** Render the ancestry graph as a full repository page instead of a sidebar view. */
+  readonly graphOnly?: boolean
 }
 interface ICompareSidebarState {
   /**
@@ -353,11 +355,21 @@ export class CompareSidebar extends React.Component<
   }
 
   public render() {
-    const { branches, filterText, showBranchList } = this.props.compareState
+    const { branches, filterText } = this.props.compareState
+    const showBranchList = this.props.graphOnly
+      ? false
+      : this.props.compareState.showBranchList
     const placeholderText = getPlaceholderText(this.props.compareState)
 
     return (
-      <div id="compare-view" role="tabpanel" aria-labelledby="history-tab">
+      <div
+        id="compare-view"
+        className={classNames({ 'history-graph-page': this.props.graphOnly })}
+        role="tabpanel"
+        aria-labelledby={
+          this.props.graphOnly ? 'history-graph-tab' : 'history-tab'
+        }
+      >
         {this.renderPanelHeader()}
         <div className="compare-form">
           {/*
@@ -396,7 +408,14 @@ export class CompareSidebar extends React.Component<
 
     return (
       <div className="history-panel-header">
-        <h1 className="history-panel-title">History</h1>
+        <h1
+          className="history-panel-title"
+          id={this.props.graphOnly ? 'history-graph-page-title' : undefined}
+        >
+          {this.props.graphOnly
+            ? this.historyViewText('history.graphPageTitle')
+            : 'History'}
+        </h1>
         {commitCount > 0 && (
           <span className="history-panel-count" aria-hidden="true">
             {formatNumber(commitCount)}
@@ -755,15 +774,17 @@ export class CompareSidebar extends React.Component<
             >
               <Octicon symbol={octicons.filter} />
             </Button>
-            <Button
-              className="history-commit-graph-toggle"
-              ariaLabel="Show commit graph"
-              tooltip="Show commit graph"
-              ariaPressed={this.state.showCommitGraph}
-              onClick={this.onCommitGraphToggle}
-            >
-              <Octicon symbol={octicons.gitMerge} />
-            </Button>
+            {!this.props.graphOnly && (
+              <Button
+                className="history-commit-graph-toggle"
+                ariaLabel="Show commit graph"
+                tooltip="Show commit graph"
+                ariaPressed={this.state.showCommitGraph}
+                onClick={this.onCommitGraphToggle}
+              >
+                <Octicon symbol={octicons.gitMerge} />
+              </Button>
+            )}
           </div>
           {this.renderCommitFilterChips()}
           {this.renderCommitRegexBuilder()}
@@ -998,6 +1019,10 @@ export class CompareSidebar extends React.Component<
   }
 
   private renderHistoryViewTabs() {
+    if (this.props.graphOnly) {
+      return null
+    }
+
     const graphSelected = this.state.showGraphView
     const listTabId = 'history-view-tab-list'
     const graphTabId = 'history-view-tab-graph'
@@ -1086,15 +1111,20 @@ export class CompareSidebar extends React.Component<
       this.props.compareState.historyScope === HistoryScope.CurrentBranch &&
       !isCommitFilterActive
 
-    if (isHistory && this.state.showGraphView) {
+    if (isHistory && (this.props.graphOnly || this.state.showGraphView)) {
+      const graphPage = this.props.graphOnly
       return (
         <>
           {this.renderHistoryViewTabs()}
           <div
-            id="history-view-panel"
-            className="history-view-panel"
-            role="tabpanel"
-            aria-labelledby="history-view-tab-graph"
+            id={graphPage ? 'history-graph-page-panel' : 'history-view-panel'}
+            className={classNames('history-view-panel', {
+              'history-graph-page-panel': graphPage,
+            })}
+            role={graphPage ? 'region' : 'tabpanel'}
+            aria-labelledby={
+              graphPage ? 'history-graph-page-title' : 'history-view-tab-graph'
+            }
           >
             {this.renderCommitFilter()}
             <HistoryGraphView
@@ -1128,7 +1158,7 @@ export class CompareSidebar extends React.Component<
               onCreateTag={this.onCreateTag}
               onDeleteTag={this.onDeleteTag}
               onCherryPick={this.onCherryPick}
-              onKeyboardReorder={this.onKeyboardReorder}
+              onKeyboardReorder={graphPage ? undefined : this.onKeyboardReorder}
               onSquash={this.onSquash}
               onComposeCommitsWithAI={this.onComposeCommitsWithAI}
               onSummarizeCommits={this.onSummarizeCommits}
@@ -1610,7 +1640,7 @@ export class CompareSidebar extends React.Component<
     // view before installing the operation. List initializes its insertion
     // cursor on the undefined-to-defined prop transition, which must happen
     // after CommitList mounts.
-    if (this.state.showGraphView) {
+    if (this.state.showGraphView && !this.props.graphOnly) {
       setBoolean(ShowGraphViewKey, false)
       this.setState({ showGraphView: false }, () => {
         this.setState({ keyboardReorderData })

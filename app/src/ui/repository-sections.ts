@@ -7,7 +7,11 @@ export function getRepositorySections(
   supportsGitHubIssues: boolean = false,
   supportsGitHubAPI: boolean = false
 ): ReadonlyArray<RepositorySectionTab> {
-  const sections = [RepositorySectionTab.Changes, RepositorySectionTab.History]
+  const sections = [
+    RepositorySectionTab.Changes,
+    RepositorySectionTab.History,
+    RepositorySectionTab.HistoryGraph,
+  ]
   if (supportsGitHubActions) {
     sections.push(RepositorySectionTab.Actions)
   }
