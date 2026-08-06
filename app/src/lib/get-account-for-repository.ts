@@ -89,6 +89,31 @@ export function getRepositoryOwnerAccountToPromote(
 }
 
 /**
+ * Return the account binding that a deliberate active-account selection may
+ * apply to the selected repository.
+ *
+ * A global account selection must not silently cross provider boundaries. For
+ * a GitHub repository on the same GitHub API endpoint, however, leaving an
+ * older auto-binding in place makes the visible "Make active" action appear
+ * to do nothing: network operations continue with the repository's previous
+ * account key. The caller still performs the actual persistence and refresh.
+ */
+export function getRepositoryAccountKeyForActiveAccount(
+  account: Account,
+  repository: Repository
+): string | null {
+  if (
+    account.provider !== 'github' ||
+    repository.gitHubRepository === null ||
+    repository.gitHubRepository.endpoint !== account.endpoint
+  ) {
+    return null
+  }
+
+  return getAccountKey(account)
+}
+
+/**
  * Get the authenticated account to use for commit message generation.
  */
 export function getAccountForCommitMessageGeneration(
