@@ -54,6 +54,13 @@ runs:
           'vendor/printenvz/**', 'vendor/windows-argv-parser/**',
           'vendor/desktop-notifications/**', 'vendor/desktop-trampoline/**') }}
 
+    - name:
+        Use Node.js ${{ inputs.node-version }} before self-hosted Yarn bootstrap
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+
     - name: Install uv for self-hosted Windows Python
       if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
       uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
@@ -78,6 +85,34 @@ runs:
       if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
       shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
       run: '& "$env:GITHUB_WORKSPACE\.github\scripts\bootstrap-pinned-yarn.ps1"'
+
+    - name: Expose repository-pinned Yarn to Git Bash
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      shell: bash
+      run: |
+        # GitHub's Windows PATH bridge keeps the Windows spelling for later
+        # PowerShell/cmd actions. Git Bash needs the same directory in MSYS
+        # form, otherwise the following cache and install steps cannot find
+        # the freshly-created yarn.cmd shim.
+        shim_root="$(cygpath -u "$RUNNER_TEMP/desktop-material-pinned-yarn")"
+        if [ ! -f "$shim_root/yarn.cmd" ]; then
+          echo "Pinned Yarn shim is missing: $shim_root/yarn.cmd" >&2
+          exit 1
+        fi
+        if [ ! -f "$shim_root/yarn" ]; then
+          echo "Git Bash Yarn shim is missing: $shim_root/yarn" >&2
+          exit 1
+        fi
+        chmod +x "$shim_root/yarn"
+        echo "$shim_root" >> "$GITHUB_PATH"
+        export PATH="$shim_root:$PATH"
+        hash -r
+        resolved_yarn="$(command -v yarn || true)"
+        if [ "$resolved_yarn" != "$shim_root/yarn" ]; then
+          echo "Git Bash resolved an unexpected Yarn command: ${resolved_yarn:-<none>}" >&2
+          exit 1
+        fi
+        yarn --version
 
     - uses: actions/setup-python@v6
       if: ${{ runner.os != 'Windows' || runner.environment != 'self-hosted' }}

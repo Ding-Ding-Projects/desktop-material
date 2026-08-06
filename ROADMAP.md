@@ -2,6 +2,19 @@
 
 Updated: **August 5, 2026**
 
+## August 5 — self-hosted Windows dependency bootstrap
+
+- The Windows self-hosted setup selects the requested Node.js version before
+  creating the repository-pinned Yarn launcher, then exposes both a Windows
+  `yarn.cmd` launcher and a POSIX `yarn` launcher to later actions.
+- The Git Bash preflight converts the temporary launcher directory to an MSYS
+  path, marks the POSIX launcher executable, verifies that bare `yarn` resolves
+  to that exact path, and only then allows cache probing and dependency
+  installation to run.
+- Focused CI tests pass **2/2**, the frozen local dependency install passes,
+  and the Unicode/space-path PowerShell plus Git Bash probe passes. Remote
+  Super Express verification remains required after publication.
+
 ## August 5 — account-aware repository transfer
 
 - The Windows desktop app now exposes **Transfer repository** from the

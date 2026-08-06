@@ -15,6 +15,7 @@ credentials or machine-specific state in a repository.
   window](windows-explorer-context-menu.md)
 - [Automated update build status and release
   notes](automated-updates-and-release-notes.md)
+- [Self-hosted Windows dependency bootstrap](self-hosted-windows-dependency-bootstrap.md)
 - [Build & Run output controls](build-run-output-controls.md)
 - [Actions workflow manager](actions-workflow-manager.md) — workflow timing,
   bounded job-log transfer retries, and visible recovery actions for transient

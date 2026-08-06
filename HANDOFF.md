@@ -1,5 +1,24 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Bootstrap every self-hosted Windows dependency shell
+
+The self-hosted Windows dependency setup now selects the requested Node.js
+version before the repository-pinned Yarn bootstrap runs. The bootstrap copies
+`vendor/yarn-1.21.1.js` beside two small launchers under `RUNNER_TEMP`: a
+Windows `yarn.cmd` launcher and a POSIX `yarn` launcher for Git Bash. The
+following Git Bash step converts the temporary directory to an MSYS path,
+marks the POSIX launcher executable, and fails if bare `yarn` resolves anywhere
+else. This covers both PowerShell/cmd actions and the Bash cache/install steps,
+including Unicode and space-containing temporary paths.
+
+The focused CI contract test passes **2/2**. A clean local
+`node vendor/yarn-1.21.1.js install --frozen-lockfile` completed in 84.58s,
+and an isolated probe selected Node `v24.15.0`, returned Yarn `1.21.1` from
+both launchers, and resolved Git Bash to the temporary POSIX launcher. The
+remote Super Express run after this change is still the required final
+verification; a queued, failed, or cancelled run must not be reported as
+green.
+
 ## 2026-08-06 — Keep Super Express scheduling self-hosted-only
 
 The latest self-hosted-only release dispatch reached the registered Windows

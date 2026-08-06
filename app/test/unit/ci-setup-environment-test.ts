@@ -27,11 +27,22 @@ describe('CI environment setup', () => {
     assert.match(setupAction, /npm_config_python=\$python_path/)
     assert.match(
       setupAction,
-      /Provide repository-pinned Yarn to self-hosted Windows actions[\s\S]*?bootstrap-pinned-yarn\.ps1/
+      /Use Node\.js .*? before self-hosted Yarn bootstrap[\s\S]*?actions\/setup-node@v6[\s\S]*?node-version:[\s\S]*?Provide repository-pinned Yarn to self-hosted Windows actions[\s\S]*?bootstrap-pinned-yarn\.ps1/
+    )
+    assert.match(
+      setupAction,
+      /Provide repository-pinned Yarn to self-hosted Windows actions[\s\S]*?Expose repository-pinned Yarn to Git Bash[\s\S]*?cygpath -u[\s\S]*?GITHUB_PATH[\s\S]*?yarn --version[\s\S]*?Use Node\.js .*?with Yarn download cache/
     )
     assert.match(yarnBootstrap, /vendor\\yarn-1\.21\.1\.js/)
+    assert.match(yarnBootstrap, /System\.IO\.File\]::Copy/)
+    assert.match(yarnBootstrap, /%~dp0yarn-1\.21\.1\.js/)
     assert.match(yarnBootstrap, /yarn\.cmd/)
+    assert.match(yarnBootstrap, /Join-Path \$shimRoot 'yarn'/)
+    assert.match(yarnBootstrap, /usr\/bin\/env bash/)
+    assert.match(yarnBootstrap, /dirname "\$0"\)\/yarn-1\.21\.1\.js/)
+    assert.match(yarnBootstrap, /posixShim\.Replace/)
     assert.match(yarnBootstrap, /GITHUB_PATH/)
+    assert.match(yarnBootstrap, /ErrorAction Stop/)
     assert.match(yarnBootstrap, /RUNNER_TEMP/)
     assert.match(
       yarnBootstrap,
@@ -90,6 +101,12 @@ describe('CI environment setup', () => {
     assert.match(setupAction, /actions\/setup-python@v6/)
     assert.match(setupAction, /missing Playwright ffmpeg/)
     assert.match(setupAction, /refusing to save or use this exact cache key/)
+    assert.match(setupAction, /chmod \+x "\$shim_root\/yarn"/)
+    assert.match(
+      setupAction,
+      /resolved_yarn=\"\$\(command -v yarn \\|\\| true\)\"/
+    )
+    assert.match(setupAction, /Git Bash resolved an unexpected Yarn command/)
     assert.match(
       setupAction,
       /find "\$root"[\s\S]*?-mindepth 2[\s\S]*?-maxdepth 2[\s\S]*?-type f[\s\S]*?-path "\$root\/ffmpeg-\*\/\*"/
