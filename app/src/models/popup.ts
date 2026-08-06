@@ -78,11 +78,7 @@ export interface IOpencodeSendContext {
 
 /** The operation requesting a Cheap LFS payload password. */
 export type CheapLfsPayloadPasswordPurpose =
-  | 'encrypt'
-  | 'decrypt'
-  | 'change'
-  | 'forget'
-  | 'forget-stale'
+  'encrypt' | 'decrypt' | 'change' | 'forget' | 'forget-stale'
 
 /** Why an encryption prompt is blocking the current operation. */
 export type CheapLfsPayloadPasswordContext = 'commit-auto-pin'
@@ -152,6 +148,7 @@ export enum PopupType {
   PushRejectedDueToMissingWorkflowScope = 'PushRejectedDueToMissingWorkflowScope',
   SAMLReauthRequired = 'SAMLReauthRequired',
   CreateFork = 'CreateFork',
+  TransferRepository = 'TransferRepository',
   CreateTag = 'CreateTag',
   DeleteTag = 'DeleteTag',
   LocalChangesOverwritten = 'LocalChangesOverwritten',
@@ -543,6 +540,11 @@ export type PopupDetail =
       type: PopupType.CreateFork
       repository: RepositoryWithGitHubRepository
       account: Account
+    }
+  | {
+      type: PopupType.TransferRepository
+      repository: RepositoryWithGitHubRepository
+      onCompleted?: () => void
     }
   | {
       type: PopupType.CreateTag

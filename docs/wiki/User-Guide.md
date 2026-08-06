@@ -468,6 +468,36 @@ child-process close event cannot hang the completed fetch. Concurrent preparatio
 remote URL share one in-flight system proxy lookup instead of multiplying resolver work after a
 timeout. Clone cancellation remains stricter and waits for the owned process to close completely.
 
+### Transfer a repository to another account
+
+Open **Repository → Transfer repository…**, choose **Transfer repository** from
+the repository-list context menu or Command Palette, or use the button in
+**Repository settings → Remote**. The dialog starts with the source repository
+and offers every signed-in GitHub identity. Choose **Sign in to another
+account…** when the destination identity is not present; the normal GitHub.com
+or GitHub Enterprise sign-in flow returns to this dialog without exposing the
+credential to the page.
+
+Choose a personal or organization owner, keep the existing repository name or
+enter a custom provider-safe name, and choose whether the destination is
+private. **Full history** creates a temporary bare clone and pushes every local
+branch and tag. **Clean state** creates one new root commit from the current
+files, pushes the current branch, and keeps the previous tip in a local
+`refs/desktop-material/transfer-backups/` recovery ref. Both modes require a
+valid Git operation state; full-history mode requires a clean worktree, while
+clean-state mode intentionally includes the current Git-visible changes. Both
+show real progress, verify the destination branch, and only then retarget
+`origin`; the original source remains available as `upstream` when the
+repository did not already have one.
+
+The final review names the destination, mode, privacy, and remote change. Two
+independent confirmations plus the full-range authorization slider are
+required. If provider creation or publication succeeds but local retargeting
+fails, the dialog says that the destination may already exist and leaves the
+old remote in place when possible. See the [repository transfer feature
+article](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/repository-management/repository-transfer.md)
+for recovery, security, and verification details.
+
 ---
 
 ## App-hosted browser
@@ -1698,6 +1728,17 @@ headers before any cross-origin hop. Download errors also omit signed URLs and q
 live Windows x64 proof below shows the resulting searchable, collapsible log viewer.
 
 ![Windows x64 GitHub Actions job log loaded securely in the searchable in-app viewer](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-job-log.png)
+
+If GitHub is still preparing a completed job's archive, the log endpoint can
+temporarily return `HTTP 404`. The viewer now retries that API response with a
+bounded 250/750/1,500 ms schedule and obtains a fresh signed redirect on each
+attempt. When the bound is exhausted, it explains the provider state and keeps
+**Retry** and **Open on GitHub** available; it never sends the API bearer to the
+cross-origin log host.
+
+![Actions job-log recovery state with Retry and Open on GitHub](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-job-log-404-recovery.png)
+
+![Actions job log loaded after the provider archive becomes available](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-job-log-404-recovered.png)
 
 ---
 

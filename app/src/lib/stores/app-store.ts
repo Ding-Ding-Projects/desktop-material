@@ -376,6 +376,14 @@ import {
   deleteToken,
   IAPICreatePushProtectionBypassResponse,
 } from '../api'
+import { validateGitHubRepositoryPart } from '../github-issue'
+import {
+  IRepositoryTransferProgress,
+  RepositoryTransferMode,
+  RepositoryTransferRecoveryRefPrefix,
+  RepositoryTransferSnapshotCommitMessage,
+  validateRepositoryTransferName,
+} from '../repository-transfer'
 import {
   missingRequiredScopes,
   parseGrantedScopes,
@@ -490,7 +498,9 @@ import {
   getCommitDiff,
   getMergeBase,
   getRemotes,
+  removeRemote,
   setRemoteURL,
+  setRemotePushURL,
   getWorkingDirectoryDiff,
   isCoAuthoredByTrailer,
   handleLocalCommitPushBatching,
@@ -594,6 +604,7 @@ import {
   getAheadBehind,
   revSymmetricDifference,
 } from '../git'
+import { envForRemoteOperation } from '../git/environment'
 import {
   isMissingRemoteRefFailure,
   probeRemoteBranch,
@@ -1244,8 +1255,8 @@ function cheapLfsRestoreLane(
     foregroundPart !== undefined
       ? foregroundPart.processedBytes
       : partTotal === undefined
-      ? lane.processedBytes
-      : lane.partTransferredBytes ?? 0
+        ? lane.processedBytes
+        : (lane.partTransferredBytes ?? 0)
   const totalBytes = partTotal ?? lane.totalBytes
   return {
     provider: cheapLfsRestoreProvider(lane.provider),
@@ -1916,8 +1927,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   /** The function to resolve the current Open in Desktop flow. */
   private resolveOpenInDesktop:
-    | ((repository: Repository | null) => void)
-    | null = null
+    ((repository: Repository | null) => void) | null = null
 
   private selectedCloneRepositoryTab = CloneRepositoryTab.DotCom
 
@@ -1962,8 +1972,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private popupManager = new PopupManager()
 
   private pullRequestSuggestedNextAction:
-    | PullRequestSuggestedNextAction
-    | undefined = undefined
+    PullRequestSuggestedNextAction | undefined = undefined
 
   private showDiffCheckMarks: boolean = showDiffCheckMarksDefault
 
@@ -6651,11 +6660,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
     const remoteName =
       tip.kind === TipState.Valid
-        ? tip.branch.upstreamRemoteName ?? defaultRemote.name
+        ? (tip.branch.upstreamRemoteName ?? defaultRemote.name)
         : defaultRemote.name
     const remoteBranchName =
       tip.kind === TipState.Valid
-        ? tip.branch.upstreamWithoutRemote ?? tip.branch.name
+        ? (tip.branch.upstreamWithoutRemote ?? tip.branch.name)
         : localBranchRef.slice('refs/heads/'.length)
     const remote =
       this.gitStoreCache
@@ -7783,7 +7792,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.cheapLfsAnnotations = claim.state
     const previous = claim.accepted
       ? Promise.resolve()
-      : this.cheapLfsAnnotationChain.get(target) ?? Promise.resolve()
+      : (this.cheapLfsAnnotationChain.get(target) ?? Promise.resolve())
     const pass = previous
       .then(async () => {
         await annotateCheapLfsPinnedAssets(
@@ -7912,8 +7921,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   public _changeFileIncluded(
     repository: Repository,
     file:
-      | WorkingDirectoryFileChange
-      | ReadonlyArray<WorkingDirectoryFileChange>,
+      WorkingDirectoryFileChange | ReadonlyArray<WorkingDirectoryFileChange>,
     include: boolean
   ): Promise<void> {
     const files = Array.isArray(file) ? file : [file]
@@ -11848,10 +11856,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const remote =
       remoteName === null
         ? null
-        : gitStore.remotes.find(candidate => candidate.name === remoteName) ??
+        : (gitStore.remotes.find(candidate => candidate.name === remoteName) ??
           (gitStore.currentRemote?.name === remoteName
             ? gitStore.currentRemote
-            : null)
+            : null))
 
     const facts: IFailedPullFacts = {
       reportedMissingRemoteRef: signals.reportedMissingRemoteRef,
@@ -13457,9 +13465,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
           reviewedPreview !== undefined && tip.kind === TipState.Valid
             ? tip.branch.upstreamRemoteName === null
               ? null
-              : gitStore.remotes.find(
+              : (gitStore.remotes.find(
                   candidate => candidate.name === tip.branch.upstreamRemoteName
-                ) ?? null
+                ) ?? null)
             : gitStore.currentRemote
 
         if (!remote) {
@@ -13903,6 +13911,453 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     await gitStore.refreshDefaultBranch()
     return this._updateRepositoryAccount(repository, getAccountKey(account))
+  }
+
+  private async verifyRepositoryTransferRemote(
+    repository: Repository,
+    targetURL: string,
+    accountKey: string,
+    branch: string,
+    expectedTip: string
+  ): Promise<void> {
+    const environment = await envForRemoteOperation(targetURL)
+    const result = await git(
+      ['ls-remote', '--heads', targetURL, `refs/heads/${branch}`],
+      repository.path,
+      'verifyRepositoryTransferRemote',
+      {
+        env: environment,
+        credentialAccountKey: accountKey,
+        maxBuffer: 16 * 1024,
+      }
+    )
+
+    const publishedTip = result.stdout.trim().split(/\s+/)[0] ?? ''
+    if (publishedTip.length === 0) {
+      throw new Error(
+        `The destination repository did not report the published ${branch} branch.`
+      )
+    }
+    if (publishedTip !== expectedTip) {
+      throw new Error(
+        `The destination ${branch} branch did not verify at the expected commit.`
+      )
+    }
+  }
+
+  private async publishFullRepositoryTransfer(
+    repository: Repository,
+    targetURL: string,
+    accountKey: string,
+    branch: string | undefined,
+    reportProgress: (progress: IRepositoryTransferProgress) => void
+  ): Promise<void> {
+    const temporaryRoot = await mkdtemp(
+      Path.join(tmpdir(), 'desktop-material-transfer-full-')
+    )
+
+    try {
+      const bareRepositoryPath = Path.join(temporaryRoot, 'repository.git')
+      reportProgress({
+        stage: 'preparing',
+        message: 'Preparing a temporary bare copy of every local ref…',
+      })
+      await git(
+        ['clone', '--bare', repository.path, bareRepositoryPath],
+        repository.path,
+        'cloneRepositoryTransferHistory'
+      )
+      await git(
+        ['remote', 'set-url', 'origin', targetURL],
+        bareRepositoryPath,
+        'setRepositoryTransferHistoryOrigin'
+      )
+      let expectedTip: string | undefined
+      if (branch !== undefined) {
+        const branchTip = await git(
+          ['rev-parse', '--verify', `refs/heads/${branch}^{commit}`],
+          bareRepositoryPath,
+          'resolveRepositoryTransferHistoryTip',
+          { maxBuffer: 8 * 1024 }
+        )
+        expectedTip = branchTip.stdout.trim()
+      }
+
+      const environment = await envForRemoteOperation(targetURL)
+      reportProgress({
+        stage: 'publishing',
+        message: 'Publishing every local branch with its existing history…',
+      })
+      await git(
+        ['push', 'origin', '--all'],
+        bareRepositoryPath,
+        'pushRepositoryTransferBranches',
+        { env: environment, credentialAccountKey: accountKey }
+      )
+      reportProgress({
+        stage: 'publishing',
+        message: 'Publishing every local tag…',
+      })
+      await git(
+        ['push', 'origin', '--tags'],
+        bareRepositoryPath,
+        'pushRepositoryTransferTags',
+        { env: environment, credentialAccountKey: accountKey }
+      )
+
+      if (branch !== undefined && expectedTip !== undefined) {
+        await this.verifyRepositoryTransferRemote(
+          repository,
+          targetURL,
+          accountKey,
+          branch,
+          expectedTip
+        )
+      }
+    } finally {
+      await rm(temporaryRoot, { recursive: true, force: true }).catch(error =>
+        log.warn(
+          'Unable to remove the temporary repository transfer copy',
+          error
+        )
+      )
+    }
+  }
+
+  private async publishCleanRepositoryTransfer(
+    repository: Repository,
+    targetURL: string,
+    accountKey: string,
+    branch: string,
+    previousTip: string,
+    reportProgress: (progress: IRepositoryTransferProgress) => void
+  ): Promise<string> {
+    const transferStamp = `${Date.now()}-${previousTip.slice(0, 8)}`
+    const recoveryRef = `${RepositoryTransferRecoveryRefPrefix}${transferStamp}`
+    const temporaryBranch = `desktop-material-transfer-${transferStamp}`
+    let temporaryBranchCreated = false
+    let branchMoved = false
+
+    // The recovery ref intentionally survives the transfer. It is the local
+    // escape hatch if the user later needs the old history again.
+    await git(
+      ['update-ref', recoveryRef, previousTip],
+      repository.path,
+      'createRepositoryTransferRecoveryRef'
+    )
+
+    try {
+      reportProgress({
+        stage: 'preparing',
+        message: 'Preparing one clean root commit from the current files…',
+      })
+      await git(
+        ['checkout', '--orphan', temporaryBranch],
+        repository.path,
+        'checkoutRepositoryTransferOrphan'
+      )
+      temporaryBranchCreated = true
+      await git(
+        ['read-tree', '--empty'],
+        repository.path,
+        'clearRepositoryTransferSnapshotIndex'
+      )
+
+      const snapshotStatus = await getStatus(repository, true, true)
+      const snapshotCommit = await createCommit(
+        repository,
+        RepositoryTransferSnapshotCommitMessage,
+        snapshotStatus.workingDirectory.files,
+        { allowEmpty: true }
+      )
+      await git(
+        ['branch', '-f', branch, snapshotCommit],
+        repository.path,
+        'moveRepositoryTransferBranch'
+      )
+      branchMoved = true
+      await git(
+        ['checkout', branch],
+        repository.path,
+        'checkoutRepositoryTransferBranch'
+      )
+      await git(
+        ['branch', '-D', temporaryBranch],
+        repository.path,
+        'removeRepositoryTransferTemporaryBranch'
+      )
+      temporaryBranchCreated = false
+
+      reportProgress({
+        stage: 'publishing',
+        message: 'Publishing the clean snapshot commit…',
+      })
+      const environment = await envForRemoteOperation(targetURL)
+      await git(
+        ['push', targetURL, `HEAD:refs/heads/${branch}`],
+        repository.path,
+        'pushRepositoryTransferCleanSnapshot',
+        { env: environment, credentialAccountKey: accountKey }
+      )
+      await this.verifyRepositoryTransferRemote(
+        repository,
+        targetURL,
+        accountKey,
+        branch,
+        snapshotCommit
+      )
+
+      return recoveryRef
+    } catch (error) {
+      // Put the local branch back before deleting the temporary branch. The
+      // recovery ref is kept even after rollback so the failed attempt remains
+      // auditable and the old tip is still addressable.
+      if (branchMoved) {
+        try {
+          await git(
+            ['update-ref', `refs/heads/${branch}`, previousTip],
+            repository.path,
+            'restoreRepositoryTransferBranch'
+          )
+          await git(
+            ['reset', '--mixed', previousTip],
+            repository.path,
+            'restoreRepositoryTransferCheckout'
+          )
+        } catch (restoreError) {
+          log.error(
+            'Unable to restore the branch after a failed clean transfer',
+            restoreError
+          )
+        }
+      } else if (temporaryBranchCreated) {
+        try {
+          await git(
+            ['symbolic-ref', 'HEAD', `refs/heads/${branch}`],
+            repository.path,
+            'restoreRepositoryTransferOriginalCheckout'
+          )
+          await git(
+            ['reset', '--mixed', previousTip],
+            repository.path,
+            'restoreRepositoryTransferOriginalIndex'
+          )
+        } catch (restoreError) {
+          log.error(
+            'Unable to leave the temporary transfer branch',
+            restoreError
+          )
+        }
+      }
+
+      if (temporaryBranchCreated) {
+        await git(
+          ['branch', '-D', temporaryBranch],
+          repository.path,
+          'removeFailedRepositoryTransferTemporaryBranch',
+          { successExitCodes: new Set([0, 1, 128]) }
+        ).catch(cleanupError =>
+          log.warn(
+            'Unable to remove the temporary branch after a failed clean transfer',
+            cleanupError
+          )
+        )
+      }
+      throw error
+    }
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _transferRepository(
+    repository: Repository,
+    account: Account,
+    org: IAPIOrganization | null,
+    name: string,
+    description: string,
+    private_: boolean,
+    mode: RepositoryTransferMode,
+    onProgress?: (progress: IRepositoryTransferProgress) => void
+  ): Promise<Repository> {
+    if (isSubmoduleRepository(repository)) {
+      throw new Error(
+        'Transferring is unavailable while a submodule is open temporarily. Return to the parent repository first.'
+      )
+    }
+    if (account.provider !== 'github') {
+      throw new Error(
+        'Repository transfer currently supports GitHub destination accounts only.'
+      )
+    }
+    if (repository.gitHubRepository === null) {
+      throw new Error(
+        'Repository transfer requires a repository with GitHub metadata.'
+      )
+    }
+    if (mode !== 'full-history' && mode !== 'clean-state') {
+      throw new Error('Choose a valid repository transfer mode.')
+    }
+
+    const validatedName = validateRepositoryTransferName(name)
+    validateGitHubRepositoryPart(validatedName, 'repository')
+    const reportProgress = (progress: IRepositoryTransferProgress) =>
+      onProgress?.(progress)
+
+    reportProgress({
+      stage: 'checking',
+      message: 'Checking the repository before changing anything locally…',
+    })
+    const status = await getStatus(repository, true, true)
+    if (!status.exists) {
+      throw new Error('The local repository does not exist anymore.')
+    }
+    if (mode === 'full-history' && status.workingDirectory.files.length > 0) {
+      throw new Error(
+        'Commit or stash all local changes before transferring with full history.'
+      )
+    }
+    if (
+      status.mergeHeadFound ||
+      status.squashMsgFound ||
+      status.rebaseInternalState !== null ||
+      status.isCherryPickingHeadFound
+    ) {
+      throw new Error(
+        'Finish or cancel the current merge, rebase, squash, or cherry-pick before transferring this repository.'
+      )
+    }
+    if (
+      mode === 'clean-state' &&
+      (status.currentBranch === undefined || status.currentTip === undefined)
+    ) {
+      throw new Error(
+        'Clean-state transfer requires a checked-out branch with an existing commit.'
+      )
+    }
+
+    const gitStore = this.gitStoreCache.get(repository)
+    const remotes = await getRemotes(repository)
+    const existingOrigin = remotes.find(remote => remote.name === 'origin')
+    const hasUpstream = remotes.some(remote => remote.name === 'upstream')
+    const explicitOriginPushURL =
+      existingOrigin === undefined
+        ? null
+        : await gitStore.getExplicitRemotePushURL('origin')
+
+    reportProgress({
+      stage: 'creating',
+      message: `Creating ${validatedName} in ${account.login}'s account…`,
+    })
+    const created = await API.fromAccount(account).createRepository(
+      org,
+      validatedName,
+      description,
+      private_
+    )
+    if (created.clone_url.trim().length === 0) {
+      throw new Error(
+        'The provider did not return a clone URL for the destination repository.'
+      )
+    }
+
+    let recoveryRef: string | undefined
+    if (mode === 'full-history') {
+      await this.publishFullRepositoryTransfer(
+        repository,
+        created.clone_url,
+        getAccountKey(account),
+        status.currentBranch,
+        reportProgress
+      )
+    } else {
+      recoveryRef = await this.withTemporaryRepositoryMutationGuard(
+        repository,
+        () =>
+          this.publishCleanRepositoryTransfer(
+            repository,
+            created.clone_url,
+            getAccountKey(account),
+            status.currentBranch!,
+            status.currentTip!,
+            reportProgress
+          )
+      )
+    }
+
+    reportProgress({
+      stage: 'retargeting',
+      message:
+        'Retargeting origin to the new repository and preserving the source remote…',
+    })
+    let originAdded = false
+    let originChanged = false
+    let upstreamAdded = false
+    try {
+      await this.withTemporaryRepositoryMutationGuard(repository, async () => {
+        if (existingOrigin !== undefined && !hasUpstream) {
+          await addRemote(repository, 'upstream', existingOrigin.url)
+          upstreamAdded = true
+          if (explicitOriginPushURL !== null) {
+            await setRemotePushURL(
+              repository,
+              'upstream',
+              explicitOriginPushURL
+            )
+          }
+        }
+        if (existingOrigin === undefined) {
+          await addRemote(repository, 'origin', created.clone_url)
+          originAdded = true
+        } else {
+          await setRemoteURL(repository, 'origin', created.clone_url)
+          originChanged = true
+          if (explicitOriginPushURL !== null) {
+            await setRemotePushURL(repository, 'origin', created.clone_url)
+          }
+        }
+      })
+    } catch (error) {
+      // A provider-side transfer can succeed while the local config write is
+      // interrupted. Restore the exact old topology rather than leaving the
+      // user with a half-retargeted repository.
+      await this.withTemporaryRepositoryMutationGuard(repository, async () => {
+        if (originAdded) {
+          await removeRemote(repository, 'origin')
+        } else if (originChanged && existingOrigin !== undefined) {
+          await setRemoteURL(repository, 'origin', existingOrigin.url)
+          if (explicitOriginPushURL !== null) {
+            await setRemotePushURL(repository, 'origin', explicitOriginPushURL)
+          }
+        }
+        if (upstreamAdded) {
+          await removeRemote(repository, 'upstream')
+        }
+      }).catch(rollbackError =>
+        log.error(
+          'Unable to restore repository remotes after transfer failure',
+          rollbackError
+        )
+      )
+      await gitStore.loadRemotes()
+      throw new Error(
+        `The destination was created and published, but the local remote could not be retargeted: ${String(error)}`
+      )
+    }
+    await gitStore.loadRemotes()
+    await gitStore.loadStatus()
+    await gitStore.refreshDefaultBranch()
+
+    const updatedRepository = await this._updateRepositoryAccount(
+      repository,
+      getAccountKey(account)
+    )
+    reportProgress({
+      stage: 'complete',
+      message:
+        recoveryRef === undefined
+          ? `Transfer complete. ${validatedName} now contains the existing history.`
+          : `Transfer complete. The clean snapshot is published; local recovery ref ${recoveryRef} preserves the previous tip.`,
+    })
+    return updatedRepository
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
@@ -17029,8 +17484,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     const persistedParent = isSubmoduleRepository(parentRepository)
       ? this.getCurrentSubmoduleParent(parentRepository)
-      : this.repositories.find(repository => repository === parentRepository) ??
-        null
+      : (this.repositories.find(
+          repository => repository === parentRepository
+        ) ?? null)
     if (persistedParent === null) {
       throw new Error('The parent repository is no longer available.')
     }
@@ -19624,7 +20080,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             totalBytes:
               reportedTotal > 0
                 ? Math.max(previous?.totalBytes ?? 0, reportedTotal)
-                : previous?.totalBytes ?? null,
+                : (previous?.totalBytes ?? null),
           })
         }
 
@@ -19700,7 +20156,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             provider: batchProvider,
             phase: materializeSignal.aborted
               ? 'canceling'
-              : currentLane?.phase ?? 'preparing',
+              : (currentLane?.phase ?? 'preparing'),
             filesSucceeded: succeeded,
             filesFailed: failed,
             filesRemaining: Math.max(0, batch.totalFiles - succeeded - failed),
@@ -22736,10 +23192,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const configuredTarget = getNonForkGitHubRepository(repository)
     const configuredTargetRemoteName =
       configuredTarget.hash === source.hash
-        ? sourceRemote?.name ?? null
+        ? (sourceRemote?.name ?? null)
         : configuredTarget.hash === source.parent?.hash
-        ? UpstreamRemoteName
-        : null
+          ? UpstreamRemoteName
+          : null
     this._showPopup({
       type: PopupType.CreateGitHubPullRequest,
       repository,
@@ -22861,10 +23317,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const source = repository.gitHubRepository
     const remoteName =
       target.hash === source.hash
-        ? repositoryState.remote?.name ?? null
+        ? (repositoryState.remote?.name ?? null)
         : target.hash === source.parent?.hash
-        ? UpstreamRemoteName
-        : null
+          ? UpstreamRemoteName
+          : null
     const names = new Set<string>([pullRequest.base.ref])
     if (remoteName !== null) {
       for (const branch of repositoryState.branchesState.allBranches) {

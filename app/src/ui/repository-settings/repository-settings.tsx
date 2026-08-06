@@ -23,6 +23,7 @@ import { PopupType } from '../../models/popup'
 import {
   Repository,
   getForkContributionTarget,
+  isRepositoryWithGitHubRepository,
   isRepositoryWithForkedGitHubRepository,
 } from '../../models/repository'
 import { Dialog, DialogContent, DialogError, DialogFooter } from '../dialog'
@@ -463,6 +464,11 @@ export class RepositorySettings extends React.Component<
                 disabled={this.state.disabled}
                 onReviewStateChanged={this.onRemoteReviewStateChanged}
                 onPublish={this.onPublish}
+                onTransfer={
+                  isRepositoryWithGitHubRepository(this.props.repository)
+                    ? this.onTransfer
+                    : undefined
+                }
               />
             )}
           </>
@@ -605,6 +611,15 @@ export class RepositorySettings extends React.Component<
       type: PopupType.PublishRepository,
       repository: this.props.repository,
     })
+  }
+
+  private onTransfer = () => {
+    if (isRepositoryWithGitHubRepository(this.props.repository)) {
+      void this.props.dispatcher.showTransferRepositoryDialog(
+        this.props.repository,
+        () => void this.loadRemoteManagementSnapshot()
+      )
+    }
   }
 
   private renderRepositoryAccountPicker() {

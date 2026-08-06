@@ -1214,6 +1214,13 @@ export class ActionsView extends React.Component<
     }
   }
 
+  private retryLogs = () => {
+    const job = this.state.logJob
+    if (job !== null) {
+      void this.viewLogs(job)
+    }
+  }
+
   private closeLogs = () => {
     this.logController?.abort()
     this.logController = null
@@ -2460,6 +2467,7 @@ export class ActionsView extends React.Component<
             loading={this.state.logLoading}
             error={this.state.logError}
             onClose={this.closeLogs}
+            onRetry={this.retryLogs}
           />
         )}
         {cancelConfirmation !== null &&

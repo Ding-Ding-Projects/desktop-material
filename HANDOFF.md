@@ -1,5 +1,40 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-05 — Account-aware repository transfer (verification in progress)
+
+The Windows Electron app now has an account-aware **Transfer repository**
+workflow. It can add another GitHub.com or GitHub Enterprise identity through
+the existing sign-in dialog, choose a personal or organization owner, keep or
+rename the destination repository, and choose privacy. **Full history** uses a
+temporary bare clone to publish every local branch and tag. **Clean state**
+creates one root snapshot commit, retains the previous tip under a local
+`refs/desktop-material/transfer-backups/` recovery ref, and publishes only the
+current files. Both routes verify the destination tip before retargeting
+`origin` and preserve the source as `upstream` when needed.
+
+The entry points are the Repository menu, repository-list context menu, Command
+Palette, and **Repository settings → Remote**. The transfer dialog requires two
+independent confirmations plus a full-range authorization slider, and displays
+real checking, creation, preparation, publication, retargeting, and completion
+progress. Focused direct Node contract tests pass **7/7**. Targeted ESLint
+passes, and the changed-path TypeScript check reports no diagnostics in the
+transfer files although the repository-wide command exits on existing
+TypeScript 6 findings. The exact Windows production build reached the full
+renderer/main bundle after the missing local file-package outputs were rebuilt,
+but remained nonzero on four existing TypeScript 6 errors in `dds-converter.ts`,
+two fixture typings, and `ui/index.tsx`; it did not emit a runnable
+`out/main.js`. The repository-wide test harness remains blocked before test
+discovery by the malformed `whatwg-encoding` dependency payload, so
+hidden-desktop runtime evidence is not claimed.
+
+Implementation commit
+`6c3a4ec8297e79226968a89e3232ba281c539357` contains the feature, tests, and
+documentation update. Hardening commit
+`5e96aad79e82bc597b5c1233fccd17c0b37ce7fa` preserves known-private defaults
+and verifies the exact destination tip before retargeting. Verification and
+changelog commit `8ac2bf5cfce2f4645fa4ead4e7cf05e23cd59478` records the run
+manifest and current evidence.
+
 ## 2026-08-06 — Fix Super Express workflow startup planning
 
 The Super Express dispatcher keeps preparation and publication on
@@ -233,6 +268,47 @@ The enabled GitHub Wiki recovery note was committed as
 and returned HTTP 403; `gh auth setup-git --hostname github.com` refreshed the
 credential path, after which the exact commit landed and the Wiki checkout is
 clean.
+## 2026-08-05 — Actions job-log transient 404 recovery
+
+This Windows Electron fix was developed in the new linked worktree branch
+`codex/job-log-404-fix` at commit `33f54a69825d97083dc8f0b1fb134b353e9686ca`,
+and the integration checkout carries that commit into the default branch.
+GitHub can briefly return `HTTP 404`
+while a valid completed-job log archive is being prepared. The main-process
+transfer now retries only that API response after 250/750/1,500 ms waits,
+restarts from the original API endpoint for a fresh signed redirect, and keeps
+the bearer header off cross-origin blob requests. The log viewer explains the
+provider state and exposes **Retry** and **Open on GitHub**. The unrelated
+Launchpad Sass brace correction is included because it was the build-blocking
+syntax error discovered while producing the required renderer artifact.
+
+### Verification receipts
+
+- Focused transfer/viewer tests: **18 passed, 0 failed**.
+- `tsc --noEmit -p tsconfig.json`: passed.
+- Changed-file ESLint and Prettier checks: passed.
+- `git diff --check`: passed before documentation and capture promotion.
+- Standalone renderer diagnostic: `hasErrors:false`. The final exact
+  `yarn build:prod` command completed with the fresh Node 24.15.0 runtime in
+  **512.78s**, passed the Sass/license checks, produced fresh
+  `out/renderer.js`, `out/main.js`, stylesheet, and `out/index.html` outputs,
+  and packaged `dist\\GitHubDesktop-win32-x64`. Signing was not run.
+- Genuine hidden-desktop capture at **1400×1000** from the built artifact:
+  `docs/assets/screenshots/material-actions-job-log-404-recovery.png` shows the
+  final 404 explanation and both recovery controls (SHA-256
+  `444AA612720799BCB6107BFD7B3CEED66E56252E82E724B1C26559F347968972`).
+  `docs/assets/screenshots/material-actions-job-log-404-recovered.png` shows
+  the two expected log lines after Retry (SHA-256
+  `83D9704989173353467E8C5B079B8D3905A0C52AF6283AC7C09FAB92D2B15A78`).
+- In the dedicated 404-to-Retry acceptance sequence, the fixture recorded four
+  bounded 404 attempts followed by one successful transfer after the user
+  activated Retry. The final recapture used the same built artifact after the
+  fixture was reset and also rendered both states. No credential, token, or
+  personal path appears in either promoted image.
+
+The task-branch workflows were cancelled by workflow concurrency, so no remote
+green result is claimed here. Release publication remains an external
+follow-up after the default-branch workflow produces its verified installer.
 
 ## 2026-08-04 — Live Material renderer proof and startup cleanup
 
