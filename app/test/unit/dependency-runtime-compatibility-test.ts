@@ -41,8 +41,8 @@ describe('updated app dependency compatibility', () => {
     assert.equal(configuredExternals.includes('@github/copilot-sdk'), true)
   })
 
-  it('keeps the script compiler config compatible with cross-package imports', () => {
-    const tsconfig = JSON.parse(
+  it('keeps the compiler configs compatible with the pinned TypeScript', () => {
+    const scriptTsconfig = JSON.parse(
       readFileSync(
         path.resolve(__dirname, '../../../script/tsconfig.json'),
         'utf8'
@@ -54,8 +54,13 @@ describe('updated app dependency compatibility', () => {
       }
     }
 
-    assert.equal(tsconfig.compilerOptions.rootDir, '..')
-    assert.equal(tsconfig.compilerOptions.ignoreDeprecations, undefined)
+    const rootTsconfig = JSON.parse(
+      readFileSync(path.resolve(__dirname, '../../../tsconfig.json'), 'utf8')
+    ) as { compilerOptions: { ignoreDeprecations?: string } }
+
+    assert.equal(scriptTsconfig.compilerOptions.rootDir, '..')
+    assert.equal(scriptTsconfig.compilerOptions.ignoreDeprecations, undefined)
+    assert.equal(rootTsconfig.compilerOptions.ignoreDeprecations, undefined)
   })
 
   it('keeps the compare-versions 6 API used by the Windows version guards', () => {
