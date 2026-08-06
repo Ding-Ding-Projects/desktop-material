@@ -23,9 +23,10 @@ Material is displaying or how a repository is represented in the application.
 - [History commit hover
   time](history-commit-hover-time.md) — show the exact authored date and an
   auto-updating relative age together in the commit row's hover/focus card.
-- [Reviewed bulk branch
-  deletion](reviewed-bulk-branch-deletion.md) — select exact local branch tips,
-  protect current/default/remote refs, and retain per-branch recovery IDs.
+- [Reviewed bulk branch deletion and merge
+  cleanup](reviewed-bulk-branch-deletion.md) — merge one branch, merge and
+  delete only after success, or review exact local branch tips in bulk while
+  protecting current/default/remote refs and retaining per-branch recovery IDs.
 - [Network and WSL repository
   paths](network-and-wsl-repository-paths.md) — retain UNC roots, detect mapped
   drives and WSL shares, and provide offline reconnection guidance.

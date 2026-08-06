@@ -5,7 +5,7 @@ import {
   Repository,
   isRepositoryWithGitHubRepository,
 } from '../../models/repository'
-import { Branch } from '../../models/branch'
+import { Branch, BranchType } from '../../models/branch'
 import { BranchesTab } from '../../models/branches-tab'
 import { PopupType } from '../../models/popup'
 
@@ -373,6 +373,8 @@ export class BranchesContainer extends React.Component<
             renderPreList={this.renderPreList}
             onRenameBranch={this.props.onRenameBranch}
             onDeleteBranch={this.props.onDeleteBranch}
+            onMergeBranch={this.onMergeBranch}
+            onMergeAndDeleteBranch={this.onMergeAndDeleteBranch}
             onCheckoutInNewWorktree={
               enableWorktreeSupport()
                 ? this.props.onCheckoutInNewWorktree
@@ -525,6 +527,33 @@ export class BranchesContainer extends React.Component<
   private onMergeClick = () => {
     this.props.dispatcher.closeFoldout(FoldoutType.Branch)
     this.props.dispatcher.startMergeBranchOperation(this.props.repository)
+  }
+
+  private onMergeBranch = (branch: Branch) => {
+    this.props.dispatcher.closeFoldout(FoldoutType.Branch)
+    this.props.dispatcher.startMergeBranchOperation(
+      this.props.repository,
+      false,
+      branch
+    )
+  }
+
+  private onMergeAndDeleteBranch = (branch: Branch) => {
+    if (
+      branch.type !== BranchType.Local ||
+      branch.name === this.props.currentBranch?.name ||
+      branch.name === this.props.defaultBranch?.name
+    ) {
+      return
+    }
+
+    this.props.dispatcher.closeFoldout(FoldoutType.Branch)
+    this.props.dispatcher.startMergeBranchOperation(
+      this.props.repository,
+      false,
+      branch,
+      true
+    )
   }
 
   private onMergeAllClick = () => {

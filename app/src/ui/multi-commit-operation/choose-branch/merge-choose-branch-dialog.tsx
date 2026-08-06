@@ -1,12 +1,13 @@
 import React from 'react'
 import { getAheadBehind, revSymmetricDifference } from '../../../lib/git'
 import { determineMergeability } from '../../../lib/git/merge-tree'
-import { Branch } from '../../../models/branch'
+import { Branch, BranchType } from '../../../models/branch'
 import { ComputedAction } from '../../../models/computed-action'
 import { MergeTreeResult } from '../../../models/merge'
 import { MultiCommitOperationKind } from '../../../models/multi-commit-operation'
 import { PopupType } from '../../../models/popup'
 import { ActionStatusIcon } from '../../lib/action-status-icon'
+import { Button } from '../../lib/button'
 import {
   ChooseBranchDialog,
   IBaseChooseBranchDialogProps,
@@ -17,8 +18,9 @@ import { formatNumber } from '../../../lib/format-number'
 import { MergeConflictPathPreview } from '../../lib/merge-conflict-path-preview'
 
 interface IMergeChooseBranchDialogState {
-  readonly commitCount: number
+  readonly commitCount: number | undefined
   readonly mergeStatus: MergeTreeResult | null
+  readonly mergeStatusKnown: boolean
   readonly selectedBranch: Branch | null
 }
 
@@ -31,8 +33,9 @@ export class MergeChooseBranchDialog extends React.Component<
 
     this.state = {
       selectedBranch: null,
-      commitCount: 0,
+      commitCount: undefined,
       mergeStatus: null,
+      mergeStatusKnown: false,
     }
   }
 
@@ -71,13 +74,19 @@ export class MergeChooseBranchDialog extends React.Component<
 
   private onSelectionChanged = (selectedBranch: Branch | null) => {
     if (selectedBranch === null) {
-      this.setState({ selectedBranch, commitCount: 0, mergeStatus: null })
+      this.setState({
+        selectedBranch,
+        commitCount: undefined,
+        mergeStatus: null,
+        mergeStatusKnown: false,
+      })
     } else {
       this.setState(
         {
           selectedBranch,
-          commitCount: 0,
+          commitCount: undefined,
           mergeStatus: { kind: ComputedAction.Loading },
+          mergeStatusKnown: false,
         },
         () => this.updateStatus(selectedBranch)
       )
@@ -93,9 +102,15 @@ export class MergeChooseBranchDialog extends React.Component<
       this.props.operation === MultiCommitOperationKind.Squash
         ? 'Squash and '
         : null
+    const mergeAndDeletePrefix =
+      this.props.deleteAfterSuccessfulMerge === true
+        ? 'Merge and delete into '
+        : 'Merge into '
     return (
       <>
-        {squashPrefix}Merge into <strong>{truncatedName}</strong>
+        {squashPrefix}
+        {mergeAndDeletePrefix}
+        <strong>{truncatedName}</strong>
       </>
     )
   }
@@ -103,12 +118,14 @@ export class MergeChooseBranchDialog extends React.Component<
   private updateStatus = async (branch: Branch) => {
     const { currentBranch, repository } = this.props
 
+    let mergeStatusKnown = true
     const mergeStatus = await determineMergeability(
       repository,
       currentBranch,
       branch
     ).catch<MergeTreeResult>(e => {
       log.error('Failed determining mergeability', e)
+      mergeStatusKnown = false
       return { kind: ComputedAction.Clean }
     })
 
@@ -124,21 +141,29 @@ export class MergeChooseBranchDialog extends React.Component<
 
     // Can't go forward if the merge status is invalid, no need to check commit count
     if (mergeStatus.kind === ComputedAction.Invalid) {
-      this.setState({ mergeStatus })
+      this.setState({ mergeStatus, mergeStatusKnown })
       return
     }
 
     // Commit count is used in the UI output as well as determining whether the
     // submit button is enabled
     const range = revSymmetricDifference('', branch.name)
-    const aheadBehind = await getAheadBehind(repository, range)
-    const commitCount = aheadBehind ? aheadBehind.behind : 0
+    let aheadBehindKnown = true
+    const aheadBehind = await getAheadBehind(repository, range).catch(error => {
+      log.error('Failed determining branch ahead/behind state', error)
+      aheadBehindKnown = false
+      return null
+    })
 
     if (this.state.selectedBranch.tip.sha !== branch.tip.sha) {
       return
     }
 
-    this.setState({ commitCount, mergeStatus })
+    this.setState({
+      commitCount: aheadBehind?.behind,
+      mergeStatus,
+      mergeStatusKnown: mergeStatusKnown && aheadBehindKnown,
+    })
   }
 
   private renderStatusPreviewMessage(): JSX.Element | null {
@@ -180,8 +205,17 @@ export class MergeChooseBranchDialog extends React.Component<
   private renderCleanMergeMessage(
     branch: Branch,
     currentBranch: Branch,
-    commitCount: number
+    commitCount: number | undefined
   ) {
+    if (commitCount === undefined) {
+      return (
+        <React.Fragment>
+          Unable to verify whether <strong>{currentBranch.name}</strong> is up
+          to date with <strong>{branch.name}</strong>
+        </React.Fragment>
+      )
+    }
+
     if (commitCount === 0) {
       return (
         <React.Fragment>
@@ -249,6 +283,81 @@ export class MergeChooseBranchDialog extends React.Component<
     )
   }
 
+  private canDeleteSelectedBranch = (): boolean => {
+    const { selectedBranch, commitCount, mergeStatus, mergeStatusKnown } =
+      this.state
+    const { currentBranch, defaultBranch } = this.props
+
+    if (
+      selectedBranch === null ||
+      mergeStatus?.kind !== ComputedAction.Clean ||
+      mergeStatusKnown !== true ||
+      commitCount !== 0
+    ) {
+      return false
+    }
+
+    // Never offer to delete the checked-out branch or the repository's default
+    // branch, including a remote-tracking ref with the same short name.
+    return (
+      selectedBranch.name !== currentBranch.name &&
+      !(
+        selectedBranch.type === BranchType.Remote &&
+        selectedBranch.nameWithoutRemote === currentBranch.nameWithoutRemote
+      ) &&
+      selectedBranch.nameWithoutRemote !== defaultBranch?.nameWithoutRemote
+    )
+  }
+
+  private deleteSelectedBranch = () => {
+    const { selectedBranch } = this.state
+    const { dispatcher, repository } = this.props
+
+    if (selectedBranch === null || !this.canDeleteSelectedBranch()) {
+      return
+    }
+
+    this.props.onDismissed()
+
+    if (selectedBranch.type === BranchType.Remote) {
+      dispatcher.showPopup({
+        type: PopupType.DeleteRemoteBranch,
+        repository,
+        branch: selectedBranch,
+        expectedSha: selectedBranch.tip.sha,
+      })
+      return
+    }
+
+    dispatcher.showPopup({
+      type: PopupType.DeleteBranch,
+      repository,
+      branch: selectedBranch,
+      expectedSha: selectedBranch.tip.sha,
+      existsOnRemote:
+        selectedBranch.upstreamRemoteName !== null &&
+        selectedBranch.isGone !== true,
+    })
+  }
+
+  private renderDeleteBranchButton = () => {
+    if (!this.canDeleteSelectedBranch()) {
+      return null
+    }
+
+    return (
+      <Button
+        className="destructive"
+        dataVerification="merge-delete-branch"
+        onClick={this.deleteSelectedBranch}
+        ariaLabel="Delete branch"
+        tooltip="Delete the selected branch"
+      >
+        Delete branch
+      </Button>
+    )
+  }
+
   public render() {
     return (
       <ChooseBranchDialog
@@ -258,6 +367,7 @@ export class MergeChooseBranchDialog extends React.Component<
         canStartOperation={this.canStart()}
         dialogTitle={this.getDialogTitle()}
         onSelectionChanged={this.onSelectionChanged}
+        renderAdditionalActions={this.renderDeleteBranchButton}
       >
         {this.renderStatusPreview()}
       </ChooseBranchDialog>

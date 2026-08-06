@@ -2397,9 +2397,16 @@ export class Dispatcher {
   public deleteLocalBranch(
     repository: Repository,
     branch: Branch,
-    includeUpstream?: boolean
-  ): Promise<void> {
-    return this.appStore._deleteBranch(repository, branch, includeUpstream)
+    includeUpstream?: boolean,
+    expectedSha?: string
+  ): Promise<boolean> {
+    return this.appStore._deleteBranch(
+      repository,
+      branch,
+      includeUpstream,
+      undefined,
+      expectedSha
+    )
   }
 
   /**
@@ -2407,9 +2414,16 @@ export class Dispatcher {
    */
   public deleteRemoteBranch(
     repository: Repository,
-    branch: Branch
-  ): Promise<void> {
-    return this.appStore._deleteBranch(repository, branch)
+    branch: Branch,
+    expectedSha?: string
+  ): Promise<boolean> {
+    return this.appStore._deleteBranch(
+      repository,
+      branch,
+      undefined,
+      undefined,
+      expectedSha
+    )
   }
 
   public deleteReviewedBranches(
@@ -3243,6 +3257,15 @@ export class Dispatcher {
     // get manual resolutions in case there are manual conflicts
     const repositoryState = this.repositoryStateManager.get(repository)
     const { conflictState } = repositoryState.changesState
+    const operationDetail =
+      repositoryState.multiCommitOperationState?.operationDetail
+    const deleteAfterSuccessfulMerge =
+      operationDetail?.kind === MultiCommitOperationKind.Merge &&
+      operationDetail.deleteAfterSuccessfulMerge === true
+    const sourceBranch =
+      operationDetail?.kind === MultiCommitOperationKind.Merge
+        ? operationDetail.sourceBranch
+        : null
     if (conflictState === null) {
       // if this doesn't exist, something is very wrong and we shouldn't proceed 😢
       log.error(
@@ -3264,6 +3287,12 @@ export class Dispatcher {
         // to capture all successful squash merges under this metric.
         this.statsStore.increment('squashMergeSuccessfulCount')
         this.statsStore.increment('squashMergeSuccessfulWithConflictsCount')
+      }
+      if (deleteAfterSuccessfulMerge && sourceBranch !== null) {
+        await this.appStore._deleteMergedBranchAfterSuccessfulMerge(
+          repository,
+          sourceBranch
+        )
       }
     }
   }
@@ -4753,7 +4782,10 @@ export class Dispatcher {
     let workspace
     try {
       workspace = await fetchSharedWorkspace(
-        { publicOrigin: connection.publicOrigin, deviceToken: connection.deviceToken },
+        {
+          publicOrigin: connection.publicOrigin,
+          deviceToken: connection.deviceToken,
+        },
         action.shareToken
       )
     } catch (error) {
@@ -4766,7 +4798,10 @@ export class Dispatcher {
     }
 
     if (workspace.branch !== null) {
-      await this.openBranchNameFromUrl(workspace.repositoryUrl, workspace.branch)
+      await this.openBranchNameFromUrl(
+        workspace.repositoryUrl,
+        workspace.branch
+      )
     } else {
       await this.openOrCloneRepository(workspace.repositoryUrl)
     }
@@ -7525,7 +7560,8 @@ export class Dispatcher {
   public startMergeBranchOperation(
     repository: Repository,
     isSquash: boolean = false,
-    initialBranch?: Branch | null
+    initialBranch?: Branch | null,
+    deleteAfterSuccessfulMerge: boolean = false
   ) {
     const { branchesState } = this.repositoryStateManager.get(repository)
     const { defaultBranch, allBranches, recentBranches, tip } = branchesState
@@ -7539,7 +7575,12 @@ export class Dispatcher {
       )
     }
 
-    this.initializeMergeOperation(repository, isSquash, null)
+    this.initializeMergeOperation(
+      repository,
+      isSquash,
+      null,
+      deleteAfterSuccessfulMerge
+    )
 
     this.setMultiCommitOperationStep(repository, {
       kind: MultiCommitOperationStepKind.ChooseBranch,
@@ -7568,7 +7609,8 @@ export class Dispatcher {
   public initializeMergeOperation(
     repository: Repository,
     isSquash: boolean,
-    sourceBranch: Branch | null
+    sourceBranch: Branch | null,
+    deleteAfterSuccessfulMerge: boolean = false
   ) {
     const {
       branchesState: { tip },
@@ -7590,6 +7632,7 @@ export class Dispatcher {
         kind: MultiCommitOperationKind.Merge,
         isSquash,
         sourceBranch,
+        deleteAfterSuccessfulMerge,
       },
       currentBranch,
       [],
