@@ -1,6 +1,7 @@
 {
   "releases": {
     "3.6.3-material22": [
+      "[Improved] Global Settings, Repository Settings, and Stash Manager now share browser-style page tabs with open, close, search, overflow, keyboard, and repository-scoped persistence - cf84037475845a2802d5ee3aa40914619b3396d0",
       "[Fixed] Closing Repository Settings while its startup reads are pending no longer lets an unmounted React component update state, so the console stays quiet and the dialog cleanup is safe - ab8c26d7535c9861f81b761e73798d1363bd78e1",
       "[Fixed] The website fits a phone screen instead of making the whole page scroll sideways - 0da917390e7fcd7f45c164ae086bfb3c4d492b1d",
       "[Improved] On a phone the website search box becomes a search button that opens the same search panel, and both tab strips scroll instead of pushing the page - 0da917390e7fcd7f45c164ae086bfb3c4d492b1d",
