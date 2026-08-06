@@ -15,6 +15,16 @@ from `Ding-Ding-Projects/desktop-material` and only check out that repository,
 so an external caller cannot turn the local runner into a general-purpose
 executor.
 
+The fresh-install contract is checked against the repository's pinned
+toolchain: the parity generator and generated YAML must declare the same 206
+desktop features, and the TypeScript configurations must remain valid for the
+pinned TypeScript 5.8.2 release. The dependency compatibility test guards
+those settings so a TypeScript 6-only option or a script root that cannot
+resolve repository imports fails locally before consuming a self-hosted run.
+The settings-tab migration map is intentionally consumed by persistence code
+in a class method; its lint annotation documents that ownership rather than
+hiding an unused property.
+
 ## Behaviour
 
 ### Dependency update proposals
