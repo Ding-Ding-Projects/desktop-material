@@ -1,5 +1,37 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Four-way settings tab docking
+
+Commit `ef604d47a9f6f17203e9d8c12fa996442c2d8fbd` adds a persisted **Settings
+tab position** control to both Preferences and Repository Settings. Each
+surface remembers `left`, `top`, `bottom`, or `right` independently; missing or
+invalid storage safely returns to the historical left rail. Top and bottom
+use a horizontal scrollable tab strip with Left/Right navigation, while left
+and right retain the vertical strip with Up/Down navigation. Search, overflow,
+pinning, selection, localization, and compact-width behavior remain part of
+the same shared tab surface.
+
+### Verification
+
+- Focused suite: **41/41 passed** across four unit-test files, including the
+  default, independent persistence, invalid-value fallback, four selector
+  options, orientation semantics, and compact style contracts.
+- Prettier and targeted ESLint: passed for every changed source, style, test,
+  and documentation file.
+- Production renderer proof: `renderer.js` and `renderer.css` compiled; the
+  development packaging phase completed with `DESKTOP_SKIP_PACKAGE=1`.
+- Hidden Windows Electron runtime: verified Preferences and Repository
+  Settings at **Left**, **Top**, **Bottom**, and **Right** from the built
+  renderer. The disposable profile, fixture, process, and hidden desktop were
+  stopped after capture.
+- Documentation: added
+  `docs/features/identity-and-workspace/settings-tab-docking.md` and linked
+  it from the category index, feature list, and User Guide.
+
+No installer, Release, or remote CI result is claimed from this capture-only
+proof; `gh run list` returned no run for the pushed task branch at the time of
+this handoff update.
+
 ## 2026-08-05 — Super Express packaging lanes parallelized
 
 The manual Super Express dispatcher now keeps one combined immutable Release

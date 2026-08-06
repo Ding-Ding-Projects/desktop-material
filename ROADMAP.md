@@ -1,6 +1,22 @@
 # Desktop Material roadmap
 
-Updated: **August 3, 2026**
+Updated: **August 6, 2026**
+
+## August 6 — four-way settings tab docking — **Implemented, locally verified**
+
+- Commit `ef604d47a9f6f17203e9d8c12fa996442c2d8fbd` adds independent persisted
+  docking for Preferences and Repository Settings: **Left**, **Top**,
+  **Bottom**, and **Right**, with Left as the safe fallback.
+- Top and bottom render a horizontal, scrollable tab strip and use Left/Right
+  arrow navigation. Left and right keep the vertical strip and Up/Down
+  navigation. Search, overflow, pinning, selection, and compact layouts remain
+  available in every orientation.
+- Verification is **41/41 focused tests passed**, targeted Prettier and ESLint
+  passed, and a built Windows Electron renderer was captured on a hidden
+  desktop in all four positions for both surfaces.
+- The feature article is
+  `docs/features/identity-and-workspace/settings-tab-docking.md`; no installer,
+  Release, or branch CI result is claimed from the capture-only run.
 
 ## August 3 — the site lays out on a phone
 
