@@ -26,22 +26,29 @@ layout, but are not presented as captures of this integrated tree.
 
 The direct `.github/workflows/super-express-release-windows.yml` workflow now
 publishes a standalone immutable, non-latest Windows x64 Release after its
-verified package artifact is available. Its `workflow_call` entry point stays
-artifact-only, so the combined Super Express dispatcher remains the sole
-publisher of the complete Windows-plus-Linux payload. The direct Windows
-publisher checks the exact packaged commit, rejects an existing tag, writes
-commit and CI-generated line-count notes, uploads the Squirrel assets, and
-revalidates the published tag and every required installer asset. The version
-helper includes `GITHUB_RUN_ATTEMPT` for reruns after attempt one, preserving
-the existing first-attempt tag while making later execution attempts distinct
-and ordered.
+verified package artifact is available. Its Windows packaging job stays on the
+trusted self-hosted runner, while its publisher runs on `ubuntu-latest`; its
+`workflow_call` entry point stays artifact-only, so the combined Super Express
+dispatcher remains the sole publisher of the complete Windows-plus-Linux
+payload. The direct Windows publisher checks the exact packaged commit, rejects
+an existing tag, writes commit and CI-generated line-count notes, uploads the
+Squirrel assets, and revalidates the published tag and every required installer
+asset. The version helper includes `GITHUB_RUN_ATTEMPT` for reruns after
+attempt one, preserving the existing first-attempt tag while making later
+execution attempts distinct and ordered.
 
-Local focused evidence before remote publication: workflow and release-version
-contracts pass **13/13**, CI workflow safety passes **15/15**, Prettier and
-`git diff --check` pass, and `actionlint -shellcheck=` passes its Windows-safe
-structural check. The prior artifact-only Windows Super Express run
-`31123931589` is packaging evidence, not evidence of this new publisher; the
-post-dew run and its Release still need verification.
+Local focused evidence before remote publication: the release/version/workflow
+contracts pass **29/29**, Prettier and `git diff --check` pass, and
+`actionlint -shellcheck=` passes its Windows-safe structural check. Run
+`31126843395 <https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31126843395>`_
+completed the Windows package successfully at commit
+`7083ab32abcfe4d080125d1ff47261329bd4e6a3`; its publisher was cancelled when
+the `desktop-material-wsl-local` runner was offline. The verified artifact was
+published as
+`v3.6.3-beta3-zadwtuvqil <https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-zadwtuvqil>`_
+with six Windows/Squirrel assets, target verification, and `00:45:50` measured
+end-to-end fallback timing. The hosted publisher repair in this entry prevents
+that runner outage from blocking future direct releases.
 ## 2026-08-06 — Return ordinary CI and tested Express to hosted runners
 
 The current working-tree repair supersedes the same-day interim contracts below

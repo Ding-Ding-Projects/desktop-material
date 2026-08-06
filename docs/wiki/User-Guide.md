@@ -1706,16 +1706,18 @@ The **Actions** panel brings CI into the app:
   direct Windows `workflow_dispatch` publishes an immutable non-latest Windows
   Release after preserving its verified artifact; the direct Linux TUI action
   and reusable packaging calls remain artifact-only so the combined dispatcher
-  publishes one complete cross-platform Release. Every job is self-hosted-only:
-  preparation and publication use the
-  registered Linux x64 WSL runner, the Windows lane uses `[self-hosted,
-  Windows, X64]`, and the TUI lane uses `[self-hosted, Linux, X64]`. A missing
-  or busy local runner queues or fails the release; it never falls back to a
-  GitHub-hosted runner. Ordinary CI and tested Express remain the default
-  gates, run on clean GitHub-hosted machines, and keep unique non-cancelling
-  run/attempt groups. Only Super Express retains local-runner placement and
-  same-ref cancellation. A release pull request targets the Windows product's
-  `main` default branch. Self-hosted dependency setup remains automatic, but
+  publishes one complete cross-platform Release. The combined dispatcher is
+  self-hosted-only: preparation and publication use the registered Linux x64
+  WSL runner, the Windows lane uses `[self-hosted, Windows, X64]`, and the TUI
+  lane uses `[self-hosted, Linux, X64]`. A direct Windows dispatch keeps its
+  package build on `[self-hosted, Windows, X64]` but publishes the verified
+  artifact from `ubuntu-latest`, so an offline local WSL publisher cannot block
+  that Windows-only recovery release. Missing or busy packaging runners still
+  queue or fail their release. Ordinary CI and tested Express remain the
+  default gates, run on clean GitHub-hosted machines, and keep unique
+  non-cancelling run/attempt groups. Only Super Express retains local packaging
+  placement and same-ref cancellation. A release pull request targets the
+  Windows product's `main` default branch. Self-hosted dependency setup remains automatic, but
   skips optional
   cache-save post hooks so a completed build does not leave the local runner
   occupied by archive cleanup. The TUI's isolated profile-history repository
