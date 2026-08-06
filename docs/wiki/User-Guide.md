@@ -108,6 +108,11 @@ M21 adds progressively disclosed controls around the familiar Desktop flow:
   Tools exposes tag creation, fetch, push, move, signing, pruning, and deletion;
   destructive tag and bulk-branch actions identify the exact refs first and
   retain recovery information.
+- When switching away from a dirty branch, choose **Leave my changes here** to
+  keep the current files in place and open Add worktree with the destination
+  branch and a suggested worktree name already filled in. The current worktree
+  is not stashed or checked out to the destination; creation happens only after
+  the path review succeeds.
 - In Changes, switch the file list to a directory tree, choose persisted diff
   context, compare CSV/TSV rows and cells, and preview TGA images. Editor actions
   understand the expanded editor catalog plus WSL paths. Settings and Repository
@@ -1630,8 +1635,12 @@ The **Actions** panel brings CI into the app:
 - The repository's **Super Express Release** emergency lane runs no unit,
   script, TUI, lint, type, parity, smoke, or E2E tests. It goes directly to the
   Windows x64 production build/package, asset verification, and optional
-  release; ordinary CI and tested Express remain the default gates. A release
-  pull request targets the Windows product's `main` default branch.
+  release; preparation and publication use `ubuntu-latest`, while each
+  packaging lane selects an online, idle matching self-hosted runner when
+  available and otherwise uses `windows-2022` or `ubuntu-latest`. Static
+  conditional jobs keep the workflow schedulable before any job starts.
+  Ordinary CI and tested Express remain the default gates. A release pull
+  request targets the Windows product's `main` default branch.
 - Automatic and Super Express installers share one monotonic `z` package-version
   namespace. Releases are immutable and initially non-latest; only the greatest
   release for freshly revalidated current `main` is promoted to the Squirrel

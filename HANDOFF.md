@@ -1,5 +1,28 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Fix Super Express workflow startup planning
+
+The Super Express dispatcher keeps preparation and publication on
+`ubuntu-latest`, while its combined packaging jobs and its two direct reusable
+packaging lanes each check the repository runner inventory on a hosted
+selector. When an online, idle matching runner is available, exactly one
+static conditional job uses `[self-hosted, Windows, X64]` or `[self-hosted,
+Linux, X64]`; otherwise the lane uses `windows-2022` or `ubuntu-latest`. The
+earlier dynamic self-hosted fallback tried to build a multi-label `runs-on`
+value from job outputs; GitHub marked those dispatches `startup_failure` before
+creating a job, so no runner log existed to diagnose. The combined dispatcher
+now inlines its static selector/build jobs instead of calling the reusable
+workflows, because the caller itself remained planner-invalid after the lane
+repair. Static targets retain schedulability while allowing the requested
+self-hosted-first behavior and keeping the zero-test emergency lane and direct
+artifact-only lane behavior unchanged.
+
+The workflow contract test now asserts the fixed labels and rejects the
+dynamic runner-selection shape. Local actionlint (with shellcheck disabled
+because the Windows actionlint/shellcheck pipe can hang), Prettier, and
+`git diff --check` pass. A fresh remote dispatch with `publish=false` is the
+remaining verification step after this correction reaches `main`.
+
 ## 2026-08-05 — Keep private tooling out of hosted CI checkout
 
 The first remote Windows verification after the dependency repair reached the
@@ -13,6 +36,39 @@ unavailable agent-only clone. The subsequent integration at
 its registry entry entirely, leaving only the three public product submodules
 in `.gitmodules`. Fresh remote verification of that integrated correction is
 pending.
+
+## 2026-08-05 — Preserve dirty work while creating a destination worktree
+
+The dirty branch-switch dialog now offers **Leave my changes here**. It closes
+the decision dialog without stashing or checking out the dirty source, opens
+the existing Add worktree flow with the destination branch and suggested name
+prefilled, and leaves creation and switching until the user confirms a path.
+
+### Verification
+
+- Source commit: `c41ae8345a`.
+- Focused UI test: **1 passed, 0 failed**.
+- Targeted Prettier and ESLint: **passed**.
+- Isolated TypeScript check: **passed**.
+- The exact production build was attempted through the required hidden
+  verification route but stopped before renderer emission on the pre-existing
+  `origin/main` Sass error at `app/styles/ui/_launchpad.scss:278`. A
+  disposable renderer-only build with that unrelated selector wrapped emitted
+  the fresh renderer used for capture.
+- Hidden-desktop runtime: **verified**. The source fixture retained one
+  modified `README.md` on `feature/worktree-switch`; the created destination
+  worktree was clean on `main`; the application switched into it with zero
+  stashes.
+- Captures:
+  - `docs/verification/dirty-worktree-worktree-option-20260805/dirty-worktree-switch-dialog.png`
+    (960×660, SHA-256
+    `0FF723C7361C6A9125B9C95AF9A9C40614C5B7B646BBC061A18C0B0D56DDDAB7`).
+  - `docs/verification/dirty-worktree-worktree-option-20260805/add-worktree-prefilled.png`
+    (960×660, SHA-256
+    `54B29ACF0B6A31CAA18E701BF413D720F161C65D3BA9DF5626A4747A3BD5588C`).
+
+GitHub integration and remote CI evidence are recorded after the source and
+documentation commits land on the default branch.
 
 ## 2026-08-05 — Direct Super Express lane dispatch actions
 

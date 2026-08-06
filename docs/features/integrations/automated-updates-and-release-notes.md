@@ -137,10 +137,33 @@ emergency dispatcher. Dispatching it from `main` checks the exact commit and
 tag once, then calls two reusable lanes in parallel:
 
 - `.github/workflows/super-express-release-windows.yml` restores the exact
-  desktop dependency cache and builds the Windows x64 production package;
-- `.github/workflows/super-express-release-linux-tui.yml` uses an Ubuntu runner
-  to build the Linux TUI wheel, source distribution, locked runtime
-  constraints, bootstrap, and installer.
+  desktop dependency cache and builds the Windows x64 production package on
+  an online, idle self-hosted Windows x64 runner when one is available, or on
+  the hosted `windows-2022` runner otherwise;
+- `.github/workflows/super-express-release-linux-tui.yml` builds the Linux TUI
+  wheel, source distribution, locked runtime constraints, bootstrap, and
+  installer on an online, idle self-hosted Linux x64 runner when one is
+  available, or on the hosted `ubuntu-latest` runner otherwise.
+
+Each reusable packaging lane starts with a small hosted selector because a
+queued `self-hosted` job cannot discover that its runner pool is unavailable
+and then move itself to the cloud. The selector reads the repository runner
+inventory through `gh api`, accepts only online and idle runners carrying the
+matching OS and `X64` labels, and sets a boolean choice. Exactly one of two
+static-target jobs then runs: `[self-hosted, Windows, X64]` or `windows-2022`
+for the desktop package, and `[self-hosted, Linux, X64]` or `ubuntu-latest`
+for the TUI package. The coordinator and publisher remain on
+`ubuntu-latest`, where their repository/API work is deterministic. If the
+inventory cannot be read or no matching runner is idle, the affected package
+lane falls back immediately to its hosted target. Static conditional jobs are
+deliberate: a dynamic `runs-on` label array from a previous job can make
+GitHub reject the workflow during planning before the selector runs.
+
+The combined dispatcher keeps the same static conditional shape inline rather
+than calling those reusable workflows. GitHub had been rejecting the caller
+before it created any job even after the reusable lanes were repaired; inline
+selector/build jobs leave the dispatcher with only statically declared runner
+targets while preserving the direct reusable lanes for packaging-only recovery.
 
 Each packaging lane also exposes its own `workflow_dispatch` action for a
 manual, packaging-only recovery run. A direct Windows dispatch accepts an
