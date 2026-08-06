@@ -161,11 +161,13 @@ then exports that instance through `npm_config_msvs_version` so node-gyp does
 not choose a different incomplete installation. When no complete instance is
 available, it asks the installed Visual Studio instance to add
 `Microsoft.VisualStudio.Component.VC.Llvm.Clang` with the installer's supported
-quiet/no-restart flags, and fails with an explicit setup error if the compiler
-and MSBuild toolset are still absent. The installer has no `--wait` option on
-the runner's Visual Studio Installer 4.7.25, so the setup contract rejects that
-unsupported flag. This keeps the native test from hanging in MSBuild while
-waiting for a toolset that the runner never installed.
+quiet/no-restart flags. Because that invocation can return before the installer
+has materialized the files, the script then polls for the compiler and both
+MSBuild toolset files for up to 120 five-second checks before failing with an
+explicit setup error. The installer has no `--wait` option on the runner's
+Visual Studio Installer 4.7.25, so the setup contract rejects that unsupported
+flag. This keeps the native test from racing an in-progress installation while
+still failing closed when the runner never receives a usable toolset.
 
 ### Lock-file provenance and integrity (blocking)
 
@@ -359,7 +361,10 @@ ClangCL bootstrap verification performed on 2026-08-06:
 - Run `31077267784` exposed that Visual Studio Installer 4.7.25 rejects
   `--wait`; commit `28d7d032ef` removed the unsupported flag, and the local
   setup contract passes **2/2** with a negative guard for it. The replacement
-  remote Windows run is still required.
+  setup sequence then exposed that quiet installation can return before the
+  toolset files are visible; commit `b5e6b7f825` added the bounded five-second
+  poll, and the focused setup contract now covers both the unsupported-flag
+  guard and the asynchronous completion path.
 - A new GitHub Actions run is still required to verify the registered
   self-hosted runner's own Visual Studio instance and the resulting Windows
   x64/arm64 CI and release lanes.

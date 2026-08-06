@@ -35,6 +35,18 @@ failure modes, security notes, and verification record are in
 
 Remote CI and default-branch publication remain the final external checks.
 
+## 2026-08-06 — Wait for asynchronous ClangCL installation completion
+
+The replacement Visual Studio bootstrap reached the supported `--quiet
+--norestart` invocation, but the installed Visual Studio Installer returned
+before the compiler and MSBuild toolset files were visible. The old immediate
+check therefore reported that x64 ClangCL was absent even though installation
+could still be progressing. Commit `b5e6b7f825` keeps the supported installer
+flags, polls the architecture-specific compiler plus `Toolset.props` and
+`Toolset.targets` for up to 120 five-second checks, and fails closed with the
+same precise error if the files never appear. The new exact-main Windows wave
+must verify that this reaches the native test and packaged E2E build.
+
 ## 2026-08-06 — Use supported Visual Studio Installer flags
 
 The first exact-main E2E run containing the ClangCL bootstrap,
