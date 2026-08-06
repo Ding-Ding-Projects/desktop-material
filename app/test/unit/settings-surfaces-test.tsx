@@ -278,6 +278,12 @@ describe('Settings surfaces i18n', () => {
     'settings.integrationsCustomEditorLabel',
     'settings.integrationsCustomShellLabel',
     'settings.integrationsSelectEditor',
+    'settings.tabsDockPosition',
+    'settings.tabsDockDescription',
+    'settings.tabsDockLeft',
+    'settings.tabsDockTop',
+    'settings.tabsDockBottom',
+    'settings.tabsDockRight',
   ]
 
   it('provides English and Cantonese copy for every new string', () => {

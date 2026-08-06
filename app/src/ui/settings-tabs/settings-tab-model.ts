@@ -16,6 +16,75 @@
 
 import * as LocalStorage from '../../lib/local-storage'
 
+/** The four supported placements for a settings tab strip. */
+export const SettingsTabDockPositions = [
+  'left',
+  'top',
+  'bottom',
+  'right',
+] as const
+
+export type SettingsTabDockPosition = typeof SettingsTabDockPositions[number]
+
+/** Existing profiles have always rendered a left rail, so it remains the safe default. */
+export const DefaultSettingsTabDockPosition: SettingsTabDockPosition = 'left'
+
+const DockPositionKeyPrefix = 'settings-tab-dock-position'
+
+function dockPositionKey(strip: SettingsTabStripId): string {
+  return `${DockPositionKeyPrefix}.${strip}`
+}
+
+/** Treat persisted renderer storage as untrusted input. */
+export function isSettingsTabDockPosition(
+  value: unknown
+): value is SettingsTabDockPosition {
+  return (
+    typeof value === 'string' &&
+    (SettingsTabDockPositions as ReadonlyArray<string>).includes(value)
+  )
+}
+
+export function normalizeSettingsTabDockPosition(
+  value: unknown
+): SettingsTabDockPosition {
+  return isSettingsTabDockPosition(value)
+    ? value
+    : DefaultSettingsTabDockPosition
+}
+
+/** Read one surface's position, failing closed to the historical left rail. */
+export function getSettingsTabDockPosition(
+  strip: SettingsTabStripId
+): SettingsTabDockPosition {
+  try {
+    return normalizeSettingsTabDockPosition(
+      localStorage.getItem(dockPositionKey(strip))
+    )
+  } catch (e) {
+    log.warn(
+      'Could not read the settings tab dock position; continuing on the left.',
+      e
+    )
+    return DefaultSettingsTabDockPosition
+  }
+}
+
+/** Persist immediately: docking is a navigation preference, not a form value. */
+export function setSettingsTabDockPosition(
+  strip: SettingsTabStripId,
+  position: SettingsTabDockPosition
+): void {
+  try {
+    localStorage.setItem(
+      dockPositionKey(strip),
+      normalizeSettingsTabDockPosition(position)
+    )
+  } catch (e) {
+    log.warn('Could not save the settings tab dock position.', e)
+  }
+}
+
 /** One page in a settings navigation strip. */
 export interface ISettingsTabItem {
   /**

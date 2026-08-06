@@ -1,5 +1,27 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Add four-way docking to browser-style settings tabs
+
+Preferences and Repository Settings now keep the current browser-style tab
+behavior while allowing each surface to dock its tab strip on the left, top,
+bottom, or right. Left is the persisted default and the safe fallback for
+missing or invalid stored values. Top and bottom use horizontal tab navigation;
+left and right use vertical navigation. The two surfaces store their positions
+independently, and the native selector exposes an accessible description and
+all four choices.
+
+The integration combines implementation commit
+`ef604d47a9f6f17203e9d8c12fa996442c2d8fbd` with documentation commit
+`775ac11802e5fead3e435cc73c7df5292a9034b7` while preserving the newer browser
+tab actions and IDs already present on `main`. Integrated-tree evidence is
+**59/59** focused tests passed, full TypeScript passed, Prettier passed, the
+custom-rule ESLint command passed, and `git diff --check` passed. A full
+production renderer compile was attempted but exceeded its bounded local
+window without emitting `out/renderer.js` or `out/renderer.css`; therefore no
+integrated renderer capture or installer result is claimed here. The earlier
+hidden-desktop captures remain valid evidence for the task branch's four-way
+layout, but are not presented as captures of this integrated tree.
+
 ## 2026-08-06 — Publish a release from every direct Windows Super Express run
 
 The direct `.github/workflows/super-express-release-windows.yml` workflow now
@@ -899,6 +921,37 @@ top-level Sass nesting correction in `_launchpad.scss` and a webpack resolver
 rule for the installed `react-confetti` `.mjs` dependency. The cheap MCP
 endpoint saturation was a route limitation, not a build failure; the installed
 Cheap Version fallback completed the same headless verification.
+## 2026-08-06 — Four-way settings tab docking
+
+Commit `ef604d47a9f6f17203e9d8c12fa996442c2d8fbd` adds a persisted **Settings
+tab position** control to both Preferences and Repository Settings. Each
+surface remembers `left`, `top`, `bottom`, or `right` independently; missing or
+invalid storage safely returns to the historical left rail. Top and bottom
+use a horizontal scrollable tab strip with Left/Right navigation, while left
+and right retain the vertical strip with Up/Down navigation. Search, overflow,
+pinning, selection, localization, and compact-width behavior remain part of
+the same shared tab surface.
+
+### Verification
+
+- Focused suite: **41/41 passed** across four unit-test files, including the
+  default, independent persistence, invalid-value fallback, four selector
+  options, orientation semantics, and compact style contracts.
+- Prettier and targeted ESLint: passed for every changed source, style, test,
+  and documentation file.
+- Production renderer proof: `renderer.js` and `renderer.css` compiled; the
+  development packaging phase completed with `DESKTOP_SKIP_PACKAGE=1`.
+- Hidden Windows Electron runtime: verified Preferences and Repository
+  Settings at **Left**, **Top**, **Bottom**, and **Right** from the built
+  renderer. The disposable profile, fixture, process, and hidden desktop were
+  stopped after capture.
+- Documentation: added
+  `docs/features/identity-and-workspace/settings-tab-docking.md` and linked
+  it from the category index, feature list, and User Guide.
+
+No installer, Release, or remote CI result is claimed from this capture-only
+proof; `gh run list` returned no run for the pushed task branch at the time of
+this handoff update.
 
 ## 2026-08-05 — Super Express packaging lanes parallelized
 

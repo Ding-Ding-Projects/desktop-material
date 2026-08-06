@@ -2,6 +2,20 @@
 
 Updated: **August 6, 2026**
 
+## August 6 — Dock settings tabs on any side
+
+- Preferences and Repository Settings now support independent persisted tab
+  docking on the left, top, bottom, or right, with left as the default and
+  fallback for invalid stored values.
+- The existing browser-style tab actions remain intact. Top and bottom docks
+  expose horizontal keyboard navigation; left and right docks expose vertical
+  navigation, with the same accessible tab identities and panels.
+- Integrated-tree evidence is **59/59** focused tests passed, full TypeScript,
+  Prettier, the custom-rule ESLint command, and `git diff --check`. The full
+  renderer compile exceeded its bounded local window without emitting its
+  renderer bundles, so an integrated hidden-desktop capture and installer
+  result remain unclaimed. Task-branch captures cover all four positions.
+
 ## August 6 — Restore clean hosted CI and tested Express capacity
 
 - Ordinary Linux and Windows CI now target `ubuntu-latest` and `windows-2022`,
@@ -202,6 +216,21 @@ Updated: **August 6, 2026**
   the built Electron artifact has inspected 1440×960 hidden-desktop frames for
   all three surfaces. The current-source frames are evidence for the UI
   milestone, not installer or release evidence.
+## August 6 — four-way settings tab docking — **Implemented, locally verified**
+
+- Commit `ef604d47a9f6f17203e9d8c12fa996442c2d8fbd` adds independent persisted
+  docking for Preferences and Repository Settings: **Left**, **Top**,
+  **Bottom**, and **Right**, with Left as the safe fallback.
+- Top and bottom render a horizontal, scrollable tab strip and use Left/Right
+  arrow navigation. Left and right keep the vertical strip and Up/Down
+  navigation. Search, overflow, pinning, selection, and compact layouts remain
+  available in every orientation.
+- Verification is **41/41 focused tests passed**, targeted Prettier and ESLint
+  passed, and a built Windows Electron renderer was captured on a hidden
+  desktop in all four positions for both surfaces.
+- The feature article is
+  `docs/features/identity-and-workspace/settings-tab-docking.md`; no installer,
+  Release, or branch CI result is claimed from the capture-only run.
 
 ## August 3 — the site lays out on a phone
 

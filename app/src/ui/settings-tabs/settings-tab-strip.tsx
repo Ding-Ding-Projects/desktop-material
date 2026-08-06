@@ -7,12 +7,14 @@ import { TooltippedContent } from '../lib/tooltipped-content'
 import { showContextualMenu, IMenuItem } from '../../lib/menu-item'
 import { SettingsTabPickerPopover } from './settings-tab-picker-popover'
 import {
+  DefaultSettingsTabDockPosition,
   getPinnedSettingsTabs,
   getOpenSettingsTabs,
   ISettingsTabPersistenceOptions,
   ISettingsTabItem,
   orderSettingsTabs,
   setOpenSettingsTabs,
+  SettingsTabDockPosition,
   SettingsTabStripId,
   toggleSettingsTabPin,
 } from './settings-tab-model'
@@ -45,6 +47,8 @@ interface ISettingsTabStripProps {
   readonly variant?: 'rail' | 'browser'
   /** Show the plus button that reopens a closed page in a new tab. */
   readonly showNewTab?: boolean
+  /** Where the owning settings surface has docked this strip. */
+  readonly dockPosition?: SettingsTabDockPosition
 
   /**
    * Whether the strip offers its own search button.
@@ -267,7 +271,8 @@ export class SettingsTabStrip extends React.Component<
       prevProps.variant !== this.props.variant ||
       prevProps.showNewTab !== this.props.showNewTab ||
       prevProps.items.length !== this.props.items.length ||
-      prevState.openIds !== this.state.openIds
+      prevState.openIds !== this.state.openIds ||
+      prevProps.dockPosition !== this.props.dockPosition
     ) {
       this.scheduleMeasure()
     }
@@ -314,12 +319,10 @@ export class SettingsTabStrip extends React.Component<
           : row.getBoundingClientRect()
       // A row counts as reachable only when it is wholly inside the scrollport.
       // A half-visible row is exactly the state that made the list look
-      // finished when it was not. Browser tabs overflow horizontally; the
-      // legacy rail overflows vertically.
-      const outside =
-        this.props.variant === 'browser'
-          ? box.left < port.left - 1 || box.right > port.right + 1
-          : box.top < port.top - 1 || box.bottom > port.bottom + 1
+      // finished when it was not.
+      const outside = this.isHorizontal
+        ? box.left < port.left - 1 || box.right > port.right + 1
+        : box.top < port.top - 1 || box.bottom > port.bottom + 1
       if (outside) {
         overflowIds.push(id)
       }
@@ -414,6 +417,19 @@ export class SettingsTabStrip extends React.Component<
     return { ordered: filtered, pinnedCount }
   }
 
+  private get dockPosition(): SettingsTabDockPosition {
+    return (
+      this.props.dockPosition ??
+      (this.props.variant === 'browser'
+        ? 'top'
+        : DefaultSettingsTabDockPosition)
+    )
+  }
+
+  private get isHorizontal(): boolean {
+    return this.dockPosition === 'top' || this.dockPosition === 'bottom'
+  }
+
   private onRowClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (this.props.disabled !== true) {
       this.props.onSelect(event.currentTarget.value)
@@ -424,7 +440,7 @@ export class SettingsTabStrip extends React.Component<
     if (this.props.disabled === true) {
       return
     }
-    const horizontal = this.props.variant === 'browser'
+    const horizontal = this.isHorizontal
     const validKeys = horizontal
       ? ['ArrowLeft', 'ArrowRight', 'Home', 'End']
       : ['ArrowDown', 'ArrowUp', 'Home', 'End']
@@ -677,8 +693,14 @@ export class SettingsTabStrip extends React.Component<
     const tabListLabel =
       this.props.accessibleLabels?.tabList ?? this.props.title
 
+    const orientation = this.isHorizontal ? 'horizontal' : 'vertical'
+
     return (
-      <div className="settings-tab-strip settings-tab-strip-browser">
+      <div
+        className="settings-tab-strip settings-tab-strip-browser"
+        data-settings-tab-dock-position={this.dockPosition}
+        data-settings-tab-dock-orientation={orientation}
+      >
         <div
           className="settings-browser-tabs"
           ref={this.onListRef}
@@ -688,7 +710,7 @@ export class SettingsTabStrip extends React.Component<
             className="settings-browser-tablist"
             role="tablist"
             aria-label={tabListLabel}
-            aria-orientation="horizontal"
+            aria-orientation={orientation}
             aria-owns={ordered.map(item => this.getTabId(item)).join(' ')}
           />
           <div className="settings-browser-tab-items">
@@ -824,13 +846,18 @@ export class SettingsTabStrip extends React.Component<
 
     const { ordered, pinnedCount } = this.ordered
     const { selectedId, disabled } = this.props
+    const orientation = this.isHorizontal ? 'horizontal' : 'vertical'
 
     return (
-      <div className="settings-tab-strip">
+      <div
+        className="settings-tab-strip"
+        data-settings-tab-dock-position={this.dockPosition}
+        data-settings-tab-dock-orientation={orientation}
+      >
         <div
           className="settings-tab-strip-list"
           role="tablist"
-          aria-orientation="vertical"
+          aria-orientation={orientation}
           ref={this.onListRef}
         >
           {ordered.map((item, index) => {

@@ -34,7 +34,7 @@ describe('compact settings style contracts', () => {
     assert.match(style, /overflow-x: hidden;/)
     assert.match(
       style,
-      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?\.repository-settings-browser-toolbar\s*\{[\s\S]*?width: 100%;/
+      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?\.tab-container\[data-settings-tab-dock-position='top'\][\s\S]*?flex-direction: column;/
     )
     assert.match(
       style,
@@ -48,11 +48,15 @@ describe('compact settings style contracts', () => {
       style,
       /> form\s*\{[\s\S]*?flex: 1;[\s\S]*?height: auto;[\s\S]*?overflow: hidden;/
     )
-    // The compact browser lane remains horizontal and scrollable; it no
-    // longer collapses the page labels into an icon-only rail.
+    // The compact top/bottom docks keep a horizontal browser lane and the
+    // compact left/right docks keep a vertical browser lane.
     assert.match(
       style,
-      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?\.repository-settings-browser-toolbar\s*\{[\s\S]*?padding: 4px 8px;/
+      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?\.tab-container\[data-settings-tab-dock-position='top'\][\s\S]*?\.settings-tab-strip-browser[\s\S]*?overflow-x: auto;/
+    )
+    assert.match(
+      style,
+      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?\.tab-container\[data-settings-tab-dock-position='left'\][\s\S]*?\.settings-tab-strip-browser[\s\S]*?overflow-y: auto;/
     )
     assert.doesNotMatch(
       style,

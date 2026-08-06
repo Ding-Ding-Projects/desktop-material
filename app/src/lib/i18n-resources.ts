@@ -2026,6 +2026,12 @@ export type TranslationKey =
   | 'settings.integrationsCustomEditorLabel'
   | 'settings.integrationsCustomShellLabel'
   | 'settings.integrationsSelectEditor'
+  | 'settings.tabsDockPosition'
+  | 'settings.tabsDockDescription'
+  | 'settings.tabsDockLeft'
+  | 'settings.tabsDockTop'
+  | 'settings.tabsDockBottom'
+  | 'settings.tabsDockRight'
   | 'settings.contextMenuHeading'
   | 'settings.contextMenuDescription'
   | 'settings.contextMenuPlacementNote'
@@ -6140,6 +6146,13 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.integrationsCustomEditorLabel': 'Custom editor',
   'settings.integrationsCustomShellLabel': 'Custom shell',
   'settings.integrationsSelectEditor': 'Select editor',
+  'settings.tabsDockPosition': 'Settings tab position',
+  'settings.tabsDockDescription':
+    'Choose where this tab strip sits. Preferences and Repository Settings save their positions separately; missing or invalid values use Left.',
+  'settings.tabsDockLeft': 'Left',
+  'settings.tabsDockTop': 'Top',
+  'settings.tabsDockBottom': 'Bottom',
+  'settings.tabsDockRight': 'Right',
   'settings.contextMenuHeading': 'Windows context menu',
   'settings.contextMenuDescription':
     'Add Desktop Material actions to the right-click menu for folders and folder backgrounds in File Explorer.',
@@ -10614,6 +10627,13 @@ export const cantoneseTranslations: Readonly<
   'settings.integrationsCustomEditorLabel': '自訂編輯器',
   'settings.integrationsCustomShellLabel': '自訂命令列',
   'settings.integrationsSelectEditor': '揀編輯器',
+  'settings.tabsDockPosition': '設定分頁位置',
+  'settings.tabsDockDescription':
+    '揀呢條分頁列擺邊。設定同儲存庫設定會分開記住；冇記錄或者記錄唔啱就用左邊。',
+  'settings.tabsDockLeft': '左邊',
+  'settings.tabsDockTop': '頂部',
+  'settings.tabsDockBottom': '底部',
+  'settings.tabsDockRight': '右邊',
   'settings.contextMenuHeading': 'Windows 右鍵選單',
   'settings.contextMenuDescription':
     '喺檔案總管撳右鍵嗰陣，喺資料夾同資料夾空白位加返 Desktop Material 嘅動作。',

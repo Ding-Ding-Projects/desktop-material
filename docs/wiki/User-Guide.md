@@ -934,6 +934,16 @@ active values remain applied and are counted on the pill while the panel is coll
 
 ![Repository Settings with the shared browser-style tabs and Remote page selected](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-remote-manager.png)
 
+The Settings and Repository Settings tab rails are dockable from the visible **Settings tab
+position** control. Choose **Left**, **Top**, **Bottom**, or **Right**; left is the default, and
+Preferences and Repository Settings remember their choices separately. Top and bottom use a
+horizontal scrollable strip, while left and right keep the vertical strip and its matching arrow
+keys. Invalid or missing local values safely return to the left rail. See the detailed
+[settings tab docking article](../features/identity-and-workspace/settings-tab-docking.md) for
+the storage keys and verification contract.
+
+![Preferences as an MD3 dialog](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-settings.png)
+
 ![Dark repository side sheet with collapsed Filters and compact Add, Select, and More actions](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-repositories-sheet.png)
 
 ![Branch navigation and status side sheet](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-branches-sheet.png)

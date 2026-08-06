@@ -149,17 +149,25 @@
   .tab-container {
     display: flex;
     flex: 1;
-    flex-direction: column;
+    flex-direction: row;
     min-height: 0;
     overflow: hidden;
 
-    // The search belongs to the same full-width browser chrome as the tabs.
-    > .repository-settings-browser-toolbar {
+    > .settings-tab-rail {
       display: flex;
       flex: none;
       flex-direction: column;
+      min-height: 0;
       min-width: 0;
-      padding: var(--spacing) var(--spacing-double) var(--spacing-half);
+      padding: var(--spacing) var(--spacing) var(--spacing) var(--spacing-double);
+      width: 260px;
+
+      .settings-tab-rail-header {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-half);
+        min-width: 0;
+      }
 
       .repository-settings-tab-search {
         display: flex;
@@ -186,6 +194,11 @@
           }
         }
       }
+
+      > .settings-tab-strip {
+        flex: 1;
+        min-height: 0;
+      }
     }
 
     .active-tab {
@@ -196,6 +209,69 @@
       min-height: 0;
       overflow-x: hidden;
       overflow-y: auto;
+    }
+  }
+
+  .tab-container:not([data-settings-tab-dock-position='right']) > .settings-tab-rail {
+    border-right: var(--base-border);
+  }
+
+  .tab-container:not([data-settings-tab-dock-position='top']):not([data-settings-tab-dock-position='bottom']) .active-tab {
+    border-left: var(--base-border);
+  }
+
+  .tab-container[data-settings-tab-dock-position='right'] {
+    flex-direction: row-reverse;
+
+    > .settings-tab-rail {
+      border-left: var(--base-border);
+      padding-left: var(--spacing);
+      padding-right: var(--spacing-double);
+    }
+
+    .active-tab {
+      border-left: 0;
+      border-right: var(--base-border);
+    }
+  }
+
+  .tab-container[data-settings-tab-dock-position='top'],
+  .tab-container[data-settings-tab-dock-position='bottom'] {
+    > .settings-tab-rail {
+      width: 100%;
+      padding: var(--spacing) var(--spacing-double);
+
+      .settings-tab-strip {
+        flex: 0 1 auto;
+      }
+    }
+
+    .active-tab {
+      border-left: 0;
+    }
+  }
+
+  .tab-container[data-settings-tab-dock-position='top'] {
+    flex-direction: column;
+
+    > .settings-tab-rail {
+      border-bottom: var(--base-border);
+    }
+
+    .active-tab {
+      border-top: var(--base-border);
+    }
+  }
+
+  .tab-container[data-settings-tab-dock-position='bottom'] {
+    flex-direction: column-reverse;
+
+    > .settings-tab-rail {
+      border-top: var(--base-border);
+    }
+
+    .active-tab {
+      border-bottom: var(--base-border);
     }
   }
 
@@ -1244,20 +1320,69 @@
 }
 
 #repository-settings {
-  // Collapse the vertical label rail into one row of accessible icon buttons.
-  // The text remains in the DOM as each button's accessible name.
+  // Keep each dock choice usable at compact widths. Vertical docks retain a
+  // labelled rail; horizontal docks retain a scrolling tab row.
   @container repository-settings-dialog (max-width: 520px) {
-    .tab-container {
-      flex-direction: column;
+    .tab-container[data-settings-tab-dock-position='left'],
+    .tab-container[data-settings-tab-dock-position='right'] {
+      > .settings-tab-rail {
+        padding: 4px 8px;
+        width: 190px;
+      }
 
-      > .repository-settings-browser-toolbar {
+      .settings-tab-strip-browser {
+        padding: 4px 0;
+
+        .settings-browser-tabs {
+          overflow-x: hidden;
+          overflow-y: auto;
+        }
+
+        .settings-browser-tab-items {
+          flex-direction: column;
+          min-width: 0;
+          width: 100%;
+        }
+
+        .settings-browser-tab {
+          max-width: none;
+          min-width: 0;
+          width: 100%;
+        }
+      }
+    }
+
+    .tab-container[data-settings-tab-dock-position='top'],
+    .tab-container[data-settings-tab-dock-position='bottom'] {
+      > .settings-tab-rail {
         padding: 4px 8px;
         width: 100%;
       }
 
-      .active-tab {
-        border-left: 0;
+      .settings-tab-strip-browser {
+        padding: 4px 0;
+
+        .settings-browser-tabs {
+          overflow-x: auto;
+          overflow-y: hidden;
+        }
       }
+    }
+
+    .tab-container[data-settings-tab-dock-position='left'] {
+      flex-direction: row;
+    }
+
+    .tab-container[data-settings-tab-dock-position='right'] {
+      flex-direction: row-reverse;
+    }
+
+    .tab-container[data-settings-tab-dock-position='top'] {
+      flex-direction: column;
+    }
+
+    .tab-container[data-settings-tab-dock-position='bottom'] {
+      flex-direction: column-reverse;
     }
 
     .dialog-footer {
@@ -1293,7 +1418,7 @@
       overflow: hidden;
     }
 
-    .tab-container .settings-tab-strip-list {
+    .tab-container .settings-browser-tabs {
       max-height: none !important;
       overflow-x: hidden;
       overflow-y: auto;

@@ -3,7 +3,13 @@ import { Account, isDotComAccount } from '../../models/account'
 import { PreferencesTab } from '../../models/preferences'
 import { Dispatcher } from '../dispatcher'
 import { SettingsTabStrip } from '../settings-tabs/settings-tab-strip'
-import { ISettingsTabItem } from '../settings-tabs/settings-tab-model'
+import { SettingsTabDockControl } from '../settings-tabs/settings-tab-dock-control'
+import {
+  getSettingsTabDockPosition,
+  ISettingsTabItem,
+  setSettingsTabDockPosition,
+  SettingsTabDockPosition,
+} from '../settings-tabs/settings-tab-model'
 import { Accounts } from './accounts'
 import { Advanced } from './advanced'
 import { Git } from './git'
@@ -171,6 +177,7 @@ interface IPreferencesProps {
 
 interface IPreferencesState {
   readonly selectedIndex: PreferencesTab
+  readonly tabDockPosition: SettingsTabDockPosition
   readonly committerName: string
   readonly committerEmail: string
   readonly defaultBranch: string
@@ -337,6 +344,7 @@ export class Preferences extends React.Component<
 
     this.state = {
       selectedIndex: this.props.initialSelectedTab || PreferencesTab.Accounts,
+      tabDockPosition: getSettingsTabDockPosition('preferences'),
       committerName: '',
       committerEmail: '',
       defaultBranch: '',
@@ -760,20 +768,20 @@ export class Preferences extends React.Component<
         onSubmit={this.onSave}
       >
         {this.renderDisallowedCharactersError()}
-        <div className="preferences-container">
-          <div className="preferences-content-pane">
-            <div className="preferences-pane-header">
+        <div
+          className="preferences-container"
+          data-settings-tab-dock-position={this.state.tabDockPosition}
+        >
+          <div className="preferences-rail">
+            <div className="preferences-rail-header">
               <h2 id={PreferencesTitleId} className="preferences-title">
                 <LocalizedText translationKey="settings.dialogTitle" />
               </h2>
-              <button
-                type="button"
-                className="preferences-close-button"
-                onClick={this.onCancel}
-                aria-label={translateForAccessibleName('settings.closeAction')}
-              >
-                <Octicon symbol={octicons.x} />
-              </button>
+              <SettingsTabDockControl
+                strip="preferences"
+                position={this.state.tabDockPosition}
+                onChange={this.onTabDockPositionChanged}
+              />
             </div>
             <div className="preferences-browser-search">
               {this.renderSettingsSearch()}
@@ -787,8 +795,21 @@ export class Preferences extends React.Component<
               legacyTabIdMap={LegacyPreferencesTabIds}
               variant="browser"
               showNewTab={true}
+              dockPosition={this.state.tabDockPosition}
               accessibleLabels={this.getSettingsBrowserTabLabels()}
             />
+          </div>
+          <div className="preferences-content-pane">
+            <div className="preferences-pane-header">
+              <button
+                type="button"
+                className="preferences-close-button"
+                onClick={this.onCancel}
+                aria-label={translateForAccessibleName('settings.closeAction')}
+              >
+                <Octicon symbol={octicons.x} />
+              </button>
+            </div>
             {this.renderActiveTab()}
             {this.renderFooter()}
           </div>
@@ -1804,6 +1825,13 @@ export class Preferences extends React.Component<
     if (tab !== undefined) {
       this.setState({ selectedIndex: tab })
     }
+  }
+
+  private onTabDockPositionChanged = (
+    tabDockPosition: SettingsTabDockPosition
+  ) => {
+    setSettingsTabDockPosition('preferences', tabDockPosition)
+    this.setState({ tabDockPosition })
   }
 
   private get isCopilotSdkEnabled(): boolean {
