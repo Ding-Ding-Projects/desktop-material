@@ -43,6 +43,7 @@ jobs:
       - self-hosted
       - Windows
       - X64
+      - desktop-material-windows-local
     timeout-minutes: 60
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}

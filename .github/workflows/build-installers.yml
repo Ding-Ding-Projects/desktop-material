@@ -35,6 +35,7 @@ jobs:
       - self-hosted
       - Linux
       - X64
+      - desktop-material-wsl-local
     outputs:
       sha: ${{ steps.target.outputs.sha }}
       version: ${{ steps.version.outputs.version }}
@@ -222,6 +223,7 @@ jobs:
       - self-hosted
       - Linux
       - X64
+      - desktop-material-wsl-local
     permissions:
       contents: read
     steps:
@@ -247,6 +249,7 @@ jobs:
       - self-hosted
       - Windows
       - X64
+      - desktop-material-windows-local
     timeout-minutes: 45
     permissions:
       contents: read
@@ -291,6 +294,7 @@ jobs:
       - self-hosted
       - Linux
       - X64
+      - desktop-material-wsl-local
     permissions:
       contents: read
     env:
@@ -352,6 +356,7 @@ jobs:
       - self-hosted
       - Linux
       - X64
+      - desktop-material-wsl-local
     timeout-minutes: 40
     permissions:
       contents: read
@@ -535,6 +540,7 @@ jobs:
       - self-hosted
       - Windows
       - X64
+      - desktop-material-windows-local
     timeout-minutes: 60
     permissions:
       contents: read
@@ -676,6 +682,7 @@ jobs:
       - self-hosted
       - Linux
       - X64
+      - desktop-material-wsl-local
     permissions:
       actions: read
       contents: write

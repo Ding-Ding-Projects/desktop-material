@@ -70,6 +70,7 @@ jobs:
       - self-hosted
       - Linux
       - X64
+      - desktop-material-wsl-local
     permissions:
       contents: read
     env:
@@ -106,6 +107,7 @@ jobs:
       - self-hosted
       - Linux
       - X64
+      - desktop-material-wsl-local
     permissions:
       contents: read
     timeout-minutes: 15
@@ -243,6 +245,7 @@ jobs:
       - self-hosted
       - Linux
       - X64
+      - desktop-material-wsl-local
     permissions:
       contents: read
     timeout-minutes: 35
