@@ -42,6 +42,11 @@ jobs:
       windows_ok: ${{ steps.target.outputs.windows_ok }}
       linux_ok: ${{ steps.target.outputs.linux_ok }}
     steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: ./.github/actions/setup-github-cli
       - name: Require a successful main CI or a main dispatch
         id: target
         shell: bash
@@ -83,17 +88,16 @@ jobs:
                 exit 1
                 ;;
             esac
-            sibling_run=$(gh api \
+            sibling_fields=$(gh api \
               "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$CI_SHA&event=push&per_page=100" \
               --jq "[.workflow_runs[] | select(.name == \"$sibling\")]
-                    | sort_by(.run_number) | last // empty")
-            if [ -z "$sibling_run" ]; then
+                    | sort_by(.run_number) | last // empty
+                    | [.status, (.conclusion // \"\"), .updated_at] | @tsv")
+            if [ -z "$sibling_fields" ]; then
               echo "Installer packaging blocked: no $sibling run found for $CI_SHA." >&2
               exit 1
             fi
-            sibling_status=$(printf '%s' "$sibling_run" | jq -r '.status')
-            sibling_conclusion=$(printf '%s' "$sibling_run" | jq -r '.conclusion // ""')
-            sibling_updated=$(printf '%s' "$sibling_run" | jq -r '.updated_at')
+            IFS=$'\t' read -r sibling_status sibling_conclusion sibling_updated <<< "$sibling_fields"
             if [ "$sibling_status" != "completed" ]; then
               echo "$sibling is still $sibling_status; it will publish this commit once it finishes."
               echo "proceed=false" >> "$GITHUB_OUTPUT"
@@ -160,6 +164,11 @@ jobs:
           ref: ${{ steps.target.outputs.sha }}
           fetch-depth: 0
 
+      - uses: actions/setup-node@v7
+        if: steps.target.outputs.proceed == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
       - name: Stamp cross-lane monotonic release version
         id: version
         if: steps.target.outputs.proceed == 'true'
@@ -173,7 +182,7 @@ jobs:
             exit 1
           fi
           base=$(node -p "require('./app/package.json').version")
-          version=$(node script/release-version.js create "$base" "$GITHUB_RUN_ID")
+          version=$(node script/release-version.js create "$base" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT")
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
@@ -255,10 +264,9 @@ jobs:
           TARGET_ARCH: x64
       - name: Run unit tests
         run: yarn test:unit
-        env:
-          # Match the Windows CI unit-test budget; without it the coordinator
-          # can exhaust its default heap after the assertions have passed.
-          NODE_OPTIONS: --max-old-space-size=4096
+        # script/test.mjs owns both the worker heap limit and the concurrency
+        # budget. A workflow-level NODE_OPTIONS override is inherited by every
+        # worker and makes the harness underestimate its peak memory use.
       - name: Run script tests
         run: yarn test:script
 
@@ -636,7 +644,7 @@ jobs:
     # still refused: a job that ran and failed, and a Release with nothing in
     # it because neither lane produced anything.
     if: >-
-      always() && needs.prepare.result == 'success' &&
+      !cancelled() && always() && needs.prepare.result == 'success' &&
       needs.prepare.outputs.proceed == 'true' && needs.prepare.outputs.publish
       == 'true' && needs.release_notes.result == 'success' &&
       needs.package.result != 'failure' && needs.package.result != 'cancelled'
@@ -671,6 +679,10 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
+      - uses: ./.github/actions/setup-github-cli
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - uses: actions/download-artifact@v8
         if: needs.package.result == 'success'
         with:

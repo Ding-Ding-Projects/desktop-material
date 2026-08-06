@@ -21,13 +21,96 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4151,
+    entryCount: 4169,
     releases: [
       {
         v: '3.6.3-material22',
-        d: '2026-08-04',
-        t: '12:18',
+        d: '2026-08-06',
+        t: '16:49',
         e: [
+          [
+            'Fixed',
+            'Every Super Express job, including the direct Windows release publisher, now stays on the registered self-hosted Windows and Linux pools, while ordinary CI and tested Express remain on GitHub-hosted runners',
+            '9d9dd4f8f1b6b9b86f226aa37885fba6e0a02c1c',
+          ],
+          [
+            'Improved',
+            'Ordinary Windows and Linux CI plus tested Express Release now use clean GitHub-hosted runners again, while only the three Super Express emergency workflows stay on their dedicated self-hosted pools',
+            '196ead823c9d683992dc58f9931fac7c0e21bc8b',
+          ],
+          [
+            'Fixed',
+            'Unit tests no longer inherit a workflow-wide 4 GiB heap that made the memory-aware harness underestimate every worker, and Windows installer smoke now has a bounded 300-second wait with scoped late-process cleanup',
+            '196ead823c9d683992dc58f9931fac7c0e21bc8b',
+          ],
+          [
+            'Fixed',
+            'Cloud-gate regressions now cover CodeMirror accessibility, complete Settings search and command-palette destinations, generated changelog and screenshot catalogs, Copilot policy intent, lazy-section inventory, and unique native-menu access keys',
+            '196ead823c9d683992dc58f9931fac7c0e21bc8b',
+          ],
+          [
+            'Fixed',
+            'The Linux Python 3.13 TUI check now runs non-UI tests together and each UI test file in a fresh interpreter, preserving all coverage while preventing Textual native syntax state from carrying a segfault into the next app-heavy file',
+            'cbfa45f5d728e75ade4a93a74b7c2d9b922827d8',
+          ],
+          [
+            'Fixed',
+            'The TUI profile-history repository now enables Git core.longpaths in its own local configuration, so Windows version-history writes do not fail with Filename too long when the app data path is deep - 822b5ee924',
+          ],
+          [
+            'Fixed',
+            'Self-hosted dependency setup still installs every declared package but no longer registers actions/cache, setup-uv, or setup-node archive-cache post hooks, so a completed build does not leave its runner busy with cleanup - 255eb9de1c',
+          ],
+          [
+            'Fixed',
+            'Windows native dependency setup now repairs arm64 before ClangCL, keeps both checks on one Visual Studio instance, verifies x64 MSVC and MSBuild, polls arm64 files after a quiet install, and uses an installer path format accepted across Visual Studio versions - 87ec5b3452',
+          ],
+          [
+            'Fixed',
+            'Self-hosted Windows dependency setup now waits for Visual Studio to materialize the verified x64 or arm64 ClangCL compiler and MSBuild toolset after the quiet installer returns, instead of declaring a still-running install broken - b5e6b7f825',
+          ],
+          [
+            'Improved',
+            'Trusted CI, Express Release, and Super Express now target the registered local Windows and WSL runners with explicit labels, so incomplete alternate self-hosted machines cannot claim release jobs - c3cf40d0af',
+          ],
+          [
+            'Fixed',
+            'Self-hosted Windows dependency setup no longer passes the unsupported --wait option to Visual Studio Installer 4.7.25, so ClangCL bootstrap can reach dependency installation instead of failing before the app build - 28d7d032ef',
+          ],
+          [
+            'Fixed',
+            "The self-hosted release gate no longer depends on a separate jq executable: gh's built-in evaluator returns the sibling CI status, conclusion, and timestamp without a missing-runner-tool crash - ff0881d9d4",
+          ],
+          [
+            'Fixed',
+            'The Windows renderer no longer opens as a blank white window when the Node-oriented Copilot SDK is bundled: the SDK stays external, and the build rejects missing or unsafe startup bundles',
+            '5fbc28b6cfe458943cdecd456fdc3622a4719fc1',
+          ],
+          [
+            'Fixed',
+            "A fresh Windows dependency install now completes with the pinned TypeScript compiler, compiles the script's shared app imports, and lets the production renderer reach packaging",
+            'fe189e2f41a6a0ab262a9152a0baeff890f83149',
+          ],
+          [
+            'Fixed',
+            'Settings > Accounts now uses one global active identity across GitHub.com, Enterprise, GitLab, and Bitbucket sections, so a cross-provider switch exposes Make active and never leaves two rows marked Active',
+            '7a757f5b75d627e1b4b7ae5ed47b2181638fefa0',
+          ],
+          [
+            'Added',
+            'Transfer repository now lets you choose another signed-in GitHub account or organization, keep the existing name or choose a custom one, publish every local branch and tag or one clean snapshot commit, and retarget origin only after the destination is verified',
+            '6c3a4ec8297e79226968a89e3232ba281c539357',
+          ],
+          [
+            'Fixed',
+            'A known-private source repository now keeps its destination private unless the user changes that choice, and transfer verification compares the destination branch with the exact pushed commit before origin is retargeted',
+            '5e96aad79e82bc597b5c1233fccd17c0b37ce7fa',
+          ],
+          [
+            'Improved',
+            'Global Settings, Repository Settings, and Stash Manager now share browser-style page tabs with open, close, search, overflow, keyboard, and repository-scoped persistence',
+            'cf84037475845a2802d5ee3aa40914619b3396d0',
+          ],
           [
             'Fixed',
             'Closing Repository Settings while its startup reads are pending no longer lets an unmounted React component update state, so the console stays quiet and the dialog cleanup is safe',

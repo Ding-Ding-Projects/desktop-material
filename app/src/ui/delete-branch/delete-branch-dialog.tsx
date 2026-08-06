@@ -13,6 +13,7 @@ interface IDeleteBranchProps {
   readonly repository: Repository
   readonly branch: Branch
   readonly existsOnRemote: boolean
+  readonly expectedSha?: string
   readonly onDismissed: () => void
   readonly onDeleted: (repository: Repository) => void
 }
@@ -104,11 +105,16 @@ export class DeleteBranch extends React.Component<
 
     this.setState({ isDeleting: true })
 
-    await dispatcher.deleteLocalBranch(
+    const deleted = await dispatcher.deleteLocalBranch(
       repository,
       branch,
-      this.state.includeRemoteBranch
+      this.state.includeRemoteBranch,
+      this.props.expectedSha
     )
+    if (deleted !== true) {
+      this.setState({ isDeleting: false })
+      return
+    }
     this.props.onDeleted(repository)
 
     this.props.onDismissed()

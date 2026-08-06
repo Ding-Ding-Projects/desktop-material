@@ -20,6 +20,7 @@ import {
   launchpadValue,
 } from '../../../src/lib/launchpad/launchpad-model'
 import {
+  createLaunchpadTeamViewProps,
   LaunchpadSectionOrder,
   LaunchpadSnoozeOptions,
   LaunchpadView,
@@ -577,13 +578,33 @@ describe('Launchpad view', () => {
 })
 
 describe('Launchpad view team surface', () => {
+  it('omits Team View when no self-hosted connection is available', () => {
+    assert.equal(
+      createLaunchpadTeamViewProps(
+        { available: false, members: null },
+        false,
+        () => {}
+      ),
+      undefined
+    )
+  })
+
+  it('passes the honest loading state through before the first roster response', () => {
+    const onSelect = () => {}
+    assert.deepEqual(
+      createLaunchpadTeamViewProps(
+        { available: true, members: undefined },
+        true,
+        onSelect
+      ),
+      { members: null, selected: true, onSelect }
+    )
+  })
+
   it('renders no team toggle when no server is configured', () => {
     const fixture = presentationFixture()
     render(<LaunchpadView result={fixture.result} />)
-    assert.equal(
-      screen.queryByRole('button', { name: /team view/i }),
-      null
-    )
+    assert.equal(screen.queryByRole('button', { name: /team view/i }), null)
   })
 
   it('toggles into a real team roster and back, never fabricating members', () => {
@@ -679,7 +700,11 @@ describe('Launchpad view styles', () => {
     assert.match(styles, /&__section-toggle\s*\{[\s\S]*?min-height:\s*48px;/)
     assert.match(styles, /&__action\s*\{[\s\S]*?min-height:\s*40px;/)
     assert.match(styles, /&__snooze-label\s*\{/)
-    assert.match(styles, /&__team-toggle\s*\{/)
+    assert.match(styles, /\.launchpad-view\s*\{[\s\S]*?&__team-toggle\s*\{/)
+    assert.doesNotMatch(
+      styles,
+      /@media\s*\(max-width:\s*520px\)[\s\S]*?&__team-toggle\s*\{/
+    )
     assert.match(styles, /&__presence-dot\s*\{[\s\S]*?&--online\s*\{/)
   })
 

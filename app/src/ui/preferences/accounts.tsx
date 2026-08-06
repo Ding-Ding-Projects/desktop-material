@@ -2,6 +2,7 @@ import * as React from 'react'
 import classNames from 'classnames'
 import {
   Account,
+  accountEquals,
   getAccountKey,
   isBitbucketAccount,
   isDotComAccount,
@@ -37,6 +38,7 @@ import {
   ITrelloMember,
 } from '../../lib/issue-trackers/trello-client'
 import { getIssueTrackerAuthErrorMessage } from '../../lib/issue-trackers/issue-tracker-auth-error'
+import { IssueTrackerReference } from './issue-tracker-reference'
 
 interface IAccountsProps {
   readonly accounts: ReadonlyArray<Account>
@@ -52,6 +54,9 @@ interface IAccountsProps {
 
   /** Called when the user makes the given signed-in account active. */
   readonly onMakeActive: (account: Account) => void
+
+  /** Opens a validated issue-tracker item without exposing credentials. */
+  readonly onOpenInBrowser: (url: string) => Promise<boolean>
 }
 
 interface IAccountsState {
@@ -181,6 +186,17 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
             </Row>
           </div>
         )}
+        <IssueTrackerReference
+          provider={
+            this.state.jiraMode === 'basic-email-token'
+              ? 'jira-cloud'
+              : 'jira-data-center'
+          }
+          endpoint={this.state.jiraEndpoint.trim()}
+          accountId={this.state.jiraConnectedUser?.accountId ?? null}
+          connected={this.state.jiraConnectedUser !== null}
+          onOpenInBrowser={this.props.onOpenInBrowser}
+        />
         <div className="provider-sign-in-card">
           <Row>
             <label htmlFor="jira-mode-select">Jira deployment</label>
@@ -278,6 +294,13 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
             </Row>
           </div>
         )}
+        <IssueTrackerReference
+          provider="trello"
+          endpoint={this.state.trelloEndpoint.trim()}
+          accountId={this.state.trelloConnectedMember?.id ?? null}
+          connected={this.state.trelloConnectedMember !== null}
+          onOpenInBrowser={this.props.onOpenInBrowser}
+        />
         <div className="provider-sign-in-card">
           <TextBox
             label="Trello API server"
@@ -336,7 +359,12 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
           </div>
         </div>
         <div className="account-card-list">
-          {accounts.map(account => this.renderAccount(account))}
+          {accounts.map(account =>
+            this.renderAccount(account, {
+              active: this.isActiveAccount(account),
+              canMakeActive: this.props.accounts.length > 1,
+            })
+          )}
         </div>
         <div className="provider-sign-in-card">
           <TextBox
@@ -381,7 +409,12 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
           </div>
         </div>
         <div className="account-card-list">
-          {accounts.map(account => this.renderAccount(account))}
+          {accounts.map(account =>
+            this.renderAccount(account, {
+              active: this.isActiveAccount(account),
+              canMakeActive: this.props.accounts.length > 1,
+            })
+          )}
         </div>
         <div className="provider-sign-in-card">
           <TextBox
@@ -494,11 +527,14 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
   }
 
   private onJiraModeChanged = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    this.setState({ jiraMode: event.currentTarget.value as JiraAuthMode })
+    this.setState({
+      jiraMode: event.currentTarget.value as JiraAuthMode,
+      jiraConnectedUser: null,
+    })
   }
 
   private onJiraEndpointChanged = (jiraEndpoint: string) => {
-    this.setState({ jiraEndpoint })
+    this.setState({ jiraEndpoint, jiraConnectedUser: null })
   }
 
   private onJiraEmailChanged = (jiraEmail: string) => {
@@ -540,7 +576,7 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
   }
 
   private onTrelloEndpointChanged = (trelloEndpoint: string) => {
-    this.setState({ trelloEndpoint })
+    this.setState({ trelloEndpoint, trelloConnectedMember: null })
   }
 
   private onTrelloKeyChanged = (trelloKey: string) => {
@@ -579,6 +615,11 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
     this.setState({ trelloConnectedMember: null })
   }
 
+  private isActiveAccount(account: Account) {
+    const activeAccount = this.props.accounts[0]
+    return activeAccount !== undefined && accountEquals(account, activeAccount)
+  }
+
   private renderMultipleDotComAccounts() {
     const dotComAccounts = this.props.accounts.filter(isDotComAccount)
 
@@ -587,8 +628,8 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
         <div className="account-card-list">
           {dotComAccounts.map((account, index) =>
             this.renderAccount(account, {
-              active: index === 0,
-              canMakeActive: dotComAccounts.length > 1,
+              active: this.isActiveAccount(account),
+              canMakeActive: this.props.accounts.length > 1,
               preferredFocus: index === 0,
             })
           )}
@@ -612,8 +653,8 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
         <div className="account-card-list">
           {enterpriseAccounts.map((account, index) =>
             this.renderAccount(account, {
-              active: index === 0,
-              canMakeActive: enterpriseAccounts.length > 1,
+              active: this.isActiveAccount(account),
+              canMakeActive: this.props.accounts.length > 1,
             })
           )}
         </div>

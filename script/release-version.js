@@ -7,6 +7,9 @@ const maxRunIdDigits = 12
 const runIdWidth = 9
 const runIdRadix = 26n
 const maxEncodedRunId = runIdRadix ** BigInt(runIdWidth) - 1n
+const maxRunAttemptDigits = 3
+const runAttemptWidth = 2
+const maxEncodedRunAttempt = runIdRadix ** BigInt(runAttemptWidth) - 1n
 
 const versionPattern = /^(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?(?:-([0-9A-Za-z-]+))?$/
 
@@ -71,7 +74,34 @@ function encodeRunId(runId) {
   return encoded
 }
 
-function createReleaseVersion(baseVersion, runId) {
+function encodeRunAttempt(runAttempt) {
+  if (
+    typeof runAttempt !== 'string' ||
+    !new RegExp(`^[1-9]\\d{0,${maxRunAttemptDigits - 1}}$`).test(runAttempt)
+  ) {
+    throw new Error(
+      `GitHub run attempt must be a positive decimal with at most ${maxRunAttemptDigits} digits.`
+    )
+  }
+
+  let remaining = BigInt(runAttempt)
+  if (remaining > maxEncodedRunAttempt) {
+    throw new Error(
+      `GitHub run attempt exceeds the fixed-width release encoding.`
+    )
+  }
+
+  let encoded = ''
+  for (let index = 0; index < runAttemptWidth; index++) {
+    const digit = Number(remaining % runIdRadix)
+    encoded = String.fromCharCode('a'.charCodeAt(0) + digit) + encoded
+    remaining /= runIdRadix
+  }
+
+  return encoded
+}
+
+function createReleaseVersion(baseVersion, runId, runAttempt = '1') {
   const base = parseReleaseVersion(baseVersion)
   if (base.prerelease === undefined) {
     throw new Error(
@@ -81,10 +111,38 @@ function createReleaseVersion(baseVersion, runId) {
 
   // Legacy Squirrel parses a trailing numeric prerelease token as Int32. Keep
   // the run sequence alphabetic so modern GitHub run IDs can never overflow
-  // that parser, while fixed width preserves lexical ordering.
+  // that parser, while fixed width preserves lexical ordering. Reruns keep
+  // the original tag for attempt one and add a lexically ordered suffix only
+  // from attempt two onward, so every GitHub execution attempt can publish a
+  // distinct immutable release without renaming existing releases.
   const encodedRunId = encodeRunId(runId)
-  const version = `${baseVersion}-z${encodedRunId}`
+  const encodedRunAttempt = encodeRunAttempt(runAttempt)
+  const attemptSuffix = runAttempt === '1' ? '' : `-r${encodedRunAttempt}`
+  const version = `${baseVersion}-z${encodedRunId}${attemptSuffix}`
   parseReleaseVersion(version)
+  return version
+}
+
+function validateReleaseVersion(version, baseVersion) {
+  parseReleaseVersion(version)
+  if (typeof baseVersion !== 'string') {
+    return version
+  }
+
+  const base = parseReleaseVersion(baseVersion)
+  if (base.prerelease === undefined) {
+    throw new Error(
+      `Base version '${baseVersion}' must already contain a prerelease channel.`
+    )
+  }
+  const prefix = `${baseVersion}-z`
+  const suffix = version.startsWith(prefix) ? version.slice(prefix.length) : ''
+  if (!/^[a-z]{9}(?:-r[a-z]{2})?$/.test(suffix)) {
+    throw new Error(
+      `Release version '${version}' is not in the generated ${baseVersion}-z namespace.`
+    )
+  }
+
   return version
 }
 
@@ -222,8 +280,12 @@ function filterReleasesManifest(
 
 function runCli(argv) {
   const [command, ...args] = argv
-  if (command === 'create' && args.length === 2) {
-    process.stdout.write(`${createReleaseVersion(args[0], args[1])}\n`)
+  if (command === 'create' && (args.length === 2 || args.length === 3)) {
+    process.stdout.write(`${createReleaseVersion(args[0], args[1], args[2])}\n`)
+    return
+  }
+  if (command === 'validate' && (args.length === 1 || args.length === 2)) {
+    process.stdout.write(`${validateReleaseVersion(args[0], args[1])}\n`)
     return
   }
   if (command === 'compare' && args.length === 2) {
@@ -246,7 +308,7 @@ function runCli(argv) {
   }
 
   throw new Error(
-    'Usage: release-version.js create <base> <run-id> | compare <left> <right> | max | filter <version> [package]'
+    'Usage: release-version.js create <base> <run-id> [run-attempt] | validate <version> [base] | compare <left> <right> | max | filter <version> [package]'
   )
 }
 
@@ -264,4 +326,5 @@ module.exports = {
   createReleaseVersion,
   filterReleasesManifest,
   selectHighestReleaseTag,
+  validateReleaseVersion,
 }

@@ -3,7 +3,13 @@ import { Account, isDotComAccount } from '../../models/account'
 import { PreferencesTab } from '../../models/preferences'
 import { Dispatcher } from '../dispatcher'
 import { SettingsTabStrip } from '../settings-tabs/settings-tab-strip'
-import { ISettingsTabItem } from '../settings-tabs/settings-tab-model'
+import { SettingsTabDockControl } from '../settings-tabs/settings-tab-dock-control'
+import {
+  getSettingsTabDockPosition,
+  ISettingsTabItem,
+  setSettingsTabDockPosition,
+  SettingsTabDockPosition,
+} from '../settings-tabs/settings-tab-model'
 import { Accounts } from './accounts'
 import { Advanced } from './advanced'
 import { Git } from './git'
@@ -113,7 +119,9 @@ import { LanguageMode } from '../../models/language-mode'
 import {
   getPersistedLanguageMode,
   LanguageModeChangedEvent,
+  translateForAccessibleName,
 } from '../../lib/i18n'
+import type { TranslationKey } from '../../lib/i18n'
 
 interface IPreferencesProps {
   readonly dispatcher: Dispatcher
@@ -169,6 +177,7 @@ interface IPreferencesProps {
 
 interface IPreferencesState {
   readonly selectedIndex: PreferencesTab
+  readonly tabDockPosition: SettingsTabDockPosition
   readonly committerName: string
   readonly committerEmail: string
   readonly defaultBranch: string
@@ -263,6 +272,50 @@ interface IPreferencesState {
  */
 const PreferencesTitleId = 'preferences-title'
 
+const PreferencesTabIds: Readonly<Record<PreferencesTab, string>> = {
+  [PreferencesTab.Accounts]: 'accounts',
+  [PreferencesTab.Integrations]: 'integrations',
+  [PreferencesTab.Copilot]: 'copilot',
+  [PreferencesTab.Git]: 'git',
+  [PreferencesTab.Appearance]: 'appearance',
+  [PreferencesTab.Notifications]: 'notifications',
+  [PreferencesTab.Prompts]: 'prompts',
+  [PreferencesTab.Advanced]: 'advanced',
+  [PreferencesTab.Accessibility]: 'accessibility',
+  [PreferencesTab.AgentAccess]: 'agent-access',
+  [PreferencesTab.Automation]: 'automation',
+  [PreferencesTab.Queue]: 'queue',
+  [PreferencesTab.Sound]: 'sound',
+  [PreferencesTab.Ollama]: 'ollama',
+  [PreferencesTab.SelfHostedServer]: 'self-hosted-server',
+  [PreferencesTab.AI]: 'ai',
+}
+
+const PreferencesTabById: Readonly<Record<string, PreferencesTab>> =
+  Object.fromEntries(
+    Object.entries(PreferencesTabIds).map(([tab, id]) => [id, Number(tab)])
+  )
+
+/** Numeric ids written before browser tabs used stable string identities. */
+const LegacyPreferencesTabIds: Readonly<Record<string, string>> = {
+  '0': 'accounts',
+  '1': 'integrations',
+  '2': 'copilot',
+  '3': 'git',
+  '4': 'appearance',
+  '5': 'notifications',
+  '6': 'prompts',
+  '7': 'advanced',
+  '8': 'accessibility',
+  '9': 'agent-access',
+  '10': 'automation',
+  '11': 'queue',
+  '12': 'sound',
+  '13': 'ollama',
+  '14': 'self-hosted-server',
+  '15': 'ai',
+}
+
 /**
  * Default custom integration values to coalesce with. We can't make up a path
  * nor a bundle ID, but we can at least provide a default argument.
@@ -291,6 +344,7 @@ export class Preferences extends React.Component<
 
     this.state = {
       selectedIndex: this.props.initialSelectedTab || PreferencesTab.Accounts,
+      tabDockPosition: getSettingsTabDockPosition('preferences'),
       committerName: '',
       committerEmail: '',
       defaultBranch: '',
@@ -460,17 +514,18 @@ export class Preferences extends React.Component<
   private renderRailTab(
     tab: PreferencesTab,
     symbol: typeof octicons.home,
-    label: React.ReactNode,
+    translationKey: TranslationKey,
     searchText: string,
     isFeature = false
   ): ISettingsTabItem {
     const isSearching = this.state.settingsSearchQuery.trim().length > 0
 
     return {
-      id: String(tab),
+      id: PreferencesTabIds[tab],
       domId: this.getTabId(tab),
-      label,
+      label: <LocalizedText translationKey={translationKey} />,
       searchText,
+      accessibleLabel: translateForAccessibleName(translationKey),
       icon: <Octicon className="icon" symbol={symbol} />,
       badge: this.renderTabMatchBadge(tab),
       isFeature,
@@ -493,13 +548,13 @@ export class Preferences extends React.Component<
       this.renderRailTab(
         PreferencesTab.Accounts,
         octicons.home,
-        'Accounts',
+        'settings.accountsTab',
         'Accounts'
       ),
       this.renderRailTab(
         PreferencesTab.Integrations,
         octicons.person,
-        'Integrations',
+        'settings.integrationsTab',
         'Integrations'
       ),
     ]
@@ -509,90 +564,95 @@ export class Preferences extends React.Component<
         this.renderRailTab(
           PreferencesTab.Copilot,
           octicons.copilot,
-          'Copilot',
+          'settings.copilotTab',
           'Copilot'
         )
       )
     }
 
     tabs.push(
-      this.renderRailTab(PreferencesTab.Git, octicons.gitCommit, 'Git', 'Git'),
+      this.renderRailTab(
+        PreferencesTab.Git,
+        octicons.gitCommit,
+        'settings.gitTab',
+        'Git'
+      ),
       this.renderRailTab(
         PreferencesTab.Appearance,
         octicons.paintbrush,
-        'Appearance',
+        'settings.appearanceTab',
         'Appearance'
       ),
       this.renderRailTab(
         PreferencesTab.Notifications,
         octicons.bell,
-        'Notifications',
+        'settings.notificationsTab',
         'Notifications'
       ),
       this.renderRailTab(
         PreferencesTab.Prompts,
         octicons.question,
-        'Prompts',
+        'settings.promptsTab',
         'Prompts'
       ),
       this.renderRailTab(
         PreferencesTab.Advanced,
         octicons.gear,
-        'Advanced',
+        'settings.advancedTab',
         'Advanced'
       ),
       this.renderRailTab(
         PreferencesTab.Accessibility,
         octicons.accessibility,
-        'Accessibility',
+        'settings.accessibilityTab',
         'Accessibility'
       ),
       this.renderRailTab(
         PreferencesTab.AgentAccess,
         octicons.server,
-        'Agent access',
+        'settings.agentAccessTab',
         'Agent access',
         true
       ),
       this.renderRailTab(
         PreferencesTab.SelfHostedServer,
         octicons.server,
-        'Self-hosted server',
+        'settings.selfHostedServerTab',
         'Self-hosted server',
         true
       ),
       this.renderRailTab(
         PreferencesTab.Automation,
         octicons.sync,
-        'Automation',
+        'settings.automationTab',
         'Automation',
         true
       ),
       this.renderRailTab(
         PreferencesTab.Queue,
         octicons.stack,
-        <LocalizedText translationKey="settings.queueTab" />,
+        'settings.queueTab',
         'Clone queue',
         true
       ),
       this.renderRailTab(
         PreferencesTab.Sound,
         octicons.unmute,
-        <LocalizedText translationKey="settings.soundTab" />,
+        'settings.soundTab',
         'Sound',
         true
       ),
       this.renderRailTab(
         PreferencesTab.Ollama,
         octicons.hubot,
-        <LocalizedText translationKey="settings.ollamaTab" />,
+        'settings.ollamaTab',
         'Ollama',
         true
       ),
       this.renderRailTab(
         PreferencesTab.AI,
         octicons.shield,
-        'AI',
+        'settings.aiTab',
         'AI security',
         true
       )
@@ -708,29 +768,44 @@ export class Preferences extends React.Component<
         onSubmit={this.onSave}
       >
         {this.renderDisallowedCharactersError()}
-        <div className="preferences-container">
+        <div
+          className="preferences-container"
+          data-settings-tab-dock-position={this.state.tabDockPosition}
+        >
           <div className="preferences-rail">
-            <h2 id={PreferencesTitleId} className="preferences-title">
-              Settings
-            </h2>
-            {this.renderSettingsSearch()}
+            <div className="preferences-rail-header">
+              <h2 id={PreferencesTitleId} className="preferences-title">
+                <LocalizedText translationKey="settings.dialogTitle" />
+              </h2>
+              <SettingsTabDockControl
+                strip="preferences"
+                position={this.state.tabDockPosition}
+                onChange={this.onTabDockPositionChanged}
+              />
+            </div>
+            <div className="preferences-browser-search">
+              {this.renderSettingsSearch()}
+            </div>
             <SettingsTabStrip
               strip="preferences"
-              title="settings"
+              title={this.getSettingsBrowserTabLabels().surface}
               items={this.railTabs}
-              selectedId={String(this.state.selectedIndex)}
+              selectedId={PreferencesTabIds[this.state.selectedIndex]}
               onSelect={this.onTabSelected}
+              legacyTabIdMap={LegacyPreferencesTabIds}
+              variant="browser"
+              showNewTab={true}
+              dockPosition={this.state.tabDockPosition}
+              accessibleLabels={this.getSettingsBrowserTabLabels()}
             />
-            <div className="preferences-version">Desktop Material 0.1.0</div>
           </div>
-
           <div className="preferences-content-pane">
             <div className="preferences-pane-header">
               <button
                 type="button"
                 className="preferences-close-button"
                 onClick={this.onCancel}
-                aria-label="Close"
+                aria-label={translateForAccessibleName('settings.closeAction')}
               >
                 <Octicon symbol={octicons.x} />
               </button>
@@ -799,6 +874,41 @@ export class Preferences extends React.Component<
     }
 
     return `preferences-tab-${suffix}`
+  }
+
+  private getSettingsBrowserTabLabels = () => {
+    const surface = translateForAccessibleName('settings.globalTabsLabel')
+    return {
+      surface,
+      tabList: surface,
+      search: translateForAccessibleName('settings.browserTabSearch', {
+        surface,
+      }),
+      openNewTab: translateForAccessibleName('settings.browserTabOpenNew', {
+        surface,
+      }),
+      allPagesOpen: translateForAccessibleName('settings.browserTabAllOpen', {
+        surface,
+      }),
+      morePages: (count: number) =>
+        translateForAccessibleName('settings.browserTabMore', {
+          count: String(count),
+          surface,
+        }),
+      closeTab: (page: string) =>
+        translateForAccessibleName('settings.browserTabClose', { page }),
+      pinTab: (page: string) =>
+        translateForAccessibleName('settings.browserTabPin', { page }),
+      unpinTab: (page: string) =>
+        translateForAccessibleName('settings.browserTabUnpin', { page }),
+      pickerTitle: translateForAccessibleName(
+        'settings.browserTabPickerTitle',
+        { surface }
+      ),
+      noMatches: translateForAccessibleName('settings.browserTabNoMatches', {
+        surface,
+      }),
+    }
   }
 
   private onDotComSignIn = () => {
@@ -887,6 +997,7 @@ export class Preferences extends React.Component<
             onProviderSignIn={this.onProviderSignIn}
             onLogout={this.onLogout}
             onMakeActive={this.onMakeActive}
+            onOpenInBrowser={this.openInBrowser}
           />
         )
         break
@@ -1133,7 +1244,9 @@ export class Preferences extends React.Component<
         View = <AgentAccess openInBrowser={this.openInBrowser} />
         break
       case PreferencesTab.SelfHostedServer:
-        View = <SelfHostedServerPreferences />
+        View = (
+          <SelfHostedServerPreferences dispatcher={this.props.dispatcher} />
+        )
         break
       case PreferencesTab.Automation:
         View = (
@@ -1178,6 +1291,7 @@ export class Preferences extends React.Component<
     return (
       <div
         className="tab-container"
+        id={`${this.getTabId(index)}-panel`}
         role="tabpanel"
         aria-labelledby={this.getTabId(index)}
       >
@@ -1707,10 +1821,17 @@ export class Preferences extends React.Component<
    * wrong screen.
    */
   private onTabSelected = (id: string) => {
-    const tab = this.railTabs.find(item => item.id === id)
+    const tab = PreferencesTabById[id]
     if (tab !== undefined) {
-      this.setState({ selectedIndex: Number(tab.id) as PreferencesTab })
+      this.setState({ selectedIndex: tab })
     }
+  }
+
+  private onTabDockPositionChanged = (
+    tabDockPosition: SettingsTabDockPosition
+  ) => {
+    setSettingsTabDockPosition('preferences', tabDockPosition)
+    this.setState({ tabDockPosition })
   }
 
   private get isCopilotSdkEnabled(): boolean {

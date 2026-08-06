@@ -11,6 +11,7 @@ import {
 } from '../lib/actions-artifacts'
 import {
   ActionsArtifactTransferResult,
+  ActionsJobLogNotFoundRetryDelaysMs,
   ActionsJobLogMaximumBytes,
   ActionsJobLogTransferResult,
   ActionsJobLogTruncationMarker,
@@ -28,6 +29,10 @@ import {
 } from './actions-artifact-download-registry'
 
 type ActionsFetcher = (input: string, init: RequestInit) => Promise<Response>
+export type ActionsTransferDelay = (
+  milliseconds: number,
+  signal: AbortSignal
+) => Promise<void>
 export interface IActionsTransferDependencies {
   readonly fetch: ActionsFetcher
 }
@@ -252,13 +257,18 @@ async function fetchRedirectChain(
   path: string,
   token: string,
   signal: AbortSignal,
-  fetcher: ActionsFetcher
+  fetcher: ActionsFetcher,
+  notFoundRetryDelaysMs: ReadonlyArray<number> = [],
+  delay: ActionsTransferDelay = waitForActionsTransferDelay
 ): Promise<Response> {
-  let current = new URL(path, endpoint)
+  const apiURL = new URL(path, endpoint)
+  let current = apiURL
   let authenticated = true
   let requireHTTPS = endpoint.protocol === 'https:'
+  let notFoundRetryCount = 0
 
-  for (let redirects = 0; ; redirects++) {
+  let redirects = 0
+  for (;;) {
     const headers = createGitHubAPIRequestHeaders(endpoint.toString(), path, {
       Accept: 'application/vnd.github+json',
       'User-Agent': 'GitHubDesktop-ActionsTransfer',
@@ -282,6 +292,7 @@ async function fetchRedirectChain(
       if (redirects >= ActionsTransferMaximumRedirects) {
         throw new TransferFailure('too-many-redirects')
       }
+      redirects += 1
       const location = response.headers.get('location')
       if (location === null) {
         throw new TransferFailure('missing-location')
@@ -294,6 +305,22 @@ async function fetchRedirectChain(
     if (!response.ok) {
       await response.body?.cancel().catch(() => undefined)
       throwIfTransferAborted(signal)
+      if (
+        response.status === 404 &&
+        current.href === apiURL.href &&
+        notFoundRetryCount < notFoundRetryDelaysMs.length
+      ) {
+        const retryDelay = notFoundRetryDelaysMs[notFoundRetryCount]
+        notFoundRetryCount += 1
+        // Start from the API endpoint again. GitHub's redirect URL is
+        // short-lived, so retrying the blob URL would merely preserve a stale
+        // failure instead of asking GitHub for a fresh location.
+        current = apiURL
+        authenticated = true
+        requireHTTPS = endpoint.protocol === 'https:'
+        await delay(retryDelay, signal)
+        continue
+      }
       throw new TransferFailure(
         response.status === 410 ? 'expired' : 'http',
         response.status
@@ -377,6 +404,37 @@ function toResponseHeaders(
 
 function transferAbortError(): DOMException {
   return new DOMException('Actions transfer canceled.', 'AbortError')
+}
+
+function waitForActionsTransferDelay(
+  milliseconds: number,
+  signal: AbortSignal
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let settled = false
+    let onAbort: () => void = () => undefined
+    const finish = (completion: () => void) => {
+      if (settled) {
+        return
+      }
+      settled = true
+      if (timer !== null) {
+        clearTimeout(timer)
+      }
+      signal.removeEventListener('abort', onAbort)
+      completion()
+    }
+    onAbort = () =>
+      finish(() =>
+        reject(new DOMException('Actions transfer canceled.', 'AbortError'))
+      )
+    timer = setTimeout(() => finish(resolve), milliseconds)
+    signal.addEventListener('abort', onAbort, { once: true })
+    if (signal.aborted) {
+      onAbort()
+    }
+  })
 }
 
 function electronResponseBody(
@@ -712,7 +770,8 @@ async function readBoundedJobLog(
 export async function handleActionsJobLogTransfer(
   sender: IActionsTransferSender,
   request: IActionsJobLogTransferRequest,
-  fetcher: ActionsFetcher = electronFetcher
+  fetcher: ActionsFetcher = electronFetcher,
+  delay: ActionsTransferDelay = waitForActionsTransferDelay
 ): Promise<ActionsJobLogTransferResult> {
   let active: IActiveTransfer | null = null
   try {
@@ -723,7 +782,9 @@ export async function handleActionsJobLogTransfer(
       validated.path,
       validated.token,
       active.controller.signal,
-      fetcher
+      fetcher,
+      ActionsJobLogNotFoundRetryDelaysMs,
+      delay
     )
     try {
       const result = await readBoundedJobLog(response, active.controller.signal)

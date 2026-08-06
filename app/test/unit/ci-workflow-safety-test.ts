@@ -2,6 +2,7 @@ import assert from 'node:assert'
 import { readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { describe, it } from 'node:test'
+import { parse } from 'yaml'
 import { getMockUpdateEndpoint } from '../e2e/mock-update-server'
 
 const root = process.cwd()
@@ -16,12 +17,33 @@ const windowsWorkflow = readFileSync(
   join(root, '.github', 'workflows', 'ci-windows.yml'),
   'utf8'
 )
+const gitmodules = readFileSync(join(root, '.gitmodules'), 'utf8')
 const ciWorkflows = [
   { name: 'ci-linux.yml', source: linuxWorkflow },
   { name: 'ci-windows.yml', source: windowsWorkflow },
 ]
 const installerWorkflow = readFileSync(
   join(root, '.github', 'workflows', 'build-installers.yml'),
+  'utf8'
+)
+const superExpressWorkflow = readFileSync(
+  join(root, '.github', 'workflows', 'super-express-release.yml'),
+  'utf8'
+)
+const superExpressWindowsWorkflow = readFileSync(
+  join(root, '.github', 'workflows', 'super-express-release-windows.yml'),
+  'utf8'
+)
+const superExpressLinuxTuiWorkflow = readFileSync(
+  join(root, '.github', 'workflows', 'super-express-release-linux-tui.yml'),
+  'utf8'
+)
+const githubCliAction = readFileSync(
+  join(root, '.github', 'actions', 'setup-github-cli', 'action.yml'),
+  'utf8'
+)
+const setupCiAction = readFileSync(
+  join(root, '.github', 'actions', 'setup-ci-environment', 'action.yml'),
   'utf8'
 )
 const lineCounter = readFileSync(
@@ -47,8 +69,156 @@ const workflowSources = readdirSync(workflowDirectory)
     file,
     source: readFileSync(join(workflowDirectory, file), 'utf8'),
   }))
+const selfHostedSuperExpressWorkflows = new Set([
+  'super-express-release.yml',
+  'super-express-release-windows.yml',
+  'super-express-release-linux-tui.yml',
+])
+const windowsDesktopRunnerExpression =
+  '${{ github.event_name == \'workflow_dispatch\' && inputs.runner_mode == \'self-hosted\' && fromJSON(\'["self-hosted","Windows","X64","desktop-material-windows-local"]\') || \'windows-2022\' }}'
+
+function evaluateWindowsDesktopRunnerExpression(
+  expression: string,
+  context: { eventName: string; runnerMode?: string }
+): string | string[] {
+  const normalized = expression.replace(/\s+/g, ' ').trim()
+  assert.match(normalized, /^\$\{\{ .+ \}\}$/)
+  const body = normalized.slice(3, -3).trim()
+  const branches = body.split(' || ')
+  assert.equal(branches.length, 2, 'runner expression must have one fallback')
+  const conditionAndSelection = branches[0].split(' && ')
+  assert.deepEqual(conditionAndSelection.slice(0, 2), [
+    "github.event_name == 'workflow_dispatch'",
+    "inputs.runner_mode == 'self-hosted'",
+  ])
+  assert.equal(conditionAndSelection.length, 3)
+  const selectedRunner = /^fromJSON\('(\[.*\])'\)$/.exec(
+    conditionAndSelection[2]
+  )
+  const fallbackRunner = /^'([^']+)'$/.exec(branches[1])
+  assert.notEqual(selectedRunner, null)
+  assert.notEqual(fallbackRunner, null)
+  return context.eventName === 'workflow_dispatch' &&
+    context.runnerMode === 'self-hosted'
+    ? JSON.parse(selectedRunner?.[1] ?? '[]')
+    : fallbackRunner?.[1] ?? ''
+}
+
+interface IWorkflowStep {
+  name?: string
+  run?: string
+  env?: Record<string, unknown>
+}
+
+interface IWorkflowJob {
+  'runs-on'?: string | string[]
+  env?: Record<string, unknown>
+  steps?: IWorkflowStep[]
+}
+
+interface IWorkflowDocument {
+  env?: Record<string, unknown>
+  jobs?: Record<string, IWorkflowJob>
+}
+
+interface ICompositeActionDocument {
+  runs?: { steps?: IWorkflowStep[] }
+}
+
+const windowsWorkflowDocument = parse(windowsWorkflow) as IWorkflowDocument
+const linuxWorkflowDocument = parse(linuxWorkflow) as IWorkflowDocument
+const installerWorkflowDocument = parse(installerWorkflow) as IWorkflowDocument
+const setupCiActionDocument = parse(setupCiAction) as ICompositeActionDocument
+
+function getJob(workflow: IWorkflowDocument, name: string): IWorkflowJob {
+  const job = workflow.jobs?.[name]
+  assert.notEqual(job, undefined, `workflow job ${name} must exist`)
+  return job ?? {}
+}
+
+function getNamedStep(job: IWorkflowJob, name: string): IWorkflowStep {
+  const step = job.steps?.find(candidate => candidate.name === name)
+  assert.notEqual(step, undefined, `workflow step ${name} must exist`)
+  return step ?? {}
+}
+
+function assertJobRunsOn(
+  workflow: IWorkflowDocument,
+  jobName: string,
+  expectedRunner: string
+): void {
+  assert.equal(
+    getJob(workflow, jobName)['runs-on'],
+    expectedRunner,
+    `${jobName} must run on ${expectedRunner}`
+  )
+}
+
+function getSelfHostedJobNames(workflow: IWorkflowDocument): string[] {
+  return Object.entries(workflow.jobs ?? {})
+    .filter(([, job]) => {
+      const runners = Array.isArray(job['runs-on'])
+        ? job['runs-on']
+        : [job['runs-on']]
+      return runners.includes('self-hosted')
+    })
+    .map(([name]) => name)
+}
+
+function assertNoCaseInsensitiveEnvKey(
+  env: Record<string, unknown> | undefined,
+  key: string
+): void {
+  assert.equal(
+    Object.keys(env ?? {}).some(candidate => candidate.toLowerCase() === key),
+    false,
+    `${key} must not be set through differently cased environment syntax`
+  )
+}
+
+function assertDoesNotPersistNodeOptions(
+  steps: IWorkflowStep[],
+  owner: string
+): void {
+  for (const step of steps) {
+    assertNoCaseInsensitiveEnvKey(step.env, 'node_options')
+    assert.doesNotMatch(
+      step.run ?? '',
+      /node_options[\s\S]*github_env|github_env[\s\S]*node_options/i,
+      `${owner} must not persist NODE_OPTIONS`
+    )
+  }
+}
+
+function assertHarnessOwnsWorkerMemory(
+  workflow: IWorkflowDocument,
+  jobName: string
+): void {
+  const job = getJob(workflow, jobName)
+  const steps = job.steps ?? []
+  const unitTestIndex = steps.findIndex(step => step.name === 'Run unit tests')
+  assert.notEqual(unitTestIndex, -1, `${jobName} must run unit tests`)
+  const unitTestStep = steps[unitTestIndex]
+
+  assertNoCaseInsensitiveEnvKey(workflow.env, 'node_options')
+  assertNoCaseInsensitiveEnvKey(job.env, 'node_options')
+  assertNoCaseInsensitiveEnvKey(unitTestStep.env, 'node_options')
+  assert.equal(unitTestStep.run, 'yarn test:unit')
+  assertDoesNotPersistNodeOptions(
+    steps.slice(0, unitTestIndex),
+    `${jobName} before unit tests`
+  )
+  assertDoesNotPersistNodeOptions(
+    setupCiActionDocument.runs?.steps ?? [],
+    'setup-ci-environment'
+  )
+}
 
 describe('CI workflow safety', () => {
+  it('does not make hosted CI clone agent-only tooling', () => {
+    assert.doesNotMatch(gitmodules, /lowlevel-computer-use-mcp/)
+  })
+
   it('passes the Git trailer format as an argument instead of shell syntax', () => {
     assert.match(lineCounter, /import \{ execFileSync, execSync, spawn \}/)
     assert.match(
@@ -67,6 +237,17 @@ describe('CI workflow safety', () => {
       lintJob?.[1] ?? '',
       /yarn install --frozen-lockfile --ignore-scripts --non-interactive/
     )
+  })
+
+  it('installs Node before the self-hosted Linux TUI invokes Node', () => {
+    const tuiJob = linuxWorkflow.match(
+      /\r?\n  linux-tui:\r?\n([\s\S]*?)(?=\r?\n  [a-z-]+:\r?\n|$)/
+    )
+    assert.notEqual(tuiJob, null)
+    const source = tuiJob?.[1] ?? ''
+    assert.match(source, /uses: actions\/setup-node@v7/)
+    assert.match(source, /node-version: \$\{\{ env\.NODE_VERSION \}\}/)
+    assert.match(source, /node tui\/tools\/generate-parity-contract\.mjs/)
   })
 
   it('uses one configurable loopback endpoint for the E2E build and server', () => {
@@ -235,6 +416,8 @@ describe('CI workflow safety', () => {
     )
     assert.doesNotMatch(installerWorkflow, /^\s+--latest\s*$/m)
     assert.match(releasePromotionScript, /select_highest_target_tag/)
+    assert.match(releasePromotionScript, /index\("RELEASES"\) != null/)
+    assert.match(releasePromotionScript, /endswith\("-full\.nupkg"\)/)
     assert.match(releasePromotionScript, /-f make_latest=true/)
     assert.match(releasePromotionScript, /-f make_latest=false/)
     assert.match(
@@ -260,22 +443,18 @@ describe('CI workflow safety', () => {
     assert.doesNotMatch(installerWorkflow, /^\s+body: \|/m)
   })
 
-  it('runs every overlapping workflow without replacing older running or pending work', () => {
-    // Each lane keeps the unconditional push trigger and its own unique
-    // concurrency group, so neither queues behind nor cancels the other.
+  it('preserves hosted CI runs and scopes cancellation to Super Express', () => {
     for (const { name, source } of ciWorkflows) {
       assert.match(source, /on:\s*\n\s*push:\s*\n/, name)
-      const pushTrigger = source.match(
-        /on:\s*\n\s*push:\s*\n([\s\S]*?)\s+pull_request:/
-      )
-      assert.notEqual(pushTrigger, null, name)
-      assert.doesNotMatch(pushTrigger?.[1] ?? '', /branches:/, name)
+      assert.match(source, /\n\s+pull_request:/, name)
+      assert.match(source, /workflow_dispatch:/, name)
+      assert.match(source, /cancel-in-progress: false/, name)
+      assert.match(source, /repository:\s*\n\s*default:\s*''/, name)
       assert.doesNotMatch(
-        pushTrigger?.[1] ?? '',
-        /^\s*(?:paths|paths-ignore):/m,
+        source,
+        /github\.repository == 'Ding-Ding-Projects\/desktop-material'/,
         name
       )
-      assert.match(source, /cancel-in-progress: false/, name)
     }
     assert.match(
       linuxWorkflow,
@@ -302,6 +481,60 @@ describe('CI workflow safety', () => {
     }
 
     for (const { file, source } of workflowSources) {
+      const workflow = parse(source) as IWorkflowDocument
+      const jobsWithRunners = Object.entries(workflow.jobs ?? {}).filter(
+        ([, job]) => job['runs-on'] !== undefined
+      )
+      if (selfHostedSuperExpressWorkflows.has(file)) {
+        assert.match(
+          source,
+          /cancel-in-progress:\s*true/,
+          `${file} may cancel an older Super Express run`
+        )
+        assert.match(
+          source,
+          /^  group: super-express-release[^\r\n]*\$\{\{ github\.ref \}\}\s*$/m,
+          `${file} must scope cancellation to the dispatched ref`
+        )
+        assert.notEqual(jobsWithRunners.length, 0)
+        for (const [jobName, job] of jobsWithRunners) {
+          assert.equal(
+            Array.isArray(job['runs-on']) &&
+              job['runs-on'].includes('self-hosted'),
+            true,
+            `${file}:${jobName} must remain explicitly self-hosted`
+          )
+        }
+        continue
+      }
+      for (const [jobName, job] of jobsWithRunners) {
+        if (
+          file === 'ci-windows.yml' &&
+          ['build', 'e2e-smoke'].includes(jobName)
+        ) {
+          assert.equal(
+            job['runs-on'],
+            windowsDesktopRunnerExpression,
+            file +
+              ':' +
+              jobName +
+              ' must expose the cloud/self-hosted runner choice'
+          )
+          continue
+        }
+        assert.equal(
+          typeof job['runs-on'],
+          'string',
+          `${file}:${jobName} must declare one literal hosted runner`
+        )
+        assert.equal(
+          ['ubuntu-latest', 'ubuntu-slim', 'windows-2022'].includes(
+            job['runs-on'] as string
+          ),
+          true,
+          `${file}:${jobName} must use an approved hosted runner`
+        )
+      }
       assert.doesNotMatch(
         source,
         /cancel-in-progress:\s*true/,
@@ -323,13 +556,171 @@ describe('CI workflow safety', () => {
     }
   })
 
-  it('builds, packages, and exercises the Windows application only', () => {
-    assert.match(windowsWorkflow, /os: \[windows-2022\]/)
+  it('keeps tested Express on hosted runners and Super Express self-hosted', () => {
+    assert.deepEqual(getSelfHostedJobNames(installerWorkflowDocument), [])
+    assert.match(
+      installerWorkflow,
+      /^  group: build-installers-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}$/m
+    )
+    assert.match(installerWorkflow, /cancel-in-progress:\s*false/)
+    for (const jobName of [
+      'prepare',
+      'lint',
+      'release_notes',
+      'tui_package',
+      'publish',
+    ]) {
+      assertJobRunsOn(installerWorkflowDocument, jobName, 'ubuntu-latest')
+    }
+    for (const jobName of ['test', 'package']) {
+      assertJobRunsOn(installerWorkflowDocument, jobName, 'windows-2022')
+    }
+    assert.match(
+      superExpressWorkflow,
+      /- Windows\s*\n\s+- X64\s*\n\s+- desktop-material-windows-local/
+    )
+    assert.match(
+      superExpressWorkflow,
+      /- Linux\s*\n\s+- X64\s*\n\s+- desktop-material-wsl-local/
+    )
+  })
+
+  it('gates reusable self-hosted Super Express lanes to protected main callers', () => {
+    for (const [name, source] of [
+      ['super-express-release-windows.yml', superExpressWindowsWorkflow],
+      ['super-express-release-linux-tui.yml', superExpressLinuxTuiWorkflow],
+    ] as const) {
+      assert.match(
+        source,
+        /build:\s+name:[\s\S]*?if:\s+>-/,
+        `${name} must restrict reusable self-hosted callers`
+      )
+      assert.match(
+        source,
+        /github\.event_name\s*==\s*'workflow_dispatch'/,
+        name
+      )
+      assert.match(source, /github\.event_name\s*==\s*'workflow_call'/, name)
+      assert.match(
+        source,
+        /github\.repository\s*==\s*'Ding-Ding-Projects\/desktop-material'/,
+        name
+      )
+      assert.match(source, /github\.ref\s*==\s*'refs\/heads\/main'/, name)
+    }
+  })
+
+  it('bootstraps GitHub CLI before self-hosted release API calls', () => {
+    assert.match(githubCliAction, /default: '2\.97\.0'/)
+    assert.match(
+      githubCliAction,
+      /cli\/cli\/releases\/download\/v\$\{GH_CLI_VERSION\}/
+    )
+    assert.match(githubCliAction, /sha256sum -c -/)
+    assert.match(
+      installerWorkflow,
+      /ref: main[\s\S]*?setup-github-cli[\s\S]*?Require a successful main CI/
+    )
+    assert.match(
+      installerWorkflow,
+      /ref: \$\{\{ needs\.prepare\.outputs\.sha \}\}[\s\S]*?setup-github-cli[\s\S]*?actions\/setup-node@v7/
+    )
+    assert.match(
+      superExpressWorkflow,
+      /ref: \$\{\{ needs\.prepare\.outputs\.sha \}\}[\s\S]*?setup-github-cli[\s\S]*?actions\/setup-node@v7/
+    )
+    assert.match(
+      installerWorkflow,
+      /sibling_fields=\$\(gh api[\s\S]*?--jq[\s\S]*?@tsv/
+    )
+    assert.match(
+      installerWorkflow,
+      /IFS=\$'\\t' read -r sibling_status sibling_conclusion sibling_updated <<< "\$sibling_fields"/
+    )
+    assert.doesNotMatch(installerWorkflow, /printf '%s' "\$sibling_run" \| jq/)
+  })
+
+  it('builds, packages, and exercises the app on hosted CI runners', () => {
+    assertJobRunsOn(windowsWorkflowDocument, 'windows-tui-core', 'windows-2022')
+    for (const jobName of ['build', 'e2e-smoke']) {
+      assert.equal(
+        getJob(windowsWorkflowDocument, jobName)['runs-on'],
+        windowsDesktopRunnerExpression
+      )
+    }
+    for (const jobName of ['lint', 'supply-chain', 'linux-tui']) {
+      assertJobRunsOn(linuxWorkflowDocument, jobName, 'ubuntu-latest')
+    }
+    assert.deepEqual(getSelfHostedJobNames(windowsWorkflowDocument), [])
+    assert.deepEqual(getSelfHostedJobNames(linuxWorkflowDocument), [])
     assert.match(windowsWorkflow, /arch: \[x64, arm64\]/)
     assert.match(windowsWorkflow, /friendlyName: Windows/)
+    assert.match(
+      windowsWorkflow,
+      /workflow_dispatch:\s+inputs:\s+runner_mode:[\s\S]*?default: cloud[\s\S]*?type: choice[\s\S]*?options:\s+- cloud\s+- self-hosted/
+    )
+    assert.match(windowsWorkflow, /workflow_call:\s+inputs:\s+repository:/)
     assert.match(windowsWorkflow, /Install app on Windows/)
+    assert.match(
+      windowsWorkflow,
+      /Enable Git long paths for Windows TUI tests\s+run: git config core\.longpaths true/
+    )
+    assert.match(
+      windowsWorkflow,
+      /defaults:\s+run:\s+shell: powershell -NoProfile -ExecutionPolicy Bypass -Command \"\. '\{0\}'\"/
+    )
+    assert.doesNotMatch(windowsWorkflow, /shell: pwsh/)
     for (const { name, source } of ciWorkflows) {
       assert.doesNotMatch(source, /macos|APPLE_/i, name)
+    }
+  })
+
+  it('evaluates the Windows desktop runner choice for every trigger and input', () => {
+    const expression = getJob(windowsWorkflowDocument, 'build')[
+      'runs-on'
+    ] as string
+    const cases = [
+      { eventName: 'push', runnerMode: 'cloud', expected: 'windows-2022' },
+      {
+        eventName: 'pull_request',
+        runnerMode: 'self-hosted',
+        expected: 'windows-2022',
+      },
+      {
+        eventName: 'workflow_call',
+        runnerMode: 'self-hosted',
+        expected: 'windows-2022',
+      },
+      {
+        eventName: 'workflow_dispatch',
+        runnerMode: 'cloud',
+        expected: 'windows-2022',
+      },
+      {
+        eventName: 'workflow_dispatch',
+        runnerMode: 'self-hosted',
+        expected: [
+          'self-hosted',
+          'Windows',
+          'X64',
+          'desktop-material-windows-local',
+        ],
+      },
+      {
+        eventName: 'workflow_dispatch',
+        runnerMode: undefined,
+        expected: 'windows-2022',
+      },
+    ]
+    for (const { eventName, runnerMode, expected } of cases) {
+      assert.deepEqual(
+        evaluateWindowsDesktopRunnerExpression(expression, {
+          eventName,
+          runnerMode,
+        }),
+        expected,
+        `${eventName}/${runnerMode ?? '<unset>'} must resolve safely`
+      )
     }
   })
 
@@ -342,22 +733,75 @@ describe('CI workflow safety', () => {
 
     assert.match(
       source,
-      /name: Build production app\s+id: production_build\s+if: \$\{\{ always\(\) \}\}/
+      /name: Build production app[\s\S]*?id: production_build[\s\S]*?if:[\s\S]*?\$\{\{\s*always\(\)\s*&&\s*!cancelled\(\)\s*&&\s*steps\.setup_ci\.outcome == 'success'\s*\}\}/
     )
     assert.match(
       source,
-      /uses: \.\/\.github\/actions\/setup-windows-signing\s+id: windows_signing\s+if: \$\{\{ always\(\) && steps\.production_build\.outcome == 'success' \}\}/
+      /uses: \.\/\.github\/actions\/setup-windows-signing[\s\S]*?id: windows_signing[\s\S]*?if:[\s\S]*?\$\{\{\s*always\(\)\s*&&\s*!cancelled\(\)\s*&&\s*steps\.production_build\.outcome\s*==\s*'success'\s*\}\}/
     )
     assert.match(
       source,
-      /name: Package production app\s+id: installer_package\s+if:[\s\S]*?always\(\) && steps\.production_build\.outcome == 'success' &&[\s\S]*?steps\.windows_signing\.outcome == 'success'/
+      /name: Package production app\s+id: installer_package\s+if:[\s\S]*?always\(\) && !cancelled\(\) && steps\.production_build\.outcome\s*==\s*'success' &&[\s\S]*?steps\.windows_signing\.outcome\s*==\s*'success'/
     )
     assert.match(
       source,
-      /name: Upload artifacts[\s\S]*?if:[\s\S]*?always\(\) && steps\.installer_package\.outcome == 'success' &&[\s\S]*?github\.event_name != 'workflow_call' \|\| inputs\.upload-artifacts/
+      /name: Upload artifacts[\s\S]*?if:[\s\S]*?always\(\) && !cancelled\(\) && steps\.installer_package\.outcome\s*==\s*'success' &&[\s\S]*?github\.event_name\s*!=\s*'workflow_call'\s*\|\|\s*inputs\.upload-artifacts/
     )
     assert.match(source, /dist\/GitHubDesktopSetup-\$\{\{matrix\.arch\}\}\.exe/)
     assert.match(source, /if-no-files-found: error/)
+    assertHarnessOwnsWorkerMemory(windowsWorkflowDocument, 'build')
+    assertHarnessOwnsWorkerMemory(installerWorkflowDocument, 'test')
+
+    const e2eStep = getNamedStep(
+      getJob(windowsWorkflowDocument, 'e2e-smoke'),
+      'Install app on Windows'
+    )
+    const e2eSource = e2eStep.run ?? ''
+    assert.match(
+      e2eSource,
+      /\$installer = Start-Process -FilePath \$setupExe -ArgumentList "\/S" -PassThru/
+    )
+    assert.equal(
+      e2eSource.match(/\.WaitForExit\(/g)?.length,
+      1,
+      'the installer step must have exactly one bounded process wait'
+    )
+    assert.match(e2eSource, /\$installer\.WaitForExit\(300000\)/)
+    assert.doesNotMatch(e2eSource, /\.WaitForExit\(\s*\)/)
+    assert.doesNotMatch(e2eSource, /\bWait-Process\b/)
+    assert.doesNotMatch(
+      e2eSource,
+      /^\s*\$installer\s*=\s*Start-Process[^\r\n]*\s-Wait\b/m
+    )
+    assert.match(e2eSource, /taskkill\.exe \/PID \$installer\.Id \/T \/F/)
+    assert.match(e2eSource, /\$preexistingDesktopProcessIds = @\(/)
+    assert.match(e2eSource, /\$_\.SessionId -eq \$installerSessionId/)
+    assert.match(
+      e2eSource,
+      /\$preexistingDesktopProcessIds -notcontains \$_\.Id/
+    )
+    assert.equal(
+      e2eSource.match(/Stop-InstallerLaunchedDesktopProcesses/g)?.length,
+      4,
+      'the installer step must define one scoped cleanup and call it before, during, and after executable discovery'
+    )
+    assert.match(e2eSource, /Stop-Process -Force -ErrorAction SilentlyContinue/)
+    assert.match(e2eSource, /Windows installer timed out after 300 seconds/)
+    assert.match(e2eSource, /\$installer\.ExitCode -ne 0/)
+    assert.match(e2eSource, /app-\$expectedVersion\\GitHubDesktop\.exe/)
+    assert.match(e2eSource, /LastWriteTimeUtc -ge \$installStartedAt/)
+    assert.match(
+      windowsWorkflow,
+      /name: Upload E2E artifacts\s+if: \$\{\{ always\(\) && !cancelled\(\) \}\}/
+    )
+    assert.match(
+      installerWorkflow,
+      /!cancelled\(\) && always\(\) && needs\.prepare\.result == 'success'/
+    )
+    assert.match(
+      superExpressWorkflow,
+      /!cancelled\(\) && always\(\) && needs\.prepare\.result == 'success'/
+    )
   })
 
   it('scans the real default branch and supports manual dispatch', () => {

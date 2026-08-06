@@ -1,8 +1,7 @@
 name: Super Express Release / Windows
 
-# Reusable zero-test Windows lane for Super Express Release. The caller owns
-# release-tag creation and publication so this lane can run beside the Linux
-# TUI lane without creating a split update feed.
+# Reusable zero-test Windows lane for Super Express Release. It is deliberately
+# self-hosted-only and queues until both registered local runners are ready.
 on:
   workflow_call:
     inputs:
@@ -14,6 +13,22 @@ on:
         description: Squirrel-compatible version selected by the dispatcher
         required: true
         type: string
+  workflow_dispatch:
+    inputs:
+      release_target_sha:
+        description:
+          Exact main-branch commit to package; blank uses the dispatched commit
+        required: false
+        type: string
+      release_version:
+        description:
+          Squirrel-compatible version; blank derives one from the run ID
+        required: false
+        type: string
+
+concurrency:
+  group: super-express-release-windows-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -23,20 +38,76 @@ env:
 
 jobs:
   build:
-    name: Build Windows x64 package
-    runs-on: windows-2022
+    name: Build Windows x64 package (self-hosted)
+    # Reusable calls may only come from this repository's protected main
+    # workflow. Manual emergency dispatch remains the only direct caller.
+    if: >-
+      github.event_name == 'workflow_dispatch' || (github.event_name ==
+      'workflow_call' && github.repository ==
+      'Ding-Ding-Projects/desktop-material' && github.ref == 'refs/heads/main')
+    permissions:
+      contents: read
+    outputs:
+      release_version: ${{ steps.package.outputs.release_version }}
+      release_tag: ${{ steps.package.outputs.release_tag }}
+      artifact_name: ${{ steps.package.outputs.artifact_name }}
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
+      - desktop-material-windows-local
     timeout-minutes: 60
     env:
-      RELEASE_TARGET_SHA: ${{ inputs.release_target_sha }}
+      RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
       RELEASE_VERSION: ${{ inputs.release_version }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ inputs.release_target_sha }}
+          ref: ${{ inputs.release_target_sha || github.sha }}
           fetch-depth: 0
           submodules: recursive
 
-      - name: Require the exact release commit
+      - id: package
+        uses: ./.github/actions/super-express-windows-build
+        with:
+          release_target_sha: ${{ inputs.release_target_sha || github.sha }}
+          release_version: ${{ inputs.release_version }}
+          node_version: ${{ env.NODE_VERSION }}
+        env:
+          DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
+          DESKTOP_ERROR_REPORTING_ENDPOINT:
+            ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
+          DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
+            ${{ secrets.DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT }}
+
+  publish:
+    name: Publish direct Windows GitHub Release
+    if: >-
+      !cancelled() && github.event_name == 'workflow_dispatch' &&
+      needs.build.result == 'success'
+    needs: build
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
+      - desktop-material-wsl-local
+    permissions:
+      contents: write
+      actions: read
+    env:
+      RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
+      RELEASE_VERSION: ${{ needs.build.outputs.release_version }}
+      RELEASE_TAG: ${{ needs.build.outputs.release_tag }}
+      GH_TOKEN:
+        ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN
+        }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ env.RELEASE_TARGET_SHA }}
+          fetch-depth: 0
+
+      - name: Require the exact packaged commit
         shell: bash
         run: |
           checked_out=$(git rev-parse HEAD)
@@ -45,73 +116,20 @@ jobs:
             exit 1
           fi
 
-      - uses: ./.github/actions/setup-ci-environment
+      - uses: ./.github/actions/setup-github-cli
+
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          arch: x64
 
-      - name: Apply the release package version
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.build.outputs.artifact_name }}
+          path: release-payload/installers
+
+      - name: Verify downloaded Windows release payload
         shell: bash
         run: |
-          RELEASE_VERSION="$RELEASE_VERSION" node -e "const fs=require('fs');const f='./app/package.json';const p=require(f);p.version=process.env.RELEASE_VERSION;fs.writeFileSync(f, JSON.stringify(p, null, 2) + '\\n')"
-
-      - name: Build production app
-        run: yarn build:prod
-        env:
-          DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
-          DESKTOP_ERROR_REPORTING_ENDPOINT:
-            ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
-          DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
-            ${{ secrets.DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT }}
-          npm_config_arch: x64
-          TARGET_ARCH: x64
-
-      - name: Package Windows x64
-        run: yarn package
-        env:
-          npm_config_arch: x64
-          TARGET_ARCH: x64
-
-      - name: Collect and verify Windows release payload
-        shell: bash
-        run: |
-          mkdir -p release-payload/installers
-          shopt -s nullglob
-          for file in \
-            "dist/GitHub Desktop-x64.zip" \
-            dist/GitHubDesktop-*.nupkg \
-            "dist/GitHubDesktopSetup-x64.exe" \
-            "dist/GitHubDesktopSetup-x64.msi"; do
-            [ -e "$file" ] && cp "$file" release-payload/installers/
-          done
-
-          if [ -e dist/RELEASES ]; then
-            # Squirrel installs the highest version the manifest names, so the
-            # published feed must only ever name this package at this version.
-            node script/release-version.js filter "$RELEASE_VERSION" \
-              < dist/RELEASES > release-payload/installers/RELEASES
-            while read -r _sha name _size || [[ -n "$name" ]]; do
-              [ -z "$name" ] && continue
-              [ -e "release-payload/installers/$name" ] && continue
-              case "$name" in
-                *-full.nupkg)
-                  source=$(find dist -maxdepth 1 -type f -name '*-full.nupkg' -print | LC_ALL=C sort | sed -n '1p')
-                  ;;
-                *-delta.nupkg)
-                  source=$(find dist -maxdepth 1 -type f -name '*-delta.nupkg' -print | LC_ALL=C sort | sed -n '1p')
-                  ;;
-                *) source="" ;;
-              esac
-              if [[ "$name" == *-full.nupkg || "$name" == *-delta.nupkg ]] && \
-                 [ -z "$source" ]; then
-                echo "RELEASES names $name, but no matching source package exists." >&2
-                exit 1
-              fi
-              [ -n "$source" ] && \
-                cp "$source" "release-payload/installers/$name"
-            done < release-payload/installers/RELEASES
-          fi
-
           required=(
             release-payload/installers/RELEASES
             "release-payload/installers/GitHub Desktop-x64.zip"
@@ -122,17 +140,110 @@ jobs:
           )
           for asset in "${required[@]}"; do
             if [ ! -s "$asset" ]; then
-              echo "Missing or empty Windows release asset: $asset" >&2
+              echo "Missing or empty downloaded Windows release asset: $asset" >&2
               exit 1
             fi
           done
 
-      - name: Preserve Windows payload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name:
-            super-express-windows-${{ github.run_id }}-${{ github.run_attempt }}
-          path: release-payload/installers/
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 7
+      - name: Require an unused immutable tag
+        shell: bash
+        run: |
+          set +e
+          git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1
+          status=$?
+          set -e
+          case "$status" in
+            2) ;;
+            0)
+              echo "Release tag $RELEASE_TAG already exists; refusing to replace it." >&2
+              exit 1
+              ;;
+            *)
+              echo "Unable to prove $RELEASE_TAG is unused (status $status)." >&2
+              exit "$status"
+              ;;
+          esac
+
+      - name: Write Windows release notes
+        shell: bash
+        run: |
+          {
+            echo "Windows x64 Super Express package for commit \`$RELEASE_TARGET_SHA\`."
+            echo
+            echo 'This direct manual lane publishes a Windows-only recovery release.'
+            echo 'The combined Super Express dispatcher remains the source of the cross-platform release.'
+            echo 'This emergency lane deliberately runs no test or lint gates.'
+            echo
+            echo '### Commit'
+            echo
+            git show --no-patch --format='%s%n%n%b' "$RELEASE_TARGET_SHA" | \
+              sed 's/^/    /'
+            echo
+            echo '## Lines of code'
+            echo
+            node script/count-lines.mjs
+            echo
+            echo "Counted by CI over \`$RELEASE_TARGET_SHA\` with \`node script/count-lines.mjs\`."
+          } > release-payload/release-notes.md
+
+      - name: Publish immutable Windows-only GitHub Release
+        shell: bash
+        run: |
+          set +e
+          shopt -s nullglob
+          assets=(release-payload/installers/*)
+          shopt -u nullglob
+          gh release create "$RELEASE_TAG" \
+            "${assets[@]}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$RELEASE_TARGET_SHA" \
+            --title "Desktop Material Windows x64 $RELEASE_VERSION" \
+            --notes-file release-payload/release-notes.md \
+            --latest
+          create_status=$?
+          set -e
+          if [ "$create_status" -ne 0 ]; then
+            echo "Direct release creation failed with status $create_status;" \
+              "falling back to prerelease-then-clear." >&2
+            gh api --method POST "repos/$GITHUB_REPOSITORY/releases" \
+              -f tag_name="$RELEASE_TAG" \
+              -f target_commitish="$RELEASE_TARGET_SHA" \
+              -f name="Desktop Material Windows x64 $RELEASE_VERSION" \
+              -F prerelease=true \
+              -f make_latest=false \
+              -F body=@release-payload/release-notes.md >/dev/null
+            gh release upload "$RELEASE_TAG" \
+              "${assets[@]}" \
+              --repo "$GITHUB_REPOSITORY"
+            gh release edit "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --prerelease=false --latest
+          fi
+
+      - name: Verify published Windows release target and assets
+        shell: bash
+        run: |
+          git fetch origin "refs/tags/$RELEASE_TAG"
+          published=$(git rev-parse 'FETCH_HEAD^{commit}')
+          if [ "$published" != "$RELEASE_TARGET_SHA" ]; then
+            echo "Published tag resolves to $published, expected $RELEASE_TARGET_SHA." >&2
+            exit 1
+          fi
+          if [ "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != "false" ]; then
+            echo "Published release unexpectedly remained a draft." >&2
+            exit 1
+          fi
+          published_assets=$(gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          for expected in \
+            'RELEASES' \
+            'GitHub Desktop-x64.zip' \
+            'GitHubDesktopSetup-x64.exe' \
+            'GitHubDesktopSetup-x64.msi' \
+            "GitHubDesktop-${RELEASE_VERSION}-full.nupkg" \
+            "GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"; do
+            if ! grep -Fqx "$expected" <<<"$published_assets"; then
+              echo "Published Windows release is missing asset $expected." >&2
+              exit 1
+            fi
+          done

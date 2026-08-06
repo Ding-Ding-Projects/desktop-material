@@ -457,5 +457,7 @@ export function providerTriageProviderLabel(provider: AccountProvider): string {
       return 'GitLab'
     case 'bitbucket':
       return 'Bitbucket'
+    case 'self-hosted':
+      return 'Self-hosted'
   }
 }

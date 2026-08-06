@@ -9,6 +9,7 @@ import {
   getHTMLURL,
   getNextPagePathWithIncreasingPageSize,
   getOAuthAuthorizationURL,
+  GitHubOAuthRedirectURI,
   GitHubDotComRESTAPIVersion,
   GitHubRESTAPIVersionHeader,
 } from '../../src/lib/api'
@@ -74,6 +75,10 @@ describe('API', () => {
       assert.equal(
         authorization.searchParams.get('scope'),
         GitHubOAuthScopes.join(' ')
+      )
+      assert.equal(
+        authorization.searchParams.get('redirect_uri'),
+        GitHubOAuthRedirectURI
       )
       assert.equal(authorization.searchParams.get('state'), 'reviewed-state')
     })

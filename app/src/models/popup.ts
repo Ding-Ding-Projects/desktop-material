@@ -152,6 +152,7 @@ export enum PopupType {
   PushRejectedDueToMissingWorkflowScope = 'PushRejectedDueToMissingWorkflowScope',
   SAMLReauthRequired = 'SAMLReauthRequired',
   CreateFork = 'CreateFork',
+  TransferRepository = 'TransferRepository',
   CreateTag = 'CreateTag',
   DeleteTag = 'DeleteTag',
   LocalChangesOverwritten = 'LocalChangesOverwritten',
@@ -259,11 +260,15 @@ export type PopupDetail =
       repository: Repository
       branch: Branch
       existsOnRemote: boolean
+      /** Optional reviewed local tip used by merge-cleanup deletion. */
+      expectedSha?: string
     }
   | {
       type: PopupType.DeleteRemoteBranch
       repository: Repository
       branch: Branch
+      /** Optional reviewed remote tip used by merge-cleanup deletion. */
+      expectedSha?: string
     }
   | {
       type: PopupType.ConfirmDiscardChanges
@@ -543,6 +548,11 @@ export type PopupDetail =
       type: PopupType.CreateFork
       repository: RepositoryWithGitHubRepository
       account: Account
+    }
+  | {
+      type: PopupType.TransferRepository
+      repository: RepositoryWithGitHubRepository
+      onCompleted?: () => void
     }
   | {
       type: PopupType.CreateTag

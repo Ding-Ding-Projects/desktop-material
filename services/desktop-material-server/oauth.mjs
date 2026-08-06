@@ -25,6 +25,7 @@ const PkceValue = /^[A-Za-z0-9_-]{43}$/
 const CodeVerifier = /^[A-Za-z0-9._~-]{43,128}$/
 const OpaqueIdentifier = /^[A-Za-z0-9._:@/-]{1,128}$/
 const StateValue = /^[\x21-\x7e]{16,256}$/
+const MaximumSamlMetadataBytes = 256 * 1024
 
 export class SelfHostedOAuthError extends Error {
   constructor(code) {
@@ -150,6 +151,77 @@ function normalizeRequestedScopes(value, client) {
     unique.add(scope)
   }
   return [...unique].sort()
+}
+
+/**
+ * Parse the public, operator-supplied SAML metadata without attempting a
+ * login. The OAuth authority remains the only implemented authentication
+ * ceremony; this bounded record gives a future federation adapter a safe,
+ * validated configuration boundary instead of pretending XML is a login.
+ */
+export function parseSamlMetadata(value) {
+  if (
+    typeof value !== 'string' ||
+    Buffer.byteLength(value, 'utf8') > MaximumSamlMetadataBytes ||
+    /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(value) ||
+    /<!DOCTYPE|<!ENTITY/i.test(value)
+  ) {
+    fail('invalid-saml-metadata')
+  }
+  const entityMatch = value.match(
+    /<(?:[A-Za-z_][\w.-]*:)?EntityDescriptor\b[^>]*\bentityID\s*=\s*["']([^"']+)["']/i
+  )
+  if (entityMatch === null) {
+    fail('invalid-saml-metadata')
+  }
+  let entityId
+  try {
+    entityId = new URL(entityMatch[1])
+  } catch {
+    fail('invalid-saml-metadata')
+  }
+  if (entityId.protocol !== 'https:') {
+    fail('invalid-saml-metadata')
+  }
+
+  const singleSignOnServices = [
+    ...value.matchAll(
+      /<(?:[A-Za-z_][\w.-]*:)?SingleSignOnService\b[^>]*\bBinding\s*=\s*["']([^"']+)["'][^>]*\bLocation\s*=\s*["']([^"']+)["'][^>]*\/?>(?:<\/(?:[A-Za-z_][\w.-]*:)?SingleSignOnService>)?/gi
+    ),
+  ].map(match => {
+    let location
+    try {
+      location = new URL(match[2])
+    } catch {
+      fail('invalid-saml-metadata')
+    }
+    if (location.protocol !== 'https:') {
+      fail('invalid-saml-metadata')
+    }
+    return { binding: match[1], location: location.toString() }
+  })
+  if (singleSignOnServices.length === 0) {
+    fail('invalid-saml-metadata')
+  }
+
+  const signingCertificates = [
+    ...value.matchAll(
+      /<(?:[A-Za-z_][\w.-]*:)?X509Certificate\b[^>]*>([A-Za-z0-9+/=\s]+)<\/(?:[A-Za-z_][\w.-]*:)?X509Certificate>/gi
+    ),
+  ].map(match => match[1].replace(/\s+/g, ''))
+  if (
+    signingCertificates.length === 0 ||
+    signingCertificates.some(
+      certificate => certificate.length < 64 || certificate.length > 16_384
+    )
+  ) {
+    fail('invalid-saml-metadata')
+  }
+  return {
+    entityId: entityId.toString(),
+    singleSignOnServices,
+    signingCertificates,
+  }
 }
 
 function sha256(value) {

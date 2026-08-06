@@ -14,7 +14,7 @@ describe('compact settings style contracts', () => {
     assert.match(style, /container-name: preferences-pane;/)
     assert.match(
       style,
-      /@container preferences-dialog \(max-width: 620px\)[\s\S]*?\.preferences-rail\s*\{[\s\S]*?width: 72px;/
+      /@container preferences-dialog \(max-width: 620px\)[\s\S]*?\.preferences-browser-search\s*\{[\s\S]*?padding-inline: 12px;/
     )
     assert.match(
       style,
@@ -34,7 +34,7 @@ describe('compact settings style contracts', () => {
     assert.match(style, /overflow-x: hidden;/)
     assert.match(
       style,
-      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?grid-template-columns: repeat\(auto-fit, minmax\(40px, 1fr\)\);/
+      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?\.tab-container\[data-settings-tab-dock-position='top'\][\s\S]*?flex-direction: column;/
     )
     assert.match(
       style,
@@ -48,11 +48,15 @@ describe('compact settings style contracts', () => {
       style,
       /> form\s*\{[\s\S]*?flex: 1;[\s\S]*?height: auto;[\s\S]*?overflow: hidden;/
     )
-    // The compact rail collapses into a row of icon buttons. It targets the
-    // shared strip now, not the TabBar this dialog used to render.
+    // The compact top/bottom docks keep a horizontal browser lane and the
+    // compact left/right docks keep a vertical browser lane.
     assert.match(
       style,
-      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?\.settings-tab-strip-list\s*\{[\s\S]*?grid-template-columns: repeat\(auto-fit, minmax\(40px, 1fr\)\);/
+      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?\.tab-container\[data-settings-tab-dock-position='top'\][\s\S]*?\.settings-tab-strip-browser[\s\S]*?overflow-x: auto;/
+    )
+    assert.match(
+      style,
+      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?\.tab-container\[data-settings-tab-dock-position='left'\][\s\S]*?\.settings-tab-strip-browser[\s\S]*?overflow-y: auto;/
     )
     assert.doesNotMatch(
       style,
@@ -78,6 +82,11 @@ describe('compact settings style contracts', () => {
     // shared strip, so the guarantee lives with it rather than being restated
     // once per dialog and drifting apart.
     const style = readStyle('_settings-tab-strip.scss')
+    assert.match(
+      style,
+      /\.settings-tab-strip-browser\s*\{[\s\S]*?flex: 0 0 auto;/,
+      'the browser lane must not consume the active panel height'
+    )
     const list = style.match(/\.settings-tab-strip-list\s*\{([\s\S]*?)\n\}/)
 
     assert.ok(list, 'could not find the strip list rule')
@@ -87,6 +96,23 @@ describe('compact settings style contracts', () => {
       'the gutter must be reserved, or the overflow stays invisible'
     )
     assert.match(list[1], /overflow-y: auto;/, 'the strip must still scroll')
+  })
+
+  it('keeps Material feature highlights visible on browser tabs', () => {
+    const style = readStyle('_feature-highlights.scss')
+
+    assert.match(
+      style,
+      /\.settings-browser-tab-select\[data-dm-feature\]\[data-dm-feature-highlighted\][\s\S]*?box-shadow: inset 0 -3px 0 var\(--md-sys-color-primary\);/
+    )
+    assert.match(
+      style,
+      /\.settings-browser-tab-select\[data-dm-feature\]\[data-dm-feature-highlighted\][\s\S]*?content: 'M';/
+    )
+    assert.match(
+      style,
+      /\.settings-browser-tab-select\[data-dm-feature\]\[data-dm-feature-highlighted\]::after\s*\{[\s\S]*?top: 0;[\s\S]*?right: 0;/
+    )
   })
 
   it('does not leave a row invisible when motion is turned down', () => {

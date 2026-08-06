@@ -16,10 +16,12 @@ Material installation manages many identities, repositories, and branches.
 - [Tab-strip settings commit
   chip](tab-strip-settings-commit-chip.md)
 - [Settings search](settings-search.md)
+- [Settings tab docking](settings-tab-docking.md)
 - [Collection bulk actions and regex
   safety](collection-bulk-and-regex-safety.md)
 - [Tab groups](tab-groups.md)
 - [Tab-strip overflow dropdown](tab-overflow-dropdown.md)
+- [Browser-style settings tabs](settings-browser-tabs.md)
 
 High-frequency visual edits are coalesced before persistence, while remote
 default-branch lookup reuses only a namespace-validated local symbolic ref.

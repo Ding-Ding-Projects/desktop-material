@@ -7,6 +7,102 @@ that: Dependabot proposes dependency updates instead of letting pins rot, every
 install in CI is pinned to the committed lock file, and a dedicated **Supply
 chain** job checks lock-file provenance and reports npm advisories.
 
+Ordinary CI and all seven jobs in `Build Installers / Express Release` run on
+GitHub-hosted `ubuntu-latest` or `windows-2022` machines. Each invocation uses a
+unique run-ID/run-attempt concurrency group with `cancel-in-progress: false`, so
+the release gate for one commit cannot be silently replaced by a later commit.
+The CI workflows also accept pull requests because untrusted code stays on a
+disposable hosted machine. The Windows `workflow_dispatch` form additionally
+offers a `cloud` (the default) or `self-hosted` choice for the desktop build and
+packaged smoke jobs. Only the exact `self-hosted` choice on a manual dispatch
+maps to `desktop-material-windows-local`; pushes, pull requests, reusable calls,
+and the Windows TUI core job remain hosted.
+
+Only the Super Express emergency family is self-hosted and ref-cancelling. Its
+Windows jobs require `desktop-material-windows-local`, and its Linux/WSL jobs
+require `desktop-material-wsl-local`; those labels keep an incomplete local
+machine from claiming a direct release job accidentally. Reusable Super Express
+calls are accepted only from `Ding-Ding-Projects/desktop-material` and only
+check out that repository, so an external caller cannot turn the local runner
+into a general-purpose executor.
+
+The fresh-install contract is checked against the repository's pinned
+toolchain: the parity generator and generated YAML must declare the same 206
+desktop features, and the TypeScript configurations must remain valid for the
+pinned TypeScript 5.8.2 release. The dependency compatibility test guards
+those settings so a TypeScript 6-only option or a script root that cannot
+resolve repository imports fails locally before consuming runner minutes.
+The settings-tab migration map is intentionally consumed by persistence code
+in a class method; its lint annotation documents that ownership rather than
+hiding an unused property.
+
+The composite dependency setup treats hosted CI and the remaining Linux and
+Windows self-hosted Super Express runners as first-class environments. It
+installs uv 0.11.26, provisions the
+pinned Python 3.11 interpreter with `uv python install`, exports the resolved
+interpreter to `npm_config_python`, and skips `actions/setup-python`'s hosted
+tool cache whenever `runner.environment` is `self-hosted`. This matters on
+Debian 13, where the hosted Python manifest does not contain the requested
+3.11 x64 entry; relying on that action would fail before the actual lint or
+package work starts.
+
+Windows self-hosted setup restores the exact installed-dependency cache with an
+explicit `actions/cache/restore` step and saves a verified miss with an explicit
+`actions/cache/save` step before the build starts. The key includes both lock
+files and manifests, the post-install/setup/signing actions, pinned Yarn, local
+native-vendor sources, the target architecture, and the Node/Python versions.
+Older `installed-deps-v5` and `installed-deps-v4` caches may be restored only as
+a warm start; their non-hit status still forces the current lock files through
+the complete install. The cross-compilation install restores its package
+manifests before the exact cache key is saved, and both Windows toolset scripts
+participate in key invalidation. Self-hosted keys also include the runner
+identity and selected Visual Studio/MSVC, ClangCL, and Windows SDK fingerprint;
+the install uses `yarn --frozen-lockfile`. Hosted jobs retain the ordinary
+cache post step, while self-hosted jobs avoid an unbounded post-job archive
+hook. Build output, installers, Release assets, credentials, and runtime
+configuration remain uncached. The focused contract test checks both the runner
+selection and this restore/verify/save split.
+
+The hosted Windows E2E lane does not install a second system-wide FFmpeg package.
+The repository post-install step provisions Playwright's pinned FFmpeg payload,
+and the dependency-cache sentinel verifies that payload before a cache is used.
+Avoiding a Chocolatey install keeps the job reproducible and prevents a stale
+system package lock from blocking the entire E2E job.
+
+## Python 3.13 UI test process isolation
+
+The Linux TUI matrix keeps Python 3.10 and 3.12 on the ordinary full-suite
+command. Python 3.13 uses `tui/tools/run-tests-isolated.py`: it discovers every
+test file, runs all non-UI files together, and launches each `tests/ui` file in
+its own interpreter. This is a test-process boundary only; no product feature
+or test assertion is disabled, and future UI files are included automatically.
+
+The failure mode is a Python 3.13 native-process segfault after several
+app-heavy Textual files share one interpreter. The fatal trace can appear in a
+pure-Python stylesheet update while `tree_sitter_json._binding` is loaded, so
+retrying the same monolithic command is not a useful diagnosis. The safe
+recovery is to run the affected UI file in a fresh process and preserve the
+full result set. The runner uses the current locked interpreter and
+repository-owned paths only; it does not evaluate test paths from the network
+or accept shell fragments, so the isolation adds no remote execution surface.
+The committed unit contract verifies that the runner discovers all test files,
+keeps the UI/non-UI sets disjoint, and includes representative root and layout
+tests. Local WSL verification passed 574 non-UI tests and 99 UI tests with the
+boundary; the remote Python 3.13 result remains the release gate.
+
+The self-hosted Linux Super Express lanes also bootstrap the pinned GitHub CLI
+when the runner image does not provide `gh`. The bootstrap reuses an existing
+CLI or downloads the canonical Linux archive into `RUNNER_TEMP`, verifies its
+published SHA-256 checksum, and adds only that temporary bin directory to
+`GITHUB_PATH`.
+Release-gate API calls therefore do not depend on a cloud-runner convenience
+package or a system-wide install. The sibling-run lookup also uses the CLI's
+built-in `--jq` evaluator and returns one tab-separated record, so it does not
+silently assume that a separate `jq` executable happens to be installed on the
+self-hosted image. This keeps the dependency surface explicit: the only
+release API binary that must be bootstrapped is the pinned `gh` archive whose
+checksum is verified above.
+
 ## Behaviour
 
 ### Dependency update proposals
@@ -64,8 +160,8 @@ and would only produce pull requests nobody is allowed to act on.
 
 Every CI install now resolves exactly what the committed lock file says.
 
-- `ci.yml` → `lint` runs `yarn install --frozen-lockfile`.
-- `ci.yml` → `build` → "Run desktop-trampoline tests" runs
+- `ci-linux.yml` → `lint` runs `yarn install --frozen-lockfile`.
+- `ci-windows.yml` → `build` → "Run desktop-trampoline tests" runs
   `yarn install --frozen-lockfile` inside `vendor/desktop-trampoline`.
 - `pages.yml` → docs build already ran
   `yarn install --frozen-lockfile --ignore-scripts --non-interactive` before
@@ -94,6 +190,46 @@ than assumed closed:
   but only after the fact.
 - `.github/workflows/build-installers.yml` runs a plain `yarn install` for the
   desktop-trampoline tests in the release lane.
+
+On self-hosted Windows arm64 Super Express jobs, the setup action also
+discovers Visual Studio with `vswhere.exe`, reads
+`Microsoft.VCToolsVersion.default.txt`, and installs
+the `Microsoft.VisualStudio.Component.VC.Tools.ARM64` and
+`Microsoft.VisualStudio.Component.VC.Tools.x86.x64` components when the exact
+default MSVC version lacks `VC\Tools\MSVC\<version>\bin\Hostx64\arm64\cl.exe`.
+The arm64 helper runs before ClangCL, waits up to 120 five-second checks for the
+compiler after a quiet installer return, and exports the selected instance in
+`npm_config_msvs_version` so the later ClangCL check cannot silently choose a
+different installation. The action handles a runner where the MSVC directory
+is absent, verifies the compiler after installation, and fails before
+production build if setup did not complete. The hosted installer smoke test
+starts `Setup.exe` without PowerShell's descendant-inclusive `-Wait`, waits at
+most 300 seconds for that installer process, and terminates its process tree if
+the bound expires. It records pre-existing `GitHubDesktop` process IDs and the
+installer session, then repeats a scoped cleanup while polling for the exact
+package version's newly written executable. This prevents a Squirrel-launched
+app from holding the step open, does not kill an unrelated process that
+predated the test, and prevents a stale installation from being accepted.
+
+All self-hosted Windows jobs also verify the architecture-specific ClangCL
+toolset required by the `vendor/desktop-trampoline` native test. The setup
+action selects one Visual Studio instance with the matching `Toolset.props`,
+`Toolset.targets`, `MSBuild\Current\Bin\MSBuild.exe`, x64 MSVC compiler, and
+`VC\Tools\Llvm\<architecture>\bin\clang-cl.exe`, then exports that instance
+through `npm_config_msvs_version` so node-gyp does not choose a different
+incomplete installation. When no complete instance is available, it asks the
+installed Visual Studio instance to add both
+`Microsoft.VisualStudio.Component.VC.Llvm.Clang` and
+`Microsoft.VisualStudio.Component.VC.Tools.x86.x64` with the installer's
+supported quiet/no-restart flags. Because that invocation can return before
+the installer has materialized the files, the script then polls for the
+compiler and both MSBuild toolset files for up to 120 five-second checks before
+failing with an explicit setup error. Installer status codes `0`, `3010`,
+`1001`, and `1618` remain eligible for that bounded verification; other codes
+fail immediately. The installer has no `--wait` option on the runner's Visual
+Studio Installer 4.7.25, so the setup contract rejects that unsupported flag.
+This keeps the native test from racing an in-progress installation while still
+failing closed when the runner never receives a usable toolset.
 
 ### Lock-file provenance and integrity (blocking)
 
@@ -151,40 +287,22 @@ the exit code, which is ambiguous between "found advisories" and "failed".
 
 ### Run concurrency
 
-The workflow's concurrency group used to be
-`ci-${{ github.run_id }}-${{ github.run_attempt }}` — unique to every run, so
-it could never deduplicate anything. Ten pushes to one pull-request branch ran
-ten full Windows build matrices.
+Ordinary CI, tested Express, and Pages publication retain unique run-and-attempt
+groups. Only Super Express cancels an older dispatch for the same ref:
 
-It is now keyed on the ref, with one deliberate exemption:
+| Workflow family                              | Group                   | `cancel-in-progress` |
+| --------------------------------------------- | ----------------------- | -------------------- |
+| Push, pull-request, manual, and reusable CI    | Per run and attempt     | No                   |
+| Tested Express Release                        | Per run and attempt     | No                   |
+| Pages publication                             | Per run and attempt     | No                   |
+| Super Express emergency release               | Per ref                 | Yes                  |
 
-| Trigger                            | Group        | `cancel-in-progress` |
-| ---------------------------------- | ------------ | -------------------- |
-| `pull_request`                     | Per PR number | Yes                  |
-| `push` to a non-default branch     | Per ref       | Yes                  |
-| `push` to the default branch       | Unique per run | No                 |
-| `workflow_dispatch`                | Unique per run | No                 |
-
-Default-branch pushes keep a unique group because `build-installers.yml`
-triggers on this workflow's `workflow_run` completion and publishes a Release
-only when the CI conclusion is `success`. Cancelling a `main` run would
-therefore skip a release silently. A *queued* `main` run is just as dangerous:
-GitHub keeps only one pending run per group, so a third run entering an occupied
-group cancels the pending one — a middle commit would lose its release with
-nothing failing. Unique groups avoid both. Manual dispatches get the same
-treatment: an explicitly requested verification run must never wait behind, or
-be discarded by, someone else's push.
-
-`workflow_call` has no row of its own because it cannot have one. Inside a
-reusable workflow the `github` context belongs to the caller, so
-`github.event_name` reports the event that started the *caller* and never the
-string `workflow_call`; a called run is therefore keyed by whichever row matches
-that caller's event. No workflow in this repository currently calls `ci.yml`,
-so today this is theory rather than observed behaviour.
-
-The default branch is read from `github.event.repository.default_branch` with a
-`main` fallback, so renaming the default branch does not silently start
-cancelling release runs.
+Ten pushes to one branch now retain ten independent hosted CI results. The
+registered self-hosted pool is reserved for explicit Super Express work and the
+trusted manual Windows CI desktop choice; pull requests and reusable calls
+cannot select it. The workflow safety test permits `cancel-in-progress: true`
+only in the three `super-express-release*.yml` files and checks that the Windows
+CI expression can select only the fixed local label on a manual dispatch.
 
 ## Security considerations
 
@@ -194,10 +312,16 @@ cancelling release runs.
   already in the commit, so it cannot be influenced by the network at run time.
 - `--frozen-lockfile` closes the window where a compromised or merely careless
   manifest edit causes CI to resolve a version nobody reviewed.
-- No job in this workflow runs on a self-hosted runner. That matters because
-  `ci.yml` has a `pull_request` trigger: on a self-hosted runner that
-  combination lets anyone who can open a pull request execute code on the
-  machine. Keep every job here on GitHub-hosted runners.
+- CI jobs run on GitHub-hosted Linux or Windows runners for pushes, pull
+  requests, manual dispatches, and workflow calls. Only manual Super Express
+  jobs run repository code on the registered local machines.
+- The Linux TUI job installs the repository's pinned Node.js version before
+  parity generation. The Windows TUI job enables repository-local Git long
+  paths before Git-backed history tests, because the profile fixture can exceed
+  the Windows default path limit. The TUI's app-owned profile-history
+  repository enables the same setting locally because it cannot inherit the
+  checkout repository's configuration. These are deterministic job setup steps
+  on the selected hosted runner, not a fallback to another execution pool.
 - The `supply-chain` job requests only `contents: read` and installs nothing,
   so a malicious postinstall script has no opportunity to run in it.
 - Dependabot pull requests are proposals, not deployments: nothing in this
@@ -215,7 +339,7 @@ updated `yarn.lock`.
 **`Lock file provenance` error annotation.** A `resolved` URL points somewhere
 unexpected, or an `integrity` line is missing. Review the `yarn.lock` diff
 before merging. A legitimately new registry has to be added to the allowlist in
-`ci.yml` deliberately.
+`ci-linux.yml` deliberately.
 
 **Warning annotation "Dependency advisories".** `yarn audit` found advisories.
 Read the job summary; upgrade if a fix exists, otherwise record the accepted
@@ -225,12 +349,42 @@ risk. CI stays green either way.
 complete. Treat that run as carrying **no** advisory evidence and re-run once
 the registry is reachable.
 
-**A pull-request run says "Canceled".** A newer commit superseded it. Expected:
-only the newest commit's run matters.
+**An ordinary CI or tested Express run says "Canceled".** A newer run must not
+have cancelled it: those workflows use unique groups with
+`cancel-in-progress: false`. Inspect manual cancellation, runner loss, or a
+GitHub-side interruption and rerun the exact commit; do not treat a later
+commit's result as a substitute.
 
-**A `main` run says "Canceled".** Something other than this concurrency
-configuration cancelled it, because default-branch runs hold a unique group.
-Investigate — no Release is published for a cancelled `main` run.
+**A Super Express run says "Canceled".** A newer dispatch for the same ref may
+have superseded it intentionally. Confirm the replacement run targets the same
+or newer requested commit before using its artifact or Release as evidence.
+
+**The Windows TUI job reports `Filename too long` while writing profile
+history.** Both the checkout and the app-owned profile-history repository need
+`core.longpaths`. Confirm the workflow's repository-local setting runs
+immediately after checkout and that `GitProfileHistory` configures its isolated
+repository before it stages files, then rerun the exact hosted CI commit.
+
+**A Super Express Windows arm64 setup reports a missing MSVC toolset.** The
+self-hosted setup discovers the installed Visual Studio instance, installs its
+arm64 C++ components when absent, and verifies `Hostx64\arm64\cl.exe` before
+`node-gyp` runs. If installation cannot complete, the job reports that setup
+failure and skips the production build instead of emitting misleading missing
+module errors from a build guarded by `always()`.
+
+**A Super Express Windows x64 job stalls in `desktop-trampoline` native
+tests.** Check the setup log for `MSB8020` naming `ClangCL`. The shared
+self-hosted setup now
+selects and exports a complete architecture-specific ClangCL instance before
+the test; a failure to install it is a setup failure, not a test timeout to
+ignore.
+
+**A canceled Windows or release run keeps working.** Recovery steps
+intentionally use `always()` so a genuine test failure can still leave a
+diagnostic installer, but every heavy recovery, packaging, artifact-upload, and
+release-publisher condition also checks `!cancelled()`. A newer push or release
+dispatch therefore stops stale side effects. For Super Express this also frees
+the scarce self-hosted runner.
 
 ## Verification
 
@@ -259,6 +413,42 @@ Performed on 2026-07-31 against the working tree, before any push:
   plus the in-repo `vendor/` path dependencies, none of which are git
   submodules.
 - `npx prettier --write` was run on both YAML files.
+
+ClangCL bootstrap verification performed on 2026-08-06:
+
+- `.github/scripts/ensure-windows-clang.ps1` selected the complete Visual
+  Studio Community instance for both `x64` and `arm64`, verified the matching
+  compiler plus MSBuild props and targets, and wrote
+  `npm_config_msvs_version` to the runner environment file.
+- The exact Windows x64 native sequence passed locally: `node-gyp rebuild`
+  produced all three trampoline executables, `yarn build` passed, and
+  `yarn test` passed all 9 tests.
+- `yarn test:unit app/test/unit/ci-setup-environment-test.ts` passed all 2
+  focused setup-contract tests.
+- Run `31077267784` exposed that Visual Studio Installer 4.7.25 rejects
+  `--wait`; commit `28d7d032ef` removed the unsupported flag, and the local
+  setup contract passes **2/2** with a negative guard for it. The replacement
+  setup sequence then exposed that quiet installation can return before the
+  toolset files are visible; commit `b5e6b7f825` added the bounded five-second
+  poll, and the focused setup contract now covers both the unsupported-flag
+  guard and the asynchronous completion path. Commit `87ec5b3452` extends
+  that protection to arm64, keeps the two architecture helpers on one Visual
+  Studio instance, and verifies the x64 MSVC/MSBuild prerequisites; the focused
+  setup contract passes **32/32** across its four suites, and direct local
+  probes pass for both x64 ClangCL and arm64 MSVC discovery.
+- A new Super Express run is still required to verify the registered
+  self-hosted runner's own Visual Studio instance and its direct Windows
+  release lane.
+
+Current hosted-runner restoration verification is also pending. The committed
+contract must prove that ordinary CI and tested Express use
+`ubuntu-latest`/`windows-2022` by default, accept pull requests only through
+hosted CI, retain unique non-cancelling groups, and limit self-hosted placement
+to the trusted manual Windows CI desktop choice or Super Express. The Windows unit workflow
+must leave worker memory to `script/test.mjs`, and the named installer step must
+contain exactly one bounded `WaitForExit(300000)`, timeout tree cleanup, and
+repeated same-session/pre-existing-PID-scoped application cleanup. No remote
+green result is claimed for that working-tree repair yet.
 
 Not verified locally, and not verifiable without a run on GitHub:
 

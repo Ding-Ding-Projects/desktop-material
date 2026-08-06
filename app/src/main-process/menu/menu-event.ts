@@ -5,6 +5,7 @@ export type MenuEvent =
   | 'pull'
   | 'fetch'
   | 'fork-repository'
+  | 'transfer-repository'
   | 'show-changes'
   | 'show-history'
   | 'show-repository-tools'

@@ -63,6 +63,31 @@ endpoint migration, are recorded so the merge neither resurrects nor duplicates
 them. That endpoint migration also moves the token to the new endpoint key,
 because credentials are addressed by endpoint.
 
+## Active account switching
+
+The navigation rail avatar opens the account switcher. Choosing any signed-in
+account makes it the active identity used by the rail indicator and the
+positional account fallbacks, including when the chosen account is on GitHub
+Enterprise and another GitHub.com account is also signed in. The selected
+account remains first in the in-memory and persisted account order; the other
+accounts retain the normal GitHub.com-before-Enterprise grouping within their
+remaining positions. Reopening the switcher therefore shows the same account as
+active after the app has saved or reloaded its metadata.
+
+Choosing the already-active row only closes the switcher. Choosing another row
+closes it and promotes the stable `endpoint#id` identity without changing its
+credential. Tokens remain exclusively in the operating-system credential vault.
+If the account cannot be found in the current signed-in list, promotion is a
+no-op and the existing active identity is preserved.
+
+Settings → Accounts uses the same global active identity rather than a
+provider-local first-row convention. Every provider section compares its card
+with the single `accounts[0]` account, so a cross-provider list has exactly one
+**Active** chip and every other signed-in account has a working **Make active**
+action. The click updates the account order through the same store path as the
+rail switcher; repository bindings remain authoritative and are not silently
+replaced by this global reorder.
+
 Credential failures are surfaced, never swallowed. An account whose token
 cannot be written is not added and the failure names the login. An account
 whose stored token is missing or unreadable at startup is reported as needing a
@@ -117,4 +142,7 @@ Verification includes `accounts-store-test.ts`,
 `fetch-authenticated-git-test.ts`,
 `organization-repository-auth-wiring-test.ts`,
 `saml-reauth-error-test.ts`, `same-origin-filter-test.ts`, and the
-provider-triage UI/store suites.
+provider-triage UI/store suites. Cross-provider active-card behavior is covered
+by `ui/accounts-test.tsx`, while the rail click path is covered by
+`ui/account-switcher-test.tsx`; the focused account/store/routing/UI run for
+the 2026-08-05 correction passed 39/39.

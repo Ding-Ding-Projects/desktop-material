@@ -1,5 +1,1013 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Add a trusted Windows CI runner choice and self-hosted cache
+
+`CI Windows` remains cloud-first for pushes, pull requests, and reusable calls,
+but its manual `workflow_dispatch` form now offers `cloud` or `self-hosted` for
+the desktop build and packaged smoke jobs. The self-hosted option requires the
+fixed `self-hosted`, `Windows`, `X64`, and `desktop-material-windows-local`
+label set; the Windows TUI core job stays on `windows-2022`, and no raw runner
+label is accepted from workflow input.
+
+The shared Windows dependency setup now restores an exact `installed-deps-v6`
+cache on self-hosted jobs without a post-job cache hook, verifies its required
+Electron, Copilot, React, and Playwright sentinels, and explicitly saves a
+verified miss. The previous `installed-deps-v5` and older `installed-deps-v4`
+entries may provide a warm starting tree, but their non-hit result still runs
+the current lockfile install. The cache key includes the manifests, lockfiles,
+setup/signing actions, both Windows toolset scripts, pinned Yarn, and
+native-vendor inputs. Self-hosted keys also include the runner identity and a
+fingerprint of the selected Visual Studio/MSVC, ClangCL, and Windows SDK
+toolchain. Dependency installation uses `yarn --frozen-lockfile`, and the
+cross-compilation install restores all hashed manifests before verification and
+cache save, so the exact key remains reachable. Build outputs and installers
+remain uncached.
+
+Local evidence on the task branch: the CI environment and workflow safety
+contracts pass **18/18**, the combined CI/release contracts pass **32/32**, all
+four workflow/action YAML documents parse, Prettier passes on the changed files,
+`actionlint -shellcheck=` passes, and `git diff --check` passes. A fresh remote
+Windows run is still required after the hardening change; no GitHub green result
+is claimed yet.
+
+## 2026-08-06 — Mark Super Express releases as Latest
+
+Both Super Express publisher workflows now pass `--latest` when creating a
+release and when promoting the fallback release after asset upload. The direct
+Windows lane and the combined lane therefore participate in the repository's
+Latest release selection while retaining the existing current-main and
+highest-same-SHA promotion checks. The existing release
+`v3.6.3-beta3-zadwtuvqil` is verified as `latest=true` through the GitHub API.
+
+Implementation commit `a2299e8a669cf10d9baee83bcdd8235f4aafca6a` and integration
+commit `f49c350e12` carry the workflow, test, and release-note updates. The
+focused Super Express/release-version contracts pass **14/14** locally; a new
+published Super Express run is still required to verify the future workflow
+path.
+
+## 2026-08-06 — Add four-way docking to browser-style settings tabs
+
+Preferences and Repository Settings now keep the current browser-style tab
+behavior while allowing each surface to dock its tab strip on the left, top,
+bottom, or right. Left is the persisted default and the safe fallback for
+missing or invalid stored values. Top and bottom use horizontal tab navigation;
+left and right use vertical navigation. The two surfaces store their positions
+independently, and the native selector exposes an accessible description and
+all four choices.
+
+The integration combines implementation commit
+`ef604d47a9f6f17203e9d8c12fa996442c2d8fbd` with documentation commit
+`775ac11802e5fead3e435cc73c7df5292a9034b7` while preserving the newer browser
+tab actions and IDs already present on `main`. Integrated-tree evidence is
+**59/59** focused tests passed, full TypeScript passed, Prettier passed, the
+custom-rule ESLint command passed, and `git diff --check` passed. A full
+production renderer compile was attempted but exceeded its bounded local
+window without emitting `out/renderer.js` or `out/renderer.css`; therefore no
+integrated renderer capture or installer result is claimed here. The earlier
+hidden-desktop captures remain valid evidence for the task branch's four-way
+layout, but are not presented as captures of this integrated tree.
+
+## 2026-08-06 — Publish a release from every direct Windows Super Express run
+
+The direct `.github/workflows/super-express-release-windows.yml` workflow now
+publishes a standalone immutable Windows x64 Release marked Latest after its
+verified package artifact is available. Its Windows packaging job stays on the
+trusted self-hosted runner, while its publisher runs on
+`[self-hosted, Linux, X64, desktop-material-wsl-local]`; its
+`workflow_call` entry point stays artifact-only, so the combined Super Express
+dispatcher remains the sole publisher of the complete Windows-plus-Linux
+payload. The direct Windows publisher checks the exact packaged commit, rejects
+an existing tag, writes commit and CI-generated line-count notes, uploads the
+Squirrel assets, and revalidates the published tag and every required installer
+asset. The version helper includes `GITHUB_RUN_ATTEMPT` for reruns after
+attempt one, preserving the existing first-attempt tag while making later
+execution attempts distinct and ordered.
+
+Local focused evidence before remote publication: the release/version/workflow
+contracts pass **29/29**, Prettier and `git diff --check` pass, and
+`actionlint -shellcheck=` passes its Windows-safe structural check. Run
+`31126843395 <https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31126843395>`_
+completed the Windows package successfully at commit
+`7083ab32abcfe4d080125d1ff47261329bd4e6a3`; its publisher was cancelled when
+the `desktop-material-wsl-local` runner was offline. The verified artifact was
+published as
+`v3.6.3-beta3-zadwtuvqil <https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-zadwtuvqil>`_
+with six Windows/Squirrel assets, target verification, and `00:45:50` measured
+end-to-end fallback timing. That release predates the restored self-hosted-only
+boundary; future direct releases queue when the trusted Linux publisher is not
+available rather than escaping to a hosted runner.
+
+## 2026-08-06 — Return ordinary CI and tested Express to hosted runners
+
+The current working-tree repair supersedes the same-day interim contracts below
+that placed ordinary CI and `Build Installers / Express Release` on the scarce
+local runner pool. `CI Linux` now uses `ubuntu-latest`, while `CI Windows` uses
+`windows-2022`; tested Express uses the same hosted split. Those ordinary gates
+accept their documented events, including pull-request validation for CI, and
+use unique run-ID/run-attempt concurrency groups with
+`cancel-in-progress: false`, so a newer commit cannot silently erase an older
+commit's release-gate result. Only the three Super Express workflow files remain
+self-hosted and ref-cancelling. Their project-specific Windows and WSL labels,
+dependency bootstrap, and cache-hook protections remain intentional.
+
+The Windows unit-test steps no longer set a workflow-level 4 GiB
+`NODE_OPTIONS`. That value reached every `node --test` worker, while
+`script/test.mjs` calculated concurrency against its smaller per-worker heap
+budget. The harness now owns both values again. The packaged E2E installer also
+launches `Setup.exe` without PowerShell's descendant-inclusive `-Wait`, waits at
+most 300 seconds for the installer process itself, terminates its process tree
+on timeout, and repeatedly stops only newly launched `GitHubDesktop` processes
+from the installer's session while preserving process IDs that predated the
+test. It still requires a freshly written executable for the exact application
+version before packaged smoke tests start.
+
+Implementation commit `196ead823c9d683992dc58f9931fac7c0e21bc8b`
+carries the workflow migration and the stale contracts exposed by the exact
+Node 24.15.0 gate. Focused verification passes **182/182**, the script suite
+reports **217 tests with zero failures**, `actionlint` passes, and the complete
+987-file unit run reached **8,339/8,340** before exposing one duplicate native
+menu mnemonic; its corrected exhaustive menu matrix passes **17/17**. The final
+complete rerun and a new hosted CI/tested-Express wave are still required, so no
+remote green run or Release is claimed yet. Historical entries below remain
+useful failure receipts, but their claims that ordinary CI or tested Express are
+self-hosted or ref-cancelling are explicitly superseded by this section.
+
+## 2026-08-06 — Keep Python 3.13 TUI UI tests process-safe
+
+The corrected `main` wave `31082985235` reached the Linux TUI Python 3.13
+lane and failed in job `92555930082` with exit 139 after 64% of 673 tests.
+The fatal trace landed in Textual stylesheet updates while
+`tree_sitter_json._binding` was loaded. The same crash reproduced locally in
+WSL with the locked environment: a fresh process passed the layout matrix and
+the dim-sum integration file, while sharing one interpreter across app-heavy
+UI files eventually segfaulted. This was a native process-lifetime failure,
+not a failed assertion or a missing dependency.
+
+Commit `cbfa45f5d728e75ade4a93a74b7c2d9b922827d8` adds
+`tui/tools/run-tests-isolated.py`. Python 3.13 now runs all non-UI test files
+together and starts a fresh interpreter for every UI test file; Python 3.10
+and 3.12 retain the ordinary full-suite command. The runner discovers every
+`test_*.py` file, so the isolation does not skip coverage. Local evidence is
+574 non-UI tests passed, 99 UI tests passed one file per process, the runner
+contract and long-path regression passed, Ruff passed, and `actionlint`
+passed with ShellCheck 0.11.0. The next `main` wave must verify the new lane
+and the release follow-up; remote verification is not claimed yet.
+
+## 2026-08-06 — Make app-owned profile history Windows-long-path safe
+
+The authoritative `main` run `31081357217` reached the Windows arm64 lane
+successfully, then exposed one independent Windows TUI failure in job
+`92550698973`: **539 passed, 1 failed** in
+`tests/application/test_version_history.py` because the isolated profile
+history Git repository could not write an object and reported `Filename too
+long`. The workflow's checkout repository had `core.longpaths`, but the
+app-owned repository created below the profile data directory had its own
+local configuration and did not.
+
+Commit `822b5ee92482a85b0c41baebaa5ce97c7323f824` makes
+`GitProfileHistory` set `core.longpaths=true` in its own repository before
+staging files. The regression test reads that repository's actual Git config.
+Local verification: **540 passed**, Ruff clean, mypy clean, and the focused
+version-history test passes on Windows Python 3.12. The next `main` wave must
+verify the corrected TUI matrix and the release follow-up.
+
+## 2026-08-06 — Stop self-hosted dependency caches from holding runners
+
+The Windows arm64 job in superseded run `31078432686` completed dependency
+setup, production build, packaging, and artifact upload, then spent more than
+35 minutes in `Post Run ./.github/actions/setup-ci-environment`. The runner
+trace shows the `setup-node` Yarn cache save and the `actions/cache` save
+processes holding the worker after the real job was done; `setup-uv` also had a
+post-run cache hook registered. That stale run was canceled after its actual
+work had completed, and the project-labeled Windows runner became available
+again.
+
+Commit `255eb9de1cc32ecafe4490ed3b25136e0e77b812` keeps dependency installation
+automatic but disables those optional archive-cache post hooks on self-hosted
+lanes. Hosted jobs retain their exact dependency and Yarn caches. The focused
+setup/workflow contract passes **17/17** tests and `actionlint` passes locally.
+The next `main` wave must confirm that Windows, Linux, and the release follow-up
+reach terminal states without the post-run runner hold; no application-code
+failure was present in the queue incident.
+
+## 2026-08-06 — Repair the blank Windows startup renderer
+
+The packaged Windows renderer failed before React mounted with
+`ReferenceError: __webpack_module__ is not defined`. The cause was the
+Node-oriented `@github/copilot-sdk` ESM graph being concatenated into the
+renderer through `CopilotStore`; the empty root and hidden-until-ready window
+then presented as a blank white launch. `app/webpack.common.ts` now
+externalizes the SDK, and `script/build.ts` fails before packaging if either
+renderer bundle contains the undefined binding.
+
+The implementation commit is
+`5fbc28b6cfe458943cdecd456fdc3622a4719fc1`, followed by the documentation
+commit `b75de4f106c808764ae3ae13383d2f024ad2e26c`. Latest-main integration
+also includes `518fa92a75` for the script compiler boundary and
+`fe189e2f41` for the root TypeScript configuration. A clean pinned Yarn
+install completed the root and app dependencies, submodules, script
+compilation, Electron runtime preparation, and Playwright ffmpeg setup.
+
+The final integrated production build completed in `520.70s`, printed
+`Checking renderer bundles…`, and produced
+`dist/GitHubDesktop-win32-x64/GitHubDesktop.exe` with both renderer bundles and
+the packaged Copilot SDK present; both bundles contain zero
+`__webpack_module__` tokens. That exact executable launched on the hidden
+desktop, reloaded through CDP with `readyState=complete`, one populated
+`#desktop-app-container` child, and no captured runtime exceptions. The genuine
+Lowlevel MCP capture is tracked at
+`docs/assets/screenshots/material-blank-startup-fixed-20260806.png`, `960x660`,
+SHA-256 `00D8BD6FCE0EFA10107523BF92BEA54E80DDA6ED66B8E3700B21297D6CBF2A82`,
+and shows the first-run Desktop Material surface. The detailed behavior,
+failure modes, security notes, and verification record are in
+`docs/features/quality-and-reliability/renderer-startup-bundle-safety.md` and
+`.codex/run-manifests/2026-08-06-blank-startup.md`.
+
+Remote CI and default-branch publication remain the final external checks.
+
+## 2026-08-06 — Keep the Windows native toolchain on one VS instance
+
+The dependency bootstrap had two remaining clean-runner races after the first
+ClangCL poll: the arm64 helper checked its compiler immediately and could
+repair a different Visual Studio instance from the one ClangCL had exported to
+node-gyp. Commit `87ec5b3452` runs the arm64 repair first, preserves its
+`npm_config_msvs_version` selection, makes ClangCL prefer that same instance,
+and requires x64 MSVC plus `MSBuild.exe` alongside the ClangCL files before the
+path is exported. Both installer calls use the portable
+`--installPath=<path>` form, accept only the known success/reboot/async status
+codes, and poll the actual compiler files for up to 120 five-second checks.
+
+The local host probe now selects its real Visual Studio Community instance for
+both x64 ClangCL and arm64 MSVC and writes the same `npm_config_msvs_version`
+path in each case. A new exact-main Windows wave must verify the cold repair on
+the registered runner and continue through the packaged E2E smoke test.
+
+## 2026-08-06 — Wait for asynchronous ClangCL installation completion
+
+The replacement Visual Studio bootstrap reached the supported `--quiet
+--norestart` invocation, but the installed Visual Studio Installer returned
+before the compiler and MSBuild toolset files were visible. The old immediate
+check therefore reported that x64 ClangCL was absent even though installation
+could still be progressing. Commit `b5e6b7f825` keeps the supported installer
+flags, polls the architecture-specific compiler plus `Toolset.props` and
+`Toolset.targets` for up to 120 five-second checks, and fails closed with the
+same precise error if the files never appear. The new exact-main Windows wave
+must verify that this reaches the native test and packaged E2E build.
+
+## 2026-08-06 — Pin trusted CI to the local Windows and WSL runners
+
+The generic `self-hosted` labels also matched an alternate Windows runner whose
+Visual Studio installation could not provide the ClangCL MSBuild toolset. The
+project's registered local Windows runner has a complete Community installation,
+and its registered WSL Linux runner is the environment used for the Linux lanes.
+Both now carry project-specific labels: `desktop-material-windows-local` and
+`desktop-material-wsl-local`. CI, Express Release, and Super Express require the
+matching custom label in addition to the operating-system and architecture
+labels, so a missing or incomplete alternate runner remains out of the trusted
+release path instead of turning setup drift into a build failure.
+
+## 2026-08-06 — Use supported Visual Studio Installer flags
+
+The first exact-main E2E run containing the ClangCL bootstrap,
+`31077267784 <https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31077267784>`_,
+failed before dependency installation because Visual Studio Installer
+`4.7.25+56ad8fb6f1` rejected the script's `--wait` option. The script now uses
+the installer's supported quiet/no-restart flags and the focused setup contract
+rejects `--wait`. Commit `28d7d032ef` contains this repair; a new exact-main
+Windows wave must verify that ClangCL installation and the packaged E2E path
+reach the app build.
+
+## 2026-08-06 — Remove the release gate's unbootstrapped jq dependency
+
+The first main wave after the GitHub CLI bootstrap reached the self-hosted
+Linux release gate, but run
+`31075991525 <https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31075991525>`_
+stopped with `jq: command not found` while reading the sibling CI run. The
+runner had the bootstrapped `gh` binary, but not the separate `jq` executable.
+The gate now asks `gh api --jq` for the sibling's status, conclusion, and
+updated timestamp in one bounded tab-separated record and parses that record
+with Bash. The contract test rejects the old `printf | jq` shape. Commit
+`ff0881d9d4` contains the repair; a new main CI/release wave is required before
+publication can be called verified.
+
+## 2026-08-06 — Remove the non-elevated Windows FFmpeg bootstrap
+
+The first stable pure-self-hosted CI wave reached `COMPUTER`, but the Windows
+E2E job failed before the app build because the shared setup action ran
+`choco install ffmpeg` under the non-administrator runner service account. The
+system Chocolatey directory was locked and denied access. The repository
+already installs Playwright's pinned FFmpeg payload during post-install and
+checks its versioned sentinel before accepting a dependency cache, so the
+redundant system package step and its workflow input are now removed. This
+keeps the self-hosted service user-scoped and avoids requiring administrator
+rights. The focused setup contract now rejects both the removed input and any
+Chocolatey FFmpeg install; the next main CI wave must verify Windows E2E on the
+local runner.
+
+## 2026-08-06 — Bootstrap ClangCL for self-hosted Windows native tests
+
+The latest pure-self-hosted CI wave reached the Windows x64 runner but stayed
+in `desktop-trampoline` setup because MSBuild reported `MSB8020`: the installed
+Visual Studio instance had the MSVC compiler but not its ClangCL toolset. The
+same gap reproduces locally when `npx --no-install node-gyp rebuild` runs in
+`vendor/desktop-trampoline`; the native test cannot start until
+`VC\\Tools\\Llvm\\<architecture>\\bin\\clang-cl.exe` and its matching MSBuild
+toolset files exist.
+
+The shared Windows setup now discovers complete architecture-specific Visual
+Studio instances with `vswhere.exe`, including the ClangCL MSBuild props and
+targets, x64 MSVC, and MSBuild itself, and exports the selected install through
+`npm_config_msvs_version` so node-gyp uses the same instance. The arm64 helper
+runs first when needed, installs both cross-compiler components, waits for the
+compiler to materialize, and exports that instance before ClangCL setup. If no
+complete instance is available, the ClangCL step adds the Clang and x64 MSVC
+components through the existing installer with its supported quiet/no-restart
+flags, then verifies the compiler and MSBuild files. Locally, the exact Windows
+x64 native command passes through all three ClangCL targets after selecting the
+complete Community instance; the next self-hosted CI wave must verify the
+native test, Windows x64/arm64 builds, E2E smoke, and the pure self-hosted
+release.
+
+## 2026-08-06 — Stop canceled Windows CI builds from continuing
+
+The first cancellation of the stale `0a3b8ea36c` Windows run exposed a
+workflow edge: the native-test step was canceled, but the following production
+build had `always()` without `!cancelled()` and continued occupying the
+self-hosted runner. The Windows production-build recovery guard now keeps
+`always()` for genuine test failures while skipping heavy work for an explicit
+run cancellation. The workflow contract covers these exact expressions so
+later pushes can release the runner for the newest self-hosted wave without
+allowing a canceled release to publish side effects.
+
+## 2026-08-06 — Bootstrap GitHub CLI on self-hosted release Linux
+
+The next pure-self-hosted main wave reached the local Linux `prepare` runner,
+but the Express release gate stopped before packaging because that WSL image did
+not have `gh` installed (`gh: command not found`). The release correctly created
+no artifact or Release. Express and Super Express now check out the exact
+trusted commit before their Linux release API steps, reuse an installed GitHub
+CLI when present, or download pinned `gh` 2.97.0 into `RUNNER_TEMP` and verify
+the upstream SHA-256 checksum before adding it to `GITHUB_PATH`. The focused
+workflow contract guards this bootstrap in both release workflows; the next
+stable main wave must verify the gate, Windows package, Linux TUI package, and
+publication on the registered self-hosted pool.
+## 2026-08-06 — Bootstrap Python on self-hosted Linux
+
+The direct pure-self-hosted Express Release dispatch reached `linux` and
+`Linux-CLAUDE`, but its Express lint job failed before lint because the
+composite setup action invoked `actions/setup-python@v6` for Debian 13. The
+hosted Python tool cache has no Python 3.11 entry for that image, so this was a
+runner bootstrap assumption rather than a source failure. Self-hosted Linux
+now installs uv 0.11.26, installs the pinned Python 3.11 interpreter through
+uv, exports its path through `npm_config_python`, and skips hosted toolcache
+setup. The existing self-hosted Windows uv path remains unchanged. Focused
+setup/workflow tests pass **16/16**; the next direct Express dispatch must
+verify lint, packaging, and publication after this repair.
+
+## 2026-08-06 — Make Express Release entirely self-hosted
+
+The first repaired `main` dispatch proved that the ordinary CI jobs were
+landing on the registered Linux and Windows runners, but it also exposed a
+remaining gap: `Build Installers / Express Release` still placed `prepare`,
+`Release notes`, and `Publish GitHub release` on GitHub-hosted Linux and its
+Windows build jobs on `windows-2022`. The workflow now places all seven jobs on
+the static self-hosted Linux or Windows x64 labels, installs the pinned Node
+version in its direct release-note and publisher jobs, and uses a ref-scoped
+`cancel-in-progress: true` group. The obsolete hosted Express runs were
+cancelled before they could publish; the next `main` release dispatch must
+verify the complete release path on the registered pool.
+
+## 2026-08-05 — Repair fresh-install self-hosted CI contracts
+
+The first manual self-hosted verification of `main` reached the registered
+Linux and Windows machines and exposed three repository-side regressions. The
+parity generator still declared 205 desktop features after the settings-tab
+surface added feature 206, and the Linux validation job stopped on that count
+mismatch. The root, script, and highlighter TypeScript configurations also
+carried the TypeScript 6-only `ignoreDeprecations: "6.0"` option, which the
+pinned TypeScript 5.8.2 install rejects before Electron-version validation;
+the script config additionally used a root that could not cover its imported
+repository files during a fresh install. The declared parity count and
+generated contract now agree at 206, the unsupported compiler option is gone,
+and the script root is the repository root.
+
+The dependency compatibility suite now guards those compiler settings, and
+the settings-tab migration map keeps its class-method read documented so the
+ESLint prop-type rule does not mistake a real persistence migration for dead
+code. Local validation passes: full lint, Electron-version validation,
+parity-contract check, dependency compatibility, settings-tab tests, and the
+focused installer contract. The next remote dispatch must verify the repaired
+contracts on the self-hosted pool.
+
+## 2026-08-05 — Repair the self-hosted Windows test bootstrap
+
+The first complete self-hosted Windows TUI run found two test-environment
+assumptions that only surfaced on the registered machine. The Super Express
+packaging contract still looked for the retired `ubuntu-latest` lane, and the
+Windows Git checkout rejected the long profile-history path used by
+`test_version_history_records_diffs_and_append_only_restore` with `Filename too
+long`. The contract now follows the self-hosted Linux composite action and the
+Windows TUI job enables repository-local `core.longpaths` immediately after
+checkout. The focused Python contract/history tests pass **14/14** and the
+workflow safety suite covers the new Windows bootstrap step.
+
+The same remote run also exposed a separate Windows arm64 dependency-setup
+failure: `printenvz` asked `node-gyp` for the runner's missing `v145` toolset,
+then the production build continued under `always()` with missing CodeMirror
+modules. The self-hosted setup now discovers the installed Visual Studio
+instance, reads its default MSVC toolset version, installs the matching arm64
+C++ components when that exact version is absent (including when the MSVC
+directory does not exist yet), verifies `Hostx64\arm64\cl.exe`, and blocks the
+diagnostic build when dependency setup fails. The next self-hosted run must
+verify that bootstrap on the registered Windows runner.
+
+The reusable CI jobs now allow only calls originating from
+`Ding-Ding-Projects/desktop-material` and only check out that repository; an
+external caller cannot use the self-hosted labels to execute an arbitrary
+repository. The Windows packaged smoke test also checks the installer exit
+code, the exact `app/<version>` Squirrel directory, and a post-install file
+timestamp so a stale installation cannot masquerade as a fresh build.
+
+## 2026-08-06 — Run trusted CI on the self-hosted pool
+
+The Linux and Windows CI workflows now run every job on the registered static
+labels `[self-hosted, Linux, X64]` and `[self-hosted, Windows, X64]`. Their
+`push`, `workflow_dispatch`, and reusable-call paths are self-hosted-only, and
+their ref-scoped concurrency groups use `cancel-in-progress: true` so a newer
+trusted commit replaces obsolete work. The public `pull_request` trigger was
+removed from both workflows so untrusted PR code cannot execute on the local
+machines. Windows CI now uses uv-managed Python and process-local Windows
+PowerShell/Git Bash paths rather than assuming hosted `pwsh` or toolcache
+installers.
+
+The focused workflow, self-hosted bootstrap, and cloud-compression contracts
+must pass before the first remote self-hosted CI run is treated as evidence.
+
+## 2026-08-06 — Verify Super Express on the self-hosted pool
+
+The pure self-hosted Super Express path now has remote runner evidence. Run
+`31064587087 <https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31064587087>`_
+at `60f32baf76` completed preparation and Linux TUI packaging on `linux`, then
+ran the Windows lane on `CLAUDE`. The Windows lane passed the Git Bash
+preflight, AllSigned-compatible PowerShell helpers, uv-managed Python 3.11,
+the pinned Yarn shim, setup-node's Yarn cache probe, dependency installation,
+and reached `Build production app`. GitHub's runner control channel cancelled
+the job at `2026-08-06T02:26:44Z` before `Package Windows`.
+
+Run
+`31065485291 <https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31065485291>`_
+at `3fe381f5f9` repeated the same self-hosted-only path on `COMPUTER`; Linux
+TUI passed, the Windows setup and dependency stages passed, and the Windows
+production build started. The runner control channel cancelled it at
+`2026-08-06T02:46:25Z`, again before `Package Windows`. Both runs finished
+`cancelled`, not `success`; both used `publish=false`, so no Release was
+created. Self-hosted placement and prerequisite repair are verified, while a
+completed Windows package/artifact and combined Release remain unverified
+because the external cancellations occurred before packaging.
+
+## 2026-08-06 — Scope run cancellation to Super Express
+
+Installer and Pages publication workflows continue to use unique run-and-attempt
+concurrency groups with `cancel-in-progress: false`, so publication can finish
+independently. The Linux and Windows CI workflows now use ref-scoped
+`cancel-in-progress: true` groups, and the three Super Express workflow files
+keep the same cancellation policy for their self-hosted release dispatches. A
+newer trusted run can therefore free the scarce self-hosted runner from
+obsolete work, while publication runs remain independent. The focused workflow
+safety tests enforce this allowlist and the group scope.
+
+## 2026-08-06 — Bootstrap every self-hosted Windows dependency shell
+
+The self-hosted Windows dependency setup now selects the requested Node.js
+version before the repository-pinned Yarn bootstrap runs. The bootstrap copies
+`vendor/yarn-1.21.1.js` beside two small launchers under `RUNNER_TEMP`: a
+Windows `yarn.cmd` launcher and a POSIX `yarn` launcher for Git Bash. The
+following Git Bash step converts the temporary directory to an MSYS path,
+marks the POSIX launcher executable, and fails if bare `yarn` resolves anywhere
+else. This covers both PowerShell/cmd actions and the Bash cache/install steps,
+including Unicode and space-containing temporary paths.
+
+The focused CI contract test passes **2/2**. A clean local
+`node vendor/yarn-1.21.1.js install --frozen-lockfile` completed in 84.58s,
+and an isolated probe selected Node `v24.15.0`, returned Yarn `1.21.1` from
+both launchers, and resolved Git Bash to the temporary POSIX launcher. The
+remote Super Express run after this change is still the required final
+verification; a queued, failed, or cancelled run must not be reported as
+green.
+
+## 2026-08-06 — Keep Super Express scheduling self-hosted-only
+
+The latest self-hosted-only release dispatch reached the registered Windows
+runner, but its first prerequisite failed because that machine had no WSL
+distribution installed. The exact remote failure was `Windows Subsystem for
+Linux has no installed distributions`, so the Windows package never reached
+dependency setup or compilation even though the Linux package passed.
+
+The explicit release contract keeps every Super Express job on the registered
+self-hosted pool: `linux` handles preparation, Linux TUI packaging, and
+publication, while a registered Windows x64 runner handles the Windows
+package. The direct reusable Windows and Linux TUI workflows use the same
+static `[self-hosted, Windows, X64]` and `[self-hosted, Linux, X64]` labels. A
+busy or unavailable local runner queues or fails the release; it never moves
+to a GitHub-hosted machine. `uv python install 3.12` remains responsible for
+the Linux TUI's pinned interpreter, and self-hosted Windows setup uses uv for
+Python 3.11 after the Git Bash preflight.
+
+The workflow contract test asserts the static self-hosted labels and rejects
+hosted targets, runner-selection, and cloud-fallback shapes. Focused workflow
+tests, YAML parsing, actionlint, Prettier, and `git diff --check` are the local
+gates; the next remote Super Express run is the required post-fix evidence.
+
+## 2026-08-05 — Multi-remote fetch sync
+
+The ordinary Fetch path now uses every configured remote when a repository has
+more than one. A single-remote repository retains the existing `Fetch <remote>`
+copy and focused selection. Multi-remote repositories expose `Fetch all
+remotes` in the toolbar and dropdown, with a status description that names the
+expanded scope. The store keeps current/default/upstream remotes first and then
+adds the remaining configured remotes once each.
+
+Changed implementation and test files:
+
+- `app/src/lib/stores/git-store.ts`
+- `app/src/lib/app-state.ts`
+- `app/src/lib/stores/app-store.ts`
+- `app/src/lib/stores/repository-state-cache.ts`
+- `app/src/ui/app.tsx`
+- `app/src/ui/toolbar/push-pull-button.tsx`
+- `app/src/ui/toolbar/push-pull-button-dropdown.tsx`
+- `app/test/unit/git-store-test.ts`
+- `app/test/unit/ui/push-pull-button-test.tsx`
+
+Focused verification is **19/19** tests passing. The exact Windows production
+build completed with packaging skipped. The real hidden-desktop renderer
+displayed **Fetch all remotes** and **Fetch the latest changes from every
+configured remote** for a two-remote fixture without clipping in the inspected
+frame. The unmodified development renderer still logs its existing
+`__webpack_module__ is not defined` startup error, so the visual probe used a
+temporary CDP startup shim and does not claim packaged-release proof. A later
+capture-only DOM-removal attempt triggered the disposable app's crash boundary;
+that contaminated frame was discarded. Documentation is in
+`docs/features/repository-management/multi-remote-fetch-sync.md` with index,
+README, roadmap, and feature-list references.
+
+On the merged linked checkout, the first focused test invocation found the
+declared `windows-argv-parser` native output missing from `app/node_modules`.
+Running `yarn install --immutable` rebuilt that vendor dependency; the same
+focused command then passed **19/19** without source or lockfile changes.
+
+## 2026-08-05 — Harden the Windows dependency cache and preserve Team View styling
+
+The CI dependency-cache hit path now validates the actual Electron runtime,
+targeted Copilot package, and `react-confetti` ESM entry for the current
+runner and architecture before reusing an installed-dependency cache. The
+final dependency verification checks the same `react-confetti` runtime file,
+so a cache containing only package manifests cannot skip installation and then
+fail later in the renderer build.
+
+The Launchpad Team View selectors now live in the shared `.launchpad-view`
+scope rather than only inside the `max-width: 520px` media query. Team View
+therefore retains its layout and state styling on desktop as well as narrow
+Windows windows, while the Sass-safe parent-selector structure remains intact.
+
+Local verification is **32/32** focused CI, dependency, workflow, and
+Launchpad tests, passing ESLint type-checking, and `git diff --check`. A fresh
+production renderer compile after this styling and cache follow-up is still
+pending; remote Windows/Linux runs remain queued.
+
+## 2026-08-05 — Settings account cards keep one active identity across providers
+
+Settings → Accounts was using the first card in each provider section as its
+active marker. A GitHub.com account and a GitHub Enterprise account could
+therefore both appear active, while neither exposed **Make active**. The
+surface now compares every account with the single global `accounts[0]`
+identity and applies the same predicate to GitHub.com, Enterprise, GitLab, and
+Bitbucket cards. Clicking **Make active** updates the controlled account order,
+so the target row becomes active and the previous row becomes actionable.
+Explicit repository account bindings remain authoritative.
+
+Source commit `7a757f5b75d627e1b4b7ae5ed47b2181638fefa0` contains the fix and
+regression test. Focused account/store/routing/UI verification passes **39/39**;
+targeted ESLint, Prettier, and `git diff --check` pass. The required Lowlevel
+production build has not yet returned because its shared endpoint is servicing
+another long-running build. No hidden-desktop capture or runtime success is
+claimed until that route is healthy.
+
+## 2026-08-05 — Account-aware repository transfer (verification in progress)
+
+The Windows Electron app now has an account-aware **Transfer repository**
+workflow. It can add another GitHub.com or GitHub Enterprise identity through
+the existing sign-in dialog, choose a personal or organization owner, keep or
+rename the destination repository, and choose privacy. **Full history** uses a
+temporary bare clone to publish every local branch and tag. **Clean state**
+creates one root snapshot commit, retains the previous tip under a local
+`refs/desktop-material/transfer-backups/` recovery ref, and publishes only the
+current files. Both routes verify the destination tip before retargeting
+`origin` and preserve the source as `upstream` when needed.
+
+The entry points are the Repository menu, repository-list context menu, Command
+Palette, and **Repository settings → Remote**. The transfer dialog requires two
+independent confirmations plus a full-range authorization slider, and displays
+real checking, creation, preparation, publication, retargeting, and completion
+progress. Focused direct Node contract tests pass **7/7**. Targeted ESLint
+passes, and the changed-path TypeScript check reports no diagnostics in the
+transfer files although the repository-wide command exits on existing
+TypeScript 6 findings. The exact Windows production build reached the full
+renderer/main bundle after the missing local file-package outputs were rebuilt,
+but remained nonzero on four existing TypeScript 6 errors in `dds-converter.ts`,
+two fixture typings, and `ui/index.tsx`; it did not emit a runnable
+`out/main.js`. The repository-wide test harness remains blocked before test
+discovery by the malformed `whatwg-encoding` dependency payload, so
+hidden-desktop runtime evidence is not claimed.
+
+Implementation commit
+`6c3a4ec8297e79226968a89e3232ba281c539357` contains the feature, tests, and
+documentation update. Hardening commit
+`5e96aad79e82bc597b5c1233fccd17c0b37ce7fa` preserves known-private defaults
+and verifies the exact destination tip before retargeting. Verification and
+changelog commit `8ac2bf5cfce2f4645fa4ead4e7cf05e23cd59478` records the run
+manifest and current evidence.
+
+## 2026-08-05 — Make Super Express release self-hosted-only
+
+The Super Express Release path is now deliberately self-hosted-only. The
+combined dispatcher runs preparation and publication on the registered Linux
+x64 WSL runner, the Windows package runs on `[self-hosted, Windows, X64]`, and
+the Linux TUI package runs on `[self-hosted, Linux, X64]`. The direct Windows
+and Linux TUI recovery workflows use the same static labels. Hosted selectors,
+`ubuntu-latest`, `windows-2022`, cloud fallback jobs, and runner-inventory
+branching were removed from all three Super Express workflow files. If a
+required local runner is offline or busy, the release queues or fails rather
+than silently consuming a cloud runner.
+
+Because the Linux runner is Debian 13, the dispatcher publisher also installs
+the pinned `uv` tool and Python 3.12 through `uv python install 3.12`; TUI
+version discovery uses `uv run --python 3.12`. This keeps the pure self-hosted
+path independent of the `actions/setup-python` distribution manifest that
+previously lacked a Debian 13 Python 3.12 entry.
+
+The focused workflow contract now asserts that all three workflow files
+contain only the expected static self-hosted labels and no hosted target or
+fallback selector. Pure self-hosted run
+`31063281760 <https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31063281760>`_
+at `eb5a769c51` proved `Prepare exact release target` and the Linux TUI package
+on runner `linux`; the Windows package reached runner `COMPUTER` but stopped
+before its build because `shell: bash` resolved to the Windows WSL launcher,
+which reported that no WSL distribution was installed. The Windows action and
+shared setup action now prepend the installed Git Bash directory to
+`GITHUB_PATH`, and fail with a direct prerequisite message if Git or Git Bash
+is absent. That repair is in the next pushed revision; no Release was created
+because this run used `publish=false`.
+
+Follow-up pure self-hosted run
+`31063591401 <https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31063591401>`_
+at `4a9afbbbf7` proved preparation and the complete Linux TUI package on
+`linux`, and reached the Windows build on `CLAUDE` with Git Bash selected. It
+then failed in the shared `actions/setup-python@v6` step while installing
+Python 3.11 into the self-hosted toolcache (`Error happened during Python
+installation`). The next repair keeps hosted runners on `setup-python`, but
+uses pinned `uv`, `uv python install 3.11`, and its discovered interpreter path
+for `npm_config_python` on self-hosted Windows. This run also used
+`publish=false`, so it created no Release.
+
+## 2026-08-05 — Fix Super Express workflow startup planning and repair build prerequisites
+
+The Super Express dispatcher keeps preparation and publication on
+`ubuntu-latest`, while its combined packaging jobs and its two direct reusable
+packaging lanes each check the repository runner inventory on a hosted
+selector. When an online, idle matching runner is available, exactly one
+static conditional job uses `[self-hosted, Windows, X64]` or `[self-hosted,
+Linux, X64]`; otherwise the lane uses `windows-2022` or `ubuntu-latest`. The
+earlier dynamic self-hosted fallback tried to build a multi-label `runs-on`
+value from job outputs; GitHub marked those dispatches `startup_failure` before
+creating a job, so no runner log existed to diagnose. The combined dispatcher
+now inlines its static selector/build jobs instead of calling the reusable
+workflows, because the caller itself remained planner-invalid after the lane
+repair. Static targets retain schedulability while allowing the requested
+self-hosted-first behavior and keeping the zero-test emergency lane and direct
+artifact-only lane behavior unchanged.
+
+The workflow contract test now asserts the fixed labels and rejects the
+dynamic runner-selection shape. The setup action now checks cached React JSX
+runtime and `react-confetti` files before use; an incomplete cache automatically
+returns to the bounded dependency install path. The source Sass error at
+`app/styles/ui/_launchpad.scss:278` was corrected by nesting the team selectors
+under `.launchpad-view` inside the media query, so Sass can resolve every
+`&__…` selector against its real parent.
+
+Local verification is **9/9** focused CI/dependency/workflow tests, YAML
+parsing, Prettier, and `git diff --check`. The full production compile was
+attempted with the repository-pinned TypeScript and a supported local Node 24
+runtime, but the webpack process exceeded the four-minute local bound without
+returning a client verdict; no production-build success is claimed from that
+attempt. The earlier cloud Windows fallback run `31060316032` was red at the
+Sass error and also reported `react/jsx-runtime` resolution from its incomplete
+dependency cache. The cache repair and Sass correction address those reported
+causes.
+
+The matching Windows and Linux self-hosted runners were online and idle during
+inventory checks. Follow-up combined dispatches `31060759025`, `31061020998`,
+and `31061157152` created the selector and static build jobs but were cancelled
+by an external concurrent-run sweep before any selector or build step ran.
+Self-hosted execution and a post-fix remote green build therefore remain
+unverified; no Release was published by these `publish=false` dispatches.
+
+## 2026-08-05 — Close remaining Windows TypeScript build gaps
+
+The merged default-branch tree exposed five additional TypeScript diagnostics
+across three seams after the dependency and stylesheet failures were
+corrected. The provider
+triage label switch now handles the `self-hosted` account provider. The
+self-hosted OAuth error path now captures and validates the active
+authentication state before updating it, so a nullable store state cannot be
+spread into an invalid sign-in state and a callback race cannot overwrite a
+replacement flow. The SignInStore regression fixture now records callback
+accounts in a typed list and asserts exactly one authenticated account before
+checking its provider, endpoint, and login.
+
+Local evidence for this follow-up is **41/41** focused tests across SignInStore,
+provider triage, and CI workflow safety; passing ESLint type-checking; and an
+isolated production renderer compile with **0** Webpack errors. The compile
+also emitted only the existing Sass deprecation warnings and no Koffi,
+JSX-runtime, Sass parent-selector, or TypeScript errors. Fresh remote Windows
+and Pages verification for the integrated fix is pending.
+
+## 2026-08-05 — Restore Windows production build compatibility
+
+The final Windows verification of the retired tooling correction reached the
+production compiler but failed on three dependency and stylesheet edges. The
+application now pins `@github/copilot-sdk` back to `1.0.5`, which removes the
+Koffi native dependency introduced by `1.0.8`; the supplied dependency-install
+trace showed the retrying native failure while Koffi's optional platform
+packages were being resolved. The version-specific `1.0.8` declaration shim is
+removed with the rollback.
+
+`react-confetti` `6.4.0` keeps its React 16 JSX-runtime support, but its ESM
+entry asks Webpack for `react/jsx-runtime` without an extension. The common
+Webpack configuration now aliases that exact request to the installed
+`react/jsx-runtime.js` file, preserving strict ESM resolution for other
+dependencies. The Launchpad Team View styles are also nested under their
+`.launchpad-view` parent so Dart Sass no longer rejects a top-level `&` selector.
+The CI workflow guard now matches the integrated removal of the retired
+agent-only submodule instead of requiring a stale `.gitmodules` block.
+
+Local evidence for this correction is **3/3** dependency compatibility tests,
+**13/13** Launchpad tests, **12/12** CI workflow-safety tests, passing ESLint
+type-checking, and an isolated production renderer compile with **0** Webpack
+errors. The earlier full production compile showed the other five compilers
+finishing successfully; the renderer's two reported errors are covered by the
+isolated rerun. Fresh remote Windows and Pages verification for this correction
+is pending.
+## 2026-08-05 — Keep private tooling out of hosted CI checkout
+
+The first remote Windows verification after the dependency repair reached the
+runner but failed while recursively cloning
+`vendor/lowlevel-computer-use-mcp`: that submodule is agent tooling whose
+history is not available to the hosted workflow token. The desktop build does
+not consume it; the three public product submodules remain available. The first
+correction used `update = none` to keep recursive checkout from attempting the
+unavailable agent-only clone. The subsequent integration at
+`883c1b6c6b01ca1371d590d2971e756ff5ed9039` removed that retired gitlink and
+its registry entry entirely, leaving only the three public product submodules
+in `.gitmodules`. Fresh remote verification of that integrated correction is
+pending.
+
+## 2026-08-05 — Preserve dirty work while creating a destination worktree
+
+The dirty branch-switch dialog now offers **Leave my changes here**. It closes
+the decision dialog without stashing or checking out the dirty source, opens
+the existing Add worktree flow with the destination branch and suggested name
+prefilled, and leaves creation and switching until the user confirms a path.
+
+### Verification
+
+- Source commit: `c41ae8345a`.
+- Focused UI test: **1 passed, 0 failed**.
+- Targeted Prettier and ESLint: **passed**.
+- Isolated TypeScript check: **passed**.
+- The exact production build was attempted through the required hidden
+  verification route but stopped before renderer emission on the pre-existing
+  `origin/main` Sass error at `app/styles/ui/_launchpad.scss:278`. A
+  disposable renderer-only build with that unrelated selector wrapped emitted
+  the fresh renderer used for capture.
+- Hidden-desktop runtime: **verified**. The source fixture retained one
+  modified `README.md` on `feature/worktree-switch`; the created destination
+  worktree was clean on `main`; the application switched into it with zero
+  stashes.
+- Captures:
+  - `docs/verification/dirty-worktree-worktree-option-20260805/dirty-worktree-switch-dialog.png`
+    (960×660, SHA-256
+    `0FF723C7361C6A9125B9C95AF9A9C40614C5B7B646BBC061A18C0B0D56DDDAB7`).
+  - `docs/verification/dirty-worktree-worktree-option-20260805/add-worktree-prefilled.png`
+    (960×660, SHA-256
+    `54B29ACF0B6A31CAA18E701BF413D720F161C65D3BA9DF5626A4747A3BD5588C`).
+
+GitHub integration and remote CI evidence are recorded after the source and
+documentation commits land on the default branch.
+
+## 2026-08-05 — Direct Super Express lane dispatch actions
+
+The Windows and Linux TUI Super Express packaging workflows now each expose a
+manual `workflow_dispatch` action in addition to their reusable `workflow_call`
+entry point. Direct dispatches are restricted to `main`, default to the
+dispatched commit, validate the same packaging payload, and upload an
+artifact-only recovery result. They never publish independently, preserving the
+combined dispatcher's one-Release update/bootstrap contract.
+
+## 2026-08-05 — Restore CI-compatible dependency pins
+
+The Dependabot upgrades to TypeScript `6.0.3` and `@types/request` `2.48.13`
+made the Windows setup action fail before the desktop tests could start:
+TypeScript 6 rejected the repository's legacy project layout, and the newer
+request declarations introduced an incompatible `tough-cookie` type graph in
+the vendored compile. The dependency manifest and lockfile now restore
+TypeScript `5.8.2` and `@types/request` `2.0.9`, the versions compatible with
+the current setup action and vendor sources. The same dependency group also
+carried `tsx` `4.23.1`, which transforms JSON imports incorrectly under the
+test runner, and `@types/react-virtualized` `9.22.3`, which removed the
+`Grid.propTypes` declaration used by the app; those are restored to `4.19.3`
+and `9.7.14` as well.
+
+The same correction refreshes the Pages Docs hub from **254** to **264**
+rendered articles using `node script/sync-site-doc-counts.mjs`; the committed
+check now agrees with the current `docs/` tree. Remote CI verification is
+pending for the resulting default-branch commit.
+
+## 2026-08-05 — Cross-provider account switching correction
+
+The rail account switcher was calling the real `promoteAccount` path, but the
+account store immediately re-sorted a selected GitHub Enterprise account behind
+GitHub.com. Because the rail derives its active indicator from `accounts[0]`,
+the UI appeared to switch and then silently returned to the previous account.
+The store now preserves the promoted account at `accounts[0]` across providers,
+sorts only the remaining accounts, and persists that order for the next launch.
+
+### Verification
+
+- `node script/test.mjs app/test/unit/accounts-store-test.ts` — **21/21**.
+- `node script/test.mjs app/test/unit/get-account-for-repository-test.ts` —
+  **12/12**.
+- Combined account-switcher contracts and interaction coverage — **55/55**,
+  including the new real click-handler test.
+- The required production build was attempted through the hidden Lowlevel
+  route. Its compiler worker stopped without a returned client exit status, so
+  the rail surface has no runtime capture and no runtime success is claimed.
+## 2026-08-05 — shared browser-style tabs for settings surfaces
+
+Global Settings, Repository Settings, and Stash Manager now render through the
+same horizontal `SettingsTabStrip` browser chrome. The surfaces share stable
+page IDs, close/reopen actions, measured overflow, anchored page search with
+regex-builder access, horizontal keyboard navigation, linked active panels,
+localized accessible action names, and per-surface open-page persistence.
+Repository Settings passes its complete page catalogue separately from its
+filtered display so a search cannot silently close pages. Storage reconciliation
+removes duplicates, malformed values, stale pages, and long stale prefixes
+before the session is rendered.
+
+### Local verification
+
+- The combined focused UI, style, documentation, and wiki suites pass **111
+  tests, 111 passed, 0 failed** across the shared strip, Repository Settings
+  search, Stash Manager, compact settings styles, responsive dialog styles,
+  generated screenshot pages, and the wiki gallery. The added cases cover
+  repository-scoped pin migration, filtered first-visit catalogue handling,
+  disabled context-menu protection, picker focus restoration, all-pages search
+  reachability, and the empty-result combobox/listbox relationship.
+- The exact production build completed through the required cheap Lowlevel
+  headless route with exit code 0:
+  `npx --no-install cross-env RELEASE_CHANNEL=development
+  DESKTOP_SKIP_PACKAGE=1 yarn build:prod`. It emitted the renderer and main
+  outputs, built the shell extension, refreshed licenses, and passed the
+  stylesheet checks. The analyzer's existing `import.meta` parsing warning and
+  normal Sass/dependency deprecation warnings were non-fatal.
+- The TypeScript audit is now limited to one unchanged dependency diagnostic:
+  `app/node_modules/dexie/dist/dexie.d.ts(1011,23): TS1540`. No changed source
+  file appears in that baseline diagnostic; the TypeScript 6 compatibility
+  options remain recorded in the relevant `tsconfig.json` files.
+- The real production Electron artifact ran on hidden desktop
+  `dm-tabs-d9ad5763` with the disposable `fixture` repository. The exact HWND
+  was resolved from that desktop at runtime, and CDP captured and visually
+  inspected the 1440×960 Global Settings, Repository Settings, and Stash
+  Manager frames. The promoted SHA-256 values are:
+
+  | Surface | Asset | SHA-256 |
+  | --- | --- | --- |
+  | Global Settings | `docs/assets/screenshots/material-settings.png` | `43ff361771efeeeb01eb8b40b778b9a4e5b3a311457fc632271d9ad4aa513fc` |
+  | Repository Settings | `docs/assets/screenshots/material-remote-manager.png` | `4850a060ed8ffb9c8fd06bf013e6b503b4928c58bf0449c45e56887be09ad962` |
+  | Stash Manager | `docs/assets/screenshots/material-stash-manager.png` | `52254a7b62ba0a9ce3d84c19fe3cd5e4e30a37ede79d3122afa57665b9759ca3` |
+
+- The run manifest is
+  `.codex/verification/settings-browser-tabs-headless-run-manifest.json`.
+  The MCP HTTP endpoint was saturated by an unrelated capture job, so the
+  sanctioned installed Cheap Version CLI was used against the same cheap
+  headless route; no visible-desktop interaction was used.
+- The broader Pages gallery contract remains red for unrelated issue #23:
+  `node --test .codex/verification/verify_pages_gallery_cdp_contract.test.js`
+  reports **3 passed, 1 failed** because
+  `docs/assets/screenshots/material-repository-tools-scroll.png` is `960×420`
+  while that pre-existing contract expects `1000×679`. This settings milestone
+  does not modify that asset.
+
+### Integrated delivery state
+
+The feature lane was merged into `main` as
+`35c92c4f942ac9d6853b7ee407e1e95b49f617bb`; the follow-up Pages count repair
+is `29b4923cb339446dc3dc72d670dde0665ada68b9`. The local and GitHub `main`
+tips both resolve to `29b4923cb339446dc3dc72d670dde0665ada68b9`, with zero
+ahead/behind commits, and the feature tip is proven an ancestor of that tip.
+
+The merged-tree screenshot regeneration now reports **101 pages written**
+(100 screenshot pages plus the index), **100 PNGs on disk**, **91/91 current
+gallery outputs**, **9 retained historical frames**, **14/14 capture batches**,
+and **60 verification documents**, with zero stale files pruned. The earlier
+98-page count in this entry referred to the pre-integration feature checkout
+and is superseded by these merged-tree figures.
+
+Hosted remote evidence for `29b4923cb339446dc3dc72d670dde0665ada68b9` is
+mixed and is not presented as a green release gate:
+
+- [Deploy Pages run 31069841382](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31069841382)
+  passed its build, Material Design 3 contract, search-index, and deployment
+  jobs.
+- [Code scanning run 31069841432](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31069841432)
+  completed successfully.
+- [Cheap LFS cloud compression run 31069841425](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31069841425)
+  completed successfully.
+- **CI is red:** [CI Linux run 31069841414](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31069841414)
+  fails the TUI parity contract because it expected 205 feature rows and
+  parsed 206, and its hosted TypeScript lint fails with `TS5103` for the
+  existing `ignoreDeprecations` configuration. The current desktop task does
+  not enter the repository's separately closed TUI scope.
+- [CI Windows run 31069841417](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31069841417)
+  remains in progress at this handoff: the E2E smoke and Windows TUI core
+  jobs failed during setup, Windows arm64 failed during setup/build, and the
+  Windows x64 job is still executing. Its live result is therefore not
+  claimed.
+- The exact-SHA release attempts completed their note/gate work but skipped
+  publication, and the release inventory has no new tag for
+  `29b4923cb339446dc3dc72d670dde0665ada68b9`; no installer or release is
+  claimed for this change.
+
+### Documentation
+
+- Added the categorized feature article
+  `docs/features/identity-and-workspace/settings-browser-tabs.md` and linked it
+  from the category index, wiki User Guide, README feature summary, roadmap,
+  landing-page feature card, screenshot tab, and current gallery frames.
+- Regenerated the docs hub after the article update and again after main
+  integration. The three existing gallery filenames now contain the accepted
+  browser-tab frames, and the merged screenshot catalog contains 91 published
+  gallery outputs plus 9 retained historical PNG frames, for 100 screenshot
+  pages plus the index. The 91-frame Pages acceptance gate remains separate
+  and has no orphan assets.
+
+### Build recovery notes
+
+The first two production-build attempts exposed environment and compiler
+conditions that are now recorded for the next handoff. The exact dependency
+recovery was `npm rebuild fs-admin --prefix app`,
+`node-gyp rebuild` in `app/node_modules/desktop-trampoline`,
+`node app/node_modules/dugite/script/download-git.js`, and initialization of
+the repository's existing gemoji, choosealicense, and gitignore submodules.
+The repository's TypeScript 6 run also required explicit `rootDir`/
+`ignoreDeprecations` compatibility settings and narrow buffer/ArrayBuffer
+boundary casts. The final build additionally required the pre-existing
+top-level Sass nesting correction in `_launchpad.scss` and a webpack resolver
+rule for the installed `react-confetti` `.mjs` dependency. The cheap MCP
+endpoint saturation was a route limitation, not a build failure; the installed
+Cheap Version fallback completed the same headless verification.
+## 2026-08-06 — Four-way settings tab docking
+
+Commit `ef604d47a9f6f17203e9d8c12fa996442c2d8fbd` adds a persisted **Settings
+tab position** control to both Preferences and Repository Settings. Each
+surface remembers `left`, `top`, `bottom`, or `right` independently; missing or
+invalid storage safely returns to the historical left rail. Top and bottom
+use a horizontal scrollable tab strip with Left/Right navigation, while left
+and right retain the vertical strip with Up/Down navigation. Search, overflow,
+pinning, selection, localization, and compact-width behavior remain part of
+the same shared tab surface.
+
+### Verification
+
+- Focused suite: **41/41 passed** across four unit-test files, including the
+  default, independent persistence, invalid-value fallback, four selector
+  options, orientation semantics, and compact style contracts.
+- Prettier and targeted ESLint: passed for every changed source, style, test,
+  and documentation file.
+- Production renderer proof: `renderer.js` and `renderer.css` compiled; the
+  development packaging phase completed with `DESKTOP_SKIP_PACKAGE=1`.
+- Hidden Windows Electron runtime: verified Preferences and Repository
+  Settings at **Left**, **Top**, **Bottom**, and **Right** from the built
+  renderer. The disposable profile, fixture, process, and hidden desktop were
+  stopped after capture.
+- Documentation: added
+  `docs/features/identity-and-workspace/settings-tab-docking.md` and linked
+  it from the category index, feature list, and User Guide.
+
+No installer, Release, or remote CI result is claimed from this capture-only
+proof; `gh run list` returned no run for the pushed task branch at the time of
+this handoff update.
+
 ## 2026-08-05 — Super Express packaging lanes parallelized
 
 The manual Super Express dispatcher now keeps one combined immutable Release
@@ -15,6 +1023,114 @@ Local proof for this change is **16/16** application workflow-contract tests,
 **10/10** TUI installer-contract tests, passing Prettier/YAML parsing, and
 `sh -n` success for both checked-in TUI shell scripts. No remote Actions run
 or Release is claimed by this handoff entry yet.
+
+## 2026-08-05 — Partial Releases no longer steal the Windows update feed
+
+Commit `a4ce485037138f24d7534452a861a1fb7749beeb` hardens
+`.github/scripts/promote-current-release.sh`: a published Release may own the
+Windows `Latest` alias only when it includes both the Squirrel `RELEASES`
+manifest and a `*-full.nupkg` package. This prevents a newer Linux/TUI-only
+partial Release from making `releases/latest/download/RELEASES` return 404 to
+the Windows app.
+
+### Verification
+
+- Focused version-order, CI-workflow-safety, and automated-release-notes
+  suites: **29 passed, 0 failed**.
+- The previously broken live alias was repaired to the existing
+  Windows-capable Release `v3.6.3-beta3-zadwftypqg`, whose assets include
+  `RELEASES` and both full Squirrel packages. The exact
+  `releases/latest/download/RELEASES` URL now returns **HTTP 200**.
+- The required Cheap headless production build was attempted, but terminated
+  after about 800 seconds before emitting the renderer output; no About-dialog
+  screenshot is claimed from that incomplete artifact. The direct release
+  metadata and HTTP feed proof above are the available runtime evidence.
+
+### Remote state
+
+The fix was merged into `main` as `6f5cf66c30`, with source commit
+`a4ce485037138f24d7534452a861a1fb7749beeb` and documentation commit
+`96fcc0a2d14cd2f791fd51f6b470ae7f225695aa`. The integrated tree passes the
+focused suite with the repository's pinned Node `24.15.0` invocation: **29
+passed, 0 failed**. The repository wrapper's additional `--conditions=import`
+flag is not used for this proof because its current `tsx` loader path changes
+the `whatwg-encoding` JSON import shape before the test can start.
+
+The dewed integrated tip was `bc63986119e2c71cc28d98e1465c9c8501c25f58`.
+Its current-SHA remote evidence is recorded precisely: `Deploy Pages` run
+[31056983826](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31056983826)
+passed; **CI Windows run
+[31056982528](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31056982528)
+failed** because the Windows jobs could not clone the configured
+`codingmachineedge/lowlevel-computer-use-mcp` submodule (`repository not found`),
+and the follow-on production step could not find `cross-env`. The dependent
+`Build Installers / Express Release` run
+[31057063196](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31057063196)
+was blocked because its trigger was `workflow_dispatch`, not this repository's
+main push CI, so no Release was published. These are external CI/submodule
+blockers; the updater guard's local tests and live HTTP feed proof remain
+verified.
+
+The enabled GitHub Wiki recovery note was committed as
+`34cb7157716cd846117ad9e86fe876dd70c389b2` and is now published on its
+`master` branch. An initial publication attempt used a stale Git credential
+and returned HTTP 403; `gh auth setup-git --hostname github.com` refreshed the
+credential path, after which the exact commit landed and the Wiki checkout is
+clean.
+## 2026-08-05 — Actions job-log transient 404 recovery
+
+This Windows Electron fix was developed in the new linked worktree branch
+`codex/job-log-404-fix` at commits
+`33f54a69825d97083dc8f0b1fb134b353e9686ca` and
+`e85cf787e3aea81ac28679f00b3b0201507af133`, and the integration checkout
+carries those commits into the default branch.
+GitHub can briefly return `HTTP 404`
+while a valid completed-job log archive is being prepared. The main-process
+transfer now retries only that API response after 250/750/1,500 ms waits,
+restarts from the original API endpoint for a fresh signed redirect, and keeps
+the bearer header off cross-origin blob requests. A follow-up audit separates
+the retry count from the redirect-hop budget, proves cancellation during
+backoff prevents another fetch, and asserts the blob-404 request has no bearer
+header. The log viewer explains the provider state and exposes **Retry** and
+**Open on GitHub**; its test checks the link destination and external
+activation. The unrelated
+Launchpad Sass brace correction is included because it was the build-blocking
+syntax error discovered while producing the required renderer artifact.
+
+### Verification receipts
+
+- Focused transfer/viewer tests: **20 passed, 0 failed** (including the
+  redirect-budget, abort-during-backoff, blob-header, and external-link
+  audit regressions).
+- `tsc --noEmit -p tsconfig.json`: passed.
+- Changed-file ESLint and Prettier checks: passed.
+- `git diff --check`: passed before documentation and capture promotion.
+- Standalone renderer diagnostic: `hasErrors:false`. The final exact
+  `yarn build:prod` command completed with the fresh Node 24.15.0 runtime in
+  **512.78s**, passed the Sass/license checks, produced fresh
+  `out/renderer.js`, `out/main.js`, stylesheet, and `out/index.html` outputs,
+  and packaged `dist\\GitHubDesktop-win32-x64`. Signing was not run.
+- Genuine hidden-desktop capture at **1400×1000** from the built artifact:
+  `docs/assets/screenshots/material-actions-job-log-404-recovery.png` shows the
+  final 404 explanation and both recovery controls (SHA-256
+  `444AA612720799BCB6107BFD7B3CEED66E56252E82E724B1C26559F347968972`).
+  `docs/assets/screenshots/material-actions-job-log-404-recovered.png` shows
+  the two expected log lines after Retry (SHA-256
+  `83D9704989173353467E8C5B079B8D3905A0C52AF6283AC7C09FAB92D2B15A78`).
+- In the dedicated 404-to-Retry acceptance sequence, the fixture recorded four
+  bounded 404 attempts followed by one successful transfer after the user
+  activated Retry. The final recapture used the same built artifact after the
+  fixture was reset and also rendered both states. No credential, token, or
+  personal path appears in either promoted image.
+- Teardown evidence: the exact Electron process, fixture server, isolated
+  headless desktop, and isolated MCP server were stopped; the fixture listener
+  is absent and three owned keytar entries were removed. The host shell policy
+  blocked deletion of the explicitly named temporary capture roots and helper
+  scripts, so those recoverable artifacts remain outside the repository.
+
+The task-branch workflows were cancelled by workflow concurrency, so no remote
+green result is claimed here. Release publication remains an external
+follow-up after the default-branch workflow produces its verified installer.
 
 ## 2026-08-04 — Live Material renderer proof and startup cleanup
 
@@ -421,7 +1537,7 @@ added the following scoped fixes:
   Node test coordinator a 4 GiB heap. The previous `a0d7b4a598` CI run passed
   all 7,238 assertions but died at 318 MiB while the long Agents test batch was
   still emitting its accounting summary; the new workflow change is awaiting
-  its own GitHui run for proof.
+  its own GitHub Actions run for proof.
 
 - The Agents creator now uses the shared modal dialog layer, exposes dialog
   semantics, avoids a nested form, and disables the Options disclosure while
@@ -694,7 +1810,7 @@ header `Explaining 3 commits`, the commit rows with author and date, then a
 prose summary followed by a **Changes** bullet list naming each modified file
 and what changed in it.
 
-### 9. Launchpad — **NOT STARTED**
+### 9. Launchpad — **PARTIAL**
 
 A prioritized inbox across issues, pull requests and work in progress, grouped
 into collapsible status sections with counts: **Pinned**, **Ready to merge**,
@@ -702,6 +1818,10 @@ into collapsible status sections with counts: **Pinned**, **Ready to merge**,
 icons, the item title with its `#number`, and its diff stat (`+102 / -0`), and
 rows can be pinned. Stated purpose: start the day here and act on the most
 important work without juggling apps.
+
+The current model, bounded preferences, accessible view, full-width navigation,
+and verified built-app capture are implemented. The live provider adapters and
+in-app actions remain pending.
 
 ### 10. In-app pull request review — **NOT STARTED**
 
@@ -1090,7 +2210,7 @@ Four harness drifts were also corrected (Shift+right-click appearance editors,
 two controls that moved into the More menu, the `· N visible` artifacts clause,
 and rail buttons whose text now embeds their Material Symbol ligature).
 
-Dewed: `66d446266e`, ancestry proven on the hui's `main`.
+Published: `66d446266e`, ancestry proven against the remote `main`.
 
 ## 2026-07-31 — Full-app command palette: rich controls and teleport
 

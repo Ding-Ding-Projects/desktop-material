@@ -13,12 +13,54 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
 import {
+  assertRendererBundlesAreRunnable,
   copyStaticResourceTree,
   getSelfHostedServerExtraResourcePath,
   removeAndCopy,
 } from '../../../script/build'
 
 describe('build copying', () => {
+  it('rejects renderer bundles with an undefined Webpack module binding', () => {
+    const root = mkdtempSync(join(tmpdir(), 'desktop-renderer-bundle-test-'))
+    const rendererPath = join(root, 'renderer.js')
+    const internalBrowserPath = join(root, 'internal-browser.js')
+
+    try {
+      writeFileSync(rendererPath, 'window.start(); __webpack_module__')
+      writeFileSync(internalBrowserPath, 'window.start();')
+
+      assert.throws(
+        () => assertRendererBundlesAreRunnable(root),
+        /undefined Webpack module binding/
+      )
+
+      writeFileSync(rendererPath, 'window.start();')
+      writeFileSync(internalBrowserPath, 'window.start(); __webpack_module__')
+      assert.throws(
+        () => assertRendererBundlesAreRunnable(root),
+        /undefined Webpack module binding/
+      )
+
+      writeFileSync(internalBrowserPath, 'window.start();')
+      assert.doesNotThrow(() => assertRendererBundlesAreRunnable(root))
+
+      rmSync(rendererPath)
+      assert.throws(
+        () => assertRendererBundlesAreRunnable(root),
+        /Missing renderer bundle required for startup:.*renderer\.js/
+      )
+
+      writeFileSync(rendererPath, 'window.start();')
+      rmSync(internalBrowserPath)
+      assert.throws(
+        () => assertRendererBundlesAreRunnable(root),
+        /Missing renderer bundle required for startup:.*internal-browser\.js/
+      )
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   it('ships the immutable self-hosted server build context as an extra resource', () => {
     const resource = getSelfHostedServerExtraResourcePath(process.cwd())
     assert.equal(

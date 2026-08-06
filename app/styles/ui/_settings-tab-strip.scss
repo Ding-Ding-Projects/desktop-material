@@ -81,6 +81,26 @@
   }
 }
 
+// Top and bottom docks keep the same tab semantics, but their strip is a
+// horizontal scrollport. The rows stay intact so bilingual and long labels do
+// not become clipped merely because the rail changed sides.
+.settings-tab-strip[data-settings-tab-dock-orientation='horizontal'] {
+  .settings-tab-strip-list {
+    flex: 0 1 auto;
+    flex-direction: row;
+    min-height: 44px;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .settings-tab-strip-item {
+    flex: 0 0 auto;
+    min-width: max-content;
+    white-space: nowrap;
+  }
+}
+
 .settings-tab-strip-label {
   flex: 1;
   min-width: 0;
@@ -144,6 +164,277 @@
   .octicon {
     flex: none;
     width: 14px;
+  }
+}
+
+// --- Browser-style settings pages ----------------------------------------
+// The rail is useful when a surface is a dense index, but it does not read as
+// an opened page. These three surfaces use the same chrome as the internal
+// browser: a horizontal tab lane, a close affordance on each open page, and a
+// plus button that reopens a page from the picker.
+
+.settings-tab-strip-browser {
+  align-items: flex-end;
+  background: var(--md-sys-color-surface-container);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  flex-direction: row;
+  flex: 0 0 auto;
+  gap: 4px;
+  min-height: 48px;
+  padding: 6px 10px 0;
+
+  .settings-browser-tabs {
+    align-items: flex-end;
+    display: flex;
+    flex: 1 1 auto;
+    gap: 4px;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    position: relative;
+    scrollbar-width: thin;
+  }
+
+  // The ARIA tablist owns the tab buttons through aria-owns so the close
+  // buttons remain real sibling controls rather than interactive descendants
+  // of the tablist. Keep the ownership node available to assistive technology
+  // without reserving visual space beside the browser lane.
+  .settings-browser-tablist {
+    block-size: 1px;
+    inline-size: 1px;
+    overflow: hidden;
+    position: absolute;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .settings-browser-tab-items {
+    align-items: flex-end;
+    display: flex;
+    flex: 0 0 auto;
+    gap: 4px;
+    min-width: max-content;
+  }
+
+  .settings-browser-tab {
+    align-items: stretch;
+    background: var(--md-sys-color-surface-container-high);
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    flex: 0 1 240px;
+    height: 40px;
+    min-width: 124px;
+    max-width: 260px;
+    overflow: hidden;
+
+    &.active {
+      background: var(--md-sys-color-surface);
+    }
+
+    &:focus-within {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: -2px;
+    }
+  }
+
+  .settings-browser-tab-select {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+    display: flex;
+    flex: 1 1 auto;
+    font: inherit;
+    gap: 7px;
+    min-width: 0;
+    padding: 0 4px 0 12px;
+    text-align: left;
+
+    &:hover:not(:disabled),
+    &[aria-selected='true'] {
+      color: var(--md-sys-color-on-surface);
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.38;
+    }
+
+    &:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+      outline-offset: -3px;
+    }
+
+    .octicon,
+    .material-symbol {
+      flex: 0 0 auto;
+    }
+  }
+
+  .settings-browser-tab-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .settings-browser-tab-pin {
+    flex: 0 0 auto;
+    opacity: 0.72;
+    width: 12px;
+  }
+
+  .settings-browser-tab-close,
+  .settings-browser-tab-action {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+    display: inline-flex;
+    flex: 0 0 auto;
+    justify-content: center;
+    min-height: 40px;
+    min-width: 40px;
+
+    &:hover {
+      background: var(--md-sys-color-surface-container-highest);
+      color: var(--md-sys-color-on-surface);
+    }
+
+    &:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+      outline-offset: -3px;
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.38;
+    }
+  }
+
+  .settings-browser-tab-actions {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    gap: 2px;
+    min-height: 40px;
+  }
+
+  .settings-browser-tab-action {
+    border-radius: 999px;
+
+    &.overflow {
+      gap: 3px;
+      padding: 0 8px;
+      width: auto;
+    }
+  }
+
+  @media (max-width: 620px) {
+    padding-inline: 6px;
+
+    .settings-browser-tab {
+      min-width: 108px;
+    }
+
+    .settings-browser-tab-select {
+      padding-inline-start: 8px;
+    }
+  }
+}
+
+// The owning settings surface supplies the dock position. Browser tab chrome
+// keeps its close, pin, overflow, and reopen actions in every orientation;
+// only the lane changes from horizontal to vertical.
+.settings-tab-strip-browser[data-settings-tab-dock-position='left'],
+.settings-tab-strip-browser[data-settings-tab-dock-position='right'] {
+  align-items: stretch;
+  border-bottom: 0;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--spacing) 0;
+
+  .settings-browser-tabs {
+    align-items: stretch;
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .settings-browser-tab-items {
+    align-items: stretch;
+    flex-direction: column;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .settings-browser-tab {
+    flex: 0 0 auto;
+    height: auto;
+    max-width: none;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .settings-browser-tab-title {
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .settings-browser-tab-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
+}
+
+.settings-tab-dock-control {
+  align-items: center;
+  column-gap: var(--spacing-half);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+  row-gap: 2px;
+
+  label {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 11px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  select {
+    background: var(--md-sys-color-surface-container-high);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-small, 8px);
+    color: var(--md-sys-color-on-surface);
+    font: inherit;
+    font-size: 12px;
+    min-height: 32px;
+    min-width: 88px;
+    padding: 0 8px;
+
+    &:focus-visible {
+      border-color: var(--md-sys-color-primary);
+      outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+      outline-offset: 1px;
+    }
+
+    &:disabled {
+      cursor: default;
+      opacity: 0.5;
+    }
+  }
+
+  p {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 10px;
+    grid-column: 1 / -1;
+    margin: 0;
+    overflow-wrap: anywhere;
   }
 }
 

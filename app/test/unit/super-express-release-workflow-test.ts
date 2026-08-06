@@ -16,6 +16,17 @@ const tuiWorkflow = readFileSync(
   join(process.cwd(), '.github/workflows/super-express-release-linux-tui.yml'),
   'utf8'
 )
+const windowsBuildAction = readFileSync(
+  join(process.cwd(), '.github/actions/super-express-windows-build/action.yml'),
+  'utf8'
+)
+const tuiBuildAction = readFileSync(
+  join(
+    process.cwd(),
+    '.github/actions/super-express-linux-tui-build/action.yml'
+  ),
+  'utf8'
+)
 const installerWorkflow = readFileSync(
   join(process.cwd(), '.github/workflows/build-installers.yml'),
   'utf8'
@@ -30,22 +41,50 @@ const releasePullRequestWorkflow = readFileSync(
 )
 
 describe('Super Express Release workflow', () => {
-  it('is manual-only and dispatches independent zero-test build lanes', () => {
+  it('is manual-only and dispatches self-hosted-only zero-test build lanes', () => {
     assert.match(workflow, /on:\s*\n\s+workflow_dispatch:/)
     assert.doesNotMatch(workflow, /\n\s+(?:push|workflow_run):/)
+    assert.match(
+      workflow,
+      /prepare:\s*\n\s+name: Prepare exact release target\s*\n\s+runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/
+    )
+    assert.match(
+      workflow,
+      /publish:[\s\S]*?runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/
+    )
+    assert.doesNotMatch(workflow, /fromJSON\(needs\./)
+    assert.doesNotMatch(
+      workflow,
+      /cloud|fallback|runner_selection|use_self_hosted/
+    )
+    assert.match(
+      workflow,
+      /GH_TOKEN:\s*\n\s+\$\{\{ secrets\.RELEASE_TOKEN \|\| secrets\.ORG_TOKEN \|\| secrets\.GITHUB_TOKEN\s*\}\}/
+    )
+    assert.match(
+      workflow,
+      /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/
+    )
+    assert.match(
+      workflow,
+      /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/
+    )
+    assert.match(
+      workflow,
+      /uses: \.\/\.github\/actions\/super-express-windows-build/
+    )
+    assert.match(
+      workflow,
+      /uses: \.\/\.github\/actions\/super-express-linux-tui-build/
+    )
+    assert.match(workflow, /windows_build:/)
+    assert.match(workflow, /tui_build:/)
+    assert.doesNotMatch(workflow, /uses: \.\/\.github\/workflows\//)
     assert.match(workflow, /Require a main-branch manual dispatch/)
     assert.match(workflow, /ref: \$\{\{ env\.RELEASE_TARGET_SHA \}\}/)
     assert.match(
       workflow,
-      /uses: \.\/\.github\/workflows\/super-express-release-windows\.yml/
-    )
-    assert.match(
-      workflow,
-      /uses: \.\/\.github\/workflows\/super-express-release-linux-tui\.yml/
-    )
-    assert.match(
-      workflow,
-      /needs:\s*\n\s+- prepare\s*\n\s+- windows\s*\n\s+- tui/
+      /needs:\s*\n\s+- prepare\s*\n\s+- windows_build\s*\n\s+- tui_build/
     )
     assert.match(workflow, /actions\/download-artifact@v8/)
     assert.match(
@@ -65,34 +104,142 @@ describe('Super Express Release workflow', () => {
     assert.doesNotMatch(workflow, /yarn package/)
     assert.doesNotMatch(workflow, /run:\s*yarn lint/)
     assert.doesNotMatch(workflow, /validate-changelog/)
+    assert.match(
+      workflow,
+      /concurrency:\s*\n\s+group: super-express-release-\$\{\{ github\.ref \}\}\s*\n\s+cancel-in-progress: true/
+    )
 
     assert.match(windowsWorkflow, /workflow_call:/)
-    assert.match(windowsWorkflow, /runs-on: windows-2022/)
-    assert.match(windowsWorkflow, /yarn build:prod/)
-    assert.match(windowsWorkflow, /yarn package/)
-    assert.match(windowsWorkflow, /actions\/upload-artifact@v7/)
+    assert.match(windowsWorkflow, /workflow_dispatch:/)
+    assert.match(windowsWorkflow, /inputs\.release_target_sha \|\| github\.sha/)
+    assert.match(windowsBuildAction, /Resolve release package version/)
+    assert.match(
+      windowsBuildAction,
+      /outputs:[\s\S]*?value: \$\{\{ steps\.resolve_version\.outputs\.release_version \}\}/
+    )
+    assert.match(
+      windowsBuildAction,
+      /artifact_name:[\s\S]*?value: super-express-windows-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
+    )
+    assert.match(windowsBuildAction, /id: resolve_version/)
+    assert.match(
+      windowsBuildAction,
+      /release-version\.js create "\$base" "\$GITHUB_RUN_ID" "\$GITHUB_RUN_ATTEMPT"/
+    )
+    assert.match(
+      windowsBuildAction,
+      /release-version\.js validate "\$RELEASE_VERSION" "\$base"/
+    )
+    assert.match(
+      windowsBuildAction,
+      /Direct Super Express Windows dispatches must use main/
+    )
+    assert.match(
+      windowsBuildAction,
+      /Prefer Git Bash on Windows self-hosted runners[\s\S]*?shell: powershell -NoProfile -ExecutionPolicy Bypass[\s\S]*?GITHUB_PATH/
+    )
+    assert.doesNotMatch(windowsBuildAction, /shell: pwsh/)
     assert.doesNotMatch(
       windowsWorkflow,
+      /cloud|fallback|runner_selection|use_self_hosted/
+    )
+    assert.match(windowsWorkflow, /build:/)
+    assert.match(
+      windowsWorkflow,
+      /build:[\s\S]*?permissions:\s*\n\s+contents: read/
+    )
+    assert.match(
+      windowsWorkflow,
+      /publish:[\s\S]*?permissions:\s*\n\s+contents: write\s*\n\s+actions: read/
+    )
+    assert.match(windowsWorkflow, /permissions:\s*\n\s+contents: write/)
+    assert.match(
+      windowsWorkflow,
+      /publish:[\s\S]*?if: >-[\s\S]*?github\.event_name == 'workflow_dispatch'[\s\S]*?needs\.build\.result == 'success'/
+    )
+    assert.match(
+      windowsWorkflow,
+      /publish:[\s\S]*?actions\/download-artifact@v8[\s\S]*?name: \$\{\{ needs\.build\.outputs\.artifact_name \}\}/
+    )
+    assert.match(
+      windowsWorkflow,
+      /publish:[\s\S]*?runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64\s*\n\s+- desktop-material-wsl-local/
+    )
+    assert.doesNotMatch(
+      windowsWorkflow,
+      /publish:[\s\S]*?runs-on:\s+ubuntu-latest/
+    )
+    assert.match(windowsWorkflow, /gh release create "\$RELEASE_TAG"/)
+    assert.match(windowsWorkflow, /--target "\$RELEASE_TARGET_SHA"/)
+    assert.match(windowsWorkflow, /--latest(?:\r?\n|\s)/)
+    assert.match(windowsWorkflow, /--prerelease=false --latest/)
+    assert.match(
+      windowsWorkflow,
+      /git ls-remote --exit-code --tags origin "refs\/tags\/\$RELEASE_TAG"/
+    )
+    assert.doesNotMatch(
+      windowsWorkflow,
+      /publish:[\s\S]*?promote-current-release\.sh/
+    )
+    assert.match(
+      windowsWorkflow,
+      /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/
+    )
+    assert.match(
+      windowsWorkflow,
+      /concurrency:\s*\n\s+group: super-express-release-windows-\$\{\{ github\.ref \}\}\s*\n\s+cancel-in-progress: true/
+    )
+    assert.match(windowsWorkflow, /super-express-windows-build/)
+    assert.match(windowsBuildAction, /yarn build:prod/)
+    assert.match(windowsBuildAction, /yarn package/)
+    assert.match(windowsBuildAction, /actions\/upload-artifact@v7/)
+    assert.doesNotMatch(
+      windowsBuildAction,
       /uv build|pytest|ruff|mypy|yarn test|yarn lint/
     )
 
     assert.match(tuiWorkflow, /workflow_call:/)
-    assert.match(tuiWorkflow, /runs-on: ubuntu-latest/)
-    assert.match(tuiWorkflow, /uv build --clear/)
+    assert.match(tuiWorkflow, /workflow_dispatch:/)
+    assert.match(tuiWorkflow, /inputs\.release_target_sha \|\| github\.sha/)
     assert.match(
-      tuiWorkflow,
-      /uv export --locked --no-dev --no-emit-project --no-hashes/
+      tuiBuildAction,
+      /Direct Super Express Linux TUI dispatches must use main/
     )
-    assert.match(tuiWorkflow, /install-linux-tui\.sh/)
-    assert.match(tuiWorkflow, /bootstrap-linux-tui\.sh/)
-    assert.match(tuiWorkflow, /actions\/upload-artifact@v7/)
     assert.doesNotMatch(
       tuiWorkflow,
+      /cloud|fallback|runner_selection|use_self_hosted/
+    )
+    assert.match(tuiWorkflow, /build:/)
+    assert.match(
+      tuiWorkflow,
+      /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/
+    )
+    assert.match(
+      tuiWorkflow,
+      /concurrency:\s*\n\s+group: super-express-release-linux-tui-\$\{\{ github\.ref \}\}\s*\n\s+cancel-in-progress: true/
+    )
+    assert.match(tuiWorkflow, /super-express-linux-tui-build/)
+    assert.match(tuiBuildAction, /uv python install 3\.12/)
+    assert.doesNotMatch(tuiBuildAction, /actions\/setup-python@v7/)
+    assert.match(tuiBuildAction, /uv build --clear/)
+    assert.match(
+      tuiBuildAction,
+      /uv export --locked --no-dev --no-emit-project --no-hashes/
+    )
+    assert.match(
+      tuiBuildAction,
+      /artifact_name:[\s\S]*?value: super-express-tui-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
+    )
+    assert.match(tuiBuildAction, /install-linux-tui\.sh/)
+    assert.match(tuiBuildAction, /bootstrap-linux-tui\.sh/)
+    assert.match(tuiBuildAction, /actions\/upload-artifact@v7/)
+    assert.doesNotMatch(
+      tuiBuildAction,
       /pytest|ruff|mypy|yarn test|yarn lint|generate-parity-contract/
     )
   })
 
-  it('preserves fallback artifacts and publishes a unique immutable release', () => {
+  it('preserves artifacts and publishes a unique immutable release', () => {
     assert.match(workflow, /actions\/upload-artifact@v7/)
     assert.match(workflow, /compression-level: 0/)
     assert.match(workflow, /git ls-remote --exit-code --tags origin/)
@@ -100,19 +247,26 @@ describe('Super Express Release workflow', () => {
     assert.doesNotMatch(workflow, /generate-automated-release-notes\.ts/)
     assert.match(workflow, /gh release create "\$RELEASE_TAG"/)
     assert.match(workflow, /--target "\$RELEASE_TARGET_SHA"/)
-    assert.match(workflow, /--latest=false/)
-    assert.doesNotMatch(workflow, /^\s+--latest\s*$/m)
+    assert.match(workflow, /--latest(?:\r?\n|\s)/)
+    assert.match(workflow, /--prerelease=false --latest/)
+    assert.doesNotMatch(workflow, /--latest=false/)
     assert.match(workflow, /git rev-parse 'FETCH_HEAD\^\{commit\}'/)
+    assert.match(workflow, /needs\.windows_build\.outputs\.artifact_name/)
+    assert.match(workflow, /needs\.tui_build\.outputs\.artifact_name/)
     assert.match(
       workflow,
-      /super-express-windows-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
+      /windows_build:[\s\S]*?steps\.package\.outputs\.artifact_name/
     )
     assert.match(
       workflow,
-      /super-express-tui-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
+      /tui_build:[\s\S]*?steps\.package\.outputs\.artifact_name/
     )
     assert.match(workflow, /install-linux-tui\.sh/)
     assert.match(workflow, /bootstrap-linux-tui\.sh/)
+    assert.match(
+      workflow,
+      /Restore executable bits on downloaded TUI scripts[\s\S]*?chmod 0755 release-payload\/tui\/install-linux-tui\.sh[\s\S]*?release-payload\/tui\/bootstrap-linux-tui\.sh/
+    )
     assert.match(
       workflow,
       /Reconcile Latest to the newest main release[\s\S]*?bash \.github\/scripts\/promote-current-release\.sh/
@@ -126,14 +280,14 @@ describe('Super Express Release workflow', () => {
     // Latest forward, and only a provably off-main Latest may be demoted.
     assert.match(promotionScript, /merge-base --is-ancestor/)
     assert.match(promotionScript, /git rev-list --count/)
-    assert.doesNotMatch(workflow, /cancel-in-progress:\s*true/)
+    assert.match(workflow, /cancel-in-progress:\s*true/)
   })
 
   it('uses one Squirrel-monotonic version namespace across release lanes', () => {
     for (const source of [installerWorkflow, workflow]) {
       assert.match(
         source,
-        /version=\$\(node script\/release-version\.js create "\$base" "\$GITHUB_RUN_ID"\)/
+        /version=\$\(node script\/release-version\.js create "\$base" "\$GITHUB_RUN_ID" "\$GITHUB_RUN_ATTEMPT"\)/
       )
     }
 
@@ -149,7 +303,7 @@ describe('Super Express Release workflow', () => {
   })
 
   it('publishes a RELEASES manifest bounded to the release being built', () => {
-    for (const source of [installerWorkflow, windowsWorkflow]) {
+    for (const source of [installerWorkflow, windowsBuildAction]) {
       assert.match(
         source,
         /node script\/release-version\.js filter "\$RELEASE_VERSION"[\s\S]*?> release-payload\/installers\/RELEASES/

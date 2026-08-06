@@ -19,7 +19,11 @@ import { AppWindow } from './app-window'
 import type { IAppWindowUpdateDownloadState } from './app-window'
 import { buildDefaultMenu, getAllMenuItems } from './menu'
 import { shellNeedsPatching, updateEnvironmentForProcess } from '../lib/shell'
-import { IOAuthAction, parseAppURL } from '../lib/parse-app-url'
+import {
+  IOAuthAction,
+  ISelfHostedOAuthAction,
+  parseAppURL,
+} from '../lib/parse-app-url'
 import {
   handleSquirrelEvent,
   installWindowsCLI,
@@ -392,7 +396,7 @@ function cancelInternalBrowserOAuthCallbacksForWindow(windowId: number) {
 }
 
 function handleInternalBrowserAuthenticationCallback(
-  action: IOAuthAction,
+  action: IOAuthAction | ISelfHostedOAuthAction,
   ownerWindowId: number | null
 ): Promise<InternalBrowserOAuthCallbackResult> {
   if (ownerWindowId === null) {
@@ -407,7 +411,7 @@ function handleInternalBrowserAuthenticationCallback(
 }
 
 function dispatchOAuthActionToWindow(
-  action: IOAuthAction,
+  action: IOAuthAction | ISelfHostedOAuthAction,
   target: AppWindow,
   revealWindow: boolean
 ): Promise<InternalBrowserOAuthCallbackResult> {
@@ -842,7 +846,7 @@ function handleAppURL(url: string) {
     // This manual focus call _shouldn't_ be necessary, but is for Chrome on
     // macOS. See https://github.com/desktop/desktop/issues/973.
     window.focus()
-    if (action.name === 'oauth') {
+    if (action.name === 'oauth' || action.name === 'self-hosted-oauth') {
       broadcastOAuthAction(action)
     } else {
       window.sendURLAction(action)
@@ -850,7 +854,7 @@ function handleAppURL(url: string) {
   })
 }
 
-function broadcastOAuthAction(action: IOAuthAction) {
+function broadcastOAuthAction(action: IOAuthAction | ISelfHostedOAuthAction) {
   for (const window of getAppWindows()) {
     const deliver = () => {
       void dispatchOAuthActionToWindow(action, window, true).then(result => {

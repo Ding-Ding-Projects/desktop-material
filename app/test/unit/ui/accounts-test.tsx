@@ -4,10 +4,16 @@ import '../../helpers/ui/setup'
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import { Accounts } from '../../../src/ui/preferences/accounts'
-import { Account } from '../../../src/models/account'
+import { Account, accountEquals } from '../../../src/models/account'
 import { getDotComAPIEndpoint } from '../../../src/lib/api'
 import { APIError } from '../../../src/lib/http'
-import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '../../helpers/ui/render'
 
 type Provider = 'gitlab' | 'bitbucket'
 
@@ -26,6 +32,7 @@ function renderAccounts(
       onProviderSignIn={onProviderSignIn}
       onLogout={() => {}}
       onMakeActive={() => {}}
+      onOpenInBrowser={async () => true}
     />
   )
 }
@@ -79,6 +86,77 @@ function submitProvider(provider: Provider) {
 }
 
 describe('Accounts preferences', () => {
+  it('keeps one global active account across provider sections', () => {
+    const dotcomAccount = new Account(
+      'dotcom-user',
+      getDotComAPIEndpoint(),
+      'token-dotcom',
+      [],
+      '',
+      1,
+      'Dotcom User',
+      'free'
+    )
+    const enterpriseAccount = new Account(
+      'enterprise-user',
+      'https://ghe.example.com/api/v3',
+      'token-enterprise',
+      [],
+      '',
+      2,
+      'Enterprise User',
+      'free'
+    )
+    let accounts = [dotcomAccount, enterpriseAccount]
+    let rerender: (element: React.ReactElement) => void = () => {}
+    const renderSurface = () => (
+      <Accounts
+        accounts={accounts}
+        onDotComSignIn={() => {}}
+        onEnterpriseSignIn={() => {}}
+        onProviderSignIn={async () => accounts[0]}
+        onLogout={() => {}}
+        onMakeActive={account => {
+          accounts = [
+            account,
+            ...accounts.filter(candidate => !accountEquals(candidate, account)),
+          ]
+          rerender(renderSurface())
+        }}
+        onOpenInBrowser={async () => true}
+      />
+    )
+
+    const rendered = render(renderSurface())
+    rerender = rendered.rerender
+
+    assert.equal(screen.getAllByText('Active', { exact: true }).length, 1)
+    const enterpriseCard = screen
+      .getByText(/@enterprise-user/)
+      .closest('.account-card') as HTMLElement
+    fireEvent.click(
+      within(enterpriseCard).getByRole('button', { name: 'Make active' })
+    )
+
+    assert.equal(screen.getAllByText('Active', { exact: true }).length, 1)
+    const activeEnterpriseCard = screen
+      .getByText(/@enterprise-user/)
+      .closest('.account-card') as HTMLElement
+    const activeDotcomCard = screen
+      .getByText(/@dotcom-user/)
+      .closest('.account-card') as HTMLElement
+    assert.ok(within(activeEnterpriseCard).getByText('Active', { exact: true }))
+    assert.equal(
+      within(activeEnterpriseCard).queryByRole('button', {
+        name: 'Make active',
+      }),
+      null
+    )
+    assert.ok(
+      within(activeDotcomCard).getByRole('button', { name: 'Make active' })
+    )
+  })
+
   it('renders every GitHub.com account and the add-account action', () => {
     const accounts = [
       new Account(
@@ -111,6 +189,7 @@ describe('Accounts preferences', () => {
         onProviderSignIn={async () => accounts[0]}
         onLogout={() => {}}
         onMakeActive={() => {}}
+        onOpenInBrowser={async () => true}
       />
     )
 
@@ -161,6 +240,7 @@ describe('Accounts preferences', () => {
         onProviderSignIn={async () => accounts[0]}
         onLogout={() => {}}
         onMakeActive={() => {}}
+        onOpenInBrowser={async () => true}
       />
     )
 

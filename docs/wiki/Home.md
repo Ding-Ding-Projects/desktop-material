@@ -199,6 +199,11 @@ receipts as acceptance evidence.
   agent API. Background fetch reuses a validated local remote default; explicit discovery has a
   five-second lookup deadline plus five-second cleanup grace, and concurrent work shares one
   in-flight system proxy resolver per exact URL.
+- **Account-aware repository transfer** — open Transfer repository from the Repository menu,
+  Command Palette, repository list, or Remote Manager; choose another signed-in GitHub identity
+  and personal/organization owner; then publish every local branch and tag with full history or
+  publish one clean root snapshot. Destination verification precedes the `origin` retarget, while
+  the source remains reachable as `upstream` and clean-state mode keeps a local recovery ref.
 - **Per-account settings in a local git repo** — every settings or tabs change, including the
   versioned appearance defaults, auto-commits. Open
   **Edit → Settings History…** (`Ctrl+Alt+Z`) for a non-modal timeline with lazy diffs, undo, redo,
@@ -259,10 +264,37 @@ the tonal workspace preview hides when a compact window needs the space.
   approve or reject eligible deployments; approve an eligible fork run; dispatch a workflow; and
   load later artifact pages before a native download with local digest comparison and explicit
   attestation-presence context.
+- **Runner boundary** — ordinary Linux/Windows CI and tested Express run on clean GitHub-hosted
+  runners and keep unique non-cancelling run/attempt groups. The Windows CI manual dispatch also
+  offers a cloud/self-hosted choice for the desktop build and packaged smoke jobs, requiring the
+  fixed `self-hosted`, `Windows`, `X64`, and `desktop-material-windows-local` label set; pushes, pull requests, reusable calls, and the
+  Windows TUI core job remain hosted. Super Express still uses the registered local Windows/WSL
+  pool and ref-scoped cancellation. Its self-hosted setup restores exact dependencies without an
+  unbounded post-job cache hook, verifies the cache, and explicitly saves a verified miss.
+- **Windows test memory and installation** — `script/test.mjs` owns both the per-worker heap and
+  memory-aware concurrency; workflows do not impose a 4 GiB value inherited by every worker. The
+  packaged smoke lane waits at most 300 seconds for the Squirrel installer process, kills that tree
+  on timeout, and repeatedly cleans up only newly launched same-session application processes.
+- **Python 3.13 TUI verification** — the Linux lane runs all non-UI tests together, then gives each
+  UI test file a fresh interpreter. This preserves the complete suite while preventing a native
+  Textual syntax-state segfault from crossing app-heavy test files; Python 3.10 and 3.12 keep the
+  ordinary full-suite path.
+- **Windows profile history** — the TUI configures `core.longpaths` inside its own isolated Git
+  history repository as well as in CI checkout preparation, so Windows history writes do not rely
+  on a separate repository's local Git configuration.
 - **Release gates** — the manual Super Express emergency lane runs no tests and
-  goes directly to its Windows x64 build/package, asset verification, and
-  optional release. Ordinary CI and tested Express remain the default gates;
-  release pull requests target the Windows product's `main` default branch.
+   goes directly to its Windows x64 build/package, asset verification, and
+   release. The combined dispatcher keeps preparation and publication on the
+   registered Linux x64 WSL runner, the Windows lane on `[self-hosted, Windows,
+   X64]`, and the TUI lane on `[self-hosted, Linux, X64]`. A direct Windows lane
+   dispatch keeps packaging on `[self-hosted, Windows, X64]` and publishes its
+   verified artifact from `[self-hosted, Linux, X64]`; direct Linux TUI and
+   reusable packaging calls remain artifact-only so the combined dispatcher can publish
+   one complete cross-platform Release. If a required packaging runner is
+   unavailable, the affected release queues or fails; the direct Windows
+   publisher queues when the local WSL runner is unavailable. Ordinary CI and tested
+   Express remain the default gates and run on GitHub-hosted machines; release
+   pull requests target the Windows product's `main` default branch.
 - **Compact Repository Releases** — the corrected 800×560 combined gate keeps the list ahead of
   overview/detail content and retains one complete row. One physical 960×660 gate passed at 100%,
   125% (768×528 CSS), 150%, and 200% (480×330 CSS); compact scales keep a 176 px panel, at least

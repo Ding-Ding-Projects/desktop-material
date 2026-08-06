@@ -3,7 +3,8 @@
 # Windows lane so that a red terminal test can never withhold the desktop
 # installers, and a red desktop build can never withhold the terminal package.
 # Both lanes feed the one Release; `build-installers.yml` waits for both to
-# finish and then ships whatever each lane vouched for.
+# finish and then ships whatever each lane vouched for. Ordinary CI uses
+# GitHub-hosted Linux runners so every event gets a clean, reproducible machine.
 name: CI Linux
 
 on:
@@ -13,7 +14,7 @@ on:
   workflow_call:
     inputs:
       repository:
-        default: desktop/desktop
+        default: ''
         required: false
         type: string
       ref:
@@ -43,16 +44,8 @@ on:
       DESKTOP_OAUTH_CLIENT_ID:
       DESKTOP_OAUTH_CLIENT_SECRET:
 
-# Every invocation owns a unique group so a newer push, pull request, manual
-# dispatch, or installer verification can run immediately without cancelling
-# or queueing an older in-progress run.
-#
-# This is a deliberate safety contract, enforced by
-# app/test/unit/ci-workflow-safety-test.ts: the installer workflow triggers on
-# this workflow's `workflow_run` completion, so a cancelled main run silently
-# skips a release — and a queued one is just as dangerous, because a third run
-# entering an occupied group cancels the pending one. Saving runner minutes by
-# cancelling superseded runs is not worth a release that quietly never ships.
+# Every run gets its own group. CI is a release gate, so a newer commit must not
+# silently cancel an older commit's chance to finish and publish its result.
 concurrency:
   group: ci-linux-${{ github.run_id }}-${{ github.run_attempt }}
   cancel-in-progress: false
@@ -238,6 +231,10 @@ jobs:
         with:
           repository: ${{ inputs.repository || github.repository }}
           ref: ${{ inputs.ref }}
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
@@ -255,7 +252,12 @@ jobs:
         run: node tui/tools/generate-parity-contract.mjs --check
       - name: Run TUI tests
         working-directory: tui
-        run: uv run --python "${{ matrix.python-version }}" pytest
+        run: |
+          if [ "${{ matrix.python-version }}" = "3.13" ]; then
+            uv run --python "${{ matrix.python-version }}" python tools/run-tests-isolated.py
+          else
+            uv run --python "${{ matrix.python-version }}" pytest
+          fi
       - name: Run TUI lint and types
         if: matrix.python-version == '3.12'
         working-directory: tui

@@ -1,6 +1,270 @@
 # Desktop Material roadmap
 
-Updated: **August 3, 2026**
+Updated: **August 6, 2026**
+
+## August 6 — Give Windows CI a trusted runner choice and warm cache
+
+- The manual `CI Windows` dispatch now offers `cloud` (the default) or the
+  fixed `self-hosted`, `Windows`, `X64`, and `desktop-material-windows-local`
+  label set for the desktop build and packaged smoke jobs. Push, pull-request,
+  reusable-call, and Windows TUI core jobs remain on hosted runners.
+- Windows self-hosted jobs restore exact `installed-deps-v6` dependencies
+  without a post-job archive hook, verify the restored sentinels, and explicitly
+  save a verified miss. `installed-deps-v5` and `installed-deps-v4` are warm
+  starts only; the cross-compilation manifest restore keeps the exact key
+  reachable, both Windows toolset scripts invalidate it, and self-hosted keys
+  include the runner/toolchain fingerprint. The install itself uses
+  `yarn --frozen-lockfile`.
+- Local CI/release contracts pass **32/32**, the edited YAML parses, Prettier and
+  `actionlint -shellcheck=` pass, and `git diff --check` passes. Remote
+  verification remains pending for the hardening commit.
+
+## August 6 — Include Super Express in Latest release selection
+
+- The combined and direct Windows Super Express publishers now request
+  `Latest` on the normal create path and on the fallback edit after verified
+  assets are uploaded.
+- Existing release `v3.6.3-beta3-zadwtuvqil` is verified as `latest=true`; the
+  same-SHA/current-`main` promotion guard remains in place for overlapping
+  releases.
+- Focused Super Express and release-version contracts pass **14/14** locally;
+  a future published Super Express run remains the remote workflow proof.
+
+## August 6 — Dock settings tabs on any side
+
+- Preferences and Repository Settings now support independent persisted tab
+  docking on the left, top, bottom, or right, with left as the default and
+  fallback for invalid stored values.
+- The existing browser-style tab actions remain intact. Top and bottom docks
+  expose horizontal keyboard navigation; left and right docks expose vertical
+  navigation, with the same accessible tab identities and panels.
+- Integrated-tree evidence is **59/59** focused tests passed, full TypeScript,
+  Prettier, the custom-rule ESLint command, and `git diff --check`. The full
+  renderer compile exceeded its bounded local window without emitting its
+  renderer bundles, so an integrated hidden-desktop capture and installer
+  result remain unclaimed. Task-branch captures cover all four positions.
+
+## August 6 — Restore clean hosted CI and tested Express capacity
+
+- Ordinary Linux and Windows CI now target `ubuntu-latest` and `windows-2022`,
+  and `Build Installers / Express Release` uses the same hosted split. CI once
+  again validates pull requests without exposing a local machine to untrusted
+  code.
+- CI and tested Express keep every invocation in a unique run-ID/run-attempt
+  group with `cancel-in-progress: false`. Only the emergency Super Express
+  family remains on the registered self-hosted Windows/WSL pool and cancels an
+  older dispatch for the same ref.
+- The direct Windows Super Express publisher is also pinned to the registered
+  self-hosted Linux x64 WSL runner. No Super Express job may escape to a hosted
+  runner; a missing local publisher queues or fails the emergency release.
+- Workflow guards enumerate every Super Express job and reject a hosted
+  publisher exception. The restored contract passes **20/20** focused tests,
+  and an intentional `ubuntu-latest` negative control fails both guards.
+- Unit-test workflows no longer impose a 4 GiB `NODE_OPTIONS` value that every
+  worker inherits. `script/test.mjs` owns the worker heap and memory-aware
+  concurrency together, so its accounting matches the processes it launches.
+- Windows packaged smoke waits at most 300 seconds for the Squirrel installer
+  process, kills that installer tree on timeout, and repeatedly cleans up only
+  newly launched same-session application processes while preserving anything
+  that was already running.
+- Commit `196ead823c9d683992dc58f9931fac7c0e21bc8b` carries the migration and
+  its regression repairs. Focused checks pass **182/182**, script checks report
+  **217 tests with zero failures**, and the one final full-suite mnemonic defect
+  now passes its exhaustive **17/17** menu matrix. A complete final rerun plus a
+  new hosted CI/tested-Express wave and Release result remain required; no
+  remote success is claimed yet.
+
+## August 6 — Keep Python 3.13 TUI UI tests process-safe
+
+- The Linux Python 3.13 lane now runs all non-UI tests together and launches
+  each UI test file in a fresh interpreter. This preserves the complete test
+  set while preventing Textual's native syntax state from crossing app-heavy
+  file boundaries.
+- The corrected wave `31082985235` exposed the process-lifetime segfault after
+  64% of 673 tests. Local WSL reproduction passed 574 non-UI tests and all 99
+  UI tests with the new boundary. Commit
+  `cbfa45f5d728e75ade4a93a74b7c2d9b922827d8` carries the runner and its
+  discovery contract; remote verification is the next `main` wave.
+
+## August 6 — Make app-owned profile history Windows-long-path safe
+
+- The TUI's isolated Git-backed profile-history repository now enables
+  `core.longpaths` locally; the checkout's Git setting cannot flow into that
+  separate repository.
+- The current `main` wave found the gap after Windows arm64 passed: Windows TUI
+  Python 3.12 reported **539 passed, 1 failed** with `Filename too long` while
+  writing a history object.
+- Commit `822b5ee92482a85b0c41baebaa5ce97c7323f824` adds the fix and an actual
+  config-read regression assertion. Local evidence is **540 passed**, Ruff
+  clean, and mypy clean; the next `main` wave is the remote verification.
+
+## August 6 — Keep Super Express runners available after dependency setup
+
+- Self-hosted Windows and Linux Super Express setup still installs every
+  declared dependency directly, but no longer registers `actions/cache`,
+  `setup-uv`, or `setup-node` archive-cache post hooks. Ordinary CI and tested
+  Express have since returned to hosted runners and retain their exact caches.
+- The repair closes a real queue failure: a completed Windows arm64 job stayed
+  marked busy while cache save/cleanup ran for more than 35 minutes, so the
+  next local release lane could not start.
+- Focused CI setup and workflow safety verification passes **17/17** tests;
+  `actionlint` passes. Remote verification is the new `main` wave created by
+  commit `255eb9de1cc32ecafe4490ed3b25136e0e77b812`.
+
+## August 6 — Windows renderer startup bundle safety
+
+- The Node-oriented `@github/copilot-sdk` now stays outside the browser
+  renderer bundle and is installed as a packaged external dependency.
+- `script/build.ts` rejects a missing renderer bundle or an emitted
+  `__webpack_module__` binding before packaging, with focused regression
+  coverage for both failure and success paths.
+- The exact Windows artifact launches on the hidden desktop and paints the
+  first-run Desktop Material surface. The CDP reload check reports one
+  populated `#desktop-app-container` child, no startup exceptions, and both
+  renderer bundles contain zero `__webpack_module__` tokens.
+- A fresh pinned Yarn install now completes the root and app dependency setup;
+  the TypeScript configs no longer reject the repository's pinned compiler or
+  its cross-package post-install imports.
+- Details and failure modes are documented in
+  `docs/features/quality-and-reliability/renderer-startup-bundle-safety.md`.
+
+## August 5 — self-hosted Windows dependency bootstrap
+
+- The Windows self-hosted setup selects the requested Node.js version before
+  creating the repository-pinned Yarn launcher, then exposes both a Windows
+  `yarn.cmd` launcher and a POSIX `yarn` launcher to later actions.
+- The Git Bash preflight converts the temporary launcher directory to an MSYS
+  path, marks the POSIX launcher executable, verifies that bare `yarn` resolves
+  to that exact path, and only then allows cache probing and dependency
+  installation to run.
+- Focused CI tests pass **2/2**, the frozen local dependency install passes,
+  and the Unicode/space-path PowerShell plus Git Bash probe passes. Remote
+  Super Express verification remains required after publication.
+
+## August 5 — multi-remote fetch sync
+
+- The ordinary repository Fetch action now fetches every configured remote when
+  a checkout has more than one, while preserving the existing focused
+  `Fetch <remote>` behavior for one-remote checkouts. Current/default/upstream
+  remotes remain first in the deterministic sequence, followed by any other
+  configured remotes.
+- The toolbar and dropdown now say **Fetch all remotes** and explain the wider
+  scope in the status description. Remote configuration and the existing
+  account-aware fetch path are unchanged.
+- Focused verification passes **19/19** tests across the GitStore selection
+  and toolbar surfaces. The exact Windows production build completed with
+  packaging skipped, and the real hidden-desktop renderer displayed **Fetch
+  all remotes** plus its expanded scope description for a two-remote fixture. The
+  unmodified development renderer still logs its existing
+  `__webpack_module__ is not defined` startup error, so the visual probe used
+  a temporary CDP startup shim and does not claim packaged-release proof.
+
+## August 5 — account-aware repository transfer
+
+- The Windows desktop app now exposes **Transfer repository** from the
+  Repository menu, repository-list context menu, Command Palette, and Remote
+  Manager. The workflow can use an existing signed-in GitHub identity or open
+  the normal GitHub/GitHub Enterprise sign-in flow for another account.
+- **Full history** publishes every local branch and tag through a temporary bare
+  clone. **Clean state** publishes the current files as one new root commit and
+  keeps the old tip under a local `refs/desktop-material/transfer-backups/`
+  recovery ref. Both modes verify the exact destination tip before retargeting
+  `origin`; the source remote remains available as `upstream` when needed.
+- The destination name, owner, privacy, mode, two confirmations, and full-range
+  authorization slider are reviewed before the provider mutation. Focused
+  contract tests pass **7/7**; the exact production build reached bundling but
+  remains blocked by existing TypeScript 6 errors, so hidden-desktop runtime
+  proof is not claimed.
+
+## August 5 — account cards share one active identity across providers
+
+- Settings → Accounts now compares every provider card with the single global
+  `accounts[0]` identity instead of treating the first card in each provider
+  section as active. With one GitHub.com account and one Enterprise account,
+  exactly one row is marked **Active** and the other exposes **Make active**.
+- The correction uses the same stable account identity and promotion path as
+  the rail switcher; explicit repository account bindings remain authoritative.
+- Focused account/store/routing/UI verification passes **39/39**. The required
+  Lowlevel production build is pending because the shared endpoint is currently
+  servicing another long-running build; no hidden-desktop runtime success is
+  claimed yet.
+
+## August 5 — Windows updates survive partial Releases
+
+- The release promoter now considers only published Windows-capable Releases
+  for the `Latest` update alias. A candidate must carry the Squirrel
+  `RELEASES` manifest and a full `*-full.nupkg` package, so a newer Linux/TUI
+  partial Release cannot turn the Windows feed into a 404.
+- The existing live alias was repaired to
+  `v3.6.3-beta3-zadwftypqg`; `releases/latest/download/RELEASES` returns HTTP
+  200 and serves the expected manifest.
+- The focused regression suites pass **29/29**. A Cheap headless production
+  build was attempted but ended before renderer output was available, so the
+  About-dialog capture remains explicitly unverified for this change.
+
+## August 5 — rail account switching keeps the chosen identity active
+
+- Selecting an account from the rail switcher now keeps that account first in
+  the active-identity order across GitHub.com and GitHub Enterprise instead of
+  immediately sorting the Enterprise choice back behind GitHub.com.
+- The selected order is persisted and restored on reload; the account switcher
+  and repository-owner auto-switch therefore agree on the same active account.
+- Focused local verification passes: the combined account-switcher contracts,
+  store, repository-owner, and click-handler suites report **55/55**. The
+  required hidden build was attempted through Lowlevel, but its client stalled
+  after the compiler worker stopped and no runtime evidence is claimed.
+
+## August 5 — transient Actions job-log 404 recovery
+
+- GitHub may return `HTTP 404` for a valid completed-job log endpoint while its
+  archive is still being prepared. The Windows transfer path now retries only
+  that API response after bounded **250 ms**, **750 ms**, and **1,500 ms** waits,
+  returning to the API endpoint for a fresh signed redirect each time. Blob
+  URLs never retry and API bearer headers never cross the redirect boundary.
+- The in-app Job Log surface now explains the provider state and keeps explicit
+  **Retry** and **Open on GitHub** recovery actions visible. The existing
+  expired-log (`410`) behavior is unchanged.
+- A follow-up audit keeps transient 404 retries outside the redirect-hop
+  budget, stops before refetch when cancellation arrives during backoff,
+  asserts that signed-blob 404s receive no bearer header, and verifies the
+  external recovery link's destination and activation.
+- Local evidence: focused transfer/viewer tests pass **20/20**; TypeScript,
+  changed-file ESLint, and Prettier pass; the cheap headless Windows artifact
+  shows the final 404 state and then both expected log lines after Retry. The
+  standalone renderer diagnostic reports `hasErrors:false`; the production
+  build also required and now includes a minimal Launchpad Sass brace fix so
+  its declared renderer path compiles.
+
+## August 5 — settings surfaces share browser-style tabs
+
+- Global Settings, Repository Settings, and Stash Manager now use the shared
+  horizontal browser-tab surface instead of separate vertical rails or bespoke
+  pill rows. Pages can be opened, closed, discovered through overflow, and
+  reached with `Left`, `Right`, `Home`, and `End`.
+- The tab model persists open pages independently for each surface, preserves
+  the full page catalogue while a search narrows the visible list, and cleans
+  stale or malformed stored IDs before rendering. Active panels now carry the
+  matching `tabpanel` and focus returns to a surviving tab after close/open.
+- Combined focused UI, style, documentation, and wiki coverage passes
+  **111/111**. The exact production build exits 0, and
+  the built Electron artifact has inspected 1440×960 hidden-desktop frames for
+  all three surfaces. The current-source frames are evidence for the UI
+  milestone, not installer or release evidence.
+## August 6 — four-way settings tab docking — **Implemented, locally verified**
+
+- Commit `ef604d47a9f6f17203e9d8c12fa996442c2d8fbd` adds independent persisted
+  docking for Preferences and Repository Settings: **Left**, **Top**,
+  **Bottom**, and **Right**, with Left as the safe fallback.
+- Top and bottom render a horizontal, scrollable tab strip and use Left/Right
+  arrow navigation. Left and right keep the vertical strip and Up/Down
+  navigation. Search, overflow, pinning, selection, and compact layouts remain
+  available in every orientation.
+- Verification is **41/41 focused tests passed**, targeted Prettier and ESLint
+  passed, and a built Windows Electron renderer was captured on a hidden
+  desktop in all four positions for both surfaces.
+- The feature article is
+  `docs/features/identity-and-workspace/settings-tab-docking.md`; no installer,
+  Release, or branch CI result is claimed from the capture-only run.
 
 ## August 3 — the site lays out on a phone
 
@@ -81,9 +345,11 @@ Updated: **August 3, 2026**
   focused contract and UI files. A real Windows bundle and hidden-desktop
   smoke remain required before this slice is called runtime-verified.
 - The previous Windows CI run passed its assertions but exhausted the Node
-  heap before test accounting completed. CI and Express Release now scope a
-  4 GiB heap to their unit-test coordinators; the fix is pending remote-run
-  proof rather than being called green locally.
+  heap before test accounting completed. The interim 4 GiB workflow override
+  was inherited by every worker and defeated the harness's memory accounting;
+  it is now removed so `script/test.mjs` owns the worker heap and concurrency
+  together. The replacement remains pending remote-run proof rather than being
+  called green locally.
 - The required production bundle launched on the hidden Windows desktop and
   produced a real first-paint frame. CDP interaction was interrupted by the
   first-run/checklist overlay, so no Ollama screenshot is claimed from that
@@ -121,7 +387,7 @@ ahead of any single feature that depends on it.
 | [R8](https://github.com/Ding-Ding-Projects/desktop-material/issues/125) | Commit context menu in the graph | shared graph/list context actions implemented and tested; built-app capture pending |
 | [R9](https://github.com/Ding-Ding-Projects/desktop-material/issues/126) | Compose commits with AI | immutable composition-plan foundation implemented; policy-backed generation UI and capture pending |
 | [R10](https://github.com/Ding-Ding-Projects/desktop-material/issues/127) | Summarize past changes with AI | safe reviewed-result foundation implemented; policy-backed adapter/UI and capture pending |
-| [R11](https://github.com/Ding-Ding-Projects/desktop-material/issues/128) | Launchpad, with pinning and snoozing | model, bounded preferences, and accessible view implemented; live adapters/navigation/capture pending |
+| [R11](https://github.com/Ding-Ding-Projects/desktop-material/issues/128) | Launchpad, with pinning and snoozing | model, bounded preferences, accessible view, full-width navigation, and built-app capture implemented; live adapters/actions pending |
 | [R12](https://github.com/Ding-Ding-Projects/desktop-material/issues/129) | In-app pull request review and internal code suggestions | review workspace implemented; provider suggestion integration and capture pending |
 | [R13](https://github.com/Ding-Ding-Projects/desktop-material/issues/130) | Team collaboration: shared workspaces, insights, presence, deep links | not started, depends on R1 |
 | [R14](https://github.com/Ding-Ding-Projects/desktop-material/issues/131) | Admin and security controls, including AI security controls | fail-closed AI policy foundation implemented; trusted main-process wiring and admin UI pending, gates R7/R9/R10/R12 |
@@ -1309,16 +1575,22 @@ six-asset Windows x64 Release are verified for the `main` push recorded in
   nested paths and flat asset ranges.
 - **Super Express Release fast lane**: A workflow_dispatch-only emergency
   dispatcher checks out the exact SHA and creates one monotonic tag, then runs
-  separate zero-test Windows x64 and native Ubuntu Linux TUI packaging
-  workflows in parallel. The lanes restore the desktop dependency cache where
-  needed, build the complete Windows/TUI payload, verify every asset, and
-  preserve uncompressed lane artifacts. One publisher combines them into a
-  uniquely tagged Release so the shared Squirrel update feed and TUI bootstrap
-  URL never point at a half-release.
+  separate zero-test Windows x64 and registered self-hosted Linux x64 TUI
+  packaging workflows in parallel. Preparation and publication also run on
+  the registered Linux x64 WSL runner; no Super Express job uses a cloud
+  runner. The direct Windows workflow_dispatch action preserves its verified
+  payload and publishes a uniquely tagged immutable non-latest Windows
+  Release; the direct Linux TUI action remains artifact-only, and reusable
+  calls remain artifact-only. The lanes restore the desktop dependency cache
+  where needed, build the complete Windows/TUI payload, verify every asset, and
+  preserve uncompressed lane artifacts. One combined publisher still joins
+  both lanes into a uniquely tagged Release so the shared Squirrel update feed
+  and TUI bootstrap URL never point at a half-release.
 - **Cross-lane updater ordering**: Automatic and Super Express packages now use
   one validated `z` plus fixed-width, nine-letter base-26 GitHub run-ID
   namespace. It sorts above the legacy `b…`/`s…` lanes that stranded Super
-  Express installations, keeps reruns deterministic, and avoids the legacy
+  Express installations, keeps separate execution attempts unique and ordered,
+  and avoids the legacy
   Squirrel `Int32` overflow caused by long numeric prerelease tails. Both
   workflows create
   immutable non-latest Releases, then revalidate current `main` and reconcile

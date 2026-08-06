@@ -253,6 +253,10 @@ export function preferencesPaletteEvent(tab: PreferencesTab): string {
       return 'palette:preferences-sound'
     case PreferencesTab.Ollama:
       return 'palette:ollama-model-manager'
+    case PreferencesTab.SelfHostedServer:
+      return 'palette:preferences-self-hosted-server'
+    case PreferencesTab.AI:
+      return 'palette:preferences-ai'
     default:
       return 'show-preferences'
   }
@@ -497,6 +501,13 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     event: 'fork-repository',
     title: 'Fork the repository',
     group: 'Repository',
+  },
+  {
+    event: 'transfer-repository',
+    title: 'Transfer the repository to another account',
+    group: 'Repository',
+    keywords: 'remote account owner history clean snapshot login move',
+    isAvailable: whenGitHubRepository,
   },
   {
     event: 'view-repository-on-github',
@@ -1231,6 +1242,22 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
       'settings sound audio music narrator tts voice volume quiet hours effects',
     home: { kind: 'preferences', tab: PreferencesTab.Sound },
   },
+  {
+    event: 'palette:preferences-self-hosted-server',
+    title: 'Preferences: Self-hosted server',
+    titleKey: 'settings.selfHostedServerTab',
+    group: 'App',
+    keywords: 'settings self hosted docker server join saml',
+    home: { kind: 'preferences', tab: PreferencesTab.SelfHostedServer },
+  },
+  {
+    event: 'palette:preferences-ai',
+    title: 'Preferences: AI security',
+    titleKey: 'settings.aiTab',
+    group: 'App',
+    keywords: 'settings ai security provider eligibility allowlist kill switch',
+    home: { kind: 'preferences', tab: PreferencesTab.AI },
+  },
   // Surfaces that are otherwise only reachable by knowing which settings tab
   // hosts them. Naming them here makes them findable by what they do.
   {
@@ -1450,6 +1477,18 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     home: {
       kind: 'repositorySettings',
       tab: RepositorySettingsTab.Appearance,
+    },
+  },
+  {
+    event: 'palette:repository-settings-ai-security',
+    title: 'Repository AI features',
+    titleKey: 'repositorySettings.tabAISecurity',
+    group: 'Repository',
+    keywords: 'ai security feature provider eligibility policy',
+    isAvailable: whenRepository,
+    home: {
+      kind: 'repositorySettings',
+      tab: RepositorySettingsTab.AISecurity,
     },
   },
   {

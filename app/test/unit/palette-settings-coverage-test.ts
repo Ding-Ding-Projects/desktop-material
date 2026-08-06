@@ -3,7 +3,10 @@ import { describe, it } from 'node:test'
 import { readFile } from 'fs/promises'
 import * as Path from 'path'
 
-import { CommandPaletteCatalog } from '../../src/lib/command-palette-catalog'
+import {
+  CommandPaletteCatalog,
+  preferencesPaletteEvent,
+} from '../../src/lib/command-palette-catalog'
 import { RepositorySettingsTab } from '../../src/models/repository-settings'
 import { PreferencesTab } from '../../src/models/preferences'
 
@@ -93,6 +96,21 @@ describe('palette settings coverage', () => {
       assert.ok(
         rows.length > 0,
         `Settings tab ${PreferencesTab[tab]} has no palette row`
+      )
+
+      const event = preferencesPaletteEvent(tab)
+      const destination = CommandPaletteCatalog.find(c => c.event === event)
+      assert.equal(
+        destination?.home?.kind,
+        'preferences',
+        `${PreferencesTab[tab]} search results must resolve to a Settings palette destination`
+      )
+      assert.equal(
+        destination?.home?.kind === 'preferences'
+          ? destination.home.tab
+          : undefined,
+        tab,
+        `${event} must open the exact ${PreferencesTab[tab]} tab`
       )
     }
   })

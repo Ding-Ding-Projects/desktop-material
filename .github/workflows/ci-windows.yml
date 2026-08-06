@@ -5,16 +5,29 @@
 # desktop build can never withhold the terminal package. Both lanes feed the
 # one Release; `build-installers.yml` waits for both to finish and then ships
 # whatever each lane vouched for.
+# Ordinary CI uses GitHub-hosted Windows runners so every push, pull request,
+# and workflow call gets a clean, reproducible machine. A trusted
+# workflow_dispatch may select the registered Windows self-hosted pool for the
+# desktop build and packaged smoke jobs when local hardware is faster.
 name: CI Windows
 
 on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      runner_mode:
+        description: Runner pool for the Windows desktop jobs
+        required: true
+        default: cloud
+        type: choice
+        options:
+          - cloud
+          - self-hosted
   workflow_call:
     inputs:
       repository:
-        default: desktop/desktop
+        default: ''
         required: false
         type: string
       ref:
@@ -44,16 +57,8 @@ on:
       DESKTOP_OAUTH_CLIENT_ID:
       DESKTOP_OAUTH_CLIENT_SECRET:
 
-# Every invocation owns a unique group so a newer push, pull request, manual
-# dispatch, or installer verification can run immediately without cancelling
-# or queueing an older in-progress run.
-#
-# This is a deliberate safety contract, enforced by
-# app/test/unit/ci-workflow-safety-test.ts: the installer workflow triggers on
-# this workflow's `workflow_run` completion, so a cancelled main run silently
-# skips a release — and a queued one is just as dangerous, because a third run
-# entering an occupied group cancels the pending one. Saving runner minutes by
-# cancelling superseded runs is not worth a release that quietly never ships.
+# Every run gets its own group. CI is a release gate, so a newer commit must not
+# silently cancel an older commit's chance to finish and publish its result.
 concurrency:
   group: ci-windows-${{ github.run_id }}-${{ github.run_attempt }}
   cancel-in-progress: false
@@ -63,6 +68,10 @@ env:
   DESKTOP_ERROR_REPORTING_ENDPOINT: ${{ inputs.error-reporting-endpoint }}
   DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
     ${{ inputs.non-fatal-error-reporting-endpoint }}
+
+defaults:
+  run:
+    shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
 
 jobs:
   windows-tui-core:
@@ -76,16 +85,16 @@ jobs:
         with:
           repository: ${{ inputs.repository || github.repository }}
           ref: ${{ inputs.ref }}
-      - name: Install Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.12'
+      - name: Enable Git long paths for Windows TUI tests
+        run: git config core.longpaths true
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
           version: 0.11.26
           enable-cache: true
           cache-dependency-glob: tui/uv.lock
+      - name: Install managed Python 3.12
+        run: uv python install 3.12
       - name: Install locked TUI environment
         working-directory: tui
         run: uv sync --locked --extra dev --python 3.12
@@ -101,17 +110,22 @@ jobs:
           uv run mypy src
   build:
     name: ${{ matrix.friendlyName }} ${{ matrix.arch }}
-    runs-on: ${{ matrix.os }}
+    runs-on:
+      ${{ github.event_name == 'workflow_dispatch' && inputs.runner_mode ==
+      'self-hosted' &&
+      fromJSON('["self-hosted","Windows","X64","desktop-material-windows-local"]')
+      || 'windows-2022' }}
     permissions:
       contents: read
       id-token: write
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2022]
         arch: [x64, arm64]
         include:
-          - os: windows-2022
+          - arch: x64
+            friendlyName: Windows
+          - arch: arm64
             friendlyName: Windows
     timeout-minutes: 60
     environment: ${{ inputs.environment }}
@@ -124,6 +138,7 @@ jobs:
           ref: ${{ inputs.ref }}
           submodules: recursive
       - uses: ./.github/actions/setup-ci-environment
+        id: setup_ci
         with:
           node-version: ${{ env.NODE_VERSION }}
           arch: ${{ matrix.arch }}
@@ -137,7 +152,8 @@ jobs:
           yarn test
       - name: Build production app
         id: production_build
-        if: ${{ always() }}
+        if:
+          ${{ always() && !cancelled() && steps.setup_ci.outcome == 'success' }}
         run: yarn build:prod
         env:
           DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
@@ -152,18 +168,19 @@ jobs:
       - name: Run unit tests
         if: matrix.arch == 'x64'
         run: yarn test:unit
-        env:
-          # The complete Windows suite keeps one large React test file alive
-          # after thousands of preceding modules. Keep the test coordinator
-          # from dying after all assertions pass but before it can emit the
-          # accounting summary.
-          NODE_OPTIONS: --max-old-space-size=4096
+        # script/test.mjs owns both the worker heap limit and the concurrency
+        # budget. A workflow-level NODE_OPTIONS override is inherited by every
+        # worker and makes the harness underestimate its peak memory use.
       - name: Run script tests
-        if: ${{ always() && steps.production_build.outcome == 'success' }}
+        if:
+          ${{ always() && !cancelled() && steps.production_build.outcome ==
+          'success' }}
         run: yarn test:script
       - uses: ./.github/actions/setup-windows-signing
         id: windows_signing
-        if: ${{ always() && steps.production_build.outcome == 'success' }}
+        if:
+          ${{ always() && !cancelled() && steps.production_build.outcome ==
+          'success' }}
         with:
           enabled: ${{ inputs.sign }}
           azure-client-id: ${{ secrets.AZURE_CODE_SIGNING_CLIENT_ID }}
@@ -171,8 +188,8 @@ jobs:
       - name: Package production app
         id: installer_package
         if:
-          ${{ always() && steps.production_build.outcome == 'success' &&
-          steps.windows_signing.outcome == 'success' }}
+          ${{ always() && !cancelled() && steps.production_build.outcome ==
+          'success' && steps.windows_signing.outcome == 'success' }}
         run: yarn package
         env:
           npm_config_arch: ${{ matrix.arch }}
@@ -184,8 +201,9 @@ jobs:
         # still reports the original test failure; this only keeps its build
         # output available for diagnosis and recovery.
         if:
-          ${{ always() && steps.installer_package.outcome == 'success' &&
-          (github.event_name != 'workflow_call' || inputs.upload-artifacts) }}
+          ${{ always() && !cancelled() && steps.installer_package.outcome ==
+          'success' && (github.event_name != 'workflow_call' ||
+          inputs.upload-artifacts) }}
         with:
           name: ${{matrix.friendlyName}}-${{matrix.arch}}
           path: |
@@ -198,7 +216,11 @@ jobs:
           if-no-files-found: error
   e2e-smoke:
     name: E2E Smoke ${{ matrix.friendlyName }} ${{ matrix.arch }}
-    runs-on: ${{ matrix.os }}
+    runs-on:
+      ${{ github.event_name == 'workflow_dispatch' && inputs.runner_mode ==
+      'self-hosted' &&
+      fromJSON('["self-hosted","Windows","X64","desktop-material-windows-local"]')
+      || 'windows-2022' }}
     permissions:
       contents: read
       id-token: write
@@ -206,8 +228,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: windows-2022
-            friendlyName: Windows
+          - friendlyName: Windows
             arch: x64
     timeout-minutes: 60
     environment: ${{ inputs.environment }}
@@ -223,7 +244,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           arch: ${{ matrix.arch }}
-          install-ffmpeg: 'true'
       - name: Select mock update server port
         uses: ./.github/actions/setup-e2e-update-port
       - name: Build production app
@@ -250,7 +270,6 @@ jobs:
           AZURE_TENANT_ID: ${{ secrets.AZURE_CODE_SIGNING_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CODE_SIGNING_CLIENT_ID }}
       - name: Install app on Windows
-        shell: pwsh
         run: |
           function Write-SquirrelLogs {
             $logPaths = @(
@@ -267,22 +286,52 @@ jobs:
           }
 
           $setupExe = "dist/GitHubDesktopSetup-${{ matrix.arch }}.exe"
+          if (-not (Test-Path -LiteralPath $setupExe)) {
+            throw "Windows installer was not built: $setupExe"
+          }
+          $expectedVersion = (Get-Content -LiteralPath 'app/package.json' -Raw | ConvertFrom-Json).version
+          if ([string]::IsNullOrWhiteSpace($expectedVersion)) {
+            throw 'app/package.json did not provide an installable application version'
+          }
+          $installStartedAt = [DateTime]::UtcNow
+          $preexistingDesktopProcessIds = @(
+            Get-Process GitHubDesktop -ErrorAction SilentlyContinue |
+              Select-Object -ExpandProperty Id
+          )
           $installer = Start-Process -FilePath $setupExe -ArgumentList "/S" -PassThru
-
-          try {
-            Wait-Process -Id $installer.Id -Timeout 300 -ErrorAction Stop
-          } catch {
+          $installerSessionId = $installer.SessionId
+          function Stop-InstallerLaunchedDesktopProcesses {
+            Get-Process GitHubDesktop -ErrorAction SilentlyContinue |
+              Where-Object {
+                $_.SessionId -eq $installerSessionId -and
+                $preexistingDesktopProcessIds -notcontains $_.Id
+              } |
+              Stop-Process -Force -ErrorAction SilentlyContinue
+          }
+          # Start-Process -Wait includes the descendant application process
+          # that Squirrel launches, so it cannot return before the workflow's
+          # later GitHubDesktop cleanup. Wait only for the installer process.
+          if (-not $installer.WaitForExit(300000)) {
             Write-SquirrelLogs
+            taskkill.exe /PID $installer.Id /T /F 2>$null
             throw "Windows installer timed out after 300 seconds"
           }
+          if ($installer.ExitCode -ne 0) {
+            Write-SquirrelLogs
+            throw "Windows installer exited with code $($installer.ExitCode)"
+          }
 
-          Get-Process GitHubDesktop -ErrorAction SilentlyContinue | Stop-Process -Force
+          Stop-InstallerLaunchedDesktopProcesses
 
           $installedExe = $null
           for ($attempt = 0; $attempt -lt 30 -and -not $installedExe; $attempt++) {
-            $installedExe = Get-ChildItem "$env:LOCALAPPDATA\GitHubDesktop\app-*\GitHubDesktop.exe" -ErrorAction SilentlyContinue |
-              Sort-Object FullName -Descending |
-              Select-Object -First 1 -ExpandProperty FullName
+            # Squirrel can launch the application just after Setup.exe exits.
+            # Repeat the scoped cleanup while the fresh executable appears.
+            Stop-InstallerLaunchedDesktopProcesses
+            $candidate = Get-Item (Join-Path $env:LOCALAPPDATA "GitHubDesktop\app-$expectedVersion\GitHubDesktop.exe") -ErrorAction SilentlyContinue
+            if ($candidate -and $candidate.LastWriteTimeUtc -ge $installStartedAt) {
+              $installedExe = $candidate.FullName
+            }
 
             if (-not $installedExe) {
               Start-Sleep -Seconds 2
@@ -291,14 +340,17 @@ jobs:
 
           if (-not $installedExe) {
             Write-SquirrelLogs
-            throw "Unable to locate installed GitHub Desktop executable"
+            throw "Unable to verify the freshly installed GitHub Desktop executable for version $expectedVersion"
           }
+
+          Start-Sleep -Seconds 2
+          Stop-InstallerLaunchedDesktopProcesses
 
           Add-Content -Path $env:GITHUB_ENV -Value "DESKTOP_E2E_APP_PATH=$installedExe"
       - name: Run packaged E2E smoke tests
         run: yarn test:e2e:run:packaged
       - name: Upload E2E artifacts
-        if: ${{ always() }}
+        if: ${{ always() && !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
           name: e2e-${{matrix.friendlyName}}-${{matrix.arch}}

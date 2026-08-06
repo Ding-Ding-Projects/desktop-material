@@ -326,6 +326,7 @@
     - [ ] Quitting Desktop and relaunching remembers pane sizes
   - [ ] Uncommitted files are optionally stashed if user attempts to switch branches; depends on Preferences.
     - [ ] Modal asks user to stash on current branch or bring changes to new branch; `Cancel` or `Switch Branch` buttons
+    - [ ] Dirty-worktree modal can leave the current worktree untouched and open Add worktree prefilled for the destination branch; `Create worktree…` does not create a stash
       - [ ] If stashed then changes shown under Stashed Changes section below Changes tab when returning to the original branch
         - [ ] Stashed changes section show all stashed files and diffs; user can discard or restore to Changes
       - [ ] If moved to new branch, all previously changed files will exist under Changes tab on the new branch

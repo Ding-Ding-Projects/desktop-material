@@ -49,7 +49,7 @@ remote CI caught a macOS error-ordering defect without publishing; correction
 `98d93ccc` passed its full remote CI gate and published
 `v3.6.3-beta3-b0000000165`. Exact publication receipts are in `HANDOFF.md`.
 
-The [Guided Feature Gallery](Feature-Gallery) declares the canonical 86-scene
+The [Guided Feature Gallery](Feature-Gallery) declares the canonical 91-scene
 Windows visual target: every catalogued function or state must own one distinct
 screenshot rather than borrow an overview image. The current-source updater
 frame is accepted and published as its own target; it does not replace the
@@ -108,6 +108,11 @@ M21 adds progressively disclosed controls around the familiar Desktop flow:
   Tools exposes tag creation, fetch, push, move, signing, pruning, and deletion;
   destructive tag and bulk-branch actions identify the exact refs first and
   retain recovery information.
+- When switching away from a dirty branch, choose **Leave my changes here** to
+  keep the current files in place and open Add worktree with the destination
+  branch and a suggested worktree name already filled in. The current worktree
+  is not stashed or checked out to the destination; creation happens only after
+  the path review succeeds.
 - In Changes, switch the file list to a directory tree, choose persisted diff
   context, compare CSV/TSV rows and cells, and preview TGA images. Editor actions
   understand the expanded editor catalog plus WSL paths. Settings and Repository
@@ -286,6 +291,23 @@ Review the tracked script before running any remote command.
 
 ---
 
+## CI test reliability
+
+The supported Windows build and the retained Linux TUI checks install their
+declared dependencies from the committed manifests. The Linux Python 3.13
+check runs non-UI tests together and gives every UI test file a fresh Python
+interpreter because Textual's native syntax state can otherwise segfault after
+several app-heavy files share one process. All test files still run; only the
+process boundary changes. Python 3.10 and 3.12 use the ordinary full-suite
+command.
+
+The same runner can be inspected at
+[`tui/tools/run-tests-isolated.py`](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/tui/tools/run-tests-isolated.py).
+It discovers test files rather than maintaining a hand-written allowlist, so
+adding a new UI file does not silently remove it from CI.
+
+---
+
 ## The shell
 
 Desktop Material rebuilds the GitHub Desktop shell around Material Design 3. The chrome you work in
@@ -377,6 +399,11 @@ GitHub.com accounts, or a work and a personal GitHub Enterprise identity side by
 Each account keeps its **own tabs, repositories, and settings**. Switching the active account
 switches the whole workspace to that identity's context.
 
+The **Active** chip and **Make active** action in **Settings → Accounts** use
+the same one-account-global rule as the rail switcher, including across
+GitHub.com, Enterprise, GitLab, and Bitbucket sections. A repository with an
+explicit **Repository account** binding remains on that exact identity.
+
 Open the repositories side sheet to narrow cloned repositories by **Repository account** and
 **Repository service**. The filters combine: for example, choose one exact account and GitLab, or
 choose **No available account** and **Local only**. Signed-out/stale bindings remain explicit under
@@ -462,6 +489,36 @@ window, so a generic host's rename is detected even when its old branch still ex
 child-process close event cannot hang the completed fetch. Concurrent preparations for the same
 remote URL share one in-flight system proxy lookup instead of multiplying resolver work after a
 timeout. Clone cancellation remains stricter and waits for the owned process to close completely.
+
+### Transfer a repository to another account
+
+Open **Repository → Transfer repository…**, choose **Transfer repository** from
+the repository-list context menu or Command Palette, or use the button in
+**Repository settings → Remote**. The dialog starts with the source repository
+and offers every signed-in GitHub identity. Choose **Sign in to another
+account…** when the destination identity is not present; the normal GitHub.com
+or GitHub Enterprise sign-in flow returns to this dialog without exposing the
+credential to the page.
+
+Choose a personal or organization owner, keep the existing repository name or
+enter a custom provider-safe name, and choose whether the destination is
+private. **Full history** creates a temporary bare clone and pushes every local
+branch and tag. **Clean state** creates one new root commit from the current
+files, pushes the current branch, and keeps the previous tip in a local
+`refs/desktop-material/transfer-backups/` recovery ref. Both modes require a
+valid Git operation state; full-history mode requires a clean worktree, while
+clean-state mode intentionally includes the current Git-visible changes. Both
+show real progress, verify the destination branch, and only then retarget
+`origin`; the original source remains available as `upstream` when the
+repository did not already have one.
+
+The final review names the destination, mode, privacy, and remote change. Two
+independent confirmations plus the full-range authorization slider are
+required. If provider creation or publication succeeds but local retargeting
+fails, the dialog says that the destination may already exist and leaves the
+old remote in place when possible. See the [repository transfer feature
+article](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/repository-management/repository-transfer.md)
+for recovery, security, and verification details.
 
 ---
 
@@ -861,13 +918,29 @@ interactive while a dialog is open.
   own range first, then the outer dialog continues at the nested edge.
 - OS-native pickers (file open/save) stay native.
 
-**Preferences** is the reference surface: an MD3 940×660 dialog with a left navigation rail, an
-**Active** chip on the current section, and a pill footer. The **repository** and **branch** pickers
+**Preferences** is the reference surface: an MD3 940×660 dialog with browser-style horizontal tabs,
+an **Active** chip on the current section, and a pill footer. The same shared tab surface is used by
+**Repository settings** and **Stash Manager**, so opening a new page, closing a page, finding overflow,
+and moving with `Left`, `Right`, `Home`, or `End` behaves consistently across all three dialogs. The
+open-page session is local to each surface; filtering the strip does not close hidden pages, and stale
+stored page IDs are discarded safely. The **repository** and **branch** pickers
 open as MD3 **side sheets** rather than blocking modals. The repository sheet keeps **Add** and
 **Select** visible, while **More** holds group creation, workspace sync, and commit/push-all so
 all five actions stay available without wrapping into a cluttered multi-line block. Its
 **Filters** disclosure folds account, service, status, search, and regex controls together;
 active values remain applied and are counted on the pill while the panel is collapsed.
+
+![Global Settings as an MD3 dialog with browser-style tabs, close actions, search, and overflow](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-settings.png)
+
+![Repository Settings with the shared browser-style tabs and Remote page selected](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-remote-manager.png)
+
+The Settings and Repository Settings tab rails are dockable from the visible **Settings tab
+position** control. Choose **Left**, **Top**, **Bottom**, or **Right**; left is the default, and
+Preferences and Repository Settings remember their choices separately. Top and bottom use a
+horizontal scrollable strip, while left and right keep the vertical strip and its matching arrow
+keys. Invalid or missing local values safely return to the left rail. See the detailed
+[settings tab docking article](../features/identity-and-workspace/settings-tab-docking.md) for
+the storage keys and verification contract.
 
 ![Preferences as an MD3 dialog](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-settings.png)
 
@@ -1627,15 +1700,45 @@ The **Actions** panel brings CI into the app:
   confirmation. It is never inferred from a deployment decision.
 - Trigger manual workflows with the **`workflow_dispatch` dialog** — pick the workflow, ref, and
   inputs, and dispatch.
+- When dispatching **CI Windows**, choose `cloud` (the default) or `self-hosted` for the desktop
+  build and packaged smoke jobs. The self-hosted choice is mapped to the fixed
+  `desktop-material-windows-local` label; pushes, pull requests, reusable calls, and the Windows
+  TUI core job remain on hosted runners.
 - The repository's **Super Express Release** emergency lane runs no unit,
   script, TUI, lint, type, parity, smoke, or E2E tests. It goes directly to the
-  Windows x64 production build/package, asset verification, and optional
-  release; ordinary CI and tested Express remain the default gates. A release
-  pull request targets the Windows product's `main` default branch.
+  Windows x64 production build/package, asset verification, and release. A
+  direct Windows `workflow_dispatch` publishes an immutable Windows Release
+  marked **Latest** after preserving and verifying its artifact; the direct Linux TUI action
+  and reusable packaging calls remain artifact-only so the combined dispatcher
+  publishes one complete cross-platform Release. The combined dispatcher is
+  self-hosted-only: preparation and publication use the registered Linux x64
+  WSL runner, the Windows lane uses `[self-hosted, Windows, X64]`, and the TUI
+  lane uses `[self-hosted, Linux, X64]`. A direct Windows dispatch keeps its
+  package build on `[self-hosted, Windows, X64]` and publishes the verified
+  artifact from `[self-hosted, Linux, X64]`. Missing or busy packaging or
+  publication runners queue or fail their release rather than falling back to
+  a hosted runner. Ordinary CI and tested Express remain the
+  default gates, run on clean GitHub-hosted machines, and keep unique
+  non-cancelling run/attempt groups. Only Super Express retains local packaging
+  placement and same-ref cancellation. A release pull request targets the
+  Windows product's `main` default branch. Windows self-hosted dependency setup
+  restores an exact verified cache without a post-job archive hook, explicitly
+  saves a verified miss, and can use an older cache only as a warm start while
+  the current lockfiles still drive installation. The TUI's isolated profile-history repository
+  also enables Git `core.longpaths` locally, so Windows history writes do not
+  depend on the checkout's separate Git configuration.
+- Ordinary Windows unit tests leave `NODE_OPTIONS` to `script/test.mjs`, which
+  owns both the per-worker heap and memory-aware concurrency. Packaged E2E waits
+  at most 300 seconds for the Squirrel installer process, terminates that tree
+  on timeout, and repeatedly stops only newly launched same-session application
+  processes while preserving any process that predated the test. Remote proof
+  of this hosted workflow repair is still pending.
 - Automatic and Super Express installers share one monotonic `z` package-version
-  namespace. Releases are immutable and initially non-latest; only the greatest
-  release for freshly revalidated current `main` is promoted to the Squirrel
-  update feed, so an older overlapping job cannot move **Latest** backward.
+  namespace. Automatic Express releases begin non-latest, while Super Express
+  publishers request **Latest** after verified assets are present. The greatest
+  release for freshly revalidated current `main` remains the only release allowed
+  to own the Squirrel update feed, so an older overlapping job cannot move
+  **Latest** backward.
 - Select a run artifact to review its name, size, creation/expiry, workflow source, and GitHub digest.
   Search the loaded artifact catalog by name or workflow context with fuzzy, substring, or safe
   regular-expression matching; substring and regex modes can also match the digest, and the regex
@@ -1689,6 +1792,17 @@ headers before any cross-origin hop. Download errors also omit signed URLs and q
 live Windows x64 proof below shows the resulting searchable, collapsible log viewer.
 
 ![Windows x64 GitHub Actions job log loaded securely in the searchable in-app viewer](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-job-log.png)
+
+If GitHub is still preparing a completed job's archive, the log endpoint can
+temporarily return `HTTP 404`. The viewer now retries that API response with a
+bounded 250/750/1,500 ms schedule and obtains a fresh signed redirect on each
+attempt. When the bound is exhausted, it explains the provider state and keeps
+**Retry** and **Open on GitHub** available; it never sends the API bearer to the
+cross-origin log host.
+
+![Actions job-log recovery state with Retry and Open on GitHub](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-job-log-404-recovery.png)
+
+![Actions job log loaded after the provider archive becomes available](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-job-log-404-recovered.png)
 
 ---
 
@@ -1867,7 +1981,7 @@ Desktop entry-count cap:
 Switching branches can still offer to stash local work, and the resulting entry appears in the same
 list.
 
-![Repository-wide stash manager with an exact selected entry](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
+![Stash Manager with browser-style Manage, Export, History, and Appearance and voice pages](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
 
 The full manager is rendered through the shared dialog layer, keeping every
 tab and export control centered and usable above the Changes pane. The hidden
@@ -1875,7 +1989,9 @@ Windows capture below is the accepted 1443×992 runtime proof.
 
 ![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
 
-Choose **Open full manager** for the complete workflow. Its tabs provide a regex-capable search
+Choose **Open full manager** for the complete workflow. Its browser-style tabs keep Manage, Export,
+History, and Appearance and voice as independently closable pages; use the plus and overflow actions
+to reopen a page without losing the current stash review. Its tabs provide a regex-capable search
 and multi-selection export to a directory, ZIP, or 7z. The 7z panel exposes compression method,
 level, dictionary, match finder, fast bytes, solid mode, threads, split volumes, password, and
 encrypted headers. The History tab keeps exact object IDs visible for recovery review, while

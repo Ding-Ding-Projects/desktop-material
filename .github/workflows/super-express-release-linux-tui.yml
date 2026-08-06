@@ -1,8 +1,8 @@
 name: Super Express Release / Linux TUI
 
-# Reusable zero-test Linux TUI lane for Super Express Release. It runs on a
-# native Ubuntu runner instead of consuming time on the Windows packaging
-# runner. The caller owns release-tag creation and publication.
+# Reusable zero-test Linux TUI lane for Super Express Release. It is
+# deliberately self-hosted-only and queues until the registered Linux x64 WSL
+# runner is ready.
 on:
   workflow_call:
     inputs:
@@ -10,127 +10,44 @@ on:
         description: Exact commit SHA selected by the dispatcher
         required: true
         type: string
+  workflow_dispatch:
+    inputs:
+      release_target_sha:
+        description:
+          Exact main-branch commit to package; blank uses the dispatched commit
+        required: false
+        type: string
+
+concurrency:
+  group: super-express-release-linux-tui-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
   build:
-    name: Build Linux TUI packages
-    runs-on: ubuntu-latest
+    name: Build Linux TUI packages (self-hosted)
+    # Reusable calls may only come from this repository's protected main
+    # workflow. Manual emergency dispatch remains the only direct caller.
+    if: >-
+      github.event_name == 'workflow_dispatch' || (github.event_name ==
+      'workflow_call' && github.repository ==
+      'Ding-Ding-Projects/desktop-material' && github.ref == 'refs/heads/main')
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
+      - desktop-material-wsl-local
     timeout-minutes: 30
     env:
-      RELEASE_TARGET_SHA: ${{ inputs.release_target_sha }}
+      RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ inputs.release_target_sha }}
+          ref: ${{ inputs.release_target_sha || github.sha }}
           fetch-depth: 0
 
-      - name: Require the exact release commit
-        shell: bash
-        run: |
-          checked_out=$(git rev-parse HEAD)
-          if [ "$checked_out" != "$RELEASE_TARGET_SHA" ]; then
-            echo "Checked-out commit $checked_out does not match $RELEASE_TARGET_SHA." >&2
-            exit 1
-          fi
-
-      - uses: actions/setup-python@v7
+      - uses: ./.github/actions/super-express-linux-tui-build
         with:
-          python-version: '3.12'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-        with:
-          version: 0.11.26
-          enable-cache: true
-          cache-dependency-glob: tui/uv.lock
-
-      - name: Discover exact TUI package version
-        id: tui_version
-        working-directory: tui
-        shell: bash
-        run: |
-          version=$(python -c \
-            'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
-          if [ -z "$version" ] || [[ "$version" == *[[:space:]]* ]]; then
-            echo "TUI pyproject.toml did not provide one usable package version." >&2
-            exit 1
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
-      - name: Build TUI wheel and source distribution
-        working-directory: tui
-        run: uv build --clear
-
-      - name: Export lock-derived runtime constraints
-        working-directory: tui
-        env:
-          TUI_VERSION: ${{ steps.tui_version.outputs.version }}
-        run: >-
-          uv export --locked --no-dev --no-emit-project --no-hashes
-          --output-file
-          "dist/desktop_material_tui-${TUI_VERSION}-runtime-requirements.txt"
-
-      - name: Collect and verify Linux TUI release payload
-        id: tui_payload
-        shell: bash
-        env:
-          TUI_VERSION: ${{ steps.tui_version.outputs.version }}
-        run: |
-          shopt -s nullglob
-          wheels=(tui/dist/*.whl)
-          sdists=(tui/dist/*.tar.gz)
-          constraints=(tui/dist/*-runtime-requirements.txt)
-          if [ "${#wheels[@]}" -ne 1 ] || [ "${#sdists[@]}" -ne 1 ] || \
-             [ "${#constraints[@]}" -ne 1 ]; then
-            echo "Expected exactly one TUI wheel, source distribution, and constraints file." >&2
-            exit 1
-          fi
-
-          expected_wheel="desktop_material_tui-${TUI_VERSION}-py3-none-any.whl"
-          expected_sdist="desktop_material_tui-${TUI_VERSION}.tar.gz"
-          expected_constraints="desktop_material_tui-${TUI_VERSION}-runtime-requirements.txt"
-          wheel_name=$(basename "${wheels[0]}")
-          sdist_name=$(basename "${sdists[0]}")
-          constraints_name=$(basename "${constraints[0]}")
-          if [ "$wheel_name" != "$expected_wheel" ] || \
-             [ "$sdist_name" != "$expected_sdist" ] || \
-             [ "$constraints_name" != "$expected_constraints" ]; then
-            echo "Built TUI package names do not match pyproject.toml version $TUI_VERSION." >&2
-            exit 1
-          fi
-
-          installer_name=install-linux-tui.sh
-          bootstrap_name=bootstrap-linux-tui.sh
-          sh -n script/install-linux-tui.sh
-          sh -n script/bootstrap-linux-tui.sh
-          mkdir -p release-payload/tui
-          cp "${wheels[0]}" "${sdists[0]}" "${constraints[0]}" \
-            script/install-linux-tui.sh script/bootstrap-linux-tui.sh \
-            release-payload/tui/
-          chmod 0755 "release-payload/tui/$installer_name" \
-            "release-payload/tui/$bootstrap_name"
-          for asset in \
-            "release-payload/tui/$wheel_name" \
-            "release-payload/tui/$sdist_name" \
-            "release-payload/tui/$constraints_name" \
-            "release-payload/tui/$installer_name" \
-            "release-payload/tui/$bootstrap_name"; do
-            if [ ! -s "$asset" ]; then
-              echo "Missing or empty Linux TUI release asset: $asset" >&2
-              exit 1
-            fi
-          done
-          test -x "release-payload/tui/$installer_name"
-          test -x "release-payload/tui/$bootstrap_name"
-
-      - name: Preserve Linux TUI payload artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: super-express-tui-${{ github.run_id }}-${{ github.run_attempt }}
-          path: release-payload/tui/
-          if-no-files-found: error
-          compression-level: 0
-          retention-days: 7
+          release_target_sha: ${{ inputs.release_target_sha || github.sha }}

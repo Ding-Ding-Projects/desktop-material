@@ -11,10 +11,13 @@ but macOS and Linux packages are not supported product outputs.
 syntax highlighter, CLI, styles, source maps, licenses, and staged Electron
 resources. The canonical product version is `app/package.json#version`.
 
-The CI workflow builds Windows x64 and Windows arm64 on `windows-2022`. Windows
-x64 runs the full unit suite, and both architectures run the script tests and
-packaging gate. The supported packaged end-to-end lane installs and exercises
-Windows x64.
+The CI workflow builds Windows x64 and Windows arm64 on `windows-2022` by
+default. A trusted `workflow_dispatch` may select the fixed
+`desktop-material-windows-local` runner for those desktop build jobs; the
+Windows TUI core job remains on `windows-2022`, and pushes, pull requests, and
+reusable calls cannot select the self-hosted label. Windows x64 runs the full
+unit suite, and both architectures run the script tests and packaging gate. The
+supported packaged end-to-end lane installs and exercises Windows x64.
 
 ## Windows packaging
 

@@ -270,6 +270,8 @@ interface IRebaseDetails extends ISourceBranchDetails {
 interface IMergeDetails extends ISourceBranchDetails {
   readonly kind: MultiCommitOperationKind.Merge
   readonly isSquash: boolean
+  /** Delete a local source branch only after a successful merge. */
+  readonly deleteAfterSuccessfulMerge?: boolean
 }
 
 export type MultiCommitOperationDetail =

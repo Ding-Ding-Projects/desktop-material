@@ -9,7 +9,7 @@ message.
 
 After Squirrel reports that no update is available, the renderer derives the
 GitHub repository from the configured `releases/latest/download/` feed. It asks
-GitHub for bounded provider data from both `ci.yml` and
+GitHub for bounded provider data from both `ci-linux.yml`/`ci-windows.yml` and
 `build-installers.yml`, and shows **New update coming soon** only when all of
 these checks pass:
 
@@ -37,12 +37,15 @@ download flow as soon as the release is published.
 
 Both release lanes stamp Squirrel packages through
 `script/release-version.js` as
-`<base>-z<9-letter-base-26-GitHub-run-ID>`. One shared namespace matters because
+`<base>-z<9-letter-base-26-GitHub-run-ID>`. Execution attempts after the first
+append `-r<2-letter-base-26-attempt>` so a rerun can publish a fresh ordered
+tag without replacing the first attempt. One shared namespace matters because
 the historical Super Express `s…` namespace sorted above every normal `b…`
 build and could make a newer release look like a downgrade. The `z…` migration
 sorts above both legacy lanes, while the fixed-width alphabetic encoding retains
-numeric run-ID order under lexical comparison and cannot overflow Squirrel's
-legacy integer parser.
+numeric run-ID and attempt order under lexical comparison and cannot overflow
+Squirrel's legacy integer parser. Manual version overrides are accepted only
+when they pass the same generated `z` namespace validator.
 
 ## Automated release notes
 
@@ -84,19 +87,26 @@ The same workflow has two deliberately different entry paths:
 
 The version is derived from the package version plus the workflow's unique
 GitHub run ID, encoded as nine fixed-width base-26 letters in the shared `z…`
-namespace. Re-running the same run therefore selects the same immutable tag and
-fails closed instead of replacing published assets. Immediately before
+namespace. A rerun keeps the first-attempt tag but uses an ordered attempt
+suffix from attempt two onward, so every execution attempt has a distinct
+immutable tag and never replaces an existing Release. Immediately before
 publication, the workflow proves that the tag is still absent. One create-only
 `gh release create` command publishes the installer, MSI, Squirrel packages,
 `RELEASES`, portable ZIP, and generated notes. It never edits or replaces an
 existing Release.
 
-Every Release is created non-latest. The shared promotion helper first proves
-the source is still current `main`, then examines the newest 100 published
-Releases for that exact SHA and promotes the greatest valid package version.
-It rechecks both the same-SHA maximum and `main` after promotion, reconciling an
-overlapping higher release or demoting a newly stale candidate. Thus an older
-job can finish independently without moving the update feed backward.
+Automatic Express Releases are created non-latest so the shared promotion
+helper can first prove the source is still current `main`. Super Express
+publishers request `Latest` after their verified assets are present. The helper
+then examines the newest 100 published Windows-capable Releases — each must
+carry both `RELEASES` and a full Squirrel package — and promotes the greatest valid
+package version. A partial
+Linux/TUI-only Release can still be published and documented, but it is never
+allowed to own the Windows `Latest` feed. The helper rechecks both the same-SHA
+maximum and `main` after promotion, reconciling an overlapping higher release
+or demoting a newly stale candidate. Thus an older job can finish
+independently without moving the update feed backward or replacing it with a
+404-producing partial release.
 
 The packaging job uploads the verified installer directory as an uncompressed,
 three-day Actions artifact before release-note generation, then preserves the
@@ -106,37 +116,135 @@ run for manual recovery whenever the Windows build/package itself succeeded.
 
 Windows jobs restore an exact-content cache of the installed root and app
 `node_modules` trees plus Playwright's external FFmpeg payload. Its key includes
-operating system, runner and target
-architecture, Node/Python versions, both lockfiles and package manifests,
-install configuration, the post-install script, the setup action, pinned Yarn,
-and local native-vendor sources. A hit must contain reviewed generic,
-target-specific Copilot, Electron-runtime, and Playwright sentinels; there are
-no partial restore keys. Python setup remains unconditional for native builds.
-Build output, `dist`, installers, Release assets, credentials, and runtime
-configuration are never cached.
+operating system, runner and target architecture, Node/Python versions, both
+lockfiles and package manifests, install configuration, the post-install,
+environment-setup, and signing actions, pinned Yarn, and local native-vendor
+sources. A hit must contain reviewed generic, target-specific Copilot,
+Electron-runtime, React JSX-runtime, `react-confetti`, and Playwright
+sentinels. If a hit is incomplete, the setup action records the missing paths
+and reruns the bounded dependency install automatically rather than handing the
+broken cache to webpack. Legacy `installed-deps-v5` and `installed-deps-v4`
+caches can warm a self-hosted Windows miss, but neither is treated as exact and
+the current lockfiles still drive installation. The cross-compilation Copilot
+install restores `app/package.json` and `app/yarn.lock` before the exact cache
+key is computed, preventing a post-install manifest from making the saved cache
+unreachable. Self-hosted keys include the runner identity and selected
+Visual Studio/MSVC, ClangCL, and Windows SDK fingerprint; dependency installs
+use `yarn --frozen-lockfile`. Python setup remains unconditional for native
+builds. Build output, `dist`, installers, Release assets, credentials, and
+runtime configuration are never cached.
+
+The hosted Windows packaged-E2E lane launches the Squirrel installer without
+PowerShell's descendant-inclusive `Start-Process -Wait`. It waits at most 300
+seconds for `Setup.exe` itself and terminates that process tree on timeout. A
+scoped cleanup records the pre-existing `GitHubDesktop` process IDs and the
+installer session, then repeatedly stops only newly launched processes from
+that session while Squirrel finishes writing the exact-version executable.
+This prevents the launched application from holding the installer step open
+without terminating an unrelated process that was already running.
 
 ## Workflow concurrency
 
-CI, installer, and Pages invocations each use their unique GitHub run ID and
-attempt as the concurrency group with `cancel-in-progress: false`. Newer runs
-can therefore start without cancelling a running invocation or replacing the
-single older pending slot that GitHub otherwise retains for a shared group.
-Source-contract tests scan every local workflow, reject
-`cancel-in-progress: true`, and require every declared concurrency group to
-include both `github.run_id` and `github.run_attempt`. Workflows without a
-concurrency group, including CodeQL, remain independently runnable.
+Ordinary Linux/Windows CI and `Build Installers / Express Release` use
+GitHub-hosted runners and unique run-ID/run-attempt concurrency groups with
+`cancel-in-progress: false`; every commit keeps its independent validation and
+publication opportunity. CI handles pushes, pull requests, manual dispatches,
+and reusable calls on clean hosted machines by default. The Windows manual
+dispatch offers a `cloud` or `self-hosted` choice for only the desktop build and
+packaged smoke jobs; the self-hosted option requires the fixed
+`self-hosted`, `Windows`, `X64`, and `desktop-material-windows-local` label set
+and never accepts a raw runner label.
+The Windows TUI core job remains hosted. Pages publication retains the same
+non-cancelling run-and-attempt contract.
+
+Only the self-hosted Super Express release family uses ref-scoped cancellation,
+so a newer emergency dispatch can release a scarce local runner from an obsolete
+release. Source-contract tests enforce both halves of this boundary and reject a
+self-hosted runner declaration in every other workflow.
+Workflows without a concurrency group, including CodeQL, remain independently
+runnable.
 
 ## Super Express release
 
 `.github/workflows/super-express-release.yml` is a separate, manual-only
 emergency dispatcher. Dispatching it from `main` checks the exact commit and
-tag once, then calls two reusable lanes in parallel:
+tag once, then runs two inline packaging lanes in parallel. Every job in this
+dispatcher is self-hosted-only: the coordinator and publisher use the
+registered Linux x64 WSL runner, while the desktop package uses the registered
+Windows x64 runner. If either runner is offline or busy, the run queues or
+fails; it never moves to a GitHub-hosted machine.
 
 - `.github/workflows/super-express-release-windows.yml` restores the exact
-  desktop dependency cache and builds the Windows x64 production package;
-- `.github/workflows/super-express-release-linux-tui.yml` uses an Ubuntu runner
-  to build the Linux TUI wheel, source distribution, locked runtime
-  constraints, bootstrap, and installer.
+  desktop dependency cache and builds the Windows x64 production package on
+  `[self-hosted, Windows, X64]`, then publishes its verified artifact from
+  `[self-hosted, Linux, X64, desktop-material-wsl-local]`;
+- `.github/workflows/super-express-release-linux-tui.yml` builds the Linux TUI
+  wheel, source distribution, locked runtime constraints, bootstrap, and
+  installer on `[self-hosted, Linux, X64]`.
+
+The combined dispatcher and both packaging lanes have no cloud fallback: static
+runner labels make their placement visible during workflow planning and ensure
+the builds do not accidentally expose source to a different machine. The
+direct Windows publisher also stays on the registered Linux x64 WSL runner for
+artifact download, line counting, and GitHub API operations. If that publisher
+is offline or busy, the release queues or fails rather than escaping to a
+hosted runner. It still uses the `RELEASE_TOKEN`, `ORG_TOKEN`, then
+`GITHUB_TOKEN` authorization chain; the token never chooses a runner.
+
+The combined dispatcher keeps its packaging jobs inline because GitHub had
+previously rejected the caller before creating any job when the runner labels
+were generated dynamically. The direct Linux reusable workflow remains
+packaging-only on its static self-hosted target. The Windows reusable call is
+also packaging-only; only its manual dispatch path enables the self-hosted
+publisher.
+
+The Linux TUI action installs the pinned `uv` tool first and runs
+`uv python install 3.12`; this avoids relying on `actions/setup-python`'s
+distribution manifest, which does not list Python 3.12 for Debian 13 on the
+registered WSL runner. Version discovery runs through
+`uv run --python 3.12`, so the wheel, source distribution, and runtime
+constraints use the same managed interpreter.
+
+The Windows self-hosted actions run a small PowerShell preflight before any
+`shell: bash` step. Each PowerShell step uses an explicit, per-process
+`-NoProfile -ExecutionPolicy Bypass` invocation; the machine execution policy
+is not changed. The preflight resolves the installed `git.exe`, verifies the
+matching Git Bash executable, and prepends its `bin` directory through
+`GITHUB_PATH` so the deprecated Windows WSL launcher cannot be selected
+accidentally. A host without Git or Git Bash fails with that exact prerequisite
+instead of reaching the packaging commands in a misleading shell state.
+
+Self-hosted Windows setup also avoids the hosted toolcache installer for the
+native-module Python dependency: pinned `uv` installs Python 3.11 locally and
+the action exports the interpreter returned by `uv python find 3.11` as
+`npm_config_python`. GitHub-hosted and non-Windows runners retain
+`actions/setup-python@v6`.
+
+Before `actions/setup-node@v6` asks Yarn for its cache directory, the same
+self-hosted Windows path runs
+[`bootstrap-pinned-yarn.ps1`](../../../.github/scripts/bootstrap-pinned-yarn.ps1).
+That script creates a runner-temporary `yarn.cmd` shim for Windows actions and
+an executable `yarn` shim for Git Bash steps; both call the repository-pinned
+`vendor/yarn-1.21.1.js` through the runner's existing Node.js. It adds both the
+Windows directory and its `/c/...` Git Bash form through `GITHUB_PATH`, so
+`setup-node` and later `shell: bash` commands resolve the same runtime. Nothing
+is installed globally, committed, or reused outside the job. This repairs a
+bare registered runner where Node is present but Yarn is not, while keeping the
+lockfile's declared Yarn runtime authoritative. If Node, Git Bash, or the
+vendored runtime is missing, the preflight fails with the exact prerequisite
+instead of letting a later step emit the less useful `yarn: command not found`
+message.
+
+Each packaging lane also exposes its own `workflow_dispatch` action. A direct
+Windows dispatch accepts an optional exact `main` SHA and Squirrel version; a
+direct Linux TUI dispatch accepts an optional exact `main` SHA. Blank inputs
+use the dispatched commit and derive the Windows version from the run ID plus
+execution attempt. The Windows direct lane uploads its verified artifact and
+publishes a standalone immutable Windows x64 Release marked `Latest` after its
+verified assets are available. The Linux
+direct lane remains artifact-only. The reusable `workflow_call` entry point
+for the Windows lane is also artifact-only, so the combined dispatcher still
+has one publisher for one complete cross-platform Release.
 
 Both lanes run no unit, script, TUI, lint, type, parity, smoke, trampoline, or
 packaged E2E tests, and they omit history-generated release notes. The ordinary
@@ -145,20 +253,28 @@ CI and tested Express Release paths remain the default release gates.
 The direct lanes still fail closed around their produced content. They require
 the exact dispatched commit, use the same validated run-ID package version as
 the automatic lane, reject an existing tag, and require every Windows and TUI
-asset to be non-empty. The publisher downloads both lane artifacts, writes a
-local note from the exact checked-out commit subject/body, and creates one
-combined Release. Keeping one publisher preserves both the Squirrel update feed
-and the TUI bootstrap URL; two independent Releases would make the shared
-`latest` redirect point at an incomplete payload. The complete payload is
-uploaded as an uncompressed seven-day Actions artifact before the optional
-create-only GitHub Release step. The `publish` dispatch checkbox defaults on but
-can be cleared to build recovery artifacts without creating a Release.
+asset to be non-empty. The Windows direct publisher downloads its lane
+artifact, writes a local note from the exact checked-out commit subject/body,
+and creates the Windows-only Release without promoting it to the shared
+`latest` feed. That publisher runs on the trusted self-hosted Linux x64 WSL
+runner, while the package itself remains on the trusted Windows runner. The
+combined publisher downloads both lane artifacts, writes a local note from the
+exact checked-out commit subject/body, and creates one
+complete Release. Keeping the combined publisher as the only cross-platform
+publisher preserves both the Squirrel update feed and the TUI bootstrap URL;
+two independent cross-platform Releases would make the shared `latest`
+redirect point at an incomplete payload. Every lane artifact remains
+uncompressed for seven days. The combined dispatch `publish` checkbox defaults
+on but can be cleared to build recovery artifacts without creating its
+combined Release.
 Published Super Express Releases use the same current-main and highest-same-SHA
 promotion helper as automatic Releases.
 
-No shared concurrency group is declared, so overlapping manual invocations can
-finish independently. Tags and Releases are immutable: a same-tag race has one
-winner, and later attempts fail without replacing it.
+The Super Express workflow family uses ref-scoped concurrency with
+`cancel-in-progress: true`. A newer dispatch on the same ref replaces an older
+self-hosted packaging run, while independent refs retain separate groups. Tags and
+Releases are immutable: a same-tag race has one winner, and later attempts fail
+without replacing it.
 
 ## Downgrade guard
 
@@ -189,7 +305,12 @@ manifest for this package, and an unreadable running version all return
 `indeterminate`, so the guard never blocks an update check it could not
 actually evaluate.
 
-Only the update feed is guarded. A Squirrel bootstrapper invoked as
+Only the update feed is guarded. The release promoter also refuses to select a
+published release without the `RELEASES` manifest and a full Squirrel package,
+because GitHub's `releases/latest/download/` path is an asset lookup rather
+than a release-directory listing. This keeps a valid older Windows feed active
+when a newer release contains only the Linux/TUI payload. A Squirrel
+bootstrapper invoked as
 `Setup.exe --install . --checkInstall` reads its own bundled `RELEASES` from
 `%LOCALAPPDATA%\SquirrelTemp`, logs `First run, starting from scratch`, and
 applies whatever version it carries without consulting the installed
@@ -221,10 +342,13 @@ updater to undo them.
   and history-note generation. Use it only when that direct build/package path
   is the explicit operator choice. Clearing its `publish` input retains
   artifacts without creating a Release.
-- Release run IDs must be positive decimal values of at most 12 digits. The
-  shared generator converts them to a nine-letter base-26 payload and rejects a
-  stable base without a prerelease channel, malformed versions, and a NuGet
-  special-version label over 20 characters.
+- Release run IDs must be positive decimal values of at most 12 digits, and
+  execution attempts must be positive decimal values representable by the
+  two-letter base-26 attempt suffix (at most 675). The shared generator
+  converts run IDs to a nine-letter base-26 payload, rejects a stable base
+  without a prerelease channel, malformed versions, and a NuGet special-version
+  label over 20 characters. Manual overrides must also remain in the generated
+  `z` namespace for the checked-out base version.
 
 ## Failure modes and security
 
@@ -273,18 +397,35 @@ assets or tags.
 
 ## Verification
 
+The partial-Release regression guard landed in commit
+`a4ce485037138f24d7534452a861a1fb7749beeb`. The focused version-order,
+CI-workflow-safety, and automated-release-notes suites pass **29/29**. On
+2026-08-05 the live `Latest` alias was repaired to the existing
+Windows-capable Release `v3.6.3-beta3-zadwftypqg`; the exact
+`releases/latest/download/RELEASES` URL returned HTTP 200 and served the
+Squirrel manifest. The required Cheap headless production build ended before
+renderer output was emitted, so no About-dialog screenshot is presented as
+runtime evidence for this regression.
+
 Focused acceptance covers safe feed parsing, bounded Actions data, exact
 CI/installer job/run/SHA binding, ahead-of comparison, manual-dispatch and
 malformed/stale fail-closed behavior, transient storage, the updater-event race,
 all three language modes, non-cancelling independent CI/installer/Pages runs,
-workflow wiring, exact Git range collection, subject sanitization, output
-limits, and first-release handling. The app and script TypeScript
+hosted-runner placement, pull-request CI, workflow wiring, exact Git range
+collection, subject sanitization, output limits, and first-release handling.
+The app and script TypeScript
 projects, targeted formatting/lint, workflow YAML, express-path gates,
 create-only publication, retained artifacts, and exact dependency-cache keys
 are also checked locally. The Super Express source contract additionally proves
 manual-only triggering, exact-SHA packaging, unit/script-before-build ordering,
-omitted lint/E2E/history paths, non-cancelling overlap, retained artifacts,
-immutable tag checks, and exact release targeting. Downgrade-guard tests use the
+omitted lint/E2E/history paths, ref-scoped cancellation, retained artifacts,
+self-hosted packaging and publication placement, immutable tag checks, and
+exact release targeting. The focused source contract enforces the
+self-hosted-only boundary. Remote run `31126843395` verified the package and
+the older fallback release `v3.6.3-beta3-zadwtuvqil` verified the six published
+Windows assets, but both predate the restored publisher placement. A future
+direct run must verify the self-hosted publisher job itself.
+Downgrade-guard tests use the
 real observed strings — `3.6.2`, `3.6.3-beta3-b0000040888`,
 `3.6.3-beta3-s000000000401`, `3.6.3-beta3-zadtjbevjx`, `3.6.3-beta3-zadtofsepy`,
 `3.6.3-beta3-zadtorqoxa` — and the live manifest line the feed actually served.
@@ -295,8 +436,8 @@ that manifest filtering drops foreign packages and lower lanes while keeping the
 matching delta, and that the feed probe fails open on network, HTTP, and
 non-manifest responses. Release-version tests cover
 the exact legacy `s…` versus `b…` failure, fixed-width alphabetic `z…` ordering,
-rerun identity, malformed/overflow rejection, and out-of-order same-SHA
-selection.
+distinct ordered rerun attempts, manual namespace validation,
+malformed/overflow rejection, and out-of-order same-SHA selection.
 
 Remote and installed acceptance is complete. Exact-source
 [CI `29977738533`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29977738533)

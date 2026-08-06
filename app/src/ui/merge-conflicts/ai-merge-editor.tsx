@@ -1,6 +1,7 @@
 import * as React from 'react'
 
 import { Button } from '../lib/button'
+import { CodeMirrorEditor } from '../lib/codemirror-editor'
 
 export const AIMergeEditorMaximumResultLength = 1_048_576
 export const AIMergeEditorMaximumSourceLength = 1_048_576
@@ -203,8 +204,7 @@ export class AIMergeEditor extends React.Component<IAIMergeEditorProps> {
     return Object.freeze({ id: this.props.file.id, path: this.props.file.path })
   }
 
-  private onResultChanged = (event: React.FormEvent<HTMLTextAreaElement>) => {
-    const text = event.currentTarget.value
+  private onResultChanged = (text: string) => {
     if (text.length > AIMergeEditorMaximumResultLength) {
       return
     }
@@ -258,21 +258,17 @@ export class AIMergeEditor extends React.Component<IAIMergeEditorProps> {
             </span>
           )}
         </label>
-        <textarea
+        <CodeMirrorEditor
           className="ai-merge-editor__textarea"
           id={id}
-          name={id}
           value={content.text}
           readOnly={readOnly}
-          aria-readonly={readOnly ? true : undefined}
-          aria-invalid={resultLocked ? true : undefined}
-          aria-describedby={
+          ariaLabelledBy={`${id}-label`}
+          ariaDescribedBy={
             descriptionIds.length > 0 ? descriptionIds.join(' ') : undefined
           }
+          ariaInvalid={resultLocked}
           maxLength={isResult ? AIMergeEditorMaximumResultLength : undefined}
-          rows={16}
-          wrap="off"
-          spellCheck={false}
           onChange={
             isResult && !resultLocked ? this.onResultChanged : undefined
           }

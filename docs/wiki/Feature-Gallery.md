@@ -175,9 +175,9 @@ active profile's style, label, and explicit language mode.
 | `material-pull-all-account-fallback.png` | Pull all with per-repository results and exact-origin account retry |
 | `material-sparse-checkout-safe.png` | Persistent guided review with the locked editor and exact normalized selection |
 | `material-history-deepen.png` | Deepen-history result without exposing the account used |
-| `material-remote-manager.png` | Reviewed named-remote administration |
+| `material-remote-manager.png` | Repository Settings with browser-style pages and the Remote page selected |
 | `material-native-pull-request.png` | Native pull-request creation with bounded metadata |
-| `material-stash-manager.png` | Repository-wide stash selection and exact-entry actions |
+| `material-stash-manager.png` | Stash Manager with browser-style Manage, Export, History, and Appearance and voice pages |
 | `material-stash-manager-centered-20260803.png` | Centered Material stash manager with Manage, Export, History, and Appearance and voice tabs |
 | `advanced-workflows.png` | Tag lifecycle inventory with local-only, pushed, and remote-only states and bounded actions |
 | `material-actions-job-log.png` | Searchable in-app Actions job log |
@@ -202,7 +202,7 @@ active profile's style, label, and explicit language mode.
 | `material-history-hover-time.png` | Commit hover/focus card with exact authored timestamp and relative age |
 | `material-history-view-tabs-list.png` | Built History Commit list tab with its real tab strip and selected state |
 | `material-history-view-tabs-graph.png` | Built History Graph tab with its real tab strip and ancestry graph |
-| `material-settings.png` | Responsive Material Settings dialog |
+| `material-settings.png` | Global Settings with browser-style tabs, close actions, search, and overflow |
 | `auto-updater-current-source-ready.png` | Current-source production UI after a genuine Electron/Squirrel update-downloaded path with a disclosed inert verifier payload and no published-payload claim |
 | `settings-history-manager.png` | Git-backed Settings history side sheet |
 | `material-repositories-sheet.png` | Collapsible repository filters with compact Add, Select, and More actions |
@@ -239,6 +239,17 @@ active profile's style, label, and explicit language mode.
 | `repository-groups-collapsed.png` | Repository group collapsed with its member count pill |
 | `private-repository-lock-badge.png` | Explicit private-metadata lock retained beside the repository logo |
 
+### Dirty branch switching
+
+When a branch is dirty, the switch dialog can leave the current worktree in
+place and open the existing Add worktree flow for the destination branch. The
+acceptance captures below come from the built Windows renderer and show the
+selected choice followed by the prefilled form.
+
+![Dirty-worktree switch dialog with Leave my changes here selected](../verification/dirty-worktree-worktree-option-20260805/dirty-worktree-switch-dialog.png)
+
+![Add worktree form prefilled for the destination branch](../verification/dirty-worktree-worktree-option-20260805/add-worktree-prefilled.png)
+
 ## App identity and portable tabs
 
 The active profile can customize the in-app logo/name and rich name typography,
@@ -266,6 +277,19 @@ evidence.
 | `linux-tui-regex-builder.png` | July 27 Debian/Xvfb acceptance | Excluded from the current Windows gallery |
 | `linux-tui-bilingual-narrow.png` | July 27 Debian/Xvfb acceptance | Excluded from the current Windows gallery |
 | `linux-tui-cheap-lfs.png` | July 27 Debian/Xvfb acceptance | Excluded from the current Windows gallery |
+
+## Historical startup recovery evidence (outside the current gallery)
+
+The August 6 packaged-app recovery capture proves that the first-run surface
+rendered after the Copilot SDK bundle boundary was corrected. It is retained as
+one-off regression evidence rather than presented as a recurring capture-plan
+scene; `material-welcome.png` remains the current guided welcome target.
+
+| Archived asset | Historical receipt | Current status |
+| --- | --- | --- |
+| `material-blank-startup-fixed-20260806.png` | August 6 packaged blank-startup recovery | Excluded from the current Windows gallery |
+
+![Packaged Desktop Material first-run surface rendered after the blank-startup bundle regression was fixed](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/7b6aaa13e3157e9776605f270ac3498dc0d046ae/docs/assets/screenshots/material-blank-startup-fixed-20260806.png)
 
 ## Historical updater evidence (outside the current gallery)
 
@@ -439,6 +463,21 @@ toward capacity but cannot be downloaded until GitHub marks them uploaded.
 
 ## Repository administration
 
+Launchpad is a full-width repository page for the grouped attention inbox. Its
+empty state keeps all five status groups and the omitted-item explanation
+visible without reserving a blank sidebar. This frame came from the exact
+development production build through the cheap Lowlevel hidden-desktop route;
+the disposable fixture had one committed file and one untracked work-in-
+progress file, so the zero counts are genuine.
+
+![Launchpad full-width empty state with five truthful zero-count groups and no blank sidebar](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-launchpad-empty-full-width-20260806.png)
+
+The source contract covers both sides of the layout: Launchpad's sidebar body
+is intentionally null, and the repository shell omits the sidebar container
+when that section is selected. The focused navigation suite reports 7/7
+passing tests; the Launchpad model and preferences suites report 23/23, and
+the Launchpad view suite reports 13/13.
+
 Publish Repository replaces the collapsing organization select with a
 searchable personal-or-organization listbox. Fuzzy and substring filtering,
 bounded regex, and the full Regex Builder share one persisted mode; invalid
@@ -480,9 +519,9 @@ rebase uses searched target selection, ahead/behind context, a bounded commit
 preview, fresh safety/ref checks, and the existing conflict continue/abort
 path; it never force-pushes automatically.
 
-![Reviewed named-remote administration](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-remote-manager.png)
+![Repository Settings with browser-style tabs and the Remote page selected](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-remote-manager.png)
 
-![Repository-wide stash manager with an exact selected entry](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
+![Stash Manager with browser-style Manage, Export, History, and Appearance and voice pages](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
 
 ![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
 
@@ -555,6 +594,22 @@ recovery.
 ![Pending deployment environment review and history](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-pending-deployments.png)
 
 ![Material workflow-run cancellation review naming the exact run, ref, actor, and commit](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-cancel.png)
+
+## Historical Actions job-log recovery evidence (outside the current gallery)
+
+The transient job-log recovery frames are retained as historical evidence for
+the provider's short-lived `HTTP 404` response while a completed log archive is
+being prepared. They show the honest recovery state and the later successful
+load; neither is part of the current 91-frame guided gallery plan.
+
+| Archived asset | Historical receipt | Current status |
+| --- | --- | --- |
+| `material-actions-job-log-404-recovery.png` | Actions job-log 404 recovery fix | Excluded from the current Windows gallery |
+| `material-actions-job-log-404-recovered.png` | Actions job-log 404 recovery fix | Excluded from the current Windows gallery |
+
+![Actions job-log recovery state with Retry and Open on GitHub](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/33f54a69825d97083dc8f0b1fb134b353e9686ca/docs/assets/screenshots/material-actions-job-log-404-recovery.png)
+
+![Actions job log loaded after the provider archive becomes available](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/33f54a69825d97083dc8f0b1fb134b353e9686ca/docs/assets/screenshots/material-actions-job-log-404-recovered.png)
 
 ![Effective branch protection and ruleset policy](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-effective-branch-rules.png)
 
@@ -681,7 +736,7 @@ owner.
 
 ![Material Changes workspace and commit flow](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-workspace-changes.png)
 
-![Responsive Material Settings dialog](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-settings.png)
+![Global Settings with browser-style tabs, close actions, search, and overflow](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-settings.png)
 
 ![Git-backed Settings history side sheet](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/settings-history-manager.png)
 
