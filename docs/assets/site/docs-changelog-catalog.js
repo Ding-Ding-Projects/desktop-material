@@ -21,13 +21,18 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4168,
+    entryCount: 4169,
     releases: [
       {
         v: '3.6.3-material22',
         d: '2026-08-06',
-        t: '14:34',
+        t: '16:49',
         e: [
+          [
+            'Fixed',
+            'Every Super Express job, including the direct Windows release publisher, now stays on the registered self-hosted Windows and Linux pools, while ordinary CI and tested Express remain on GitHub-hosted runners',
+            '9d9dd4f8f1b6b9b86f226aa37885fba6e0a02c1c',
+          ],
           [
             'Improved',
             'Ordinary Windows and Linux CI plus tested Express Release now use clean GitHub-hosted runners again, while only the three Super Express emergency workflows stay on their dedicated self-hosted pools',
