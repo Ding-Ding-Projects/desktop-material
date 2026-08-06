@@ -4,7 +4,13 @@ import webpack from 'webpack'
 import merge from 'webpack-merge'
 import { getOAuthReplacements, getReplacements } from './app-info'
 
-export const externals = ['7zip']
+// The Copilot SDK is a Node-side client that spawns the Copilot CLI. Keeping
+// it out of the browser bundle avoids Webpack concatenating its ESM build into
+// the renderer, where the generated module wrapper can reference the
+// Node-only `__webpack_module__` binding before the app mounts. The packaging
+// step installs every external listed here into the application directory, so
+// the renderer can still load it through Electron's Node integration.
+export const externals = ['7zip', '@github/copilot-sdk']
 
 const outputDir = 'out'
 export const replacements = getReplacements()

@@ -1,5 +1,30 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Repair the blank Windows startup renderer
+
+The packaged Windows renderer failed before React mounted with
+`ReferenceError: __webpack_module__ is not defined`. The cause was the
+Node-oriented `@github/copilot-sdk` ESM graph being concatenated into the
+renderer through `CopilotStore`; the empty root and hidden-until-ready window
+then presented as a blank white launch. `app/webpack.common.ts` now
+externalizes the SDK, and `script/build.ts` fails before packaging if either
+renderer bundle contains the undefined binding.
+
+The focused contracts pass **14/14**. A production Windows build completed with
+the external SDK present. The exact `dist/GitHubDesktop-win32-x64/GitHubDesktop.exe`
+launched on the hidden desktop, reloaded through CDP with
+`readyState=complete`, one populated `#desktop-app-container` child, and no
+captured runtime exceptions. The genuine Lowlevel MCP capture is tracked at
+`docs/assets/screenshots/material-blank-startup-fixed-20260806.png`, `960x660`,
+SHA-256 `00D8BD6FCE0EFA10107523BF92BEA54E80DDA6ED66B8E3700B21297D6CBF2A82`,
+and shows the first-run Desktop Material surface. The detailed
+behavior, failure modes, security notes, and verification record are in
+`docs/features/quality-and-reliability/renderer-startup-bundle-safety.md` and
+`.codex/run-manifests/2026-08-06-blank-startup.md`.
+
+The source branch still needs its commit, dew, default-branch integration, and
+remote CI result before this handoff is complete.
+
 ## 2026-08-06 — Verify Super Express on the self-hosted pool
 
 The pure self-hosted Super Express path now has remote runner evidence. Run
