@@ -82,6 +82,23 @@ runs:
             cache_complete=false
           fi
         done
+        playwright_ffmpeg=false
+        for root in "$HOME/.cache/ms-playwright" "$HOME/AppData/Local/ms-playwright"; do
+          if [ -d "$root" ] && find "$root" \
+            -mindepth 2 \
+            -maxdepth 2 \
+            -type f \
+            -path "$root/ffmpeg-*/*" \
+            \( -name ffmpeg-linux -o -name ffmpeg-mac -o -name ffmpeg-win64.exe \) \
+            -print -quit | grep -q .; then
+            playwright_ffmpeg=true
+            break
+          fi
+        done
+        if [ "$playwright_ffmpeg" != true ]; then
+          echo "Cached dependency is missing Playwright ffmpeg." >&2
+          cache_complete=false
+        fi
         echo "complete=$cache_complete" >> "$GITHUB_OUTPUT"
 
     - name: Use Node.js ${{ inputs.node-version }} with installed dependencies
