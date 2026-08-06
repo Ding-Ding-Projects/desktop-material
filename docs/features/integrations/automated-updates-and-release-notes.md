@@ -95,10 +95,12 @@ publication, the workflow proves that the tag is still absent. One create-only
 `RELEASES`, portable ZIP, and generated notes. It never edits or replaces an
 existing Release.
 
-Every Release is created non-latest. The shared promotion helper first proves
-the source is still current `main`, then examines the newest 100 published
-Windows-capable Releases — each must carry both `RELEASES` and a full Squirrel
-package — and promotes the greatest valid package version. A partial
+Automatic Express Releases are created non-latest so the shared promotion
+helper can first prove the source is still current `main`. Super Express
+publishers request `Latest` after their verified assets are present. The helper
+then examines the newest 100 published Windows-capable Releases — each must
+carry both `RELEASES` and a full Squirrel package — and promotes the greatest valid
+package version. A partial
 Linux/TUI-only Release can still be published and documented, but it is never
 allowed to own the Windows `Latest` feed. The helper rechecks both the same-SHA
 maximum and `main` after promotion, reconciling an overlapping higher release
@@ -232,7 +234,8 @@ Windows dispatch accepts an optional exact `main` SHA and Squirrel version; a
 direct Linux TUI dispatch accepts an optional exact `main` SHA. Blank inputs
 use the dispatched commit and derive the Windows version from the run ID plus
 execution attempt. The Windows direct lane uploads its verified artifact and
-publishes a standalone immutable, non-latest Windows x64 Release. The Linux
+publishes a standalone immutable Windows x64 Release marked `Latest` after its
+verified assets are available. The Linux
 direct lane remains artifact-only. The reusable `workflow_call` entry point
 for the Windows lane is also artifact-only, so the combined dispatcher still
 has one publisher for one complete cross-platform Release.

@@ -193,7 +193,7 @@ jobs:
             --target "$RELEASE_TARGET_SHA" \
             --title "Desktop Material Windows x64 $RELEASE_VERSION" \
             --notes-file release-payload/release-notes.md \
-            --latest=false
+            --latest
           create_status=$?
           set -e
           if [ "$create_status" -ne 0 ]; then
@@ -211,7 +211,7 @@ jobs:
               --repo "$GITHUB_REPOSITORY"
             gh release edit "$RELEASE_TAG" \
               --repo "$GITHUB_REPOSITORY" \
-              --prerelease=false --latest=false
+              --prerelease=false --latest
           fi
 
       - name: Verify published Windows release target and assets

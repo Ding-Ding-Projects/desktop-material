@@ -171,7 +171,8 @@ describe('Super Express Release workflow', () => {
     )
     assert.match(windowsWorkflow, /gh release create "\$RELEASE_TAG"/)
     assert.match(windowsWorkflow, /--target "\$RELEASE_TARGET_SHA"/)
-    assert.match(windowsWorkflow, /--latest=false/)
+    assert.match(windowsWorkflow, /--latest(?:\r?\n|\s)/)
+    assert.match(windowsWorkflow, /--prerelease=false --latest/)
     assert.match(
       windowsWorkflow,
       /git ls-remote --exit-code --tags origin "refs\/tags\/\$RELEASE_TAG"/
@@ -246,8 +247,9 @@ describe('Super Express Release workflow', () => {
     assert.doesNotMatch(workflow, /generate-automated-release-notes\.ts/)
     assert.match(workflow, /gh release create "\$RELEASE_TAG"/)
     assert.match(workflow, /--target "\$RELEASE_TARGET_SHA"/)
-    assert.match(workflow, /--latest=false/)
-    assert.doesNotMatch(workflow, /^\s+--latest\s*$/m)
+    assert.match(workflow, /--latest(?:\r?\n|\s)/)
+    assert.match(workflow, /--prerelease=false --latest/)
+    assert.doesNotMatch(workflow, /--latest=false/)
     assert.match(workflow, /git rev-parse 'FETCH_HEAD\^\{commit\}'/)
     assert.match(workflow, /needs\.windows_build\.outputs\.artifact_name/)
     assert.match(workflow, /needs\.tui_build\.outputs\.artifact_name/)
