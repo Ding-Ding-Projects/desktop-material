@@ -52,13 +52,16 @@ is unchanged by this fix and remains a separate hardening concern.
 
 ## Verification
 
-The focused contracts pass **14/14**. A production Windows build completed
-with `GitHubDesktop.exe`, both renderer bundles, and the packaged SDK present.
-Both bundles contain zero `__webpack_module__` tokens. The exact executable
-was launched on a hidden desktop; a CDP reload reached `readyState=complete`
-with one populated `#desktop-app-container` child and no captured runtime
-exceptions. A Lowlevel MCP capture at `960x660` shows the first-run Desktop
-Material surface instead of a blank window. The promoted evidence frame is
+The pinned Yarn install completes the root and app dependencies, submodules,
+script compilation, Electron runtime preparation, and Playwright ffmpeg setup.
+The final integrated production build at `fe189e2f41` completed in `520.70s`,
+printed `Checking renderer bundles…`, and produced `GitHubDesktop.exe` with
+both renderer bundles and the packaged SDK present. Both bundles contain zero
+`__webpack_module__` tokens. The focused contracts pass **15/15**. The exact
+executable was launched on a hidden desktop; a CDP reload reached
+`readyState=complete` with one populated `#desktop-app-container` child and no
+captured runtime exceptions. A Lowlevel MCP capture at `960x660` shows the
+first-run Desktop Material surface instead of a blank window. The promoted evidence frame is
 [`material-blank-startup-fixed-20260806.png`](../../assets/screenshots/material-blank-startup-fixed-20260806.png)
 with SHA-256 `00D8BD6FCE0EFA10107523BF92BEA54E80DDA6ED66B8E3700B21297D6CBF2A82`.
 

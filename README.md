@@ -22,8 +22,9 @@
 > the browser renderer. The build rejects both renderer bundles if the
 > undefined `__webpack_module__` binding returns, preventing the packaged app
 > from opening as a blank white window. The exact Windows artifact now reaches
-> the first-run surface in a hidden-desktop capture; see the [renderer startup
-> bundle safety guide](docs/features/quality-and-reliability/renderer-startup-bundle-safety.md).
+> the first-run surface in a hidden-desktop capture, and a fresh pinned Yarn
+> install now brings in the root and app dependencies before packaging; see the
+> [renderer startup bundle safety guide](docs/features/quality-and-reliability/renderer-startup-bundle-safety.md).
 
 ![Packaged Windows Desktop Material first-run surface after the renderer startup fix](docs/assets/screenshots/material-blank-startup-fixed-20260806.png)
 

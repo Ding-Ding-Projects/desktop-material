@@ -13,6 +13,9 @@ Updated: **August 6, 2026**
   first-run Desktop Material surface. The CDP reload check reports one
   populated `#desktop-app-container` child, no startup exceptions, and both
   renderer bundles contain zero `__webpack_module__` tokens.
+- A fresh pinned Yarn install now completes the root and app dependency setup;
+  the TypeScript configs no longer reject the repository's pinned compiler or
+  its cross-package post-install imports.
 - Details and failure modes are documented in
   `docs/features/quality-and-reliability/renderer-startup-bundle-safety.md`.
 

@@ -26,7 +26,7 @@ The packaged artifact from `Super Express Release` run `31066558483` loaded `ind
 - `app/test/unit/dependency-runtime-compatibility-test.ts` checks the externalization contract.
 - `app/test/unit/build-copy-test.ts` exercises invalid `renderer.js`, invalid `internal-browser.js`, missing-bundle, and clean passing states.
 
-## Headless verification
+## Initial headless verification (pre-guard artifact)
 
 - Cheap Lowlevel MCP: scheduled task on `127.0.0.1:8765`; checkout SHA `ae648ae6c994e8135c874cc895291896f60b8c19`.
 - Pinned build runtime: Node `v24.15.0`; command completed through MCP `run_command` with `vendor/yarn-1.21.1.js build:prod`.
@@ -35,7 +35,35 @@ The packaged artifact from `Super Express Release` run `31066558483` loaded `ind
 - Headless desktop: `codex-blank-startup-fix-20260806-final`; resolved main HWND `12782400`; launch PID `45136`.
 - CDP reload check: `readyState=complete`, `rootHtmlLength=4941`, `rootChildCount=1`, body text begins with `DM Desktop Material`, and `events=[]` after a 7-second reload observation.
 - Lowlevel capture: `docs/assets/screenshots/material-blank-startup-fixed-20260806.png`; `960x660`, SHA-256 `00D8BD6FCE0EFA10107523BF92BEA54E80DDA6ED66B8E3700B21297D6CBF2A82`, visually shows the first-run Desktop Material surface.
-- Focused tests: `14/14` passed across `dependency-runtime-compatibility-test.ts` and `build-copy-test.ts`.
+- Initial focused tests: `14/14` passed across `dependency-runtime-compatibility-test.ts` and `build-copy-test.ts`.
+
+## Final integrated verification
+
+- Integration worktree started from `origin/main` at `5906a1a407` and applied
+  the implementation/documentation commits plus the compiler-compatibility
+  commits; final code tip: `fe189e2f41a6a0ab262a9152a0baeff890f83149`.
+- The pinned dependency command
+  `vendor/yarn-1.21.1.js install --frozen-lockfile` completed successfully,
+  including root dependencies, app dependencies, submodules, script
+  compilation, Electron runtime preparation, and Playwright ffmpeg setup.
+- The final production command `vendor/yarn-1.21.1.js build:prod` completed in
+  `520.70s`; its output included `Checking renderer bundles…` and
+  `Built to .../dist/GitHubDesktop-win32-x64`. The final executable timestamp
+  is `2026-08-06T01:00:35-04:00`; `renderer.js` and `internal-browser.js` are
+  present under `resources/app`, and the packaged
+  `resources/app/node_modules/@github/copilot-sdk/package.json` is present.
+  Static scans report `rendererTokens=0` and `internalTokens=0`.
+- Final hidden desktop: `codex-blank-startup-integration-20260806-final`,
+  handle `1112`, resolved main HWND `8523264`, launch PID `43120`.
+- Final Lowlevel MCP capture: the tracked
+  `docs/assets/screenshots/material-blank-startup-fixed-20260806.png` at
+  `960x660`, SHA-256
+  `00D8BD6FCE0EFA10107523BF92BEA54E80DDA6ED66B8E3700B21297D6CBF2A82`.
+- Final CDP reload check: `readyState=complete`, `rootHtmlLength=4949`,
+  `rootChildCount=1`, body text begins with `DM Desktop Material`, and
+  `events=[]` after a 7-second observation.
+- Final focused tests: `15/15` passed across
+  `dependency-runtime-compatibility-test.ts` and `build-copy-test.ts`.
 
 ## Adversarial review
 
