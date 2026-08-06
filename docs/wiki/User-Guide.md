@@ -382,6 +382,11 @@ GitHub.com accounts, or a work and a personal GitHub Enterprise identity side by
 Each account keeps its **own tabs, repositories, and settings**. Switching the active account
 switches the whole workspace to that identity's context.
 
+The **Active** chip and **Make active** action in **Settings → Accounts** use
+the same one-account-global rule as the rail switcher, including across
+GitHub.com, Enterprise, GitLab, and Bitbucket sections. A repository with an
+explicit **Repository account** binding remains on that exact identity.
+
 Open the repositories side sheet to narrow cloned repositories by **Repository account** and
 **Repository service**. The filters combine: for example, choose one exact account and GitLab, or
 choose **No available account** and **Local only**. Signed-out/stale bindings remain explicit under
