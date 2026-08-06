@@ -663,7 +663,7 @@ jobs:
     # still refused: a job that ran and failed, and a Release with nothing in
     # it because neither lane produced anything.
     if: >-
-      always() && needs.prepare.result == 'success' &&
+      !cancelled() && always() && needs.prepare.result == 'success' &&
       needs.prepare.outputs.proceed == 'true' && needs.prepare.outputs.publish
       == 'true' && needs.release_notes.result == 'success' &&
       needs.package.result != 'failure' && needs.package.result != 'cancelled'
