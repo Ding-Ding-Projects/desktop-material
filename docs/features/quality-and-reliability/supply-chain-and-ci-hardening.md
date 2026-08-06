@@ -160,10 +160,12 @@ action selects a complete Visual Studio instance with the matching
 then exports that instance through `npm_config_msvs_version` so node-gyp does
 not choose a different incomplete installation. When no complete instance is
 available, it asks the installed Visual Studio instance to add
-`Microsoft.VisualStudio.Component.VC.Llvm.Clang`, waits for the installer, and
-fails with an explicit setup error if the compiler and MSBuild toolset are
-still absent. This keeps the native test from hanging in MSBuild while waiting
-for a toolset that the runner never installed.
+`Microsoft.VisualStudio.Component.VC.Llvm.Clang` with the installer's supported
+quiet/no-restart flags, and fails with an explicit setup error if the compiler
+and MSBuild toolset are still absent. The installer has no `--wait` option on
+the runner's Visual Studio Installer 4.7.25, so the setup contract rejects that
+unsupported flag. This keeps the native test from hanging in MSBuild while
+waiting for a toolset that the runner never installed.
 
 ### Lock-file provenance and integrity (blocking)
 
@@ -347,6 +349,10 @@ ClangCL bootstrap verification performed on 2026-08-06:
   `yarn test` passed all 9 tests.
 - `yarn test:unit app/test/unit/ci-setup-environment-test.ts` passed all 2
   focused setup-contract tests.
+- Run `31077267784` exposed that Visual Studio Installer 4.7.25 rejects
+  `--wait`; commit `28d7d032ef` removed the unsupported flag, and the local
+  setup contract passes **2/2** with a negative guard for it. The replacement
+  remote Windows run is still required.
 - A new GitHub Actions run is still required to verify the registered
   self-hosted runner's own Visual Studio instance and the resulting Windows
   x64/arm64 CI and release lanes.

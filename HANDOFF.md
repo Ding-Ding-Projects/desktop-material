@@ -35,6 +35,17 @@ failure modes, security notes, and verification record are in
 
 Remote CI and default-branch publication remain the final external checks.
 
+## 2026-08-06 — Use supported Visual Studio Installer flags
+
+The first exact-main E2E run containing the ClangCL bootstrap,
+`31077267784 <https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31077267784>`_,
+failed before dependency installation because Visual Studio Installer
+`4.7.25+56ad8fb6f1` rejected the script's `--wait` option. The script now uses
+the installer's supported quiet/no-restart flags and the focused setup contract
+rejects `--wait`. Commit `28d7d032ef` contains this repair; a new exact-main
+Windows wave must verify that ClangCL installation and the packaged E2E path
+reach the app build.
+
 ## 2026-08-06 — Remove the release gate's unbootstrapped jq dependency
 
 The first main wave after the GitHub CLI bootstrap reached the self-hosted
@@ -77,7 +88,8 @@ Studio instances with `vswhere.exe`, including the ClangCL MSBuild props and
 targets, and exports the selected install through `npm_config_msvs_version` so
 node-gyp uses the same instance. If no complete instance is available, it adds
 `Microsoft.VisualStudio.Component.VC.Llvm.Clang` through the existing installer
-with `--wait`, then verifies the compiler and MSBuild files. The existing arm64
+with its supported quiet/no-restart flags, then verifies the compiler and MSBuild
+files. The existing arm64
 MSVC bootstrap remains separate. Locally, the exact Windows x64 native command
 passes through all three ClangCL targets after selecting the complete Community
 instance; the next self-hosted CI wave must verify the native test, Windows
