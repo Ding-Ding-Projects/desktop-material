@@ -3,12 +3,16 @@ import classNames from 'classnames'
 
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { TooltippedContent } from '../lib/tooltipped-content'
 import { showContextualMenu, IMenuItem } from '../../lib/menu-item'
 import { SettingsTabPickerPopover } from './settings-tab-picker-popover'
 import {
   getPinnedSettingsTabs,
+  getOpenSettingsTabs,
+  ISettingsTabPersistenceOptions,
   ISettingsTabItem,
   orderSettingsTabs,
+  setOpenSettingsTabs,
   SettingsTabStripId,
   toggleSettingsTabPin,
 } from './settings-tab-model'
@@ -20,10 +24,24 @@ interface ISettingsTabStripProps {
   readonly title: string
   /** Every page, in the dialog's declared order. */
   readonly items: ReadonlyArray<ISettingsTabItem>
+  /**
+   * The complete page set when `items` is a filtered view. Open-page state is
+   * reconciled against this list so searching does not silently close pages.
+   */
+  readonly allItems?: ReadonlyArray<ISettingsTabItem>
   readonly selectedId: string
   readonly onSelect: (id: string) => void
   /** Blocks navigation while the dialog owns a mutation. */
   readonly disabled?: boolean
+  /** Optional owner scope for the browser tab session, such as a repository. */
+  readonly openStateScope?: string
+  /** Numeric ids written by older versions, keyed by the current stable id. */
+  readonly legacyTabIdMap?: Readonly<Record<string, string>>
+
+  /** Render the pages as horizontal browser tabs instead of a vertical rail. */
+  readonly variant?: 'rail' | 'browser'
+  /** Show the plus button that reopens a closed page in a new tab. */
+  readonly showNewTab?: boolean
 
   /**
    * Whether the strip offers its own search button.
@@ -36,10 +54,27 @@ interface ISettingsTabStripProps {
   readonly showSearch?: boolean
   /** Ids for the `aria-controls` contract, keyed by page id. */
   readonly getTabDomId?: (id: string) => string | undefined
+  /** Panel ids for the `aria-controls` contract, keyed by page id. */
+  readonly getTabPanelId?: (id: string) => string | undefined
+  /** Localized action copy for callers whose visible labels are localized. */
+  readonly accessibleLabels?: {
+    readonly closeTab?: (label: string) => string
+    readonly openNewTab?: string
+    readonly allPagesOpen?: string
+    readonly morePages?: (count: number) => string
+    readonly tabList?: string
+    readonly search?: string
+    readonly pinTab?: (label: string) => string
+    readonly unpinTab?: (label: string) => string
+    readonly pickerTitle?: string
+    readonly noMatches?: string
+  }
 }
 
 interface ISettingsTabStripState {
   readonly pinnedIds: ReadonlyArray<string>
+  /** Page ids that are currently open in the browser-style variant. */
+  readonly openIds: ReadonlyArray<string>
   /**
    * The pages whose rows are not wholly inside the scrollport.
    *
@@ -50,7 +85,7 @@ interface ISettingsTabStripState {
   readonly overflowIds: ReadonlyArray<string>
   readonly pickerAnchor: HTMLElement | null
   /** Whether the picker was opened by the overflow button or by search. */
-  readonly pickerScope: 'overflow' | 'all' | null
+  readonly pickerScope: 'overflow' | 'all' | 'new' | null
 }
 
 /**
@@ -84,8 +119,38 @@ export class SettingsTabStrip extends React.Component<
 
   public constructor(props: ISettingsTabStripProps) {
     super(props)
+    const declaredItems = props.allItems ?? props.items
+    const persistenceOptions = this.getPersistenceOptions(props)
+    const persistedOpenIds = getOpenSettingsTabs(
+      props.strip,
+      undefined,
+      persistenceOptions
+    )
+    const storedOpenIds = getOpenSettingsTabs(
+      props.strip,
+      declaredItems.map(item => item.id),
+      persistenceOptions
+    )
+    const openIds = [
+      ...this.reconcileOpenIds(
+        declaredItems,
+        storedOpenIds ?? declaredItems.map(item => item.id),
+        props.selectedId,
+        props.variant
+      ),
+    ]
+    if (
+      props.variant === 'browser' &&
+      persistedOpenIds !== null &&
+      (props.openStateScope !== undefined ||
+        openIds.length !== persistedOpenIds.length ||
+        openIds.some((id, index) => id !== persistedOpenIds[index]))
+    ) {
+      setOpenSettingsTabs(props.strip, openIds, persistenceOptions)
+    }
     this.state = {
-      pinnedIds: getPinnedSettingsTabs(props.strip),
+      pinnedIds: getPinnedSettingsTabs(props.strip, persistenceOptions),
+      openIds,
       overflowIds: [],
       pickerAnchor: null,
       pickerScope: null,
@@ -105,14 +170,101 @@ export class SettingsTabStrip extends React.Component<
     }
   }
 
+  private getPersistenceOptions(
+    props: ISettingsTabStripProps = this.props
+  ): ISettingsTabPersistenceOptions {
+    const allowedIds = new Set(
+      (props.allItems ?? props.items).map(item => item.id)
+    )
+    for (const id of Object.values(props.legacyTabIdMap ?? {})) {
+      allowedIds.add(id)
+    }
+    return {
+      scope: props.openStateScope,
+      legacyIdMap: props.legacyTabIdMap,
+      allowedIds: [...allowedIds],
+    }
+  }
+
+  private reconcileOpenIds(
+    items: ReadonlyArray<ISettingsTabItem>,
+    ids: ReadonlyArray<string>,
+    selectedId: string,
+    variant: 'rail' | 'browser' | undefined
+  ): ReadonlyArray<string> {
+    const declaredIds = new Set(items.map(item => item.id))
+    const openIds = ids.filter(id => declaredIds.has(id))
+    if (openIds.length === 0) {
+      openIds.push(...items.slice(0, 1).map(item => item.id))
+    }
+    if (
+      variant === 'browser' &&
+      declaredIds.has(selectedId) &&
+      !openIds.includes(selectedId)
+    ) {
+      openIds.push(selectedId)
+    }
+    return openIds
+  }
+
   public componentDidMount() {
     this.scheduleMeasure()
   }
 
-  public componentDidUpdate(prevProps: ISettingsTabStripProps) {
+  public componentDidUpdate(
+    prevProps: ISettingsTabStripProps,
+    prevState: ISettingsTabStripState
+  ) {
+    if (
+      this.props.disabled === true &&
+      prevProps.disabled !== true &&
+      this.state.pickerAnchor !== null
+    ) {
+      this.setState({ pickerAnchor: null, pickerScope: null })
+      return
+    }
+    if (this.props.variant === 'browser') {
+      const declaredItems = this.props.allItems ?? this.props.items
+      const openIds = this.reconcileOpenIds(
+        declaredItems,
+        this.state.openIds,
+        this.props.selectedId,
+        this.props.variant
+      )
+      const openIdsChanged =
+        openIds.length !== this.state.openIds.length ||
+        openIds.some((id, index) => id !== this.state.openIds[index])
+      if (openIdsChanged) {
+        setOpenSettingsTabs(
+          this.props.strip,
+          openIds,
+          this.getPersistenceOptions()
+        )
+        this.setState({ openIds })
+        return
+      }
+    }
+    if (
+      this.props.variant === 'browser' &&
+      this.props.items.some(item => item.id === this.props.selectedId) &&
+      !this.state.openIds.includes(this.props.selectedId)
+    ) {
+      const openIds = [...this.state.openIds, this.props.selectedId]
+      setOpenSettingsTabs(
+        this.props.strip,
+        openIds,
+        this.getPersistenceOptions()
+      )
+      this.setState({ openIds })
+      return
+    }
     if (
       prevProps.items !== this.props.items ||
-      prevProps.selectedId !== this.props.selectedId
+      prevProps.selectedId !== this.props.selectedId ||
+      prevProps.variant !== this.props.variant ||
+      prevProps.showNewTab !== this.props.showNewTab ||
+      prevProps.items.length !== this.props.items.length ||
+      prevState.openIds !== this.state.openIds
     ) {
       this.scheduleMeasure()
     }
@@ -153,11 +305,19 @@ export class SettingsTabStrip extends React.Component<
     const overflowIds: Array<string> = []
 
     for (const [id, row] of this.rowRefs) {
-      const box = row.getBoundingClientRect()
+      const box =
+        this.props.variant === 'browser'
+          ? (row.parentElement ?? row).getBoundingClientRect()
+          : row.getBoundingClientRect()
       // A row counts as reachable only when it is wholly inside the scrollport.
       // A half-visible row is exactly the state that made the list look
-      // finished when it was not.
-      if (box.top < port.top - 1 || box.bottom > port.bottom + 1) {
+      // finished when it was not. Browser tabs overflow horizontally; the
+      // legacy rail overflows vertically.
+      const outside =
+        this.props.variant === 'browser'
+          ? box.left < port.left - 1 || box.right > port.right + 1
+          : box.top < port.top - 1 || box.bottom > port.bottom + 1
+      if (outside) {
         overflowIds.push(id)
       }
     }
@@ -204,8 +364,51 @@ export class SettingsTabStrip extends React.Component<
     return ref
   }
 
-  private get ordered() {
+  private get allOrdered() {
+    return orderSettingsTabs(
+      this.props.allItems ?? this.props.items,
+      this.state.pinnedIds
+    )
+  }
+
+  private get visibleOrdered() {
     return orderSettingsTabs(this.props.items, this.state.pinnedIds)
+  }
+
+  private getTabPanelId(item: ISettingsTabItem): string | undefined {
+    return (
+      this.props.getTabPanelId?.(item.id) ??
+      (item.domId === undefined ? undefined : `${item.domId}-panel`)
+    )
+  }
+
+  private getTabId(item: ISettingsTabItem): string {
+    return (
+      item.domId ??
+      this.props.getTabDomId?.(item.id) ??
+      `settings-${this.props.strip}-tab-${item.id.replace(
+        /[^A-Za-z0-9_-]/g,
+        '-'
+      )}`
+    )
+  }
+
+  private get ordered() {
+    const ordered = this.visibleOrdered
+    if (this.props.variant !== 'browser') {
+      return ordered
+    }
+    const open = new Set(this.state.openIds)
+    const filtered = ordered.ordered.filter(item => open.has(item.id))
+    const pinnedIds = new Set(this.state.pinnedIds)
+    let pinnedCount = 0
+    for (const item of filtered) {
+      if (!pinnedIds.has(item.id)) {
+        break
+      }
+      pinnedCount++
+    }
+    return { ordered: filtered, pinnedCount }
   }
 
   private onRowClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -218,7 +421,11 @@ export class SettingsTabStrip extends React.Component<
     if (this.props.disabled === true) {
       return
     }
-    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') {
+    const horizontal = this.props.variant === 'browser'
+    const validKeys = horizontal
+      ? ['ArrowLeft', 'ArrowRight', 'Home', 'End']
+      : ['ArrowDown', 'ArrowUp', 'Home', 'End']
+    if (!validKeys.includes(event.key)) {
       return
     }
 
@@ -230,48 +437,151 @@ export class SettingsTabStrip extends React.Component<
       return
     }
 
-    const delta = event.key === 'ArrowDown' ? 1 : -1
-    // http://javascript.about.com/od/problemsolving/a/modulobug.htm
-    const next = ordered[(index + delta + ordered.length) % ordered.length]
+    const nextIndex =
+      event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+        ? ordered.length - 1
+        : (index +
+            (event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : -1) +
+            ordered.length) %
+          ordered.length
+    const next = ordered[nextIndex]
     this.props.onSelect(next.id)
     this.rowRefs.get(next.id)?.focus()
     event.preventDefault()
   }
 
   private onRowContextMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (this.props.disabled === true) {
+      return
+    }
     event.preventDefault()
     const id = event.currentTarget.value
     const pinned = this.state.pinnedIds.includes(id)
+    const item = (this.props.allItems ?? this.props.items).find(
+      item => item.id === id
+    )
+    const label =
+      item?.accessibleLabel ?? item?.searchText ?? event.currentTarget.value
     const items: ReadonlyArray<IMenuItem> = [
       {
-        label: pinned ? 'Unpin page' : 'Pin page',
+        label: pinned
+          ? this.props.accessibleLabels?.unpinTab?.(label) ?? `Unpin ${label}`
+          : this.props.accessibleLabels?.pinTab?.(label) ?? `Pin ${label}`,
         action: () => {
-          toggleSettingsTabPin(this.props.strip, id)
-          this.setState({ pinnedIds: getPinnedSettingsTabs(this.props.strip) })
+          // A menu item can outlive the disabled transition that opened it.
+          // Re-check at execution time so a queued click cannot mutate state
+          // while the owning dialog is busy.
+          if (this.props.disabled === true) {
+            return
+          }
+          const persistenceOptions = this.getPersistenceOptions()
+          toggleSettingsTabPin(this.props.strip, id, persistenceOptions)
+          this.setState({
+            pinnedIds: getPinnedSettingsTabs(
+              this.props.strip,
+              persistenceOptions
+            ),
+          })
         },
       },
     ]
     showContextualMenu(items)
   }
 
-  private onOpenOverflow = (event: React.MouseEvent<HTMLButtonElement>) =>
+  private onOpenOverflow = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (this.props.disabled === true) {
+      return
+    }
     this.setState({
       pickerAnchor: event.currentTarget,
       pickerScope: 'overflow',
     })
+  }
 
-  private onOpenSearch = (event: React.MouseEvent<HTMLButtonElement>) =>
+  private onOpenSearch = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (this.props.disabled === true) {
+      return
+    }
     this.setState({ pickerAnchor: event.currentTarget, pickerScope: 'all' })
+  }
 
-  private onPickerClose = () =>
-    this.setState({ pickerAnchor: null, pickerScope: null })
+  private onOpenNewTab = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (this.props.disabled === true) {
+      return
+    }
+    this.setState({ pickerAnchor: event.currentTarget, pickerScope: 'new' })
+  }
+
+  private onPickerClose = () => {
+    const anchor = this.state.pickerAnchor
+    this.setState({ pickerAnchor: null, pickerScope: null }, () => {
+      if (anchor !== null && anchor.isConnected) {
+        anchor.focus()
+      }
+    })
+  }
 
   private onPickerSelect = (id: string) => {
-    this.setState({ pickerAnchor: null, pickerScope: null })
+    if (this.props.disabled === true) {
+      return
+    }
+    const openIds =
+      this.props.variant === 'browser' && !this.state.openIds.includes(id)
+        ? [...this.state.openIds, id]
+        : this.state.openIds
+    if (openIds !== this.state.openIds) {
+      setOpenSettingsTabs(
+        this.props.strip,
+        openIds,
+        this.getPersistenceOptions()
+      )
+    }
+    this.setState({ pickerAnchor: null, pickerScope: null, openIds }, () => {
+      const row = this.rowRefs.get(id)
+      row?.focus()
+      if (typeof row?.scrollIntoView === 'function') {
+        row.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+      }
+      this.scheduleMeasure()
+    })
     this.props.onSelect(id)
-    // Bring the chosen page into view; it is very often one that did not fit.
-    this.rowRefs.get(id)?.scrollIntoView({ block: 'nearest' })
   }
+
+  private onCloseTab = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation()
+    if (this.props.disabled === true || this.props.variant !== 'browser') {
+      return
+    }
+
+    const id = event.currentTarget.value
+    const { ordered } = this.ordered
+    if (ordered.length <= 1 || !this.state.openIds.includes(id)) {
+      return
+    }
+
+    const index = ordered.findIndex(item => item.id === id)
+    const next = ordered[(index + 1) % ordered.length]
+    const openIds = this.state.openIds.filter(openId => openId !== id)
+    if (this.props.selectedId === id) {
+      // Change the controlled selection in the same event as the close. If we
+      // let the child render one frame with its selected id already closed,
+      // componentDidUpdate quite correctly reopens that id as a safety net.
+      this.props.onSelect(next.id)
+    }
+    setOpenSettingsTabs(this.props.strip, openIds, this.getPersistenceOptions())
+    this.setState({ openIds }, () => {
+      const row = this.rowRefs.get(next.id)
+      row?.focus()
+      if (typeof row?.scrollIntoView === 'function') {
+        row.scrollIntoView({ inline: 'nearest', block: 'nearest' })
+      }
+      this.scheduleMeasure()
+    })
+  }
+
+  private onBrowserTabsScroll = () => this.scheduleMeasure()
 
   private renderPicker() {
     const { pickerAnchor, pickerScope } = this.state
@@ -279,10 +589,12 @@ export class SettingsTabStrip extends React.Component<
       return null
     }
 
-    const { ordered } = this.ordered
+    const { ordered } = this.allOrdered
     const items =
       pickerScope === 'overflow'
         ? ordered.filter(item => this.state.overflowIds.includes(item.id))
+        : pickerScope === 'new'
+        ? ordered.filter(item => !this.state.openIds.includes(item.id))
         : ordered
 
     return (
@@ -294,6 +606,8 @@ export class SettingsTabStrip extends React.Component<
         title={this.props.title}
         onSelect={this.onPickerSelect}
         onClose={this.onPickerClose}
+        pickerId={`settings-${this.props.strip}-tab-picker`}
+        accessibleLabels={this.props.accessibleLabels}
       />
     )
   }
@@ -312,7 +626,11 @@ export class SettingsTabStrip extends React.Component<
             type="button"
             className="settings-tab-strip-action"
             onClick={this.onOpenSearch}
-            aria-label={`Search ${this.props.title}`}
+            aria-label={
+              this.props.accessibleLabels?.search ??
+              `Search ${this.props.title}`
+            }
+            disabled={this.props.disabled}
           >
             <Octicon symbol={octicons.search} />
             <span>Search</span>
@@ -323,7 +641,11 @@ export class SettingsTabStrip extends React.Component<
             type="button"
             className="settings-tab-strip-action overflow"
             onClick={this.onOpenOverflow}
-            aria-label={`${overflowCount} more settings pages`}
+            aria-label={
+              this.props.accessibleLabels?.morePages?.(overflowCount) ??
+              `${overflowCount} more settings pages`
+            }
+            disabled={this.props.disabled}
           >
             <Octicon symbol={octicons.kebabHorizontal} />
             <span>{overflowCount} more</span>
@@ -333,7 +655,170 @@ export class SettingsTabStrip extends React.Component<
     )
   }
 
+  private renderBrowser() {
+    const { ordered, pinnedCount } = this.ordered
+    const { ordered: allItems } = this.allOrdered
+    const { selectedId, disabled } = this.props
+    const showNewTab = this.props.showNewTab !== false
+    const hasClosedPage = allItems.some(
+      item => !this.state.openIds.includes(item.id)
+    )
+    const openNewTabLabel =
+      this.props.accessibleLabels?.openNewTab ??
+      `Open a ${this.props.title} page in a new tab`
+    const allPagesOpenLabel =
+      this.props.accessibleLabels?.allPagesOpen ??
+      `All ${this.props.title} pages are already open`
+    const searchLabel =
+      this.props.accessibleLabels?.search ?? `Search ${this.props.title}`
+    const tabListLabel =
+      this.props.accessibleLabels?.tabList ?? this.props.title
+
+    return (
+      <div className="settings-tab-strip settings-tab-strip-browser">
+        <div
+          className="settings-browser-tabs"
+          ref={this.onListRef}
+          onScroll={this.onBrowserTabsScroll}
+        >
+          <div
+            className="settings-browser-tablist"
+            role="tablist"
+            aria-label={tabListLabel}
+            aria-orientation="horizontal"
+            aria-owns={ordered.map(item => this.getTabId(item)).join(' ')}
+          />
+          <div className="settings-browser-tab-items">
+            {ordered.map((item, index) => {
+              const selected = item.id === selectedId
+              return (
+                <div
+                  key={item.id}
+                  className={classNames('settings-browser-tab', {
+                    active: selected,
+                    pinned: index < pinnedCount,
+                  })}
+                >
+                  <button
+                    value={item.id}
+                    ref={this.getRowRef(item.id)}
+                    id={this.getTabId(item)}
+                    data-dm-feature={item.isFeature === true || undefined}
+                    data-settings-no-match={
+                      item.noSearchMatch === true || undefined
+                    }
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    aria-controls={
+                      selected ? this.getTabPanelId(item) : undefined
+                    }
+                    aria-label={item.accessibleLabel ?? item.searchText}
+                    tabIndex={selected ? 0 : -1}
+                    disabled={disabled}
+                    aria-disabled={disabled ? 'true' : undefined}
+                    className="settings-browser-tab-select"
+                    onClick={this.onRowClick}
+                    onKeyDown={this.onRowKeyDown}
+                    onContextMenu={this.onRowContextMenu}
+                  >
+                    {item.icon}
+                    <TooltippedContent
+                      tagName="span"
+                      className="settings-browser-tab-title"
+                      tooltip={item.accessibleLabel ?? item.searchText}
+                      onlyWhenOverflowed={true}
+                    >
+                      {item.label}
+                    </TooltippedContent>
+                    {item.badge}
+                    {index < pinnedCount && (
+                      <Octicon
+                        className="settings-browser-tab-pin"
+                        symbol={octicons.pin}
+                      />
+                    )}
+                  </button>
+                  {ordered.length > 1 && (
+                    <button
+                      type="button"
+                      value={item.id}
+                      className="settings-browser-tab-close"
+                      disabled={disabled}
+                      aria-label={
+                        this.props.accessibleLabels?.closeTab?.(
+                          item.accessibleLabel ?? item.searchText
+                        ) ?? `Close ${item.searchText} tab`
+                      }
+                      onClick={this.onCloseTab}
+                    >
+                      <Octicon symbol={octicons.x} />
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        <div className="settings-browser-tab-actions">
+          <button
+            type="button"
+            className="settings-browser-tab-action search"
+            aria-label={searchLabel}
+            aria-haspopup="dialog"
+            aria-expanded={this.state.pickerScope === 'all'}
+            aria-controls={`settings-${this.props.strip}-tab-picker`}
+            disabled={disabled}
+            onClick={this.onOpenSearch}
+          >
+            <Octicon symbol={octicons.search} />
+          </button>
+          {showNewTab && (
+            <button
+              type="button"
+              className="settings-browser-tab-action"
+              aria-label={openNewTabLabel}
+              title={!hasClosedPage ? allPagesOpenLabel : undefined}
+              aria-haspopup="dialog"
+              aria-expanded={this.state.pickerScope === 'new'}
+              aria-controls={`settings-${this.props.strip}-tab-picker`}
+              disabled={disabled || !hasClosedPage}
+              onClick={this.onOpenNewTab}
+            >
+              <Octicon symbol={octicons.plus} />
+            </button>
+          )}
+          {this.state.overflowIds.length > 0 && (
+            <button
+              type="button"
+              className="settings-browser-tab-action overflow"
+              aria-label={
+                this.props.accessibleLabels?.morePages?.(
+                  this.state.overflowIds.length
+                ) ??
+                `${this.state.overflowIds.length} more ${this.props.title} pages`
+              }
+              aria-haspopup="dialog"
+              aria-expanded={this.state.pickerScope === 'overflow'}
+              aria-controls={`settings-${this.props.strip}-tab-picker`}
+              disabled={disabled}
+              onClick={this.onOpenOverflow}
+            >
+              <Octicon symbol={octicons.kebabHorizontal} />
+              <span>{this.state.overflowIds.length}</span>
+            </button>
+          )}
+        </div>
+        {this.renderPicker()}
+      </div>
+    )
+  }
+
   public render() {
+    if (this.props.variant === 'browser') {
+      return this.renderBrowser()
+    }
+
     const { ordered, pinnedCount } = this.ordered
     const { selectedId, disabled } = this.props
 
@@ -360,6 +845,7 @@ export class SettingsTabStrip extends React.Component<
                 type="button"
                 role="tab"
                 aria-selected={selected}
+                aria-controls={selected ? this.getTabPanelId(item) : undefined}
                 tabIndex={selected ? undefined : -1}
                 disabled={disabled}
                 aria-disabled={disabled ? 'true' : undefined}

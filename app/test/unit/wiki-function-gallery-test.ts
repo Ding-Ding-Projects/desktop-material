@@ -19,6 +19,8 @@ const historicalGalleryAssets = [
   ...historicalLinuxAssets,
   'auto-updater-update-ready.png',
   'material-command-palette-notification-before.png',
+  'material-actions-job-log-404-recovery.png',
+  'material-actions-job-log-404-recovered.png',
 ].sort()
 
 describe('wiki function screenshot catalog', () => {

@@ -109,6 +109,7 @@ interface IPopoverProps {
    * which the tip is presented. Optional. Default: Center
    */
   readonly className?: string
+  readonly id?: string
   readonly style?: React.CSSProperties
   readonly appearEffect?: PopoverAppearEffect
   readonly ariaLabelledby?: string
@@ -330,6 +331,7 @@ export class Popover extends React.Component<IPopoverProps, IPopoverState> {
     const {
       trapFocus,
       className,
+      id,
       appearEffect,
       children,
       decoration,
@@ -405,6 +407,7 @@ export class Popover extends React.Component<IPopoverProps, IPopoverState> {
 
     const content = (
       <div
+        id={id}
         className={cn}
         style={style}
         ref={this.containerDivRef}

@@ -424,6 +424,89 @@ sorts only the remaining accounts, and persists that order for the next launch.
 - The required production build was attempted through the hidden Lowlevel
   route. Its compiler worker stopped without a returned client exit status, so
   the rail surface has no runtime capture and no runtime success is claimed.
+## 2026-08-05 — shared browser-style tabs for settings surfaces
+
+Global Settings, Repository Settings, and Stash Manager now render through the
+same horizontal `SettingsTabStrip` browser chrome. The surfaces share stable
+page IDs, close/reopen actions, measured overflow, anchored page search with
+regex-builder access, horizontal keyboard navigation, linked active panels,
+localized accessible action names, and per-surface open-page persistence.
+Repository Settings passes its complete page catalogue separately from its
+filtered display so a search cannot silently close pages. Storage reconciliation
+removes duplicates, malformed values, stale pages, and long stale prefixes
+before the session is rendered.
+
+### Local verification
+
+- The combined focused UI, style, documentation, and wiki suites pass **111
+  tests, 111 passed, 0 failed** across the shared strip, Repository Settings
+  search, Stash Manager, compact settings styles, responsive dialog styles,
+  generated screenshot pages, and the wiki gallery. The added cases cover
+  repository-scoped pin migration, filtered first-visit catalogue handling,
+  disabled context-menu protection, picker focus restoration, all-pages search
+  reachability, and the empty-result combobox/listbox relationship.
+- The exact production build completed through the required cheap Lowlevel
+  headless route with exit code 0:
+  `npx --no-install cross-env RELEASE_CHANNEL=development
+  DESKTOP_SKIP_PACKAGE=1 yarn build:prod`. It emitted the renderer and main
+  outputs, built the shell extension, refreshed licenses, and passed the
+  stylesheet checks. The analyzer's existing `import.meta` parsing warning and
+  normal Sass/dependency deprecation warnings were non-fatal.
+- The TypeScript audit is now limited to one unchanged dependency diagnostic:
+  `app/node_modules/dexie/dist/dexie.d.ts(1011,23): TS1540`. No changed source
+  file appears in that baseline diagnostic; the TypeScript 6 compatibility
+  options remain recorded in the relevant `tsconfig.json` files.
+- The real production Electron artifact ran on hidden desktop
+  `dm-tabs-d9ad5763` with the disposable `fixture` repository. The exact HWND
+  was resolved from that desktop at runtime, and CDP captured and visually
+  inspected the 1440×960 Global Settings, Repository Settings, and Stash
+  Manager frames. The promoted SHA-256 values are:
+
+  | Surface | Asset | SHA-256 |
+  | --- | --- | --- |
+  | Global Settings | `docs/assets/screenshots/material-settings.png` | `43ff361771efeeeb01eb8b40b778b9a4e5b3a311457fc632271d9ad4aa513fc` |
+  | Repository Settings | `docs/assets/screenshots/material-remote-manager.png` | `4850a060ed8ffb9c8fd06bf013e6b503b4928c58bf0449c45e56887be09ad962` |
+  | Stash Manager | `docs/assets/screenshots/material-stash-manager.png` | `52254a7b62ba0a9ce3d84c19fe3cd5e4e30a37ede79d3122afa57665b9759ca3` |
+
+- The run manifest is
+  `.codex/verification/settings-browser-tabs-headless-run-manifest.json`.
+  The MCP HTTP endpoint was saturated by an unrelated capture job, so the
+  sanctioned installed Cheap Version CLI was used against the same cheap
+  headless route; no visible-desktop interaction was used.
+- The broader Pages gallery contract remains red for unrelated issue #23:
+  `node --test .codex/verification/verify_pages_gallery_cdp_contract.test.js`
+  reports **3 passed, 1 failed** because
+  `docs/assets/screenshots/material-repository-tools-scroll.png` is `960×420`
+  while that pre-existing contract expects `1000×679`. This settings milestone
+  does not modify that asset.
+
+### Documentation
+
+- Added the categorized feature article
+  `docs/features/identity-and-workspace/settings-browser-tabs.md` and linked it
+  from the category index, wiki User Guide, README feature summary, roadmap,
+  landing-page feature card, screenshot tab, and current gallery frames.
+- Regenerated the docs hub after the article update. The three existing gallery
+  filenames now contain the accepted browser-tab frames, so screenshot-page
+  contracts keep 91 published gallery outputs plus 7 retained historical PNG
+  frames, for 98 generated screenshot pages; the 91-frame Pages acceptance gate
+  remains separate and has no orphan assets.
+
+### Build recovery notes
+
+The first two production-build attempts exposed environment and compiler
+conditions that are now recorded for the next handoff. The exact dependency
+recovery was `npm rebuild fs-admin --prefix app`,
+`node-gyp rebuild` in `app/node_modules/desktop-trampoline`,
+`node app/node_modules/dugite/script/download-git.js`, and initialization of
+the repository's existing gemoji, choosealicense, and gitignore submodules.
+The repository's TypeScript 6 run also required explicit `rootDir`/
+`ignoreDeprecations` compatibility settings and narrow buffer/ArrayBuffer
+boundary casts. The final build additionally required the pre-existing
+top-level Sass nesting correction in `_launchpad.scss` and a webpack resolver
+rule for the installed `react-confetti` `.mjs` dependency. The cheap MCP
+endpoint saturation was a route limitation, not a build failure; the installed
+Cheap Version fallback completed the same headless verification.
 
 ## 2026-08-05 — Super Express packaging lanes parallelized
 

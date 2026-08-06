@@ -18,6 +18,14 @@
 > guide](docs/features/integrations/actions-workflow-manager.md).
 
 ![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
+> **Browser-style settings tabs:** Global Settings, Repository Settings, and
+> Stash Manager now share horizontal tabs with open/close/reopen actions,
+> overflow discovery, linked panels, keyboard navigation, localized labels, and
+> session-safe persistence. See [browser-style settings tabs](docs/features/identity-and-workspace/settings-browser-tabs.md).
+
+| Global Settings | Repository Settings | Stash Manager |
+| --- | --- | --- |
+| <img src="docs/assets/screenshots/material-settings.png" alt="Global Settings with browser-style tabs, close actions, search, and overflow" width="320"> | <img src="docs/assets/screenshots/material-remote-manager.png" alt="Repository Settings with browser-style tabs and the Remote page selected" width="320"> | <img src="docs/assets/screenshots/material-stash-manager.png" alt="Stash Manager with browser-style Manage, Export, History, and Appearance and voice pages" width="320"> |
 
 > **Full-width History Graph page — August 5, 2026:** the repository rail now
 > gives the ancestry graph its own **Graph** page, so Branch / Tag, Graph, and
@@ -353,7 +361,7 @@ interactive run commands.
 The five dated Linux/Xvfb captures remain preserved in the
 [historical TUI verification record](docs/verification/linux-tui-2026-07-27/run-manifest.md).
 They are not presented as current Windows evidence and are excluded from the
-86-scene guided gallery and its refresh plan.
+91-scene guided gallery and its refresh plan.
 
 ## Explore the tabs
 

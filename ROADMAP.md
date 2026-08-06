@@ -109,6 +109,22 @@ Updated: **August 5, 2026**
   build also required and now includes a minimal Launchpad Sass brace fix so
   its declared renderer path compiles.
 
+## August 5 — settings surfaces share browser-style tabs
+
+- Global Settings, Repository Settings, and Stash Manager now use the shared
+  horizontal browser-tab surface instead of separate vertical rails or bespoke
+  pill rows. Pages can be opened, closed, discovered through overflow, and
+  reached with `Left`, `Right`, `Home`, and `End`.
+- The tab model persists open pages independently for each surface, preserves
+  the full page catalogue while a search narrows the visible list, and cleans
+  stale or malformed stored IDs before rendering. Active panels now carry the
+  matching `tabpanel` and focus returns to a surviving tab after close/open.
+- Combined focused UI, style, documentation, and wiki coverage passes
+  **111/111**. The exact production build exits 0, and
+  the built Electron artifact has inspected 1440×960 hidden-desktop frames for
+  all three surfaces. The current-source frames are evidence for the UI
+  milestone, not installer or release evidence.
+
 ## August 3 — the site lays out on a phone
 
 - The rebuilt site pushed the page 717px wide inside a 375px viewport. Every

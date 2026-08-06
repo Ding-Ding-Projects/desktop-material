@@ -1482,6 +1482,9 @@ export type TranslationKey =
   | 'stashManager.dialogTitle'
   | 'stashManager.dialogDescription'
   | 'stashManager.dialogTabsAria'
+  | 'stashManager.openNewTabAction'
+  | 'stashManager.allPagesOpen'
+  | 'stashManager.morePages'
   | 'stashManager.manageTab'
   | 'stashManager.exportTab'
   | 'stashManager.historyTab'
@@ -1809,6 +1812,8 @@ export type TranslationKey =
   | 'color.rose'
   | 'settings.notificationsEnableTitle'
   | 'settings.notificationsEnableDescription'
+  | 'settings.dialogTitle'
+  | 'settings.closeAction'
   | 'settings.automationAutoCommitPushTitle'
   | 'settings.automationAutoCommitPushDescription'
   | 'settings.automationAutoPullTitle'
@@ -1816,6 +1821,29 @@ export type TranslationKey =
   | 'settings.automationIntervalEvery'
   | 'settings.automationIntervalMinutes'
   | 'settings.automationIntervalGroupLabel'
+  | 'settings.globalTabsLabel'
+  | 'settings.accountsTab'
+  | 'settings.integrationsTab'
+  | 'settings.copilotTab'
+  | 'settings.gitTab'
+  | 'settings.appearanceTab'
+  | 'settings.notificationsTab'
+  | 'settings.promptsTab'
+  | 'settings.advancedTab'
+  | 'settings.accessibilityTab'
+  | 'settings.agentAccessTab'
+  | 'settings.selfHostedServerTab'
+  | 'settings.automationTab'
+  | 'settings.aiTab'
+  | 'settings.browserTabSearch'
+  | 'settings.browserTabOpenNew'
+  | 'settings.browserTabAllOpen'
+  | 'settings.browserTabMore'
+  | 'settings.browserTabClose'
+  | 'settings.browserTabPin'
+  | 'settings.browserTabUnpin'
+  | 'settings.browserTabPickerTitle'
+  | 'settings.browserTabNoMatches'
   | 'settings.queueTab'
   | 'settings.queueHeading'
   | 'settings.queueDescription'
@@ -2108,6 +2136,8 @@ export type TranslationKey =
   | 'repositorySettings.tabAppearance'
   | 'repositorySettings.tabAISecurity'
   | 'repositorySettings.tabForkSettings'
+  | 'repositorySettings.tabsLabel'
+  | 'repositorySettings.dialogTitle'
   | 'commandPalette.homeRepositorySettings'
   | 'palette.repositorySettingsRemote'
   | 'palette.repositorySettingsIgnoredFiles'
@@ -5465,6 +5495,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'stashManager.dialogDescription':
     'Name, search, review, restore, and export every local stash. The inventory has no entry-count cap; Git storage and the bounded metadata read are the practical limits.',
   'stashManager.dialogTabsAria': 'Stash manager sections',
+  'stashManager.openNewTabAction': 'Open a Stash manager page in a new tab',
+  'stashManager.allPagesOpen': 'All Stash manager pages are already open',
+  'stashManager.morePages': '{count} more Stash manager pages',
   'stashManager.manageTab': 'Manage',
   'stashManager.exportTab': 'Export',
   'stashManager.historyTab': 'History',
@@ -5848,6 +5881,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'color.green': 'Green',
   'color.amber': 'Amber',
   'color.rose': 'Rose',
+  'settings.dialogTitle': 'Settings',
+  'settings.closeAction': 'Close',
   'settings.notificationsEnableTitle': 'Enable notifications',
   'settings.notificationsEnableDescription':
     'Allows the display of notifications when high-signal events take place in the current repository.',
@@ -5860,6 +5895,29 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.automationIntervalEvery': 'Every',
   'settings.automationIntervalMinutes': '{minutes} min',
   'settings.automationIntervalGroupLabel': '{title} interval',
+  'settings.globalTabsLabel': 'Settings pages',
+  'settings.accountsTab': 'Accounts',
+  'settings.integrationsTab': 'Integrations',
+  'settings.copilotTab': 'Copilot',
+  'settings.gitTab': 'Git',
+  'settings.appearanceTab': 'Appearance',
+  'settings.notificationsTab': 'Notifications',
+  'settings.promptsTab': 'Prompts',
+  'settings.advancedTab': 'Advanced',
+  'settings.accessibilityTab': 'Accessibility',
+  'settings.agentAccessTab': 'Agent access',
+  'settings.selfHostedServerTab': 'Self-hosted server',
+  'settings.automationTab': 'Automation',
+  'settings.aiTab': 'AI',
+  'settings.browserTabSearch': 'Search {surface}',
+  'settings.browserTabOpenNew': 'Open a {surface} page in a new tab',
+  'settings.browserTabAllOpen': 'All {surface} pages are already open',
+  'settings.browserTabMore': '{count} more {surface} pages',
+  'settings.browserTabClose': 'Close {page} tab',
+  'settings.browserTabPin': 'Pin {page} tab',
+  'settings.browserTabUnpin': 'Unpin {page} tab',
+  'settings.browserTabPickerTitle': 'Choose a {surface} page',
+  'settings.browserTabNoMatches': 'No {surface} page matches that.',
   'settings.queueTab': 'Clone queue',
   'settings.queueHeading': 'Clone queue',
   'settings.queueDescription':
@@ -6216,6 +6274,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositorySettings.tabAppearance': 'Appearance',
   'repositorySettings.tabAISecurity': 'AI features',
   'repositorySettings.tabForkSettings': 'Fork settings',
+  'repositorySettings.tabsLabel': 'Repository settings pages',
+  'repositorySettings.dialogTitle': 'Repository settings',
   'commandPalette.homeRepositorySettings': 'Repository settings ▸ {tab}',
   'palette.repositorySettingsRemote': 'Repository remotes',
   'palette.repositorySettingsIgnoredFiles': 'Ignored files',
@@ -9937,6 +9997,9 @@ export const cantoneseTranslations: Readonly<
   'stashManager.dialogDescription':
     '可以命名、搜尋、覆核、還原同匯出所有本機 stash。清單冇項目數上限；實際界線係 Git 儲存量同有界 metadata 讀取。',
   'stashManager.dialogTabsAria': 'Stash 管理員分區',
+  'stashManager.openNewTabAction': '開新分頁打開 Stash 管理員頁面',
+  'stashManager.allPagesOpen': 'Stash 管理員頁面已經全部開晒',
+  'stashManager.morePages': '仲有 {count} 個 Stash 管理員頁面',
   'stashManager.manageTab': '管理',
   'stashManager.exportTab': '匯出',
   'stashManager.historyTab': '歷史',
@@ -10296,6 +10359,8 @@ export const cantoneseTranslations: Readonly<
   'color.green': '綠色',
   'color.amber': '琥珀色',
   'color.rose': '玫瑰色',
+  'settings.dialogTitle': '設定',
+  'settings.closeAction': '關閉',
   'settings.notificationsEnableTitle': '開啟通知',
   'settings.notificationsEnableDescription':
     '喺目前 repository 有重要事件發生嗰陣，即刻彈通知話你知。',
@@ -10308,6 +10373,29 @@ export const cantoneseTranslations: Readonly<
   'settings.automationIntervalEvery': '每隔',
   'settings.automationIntervalMinutes': '{minutes} 分鐘',
   'settings.automationIntervalGroupLabel': '{title}間隔',
+  'settings.globalTabsLabel': '設定頁面',
+  'settings.accountsTab': '帳戶',
+  'settings.integrationsTab': '整合',
+  'settings.copilotTab': 'Copilot',
+  'settings.gitTab': 'Git',
+  'settings.appearanceTab': '外觀',
+  'settings.notificationsTab': '通知',
+  'settings.promptsTab': '提示詞',
+  'settings.advancedTab': '進階',
+  'settings.accessibilityTab': '無障礙',
+  'settings.agentAccessTab': 'Agent 存取權',
+  'settings.selfHostedServerTab': '自託管伺服器',
+  'settings.automationTab': '自動化',
+  'settings.aiTab': 'AI',
+  'settings.browserTabSearch': '搵 {surface}',
+  'settings.browserTabOpenNew': '開新分頁打開 {surface} 頁面',
+  'settings.browserTabAllOpen': '{surface} 頁面已經全部開晒',
+  'settings.browserTabMore': '仲有 {count} 個 {surface} 頁面',
+  'settings.browserTabClose': '關閉 {page} 分頁',
+  'settings.browserTabPin': '釘選 {page} 分頁',
+  'settings.browserTabUnpin': '取消釘選 {page} 分頁',
+  'settings.browserTabPickerTitle': '揀一個 {surface} 頁面',
+  'settings.browserTabNoMatches': '搵唔到啱嘅 {surface} 頁面。',
   'settings.queueTab': 'Clone 隊列',
   'settings.queueHeading': 'Clone 隊列',
   'settings.queueDescription':
@@ -10648,6 +10736,8 @@ export const cantoneseTranslations: Readonly<
   'repositorySettings.tabAppearance': '外觀',
   'repositorySettings.tabAISecurity': 'AI 功能',
   'repositorySettings.tabForkSettings': 'Fork 設定',
+  'repositorySettings.tabsLabel': '儲存庫設定頁面',
+  'repositorySettings.dialogTitle': '儲存庫設定',
   'commandPalette.homeRepositorySettings': '儲存庫設定 ▸ {tab}',
   'palette.repositorySettingsRemote': '遠端設定',
   'palette.repositorySettingsIgnoredFiles': '忽略檔案',

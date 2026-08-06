@@ -329,6 +329,13 @@
       d: 'The repository sheet is a searchable workspace switcher rather than a flat recent list. It groups pinned repositories first, can show or hide the Recent group, and keeps…',
     },
     {
+      t: 'Browser-style settings tabs',
+      h: 'features/identity-and-workspace/settings-browser-tabs.html',
+      s: 'features/identity-and-workspace/settings-browser-tabs.md',
+      c: 'features',
+      d: 'Global Settings, Repository Settings, and Stash Manager use the same horizontal browser-style tab surface. Each page has a stable identity, a visible active state, a close…',
+    },
+    {
       t: 'Settings search / 設定搜尋',
       h: 'features/identity-and-workspace/settings-search.html',
       s: 'features/identity-and-workspace/settings-search.md',
@@ -495,6 +502,13 @@
       s: 'features/integrations/repository-releases-dashboard.md',
       c: 'features',
       d: 'Open Releases from a GitHub repository rail to search and status-filter the bounded loaded catalog, select a release, inspect metadata and assets, or enter the existing…',
+    },
+    {
+      t: 'Self-hosted Windows dependency bootstrap',
+      h: 'features/integrations/self-hosted-windows-dependency-bootstrap.html',
+      s: 'features/integrations/self-hosted-windows-dependency-bootstrap.md',
+      c: 'features',
+      d: 'The Windows self-hosted CI path must install dependencies before any build, cache validation, or cross-compilation step invokes Yarn. The repository keeps Yarn 1.21.1 in…',
     },
     {
       t: 'SSH working copies and remote clone',
@@ -753,7 +767,7 @@
       h: 'features/repository-management/advanced-history-discovery.html',
       s: 'features/repository-management/advanced-history-discovery.md',
       c: 'features',
-      d: 'The History sidebar can search loaded commits by title, body, author, tag, or full/short object ID using fuzzy, substring, or regular-expression matching. Its filter chips…',
+      d: 'The History page can search loaded commits by title, body, author, tag, or full/short object ID using fuzzy, substring, or regular-expression matching. Its filter chips narrow…',
     },
     {
       t: 'Automatic commit and push batching',
@@ -845,6 +859,13 @@
       s: 'features/repository-management/ignored-files-to-local-submodule.md',
       c: 'features',
       d: 'A reviewed workflow that copies working files Git itself currently proves are ignored into a newly created local Git repository and registers that repository as a submodule of…',
+    },
+    {
+      t: 'Multi-remote fetch sync',
+      h: 'features/repository-management/multi-remote-fetch-sync.html',
+      s: 'features/repository-management/multi-remote-fetch-sync.md',
+      c: 'features',
+      d: "The repository toolbar's ordinary Fetch action now reflects the complete configured topology. A checkout with more than one Git remote is fetched from every configured remote,…",
     },
     {
       t: 'Named multi-stash manager',
@@ -943,6 +964,13 @@
       s: 'features/repository-management/repository-picker-filters-and-visibility.md',
       c: 'features',
       d: 'The repository side sheet combines text search with account, provider, and status filters so a large local workspace can be narrowed without changing its saved repository list.',
+    },
+    {
+      t: 'Repository transfer',
+      h: 'features/repository-management/repository-transfer.html',
+      s: 'features/repository-management/repository-transfer.md',
+      c: 'features',
+      d: 'Transfer repository moves a GitHub-backed repository into a repository owned by another signed-in GitHub account or organization. It is available from the Repository menu, the…',
     },
     {
       t: 'Reviewed batch repository sync',
@@ -1456,6 +1484,13 @@
       d: 'One of the design decision early on with GitHub Desktop assumed a high-fidelity application menu. On macOS we get that for free since the application menu is detached from the…',
     },
     {
+      t: 'Cross-provider account switching recheck — 2026-08-05',
+      h: 'verification/account-switching-recheck-2026-08-05/run-manifest.html',
+      s: 'verification/account-switching-recheck-2026-08-05/run-manifest.md',
+      c: 'verification',
+      d: 'Mode: local-docs',
+    },
+    {
       t: 'Agent repair and background progress verification — 2026-07-30',
       h: 'verification/agent-repair-progress-2026-07-30.html',
       s: 'verification/agent-repair-progress-2026-07-30.md',
@@ -1603,6 +1638,20 @@
       d: 'Run ID: close-all-open-issues-20260728',
     },
     {
+      t: 'Cleanup ledger',
+      h: 'verification/dirty-worktree-worktree-option-20260805/cleanup-ledger.html',
+      s: 'verification/dirty-worktree-worktree-option-20260805/cleanup-ledger.md',
+      c: 'verification',
+      d: 'The source fixture was verified before cleanup: feature/worktree-switch retained one modified README.md, while the new main worktree was clean and the application reported zero…',
+    },
+    {
+      t: 'Dirty-worktree worktree option — headless verification manifest',
+      h: 'verification/dirty-worktree-worktree-option-20260805/run-manifest.html',
+      s: 'verification/dirty-worktree-worktree-option-20260805/run-manifest.md',
+      c: 'verification',
+      d: 'Mode: publish',
+    },
+    {
       t: 'Funny-level sliders — built-app capture, 2026-07-28',
       h: 'verification/funny-level-sliders-2026-07-28/',
       s: 'verification/funny-level-sliders-2026-07-28/README.md',
@@ -1727,6 +1776,13 @@
       s: 'verification/repository-list-agent-dialog-2026-08-02/run-manifest.md',
       c: 'verification',
       d: 'Run ID: repository-list-agent-dialog-20260802',
+    },
+    {
+      t: 'Repository transfer headless verification — 2026-08-05',
+      h: 'verification/repository-transfer-2026-08-05/run-manifest.html',
+      s: 'verification/repository-transfer-2026-08-05/run-manifest.md',
+      c: 'verification',
+      d: 'Mode: capture-only',
     },
     {
       t: 'Responsive surface matrix — 2026-07-17',
