@@ -2604,6 +2604,31 @@ export type TranslationKey =
   | 'branchRules.filterNoMatchesInList'
   | 'cheapLfs.files.one'
   | 'cheapLfs.files.many'
+  | 'cheapLfs.workingTree.menu.one'
+  | 'cheapLfs.workingTree.menu.many'
+  | 'cheapLfs.workingTree.menu.wholeFileRequired'
+  | 'cheapLfs.workingTree.title'
+  | 'cheapLfs.workingTree.reviewBody'
+  | 'cheapLfs.workingTree.reviewWarning'
+  | 'cheapLfs.workingTree.skipped.one'
+  | 'cheapLfs.workingTree.skipped.many'
+  | 'cheapLfs.workingTree.skipped.deleted'
+  | 'cheapLfs.workingTree.skipped.partial'
+  | 'cheapLfs.workingTree.progress.label'
+  | 'cheapLfs.workingTree.progress.files'
+  | 'cheapLfs.workingTree.progress.count'
+  | 'cheapLfs.workingTree.progress.canceling'
+  | 'cheapLfs.workingTree.result.canceled'
+  | 'cheapLfs.workingTree.result.stored.one'
+  | 'cheapLfs.workingTree.result.stored.many'
+  | 'cheapLfs.workingTree.result.storedLabel'
+  | 'cheapLfs.workingTree.result.unchangedLabel'
+  | 'cheapLfs.workingTree.result.error'
+  | 'cheapLfs.workingTree.result.unknownError'
+  | 'cheapLfs.workingTree.done'
+  | 'cheapLfs.workingTree.canceling'
+  | 'cheapLfs.workingTree.store.one'
+  | 'cheapLfs.workingTree.store.many'
   | 'cheapLfs.commitBlocked.restoreTitle'
   | 'cheapLfs.commitBlocked.restoreBody'
   | 'cheapLfs.managerRail'
@@ -6838,6 +6863,44 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'branchRules.filterNoMatchesInList': 'No values match the filter',
   'cheapLfs.files.one': '{count} large file',
   'cheapLfs.files.many': '{count} large files',
+  'cheapLfs.workingTree.menu.one': 'Store selected file in cheap LFS…',
+  'cheapLfs.workingTree.menu.many':
+    'Store {count} selected files in cheap LFS…',
+  'cheapLfs.workingTree.menu.wholeFileRequired':
+    'Store in cheap LFS (whole file required)',
+  'cheapLfs.workingTree.title': 'Store files in Cheap LFS?',
+  'cheapLfs.workingTree.reviewBody':
+    'The selected working-tree files will be uploaded to the configured Cheap LFS storage and replaced locally with small pointers. This keeps their raw bytes out of future Git history; it does not delete the uploaded content.',
+  'cheapLfs.workingTree.reviewWarning':
+    'Review the exact files before continuing. A pointer replaces the complete file, so a partial diff selection is never uploaded as though it were a whole file.',
+  'cheapLfs.workingTree.skipped.one':
+    '1 selected file was skipped before upload:',
+  'cheapLfs.workingTree.skipped.many':
+    '{count} selected files were skipped before upload:',
+  'cheapLfs.workingTree.skipped.deleted':
+    'Deleted files have no working-tree bytes to upload.',
+  'cheapLfs.workingTree.skipped.partial':
+    'Select the whole file before replacing it with a pointer.',
+  'cheapLfs.workingTree.progress.label': 'Cheap LFS batch progress',
+  'cheapLfs.workingTree.progress.files': '{completed} of {total} files',
+  'cheapLfs.workingTree.progress.count': '{completed}/{total}',
+  'cheapLfs.workingTree.progress.canceling':
+    'Cancellation requested; finishing safe cleanup…',
+  'cheapLfs.workingTree.result.canceled':
+    'The Cheap LFS batch was canceled. Files not completed were left unchanged.',
+  'cheapLfs.workingTree.result.stored.one': '1 file was stored in Cheap LFS.',
+  'cheapLfs.workingTree.result.stored.many':
+    '{count} files were stored in Cheap LFS.',
+  'cheapLfs.workingTree.result.storedLabel': 'Stored files:',
+  'cheapLfs.workingTree.result.unchangedLabel': 'Files left unchanged:',
+  'cheapLfs.workingTree.result.error':
+    'Cheap LFS could not complete this batch: {error}',
+  'cheapLfs.workingTree.result.unknownError':
+    'The provider returned no safe error detail.',
+  'cheapLfs.workingTree.done': 'Done',
+  'cheapLfs.workingTree.canceling': 'Canceling…',
+  'cheapLfs.workingTree.store.one': 'Store file in Cheap LFS',
+  'cheapLfs.workingTree.store.many': 'Store {count} files in Cheap LFS',
   'cheapLfs.commitBlocked.restoreTitle': 'Commit waits for the file restore',
   'cheapLfs.commitBlocked.restoreBody':
     'A Cheap LFS file clone or restore is still running in {name}. No commit started. Wait for its progress to finish, then retry.',
@@ -11270,6 +11333,38 @@ export const cantoneseTranslations: Readonly<
   'branchRules.filterNoMatchesInList': '呢個清單冇數值啱',
   'cheapLfs.files.one': '{count} 個大檔案',
   'cheapLfs.files.many': '{count} 個大檔案',
+  'cheapLfs.workingTree.menu.one': '將揀咗嘅檔案存入 cheap LFS…',
+  'cheapLfs.workingTree.menu.many': '將揀咗嘅 {count} 個檔案存入 cheap LFS…',
+  'cheapLfs.workingTree.menu.wholeFileRequired':
+    '存入 cheap LFS（要揀成個檔案）',
+  'cheapLfs.workingTree.title': '將檔案存入 Cheap LFS？',
+  'cheapLfs.workingTree.reviewBody':
+    '揀咗嘅工作目錄檔案會上載去已設定嘅 Cheap LFS 儲存位置，然後喺本機換成細小 pointer。咁樣可以避免原始 bytes 污染日後嘅 Git 歷史；已上載嘅內容唔會刪除。',
+  'cheapLfs.workingTree.reviewWarning':
+    '繼續之前請核對清楚檔案。pointer 會取代成個檔案，所以只揀咗部分 diff 時，絕對唔會當成完整檔案上載。',
+  'cheapLfs.workingTree.skipped.one': '1 個揀咗嘅檔案喺上載之前已跳過：',
+  'cheapLfs.workingTree.skipped.many': '{count} 個揀咗嘅檔案喺上載之前已跳過：',
+  'cheapLfs.workingTree.skipped.deleted':
+    '刪除咗嘅檔案冇工作目錄 bytes 可以上載。',
+  'cheapLfs.workingTree.skipped.partial':
+    '請揀成個檔案，先可以用 pointer 取代佢。',
+  'cheapLfs.workingTree.progress.label': 'Cheap LFS 成批進度',
+  'cheapLfs.workingTree.progress.files': '已完成 {completed}/{total} 個檔案',
+  'cheapLfs.workingTree.progress.count': '{completed}/{total}',
+  'cheapLfs.workingTree.progress.canceling': '已要求取消；而家完成安全清理緊……',
+  'cheapLfs.workingTree.result.canceled':
+    'Cheap LFS 成批操作已取消。未完成嘅檔案保持原狀。',
+  'cheapLfs.workingTree.result.stored.one': '1 個檔案已存入 Cheap LFS。',
+  'cheapLfs.workingTree.result.stored.many': '{count} 個檔案已存入 Cheap LFS。',
+  'cheapLfs.workingTree.result.storedLabel': '已存入嘅檔案：',
+  'cheapLfs.workingTree.result.unchangedLabel': '保持原狀嘅檔案：',
+  'cheapLfs.workingTree.result.error': 'Cheap LFS 未能完成呢批操作：{error}',
+  'cheapLfs.workingTree.result.unknownError':
+    '儲存服務冇提供可以安全顯示嘅錯誤詳情。',
+  'cheapLfs.workingTree.done': '完成',
+  'cheapLfs.workingTree.canceling': '取消緊……',
+  'cheapLfs.workingTree.store.one': '將檔案存入 Cheap LFS',
+  'cheapLfs.workingTree.store.many': '將 {count} 個檔案存入 Cheap LFS',
   'cheapLfs.commitBlocked.restoreTitle': 'Commit 要等檔案還原完成',
   'cheapLfs.commitBlocked.restoreBody':
     '「{name}」仲有 Cheap LFS 檔案 clone 緊或還原緊。今次未有開始 commit；等進度跑完再試，唔好同個檔案玩搶櫈仔。',

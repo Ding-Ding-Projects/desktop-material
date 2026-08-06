@@ -91,6 +91,7 @@ import { createFileHistoryMenuItem } from '../file-history'
 import {
   getPersistedLanguageMode,
   LanguageModeChangedEvent,
+  t,
   translateForAccessibleName,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
@@ -1042,8 +1043,56 @@ export class FilterChangesList extends React.Component<
       )
     }
 
+    const cheapLfsTargets = selectedFiles.filter(
+      selectedFile =>
+        selectedFile.status.kind !== AppFileStatusKind.Deleted &&
+        selectedFile.selection.getSelectionType() !== DiffSelectionType.Partial
+    )
+    const cheapLfsExcludedPaths = selectedFiles.flatMap(selectedFile => {
+      if (selectedFile.status.kind === AppFileStatusKind.Deleted) {
+        return [
+          {
+            path: selectedFile.path,
+            reason: t('cheapLfs.workingTree.skipped.deleted'),
+          },
+        ]
+      }
+      if (
+        selectedFile.selection.getSelectionType() === DiffSelectionType.Partial
+      ) {
+        return [
+          {
+            path: selectedFile.path,
+            reason: t('cheapLfs.workingTree.skipped.partial'),
+          },
+        ]
+      }
+      return []
+    })
+    const cheapLfsLabel =
+      cheapLfsTargets.length === 0 && cheapLfsExcludedPaths.length > 0
+        ? t('cheapLfs.workingTree.menu.wholeFileRequired')
+        : cheapLfsTargets.length === 1
+        ? t('cheapLfs.workingTree.menu.one')
+        : t('cheapLfs.workingTree.menu.many', {
+            count: String(cheapLfsTargets.length),
+          })
+
     const enabled = status.kind !== AppFileStatusKind.Deleted
-    items.push({ type: 'separator' })
+    items.push(
+      { type: 'separator' },
+      {
+        label: cheapLfsLabel,
+        action: () =>
+          void this.props.dispatcher.showPopup({
+            type: PopupType.StoreWorkingTreeFilesInCheapLfs,
+            repository: this.props.repository,
+            paths: cheapLfsTargets.map(target => target.path),
+            excludedPaths: cheapLfsExcludedPaths,
+          }),
+        enabled: cheapLfsTargets.length > 0,
+      }
+    )
     if (paths.length === 1) {
       items.push(
         createFileHistoryMenuItem(

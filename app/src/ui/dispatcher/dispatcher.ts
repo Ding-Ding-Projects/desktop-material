@@ -21,6 +21,8 @@ import {
   ICheapLfsManagedPointerEntry,
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
+  ICheapLfsAutoPinProgress,
+  ICheapLfsWorkingTreePinResult,
   CheapLfsPinStage,
 } from '../../lib/cheap-lfs/operations'
 import type { ICheapLfsOciMutationResult } from '../../lib/cheap-lfs/oci-operations'
@@ -3553,6 +3555,21 @@ export class Dispatcher {
       onProgress,
       onStage,
       onHashProgress
+    )
+  }
+
+  /** Store an explicit working-tree selection in Cheap LFS as one batch. */
+  public storeWorkingTreeFilesInCheapLfs(
+    repository: Repository,
+    paths: ReadonlyArray<string>,
+    signal?: AbortSignal,
+    onProgress?: (progress: ICheapLfsAutoPinProgress) => void
+  ): Promise<ICheapLfsWorkingTreePinResult> {
+    return this.appStore._storeWorkingTreeFilesInCheapLfs(
+      repository,
+      paths,
+      signal,
+      onProgress
     )
   }
 
