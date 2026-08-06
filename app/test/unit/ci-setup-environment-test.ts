@@ -37,6 +37,18 @@ describe('CI environment setup', () => {
       setupAction,
       /app\/node_modules\/react-confetti\/package\.json/
     )
+    assert.match(
+      setupAction,
+      /app\/node_modules\/react-confetti\/dist\/react-confetti\.mjs/
+    )
+    assert.match(
+      setupAction,
+      /node_modules\/electron\/dist\/electron\.exe/
+    )
+    assert.match(
+      setupAction,
+      /app\/node_modules\/@github\/copilot-win32-\$\{\{ inputs\.arch \}\}\/package\.json/
+    )
     assert.match(setupAction, /cache-dependency-path:[\s\S]*?app\/yarn\.lock/)
     assert.match(setupAction, /actions\/setup-python@v6/)
     assert.match(setupAction, /missing Playwright ffmpeg/)

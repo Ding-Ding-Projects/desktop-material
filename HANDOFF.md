@@ -1,5 +1,24 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-05 — Harden the Windows dependency cache and preserve Team View styling
+
+The CI dependency-cache hit path now validates the actual Electron runtime,
+targeted Copilot package, and `react-confetti` ESM entry for the current
+runner and architecture before reusing an installed-dependency cache. The
+final dependency verification checks the same `react-confetti` runtime file,
+so a cache containing only package manifests cannot skip installation and then
+fail later in the renderer build.
+
+The Launchpad Team View selectors now live in the shared `.launchpad-view`
+scope rather than only inside the `max-width: 520px` media query. Team View
+therefore retains its layout and state styling on desktop as well as narrow
+Windows windows, while the Sass-safe parent-selector structure remains intact.
+
+Local verification is **32/32** focused CI, dependency, workflow, and
+Launchpad tests, passing ESLint type-checking, and `git diff --check`. A fresh
+production renderer compile after this styling and cache follow-up is still
+pending; remote Windows/Linux runs remain queued.
+
 ## 2026-08-05 — Account-aware repository transfer (verification in progress)
 
 The Windows Electron app now has an account-aware **Transfer repository**
