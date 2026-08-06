@@ -102,7 +102,20 @@ if ($null -ne $LASTEXITCODE -and $LASTEXITCODE -ne 0) {
     throw "Visual Studio ClangCL toolset installation failed with exit code $LASTEXITCODE."
 }
 
-$toolset = Find-ClangToolset $instance.installationPath
+$maxToolsetChecks = 120
+for ($check = 1; $check -le $maxToolsetChecks; $check++) {
+    $toolset = Find-ClangToolset $instance.installationPath
+    if ($toolset) {
+        break
+    }
+    if ($check -lt $maxToolsetChecks) {
+        if (($check % 12) -eq 0) {
+            Write-Host "Waiting for Visual Studio to expose the $TargetArchitecture ClangCL toolset ($check/$maxToolsetChecks)."
+        }
+        Start-Sleep -Seconds 5
+    }
+}
+
 if (-not $toolset) {
     throw "Visual Studio ClangCL toolset installation completed without a usable $TargetArchitecture ClangCL toolset under $($instance.installationPath)."
 }

@@ -67,6 +67,8 @@ describe('CI environment setup', () => {
     assert.match(clangToolsetScript, /--quiet/)
     assert.match(clangToolsetScript, /--norestart/)
     assert.doesNotMatch(clangToolsetScript, /--wait/)
+    assert.match(clangToolsetScript, /maxToolsetChecks = 120/)
+    assert.match(clangToolsetScript, /Start-Sleep -Seconds 5/)
     assert.match(
       arm64ToolsetScript,
       /Microsoft\.VisualStudio\.Component\.VC\.Tools\.ARM64/
