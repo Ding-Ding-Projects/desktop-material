@@ -143,6 +143,7 @@ describe('CI environment setup', () => {
     assert.match(setupAction, /-name ffmpeg-mac/)
     assert.match(setupAction, /-name ffmpeg-win64\.exe/)
     assert.doesNotMatch(setupAction, /-name ['"]?ffmpeg\*['"]?/)
+    assert.doesNotMatch(setupAction, /install-ffmpeg|choco install ffmpeg/)
     assert.match(setupAction, /copilot-win32-\$\{\{ inputs\.arch \}\}/)
     assert.match(
       windowsSigningAction,

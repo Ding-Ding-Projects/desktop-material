@@ -35,6 +35,13 @@ Debian 13, where the hosted Python manifest does not contain the requested
 3.11 x64 entry; relying on that action would fail before the actual lint or
 package work starts.
 
+The Windows E2E lane does not install a second system-wide FFmpeg package.
+The repository post-install step provisions Playwright's pinned FFmpeg payload,
+and the dependency-cache sentinel verifies that payload before a cache is used.
+Avoiding a Chocolatey install keeps the self-hosted Windows service usable
+without administrator rights and prevents a stale system package lock from
+blocking the entire E2E job.
+
 ## Behaviour
 
 ### Dependency update proposals

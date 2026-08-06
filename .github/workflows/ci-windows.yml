@@ -245,7 +245,6 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           arch: ${{ matrix.arch }}
-          install-ffmpeg: 'true'
       - name: Select mock update server port
         uses: ./.github/actions/setup-e2e-update-port
       - name: Build production app
