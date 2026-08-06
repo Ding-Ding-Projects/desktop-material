@@ -1,6 +1,18 @@
 # Desktop Material roadmap
 
-Updated: **August 3, 2026**
+Updated: **August 5, 2026**
+
+## August 5 — rail account switching keeps the chosen identity active
+
+- Selecting an account from the rail switcher now keeps that account first in
+  the active-identity order across GitHub.com and GitHub Enterprise instead of
+  immediately sorting the Enterprise choice back behind GitHub.com.
+- The selected order is persisted and restored on reload; the account switcher
+  and repository-owner auto-switch therefore agree on the same active account.
+- Focused local verification passes: the combined account-switcher contracts,
+  store, repository-owner, and click-handler suites report **55/55**. The
+  required hidden build was attempted through Lowlevel, but its client stalled
+  after the compiler worker stopped and no runtime evidence is claimed.
 
 ## August 3 — the site lays out on a phone
 

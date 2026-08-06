@@ -62,11 +62,6 @@ export function getRepositoryCredentialAccountKey(
  * identity. Reuses `getAccountForRepository`, so all of the binding rules
  * (explicit `accountKey`, endpoint-first fallback for unbound repos) apply
  * unchanged.
- *
- * NOTE: GitHub.com accounts always sort ahead of Enterprise accounts (see
- * `sortAccounts` in accounts-store), so an Enterprise-owned repository cannot
- * become `accounts[0]` while any GitHub.com account is signed in. In that case
- * the visible indicator can only partially follow the repo owner.
  */
 export function getRepositoryOwnerAccountToPromote(
   accounts: ReadonlyArray<Account>,

@@ -63,6 +63,23 @@ endpoint migration, are recorded so the merge neither resurrects nor duplicates
 them. That endpoint migration also moves the token to the new endpoint key,
 because credentials are addressed by endpoint.
 
+## Active account switching
+
+The navigation rail avatar opens the account switcher. Choosing any signed-in
+account makes it the active identity used by the rail indicator and the
+positional account fallbacks, including when the chosen account is on GitHub
+Enterprise and another GitHub.com account is also signed in. The selected
+account remains first in the in-memory and persisted account order; the other
+accounts retain the normal GitHub.com-before-Enterprise grouping within their
+remaining positions. Reopening the switcher therefore shows the same account as
+active after the app has saved or reloaded its metadata.
+
+Choosing the already-active row only closes the switcher. Choosing another row
+closes it and promotes the stable `endpoint#id` identity without changing its
+credential. Tokens remain exclusively in the operating-system credential vault.
+If the account cannot be found in the current signed-in list, promotion is a
+no-op and the existing active identity is preserved.
+
 Credential failures are surfaced, never swallowed. An account whose token
 cannot be written is not added and the failure names the login. An account
 whose stored token is missing or unreadable at startup is reported as needing a

@@ -9754,9 +9754,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     // Reorder via the AccountsStore directly (a pure array reorder + save; no
-    // token re-fetch). NOTE: GitHub.com accounts always sort ahead of
-    // Enterprise accounts, so an Enterprise-owned repo cannot become
-    // `accounts[0]` while any GitHub.com account is signed in.
+    // token re-fetch). AccountsStore keeps the promoted account at
+    // `accounts[0]` even when it is an Enterprise account.
     this.accountsStore.promoteAccount(owner)
   }
 
