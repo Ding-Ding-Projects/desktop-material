@@ -156,7 +156,7 @@ jobs:
       - windows_build
       - tui_build
     if: >-
-      always() && needs.prepare.result == 'success' &&
+      !cancelled() && always() && needs.prepare.result == 'success' &&
       needs.windows_build.result == 'success' && needs.tui_build.result ==
       'success' && inputs.publish
     runs-on:
