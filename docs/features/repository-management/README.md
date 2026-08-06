@@ -5,6 +5,8 @@ Material is displaying or how a repository is represented in the application.
 
 ## Features
 
+- [Launchpad](launchpad.md) — review repository work in a full-width grouped
+  page with truthful counts and empty states.
 - [Selective stashes](selective-stashes.md) — save only an exact reviewed set
   of whole changed files with repository-bound path validation.
 - [Guided sparse checkout](sparse-checkout.md) — select, review every bounded

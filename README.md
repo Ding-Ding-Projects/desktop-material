@@ -50,6 +50,14 @@
 
 Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [GitHub Desktop](https://github.com/desktop/desktop). It rebuilds the entire application shell around Material Design 3 while keeping GitHub Desktop's full Git workflow and the same underlying stack: [TypeScript](https://www.typescriptlang.org), [React](https://react.dev), [Electron](https://www.electronjs.org), and [Sass](https://sass-lang.com). This project is in active development.
 
+> **Launchpad full-width empty state — August 6, 2026:** the repository
+> Launchpad now uses the full workspace width when its grouped inbox is empty,
+> so an intentionally empty sidebar cannot masquerade as missing content. See
+> the [Launchpad feature article](docs/features/repository-management/launchpad.md)
+> for its behavior, failure modes, and verification contract.
+
+![Launchpad full-width empty state with five truthful zero-count groups and no blank sidebar](docs/assets/screenshots/material-launchpad-empty-full-width-20260806.png)
+
 > **Platform support:** Desktop Material ships a Windows Electron desktop
 > application and a revived Linux-first
 > [terminal application](docs/features/linux-tui/README.md). Windows keeps the

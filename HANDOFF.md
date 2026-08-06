@@ -694,7 +694,7 @@ header `Explaining 3 commits`, the commit rows with author and date, then a
 prose summary followed by a **Changes** bullet list naming each modified file
 and what changed in it.
 
-### 9. Launchpad — **NOT STARTED**
+### 9. Launchpad — **PARTIAL**
 
 A prioritized inbox across issues, pull requests and work in progress, grouped
 into collapsible status sections with counts: **Pinned**, **Ready to merge**,
@@ -702,6 +702,10 @@ into collapsible status sections with counts: **Pinned**, **Ready to merge**,
 icons, the item title with its `#number`, and its diff stat (`+102 / -0`), and
 rows can be pinned. Stated purpose: start the day here and act on the most
 important work without juggling apps.
+
+The current model, bounded preferences, accessible view, full-width navigation,
+and verified built-app capture are implemented. The live provider adapters and
+in-app actions remain pending.
 
 ### 10. In-app pull request review — **NOT STARTED**
 
