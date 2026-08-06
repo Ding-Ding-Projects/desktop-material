@@ -69,6 +69,7 @@ jobs:
         with:
           repository: ${{ inputs.repository || github.repository }}
           ref: ${{ inputs.ref }}
+          fetch-depth: 0
           submodules: recursive
       - uses: actions/setup-node@v7
         with:
@@ -250,6 +251,8 @@ jobs:
         run: sh script/install-linux-tui-test.sh --unit
       - name: Verify generated parity contract
         run: node tui/tools/generate-parity-contract.mjs --check
+      - name: Verify generated TUI changelog catalog
+        run: node tui/tools/generate-tui-changelog-catalog.mjs --check
       - name: Run TUI tests
         working-directory: tui
         run: |

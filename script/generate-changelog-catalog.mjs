@@ -202,7 +202,8 @@ export function splitEntry(entry) {
 }
 
 /**
- * Projects changelog.json plus the tag dates into the records the viewer reads.
+ * Projects changelog.json plus recorded release and entry-commit dates into the
+ * records the viewer reads.
  * Release order follows changelog.json itself, which is authored newest first.
  */
 export function collectReleases({ changelog, tagDates, commitDates }) {
@@ -219,7 +220,7 @@ export function collectReleases({ changelog, tagDates, commitDates }) {
       version,
       date: stamp === undefined ? null : stamp.date,
       // 24-hour, display only. Null whenever the date is null, so a release
-      // can never show a time it has no tag to source it from.
+      // can never show a time with no tag or entry-commit source.
       time: stamp === undefined ? null : stamp.time,
       entries,
     })
@@ -274,13 +275,10 @@ export function renderCatalogModule(releases) {
   lines.push(' * GENERATED FILE — do not edit by hand.')
   lines.push(' * Regenerate with: node script/generate-changelog-catalog.mjs')
   lines.push(' *')
-  lines.push(
-    ' * Built from two real sources and nothing else: the entry text in'
-  )
-  lines.push(
-    ' * `changelog.json`, and the release dates carried by the repository’s own'
-  )
-  lines.push(' * `release-<version>` Git tags.')
+  lines.push(' * Built from repository-owned facts: the entry text and commit')
+  lines.push(' * references in `changelog.json`, plus `release-<version>` Git tag')
+  lines.push(' * timestamps where they exist. A missing tag falls back to the newest')
+  lines.push(' * referenced entry commit timestamp for that release.')
   lines.push(' *')
   lines.push(
     ' * Each release is `{ v: version, d: date | null, t: 24-hour time | null,'
@@ -289,10 +287,10 @@ export function renderCatalogModule(releases) {
     ' *   e: [[category, text] | [category, text, commit], …] }`. `t` is'
   )
   lines.push(
-    ' * `d: null` means no `release-<version>` tag exists, so the release date is'
+    ' * `d: null` means neither a release tag nor a referenced entry commit supplied'
   )
   lines.push(
-    ' * genuinely unrecorded — it is never a placeholder for a guessed date. A null'
+    ' * a timestamp, so the date is genuinely unrecorded rather than guessed. A null'
   )
   lines.push(' * category means the entry ships with no `[Category]` prefix.')
   lines.push(' */')
@@ -358,10 +356,11 @@ export function renderCatalogModule(releases) {
 /**
  * Renders the desktop app's release-date module.
  *
- * Only dated releases appear. A version with no `release-<version>` tag is
- * absent from the map rather than present with an empty value, so the app's
- * "date unrecorded" state is derived from a genuine absence instead of a
- * sentinel that a future edit could mistake for real data.
+ * Only dated releases appear. A version with neither a `release-<version>` tag
+ * nor a referenced entry commit is absent from the map rather than present
+ * with an empty value, so the app's "date unrecorded" state is derived from a
+ * genuine absence instead of a sentinel that a future edit could mistake for
+ * real data.
  *
  * The value is `YYYY-MM-DD HH:MM` — one string, always 24-hour, with no locale
  * AM/PM form anywhere in it.
@@ -375,27 +374,20 @@ export function renderReleaseDatesModule(releases) {
   )
   lines.push(' *')
   lines.push(' * GENERATED FILE — do not edit by hand.')
-  lines.push(' * Regenerate with: yarn generate-changelog-catalog')
+  lines.push(' * Regenerate with: node script/generate-changelog-catalog.mjs')
   lines.push(' *')
-  lines.push(
-    " * The repository's `release-<version>` Git tags are the only record of when"
-  )
-  lines.push(
-    ' * a version shipped, and a tag cannot be read at runtime, so the dates are'
-  )
-  lines.push(
-    ' * baked in here. The entry text is NOT duplicated: the viewer reads'
-  )
+  lines.push(' * Dates come from `release-<version>` Git tags where present; when a')
+  lines.push(' * tag is absent, the newest referenced changelog-entry commit supplies')
+  lines.push(' * the timestamp. Git cannot be read at runtime, so those dates are baked')
+  lines.push(' * in here. The entry text is NOT duplicated: the viewer reads')
   lines.push(
     ' * `changelog.json` directly, so the app and the documentation site cannot'
   )
   lines.push(' * drift about what a release actually said.')
   lines.push(' *')
+  lines.push(' * A version missing from this map has neither a release tag nor a')
   lines.push(
-    ' * A version missing from this map has no release tag, so its date is'
-  )
-  lines.push(
-    ' * genuinely unrecorded. That is reported as unrecorded rather than guessed'
+    ' * referenced entry commit timestamp. That is reported as unrecorded rather'
   )
   lines.push(' * from the version number or a neighbouring release.')
   lines.push(' */')
@@ -403,11 +395,11 @@ export function renderReleaseDatesModule(releases) {
   lines.push('/** Total releases in `changelog.json` at generation time. */')
   lines.push('export const ReleaseCount = ' + releases.length)
   lines.push('')
-  lines.push('/** How many of those carry a real `release-*` tag date. */')
+  lines.push('/** How many have a tag or referenced entry-commit timestamp. */')
   lines.push('export const DatedReleaseCount = ' + dated.length)
   lines.push('')
   lines.push(
-    '/** `version` to `YYYY-MM-DD HH:MM`, 24-hour, from the release tag. */'
+    '/** `version` to `YYYY-MM-DD HH:MM`, 24-hour, from a tag or entry commit. */'
   )
   lines.push('export const ReleaseStamps: Readonly<Record<string, string>> = {')
   for (const release of dated) {
@@ -514,8 +506,8 @@ if (
     .join('\n')
   console.log(
     `Generated ${counts.versionCount} releases (${counts.entryCount} entries) in ${outputPath}\n` +
-      `  dated from a release-* Git tag: ${counts.datedCount}\n` +
-      `  date unrecorded (no matching tag): ${counts.unrecordedCount}\n` +
+      `  dated from a release-* tag or referenced entry commit: ${counts.datedCount}\n` +
+      `  date unrecorded (neither source exists): ${counts.unrecordedCount}\n` +
       `  versions with no recorded changes: ${counts.emptyCount}\n` +
       `Generated ${counts.datedCount} release dates in ${datesPath}\n` +
       `entries by category:\n${categories}`

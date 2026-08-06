@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date
 from pathlib import Path
 
@@ -20,7 +21,8 @@ def test_real_packaged_catalog_loads_with_its_recorded_counts_and_digests() -> N
 
     assert len(catalog.releases) == catalog.dated_count + catalog.unrecorded_count
     assert catalog.entry_count == sum(len(release.entries) for release in catalog.releases)
-    assert catalog.releases[0].version == "3.6.3-material22"
+    assert catalog.releases
+    assert len({release.version for release in catalog.releases}) == len(catalog.releases)
     # Digest verification is switched off by request. The catalog still
     # carries both digests, and they are still checked for shape when it
     # loads, so the provenance they record is intact — this no longer re-reads
@@ -34,21 +36,18 @@ def test_real_packaged_catalog_loads_with_its_recorded_counts_and_digests() -> N
 def test_text_regex_and_date_filters_are_bounded_and_keep_undated_records_truthful() -> None:
     catalog = ChangelogCatalog.load_default()
 
-    text = catalog.filter("dim sum")
+    latest = catalog.releases[0]
+    text = catalog.filter(latest.version)
     assert text.error is None
-    assert text.items
-    assert text.items[0].version == "3.6.3-material22"
+    assert latest in text.items
 
     regex = catalog.filter(
-        r"^3\.6\.3-material2[12]$",
+        rf"^{re.escape(latest.version)}$",
         mode=SearchMode.REGEX,
         flags=RegexFlags(ignore_case=False),
     )
     assert regex.error is None
-    assert {release.version for release in regex.items} == {
-        "3.6.3-material21",
-        "3.6.3-material22",
-    }
+    assert regex.items == (latest,)
 
     invalid = catalog.filter("(", mode=SearchMode.REGEX)
     assert invalid.error is not None
@@ -76,18 +75,25 @@ def test_typed_dates_report_partial_or_inverted_ranges_without_guessing() -> Non
 
 def test_markdown_export_carries_commit_links_and_refuses_overwrite(tmp_path: Path) -> None:
     catalog = ChangelogCatalog.load_default()
-    releases = catalog.releases[:2]
+    release = next(
+        release
+        for release in catalog.releases
+        if any(entry.commit is not None for entry in release.entries)
+    )
+    entry = next(entry for entry in release.entries if entry.commit is not None)
+    assert entry.commit is not None
+    releases = (release,)
     destination = tmp_path / "release-history.md"
 
-    exported = catalog.export_markdown(releases, destination, scope="two newest releases")
+    exported = catalog.export_markdown(releases, destination, scope="selected release")
 
     rendered = exported.read_text(encoding="utf-8")
-    assert "Exported scope: two newest releases." in rendered
+    assert "Exported scope: selected release." in rendered
     assert f"## {releases[0].version} — {releases[0].date_label}" in rendered
-    assert "[`cce086ec70`]" in rendered
+    assert f"[`{entry.commit[:10]}`]" in rendered
     assert (
         "https://github.com/Ding-Ding-Projects/desktop-material/commit/"
-        "cce086ec7061672c7ba16124929d8fb516fddda6"
+        f"{entry.commit}"
     ) in rendered
     with pytest.raises(ChangelogError, match="already exists"):
         catalog.export_markdown(releases, destination)

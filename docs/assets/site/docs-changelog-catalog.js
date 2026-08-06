@@ -4,14 +4,15 @@
  * GENERATED FILE — do not edit by hand.
  * Regenerate with: node script/generate-changelog-catalog.mjs
  *
- * Built from two real sources and nothing else: the entry text in
- * `changelog.json`, and the release dates carried by the repository’s own
- * `release-<version>` Git tags.
+ * Built from repository-owned facts: the entry text and commit
+ * references in `changelog.json`, plus `release-<version>` Git tag
+ * timestamps where they exist. A missing tag falls back to the newest
+ * referenced entry commit timestamp for that release.
  *
  * Each release is `{ v: version, d: date | null, t: 24-hour time | null,
  *   e: [[category, text] | [category, text, commit], …] }`. `t` is
- * `d: null` means no `release-<version>` tag exists, so the release date is
- * genuinely unrecorded — it is never a placeholder for a guessed date. A null
+ * `d: null` means neither a release tag nor a referenced entry commit supplied
+ * a timestamp, so the date is genuinely unrecorded rather than guessed. A null
  * category means the entry ships with no `[Category]` prefix.
  */
 ;(function (global) {
@@ -26,12 +27,17 @@
       {
         v: '3.6.3-material22',
         d: '2026-08-06',
-        t: '18:41',
+        t: '19:22',
         e: [
           [
             'Added',
             'The Merge into main branch chooser now offers a Not updated with main filter based on default-branch Git ancestry, keeping diverged branches that already contain main out of the stale results and localizing the chip in English, Hong Kong-style Cantonese, and bilingual mode',
             '81faa869aa3eed8401070f37ae7e324f49db398a',
+          ],
+          [
+            'Fixed',
+            'The packaged changelog tests now validate catalog arithmetic and exported release labels instead of freezing an old entry count, timestamp, and first commit that change whenever the generated history advances',
+            '015205b492fb1467c658bc50337eaab5cbf5e6e0',
           ],
           [
             'Fixed',

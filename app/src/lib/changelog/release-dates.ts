@@ -2,28 +2,29 @@
  * Desktop Material — release dates for the app's changelog viewer.
  *
  * GENERATED FILE — do not edit by hand.
- * Regenerate with: yarn generate-changelog-catalog
+ * Regenerate with: node script/generate-changelog-catalog.mjs
  *
- * The repository's `release-<version>` Git tags are the only record of when
- * a version shipped, and a tag cannot be read at runtime, so the dates are
- * baked in here. The entry text is NOT duplicated: the viewer reads
+ * Dates come from `release-<version>` Git tags where present; when a
+ * tag is absent, the newest referenced changelog-entry commit supplies
+ * the timestamp. Git cannot be read at runtime, so those dates are baked
+ * in here. The entry text is NOT duplicated: the viewer reads
  * `changelog.json` directly, so the app and the documentation site cannot
  * drift about what a release actually said.
  *
- * A version missing from this map has no release tag, so its date is
- * genuinely unrecorded. That is reported as unrecorded rather than guessed
+ * A version missing from this map has neither a release tag nor a
+ * referenced entry commit timestamp. That is reported as unrecorded rather
  * from the version number or a neighbouring release.
  */
 
 /** Total releases in `changelog.json` at generation time. */
 export const ReleaseCount = 707
 
-/** How many of those carry a real `release-*` tag date. */
+/** How many have a tag or referenced entry-commit timestamp. */
 export const DatedReleaseCount = 668
 
-/** `version` to `YYYY-MM-DD HH:MM`, 24-hour, from the release tag. */
+/** `version` to `YYYY-MM-DD HH:MM`, 24-hour, from a tag or entry commit. */
 export const ReleaseStamps: Readonly<Record<string, string>> = {
-  '3.6.3-material22': '2026-08-06 18:41',
+  '3.6.3-material22': '2026-08-06 19:22',
   '3.6.3-material21': '2026-07-31 23:23',
   '3.6.3-material20': '2026-07-30 23:54',
   '3.6.3-material19': '2026-07-29 23:04',
