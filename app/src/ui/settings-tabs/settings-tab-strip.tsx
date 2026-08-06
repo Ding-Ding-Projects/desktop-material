@@ -36,6 +36,9 @@ interface ISettingsTabStripProps {
   /** Optional owner scope for the browser tab session, such as a repository. */
   readonly openStateScope?: string
   /** Numeric ids written by older versions, keyed by the current stable id. */
+  // This migration map is consumed by getPersistenceOptions rather than JSX;
+  // react/no-unused-prop-types cannot trace that class-method read.
+  // eslint-disable-next-line react/no-unused-prop-types
   readonly legacyTabIdMap?: Readonly<Record<string, string>>
 
   /** Render the pages as horizontal browser tabs instead of a vertical rail. */

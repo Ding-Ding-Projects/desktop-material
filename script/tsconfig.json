@@ -2,8 +2,7 @@
   "compilerOptions": {
     "module": "commonjs",
     "moduleResolution": "node",
-    "rootDir": ".",
-    "ignoreDeprecations": "6.0",
+    "rootDir": "..",
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "importHelpers": true,

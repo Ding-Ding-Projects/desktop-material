@@ -1,5 +1,27 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-05 — Repair fresh-install self-hosted CI contracts
+
+The first manual self-hosted verification of `main` reached the registered
+Linux and Windows machines and exposed three repository-side regressions. The
+parity generator still declared 205 desktop features after the settings-tab
+surface added feature 206, and the Linux validation job stopped on that count
+mismatch. The root, script, and highlighter TypeScript configurations also
+carried the TypeScript 6-only `ignoreDeprecations: "6.0"` option, which the
+pinned TypeScript 5.8.2 install rejects before Electron-version validation;
+the script config additionally used a root that could not cover its imported
+repository files during a fresh install. The declared parity count and
+generated contract now agree at 206, the unsupported compiler option is gone,
+and the script root is the repository root.
+
+The dependency compatibility suite now guards those compiler settings, and
+the settings-tab migration map keeps its class-method read documented so the
+ESLint prop-type rule does not mistake a real persistence migration for dead
+code. Local validation passes: full lint, Electron-version validation,
+parity-contract check, dependency compatibility, settings-tab tests, and the
+focused installer contract. The next remote dispatch must verify the repaired
+contracts on the self-hosted pool.
+
 ## 2026-08-05 — Repair the self-hosted Windows test bootstrap
 
 The first complete self-hosted Windows TUI run found two test-environment

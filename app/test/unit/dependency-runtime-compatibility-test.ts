@@ -1,4 +1,5 @@
 import assert from 'node:assert'
+import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 import * as path from 'node:path'
 import * as React from 'react'
@@ -33,6 +34,28 @@ describe('updated app dependency compatibility', () => {
       alias['react/jsx-runtime$'],
       path.resolve(__dirname, '../../node_modules/react/jsx-runtime.js')
     )
+  })
+
+  it('keeps the script compiler config compatible with fresh installs', () => {
+    for (const configPath of [
+      '../../../script/tsconfig.json',
+      '../../src/highlighter/tsconfig.json',
+      '../../../tsconfig.json',
+    ]) {
+      const tsconfig = JSON.parse(
+        readFileSync(path.resolve(__dirname, configPath), 'utf8')
+      ) as {
+        compilerOptions: {
+          ignoreDeprecations?: string
+          rootDir?: string
+        }
+      }
+
+      assert.equal(tsconfig.compilerOptions.ignoreDeprecations, undefined)
+      if (configPath === '../../../script/tsconfig.json') {
+        assert.equal(tsconfig.compilerOptions.rootDir, '..')
+      }
+    }
   })
 
   it('keeps the compare-versions 6 API used by the Windows version guards', () => {
