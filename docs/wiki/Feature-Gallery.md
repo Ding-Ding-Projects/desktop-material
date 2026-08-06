@@ -223,7 +223,6 @@ active profile's style, label, and explicit language mode.
 | `material-responsive-overflow-fixed.png` | Exact-size responsive overflow regression proof |
 | `material-history-power-tools.png` | Searchable History and commit ancestry graph |
 | `material-branch-merge-all.png` | Merge All branches/worktrees with per-target state |
-| `material-launchpad-empty-full-width-20260806.png` | Full-width Launchpad empty state with truthful zero-count groups |
 | `not-updated-with-main-filter.png` | Merge into main chooser filtered to branches not updated with main |
 | `material-create-pull-request.png` | Native pull-request completion state |
 | `material-effective-branch-rules.png` | Effective protection and ruleset policy |
@@ -290,6 +289,7 @@ scene; `material-welcome.png` remains the current guided welcome target.
 | Archived asset | Historical receipt | Current status |
 | --- | --- | --- |
 | `material-blank-startup-fixed-20260806.png` | August 6 packaged blank-startup recovery | Excluded from the current Windows gallery |
+| `material-launchpad-empty-full-width-20260806.png` | August 6 Launchpad full-width acceptance | Excluded from the current Windows gallery |
 
 ![Packaged Desktop Material first-run surface rendered after the blank-startup bundle regression was fixed](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/7b6aaa13e3157e9776605f270ac3498dc0d046ae/docs/assets/screenshots/material-blank-startup-fixed-20260806.png)
 
@@ -472,7 +472,7 @@ development production build through the cheap Lowlevel hidden-desktop route;
 the disposable fixture had one committed file and one untracked work-in-
 progress file, so the zero counts are genuine.
 
-![Launchpad full-width empty state with five truthful zero-count groups and no blank sidebar](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-launchpad-empty-full-width-20260806.png)
+![Launchpad full-width empty state with five truthful zero-count groups and no blank sidebar](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/3eca9328d60d8b677cf774cee5c9415d865addcd/docs/assets/screenshots/material-launchpad-empty-full-width-20260806.png)
 
 The source contract covers both sides of the layout: Launchpad's sidebar body
 is intentionally null, and the repository shell omits the sidebar container

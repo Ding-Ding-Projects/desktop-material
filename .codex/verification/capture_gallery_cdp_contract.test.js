@@ -880,7 +880,7 @@ test('capture-only tooltip suppression is removed before disconnect', () => {
   assert.ok(cleanup < close)
 })
 
-test('canonical and promoted specialist batches own all 93 published images exactly once', () => {
+test('canonical and promoted specialist batches own all 92 published images exactly once', () => {
   const scenes = frozenStringArray('CanonicalGalleryScenes')
   const outputs = frozenStringArray('CanonicalGalleryOutputs')
   const publishedCanonical = outputs.filter(
@@ -909,16 +909,16 @@ test('canonical and promoted specialist batches own all 93 published images exac
   ])
   assert.deepEqual(DeferredSpecialistOutputs, [])
   assert.equal(publishedCanonical.length, 66)
-  assert.equal(specialistOutputs.length, 27)
-  assert.equal(new Set(specialistOutputs).size, 27)
-  assert.equal(publishedSpecialistOutputs.length, 27)
+  assert.equal(specialistOutputs.length, 26)
+  assert.equal(new Set(specialistOutputs).size, 26)
+  assert.equal(publishedSpecialistOutputs.length, 26)
   assert.ok(specialistOutputs.includes('auto-updater-current-source-ready'))
   assert.ok(specialistOutputs.includes('material-publish-organization-picker'))
   assert.ok(!specialistOutputs.includes('auto-updater-update-ready'))
-  assert.equal(ExpectedPublishedGalleryCount, 93)
+  assert.equal(ExpectedPublishedGalleryCount, 92)
   assert.equal(PublishedGalleryOutputs.length, ExpectedPublishedGalleryCount)
-  assert.equal(new Set(PublishedGalleryOutputs).size, 93)
-  assert.equal(GalleryCapturePlan.length, 93)
+  assert.equal(new Set(PublishedGalleryOutputs).size, 92)
+  assert.equal(GalleryCapturePlan.length, 92)
   assert.deepEqual(
     [...expectedCatalog].sort(),
     [...PublishedGalleryOutputs].sort()

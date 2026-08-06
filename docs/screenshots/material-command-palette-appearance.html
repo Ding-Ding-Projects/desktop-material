@@ -2150,25 +2150,6 @@
             "datedReceipts": []
           },
           {
-            "output": "material-launchpad-empty-full-width-20260806",
-            "file": "material-launchpad-empty-full-width-20260806.png",
-            "caption": "Full-width Launchpad empty state with truthful zero-count groups",
-            "altText": "Launchpad full-width empty state with five truthful zero-count groups and no blank sidebar",
-            "scene": "launchpad-empty-full-width",
-            "batch": "windows-ui-state-lowlevel",
-            "platform": "windows-headless",
-            "section": "Repository administration",
-            "interaction": "Open Launchpad for the disposable repository with no attention items, preserve all five truthful zero-count groups and the full-width empty state, then inspect and promote the original client-only frame.",
-            "width": 960,
-            "height": 660,
-            "bytes": 58370,
-            "commands": [
-              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
-              "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
-            ],
-            "datedReceipts": []
-          },
-          {
             "output": "not-updated-with-main-filter",
             "file": "not-updated-with-main-filter.png",
             "caption": "Merge into main chooser filtered to branches not updated with main",
@@ -2574,6 +2555,22 @@
             "width": 976,
             "height": 668,
             "bytes": 87292,
+            "commands": [],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-launchpad-empty-full-width-20260806",
+            "file": "material-launchpad-empty-full-width-20260806.png",
+            "caption": null,
+            "altText": "Launchpad full-width empty state with five truthful zero-count groups and no blank sidebar",
+            "scene": null,
+            "batch": "retained-historical",
+            "platform": null,
+            "section": "Repository administration",
+            "interaction": null,
+            "width": 960,
+            "height": 660,
+            "bytes": 58370,
             "commands": [],
             "datedReceipts": []
           }
