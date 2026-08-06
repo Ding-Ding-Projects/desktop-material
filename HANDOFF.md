@@ -1,5 +1,18 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Bootstrap Python on self-hosted Linux
+
+The direct pure-self-hosted Express Release dispatch reached `linux` and
+`Linux-CLAUDE`, but its Express lint job failed before lint because the
+composite setup action invoked `actions/setup-python@v6` for Debian 13. The
+hosted Python tool cache has no Python 3.11 entry for that image, so this was a
+runner bootstrap assumption rather than a source failure. Self-hosted Linux
+now installs uv 0.11.26, installs the pinned Python 3.11 interpreter through
+uv, exports its path through `npm_config_python`, and skips hosted toolcache
+setup. The existing self-hosted Windows uv path remains unchanged. Focused
+setup/workflow tests pass **16/16**; the next direct Express dispatch must
+verify lint, packaging, and publication after this repair.
+
 ## 2026-08-06 — Make Express Release entirely self-hosted
 
 The first repaired `main` dispatch proved that the ordinary CI jobs were

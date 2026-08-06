@@ -26,6 +26,15 @@ The settings-tab migration map is intentionally consumed by persistence code
 in a class method; its lint annotation documents that ownership rather than
 hiding an unused property.
 
+The composite dependency setup also treats Linux and Windows self-hosted
+runners as first-class environments. It installs uv 0.11.26, provisions the
+pinned Python 3.11 interpreter with `uv python install`, exports the resolved
+interpreter to `npm_config_python`, and skips `actions/setup-python`'s hosted
+tool cache whenever `runner.environment` is `self-hosted`. This matters on
+Debian 13, where the hosted Python manifest does not contain the requested
+3.11 x64 entry; relying on that action would fail before the actual lint or
+package work starts.
+
 ## Behaviour
 
 ### Dependency update proposals
