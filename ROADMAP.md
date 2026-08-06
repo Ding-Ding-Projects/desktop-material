@@ -19,6 +19,19 @@ Updated: **August 5, 2026**
   remains blocked by existing TypeScript 6 errors, so hidden-desktop runtime
   proof is not claimed.
 
+## August 5 — account cards share one active identity across providers
+
+- Settings → Accounts now compares every provider card with the single global
+  `accounts[0]` identity instead of treating the first card in each provider
+  section as active. With one GitHub.com account and one Enterprise account,
+  exactly one row is marked **Active** and the other exposes **Make active**.
+- The correction uses the same stable account identity and promotion path as
+  the rail switcher; explicit repository account bindings remain authoritative.
+- Focused account/store/routing/UI verification passes **39/39**. The required
+  Lowlevel production build is pending because the shared endpoint is currently
+  servicing another long-running build; no hidden-desktop runtime success is
+  claimed yet.
+
 ## August 5 — Windows updates survive partial Releases
 
 - The release promoter now considers only published Windows-capable Releases
@@ -43,6 +56,7 @@ Updated: **August 5, 2026**
   store, repository-owner, and click-handler suites report **55/55**. The
   required hidden build was attempted through Lowlevel, but its client stalled
   after the compiler worker stopped and no runtime evidence is claimed.
+
 ## August 5 — transient Actions job-log 404 recovery
 
 - GitHub may return `HTTP 404` for a valid completed-job log endpoint while its
