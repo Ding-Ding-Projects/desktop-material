@@ -54,7 +54,30 @@ and verifies the exact destination tip before retargeting. Verification and
 changelog commit `8ac2bf5cfce2f4645fa4ead4e7cf05e23cd59478` records the run
 manifest and current evidence.
 
-## 2026-08-06 — Fix Super Express workflow startup planning and repair build prerequisites
+## 2026-08-05 — Make Super Express release self-hosted-only
+
+The Super Express Release path is now deliberately self-hosted-only. The
+combined dispatcher runs preparation and publication on the registered Linux
+x64 WSL runner, the Windows package runs on `[self-hosted, Windows, X64]`, and
+the Linux TUI package runs on `[self-hosted, Linux, X64]`. The direct Windows
+and Linux TUI recovery workflows use the same static labels. Hosted selectors,
+`ubuntu-latest`, `windows-2022`, cloud fallback jobs, and runner-inventory
+branching were removed from all three Super Express workflow files. If a
+required local runner is offline or busy, the release queues or fails rather
+than silently consuming a cloud runner.
+
+Because the Linux runner is Debian 13, the dispatcher publisher also installs
+the pinned `uv` tool and Python 3.12 through `uv python install 3.12`; TUI
+version discovery uses `uv run --python 3.12`. This keeps the pure self-hosted
+path independent of the `actions/setup-python` distribution manifest that
+previously lacked a Debian 13 Python 3.12 entry.
+
+The focused workflow contract now asserts that all three workflow files
+contain only the expected static self-hosted labels and no hosted target or
+fallback selector. Remote execution of this exact revision is the next
+verification step; no Release is claimed from the source edit alone.
+
+## 2026-08-05 — Fix Super Express workflow startup planning and repair build prerequisites
 
 The Super Express dispatcher keeps preparation and publication on
 `ubuntu-latest`, while its combined packaging jobs and its two direct reusable
@@ -75,9 +98,9 @@ The workflow contract test now asserts the fixed labels and rejects the
 dynamic runner-selection shape. The setup action now checks cached React JSX
 runtime and `react-confetti` files before use; an incomplete cache automatically
 returns to the bounded dependency install path. The source Sass error at
-`app/styles/ui/_launchpad.scss:278` was corrected by replacing the invalid
-the team selectors under `.launchpad-view` inside the media query, so Sass can
-resolve every `&__…` selector against its real parent.
+`app/styles/ui/_launchpad.scss:278` was corrected by nesting the team selectors
+under `.launchpad-view` inside the media query, so Sass can resolve every
+`&__…` selector against its real parent.
 
 Local verification is **9/9** focused CI/dependency/workflow tests, YAML
 parsing, Prettier, and `git diff --check`. The full production compile was

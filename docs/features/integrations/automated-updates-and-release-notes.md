@@ -137,38 +137,38 @@ concurrency group, including CodeQL, remain independently runnable.
 
 `.github/workflows/super-express-release.yml` is a separate, manual-only
 emergency dispatcher. Dispatching it from `main` checks the exact commit and
-tag once, then runs two inline packaging lanes in parallel:
+tag once, then runs two inline packaging lanes in parallel. Every job in this
+dispatcher is self-hosted-only: the coordinator and publisher use the
+registered Linux x64 WSL runner, while the desktop package uses the registered
+Windows x64 runner. If either runner is offline or busy, the run queues or
+fails; it never moves to a GitHub-hosted machine.
 
 - `.github/workflows/super-express-release-windows.yml` restores the exact
   desktop dependency cache and builds the Windows x64 production package on
-  an online, idle self-hosted Windows x64 runner when one is available, or on
-  the hosted `windows-2022` runner otherwise;
+  `[self-hosted, Windows, X64]`;
 - `.github/workflows/super-express-release-linux-tui.yml` builds the Linux TUI
   wheel, source distribution, locked runtime constraints, bootstrap, and
-  installer on an online, idle self-hosted Linux x64 runner when one is
-  available, or on the hosted `ubuntu-latest` runner otherwise.
+  installer on `[self-hosted, Linux, X64]`.
 
-Each reusable packaging lane starts with a small hosted selector because a
-queued `self-hosted` job cannot discover that its runner pool is unavailable
-and then move itself to the cloud. The selector reads the repository runner
-inventory through `gh api` using the `RELEASE_TOKEN`, `ORG_TOKEN`, then
-`GITHUB_TOKEN` fallback chain, accepts only online and idle runners carrying
-the matching OS and `X64` labels, and sets a boolean choice. Exactly one of two
-static-target jobs then runs: `[self-hosted, Windows, X64]` or `windows-2022`
-for the desktop package, and `[self-hosted, Linux, X64]` or `ubuntu-latest`
-for the TUI package. The coordinator and publisher remain on
-`ubuntu-latest`, where their repository/API work is deterministic. If the
-inventory cannot be read or no matching runner is idle, the affected package
-lane falls back immediately to its hosted target. Static conditional jobs are
-deliberate: a dynamic `runs-on` label array from a previous job can make
-GitHub reject the workflow during planning before the selector runs.
+There is no hosted selector and no cloud fallback in these workflows. Static
+runner labels make the placement visible during workflow planning and ensure a
+release cannot accidentally consume hosted minutes or expose its build to a
+different machine. The publisher still uses the `RELEASE_TOKEN`, `ORG_TOKEN`,
+then `GITHUB_TOKEN` authorization chain for GitHub API operations, but the
+token never chooses a runner.
 
-The direct reusable workflow files remain available for packaging-only recovery,
-but the combined dispatcher keeps its selector/build jobs inline. GitHub had
-been rejecting the caller before it created any job even after the reusable
-lanes were repaired; inline selector/build jobs leave the dispatcher with only
-statically declared runner targets while preserving the direct reusable lanes
-for recovery.
+The combined dispatcher keeps its packaging jobs inline because GitHub had
+previously rejected the caller before creating any job when the runner labels
+were generated dynamically. The direct reusable workflow files remain
+available for packaging-only recovery, and they use the same static
+self-hosted-only targets.
+
+The Linux TUI action installs the pinned `uv` tool first and runs
+`uv python install 3.12`; this avoids relying on `actions/setup-python`'s
+distribution manifest, which does not list Python 3.12 for Debian 13 on the
+registered WSL runner. Version discovery runs through
+`uv run --python 3.12`, so the wheel, source distribution, and runtime
+constraints use the same managed interpreter.
 
 Each packaging lane also exposes its own `workflow_dispatch` action for a
 manual, packaging-only recovery run. A direct Windows dispatch accepts an

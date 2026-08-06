@@ -1,8 +1,7 @@
 name: Super Express Release / Windows
 
-# Reusable zero-test Windows lane for Super Express Release. The selector runs
-# on a hosted runner, then exactly one static-target build job runs: the idle
-# self-hosted Windows x64 runner when available, or windows-2022 otherwise.
+# Reusable zero-test Windows lane for Super Express Release. It is deliberately
+# self-hosted-only and queues until the registered Windows x64 runner is ready.
 on:
   workflow_call:
     inputs:
@@ -34,83 +33,12 @@ env:
   NODE_VERSION: 24.15.0
 
 jobs:
-  runner_selection:
-    name: Select Windows self-hosted runner or cloud fallback
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-    outputs:
-      use_self_hosted: ${{ steps.select.outputs.use_self_hosted }}
-    env:
-      GH_TOKEN:
-        ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN
-        }}
-    steps:
-      - name: Check for an idle Windows x64 runner
-        id: select
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if ! inventory=$(gh api --paginate --slurp \
-            "repos/$GITHUB_REPOSITORY/actions/runners?per_page=100"); then
-            echo "::warning::Could not inspect self-hosted runners; using windows-2022."
-            inventory='[]'
-          fi
-
-          if jq -e '
-            [ .[] | .runners[]? |
-              select(.status == "online" and .busy == false) |
-              [ .labels[]?.name | ascii_downcase ] as $labels |
-              select(($labels | index("self-hosted")) != null) |
-              select(($labels | index("windows")) != null) |
-              select(($labels | index("x64")) != null)
-            ] | length > 0
-          ' <<<"$inventory" >/dev/null; then
-            echo "use_self_hosted=true" >> "$GITHUB_OUTPUT"
-            echo "selected runner: self-hosted/Windows/X64"
-          else
-            echo "use_self_hosted=false" >> "$GITHUB_OUTPUT"
-            echo "selected runner: windows-2022"
-          fi
-
-  build_self_hosted:
+  build:
     name: Build Windows x64 package (self-hosted)
-    needs: runner_selection
-    if: needs.runner_selection.outputs.use_self_hosted == 'true'
     runs-on:
       - self-hosted
       - Windows
       - X64
-    timeout-minutes: 60
-    env:
-      RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
-      RELEASE_VERSION: ${{ inputs.release_version }}
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ inputs.release_target_sha || github.sha }}
-          fetch-depth: 0
-          submodules: recursive
-
-      - uses: ./.github/actions/super-express-windows-build
-        with:
-          release_target_sha: ${{ inputs.release_target_sha || github.sha }}
-          release_version: ${{ inputs.release_version }}
-          node_version: ${{ env.NODE_VERSION }}
-        env:
-          DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
-          DESKTOP_ERROR_REPORTING_ENDPOINT:
-            ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
-          DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
-            ${{ secrets.DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT }}
-
-  build_cloud:
-    name: Build Windows x64 package (cloud fallback)
-    needs: runner_selection
-    if: needs.runner_selection.outputs.use_self_hosted != 'true'
-    runs-on: windows-2022
     timeout-minutes: 60
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}

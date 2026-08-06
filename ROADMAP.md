@@ -1371,10 +1371,12 @@ six-asset Windows x64 Release are verified for the `main` push recorded in
   nested paths and flat asset ranges.
 - **Super Express Release fast lane**: A workflow_dispatch-only emergency
   dispatcher checks out the exact SHA and creates one monotonic tag, then runs
-  separate zero-test Windows x64 and native Ubuntu Linux TUI packaging
-  workflows in parallel. Each packaging workflow also exposes a direct,
-  artifact-only workflow_dispatch action for recovery builds. The lanes restore
-  the desktop dependency cache where
+  separate zero-test Windows x64 and registered self-hosted Linux x64 TUI
+  packaging workflows in parallel. Preparation and publication also run on
+  the registered Linux x64 WSL runner; no Super Express job uses a cloud
+  runner. Each packaging workflow also exposes a direct, artifact-only
+  workflow_dispatch action for recovery builds. The lanes restore the desktop
+  dependency cache where
   needed, build the complete Windows/TUI payload, verify every asset, and
   preserve uncompressed lane artifacts. One publisher combines them into a
   uniquely tagged Release so the shared Squirrel update feed and TUI bootstrap
