@@ -17,8 +17,15 @@ describe('CI environment setup', () => {
     assert.match(setupAction, /Prefer Git Bash on Windows self-hosted runners/)
     assert.match(
       setupAction,
-      /shell: powershell -NoProfile -ExecutionPolicy Bypass/
+      /shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '\{0\}'"/
     )
+    assert.equal(
+      setupAction.match(
+        /shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '\{0\}'"/g
+      )?.length,
+      2
+    )
+    assert.doesNotMatch(setupAction, /^\s*shell: powershell\s*$/m)
     assert.doesNotMatch(setupAction, /shell: pwsh/)
     assert.match(setupAction, /GITHUB_PATH/)
     assert.match(setupAction, /bin\\bash\.exe/)

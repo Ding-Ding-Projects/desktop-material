@@ -115,8 +115,9 @@ describe('Super Express Release workflow', () => {
     )
     assert.match(
       windowsBuildAction,
-      /Prefer Git Bash on Windows self-hosted runners[\s\S]*?shell: powershell -NoProfile -ExecutionPolicy Bypass[\s\S]*?GITHUB_PATH/
+      /Prefer Git Bash on Windows self-hosted runners[\s\S]*?shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '\{0\}'"[\s\S]*?GITHUB_PATH/
     )
+    assert.doesNotMatch(windowsBuildAction, /^\s*shell: powershell\s*$/m)
     assert.doesNotMatch(windowsBuildAction, /shell: pwsh/)
     assert.doesNotMatch(
       windowsWorkflow,
