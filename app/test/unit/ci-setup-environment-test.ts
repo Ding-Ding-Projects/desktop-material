@@ -31,6 +31,12 @@ describe('CI environment setup', () => {
     )
     assert.match(yarnBootstrap, /vendor\\yarn-1\.21\.1\.js/)
     assert.match(yarnBootstrap, /yarn\.cmd/)
+    assert.match(yarnBootstrap, /#!\/usr\/bin\/env bash/)
+    assert.match(yarnBootstrap, /exec node .*\$@/)
+    assert.match(yarnBootstrap, /chmod \+x/)
+    assert.match(yarnBootstrap, /bin\\bash\.exe/)
+    assert.match(yarnBootstrap, /bashShimRootForGit/)
+    assert.match(yarnBootstrap, /drive\.ToLower\(\)/)
     assert.match(yarnBootstrap, /GITHUB_PATH/)
     assert.match(yarnBootstrap, /RUNNER_TEMP/)
     assert.match(
