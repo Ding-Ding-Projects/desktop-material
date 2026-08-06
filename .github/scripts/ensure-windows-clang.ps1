@@ -94,7 +94,6 @@ $arguments = @(
     'Microsoft.VisualStudio.Component.VC.Llvm.Clang'
     '--quiet'
     '--norestart'
-    '--wait'
 )
 
 Write-Host "Installing the missing Windows ClangCL toolset for $TargetArchitecture with $setup."

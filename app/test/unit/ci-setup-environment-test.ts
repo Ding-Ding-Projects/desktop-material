@@ -64,8 +64,9 @@ describe('CI environment setup', () => {
     assert.match(clangToolsetScript, /npm_config_msvs_version=/)
     assert.match(clangToolsetScript, /Toolset\.props/)
     assert.match(clangToolsetScript, /Toolset\.targets/)
+    assert.match(clangToolsetScript, /--quiet/)
     assert.match(clangToolsetScript, /--norestart/)
-    assert.match(clangToolsetScript, /--wait/)
+    assert.doesNotMatch(clangToolsetScript, /--wait/)
     assert.match(
       arm64ToolsetScript,
       /Microsoft\.VisualStudio\.Component\.VC\.Tools\.ARM64/
