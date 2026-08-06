@@ -275,7 +275,7 @@
     }
   }
 
-  &__team-toggle {
+  .launchpad-view__team-toggle {
     display: inline-flex;
     align-self: flex-start;
     align-items: center;
@@ -294,11 +294,11 @@
     }
   }
 
-  &__team-status {
+  .launchpad-view__team-status {
     color: var(--md-sys-color-on-surface-variant);
   }
 
-  &__team-members {
+  .launchpad-view__team-members {
     display: flex;
     flex-direction: column;
     gap: var(--spacing, 8px);
@@ -307,7 +307,7 @@
     list-style: none;
   }
 
-  &__team-member {
+  .launchpad-view__team-member {
     display: flex;
     align-items: center;
     gap: var(--spacing, 8px);
@@ -318,11 +318,11 @@
     background: var(--md-sys-color-surface-container-low);
   }
 
-  &__team-member-activity {
+  .launchpad-view__team-member-activity {
     color: var(--md-sys-color-on-surface-variant);
   }
 
-  &__presence-dot {
+  .launchpad-view__presence-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;

@@ -607,7 +607,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       const normalizedError =
         error instanceof Error ? error : new Error('self-hosted-oauth-failed')
       oauthState.onAuthError(normalizedError)
-      this.setState({ ...this.state, loading: false, error: normalizedError })
+      this.setState({ ...currentState, loading: false, error: normalizedError })
       return oauthState.callbackResult
     }
   }

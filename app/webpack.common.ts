@@ -36,6 +36,14 @@ const commonConfig: webpack.Configuration = {
         exclude: /node_modules/,
       },
       {
+        // Some modern ESM packages import React's JSX runtime without the
+        // .js suffix. Allow webpack to resolve that request in the .mjs graph.
+        test: /\.m?js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+      },
+      {
         test: /\.node$/,
         loader: 'awesome-node-loader',
         options: {
@@ -46,6 +54,17 @@ const commonConfig: webpack.Configuration = {
   },
   resolve: {
     extensions: ['.js', '.ts', '.tsx'],
+    // The Copilot SDK also publishes an ESM entry that uses `import.meta` to
+    // locate its native CLI package. Webpack's Electron renderer runtime
+    // cannot provide the generated `__webpack_module__` reference for that
+    // entry, so use the SDK's equivalent CommonJS build when bundling the
+    // desktop application.
+    alias: {
+      '@github/copilot-sdk$': path.resolve(
+        __dirname,
+        'node_modules/@github/copilot-sdk/dist/cjs/index.js'
+      ),
+    },
   },
   node: {
     __dirname: false,
