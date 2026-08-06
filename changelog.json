@@ -1,6 +1,7 @@
 {
   "releases": {
     "3.6.3-material22": [
+      "[Improved] Trusted CI, Express Release, and Super Express now target the registered local Windows and WSL runners with explicit labels, so incomplete alternate self-hosted machines cannot claim release jobs - c3cf40d0af",
       "[Fixed] Self-hosted Windows dependency setup no longer passes the unsupported --wait option to Visual Studio Installer 4.7.25, so ClangCL bootstrap can reach dependency installation instead of failing before the app build - 28d7d032ef",
       "[Fixed] The self-hosted release gate no longer depends on a separate jq executable: gh's built-in evaluator returns the sibling CI status, conclusion, and timestamp without a missing-runner-tool crash - ff0881d9d4",
       "[Fixed] The Windows renderer no longer opens as a blank white window when the Node-oriented Copilot SDK is bundled: the SDK stays external, and the build rejects missing or unsafe startup bundles - 5fbc28b6cfe458943cdecd456fdc3622a4719fc1",
