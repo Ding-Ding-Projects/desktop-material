@@ -16,6 +16,17 @@ Updated: **August 6, 2026**
   `actionlint -shellcheck=` pass, and `git diff --check` passes. Remote
   verification remains pending for the new commit.
 
+## August 6 — Include Super Express in Latest release selection
+
+- The combined and direct Windows Super Express publishers now request
+  `Latest` on the normal create path and on the fallback edit after verified
+  assets are uploaded.
+- Existing release `v3.6.3-beta3-zadwtuvqil` is verified as `latest=true`; the
+  same-SHA/current-`main` promotion guard remains in place for overlapping
+  releases.
+- Focused Super Express and release-version contracts pass **14/14** locally;
+  a future published Super Express run remains the remote workflow proof.
+
 ## August 6 — Dock settings tabs on any side
 
 - Preferences and Repository Settings now support independent persisted tab

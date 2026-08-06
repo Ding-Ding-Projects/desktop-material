@@ -1707,8 +1707,8 @@ The **Actions** panel brings CI into the app:
 - The repository's **Super Express Release** emergency lane runs no unit,
   script, TUI, lint, type, parity, smoke, or E2E tests. It goes directly to the
   Windows x64 production build/package, asset verification, and release. A
-  direct Windows `workflow_dispatch` publishes an immutable non-latest Windows
-  Release after preserving its verified artifact; the direct Linux TUI action
+  direct Windows `workflow_dispatch` publishes an immutable Windows Release
+  marked **Latest** after preserving and verifying its artifact; the direct Linux TUI action
   and reusable packaging calls remain artifact-only so the combined dispatcher
   publishes one complete cross-platform Release. The combined dispatcher is
   self-hosted-only: preparation and publication use the registered Linux x64
@@ -1734,9 +1734,11 @@ The **Actions** panel brings CI into the app:
   processes while preserving any process that predated the test. Remote proof
   of this hosted workflow repair is still pending.
 - Automatic and Super Express installers share one monotonic `z` package-version
-  namespace. Releases are immutable and initially non-latest; only the greatest
-  release for freshly revalidated current `main` is promoted to the Squirrel
-  update feed, so an older overlapping job cannot move **Latest** backward.
+  namespace. Automatic Express releases begin non-latest, while Super Express
+  publishers request **Latest** after verified assets are present. The greatest
+  release for freshly revalidated current `main` remains the only release allowed
+  to own the Squirrel update feed, so an older overlapping job cannot move
+  **Latest** backward.
 - Select a run artifact to review its name, size, creation/expiry, workflow source, and GitHub digest.
   Search the loaded artifact catalog by name or workflow context with fuzzy, substring, or safe
   regular-expression matching; substring and regex modes can also match the digest, and the regex

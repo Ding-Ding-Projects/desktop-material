@@ -22,6 +22,21 @@ the changed files, `actionlint -shellcheck=` passes, and `git diff --check`
 passes. A fresh remote Windows run is still required after the change; no GitHub
 green result is claimed yet.
 
+## 2026-08-06 — Mark Super Express releases as Latest
+
+Both Super Express publisher workflows now pass `--latest` when creating a
+release and when promoting the fallback release after asset upload. The direct
+Windows lane and the combined lane therefore participate in the repository's
+Latest release selection while retaining the existing current-main and
+highest-same-SHA promotion checks. The existing release
+`v3.6.3-beta3-zadwtuvqil` is verified as `latest=true` through the GitHub API.
+
+Implementation commit `a2299e8a669cf10d9baee83bcdd8235f4aafca6a` and integration
+commit `f49c350e12` carry the workflow, test, and release-note updates. The
+focused Super Express/release-version contracts pass **14/14** locally; a new
+published Super Express run is still required to verify the future workflow
+path.
+
 ## 2026-08-06 — Add four-way docking to browser-style settings tabs
 
 Preferences and Repository Settings now keep the current browser-style tab
@@ -47,7 +62,7 @@ layout, but are not presented as captures of this integrated tree.
 ## 2026-08-06 — Publish a release from every direct Windows Super Express run
 
 The direct `.github/workflows/super-express-release-windows.yml` workflow now
-publishes a standalone immutable, non-latest Windows x64 Release after its
+publishes a standalone immutable Windows x64 Release marked Latest after its
 verified package artifact is available. Its Windows packaging job stays on the
 trusted self-hosted runner, while its publisher runs on
 `[self-hosted, Linux, X64, desktop-material-wsl-local]`; its
