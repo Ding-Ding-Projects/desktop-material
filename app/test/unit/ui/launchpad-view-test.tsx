@@ -700,7 +700,14 @@ describe('Launchpad view styles', () => {
     assert.match(styles, /&__section-toggle\s*\{[\s\S]*?min-height:\s*48px;/)
     assert.match(styles, /&__action\s*\{[\s\S]*?min-height:\s*40px;/)
     assert.match(styles, /&__snooze-label\s*\{/)
-    assert.match(styles, /&__team-toggle\s*\{/)
+    assert.match(
+      styles,
+      /\.launchpad-view\s*\{[\s\S]*?&__team-toggle\s*\{/
+    )
+    assert.doesNotMatch(
+      styles,
+      /@media\s*\(max-width:\s*520px\)[\s\S]*?&__team-toggle\s*\{/
+    )
     assert.match(styles, /&__presence-dot\s*\{[\s\S]*?&--online\s*\{/)
   })
 

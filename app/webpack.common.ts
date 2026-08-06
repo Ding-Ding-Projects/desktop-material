@@ -46,6 +46,16 @@ const commonConfig: webpack.Configuration = {
   },
   resolve: {
     extensions: ['.js', '.ts', '.tsx'],
+    // react-confetti's ESM build imports the React 16 JSX runtime without the
+    // extension. Webpack treats that import as fully specified, so resolve
+    // the exact backported runtime file instead of weakening ESM resolution
+    // for every dependency.
+    alias: {
+      'react/jsx-runtime$': path.resolve(
+        __dirname,
+        'node_modules/react/jsx-runtime.js'
+      ),
+    },
   },
   node: {
     __dirname: false,

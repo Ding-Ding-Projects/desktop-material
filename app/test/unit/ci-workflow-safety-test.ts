@@ -51,10 +51,7 @@ const workflowSources = readdirSync(workflowDirectory)
 
 describe('CI workflow safety', () => {
   it('does not make hosted CI clone agent-only tooling', () => {
-    assert.match(
-      gitmodules,
-      /\[submodule "vendor\/lowlevel-computer-use-mcp"\][\s\S]*?\tpath = vendor\/lowlevel-computer-use-mcp[\s\S]*?\tupdate = none(?:\r?\n|$)/
-    )
+    assert.doesNotMatch(gitmodules, /lowlevel-computer-use-mcp/)
   })
 
   it('passes the Git trailer format as an argument instead of shell syntax', () => {

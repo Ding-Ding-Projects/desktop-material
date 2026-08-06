@@ -1,5 +1,24 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-05 — Harden the Windows dependency cache and preserve Team View styling
+
+The CI dependency-cache hit path now validates the actual Electron runtime,
+targeted Copilot package, and `react-confetti` ESM entry for the current
+runner and architecture before reusing an installed-dependency cache. The
+final dependency verification checks the same `react-confetti` runtime file,
+so a cache containing only package manifests cannot skip installation and then
+fail later in the renderer build.
+
+The Launchpad Team View selectors now live in the shared `.launchpad-view`
+scope rather than only inside the `max-width: 520px` media query. Team View
+therefore retains its layout and state styling on desktop as well as narrow
+Windows windows, while the Sass-safe parent-selector structure remains intact.
+
+Local verification is **32/32** focused CI, dependency, workflow, and
+Launchpad tests, passing ESLint type-checking, and `git diff --check`. A fresh
+production renderer compile after this styling and cache follow-up is still
+pending; remote Windows/Linux runs remain queued.
+
 ## 2026-08-05 — Account-aware repository transfer (verification in progress)
 
 The Windows Electron app now has an account-aware **Transfer repository**
@@ -77,6 +96,52 @@ by an external concurrent-run sweep before any selector or build step ran.
 Self-hosted execution and a post-fix remote green build therefore remain
 unverified; no Release was published by these `publish=false` dispatches.
 
+## 2026-08-05 — Close remaining Windows TypeScript build gaps
+
+The merged default-branch tree exposed five additional TypeScript diagnostics
+across three seams after the dependency and stylesheet failures were
+corrected. The provider
+triage label switch now handles the `self-hosted` account provider. The
+self-hosted OAuth error path now captures and validates the active
+authentication state before updating it, so a nullable store state cannot be
+spread into an invalid sign-in state and a callback race cannot overwrite a
+replacement flow. The SignInStore regression fixture now records callback
+accounts in a typed list and asserts exactly one authenticated account before
+checking its provider, endpoint, and login.
+
+Local evidence for this follow-up is **41/41** focused tests across SignInStore,
+provider triage, and CI workflow safety; passing ESLint type-checking; and an
+isolated production renderer compile with **0** Webpack errors. The compile
+also emitted only the existing Sass deprecation warnings and no Koffi,
+JSX-runtime, Sass parent-selector, or TypeScript errors. Fresh remote Windows
+and Pages verification for the integrated fix is pending.
+
+## 2026-08-05 — Restore Windows production build compatibility
+
+The final Windows verification of the retired tooling correction reached the
+production compiler but failed on three dependency and stylesheet edges. The
+application now pins `@github/copilot-sdk` back to `1.0.5`, which removes the
+Koffi native dependency introduced by `1.0.8`; the supplied dependency-install
+trace showed the retrying native failure while Koffi's optional platform
+packages were being resolved. The version-specific `1.0.8` declaration shim is
+removed with the rollback.
+
+`react-confetti` `6.4.0` keeps its React 16 JSX-runtime support, but its ESM
+entry asks Webpack for `react/jsx-runtime` without an extension. The common
+Webpack configuration now aliases that exact request to the installed
+`react/jsx-runtime.js` file, preserving strict ESM resolution for other
+dependencies. The Launchpad Team View styles are also nested under their
+`.launchpad-view` parent so Dart Sass no longer rejects a top-level `&` selector.
+The CI workflow guard now matches the integrated removal of the retired
+agent-only submodule instead of requiring a stale `.gitmodules` block.
+
+Local evidence for this correction is **3/3** dependency compatibility tests,
+**13/13** Launchpad tests, **12/12** CI workflow-safety tests, passing ESLint
+type-checking, and an isolated production renderer compile with **0** Webpack
+errors. The earlier full production compile showed the other five compilers
+finishing successfully; the renderer's two reported errors are covered by the
+isolated rerun. Fresh remote Windows and Pages verification for this correction
+is pending.
 ## 2026-08-05 — Keep private tooling out of hosted CI checkout
 
 The first remote Windows verification after the dependency repair reached the

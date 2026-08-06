@@ -1,8 +1,10 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
+import * as path from 'node:path'
 import * as React from 'react'
 import { compare } from 'compare-versions'
 import Confetti from 'react-confetti'
+import { renderer } from '../../webpack.common'
 
 describe('updated app dependency compatibility', () => {
   it('loads react-confetti through the React 16 JSX runtime', () => {
@@ -22,6 +24,14 @@ describe('updated app dependency compatibility', () => {
         })
       ),
       true
+    )
+  })
+
+  it('keeps Webpack ESM resolution pointed at the React 16 JSX runtime file', () => {
+    const alias = renderer.resolve?.alias as Record<string, string>
+    assert.equal(
+      alias['react/jsx-runtime$'],
+      path.resolve(__dirname, '../../node_modules/react/jsx-runtime.js')
     )
   })
 
