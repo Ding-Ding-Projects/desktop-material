@@ -199,9 +199,7 @@ describe('AI merge editor', () => {
       })
     )
 
-    const ours = textbox(`${labels.ours} ${labels.readOnly}`)
     const result = textbox(`${labels.result} ${labels.readOnly}`)
-    const theirs = textbox(`${labels.theirs} ${labels.readOnly}`)
     assert.equal(
       textboxValue(`${labels.ours} ${labels.readOnly}`).length,
       AIMergeEditorMaximumSourceLength

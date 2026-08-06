@@ -67,46 +67,46 @@ const selfHostedSuperExpressWorkflows = new Set([
   'super-express-release-linux-tui.yml',
 ])
 
-interface WorkflowStep {
+interface IWorkflowStep {
   name?: string
   run?: string
   env?: Record<string, unknown>
 }
 
-interface WorkflowJob {
+interface IWorkflowJob {
   'runs-on'?: string | string[]
   env?: Record<string, unknown>
-  steps?: WorkflowStep[]
+  steps?: IWorkflowStep[]
 }
 
-interface WorkflowDocument {
+interface IWorkflowDocument {
   env?: Record<string, unknown>
-  jobs?: Record<string, WorkflowJob>
+  jobs?: Record<string, IWorkflowJob>
 }
 
-interface CompositeActionDocument {
-  runs?: { steps?: WorkflowStep[] }
+interface ICompositeActionDocument {
+  runs?: { steps?: IWorkflowStep[] }
 }
 
-const windowsWorkflowDocument = parse(windowsWorkflow) as WorkflowDocument
-const linuxWorkflowDocument = parse(linuxWorkflow) as WorkflowDocument
-const installerWorkflowDocument = parse(installerWorkflow) as WorkflowDocument
-const setupCiActionDocument = parse(setupCiAction) as CompositeActionDocument
+const windowsWorkflowDocument = parse(windowsWorkflow) as IWorkflowDocument
+const linuxWorkflowDocument = parse(linuxWorkflow) as IWorkflowDocument
+const installerWorkflowDocument = parse(installerWorkflow) as IWorkflowDocument
+const setupCiActionDocument = parse(setupCiAction) as ICompositeActionDocument
 
-function getJob(workflow: WorkflowDocument, name: string): WorkflowJob {
+function getJob(workflow: IWorkflowDocument, name: string): IWorkflowJob {
   const job = workflow.jobs?.[name]
   assert.notEqual(job, undefined, `workflow job ${name} must exist`)
   return job ?? {}
 }
 
-function getNamedStep(job: WorkflowJob, name: string): WorkflowStep {
+function getNamedStep(job: IWorkflowJob, name: string): IWorkflowStep {
   const step = job.steps?.find(candidate => candidate.name === name)
   assert.notEqual(step, undefined, `workflow step ${name} must exist`)
   return step ?? {}
 }
 
 function assertJobRunsOn(
-  workflow: WorkflowDocument,
+  workflow: IWorkflowDocument,
   jobName: string,
   expectedRunner: string
 ): void {
@@ -117,7 +117,7 @@ function assertJobRunsOn(
   )
 }
 
-function getSelfHostedJobNames(workflow: WorkflowDocument): string[] {
+function getSelfHostedJobNames(workflow: IWorkflowDocument): string[] {
   return Object.entries(workflow.jobs ?? {})
     .filter(([, job]) => {
       const runners = Array.isArray(job['runs-on'])
@@ -140,7 +140,7 @@ function assertNoCaseInsensitiveEnvKey(
 }
 
 function assertDoesNotPersistNodeOptions(
-  steps: WorkflowStep[],
+  steps: IWorkflowStep[],
   owner: string
 ): void {
   for (const step of steps) {
@@ -154,7 +154,7 @@ function assertDoesNotPersistNodeOptions(
 }
 
 function assertHarnessOwnsWorkerMemory(
-  workflow: WorkflowDocument,
+  workflow: IWorkflowDocument,
   jobName: string
 ): void {
   const job = getJob(workflow, jobName)
@@ -444,7 +444,7 @@ describe('CI workflow safety', () => {
     }
 
     for (const { file, source } of workflowSources) {
-      const workflow = parse(source) as WorkflowDocument
+      const workflow = parse(source) as IWorkflowDocument
       const jobsWithRunners = Object.entries(workflow.jobs ?? {}).filter(
         ([, job]) => job['runs-on'] !== undefined
       )
