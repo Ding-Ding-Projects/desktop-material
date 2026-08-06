@@ -280,18 +280,18 @@ the tonal workspace preview hides when a compact window needs the space.
   history repository as well as in CI checkout preparation, so Windows history writes do not rely
   on a separate repository's local Git configuration.
 - **Release gates** — the manual Super Express emergency lane runs no tests and
-  goes directly to its Windows x64 build/package, asset verification, and
-  release. Every job is self-hosted-only: preparation and publication use the
-  registered Linux x64 WSL runner, the Windows lane uses `[self-hosted,
-  Windows, X64]`, and the TUI lane uses `[self-hosted, Linux, X64]`. A direct
-  Windows lane dispatch publishes its own immutable non-latest Windows Release;
-  direct Linux TUI and reusable packaging calls remain artifact-only so the
-  combined dispatcher can publish one complete cross-platform Release. If a
-  required runner is unavailable, the release queues or fails rather than
-  moving to a GitHub-hosted cloud runner. Ordinary CI and tested Express remain
-  the default gates and run on GitHub-hosted machines; release pull requests
-  target the Windows product's `main` default branch. Remote verification of
-  this restored runner boundary is pending.
+   goes directly to its Windows x64 build/package, asset verification, and
+   release. The combined dispatcher keeps preparation and publication on the
+   registered Linux x64 WSL runner, the Windows lane on `[self-hosted, Windows,
+   X64]`, and the TUI lane on `[self-hosted, Linux, X64]`. A direct Windows lane
+   dispatch keeps packaging on `[self-hosted, Windows, X64]` and publishes its
+   verified artifact from `ubuntu-latest`; direct Linux TUI and reusable
+   packaging calls remain artifact-only so the combined dispatcher can publish
+   one complete cross-platform Release. If a required packaging runner is
+   unavailable, the affected release queues or fails; the direct Windows
+   publisher does not depend on the local WSL runner. Ordinary CI and tested
+   Express remain the default gates and run on GitHub-hosted machines; release
+   pull requests target the Windows product's `main` default branch.
 - **Compact Repository Releases** — the corrected 800×560 combined gate keeps the list ahead of
   overview/detail content and retains one complete row. One physical 960×660 gate passed at 100%,
   125% (768×528 CSS), 150%, and 200% (480×330 CSS); compact scales keep a 176 px panel, at least

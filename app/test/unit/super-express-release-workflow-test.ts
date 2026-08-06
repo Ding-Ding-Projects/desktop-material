@@ -139,10 +139,6 @@ describe('Super Express Release workflow', () => {
       /Prefer Git Bash on Windows self-hosted runners[\s\S]*?shell: powershell -NoProfile -ExecutionPolicy Bypass[\s\S]*?GITHUB_PATH/
     )
     assert.doesNotMatch(windowsBuildAction, /shell: pwsh/)
-    assert.doesNotMatch(
-      windowsWorkflow,
-      /cloud|fallback|runner_selection|use_self_hosted/
-    )
     assert.match(windowsWorkflow, /build:/)
     assert.match(
       windowsWorkflow,
@@ -160,6 +156,11 @@ describe('Super Express Release workflow', () => {
     assert.match(
       windowsWorkflow,
       /publish:[\s\S]*?actions\/download-artifact@v8[\s\S]*?name: \$\{\{ needs\.build\.outputs\.artifact_name \}\}/
+    )
+    assert.match(windowsWorkflow, /publish:[\s\S]*?runs-on:\s+ubuntu-latest/)
+    assert.doesNotMatch(
+      windowsWorkflow,
+      /publish:[\s\S]*?desktop-material-wsl-local/
     )
     assert.match(windowsWorkflow, /gh release create "\$RELEASE_TAG"/)
     assert.match(windowsWorkflow, /--target "\$RELEASE_TARGET_SHA"/)

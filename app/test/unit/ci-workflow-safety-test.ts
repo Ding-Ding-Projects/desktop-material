@@ -461,6 +461,17 @@ describe('CI workflow safety', () => {
         )
         assert.notEqual(jobsWithRunners.length, 0)
         for (const [jobName, job] of jobsWithRunners) {
+          if (
+            file === 'super-express-release-windows.yml' &&
+            jobName === 'publish'
+          ) {
+            assert.equal(
+              job['runs-on'],
+              'ubuntu-latest',
+              `${file}:${jobName} must publish from the hosted runner`
+            )
+            continue
+          }
           assert.equal(
             Array.isArray(job['runs-on']) &&
               job['runs-on'].includes('self-hosted'),
