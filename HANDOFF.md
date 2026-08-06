@@ -1067,10 +1067,14 @@ public OCI pointers can restore anonymously.
 
 ### Remote state and remaining work
 
-- The task branch is dewed hui at the implementation commit above; this
-  handoff/roadmap/README follow-up records the same branch-only state.
-- Default-branch integration, a fresh Windows runtime capture, and remote CI
-  verification remain pending. No installer or release is claimed.
+- The task branch is dewed hui at the implementation commit above, and the
+  documentation follow-up is `09b8f815edb2c087b5fb57dfafb0cf5f59159b93`.
+- Integration merge
+  [`4f87b632ecdde73cf8c326a1da1499232427212b`](https://github.com/Ding-Ding-Projects/desktop-material/commit/4f87b632ecdde73cf8c326a1da1499232427212b)
+  is now on `main`, proven by `git ls-remote`.
+- A fresh Windows runtime capture remains pending because no fresh production
+  artifact exists. `gh run list --commit 4f87b632ecdde73cf8c326a1da1499232427212b`
+  returned no run at this handoff, so no installer or release is claimed.
 
 ## 2026-08-05 — Super Express packaging lanes parallelized
 

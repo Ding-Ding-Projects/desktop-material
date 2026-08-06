@@ -293,7 +293,10 @@ Updated: **August 6, 2026**
 - Focused verification passes **46/46 tests**, changed-file ESLint, and
   Prettier. The exact production build is blocked by existing TypeScript 6
   configuration/dependency diagnostics, so the Windows runtime capture remains
-  pending and no release is claimed for this branch-only milestone.
+  pending and no release is claimed for this change.
+- Integration merge
+  [`4f87b632ecdde73cf8c326a1da1499232427212b`](https://github.com/Ding-Ding-Projects/desktop-material/commit/4f87b632ecdde73cf8c326a1da1499232427212b)
+  is now on `main`; no workflow run for that exact SHA was visible at handoff.
 
 ## August 3 — the site lays out on a phone
 
