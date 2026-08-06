@@ -18,8 +18,8 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: build-installers-${{ github.run_id }}-${{ github.run_attempt }}
-  cancel-in-progress: false
+  group: super-express-release-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   NODE_VERSION: 24.15.0
@@ -31,7 +31,10 @@ permissions:
 jobs:
   prepare:
     name: Resolve exact main release
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
     outputs:
       sha: ${{ steps.target.outputs.sha }}
       version: ${{ steps.version.outputs.version }}
@@ -160,6 +163,11 @@ jobs:
           ref: ${{ steps.target.outputs.sha }}
           fetch-depth: 0
 
+      - uses: actions/setup-node@v7
+        if: steps.target.outputs.proceed == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
       - name: Stamp cross-lane monotonic release version
         id: version
         if: steps.target.outputs.proceed == 'true'
@@ -206,7 +214,10 @@ jobs:
     name: Express lint
     if: github.event_name == 'workflow_dispatch'
     needs: prepare
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
     permissions:
       contents: read
     steps:
@@ -228,7 +239,10 @@ jobs:
     name: Express tests Windows x64
     if: github.event_name == 'workflow_dispatch'
     needs: prepare
-    runs-on: windows-2022
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
     timeout-minutes: 45
     permissions:
       contents: read
@@ -269,7 +283,10 @@ jobs:
     # the notes down with the installers and left nothing to publish at all.
     if: needs.prepare.outputs.proceed == 'true'
     needs: prepare
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
     permissions:
       contents: read
     env:
@@ -327,7 +344,10 @@ jobs:
       needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.linux_ok
       == 'true'
     needs: prepare
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
     timeout-minutes: 40
     permissions:
       contents: read
@@ -507,7 +527,10 @@ jobs:
       needs.prepare.outputs.proceed == 'true' &&
       needs.prepare.outputs.windows_ok == 'true'
     needs: prepare
-    runs-on: windows-2022
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
     timeout-minutes: 60
     permissions:
       contents: read
@@ -645,7 +668,10 @@ jobs:
       needs.tui_package.result == 'success') && (github.event_name ==
       'workflow_run' ||
        (needs.lint.result == 'success' && needs.test.result == 'success'))
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
     permissions:
       actions: read
       contents: write
@@ -671,6 +697,9 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       - uses: actions/download-artifact@v8
         if: needs.package.result == 'success'
         with:

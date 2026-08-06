@@ -7,13 +7,24 @@ that: Dependabot proposes dependency updates instead of letting pins rot, every
 install in CI is pinned to the committed lock file, and a dedicated **Supply
 chain** job checks lock-file provenance and reports npm advisories.
 
-The trusted CI and Super Express paths are self-hosted-only. CI jobs use static
-`self-hosted` plus operating-system and architecture labels, and ref-scoped
-concurrency cancels obsolete validation runs while publication workflows retain
-their immutable run-and-attempt history. Reusable CI calls are accepted only
-from `Ding-Ding-Projects/desktop-material` and only check out that repository,
-so an external caller cannot turn the local runner into a general-purpose
-executor.
+The trusted CI and Super Express paths are self-hosted-only. CI jobs and all
+seven jobs in `Build Installers / Express Release` use static `self-hosted`
+plus operating-system and architecture labels. CI and Super Express
+concurrency are ref-scoped, so obsolete trusted runs are cancelled while other
+publication workflows retain their immutable run-and-attempt history.
+Reusable CI calls are accepted only from `Ding-Ding-Projects/desktop-material`
+and only check out that repository, so an external caller cannot turn the local
+runner into a general-purpose executor.
+
+The fresh-install contract is checked against the repository's pinned
+toolchain: the parity generator and generated YAML must declare the same 206
+desktop features, and the TypeScript configurations must remain valid for the
+pinned TypeScript 5.8.2 release. The dependency compatibility test guards
+those settings so a TypeScript 6-only option or a script root that cannot
+resolve repository imports fails locally before consuming a self-hosted run.
+The settings-tab migration map is intentionally consumed by persistence code
+in a class method; its lint annotation documents that ownership rather than
+hiding an unused property.
 
 ## Behaviour
 
@@ -170,20 +181,21 @@ the exit code, which is ambiguous between "found advisories" and "failed".
 
 ### Run concurrency
 
-The self-hosted CI workflow groups are keyed by ref and cancel older trusted
-runs; installer and Pages publication retain unique run-and-attempt groups:
+The self-hosted CI and Express Release groups are keyed by ref and cancel older
+trusted runs; other installer and Pages publication workflows retain unique
+run-and-attempt groups:
 
 | Workflow family                              | Group                   | `cancel-in-progress` |
 | --------------------------------------------- | ----------------------- | -------------------- |
 | Push and manual CI validation                 | Per ref                 | Yes                  |
-| Installer and Pages publication               | Per run and attempt     | No                   |
-| Super Express self-hosted release             | Per dispatched ref      | Yes                  |
+| Express Release self-hosted release           | Per ref                 | Yes                  |
+| Other installer and Pages publication         | Per run and attempt     | No                   |
 
 Ten pushes to one branch now leave only the newest trusted CI run active. The
 registered self-hosted pool is scarce, so cancelling obsolete work keeps the
 runner focused on the commit that can still ship. The workflow safety test
-allows this behavior only for `ci-linux.yml`, `ci-windows.yml`, and the three
-`super-express-release*.yml` files.
+allows this behavior only for `ci-linux.yml`, `ci-windows.yml`,
+`build-installers.yml`, and the three `super-express-release*.yml` files.
 
 ## Security considerations
 

@@ -4,9 +4,9 @@
   "generator": "tui/tools/generate-parity-contract.mjs",
   "source": {
     "path": "docs/readme-tabs/complete-feature-list.md",
-    "sha256": "acadd6f20b693ed82da5caf9c347882227e26a974105b2ad43e57018fc08c0d8",
-    "declared_feature_count": 205,
-    "parsed_feature_count": 205,
+    "sha256": "d45be7d49e1edd46a6ab3efe5756e3cba6e2a2e18b68138b43d34e681caf5137",
+    "declared_feature_count": 206,
+    "parsed_feature_count": 206,
     "section_count": 17
   },
   "semantics": {
@@ -17,7 +17,7 @@
   },
   "status_summary": {
     "adapted": 49,
-    "not_yet_available": 92,
+    "not_yet_available": 93,
     "partial": 62,
     "terminal_owned": 2
   },
@@ -2385,6 +2385,17 @@
         "tui/src/desktop_material_tui/ui/screens/settings.py",
         "tui/tests/ui/test_settings_palette_search.py"
       ]
+    },
+    {
+      "id": "13-browser-style-settings-tabs",
+      "section": 13,
+      "section_title": "Search everywhere and the regex builder",
+      "title": "Browser-style settings tabs",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/settings-browser-tabs.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
     },
     {
       "id": "13-collection-bulk-actions-with-regex-safety",

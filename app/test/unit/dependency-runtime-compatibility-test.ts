@@ -41,26 +41,26 @@ describe('updated app dependency compatibility', () => {
     assert.equal(configuredExternals.includes('@github/copilot-sdk'), true)
   })
 
-  it('keeps the compiler configs compatible with the pinned TypeScript', () => {
-    const scriptTsconfig = JSON.parse(
-      readFileSync(
-        path.resolve(__dirname, '../../../script/tsconfig.json'),
-        'utf8'
-      )
-    ) as {
-      compilerOptions: {
-        ignoreDeprecations?: string
-        rootDir?: string
+  it('keeps the script compiler config compatible with fresh installs', () => {
+    for (const configPath of [
+      '../../../script/tsconfig.json',
+      '../../src/highlighter/tsconfig.json',
+      '../../../tsconfig.json',
+    ]) {
+      const tsconfig = JSON.parse(
+        readFileSync(path.resolve(__dirname, configPath), 'utf8')
+      ) as {
+        compilerOptions: {
+          ignoreDeprecations?: string
+          rootDir?: string
+        }
+      }
+
+      assert.equal(tsconfig.compilerOptions.ignoreDeprecations, undefined)
+      if (configPath === '../../../script/tsconfig.json') {
+        assert.equal(tsconfig.compilerOptions.rootDir, '..')
       }
     }
-
-    const rootTsconfig = JSON.parse(
-      readFileSync(path.resolve(__dirname, '../../../tsconfig.json'), 'utf8')
-    ) as { compilerOptions: { ignoreDeprecations?: string } }
-
-    assert.equal(scriptTsconfig.compilerOptions.rootDir, '..')
-    assert.equal(scriptTsconfig.compilerOptions.ignoreDeprecations, undefined)
-    assert.equal(rootTsconfig.compilerOptions.ignoreDeprecations, undefined)
   })
 
   it('keeps the compare-versions 6 API used by the Windows version guards', () => {
