@@ -4,9 +4,9 @@
   "generator": "tui/tools/generate-parity-contract.mjs",
   "source": {
     "path": "docs/readme-tabs/complete-feature-list.md",
-    "sha256": "d45be7d49e1edd46a6ab3efe5756e3cba6e2a2e18b68138b43d34e681caf5137",
-    "declared_feature_count": 206,
-    "parsed_feature_count": 206,
+    "sha256": "45e0339b7891bdf087c941b71dca8313785e37bd7db9093708e9ba54eae9d710",
+    "declared_feature_count": 207,
+    "parsed_feature_count": 207,
     "section_count": 17
   },
   "semantics": {
@@ -17,7 +17,7 @@
   },
   "status_summary": {
     "adapted": 49,
-    "not_yet_available": 93,
+    "not_yet_available": 94,
     "partial": 62,
     "terminal_owned": 2
   },
@@ -2393,6 +2393,17 @@
       "title": "Browser-style settings tabs",
       "upstream_relation": "added",
       "desktop_documentation": "../features/identity-and-workspace/settings-browser-tabs.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "13-settings-tab-docking",
+      "section": 13,
+      "section_title": "Search everywhere and the regex builder",
+      "title": "Settings tab docking",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/settings-tab-docking.md",
       "tui_status": "not_yet_available",
       "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
       "evidence": []

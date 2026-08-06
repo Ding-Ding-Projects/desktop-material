@@ -2,22 +2,20 @@
 
 Updated: **August 6, 2026**
 
-## August 6 — Give Windows CI a trusted runner choice and warm cache
+## August 6 — Keep Windows CI hosted and harden the Super Express cache
 
-- The manual `CI Windows` dispatch now offers `cloud` (the default) or the
-  fixed `self-hosted`, `Windows`, `X64`, and `desktop-material-windows-local`
-  label set for the desktop build and packaged smoke jobs. Push, pull-request,
-  reusable-call, and Windows TUI core jobs remain on hosted runners.
-- Windows self-hosted jobs restore exact `installed-deps-v6` dependencies
+- Every `CI Windows` trigger uses `windows-2022`; manual dispatches expose no
+  runner selector. Only Super Express may claim the fixed local runner labels.
+- Windows Super Express jobs restore exact `installed-deps-v6` dependencies
   without a post-job archive hook, verify the restored sentinels, and explicitly
   save a verified miss. `installed-deps-v5` and `installed-deps-v4` are warm
   starts only; the cross-compilation manifest restore keeps the exact key
   reachable, both Windows toolset scripts invalidate it, and self-hosted keys
   include the runner/toolchain fingerprint. The install itself uses
   `yarn --frozen-lockfile`.
-- Local CI/release contracts pass **32/32**, the edited YAML parses, Prettier and
-  `actionlint -shellcheck=` pass, and `git diff --check` passes. Remote
-  verification remains pending for the hardening commit.
+- Local CI/release contracts, Prettier, `actionlint`, full lint, and
+  `git diff --check` pass. Remote verification remains pending for the
+  hardening commit.
 
 ## August 6 — Include Super Express in Latest release selection
 

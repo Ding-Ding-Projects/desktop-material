@@ -74,35 +74,6 @@ const selfHostedSuperExpressWorkflows = new Set([
   'super-express-release-windows.yml',
   'super-express-release-linux-tui.yml',
 ])
-const windowsDesktopRunnerExpression =
-  '${{ github.event_name == \'workflow_dispatch\' && inputs.runner_mode == \'self-hosted\' && fromJSON(\'["self-hosted","Windows","X64","desktop-material-windows-local"]\') || \'windows-2022\' }}'
-
-function evaluateWindowsDesktopRunnerExpression(
-  expression: string,
-  context: { eventName: string; runnerMode?: string }
-): string | string[] {
-  const normalized = expression.replace(/\s+/g, ' ').trim()
-  assert.match(normalized, /^\$\{\{ .+ \}\}$/)
-  const body = normalized.slice(3, -3).trim()
-  const branches = body.split(' || ')
-  assert.equal(branches.length, 2, 'runner expression must have one fallback')
-  const conditionAndSelection = branches[0].split(' && ')
-  assert.deepEqual(conditionAndSelection.slice(0, 2), [
-    "github.event_name == 'workflow_dispatch'",
-    "inputs.runner_mode == 'self-hosted'",
-  ])
-  assert.equal(conditionAndSelection.length, 3)
-  const selectedRunner = /^fromJSON\('(\[.*\])'\)$/.exec(
-    conditionAndSelection[2]
-  )
-  const fallbackRunner = /^'([^']+)'$/.exec(branches[1])
-  assert.notEqual(selectedRunner, null)
-  assert.notEqual(fallbackRunner, null)
-  return context.eventName === 'workflow_dispatch' &&
-    context.runnerMode === 'self-hosted'
-    ? JSON.parse(selectedRunner?.[1] ?? '[]')
-    : fallbackRunner?.[1] ?? ''
-}
 
 interface IWorkflowStep {
   name?: string
@@ -508,20 +479,6 @@ describe('CI workflow safety', () => {
         continue
       }
       for (const [jobName, job] of jobsWithRunners) {
-        if (
-          file === 'ci-windows.yml' &&
-          ['build', 'e2e-smoke'].includes(jobName)
-        ) {
-          assert.equal(
-            job['runs-on'],
-            windowsDesktopRunnerExpression,
-            file +
-              ':' +
-              jobName +
-              ' must expose the cloud/self-hosted runner choice'
-          )
-          continue
-        }
         assert.equal(
           typeof job['runs-on'],
           'string',
@@ -643,10 +600,7 @@ describe('CI workflow safety', () => {
   it('builds, packages, and exercises the app on hosted CI runners', () => {
     assertJobRunsOn(windowsWorkflowDocument, 'windows-tui-core', 'windows-2022')
     for (const jobName of ['build', 'e2e-smoke']) {
-      assert.equal(
-        getJob(windowsWorkflowDocument, jobName)['runs-on'],
-        windowsDesktopRunnerExpression
-      )
+      assertJobRunsOn(windowsWorkflowDocument, jobName, 'windows-2022')
     }
     for (const jobName of ['lint', 'supply-chain', 'linux-tui']) {
       assertJobRunsOn(linuxWorkflowDocument, jobName, 'ubuntu-latest')
@@ -655,10 +609,7 @@ describe('CI workflow safety', () => {
     assert.deepEqual(getSelfHostedJobNames(linuxWorkflowDocument), [])
     assert.match(windowsWorkflow, /arch: \[x64, arm64\]/)
     assert.match(windowsWorkflow, /friendlyName: Windows/)
-    assert.match(
-      windowsWorkflow,
-      /workflow_dispatch:\s+inputs:\s+runner_mode:[\s\S]*?default: cloud[\s\S]*?type: choice[\s\S]*?options:\s+- cloud\s+- self-hosted/
-    )
+    assert.doesNotMatch(windowsWorkflow, /runner_mode|self-hosted/)
     assert.match(windowsWorkflow, /workflow_call:\s+inputs:\s+repository:/)
     assert.match(windowsWorkflow, /Install app on Windows/)
     assert.match(
@@ -672,55 +623,6 @@ describe('CI workflow safety', () => {
     assert.doesNotMatch(windowsWorkflow, /shell: pwsh/)
     for (const { name, source } of ciWorkflows) {
       assert.doesNotMatch(source, /macos|APPLE_/i, name)
-    }
-  })
-
-  it('evaluates the Windows desktop runner choice for every trigger and input', () => {
-    const expression = getJob(windowsWorkflowDocument, 'build')[
-      'runs-on'
-    ] as string
-    const cases = [
-      { eventName: 'push', runnerMode: 'cloud', expected: 'windows-2022' },
-      {
-        eventName: 'pull_request',
-        runnerMode: 'self-hosted',
-        expected: 'windows-2022',
-      },
-      {
-        eventName: 'workflow_call',
-        runnerMode: 'self-hosted',
-        expected: 'windows-2022',
-      },
-      {
-        eventName: 'workflow_dispatch',
-        runnerMode: 'cloud',
-        expected: 'windows-2022',
-      },
-      {
-        eventName: 'workflow_dispatch',
-        runnerMode: 'self-hosted',
-        expected: [
-          'self-hosted',
-          'Windows',
-          'X64',
-          'desktop-material-windows-local',
-        ],
-      },
-      {
-        eventName: 'workflow_dispatch',
-        runnerMode: undefined,
-        expected: 'windows-2022',
-      },
-    ]
-    for (const { eventName, runnerMode, expected } of cases) {
-      assert.deepEqual(
-        evaluateWindowsDesktopRunnerExpression(expression, {
-          eventName,
-          runnerMode,
-        }),
-        expected,
-        `${eventName}/${runnerMode ?? '<unset>'} must resolve safely`
-      )
     }
   })
 

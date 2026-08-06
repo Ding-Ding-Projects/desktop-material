@@ -1700,10 +1700,9 @@ The **Actions** panel brings CI into the app:
   confirmation. It is never inferred from a deployment decision.
 - Trigger manual workflows with the **`workflow_dispatch` dialog** — pick the workflow, ref, and
   inputs, and dispatch.
-- When dispatching **CI Windows**, choose `cloud` (the default) or `self-hosted` for the desktop
-  build and packaged smoke jobs. The self-hosted choice is mapped to the fixed
-  `desktop-material-windows-local` label; pushes, pull requests, reusable calls, and the Windows
-  TUI core job remain on hosted runners.
+- **CI Windows** always uses GitHub-hosted runners for manual dispatches, pushes, pull requests,
+  and reusable calls. It exposes no local-runner selector; the self-hosted pool is reserved for
+  Super Express.
 - The repository's **Super Express Release** emergency lane runs no unit,
   script, TUI, lint, type, parity, smoke, or E2E tests. It goes directly to the
   Windows x64 production build/package, asset verification, and release. A

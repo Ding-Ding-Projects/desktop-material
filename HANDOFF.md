@@ -1,13 +1,12 @@
 # Desktop Material — Active parity handoff
 
-## 2026-08-06 — Add a trusted Windows CI runner choice and self-hosted cache
+## 2026-08-06 — Keep ordinary Windows CI cloud-only and harden local caches
 
-`CI Windows` remains cloud-first for pushes, pull requests, and reusable calls,
-but its manual `workflow_dispatch` form now offers `cloud` or `self-hosted` for
-the desktop build and packaged smoke jobs. The self-hosted option requires the
-fixed `self-hosted`, `Windows`, `X64`, and `desktop-material-windows-local`
-label set; the Windows TUI core job stays on `windows-2022`, and no raw runner
-label is accepted from workflow input.
+`CI Windows` uses `windows-2022` for pushes, pull requests, manual dispatches,
+and reusable calls. It exposes no runner selector and no self-hosted label, so
+ordinary builds and packaged smoke tests cannot consume the local runner pool.
+Only the three Super Express emergency workflows remain explicitly
+self-hosted.
 
 The shared Windows dependency setup now restores an exact `installed-deps-v6`
 cache on self-hosted jobs without a post-job cache hook, verifies its required
@@ -23,12 +22,10 @@ cross-compilation install restores all hashed manifests before verification and
 cache save, so the exact key remains reachable. Build outputs and installers
 remain uncached.
 
-Local evidence on the task branch: the CI environment and workflow safety
-contracts pass **18/18**, the combined CI/release contracts pass **32/32**, all
-four workflow/action YAML documents parse, Prettier passes on the changed files,
-`actionlint -shellcheck=` passes, and `git diff --check` passes. A fresh remote
-Windows run is still required after the hardening change; no GitHub green result
-is claimed yet.
+The workflow safety contract also rejects runner expressions and self-hosted
+labels in every non-Super-Express workflow. A fresh remote Windows run is still
+required after this boundary correction; no GitHub green result is claimed
+yet.
 
 ## 2026-08-06 — Mark Super Express releases as Latest
 

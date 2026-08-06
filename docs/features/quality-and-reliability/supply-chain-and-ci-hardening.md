@@ -12,11 +12,8 @@ GitHub-hosted `ubuntu-latest` or `windows-2022` machines. Each invocation uses a
 unique run-ID/run-attempt concurrency group with `cancel-in-progress: false`, so
 the release gate for one commit cannot be silently replaced by a later commit.
 The CI workflows also accept pull requests because untrusted code stays on a
-disposable hosted machine. The Windows `workflow_dispatch` form additionally
-offers a `cloud` (the default) or `self-hosted` choice for the desktop build and
-packaged smoke jobs. Only the exact `self-hosted` choice on a manual dispatch
-maps to `desktop-material-windows-local`; pushes, pull requests, reusable calls,
-and the Windows TUI core job remain hosted.
+disposable hosted machine. Manual dispatches use those same hosted runners;
+ordinary CI exposes no runner selector and cannot claim the local pool.
 
 Only the Super Express emergency family is self-hosted and ref-cancelling. Its
 Windows jobs require `desktop-material-windows-local`, and its Linux/WSL jobs
@@ -298,11 +295,11 @@ groups. Only Super Express cancels an older dispatch for the same ref:
 | Super Express emergency release               | Per ref                 | Yes                  |
 
 Ten pushes to one branch now retain ten independent hosted CI results. The
-registered self-hosted pool is reserved for explicit Super Express work and the
-trusted manual Windows CI desktop choice; pull requests and reusable calls
-cannot select it. The workflow safety test permits `cancel-in-progress: true`
-only in the three `super-express-release*.yml` files and checks that the Windows
-CI expression can select only the fixed local label on a manual dispatch.
+registered self-hosted pool is reserved exclusively for explicit Super Express
+work; ordinary manual dispatches, pull requests, and reusable calls cannot
+select it. The workflow safety test permits `cancel-in-progress: true` only in
+the three `super-express-release*.yml` files and requires every other job to
+declare one literal GitHub-hosted runner.
 
 ## Security considerations
 
@@ -442,10 +439,10 @@ ClangCL bootstrap verification performed on 2026-08-06:
 
 Current hosted-runner restoration verification is also pending. The committed
 contract must prove that ordinary CI and tested Express use
-`ubuntu-latest`/`windows-2022` by default, accept pull requests only through
-hosted CI, retain unique non-cancelling groups, and limit self-hosted placement
-to the trusted manual Windows CI desktop choice or Super Express. The Windows unit workflow
-must leave worker memory to `script/test.mjs`, and the named installer step must
+`ubuntu-latest`/`windows-2022`, accept pull requests only through hosted CI,
+retain unique non-cancelling groups, and limit self-hosted placement to Super
+Express. The Windows unit workflow must leave worker memory to `script/test.mjs`,
+and the named installer step must
 contain exactly one bounded `WaitForExit(300000)`, timeout tree cleanup, and
 repeated same-session/pre-existing-PID-scoped application cleanup. No remote
 green result is claimed for that working-tree repair yet.

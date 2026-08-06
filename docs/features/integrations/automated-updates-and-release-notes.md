@@ -149,13 +149,9 @@ Ordinary Linux/Windows CI and `Build Installers / Express Release` use
 GitHub-hosted runners and unique run-ID/run-attempt concurrency groups with
 `cancel-in-progress: false`; every commit keeps its independent validation and
 publication opportunity. CI handles pushes, pull requests, manual dispatches,
-and reusable calls on clean hosted machines by default. The Windows manual
-dispatch offers a `cloud` or `self-hosted` choice for only the desktop build and
-packaged smoke jobs; the self-hosted option requires the fixed
-`self-hosted`, `Windows`, `X64`, and `desktop-material-windows-local` label set
-and never accepts a raw runner label.
-The Windows TUI core job remains hosted. Pages publication retains the same
-non-cancelling run-and-attempt contract.
+and reusable calls on clean hosted machines. Ordinary Windows CI exposes no
+runner selector, including on manual dispatches. Pages publication retains the
+same non-cancelling run-and-attempt contract.
 
 Only the self-hosted Super Express release family uses ref-scoped cancellation,
 so a newer emergency dispatch can release a scarce local runner from an obsolete
