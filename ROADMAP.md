@@ -53,7 +53,11 @@ Updated: **August 5, 2026**
 - The in-app Job Log surface now explains the provider state and keeps explicit
   **Retry** and **Open on GitHub** recovery actions visible. The existing
   expired-log (`410`) behavior is unchanged.
-- Local evidence: focused transfer/viewer tests pass **18/18**; TypeScript,
+- A follow-up audit keeps transient 404 retries outside the redirect-hop
+  budget, stops before refetch when cancellation arrives during backoff,
+  asserts that signed-blob 404s receive no bearer header, and verifies the
+  external recovery link's destination and activation.
+- Local evidence: focused transfer/viewer tests pass **20/20**; TypeScript,
   changed-file ESLint, and Prettier pass; the cheap headless Windows artifact
   shows the final 404 state and then both expected log lines after Retry. The
   standalone renderer diagnostic reports `hasErrors:false`; the production

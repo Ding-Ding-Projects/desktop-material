@@ -110,8 +110,9 @@ non-blocking inside the log surface and offers **Retry** plus **Open on GitHub**
 Retry starts the same job again without losing the selected run.
 
 There is no user setting to tune. The fixed bound prevents an unavailable
-provider from keeping a renderer request alive indefinitely, while the existing
-abort signal still cancels both the transfer and an in-flight retry delay.
+provider from keeping a renderer request alive indefinitely. Retry attempts do
+not consume the separate redirect-hop budget, and the existing abort signal
+cancels an in-flight retry delay before another network request can start.
 
 ![Actions job-log recovery state with the provider 404 explanation, Retry action, and Open on GitHub link](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-job-log-404-recovery.png)
 
@@ -166,9 +167,11 @@ semantics, switch targets, and focus order are unchanged.
 
 `app/test/unit/main-process/actions-transfer-test.ts` covers a transient API
 404 followed by a fresh API redirect and successful blob transfer, the exact
-250/750/1,500 ms retry budget, bearer-header scope, and the final bounded 404.
-`app/test/unit/ui/job-log-viewer-test.tsx` covers the visible error, Retry
-button, and Open on GitHub link. The built Windows Electron artifact was also
+250/750/1,500 ms retry budget, a multi-hop redirect chain after all retries,
+abort during backoff without a refetch, bearer-header scope including signed
+blob 404s, and the final bounded 404. `app/test/unit/ui/job-log-viewer-test.tsx`
+covers the visible error, Retry button, and Open on GitHub link destination and
+activation. The built Windows Electron artifact was also
 exercised through the cheap headless desktop route: the fixture produced four
 bounded 404 attempts, then one successful request after the user activated
 Retry, and the captured viewer shows both expected log lines.

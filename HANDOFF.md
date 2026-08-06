@@ -309,20 +309,28 @@ clean.
 ## 2026-08-05 — Actions job-log transient 404 recovery
 
 This Windows Electron fix was developed in the new linked worktree branch
-`codex/job-log-404-fix` at commit `33f54a69825d97083dc8f0b1fb134b353e9686ca`,
-and the integration checkout carries that commit into the default branch.
+`codex/job-log-404-fix` at commits
+`33f54a69825d97083dc8f0b1fb134b353e9686ca` and
+`e85cf787e3aea81ac28679f00b3b0201507af133`, and the integration checkout
+carries those commits into the default branch.
 GitHub can briefly return `HTTP 404`
 while a valid completed-job log archive is being prepared. The main-process
 transfer now retries only that API response after 250/750/1,500 ms waits,
 restarts from the original API endpoint for a fresh signed redirect, and keeps
-the bearer header off cross-origin blob requests. The log viewer explains the
-provider state and exposes **Retry** and **Open on GitHub**. The unrelated
+the bearer header off cross-origin blob requests. A follow-up audit separates
+the retry count from the redirect-hop budget, proves cancellation during
+backoff prevents another fetch, and asserts the blob-404 request has no bearer
+header. The log viewer explains the provider state and exposes **Retry** and
+**Open on GitHub**; its test checks the link destination and external
+activation. The unrelated
 Launchpad Sass brace correction is included because it was the build-blocking
 syntax error discovered while producing the required renderer artifact.
 
 ### Verification receipts
 
-- Focused transfer/viewer tests: **18 passed, 0 failed**.
+- Focused transfer/viewer tests: **20 passed, 0 failed** (including the
+  redirect-budget, abort-during-backoff, blob-header, and external-link
+  audit regressions).
 - `tsc --noEmit -p tsconfig.json`: passed.
 - Changed-file ESLint and Prettier checks: passed.
 - `git diff --check`: passed before documentation and capture promotion.
