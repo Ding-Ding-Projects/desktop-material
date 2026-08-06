@@ -1,5 +1,38 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-05 — Preserve dirty work while creating a destination worktree
+
+The dirty branch-switch dialog now offers **Leave my changes here**. It closes
+the decision dialog without stashing or checking out the dirty source, opens
+the existing Add worktree flow with the destination branch and suggested name
+prefilled, and leaves creation and switching until the user confirms a path.
+
+### Verification
+
+- Source commit: `c41ae8345a`.
+- Focused UI test: **1 passed, 0 failed**.
+- Targeted Prettier and ESLint: **passed**.
+- Isolated TypeScript check: **passed**.
+- The exact production build was attempted through the required hidden
+  verification route but stopped before renderer emission on the pre-existing
+  `origin/main` Sass error at `app/styles/ui/_launchpad.scss:278`. A
+  disposable renderer-only build with that unrelated selector wrapped emitted
+  the fresh renderer used for capture.
+- Hidden-desktop runtime: **verified**. The source fixture retained one
+  modified `README.md` on `feature/worktree-switch`; the created destination
+  worktree was clean on `main`; the application switched into it with zero
+  stashes.
+- Captures:
+  - `docs/verification/dirty-worktree-worktree-option-20260805/dirty-worktree-switch-dialog.png`
+    (960×660, SHA-256
+    `0FF723C7361C6A9125B9C95AF9A9C40614C5B7B646BBC061A18C0B0D56DDDAB7`).
+  - `docs/verification/dirty-worktree-worktree-option-20260805/add-worktree-prefilled.png`
+    (960×660, SHA-256
+    `54B29ACF0B6A31CAA18E701BF413D720F161C65D3BA9DF5626A4747A3BD5588C`).
+
+GitHub integration and remote CI evidence are recorded after the source and
+documentation commits land on the default branch.
+
 ## 2026-08-05 — Direct Super Express lane dispatch actions
 
 The Windows and Linux TUI Super Express packaging workflows now each expose a
