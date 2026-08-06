@@ -36,6 +36,11 @@ describe('updated app dependency compatibility', () => {
     )
   })
 
+  it('loads the Node-side Copilot SDK outside the renderer bundle', () => {
+    const configuredExternals = renderer.externals as ReadonlyArray<string>
+    assert.equal(configuredExternals.includes('@github/copilot-sdk'), true)
+  })
+
   it('keeps the script compiler config compatible with fresh installs', () => {
     for (const configPath of [
       '../../../script/tsconfig.json',

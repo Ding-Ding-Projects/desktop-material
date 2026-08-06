@@ -1,5 +1,52 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Repair the blank Windows startup renderer
+
+The packaged Windows renderer failed before React mounted with
+`ReferenceError: __webpack_module__ is not defined`. The cause was the
+Node-oriented `@github/copilot-sdk` ESM graph being concatenated into the
+renderer through `CopilotStore`; the empty root and hidden-until-ready window
+then presented as a blank white launch. `app/webpack.common.ts` now
+externalizes the SDK, and `script/build.ts` fails before packaging if either
+renderer bundle contains the undefined binding.
+
+The implementation commit is
+`5fbc28b6cfe458943cdecd456fdc3622a4719fc1`, followed by the documentation
+commit `b75de4f106c808764ae3ae13383d2f024ad2e26c`. Latest-main integration
+also includes `518fa92a75` for the script compiler boundary and
+`fe189e2f41` for the root TypeScript configuration. A clean pinned Yarn
+install completed the root and app dependencies, submodules, script
+compilation, Electron runtime preparation, and Playwright ffmpeg setup.
+
+The final integrated production build completed in `520.70s`, printed
+`Checking renderer bundles…`, and produced
+`dist/GitHubDesktop-win32-x64/GitHubDesktop.exe` with both renderer bundles and
+the packaged Copilot SDK present; both bundles contain zero
+`__webpack_module__` tokens. That exact executable launched on the hidden
+desktop, reloaded through CDP with `readyState=complete`, one populated
+`#desktop-app-container` child, and no captured runtime exceptions. The genuine
+Lowlevel MCP capture is tracked at
+`docs/assets/screenshots/material-blank-startup-fixed-20260806.png`, `960x660`,
+SHA-256 `00D8BD6FCE0EFA10107523BF92BEA54E80DDA6ED66B8E3700B21297D6CBF2A82`,
+and shows the first-run Desktop Material surface. The detailed behavior,
+failure modes, security notes, and verification record are in
+`docs/features/quality-and-reliability/renderer-startup-bundle-safety.md` and
+`.codex/run-manifests/2026-08-06-blank-startup.md`.
+
+Remote CI and default-branch publication remain the final external checks.
+## 2026-08-06 — Bootstrap Python on self-hosted Linux
+
+The direct pure-self-hosted Express Release dispatch reached `linux` and
+`Linux-CLAUDE`, but its Express lint job failed before lint because the
+composite setup action invoked `actions/setup-python@v6` for Debian 13. The
+hosted Python tool cache has no Python 3.11 entry for that image, so this was a
+runner bootstrap assumption rather than a source failure. Self-hosted Linux
+now installs uv 0.11.26, installs the pinned Python 3.11 interpreter through
+uv, exports its path through `npm_config_python`, and skips hosted toolcache
+setup. The existing self-hosted Windows uv path remains unchanged. Focused
+setup/workflow tests pass **16/16**; the next direct Express dispatch must
+verify lint, packaging, and publication after this repair.
+
 ## 2026-08-06 — Make Express Release entirely self-hosted
 
 The first repaired `main` dispatch proved that the ordinary CI jobs were

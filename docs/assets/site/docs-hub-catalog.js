@@ -735,6 +735,13 @@
       d: 'Central diagnostic logging — opt-in',
     },
     {
+      t: 'Renderer startup bundle safety',
+      h: 'features/quality-and-reliability/renderer-startup-bundle-safety.html',
+      s: 'features/quality-and-reliability/renderer-startup-bundle-safety.md',
+      c: 'features',
+      d: "Desktop Material's Windows renderer must mount its React root before the main window is shown. A Node-oriented dependency that is concatenated into the browser bundle can fail…",
+    },
+    {
       t: 'Responsiveness and resource lifecycle',
       h: 'features/quality-and-reliability/responsiveness-and-resource-lifecycle.html',
       s: 'features/quality-and-reliability/responsiveness-and-resource-lifecycle.md',

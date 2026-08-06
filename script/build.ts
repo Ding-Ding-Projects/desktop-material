@@ -69,6 +69,32 @@ const entitlementsPath = `${projectRoot}/script/entitlements${entitlementsSuffix
 const extendInfoPath = `${projectRoot}/script/info.plist`
 const outRoot = path.join(projectRoot, 'out')
 
+const rendererBundleNames = ['renderer.js', 'internal-browser.js'] as const
+
+/**
+ * Fail the build before packaging when Webpack leaves a Node-only module
+ * wrapper reference in a renderer bundle. That reference is not defined by
+ * Electron's browser runtime and prevents React from mounting, which otherwise
+ * presents to users as a blank window.
+ */
+export function assertRendererBundlesAreRunnable(
+  outputRoot: string = outRoot
+): void {
+  for (const bundleName of rendererBundleNames) {
+    const bundlePath = path.join(outputRoot, bundleName)
+    assert(
+      existsSync(bundlePath),
+      `Missing renderer bundle required for startup: ${bundlePath}`
+    )
+
+    const bundle = readFileSync(bundlePath, 'utf8')
+    assert(
+      !bundle.includes('__webpack_module__'),
+      `Renderer bundle contains the undefined Webpack module binding: ${bundlePath}`
+    )
+  }
+}
+
 export function getSelfHostedServerExtraResourcePath(
   root: string = projectRoot
 ): string {
@@ -89,6 +115,9 @@ if (require.main === module) {
 
   console.log('Copying static resources…')
   copyStaticResources()
+
+  console.log('Checking renderer bundles…')
+  assertRendererBundlesAreRunnable(outRoot)
 
   if (process.platform === 'win32') {
     // Optional: the Windows 11 top-level context menu needs a compiled COM
