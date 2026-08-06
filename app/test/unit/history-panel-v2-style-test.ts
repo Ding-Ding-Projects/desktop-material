@@ -23,7 +23,11 @@ describe('history panel v2: sidebar title header', () => {
   it('renders an H1 History title with a formatted count pill', () => {
     assert.match(
       compare,
-      /<div className="history-panel-header">[\s\S]*?<h1 className="history-panel-title">History<\/h1>[\s\S]*?history-panel-count[\s\S]*?\{formatNumber\(commitCount\)\}/
+      /<div className="history-panel-header">[\s\S]*?<h1[\s\S]*?className="history-panel-title"[\s\S]*?>[\s\S]*?: 'History'}[\s\S]*?<\/h1>/
+    )
+    assert.match(
+      compare,
+      /\{commitCount > 0 && \([\s\S]*?<span className="history-panel-count" aria-hidden="true">[\s\S]*?\{formatNumber\(commitCount\)\}[\s\S]*?<\/span>/
     )
   })
 

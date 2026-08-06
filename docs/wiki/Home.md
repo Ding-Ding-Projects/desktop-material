@@ -264,9 +264,14 @@ the tonal workspace preview hides when a compact window needs the space.
   approve or reject eligible deployments; approve an eligible fork run; dispatch a workflow; and
   load later artifact pages before a native download with local digest comparison and explicit
   attestation-presence context.
-- **Self-hosted dependency setup** — install the declared Node and Python dependencies directly on
-  the registered local runners. Hosted jobs may use exact archive caches, while self-hosted lanes
-  skip optional cache-save post hooks so a completed build is not kept busy uploading its leftovers.
+- **Runner boundary** — ordinary Linux/Windows CI and tested Express run on clean GitHub-hosted
+  runners and keep unique non-cancelling run/attempt groups. Only Super Express uses the registered
+  local Windows/WSL pool and ref-scoped cancellation. Its self-hosted setup installs declared Node
+  and Python dependencies directly and skips optional cache-save post hooks.
+- **Windows test memory and installation** — `script/test.mjs` owns both the per-worker heap and
+  memory-aware concurrency; workflows do not impose a 4 GiB value inherited by every worker. The
+  packaged smoke lane waits at most 300 seconds for the Squirrel installer process, kills that tree
+  on timeout, and repeatedly cleans up only newly launched same-session application processes.
 - **Python 3.13 TUI verification** — the Linux lane runs all non-UI tests together, then gives each
   UI test file a fresh interpreter. This preserves the complete suite while preventing a native
   Textual syntax-state segfault from crossing app-heavy test files; Python 3.10 and 3.12 keep the
@@ -284,8 +289,9 @@ the tonal workspace preview hides when a compact window needs the space.
   combined dispatcher can publish one complete cross-platform Release. If a
   required runner is unavailable, the release queues or fails rather than
   moving to a GitHub-hosted cloud runner. Ordinary CI and tested Express remain
-  the default gates; release pull requests target the Windows product's `main`
-  default branch.
+  the default gates and run on GitHub-hosted machines; release pull requests
+  target the Windows product's `main` default branch. Remote verification of
+  this restored runner boundary is pending.
 - **Compact Repository Releases** — the corrected 800×560 combined gate keeps the list ahead of
   overview/detail content and retains one complete row. One physical 960×660 gate passed at 100%,
   125% (768×528 CSS), 150%, and 200% (480×330 CSS); compact scales keep a 176 px panel, at least

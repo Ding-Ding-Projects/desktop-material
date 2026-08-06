@@ -20,6 +20,40 @@ contracts pass **13/13**, CI workflow safety passes **15/15**, Prettier and
 structural check. The prior artifact-only Windows Super Express run
 `31123931589` is packaging evidence, not evidence of this new publisher; the
 post-dew run and its Release still need verification.
+## 2026-08-06 — Return ordinary CI and tested Express to hosted runners
+
+The current working-tree repair supersedes the same-day interim contracts below
+that placed ordinary CI and `Build Installers / Express Release` on the scarce
+local runner pool. `CI Linux` now uses `ubuntu-latest`, while `CI Windows` uses
+`windows-2022`; tested Express uses the same hosted split. Those ordinary gates
+accept their documented events, including pull-request validation for CI, and
+use unique run-ID/run-attempt concurrency groups with
+`cancel-in-progress: false`, so a newer commit cannot silently erase an older
+commit's release-gate result. Only the three Super Express workflow files remain
+self-hosted and ref-cancelling. Their project-specific Windows and WSL labels,
+dependency bootstrap, and cache-hook protections remain intentional.
+
+The Windows unit-test steps no longer set a workflow-level 4 GiB
+`NODE_OPTIONS`. That value reached every `node --test` worker, while
+`script/test.mjs` calculated concurrency against its smaller per-worker heap
+budget. The harness now owns both values again. The packaged E2E installer also
+launches `Setup.exe` without PowerShell's descendant-inclusive `-Wait`, waits at
+most 300 seconds for the installer process itself, terminates its process tree
+on timeout, and repeatedly stops only newly launched `GitHubDesktop` processes
+from the installer's session while preserving process IDs that predated the
+test. It still requires a freshly written executable for the exact application
+version before packaged smoke tests start.
+
+Implementation commit `196ead823c9d683992dc58f9931fac7c0e21bc8b`
+carries the workflow migration and the stale contracts exposed by the exact
+Node 24.15.0 gate. Focused verification passes **182/182**, the script suite
+reports **217 tests with zero failures**, `actionlint` passes, and the complete
+987-file unit run reached **8,339/8,340** before exposing one duplicate native
+menu mnemonic; its corrected exhaustive menu matrix passes **17/17**. The final
+complete rerun and a new hosted CI/tested-Express wave are still required, so no
+remote green run or Release is claimed yet. Historical entries below remain
+useful failure receipts, but their claims that ordinary CI or tested Express are
+self-hosted or ref-cancelling are explicitly superseded by this section.
 
 ## 2026-08-06 — Keep Python 3.13 TUI UI tests process-safe
 

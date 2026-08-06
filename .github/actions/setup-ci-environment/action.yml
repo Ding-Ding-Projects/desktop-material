@@ -12,7 +12,7 @@ runs:
   using: composite
   steps:
     - name: Prefer Git Bash on Windows self-hosted runners
-      if: ${{ runner.os == 'Windows' }}
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
       # This runner has Windows PowerShell, while PowerShell Core is not part
       # of the runner contract. Use the built-in Windows shell for the small
       # PATH repair, then let subsequent bash steps resolve Git Bash.
@@ -238,7 +238,9 @@ runs:
           yarn.lock
           app/yarn.lock
 
-    - name: Use Node.js ${{ inputs.node-version }} before self-hosted dependency install
+    - name:
+        Use Node.js ${{ inputs.node-version }} before self-hosted dependency
+        install
       if:
         ${{ (steps.installed-dependencies.outputs.cache-hit != 'true' ||
         steps.dependency-cache-check.outputs.complete != 'true') &&

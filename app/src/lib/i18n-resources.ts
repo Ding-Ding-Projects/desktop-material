@@ -2974,6 +2974,7 @@ export type TranslationKey =
   | 'settingsSearch.tabName.advanced'
   | 'settingsSearch.tabName.accessibility'
   | 'settingsSearch.tabName.agentAccess'
+  | 'settingsSearch.tabName.selfHostedServer'
   | 'settingsSearch.tabName.automation'
   | 'settingsSearch.tabName.queue'
   | 'settingsSearch.tabName.sound'
@@ -3030,6 +3031,8 @@ export type TranslationKey =
   | 'settingsSearch.entry.ollamaManager.desc'
   | 'settingsSearch.entry.ollamaChat.title'
   | 'settingsSearch.entry.ollamaChat.desc'
+  | 'settingsSearch.entry.selfHostedServer.title'
+  | 'settingsSearch.entry.selfHostedServer.desc'
   | 'settingsSearch.entry.gitGlobalIgnore.title'
   | 'settingsSearch.entry.gitGlobalIgnore.desc'
   | 'settingsSearch.entry.gitHooks.title'
@@ -7458,6 +7461,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settingsSearch.tabName.advanced': 'Advanced',
   'settingsSearch.tabName.accessibility': 'Accessibility',
   'settingsSearch.tabName.agentAccess': 'Agent access',
+  'settingsSearch.tabName.selfHostedServer': 'Self-hosted server',
   'settingsSearch.tabName.automation': 'Automation',
   'settingsSearch.tabName.queue': 'Clone queue',
   'settingsSearch.tabName.sound': 'Sound',
@@ -7489,6 +7493,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settingsSearch.entry.ollamaChat.title': 'Ollama chat',
   'settingsSearch.entry.ollamaChat.desc':
     'Chat with a local Ollama model without leaving Desktop Material.',
+  'settingsSearch.entry.selfHostedServer.title': 'Self-hosted server',
+  'settingsSearch.entry.selfHostedServer.desc':
+    'Set up, join, and sign in to the Docker-hosted team server on your own machine.',
   'settingsSearch.entry.gitGlobalIgnore.title': 'Global ignore',
   'settingsSearch.entry.gitGlobalIgnore.desc':
     'Edit the ignore rules (core.excludesFile) that apply to every repository.',
@@ -11842,6 +11849,7 @@ export const cantoneseTranslations: Readonly<
   'settingsSearch.tabName.advanced': '進階',
   'settingsSearch.tabName.accessibility': '無障礙',
   'settingsSearch.tabName.agentAccess': '代理存取',
+  'settingsSearch.tabName.selfHostedServer': '自託管伺服器',
   'settingsSearch.tabName.automation': '自動化',
   'settingsSearch.tabName.queue': 'Clone 隊列',
   'settingsSearch.tabName.sound': '聲音',
@@ -11870,6 +11878,9 @@ export const cantoneseTranslations: Readonly<
   'settingsSearch.entry.ollamaChat.title': 'Ollama 對話',
   'settingsSearch.entry.ollamaChat.desc':
     '唔使離開 Desktop Material，直接同本地 Ollama 模型傾偈。',
+  'settingsSearch.entry.selfHostedServer.title': '自託管伺服器',
+  'settingsSearch.entry.selfHostedServer.desc':
+    '喺自己部機設定、加入同登入用 Docker 託管嘅團隊伺服器。',
   'settingsSearch.entry.gitGlobalIgnore.title': '全域忽略',
   'settingsSearch.entry.gitGlobalIgnore.desc':
     '編輯套用喺每個存放庫嘅忽略規則（core.excludesFile）。',

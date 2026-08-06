@@ -18,8 +18,8 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: super-express-release-${{ github.ref }}
-  cancel-in-progress: true
+  group: build-installers-${{ github.run_id }}-${{ github.run_attempt }}
+  cancel-in-progress: false
 
 env:
   NODE_VERSION: 24.15.0
@@ -31,11 +31,7 @@ permissions:
 jobs:
   prepare:
     name: Resolve exact main release
-    runs-on:
-      - self-hosted
-      - Linux
-      - X64
-      - desktop-material-wsl-local
+    runs-on: ubuntu-latest
     outputs:
       sha: ${{ steps.target.outputs.sha }}
       version: ${{ steps.version.outputs.version }}
@@ -219,11 +215,7 @@ jobs:
     name: Express lint
     if: github.event_name == 'workflow_dispatch'
     needs: prepare
-    runs-on:
-      - self-hosted
-      - Linux
-      - X64
-      - desktop-material-wsl-local
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
@@ -245,11 +237,7 @@ jobs:
     name: Express tests Windows x64
     if: github.event_name == 'workflow_dispatch'
     needs: prepare
-    runs-on:
-      - self-hosted
-      - Windows
-      - X64
-      - desktop-material-windows-local
+    runs-on: windows-2022
     timeout-minutes: 45
     permissions:
       contents: read
@@ -276,10 +264,9 @@ jobs:
           TARGET_ARCH: x64
       - name: Run unit tests
         run: yarn test:unit
-        env:
-          # Match the Windows CI unit-test budget; without it the coordinator
-          # can exhaust its default heap after the assertions have passed.
-          NODE_OPTIONS: --max-old-space-size=4096
+        # script/test.mjs owns both the worker heap limit and the concurrency
+        # budget. A workflow-level NODE_OPTIONS override is inherited by every
+        # worker and makes the harness underestimate its peak memory use.
       - name: Run script tests
         run: yarn test:script
 
@@ -290,11 +277,7 @@ jobs:
     # the notes down with the installers and left nothing to publish at all.
     if: needs.prepare.outputs.proceed == 'true'
     needs: prepare
-    runs-on:
-      - self-hosted
-      - Linux
-      - X64
-      - desktop-material-wsl-local
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     env:
@@ -352,11 +335,7 @@ jobs:
       needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.linux_ok
       == 'true'
     needs: prepare
-    runs-on:
-      - self-hosted
-      - Linux
-      - X64
-      - desktop-material-wsl-local
+    runs-on: ubuntu-latest
     timeout-minutes: 40
     permissions:
       contents: read
@@ -536,11 +515,7 @@ jobs:
       needs.prepare.outputs.proceed == 'true' &&
       needs.prepare.outputs.windows_ok == 'true'
     needs: prepare
-    runs-on:
-      - self-hosted
-      - Windows
-      - X64
-      - desktop-material-windows-local
+    runs-on: windows-2022
     timeout-minutes: 60
     permissions:
       contents: read
@@ -678,11 +653,7 @@ jobs:
       needs.tui_package.result == 'success') && (github.event_name ==
       'workflow_run' ||
        (needs.lint.result == 'success' && needs.test.result == 'success'))
-    runs-on:
-      - self-hosted
-      - Linux
-      - X64
-      - desktop-material-wsl-local
+    runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: write

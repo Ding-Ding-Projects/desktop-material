@@ -405,7 +405,7 @@ describe('Repository Settings appearance tab registration', () => {
     // must stay last.
     assert.match(
       modelSource,
-      /Automation,\s*Metadata,\s*Appearance,\s*ForkSettings,/
+      /Automation,\s*Metadata,\s*Appearance,\s*AISecurity,\s*ForkSettings,/
     )
     assert.match(
       source,

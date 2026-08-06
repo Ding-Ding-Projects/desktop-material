@@ -278,6 +278,19 @@ evidence.
 | `linux-tui-bilingual-narrow.png` | July 27 Debian/Xvfb acceptance | Excluded from the current Windows gallery |
 | `linux-tui-cheap-lfs.png` | July 27 Debian/Xvfb acceptance | Excluded from the current Windows gallery |
 
+## Historical startup recovery evidence (outside the current gallery)
+
+The August 6 packaged-app recovery capture proves that the first-run surface
+rendered after the Copilot SDK bundle boundary was corrected. It is retained as
+one-off regression evidence rather than presented as a recurring capture-plan
+scene; `material-welcome.png` remains the current guided welcome target.
+
+| Archived asset | Historical receipt | Current status |
+| --- | --- | --- |
+| `material-blank-startup-fixed-20260806.png` | August 6 packaged blank-startup recovery | Excluded from the current Windows gallery |
+
+![Packaged Desktop Material first-run surface rendered after the blank-startup bundle regression was fixed](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/7b6aaa13e3157e9776605f270ac3498dc0d046ae/docs/assets/screenshots/material-blank-startup-fixed-20260806.png)
+
 ## Historical updater evidence (outside the current gallery)
 
 The July 22 legacy Super Express-to-newer published-package migration remains

@@ -63,6 +63,8 @@ export function settingsTabNameKey(tab: PreferencesTab): TranslationKey {
       return 'settingsSearch.tabName.accessibility'
     case PreferencesTab.AgentAccess:
       return 'settingsSearch.tabName.agentAccess'
+    case PreferencesTab.SelfHostedServer:
+      return 'settingsSearch.tabName.selfHostedServer'
     case PreferencesTab.Automation:
       return 'settingsSearch.tabName.automation'
     case PreferencesTab.Queue:
@@ -170,6 +172,23 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
       titleKey: 'settingsSearch.entry.ollamaChat.title',
       descriptionKey: 'settingsSearch.entry.ollamaChat.desc',
       keywords: ['ollama', 'chat', 'prompt', 'llm', 'local', '對話', '傾偈'],
+    },
+    // Self-hosted server
+    {
+      id: 'self-hosted-server-setup',
+      tab: PreferencesTab.SelfHostedServer,
+      titleKey: 'settingsSearch.entry.selfHostedServer.title',
+      descriptionKey: 'settingsSearch.entry.selfHostedServer.desc',
+      keywords: [
+        'self hosted',
+        'self-hosted',
+        'docker',
+        'server',
+        'join link',
+        'saml',
+        '自託管',
+        '伺服器',
+      ],
     },
     // AI (administrator security controls)
     {

@@ -2,6 +2,30 @@
 
 Updated: **August 6, 2026**
 
+## August 6 — Restore clean hosted CI and tested Express capacity
+
+- Ordinary Linux and Windows CI now target `ubuntu-latest` and `windows-2022`,
+  and `Build Installers / Express Release` uses the same hosted split. CI once
+  again validates pull requests without exposing a local machine to untrusted
+  code.
+- CI and tested Express keep every invocation in a unique run-ID/run-attempt
+  group with `cancel-in-progress: false`. Only the emergency Super Express
+  family remains on the registered self-hosted Windows/WSL pool and cancels an
+  older dispatch for the same ref.
+- Unit-test workflows no longer impose a 4 GiB `NODE_OPTIONS` value that every
+  worker inherits. `script/test.mjs` owns the worker heap and memory-aware
+  concurrency together, so its accounting matches the processes it launches.
+- Windows packaged smoke waits at most 300 seconds for the Squirrel installer
+  process, kills that installer tree on timeout, and repeatedly cleans up only
+  newly launched same-session application processes while preserving anything
+  that was already running.
+- Commit `196ead823c9d683992dc58f9931fac7c0e21bc8b` carries the migration and
+  its regression repairs. Focused checks pass **182/182**, script checks report
+  **217 tests with zero failures**, and the one final full-suite mnemonic defect
+  now passes its exhaustive **17/17** menu matrix. A complete final rerun plus a
+  new hosted CI/tested-Express wave and Release result remain required; no
+  remote success is claimed yet.
+
 ## August 6 — Keep Python 3.13 TUI UI tests process-safe
 
 - The Linux Python 3.13 lane now runs all non-UI tests together and launches
@@ -26,14 +50,15 @@ Updated: **August 6, 2026**
   config-read regression assertion. Local evidence is **540 passed**, Ruff
   clean, and mypy clean; the next `main` wave is the remote verification.
 
-## August 6 — Keep self-hosted CI runners available after dependency setup
+## August 6 — Keep Super Express runners available after dependency setup
 
-- Self-hosted Windows and Linux dependency setup still installs every declared
-  dependency directly, but no longer registers `actions/cache`, `setup-uv`, or
-  `setup-node` archive-cache post hooks. Hosted jobs retain their exact caches.
+- Self-hosted Windows and Linux Super Express setup still installs every
+  declared dependency directly, but no longer registers `actions/cache`,
+  `setup-uv`, or `setup-node` archive-cache post hooks. Ordinary CI and tested
+  Express have since returned to hosted runners and retain their exact caches.
 - The repair closes a real queue failure: a completed Windows arm64 job stayed
   marked busy while cache save/cleanup ran for more than 35 minutes, so the
-  next `main` CI wave could not start.
+  next local release lane could not start.
 - Focused CI setup and workflow safety verification passes **17/17** tests;
   `actionlint` passes. Remote verification is the new `main` wave created by
   commit `255eb9de1cc32ecafe4490ed3b25136e0e77b812`.
@@ -257,9 +282,11 @@ Updated: **August 6, 2026**
   focused contract and UI files. A real Windows bundle and hidden-desktop
   smoke remain required before this slice is called runtime-verified.
 - The previous Windows CI run passed its assertions but exhausted the Node
-  heap before test accounting completed. CI and Express Release now scope a
-  4 GiB heap to their unit-test coordinators; the fix is pending remote-run
-  proof rather than being called green locally.
+  heap before test accounting completed. The interim 4 GiB workflow override
+  was inherited by every worker and defeated the harness's memory accounting;
+  it is now removed so `script/test.mjs` owns the worker heap and concurrency
+  together. The replacement remains pending remote-run proof rather than being
+  called green locally.
 - The required production bundle launched on the hidden Windows desktop and
   produced a real first-paint frame. CDP interaction was interrupted by the
   first-run/checklist overlay, so no Ollama screenshot is claimed from that
