@@ -15,6 +15,10 @@ safe Git loop, short-lived branches, conflict resolution, rebase, stash recovery
 automation, and account isolation. The diagrams are reproducible with
 `node script/generate-wiki-diagrams.js`.
 
+| Launchpad full-width empty state |
+| --- |
+| <img src="../assets/screenshots/material-launchpad-empty-full-width-20260806.png" alt="Launchpad empty state from the built Windows app, with five truthful zero-count groups filling the workspace and no blank sidebar" width="720"><br><sub>Full-width empty state · five truthful zero-count groups · cheap Lowlevel hidden-desktop capture</sub> |
+
 ## Historical Linux terminal captures
 
 Five original-resolution Debian/Xvfb captures remain preserved with their

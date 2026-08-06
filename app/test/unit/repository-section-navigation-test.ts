@@ -85,6 +85,36 @@ describe('repository section navigation source contract', () => {
     )
   })
 
+  it('does not reserve an empty sidebar for the full-width Launchpad page', () => {
+    const contentsStart = repositorySource.indexOf(
+      'private renderSidebarContents(): JSX.Element | null {'
+    )
+    const contentsEnd = repositorySource.indexOf(
+      'private handleSidebarWidthReset',
+      contentsStart
+    )
+    assert.ok(contentsStart >= 0 && contentsEnd > contentsStart)
+    const sidebarContents = repositorySource.slice(contentsStart, contentsEnd)
+    assert.match(
+      sidebarContents,
+      /selectedSection === RepositorySectionTab\.Launchpad[\s\S]*?return null/
+    )
+
+    const sidebarStart = repositorySource.indexOf(
+      'private renderSidebar(): JSX.Element {'
+    )
+    const sidebarEnd = repositorySource.indexOf(
+      'private onSidebarFocusWithinChanged',
+      sidebarStart
+    )
+    assert.ok(sidebarStart >= 0 && sidebarEnd > sidebarStart)
+    const sidebar = repositorySource.slice(sidebarStart, sidebarEnd)
+    assert.match(
+      sidebar,
+      /selectedSection === RepositorySectionTab\.Launchpad[\s\S]*?return <React\.Fragment \/>/
+    )
+  })
+
   it('opens the Cheap LFS manager directly without routing through Releases', () => {
     assert.match(
       repositorySource,

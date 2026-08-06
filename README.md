@@ -51,6 +51,13 @@
 > [branch-switcher workflow](docs/features/identity-and-workspace/branch-switcher-workflows.md)
 > and its [runtime capture](docs/verification/dirty-worktree-worktree-option-20260805/dirty-worktree-switch-dialog.png).
 
+> **Full-width History Graph page — August 5, 2026:** the repository rail now
+> gives the ancestry graph its own **Graph** page, so Branch / Tag, Graph, and
+> Commit Message columns can use the full workspace width while retaining the
+> existing scope, search, lane, selection, and commit actions. Focused source
+> verification passes **85/85**; a fresh built-app capture of this page is
+> still pending the required hidden-desktop verification route.
+
 > **Local repair and background progress — July 30, 2026:** conflict and failed
 > CI surfaces launch bounded Codex/OpenCode tasks; long work has hideable
 > elapsed/ETA progress; Cheap LFS restore details collapse; and every action is
@@ -97,6 +104,14 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 > the toolbar says **Fetch all remotes** and fetches every configured remote in a
 > stable current-first order. See the [multi-remote fetch sync
 > guide](docs/features/repository-management/multi-remote-fetch-sync.md).
+
+> **Launchpad full-width empty state — August 6, 2026:** the repository
+> Launchpad now uses the full workspace width when its grouped inbox is empty,
+> so an intentionally empty sidebar cannot masquerade as missing content. See
+> the [Launchpad feature article](docs/features/repository-management/launchpad.md)
+> for its behavior, failure modes, and verification contract.
+
+![Launchpad full-width empty state with five truthful zero-count groups and no blank sidebar](docs/assets/screenshots/material-launchpad-empty-full-width-20260806.png)
 
 > **Platform support:** Desktop Material ships a Windows Electron desktop
 > application and a revived Linux-first

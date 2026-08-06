@@ -1107,6 +1107,7 @@ export class RepositoryView extends React.Component<
       selectedSection === RepositorySectionTab.GitHubAPI ||
       selectedSection === RepositorySectionTab.Triage ||
       selectedSection === RepositorySectionTab.RepositoryTools ||
+      selectedSection === RepositorySectionTab.Launchpad ||
       selectedSection === RepositorySectionTab.HistoryGraph
     ) {
       return <React.Fragment />

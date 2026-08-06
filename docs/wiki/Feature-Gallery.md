@@ -463,6 +463,21 @@ toward capacity but cannot be downloaded until GitHub marks them uploaded.
 
 ## Repository administration
 
+Launchpad is a full-width repository page for the grouped attention inbox. Its
+empty state keeps all five status groups and the omitted-item explanation
+visible without reserving a blank sidebar. This frame came from the exact
+development production build through the cheap Lowlevel hidden-desktop route;
+the disposable fixture had one committed file and one untracked work-in-
+progress file, so the zero counts are genuine.
+
+![Launchpad full-width empty state with five truthful zero-count groups and no blank sidebar](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-launchpad-empty-full-width-20260806.png)
+
+The source contract covers both sides of the layout: Launchpad's sidebar body
+is intentionally null, and the repository shell omits the sidebar container
+when that section is selected. The focused navigation suite reports 7/7
+passing tests; the Launchpad model and preferences suites report 23/23, and
+the Launchpad view suite reports 13/13.
+
 Publish Repository replaces the collapsing organization select with a
 searchable personal-or-organization listbox. Fuzzy and substring filtering,
 bounded regex, and the full Regex Builder share one persisted mode; invalid
