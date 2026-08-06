@@ -159,6 +159,12 @@ lane falls back immediately to its hosted target. Static conditional jobs are
 deliberate: a dynamic `runs-on` label array from a previous job can make
 GitHub reject the workflow during planning before the selector runs.
 
+The combined dispatcher keeps the same static conditional shape inline rather
+than calling those reusable workflows. GitHub had been rejecting the caller
+before it created any job even after the reusable lanes were repaired; inline
+selector/build jobs leave the dispatcher with only statically declared runner
+targets while preserving the direct reusable lanes for packaging-only recovery.
+
 Each packaging lane also exposes its own `workflow_dispatch` action for a
 manual, packaging-only recovery run. A direct Windows dispatch accepts an
 optional exact `main` SHA and Squirrel version; a direct Linux TUI dispatch

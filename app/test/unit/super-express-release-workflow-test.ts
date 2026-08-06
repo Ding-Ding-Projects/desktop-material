@@ -44,30 +44,37 @@ describe('Super Express Release workflow', () => {
   it('is manual-only and dispatches independent zero-test build lanes', () => {
     assert.match(workflow, /on:\s*\n\s+workflow_dispatch:/)
     assert.doesNotMatch(workflow, /\n\s+(?:push|workflow_run):/)
-    assert.doesNotMatch(workflow, /runner_selection:/)
     assert.match(
       workflow,
       /prepare:\s*\n\s+name: Prepare exact release target\s*\n\s+runs-on: ubuntu-latest/
     )
     assert.match(workflow, /publish:[\s\S]*?runs-on: ubuntu-latest/)
     assert.doesNotMatch(workflow, /fromJSON\(needs\./)
+    assert.match(workflow, /windows_runner_selection:/)
+    assert.match(workflow, /tui_runner_selection:/)
+    assert.match(
+      workflow,
+      /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/
+    )
+    assert.match(
+      workflow,
+      /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/
+    )
+    assert.match(workflow, /runs-on: windows-2022/)
+    assert.match(
+      workflow,
+      /uses: \.\/\.github\/actions\/super-express-windows-build/
+    )
+    assert.match(
+      workflow,
+      /uses: \.\/\.github\/actions\/super-express-linux-tui-build/
+    )
+    assert.doesNotMatch(workflow, /uses: \.\/\.github\/workflows\//)
     assert.match(workflow, /Require a main-branch manual dispatch/)
     assert.match(workflow, /ref: \$\{\{ env\.RELEASE_TARGET_SHA \}\}/)
     assert.match(
       workflow,
-      /uses: \.\/\.github\/workflows\/super-express-release-linux-tui\.yml[\s\S]*?release_target_sha: \$\{\{ needs\.prepare\.outputs\.sha \}\}/
-    )
-    assert.doesNotMatch(
-      workflow,
-      /uses: \.\/\.github\/workflows\/super-express-release-windows\.yml[\s\S]*?\n\s+runner:/
-    )
-    assert.doesNotMatch(
-      workflow,
-      /uses: \.\/\.github\/workflows\/super-express-release-linux-tui\.yml[\s\S]*?\n\s+runner:/
-    )
-    assert.match(
-      workflow,
-      /needs:\s*\n\s+- prepare\s*\n\s+- windows\s*\n\s+- tui/
+      /needs:\s*\n\s+- prepare\s*\n\s+- windows_self_hosted\s*\n\s+- windows_cloud\s*\n\s+- tui_self_hosted\s*\n\s+- tui_cloud/
     )
     assert.match(workflow, /actions\/download-artifact@v8/)
     assert.match(

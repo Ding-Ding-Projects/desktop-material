@@ -3,14 +3,17 @@
 ## 2026-08-06 — Fix Super Express workflow startup planning
 
 The Super Express dispatcher keeps preparation and publication on
-`ubuntu-latest`, while each reusable packaging lane now checks the repository
-runner inventory on a hosted selector. When an online, idle matching runner is
-available, exactly one static conditional job uses `[self-hosted, Windows,
-X64]` or `[self-hosted, Linux, X64]`; otherwise the lane uses `windows-2022` or
-`ubuntu-latest`. The earlier dynamic self-hosted fallback tried to build a
-multi-label `runs-on` value from job outputs; GitHub marked those dispatches
-`startup_failure` before creating a job, so no runner log existed to diagnose.
-Static conditional jobs retain schedulability while allowing the requested
+`ubuntu-latest`, while its combined packaging jobs and its two direct reusable
+packaging lanes each check the repository runner inventory on a hosted
+selector. When an online, idle matching runner is available, exactly one
+static conditional job uses `[self-hosted, Windows, X64]` or `[self-hosted,
+Linux, X64]`; otherwise the lane uses `windows-2022` or `ubuntu-latest`. The
+earlier dynamic self-hosted fallback tried to build a multi-label `runs-on`
+value from job outputs; GitHub marked those dispatches `startup_failure` before
+creating a job, so no runner log existed to diagnose. The combined dispatcher
+now inlines its static selector/build jobs instead of calling the reusable
+workflows, because the caller itself remained planner-invalid after the lane
+repair. Static targets retain schedulability while allowing the requested
 self-hosted-first behavior and keeping the zero-test emergency lane and direct
 artifact-only lane behavior unchanged.
 
