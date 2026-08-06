@@ -93,32 +93,201 @@ jobs:
           esac
           echo "sha=$RELEASE_TARGET_SHA" >> "$GITHUB_OUTPUT"
 
-  windows:
-    name: Super Express Windows x64
+  windows_runner_selection:
+    name: Select Windows self-hosted runner or cloud fallback
     needs: prepare
-    uses: ./.github/workflows/super-express-release-windows.yml
-    with:
-      release_target_sha: ${{ needs.prepare.outputs.sha }}
-      release_version: ${{ needs.prepare.outputs.version }}
-    secrets: inherit
+    if: needs.prepare.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      use_self_hosted: ${{ steps.select.outputs.use_self_hosted }}
+    env:
+      GH_TOKEN:
+        ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN
+        }}
+    steps:
+      - name: Check for an idle Windows x64 runner
+        id: select
+        shell: bash
+        run: |
+          set -euo pipefail
 
-  tui:
-    name: Super Express Linux TUI
+          if ! inventory=$(gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/actions/runners?per_page=100"); then
+            echo "::warning::Could not inspect self-hosted runners; using windows-2022."
+            inventory='[]'
+          fi
+
+          if jq -e '
+            [ .[] | .runners[]? |
+              select(.status == "online" and .busy == false) |
+              [ .labels[]?.name | ascii_downcase ] as $labels |
+              select(($labels | index("self-hosted")) != null) |
+              select(($labels | index("windows")) != null) |
+              select(($labels | index("x64")) != null)
+            ] | length > 0
+          ' <<<"$inventory" >/dev/null; then
+            echo "use_self_hosted=true" >> "$GITHUB_OUTPUT"
+            echo "selected runner: self-hosted/Windows/X64"
+          else
+            echo "use_self_hosted=false" >> "$GITHUB_OUTPUT"
+            echo "selected runner: windows-2022"
+          fi
+
+  windows_self_hosted:
+    name: Build Windows x64 package (self-hosted)
+    needs:
+      - prepare
+      - windows_runner_selection
+    if: needs.windows_runner_selection.outputs.use_self_hosted == 'true'
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+          submodules: recursive
+
+      - uses: ./.github/actions/super-express-windows-build
+        with:
+          release_target_sha: ${{ needs.prepare.outputs.sha }}
+          release_version: ${{ needs.prepare.outputs.version }}
+          node_version: ${{ env.NODE_VERSION }}
+        env:
+          DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
+          DESKTOP_ERROR_REPORTING_ENDPOINT:
+            ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
+          DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
+            ${{ secrets.DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT }}
+
+  windows_cloud:
+    name: Build Windows x64 package (cloud fallback)
+    needs:
+      - prepare
+      - windows_runner_selection
+    if: needs.windows_runner_selection.outputs.use_self_hosted != 'true'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+          submodules: recursive
+
+      - uses: ./.github/actions/super-express-windows-build
+        with:
+          release_target_sha: ${{ needs.prepare.outputs.sha }}
+          release_version: ${{ needs.prepare.outputs.version }}
+          node_version: ${{ env.NODE_VERSION }}
+        env:
+          DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
+          DESKTOP_ERROR_REPORTING_ENDPOINT:
+            ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
+          DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
+            ${{ secrets.DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT }}
+
+  tui_runner_selection:
+    name: Select Linux self-hosted runner or cloud fallback
     needs: prepare
-    uses: ./.github/workflows/super-express-release-linux-tui.yml
-    with:
-      release_target_sha: ${{ needs.prepare.outputs.sha }}
-    secrets: inherit
+    if: needs.prepare.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      use_self_hosted: ${{ steps.select.outputs.use_self_hosted }}
+    env:
+      GH_TOKEN:
+        ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN
+        }}
+    steps:
+      - name: Check for an idle Linux x64 runner
+        id: select
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! inventory=$(gh api --paginate --slurp \
+            "repos/$GITHUB_REPOSITORY/actions/runners?per_page=100"); then
+            echo "::warning::Could not inspect self-hosted runners; using ubuntu-latest."
+            inventory='[]'
+          fi
+
+          if jq -e '
+            [ .[] | .runners[]? |
+              select(.status == "online" and .busy == false) |
+              [ .labels[]?.name | ascii_downcase ] as $labels |
+              select(($labels | index("self-hosted")) != null) |
+              select(($labels | index("linux")) != null) |
+              select(($labels | index("x64")) != null)
+            ] | length > 0
+          ' <<<"$inventory" >/dev/null; then
+            echo "use_self_hosted=true" >> "$GITHUB_OUTPUT"
+            echo "selected runner: self-hosted/Linux/X64"
+          else
+            echo "use_self_hosted=false" >> "$GITHUB_OUTPUT"
+            echo "selected runner: ubuntu-latest"
+          fi
+
+  tui_self_hosted:
+    name: Build Linux TUI packages (self-hosted)
+    needs:
+      - prepare
+      - tui_runner_selection
+    if: needs.tui_runner_selection.outputs.use_self_hosted == 'true'
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+
+      - uses: ./.github/actions/super-express-linux-tui-build
+        with:
+          release_target_sha: ${{ needs.prepare.outputs.sha }}
+
+  tui_cloud:
+    name: Build Linux TUI packages (cloud fallback)
+    needs:
+      - prepare
+      - tui_runner_selection
+    if: needs.tui_runner_selection.outputs.use_self_hosted != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+
+      - uses: ./.github/actions/super-express-linux-tui-build
+        with:
+          release_target_sha: ${{ needs.prepare.outputs.sha }}
 
   publish:
     name: Publish combined GitHub Release
     needs:
       - prepare
-      - windows
-      - tui
+      - windows_self_hosted
+      - windows_cloud
+      - tui_self_hosted
+      - tui_cloud
     if: >-
-      always() && needs.prepare.result == 'success' && needs.windows.result ==
-      'success' && needs.tui.result == 'success' && inputs.publish
+      always() && needs.prepare.result == 'success' &&
+      (needs.windows_self_hosted.result == 'success' ||
+      needs.windows_cloud.result == 'success') && (needs.tui_self_hosted.result
+      == 'success' || needs.tui_cloud.result == 'success') && inputs.publish
     runs-on: ubuntu-latest
     permissions:
       contents: write

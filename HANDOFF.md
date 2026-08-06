@@ -1,5 +1,28 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Fix Super Express workflow startup planning
+
+The Super Express dispatcher keeps preparation and publication on
+`ubuntu-latest`, while its combined packaging jobs and its two direct reusable
+packaging lanes each check the repository runner inventory on a hosted
+selector. When an online, idle matching runner is available, exactly one
+static conditional job uses `[self-hosted, Windows, X64]` or `[self-hosted,
+Linux, X64]`; otherwise the lane uses `windows-2022` or `ubuntu-latest`. The
+earlier dynamic self-hosted fallback tried to build a multi-label `runs-on`
+value from job outputs; GitHub marked those dispatches `startup_failure` before
+creating a job, so no runner log existed to diagnose. The combined dispatcher
+now inlines its static selector/build jobs instead of calling the reusable
+workflows, because the caller itself remained planner-invalid after the lane
+repair. Static targets retain schedulability while allowing the requested
+self-hosted-first behavior and keeping the zero-test emergency lane and direct
+artifact-only lane behavior unchanged.
+
+The workflow contract test now asserts the fixed labels and rejects the
+dynamic runner-selection shape. Local actionlint (with shellcheck disabled
+because the Windows actionlint/shellcheck pipe can hang), Prettier, and
+`git diff --check` pass. A fresh remote dispatch with `publish=false` is the
+remaining verification step after this correction reaches `main`.
+
 ## 2026-08-05 — Restore Windows production build compatibility
 
 The final Windows verification of the retired tooling correction reached the
@@ -26,7 +49,6 @@ errors. The earlier full production compile showed the other five compilers
 finishing successfully; the renderer's two reported errors are covered by the
 isolated rerun. Fresh remote Windows and Pages verification for this correction
 is pending.
-
 ## 2026-08-05 — Keep private tooling out of hosted CI checkout
 
 The first remote Windows verification after the dependency repair reached the
@@ -40,6 +62,39 @@ unavailable agent-only clone. The subsequent integration at
 its registry entry entirely, leaving only the three public product submodules
 in `.gitmodules`. Fresh remote verification of that integrated correction is
 pending.
+
+## 2026-08-05 — Preserve dirty work while creating a destination worktree
+
+The dirty branch-switch dialog now offers **Leave my changes here**. It closes
+the decision dialog without stashing or checking out the dirty source, opens
+the existing Add worktree flow with the destination branch and suggested name
+prefilled, and leaves creation and switching until the user confirms a path.
+
+### Verification
+
+- Source commit: `c41ae8345a`.
+- Focused UI test: **1 passed, 0 failed**.
+- Targeted Prettier and ESLint: **passed**.
+- Isolated TypeScript check: **passed**.
+- The exact production build was attempted through the required hidden
+  verification route but stopped before renderer emission on the pre-existing
+  `origin/main` Sass error at `app/styles/ui/_launchpad.scss:278`. A
+  disposable renderer-only build with that unrelated selector wrapped emitted
+  the fresh renderer used for capture.
+- Hidden-desktop runtime: **verified**. The source fixture retained one
+  modified `README.md` on `feature/worktree-switch`; the created destination
+  worktree was clean on `main`; the application switched into it with zero
+  stashes.
+- Captures:
+  - `docs/verification/dirty-worktree-worktree-option-20260805/dirty-worktree-switch-dialog.png`
+    (960×660, SHA-256
+    `0FF723C7361C6A9125B9C95AF9A9C40614C5B7B646BBC061A18C0B0D56DDDAB7`).
+  - `docs/verification/dirty-worktree-worktree-option-20260805/add-worktree-prefilled.png`
+    (960×660, SHA-256
+    `54B29ACF0B6A31CAA18E701BF413D720F161C65D3BA9DF5626A4747A3BD5588C`).
+
+GitHub integration and remote CI evidence are recorded after the source and
+documentation commits land on the default branch.
 
 ## 2026-08-05 — Direct Super Express lane dispatch actions
 
@@ -68,6 +123,26 @@ The same correction refreshes the Pages Docs hub from **254** to **264**
 rendered articles using `node script/sync-site-doc-counts.mjs`; the committed
 check now agrees with the current `docs/` tree. Remote CI verification is
 pending for the resulting default-branch commit.
+
+## 2026-08-05 — Cross-provider account switching correction
+
+The rail account switcher was calling the real `promoteAccount` path, but the
+account store immediately re-sorted a selected GitHub Enterprise account behind
+GitHub.com. Because the rail derives its active indicator from `accounts[0]`,
+the UI appeared to switch and then silently returned to the previous account.
+The store now preserves the promoted account at `accounts[0]` across providers,
+sorts only the remaining accounts, and persists that order for the next launch.
+
+### Verification
+
+- `node script/test.mjs app/test/unit/accounts-store-test.ts` — **21/21**.
+- `node script/test.mjs app/test/unit/get-account-for-repository-test.ts` —
+  **12/12**.
+- Combined account-switcher contracts and interaction coverage — **55/55**,
+  including the new real click-handler test.
+- The required production build was attempted through the hidden Lowlevel
+  route. Its compiler worker stopped without a returned client exit status, so
+  the rail surface has no runtime capture and no runtime success is claimed.
 
 ## 2026-08-05 — Super Express packaging lanes parallelized
 
@@ -478,6 +553,31 @@ Focused manager/export tests passed 17/17, targeted ESLint passed, and the
 full TypeScript check passed. The exact fix checkout's webpack compilation
 completed; the later packaging script stopped only because the isolated
 checkout lacked ignored generated `choosealicense.com/_licenses` data.
+
+## 2026-08-05 — Dedicated History Graph repository page
+
+The graph now has a first-class HistoryGraph repository section appended to
+the persisted RepositorySectionTab enum, so existing saved section values do
+not move. The repository rail labels the page **Graph** and routes it directly
+to the shared compare renderer in full-width page mode: the branch filter,
+history scope, commit search, filter chips, lane controls, selection, and
+commit actions are retained, while the narrow History sidebar is not mounted.
+The page has its own localized title and accessible panel relationship. The
+responsive surface catalog and repository section-order tests include the page
+and the previously drifted Launchpad, preference, AI-security, and repository-
+settings entries now match their source enums again.
+
+Focused verification is **85/85** across graph behavior, repository
+navigation, section ordering, feature registration, and the responsive surface
+catalog. npx --no-install tsc --noEmit still stops on two unrelated dirty
+test fixtures (app/test/unit/ui/merge-choose-branch-dialog-test.tsx, lines
+84 and 117), where the existing "Merge" fixture is not a
+MultiCommitOperationKind; that dirty work was preserved. The required
+Lowlevel preflight and checkout identity checks passed, but the MCP build
+receipt did not: the first exact build produced refreshed output and then
+wedged its client, while a retry returned an unhandled TaskGroup error while
+another checkout was building through the same service. No built-app capture
+is claimed from that unverified receipt.
 
 ## 2026-08-03 — History view tabs checkpoint
 

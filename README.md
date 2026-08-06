@@ -11,6 +11,19 @@
 
 ![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
 
+> **Full-width History Graph page — August 5, 2026:** the repository rail now
+> gives the ancestry graph its own **Graph** page, so Branch / Tag, Graph, and
+> Commit Message columns can use the full workspace width while retaining the
+> existing scope, search, lane, selection, and commit actions. Focused source
+> verification passes **85/85**; a fresh built-app capture of this page is
+> still pending the required hidden-desktop verification route.
+
+> **Dirty branch switching:** when a branch has uncommitted work, choose
+> **Leave my changes here** to open Add worktree with the destination branch
+> prefilled while leaving the current worktree and its files untouched. See the
+> [branch-switcher workflow](docs/features/identity-and-workspace/branch-switcher-workflows.md)
+> and its [runtime capture](docs/verification/dirty-worktree-worktree-option-20260805/dirty-worktree-switch-dialog.png).
+
 > **Local repair and background progress — July 30, 2026:** conflict and failed
 > CI surfaces launch bounded Codex/OpenCode tasks; long work has hideable
 > elapsed/ETA progress; Cheap LFS restore details collapse; and every action is

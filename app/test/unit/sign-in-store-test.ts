@@ -2,6 +2,7 @@ import { describe, it, beforeEach, mock } from 'node:test'
 import assert from 'node:assert'
 import {
   ISignInOAuthCallbackServices,
+  ISelfHostedOAuthCallbackServices,
   SignInStore,
   SignInStep,
 } from '../../src/lib/stores/sign-in-store'
@@ -352,6 +353,91 @@ describe('SignInStore', () => {
 
         assert.equal(result, 'succeeded')
         assert.equal(callbackStore.getState()?.kind, SignInStep.Success)
+      } finally {
+        callbackStore.reset()
+        openExternal.mock.restore()
+      }
+    })
+  })
+
+  describe('self-hosted OAuth', () => {
+    it('keeps PKCE state in memory and lands a verified account', async () => {
+      const services: ISelfHostedOAuthCallbackServices = {
+        exchangeCode: async (endpoint, code, verifier) => {
+          assert.equal(endpoint, 'https://tenant.example')
+          assert.equal(code, 'authorization-code')
+          assert.match(verifier, /^[A-Za-z0-9_-]{43,128}$/)
+          return {
+            accessToken: 'a'.repeat(43),
+            refreshToken: 'r'.repeat(43),
+            expiresIn: 900,
+            idToken: null,
+          }
+        },
+        fetchUserInfo: async (endpoint, token) => {
+          assert.equal(endpoint, 'https://tenant.example')
+          assert.equal(token, 'a'.repeat(43))
+          return { sub: 'admin', scope: 'collaboration openid profile' }
+        },
+      }
+      const callbackStore = new SignInStore(undefined, services)
+      let authenticated: Account | null = null
+      callbackStore.onDidAuthenticate(account => {
+        authenticated = account
+      })
+      const openExternal = mock.method(shell, 'openExternal', async () => true)
+
+      try {
+        callbackStore.beginSelfHostedSignIn('https://tenant.example')
+        const state = callbackStore.getState()
+        assert.equal(state?.kind, SignInStep.Authentication)
+        if (
+          state?.kind !== SignInStep.Authentication ||
+          state.oauthState === undefined
+        ) {
+          throw new Error('Expected an active self-hosted OAuth session')
+        }
+        assert.equal(state.oauthState.kind, 'self-hosted')
+        const result = await callbackStore.resolveSelfHostedOAuthRequest({
+          name: 'self-hosted-oauth',
+          code: 'authorization-code',
+          state: state.oauthState.state,
+        })
+        assert.equal(result, 'succeeded')
+        assert.equal(callbackStore.getState()?.kind, SignInStep.Success)
+        assert.notEqual(authenticated, null)
+        assert.equal(authenticated?.provider, 'self-hosted')
+        assert.equal(authenticated?.endpoint, 'https://tenant.example')
+        assert.equal(authenticated?.login, 'admin')
+      } finally {
+        callbackStore.reset()
+        openExternal.mock.restore()
+      }
+    })
+
+    it('rejects a stale callback before exchanging its code', async () => {
+      let exchangeCount = 0
+      const services: ISelfHostedOAuthCallbackServices = {
+        exchangeCode: async () => {
+          exchangeCount++
+          throw new Error('must not run')
+        },
+        fetchUserInfo: async () => ({
+          sub: 'admin',
+          scope: 'collaboration openid profile',
+        }),
+      }
+      const callbackStore = new SignInStore(undefined, services)
+      const openExternal = mock.method(shell, 'openExternal', async () => true)
+      try {
+        callbackStore.beginSelfHostedSignIn('https://tenant.example')
+        const result = await callbackStore.resolveSelfHostedOAuthRequest({
+          name: 'self-hosted-oauth',
+          code: 'ignored',
+          state: 'wrong-state',
+        })
+        assert.equal(result, 'rejected')
+        assert.equal(exchangeCount, 0)
       } finally {
         callbackStore.reset()
         openExternal.mock.restore()

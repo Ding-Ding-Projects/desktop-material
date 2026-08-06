@@ -26,7 +26,10 @@ const MaximumJavaScriptTimestamp = 8_640_000_000_000_000
 const encoder = new TextEncoder()
 const decoder = new TextDecoder('utf-8', { fatal: true })
 
-export type CloudPatchContentKind = 'commit-range' | 'working-tree-patch'
+export type CloudPatchContentKind =
+  | 'commit-range'
+  | 'working-tree-patch'
+  | 'format-patch'
 export type CloudPatchFileMode = '100644' | '100755' | 'deleted'
 
 export interface ICloudPatchFileEntry {
@@ -53,9 +56,16 @@ export interface ICloudPatchWorkingTreeInput extends ICloudPatchInputBase {
   readonly patch: string
 }
 
+export interface ICloudPatchFormatPatchInput extends ICloudPatchInputBase {
+  readonly kind: 'format-patch'
+  readonly headSha: string
+  readonly patch: string
+}
+
 export type CloudPatchArtifactInput =
   | ICloudPatchCommitRangeInput
   | ICloudPatchWorkingTreeInput
+  | ICloudPatchFormatPatchInput
 
 export interface ICloudPatchManifest {
   readonly version: typeof CloudPatchArtifactVersion
@@ -99,9 +109,18 @@ export interface ICloudPatchWorkingTreeExpectation
   readonly kind: 'working-tree-patch'
 }
 
+export interface ICloudPatchFormatPatchExpectation {
+  readonly kind: 'format-patch'
+  readonly repositoryId: string
+  readonly baseSha: string
+  readonly headSha: string
+  readonly expectedArtifactSha256: string
+}
+
 export type CloudPatchVerificationExpectation =
   | ICloudPatchCommitRangeExpectation
   | ICloudPatchWorkingTreeExpectation
+  | ICloudPatchFormatPatchExpectation
 
 export type CloudPatchArtifactErrorCode =
   | 'invalid-input'
@@ -853,6 +872,92 @@ function validatePatchContent(
   return value
 }
 
+function patchPaths(value: string): ReadonlySet<string> {
+  const paths = new Set<string>()
+  for (const line of value.slice(0, -1).split('\n')) {
+    if (line.startsWith('diff --git ')) {
+      paths.add(parseDiffHeaderPath(line))
+    }
+  }
+  return paths
+}
+
+/**
+ * Validate the mailbox emitted by `git format-patch --stdout`. The canonical
+ * artifact keeps the mailbox intact because `git am` needs its author and
+ * commit-message headers, while each embedded diff is checked by the same
+ * strict raw-diff validator used for working-tree patches.
+ */
+function validateFormatPatchContent(
+  value: unknown,
+  files: ReadonlyArray<ICloudPatchFileEntry>
+): string {
+  if (typeof value !== 'string') {
+    return fail('invalid-patch')
+  }
+  const bytes = encoder.encode(value)
+  if (bytes.byteLength > MaximumCloudPatchPatchBytes) {
+    return fail('patch-too-large')
+  }
+  if (hasArchiveMagic(bytes)) {
+    return fail('archive-input')
+  }
+  if (
+    value.length === 0 ||
+    !value.endsWith('\n') ||
+    value.includes('\r') ||
+    PatchControlCharacters.test(value)
+  ) {
+    return fail('invalid-patch')
+  }
+
+  const headers = [
+    ...value.matchAll(/^From [a-f0-9]{40,64} Mon Sep 17 00:00:00 2001\n/gm),
+  ]
+  if (headers.length === 0 || headers[0].index !== 0) {
+    return fail('invalid-patch')
+  }
+
+  const filesByPath = new Map(files.map(file => [file.path, file]))
+  const seenPaths = new Set<string>()
+  for (let index = 0; index < headers.length; index++) {
+    const start = headers[index].index
+    const end = headers[index + 1]?.index ?? value.length
+    const message = value.slice(start, end)
+    const diffStart = message.indexOf('\ndiff --git ')
+    if (diffStart < 0) {
+      return fail('invalid-patch')
+    }
+    const signatureStart = message.indexOf('\n-- \n', diffStart)
+    const diff = message.slice(
+      diffStart + 1,
+      signatureStart < 0 ? message.length : signatureStart + 1
+    )
+    if (!diff.endsWith('\n')) {
+      return fail('invalid-patch')
+    }
+    const messagePaths = patchPaths(diff)
+    if (messagePaths.size === 0) {
+      return fail('invalid-patch')
+    }
+    const messageFiles: ICloudPatchFileEntry[] = []
+    for (const path of messagePaths) {
+      const file = filesByPath.get(path)
+      if (file === undefined) {
+        return fail('patch-file-mismatch')
+      }
+      messageFiles.push(file)
+      seenPaths.add(path)
+    }
+    validatePatchContent(diff, messageFiles)
+  }
+
+  if (seenPaths.size !== files.length) {
+    return fail('file-count-mismatch')
+  }
+  return value
+}
+
 function validateTimeRange(createdAtMs: number, expiresAtMs: number): void {
   if (
     createdAtMs >= expiresAtMs ||
@@ -1002,6 +1107,10 @@ export function createCloudPatchArtifact(
     if (!hasExactKeys(candidate, [...commonKeys, 'patch'])) {
       return fail('invalid-input')
     }
+  } else if (candidate.kind === 'format-patch') {
+    if (!hasExactKeys(candidate, [...commonKeys, 'headSha', 'patch'])) {
+      return fail('invalid-input')
+    }
   } else {
     return fail('invalid-content-kind')
   }
@@ -1029,6 +1138,26 @@ export function createCloudPatchArtifact(
         files
       ),
       null,
+      options.sha256
+    )
+  }
+
+  if (candidate.kind === 'format-patch') {
+    const headSha = requireObjectId(candidate.headSha)
+    validateRange(baseSha, headSha)
+    const content = validateFormatPatchContent(candidate.patch, files)
+    return finishArtifact(
+      manifestWithoutDigest(
+        repositoryId,
+        createdAtMs,
+        expiresAtMs,
+        candidate.kind,
+        baseSha,
+        headSha,
+        utf8ByteLength(content),
+        files
+      ),
+      content,
       options.sha256
     )
   }
@@ -1148,6 +1277,14 @@ function parseManifest(
     }
     headSha = null
     normalizedContent = validatePatchContent(content, files)
+    if (utf8ByteLength(normalizedContent) !== candidate.contentByteLength) {
+      return fail('length-mismatch')
+    }
+  } else if (candidate.contentKind === 'format-patch') {
+    contentKind = candidate.contentKind
+    headSha = requireObjectId(candidate.headSha)
+    validateRange(baseSha, headSha)
+    normalizedContent = validateFormatPatchContent(content, files)
     if (utf8ByteLength(normalizedContent) !== candidate.contentByteLength) {
       return fail('length-mismatch')
     }
@@ -1284,6 +1421,32 @@ function normalizeExpectation(
       ),
     }
   }
+  if (candidate.kind === 'format-patch') {
+    if (
+      !hasExactKeys(candidate, [
+        'kind',
+        'repositoryId',
+        'baseSha',
+        'headSha',
+        'expectedArtifactSha256',
+      ])
+    ) {
+      return fail('invalid-input')
+    }
+    const baseSha = requireObjectId(candidate.baseSha)
+    const headSha = requireObjectId(candidate.headSha)
+    validateRange(baseSha, headSha)
+    return {
+      kind: candidate.kind,
+      repositoryId: requireRepositoryId(candidate.repositoryId),
+      baseSha,
+      headSha,
+      expectedArtifactSha256: requireSHA256(
+        candidate.expectedArtifactSha256,
+        'invalid-input'
+      ),
+    }
+  }
   if (candidate.kind === 'working-tree-patch') {
     if (
       !hasExactKeys(candidate, [
@@ -1351,7 +1514,7 @@ export function verifyCloudPatchArtifact(
       return { ok: false, error: new CloudPatchArtifactError('base-mismatch') }
     }
     if (
-      expected.kind === 'commit-range' &&
+      (expected.kind === 'commit-range' || expected.kind === 'format-patch') &&
       manifest.headSha !== expected.headSha
     ) {
       return { ok: false, error: new CloudPatchArtifactError('head-mismatch') }

@@ -745,7 +745,7 @@ ipcRenderer.on('url-action', (_, action, callbackId) => {
   dispatcher
     .dispatchURLAction(action)
     .then(result => {
-      if (action.name === 'oauth') {
+      if (action.name === 'oauth' || action.name === 'self-hosted-oauth') {
         if (typeof callbackId !== 'string') {
           log.error('OAuth URL action arrived without a callback correlation')
           return
@@ -758,7 +758,7 @@ ipcRenderer.on('url-action', (_, action, callbackId) => {
     })
     .catch(e => {
       log.error(`URL action ${action.name} failed`, e)
-      if (action.name === 'oauth') {
+      if (action.name === 'oauth' || action.name === 'self-hosted-oauth') {
         if (typeof callbackId !== 'string') {
           log.error('Failed OAuth URL action had no callback correlation')
           return

@@ -1,9 +1,15 @@
 # Advanced history discovery
 
-The History sidebar can search loaded commits by title, body, author, tag, or
+The History page can search loaded commits by title, body, author, tag, or
 full/short object ID using fuzzy, substring, or regular-expression matching.
 Its filter chips narrow the result to unpushed, tagged, or signed-in-user
 commits, and the graph can be shown or hidden without changing the query.
+
+The repository navigation rail also exposes **Graph** as its own page. It
+opens the virtualized ancestry graph across the full repository surface rather
+than constraining the three columns to the History sidebar. Scope, search,
+filter chips, lane controls, commit selection, and commit actions remain the
+same, so users do not trade graph readability for capability.
 
 History also has an explicit keyboard-accessible view tab strip. **Commit list**
 keeps the dense row view and optional inline ancestry graph; **Graph** opens the

@@ -15,6 +15,18 @@ Updated: **August 5, 2026**
   build was attempted but ended before renderer output was available, so the
   About-dialog capture remains explicitly unverified for this change.
 
+## August 5 — rail account switching keeps the chosen identity active
+
+- Selecting an account from the rail switcher now keeps that account first in
+  the active-identity order across GitHub.com and GitHub Enterprise instead of
+  immediately sorting the Enterprise choice back behind GitHub.com.
+- The selected order is persisted and restored on reload; the account switcher
+  and repository-owner auto-switch therefore agree on the same active account.
+- Focused local verification passes: the combined account-switcher contracts,
+  store, repository-owner, and click-handler suites report **55/55**. The
+  required hidden build was attempted through Lowlevel, but its client stalled
+  after the compiler worker stopped and no runtime evidence is claimed.
+
 ## August 3 — the site lays out on a phone
 
 - The rebuilt site pushed the page 717px wide inside a 375px viewport. Every
@@ -126,7 +138,7 @@ ahead of any single feature that depends on it.
 | --- | --- | --- |
 | [R1](https://github.com/Ding-Ding-Projects/desktop-material/issues/118) | Self-hosted Docker server and its guided install wizard | trust, provisioning, and build-context foundations implemented; guided UI and live transport pending — **critical path** |
 | [R2](https://github.com/Ding-Ding-Projects/desktop-material/issues/119) | Custom Docker OAuth server (SSO, multi-domain SSO, SAML) | authority foundation implemented; server flows and capture pending, depends on R1 |
-| [R3](https://github.com/Ding-Ding-Projects/desktop-material/issues/120) | History graph view: Branch/Tag ∣ Graph ∣ Commit Message | graph, context actions, lane visibility, and explicit keyboard-accessible List/Graph tabs implemented; 1443×992 built-app List/Graph captures and semantic tab receipt verified; broader graph-scale acceptance remains |
+| [R3](https://github.com/Ding-Ding-Projects/desktop-material/issues/120) | History graph view: Branch/Tag ∣ Graph ∣ Commit Message | graph, context actions, lane visibility, explicit keyboard-accessible List/Graph tabs, and a dedicated full-width Graph repository page implemented; prior 1443×992 built-app List/Graph captures remain verified, while a fresh dedicated-page capture and broader graph-scale acceptance remain |
 | [R4](https://github.com/Ding-Ding-Projects/desktop-material/issues/121) | Agents panel: fleet view, session creator, worktree status | operational foundation implemented; final acceptance and capture pending |
 | [R5](https://github.com/Ding-Ding-Projects/desktop-material/issues/122) | Command palette expansion (45 audited additions, plus the git half) | catalog audited and partial routes added; remaining live commands and capture pending |
 | [R6](https://github.com/Ding-Ding-Projects/desktop-material/issues/123) | Proactive conflict detection and predictive merge alerts | native-accurate forecast foundation implemented; observation adapter, live warning UI, and capture pending |

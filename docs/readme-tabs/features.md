@@ -396,7 +396,7 @@ matches ask you to choose. Account credentials are never returned in a result.
 <sub>**點解三度前門通向同一度後門。** 一個 Git 操作，無論係你喺介面撳出嚟、排程自動化跑出嚟，定係由你自己開啟嘅本機 agent 伺服器叫出嚟，都係行同一批 store 同同一批安全檢查 — agent 嗰條路淨係要先過 loopback、bearer token、body 大細同佇列嘅關卡。之後決定用邊個身分嘅，係倉庫自己嘅帳戶綁定，唔係邊個先登入：儲住嗰條帳戶 key 會撳出憑證保險庫入面嘅身分；綁定過期咗或者冇權限就停喺帳戶復原，唔會靜靜雞借隔籬個帳戶；而從來未綁過嘅舊倉庫，如果同 origin 淨係有一個身分就自動綁，有幾個就要你自己揀。結果永遠唔會帶住權杖走。</sub>
 
 **Power-user history, stashes, and windows**
-- Search History by title, message, tag, or hash and toggle a lane graph that visualizes commit ancestry
+- Search History by title, message, tag, or hash and open the dedicated full-width Graph repository page that visualizes commit ancestry
 - Use the repository-wide Stash Manager to create, inspect, apply, pop, rename, branch from, or delete an exact stash while retaining partial-failure context; the separate tabbed manager searches every Git stash without a 500-entry cap, keeps recovery identities visible, and exports selected entries as a directory, ZIP, or configurable 7z archive
 - Pull every repository from the repositories sheet with per-repository results; an ambiguous HTTPS authentication or not-found response can retry every remaining token-bearing signed-in account for that exact origin without displaying an identity or token
 - Deepen or unshallow a repository from History/Repository Tools with the same exact-origin Desktop credential trampoline and bounded signed-in-account recovery when the default credential is rejected

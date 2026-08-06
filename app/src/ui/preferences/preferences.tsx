@@ -887,6 +887,7 @@ export class Preferences extends React.Component<
             onProviderSignIn={this.onProviderSignIn}
             onLogout={this.onLogout}
             onMakeActive={this.onMakeActive}
+            onOpenInBrowser={this.openInBrowser}
           />
         )
         break
@@ -1133,7 +1134,9 @@ export class Preferences extends React.Component<
         View = <AgentAccess openInBrowser={this.openInBrowser} />
         break
       case PreferencesTab.SelfHostedServer:
-        View = <SelfHostedServerPreferences />
+        View = (
+          <SelfHostedServerPreferences dispatcher={this.props.dispatcher} />
+        )
         break
       case PreferencesTab.Automation:
         View = (

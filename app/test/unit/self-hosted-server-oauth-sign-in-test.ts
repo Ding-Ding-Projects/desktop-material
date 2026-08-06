@@ -9,6 +9,7 @@ import { createSelfHostedServerBootstrap } from '../../src/lib/self-hosted-serve
 import {
   createSelfHostedOAuthSignInRequest,
   exchangeSelfHostedOAuthCode,
+  fetchSelfHostedOAuthUserInfo,
 } from '../../src/lib/self-hosted-server/oauth-sign-in'
 
 describe('self-hosted server OAuth sign-in', () => {
@@ -27,6 +28,25 @@ describe('self-hosted server OAuth sign-in', () => {
     assert.equal(url.searchParams.get('state'), request.state)
     assert.equal(url.searchParams.get('code_challenge_method'), 'S256')
     assert.match(request.codeVerifier, /^[A-Za-z0-9_-]{43,128}$/)
+  })
+
+  it('rejects unsafe tenant origins and malformed userinfo responses', async () => {
+    assert.throws(
+      () => createSelfHostedOAuthSignInRequest('https://tenant.example/path'),
+      /self-hosted-oauth-origin-invalid/
+    )
+    await assert.rejects(
+      fetchSelfHostedOAuthUserInfo(
+        'https://tenant.example',
+        'a'.repeat(43),
+        async () =>
+          new Response(JSON.stringify({ sub: 'admin', scope: 'openid' }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          })
+      ),
+      /self-hosted-oauth-userinfo-invalid/
+    )
   })
 
   it('completes a real code exchange against the server the wizard provisions', async () => {
@@ -114,6 +134,14 @@ describe('self-hosted server OAuth sign-in', () => {
       assert.equal(userinfoResponse.status, 200)
       const userinfo = (await userinfoResponse.json()) as { sub: string }
       assert.equal(userinfo.sub, 'admin')
+      const parsedUserInfo = await fetchSelfHostedOAuthUserInfo(
+        origin,
+        tokens.accessToken
+      )
+      assert.deepEqual(parsedUserInfo, {
+        sub: 'admin',
+        scope: 'collaboration openid profile',
+      })
     } finally {
       await server?.close()
       await rm(directory, { recursive: true, force: true })

@@ -108,6 +108,11 @@ M21 adds progressively disclosed controls around the familiar Desktop flow:
   Tools exposes tag creation, fetch, push, move, signing, pruning, and deletion;
   destructive tag and bulk-branch actions identify the exact refs first and
   retain recovery information.
+- When switching away from a dirty branch, choose **Leave my changes here** to
+  keep the current files in place and open Add worktree with the destination
+  branch and a suggested worktree name already filled in. The current worktree
+  is not stashed or checked out to the destination; creation happens only after
+  the path review succeeds.
 - In Changes, switch the file list to a directory tree, choose persisted diff
   context, compare CSV/TSV rows and cells, and preview TGA images. Editor actions
   understand the expanded editor catalog plus WSL paths. Settings and Repository
@@ -1630,8 +1635,12 @@ The **Actions** panel brings CI into the app:
 - The repository's **Super Express Release** emergency lane runs no unit,
   script, TUI, lint, type, parity, smoke, or E2E tests. It goes directly to the
   Windows x64 production build/package, asset verification, and optional
-  release; ordinary CI and tested Express remain the default gates. A release
-  pull request targets the Windows product's `main` default branch.
+  release; preparation and publication use `ubuntu-latest`, while each
+  packaging lane selects an online, idle matching self-hosted runner when
+  available and otherwise uses `windows-2022` or `ubuntu-latest`. Static
+  conditional jobs keep the workflow schedulable before any job starts.
+  Ordinary CI and tested Express remain the default gates. A release pull
+  request targets the Windows product's `main` default branch.
 - Automatic and Super Express installers share one monotonic `z` package-version
   namespace. Releases are immutable and initially non-latest; only the greatest
   release for freshly revalidated current `main` is promoted to the Squirrel
@@ -1824,7 +1833,9 @@ Copilot conflict assistance is available, it participates inside the same guarde
 
 Open **History** and use the search field to match a commit's title, message, tag, or hash. The
 results retain the normal commit detail view. Toggle **Show commit graph** to add ancestry lanes and
-merge edges beside the unfiltered list; turn the graph off when a compact list is more useful.
+merge edges beside the unfiltered list; turn the graph off when a compact list is more useful. For
+readable three-column ancestry work, choose **Graph** in the repository navigation rail: it is a
+dedicated full-width page with the same scope, filters, lane controls, selection, and commit actions.
 
 Right-click a commit row for reset, checkout, reorder, revert, branch, tag, cherry-pick, copy, and
 provider actions. The row's named **More actions** button, the Context Menu key, and `Shift+F10`
@@ -1835,7 +1846,7 @@ and an auto-updating relative line such as **2 minutes ago**.
 
 ![History search and commit graph](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-power-tools.png)
 
-History now exposes the two view modes as explicit, keyboard-accessible tabs:
+History also exposes the two view modes as explicit, keyboard-accessible tabs:
 choose **Commit list** for the dense review list or **Graph** for the continuous
 branch lanes. The selected view persists with the repository tab, and arrow,
 Home, and End keys move through the tab strip.

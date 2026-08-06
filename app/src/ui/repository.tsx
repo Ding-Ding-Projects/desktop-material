@@ -590,6 +590,14 @@ export class RepositoryView extends React.Component<
           </span>
           <span className="rail-label">History</span>
         </span>
+        <span className="rail-item" id="history-graph-tab">
+          <span className="rail-pill">
+            <Octicon symbol={octicons.gitMerge} className="rail-icon" />
+          </span>
+          <span className="rail-label">
+            {t('repositorySection.historyGraph')}
+          </span>
+        </span>
         {this.supportsGitHubActions() && (
           <span className="rail-item" id="actions-tab" data-dm-feature={true}>
             <span className="rail-pill">
@@ -686,9 +694,7 @@ export class RepositoryView extends React.Component<
               />
             </span>
           </span>
-          <span className="rail-label">
-            {t('repositorySection.launchpad')}
-          </span>
+          <span className="rail-label">{t('repositorySection.launchpad')}</span>
         </span>
         <span className="rail-item" id="triage-tab" data-dm-feature={true}>
           <span className="rail-pill">
@@ -1001,7 +1007,7 @@ export class RepositoryView extends React.Component<
     )
   }
 
-  private renderCompareSidebar(): JSX.Element {
+  private renderCompareSidebar(graphOnly: boolean = false): JSX.Element {
     const { repository, dispatcher, state, aheadBehindStore, emoji } =
       this.props
     const {
@@ -1053,6 +1059,7 @@ export class RepositoryView extends React.Component<
         }
         accounts={this.props.accounts}
         preferAbsoluteDates={this.props.preferAbsoluteDates}
+        graphOnly={graphOnly}
       />
     )
   }
@@ -1064,6 +1071,8 @@ export class RepositoryView extends React.Component<
       return this.renderChangesSidebar()
     } else if (selectedSection === RepositorySectionTab.History) {
       return this.renderCompareSidebar()
+    } else if (selectedSection === RepositorySectionTab.HistoryGraph) {
+      return null
     } else if (
       selectedSection === RepositorySectionTab.Actions ||
       selectedSection === RepositorySectionTab.Releases ||
@@ -1097,7 +1106,8 @@ export class RepositoryView extends React.Component<
       selectedSection === RepositorySectionTab.Issues ||
       selectedSection === RepositorySectionTab.GitHubAPI ||
       selectedSection === RepositorySectionTab.Triage ||
-      selectedSection === RepositorySectionTab.RepositoryTools
+      selectedSection === RepositorySectionTab.RepositoryTools ||
+      selectedSection === RepositorySectionTab.HistoryGraph
     ) {
       return <React.Fragment />
     }
@@ -1563,6 +1573,8 @@ export class RepositoryView extends React.Component<
       return this.renderContentForChanges()
     } else if (selectedSection === RepositorySectionTab.History) {
       return this.renderContentForHistory()
+    } else if (selectedSection === RepositorySectionTab.HistoryGraph) {
+      return this.renderCompareSidebar(true)
     } else if (selectedSection === RepositorySectionTab.Actions) {
       return (
         <LazyView<ActionsModule>

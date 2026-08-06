@@ -239,6 +239,17 @@ active profile's style, label, and explicit language mode.
 | `repository-groups-collapsed.png` | Repository group collapsed with its member count pill |
 | `private-repository-lock-badge.png` | Explicit private-metadata lock retained beside the repository logo |
 
+### Dirty branch switching
+
+When a branch is dirty, the switch dialog can leave the current worktree in
+place and open the existing Add worktree flow for the destination branch. The
+acceptance captures below come from the built Windows renderer and show the
+selected choice followed by the prefilled form.
+
+![Dirty-worktree switch dialog with Leave my changes here selected](../verification/dirty-worktree-worktree-option-20260805/dirty-worktree-switch-dialog.png)
+
+![Add worktree form prefilled for the destination branch](../verification/dirty-worktree-worktree-option-20260805/add-worktree-prefilled.png)
+
 ## App identity and portable tabs
 
 The active profile can customize the in-app logo/name and rich name typography,
@@ -711,7 +722,7 @@ reachable without page-level horizontal clipping.
 
 ![History Commit list tab from the built Windows app](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-view-tabs-list.png)
 
-![History Graph tab from the built Windows app](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-view-tabs-graph.png)
+![History Graph view from the built Windows app](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history-view-tabs-graph.png)
 
 ![Layered automation schedules and account overrides](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-automation.png)
 

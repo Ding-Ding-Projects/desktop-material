@@ -15,6 +15,7 @@ import {
   SelfHostedOAuthAuthority,
   SelfHostedOAuthError,
   SelfHostedSsoSessionStore,
+  parseSamlMetadata,
   signIdToken,
 } from './oauth.mjs'
 import {
@@ -129,6 +130,7 @@ const OptionalOAuthConfigurationKeys = [
   'oauthSigningPublicJwkJson',
   'oauthKeyId',
 ]
+const OptionalSamlConfigurationKeys = ['samlMetadataXml']
 // Cloud Patch storage is optional too: a server bootstrapped before this
 // capability existed simply runs without patch storage/sharing endpoints.
 const OptionalCloudPatchConfigurationKeys = ['cloudPatchEncryptionKeyBase64']
@@ -153,6 +155,7 @@ function hasValidConfigurationKeys(value) {
   const allowedKeys = [
     ...RequiredConfigurationKeys,
     ...OptionalOAuthConfigurationKeys,
+    ...OptionalSamlConfigurationKeys,
     ...OptionalCloudPatchConfigurationKeys,
   ]
   return keys.every(key => allowedKeys.includes(key))
@@ -184,6 +187,9 @@ function parseCloudPatchEncryptionKey(parsed) {
 
 function parseOAuthConfiguration(parsed) {
   if (!Object.prototype.hasOwnProperty.call(parsed, 'oauthClientsJson')) {
+    if (Object.prototype.hasOwnProperty.call(parsed, 'samlMetadataXml')) {
+      throw new Error('Invalid SAML metadata configuration')
+    }
     return null
   }
   const clientsJson = requiredString(
@@ -238,11 +244,18 @@ function parseOAuthConfiguration(parsed) {
   if (!/^[A-Za-z0-9._-]{1,128}$/.test(keyId)) {
     throw new Error('Invalid OAuth signing key id')
   }
+  const samlMetadata = Object.prototype.hasOwnProperty.call(
+    parsed,
+    'samlMetadataXml'
+  )
+    ? parseSamlMetadata(parsed.samlMetadataXml)
+    : null
   return {
     clients,
     signingKeyPem,
     publicJwk: { ...publicJwk, kid: keyId },
     keyId,
+    samlMetadata,
   }
 }
 
@@ -898,10 +911,14 @@ export async function createDesktopMaterialServer(options) {
           body === null ||
           typeof body !== 'object' ||
           Array.isArray(body) ||
-          !Object.keys(body).every(key => allowedPatchUploadKeys.includes(key)) ||
-          !['recipientDeviceIds', 'expectedArtifactSha256', 'artifactBase64'].every(
-            key => Object.prototype.hasOwnProperty.call(body, key)
+          !Object.keys(body).every(key =>
+            allowedPatchUploadKeys.includes(key)
           ) ||
+          ![
+            'recipientDeviceIds',
+            'expectedArtifactSha256',
+            'artifactBase64',
+          ].every(key => Object.prototype.hasOwnProperty.call(body, key)) ||
           typeof body.artifactBase64 !== 'string'
         ) {
           status = 400
@@ -1109,6 +1126,20 @@ export async function createDesktopMaterialServer(options) {
             { use: 'sig', alg: 'ES256', ...configuration.oauth.publicJwk },
           ],
         })
+        return
+      }
+
+      if (request.method === 'GET' && pathname === '/oauth/saml/metadata') {
+        if (
+          oauthAuthority === null ||
+          configuration.oauth.samlMetadata === null
+        ) {
+          status = 404
+          sendJson(response, status, { error: 'not-found' })
+          return
+        }
+        status = 200
+        sendJson(response, status, configuration.oauth.samlMetadata)
         return
       }
 
@@ -1340,10 +1371,7 @@ export async function createDesktopMaterialServer(options) {
         return
       }
 
-      if (
-        request.method === 'GET' &&
-        pathname.startsWith('/v1/workspaces/')
-      ) {
+      if (request.method === 'GET' && pathname.startsWith('/v1/workspaces/')) {
         const device = await authenticatedDevice(request)
         if (device === null) {
           status = 401

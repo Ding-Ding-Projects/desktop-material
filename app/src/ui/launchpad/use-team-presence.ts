@@ -55,11 +55,15 @@ export function useTeamPresence(): IUseTeamPresenceResult {
         deviceToken: connection.deviceToken,
       }
 
+      // The connection is enough to expose the real Team View loading state;
+      // the roster remains null until the first server response arrives.
+      setAvailable(true)
+      setMembers(null)
+
       const poll = async () => {
         try {
           const roster = await fetchTeamMembers(options)
           if (!cancelled) {
-            setAvailable(true)
             setMembers(roster)
           }
         } catch {
@@ -79,7 +83,13 @@ export function useTeamPresence(): IUseTeamPresenceResult {
 
       await heartbeat()
       await poll()
-      heartbeatTimer = setInterval(() => void heartbeat(), TeamHeartbeatIntervalMs)
+      if (cancelled) {
+        return
+      }
+      heartbeatTimer = setInterval(
+        () => void heartbeat(),
+        TeamHeartbeatIntervalMs
+      )
       pollTimer = setInterval(() => void poll(), RosterPollIntervalMs)
     }
 
