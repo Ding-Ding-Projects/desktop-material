@@ -980,6 +980,13 @@
       d: 'Every row in the repository side sheet carries a small, low-emphasis second line under the repository name summarizing how far that repository has drifted from its tracked…',
     },
     {
+      t: 'Repository list transfer and Cheap LFS',
+      h: 'features/repository-management/repository-list-transfer.html',
+      s: 'features/repository-management/repository-list-transfer.md',
+      c: 'features',
+      d: 'Repository list transfer moves a reviewed set of cloned repositories between Desktop Material profiles or machines. It is deliberately a clone recipe, not a credential or…',
+    },
+    {
       t: 'Repository picker filters and visibility',
       h: 'features/repository-management/repository-picker-filters-and-visibility.html',
       s: 'features/repository-management/repository-picker-filters-and-visibility.md',

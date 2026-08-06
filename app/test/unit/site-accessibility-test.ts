@@ -105,12 +105,12 @@ describe('Pages accessibility contracts', () => {
       'a drag-and-drop upload slot is an empty box for every visitor'
     )
     const images = [...markup.matchAll(/<img\b[^>]*>/g)].map(([tag]) => tag)
-    // Eight application captures plus the thirteen Cheap LFS diagrams.
-    assert.equal(images.length, 21)
+    // Nine application captures plus the thirteen Cheap LFS diagrams.
+    assert.equal(images.length, 22)
     assert.equal(
       images.filter(tag => tag.includes('docs/assets/screenshots/')).length,
-      8,
-      'the seven gallery tiles and the hero capture'
+      9,
+      'the eight gallery tiles and the hero capture'
     )
     assert.equal(
       images.filter(tag => tag.includes('assets/cheap-lfs/')).length,

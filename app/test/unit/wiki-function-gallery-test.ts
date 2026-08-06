@@ -19,6 +19,7 @@ const historicalGalleryAssets = [
   ...historicalLinuxAssets,
   'auto-updater-update-ready.png',
   'material-blank-startup-fixed-20260806.png',
+  'material-launchpad-empty-full-width-20260806.png',
   'material-command-palette-notification-before.png',
   'material-actions-job-log-404-recovery.png',
   'material-actions-job-log-404-recovered.png',
