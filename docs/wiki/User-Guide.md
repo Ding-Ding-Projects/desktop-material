@@ -463,6 +463,36 @@ child-process close event cannot hang the completed fetch. Concurrent preparatio
 remote URL share one in-flight system proxy lookup instead of multiplying resolver work after a
 timeout. Clone cancellation remains stricter and waits for the owned process to close completely.
 
+### Transfer a repository to another account
+
+Open **Repository → Transfer repository…**, choose **Transfer repository** from
+the repository-list context menu or Command Palette, or use the button in
+**Repository settings → Remote**. The dialog starts with the source repository
+and offers every signed-in GitHub identity. Choose **Sign in to another
+account…** when the destination identity is not present; the normal GitHub.com
+or GitHub Enterprise sign-in flow returns to this dialog without exposing the
+credential to the page.
+
+Choose a personal or organization owner, keep the existing repository name or
+enter a custom provider-safe name, and choose whether the destination is
+private. **Full history** creates a temporary bare clone and pushes every local
+branch and tag. **Clean state** creates one new root commit from the current
+files, pushes the current branch, and keeps the previous tip in a local
+`refs/desktop-material/transfer-backups/` recovery ref. Both modes require a
+valid Git operation state; full-history mode requires a clean worktree, while
+clean-state mode intentionally includes the current Git-visible changes. Both
+show real progress, verify the destination branch, and only then retarget
+`origin`; the original source remains available as `upstream` when the
+repository did not already have one.
+
+The final review names the destination, mode, privacy, and remote change. Two
+independent confirmations plus the full-range authorization slider are
+required. If provider creation or publication succeeds but local retargeting
+fails, the dialog says that the destination may already exist and leaves the
+old remote in place when possible. See the [repository transfer feature
+article](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/repository-management/repository-transfer.md)
+for recovery, security, and verification details.
+
 ---
 
 ## App-hosted browser

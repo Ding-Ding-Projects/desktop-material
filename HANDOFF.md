@@ -1,5 +1,28 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-05 — Account-aware repository transfer (verification in progress)
+
+The Windows Electron app now has an account-aware **Transfer repository**
+workflow. It can add another GitHub.com or GitHub Enterprise identity through
+the existing sign-in dialog, choose a personal or organization owner, keep or
+rename the destination repository, and choose privacy. **Full history** uses a
+temporary bare clone to publish every local branch and tag. **Clean state**
+creates one root snapshot commit, retains the previous tip under a local
+`refs/desktop-material/transfer-backups/` recovery ref, and publishes only the
+current files. Both routes verify the destination before retargeting `origin`
+and preserve the source as `upstream` when needed.
+
+The entry points are the Repository menu, repository-list context menu, Command
+Palette, and **Repository settings → Remote**. The transfer dialog requires two
+independent confirmations plus a full-range authorization slider, and displays
+real checking, creation, preparation, publication, retargeting, and completion
+progress. Focused direct Node contract tests pass **7/7**. Targeted ESLint and
+the TypeScript changed-file check pass; the repository-wide test harness is
+currently blocked before test discovery by the existing malformed
+`whatwg-encoding` dependency payload. Exact Windows production build and
+hidden-desktop runtime evidence are still pending; no hosted CI or Release
+success is claimed here.
+
 ## 2026-08-05 — Super Express packaging lanes parallelized
 
 The manual Super Express dispatcher now keeps one combined immutable Release

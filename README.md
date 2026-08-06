@@ -43,6 +43,15 @@
 
 Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [GitHub Desktop](https://github.com/desktop/desktop). It rebuilds the entire application shell around Material Design 3 while keeping GitHub Desktop's full Git workflow and the same underlying stack: [TypeScript](https://www.typescriptlang.org), [React](https://react.dev), [Electron](https://www.electronjs.org), and [Sass](https://sass-lang.com). This project is in active development.
 
+> **Repository transfer:** from the Repository menu, list context menu,
+> Command Palette, or **Repository settings → Remote**, choose another signed-in
+> GitHub account or organization and keep the repository name or enter a custom
+> one. **Full history** publishes every local branch and tag; **Clean state**
+> publishes the current files as one root commit while retaining a local
+> recovery ref. `origin` changes only after destination verification, and the
+> source remote remains reachable as `upstream` when needed. See the
+> [repository transfer guide](docs/features/repository-management/repository-transfer.md).
+
 > **Platform support:** Desktop Material ships a Windows Electron desktop
 > application and a revived Linux-first
 > [terminal application](docs/features/linux-tui/README.md). Windows keeps the

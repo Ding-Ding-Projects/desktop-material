@@ -61,6 +61,10 @@ Material is displaying or how a repository is represented in the application.
   picker](publish-organization-picker.md) — choose a personal or organization
   owner from an anchored searchable listbox with fuzzy, substring, safe-RE2,
   and the full Regex Builder while stale account requests fail closed.
+- [Repository transfer](repository-transfer.md) — choose another signed-in
+  GitHub account or organization, publish either every local ref with its
+  history or one clean root snapshot, verify the destination, and retarget
+  `origin` while preserving a recoverable source remote.
 - [Repository list sync summary](repository-list-sync-summary.md) — a
   low-emphasis line under each repository name giving the exact commits waiting
   to push and to pull, an honest unknown state for anything never checked, and

@@ -321,6 +321,10 @@ import {
 import { UnreachableCommitsTab } from '../history/unreachable-commits-dialog'
 import { sendNonFatalException } from '../../lib/helpers/non-fatal-exception'
 import { SignInResult } from '../../lib/stores/sign-in-store'
+import type {
+  IRepositoryTransferProgress,
+  RepositoryTransferMode,
+} from '../../lib/repository-transfer'
 import { ICustomIntegration } from '../../lib/custom-integration'
 import { IBranchNamePreset } from '../../models/branch-preset'
 import { isAbsolute, join } from 'path'
@@ -659,7 +663,7 @@ export class Dispatcher {
 
   /** Commit exactly one repository-owned appearance value. */
   public setRepositoryAppearanceElement<
-    K extends RepositoryAppearanceElementId
+    K extends RepositoryAppearanceElementId,
   >(
     repository: Repository,
     id: K,
@@ -1059,11 +1063,11 @@ export class Dispatcher {
     const selectedRepository =
       activeTab === null
         ? null
-        : repositories.find(
+        : (repositories.find(
             repository => repository.id === activeTab.repositoryId
           ) ??
           matchExistingRepository(repositories, activeTab.repositoryPath) ??
-          null
+          null)
 
     if (selectedRepository !== null) {
       this.repositoryTabsStore.rebindActiveTabToRepository(selectedRepository)
@@ -1297,8 +1301,7 @@ export class Dispatcher {
   public changeFileIncluded(
     repository: Repository,
     file:
-      | WorkingDirectoryFileChange
-      | ReadonlyArray<WorkingDirectoryFileChange>,
+      WorkingDirectoryFileChange | ReadonlyArray<WorkingDirectoryFileChange>,
     include: boolean
   ): Promise<void> {
     return this.appStore._changeFileIncluded(repository, file, include)
@@ -3869,6 +3872,18 @@ export class Dispatcher {
     await this.appStore._showCreateForkDialog(repository)
   }
 
+  /** Show the account-aware repository transfer workflow. */
+  public async showTransferRepositoryDialog(
+    repository: RepositoryWithGitHubRepository,
+    onCompleted?: () => void
+  ): Promise<void> {
+    this.appStore._showPopup({
+      type: PopupType.TransferRepository,
+      repository,
+      onCompleted,
+    })
+  }
+
   public async showUnknownAuthorsCommitWarning(
     authors: ReadonlyArray<UnknownAuthor>,
     onCommitAnyway: () => void
@@ -4753,7 +4768,10 @@ export class Dispatcher {
     let workspace
     try {
       workspace = await fetchSharedWorkspace(
-        { publicOrigin: connection.publicOrigin, deviceToken: connection.deviceToken },
+        {
+          publicOrigin: connection.publicOrigin,
+          deviceToken: connection.deviceToken,
+        },
         action.shareToken
       )
     } catch (error) {
@@ -4766,7 +4784,10 @@ export class Dispatcher {
     }
 
     if (workspace.branch !== null) {
-      await this.openBranchNameFromUrl(workspace.repositoryUrl, workspace.branch)
+      await this.openBranchNameFromUrl(
+        workspace.repositoryUrl,
+        workspace.branch
+      )
     } else {
       await this.openOrCloneRepository(workspace.repositoryUrl)
     }
@@ -5700,6 +5721,28 @@ export class Dispatcher {
       name,
       description,
       private_
+    )
+  }
+
+  public transferRepository(
+    repository: Repository,
+    account: Account,
+    org: IAPIOrganization | null,
+    name: string,
+    description: string,
+    private_: boolean,
+    mode: RepositoryTransferMode,
+    onProgress?: (progress: IRepositoryTransferProgress) => void
+  ): Promise<Repository> {
+    return this.appStore._transferRepository(
+      repository,
+      account,
+      org,
+      name,
+      description,
+      private_,
+      mode,
+      onProgress
     )
   }
 

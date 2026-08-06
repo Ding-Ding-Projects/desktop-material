@@ -1,6 +1,22 @@
 # Desktop Material roadmap
 
-Updated: **August 3, 2026**
+Updated: **August 5, 2026**
+
+## August 5 — account-aware repository transfer
+
+- The Windows desktop app now exposes **Transfer repository** from the
+  Repository menu, repository-list context menu, Command Palette, and Remote
+  Manager. The workflow can use an existing signed-in GitHub identity or open
+  the normal GitHub/GitHub Enterprise sign-in flow for another account.
+- **Full history** publishes every local branch and tag through a temporary bare
+  clone. **Clean state** publishes the current files as one new root commit and
+  keeps the old tip under a local `refs/desktop-material/transfer-backups/`
+  recovery ref. Both modes verify the destination before retargeting `origin`;
+  the source remote remains available as `upstream` when needed.
+- The destination name, owner, privacy, mode, two confirmations, and full-range
+  authorization slider are reviewed before the provider mutation. Focused
+  contract tests pass **7/7**; the exact production build and hidden-desktop
+  runtime proof remain pending at this roadmap update.
 
 ## August 3 — the site lays out on a phone
 
