@@ -194,6 +194,10 @@ Material is displaying or how a repository is represented in the application.
   state from Settings while retaining the existing bounded recovery journal.
 - [Patch-series import and export](patch-series.md) — preview, validate, export,
   and apply portable patch sequences without silently changing unrelated work.
+- [Repository list transfer and Cheap LFS](repository-list-transfer.md) — export
+  sanitized clone URLs, re-clone them through the batch engine, and restore
+  Cheap LFS large files after cloning without exporting credentials or local
+  account/file selections.
 
 ## API applicability
 

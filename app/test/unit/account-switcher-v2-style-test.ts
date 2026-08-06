@@ -64,7 +64,7 @@ describe('Account switcher v2 styles', () => {
     )
     assert.match(
       styles,
-      /@for \$i from 1 through 8\s*\{\s*\.account-switcher-row:nth-child\(#\{\$i \+ 1\}\)\s*\{\s*animation-delay: #\{40 \+ \(\$i - 1\) \* 60\}ms;/
+      /@for \$i from 1 through 8\s*\{\s*\.account-switcher-results \.account-switcher-row:nth-child\(#\{\$i\}\)\s*\{\s*animation-delay: #\{40 \+ \(\$i - 1\) \* 60\}ms;/
     )
   })
 
@@ -75,7 +75,7 @@ describe('Account switcher v2 styles', () => {
     )
   })
 
-  it('renders 38px circular initials avatars with a primary-container variant', () => {
+  it('renders 38px circular avatar slots with a primary-container variant', () => {
     assert.match(
       styles,
       /\.account-switcher-avatar\s*\{[\s\S]*?width: 38px;\s*height: 38px;\s*border-radius: 999px;\s*background: var\(--md-sys-color-secondary-container\);/
@@ -132,7 +132,7 @@ describe('Account switcher v2 component contract', () => {
   it('presents as a dialog labelled by its Accounts header', () => {
     assert.match(component, /role="dialog"/)
     assert.match(component, /aria-labelledby="account-switcher-header"/)
-    assert.match(component, /Accounts · \{host\}/)
+    assert.match(component, /accounts\.picker\.title/)
   })
 
   it('focuses the first row when it opens', () => {
@@ -161,6 +161,31 @@ describe('Account switcher v2 component contract', () => {
     )
   })
 
+  it('provides a searchable account field with the full filter and regex controls', () => {
+    assert.match(component, /import \{ TextBox \} from '\.\.\/lib\/text-box'/)
+    assert.match(
+      component,
+      /import \{ FilterMode, matchWithMode \} from '\.\.\/\.\.\/lib\/fuzzy-find'/
+    )
+    assert.match(component, /<TextBox[\s\S]*type="search"/)
+    assert.match(
+      component,
+      /searchSurfaceId=\{AccountSwitcherSearchSurfaceId\}/
+    )
+    assert.match(
+      component,
+      /<FilterModeControl[\s\S]*regexBuilderTarget=\{t\('accounts\.picker\.label'\)\}/
+    )
+    assert.match(component, /matchWithMode\(/)
+    assert.match(component, /account-switcher-regex-error/)
+    assert.match(component, /accounts\.picker\.noMatch/)
+    assert.match(component, /onSearchKeyDown/)
+    assert.match(
+      component,
+      /event\.defaultPrevented \|\| event\.target instanceof HTMLInputElement/
+    )
+  })
+
   it('marks the active row and pops a check-circle octicon on it', () => {
     assert.match(component, /aria-current=\{active \? 'true' : undefined\}/)
     assert.match(
@@ -172,7 +197,7 @@ describe('Account switcher v2 component contract', () => {
   it('offers the person-add action row', () => {
     assert.match(
       component,
-      /className="account-switcher-add"[\s\S]*?octicons\.personAdd[\s\S]*?Add another account/
+      /className="account-switcher-add"[\s\S]*?octicons\.personAdd[\s\S]*?accounts\.picker\.add/
     )
   })
 })

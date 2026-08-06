@@ -11,6 +11,7 @@ import { TextBox } from '../lib/text-box'
 import { RadioGroup } from '../lib/radio-group'
 import { LinkButton } from '../lib/link-button'
 import { parseRepoList, sanitizeRemoteUrl } from '../../lib/repo-list-file'
+import { t } from '../../lib/i18n'
 import {
   BatchCloneMode,
   IBatchCloneInput,
@@ -194,6 +195,9 @@ export class ImportRepositoriesDialog extends React.Component<
           <span className="file-path">{this.state.filePath}</span>
           <LinkButton onClick={this.onChooseFile}>Change…</LinkButton>
         </Row>
+        <p className="transfer-large-files-note">
+          {t('repositoryTransfer.cheapLfsNote')}
+        </p>
         <ul className="transfer-list">
           {this.state.urls.map(url => this.renderUrl(url, existing))}
         </ul>
