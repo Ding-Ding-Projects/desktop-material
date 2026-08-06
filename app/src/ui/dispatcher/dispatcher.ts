@@ -21,6 +21,8 @@ import {
   ICheapLfsManagedPointerEntry,
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
+  ICheapLfsAutoPinProgress,
+  ICheapLfsWorkingTreePinResult,
   CheapLfsPinStage,
 } from '../../lib/cheap-lfs/operations'
 import type { ICheapLfsOciMutationResult } from '../../lib/cheap-lfs/oci-operations'
@@ -3496,6 +3498,21 @@ export class Dispatcher {
     )
   }
 
+  /** Store an explicit working-tree selection in Cheap LFS as one batch. */
+  public storeWorkingTreeFilesInCheapLfs(
+    repository: Repository,
+    paths: ReadonlyArray<string>,
+    signal?: AbortSignal,
+    onProgress?: (progress: ICheapLfsAutoPinProgress) => void
+  ): Promise<ICheapLfsWorkingTreePinResult> {
+    return this.appStore._storeWorkingTreeFilesInCheapLfs(
+      repository,
+      paths,
+      signal,
+      onProgress
+    )
+  }
+
   /**
    * Replace a committed cheap-LFS pointer with its verified real bytes. The
    * optional signal and progress callback let a UI show and cancel the download.
@@ -4753,7 +4770,10 @@ export class Dispatcher {
     let workspace
     try {
       workspace = await fetchSharedWorkspace(
-        { publicOrigin: connection.publicOrigin, deviceToken: connection.deviceToken },
+        {
+          publicOrigin: connection.publicOrigin,
+          deviceToken: connection.deviceToken,
+        },
         action.shareToken
       )
     } catch (error) {
@@ -4766,7 +4786,10 @@ export class Dispatcher {
     }
 
     if (workspace.branch !== null) {
-      await this.openBranchNameFromUrl(workspace.repositoryUrl, workspace.branch)
+      await this.openBranchNameFromUrl(
+        workspace.repositoryUrl,
+        workspace.branch
+      )
     } else {
       await this.openOrCloneRepository(workspace.repositoryUrl)
     }

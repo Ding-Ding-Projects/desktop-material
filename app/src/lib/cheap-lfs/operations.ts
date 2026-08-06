@@ -5704,6 +5704,25 @@ export interface ICheapLfsAutoPinResult {
   readonly canceled: boolean
 }
 
+/** One working-tree file that was replaced by a verified Cheap LFS pointer. */
+export interface ICheapLfsWorkingTreePinFile {
+  readonly relativePath: string
+  readonly sizeInBytes: number
+}
+
+/** A working-tree file that was deliberately left untouched by a batch pin. */
+export interface ICheapLfsWorkingTreePinFailure {
+  readonly relativePath: string
+  readonly message: string
+}
+
+/** The complete, ordered outcome of an interactive working-tree pin batch. */
+export interface ICheapLfsWorkingTreePinResult {
+  readonly stored: ReadonlyArray<ICheapLfsWorkingTreePinFile>
+  readonly failures: ReadonlyArray<ICheapLfsWorkingTreePinFailure>
+  readonly canceled: boolean
+}
+
 /** Automatic pinning deliberately never exceeds three concurrent files. */
 export const CheapLfsMaximumAutoPinConcurrency = 3
 

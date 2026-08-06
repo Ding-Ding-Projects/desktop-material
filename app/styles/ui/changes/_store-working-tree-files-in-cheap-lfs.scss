@@ -1,0 +1,40 @@
+#store-working-tree-files-in-cheap-lfs {
+  .dialog-content {
+    max-width: min(680px, calc(100vw - 48px));
+    max-height: min(70vh, 560px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+  }
+
+  .store-working-tree-files-in-cheap-lfs-list,
+  .store-working-tree-files-in-cheap-lfs-excluded ul,
+  .store-working-tree-files-in-cheap-lfs-result ul {
+    max-width: 100%;
+    margin: var(--spacing) 0;
+    padding-left: var(--spacing-double);
+    overflow-wrap: anywhere;
+  }
+
+  .store-working-tree-files-in-cheap-lfs-list {
+    max-height: 220px;
+    overflow-y: auto;
+    font-family: var(--font-family-monospace);
+  }
+
+  .store-working-tree-files-in-cheap-lfs-excluded {
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  .store-working-tree-files-in-cheap-lfs-error {
+    color: var(--md-sys-color-error);
+  }
+
+  .store-working-tree-files-in-cheap-lfs-progress {
+    min-width: 0;
+  }
+
+  .path-text-component {
+    overflow-wrap: anywhere;
+  }
+}

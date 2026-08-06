@@ -194,6 +194,7 @@ import { IRepositoryTab } from '../models/repository-tab'
 import { NotificationAutomationsDialog } from './notifications/notification-automations-dialog'
 import { LogHistoryDialog } from './log-history/log-history-dialog'
 import { FileHistory } from './file-history'
+import { StoreWorkingTreeFilesInCheapLfsDialog } from './changes/store-working-tree-files-in-cheap-lfs-dialog'
 import { SparseCheckoutManager } from './sparse-checkout'
 import { BranchRulesInspector } from './branch-rules'
 import { EffectiveBranchRulesAPIDataSource } from '../lib/effective-branch-rules-api'
@@ -590,6 +591,7 @@ const ModalPopupTypes = new Set<PopupType>([
   PopupType.PullPreview,
   PopupType.CheapLfsCloneAssets,
   PopupType.CheapLfsPayloadPassword,
+  PopupType.StoreWorkingTreeFilesInCheapLfs,
 ])
 
 export const bannerTransitionTimeout = { enter: 500, exit: 400 }
@@ -4783,6 +4785,17 @@ export class App extends React.Component<IAppProps, IAppState> {
             onRefreshRepository={this.getOnRefreshRepositoryFn(
               popup.repository
             )}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.StoreWorkingTreeFilesInCheapLfs:
+        return (
+          <StoreWorkingTreeFilesInCheapLfsDialog
+            key={`store-working-tree-files-in-cheap-lfs-${popup.repository.id}`}
+            repository={popup.repository}
+            paths={popup.paths}
+            excludedPaths={popup.excludedPaths}
+            dispatcher={this.props.dispatcher}
             onDismissed={onPopupDismissedFn}
           />
         )

@@ -65,6 +65,10 @@ import {
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
   ICheapLfsRetainedPin,
+  ICheapLfsWorkingTreePinFailure,
+  ICheapLfsWorkingTreePinFile,
+  ICheapLfsWorkingTreePinResult,
+  ensureCheapLfsPathIsNotOwnedArtifact,
   isCheapLfsPayloadProvenStored,
   CheapLfsPinStage,
   listAllCheapLfsPointers,
@@ -17439,6 +17443,379 @@ export class AppStore extends TypedBaseStore<IAppState> {
     } finally {
       await this._refreshRepository(repository)
     }
+  }
+
+  /**
+   * Store an explicit working-tree selection in Cheap LFS as one user-facing
+   * operation. The release route shares its credential, first-publish anchor,
+   * and inventory review across the batch; registry-backed storage uses its
+   * existing atomic multi-file publish operation. A failed file is left as
+   * the original bytes and is returned with a bounded reason.
+   */
+  public async _storeWorkingTreeFilesInCheapLfs(
+    repository: Repository,
+    paths: ReadonlyArray<string>,
+    requestSignal?: AbortSignal,
+    onProgress?: (progress: ICheapLfsAutoPinProgress) => void
+  ): Promise<ICheapLfsWorkingTreePinResult> {
+    const preferences =
+      repository.buildRunPreferences ?? defaultBuildRunPreferences
+    const provider = getCheapLfsStorageProvider(preferences)
+    const stored = new Array<ICheapLfsWorkingTreePinFile>()
+    const failures = new Array<ICheapLfsWorkingTreePinFailure>()
+    const targets = new Array<{
+      readonly relativePath: string
+      readonly absolutePath: string
+      readonly sizeInBytes: number
+    }>()
+    const seen = new Set<string>()
+
+    const addFailure = (relativePath: string, error: unknown) => {
+      const message =
+        error instanceof Error
+          ? error.message
+          : String(error ?? 'Unknown error')
+      const sanitizedMessage = sanitizeCheapLfsFailureReason(message)
+      failures.push({
+        relativePath,
+        message:
+          sanitizedMessage.length > 0
+            ? sanitizedMessage
+            : 'Cheap LFS returned no safe error detail for this file.',
+      })
+    }
+
+    const normalizedRepositoryPath = Path.resolve(repository.path)
+    let canceled = requestSignal?.aborted === true
+    for (const requestedPath of paths) {
+      if (requestSignal?.aborted) {
+        canceled = true
+        break
+      }
+      const relativePath = validateCheapLfsTrackedPath(requestedPath)
+      if (relativePath === null) {
+        addFailure(
+          requestedPath,
+          new Error(
+            'Cheap LFS can only replace a safe repository-relative file path.'
+          )
+        )
+        continue
+      }
+      const identity = Path.win32.normalize(relativePath).toLocaleLowerCase()
+      if (seen.has(identity)) {
+        continue
+      }
+      seen.add(identity)
+      try {
+        ensureCheapLfsPathIsNotOwnedArtifact(relativePath)
+        const absolutePath = Path.resolve(repository.path, relativePath)
+        const outsideRepository = Path.relative(
+          normalizedRepositoryPath,
+          absolutePath
+        )
+        if (
+          outsideRepository.length === 0 ||
+          Path.isAbsolute(outsideRepository) ||
+          outsideRepository === '..' ||
+          outsideRepository.startsWith(`..${Path.sep}`)
+        ) {
+          throw new Error(
+            'Cheap LFS refused a path outside the selected repository.'
+          )
+        }
+        const sizeInBytes = await defaultCheapLfsFileSystem.statSize(
+          absolutePath
+        )
+        if (!Number.isSafeInteger(sizeInBytes) || sizeInBytes < 0) {
+          throw new Error('Cheap LFS could not read a safe file size.')
+        }
+        targets.push({ relativePath, absolutePath, sizeInBytes })
+      } catch (error) {
+        addFailure(relativePath, error)
+      }
+    }
+
+    const totalBytes = targets.reduce(
+      (sum, target) => sum + target.sizeInBytes,
+      0
+    )
+    const report = (
+      progress: ICheapLfsAutoPinProgress,
+      currentPath?: string | null
+    ) => {
+      onProgress?.({
+        ...progress,
+        currentPath:
+          currentPath === undefined ? progress.currentPath : currentPath,
+        selectedStorageProvider: provider,
+        succeededFiles: stored.length,
+        failedFiles: failures.length,
+        failedFileDetails: failures.map(failure => ({
+          relativePath: failure.relativePath,
+          reason: failure.message,
+        })),
+      })
+    }
+
+    const completeProgress = (
+      phase: ICheapLfsAutoPinProgress['phase'],
+      currentPath: string | null,
+      transferredBytes: number
+    ) => {
+      report({
+        phase,
+        completedFiles: stored.length + failures.length,
+        totalFiles: targets.length,
+        currentPath,
+        transferredBytes: Math.min(totalBytes, Math.max(0, transferredBytes)),
+        totalBytes,
+      })
+    }
+
+    try {
+      if (targets.length === 0 || canceled) {
+        return { stored, failures, canceled }
+      }
+
+      if (provider === 'release') {
+        let credential: ICheapLfsOperationPassword | undefined
+        try {
+          const account = this.requireCheapLfsAccount(repository)
+          credential = await this.acquireCheapLfsEncryptionPassword(repository)
+          if (requestSignal?.aborted) {
+            canceled = true
+            return { stored, failures, canceled }
+          }
+
+          const anchor = await this.ensureCheapLfsReleaseAnchor(repository)
+          if (anchor.failure !== null) {
+            const reason =
+              anchor.failure.detail ??
+              'The repository could not be anchored before the Cheap LFS upload.'
+            targets.forEach(target =>
+              addFailure(target.relativePath, new Error(reason))
+            )
+            completeProgress('release', null, 0)
+            return { stored, failures, canceled }
+          }
+          const releaseReview = anchor.anchored
+            ? await this.reviewCheapLfsReleaseInventory(repository)
+            : null
+          let completedBytes = 0
+
+          for (const target of targets) {
+            if (requestSignal?.aborted) {
+              canceled = true
+              break
+            }
+            completeProgress('preparing', target.relativePath, completedBytes)
+            try {
+              await this.withTemporaryRepositoryMutationGuard(repository, () =>
+                pinFileToRelease(
+                  this.githubReleasesStore,
+                  repository,
+                  account,
+                  {
+                    absoluteFilePath: target.absolutePath,
+                    trackedRelativePath: target.relativePath,
+                    releaseTag: getCheapLfsReleaseLaneTag(0),
+                    ...(releaseReview === null ? {} : { releaseReview }),
+                    ...(credential === undefined
+                      ? {}
+                      : {
+                          encryptionPassword: credential.password,
+                          ...(preferences.cheapLfsCloudCompression === true
+                            ? { compressBeforeEncryption: true }
+                            : {}),
+                        }),
+                  },
+                  requestSignal,
+                  progress => {
+                    const fraction =
+                      progress.totalBytes > 0
+                        ? Math.min(
+                            1,
+                            Math.max(
+                              0,
+                              progress.transferredBytes / progress.totalBytes
+                            )
+                          )
+                        : 0
+                    report(
+                      {
+                        phase: 'uploading',
+                        completedFiles: stored.length + failures.length,
+                        totalFiles: targets.length,
+                        currentPath: target.relativePath,
+                        transferredBytes:
+                          completedBytes + target.sizeInBytes * fraction,
+                        totalBytes,
+                      },
+                      target.relativePath
+                    )
+                  },
+                  defaultCheapLfsFileSystem,
+                  stage =>
+                    completeProgress(
+                      stage,
+                      target.relativePath,
+                      completedBytes
+                    ),
+                  processedBytes =>
+                    report(
+                      {
+                        phase: 'hashing',
+                        completedFiles: stored.length + failures.length,
+                        totalFiles: targets.length,
+                        currentPath: target.relativePath,
+                        transferredBytes:
+                          completedBytes +
+                          Math.min(
+                            target.sizeInBytes,
+                            Math.max(0, processedBytes)
+                          ),
+                        totalBytes,
+                      },
+                      target.relativePath
+                    )
+                )
+              )
+              stored.push({
+                relativePath: target.relativePath,
+                sizeInBytes: target.sizeInBytes,
+              })
+            } catch (error) {
+              if (
+                requestSignal?.aborted ||
+                (error as Error)?.name === 'AbortError'
+              ) {
+                canceled = true
+                break
+              }
+              addFailure(target.relativePath, error)
+            }
+            completedBytes += target.sizeInBytes
+            completeProgress('verifying', target.relativePath, completedBytes)
+          }
+        } catch (error) {
+          if (
+            requestSignal?.aborted ||
+            (error as Error)?.name === 'AbortError'
+          ) {
+            canceled = true
+          } else {
+            const remaining = targets.filter(
+              target =>
+                !stored.some(
+                  file => file.relativePath === target.relativePath
+                ) &&
+                !failures.some(
+                  file => file.relativePath === target.relativePath
+                )
+            )
+            remaining.forEach(target => addFailure(target.relativePath, error))
+          }
+        } finally {
+          credential?.password.fill(0)
+        }
+      } else {
+        const sizeByPath = new Map(
+          targets.map(
+            target => [target.relativePath, target.sizeInBytes] as const
+          )
+        )
+        const targetSet = new Set(sizeByPath.keys())
+        try {
+          const result = await this.withTemporaryRepositoryMutationGuard(
+            repository,
+            () =>
+              this.cheapLfsOciSessionRunner(
+                {
+                  repository,
+                  account: this.requireCheapLfsAccount(repository),
+                  provider,
+                  parallelBlobTransfers: true,
+                  blobUploadConcurrency:
+                    getCheapLfsUploadConcurrency(preferences),
+                },
+                session =>
+                  pinCheapLfsFilesToOci(
+                    session.context,
+                    targets.map(target => ({
+                      relativePath: target.relativePath,
+                      expectedSizeInBytes: target.sizeInBytes,
+                    })),
+                    { runtime: session.runtime },
+                    requestSignal,
+                    progress =>
+                      report(
+                        cheapLfsOciCommitProgress(progress, sizeByPath),
+                        progress.currentPath
+                      )
+                  )
+              )
+          )
+          const files = new Map(
+            result.files
+              .filter(file => targetSet.has(file.relativePath))
+              .map(file => [file.relativePath, file] as const)
+          )
+          const resultFailures = new Map(
+            result.failures
+              .filter(failure => targetSet.has(failure.relativePath))
+              .map(failure => [failure.relativePath, failure] as const)
+          )
+          for (const target of targets) {
+            const resultFailure = resultFailures.get(target.relativePath)
+            if (resultFailure !== undefined) {
+              addFailure(target.relativePath, new Error(resultFailure.message))
+              continue
+            }
+            const file = files.get(target.relativePath)
+            if (file?.changed === true) {
+              stored.push({
+                relativePath: target.relativePath,
+                sizeInBytes: target.sizeInBytes,
+              })
+              continue
+            }
+            addFailure(
+              target.relativePath,
+              new Error(
+                'The registry publish completed without replacing this working-tree file with a pointer.'
+              )
+            )
+          }
+          if (!result.published && result.failures.length === 0) {
+            const message = new Error(
+              'Cheap LFS could not publish the registry image safely.'
+            )
+            failures.splice(0, failures.length)
+            stored.splice(0, stored.length)
+            targets.forEach(target => addFailure(target.relativePath, message))
+          }
+        } catch (error) {
+          if (
+            requestSignal?.aborted ||
+            (error as Error)?.name === 'AbortError'
+          ) {
+            canceled = true
+          } else {
+            targets.forEach(target => addFailure(target.relativePath, error))
+          }
+        }
+      }
+    } finally {
+      await this._refreshRepository(repository)
+    }
+
+    completeProgress(
+      'verifying',
+      null,
+      stored.reduce((sum, file) => sum + file.sizeInBytes, 0)
+    )
+    return { stored, failures, canceled }
   }
 
   /**
