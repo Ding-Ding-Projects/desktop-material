@@ -1,6 +1,7 @@
 {
   "releases": {
     "3.6.3-material22": [
+      "[Added] The Merge into main branch chooser now offers a Not updated with main filter based on default-branch Git ancestry, keeping diverged branches that already contain main out of the stale results and localizing the chip in English, Hong Kong-style Cantonese, and bilingual mode - 81faa869aa3eed8401070f37ae7e324f49db398a",
       "[Fixed] Every Super Express job, including the direct Windows release publisher, now stays on the registered self-hosted Windows and Linux pools, while ordinary CI and tested Express remain on GitHub-hosted runners - 9d9dd4f8f1b6b9b86f226aa37885fba6e0a02c1c",
       "[Improved] Ordinary Windows and Linux CI plus tested Express Release now use clean GitHub-hosted runners again, while only the three Super Express emergency workflows stay on their dedicated self-hosted pools - 196ead823c9d683992dc58f9931fac7c0e21bc8b",
       "[Fixed] Unit tests no longer inherit a workflow-wide 4 GiB heap that made the memory-aware harness underestimate every worker, and Windows installer smoke now has a bounded 300-second wait with scoped late-process cleanup - 196ead823c9d683992dc58f9931fac7c0e21bc8b",

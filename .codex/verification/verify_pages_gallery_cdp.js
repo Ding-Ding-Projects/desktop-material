@@ -29,7 +29,7 @@ const screenshotDirectory = path.resolve(
   __dirname,
   '../../docs/assets/screenshots'
 )
-const ExpectedGalleryImageCount = 91
+const ExpectedGalleryImageCount = 93
 const acceptedImageNames = Object.freeze(
   [...galleryManifest.matchAll(/^\| `([^`]+\.png)` \| ([^|]+?) \|$/gm)].map(
     ([, file]) => file

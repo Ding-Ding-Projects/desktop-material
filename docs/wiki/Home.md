@@ -247,6 +247,10 @@ the tonal workspace preview hides when a compact window needs the space.
 - **Non-modal dialogs** that float without blocking the app, drag by their headers, cascade, and
   come to front on focus. Preferences is an MD3 940×660 dialog with a left rail, an Active chip, and
   a pill footer; the repository and branch pickers are MD3 side sheets.
+- **Merge chooser freshness** — the default branch's Merge into main sheet can show only branches
+  whose tips do not contain the current main tip. The read-only ancestry check handles local and
+  remote refs, keeps diverged-but-updated branches out of the result, composes with text and regex
+  search, and is localized in English, Hong Kong-style Cantonese, and bilingual mode.
 - **Notification and error triage** — search and type-filter Local notifications, select the visible
   result set, apply history-backed read/unread/delete actions, or confirm **Clear all**. GitHub inbox
   items have account-scoped search and bulk read/done controls. Acknowledgement-only errors default

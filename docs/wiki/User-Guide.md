@@ -1928,6 +1928,16 @@ The Branches and Worktrees views also expose **Merge all branches** and **Merge 
 Confirm the target, follow each row's progress, and review any skipped or failed target. When
 Copilot conflict assistance is available, it participates inside the same guarded workflow.
 
+When the current branch is `main`, choose **Choose a branch to merge into main** from the
+Branches menu to open the merge sheet. Its **Not updated with main** chip filters by Git
+ancestry: a branch remains visible when its tip does not contain the current `main` tip, while
+a diverged branch that already contains `main` stays out of the result. The chip uses the same
+English, Hong Kong-style Cantonese, and bilingual language modes as the rest of the app and
+composes with text and regex filtering. If Git cannot resolve the default tip, the chip is
+withheld and the ordinary branch list remains available.
+
+![Merge into main chooser with Not updated with main active](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/not-updated-with-main-filter.png)
+
 ![Automation preferences with global and account overrides](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-automation.png)
 
 ![Merge all branches with per-target progress](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-branch-merge-all.png)

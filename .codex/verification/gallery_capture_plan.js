@@ -13,7 +13,7 @@
 const fs = require('fs')
 const path = require('path')
 
-const ExpectedPublishedGalleryCount = 91
+const ExpectedPublishedGalleryCount = 93
 const CanonicalCandidateCount = 68
 const DeferredCanonicalOutputs = Object.freeze([
   'material-cheap-lfs-preparing',
@@ -309,6 +309,20 @@ const SpecialistCaptureEntries = Object.freeze([
     batch: 'windows-ui-state-lowlevel',
     interaction:
       'Open the built History surface in the isolated production profile, select its Commit list tab, and preserve the real tab strip, commit list, and accessible selected state at the reviewed capture size.',
+  },
+  {
+    output: 'material-launchpad-empty-full-width-20260806',
+    scene: 'launchpad-empty-full-width',
+    batch: 'windows-ui-state-lowlevel',
+    interaction:
+      'Open Launchpad for the disposable repository with no attention items, preserve all five truthful zero-count groups and the full-width empty state, then inspect and promote the original client-only frame.',
+  },
+  {
+    output: 'not-updated-with-main-filter',
+    scene: 'merge-chooser-not-updated-with-main',
+    batch: 'windows-ui-state-lowlevel',
+    interaction:
+      'Open Choose a branch to merge into main for the disposable repository, activate Not updated with main, verify the stale branch remains while the branch containing main is hidden, then inspect and promote the original client-only frame.',
   },
   {
     output: 'material-history-view-tabs-graph',

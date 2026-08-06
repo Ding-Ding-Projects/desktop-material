@@ -19,6 +19,10 @@ automation, and account isolation. The diagrams are reproducible with
 | --- |
 | <img src="../assets/screenshots/material-launchpad-empty-full-width-20260806.png" alt="Launchpad empty state from the built Windows app, with five truthful zero-count groups filling the workspace and no blank sidebar" width="720"><br><sub>Full-width empty state · five truthful zero-count groups · cheap Lowlevel hidden-desktop capture</sub> |
 
+| Merge chooser freshness filter |
+| --- |
+| <img src="../assets/screenshots/not-updated-with-main-filter.png" alt="Merge into main chooser with Not updated with main active, showing only the stale fixture branch" width="720"><br><sub>Not updated with main · 960×660 client-only hidden-desktop capture · SHA-256 `DA046E4BC768324BAFF001B5DE0C7954F53F1CD498C25338081E8FDB83990346`</sub> |
+
 ## Historical Linux terminal captures
 
 Five original-resolution Debian/Xvfb captures remain preserved with their

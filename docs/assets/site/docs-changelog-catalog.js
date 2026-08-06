@@ -21,13 +21,18 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4169,
+    entryCount: 4170,
     releases: [
       {
         v: '3.6.3-material22',
         d: '2026-08-06',
         t: '16:49',
         e: [
+          [
+            'Added',
+            'The Merge into main branch chooser now offers a Not updated with main filter based on default-branch Git ancestry, keeping diverged branches that already contain main out of the stale results and localizing the chip in English, Hong Kong-style Cantonese, and bilingual mode',
+            '81faa869aa3eed8401070f37ae7e324f49db398a',
+          ],
           [
             'Fixed',
             'Every Super Express job, including the direct Windows release publisher, now stays on the registered self-hosted Windows and Linux pools, while ordinary CI and tested Express remain on GitHub-hosted runners',
