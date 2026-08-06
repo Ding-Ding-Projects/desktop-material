@@ -21,7 +21,10 @@ the TypeScript changed-file check pass; the repository-wide test harness is
 currently blocked before test discovery by the existing malformed
 `whatwg-encoding` dependency payload. Exact Windows production build and
 hidden-desktop runtime evidence are still pending; no hosted CI or Release
-success is claimed here.
+success is claimed here. Implementation commit
+`6c3a4ec8297e79226968a89e3232ba281c539357` contains the code, tests, and
+documentation update; it is not yet merged to the default branch at this
+handoff point.
 
 ## 2026-08-05 — Super Express packaging lanes parallelized
 
