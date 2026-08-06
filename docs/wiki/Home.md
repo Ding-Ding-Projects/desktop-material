@@ -285,11 +285,11 @@ the tonal workspace preview hides when a compact window needs the space.
    registered Linux x64 WSL runner, the Windows lane on `[self-hosted, Windows,
    X64]`, and the TUI lane on `[self-hosted, Linux, X64]`. A direct Windows lane
    dispatch keeps packaging on `[self-hosted, Windows, X64]` and publishes its
-   verified artifact from `ubuntu-latest`; direct Linux TUI and reusable
-   packaging calls remain artifact-only so the combined dispatcher can publish
+   verified artifact from `[self-hosted, Linux, X64]`; direct Linux TUI and
+   reusable packaging calls remain artifact-only so the combined dispatcher can publish
    one complete cross-platform Release. If a required packaging runner is
    unavailable, the affected release queues or fails; the direct Windows
-   publisher does not depend on the local WSL runner. Ordinary CI and tested
+   publisher queues when the local WSL runner is unavailable. Ordinary CI and tested
    Express remain the default gates and run on GitHub-hosted machines; release
    pull requests target the Windows product's `main` default branch.
 - **Compact Repository Releases** — the corrected 800×560 combined gate keeps the list ahead of

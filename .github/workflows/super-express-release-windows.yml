@@ -1,7 +1,7 @@
 name: Super Express Release / Windows
 
-# Reusable zero-test Windows lane for Super Express Release. Packaging remains
-# on the trusted Windows runner; publication uses a disposable hosted runner.
+# Reusable zero-test Windows lane for Super Express Release. It is deliberately
+# self-hosted-only and queues until both registered local runners are ready.
 on:
   workflow_call:
     inputs:
@@ -80,7 +80,11 @@ jobs:
       !cancelled() && github.event_name == 'workflow_dispatch' &&
       needs.build.result == 'success'
     needs: build
-    runs-on: ubuntu-latest
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
+      - desktop-material-wsl-local
     permissions:
       contents: write
       actions: read

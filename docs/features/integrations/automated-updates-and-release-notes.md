@@ -164,7 +164,7 @@ fails; it never moves to a GitHub-hosted machine.
 - `.github/workflows/super-express-release-windows.yml` restores the exact
   desktop dependency cache and builds the Windows x64 production package on
   `[self-hosted, Windows, X64]`, then publishes its verified artifact from
-  `ubuntu-latest`;
+  `[self-hosted, Linux, X64, desktop-material-wsl-local]`;
 - `.github/workflows/super-express-release-linux-tui.yml` builds the Linux TUI
   wheel, source distribution, locked runtime constraints, bootstrap, and
   installer on `[self-hosted, Linux, X64]`.
@@ -172,17 +172,17 @@ fails; it never moves to a GitHub-hosted machine.
 The combined dispatcher and both packaging lanes have no cloud fallback: static
 runner labels make their placement visible during workflow planning and ensure
 the builds do not accidentally expose source to a different machine. The
-direct Windows publisher is the deliberate exception and uses disposable
-`ubuntu-latest` for artifact download, line counting, and GitHub API operations,
-so an offline WSL publisher cannot strand an already-verified Windows package.
-It still uses the `RELEASE_TOKEN`, `ORG_TOKEN`, then `GITHUB_TOKEN`
-authorization chain; the token never chooses a runner.
+direct Windows publisher also stays on the registered Linux x64 WSL runner for
+artifact download, line counting, and GitHub API operations. If that publisher
+is offline or busy, the release queues or fails rather than escaping to a
+hosted runner. It still uses the `RELEASE_TOKEN`, `ORG_TOKEN`, then
+`GITHUB_TOKEN` authorization chain; the token never chooses a runner.
 
 The combined dispatcher keeps its packaging jobs inline because GitHub had
 previously rejected the caller before creating any job when the runner labels
 were generated dynamically. The direct Linux reusable workflow remains
 packaging-only on its static self-hosted target. The Windows reusable call is
-also packaging-only; only its manual dispatch path enables the hosted
+also packaging-only; only its manual dispatch path enables the self-hosted
 publisher.
 
 The Linux TUI action installs the pinned `uv` tool first and runs
@@ -242,9 +242,10 @@ the automatic lane, reject an existing tag, and require every Windows and TUI
 asset to be non-empty. The Windows direct publisher downloads its lane
 artifact, writes a local note from the exact checked-out commit subject/body,
 and creates the Windows-only Release without promoting it to the shared
-`latest` feed. That publisher runs on `ubuntu-latest`, while the package itself
-remains on the trusted Windows runner. The combined publisher downloads both lane artifacts, writes a
-local note from the exact checked-out commit subject/body, and creates one
+`latest` feed. That publisher runs on the trusted self-hosted Linux x64 WSL
+runner, while the package itself remains on the trusted Windows runner. The
+combined publisher downloads both lane artifacts, writes a local note from the
+exact checked-out commit subject/body, and creates one
 complete Release. Keeping the combined publisher as the only cross-platform
 publisher preserves both the Squirrel update feed and the TUI bootstrap URL;
 two independent cross-platform Releases would make the shared `latest`
@@ -404,11 +405,12 @@ create-only publication, retained artifacts, and exact dependency-cache keys
 are also checked locally. The Super Express source contract additionally proves
 manual-only triggering, exact-SHA packaging, unit/script-before-build ordering,
 omitted lint/E2E/history paths, ref-scoped cancellation, retained artifacts,
-self-hosted packaging placement, hosted artifact publication, immutable tag
-checks, and exact release targeting. The hosted publisher change is covered by
-the focused source contract; remote run `31126843395` verified the package and
-the fallback release `v3.6.3-beta3-zadwtuvqil` verified the six published
-Windows assets. A future direct run must verify the hosted publisher job itself.
+self-hosted packaging and publication placement, immutable tag checks, and
+exact release targeting. The focused source contract enforces the
+self-hosted-only boundary. Remote run `31126843395` verified the package and
+the older fallback release `v3.6.3-beta3-zadwtuvqil` verified the six published
+Windows assets, but both predate the restored publisher placement. A future
+direct run must verify the self-hosted publisher job itself.
 Downgrade-guard tests use the
 real observed strings — `3.6.2`, `3.6.3-beta3-b0000040888`,
 `3.6.3-beta3-s000000000401`, `3.6.3-beta3-zadtjbevjx`, `3.6.3-beta3-zadtofsepy`,

@@ -26,6 +26,12 @@ Updated: **August 6, 2026**
   group with `cancel-in-progress: false`. Only the emergency Super Express
   family remains on the registered self-hosted Windows/WSL pool and cancels an
   older dispatch for the same ref.
+- The direct Windows Super Express publisher is also pinned to the registered
+  self-hosted Linux x64 WSL runner. No Super Express job may escape to a hosted
+  runner; a missing local publisher queues or fails the emergency release.
+- Workflow guards enumerate every Super Express job and reject a hosted
+  publisher exception. The restored contract passes **20/20** focused tests,
+  and an intentional `ubuntu-latest` negative control fails both guards.
 - Unit-test workflows no longer impose a 4 GiB `NODE_OPTIONS` value that every
   worker inherits. `script/test.mjs` owns the worker heap and memory-aware
   concurrency together, so its accounting matches the processes it launches.

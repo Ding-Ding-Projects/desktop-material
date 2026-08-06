@@ -27,7 +27,8 @@ layout, but are not presented as captures of this integrated tree.
 The direct `.github/workflows/super-express-release-windows.yml` workflow now
 publishes a standalone immutable, non-latest Windows x64 Release after its
 verified package artifact is available. Its Windows packaging job stays on the
-trusted self-hosted runner, while its publisher runs on `ubuntu-latest`; its
+trusted self-hosted runner, while its publisher runs on
+`[self-hosted, Linux, X64, desktop-material-wsl-local]`; its
 `workflow_call` entry point stays artifact-only, so the combined Super Express
 dispatcher remains the sole publisher of the complete Windows-plus-Linux
 payload. The direct Windows publisher checks the exact packaged commit, rejects
@@ -47,8 +48,10 @@ the `desktop-material-wsl-local` runner was offline. The verified artifact was
 published as
 `v3.6.3-beta3-zadwtuvqil <https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-zadwtuvqil>`_
 with six Windows/Squirrel assets, target verification, and `00:45:50` measured
-end-to-end fallback timing. The hosted publisher repair in this entry prevents
-that runner outage from blocking future direct releases.
+end-to-end fallback timing. That release predates the restored self-hosted-only
+boundary; future direct releases queue when the trusted Linux publisher is not
+available rather than escaping to a hosted runner.
+
 ## 2026-08-06 — Return ordinary CI and tested Express to hosted runners
 
 The current working-tree repair supersedes the same-day interim contracts below

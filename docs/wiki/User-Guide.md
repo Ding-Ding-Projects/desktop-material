@@ -1710,10 +1710,10 @@ The **Actions** panel brings CI into the app:
   self-hosted-only: preparation and publication use the registered Linux x64
   WSL runner, the Windows lane uses `[self-hosted, Windows, X64]`, and the TUI
   lane uses `[self-hosted, Linux, X64]`. A direct Windows dispatch keeps its
-  package build on `[self-hosted, Windows, X64]` but publishes the verified
-  artifact from `ubuntu-latest`, so an offline local WSL publisher cannot block
-  that Windows-only recovery release. Missing or busy packaging runners still
-  queue or fail their release. Ordinary CI and tested Express remain the
+  package build on `[self-hosted, Windows, X64]` and publishes the verified
+  artifact from `[self-hosted, Linux, X64]`. Missing or busy packaging or
+  publication runners queue or fail their release rather than falling back to
+  a hosted runner. Ordinary CI and tested Express remain the
   default gates, run on clean GitHub-hosted machines, and keep unique
   non-cancelling run/attempt groups. Only Super Express retains local packaging
   placement and same-ref cancellation. A release pull request targets the
