@@ -2,9 +2,9 @@
 //
 // A fixed bottom-left menu opened from the navigation rail's avatar button:
 // a surface-container-low card at 24px radius / level3 elevation with a
-// dmGrow entrance, one staggered dmUp row per signed-in account (38px
-// initials avatar, name + meta line, trailing check with a dmPop on the
-// active one) and an 'Add another account' action under an outline-variant
+// dmGrow entrance, one staggered dmUp row per signed-in account (38px avatar,
+// name + searchable metadata, trailing check with a dmPop on the active one)
+// and an 'Add another account' action under an outline-variant
 // divider. All colour / motion values come from --md-sys-* / --spring* /
 // --emph / --mdur tokens; the literal geometry (14/18/334px placement,
 // 24/16/14px radii, 999px circles) is the prototype's fixed scale.
@@ -40,6 +40,55 @@
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.account-switcher-search-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 2px 2px;
+
+  .account-switcher-search-field {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .filter-mode-control {
+    flex: none;
+
+    .filter-regex-builder-label {
+      display: none;
+    }
+  }
+}
+
+.account-switcher-regex-error {
+  margin: 0 4px;
+  color: var(--md-sys-color-error);
+  font-size: var(--font-size-xs);
+}
+
+.account-switcher-result-count {
+  padding: 2px 10px 4px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: var(--font-size-xs);
+}
+
+.account-switcher-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.account-switcher-empty {
+  padding: 14px 12px;
+  border-radius: 16px;
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+  text-align: center;
 }
 
 .account-switcher-row {
@@ -81,12 +130,16 @@
   &.active:hover {
     background: var(--md-sys-color-primary-container);
   }
+
+  &.highlighted:not(.active) {
+    background: var(--md-sys-color-surface-container-high);
+  }
 }
 
-// Prototype stagger: rows enter 40ms after the card does, 60ms apart. The
-// header is the card's first child so row n sits at :nth-child(n + 1).
+// Prototype stagger: rows enter 40ms after the card does, 60ms apart. Rows
+// now live inside the results region, so the first visible row is child 1.
 @for $i from 1 through 8 {
-  .account-switcher-row:nth-child(#{$i + 1}) {
+  .account-switcher-results .account-switcher-row:nth-child(#{$i}) {
     animation-delay: #{40 + ($i - 1) * 60}ms;
   }
 }
@@ -102,6 +155,13 @@
   color: var(--md-sys-color-on-secondary-container);
   font-size: 13px;
   font-weight: 700;
+
+  .avatar-container,
+  .avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: inherit;
+  }
 
   &.primary {
     background: var(--md-sys-color-primary-container);
@@ -129,6 +189,14 @@
   overflow: hidden;
   color: var(--md-sys-color-on-surface-variant);
   font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-switcher-details {
+  overflow: hidden;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 10.5px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

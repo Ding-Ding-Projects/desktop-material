@@ -408,6 +408,16 @@ while that repository is selected; the selected repository then follows the
 choice for its next authenticated operation. Other repositories, hosts, and
 providers keep their existing bindings.
 
+The account picker and the navigation-rail account switcher are rich rows rather than login-only
+menus: they show the friendly name, `@login · host`, provider, plan, and display email, with the
+active identity marked. Their search bar is plain-text by default and offers fuzzy, substring, and
+bounded safe-regex modes through the anchored Regex Builder. Search by name, login, host, provider,
+plan, or email; use Arrow keys, <kbd>Home</kbd>/<kbd>End</kbd>, <kbd>Enter</kbd>, and
+<kbd>Escape</kbd> without leaving the surface. Invalid patterns and no-match states are announced
+inline, **Add another account** remains available, and the searchable metadata never includes a
+credential token. Stable `endpoint#id` row identities also keep a login rename from selecting a
+different account.
+
 Open the repositories side sheet to narrow cloned repositories by **Repository account** and
 **Repository service**. The filters combine: for example, choose one exact account and GitLab, or
 choose **No available account** and **Local only**. Signed-out/stale bindings remain explicit under
@@ -987,6 +997,14 @@ the dialog does not require page-level horizontal scrolling.
   no credentials.
 - **Import** loads such a list back into the checkbox selection, so you can re-clone the same set on
   another machine or share a curated set with a teammate.
+- After each imported clone finishes, Desktop Material runs the same Cheap LFS
+  large-file restoration used by the normal clone path when **Repository
+  settings → Cheap LFS → Download large files after cloning** is enabled (the
+  default). The transfer file does not export account bindings or a
+  manifest-bound file selection; those remain local so a shared list cannot
+  carry credentials or stale restore proofs. If the setting is off or no
+  eligible provider account is available, pointer files remain intact for a
+  later restore.
 
 ### Background auto-clone
 

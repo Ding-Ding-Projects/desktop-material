@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { PopoverDropdown } from './lib/popover-dropdown'
-import { Account, accountEquals } from '../models/account'
+import { Account, accountEquals, getAccountKey } from '../models/account'
+import { t } from '../lib/i18n'
 import { SectionFilterList } from './lib/section-filter-list'
 import {
   IFilterListGroup,
@@ -12,6 +13,11 @@ import { Avatar } from './lib/avatar'
 import { lookupPreferredEmail } from '../lib/email'
 import { IAvatarUser } from '../models/avatar'
 import memoizeOne from 'memoize-one'
+import {
+  getAccountDetailsText,
+  getAccountMetaText,
+  getAccountSearchText,
+} from '../lib/account-search'
 
 interface IAccountPickerProps {
   readonly accounts: ReadonlyArray<Account>
@@ -37,7 +43,7 @@ interface IAccountListItem extends IFilterListItem {
   readonly account: Account
 }
 
-const getItemId = (account: Account) => `${account.login}@${account.endpoint}`
+const getItemId = (account: Account) => getAccountKey(account)
 
 /**
  * A select-like element for filter and selecting an account.
@@ -53,7 +59,10 @@ export class AccountPicker extends React.Component<
       {
         identifier: 'accounts',
         items: accounts.map(account => ({
-          text: [account.login, account.endpoint],
+          text: [
+            account.friendlyName,
+            getAccountSearchText(account).join(' · '),
+          ],
           id: getItemId(account),
           account,
         })),
@@ -101,7 +110,7 @@ export class AccountPicker extends React.Component<
 
   private getAvatarUser = (account: Account): IAvatarUser => {
     return {
-      name: account.name,
+      name: account.friendlyName,
       email: lookupPreferredEmail(account),
       avatarURL: account.avatarURL,
       endpoint: account.endpoint,
@@ -118,8 +127,9 @@ export class AccountPicker extends React.Component<
           user={this.getAvatarUser(account)}
         />
         <div className="info">
-          <div className="title">@{item.account.login}</div>
-          <div className="subtitle">{item.account.friendlyEndpoint}</div>
+          <div className="title">{item.account.friendlyName}</div>
+          <div className="subtitle">{getAccountMetaText(item.account)}</div>
+          <div className="tertiary">{getAccountDetailsText(item.account)}</div>
         </div>
       </div>
     )
@@ -137,7 +147,7 @@ export class AccountPicker extends React.Component<
     this.setState({ selectedItemId: selectedItem?.id })
 
   private getItemAriaLabel = (item: IAccountListItem) =>
-    `@${item.account.login} ${item.account.friendlyEndpoint}`
+    getAccountSearchText(item.account).join(' · ')
 
   public render() {
     const account = this.props.selectedAccount
@@ -160,9 +170,12 @@ export class AccountPicker extends React.Component<
       >
         <SectionFilterList<IAccountListItem>
           className="account-list"
-          rowHeight={47}
+          rowHeight={60}
           filterListId="accounts"
-          filterListLabel="Accounts"
+          filterListLabel={t('accounts.picker.label')}
+          filterAriaLabel={t('accounts.picker.searchLabel')}
+          placeholderText={t('accounts.picker.searchPlaceholder')}
+          filterInputType="search"
           groups={this.getFilterListGroups(this.props.accounts)}
           selectedItem={this.getSelectedItem(
             this.props.accounts,

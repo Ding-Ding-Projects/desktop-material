@@ -98,6 +98,7 @@ export enum PopupType {
   NotificationAutomations = 'NotificationAutomations',
   LogHistory = 'LogHistory',
   FileHistory = 'FileHistory',
+  StoreWorkingTreeFilesInCheapLfs = 'StoreWorkingTreeFilesInCheapLfs',
   CreateGitHubIssue = 'CreateGitHubIssue',
   CreateGitHubPullRequest = 'CreateGitHubPullRequest',
   GitHubPullRequestLifecycle = 'GitHubPullRequestLifecycle',
@@ -253,6 +254,12 @@ export type SettingsHistoryScope = {
   readonly label: string
 }
 
+/** A selected working-tree path deliberately omitted before a Cheap LFS batch. */
+export interface ICheapLfsSkippedWorkingTreePath {
+  readonly path: string
+  readonly reason: string
+}
+
 export type PopupDetail =
   | { type: PopupType.RenameBranch; repository: Repository; branch: Branch }
   | {
@@ -291,6 +298,12 @@ export type PopupDetail =
   | { type: PopupType.NotificationAutomations; entry?: INotificationEntry }
   | { type: PopupType.LogHistory }
   | { type: PopupType.FileHistory; repository: Repository; path: string }
+  | {
+      type: PopupType.StoreWorkingTreeFilesInCheapLfs
+      repository: Repository
+      paths: ReadonlyArray<string>
+      excludedPaths?: ReadonlyArray<ICheapLfsSkippedWorkingTreePath>
+    }
   | { type: PopupType.CreateGitHubIssue; repository: Repository }
   | { type: PopupType.ActionsLocalRun; repository: Repository }
   | {

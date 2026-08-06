@@ -2596,6 +2596,7 @@ export type TranslationKey =
   | 'batchClone.filterRegexTarget'
   | 'batchClone.filterStatusCount'
   | 'batchClone.filterStatusNone'
+  | 'repositoryTransfer.cheapLfsNote'
   | 'branchRules.filterPlaceholder'
   | 'branchRules.filterLabel'
   | 'branchRules.filterRegexTarget'
@@ -2604,6 +2605,31 @@ export type TranslationKey =
   | 'branchRules.filterNoMatchesInList'
   | 'cheapLfs.files.one'
   | 'cheapLfs.files.many'
+  | 'cheapLfs.workingTree.menu.one'
+  | 'cheapLfs.workingTree.menu.many'
+  | 'cheapLfs.workingTree.menu.wholeFileRequired'
+  | 'cheapLfs.workingTree.title'
+  | 'cheapLfs.workingTree.reviewBody'
+  | 'cheapLfs.workingTree.reviewWarning'
+  | 'cheapLfs.workingTree.skipped.one'
+  | 'cheapLfs.workingTree.skipped.many'
+  | 'cheapLfs.workingTree.skipped.deleted'
+  | 'cheapLfs.workingTree.skipped.partial'
+  | 'cheapLfs.workingTree.progress.label'
+  | 'cheapLfs.workingTree.progress.files'
+  | 'cheapLfs.workingTree.progress.count'
+  | 'cheapLfs.workingTree.progress.canceling'
+  | 'cheapLfs.workingTree.result.canceled'
+  | 'cheapLfs.workingTree.result.stored.one'
+  | 'cheapLfs.workingTree.result.stored.many'
+  | 'cheapLfs.workingTree.result.storedLabel'
+  | 'cheapLfs.workingTree.result.unchangedLabel'
+  | 'cheapLfs.workingTree.result.error'
+  | 'cheapLfs.workingTree.result.unknownError'
+  | 'cheapLfs.workingTree.done'
+  | 'cheapLfs.workingTree.canceling'
+  | 'cheapLfs.workingTree.store.one'
+  | 'cheapLfs.workingTree.store.many'
   | 'cheapLfs.commitBlocked.restoreTitle'
   | 'cheapLfs.commitBlocked.restoreBody'
   | 'cheapLfs.managerRail'
@@ -3432,6 +3458,16 @@ export type TranslationKey =
   | 'accounts.keychainLocked'
   | 'accounts.tokenWriteFailed'
   | 'accounts.credentialUnavailable'
+  | 'accounts.picker.label'
+  | 'accounts.picker.title'
+  | 'accounts.picker.searchLabel'
+  | 'accounts.picker.searchPlaceholder'
+  | 'accounts.picker.countOne'
+  | 'accounts.picker.countMany'
+  | 'accounts.picker.matchCount'
+  | 'accounts.picker.noAccounts'
+  | 'accounts.picker.noMatch'
+  | 'accounts.picker.add'
   | 'accounts.invalidatedTokenTitle'
   | 'accounts.invalidatedTokenTitleDarwin'
   | 'accounts.invalidatedTokenBody'
@@ -6831,6 +6867,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'batchClone.filterRegexTarget': 'Clone queue',
   'batchClone.filterStatusCount': '{matched} of {total} repositories',
   'batchClone.filterStatusNone': 'No repositories match',
+  'repositoryTransfer.cheapLfsNote':
+    'After each clone, Cheap LFS restores large files according to the repository setting “Download large files after cloning” (enabled by default). The shared list carries URLs only, so account affinity and explicit file selections stay local; when restore is disabled or no eligible provider account is available, pointer files remain ready for a later restore.',
   'branchRules.filterPlaceholder': 'Filter results',
   'branchRules.filterLabel': 'Filter branch rule results',
   'branchRules.filterRegexTarget': 'Branch rule results',
@@ -6839,6 +6877,44 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'branchRules.filterNoMatchesInList': 'No values match the filter',
   'cheapLfs.files.one': '{count} large file',
   'cheapLfs.files.many': '{count} large files',
+  'cheapLfs.workingTree.menu.one': 'Store selected file in cheap LFS…',
+  'cheapLfs.workingTree.menu.many':
+    'Store {count} selected files in cheap LFS…',
+  'cheapLfs.workingTree.menu.wholeFileRequired':
+    'Store in cheap LFS (whole file required)',
+  'cheapLfs.workingTree.title': 'Store files in Cheap LFS?',
+  'cheapLfs.workingTree.reviewBody':
+    'The selected working-tree files will be uploaded to the configured Cheap LFS storage and replaced locally with small pointers. This keeps their raw bytes out of future Git history; it does not delete the uploaded content.',
+  'cheapLfs.workingTree.reviewWarning':
+    'Review the exact files before continuing. A pointer replaces the complete file, so a partial diff selection is never uploaded as though it were a whole file.',
+  'cheapLfs.workingTree.skipped.one':
+    '1 selected file was skipped before upload:',
+  'cheapLfs.workingTree.skipped.many':
+    '{count} selected files were skipped before upload:',
+  'cheapLfs.workingTree.skipped.deleted':
+    'Deleted files have no working-tree bytes to upload.',
+  'cheapLfs.workingTree.skipped.partial':
+    'Select the whole file before replacing it with a pointer.',
+  'cheapLfs.workingTree.progress.label': 'Cheap LFS batch progress',
+  'cheapLfs.workingTree.progress.files': '{completed} of {total} files',
+  'cheapLfs.workingTree.progress.count': '{completed}/{total}',
+  'cheapLfs.workingTree.progress.canceling':
+    'Cancellation requested; finishing safe cleanup…',
+  'cheapLfs.workingTree.result.canceled':
+    'The Cheap LFS batch was canceled. Files not completed were left unchanged.',
+  'cheapLfs.workingTree.result.stored.one': '1 file was stored in Cheap LFS.',
+  'cheapLfs.workingTree.result.stored.many':
+    '{count} files were stored in Cheap LFS.',
+  'cheapLfs.workingTree.result.storedLabel': 'Stored files:',
+  'cheapLfs.workingTree.result.unchangedLabel': 'Files left unchanged:',
+  'cheapLfs.workingTree.result.error':
+    'Cheap LFS could not complete this batch: {error}',
+  'cheapLfs.workingTree.result.unknownError':
+    'The provider returned no safe error detail.',
+  'cheapLfs.workingTree.done': 'Done',
+  'cheapLfs.workingTree.canceling': 'Canceling…',
+  'cheapLfs.workingTree.store.one': 'Store file in Cheap LFS',
+  'cheapLfs.workingTree.store.many': 'Store {count} files in Cheap LFS',
   'cheapLfs.commitBlocked.restoreTitle': 'Commit waits for the file restore',
   'cheapLfs.commitBlocked.restoreBody':
     'A Cheap LFS file clone or restore is still running in {name}. No commit started. Wait for its progress to finish, then retry.',
@@ -7792,6 +7868,17 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Desktop Material could not save the sign-in token for {login}, so that account was not added. Please sign in again. ({error})',
   'accounts.credentialUnavailable':
     'Desktop Material could not read the saved sign-in token for {logins}. Please sign in again to restore access.',
+  'accounts.picker.label': 'Accounts',
+  'accounts.picker.title': 'Accounts · {host}',
+  'accounts.picker.searchLabel': 'Search accounts',
+  'accounts.picker.searchPlaceholder':
+    'Search accounts by name, login, or host',
+  'accounts.picker.countOne': '{count} signed-in account',
+  'accounts.picker.countMany': '{count} signed-in accounts',
+  'accounts.picker.matchCount': '{matched} of {total} accounts match',
+  'accounts.picker.noAccounts': 'No signed-in accounts.',
+  'accounts.picker.noMatch': 'No accounts match “{query}”.',
+  'accounts.picker.add': 'Add another account',
   'accounts.invalidatedTokenTitle': 'Invalidated account token',
   'accounts.invalidatedTokenTitleDarwin': 'Invalidated Account Token',
   'accounts.invalidatedTokenBody':
@@ -11264,6 +11351,8 @@ export const cantoneseTranslations: Readonly<
   'batchClone.filterRegexTarget': 'Clone 佇列',
   'batchClone.filterStatusCount': '{total} 個 repo 揀到 {matched} 個',
   'batchClone.filterStatusNone': '冇 repo 啱',
+  'repositoryTransfer.cheapLfsNote':
+    '每次 clone 完，Cheap LFS 會按 repo 個「clone 後下載大檔案」設定（預設開啟）還原大檔。分享清單只帶 URL，所以帳戶綁定同逐檔揀選留喺本機；如果關咗還原，或者冇合資格嘅 provider 帳戶，大檔會留低 pointer，之後再還原都得。',
   'branchRules.filterPlaceholder': '篩選結果',
   'branchRules.filterLabel': '篩選分支規則結果',
   'branchRules.filterRegexTarget': '分支規則結果',
@@ -11272,6 +11361,38 @@ export const cantoneseTranslations: Readonly<
   'branchRules.filterNoMatchesInList': '呢個清單冇數值啱',
   'cheapLfs.files.one': '{count} 個大檔案',
   'cheapLfs.files.many': '{count} 個大檔案',
+  'cheapLfs.workingTree.menu.one': '將揀咗嘅檔案存入 cheap LFS…',
+  'cheapLfs.workingTree.menu.many': '將揀咗嘅 {count} 個檔案存入 cheap LFS…',
+  'cheapLfs.workingTree.menu.wholeFileRequired':
+    '存入 cheap LFS（要揀成個檔案）',
+  'cheapLfs.workingTree.title': '將檔案存入 Cheap LFS？',
+  'cheapLfs.workingTree.reviewBody':
+    '揀咗嘅工作目錄檔案會上載去已設定嘅 Cheap LFS 儲存位置，然後喺本機換成細小 pointer。咁樣可以避免原始 bytes 污染日後嘅 Git 歷史；已上載嘅內容唔會刪除。',
+  'cheapLfs.workingTree.reviewWarning':
+    '繼續之前請核對清楚檔案。pointer 會取代成個檔案，所以只揀咗部分 diff 時，絕對唔會當成完整檔案上載。',
+  'cheapLfs.workingTree.skipped.one': '1 個揀咗嘅檔案喺上載之前已跳過：',
+  'cheapLfs.workingTree.skipped.many': '{count} 個揀咗嘅檔案喺上載之前已跳過：',
+  'cheapLfs.workingTree.skipped.deleted':
+    '刪除咗嘅檔案冇工作目錄 bytes 可以上載。',
+  'cheapLfs.workingTree.skipped.partial':
+    '請揀成個檔案，先可以用 pointer 取代佢。',
+  'cheapLfs.workingTree.progress.label': 'Cheap LFS 成批進度',
+  'cheapLfs.workingTree.progress.files': '已完成 {completed}/{total} 個檔案',
+  'cheapLfs.workingTree.progress.count': '{completed}/{total}',
+  'cheapLfs.workingTree.progress.canceling': '已要求取消；而家完成安全清理緊……',
+  'cheapLfs.workingTree.result.canceled':
+    'Cheap LFS 成批操作已取消。未完成嘅檔案保持原狀。',
+  'cheapLfs.workingTree.result.stored.one': '1 個檔案已存入 Cheap LFS。',
+  'cheapLfs.workingTree.result.stored.many': '{count} 個檔案已存入 Cheap LFS。',
+  'cheapLfs.workingTree.result.storedLabel': '已存入嘅檔案：',
+  'cheapLfs.workingTree.result.unchangedLabel': '保持原狀嘅檔案：',
+  'cheapLfs.workingTree.result.error': 'Cheap LFS 未能完成呢批操作：{error}',
+  'cheapLfs.workingTree.result.unknownError':
+    '儲存服務冇提供可以安全顯示嘅錯誤詳情。',
+  'cheapLfs.workingTree.done': '完成',
+  'cheapLfs.workingTree.canceling': '取消緊……',
+  'cheapLfs.workingTree.store.one': '將檔案存入 Cheap LFS',
+  'cheapLfs.workingTree.store.many': '將 {count} 個檔案存入 Cheap LFS',
   'cheapLfs.commitBlocked.restoreTitle': 'Commit 要等檔案還原完成',
   'cheapLfs.commitBlocked.restoreBody':
     '「{name}」仲有 Cheap LFS 檔案 clone 緊或還原緊。今次未有開始 commit；等進度跑完再試，唔好同個檔案玩搶櫈仔。',
@@ -12167,6 +12288,16 @@ export const cantoneseTranslations: Readonly<
     'Desktop Material 儲存唔到 {login} 嘅登入權杖，所以個帳戶未加到入去。請重新登入一次。（{error}）',
   'accounts.credentialUnavailable':
     'Desktop Material 讀唔到 {logins} 已儲存嘅登入權杖。請重新登入一次，先可以用返呢啲帳戶。',
+  'accounts.picker.label': '帳戶',
+  'accounts.picker.title': '帳戶 · {host}',
+  'accounts.picker.searchLabel': '搜尋帳戶',
+  'accounts.picker.searchPlaceholder': '按名稱、登入名稱或主機搜尋帳戶',
+  'accounts.picker.countOne': '{count} 個已登入帳戶',
+  'accounts.picker.countMany': '{count} 個已登入帳戶',
+  'accounts.picker.matchCount': '{total} 個帳戶入面有 {matched} 個啱',
+  'accounts.picker.noAccounts': '冇已登入帳戶。',
+  'accounts.picker.noMatch': '冇帳戶啱「{query}」。',
+  'accounts.picker.add': '新增另一個帳戶',
   'accounts.invalidatedTokenTitle': '帳戶權杖已經失效',
   'accounts.invalidatedTokenTitleDarwin': '帳戶權杖已經失效',
   'accounts.invalidatedTokenBody':
