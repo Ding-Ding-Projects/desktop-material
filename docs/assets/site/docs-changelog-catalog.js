@@ -22,12 +22,12 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4173,
+    entryCount: 4174,
     releases: [
       {
         v: '3.6.3-material22',
         d: '2026-08-06',
-        t: '19:22',
+        t: '19:39',
         e: [
           [
             'Added',
@@ -36,8 +36,13 @@
           ],
           [
             'Fixed',
+            'Linux CI now validates the packaged TUI changelog catalog against complete Git history, and generated catalog copy accurately identifies tag and referenced-entry commit timestamps',
+            '82540820c9fd8067f377481ae659553513a44a01',
+          ],
+          [
+            'Fixed',
             'The packaged changelog tests now validate catalog arithmetic and exported release labels instead of freezing an old entry count, timestamp, and first commit that change whenever the generated history advances',
-            '015205b492fb1467c658bc50337eaab5cbf5e6e0',
+            '65df22dcfc850a08b00edfc5be6c0c40079704b0',
           ],
           [
             'Fixed',
