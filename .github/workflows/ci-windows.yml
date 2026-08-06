@@ -16,7 +16,7 @@ on:
   workflow_call:
     inputs:
       repository:
-        default: desktop/desktop
+        default: ''
         required: false
         type: string
       ref:
@@ -67,6 +67,10 @@ defaults:
 jobs:
   windows-tui-core:
     name: Windows TUI core · Python 3.12
+    if:
+      ${{ github.repository == 'Ding-Ding-Projects/desktop-material' &&
+      (inputs.repository == '' || inputs.repository ==
+      'Ding-Ding-Projects/desktop-material') }}
     runs-on:
       - self-hosted
       - Windows
@@ -79,6 +83,8 @@ jobs:
         with:
           repository: ${{ inputs.repository || github.repository }}
           ref: ${{ inputs.ref }}
+      - name: Enable Git long paths for Windows TUI tests
+        run: git config core.longpaths true
       - name: Install uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
@@ -102,6 +108,10 @@ jobs:
           uv run mypy src
   build:
     name: ${{ matrix.friendlyName }} ${{ matrix.arch }}
+    if:
+      ${{ github.repository == 'Ding-Ding-Projects/desktop-material' &&
+      (inputs.repository == '' || inputs.repository ==
+      'Ding-Ding-Projects/desktop-material') }}
     runs-on:
       - self-hosted
       - Windows
@@ -129,6 +139,7 @@ jobs:
           ref: ${{ inputs.ref }}
           submodules: recursive
       - uses: ./.github/actions/setup-ci-environment
+        id: setup_ci
         with:
           node-version: ${{ env.NODE_VERSION }}
           arch: ${{ matrix.arch }}
@@ -142,7 +153,7 @@ jobs:
           yarn test
       - name: Build production app
         id: production_build
-        if: ${{ always() }}
+        if: ${{ always() && steps.setup_ci.outcome == 'success' }}
         run: yarn build:prod
         env:
           DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
@@ -203,6 +214,10 @@ jobs:
           if-no-files-found: error
   e2e-smoke:
     name: E2E Smoke ${{ matrix.friendlyName }} ${{ matrix.arch }}
+    if:
+      ${{ github.repository == 'Ding-Ding-Projects/desktop-material' &&
+      (inputs.repository == '' || inputs.repository ==
+      'Ding-Ding-Projects/desktop-material') }}
     runs-on:
       - self-hosted
       - Windows
@@ -273,22 +288,28 @@ jobs:
           }
 
           $setupExe = "dist/GitHubDesktopSetup-${{ matrix.arch }}.exe"
-          $installer = Start-Process -FilePath $setupExe -ArgumentList "/S" -PassThru
-
-          try {
-            Wait-Process -Id $installer.Id -Timeout 300 -ErrorAction Stop
-          } catch {
+          if (-not (Test-Path -LiteralPath $setupExe)) {
+            throw "Windows installer was not built: $setupExe"
+          }
+          $expectedVersion = (Get-Content -LiteralPath 'app/package.json' -Raw | ConvertFrom-Json).version
+          if ([string]::IsNullOrWhiteSpace($expectedVersion)) {
+            throw 'app/package.json did not provide an installable application version'
+          }
+          $installStartedAt = [DateTime]::UtcNow
+          $installer = Start-Process -FilePath $setupExe -ArgumentList "/S" -PassThru -Wait
+          if ($installer.ExitCode -ne 0) {
             Write-SquirrelLogs
-            throw "Windows installer timed out after 300 seconds"
+            throw "Windows installer exited with code $($installer.ExitCode)"
           }
 
           Get-Process GitHubDesktop -ErrorAction SilentlyContinue | Stop-Process -Force
 
           $installedExe = $null
           for ($attempt = 0; $attempt -lt 30 -and -not $installedExe; $attempt++) {
-            $installedExe = Get-ChildItem "$env:LOCALAPPDATA\GitHubDesktop\app-*\GitHubDesktop.exe" -ErrorAction SilentlyContinue |
-              Sort-Object FullName -Descending |
-              Select-Object -First 1 -ExpandProperty FullName
+            $candidate = Get-Item (Join-Path $env:LOCALAPPDATA "GitHubDesktop\app-$expectedVersion\GitHubDesktop.exe") -ErrorAction SilentlyContinue
+            if ($candidate -and $candidate.LastWriteTimeUtc -ge $installStartedAt) {
+              $installedExe = $candidate.FullName
+            }
 
             if (-not $installedExe) {
               Start-Sleep -Seconds 2
@@ -297,7 +318,7 @@ jobs:
 
           if (-not $installedExe) {
             Write-SquirrelLogs
-            throw "Unable to locate installed GitHub Desktop executable"
+            throw "Unable to verify the freshly installed GitHub Desktop executable for version $expectedVersion"
           }
 
           Add-Content -Path $env:GITHUB_ENV -Value "DESKTOP_E2E_APP_PATH=$installedExe"

@@ -15,7 +15,7 @@ on:
   workflow_call:
     inputs:
       repository:
-        default: desktop/desktop
+        default: ''
         required: false
         type: string
       ref:
@@ -62,6 +62,10 @@ env:
 jobs:
   lint:
     name: Lint
+    if:
+      ${{ github.repository == 'Ding-Ding-Projects/desktop-material' &&
+      (inputs.repository == '' || inputs.repository ==
+      'Ding-Ding-Projects/desktop-material') }}
     runs-on:
       - self-hosted
       - Linux
@@ -94,6 +98,10 @@ jobs:
         run: git diff --name-status --exit-code
   supply-chain:
     name: Supply chain
+    if:
+      ${{ github.repository == 'Ding-Ding-Projects/desktop-material' &&
+      (inputs.repository == '' || inputs.repository ==
+      'Ding-Ding-Projects/desktop-material') }}
     runs-on:
       - self-hosted
       - Linux
@@ -227,6 +235,10 @@ jobs:
           exit 0
   linux-tui:
     name: Linux TUI · Python ${{ matrix.python-version }}
+    if:
+      ${{ github.repository == 'Ding-Ding-Projects/desktop-material' &&
+      (inputs.repository == '' || inputs.repository ==
+      'Ding-Ding-Projects/desktop-material') }}
     runs-on:
       - self-hosted
       - Linux

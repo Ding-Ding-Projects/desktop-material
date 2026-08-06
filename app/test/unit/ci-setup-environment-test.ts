@@ -15,6 +15,10 @@ const windowsSigningAction = readFileSync(
   join(process.cwd(), '.github/actions/setup-windows-signing/action.yml'),
   'utf8'
 )
+const arm64ToolsetScript = readFileSync(
+  join(process.cwd(), '.github/scripts/ensure-windows-arm64-build-tools.ps1'),
+  'utf8'
+)
 
 describe('CI environment setup', () => {
   it('uses an exact installed-dependency cache and skips cold setup only on a hit', () => {
@@ -29,6 +33,21 @@ describe('CI environment setup', () => {
     assert.match(setupAction, /Install uv for self-hosted Windows Python/)
     assert.match(setupAction, /uv python install 3\.11/)
     assert.match(setupAction, /npm_config_python=\$python_path/)
+    assert.match(
+      setupAction,
+      /Install Windows arm64 C\+\+ toolset when missing[\s\S]*?ensure-windows-arm64-build-tools\.ps1/
+    )
+    assert.match(
+      arm64ToolsetScript,
+      /Microsoft\.VisualStudio\.Component\.VC\.Tools\.ARM64/
+    )
+    assert.match(
+      arm64ToolsetScript,
+      /Microsoft\.VisualStudio\.Component\.VC\.Tools\.x86\.x64/
+    )
+    assert.match(arm64ToolsetScript, /Microsoft\.VCToolsVersion\.default\.txt/)
+    assert.match(arm64ToolsetScript, /--norestart/)
+    assert.match(arm64ToolsetScript, /Hostx64\\arm64\\cl\.exe/)
     assert.match(
       setupAction,
       /Use Node\.js .*? before self-hosted Yarn bootstrap[\s\S]*?actions\/setup-node@v6[\s\S]*?node-version:[\s\S]*?Provide repository-pinned Yarn to self-hosted Windows actions[\s\S]*?bootstrap-pinned-yarn\.ps1/
