@@ -1,4 +1,5 @@
 import assert from 'node:assert'
+import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 import * as path from 'node:path'
 import * as React from 'react'
@@ -38,6 +39,23 @@ describe('updated app dependency compatibility', () => {
   it('loads the Node-side Copilot SDK outside the renderer bundle', () => {
     const configuredExternals = renderer.externals as ReadonlyArray<string>
     assert.equal(configuredExternals.includes('@github/copilot-sdk'), true)
+  })
+
+  it('keeps the script compiler config compatible with cross-package imports', () => {
+    const tsconfig = JSON.parse(
+      readFileSync(
+        path.resolve(__dirname, '../../../script/tsconfig.json'),
+        'utf8'
+      )
+    ) as {
+      compilerOptions: {
+        ignoreDeprecations?: string
+        rootDir?: string
+      }
+    }
+
+    assert.equal(tsconfig.compilerOptions.rootDir, '..')
+    assert.equal(tsconfig.compilerOptions.ignoreDeprecations, undefined)
   })
 
   it('keeps the compare-versions 6 API used by the Windows version guards', () => {
