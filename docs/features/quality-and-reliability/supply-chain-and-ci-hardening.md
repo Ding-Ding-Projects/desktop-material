@@ -47,7 +47,12 @@ the runner image does not provide `gh`. The bootstrap reuses an existing CLI or
 downloads the canonical Linux archive into `RUNNER_TEMP`, verifies its published
 SHA-256 checksum, and adds only that temporary bin directory to `GITHUB_PATH`.
 Release-gate API calls therefore do not depend on a cloud-runner convenience
-package or a system-wide install.
+package or a system-wide install. The sibling-run lookup also uses the CLI's
+built-in `--jq` evaluator and returns one tab-separated record, so it does not
+silently assume that a separate `jq` executable happens to be installed on the
+self-hosted image. This keeps the dependency surface explicit: the only
+release API binary that must be bootstrapped is the pinned `gh` archive whose
+checksum is verified above.
 
 ## Behaviour
 

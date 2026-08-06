@@ -35,6 +35,19 @@ failure modes, security notes, and verification record are in
 
 Remote CI and default-branch publication remain the final external checks.
 
+## 2026-08-06 — Remove the release gate's unbootstrapped jq dependency
+
+The first main wave after the GitHub CLI bootstrap reached the self-hosted
+Linux release gate, but run
+`31075991525 <https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31075991525>`_
+stopped with `jq: command not found` while reading the sibling CI run. The
+runner had the bootstrapped `gh` binary, but not the separate `jq` executable.
+The gate now asks `gh api --jq` for the sibling's status, conclusion, and
+updated timestamp in one bounded tab-separated record and parses that record
+with Bash. The contract test rejects the old `printf | jq` shape. Commit
+`ff0881d9d4` contains the repair; a new main CI/release wave is required before
+publication can be called verified.
+
 ## 2026-08-06 — Remove the non-elevated Windows FFmpeg bootstrap
 
 The first stable pure-self-hosted CI wave reached `COMPUTER`, but the Windows
