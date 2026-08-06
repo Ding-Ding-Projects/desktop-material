@@ -1,5 +1,40 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-05 — Account-aware repository transfer (verification in progress)
+
+The Windows Electron app now has an account-aware **Transfer repository**
+workflow. It can add another GitHub.com or GitHub Enterprise identity through
+the existing sign-in dialog, choose a personal or organization owner, keep or
+rename the destination repository, and choose privacy. **Full history** uses a
+temporary bare clone to publish every local branch and tag. **Clean state**
+creates one root snapshot commit, retains the previous tip under a local
+`refs/desktop-material/transfer-backups/` recovery ref, and publishes only the
+current files. Both routes verify the destination tip before retargeting
+`origin` and preserve the source as `upstream` when needed.
+
+The entry points are the Repository menu, repository-list context menu, Command
+Palette, and **Repository settings → Remote**. The transfer dialog requires two
+independent confirmations plus a full-range authorization slider, and displays
+real checking, creation, preparation, publication, retargeting, and completion
+progress. Focused direct Node contract tests pass **7/7**. Targeted ESLint
+passes, and the changed-path TypeScript check reports no diagnostics in the
+transfer files although the repository-wide command exits on existing
+TypeScript 6 findings. The exact Windows production build reached the full
+renderer/main bundle after the missing local file-package outputs were rebuilt,
+but remained nonzero on four existing TypeScript 6 errors in `dds-converter.ts`,
+two fixture typings, and `ui/index.tsx`; it did not emit a runnable
+`out/main.js`. The repository-wide test harness remains blocked before test
+discovery by the malformed `whatwg-encoding` dependency payload, so
+hidden-desktop runtime evidence is not claimed.
+
+Implementation commit
+`6c3a4ec8297e79226968a89e3232ba281c539357` contains the feature, tests, and
+documentation update. Hardening commit
+`5e96aad79e82bc597b5c1233fccd17c0b37ce7fa` preserves known-private defaults
+and verifies the exact destination tip before retargeting. Verification and
+changelog commit `8ac2bf5cfce2f4645fa4ead4e7cf05e23cd59478` records the run
+manifest and current evidence.
+
 ## 2026-08-06 — Fix Super Express workflow startup planning
 
 The Super Express dispatcher keeps preparation and publication on

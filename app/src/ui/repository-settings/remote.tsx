@@ -32,6 +32,7 @@ interface IRemoteProps {
     confirmedPlan: IRemoteManagementPlan | null
   ) => void
   readonly onPublish: () => void
+  readonly onTransfer?: () => void
 }
 
 interface IRemoteState {
@@ -358,6 +359,17 @@ export class Remote extends React.Component<IRemoteProps, IRemoteState> {
               Manage fetch and push destinations, names, stale-branch pruning,
               and the locally tracked default branch.
             </p>
+            {this.props.onTransfer !== undefined && (
+              <div className="remote-manager-intro-actions">
+                <Button
+                  type="button"
+                  disabled={this.props.disabled}
+                  onClick={this.props.onTransfer}
+                >
+                  Transfer repository…
+                </Button>
+              </div>
+            )}
           </div>
           <div className="remotes-list" role="list">
             {this.state.drafts.length === 0 ? (

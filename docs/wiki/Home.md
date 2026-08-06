@@ -199,6 +199,11 @@ receipts as acceptance evidence.
   agent API. Background fetch reuses a validated local remote default; explicit discovery has a
   five-second lookup deadline plus five-second cleanup grace, and concurrent work shares one
   in-flight system proxy resolver per exact URL.
+- **Account-aware repository transfer** — open Transfer repository from the Repository menu,
+  Command Palette, repository list, or Remote Manager; choose another signed-in GitHub identity
+  and personal/organization owner; then publish every local branch and tag with full history or
+  publish one clean root snapshot. Destination verification precedes the `origin` retarget, while
+  the source remains reachable as `upstream` and clean-state mode keeps a local recovery ref.
 - **Per-account settings in a local git repo** — every settings or tabs change, including the
   versioned appearance defaults, auto-commits. Open
   **Edit → Settings History…** (`Ctrl+Alt+Z`) for a non-modal timeline with lazy diffs, undo, redo,

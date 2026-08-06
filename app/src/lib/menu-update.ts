@@ -125,6 +125,7 @@ const allMenuIds: ReadonlyArray<MenuIDs> = [
   'pull',
   'fetch',
   'fork-repository',
+  'transfer-repository',
   'branch',
   'repository',
   'go-to-commit-message',
@@ -255,6 +256,7 @@ function getRepositoryMenuBuilder(state: IAppState): MenuStateBuilder {
     'open-working-directory',
     'show-repository-settings',
     'fork-repository',
+    'transfer-repository',
     'inspect-branch-rules',
     'manage-gitignore',
     'manage-sparse-checkout',
@@ -323,6 +325,12 @@ function getRepositoryMenuBuilder(state: IAppState): MenuStateBuilder {
       canForkRepository(state.accounts, selectedRepository)
     )
     menuStateBuilder.setEnabled(
+      'transfer-repository',
+      selectedRepository instanceof Repository &&
+        !selectedRepository.missing &&
+        isRepositoryWithGitHubRepository(selectedRepository)
+    )
+    menuStateBuilder.setEnabled(
       'inspect-branch-rules',
       isHostedOnGitHub && onBranch && !branchIsUnborn
     )
@@ -385,6 +393,7 @@ function getRepositoryMenuBuilder(state: IAppState): MenuStateBuilder {
 
     menuStateBuilder.disable('view-repository-on-github')
     menuStateBuilder.disable('fork-repository')
+    menuStateBuilder.disable('transfer-repository')
     menuStateBuilder.disable('create-pull-request')
     menuStateBuilder.disable('preview-pull-request')
     if (
