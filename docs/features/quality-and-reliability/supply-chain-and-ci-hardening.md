@@ -308,6 +308,13 @@ selects and exports a complete architecture-specific ClangCL instance before
 the test; a failure to install it is a setup failure, not a test timeout to
 ignore.
 
+**A canceled Windows CI or release run keeps working.** Recovery steps
+intentionally use `always()` so a genuine test failure can still leave a
+diagnostic installer, but every heavy recovery, packaging, artifact-upload, and
+release-publisher condition also checks `!cancelled()`. A newer push or release
+dispatch therefore releases the self-hosted runner instead of allowing a stale
+canceled run to continue its build or publish side effects.
+
 ## Verification
 
 Performed on 2026-07-31 against the working tree, before any push:

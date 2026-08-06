@@ -83,6 +83,17 @@ passes through all three ClangCL targets after selecting the complete Community
 instance; the next self-hosted CI wave must verify the native test, Windows
 x64/arm64 builds, E2E smoke, and the pure self-hosted release.
 
+## 2026-08-06 — Stop canceled Windows CI builds from continuing
+
+The first cancellation of the stale `0a3b8ea36c` Windows run exposed a
+workflow edge: the native-test step was canceled, but the following production
+build had `always()` without `!cancelled()` and continued occupying the
+self-hosted runner. The Windows production-build recovery guard now keeps
+`always()` for genuine test failures while skipping heavy work for an explicit
+run cancellation. The workflow contract covers these exact expressions so
+later pushes can release the runner for the newest self-hosted wave without
+allowing a canceled release to publish side effects.
+
 ## 2026-08-06 — Bootstrap GitHub CLI on self-hosted release Linux
 
 The next pure-self-hosted main wave reached the local Linux `prepare` runner,

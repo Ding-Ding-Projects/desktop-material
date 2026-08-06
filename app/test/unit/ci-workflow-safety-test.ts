@@ -417,10 +417,7 @@ describe('CI workflow safety', () => {
       installerWorkflow,
       /IFS=\$'\\t' read -r sibling_status sibling_conclusion sibling_updated <<< "\$sibling_fields"/
     )
-    assert.doesNotMatch(
-      installerWorkflow,
-      /printf '%s' "\$sibling_run" \| jq/
-    )
+    assert.doesNotMatch(installerWorkflow, /printf '%s' "\$sibling_run" \| jq/)
   })
 
   it('builds, packages, and exercises the Windows application only', () => {
@@ -464,19 +461,19 @@ describe('CI workflow safety', () => {
 
     assert.match(
       source,
-      /name: Build production app\s+id: production_build\s+if: \$\{\{ always\(\) && steps\.setup_ci\.outcome == 'success' \}\}/
+      /name: Build production app[\s\S]*?id: production_build[\s\S]*?if:[\s\S]*?\$\{\{\s*always\(\)\s*&&\s*!cancelled\(\)\s*&&\s*steps\.setup_ci\.outcome == 'success'\s*\}\}/
     )
     assert.match(
       source,
-      /uses: \.\/\.github\/actions\/setup-windows-signing\s+id: windows_signing\s+if: \$\{\{ always\(\) && steps\.production_build\.outcome == 'success' \}\}/
+      /uses: \.\/\.github\/actions\/setup-windows-signing[\s\S]*?id: windows_signing[\s\S]*?if:[\s\S]*?\$\{\{\s*always\(\)\s*&&\s*!cancelled\(\)\s*&&\s*steps\.production_build\.outcome\s*==\s*'success'\s*\}\}/
     )
     assert.match(
       source,
-      /name: Package production app\s+id: installer_package\s+if:[\s\S]*?always\(\) && steps\.production_build\.outcome == 'success' &&[\s\S]*?steps\.windows_signing\.outcome == 'success'/
+      /name: Package production app\s+id: installer_package\s+if:[\s\S]*?always\(\) && !cancelled\(\) && steps\.production_build\.outcome\s*==\s*'success' &&[\s\S]*?steps\.windows_signing\.outcome\s*==\s*'success'/
     )
     assert.match(
       source,
-      /name: Upload artifacts[\s\S]*?if:[\s\S]*?always\(\) && steps\.installer_package\.outcome == 'success' &&[\s\S]*?github\.event_name != 'workflow_call' \|\| inputs\.upload-artifacts/
+      /name: Upload artifacts[\s\S]*?if:[\s\S]*?always\(\) && !cancelled\(\) && steps\.installer_package\.outcome\s*==\s*'success' &&[\s\S]*?github\.event_name\s*!=\s*'workflow_call'\s*\|\|\s*inputs\.upload-artifacts/
     )
     assert.match(source, /dist\/GitHubDesktopSetup-\$\{\{matrix\.arch\}\}\.exe/)
     assert.match(source, /if-no-files-found: error/)
@@ -493,6 +490,18 @@ describe('CI workflow safety', () => {
     assert.match(e2eSource, /\$installer\.ExitCode -ne 0/)
     assert.match(e2eSource, /app-\$expectedVersion\\GitHubDesktop\.exe/)
     assert.match(e2eSource, /LastWriteTimeUtc -ge \$installStartedAt/)
+    assert.match(
+      e2eSource,
+      /name: Upload E2E artifacts\s+if: \$\{\{ always\(\) && !cancelled\(\) \}\}/
+    )
+    assert.match(
+      installerWorkflow,
+      /!cancelled\(\) && always\(\) && needs\.prepare\.result == 'success'/
+    )
+    assert.match(
+      superExpressWorkflow,
+      /!cancelled\(\) && always\(\) && needs\.prepare\.result == 'success'/
+    )
   })
 
   it('scans the real default branch and supports manual dispatch', () => {
