@@ -1,5 +1,23 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-05 — Settings account cards keep one active identity across providers
+
+Settings → Accounts was using the first card in each provider section as its
+active marker. A GitHub.com account and a GitHub Enterprise account could
+therefore both appear active, while neither exposed **Make active**. The
+surface now compares every account with the single global `accounts[0]`
+identity and applies the same predicate to GitHub.com, Enterprise, GitLab, and
+Bitbucket cards. Clicking **Make active** updates the controlled account order,
+so the target row becomes active and the previous row becomes actionable.
+Explicit repository account bindings remain authoritative.
+
+Source commit `7a757f5b75d627e1b4b7ae5ed47b2181638fefa0` contains the fix and
+regression test. Focused account/store/routing/UI verification passes **39/39**;
+targeted ESLint, Prettier, and `git diff --check` pass. The required Lowlevel
+production build has not yet returned because its shared endpoint is servicing
+another long-running build. No hidden-desktop capture or runtime success is
+claimed until that route is healthy.
+
 ## 2026-08-05 — Account-aware repository transfer (verification in progress)
 
 The Windows Electron app now has an account-aware **Transfer repository**
