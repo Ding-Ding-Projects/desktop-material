@@ -34,6 +34,20 @@ failure modes, security notes, and verification record are in
 `.codex/run-manifests/2026-08-06-blank-startup.md`.
 
 Remote CI and default-branch publication remain the final external checks.
+
+## 2026-08-06 — Remove the non-elevated Windows FFmpeg bootstrap
+
+The first stable pure-self-hosted CI wave reached `COMPUTER`, but the Windows
+E2E job failed before the app build because the shared setup action ran
+`choco install ffmpeg` under the non-administrator runner service account. The
+system Chocolatey directory was locked and denied access. The repository
+already installs Playwright's pinned FFmpeg payload during post-install and
+checks its versioned sentinel before accepting a dependency cache, so the
+redundant system package step and its workflow input are now removed. This
+keeps the self-hosted service user-scoped and avoids requiring administrator
+rights. The focused setup contract now rejects both the removed input and any
+Chocolatey FFmpeg install; the next main CI wave must verify Windows E2E on the
+local runner.
 ## 2026-08-06 — Bootstrap Python on self-hosted Linux
 
 The direct pure-self-hosted Express Release dispatch reached `linux` and
