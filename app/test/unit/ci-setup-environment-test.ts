@@ -15,7 +15,10 @@ const yarnBootstrap = readFileSync(
 describe('CI environment setup', () => {
   it('uses an exact installed-dependency cache and skips cold setup only on a hit', () => {
     assert.match(setupAction, /Prefer Git Bash on Windows self-hosted runners/)
-    assert.match(setupAction, /shell: powershell/)
+    assert.match(
+      setupAction,
+      /shell: powershell -NoProfile -ExecutionPolicy Bypass/
+    )
     assert.doesNotMatch(setupAction, /shell: pwsh/)
     assert.match(setupAction, /GITHUB_PATH/)
     assert.match(setupAction, /bin\\bash\.exe/)

@@ -21,7 +21,7 @@ runs:
       # This runner has Windows PowerShell, while PowerShell Core is not part
       # of the runner contract. Use the built-in Windows shell for the small
       # PATH repair, then let subsequent bash steps resolve Git Bash.
-      shell: powershell
+      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
       run: |
         $git = Get-Command git.exe -ErrorAction SilentlyContinue
         if ($null -eq $git) {
@@ -77,7 +77,7 @@ runs:
 
     - name: Provide repository-pinned Yarn to self-hosted Windows actions
       if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
-      shell: powershell
+      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
       run: '& "$env:GITHUB_WORKSPACE\.github\scripts\bootstrap-pinned-yarn.ps1"'
 
     - uses: actions/setup-python@v6
