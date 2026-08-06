@@ -6,10 +6,13 @@ The first remote Windows verification after the dependency repair reached the
 runner but failed while recursively cloning
 `vendor/lowlevel-computer-use-mcp`: that submodule is agent tooling whose
 history is not available to the hosted workflow token. The desktop build does
-not consume it; the three public product submodules remain available. Marking
-this one submodule `update = none` keeps recursive checkout from attempting the
-unavailable agent-only clone while preserving the URL for an explicit local
-tooling checkout. Remote verification of this correction is pending.
+not consume it; the three public product submodules remain available. The first
+correction used `update = none` to keep recursive checkout from attempting the
+unavailable agent-only clone. The subsequent integration at
+`883c1b6c6b01ca1371d590d2971e756ff5ed9039` removed that retired gitlink and
+its registry entry entirely, leaving only the three public product submodules
+in `.gitmodules`. Fresh remote verification of that integrated correction is
+pending.
 
 ## 2026-08-05 — Direct Super Express lane dispatch actions
 
