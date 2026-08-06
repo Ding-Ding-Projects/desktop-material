@@ -21,13 +21,23 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4169,
+    entryCount: 4171,
     releases: [
       {
         v: '3.6.3-material22',
         d: '2026-08-06',
-        t: '16:49',
+        t: '18:41',
         e: [
+          [
+            'Fixed',
+            'Every ordinary Windows CI trigger now stays on clean GitHub-hosted runners with no manual self-hosted escape hatch, while Super Express retains its dedicated local runner pools',
+            'd75bf057e6552688adc87daa7b9d71ff08a23eb9',
+          ],
+          [
+            'Fixed',
+            'The generated parity contract now includes Settings tab docking as desktop feature 207, so Linux packaging no longer stops at the stale 206-row declaration',
+            'd75bf057e6552688adc87daa7b9d71ff08a23eb9',
+          ],
           [
             'Fixed',
             'Every Super Express job, including the direct Windows release publisher, now stays on the registered self-hosted Windows and Linux pools, while ordinary CI and tested Express remain on GitHub-hosted runners',
