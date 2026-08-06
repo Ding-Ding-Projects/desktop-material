@@ -49,6 +49,7 @@ const workflowSources = readdirSync(workflowDirectory)
     source: readFileSync(join(workflowDirectory, file), 'utf8'),
   }))
 const selfHostedSuperExpressWorkflows = new Set([
+  'build-installers.yml',
   'super-express-release.yml',
   'super-express-release-windows.yml',
   'super-express-release-linux-tui.yml',
@@ -355,6 +356,30 @@ describe('CI workflow safety', () => {
         )
       }
     }
+  })
+
+  it('keeps every Express Release job on the registered self-hosted pool', () => {
+    assert.doesNotMatch(
+      installerWorkflow,
+      /(?:ubuntu-latest|windows-2022|macos-[A-Za-z0-9.]+)/i
+    )
+    assert.match(
+      installerWorkflow,
+      /^  group: super-express-release-\$\{\{ github\.ref \}\}$/m
+    )
+    assert.match(installerWorkflow, /cancel-in-progress:\s*true/)
+    assert.equal(
+      installerWorkflow.match(
+        /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/g
+      )?.length,
+      5
+    )
+    assert.equal(
+      installerWorkflow.match(
+        /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/g
+      )?.length,
+      2
+    )
   })
 
   it('builds, packages, and exercises the Windows application only', () => {
