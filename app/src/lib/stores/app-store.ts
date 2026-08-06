@@ -13876,7 +13876,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository,
     targetURL: string,
     accountKey: string,
-    branch: string
+    branch: string,
+    expectedTip: string
   ): Promise<void> {
     const environment = await envForRemoteOperation(targetURL)
     const result = await git(
@@ -13890,9 +13891,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
       }
     )
 
-    if (result.stdout.trim().length === 0) {
+    const publishedTip = result.stdout.trim().split(/\s+/)[0] ?? ''
+    if (publishedTip.length === 0) {
       throw new Error(
         `The destination repository did not report the published ${branch} branch.`
+      )
+    }
+    if (publishedTip !== expectedTip) {
+      throw new Error(
+        `The destination ${branch} branch did not verify at the expected commit.`
       )
     }
   }
@@ -13924,6 +13931,16 @@ export class AppStore extends TypedBaseStore<IAppState> {
         bareRepositoryPath,
         'setRepositoryTransferHistoryOrigin'
       )
+      let expectedTip: string | undefined
+      if (branch !== undefined) {
+        const branchTip = await git(
+          ['rev-parse', '--verify', `refs/heads/${branch}^{commit}`],
+          bareRepositoryPath,
+          'resolveRepositoryTransferHistoryTip',
+          { maxBuffer: 8 * 1024 }
+        )
+        expectedTip = branchTip.stdout.trim()
+      }
 
       const environment = await envForRemoteOperation(targetURL)
       reportProgress({
@@ -13947,12 +13964,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
         { env: environment, credentialAccountKey: accountKey }
       )
 
-      if (branch !== undefined) {
+      if (branch !== undefined && expectedTip !== undefined) {
         await this.verifyRepositoryTransferRemote(
           repository,
           targetURL,
           accountKey,
-          branch
+          branch,
+          expectedTip
         )
       }
     } finally {
@@ -14044,7 +14062,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
         repository,
         targetURL,
         accountKey,
-        branch
+        branch,
+        snapshotCommit
       )
 
       return recoveryRef

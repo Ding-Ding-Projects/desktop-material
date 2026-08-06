@@ -120,7 +120,9 @@ export class RepositoryTransferDialog extends React.Component<
       ownerLogin: initialAccount?.login ?? source.owner.login,
       mode: 'full-history',
       name: source.name,
-      keepPrivate: false,
+      // Preserve a known-private source by default. Making that repository
+      // public should require an explicit user choice in the review step.
+      keepPrivate: source.isPrivate === true,
       confirmedDestination: false,
       confirmedHistory: false,
       confirmationProgress: 0,

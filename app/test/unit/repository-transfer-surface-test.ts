@@ -21,6 +21,7 @@ describe('repository transfer surface', () => {
   it('offers the two explicit history modes and a second-account sign-in path', () => {
     assert.match(dialog, /Full history/)
     assert.match(dialog, /Clean state/)
+    assert.match(dialog, /keepPrivate: source\.isPrivate === true/)
     assert.match(dialog, /Sign in to another account/)
     assert.match(dialog, /showDotComSignInDialog\(resultCallback\)/)
     assert.match(dialog, /showEnterpriseSignInDialog\([\s\S]*resultCallback/)
