@@ -278,8 +278,10 @@ allows this behavior only for `ci-linux.yml`, `ci-windows.yml`,
 - The Linux TUI job installs the repository's pinned Node.js version before
   parity generation. The Windows TUI job enables repository-local Git long
   paths before Git-backed history tests, because the profile fixture can exceed
-  the Windows default path limit. These steps are local runner preparation,
-  not cloud-runner fallback.
+  the Windows default path limit. The TUI's app-owned profile-history
+  repository enables the same setting locally because it cannot inherit the
+  checkout repository's configuration. These steps are local runner
+  preparation, not cloud-runner fallback.
 - The `supply-chain` job requests only `contents: read` and installs nothing,
   so a malicious postinstall script has no opportunity to run in it.
 - Dependabot pull requests are proposals, not deployments: nothing in this
@@ -317,9 +319,11 @@ superseded it. The installer workflow will only publish from a successful CI
 conclusion, so inspect the newest same-ref run for the release evidence.
 
 **The Windows TUI job reports `Filename too long` while writing profile
-history.** The checkout did not have `core.longpaths` enabled. Confirm the
-workflow's repository-local Git setting runs immediately after checkout and
-rerun the newest same-ref CI run; do not switch the job to a hosted runner.
+history.** Both the checkout and the app-owned profile-history repository need
+`core.longpaths`. Confirm the workflow's repository-local setting runs
+immediately after checkout and that `GitProfileHistory` configures its isolated
+repository before it stages files. Rerun the newest same-ref CI run; do not
+switch the job to a hosted runner.
 
 **The Windows arm64 dependency setup reports a missing MSVC toolset.** The
 self-hosted setup discovers the installed Visual Studio instance, installs its

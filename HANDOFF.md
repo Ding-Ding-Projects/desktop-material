@@ -1,5 +1,23 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Make app-owned profile history Windows-long-path safe
+
+The authoritative `main` run `31081357217` reached the Windows arm64 lane
+successfully, then exposed one independent Windows TUI failure in job
+`92550698973`: **539 passed, 1 failed** in
+`tests/application/test_version_history.py` because the isolated profile
+history Git repository could not write an object and reported `Filename too
+long`. The workflow's checkout repository had `core.longpaths`, but the
+app-owned repository created below the profile data directory had its own
+local configuration and did not.
+
+Commit `822b5ee92482a85b0c41baebaa5ce97c7323f824` makes
+`GitProfileHistory` set `core.longpaths=true` in its own repository before
+staging files. The regression test reads that repository's actual Git config.
+Local verification: **540 passed**, Ruff clean, mypy clean, and the focused
+version-history test passes on Windows Python 3.12. The next `main` wave must
+verify the corrected TUI matrix and the release follow-up.
+
 ## 2026-08-06 — Stop self-hosted dependency caches from holding runners
 
 The Windows arm64 job in superseded run `31078432686` completed dependency

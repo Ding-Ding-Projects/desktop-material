@@ -1684,7 +1684,9 @@ The **Actions** panel brings CI into the app:
   gates. A release pull request targets the Windows product's `main` default
   branch. Self-hosted dependency setup remains automatic, but skips optional
   cache-save post hooks so a completed build does not leave the local runner
-  occupied by archive cleanup.
+  occupied by archive cleanup. The TUI's isolated profile-history repository
+  also enables Git `core.longpaths` locally, so Windows history writes do not
+  depend on the checkout's separate Git configuration.
 - Automatic and Super Express installers share one monotonic `z` package-version
   namespace. Releases are immutable and initially non-latest; only the greatest
   release for freshly revalidated current `main` is promoted to the Squirrel

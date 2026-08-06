@@ -2,6 +2,18 @@
 
 Updated: **August 6, 2026**
 
+## August 6 — Make app-owned profile history Windows-long-path safe
+
+- The TUI's isolated Git-backed profile-history repository now enables
+  `core.longpaths` locally; the checkout's Git setting cannot flow into that
+  separate repository.
+- The current `main` wave found the gap after Windows arm64 passed: Windows TUI
+  Python 3.12 reported **539 passed, 1 failed** with `Filename too long` while
+  writing a history object.
+- Commit `822b5ee92482a85b0c41baebaa5ce97c7323f824` adds the fix and an actual
+  config-read regression assertion. Local evidence is **540 passed**, Ruff
+  clean, and mypy clean; the next `main` wave is the remote verification.
+
 ## August 6 — Keep self-hosted CI runners available after dependency setup
 
 - Self-hosted Windows and Linux dependency setup still installs every declared

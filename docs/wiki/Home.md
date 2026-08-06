@@ -267,6 +267,9 @@ the tonal workspace preview hides when a compact window needs the space.
 - **Self-hosted dependency setup** — install the declared Node and Python dependencies directly on
   the registered local runners. Hosted jobs may use exact archive caches, while self-hosted lanes
   skip optional cache-save post hooks so a completed build is not kept busy uploading its leftovers.
+- **Windows profile history** — the TUI configures `core.longpaths` inside its own isolated Git
+  history repository as well as in CI checkout preparation, so Windows history writes do not rely
+  on a separate repository's local Git configuration.
 - **Release gates** — the manual Super Express emergency lane runs no tests and
   goes directly to its Windows x64 build/package, asset verification, and
   optional release. Every job is self-hosted-only: preparation and publication
