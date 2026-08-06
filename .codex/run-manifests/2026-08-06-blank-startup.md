@@ -9,7 +9,7 @@
 - Documentation allowlist: this manifest; the affected feature documentation, `HANDOFF.md`, `ROADMAP.md`, and README/index references required to describe the startup fix; no unrelated documentation or user worktree changes
 - Tests: focused renderer/startup contract tests; the project’s declared production build; exact cheap Lowlevel headless launch and nonblank capture; formatting and diff checks; full diff and secret review
 - Remote: `origin` (`https://github.com/Ding-Ding-Projects/desktop-material.git`)
-- Expected branch: `codex/blank-startup-fix-20260806`, based on the latest `origin/main`, pushed without force
+- Expected branch: `codex/blank-startup-fix-20260806`, created from the clean `d82f1fc160` baseline; final integration uses the latest `origin/main` in a separate clean worktree, without rewriting this branch
 - Initial dirty-state baseline: clean at `d82f1fc1603ad3aa55cabdd016fd6b4adac4cce7`
 - Publication authorization: the user explicitly requested a fresh worktree, subagents, automatic dependency installation, and a fix pushed through the repository workflow
 - Cleanup ledger: before any GUI phase, record the run id, owned fixture and user-data paths, headless desktop name, launch PID, and runtime-resolved HWND; pair every created resource with cleanup
@@ -30,7 +30,7 @@ The packaged artifact from `Super Express Release` run `31066558483` loaded `ind
 
 - Cheap Lowlevel MCP: scheduled task on `127.0.0.1:8765`; checkout SHA `ae648ae6c994e8135c874cc895291896f60b8c19`.
 - Pinned build runtime: Node `v24.15.0`; command completed through MCP `run_command` with `vendor/yarn-1.21.1.js build:prod`.
-- Local artifact: `dist/GitHubDesktop-win32-x64/GitHubDesktop.exe`, built at `2026-08-05T23:56:30-04:00`.
+- Local artifact: `dist/GitHubDesktop-win32-x64/GitHubDesktop.exe`, built at `2026-08-05T23:56:30-04:00` before the final `script/build.ts` guard was added; it proves the externalization/runtime fix, while the final integrated build must prove guard execution.
 - Artifact checks: `GitHubDesktop.exe`, `index.html`, `renderer.js`, `renderer.css`, `internal-browser.js`, and `resources/app/node_modules/@github/copilot-sdk/package.json` are present; both renderer bundles contain `0` `__webpack_module__` tokens.
 - Headless desktop: `codex-blank-startup-fix-20260806-final`; resolved main HWND `12782400`; launch PID `45136`.
 - CDP reload check: `readyState=complete`, `rootHtmlLength=4941`, `rootChildCount=1`, body text begins with `DM Desktop Material`, and `events=[]` after a 7-second reload observation.
