@@ -1,8 +1,8 @@
 name: Super Express Release / Linux TUI
 
-# Reusable zero-test Linux TUI lane for Super Express Release. It is
-# deliberately self-hosted-only and queues until the registered Linux x64 WSL
-# runner is ready.
+# Reusable zero-test Linux TUI lane for Super Express Release. It uses the
+# fixed ubuntu-latest hosted label so GitHub can schedule it without runner
+# discovery.
 on:
   workflow_call:
     inputs:
@@ -23,11 +23,8 @@ permissions:
 
 jobs:
   build:
-    name: Build Linux TUI packages (self-hosted)
-    runs-on:
-      - self-hosted
-      - Linux
-      - X64
+    name: Build Linux TUI packages (GitHub-hosted)
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}

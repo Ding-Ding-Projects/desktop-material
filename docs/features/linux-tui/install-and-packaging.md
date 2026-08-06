@@ -149,9 +149,9 @@ environment, checks its version entry point, and uploads the packages.
 The tested Express release workflow attaches the wheel, source distribution,
 lock-derived runtime constraints, `bootstrap-linux-tui.sh`, and
 `install-linux-tui.sh` after its Linux tests and Debian acceptance container.
-The emergency Super Express dispatcher has its own self-hosted-only packaging
-workflow, `.github/workflows/super-express-release-linux-tui.yml`, which runs
-on the registered Linux x64 WSL runner. It skips those tests for speed but
+The emergency Super Express dispatcher has its own hosted packaging workflow,
+`.github/workflows/super-express-release-linux-tui.yml`, which runs on
+`ubuntu-latest`. It skips those tests for speed but
 still builds the same complete TUI payload and publishes it beside the Windows
 assets in one combined Release. Debian 13 gets its managed Python 3.12 from
 `uv python install 3.12`, rather than from a hosted-runner Python manifest.
