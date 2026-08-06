@@ -50,10 +50,9 @@ runs:
           'app/yarn.lock', '.yarnrc', 'app/.yarnrc', 'app/.npmrc',
           'script/post-install.ts',
           '.github/actions/setup-ci-environment/action.yml',
-          '.github/scripts/bootstrap-pinned-yarn.ps1',
-          'vendor/yarn-1.21.1.js', 'vendor/printenvz/**',
-          'vendor/windows-argv-parser/**', 'vendor/desktop-notifications/**',
-          'vendor/desktop-trampoline/**') }}
+          '.github/scripts/bootstrap-pinned-yarn.ps1', 'vendor/yarn-1.21.1.js',
+          'vendor/printenvz/**', 'vendor/windows-argv-parser/**',
+          'vendor/desktop-notifications/**', 'vendor/desktop-trampoline/**') }}
 
     - name: Install uv for self-hosted Windows Python
       if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
