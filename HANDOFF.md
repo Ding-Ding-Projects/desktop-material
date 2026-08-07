@@ -64,6 +64,11 @@ Super Express no longer opts in. Run `31144718341` was cancelled once the
 unsigned policy was selected, before it could publish a release. The next run
 must prove the explicit unsigned package path, streamed Squirrel integrity
 check, and draft-first publisher.
+Run `31145327415` then proved the unsigned input was evaluated correctly but
+stopped during dependency setup: `tsc -P script/tsconfig.json` rejected the
+JavaScript verifier's TypeScript test import with `TS7016`. The verifier now
+ships an explicit declaration file, and the exact script TypeScript gate must
+pass before the replacement dispatch.
 
 ## 2026-08-06 — Neutral-skip cancelled workflow-run release completions
 

@@ -36,7 +36,10 @@ Updated: **August 6, 2026**
   still fails before dependency download when a signed lane opts in, while the
   Super Express workflows now opt out explicitly. Run `31144718341` was
   cancelled after that policy change and published nothing; its replacement
-  must prove the unsigned package and draft-first release path.
+  must prove the unsigned package and draft-first release path. Run
+  `31145327415` evaluated `sign: 'false'` correctly but failed the script
+  TypeScript gate because the new JavaScript manifest verifier lacked a
+  declaration file; the typed module contract now covers that exact import.
 
 ## August 6 — Neutral-skip cancelled workflow-run release completions
 
