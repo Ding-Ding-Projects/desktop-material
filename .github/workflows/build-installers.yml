@@ -70,8 +70,13 @@ jobs:
             if [ "$CI_EVENT" != "push" ] || \
                [ "$CI_BRANCH" != "main" ] || \
                [ "$CI_REPOSITORY" != "$GITHUB_REPOSITORY" ]; then
-              echo "Installer packaging blocked: the trigger is not this repository's main push CI." >&2
-              exit 1
+              # A workflow_run completion can represent a cancelled manual
+              # dispatch, a fork, or another non-publishable source. It is a
+              # neutral skip, not a release-build failure: no installer may
+              # be produced, but the guard itself must not create a red run.
+              echo "Installer packaging skipped: the completed workflow was not this repository's main push CI."
+              echo "proceed=false" >> "$GITHUB_OUTPUT"
+              exit 0
             fi
             target="$CI_SHA"
 

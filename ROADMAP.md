@@ -2,6 +2,17 @@
 
 Updated: **August 6, 2026**
 
+## August 6 — Neutral-skip cancelled workflow-run release completions
+
+- `Build Installers / Express Release` now exits successfully with
+  `proceed=false` when a completed workflow is cancelled, comes from a fork, or
+  is otherwise not this repository's `main` push CI. It still publishes no
+  installer in that path.
+- This fixes the red guard-only failure in run `31133902288` while keeping the
+  successful main-CI release gate fail-closed. Focused local verification is
+  **6/6** tests plus `actionlint -shellcheck=` and `git diff --check`; remote
+  verification is pending the default-branch integration.
+
 ## August 6 — Filter merge candidates that have not caught up with main
 
 - The **Merge into main** branch chooser now offers **Not updated with main**.

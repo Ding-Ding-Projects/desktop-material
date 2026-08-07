@@ -25,6 +25,15 @@ calls are accepted only from `Ding-Ding-Projects/desktop-material` and only
 check out that repository, so an external caller cannot turn the local runner
 into a general-purpose executor.
 
+The Express release gate also distinguishes an ineligible completion from a
+failed eligible build. A `workflow_run` for a cancelled manual dispatch, a
+fork, or another non-publishable source writes `proceed=false` and exits
+successfully, so no installer or Release is created and the guard does not
+turn an intentional no-op into a red workflow. A completed `main` push from
+this repository still follows the strict CI-conclusion and sibling-lane checks
+below; an unknown lane or a failed eligible lane remains a real release-gate
+failure.
+
 The fresh-install contract is checked against the repository's pinned
 toolchain: the parity generator and generated YAML must declare the same 206
 desktop features, and the TypeScript configurations must remain valid for the
