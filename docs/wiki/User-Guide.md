@@ -1753,9 +1753,10 @@ The **Actions** panel brings CI into the app:
 - **CI Windows** uses GitHub-hosted runners for pushes, pull requests, and reusable calls. A
   protected-main manual dispatch can explicitly select `cloud` or the exact
   `[self-hosted, Windows, X64, desktop-material-windows-local]` pool.
-- The repository's **Super Express Release** emergency lane runs no unit,
-  script, TUI, lint, type, parity, smoke, or E2E tests. It goes directly to the
-  Windows x64 production build/package, asset verification, and release. A
+- The repository's **Super Express Release** emergency lane runs the complete
+  script-contract suite before the Windows x64 production build/package, asset
+  verification, and release. It still omits unit, TUI, lint, type, parity,
+  smoke, and packaged E2E tests. A
   direct Windows `workflow_dispatch` publishes an immutable Windows Release
   marked **Latest** after preserving and verifying its artifact; the direct Linux TUI action
   and reusable packaging calls remain artifact-only so the combined dispatcher

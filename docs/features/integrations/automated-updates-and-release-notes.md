@@ -261,9 +261,14 @@ again after the direct publisher downloads the artifact. Release notes warn
 that Windows may show SmartScreen or an unknown-publisher prompt. A signature
 or signer invocation fails the lane; there is no credential fallback.
 
-Both lanes run no unit, script, TUI, lint, type, parity, smoke, trampoline, or
-packaged E2E tests, and they omit history-generated release notes. The ordinary
-CI and tested Express Release paths remain the default release gates.
+The Windows lane runs the repository's complete script-contract suite after
+dependency setup and before it mutates the package version or starts the
+production build. A stale generated catalog, unsafe release contract, or other
+script failure therefore creates no release. The emergency lane still omits
+unit, TUI, lint, type, parity, smoke, trampoline, and packaged E2E tests, while
+the Linux TUI package lane remains packaging-only. Both lanes omit
+history-generated release notes. Ordinary CI and tested Express Release remain
+the comprehensive release gates.
 
 The direct lanes still fail closed around their produced content. They require
 the exact dispatched commit, use the same validated run-ID package version as
@@ -356,11 +361,12 @@ updater to undo them.
   permits package-only recovery but blocks publication. A wrong/stale CI
   trigger, stale dispatch SHA, existing tag, or changed default-branch tip
   stops before publication.
-- Super Express Release must also be dispatched from `main`. It deliberately
-  omits every test/lint/type/parity/smoke gate plus trampoline, packaged E2E,
-  and history-note generation. Use it only when that direct build/package path
-  is the explicit operator choice. Clearing its `publish` input retains
-  artifacts without creating a Release.
+- Super Express Release must also be dispatched from `main`. Its Windows lane
+  runs `yarn test:script` before build and publication, then deliberately omits
+  unit, TUI, lint, type, parity, smoke, trampoline, packaged E2E, and
+  history-note generation. Use it only when that bounded emergency path is the
+  explicit operator choice. Clearing its `publish` input retains artifacts
+  without creating a Release.
 - Release run IDs must be positive decimal values of at most 12 digits, and
   execution attempts must be positive decimal values representable by the
   two-letter base-26 attempt suffix (at most 675). The shared generator

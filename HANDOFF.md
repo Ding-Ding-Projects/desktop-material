@@ -37,15 +37,25 @@ Ordinary `CI Windows` keeps its protected-main `workflow_dispatch` choice
 between `cloud` and the same exact self-hosted Windows pool. Pushes, pull
 requests, and reusable calls cannot select the local runner.
 
+The Windows Super Express build now runs `yarn test:script` immediately after
+dependency setup and before version mutation or compilation. This bounded gate
+adds roughly 22 seconds on the verified host and prevents stale generated docs
+or release-contract regressions from reaching publication while preserving the
+cached emergency build path. Unit, lint, type, parity, smoke, packaged E2E, and
+Linux TUI tests remain in the comprehensive CI and Express lanes.
+
 Direct run
-[`31145566128`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31145566128)
-does not verify this repair: the Windows host began restarting while the build
-job was active, the runner recorded cancellation before a final job log was
-uploaded, and the publisher correctly created no Release. A fresh successful
-dispatch is still required for remote build, unsigned-artifact, publication,
-and Latest evidence. This section supersedes the signing and direct-publisher
-placement statements in the August 6 entry below; its historical run record is
-retained as chronology, not current configuration.
+[`31157301206`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31157301206)
+verified the self-hosted build, unsigned artifact checks, publication, exact
+timing, six-asset payload, and Latest reconciliation at commit
+`a82ac9590bb5d901aeec65e3e639007925f55983`. It published
+[`v3.6.3-beta3-zadwwjmogs`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-zadwwjmogs).
+The parallel CI run then exposed stale generated documentation in both x64 and
+ARM64 script tests; the generator repair and new pre-publication script gate
+supersede that gap. A fresh run after this correction remains required before
+the new gate is remote proof. This section supersedes the signing and
+direct-publisher placement statements in the August 6 entry below; historical
+run records remain chronology, not current configuration.
 
 ## 2026-08-06 — Restore safe selectable Windows CI and direct releases
 

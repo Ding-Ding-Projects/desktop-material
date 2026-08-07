@@ -174,7 +174,7 @@ function runReleaseLifecycleHarness({
 }
 
 describe('Super Express Release workflow', () => {
-  it('is manual-only and dispatches self-hosted-only zero-test build lanes', () => {
+  it('is manual-only with a script-gated Windows lane on self-hosted runners', () => {
     assert.match(workflow, /on:\s*\n\s+workflow_dispatch:/)
     assert.doesNotMatch(workflow, /\n\s+(?:push|workflow_run):/)
     assert.match(
@@ -326,6 +326,22 @@ describe('Super Express Release workflow', () => {
     assert.match(windowsBuildAction, /yarn package/)
     assert.match(
       windowsBuildAction,
+      /Run release script contracts[\s\S]*?run: yarn test:script/
+    )
+    const scriptGate = windowsBuildAction.indexOf(
+      '    - name: Run release script contracts'
+    )
+    const versionMutation = windowsBuildAction.indexOf(
+      '    - name: Apply the release package version'
+    )
+    const productionBuild = windowsBuildAction.indexOf(
+      '    - name: Build production app'
+    )
+    assert.ok(scriptGate >= 0)
+    assert.ok(scriptGate < versionMutation)
+    assert.ok(versionMutation < productionBuild)
+    assert.match(
+      windowsBuildAction,
       /WINDOWS_SIGNING_ENABLED: 'false'[\s\S]*?CSC_IDENTITY_AUTO_DISCOVERY: 'false'/
     )
     assert.match(
@@ -362,7 +378,7 @@ describe('Super Express Release workflow', () => {
     assert.match(windowsBuildAction, /actions\/upload-artifact@v7/)
     assert.doesNotMatch(
       windowsBuildAction,
-      /uv build|pytest|ruff|mypy|yarn test|yarn lint/
+      /uv build|pytest|ruff|mypy|yarn test:unit|yarn lint/
     )
 
     assert.match(tuiWorkflow, /workflow_call:/)

@@ -522,7 +522,7 @@
       h: 'features/integrations/self-hosted-windows-dependency-bootstrap.html',
       s: 'features/integrations/self-hosted-windows-dependency-bootstrap.md',
       c: 'features',
-      d: 'The Windows self-hosted CI path must install dependencies before any build, cache validation, or cross-compilation step invokes Yarn. The repository keeps Yarn 1.21.1 in…',
+      d: 'Every self-hosted Windows job bootstraps its declared dependencies before it builds, tests, packages, or publishes. A warm runner may reuse compatible tools and exact…',
     },
     {
       t: 'SSH working copies and remote clone',
@@ -774,7 +774,7 @@
       h: 'features/quality-and-reliability/supply-chain-and-ci-hardening.html',
       s: 'features/quality-and-reliability/supply-chain-and-ci-hardening.md',
       c: 'features',
-      d: "Desktop Material's continuous-integration workflow builds and signs the Windows installers that users actually run, so what its jobs install and how its runs are scheduled are…",
+      d: "Desktop Material's continuous-integration workflow builds the Windows installers that users actually run, so what its jobs install, how its runs are scheduled, and how it…",
     },
     {
       t: 'Desktop Material feature documentation',

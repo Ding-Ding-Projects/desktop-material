@@ -1,13 +1,13 @@
 name: Super Express Release
 
-# Manual emergency lane. It deliberately runs no tests, lint, type checks,
-# parity checks, or smoke tests. The ordinary CI and Express Release workflows
-# remain the tested release paths. Every job in this emergency lane runs on a
-# registered self-hosted runner: Linux jobs use the WSL runner and the Windows
-# package uses the native Windows runner. The Windows and Linux TUI build jobs
-# run in parallel, then one Linux self-hosted publisher creates the combined
-# Release so the Squirrel update feed and the TUI bootstrap URL still point at
-# one payload.
+# Manual emergency lane. The Windows package runs the repository's script
+# contracts before build; unit, lint, type, parity, smoke, packaged E2E, and
+# Linux TUI tests remain in ordinary CI and Express Release. Every job in this
+# emergency lane runs on a registered self-hosted runner: Linux jobs use the WSL
+# runner and the Windows package uses the native Windows runner. The Windows and
+# Linux TUI build jobs run in parallel, then one Linux self-hosted publisher
+# creates the combined Release so the Squirrel update feed and the TUI bootstrap
+# URL still point at one payload.
 on:
   workflow_dispatch:
     inputs:

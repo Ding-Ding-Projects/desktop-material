@@ -54,6 +54,10 @@ runs:
         node-version: ${{ inputs.node_version }}
         arch: x64
 
+    - name: Run release script contracts
+      shell: bash
+      run: yarn test:script
+
     - name: Resolve release package version
       id: resolve_version
       shell: bash

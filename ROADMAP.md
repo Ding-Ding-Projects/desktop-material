@@ -27,11 +27,18 @@ Updated: **August 7, 2026**
 - Ordinary `CI Windows` retains the protected-main `workflow_dispatch` choice
   between `cloud` and the exact project-labelled self-hosted pool; automatic and
   untrusted triggers cannot select the local runner.
+- The Windows Super Express action now runs the complete `yarn test:script`
+  contract before version mutation, production build, or publication. The
+  verified local gate adds about 22 seconds while keeping the dependency and
+  tool caches warm; a failing script contract creates no release.
 - Direct run
-  [`31145566128`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31145566128)
-  was interrupted by a Windows host restart before its job log finalized. It
-  published no Release and is not remote proof; a fresh successful dispatch is
-  still required.
+  [`31157301206`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31157301206)
+  published six verified unsigned assets as GitHub Latest Release
+  [`v3.6.3-beta3-zadwwjmogs`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-zadwwjmogs)
+  for exact commit `a82ac9590bb5d901aeec65e3e639007925f55983` with measured
+  duration `00:34:37`. The separate CI run exposed stale generated docs in both
+  Windows architectures; the regenerated catalogs and script gate require one
+  fresh remote run for final proof.
 
 ## August 6 — Select Windows CI capacity and ship Latest releases (superseded)
 

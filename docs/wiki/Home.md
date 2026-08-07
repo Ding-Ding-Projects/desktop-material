@@ -287,9 +287,11 @@ the tonal workspace preview hides when a compact window needs the space.
 - **Windows profile history** — the TUI configures `core.longpaths` inside its own isolated Git
   history repository as well as in CI checkout preparation, so Windows history writes do not rely
   on a separate repository's local Git configuration.
-- **Release gates** — the manual Super Express emergency lane runs no tests and
-   goes directly to its Windows x64 build/package, asset verification, and
-   release. The combined dispatcher keeps preparation and publication on the
+- **Release gates** — the manual Super Express emergency lane runs the complete
+   script-contract suite before its Windows x64 build/package, asset
+   verification, and release. It still omits the slower unit, lint, type,
+   parity, smoke, packaged E2E, and Linux TUI test gates. The combined
+   dispatcher keeps preparation and publication on the
    registered Linux x64 WSL runner, the Windows lane on `[self-hosted, Windows,
    X64]`, and the TUI lane on `[self-hosted, Linux, X64]`. A direct Windows lane
    dispatch keeps both packaging and publication on

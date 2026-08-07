@@ -1,8 +1,8 @@
 name: Super Express Release / Windows
 
-# Reusable zero-test Windows lane for Super Express Release. Packaging stays on
-# the trusted labelled Windows runner so both packaging and publication reuse
-# the same bounded self-hosted dependency and tool caches.
+# Reusable script-gated Windows lane for Super Express Release. Packaging stays
+# on the trusted labelled Windows runner so validation, packaging, and
+# publication reuse the same bounded self-hosted dependency and tool caches.
 on:
   workflow_call:
     inputs:
