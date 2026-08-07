@@ -22,13 +22,18 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4182,
+    entryCount: 4183,
     releases: [
       {
         v: '3.6.3-material22',
         d: '2026-08-06',
-        t: '22:41',
+        t: '22:59',
         e: [
+          [
+            'Fixed',
+            'The documentation hub catalog and landing-page inventory now include the Scheduled Settings article, keeping the committed 277-page projection current for script tests and release packaging',
+            'd6a747ef377af2d752f68c69d935e80bdc775e51',
+          ],
           [
             'Fixed',
             'Non-fatal submodule recovery now uses shell-neutral workflow controls on Windows and Linux, while Linux TUI changelog validation checks out complete history before resolving referenced commits',
