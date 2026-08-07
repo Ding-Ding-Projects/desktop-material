@@ -24,11 +24,11 @@ describe('checkbox accessible names', () => {
     )
     assert.match(
       readUI('repository-list-transfer/import-repositories-dialog.tsx'),
-      /ariaLabel=\{`Select \$\{props\.url\} for import`\}/
+      /ariaLabel=\{t\('repositoryTransfer\.selectForImport', \{\s*url: props\.url,?\s*\}\)\}/
     )
     assert.match(
       readUI('repository-list-transfer/export-repositories-dialog.tsx'),
-      /ariaLabel=\{`Select \$\{repository\.name\} for export`\}/
+      /ariaLabel=\{t\('repositoryTransfer\.selectForExport', \{\s*name: repository\.name,?\s*\}\)\}/
     )
   })
 })

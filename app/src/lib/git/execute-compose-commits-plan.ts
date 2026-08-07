@@ -51,14 +51,19 @@ export async function executeComposeCommitsPlan(
       mode: 0o600,
     })
 
-    return await rebaseInteractive(repository, todoPath, lastRetainedCommitRef, {
-      action: 'Compose commits with AI',
-      commits: plan.entries.map(entry => ({
-        sha: entry.commitId,
-        summary: entry.subject,
-      })),
-      progressCallback,
-    })
+    return await rebaseInteractive(
+      repository,
+      todoPath,
+      lastRetainedCommitRef,
+      {
+        action: 'Compose commits with AI',
+        commits: plan.entries.map(entry => ({
+          sha: entry.commitId,
+          summary: entry.subject,
+        })),
+        progressCallback,
+      }
+    )
   } finally {
     await rm(todoPath, { force: true })
   }

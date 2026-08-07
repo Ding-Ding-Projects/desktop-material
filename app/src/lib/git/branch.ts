@@ -255,13 +255,22 @@ export async function deleteReviewedLocalBranches(
  *
  * @param remoteName - the name of the remote to delete the branch from
  * @param remoteBranchName - the name of the branch on the remote
+ * @param expectedSha - if supplied, delete only when the remote still points
+ *                      at this reviewed tip
  */
 export async function deleteRemoteBranch(
   repository: Repository,
   remote: IRemote,
-  remoteBranchName: string
+  remoteBranchName: string,
+  expectedSha?: string
 ): Promise<true> {
-  const args = ['push', remote.name, `:${remoteBranchName}`]
+  const args = ['push']
+  if (expectedSha !== undefined) {
+    args.push(
+      `--force-with-lease=refs/heads/${remoteBranchName}:${expectedSha}`
+    )
+  }
+  args.push(remote.name, `:${remoteBranchName}`)
 
   // If the user is not authenticated, the push is going to fail
   // Let this propagate and leave it to the caller to handle
@@ -275,6 +284,11 @@ export async function deleteRemoteBranch(
   // error we can safely remove our remote ref which is what would
   // happen if the push didn't fail.
   if (result.gitError === DugiteError.BranchDeletionFailed) {
+    if (expectedSha !== undefined) {
+      throw new Error(
+        'The reviewed remote branch moved or could not be deleted safely.'
+      )
+    }
     const ref = `refs/remotes/${remote.name}/${remoteBranchName}`
     await deleteRef(repository, ref)
   }

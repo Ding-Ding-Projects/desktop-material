@@ -543,6 +543,12 @@ void logStoreInitialization.catch(err =>
 
 configureRendererShutdown([
   {
+    name: 'scheduled settings runtime',
+    run: async () => {
+      appStore.stopScheduledSettingsRuntime()
+    },
+  },
+  {
     name: 'profile settings',
     run: async () => {
       await profileStoreInitialization
@@ -790,6 +796,10 @@ ipcRenderer.on('cli-action', (_, action) =>
 //
 // 1. https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-label
 // 2. https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-readonly
+const gridWithOptionalPropTypes = Grid as typeof Grid & {
+  propTypes?: Record<string, unknown>
+}
+
 ;(function (
   defaults: Record<string, unknown> | undefined,
   types: Record<string, unknown> | undefined
@@ -798,7 +808,7 @@ ipcRenderer.on('cli-action', (_, action) =>
     delete defaults?.[k]
     delete types?.[k]
   })
-})(Grid.defaultProps, Grid.propTypes)
+})(gridWithOptionalPropTypes.defaultProps, gridWithOptionalPropTypes.propTypes)
 
 ReactDOM.render(
   <CrashProofBoundary name="Desktop Material" root={true}>

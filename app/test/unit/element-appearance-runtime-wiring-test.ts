@@ -37,11 +37,19 @@ describe('element appearance runtime wiring', () => {
 
     assert.match(
       source,
-      /elementAppearanceCoordinator\?\.onDidUpdate\(state => \{[\s\S]*?appearanceCustomization = state\.appearance[\s\S]*?emitUpdate\(\)/
+      /elementAppearanceCoordinator\?\.onDidUpdate\(state => \{[\s\S]*?scheduledBaseAppearanceCustomization = state\.appearance[\s\S]*?applyScheduledSettingsValue\(this\.scheduledSettingsValue\)/
     )
     assert.match(
       source,
-      /_setAppearanceCustomization[\s\S]*?normalizeAppearanceCustomization[\s\S]*?setAppearanceProjection[\s\S]*?catch \(error\)[\s\S]*?getState\(\)[\s\S]*?appearanceCustomization = state\.appearance[\s\S]*?throw appearanceError/
+      /applyScheduledSettingsValue[\s\S]*?appearanceCustomization = normalizeAppearanceCustomization[\s\S]*?emitUpdate\(\)/
+    )
+    assert.match(
+      source,
+      /getBaseAppearanceAfterUserChange[\s\S]*?return normalizeAppearanceCustomization\(next\)/
+    )
+    assert.match(
+      source,
+      /_setAppearanceCustomization[\s\S]*?getBaseAppearanceAfterUserChange\(customization\)[\s\S]*?setAppearanceProjection[\s\S]*?catch \(error\)[\s\S]*?getState\(\)[\s\S]*?scheduledBaseAppearanceCustomization = state\.appearance[\s\S]*?applyScheduledSettingsValue\(this\.scheduledSettingsValue\)[\s\S]*?throw appearanceError/
     )
   })
 })

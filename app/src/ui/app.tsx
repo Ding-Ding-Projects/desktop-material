@@ -33,7 +33,6 @@ import { assertNever } from '../lib/fatal-error'
 import { openFolderInFileManager } from '../lib/app-shell'
 import { updateStore, UpdateStatus } from './lib/update-store'
 import {
-  getPersistedLanguageMode,
   t,
   translatedVariable,
   translateForAccessibleName,
@@ -194,6 +193,7 @@ import { IRepositoryTab } from '../models/repository-tab'
 import { NotificationAutomationsDialog } from './notifications/notification-automations-dialog'
 import { LogHistoryDialog } from './log-history/log-history-dialog'
 import { FileHistory } from './file-history'
+import { StoreWorkingTreeFilesInCheapLfsDialog } from './changes/store-working-tree-files-in-cheap-lfs-dialog'
 import { SparseCheckoutManager } from './sparse-checkout'
 import { BranchRulesInspector } from './branch-rules'
 import { EffectiveBranchRulesAPIDataSource } from '../lib/effective-branch-rules-api'
@@ -591,6 +591,7 @@ const ModalPopupTypes = new Set<PopupType>([
   PopupType.PullPreview,
   PopupType.CheapLfsCloneAssets,
   PopupType.CheapLfsPayloadPassword,
+  PopupType.StoreWorkingTreeFilesInCheapLfs,
 ])
 
 export const bannerTransitionTimeout = { enter: 500, exit: 400 }
@@ -1173,7 +1174,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     return (
       <DimSumSurprise
         dish={dish}
-        languageMode={getPersistedLanguageMode()}
+        languageMode={this.state.appearanceCustomization.languageMode}
         funnyLevels={readFunnyLevels()}
         onDismissed={this.onDimSumSurpriseDismissed}
       />
@@ -1422,7 +1423,8 @@ export class App extends React.Component<IAppProps, IAppState> {
    */
   private resizeActiveResizable(
     menuId:
-      'increase-active-resizable-width' | 'decrease-active-resizable-width'
+      | 'increase-active-resizable-width'
+      | 'decrease-active-resizable-width'
   ) {
     document.activeElement?.dispatchEvent(
       new CustomEvent(menuId, {
@@ -1710,6 +1712,10 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showPreferencesTab(PreferencesTab.AgentAccess)
       case 'palette:preferences-sound':
         return this.showPreferencesTab(PreferencesTab.Sound)
+      case 'palette:preferences-self-hosted-server':
+        return this.showPreferencesTab(PreferencesTab.SelfHostedServer)
+      case 'palette:preferences-ai':
+        return this.showPreferencesTab(PreferencesTab.AI)
       case 'palette:preferences-copilot':
         return this.showPreferencesTab(PreferencesTab.Copilot)
       case 'palette:ollama-model-manager':
@@ -1746,6 +1752,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showRepositorySettings(RepositorySettingsTab.Metadata)
       case 'palette:repository-settings-appearance':
         return this.showRepositorySettings(RepositorySettingsTab.Appearance)
+      case 'palette:repository-settings-ai-security':
+        return this.showRepositorySettings(RepositorySettingsTab.AISecurity)
       case 'palette:repository-settings-fork-settings':
         return this.showRepositorySettings(RepositorySettingsTab.ForkSettings)
       // The Help menu's links had no palette route at all: they live only as
@@ -2158,9 +2166,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     values.set('palette:set-git-hook-env-cache', getCacheHooksEnv())
     values.set(
       'palette:set-external-editor',
-      this.state.useCustomEditor
-        ? ''
-        : (this.state.selectedExternalEditor ?? '')
+      this.state.useCustomEditor ? '' : this.state.selectedExternalEditor ?? ''
     )
     values.set(
       'palette:set-shell',
@@ -2950,10 +2956,10 @@ export class App extends React.Component<IAppProps, IAppState> {
       home.kind === 'preferences'
         ? preferencesPaletteEvent(home.tab)
         : home.kind === 'repositorySettings'
-          ? repositorySettingsPaletteEvent(home.tab)
-          : home.openEvent === 'self'
-            ? command.event
-            : home.openEvent
+        ? repositorySettingsPaletteEvent(home.tab)
+        : home.openEvent === 'self'
+        ? command.event
+        : home.openEvent
 
     if (openEvent !== undefined) {
       this.onPaletteCommand(openEvent)
@@ -3888,7 +3894,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     const appName = state.appearanceCustomization.appIdentity.displayName
     const repositoryTitle =
       repository instanceof Repository
-        ? (repository.alias ?? repository.name)
+        ? repository.alias ?? repository.name
         : repository?.name
     return repositoryTitle ? `${repositoryTitle} - ${appName}` : appName
   }
@@ -4424,7 +4430,7 @@ export class App extends React.Component<IAppProps, IAppState> {
   private get externalEditorLabel() {
     return this.state.useCustomEditor
       ? undefined
-      : (this.state.selectedExternalEditor ?? undefined)
+      : this.state.selectedExternalEditor ?? undefined
   }
 
   private getExternalEditorLabel(repository: Repository | CloningRepository) {
@@ -4629,6 +4635,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             repository={popup.repository}
             branch={popup.branch}
             existsOnRemote={popup.existsOnRemote}
+            expectedSha={popup.expectedSha}
             onDismissed={onPopupDismissedFn}
             onDeleted={this.onBranchDeleted}
           />
@@ -4640,6 +4647,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             dispatcher={this.props.dispatcher}
             repository={popup.repository}
             branch={popup.branch}
+            expectedSha={popup.expectedSha}
             onDismissed={onPopupDismissedFn}
             onDeleted={this.onBranchDeleted}
           />
@@ -4727,6 +4735,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             selectedShell={this.state.selectedShell}
             selectedTheme={this.state.selectedTheme}
             appearanceCustomization={this.state.appearanceCustomization}
+            scheduledSettings={this.state.scheduledSettings}
             zoomBaseFactor={this.state.zoomBaseFactor}
             autoFitZoomEnabled={this.state.autoFitZoomEnabled}
             windowZoomFactor={this.state.windowZoomFactor}
@@ -4799,6 +4808,17 @@ export class App extends React.Component<IAppProps, IAppState> {
             onRefreshRepository={this.getOnRefreshRepositoryFn(
               popup.repository
             )}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.StoreWorkingTreeFilesInCheapLfs:
+        return (
+          <StoreWorkingTreeFilesInCheapLfsDialog
+            key={`store-working-tree-files-in-cheap-lfs-${popup.repository.id}`}
+            repository={popup.repository}
+            paths={popup.paths}
+            excludedPaths={popup.excludedPaths}
+            dispatcher={this.props.dispatcher}
             onDismissed={onPopupDismissedFn}
           />
         )
@@ -7394,8 +7414,9 @@ export class App extends React.Component<IAppProps, IAppState> {
   private async mirrorRepositoryAppearance(
     repository: Repository
   ): Promise<IRepositoryAppearanceElementSettings> {
-    const values =
-      await this.props.dispatcher.getRepositoryAppearanceElements(repository)
+    const values = await this.props.dispatcher.getRepositoryAppearanceElements(
+      repository
+    )
     await this.props.dispatcher.setRepositoryAppearanceOverrides(
       repository,
       this.repositoryElementsAsLegacyOverrides(values)
@@ -7404,7 +7425,7 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private setRepositoryAppearanceElement<
-    K extends RepositoryAppearanceElementId,
+    K extends RepositoryAppearanceElementId
   >(
     target: RepositoryAppearanceEditorTarget,
     id: K,
@@ -7436,8 +7457,8 @@ export class App extends React.Component<IAppProps, IAppState> {
       target.elementId === RepositoryAppearanceElementId.Workspace
         ? ProfileAppearanceElementId.AppWorkspace
         : target.elementId === RepositoryAppearanceElementId.Toolbar
-          ? ProfileAppearanceElementId.Toolbar
-          : ProfileAppearanceElementId.RepositoryTabs
+        ? ProfileAppearanceElementId.Toolbar
+        : ProfileAppearanceElementId.RepositoryTabs
     this.appearanceEditorTarget = {
       kind: 'profile',
       elementId,
@@ -7694,8 +7715,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         target.elementId === RepositoryAppearanceElementId.Workspace
           ? 'Repository workspace appearance'
           : target.elementId === RepositoryAppearanceElementId.Toolbar
-            ? 'Repository toolbar appearance'
-            : 'Repository tabs appearance'
+          ? 'Repository toolbar appearance'
+          : 'Repository tabs appearance'
       return (
         <AnchoredAppearanceEditor
           title={title}
@@ -8120,7 +8141,7 @@ export class App extends React.Component<IAppProps, IAppState> {
 
       const expectedWorktree = isRetry
         ? retryCandidate
-        : (this.pendingAgentSetupWorktrees.get(retryKey) ?? null)
+        : this.pendingAgentSetupWorktrees.get(retryKey) ?? null
       const created =
         expectedWorktree === null
           ? undefined
@@ -8232,8 +8253,8 @@ export class App extends React.Component<IAppProps, IAppState> {
               nextSetupCommandIndex:
                 setupResult.status === 'succeeded'
                   ? reviewedSetupCommands.length
-                  : (setupResult.commandIndex ??
-                    pendingSetup.nextSetupCommandIndex),
+                  : setupResult.commandIndex ??
+                    pendingSetup.nextSetupCommandIndex,
             })
           }
           this.props.dispatcher.postNotification({
@@ -8918,6 +8939,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         aheadBehind={state.aheadBehind}
         numTagsToPush={state.tagsToPush !== null ? state.tagsToPush.length : 0}
         remoteName={remoteName}
+        remoteCount={state.remotes.length}
         lastFetched={state.lastFetched}
         networkActionInProgress={state.isPushPullFetchInProgress}
         progress={progress}

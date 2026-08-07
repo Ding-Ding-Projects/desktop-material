@@ -1412,8 +1412,9 @@ export class CopilotStore extends BaseStore {
    *   the default conflict-resolution model is used.
    * @param onProgress - Optional callback for streaming progress to the UI
    * @param policyAuthorization - A signed policy plus independent main-process
-   *   verification evidence. Missing evidence fails closed before any SDK
-   *   client, session, prompt, or context transport is created.
+   *   verification evidence. When omitted, the current administrator policy is
+   *   consulted and must issue a valid authorization before any SDK client,
+   *   session, prompt, or context transport is created.
    * @param activeRepositoryId - Repository identity selected independently by
    *   the active app state. It must match both policy and trusted evidence.
    * @returns The parsed conflict resolution response

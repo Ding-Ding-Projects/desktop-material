@@ -1,7 +1,8 @@
 name: Super Express Release / Windows
 
-# Reusable zero-test Windows lane for Super Express Release. It is deliberately
-# self-hosted-only and queues until the registered Windows x64 runner is ready.
+# Reusable script-gated Windows lane for Super Express Release. Packaging stays
+# on the trusted labelled Windows runner so validation, packaging, and
+# publication reuse the same bounded self-hosted dependency and tool caches.
 on:
   workflow_call:
     inputs:
@@ -26,6 +27,10 @@ on:
         required: false
         type: string
 
+concurrency:
+  group: super-express-release-windows-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -35,29 +40,590 @@ env:
 jobs:
   build:
     name: Build Windows x64 package (self-hosted)
+    # Reusable calls may only come from this repository's protected main
+    # workflow. Manual emergency dispatch remains the only direct caller.
+    if: >-
+      github.event_name == 'workflow_dispatch' || (github.event_name ==
+      'workflow_call' && github.repository ==
+      'Ding-Ding-Projects/desktop-material' && github.ref == 'refs/heads/main')
+    permissions:
+      contents: read
+    outputs:
+      release_version: ${{ steps.package.outputs.release_version }}
+      release_tag: ${{ steps.package.outputs.release_tag }}
+      artifact_name: ${{ steps.package.outputs.artifact_name }}
     runs-on:
       - self-hosted
       - Windows
       - X64
+      - desktop-material-windows-local
     timeout-minutes: 60
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
       RELEASE_VERSION: ${{ inputs.release_version }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - name: Retrieve repository bootstrap files
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ inputs.release_target_sha || github.sha }}
           fetch-depth: 0
-          submodules: recursive
+          persist-credentials: false
 
-      - uses: ./.github/actions/super-express-windows-build
+      - name: Reuse or install Git Bash before the full checkout
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+        run:
+          '& "$env:GITHUB_WORKSPACE\.github\scripts\ensure-windows-git-bash.ps1"'
+
+      - name: Check out the exact release target with Git
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ inputs.release_target_sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Attempt to update submodules (non-fatal)
+        continue-on-error: true
+        run: |
+          # prefer the new official mirror for the lowlevel MCP submodule if present
+          git config --local submodule.vendor/lowlevel-computer-use-mcp.url https://github.com/Ding-Ding-Projects/lowlevel-computer-use-mcp.git
+          git submodule sync --recursive
+          git submodule update --init --recursive
+
+      - name: Require the current main tip for a direct release
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+        run: |
+          git fetch origin main
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to fetch the current main tip.'
+          }
+          $currentMain = (git rev-parse origin/main).Trim()
+          if ($LASTEXITCODE -ne 0 -or -not $currentMain) {
+            throw 'Failed to resolve the current main tip.'
+          }
+          if ($env:RELEASE_TARGET_SHA -ne $currentMain) {
+            throw "Direct releases must target current main $currentMain, not $env:RELEASE_TARGET_SHA."
+          }
+      - id: package
+        uses: ./.github/actions/super-express-windows-build
         with:
           release_target_sha: ${{ inputs.release_target_sha || github.sha }}
           release_version: ${{ inputs.release_version }}
           node_version: ${{ env.NODE_VERSION }}
         env:
-          DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
           DESKTOP_ERROR_REPORTING_ENDPOINT:
             ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
           DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
             ${{ secrets.DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT }}
+
+  publish:
+    name: Publish direct Windows GitHub Release
+    if: >-
+      !cancelled() && github.event_name == 'workflow_dispatch' &&
+      needs.build.result == 'success'
+    needs: build
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
+      - desktop-material-windows-local
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      actions: read
+    env:
+      RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
+      RELEASE_VERSION: ${{ needs.build.outputs.release_version }}
+      RELEASE_TAG: ${{ needs.build.outputs.release_tag }}
+    steps:
+      - name: Retrieve repository bootstrap files
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ env.RELEASE_TARGET_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Reuse or install Git Bash for release publication
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+        run:
+          '& "$env:GITHUB_WORKSPACE\.github\scripts\ensure-windows-git-bash.ps1"'
+
+      - name: Check out the exact release target with Git
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ env.RELEASE_TARGET_SHA }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require the exact packaged commit
+        shell: bash
+        run: |
+          checked_out=$(git rev-parse HEAD)
+          if [ "$checked_out" != "$RELEASE_TARGET_SHA" ]; then
+            echo "Checked-out commit $checked_out does not match $RELEASE_TARGET_SHA." >&2
+            exit 1
+          fi
+
+      - uses: ./.github/actions/setup-github-cli
+
+      - uses: ./.github/actions/setup-jq
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.build.outputs.artifact_name }}
+          path: release-payload/installers
+
+      - name: Verify downloaded Windows release payload
+        shell: bash
+        run: |
+          required=(
+            release-payload/installers/RELEASES
+            "release-payload/installers/GitHub Desktop-x64.zip"
+            release-payload/installers/GitHubDesktopSetup-x64.exe
+            release-payload/installers/GitHubDesktopSetup-x64.msi
+            "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-full.nupkg"
+            "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"
+          )
+          for asset in "${required[@]}"; do
+            if [ ! -s "$asset" ]; then
+              echo "Missing or empty downloaded Windows release asset: $asset" >&2
+              exit 1
+            fi
+          done
+
+          node script/verify-releases-manifest.js \
+            release-payload/installers/RELEASES \
+            release-payload/installers
+
+      - name: Require downloaded installers to remain unsigned
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+        run: |
+          $installers = @(
+            'release-payload\installers\GitHubDesktopSetup-x64.exe',
+            'release-payload\installers\GitHubDesktopSetup-x64.msi'
+          )
+          foreach ($installer in $installers) {
+            if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
+              throw "Downloaded unsigned installer is missing: $installer"
+            }
+            $signature = Get-AuthenticodeSignature -LiteralPath $installer
+            if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
+              throw "Downloaded installer must remain unsigned: ${installer} reported $($signature.Status)"
+            }
+            Write-Host "Downloaded unsigned installer verified: $installer"
+          }
+
+      - name: Require an unused immutable tag
+        shell: bash
+        run: |
+          set +e
+          git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1
+          status=$?
+          set -e
+          case "$status" in
+            2) ;;
+            0)
+              echo "Release tag $RELEASE_TAG already exists; refusing to replace it." >&2
+              exit 1
+              ;;
+            *)
+              echo "Unable to prove $RELEASE_TAG is unused (status $status)." >&2
+              exit "$status"
+              ;;
+          esac
+
+      - name: Write Windows release notes
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          {
+            echo "Windows x64 Super Express package for commit \`$RELEASE_TARGET_SHA\`."
+            echo
+            echo 'This direct manual lane publishes a Windows-only recovery release.'
+            echo 'The combined Super Express dispatcher remains the source of the cross-platform release.'
+            echo 'This emergency lane deliberately runs no test or lint gates.'
+            echo 'The Windows setup executable and MSI are permanently unsigned and may trigger an unknown-publisher or SmartScreen warning.'
+            echo 'The workflow verifies the exact commit, unsigned installer state, immutable version, Squirrel package hashes and sizes, and six required non-empty release assets before publication.'
+            echo
+            echo '### Commit'
+            echo
+            git show --no-patch --format='%s%n%n%b' "$RELEASE_TARGET_SHA" | \
+              sed 's/^/    /'
+            echo
+            echo '## Lines of code'
+            echo
+            node script/count-lines.mjs
+            echo
+            echo "Counted by CI over \`$RELEASE_TARGET_SHA\` with \`node script/count-lines.mjs\`."
+          } > release-payload/release-notes.md
+
+          metadata_ready=true
+          if ! gh api \
+            repos/Ding-Ding-Projects/dim-sum-photos/contents/catalog/index.json \
+            -H 'Accept: application/vnd.github.raw+json' \
+            > release-payload/dim-sum-catalog.json; then
+            metadata_ready=false
+          fi
+          if ! gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --paginate --jq '.[].body // ""' \
+            > release-payload/prior-release-bodies.txt; then
+            metadata_ready=false
+          fi
+          if ! gh api \
+            'repos/Ding-Ding-Projects/dim-sum-photos/releases?per_page=100' \
+            --paginate --jq '
+              .[] | select(.tag_name | startswith("catalog-v1")) |
+              [.id, .tag_name] | @tsv
+            ' > release-payload/dim-sum-catalog-releases.tsv; then
+            metadata_ready=false
+          fi
+          : > release-payload/published-dim-sum-assets.tsv
+          if [ ! -s release-payload/dim-sum-catalog-releases.tsv ]; then
+            metadata_ready=false
+          else
+            while IFS=$'\t' read -r catalog_release_id catalog_release_tag; do
+              if ! gh api \
+                "repos/Ding-Ding-Projects/dim-sum-photos/releases/$catalog_release_id/assets?per_page=100" \
+                --paginate --jq '.[].name' \
+                > release-payload/dim-sum-release-assets.txt; then
+                metadata_ready=false
+                break
+              fi
+              while IFS= read -r asset_name; do
+                printf '%s\t%s\n' "$catalog_release_tag" "$asset_name"
+              done < release-payload/dim-sum-release-assets.txt \
+                >> release-payload/published-dim-sum-assets.tsv
+            done < release-payload/dim-sum-catalog-releases.tsv
+          fi
+          if [ "$metadata_ready" = true ]; then
+            choice=$(jq -c \
+              --rawfile used release-payload/prior-release-bodies.txt \
+              --rawfile published release-payload/published-dim-sum-assets.tsv '
+              ($published | split("\n") |
+                map(select(length > 0) | split("\t")) |
+                map({ key: .[1], value: .[0] }) | from_entries) as $assets |
+              [.dishes[] | . as $dish |
+                ($dish.image.path | split("/")[-1]) as $file |
+                select(($used | contains($dish.name.en + " · " + $dish.name.zhHant)) | not) |
+                select($assets[$file] != null) |
+                { dish: $dish, file: $file, tag: $assets[$file] }][0] // empty
+            ' release-payload/dim-sum-catalog.json)
+            if [ -n "$choice" ]; then
+              dish_name=$(jq -r '.dish.name.en + " · " + .dish.name.zhHant' <<<"$choice")
+              dish_file=$(jq -r .file <<<"$choice")
+              dish_tag=$(jq -r .tag <<<"$choice")
+              {
+                echo
+                echo '## Release code name'
+                echo
+                echo "$dish_name"
+                echo
+                echo "[Public dish photo](https://github.com/Ding-Ding-Projects/dim-sum-photos/releases/download/$dish_tag/$dish_file)"
+              } >> release-payload/release-notes.md
+            else
+              echo '::warning::No unused dim-sum code name with a published photo was available; releasing with the version only.'
+            fi
+          else
+            echo '::warning::Dim-sum release metadata could not be proven complete; releasing with the version only.'
+          fi
+
+      - name: Stage immutable Windows-only GitHub Release draft
+        id: draft_release
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          shopt -s nullglob
+          assets=(release-payload/installers/*)
+          shopt -u nullglob
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo 'No Windows release assets were staged.' >&2
+            exit 1
+          fi
+          echo 'staging_attempted=true' >> "$GITHUB_OUTPUT"
+          gh release create "$RELEASE_TAG" \
+            "${assets[@]}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$RELEASE_TARGET_SHA" \
+            --title "Desktop Material Windows x64 $RELEASE_VERSION" \
+            --notes-file release-payload/release-notes.md \
+            --draft
+
+          draft_matches=$(gh api \
+            "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --paginate \
+            --jq '
+              .[] |
+              select(.tag_name == env.RELEASE_TAG) |
+              [.id, .tag_name, .target_commitish] | @tsv
+            ')
+          draft_rows=()
+          while IFS= read -r row; do
+            [ -n "$row" ] && draft_rows+=("$row")
+          done <<<"$draft_matches"
+          if [ "${#draft_rows[@]}" -ne 1 ]; then
+            echo "Could not resolve exactly one staged draft for $RELEASE_TAG." >&2
+            exit 1
+          fi
+          IFS=$'\t' read -r draft_id draft_tag draft_target unexpected \
+            <<<"${draft_rows[0]}"
+          if ! [[ "$draft_id" =~ ^[0-9]+$ ]] ||
+            [ "$draft_tag" != "$RELEASE_TAG" ] ||
+            [ "$draft_target" != "$RELEASE_TARGET_SHA" ] ||
+            [ -n "${unexpected:-}" ]; then
+            echo "The staged draft identity does not match this release run." >&2
+            exit 1
+          fi
+          echo "draft_id=$draft_id" >> "$GITHUB_OUTPUT"
+
+      - name: Verify draft target and assets before publication
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          draft=$(gh api \
+            "repos/$GITHUB_REPOSITORY/releases/${{ steps.draft_release.outputs.draft_id }}")
+          if [ "$(jq -r .draft <<<"$draft")" != 'true' ]; then
+            echo 'The staged release is not a draft.' >&2
+            exit 1
+          fi
+          if [ "$(jq -r .tag_name <<<"$draft")" != "$RELEASE_TAG" ]; then
+            echo 'The staged release tag does not match the requested tag.' >&2
+            exit 1
+          fi
+          if [ "$(jq -r .target_commitish <<<"$draft")" != "$RELEASE_TARGET_SHA" ]; then
+            echo 'The staged release target does not match the packaged commit.' >&2
+            exit 1
+          fi
+          for expected in \
+            'RELEASES' \
+            'GitHub.Desktop-x64.zip' \
+            'GitHubDesktopSetup-x64.exe' \
+            'GitHubDesktopSetup-x64.msi' \
+            "GitHubDesktop-${RELEASE_VERSION}-full.nupkg" \
+            "GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"; do
+            size=$(jq -r --arg name "$expected" \
+              '[.assets[] | select(.name == $name) | .size][0] // 0' <<<"$draft")
+            if ! [[ "$size" =~ ^[0-9]+$ ]] || [ "$size" -le 0 ]; then
+              echo "Draft Windows release is missing non-empty asset $expected." >&2
+              exit 1
+            fi
+          done
+
+      - name: Publish verified Windows release
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh api --method PATCH \
+            "repos/$GITHUB_REPOSITORY/releases/${{ steps.draft_release.outputs.draft_id }}" \
+            -F draft=false \
+            -F prerelease=false \
+            -f make_latest=false >/dev/null
+
+      - name: Verify published target and assets
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          published=$(gh api \
+            "repos/$GITHUB_REPOSITORY/releases/${{ steps.draft_release.outputs.draft_id }}")
+          if [ "$(jq -r .draft <<<"$published")" != 'false' ]; then
+            echo 'Published release unexpectedly remained a draft.' >&2
+            exit 1
+          fi
+          if [ "$(jq -r .prerelease <<<"$published")" != 'false' ]; then
+            echo 'Published release unexpectedly became a prerelease.' >&2
+            exit 1
+          fi
+          if [ "$(jq -r .tag_name <<<"$published")" != "$RELEASE_TAG" ]; then
+            echo 'Published release tag does not match the requested tag.' >&2
+            exit 1
+          fi
+          if [ "$(jq -r .target_commitish <<<"$published")" != "$RELEASE_TARGET_SHA" ]; then
+            echo 'Published release target does not match the packaged commit.' >&2
+            exit 1
+          fi
+
+          for expected in \
+            'RELEASES' \
+            'GitHub.Desktop-x64.zip' \
+            'GitHubDesktopSetup-x64.exe' \
+            'GitHubDesktopSetup-x64.msi' \
+            "GitHubDesktop-${RELEASE_VERSION}-full.nupkg" \
+            "GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"; do
+            size=$(jq -r --arg name "$expected" \
+              '[.assets[] | select(.name == $name) | .size][0] // 0' <<<"$published")
+            if ! [[ "$size" =~ ^[0-9]+$ ]] || [ "$size" -le 0 ]; then
+              echo "Published Windows release is missing non-empty asset $expected." >&2
+              exit 1
+            fi
+          done
+
+          git fetch --force --quiet origin \
+            "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          published_tag=$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")
+          if [ "$published_tag" != "$RELEASE_TARGET_SHA" ]; then
+            echo "Published tag resolves to $published_tag, expected $RELEASE_TARGET_SHA." >&2
+            exit 1
+          fi
+
+          latest=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 \
+            --json tagName,isLatest \
+            --jq '.[] | select(.isLatest == true) | .tagName')
+          if [ "$latest" = "$RELEASE_TAG" ]; then
+            echo 'Release became Latest before its exact timing notes were verified.' >&2
+            exit 1
+          fi
+
+      - name: Finalize exact workflow timing in release notes
+        id: finalize_timing
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          workflow_started=''
+          workflow_completed=''
+          for _ in 1 2 3 4 5 6; do
+            jobs=$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100")
+            workflow_started=$(jq -r \
+              '[.jobs[].started_at | select(type == "string")] | min // empty' \
+              <<<"$jobs")
+            workflow_completed=$(jq -r '
+              [.jobs[].steps[]? |
+                select(.name == "Publish verified Windows release") |
+                .completed_at | select(type == "string")] | max // empty
+            ' <<<"$jobs")
+            if [[ "$workflow_started" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]] &&
+              [[ "$workflow_completed" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]; then
+              break
+            fi
+            sleep 5
+          done
+          if [[ ! "$workflow_started" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]] ||
+            [[ ! "$workflow_completed" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]; then
+            echo 'Exact first-job or release-publication timing is unavailable.' >&2
+            exit 1
+          fi
+          workflow_duration=$(node - "$workflow_started" "$workflow_completed" <<'NODE'
+          const started = Date.parse(process.argv[2])
+          const completed = Date.parse(process.argv[3])
+          if (!Number.isFinite(started) || !Number.isFinite(completed) || completed < started) {
+            process.exit(1)
+          }
+          const seconds = Math.floor((completed - started) / 1000)
+          const hh = String(Math.floor(seconds / 3600)).padStart(2, '0')
+          const mm = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0')
+          const ss = String(seconds % 60).padStart(2, '0')
+          process.stdout.write(`${hh}:${mm}:${ss}`)
+          NODE
+          )
+          {
+            echo
+            echo '## Workflow timing'
+            echo
+            echo "- Workflow started: \`$workflow_started\`"
+            echo "- Workflow completed: \`$workflow_completed\`"
+            echo "- Workflow duration: \`$workflow_duration\`"
+          } >> release-payload/release-notes.md
+          gh release edit "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --notes-file release-payload/release-notes.md
+
+          body=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json body --jq .body)
+          grep -Fq -- "- Workflow started: \`$workflow_started\`" <<<"$body"
+          grep -Fq -- "- Workflow completed: \`$workflow_completed\`" <<<"$body"
+          grep -Fq -- "- Workflow duration: \`$workflow_duration\`" <<<"$body"
+
+          latest=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 \
+            --json tagName,isLatest \
+            --jq '.[] | select(.isLatest == true) | .tagName')
+          if [ "$latest" = "$RELEASE_TAG" ]; then
+            echo 'Release became Latest before its exact timing notes were verified.' >&2
+            exit 1
+          fi
+
+          echo "workflow_started=$workflow_started" >> "$GITHUB_OUTPUT"
+          echo "workflow_completed=$workflow_completed" >> "$GITHUB_OUTPUT"
+          echo "workflow_duration=$workflow_duration" >> "$GITHUB_OUTPUT"
+
+      - name: Reconcile this release as Latest
+        id: reconcile_latest
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: bash .github/scripts/promote-current-release.sh
+
+      - name: Verify Latest and final release notes
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
+          EXPECTED_WORKFLOW_STARTED:
+            ${{ steps.finalize_timing.outputs.workflow_started }}
+          EXPECTED_WORKFLOW_COMPLETED:
+            ${{ steps.finalize_timing.outputs.workflow_completed }}
+          EXPECTED_WORKFLOW_DURATION:
+            ${{ steps.finalize_timing.outputs.workflow_duration }}
+          EXPECTED_LATEST_TAG:
+            ${{ steps.reconcile_latest.outputs.selected_tag }}
+          EXPECTED_LATEST_SHA:
+            ${{ steps.reconcile_latest.outputs.selected_sha }}
+        shell: bash
+        run: |
+          latest=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 \
+            --json tagName,isLatest \
+            --jq '.[] | select(.isLatest == true) | .tagName')
+          if [ -z "$EXPECTED_LATEST_TAG" ] ||
+            [ "$latest" != "$EXPECTED_LATEST_TAG" ]; then
+            echo "Latest release is $latest, expected reconciled winner $EXPECTED_LATEST_TAG." >&2
+            exit 1
+          fi
+          git fetch --force --quiet origin \
+            "refs/tags/$EXPECTED_LATEST_TAG:refs/tags/$EXPECTED_LATEST_TAG"
+          latest_sha=$(git rev-parse "refs/tags/$EXPECTED_LATEST_TAG^{commit}")
+          if [ -z "$EXPECTED_LATEST_SHA" ] ||
+            [ "$latest_sha" != "$EXPECTED_LATEST_SHA" ]; then
+            echo "Latest release resolves to $latest_sha, expected $EXPECTED_LATEST_SHA." >&2
+            exit 1
+          fi
+          body=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json body --jq .body)
+          grep -Fq -- "- Workflow started: \`$EXPECTED_WORKFLOW_STARTED\`" <<<"$body"
+          grep -Fq -- "- Workflow completed: \`$EXPECTED_WORKFLOW_COMPLETED\`" <<<"$body"
+          grep -Fq -- "- Workflow duration: \`$EXPECTED_WORKFLOW_DURATION\`" <<<"$body"
+
+      - name: Remove failed release and reconcile Latest
+        if: >-
+          failure() && steps.draft_release.outputs.staging_attempted == 'true'
+          && steps.finalize_timing.outcome != 'success'
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
+          FAILED_RELEASE_ID: ${{ steps.draft_release.outputs.draft_id }}
+        shell: bash
+        run: >-
+          bash .github/scripts/promote-current-release.sh
+          --cleanup-failed-release

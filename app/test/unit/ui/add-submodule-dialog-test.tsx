@@ -676,12 +676,12 @@ describe('Clone-style Add Submodule dialog', () => {
     }
     const view = render(<AddSubmoduleDialog {...props} />)
     fireEvent.click(screen.getByText('Create remote'))
-    fireEvent.click(screen.getByLabelText('Account'))
-    const accountFilter = screen.getByLabelText('Filter Accounts')
+    fireEvent.click(screen.getByLabelText('Accounts'))
+    const accountFilter = screen.getByLabelText('Search accounts')
     fireEvent.change(accountFilter, { target: { value: 'material-tester' } })
     fireEvent.keyDown(accountFilter, { key: 'Enter', code: 'Enter' })
     assert.match(
-      screen.getByLabelText('Account').textContent ?? '',
+      screen.getByLabelText('Accounts').textContent ?? '',
       /@material-tester/
     )
     fireEvent.change(screen.getByLabelText('Repository name'), {

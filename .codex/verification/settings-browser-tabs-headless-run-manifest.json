@@ -1,0 +1,79 @@
+{
+  "mode": "local-docs",
+  "milestone": "browser-style settings pages for global settings, repository settings, and stash manager",
+  "expectedUiState": [
+    "Settings opens with a horizontal browser tab lane, close controls, new-page picker, overflow/search actions, and a linked active panel.",
+    "Repository Settings uses the same browser tab chrome and scopes open-page and pin state to the repository.",
+    "Stash Manager uses the same browser tab chrome for Manage, Export, History, and Appearance and voice."
+  ],
+  "runId": "settings-browser-tabs-20260805-225147-b2075073",
+  "disposableFixture": "%TEMP%/settings-browser-tabs-20260805-225147-b2075073/fixture",
+  "isolatedProfile": "%TEMP%/settings-browser-tabs-20260805-225147-b2075073/profile",
+  "desktopName": "dm-tabs-d9ad5763",
+  "cdpPort": 9347,
+  "screenshotTargets": [
+    "docs/assets/screenshots/material-settings.png",
+    "docs/assets/screenshots/material-remote-manager.png",
+    "docs/assets/screenshots/material-stash-manager.png"
+  ],
+  "capture": {
+    "dimensions": "1440x960",
+    "method": "Cheap Version headless route with CDP Page.captureScreenshot",
+    "build": "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+    "buildResult": "exit 0",
+    "screenshotsInspected": true
+  },
+  "promotedScreenshots": {
+    "material-settings.png": {
+      "dimensions": "1440x960",
+      "bytes": 98346,
+      "sha256": "43ff361771efeeeb01eb8b40b778b9a4e5b3a311457fc632271d9ad4aa513fc"
+    },
+    "material-remote-manager.png": {
+      "dimensions": "1440x960",
+      "bytes": 109419,
+      "sha256": "4850a060ed8ffb9c8fd06bf013e6b503b4928c58bf0449c45e56887be09ad962"
+    },
+    "material-stash-manager.png": {
+      "dimensions": "1440x960",
+      "bytes": 107034,
+      "sha256": "52254a7b62ba0a9ce3d84c19fe3cd5e4e30a37ede79d3122afa57665b9759ca3"
+    }
+  },
+  "requiredInteractions": [
+    "Open Settings and inspect the browser tab strip.",
+    "Open Repository Settings and inspect the browser tab strip.",
+    "Open Stash Manager and inspect the browser tab strip.",
+    "Use the anchored tab search/new-page controls where available."
+  ],
+  "tests": [
+    "Focused browser-tab unit suite",
+    "Exact cheap-headless production build",
+    "Visual inspection of real Electron artifact"
+  ],
+  "verificationCommands": [
+    {
+      "name": "Focused UI and documentation suites",
+      "command": "<bundled-node> --disable-warning=ExperimentalWarning --experimental-test-module-mocks --import tsx --import ./app/test/globals.mts --test --test-concurrency=1 <focused-suite-files>",
+      "result": "111 tests, 111 passed, 0 failed"
+    },
+    {
+      "name": "TypeScript audit",
+      "command": "<bundled-node> node_modules/typescript/bin/tsc --noEmit -p tsconfig.json",
+      "result": "exit 1 with one unchanged dependency diagnostic: app/node_modules/dexie/dist/dexie.d.ts TS1540"
+    },
+    {
+      "name": "Production build",
+      "command": "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+      "result": "exit 0"
+    }
+  ],
+  "remote": "origin",
+  "expectedBranch": "codex/settings-browser-tabs-followup",
+  "cleanup": {
+    "ownedTempPaths": ["%TEMP%/settings-browser-tabs-20260805-225147-b2075073"],
+    "ownedDesktop": "dm-tabs-d9ad5763",
+    "launchPid": null,
+    "resolvedHwnd": null
+  }
+}

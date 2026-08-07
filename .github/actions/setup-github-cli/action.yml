@@ -1,0 +1,18 @@
+name: Setup GitHub CLI
+description:
+  Make the pinned GitHub CLI available without changing the runner installation.
+
+inputs:
+  version:
+    description: GitHub CLI version to install when it is missing.
+    required: false
+    default: '2.97.0'
+
+runs:
+  using: composite
+  steps:
+    - name: Reuse or install the pinned GitHub CLI
+      shell: bash
+      env:
+        GH_CLI_VERSION: ${{ inputs.version }}
+      run: bash .github/scripts/ensure-github-cli.sh

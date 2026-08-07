@@ -109,6 +109,7 @@ import {
 } from './actions-local-run'
 import { AgentServerController } from './agent-server'
 import { SelfHostedServerController } from './self-hosted-server/controller'
+import { WindowsSelfHostedRunnerManager } from './self-hosted-runner/manager'
 import {
   cancelActionsTransfer,
   handleActionsArtifactTransfer,
@@ -157,6 +158,11 @@ import {
 } from './renderer-failure'
 import { cleanupCheapLfsPayloadCredentialsInMainProcess } from './cheap-lfs-payload-credential-cleanup'
 import {
+  fetchHomeAssistantState,
+  fetchScheduledSettingsAPI,
+  setHomeAssistantToken,
+} from './scheduled-settings-api'
+import {
   normalizeProfileRepositoryPath,
   ProfileRepositoryLockCancelledError,
   ProfileRepositoryLockRegistry,
@@ -192,6 +198,7 @@ let internalBrowserWindow: InternalBrowserWindow | null = null
 let browserOpenMode: BrowserOpenMode = 'external'
 let agentServerController: AgentServerController | null = null
 let selfHostedServerController: SelfHostedServerController | null = null
+let selfHostedRunnerManager: WindowsSelfHostedRunnerManager | null = null
 const internalBrowserOAuthCallbackTimeoutMs = 60_000
 
 interface IPendingInternalBrowserOAuthCallback {
@@ -1178,6 +1185,24 @@ app.on('ready', () => {
     }
   )
 
+  selfHostedRunnerManager = new WindowsSelfHostedRunnerManager(
+    app.getPath('userData'),
+    progress => {
+      for (const window of getAppWindows()) {
+        window.sendSelfHostedRunnerProgress(progress)
+      }
+    }
+  )
+
+  ipcMain.handle('fetch-scheduled-settings', async (_event, endpoint) =>
+    fetchScheduledSettingsAPI(endpoint)
+  )
+  ipcMain.handle('fetch-home-assistant-state', async (_event, request) =>
+    fetchHomeAssistantState(request)
+  )
+  ipcMain.handle('set-home-assistant-token', async (_event, request) =>
+    setHomeAssistantToken(request)
+  )
   ipcMain.handle('set-agent-server-enabled', async (_event, enabled) =>
     agentServerController!.setEnabled(enabled)
   )
@@ -1222,6 +1247,21 @@ app.on('ready', () => {
   ipcMain.handle('cancel-self-hosted-server-provisioning', async () => {
     selfHostedServerController!.cancel()
   })
+  ipcMain.handle('get-self-hosted-runner-status', async (_event, request) =>
+    selfHostedRunnerManager!.getStatus(request)
+  )
+  ipcMain.handle('setup-self-hosted-runner', async (_event, request) =>
+    selfHostedRunnerManager!.setup(request)
+  )
+  ipcMain.handle('start-self-hosted-runner', async (_event, request) =>
+    selfHostedRunnerManager!.start(request)
+  )
+  ipcMain.handle('stop-self-hosted-runner', async (_event, request) =>
+    selfHostedRunnerManager!.stop(request)
+  )
+  ipcMain.handle('remove-self-hosted-runner', async (_event, request) =>
+    selfHostedRunnerManager!.remove(request)
+  )
   ipcMain.handle('download-actions-artifact', (event, request) =>
     handleActionsArtifactTransfer(event.sender, request)
   )
@@ -1312,6 +1352,7 @@ app.on('ready', () => {
 
   ipcMain.on('update-accounts', (event, accounts) => {
     updateAccounts(accounts)
+    selfHostedRunnerManager?.updateAccountTokens(accounts)
     updateGitHubReleaseTransferAccounts(accounts)
     // EndpointToken deliberately omits login and account id. Every account
     // refresh therefore revokes a provenance lease before the fingerprint

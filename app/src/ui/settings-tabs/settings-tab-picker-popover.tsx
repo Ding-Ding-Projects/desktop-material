@@ -24,6 +24,12 @@ interface ISettingsTabPickerPopoverProps {
   readonly title: string
   readonly onSelect: (id: string) => void
   readonly onClose: () => void
+  readonly pickerId: string
+  readonly accessibleLabels?: {
+    readonly pickerTitle?: string
+    readonly search?: string
+    readonly noMatches?: string
+  }
 }
 
 interface ISettingsTabPickerPopoverState {
@@ -67,6 +73,17 @@ export class SettingsTabPickerPopover extends React.Component<
     this.inputRef.current?.focus()
   }
 
+  public componentDidUpdate() {
+    const resultsLength = this.results.length
+    const highlightedIndex =
+      resultsLength === 0
+        ? 0
+        : Math.min(this.state.highlightedIndex, resultsLength - 1)
+    if (highlightedIndex !== this.state.highlightedIndex) {
+      this.setState({ highlightedIndex })
+    }
+  }
+
   private get results(): ReadonlyArray<ISettingsTabItem> {
     const { query, filterMode, caseSensitive } = this.state
     // Trimming decides whether anything was typed; it must not decide what is
@@ -78,7 +95,7 @@ export class SettingsTabPickerPopover extends React.Component<
     const { results, regexError } = matchWithMode(
       query,
       this.props.items,
-      item => [item.searchText],
+      item => [item.searchText, item.accessibleLabel ?? ''],
       { mode: filterMode, caseSensitive }
     )
 
@@ -97,17 +114,18 @@ export class SettingsTabPickerPopover extends React.Component<
 
   private onFilterModeChange = (filterMode: FilterMode) => {
     persistFilterMode(this.props.surfaceId, filterMode)
-    this.setState({ filterMode })
+    this.setState({ filterMode, highlightedIndex: 0 })
   }
 
   private onCaseSensitiveChange = (caseSensitive: boolean) =>
-    this.setState({ caseSensitive })
+    this.setState({ caseSensitive, highlightedIndex: 0 })
 
   private onRegexPatternApply = (pattern: string, caseSensitive: boolean) =>
     this.setState({
       query: pattern,
       filterMode: FilterMode.Regex,
       caseSensitive,
+      highlightedIndex: 0,
     })
 
   private getSampleItems = () => this.props.items.map(item => item.searchText)
@@ -126,7 +144,11 @@ export class SettingsTabPickerPopover extends React.Component<
       this.setState({ highlightedIndex: next })
       event.preventDefault()
     } else if (event.key === 'Enter') {
-      const item = results[this.state.highlightedIndex]
+      const highlightedIndex = Math.min(
+        this.state.highlightedIndex,
+        results.length - 1
+      )
+      const item = results[highlightedIndex]
       if (item !== undefined) {
         this.props.onSelect(item.id)
       }
@@ -135,7 +157,17 @@ export class SettingsTabPickerPopover extends React.Component<
   }
 
   private onItemClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const index = this.results.findIndex(
+      item => item.id === event.currentTarget.value
+    )
+    if (index >= 0) {
+      this.setState({ highlightedIndex: index })
+    }
     this.props.onSelect(event.currentTarget.value)
+  }
+
+  private getOptionId(id: string): string {
+    return `${this.props.pickerId}-option-${id.replace(/[^A-Za-z0-9_-]/g, '-')}`
   }
 
   private renderResults() {
@@ -143,23 +175,45 @@ export class SettingsTabPickerPopover extends React.Component<
 
     if (results.length === 0) {
       return (
-        <p className="settings-tab-picker-empty" role="status">
-          No settings page matches that.
-        </p>
+        <>
+          <p className="settings-tab-picker-empty" role="status">
+            {this.props.accessibleLabels?.noMatches ??
+              `No ${this.props.title} page matches that.`}
+          </p>
+          <ul
+            id={`${this.props.pickerId}-list`}
+            className="settings-tab-picker-list"
+            role="listbox"
+            aria-label={
+              this.props.accessibleLabels?.pickerTitle ??
+              `Choose a ${this.props.title} page`
+            }
+          />
+        </>
       )
     }
 
     return (
-      <ul className="settings-tab-picker-list" role="listbox">
+      <ul
+        id={`${this.props.pickerId}-list`}
+        className="settings-tab-picker-list"
+        role="listbox"
+        aria-label={
+          this.props.accessibleLabels?.pickerTitle ??
+          `Choose a ${this.props.title} page`
+        }
+      >
         {results.map((item, index) => {
           const selected = item.id === this.props.selectedId
           return (
             <li key={item.id} role="presentation">
               <button
                 type="button"
+                id={this.getOptionId(item.id)}
                 value={item.id}
                 role="option"
                 aria-selected={selected}
+                tabIndex={-1}
                 className={
                   'settings-tab-picker-item' +
                   (index === this.state.highlightedIndex
@@ -180,16 +234,27 @@ export class SettingsTabPickerPopover extends React.Component<
   }
 
   public render() {
-    const label = `Search ${this.props.title}`
+    const label =
+      this.props.accessibleLabels?.search ?? `Search ${this.props.title}`
+    const pickerTitle =
+      this.props.accessibleLabels?.pickerTitle ??
+      `Choose a ${this.props.title} page`
+    const results = this.results
+    const activeOption = results[this.state.highlightedIndex]
 
     return (
       <Popover
+        id={this.props.pickerId}
         anchor={this.props.anchor}
         anchorPosition={PopoverAnchorPosition.RightTop}
         decoration={PopoverDecoration.Balloon}
         onClickOutside={this.props.onClose}
         className="settings-tab-picker"
+        ariaLabelledby={`${this.props.pickerId}-title`}
       >
+        <h2 id={`${this.props.pickerId}-title`} className="sr-only">
+          {pickerTitle}
+        </h2>
         {/* The list is driven from the field, so the whole surface listens. */}
         {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
         <div onKeyDown={this.onKeyDown}>
@@ -199,6 +264,15 @@ export class SettingsTabPickerPopover extends React.Component<
               type="search"
               value={this.state.query}
               onChange={this.onQueryChange}
+              role="combobox"
+              aria-controls={`${this.props.pickerId}-list`}
+              aria-expanded={true}
+              aria-autocomplete="list"
+              aria-activedescendant={
+                activeOption === undefined
+                  ? undefined
+                  : this.getOptionId(activeOption.id)
+              }
               aria-label={label}
               placeholder={label}
               data-search-surface-id={this.props.surfaceId}

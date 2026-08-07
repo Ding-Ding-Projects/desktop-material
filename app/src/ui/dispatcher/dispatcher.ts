@@ -21,6 +21,8 @@ import {
   ICheapLfsManagedPointerEntry,
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
+  ICheapLfsAutoPinProgress,
+  ICheapLfsWorkingTreePinResult,
   CheapLfsPinStage,
 } from '../../lib/cheap-lfs/operations'
 import type { ICheapLfsOciMutationResult } from '../../lib/cheap-lfs/oci-operations'
@@ -165,6 +167,11 @@ import type {
   IAppearanceCustomization,
   IRepositoryAppearanceOverrides,
 } from '../../models/appearance-customization'
+import type {
+  IHomeAssistantSettingsRequest,
+  ISetHomeAssistantTokenRequest,
+  IScheduledSettingsConfig,
+} from '../../models/scheduled-settings'
 import {
   ProfileAppearanceElementId,
   RepositoryAppearanceElementId,
@@ -228,6 +235,10 @@ import type { IVersionedStoreHistorySource } from '../version-history/versioned-
 import { RepositorySettingsTab } from '../repository-settings/repository-settings'
 
 import { ApplicationTheme } from '../lib/application-theme'
+import {
+  fetchHomeAssistantState as fetchHomeAssistantStateFromMain,
+  setHomeAssistantToken as setHomeAssistantTokenInMain,
+} from '../../lib/scheduled-settings-api-client'
 import { installCLI } from '../lib/install-cli'
 import { redactLocalPaths } from '../lib/redact-local-paths'
 import {
@@ -667,7 +678,7 @@ export class Dispatcher {
 
   /** Commit exactly one repository-owned appearance value. */
   public setRepositoryAppearanceElement<
-    K extends RepositoryAppearanceElementId,
+    K extends RepositoryAppearanceElementId
   >(
     repository: Repository,
     id: K,
@@ -1067,11 +1078,11 @@ export class Dispatcher {
     const selectedRepository =
       activeTab === null
         ? null
-        : (repositories.find(
+        : repositories.find(
             repository => repository.id === activeTab.repositoryId
           ) ??
           matchExistingRepository(repositories, activeTab.repositoryPath) ??
-          null)
+          null
 
     if (selectedRepository !== null) {
       this.repositoryTabsStore.rebindActiveTabToRepository(selectedRepository)
@@ -1305,7 +1316,8 @@ export class Dispatcher {
   public changeFileIncluded(
     repository: Repository,
     file:
-      WorkingDirectoryFileChange | ReadonlyArray<WorkingDirectoryFileChange>,
+      | WorkingDirectoryFileChange
+      | ReadonlyArray<WorkingDirectoryFileChange>,
     include: boolean
   ): Promise<void> {
     return this.appStore._changeFileIncluded(repository, file, include)
@@ -2427,9 +2439,16 @@ export class Dispatcher {
   public deleteLocalBranch(
     repository: Repository,
     branch: Branch,
-    includeUpstream?: boolean
-  ): Promise<void> {
-    return this.appStore._deleteBranch(repository, branch, includeUpstream)
+    includeUpstream?: boolean,
+    expectedSha?: string
+  ): Promise<boolean> {
+    return this.appStore._deleteBranch(
+      repository,
+      branch,
+      includeUpstream,
+      undefined,
+      expectedSha
+    )
   }
 
   /**
@@ -2437,9 +2456,16 @@ export class Dispatcher {
    */
   public deleteRemoteBranch(
     repository: Repository,
-    branch: Branch
-  ): Promise<void> {
-    return this.appStore._deleteBranch(repository, branch)
+    branch: Branch,
+    expectedSha?: string
+  ): Promise<boolean> {
+    return this.appStore._deleteBranch(
+      repository,
+      branch,
+      undefined,
+      undefined,
+      expectedSha
+    )
   }
 
   public deleteReviewedBranches(
@@ -3273,6 +3299,15 @@ export class Dispatcher {
     // get manual resolutions in case there are manual conflicts
     const repositoryState = this.repositoryStateManager.get(repository)
     const { conflictState } = repositoryState.changesState
+    const operationDetail =
+      repositoryState.multiCommitOperationState?.operationDetail
+    const deleteAfterSuccessfulMerge =
+      operationDetail?.kind === MultiCommitOperationKind.Merge &&
+      operationDetail.deleteAfterSuccessfulMerge === true
+    const sourceBranch =
+      operationDetail?.kind === MultiCommitOperationKind.Merge
+        ? operationDetail.sourceBranch
+        : null
     if (conflictState === null) {
       // if this doesn't exist, something is very wrong and we shouldn't proceed 😢
       log.error(
@@ -3294,6 +3329,12 @@ export class Dispatcher {
         // to capture all successful squash merges under this metric.
         this.statsStore.increment('squashMergeSuccessfulCount')
         this.statsStore.increment('squashMergeSuccessfulWithConflictsCount')
+      }
+      if (deleteAfterSuccessfulMerge && sourceBranch !== null) {
+        await this.appStore._deleteMergedBranchAfterSuccessfulMerge(
+          repository,
+          sourceBranch
+        )
       }
     }
   }
@@ -3523,6 +3564,21 @@ export class Dispatcher {
       onProgress,
       onStage,
       onHashProgress
+    )
+  }
+
+  /** Store an explicit working-tree selection in Cheap LFS as one batch. */
+  public storeWorkingTreeFilesInCheapLfs(
+    repository: Repository,
+    paths: ReadonlyArray<string>,
+    signal?: AbortSignal,
+    onProgress?: (progress: ICheapLfsAutoPinProgress) => void
+  ): Promise<ICheapLfsWorkingTreePinResult> {
+    return this.appStore._storeWorkingTreeFilesInCheapLfs(
+      repository,
+      paths,
+      signal,
+      onProgress
     )
   }
 
@@ -5794,6 +5850,18 @@ export class Dispatcher {
     return this.appStore._setAppearanceCustomization(customization)
   }
 
+  public setScheduledSettings(settings: IScheduledSettingsConfig) {
+    return this.appStore._setScheduledSettings(settings)
+  }
+
+  public setHomeAssistantToken(request: ISetHomeAssistantTokenRequest) {
+    return setHomeAssistantTokenInMain(request)
+  }
+
+  public fetchHomeAssistantState(request: IHomeAssistantSettingsRequest) {
+    return fetchHomeAssistantStateFromMain(request)
+  }
+
   public setRepositoryAppearanceOverrides(
     repository: Repository,
     overrides: IRepositoryAppearanceOverrides
@@ -7591,7 +7659,8 @@ export class Dispatcher {
   public startMergeBranchOperation(
     repository: Repository,
     isSquash: boolean = false,
-    initialBranch?: Branch | null
+    initialBranch?: Branch | null,
+    deleteAfterSuccessfulMerge: boolean = false
   ) {
     const { branchesState } = this.repositoryStateManager.get(repository)
     const { defaultBranch, allBranches, recentBranches, tip } = branchesState
@@ -7605,7 +7674,12 @@ export class Dispatcher {
       )
     }
 
-    this.initializeMergeOperation(repository, isSquash, null)
+    this.initializeMergeOperation(
+      repository,
+      isSquash,
+      null,
+      deleteAfterSuccessfulMerge
+    )
 
     this.setMultiCommitOperationStep(repository, {
       kind: MultiCommitOperationStepKind.ChooseBranch,
@@ -7634,7 +7708,8 @@ export class Dispatcher {
   public initializeMergeOperation(
     repository: Repository,
     isSquash: boolean,
-    sourceBranch: Branch | null
+    sourceBranch: Branch | null,
+    deleteAfterSuccessfulMerge: boolean = false
   ) {
     const {
       branchesState: { tip },
@@ -7656,6 +7731,7 @@ export class Dispatcher {
         kind: MultiCommitOperationKind.Merge,
         isSquash,
         sourceBranch,
+        deleteAfterSuccessfulMerge,
       },
       currentBranch,
       [],

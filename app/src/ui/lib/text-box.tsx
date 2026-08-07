@@ -74,7 +74,7 @@ export interface ITextBoxProps {
   readonly onEnterPressed?: (text: string) => void
 
   /** The type of the input. Defaults to `text`. */
-  readonly type?: 'text' | 'search' | 'password' | 'email'
+  readonly type?: 'text' | 'search' | 'password' | 'email' | 'date' | 'time'
 
   /** The tab index of the input element. */
   readonly tabIndex?: number
@@ -119,6 +119,9 @@ export interface ITextBoxProps {
   readonly ariaInvalid?: boolean
 
   readonly ariaControls?: string
+
+  /** Optional active descendant for a searchable listbox. */
+  readonly ariaActiveDescendant?: string
 }
 
 interface ITextBoxState {
@@ -321,6 +324,7 @@ export class TextBox extends React.Component<ITextBoxProps, ITextBoxState> {
         {prefixedIcon && (
           <Octicon className="prefixed-icon" symbol={prefixedIcon} />
         )}
+        {/* eslint-disable-next-line jsx-a11y/aria-activedescendant-has-tabindex -- TextBox forwards the tabIndex prop to this input; active-descendant callers provide a non-negative tab stop. */}
         <input
           data-search-surface-id={this.props.searchSurfaceId}
           id={inputId}
@@ -335,12 +339,13 @@ export class TextBox extends React.Component<ITextBoxProps, ITextBoxState> {
           value={this.state.value}
           onChange={this.onChange}
           onKeyDown={this.onKeyDown}
-          tabIndex={this.props.tabIndex}
+          tabIndex={this.props.tabIndex ?? 0}
           onContextMenu={this.onContextMenu}
           spellCheck={this.props.spellcheck === true}
           aria-label={this.props.ariaLabel}
           aria-labelledby={this.props.ariaLabelledBy}
           aria-controls={this.props.ariaControls}
+          aria-activedescendant={this.props.ariaActiveDescendant}
           aria-describedby={this.props.ariaDescribedBy}
           aria-invalid={this.props.ariaInvalid}
           required={this.props.required}

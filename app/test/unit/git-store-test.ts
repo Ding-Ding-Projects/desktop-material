@@ -9,7 +9,7 @@ import {
   setupEmptyRepository,
   setupFixtureRepository,
 } from '../helpers/repositories'
-import { GitStore } from '../../src/lib/stores'
+import { GitStore, getRemotesToFetch } from '../../src/lib/stores'
 import { AppFileStatusKind } from '../../src/models/status'
 import { Repository } from '../../src/models/repository'
 import { TipState, IValidBranch } from '../../src/models/tip'
@@ -24,6 +24,36 @@ import { BranchType } from '../../src/models/branch'
 import { TestStatsStore } from '../helpers/test-stats-store'
 
 describe('GitStore', () => {
+  describe('fetch remote selection', () => {
+    const origin = { name: 'origin', url: 'https://example.test/origin.git' }
+    const mirror = { name: 'mirror', url: 'https://example.test/mirror.git' }
+    const upstream = {
+      name: 'upstream',
+      url: 'https://example.test/upstream.git',
+    }
+
+    it('keeps the focused remote set for a single-remote checkout', () => {
+      assert.deepEqual(
+        getRemotesToFetch([origin], origin, origin, null).map(
+          remote => remote.name
+        ),
+        ['origin']
+      )
+    })
+
+    it('includes every configured remote when more than one exists', () => {
+      assert.deepEqual(
+        getRemotesToFetch(
+          [origin, mirror, upstream],
+          upstream,
+          origin,
+          upstream
+        ).map(remote => remote.name),
+        ['upstream', 'origin', 'mirror']
+      )
+    })
+  })
+
   describe('loadCommitBatch', () => {
     it('includes HEAD when loading commits', async t => {
       const path = await setupFixtureRepository(

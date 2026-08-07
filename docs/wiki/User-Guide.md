@@ -49,7 +49,7 @@ remote CI caught a macOS error-ordering defect without publishing; correction
 `98d93ccc` passed its full remote CI gate and published
 `v3.6.3-beta3-b0000000165`. Exact publication receipts are in `HANDOFF.md`.
 
-The [Guided Feature Gallery](Feature-Gallery) declares the canonical 86-scene
+The [Guided Feature Gallery](Feature-Gallery) declares the canonical 91-scene
 Windows visual target: every catalogued function or state must own one distinct
 screenshot rather than borrow an overview image. The current-source updater
 frame is accepted and published as its own target; it does not replace the
@@ -66,6 +66,7 @@ archived outside that target set.
 - [Repository tabs](#repository-tabs)
 - [Command palette](#command-palette)
 - [Appearance customization](#appearance-customization)
+- [Scheduled language and appearance](#scheduled-language-and-appearance)
 - [Settings history](#settings-history)
 - [Non-modal dialogs](#non-modal-dialogs)
 - [Multi-clone](#multi-clone)
@@ -234,9 +235,12 @@ rejects elevation before Squirrel can show its unsupported-elevation error. It
 also preflights Squirrel's .NET Framework 4.5 minimum instead of opening a
 framework installer or reboot prompt during an unattended install.
 
-The current automated workflow publishes unsigned x64 installers. The script
-warns about the missing signature after verifying the GitHub digest, and it
-stops rather than selecting a different package on ARM64 or 32-bit Windows. To
+Windows release workflows permanently publish unsigned x64 installers.
+Packaging and publication require the setup executable and MSI to report
+`NotSigned`; release notes warn that Windows may show SmartScreen or an
+unknown-publisher prompt. The script reports the missing signature after
+verifying the GitHub digest, and it stops rather than selecting a different
+package on ARM64 or 32-bit Windows. To
 inspect or download the asset yourself, use the
 [latest release page](https://github.com/Ding-Ding-Projects/desktop-material/releases/latest).
 When the portable ZIP is present, download and extract it before starting the
@@ -288,6 +292,23 @@ immediately**, and select **Publish release**. Desktop Material sends one direct
 public-release request rather than creating a draft first. Turn **Publish
 immediately** off only when you intentionally want an unpublished draft.
 Review the tracked script before running any remote command.
+
+---
+
+## CI test reliability
+
+The supported Windows build and the retained Linux TUI checks install their
+declared dependencies from the committed manifests. The Linux Python 3.13
+check runs non-UI tests together and gives every UI test file a fresh Python
+interpreter because Textual's native syntax state can otherwise segfault after
+several app-heavy files share one process. All test files still run; only the
+process boundary changes. Python 3.10 and 3.12 use the ordinary full-suite
+command.
+
+The same runner can be inspected at
+[`tui/tools/run-tests-isolated.py`](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/tui/tools/run-tests-isolated.py).
+It discovers test files rather than maintaining a hand-written allowlist, so
+adding a new UI file does not silently remove it from CI.
 
 ---
 
@@ -385,7 +406,22 @@ switches the whole workspace to that identity's context.
 The **Active** chip and **Make active** action in **Settings → Accounts** use
 the same one-account-global rule as the rail switcher, including across
 GitHub.com, Enterprise, GitLab, and Bitbucket sections. A repository with an
-explicit **Repository account** binding remains on that exact identity.
+explicit **Repository account** binding remains on that exact identity until a
+user deliberately promotes another GitHub identity on the same API endpoint
+while that repository is selected; the selected repository then follows the
+choice for its next authenticated operation. Other repositories, hosts, and
+providers keep their existing bindings.
+
+The account picker and the navigation-rail account switcher are rich rows rather than login-only
+menus: they show the friendly name, `@login · host`, provider, plan, and a visible display email
+when one exists, with the active identity marked. Private email values are not searchable, and
+self-hosted accounts keep their self-hosted label. Their search bar is plain-text by default and
+offers fuzzy, substring, and bounded safe-regex modes through the anchored Regex Builder. Search
+by name, login, host, provider, plan, or visible email; use Arrow keys, <kbd>Home</kbd>/<kbd>End</kbd>,
+<kbd>Enter</kbd>, and <kbd>Escape</kbd> without leaving the surface. Invalid patterns are announced
+inline and cannot activate the first row; no-match states leave **Add another account** available.
+The searchable metadata never includes a credential token. Stable `endpoint#id` row identities also
+keep a login rename from selecting a different account.
 
 Open the repositories side sheet to narrow cloned repositories by **Repository account** and
 **Repository service**. The filters combine: for example, choose one exact account and GitLab, or
@@ -812,6 +848,27 @@ Rapid slider, palette, and typography events are collapsed into the latest norma
 before one durable write and state update. A queued `get()` read, explicit flush, or History action
 remains an ordering barrier, and separately awaited changes keep their original sequence.
 
+### Scheduled language and appearance
+
+**Settings → Appearance → Scheduled settings** adds local-time rules for the
+language mode, theme, and appearance values. Use the native date picker for
+optional date bounds, the native time picker for an exclusive end time, and
+either selected weekdays or **Every day** when only the time window matters.
+Equal start and end times mean the selected day in full; a window that crosses
+midnight continues into the following local day. Later active rules win only
+for fields they set.
+
+The source can be a local value, a versioned HTTPS API document, or a Home
+Assistant boolean entity. API responses are bounded and allowlisted. A Home
+Assistant value is used only while the configured entity reports `on`; its
+access token is stored by the main process in the operating-system credential
+vault, never in the schedule export or profile JSON. Offline, invalid, and
+failed sources are skipped so the normal profile appearance remains usable.
+
+See the detailed [scheduled settings feature article](../features/identity-and-workspace/scheduled-settings.md)
+for the response shape, persistence boundary, security limits, and
+verification contract.
+
 The app identity editor covers the code-native logo and in-app name, geometry, color, typography,
 spacing, emphasis, and effects. It does not rename the signed executable or operating-system icon.
 
@@ -901,13 +958,29 @@ interactive while a dialog is open.
   own range first, then the outer dialog continues at the nested edge.
 - OS-native pickers (file open/save) stay native.
 
-**Preferences** is the reference surface: an MD3 940×660 dialog with a left navigation rail, an
-**Active** chip on the current section, and a pill footer. The **repository** and **branch** pickers
+**Preferences** is the reference surface: an MD3 940×660 dialog with browser-style horizontal tabs,
+an **Active** chip on the current section, and a pill footer. The same shared tab surface is used by
+**Repository settings** and **Stash Manager**, so opening a new page, closing a page, finding overflow,
+and moving with `Left`, `Right`, `Home`, or `End` behaves consistently across all three dialogs. The
+open-page session is local to each surface; filtering the strip does not close hidden pages, and stale
+stored page IDs are discarded safely. The **repository** and **branch** pickers
 open as MD3 **side sheets** rather than blocking modals. The repository sheet keeps **Add** and
 **Select** visible, while **More** holds group creation, workspace sync, and commit/push-all so
 all five actions stay available without wrapping into a cluttered multi-line block. Its
 **Filters** disclosure folds account, service, status, search, and regex controls together;
 active values remain applied and are counted on the pill while the panel is collapsed.
+
+![Global Settings as an MD3 dialog with browser-style tabs, close actions, search, and overflow](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-settings.png)
+
+![Repository Settings with the shared browser-style tabs and Remote page selected](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-remote-manager.png)
+
+The Settings and Repository Settings tab rails are dockable from the visible **Settings tab
+position** control. Choose **Left**, **Top**, **Bottom**, or **Right**; left is the default, and
+Preferences and Repository Settings remember their choices separately. Top and bottom use a
+horizontal scrollable strip, while left and right keep the vertical strip and its matching arrow
+keys. Invalid or missing local values safely return to the left rail. See the detailed
+[settings tab docking article](../features/identity-and-workspace/settings-tab-docking.md) for
+the storage keys and verification contract.
 
 ![Preferences as an MD3 dialog](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-settings.png)
 
@@ -946,10 +1019,20 @@ the dialog does not require page-level horizontal scrolling.
 
 ### Export / import repo lists
 
-- **Export** writes the selected repositories to a list file containing **URLs only** — no tokens,
-  no credentials.
+- **Export** writes the selected repositories to a list file containing **portable clone URLs only**
+  — no tokens, credentials, local paths, query strings, or fragments.
 - **Import** loads such a list back into the checkbox selection, so you can re-clone the same set on
   another machine or share a curated set with a teammate.
+- Import rejects local paths and `file:` URLs before any clone starts; the list is a clone recipe,
+  not a local filesystem instruction.
+- After each imported clone finishes, Desktop Material runs the same Cheap LFS
+  large-file restoration used by the normal clone path when **Repository
+  settings → Cheap LFS → Download large files after cloning** is enabled (the
+  default). The transfer file does not export account bindings or a
+  manifest-bound file selection; those remain local so a shared list cannot
+  carry credentials or stale restore proofs. If the setting is off or no
+  eligible provider account is available, pointer files remain intact for a
+  later restore.
 
 ### Background auto-clone
 
@@ -1667,20 +1750,48 @@ The **Actions** panel brings CI into the app:
   confirmation. It is never inferred from a deployment decision.
 - Trigger manual workflows with the **`workflow_dispatch` dialog** — pick the workflow, ref, and
   inputs, and dispatch.
-- The repository's **Super Express Release** emergency lane runs no unit,
-  script, TUI, lint, type, parity, smoke, or E2E tests. It goes directly to the
-  Windows x64 production build/package, asset verification, and optional
-  release. Every job is self-hosted-only: preparation and publication use the
-  registered Linux x64 WSL runner, the Windows lane uses `[self-hosted,
-  Windows, X64]`, and the TUI lane uses `[self-hosted, Linux, X64]`. A missing
-  or busy local runner queues or fails the release; it never falls back to a
-  GitHub-hosted runner. Ordinary CI and tested Express remain the default
-  gates. A release pull request targets the Windows product's `main` default
-  branch.
+- **CI Windows** uses GitHub-hosted runners for pushes, pull requests, and reusable calls. A
+  protected-main manual dispatch can explicitly select `cloud` or the exact
+  `[self-hosted, Windows, X64, desktop-material-windows-local]` pool.
+- The repository's **Super Express Release** emergency lane runs the complete
+  script-contract suite before the Windows x64 production build/package, asset
+  verification, and release. It still omits unit, TUI, lint, type, parity,
+  smoke, and packaged E2E tests. A
+  direct Windows `workflow_dispatch` publishes an immutable Windows Release
+  marked **Latest** after preserving and verifying its artifact; the direct Linux TUI action
+  and reusable packaging calls remain artifact-only so the combined dispatcher
+  publishes one complete cross-platform Release. The combined dispatcher is
+  self-hosted-only: preparation and publication use the registered Linux x64
+  WSL runner, the Windows lane uses `[self-hosted, Windows, X64]`, and the TUI
+  lane uses `[self-hosted, Linux, X64]`. A direct Windows dispatch keeps both
+  package build and publication on
+  `[self-hosted, Windows, X64, desktop-material-windows-local]`. Missing or busy packaging or
+  publication runners queue or fail their release rather than falling back to
+  a hosted runner. Ordinary CI and tested Express remain the default gates.
+  Automatic CI stays on clean GitHub-hosted machines; the tested Express
+  Windows jobs use the project-labelled self-hosted pool. Their release work
+  keeps unique non-cancelling run/attempt groups. Only Super Express retains local packaging
+  placement and same-ref cancellation. A release pull request targets the
+  Windows product's `main` default branch. Windows self-hosted dependency setup
+  restores an exact verified cache without a post-job archive hook, explicitly
+  saves a verified miss, and can use an older cache only as a warm start while
+  the current lockfiles still drive installation. A cold publisher installs
+  pinned checksum-verified PortableGit, GitHub CLI, and `jq` below
+  `RUNNER_TOOL_CACHE`, then reuses them on later runs. The TUI's isolated profile-history repository
+  also enables Git `core.longpaths` locally, so Windows history writes do not
+  depend on the checkout's separate Git configuration.
+- Ordinary Windows unit tests leave `NODE_OPTIONS` to `script/test.mjs`, which
+  owns both the per-worker heap and memory-aware concurrency. Packaged E2E waits
+  at most 300 seconds for the Squirrel installer process, terminates that tree
+  on timeout, and repeatedly stops only newly launched same-session application
+  processes while preserving any process that predated the test. Remote proof
+  of this hosted workflow repair is still pending.
 - Automatic and Super Express installers share one monotonic `z` package-version
-  namespace. Releases are immutable and initially non-latest; only the greatest
-  release for freshly revalidated current `main` is promoted to the Squirrel
-  update feed, so an older overlapping job cannot move **Latest** backward.
+  namespace. Automatic Express releases begin non-latest, while Super Express
+  publishers request **Latest** after verified assets are present. The greatest
+  release for freshly revalidated current `main` remains the only release allowed
+  to own the Squirrel update feed, so an older overlapping job cannot move
+  **Latest** backward.
 - Select a run artifact to review its name, size, creation/expiry, workflow source, and GitHub digest.
   Search the loaded artifact catalog by name or workflow context with fuzzy, substring, or safe
   regular-expression matching; substring and regex modes can also match the digest, and the regex
@@ -1870,6 +1981,16 @@ The Branches and Worktrees views also expose **Merge all branches** and **Merge 
 Confirm the target, follow each row's progress, and review any skipped or failed target. When
 Copilot conflict assistance is available, it participates inside the same guarded workflow.
 
+When the current branch is `main`, choose **Choose a branch to merge into main** from the
+Branches menu to open the merge sheet. Its **Not updated with main** chip filters by Git
+ancestry: a branch remains visible when its tip does not contain the current `main` tip, while
+a diverged branch that already contains `main` stays out of the result. The chip uses the same
+English, Hong Kong-style Cantonese, and bilingual language modes as the rest of the app and
+composes with text and regex filtering. If Git cannot resolve the default tip, the chip is
+withheld and the ordinary branch list remains available.
+
+![Merge into main chooser with Not updated with main active](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/not-updated-with-main-filter.png)
+
 ![Automation preferences with global and account overrides](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-automation.png)
 
 ![Merge all branches with per-target progress](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-branch-merge-all.png)
@@ -1923,7 +2044,7 @@ Desktop entry-count cap:
 Switching branches can still offer to stash local work, and the resulting entry appears in the same
 list.
 
-![Repository-wide stash manager with an exact selected entry](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
+![Stash Manager with browser-style Manage, Export, History, and Appearance and voice pages](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
 
 The full manager is rendered through the shared dialog layer, keeping every
 tab and export control centered and usable above the Changes pane. The hidden
@@ -1931,7 +2052,9 @@ Windows capture below is the accepted 1443×992 runtime proof.
 
 ![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
 
-Choose **Open full manager** for the complete workflow. Its tabs provide a regex-capable search
+Choose **Open full manager** for the complete workflow. Its browser-style tabs keep Manage, Export,
+History, and Appearance and voice as independently closable pages; use the plus and overflow actions
+to reopen a page without losing the current stash review. Its tabs provide a regex-capable search
 and multi-selection export to a directory, ZIP, or 7z. The 7z panel exposes compression method,
 level, dictionary, match finder, fast bytes, solid mode, threads, split volumes, password, and
 encrypted headers. The History tab keeps exact object IDs visible for recovery review, while

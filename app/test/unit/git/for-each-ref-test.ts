@@ -8,6 +8,7 @@ import {
 } from '../../helpers/repositories'
 import {
   getBranches,
+  getBranchRefsContainingCommit,
   getBranchesDifferingFromUpstream,
 } from '../../../src/lib/git/for-each-ref'
 import { BranchType } from '../../../src/models/branch'
@@ -85,6 +86,27 @@ describe('git/for-each-ref', () => {
 
       // Branches that are up to date shouldn't be included
       assert(!branchRefs.includes('refs/heads/branch-up-to-date'))
+    })
+  })
+
+  describe('getBranchRefsContainingCommit', () => {
+    it('returns local and remote refs that contain the requested commit', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'repo-with-non-updated-branches'
+      )
+      const repository = new Repository(testRepoPath, -1, null, false)
+
+      const containingRefs = await getBranchRefsContainingCommit(
+        repository,
+        '95e534fc901c75ccd803bb45655717bd328a987c'
+      )
+
+      assert.ok(containingRefs)
+      assert(containingRefs.has('refs/heads/main'))
+      assert(containingRefs.has('refs/heads/branch-ahead-and-behind'))
+      assert(containingRefs.has('refs/remotes/origin/branch-behind'))
+      assert(!containingRefs.has('refs/heads/branch-behind'))
     })
   })
 })

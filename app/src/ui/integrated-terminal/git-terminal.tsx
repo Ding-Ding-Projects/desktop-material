@@ -57,8 +57,8 @@ function welcomeBanner(repositoryPath: string): string {
     `Git terminal — ${repositoryPath}\r\n` +
     'Type a Git subcommand (e.g. "status", "log --oneline -5", "diff", ' +
     '"blame path/to/file"). Tab completes subcommands and common flags. ' +
-    "Every command runs through the same reviewed, allowlisted Git argv the " +
-    "rest of Repository tools uses — there is no shell.\r\n"
+    'Every command runs through the same reviewed, allowlisted Git argv the ' +
+    'rest of Repository tools uses — there is no shell.\r\n'
   )
 }
 
@@ -123,7 +123,9 @@ export class GitTerminal extends React.Component<
     this.unsubscribeState = client.onState(this.onState)
   }
 
-  private cancelActiveRun(client: IGitTerminalClient = this.props.client): void {
+  private cancelActiveRun(
+    client: IGitTerminalClient = this.props.client
+  ): void {
     const id = this.runId
     this.runId = null
     if (id !== null) {

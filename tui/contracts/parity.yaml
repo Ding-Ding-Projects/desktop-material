@@ -4,9 +4,9 @@
   "generator": "tui/tools/generate-parity-contract.mjs",
   "source": {
     "path": "docs/readme-tabs/complete-feature-list.md",
-    "sha256": "867d6dc367ffcbc8b321616ba78948fe9707d225f76c59f11adb66fc5cbe8d44",
-    "declared_feature_count": 204,
-    "parsed_feature_count": 204,
+    "sha256": "0d44139eb2ea0d79a3df50985eab55ef51644bd9657de2ceed713b253dac9c4a",
+    "declared_feature_count": 208,
+    "parsed_feature_count": 208,
     "section_count": 17
   },
   "semantics": {
@@ -17,7 +17,7 @@
   },
   "status_summary": {
     "adapted": 49,
-    "not_yet_available": 91,
+    "not_yet_available": 95,
     "partial": 62,
     "terminal_owned": 2
   },
@@ -902,6 +902,17 @@
       "evidence": []
     },
     {
+      "id": "5-multi-remote-fetch-sync",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Multi-remote fetch sync",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/multi-remote-fetch-sync.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
       "id": "5-git-hook-inspection",
       "section": 5,
       "section_title": "Repository management",
@@ -1071,10 +1082,10 @@
       ]
     },
     {
-      "id": "6-history-search-and-lane-graph",
+      "id": "6-history-search-and-dedicated-lane-graph-page",
       "section": 6,
       "section_title": "Commits, history, branches, and stashes",
-      "title": "History search and lane graph",
+      "title": "History search and dedicated lane graph page",
       "upstream_relation": "extended",
       "desktop_documentation": "../features/repository-management/advanced-history-discovery.md",
       "tui_status": "partial",
@@ -2374,6 +2385,39 @@
         "tui/src/desktop_material_tui/ui/screens/settings.py",
         "tui/tests/ui/test_settings_palette_search.py"
       ]
+    },
+    {
+      "id": "13-browser-style-settings-tabs",
+      "section": 13,
+      "section_title": "Search everywhere and the regex builder",
+      "title": "Browser-style settings tabs",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/settings-browser-tabs.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "13-settings-tab-docking",
+      "section": 13,
+      "section_title": "Search everywhere and the regex builder",
+      "title": "Settings tab docking",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/settings-tab-docking.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "13-scheduled-language-appearance-and-external-settings",
+      "section": 13,
+      "section_title": "Search everywhere and the regex builder",
+      "title": "Scheduled language, appearance, and external settings",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/scheduled-settings.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
     },
     {
       "id": "13-collection-bulk-actions-with-regex-safety",

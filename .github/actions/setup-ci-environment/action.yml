@@ -1,5 +1,5 @@
 name: Setup CI Environment
-description: Set up Python, Node.js, optional ffmpeg, and install dependencies.
+description: Set up Python, Node.js, and install dependencies.
 
 inputs:
   node-version:
@@ -8,34 +8,87 @@ inputs:
   arch:
     description: Target architecture for dependency installation.
     required: true
-  install-ffmpeg:
-    description: Whether to install ffmpeg on Windows.
-    required: false
-    default: 'false'
-
 runs:
   using: composite
   steps:
-    - name: Prefer Git Bash on Windows self-hosted runners
-      if: ${{ runner.os == 'Windows' }}
-      # This runner has Windows PowerShell, while PowerShell Core is not part
-      # of the runner contract. Use the built-in Windows shell for the small
-      # PATH repair, then let subsequent bash steps resolve Git Bash.
+    - name: Reuse or install Git Bash on Windows self-hosted runners
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
+      run:
+        '& "$env:GITHUB_WORKSPACE\.github\scripts\ensure-windows-git-bash.ps1"'
+
+    - name: Install Windows arm64 C++ toolset when missing
+      if:
+        ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' &&
+        inputs.arch == 'arm64' }}
+      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
+      run:
+        '&
+        "$env:GITHUB_WORKSPACE\.github\scripts\ensure-windows-arm64-build-tools.ps1"
+        -TargetArchitecture "${{ inputs.arch }}"'
+
+    - name: Install Windows ClangCL toolset when missing
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
+      run:
+        '& "$env:GITHUB_WORKSPACE\\.github\\scripts\\ensure-windows-clang.ps1"
+        -TargetArchitecture "${{ inputs.arch }}"'
+
+    - name: Capture Windows native toolchain fingerprint
+      id: windows-toolchain
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
       shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
       run: |
-        $git = Get-Command git.exe -ErrorAction SilentlyContinue
-        if ($null -eq $git) {
-          throw 'Git is required on a Windows self-hosted runner.'
+        $installationPath = $env:npm_config_msvs_version
+        if (-not $installationPath -or -not (Test-Path -LiteralPath $installationPath)) {
+          throw 'The Windows native toolchain did not expose its selected Visual Studio installation path.'
         }
-        $gitRoot = Split-Path (Split-Path $git.Source -Parent) -Parent
-        $gitBash = Join-Path $gitRoot 'bin\bash.exe'
-        if (-not (Test-Path -LiteralPath $gitBash)) {
-          throw "Git Bash is required on a Windows self-hosted runner: $gitBash"
+        $msvcRoot = Join-Path $installationPath 'VC\Tools\MSVC'
+        $msvcVersions = @(
+          Get-ChildItem -LiteralPath $msvcRoot -Directory -ErrorAction SilentlyContinue |
+            Sort-Object Name |
+            Select-Object -ExpandProperty Name
+        ) -join ','
+        $platform = if ('${{ inputs.arch }}' -eq 'arm64') { 'ARM64' } else { 'x64' }
+        $clangCandidates = @(
+          (Join-Path $installationPath "VC\Tools\Llvm\$platform\bin\clang-cl.exe")
+          (Join-Path $installationPath 'VC\Tools\Llvm\bin\clang-cl.exe')
+        ) | Where-Object { Test-Path -LiteralPath $_ }
+        $clangVersion = if ($clangCandidates) {
+          (Get-Item -LiteralPath ($clangCandidates | Select-Object -First 1)).VersionInfo.FileVersion
+        } else {
+          'missing'
         }
-        Split-Path $gitBash -Parent | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        $sdkVersions = @(
+          Get-ChildItem -LiteralPath 'C:\Program Files (x86)\Windows Kits\10\Include' -Directory -ErrorAction SilentlyContinue |
+            Sort-Object Name |
+            Select-Object -ExpandProperty Name
+        ) -join ','
+        $payload = @(
+          $installationPath
+          $msvcVersions
+          $clangVersion
+          $sdkVersions
+          '${{ inputs.arch }}'
+        ) -join '|'
+        $hasher = New-Object -TypeName System.Security.Cryptography.SHA256Managed
+        try {
+          $digest = $hasher.ComputeHash([Text.Encoding]::UTF8.GetBytes($payload))
+        } finally {
+          $hasher.Dispose()
+        }
+        $sha = ([BitConverter]::ToString($digest)).Replace('-', '').ToLowerInvariant()
+        $runnerName = if ($env:RUNNER_NAME) { $env:RUNNER_NAME } else { 'self-hosted' }
+        $runnerKey = [regex]::Replace($runnerName, '[^A-Za-z0-9_.-]', '-')
+        "cache-suffix=$runnerKey-$sha" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-    - name: Restore exact installed dependencies
+    - name: Restore exact installed dependencies on hosted runners
       id: installed-dependencies
+      # The self-hosted runners keep their own dependency directories. The
+      # actions/cache post step can hold a runner for an unbounded upload after
+      # the real job has finished, so hosted runners retain the post-step cache
+      # while Windows self-hosted runners use an explicit restore/save pair.
+      if: ${{ runner.environment != 'self-hosted' }}
       uses: actions/cache@v5
       with:
         path: |
@@ -44,26 +97,102 @@ runs:
           ~/.cache/ms-playwright
           ~/AppData/Local/ms-playwright
         key: >-
-          installed-deps-v4-${{ runner.os }}-${{ runner.arch }}-target-${{
+          installed-deps-v6-${{ runner.os }}-${{ runner.arch }}-target-${{
           inputs.arch }}-node-${{ inputs.node-version }}-py311-${{
           hashFiles('package.json', 'yarn.lock', 'app/package.json',
           'app/yarn.lock', '.yarnrc', 'app/.yarnrc', 'app/.npmrc',
           'script/post-install.ts',
           '.github/actions/setup-ci-environment/action.yml',
-          '.github/scripts/bootstrap-pinned-yarn.ps1',
-          'vendor/yarn-1.21.1.js', 'vendor/printenvz/**',
-          'vendor/windows-argv-parser/**', 'vendor/desktop-notifications/**',
-          'vendor/desktop-trampoline/**') }}
+          '.github/scripts/ensure-windows-git-bash.ps1',
+          '.github/scripts/ensure-windows-arm64-build-tools.ps1',
+          '.github/scripts/ensure-windows-clang.ps1',
+          '.github/scripts/bootstrap-pinned-yarn.ps1', 'vendor/yarn-1.21.1.js',
+          'vendor/printenvz/**', 'vendor/windows-argv-parser/**',
+          'vendor/desktop-notifications/**', 'vendor/desktop-trampoline/**') }}
+
+    - name: Restore exact installed dependencies on Windows self-hosted runners
+      id: installed-dependencies-self-hosted
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      uses: actions/cache/restore@v5
+      with:
+        path: |
+          node_modules
+          app/node_modules
+          ~/.cache/ms-playwright
+          ~/AppData/Local/ms-playwright
+        key: >-
+          installed-deps-v6-${{ runner.os }}-${{ runner.arch }}-runner-${{
+          steps.windows-toolchain.outputs.cache-suffix }}-target-${{ inputs.arch
+          }}-node-${{ inputs.node-version }}-py311-${{ hashFiles('package.json',
+          'yarn.lock', 'app/package.json', 'app/yarn.lock', '.yarnrc',
+          'app/.yarnrc', 'app/.npmrc', 'script/post-install.ts',
+          '.github/actions/setup-ci-environment/action.yml',
+          '.github/scripts/ensure-windows-git-bash.ps1',
+          '.github/scripts/ensure-windows-arm64-build-tools.ps1',
+          '.github/scripts/ensure-windows-clang.ps1',
+          '.github/scripts/bootstrap-pinned-yarn.ps1', 'vendor/yarn-1.21.1.js',
+          'vendor/printenvz/**', 'vendor/windows-argv-parser/**',
+          'vendor/desktop-notifications/**', 'vendor/desktop-trampoline/**') }}
+        # A legacy cache is only a warm start. Its cache-hit output remains
+        # false, so the current lock files still drive a complete install.
+        restore-keys: |
+          installed-deps-v6-${{ runner.os }}-${{ runner.arch }}-runner-${{
+          steps.windows-toolchain.outputs.cache-suffix }}-target-${{
+          inputs.arch }}-node-${{ inputs.node-version }}-py311-
+          installed-deps-v5-${{ runner.os }}-${{ runner.arch }}-target-${{
+          inputs.arch }}-node-${{ inputs.node-version }}-py311-
+          installed-deps-v4-${{ runner.os }}-${{ runner.arch }}-target-${{
+          inputs.arch }}-node-${{ inputs.node-version }}-py311-
+
+    - name: Select installed dependency cache result
+      id: installed-dependencies-status
+      shell: bash
+      run: |
+        if [ "${{ steps.installed-dependencies.outputs.cache-hit }}" = 'true' ] ||
+          [ "${{ steps.installed-dependencies-self-hosted.outputs.cache-hit }}" = 'true' ]; then
+          echo 'cache-hit=true' >> "$GITHUB_OUTPUT"
+        else
+          echo 'cache-hit=false' >> "$GITHUB_OUTPUT"
+        fi
+
+    - name:
+        Use Node.js ${{ inputs.node-version }} before self-hosted Yarn bootstrap
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
 
     - name: Install uv for self-hosted Windows Python
       if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
       uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
       with:
         version: 0.11.26
-        enable-cache: true
+        # Do not register setup-uv's post-run cache upload on self-hosted
+        # runners. Dependency installation remains explicit and reproducible.
+        enable-cache: false
+
+    - name: Install uv for self-hosted Linux Python
+      if: ${{ runner.os == 'Linux' && runner.environment == 'self-hosted' }}
+      uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      with:
+        version: 0.11.26
+        enable-cache: false
 
     - name: Install managed Python 3.11 on self-hosted Windows
       if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      shell: bash
+      run: |
+        uv python install 3.11
+        python_path=$(uv python find 3.11)
+        if [ -z "$python_path" ]; then
+          echo 'uv did not return a Python 3.11 interpreter path.' >&2
+          exit 1
+        fi
+        echo "npm_config_python=$python_path" >> "$GITHUB_ENV"
+        echo 'UV_PYTHON=3.11' >> "$GITHUB_ENV"
+
+    - name: Install managed Python 3.11 on self-hosted Linux
+      if: ${{ runner.os == 'Linux' && runner.environment == 'self-hosted' }}
       shell: bash
       run: |
         uv python install 3.11
@@ -80,14 +209,42 @@ runs:
       shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
       run: '& "$env:GITHUB_WORKSPACE\.github\scripts\bootstrap-pinned-yarn.ps1"'
 
+    - name: Expose repository-pinned Yarn to Git Bash
+      if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
+      shell: bash
+      run: |
+        # GitHub's Windows PATH bridge keeps the Windows spelling for later
+        # PowerShell/cmd actions. Git Bash needs the same directory in MSYS
+        # form, otherwise the following cache and install steps cannot find
+        # the freshly-created yarn.cmd shim.
+        shim_root="$(cygpath -u "$RUNNER_TEMP/desktop-material-pinned-yarn")"
+        if [ ! -f "$shim_root/yarn.cmd" ]; then
+          echo "Pinned Yarn shim is missing: $shim_root/yarn.cmd" >&2
+          exit 1
+        fi
+        if [ ! -f "$shim_root/yarn" ]; then
+          echo "Git Bash Yarn shim is missing: $shim_root/yarn" >&2
+          exit 1
+        fi
+        chmod +x "$shim_root/yarn"
+        echo "$shim_root" >> "$GITHUB_PATH"
+        export PATH="$shim_root:$PATH"
+        hash -r
+        resolved_yarn="$(command -v yarn || true)"
+        if [ "$resolved_yarn" != "$shim_root/yarn" ]; then
+          echo "Git Bash resolved an unexpected Yarn command: ${resolved_yarn:-<none>}" >&2
+          exit 1
+        fi
+        yarn --version
+
     - uses: actions/setup-python@v6
-      if: ${{ runner.os != 'Windows' || runner.environment != 'self-hosted' }}
+      if: ${{ runner.environment != 'self-hosted' }}
       with:
         python-version: '3.11'
 
     - name: Check cached dependencies
       id: dependency-cache-check
-      if: steps.installed-dependencies.outputs.cache-hit == 'true'
+      if: steps.installed-dependencies-status.outputs.cache-hit == 'true'
       shell: bash
       run: |
         required=(
@@ -147,15 +304,16 @@ runs:
         echo "complete=$cache_complete" >> "$GITHUB_OUTPUT"
 
     - name: Use Node.js ${{ inputs.node-version }} with installed dependencies
-      if: steps.installed-dependencies.outputs.cache-hit == 'true'
+      if: steps.installed-dependencies-status.outputs.cache-hit == 'true'
       uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}
 
     - name: Use Node.js ${{ inputs.node-version }} with Yarn download cache
       if:
-        ${{ steps.installed-dependencies.outputs.cache-hit != 'true' ||
-        steps.dependency-cache-check.outputs.complete != 'true' }}
+        ${{ (steps.installed-dependencies-status.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true') &&
+        runner.environment != 'self-hosted' }}
       uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}
@@ -164,14 +322,33 @@ runs:
           yarn.lock
           app/yarn.lock
 
-    - name: Install ffmpeg
-      if: ${{ runner.os == 'Windows' && inputs.install-ffmpeg == 'true' }}
+    - name:
+        Use Node.js ${{ inputs.node-version }} before self-hosted dependency
+        install
+      if:
+        ${{ (steps.installed-dependencies-status.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true') &&
+        runner.environment == 'self-hosted' }}
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Snapshot dependency manifests before dependency install
+      if:
+        ${{ steps.installed-dependencies-status.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true' }}
       shell: bash
-      run: choco install ffmpeg --yes --no-progress
+      run: |
+        manifest_backup="$RUNNER_TEMP/desktop-material-manifests-before-cross-compilation"
+        mkdir -p "$manifest_backup"
+        cp package.json "$manifest_backup/root-package.json"
+        cp yarn.lock "$manifest_backup/root-yarn.lock"
+        cp app/package.json "$manifest_backup/app-package.json"
+        cp app/yarn.lock "$manifest_backup/app-yarn.lock"
 
     - name: Install and build dependencies
       if:
-        ${{ steps.installed-dependencies.outputs.cache-hit != 'true' ||
+        ${{ steps.installed-dependencies-status.outputs.cache-hit != 'true' ||
         steps.dependency-cache-check.outputs.complete != 'true' }}
       shell: bash
       run: |
@@ -180,7 +357,7 @@ runs:
         # retry the complete install a small, bounded number of times.
         max_attempts=3
         for attempt in $(seq 1 "$max_attempts"); do
-          if yarn; then
+          if yarn --frozen-lockfile; then
             exit 0
           fi
 
@@ -198,7 +375,7 @@ runs:
 
     - name: Install cross-compilation copilot package
       if:
-        ${{ steps.installed-dependencies.outputs.cache-hit != 'true' ||
+        ${{ steps.installed-dependencies-status.outputs.cache-hit != 'true' ||
         steps.dependency-cache-check.outputs.complete != 'true' }}
       shell: bash
       run: |
@@ -233,7 +410,27 @@ runs:
           fi
         fi
 
+    - name: Restore dependency manifests after cross-compilation install
+      if:
+        ${{ steps.installed-dependencies-status.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true' }}
+      shell: bash
+      run: |
+        manifest_backup="$RUNNER_TEMP/desktop-material-manifests-before-cross-compilation"
+        cp "$manifest_backup/root-package.json" package.json
+        cp "$manifest_backup/root-yarn.lock" yarn.lock
+        cp "$manifest_backup/app-package.json" app/package.json
+        cp "$manifest_backup/app-yarn.lock" app/yarn.lock
+        if ! cmp -s "$manifest_backup/root-package.json" package.json ||
+          ! cmp -s "$manifest_backup/root-yarn.lock" yarn.lock ||
+          ! cmp -s "$manifest_backup/app-package.json" app/package.json ||
+          ! cmp -s "$manifest_backup/app-yarn.lock" app/yarn.lock; then
+          echo 'Cross-compilation dependency install changed a cache-key manifest.' >&2
+          exit 1
+        fi
+
     - name: Verify installed dependencies before use
+      id: verify-dependencies
       shell: bash
       run: |
         required=(
@@ -289,3 +486,30 @@ runs:
           echo "Installed dependencies are missing Playwright ffmpeg; refusing to save or use this exact cache key." >&2
           exit 1
         fi
+
+    - name: Save exact installed dependencies from Windows self-hosted runners
+      if:
+        ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' &&
+        (steps.installed-dependencies-self-hosted.outputs.cache-hit != 'true' ||
+        steps.dependency-cache-check.outputs.complete != 'true') &&
+        steps.verify-dependencies.outcome == 'success' }}
+      uses: actions/cache/save@v5
+      with:
+        path: |
+          node_modules
+          app/node_modules
+          ~/.cache/ms-playwright
+          ~/AppData/Local/ms-playwright
+        key: >-
+          installed-deps-v6-${{ runner.os }}-${{ runner.arch }}-runner-${{
+          steps.windows-toolchain.outputs.cache-suffix }}-target-${{ inputs.arch
+          }}-node-${{ inputs.node-version }}-py311-${{ hashFiles('package.json',
+          'yarn.lock', 'app/package.json', 'app/yarn.lock', '.yarnrc',
+          'app/.yarnrc', 'app/.npmrc', 'script/post-install.ts',
+          '.github/actions/setup-ci-environment/action.yml',
+          '.github/scripts/ensure-windows-git-bash.ps1',
+          '.github/scripts/ensure-windows-arm64-build-tools.ps1',
+          '.github/scripts/ensure-windows-clang.ps1',
+          '.github/scripts/bootstrap-pinned-yarn.ps1', 'vendor/yarn-1.21.1.js',
+          'vendor/printenvz/**', 'vendor/windows-argv-parser/**',
+          'vendor/desktop-notifications/**', 'vendor/desktop-trampoline/**') }}

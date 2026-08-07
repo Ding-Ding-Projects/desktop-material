@@ -18,16 +18,27 @@ on:
         required: false
         type: string
 
+concurrency:
+  group: super-express-release-linux-tui-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
 jobs:
   build:
     name: Build Linux TUI packages (self-hosted)
+    # Reusable calls may only come from this repository's protected main
+    # workflow. Manual emergency dispatch remains the only direct caller.
+    if: >-
+      github.event_name == 'workflow_dispatch' || (github.event_name ==
+      'workflow_call' && github.repository ==
+      'Ding-Ding-Projects/desktop-material' && github.ref == 'refs/heads/main')
     runs-on:
       - self-hosted
       - Linux
       - X64
+      - desktop-material-wsl-local
     timeout-minutes: 30
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}

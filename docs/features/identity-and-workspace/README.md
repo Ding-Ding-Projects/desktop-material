@@ -5,21 +5,25 @@ Material installation manages many identities, repositories, and branches.
 
 ## Features
 
-- [Multiple accounts and repository
+- [Multiple accounts, rich account picker, and repository
   identity](multiple-accounts-and-repository-identity.md)
 - [Repository sidebar and
   pinning](repository-sidebar-and-pinning.md)
-- [Branch switcher
-  workflows](branch-switcher-workflows.md)
+- [Branch switcher workflows](branch-switcher-workflows.md) — branch discovery,
+  dirty-worktree switching, and the **Not updated with main** merge filter
 - [Owner-scoped appearance and
   history](owner-scoped-appearance-and-history.md)
 - [Tab-strip settings commit
   chip](tab-strip-settings-commit-chip.md)
 - [Settings search](settings-search.md)
+- [Settings tab docking](settings-tab-docking.md)
+- [Scheduled language, appearance, and external
+  settings](scheduled-settings.md)
 - [Collection bulk actions and regex
   safety](collection-bulk-and-regex-safety.md)
 - [Tab groups](tab-groups.md)
 - [Tab-strip overflow dropdown](tab-overflow-dropdown.md)
+- [Browser-style settings tabs](settings-browser-tabs.md)
 
 High-frequency visual edits are coalesced before persistence, while remote
 default-branch lookup reuses only a namespace-validated local symbolic ref.

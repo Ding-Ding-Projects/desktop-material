@@ -11,10 +11,13 @@ but macOS and Linux packages are not supported product outputs.
 syntax highlighter, CLI, styles, source maps, licenses, and staged Electron
 resources. The canonical product version is `app/package.json#version`.
 
-The CI workflow builds Windows x64 and Windows arm64 on `windows-2022`. Windows
-x64 runs the full unit suite, and both architectures run the script tests and
-packaging gate. The supported packaged end-to-end lane installs and exercises
-Windows x64.
+The CI workflow builds Windows x64 and Windows arm64 on `windows-2022` by
+default. A trusted `workflow_dispatch` may select the fixed
+`desktop-material-windows-local` runner for those desktop build jobs; the
+Windows TUI core job remains on `windows-2022`, and pushes, pull requests, and
+reusable calls cannot select the self-hosted label. Windows x64 runs the full
+unit suite, and both architectures run the script tests and packaging gate. The
+supported packaged end-to-end lane installs and exercises Windows x64.
 
 ## Windows packaging
 
@@ -49,8 +52,21 @@ order Releases across both lanes. The leading `z` migrates installations from
 the older incompatible `b…` and `s…` namespaces; the alphabetic payload also
 avoids the installed legacy comparer's 32-bit overflow on modern numeric run
 IDs.
-Current public builds are unsigned; adding signing requires the existing Azure
-signing secret set and a reviewed workflow change.
+Windows packaging is permanently unsigned. Every package lane disables
+certificate auto-discovery, clears Windows signing and Azure identity inputs,
+and verifies that both the setup executable and MSI report `NotSigned`. A
+signature or attempted signer invocation fails the build. Release notes warn
+that the unsigned artifacts may trigger Windows SmartScreen or an
+unknown-publisher prompt.
+
+The direct `.github/workflows/super-express-release-windows.yml` build and
+publish jobs both use
+`[self-hosted, Windows, X64, desktop-material-windows-local]`. The publisher
+downloads and rechecks the package, stages and validates a unique draft, then
+publishes it as a uniquely tagged non-Latest Release. Exact workflow timing is
+written and verified before Latest reconciliation. A same-job failure removes
+the captured release and exact new tag, then restores the prior Latest. It never
+reuses or overwrites an earlier tag.
 
 ## Publication boundary
 
@@ -70,9 +86,9 @@ E2E lane is part of the supported pipeline.
 ## Failure modes and verification
 
 Build, unit, script, package, archive-create/list, installed-E2E, missing-asset,
-invalid-version, existing-tag, and remote-query failures stop release
-publication. A stale post-build head preserves its immutable Release without
-promoting it to the updater feed.
+unexpected-signature, invalid-version, existing-tag, and remote-query failures
+stop release publication. A stale post-build head preserves its immutable
+Release without promoting it to the updater feed.
 The tracked CI safety test enforces the Windows-only matrix, requires the x64
 portable ZIP as a non-empty release asset, and rejects macOS runners or Apple
 signing inputs in the application workflow. Portable-ZIP and CI focused checks

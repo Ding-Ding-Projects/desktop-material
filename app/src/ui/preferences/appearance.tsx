@@ -38,6 +38,10 @@ import {
   getAudioCueStore,
 } from '../../lib/audio/audio-cue-store'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import {
+  IScheduledSettingsProps,
+  ScheduledSettings,
+} from './scheduled-settings'
 
 type AppearanceSelectKey = 'languageMode'
 
@@ -76,6 +80,10 @@ interface IAppearanceProps {
   ) => void
   readonly branchSortOrder: BranchSortOrder
   readonly onBranchSortOrderChanged: (sortOrder: BranchSortOrder) => void
+  readonly scheduledSettings?: IScheduledSettingsProps['scheduledSettings']
+  readonly onScheduledSettingsChanged?: IScheduledSettingsProps['onScheduledSettingsChanged']
+  readonly onHomeAssistantTokenChanged?: IScheduledSettingsProps['onHomeAssistantTokenChanged']
+  readonly onHomeAssistantStateRequested?: IScheduledSettingsProps['onHomeAssistantStateRequested']
   /**
    * Persists the two app-wide playfulness levels. Injectable so this pane can
    * be exercised without constructing the audio runtime in focused UI tests.
@@ -767,11 +775,33 @@ export class Appearance extends React.Component<
     )
   }
 
+  private renderScheduledSettings() {
+    if (
+      this.props.scheduledSettings === undefined ||
+      this.props.onScheduledSettingsChanged === undefined ||
+      this.props.onHomeAssistantTokenChanged === undefined ||
+      this.props.onHomeAssistantStateRequested === undefined
+    ) {
+      return null
+    }
+
+    return (
+      <ScheduledSettings
+        languageMode={this.props.appearanceCustomization.languageMode}
+        scheduledSettings={this.props.scheduledSettings}
+        onScheduledSettingsChanged={this.props.onScheduledSettingsChanged}
+        onHomeAssistantTokenChanged={this.props.onHomeAssistantTokenChanged}
+        onHomeAssistantStateRequested={this.props.onHomeAssistantStateRequested}
+      />
+    )
+  }
+
   public render() {
     return (
       <DialogContent>
         {this.renderElementGestureNote()}
         {this.renderLanguageAndNavigation()}
+        {this.renderScheduledSettings()}
         {this.renderScaling()}
         {this.renderSelectedTheme()}
         {this.renderRepositoryList()}

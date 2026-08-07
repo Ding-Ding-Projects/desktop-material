@@ -32,6 +32,7 @@ import {
   IAgentServerStatus,
 } from '../lib/agent-commands'
 import { ISelfHostedServerProvisioningProgress } from '../lib/self-hosted-server/provisioning'
+import { ISelfHostedRunnerProgress } from '../lib/self-hosted-runner/types'
 import {
   AppWindowRendererFailure,
   isFatalRendererLoadFailure,
@@ -607,6 +608,15 @@ export class AppWindow {
     ipcWebContents.send(
       this.window.webContents,
       'self-hosted-server-provisioning-progress',
+      progress
+    )
+  }
+
+  /** Streams runner setup/removal progress to the Actions runner manager. */
+  public sendSelfHostedRunnerProgress(progress: ISelfHostedRunnerProgress) {
+    ipcWebContents.send(
+      this.window.webContents,
+      'self-hosted-runner-progress',
       progress
     )
   }

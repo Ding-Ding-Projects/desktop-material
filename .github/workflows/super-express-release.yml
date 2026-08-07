@@ -1,13 +1,13 @@
 name: Super Express Release
 
-# Manual emergency lane. It deliberately runs no tests, lint, type checks,
-# parity checks, or smoke tests. The ordinary CI and Express Release workflows
-# remain the tested release paths. Every job in this emergency lane runs on a
-# registered self-hosted runner: Linux jobs use the WSL runner and the Windows
-# package uses the native Windows runner. The Windows and Linux TUI build jobs
-# run in parallel, then one Linux self-hosted publisher creates the combined
-# Release so the Squirrel update feed and the TUI bootstrap URL still point at
-# one payload.
+# Manual emergency lane. The Windows package runs the repository's script
+# contracts before build; unit, lint, type, parity, smoke, packaged E2E, and
+# Linux TUI tests remain in ordinary CI and Express Release. Every job in this
+# emergency lane runs on a registered self-hosted runner: Linux jobs use the WSL
+# runner and the Windows package uses the native Windows runner. The Windows and
+# Linux TUI build jobs run in parallel, then one Linux self-hosted publisher
+# creates the combined Release so the Squirrel update feed and the TUI bootstrap
+# URL still point at one payload.
 on:
   workflow_dispatch:
     inputs:
@@ -17,10 +17,14 @@ on:
         default: true
         type: boolean
 
-# Do not add a shared concurrency group: overlapping manual releases must be
-# allowed to finish independently.
+# Publication has side effects, so a later dispatch must wait instead of
+# cancelling an in-flight tag or upload sequence.
+concurrency:
+  group: super-express-release-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
-  contents: write
+  contents: read
 
 env:
   NODE_VERSION: 24.15.0
@@ -32,6 +36,7 @@ jobs:
       - self-hosted
       - Linux
       - X64
+      - desktop-material-wsl-local
     permissions:
       contents: read
     outputs:
@@ -72,7 +77,7 @@ jobs:
         shell: bash
         run: |
           base=$(node -p "require('./app/package.json').version")
-          version=$(node script/release-version.js create "$base" "$GITHUB_RUN_ID")
+          version=$(node script/release-version.js create "$base" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT")
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
@@ -102,25 +107,46 @@ jobs:
   windows_build:
     name: Build Windows x64 package (self-hosted)
     needs: prepare
+    permissions:
+      contents: read
+    outputs:
+      artifact_name: ${{ steps.package.outputs.artifact_name }}
     runs-on:
       - self-hosted
       - Windows
       - X64
+      - desktop-material-windows-local
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v7.0.1
+      - name: Initial checkout for Windows bootstrap
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
-          submodules: recursive
+      - name: Bootstrap Git and Bash for self-hosted Windows
+        run:
+          powershell -NoProfile -ExecutionPolicy Bypass -File
+          .github/scripts/ensure-windows-git-bash.ps1
+      - name: Repeat checkout with bootstrapped Git
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+      - name: Attempt to update submodules (non-fatal)
+        continue-on-error: true
+        run: |
+          # prefer the new official mirror for the lowlevel MCP submodule if present
+          git config --local submodule.vendor/lowlevel-computer-use-mcp.url https://github.com/Ding-Ding-Projects/lowlevel-computer-use-mcp.git
+          git submodule sync --recursive
+          git submodule update --init --recursive
 
-      - uses: ./.github/actions/super-express-windows-build
+      - id: package
+        uses: ./.github/actions/super-express-windows-build
         with:
           release_target_sha: ${{ needs.prepare.outputs.sha }}
           release_version: ${{ needs.prepare.outputs.version }}
           node_version: ${{ env.NODE_VERSION }}
         env:
-          DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
           DESKTOP_ERROR_REPORTING_ENDPOINT:
             ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
           DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
@@ -129,10 +155,13 @@ jobs:
   tui_build:
     name: Build Linux TUI packages (self-hosted)
     needs: prepare
+    outputs:
+      artifact_name: ${{ steps.package.outputs.artifact_name }}
     runs-on:
       - self-hosted
       - Linux
       - X64
+      - desktop-material-wsl-local
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7.0.1
@@ -140,38 +169,40 @@ jobs:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
 
-      - uses: ./.github/actions/super-express-linux-tui-build
+      - id: package
+        uses: ./.github/actions/super-express-linux-tui-build
         with:
           release_target_sha: ${{ needs.prepare.outputs.sha }}
 
-  publish:
-    name: Publish combined GitHub Release
+  prepare_publication:
+    name: Prepare combined GitHub Release payload
     needs:
       - prepare
       - windows_build
       - tui_build
+    outputs:
+      tui_version: ${{ steps.tui_version.outputs.version }}
     if: >-
-      always() && needs.prepare.result == 'success' &&
+      !cancelled() && always() && needs.prepare.result == 'success' &&
       needs.windows_build.result == 'success' && needs.tui_build.result ==
       'success' && inputs.publish
     runs-on:
       - self-hosted
       - Linux
       - X64
+      - desktop-material-wsl-local
     permissions:
-      contents: write
+      contents: read
     env:
       RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
       RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
-      GH_TOKEN:
-        ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN
-        }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
+          persist-credentials: false
 
       - uses: actions/setup-node@v7
         with:
@@ -203,14 +234,19 @@ jobs:
 
       - uses: actions/download-artifact@v8
         with:
-          name:
-            super-express-windows-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ${{ needs.windows_build.outputs.artifact_name }}
           path: release-payload/installers
 
       - uses: actions/download-artifact@v8
         with:
-          name: super-express-tui-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ${{ needs.tui_build.outputs.artifact_name }}
           path: release-payload/tui
+
+      - name: Restore executable bits on downloaded TUI scripts
+        shell: bash
+        run:
+          chmod 0755 release-payload/tui/install-linux-tui.sh
+          release-payload/tui/bootstrap-linux-tui.sh
 
       - name: Verify downloaded release payload
         shell: bash
@@ -246,6 +282,7 @@ jobs:
             echo "Super Express package for commit \`$RELEASE_TARGET_SHA\`."
             echo
             echo 'Windows x64 and Linux TUI packages were built in parallel.'
+            echo 'The Windows setup executable and MSI are permanently unsigned and may trigger an unknown-publisher or SmartScreen warning.'
             echo 'This emergency lane deliberately runs no test or lint gates.'
             echo
             echo '### Commit'
@@ -269,8 +306,46 @@ jobs:
           compression-level: 0
           retention-days: 7
 
+  publish:
+    name: Publish combined GitHub Release
+    needs:
+      - prepare
+      - prepare_publication
+    if: >-
+      !cancelled() && always() && needs.prepare.result == 'success' &&
+      needs.prepare_publication.result == 'success' && inputs.publish
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
+      - desktop-material-wsl-local
+    permissions:
+      contents: write
+    env:
+      RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      TUI_VERSION: ${{ needs.prepare_publication.outputs.tui_version }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-github-cli
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: super-express-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-payload
+
       - name: Publish immutable GitHub Release
         shell: bash
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
         run: |
           set +e
           shopt -s nullglob
@@ -282,7 +357,7 @@ jobs:
             --target "$RELEASE_TARGET_SHA" \
             --title "Desktop Material $RELEASE_VERSION" \
             --notes-file release-payload/release-notes.md \
-            --latest=false
+            --latest
           create_status=$?
           set -e
           if [ "$create_status" -ne 0 ]; then
@@ -303,13 +378,17 @@ jobs:
               --repo "$GITHUB_REPOSITORY"
             gh release edit "$RELEASE_TAG" \
               --repo "$GITHUB_REPOSITORY" \
-              --prerelease=false --latest=false
+              --prerelease=false --latest
           fi
+          gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft \
+            > release-payload/published-is-draft.txt
+          gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' \
+            > release-payload/published-assets.txt
 
       - name: Verify published release target and assets
         shell: bash
-        env:
-          TUI_VERSION: ${{ steps.tui_version.outputs.version }}
         run: |
           git fetch origin "refs/tags/$RELEASE_TAG"
           published=$(git rev-parse 'FETCH_HEAD^{commit}')
@@ -317,12 +396,11 @@ jobs:
             echo "Published tag resolves to $published, expected $RELEASE_TARGET_SHA." >&2
             exit 1
           fi
-          if [ "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != "false" ]; then
+          if [ "$(cat release-payload/published-is-draft.txt)" != "false" ]; then
             echo "Published release unexpectedly remained a draft." >&2
             exit 1
           fi
-          published_assets=$(gh release view "$RELEASE_TAG" \
-            --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          published_assets=$(cat release-payload/published-assets.txt)
           for expected in \
             'RELEASES' \
             'GitHub Desktop-x64.zip' \
@@ -343,4 +421,8 @@ jobs:
 
       - name: Reconcile Latest to the newest main release
         shell: bash
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
         run: bash .github/scripts/promote-current-release.sh

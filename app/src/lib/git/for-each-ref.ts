@@ -76,6 +76,51 @@ export async function getBranches(
 }
 
 /**
+ * Get the canonical branch refs that contain a given commit.
+ *
+ * `for-each-ref --contains` lets callers answer ancestry questions for every
+ * local and remote branch in one Git invocation. Returning canonical refs is
+ * important because the visible branch name can be shared by different ref
+ * namespaces (for example a local branch and its remote-tracking branch).
+ */
+export async function getBranchRefsContainingCommit(
+  repository: Repository,
+  commitSha: string
+): Promise<ReadonlySet<string> | null> {
+  const { formatArgs, parse } = createForEachRefParser({
+    fullName: '%(refname)',
+  })
+
+  const result = await git(
+    [
+      'for-each-ref',
+      '--contains',
+      commitSha,
+      ...formatArgs,
+      'refs/heads',
+      'refs/remotes',
+    ],
+    repository.path,
+    'getBranchRefsContainingCommit',
+    {
+      expectedErrors: new Set([
+        GitError.BadRevision,
+        GitError.NotAGitRepository,
+      ]),
+    }
+  )
+
+  if (
+    result.gitError === GitError.BadRevision ||
+    result.gitError === GitError.NotAGitRepository
+  ) {
+    return null
+  }
+
+  return new Set(parse(result.stdout).map(ref => ref.fullName))
+}
+
+/**
  * Gets all branches that differ from their upstream (i.e. they're ahead,
  * behind or both), excluding the current branch.
  * Useful to narrow down a list of branches that could potentially be fast

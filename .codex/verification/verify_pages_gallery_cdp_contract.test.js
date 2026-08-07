@@ -41,10 +41,10 @@ function validReceipt() {
 
 describe('Pages gallery CDP verifier contracts', () => {
   it('tracks the exact guided gallery at its accepted dimensions', () => {
-    assert.equal(ExpectedGalleryImageCount, 91)
-    assert.equal(acceptedImageNames.length, 91)
-    assert.equal(new Set(acceptedImageNames).size, 91)
-    assert.equal(Object.keys(acceptedImageDimensions).length, 91)
+    assert.equal(ExpectedGalleryImageCount, 92)
+    assert.equal(acceptedImageNames.length, 92)
+    assert.equal(new Set(acceptedImageNames).size, 92)
+    assert.equal(Object.keys(acceptedImageDimensions).length, 92)
     assert.equal(
       acceptedImageNames.includes('auto-updater-current-source-ready.png'),
       true
@@ -76,7 +76,7 @@ describe('Pages gallery CDP verifier contracts', () => {
     })
     assert.deepEqual(
       acceptedImageDimensions['material-responsive-overflow-fixed.png'],
-      { width: 1450, height: 997 }
+      { width: 640, height: 480 }
     )
     assert.deepEqual(
       acceptedImageDimensions['repository-list-sync-summary.png'],

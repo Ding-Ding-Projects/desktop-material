@@ -46,7 +46,7 @@ describe('AccountSwitcher', () => {
     )
 
     fireEvent.click(
-      screen.getByRole('button', { name: /Enterprise User.*@enterprise-user/ })
+      screen.getByRole('option', { name: /Enterprise User.*@enterprise-user/ })
     )
 
     assert.equal(closeCount, 1)

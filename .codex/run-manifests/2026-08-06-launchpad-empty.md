@@ -1,0 +1,21 @@
+# Launchpad empty-state verification
+
+- Mode: `publish`
+- Milestone: Launchpad should render its repository/action inventory instead of a blank primary surface.
+- Expected UI state: the Launchpad page opens full-width with its truthful five zero-count status groups and omitted-item explanation; the repository shell must not reserve a blank sidebar beside them.
+- Reported evidence: `C:\Users\cntow\AppData\Local\Temp\codex-clipboard-6651b036-0774-4687-b683-06a028907441.png` shows the primary Launchpad surface blank beside zero-count status groups.
+- Ordered interactions: build the unpackaged Windows Electron app, create an isolated disposable fixture and user-data directory, create one hidden desktop, launch the built app directly with the fixture, resolve the current window handle, capture the stable first frame, inspect the rendered data state, exercise the Launchpad route, capture the repaired state, close the app, and close the hidden desktop.
+- Disposable fixture path: `C:\Users\cntow\AppData\Local\Temp\desktop-material-launchpad-empty-run-20260806\fixture`; committed seed `19ea284` plus untracked `work-in-progress.md`; no user files or credentials.
+- Isolated user-data path: `C:\Users\cntow\AppData\Local\Temp\desktop-material-launchpad-empty-run-20260806\user-data`.
+- Headless desktop: `codex-launchpad-empty-20260806-1`, created successfully; desktop handle `1444`; launch PID `32396`; resolved app HWND `4392920`.
+- Before-fix capture: `C:\Users\cntow\AppData\Local\Temp\desktop-material-launchpad-empty-run-20260806\launchpad-before-fix.png`; native client frame `960x660`, inspected at original resolution, showing the blank left pane.
+- Onboarding captures: `before-launchpad.png`, `after-onboarding.png`, `post-setup.png`, and `after-add.png` remain disposable evidence of the isolated first-run path before Launchpad was reached.
+- Repaired headless desktop: `codex-launchpad-fixed-20260806-1`, created successfully; desktop handle `1276`; launch PID `38644`; resolved app HWND `329800`.
+- After-fix capture: `C:\Users\cntow\AppData\Local\Temp\desktop-material-launchpad-empty-run-20260806\launchpad-after-fix.png`; native client frame `960x660`, inspected at original resolution, showing the full-width grouped page.
+- Cleanup ledger: close the resolved app HWND, terminate only the saved launch PID if graceful close fails, close the named desktop, then remove only the owned run root.
+- Build evidence: local verification build completed to `out` with `out/main.js`, `out/renderer.js`, and `out/repository-launchpad.js`; compatibility shims were restored before product edits.
+- Screenshot target: the real built Launchpad surface, captured at the app window's native dimensions and inspected at original resolution for nonblank content, clipping, focus, contrast, and private data.
+- Documentation allowlist: `.codex/run-manifests/2026-08-06-launchpad-empty.md`, the focused Launchpad feature source/tests, the affected feature documentation, `README.md`, `ROADMAP.md`, `HANDOFF.md`, and any required tracked screenshot or wiki source explicitly justified by the final evidence.
+- Local checks: focused Launchpad/unit tests, relevant typecheck/lint, unpackaged production build, and hidden-desktop capture.
+- Remote: `origin`.
+- Expected branch: `codex/launchpad-empty-20260806`.

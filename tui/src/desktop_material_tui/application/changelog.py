@@ -161,8 +161,10 @@ class ChangelogCatalog:
             "# Desktop Material release history",
             "",
             f"Exported scope: {scope}.",
-            "Source: bundled changelog.json entries and recorded release-* Git tag dates.",
-            "A missing release tag is written as date unrecorded; no date is guessed.",
+            "Source: bundled changelog.json entries, release-* Git tag dates, "
+            "and referenced entry-commit dates.",
+            "A release without either recorded timestamp is written as date "
+            "unrecorded; no date is guessed.",
             "",
         ]
         if not materialized:

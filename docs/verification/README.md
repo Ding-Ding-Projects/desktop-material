@@ -9,6 +9,7 @@ Screenshots of the real built app come from the capture fixture described in
 scenes such as the tab overflow dropdown, which cannot be produced by hand.
 
 - [Account-aware repository transfer — 2026-08-05](repository-transfer-2026-08-05/run-manifest.md)
+- [Original GitHub OAuth release proof — 2026-08-06](original-github-oauth-release-20260806/README.md)
 
 ## Current-source updater acceptance
 

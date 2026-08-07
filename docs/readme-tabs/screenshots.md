@@ -4,6 +4,17 @@
 
 # Screenshots
 
+## Original GitHub OAuth callback acceptance
+
+The dated production-build receipt proves that Desktop Material's app-owned
+browser reaches the original registered GitHub OAuth application without the
+reported `redirect_uri` warning. The frame contains empty sign-in fields and no
+account or credential data.
+
+![Real app-owned GitHub authorization page opened without a redirect URI warning](../assets/screenshots/material-original-github-oauth-release-20260806.png)
+
+[Read the exact-source verification receipt](../verification/original-github-oauth-release-20260806/README.md).
+
 The compact selection below keeps this README scannable. The
 [guided feature gallery](../wiki/Feature-Gallery.md) and
 [task-oriented tutorial](../wiki/User-Guide.md) contain the full annotated
@@ -15,12 +26,20 @@ safe Git loop, short-lived branches, conflict resolution, rebase, stash recovery
 automation, and account isolation. The diagrams are reproducible with
 `node script/generate-wiki-diagrams.js`.
 
+| Launchpad full-width empty state |
+| --- |
+| <img src="../assets/screenshots/material-launchpad-empty-full-width-20260806.png" alt="Launchpad empty state from the built Windows app, with five truthful zero-count groups filling the workspace and no blank sidebar" width="720"><br><sub>Full-width empty state · five truthful zero-count groups · cheap Lowlevel hidden-desktop capture</sub> |
+
+| Merge chooser freshness filter |
+| --- |
+| <img src="../assets/screenshots/not-updated-with-main-filter.png" alt="Merge into main chooser with Not updated with main active, showing only the stale fixture branch" width="720"><br><sub>Not updated with main · 960×660 client-only hidden-desktop capture · SHA-256 `DA046E4BC768324BAFF001B5DE0C7954F53F1CD498C25338081E8FDB83990346`</sub> |
+
 ## Historical Linux terminal captures
 
 Five original-resolution Debian/Xvfb captures remain preserved with their
 [dated run manifest](../verification/linux-tui-2026-07-27/run-manifest.md).
 They are historical evidence, not current Windows screenshots, and are
-therefore excluded from the 86-scene guided-gallery target, Pages manifest,
+therefore excluded from the 91-scene guided-gallery target, Pages manifest,
 and current refresh campaign.
 
 ## Inherited external-UI assets — excluded from the capture mandate
@@ -51,6 +70,21 @@ someone else's UI rather than evidence about this app. They are therefore
 capture coverage. Decision recorded 2026-07-27 (issue #25, option A). Anyone
 adding a new external-product screenshot should list it here with the same
 justification rather than leaving it to be mistaken for a stale app capture.
+
+## Current settings surfaces — browser-tab acceptance
+
+These three frames come from the exact production Electron build on the named
+hidden desktop run recorded in
+[`settings-browser-tabs-headless-run-manifest.json`](../verification/settings-browser-tabs-headless-run-manifest.json).
+They show the shared browser-style tab lane on Global Settings, Repository
+Settings, and Stash Manager, including close actions, search/overflow/new-page
+controls, and the active panel below the selected page.
+
+| Global Settings | Repository Settings | Stash Manager |
+| --- | --- | --- |
+| <img src="../assets/screenshots/material-settings.png" alt="Global Settings with browser-style tabs, close actions, search, and overflow" width="320"><br><sub>SHA-256 `43ff361771efeeeb01eb8b40b778b9a4e5b3a311457fc632271d9ad4aa513fc`</sub> | <img src="../assets/screenshots/material-remote-manager.png" alt="Repository Settings with browser-style tabs and the Remote page selected" width="320"><br><sub>SHA-256 `4850a060ed8ffb9c8fd06bf013e6b503b4928c58bf0449c45e56887be09ad962`</sub> | <img src="../assets/screenshots/material-stash-manager.png" alt="Stash Manager with browser-style Manage, Export, History, and Appearance and voice pages" width="320"><br><sub>SHA-256 `52254a7b62ba0a9ce3d84c19fe3cd5e4e30a37ede79d3122afa57665b9759ca3`</sub> |
+
+<sub>全域設定、倉庫設定同 Stash 管理員而家共用同一條似瀏覽器嘅分頁列；開新頁、關頁同搵滿瀉分頁都係同一套手勢。</sub>
 
 | Searchable Publish organization owner |
 | --- |

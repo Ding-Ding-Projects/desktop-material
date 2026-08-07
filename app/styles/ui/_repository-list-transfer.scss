@@ -5,6 +5,7 @@ dialog#import-repositories,
 dialog#export-tab-session,
 dialog#import-tab-session {
   .transfer-intro,
+  .transfer-large-files-note,
   .transfer-skip-note,
   .transfer-summary {
     color: var(--md-sys-color-on-surface-variant);
@@ -15,6 +16,13 @@ dialog#import-tab-session {
   .transfer-skip-note {
     margin-top: var(--spacing-half);
     color: var(--md-sys-color-error);
+  }
+
+  .transfer-large-files-note {
+    padding: var(--spacing-half) var(--spacing);
+    border-radius: 12px;
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
   }
 
   .transfer-list {

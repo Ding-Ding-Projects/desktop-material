@@ -138,7 +138,11 @@ export interface IPaletteDynamicChoiceControl {
 
 /** The runtime lists a dynamic choice can name. */
 export type PaletteDynamicOptionsId =
-  'external-editors' | 'shells' | 'accounts' | 'date-formats' | 'time-formats'
+  | 'external-editors'
+  | 'shells'
+  | 'accounts'
+  | 'date-formats'
+  | 'time-formats'
 
 /** A resolved option for a dynamic choice. Labels are values, not keys. */
 export interface IPaletteDynamicOption {
@@ -160,7 +164,9 @@ export type PaletteControlValue = boolean | string | number
  * or side-effecting commands simply omit it and spotlight their control.
  */
 export type IPaletteHome =
-  IPaletteSurfaceHome | IPaletteSettingsHome | IPaletteRepositorySettingsHome
+  | IPaletteSurfaceHome
+  | IPaletteSettingsHome
+  | IPaletteRepositorySettingsHome
 
 export interface IPaletteSurfaceHome {
   readonly kind: 'surface'
@@ -247,6 +253,10 @@ export function preferencesPaletteEvent(tab: PreferencesTab): string {
       return 'palette:preferences-sound'
     case PreferencesTab.Ollama:
       return 'palette:ollama-model-manager'
+    case PreferencesTab.SelfHostedServer:
+      return 'palette:preferences-self-hosted-server'
+    case PreferencesTab.AI:
+      return 'palette:preferences-ai'
     default:
       return 'show-preferences'
   }
@@ -1232,6 +1242,22 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
       'settings sound audio music narrator tts voice volume quiet hours effects',
     home: { kind: 'preferences', tab: PreferencesTab.Sound },
   },
+  {
+    event: 'palette:preferences-self-hosted-server',
+    title: 'Preferences: Self-hosted server',
+    titleKey: 'settings.selfHostedServerTab',
+    group: 'App',
+    keywords: 'settings self hosted docker server join saml',
+    home: { kind: 'preferences', tab: PreferencesTab.SelfHostedServer },
+  },
+  {
+    event: 'palette:preferences-ai',
+    title: 'Preferences: AI security',
+    titleKey: 'settings.aiTab',
+    group: 'App',
+    keywords: 'settings ai security provider eligibility allowlist kill switch',
+    home: { kind: 'preferences', tab: PreferencesTab.AI },
+  },
   // Surfaces that are otherwise only reachable by knowing which settings tab
   // hosts them. Naming them here makes them findable by what they do.
   {
@@ -1451,6 +1477,18 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     home: {
       kind: 'repositorySettings',
       tab: RepositorySettingsTab.Appearance,
+    },
+  },
+  {
+    event: 'palette:repository-settings-ai-security',
+    title: 'Repository AI features',
+    titleKey: 'repositorySettings.tabAISecurity',
+    group: 'Repository',
+    keywords: 'ai security feature provider eligibility policy',
+    isAvailable: whenRepository,
+    home: {
+      kind: 'repositorySettings',
+      tab: RepositorySettingsTab.AISecurity,
     },
   },
   {

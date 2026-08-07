@@ -88,9 +88,11 @@ Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.co
 The [tracked script](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/script/install-windows.ps1)
 resolves the latest stable installer release from this exact repository,
 requires the matching GitHub SHA-256 asset digest, checks any Authenticode signature, installs
-silently for the current user, and cleans up its temporary download. Current
-builds are unsigned; the script reports that fact and refuses an unsupported
-architecture or an unverified download. See the [User Guide](User-Guide#install-on-windows)
+silently for the current user, and cleans up its temporary download. Windows
+releases are permanently unsigned; packaging and publication require
+`NotSigned`, and release notes warn about possible SmartScreen or
+unknown-publisher prompts. The script reports that fact and refuses an
+unsupported architecture or unverified download. See the [User Guide](User-Guide#install-on-windows)
 for explicit silent install, update, and uninstall examples, the current-user
 scope and no-force-close contract, the portable-ZIP extraction note, and the
 manual-download path.
@@ -247,6 +249,10 @@ the tonal workspace preview hides when a compact window needs the space.
 - **Non-modal dialogs** that float without blocking the app, drag by their headers, cascade, and
   come to front on focus. Preferences is an MD3 940×660 dialog with a left rail, an Active chip, and
   a pill footer; the repository and branch pickers are MD3 side sheets.
+- **Merge chooser freshness** — the default branch's Merge into main sheet can show only branches
+  whose tips do not contain the current main tip. The read-only ancestry check handles local and
+  remote refs, keeps diverged-but-updated branches out of the result, composes with text and regex
+  search, and is localized in English, Hong Kong-style Cantonese, and bilingual mode.
 - **Notification and error triage** — search and type-filter Local notifications, select the visible
   result set, apply history-backed read/unread/delete actions, or confirm **Clear all**. GitHub inbox
   items have account-scoped search and bulk read/done controls. Acknowledgement-only errors default
@@ -264,15 +270,40 @@ the tonal workspace preview hides when a compact window needs the space.
   approve or reject eligible deployments; approve an eligible fork run; dispatch a workflow; and
   load later artifact pages before a native download with local digest comparison and explicit
   attestation-presence context.
-- **Release gates** — the manual Super Express emergency lane runs no tests and
-  goes directly to its Windows x64 build/package, asset verification, and
-  optional release. Every job is self-hosted-only: preparation and publication
-  use the registered Linux x64 WSL runner, the Windows lane uses
-  `[self-hosted, Windows, X64]`, and the TUI lane uses `[self-hosted, Linux, X64]`.
-  If a required runner is unavailable, the release queues or fails rather than
-  moving to a GitHub-hosted cloud runner. Ordinary CI and tested Express remain
-  the default gates; release pull requests target the Windows product's `main`
-  default branch.
+- **Runner boundary** — automatic Windows CI uses clean GitHub-hosted runners. A protected-main
+  manual dispatch can select `cloud` or
+  `[self-hosted, Windows, X64, desktop-material-windows-local]`; untrusted events cannot select
+  the local pool. Windows release jobs use the approved self-hosted inventory and keep
+  non-cancelling publication groups. Super Express retains ref-scoped cancellation. Its self-hosted setup restores exact dependencies without an
+  unbounded post-job cache hook, verifies the cache, and explicitly saves a verified miss.
+- **Windows test memory and installation** — `script/test.mjs` owns both the per-worker heap and
+  memory-aware concurrency; workflows do not impose a 4 GiB value inherited by every worker. The
+  packaged smoke lane waits at most 300 seconds for the Squirrel installer process, kills that tree
+  on timeout, and repeatedly cleans up only newly launched same-session application processes.
+- **Python 3.13 TUI verification** — the Linux lane runs all non-UI tests together, then gives each
+  UI test file a fresh interpreter. This preserves the complete suite while preventing a native
+  Textual syntax-state segfault from crossing app-heavy test files; Python 3.10 and 3.12 keep the
+  ordinary full-suite path.
+- **Windows profile history** — the TUI configures `core.longpaths` inside its own isolated Git
+  history repository as well as in CI checkout preparation, so Windows history writes do not rely
+  on a separate repository's local Git configuration.
+- **Release gates** — the manual Super Express emergency lane runs the complete
+   script-contract suite before its Windows x64 build/package, asset
+   verification, and release. It still omits the slower unit, lint, type,
+   parity, smoke, packaged E2E, and Linux TUI test gates. The combined
+   dispatcher keeps preparation and publication on the
+   registered Linux x64 WSL runner, the Windows lane on `[self-hosted, Windows,
+   X64]`, and the TUI lane on `[self-hosted, Linux, X64]`. A direct Windows lane
+   dispatch keeps both packaging and publication on
+   `[self-hosted, Windows, X64, desktop-material-windows-local]`; direct Linux TUI and
+   reusable packaging calls remain artifact-only so the combined dispatcher can publish
+   one complete cross-platform Release. If a required packaging runner is
+   unavailable, the affected release queues or fails; the direct Windows
+   publisher queues when the labelled Windows runner is unavailable. A cold
+   Windows publisher installs pinned checksum-verified PortableGit, GitHub CLI,
+   and `jq` below `RUNNER_TOOL_CACHE`. Ordinary CI and tested Express remain the
+   default gates; release
+   pull requests target the Windows product's `main` default branch.
 - **Compact Repository Releases** — the corrected 800×560 combined gate keeps the list ahead of
   overview/detail content and retains one complete row. One physical 960×660 gate passed at 100%,
   125% (768×528 CSS), 150%, and 200% (480×330 CSS); compact scales keep a 176 px panel, at least
