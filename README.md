@@ -17,6 +17,13 @@
 > [`ba966baff0`](https://github.com/Ding-Ding-Projects/desktop-material/commit/ba966baff0fb5282f8c98c683e5a3f32dc17a6e9)
 > is on the task branch; default-branch integration remains pending.
 
+> **Scheduled language and appearance — August 6, 2026:** Settings →
+> Appearance can now apply language, theme, and appearance customizations in
+> local date/time windows, including an every-day time-only rule. A schedule
+> can read a versioned HTTPS API response or gate a local value on a Home
+> Assistant boolean entity; tokens stay in the operating-system credential
+> vault. See the [scheduled settings article](docs/features/identity-and-workspace/scheduled-settings.md).
+
 > **Stash recovery manager:** the Windows app now keeps every Git stash entry
 > without a Desktop entry-count cap and provides a separate searchable dialog
 > for exact-identity recovery and export to a directory, ZIP, or configurable

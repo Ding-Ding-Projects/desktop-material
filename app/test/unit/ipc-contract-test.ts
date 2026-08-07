@@ -116,6 +116,9 @@ describe('IPC channel contract', () => {
   ] as const
 
   const expectedResponseChannels = [
+    'fetch-scheduled-settings',
+    'fetch-home-assistant-state',
+    'set-home-assistant-token',
     'acquire-profile-repository-lock',
     'release-profile-repository-lock',
     'start-window-close-preparation',

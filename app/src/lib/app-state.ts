@@ -20,6 +20,7 @@ import type {
   IAppearanceCustomization,
   IRepositoryAppearanceOverrides,
 } from '../models/appearance-customization'
+import type { IScheduledSettingsConfig } from '../models/scheduled-settings'
 import { ShowBranchNameInRepoListSetting } from '../models/show-branch-name-in-repo-list'
 import { Tip } from '../models/tip'
 import { Commit } from '../models/commit'
@@ -419,6 +420,9 @@ export interface IAppState {
 
   /** The application-wide appearance customization stored in the profile. */
   readonly appearanceCustomization: IAppearanceCustomization
+
+  /** The persisted local-time schedule that can layer language and appearance. */
+  readonly scheduledSettings: IScheduledSettingsConfig
 
   /** Overrides read from the selected repository's local Git config. */
   readonly repositoryAppearanceOverrides: IRepositoryAppearanceOverrides

@@ -1106,6 +1106,51 @@ public OCI pointers can restore anonymously.
 - A fresh Windows runtime capture remains pending because no fresh production
   artifact exists. `gh run list --commit 4f87b632ecdde73cf8c326a1da1499232427212b`
   returned no run at this handoff, so no installer or release is claimed.
+## 2026-08-06 — Scheduled language, appearance, and external settings sources
+
+Commit `fa77be151e` adds persisted, versioned schedule rules to the Windows
+desktop app. Rules use native date and time controls, support Every day or
+selected weekdays, optional date bounds, local timezone/DST handling, and
+cross-midnight windows. Later matching rules override earlier fields without
+persisting the effective overlay back over the user's base preferences.
+
+The scheduled value can set language mode, theme, highlight features, and the
+exposed runtime appearance customization fields. A local rule can provide the
+value directly; a bounded version-1 HTTPS/loopback API can provide an allowlisted
+value; and a Home Assistant boolean entity can gate the rule on exact `on` or
+`off` state. Home Assistant tokens are stored only in the operating system's
+credential vault and are absent from schedule JSON, renderer state, logs, and
+exports. External refreshes are bounded and generation-guarded so an older
+response cannot repaint the app after a newer refresh.
+
+### Verification
+
+- Focused implementation, IPC, localization, settings-search, appearance, and
+  UI suites: **80/80 passed** across 9 files.
+- Incremental discoverability regression suite: **30/30 passed**.
+- TypeScript: **0 diagnostics**; repository-native ESLint: **passed**;
+  changed-file Prettier: **passed**; `git diff --check`: **passed**.
+- Documentation and Pages contracts: **21/21 passed**.
+- Renderer-only webpack compile: **exit 0**, with 21 existing Sass/Copilot
+  warnings. The full production resource-copy build remains blocked in this
+  checkout by the empty `gemoji/images/emoji` submodule; no release or full
+  package success is claimed from that attempt.
+- Real hidden Windows capture at 960×660 verified the schedule editor,
+  native date/time controls, Every day/weekdays, local language/theme and
+  appearance fields, API validation, and Home Assistant URL/entity/token/test
+  controls. The six captures are preserved in the external session status
+  artifact, not in the repository.
+
+### Remote state and next owner
+
+The feature branch is ready for remote verification and default-branch
+integration. No GitHub Actions result or Release is claimed in this entry yet;
+the next owner should monitor the run after the branch is published, integrate
+`fa77be151e` into the default branch, and record the verified remote result.
+
+### 香港式廣東話
+
+而家可以用原生日期同時間 picker 排程語言、主題同外觀，揀每日或者指定星期，仲可以畀 version-1 API 或 Home Assistant boolean sensor 做開關。Home Assistant token 只會收埋喺作業系統 credential vault，唔會周街跌落 schedule JSON、renderer state、log 或 export；舊 refresh 回嚟都唔可以反客為主。80/80 focused tests 同 30/30 discoverability tests 已過，renderer compile 亦成功；完整資源 copy 仲俾空嘅 `gemoji/images/emoji` submodule 卡住，所以未當 full package 或 release 已完成。
 
 ## 2026-08-05 — Super Express packaging lanes parallelized
 

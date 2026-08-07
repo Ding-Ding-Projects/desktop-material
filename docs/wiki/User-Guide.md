@@ -66,6 +66,7 @@ archived outside that target set.
 - [Repository tabs](#repository-tabs)
 - [Command palette](#command-palette)
 - [Appearance customization](#appearance-customization)
+- [Scheduled language and appearance](#scheduled-language-and-appearance)
 - [Settings history](#settings-history)
 - [Non-modal dialogs](#non-modal-dialogs)
 - [Multi-clone](#multi-clone)
@@ -843,6 +844,27 @@ profile, feature, repository-element, and tab-element repository roots and close
 Rapid slider, palette, and typography events are collapsed into the latest normalized owner value
 before one durable write and state update. A queued `get()` read, explicit flush, or History action
 remains an ordering barrier, and separately awaited changes keep their original sequence.
+
+### Scheduled language and appearance
+
+**Settings → Appearance → Scheduled settings** adds local-time rules for the
+language mode, theme, and appearance values. Use the native date picker for
+optional date bounds, the native time picker for an exclusive end time, and
+either selected weekdays or **Every day** when only the time window matters.
+Equal start and end times mean the selected day in full; a window that crosses
+midnight continues into the following local day. Later active rules win only
+for fields they set.
+
+The source can be a local value, a versioned HTTPS API document, or a Home
+Assistant boolean entity. API responses are bounded and allowlisted. A Home
+Assistant value is used only while the configured entity reports `on`; its
+access token is stored by the main process in the operating-system credential
+vault, never in the schedule export or profile JSON. Offline, invalid, and
+failed sources are skipped so the normal profile appearance remains usable.
+
+See the detailed [scheduled settings feature article](../features/identity-and-workspace/scheduled-settings.md)
+for the response shape, persistence boundary, security limits, and
+verification contract.
 
 The app identity editor covers the code-native logo and in-app name, geometry, color, typography,
 spacing, emphasis, and effects. It does not rename the signed executable or operating-system icon.

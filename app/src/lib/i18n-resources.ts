@@ -69,6 +69,81 @@ export type TranslationKey =
   | 'appearance.elementGesture.plain'
   | 'appearance.elementGesture.light'
   | 'appearance.elementGesture.playful'
+  | 'appearance.scheduledSettingsHeading'
+  | 'appearance.scheduledSettingsDescription'
+  | 'appearance.scheduledSettingsRuleDetails'
+  | 'appearance.scheduledSettingsRuleHelp'
+  | 'appearance.scheduledSettingsRuleProvenance'
+  | 'appearance.scheduledSettingsSourceDetails'
+  | 'appearance.scheduledSettingsSourceProvenance'
+  | 'appearance.scheduledSettingsValueDetails'
+  | 'appearance.scheduledSettingsValueProvenance'
+  | 'appearance.scheduledSettingsAdd'
+  | 'appearance.scheduledSettingsEmpty'
+  | 'appearance.scheduledSettingsRule'
+  | 'appearance.scheduledSettingsEnabled'
+  | 'appearance.scheduledSettingsAllDays'
+  | 'appearance.scheduledSettingsWeekdays'
+  | 'appearance.scheduledSettingsStartDate'
+  | 'appearance.scheduledSettingsEndDate'
+  | 'appearance.scheduledSettingsDateRangeInvalid'
+  | 'appearance.scheduledSettingsStartTime'
+  | 'appearance.scheduledSettingsEndTime'
+  | 'appearance.scheduledSettingsTimeZone'
+  | 'appearance.scheduledSettingsSource'
+  | 'appearance.scheduledSettingsLocal'
+  | 'appearance.scheduledSettingsAPI'
+  | 'appearance.scheduledSettingsHomeAssistant'
+  | 'appearance.scheduledSettingsAPIEndpoint'
+  | 'appearance.scheduledSettingsHomeAssistantBaseURL'
+  | 'appearance.scheduledSettingsHomeAssistantEntity'
+  | 'appearance.scheduledSettingsHomeAssistantToken'
+  | 'appearance.scheduledSettingsSaveToken'
+  | 'appearance.scheduledSettingsTestSensor'
+  | 'appearance.scheduledSettingsTokenSaved'
+  | 'appearance.scheduledSettingsSensorState'
+  | 'appearance.scheduledSettingsValue'
+  | 'appearance.scheduledSettingsValueDescription'
+  | 'appearance.scheduledSettingsRemove'
+  | 'appearance.scheduledSettingsSourceFailure'
+  | 'appearance.scheduledSettingsSourceInvalid'
+  | 'appearance.scheduledSettingsLanguage'
+  | 'appearance.scheduledSettingsLanguageEnglish'
+  | 'appearance.scheduledSettingsLanguageCantonese'
+  | 'appearance.scheduledSettingsLanguageBilingual'
+  | 'appearance.scheduledSettingsTheme'
+  | 'appearance.scheduledSettingsAppearance'
+  | 'appearance.scheduledSettingsOn'
+  | 'appearance.scheduledSettingsOff'
+  | 'appearance.scheduledSettingsDaySunday'
+  | 'appearance.scheduledSettingsDayMonday'
+  | 'appearance.scheduledSettingsDayTuesday'
+  | 'appearance.scheduledSettingsDayWednesday'
+  | 'appearance.scheduledSettingsDayThursday'
+  | 'appearance.scheduledSettingsDayFriday'
+  | 'appearance.scheduledSettingsDaySaturday'
+  | 'appearance.scheduledSettingsThemeSystem'
+  | 'appearance.scheduledSettingsThemeLight'
+  | 'appearance.scheduledSettingsThemeDark'
+  | 'appearance.scheduledSettingsNoChange'
+  | 'appearance.scheduledSettingsAPIHelp'
+  | 'appearance.scheduledSettingsHomeAssistantHelp'
+  | 'appearance.scheduledSettingsAccentPalette'
+  | 'appearance.scheduledSettingsUpdateProgressPalette'
+  | 'appearance.scheduledSettingsSurfacePalette'
+  | 'appearance.scheduledSettingsElevation'
+  | 'appearance.scheduledSettingsUIFont'
+  | 'appearance.scheduledSettingsMonospaceFont'
+  | 'appearance.scheduledSettingsMotion'
+  | 'appearance.scheduledSettingsToolbarLabels'
+  | 'appearance.scheduledSettingsToolbarDensity'
+  | 'appearance.scheduledSettingsRepositoryListDensity'
+  | 'appearance.scheduledSettingsTabDensity'
+  | 'appearance.scheduledSettingsTabWidth'
+  | 'appearance.scheduledSettingsTabCloseButtons'
+  | 'appearance.scheduledSettingsSubmoduleBackStyle'
+  | 'appearance.scheduledSettingsSubmoduleBackLabel'
+  | 'appearance.scheduledSettingsHighlightFeatures'
   | 'appearance.submoduleBackStyle'
   | 'appearance.submoduleBackLabel'
   | 'appearance.toolbarEditorTitle'
@@ -3058,6 +3133,8 @@ export type TranslationKey =
   | 'settingsSearch.entry.accessibilityDiffMarks.desc'
   | 'settingsSearch.entry.agentAccessServer.title'
   | 'settingsSearch.entry.agentAccessServer.desc'
+  | 'settingsSearch.entry.selfHostedServer.title'
+  | 'settingsSearch.entry.selfHostedServer.desc'
   | 'settingsSearch.entry.queueMode.desc'
   | 'settingsSearch.entry.ollamaManager.title'
   | 'settingsSearch.entry.ollamaManager.desc'
@@ -3832,6 +3909,99 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Want to restyle something? Shift+Right-click it and its appearance editor opens. A plain right-click stays out of the way and opens that element’s ordinary menu. From the keyboard, focus the element and press Shift+F10 or the Menu key. Each element keeps its settings and history separate.',
   'appearance.elementGesture.playful':
     'Hold Shift, right-click anything, and its appearance editor pops out ready for a fresh coat of paint. A plain right-click keeps its day job: that element’s ordinary menu. Keyboard fans, focus the element and hit Shift+F10 or the Menu key. Every element hoards its own settings and history like a squirrel.',
+  'appearance.scheduledSettingsHeading': 'Scheduled settings',
+  'appearance.scheduledSettingsDescription':
+    'Apply language, theme, and appearance customizations during local date and time windows. A schedule can also read a validated API or a Home Assistant boolean entity; external failures leave the local settings unchanged.',
+  'appearance.scheduledSettingsRuleDetails': 'How this schedule works',
+  'appearance.scheduledSettingsRuleHelp':
+    'The rule matches the selected local weekdays and time window. Every day overrides the weekday checklist; a window that crosses midnight continues from the selected start day into the next local day.',
+  'appearance.scheduledSettingsRuleProvenance':
+    'Source: the active profile’s saved scheduled-settings-v1 record. New rules are seeded with {startTime}–{endTime}; the current values are stored with this rule.',
+  'appearance.scheduledSettingsSourceDetails': 'About the value source',
+  'appearance.scheduledSettingsSourceProvenance':
+    'Source: {source}. Local values are saved with the rule; API values are fetched only from the validated endpoint; Home Assistant values are saved locally and gated by the selected boolean entity.',
+  'appearance.scheduledSettingsValueDetails': 'About applied settings',
+  'appearance.scheduledSettingsValueProvenance':
+    'Source: the value payload for this rule. Only fields present in the payload change; all other appearance and language settings keep their saved values.',
+  'appearance.scheduledSettingsAdd': 'Add schedule',
+  'appearance.scheduledSettingsEmpty':
+    'No schedules yet. Add one to give the app a timetable instead of making it guess.',
+  'appearance.scheduledSettingsRule': 'Schedule {number}',
+  'appearance.scheduledSettingsEnabled': 'Schedule is enabled',
+  'appearance.scheduledSettingsAllDays': 'Every day',
+  'appearance.scheduledSettingsWeekdays': 'Days of week',
+  'appearance.scheduledSettingsStartDate': 'Start date (optional)',
+  'appearance.scheduledSettingsEndDate': 'End date (optional)',
+  'appearance.scheduledSettingsDateRangeInvalid':
+    'End date must be on or after the start date. This schedule is paused until the range is corrected.',
+  'appearance.scheduledSettingsStartTime': 'Start time',
+  'appearance.scheduledSettingsEndTime': 'End time',
+  'appearance.scheduledSettingsTimeZone':
+    'Uses {timeZone} local time. Daylight-saving changes are followed automatically. The end time is exclusive; matching start and end times cover the selected day.',
+  'appearance.scheduledSettingsSource': 'Value source',
+  'appearance.scheduledSettingsLocal': 'Local scheduled value',
+  'appearance.scheduledSettingsAPI': 'Validated API',
+  'appearance.scheduledSettingsHomeAssistant': 'Home Assistant boolean',
+  'appearance.scheduledSettingsAPIEndpoint': 'API endpoint',
+  'appearance.scheduledSettingsHomeAssistantBaseURL': 'Home Assistant URL',
+  'appearance.scheduledSettingsHomeAssistantEntity': 'Boolean entity ID',
+  'appearance.scheduledSettingsHomeAssistantToken': 'Access token',
+  'appearance.scheduledSettingsSaveToken': 'Save token securely',
+  'appearance.scheduledSettingsTestSensor': 'Test sensor',
+  'appearance.scheduledSettingsTokenSaved':
+    'Token saved in the OS credential vault.',
+  'appearance.scheduledSettingsSensorState': 'Sensor state: {state}',
+  'appearance.scheduledSettingsValue': 'Settings applied when active',
+  'appearance.scheduledSettingsValueDescription':
+    'Later matching schedules win for fields they set. API responses must be version 1 and contain language, theme, or appearance values.',
+  'appearance.scheduledSettingsRemove': 'Remove schedule',
+  'appearance.scheduledSettingsSourceFailure':
+    'This external source could not be read; the schedule was skipped and the previous settings remain active.',
+  'appearance.scheduledSettingsSourceInvalid':
+    'This rule is paused until its external source is valid. Enter a valid endpoint or entity ID, then enable the schedule.',
+  'appearance.scheduledSettingsLanguage': 'Language value',
+  'appearance.scheduledSettingsLanguageEnglish': 'English',
+  'appearance.scheduledSettingsLanguageCantonese':
+    'Playful Hong Kong Cantonese',
+  'appearance.scheduledSettingsLanguageBilingual': 'Bilingual',
+  'appearance.scheduledSettingsTheme': 'Theme value',
+  'appearance.scheduledSettingsAppearance': 'Appearance customization',
+  'appearance.scheduledSettingsOn': 'on',
+  'appearance.scheduledSettingsOff': 'off',
+  'appearance.scheduledSettingsDaySunday': 'Sunday',
+  'appearance.scheduledSettingsDayMonday': 'Monday',
+  'appearance.scheduledSettingsDayTuesday': 'Tuesday',
+  'appearance.scheduledSettingsDayWednesday': 'Wednesday',
+  'appearance.scheduledSettingsDayThursday': 'Thursday',
+  'appearance.scheduledSettingsDayFriday': 'Friday',
+  'appearance.scheduledSettingsDaySaturday': 'Saturday',
+  'appearance.scheduledSettingsThemeSystem': 'System',
+  'appearance.scheduledSettingsThemeLight': 'Light',
+  'appearance.scheduledSettingsThemeDark': 'Dark',
+  'appearance.scheduledSettingsNoChange': 'No change',
+  'appearance.scheduledSettingsAPIHelp':
+    'HTTPS is required, except for localhost, 127.0.0.1, or ::1. The API response must be version 1 JSON.',
+  'appearance.scheduledSettingsHomeAssistantHelp':
+    'The token stays in the OS credential vault. The schedule uses the entity only when its boolean state is on.',
+  'appearance.scheduledSettingsAccentPalette': 'Accent palette',
+  'appearance.scheduledSettingsUpdateProgressPalette':
+    'Update progress palette',
+  'appearance.scheduledSettingsSurfacePalette': 'Surface palette',
+  'appearance.scheduledSettingsElevation': 'Elevation',
+  'appearance.scheduledSettingsUIFont': 'UI font',
+  'appearance.scheduledSettingsMonospaceFont': 'Monospace font',
+  'appearance.scheduledSettingsMotion': 'Motion',
+  'appearance.scheduledSettingsToolbarLabels': 'Toolbar labels',
+  'appearance.scheduledSettingsToolbarDensity': 'Toolbar density',
+  'appearance.scheduledSettingsRepositoryListDensity':
+    'Repository list density',
+  'appearance.scheduledSettingsTabDensity': 'Tab density',
+  'appearance.scheduledSettingsTabWidth': 'Tab width',
+  'appearance.scheduledSettingsTabCloseButtons': 'Tab close buttons',
+  'appearance.scheduledSettingsSubmoduleBackStyle': 'Submodule Back style',
+  'appearance.scheduledSettingsSubmoduleBackLabel': 'Submodule Back label',
+  'appearance.scheduledSettingsHighlightFeatures':
+    'Highlight Desktop Material features',
   'appearance.submoduleBackStyle': 'Submodule Back button style',
   'appearance.submoduleBackLabel': 'Submodule Back button label',
   'appearance.toolbarEditorTitle': 'Toolbar appearance',
@@ -8561,6 +8731,94 @@ export const cantoneseTranslations: Readonly<
     '想改個樣？撳住 Shift 右擊佢，外觀編輯器就會彈出嚟。淨係右擊就唔阻你，照開返該元素本身嘅選單。用鍵盤就先聚焦該元素，再撳 Shift+F10 或者 Menu 鍵。每個元素嘅設定同歷史都各自分開。',
   'appearance.elementGesture.playful':
     '撳住 Shift 再右擊，外觀編輯器即刻彈出嚟等你落色。淨係右擊嘅話，佢繼續做返本份——開該元素本身嘅選單。鍾意用鍵盤？聚焦該元素，撳 Shift+F10 或者 Menu 鍵。每個元素都好似松鼠咁，收埋自己嘅設定同歷史。',
+  'appearance.scheduledSettingsHeading': '排程設定',
+  'appearance.scheduledSettingsDescription':
+    '喺指定本地日期同時間套用語言、主題同外觀自訂。排程亦可以讀經驗證嘅 API 或 Home Assistant 布林實體；外部來源失敗時，會保留本地設定唔亂郁。',
+  'appearance.scheduledSettingsRuleDetails': '呢條排程點樣運作',
+  'appearance.scheduledSettingsRuleHelp':
+    '呢條規則會按照你揀嘅本地星期同時間範圍匹配。「每日」會覆蓋星期清單；跨午夜嘅時間窗會由所選開始日延續到下一個本地日。',
+  'appearance.scheduledSettingsRuleProvenance':
+    '來源：目前個人檔案已儲存嘅 scheduled-settings-v1 紀錄。新規則預設係 {startTime}–{endTime}；目前數值會同呢條規則一齊儲存。',
+  'appearance.scheduledSettingsSourceDetails': '設定來源資料',
+  'appearance.scheduledSettingsSourceProvenance':
+    '來源：{source}。本地數值會同規則一齊儲存；API 數值只會由經驗證端點讀取；Home Assistant 數值會本地儲存，再由揀定嘅布林實體控制。',
+  'appearance.scheduledSettingsValueDetails': '套用設定資料',
+  'appearance.scheduledSettingsValueProvenance':
+    '來源：呢條規則嘅數值內容。只有內容入面出現嘅欄位會改變，其餘外觀同語言設定會保留已儲存數值。',
+  'appearance.scheduledSettingsAdd': '加個排程',
+  'appearance.scheduledSettingsEmpty':
+    '而家未有排程。加一個啦，等個 app 有時間表，唔使靠估。',
+  'appearance.scheduledSettingsRule': '排程 {number}',
+  'appearance.scheduledSettingsEnabled': '啟用排程',
+  'appearance.scheduledSettingsAllDays': '每日',
+  'appearance.scheduledSettingsWeekdays': '星期',
+  'appearance.scheduledSettingsStartDate': '開始日期（可留空）',
+  'appearance.scheduledSettingsEndDate': '結束日期（可留空）',
+  'appearance.scheduledSettingsDateRangeInvalid':
+    '結束日期要係開始日期當日或之後；修正日期範圍之前，呢條排程會暫停。',
+  'appearance.scheduledSettingsStartTime': '開始時間',
+  'appearance.scheduledSettingsEndTime': '結束時間',
+  'appearance.scheduledSettingsTimeZone':
+    '使用 {timeZone} 本地時間。夏令時間轉換會自動跟隨；結束時間唔包括喺內，相同開始同結束時間就代表覆蓋所選嗰日。',
+  'appearance.scheduledSettingsSource': '設定來源',
+  'appearance.scheduledSettingsLocal': '本機排程值',
+  'appearance.scheduledSettingsAPI': '已驗證 API',
+  'appearance.scheduledSettingsHomeAssistant': 'Home Assistant 布林值',
+  'appearance.scheduledSettingsAPIEndpoint': 'API 端點',
+  'appearance.scheduledSettingsHomeAssistantBaseURL': 'Home Assistant 網址',
+  'appearance.scheduledSettingsHomeAssistantEntity': '布林實體 ID',
+  'appearance.scheduledSettingsHomeAssistantToken': '存取 token',
+  'appearance.scheduledSettingsSaveToken': '安全咁儲存 token',
+  'appearance.scheduledSettingsTestSensor': '測試感應器',
+  'appearance.scheduledSettingsTokenSaved': 'Token 已儲喺作業系統憑證庫。',
+  'appearance.scheduledSettingsSensorState': '感應器狀態：{state}',
+  'appearance.scheduledSettingsValue': '啟用時套用嘅設定',
+  'appearance.scheduledSettingsValueDescription':
+    '多個排程撞時間時，後面嘅排程會覆寫佢有設定嘅欄位。API 回應必須係 version 1，並包含語言、主題或外觀值。',
+  'appearance.scheduledSettingsRemove': '移除排程',
+  'appearance.scheduledSettingsSourceFailure':
+    '呢個外部來源讀唔到；今次排程會跳過，之前嘅設定繼續用。',
+  'appearance.scheduledSettingsSourceInvalid':
+    '呢條規則會暫停，直到外部來源有效。請輸入有效端點或實體 ID，再重新啟用排程。',
+  'appearance.scheduledSettingsLanguage': '語言值',
+  'appearance.scheduledSettingsLanguageEnglish': '英文',
+  'appearance.scheduledSettingsLanguageCantonese': '香港廣東話（玩味版）',
+  'appearance.scheduledSettingsLanguageBilingual': '雙語',
+  'appearance.scheduledSettingsTheme': '主題值',
+  'appearance.scheduledSettingsAppearance': '外觀自訂',
+  'appearance.scheduledSettingsOn': '開',
+  'appearance.scheduledSettingsOff': '關',
+  'appearance.scheduledSettingsDaySunday': '星期日',
+  'appearance.scheduledSettingsDayMonday': '星期一',
+  'appearance.scheduledSettingsDayTuesday': '星期二',
+  'appearance.scheduledSettingsDayWednesday': '星期三',
+  'appearance.scheduledSettingsDayThursday': '星期四',
+  'appearance.scheduledSettingsDayFriday': '星期五',
+  'appearance.scheduledSettingsDaySaturday': '星期六',
+  'appearance.scheduledSettingsThemeSystem': '跟隨系統',
+  'appearance.scheduledSettingsThemeLight': '淺色',
+  'appearance.scheduledSettingsThemeDark': '深色',
+  'appearance.scheduledSettingsNoChange': '唔改',
+  'appearance.scheduledSettingsAPIHelp':
+    '除咗 localhost、127.0.0.1 同 ::1，其他都要用 HTTPS。API 回應要係 version 1 JSON。',
+  'appearance.scheduledSettingsHomeAssistantHelp':
+    'Token 會留喺作業系統憑證庫。只有布林狀態係開，排程先會用呢個實體。',
+  'appearance.scheduledSettingsAccentPalette': '主色調色板',
+  'appearance.scheduledSettingsUpdateProgressPalette': '更新進度色板',
+  'appearance.scheduledSettingsSurfacePalette': '表面調色板',
+  'appearance.scheduledSettingsElevation': '陰影層次',
+  'appearance.scheduledSettingsUIFont': '介面字型',
+  'appearance.scheduledSettingsMonospaceFont': '等寬字型',
+  'appearance.scheduledSettingsMotion': '動態效果',
+  'appearance.scheduledSettingsToolbarLabels': '工具列標籤',
+  'appearance.scheduledSettingsToolbarDensity': '工具列密度',
+  'appearance.scheduledSettingsRepositoryListDensity': 'Repo 列表密度',
+  'appearance.scheduledSettingsTabDensity': '分頁密度',
+  'appearance.scheduledSettingsTabWidth': '分頁寬度',
+  'appearance.scheduledSettingsTabCloseButtons': '分頁關閉掣',
+  'appearance.scheduledSettingsSubmoduleBackStyle': '子模組返回掣款式',
+  'appearance.scheduledSettingsSubmoduleBackLabel': '子模組返回掣文字',
+  'appearance.scheduledSettingsHighlightFeatures': '標示 Desktop Material 功能',
   'appearance.submoduleBackStyle': '子模組返回掣款式',
   'appearance.submoduleBackLabel': '子模組返回掣文字',
   'appearance.toolbarEditorTitle': '工具列外觀',

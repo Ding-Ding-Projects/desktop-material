@@ -132,6 +132,12 @@ import {
   AgentSetupRunResult,
   IAgentSetupRunRequest,
 } from './agent-sessions/setup-commands'
+import {
+  HomeAssistantBooleanState,
+  IHomeAssistantSettingsRequest,
+  ISetHomeAssistantTokenRequest,
+  IScheduledSettingsValue,
+} from '../models/scheduled-settings'
 
 /**
  * Defines the simplex IPC channel names we use from the renderer
@@ -303,6 +309,18 @@ export type RequestChannels = {
  * Return signatures must be promises
  */
 export type RequestResponseChannels = {
+  /** Fetch and validate a bounded scheduled-settings document in the main process. */
+  'fetch-scheduled-settings': (
+    endpoint: string
+  ) => Promise<IScheduledSettingsValue>
+  /** Read a Home Assistant boolean entity without exposing its token to the renderer. */
+  'fetch-home-assistant-state': (
+    request: IHomeAssistantSettingsRequest
+  ) => Promise<HomeAssistantBooleanState>
+  /** Store or remove a Home Assistant token in the OS credential vault. */
+  'set-home-assistant-token': (
+    request: ISetHomeAssistantTokenRequest
+  ) => Promise<void>
   /** Lease one absolute Windows Git repository across renderer documents. */
   'acquire-profile-repository-lock': (repositoryPath: string) => Promise<string>
   /** Release a profile repository lease owned by the invoking renderer. */

@@ -17,6 +17,8 @@ Material installation manages many identities, repositories, and branches.
   chip](tab-strip-settings-commit-chip.md)
 - [Settings search](settings-search.md)
 - [Settings tab docking](settings-tab-docking.md)
+- [Scheduled language, appearance, and external
+  settings](scheduled-settings.md)
 - [Collection bulk actions and regex
   safety](collection-bulk-and-regex-safety.md)
 - [Tab groups](tab-groups.md)
