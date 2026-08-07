@@ -568,6 +568,72 @@ describe('API', () => {
   })
 
   describe('Actions endpoints', () => {
+    it('fetches repository runners with bounded pagination and validation', async () => {
+      const api = new API('https://api.github.com', 'token')
+      const controller = new AbortController()
+      const requests: Array<{
+        readonly path: string
+        readonly signal: AbortSignal | undefined
+        readonly accept: string | null
+      }> = []
+      Reflect.set(
+        api,
+        'ghRequest',
+        async (
+          _method: string,
+          path: string,
+          options?: { signal?: AbortSignal; customHeaders?: HeadersInit }
+        ) => {
+          requests.push({
+            path,
+            signal: options?.signal,
+            accept: new Headers(options?.customHeaders).get('Accept'),
+          })
+          const page = requests.length
+          const runners = Array.from(
+            { length: page === 1 ? 100 : 1 },
+            (_, index) => ({
+              id: page * 1000 + index + 1,
+              name: `runner-${page}-${index}`,
+              os: 'Windows',
+              busy: false,
+              status: 'online',
+              labels: [{ name: 'self-hosted' }],
+            })
+          )
+          return new Response(JSON.stringify({ total_count: 101, runners }), {
+            status: 200,
+          })
+        }
+      )
+
+      const result = await api.fetchSelfHostedRunners(
+        'owner',
+        'repo',
+        controller.signal
+      )
+
+      assert.deepEqual(
+        requests.map(request => request.path),
+        [
+          'repos/owner/repo/actions/runners?per_page=100&page=1',
+          'repos/owner/repo/actions/runners?per_page=100&page=2',
+        ]
+      )
+      assert.ok(requests.every(request => request.signal === controller.signal))
+      assert.ok(
+        requests.every(
+          request => request.accept === 'application/vnd.github+json'
+        )
+      )
+      assert.equal(result.total_count, 101)
+      assert.equal(result.runners.length, 101)
+      assert.equal(result.runners[100].name, 'runner-2-0')
+      await assert.rejects(() =>
+        api.fetchSelfHostedRunners('owner/replaced', 'repo')
+      )
+    })
+
     it('builds workflow run filters and dispatch bodies', async () => {
       const api = new API('https://api.github.com', 'token')
       const requests = new Array<{
