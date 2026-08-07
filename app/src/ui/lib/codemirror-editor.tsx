@@ -24,7 +24,6 @@ export class CodeMirrorEditor extends React.Component<ICodeMirrorEditorProps> {
     if (textarea === null) {
       return
     }
-    const nextSiblingBeforeInitialization = textarea.nextSibling
     try {
       this.editor = CodeMirror.fromTextArea(textarea, {
         lineNumbers: true,
@@ -33,7 +32,6 @@ export class CodeMirrorEditor extends React.Component<ICodeMirrorEditorProps> {
         viewportMargin: Infinity,
       })
       this.applyWrapperClassName()
-      this.applyInputAttributes()
       this.usingCodeMirror = true
       this.editor.on('change', instance => {
         const value = instance.getValue()
@@ -45,21 +43,8 @@ export class CodeMirrorEditor extends React.Component<ICodeMirrorEditorProps> {
         }
       })
     } catch {
-      // CodeMirror can fail after hiding the source textarea and inserting part
-      // of its wrapper. Roll that partial initialization back so restricted
-      // renderers retain one usable, accessible native control.
-      let insertedNode = textarea.nextSibling
-      while (
-        insertedNode !== null &&
-        insertedNode !== nextSiblingBeforeInitialization
-      ) {
-        const nextInsertedNode = insertedNode.nextSibling
-        insertedNode.parentNode?.removeChild(insertedNode)
-        insertedNode = nextInsertedNode
-      }
-      textarea.style.display = ''
+      // Keep the native textarea available in test shells and restricted renderers.
       this.editor = null
-      this.usingCodeMirror = false
     }
   }
 
@@ -77,7 +62,6 @@ export class CodeMirrorEditor extends React.Component<ICodeMirrorEditorProps> {
       if (prevProps.readOnly !== this.props.readOnly) {
         this.editor.setOption('readOnly', this.props.readOnly)
       }
-      this.applyInputAttributes()
     }
   }
 
@@ -111,56 +95,6 @@ export class CodeMirrorEditor extends React.Component<ICodeMirrorEditorProps> {
     }
   }
 
-  private applyInputAttributes() {
-    const input = this.editor
-      ?.getWrapperElement()
-      .querySelector<HTMLTextAreaElement>('textarea')
-    if (input == null) {
-      return
-    }
-
-    const inputId = `${this.props.id}-input`
-    input.id = inputId
-    input.name = inputId
-    this.setOptionalInputAttribute(
-      input,
-      'aria-labelledby',
-      this.props.ariaLabelledBy
-    )
-    this.setOptionalInputAttribute(
-      input,
-      'aria-describedby',
-      this.props.ariaDescribedBy
-    )
-    this.setOptionalInputAttribute(
-      input,
-      'aria-invalid',
-      this.props.ariaInvalid ? 'true' : undefined
-    )
-    this.setOptionalInputAttribute(
-      input,
-      'aria-readonly',
-      this.props.readOnly ? 'true' : undefined
-    )
-    if (this.props.maxLength === undefined) {
-      input.removeAttribute('maxlength')
-    } else {
-      input.maxLength = this.props.maxLength
-    }
-  }
-
-  private setOptionalInputAttribute(
-    input: HTMLTextAreaElement,
-    name: string,
-    value: string | undefined
-  ) {
-    if (value === undefined) {
-      input.removeAttribute(name)
-    } else {
-      input.setAttribute(name, value)
-    }
-  }
-
   public render() {
     return (
       <textarea
@@ -172,7 +106,6 @@ export class CodeMirrorEditor extends React.Component<ICodeMirrorEditorProps> {
             : 'code-mirror-editor')
         }
         id={this.props.id}
-        name={this.props.id}
         value={this.props.value}
         readOnly={this.props.readOnly}
         aria-labelledby={this.props.ariaLabelledBy}
