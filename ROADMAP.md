@@ -346,9 +346,11 @@ Updated: **August 6, 2026**
   copying remains blocked by the incomplete gemoji submodule contents in that
   checkout; no installer or remote release is claimed from this milestone yet.
   The default branch contains integration commit `3404175ca3`; the prior
-  verification snapshot `aa9e5e7d5d` has visible Windows, Linux, CodeQL, and
-  Cheap LFS checks queued and linked from `HANDOFF.md`. No Pages or Express
-  Release run was visible for that snapshot.
+  verification snapshot `aa9e5e7d5d` has its exact Windows, Linux, CodeQL, and
+  Cheap LFS runs linked from `HANDOFF.md`. The current implementation snapshot
+  `abc4440add` has Windows, Linux, CodeQL, Cheap LFS, and Express Release runs
+  queued. No green result, installer, or Release is claimed while they wait;
+  no Pages run is visible for the implementation snapshot.
 
 ## August 3 — the site lays out on a phone
 

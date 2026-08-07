@@ -1165,21 +1165,31 @@ repository-native ESLint, Prettier, and `git diff --check` also pass. The
 previous default-branch verification snapshot recorded for this handoff is
 `aa9e5e7d5d`; its visible checks were queued:
 
-- [CI Linux 31137308695](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137308695)
-- [CI Windows 31137308698](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137308698)
-- [CI Windows 31137310032](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137310032)
-- [CI Linux 31137310081](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137310081)
-- [Code scanning 31137310239](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137310239)
-- [Cheap LFS 31137310276](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137310276)
+- [CI Windows 31137515159](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137515159)
+- [CI Linux 31137515253](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137515253)
+- [Cheap LFS 31137531210](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137531210)
+- [CI Windows 31137531235](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137531235)
+- [CI Linux 31137531285](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137531285)
+- [Code scanning 31137531308](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137531308)
 
-No green remote result or Release is claimed while these snapshot runs are
+The current implementation snapshot `abc4440add` also has queued checks:
+
+- [CI Linux 31137609421](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137609421)
+- [CI Windows 31137609427](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137609427)
+- [CI Linux 31137610706](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137610706)
+- [Code scanning 31137610710](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137610710)
+- [Cheap LFS 31137610718](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137610718)
+- [CI Windows 31137610724](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137610724)
+- [Express Release 31137686212](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137686212)
+
+No green remote result, installer, or Release is claimed while these runs are
 queued. This handoff update is documentation-only and does not turn a queued
-check into a passing result; no Pages or Express Release run was visible for
-the snapshot.
+check into a passing result; no Pages run is visible for the implementation
+snapshot.
 
 ### 香港式廣東話
 
-而家可以用原生日期同時間 picker 排程語言、主題同外觀，揀每日或者指定星期，仲可以畀 version-1 API 或 Home Assistant boolean sensor 做開關。Home Assistant token 只會收埋喺作業系統 credential vault，唔會周街跌落 schedule JSON、renderer state、log 或 export；舊 refresh 回嚟都唔可以反客為主。80/80 focused tests 同 30/30 discoverability tests 已過，renderer compile 亦成功；完整資源 copy 仲俾空嘅 `gemoji/images/emoji` submodule 卡住，所以未當 full package 或 release 已完成。
+而家可以用原生日期同時間 picker 排程語言、主題同外觀，揀每日或者指定星期，仲可以畀 version-1 API 或 Home Assistant boolean sensor 做開關。Home Assistant token 只會收埋喺作業系統 credential vault，唔會周街跌落 schedule JSON、renderer state、log 或 export；舊 refresh 回嚟都唔可以反客為主。81/81 focused tests 同 30/30 discoverability tests 已過，renderer compile 亦成功；完整資源 copy 仲俾空嘅 `gemoji/images/emoji` submodule 卡住，所以未當 full package 或 release 已完成。
 
 ## 2026-08-05 — Super Express packaging lanes parallelized
 
