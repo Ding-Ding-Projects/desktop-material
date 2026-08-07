@@ -90,8 +90,15 @@ describe('CI environment setup', () => {
     )
     assert.match(
       setupAction,
-      /shell: powershell -NoProfile -ExecutionPolicy Bypass/
+      /shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '\{0\}'"/
     )
+    assert.equal(
+      setupAction.match(
+        /shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '\{0\}'"/g
+      )?.length,
+      2
+    )
+    assert.doesNotMatch(setupAction, /^\s*shell: powershell\s*$/m)
     assert.doesNotMatch(setupAction, /shell: pwsh/)
     assert.match(setupAction, /ensure-windows-git-bash\.ps1/)
     assert.match(setupAction, /Install uv for self-hosted Windows Python/)
