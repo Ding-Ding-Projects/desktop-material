@@ -109,7 +109,6 @@ jobs:
     needs: prepare
     permissions:
       contents: read
-      id-token: write
     outputs:
       artifact_name: ${{ steps.package.outputs.artifact_name }}
     runs-on:
@@ -137,9 +136,7 @@ jobs:
           release_target_sha: ${{ needs.prepare.outputs.sha }}
           release_version: ${{ needs.prepare.outputs.version }}
           node_version: ${{ env.NODE_VERSION }}
-          sign: 'true'
-          azure-client-id: ${{ secrets.AZURE_CODE_SIGNING_CLIENT_ID }}
-          azure-tenant-id: ${{ secrets.AZURE_CODE_SIGNING_TENANT_ID }}
+          sign: 'false'
         env:
           DESKTOP_ERROR_REPORTING_ENDPOINT:
             ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}

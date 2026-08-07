@@ -1,6 +1,6 @@
 # Desktop Material — Active parity handoff
 
-## 2026-08-06 — Restore safe selectable Windows CI and signed direct releases
+## 2026-08-06 — Restore safe selectable Windows CI and direct releases
 
 The current repair includes upstream `main` through
 `2ac597335c547e13f887b0b5c10ef6c8101233e1`. Its shell-neutral submodule
@@ -18,9 +18,14 @@ validation uses a workflow/event/ref concurrency group with
 gates publication. Every release workflow is non-cancelling, and a cancelled
 superseded CI completion is a neutral non-release result.
 
-The automatic and Super Express Windows package paths now set a publishable
-beta channel, authenticate to Azure Trusted Signing by OIDC, and fail unless
-both the setup executable and MSI have valid Authenticode signatures. The
+The automatic tested Windows package path still sets a publishable beta
+channel, authenticates to Azure Trusted Signing by OIDC, and fails unless both
+the setup executable and MSI have valid Authenticode signatures. Super Express
+is now an explicitly unsigned emergency path: both dispatchers pass
+`sign: 'false'`, the package script honors that choice without looking for the
+Azure client, and release notes identify the installers as unsigned. The
+Squirrel `RELEASES` verifier streams every advertised package before artifact
+upload and again after download, rejecting any hash or byte-size mismatch. The
 direct Windows publisher runs on `ubuntu-latest`, so it no longer waits for the
 unrelated offline Linux TUI runner. It verifies the normalized published ZIP
 name, stages a draft, verifies the target and all six non-empty assets before
@@ -53,14 +58,12 @@ Actions' unsigned temporary script. The guard now uses the repository's
 existing per-process `-ExecutionPolicy Bypass` shell form; it does not weaken
 the machine-wide policy.
 Run `31143500793` passed the repaired guard and production build, then failed
-at Azure OIDC login because both signing inputs were empty. The repository has
-no Actions secrets, the signed-in accounts cannot administer organization
-secrets, no usable local code-signing certificate exists, and the newest
-published installer verifies as `NotSigned`. The shared signing action now
-checks both required inputs before any signing-client download or production
-build, so this external configuration blocker fails in seconds rather than
-after twelve minutes. The focused signing/workflow proof passes **27/27**;
-unsigned publication remains blocked.
+at Azure OIDC login because both signing inputs were empty. The shared signing
+action still fails early when a signed lane opts in without those values, but
+Super Express no longer opts in. Run `31144718341` was cancelled once the
+unsigned policy was selected, before it could publish a release. The next run
+must prove the explicit unsigned package path, streamed Squirrel integrity
+check, and draft-first publisher.
 
 ## 2026-08-06 — Neutral-skip cancelled workflow-run release completions
 

@@ -12,7 +12,7 @@ inputs:
     description: Node.js version used by the package
     required: true
   sign:
-    description: Require Azure Trusted Signing for publishable installers
+    description: Enable Azure Trusted Signing for publishable installers
     required: false
     default: 'true'
   azure-client-id:
@@ -121,6 +121,7 @@ runs:
       env:
         NODE_ENV: production
         RELEASE_CHANNEL: beta
+        WINDOWS_SIGNING_ENABLED: ${{ inputs.sign }}
         AZURE_CLIENT_ID: ${{ inputs.azure-client-id }}
         AZURE_TENANT_ID: ${{ inputs.azure-tenant-id }}
         npm_config_arch: x64
@@ -180,6 +181,10 @@ runs:
             exit 1
           fi
         done
+
+        node script/verify-releases-manifest.js \
+          release-payload/installers/RELEASES \
+          release-payload/installers
 
     - name: Require valid Authenticode on published installers
       if: ${{ inputs.sign == 'true' }}

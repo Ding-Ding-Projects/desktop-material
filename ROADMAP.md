@@ -2,7 +2,7 @@
 
 Updated: **August 6, 2026**
 
-## August 6 — Select Windows CI capacity and ship signed Latest releases
+## August 6 — Select Windows CI capacity and ship Latest releases
 
 - A protected-main `CI Windows` manual dispatch can select `cloud` or the exact
   labelled self-hosted Windows pool for desktop build and packaged E2E jobs;
@@ -10,8 +10,11 @@ Updated: **August 6, 2026**
 - Replaceable Windows validation cancels stale same-event/same-ref work without
   letting a manual run cancel the push event that gates publication. Release
   and publication workflows never cancel an in-flight tag or upload sequence.
-- Automatic and Super Express Windows packaging now requires Azure OIDC
-  signing and valid Authenticode on both published installers.
+- Automatic tested Windows packaging retains Azure OIDC signing and valid
+  Authenticode gates. Super Express is explicitly unsigned, says so in its
+  release notes, and still requires the exact commit, unique version and tag,
+  filtered Squirrel manifest, streaming package hash/size verification before
+  and after artifact transfer, and six non-empty assets.
 - The direct Windows publisher runs on hosted Linux instead of waiting for the
   offline TUI runner, stages and verifies a draft before publication, records
   exact first-job-through-publication timing, uses an unused public dim-sum code
@@ -30,9 +33,10 @@ Updated: **August 6, 2026**
   shell uses a per-process execution-policy bypass without changing the host's
   persistent policy. Run `31143500793` then reached Azure login and proved both
   signing inputs are unavailable to this repository. The shared signing action
-  now fails before dependency download or production build with the exact
-  missing secret names; unsigned publication stays blocked. The focused
-  signing/workflow proof is **27/27**.
+  still fails before dependency download when a signed lane opts in, while the
+  Super Express workflows now opt out explicitly. Run `31144718341` was
+  cancelled after that policy change and published nothing; its replacement
+  must prove the unsigned package and draft-first release path.
 
 ## August 6 — Neutral-skip cancelled workflow-run release completions
 

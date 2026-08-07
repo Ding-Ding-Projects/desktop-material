@@ -192,6 +192,23 @@ describe('Super Express Release workflow', () => {
     assert.match(windowsWorkflow, /super-express-windows-build/)
     assert.match(windowsBuildAction, /yarn build:prod/)
     assert.match(windowsBuildAction, /yarn package/)
+    assert.match(
+      windowsBuildAction,
+      /WINDOWS_SIGNING_ENABLED: \$\{\{ inputs\.sign \}\}/
+    )
+    assert.match(workflow, /windows_build:[\s\S]*?sign: 'false'/)
+    assert.match(windowsWorkflow, /build:[\s\S]*?sign: 'false'/)
+    assert.doesNotMatch(workflow, /AZURE_CODE_SIGNING_(?:CLIENT|TENANT)_ID/)
+    assert.doesNotMatch(
+      windowsWorkflow,
+      /AZURE_CODE_SIGNING_(?:CLIENT|TENANT)_ID/
+    )
+    for (const source of [windowsBuildAction, windowsWorkflow]) {
+      assert.match(
+        source,
+        /node script\/verify-releases-manifest\.js[\s\S]*?release-payload\/installers\/RELEASES[\s\S]*?release-payload\/installers/
+      )
+    }
     assert.match(windowsBuildAction, /actions\/upload-artifact@v7/)
     assert.doesNotMatch(
       windowsBuildAction,

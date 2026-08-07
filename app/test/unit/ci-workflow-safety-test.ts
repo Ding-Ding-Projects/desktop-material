@@ -42,6 +42,7 @@ const superExpressWindowsBuildAction = readFileSync(
   join(root, '.github', 'actions', 'super-express-windows-build', 'action.yml'),
   'utf8'
 )
+const packageScript = readFileSync(join(root, 'script', 'package.ts'), 'utf8')
 const githubCliAction = readFileSync(
   join(root, '.github', 'actions', 'setup-github-cli', 'action.yml'),
   'utf8'
@@ -617,7 +618,7 @@ describe('CI workflow safety', () => {
     )
   })
 
-  it('signs Windows releases, publishes without the TUI runner, and proves Latest', () => {
+  it('publishes unsigned Super Express packages without weakening the tested release lane', () => {
     assert.match(
       superExpressWindowsBuildAction,
       /uses: \.\/\.github\/actions\/setup-windows-signing[\s\S]*?enabled: \$\{\{ inputs\.sign \}\}/
@@ -625,11 +626,28 @@ describe('CI workflow safety', () => {
     assert.match(superExpressWindowsBuildAction, /RELEASE_CHANNEL: beta/)
     assert.match(
       superExpressWindowsBuildAction,
-      /Require valid Authenticode on published installers[\s\S]*?Get-AuthenticodeSignature/
+      /WINDOWS_SIGNING_ENABLED: \$\{\{ inputs\.sign \}\}/
     )
     assert.match(
+      packageScript,
+      /process\.env\.WINDOWS_SIGNING_ENABLED !== 'false'/
+    )
+    assert.match(
+      packageScript,
+      /isGitHubActions\(\) && isPublishable\(\) && windowsSigningEnabled/
+    )
+    assert.match(
+      superExpressWindowsBuildAction,
+      /Require valid Authenticode on published installers[\s\S]*?if: \$\{\{ inputs\.sign == 'true' \}\}[\s\S]*?Get-AuthenticodeSignature/
+    )
+    for (const source of [superExpressWorkflow, superExpressWindowsWorkflow]) {
+      assert.match(source, /sign: 'false'/)
+      assert.doesNotMatch(source, /AZURE_CODE_SIGNING_(?:CLIENT|TENANT)_ID/)
+    }
+    assert.doesNotMatch(superExpressWindowsWorkflow, /id-token: write/)
+    assert.match(
       superExpressWindowsWorkflow,
-      /build:[\s\S]*?id-token: write[\s\S]*?sign: 'true'[\s\S]*?azure-client-id:[\s\S]*?azure-tenant-id:/
+      /intentionally unsigned in this emergency lane[\s\S]*?exact commit[\s\S]*?Squirrel package hashes and sizes[\s\S]*?six required non-empty release assets/
     )
     assert.match(
       superExpressWindowsWorkflow,
@@ -687,7 +705,7 @@ describe('CI workflow safety', () => {
     )
     assert.match(
       installerWorkflow,
-      /setup-windows-signing[\s\S]*?enabled: 'true'[\s\S]*?Require valid Authenticode on release installers/
+      /setup-windows-signing[\s\S]*?enabled: 'true'[\s\S]*?azure-client-id: \$\{\{ secrets\.AZURE_CODE_SIGNING_CLIENT_ID \}\}[\s\S]*?azure-tenant-id: \$\{\{ secrets\.AZURE_CODE_SIGNING_TENANT_ID \}\}[\s\S]*?Require valid Authenticode on release installers/
     )
     assert.match(
       installerWorkflow,

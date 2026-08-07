@@ -49,7 +49,6 @@ jobs:
       'Ding-Ding-Projects/desktop-material' && github.ref == 'refs/heads/main')
     permissions:
       contents: read
-      id-token: write
     outputs:
       release_version: ${{ steps.package.outputs.release_version }}
       release_tag: ${{ steps.package.outputs.release_tag }}
@@ -97,9 +96,7 @@ jobs:
           release_target_sha: ${{ inputs.release_target_sha || github.sha }}
           release_version: ${{ inputs.release_version }}
           node_version: ${{ env.NODE_VERSION }}
-          sign: 'true'
-          azure-client-id: ${{ secrets.AZURE_CODE_SIGNING_CLIENT_ID }}
-          azure-tenant-id: ${{ secrets.AZURE_CODE_SIGNING_TENANT_ID }}
+          sign: 'false'
         env:
           DESKTOP_ERROR_REPORTING_ENDPOINT:
             ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
@@ -167,6 +164,10 @@ jobs:
             fi
           done
 
+          node script/verify-releases-manifest.js \
+            release-payload/installers/RELEASES \
+            release-payload/installers
+
       - name: Require an unused immutable tag
         shell: bash
         run: |
@@ -195,7 +196,8 @@ jobs:
             echo 'This direct manual lane publishes a Windows-only recovery release.'
             echo 'The combined Super Express dispatcher remains the source of the cross-platform release.'
             echo 'This emergency lane deliberately runs no test or lint gates.'
-            echo 'The Windows setup executable and MSI passed Authenticode verification before upload.'
+            echo 'The Windows setup executable and MSI are intentionally unsigned in this emergency lane.'
+            echo 'The workflow still verifies the exact commit, immutable version, Squirrel package hashes and sizes, and six required non-empty release assets before publication.'
             echo
             echo '### Commit'
             echo

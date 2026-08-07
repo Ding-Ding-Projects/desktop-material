@@ -31,6 +31,17 @@ photo volume without reusing a name when release history is unavailable.
 Reusable Super Express calls are accepted only from
 `Ding-Ding-Projects/desktop-material` on protected `main`.
 
+Super Express is an explicitly unsigned emergency channel. Both its combined
+and Windows-only workflows pass `sign: 'false'`, and the package action carries
+that choice into `script/package.ts` through `WINDOWS_SIGNING_ENABLED`. The
+ordinary tested installer workflow retains Azure Trusted Signing and its
+Authenticode gate. Super Express instead fails closed on the exact commit,
+unique version and tag, filtered Squirrel `RELEASES` manifest, and all six
+required non-empty assets. A streaming verifier recomputes every package SHA-1
+and byte size named by `RELEASES` both before artifact upload and after artifact
+download; the release notes identify the installers as unsigned so the
+recovery path never implies a signature it does not have.
+
 The Express release gate also distinguishes an ineligible completion from a
 failed eligible build. A `workflow_run` for a cancelled manual dispatch, a
 fork, or another non-publishable source writes `proceed=false` and exits
@@ -451,10 +462,10 @@ ClangCL bootstrap verification performed on 2026-08-06:
   setup contract passes **32/32** across its four suites, and direct local
   probes pass for both x64 ClangCL and arm64 MSVC discovery.
 - A new Super Express run is still required to verify the registered
-  self-hosted runner's own Visual Studio instance, Azure Trusted Signing, and
-  draft-first direct Windows release lane.
+  self-hosted runner's own Visual Studio instance, explicit unsigned-package
+  path, and draft-first direct Windows release lane.
 
-Current runner-selection and signed-release verification is also pending. The
+Current runner-selection and direct-release verification is also pending. The
 local contract proves that untrusted and automatic CI stays hosted, only a
 protected-main manual dispatch can select the exact Windows labels, replaceable
 validation cancels by workflow/event/ref, and release publication never cancels. Run

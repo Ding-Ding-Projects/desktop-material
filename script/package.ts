@@ -122,7 +122,9 @@ function packageWindows() {
     options.remoteReleases = url.toString()
   }
 
-  if (isGitHubActions() && isPublishable()) {
+  const windowsSigningEnabled = process.env.WINDOWS_SIGNING_ENABLED !== 'false'
+
+  if (isGitHubActions() && isPublishable() && windowsSigningEnabled) {
     assertNonNullable(process.env.RUNNER_TEMP, 'Missing RUNNER_TEMP env var')
 
     const acsPath = join(process.env.RUNNER_TEMP, 'acs')
@@ -140,6 +142,10 @@ function packageWindows() {
     writeFileSync(metadataPath, JSON.stringify(acsMetadata))
 
     options.signWithParams = `/v /fd SHA256 /tr "http://timestamp.acs.microsoft.com" /td SHA256 /dlib "${dlibPath}" /dmdf "${metadataPath}"`
+  } else if (isGitHubActions() && isPublishable()) {
+    console.log(
+      'Windows Authenticode signing is explicitly disabled for this package.'
+    )
   }
 
   console.log('Packaging for Windows…')
