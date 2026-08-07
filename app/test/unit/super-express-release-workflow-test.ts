@@ -320,4 +320,19 @@ describe('Super Express Release workflow', () => {
     assert.match(releasePullRequestWorkflow, /--base main/)
     assert.doesNotMatch(releasePullRequestWorkflow, /--base development/)
   })
+
+  it('neutral-skips non-push workflow completions instead of creating a red release run', () => {
+    assert.match(
+      installerWorkflow,
+      /Installer packaging skipped: the completed workflow was not this repository's main push CI\./
+    )
+    assert.match(
+      installerWorkflow,
+      /echo "proceed=false" >> "\$GITHUB_OUTPUT"\s+exit 0/
+    )
+    assert.doesNotMatch(
+      installerWorkflow,
+      /Installer packaging skipped:[\s\S]{0,240}exit 1/
+    )
+  })
 })

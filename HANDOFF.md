@@ -1,5 +1,20 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Neutral-skip cancelled workflow-run release completions
+
+`Build Installers / Express Release` now treats a completed workflow that is
+not this repository's successful `main` push CI as a neutral skip. A cancelled
+manual dispatch, fork completion, or other non-publishable source writes
+`proceed=false` and exits successfully; it still cannot build or publish an
+installer. This keeps the release gate honest without manufacturing a red run
+for a path that was deliberately not eligible to publish.
+
+Implementation commit: `6f84c4f6ce7318ce999b7a2392404b5650f40e2a`.
+Local evidence: the focused Super Express workflow contract passes **6/6**,
+`actionlint -shellcheck=` passes, and `git diff --check` passes. The earlier
+red run `31133902288` is the motivating failure; default-branch integration and
+fresh remote verification remain pending.
+
 ## 2026-08-06 — Add the merge chooser freshness filter
 
 The **Merge into main** chooser now exposes **Not updated with main**. It uses
