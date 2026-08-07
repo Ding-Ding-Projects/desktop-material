@@ -1159,11 +1159,11 @@ response cannot repaint the app after a newer refresh.
 ### Remote state and next owner
 
 The feature branch is published at `ec11718e5e`, and integration commit
-`3404175ca3` is contained by default-branch tip `85b2462b1b`. The integrated
-tree passes **81/81 focused app tests** and **22/22 site/changelog tests**;
-TypeScript, repository-native ESLint, Prettier, and `git diff --check` also
-pass. The final default-branch tip's visible checks are queued at this handoff
-update:
+`3404175ca3` is contained by the default branch. The integrated tree passes
+**81/81 focused app tests** and **22/22 site/changelog tests**; TypeScript,
+repository-native ESLint, Prettier, and `git diff --check` also pass. The
+previous default-branch verification snapshot recorded for this handoff is
+`aa9e5e7d5d`; its visible checks were queued:
 
 - [CI Linux 31137308695](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137308695)
 - [CI Windows 31137308698](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137308698)
@@ -1172,8 +1172,10 @@ update:
 - [Code scanning 31137310239](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137310239)
 - [Cheap LFS 31137310276](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137310276)
 
-No green remote result or Release is claimed while these runs are queued; no
-Pages or Express Release run is visible for this final documentation tip.
+No green remote result or Release is claimed while these snapshot runs are
+queued. This handoff update is documentation-only and does not turn a queued
+check into a passing result; no Pages or Express Release run was visible for
+the snapshot.
 
 ### 香港式廣東話
 
