@@ -130,7 +130,6 @@ jobs:
           release_version: ${{ needs.prepare.outputs.version }}
           node_version: ${{ env.NODE_VERSION }}
         env:
-          DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
           DESKTOP_ERROR_REPORTING_ENDPOINT:
             ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
           DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:

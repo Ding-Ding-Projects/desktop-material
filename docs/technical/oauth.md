@@ -19,6 +19,14 @@ there is no trailing slash, query string, or `https://` prefix. The authorize
 request and the token exchange both send this value explicitly, so the OAuth
 application registration and the running build must agree.
 
+The repository's CI and published release workflows intentionally use the
+built-in classic OAuth client and its matching callback. They do not inject a
+separate OAuth client into a release build, because pairing a different client
+with this callback produces GitHub's `redirect_uri` error before sign-in.
+Custom OAuth credentials remain supported for local or Enterprise builds only;
+register `x-github-client://oauth` on that OAuth application before setting
+`DESKTOP_OAUTH_CLIENT_ID` and `DESKTOP_OAUTH_CLIENT_SECRET`.
+
 The running build requests these scopes in the authorize URL:
 
 ```
