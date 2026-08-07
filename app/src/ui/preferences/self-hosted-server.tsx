@@ -2,19 +2,57 @@ import * as React from 'react'
 import { DialogContent } from '../dialog'
 import { Button } from '../lib/button'
 import { TextBox } from '../lib/text-box'
+import { TextArea } from '../lib/text-area'
+import { Dispatcher } from '../dispatcher'
+import { SignInResult } from '../../lib/stores/sign-in-store'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import * as ipcRenderer from '../../lib/ipc-renderer'
-import { ISelfHostedServerProvisioningProgress } from '../../lib/self-hosted-server/provisioning'
-import { CopyButton } from '../copy-button'
 import {
-  ISelfHostedServerWizardState,
-  SelfHostedServerProvisioningPhaseLabel,
-  SelfHostedServerProvisioningPhaseOrder,
-  initialSelfHostedServerWizardState,
-  reduceSelfHostedServerWizardState,
-  wizardStepState,
-} from './self-hosted-server-wizard-state'
+  ISelfHostedServerControllerStatus,
+  ISelfHostedServerProvisioningProgress,
+  SelfHostedServerProvisioningPhase,
+} from '../../lib/self-hosted-server/provisioning'
+import { CopyButton } from '../copy-button'
+
+interface ISelfHostedServerPreferencesState {
+  readonly status: ISelfHostedServerControllerStatus | null
+  readonly publicOriginInput: string
+  readonly running: boolean
+  readonly progress: ISelfHostedServerProvisioningProgress | null
+  readonly joinUrl: string | null
+  readonly error: { readonly code: string; readonly recovery: string } | null
+  readonly samlMetadataXml: string
+  readonly signedInAs: string | null
+}
+
+interface ISelfHostedServerPreferencesProps {
+  readonly dispatcher: Dispatcher
+}
+
+const PhaseOrder: ReadonlyArray<SelfHostedServerProvisioningPhase> = [
+  'detecting-docker',
+  'installing-docker',
+  'starting-docker',
+  'waiting-for-docker',
+  'preparing-server',
+  'starting-server',
+  'verifying-server',
+  'creating-join-link',
+  'complete',
+]
+
+const PhaseLabel: Record<SelfHostedServerProvisioningPhase, string> = {
+  'detecting-docker': 'Detect Docker',
+  'installing-docker': 'Install Docker Desktop',
+  'starting-docker': 'Start Docker Desktop',
+  'waiting-for-docker': 'Wait for the Docker engine',
+  'preparing-server': 'Prepare server configuration',
+  'starting-server': 'Start the server container',
+  'verifying-server': 'Verify the server is reachable',
+  'creating-join-link': 'Create a join link',
+  complete: 'Done',
+}
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback
@@ -27,12 +65,21 @@ function errorMessage(error: unknown, fallback: string): string {
  * again after a failure is always safe.
  */
 export class SelfHostedServerPreferences extends React.Component<
-  {},
-  ISelfHostedServerWizardState
+  ISelfHostedServerPreferencesProps,
+  ISelfHostedServerPreferencesState
 > {
-  public constructor(props: {}) {
+  public constructor(props: ISelfHostedServerPreferencesProps) {
     super(props)
-    this.state = initialSelfHostedServerWizardState()
+    this.state = {
+      status: null,
+      publicOriginInput: 'https://localhost:8787',
+      running: false,
+      progress: null,
+      joinUrl: null,
+      error: null,
+      samlMetadataXml: '',
+      signedInAs: null,
+    }
   }
 
   public componentDidMount() {
@@ -51,21 +98,18 @@ export class SelfHostedServerPreferences extends React.Component<
     _event: Electron.IpcRendererEvent,
     progress: ISelfHostedServerProvisioningProgress
   ) => {
-    this.setState(state =>
-      reduceSelfHostedServerWizardState(state, { type: 'progress', progress })
-    )
+    this.setState({ progress })
   }
 
   private refreshStatus = () => {
     ipcRenderer
       .invoke('get-self-hosted-server-status')
       .then(status =>
-        this.setState(state =>
-          reduceSelfHostedServerWizardState(state, {
-            type: 'status-loaded',
-            status,
-          })
-        )
+        this.setState({
+          status,
+          publicOriginInput:
+            status.publicOrigin ?? this.state.publicOriginInput,
+        })
       )
       .catch(() => {
         // The wizard still renders; the status card shows nothing configured.
@@ -73,62 +117,58 @@ export class SelfHostedServerPreferences extends React.Component<
   }
 
   private onPublicOriginChanged = (value: string) => {
-    this.setState(state =>
-      reduceSelfHostedServerWizardState(state, {
-        type: 'origin-changed',
-        value,
-      })
-    )
+    this.setState({ publicOriginInput: value })
   }
 
   private onRunWizard = () => {
-    if (this.state.running) {
-      return
-    }
-    const origin = this.state.publicOriginInput
-    this.setState(state =>
-      reduceSelfHostedServerWizardState(state, { type: 'run-started' })
-    )
+    this.setState({ running: true, error: null, progress: null, joinUrl: null })
     ipcRenderer
       .invoke('provision-self-hosted-server', {
-        publicOrigin: origin,
+        publicOrigin: this.state.publicOriginInput,
         installDockerIfMissing: true,
+        ...(this.state.samlMetadataXml.trim().length === 0
+          ? {}
+          : { samlMetadataXml: this.state.samlMetadataXml }),
       })
       .then(reply => {
         if (reply.ok) {
-          this.setState(state =>
-            reduceSelfHostedServerWizardState(state, {
-              type: 'completed',
-              result: reply.result,
-            })
-          )
+          this.setState({ running: false, joinUrl: reply.result.joinUrl })
         } else {
-          this.setState(state =>
-            reduceSelfHostedServerWizardState(state, {
-              type: 'failed',
-              failure: reply,
-            })
-          )
+          this.setState({ running: false, error: reply })
         }
         this.refreshStatus()
       })
       .catch(error => {
-        this.setState(state =>
-          reduceSelfHostedServerWizardState(state, {
-            type: 'failed',
-            failure: {
-              code: 'unknown',
-              recovery: errorMessage(error, 'Run the wizard again.'),
-            },
-          })
-        )
+        this.setState({
+          running: false,
+          error: {
+            code: 'unknown',
+            recovery: errorMessage(error, 'Run the wizard again.'),
+          },
+        })
       })
   }
 
-  private onCancel = () => {
-    this.setState(state =>
-      reduceSelfHostedServerWizardState(state, { type: 'cancel-requested' })
+  private onSamlMetadataChanged = (value: string) => {
+    this.setState({ samlMetadataXml: value })
+  }
+
+  private onSelfHostedSignIn = () => {
+    const origin = this.state.status?.publicOrigin
+    if (origin === null || origin === undefined) {
+      return
+    }
+    this.props.dispatcher.beginSelfHostedSignIn(
+      origin,
+      (result: SignInResult) => {
+        if (result.kind === 'success') {
+          this.setState({ signedInAs: result.account.friendlyName })
+        }
+      }
     )
+  }
+
+  private onCancel = () => {
     ipcRenderer.invoke('cancel-self-hosted-server-provisioning').catch(() => {
       // Cancellation is best-effort; the in-flight step will still surface
       // its own recoverable error.
@@ -137,10 +177,23 @@ export class SelfHostedServerPreferences extends React.Component<
 
   private renderSteps() {
     const { progress, running } = this.state
+    const currentIndex =
+      progress === null ? -1 : PhaseOrder.indexOf(progress.phase)
     return (
       <ol className="self-hosted-server-wizard-steps">
-        {SelfHostedServerProvisioningPhaseOrder.map(phase => {
-          const state = wizardStepState(phase, progress, running)
+        {PhaseOrder.map((phase, index) => {
+          const state =
+            currentIndex < 0
+              ? 'pending'
+              : index < currentIndex
+              ? 'done'
+              : index === currentIndex
+              ? running
+                ? 'active'
+                : phase === 'complete'
+                ? 'done'
+                : 'active'
+              : 'pending'
           return (
             <li key={phase} className={`wizard-step wizard-step-${state}`}>
               <Octicon
@@ -152,7 +205,7 @@ export class SelfHostedServerPreferences extends React.Component<
                     : octicons.circle
                 }
               />
-              <span>{SelfHostedServerProvisioningPhaseLabel[phase]}</span>
+              <span>{PhaseLabel[phase]}</span>
             </li>
           )
         })}
@@ -199,6 +252,22 @@ export class SelfHostedServerPreferences extends React.Component<
               onValueChanged={this.onPublicOriginChanged}
             />
 
+            {!status.configured && (
+              <TextArea
+                label="Optional SAML identity-provider metadata XML"
+                rows={6}
+                value={this.state.samlMetadataXml}
+                disabled={running}
+                onValueChanged={this.onSamlMetadataChanged}
+                ariaDescribedBy="self-hosted-saml-metadata-help"
+              />
+            )}
+            <p id="self-hosted-saml-metadata-help">
+              Metadata is validated and exposed for a future signed SAML
+              adapter. This wizard does not claim to authenticate through an
+              identity provider yet; OAuth remains the active sign-in path.
+            </p>
+
             {this.renderSteps()}
 
             {progress !== null && (
@@ -211,15 +280,7 @@ export class SelfHostedServerPreferences extends React.Component<
               <div className="self-hosted-server-error" role="alert">
                 <strong>{error.code}</strong>
                 <p>{error.recovery}</p>
-                <p>
-                  {this.state.retryPhase === null
-                    ? 'Run the wizard again from the beginning after the host or credential problem is resolved.'
-                    : `Safe retry boundary: ${
-                        SelfHostedServerProvisioningPhaseLabel[
-                          this.state.retryPhase
-                        ]
-                      }. The current button reruns the guarded flow from the beginning.`}
-                </p>
+                <p>Re-running the wizard is always safe.</p>
               </div>
             )}
 
@@ -236,26 +297,26 @@ export class SelfHostedServerPreferences extends React.Component<
               </div>
             )}
 
+            {status.configured && (
+              <div className="self-hosted-server-sign-in">
+                <Button onClick={this.onSelfHostedSignIn} disabled={running}>
+                  Sign in to self-hosted server
+                </Button>
+                {this.state.signedInAs !== null && (
+                  <p role="status">Signed in as {this.state.signedInAs}.</p>
+                )}
+              </div>
+            )}
+
             <div className="self-hosted-server-actions">
               <Button
                 type="submit"
                 onClick={this.onRunWizard}
                 disabled={running}
               >
-                {this.state.cancellationRequested
-                  ? 'Cancelling…'
-                  : status.configured
-                  ? 'Run wizard again'
-                  : 'Set up server'}
+                {status.configured ? 'Run wizard again' : 'Set up server'}
               </Button>
-              {running && (
-                <Button
-                  onClick={this.onCancel}
-                  disabled={this.state.cancellationRequested}
-                >
-                  {this.state.cancellationRequested ? 'Cancelling…' : 'Cancel'}
-                </Button>
-              )}
+              {running && <Button onClick={this.onCancel}>Cancel</Button>}
             </div>
           </>
         )}
