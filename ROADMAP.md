@@ -315,9 +315,9 @@ Updated: **August 6, 2026**
 - Integration merge
   [`4f87b632ecdde73cf8c326a1da1499232427212b`](https://github.com/Ding-Ding-Projects/desktop-material/commit/4f87b632ecdde73cf8c326a1da1499232427212b)
   is now on `main`; no workflow run for that exact SHA was visible at handoff.
-## August 6 — scheduled language and appearance values
+## August 6 — scheduled language and appearance values — **Integrated, remote proof pending**
 
-- **In implementation on the Windows desktop surface:** Settings → Appearance
+- **Integrated on the Windows desktop surface:** Settings → Appearance
   now has persisted local-time rules with optional date bounds, native date and
   time pickers, weekday selection, and an **Every day** time-only mode.
 - A rule can apply language, theme, and appearance/customization fields from a
@@ -327,13 +327,14 @@ Updated: **August 6, 2026**
 - The active schedule is a reversible overlay over the normal profile. Invalid
   external values and source failures are isolated per rule, and a later
   matching rule wins only for the fields it supplies.
-- Local verification currently passes **56/56** model, IPC, localization, and
-  settings-search tests, **8/8** focused appearance/settings UI tests, zero
-  diagnostics in the changed TypeScript graph, and targeted ESLint. A hidden
-  Windows capture reaches the API endpoint and Home Assistant controls.
+- Local verification passes **81/81** focused app tests and **22/22** site and
+  changelog tests, zero TypeScript diagnostics, repository-native ESLint,
+  Prettier, and `git diff --check`. A hidden Windows capture reaches the API
+  endpoint and Home Assistant controls.
 - The fresh task checkout's renderer bundle emitted successfully. Full resource
   copying remains blocked by the incomplete gemoji submodule contents in that
   checkout; no installer or remote release is claimed from this milestone yet.
+  Integration commit `3404175ca3` is ready for default-branch remote proof.
 
 ## August 3 — the site lays out on a phone
 

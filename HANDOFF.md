@@ -1143,10 +1143,12 @@ response cannot repaint the app after a newer refresh.
 
 ### Remote state and next owner
 
-The feature branch is ready for remote verification and default-branch
-integration. No GitHub Actions result or Release is claimed in this entry yet;
-the next owner should monitor the run after the branch is published, integrate
-`fa77be151e` into the default branch, and record the verified remote result.
+The feature branch is published at `ec11718e5e`, and integration commit
+`3404175ca3` combines it with the current default-branch baseline. The
+integrated tree passes **81/81 focused app tests** and **22/22 site/changelog
+tests**; TypeScript, repository-native ESLint, Prettier, and `git diff --check`
+also pass. The next owner should dew `3404175ca3` to the default branch and
+record the exact Actions result. No Release is claimed by this handoff entry.
 
 ### 香港式廣東話
 
