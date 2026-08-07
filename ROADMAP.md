@@ -26,7 +26,9 @@ Updated: **August 6, 2026**
   signed release is still pending after run `31143005662` exposed and verified
   the now-fixed WSL-launcher failure and run `31143229418` proved PowerShell 7
   is absent from the runner. The guard now uses built-in Windows PowerShell;
-  the focused regression proof is **25/25**.
+  after run `31143395526` exposed the runner's unsigned-script policy, the
+  shell uses a per-process execution-policy bypass without changing the host's
+  persistent policy. The focused regression proof is **25/25**.
 
 ## August 6 — Neutral-skip cancelled workflow-run release completions
 

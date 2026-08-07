@@ -48,6 +48,10 @@ resolution in the current-main guard; the native-PowerShell guard and its
 focused **25/25** regression proof supersede that failed attempt.
 Run `31143229418` established that the same runner does not have PowerShell 7's
 `pwsh` command; the guard now selects built-in Windows PowerShell explicitly.
+Run `31143395526` then proved the runner's persistent execution policy rejects
+Actions' unsigned temporary script. The guard now uses the repository's
+existing per-process `-ExecutionPolicy Bypass` shell form; it does not weaken
+the machine-wide policy.
 
 ## 2026-08-06 — Neutral-skip cancelled workflow-run release completions
 

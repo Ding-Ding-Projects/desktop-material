@@ -166,7 +166,7 @@ describe('Super Express Release workflow', () => {
     assert.match(windowsWorkflow, /--target "\$RELEASE_TARGET_SHA"/)
     assert.match(
       windowsWorkflow,
-      /Require the current main tip for a direct release[\s\S]*?shell: powershell[\s\S]*?git fetch origin main/
+      /Require the current main tip for a direct release[\s\S]*?shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "\. '\{0\}'"[\s\S]*?git fetch origin main/
     )
     assert.match(windowsWorkflow, /--draft/)
     assert.match(windowsWorkflow, /-F draft=false/)

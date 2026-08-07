@@ -78,7 +78,7 @@ jobs:
 
       - name: Require the current main tip for a direct release
         if: ${{ github.event_name == 'workflow_dispatch' }}
-        shell: powershell
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
         run: |
           git fetch origin main
           if ($LASTEXITCODE -ne 0) {
