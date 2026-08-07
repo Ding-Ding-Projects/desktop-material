@@ -377,6 +377,15 @@ describe('CI environment setup', () => {
       /shell: powershell -NoProfile -ExecutionPolicy Bypass/
     )
     assert.doesNotMatch(windowsSigningAction, /shell: pwsh/)
+    assert.match(
+      windowsSigningAction,
+      /Require Azure OIDC signing identity[\s\S]*?AZURE_CODE_SIGNING_CLIENT_ID[\s\S]*?AZURE_CODE_SIGNING_TENANT_ID[\s\S]*?Configure repository or organization access/
+    )
+    assert.ok(
+      windowsSigningAction.indexOf('Require Azure OIDC signing identity') <
+        windowsSigningAction.indexOf('Install Azure Code Signing Client'),
+      'signing identity validation must run before dependency download'
+    )
   })
 
   it('pins and retries the cross-compilation Copilot package install', () => {

@@ -28,7 +28,11 @@ Updated: **August 6, 2026**
   is absent from the runner. The guard now uses built-in Windows PowerShell;
   after run `31143395526` exposed the runner's unsigned-script policy, the
   shell uses a per-process execution-policy bypass without changing the host's
-  persistent policy. The focused regression proof is **25/25**.
+  persistent policy. Run `31143500793` then reached Azure login and proved both
+  signing inputs are unavailable to this repository. The shared signing action
+  now fails before dependency download or production build with the exact
+  missing secret names; unsigned publication stays blocked. The focused
+  signing/workflow proof is **27/27**.
 
 ## August 6 — Neutral-skip cancelled workflow-run release completions
 

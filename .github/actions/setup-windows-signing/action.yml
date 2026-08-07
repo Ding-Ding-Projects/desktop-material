@@ -16,6 +16,24 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Require Azure OIDC signing identity
+      if: ${{ runner.os == 'Windows' && inputs.enabled == 'true' }}
+      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+      env:
+        AZURE_CLIENT_ID: ${{ inputs.azure-client-id }}
+        AZURE_TENANT_ID: ${{ inputs.azure-tenant-id }}
+      run: |
+        $missing = @()
+        if ([string]::IsNullOrWhiteSpace($env:AZURE_CLIENT_ID)) {
+          $missing += 'AZURE_CODE_SIGNING_CLIENT_ID'
+        }
+        if ([string]::IsNullOrWhiteSpace($env:AZURE_TENANT_ID)) {
+          $missing += 'AZURE_CODE_SIGNING_TENANT_ID'
+        }
+        if ($missing.Count -gt 0) {
+          throw "Windows signing is enabled, but required GitHub Actions secrets are unavailable: $($missing -join ', '). Configure repository or organization access before running a signed release."
+        }
+
     - name: Install Azure Code Signing Client
       if: ${{ runner.os == 'Windows' && inputs.enabled == 'true' }}
       shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"

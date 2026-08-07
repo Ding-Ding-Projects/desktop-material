@@ -52,6 +52,15 @@ Run `31143395526` then proved the runner's persistent execution policy rejects
 Actions' unsigned temporary script. The guard now uses the repository's
 existing per-process `-ExecutionPolicy Bypass` shell form; it does not weaken
 the machine-wide policy.
+Run `31143500793` passed the repaired guard and production build, then failed
+at Azure OIDC login because both signing inputs were empty. The repository has
+no Actions secrets, the signed-in accounts cannot administer organization
+secrets, no usable local code-signing certificate exists, and the newest
+published installer verifies as `NotSigned`. The shared signing action now
+checks both required inputs before any signing-client download or production
+build, so this external configuration blocker fails in seconds rather than
+after twelve minutes. The focused signing/workflow proof passes **27/27**;
+unsigned publication remains blocked.
 
 ## 2026-08-06 — Neutral-skip cancelled workflow-run release completions
 
