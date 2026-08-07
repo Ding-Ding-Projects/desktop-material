@@ -5,7 +5,12 @@ import { Dialog, DialogContent, DialogFooter, DialogError } from '../dialog'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { getRemotes } from '../../lib/git'
-import { serializeRepoList, sanitizeRemoteUrl } from '../../lib/repo-list-file'
+import { t } from '../../lib/i18n'
+import {
+  isPortableCloneUrl,
+  sanitizeRemoteUrl,
+  serializeRepoList,
+} from '../../lib/repo-list-file'
 import { showSaveDialog } from '../main-process-proxy'
 
 interface IExportRepositoriesDialogProps {
@@ -39,7 +44,8 @@ async function resolveExportUrl(
 ): Promise<string | null> {
   const cloneURL = repository.gitHubRepository?.cloneURL ?? null
   if (cloneURL !== null && cloneURL.length > 0) {
-    return sanitizeRemoteUrl(cloneURL)
+    const url = sanitizeRemoteUrl(cloneURL)
+    return isPortableCloneUrl(url) ? url : null
   }
 
   try {
@@ -48,7 +54,8 @@ async function resolveExportUrl(
       return null
     }
     const origin = remotes.find(r => r.name === 'origin') ?? remotes[0]
-    return sanitizeRemoteUrl(origin.url)
+    const url = sanitizeRemoteUrl(origin.url)
+    return isPortableCloneUrl(url) ? url : null
   } catch {
     return null
   }
@@ -114,14 +121,18 @@ export class ExportRepositoriesDialog extends React.Component<
   private onExport = async () => {
     const urls = this.getSelectedUrls()
     if (urls.length === 0) {
-      this.setState({ error: new Error('Select at least one repository.') })
+      this.setState({
+        error: new Error(t('repositoryTransfer.selectAtLeastOne')),
+      })
       return
     }
 
     const path = await showSaveDialog({
-      buttonLabel: 'Export',
+      buttonLabel: t('repositoryTransfer.exportTitle'),
       defaultPath: 'repositories.json',
-      filters: [{ name: 'Repository list', extensions: ['json'] }],
+      filters: [
+        { name: t('repositoryTransfer.exportTitle'), extensions: ['json'] },
+      ],
     })
 
     if (path === null) {
@@ -155,13 +166,13 @@ export class ExportRepositoriesDialog extends React.Component<
           }
           onChange={this.getToggleHandler(repository.id)}
           disabled={disabled}
-          ariaLabel={`Select ${repository.name} for export`}
+          ariaLabel={t('repositoryTransfer.selectForExport', {
+            name: repository.name,
+          })}
         />
         <div className="details">
           <div className="name">{repository.name}</div>
-          <div className="url">
-            {url ?? 'No remote URL — cannot be exported'}
-          </div>
+          <div className="url">{url ?? t('repositoryTransfer.noRemote')}</div>
         </div>
       </li>
     )
@@ -174,7 +185,7 @@ export class ExportRepositoriesDialog extends React.Component<
     return (
       <Dialog
         id="export-repositories"
-        title={__DARWIN__ ? 'Export Repository List' : 'Export repository list'}
+        title={t('repositoryTransfer.exportTitle')}
         onSubmit={this.onExport}
         onDismissed={this.props.onDismissed}
         loading={this.state.loading || this.state.saving}
@@ -184,24 +195,30 @@ export class ExportRepositoriesDialog extends React.Component<
         )}
         <DialogContent>
           <p className="transfer-intro">
-            Only remote URLs are exported. Local paths and account tokens are
-            never written to the file.
+            {t('repositoryTransfer.exportIntro')}
           </p>
           <ul className="transfer-list">
             {this.state.entries.map(this.renderEntry)}
           </ul>
           {skipped > 0 && (
             <p className="transfer-skip-note">
-              {skipped} {skipped === 1 ? 'repository has' : 'repositories have'}{' '}
-              no remote URL and will be skipped.
+              {t(
+                skipped === 1
+                  ? 'repositoryTransfer.skippedOne'
+                  : 'repositoryTransfer.skippedMany',
+                { count: String(skipped) }
+              )}
             </p>
           )}
         </DialogContent>
         <DialogFooter>
           <OkCancelButtonGroup
-            okButtonText={`Export ${selectedCount} ${
-              selectedCount === 1 ? 'Repository' : 'Repositories'
-            }`}
+            okButtonText={t(
+              selectedCount === 1
+                ? 'repositoryTransfer.exportOne'
+                : 'repositoryTransfer.exportMany',
+              { count: String(selectedCount) }
+            )}
             okButtonDisabled={selectedCount === 0}
           />
         </DialogFooter>

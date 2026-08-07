@@ -13,6 +13,13 @@ const importer = read(
   'repository-list-transfer',
   'import-repositories-dialog.tsx'
 )
+const exporter = read(
+  'app',
+  'src',
+  'ui',
+  'repository-list-transfer',
+  'export-repositories-dialog.tsx'
+)
 const transferFormat = read('app', 'src', 'lib', 'repo-list-file.ts')
 const batchStore = read('app', 'src', 'lib', 'stores', 'batch-clone-store.ts')
 const appStore = read('app', 'src', 'lib', 'stores', 'app-store.ts')
@@ -24,6 +31,8 @@ describe('repository-list transfer Cheap LFS contract', () => {
     assert.match(transferFormat, /never local paths, account tokens/)
     assert.match(importer, /selected\.map\(url => \(\{\s*url,?\s*\}\)\)/)
     assert.doesNotMatch(importer, /token\s*:/)
+    assert.match(transferFormat, /isPortableCloneUrl/)
+    assert.match(exporter, /isPortableCloneUrl/)
   })
 
   it('runs the same post-clone Cheap LFS materialization used by normal clones', () => {
@@ -43,5 +52,12 @@ describe('repository-list transfer Cheap LFS contract', () => {
   it('tells the user what happens when account-bound selection is not portable', () => {
     assert.match(importer, /repositoryTransfer\.cheapLfsNote/)
     assert.match(importer, /t\('repositoryTransfer\.cheapLfsNote'\)/)
+  })
+
+  it('localizes the transfer chrome and rejects non-portable file inputs', () => {
+    assert.match(importer, /repositoryTransfer\.importTitle/)
+    assert.match(importer, /repositoryTransfer\.fileFilterName/)
+    assert.match(exporter, /repositoryTransfer\.exportTitle/)
+    assert.match(exporter, /repositoryTransfer\.exportIntro/)
   })
 })

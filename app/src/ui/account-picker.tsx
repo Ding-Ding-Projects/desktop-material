@@ -155,7 +155,7 @@ export class AccountPicker extends React.Component<
     return (
       <PopoverDropdown
         className="account-picker"
-        contentTitle="Choose an account"
+        contentTitle={t('accounts.picker.choose')}
         buttonContent={
           <div className="account">
             <span className="login">@{account.login}</span> -{' '}
@@ -164,7 +164,8 @@ export class AccountPicker extends React.Component<
             </span>
           </div>
         }
-        label="Account"
+        label={t('accounts.picker.label')}
+        closeButtonAriaLabel={t('accounts.picker.close')}
         ref={this.popoverRef}
         openButtonClassName={this.props.openButtonClassName}
       >

@@ -1,12 +1,10 @@
 import type { Account } from '../models/account'
 
 function getSearchEmail(account: Account): string {
-  const primary = account.emails.find(
-    email =>
-      email.primary &&
-      (email.visibility === 'public' || email.visibility === null)
-  )
-  return primary?.email ?? account.emails[0]?.email ?? ''
+  const visible = (email: Account['emails'][number]) =>
+    email.visibility === 'public' || email.visibility === null
+  const primary = account.emails.find(email => email.primary && visible(email))
+  return primary?.email ?? account.emails.find(visible)?.email ?? ''
 }
 
 /** The provider name shown in rich account rows and searchable metadata. */
@@ -16,6 +14,8 @@ export function getAccountProviderLabel(account: Account): string {
       return 'GitLab'
     case 'bitbucket':
       return 'Bitbucket'
+    case 'self-hosted':
+      return 'Self-hosted'
     case 'github':
     default:
       return 'GitHub'

@@ -52,4 +52,34 @@ describe('account search metadata', () => {
   it('does not expose the account token as searchable metadata', () => {
     assert.equal(getAccountSearchText(account).includes(account.token), false)
   })
+
+  it('does not expose a private email when no visible email exists', () => {
+    const privateAccount = {
+      ...account,
+      emails: [
+        {
+          email: 'private@example.com',
+          verified: true,
+          primary: true,
+          visibility: 'private',
+        },
+      ],
+    } as unknown as Account
+
+    assert.equal(
+      getAccountSearchText(privateAccount).includes('private@example.com'),
+      false
+    )
+    assert.equal(getAccountDetailsText(privateAccount), 'GitLab · Enterprise')
+  })
+
+  it('labels self-hosted accounts without falling back to GitHub', () => {
+    assert.equal(
+      getAccountProviderLabel({
+        ...account,
+        provider: 'self-hosted',
+      } as unknown as Account),
+      'Self-hosted'
+    )
+  })
 })

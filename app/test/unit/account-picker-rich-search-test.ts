@@ -23,6 +23,8 @@ describe('account picker rich search contract', () => {
       /placeholderText=\{t\('accounts\.picker\.searchPlaceholder'\)\}/
     )
     assert.match(component, /filterInputType="search"/)
+    assert.match(component, /accounts\.picker\.choose/)
+    assert.match(component, /accounts\.picker\.close/)
   })
 
   it('gives the three-line row enough height for the tertiary metadata', () => {

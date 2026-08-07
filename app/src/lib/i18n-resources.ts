@@ -3458,6 +3458,8 @@ export type TranslationKey =
   | 'accounts.tokenWriteFailed'
   | 'accounts.credentialUnavailable'
   | 'accounts.picker.label'
+  | 'accounts.picker.choose'
+  | 'accounts.picker.close'
   | 'accounts.picker.title'
   | 'accounts.picker.searchLabel'
   | 'accounts.picker.searchPlaceholder'
@@ -3467,6 +3469,34 @@ export type TranslationKey =
   | 'accounts.picker.noAccounts'
   | 'accounts.picker.noMatch'
   | 'accounts.picker.add'
+  | 'repositoryTransfer.importTitle'
+  | 'repositoryTransfer.exportTitle'
+  | 'repositoryTransfer.chooseList'
+  | 'repositoryTransfer.fileFilterName'
+  | 'repositoryTransfer.chooseFile'
+  | 'repositoryTransfer.changeFile'
+  | 'repositoryTransfer.baseDirectory'
+  | 'repositoryTransfer.baseDirectoryPlaceholder'
+  | 'repositoryTransfer.chooseDirectory'
+  | 'repositoryTransfer.cloneMode'
+  | 'repositoryTransfer.parallel'
+  | 'repositoryTransfer.sequential'
+  | 'repositoryTransfer.selectedOne'
+  | 'repositoryTransfer.selectedMany'
+  | 'repositoryTransfer.selectAtLeastOne'
+  | 'repositoryTransfer.chooseBaseDirectory'
+  | 'repositoryTransfer.invalidList'
+  | 'repositoryTransfer.selectForImport'
+  | 'repositoryTransfer.alreadyCloned'
+  | 'repositoryTransfer.cloneOne'
+  | 'repositoryTransfer.cloneMany'
+  | 'repositoryTransfer.exportIntro'
+  | 'repositoryTransfer.noRemote'
+  | 'repositoryTransfer.skippedOne'
+  | 'repositoryTransfer.skippedMany'
+  | 'repositoryTransfer.selectForExport'
+  | 'repositoryTransfer.exportOne'
+  | 'repositoryTransfer.exportMany'
   | 'accounts.invalidatedTokenTitle'
   | 'accounts.invalidatedTokenTitleDarwin'
   | 'accounts.invalidatedTokenBody'
@@ -7868,6 +7898,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'accounts.credentialUnavailable':
     'Desktop Material could not read the saved sign-in token for {logins}. Please sign in again to restore access.',
   'accounts.picker.label': 'Accounts',
+  'accounts.picker.choose': 'Choose an account',
+  'accounts.picker.close': 'Close account picker',
   'accounts.picker.title': 'Accounts · {host}',
   'accounts.picker.searchLabel': 'Search accounts',
   'accounts.picker.searchPlaceholder':
@@ -7878,6 +7910,38 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'accounts.picker.noAccounts': 'No signed-in accounts.',
   'accounts.picker.noMatch': 'No accounts match “{query}”.',
   'accounts.picker.add': 'Add another account',
+  'repositoryTransfer.importTitle': 'Import repository list',
+  'repositoryTransfer.exportTitle': 'Export repository list',
+  'repositoryTransfer.chooseList': 'Choose a repository list file to import.',
+  'repositoryTransfer.fileFilterName': 'Repository list',
+  'repositoryTransfer.chooseFile': 'Choose File…',
+  'repositoryTransfer.changeFile': 'Change…',
+  'repositoryTransfer.baseDirectory': 'Base directory',
+  'repositoryTransfer.baseDirectoryPlaceholder': 'Clone destination',
+  'repositoryTransfer.chooseDirectory': 'Choose…',
+  'repositoryTransfer.cloneMode': 'Clone mode:',
+  'repositoryTransfer.parallel': 'Parallel',
+  'repositoryTransfer.sequential': 'One at a time',
+  'repositoryTransfer.selectedOne': '{selected} of {total} selected',
+  'repositoryTransfer.selectedMany': '{selected} of {total} selected',
+  'repositoryTransfer.selectAtLeastOne': 'Select at least one repository.',
+  'repositoryTransfer.chooseBaseDirectory': 'Choose a base directory.',
+  'repositoryTransfer.invalidList':
+    'That file is not a valid repository list export.',
+  'repositoryTransfer.selectForImport': 'Select {url} for import',
+  'repositoryTransfer.alreadyCloned': 'Already cloned',
+  'repositoryTransfer.cloneOne': 'Clone {count} repository',
+  'repositoryTransfer.cloneMany': 'Clone {count} repositories',
+  'repositoryTransfer.exportIntro':
+    'Only remote URLs are exported. Local paths and account tokens are never written to the file.',
+  'repositoryTransfer.noRemote': 'No portable remote URL — cannot be exported',
+  'repositoryTransfer.skippedOne':
+    '1 repository has no portable remote URL and will be skipped.',
+  'repositoryTransfer.skippedMany':
+    '{count} repositories have no portable remote URL and will be skipped.',
+  'repositoryTransfer.selectForExport': 'Select {name} for export',
+  'repositoryTransfer.exportOne': 'Export {count} repository',
+  'repositoryTransfer.exportMany': 'Export {count} repositories',
   'accounts.invalidatedTokenTitle': 'Invalidated account token',
   'accounts.invalidatedTokenTitleDarwin': 'Invalidated Account Token',
   'accounts.invalidatedTokenBody':
@@ -12287,6 +12351,8 @@ export const cantoneseTranslations: Readonly<
   'accounts.credentialUnavailable':
     'Desktop Material 讀唔到 {logins} 已儲存嘅登入權杖。請重新登入一次，先可以用返呢啲帳戶。',
   'accounts.picker.label': '帳戶',
+  'accounts.picker.choose': '揀一個帳戶',
+  'accounts.picker.close': '關閉帳戶選擇器',
   'accounts.picker.title': '帳戶 · {host}',
   'accounts.picker.searchLabel': '搜尋帳戶',
   'accounts.picker.searchPlaceholder': '按名稱、登入名稱或主機搜尋帳戶',
@@ -12296,6 +12362,38 @@ export const cantoneseTranslations: Readonly<
   'accounts.picker.noAccounts': '冇已登入帳戶。',
   'accounts.picker.noMatch': '冇帳戶啱「{query}」。',
   'accounts.picker.add': '新增另一個帳戶',
+  'repositoryTransfer.importTitle': '匯入 repository 清單',
+  'repositoryTransfer.exportTitle': '匯出 repository 清單',
+  'repositoryTransfer.chooseList': '揀一個 repository 清單檔案匯入。',
+  'repositoryTransfer.fileFilterName': 'Repository 清單',
+  'repositoryTransfer.chooseFile': '揀檔案…',
+  'repositoryTransfer.changeFile': '更改…',
+  'repositoryTransfer.baseDirectory': '基礎資料夾',
+  'repositoryTransfer.baseDirectoryPlaceholder': 'Clone 目的地',
+  'repositoryTransfer.chooseDirectory': '揀資料夾…',
+  'repositoryTransfer.cloneMode': 'Clone 模式：',
+  'repositoryTransfer.parallel': '平行進行',
+  'repositoryTransfer.sequential': '逐個進行',
+  'repositoryTransfer.selectedOne': '揀咗 {selected} 個，共 {total} 個',
+  'repositoryTransfer.selectedMany': '揀咗 {selected} 個，共 {total} 個',
+  'repositoryTransfer.selectAtLeastOne': '至少揀一個 repository。',
+  'repositoryTransfer.chooseBaseDirectory': '揀一個基礎資料夾。',
+  'repositoryTransfer.invalidList':
+    '呢個檔案唔係有效嘅 repository 清單匯出檔。',
+  'repositoryTransfer.selectForImport': '揀 {url} 匯入',
+  'repositoryTransfer.alreadyCloned': '已經 clone 咗',
+  'repositoryTransfer.cloneOne': 'Clone {count} 個 repository',
+  'repositoryTransfer.cloneMany': 'Clone {count} 個 repository',
+  'repositoryTransfer.exportIntro':
+    '只會匯出 remote URL；本機路徑同帳戶權杖永遠唔會寫入檔案。',
+  'repositoryTransfer.noRemote': '冇可攜式 remote URL，所以唔可以匯出',
+  'repositoryTransfer.skippedOne':
+    '有 1 個 repository 冇可攜式 remote URL，會略過。',
+  'repositoryTransfer.skippedMany':
+    '有 {count} 個 repository 冇可攜式 remote URL，會略過。',
+  'repositoryTransfer.selectForExport': '揀 {name} 匯出',
+  'repositoryTransfer.exportOne': '匯出 {count} 個 repository',
+  'repositoryTransfer.exportMany': '匯出 {count} 個 repository',
   'accounts.invalidatedTokenTitle': '帳戶權杖已經失效',
   'accounts.invalidatedTokenTitleDarwin': '帳戶權杖已經失效',
   'accounts.invalidatedTokenBody':

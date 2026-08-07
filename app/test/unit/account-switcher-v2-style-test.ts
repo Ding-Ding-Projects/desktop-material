@@ -103,7 +103,7 @@ describe('Account switcher v2 styles', () => {
   it('styles the add-account action as a 42px primary text row', () => {
     assert.match(
       styles,
-      /\.account-switcher-add\s*\{[\s\S]*?height: 42px;[\s\S]*?padding: 0 14px;[\s\S]*?border-radius: 14px;[\s\S]*?color: var\(--md-sys-color-primary\);[\s\S]*?font-weight: 700;/
+      /\.account-switcher-add\s*\{[\s\S]*?min-height: 42px;[\s\S]*?padding: 0 14px;[\s\S]*?border-radius: 14px;[\s\S]*?color: var\(--md-sys-color-primary\);[\s\S]*?font-weight: 700;/
     )
     assert.match(
       styles,
@@ -184,6 +184,10 @@ describe('Account switcher v2 component contract', () => {
       component,
       /event\.defaultPrevented \|\| event\.target instanceof HTMLInputElement/
     )
+    assert.match(component, /ariaActiveDescendant=/)
+    assert.match(component, /role="listbox"/)
+    assert.match(component, /role="option"/)
+    assert.match(component, /regexError !== null/)
   })
 
   it('marks the active row and pops a check-circle octicon on it', () => {

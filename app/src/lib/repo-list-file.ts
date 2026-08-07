@@ -21,14 +21,61 @@ export interface IRepoListFile {
 }
 
 /**
- * Strip any userinfo (`user[:password]@`) from an http(s) URL so embedded
- * credentials — e.g. `https://x-access-token:TOKEN@github.com/o/r.git` — never
- * leave the machine. SSH URLs (`git@host:o/r.git`) are left untouched since the
- * leading `git@` is the standard SSH user, not a secret.
+ * Strip any userinfo (`user[:password]@`) from an http(s) URL and discard its
+ * query and fragment. Clone URLs do not need either field, and query strings
+ * are a common place for access tokens to hide. SSH URLs (`git@host:o/r.git`)
+ * are left untouched since the leading `git@` is the standard SSH user, not a
+ * secret.
  */
 export function sanitizeRemoteUrl(url: string): string {
   const trimmed = url.trim()
-  return trimmed.replace(/^(https?:\/\/)[^/@]*@/i, '$1')
+  const withoutQueryOrFragment = trimmed.split(/[?#]/, 1)[0]
+  return withoutQueryOrFragment.replace(/^(https?:\/\/)[^/@]*@/i, '$1')
+}
+
+/**
+ * Whether a value is a portable remote clone URL suitable for a transfer file.
+ * Local paths and file URLs are intentionally excluded: importing a list must
+ * never turn an exported remote recipe into a local filesystem operation.
+ */
+export function isPortableCloneUrl(url: string): boolean {
+  const trimmed = sanitizeRemoteUrl(url)
+  if (trimmed.length === 0 || /[\s\\]/.test(trimmed)) {
+    return false
+  }
+
+  // Git's scp-like SSH form has no URI scheme but is a portable clone URL.
+  if (/^[^/@:]+@[^/:]+:.+$/.test(trimmed)) {
+    return true
+  }
+
+  const scheme = /^([a-z][a-z\d+.-]*):/i.exec(trimmed)?.[1].toLowerCase()
+  if (
+    scheme === undefined ||
+    !['http', 'https', 'ssh', 'git+ssh', 'git'].includes(scheme)
+  ) {
+    return false
+  }
+
+  if (scheme === 'git' && !trimmed.startsWith('git://')) {
+    // Retain the legacy `git:host/owner/repository` spelling supported by
+    // the app's remote parser, while rejecting bare `git:C:\...` paths.
+    return /^git:[^/:]+\/.+$/.test(trimmed)
+  }
+
+  try {
+    const parsed = new URL(trimmed)
+    if (parsed.hostname.length === 0 || parsed.password.length > 0) {
+      return false
+    }
+    return !(
+      parsed.username.length > 0 &&
+      scheme !== 'ssh' &&
+      scheme !== 'git+ssh'
+    )
+  } catch {
+    return false
+  }
 }
 
 /**
@@ -43,7 +90,7 @@ export function normalizeRepoUrls(
 
   for (const raw of urls) {
     const url = sanitizeRemoteUrl(raw)
-    if (url.length === 0) {
+    if (url.length === 0 || !isPortableCloneUrl(url)) {
       continue
     }
 
@@ -108,7 +155,11 @@ export function parseRepoList(raw: string): IRepoListFile | null {
     ) {
       return null
     }
-    urls.push((candidate as { url: string }).url)
+    const url = (candidate as { url: string }).url
+    if (url.trim().length > 0 && !isPortableCloneUrl(url)) {
+      return null
+    }
+    urls.push(url)
   }
 
   const exportedAtRaw = (parsed as { exportedAt?: unknown }).exportedAt

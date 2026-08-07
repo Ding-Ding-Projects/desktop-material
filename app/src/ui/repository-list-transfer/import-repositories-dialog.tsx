@@ -75,7 +75,9 @@ export class ImportRepositoriesDialog extends React.Component<
   private onChooseFile = async () => {
     const path = await showOpenDialog({
       properties: ['openFile'],
-      filters: [{ name: 'Repository list', extensions: ['json'] }],
+      filters: [
+        { name: t('repositoryTransfer.fileFilterName'), extensions: ['json'] },
+      ],
     })
 
     if (path === null) {
@@ -88,7 +90,7 @@ export class ImportRepositoriesDialog extends React.Component<
 
       if (parsed === null) {
         this.setState({
-          error: new Error('That file is not a valid repository list export.'),
+          error: new Error(t('repositoryTransfer.invalidList')),
           filePath: path,
           urls: [],
           checkedUrls: new Set<string>(),
@@ -142,12 +144,16 @@ export class ImportRepositoriesDialog extends React.Component<
     const selected = urls.filter(url => checkedUrls.has(url))
 
     if (selected.length === 0) {
-      this.setState({ error: new Error('Select at least one repository.') })
+      this.setState({
+        error: new Error(t('repositoryTransfer.selectAtLeastOne')),
+      })
       return
     }
 
     if (baseDirectory.length === 0) {
-      this.setState({ error: new Error('Choose a base directory.') })
+      this.setState({
+        error: new Error(t('repositoryTransfer.chooseBaseDirectory')),
+      })
       return
     }
 
@@ -162,7 +168,9 @@ export class ImportRepositoriesDialog extends React.Component<
   }
 
   private renderModeContents = (mode: BatchCloneMode) =>
-    mode === BatchCloneMode.Parallel ? 'Parallel' : 'One at a time'
+    mode === BatchCloneMode.Parallel
+      ? t('repositoryTransfer.parallel')
+      : t('repositoryTransfer.sequential')
 
   private renderUrl = (url: string, existing: ReadonlySet<string>) => (
     <ImportUrlRow
@@ -177,8 +185,10 @@ export class ImportRepositoriesDialog extends React.Component<
   private renderPicker() {
     return (
       <div className="transfer-empty">
-        <p>Choose a repository list file to import.</p>
-        <Button onClick={this.onChooseFile}>Choose File…</Button>
+        <p>{t('repositoryTransfer.chooseList')}</p>
+        <Button onClick={this.onChooseFile}>
+          {t('repositoryTransfer.chooseFile')}
+        </Button>
       </div>
     )
   }
@@ -193,7 +203,9 @@ export class ImportRepositoriesDialog extends React.Component<
       <>
         <Row className="transfer-file-row">
           <span className="file-path">{this.state.filePath}</span>
-          <LinkButton onClick={this.onChooseFile}>Change…</LinkButton>
+          <LinkButton onClick={this.onChooseFile}>
+            {t('repositoryTransfer.changeFile')}
+          </LinkButton>
         </Row>
         <p className="transfer-large-files-note">
           {t('repositoryTransfer.cheapLfsNote')}
@@ -204,14 +216,16 @@ export class ImportRepositoriesDialog extends React.Component<
         <Row className="local-path-field">
           <TextBox
             value={this.state.baseDirectory}
-            label={__DARWIN__ ? 'Base Directory' : 'Base directory'}
-            placeholder="clone destination"
+            label={t('repositoryTransfer.baseDirectory')}
+            placeholder={t('repositoryTransfer.baseDirectoryPlaceholder')}
             onValueChanged={this.onBaseDirectoryChanged}
           />
-          <Button onClick={this.onChooseDirectory}>Choose…</Button>
+          <Button onClick={this.onChooseDirectory}>
+            {t('repositoryTransfer.chooseDirectory')}
+          </Button>
         </Row>
         <Row className="batch-mode-row">
-          <span className="label">Clone mode:</span>
+          <span className="label">{t('repositoryTransfer.cloneMode')}</span>
           <RadioGroup<BatchCloneMode>
             className="batch-mode-radio"
             selectedKey={this.state.mode}
@@ -224,7 +238,15 @@ export class ImportRepositoriesDialog extends React.Component<
           />
         </Row>
         <p className="transfer-summary">
-          {selectedCount} of {this.state.urls.length} selected
+          {t(
+            selectedCount === 1
+              ? 'repositoryTransfer.selectedOne'
+              : 'repositoryTransfer.selectedMany',
+            {
+              selected: String(selectedCount),
+              total: String(this.state.urls.length),
+            }
+          )}
         </p>
       </>
     )
@@ -239,7 +261,7 @@ export class ImportRepositoriesDialog extends React.Component<
     return (
       <Dialog
         id="import-repositories"
-        title={__DARWIN__ ? 'Import Repository List' : 'Import repository list'}
+        title={t('repositoryTransfer.importTitle')}
         onSubmit={hasList ? this.onImport : this.onChooseFile}
         onDismissed={this.props.onDismissed}
       >
@@ -253,10 +275,13 @@ export class ImportRepositoriesDialog extends React.Component<
           <OkCancelButtonGroup
             okButtonText={
               hasList
-                ? `Clone ${selectedCount} ${
-                    selectedCount === 1 ? 'Repository' : 'Repositories'
-                  }`
-                : 'Choose File…'
+                ? t(
+                    selectedCount === 1
+                      ? 'repositoryTransfer.cloneOne'
+                      : 'repositoryTransfer.cloneMany',
+                    { count: String(selectedCount) }
+                  )
+                : t('repositoryTransfer.chooseFile')
             }
             okButtonDisabled={hasList && selectedCount === 0}
           />
@@ -288,12 +313,16 @@ function ImportUrlRow(props: IImportUrlRowProps) {
       <Checkbox
         value={props.checked ? CheckboxValue.On : CheckboxValue.Off}
         onChange={onChange}
-        ariaLabel={`Select ${props.url} for import`}
+        ariaLabel={t('repositoryTransfer.selectForImport', {
+          url: props.url,
+        })}
       />
       <div className="details">
         <div className="url">{props.url}</div>
         {props.alreadyCloned && (
-          <div className="already-cloned">Already cloned</div>
+          <div className="already-cloned">
+            {t('repositoryTransfer.alreadyCloned')}
+          </div>
         )}
       </div>
     </li>

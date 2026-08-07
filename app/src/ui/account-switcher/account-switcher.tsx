@@ -179,6 +179,10 @@ export class AccountSwitcher extends React.Component<
         ? lastIndex
         : currentIndex - 1
 
+    const visibleAccountCount = this.getVisibleAccounts().accounts.length
+    if (nextIndex < visibleAccountCount) {
+      this.setState({ highlightedIndex: nextIndex })
+    }
     items[nextIndex].focus()
     event.preventDefault()
   }
@@ -247,7 +251,7 @@ export class AccountSwitcher extends React.Component<
       return
     }
 
-    const visibleAccounts = this.getVisibleAccounts().accounts
+    const { accounts: visibleAccounts, regexError } = this.getVisibleAccounts()
     if (visibleAccounts.length === 0) {
       return
     }
@@ -258,6 +262,11 @@ export class AccountSwitcher extends React.Component<
     )
 
     if (key === 'Enter') {
+      if (regexError !== null) {
+        event.preventDefault()
+        return
+      }
+
       this.selectAccount(visibleAccounts[currentIndex])
       event.preventDefault()
       return
@@ -332,11 +341,14 @@ export class AccountSwitcher extends React.Component<
     const active = this.isActiveAccount(account)
     const accountKey = getAccountKey(account)
     const highlighted = index === highlightedIndex
+    const rowId = `account-switcher-option-${index}`
 
     return (
       <button
+        id={rowId}
         key={accountKey}
         type="button"
+        role="option"
         className={classNames('account-switcher-row', {
           active,
           highlighted,
@@ -382,7 +394,7 @@ export class AccountSwitcher extends React.Component<
 
   public render() {
     const { accounts, selectedAccount } = this.props
-    const { query } = this.state
+    const { query, highlightedIndex } = this.state
     const { accounts: visibleAccounts, regexError } = this.getVisibleAccounts()
     const host =
       (selectedAccount ?? accounts[0])?.friendlyEndpoint ?? 'GitHub.com'
@@ -405,9 +417,18 @@ export class AccountSwitcher extends React.Component<
             className="account-switcher-search-field"
             searchSurfaceId={AccountSwitcherSearchSurfaceId}
             type="search"
+            tabIndex={0}
             placeholder={t('accounts.picker.searchPlaceholder')}
             ariaLabel={t('accounts.picker.searchLabel')}
             ariaControls={AccountSwitcherResultsId}
+            ariaActiveDescendant={
+              visibleAccounts.length > 0
+                ? `account-switcher-option-${Math.min(
+                    highlightedIndex,
+                    visibleAccounts.length - 1
+                  )}`
+                : undefined
+            }
             ariaInvalid={regexError !== null}
             ariaDescribedBy={
               regexError === null ? undefined : AccountSwitcherRegexErrorId
@@ -459,7 +480,7 @@ export class AccountSwitcher extends React.Component<
         <div
           id={AccountSwitcherResultsId}
           className="account-switcher-results"
-          role="list"
+          role="listbox"
           aria-label={t('accounts.picker.label')}
         >
           {visibleAccounts.map(this.renderRow)}
