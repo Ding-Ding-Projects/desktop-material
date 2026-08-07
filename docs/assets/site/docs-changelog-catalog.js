@@ -22,13 +22,18 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4178,
+    entryCount: 4180,
     releases: [
       {
         v: '3.6.3-material22',
         d: '2026-08-06',
-        t: '20:46',
+        t: '21:45',
         e: [
+          [
+            'Fixed',
+            'Scheduled Settings teleport targets no longer masquerade as collection-search inputs, and appearance persistence tests now verify normalized values plus the real schedule-overlay rollback path',
+            '87ac2590112c7b622bfeb8163eccd637dc24afeb',
+          ],
           [
             'Added',
             'The Merge into main branch chooser now offers a Not updated with main filter based on default-branch Git ancestry, keeping diverged branches that already contain main out of the stale results and localizing the chip in English, Hong Kong-style Cantonese, and bilingual mode',
@@ -156,6 +161,10 @@
             'Improved',
             'Global Settings, Repository Settings, and Stash Manager now share browser-style page tabs with open, close, search, overflow, keyboard, and repository-scoped persistence',
             'cf84037475845a2802d5ee3aa40914619b3396d0',
+          ],
+          [
+            'Added',
+            'Language and appearance can be scheduled across the app with bounded date/time windows, Every day or weekday rules, versioned API values, and Home Assistant boolean gates; tokens stay in the OS vault - fa77be151e',
           ],
           [
             'Fixed',

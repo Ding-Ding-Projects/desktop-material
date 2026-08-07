@@ -1,6 +1,7 @@
 {
   "releases": {
     "3.6.3-material22": [
+      "[Fixed] Scheduled Settings teleport targets no longer masquerade as collection-search inputs, and appearance persistence tests now verify normalized values plus the real schedule-overlay rollback path - 87ac2590112c7b622bfeb8163eccd637dc24afeb",
       "[Added] The Merge into main branch chooser now offers a Not updated with main filter based on default-branch Git ancestry, keeping diverged branches that already contain main out of the stale results and localizing the chip in English, Hong Kong-style Cantonese, and bilingual mode - 81faa869aa3eed8401070f37ae7e324f49db398a",
       "[Fixed] The self-hosted runner manager status notice now follows the repository SCSS format, so the full ordinary lint gate completes after the incoming feature lands - a404dc8477790ff81198a954182f36dd3efcc621",
       "[Fixed] CI accessibility tests now follow the localized repository-transfer and account-picker names while retaining interpolation, selection, and disappearing-account safety coverage - 90ff3f10070765e67baf4de8b241c231078d8038",
