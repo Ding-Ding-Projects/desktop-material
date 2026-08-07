@@ -38,6 +38,10 @@ const superExpressLinuxTuiWorkflow = readFileSync(
   join(root, '.github', 'workflows', 'super-express-release-linux-tui.yml'),
   'utf8'
 )
+const superExpressWindowsBuildAction = readFileSync(
+  join(root, '.github', 'actions', 'super-express-windows-build', 'action.yml'),
+  'utf8'
+)
 const githubCliAction = readFileSync(
   join(root, '.github', 'actions', 'setup-github-cli', 'action.yml'),
   'utf8'
@@ -74,6 +78,8 @@ const selfHostedSuperExpressWorkflows = new Set([
   'super-express-release-windows.yml',
   'super-express-release-linux-tui.yml',
 ])
+const windowsDesktopRunnerExpression =
+  "${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.runner_mode == 'self-hosted' && fromJSON('[\"self-hosted\",\"Windows\",\"X64\",\"desktop-material-windows-local\"]') || 'windows-2022' }}"
 
 interface IWorkflowStep {
   name?: string
@@ -336,13 +342,12 @@ describe('CI workflow safety', () => {
       /it will publish this commit once it finishes/
     )
     assert.match(installerWorkflow, /finished later; it publishes this commit/)
-    // A Release still happens when one lane is red — missing its half, and
-    // saying so — but never when both are.
+    // Both tested payloads are mandatory; a red lane creates no Release.
     assert.match(
       installerWorkflow,
-      /needs\.package\.result == 'success' \|\|\s*needs\.tui_package\.result == 'success'/
+      /needs\.package\.result == 'success' && needs\.tui_package\.result ==\s*'success'/
     )
-    assert.match(installerWorkflow, /## Partial release/)
+    assert.doesNotMatch(installerWorkflow, /## Partial release/)
     assert.match(installerWorkflow, /name: Express lint/)
     assert.match(installerWorkflow, /name: Express tests Windows x64/)
     assert.match(
@@ -464,12 +469,11 @@ describe('CI workflow safety', () => {
     assert.doesNotMatch(installerWorkflow, /^\s+body: \|/m)
   })
 
-  it('preserves hosted CI runs and scopes cancellation to Super Express', () => {
+  it('cancels replaceable Windows validation but never release publication', () => {
     for (const { name, source } of ciWorkflows) {
       assert.match(source, /on:\s*\n\s*push:\s*\n/, name)
       assert.match(source, /\n\s+pull_request:/, name)
       assert.match(source, /workflow_dispatch:/, name)
-      assert.match(source, /cancel-in-progress: false/, name)
       assert.match(source, /repository:\s*\n\s*default:\s*''/, name)
       assert.doesNotMatch(
         source,
@@ -483,8 +487,10 @@ describe('CI workflow safety', () => {
     )
     assert.match(
       windowsWorkflow,
-      /group: ci-windows-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
+      /ci-windows-\$\{\{ github\.workflow \}\}-\$\{\{ github\.event_name \}\}-\$\{\{ github\.ref \}\}/
     )
+    assert.match(windowsWorkflow, /cancel-in-progress: true/)
+    assert.match(linuxWorkflow, /cancel-in-progress: false/)
 
     for (const required of [
       'ci-linux.yml',
@@ -509,8 +515,8 @@ describe('CI workflow safety', () => {
       if (selfHostedSuperExpressWorkflows.has(file)) {
         assert.match(
           source,
-          /cancel-in-progress:\s*true/,
-          `${file} may cancel an older Super Express run`
+          /cancel-in-progress:\s*false/,
+          `${file} must never cancel an in-flight release`
         )
         assert.match(
           source,
@@ -519,6 +525,13 @@ describe('CI workflow safety', () => {
         )
         assert.notEqual(jobsWithRunners.length, 0)
         for (const [jobName, job] of jobsWithRunners) {
+          if (
+            file === 'super-express-release-windows.yml' &&
+            jobName === 'publish'
+          ) {
+            assert.equal(job['runs-on'], 'ubuntu-latest')
+            continue
+          }
           assert.equal(
             Array.isArray(job['runs-on']) &&
               job['runs-on'].includes('self-hosted'),
@@ -529,6 +542,17 @@ describe('CI workflow safety', () => {
         continue
       }
       for (const [jobName, job] of jobsWithRunners) {
+        if (
+          file === 'ci-windows.yml' &&
+          ['build', 'e2e-smoke'].includes(jobName)
+        ) {
+          assert.equal(
+            job['runs-on'],
+            windowsDesktopRunnerExpression,
+            `${file}:${jobName} must expose only the protected cloud/self-hosted choice`
+          )
+          continue
+        }
         assert.equal(
           typeof job['runs-on'],
           'string',
@@ -542,11 +566,12 @@ describe('CI workflow safety', () => {
           `${file}:${jobName} must use an approved hosted runner`
         )
       }
-      assert.doesNotMatch(
-        source,
-        /cancel-in-progress:\s*true/,
-        `${file} must not cancel an older in-progress workflow run`
-      )
+      if (file === 'ci-windows.yml') {
+        assert.match(source, /cancel-in-progress:\s*true/)
+        continue
+      }
+
+      assert.doesNotMatch(source, /cancel-in-progress:\s*true/)
 
       if (/^concurrency:/m.test(source)) {
         assert.match(
@@ -589,6 +614,88 @@ describe('CI workflow safety', () => {
     assert.match(
       superExpressWorkflow,
       /- Linux\s*\n\s+- X64\s*\n\s+- desktop-material-wsl-local/
+    )
+  })
+
+  it('signs Windows releases, publishes without the TUI runner, and proves Latest', () => {
+    assert.match(
+      superExpressWindowsBuildAction,
+      /uses: \.\/\.github\/actions\/setup-windows-signing[\s\S]*?enabled: \$\{\{ inputs\.sign \}\}/
+    )
+    assert.match(superExpressWindowsBuildAction, /RELEASE_CHANNEL: beta/)
+    assert.match(
+      superExpressWindowsBuildAction,
+      /Require valid Authenticode on published installers[\s\S]*?Get-AuthenticodeSignature/
+    )
+    assert.match(
+      superExpressWindowsWorkflow,
+      /build:[\s\S]*?id-token: write[\s\S]*?sign: 'true'[\s\S]*?azure-client-id:[\s\S]*?azure-tenant-id:/
+    )
+    assert.match(
+      superExpressWindowsWorkflow,
+      /publish:[\s\S]*?runs-on: ubuntu-latest/
+    )
+    assert.match(
+      superExpressWindowsWorkflow,
+      /Workflow started:[\s\S]*?Workflow completed:[\s\S]*?Workflow duration:/
+    )
+    assert.match(
+      superExpressWindowsWorkflow,
+      /actions\/runs\/\$GITHUB_RUN_ID\/jobs\?per_page=100[\s\S]*?\.jobs\[\]\.started_at[\s\S]*?Reconcile this release as Latest[\s\S]*?\.completed_at/
+    )
+    assert.doesNotMatch(superExpressWindowsWorkflow, /\.run_started_at/)
+    assert.match(
+      superExpressWindowsWorkflow,
+      /Require the current main tip for a direct release[\s\S]*?git fetch origin main[\s\S]*?RELEASE_TARGET_SHA[\s\S]*?current_main/
+    )
+    assert.match(
+      superExpressWindowsWorkflow,
+      /Reconcile this release as Latest[\s\S]*?Verify Latest and final release notes/
+    )
+    assert.match(
+      superExpressWindowsWorkflow,
+      /Stage immutable Windows-only GitHub Release draft[\s\S]*?gh release create[\s\S]*?--draft/
+    )
+    assert.match(
+      superExpressWindowsWorkflow,
+      /Verify draft target and assets before publication[\s\S]*?Publish verified Windows release[\s\S]*?-F draft=false[\s\S]*?-f make_latest=false/
+    )
+    assert.doesNotMatch(
+      superExpressWindowsWorkflow,
+      /falling back to prerelease-then-clear/
+    )
+    assert.doesNotMatch(
+      superExpressWindowsWorkflow,
+      /notes-file release-payload\/release-notes\.md \\\n\s+--latest/
+    )
+    assert.match(superExpressWindowsWorkflow, /'GitHub\.Desktop-x64\.zip'/)
+    assert.match(
+      superExpressWindowsWorkflow,
+      /select\(\.tag_name \| startswith\("catalog-v1"\)\)/
+    )
+    assert.match(
+      superExpressWindowsWorkflow,
+      /releases\/\$catalog_release_id\/assets\?per_page=100[\s\S]*?--paginate/
+    )
+    assert.doesNotMatch(
+      `${superExpressWindowsBuildAction}\n${installerWorkflow}`,
+      /\$installer:/
+    )
+    assert.match(
+      installerWorkflow,
+      /setup-windows-signing[\s\S]*?enabled: 'true'[\s\S]*?Require valid Authenticode on release installers/
+    )
+    assert.match(
+      installerWorkflow,
+      /package:[\s\S]*?permissions:\s*\n\s+contents: read\s*\n\s+id-token: write[\s\S]*?NODE_ENV: production[\s\S]*?RELEASE_CHANNEL: beta/
+    )
+    assert.match(
+      installerWorkflow,
+      /if \[ "\$windows_ok" = true \] && \[ "\$linux_ok" = true \]/
+    )
+    assert.doesNotMatch(
+      releasePromotionScript,
+      /Could not (?:resolve|fetch|list)[^\n]*leaving Latest untouched/
     )
   })
 
@@ -647,19 +754,32 @@ describe('CI workflow safety', () => {
     assert.doesNotMatch(installerWorkflow, /printf '%s' "\$sibling_run" \| jq/)
   })
 
-  it('builds, packages, and exercises the app on hosted CI runners', () => {
+  it('builds, packages, and exercises the app on safe runner choices', () => {
     assertJobRunsOn(windowsWorkflowDocument, 'windows-tui-core', 'windows-2022')
     for (const jobName of ['build', 'e2e-smoke']) {
-      assertJobRunsOn(windowsWorkflowDocument, jobName, 'windows-2022')
+      assert.equal(
+        getJob(windowsWorkflowDocument, jobName)['runs-on'],
+        windowsDesktopRunnerExpression
+      )
     }
     for (const jobName of ['lint', 'supply-chain', 'linux-tui']) {
       assertJobRunsOn(linuxWorkflowDocument, jobName, 'ubuntu-latest')
     }
-    assert.deepEqual(getSelfHostedJobNames(windowsWorkflowDocument), [])
     assert.deepEqual(getSelfHostedJobNames(linuxWorkflowDocument), [])
     assert.match(windowsWorkflow, /arch: \[x64, arm64\]/)
     assert.match(windowsWorkflow, /friendlyName: Windows/)
-    assert.doesNotMatch(windowsWorkflow, /runner_mode|self-hosted/)
+    assert.match(
+      windowsWorkflow,
+      /workflow_dispatch:\s+inputs:\s+runner_mode:[\s\S]*?default: cloud[\s\S]*?type: choice[\s\S]*?options:\s+- cloud\s+- self-hosted/
+    )
+    assert.match(
+      windowsWorkflow,
+      /github\.event_name\s*==\s*'workflow_dispatch'[\s\S]*?github\.ref\s*==\s*'refs\/heads\/main'[\s\S]*?inputs\.runner_mode\s*==\s*'self-hosted'/
+    )
+    assert.match(
+      windowsWorkflow,
+      /fromJSON\('\["self-hosted","Windows","X64","desktop-material-windows-local"\]'\)\s*\|\|\s*'windows-2022'/
+    )
     assert.match(windowsWorkflow, /workflow_call:\s+inputs:\s+repository:/)
     assert.match(windowsWorkflow, /Install app on Windows/)
     assert.match(

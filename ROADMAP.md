@@ -2,6 +2,27 @@
 
 Updated: **August 6, 2026**
 
+## August 6 — Select Windows CI capacity and ship signed Latest releases
+
+- A protected-main `CI Windows` manual dispatch can select `cloud` or the exact
+  labelled self-hosted Windows pool for desktop build and packaged E2E jobs;
+  untrusted and automatic triggers remain hosted.
+- Replaceable Windows validation cancels stale same-event/same-ref work without
+  letting a manual run cancel the push event that gates publication. Release
+  and publication workflows never cancel an in-flight tag or upload sequence.
+- Automatic and Super Express Windows packaging now requires Azure OIDC
+  signing and valid Authenticode on both published installers.
+- The direct Windows publisher runs on hosted Linux instead of waiting for the
+  offline TUI runner, stages and verifies a draft before publication, records
+  exact first-job-through-publication timing, uses an unused public dim-sum code
+  name from any published `catalog-v1*` volume when available, and fails closed
+  unless the release is published, complete, and Latest.
+- Focused OAuth/workflow/cache contracts pass **28/28**; the full script suite
+  passes **217/217** with one intentional environment skip across 218 tests;
+  all **65** Bash blocks and **31** PowerShell blocks in the changed
+  workflow/action files parse; and structural Actions lint passes. A fresh
+  signed release is still pending.
+
 ## August 6 — Neutral-skip cancelled workflow-run release completions
 
 - `Build Installers / Express Release` now exits successfully with
@@ -26,10 +47,10 @@ Updated: **August 6, 2026**
   changed-file ESLint passed, the Windows development build passed, and the
   built-app hidden-desktop capture is recorded in the branch-switcher guide.
 
-## August 6 — Keep Windows CI hosted and harden the Super Express cache
+## August 6 — Keep Windows CI hosted and harden the Super Express cache (superseded)
 
-- Every `CI Windows` trigger uses `windows-2022`; manual dispatches expose no
-  runner selector. Only Super Express may claim the fixed local runner labels.
+- Every non-manual `CI Windows` trigger still uses `windows-2022`; the later
+  protected-main manual selector supersedes this entry's no-selector boundary.
 - Windows Super Express jobs restore exact `installed-deps-v6` dependencies
   without a post-job archive hook, verify the restored sentinels, and explicitly
   save a verified miss. `installed-deps-v5` and `installed-deps-v4` are warm

@@ -4,6 +4,17 @@
 
 # Screenshots
 
+## Original GitHub OAuth callback acceptance
+
+The dated production-build receipt proves that Desktop Material's app-owned
+browser reaches the original registered GitHub OAuth application without the
+reported `redirect_uri` warning. The frame contains empty sign-in fields and no
+account or credential data.
+
+![Real app-owned GitHub authorization page opened without a redirect URI warning](../assets/screenshots/material-original-github-oauth-release-20260806.png)
+
+[Read the exact-source verification receipt](../verification/original-github-oauth-release-20260806/README.md).
+
 The compact selection below keeps this README scannable. The
 [guided feature gallery](../wiki/Feature-Gallery.md) and
 [task-oriented tutorial](../wiki/User-Guide.md) contain the full annotated

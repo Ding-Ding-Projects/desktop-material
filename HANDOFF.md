@@ -1,5 +1,47 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-06 — Restore safe selectable Windows CI and signed direct releases
+
+The current repair includes upstream `main` through
+`2ac597335c547e13f887b0b5c10ef6c8101233e1`. Its shell-neutral submodule
+recovery replaces Bash `|| true` fallbacks with step-level
+`continue-on-error`, so Windows PowerShell can run the attempt and GitHub
+Actions records the failure without stopping the unrelated build path.
+
+`CI Windows` now exposes a protected-main `workflow_dispatch` choice between
+`cloud` and the exact
+`[self-hosted, Windows, X64, desktop-material-windows-local]` pool for the
+desktop build and packaged E2E jobs. Pushes, pull requests, reusable calls, and
+the Windows TUI core job remain on `windows-2022`. Replaceable Windows
+validation uses a workflow/event/ref concurrency group with
+`cancel-in-progress: true`, so a manual run cannot cancel the push event that
+gates publication. Every release workflow is non-cancelling, and a cancelled
+superseded CI completion is a neutral non-release result.
+
+The automatic and Super Express Windows package paths now set a publishable
+beta channel, authenticate to Azure Trusted Signing by OIDC, and fail unless
+both the setup executable and MSI have valid Authenticode signatures. The
+direct Windows publisher runs on `ubuntu-latest`, so it no longer waits for the
+unrelated offline Linux TUI runner. It verifies the normalized published ZIP
+name, stages a draft, verifies the target and all six non-empty assets before
+publication, assigns a previously unused public dim-sum code name when
+available from every published `catalog-v1*` volume, records timing from the
+first job's exact `started_at` through the completed Latest-reconciliation step,
+reconciles Latest fail-closed, and verifies the final release body and Latest
+pointer. Direct dispatches must target the current `main` tip.
+
+Local evidence so far: the focused OAuth/workflow/cache suites pass **28/28**;
+the full script suite passes **217/217** with one intentional environment skip
+across 218 tests; all **65** Bash blocks and **31** PowerShell blocks in the
+changed workflow/action files parse; and `actionlint -shellcheck=` passes for
+every changed workflow. The
+original OAuth production-build receipt records a **672.05-second** build plus
+a real hidden-desktop provider page with no `redirect_uri` rejection. Remote
+run `31141543370` failed solely because the superseded non-fatal submodule step
+sent Bash `|| true` syntax to Windows PowerShell 5.1; the upstream
+shell-neutral recovery now contains that failure at the step boundary. A fresh
+pushed-main signed release remains pending and is not claimed here.
+
 ## 2026-08-06 — Neutral-skip cancelled workflow-run release completions
 
 `Build Installers / Express Release` now treats a completed workflow that is
@@ -39,7 +81,7 @@ client-only frame with SHA-256
 The task branch is pushed. Default-branch integration, CI, Pages, and wiki
 publication remain pending.
 
-## 2026-08-06 — Keep ordinary Windows CI cloud-only and harden local caches
+## 2026-08-06 — Keep ordinary Windows CI cloud-only and harden local caches (superseded)
 
 `CI Windows` uses `windows-2022` for pushes, pull requests, manual dispatches,
 and reusable calls. It exposes no runner selector and no self-hosted label, so
@@ -61,10 +103,9 @@ cross-compilation install restores all hashed manifests before verification and
 cache save, so the exact key remains reachable. Build outputs and installers
 remain uncached.
 
-The workflow safety contract also rejects runner expressions and self-hosted
-labels in every non-Super-Express workflow. A fresh remote Windows run is still
-required after this boundary correction; no GitHub green result is claimed
-yet.
+This cloud-only runner boundary is superseded by the protected manual selector
+documented at the top of this handoff. Pull requests and non-manual triggers
+remain hosted.
 
 ## 2026-08-06 — Mark Super Express releases as Latest
 

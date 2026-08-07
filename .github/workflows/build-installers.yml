@@ -78,6 +78,11 @@ jobs:
               echo "proceed=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
+            if [ "$CI_CONCLUSION" = "cancelled" ]; then
+              echo "Installer packaging skipped: a newer validation replaced this main CI run."
+              echo "proceed=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
             target="$CI_SHA"
 
             # The two lanes are separate workflows so neither can withhold the
@@ -95,7 +100,11 @@ jobs:
             esac
             sibling_fields=$(gh api \
               "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$CI_SHA&event=push&per_page=100" \
-              --jq "[.workflow_runs[] | select(.name == \"$sibling\")]
+              --jq "[.workflow_runs[] | select(
+                      .name == \"$sibling\" and
+                      .head_branch == \"main\" and
+                      .head_repository.full_name == env.GITHUB_REPOSITORY
+                    )]
                     | sort_by(.run_number) | last // empty
                     | [.status, (.conclusion // \"\"), .updated_at] | @tsv")
             if [ -z "$sibling_fields" ]; then
@@ -125,9 +134,10 @@ jobs:
               [ "$sibling_conclusion" = "success" ] || windows_ok=false
             fi
 
-            # A lane withholds only its own assets. The Release still happens
-            # as long as one lane vouched for something to put in it.
-            if [ "$windows_ok" = true ] || [ "$linux_ok" = true ]; then
+            # Publication is all-or-nothing: a failed test lane creates no
+            # release. The successful lane may still preserve its artifact for
+            # diagnostics, but it cannot publish a partial product release.
+            if [ "$windows_ok" = true ] && [ "$linux_ok" = true ]; then
               ci_can_publish=true
               block_reason=
             else
@@ -135,8 +145,8 @@ jobs:
               block_reason=ci-failed
               echo "CI concluded '$CI_CONCLUSION'; packaging an artifact but blocking Release publication."
             fi
-            [ "$windows_ok" = true ] || echo "CI Windows failed; this Release ships without the desktop installers."
-            [ "$linux_ok" = true ] || echo "CI Linux failed; this Release ships without the terminal edition package."
+            [ "$windows_ok" = true ] || echo "CI Windows failed; no Release will be published."
+            [ "$linux_ok" = true ] || echo "CI Linux failed; no Release will be published."
           else
             if [ "$DISPATCH_REF" != "refs/heads/main" ]; then
               echo "Express Release must be dispatched from main." >&2
@@ -524,8 +534,8 @@ jobs:
 
   package:
     name: Windows x64
-    # The mirror of `tui_package`: a red Linux lane costs this Release its
-    # terminal edition, never its installers.
+    # Preserve a diagnostic installer payload when Windows passed. Publication
+    # still requires both tested platform lanes.
     if:
       needs.prepare.outputs.proceed == 'true' &&
       needs.prepare.outputs.windows_ok == 'true'
@@ -534,9 +544,12 @@ jobs:
     timeout-minutes: 60
     permissions:
       contents: read
+      id-token: write
     env:
       RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      NODE_ENV: production
+      RELEASE_CHANNEL: beta
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -568,10 +581,14 @@ jobs:
           TARGET_ARCH: x64
       - uses: ./.github/actions/setup-windows-signing
         with:
-          enabled: 'false'
+          enabled: 'true'
+          azure-client-id: ${{ secrets.AZURE_CODE_SIGNING_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_CODE_SIGNING_TENANT_ID }}
       - name: Package production app
         run: yarn package
         env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CODE_SIGNING_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_CODE_SIGNING_TENANT_ID }}
           npm_config_arch: x64
           TARGET_ARCH: x64
       - name: Collect installers
@@ -629,6 +646,20 @@ jobs:
               exit 1
             fi
           done
+      - name: Require valid Authenticode on release installers
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+        run: |
+          $installers = @(
+            'release-payload\installers\GitHubDesktopSetup-x64.exe',
+            'release-payload\installers\GitHubDesktopSetup-x64.msi'
+          )
+          foreach ($installer in $installers) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $installer
+            if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
+              throw "Authenticode verification failed for ${installer}: $($signature.Status)"
+            }
+            Write-Host "Authenticode is valid: $installer"
+          }
       - name: Preserve express installer payload
         uses: actions/upload-artifact@v7
         with:
@@ -653,19 +684,14 @@ jobs:
       - release_notes
       - tui_package
       - package
-    # A packaging job that was skipped because its lane was red is not a
-    # failure here — it is the whole point of splitting the lanes. What is
-    # still refused: a job that ran and failed, and a Release with nothing in
-    # it because neither lane produced anything.
+    # Publication requires both tested payload families. A failed or cancelled
+    # lane creates no partial Release.
     if: >-
       !cancelled() && always() && needs.prepare.result == 'success' &&
       needs.prepare.outputs.proceed == 'true' && needs.prepare.outputs.publish
       == 'true' && needs.release_notes.result == 'success' &&
-      needs.package.result != 'failure' && needs.package.result != 'cancelled'
-      && needs.tui_package.result != 'failure' && needs.tui_package.result !=
-      'cancelled' && (needs.package.result == 'success' ||
-      needs.tui_package.result == 'success') && (github.event_name ==
-      'workflow_run' ||
+      needs.package.result == 'success' && needs.tui_package.result == 'success'
+      && (github.event_name == 'workflow_run' ||
        (needs.lint.result == 'success' && needs.test.result == 'success'))
     runs-on: ubuntu-latest
     permissions:
@@ -771,18 +797,6 @@ jobs:
             fi
           done
 
-          # Say in the Release itself which half is absent, so nobody reads a
-          # missing download as a lost upload.
-          if [ "$HAVE_INSTALLERS" != true ] || [ "$HAVE_TUI" != true ]; then
-            {
-              printf '\n## Partial release\n\n'
-              [ "$HAVE_INSTALLERS" = true ] || \
-                printf -- '- The Windows installers are absent: \140CI Windows\140 did not pass for this commit.\n'
-              [ "$HAVE_TUI" = true ] || \
-                printf -- '- The Linux terminal edition is absent: \140CI Linux\140 did not pass for this commit.\n'
-              printf '\nThe other edition was built and verified from this exact commit.\n'
-            } >> release-payload/release-notes.md
-          fi
       - name: Publish GitHub release
         shell: bash
         run: |

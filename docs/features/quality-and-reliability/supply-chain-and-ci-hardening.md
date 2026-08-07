@@ -7,21 +7,29 @@ that: Dependabot proposes dependency updates instead of letting pins rot, every
 install in CI is pinned to the committed lock file, and a dedicated **Supply
 chain** job checks lock-file provenance and reports npm advisories.
 
-Ordinary CI and all seven jobs in `Build Installers / Express Release` run on
-GitHub-hosted `ubuntu-latest` or `windows-2022` machines. Each invocation uses a
-unique run-ID/run-attempt concurrency group with `cancel-in-progress: false`, so
-the release gate for one commit cannot be silently replaced by a later commit.
-The CI workflows also accept pull requests because untrusted code stays on a
-disposable hosted machine. Manual dispatches use those same hosted runners;
-ordinary CI exposes no runner selector and cannot claim the local pool.
+Ordinary CI and all seven jobs in `Build Installers / Express Release` use
+GitHub-hosted `ubuntu-latest` or `windows-2022` machines by default. Pull
+requests, pushes, reusable calls, and the Windows TUI core job stay disposable.
+A protected-main `CI Windows` manual dispatch alone may select the exact
+`[self-hosted, Windows, X64, desktop-material-windows-local]` pool for the
+desktop build and packaged E2E jobs, allowing its verified dependency and
+toolchain caches to shorten a deliberate local run.
 
-Only the Super Express emergency family is self-hosted and ref-cancelling. Its
-Windows jobs require `desktop-material-windows-local`, and its Linux/WSL jobs
-require `desktop-material-wsl-local`; those labels keep an incomplete local
-machine from claiming a direct release job accidentally. Reusable Super Express
-calls are accepted only from `Ding-Ding-Projects/desktop-material` and only
-check out that repository, so an external caller cannot turn the local runner
-into a general-purpose executor.
+Replaceable Windows validation uses a workflow/event/ref concurrency group with
+`cancel-in-progress: true`; a newer same-event, same-ref validation may
+supersede an older one without letting a manual run cancel the push event that
+gates publication. Release workflows use stable non-cancelling groups, so a
+later dispatch cannot strand an in-flight tag or upload. Super Express Windows packaging
+requires `desktop-material-windows-local`, while the direct publisher uses
+`ubuntu-latest` and therefore does not wait for the unrelated Linux TUI runner.
+That publisher requires the current `main` tip, stages a draft, verifies the
+exact target and all six non-empty Squirrel assets, publishes only after those
+checks, and removes an unpublished failed draft. Its timing comes from the
+first Actions job's `started_at` through the completed Latest-reconciliation
+step, and its optional unique code name searches every published `catalog-v1*`
+photo volume without reusing a name when release history is unavailable.
+Reusable Super Express calls are accepted only from
+`Ding-Ding-Projects/desktop-material` on protected `main`.
 
 The Express release gate also distinguishes an ineligible completion from a
 failed eligible build. A `workflow_run` for a cancelled manual dispatch, a
@@ -293,22 +301,23 @@ the exit code, which is ambiguous between "found advisories" and "failed".
 
 ### Run concurrency
 
-Ordinary CI, tested Express, and Pages publication retain unique run-and-attempt
-groups. Only Super Express cancels an older dispatch for the same ref:
+Release and publication work retains non-cancelling run or ref groups. Windows
+validation is deliberately replaceable:
 
 | Workflow family                              | Group                   | `cancel-in-progress` |
 | --------------------------------------------- | ----------------------- | -------------------- |
-| Push, pull-request, manual, and reusable CI    | Per run and attempt     | No                   |
+| Windows push/pull-request/reusable validation  | Per workflow and ref    | Yes                  |
+| Windows protected-main manual validation       | Per workflow and ref    | Yes                  |
+| Linux CI                                       | Per run and attempt     | No                   |
 | Tested Express Release                        | Per run and attempt     | No                   |
 | Pages publication                             | Per run and attempt     | No                   |
-| Super Express emergency release               | Per ref                 | Yes                  |
+| Super Express emergency release               | Per ref                 | No                   |
 
-Ten pushes to one branch now retain ten independent hosted CI results. The
-registered self-hosted pool is reserved exclusively for explicit Super Express
-work; ordinary manual dispatches, pull requests, and reusable calls cannot
-select it. The workflow safety test permits `cancel-in-progress: true` only in
-the three `super-express-release*.yml` files and requires every other job to
-declare one literal GitHub-hosted runner.
+A newer Windows commit cancels stale validation on the same ref but cannot
+cancel a release. The registered Windows pool is available only to an explicit
+protected-main manual choice or the fixed Super Express packaging job. The
+workflow safety test checks the exact labels, cloud fallback, protected-ref
+gate, and the non-cancelling release contracts.
 
 ## Security considerations
 
@@ -318,9 +327,10 @@ declare one literal GitHub-hosted runner.
   already in the commit, so it cannot be influenced by the network at run time.
 - `--frozen-lockfile` closes the window where a compromised or merely careless
   manifest edit causes CI to resolve a version nobody reviewed.
-- CI jobs run on GitHub-hosted Linux or Windows runners for pushes, pull
-  requests, manual dispatches, and workflow calls. Only manual Super Express
-  jobs run repository code on the registered local machines.
+- CI jobs run on hosted Linux or Windows runners for pushes, pull requests, and
+  workflow calls. A protected-main manual Windows dispatch may explicitly use
+  only the registered project-labelled pool for desktop build and packaged
+  E2E; untrusted events cannot select it.
 - The Linux TUI job installs the repository's pinned Node.js version before
   parity generation. The Windows TUI job enables repository-local Git long
   paths before Git-backed history tests, because the profile fixture can exceed
@@ -355,15 +365,13 @@ risk. CI stays green either way.
 complete. Treat that run as carrying **no** advisory evidence and re-run once
 the registry is reachable.
 
-**An ordinary CI or tested Express run says "Canceled".** A newer run must not
-have cancelled it: those workflows use unique groups with
-`cancel-in-progress: false`. Inspect manual cancellation, runner loss, or a
-GitHub-side interruption and rerun the exact commit; do not treat a later
-commit's result as a substitute.
+**A Windows CI validation says "Canceled".** Check whether a newer run on the
+same ref replaced it. The cancelled run has no verdict and creates no release;
+use the replacement's exact SHA rather than treating cancellation as success.
 
-**A Super Express run says "Canceled".** A newer dispatch for the same ref may
-have superseded it intentionally. Confirm the replacement run targets the same
-or newer requested commit before using its artifact or Release as evidence.
+**A Super Express run says "Canceled".** Release workflows do not cancel one
+another. Inspect a manual cancellation, runner loss, or provider interruption,
+then rerun the exact commit without reusing its immutable tag.
 
 **The Windows TUI job reports `Filename too long` while writing profile
 history.** Both the checkout and the app-owned profile-history repository need
@@ -385,12 +393,12 @@ selects and exports a complete architecture-specific ClangCL instance before
 the test; a failure to install it is a setup failure, not a test timeout to
 ignore.
 
-**A canceled Windows or release run keeps working.** Recovery steps
+**A cancelled Windows or release run keeps working.** Recovery steps
 intentionally use `always()` so a genuine test failure can still leave a
 diagnostic installer, but every heavy recovery, packaging, artifact-upload, and
-release-publisher condition also checks `!cancelled()`. A newer push or release
-dispatch therefore stops stale side effects. For Super Express this also frees
-the scarce self-hosted runner.
+release-publisher condition also checks `!cancelled()`. A newer Windows
+validation may stop stale validation work; a newer release dispatch queues
+instead of cancelling publication.
 
 ## Verification
 
@@ -443,15 +451,19 @@ ClangCL bootstrap verification performed on 2026-08-06:
   setup contract passes **32/32** across its four suites, and direct local
   probes pass for both x64 ClangCL and arm64 MSVC discovery.
 - A new Super Express run is still required to verify the registered
-  self-hosted runner's own Visual Studio instance and its direct Windows
-  release lane.
+  self-hosted runner's own Visual Studio instance, Azure Trusted Signing, and
+  draft-first direct Windows release lane.
 
-Current hosted-runner restoration verification is also pending. The committed
-contract must prove that ordinary CI and tested Express use
-`ubuntu-latest`/`windows-2022`, accept pull requests only through hosted CI,
-retain unique non-cancelling groups, and limit self-hosted placement to Super
-Express. The Windows unit workflow must leave worker memory to `script/test.mjs`,
-and the named installer step must
+Current runner-selection and signed-release verification is also pending. The
+local contract proves that untrusted and automatic CI stays hosted, only a
+protected-main manual dispatch can select the exact Windows labels, replaceable
+validation cancels by workflow/event/ref, and release publication never cancels. Run
+`31141543370` reached the old non-fatal submodule step but failed because Windows
+PowerShell 5.1 cannot parse Bash `|| true`; the current step-level
+`continue-on-error` contract removes that wrong-shell fallback and contains a
+real submodule failure without hiding its outcome. The
+Windows unit workflow must leave worker memory to `script/test.mjs`, and the
+named installer step must
 contain exactly one bounded `WaitForExit(300000)`, timeout tree cleanup, and
 repeated same-session/pre-existing-PID-scoped application cleanup. No remote
 green result is claimed for that working-tree repair yet.

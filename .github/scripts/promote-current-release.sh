@@ -141,7 +141,7 @@ demote_if_latest() {
 reconcile_once() {
   local main_sha="$1" release_tags releases best_sha
   if ! release_tags=$(published_release_tags); then
-    echo "::warning::Could not list published releases; leaving Latest untouched." >&2
+    echo "Could not list published releases; Latest was not reconciled." >&2
     return 1
   fi
   releases=$(promotable_releases "$main_sha" "$release_tags")
@@ -158,12 +158,12 @@ current_main=$(resolve_main)
 lookup_status=$?
 set -e
 if [ "$lookup_status" -ne 0 ] || [[ ! "$current_main" =~ ^[0-9a-f]{40}$ ]]; then
-  echo "::warning::Could not resolve current main; leaving Latest untouched."
-  exit 0
+  echo "Could not resolve current main; Latest was not reconciled." >&2
+  exit 1
 fi
 if ! fetch_reconcile_objects; then
-  echo "::warning::Could not fetch main/tag objects; leaving Latest untouched."
-  exit 0
+  echo "Could not fetch main/tag objects; Latest was not reconciled." >&2
+  exit 1
 fi
 
 if ! git merge-base --is-ancestor "$RELEASE_TARGET_SHA" "$current_main" 2>/dev/null; then
@@ -175,9 +175,13 @@ selected_tag=$(reconcile_once "$current_main")
 reconcile_status=$?
 set -e
 if [ "$reconcile_status" -ne 0 ]; then
-  exit 0
+  exit 1
 fi
 if [ -z "$selected_tag" ]; then
+  if [ "$candidate_prerelease" != "true" ]; then
+    echo "No published Windows-capable release was available for Latest reconciliation." >&2
+    exit 1
+  fi
   previous_latest=$(current_latest_tag)
   previous_sha=''
   if [ -n "$previous_latest" ]; then
@@ -205,23 +209,24 @@ fi
 # Re-resolve main and reconcile once more so a slower run can never leave
 # Latest pointing below the newest published on-main release.
 if ! fetch_reconcile_objects; then
-  echo "::warning::Could not refresh objects for reconciliation; keeping $selected_tag."
-  exit 0
+  echo "Could not refresh objects for final Latest reconciliation." >&2
+  exit 1
 fi
 set +e
 current_main_after=$(resolve_main)
 after_status=$?
 set -e
 if [ "$after_status" -ne 0 ] || [[ ! "$current_main_after" =~ ^[0-9a-f]{40}$ ]]; then
-  current_main_after=$current_main
+  echo "Could not resolve current main for final Latest reconciliation." >&2
+  exit 1
 fi
 set +e
 reconciled_tag=$(reconcile_once "$current_main_after")
 reconcile_after_status=$?
 set -e
 if [ "$reconcile_after_status" -ne 0 ]; then
-  echo "::warning::Reconciliation re-listing failed; keeping $selected_tag."
-  exit 0
+  echo "Final Latest reconciliation listing failed." >&2
+  exit 1
 fi
 if [ -n "$reconciled_tag" ] && [ "$reconciled_tag" != "$selected_tag" ]; then
   promote_tag "$reconciled_tag"

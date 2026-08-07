@@ -106,7 +106,7 @@ describe('Super Express Release workflow', () => {
     assert.doesNotMatch(workflow, /validate-changelog/)
     assert.match(
       workflow,
-      /concurrency:\s*\n\s+group: super-express-release-\$\{\{ github\.ref \}\}\s*\n\s+cancel-in-progress: true/
+      /concurrency:\s*\n\s+group: super-express-release-\$\{\{ github\.ref \}\}\s*\n\s+cancel-in-progress: false/
     )
 
     assert.match(windowsWorkflow, /workflow_call:/)
@@ -161,33 +161,33 @@ describe('Super Express Release workflow', () => {
       windowsWorkflow,
       /publish:[\s\S]*?actions\/download-artifact@v8[\s\S]*?name: \$\{\{ needs\.build\.outputs\.artifact_name \}\}/
     )
-    assert.match(
-      windowsWorkflow,
-      /publish:[\s\S]*?runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64\s*\n\s+- desktop-material-wsl-local/
-    )
-    assert.doesNotMatch(
-      windowsWorkflow,
-      /publish:[\s\S]*?runs-on:\s+ubuntu-latest/
-    )
+    assert.match(windowsWorkflow, /publish:[\s\S]*?runs-on:\s+ubuntu-latest/)
     assert.match(windowsWorkflow, /gh release create "\$RELEASE_TAG"/)
     assert.match(windowsWorkflow, /--target "\$RELEASE_TARGET_SHA"/)
-    assert.match(windowsWorkflow, /--latest(?:\r?\n|\s)/)
-    assert.match(windowsWorkflow, /--prerelease=false --latest/)
+    assert.match(
+      windowsWorkflow,
+      /Require the current main tip for a direct release/
+    )
+    assert.match(windowsWorkflow, /--draft/)
+    assert.match(windowsWorkflow, /-F draft=false/)
+    assert.doesNotMatch(windowsWorkflow, /--latest(?:\r?\n|\s)/)
     assert.match(
       windowsWorkflow,
       /git ls-remote --exit-code --tags origin "refs\/tags\/\$RELEASE_TAG"/
     )
-    assert.doesNotMatch(
+    assert.match(windowsWorkflow, /publish:[\s\S]*?promote-current-release\.sh/)
+    assert.match(
       windowsWorkflow,
-      /publish:[\s\S]*?promote-current-release\.sh/
+      /actions\/runs\/\$GITHUB_RUN_ID\/jobs\?per_page=100[\s\S]*?\.jobs\[\]\.started_at[\s\S]*?Reconcile this release as Latest[\s\S]*?\.completed_at/
     )
+    assert.doesNotMatch(windowsWorkflow, /\.run_started_at/)
     assert.match(
       windowsWorkflow,
       /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/
     )
     assert.match(
       windowsWorkflow,
-      /concurrency:\s*\n\s+group: super-express-release-windows-\$\{\{ github\.ref \}\}\s*\n\s+cancel-in-progress: true/
+      /concurrency:\s*\n\s+group: super-express-release-windows-\$\{\{ github\.ref \}\}\s*\n\s+cancel-in-progress: false/
     )
     assert.match(windowsWorkflow, /super-express-windows-build/)
     assert.match(windowsBuildAction, /yarn build:prod/)
@@ -216,7 +216,7 @@ describe('Super Express Release workflow', () => {
     )
     assert.match(
       tuiWorkflow,
-      /concurrency:\s*\n\s+group: super-express-release-linux-tui-\$\{\{ github\.ref \}\}\s*\n\s+cancel-in-progress: true/
+      /concurrency:\s*\n\s+group: super-express-release-linux-tui-\$\{\{ github\.ref \}\}\s*\n\s+cancel-in-progress: false/
     )
     assert.match(tuiWorkflow, /super-express-linux-tui-build/)
     assert.match(tuiBuildAction, /uv python install 3\.12/)
@@ -280,7 +280,7 @@ describe('Super Express Release workflow', () => {
     // Latest forward, and only a provably off-main Latest may be demoted.
     assert.match(promotionScript, /merge-base --is-ancestor/)
     assert.match(promotionScript, /git rev-list --count/)
-    assert.match(workflow, /cancel-in-progress:\s*true/)
+    assert.match(workflow, /cancel-in-progress:\s*false/)
   })
 
   it('uses one Squirrel-monotonic version namespace across release lanes', () => {

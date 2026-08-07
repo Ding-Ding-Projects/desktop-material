@@ -11,6 +11,16 @@ inputs:
   node_version:
     description: Node.js version used by the package
     required: true
+  sign:
+    description: Require Azure Trusted Signing for publishable installers
+    required: false
+    default: 'true'
+  azure-client-id:
+    description: Azure Trusted Signing OIDC client ID
+    required: false
+  azure-tenant-id:
+    description: Azure Trusted Signing tenant ID
+    required: false
 outputs:
   release_version:
     description: Squirrel-compatible version produced for this workflow attempt
@@ -94,13 +104,25 @@ runs:
       shell: bash
       run: yarn build:prod
       env:
+        NODE_ENV: production
+        RELEASE_CHANNEL: beta
         npm_config_arch: x64
         TARGET_ARCH: x64
+
+    - uses: ./.github/actions/setup-windows-signing
+      with:
+        enabled: ${{ inputs.sign }}
+        azure-client-id: ${{ inputs.azure-client-id }}
+        azure-tenant-id: ${{ inputs.azure-tenant-id }}
 
     - name: Package Windows x64
       shell: bash
       run: yarn package
       env:
+        NODE_ENV: production
+        RELEASE_CHANNEL: beta
+        AZURE_CLIENT_ID: ${{ inputs.azure-client-id }}
+        AZURE_TENANT_ID: ${{ inputs.azure-tenant-id }}
         npm_config_arch: x64
         TARGET_ARCH: x64
 
@@ -158,6 +180,25 @@ runs:
             exit 1
           fi
         done
+
+    - name: Require valid Authenticode on published installers
+      if: ${{ inputs.sign == 'true' }}
+      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+      run: |
+        $installers = @(
+          'release-payload\installers\GitHubDesktopSetup-x64.exe',
+          'release-payload\installers\GitHubDesktopSetup-x64.msi'
+        )
+        foreach ($installer in $installers) {
+          if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
+            throw "Signed installer is missing: $installer"
+          }
+          $signature = Get-AuthenticodeSignature -LiteralPath $installer
+          if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
+            throw "Authenticode verification failed for ${installer}: $($signature.Status)"
+          }
+          Write-Host "Authenticode is valid: $installer"
+        }
 
     - name: Preserve Windows payload artifact
       uses: actions/upload-artifact@v7

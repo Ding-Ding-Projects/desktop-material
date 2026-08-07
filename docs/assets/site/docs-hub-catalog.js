@@ -329,6 +329,13 @@
       d: 'The repository sheet is a searchable workspace switcher rather than a flat recent list. It groups pinned repositories first, can show or hide the Recent group, and keeps…',
     },
     {
+      t: 'Scheduled language, appearance, and external settings',
+      h: 'features/identity-and-workspace/scheduled-settings.html',
+      s: 'features/identity-and-workspace/scheduled-settings.md',
+      c: 'features',
+      d: 'Desktop Material can apply a settings value during a local date-and-time window. A rule can change the language presentation, theme, and appearance customizations together or…',
+    },
+    {
       t: 'Browser-style settings tabs',
       h: 'features/identity-and-workspace/settings-browser-tabs.html',
       s: 'features/identity-and-workspace/settings-browser-tabs.md',
@@ -1327,7 +1334,7 @@
       h: 'readme-tabs/screenshots.html',
       s: 'readme-tabs/screenshots.md',
       c: 'readme-tabs',
-      d: 'The compact selection below keeps this README scannable. The guided feature gallery and task-oriented tutorial contain the full annotated set.',
+      d: "The dated production-build receipt proves that Desktop Material's app-owned browser reaches the original registered GitHub OAuth application without the reported redirect_uri…",
     },
     {
       t: 'Desktop Material documentation',
@@ -1755,6 +1762,13 @@
       s: 'verification/md3-ui-audit-2026-07-31.md',
       c: 'verification',
       d: "Target: Desktop Material Windows desktop app (app/styles, app/src/ui) Date: 2026-07-31 Method: source audit per the Material 3 skill's audit procedure (web/CSS…",
+    },
+    {
+      t: 'Original GitHub OAuth release proof — 2026-08-06',
+      h: 'verification/original-github-oauth-release-20260806/',
+      s: 'verification/original-github-oauth-release-20260806/README.md',
+      c: 'verification',
+      d: "This dated acceptance proves the real production Windows bundle uses Desktop Material's original registered GitHub OAuth application and the exact x-github-client://oauth…",
     },
     {
       t: 'Publish organization picker sizing acceptance — 2026-07-30',

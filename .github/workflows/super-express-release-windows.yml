@@ -1,7 +1,9 @@
 name: Super Express Release / Windows
 
-# Reusable zero-test Windows lane for Super Express Release. It is deliberately
-# self-hosted-only and queues until both registered local runners are ready.
+# Reusable zero-test Windows lane for Super Express Release. Packaging stays on
+# the trusted labelled Windows runner so it can reuse the warm build caches;
+# publication uses a disposable hosted Linux runner and never waits for the
+# unrelated TUI runner.
 on:
   workflow_call:
     inputs:
@@ -28,7 +30,7 @@ on:
 
 concurrency:
   group: super-express-release-windows-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -47,6 +49,7 @@ jobs:
       'Ding-Ding-Projects/desktop-material' && github.ref == 'refs/heads/main')
     permissions:
       contents: read
+      id-token: write
     outputs:
       release_version: ${{ steps.package.outputs.release_version }}
       release_tag: ${{ steps.package.outputs.release_tag }}
@@ -73,12 +76,25 @@ jobs:
           git submodule sync --recursive
           git submodule update --init --recursive
 
+      - name: Require the current main tip for a direct release
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        run: |
+          git fetch origin main
+          current_main=$(git rev-parse origin/main)
+          if [ "$RELEASE_TARGET_SHA" != "$current_main" ]; then
+            echo "Direct releases must target current main $current_main, not $RELEASE_TARGET_SHA." >&2
+            exit 1
+          fi
       - id: package
         uses: ./.github/actions/super-express-windows-build
         with:
           release_target_sha: ${{ inputs.release_target_sha || github.sha }}
           release_version: ${{ inputs.release_version }}
           node_version: ${{ env.NODE_VERSION }}
+          sign: 'true'
+          azure-client-id: ${{ secrets.AZURE_CODE_SIGNING_CLIENT_ID }}
+          azure-tenant-id: ${{ secrets.AZURE_CODE_SIGNING_TENANT_ID }}
         env:
           DESKTOP_ERROR_REPORTING_ENDPOINT:
             ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
@@ -91,11 +107,7 @@ jobs:
       !cancelled() && github.event_name == 'workflow_dispatch' &&
       needs.build.result == 'success'
     needs: build
-    runs-on:
-      - self-hosted
-      - Linux
-      - X64
-      - desktop-material-wsl-local
+    runs-on: ubuntu-latest
     permissions:
       contents: write
       actions: read
@@ -178,6 +190,7 @@ jobs:
             echo 'This direct manual lane publishes a Windows-only recovery release.'
             echo 'The combined Super Express dispatcher remains the source of the cross-platform release.'
             echo 'This emergency lane deliberately runs no test or lint gates.'
+            echo 'The Windows setup executable and MSI passed Authenticode verification before upload.'
             echo
             echo '### Commit'
             echo
@@ -191,43 +204,146 @@ jobs:
             echo "Counted by CI over \`$RELEASE_TARGET_SHA\` with \`node script/count-lines.mjs\`."
           } > release-payload/release-notes.md
 
-      - name: Publish immutable Windows-only GitHub Release
+          metadata_ready=true
+          if ! gh api \
+            repos/Ding-Ding-Projects/dim-sum-photos/contents/catalog/index.json \
+            -H 'Accept: application/vnd.github.raw+json' \
+            > release-payload/dim-sum-catalog.json; then
+            metadata_ready=false
+          fi
+          if ! gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --paginate --jq '.[].body // ""' \
+            > release-payload/prior-release-bodies.txt; then
+            metadata_ready=false
+          fi
+          if ! gh api \
+            'repos/Ding-Ding-Projects/dim-sum-photos/releases?per_page=100' \
+            --paginate --jq '
+              .[] | select(.tag_name | startswith("catalog-v1")) |
+              [.id, .tag_name] | @tsv
+            ' > release-payload/dim-sum-catalog-releases.tsv; then
+            metadata_ready=false
+          fi
+          : > release-payload/published-dim-sum-assets.tsv
+          if [ ! -s release-payload/dim-sum-catalog-releases.tsv ]; then
+            metadata_ready=false
+          else
+            while IFS=$'\t' read -r catalog_release_id catalog_release_tag; do
+              if ! gh api \
+                "repos/Ding-Ding-Projects/dim-sum-photos/releases/$catalog_release_id/assets?per_page=100" \
+                --paginate --jq '.[].name' \
+                > release-payload/dim-sum-release-assets.txt; then
+                metadata_ready=false
+                break
+              fi
+              while IFS= read -r asset_name; do
+                printf '%s\t%s\n' "$catalog_release_tag" "$asset_name"
+              done < release-payload/dim-sum-release-assets.txt \
+                >> release-payload/published-dim-sum-assets.tsv
+            done < release-payload/dim-sum-catalog-releases.tsv
+          fi
+          if [ "$metadata_ready" = true ]; then
+            choice=$(jq -c \
+              --rawfile used release-payload/prior-release-bodies.txt \
+              --rawfile published release-payload/published-dim-sum-assets.tsv '
+              ($published | split("\n") |
+                map(select(length > 0) | split("\t")) |
+                map({ key: .[1], value: .[0] }) | from_entries) as $assets |
+              [.dishes[] | . as $dish |
+                ($dish.image.path | split("/")[-1]) as $file |
+                select(($used | contains($dish.name.en + " · " + $dish.name.zhHant)) | not) |
+                select($assets[$file] != null) |
+                { dish: $dish, file: $file, tag: $assets[$file] }][0] // empty
+            ' release-payload/dim-sum-catalog.json)
+            if [ -n "$choice" ]; then
+              dish_name=$(jq -r '.dish.name.en + " · " + .dish.name.zhHant' <<<"$choice")
+              dish_file=$(jq -r .file <<<"$choice")
+              dish_tag=$(jq -r .tag <<<"$choice")
+              {
+                echo
+                echo '## Release code name'
+                echo
+                echo "$dish_name"
+                echo
+                echo "[Public dish photo](https://github.com/Ding-Ding-Projects/dim-sum-photos/releases/download/$dish_tag/$dish_file)"
+              } >> release-payload/release-notes.md
+            else
+              echo '::warning::No unused dim-sum code name with a published photo was available; releasing with the version only.'
+            fi
+          else
+            echo '::warning::Dim-sum release metadata could not be proven complete; releasing with the version only.'
+          fi
+
+      - name: Stage immutable Windows-only GitHub Release draft
+        id: draft_release
         shell: bash
         run: |
-          set +e
           shopt -s nullglob
           assets=(release-payload/installers/*)
           shopt -u nullglob
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo 'No Windows release assets were staged.' >&2
+            exit 1
+          fi
           gh release create "$RELEASE_TAG" \
             "${assets[@]}" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$RELEASE_TARGET_SHA" \
             --title "Desktop Material Windows x64 $RELEASE_VERSION" \
             --notes-file release-payload/release-notes.md \
-            --latest
-          create_status=$?
-          set -e
-          if [ "$create_status" -ne 0 ]; then
-            echo "Direct release creation failed with status $create_status;" \
-              "falling back to prerelease-then-clear." >&2
-            gh api --method POST "repos/$GITHUB_REPOSITORY/releases" \
-              -f tag_name="$RELEASE_TAG" \
-              -f target_commitish="$RELEASE_TARGET_SHA" \
-              -f name="Desktop Material Windows x64 $RELEASE_VERSION" \
-              -F prerelease=true \
-              -f make_latest=false \
-              -F body=@release-payload/release-notes.md >/dev/null
-            gh release upload "$RELEASE_TAG" \
-              "${assets[@]}" \
-              --repo "$GITHUB_REPOSITORY"
-            gh release edit "$RELEASE_TAG" \
-              --repo "$GITHUB_REPOSITORY" \
-              --prerelease=false --latest
-          fi
+            --draft
 
-      - name: Verify published Windows release target and assets
+          draft_id=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            --paginate \
+            --jq '.[] | select(.draft == true and .tag_name == env.RELEASE_TAG) | .id' \
+            | sed -n '1p')
+          if ! [[ "$draft_id" =~ ^[0-9]+$ ]]; then
+            echo "Could not resolve the staged draft for $RELEASE_TAG." >&2
+            exit 1
+          fi
+          echo "draft_id=$draft_id" >> "$GITHUB_OUTPUT"
+
+      - name: Verify draft target and assets before publication
         shell: bash
         run: |
+          draft=$(gh api \
+            "repos/$GITHUB_REPOSITORY/releases/${{ steps.draft_release.outputs.draft_id }}")
+          if [ "$(jq -r .draft <<<"$draft")" != 'true' ]; then
+            echo 'The staged release is not a draft.' >&2
+            exit 1
+          fi
+          if [ "$(jq -r .tag_name <<<"$draft")" != "$RELEASE_TAG" ]; then
+            echo 'The staged release tag does not match the requested tag.' >&2
+            exit 1
+          fi
+          if [ "$(jq -r .target_commitish <<<"$draft")" != "$RELEASE_TARGET_SHA" ]; then
+            echo 'The staged release target does not match the packaged commit.' >&2
+            exit 1
+          fi
+          for expected in \
+            'RELEASES' \
+            'GitHub.Desktop-x64.zip' \
+            'GitHubDesktopSetup-x64.exe' \
+            'GitHubDesktopSetup-x64.msi' \
+            "GitHubDesktop-${RELEASE_VERSION}-full.nupkg" \
+            "GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"; do
+            size=$(jq -r --arg name "$expected" \
+              '[.assets[] | select(.name == $name) | .size][0] // 0' <<<"$draft")
+            if ! [[ "$size" =~ ^[0-9]+$ ]] || [ "$size" -le 0 ]; then
+              echo "Draft Windows release is missing non-empty asset $expected." >&2
+              exit 1
+            fi
+          done
+
+      - name: Publish verified Windows release
+        shell: bash
+        run: |
+          gh api --method PATCH \
+            "repos/$GITHUB_REPOSITORY/releases/${{ steps.draft_release.outputs.draft_id }}" \
+            -F draft=false \
+            -F prerelease=false \
+            -f make_latest=false >/dev/null
+
           git fetch origin "refs/tags/$RELEASE_TAG"
           published=$(git rev-parse 'FETCH_HEAD^{commit}')
           if [ "$published" != "$RELEASE_TARGET_SHA" ]; then
@@ -235,20 +351,90 @@ jobs:
             exit 1
           fi
           if [ "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != "false" ]; then
-            echo "Published release unexpectedly remained a draft." >&2
+            echo 'Published release unexpectedly remained a draft.' >&2
             exit 1
           fi
-          published_assets=$(gh release view "$RELEASE_TAG" \
-            --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
-          for expected in \
-            'RELEASES' \
-            'GitHub Desktop-x64.zip' \
-            'GitHubDesktopSetup-x64.exe' \
-            'GitHubDesktopSetup-x64.msi' \
-            "GitHubDesktop-${RELEASE_VERSION}-full.nupkg" \
-            "GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"; do
-            if ! grep -Fqx "$expected" <<<"$published_assets"; then
-              echo "Published Windows release is missing asset $expected." >&2
-              exit 1
+
+      - name: Reconcile this release as Latest
+        shell: bash
+        run: bash .github/scripts/promote-current-release.sh
+
+      - name: Finalize exact workflow timing in release notes
+        shell: bash
+        run: |
+          workflow_started=''
+          workflow_completed=''
+          for attempt in 1 2 3 4 5 6; do
+            jobs=$(gh api \
+              "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100")
+            workflow_started=$(jq -r \
+              '[.jobs[].started_at | select(type == "string")] | min // empty' \
+              <<<"$jobs")
+            workflow_completed=$(jq -r '
+              [.jobs[].steps[]? |
+                select(.name == "Reconcile this release as Latest") |
+                .completed_at | select(type == "string")] | max // empty
+            ' <<<"$jobs")
+            if [[ "$workflow_started" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]] &&
+              [[ "$workflow_completed" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]; then
+              break
             fi
+            sleep 5
           done
+          if [[ ! "$workflow_started" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]] ||
+            [[ ! "$workflow_completed" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]; then
+            echo 'Exact first-job or release-publication timing is unavailable.' >&2
+            exit 1
+          fi
+          workflow_duration=$(node - "$workflow_started" "$workflow_completed" <<'NODE'
+          const started = Date.parse(process.argv[2])
+          const completed = Date.parse(process.argv[3])
+          if (!Number.isFinite(started) || !Number.isFinite(completed) || completed < started) {
+            process.exit(1)
+          }
+          const seconds = Math.floor((completed - started) / 1000)
+          const hh = String(Math.floor(seconds / 3600)).padStart(2, '0')
+          const mm = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0')
+          const ss = String(seconds % 60).padStart(2, '0')
+          process.stdout.write(`${hh}:${mm}:${ss}`)
+          NODE
+          )
+          {
+            echo
+            echo '## Workflow timing'
+            echo
+            echo "- Workflow started: \`$workflow_started\`"
+            echo "- Workflow completed: \`$workflow_completed\`"
+            echo "- Workflow duration: \`$workflow_duration\`"
+          } >> release-payload/release-notes.md
+          gh release edit "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --notes-file release-payload/release-notes.md
+
+      - name: Verify Latest and final release notes
+        shell: bash
+        run: |
+          latest=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 \
+            --json tagName,isLatest \
+            --jq '.[] | select(.isLatest == true) | .tagName')
+          if [ "$latest" != "$RELEASE_TAG" ]; then
+            echo "Latest release is $latest, expected $RELEASE_TAG." >&2
+            exit 1
+          fi
+          body=$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --json body --jq .body)
+          grep -Fq 'Workflow started:' <<<"$body"
+          grep -Fq 'Workflow completed:' <<<"$body"
+          grep -Fq 'Workflow duration:' <<<"$body"
+
+      - name: Remove an unpublished failed draft
+        if: ${{ failure() && steps.draft_release.outputs.draft_id != '' }}
+        shell: bash
+        run: |
+          draft=$(gh api \
+            "repos/$GITHUB_REPOSITORY/releases/${{ steps.draft_release.outputs.draft_id }}" \
+            --jq .draft 2>/dev/null || true)
+          if [ "$draft" = 'true' ]; then
+            gh api --method DELETE \
+              "repos/$GITHUB_REPOSITORY/releases/${{ steps.draft_release.outputs.draft_id }}"
+          fi

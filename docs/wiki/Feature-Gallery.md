@@ -293,6 +293,21 @@ scene; `material-welcome.png` remains the current guided welcome target.
 
 ![Packaged Desktop Material first-run surface rendered after the blank-startup bundle regression was fixed](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/7b6aaa13e3157e9776605f270ac3498dc0d046ae/docs/assets/screenshots/material-blank-startup-fixed-20260806.png)
 
+## Historical OAuth callback evidence (outside the current gallery)
+
+The August 6 production-build acceptance opened the real app-owned browser and
+reached the original GitHub OAuth application's authorization page without the
+reported `redirect_uri` rejection. The fields are empty and the frame contains
+no account, credential, token, authorization code, or private repository data.
+The [dated receipt](../verification/original-github-oauth-release-20260806/README.md)
+records the exact source, build, hash, hidden-desktop route, and cleanup.
+
+| Archived asset | Historical receipt | Current status |
+| --- | --- | --- |
+| `material-original-github-oauth-release-20260806.png` | August 6 original-client callback acceptance | Excluded from the recurring Windows gallery |
+
+![Real app-owned GitHub authorization page opened without a redirect URI warning](../assets/screenshots/material-original-github-oauth-release-20260806.png)
+
 ## Historical updater evidence (outside the current gallery)
 
 The July 22 legacy Super Express-to-newer published-package migration remains

@@ -3,17 +3,29 @@
 # core check. It is deliberately a separate workflow from the Linux lane so
 # that a red terminal test can never withhold the desktop installers, and a red
 # desktop build can never withhold the terminal package. Both lanes feed the
-# one Release; `build-installers.yml` waits for both to finish and then ships
-# whatever each lane vouched for.
-# Ordinary CI uses GitHub-hosted Windows runners so every push, pull request,
-# manual dispatch, and workflow call gets a clean, reproducible machine.
-# Self-hosted runners are reserved for the Super Express emergency workflows.
+# one Release; `build-installers.yml` waits for both to finish and publishes
+# only when both tested payload families passed.
+# Ordinary CI uses GitHub-hosted Windows runners so pushes, pull requests, and
+# workflow calls get a clean, reproducible machine. A manual dispatch from the
+# protected main branch may explicitly select the registered Windows
+# self-hosted pool for desktop build and packaged smoke jobs when its warm
+# dependency and compiler caches are faster; the Windows TUI core job remains
+# hosted.
 name: CI Windows
 
 on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      runner_mode:
+        description: Runner pool for the Windows desktop jobs
+        required: true
+        default: cloud
+        type: choice
+        options:
+          - cloud
+          - self-hosted
   workflow_call:
     inputs:
       repository:
@@ -45,11 +57,12 @@ on:
       AZURE_CODE_SIGNING_TENANT_ID:
       AZURE_CODE_SIGNING_CLIENT_ID:
 
-# Every run gets its own group. CI is a release gate, so a newer commit must not
-# silently cancel an older commit's chance to finish and publish its result.
+# Validation is replaceable: a newer commit on the same ref cancels stale work.
+# Release and publication workflows keep separate non-cancelling contracts.
 concurrency:
-  group: ci-windows-${{ github.run_id }}-${{ github.run_attempt }}
-  cancel-in-progress: false
+  group:
+    ci-windows-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   NODE_VERSION: 24.15.0
@@ -98,7 +111,11 @@ jobs:
           uv run mypy src
   build:
     name: ${{ matrix.friendlyName }} ${{ matrix.arch }}
-    runs-on: windows-2022
+    runs-on:
+      ${{ github.event_name == 'workflow_dispatch' && github.ref ==
+      'refs/heads/main' && inputs.runner_mode == 'self-hosted' &&
+      fromJSON('["self-hosted","Windows","X64","desktop-material-windows-local"]')
+      || 'windows-2022' }}
     permissions:
       contents: read
       id-token: write
@@ -203,7 +220,11 @@ jobs:
           if-no-files-found: error
   e2e-smoke:
     name: E2E Smoke ${{ matrix.friendlyName }} ${{ matrix.arch }}
-    runs-on: windows-2022
+    runs-on:
+      ${{ github.event_name == 'workflow_dispatch' && github.ref ==
+      'refs/heads/main' && inputs.runner_mode == 'self-hosted' &&
+      fromJSON('["self-hosted","Windows","X64","desktop-material-windows-local"]')
+      || 'windows-2022' }}
     permissions:
       contents: read
       id-token: write
