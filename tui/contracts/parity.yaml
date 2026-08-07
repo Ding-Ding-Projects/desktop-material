@@ -4,7 +4,7 @@
   "generator": "tui/tools/generate-parity-contract.mjs",
   "source": {
     "path": "docs/readme-tabs/complete-feature-list.md",
-    "sha256": "0d44139eb2ea0d79a3df50985eab55ef51644bd9657de2ceed713b253dac9c4a",
+    "sha256": "d5e64785f295bbe8b0477e01a575654b411ca5f346d9a8192fb3a88ae0255f82",
     "declared_feature_count": 208,
     "parsed_feature_count": 208,
     "section_count": 17
