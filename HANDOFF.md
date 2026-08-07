@@ -24,26 +24,13 @@ client-only frame with SHA-256
 The task branch is pushed. Default-branch integration, CI, Pages, and wiki
 publication remain pending.
 
-## 2026-08-06 — Add an explicit Windows CI runner choice
+## 2026-08-06 — Keep ordinary Windows CI cloud-only and harden local caches
 
-`CI Windows` keeps pushes, pull requests, and reusable calls on the hosted
-`windows-2022` runner. A `workflow_dispatch` from `refs/heads/main` now offers
-the required `runner_mode` choice: `cloud` (the default) or the registered
-`[self-hosted, Windows, X64, desktop-material-windows-local]` pool. Only the
-desktop build and packaged E2E jobs use that choice; Windows TUI core remains
-hosted, and a dispatch from any other ref falls back to `windows-2022`.
-
-The workflow contract test covers the input, the protected-ref gate, the exact
-runner labels, and the cloud fallback. Fresh cloud and self-hosted dispatches
-from the integrated commit remain the remote verification step.
-
-## 2026-08-06 — Harden Windows caches after restoring safe runner choices
-
-`CI Windows` uses `windows-2022` for pushes, pull requests, reusable calls, and
-the default `cloud` manual dispatch. The protected `main` dispatch can opt the
-desktop build and packaged smoke tests into the exact registered Windows
-self-hosted pool; Windows TUI core remains hosted. Only the three Super Express
-emergency workflows and that explicit desktop dispatch may use local runners.
+`CI Windows` uses `windows-2022` for pushes, pull requests, manual dispatches,
+and reusable calls. It exposes no runner selector and no self-hosted label, so
+ordinary builds and packaged smoke tests cannot consume the local runner pool.
+Only the three Super Express emergency workflows remain explicitly
+self-hosted.
 
 The shared Windows dependency setup now restores an exact `installed-deps-v6`
 cache on self-hosted jobs without a post-job cache hook, verifies its required
@@ -59,10 +46,10 @@ cross-compilation install restores all hashed manifests before verification and
 cache save, so the exact key remains reachable. Build outputs and installers
 remain uncached.
 
-The workflow safety contract checks the protected runner expression and exact
-labels separately from the literal hosted jobs. A fresh cloud and self-hosted
-remote Windows run is still required after this boundary correction; no GitHub
-green result is claimed yet.
+The workflow safety contract also rejects runner expressions and self-hosted
+labels in every non-Super-Express workflow. A fresh remote Windows run is still
+required after this boundary correction; no GitHub green result is claimed
+yet.
 
 ## 2026-08-06 — Mark Super Express releases as Latest
 
