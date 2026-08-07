@@ -24,7 +24,9 @@ Updated: **August 6, 2026**
   all **64** Bash blocks and **32** PowerShell blocks in the changed
   workflow/action files parse; and structural Actions lint passes. A fresh
   signed release is still pending after run `31143005662` exposed and verified
-  the now-fixed WSL-launcher failure; the focused regression proof is **25/25**.
+  the now-fixed WSL-launcher failure and run `31143229418` proved PowerShell 7
+  is absent from the runner. The guard now uses built-in Windows PowerShell;
+  the focused regression proof is **25/25**.
 
 ## August 6 — Neutral-skip cancelled workflow-run release completions
 

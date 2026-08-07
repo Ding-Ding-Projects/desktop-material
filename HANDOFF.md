@@ -46,6 +46,8 @@ pushed-main signed release remains pending and is not claimed here.
 Direct release run `31143005662` then exposed the runner's WSL `bash.exe`
 resolution in the current-main guard; the native-PowerShell guard and its
 focused **25/25** regression proof supersede that failed attempt.
+Run `31143229418` established that the same runner does not have PowerShell 7's
+`pwsh` command; the guard now selects built-in Windows PowerShell explicitly.
 
 ## 2026-08-06 — Neutral-skip cancelled workflow-run release completions
 
