@@ -22,13 +22,18 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4184,
+    entryCount: 4185,
     releases: [
       {
         v: '3.6.3-material22',
-        d: '2026-08-06',
-        t: '23:35',
+        d: '2026-08-07',
+        t: '00:52',
         e: [
+          [
+            'Fixed',
+            'The historical OAuth release proof now has its own generated documentation page and appears in the complete 104-frame screenshot catalog, so Windows CI validates every tracked image instead of finding one guest without a seat',
+            'd088c2724a08f5dfe02dc2ddacf7b4daf1c7a054',
+          ],
           [
             'Fixed',
             'The Super Express Windows release-timing poll now uses an anonymous bounded retry counter, removing the unused-variable ShellCheck warning without changing its six-attempt timing proof',
