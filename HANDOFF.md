@@ -1159,19 +1159,21 @@ response cannot repaint the app after a newer refresh.
 ### Remote state and next owner
 
 The feature branch is published at `ec11718e5e`, and integration commit
-`3404175ca3` is contained by default-branch tip `e48f8e465a`. The integrated
+`3404175ca3` is contained by default-branch tip `85b2462b1b`. The integrated
 tree passes **81/81 focused app tests** and **22/22 site/changelog tests**;
 TypeScript, repository-native ESLint, Prettier, and `git diff --check` also
-pass. Main-triggered checks are queued at this handoff update:
+pass. The final default-branch tip's visible checks are queued at this handoff
+update:
 
-- [CI Windows 31136971256](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31136971256)
-- [CI Linux 31136971265](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31136971265)
-- [Deploy Pages 31136971255](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31136971255)
-- [Code scanning 31136971258](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31136971258)
-- [Cheap LFS 31136971273](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31136971273)
-- [Express Release 31137021113](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137021113)
+- [CI Linux 31137308695](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137308695)
+- [CI Windows 31137308698](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137308698)
+- [CI Windows 31137310032](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137310032)
+- [CI Linux 31137310081](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137310081)
+- [Code scanning 31137310239](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137310239)
+- [Cheap LFS 31137310276](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137310276)
 
-No green remote result or Release is claimed while these runs are queued.
+No green remote result or Release is claimed while these runs are queued; no
+Pages or Express Release run is visible for this final documentation tip.
 
 ### 香港式廣東話
 

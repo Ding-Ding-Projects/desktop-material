@@ -345,9 +345,10 @@ Updated: **August 6, 2026**
 - The fresh task checkout's renderer bundle emitted successfully. Full resource
   copying remains blocked by the incomplete gemoji submodule contents in that
   checkout; no installer or remote release is claimed from this milestone yet.
-  Default-branch tip `e48f8e465a` contains integration commit `3404175ca3`;
-  its Windows, Linux, Pages, CodeQL, Cheap LFS, and Express Release checks are
-  queued and linked from `HANDOFF.md`.
+  Default-branch tip `85b2462b1b` contains integration commit `3404175ca3`;
+  its visible Windows, Linux, CodeQL, and Cheap LFS checks are queued and
+  linked from `HANDOFF.md`; no Pages or Express Release run is visible for this
+  final documentation tip.
 
 ## August 3 — the site lays out on a phone
 
