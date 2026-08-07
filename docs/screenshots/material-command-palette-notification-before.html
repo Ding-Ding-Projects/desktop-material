@@ -351,7 +351,7 @@
         data-screenshot-search="material-command-palette-notification-before material-command-palette-notification-before.png 2026-08-04 command-palette route correction retained-historical Historical notification palette evidence (outside the current gallery)"
       >
         <div class="section__head">
-          <p class="eyebrow">Frame 101 of 101 · retained-historical</p>
+          <p class="eyebrow">Frame 102 of 103 · retained-historical</p>
           <h1 class="md-headline">
             material-command-palette-notification-before.png
           </h1>
@@ -550,12 +550,16 @@
             <span class="shot-nav__label">Index</span>
             <span class="shot-nav__title">All screenshot pages</span>
           </a>
-          <p class="shot-nav__link shot-nav__link--next shot-nav__link--none">
+          <a
+            class="shot-nav__link shot-nav__link--next"
+            rel="next"
+            href="material-launchpad-empty-full-width-20260806.html"
+          >
             <span class="shot-nav__label">Next frame</span>
             <span class="shot-nav__title"
-              >This is the last frame in the gallery order.</span
+              >material-launchpad-empty-full-width-20260806.png</span
             >
-          </p>
+          </a>
         </nav>
       </article>
     </main>
@@ -2126,6 +2130,25 @@
             "datedReceipts": []
           },
           {
+            "output": "not-updated-with-main-filter",
+            "file": "not-updated-with-main-filter.png",
+            "caption": "Merge into main chooser filtered to branches not updated with main",
+            "altText": "Merge into main chooser with Not updated with main active",
+            "scene": "merge-chooser-not-updated-with-main",
+            "batch": "windows-ui-state-lowlevel",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Open Choose a branch to merge into main for the disposable repository, activate Not updated with main, verify the stale branch remains while the branch containing main is hidden, then inspect and promote the original client-only frame.",
+            "width": 960,
+            "height": 660,
+            "bytes": 90354,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
             "output": "material-history-view-tabs-graph",
             "file": "material-history-view-tabs-graph.png",
             "caption": "Built History Graph tab with its real tab strip and ancestry graph",
@@ -2512,6 +2535,22 @@
             "width": 976,
             "height": 668,
             "bytes": 87292,
+            "commands": [],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-launchpad-empty-full-width-20260806",
+            "file": "material-launchpad-empty-full-width-20260806.png",
+            "caption": null,
+            "altText": "Launchpad full-width empty state with five truthful zero-count groups and no blank sidebar",
+            "scene": null,
+            "batch": "retained-historical",
+            "platform": null,
+            "section": "Repository administration",
+            "interaction": null,
+            "width": 960,
+            "height": 660,
+            "bytes": 58370,
             "commands": [],
             "datedReceipts": []
           }

@@ -351,7 +351,7 @@
         data-screenshot-search="material-history-power-tools material-history-power-tools.png Searchable History and commit ancestry graph windows-canonical-cdp history-power-tools Search, history, accounts, and automation"
       >
         <div class="section__head">
-          <p class="eyebrow">Frame 38 of 101 · windows-canonical-cdp</p>
+          <p class="eyebrow">Frame 38 of 103 · windows-canonical-cdp</p>
           <h1 class="md-headline">
             Searchable History and commit ancestry graph
           </h1>
@@ -2122,6 +2122,25 @@
             "datedReceipts": []
           },
           {
+            "output": "not-updated-with-main-filter",
+            "file": "not-updated-with-main-filter.png",
+            "caption": "Merge into main chooser filtered to branches not updated with main",
+            "altText": "Merge into main chooser with Not updated with main active",
+            "scene": "merge-chooser-not-updated-with-main",
+            "batch": "windows-ui-state-lowlevel",
+            "platform": "windows-headless",
+            "section": "Search, history, accounts, and automation",
+            "interaction": "Open Choose a branch to merge into main for the disposable repository, activate Not updated with main, verify the stale branch remains while the branch containing main is hidden, then inspect and promote the original client-only frame.",
+            "width": 960,
+            "height": 660,
+            "bytes": 90354,
+            "commands": [
+              "npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod",
+              "Lowlevel launch the production bundle with isolated user data and the entry fixture, perform the entry interaction exactly, then capture_screenshot(client_only=true, hwnd=\u003cresolved-app-hwnd>, path=\u003cowned-temp-run-root>\\captures\\\u003coutput>.png)"
+            ],
+            "datedReceipts": []
+          },
+          {
             "output": "material-history-view-tabs-graph",
             "file": "material-history-view-tabs-graph.png",
             "caption": "Built History Graph tab with its real tab strip and ancestry graph",
@@ -2508,6 +2527,22 @@
             "width": 976,
             "height": 668,
             "bytes": 87292,
+            "commands": [],
+            "datedReceipts": []
+          },
+          {
+            "output": "material-launchpad-empty-full-width-20260806",
+            "file": "material-launchpad-empty-full-width-20260806.png",
+            "caption": null,
+            "altText": "Launchpad full-width empty state with five truthful zero-count groups and no blank sidebar",
+            "scene": null,
+            "batch": "retained-historical",
+            "platform": null,
+            "section": "Repository administration",
+            "interaction": null,
+            "width": 960,
+            "height": 660,
+            "bytes": 58370,
             "commands": [],
             "datedReceipts": []
           }

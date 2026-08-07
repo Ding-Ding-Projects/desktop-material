@@ -1,6 +1,7 @@
 import React from 'react'
 import { getAheadBehind, revSymmetricDifference } from '../../../lib/git'
 import { determineMergeability } from '../../../lib/git/merge-tree'
+import { getBranchesNotUpdatedWithDefault } from '../../../lib/git/not-updated-with-default'
 import { Branch, BranchType } from '../../../models/branch'
 import { ComputedAction } from '../../../models/computed-action'
 import { MergeTreeResult } from '../../../models/merge'
@@ -16,18 +17,22 @@ import {
 import { truncateWithEllipsis } from '../../../lib/truncate-with-ellipsis'
 import { formatNumber } from '../../../lib/format-number'
 import { MergeConflictPathPreview } from '../../lib/merge-conflict-path-preview'
+import { createNotUpdatedWithDefaultBranchFilter } from './merge-branch-filters'
 
 interface IMergeChooseBranchDialogState {
   readonly commitCount: number | undefined
   readonly mergeStatus: MergeTreeResult | null
   readonly mergeStatusKnown: boolean
   readonly selectedBranch: Branch | null
+  readonly notUpdatedWithDefaultBranchNames: ReadonlySet<string>
 }
 
 export class MergeChooseBranchDialog extends React.Component<
   IBaseChooseBranchDialogProps,
   IMergeChooseBranchDialogState
 > {
+  private notUpdatedWithDefaultBranchRequest = 0
+
   public constructor(props: IBaseChooseBranchDialogProps) {
     super(props)
 
@@ -35,8 +40,67 @@ export class MergeChooseBranchDialog extends React.Component<
       selectedBranch: null,
       commitCount: undefined,
       mergeStatus: null,
+      notUpdatedWithDefaultBranchNames: new Set(),
       mergeStatusKnown: false,
     }
+  }
+
+  public componentDidMount(): void {
+    this.refreshNotUpdatedWithDefaultBranches()
+  }
+
+  public componentDidUpdate(prevProps: IBaseChooseBranchDialogProps): void {
+    if (
+      prevProps.repository.id !== this.props.repository.id ||
+      this.getBranchContextKey(prevProps) !==
+        this.getBranchContextKey(this.props)
+    ) {
+      this.refreshNotUpdatedWithDefaultBranches()
+    }
+  }
+
+  public componentWillUnmount(): void {
+    this.notUpdatedWithDefaultBranchRequest++
+  }
+
+  private getBranchContextKey = (props: IBaseChooseBranchDialogProps) => {
+    const defaultBranch = props.defaultBranch
+    const defaultBranchKey = defaultBranch
+      ? `${defaultBranch.ref}:${defaultBranch.tip.sha}`
+      : 'none'
+    const branchKeys = props.allBranches
+      .map(branch => `${branch.ref}:${branch.tip.sha}`)
+      .join('|')
+    return `${defaultBranchKey}|${branchKeys}`
+  }
+
+  private refreshNotUpdatedWithDefaultBranches = () => {
+    const request = ++this.notUpdatedWithDefaultBranchRequest
+    const { defaultBranch, allBranches, repository } = this.props
+
+    this.setState({ notUpdatedWithDefaultBranchNames: new Set() })
+
+    getBranchesNotUpdatedWithDefault(repository, defaultBranch, allBranches)
+      .then(names => {
+        if (request !== this.notUpdatedWithDefaultBranchRequest) {
+          return
+        }
+        this.setState({ notUpdatedWithDefaultBranchNames: names })
+      })
+      .catch(error => {
+        log.error(
+          'Failed determining branches not updated with the default branch',
+          error
+        )
+      })
+  }
+
+  private getBranchFilters = () => {
+    const filter = createNotUpdatedWithDefaultBranchFilter(
+      this.props.defaultBranch,
+      this.state.notUpdatedWithDefaultBranchNames
+    )
+    return filter === null ? [] : [filter]
   }
 
   private start = () => {
@@ -367,6 +431,7 @@ export class MergeChooseBranchDialog extends React.Component<
         canStartOperation={this.canStart()}
         dialogTitle={this.getDialogTitle()}
         onSelectionChanged={this.onSelectionChanged}
+        customFilters={this.getBranchFilters()}
         renderAdditionalActions={this.renderDeleteBranchButton}
       >
         {this.renderStatusPreview()}

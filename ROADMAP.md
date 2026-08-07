@@ -2,10 +2,26 @@
 
 Updated: **August 6, 2026**
 
+## August 6 — Filter merge candidates that have not caught up with main
+
+- The **Merge into main** branch chooser now offers **Not updated with main**.
+  It compares each branch tip with the default branch tip through Git ancestry,
+  keeps diverged branches that already contain `main` out of the stale result,
+  and preserves the existing text/regex filters.
+- The chip is localized in English, Hong Kong-style Cantonese, and bilingual
+  mode. The freshness query is read-only and fails closed when the default tip
+  cannot be resolved.
+- Focused integrated evidence is **28/28** tests passed, TypeScript and
+  changed-file ESLint passed, the Windows development build passed, and the
+  built-app hidden-desktop capture is recorded in the branch-switcher guide.
+
 ## August 6 — Keep Windows CI hosted and harden the Super Express cache
 
-- Every `CI Windows` trigger uses `windows-2022`; manual dispatches expose no
-  runner selector. Only Super Express may claim the fixed local runner labels.
+- Pushes, pull requests, and reusable calls use `windows-2022`; a protected
+  `main` manual dispatch now exposes `runner_mode=cloud|self-hosted` for the
+  desktop build and packaged E2E jobs. A non-main dispatch falls back to the
+  hosted runner, and Windows TUI core remains hosted. Super Express retains
+  its fixed local runner labels for its own release path.
 - Windows Super Express jobs restore exact `installed-deps-v6` dependencies
   without a post-job archive hook, verify the restored sentinels, and explicitly
   save a verified miss. `installed-deps-v5` and `installed-deps-v4` are warm
