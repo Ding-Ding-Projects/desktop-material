@@ -304,7 +304,7 @@ records the exact source, build, hash, hidden-desktop route, and cleanup.
 
 | Archived asset | Historical receipt | Current status |
 | --- | --- | --- |
-| `material-original-github-oauth-release-20260806.png` | August 6 original-client callback acceptance | Excluded from the recurring Windows gallery |
+| `material-original-github-oauth-release-20260806.png` | August 6 original-client callback acceptance | Excluded from the current Windows gallery |
 
 ![Real app-owned GitHub authorization page opened without a redirect URI warning](../assets/screenshots/material-original-github-oauth-release-20260806.png)
 
