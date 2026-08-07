@@ -44,8 +44,6 @@ on:
     secrets:
       AZURE_CODE_SIGNING_TENANT_ID:
       AZURE_CODE_SIGNING_CLIENT_ID:
-      DESKTOP_OAUTH_CLIENT_ID:
-      DESKTOP_OAUTH_CLIENT_SECRET:
 
 # Every run gets its own group. CI is a release gate, so a newer commit must not
 # silently cancel an older commit's chance to finish and publish its result.
@@ -142,9 +140,6 @@ jobs:
           ${{ always() && !cancelled() && steps.setup_ci.outcome == 'success' }}
         run: yarn build:prod
         env:
-          DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
-          DESKTOP_OAUTH_CLIENT_SECRET:
-            ${{ secrets.DESKTOP_OAUTH_CLIENT_SECRET }}
           npm_config_arch: ${{ matrix.arch }}
           TARGET_ARCH: ${{ matrix.arch }}
       - name: Prepare testing environment
@@ -231,9 +226,6 @@ jobs:
       - name: Build production app
         run: yarn build:prod
         env:
-          DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
-          DESKTOP_OAUTH_CLIENT_SECRET:
-            ${{ secrets.DESKTOP_OAUTH_CLIENT_SECRET }}
           npm_config_arch: ${{ matrix.arch }}
           TARGET_ARCH: ${{ matrix.arch }}
       - name: Prepare testing environment

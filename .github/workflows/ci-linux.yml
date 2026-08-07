@@ -41,8 +41,6 @@ on:
     secrets:
       AZURE_CODE_SIGNING_TENANT_ID:
       AZURE_CODE_SIGNING_CLIENT_ID:
-      DESKTOP_OAUTH_CLIENT_ID:
-      DESKTOP_OAUTH_CLIENT_SECRET:
 
 # Every run gets its own group. CI is a release gate, so a newer commit must not
 # silently cancel an older commit's chance to finish and publish its result.
