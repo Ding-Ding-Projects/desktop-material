@@ -22,13 +22,18 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4180,
+    entryCount: 4181,
     releases: [
       {
         v: '3.6.3-material22',
         d: '2026-08-06',
-        t: '21:45',
+        t: '22:16',
         e: [
+          [
+            'Fixed',
+            'The generated parity contract now includes Scheduled Settings as desktop feature 208, so every Linux matrix lane accepts the current feature inventory instead of stopping at the stale 207-row declaration',
+            '767e570cdb955b0b31f32e33227d3c375de09ee9',
+          ],
           [
             'Fixed',
             'Scheduled Settings teleport targets no longer masquerade as collection-search inputs, and appearance persistence tests now verify normalized values plus the real schedule-overlay rollback path',
