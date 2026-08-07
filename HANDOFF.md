@@ -1028,6 +1028,12 @@ proof; `gh run list` returned no run for the pushed task branch at the time of
 this handoff update.
 ## 2026-08-06 — Rich account picker and repository-list Cheap LFS boundary
 
+The follow-up hardening keeps private email values out of rich search metadata,
+labels self-hosted providers accurately, removes query/fragment data from
+transfer URLs, rejects local/file clone inputs before `git clone`, prevents
+invalid-regex Enter activation, and adds listbox/active-descendant semantics
+plus narrow bilingual layout protection.
+
 Implementation commit
 [`ba966baff0fb5282f8c98c683e5a3f32dc17a6e9`](https://github.com/Ding-Ding-Projects/desktop-material/commit/ba966baff0fb5282f8c98c683e5a3f32dc17a6e9)
 on `codex/account-picker-cheap-lfs-20260806` adds rich account metadata and
@@ -1047,9 +1053,10 @@ public OCI pointers can restore anonymously.
 
 ### Verification
 
-- Focused tests: **46 passed, 0 failed across 10 suites**, including account
+- Focused tests: **53 passed, 0 failed across 11 suites**, including account
   metadata/search, rich picker contract, switcher style/keyboard contract,
-  transfer Cheap LFS wiring, and existing repository-list file contracts.
+  transfer Cheap LFS wiring, existing repository-list file contracts, and the
+  real account-switcher click path.
 - Changed-file ESLint: **passed**.
 - Prettier: **passed** for all changed source, test, and documentation files.
 - Strict TypeScript command with process-local TypeScript 6 compatibility

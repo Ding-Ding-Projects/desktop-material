@@ -14,18 +14,22 @@ silently coupled.
 ## Rich account picker and switcher
 
 The account picker and navigation-rail account switcher show a friendly name,
-`@login · host`, provider, plan, and the account's display email. The active
-identity is marked without exposing its credential. Both surfaces search by
-name, login, host, provider, plan, or email; plain text remains the default,
-with fuzzy, substring, and bounded safe-regex modes available through the
-anchored shared Regex Builder.
+`@login · host`, provider, plan, and a visible display email when one exists.
+Private email metadata is omitted, and self-hosted accounts are labelled
+accurately instead of being presented as GitHub. The active identity is marked
+without exposing its credential. Both surfaces search by name, login, host,
+provider, plan, or visible email; plain text remains the default, with fuzzy,
+substring, and bounded safe-regex modes available through the anchored shared
+Regex Builder.
 
 Arrow keys, <kbd>Home</kbd>/<kbd>End</kbd>, <kbd>Enter</kbd>, and <kbd>Escape</kbd>
 work from the field and rows. Invalid patterns report an inline error without
-discarding the list, and a no-match result leaves **Add another account**
-available. Search metadata excludes tokens, local paths, and other credential
-material. Rows use the stable `endpoint#id` identity, so a login rename cannot
-make the picker select a different credential.
+discarding the list or activating the first row, and a no-match result leaves
+**Add another account** available. Search metadata excludes tokens, private
+email values, local paths, and other credential material. Rows use the stable
+`endpoint#id` identity, so a login rename cannot make the picker select a
+different credential. The switcher exposes a labelled listbox and active
+descendant so assistive technology can follow the highlighted row.
 
 ## Organization Git operations
 

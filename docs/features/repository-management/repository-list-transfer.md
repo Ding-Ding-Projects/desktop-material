@@ -8,10 +8,11 @@ a credential or storage-state backup.
 
 - **Export** resolves each selected repository's GitHub clone URL, or its
   `origin`/first Git remote when no GitHub metadata is available.
-- Export sanitizes HTTP(S) user information and writes only a versioned list of
-  clone URLs plus an export timestamp. Local checkout paths, access tokens,
-  account identities, default branches, and Cheap LFS file selections are not
-  portable data in this format.
+- Export sanitizes HTTP(S) user information, removes query and fragment data,
+  and writes only a versioned list of portable clone URLs plus an export
+  timestamp. Local checkout paths, `file:` URLs, access tokens, account
+  identities, default branches, and Cheap LFS file selections are not portable
+  data in this format.
 - **Import** lets the user review and check the URLs, choose a destination
   directory, and run the existing bounded parallel or sequential batch-clone
   queue.
@@ -27,6 +28,9 @@ a credential or storage-state backup.
 
 - An invalid, unsupported, or structurally corrupt list is rejected before any
   clone starts.
+- Import also rejects a non-portable URL before it can reach `git clone`; the
+  accepted schemes are HTTP(S), SSH, Git-over-SSH, Git, and Git's scp-like SSH
+  spelling.
 - URLs already present in the local repository list are shown as already
   cloned and are not checked by default.
 - A clone failure is isolated to its batch row. Other rows can complete, and
@@ -44,19 +48,27 @@ a credential or storage-state backup.
 ## Security considerations
 
 The transfer file is safe to share only as a list of repository locations, not
-as an authentication artifact. URL credentials are stripped on both export and
-parse. The format never serializes account tokens, local paths, release
-credentials, registry credentials, or Cheap LFS selection proofs. Account
-affinity remains in local repository state, and automatic restoration uses the
-same selected-account and provider checks as every other Cheap LFS operation.
+as an authentication artifact. HTTP(S) userinfo, query strings, and fragments
+are removed on both export and parse, and local/file URLs are rejected rather
+than treated as clone sources. The format never serializes account tokens,
+local paths, release credentials, registry credentials, or Cheap LFS selection
+proofs. Account affinity remains in local repository state, and automatic
+restoration uses the same selected-account and provider checks as every other
+Cheap LFS operation.
 
 ## Verification
 
 - `repo-list-file-test.ts` proves URL normalization, credential stripping,
-  duplicate removal, and malformed-file rejection.
+  query/fragment removal, portable-URL enforcement, duplicate removal, and
+  malformed-file rejection.
 - `repository-list-transfer-cheap-lfs-test.ts` pins the URL-only contract,
   verifies that imported clones enter the batch finalization materialization
-  path, and verifies the enabled-by-default preference.
+  path, verifies the enabled-by-default preference, and checks localized
+  transfer copy.
+- `account-search-test.ts` proves private email metadata stays out of search
+  and self-hosted provider labels remain accurate. The account-switcher tests
+  cover invalid-regex activation blocking, listbox semantics, keyboard
+  activation, and narrow-layout rules.
 - The Windows production build and the hidden-desktop acceptance flow should
   exercise the import dialog's large-file note and the batch finalization
   progress surface when a disposable pointer fixture is available.

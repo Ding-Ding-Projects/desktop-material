@@ -290,10 +290,15 @@ Updated: **August 6, 2026**
   reach the same post-clone Cheap LFS materialization path as normal clones;
   account-bound selections stay local because they are tied to the destination
   manifest, branch, and selected provider account.
-- Focused verification passes **46/46 tests**, changed-file ESLint, and
-  Prettier. The exact production build is blocked by existing TypeScript 6
-  configuration/dependency diagnostics, so the Windows runtime capture remains
-  pending and no release is claimed for this change.
+- A follow-up hardening pass keeps private email values out of rich search
+  metadata, labels self-hosted providers accurately, rejects query/fragment
+  credentials and local/file clone inputs, blocks Enter activation for invalid
+  regex, and gives the switcher labelled listbox/active-descendant semantics
+  plus a narrow bilingual layout. Focused verification passes **53/53 tests**,
+  changed-file ESLint, and Prettier. The exact production build remains blocked
+  by existing TypeScript 6 configuration/dependency diagnostics, so the
+  Windows runtime capture remains pending and no release is claimed for this
+  change.
 - Integration merge
   [`4f87b632ecdde73cf8c326a1da1499232427212b`](https://github.com/Ding-Ding-Projects/desktop-material/commit/4f87b632ecdde73cf8c326a1da1499232427212b)
   is now on `main`; no workflow run for that exact SHA was visible at handoff.

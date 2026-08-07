@@ -409,14 +409,15 @@ choice for its next authenticated operation. Other repositories, hosts, and
 providers keep their existing bindings.
 
 The account picker and the navigation-rail account switcher are rich rows rather than login-only
-menus: they show the friendly name, `@login · host`, provider, plan, and display email, with the
-active identity marked. Their search bar is plain-text by default and offers fuzzy, substring, and
-bounded safe-regex modes through the anchored Regex Builder. Search by name, login, host, provider,
-plan, or email; use Arrow keys, <kbd>Home</kbd>/<kbd>End</kbd>, <kbd>Enter</kbd>, and
-<kbd>Escape</kbd> without leaving the surface. Invalid patterns and no-match states are announced
-inline, **Add another account** remains available, and the searchable metadata never includes a
-credential token. Stable `endpoint#id` row identities also keep a login rename from selecting a
-different account.
+menus: they show the friendly name, `@login · host`, provider, plan, and a visible display email
+when one exists, with the active identity marked. Private email values are not searchable, and
+self-hosted accounts keep their self-hosted label. Their search bar is plain-text by default and
+offers fuzzy, substring, and bounded safe-regex modes through the anchored Regex Builder. Search
+by name, login, host, provider, plan, or visible email; use Arrow keys, <kbd>Home</kbd>/<kbd>End</kbd>,
+<kbd>Enter</kbd>, and <kbd>Escape</kbd> without leaving the surface. Invalid patterns are announced
+inline and cannot activate the first row; no-match states leave **Add another account** available.
+The searchable metadata never includes a credential token. Stable `endpoint#id` row identities also
+keep a login rename from selecting a different account.
 
 Open the repositories side sheet to narrow cloned repositories by **Repository account** and
 **Repository service**. The filters combine: for example, choose one exact account and GitLab, or
@@ -993,10 +994,12 @@ the dialog does not require page-level horizontal scrolling.
 
 ### Export / import repo lists
 
-- **Export** writes the selected repositories to a list file containing **URLs only** — no tokens,
-  no credentials.
+- **Export** writes the selected repositories to a list file containing **portable clone URLs only**
+  — no tokens, credentials, local paths, query strings, or fragments.
 - **Import** loads such a list back into the checkbox selection, so you can re-clone the same set on
   another machine or share a curated set with a teammate.
+- Import rejects local paths and `file:` URLs before any clone starts; the list is a clone recipe,
+  not a local filesystem instruction.
 - After each imported clone finishes, Desktop Material runs the same Cheap LFS
   large-file restoration used by the normal clone path when **Repository
   settings → Cheap LFS → Download large files after cloning** is enabled (the
