@@ -515,6 +515,24 @@ describe('CI environment setup', () => {
         assert.ok(missingLive.stderr.includes(liveName))
         writeFileSync(livePath, live)
       }
+
+      const unreadableBackupName = manifestPairs[0][0]
+      const unreadableLiveName = manifestPairs[0][1]
+      const unreadableBackupPath = join(backupRoot, unreadableBackupName)
+      const unreadableBackup = readFileSync(unreadableBackupPath)
+      unlinkSync(unreadableBackupPath)
+      mkdirSync(unreadableBackupPath)
+      const unreadable = verify()
+      assert.equal(
+        unreadable.status,
+        1,
+        `${unreadableBackupName}: ${unreadable.stderr}`
+      )
+      assert.ok(unreadable.stderr.includes(unreadableLiveName))
+      assert.doesNotMatch(unreadable.stderr, /ENOENT/)
+      assert.match(unreadable.stderr, /EISDIR|EPERM|directory/i)
+      rmSync(unreadableBackupPath, { recursive: true, force: true })
+      writeFileSync(unreadableBackupPath, unreadableBackup)
     } finally {
       rmSync(fixtureRoot, { recursive: true, force: true })
     }
