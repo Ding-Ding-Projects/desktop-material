@@ -97,7 +97,12 @@ function openZip(fd: number): Promise<ZipFile> {
         strictFileNames: true,
         validateEntrySizes: true,
       },
-      (error, zip) => (error ? reject(error) : resolve(zip))
+      (error, zip) =>
+        error
+          ? reject(error)
+          : zip === undefined
+          ? reject(new Error('The stash archive could not be opened.'))
+          : resolve(zip)
     )
   })
 }
@@ -108,7 +113,11 @@ function openEntryStream(
 ): Promise<NodeJS.ReadableStream> {
   return new Promise((resolve, reject) =>
     zip.openReadStream(entry, (error, stream) =>
-      error ? reject(error) : resolve(stream)
+      error
+        ? reject(error)
+        : stream === undefined
+        ? reject(new Error('The stash archive entry could not be read.'))
+        : resolve(stream)
     )
   )
 }

@@ -189,6 +189,13 @@
       d: 'This category documents provider-backed workflows that let contributors review and manage collaboration state without leaving Desktop Material.',
     },
     {
+      t: 'Self-hosted server wizard',
+      h: 'features/collaboration/self-hosted-server-wizard.html',
+      s: 'features/collaboration/self-hosted-server-wizard.md',
+      c: 'features',
+      d: "The Windows Preferences wizard provisions the repository's own services/desktop-material-server container. The main process owns the Docker and filesystem operations; the…",
+    },
+    {
       t: 'Audio system (narrator, sound effects, per-repository music)',
       h: 'features/design-system/audio-system.html',
       s: 'features/design-system/audio-system.md',
@@ -329,11 +336,32 @@
       d: 'The repository sheet is a searchable workspace switcher rather than a flat recent list. It groups pinned repositories first, can show or hide the Recent group, and keeps…',
     },
     {
+      t: 'Scheduled language, appearance, and external settings',
+      h: 'features/identity-and-workspace/scheduled-settings.html',
+      s: 'features/identity-and-workspace/scheduled-settings.md',
+      c: 'features',
+      d: 'Desktop Material can apply a settings value during a local date-and-time window. A rule can change the language presentation, theme, and appearance customizations together or…',
+    },
+    {
+      t: 'Browser-style settings tabs',
+      h: 'features/identity-and-workspace/settings-browser-tabs.html',
+      s: 'features/identity-and-workspace/settings-browser-tabs.md',
+      c: 'features',
+      d: 'Global Settings, Repository Settings, and Stash Manager use the same horizontal browser-style tab surface. Each page has a stable identity, a visible active state, a close…',
+    },
+    {
       t: 'Settings search / 設定搜尋',
       h: 'features/identity-and-workspace/settings-search.html',
       s: 'features/identity-and-workspace/settings-search.md',
       c: 'features',
       d: "A search box at the top of the Settings (Preferences) dialog's left rail lets you find a setting by name, description, or keyword across every tab, and jump straight to the tab…",
+    },
+    {
+      t: 'Settings tab docking',
+      h: 'features/identity-and-workspace/settings-tab-docking.html',
+      s: 'features/identity-and-workspace/settings-tab-docking.md',
+      c: 'features',
+      d: 'Repository Settings and application Settings use the same browser-style tab strip. The strip can be docked on the left, top, bottom, or right of its content. Left is the…',
     },
     {
       t: 'Tab groups',
@@ -501,7 +529,7 @@
       h: 'features/integrations/self-hosted-windows-dependency-bootstrap.html',
       s: 'features/integrations/self-hosted-windows-dependency-bootstrap.md',
       c: 'features',
-      d: 'The Windows self-hosted CI path must install dependencies before any build, cache validation, or cross-compilation step invokes Yarn. The repository keeps Yarn 1.21.1 in…',
+      d: 'Every self-hosted Windows job bootstraps its declared dependencies before it builds, tests, packages, or publishes. A warm runner may reuse compatible tools and exact…',
     },
     {
       t: 'SSH working copies and remote clone',
@@ -753,7 +781,7 @@
       h: 'features/quality-and-reliability/supply-chain-and-ci-hardening.html',
       s: 'features/quality-and-reliability/supply-chain-and-ci-hardening.md',
       c: 'features',
-      d: "Desktop Material's continuous-integration workflow builds and signs the Windows installers that users actually run, so what its jobs install and how its runs are scheduled are…",
+      d: "Desktop Material's continuous-integration workflow builds the Windows installers that users actually run, so what its jobs install, how its runs are scheduled, and how it…",
     },
     {
       t: 'Desktop Material feature documentation',
@@ -861,6 +889,13 @@
       d: 'A reviewed workflow that copies working files Git itself currently proves are ignored into a newly created local Git repository and registers that repository as a submodule of…',
     },
     {
+      t: 'Launchpad',
+      h: 'features/repository-management/launchpad.html',
+      s: 'features/repository-management/launchpad.md',
+      c: 'features',
+      d: 'Launchpad is the repository workspace for reviewing the items that need attention first. It groups repository-backed work into Pinned, Ready to merge, Unassigned, CI failing,…',
+    },
+    {
       t: 'Multi-remote fetch sync',
       h: 'features/repository-management/multi-remote-fetch-sync.html',
       s: 'features/repository-management/multi-remote-fetch-sync.md',
@@ -957,6 +992,13 @@
       s: 'features/repository-management/repository-list-sync-summary.md',
       c: 'features',
       d: 'Every row in the repository side sheet carries a small, low-emphasis second line under the repository name summarizing how far that repository has drifted from its tracked…',
+    },
+    {
+      t: 'Repository list transfer and Cheap LFS',
+      h: 'features/repository-management/repository-list-transfer.html',
+      s: 'features/repository-management/repository-list-transfer.md',
+      c: 'features',
+      d: 'Repository list transfer moves a reviewed set of cloned repositories between Desktop Material profiles or machines. It is deliberately a clone recipe, not a credential or…',
     },
     {
       t: 'Repository picker filters and visibility',
@@ -1299,7 +1341,7 @@
       h: 'readme-tabs/screenshots.html',
       s: 'readme-tabs/screenshots.md',
       c: 'readme-tabs',
-      d: 'The compact selection below keeps this README scannable. The guided feature gallery and task-oriented tutorial contain the full annotated set.',
+      d: "The dated production-build receipt proves that Desktop Material's app-owned browser reaches the original registered GitHub OAuth application without the reported redirect_uri…",
     },
     {
       t: 'Desktop Material documentation',
@@ -1727,6 +1769,13 @@
       s: 'verification/md3-ui-audit-2026-07-31.md',
       c: 'verification',
       d: "Target: Desktop Material Windows desktop app (app/styles, app/src/ui) Date: 2026-07-31 Method: source audit per the Material 3 skill's audit procedure (web/CSS…",
+    },
+    {
+      t: 'Original GitHub OAuth release proof — 2026-08-06',
+      h: 'verification/original-github-oauth-release-20260806/',
+      s: 'verification/original-github-oauth-release-20260806/README.md',
+      c: 'verification',
+      d: "This dated acceptance proves the real production Windows bundle uses Desktop Material's original registered GitHub OAuth application and the exact x-github-client://oauth…",
     },
     {
       t: 'Publish organization picker sizing acceptance — 2026-07-30',

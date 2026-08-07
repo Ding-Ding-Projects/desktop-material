@@ -381,9 +381,9 @@ describe('SignInStore', () => {
         },
       }
       const callbackStore = new SignInStore(undefined, services)
-      let authenticated: Account | null = null
+      const authenticated: { current: Account | null } = { current: null }
       callbackStore.onDidAuthenticate(account => {
-        authenticated = account
+        authenticated.current = account
       })
       const openExternal = mock.method(shell, 'openExternal', async () => true)
 
@@ -405,10 +405,10 @@ describe('SignInStore', () => {
         })
         assert.equal(result, 'succeeded')
         assert.equal(callbackStore.getState()?.kind, SignInStep.Success)
-        assert.notEqual(authenticated, null)
-        assert.equal(authenticated?.provider, 'self-hosted')
-        assert.equal(authenticated?.endpoint, 'https://tenant.example')
-        assert.equal(authenticated?.login, 'admin')
+        assert.notEqual(authenticated.current, null)
+        assert.equal(authenticated.current?.provider, 'self-hosted')
+        assert.equal(authenticated.current?.endpoint, 'https://tenant.example')
+        assert.equal(authenticated.current?.login, 'admin')
       } finally {
         callbackStore.reset()
         openExternal.mock.restore()
