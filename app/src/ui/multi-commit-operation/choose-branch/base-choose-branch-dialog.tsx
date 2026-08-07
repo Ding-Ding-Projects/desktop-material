@@ -107,6 +107,7 @@ export interface IChooseBranchDialogProps extends IBaseChooseBranchDialogProps {
   readonly canStartOperation: boolean
   readonly start: () => void
   readonly onSelectionChanged: (selectedBranch: Branch | null) => void
+  readonly renderAdditionalActions?: () => JSX.Element | null
 }
 
 export interface IChooseBranchDialogState {
@@ -271,6 +272,7 @@ export class ChooseBranchDialog extends React.Component<
         <DialogFooter>
           {this.renderStatusPreview()}
           <div className="choose-branch-actions">
+            {this.props.renderAdditionalActions?.()}
             {operation === MultiCommitOperationKind.Rebase ? (
               <Button
                 className="rebase-cancel-before-start"

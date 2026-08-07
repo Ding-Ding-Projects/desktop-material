@@ -1,12 +1,13 @@
 import React from 'react'
 import { getAheadBehind, revSymmetricDifference } from '../../../lib/git'
 import { determineMergeability } from '../../../lib/git/merge-tree'
-import { Branch } from '../../../models/branch'
+import { Branch, BranchType } from '../../../models/branch'
 import { ComputedAction } from '../../../models/computed-action'
 import { MergeTreeResult } from '../../../models/merge'
 import { MultiCommitOperationKind } from '../../../models/multi-commit-operation'
 import { PopupType } from '../../../models/popup'
 import { ActionStatusIcon } from '../../lib/action-status-icon'
+import { Button } from '../../lib/button'
 import {
   ChooseBranchDialog,
   IBaseChooseBranchDialogProps,
@@ -249,6 +250,73 @@ export class MergeChooseBranchDialog extends React.Component<
     )
   }
 
+  private canDeleteSelectedBranch = (): boolean => {
+    const { selectedBranch, commitCount, mergeStatus } = this.state
+    const { currentBranch, defaultBranch } = this.props
+
+    if (
+      selectedBranch === null ||
+      mergeStatus?.kind !== ComputedAction.Clean ||
+      commitCount !== 0
+    ) {
+      return false
+    }
+
+    // Never offer to delete the checked-out branch or the repository's default
+    // branch, including a remote-tracking ref with the same short name.
+    return (
+      selectedBranch.name !== currentBranch.name &&
+      selectedBranch.nameWithoutRemote !== defaultBranch?.nameWithoutRemote
+    )
+  }
+
+  private deleteSelectedBranch = () => {
+    const { selectedBranch } = this.state
+    const { dispatcher, repository } = this.props
+
+    if (selectedBranch === null || !this.canDeleteSelectedBranch()) {
+      return
+    }
+
+    this.props.onDismissed()
+
+    if (selectedBranch.type === BranchType.Remote) {
+      dispatcher.showPopup({
+        type: PopupType.DeleteRemoteBranch,
+        repository,
+        branch: selectedBranch,
+      })
+      return
+    }
+
+    dispatcher.showPopup({
+      type: PopupType.DeleteBranch,
+      repository,
+      branch: selectedBranch,
+      existsOnRemote:
+        selectedBranch.upstreamRemoteName !== null &&
+        selectedBranch.isGone !== true,
+    })
+  }
+
+  private renderDeleteBranchButton = () => {
+    if (!this.canDeleteSelectedBranch()) {
+      return null
+    }
+
+    return (
+      <Button
+        className="destructive"
+        dataVerification="merge-delete-branch"
+        onClick={this.deleteSelectedBranch}
+        ariaLabel="Delete branch"
+        tooltip="Delete the selected branch"
+      >
+        Delete branch
+      </Button>
+    )
+  }
+
   public render() {
     return (
       <ChooseBranchDialog
@@ -258,6 +326,7 @@ export class MergeChooseBranchDialog extends React.Component<
         canStartOperation={this.canStart()}
         dialogTitle={this.getDialogTitle()}
         onSelectionChanged={this.onSelectionChanged}
+        renderAdditionalActions={this.renderDeleteBranchButton}
       >
         {this.renderStatusPreview()}
       </ChooseBranchDialog>
