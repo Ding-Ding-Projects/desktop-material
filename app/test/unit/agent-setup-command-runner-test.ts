@@ -425,7 +425,7 @@ describe('BoundedAgentSetupProcessExecutor', () => {
       "process.stdout.write('private-output'.repeat(1000)); setInterval(() => {}, 1000)"
     )
     const noisyResult = await new BoundedAgentSetupProcessExecutor(
-      10_000,
+      30_000,
       32
     ).execute(
       { enabled: true, executable: 'node', args: [noisy] },

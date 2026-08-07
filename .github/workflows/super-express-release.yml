@@ -1,13 +1,13 @@
 name: Super Express Release
 
-# Manual emergency lane. The Windows package runs the repository's script
-# contracts before build; unit, lint, type, parity, smoke, packaged E2E, and
-# Linux TUI tests remain in ordinary CI and Express Release. Every job in this
-# emergency lane runs on a registered self-hosted runner: Linux jobs use the WSL
-# runner and the Windows package uses the native Windows runner. The Windows and
-# Linux TUI build jobs run in parallel, then one Linux self-hosted publisher
-# creates the combined Release so the Squirrel update feed and the TUI bootstrap
-# URL still point at one payload.
+# Manual emergency lane. It deliberately runs no tests, lint, type checks,
+# parity checks, or smoke tests. The ordinary CI and Express Release workflows
+# remain the tested release paths. Every job in this emergency lane runs on a
+# registered self-hosted runner: Linux jobs use the WSL runner and the Windows
+# package uses the native Windows runner. The Windows and Linux TUI build jobs
+# run in parallel, then one Linux self-hosted publisher creates the combined
+# Release so the Squirrel update feed and the TUI bootstrap URL still point at
+# one payload.
 on:
   workflow_dispatch:
     inputs:
@@ -77,7 +77,7 @@ jobs:
         shell: bash
         run: |
           base=$(node -p "require('./app/package.json').version")
-          version=$(node script/release-version.js create "$base" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT")
+          version=$(node script/release-version.js create "$base" "${{ github.run_id }}" "${{ github.run_attempt }}")
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
@@ -357,7 +357,7 @@ jobs:
             --target "$RELEASE_TARGET_SHA" \
             --title "Desktop Material $RELEASE_VERSION" \
             --notes-file release-payload/release-notes.md \
-            --latest
+            --latest=false
           create_status=$?
           set -e
           if [ "$create_status" -ne 0 ]; then
@@ -378,7 +378,7 @@ jobs:
               --repo "$GITHUB_REPOSITORY"
             gh release edit "$RELEASE_TAG" \
               --repo "$GITHUB_REPOSITORY" \
-              --prerelease=false --latest
+              --prerelease=false --latest=false
           fi
           gh release view "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft \
