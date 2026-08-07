@@ -228,8 +228,8 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
       - name: Attempt to update submodules (non-fatal)
-        run: |
-          git submodule update --init --recursive || true
+        continue-on-error: true
+        run: git submodule update --init --recursive
       - uses: ./.github/actions/setup-ci-environment
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -253,11 +253,12 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
       - name: Attempt to update submodules (non-fatal)
+        continue-on-error: true
         run: |
           # prefer the new official mirror for the lowlevel MCP submodule if present
-          git config --local submodule.vendor/lowlevel-computer-use-mcp.url https://github.com/Ding-Ding-Projects/lowlevel-computer-use-mcp.git || true
-          git submodule sync --recursive || true
-          git submodule update --init --recursive || true
+          git config --local submodule.vendor/lowlevel-computer-use-mcp.url https://github.com/Ding-Ding-Projects/lowlevel-computer-use-mcp.git
+          git submodule sync --recursive
+          git submodule update --init --recursive
       - uses: ./.github/actions/setup-ci-environment
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -301,8 +302,8 @@ jobs:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
       - name: Attempt to update submodules (non-fatal)
-        run: |
-          git submodule update --init --recursive || true
+        continue-on-error: true
+        run: git submodule update --init --recursive
       - uses: ./.github/actions/setup-ci-environment
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -542,8 +543,8 @@ jobs:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
       - name: Attempt to update submodules (non-fatal)
-        run: |
-          git submodule update --init --recursive || true
+        continue-on-error: true
+        run: git submodule update --init --recursive
       - name: Require the prepared exact commit
         shell: bash
         run: |

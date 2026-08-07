@@ -121,11 +121,12 @@ jobs:
           repository: ${{ inputs.repository || github.repository }}
           ref: ${{ inputs.ref }}
       - name: Attempt to update submodules (non-fatal)
+        continue-on-error: true
         run: |
           # prefer the new official mirror for the lowlevel MCP submodule if present
-          git config --local submodule.vendor/lowlevel-computer-use-mcp.url https://github.com/Ding-Ding-Projects/lowlevel-computer-use-mcp.git || true
-          git submodule sync --recursive || true
-          git submodule update --init --recursive || true
+          git config --local submodule.vendor/lowlevel-computer-use-mcp.url https://github.com/Ding-Ding-Projects/lowlevel-computer-use-mcp.git
+          git submodule sync --recursive
+          git submodule update --init --recursive
       - uses: ./.github/actions/setup-ci-environment
         id: setup_ci
         with:
@@ -222,11 +223,12 @@ jobs:
           repository: ${{ inputs.repository || github.repository }}
           ref: ${{ inputs.ref }}
       - name: Attempt to update submodules (non-fatal)
+        continue-on-error: true
         run: |
           # prefer the new official mirror for the lowlevel MCP submodule if present
-          git config --local submodule.vendor/lowlevel-computer-use-mcp.url https://github.com/Ding-Ding-Projects/lowlevel-computer-use-mcp.git || true
-          git submodule sync --recursive || true
-          git submodule update --init --recursive || true
+          git config --local submodule.vendor/lowlevel-computer-use-mcp.url https://github.com/Ding-Ding-Projects/lowlevel-computer-use-mcp.git
+          git submodule sync --recursive
+          git submodule update --init --recursive
       - uses: ./.github/actions/setup-ci-environment
         with:
           node-version: ${{ env.NODE_VERSION }}

@@ -78,7 +78,10 @@ const selfHostedSuperExpressWorkflows = new Set([
 interface IWorkflowStep {
   name?: string
   run?: string
+  uses?: string
+  with?: Record<string, unknown>
   env?: Record<string, unknown>
+  'continue-on-error'?: boolean
 }
 
 interface IWorkflowJob {
@@ -219,6 +222,53 @@ describe('CI workflow safety', () => {
     assert.match(source, /uses: actions\/setup-node@v7/)
     assert.match(source, /node-version: \$\{\{ env\.NODE_VERSION \}\}/)
     assert.match(source, /node tui\/tools\/generate-parity-contract\.mjs/)
+  })
+
+  it('keeps non-fatal submodule updates shell-neutral', () => {
+    let guardedStepCount = 0
+
+    for (const { file, source } of workflowSources) {
+      const workflow = parse(source) as IWorkflowDocument
+      for (const job of Object.values(workflow.jobs ?? {})) {
+        for (const step of job.steps ?? []) {
+          if (step.name !== 'Attempt to update submodules (non-fatal)') {
+            continue
+          }
+
+          guardedStepCount += 1
+          assert.equal(
+            step['continue-on-error'],
+            true,
+            `${file} must make the complete submodule attempt non-fatal`
+          )
+          assert.doesNotMatch(
+            step.run ?? '',
+            /\|\|\s*true/,
+            `${file} must not use Bash fallback syntax in a cross-platform step`
+          )
+        }
+      }
+    }
+
+    assert.equal(guardedStepCount, 9)
+  })
+
+  it('checks out complete history before validating the TUI changelog', () => {
+    const tuiJob = getJob(linuxWorkflowDocument, 'linux-tui')
+    const checkout = tuiJob.steps?.find(step =>
+      step.uses?.startsWith('actions/checkout@')
+    )
+
+    assert.notEqual(checkout, undefined)
+    assert.equal(checkout?.with?.['fetch-depth'], 0)
+    assert.equal(
+      tuiJob.steps?.some(
+        step =>
+          step.run ===
+          'node tui/tools/generate-tui-changelog-catalog.mjs --check'
+      ),
+      true
+    )
   })
 
   it('uses one configurable loopback endpoint for the E2E build and server', () => {
