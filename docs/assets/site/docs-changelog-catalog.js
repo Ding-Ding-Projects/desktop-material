@@ -22,17 +22,22 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4177,
+    entryCount: 4178,
     releases: [
       {
         v: '3.6.3-material22',
         d: '2026-08-06',
-        t: '20:33',
+        t: '20:46',
         e: [
           [
             'Added',
             'The Merge into main branch chooser now offers a Not updated with main filter based on default-branch Git ancestry, keeping diverged branches that already contain main out of the stale results and localizing the chip in English, Hong Kong-style Cantonese, and bilingual mode',
             '81faa869aa3eed8401070f37ae7e324f49db398a',
+          ],
+          [
+            'Fixed',
+            'The self-hosted runner manager status notice now follows the repository SCSS format, so the full ordinary lint gate completes after the incoming feature lands',
+            'a404dc8477790ff81198a954182f36dd3efcc621',
           ],
           [
             'Fixed',
