@@ -227,7 +227,9 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
-          submodules: recursive
+      - name: Attempt to update submodules (non-fatal)
+        run: |
+          git submodule update --init --recursive || true
       - uses: ./.github/actions/setup-ci-environment
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -250,7 +252,12 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
-          submodules: recursive
+      - name: Attempt to update submodules (non-fatal)
+        run: |
+          # prefer the new official mirror for the lowlevel MCP submodule if present
+          git config --local submodule.vendor/lowlevel-computer-use-mcp.url https://github.com/Ding-Ding-Projects/lowlevel-computer-use-mcp.git || true
+          git submodule sync --recursive || true
+          git submodule update --init --recursive || true
       - uses: ./.github/actions/setup-ci-environment
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -293,7 +300,9 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
-          submodules: recursive
+      - name: Attempt to update submodules (non-fatal)
+        run: |
+          git submodule update --init --recursive || true
       - uses: ./.github/actions/setup-ci-environment
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -532,7 +541,9 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
-          submodules: recursive
+      - name: Attempt to update submodules (non-fatal)
+        run: |
+          git submodule update --init --recursive || true
       - name: Require the prepared exact commit
         shell: bash
         run: |
