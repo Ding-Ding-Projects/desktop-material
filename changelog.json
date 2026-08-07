@@ -1,6 +1,7 @@
 {
   "releases": {
     "3.6.3-material22": [
+      "[Fixed] Non-fatal submodule recovery now uses shell-neutral workflow controls on Windows and Linux, while Linux TUI changelog validation checks out complete history before resolving referenced commits - 13dcca7718abfc0b2227476e75853cd8c0873538",
       "[Fixed] The generated parity contract now includes Scheduled Settings as desktop feature 208, so every Linux matrix lane accepts the current feature inventory instead of stopping at the stale 207-row declaration - 767e570cdb955b0b31f32e33227d3c375de09ee9",
       "[Fixed] Scheduled Settings teleport targets no longer masquerade as collection-search inputs, and appearance persistence tests now verify normalized values plus the real schedule-overlay rollback path - 87ac2590112c7b622bfeb8163eccd637dc24afeb",
       "[Added] The Merge into main branch chooser now offers a Not updated with main filter based on default-branch Git ancestry, keeping diverged branches that already contain main out of the stale results and localizing the chip in English, Hong Kong-style Cantonese, and bilingual mode - 81faa869aa3eed8401070f37ae7e324f49db398a",

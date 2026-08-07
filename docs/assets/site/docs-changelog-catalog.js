@@ -22,13 +22,18 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4181,
+    entryCount: 4182,
     releases: [
       {
         v: '3.6.3-material22',
         d: '2026-08-06',
-        t: '22:16',
+        t: '22:41',
         e: [
+          [
+            'Fixed',
+            'Non-fatal submodule recovery now uses shell-neutral workflow controls on Windows and Linux, while Linux TUI changelog validation checks out complete history before resolving referenced commits',
+            '13dcca7718abfc0b2227476e75853cd8c0873538',
+          ],
           [
             'Fixed',
             'The generated parity contract now includes Scheduled Settings as desktop feature 208, so every Linux matrix lane accepts the current feature inventory instead of stopping at the stale 207-row declaration',
