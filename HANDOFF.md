@@ -1159,11 +1159,19 @@ response cannot repaint the app after a newer refresh.
 ### Remote state and next owner
 
 The feature branch is published at `ec11718e5e`, and integration commit
-`3404175ca3` combines it with the current default-branch baseline. The
-integrated tree passes **81/81 focused app tests** and **22/22 site/changelog
-tests**; TypeScript, repository-native ESLint, Prettier, and `git diff --check`
-also pass. The next owner should dew `3404175ca3` to the default branch and
-record the exact Actions result. No Release is claimed by this handoff entry.
+`3404175ca3` is contained by default-branch tip `e48f8e465a`. The integrated
+tree passes **81/81 focused app tests** and **22/22 site/changelog tests**;
+TypeScript, repository-native ESLint, Prettier, and `git diff --check` also
+pass. Main-triggered checks are queued at this handoff update:
+
+- [CI Windows 31136971256](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31136971256)
+- [CI Linux 31136971265](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31136971265)
+- [Deploy Pages 31136971255](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31136971255)
+- [Code scanning 31136971258](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31136971258)
+- [Cheap LFS 31136971273](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31136971273)
+- [Express Release 31137021113](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31137021113)
+
+No green remote result or Release is claimed while these runs are queued.
 
 ### 香港式廣東話
 
