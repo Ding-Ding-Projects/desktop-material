@@ -1,5 +1,28 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-07 — Repair Windows CI, release contracts, and Pages validation
+
+Repair commit `fef8e7e5574d88dbd2f5720a2c0d5799a44032bb` restores the
+Windows CI setup and Super Express release contracts, regenerates the
+documentation catalog and 279-article hub count, gives reruns a unique package
+version, and replaces the AI merge editor's inaccessible hidden input buffer
+with one controlled native text area that exposes the complete document and
+submits one form value. Hardening commit `4954a74529` adds fail-closed coverage
+for changed, missing, and non-ENOENT unreadable dependency manifests.
+
+Local evidence before publication: the full script gate passed **219** with
+**0 failures** and **2 expected skips**; the six originally failing unit files
+passed **85/85**; the final AI editor pair passed **15/15**; the release and
+manifest contract pair passed **11/11**; and the lifecycle-accurate nested app
+install completed in 94.56 seconds without changing either app manifest.
+Adversarial mutations proved the exact runner labels, token chain, run-attempt
+version input, active shell programs, native editor, and every manifest failure
+mode can each turn their own contract red.
+
+The GitHub Actions, Pages, and direct Windows manual-release results remain
+pending until these commits reach `main`; this handoff does not claim a remote
+verdict or a published Release in advance.
+
 ## 2026-08-06 — Repair the blank Windows startup renderer
 
 The packaged Windows renderer failed before React mounted with

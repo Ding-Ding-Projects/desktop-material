@@ -22,12 +22,12 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4155,
+    entryCount: 4158,
     releases: [
       {
         v: '3.6.3-material22',
-        d: '2026-08-06',
-        t: '00:17',
+        d: '2026-08-07',
+        t: '19:21',
         e: [
           [
             'Fixed',
@@ -203,6 +203,21 @@
             'Improved',
             'The website and wiki describe what the command palette actually does now, including its app-wide coverage, live setting controls and jump-to-feature navigation',
             'e6d5718fc405548447e78d10d06b6901ab256f61',
+          ],
+          [
+            'Fixed',
+            'Windows CI now preserves every dependency manifest through frozen installs, enforces the exact self-hosted release contracts, and gives rerun attempts their own monotonic package version',
+            'fef8e7e5574d88dbd2f5720a2c0d5799a44032bb',
+          ],
+          [
+            'Fixed',
+            'The AI merge editor exposes each full document through one named native text control, so assistive technology reads the content and forms submit the result exactly once',
+            'fef8e7e5574d88dbd2f5720a2c0d5799a44032bb',
+          ],
+          [
+            'Fixed',
+            'The documentation hub and generated changelog catalog now match all 279 rendered articles, restoring the Pages validation contract',
+            'fef8e7e5574d88dbd2f5720a2c0d5799a44032bb',
           ],
         ],
       },
