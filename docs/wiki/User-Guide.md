@@ -235,9 +235,12 @@ rejects elevation before Squirrel can show its unsupported-elevation error. It
 also preflights Squirrel's .NET Framework 4.5 minimum instead of opening a
 framework installer or reboot prompt during an unattended install.
 
-The current automated workflow publishes unsigned x64 installers. The script
-warns about the missing signature after verifying the GitHub digest, and it
-stops rather than selecting a different package on ARM64 or 32-bit Windows. To
+Windows release workflows permanently publish unsigned x64 installers.
+Packaging and publication require the setup executable and MSI to report
+`NotSigned`; release notes warn that Windows may show SmartScreen or an
+unknown-publisher prompt. The script reports the missing signature after
+verifying the GitHub digest, and it stops rather than selecting a different
+package on ARM64 or 32-bit Windows. To
 inspect or download the asset yourself, use the
 [latest release page](https://github.com/Ding-Ding-Projects/desktop-material/releases/latest).
 When the portable ZIP is present, download and extract it before starting the
@@ -1747,9 +1750,9 @@ The **Actions** panel brings CI into the app:
   confirmation. It is never inferred from a deployment decision.
 - Trigger manual workflows with the **`workflow_dispatch` dialog** — pick the workflow, ref, and
   inputs, and dispatch.
-- **CI Windows** always uses GitHub-hosted runners for manual dispatches, pushes, pull requests,
-  and reusable calls. It exposes no local-runner selector; the self-hosted pool is reserved for
-  Super Express.
+- **CI Windows** uses GitHub-hosted runners for pushes, pull requests, and reusable calls. A
+  protected-main manual dispatch can explicitly select `cloud` or the exact
+  `[self-hosted, Windows, X64, desktop-material-windows-local]` pool.
 - The repository's **Super Express Release** emergency lane runs no unit,
   script, TUI, lint, type, parity, smoke, or E2E tests. It goes directly to the
   Windows x64 production build/package, asset verification, and release. A
@@ -1759,18 +1762,21 @@ The **Actions** panel brings CI into the app:
   publishes one complete cross-platform Release. The combined dispatcher is
   self-hosted-only: preparation and publication use the registered Linux x64
   WSL runner, the Windows lane uses `[self-hosted, Windows, X64]`, and the TUI
-  lane uses `[self-hosted, Linux, X64]`. A direct Windows dispatch keeps its
-  package build on `[self-hosted, Windows, X64]` and publishes the verified
-  artifact from `[self-hosted, Linux, X64]`. Missing or busy packaging or
+  lane uses `[self-hosted, Linux, X64]`. A direct Windows dispatch keeps both
+  package build and publication on
+  `[self-hosted, Windows, X64, desktop-material-windows-local]`. Missing or busy packaging or
   publication runners queue or fail their release rather than falling back to
-  a hosted runner. Ordinary CI and tested Express remain the
-  default gates, run on clean GitHub-hosted machines, and keep unique
-  non-cancelling run/attempt groups. Only Super Express retains local packaging
+  a hosted runner. Ordinary CI and tested Express remain the default gates.
+  Automatic CI stays on clean GitHub-hosted machines; the tested Express
+  Windows jobs use the project-labelled self-hosted pool. Their release work
+  keeps unique non-cancelling run/attempt groups. Only Super Express retains local packaging
   placement and same-ref cancellation. A release pull request targets the
   Windows product's `main` default branch. Windows self-hosted dependency setup
   restores an exact verified cache without a post-job archive hook, explicitly
   saves a verified miss, and can use an older cache only as a warm start while
-  the current lockfiles still drive installation. The TUI's isolated profile-history repository
+  the current lockfiles still drive installation. A cold publisher installs
+  pinned checksum-verified PortableGit, GitHub CLI, and `jq` below
+  `RUNNER_TOOL_CACHE`, then reuses them on later runs. The TUI's isolated profile-history repository
   also enables Git `core.longpaths` locally, so Windows history writes do not
   depend on the checkout's separate Git configuration.
 - Ordinary Windows unit tests leave `NODE_OPTIONS` to `script/test.mjs`, which

@@ -88,9 +88,11 @@ Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.co
 The [tracked script](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/script/install-windows.ps1)
 resolves the latest stable installer release from this exact repository,
 requires the matching GitHub SHA-256 asset digest, checks any Authenticode signature, installs
-silently for the current user, and cleans up its temporary download. Current
-builds are unsigned; the script reports that fact and refuses an unsupported
-architecture or an unverified download. See the [User Guide](User-Guide#install-on-windows)
+silently for the current user, and cleans up its temporary download. Windows
+releases are permanently unsigned; packaging and publication require
+`NotSigned`, and release notes warn about possible SmartScreen or
+unknown-publisher prompts. The script reports that fact and refuses an
+unsupported architecture or unverified download. See the [User Guide](User-Guide#install-on-windows)
 for explicit silent install, update, and uninstall examples, the current-user
 scope and no-force-close contract, the portable-ZIP extraction note, and the
 manual-download path.
@@ -268,10 +270,11 @@ the tonal workspace preview hides when a compact window needs the space.
   approve or reject eligible deployments; approve an eligible fork run; dispatch a workflow; and
   load later artifact pages before a native download with local digest comparison and explicit
   attestation-presence context.
-- **Runner boundary** — ordinary Linux/Windows CI and tested Express run on clean GitHub-hosted
-  runners and keep unique non-cancelling run/attempt groups. Manual dispatches use those same
-  hosted runners and expose no local-runner selector. Super Express alone uses the registered
-  local Windows/WSL pool and ref-scoped cancellation. Its self-hosted setup restores exact dependencies without an
+- **Runner boundary** — automatic Windows CI uses clean GitHub-hosted runners. A protected-main
+  manual dispatch can select `cloud` or
+  `[self-hosted, Windows, X64, desktop-material-windows-local]`; untrusted events cannot select
+  the local pool. Windows release jobs use the approved self-hosted inventory and keep
+  non-cancelling publication groups. Super Express retains ref-scoped cancellation. Its self-hosted setup restores exact dependencies without an
   unbounded post-job cache hook, verifies the cache, and explicitly saves a verified miss.
 - **Windows test memory and installation** — `script/test.mjs` owns both the per-worker heap and
   memory-aware concurrency; workflows do not impose a 4 GiB value inherited by every worker. The
@@ -289,13 +292,15 @@ the tonal workspace preview hides when a compact window needs the space.
    release. The combined dispatcher keeps preparation and publication on the
    registered Linux x64 WSL runner, the Windows lane on `[self-hosted, Windows,
    X64]`, and the TUI lane on `[self-hosted, Linux, X64]`. A direct Windows lane
-   dispatch keeps packaging on `[self-hosted, Windows, X64]` and publishes its
-   verified artifact from `[self-hosted, Linux, X64]`; direct Linux TUI and
+   dispatch keeps both packaging and publication on
+   `[self-hosted, Windows, X64, desktop-material-windows-local]`; direct Linux TUI and
    reusable packaging calls remain artifact-only so the combined dispatcher can publish
    one complete cross-platform Release. If a required packaging runner is
    unavailable, the affected release queues or fails; the direct Windows
-   publisher queues when the local WSL runner is unavailable. Ordinary CI and tested
-   Express remain the default gates and run on GitHub-hosted machines; release
+   publisher queues when the labelled Windows runner is unavailable. A cold
+   Windows publisher installs pinned checksum-verified PortableGit, GitHub CLI,
+   and `jq` below `RUNNER_TOOL_CACHE`. Ordinary CI and tested Express remain the
+   default gates; release
    pull requests target the Windows product's `main` default branch.
 - **Compact Repository Releases** — the corrected 800×560 combined gate keeps the list ahead of
   overview/detail content and retains one complete row. One physical 960×660 gate passed at 100%,

@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
 import { parse } from 'yaml'
@@ -12,8 +12,28 @@ const yarnBootstrap = readFileSync(
   join(process.cwd(), '.github/scripts/bootstrap-pinned-yarn.ps1'),
   'utf8'
 )
-const windowsSigningAction = readFileSync(
-  join(process.cwd(), '.github/actions/setup-windows-signing/action.yml'),
+const windowsGitBashBootstrap = readFileSync(
+  join(process.cwd(), '.github/scripts/ensure-windows-git-bash.ps1'),
+  'utf8'
+)
+const windowsReleaseBootstrapTest = readFileSync(
+  join(process.cwd(), '.github/scripts/test-windows-release-bootstrap.ps1'),
+  'utf8'
+)
+const githubCliAction = readFileSync(
+  join(process.cwd(), '.github/actions/setup-github-cli/action.yml'),
+  'utf8'
+)
+const githubCliBootstrap = readFileSync(
+  join(process.cwd(), '.github/scripts/ensure-github-cli.sh'),
+  'utf8'
+)
+const jqAction = readFileSync(
+  join(process.cwd(), '.github/actions/setup-jq/action.yml'),
+  'utf8'
+)
+const jqBootstrap = readFileSync(
+  join(process.cwd(), '.github/scripts/ensure-jq.sh'),
   'utf8'
 )
 const arm64ToolsetScript = readFileSync(
@@ -60,7 +80,8 @@ function getNamedStepIndex(name: string): number {
 describe('CI environment setup', () => {
   it('uses exact dependency caches and keeps self-hosted cache writes explicit', () => {
     const preferGitBashStep = setupActionDocument.runs?.steps?.find(
-      step => step.name === 'Prefer Git Bash on Windows self-hosted runners'
+      step =>
+        step.name === 'Reuse or install Git Bash on Windows self-hosted runners'
     )
     assert.notEqual(preferGitBashStep, undefined)
     assert.equal(
@@ -72,8 +93,7 @@ describe('CI environment setup', () => {
       /shell: powershell -NoProfile -ExecutionPolicy Bypass/
     )
     assert.doesNotMatch(setupAction, /shell: pwsh/)
-    assert.match(setupAction, /GITHUB_PATH/)
-    assert.match(setupAction, /bin\\bash\.exe/)
+    assert.match(setupAction, /ensure-windows-git-bash\.ps1/)
     assert.match(setupAction, /Install uv for self-hosted Windows Python/)
     assert.match(setupAction, /Install uv for self-hosted Linux Python/)
     assert.match(
@@ -372,19 +392,145 @@ describe('CI environment setup', () => {
     assert.doesNotMatch(setupAction, /-name ['"]?ffmpeg\*['"]?/)
     assert.doesNotMatch(setupAction, /install-ffmpeg|choco install ffmpeg/)
     assert.match(setupAction, /copilot-win32-\$\{\{ inputs\.arch \}\}/)
-    assert.match(
-      windowsSigningAction,
-      /shell: powershell -NoProfile -ExecutionPolicy Bypass/
+    assert.equal(
+      existsSync(
+        join(process.cwd(), '.github/actions/setup-windows-signing/action.yml')
+      ),
+      false
     )
-    assert.doesNotMatch(windowsSigningAction, /shell: pwsh/)
+  })
+
+  it('bootstraps every Windows release command from pinned canonical tools', () => {
     assert.match(
-      windowsSigningAction,
-      /Require Azure OIDC signing identity[\s\S]*?AZURE_CODE_SIGNING_CLIENT_ID[\s\S]*?AZURE_CODE_SIGNING_TENANT_ID[\s\S]*?Configure repository or organization access/
+      windowsGitBashBootstrap,
+      /git-for-windows\/git\/releases\/download\/\$ReleaseTag\/\$asset/
     )
-    assert.ok(
-      windowsSigningAction.indexOf('Require Azure OIDC signing identity') <
-        windowsSigningAction.indexOf('Install Azure Code Signing Client'),
-      'signing identity validation must run before dependency download'
+    assert.match(windowsGitBashBootstrap, /RUNNER_TOOL_CACHE/)
+    assert.match(windowsGitBashBootstrap, /Get-FileHash[\s\S]*?SHA256/)
+    assert.match(
+      windowsGitBashBootstrap,
+      /ExpectedSha256 = 'b365da794b1d2225eb24d5f5e09ef7792cfd5fa26c3a3586210280c80dff3a2a'/
+    )
+    assert.match(windowsGitBashBootstrap, /ForceBootstrap/)
+    assert.match(windowsGitBashBootstrap, /GITHUB_PATH/)
+    assert.match(windowsGitBashBootstrap, /bin\\bash\.exe/)
+    assert.match(
+      windowsGitBashBootstrap,
+      /Get-FileHash -LiteralPath \$archivePath -Algorithm SHA256/
+    )
+    assert.match(
+      windowsGitBashBootstrap,
+      /desktop-material-portable-git\\\$Version\\x64/
+    )
+
+    assert.match(
+      githubCliAction,
+      /run: bash \.github\/scripts\/ensure-github-cli\.sh/
+    )
+    assert.match(jqAction, /run: bash \.github\/scripts\/ensure-jq\.sh/)
+    for (const bootstrap of [githubCliBootstrap, jqBootstrap]) {
+      assert.match(bootstrap, /RUNNER_TOOL_CACHE/)
+      assert.match(bootstrap, /sha256sum -c -/)
+      assert.match(bootstrap, /--proto '=https'/)
+      assert.match(bootstrap, /GITHUB_PATH/)
+      assert.match(bootstrap, /DESKTOP_MATERIAL_BOOTSTRAP_OFFLINE/)
+      assert.match(bootstrap, /rm -rf "\$install_root"/)
+      assert.doesNotMatch(bootstrap, /command -v (?:gh|jq)/)
+    }
+    assert.match(
+      githubCliBootstrap,
+      /cli\/cli\/releases\/download\/v\$\{version\}/
+    )
+    assert.match(githubCliBootstrap, /windows_\$\{archive_arch\}\.zip/)
+    assert.match(
+      githubCliBootstrap,
+      /35d7fe05c4dd1411ffda1e73dfc7c6f44b75c936ca51fa6595c657fdc0350cec/
+    )
+    assert.match(jqBootstrap, /jqlang\/jq\/releases\/download\/jq-\$version/)
+    assert.match(jqBootstrap, /jq-windows-amd64\.exe/)
+    assert.match(
+      jqBootstrap,
+      /7451fbbf37feffb9bf262bd97c54f0da558c63f0748e64152dd87b0a07b6d6ab/
+    )
+
+    assert.match(
+      windowsReleaseBootstrapTest,
+      /-ForceBootstrap -InstallRoot \$installRoot/
+    )
+    assert.equal(
+      (
+        windowsReleaseBootstrapTest.match(
+          /-ForceBootstrap -InstallRoot \$installRoot/g
+        ) ?? []
+      ).length,
+      2,
+      'the fixture must invoke PortableGit once cold and once warm'
+    )
+    assert.match(
+      windowsReleaseBootstrapTest,
+      /command -v curl && command -v sha256sum && command -v unzip/
+    )
+    assert.match(windowsReleaseBootstrapTest, /ensure-github-cli\.sh/)
+    assert.match(windowsReleaseBootstrapTest, /ensure-jq\.sh/)
+    assert.match(
+      windowsReleaseBootstrapTest,
+      /Get-FileHash -LiteralPath \$Path -Algorithm SHA256/
+    )
+    assert.match(
+      windowsReleaseBootstrapTest,
+      /cache must retain only the three checksum-verified archives/
+    )
+    assert.match(
+      windowsReleaseBootstrapTest,
+      /Remove-Item -LiteralPath \$runnerTemp -Recurse -Force/
+    )
+    assert.match(
+      windowsReleaseBootstrapTest,
+      /Job-local bootstrap output survived the cold-pass cleanup/
+    )
+    assert.match(
+      windowsReleaseBootstrapTest,
+      /Set-Item -Path Function:Invoke-WebRequest/
+    )
+    assert.match(
+      windowsReleaseBootstrapTest,
+      /Bootstrap fixture blocked Invoke-WebRequest network access\./
+    )
+    assert.match(windowsReleaseBootstrapTest, /\$env:BASH_ENV =/)
+    assert.match(windowsReleaseBootstrapTest, /type -t curl\)" == "function"/)
+    assert.match(
+      windowsReleaseBootstrapTest,
+      /curl --version >\/dev\/null 2>&1/
+    )
+    assert.match(
+      windowsReleaseBootstrapTest,
+      /curl network-denial probe returned \$LASTEXITCODE instead of 97/
+    )
+    assert.doesNotMatch(
+      windowsReleaseBootstrapTest,
+      /\$env:DESKTOP_MATERIAL_BOOTSTRAP_OFFLINE\s*=\s*'1'/
+    )
+    assert.match(
+      windowsReleaseBootstrapTest,
+      /PortableGit warm-cache bootstrap/
+    )
+    assert.match(windowsReleaseBootstrapTest, /GitHub CLI warm-cache/)
+    assert.match(windowsReleaseBootstrapTest, /jq warm-cache/)
+    assert.match(
+      windowsReleaseBootstrapTest,
+      /Warm-cache PortableGit failed its Git version probe/
+    )
+    assert.match(
+      windowsReleaseBootstrapTest,
+      /Warm-cache PortableGit failed its Bash version probe/
+    )
+    assert.match(
+      windowsReleaseBootstrapTest,
+      /Warm-cache GitHub CLI failed its version probe/
+    )
+    assert.match(
+      windowsReleaseBootstrapTest,
+      /Warm-cache jq failed its version probe/
     )
   })
 

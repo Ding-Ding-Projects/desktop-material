@@ -1,5 +1,52 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-07 — Permanent unsigned Windows publication and cold runner bootstrap
+
+The current Windows release repair makes unsigned packaging a permanent policy,
+not a selectable emergency mode. Every Windows package lane disables
+certificate auto-discovery, clears Windows signing and Azure identity inputs,
+and never invokes a signer. Both the setup executable and MSI must report
+`NotSigned` after packaging; the direct publisher repeats that check after
+artifact download. Release notes warn that Windows may show SmartScreen or an
+unknown-publisher prompt.
+
+Both jobs in `.github/workflows/super-express-release-windows.yml` now use the
+exact `[self-hosted, Windows, X64, desktop-material-windows-local]` runner. The
+publisher no longer depends on the Linux runner: it downloads and validates the
+six Windows/Squirrel assets on Windows, stages a unique draft, publishes it as
+non-Latest, records and verifies exact timing, and only then reconciles Latest.
+Any same-job failure removes the captured release ID and exact new tag before
+restoring the previous Latest selection. Every successful dispatch creates a
+uniquely tagged, non-draft Latest Release; it never reuses or overwrites an
+earlier release. The write-capable token exists only on authenticated API steps.
+
+The self-hosted Windows cold path now installs its own release prerequisites.
+An initial checkout obtains the bootstrap, the repository-pinned PortableGit
+`2.53.0.3` archive is verified, and a repeated checkout creates a real Git
+repository before any Git or Bash command. PortableGit, GitHub CLI `2.97.0`,
+and `jq` `1.7.1` retain only canonical download bytes under versioned
+`RUNNER_TOOL_CACHE` paths; those bytes are rehashed on every run and produce
+fresh job-local executables. PortableGit supplies Git Bash, `curl`,
+`sha256sum`, and `unzip`; repeat runs avoid downloads without trusting old
+extractions. The hand-written
+`script/self-hosted-windows-job-inventory.json` lists every Windows job, its
+bootstrap path, and its cold-bootstrap test. That fixture passed both an empty
+cache and a second download-forbidden cache pass locally.
+
+Ordinary `CI Windows` keeps its protected-main `workflow_dispatch` choice
+between `cloud` and the same exact self-hosted Windows pool. Pushes, pull
+requests, and reusable calls cannot select the local runner.
+
+Direct run
+[`31145566128`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31145566128)
+does not verify this repair: the Windows host began restarting while the build
+job was active, the runner recorded cancellation before a final job log was
+uploaded, and the publisher correctly created no Release. A fresh successful
+dispatch is still required for remote build, unsigned-artifact, publication,
+and Latest evidence. This section supersedes the signing and direct-publisher
+placement statements in the August 6 entry below; its historical run record is
+retained as chronology, not current configuration.
+
 ## 2026-08-06 — Restore safe selectable Windows CI and direct releases
 
 The current repair includes upstream `main` through

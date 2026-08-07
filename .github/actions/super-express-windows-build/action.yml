@@ -1,5 +1,5 @@
-name: Build Super Express Windows package
-description: Build and preserve the Windows Super Express release payload
+name: Build unsigned Super Express Windows package
+description: Build, verify, and preserve the unsigned Windows release payload
 inputs:
   release_target_sha:
     description: Exact commit SHA being packaged
@@ -11,16 +11,6 @@ inputs:
   node_version:
     description: Node.js version used by the package
     required: true
-  sign:
-    description: Enable Azure Trusted Signing for publishable installers
-    required: false
-    default: 'true'
-  azure-client-id:
-    description: Azure Trusted Signing OIDC client ID
-    required: false
-  azure-tenant-id:
-    description: Azure Trusted Signing tenant ID
-    required: false
 outputs:
   release_version:
     description: Squirrel-compatible version produced for this workflow attempt
@@ -34,22 +24,10 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Prefer Git Bash on Windows self-hosted runners
-      # This runner has Windows PowerShell, while PowerShell Core is not part
-      # of the runner contract. Use the built-in Windows shell for the small
-      # PATH repair, then let subsequent bash steps resolve Git Bash.
+    - name: Reuse or install Git Bash on Windows self-hosted runners
       shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
-      run: |
-        $git = Get-Command git.exe -ErrorAction SilentlyContinue
-        if ($null -eq $git) {
-          throw 'Git is required on a Windows self-hosted runner.'
-        }
-        $gitRoot = Split-Path (Split-Path $git.Source -Parent) -Parent
-        $gitBash = Join-Path $gitRoot 'bin\bash.exe'
-        if (-not (Test-Path -LiteralPath $gitBash)) {
-          throw "Git Bash is required on a Windows self-hosted runner: $gitBash"
-        }
-        Split-Path $gitBash -Parent | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      run:
+        '& "$env:GITHUB_WORKSPACE\.github\scripts\ensure-windows-git-bash.ps1"'
 
     - name: Require a main-branch manual dispatch
       if: ${{ github.event_name == 'workflow_dispatch' }}
@@ -109,21 +87,20 @@ runs:
         npm_config_arch: x64
         TARGET_ARCH: x64
 
-    - uses: ./.github/actions/setup-windows-signing
-      with:
-        enabled: ${{ inputs.sign }}
-        azure-client-id: ${{ inputs.azure-client-id }}
-        azure-tenant-id: ${{ inputs.azure-tenant-id }}
-
     - name: Package Windows x64
       shell: bash
       run: yarn package
       env:
         NODE_ENV: production
         RELEASE_CHANNEL: beta
-        WINDOWS_SIGNING_ENABLED: ${{ inputs.sign }}
-        AZURE_CLIENT_ID: ${{ inputs.azure-client-id }}
-        AZURE_TENANT_ID: ${{ inputs.azure-tenant-id }}
+        WINDOWS_SIGNING_ENABLED: 'false'
+        CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        CSC_LINK: ''
+        CSC_KEY_PASSWORD: ''
+        WIN_CSC_LINK: ''
+        WIN_CSC_KEY_PASSWORD: ''
+        AZURE_CLIENT_ID: ''
+        AZURE_TENANT_ID: ''
         npm_config_arch: x64
         TARGET_ARCH: x64
 
@@ -186,8 +163,7 @@ runs:
           release-payload/installers/RELEASES \
           release-payload/installers
 
-    - name: Require valid Authenticode on published installers
-      if: ${{ inputs.sign == 'true' }}
+    - name: Require unsigned Windows release installers
       shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
       run: |
         $installers = @(
@@ -196,13 +172,13 @@ runs:
         )
         foreach ($installer in $installers) {
           if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
-            throw "Signed installer is missing: $installer"
+            throw "Unsigned installer is missing: $installer"
           }
           $signature = Get-AuthenticodeSignature -LiteralPath $installer
-          if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
-            throw "Authenticode verification failed for ${installer}: $($signature.Status)"
+          if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
+            throw "Installer must remain unsigned: ${installer} reported $($signature.Status)"
           }
-          Write-Host "Authenticode is valid: $installer"
+          Write-Host "Unsigned installer verified: $installer"
         }
 
     - name: Preserve Windows payload artifact

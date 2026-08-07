@@ -105,10 +105,12 @@ exact repository's latest stable installer release, accepts only the installer
 for the native architecture, verifies its release-asset size and GitHub SHA-256 digest,
 checks any Authenticode signature, runs the Squirrel installer silently with
 `--silent`, verifies the installed postcondition, and removes its controlled
-temporary directory. The current release
-workflow publishes unsigned x64 builds, so the script reports that status and
-stops on ARM64 until an ARM64 asset is available. Review the script before
-running any remote command, or use the
+temporary directory. Windows releases are permanently unsigned: packaging and
+publication require the setup executable and MSI to report `NotSigned`, and the
+release notes disclose that Windows may show SmartScreen or an unknown-publisher
+warning. The script reports the unsigned status and stops on ARM64 until an
+ARM64 asset is available. Review the script before running any remote command,
+or use the
 [latest release page](https://github.com/Ding-Ding-Projects/desktop-material/releases/latest)
 for a manual installer or portable-ZIP download. Extract the ZIP before running
 the packaged executable. The focused archive/workflow contract is green; a

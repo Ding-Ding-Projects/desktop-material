@@ -28,19 +28,12 @@ on:
         type: string
         default: ''
         required: false
-      sign:
-        type: boolean
-        default: true
-        required: false
       error-reporting-endpoint:
         type: string
         required: false
       non-fatal-error-reporting-endpoint:
         type: string
         required: false
-    secrets:
-      AZURE_CODE_SIGNING_TENANT_ID:
-      AZURE_CODE_SIGNING_CLIENT_ID:
 
 # Every run gets its own group. CI is a release gate, so a newer commit must not
 # silently cancel an older commit's chance to finish and publish its result.

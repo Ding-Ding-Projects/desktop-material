@@ -1,46 +1,57 @@
 # Supply-chain and CI hardening
 
-Desktop Material's continuous-integration workflow builds and signs the Windows
-installers that users actually run, so what its jobs install and how its runs
-are scheduled are security properties, not conveniences. Three things enforce
-that: Dependabot proposes dependency updates instead of letting pins rot, every
-install in CI is pinned to the committed lock file, and a dedicated **Supply
-chain** job checks lock-file provenance and reports npm advisories.
+Desktop Material's continuous-integration workflow builds the Windows
+installers that users actually run, so what its jobs install, how its runs are
+scheduled, and how it proves those installers remain unsigned are security
+properties, not conveniences. Dependabot proposes dependency updates instead
+of letting pins rot, every install in CI is pinned to the committed lock file,
+and a dedicated **Supply chain** job checks lock-file provenance and reports npm
+advisories.
 
-Ordinary CI and all seven jobs in `Build Installers / Express Release` use
-GitHub-hosted `ubuntu-latest` or `windows-2022` machines by default. Pull
-requests, pushes, reusable calls, and the Windows TUI core job stay disposable.
-A protected-main `CI Windows` manual dispatch alone may select the exact
-`[self-hosted, Windows, X64, desktop-material-windows-local]` pool for the
-desktop build and packaged E2E jobs, allowing its verified dependency and
-toolchain caches to shorten a deliberate local run.
+Automatic `CI Windows` validation uses GitHub-hosted `windows-2022` machines. A
+protected-main manual dispatch keeps the explicit `cloud` or `self-hosted`
+choice for the desktop build and packaged E2E jobs; the self-hosted choice maps
+only to `[self-hosted, Windows, X64, desktop-material-windows-local]`. Pull
+requests, pushes, and reusable calls cannot select that local pool. The Windows
+test/package jobs in `Build Installers / Express Release`, plus both jobs in the
+direct Windows Super Express workflow, use the same project-labelled
+self-hosted pool and its verified dependency and tool caches.
 
 Replaceable Windows validation uses a workflow/event/ref concurrency group with
 `cancel-in-progress: true`; a newer same-event, same-ref validation may
 supersede an older one without letting a manual run cancel the push event that
 gates publication. Release workflows use stable non-cancelling groups, so a
-later dispatch cannot strand an in-flight tag or upload. Super Express Windows packaging
-requires `desktop-material-windows-local`, while the direct publisher uses
-`ubuntu-latest` and therefore does not wait for the unrelated Linux TUI runner.
-That publisher requires the current `main` tip, stages a draft, verifies the
-exact target and all six non-empty Squirrel assets, publishes only after those
-checks, and removes an unpublished failed draft. Its timing comes from the
-first Actions job's `started_at` through the completed Latest-reconciliation
-step, and its optional unique code name searches every published `catalog-v1*`
-photo volume without reusing a name when release history is unavailable.
+later dispatch cannot strand an in-flight tag or upload. Direct Super Express
+Windows packaging and publication both require
+`[self-hosted, Windows, X64, desktop-material-windows-local]`; publication does
+not depend on a second operating system or runner pool. The publisher requires
+the current `main` tip, stages a draft, verifies the exact target and all six
+non-empty Squirrel assets, then publishes a unique non-draft Release with
+`make_latest=false`. It records timing from the first Actions job's `started_at`
+through the completed publication step, writes and verifies those notes, and
+only then reconciles Latest. A same-job failure deletes the captured release ID
+and only the exact newly created tag before restoring the prior Latest. The
+write-capable release token is scoped to authenticated API steps rather than
+the publisher job. Its optional unique code name searches every published
+`catalog-v1*` photo volume without reusing a name when release history is
+unavailable.
 Reusable Super Express calls are accepted only from
 `Ding-Ding-Projects/desktop-material` on protected `main`.
 
-Super Express is an explicitly unsigned emergency channel. Both its combined
-and Windows-only workflows pass `sign: 'false'`, and the package action carries
-that choice into `script/package.ts` through `WINDOWS_SIGNING_ENABLED`. The
-ordinary tested installer workflow retains Azure Trusted Signing and its
-Authenticode gate. Super Express instead fails closed on the exact commit,
-unique version and tag, filtered Squirrel `RELEASES` manifest, and all six
-required non-empty assets. A streaming verifier recomputes every package SHA-1
-and byte size named by `RELEASES` both before artifact upload and after artifact
-download; the release notes identify the installers as unsigned so the
-recovery path never implies a signature it does not have.
+Windows packaging is permanently unsigned in every release lane. The package
+steps explicitly disable certificate auto-discovery, clear Windows signing and
+Azure identity inputs, and never call a signer. After packaging, both the setup
+executable and MSI must report `NotSigned`; a present or attempted signature is
+a failed build, not a reason to discover or request a credential. The release
+notes state that the artifacts are unsigned and may trigger Windows SmartScreen
+or an unknown-publisher warning.
+
+The release gates still fail closed on the exact commit, unique version and
+tag, filtered Squirrel `RELEASES` manifest, and all six required non-empty
+assets. A streaming verifier recomputes every package SHA-1 and byte size named
+by `RELEASES` both before artifact upload and after artifact download. The
+unsigned policy changes no integrity, source-target, or immutable-release
+check.
 
 The Express release gate also distinguishes an ineligible completion from a
 failed eligible build. A `workflow_run` for a cancelled manual dispatch, a
@@ -74,7 +85,8 @@ package work starts.
 Windows self-hosted setup restores the exact installed-dependency cache with an
 explicit `actions/cache/restore` step and saves a verified miss with an explicit
 `actions/cache/save` step before the build starts. The key includes both lock
-files and manifests, the post-install/setup/signing actions, pinned Yarn, local
+files and manifests, the post-install/setup/tool-bootstrap actions, pinned
+Yarn, local
 native-vendor sources, the target architecture, and the Node/Python versions.
 Older `installed-deps-v5` and `installed-deps-v4` caches may be restored only as
 a warm start; their non-hit status still forces the current lock files through
@@ -87,6 +99,18 @@ cache post step, while self-hosted jobs avoid an unbounded post-job archive
 hook. Build output, installers, Release assets, credentials, and runtime
 configuration remain uncached. The focused contract test checks both the runner
 selection and this restore/verify/save split.
+
+The self-hosted Windows cold path also bootstraps release tools instead of
+assuming a prepared image. An initial archive-capable checkout obtains the
+bootstrap, the pinned PortableGit `2.53.0.3` archive is hash-verified, and a
+second checkout creates the real Git repository before any Git or Bash work.
+PortableGit, GitHub CLI `2.97.0`, and `jq` `1.7.1` keep only canonical download
+bytes in versioned `RUNNER_TOOL_CACHE` paths. Those bytes are checked against
+repository-pinned platform hashes on every run, then copied or extracted to
+fresh job-local paths before execution. PortableGit supplies the `curl`,
+`sha256sum`, and `unzip` prerequisites needed by the remaining installers. A
+repeat run avoids network downloads without trusting a persistent executable;
+no step mutates an unrelated system-wide installation.
 
 The hosted Windows E2E lane does not install a second system-wide FFmpeg package.
 The repository post-install step provisions Playwright's pinned FFmpeg payload,
@@ -326,9 +350,10 @@ validation is deliberately replaceable:
 
 A newer Windows commit cancels stale validation on the same ref but cannot
 cancel a release. The registered Windows pool is available only to an explicit
-protected-main manual choice or the fixed Super Express packaging job. The
-workflow safety test checks the exact labels, cloud fallback, protected-ref
-gate, and the non-cancelling release contracts.
+protected-main manual choice or to the Windows release jobs enumerated in the
+hand-written self-hosted inventory. The workflow safety test checks the exact
+labels, cloud fallback, protected-ref gate, direct build/publisher placement,
+and the non-cancelling release contracts.
 
 ## Security considerations
 
@@ -341,7 +366,8 @@ gate, and the non-cancelling release contracts.
 - CI jobs run on hosted Linux or Windows runners for pushes, pull requests, and
   workflow calls. A protected-main manual Windows dispatch may explicitly use
   only the registered project-labelled pool for desktop build and packaged
-  E2E; untrusted events cannot select it.
+  E2E; untrusted events cannot select it. Direct Windows release jobs use that
+  same fixed pool and have no hosted fallback.
 - The Linux TUI job installs the repository's pinned Node.js version before
   parity generation. The Windows TUI job enables repository-local Git long
   paths before Git-backed history tests, because the profile fixture can exceed
@@ -355,7 +381,8 @@ gate, and the non-cancelling release contracts.
   repository publishes a Release from a pull request. `build-installers.yml`
   requires a `push` event on `main` from this repository.
 - Advisory text and lock-file paths are the only data written to the job
-  summary. No token, signing credential, or secret is echoed.
+  summary. No token or secret is echoed, and the permanent unsigned policy
+  supplies no signing credential to print.
 
 ## Failure modes
 
@@ -403,6 +430,19 @@ self-hosted setup now
 selects and exports a complete architecture-specific ClangCL instance before
 the test; a failure to install it is a setup failure, not a test timeout to
 ignore.
+
+**A self-hosted Windows release job cannot find Git Bash, GitHub CLI, or
+`jq`.** The job should enter the cold-bootstrap path. PortableGit, GitHub CLI,
+and `jq` are downloaded only from their canonical release locations, verified
+against pinned or published SHA-256 values, and stored below
+`RUNNER_TOOL_CACHE`. A missing checksum, mismatch, extraction failure, or absent
+executable stops the job at setup instead of allowing a later release command
+to fail opaquely.
+
+**A packaged setup executable or MSI reports a signature.** Windows release
+jobs require `Get-AuthenticodeSignature` to return `NotSigned` for both files.
+Any other status fails the lane. Do not add credentials or restore signing;
+inspect which packaging input or tool attempted to sign the artifact.
 
 **A cancelled Windows or release run keeps working.** Recovery steps
 intentionally use `always()` so a genuine test failure can still leave a
@@ -462,13 +502,15 @@ ClangCL bootstrap verification performed on 2026-08-06:
   setup contract passes **32/32** across its four suites, and direct local
   probes pass for both x64 ClangCL and arm64 MSVC discovery.
 - A new Super Express run is still required to verify the registered
-  self-hosted runner's own Visual Studio instance, explicit unsigned-package
-  path, and draft-first direct Windows release lane.
+  self-hosted runner's own Visual Studio instance, permanent unsigned-package
+  path, Windows-hosted publisher, and draft-first direct Windows release lane.
 
 Current runner-selection and direct-release verification is also pending. The
 local contract proves that untrusted and automatic CI stays hosted, only a
-protected-main manual dispatch can select the exact Windows labels, replaceable
-validation cancels by workflow/event/ref, and release publication never cancels. Run
+protected-main manual dispatch can select the exact Windows labels for ordinary
+CI, direct Windows build and publication use the fixed project-labelled pool,
+replaceable validation cancels by workflow/event/ref, and release publication
+never cancels. Run
 `31141543370` reached the old non-fatal submodule step but failed because Windows
 PowerShell 5.1 cannot parse Bash `|| true`; the current step-level
 `continue-on-error` contract removes that wrong-shell fallback and contains a

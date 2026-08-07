@@ -118,7 +118,7 @@ Windows jobs restore an exact-content cache of the installed root and app
 `node_modules` trees plus Playwright's external FFmpeg payload. Its key includes
 operating system, runner and target architecture, Node/Python versions, both
 lockfiles and package manifests, install configuration, the post-install,
-environment-setup, and signing actions, pinned Yarn, and local native-vendor
+environment-setup, and tool-bootstrap actions, pinned Yarn, and local native-vendor
 sources. A hit must contain reviewed generic, target-specific Copilot,
 Electron-runtime, React JSX-runtime, `react-confetti`, and Playwright
 sentinels. If a hit is incomplete, the setup action records the missing paths
@@ -145,18 +145,20 @@ without terminating an unrelated process that was already running.
 
 ## Workflow concurrency
 
-Ordinary Linux/Windows CI and `Build Installers / Express Release` use
-GitHub-hosted runners and unique run-ID/run-attempt concurrency groups with
-`cancel-in-progress: false`; every commit keeps its independent validation and
-publication opportunity. CI handles pushes, pull requests, manual dispatches,
-and reusable calls on clean hosted machines. Ordinary Windows CI exposes no
-runner selector, including on manual dispatches. Pages publication retains the
-same non-cancelling run-and-attempt contract.
+Automatic Linux/Windows CI uses GitHub-hosted runners. Ordinary Windows CI
+keeps an explicit `cloud` or `self-hosted` choice for a protected-main manual
+dispatch; pushes, pull requests, and reusable calls cannot select the local
+pool. The Windows test/package jobs in `Build Installers / Express Release` use
+the fixed project-labelled self-hosted pool, while the release workflow retains
+its unique run-ID/run-attempt concurrency group with
+`cancel-in-progress: false`. Every eligible completion therefore keeps its own
+publication opportunity. Pages publication retains the same non-cancelling
+run-and-attempt contract.
 
 Only the self-hosted Super Express release family uses ref-scoped cancellation,
 so a newer emergency dispatch can release a scarce local runner from an obsolete
-release. Source-contract tests enforce both halves of this boundary and reject a
-self-hosted runner declaration in every other workflow.
+release. Source-contract tests enforce the approved self-hosted job inventory
+and reject an unapproved local-runner declaration.
 Workflows without a concurrency group, including CodeQL, remain independently
 runnable.
 
@@ -172,8 +174,8 @@ fails; it never moves to a GitHub-hosted machine.
 
 - `.github/workflows/super-express-release-windows.yml` restores the exact
   desktop dependency cache and builds the Windows x64 production package on
-  `[self-hosted, Windows, X64]`, then publishes its verified artifact from
-  `[self-hosted, Linux, X64, desktop-material-wsl-local]`;
+  `[self-hosted, Windows, X64, desktop-material-windows-local]`, then publishes
+  its verified artifact on that same exact Windows pool;
 - `.github/workflows/super-express-release-linux-tui.yml` builds the Linux TUI
   wheel, source distribution, locked runtime constraints, bootstrap, and
   installer on `[self-hosted, Linux, X64]`.
@@ -181,11 +183,13 @@ fails; it never moves to a GitHub-hosted machine.
 The combined dispatcher and both packaging lanes have no cloud fallback: static
 runner labels make their placement visible during workflow planning and ensure
 the builds do not accidentally expose source to a different machine. The
-direct Windows publisher also stays on the registered Linux x64 WSL runner for
-artifact download, line counting, and GitHub API operations. If that publisher
-is offline or busy, the release queues or fails rather than escaping to a
-hosted runner. It still uses the `RELEASE_TOKEN`, `ORG_TOKEN`, then
-`GITHUB_TOKEN` authorization chain; the token never chooses a runner.
+direct Windows publisher stays on
+`[self-hosted, Windows, X64, desktop-material-windows-local]` for artifact
+download, line counting, signature-state verification, and GitHub API
+operations. If that runner is offline or busy, the release queues or fails
+rather than escaping to a hosted runner. It still uses the `RELEASE_TOKEN`,
+`ORG_TOKEN`, then `GITHUB_TOKEN` authorization chain; the token never chooses a
+runner.
 
 The combined dispatcher keeps its packaging jobs inline because GitHub had
 previously rejected the caller before creating any job when the runner labels
@@ -201,14 +205,15 @@ registered WSL runner. Version discovery runs through
 `uv run --python 3.12`, so the wheel, source distribution, and runtime
 constraints use the same managed interpreter.
 
-The Windows self-hosted actions run a small PowerShell preflight before any
+The Windows self-hosted actions run a PowerShell bootstrap before any
 `shell: bash` step. Each PowerShell step uses an explicit, per-process
 `-NoProfile -ExecutionPolicy Bypass` invocation; the machine execution policy
-is not changed. The preflight resolves the installed `git.exe`, verifies the
-matching Git Bash executable, and prepends its `bin` directory through
-`GITHUB_PATH` so the deprecated Windows WSL launcher cannot be selected
-accidentally. A host without Git or Git Bash fails with that exact prerequisite
-instead of reaching the packaging commands in a misleading shell state.
+is not changed. The bootstrap reuses an installed `git.exe` and matching Git
+Bash when they work. On a cold host it downloads pinned PortableGit `2.53.0.3`
+from the canonical Git for Windows release, verifies the committed SHA-256
+value, and extracts it below `RUNNER_TOOL_CACHE`. It then prepends the exact Git
+and Bash directories through `GITHUB_PATH`, so the deprecated Windows WSL
+launcher cannot be selected accidentally.
 
 Self-hosted Windows setup also avoids the hosted toolcache installer for the
 native-module Python dependency: pinned `uv` installs Python 3.11 locally and
@@ -231,6 +236,13 @@ vendored runtime is missing, the preflight fails with the exact prerequisite
 instead of letting a later step emit the less useful `yarn: command not found`
 message.
 
+The direct Windows publisher also bootstraps its release clients. It reuses or
+installs checksum-verified GitHub CLI `2.97.0` and `jq` `1.7.1` beneath
+versioned `RUNNER_TOOL_CACHE` paths. PortableGit supplies `curl`, `sha256sum`,
+and `unzip` for those canonical downloads. A cache hit skips the download; a
+missing published checksum, mismatch, extraction error, or missing executable
+stops publication before a tag or Release is created.
+
 Each packaging lane also exposes its own `workflow_dispatch` action. A direct
 Windows dispatch accepts an optional exact `main` SHA and Squirrel version; a
 direct Linux TUI dispatch accepts an optional exact `main` SHA. Blank inputs
@@ -242,6 +254,13 @@ direct lane remains artifact-only. The reusable `workflow_call` entry point
 for the Windows lane is also artifact-only, so the combined dispatcher still
 has one publisher for one complete cross-platform Release.
 
+All Windows packages are permanently unsigned. Packaging disables certificate
+auto-discovery, clears Windows signing and Azure identity inputs, and verifies
+that both the setup executable and MSI report `NotSigned` before upload and
+again after the direct publisher downloads the artifact. Release notes warn
+that Windows may show SmartScreen or an unknown-publisher prompt. A signature
+or signer invocation fails the lane; there is no credential fallback.
+
 Both lanes run no unit, script, TUI, lint, type, parity, smoke, trampoline, or
 packaged E2E tests, and they omit history-generated release notes. The ordinary
 CI and tested Express Release paths remain the default release gates.
@@ -251,9 +270,13 @@ the exact dispatched commit, use the same validated run-ID package version as
 the automatic lane, reject an existing tag, and require every Windows and TUI
 asset to be non-empty. The Windows direct publisher downloads its lane
 artifact, writes a local note from the exact checked-out commit subject/body,
-and creates the Windows-only Release without promoting it to the shared
-`latest` feed. That publisher runs on the trusted self-hosted Linux x64 WSL
-runner, while the package itself remains on the trusted Windows runner. The
+creates a uniquely tagged non-Latest Windows-only Release, writes and verifies
+exact workflow timing, and only then reconciles Latest. A same-job failure
+removes the captured release ID and exact new tag before restoring the previous
+Latest selection. The write-capable token is present only on authenticated API
+steps.
+Both package and publication run on the exact
+`[self-hosted, Windows, X64, desktop-material-windows-local]` pool. The
 combined publisher downloads both lane artifacts, writes a local note from the
 exact checked-out commit subject/body, and creates one
 complete Release. Keeping the combined publisher as the only cross-platform
@@ -407,7 +430,8 @@ Focused acceptance covers safe feed parsing, bounded Actions data, exact
 CI/installer job/run/SHA binding, ahead-of comparison, manual-dispatch and
 malformed/stale fail-closed behavior, transient storage, the updater-event race,
 all three language modes, non-cancelling independent CI/installer/Pages runs,
-hosted-runner placement, pull-request CI, workflow wiring, exact Git range
+the protected Windows manual runner selector, pull-request CI, workflow wiring,
+exact Git range
 collection, subject sanitization, output limits, and first-release handling.
 The app and script TypeScript
 projects, targeted formatting/lint, workflow YAML, express-path gates,
@@ -415,12 +439,15 @@ create-only publication, retained artifacts, and exact dependency-cache keys
 are also checked locally. The Super Express source contract additionally proves
 manual-only triggering, exact-SHA packaging, unit/script-before-build ordering,
 omitted lint/E2E/history paths, ref-scoped cancellation, retained artifacts,
-self-hosted packaging and publication placement, immutable tag checks, and
-exact release targeting. The focused source contract enforces the
-self-hosted-only boundary. Remote run `31126843395` verified the package and
+self-hosted packaging and publication placement, the permanent `NotSigned`
+checks, immutable tag checks, unique non-draft Latest publication, and exact
+release targeting. The focused source contract enforces the exact Windows
+project label on both direct jobs. Remote run `31126843395` verified the package
+and
 the older fallback release `v3.6.3-beta3-zadwtuvqil` verified the six published
-Windows assets, but both predate the restored publisher placement. A future
-direct run must verify the self-hosted publisher job itself.
+Windows assets, but both predate the Windows-hosted publisher placement and
+permanent unsigned contract. A future direct run must verify the complete
+self-hosted build-and-publish path itself.
 Downgrade-guard tests use the
 real observed strings — `3.6.2`, `3.6.3-beta3-b0000040888`,
 `3.6.3-beta3-s000000000401`, `3.6.3-beta3-zadtjbevjx`, `3.6.3-beta3-zadtofsepy`,

@@ -254,14 +254,31 @@ jobs:
     name: Express tests Windows x64
     if: github.event_name == 'workflow_dispatch'
     needs: prepare
-    runs-on: windows-2022
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
+      - desktop-material-windows-local
     timeout-minutes: 45
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7.0.1
+      - name: Initial checkout for Windows bootstrap
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
+      - name: Bootstrap Git and Bash for self-hosted Windows
+        run:
+          powershell -NoProfile -ExecutionPolicy Bypass -File
+          .github/scripts/ensure-windows-git-bash.ps1
+      - name: Repeat checkout with bootstrapped Git
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+      - name: Prove cold Windows release bootstrap
+        run:
+          powershell -NoProfile -ExecutionPolicy Bypass -File
+          .github/scripts/test-windows-release-bootstrap.ps1
       - name: Attempt to update submodules (non-fatal)
         continue-on-error: true
         run: |
@@ -540,18 +557,31 @@ jobs:
       needs.prepare.outputs.proceed == 'true' &&
       needs.prepare.outputs.windows_ok == 'true'
     needs: prepare
-    runs-on: windows-2022
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
+      - desktop-material-windows-local
     timeout-minutes: 60
     permissions:
       contents: read
-      id-token: write
     env:
       RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
       NODE_ENV: production
       RELEASE_CHANNEL: beta
     steps:
-      - uses: actions/checkout@v7.0.1
+      - name: Initial checkout for Windows bootstrap
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+      - name: Bootstrap Git and Bash for self-hosted Windows
+        run:
+          powershell -NoProfile -ExecutionPolicy Bypass -File
+          .github/scripts/ensure-windows-git-bash.ps1
+      - name: Repeat checkout with bootstrapped Git
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
@@ -579,16 +609,17 @@ jobs:
         env:
           npm_config_arch: x64
           TARGET_ARCH: x64
-      - uses: ./.github/actions/setup-windows-signing
-        with:
-          enabled: 'true'
-          azure-client-id: ${{ secrets.AZURE_CODE_SIGNING_CLIENT_ID }}
-          azure-tenant-id: ${{ secrets.AZURE_CODE_SIGNING_TENANT_ID }}
       - name: Package production app
         run: yarn package
         env:
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CODE_SIGNING_CLIENT_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_CODE_SIGNING_TENANT_ID }}
+          WINDOWS_SIGNING_ENABLED: 'false'
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          CSC_LINK: ''
+          CSC_KEY_PASSWORD: ''
+          WIN_CSC_LINK: ''
+          WIN_CSC_KEY_PASSWORD: ''
+          AZURE_CLIENT_ID: ''
+          AZURE_TENANT_ID: ''
           npm_config_arch: x64
           TARGET_ARCH: x64
       - name: Collect installers
@@ -646,7 +677,7 @@ jobs:
               exit 1
             fi
           done
-      - name: Require valid Authenticode on release installers
+      - name: Require unsigned release installers
         shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
         run: |
           $installers = @(
@@ -655,10 +686,10 @@ jobs:
           )
           foreach ($installer in $installers) {
             $signature = Get-AuthenticodeSignature -LiteralPath $installer
-            if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
-              throw "Authenticode verification failed for ${installer}: $($signature.Status)"
+            if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
+              throw "Installer must remain unsigned: ${installer} reported $($signature.Status)"
             }
-            Write-Host "Authenticode is valid: $installer"
+            Write-Host "Unsigned installer verified: $installer"
           }
       - name: Preserve express installer payload
         uses: actions/upload-artifact@v7
@@ -675,8 +706,8 @@ jobs:
           echo "Installer recovery artifacts were preserved, but this run cannot publish because its upstream CI failed." >&2
           exit 1
 
-  publish:
-    name: Publish GitHub release
+  prepare_publication:
+    name: Prepare GitHub release payload
     needs:
       - prepare
       - lint
@@ -696,7 +727,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: read
-      contents: write
+      contents: read
     env:
       RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
@@ -707,22 +738,12 @@ jobs:
       TUI_CONSTRAINTS_NAME: ${{ needs.tui_package.outputs.constraints_name }}
       TUI_INSTALLER_NAME: ${{ needs.tui_package.outputs.installer_name }}
       TUI_BOOTSTRAP_NAME: ${{ needs.tui_package.outputs.bootstrap_name }}
-      # RELEASE_TOKEN (a fine-grained PAT with Contents write on this repo)
-      # takes precedence when configured: since 2026-07-26 the workflow token
-      # is refused by POST /releases (issue #44), while a user PAT publishes
-      # fine. An empty/absent secret falls back to the workflow token.
-      GH_TOKEN:
-        ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN
-        }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
-      - uses: ./.github/actions/setup-github-cli
-      - uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+          persist-credentials: false
       - uses: actions/download-artifact@v8
         if: needs.package.result == 'success'
         with:
@@ -738,25 +759,6 @@ jobs:
         with:
           name: express-tui-${{ github.run_id }}-${{ github.run_attempt }}
           path: release-payload/tui
-      - name: Revalidate immutable release tag before publishing
-        shell: bash
-        run: |
-          tag="$RELEASE_TAG"
-          set +e
-          git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1
-          status=$?
-          set -e
-          case "$status" in
-            0)
-              echo "Release tag $tag appeared while building; refusing to update an existing release." >&2
-              exit 1
-              ;;
-            2) ;;
-            *)
-              echo "Unable to prove release tag $tag is absent (git ls-remote exited $status)." >&2
-              exit "$status"
-              ;;
-          esac
       - name: Verify downloaded release payload
         shell: bash
         env:
@@ -797,8 +799,78 @@ jobs:
             fi
           done
 
+      - name: Preserve verified release payload
+        uses: actions/upload-artifact@v7
+        with:
+          name: prepared-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-payload/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
+
+  publish:
+    name: Publish GitHub release
+    needs:
+      - prepare
+      - prepare_publication
+      - tui_package
+    if: >-
+      !cancelled() && always() && needs.prepare.result == 'success' &&
+      needs.prepare_publication.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    env:
+      RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      TUI_WHEEL_NAME: ${{ needs.tui_package.outputs.wheel_name }}
+      TUI_SDIST_NAME: ${{ needs.tui_package.outputs.sdist_name }}
+      TUI_CONSTRAINTS_NAME: ${{ needs.tui_package.outputs.constraints_name }}
+      TUI_INSTALLER_NAME: ${{ needs.tui_package.outputs.installer_name }}
+      TUI_BOOTSTRAP_NAME: ${{ needs.tui_package.outputs.bootstrap_name }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup-github-cli
+      - uses: actions/download-artifact@v8
+        with:
+          name: prepared-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-payload
+      - name: Revalidate immutable release tag before publishing
+        shell: bash
+        run: |
+          tag="$RELEASE_TAG"
+          set +e
+          git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1
+          status=$?
+          set -e
+          case "$status" in
+            0)
+              echo "Release tag $tag appeared while building; refusing to update an existing release." >&2
+              exit 1
+              ;;
+            2) ;;
+            *)
+              echo "Unable to prove release tag $tag is absent (git ls-remote exited $status)." >&2
+              exit "$status"
+              ;;
+          esac
+
       - name: Publish GitHub release
         shell: bash
+        # RELEASE_TOKEN (a fine-grained PAT with Contents write on this repo)
+        # takes precedence when configured: since 2026-07-26 the workflow token
+        # is refused by POST /releases (issue #44), while a user PAT publishes
+        # fine. An empty/absent secret falls back to the workflow token.
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
         run: |
           set +e
           shopt -s nullglob
@@ -836,6 +908,12 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --prerelease=false --latest=false
           fi
+          gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft \
+            > release-payload/published-is-draft.txt
+          gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' \
+            > release-payload/published-assets.txt
       - name: Verify published release target
         shell: bash
         run: |
@@ -845,12 +923,11 @@ jobs:
             echo "Published tag resolves to $published, expected $RELEASE_TARGET_SHA." >&2
             exit 1
           fi
-          if [ "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != "false" ]; then
+          if [ "$(cat release-payload/published-is-draft.txt)" != "false" ]; then
             echo "Published release unexpectedly remained a draft." >&2
             exit 1
           fi
-          published_assets=$(gh release view "$RELEASE_TAG" \
-            --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          published_assets=$(cat release-payload/published-assets.txt)
           for expected in "$TUI_WHEEL_NAME" "$TUI_SDIST_NAME" \
             "$TUI_CONSTRAINTS_NAME" "$TUI_INSTALLER_NAME" \
             "$TUI_BOOTSTRAP_NAME"; do
@@ -861,4 +938,8 @@ jobs:
           done
       - name: Reconcile Latest to the newest main release
         shell: bash
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
         run: bash .github/scripts/promote-current-release.sh

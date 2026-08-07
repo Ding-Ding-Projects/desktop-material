@@ -1,8 +1,39 @@
 # Desktop Material roadmap
 
-Updated: **August 6, 2026**
+Updated: **August 7, 2026**
 
-## August 6 — Select Windows CI capacity and ship Latest releases
+## August 7 — Make Windows releases permanently unsigned and self-bootstrapping
+
+- Every Windows package lane now disables certificate auto-discovery, clears
+  signing and Azure identity inputs, and requires both the setup executable and
+  MSI to report `NotSigned`. Release notes disclose the permanent unsigned
+  status and the possible Windows SmartScreen or unknown-publisher warning.
+- Direct Super Express Windows build and publication both use
+  `[self-hosted, Windows, X64, desktop-material-windows-local]`. A successful
+  dispatch verifies the exact target, six assets, and unsigned state; publishes
+  one uniquely tagged non-Latest Release; records and verifies exact timing;
+  and only then reconciles the Latest pointer. A failed same-job publication is
+  removed by captured release ID and exact tag before the prior Latest is
+  restored. Write credentials exist only on authenticated publication steps.
+- A cold Windows runner bootstraps pinned, checksum-verified PortableGit
+  `2.53.0.3`, GitHub CLI `2.97.0`, and `jq` `1.7.1` from canonical upstream
+  releases. An initial checkout obtains the bootstrap and a repeated checkout
+  creates the real repository before Git or Bash runs. Versioned
+  `RUNNER_TOOL_CACHE` paths retain only download bytes, revalidate their pinned
+  hashes on every run, and produce fresh job-local executables. A hand-written
+  inventory ties every self-hosted Windows job to its dependency list,
+  bootstrap path, and cold-bootstrap test; the fixture proves both empty-cache
+  and download-forbidden warm-cache operation.
+- Ordinary `CI Windows` retains the protected-main `workflow_dispatch` choice
+  between `cloud` and the exact project-labelled self-hosted pool; automatic and
+  untrusted triggers cannot select the local runner.
+- Direct run
+  [`31145566128`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/31145566128)
+  was interrupted by a Windows host restart before its job log finalized. It
+  published no Release and is not remote proof; a fresh successful dispatch is
+  still required.
+
+## August 6 — Select Windows CI capacity and ship Latest releases (superseded)
 
 - A protected-main `CI Windows` manual dispatch can select `cloud` or the exact
   labelled self-hosted Windows pool for desktop build and packaged E2E jobs;

@@ -24,7 +24,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   NODE_VERSION: 24.15.0
@@ -118,7 +118,17 @@ jobs:
       - desktop-material-windows-local
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v7.0.1
+      - name: Initial checkout for Windows bootstrap
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+      - name: Bootstrap Git and Bash for self-hosted Windows
+        run:
+          powershell -NoProfile -ExecutionPolicy Bypass -File
+          .github/scripts/ensure-windows-git-bash.ps1
+      - name: Repeat checkout with bootstrapped Git
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
@@ -136,7 +146,6 @@ jobs:
           release_target_sha: ${{ needs.prepare.outputs.sha }}
           release_version: ${{ needs.prepare.outputs.version }}
           node_version: ${{ env.NODE_VERSION }}
-          sign: 'false'
         env:
           DESKTOP_ERROR_REPORTING_ENDPOINT:
             ${{ secrets.DESKTOP_ERROR_REPORTING_ENDPOINT }}
@@ -165,12 +174,14 @@ jobs:
         with:
           release_target_sha: ${{ needs.prepare.outputs.sha }}
 
-  publish:
-    name: Publish combined GitHub Release
+  prepare_publication:
+    name: Prepare combined GitHub Release payload
     needs:
       - prepare
       - windows_build
       - tui_build
+    outputs:
+      tui_version: ${{ steps.tui_version.outputs.version }}
     if: >-
       !cancelled() && always() && needs.prepare.result == 'success' &&
       needs.windows_build.result == 'success' && needs.tui_build.result ==
@@ -181,21 +192,17 @@ jobs:
       - X64
       - desktop-material-wsl-local
     permissions:
-      contents: write
+      contents: read
     env:
       RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
       RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
-      GH_TOKEN:
-        ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN
-        }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
-
-      - uses: ./.github/actions/setup-github-cli
+          persist-credentials: false
 
       - uses: actions/setup-node@v7
         with:
@@ -275,6 +282,7 @@ jobs:
             echo "Super Express package for commit \`$RELEASE_TARGET_SHA\`."
             echo
             echo 'Windows x64 and Linux TUI packages were built in parallel.'
+            echo 'The Windows setup executable and MSI are permanently unsigned and may trigger an unknown-publisher or SmartScreen warning.'
             echo 'This emergency lane deliberately runs no test or lint gates.'
             echo
             echo '### Commit'
@@ -298,8 +306,46 @@ jobs:
           compression-level: 0
           retention-days: 7
 
+  publish:
+    name: Publish combined GitHub Release
+    needs:
+      - prepare
+      - prepare_publication
+    if: >-
+      !cancelled() && always() && needs.prepare.result == 'success' &&
+      needs.prepare_publication.result == 'success' && inputs.publish
+    runs-on:
+      - self-hosted
+      - Linux
+      - X64
+      - desktop-material-wsl-local
+    permissions:
+      contents: write
+    env:
+      RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      TUI_VERSION: ${{ needs.prepare_publication.outputs.tui_version }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-github-cli
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: super-express-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-payload
+
       - name: Publish immutable GitHub Release
         shell: bash
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
         run: |
           set +e
           shopt -s nullglob
@@ -334,11 +380,15 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --prerelease=false --latest
           fi
+          gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft \
+            > release-payload/published-is-draft.txt
+          gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' \
+            > release-payload/published-assets.txt
 
       - name: Verify published release target and assets
         shell: bash
-        env:
-          TUI_VERSION: ${{ steps.tui_version.outputs.version }}
         run: |
           git fetch origin "refs/tags/$RELEASE_TAG"
           published=$(git rev-parse 'FETCH_HEAD^{commit}')
@@ -346,12 +396,11 @@ jobs:
             echo "Published tag resolves to $published, expected $RELEASE_TARGET_SHA." >&2
             exit 1
           fi
-          if [ "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != "false" ]; then
+          if [ "$(cat release-payload/published-is-draft.txt)" != "false" ]; then
             echo "Published release unexpectedly remained a draft." >&2
             exit 1
           fi
-          published_assets=$(gh release view "$RELEASE_TAG" \
-            --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          published_assets=$(cat release-payload/published-assets.txt)
           for expected in \
             'RELEASES' \
             'GitHub Desktop-x64.zip' \
@@ -372,4 +421,8 @@ jobs:
 
       - name: Reconcile Latest to the newest main release
         shell: bash
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
         run: bash .github/scripts/promote-current-release.sh

@@ -11,23 +11,11 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Prefer Git Bash on Windows self-hosted runners
+    - name: Reuse or install Git Bash on Windows self-hosted runners
       if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
-      # This runner has Windows PowerShell, while PowerShell Core is not part
-      # of the runner contract. Use the built-in Windows shell for the small
-      # PATH repair, then let subsequent bash steps resolve Git Bash.
       shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
-      run: |
-        $git = Get-Command git.exe -ErrorAction SilentlyContinue
-        if ($null -eq $git) {
-          throw 'Git is required on a Windows self-hosted runner.'
-        }
-        $gitRoot = Split-Path (Split-Path $git.Source -Parent) -Parent
-        $gitBash = Join-Path $gitRoot 'bin\bash.exe'
-        if (-not (Test-Path -LiteralPath $gitBash)) {
-          throw "Git Bash is required on a Windows self-hosted runner: $gitBash"
-        }
-        Split-Path $gitBash -Parent | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      run:
+        '& "$env:GITHUB_WORKSPACE\.github\scripts\ensure-windows-git-bash.ps1"'
 
     - name: Install Windows arm64 C++ toolset when missing
       if:
@@ -115,7 +103,7 @@ runs:
           'app/yarn.lock', '.yarnrc', 'app/.yarnrc', 'app/.npmrc',
           'script/post-install.ts',
           '.github/actions/setup-ci-environment/action.yml',
-          '.github/actions/setup-windows-signing/action.yml',
+          '.github/scripts/ensure-windows-git-bash.ps1',
           '.github/scripts/ensure-windows-arm64-build-tools.ps1',
           '.github/scripts/ensure-windows-clang.ps1',
           '.github/scripts/bootstrap-pinned-yarn.ps1', 'vendor/yarn-1.21.1.js',
@@ -139,7 +127,7 @@ runs:
           'yarn.lock', 'app/package.json', 'app/yarn.lock', '.yarnrc',
           'app/.yarnrc', 'app/.npmrc', 'script/post-install.ts',
           '.github/actions/setup-ci-environment/action.yml',
-          '.github/actions/setup-windows-signing/action.yml',
+          '.github/scripts/ensure-windows-git-bash.ps1',
           '.github/scripts/ensure-windows-arm64-build-tools.ps1',
           '.github/scripts/ensure-windows-clang.ps1',
           '.github/scripts/bootstrap-pinned-yarn.ps1', 'vendor/yarn-1.21.1.js',
@@ -519,7 +507,7 @@ runs:
           'yarn.lock', 'app/package.json', 'app/yarn.lock', '.yarnrc',
           'app/.yarnrc', 'app/.npmrc', 'script/post-install.ts',
           '.github/actions/setup-ci-environment/action.yml',
-          '.github/actions/setup-windows-signing/action.yml',
+          '.github/scripts/ensure-windows-git-bash.ps1',
           '.github/scripts/ensure-windows-arm64-build-tools.ps1',
           '.github/scripts/ensure-windows-clang.ps1',
           '.github/scripts/bootstrap-pinned-yarn.ps1', 'vendor/yarn-1.21.1.js',
