@@ -65,7 +65,9 @@ jobs:
         with:
           ref: ${{ inputs.release_target_sha || github.sha }}
           fetch-depth: 0
-          submodules: recursive
+      - name: Attempt to update submodules (non-fatal)
+        run: |
+          git submodule update --init --recursive || true
 
       - id: package
         uses: ./.github/actions/super-express-windows-build
