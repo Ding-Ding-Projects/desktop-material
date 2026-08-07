@@ -27,7 +27,7 @@
       {
         v: '3.6.3-material22',
         d: '2026-08-06',
-        t: '20:32',
+        t: '20:33',
         e: [
           [
             'Added',
@@ -37,22 +37,22 @@
           [
             'Fixed',
             'CI accessibility tests now follow the localized repository-transfer and account-picker names while retaining interpolation, selection, and disappearing-account safety coverage',
-            '44e57f7d9e5c6249616454652a62dda5d413be39',
+            '90ff3f10070765e67baf4de8b241c231078d8038',
           ],
           [
             'Fixed',
             'Ordinary Windows CI manual dispatches are cloud-only again: the temporary runner selector is removed, every job uses literal windows-2022, and self-hosted pools remain exclusive to Super Express',
-            '1635b22597d23e22d861748f6b3587bdf0fb9deb',
+            '0b6ae49ce09a296ef722108202cfd711ab991214',
           ],
           [
             'Fixed',
             'Linux CI now validates the packaged TUI changelog catalog against complete Git history, and generated catalog copy accurately identifies tag and referenced-entry commit timestamps',
-            '5f7391d5b1ea565c554ebb44a5157dc23faeff22',
+            'c9635f8be5fa5764403ca87254a424c45def71f7',
           ],
           [
             'Fixed',
             'The packaged changelog tests now validate catalog arithmetic and exported release labels instead of freezing an old entry count, timestamp, and first commit that change whenever the generated history advances',
-            '147063a1cbebbb0ec32b1fca578d15cb04ee7fff',
+            '937715a294bae3ebdef48b4a4c3c3244d7234160',
           ],
           [
             'Fixed',
