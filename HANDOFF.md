@@ -28,11 +28,13 @@ publication, assigns a previously unused public dim-sum code name when
 available from every published `catalog-v1*` volume, records timing from the
 first job's exact `started_at` through the completed Latest-reconciliation step,
 reconciles Latest fail-closed, and verifies the final release body and Latest
-pointer. Direct dispatches must target the current `main` tip.
+pointer. Direct dispatches must target the current `main` tip. The Windows-side
+tip guard uses native PowerShell so a runner cannot resolve `shell: bash` to the
+WSL launcher and fail before comparing the commits.
 
 Local evidence so far: the focused OAuth/workflow/cache suites pass **28/28**;
 the full script suite passes **217/217** with one intentional environment skip
-across 218 tests; all **65** Bash blocks and **31** PowerShell blocks in the
+across 218 tests; all **64** Bash blocks and **32** PowerShell blocks in the
 changed workflow/action files parse; and `actionlint -shellcheck=` passes for
 every changed workflow. The
 original OAuth production-build receipt records a **672.05-second** build plus
@@ -41,6 +43,9 @@ run `31141543370` failed solely because the superseded non-fatal submodule step
 sent Bash `|| true` syntax to Windows PowerShell 5.1; the upstream
 shell-neutral recovery now contains that failure at the step boundary. A fresh
 pushed-main signed release remains pending and is not claimed here.
+Direct release run `31143005662` then exposed the runner's WSL `bash.exe`
+resolution in the current-main guard; the native-PowerShell guard and its
+focused **25/25** regression proof supersede that failed attempt.
 
 ## 2026-08-06 — Neutral-skip cancelled workflow-run release completions
 

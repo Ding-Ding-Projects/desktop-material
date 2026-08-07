@@ -16,12 +16,15 @@ Updated: **August 6, 2026**
   offline TUI runner, stages and verifies a draft before publication, records
   exact first-job-through-publication timing, uses an unused public dim-sum code
   name from any published `catalog-v1*` volume when available, and fails closed
-  unless the release is published, complete, and Latest.
+  unless the release is published, complete, and Latest. Its Windows-side
+  current-main guard uses native PowerShell rather than the runner's WSL
+  `bash.exe` launcher.
 - Focused OAuth/workflow/cache contracts pass **28/28**; the full script suite
   passes **217/217** with one intentional environment skip across 218 tests;
-  all **65** Bash blocks and **31** PowerShell blocks in the changed
+  all **64** Bash blocks and **32** PowerShell blocks in the changed
   workflow/action files parse; and structural Actions lint passes. A fresh
-  signed release is still pending.
+  signed release is still pending after run `31143005662` exposed and verified
+  the now-fixed WSL-launcher failure; the focused regression proof is **25/25**.
 
 ## August 6 — Neutral-skip cancelled workflow-run release completions
 

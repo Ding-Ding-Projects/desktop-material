@@ -646,7 +646,11 @@ describe('CI workflow safety', () => {
     assert.doesNotMatch(superExpressWindowsWorkflow, /\.run_started_at/)
     assert.match(
       superExpressWindowsWorkflow,
-      /Require the current main tip for a direct release[\s\S]*?git fetch origin main[\s\S]*?RELEASE_TARGET_SHA[\s\S]*?current_main/
+      /Require the current main tip for a direct release[\s\S]*?shell: pwsh[\s\S]*?git fetch origin main[\s\S]*?RELEASE_TARGET_SHA[\s\S]*?currentMain/
+    )
+    assert.doesNotMatch(
+      superExpressWindowsWorkflow,
+      /Require the current main tip for a direct release\s*[\s\S]*?shell: bash\s*[\s\S]*?git fetch origin main/
     )
     assert.match(
       superExpressWindowsWorkflow,

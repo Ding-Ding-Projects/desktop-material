@@ -78,14 +78,19 @@ jobs:
 
       - name: Require the current main tip for a direct release
         if: ${{ github.event_name == 'workflow_dispatch' }}
-        shell: bash
+        shell: pwsh
         run: |
           git fetch origin main
-          current_main=$(git rev-parse origin/main)
-          if [ "$RELEASE_TARGET_SHA" != "$current_main" ]; then
-            echo "Direct releases must target current main $current_main, not $RELEASE_TARGET_SHA." >&2
-            exit 1
-          fi
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Failed to fetch the current main tip.'
+          }
+          $currentMain = (git rev-parse origin/main).Trim()
+          if ($LASTEXITCODE -ne 0 -or -not $currentMain) {
+            throw 'Failed to resolve the current main tip.'
+          }
+          if ($env:RELEASE_TARGET_SHA -ne $currentMain) {
+            throw "Direct releases must target current main $currentMain, not $env:RELEASE_TARGET_SHA."
+          }
       - id: package
         uses: ./.github/actions/super-express-windows-build
         with:
