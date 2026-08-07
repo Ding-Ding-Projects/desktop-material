@@ -22,12 +22,12 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4174,
+    entryCount: 4176,
     releases: [
       {
         v: '3.6.3-material22',
         d: '2026-08-06',
-        t: '19:39',
+        t: '20:14',
         e: [
           [
             'Added',
@@ -36,13 +36,18 @@
           ],
           [
             'Fixed',
+            'Ordinary Windows CI manual dispatches are cloud-only again: the temporary runner selector is removed, every job uses literal windows-2022, and self-hosted pools remain exclusive to Super Express',
+            '1635b22597d23e22d861748f6b3587bdf0fb9deb',
+          ],
+          [
+            'Fixed',
             'Linux CI now validates the packaged TUI changelog catalog against complete Git history, and generated catalog copy accurately identifies tag and referenced-entry commit timestamps',
-            '82540820c9fd8067f377481ae659553513a44a01',
+            '5f7391d5b1ea565c554ebb44a5157dc23faeff22',
           ],
           [
             'Fixed',
             'The packaged changelog tests now validate catalog arithmetic and exported release labels instead of freezing an old entry count, timestamp, and first commit that change whenever the generated history advances',
-            '65df22dcfc850a08b00edfc5be6c0c40079704b0',
+            '147063a1cbebbb0ec32b1fca578d15cb04ee7fff',
           ],
           [
             'Fixed',

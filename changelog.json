@@ -2,6 +2,7 @@
   "releases": {
     "3.6.3-material22": [
       "[Added] The Merge into main branch chooser now offers a Not updated with main filter based on default-branch Git ancestry, keeping diverged branches that already contain main out of the stale results and localizing the chip in English, Hong Kong-style Cantonese, and bilingual mode - 81faa869aa3eed8401070f37ae7e324f49db398a",
+      "[Fixed] Ordinary Windows CI manual dispatches are cloud-only again: the temporary runner selector is removed, every job uses literal windows-2022, and self-hosted pools remain exclusive to Super Express - 1635b22597d23e22d861748f6b3587bdf0fb9deb",
       "[Fixed] Linux CI now validates the packaged TUI changelog catalog against complete Git history, and generated catalog copy accurately identifies tag and referenced-entry commit timestamps - 5f7391d5b1ea565c554ebb44a5157dc23faeff22",
       "[Fixed] The packaged changelog tests now validate catalog arithmetic and exported release labels instead of freezing an old entry count, timestamp, and first commit that change whenever the generated history advances - 147063a1cbebbb0ec32b1fca578d15cb04ee7fff",
       "[Fixed] Every ordinary Windows CI trigger now stays on clean GitHub-hosted runners with no manual self-hosted escape hatch, while Super Express retains its dedicated local runner pools - d75bf057e6552688adc87daa7b9d71ff08a23eb9",
