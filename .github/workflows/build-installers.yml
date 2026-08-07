@@ -366,7 +366,9 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
-          fetch-depth: 0
+          # Packaging only needs the exact source tree; avoid downloading the
+          # entire repository history on every release runner.
+          fetch-depth: 1
       - name: Require the prepared exact commit
         shell: bash
         run: |
@@ -540,7 +542,9 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
-          fetch-depth: 0
+          # Publishing verifies the tag explicitly below, so a shallow source
+          # checkout is sufficient and avoids redundant history transfer.
+          fetch-depth: 1
       - name: Attempt to update submodules (non-fatal)
         run: |
           git submodule update --init --recursive || true
@@ -691,7 +695,9 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
-          fetch-depth: 0
+          # Publishing verifies the tag explicitly below, so a shallow source
+          # checkout is sufficient and avoids redundant history transfer.
+          fetch-depth: 1
       - uses: ./.github/actions/setup-github-cli
       - uses: actions/setup-node@v7
         with:
