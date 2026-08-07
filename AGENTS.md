@@ -27,6 +27,10 @@ platform policy, always takes precedence over what is written here.
 
 ## Git and completion
 
+- Every new user request and every new agent session starts in a fresh linked
+  worktree. Create a new worktree and task branch before reading or editing
+  task files; do not reuse the main checkout or another task's worktree. If a
+  fresh worktree cannot be created, stop and report the blocker.
 - Every task that changes this repository ends with all intended work committed
   and pushed. Push frequently — one push per completed fix rather than a single
   push at the end of a long session.
@@ -126,6 +130,14 @@ These apply to user-facing surfaces in this app.
   plus a persisted funny-level slider from 1 (fully serious) to 5, adjustable
   independently per language. The funny level changes voice, never facts — a
   message still names what happened, what is affected, and what the options are.
+- **Scheduled language, appearance, and customization**: every user-facing
+  surface exposes persisted rules with native date and time pickers, an
+  every-day or selected-weekday choice, local-time date boundaries, and
+  deterministic precedence. Any scheduleable setting may use local data, a
+  bounded versioned HTTPS API, or a Home Assistant boolean entity (`on` applies
+  the rule; `off` falls back safely). Remote credentials stay in the operating
+  system vault, never in schedule data, exports, renderer code, logs, or Git;
+  failures are non-blocking and preserve the last valid local/base state.
 - **Regex builder** available from every search bar, including every settings,
   properties, and adjustment surface. Plain-text search stays the default with
   regex an explicit opt-in; query, pattern, flags, validation, and mode

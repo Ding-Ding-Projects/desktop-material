@@ -62,11 +62,6 @@ export function getRepositoryCredentialAccountKey(
  * identity. Reuses `getAccountForRepository`, so all of the binding rules
  * (explicit `accountKey`, endpoint-first fallback for unbound repos) apply
  * unchanged.
- *
- * NOTE: GitHub.com accounts always sort ahead of Enterprise accounts (see
- * `sortAccounts` in accounts-store), so an Enterprise-owned repository cannot
- * become `accounts[0]` while any GitHub.com account is signed in. In that case
- * the visible indicator can only partially follow the repo owner.
  */
 export function getRepositoryOwnerAccountToPromote(
   accounts: ReadonlyArray<Account>,
@@ -91,6 +86,31 @@ export function getRepositoryOwnerAccountToPromote(
   }
 
   return owner
+}
+
+/**
+ * Return the account binding that a deliberate active-account selection may
+ * apply to the selected repository.
+ *
+ * A global account selection must not silently cross provider boundaries. For
+ * a GitHub repository on the same GitHub API endpoint, however, leaving an
+ * older auto-binding in place makes the visible "Make active" action appear
+ * to do nothing: network operations continue with the repository's previous
+ * account key. The caller still performs the actual persistence and refresh.
+ */
+export function getRepositoryAccountKeyForActiveAccount(
+  account: Account,
+  repository: Repository
+): string | null {
+  if (
+    account.provider !== 'github' ||
+    repository.gitHubRepository === null ||
+    repository.gitHubRepository.endpoint !== account.endpoint
+  ) {
+    return null
+  }
+
+  return getAccountKey(account)
 }
 
 /**

@@ -1308,10 +1308,9 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                 href="features/design-system/command-palette-coverage-gaps.html"
                 ><span class="doc-link__title">Command palette coverage</span
                 ><span class="doc-link__desc"
-                  >The shipped catalog currently contains 247 unique commands
-                  (246 are Windows-eligible before live availability
-                  predicates). In a fresh Windows workspace with no
-                  signed-in…</span
+                  >The shipped catalog currently contains 268 unique commands.
+                  The R5 command-palette expansion (see below) added 21 of
+                  those: tab management…</span
                 ><span class="doc-link__path"
                   >features/design-system/command-palette-coverage-gaps.md</span
                 ></a
@@ -1465,7 +1464,7 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             Identity and workspace
           </h3>
           <p class="md-body subpanel__meta">
-            <strong>9</strong>
+            <strong>12</strong>
             <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
             <a href="features/identity-and-workspace/"
               ><span class="i18n-inline" data-i18n="categoryIndex"
@@ -1553,6 +1552,36 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             <li>
               <a
                 class="doc-link"
+                href="features/identity-and-workspace/scheduled-settings.html"
+                ><span class="doc-link__title"
+                  >Scheduled language, appearance, and external settings</span
+                ><span class="doc-link__desc"
+                  >Desktop Material can apply a settings value during a local
+                  date-and-time window. A rule can change the language
+                  presentation, theme, and appearance customizations together
+                  or…</span
+                ><span class="doc-link__path"
+                  >features/identity-and-workspace/scheduled-settings.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/identity-and-workspace/settings-browser-tabs.html"
+                ><span class="doc-link__title">Browser-style settings tabs</span
+                ><span class="doc-link__desc"
+                  >Global Settings, Repository Settings, and Stash Manager use
+                  the same horizontal browser-style tab surface. Each page has a
+                  stable identity, a visible active state, a close…</span
+                ><span class="doc-link__path"
+                  >features/identity-and-workspace/settings-browser-tabs.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
                 href="features/identity-and-workspace/settings-search.html"
                 ><span class="doc-link__title">Settings search / 設定搜尋</span
                 ><span class="doc-link__desc"
@@ -1562,6 +1591,20 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                   the tab…</span
                 ><span class="doc-link__path"
                   >features/identity-and-workspace/settings-search.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/identity-and-workspace/settings-tab-docking.html"
+                ><span class="doc-link__title">Settings tab docking</span
+                ><span class="doc-link__desc"
+                  >Repository Settings and application Settings use the same
+                  browser-style tab strip. The strip can be docked on the left,
+                  top, bottom, or right of its content. Left is the…</span
+                ><span class="doc-link__path"
+                  >features/identity-and-workspace/settings-tab-docking.md</span
                 ></a
               >
             </li>
@@ -1625,7 +1668,7 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             Integrations
           </h3>
           <p class="md-body subpanel__meta">
-            <strong>23</strong>
+            <strong>24</strong>
             <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
             <a href="features/integrations/"
               ><span class="i18n-inline" data-i18n="categoryIndex"
@@ -1913,6 +1956,21 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                   inspect metadata and assets, or enter the existing…</span
                 ><span class="doc-link__path"
                   >features/integrations/repository-releases-dashboard.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/self-hosted-windows-dependency-bootstrap.html"
+                ><span class="doc-link__title"
+                  >Self-hosted Windows dependency bootstrap</span
+                ><span class="doc-link__desc"
+                  >Every self-hosted Windows job bootstraps its declared
+                  dependencies before it builds, tests, packages, or publishes.
+                  A warm runner may reuse compatible tools and exact…</span
+                ><span class="doc-link__path"
+                  >features/integrations/self-hosted-windows-dependency-bootstrap.md</span
                 ></a
               >
             </li>
@@ -2228,7 +2286,7 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             Quality and reliability
           </h3>
           <p class="md-body subpanel__meta">
-            <strong>13</strong>
+            <strong>14</strong>
             <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
             <a href="features/quality-and-reliability/"
               ><span class="i18n-inline" data-i18n="categoryIndex"
@@ -2392,6 +2450,21 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             <li>
               <a
                 class="doc-link"
+                href="features/quality-and-reliability/renderer-startup-bundle-safety.html"
+                ><span class="doc-link__title"
+                  >Renderer startup bundle safety</span
+                ><span class="doc-link__desc"
+                  >Desktop Material's Windows renderer must mount its React root
+                  before the main window is shown. A Node-oriented dependency
+                  that is concatenated into the browser bundle can fail…</span
+                ><span class="doc-link__path"
+                  >features/quality-and-reliability/renderer-startup-bundle-safety.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
                 href="features/quality-and-reliability/responsiveness-and-resource-lifecycle.html"
                 ><span class="doc-link__title"
                   >Responsiveness and resource lifecycle</span
@@ -2426,9 +2499,9 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                 ><span class="doc-link__title"
                   >Supply-chain and CI hardening</span
                 ><span class="doc-link__desc"
-                  >Desktop Material's continuous-integration workflow builds and
-                  signs the Windows installers that users actually run, so what
-                  its jobs install and how its runs are scheduled are…</span
+                  >Desktop Material's continuous-integration workflow builds the
+                  Windows installers that users actually run, so what its jobs
+                  install, how its runs are scheduled, and how it…</span
                 ><span class="doc-link__path"
                   >features/quality-and-reliability/supply-chain-and-ci-hardening.md</span
                 ></a
@@ -2446,7 +2519,7 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             Repository management
           </h3>
           <p class="md-body subpanel__meta">
-            <strong>36</strong>
+            <strong>40</strong>
             <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
             <a href="features/repository-management/"
               ><span class="i18n-inline" data-i18n="categoryIndex"
@@ -2461,9 +2534,9 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                 href="features/repository-management/advanced-history-discovery.html"
                 ><span class="doc-link__title">Advanced history discovery</span
                 ><span class="doc-link__desc"
-                  >The History sidebar can search loaded commits by title, body,
+                  >The History page can search loaded commits by title, body,
                   author, tag, or full/short object ID using fuzzy, substring,
-                  or regular-expression matching. Its filter chips…</span
+                  or regular-expression matching. Its filter chips narrow…</span
                 ><span class="doc-link__path"
                   >features/repository-management/advanced-history-discovery.md</span
                 ></a
@@ -2673,6 +2746,34 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             <li>
               <a
                 class="doc-link"
+                href="features/repository-management/launchpad.html"
+                ><span class="doc-link__title">Launchpad</span
+                ><span class="doc-link__desc"
+                  >Launchpad is the repository workspace for reviewing the items
+                  that need attention first. It groups repository-backed work
+                  into Pinned, Ready to merge, Unassigned, CI failing,…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/launchpad.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/multi-remote-fetch-sync.html"
+                ><span class="doc-link__title">Multi-remote fetch sync</span
+                ><span class="doc-link__desc"
+                  >The repository toolbar's ordinary Fetch action now reflects
+                  the complete configured topology. A checkout with more than
+                  one Git remote is fetched from every configured remote,…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/multi-remote-fetch-sync.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
                 href="features/repository-management/named-stash-manager.html"
                 ><span class="doc-link__title">Named multi-stash manager</span
                 ><span class="doc-link__desc"
@@ -2853,6 +2954,21 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             <li>
               <a
                 class="doc-link"
+                href="features/repository-management/repository-list-transfer.html"
+                ><span class="doc-link__title"
+                  >Repository list transfer and Cheap LFS</span
+                ><span class="doc-link__desc"
+                  >Repository list transfer moves a reviewed set of cloned
+                  repositories between Desktop Material profiles or machines. It
+                  is deliberately a clone recipe, not a credential or…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/repository-list-transfer.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
                 href="features/repository-management/repository-picker-filters-and-visibility.html"
                 ><span class="doc-link__title"
                   >Repository picker filters and visibility</span
@@ -2862,6 +2978,21 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                   narrowed without changing its saved repository list.</span
                 ><span class="doc-link__path"
                   >features/repository-management/repository-picker-filters-and-visibility.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/repository-transfer.html"
+                ><span class="doc-link__title">Repository transfer</span
+                ><span class="doc-link__desc"
+                  >Transfer repository moves a GitHub-backed repository into a
+                  repository owned by another signed-in GitHub account or
+                  organization. It is available from the Repository menu,
+                  the…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/repository-transfer.md</span
                 ></a
               >
             </li>
@@ -2886,7 +3017,7 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                 class="doc-link"
                 href="features/repository-management/reviewed-bulk-branch-deletion.html"
                 ><span class="doc-link__title"
-                  >Reviewed bulk branch deletion</span
+                  >Reviewed bulk branch deletion and merge cleanup</span
                 ><span class="doc-link__desc"
                   >The Branches side sheet includes a compact cleanup panel for
                   removing several local branches in one reviewed batch.
@@ -3179,6 +3310,14 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
           >
           <a
             class="subtab i18n-inline"
+            id="subtab-reference-postman"
+            href="#reference/postman"
+            data-tab="reference/postman"
+            data-i18n="secPostman"
+            >Postman collections</a
+          >
+          <a
+            class="subtab i18n-inline"
             id="subtab-reference-process"
             href="#reference/process"
             data-tab="reference/process"
@@ -3200,6 +3339,13 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             data-tab="reference/root"
             data-i18n="secRoot"
             >Top-level pages</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-reference-screenshots"
+            href="#reference/screenshots"
+            data-tab="reference/screenshots"
+            >Screenshots</a
           >
           <a
             class="subtab i18n-inline"
@@ -3308,7 +3454,12 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
           </h3>
           <p class="md-body subpanel__meta">
             <strong>15</strong>
-            <span class="i18n-inline" data-i18n="docsCount">documents</span>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="contributing/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
           </p>
           <ul class="doc-list">
             <li>
@@ -3496,7 +3647,12 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
           </h3>
           <p class="md-body subpanel__meta">
             <strong>1</strong>
-            <span class="i18n-inline" data-i18n="docsCountOne">document</span>
+            <span class="i18n-inline" data-i18n="docsCountOne">document</span> ·
+            <a href="handoff/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
           </p>
           <ul class="doc-list">
             <li>
@@ -3526,7 +3682,12 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
           </h3>
           <p class="md-body subpanel__meta">
             <strong>3</strong>
-            <span class="i18n-inline" data-i18n="docsCount">documents</span>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="integrations/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
           </p>
           <ul class="doc-list">
             <li>
@@ -3582,7 +3743,12 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
           </h3>
           <p class="md-body subpanel__meta">
             <strong>1</strong>
-            <span class="i18n-inline" data-i18n="docsCountOne">document</span>
+            <span class="i18n-inline" data-i18n="docsCountOne">document</span> ·
+            <a href="learn-more/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
           </p>
           <ul class="doc-list">
             <li>
@@ -3602,6 +3768,26 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
         </section>
         <section
           class="subpanel"
+          id="reference/postman"
+          data-tab-panel="reference/postman"
+          aria-labelledby="subtab-reference-postman"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="secPostman">
+            Postman collections
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>0</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="postman/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
+          </p>
+          <ul class="doc-list"></ul>
+        </section>
+        <section
+          class="subpanel"
           id="reference/process"
           data-tab-panel="reference/process"
           aria-labelledby="subtab-reference-process"
@@ -3611,7 +3797,12 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
           </h3>
           <p class="md-body subpanel__meta">
             <strong>12</strong>
-            <span class="i18n-inline" data-i18n="docsCount">documents</span>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="process/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
           </p>
           <ul class="doc-list">
             <li>
@@ -3756,7 +3947,12 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
           </h3>
           <p class="md-body subpanel__meta">
             <strong>6</strong>
-            <span class="i18n-inline" data-i18n="docsCount">documents</span>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="readme-tabs/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
           </p>
           <ul class="doc-list">
             <li>
@@ -3821,9 +4017,10 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
               <a class="doc-link" href="readme-tabs/screenshots.html"
                 ><span class="doc-link__title">Screenshots</span
                 ><span class="doc-link__desc"
-                  >The compact selection below keeps this README scannable. The
-                  guided feature gallery and task-oriented tutorial contain the
-                  full annotated set.</span
+                  >The dated production-build receipt proves that Desktop
+                  Material's app-owned browser reaches the original registered
+                  GitHub OAuth application without the reported
+                  redirect_uri…</span
                 ><span class="doc-link__path"
                   >readme-tabs/screenshots.md</span
                 ></a
@@ -3889,6 +4086,24 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
         </section>
         <section
           class="subpanel"
+          id="reference/screenshots"
+          data-tab-panel="reference/screenshots"
+          aria-labelledby="subtab-reference-screenshots"
+        >
+          <h3 class="md-title-lg i18n-inline">Screenshots</h3>
+          <p class="md-body subpanel__meta">
+            <strong>0</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="screenshots/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
+          </p>
+          <ul class="doc-list"></ul>
+        </section>
+        <section
+          class="subpanel"
           id="reference/technical"
           data-tab-panel="reference/technical"
           aria-labelledby="subtab-reference-technical"
@@ -3898,7 +4113,12 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
           </h3>
           <p class="md-body subpanel__meta">
             <strong>22</strong>
-            <span class="i18n-inline" data-i18n="docsCount">documents</span>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="technical/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
           </p>
           <ul class="doc-list">
             <li>
@@ -4179,7 +4399,7 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             Verification records
           </h3>
           <p class="md-body subpanel__meta">
-            <strong>47</strong>
+            <strong>53</strong>
             <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
             <a href="verification/"
               ><span class="i18n-inline" data-i18n="categoryIndex"
@@ -4188,6 +4408,18 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             >
           </p>
           <ul class="doc-list">
+            <li>
+              <a
+                class="doc-link"
+                href="verification/account-switching-recheck-2026-08-05/run-manifest.html"
+                ><span class="doc-link__title"
+                  >Cross-provider account switching recheck — 2026-08-05</span
+                ><span class="doc-link__desc">Mode: local-docs</span
+                ><span class="doc-link__path"
+                  >verification/account-switching-recheck-2026-08-05/run-manifest.md</span
+                ></a
+              >
+            </li>
             <li>
               <a
                 class="doc-link"
@@ -4488,6 +4720,34 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             <li>
               <a
                 class="doc-link"
+                href="verification/dirty-worktree-worktree-option-20260805/cleanup-ledger.html"
+                ><span class="doc-link__title">Cleanup ledger</span
+                ><span class="doc-link__desc"
+                  >The source fixture was verified before cleanup:
+                  feature/worktree-switch retained one modified README.md, while
+                  the new main worktree was clean and the application reported
+                  zero…</span
+                ><span class="doc-link__path"
+                  >verification/dirty-worktree-worktree-option-20260805/cleanup-ledger.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/dirty-worktree-worktree-option-20260805/run-manifest.html"
+                ><span class="doc-link__title"
+                  >Dirty-worktree worktree option — headless verification
+                  manifest</span
+                ><span class="doc-link__desc">Mode: publish</span
+                ><span class="doc-link__path"
+                  >verification/dirty-worktree-worktree-option-20260805/run-manifest.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
                 href="verification/funny-level-sliders-2026-07-28/"
                 ><span class="doc-link__title"
                   >Funny-level sliders — built-app capture, 2026-07-28</span
@@ -4644,6 +4904,21 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             <li>
               <a
                 class="doc-link"
+                href="verification/original-github-oauth-release-20260806/"
+                ><span class="doc-link__title"
+                  >Original GitHub OAuth release proof — 2026-08-06</span
+                ><span class="doc-link__desc"
+                  >This dated acceptance proves the real production Windows
+                  bundle uses Desktop Material's original registered GitHub
+                  OAuth application and the exact x-github-client://oauth…</span
+                ><span class="doc-link__path"
+                  >verification/original-github-oauth-release-20260806/README.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
                 href="verification/publish-organization-picker-2026-07-30/"
                 ><span class="doc-link__title"
                   >Publish organization picker sizing acceptance —
@@ -4706,6 +4981,32 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                   group management).</span
                 ><span class="doc-link__path"
                   >verification/repository-group-management-2026-07-28/README.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/repository-list-agent-dialog-2026-08-02/run-manifest.html"
+                ><span class="doc-link__title"
+                  >Repository list and agent-session dialog verification
+                  run</span
+                ><span class="doc-link__desc"
+                  >Run ID: repository-list-agent-dialog-20260802</span
+                ><span class="doc-link__path"
+                  >verification/repository-list-agent-dialog-2026-08-02/run-manifest.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/repository-transfer-2026-08-05/run-manifest.html"
+                ><span class="doc-link__title"
+                  >Repository transfer headless verification — 2026-08-05</span
+                ><span class="doc-link__desc">Mode: capture-only</span
+                ><span class="doc-link__path"
+                  >verification/repository-transfer-2026-08-05/run-manifest.md</span
                 ></a
               >
             </li>
@@ -4865,7 +5166,12 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
           </h3>
           <p class="md-body subpanel__meta">
             <strong>8</strong>
-            <span class="i18n-inline" data-i18n="docsCount">documents</span>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="wiki/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
           </p>
           <ul class="doc-list">
             <li>

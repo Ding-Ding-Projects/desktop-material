@@ -166,7 +166,7 @@
 
   // Rail title ("Settings"), pinned to the top of the rail.
   .preferences-title {
-    margin: 0 0 14px 12px;
+    margin: 0;
     font-size: 20px;
     font-weight: var(--font-weight-semibold);
     color: var(--md-sys-color-on-surface);
@@ -366,6 +366,46 @@
     min-height: 0;
   }
 
+  .preferences-container[data-settings-tab-dock-position='right'] {
+    flex-direction: row-reverse;
+
+    .preferences-rail {
+      border-left: var(--base-border);
+      border-right: 0;
+    }
+  }
+
+  .preferences-container[data-settings-tab-dock-position='top'],
+  .preferences-container[data-settings-tab-dock-position='bottom'] {
+    .preferences-rail {
+      width: 100%;
+      flex: none;
+      padding: 16px 22px 12px;
+
+      .settings-tab-strip {
+        flex: 0 1 auto;
+      }
+    }
+  }
+
+  .preferences-container[data-settings-tab-dock-position='top'] {
+    flex-direction: column;
+
+    .preferences-rail {
+      border-bottom: var(--base-border);
+      border-right: 0;
+    }
+  }
+
+  .preferences-container[data-settings-tab-dock-position='bottom'] {
+    flex-direction: column-reverse;
+
+    .preferences-rail {
+      border-right: 0;
+      border-top: var(--base-border);
+    }
+  }
+
   // Left navigation rail
   .preferences-rail {
     width: 236px;
@@ -374,7 +414,19 @@
     display: flex;
     flex-direction: column;
     background: var(--md-sys-color-surface-container);
+    border-right: var(--base-border);
     padding: 22px 12px 16px;
+
+    .preferences-rail-header {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .preferences-browser-search {
+      padding: 0 0 8px;
+    }
 
     // The page strip carries its own scrolling, gutter and overflow surface;
     // the rail only decides how much room it gets. What remains here is the
@@ -458,13 +510,56 @@
     flex-direction: column;
   }
 
-  // Header row of the content pane: right-aligned round close ✕ (overlays §2.2
-  // moves the close button out of a title strip into the right pane).
+  // Browser-like header row: title on the left, round close ✕ on the right.
   .preferences-pane-header {
+    align-items: center;
     display: flex;
     justify-content: flex-end;
     flex-shrink: 0;
-    padding: 14px 14px 0 0;
+    padding: 14px 14px 0 22px;
+  }
+
+  // Search remains available above every settings page, but now shares the
+  // full dialog width with the browser tab lane instead of being trapped in a
+  // narrow navigation rail.
+  .preferences-browser-search {
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: 0 22px 8px;
+
+    .settings-search {
+      margin: 0;
+    }
+  }
+
+  // Browser tabs keep the search-match affordances that used to live in the
+  // removed vertical rail. The count remains part of the tab surface, and a
+  // non-matching page stays visibly quiet while a query is active.
+  .settings-tab-strip-browser {
+    .settings-browser-tab {
+      .icon {
+        width: 16px;
+      }
+
+      .preferences-tab-match-badge {
+        margin-left: auto;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        box-sizing: border-box;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--md-sys-color-primary);
+        color: var(--md-sys-color-on-primary);
+        font-size: 10.5px;
+        font-weight: var(--font-weight-bold);
+      }
+    }
+
+    .settings-browser-tab[data-settings-no-match='true'] {
+      opacity: 0.4;
+    }
   }
 
   .preferences-close-button {
@@ -896,6 +991,51 @@
       font-size: var(--font-size-sm);
     }
 
+    .issue-tracker-reference {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing);
+      padding: var(--spacing);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 18px;
+      background: var(--md-sys-color-surface-container-lowest);
+    }
+
+    .issue-tracker-reference-header {
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h3 {
+        color: var(--md-sys-color-on-surface);
+        font-size: var(--font-size-sm);
+      }
+
+      p {
+        color: var(--md-sys-color-on-surface-variant);
+        margin-top: var(--spacing-half);
+      }
+    }
+
+    .issue-tracker-reference-fields {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+      align-items: end;
+      gap: var(--spacing);
+
+      .button-component {
+        min-height: 40px;
+        white-space: nowrap;
+      }
+    }
+
+    .issue-tracker-reference-status {
+      margin: 0;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: var(--font-size-sm);
+    }
+
     .account-card {
       // v2 prototype: a flat filled surface with no outline.
       background: var(--md-sys-color-surface);
@@ -1017,6 +1157,14 @@
 
     @media (max-width: 600px) {
       .provider-sign-in-card {
+        grid-template-columns: minmax(0, 1fr);
+
+        .button-component {
+          width: 100%;
+        }
+      }
+
+      .issue-tracker-reference-fields {
         grid-template-columns: minmax(0, 1fr);
 
         .button-component {
@@ -1159,6 +1307,221 @@
 
         &:last-child {
           text-align: right;
+        }
+      }
+    }
+
+    .scheduled-settings-section {
+      min-width: 0;
+    }
+
+    .scheduled-settings-heading-row,
+    .scheduled-settings-rule-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--spacing);
+      min-width: 0;
+
+      > * {
+        min-width: 0;
+      }
+
+      .button-component {
+        flex: 0 0 auto;
+      }
+    }
+
+    .scheduled-settings-heading-row {
+      margin-bottom: var(--spacing);
+
+      h2,
+      p {
+        overflow-wrap: anywhere;
+      }
+
+      p {
+        max-width: 760px;
+      }
+    }
+
+    .scheduled-settings-rules {
+      display: grid;
+      gap: var(--spacing);
+      min-width: 0;
+    }
+
+    .scheduled-settings-rule {
+      display: grid;
+      gap: var(--spacing);
+      min-width: 0;
+      padding: var(--spacing-double);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-sys-shape-corner-large);
+      background: var(--md-sys-color-surface-container-low);
+
+      .scheduled-settings-rule-header {
+        align-items: end;
+
+        .text-box-component {
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+      }
+
+      .scheduled-settings-calendar-fields {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: var(--spacing);
+        min-width: 0;
+      }
+
+      .scheduled-settings-weekdays {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-half) var(--spacing);
+        min-width: 0;
+        margin: 0;
+        padding: var(--spacing);
+        border: 1px solid var(--md-sys-color-outline-variant);
+        border-radius: var(--md-sys-shape-corner-medium);
+
+        legend {
+          width: 100%;
+          margin-bottom: var(--spacing-half);
+          color: var(--md-sys-color-on-surface-variant);
+          font-size: var(--font-size-sm);
+          font-weight: var(--font-weight-medium);
+        }
+
+        .checkbox-component {
+          min-width: 120px;
+        }
+      }
+
+      .scheduled-settings-external-fields,
+      .scheduled-settings-value-editor {
+        display: grid;
+        gap: var(--spacing);
+        min-width: 0;
+      }
+
+      .scheduled-settings-details {
+        min-width: 0;
+        padding: var(--spacing);
+        border: 1px solid var(--md-sys-color-outline-variant);
+        border-radius: var(--md-sys-shape-corner-medium);
+        background: var(--md-sys-color-surface-container);
+
+        summary {
+          cursor: pointer;
+          color: var(--md-sys-color-on-surface);
+          font-weight: var(--font-weight-medium);
+          overflow-wrap: anywhere;
+        }
+
+        p {
+          margin: var(--spacing) 0 0;
+        }
+      }
+
+      .scheduled-settings-provenance {
+        color: var(--md-sys-color-on-surface-variant);
+        font-size: var(--font-size-sm);
+      }
+
+      .scheduled-settings-source-error {
+        color: var(--md-sys-color-error);
+      }
+
+      .scheduled-settings-external-fields {
+        padding-top: var(--spacing-half);
+      }
+
+      .scheduled-settings-value-editor {
+        padding-top: var(--spacing);
+        border-top: 1px solid var(--md-sys-color-outline-variant);
+
+        h4,
+        h5,
+        p {
+          min-width: 0;
+          margin: 0;
+          overflow-wrap: anywhere;
+        }
+
+        h4,
+        h5 {
+          color: var(--md-sys-color-on-surface);
+          font-weight: var(--font-weight-semibold);
+        }
+
+        h5 {
+          font-size: var(--font-size-sm);
+        }
+
+        .row-component {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          align-items: end;
+          gap: var(--spacing);
+
+          > .select-component {
+            min-width: 0;
+          }
+        }
+      }
+
+      .scheduled-settings-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-half);
+      }
+
+      .scheduled-settings-connection-message {
+        margin: 0;
+        color: var(--md-sys-color-on-surface-variant);
+        overflow-wrap: anywhere;
+      }
+    }
+
+    .scheduled-settings-empty {
+      margin: 0;
+      padding: var(--spacing-double);
+      border: 1px dashed var(--md-sys-color-outline);
+      border-radius: var(--md-sys-shape-corner-large);
+      color: var(--md-sys-color-on-surface-variant);
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 760px) {
+      .scheduled-settings-rule .scheduled-settings-calendar-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .scheduled-settings-heading-row,
+      .scheduled-settings-rule-header {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .scheduled-settings-rule .scheduled-settings-calendar-fields,
+      .scheduled-settings-rule .scheduled-settings-value-editor .row-component {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .scheduled-settings-rule .scheduled-settings-weekdays {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+
+        legend {
+          grid-column: 1 / -1;
+        }
+
+        .checkbox-component {
+          min-width: 0;
         }
       }
     }
@@ -2084,8 +2447,90 @@
       }
     }
 
+    // Preserve an explicit top or bottom choice at compact widths. Vertical
+    // docks become the narrow icon rail; horizontal docks remain a scrolling
+    // row instead of silently jumping back to the top.
+    .preferences-container[data-settings-tab-dock-position='top'],
+    .preferences-container[data-settings-tab-dock-position='bottom'] {
+      flex-direction: column;
+
+      .preferences-rail {
+        border-left: 0;
+        border-right: 0;
+        padding: 10px 12px 8px;
+        width: 100%;
+
+        .preferences-rail-header {
+          align-items: center;
+          flex-direction: row;
+          justify-content: space-between;
+
+          .preferences-title {
+            margin: 0;
+          }
+        }
+
+        .settings-tab-strip-list {
+          display: flex;
+          overflow-x: auto;
+          overflow-y: hidden;
+        }
+
+        .settings-tab-strip-item {
+          flex: 0 0 auto;
+          width: auto;
+        }
+      }
+    }
+
+    .preferences-container[data-settings-tab-dock-position='top'] .preferences-rail {
+      border-bottom: var(--base-border);
+    }
+
+    .preferences-container[data-settings-tab-dock-position='bottom'] {
+      flex-direction: column-reverse;
+
+      .preferences-rail {
+        border-top: var(--base-border);
+      }
+    }
+
+    .preferences-container[data-settings-tab-dock-position='left'],
+    .preferences-container[data-settings-tab-dock-position='right'] {
+      .settings-tab-dock-control {
+        align-items: stretch;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        label {
+          font-size: 10px;
+          text-align: center;
+        }
+
+        select {
+          min-width: 0;
+          padding-left: 4px;
+          padding-right: 4px;
+          width: 100%;
+        }
+
+        p {
+          display: none;
+        }
+      }
+    }
+
     .preferences-pane-header {
-      padding: 6px 6px 0 0;
+      padding: 6px 6px 0 12px;
+    }
+
+    .preferences-browser-search {
+      padding-inline: 12px;
+    }
+
+    .settings-tab-strip-browser {
+      padding-inline: 6px;
     }
 
     .tab-container {

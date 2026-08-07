@@ -4,6 +4,7 @@ import { describe, it } from 'node:test'
 import { DefaultAppDisplayName } from '../../src/models/app-identity'
 import {
   AppDisplayName,
+  DefaultOAuthClientId,
   getOAuthReplacements,
   getReplacements,
 } from '../../app-info'
@@ -62,7 +63,10 @@ describe('product name branding', () => {
     assert.equal(shared.__OAUTH_SECRET__, 'undefined')
 
     const rendererOnly = getOAuthReplacements()
-    assert.notEqual(rendererOnly.__OAUTH_CLIENT_ID__, 'undefined')
+    assert.equal(
+      rendererOnly.__OAUTH_CLIENT_ID__,
+      JSON.stringify(DefaultOAuthClientId)
+    )
     assert.notEqual(rendererOnly.__OAUTH_SECRET__, 'undefined')
   })
 })

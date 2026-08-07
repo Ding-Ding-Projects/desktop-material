@@ -670,6 +670,32 @@
   }
 }
 
+.actions-log-error {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.actions-log-error .actions-inline-error {
+  max-width: 720px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.actions-log-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+}
+
 .actions-log-list {
   flex: 1 1 auto;
   min-height: 0;

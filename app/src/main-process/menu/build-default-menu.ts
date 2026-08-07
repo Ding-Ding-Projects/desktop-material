@@ -401,6 +401,11 @@ export function buildDefaultMenuTemplate(
         click: emit('fork-repository'),
       },
       {
+        id: 'transfer-repository',
+        label: __DARWIN__ ? 'Transfer Repository…' : '&Transfer repository…',
+        click: emit('transfer-repository'),
+      },
+      {
         id: 'inspect-branch-rules',
         label: __DARWIN__ ? 'Inspect Branch Rules…' : 'I&nspect branch rules…',
         click: emit('inspect-branch-rules'),
@@ -449,7 +454,7 @@ export function buildDefaultMenuTemplate(
       separator,
       {
         id: 'create-worktree',
-        label: __DARWIN__ ? 'New Worktree…' : 'New work&tree…',
+        label: __DARWIN__ ? 'New Worktree…' : 'N&ew worktree…',
         click: emit('create-worktree'),
         accelerator: 'CmdOrCtrl+Shift+W',
         visible: enableWorktreeSupport(),

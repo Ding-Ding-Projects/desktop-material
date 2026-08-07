@@ -17,6 +17,7 @@ import {
   IExistingSelfHostedServerBootstrap,
   ISelfHostedServerBootstrap,
   ISelfHostedServerProvisioningDriver,
+  validateSamlMetadataXml,
 } from '../../lib/self-hosted-server/provisioning'
 
 const DockerDesktopPackageId = 'Docker.DockerDesktop'
@@ -551,6 +552,7 @@ function parseBootstrapConfiguration(value: string): {
     'oauthSigningPublicJwkJson',
     'oauthKeyId',
   ]
+  const samlMetadataKey = 'samlMetadataXml'
   const presentOAuthKeys = oauthKeys.filter(key => key in config)
   if (
     presentOAuthKeys.length !== 0 &&
@@ -558,7 +560,7 @@ function parseBootstrapConfiguration(value: string): {
   ) {
     throw new SelfHostedServerProvisioningDriverError('configuration-invalid')
   }
-  const allowedKeys = [...expectedKeys, ...oauthKeys]
+  const allowedKeys = [...expectedKeys, ...oauthKeys, samlMetadataKey]
   if (
     !Object.keys(config).every(key => allowedKeys.includes(key)) ||
     !expectedKeys.every(key => key in config) ||
@@ -575,6 +577,16 @@ function parseBootstrapConfiguration(value: string): {
     config.transport !== 'reverse-proxy'
   ) {
     throw new SelfHostedServerProvisioningDriverError('configuration-invalid')
+  }
+  if (samlMetadataKey in config) {
+    try {
+      if (typeof config[samlMetadataKey] !== 'string') {
+        throw new Error('invalid-saml-metadata')
+      }
+      validateSamlMetadataXml(config[samlMetadataKey])
+    } catch {
+      throw new SelfHostedServerProvisioningDriverError('configuration-invalid')
+    }
   }
   if (
     presentOAuthKeys.length === oauthKeys.length &&

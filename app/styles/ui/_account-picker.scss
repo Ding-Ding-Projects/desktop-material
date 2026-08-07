@@ -43,6 +43,14 @@
         height: 32px;
       }
 
+      .avatar-container {
+        display: grid;
+        flex: none;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+      }
+
       .icon {
         margin-left: var(--spacing-half);
         margin-right: var(--spacing);
@@ -72,6 +80,13 @@
           font-weight: var(--font-weight-light);
           font-size: var(--font-size-sm);
           color: var(--text-secondary-color);
+        }
+
+        .tertiary {
+          @include ellipsis;
+          min-width: 0;
+          color: var(--md-sys-color-on-surface-variant);
+          font-size: var(--font-size-xs);
         }
       }
     }

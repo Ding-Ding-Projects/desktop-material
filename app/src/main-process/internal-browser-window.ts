@@ -2,7 +2,11 @@ import { BrowserWindow, shell, WebContents, WebContentsView } from 'electron'
 import { randomUUID } from 'crypto'
 import { encodePathAsUrl } from '../lib/path'
 import { DefaultAppDisplayName } from '../models/app-identity'
-import { IOAuthAction, parseAppURL } from '../lib/parse-app-url'
+import {
+  IOAuthAction,
+  ISelfHostedOAuthAction,
+  parseAppURL,
+} from '../lib/parse-app-url'
 import {
   BrowserOpenIntent,
   canCreateInternalBrowserTab,
@@ -51,7 +55,7 @@ interface IInternalBrowserAuthenticationFlow {
 
 export interface IInternalBrowserWindowOptions {
   readonly handleAuthenticationCallback: (
-    action: IOAuthAction,
+    action: IOAuthAction | ISelfHostedOAuthAction,
     ownerWindowId: number | null
   ) => Promise<InternalBrowserOAuthCallbackResult>
   readonly isAppURL: (url: string) => boolean

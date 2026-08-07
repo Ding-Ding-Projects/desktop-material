@@ -2,6 +2,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import {
   RepoListFileVersion,
+  isPortableCloneUrl,
   normalizeRepoUrls,
   parseRepoList,
   sanitizeRemoteUrl,
@@ -52,6 +53,22 @@ describe('repo-list-file', () => {
         sanitizeRemoteUrl('  https://github.com/o/r.git  '),
         'https://github.com/o/r.git'
       )
+    })
+
+    it('removes query and fragment credentials from an https URL', () => {
+      assert.equal(
+        sanitizeRemoteUrl(
+          'https://github.com/o/r.git?access_token=query-secret#fragment-secret'
+        ),
+        'https://github.com/o/r.git'
+      )
+    })
+
+    it('recognizes portable clone URLs and rejects local inputs', () => {
+      assert.equal(isPortableCloneUrl('https://github.com/o/r.git'), true)
+      assert.equal(isPortableCloneUrl('git@github.com:o/r.git'), true)
+      assert.equal(isPortableCloneUrl('file:///C:/work/repository'), false)
+      assert.equal(isPortableCloneUrl('C:\\work\\repository'), false)
     })
   })
 
@@ -140,6 +157,17 @@ describe('repo-list-file', () => {
         ),
         null
       )
+    })
+
+    it('rejects non-portable clone inputs instead of passing them to Git', () => {
+      const parsed = parseRepoList(
+        JSON.stringify({
+          version: 1,
+          exportedAt: '2026-07-12T00:00:00.000Z',
+          repositories: [{ url: 'file:///C:/work/repository' }],
+        })
+      )
+      assert.equal(parsed, null)
     })
   })
 })

@@ -29,6 +29,36 @@ export interface ISelfHostedOAuthTokens {
   readonly idToken: string | null
 }
 
+export interface ISelfHostedOAuthUserInfo {
+  readonly sub: string
+  readonly scope: string
+}
+
+export function normalizeSelfHostedOAuthOrigin(value: string): string {
+  let origin: URL
+  try {
+    origin = new URL(value)
+  } catch {
+    throw new Error('self-hosted-oauth-origin-invalid')
+  }
+  const loopback =
+    origin.hostname === 'localhost' ||
+    origin.hostname === '127.0.0.1' ||
+    origin.hostname === '[::1]'
+  if (
+    (origin.protocol !== 'https:' &&
+      !(loopback && origin.protocol === 'http:')) ||
+    origin.username.length > 0 ||
+    origin.password.length > 0 ||
+    origin.pathname !== '/' ||
+    origin.search.length > 0 ||
+    origin.hash.length > 0
+  ) {
+    throw new Error('self-hosted-oauth-origin-invalid')
+  }
+  return origin.origin
+}
+
 function base64url(value: Buffer): string {
   return value.toString('base64url')
 }
@@ -49,12 +79,13 @@ function base64url(value: Buffer): string {
 export function createSelfHostedOAuthSignInRequest(
   publicOrigin: string
 ): ISelfHostedOAuthSignInRequest {
+  const normalizedOrigin = normalizeSelfHostedOAuthOrigin(publicOrigin)
   const codeVerifier = base64url(randomBytes(64)).slice(0, 128)
   const codeChallenge = base64url(
     createHash('sha256').update(codeVerifier, 'utf8').digest()
   )
   const state = base64url(randomBytes(32))
-  const url = new URL('/oauth/authorize', publicOrigin)
+  const url = new URL('/oauth/authorize', normalizedOrigin)
   url.searchParams.set('response_type', 'code')
   url.searchParams.set('client_id', SelfHostedOAuthClientId)
   url.searchParams.set('redirect_uri', SelfHostedOAuthRedirectUri)
@@ -78,8 +109,9 @@ export async function exchangeSelfHostedOAuthCode(
   codeVerifier: string,
   fetchImplementation: typeof fetch = fetch
 ): Promise<ISelfHostedOAuthTokens> {
+  const normalizedOrigin = normalizeSelfHostedOAuthOrigin(publicOrigin)
   const response = await fetchImplementation(
-    new URL('/oauth/token', publicOrigin),
+    new URL('/oauth/token', normalizedOrigin),
     {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -114,4 +146,36 @@ export async function exchangeSelfHostedOAuthCode(
     expiresIn: body.expires_in,
     idToken: typeof body.id_token === 'string' ? body.id_token : null,
   }
+}
+
+/** Resolve the exchanged bearer token against the same tenant that issued it. */
+export async function fetchSelfHostedOAuthUserInfo(
+  publicOrigin: string,
+  accessToken: string,
+  fetchImplementation: typeof fetch = fetch
+): Promise<ISelfHostedOAuthUserInfo> {
+  const normalizedOrigin = normalizeSelfHostedOAuthOrigin(publicOrigin)
+  if (!/^[A-Za-z0-9_-]{43}$/.test(accessToken)) {
+    throw new Error('self-hosted-oauth-access-token-invalid')
+  }
+  const response = await fetchImplementation(
+    new URL('/oauth/userinfo', normalizedOrigin),
+    { headers: { authorization: `Bearer ${accessToken}` } }
+  )
+  if (!response.ok) {
+    throw new Error('self-hosted-oauth-userinfo-failed')
+  }
+  const body = (await response.json()) as {
+    readonly sub?: unknown
+    readonly scope?: unknown
+  }
+  if (
+    typeof body.sub !== 'string' ||
+    !/^[A-Za-z0-9._:@/-]{1,128}$/.test(body.sub) ||
+    typeof body.scope !== 'string' ||
+    !body.scope.split(' ').includes('profile')
+  ) {
+    throw new Error('self-hosted-oauth-userinfo-invalid')
+  }
+  return { sub: body.sub, scope: body.scope }
 }

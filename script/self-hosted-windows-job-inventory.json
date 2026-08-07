@@ -1,0 +1,64 @@
+{
+  "version": 2,
+  "releaseBootstrapComponents": [
+    ".github/scripts/ensure-windows-git-bash.ps1",
+    ".github/scripts/ensure-github-cli.sh",
+    ".github/scripts/ensure-jq.sh"
+  ],
+  "jobs": [
+    {
+      "workflow": ".github/workflows/build-installers.yml",
+      "job": "test",
+      "dependencyInventory": "docs/features/integrations/self-hosted-windows-dependency-bootstrap.md",
+      "bootstrap": ".github/actions/setup-ci-environment/action.yml",
+      "coldBootstrapTest": ".github/scripts/test-windows-release-bootstrap.ps1"
+    },
+    {
+      "workflow": ".github/workflows/build-installers.yml",
+      "job": "package",
+      "dependencyInventory": "docs/features/integrations/self-hosted-windows-dependency-bootstrap.md",
+      "bootstrap": ".github/actions/setup-ci-environment/action.yml",
+      "coldBootstrapTest": ".github/scripts/test-windows-release-bootstrap.ps1"
+    },
+    {
+      "workflow": ".github/workflows/ci-windows.yml",
+      "job": "build",
+      "dependencyInventory": "docs/features/integrations/self-hosted-windows-dependency-bootstrap.md",
+      "bootstrap": ".github/actions/setup-ci-environment/action.yml",
+      "coldBootstrapTest": ".github/scripts/test-windows-release-bootstrap.ps1"
+    },
+    {
+      "workflow": ".github/workflows/ci-windows.yml",
+      "job": "e2e-smoke",
+      "dependencyInventory": "docs/features/integrations/self-hosted-windows-dependency-bootstrap.md",
+      "bootstrap": ".github/actions/setup-ci-environment/action.yml",
+      "coldBootstrapTest": ".github/scripts/test-windows-release-bootstrap.ps1"
+    },
+    {
+      "workflow": ".github/workflows/super-express-release.yml",
+      "job": "windows_build",
+      "dependencyInventory": "docs/features/integrations/self-hosted-windows-dependency-bootstrap.md",
+      "bootstrap": ".github/actions/super-express-windows-build/action.yml",
+      "coldBootstrapTest": ".github/scripts/test-windows-release-bootstrap.ps1"
+    },
+    {
+      "workflow": ".github/workflows/super-express-release-windows.yml",
+      "job": "build",
+      "dependencyInventory": "docs/features/integrations/self-hosted-windows-dependency-bootstrap.md",
+      "bootstrap": ".github/actions/super-express-windows-build/action.yml",
+      "coldBootstrapTest": ".github/scripts/test-windows-release-bootstrap.ps1"
+    },
+    {
+      "workflow": ".github/workflows/super-express-release-windows.yml",
+      "job": "publish",
+      "dependencyInventory": "docs/features/integrations/self-hosted-windows-dependency-bootstrap.md",
+      "bootstrap": ".github/scripts/ensure-windows-git-bash.ps1",
+      "bootstrapComponents": [
+        ".github/scripts/ensure-windows-git-bash.ps1",
+        ".github/scripts/ensure-github-cli.sh",
+        ".github/scripts/ensure-jq.sh"
+      ],
+      "coldBootstrapTest": ".github/scripts/test-windows-release-bootstrap.ps1"
+    }
+  ]
+}

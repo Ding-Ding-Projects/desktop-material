@@ -21,6 +21,8 @@ import {
   ICheapLfsManagedPointerEntry,
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
+  ICheapLfsAutoPinProgress,
+  ICheapLfsWorkingTreePinResult,
   CheapLfsPinStage,
 } from '../../lib/cheap-lfs/operations'
 import type { ICheapLfsOciMutationResult } from '../../lib/cheap-lfs/oci-operations'
@@ -88,6 +90,10 @@ import {
   TeamClientError,
 } from '../../lib/self-hosted-server/team-client'
 import { getTeamConnection } from '../../lib/self-hosted-server/team-connection'
+import type {
+  CloudPatchApplyResult,
+  CloudPatchShareResult,
+} from '../../lib/cloud-patches/cloud-patch-orchestration'
 import type { InternalBrowserOAuthCallbackResult } from '../../lib/internal-browser'
 import {
   matchExistingRepository,
@@ -161,6 +167,11 @@ import type {
   IAppearanceCustomization,
   IRepositoryAppearanceOverrides,
 } from '../../models/appearance-customization'
+import type {
+  IHomeAssistantSettingsRequest,
+  ISetHomeAssistantTokenRequest,
+  IScheduledSettingsConfig,
+} from '../../models/scheduled-settings'
 import {
   ProfileAppearanceElementId,
   RepositoryAppearanceElementId,
@@ -224,6 +235,10 @@ import type { IVersionedStoreHistorySource } from '../version-history/versioned-
 import { RepositorySettingsTab } from '../repository-settings/repository-settings'
 
 import { ApplicationTheme } from '../lib/application-theme'
+import {
+  fetchHomeAssistantState as fetchHomeAssistantStateFromMain,
+  setHomeAssistantToken as setHomeAssistantTokenInMain,
+} from '../../lib/scheduled-settings-api-client'
 import { installCLI } from '../lib/install-cli'
 import { redactLocalPaths } from '../lib/redact-local-paths'
 import {
@@ -321,6 +336,10 @@ import {
 import { UnreachableCommitsTab } from '../history/unreachable-commits-dialog'
 import { sendNonFatalException } from '../../lib/helpers/non-fatal-exception'
 import { SignInResult } from '../../lib/stores/sign-in-store'
+import type {
+  IRepositoryTransferProgress,
+  RepositoryTransferMode,
+} from '../../lib/repository-transfer'
 import { ICustomIntegration } from '../../lib/custom-integration'
 import { IBranchNamePreset } from '../../models/branch-preset'
 import { isAbsolute, join } from 'path'
@@ -1330,6 +1349,29 @@ export class Dispatcher {
    */
   public refreshRepository(repository: Repository): Promise<void> {
     return this.appStore._refreshOrRecoverRepository(repository)
+  }
+
+  /** Share a commit range through the joined self-hosted Cloud Patch server. */
+  public shareCloudPatch(
+    repository: Repository,
+    baseRevision: string,
+    headRevision: string,
+    recipientDeviceIds: ReadonlyArray<string>
+  ): Promise<CloudPatchShareResult> {
+    return this.appStore._shareCloudPatch(
+      repository,
+      baseRevision,
+      headRevision,
+      recipientDeviceIds
+    )
+  }
+
+  /** Fetch and apply a Cloud Patch, preserving the truthful no-server result. */
+  public applyCloudPatch(
+    repository: Repository,
+    link: string
+  ): Promise<CloudPatchApplyResult> {
+    return this.appStore._applyCloudPatch(repository, link)
   }
 
   /** Fetch a reviewed shallow-history recipe through Desktop authentication. */
@@ -2397,9 +2439,16 @@ export class Dispatcher {
   public deleteLocalBranch(
     repository: Repository,
     branch: Branch,
-    includeUpstream?: boolean
-  ): Promise<void> {
-    return this.appStore._deleteBranch(repository, branch, includeUpstream)
+    includeUpstream?: boolean,
+    expectedSha?: string
+  ): Promise<boolean> {
+    return this.appStore._deleteBranch(
+      repository,
+      branch,
+      includeUpstream,
+      undefined,
+      expectedSha
+    )
   }
 
   /**
@@ -2407,9 +2456,16 @@ export class Dispatcher {
    */
   public deleteRemoteBranch(
     repository: Repository,
-    branch: Branch
-  ): Promise<void> {
-    return this.appStore._deleteBranch(repository, branch)
+    branch: Branch,
+    expectedSha?: string
+  ): Promise<boolean> {
+    return this.appStore._deleteBranch(
+      repository,
+      branch,
+      undefined,
+      undefined,
+      expectedSha
+    )
   }
 
   public deleteReviewedBranches(
@@ -3243,6 +3299,15 @@ export class Dispatcher {
     // get manual resolutions in case there are manual conflicts
     const repositoryState = this.repositoryStateManager.get(repository)
     const { conflictState } = repositoryState.changesState
+    const operationDetail =
+      repositoryState.multiCommitOperationState?.operationDetail
+    const deleteAfterSuccessfulMerge =
+      operationDetail?.kind === MultiCommitOperationKind.Merge &&
+      operationDetail.deleteAfterSuccessfulMerge === true
+    const sourceBranch =
+      operationDetail?.kind === MultiCommitOperationKind.Merge
+        ? operationDetail.sourceBranch
+        : null
     if (conflictState === null) {
       // if this doesn't exist, something is very wrong and we shouldn't proceed 😢
       log.error(
@@ -3264,6 +3329,12 @@ export class Dispatcher {
         // to capture all successful squash merges under this metric.
         this.statsStore.increment('squashMergeSuccessfulCount')
         this.statsStore.increment('squashMergeSuccessfulWithConflictsCount')
+      }
+      if (deleteAfterSuccessfulMerge && sourceBranch !== null) {
+        await this.appStore._deleteMergedBranchAfterSuccessfulMerge(
+          repository,
+          sourceBranch
+        )
       }
     }
   }
@@ -3493,6 +3564,21 @@ export class Dispatcher {
       onProgress,
       onStage,
       onHashProgress
+    )
+  }
+
+  /** Store an explicit working-tree selection in Cheap LFS as one batch. */
+  public storeWorkingTreeFilesInCheapLfs(
+    repository: Repository,
+    paths: ReadonlyArray<string>,
+    signal?: AbortSignal,
+    onProgress?: (progress: ICheapLfsAutoPinProgress) => void
+  ): Promise<ICheapLfsWorkingTreePinResult> {
+    return this.appStore._storeWorkingTreeFilesInCheapLfs(
+      repository,
+      paths,
+      signal,
+      onProgress
     )
   }
 
@@ -3780,6 +3866,13 @@ export class Dispatcher {
     this.appStore._beginDotComSignIn(resultCallback)
   }
 
+  public beginSelfHostedSignIn(
+    publicOrigin: string,
+    resultCallback?: (result: SignInResult) => void
+  ) {
+    this.appStore._beginSelfHostedSignIn(publicOrigin, resultCallback)
+  }
+
   public beginBrowserBasedSignIn(
     endpoint: string,
     resultCallback?: (result: SignInResult) => void
@@ -3867,6 +3960,18 @@ export class Dispatcher {
     repository: RepositoryWithGitHubRepository
   ): Promise<void> {
     await this.appStore._showCreateForkDialog(repository)
+  }
+
+  /** Show the account-aware repository transfer workflow. */
+  public async showTransferRepositoryDialog(
+    repository: RepositoryWithGitHubRepository,
+    onCompleted?: () => void
+  ): Promise<void> {
+    this.appStore._showPopup({
+      type: PopupType.TransferRepository,
+      repository,
+      onCompleted,
+    })
   }
 
   public async showUnknownAuthorsCommitWarning(
@@ -4753,7 +4858,10 @@ export class Dispatcher {
     let workspace
     try {
       workspace = await fetchSharedWorkspace(
-        { publicOrigin: connection.publicOrigin, deviceToken: connection.deviceToken },
+        {
+          publicOrigin: connection.publicOrigin,
+          deviceToken: connection.deviceToken,
+        },
         action.shareToken
       )
     } catch (error) {
@@ -4766,7 +4874,10 @@ export class Dispatcher {
     }
 
     if (workspace.branch !== null) {
-      await this.openBranchNameFromUrl(workspace.repositoryUrl, workspace.branch)
+      await this.openBranchNameFromUrl(
+        workspace.repositoryUrl,
+        workspace.branch
+      )
     } else {
       await this.openOrCloneRepository(workspace.repositoryUrl)
     }
@@ -4930,18 +5041,7 @@ export class Dispatcher {
         return null
 
       case 'self-hosted-oauth':
-        // The self-hosted OAuth authorize/token round trip (issue #119, R2)
-        // is implemented server-side and in
-        // `lib/self-hosted-server/oauth-sign-in.ts`, but nothing yet stores
-        // the PKCE code verifier across the browser round trip or lands the
-        // resulting tokens in the app's account store — that's the
-        // remaining gap tracked in #119, not something to fake here.
-        if (__DEV__) {
-          log.warn(
-            `Received self-hosted OAuth callback (state: ${action.state}) but sign-in completion is not wired yet (#119)`
-          )
-        }
-        return null
+        return this.appStore._resolveSelfHostedOAuthRequest(action)
 
       case 'open-team-workspace':
         await this.openTeamWorkspaceFromUrl(action)
@@ -5703,6 +5803,28 @@ export class Dispatcher {
     )
   }
 
+  public transferRepository(
+    repository: Repository,
+    account: Account,
+    org: IAPIOrganization | null,
+    name: string,
+    description: string,
+    private_: boolean,
+    mode: RepositoryTransferMode,
+    onProgress?: (progress: IRepositoryTransferProgress) => void
+  ): Promise<Repository> {
+    return this.appStore._transferRepository(
+      repository,
+      account,
+      org,
+      name,
+      description,
+      private_,
+      mode,
+      onProgress
+    )
+  }
+
   public async convertRepositoryToFork(
     repository: RepositoryWithGitHubRepository,
     fork: IAPIFullRepository
@@ -5726,6 +5848,18 @@ export class Dispatcher {
 
   public setAppearanceCustomization(customization: IAppearanceCustomization) {
     return this.appStore._setAppearanceCustomization(customization)
+  }
+
+  public setScheduledSettings(settings: IScheduledSettingsConfig) {
+    return this.appStore._setScheduledSettings(settings)
+  }
+
+  public setHomeAssistantToken(request: ISetHomeAssistantTokenRequest) {
+    return setHomeAssistantTokenInMain(request)
+  }
+
+  public fetchHomeAssistantState(request: IHomeAssistantSettingsRequest) {
+    return fetchHomeAssistantStateFromMain(request)
   }
 
   public setRepositoryAppearanceOverrides(
@@ -7525,7 +7659,8 @@ export class Dispatcher {
   public startMergeBranchOperation(
     repository: Repository,
     isSquash: boolean = false,
-    initialBranch?: Branch | null
+    initialBranch?: Branch | null,
+    deleteAfterSuccessfulMerge: boolean = false
   ) {
     const { branchesState } = this.repositoryStateManager.get(repository)
     const { defaultBranch, allBranches, recentBranches, tip } = branchesState
@@ -7539,7 +7674,12 @@ export class Dispatcher {
       )
     }
 
-    this.initializeMergeOperation(repository, isSquash, null)
+    this.initializeMergeOperation(
+      repository,
+      isSquash,
+      null,
+      deleteAfterSuccessfulMerge
+    )
 
     this.setMultiCommitOperationStep(repository, {
       kind: MultiCommitOperationStepKind.ChooseBranch,
@@ -7568,7 +7708,8 @@ export class Dispatcher {
   public initializeMergeOperation(
     repository: Repository,
     isSquash: boolean,
-    sourceBranch: Branch | null
+    sourceBranch: Branch | null,
+    deleteAfterSuccessfulMerge: boolean = false
   ) {
     const {
       branchesState: { tip },
@@ -7590,6 +7731,7 @@ export class Dispatcher {
         kind: MultiCommitOperationKind.Merge,
         isSquash,
         sourceBranch,
+        deleteAfterSuccessfulMerge,
       },
       currentBranch,
       [],

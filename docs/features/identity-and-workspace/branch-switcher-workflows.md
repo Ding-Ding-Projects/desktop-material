@@ -15,25 +15,25 @@ submodule, and in-progress-operation protections. Filter and visibility choices
 do not delete refs. Invalid preset output is treated as display input and the
 final branch name remains subject to Git ref validation.
 
-When the current worktree has uncommitted changes, the switch dialog also
-offers **Leave my changes here**. This keeps the current branch and its working
-files exactly where they are, then opens the existing Add worktree flow with
-the destination branch and a suggested worktree name prefilled. The new linked
-worktree is created only after the user chooses and confirms an absolute path;
-after creation, the app switches to that worktree. No stash entry is created,
-and the current worktree is never checked out to the destination branch.
+Add worktree flow. The freshness filter adds
+`for-each-ref-test.ts`, `not-updated-with-default-test.ts`,
+`merge-branch-filters-test.ts`, and the integrated merge chooser/filter suite.
+The focused integrated run passed **28/28** tests, TypeScript and changed-file
+ESLint passed, and the development build completed through Windows resource
+preparation. The built-app capture below is the exact client-only frame from
+the disposable `main` fixture: **960×660**, SHA-256
+`DA046E4BC768324BAFF001B5DE0C7954F53F1CD498C25338081E8FDB83990346`.
 
-If the worktree creation fails, the current dirty worktree remains untouched
-and the error is shown through the normal worktree error path. A destination
-branch already checked out in another worktree continues to use the existing
-worktree-switch behavior instead of offering a duplicate checkout.
+![Merge into main chooser with Not updated with main active, showing only the stale fixture branch](../../assets/screenshots/not-updated-with-main-filter.png)
 
-Failures from a preset process are bounded by timeout/output limits and direct
-the user back to Settings. Branch discovery remains usable without the custom
-integration.
+The capture shows `codex/not-updated-with-main` remaining visible while
+`codex/updated-with-main` is removed by the active filter.
 
-Verification includes `branch-preset-test.ts`,
-`stash-and-switch-branch-dialog-test.tsx`, branch grouping/filter suites,
-recent-branch Git tests, the checkout/branch dispatcher suites, and a real
-Windows hidden-desktop capture of the dirty-worktree dialog and the prefilled
-Add worktree flow.
+## Acceptance captures
+
+The built Windows renderer shows the new choice selected and the follow-up
+form with the destination branch and worktree name already filled in:
+
+![Dirty-worktree switch dialog with Leave my changes here selected](../../verification/dirty-worktree-worktree-option-20260805/dirty-worktree-switch-dialog.png)
+
+![Add worktree form prefilled for the destination branch](../../verification/dirty-worktree-worktree-option-20260805/add-worktree-prefilled.png)

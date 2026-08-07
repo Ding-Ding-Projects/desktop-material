@@ -33,6 +33,7 @@ describe('IPC channel contract', () => {
     'agent-command-result',
     'agent-server-status',
     'self-hosted-server-provisioning-progress',
+    'self-hosted-runner-progress',
     'select-all-window-contents',
     'dialog-did-open',
     'update-menu-state',
@@ -115,6 +116,9 @@ describe('IPC channel contract', () => {
   ] as const
 
   const expectedResponseChannels = [
+    'fetch-scheduled-settings',
+    'fetch-home-assistant-state',
+    'set-home-assistant-token',
     'acquire-profile-repository-lock',
     'release-profile-repository-lock',
     'start-window-close-preparation',
@@ -140,6 +144,11 @@ describe('IPC channel contract', () => {
     'get-self-hosted-server-status',
     'provision-self-hosted-server',
     'cancel-self-hosted-server-provisioning',
+    'get-self-hosted-runner-status',
+    'setup-self-hosted-runner',
+    'start-self-hosted-runner',
+    'stop-self-hosted-runner',
+    'remove-self-hosted-runner',
     'get-windows-context-menu-state',
     'set-windows-context-menu-entry',
     'set-modern-context-menu-installed',

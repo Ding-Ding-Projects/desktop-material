@@ -7,6 +7,7 @@ import { pathToFileURL } from 'node:url'
 
 import {
   createSelfHostedServerBootstrap,
+  validateSamlMetadataXml,
   IDockerProvisioningProbe,
   IExistingSelfHostedServerBootstrap,
   ISelfHostedServerBootstrap,
@@ -114,6 +115,30 @@ async function provision(
 }
 
 describe('self-hosted server provisioning', () => {
+  it('accepts bounded SAML metadata but rejects entity-expansion input', () => {
+    const metadata = `<EntityDescriptor entityID="https://idp.example.test/metadata"><SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://idp.example.test/sso"/><X509Certificate>${'A'.repeat(
+      128
+    )}</X509Certificate></EntityDescriptor>`
+    const bootstrap = createSelfHostedServerBootstrap(
+      PublicOrigin,
+      Date.now(),
+      {
+        samlMetadataXml: metadata,
+      }
+    )
+    assert.equal(
+      JSON.parse(bootstrap.configurationJson).samlMetadataXml,
+      metadata
+    )
+    assert.throws(
+      () =>
+        validateSamlMetadataXml(
+          '<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///x">]>'
+        ),
+      /Invalid SAML identity-provider metadata/
+    )
+  })
+
   it('generates hashes only and keeps join secrets out of URLs and config', () => {
     const bootstrap = createSelfHostedServerBootstrap(
       PublicOrigin,

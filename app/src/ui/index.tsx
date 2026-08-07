@@ -543,6 +543,12 @@ void logStoreInitialization.catch(err =>
 
 configureRendererShutdown([
   {
+    name: 'scheduled settings runtime',
+    run: async () => {
+      appStore.stopScheduledSettingsRuntime()
+    },
+  },
+  {
     name: 'profile settings',
     run: async () => {
       await profileStoreInitialization
@@ -745,7 +751,7 @@ ipcRenderer.on('url-action', (_, action, callbackId) => {
   dispatcher
     .dispatchURLAction(action)
     .then(result => {
-      if (action.name === 'oauth') {
+      if (action.name === 'oauth' || action.name === 'self-hosted-oauth') {
         if (typeof callbackId !== 'string') {
           log.error('OAuth URL action arrived without a callback correlation')
           return
@@ -758,7 +764,7 @@ ipcRenderer.on('url-action', (_, action, callbackId) => {
     })
     .catch(e => {
       log.error(`URL action ${action.name} failed`, e)
-      if (action.name === 'oauth') {
+      if (action.name === 'oauth' || action.name === 'self-hosted-oauth') {
         if (typeof callbackId !== 'string') {
           log.error('Failed OAuth URL action had no callback correlation')
           return
@@ -790,6 +796,10 @@ ipcRenderer.on('cli-action', (_, action) =>
 //
 // 1. https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-label
 // 2. https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Attributes/aria-readonly
+const gridWithOptionalPropTypes = Grid as typeof Grid & {
+  propTypes?: Record<string, unknown>
+}
+
 ;(function (
   defaults: Record<string, unknown> | undefined,
   types: Record<string, unknown> | undefined
@@ -798,7 +808,7 @@ ipcRenderer.on('cli-action', (_, action) =>
     delete defaults?.[k]
     delete types?.[k]
   })
-})(Grid.defaultProps, Grid.propTypes)
+})(gridWithOptionalPropTypes.defaultProps, gridWithOptionalPropTypes.propTypes)
 
 ReactDOM.render(
   <CrashProofBoundary name="Desktop Material" root={true}>

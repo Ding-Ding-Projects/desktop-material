@@ -6,9 +6,8 @@ import { getSSHCredentialStoreKey } from './ssh-credential-storage'
 const generateKeyPairAsync = promisify(generateKeyPair)
 
 /** Store/key used to persist the auto-generated SSH private key material. */
-export const GeneratedSSHKeyStore = getSSHCredentialStoreKey(
-  'Generated SSH Key'
-)
+export const GeneratedSSHKeyStore =
+  getSSHCredentialStoreKey('Generated SSH Key')
 const GeneratedSSHKeyStoreLogin = 'default'
 
 export interface IGeneratedSSHKey {
@@ -30,10 +29,7 @@ function toOpenSSHPublicKey(rawPublicKeyDer: Buffer, comment: string): string {
   const rawKey = rawPublicKeyDer.subarray(rawPublicKeyDer.length - 32)
 
   const keyType = 'ssh-ed25519'
-  const parts = [
-    encodeSSHString(Buffer.from(keyType)),
-    encodeSSHString(rawKey),
-  ]
+  const parts = [encodeSSHString(Buffer.from(keyType)), encodeSSHString(rawKey)]
   const blob = Buffer.concat(parts).toString('base64')
 
   return `${keyType} ${blob} ${comment}`.trim()

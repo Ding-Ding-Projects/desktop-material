@@ -95,6 +95,36 @@ function textbox(name: string): HTMLTextAreaElement {
   return screen.getByRole('textbox', { name }) as HTMLTextAreaElement
 }
 
+interface ITestCodeMirrorEditor {
+  getValue(): string
+  setValue(value: string): void
+}
+
+function codeMirrorEditor(
+  textarea: HTMLTextAreaElement
+): ITestCodeMirrorEditor | undefined {
+  return (
+    textarea.closest('.CodeMirror') as
+      | (HTMLElement & { CodeMirror?: ITestCodeMirrorEditor })
+      | null
+  )?.CodeMirror
+}
+
+function textboxValue(name: string): string {
+  const textarea = textbox(name)
+  return codeMirrorEditor(textarea)?.getValue() ?? textarea.value
+}
+
+function changeTextbox(name: string, value: string): void {
+  const textarea = textbox(name)
+  const codeMirror = codeMirrorEditor(textarea)
+  if (codeMirror === undefined) {
+    fireEvent.change(textarea, { target: { value } })
+  } else {
+    codeMirror.setValue(value)
+  }
+}
+
 describe('AI merge editor', () => {
   it('renders two read-only sources and emits an exact controlled result payload', () => {
     const changes = new Array<IAIMergeEditorResultChange>()
@@ -110,9 +140,12 @@ describe('AI merge editor', () => {
     assert.equal(ours.tagName, 'TEXTAREA')
     assert.equal(result.tagName, 'TEXTAREA')
     assert.equal(theirs.tagName, 'TEXTAREA')
-    assert.equal(ours.value, file.ours)
-    assert.equal(result.value, file.result)
-    assert.equal(theirs.value, file.theirs)
+    assert.equal(textboxValue(`${labels.ours} ${labels.readOnly}`), file.ours)
+    assert.equal(textboxValue(labels.result), file.result)
+    assert.equal(
+      textboxValue(`${labels.theirs} ${labels.readOnly}`),
+      file.theirs
+    )
     assert.equal(ours.readOnly, true)
     assert.equal(theirs.readOnly, true)
     assert.equal(result.readOnly, false)
@@ -124,23 +157,24 @@ describe('AI merge editor', () => {
     assert.equal(result.maxLength, AIMergeEditorMaximumResultLength)
 
     const nextText = 'const source = "merged"\nconst safe = true\n'
-    fireEvent.change(result, { target: { value: nextText } })
+    changeTextbox(labels.result, nextText)
     assert.deepEqual(changes, [
       { id: file.id, path: file.path, text: nextText },
     ])
     assert.deepEqual(Object.keys(changes[0]).sort(), ['id', 'path', 'text'])
 
     view.rerender(editor({ file: { ...file, result: nextText } }))
-    assert.equal(textbox(labels.result).value, nextText)
+    assert.equal(textboxValue(labels.result), nextText)
   })
 
   it('refuses an over-limit result instead of emitting silently truncated code', () => {
     const changes = new Array<IAIMergeEditorResultChange>()
     render(editor({ onResultChange: change => changes.push(change) }))
 
-    fireEvent.change(textbox(labels.result), {
-      target: { value: 'x'.repeat(AIMergeEditorMaximumResultLength + 1) },
-    })
+    changeTextbox(
+      labels.result,
+      'x'.repeat(AIMergeEditorMaximumResultLength + 1)
+    )
     assert.deepEqual(changes, [])
     assert.ok(
       screen.getByText(
@@ -165,15 +199,31 @@ describe('AI merge editor', () => {
       })
     )
 
-    const ours = textbox(`${labels.ours} ${labels.readOnly}`)
     const result = textbox(`${labels.result} ${labels.readOnly}`)
-    const theirs = textbox(`${labels.theirs} ${labels.readOnly}`)
-    assert.equal(ours.value.length, AIMergeEditorMaximumSourceLength)
-    assert.equal(result.value.length, AIMergeEditorMaximumResultLength)
-    assert.equal(theirs.value.length, AIMergeEditorMaximumSourceLength)
-    assert.equal(ours.value, oversizedOurs.slice(0, -1))
-    assert.equal(result.value, oversizedResult.slice(0, -1))
-    assert.equal(theirs.value, oversizedTheirs.slice(0, -1))
+    assert.equal(
+      textboxValue(`${labels.ours} ${labels.readOnly}`).length,
+      AIMergeEditorMaximumSourceLength
+    )
+    assert.equal(
+      textboxValue(`${labels.result} ${labels.readOnly}`).length,
+      AIMergeEditorMaximumResultLength
+    )
+    assert.equal(
+      textboxValue(`${labels.theirs} ${labels.readOnly}`).length,
+      AIMergeEditorMaximumSourceLength
+    )
+    assert.equal(
+      textboxValue(`${labels.ours} ${labels.readOnly}`),
+      oversizedOurs.slice(0, -1)
+    )
+    assert.equal(
+      textboxValue(`${labels.result} ${labels.readOnly}`),
+      oversizedResult.slice(0, -1)
+    )
+    assert.equal(
+      textboxValue(`${labels.theirs} ${labels.readOnly}`),
+      oversizedTheirs.slice(0, -1)
+    )
     assert.equal(result.readOnly, true)
     assert.equal(result.getAttribute('aria-readonly'), 'true')
     assert.equal(result.getAttribute('aria-invalid'), 'true')
@@ -188,7 +238,7 @@ describe('AI merge editor', () => {
     assert.match(descriptions, /read only here/)
     assert.equal(screen.getAllByText(labels.contentTruncated).length, 2)
 
-    fireEvent.change(result, { target: { value: 'unsafe partial edit' } })
+    changeTextbox(`${labels.result} ${labels.readOnly}`, 'unsafe partial edit')
     assert.deepEqual(changes, [])
   })
 
@@ -388,9 +438,9 @@ describe('AI merge editor', () => {
       document.querySelector('.ai-merge-editor__summary-reason')?.textContent,
       hostile
     )
-    assert.equal(textbox(`${labels.ours} ${labels.readOnly}`).value, hostile)
-    assert.equal(textbox(labels.result).value, hostile)
-    assert.equal(textbox(`${labels.theirs} ${labels.readOnly}`).value, hostile)
+    assert.equal(textboxValue(`${labels.ours} ${labels.readOnly}`), hostile)
+    assert.equal(textboxValue(labels.result), hostile)
+    assert.equal(textboxValue(`${labels.theirs} ${labels.readOnly}`), hostile)
     assert.doesNotMatch(source, /dangerouslySetInnerHTML|\.innerHTML\s*=/)
     assert.doesNotMatch(
       source,
@@ -436,9 +486,10 @@ describe('AI merge editor', () => {
       }
     }
 
-    const controls = document.querySelectorAll<HTMLElement>(
-      '.ai-merge-editor textarea, .ai-merge-editor button'
-    )
+    const controls = [
+      ...screen.getAllByRole<HTMLElement>('textbox'),
+      ...screen.getAllByRole<HTMLElement>('button'),
+    ]
     assert.equal(controls.length, 10)
     for (const control of controls) {
       assert.notEqual(control.getAttribute('tabindex'), '-1')

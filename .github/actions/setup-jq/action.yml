@@ -1,0 +1,17 @@
+name: Setup jq
+description: Reuse or install the pinned jq binary in the runner tool cache.
+
+inputs:
+  version:
+    description: jq version to require.
+    required: false
+    default: '1.7.1'
+
+runs:
+  using: composite
+  steps:
+    - name: Reuse or install pinned jq
+      shell: bash
+      env:
+        JQ_VERSION: ${{ inputs.version }}
+      run: bash .github/scripts/ensure-jq.sh

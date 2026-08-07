@@ -4,12 +4,87 @@
 
 # Desktop Material
 
+> **Rich account picking and repository-list transfer — August 6, 2026:** the
+> account picker and navigation-rail switcher now show friendly identity,
+> provider, plan, host, and email metadata with a searchable plain/fuzzy/
+> substring/bounded-regex field and the shared Regex Builder. Repository-list
+> transfer stays safely URL-only; imported clones enter the same post-clone
+> Cheap LFS materialization path as normal clones, with account-bound selections
+> intentionally kept local. Focused verification is **46/46 tests**, plus
+> changed-file ESLint and Prettier. The exact production build is currently
+> blocked by the checkout's TypeScript 6 migration diagnostics, so no fresh
+> runtime capture or release is claimed. Implementation commit
+> [`ba966baff0`](https://github.com/Ding-Ding-Projects/desktop-material/commit/ba966baff0fb5282f8c98c683e5a3f32dc17a6e9)
+> is on the task branch; default-branch integration remains pending.
+
+> **Scheduled language and appearance — August 6, 2026:** Settings →
+> Appearance can now apply language, theme, and appearance customizations in
+> local date/time windows, including an every-day time-only rule. A schedule
+> can read a versioned HTTPS API response or gate a local value on a Home
+> Assistant boolean entity; tokens stay in the operating-system credential
+> vault. See the [scheduled settings article](docs/features/identity-and-workspace/scheduled-settings.md).
+
 > **Stash recovery manager:** the Windows app now keeps every Git stash entry
 > without a Desktop entry-count cap and provides a separate searchable dialog
 > for exact-identity recovery and export to a directory, ZIP, or configurable
 > 7z archive. See [stash export and recovery](docs/features/repository-management/stash-export.md).
 
+> **Actions job-log recovery — August 5, 2026:** a completed GitHub Actions job
+> can briefly report `HTTP 404` while its log archive is being prepared. The
+> Windows viewer now retries that API response with bounded 250/750/1,500 ms
+> waits, refreshes the signed redirect each time, and offers **Retry** plus
+> **Open on GitHub** when the provider still has not produced the archive. The
+> built-app recovery proof is documented in the [Actions workflow manager
+> guide](docs/features/integrations/actions-workflow-manager.md).
+
+> **Windows startup renderer repair — August 6, 2026:** the Node-oriented
+> Copilot SDK is now packaged as an external instead of being concatenated into
+> the browser renderer. The build rejects both renderer bundles if the
+> undefined `__webpack_module__` binding returns, preventing the packaged app
+> from opening as a blank white window. The exact Windows artifact now reaches
+> the first-run surface in a hidden-desktop capture, and a fresh pinned Yarn
+> install now brings in the root and app dependencies before packaging; see the
+> [renderer startup bundle safety guide](docs/features/quality-and-reliability/renderer-startup-bundle-safety.md).
+
+> **Active account follows the selected repository — August 6, 2026:**
+> deliberately choosing **Make active** now applies the selected same-host
+> GitHub identity to that repository before its next authenticated operation,
+> while other repositories and cross-host/provider bindings remain unchanged.
+> See [multiple accounts and repository identity](docs/features/identity-and-workspace/multiple-accounts-and-repository-identity.md).
+
+![Packaged Windows Desktop Material first-run surface after the renderer startup fix](docs/assets/screenshots/material-blank-startup-fixed-20260806.png)
+
 ![Centered stash manager dialog with Manage, Export, History, and Appearance and voice tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-stash-manager-centered-20260803.png)
+> **Browser-style settings tabs:** Global Settings, Repository Settings, and
+> Stash Manager now share horizontal tabs with open/close/reopen actions,
+> overflow discovery, linked panels, keyboard navigation, localized labels, and
+> session-safe persistence. See [browser-style settings tabs](docs/features/identity-and-workspace/settings-browser-tabs.md).
+
+| Global Settings | Repository Settings | Stash Manager |
+| --- | --- | --- |
+| <img src="docs/assets/screenshots/material-settings.png" alt="Global Settings with browser-style tabs, close actions, search, and overflow" width="320"> | <img src="docs/assets/screenshots/material-remote-manager.png" alt="Repository Settings with browser-style tabs and the Remote page selected" width="320"> | <img src="docs/assets/screenshots/material-stash-manager.png" alt="Stash Manager with browser-style Manage, Export, History, and Appearance and voice pages" width="320"> |
+
+> **Full-width History Graph page — August 5, 2026:** the repository rail now
+> gives the ancestry graph its own **Graph** page, so Branch / Tag, Graph, and
+> Commit Message columns can use the full workspace width while retaining the
+> existing scope, search, lane, selection, and commit actions. Focused source
+> verification passes **85/85**; a fresh built-app capture of this page is
+> still pending the required hidden-desktop verification route.
+
+> **Dirty branch switching:** when a branch has uncommitted work, choose
+> **Leave my changes here** to open Add worktree with the destination branch
+> prefilled while leaving the current worktree and its files untouched. See the
+> [branch-switcher workflow](docs/features/identity-and-workspace/branch-switcher-workflows.md)
+> and its [runtime capture](docs/verification/dirty-worktree-worktree-option-20260805/dirty-worktree-switch-dialog.png).
+
+> **Merge chooser freshness filter — August 6, 2026:** **Merge into main** now
+> offers **Not updated with main**, using the default branch tip's Git ancestry
+> to show only branches that still need an update. Local and remote refs are
+> canonicalized, diverged-but-updated branches stay out of the result, and the
+> chip is localized in English, Hong Kong-style Cantonese, and bilingual mode.
+> See the [branch-switcher workflow guide](docs/features/identity-and-workspace/branch-switcher-workflows.md).
+
+![Merge into main chooser with the Not updated with main filter active](docs/assets/screenshots/not-updated-with-main-filter.png)
 
 > **Full-width History Graph page — August 5, 2026:** the repository rail now
 > gives the ancestry graph its own **Graph** page, so Branch / Tag, Graph, and
@@ -49,6 +124,29 @@
 > installer-release proof remain pending.
 
 Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [GitHub Desktop](https://github.com/desktop/desktop). It rebuilds the entire application shell around Material Design 3 while keeping GitHub Desktop's full Git workflow and the same underlying stack: [TypeScript](https://www.typescriptlang.org), [React](https://react.dev), [Electron](https://www.electronjs.org), and [Sass](https://sass-lang.com). This project is in active development.
+
+> **Repository transfer:** from the Repository menu, list context menu,
+> Command Palette, or **Repository settings → Remote**, choose another signed-in
+> GitHub account or organization and keep the repository name or enter a custom
+> one. **Full history** publishes every local branch and tag; **Clean state**
+> publishes the current files as one root commit while retaining a local
+> recovery ref. `origin` changes only after destination verification, and the
+> source remote remains reachable as `upstream` when needed. See the
+> [repository transfer guide](docs/features/repository-management/repository-transfer.md).
+
+> **Multi-remote fetch:** a repository with one configured remote keeps the
+> familiar **Fetch `<remote>`** action. When more than one remote is configured,
+> the toolbar says **Fetch all remotes** and fetches every configured remote in a
+> stable current-first order. See the [multi-remote fetch sync
+> guide](docs/features/repository-management/multi-remote-fetch-sync.md).
+
+> **Launchpad full-width empty state — August 6, 2026:** the repository
+> Launchpad now uses the full workspace width when its grouped inbox is empty,
+> so an intentionally empty sidebar cannot masquerade as missing content. See
+> the [Launchpad feature article](docs/features/repository-management/launchpad.md)
+> for its behavior, failure modes, and verification contract.
+
+![Launchpad full-width empty state with five truthful zero-count groups and no blank sidebar](docs/assets/screenshots/material-launchpad-empty-full-width-20260806.png)
 
 > **Platform support:** Desktop Material ships a Windows Electron desktop
 > application and a revived Linux-first
@@ -324,14 +422,14 @@ interactive run commands.
 The five dated Linux/Xvfb captures remain preserved in the
 [historical TUI verification record](docs/verification/linux-tui-2026-07-27/run-manifest.md).
 They are not presented as current Windows evidence and are excluded from the
-86-scene guided gallery and its refresh plan.
+91-scene guided gallery and its refresh plan.
 
 ## Explore the tabs
 
 - **[Install](docs/readme-tabs/install.md)** — supported Windows installation plus the archived Linux TUI prototype record
 - **[Features](docs/readme-tabs/features.md)** — the full Material Design 3 shell plus every Git and GitHub workflow
 - **[Complete list](docs/readme-tabs/complete-feature-list.md)** — every feature in one bilingual table, labelled Added / Extended / Inherited against GitHub Desktop
-- **[Screenshots](docs/readme-tabs/screenshots.md)** — the annotated capture gallery
+- **[Screenshots](docs/readme-tabs/screenshots.md)** — the annotated capture gallery, including the dated production-build proof that the original GitHub OAuth callback opens without a `redirect_uri` warning
 - **[Roadmap & receipts](docs/readme-tabs/roadmap-and-receipts.md)** — milestone status and published CI/release evidence
 - **[Development](docs/readme-tabs/development.md)** — build Desktop Material from source
 

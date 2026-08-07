@@ -69,6 +69,81 @@ export type TranslationKey =
   | 'appearance.elementGesture.plain'
   | 'appearance.elementGesture.light'
   | 'appearance.elementGesture.playful'
+  | 'appearance.scheduledSettingsHeading'
+  | 'appearance.scheduledSettingsDescription'
+  | 'appearance.scheduledSettingsRuleDetails'
+  | 'appearance.scheduledSettingsRuleHelp'
+  | 'appearance.scheduledSettingsRuleProvenance'
+  | 'appearance.scheduledSettingsSourceDetails'
+  | 'appearance.scheduledSettingsSourceProvenance'
+  | 'appearance.scheduledSettingsValueDetails'
+  | 'appearance.scheduledSettingsValueProvenance'
+  | 'appearance.scheduledSettingsAdd'
+  | 'appearance.scheduledSettingsEmpty'
+  | 'appearance.scheduledSettingsRule'
+  | 'appearance.scheduledSettingsEnabled'
+  | 'appearance.scheduledSettingsAllDays'
+  | 'appearance.scheduledSettingsWeekdays'
+  | 'appearance.scheduledSettingsStartDate'
+  | 'appearance.scheduledSettingsEndDate'
+  | 'appearance.scheduledSettingsDateRangeInvalid'
+  | 'appearance.scheduledSettingsStartTime'
+  | 'appearance.scheduledSettingsEndTime'
+  | 'appearance.scheduledSettingsTimeZone'
+  | 'appearance.scheduledSettingsSource'
+  | 'appearance.scheduledSettingsLocal'
+  | 'appearance.scheduledSettingsAPI'
+  | 'appearance.scheduledSettingsHomeAssistant'
+  | 'appearance.scheduledSettingsAPIEndpoint'
+  | 'appearance.scheduledSettingsHomeAssistantBaseURL'
+  | 'appearance.scheduledSettingsHomeAssistantEntity'
+  | 'appearance.scheduledSettingsHomeAssistantToken'
+  | 'appearance.scheduledSettingsSaveToken'
+  | 'appearance.scheduledSettingsTestSensor'
+  | 'appearance.scheduledSettingsTokenSaved'
+  | 'appearance.scheduledSettingsSensorState'
+  | 'appearance.scheduledSettingsValue'
+  | 'appearance.scheduledSettingsValueDescription'
+  | 'appearance.scheduledSettingsRemove'
+  | 'appearance.scheduledSettingsSourceFailure'
+  | 'appearance.scheduledSettingsSourceInvalid'
+  | 'appearance.scheduledSettingsLanguage'
+  | 'appearance.scheduledSettingsLanguageEnglish'
+  | 'appearance.scheduledSettingsLanguageCantonese'
+  | 'appearance.scheduledSettingsLanguageBilingual'
+  | 'appearance.scheduledSettingsTheme'
+  | 'appearance.scheduledSettingsAppearance'
+  | 'appearance.scheduledSettingsOn'
+  | 'appearance.scheduledSettingsOff'
+  | 'appearance.scheduledSettingsDaySunday'
+  | 'appearance.scheduledSettingsDayMonday'
+  | 'appearance.scheduledSettingsDayTuesday'
+  | 'appearance.scheduledSettingsDayWednesday'
+  | 'appearance.scheduledSettingsDayThursday'
+  | 'appearance.scheduledSettingsDayFriday'
+  | 'appearance.scheduledSettingsDaySaturday'
+  | 'appearance.scheduledSettingsThemeSystem'
+  | 'appearance.scheduledSettingsThemeLight'
+  | 'appearance.scheduledSettingsThemeDark'
+  | 'appearance.scheduledSettingsNoChange'
+  | 'appearance.scheduledSettingsAPIHelp'
+  | 'appearance.scheduledSettingsHomeAssistantHelp'
+  | 'appearance.scheduledSettingsAccentPalette'
+  | 'appearance.scheduledSettingsUpdateProgressPalette'
+  | 'appearance.scheduledSettingsSurfacePalette'
+  | 'appearance.scheduledSettingsElevation'
+  | 'appearance.scheduledSettingsUIFont'
+  | 'appearance.scheduledSettingsMonospaceFont'
+  | 'appearance.scheduledSettingsMotion'
+  | 'appearance.scheduledSettingsToolbarLabels'
+  | 'appearance.scheduledSettingsToolbarDensity'
+  | 'appearance.scheduledSettingsRepositoryListDensity'
+  | 'appearance.scheduledSettingsTabDensity'
+  | 'appearance.scheduledSettingsTabWidth'
+  | 'appearance.scheduledSettingsTabCloseButtons'
+  | 'appearance.scheduledSettingsSubmoduleBackStyle'
+  | 'appearance.scheduledSettingsSubmoduleBackLabel'
+  | 'appearance.scheduledSettingsHighlightFeatures'
   | 'appearance.submoduleBackStyle'
   | 'appearance.submoduleBackLabel'
   | 'appearance.toolbarEditorTitle'
@@ -1482,6 +1557,9 @@ export type TranslationKey =
   | 'stashManager.dialogTitle'
   | 'stashManager.dialogDescription'
   | 'stashManager.dialogTabsAria'
+  | 'stashManager.openNewTabAction'
+  | 'stashManager.allPagesOpen'
+  | 'stashManager.morePages'
   | 'stashManager.manageTab'
   | 'stashManager.exportTab'
   | 'stashManager.historyTab'
@@ -1809,6 +1887,8 @@ export type TranslationKey =
   | 'color.rose'
   | 'settings.notificationsEnableTitle'
   | 'settings.notificationsEnableDescription'
+  | 'settings.dialogTitle'
+  | 'settings.closeAction'
   | 'settings.automationAutoCommitPushTitle'
   | 'settings.automationAutoCommitPushDescription'
   | 'settings.automationAutoPullTitle'
@@ -1816,6 +1896,29 @@ export type TranslationKey =
   | 'settings.automationIntervalEvery'
   | 'settings.automationIntervalMinutes'
   | 'settings.automationIntervalGroupLabel'
+  | 'settings.globalTabsLabel'
+  | 'settings.accountsTab'
+  | 'settings.integrationsTab'
+  | 'settings.copilotTab'
+  | 'settings.gitTab'
+  | 'settings.appearanceTab'
+  | 'settings.notificationsTab'
+  | 'settings.promptsTab'
+  | 'settings.advancedTab'
+  | 'settings.accessibilityTab'
+  | 'settings.agentAccessTab'
+  | 'settings.selfHostedServerTab'
+  | 'settings.automationTab'
+  | 'settings.aiTab'
+  | 'settings.browserTabSearch'
+  | 'settings.browserTabOpenNew'
+  | 'settings.browserTabAllOpen'
+  | 'settings.browserTabMore'
+  | 'settings.browserTabClose'
+  | 'settings.browserTabPin'
+  | 'settings.browserTabUnpin'
+  | 'settings.browserTabPickerTitle'
+  | 'settings.browserTabNoMatches'
   | 'settings.queueTab'
   | 'settings.queueHeading'
   | 'settings.queueDescription'
@@ -1998,6 +2101,12 @@ export type TranslationKey =
   | 'settings.integrationsCustomEditorLabel'
   | 'settings.integrationsCustomShellLabel'
   | 'settings.integrationsSelectEditor'
+  | 'settings.tabsDockPosition'
+  | 'settings.tabsDockDescription'
+  | 'settings.tabsDockLeft'
+  | 'settings.tabsDockTop'
+  | 'settings.tabsDockBottom'
+  | 'settings.tabsDockRight'
   | 'settings.contextMenuHeading'
   | 'settings.contextMenuDescription'
   | 'settings.contextMenuPlacementNote'
@@ -2108,6 +2217,8 @@ export type TranslationKey =
   | 'repositorySettings.tabAppearance'
   | 'repositorySettings.tabAISecurity'
   | 'repositorySettings.tabForkSettings'
+  | 'repositorySettings.tabsLabel'
+  | 'repositorySettings.dialogTitle'
   | 'commandPalette.homeRepositorySettings'
   | 'palette.repositorySettingsRemote'
   | 'palette.repositorySettingsIgnoredFiles'
@@ -2560,6 +2671,7 @@ export type TranslationKey =
   | 'batchClone.filterRegexTarget'
   | 'batchClone.filterStatusCount'
   | 'batchClone.filterStatusNone'
+  | 'repositoryTransfer.cheapLfsNote'
   | 'branchRules.filterPlaceholder'
   | 'branchRules.filterLabel'
   | 'branchRules.filterRegexTarget'
@@ -2568,6 +2680,31 @@ export type TranslationKey =
   | 'branchRules.filterNoMatchesInList'
   | 'cheapLfs.files.one'
   | 'cheapLfs.files.many'
+  | 'cheapLfs.workingTree.menu.one'
+  | 'cheapLfs.workingTree.menu.many'
+  | 'cheapLfs.workingTree.menu.wholeFileRequired'
+  | 'cheapLfs.workingTree.title'
+  | 'cheapLfs.workingTree.reviewBody'
+  | 'cheapLfs.workingTree.reviewWarning'
+  | 'cheapLfs.workingTree.skipped.one'
+  | 'cheapLfs.workingTree.skipped.many'
+  | 'cheapLfs.workingTree.skipped.deleted'
+  | 'cheapLfs.workingTree.skipped.partial'
+  | 'cheapLfs.workingTree.progress.label'
+  | 'cheapLfs.workingTree.progress.files'
+  | 'cheapLfs.workingTree.progress.count'
+  | 'cheapLfs.workingTree.progress.canceling'
+  | 'cheapLfs.workingTree.result.canceled'
+  | 'cheapLfs.workingTree.result.stored.one'
+  | 'cheapLfs.workingTree.result.stored.many'
+  | 'cheapLfs.workingTree.result.storedLabel'
+  | 'cheapLfs.workingTree.result.unchangedLabel'
+  | 'cheapLfs.workingTree.result.error'
+  | 'cheapLfs.workingTree.result.unknownError'
+  | 'cheapLfs.workingTree.done'
+  | 'cheapLfs.workingTree.canceling'
+  | 'cheapLfs.workingTree.store.one'
+  | 'cheapLfs.workingTree.store.many'
   | 'cheapLfs.commitBlocked.restoreTitle'
   | 'cheapLfs.commitBlocked.restoreBody'
   | 'cheapLfs.managerRail'
@@ -2944,6 +3081,7 @@ export type TranslationKey =
   | 'settingsSearch.tabName.advanced'
   | 'settingsSearch.tabName.accessibility'
   | 'settingsSearch.tabName.agentAccess'
+  | 'settingsSearch.tabName.selfHostedServer'
   | 'settingsSearch.tabName.automation'
   | 'settingsSearch.tabName.queue'
   | 'settingsSearch.tabName.sound'
@@ -2995,11 +3133,15 @@ export type TranslationKey =
   | 'settingsSearch.entry.accessibilityDiffMarks.desc'
   | 'settingsSearch.entry.agentAccessServer.title'
   | 'settingsSearch.entry.agentAccessServer.desc'
+  | 'settingsSearch.entry.selfHostedServer.title'
+  | 'settingsSearch.entry.selfHostedServer.desc'
   | 'settingsSearch.entry.queueMode.desc'
   | 'settingsSearch.entry.ollamaManager.title'
   | 'settingsSearch.entry.ollamaManager.desc'
   | 'settingsSearch.entry.ollamaChat.title'
   | 'settingsSearch.entry.ollamaChat.desc'
+  | 'settingsSearch.entry.selfHostedServer.title'
+  | 'settingsSearch.entry.selfHostedServer.desc'
   | 'settingsSearch.entry.gitGlobalIgnore.title'
   | 'settingsSearch.entry.gitGlobalIgnore.desc'
   | 'settingsSearch.entry.gitHooks.title'
@@ -3233,6 +3375,7 @@ export type TranslationKey =
   | 'filter.regexBuilder.literalPlaceholder'
   | 'filter.regexBuilder.literalInsert'
   | 'filter.regexBuilder.literalPreview'
+  | 'branch.filter.notUpdatedWith'
   | 'regex.builder.viewsLabel'
   | 'regex.builder.view.build'
   | 'regex.builder.view.guide'
@@ -3392,6 +3535,46 @@ export type TranslationKey =
   | 'accounts.keychainLocked'
   | 'accounts.tokenWriteFailed'
   | 'accounts.credentialUnavailable'
+  | 'accounts.picker.label'
+  | 'accounts.picker.choose'
+  | 'accounts.picker.close'
+  | 'accounts.picker.title'
+  | 'accounts.picker.searchLabel'
+  | 'accounts.picker.searchPlaceholder'
+  | 'accounts.picker.countOne'
+  | 'accounts.picker.countMany'
+  | 'accounts.picker.matchCount'
+  | 'accounts.picker.noAccounts'
+  | 'accounts.picker.noMatch'
+  | 'accounts.picker.add'
+  | 'repositoryTransfer.importTitle'
+  | 'repositoryTransfer.exportTitle'
+  | 'repositoryTransfer.chooseList'
+  | 'repositoryTransfer.fileFilterName'
+  | 'repositoryTransfer.chooseFile'
+  | 'repositoryTransfer.changeFile'
+  | 'repositoryTransfer.baseDirectory'
+  | 'repositoryTransfer.baseDirectoryPlaceholder'
+  | 'repositoryTransfer.chooseDirectory'
+  | 'repositoryTransfer.cloneMode'
+  | 'repositoryTransfer.parallel'
+  | 'repositoryTransfer.sequential'
+  | 'repositoryTransfer.selectedOne'
+  | 'repositoryTransfer.selectedMany'
+  | 'repositoryTransfer.selectAtLeastOne'
+  | 'repositoryTransfer.chooseBaseDirectory'
+  | 'repositoryTransfer.invalidList'
+  | 'repositoryTransfer.selectForImport'
+  | 'repositoryTransfer.alreadyCloned'
+  | 'repositoryTransfer.cloneOne'
+  | 'repositoryTransfer.cloneMany'
+  | 'repositoryTransfer.exportIntro'
+  | 'repositoryTransfer.noRemote'
+  | 'repositoryTransfer.skippedOne'
+  | 'repositoryTransfer.skippedMany'
+  | 'repositoryTransfer.selectForExport'
+  | 'repositoryTransfer.exportOne'
+  | 'repositoryTransfer.exportMany'
   | 'accounts.invalidatedTokenTitle'
   | 'accounts.invalidatedTokenTitleDarwin'
   | 'accounts.invalidatedTokenBody'
@@ -3726,6 +3909,99 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Want to restyle something? Shift+Right-click it and its appearance editor opens. A plain right-click stays out of the way and opens that element’s ordinary menu. From the keyboard, focus the element and press Shift+F10 or the Menu key. Each element keeps its settings and history separate.',
   'appearance.elementGesture.playful':
     'Hold Shift, right-click anything, and its appearance editor pops out ready for a fresh coat of paint. A plain right-click keeps its day job: that element’s ordinary menu. Keyboard fans, focus the element and hit Shift+F10 or the Menu key. Every element hoards its own settings and history like a squirrel.',
+  'appearance.scheduledSettingsHeading': 'Scheduled settings',
+  'appearance.scheduledSettingsDescription':
+    'Apply language, theme, and appearance customizations during local date and time windows. A schedule can also read a validated API or a Home Assistant boolean entity; external failures leave the local settings unchanged.',
+  'appearance.scheduledSettingsRuleDetails': 'How this schedule works',
+  'appearance.scheduledSettingsRuleHelp':
+    'The rule matches the selected local weekdays and time window. Every day overrides the weekday checklist; a window that crosses midnight continues from the selected start day into the next local day.',
+  'appearance.scheduledSettingsRuleProvenance':
+    'Source: the active profile’s saved scheduled-settings-v1 record. New rules are seeded with {startTime}–{endTime}; the current values are stored with this rule.',
+  'appearance.scheduledSettingsSourceDetails': 'About the value source',
+  'appearance.scheduledSettingsSourceProvenance':
+    'Source: {source}. Local values are saved with the rule; API values are fetched only from the validated endpoint; Home Assistant values are saved locally and gated by the selected boolean entity.',
+  'appearance.scheduledSettingsValueDetails': 'About applied settings',
+  'appearance.scheduledSettingsValueProvenance':
+    'Source: the value payload for this rule. Only fields present in the payload change; all other appearance and language settings keep their saved values.',
+  'appearance.scheduledSettingsAdd': 'Add schedule',
+  'appearance.scheduledSettingsEmpty':
+    'No schedules yet. Add one to give the app a timetable instead of making it guess.',
+  'appearance.scheduledSettingsRule': 'Schedule {number}',
+  'appearance.scheduledSettingsEnabled': 'Schedule is enabled',
+  'appearance.scheduledSettingsAllDays': 'Every day',
+  'appearance.scheduledSettingsWeekdays': 'Days of week',
+  'appearance.scheduledSettingsStartDate': 'Start date (optional)',
+  'appearance.scheduledSettingsEndDate': 'End date (optional)',
+  'appearance.scheduledSettingsDateRangeInvalid':
+    'End date must be on or after the start date. This schedule is paused until the range is corrected.',
+  'appearance.scheduledSettingsStartTime': 'Start time',
+  'appearance.scheduledSettingsEndTime': 'End time',
+  'appearance.scheduledSettingsTimeZone':
+    'Uses {timeZone} local time. Daylight-saving changes are followed automatically. The end time is exclusive; matching start and end times cover the selected day.',
+  'appearance.scheduledSettingsSource': 'Value source',
+  'appearance.scheduledSettingsLocal': 'Local scheduled value',
+  'appearance.scheduledSettingsAPI': 'Validated API',
+  'appearance.scheduledSettingsHomeAssistant': 'Home Assistant boolean',
+  'appearance.scheduledSettingsAPIEndpoint': 'API endpoint',
+  'appearance.scheduledSettingsHomeAssistantBaseURL': 'Home Assistant URL',
+  'appearance.scheduledSettingsHomeAssistantEntity': 'Boolean entity ID',
+  'appearance.scheduledSettingsHomeAssistantToken': 'Access token',
+  'appearance.scheduledSettingsSaveToken': 'Save token securely',
+  'appearance.scheduledSettingsTestSensor': 'Test sensor',
+  'appearance.scheduledSettingsTokenSaved':
+    'Token saved in the OS credential vault.',
+  'appearance.scheduledSettingsSensorState': 'Sensor state: {state}',
+  'appearance.scheduledSettingsValue': 'Settings applied when active',
+  'appearance.scheduledSettingsValueDescription':
+    'Later matching schedules win for fields they set. API responses must be version 1 and contain language, theme, or appearance values.',
+  'appearance.scheduledSettingsRemove': 'Remove schedule',
+  'appearance.scheduledSettingsSourceFailure':
+    'This external source could not be read; the schedule was skipped and the previous settings remain active.',
+  'appearance.scheduledSettingsSourceInvalid':
+    'This rule is paused until its external source is valid. Enter a valid endpoint or entity ID, then enable the schedule.',
+  'appearance.scheduledSettingsLanguage': 'Language value',
+  'appearance.scheduledSettingsLanguageEnglish': 'English',
+  'appearance.scheduledSettingsLanguageCantonese':
+    'Playful Hong Kong Cantonese',
+  'appearance.scheduledSettingsLanguageBilingual': 'Bilingual',
+  'appearance.scheduledSettingsTheme': 'Theme value',
+  'appearance.scheduledSettingsAppearance': 'Appearance customization',
+  'appearance.scheduledSettingsOn': 'on',
+  'appearance.scheduledSettingsOff': 'off',
+  'appearance.scheduledSettingsDaySunday': 'Sunday',
+  'appearance.scheduledSettingsDayMonday': 'Monday',
+  'appearance.scheduledSettingsDayTuesday': 'Tuesday',
+  'appearance.scheduledSettingsDayWednesday': 'Wednesday',
+  'appearance.scheduledSettingsDayThursday': 'Thursday',
+  'appearance.scheduledSettingsDayFriday': 'Friday',
+  'appearance.scheduledSettingsDaySaturday': 'Saturday',
+  'appearance.scheduledSettingsThemeSystem': 'System',
+  'appearance.scheduledSettingsThemeLight': 'Light',
+  'appearance.scheduledSettingsThemeDark': 'Dark',
+  'appearance.scheduledSettingsNoChange': 'No change',
+  'appearance.scheduledSettingsAPIHelp':
+    'HTTPS is required, except for localhost, 127.0.0.1, or ::1. The API response must be version 1 JSON.',
+  'appearance.scheduledSettingsHomeAssistantHelp':
+    'The token stays in the OS credential vault. The schedule uses the entity only when its boolean state is on.',
+  'appearance.scheduledSettingsAccentPalette': 'Accent palette',
+  'appearance.scheduledSettingsUpdateProgressPalette':
+    'Update progress palette',
+  'appearance.scheduledSettingsSurfacePalette': 'Surface palette',
+  'appearance.scheduledSettingsElevation': 'Elevation',
+  'appearance.scheduledSettingsUIFont': 'UI font',
+  'appearance.scheduledSettingsMonospaceFont': 'Monospace font',
+  'appearance.scheduledSettingsMotion': 'Motion',
+  'appearance.scheduledSettingsToolbarLabels': 'Toolbar labels',
+  'appearance.scheduledSettingsToolbarDensity': 'Toolbar density',
+  'appearance.scheduledSettingsRepositoryListDensity':
+    'Repository list density',
+  'appearance.scheduledSettingsTabDensity': 'Tab density',
+  'appearance.scheduledSettingsTabWidth': 'Tab width',
+  'appearance.scheduledSettingsTabCloseButtons': 'Tab close buttons',
+  'appearance.scheduledSettingsSubmoduleBackStyle': 'Submodule Back style',
+  'appearance.scheduledSettingsSubmoduleBackLabel': 'Submodule Back label',
+  'appearance.scheduledSettingsHighlightFeatures':
+    'Highlight Desktop Material features',
   'appearance.submoduleBackStyle': 'Submodule Back button style',
   'appearance.submoduleBackLabel': 'Submodule Back button label',
   'appearance.toolbarEditorTitle': 'Toolbar appearance',
@@ -5465,6 +5741,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'stashManager.dialogDescription':
     'Name, search, review, restore, and export every local stash. The inventory has no entry-count cap; Git storage and the bounded metadata read are the practical limits.',
   'stashManager.dialogTabsAria': 'Stash manager sections',
+  'stashManager.openNewTabAction': 'Open a Stash manager page in a new tab',
+  'stashManager.allPagesOpen': 'All Stash manager pages are already open',
+  'stashManager.morePages': '{count} more Stash manager pages',
   'stashManager.manageTab': 'Manage',
   'stashManager.exportTab': 'Export',
   'stashManager.historyTab': 'History',
@@ -5848,6 +6127,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'color.green': 'Green',
   'color.amber': 'Amber',
   'color.rose': 'Rose',
+  'settings.dialogTitle': 'Settings',
+  'settings.closeAction': 'Close',
   'settings.notificationsEnableTitle': 'Enable notifications',
   'settings.notificationsEnableDescription':
     'Allows the display of notifications when high-signal events take place in the current repository.',
@@ -5860,6 +6141,29 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.automationIntervalEvery': 'Every',
   'settings.automationIntervalMinutes': '{minutes} min',
   'settings.automationIntervalGroupLabel': '{title} interval',
+  'settings.globalTabsLabel': 'Settings pages',
+  'settings.accountsTab': 'Accounts',
+  'settings.integrationsTab': 'Integrations',
+  'settings.copilotTab': 'Copilot',
+  'settings.gitTab': 'Git',
+  'settings.appearanceTab': 'Appearance',
+  'settings.notificationsTab': 'Notifications',
+  'settings.promptsTab': 'Prompts',
+  'settings.advancedTab': 'Advanced',
+  'settings.accessibilityTab': 'Accessibility',
+  'settings.agentAccessTab': 'Agent access',
+  'settings.selfHostedServerTab': 'Self-hosted server',
+  'settings.automationTab': 'Automation',
+  'settings.aiTab': 'AI',
+  'settings.browserTabSearch': 'Search {surface}',
+  'settings.browserTabOpenNew': 'Open a {surface} page in a new tab',
+  'settings.browserTabAllOpen': 'All {surface} pages are already open',
+  'settings.browserTabMore': '{count} more {surface} pages',
+  'settings.browserTabClose': 'Close {page} tab',
+  'settings.browserTabPin': 'Pin {page} tab',
+  'settings.browserTabUnpin': 'Unpin {page} tab',
+  'settings.browserTabPickerTitle': 'Choose a {surface} page',
+  'settings.browserTabNoMatches': 'No {surface} page matches that.',
   'settings.queueTab': 'Clone queue',
   'settings.queueHeading': 'Clone queue',
   'settings.queueDescription':
@@ -6079,6 +6383,13 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.integrationsCustomEditorLabel': 'Custom editor',
   'settings.integrationsCustomShellLabel': 'Custom shell',
   'settings.integrationsSelectEditor': 'Select editor',
+  'settings.tabsDockPosition': 'Settings tab position',
+  'settings.tabsDockDescription':
+    'Choose where this tab strip sits. Preferences and Repository Settings save their positions separately; missing or invalid values use Left.',
+  'settings.tabsDockLeft': 'Left',
+  'settings.tabsDockTop': 'Top',
+  'settings.tabsDockBottom': 'Bottom',
+  'settings.tabsDockRight': 'Right',
   'settings.contextMenuHeading': 'Windows context menu',
   'settings.contextMenuDescription':
     'Add Desktop Material actions to the right-click menu for folders and folder backgrounds in File Explorer.',
@@ -6216,6 +6527,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositorySettings.tabAppearance': 'Appearance',
   'repositorySettings.tabAISecurity': 'AI features',
   'repositorySettings.tabForkSettings': 'Fork settings',
+  'repositorySettings.tabsLabel': 'Repository settings pages',
+  'repositorySettings.dialogTitle': 'Repository settings',
   'commandPalette.homeRepositorySettings': 'Repository settings ▸ {tab}',
   'palette.repositorySettingsRemote': 'Repository remotes',
   'palette.repositorySettingsIgnoredFiles': 'Ignored files',
@@ -6754,6 +7067,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'batchClone.filterRegexTarget': 'Clone queue',
   'batchClone.filterStatusCount': '{matched} of {total} repositories',
   'batchClone.filterStatusNone': 'No repositories match',
+  'repositoryTransfer.cheapLfsNote':
+    'After each clone, Cheap LFS restores large files according to the repository setting “Download large files after cloning” (enabled by default). The shared list carries URLs only, so account affinity and explicit file selections stay local; when restore is disabled or no eligible provider account is available, pointer files remain ready for a later restore.',
   'branchRules.filterPlaceholder': 'Filter results',
   'branchRules.filterLabel': 'Filter branch rule results',
   'branchRules.filterRegexTarget': 'Branch rule results',
@@ -6762,6 +7077,44 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'branchRules.filterNoMatchesInList': 'No values match the filter',
   'cheapLfs.files.one': '{count} large file',
   'cheapLfs.files.many': '{count} large files',
+  'cheapLfs.workingTree.menu.one': 'Store selected file in cheap LFS…',
+  'cheapLfs.workingTree.menu.many':
+    'Store {count} selected files in cheap LFS…',
+  'cheapLfs.workingTree.menu.wholeFileRequired':
+    'Store in cheap LFS (whole file required)',
+  'cheapLfs.workingTree.title': 'Store files in Cheap LFS?',
+  'cheapLfs.workingTree.reviewBody':
+    'The selected working-tree files will be uploaded to the configured Cheap LFS storage and replaced locally with small pointers. This keeps their raw bytes out of future Git history; it does not delete the uploaded content.',
+  'cheapLfs.workingTree.reviewWarning':
+    'Review the exact files before continuing. A pointer replaces the complete file, so a partial diff selection is never uploaded as though it were a whole file.',
+  'cheapLfs.workingTree.skipped.one':
+    '1 selected file was skipped before upload:',
+  'cheapLfs.workingTree.skipped.many':
+    '{count} selected files were skipped before upload:',
+  'cheapLfs.workingTree.skipped.deleted':
+    'Deleted files have no working-tree bytes to upload.',
+  'cheapLfs.workingTree.skipped.partial':
+    'Select the whole file before replacing it with a pointer.',
+  'cheapLfs.workingTree.progress.label': 'Cheap LFS batch progress',
+  'cheapLfs.workingTree.progress.files': '{completed} of {total} files',
+  'cheapLfs.workingTree.progress.count': '{completed}/{total}',
+  'cheapLfs.workingTree.progress.canceling':
+    'Cancellation requested; finishing safe cleanup…',
+  'cheapLfs.workingTree.result.canceled':
+    'The Cheap LFS batch was canceled. Files not completed were left unchanged.',
+  'cheapLfs.workingTree.result.stored.one': '1 file was stored in Cheap LFS.',
+  'cheapLfs.workingTree.result.stored.many':
+    '{count} files were stored in Cheap LFS.',
+  'cheapLfs.workingTree.result.storedLabel': 'Stored files:',
+  'cheapLfs.workingTree.result.unchangedLabel': 'Files left unchanged:',
+  'cheapLfs.workingTree.result.error':
+    'Cheap LFS could not complete this batch: {error}',
+  'cheapLfs.workingTree.result.unknownError':
+    'The provider returned no safe error detail.',
+  'cheapLfs.workingTree.done': 'Done',
+  'cheapLfs.workingTree.canceling': 'Canceling…',
+  'cheapLfs.workingTree.store.one': 'Store file in Cheap LFS',
+  'cheapLfs.workingTree.store.many': 'Store {count} files in Cheap LFS',
   'cheapLfs.commitBlocked.restoreTitle': 'Commit waits for the file restore',
   'cheapLfs.commitBlocked.restoreBody':
     'A Cheap LFS file clone or restore is still running in {name}. No commit started. Wait for its progress to finish, then retry.',
@@ -7398,6 +7751,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settingsSearch.tabName.advanced': 'Advanced',
   'settingsSearch.tabName.accessibility': 'Accessibility',
   'settingsSearch.tabName.agentAccess': 'Agent access',
+  'settingsSearch.tabName.selfHostedServer': 'Self-hosted server',
   'settingsSearch.tabName.automation': 'Automation',
   'settingsSearch.tabName.queue': 'Clone queue',
   'settingsSearch.tabName.sound': 'Sound',
@@ -7429,6 +7783,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settingsSearch.entry.ollamaChat.title': 'Ollama chat',
   'settingsSearch.entry.ollamaChat.desc':
     'Chat with a local Ollama model without leaving Desktop Material.',
+  'settingsSearch.entry.selfHostedServer.title': 'Self-hosted server',
+  'settingsSearch.entry.selfHostedServer.desc':
+    'Set up, join, and sign in to the Docker-hosted team server on your own machine.',
   'settingsSearch.entry.gitGlobalIgnore.title': 'Global ignore',
   'settingsSearch.entry.gitGlobalIgnore.desc':
     'Edit the ignore rules (core.excludesFile) that apply to every repository.',
@@ -7711,6 +8068,51 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Desktop Material could not save the sign-in token for {login}, so that account was not added. Please sign in again. ({error})',
   'accounts.credentialUnavailable':
     'Desktop Material could not read the saved sign-in token for {logins}. Please sign in again to restore access.',
+  'accounts.picker.label': 'Accounts',
+  'accounts.picker.choose': 'Choose an account',
+  'accounts.picker.close': 'Close account picker',
+  'accounts.picker.title': 'Accounts · {host}',
+  'accounts.picker.searchLabel': 'Search accounts',
+  'accounts.picker.searchPlaceholder':
+    'Search accounts by name, login, or host',
+  'accounts.picker.countOne': '{count} signed-in account',
+  'accounts.picker.countMany': '{count} signed-in accounts',
+  'accounts.picker.matchCount': '{matched} of {total} accounts match',
+  'accounts.picker.noAccounts': 'No signed-in accounts.',
+  'accounts.picker.noMatch': 'No accounts match “{query}”.',
+  'accounts.picker.add': 'Add another account',
+  'repositoryTransfer.importTitle': 'Import repository list',
+  'repositoryTransfer.exportTitle': 'Export repository list',
+  'repositoryTransfer.chooseList': 'Choose a repository list file to import.',
+  'repositoryTransfer.fileFilterName': 'Repository list',
+  'repositoryTransfer.chooseFile': 'Choose File…',
+  'repositoryTransfer.changeFile': 'Change…',
+  'repositoryTransfer.baseDirectory': 'Base directory',
+  'repositoryTransfer.baseDirectoryPlaceholder': 'Clone destination',
+  'repositoryTransfer.chooseDirectory': 'Choose…',
+  'repositoryTransfer.cloneMode': 'Clone mode:',
+  'repositoryTransfer.parallel': 'Parallel',
+  'repositoryTransfer.sequential': 'One at a time',
+  'repositoryTransfer.selectedOne': '{selected} of {total} selected',
+  'repositoryTransfer.selectedMany': '{selected} of {total} selected',
+  'repositoryTransfer.selectAtLeastOne': 'Select at least one repository.',
+  'repositoryTransfer.chooseBaseDirectory': 'Choose a base directory.',
+  'repositoryTransfer.invalidList':
+    'That file is not a valid repository list export.',
+  'repositoryTransfer.selectForImport': 'Select {url} for import',
+  'repositoryTransfer.alreadyCloned': 'Already cloned',
+  'repositoryTransfer.cloneOne': 'Clone {count} repository',
+  'repositoryTransfer.cloneMany': 'Clone {count} repositories',
+  'repositoryTransfer.exportIntro':
+    'Only remote URLs are exported. Local paths and account tokens are never written to the file.',
+  'repositoryTransfer.noRemote': 'No portable remote URL — cannot be exported',
+  'repositoryTransfer.skippedOne':
+    '1 repository has no portable remote URL and will be skipped.',
+  'repositoryTransfer.skippedMany':
+    '{count} repositories have no portable remote URL and will be skipped.',
+  'repositoryTransfer.selectForExport': 'Select {name} for export',
+  'repositoryTransfer.exportOne': 'Export {count} repository',
+  'repositoryTransfer.exportMany': 'Export {count} repositories',
   'accounts.invalidatedTokenTitle': 'Invalidated account token',
   'accounts.invalidatedTokenTitleDarwin': 'Invalidated Account Token',
   'accounts.invalidatedTokenBody':
@@ -7814,6 +8216,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'filter.regexBuilder.literalPlaceholder': 'e.g. c++',
   'filter.regexBuilder.literalInsert': 'Insert as literal',
   'filter.regexBuilder.literalPreview': 'Inserts',
+  'branch.filter.notUpdatedWith': 'Not updated with {branch}',
   'regex.builder.viewsLabel': 'Regex builder views',
   'regex.builder.view.build': 'Build',
   'regex.builder.view.guide': 'How regex works',
@@ -8328,6 +8731,94 @@ export const cantoneseTranslations: Readonly<
     '想改個樣？撳住 Shift 右擊佢，外觀編輯器就會彈出嚟。淨係右擊就唔阻你，照開返該元素本身嘅選單。用鍵盤就先聚焦該元素，再撳 Shift+F10 或者 Menu 鍵。每個元素嘅設定同歷史都各自分開。',
   'appearance.elementGesture.playful':
     '撳住 Shift 再右擊，外觀編輯器即刻彈出嚟等你落色。淨係右擊嘅話，佢繼續做返本份——開該元素本身嘅選單。鍾意用鍵盤？聚焦該元素，撳 Shift+F10 或者 Menu 鍵。每個元素都好似松鼠咁，收埋自己嘅設定同歷史。',
+  'appearance.scheduledSettingsHeading': '排程設定',
+  'appearance.scheduledSettingsDescription':
+    '喺指定本地日期同時間套用語言、主題同外觀自訂。排程亦可以讀經驗證嘅 API 或 Home Assistant 布林實體；外部來源失敗時，會保留本地設定唔亂郁。',
+  'appearance.scheduledSettingsRuleDetails': '呢條排程點樣運作',
+  'appearance.scheduledSettingsRuleHelp':
+    '呢條規則會按照你揀嘅本地星期同時間範圍匹配。「每日」會覆蓋星期清單；跨午夜嘅時間窗會由所選開始日延續到下一個本地日。',
+  'appearance.scheduledSettingsRuleProvenance':
+    '來源：目前個人檔案已儲存嘅 scheduled-settings-v1 紀錄。新規則預設係 {startTime}–{endTime}；目前數值會同呢條規則一齊儲存。',
+  'appearance.scheduledSettingsSourceDetails': '設定來源資料',
+  'appearance.scheduledSettingsSourceProvenance':
+    '來源：{source}。本地數值會同規則一齊儲存；API 數值只會由經驗證端點讀取；Home Assistant 數值會本地儲存，再由揀定嘅布林實體控制。',
+  'appearance.scheduledSettingsValueDetails': '套用設定資料',
+  'appearance.scheduledSettingsValueProvenance':
+    '來源：呢條規則嘅數值內容。只有內容入面出現嘅欄位會改變，其餘外觀同語言設定會保留已儲存數值。',
+  'appearance.scheduledSettingsAdd': '加個排程',
+  'appearance.scheduledSettingsEmpty':
+    '而家未有排程。加一個啦，等個 app 有時間表，唔使靠估。',
+  'appearance.scheduledSettingsRule': '排程 {number}',
+  'appearance.scheduledSettingsEnabled': '啟用排程',
+  'appearance.scheduledSettingsAllDays': '每日',
+  'appearance.scheduledSettingsWeekdays': '星期',
+  'appearance.scheduledSettingsStartDate': '開始日期（可留空）',
+  'appearance.scheduledSettingsEndDate': '結束日期（可留空）',
+  'appearance.scheduledSettingsDateRangeInvalid':
+    '結束日期要係開始日期當日或之後；修正日期範圍之前，呢條排程會暫停。',
+  'appearance.scheduledSettingsStartTime': '開始時間',
+  'appearance.scheduledSettingsEndTime': '結束時間',
+  'appearance.scheduledSettingsTimeZone':
+    '使用 {timeZone} 本地時間。夏令時間轉換會自動跟隨；結束時間唔包括喺內，相同開始同結束時間就代表覆蓋所選嗰日。',
+  'appearance.scheduledSettingsSource': '設定來源',
+  'appearance.scheduledSettingsLocal': '本機排程值',
+  'appearance.scheduledSettingsAPI': '已驗證 API',
+  'appearance.scheduledSettingsHomeAssistant': 'Home Assistant 布林值',
+  'appearance.scheduledSettingsAPIEndpoint': 'API 端點',
+  'appearance.scheduledSettingsHomeAssistantBaseURL': 'Home Assistant 網址',
+  'appearance.scheduledSettingsHomeAssistantEntity': '布林實體 ID',
+  'appearance.scheduledSettingsHomeAssistantToken': '存取 token',
+  'appearance.scheduledSettingsSaveToken': '安全咁儲存 token',
+  'appearance.scheduledSettingsTestSensor': '測試感應器',
+  'appearance.scheduledSettingsTokenSaved': 'Token 已儲喺作業系統憑證庫。',
+  'appearance.scheduledSettingsSensorState': '感應器狀態：{state}',
+  'appearance.scheduledSettingsValue': '啟用時套用嘅設定',
+  'appearance.scheduledSettingsValueDescription':
+    '多個排程撞時間時，後面嘅排程會覆寫佢有設定嘅欄位。API 回應必須係 version 1，並包含語言、主題或外觀值。',
+  'appearance.scheduledSettingsRemove': '移除排程',
+  'appearance.scheduledSettingsSourceFailure':
+    '呢個外部來源讀唔到；今次排程會跳過，之前嘅設定繼續用。',
+  'appearance.scheduledSettingsSourceInvalid':
+    '呢條規則會暫停，直到外部來源有效。請輸入有效端點或實體 ID，再重新啟用排程。',
+  'appearance.scheduledSettingsLanguage': '語言值',
+  'appearance.scheduledSettingsLanguageEnglish': '英文',
+  'appearance.scheduledSettingsLanguageCantonese': '香港廣東話（玩味版）',
+  'appearance.scheduledSettingsLanguageBilingual': '雙語',
+  'appearance.scheduledSettingsTheme': '主題值',
+  'appearance.scheduledSettingsAppearance': '外觀自訂',
+  'appearance.scheduledSettingsOn': '開',
+  'appearance.scheduledSettingsOff': '關',
+  'appearance.scheduledSettingsDaySunday': '星期日',
+  'appearance.scheduledSettingsDayMonday': '星期一',
+  'appearance.scheduledSettingsDayTuesday': '星期二',
+  'appearance.scheduledSettingsDayWednesday': '星期三',
+  'appearance.scheduledSettingsDayThursday': '星期四',
+  'appearance.scheduledSettingsDayFriday': '星期五',
+  'appearance.scheduledSettingsDaySaturday': '星期六',
+  'appearance.scheduledSettingsThemeSystem': '跟隨系統',
+  'appearance.scheduledSettingsThemeLight': '淺色',
+  'appearance.scheduledSettingsThemeDark': '深色',
+  'appearance.scheduledSettingsNoChange': '唔改',
+  'appearance.scheduledSettingsAPIHelp':
+    '除咗 localhost、127.0.0.1 同 ::1，其他都要用 HTTPS。API 回應要係 version 1 JSON。',
+  'appearance.scheduledSettingsHomeAssistantHelp':
+    'Token 會留喺作業系統憑證庫。只有布林狀態係開，排程先會用呢個實體。',
+  'appearance.scheduledSettingsAccentPalette': '主色調色板',
+  'appearance.scheduledSettingsUpdateProgressPalette': '更新進度色板',
+  'appearance.scheduledSettingsSurfacePalette': '表面調色板',
+  'appearance.scheduledSettingsElevation': '陰影層次',
+  'appearance.scheduledSettingsUIFont': '介面字型',
+  'appearance.scheduledSettingsMonospaceFont': '等寬字型',
+  'appearance.scheduledSettingsMotion': '動態效果',
+  'appearance.scheduledSettingsToolbarLabels': '工具列標籤',
+  'appearance.scheduledSettingsToolbarDensity': '工具列密度',
+  'appearance.scheduledSettingsRepositoryListDensity': 'Repo 列表密度',
+  'appearance.scheduledSettingsTabDensity': '分頁密度',
+  'appearance.scheduledSettingsTabWidth': '分頁寬度',
+  'appearance.scheduledSettingsTabCloseButtons': '分頁關閉掣',
+  'appearance.scheduledSettingsSubmoduleBackStyle': '子模組返回掣款式',
+  'appearance.scheduledSettingsSubmoduleBackLabel': '子模組返回掣文字',
+  'appearance.scheduledSettingsHighlightFeatures': '標示 Desktop Material 功能',
   'appearance.submoduleBackStyle': '子模組返回掣款式',
   'appearance.submoduleBackLabel': '子模組返回掣文字',
   'appearance.toolbarEditorTitle': '工具列外觀',
@@ -9937,6 +10428,9 @@ export const cantoneseTranslations: Readonly<
   'stashManager.dialogDescription':
     '可以命名、搜尋、覆核、還原同匯出所有本機 stash。清單冇項目數上限；實際界線係 Git 儲存量同有界 metadata 讀取。',
   'stashManager.dialogTabsAria': 'Stash 管理員分區',
+  'stashManager.openNewTabAction': '開新分頁打開 Stash 管理員頁面',
+  'stashManager.allPagesOpen': 'Stash 管理員頁面已經全部開晒',
+  'stashManager.morePages': '仲有 {count} 個 Stash 管理員頁面',
   'stashManager.manageTab': '管理',
   'stashManager.exportTab': '匯出',
   'stashManager.historyTab': '歷史',
@@ -10296,6 +10790,8 @@ export const cantoneseTranslations: Readonly<
   'color.green': '綠色',
   'color.amber': '琥珀色',
   'color.rose': '玫瑰色',
+  'settings.dialogTitle': '設定',
+  'settings.closeAction': '關閉',
   'settings.notificationsEnableTitle': '開啟通知',
   'settings.notificationsEnableDescription':
     '喺目前 repository 有重要事件發生嗰陣，即刻彈通知話你知。',
@@ -10308,6 +10804,29 @@ export const cantoneseTranslations: Readonly<
   'settings.automationIntervalEvery': '每隔',
   'settings.automationIntervalMinutes': '{minutes} 分鐘',
   'settings.automationIntervalGroupLabel': '{title}間隔',
+  'settings.globalTabsLabel': '設定頁面',
+  'settings.accountsTab': '帳戶',
+  'settings.integrationsTab': '整合',
+  'settings.copilotTab': 'Copilot',
+  'settings.gitTab': 'Git',
+  'settings.appearanceTab': '外觀',
+  'settings.notificationsTab': '通知',
+  'settings.promptsTab': '提示詞',
+  'settings.advancedTab': '進階',
+  'settings.accessibilityTab': '無障礙',
+  'settings.agentAccessTab': 'Agent 存取權',
+  'settings.selfHostedServerTab': '自託管伺服器',
+  'settings.automationTab': '自動化',
+  'settings.aiTab': 'AI',
+  'settings.browserTabSearch': '搵 {surface}',
+  'settings.browserTabOpenNew': '開新分頁打開 {surface} 頁面',
+  'settings.browserTabAllOpen': '{surface} 頁面已經全部開晒',
+  'settings.browserTabMore': '仲有 {count} 個 {surface} 頁面',
+  'settings.browserTabClose': '關閉 {page} 分頁',
+  'settings.browserTabPin': '釘選 {page} 分頁',
+  'settings.browserTabUnpin': '取消釘選 {page} 分頁',
+  'settings.browserTabPickerTitle': '揀一個 {surface} 頁面',
+  'settings.browserTabNoMatches': '搵唔到啱嘅 {surface} 頁面。',
   'settings.queueTab': 'Clone 隊列',
   'settings.queueHeading': 'Clone 隊列',
   'settings.queueDescription':
@@ -10519,6 +11038,13 @@ export const cantoneseTranslations: Readonly<
   'settings.integrationsCustomEditorLabel': '自訂編輯器',
   'settings.integrationsCustomShellLabel': '自訂命令列',
   'settings.integrationsSelectEditor': '揀編輯器',
+  'settings.tabsDockPosition': '設定分頁位置',
+  'settings.tabsDockDescription':
+    '揀呢條分頁列擺邊。設定同儲存庫設定會分開記住；冇記錄或者記錄唔啱就用左邊。',
+  'settings.tabsDockLeft': '左邊',
+  'settings.tabsDockTop': '頂部',
+  'settings.tabsDockBottom': '底部',
+  'settings.tabsDockRight': '右邊',
   'settings.contextMenuHeading': 'Windows 右鍵選單',
   'settings.contextMenuDescription':
     '喺檔案總管撳右鍵嗰陣，喺資料夾同資料夾空白位加返 Desktop Material 嘅動作。',
@@ -10648,6 +11174,8 @@ export const cantoneseTranslations: Readonly<
   'repositorySettings.tabAppearance': '外觀',
   'repositorySettings.tabAISecurity': 'AI 功能',
   'repositorySettings.tabForkSettings': 'Fork 設定',
+  'repositorySettings.tabsLabel': '儲存庫設定頁面',
+  'repositorySettings.dialogTitle': '儲存庫設定',
   'commandPalette.homeRepositorySettings': '儲存庫設定 ▸ {tab}',
   'palette.repositorySettingsRemote': '遠端設定',
   'palette.repositorySettingsIgnoredFiles': '忽略檔案',
@@ -11145,6 +11673,8 @@ export const cantoneseTranslations: Readonly<
   'batchClone.filterRegexTarget': 'Clone 佇列',
   'batchClone.filterStatusCount': '{total} 個 repo 揀到 {matched} 個',
   'batchClone.filterStatusNone': '冇 repo 啱',
+  'repositoryTransfer.cheapLfsNote':
+    '每次 clone 完，Cheap LFS 會按 repo 個「clone 後下載大檔案」設定（預設開啟）還原大檔。分享清單只帶 URL，所以帳戶綁定同逐檔揀選留喺本機；如果關咗還原，或者冇合資格嘅 provider 帳戶，大檔會留低 pointer，之後再還原都得。',
   'branchRules.filterPlaceholder': '篩選結果',
   'branchRules.filterLabel': '篩選分支規則結果',
   'branchRules.filterRegexTarget': '分支規則結果',
@@ -11153,6 +11683,38 @@ export const cantoneseTranslations: Readonly<
   'branchRules.filterNoMatchesInList': '呢個清單冇數值啱',
   'cheapLfs.files.one': '{count} 個大檔案',
   'cheapLfs.files.many': '{count} 個大檔案',
+  'cheapLfs.workingTree.menu.one': '將揀咗嘅檔案存入 cheap LFS…',
+  'cheapLfs.workingTree.menu.many': '將揀咗嘅 {count} 個檔案存入 cheap LFS…',
+  'cheapLfs.workingTree.menu.wholeFileRequired':
+    '存入 cheap LFS（要揀成個檔案）',
+  'cheapLfs.workingTree.title': '將檔案存入 Cheap LFS？',
+  'cheapLfs.workingTree.reviewBody':
+    '揀咗嘅工作目錄檔案會上載去已設定嘅 Cheap LFS 儲存位置，然後喺本機換成細小 pointer。咁樣可以避免原始 bytes 污染日後嘅 Git 歷史；已上載嘅內容唔會刪除。',
+  'cheapLfs.workingTree.reviewWarning':
+    '繼續之前請核對清楚檔案。pointer 會取代成個檔案，所以只揀咗部分 diff 時，絕對唔會當成完整檔案上載。',
+  'cheapLfs.workingTree.skipped.one': '1 個揀咗嘅檔案喺上載之前已跳過：',
+  'cheapLfs.workingTree.skipped.many': '{count} 個揀咗嘅檔案喺上載之前已跳過：',
+  'cheapLfs.workingTree.skipped.deleted':
+    '刪除咗嘅檔案冇工作目錄 bytes 可以上載。',
+  'cheapLfs.workingTree.skipped.partial':
+    '請揀成個檔案，先可以用 pointer 取代佢。',
+  'cheapLfs.workingTree.progress.label': 'Cheap LFS 成批進度',
+  'cheapLfs.workingTree.progress.files': '已完成 {completed}/{total} 個檔案',
+  'cheapLfs.workingTree.progress.count': '{completed}/{total}',
+  'cheapLfs.workingTree.progress.canceling': '已要求取消；而家完成安全清理緊……',
+  'cheapLfs.workingTree.result.canceled':
+    'Cheap LFS 成批操作已取消。未完成嘅檔案保持原狀。',
+  'cheapLfs.workingTree.result.stored.one': '1 個檔案已存入 Cheap LFS。',
+  'cheapLfs.workingTree.result.stored.many': '{count} 個檔案已存入 Cheap LFS。',
+  'cheapLfs.workingTree.result.storedLabel': '已存入嘅檔案：',
+  'cheapLfs.workingTree.result.unchangedLabel': '保持原狀嘅檔案：',
+  'cheapLfs.workingTree.result.error': 'Cheap LFS 未能完成呢批操作：{error}',
+  'cheapLfs.workingTree.result.unknownError':
+    '儲存服務冇提供可以安全顯示嘅錯誤詳情。',
+  'cheapLfs.workingTree.done': '完成',
+  'cheapLfs.workingTree.canceling': '取消緊……',
+  'cheapLfs.workingTree.store.one': '將檔案存入 Cheap LFS',
+  'cheapLfs.workingTree.store.many': '將 {count} 個檔案存入 Cheap LFS',
   'cheapLfs.commitBlocked.restoreTitle': 'Commit 要等檔案還原完成',
   'cheapLfs.commitBlocked.restoreBody':
     '「{name}」仲有 Cheap LFS 檔案 clone 緊或還原緊。今次未有開始 commit；等進度跑完再試，唔好同個檔案玩搶櫈仔。',
@@ -11752,6 +12314,7 @@ export const cantoneseTranslations: Readonly<
   'settingsSearch.tabName.advanced': '進階',
   'settingsSearch.tabName.accessibility': '無障礙',
   'settingsSearch.tabName.agentAccess': '代理存取',
+  'settingsSearch.tabName.selfHostedServer': '自託管伺服器',
   'settingsSearch.tabName.automation': '自動化',
   'settingsSearch.tabName.queue': 'Clone 隊列',
   'settingsSearch.tabName.sound': '聲音',
@@ -11780,6 +12343,9 @@ export const cantoneseTranslations: Readonly<
   'settingsSearch.entry.ollamaChat.title': 'Ollama 對話',
   'settingsSearch.entry.ollamaChat.desc':
     '唔使離開 Desktop Material，直接同本地 Ollama 模型傾偈。',
+  'settingsSearch.entry.selfHostedServer.title': '自託管伺服器',
+  'settingsSearch.entry.selfHostedServer.desc':
+    '喺自己部機設定、加入同登入用 Docker 託管嘅團隊伺服器。',
   'settingsSearch.entry.gitGlobalIgnore.title': '全域忽略',
   'settingsSearch.entry.gitGlobalIgnore.desc':
     '編輯套用喺每個存放庫嘅忽略規則（core.excludesFile）。',
@@ -12044,6 +12610,50 @@ export const cantoneseTranslations: Readonly<
     'Desktop Material 儲存唔到 {login} 嘅登入權杖，所以個帳戶未加到入去。請重新登入一次。（{error}）',
   'accounts.credentialUnavailable':
     'Desktop Material 讀唔到 {logins} 已儲存嘅登入權杖。請重新登入一次，先可以用返呢啲帳戶。',
+  'accounts.picker.label': '帳戶',
+  'accounts.picker.choose': '揀一個帳戶',
+  'accounts.picker.close': '關閉帳戶選擇器',
+  'accounts.picker.title': '帳戶 · {host}',
+  'accounts.picker.searchLabel': '搜尋帳戶',
+  'accounts.picker.searchPlaceholder': '按名稱、登入名稱或主機搜尋帳戶',
+  'accounts.picker.countOne': '{count} 個已登入帳戶',
+  'accounts.picker.countMany': '{count} 個已登入帳戶',
+  'accounts.picker.matchCount': '{total} 個帳戶入面有 {matched} 個啱',
+  'accounts.picker.noAccounts': '冇已登入帳戶。',
+  'accounts.picker.noMatch': '冇帳戶啱「{query}」。',
+  'accounts.picker.add': '新增另一個帳戶',
+  'repositoryTransfer.importTitle': '匯入 repository 清單',
+  'repositoryTransfer.exportTitle': '匯出 repository 清單',
+  'repositoryTransfer.chooseList': '揀一個 repository 清單檔案匯入。',
+  'repositoryTransfer.fileFilterName': 'Repository 清單',
+  'repositoryTransfer.chooseFile': '揀檔案…',
+  'repositoryTransfer.changeFile': '更改…',
+  'repositoryTransfer.baseDirectory': '基礎資料夾',
+  'repositoryTransfer.baseDirectoryPlaceholder': 'Clone 目的地',
+  'repositoryTransfer.chooseDirectory': '揀資料夾…',
+  'repositoryTransfer.cloneMode': 'Clone 模式：',
+  'repositoryTransfer.parallel': '平行進行',
+  'repositoryTransfer.sequential': '逐個進行',
+  'repositoryTransfer.selectedOne': '揀咗 {selected} 個，共 {total} 個',
+  'repositoryTransfer.selectedMany': '揀咗 {selected} 個，共 {total} 個',
+  'repositoryTransfer.selectAtLeastOne': '至少揀一個 repository。',
+  'repositoryTransfer.chooseBaseDirectory': '揀一個基礎資料夾。',
+  'repositoryTransfer.invalidList':
+    '呢個檔案唔係有效嘅 repository 清單匯出檔。',
+  'repositoryTransfer.selectForImport': '揀 {url} 匯入',
+  'repositoryTransfer.alreadyCloned': '已經 clone 咗',
+  'repositoryTransfer.cloneOne': 'Clone {count} 個 repository',
+  'repositoryTransfer.cloneMany': 'Clone {count} 個 repository',
+  'repositoryTransfer.exportIntro':
+    '只會匯出 remote URL；本機路徑同帳戶權杖永遠唔會寫入檔案。',
+  'repositoryTransfer.noRemote': '冇可攜式 remote URL，所以唔可以匯出',
+  'repositoryTransfer.skippedOne':
+    '有 1 個 repository 冇可攜式 remote URL，會略過。',
+  'repositoryTransfer.skippedMany':
+    '有 {count} 個 repository 冇可攜式 remote URL，會略過。',
+  'repositoryTransfer.selectForExport': '揀 {name} 匯出',
+  'repositoryTransfer.exportOne': '匯出 {count} 個 repository',
+  'repositoryTransfer.exportMany': '匯出 {count} 個 repository',
   'accounts.invalidatedTokenTitle': '帳戶權杖已經失效',
   'accounts.invalidatedTokenTitleDarwin': '帳戶權杖已經失效',
   'accounts.invalidatedTokenBody':
@@ -12136,6 +12746,7 @@ export const cantoneseTranslations: Readonly<
   'filter.regexBuilder.literalPlaceholder': '例如 c++',
   'filter.regexBuilder.literalInsert': '加入做純文字',
   'filter.regexBuilder.literalPreview': '會加入',
+  'branch.filter.notUpdatedWith': '未追齊 {branch}',
   'regex.builder.viewsLabel': '正則表達式砌法器檢視',
   'regex.builder.view.build': '砌樣式',
   'regex.builder.view.guide': '正則表達式點運作',

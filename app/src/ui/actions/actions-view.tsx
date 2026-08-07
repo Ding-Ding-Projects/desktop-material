@@ -2,6 +2,7 @@ import * as React from 'react'
 import memoizeOne from 'memoize-one'
 import { Disposable } from 'event-kit'
 import { Repository } from '../../models/repository'
+import { Account } from '../../models/account'
 import {
   APICheckConclusion,
   APICheckStatus,
@@ -37,11 +38,9 @@ import { RunDetails } from './run-details'
 import { TabBar } from '../tab-bar'
 
 /** The in-view Actions category tabs in display order. */
-const ActionsViewTabOrder: ReadonlyArray<'runs' | 'workflows' | 'caches'> = [
-  'runs',
-  'workflows',
-  'caches',
-]
+const ActionsViewTabOrder: ReadonlyArray<
+  'runs' | 'workflows' | 'caches' | 'runners'
+> = ['runs', 'workflows', 'caches', 'runners']
 
 /** localStorage key used to persist the runs filter mode. */
 const ActionsRunsFilterListId = 'actions-runs'
@@ -57,6 +56,7 @@ import { WorkflowRunReviewList } from './workflow-run-review-list'
 import { WorkflowCatalogDialog } from './workflow-catalog-dialog'
 import { IWorkflowTemplate } from './workflow-templates'
 import { ActionsCacheManager } from './actions-cache-manager'
+import { SelfHostedRunnerManager } from './self-hosted-runner-manager'
 import { isWorkflowRunCancellableStatus } from '../../lib/actions-workflow-runs'
 import { Dispatcher } from '../dispatcher'
 import { Resizable } from '../resizable'
@@ -90,6 +90,7 @@ interface IActionsViewProps {
   readonly currentBranch?: string | null
   readonly branchNames: ReadonlyArray<string>
   readonly actionsStore: ActionsStore
+  readonly accounts?: ReadonlyArray<Account>
   readonly dispatcher?: Dispatcher
   /** Overrides the provider-response deadline for deterministic tests. */
   readonly bulkRunCancellationRequestTimeoutMs?: number
@@ -126,7 +127,7 @@ interface IActionsViewState {
   /** Width of the run list column, in pixels, remembered per repository. */
   readonly runColumnWidth: number
   /** Which in-view category tab is showing: runs, workflows, or caches. */
-  readonly activeTab: 'runs' | 'workflows' | 'caches'
+  readonly activeTab: 'runs' | 'workflows' | 'caches' | 'runners'
   readonly catalogOpen: boolean
   readonly selectedRun: IAPIWorkflowRun | null
   readonly selectedRunIds: ReadonlySet<number>
@@ -1214,6 +1215,13 @@ export class ActionsView extends React.Component<
     }
   }
 
+  private retryLogs = () => {
+    const job = this.state.logJob
+    if (job !== null) {
+      void this.viewLogs(job)
+    }
+  }
+
   private closeLogs = () => {
     this.logController?.abort()
     this.logController = null
@@ -2131,6 +2139,7 @@ export class ActionsView extends React.Component<
             <span>Runs</span>
             <span>Workflows</span>
             <span>Caches</span>
+            <span>Runners</span>
           </TabBar>
         </div>
         {this.state.activeTab !== 'runs' ? null : (
@@ -2425,6 +2434,12 @@ export class ActionsView extends React.Component<
               state={actions}
             />
           )}
+        {this.state.activeTab === 'runners' && (
+          <SelfHostedRunnerManager
+            repository={this.props.repository}
+            accounts={this.props.accounts}
+          />
+        )}
         {this.state.dispatchOpen && this.props.repository.gitHubRepository && (
           <WorkflowDispatchDialog
             repository={this.props.repository}
@@ -2460,6 +2475,7 @@ export class ActionsView extends React.Component<
             loading={this.state.logLoading}
             error={this.state.logError}
             onClose={this.closeLogs}
+            onRetry={this.retryLogs}
           />
         )}
         {cancelConfirmation !== null &&

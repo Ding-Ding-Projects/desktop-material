@@ -288,6 +288,9 @@ import {
 } from './github-packages'
 import { createGitHubAPIRequestHeaders } from './github-rest-api-version'
 import { GitHubOAuthScopes } from './github-oauth-scopes'
+
+/** The OS callback registered by the built-in GitHub OAuth application. */
+export const GitHubOAuthRedirectURI = 'x-github-client://oauth'
 import {
   GitHubAPIWorkbenchRequest,
   IGitHubAPIWorkbenchResponse,
@@ -845,6 +848,88 @@ export interface IAPIWorkflow {
 export interface IAPIWorkflows {
   readonly total_count: number
   readonly workflows: ReadonlyArray<IAPIWorkflow>
+}
+
+/** The bounded repository-runner shape used by the self-hosted runner manager. */
+export interface IAPISelfHostedRunner {
+  readonly id: number
+  readonly name: string
+  readonly os: string
+  readonly busy: boolean
+  readonly status: string
+  readonly labels: ReadonlyArray<{ readonly name: string }>
+}
+
+export interface IAPISelfHostedRunners {
+  readonly total_count: number
+  readonly runners: ReadonlyArray<IAPISelfHostedRunner>
+}
+
+function parseSelfHostedRunnerPage(value: unknown): IAPISelfHostedRunners {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error('GitHub returned an invalid runner list.')
+  }
+  const raw = value as Record<string, unknown>
+  const totalCount = raw.total_count
+  const runners = raw.runners
+  if (
+    typeof totalCount !== 'number' ||
+    !Number.isSafeInteger(totalCount) ||
+    totalCount < 0 ||
+    totalCount > 10_000 ||
+    !Array.isArray(runners) ||
+    runners.length > 100
+  ) {
+    throw new Error('GitHub returned an invalid runner list.')
+  }
+  return {
+    total_count: totalCount,
+    runners: runners.map(value => {
+      if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        throw new Error('GitHub returned an invalid runner list.')
+      }
+      const runner = value as Record<string, unknown>
+      const labels = runner.labels
+      if (
+        typeof runner.id !== 'number' ||
+        !Number.isSafeInteger(runner.id) ||
+        runner.id <= 0 ||
+        typeof runner.name !== 'string' ||
+        runner.name.length === 0 ||
+        runner.name.length > 256 ||
+        typeof runner.os !== 'string' ||
+        runner.os.length === 0 ||
+        runner.os.length > 64 ||
+        typeof runner.busy !== 'boolean' ||
+        typeof runner.status !== 'string' ||
+        runner.status.length === 0 ||
+        runner.status.length > 64 ||
+        !Array.isArray(labels) ||
+        labels.length > 64
+      ) {
+        throw new Error('GitHub returned an invalid runner list.')
+      }
+      return {
+        id: runner.id,
+        name: runner.name,
+        os: runner.os,
+        busy: runner.busy,
+        status: runner.status,
+        labels: labels.map(label => {
+          if (
+            typeof label !== 'object' ||
+            label === null ||
+            Array.isArray(label) ||
+            typeof (label as { name?: unknown }).name !== 'string' ||
+            (label as { name: string }).name.length > 128
+          ) {
+            throw new Error('GitHub returned an invalid runner label.')
+          }
+          return { name: (label as { name: string }).name }
+        }),
+      }
+    }),
+  }
 }
 
 export interface IAPIWorkflowRunsFilter {
@@ -4017,6 +4102,39 @@ export class API {
     return await parsedResponse<IAPIWorkflows>(response)
   }
 
+  /** List repository-scoped GitHub Actions self-hosted runners. */
+  public async fetchSelfHostedRunners(
+    owner: string,
+    name: string,
+    signal?: AbortSignal
+  ): Promise<IAPISelfHostedRunners> {
+    const safeOwner = validateGitHubRepositoryPart(owner, 'owner')
+    const safeName = validateGitHubRepositoryPart(name, 'repository')
+    const runners: IAPISelfHostedRunner[] = []
+    let totalCount = 0
+    for (let page = 1; page <= 10; page++) {
+      const response = await this.ghRequest(
+        'GET',
+        `repos/${safeOwner}/${safeName}/actions/runners?per_page=100&page=${page}`,
+        {
+          signal,
+          customHeaders: { Accept: 'application/vnd.github+json' },
+        }
+      )
+      const parsed = parseSelfHostedRunnerPage(
+        await boundedActionsMetadataResponse(response, signal)
+      )
+      if (page === 1) {
+        totalCount = parsed.total_count
+      }
+      runners.push(...parsed.runners)
+      if (parsed.runners.length < 100 || runners.length >= parsed.total_count) {
+        break
+      }
+    }
+    return { total_count: totalCount, runners }
+  }
+
   /** List recent workflow runs, optionally scoped by workflow/branch/status. */
   public async fetchWorkflowRuns(
     owner: string,
@@ -6172,9 +6290,10 @@ export function getOAuthAuthorizationURL(
 ): string {
   const urlBase = getHTMLURL(endpoint)
   const scope = encodeURIComponent(GitHubOAuthScopes.join(' '))
+  const redirectURI = encodeURIComponent(GitHubOAuthRedirectURI)
 
   return new window.URL(
-    `/login/oauth/authorize?client_id=${ClientID}&scope=${scope}&state=${state}`,
+    `/login/oauth/authorize?client_id=${ClientID}&redirect_uri=${redirectURI}&scope=${scope}&state=${state}`,
     urlBase
   ).toString()
 }
@@ -6193,6 +6312,7 @@ export async function requestOAuthToken(
       {
         client_id: ClientID,
         client_secret: ClientSecret,
+        redirect_uri: GitHubOAuthRedirectURI,
         code: code,
       }
     )

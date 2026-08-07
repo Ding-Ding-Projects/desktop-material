@@ -992,6 +992,10 @@ export class SectionFilterList<
 
       event.preventDefault()
     } else if (key === 'Enter') {
+      if (this.state.regexError !== null) {
+        return event.preventDefault()
+      }
+
       // no repositories currently displayed, bail out
       if (rowCount.length === 0) {
         return event.preventDefault()

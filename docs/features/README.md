@@ -19,7 +19,8 @@ the implemented feature contracts.
   operating-system connections, a sandboxed app-hosted browser, and
   repository-bound provider packages.
 - [Identity and workspace](identity-and-workspace/README.md) — multiple
-  accounts plus fast repository and branch navigation at workspace scale.
+  accounts plus fast repository and branch navigation at workspace scale,
+  including scheduled language and appearance values.
 - [Collaboration](collaboration/README.md) — pull-request review, creation,
   activity, and other provider-backed teamwork.
 - [Review and diff](review-and-diff/README.md) — changed-file navigation and

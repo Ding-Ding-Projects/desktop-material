@@ -40,6 +40,44 @@ describe('settings search catalog', () => {
       assert.ok(settingsTabNameKey(entry.tab).length > 0)
     }
   })
+
+  it('keeps each scheduled rule, value, date, source, and Home Assistant control searchable', () => {
+    const ids = new Set(SettingsSearchCatalog.map(entry => entry.id))
+    for (const id of [
+      'appearance-scheduled-enabled',
+      'appearance-scheduled-language',
+      'appearance-scheduled-theme',
+      'appearance-scheduled-highlight',
+      'appearance-scheduled-accent-palette',
+      'appearance-scheduled-update-progress-palette',
+      'appearance-scheduled-surface-palette',
+      'appearance-scheduled-elevation',
+      'appearance-scheduled-ui-font',
+      'appearance-scheduled-monospace-font',
+      'appearance-scheduled-motion',
+      'appearance-scheduled-toolbar-labels',
+      'appearance-scheduled-toolbar-density',
+      'appearance-scheduled-repository-list-density',
+      'appearance-scheduled-tab-density',
+      'appearance-scheduled-tab-width',
+      'appearance-scheduled-tab-close-buttons',
+      'appearance-scheduled-submodule-back-style',
+      'appearance-scheduled-submodule-back-label',
+      'appearance-scheduled-start-date',
+      'appearance-scheduled-end-date',
+      'appearance-scheduled-start-time',
+      'appearance-scheduled-end-time',
+      'appearance-scheduled-all-days',
+      'appearance-scheduled-weekdays',
+      'appearance-scheduled-source',
+      'appearance-scheduled-api-endpoint',
+      'appearance-scheduled-home-assistant-url',
+      'appearance-scheduled-home-assistant-entity',
+      'appearance-scheduled-home-assistant-token',
+    ]) {
+      assert.ok(ids.has(id), `missing scheduled settings search entry: ${id}`)
+    }
+  })
 })
 
 describe('settingsSearchKeys', () => {
@@ -99,6 +137,30 @@ describe('filterSettingsEntries', () => {
     const match = cantonese.find(r => r.item.id === 'appearance-playfulness')
     assert.ok(match)
     assert.strictEqual(match!.item.tab, PreferencesTab.Appearance)
+  })
+
+  it('finds the self-hosted server setup in both languages', () => {
+    const english = filterSettingsEntries('join link', substring).results
+    assert.ok(english.some(r => r.item.id === 'self-hosted-server-setup'))
+
+    const cantonese = filterSettingsEntries('自託管', substring).results
+    const match = cantonese.find(r => r.item.id === 'self-hosted-server-setup')
+    assert.ok(match)
+    assert.strictEqual(match!.item.tab, PreferencesTab.SelfHostedServer)
+  })
+
+  it('finds individual scheduled controls instead of only the schedule section', () => {
+    assert.ok(
+      filterSettingsEntries('end date', substring).results.some(
+        result => result.item.id === 'appearance-scheduled-end-date'
+      )
+    )
+    assert.ok(
+      filterSettingsEntries('boolean entity', substring).results.some(
+        result =>
+          result.item.id === 'appearance-scheduled-home-assistant-entity'
+      )
+    )
   })
 
   it('matches settings across more than one tab for a broad query', () => {

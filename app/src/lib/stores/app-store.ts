@@ -65,6 +65,10 @@ import {
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
   ICheapLfsRetainedPin,
+  ICheapLfsWorkingTreePinFailure,
+  ICheapLfsWorkingTreePinFile,
+  ICheapLfsWorkingTreePinResult,
+  ensureCheapLfsPathIsNotOwnedArtifact,
   isCheapLfsPayloadProvenStored,
   CheapLfsPinStage,
   listAllCheapLfsPointers,
@@ -236,6 +240,11 @@ import {
   IRepositoryAppearanceOverrides,
   normalizeAppearanceCustomization,
 } from '../../models/appearance-customization'
+import {
+  IScheduledSettingsConfig,
+  IScheduledSettingsValue,
+  ScheduledTheme,
+} from '../../models/scheduled-settings'
 import { CloneRepositoryTab } from '../../models/clone-repository-tab'
 import type { CloneOptions } from '../../models/clone-options'
 import type { ICheapLfsCloneSelection } from '../../models/cheap-lfs-clone-selection'
@@ -352,6 +361,7 @@ import {
   updatePreferredAppMenuItemLabels,
   updateAccounts,
   setWindowZoomFactor,
+  setNativeThemeSource,
   onShowInstallingUpdate,
   quitApp,
   sendCancelQuittingSync,
@@ -376,6 +386,14 @@ import {
   deleteToken,
   IAPICreatePushProtectionBypassResponse,
 } from '../api'
+import { validateGitHubRepositoryPart } from '../github-issue'
+import {
+  IRepositoryTransferProgress,
+  RepositoryTransferMode,
+  RepositoryTransferRecoveryRefPrefix,
+  RepositoryTransferSnapshotCommitMessage,
+  validateRepositoryTransferName,
+} from '../repository-transfer'
 import {
   missingRequiredScopes,
   parseGrantedScopes,
@@ -441,6 +459,7 @@ import {
   getAccountForComposeCommitsWithAI,
   getAccountForCopilotConflictResolution,
   getAccountForRepository,
+  getRepositoryAccountKeyForActiveAccount,
   getRepositoryCredentialAccountKey,
   getRepositoryOwnerAccountToPromote,
 } from '../get-account-for-repository'
@@ -490,7 +509,9 @@ import {
   getCommitDiff,
   getMergeBase,
   getRemotes,
+  removeRemote,
   setRemoteURL,
+  setRemotePushURL,
   getWorkingDirectoryDiff,
   isCoAuthoredByTrailer,
   handleLocalCommitPushBatching,
@@ -507,6 +528,7 @@ import {
   saveGitIgnore,
   appendIgnoreRule,
   createMergeCommit,
+  getBranches,
   getBranchesPointedAt,
   abortRebase,
   continueRebase,
@@ -594,6 +616,7 @@ import {
   getAheadBehind,
   revSymmetricDifference,
 } from '../git'
+import { envForRemoteOperation } from '../git/environment'
 import {
   isMissingRemoteRefFailure,
   probeRemoteBranch,
@@ -827,6 +850,14 @@ import { createTutorialRepository } from './helpers/create-tutorial-repository'
 import { sendNonFatalException } from '../helpers/non-fatal-exception'
 import { ProgressiveLoad } from '../progressive-load'
 import { getDefaultDir } from '../../ui/lib/default-dir'
+import {
+  applyCloudPatch,
+  shareCloudPatch,
+} from '../cloud-patches/cloud-patch-orchestration'
+import type {
+  CloudPatchApplyResult,
+  CloudPatchShareResult,
+} from '../cloud-patches/cloud-patch-orchestration'
 import { WorkflowPreferences } from '../../models/workflow-preferences'
 import {
   defaultBuildRunPreferences,
@@ -951,7 +982,7 @@ import {
   useExternalCredentialHelper,
   useExternalCredentialHelperDefault,
 } from '../trampoline/use-external-credential-helper'
-import { IOAuthAction } from '../parse-app-url'
+import { IOAuthAction, ISelfHostedOAuthAction } from '../parse-app-url'
 import {
   ICustomIntegration,
   migratedCustomIntegration,
@@ -991,6 +1022,11 @@ import {
   setRepositoryAppearanceOverrides,
 } from '../appearance-customization'
 import type { ElementAppearanceCoordinator } from './element-appearance-coordinator'
+import { ScheduledSettingsRuntime } from '../scheduled-settings'
+import {
+  fetchHomeAssistantState,
+  fetchScheduledSettingsAPI,
+} from '../scheduled-settings-api-client'
 
 class CheapLfsPasswordPromptCanceledError extends Error {
   public constructor() {
@@ -1917,6 +1953,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private selectedTheme = ApplicationTheme.System
   private currentTheme: ApplicableTheme = ApplicationTheme.Light
   private appearanceCustomization = getAppearanceCustomization()
+  private scheduledBaseAppearanceCustomization = this.appearanceCustomization
+  private scheduledSettingsValue: IScheduledSettingsValue | null = null
+  private scheduledThemeOverride: ApplicationTheme | null = null
+  private readonly scheduledSettingsRuntime: ScheduledSettingsRuntime
+  private scheduledThemeApplyVersion = 0
   private appearanceCustomizationMutationVersion = 0
   private repositoryAppearanceOverrides: IRepositoryAppearanceOverrides = {}
   private selectedTabSize = tabSizeDefault
@@ -2055,6 +2096,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
     cheapLfsDockerHubCapabilityProbe?: () => Promise<boolean>
   ) {
     super()
+
+    this.scheduledSettingsRuntime = new ScheduledSettingsRuntime({
+      fetchAPI: fetchScheduledSettingsAPI,
+      fetchHomeAssistant: fetchHomeAssistantState,
+      onEffectiveValueChanged: value => this.applyScheduledSettingsValue(value),
+      onError: error => {
+        log.error(
+          'A scheduled settings source could not be read.',
+          error instanceof Error ? error : new Error(String(error))
+        )
+      },
+    })
 
     // Fire user-defined automations for genuinely new notifications. The trigger
     // is installed here (rather than inside the Electron-free notification store)
@@ -2614,8 +2667,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   private wireupStoreEventHandlers() {
     this.elementAppearanceCoordinator?.onDidUpdate(state => {
-      this.appearanceCustomization = state.appearance
-      this.emitUpdate()
+      this.scheduledBaseAppearanceCustomization = state.appearance
+      this.applyScheduledSettingsValue(this.scheduledSettingsValue)
     })
     this.elementAppearanceCoordinator?.onDidError(error =>
       this.emitError(error)
@@ -2708,6 +2761,52 @@ export class AppStore extends TypedBaseStore<IAppState> {
       this.syncCopilotModelsFromCache()
       this.emitUpdate()
     })
+  }
+
+  private scheduledThemeToApplicationTheme(
+    theme: ScheduledTheme
+  ): ApplicationTheme {
+    switch (theme) {
+      case 'light':
+        return ApplicationTheme.Light
+      case 'dark':
+        return ApplicationTheme.Dark
+      case 'system':
+        return ApplicationTheme.System
+    }
+  }
+
+  /** Apply a schedule as a reversible overlay on the user's stored values. */
+  private applyScheduledSettingsValue(
+    value: IScheduledSettingsValue | null
+  ): void {
+    this.scheduledSettingsValue = value
+    const base = this.scheduledBaseAppearanceCustomization
+    this.appearanceCustomization = normalizeAppearanceCustomization({
+      ...base,
+      ...(value?.appearance ?? {}),
+      languageMode: value?.languageMode ?? base.languageMode,
+    })
+
+    this.scheduledThemeOverride =
+      value?.theme === undefined
+        ? null
+        : this.scheduledThemeToApplicationTheme(value.theme)
+    const effectiveTheme = this.scheduledThemeOverride ?? this.selectedTheme
+    const themeApplyVersion = ++this.scheduledThemeApplyVersion
+    if (effectiveTheme === ApplicationTheme.System) {
+      setNativeThemeSource('system')
+      void getCurrentlyAppliedTheme().then(theme => {
+        if (themeApplyVersion === this.scheduledThemeApplyVersion) {
+          this.currentTheme = theme
+          this.emitUpdate()
+        }
+      })
+    } else {
+      setNativeThemeSource(effectiveTheme)
+      this.currentTheme = effectiveTheme
+    }
+    this.emitUpdate()
   }
 
   private getCopilotModelsAccount(): Account | undefined {
@@ -2907,9 +3006,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
       resolvedExternalEditor: this.resolvedExternalEditor,
       selectedCloneRepositoryTab: this.selectedCloneRepositoryTab,
       selectedBranchesTab: this.selectedBranchesTab,
-      selectedTheme: this.selectedTheme,
+      selectedTheme: this.scheduledThemeOverride ?? this.selectedTheme,
       currentTheme: this.currentTheme,
       appearanceCustomization: this.appearanceCustomization,
+      scheduledSettings: this.scheduledSettingsRuntime.getConfig(),
       repositoryAppearanceOverrides: this.repositoryAppearanceOverrides,
       selectedTabSize: this.selectedTabSize,
       showRecentRepositories: this.showRecentRepositories,
@@ -3080,6 +3180,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       aheadBehind: gitStore.aheadBehind,
       tagsToPush: gitStore.tagsToPush,
       remote: gitStore.currentRemote,
+      remotes: gitStore.remotes,
       lastFetched: gitStore.lastFetched,
     }))
 
@@ -3696,6 +3797,33 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return newCommits.length
     }
     return 0
+  }
+
+  /** Share a reviewed commit range through the joined self-hosted server. */
+  public _shareCloudPatch(
+    repository: Repository,
+    baseRevision: string,
+    headRevision: string,
+    recipientDeviceIds: ReadonlyArray<string>
+  ): Promise<CloudPatchShareResult> {
+    return shareCloudPatch(
+      repository,
+      baseRevision,
+      headRevision,
+      recipientDeviceIds
+    )
+  }
+
+  /** Fetch, verify, and apply a Cloud Patch, then refresh the repository state. */
+  public async _applyCloudPatch(
+    repository: Repository,
+    link: string
+  ): Promise<CloudPatchApplyResult> {
+    const result = await applyCloudPatch(repository, link)
+    if (result.kind === 'applied') {
+      await this._refreshRepository(repository)
+    }
+    return result
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
@@ -4950,9 +5078,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     this.currentTheme = await getCurrentlyAppliedTheme()
 
+    this.scheduledBaseAppearanceCustomization = this.appearanceCustomization
+    this.scheduledSettingsRuntime.start()
+
     this.selectedTabSize = getNumber(tabSizeKey, tabSizeDefault)
 
     themeChangeMonitor.onThemeChanged(theme => {
+      // A scheduled light/dark value is an explicit overlay. The operating
+      // system may still report a change while that overlay is active, but it
+      // must not leak through until the schedule stops applying a theme.
+      if (
+        this.scheduledThemeOverride !== null &&
+        this.scheduledThemeOverride !== ApplicationTheme.System
+      ) {
+        return
+      }
       this.currentTheme = theme
       this.emitUpdate()
     })
@@ -9761,9 +9901,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     // Reorder via the AccountsStore directly (a pure array reorder + save; no
-    // token re-fetch). NOTE: GitHub.com accounts always sort ahead of
-    // Enterprise accounts, so an Enterprise-owned repo cannot become
-    // `accounts[0]` while any GitHub.com account is signed in.
+    // token re-fetch). AccountsStore keeps the promoted account at
+    // `accounts[0]` even when it is an Enterprise account.
     this.accountsStore.promoteAccount(owner)
   }
 
@@ -10469,9 +10608,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
         )
         await this._refreshWorktrees(repository)
       }
-      await this.withTemporaryRepositoryMutationGuard(repository, () =>
-        deleteLocalBranch(repository, candidate.branch.name)
-      )
+      const [deletion] = await this._deleteReviewedBranches(repository, [
+        {
+          name: candidate.branch.name,
+          expectedSha: candidate.branch.tip.sha,
+        },
+      ])
+      if (deletion?.status !== 'deleted') {
+        return {
+          ...base,
+          status,
+          detail: `Merge completed, but cleanup was not applied: ${
+            deletion?.detail ?? 'The exact branch tip could not be verified.'
+          }`,
+        }
+      }
       return {
         ...base,
         status,
@@ -10820,8 +10971,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository,
     branch: Branch,
     includeUpstream?: boolean,
-    toCheckout?: Branch | null
-  ): Promise<void> {
+    toCheckout?: Branch | null,
+    expectedSha?: string
+  ): Promise<boolean> {
     return this.withRefreshedGitHubRepository(repository, async repository => {
       const gitStore = this.gitStoreCache.get(repository)
 
@@ -10846,18 +10998,47 @@ export class AppStore extends TypedBaseStore<IAppState> {
           throw new Error(`Could not determine remote url from: ${branch.ref}.`)
         }
 
-        await gitStore.performFailableOperation(() =>
+        const deleted = await gitStore.performFailableOperation(() =>
           this.withTemporaryRepositoryMutationGuard(repository, () =>
-            deleteRemoteBranch(repository, remote, nameWithoutRemote)
+            deleteRemoteBranch(
+              repository,
+              remote,
+              nameWithoutRemote,
+              expectedSha
+            )
           )
         )
+
+        if (deleted !== true) {
+          return false
+        }
 
         // We log the remote branch's sha so that the user can recover it.
         log.info(
           `Deleted branch ${branch.upstreamWithoutRemote} (was ${tip.sha})`
         )
 
-        return this._refreshRepository(repository)
+        await this._refreshRepository(repository)
+        return true
+      }
+
+      if (expectedSha !== undefined) {
+        await this._refreshRepository(repository)
+        const refreshedState = this.repositoryStateCache.get(repository)
+        const refreshedTip = refreshedState.branchesState.tip
+        if (
+          (refreshedTip.kind === TipState.Valid &&
+            refreshedTip.branch.name === branch.name) ||
+          refreshedState.branchesState.defaultBranch?.name === branch.name
+        ) {
+          this.postNotification({
+            kind: 'app-error',
+            title: 'Branch kept',
+            body: `The reviewed branch ${branch.name} is current or default and was not deleted.`,
+            repositoryId: repository.id,
+          })
+          return false
+        }
       }
 
       // If a local branch, user may have the branch to delete checked out and
@@ -10866,24 +11047,32 @@ export class AppStore extends TypedBaseStore<IAppState> {
         toCheckout ?? this.getBranchToCheckoutAfterDelete(branch, repository)
 
       if (branchToCheckout !== null) {
-        await gitStore.performFailableOperation(() =>
+        const checkedOut = await gitStore.performFailableOperation(() =>
           this.withTemporaryRepositoryMutationGuard(repository, () =>
             checkoutBranch(repository, branchToCheckout, gitStore.currentRemote)
           )
         )
+        if (checkedOut !== true) {
+          return false
+        }
       }
 
-      await gitStore.performFailableOperation(() => {
+      const deleted = await gitStore.performFailableOperation(() => {
         return this.withTemporaryRepositoryMutationGuard(repository, () =>
           this.deleteLocalBranchAndUpstreamBranch(
             repository,
             branch,
-            includeUpstream
+            includeUpstream,
+            expectedSha
           )
         )
       })
+      if (deleted !== true) {
+        return false
+      }
 
-      return this._refreshRepository(repository)
+      await this._refreshRepository(repository)
+      return true
     })
   }
 
@@ -10897,6 +11086,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       result: IReviewedBranchDeletionResult
     ) => void
   ): Promise<ReadonlyArray<IReviewedBranchDeletionResult>> {
+    await this._refreshRepository(repository)
     const state = this.repositoryStateCache.get(repository).branchesState
     const protectedNames = new Set<string>()
     if (state.tip.kind === TipState.Valid) {
@@ -10931,11 +11121,40 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private async deleteLocalBranchAndUpstreamBranch(
     repository: Repository,
     branch: Branch,
-    includeUpstream?: boolean
-  ): Promise<void> {
-    await this.withTemporaryRepositoryMutationGuard(repository, () =>
-      deleteLocalBranch(repository, branch.name)
-    )
+    includeUpstream?: boolean,
+    expectedSha?: string
+  ): Promise<true> {
+    let expectedUpstreamSha: string | undefined
+    if (
+      includeUpstream === true &&
+      branch.upstreamRemoteName !== null &&
+      branch.upstreamWithoutRemote !== null
+    ) {
+      const remoteTrackingRef = `refs/remotes/${branch.upstreamRemoteName}/${branch.upstreamWithoutRemote}`
+      const [remoteTrackingBranch] = await getBranches(
+        repository,
+        remoteTrackingRef
+      )
+      expectedUpstreamSha = remoteTrackingBranch?.tip.sha
+      if (expectedSha !== undefined && expectedUpstreamSha === undefined) {
+        throw new Error('The upstream branch tip could not be verified.')
+      }
+    }
+
+    if (expectedSha === undefined) {
+      await this.withTemporaryRepositoryMutationGuard(repository, () =>
+        deleteLocalBranch(repository, branch.name)
+      )
+    } else {
+      const [result] = await deleteReviewedLocalBranches(repository, [
+        { name: branch.name, expectedSha },
+      ])
+      if (result?.status !== 'deleted') {
+        throw new Error(
+          result?.detail ?? 'The reviewed branch tip could not be deleted.'
+        )
+      }
+    }
 
     if (
       includeUpstream === true &&
@@ -10957,10 +11176,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
       }
 
       await this.withTemporaryRepositoryMutationGuard(repository, () =>
-        deleteRemoteBranch(repository, remote, upstreamWithoutRemote)
+        deleteRemoteBranch(
+          repository,
+          remote,
+          upstreamWithoutRemote,
+          expectedUpstreamSha
+        )
       )
     }
-    return
+    return true
   }
 
   private getBranchToCheckoutAfterDelete(
@@ -13871,6 +14095,455 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return this._updateRepositoryAccount(repository, getAccountKey(account))
   }
 
+  private async verifyRepositoryTransferRemote(
+    repository: Repository,
+    targetURL: string,
+    accountKey: string,
+    branch: string,
+    expectedTip: string
+  ): Promise<void> {
+    const environment = await envForRemoteOperation(targetURL)
+    const result = await git(
+      ['ls-remote', '--heads', targetURL, `refs/heads/${branch}`],
+      repository.path,
+      'verifyRepositoryTransferRemote',
+      {
+        env: environment,
+        credentialAccountKey: accountKey,
+        maxBuffer: 16 * 1024,
+      }
+    )
+
+    const publishedTip = result.stdout.trim().split(/\s+/)[0] ?? ''
+    if (publishedTip.length === 0) {
+      throw new Error(
+        `The destination repository did not report the published ${branch} branch.`
+      )
+    }
+    if (publishedTip !== expectedTip) {
+      throw new Error(
+        `The destination ${branch} branch did not verify at the expected commit.`
+      )
+    }
+  }
+
+  private async publishFullRepositoryTransfer(
+    repository: Repository,
+    targetURL: string,
+    accountKey: string,
+    branch: string | undefined,
+    reportProgress: (progress: IRepositoryTransferProgress) => void
+  ): Promise<void> {
+    const temporaryRoot = await mkdtemp(
+      Path.join(tmpdir(), 'desktop-material-transfer-full-')
+    )
+
+    try {
+      const bareRepositoryPath = Path.join(temporaryRoot, 'repository.git')
+      reportProgress({
+        stage: 'preparing',
+        message: 'Preparing a temporary bare copy of every local ref…',
+      })
+      await git(
+        ['clone', '--bare', repository.path, bareRepositoryPath],
+        repository.path,
+        'cloneRepositoryTransferHistory'
+      )
+      await git(
+        ['remote', 'set-url', 'origin', targetURL],
+        bareRepositoryPath,
+        'setRepositoryTransferHistoryOrigin'
+      )
+      let expectedTip: string | undefined
+      if (branch !== undefined) {
+        const branchTip = await git(
+          ['rev-parse', '--verify', `refs/heads/${branch}^{commit}`],
+          bareRepositoryPath,
+          'resolveRepositoryTransferHistoryTip',
+          { maxBuffer: 8 * 1024 }
+        )
+        expectedTip = branchTip.stdout.trim()
+      }
+
+      const environment = await envForRemoteOperation(targetURL)
+      reportProgress({
+        stage: 'publishing',
+        message: 'Publishing every local branch with its existing history…',
+      })
+      await git(
+        ['push', 'origin', '--all'],
+        bareRepositoryPath,
+        'pushRepositoryTransferBranches',
+        { env: environment, credentialAccountKey: accountKey }
+      )
+      reportProgress({
+        stage: 'publishing',
+        message: 'Publishing every local tag…',
+      })
+      await git(
+        ['push', 'origin', '--tags'],
+        bareRepositoryPath,
+        'pushRepositoryTransferTags',
+        { env: environment, credentialAccountKey: accountKey }
+      )
+
+      if (branch !== undefined && expectedTip !== undefined) {
+        await this.verifyRepositoryTransferRemote(
+          repository,
+          targetURL,
+          accountKey,
+          branch,
+          expectedTip
+        )
+      }
+    } finally {
+      await rm(temporaryRoot, { recursive: true, force: true }).catch(error =>
+        log.warn(
+          'Unable to remove the temporary repository transfer copy',
+          error
+        )
+      )
+    }
+  }
+
+  private async publishCleanRepositoryTransfer(
+    repository: Repository,
+    targetURL: string,
+    accountKey: string,
+    branch: string,
+    previousTip: string,
+    reportProgress: (progress: IRepositoryTransferProgress) => void
+  ): Promise<string> {
+    const transferStamp = `${Date.now()}-${previousTip.slice(0, 8)}`
+    const recoveryRef = `${RepositoryTransferRecoveryRefPrefix}${transferStamp}`
+    const temporaryBranch = `desktop-material-transfer-${transferStamp}`
+    let temporaryBranchCreated = false
+    let branchMoved = false
+
+    // The recovery ref intentionally survives the transfer. It is the local
+    // escape hatch if the user later needs the old history again.
+    await git(
+      ['update-ref', recoveryRef, previousTip],
+      repository.path,
+      'createRepositoryTransferRecoveryRef'
+    )
+
+    try {
+      reportProgress({
+        stage: 'preparing',
+        message: 'Preparing one clean root commit from the current files…',
+      })
+      await git(
+        ['checkout', '--orphan', temporaryBranch],
+        repository.path,
+        'checkoutRepositoryTransferOrphan'
+      )
+      temporaryBranchCreated = true
+      await git(
+        ['read-tree', '--empty'],
+        repository.path,
+        'clearRepositoryTransferSnapshotIndex'
+      )
+
+      const snapshotStatus = await getStatus(repository, true, true)
+      const snapshotCommit = await createCommit(
+        repository,
+        RepositoryTransferSnapshotCommitMessage,
+        snapshotStatus.workingDirectory.files,
+        { allowEmpty: true }
+      )
+      await git(
+        ['branch', '-f', branch, snapshotCommit],
+        repository.path,
+        'moveRepositoryTransferBranch'
+      )
+      branchMoved = true
+      await git(
+        ['checkout', branch],
+        repository.path,
+        'checkoutRepositoryTransferBranch'
+      )
+      await git(
+        ['branch', '-D', temporaryBranch],
+        repository.path,
+        'removeRepositoryTransferTemporaryBranch'
+      )
+      temporaryBranchCreated = false
+
+      reportProgress({
+        stage: 'publishing',
+        message: 'Publishing the clean snapshot commit…',
+      })
+      const environment = await envForRemoteOperation(targetURL)
+      await git(
+        ['push', targetURL, `HEAD:refs/heads/${branch}`],
+        repository.path,
+        'pushRepositoryTransferCleanSnapshot',
+        { env: environment, credentialAccountKey: accountKey }
+      )
+      await this.verifyRepositoryTransferRemote(
+        repository,
+        targetURL,
+        accountKey,
+        branch,
+        snapshotCommit
+      )
+
+      return recoveryRef
+    } catch (error) {
+      // Put the local branch back before deleting the temporary branch. The
+      // recovery ref is kept even after rollback so the failed attempt remains
+      // auditable and the old tip is still addressable.
+      if (branchMoved) {
+        try {
+          await git(
+            ['update-ref', `refs/heads/${branch}`, previousTip],
+            repository.path,
+            'restoreRepositoryTransferBranch'
+          )
+          await git(
+            ['reset', '--mixed', previousTip],
+            repository.path,
+            'restoreRepositoryTransferCheckout'
+          )
+        } catch (restoreError) {
+          log.error(
+            'Unable to restore the branch after a failed clean transfer',
+            restoreError
+          )
+        }
+      } else if (temporaryBranchCreated) {
+        try {
+          await git(
+            ['symbolic-ref', 'HEAD', `refs/heads/${branch}`],
+            repository.path,
+            'restoreRepositoryTransferOriginalCheckout'
+          )
+          await git(
+            ['reset', '--mixed', previousTip],
+            repository.path,
+            'restoreRepositoryTransferOriginalIndex'
+          )
+        } catch (restoreError) {
+          log.error(
+            'Unable to leave the temporary transfer branch',
+            restoreError
+          )
+        }
+      }
+
+      if (temporaryBranchCreated) {
+        await git(
+          ['branch', '-D', temporaryBranch],
+          repository.path,
+          'removeFailedRepositoryTransferTemporaryBranch',
+          { successExitCodes: new Set([0, 1, 128]) }
+        ).catch(cleanupError =>
+          log.warn(
+            'Unable to remove the temporary branch after a failed clean transfer',
+            cleanupError
+          )
+        )
+      }
+      throw error
+    }
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _transferRepository(
+    repository: Repository,
+    account: Account,
+    org: IAPIOrganization | null,
+    name: string,
+    description: string,
+    private_: boolean,
+    mode: RepositoryTransferMode,
+    onProgress?: (progress: IRepositoryTransferProgress) => void
+  ): Promise<Repository> {
+    if (isSubmoduleRepository(repository)) {
+      throw new Error(
+        'Transferring is unavailable while a submodule is open temporarily. Return to the parent repository first.'
+      )
+    }
+    if (account.provider !== 'github') {
+      throw new Error(
+        'Repository transfer currently supports GitHub destination accounts only.'
+      )
+    }
+    if (repository.gitHubRepository === null) {
+      throw new Error(
+        'Repository transfer requires a repository with GitHub metadata.'
+      )
+    }
+    if (mode !== 'full-history' && mode !== 'clean-state') {
+      throw new Error('Choose a valid repository transfer mode.')
+    }
+
+    const validatedName = validateRepositoryTransferName(name)
+    validateGitHubRepositoryPart(validatedName, 'repository')
+    const reportProgress = (progress: IRepositoryTransferProgress) =>
+      onProgress?.(progress)
+
+    reportProgress({
+      stage: 'checking',
+      message: 'Checking the repository before changing anything locally…',
+    })
+    const status = await getStatus(repository, true, true)
+    if (!status.exists) {
+      throw new Error('The local repository does not exist anymore.')
+    }
+    if (mode === 'full-history' && status.workingDirectory.files.length > 0) {
+      throw new Error(
+        'Commit or stash all local changes before transferring with full history.'
+      )
+    }
+    if (
+      status.mergeHeadFound ||
+      status.squashMsgFound ||
+      status.rebaseInternalState !== null ||
+      status.isCherryPickingHeadFound
+    ) {
+      throw new Error(
+        'Finish or cancel the current merge, rebase, squash, or cherry-pick before transferring this repository.'
+      )
+    }
+    if (
+      mode === 'clean-state' &&
+      (status.currentBranch === undefined || status.currentTip === undefined)
+    ) {
+      throw new Error(
+        'Clean-state transfer requires a checked-out branch with an existing commit.'
+      )
+    }
+
+    const gitStore = this.gitStoreCache.get(repository)
+    const remotes = await getRemotes(repository)
+    const existingOrigin = remotes.find(remote => remote.name === 'origin')
+    const hasUpstream = remotes.some(remote => remote.name === 'upstream')
+    const explicitOriginPushURL =
+      existingOrigin === undefined
+        ? null
+        : await gitStore.getExplicitRemotePushURL('origin')
+
+    reportProgress({
+      stage: 'creating',
+      message: `Creating ${validatedName} in ${account.login}'s account…`,
+    })
+    const created = await API.fromAccount(account).createRepository(
+      org,
+      validatedName,
+      description,
+      private_
+    )
+    if (created.clone_url.trim().length === 0) {
+      throw new Error(
+        'The provider did not return a clone URL for the destination repository.'
+      )
+    }
+
+    let recoveryRef: string | undefined
+    if (mode === 'full-history') {
+      await this.publishFullRepositoryTransfer(
+        repository,
+        created.clone_url,
+        getAccountKey(account),
+        status.currentBranch,
+        reportProgress
+      )
+    } else {
+      recoveryRef = await this.withTemporaryRepositoryMutationGuard(
+        repository,
+        () =>
+          this.publishCleanRepositoryTransfer(
+            repository,
+            created.clone_url,
+            getAccountKey(account),
+            status.currentBranch!,
+            status.currentTip!,
+            reportProgress
+          )
+      )
+    }
+
+    reportProgress({
+      stage: 'retargeting',
+      message:
+        'Retargeting origin to the new repository and preserving the source remote…',
+    })
+    let originAdded = false
+    let originChanged = false
+    let upstreamAdded = false
+    try {
+      await this.withTemporaryRepositoryMutationGuard(repository, async () => {
+        if (existingOrigin !== undefined && !hasUpstream) {
+          await addRemote(repository, 'upstream', existingOrigin.url)
+          upstreamAdded = true
+          if (explicitOriginPushURL !== null) {
+            await setRemotePushURL(
+              repository,
+              'upstream',
+              explicitOriginPushURL
+            )
+          }
+        }
+        if (existingOrigin === undefined) {
+          await addRemote(repository, 'origin', created.clone_url)
+          originAdded = true
+        } else {
+          await setRemoteURL(repository, 'origin', created.clone_url)
+          originChanged = true
+          if (explicitOriginPushURL !== null) {
+            await setRemotePushURL(repository, 'origin', created.clone_url)
+          }
+        }
+      })
+    } catch (error) {
+      // A provider-side transfer can succeed while the local config write is
+      // interrupted. Restore the exact old topology rather than leaving the
+      // user with a half-retargeted repository.
+      await this.withTemporaryRepositoryMutationGuard(repository, async () => {
+        if (originAdded) {
+          await removeRemote(repository, 'origin')
+        } else if (originChanged && existingOrigin !== undefined) {
+          await setRemoteURL(repository, 'origin', existingOrigin.url)
+          if (explicitOriginPushURL !== null) {
+            await setRemotePushURL(repository, 'origin', explicitOriginPushURL)
+          }
+        }
+        if (upstreamAdded) {
+          await removeRemote(repository, 'upstream')
+        }
+      }).catch(rollbackError =>
+        log.error(
+          'Unable to restore repository remotes after transfer failure',
+          rollbackError
+        )
+      )
+      await gitStore.loadRemotes()
+      throw new Error(
+        `The destination was created and published, but the local remote could not be retargeted: ${String(
+          error
+        )}`
+      )
+    }
+    await gitStore.loadRemotes()
+    await gitStore.loadStatus()
+    await gitStore.refreshDefaultBranch()
+
+    const updatedRepository = await this._updateRepositoryAccount(
+      repository,
+      getAccountKey(account)
+    )
+    reportProgress({
+      stage: 'complete',
+      message:
+        recoveryRef === undefined
+          ? `Transfer complete. ${validatedName} now contains the existing history.`
+          : `Transfer complete. The clean snapshot is published; local recovery ref ${recoveryRef} preserves the previous tip.`,
+    })
+    return updatedRepository
+  }
+
   /** This shouldn't be called directly. See `Dispatcher`. */
   public _clone(
     url: string,
@@ -16511,6 +17184,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
         operationDetail: { ...opState.operationDetail, sourceBranch },
       })
     )
+    const operationAtStart =
+      this.repositoryStateCache.get(repository).multiCommitOperationState
 
     const gitStore = this.gitStoreCache.get(repository)
 
@@ -16545,7 +17220,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return this._refreshRepository(repository)
     }
 
+    // The dialog can be cancelled while Git is still running, and a later
+    // operation can replace the shared state. A late success must never clean
+    // up a branch for an operation that is no longer the active one.
+    if (
+      this.repositoryStateCache.get(repository).multiCommitOperationState !==
+      operationAtStart
+    ) {
+      log.warn('Ignoring a late merge result after the operation ended.')
+      return this._refreshRepository(repository)
+    }
+
     const { tip } = gitStore
+    const deleteAfterSuccessfulMerge =
+      opState.operationDetail.kind === MultiCommitOperationKind.Merge &&
+      opState.operationDetail.deleteAfterSuccessfulMerge === true
 
     if (mergeResult === MergeResult.Success && tip.kind === TipState.Valid) {
       this._setBanner({
@@ -16559,6 +17248,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
         // successfully after conflicts in `dispatcher.finishConflictedMerge`.
         this.statsStore.increment('squashMergeSuccessfulCount')
       }
+      if (deleteAfterSuccessfulMerge) {
+        await this._deleteMergedBranchAfterSuccessfulMerge(
+          repository,
+          sourceBranch
+        )
+      }
       this._endMultiCommitOperation(repository)
     } else if (
       mergeResult === MergeResult.AlreadyUpToDate &&
@@ -16569,10 +17264,78 @@ export class AppStore extends TypedBaseStore<IAppState> {
         ourBranch: tip.branch.name,
         theirBranch: sourceBranch.name,
       })
+      if (deleteAfterSuccessfulMerge) {
+        await this._deleteMergedBranchAfterSuccessfulMerge(
+          repository,
+          sourceBranch
+        )
+      }
       this._endMultiCommitOperation(repository)
     }
 
     return this._refreshRepository(repository)
+  }
+
+  /**
+   * Delete the selected local source branch only after Git reports that its
+   * merge completed or was already up to date. The exact reviewed SHA is
+   * checked again so a branch that moved during the merge is kept safely.
+   */
+  public async _deleteMergedBranchAfterSuccessfulMerge(
+    repository: Repository,
+    sourceBranch: Branch
+  ): Promise<void> {
+    if (sourceBranch.type !== BranchType.Local) {
+      return
+    }
+
+    const branchesState =
+      this.repositoryStateCache.get(repository).branchesState
+    const currentBranch =
+      branchesState.tip.kind === TipState.Valid
+        ? branchesState.tip.branch
+        : null
+    if (
+      currentBranch === null ||
+      sourceBranch.name === currentBranch.name ||
+      sourceBranch.name === branchesState.defaultBranch?.name
+    ) {
+      return
+    }
+
+    try {
+      const [result] = await this._deleteReviewedBranches(repository, [
+        { name: sourceBranch.name, expectedSha: sourceBranch.tip.sha },
+      ])
+      if (result?.status === 'deleted') {
+        this.postNotification({
+          kind: 'info',
+          title: 'Merge complete; branch deleted',
+          body: `The merge into ${currentBranch.name} completed successfully, and the local source branch ${sourceBranch.name} was deleted.`,
+          repositoryId: repository.id,
+        })
+        return
+      }
+
+      this.postNotification({
+        kind: 'app-error',
+        title: 'Merge completed; branch kept',
+        body: `The merge succeeded, but ${sourceBranch.name} was kept because its reviewed tip could not be deleted safely.`,
+        repositoryId: repository.id,
+      })
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error)
+      log.warn(
+        `Merge completed but local branch cleanup failed for ${sourceBranch.name}`,
+        error
+      )
+      this.postNotification({
+        kind: 'app-error',
+        title: 'Merge completed; branch kept',
+        body: `The merge succeeded, but ${sourceBranch.name} was kept because deletion failed: ${detail}`,
+        repositoryId: repository.id,
+      })
+    }
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
@@ -17439,6 +18202,379 @@ export class AppStore extends TypedBaseStore<IAppState> {
     } finally {
       await this._refreshRepository(repository)
     }
+  }
+
+  /**
+   * Store an explicit working-tree selection in Cheap LFS as one user-facing
+   * operation. The release route shares its credential, first-publish anchor,
+   * and inventory review across the batch; registry-backed storage uses its
+   * existing atomic multi-file publish operation. A failed file is left as
+   * the original bytes and is returned with a bounded reason.
+   */
+  public async _storeWorkingTreeFilesInCheapLfs(
+    repository: Repository,
+    paths: ReadonlyArray<string>,
+    requestSignal?: AbortSignal,
+    onProgress?: (progress: ICheapLfsAutoPinProgress) => void
+  ): Promise<ICheapLfsWorkingTreePinResult> {
+    const preferences =
+      repository.buildRunPreferences ?? defaultBuildRunPreferences
+    const provider = getCheapLfsStorageProvider(preferences)
+    const stored = new Array<ICheapLfsWorkingTreePinFile>()
+    const failures = new Array<ICheapLfsWorkingTreePinFailure>()
+    const targets = new Array<{
+      readonly relativePath: string
+      readonly absolutePath: string
+      readonly sizeInBytes: number
+    }>()
+    const seen = new Set<string>()
+
+    const addFailure = (relativePath: string, error: unknown) => {
+      const message =
+        error instanceof Error
+          ? error.message
+          : String(error ?? 'Unknown error')
+      const sanitizedMessage = sanitizeCheapLfsFailureReason(message)
+      failures.push({
+        relativePath,
+        message:
+          sanitizedMessage.length > 0
+            ? sanitizedMessage
+            : 'Cheap LFS returned no safe error detail for this file.',
+      })
+    }
+
+    const normalizedRepositoryPath = Path.resolve(repository.path)
+    let canceled = requestSignal?.aborted === true
+    for (const requestedPath of paths) {
+      if (requestSignal?.aborted) {
+        canceled = true
+        break
+      }
+      const relativePath = validateCheapLfsTrackedPath(requestedPath)
+      if (relativePath === null) {
+        addFailure(
+          requestedPath,
+          new Error(
+            'Cheap LFS can only replace a safe repository-relative file path.'
+          )
+        )
+        continue
+      }
+      const identity = Path.win32.normalize(relativePath).toLocaleLowerCase()
+      if (seen.has(identity)) {
+        continue
+      }
+      seen.add(identity)
+      try {
+        ensureCheapLfsPathIsNotOwnedArtifact(relativePath)
+        const absolutePath = Path.resolve(repository.path, relativePath)
+        const outsideRepository = Path.relative(
+          normalizedRepositoryPath,
+          absolutePath
+        )
+        if (
+          outsideRepository.length === 0 ||
+          Path.isAbsolute(outsideRepository) ||
+          outsideRepository === '..' ||
+          outsideRepository.startsWith(`..${Path.sep}`)
+        ) {
+          throw new Error(
+            'Cheap LFS refused a path outside the selected repository.'
+          )
+        }
+        const sizeInBytes = await defaultCheapLfsFileSystem.statSize(
+          absolutePath
+        )
+        if (!Number.isSafeInteger(sizeInBytes) || sizeInBytes < 0) {
+          throw new Error('Cheap LFS could not read a safe file size.')
+        }
+        targets.push({ relativePath, absolutePath, sizeInBytes })
+      } catch (error) {
+        addFailure(relativePath, error)
+      }
+    }
+
+    const totalBytes = targets.reduce(
+      (sum, target) => sum + target.sizeInBytes,
+      0
+    )
+    const report = (
+      progress: ICheapLfsAutoPinProgress,
+      currentPath?: string | null
+    ) => {
+      onProgress?.({
+        ...progress,
+        currentPath:
+          currentPath === undefined ? progress.currentPath : currentPath,
+        selectedStorageProvider: provider,
+        succeededFiles: stored.length,
+        failedFiles: failures.length,
+        failedFileDetails: failures.map(failure => ({
+          relativePath: failure.relativePath,
+          reason: failure.message,
+        })),
+      })
+    }
+
+    const completeProgress = (
+      phase: ICheapLfsAutoPinProgress['phase'],
+      currentPath: string | null,
+      transferredBytes: number
+    ) => {
+      report({
+        phase,
+        completedFiles: stored.length + failures.length,
+        totalFiles: targets.length,
+        currentPath,
+        transferredBytes: Math.min(totalBytes, Math.max(0, transferredBytes)),
+        totalBytes,
+      })
+    }
+
+    try {
+      if (targets.length === 0 || canceled) {
+        return { stored, failures, canceled }
+      }
+
+      if (provider === 'release') {
+        let credential: ICheapLfsOperationPassword | undefined
+        try {
+          const account = this.requireCheapLfsAccount(repository)
+          credential = await this.acquireCheapLfsEncryptionPassword(repository)
+          if (requestSignal?.aborted) {
+            canceled = true
+            return { stored, failures, canceled }
+          }
+
+          const anchor = await this.ensureCheapLfsReleaseAnchor(repository)
+          if (anchor.failure !== null) {
+            const reason =
+              anchor.failure.detail ??
+              'The repository could not be anchored before the Cheap LFS upload.'
+            targets.forEach(target =>
+              addFailure(target.relativePath, new Error(reason))
+            )
+            completeProgress('release', null, 0)
+            return { stored, failures, canceled }
+          }
+          const releaseReview = anchor.anchored
+            ? await this.reviewCheapLfsReleaseInventory(repository)
+            : null
+          let completedBytes = 0
+
+          for (const target of targets) {
+            if (requestSignal?.aborted) {
+              canceled = true
+              break
+            }
+            completeProgress('preparing', target.relativePath, completedBytes)
+            try {
+              await this.withTemporaryRepositoryMutationGuard(repository, () =>
+                pinFileToRelease(
+                  this.githubReleasesStore,
+                  repository,
+                  account,
+                  {
+                    absoluteFilePath: target.absolutePath,
+                    trackedRelativePath: target.relativePath,
+                    releaseTag: getCheapLfsReleaseLaneTag(0),
+                    ...(releaseReview === null ? {} : { releaseReview }),
+                    ...(credential === undefined
+                      ? {}
+                      : {
+                          encryptionPassword: credential.password,
+                          ...(preferences.cheapLfsCloudCompression === true
+                            ? { compressBeforeEncryption: true }
+                            : {}),
+                        }),
+                  },
+                  requestSignal,
+                  progress => {
+                    const fraction =
+                      progress.totalBytes > 0
+                        ? Math.min(
+                            1,
+                            Math.max(
+                              0,
+                              progress.transferredBytes / progress.totalBytes
+                            )
+                          )
+                        : 0
+                    report(
+                      {
+                        phase: 'uploading',
+                        completedFiles: stored.length + failures.length,
+                        totalFiles: targets.length,
+                        currentPath: target.relativePath,
+                        transferredBytes:
+                          completedBytes + target.sizeInBytes * fraction,
+                        totalBytes,
+                      },
+                      target.relativePath
+                    )
+                  },
+                  defaultCheapLfsFileSystem,
+                  stage =>
+                    completeProgress(
+                      stage,
+                      target.relativePath,
+                      completedBytes
+                    ),
+                  processedBytes =>
+                    report(
+                      {
+                        phase: 'hashing',
+                        completedFiles: stored.length + failures.length,
+                        totalFiles: targets.length,
+                        currentPath: target.relativePath,
+                        transferredBytes:
+                          completedBytes +
+                          Math.min(
+                            target.sizeInBytes,
+                            Math.max(0, processedBytes)
+                          ),
+                        totalBytes,
+                      },
+                      target.relativePath
+                    )
+                )
+              )
+              stored.push({
+                relativePath: target.relativePath,
+                sizeInBytes: target.sizeInBytes,
+              })
+            } catch (error) {
+              if (
+                requestSignal?.aborted ||
+                (error as Error)?.name === 'AbortError'
+              ) {
+                canceled = true
+                break
+              }
+              addFailure(target.relativePath, error)
+            }
+            completedBytes += target.sizeInBytes
+            completeProgress('verifying', target.relativePath, completedBytes)
+          }
+        } catch (error) {
+          if (
+            requestSignal?.aborted ||
+            (error as Error)?.name === 'AbortError'
+          ) {
+            canceled = true
+          } else {
+            const remaining = targets.filter(
+              target =>
+                !stored.some(
+                  file => file.relativePath === target.relativePath
+                ) &&
+                !failures.some(
+                  file => file.relativePath === target.relativePath
+                )
+            )
+            remaining.forEach(target => addFailure(target.relativePath, error))
+          }
+        } finally {
+          credential?.password.fill(0)
+        }
+      } else {
+        const sizeByPath = new Map(
+          targets.map(
+            target => [target.relativePath, target.sizeInBytes] as const
+          )
+        )
+        const targetSet = new Set(sizeByPath.keys())
+        try {
+          const result = await this.withTemporaryRepositoryMutationGuard(
+            repository,
+            () =>
+              this.cheapLfsOciSessionRunner(
+                {
+                  repository,
+                  account: this.requireCheapLfsAccount(repository),
+                  provider,
+                  parallelBlobTransfers: true,
+                  blobUploadConcurrency:
+                    getCheapLfsUploadConcurrency(preferences),
+                },
+                session =>
+                  pinCheapLfsFilesToOci(
+                    session.context,
+                    targets.map(target => ({
+                      relativePath: target.relativePath,
+                      expectedSizeInBytes: target.sizeInBytes,
+                    })),
+                    { runtime: session.runtime },
+                    requestSignal,
+                    progress =>
+                      report(
+                        cheapLfsOciCommitProgress(progress, sizeByPath),
+                        progress.currentPath
+                      )
+                  )
+              )
+          )
+          const files = new Map(
+            result.files
+              .filter(file => targetSet.has(file.relativePath))
+              .map(file => [file.relativePath, file] as const)
+          )
+          const resultFailures = new Map(
+            result.failures
+              .filter(failure => targetSet.has(failure.relativePath))
+              .map(failure => [failure.relativePath, failure] as const)
+          )
+          for (const target of targets) {
+            const resultFailure = resultFailures.get(target.relativePath)
+            if (resultFailure !== undefined) {
+              addFailure(target.relativePath, new Error(resultFailure.message))
+              continue
+            }
+            const file = files.get(target.relativePath)
+            if (file?.changed === true) {
+              stored.push({
+                relativePath: target.relativePath,
+                sizeInBytes: target.sizeInBytes,
+              })
+              continue
+            }
+            addFailure(
+              target.relativePath,
+              new Error(
+                'The registry publish completed without replacing this working-tree file with a pointer.'
+              )
+            )
+          }
+          if (!result.published && result.failures.length === 0) {
+            const message = new Error(
+              'Cheap LFS could not publish the registry image safely.'
+            )
+            failures.splice(0, failures.length)
+            stored.splice(0, stored.length)
+            targets.forEach(target => addFailure(target.relativePath, message))
+          }
+        } catch (error) {
+          if (
+            requestSignal?.aborted ||
+            (error as Error)?.name === 'AbortError'
+          ) {
+            canceled = true
+          } else {
+            targets.forEach(target => addFailure(target.relativePath, error))
+          }
+        }
+      }
+    } finally {
+      await this._refreshRepository(repository)
+    }
+
+    completeProgress(
+      'verifying',
+      null,
+      stored.reduce((sum, file) => sum + file.sizeInBytes, 0)
+    )
+    return { stored, failures, canceled }
   }
 
   /**
@@ -21666,6 +22802,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return this.signInStore.resolveOAuthRequest(action)
   }
 
+  public _resolveSelfHostedOAuthRequest(action: ISelfHostedOAuthAction) {
+    return this.signInStore.resolveSelfHostedOAuthRequest(action)
+  }
+
   public _resetSignInState(): Promise<void> {
     this.signInStore.reset()
     return Promise.resolve()
@@ -21673,6 +22813,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   public _beginDotComSignIn(resultCallback?: (result: SignInResult) => void) {
     return this.signInStore.beginDotComSignIn(resultCallback)
+  }
+
+  public _beginSelfHostedSignIn(
+    publicOrigin: string,
+    resultCallback?: (result: SignInResult) => void
+  ) {
+    return this.signInStore.beginSelfHostedSignIn(publicOrigin, resultCallback)
   }
 
   public _beginEnterpriseSignIn(
@@ -21766,6 +22913,31 @@ export class AppStore extends TypedBaseStore<IAppState> {
       `[AppStore] promoting account ${account.login} to the active identity`
     )
     await this.accountsStore.promoteAccount(account)
+
+    // A repository that has already been auto-bound keeps using its stable
+    // account key for network work. A deliberate Make active action must also
+    // align the selected same-host repository, otherwise the rail changes
+    // while the next push still authenticates as the previous account.
+    const activeAccount = this.accounts.find(
+      candidate => getAccountKey(candidate) === getAccountKey(account)
+    )
+    const selectedRepository = this.selectedRepository
+    if (
+      activeAccount === undefined ||
+      !(selectedRepository instanceof Repository)
+    ) {
+      return
+    }
+
+    const accountKey = getRepositoryAccountKeyForActiveAccount(
+      activeAccount,
+      selectedRepository
+    )
+    if (accountKey === null || selectedRepository.accountKey === accountKey) {
+      return
+    }
+
+    await this._updateRepositoryAccount(selectedRepository, accountKey)
   }
 
   private async _addAccount(account: Account): Promise<void> {
@@ -23552,6 +24724,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       elementAppearanceState?.initialized === true
         ? elementAppearanceState.appearance
         : getAppearanceCustomization()
+    this.scheduledBaseAppearanceCustomization = this.appearanceCustomization
+    this.applyScheduledSettingsValue(this.scheduledSettingsValue)
     this.selectedTabSize = getNumber(tabSizeKey, tabSizeDefault)
     this.zoomBaseFactor = clampZoom(getFloatNumber('zoom-factor', 1))
     this.autoFitZoomEnabled = getBoolean('zoom-auto-fit-enabled', true)
@@ -23645,46 +24819,95 @@ export class AppStore extends TypedBaseStore<IAppState> {
   public _setSelectedTheme(theme: ApplicationTheme) {
     setPersistedTheme(theme)
     this.selectedTheme = theme
-    this.emitUpdate()
+    this.applyScheduledSettingsValue(this.scheduledSettingsValue)
 
     return Promise.resolve()
+  }
+
+  /**
+   * Keep the user's stored appearance underneath a live schedule overlay.
+   * Settings controls receive the effective appearance, so blindly persisting
+   * that object would turn a temporary scheduled accent or language into the
+   * user's permanent profile when they edit an unrelated property.
+   */
+  private getBaseAppearanceAfterUserChange(
+    customization: IAppearanceCustomization
+  ): IAppearanceCustomization {
+    const next = { ...customization } as Record<string, unknown>
+    const base = {
+      ...this.scheduledBaseAppearanceCustomization,
+    } as Record<string, unknown>
+    const scheduledAppearance = this.scheduledSettingsValue?.appearance ?? {}
+
+    for (const key of Object.keys(scheduledAppearance)) {
+      if (
+        JSON.stringify(next[key]) ===
+        JSON.stringify(
+          this.appearanceCustomization[key as keyof IAppearanceCustomization]
+        )
+      ) {
+        next[key] = base[key]
+      }
+    }
+
+    if (
+      this.scheduledSettingsValue?.languageMode !== undefined &&
+      customization.languageMode === this.appearanceCustomization.languageMode
+    ) {
+      next.languageMode = this.scheduledBaseAppearanceCustomization.languageMode
+    }
+
+    return normalizeAppearanceCustomization(next)
   }
 
   /** Set the application-wide appearance customization. */
   public async _setAppearanceCustomization(
     customization: IAppearanceCustomization
   ): Promise<void> {
+    const baseCustomization =
+      this.getBaseAppearanceAfterUserChange(customization)
     if (this.elementAppearanceCoordinator === undefined) {
-      this.appearanceCustomization = setAppearanceCustomization(customization)
-      this.emitUpdate()
+      this.scheduledBaseAppearanceCustomization =
+        setAppearanceCustomization(baseCustomization)
+      this.applyScheduledSettingsValue(this.scheduledSettingsValue)
       return
     }
 
     const version = ++this.appearanceCustomizationMutationVersion
-    this.appearanceCustomization =
-      normalizeAppearanceCustomization(customization)
-    this.emitUpdate()
+    this.scheduledBaseAppearanceCustomization = baseCustomization
+    this.applyScheduledSettingsValue(this.scheduledSettingsValue)
 
     try {
       const persisted =
         await this.elementAppearanceCoordinator.setAppearanceProjection(
-          this.appearanceCustomization
+          this.scheduledBaseAppearanceCustomization
         )
       if (version === this.appearanceCustomizationMutationVersion) {
-        this.appearanceCustomization = persisted
-        this.emitUpdate()
+        this.scheduledBaseAppearanceCustomization = persisted
+        this.applyScheduledSettingsValue(this.scheduledSettingsValue)
       }
     } catch (error) {
       if (version === this.appearanceCustomizationMutationVersion) {
         const state = this.elementAppearanceCoordinator.getState()
-        this.appearanceCustomization = state.appearance
-        this.emitUpdate()
+        this.scheduledBaseAppearanceCustomization = state.appearance
+        this.applyScheduledSettingsValue(this.scheduledSettingsValue)
       }
       const appearanceError =
         error instanceof Error ? error : new Error(String(error))
       this.emitError(appearanceError)
       throw appearanceError
     }
+  }
+
+  /** Persist the local-time schedule and refresh its external sources. */
+  public _setScheduledSettings(settings: IScheduledSettingsConfig) {
+    this.scheduledSettingsRuntime.setConfig(settings)
+    this.emitUpdate()
+    return Promise.resolve()
+  }
+
+  public stopScheduledSettingsRuntime() {
+    this.scheduledSettingsRuntime.stop()
   }
 
   /** Persist appearance overrides in a repository's local Git config. */

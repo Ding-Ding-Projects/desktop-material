@@ -7,6 +7,10 @@
   hardening](supply-chain-and-ci-hardening.md) — dependency-update proposals,
   frozen lock-file installs, blocking package provenance checks, advisory
   reporting, and concurrency rules that preserve every release-producing run.
+- [Renderer startup bundle
+  safety](renderer-startup-bundle-safety.md) — keep the Node-side Copilot SDK
+  out of browser bundles and fail packaging before an undefined Webpack module
+  binding can ship as a blank Windows startup.
 
 This category documents cross-cutting responsiveness, lifecycle, and recovery
 contracts that span more than one user workflow.

@@ -5,6 +5,7 @@ import { Repository } from '../../src/models/repository'
 import { getDotComAPIEndpoint } from '../../src/lib/api'
 import {
   getAccountForRepository,
+  getRepositoryAccountKeyForActiveAccount,
   getRepositoryCredentialAccountKey,
   getRepositoryOwnerAccountToPromote,
 } from '../../src/lib/get-account-for-repository'
@@ -201,6 +202,76 @@ describe('getRepositoryOwnerAccountToPromote', () => {
         [firstAccount, secondAccount],
         repository,
         true
+      ),
+      null
+    )
+  })
+})
+
+describe('getRepositoryAccountKeyForActiveAccount', () => {
+  it('aligns a same-host GitHub repository with a deliberately promoted account', () => {
+    const repository = new Repository(
+      '/desktop',
+      1,
+      gitHubRepository,
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      getAccountKey(firstAccount)
+    )
+
+    assert.equal(
+      getRepositoryAccountKeyForActiveAccount(secondAccount, repository),
+      getAccountKey(secondAccount)
+    )
+  })
+
+  it('does not cross a GitHub host or provider boundary', () => {
+    const enterpriseRepository = new Repository(
+      '/enterprise',
+      2,
+      gitHubRepoFixture({
+        endpoint: 'https://ghe.example.com/api/v3',
+        owner: 'desktop',
+        name: 'desktop',
+      }),
+      false
+    )
+    const gitLabAccount = new Account(
+      'gitlab-user',
+      endpoint,
+      'gitlab-token',
+      [],
+      '',
+      3,
+      'GitLab User',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'gitlab'
+    )
+    const sameHostRepository = new Repository(
+      '/github',
+      3,
+      gitHubRepository,
+      false
+    )
+
+    assert.equal(
+      getRepositoryAccountKeyForActiveAccount(
+        firstAccount,
+        enterpriseRepository
+      ),
+      null
+    )
+    assert.equal(
+      getRepositoryAccountKeyForActiveAccount(
+        gitLabAccount,
+        sameHostRepository
       ),
       null
     )

@@ -7,6 +7,8 @@ import { menuAccelerator } from '../../lib/menu-accelerators'
 interface IBranchContextMenuConfig {
   branch: Branch
   onRenameBranch?: (branchName: string) => void
+  onMergeBranch?: (branch: Branch) => void
+  onMergeAndDeleteBranch?: (branch: Branch) => void
   onViewBranchOnGitHub?: () => void
   onViewPullRequestOnGitHub?: () => void
   onDeleteBranch?: (branchName: string) => void
@@ -28,6 +30,8 @@ export function generateBranchContextMenuItems(
   const {
     branch,
     onRenameBranch,
+    onMergeBranch,
+    onMergeAndDeleteBranch,
     onViewBranchOnGitHub,
     onViewPullRequestOnGitHub,
     onDeleteBranch,
@@ -84,6 +88,20 @@ export function generateBranchContextMenuItems(
       label: 'Restore all branches',
       action: onRestoreVisibility,
       enabled: hasVisibilityOverrides === true,
+    })
+  }
+
+  if (onMergeBranch !== undefined) {
+    items.push({
+      label: 'Merge…',
+      action: () => onMergeBranch(branch),
+    })
+  }
+
+  if (onMergeAndDeleteBranch !== undefined) {
+    items.push({
+      label: 'Merge and delete…',
+      action: () => onMergeAndDeleteBranch(branch),
     })
   }
 

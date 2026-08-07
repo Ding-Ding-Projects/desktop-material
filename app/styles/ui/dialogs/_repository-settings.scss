@@ -149,12 +149,10 @@
   .tab-container {
     display: flex;
     flex: 1;
+    flex-direction: row;
     min-height: 0;
     overflow: hidden;
 
-    // The navigation column: the search field, then the page strip beneath it.
-    // The strip owns the remaining height and does its own scrolling, so this
-    // wrapper only has to stop growing past the dialog.
     > .settings-tab-rail {
       display: flex;
       flex: none;
@@ -163,17 +161,117 @@
       min-width: 0;
       padding: var(--spacing) var(--spacing) var(--spacing) var(--spacing-double);
       width: 260px;
+
+      .settings-tab-rail-header {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-half);
+        min-width: 0;
+      }
+
+      .repository-settings-tab-search {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--spacing-half);
+
+        > label {
+          flex: 0 0 auto;
+          font-size: var(--font-size-sm);
+          font-weight: var(--font-weight-semibold);
+        }
+
+        .repository-settings-tab-filter-field {
+          display: flex;
+          flex: 1 1 280px;
+          min-width: 0;
+          align-items: center;
+          gap: var(--spacing-half);
+
+          input {
+            flex: 1 1 auto;
+            min-width: 0;
+          }
+        }
+      }
+
+      > .settings-tab-strip {
+        flex: 1;
+        min-height: 0;
+      }
     }
 
     .active-tab {
       container-name: repository-settings-pane;
       container-type: inline-size;
-      border-left: var(--base-border);
       flex: 1;
       min-width: 0;
       min-height: 0;
       overflow-x: hidden;
       overflow-y: auto;
+    }
+  }
+
+  .tab-container:not([data-settings-tab-dock-position='right']) > .settings-tab-rail {
+    border-right: var(--base-border);
+  }
+
+  .tab-container:not([data-settings-tab-dock-position='top']):not([data-settings-tab-dock-position='bottom']) .active-tab {
+    border-left: var(--base-border);
+  }
+
+  .tab-container[data-settings-tab-dock-position='right'] {
+    flex-direction: row-reverse;
+
+    > .settings-tab-rail {
+      border-left: var(--base-border);
+      padding-left: var(--spacing);
+      padding-right: var(--spacing-double);
+    }
+
+    .active-tab {
+      border-left: 0;
+      border-right: var(--base-border);
+    }
+  }
+
+  .tab-container[data-settings-tab-dock-position='top'],
+  .tab-container[data-settings-tab-dock-position='bottom'] {
+    > .settings-tab-rail {
+      width: 100%;
+      padding: var(--spacing) var(--spacing-double);
+
+      .settings-tab-strip {
+        flex: 0 1 auto;
+      }
+    }
+
+    .active-tab {
+      border-left: 0;
+    }
+  }
+
+  .tab-container[data-settings-tab-dock-position='top'] {
+    flex-direction: column;
+
+    > .settings-tab-rail {
+      border-bottom: var(--base-border);
+    }
+
+    .active-tab {
+      border-top: var(--base-border);
+    }
+  }
+
+  .tab-container[data-settings-tab-dock-position='bottom'] {
+    flex-direction: column-reverse;
+
+    > .settings-tab-rail {
+      border-top: var(--base-border);
+    }
+
+    .active-tab {
+      border-bottom: var(--base-border);
     }
   }
 
@@ -201,6 +299,13 @@
     .remote-manager-intro {
       display: grid;
       gap: var(--spacing-half);
+
+      .remote-manager-intro-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing);
+        margin-top: var(--spacing-half);
+      }
 
       p {
         color: var(--md-sys-color-on-surface-variant);
@@ -1215,42 +1320,69 @@
 }
 
 #repository-settings {
-  // Collapse the vertical label rail into one row of accessible icon buttons.
-  // The text remains in the DOM as each button's accessible name.
+  // Keep each dock choice usable at compact widths. Vertical docks retain a
+  // labelled rail; horizontal docks retain a scrolling tab row.
   @container repository-settings-dialog (max-width: 520px) {
-    .tab-container {
-      flex-direction: column;
+    .tab-container[data-settings-tab-dock-position='left'],
+    .tab-container[data-settings-tab-dock-position='right'] {
+      > .settings-tab-rail {
+        padding: 4px 8px;
+        width: 190px;
+      }
 
+      .settings-tab-strip-browser {
+        padding: 4px 0;
+
+        .settings-browser-tabs {
+          overflow-x: hidden;
+          overflow-y: auto;
+        }
+
+        .settings-browser-tab-items {
+          flex-direction: column;
+          min-width: 0;
+          width: 100%;
+        }
+
+        .settings-browser-tab {
+          max-width: none;
+          min-width: 0;
+          width: 100%;
+        }
+      }
+    }
+
+    .tab-container[data-settings-tab-dock-position='top'],
+    .tab-container[data-settings-tab-dock-position='bottom'] {
       > .settings-tab-rail {
         padding: 4px 8px;
         width: 100%;
       }
 
-      .settings-tab-strip-list {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
-        overflow: visible;
-      }
+      .settings-tab-strip-browser {
+        padding: 4px 0;
 
-      .settings-tab-strip-item {
-        font-size: 0;
-        justify-content: center;
-        margin: 0;
-        min-height: 40px;
-        min-width: 40px;
-        padding: 8px;
-
-        .icon {
-          height: 18px;
-          margin: 0;
-          width: 18px;
+        .settings-browser-tabs {
+          overflow-x: auto;
+          overflow-y: hidden;
         }
       }
+    }
 
-      .active-tab {
-        border-top: var(--base-border);
-        border-left: 0;
-      }
+    .tab-container[data-settings-tab-dock-position='left'] {
+      flex-direction: row;
+    }
+
+    .tab-container[data-settings-tab-dock-position='right'] {
+      flex-direction: row-reverse;
+    }
+
+    .tab-container[data-settings-tab-dock-position='top'] {
+      flex-direction: column;
+    }
+
+    .tab-container[data-settings-tab-dock-position='bottom'] {
+      flex-direction: column-reverse;
     }
 
     .dialog-footer {
@@ -1286,7 +1418,7 @@
       overflow: hidden;
     }
 
-    .tab-container .settings-tab-strip-list {
+    .tab-container .settings-browser-tabs {
       max-height: none !important;
       overflow-x: hidden;
       overflow-y: auto;

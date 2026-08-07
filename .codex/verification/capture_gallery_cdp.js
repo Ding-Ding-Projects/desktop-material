@@ -768,6 +768,8 @@ function prepareTabGroupManagementEvidenceFixture() {
 
 const DefaultWidth = 1440
 const DefaultHeight = 960
+const RepositoryToolsScrollCaptureWidth = 1000
+const RepositoryToolsScrollCaptureHeight = 679
 const CaptureWidth = Number(args.get('width') ?? DefaultWidth)
 const CaptureHeight = Number(args.get('height') ?? DefaultHeight)
 let currentViewportWidth = CaptureWidth
@@ -4035,6 +4037,10 @@ async function captureSettingsTab(
       return false
     }
     const bounds = panel.getBoundingClientRect()
+    const selectedVisualState =
+      tab.classList.contains('selected') ||
+      tab.getAttribute('aria-selected') === 'true' ||
+      tab.parentElement?.classList.contains('active') === true
     const activeFiniteAnimations = dialog
       .getAnimations({ subtree: true })
       .filter(animation => {
@@ -4043,7 +4049,7 @@ async function captureSettingsTab(
           (animation.pending || animation.playState === 'running')
       })
     return vt(label) === ${JSON.stringify(tabLabel)} &&
-      tab.classList.contains('selected') &&
+      selectedVisualState &&
       tab.getAttribute('aria-selected') === 'true' &&
       panel.getAttribute('aria-labelledby') === ${JSON.stringify(tabId)} &&
       bounds.width > 0 && bounds.height > 0 &&
@@ -4625,9 +4631,14 @@ scene('repository-tools-scroll', async () => {
     'Repository Tools sidebar'
   )
   await maskRepositoryToolsIntroduction()
-  await setViewport(960, 420)
+  await setViewport(
+    RepositoryToolsScrollCaptureWidth,
+    RepositoryToolsScrollCaptureHeight
+  )
   const scrolled = await evaluate(`(() => {
-    const scroller = document.querySelector('.repository-tools-functions')
+    const scroller = document.querySelector(
+      'nav.repository-tools-functions[aria-label="Repository tool list"]'
+    )
     if (!(scroller instanceof HTMLElement)) return false
     scroller.scrollTop = scroller.scrollHeight
     return scroller.scrollTop > 0
@@ -8187,6 +8198,12 @@ scene('stash-manager', async () => {
   await sleep(2500)
   await menuEvent('show-stashed-changes')
   await sleep(1500)
+  await clickText('Open full manager')
+  await waitFor(
+    `document.querySelector('#desktop-material-stash-manager-dialog') !== null`,
+    'full stash manager dialog'
+  )
+  await sleep(900)
   await parkPointer()
   await capture('material-stash-manager')
 })

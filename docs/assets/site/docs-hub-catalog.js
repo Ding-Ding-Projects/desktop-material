@@ -49,6 +49,13 @@
       d: "GitHub Desktop doesn't currently support Linux in an official capacity, but many in the community have already been experimenting and testing it on their preferred distributions.",
     },
     {
+      t: 'Desktop Material — contributing',
+      h: 'contributing/',
+      s: 'contributing/README.md',
+      c: 'contributing',
+      d: 'building arm64',
+    },
+    {
       t: 'Setting Up Development Dependencies on Linux',
       h: 'contributing/setup-linux.html',
       s: 'contributing/setup-linux.md',
@@ -200,7 +207,7 @@
       h: 'features/design-system/command-palette-coverage-gaps.html',
       s: 'features/design-system/command-palette-coverage-gaps.md',
       c: 'features',
-      d: 'The shipped catalog currently contains 247 unique commands (246 are Windows-eligible before live availability predicates). In a fresh Windows workspace with no signed-in…',
+      d: 'The shipped catalog currently contains 268 unique commands. The R5 command-palette expansion (see below) added 21 of those: tab management…',
     },
     {
       t: 'Command palette: full-app coverage, rich controls and teleport',
@@ -322,11 +329,32 @@
       d: 'The repository sheet is a searchable workspace switcher rather than a flat recent list. It groups pinned repositories first, can show or hide the Recent group, and keeps…',
     },
     {
+      t: 'Scheduled language, appearance, and external settings',
+      h: 'features/identity-and-workspace/scheduled-settings.html',
+      s: 'features/identity-and-workspace/scheduled-settings.md',
+      c: 'features',
+      d: 'Desktop Material can apply a settings value during a local date-and-time window. A rule can change the language presentation, theme, and appearance customizations together or…',
+    },
+    {
+      t: 'Browser-style settings tabs',
+      h: 'features/identity-and-workspace/settings-browser-tabs.html',
+      s: 'features/identity-and-workspace/settings-browser-tabs.md',
+      c: 'features',
+      d: 'Global Settings, Repository Settings, and Stash Manager use the same horizontal browser-style tab surface. Each page has a stable identity, a visible active state, a close…',
+    },
+    {
       t: 'Settings search / 設定搜尋',
       h: 'features/identity-and-workspace/settings-search.html',
       s: 'features/identity-and-workspace/settings-search.md',
       c: 'features',
       d: "A search box at the top of the Settings (Preferences) dialog's left rail lets you find a setting by name, description, or keyword across every tab, and jump straight to the tab…",
+    },
+    {
+      t: 'Settings tab docking',
+      h: 'features/identity-and-workspace/settings-tab-docking.html',
+      s: 'features/identity-and-workspace/settings-tab-docking.md',
+      c: 'features',
+      d: 'Repository Settings and application Settings use the same browser-style tab strip. The strip can be docked on the left, top, bottom, or right of its content. Left is the…',
     },
     {
       t: 'Tab groups',
@@ -488,6 +516,13 @@
       s: 'features/integrations/repository-releases-dashboard.md',
       c: 'features',
       d: 'Open Releases from a GitHub repository rail to search and status-filter the bounded loaded catalog, select a release, inspect metadata and assets, or enter the existing…',
+    },
+    {
+      t: 'Self-hosted Windows dependency bootstrap',
+      h: 'features/integrations/self-hosted-windows-dependency-bootstrap.html',
+      s: 'features/integrations/self-hosted-windows-dependency-bootstrap.md',
+      c: 'features',
+      d: 'Every self-hosted Windows job bootstraps its declared dependencies before it builds, tests, packages, or publishes. A warm runner may reuse compatible tools and exact…',
     },
     {
       t: 'SSH working copies and remote clone',
@@ -714,6 +749,13 @@
       d: 'Central diagnostic logging — opt-in',
     },
     {
+      t: 'Renderer startup bundle safety',
+      h: 'features/quality-and-reliability/renderer-startup-bundle-safety.html',
+      s: 'features/quality-and-reliability/renderer-startup-bundle-safety.md',
+      c: 'features',
+      d: "Desktop Material's Windows renderer must mount its React root before the main window is shown. A Node-oriented dependency that is concatenated into the browser bundle can fail…",
+    },
+    {
       t: 'Responsiveness and resource lifecycle',
       h: 'features/quality-and-reliability/responsiveness-and-resource-lifecycle.html',
       s: 'features/quality-and-reliability/responsiveness-and-resource-lifecycle.md',
@@ -732,7 +774,7 @@
       h: 'features/quality-and-reliability/supply-chain-and-ci-hardening.html',
       s: 'features/quality-and-reliability/supply-chain-and-ci-hardening.md',
       c: 'features',
-      d: "Desktop Material's continuous-integration workflow builds and signs the Windows installers that users actually run, so what its jobs install and how its runs are scheduled are…",
+      d: "Desktop Material's continuous-integration workflow builds the Windows installers that users actually run, so what its jobs install, how its runs are scheduled, and how it…",
     },
     {
       t: 'Desktop Material feature documentation',
@@ -746,7 +788,7 @@
       h: 'features/repository-management/advanced-history-discovery.html',
       s: 'features/repository-management/advanced-history-discovery.md',
       c: 'features',
-      d: 'The History sidebar can search loaded commits by title, body, author, tag, or full/short object ID using fuzzy, substring, or regular-expression matching. Its filter chips…',
+      d: 'The History page can search loaded commits by title, body, author, tag, or full/short object ID using fuzzy, substring, or regular-expression matching. Its filter chips narrow…',
     },
     {
       t: 'Automatic commit and push batching',
@@ -840,6 +882,20 @@
       d: 'A reviewed workflow that copies working files Git itself currently proves are ignored into a newly created local Git repository and registers that repository as a submodule of…',
     },
     {
+      t: 'Launchpad',
+      h: 'features/repository-management/launchpad.html',
+      s: 'features/repository-management/launchpad.md',
+      c: 'features',
+      d: 'Launchpad is the repository workspace for reviewing the items that need attention first. It groups repository-backed work into Pinned, Ready to merge, Unassigned, CI failing,…',
+    },
+    {
+      t: 'Multi-remote fetch sync',
+      h: 'features/repository-management/multi-remote-fetch-sync.html',
+      s: 'features/repository-management/multi-remote-fetch-sync.md',
+      c: 'features',
+      d: "The repository toolbar's ordinary Fetch action now reflects the complete configured topology. A checkout with more than one Git remote is fetched from every configured remote,…",
+    },
+    {
       t: 'Named multi-stash manager',
       h: 'features/repository-management/named-stash-manager.html',
       s: 'features/repository-management/named-stash-manager.md',
@@ -931,11 +987,25 @@
       d: 'Every row in the repository side sheet carries a small, low-emphasis second line under the repository name summarizing how far that repository has drifted from its tracked…',
     },
     {
+      t: 'Repository list transfer and Cheap LFS',
+      h: 'features/repository-management/repository-list-transfer.html',
+      s: 'features/repository-management/repository-list-transfer.md',
+      c: 'features',
+      d: 'Repository list transfer moves a reviewed set of cloned repositories between Desktop Material profiles or machines. It is deliberately a clone recipe, not a credential or…',
+    },
+    {
       t: 'Repository picker filters and visibility',
       h: 'features/repository-management/repository-picker-filters-and-visibility.html',
       s: 'features/repository-management/repository-picker-filters-and-visibility.md',
       c: 'features',
       d: 'The repository side sheet combines text search with account, provider, and status filters so a large local workspace can be narrowed without changing its saved repository list.',
+    },
+    {
+      t: 'Repository transfer',
+      h: 'features/repository-management/repository-transfer.html',
+      s: 'features/repository-management/repository-transfer.md',
+      c: 'features',
+      d: 'Transfer repository moves a GitHub-backed repository into a repository owned by another signed-in GitHub account or organization. It is available from the Repository menu, the…',
     },
     {
       t: 'Reviewed batch repository sync',
@@ -945,7 +1015,7 @@
       d: 'The repository picker exposes Sync repositories for workspace-scale network updates. The dialog loads the current persisted repositories, selects all by default, and lets the…',
     },
     {
-      t: 'Reviewed bulk branch deletion',
+      t: 'Reviewed bulk branch deletion and merge cleanup',
       h: 'features/repository-management/reviewed-bulk-branch-deletion.html',
       s: 'features/repository-management/reviewed-bulk-branch-deletion.md',
       c: 'features',
@@ -1057,6 +1127,13 @@
       d: 'Date: 2026-07-24. gh CLI is LOCKED to DingDingChae — do NOT gh auth switch and do not let Cheap LFS / push-fallback change it.',
     },
     {
+      t: 'Desktop Material — handoff',
+      h: 'handoff/',
+      s: 'handoff/README.md',
+      c: 'handoff',
+      d: '2026 07 24 session',
+    },
+    {
       t: 'Installing Desktop Material',
       h: 'installation.html',
       s: 'installation.md',
@@ -1085,6 +1162,13 @@
       d: 'GitHub Desktop now provides support for Git Credential Manager (GCM), which makes the task of authenticating to GitLab repositories easy and secure. This feature can be enabled…',
     },
     {
+      t: 'Desktop Material — Integrations n nIntegrations cover how the app connects to external services, editors, shells, nand operating-system surfaces. Each document describes setup, authentication, nfailure modes, and what the user sees when the integration is active or broken. n n- Azure DevOps — authenticating through Git Credential Manager or PATs.',
+      h: 'integrations/',
+      s: 'integrations/README.md',
+      c: 'integrations',
+      d: '',
+    },
+    {
       t: 'Table of contents',
       h: 'known-issues.html',
       s: 'known-issues.md',
@@ -1092,11 +1176,25 @@
       d: 'macOS',
     },
     {
+      t: 'Desktop Material — learn more',
+      h: 'learn-more/',
+      s: 'learn-more/README.md',
+      c: 'learn-more',
+      d: 'unreachable commits',
+    },
+    {
       t: 'Reachable and Unreachable Commits',
       h: 'learn-more/unreachable-commits.html',
       s: 'learn-more/unreachable-commits.md',
       c: 'learn-more',
       d: 'In Git, every commit will have at least one parent commit except the very first. Additionally, a repository may have any number of branches that begin at any particular commit.…',
+    },
+    {
+      t: 'Desktop Material — postman',
+      h: 'postman/',
+      s: 'postman/README.md',
+      c: 'postman',
+      d: 'desktop material.postman_collection.json',
     },
     {
       t: 'Issue Triage',
@@ -1139,6 +1237,13 @@
       s: 'process/quality-process.md',
       c: 'process',
       d: 'This document is a general outline of Quality Engineering practices for Desktop, both for scheduled and ad-hoc testing. The manual test cases used to test Desktop in both Mac…',
+    },
+    {
+      t: 'Desktop Material — process',
+      h: 'process/',
+      s: 'process/README.md',
+      c: 'process',
+      d: 'issue triage',
     },
     {
       t: 'Release Planning',
@@ -1211,6 +1316,13 @@
       d: 'Desktop Material ships as a Windows desktop application and as a Linux-first terminal application. The terminal package keeps the clickable Git and GitHub workflows, repository…',
     },
     {
+      t: 'Desktop Material — readme tabs',
+      h: 'readme-tabs/',
+      s: 'readme-tabs/README.md',
+      c: 'readme-tabs',
+      d: 'complete feature list',
+    },
+    {
       t: 'Roadmap & receipts',
       h: 'readme-tabs/roadmap-and-receipts.html',
       s: 'readme-tabs/roadmap-and-receipts.md',
@@ -1222,7 +1334,7 @@
       h: 'readme-tabs/screenshots.html',
       s: 'readme-tabs/screenshots.md',
       c: 'readme-tabs',
-      d: 'The compact selection below keeps this README scannable. The guided feature gallery and task-oriented tutorial contain the full annotated set.',
+      d: "The dated production-build receipt proves that Desktop Material's app-owned browser reaches the original registered GitHub OAuth application without the reported redirect_uri…",
     },
     {
       t: 'Desktop Material documentation',
@@ -1237,6 +1349,13 @@
       s: 'regex-guide.md',
       c: 'root',
       d: 'Every search bar in Desktop Material (Changes, History, Branches, Repositories, Clone, Actions) has three power tools:',
+    },
+    {
+      t: 'Desktop Material — screenshots',
+      h: 'screenshots/',
+      s: 'screenshots/README.md',
+      c: 'screenshots',
+      d: 'add submodule dialog.html',
     },
     {
       t: 'Adding tests to the project',
@@ -1358,6 +1477,13 @@
       d: 'PR #3602 introduced the ability to checkout a branch from a forked repository. In order to accomplish this, we needed a way to manage remotes on your behalf. This document is…',
     },
     {
+      t: 'Desktop Material — technical',
+      h: 'technical/',
+      s: 'technical/README.md',
+      c: 'technical',
+      d: 'adding tests',
+    },
+    {
       t: 'Rebase Flow',
       h: 'technical/rebase-flow.html',
       s: 'technical/rebase-flow.md',
@@ -1391,6 +1517,13 @@
       s: 'technical/windows-menu-bar.md',
       c: 'technical',
       d: 'One of the design decision early on with GitHub Desktop assumed a high-fidelity application menu. On macOS we get that for free since the application menu is detached from the…',
+    },
+    {
+      t: 'Cross-provider account switching recheck — 2026-08-05',
+      h: 'verification/account-switching-recheck-2026-08-05/run-manifest.html',
+      s: 'verification/account-switching-recheck-2026-08-05/run-manifest.md',
+      c: 'verification',
+      d: 'Mode: local-docs',
     },
     {
       t: 'Agent repair and background progress verification — 2026-07-30',
@@ -1540,6 +1673,20 @@
       d: 'Run ID: close-all-open-issues-20260728',
     },
     {
+      t: 'Cleanup ledger',
+      h: 'verification/dirty-worktree-worktree-option-20260805/cleanup-ledger.html',
+      s: 'verification/dirty-worktree-worktree-option-20260805/cleanup-ledger.md',
+      c: 'verification',
+      d: 'The source fixture was verified before cleanup: feature/worktree-switch retained one modified README.md, while the new main worktree was clean and the application reported zero…',
+    },
+    {
+      t: 'Dirty-worktree worktree option — headless verification manifest',
+      h: 'verification/dirty-worktree-worktree-option-20260805/run-manifest.html',
+      s: 'verification/dirty-worktree-worktree-option-20260805/run-manifest.md',
+      c: 'verification',
+      d: 'Mode: publish',
+    },
+    {
       t: 'Funny-level sliders — built-app capture, 2026-07-28',
       h: 'verification/funny-level-sliders-2026-07-28/',
       s: 'verification/funny-level-sliders-2026-07-28/README.md',
@@ -1617,6 +1764,13 @@
       d: "Target: Desktop Material Windows desktop app (app/styles, app/src/ui) Date: 2026-07-31 Method: source audit per the Material 3 skill's audit procedure (web/CSS…",
     },
     {
+      t: 'Original GitHub OAuth release proof — 2026-08-06',
+      h: 'verification/original-github-oauth-release-20260806/',
+      s: 'verification/original-github-oauth-release-20260806/README.md',
+      c: 'verification',
+      d: "This dated acceptance proves the real production Windows bundle uses Desktop Material's original registered GitHub OAuth application and the exact x-github-client://oauth…",
+    },
+    {
       t: 'Publish organization picker sizing acceptance — 2026-07-30',
       h: 'verification/publish-organization-picker-2026-07-30/',
       s: 'verification/publish-organization-picker-2026-07-30/README.md',
@@ -1657,6 +1811,20 @@
       s: 'verification/repository-group-management-2026-07-28/README.md',
       c: 'verification',
       d: 'Visual evidence for issue #81 (first-class repository and tab group management).',
+    },
+    {
+      t: 'Repository list and agent-session dialog verification run',
+      h: 'verification/repository-list-agent-dialog-2026-08-02/run-manifest.html',
+      s: 'verification/repository-list-agent-dialog-2026-08-02/run-manifest.md',
+      c: 'verification',
+      d: 'Run ID: repository-list-agent-dialog-20260802',
+    },
+    {
+      t: 'Repository transfer headless verification — 2026-08-05',
+      h: 'verification/repository-transfer-2026-08-05/run-manifest.html',
+      s: 'verification/repository-transfer-2026-08-05/run-manifest.md',
+      c: 'verification',
+      d: 'Mode: capture-only',
     },
     {
       t: 'Responsive surface matrix — 2026-07-17',
@@ -1762,6 +1930,13 @@
       s: 'wiki/Home.md',
       c: 'wiki',
       d: 'Use this map to choose a starting point: learn the daily workflow in the User Guide, browse shipped surfaces in the Feature Gallery, or open a specialist guide for deeper details.',
+    },
+    {
+      t: 'Desktop Material — wiki',
+      h: 'wiki/',
+      s: 'wiki/README.md',
+      c: 'wiki',
+      d: 'agent api',
     },
     {
       t: 'Regex guide — how search works in Desktop Material',

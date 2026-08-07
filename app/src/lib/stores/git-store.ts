@@ -128,6 +128,39 @@ import { findForkedRemotesToPrune } from './helpers/find-forked-remotes-to-prune
 import { findDefaultBranch } from '../find-default-branch'
 import { cleanUntrackedFiles } from '../git/clean'
 
+/**
+ * Choose the remotes used by an ordinary repository fetch.
+ *
+ * A single-remote checkout keeps the historical current/default/upstream
+ * selection. Once a repository has more than one configured remote, the
+ * ordinary Fetch action becomes an explicit multi-remote sync and includes
+ * every configured remote, while retaining the useful current-first order.
+ */
+export function getRemotesToFetch(
+  allRemotes: ReadonlyArray<IRemote>,
+  currentRemote: IRemote | null,
+  defaultRemote: IRemote | null,
+  upstreamRemote: IRemote | null
+): ReadonlyArray<IRemote> {
+  const remotes = new Map<string, IRemote>()
+
+  // Keep the current/default/upstream ordering stable so the remote most
+  // relevant to the checked-out branch starts reporting progress first.
+  for (const remote of [currentRemote, defaultRemote, upstreamRemote]) {
+    if (remote !== null) {
+      remotes.set(remote.name, remote)
+    }
+  }
+
+  if (allRemotes.length > 1) {
+    for (const remote of allRemotes) {
+      remotes.set(remote.name, remote)
+    }
+  }
+
+  return [...remotes.values()]
+}
+
 /** The number of commits to load from history per batch. */
 const CommitBatchSize = 100
 
@@ -1171,8 +1204,12 @@ export class GitStore extends BaseStore {
   }
 
   /**
-   * Fetch the default, current, and upstream remotes, using the given account for
-   * authentication.
+   * Fetch the relevant remotes, using the given account for authentication.
+   *
+   * A repository with more than one configured remote is synced across every
+   * configured remote. A repository with one remote keeps the focused
+   * current/default/upstream behavior used by the toolbar's `Fetch <remote>`
+   * copy.
    *
    * @param account          - The account to use for authentication if needed.
    * @param backgroundTask   - Was the fetch done as part of a background task?
@@ -1184,29 +1221,16 @@ export class GitStore extends BaseStore {
     progressCallback?: (fetchProgress: IFetchProgress) => void,
     accountKey?: string
   ): Promise<void> {
-    // Use a map as a simple way of getting a unique set of remotes.
-    // Note that maps iterate in insertion order so the order in which
-    // we insert these will affect the order in which we fetch them
-    const remotes = new Map<string, IRemote>()
+    const remotes = getRemotesToFetch(
+      this._remotes,
+      this.currentRemote,
+      this.defaultRemote,
+      this.upstreamRemote
+    )
 
-    // We want to fetch the current remote first
-    if (this.currentRemote !== null) {
-      remotes.set(this.currentRemote.name, this.currentRemote)
-    }
-
-    // And then the default remote if it differs from the current
-    if (this.defaultRemote !== null) {
-      remotes.set(this.defaultRemote.name, this.defaultRemote)
-    }
-
-    // And finally the upstream if we're a fork
-    if (this.upstreamRemote !== null) {
-      remotes.set(this.upstreamRemote.name, this.upstreamRemote)
-    }
-
-    if (remotes.size > 0) {
+    if (remotes.length > 0) {
       await this.fetchRemotes(
-        [...remotes.values()],
+        remotes,
         backgroundTask,
         progressCallback,
         accountKey

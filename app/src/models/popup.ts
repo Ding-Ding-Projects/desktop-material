@@ -98,6 +98,7 @@ export enum PopupType {
   NotificationAutomations = 'NotificationAutomations',
   LogHistory = 'LogHistory',
   FileHistory = 'FileHistory',
+  StoreWorkingTreeFilesInCheapLfs = 'StoreWorkingTreeFilesInCheapLfs',
   CreateGitHubIssue = 'CreateGitHubIssue',
   CreateGitHubPullRequest = 'CreateGitHubPullRequest',
   GitHubPullRequestLifecycle = 'GitHubPullRequestLifecycle',
@@ -152,6 +153,7 @@ export enum PopupType {
   PushRejectedDueToMissingWorkflowScope = 'PushRejectedDueToMissingWorkflowScope',
   SAMLReauthRequired = 'SAMLReauthRequired',
   CreateFork = 'CreateFork',
+  TransferRepository = 'TransferRepository',
   CreateTag = 'CreateTag',
   DeleteTag = 'DeleteTag',
   LocalChangesOverwritten = 'LocalChangesOverwritten',
@@ -252,6 +254,12 @@ export type SettingsHistoryScope = {
   readonly label: string
 }
 
+/** A selected working-tree path deliberately omitted before a Cheap LFS batch. */
+export interface ICheapLfsSkippedWorkingTreePath {
+  readonly path: string
+  readonly reason: string
+}
+
 export type PopupDetail =
   | { type: PopupType.RenameBranch; repository: Repository; branch: Branch }
   | {
@@ -259,11 +267,15 @@ export type PopupDetail =
       repository: Repository
       branch: Branch
       existsOnRemote: boolean
+      /** Optional reviewed local tip used by merge-cleanup deletion. */
+      expectedSha?: string
     }
   | {
       type: PopupType.DeleteRemoteBranch
       repository: Repository
       branch: Branch
+      /** Optional reviewed remote tip used by merge-cleanup deletion. */
+      expectedSha?: string
     }
   | {
       type: PopupType.ConfirmDiscardChanges
@@ -286,6 +298,12 @@ export type PopupDetail =
   | { type: PopupType.NotificationAutomations; entry?: INotificationEntry }
   | { type: PopupType.LogHistory }
   | { type: PopupType.FileHistory; repository: Repository; path: string }
+  | {
+      type: PopupType.StoreWorkingTreeFilesInCheapLfs
+      repository: Repository
+      paths: ReadonlyArray<string>
+      excludedPaths?: ReadonlyArray<ICheapLfsSkippedWorkingTreePath>
+    }
   | { type: PopupType.CreateGitHubIssue; repository: Repository }
   | { type: PopupType.ActionsLocalRun; repository: Repository }
   | {
@@ -543,6 +561,11 @@ export type PopupDetail =
       type: PopupType.CreateFork
       repository: RepositoryWithGitHubRepository
       account: Account
+    }
+  | {
+      type: PopupType.TransferRepository
+      repository: RepositoryWithGitHubRepository
+      onCompleted?: () => void
     }
   | {
       type: PopupType.CreateTag

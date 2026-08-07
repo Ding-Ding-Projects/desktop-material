@@ -9,12 +9,12 @@ import { PopupType } from '../../../src/models/popup'
 import { Repository } from '../../../src/models/repository'
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 
-let commitsBehind = 0
+let commitsBehind: number | null = 0
 
 mock.module('../../../src/lib/git', {
   namedExports: {
-    getAheadBehind: async () => ({ ahead: 0, behind: commitsBehind }),
-    revSymmetricDifference: () => 'current...selected',
+    getAheadBehind: async () =>
+      commitsBehind === null ? null : { ahead: 0, behind: commitsBehind },    revSymmetricDifference: () => 'current...selected',
   },
 })
 
@@ -63,8 +63,11 @@ describe('MergeChooseBranchDialog branch cleanup action', () => {
     const repository = new Repository('C:\\merge-dialog-test', 1, null, false)
     const currentBranch = branch('main', BranchType.Local, 'origin/main')
     const selectedBranch = branch('origin/feature', BranchType.Remote)
-    const popups: Array<{ type: PopupType; branch: Branch }> = []
-    let dismissed = 0
+    const popups: Array<{
+      type: PopupType
+      branch: Branch
+      expectedSha?: string
+    }> = []    let dismissed = 0
 
     render(
       <MergeChooseBranchDialog
@@ -97,10 +100,9 @@ describe('MergeChooseBranchDialog branch cleanup action', () => {
     assert.equal(popups.length, 1)
     assert.equal(popups[0].type, PopupType.DeleteRemoteBranch)
     assert.strictEqual(popups[0].branch, selectedBranch)
-  })
 
-  it('does not offer deletion when the selected branch has commits to merge', async () => {
-    commitsBehind = 1
+  it('keeps deletion hidden when the ahead/behind result is unknown', async () => {
+    commitsBehind = null
     const MergeChooseBranchDialog = await loadDialog()
     const repository = new Repository('C:\\merge-dialog-test', 1, null, false)
     const currentBranch = branch('main', BranchType.Local, 'origin/main')
@@ -120,10 +122,54 @@ describe('MergeChooseBranchDialog branch cleanup action', () => {
       />
     )
 
-    await waitFor(() => assert.ok(screen.getByText(/This will merge/)))
+    await waitFor(() => assert.ok(screen.getByText(/Unable to verify whether/)))
     assert.equal(
       document.querySelector('[data-verification="merge-delete-branch"]'),
       null
     )
   })
-})
+
+  it('carries the reviewed local tip into local deletion', async () => {
+    commitsBehind = 0
+    const MergeChooseBranchDialog = await loadDialog()
+    const repository = new Repository('C:\\merge-dialog-test', 1, null, false)
+    const currentBranch = branch('main', BranchType.Local, 'origin/main')
+    const selectedBranch = branch('feature', BranchType.Local)
+    const popups: Array<{
+      type: PopupType
+      branch: Branch
+      expectedSha?: string
+    }> = []
+
+    render(
+      <MergeChooseBranchDialog
+        dispatcher={
+          {
+            showPopup: (popup: {
+              type: PopupType
+              branch: Branch
+              expectedSha?: string
+            }) => {
+              popups.push(popup)
+              return Promise.resolve()
+            },
+          } as never
+        }
+        repository={repository}
+        defaultBranch={currentBranch}
+        currentBranch={currentBranch}
+        allBranches={[currentBranch, selectedBranch]}
+        recentBranches={[]}
+        initialBranch={selectedBranch}
+        operation={MultiCommitOperationKind.Merge}
+        onDismissed={() => undefined}
+      />
+    )
+
+    await waitFor(() => assert.ok(screen.getByText('Delete branch')))
+    fireEvent.click(screen.getByText('Delete branch').closest('button')!)
+
+    assert.equal(popups[0].type, PopupType.DeleteBranch)
+    assert.strictEqual(popups[0].branch, selectedBranch)
+    assert.equal(popups[0].expectedSha, selectedBranch.tip.sha)
+  })})

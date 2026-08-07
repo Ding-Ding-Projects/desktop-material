@@ -729,33 +729,14 @@
     overflow-wrap: anywhere;
   }
 
-  .stash-dialog-tabs {
+  // Stash manager uses the shared settings browser chrome so its Manage,
+  // Export, History, and Appearance pages behave like the other settings
+  // surfaces rather than like a one-off pill row.
+  .settings-tab-strip-browser {
     position: sticky;
     top: 0;
     z-index: 2;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    padding: 8px 0;
-    background: var(--md-sys-color-surface);
-    border-bottom: 1px solid var(--md-sys-color-outline-variant);
-  }
-
-  .stash-dialog-tabs [role='tab'] {
-    min-height: 40px;
-    padding: 8px 12px;
-    border: 0;
-    border-radius: 999px;
-    color: var(--md-sys-color-on-surface-variant);
-    background: transparent;
-    cursor: pointer;
-
-    &:hover,
-    &:focus-visible,
-    &.selected {
-      color: var(--md-sys-color-on-secondary-container);
-      background: var(--md-sys-color-secondary-container);
-    }
+    margin: 0 -4px;
   }
 
   .stash-dialog-tab-panel {

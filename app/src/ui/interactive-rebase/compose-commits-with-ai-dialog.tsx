@@ -131,7 +131,10 @@ export class ComposeCommitsWithAIDialog extends React.Component<
     this.setState(state =>
       state.plan === null
         ? state
-        : { ...state, plan: updateInteractiveRebaseAction(state.plan, commitId, action) }
+        : {
+            ...state,
+            plan: updateInteractiveRebaseAction(state.plan, commitId, action),
+          }
     )
   }
 

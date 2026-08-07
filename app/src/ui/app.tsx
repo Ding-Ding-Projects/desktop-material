@@ -33,7 +33,6 @@ import { assertNever } from '../lib/fatal-error'
 import { openFolderInFileManager } from '../lib/app-shell'
 import { updateStore, UpdateStatus } from './lib/update-store'
 import {
-  getPersistedLanguageMode,
   t,
   translatedVariable,
   translateForAccessibleName,
@@ -194,6 +193,7 @@ import { IRepositoryTab } from '../models/repository-tab'
 import { NotificationAutomationsDialog } from './notifications/notification-automations-dialog'
 import { LogHistoryDialog } from './log-history/log-history-dialog'
 import { FileHistory } from './file-history'
+import { StoreWorkingTreeFilesInCheapLfsDialog } from './changes/store-working-tree-files-in-cheap-lfs-dialog'
 import { SparseCheckoutManager } from './sparse-checkout'
 import { BranchRulesInspector } from './branch-rules'
 import { EffectiveBranchRulesAPIDataSource } from '../lib/effective-branch-rules-api'
@@ -336,6 +336,7 @@ import { TutorialStep, isValidTutorialStep } from '../models/tutorial-step'
 import { WorkflowPushRejectedDialog } from './workflow-push-rejected/workflow-push-rejected'
 import { SAMLReauthRequiredDialog } from './saml-reauth-required/saml-reauth-required'
 import { CreateForkDialog } from './forks/create-fork-dialog'
+import { RepositoryTransferDialog } from './repository-transfer/repository-transfer-dialog'
 import { findContributionTargetDefaultBranch } from '../lib/branch'
 import {
   GitHubRepository,
@@ -590,6 +591,7 @@ const ModalPopupTypes = new Set<PopupType>([
   PopupType.PullPreview,
   PopupType.CheapLfsCloneAssets,
   PopupType.CheapLfsPayloadPassword,
+  PopupType.StoreWorkingTreeFilesInCheapLfs,
 ])
 
 export const bannerTransitionTimeout = { enter: 500, exit: 400 }
@@ -1172,7 +1174,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     return (
       <DimSumSurprise
         dish={dish}
-        languageMode={getPersistedLanguageMode()}
+        languageMode={this.state.appearanceCustomization.languageMode}
         funnyLevels={readFunnyLevels()}
         onDismissed={this.onDimSumSurpriseDismissed}
       />
@@ -1255,6 +1257,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.fetch()
       case 'fork-repository':
         return this.forkRepository(this.getRepository())
+      case 'transfer-repository':
+        return this.transferRepository(this.getRepository())
       case 'show-changes':
         return this.showChanges(true)
       case 'show-history':
@@ -1708,6 +1712,10 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showPreferencesTab(PreferencesTab.AgentAccess)
       case 'palette:preferences-sound':
         return this.showPreferencesTab(PreferencesTab.Sound)
+      case 'palette:preferences-self-hosted-server':
+        return this.showPreferencesTab(PreferencesTab.SelfHostedServer)
+      case 'palette:preferences-ai':
+        return this.showPreferencesTab(PreferencesTab.AI)
       case 'palette:preferences-copilot':
         return this.showPreferencesTab(PreferencesTab.Copilot)
       case 'palette:ollama-model-manager':
@@ -1744,6 +1752,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showRepositorySettings(RepositorySettingsTab.Metadata)
       case 'palette:repository-settings-appearance':
         return this.showRepositorySettings(RepositorySettingsTab.Appearance)
+      case 'palette:repository-settings-ai-security':
+        return this.showRepositorySettings(RepositorySettingsTab.AISecurity)
       case 'palette:repository-settings-fork-settings':
         return this.showRepositorySettings(RepositorySettingsTab.ForkSettings)
       // The Help menu's links had no palette route at all: they live only as
@@ -4270,6 +4280,18 @@ export class App extends React.Component<IAppProps, IAppState> {
     return this.props.dispatcher.showCreateForkDialog(eligibility.repository)
   }
 
+  private transferRepository = (
+    repository: Repository | CloningRepository | null
+  ) => {
+    if (!(repository instanceof Repository)) {
+      return
+    }
+    if (!isRepositoryWithGitHubRepository(repository)) {
+      return
+    }
+    return this.props.dispatcher.showTransferRepositoryDialog(repository)
+  }
+
   private showRepositoryAccountSettings = () => {
     this.showRepositorySettings(RepositorySettingsTab.Remote)
   }
@@ -4613,6 +4635,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             repository={popup.repository}
             branch={popup.branch}
             existsOnRemote={popup.existsOnRemote}
+            expectedSha={popup.expectedSha}
             onDismissed={onPopupDismissedFn}
             onDeleted={this.onBranchDeleted}
           />
@@ -4624,6 +4647,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             dispatcher={this.props.dispatcher}
             repository={popup.repository}
             branch={popup.branch}
+            expectedSha={popup.expectedSha}
             onDismissed={onPopupDismissedFn}
             onDeleted={this.onBranchDeleted}
           />
@@ -4711,6 +4735,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             selectedShell={this.state.selectedShell}
             selectedTheme={this.state.selectedTheme}
             appearanceCustomization={this.state.appearanceCustomization}
+            scheduledSettings={this.state.scheduledSettings}
             zoomBaseFactor={this.state.zoomBaseFactor}
             autoFitZoomEnabled={this.state.autoFitZoomEnabled}
             windowZoomFactor={this.state.windowZoomFactor}
@@ -4783,6 +4808,17 @@ export class App extends React.Component<IAppProps, IAppState> {
             onRefreshRepository={this.getOnRefreshRepositoryFn(
               popup.repository
             )}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.StoreWorkingTreeFilesInCheapLfs:
+        return (
+          <StoreWorkingTreeFilesInCheapLfsDialog
+            key={`store-working-tree-files-in-cheap-lfs-${popup.repository.id}`}
+            repository={popup.repository}
+            paths={popup.paths}
+            excludedPaths={popup.excludedPaths}
+            dispatcher={this.props.dispatcher}
             onDismissed={onPopupDismissedFn}
           />
         )
@@ -5734,6 +5770,16 @@ export class App extends React.Component<IAppProps, IAppState> {
             repository={popup.repository}
             account={popup.account}
             accounts={this.state.accounts}
+          />
+        )
+      case PopupType.TransferRepository:
+        return (
+          <RepositoryTransferDialog
+            onDismissed={onPopupDismissedFn}
+            dispatcher={this.props.dispatcher}
+            repository={popup.repository}
+            accounts={this.state.accounts}
+            onCompleted={popup.onCompleted}
           />
         )
       case PopupType.CreateTag: {
@@ -8538,6 +8584,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           onRemoveRepository={this.removeRepository}
           onViewOnGitHub={this.viewOnGitHub}
           onForkRepository={this.forkRepository}
+          onTransferRepository={this.transferRepository}
           onOpenInNewWindow={this.openRepositoryInNewWindow}
           onOpenInShell={this.openInShell}
           onShowRepository={this.showRepository}
@@ -8820,6 +8867,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       onRemoveRepositoryGroupName: onRemoveRepositoryGroupName,
       onViewOnGitHub: this.viewOnGitHub,
       onForkRepository: this.forkRepository,
+      onTransferRepository: this.transferRepository,
       onOpenInNewWindow: this.openRepositoryInNewWindow,
       onCreateWorktree: enableWorktreeSupport() ? onCreateWorktree : undefined,
       onShowWorktrees: enableWorktreeSupport() ? onShowWorktrees : undefined,
@@ -8891,6 +8939,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         aheadBehind={state.aheadBehind}
         numTagsToPush={state.tagsToPush !== null ? state.tagsToPush.length : 0}
         remoteName={remoteName}
+        remoteCount={state.remotes.length}
         lastFetched={state.lastFetched}
         networkActionInProgress={state.isPushPullFetchInProgress}
         progress={progress}

@@ -1,6 +1,6 @@
 import { getDotComAPIEndpoint, getHTMLURL, IAPIEmail } from '../lib/api'
 
-export type AccountProvider = 'github' | 'gitlab' | 'bitbucket'
+export type AccountProvider = 'github' | 'gitlab' | 'bitbucket' | 'self-hosted'
 
 /**
  * Returns a value indicating whether two account instances
@@ -112,7 +112,9 @@ export class Account {
         ? ''
         : this.provider === 'gitlab'
         ? 'GitLab · '
-        : 'Bitbucket · '
+        : this.provider === 'bitbucket'
+        ? 'Bitbucket · '
+        : 'Self-hosted · '
     return (this._friendlyEndpoint ??= isDotComAccount(this)
       ? 'GitHub.com'
       : prefix + new URL(getHTMLURL(this.endpoint)).hostname)

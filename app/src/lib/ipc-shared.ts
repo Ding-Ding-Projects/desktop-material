@@ -68,6 +68,16 @@ import {
   SelfHostedServerProvisioningReply,
 } from './self-hosted-server/provisioning'
 import {
+  ISelfHostedRunnerProgress,
+  ISelfHostedRunnerRemoveRequest,
+  ISelfHostedRunnerRemoveResult,
+  ISelfHostedRunnerSetupRequest,
+  ISelfHostedRunnerSetupResult,
+  ISelfHostedRunnerStatusRequest,
+  ISelfHostedRunnerStatus,
+  SelfHostedRunnerReply,
+} from './self-hosted-runner/types'
+import {
   ICLICommandOutputEvent,
   ICLICommandStateEvent,
   ICLIWorkbenchOperationRequest,
@@ -122,6 +132,12 @@ import {
   AgentSetupRunResult,
   IAgentSetupRunRequest,
 } from './agent-sessions/setup-commands'
+import {
+  HomeAssistantBooleanState,
+  IHomeAssistantSettingsRequest,
+  ISetHomeAssistantTokenRequest,
+  IScheduledSettingsValue,
+} from '../models/scheduled-settings'
 
 /**
  * Defines the simplex IPC channel names we use from the renderer
@@ -151,6 +167,7 @@ export type RequestChannels = {
   'self-hosted-server-provisioning-progress': (
     progress: ISelfHostedServerProvisioningProgress
   ) => void
+  'self-hosted-runner-progress': (progress: ISelfHostedRunnerProgress) => void
   'select-all-window-contents': () => void
   'dialog-did-open': () => void
   'update-menu-state': (
@@ -292,6 +309,18 @@ export type RequestChannels = {
  * Return signatures must be promises
  */
 export type RequestResponseChannels = {
+  /** Fetch and validate a bounded scheduled-settings document in the main process. */
+  'fetch-scheduled-settings': (
+    endpoint: string
+  ) => Promise<IScheduledSettingsValue>
+  /** Read a Home Assistant boolean entity without exposing its token to the renderer. */
+  'fetch-home-assistant-state': (
+    request: IHomeAssistantSettingsRequest
+  ) => Promise<HomeAssistantBooleanState>
+  /** Store or remove a Home Assistant token in the OS credential vault. */
+  'set-home-assistant-token': (
+    request: ISetHomeAssistantTokenRequest
+  ) => Promise<void>
   /** Lease one absolute Windows Git repository across renderer documents. */
   'acquire-profile-repository-lock': (repositoryPath: string) => Promise<string>
   /** Release a profile repository lease owned by the invoking renderer. */
@@ -353,6 +382,25 @@ export type RequestResponseChannels = {
     request: ISelfHostedServerProvisioningRequest
   ) => Promise<SelfHostedServerProvisioningReply>
   'cancel-self-hosted-server-provisioning': () => Promise<void>
+  'get-self-hosted-runner-status': (
+    request: ISelfHostedRunnerStatusRequest
+  ) => Promise<ISelfHostedRunnerStatus>
+  'setup-self-hosted-runner': (
+    request: ISelfHostedRunnerSetupRequest
+  ) => Promise<SelfHostedRunnerReply<ISelfHostedRunnerSetupResult>>
+  'start-self-hosted-runner': (request: {
+    readonly id: string
+    readonly owner: string
+    readonly repository: string
+  }) => Promise<SelfHostedRunnerReply<ISelfHostedRunnerSetupResult>>
+  'stop-self-hosted-runner': (request: {
+    readonly id: string
+    readonly owner: string
+    readonly repository: string
+  }) => Promise<SelfHostedRunnerReply<ISelfHostedRunnerSetupResult>>
+  'remove-self-hosted-runner': (
+    request: ISelfHostedRunnerRemoveRequest
+  ) => Promise<SelfHostedRunnerReply<ISelfHostedRunnerRemoveResult>>
   'get-windows-context-menu-state': (
     labels: IWindowsContextMenuLabels
   ) => Promise<IWindowsContextMenuState>

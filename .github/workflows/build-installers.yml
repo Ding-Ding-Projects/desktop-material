@@ -42,6 +42,11 @@ jobs:
       windows_ok: ${{ steps.target.outputs.windows_ok }}
       linux_ok: ${{ steps.target.outputs.linux_ok }}
     steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: ./.github/actions/setup-github-cli
       - name: Require a successful main CI or a main dispatch
         id: target
         shell: bash
@@ -65,8 +70,18 @@ jobs:
             if [ "$CI_EVENT" != "push" ] || \
                [ "$CI_BRANCH" != "main" ] || \
                [ "$CI_REPOSITORY" != "$GITHUB_REPOSITORY" ]; then
-              echo "Installer packaging blocked: the trigger is not this repository's main push CI." >&2
-              exit 1
+              # A workflow_run completion can represent a cancelled manual
+              # dispatch, a fork, or another non-publishable source. It is a
+              # neutral skip, not a release-build failure: no installer may
+              # be produced, but the guard itself must not create a red run.
+              echo "Installer packaging skipped: the completed workflow was not this repository's main push CI."
+              echo "proceed=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if [ "$CI_CONCLUSION" = "cancelled" ]; then
+              echo "Installer packaging skipped: a newer validation replaced this main CI run."
+              echo "proceed=false" >> "$GITHUB_OUTPUT"
+              exit 0
             fi
             target="$CI_SHA"
 
@@ -83,17 +98,20 @@ jobs:
                 exit 1
                 ;;
             esac
-            sibling_run=$(gh api \
+            sibling_fields=$(gh api \
               "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$CI_SHA&event=push&per_page=100" \
-              --jq "[.workflow_runs[] | select(.name == \"$sibling\")]
-                    | sort_by(.run_number) | last // empty")
-            if [ -z "$sibling_run" ]; then
+              --jq "[.workflow_runs[] | select(
+                      .name == \"$sibling\" and
+                      .head_branch == \"main\" and
+                      .head_repository.full_name == env.GITHUB_REPOSITORY
+                    )]
+                    | sort_by(.run_number) | last // empty
+                    | [.status, (.conclusion // \"\"), .updated_at] | @tsv")
+            if [ -z "$sibling_fields" ]; then
               echo "Installer packaging blocked: no $sibling run found for $CI_SHA." >&2
               exit 1
             fi
-            sibling_status=$(printf '%s' "$sibling_run" | jq -r '.status')
-            sibling_conclusion=$(printf '%s' "$sibling_run" | jq -r '.conclusion // ""')
-            sibling_updated=$(printf '%s' "$sibling_run" | jq -r '.updated_at')
+            IFS=$'\t' read -r sibling_status sibling_conclusion sibling_updated <<< "$sibling_fields"
             if [ "$sibling_status" != "completed" ]; then
               echo "$sibling is still $sibling_status; it will publish this commit once it finishes."
               echo "proceed=false" >> "$GITHUB_OUTPUT"
@@ -116,9 +134,10 @@ jobs:
               [ "$sibling_conclusion" = "success" ] || windows_ok=false
             fi
 
-            # A lane withholds only its own assets. The Release still happens
-            # as long as one lane vouched for something to put in it.
-            if [ "$windows_ok" = true ] || [ "$linux_ok" = true ]; then
+            # Publication is all-or-nothing: a failed test lane creates no
+            # release. The successful lane may still preserve its artifact for
+            # diagnostics, but it cannot publish a partial product release.
+            if [ "$windows_ok" = true ] && [ "$linux_ok" = true ]; then
               ci_can_publish=true
               block_reason=
             else
@@ -126,8 +145,8 @@ jobs:
               block_reason=ci-failed
               echo "CI concluded '$CI_CONCLUSION'; packaging an artifact but blocking Release publication."
             fi
-            [ "$windows_ok" = true ] || echo "CI Windows failed; this Release ships without the desktop installers."
-            [ "$linux_ok" = true ] || echo "CI Linux failed; this Release ships without the terminal edition package."
+            [ "$windows_ok" = true ] || echo "CI Windows failed; no Release will be published."
+            [ "$linux_ok" = true ] || echo "CI Linux failed; no Release will be published."
           else
             if [ "$DISPATCH_REF" != "refs/heads/main" ]; then
               echo "Express Release must be dispatched from main." >&2
@@ -160,6 +179,11 @@ jobs:
           ref: ${{ steps.target.outputs.sha }}
           fetch-depth: 0
 
+      - uses: actions/setup-node@v7
+        if: steps.target.outputs.proceed == 'true'
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
       - name: Stamp cross-lane monotonic release version
         id: version
         if: steps.target.outputs.proceed == 'true'
@@ -173,7 +197,7 @@ jobs:
             exit 1
           fi
           base=$(node -p "require('./app/package.json').version")
-          version=$(node script/release-version.js create "$base" "$GITHUB_RUN_ID")
+          version=$(node script/release-version.js create "$base" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT")
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 
@@ -213,7 +237,9 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
-          submodules: recursive
+      - name: Attempt to update submodules (non-fatal)
+        continue-on-error: true
+        run: git submodule update --init --recursive
       - uses: ./.github/actions/setup-ci-environment
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -228,15 +254,38 @@ jobs:
     name: Express tests Windows x64
     if: github.event_name == 'workflow_dispatch'
     needs: prepare
-    runs-on: windows-2022
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
+      - desktop-material-windows-local
     timeout-minutes: 45
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7.0.1
+      - name: Initial checkout for Windows bootstrap
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
-          submodules: recursive
+      - name: Bootstrap Git and Bash for self-hosted Windows
+        run:
+          powershell -NoProfile -ExecutionPolicy Bypass -File
+          .github/scripts/ensure-windows-git-bash.ps1
+      - name: Repeat checkout with bootstrapped Git
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+      - name: Prove cold Windows release bootstrap
+        run:
+          powershell -NoProfile -ExecutionPolicy Bypass -File
+          .github/scripts/test-windows-release-bootstrap.ps1
+      - name: Attempt to update submodules (non-fatal)
+        continue-on-error: true
+        run: |
+          # prefer the new official mirror for the lowlevel MCP submodule if present
+          git config --local submodule.vendor/lowlevel-computer-use-mcp.url https://github.com/Ding-Ding-Projects/lowlevel-computer-use-mcp.git
+          git submodule sync --recursive
+          git submodule update --init --recursive
       - uses: ./.github/actions/setup-ci-environment
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -255,10 +304,9 @@ jobs:
           TARGET_ARCH: x64
       - name: Run unit tests
         run: yarn test:unit
-        env:
-          # Match the Windows CI unit-test budget; without it the coordinator
-          # can exhaust its default heap after the assertions have passed.
-          NODE_OPTIONS: --max-old-space-size=4096
+        # script/test.mjs owns both the worker heap limit and the concurrency
+        # budget. A workflow-level NODE_OPTIONS override is inherited by every
+        # worker and makes the harness underestimate its peak memory use.
       - name: Run script tests
         run: yarn test:script
 
@@ -280,7 +328,9 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
-          submodules: recursive
+      - name: Attempt to update submodules (non-fatal)
+        continue-on-error: true
+        run: git submodule update --init --recursive
       - uses: ./.github/actions/setup-ci-environment
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -501,25 +551,43 @@ jobs:
 
   package:
     name: Windows x64
-    # The mirror of `tui_package`: a red Linux lane costs this Release its
-    # terminal edition, never its installers.
+    # Preserve a diagnostic installer payload when Windows passed. Publication
+    # still requires both tested platform lanes.
     if:
       needs.prepare.outputs.proceed == 'true' &&
       needs.prepare.outputs.windows_ok == 'true'
     needs: prepare
-    runs-on: windows-2022
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
+      - desktop-material-windows-local
     timeout-minutes: 60
     permissions:
       contents: read
     env:
       RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      NODE_ENV: production
+      RELEASE_CHANNEL: beta
     steps:
-      - uses: actions/checkout@v7.0.1
+      - name: Initial checkout for Windows bootstrap
+        uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
-          submodules: recursive
+      - name: Bootstrap Git and Bash for self-hosted Windows
+        run:
+          powershell -NoProfile -ExecutionPolicy Bypass -File
+          .github/scripts/ensure-windows-git-bash.ps1
+      - name: Repeat checkout with bootstrapped Git
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+      - name: Attempt to update submodules (non-fatal)
+        continue-on-error: true
+        run: git submodule update --init --recursive
       - name: Require the prepared exact commit
         shell: bash
         run: |
@@ -539,17 +607,19 @@ jobs:
       - name: Build production app
         run: yarn build:prod
         env:
-          DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
-          DESKTOP_OAUTH_CLIENT_SECRET:
-            ${{ secrets.DESKTOP_OAUTH_CLIENT_SECRET }}
           npm_config_arch: x64
           TARGET_ARCH: x64
-      - uses: ./.github/actions/setup-windows-signing
-        with:
-          enabled: 'false'
       - name: Package production app
         run: yarn package
         env:
+          WINDOWS_SIGNING_ENABLED: 'false'
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          CSC_LINK: ''
+          CSC_KEY_PASSWORD: ''
+          WIN_CSC_LINK: ''
+          WIN_CSC_KEY_PASSWORD: ''
+          AZURE_CLIENT_ID: ''
+          AZURE_TENANT_ID: ''
           npm_config_arch: x64
           TARGET_ARCH: x64
       - name: Collect installers
@@ -607,6 +677,20 @@ jobs:
               exit 1
             fi
           done
+      - name: Require unsigned release installers
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
+        run: |
+          $installers = @(
+            'release-payload\installers\GitHubDesktopSetup-x64.exe',
+            'release-payload\installers\GitHubDesktopSetup-x64.msi'
+          )
+          foreach ($installer in $installers) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $installer
+            if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
+              throw "Installer must remain unsigned: ${installer} reported $($signature.Status)"
+            }
+            Write-Host "Unsigned installer verified: $installer"
+          }
       - name: Preserve express installer payload
         uses: actions/upload-artifact@v7
         with:
@@ -622,8 +706,8 @@ jobs:
           echo "Installer recovery artifacts were preserved, but this run cannot publish because its upstream CI failed." >&2
           exit 1
 
-  publish:
-    name: Publish GitHub release
+  prepare_publication:
+    name: Prepare GitHub release payload
     needs:
       - prepare
       - lint
@@ -631,24 +715,19 @@ jobs:
       - release_notes
       - tui_package
       - package
-    # A packaging job that was skipped because its lane was red is not a
-    # failure here — it is the whole point of splitting the lanes. What is
-    # still refused: a job that ran and failed, and a Release with nothing in
-    # it because neither lane produced anything.
+    # Publication requires both tested payload families. A failed or cancelled
+    # lane creates no partial Release.
     if: >-
-      always() && needs.prepare.result == 'success' &&
+      !cancelled() && always() && needs.prepare.result == 'success' &&
       needs.prepare.outputs.proceed == 'true' && needs.prepare.outputs.publish
       == 'true' && needs.release_notes.result == 'success' &&
-      needs.package.result != 'failure' && needs.package.result != 'cancelled'
-      && needs.tui_package.result != 'failure' && needs.tui_package.result !=
-      'cancelled' && (needs.package.result == 'success' ||
-      needs.tui_package.result == 'success') && (github.event_name ==
-      'workflow_run' ||
+      needs.package.result == 'success' && needs.tui_package.result == 'success'
+      && (github.event_name == 'workflow_run' ||
        (needs.lint.result == 'success' && needs.test.result == 'success'))
     runs-on: ubuntu-latest
     permissions:
       actions: read
-      contents: write
+      contents: read
     env:
       RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
@@ -659,18 +738,12 @@ jobs:
       TUI_CONSTRAINTS_NAME: ${{ needs.tui_package.outputs.constraints_name }}
       TUI_INSTALLER_NAME: ${{ needs.tui_package.outputs.installer_name }}
       TUI_BOOTSTRAP_NAME: ${{ needs.tui_package.outputs.bootstrap_name }}
-      # RELEASE_TOKEN (a fine-grained PAT with Contents write on this repo)
-      # takes precedence when configured: since 2026-07-26 the workflow token
-      # is refused by POST /releases (issue #44), while a user PAT publishes
-      # fine. An empty/absent secret falls back to the workflow token.
-      GH_TOKEN:
-        ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN || secrets.GITHUB_TOKEN
-        }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/download-artifact@v8
         if: needs.package.result == 'success'
         with:
@@ -686,25 +759,6 @@ jobs:
         with:
           name: express-tui-${{ github.run_id }}-${{ github.run_attempt }}
           path: release-payload/tui
-      - name: Revalidate immutable release tag before publishing
-        shell: bash
-        run: |
-          tag="$RELEASE_TAG"
-          set +e
-          git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1
-          status=$?
-          set -e
-          case "$status" in
-            0)
-              echo "Release tag $tag appeared while building; refusing to update an existing release." >&2
-              exit 1
-              ;;
-            2) ;;
-            *)
-              echo "Unable to prove release tag $tag is absent (git ls-remote exited $status)." >&2
-              exit "$status"
-              ;;
-          esac
       - name: Verify downloaded release payload
         shell: bash
         env:
@@ -745,20 +799,78 @@ jobs:
             fi
           done
 
-          # Say in the Release itself which half is absent, so nobody reads a
-          # missing download as a lost upload.
-          if [ "$HAVE_INSTALLERS" != true ] || [ "$HAVE_TUI" != true ]; then
-            {
-              printf '\n## Partial release\n\n'
-              [ "$HAVE_INSTALLERS" = true ] || \
-                printf -- '- The Windows installers are absent: \140CI Windows\140 did not pass for this commit.\n'
-              [ "$HAVE_TUI" = true ] || \
-                printf -- '- The Linux terminal edition is absent: \140CI Linux\140 did not pass for this commit.\n'
-              printf '\nThe other edition was built and verified from this exact commit.\n'
-            } >> release-payload/release-notes.md
-          fi
+      - name: Preserve verified release payload
+        uses: actions/upload-artifact@v7
+        with:
+          name: prepared-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-payload/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
+
+  publish:
+    name: Publish GitHub release
+    needs:
+      - prepare
+      - prepare_publication
+      - tui_package
+    if: >-
+      !cancelled() && always() && needs.prepare.result == 'success' &&
+      needs.prepare_publication.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    env:
+      RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      TUI_WHEEL_NAME: ${{ needs.tui_package.outputs.wheel_name }}
+      TUI_SDIST_NAME: ${{ needs.tui_package.outputs.sdist_name }}
+      TUI_CONSTRAINTS_NAME: ${{ needs.tui_package.outputs.constraints_name }}
+      TUI_INSTALLER_NAME: ${{ needs.tui_package.outputs.installer_name }}
+      TUI_BOOTSTRAP_NAME: ${{ needs.tui_package.outputs.bootstrap_name }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup-github-cli
+      - uses: actions/download-artifact@v8
+        with:
+          name: prepared-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-payload
+      - name: Revalidate immutable release tag before publishing
+        shell: bash
+        run: |
+          tag="$RELEASE_TAG"
+          set +e
+          git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1
+          status=$?
+          set -e
+          case "$status" in
+            0)
+              echo "Release tag $tag appeared while building; refusing to update an existing release." >&2
+              exit 1
+              ;;
+            2) ;;
+            *)
+              echo "Unable to prove release tag $tag is absent (git ls-remote exited $status)." >&2
+              exit "$status"
+              ;;
+          esac
+
       - name: Publish GitHub release
         shell: bash
+        # RELEASE_TOKEN (a fine-grained PAT with Contents write on this repo)
+        # takes precedence when configured: since 2026-07-26 the workflow token
+        # is refused by POST /releases (issue #44), while a user PAT publishes
+        # fine. An empty/absent secret falls back to the workflow token.
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
         run: |
           set +e
           shopt -s nullglob
@@ -796,6 +908,12 @@ jobs:
               --repo "$GITHUB_REPOSITORY" \
               --prerelease=false --latest=false
           fi
+          gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft \
+            > release-payload/published-is-draft.txt
+          gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' \
+            > release-payload/published-assets.txt
       - name: Verify published release target
         shell: bash
         run: |
@@ -805,12 +923,11 @@ jobs:
             echo "Published tag resolves to $published, expected $RELEASE_TARGET_SHA." >&2
             exit 1
           fi
-          if [ "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != "false" ]; then
+          if [ "$(cat release-payload/published-is-draft.txt)" != "false" ]; then
             echo "Published release unexpectedly remained a draft." >&2
             exit 1
           fi
-          published_assets=$(gh release view "$RELEASE_TAG" \
-            --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          published_assets=$(cat release-payload/published-assets.txt)
           for expected in "$TUI_WHEEL_NAME" "$TUI_SDIST_NAME" \
             "$TUI_CONSTRAINTS_NAME" "$TUI_INSTALLER_NAME" \
             "$TUI_BOOTSTRAP_NAME"; do
@@ -821,4 +938,8 @@ jobs:
           done
       - name: Reconcile Latest to the newest main release
         shell: bash
+        env:
+          GH_TOKEN:
+            ${{ secrets.RELEASE_TOKEN || secrets.ORG_TOKEN ||
+            secrets.GITHUB_TOKEN }}
         run: bash .github/scripts/promote-current-release.sh
