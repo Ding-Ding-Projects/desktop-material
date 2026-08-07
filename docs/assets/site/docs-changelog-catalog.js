@@ -22,17 +22,22 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4176,
+    entryCount: 4177,
     releases: [
       {
         v: '3.6.3-material22',
         d: '2026-08-06',
-        t: '20:14',
+        t: '20:32',
         e: [
           [
             'Added',
             'The Merge into main branch chooser now offers a Not updated with main filter based on default-branch Git ancestry, keeping diverged branches that already contain main out of the stale results and localizing the chip in English, Hong Kong-style Cantonese, and bilingual mode',
             '81faa869aa3eed8401070f37ae7e324f49db398a',
+          ],
+          [
+            'Fixed',
+            'CI accessibility tests now follow the localized repository-transfer and account-picker names while retaining interpolation, selection, and disappearing-account safety coverage',
+            '44e57f7d9e5c6249616454652a62dda5d413be39',
           ],
           [
             'Fixed',
