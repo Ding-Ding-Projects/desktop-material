@@ -17,8 +17,11 @@ Updated: **August 6, 2026**
 
 ## August 6 — Keep Windows CI hosted and harden the Super Express cache
 
-- Every `CI Windows` trigger uses `windows-2022`; manual dispatches expose no
-  runner selector. Only Super Express may claim the fixed local runner labels.
+- Pushes, pull requests, and reusable calls use `windows-2022`; a protected
+  `main` manual dispatch now exposes `runner_mode=cloud|self-hosted` for the
+  desktop build and packaged E2E jobs. A non-main dispatch falls back to the
+  hosted runner, and Windows TUI core remains hosted. Super Express retains
+  its fixed local runner labels for its own release path.
 - Windows Super Express jobs restore exact `installed-deps-v6` dependencies
   without a post-job archive hook, verify the restored sentinels, and explicitly
   save a verified miss. `installed-deps-v5` and `installed-deps-v4` are warm

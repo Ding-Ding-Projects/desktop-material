@@ -479,6 +479,17 @@ describe('CI workflow safety', () => {
         continue
       }
       for (const [jobName, job] of jobsWithRunners) {
+        if (
+          file === 'ci-windows.yml' &&
+          ['build', 'e2e-smoke'].includes(jobName)
+        ) {
+          assert.match(
+            source,
+            /github\.event_name\s*==\s*'workflow_dispatch'[\s\S]*?github\.ref\s*==\s*'refs\/heads\/main'[\s\S]*?inputs\.runner_mode\s*==\s*'self-hosted'[\s\S]*?fromJSON\('\["self-hosted","Windows","X64","desktop-material-windows-local"\]'\)[\s\S]*?\|\|\s*'windows-2022'/,
+            `${file}:${jobName} must gate self-hosted selection to a main-branch dispatch`
+          )
+          continue
+        }
         assert.equal(
           typeof job['runs-on'],
           'string',
@@ -597,19 +608,23 @@ describe('CI workflow safety', () => {
     assert.doesNotMatch(installerWorkflow, /printf '%s' "\$sibling_run" \| jq/)
   })
 
-  it('builds, packages, and exercises the app on hosted CI runners', () => {
+  it('builds, packages, and exercises the app on safe runner choices', () => {
     assertJobRunsOn(windowsWorkflowDocument, 'windows-tui-core', 'windows-2022')
-    for (const jobName of ['build', 'e2e-smoke']) {
-      assertJobRunsOn(windowsWorkflowDocument, jobName, 'windows-2022')
-    }
     for (const jobName of ['lint', 'supply-chain', 'linux-tui']) {
       assertJobRunsOn(linuxWorkflowDocument, jobName, 'ubuntu-latest')
     }
-    assert.deepEqual(getSelfHostedJobNames(windowsWorkflowDocument), [])
     assert.deepEqual(getSelfHostedJobNames(linuxWorkflowDocument), [])
     assert.match(windowsWorkflow, /arch: \[x64, arm64\]/)
     assert.match(windowsWorkflow, /friendlyName: Windows/)
-    assert.doesNotMatch(windowsWorkflow, /runner_mode|self-hosted/)
+    assert.match(windowsWorkflow, /workflow_dispatch:\s+inputs:\s+runner_mode:/)
+    assert.match(
+      windowsWorkflow,
+      /github\.event_name\s*==\s*'workflow_dispatch'[\s\S]*?github\.ref\s*==\s*'refs\/heads\/main'[\s\S]*?inputs\.runner_mode\s*==\s*'self-hosted'/
+    )
+    assert.match(
+      windowsWorkflow,
+      /fromJSON\('\["self-hosted","Windows","X64","desktop-material-windows-local"\]'\)\s*\|\|\s*'windows-2022'/
+    )
     assert.match(windowsWorkflow, /workflow_call:\s+inputs:\s+repository:/)
     assert.match(windowsWorkflow, /Install app on Windows/)
     assert.match(
