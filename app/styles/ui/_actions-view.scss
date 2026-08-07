@@ -1951,11 +1951,7 @@
   min-width: 0;
   margin: 14px 0 0;
   padding: 12px 14px;
-  border: 1px solid color-mix(
-    in srgb,
-    var(--md-sys-color-error) 45%,
-    var(--md-sys-color-outline-variant)
-  );
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-error) 45%, var(--md-sys-color-outline-variant));
   border-radius: 14px;
   color: var(--md-sys-color-on-error-container);
   background: var(--md-sys-color-error-container);
