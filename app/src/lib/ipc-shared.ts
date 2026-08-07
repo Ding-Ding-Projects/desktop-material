@@ -68,6 +68,16 @@ import {
   SelfHostedServerProvisioningReply,
 } from './self-hosted-server/provisioning'
 import {
+  ISelfHostedRunnerProgress,
+  ISelfHostedRunnerRemoveRequest,
+  ISelfHostedRunnerRemoveResult,
+  ISelfHostedRunnerSetupRequest,
+  ISelfHostedRunnerSetupResult,
+  ISelfHostedRunnerStatusRequest,
+  ISelfHostedRunnerStatus,
+  SelfHostedRunnerReply,
+} from './self-hosted-runner/types'
+import {
   ICLICommandOutputEvent,
   ICLICommandStateEvent,
   ICLIWorkbenchOperationRequest,
@@ -151,6 +161,7 @@ export type RequestChannels = {
   'self-hosted-server-provisioning-progress': (
     progress: ISelfHostedServerProvisioningProgress
   ) => void
+  'self-hosted-runner-progress': (progress: ISelfHostedRunnerProgress) => void
   'select-all-window-contents': () => void
   'dialog-did-open': () => void
   'update-menu-state': (
@@ -353,6 +364,25 @@ export type RequestResponseChannels = {
     request: ISelfHostedServerProvisioningRequest
   ) => Promise<SelfHostedServerProvisioningReply>
   'cancel-self-hosted-server-provisioning': () => Promise<void>
+  'get-self-hosted-runner-status': (
+    request: ISelfHostedRunnerStatusRequest
+  ) => Promise<ISelfHostedRunnerStatus>
+  'setup-self-hosted-runner': (
+    request: ISelfHostedRunnerSetupRequest
+  ) => Promise<SelfHostedRunnerReply<ISelfHostedRunnerSetupResult>>
+  'start-self-hosted-runner': (request: {
+    readonly id: string
+    readonly owner: string
+    readonly repository: string
+  }) => Promise<SelfHostedRunnerReply<ISelfHostedRunnerSetupResult>>
+  'stop-self-hosted-runner': (request: {
+    readonly id: string
+    readonly owner: string
+    readonly repository: string
+  }) => Promise<SelfHostedRunnerReply<ISelfHostedRunnerSetupResult>>
+  'remove-self-hosted-runner': (
+    request: ISelfHostedRunnerRemoveRequest
+  ) => Promise<SelfHostedRunnerReply<ISelfHostedRunnerRemoveResult>>
   'get-windows-context-menu-state': (
     labels: IWindowsContextMenuLabels
   ) => Promise<IWindowsContextMenuState>

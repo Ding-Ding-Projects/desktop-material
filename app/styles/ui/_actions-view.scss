@@ -1722,6 +1722,298 @@
   }
 }
 
+.actions-runner-manager {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0 24px;
+}
+
+.actions-runner-manager-header,
+.actions-runner-card-heading {
+  display: flex;
+  min-width: 0;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.actions-runner-manager-header {
+  h2,
+  h3,
+  p {
+    margin-top: 0;
+  }
+
+  h2 {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  p {
+    max-width: 720px;
+    margin-bottom: 0;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+}
+
+.actions-runner-manager-note,
+.actions-runner-progress {
+  padding: 12px 14px;
+  border-radius: 14px;
+  color: var(--md-sys-color-on-secondary-container);
+  background: var(--md-sys-color-secondary-container);
+}
+
+.actions-runner-progress {
+  color: var(--md-sys-color-on-tertiary-container);
+  background: var(--md-sys-color-tertiary-container);
+}
+
+.actions-runner-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 14px;
+  align-items: end;
+  padding: 16px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 18px;
+  background: var(--md-sys-color-surface-container-low);
+}
+
+.actions-runner-form > .button-component {
+  justify-self: start;
+}
+
+.actions-runner-wsl-options {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 14px;
+  align-items: end;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--md-sys-color-surface-container);
+}
+
+.actions-runner-wsl-options .checkbox-component,
+.actions-runner-help {
+  grid-column: 1 / -1;
+}
+
+.actions-runner-help {
+  margin: 0;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+}
+
+.actions-runner-managed,
+.actions-runner-remote {
+  h3 {
+    margin: 0;
+  }
+
+  > p {
+    color: var(--md-sys-color-on-surface-variant);
+  }
+}
+
+.actions-runner-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.actions-runner-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 9px;
+  padding: 14px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 16px;
+  background: var(--md-sys-color-surface-container-low);
+}
+
+.actions-runner-card h3,
+.actions-runner-card p {
+  margin: 0;
+}
+
+.actions-runner-card-heading h3 {
+  overflow-wrap: anywhere;
+}
+
+.actions-runner-card-heading p,
+.actions-runner-labels {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+}
+
+.actions-runner-status {
+  flex: 0 0 auto;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  background: var(--md-sys-color-surface-container-high);
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.actions-runner-status.running {
+  color: var(--md-sys-color-on-tertiary-container);
+  background: var(--md-sys-color-tertiary-container);
+}
+
+.actions-runner-status.missing {
+  color: var(--md-sys-color-on-error-container);
+  background: var(--md-sys-color-error-container);
+}
+
+.actions-runner-card-repository code {
+  overflow-wrap: anywhere;
+}
+
+.actions-runner-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.actions-runner-remote {
+  padding: 14px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 16px;
+  background: var(--md-sys-color-surface-container-low);
+
+  ul {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding-left: 20px;
+  }
+}
+
+.actions-runner-super-confirmation {
+  width: min(640px, 100%);
+}
+
+.actions-super-confirmation-checks {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+  padding: 12px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 14px;
+
+  legend {
+    padding: 0 6px;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 12px;
+    font-weight: 700;
+  }
+}
+
+.actions-super-confirmation-slider {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  align-items: center;
+  min-width: 0;
+  margin: 12px 0;
+  font-weight: 600;
+
+  span {
+    grid-column: 1 / -1;
+    overflow-wrap: anywhere;
+  }
+
+  input[type='range'] {
+    width: 100%;
+    min-width: 0;
+    accent-color: var(--md-sys-color-error);
+  }
+
+  output {
+    min-width: 4ch;
+    color: var(--md-sys-color-error);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+}
+
+.actions-super-confirmation-progress {
+  min-width: 0;
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(
+    in srgb,
+    var(--md-sys-color-error) 45%,
+    var(--md-sys-color-outline-variant)
+  );
+  border-radius: 14px;
+  color: var(--md-sys-color-on-error-container);
+  background: var(--md-sys-color-error-container);
+  overflow-wrap: anywhere;
+
+  &.moving {
+    animation: actions-runner-removal-pulse 1.1s ease-in-out infinite;
+  }
+
+  &.complete {
+    color: var(--md-sys-color-on-tertiary-container);
+    background: var(--md-sys-color-tertiary-container);
+    border-color: var(--md-sys-color-tertiary);
+    animation: actions-runner-removal-complete 500ms ease-out both;
+  }
+}
+
+@keyframes actions-runner-removal-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--md-sys-color-error) 24%, transparent);
+  }
+
+  50% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--md-sys-color-error) 0%, transparent);
+  }
+}
+
+@keyframes actions-runner-removal-complete {
+  0% {
+    transform: scale(0.97);
+    opacity: 0.5;
+  }
+
+  70% {
+    transform: scale(1.02);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actions-super-confirmation-progress,
+  .actions-super-confirmation-progress.complete {
+    animation: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .actions-runner-form,
+  .actions-runner-wsl-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .actions-empty,
 .actions-loading,
 .actions-inline-error {
