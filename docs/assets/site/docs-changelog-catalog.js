@@ -22,13 +22,18 @@
     datedCount: 668,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4183,
+    entryCount: 4184,
     releases: [
       {
         v: '3.6.3-material22',
         d: '2026-08-06',
-        t: '22:59',
+        t: '23:35',
         e: [
+          [
+            'Fixed',
+            'The Super Express Windows release-timing poll now uses an anonymous bounded retry counter, removing the unused-variable ShellCheck warning without changing its six-attempt timing proof',
+            '4d116698bfaddc01c08f922bab81c396a85d0e74',
+          ],
           [
             'Fixed',
             'The documentation hub catalog and landing-page inventory now include the Scheduled Settings article, keeping the committed 277-page projection current for script tests and release packaging',
