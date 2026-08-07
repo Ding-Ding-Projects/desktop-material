@@ -25,6 +25,9 @@ and manage collaboration state without leaving Desktop Material.
 - [Offline GitHub Projects workspace](offline-github-projects.md) — inspect a
   bounded read-only Projects v2 snapshot, with a capability-aware classic
   fallback and a sanitized per-repository cache for offline recovery.
+- [Self-hosted server wizard](self-hosted-server-wizard.md) — provision the
+  bundled Windows Docker server with progress, safe retry boundaries,
+  credential isolation, and truthful local/second-machine diagnostics.
 
 ## API applicability
 
