@@ -74,7 +74,7 @@ export interface ITextBoxProps {
   readonly onEnterPressed?: (text: string) => void
 
   /** The type of the input. Defaults to `text`. */
-  readonly type?: 'text' | 'search' | 'password' | 'email'
+  readonly type?: 'text' | 'search' | 'password' | 'email' | 'date' | 'time'
 
   /** The tab index of the input element. */
   readonly tabIndex?: number

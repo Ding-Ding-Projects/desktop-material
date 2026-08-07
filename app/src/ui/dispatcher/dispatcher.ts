@@ -161,6 +161,11 @@ import type {
   IAppearanceCustomization,
   IRepositoryAppearanceOverrides,
 } from '../../models/appearance-customization'
+import type {
+  IHomeAssistantSettingsRequest,
+  ISetHomeAssistantTokenRequest,
+  IScheduledSettingsConfig,
+} from '../../models/scheduled-settings'
 import {
   ProfileAppearanceElementId,
   RepositoryAppearanceElementId,
@@ -224,6 +229,10 @@ import type { IVersionedStoreHistorySource } from '../version-history/versioned-
 import { RepositorySettingsTab } from '../repository-settings/repository-settings'
 
 import { ApplicationTheme } from '../lib/application-theme'
+import {
+  fetchHomeAssistantState as fetchHomeAssistantStateFromMain,
+  setHomeAssistantToken as setHomeAssistantTokenInMain,
+} from '../../lib/scheduled-settings-api-client'
 import { installCLI } from '../lib/install-cli'
 import { redactLocalPaths } from '../lib/redact-local-paths'
 import {
@@ -4753,7 +4762,10 @@ export class Dispatcher {
     let workspace
     try {
       workspace = await fetchSharedWorkspace(
-        { publicOrigin: connection.publicOrigin, deviceToken: connection.deviceToken },
+        {
+          publicOrigin: connection.publicOrigin,
+          deviceToken: connection.deviceToken,
+        },
         action.shareToken
       )
     } catch (error) {
@@ -4766,7 +4778,10 @@ export class Dispatcher {
     }
 
     if (workspace.branch !== null) {
-      await this.openBranchNameFromUrl(workspace.repositoryUrl, workspace.branch)
+      await this.openBranchNameFromUrl(
+        workspace.repositoryUrl,
+        workspace.branch
+      )
     } else {
       await this.openOrCloneRepository(workspace.repositoryUrl)
     }
@@ -5726,6 +5741,18 @@ export class Dispatcher {
 
   public setAppearanceCustomization(customization: IAppearanceCustomization) {
     return this.appStore._setAppearanceCustomization(customization)
+  }
+
+  public setScheduledSettings(settings: IScheduledSettingsConfig) {
+    return this.appStore._setScheduledSettings(settings)
+  }
+
+  public setHomeAssistantToken(request: ISetHomeAssistantTokenRequest) {
+    return setHomeAssistantTokenInMain(request)
+  }
+
+  public fetchHomeAssistantState(request: IHomeAssistantSettingsRequest) {
+    return fetchHomeAssistantStateFromMain(request)
   }
 
   public setRepositoryAppearanceOverrides(

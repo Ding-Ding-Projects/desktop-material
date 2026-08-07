@@ -153,6 +153,11 @@ import {
 } from './renderer-failure'
 import { cleanupCheapLfsPayloadCredentialsInMainProcess } from './cheap-lfs-payload-credential-cleanup'
 import {
+  fetchHomeAssistantState,
+  fetchScheduledSettingsAPI,
+  setHomeAssistantToken,
+} from './scheduled-settings-api'
+import {
   normalizeProfileRepositoryPath,
   ProfileRepositoryLockCancelledError,
   ProfileRepositoryLockRegistry,
@@ -1174,6 +1179,15 @@ app.on('ready', () => {
     }
   )
 
+  ipcMain.handle('fetch-scheduled-settings', async (_event, endpoint) =>
+    fetchScheduledSettingsAPI(endpoint)
+  )
+  ipcMain.handle('fetch-home-assistant-state', async (_event, request) =>
+    fetchHomeAssistantState(request)
+  )
+  ipcMain.handle('set-home-assistant-token', async (_event, request) =>
+    setHomeAssistantToken(request)
+  )
   ipcMain.handle('set-agent-server-enabled', async (_event, enabled) =>
     agentServerController!.setEnabled(enabled)
   )

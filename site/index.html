@@ -459,7 +459,7 @@ mark{background:var(--md-sys-color-tertiary-container);color:var(--md-sys-color-
               <article data-appear="card-language" style="background:var(--md-sys-color-surface-container-low);border:1px solid var(--md-sys-color-outline-variant);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:10px">
                 <span style="width:44px;height:44px;border-radius:14px;background:var(--md-sys-color-secondary-container);color:var(--md-sys-color-on-secondary-container);display:grid;place-items:center;font-family:'Material Symbols Outlined';font-size:22px" aria-hidden="true">translate</span>
                 <h3 style="margin:0;font-size:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">Language modes &amp; playfulness <span style="font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--md-sys-color-primary-container);color:var(--md-sys-color-on-primary-container)">Shipped</span></h3>
-                <p style="margin:0;font-size:14px;line-height:1.65;color:var(--md-sys-color-on-surface-variant)">Every surface renders in English, playful Hong Kong-style Cantonese, or a compact bilingual view, chosen in Settings › Appearance and persisted across restarts. Two independent 1–5 playfulness sliders — one per language — style the voice of every message, errors and warnings included. The level never changes the facts: what happened, which file, and what your options are stay stated in unambiguous words at every level.</p>
+                <p style="margin:0;font-size:14px;line-height:1.65;color:var(--md-sys-color-on-surface-variant)">Every surface renders in English, playful Hong Kong-style Cantonese, or a compact bilingual view, chosen in Settings › Appearance and persisted across restarts. Two independent 1–5 playfulness sliders — one per language — style the voice of every message, errors and warnings included. The level never changes the facts: what happened, which file, and what your options are stay stated in unambiguous words at every level. Scheduled settings add local date/time windows, validated API values, and Home Assistant boolean gating for language, theme, and appearance customization.</p>
                 <button type="button" onClick="{{ openSettings }}" style="align-self:flex-start;height:40px;padding:0 18px;border-radius:999px;border:1px solid var(--md-sys-color-outline);background:transparent;cursor:pointer;font-size:13px;font-weight:500">{{ t.tryItHere }}</button>
               </article>
               <article data-appear="card-search" style="background:var(--md-sys-color-surface-container-low);border:1px solid var(--md-sys-color-outline-variant);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:10px">
@@ -1615,11 +1615,11 @@ class Component extends DCLogic {
     { page: 'landing', section: 'hero', title: 'Your Git workspace, made Material', text: 'Desktop Material reshapes GitHub Desktop around Material 3: adaptive repository controls, browser-like tabs, local versioned settings, multi-account context, and focused native Git workflows in one calm Windows desktop surface.' },
     { page: 'landing', section: 'install', title: 'Get the newest verified release in one line', text: 'Windows PowerShell 5.1 or PowerShell 7 resolves the latest stable installer release, verifies the SHA-256 asset digest and any Authenticode signature, installs silently, and cleans up its temporary download. Builds are unsigned and x64 only.' },
     { page: 'landing', section: 'features', title: 'Scope-aware appearance', text: 'Right-click the actual identity, workspace, toolbar, list, tab strip, code surface, repository name or logo, tab title, feature entry point, or Back control. Its editor opens beside that owner with a dedicated setting, local Git path, and mutable history.' },
-    { page: 'landing', section: 'features', title: 'Language modes and playfulness', text: 'English, playful Hong Kong-style Cantonese, or a compact bilingual view. Two independent 1-5 playfulness sliders, one per language, style the voice of every message. The level never changes the facts.' },
+    { page: 'landing', section: 'features', title: 'Language modes, playfulness, and schedules', text: 'English, playful Hong Kong-style Cantonese, or a compact bilingual view. Two independent 1-5 playfulness sliders, one per language, style the voice of every message. Local date/time windows, validated API values, and Home Assistant boolean gating can schedule language, theme, and appearance customizations. The level never changes the facts.' },
     { page: 'landing', section: 'features', title: 'Guarded tab control', text: 'Close tabs containing text and its inverse, close tabs not containing text, with counts, preview, pinning, keyboard movement, and persistent ordering. A named group holds pinned or unpinned tabs, never both.' },
     { page: 'landing', section: 'features', title: 'Notification centre', text: 'A Git-backed Local view plus an account-aware GitHub inbox with search, filters, select-visible bulk actions, and an explicit Local Clear all control.' },
     { page: 'landing', section: 'screenshots', title: 'Screenshots', text: 'The current refresh contract targets 91 Windows scenes. Guided task forms wrap text and stack controls as space narrows.' },
-    { page: 'docs', section: 'categories', title: 'Feature documentation index', text: 'Every feature has its own categorized Markdown file and every category has a README index: design system, repository management, review and diff, collaboration, integrations, agent API, quality and reliability, identity and workspace.' },
+    { page: 'docs', section: 'categories', title: 'Feature documentation index', text: 'Every feature has its own categorized Markdown file and every category has a README index: design system, repository management, review and diff, collaboration, integrations, agent API, quality and reliability, identity and workspace, including scheduled language and appearance settings.' },
     { page: 'docs', section: 'start', title: 'Start here', text: 'Installation, known issues, regex guide, wiki home, user guide, developer guide, automation, feature gallery, Agent API.' },
     { page: 'docs', section: 'coverage', title: 'Rule coverage on this site', text: 'Language modes, playfulness sliders, search with regex builder, four tab searches, close containing and not containing, per-element appearance editor, non-blocking notifications, export formats, and bulk actions all render on this documentation surface, not only in the app.' },
     { page: 'article', section: 'contract', title: 'Every-project regex builder', text: 'Every project and every search bar opens a documented, tested full regex builder using its real dialect, while plain-text search stays the default. The search bar and the builder synchronize their pattern and flags.' },
@@ -1656,13 +1656,13 @@ class Component extends DCLogic {
       brandSub: 'Material 3 Git client', search: 'Search this site', installCta: 'Install on Windows',
       sourceCta: 'Explore the source', tryItHere: 'Try the language modes', openBuilder: 'Open the regex builder',
       loading: 'Loading this page…', copy: 'Copy', copied: 'Copied!',
-      docsOpenAll: 'Open all 254 articles', docsSearchAll: 'Search every article'
+      docsOpenAll: 'Open all 265 articles', docsSearchAll: 'Search every article'
     },
     zh: {
       brandSub: 'Material 3 Git 客戶端', search: '搜成個網站', installCta: 'Windows 安裝',
       sourceCta: '睇源碼', tryItHere: '試下語言模式', openBuilder: '開 Regex 工具',
       loading: '載入緊…', copy: '複製', copied: '複製好！',
-      docsOpenAll: '打開全部 254 篇文', docsSearchAll: '搜晒所有文'
+      docsOpenAll: '打開全部 265 篇文', docsSearchAll: '搜晒所有文'
     }
   };
 
@@ -2455,7 +2455,7 @@ class Component extends DCLogic {
         { id: 'dc5', icon: 'extension', name: 'Integrations', href: './docs/features/integrations/', articles: '23 articles', count: 'Open in your editor, GitHub Actions, GitHub API functions', items: 'Guarded run cancellation · hideable API functions' },
         { id: 'dc6', icon: 'smart_toy', name: 'Agent API', href: './docs/features/agent-api/', articles: '1 article', count: 'Codex CLI, OpenCode, provider accounts, local Ollama models', items: 'Bounded output · explicit auth · separately gated auto-approve' },
         { id: 'dc7', icon: 'verified', name: 'Quality and reliability', href: './docs/features/quality-and-reliability/', articles: '13 articles', count: 'Release test gates, background Git reliability, automation', items: 'Focused checks · unique CI groups · verified-on-main receipts' },
-        { id: 'dc8', icon: 'account_circle', name: 'Identity and workspace', href: './docs/features/identity-and-workspace/', articles: '9 articles', count: 'Multi-account, versioned settings, notification centre, command palette', items: 'Per-account tabs and repos · Git-backed settings history' }
+        { id: 'dc8', icon: 'account_circle', name: 'Identity and workspace', href: './docs/features/identity-and-workspace/', articles: '10 articles', count: 'Multi-account, versioned settings, scheduled appearance values, notification centre, command palette', items: 'Per-account tabs and repos · Git-backed settings history · date/time and Home Assistant schedules' }
       ],
       docStart: [
         { id: 'ds1', label: 'Installation', note: 'One-line PowerShell install, verified digests, unsigned x64 builds.', run: () => this.teleport('landing', 'install') },
@@ -2468,7 +2468,7 @@ class Component extends DCLogic {
         { id: 'ds8', label: 'Agent API', note: 'Bounded agent access and the CLI surface.', run: () => this.teleport('docs', 'categories') }
       ],
       coverageRules: [
-        { id: 'cr1', label: 'Language modes', note: 'English, Cantonese, and bilingual — Settings › Appearance, persisted.', run: () => this.setState({ panel: 'settings' }) },
+        { id: 'cr1', label: 'Language modes and schedules', note: 'English, Cantonese, and bilingual — persisted directly or through local time windows, APIs, and Home Assistant booleans.', run: () => this.setState({ panel: 'settings' }) },
         { id: 'cr2', label: 'Two playfulness sliders', note: 'One per language, 1–5, voice only. Facts never change.', run: () => this.setState({ panel: 'settings' }) },
         { id: 'cr3', label: 'Search with a regex builder', note: 'Plain text by default; the builder names its dialect.', run: () => this.setState({ panel: 'regex' }) },
         { id: 'cr4', label: 'Four tab searches', note: 'Visible strip, within groups, group names, all tabs.', run: () => this.setState({ panel: 'tabs' }) },

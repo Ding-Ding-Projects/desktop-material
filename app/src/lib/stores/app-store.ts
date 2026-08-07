@@ -236,6 +236,11 @@ import {
   IRepositoryAppearanceOverrides,
   normalizeAppearanceCustomization,
 } from '../../models/appearance-customization'
+import {
+  IScheduledSettingsConfig,
+  IScheduledSettingsValue,
+  ScheduledTheme,
+} from '../../models/scheduled-settings'
 import { CloneRepositoryTab } from '../../models/clone-repository-tab'
 import type { CloneOptions } from '../../models/clone-options'
 import type { ICheapLfsCloneSelection } from '../../models/cheap-lfs-clone-selection'
@@ -352,6 +357,7 @@ import {
   updatePreferredAppMenuItemLabels,
   updateAccounts,
   setWindowZoomFactor,
+  setNativeThemeSource,
   onShowInstallingUpdate,
   quitApp,
   sendCancelQuittingSync,
@@ -991,6 +997,11 @@ import {
   setRepositoryAppearanceOverrides,
 } from '../appearance-customization'
 import type { ElementAppearanceCoordinator } from './element-appearance-coordinator'
+import { ScheduledSettingsRuntime } from '../scheduled-settings'
+import {
+  fetchHomeAssistantState,
+  fetchScheduledSettingsAPI,
+} from '../scheduled-settings-api-client'
 
 class CheapLfsPasswordPromptCanceledError extends Error {
   public constructor() {
@@ -1917,6 +1928,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private selectedTheme = ApplicationTheme.System
   private currentTheme: ApplicableTheme = ApplicationTheme.Light
   private appearanceCustomization = getAppearanceCustomization()
+  private scheduledBaseAppearanceCustomization = this.appearanceCustomization
+  private scheduledSettingsValue: IScheduledSettingsValue | null = null
+  private scheduledThemeOverride: ApplicationTheme | null = null
+  private readonly scheduledSettingsRuntime: ScheduledSettingsRuntime
+  private scheduledThemeApplyVersion = 0
   private appearanceCustomizationMutationVersion = 0
   private repositoryAppearanceOverrides: IRepositoryAppearanceOverrides = {}
   private selectedTabSize = tabSizeDefault
@@ -2055,6 +2071,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
     cheapLfsDockerHubCapabilityProbe?: () => Promise<boolean>
   ) {
     super()
+
+    this.scheduledSettingsRuntime = new ScheduledSettingsRuntime({
+      fetchAPI: fetchScheduledSettingsAPI,
+      fetchHomeAssistant: fetchHomeAssistantState,
+      onEffectiveValueChanged: value => this.applyScheduledSettingsValue(value),
+      onError: error => {
+        log.error(
+          'A scheduled settings source could not be read.',
+          error instanceof Error ? error : new Error(String(error))
+        )
+      },
+    })
 
     // Fire user-defined automations for genuinely new notifications. The trigger
     // is installed here (rather than inside the Electron-free notification store)
@@ -2614,8 +2642,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   private wireupStoreEventHandlers() {
     this.elementAppearanceCoordinator?.onDidUpdate(state => {
-      this.appearanceCustomization = state.appearance
-      this.emitUpdate()
+      this.scheduledBaseAppearanceCustomization = state.appearance
+      this.applyScheduledSettingsValue(this.scheduledSettingsValue)
     })
     this.elementAppearanceCoordinator?.onDidError(error =>
       this.emitError(error)
@@ -2708,6 +2736,52 @@ export class AppStore extends TypedBaseStore<IAppState> {
       this.syncCopilotModelsFromCache()
       this.emitUpdate()
     })
+  }
+
+  private scheduledThemeToApplicationTheme(
+    theme: ScheduledTheme
+  ): ApplicationTheme {
+    switch (theme) {
+      case 'light':
+        return ApplicationTheme.Light
+      case 'dark':
+        return ApplicationTheme.Dark
+      case 'system':
+        return ApplicationTheme.System
+    }
+  }
+
+  /** Apply a schedule as a reversible overlay on the user's stored values. */
+  private applyScheduledSettingsValue(
+    value: IScheduledSettingsValue | null
+  ): void {
+    this.scheduledSettingsValue = value
+    const base = this.scheduledBaseAppearanceCustomization
+    this.appearanceCustomization = normalizeAppearanceCustomization({
+      ...base,
+      ...(value?.appearance ?? {}),
+      languageMode: value?.languageMode ?? base.languageMode,
+    })
+
+    this.scheduledThemeOverride =
+      value?.theme === undefined
+        ? null
+        : this.scheduledThemeToApplicationTheme(value.theme)
+    const effectiveTheme = this.scheduledThemeOverride ?? this.selectedTheme
+    const themeApplyVersion = ++this.scheduledThemeApplyVersion
+    if (effectiveTheme === ApplicationTheme.System) {
+      setNativeThemeSource('system')
+      void getCurrentlyAppliedTheme().then(theme => {
+        if (themeApplyVersion === this.scheduledThemeApplyVersion) {
+          this.currentTheme = theme
+          this.emitUpdate()
+        }
+      })
+    } else {
+      setNativeThemeSource(effectiveTheme)
+      this.currentTheme = effectiveTheme
+    }
+    this.emitUpdate()
   }
 
   private getCopilotModelsAccount(): Account | undefined {
@@ -2907,9 +2981,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
       resolvedExternalEditor: this.resolvedExternalEditor,
       selectedCloneRepositoryTab: this.selectedCloneRepositoryTab,
       selectedBranchesTab: this.selectedBranchesTab,
-      selectedTheme: this.selectedTheme,
+      selectedTheme: this.scheduledThemeOverride ?? this.selectedTheme,
       currentTheme: this.currentTheme,
       appearanceCustomization: this.appearanceCustomization,
+      scheduledSettings: this.scheduledSettingsRuntime.getConfig(),
       repositoryAppearanceOverrides: this.repositoryAppearanceOverrides,
       selectedTabSize: this.selectedTabSize,
       showRecentRepositories: this.showRecentRepositories,
@@ -4950,9 +5025,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     this.currentTheme = await getCurrentlyAppliedTheme()
 
+    this.scheduledBaseAppearanceCustomization = this.appearanceCustomization
+    this.scheduledSettingsRuntime.start()
+
     this.selectedTabSize = getNumber(tabSizeKey, tabSizeDefault)
 
     themeChangeMonitor.onThemeChanged(theme => {
+      // A scheduled light/dark value is an explicit overlay. The operating
+      // system may still report a change while that overlay is active, but it
+      // must not leak through until the schedule stops applying a theme.
+      if (
+        this.scheduledThemeOverride !== null &&
+        this.scheduledThemeOverride !== ApplicationTheme.System
+      ) {
+        return
+      }
       this.currentTheme = theme
       this.emitUpdate()
     })
@@ -23552,6 +23639,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       elementAppearanceState?.initialized === true
         ? elementAppearanceState.appearance
         : getAppearanceCustomization()
+    this.scheduledBaseAppearanceCustomization = this.appearanceCustomization
+    this.applyScheduledSettingsValue(this.scheduledSettingsValue)
     this.selectedTabSize = getNumber(tabSizeKey, tabSizeDefault)
     this.zoomBaseFactor = clampZoom(getFloatNumber('zoom-factor', 1))
     this.autoFitZoomEnabled = getBoolean('zoom-auto-fit-enabled', true)
@@ -23645,46 +23734,95 @@ export class AppStore extends TypedBaseStore<IAppState> {
   public _setSelectedTheme(theme: ApplicationTheme) {
     setPersistedTheme(theme)
     this.selectedTheme = theme
-    this.emitUpdate()
+    this.applyScheduledSettingsValue(this.scheduledSettingsValue)
 
     return Promise.resolve()
+  }
+
+  /**
+   * Keep the user's stored appearance underneath a live schedule overlay.
+   * Settings controls receive the effective appearance, so blindly persisting
+   * that object would turn a temporary scheduled accent or language into the
+   * user's permanent profile when they edit an unrelated property.
+   */
+  private getBaseAppearanceAfterUserChange(
+    customization: IAppearanceCustomization
+  ): IAppearanceCustomization {
+    const next = { ...customization } as Record<string, unknown>
+    const base = {
+      ...this.scheduledBaseAppearanceCustomization,
+    } as Record<string, unknown>
+    const scheduledAppearance = this.scheduledSettingsValue?.appearance ?? {}
+
+    for (const key of Object.keys(scheduledAppearance)) {
+      if (
+        JSON.stringify(next[key]) ===
+        JSON.stringify(
+          this.appearanceCustomization[key as keyof IAppearanceCustomization]
+        )
+      ) {
+        next[key] = base[key]
+      }
+    }
+
+    if (
+      this.scheduledSettingsValue?.languageMode !== undefined &&
+      customization.languageMode === this.appearanceCustomization.languageMode
+    ) {
+      next.languageMode = this.scheduledBaseAppearanceCustomization.languageMode
+    }
+
+    return normalizeAppearanceCustomization(next)
   }
 
   /** Set the application-wide appearance customization. */
   public async _setAppearanceCustomization(
     customization: IAppearanceCustomization
   ): Promise<void> {
+    const baseCustomization =
+      this.getBaseAppearanceAfterUserChange(customization)
     if (this.elementAppearanceCoordinator === undefined) {
-      this.appearanceCustomization = setAppearanceCustomization(customization)
-      this.emitUpdate()
+      this.scheduledBaseAppearanceCustomization =
+        setAppearanceCustomization(baseCustomization)
+      this.applyScheduledSettingsValue(this.scheduledSettingsValue)
       return
     }
 
     const version = ++this.appearanceCustomizationMutationVersion
-    this.appearanceCustomization =
-      normalizeAppearanceCustomization(customization)
-    this.emitUpdate()
+    this.scheduledBaseAppearanceCustomization = baseCustomization
+    this.applyScheduledSettingsValue(this.scheduledSettingsValue)
 
     try {
       const persisted =
         await this.elementAppearanceCoordinator.setAppearanceProjection(
-          this.appearanceCustomization
+          this.scheduledBaseAppearanceCustomization
         )
       if (version === this.appearanceCustomizationMutationVersion) {
-        this.appearanceCustomization = persisted
-        this.emitUpdate()
+        this.scheduledBaseAppearanceCustomization = persisted
+        this.applyScheduledSettingsValue(this.scheduledSettingsValue)
       }
     } catch (error) {
       if (version === this.appearanceCustomizationMutationVersion) {
         const state = this.elementAppearanceCoordinator.getState()
-        this.appearanceCustomization = state.appearance
-        this.emitUpdate()
+        this.scheduledBaseAppearanceCustomization = state.appearance
+        this.applyScheduledSettingsValue(this.scheduledSettingsValue)
       }
       const appearanceError =
         error instanceof Error ? error : new Error(String(error))
       this.emitError(appearanceError)
       throw appearanceError
     }
+  }
+
+  /** Persist the local-time schedule and refresh its external sources. */
+  public _setScheduledSettings(settings: IScheduledSettingsConfig) {
+    this.scheduledSettingsRuntime.setConfig(settings)
+    this.emitUpdate()
+    return Promise.resolve()
+  }
+
+  public stopScheduledSettingsRuntime() {
+    this.scheduledSettingsRuntime.stop()
   }
 
   /** Persist appearance overrides in a repository's local Git config. */

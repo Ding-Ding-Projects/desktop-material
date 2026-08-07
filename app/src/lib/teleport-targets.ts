@@ -77,6 +77,8 @@ export const TeleportTargetSelectors = {
   settingsNumberFormat: '[data-teleport-target="settings-number-format"]',
   settingsPreferAbsoluteDates:
     '[data-teleport-target="settings-prefer-absolute-dates"]',
+  settingsScheduledSettings:
+    '[data-teleport-target="settings-scheduled-settings"]',
 
   // Advanced
   settingsAutoSwitchAccount:

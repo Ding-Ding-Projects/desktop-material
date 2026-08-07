@@ -543,6 +543,12 @@ void logStoreInitialization.catch(err =>
 
 configureRendererShutdown([
   {
+    name: 'scheduled settings runtime',
+    run: async () => {
+      appStore.stopScheduledSettingsRuntime()
+    },
+  },
+  {
     name: 'profile settings',
     run: async () => {
       await profileStoreInitialization

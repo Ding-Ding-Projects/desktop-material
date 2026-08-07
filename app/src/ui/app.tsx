@@ -33,7 +33,6 @@ import { assertNever } from '../lib/fatal-error'
 import { openFolderInFileManager } from '../lib/app-shell'
 import { updateStore, UpdateStatus } from './lib/update-store'
 import {
-  getPersistedLanguageMode,
   t,
   translatedVariable,
   translateForAccessibleName,
@@ -1172,7 +1171,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     return (
       <DimSumSurprise
         dish={dish}
-        languageMode={getPersistedLanguageMode()}
+        languageMode={this.state.appearanceCustomization.languageMode}
         funnyLevels={readFunnyLevels()}
         onDismissed={this.onDimSumSurpriseDismissed}
       />
@@ -4711,6 +4710,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             selectedShell={this.state.selectedShell}
             selectedTheme={this.state.selectedTheme}
             appearanceCustomization={this.state.appearanceCustomization}
+            scheduledSettings={this.state.scheduledSettings}
             zoomBaseFactor={this.state.zoomBaseFactor}
             autoFitZoomEnabled={this.state.autoFitZoomEnabled}
             windowZoomFactor={this.state.windowZoomFactor}

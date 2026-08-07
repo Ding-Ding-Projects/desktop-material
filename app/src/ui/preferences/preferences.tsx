@@ -21,6 +21,7 @@ import {
   InvalidGitAuthorNameMessage,
 } from '../lib/identifier-rules'
 import { Appearance } from './appearance'
+import { teleportTo } from '../lib/teleport'
 import { IAppearanceCustomization } from '../../models/appearance-customization'
 import { ApplicationTheme } from '../lib/application-theme'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
@@ -114,6 +115,12 @@ import {
   getPersistedLanguageMode,
   LanguageModeChangedEvent,
 } from '../../lib/i18n'
+import {
+  IHomeAssistantSettingsRequest,
+  ISetHomeAssistantTokenRequest,
+  IScheduledSettingsConfig,
+  serializeScheduledSettings,
+} from '../../models/scheduled-settings'
 
 interface IPreferencesProps {
   readonly dispatcher: Dispatcher
@@ -143,6 +150,7 @@ interface IPreferencesProps {
   readonly selectedShell: Shell
   readonly selectedTheme: ApplicationTheme
   readonly appearanceCustomization: IAppearanceCustomization
+  readonly scheduledSettings: IScheduledSettingsConfig
   readonly zoomBaseFactor: number
   readonly autoFitZoomEnabled: boolean
   readonly windowZoomFactor: number
@@ -221,7 +229,9 @@ interface IPreferencesState {
 
   readonly initiallySelectedTheme: ApplicationTheme
   readonly initiallySelectedAppearanceCustomization: IAppearanceCustomization
+  readonly initiallyScheduledSettings: IScheduledSettingsConfig
   readonly initiallySelectedTabSize: number
+  readonly scheduledSettings: IScheduledSettingsConfig
 
   readonly isLoadingGitConfig: boolean
 
@@ -336,7 +346,9 @@ export class Preferences extends React.Component<
       initiallySelectedTheme: this.props.selectedTheme,
       initiallySelectedAppearanceCustomization:
         this.props.appearanceCustomization,
+      initiallyScheduledSettings: this.props.scheduledSettings,
       initiallySelectedTabSize: this.props.selectedTabSize,
+      scheduledSettings: this.props.scheduledSettings,
       isLoadingGitConfig: true,
       underlineLinks: this.props.underlineLinks,
       showDiffCheckMarks: this.props.showDiffCheckMarks,
@@ -400,9 +412,70 @@ export class Preferences extends React.Component<
     this.setState({ settingsSearchQuery: pattern })
   }
 
-  private onSettingsSearchNavigate = (tab: PreferencesTab) => {
+  private focusScheduledSetting = async (field: string) => {
+    const arrived = await teleportTo('settingsScheduledSettings')
+    if (!arrived) {
+      return
+    }
+    const target = document.querySelector<HTMLElement>(
+      `.scheduled-settings-search-${field}`
+    )
+    if (target === null) {
+      return
+    }
+    target.scrollIntoView({ block: 'center', inline: 'nearest' })
+    const focusable = target.querySelector<HTMLElement>(
+      'button, input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )
+    focusable?.focus({ preventScroll: true })
+  }
+
+  private onSettingsSearchNavigate = (tab: PreferencesTab, entryId: string) => {
     // Jump to the setting's tab and clear the query so the pane shows through.
-    this.setState({ selectedIndex: tab, settingsSearchQuery: '' })
+    this.setState({ selectedIndex: tab, settingsSearchQuery: '' }, () => {
+      const scheduledFieldByEntryId: Readonly<Record<string, string>> = {
+        'appearance-scheduled-enabled': 'enabled',
+        'appearance-scheduled-language': 'language',
+        'appearance-scheduled-theme': 'theme',
+        'appearance-scheduled-highlight': 'highlight',
+        'appearance-scheduled-accent-palette': 'appearance-accentPalette',
+        'appearance-scheduled-update-progress-palette':
+          'appearance-updateProgressPalette',
+        'appearance-scheduled-surface-palette': 'appearance-surfacePalette',
+        'appearance-scheduled-elevation': 'appearance-elevation',
+        'appearance-scheduled-ui-font': 'appearance-uiFont',
+        'appearance-scheduled-monospace-font': 'appearance-monospaceFont',
+        'appearance-scheduled-motion': 'appearance-motion',
+        'appearance-scheduled-toolbar-labels': 'appearance-toolbarLabels',
+        'appearance-scheduled-toolbar-density': 'appearance-toolbarDensity',
+        'appearance-scheduled-repository-list-density':
+          'appearance-repositoryListDensity',
+        'appearance-scheduled-tab-density': 'appearance-tabDensity',
+        'appearance-scheduled-tab-width': 'appearance-tabWidth',
+        'appearance-scheduled-tab-close-buttons': 'appearance-tabCloseButtons',
+        'appearance-scheduled-submodule-back-style':
+          'appearance-submoduleBackButtonStyle',
+        'appearance-scheduled-submodule-back-label':
+          'appearance-submoduleBackButtonLabel',
+        'appearance-scheduled-start-date': 'start-date',
+        'appearance-scheduled-end-date': 'end-date',
+        'appearance-scheduled-start-time': 'start-time',
+        'appearance-scheduled-end-time': 'end-time',
+        'appearance-scheduled-all-days': 'all-days',
+        'appearance-scheduled-weekdays': 'weekdays',
+        'appearance-scheduled-source': 'source',
+        'appearance-scheduled-api-endpoint': 'api-endpoint',
+        'appearance-scheduled-home-assistant-url': 'home-assistant-url',
+        'appearance-scheduled-home-assistant-entity': 'home-assistant-entity',
+        'appearance-scheduled-home-assistant-token': 'home-assistant-token',
+      }
+      const field = scheduledFieldByEntryId[entryId]
+      if (field !== undefined) {
+        void this.focusScheduledSetting(field)
+      } else if (entryId === 'appearance-scheduled-settings') {
+        void teleportTo('settingsScheduledSettings')
+      }
+    })
   }
 
   private getSettingsSearchResults(): ReadonlyArray<
@@ -693,6 +766,12 @@ export class Preferences extends React.Component<
       this.onAppearanceCustomizationChanged(
         this.state.initiallySelectedAppearanceCustomization
       )
+    }
+    if (
+      serializeScheduledSettings(this.state.scheduledSettings) !==
+      serializeScheduledSettings(this.state.initiallyScheduledSettings)
+    ) {
+      this.onScheduledSettingsChanged(this.state.initiallyScheduledSettings)
     }
 
     this.props.onDismissed()
@@ -992,6 +1071,10 @@ export class Preferences extends React.Component<
             onAppearanceCustomizationChanged={
               this.onAppearanceCustomizationChanged
             }
+            scheduledSettings={this.state.scheduledSettings}
+            onScheduledSettingsChanged={this.onScheduledSettingsChanged}
+            onHomeAssistantTokenChanged={this.onHomeAssistantTokenChanged}
+            onHomeAssistantStateRequested={this.onHomeAssistantStateRequested}
             zoomBaseFactor={this.props.zoomBaseFactor}
             onZoomBaseFactorChanged={this.onZoomBaseFactorChanged}
             autoFitZoomEnabled={this.props.autoFitZoomEnabled}
@@ -1387,6 +1470,21 @@ export class Preferences extends React.Component<
   ) => {
     this.props.dispatcher.setAppearanceCustomization(customization)
   }
+
+  private onScheduledSettingsChanged = (
+    scheduledSettings: IScheduledSettingsConfig
+  ) => {
+    this.setState({ scheduledSettings })
+    this.props.dispatcher.setScheduledSettings(scheduledSettings)
+  }
+
+  private onHomeAssistantTokenChanged = (
+    request: ISetHomeAssistantTokenRequest
+  ) => this.props.dispatcher.setHomeAssistantToken(request)
+
+  private onHomeAssistantStateRequested = (
+    request: IHomeAssistantSettingsRequest
+  ) => this.props.dispatcher.fetchHomeAssistantState(request)
 
   private onZoomBaseFactorChanged = (factor: number) => {
     this.props.dispatcher.setZoomBaseFactor(factor)

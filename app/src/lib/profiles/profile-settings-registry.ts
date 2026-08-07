@@ -58,6 +58,10 @@ export const profileSettingsRegistry: ReadonlyArray<IProfileSettingEntry> = [
   // Diff and appearance preferences
   { key: 'theme', label: 'appearance' },
   { key: 'language-mode-v1', label: 'language' },
+  {
+    key: 'scheduled-settings-v1',
+    label: 'scheduled language and appearance settings',
+  },
   { key: 'browser-open-mode-v1', label: 'browser link behavior' },
   {
     key: 'internal-browser-bookmarks-v1',
