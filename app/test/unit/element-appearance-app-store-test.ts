@@ -67,7 +67,7 @@ describe('AppStore element appearance projection', () => {
 
     write.resolve(persisted)
     await pending
-    assert.equal(harness.appearance, persisted)
+    assert.deepEqual(harness.appearance, persisted)
     assert.equal(harness.updates, 2)
     assert.deepEqual(harness.errors, [])
   })
@@ -93,7 +93,7 @@ describe('AppStore element appearance projection', () => {
       }),
       failure
     )
-    assert.equal(harness.appearance, canonical)
+    assert.deepEqual(harness.appearance, canonical)
     assert.deepEqual(harness.errors, [failure])
     assert.equal(harness.updates, 2)
   })

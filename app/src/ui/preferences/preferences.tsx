@@ -472,7 +472,7 @@ export class Preferences extends React.Component<
       return
     }
     const target = document.querySelector<HTMLElement>(
-      `.scheduled-settings-search-${field}`
+      `.scheduled-settings-target-${field}`
     )
     if (target === null) {
       return

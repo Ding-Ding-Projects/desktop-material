@@ -45,8 +45,8 @@ describe('Scheduled settings preferences', () => {
     assert.ok(screen.getByLabelText('Start date (optional)'))
     assert.ok(screen.getByText('How this schedule works'))
     assert.ok(screen.getByText('About the value source'))
-    assert.ok(document.querySelector('.scheduled-settings-search-start-date'))
-    assert.ok(document.querySelector('.scheduled-settings-search-weekdays'))
+    assert.ok(document.querySelector('.scheduled-settings-target-start-date'))
+    assert.ok(document.querySelector('.scheduled-settings-target-weekdays'))
     assert.equal(
       screen.getByLabelText('Start date (optional)').getAttribute('type'),
       'date'
@@ -71,7 +71,7 @@ describe('Scheduled settings preferences', () => {
       target: { value: 'api' },
     })
     assert.ok(screen.getByLabelText('API endpoint'))
-    assert.ok(document.querySelector('.scheduled-settings-search-api-endpoint'))
+    assert.ok(document.querySelector('.scheduled-settings-target-api-endpoint'))
     assert.ok(
       screen.getByText(
         translate('appearance.scheduledSettingsAPIHelp', 'english')
@@ -85,7 +85,7 @@ describe('Scheduled settings preferences', () => {
     assert.ok(screen.getByLabelText('Boolean entity ID'))
     assert.ok(screen.getByLabelText('Access token'))
     assert.ok(
-      document.querySelector('.scheduled-settings-search-home-assistant-entity')
+      document.querySelector('.scheduled-settings-target-home-assistant-entity')
     )
     assert.ok(screen.getByRole('button', { name: 'Test sensor' }))
 

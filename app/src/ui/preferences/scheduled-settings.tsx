@@ -510,7 +510,7 @@ export class ScheduledSettings extends React.Component<
     return (
       <Select
         className={
-          field === undefined ? undefined : `scheduled-settings-search-${field}`
+          field === undefined ? undefined : `scheduled-settings-target-${field}`
         }
         label={label}
         value={value ?? ''}
@@ -597,7 +597,7 @@ export class ScheduledSettings extends React.Component<
         <div className="scheduled-settings-appearance-values">
           <h5>{this.text('appearance.scheduledSettingsAppearance')}</h5>
           <Select
-            className="scheduled-settings-search-highlight"
+            className="scheduled-settings-target-highlight"
             label={this.text('appearance.scheduledSettingsHighlightFeatures')}
             value={
               value.appearance?.highlightDesktopMaterialFeatures === undefined
@@ -681,7 +681,7 @@ export class ScheduledSettings extends React.Component<
           </p>
         </details>
         <Select
-          className="scheduled-settings-search-source"
+          className="scheduled-settings-target-source"
           label={translate('appearance.scheduledSettingsSource', languageMode)}
           value={source.kind}
           onChange={event => {
@@ -732,7 +732,7 @@ export class ScheduledSettings extends React.Component<
         {source.kind === 'api' && (
           <div className="scheduled-settings-external-fields">
             <TextBox
-              className="scheduled-settings-search-api-endpoint"
+              className="scheduled-settings-target-api-endpoint"
               label={translate(
                 'appearance.scheduledSettingsAPIEndpoint',
                 languageMode
@@ -755,7 +755,7 @@ export class ScheduledSettings extends React.Component<
         {source.kind === 'home-assistant' && (
           <div className="scheduled-settings-external-fields">
             <TextBox
-              className="scheduled-settings-search-home-assistant-url"
+              className="scheduled-settings-target-home-assistant-url"
               label={translate(
                 'appearance.scheduledSettingsHomeAssistantBaseURL',
                 languageMode
@@ -775,7 +775,7 @@ export class ScheduledSettings extends React.Component<
               {this.text('appearance.scheduledSettingsHomeAssistantHelp')}
             </p>
             <TextBox
-              className="scheduled-settings-search-home-assistant-entity"
+              className="scheduled-settings-target-home-assistant-entity"
               label={translate(
                 'appearance.scheduledSettingsHomeAssistantEntity',
                 languageMode
@@ -792,7 +792,7 @@ export class ScheduledSettings extends React.Component<
               ariaInvalid={sourceInvalid}
             />
             <TextBox
-              className="scheduled-settings-search-home-assistant-token"
+              className="scheduled-settings-target-home-assistant-token"
               type="password"
               label={translate(
                 'appearance.scheduledSettingsHomeAssistantToken',
@@ -871,7 +871,7 @@ export class ScheduledSettings extends React.Component<
       >
         <div className="scheduled-settings-rule-header">
           <TextBox
-            className="scheduled-settings-search-label"
+            className="scheduled-settings-target-label"
             label={translate('appearance.scheduledSettingsRule', languageMode, {
               number: (index + 1).toString(),
             })}
@@ -881,7 +881,7 @@ export class ScheduledSettings extends React.Component<
             }
           />
           <Button
-            className="scheduled-settings-search-remove"
+            className="scheduled-settings-target-remove"
             type="button"
             size="small"
             onClick={() => this.removeRule(rule.id)}
@@ -904,7 +904,7 @@ export class ScheduledSettings extends React.Component<
           </p>
         </details>
         <Checkbox
-          className="scheduled-settings-search-enabled"
+          className="scheduled-settings-target-enabled"
           label={translate('appearance.scheduledSettingsEnabled', languageMode)}
           value={rule.enabled ? CheckboxValue.On : CheckboxValue.Off}
           onChange={event =>
@@ -916,7 +916,7 @@ export class ScheduledSettings extends React.Component<
         />
         <div className="scheduled-settings-calendar-fields">
           <TextBox
-            className="scheduled-settings-search-start-date"
+            className="scheduled-settings-target-start-date"
             type="date"
             label={translate(
               'appearance.scheduledSettingsStartDate',
@@ -931,7 +931,7 @@ export class ScheduledSettings extends React.Component<
             }
           />
           <TextBox
-            className="scheduled-settings-search-end-date"
+            className="scheduled-settings-target-end-date"
             type="date"
             label={translate(
               'appearance.scheduledSettingsEndDate',
@@ -948,7 +948,7 @@ export class ScheduledSettings extends React.Component<
             }
           />
           <TextBox
-            className="scheduled-settings-search-start-time"
+            className="scheduled-settings-target-start-time"
             type="time"
             label={translate(
               'appearance.scheduledSettingsStartTime',
@@ -960,7 +960,7 @@ export class ScheduledSettings extends React.Component<
             }
           />
           <TextBox
-            className="scheduled-settings-search-end-time"
+            className="scheduled-settings-target-end-time"
             type="time"
             label={translate(
               'appearance.scheduledSettingsEndTime',
@@ -987,7 +987,7 @@ export class ScheduledSettings extends React.Component<
           })}
         </p>
         <Checkbox
-          className="scheduled-settings-search-all-days"
+          className="scheduled-settings-target-all-days"
           label={translate('appearance.scheduledSettingsAllDays', languageMode)}
           value={rule.allDays ? CheckboxValue.On : CheckboxValue.Off}
           onChange={event =>
@@ -997,7 +997,7 @@ export class ScheduledSettings extends React.Component<
             }))
           }
         />
-        <fieldset className="scheduled-settings-weekdays scheduled-settings-search-weekdays">
+        <fieldset className="scheduled-settings-weekdays scheduled-settings-target-weekdays">
           <legend>
             {translate('appearance.scheduledSettingsWeekdays', languageMode)}
           </legend>
