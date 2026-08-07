@@ -4,9 +4,9 @@
   "generator": "tui/tools/generate-parity-contract.mjs",
   "source": {
     "path": "docs/readme-tabs/complete-feature-list.md",
-    "sha256": "45e0339b7891bdf087c941b71dca8313785e37bd7db9093708e9ba54eae9d710",
-    "declared_feature_count": 207,
-    "parsed_feature_count": 207,
+    "sha256": "0d44139eb2ea0d79a3df50985eab55ef51644bd9657de2ceed713b253dac9c4a",
+    "declared_feature_count": 208,
+    "parsed_feature_count": 208,
     "section_count": 17
   },
   "semantics": {
@@ -17,7 +17,7 @@
   },
   "status_summary": {
     "adapted": 49,
-    "not_yet_available": 94,
+    "not_yet_available": 95,
     "partial": 62,
     "terminal_owned": 2
   },
@@ -2404,6 +2404,17 @@
       "title": "Settings tab docking",
       "upstream_relation": "added",
       "desktop_documentation": "../features/identity-and-workspace/settings-tab-docking.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "13-scheduled-language-appearance-and-external-settings",
+      "section": 13,
+      "section_title": "Search everywhere and the regex builder",
+      "title": "Scheduled language, appearance, and external settings",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/scheduled-settings.md",
       "tui_status": "not_yet_available",
       "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
       "evidence": []
