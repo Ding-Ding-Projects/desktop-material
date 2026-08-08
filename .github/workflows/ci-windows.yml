@@ -50,11 +50,18 @@ on:
         type: string
         required: false
 
-# Validation is replaceable: a newer commit on the same ref cancels stale work.
-# Release and publication workflows keep separate non-cancelling contracts.
+# Validation on non-main refs is replaceable: a newer commit on the same ref
+# cancels stale work. A main push is different — every main commit's CI feeds
+# `build-installers.yml`, which publishes a Release only when both lanes
+# finish green, so each main push gets its own concurrency group (keyed by
+# run id) and always runs to completion instead of being cancelled by the
+# next push. Release and publication workflows keep separate non-cancelling
+# contracts.
 concurrency:
   group:
-    ci-windows-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+    ci-windows-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref
+    }}-${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') &&
+    github.run_id || 'shared' }}
   cancel-in-progress: true
 
 env:
