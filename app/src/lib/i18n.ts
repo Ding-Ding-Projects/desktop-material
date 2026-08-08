@@ -5,6 +5,7 @@ import {
   TranslationKey,
 } from './i18n-resources'
 import { getLanguageModePreference } from './language-preference'
+import { isSchoolModeEnabled } from './school-mode'
 
 export type { TranslationKey } from './i18n-resources'
 
@@ -49,6 +50,9 @@ export function normalizeLocale(locale: string | undefined): SupportedLocale {
 }
 
 function modeFromLanguageOrLocale(value: string | undefined): LanguageMode {
+  if (isSchoolModeEnabled()) {
+    return 'english'
+  }
   const normalizedMode = normalizeLanguageMode(value)
   if (normalizedMode !== 'english' || value === 'english') {
     return normalizedMode
@@ -161,6 +165,9 @@ export function translateForAccessibleName(
 /** Read the active profile's explicit mode; the OS locale never overrides it. */
 export function getPersistedLanguageMode(): LanguageMode {
   if (typeof localStorage === 'undefined') {
+    return 'english'
+  }
+  if (isSchoolModeEnabled()) {
     return 'english'
   }
   return getLanguageModePreference()

@@ -222,6 +222,7 @@ import {
 } from '../models/dim-sum'
 import { isWithinQuietHours } from '../lib/audio/audio-throttle'
 import { readFunnyLevels } from '../lib/funny-level-text'
+import { isSchoolModeEnabled } from '../lib/school-mode'
 import { CrashProofBoundary } from './crash-proof-boundary'
 import { Button } from './lib/button'
 import { Loading } from './lib/loading'
@@ -1097,6 +1098,11 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
+    if (isSchoolModeEnabled()) {
+      this.dimSumDrawn = true
+      return
+    }
+
     try {
       // There is no off switch, so a refusal stored by an older profile is
       // deleted rather than read: that profile simply rejoins the draw.
@@ -1157,6 +1163,9 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private renderDimSumSurprise() {
+    if (isSchoolModeEnabled()) {
+      return null
+    }
     const dish = this.dimSumDish
     if (dish === null) {
       return null

@@ -614,6 +614,7 @@ import {
   PullPreviewResult,
 } from '../git/pull-preview'
 import { pullToCommit } from '../git/pull'
+import { envForRemoteOperation } from '../git/environment'
 import {
   getPullStrategyPlan,
   IPullStrategyPlan,
@@ -10454,6 +10455,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
       }
       completedStatus = status
 
+      if (signal.aborted || !this.isTemporaryRepositoryActive(repository)) {
+        throw new Error('Merge all cancelled before cleanup.')
+      }
+
       this.updateMergeAllState(repository, {
         phase: 'cleaning',
         currentBranch: candidate.branch.name,
@@ -10520,81 +10525,116 @@ export class AppStore extends TypedBaseStore<IAppState> {
       throw new Error('Merge all cancelled.')
     }
 
-    this.updateMergeAllState(repository, {
-      phase: 'committing',
-      currentBranch: candidate.branch.name,
-    })
-    try {
-      await git(
-        ['add', '--all'],
-        worktree.path,
-        'mergeAllCheckpointWorktreeChanges'
-      )
-      const commit = await git(
-        ['commit', '-m', 'Checkpoint pending work before merge'],
-        worktree.path,
-        'mergeAllCheckpointWorktreeCommit',
-        { successExitCodes: new Set([0, 1]) }
-      )
-      if (commit.exitCode !== 0) {
-        return 'The worktree changes could not be committed.'
-      }
-      if (signal.aborted || !this.isTemporaryRepositoryActive(repository)) {
-        throw new Error('Merge all cancelled.')
-      }
+    return this.withCanonicalRemoteForNetwork(repository, false, async live =>
+      this.withPushPullFetch(live, async () => {
+        try {
+          const remoteName = candidate.branch.upstreamRemoteName
+          const remoteBranch = candidate.branch.upstreamWithoutRemote
+          if (remoteName === null || remoteBranch === null) {
+            return 'The dirty worktree has no tracked remote branch, so it was not changed.'
+          }
+          const remote = (await getRemotes(live)).find(
+            candidateRemote => candidateRemote.name === remoteName
+          )
+          if (remote === undefined) {
+            return `The tracked remote ${remoteName} is unavailable, so the worktree was not changed.`
+          }
+          const accountKey = getRepositoryCredentialAccountKey(
+            this.accounts,
+            live
+          )
+          const networkOptions = {
+            env: await envForRemoteOperation(remote.url),
+            credentialAccountKey: accountKey,
+          }
 
-      const remoteName = candidate.branch.upstreamRemoteName
-      const remoteBranch = candidate.branch.upstreamWithoutRemote
-      if (remoteName === null || remoteBranch === null) {
-        return 'The worktree checkpoint has no tracked remote branch to synchronize and publish.'
-      }
+          this.updateMergeAllState(live, {
+            phase: 'pulling',
+            currentBranch: candidate.branch.name,
+          })
+          await git(
+            ['fetch', remoteName],
+            worktree.path,
+            'mergeAllFetchWorktree',
+            networkOptions
+          )
+          const aheadBehind = await git(
+            [
+              'rev-list',
+              '--left-right',
+              '--count',
+              `${candidate.branch.name}...${candidate.branch.upstream}`,
+            ],
+            worktree.path,
+            'mergeAllWorktreeAheadBehind'
+          )
+          const [aheadText, behindText] = aheadBehind.stdout.trim().split(/\s+/)
+          const ahead = Number(aheadText)
+          const behind = Number(behindText)
+          if (!Number.isFinite(ahead) || !Number.isFinite(behind)) {
+            return 'Git did not return a valid remote comparison for the worktree.'
+          }
+          if (ahead > 0 && behind > 0) {
+            return 'The worktree and its remote have diverged; it was not changed.'
+          }
+          if (behind > 0) {
+            await git(
+              ['pull', '--ff-only', remoteName, remoteBranch],
+              worktree.path,
+              'mergeAllPullIncomingWorktree',
+              networkOptions
+            )
+          }
+          if (signal.aborted || !this.isTemporaryRepositoryActive(live)) {
+            throw new Error('Merge all cancelled.')
+          }
 
-      this.updateMergeAllState(repository, {
-        phase: 'pulling',
-        currentBranch: candidate.branch.name,
+          this.updateMergeAllState(live, {
+            phase: 'committing',
+            currentBranch: candidate.branch.name,
+          })
+          await git(
+            ['add', '--all'],
+            worktree.path,
+            'mergeAllCheckpointWorktreeChanges'
+          )
+          const commit = await git(
+            ['commit', '-m', 'Checkpoint pending work before merge'],
+            worktree.path,
+            'mergeAllCheckpointWorktreeCommit',
+            { successExitCodes: new Set([0, 1]) }
+          )
+          if (commit.exitCode !== 0) {
+            return 'The worktree changes could not be committed.'
+          }
+          if (signal.aborted || !this.isTemporaryRepositoryActive(live)) {
+            throw new Error('Merge all cancelled.')
+          }
+
+          this.updateMergeAllState(live, {
+            phase: 'pushing',
+            currentBranch: candidate.branch.name,
+          })
+          await git(
+            ['push', remoteName, `${candidate.branch.name}:${remoteBranch}`],
+            worktree.path,
+            'mergeAllPushWorktreeCheckpoint',
+            networkOptions
+          )
+          if (signal.aborted || !this.isTemporaryRepositoryActive(live)) {
+            throw new Error('Merge all cancelled.')
+          }
+          return null
+        } catch (error) {
+          if (signal.aborted) {
+            throw error
+          }
+          return `The worktree checkpoint/sync/push failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        }
       })
-      await git(['fetch', remoteName], worktree.path, 'mergeAllFetchWorktree')
-      const aheadBehind = await git(
-        [
-          'rev-list',
-          '--left-right',
-          '--count',
-          `${candidate.branch.name}...${candidate.branch.upstream}`,
-        ],
-        worktree.path,
-        'mergeAllWorktreeAheadBehind'
-      )
-      const [aheadText, behindText] = aheadBehind.stdout.trim().split(/\s+/)
-      const behind = Number(behindText)
-      if (!Number.isFinite(Number(aheadText)) || !Number.isFinite(behind)) {
-        return 'Git did not return a valid remote comparison for the worktree.'
-      }
-      if (behind > 0) {
-        await git(
-          ['pull', '--ff-only', remoteName, remoteBranch],
-          worktree.path,
-          'mergeAllPullIncomingWorktree'
-        )
-      }
-      if (signal.aborted || !this.isTemporaryRepositoryActive(repository)) {
-        throw new Error('Merge all cancelled.')
-      }
-
-      this.updateMergeAllState(repository, {
-        phase: 'pushing',
-        currentBranch: candidate.branch.name,
-      })
-      await git(
-        ['push', remoteName, `${candidate.branch.name}:${remoteBranch}`],
-        worktree.path,
-        'mergeAllPushWorktreeCheckpoint'
-      )
-      return null
-    } catch (error) {
-      return `The worktree checkpoint/sync/push failed: ${
-        error instanceof Error ? error.message : String(error)
-      }`
-    }
+    )
   }
 
   /** Open or close the notification centre side sheet. */
