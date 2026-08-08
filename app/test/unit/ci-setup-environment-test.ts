@@ -404,7 +404,8 @@ describe('CI environment setup', () => {
       setupAction,
       /Install and build dependencies[\s\S]*?cache-hit != 'true'[\s\S]*?yarn --frozen-lockfile/
     )
-    assert.equal(printenvzPackage.scripts?.install, 'node build.mjs')
+    assert.equal(printenvzPackage.scripts?.install, 'node build.mjs --rebuild')
+    assert.equal(printenvzPackage.scripts?.build, 'node build.mjs --build')
     assert.equal(printenvzPackage.scripts?.rebuild, 'node build.mjs --rebuild')
     assert.match(
       printenvzBuildScript,
