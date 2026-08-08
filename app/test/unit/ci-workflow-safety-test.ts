@@ -1072,6 +1072,10 @@ describe('CI workflow safety', () => {
       productionWebpackRunner,
       /NODE_OPTIONS = '--max_old_space_size=16384'/
     )
+    assert.match(
+      productionWebpackRunner,
+      /WEBPACK_DISABLE_CONCURRENT_RECOMPILATION === '1'[\s\S]*?--no-concurrent-recompilation/
+    )
     assertJobRunsOn(windowsWorkflowDocument, 'windows-tui-core', 'windows-2022')
     for (const jobName of ['build', 'e2e-smoke']) {
       assert.equal(
@@ -1130,6 +1134,18 @@ describe('CI workflow safety', () => {
     )
     assert.notEqual(windowsBuildJob, null)
     const source = windowsBuildJob?.[1] ?? ''
+
+    assert.equal(
+      getNamedStep(
+        getJob(installerWorkflowDocument, 'package'),
+        'Build production app'
+      ).env?.WEBPACK_DISABLE_CONCURRENT_RECOMPILATION,
+      '1'
+    )
+    assert.match(
+      superExpressWindowsBuildAction,
+      /name: Build production app[\s\S]*?WEBPACK_DISABLE_CONCURRENT_RECOMPILATION: '1'/
+    )
 
     assert.match(
       source,

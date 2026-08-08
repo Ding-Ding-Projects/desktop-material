@@ -83,6 +83,7 @@ runs:
       env:
         NODE_ENV: production
         RELEASE_CHANNEL: beta
+        WEBPACK_DISABLE_CONCURRENT_RECOMPILATION: '1'
         npm_config_arch: x64
         TARGET_ARCH: x64
 

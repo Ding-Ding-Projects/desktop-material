@@ -607,6 +607,7 @@ jobs:
       - name: Build production app
         run: yarn build:prod
         env:
+          WEBPACK_DISABLE_CONCURRENT_RECOMPILATION: '1'
           npm_config_arch: x64
           TARGET_ARCH: x64
       - name: Package production app
