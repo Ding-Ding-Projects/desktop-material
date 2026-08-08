@@ -89,8 +89,7 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
   }
 
   private renderGroupHeader = (identifier: WorktreeGroupIdentifier) => {
-    const label =
-      identifier === 'main' ? 'Main Gerk Tong Hui' : "Linked Gerk Tong Hui's"
+    const label = identifier === 'main' ? 'Main worktree' : 'Linked worktrees'
     return <div className="filter-list-group-header">{label}</div>
   }
 
