@@ -7,6 +7,27 @@ const readStyle = (name: string) =>
   readFileSync(join(process.cwd(), 'app', 'styles', 'ui', name), 'utf8')
 
 describe('compact settings style contracts', () => {
+  it('scrolls the Preferences account and copilot tabs on one axis only', () => {
+    const style = readStyle('_dialog.scss')
+
+    // The `overflow: auto` shorthand arms both axes. On these two tabs that
+    // raised a stray horizontal scrollbar the moment a provider card or the
+    // longest localized label reached the pane's edge, which no other
+    // settings tab shows. Both must scroll vertically and clip horizontally.
+    assert.match(
+      style,
+      /&\.accounts-tab\s*\{[\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;[\s\S]*?\}/
+    )
+    assert.match(
+      style,
+      /\.copilot-tab-content\s*\{[\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;[\s\S]*?\}/
+    )
+    assert.doesNotMatch(
+      style,
+      /&\.accounts-tab\s*\{[\s\S]*?overflow: auto;[\s\S]*?\}/
+    )
+  })
+
   it('keeps Preferences recoverable from a narrow pane without sideways scrolling', () => {
     const style = readStyle('_preferences.scss')
 
