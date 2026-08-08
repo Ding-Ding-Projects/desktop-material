@@ -275,9 +275,8 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
       - name: Prove cold Windows release bootstrap
-        run:
-          powershell -NoProfile -ExecutionPolicy Bypass -File
-          .github/scripts/test-windows-release-bootstrap.ps1
+        shell: cmd
+        run: "%GITHUB_WORKSPACE%\\.github\\scripts\\test-windows-release-bootstrap.cmd"
       - name: Attempt to update submodules (non-fatal)
         continue-on-error: true
         run: |

@@ -825,8 +825,9 @@ describe('CI workflow safety', () => {
     assert.equal(coldBootstrapIndex, 3)
     assert.equal(
       expressTestSteps[coldBootstrapIndex].run,
-      'powershell -NoProfile -ExecutionPolicy Bypass -File .github/scripts/test-windows-release-bootstrap.ps1'
+      '%GITHUB_WORKSPACE%\\.github\\scripts\\test-windows-release-bootstrap.cmd'
     )
+    assert.equal(expressTestSteps[coldBootstrapIndex].shell, 'cmd')
   })
 
   it('keeps combined release preparation read-only by default', () => {
