@@ -284,13 +284,7 @@ export function assessSelfHostedWorkflowRisk(
   ) {
     throw new Error('workflow-jobs-invalid')
   }
-  const risks: ISelfHostedWorkflowRisk[] = riskyTriggers
-    .filter(trigger => UntrustedWorkflowSourceTriggers.has(trigger))
-    .map(trigger => ({
-      job: '*',
-      trigger,
-      reason: 'untrusted-workflow-source',
-    }))
+  const risks: ISelfHostedWorkflowRisk[] = []
   const runnerTargetTriggers = riskyTriggers.filter(
     trigger => !UntrustedWorkflowSourceTriggers.has(trigger)
   )
@@ -303,22 +297,30 @@ export function assessSelfHostedWorkflowRisk(
       continue
     }
     const job = rawJob as Record<string, unknown>
-    if (job.uses !== undefined && runnerTargetTriggers.length > 0) {
-      for (const trigger of runnerTargetTriggers) {
-        risks.push({ job: jobName, trigger, reason: 'reusable-workflow' })
-      }
-      continue
-    }
     const selfHosted = textContainsSelfHosted(job['runs-on'])
     const configuredLabel = textContainsRunnerLabel(
       job['runs-on'],
       runnerLabels
     )
     const dynamic = isDynamicRunsOn(job['runs-on'])
-    if (!selfHosted && !configuredLabel && !dynamic) {
+    const targetsManagedRunner =
+      job.uses !== undefined || selfHosted || configuredLabel || dynamic
+    if (!targetsManagedRunner || isDispatchOnlyCondition(job.if)) {
       continue
     }
-    if (isDispatchOnlyCondition(job.if)) {
+    for (const trigger of riskyTriggers.filter(trigger =>
+      UntrustedWorkflowSourceTriggers.has(trigger)
+    )) {
+      risks.push({
+        job: '*',
+        trigger,
+        reason: 'untrusted-workflow-source',
+      })
+    }
+    if (job.uses !== undefined && runnerTargetTriggers.length > 0) {
+      for (const trigger of runnerTargetTriggers) {
+        risks.push({ job: jobName, trigger, reason: 'reusable-workflow' })
+      }
       continue
     }
     for (const trigger of runnerTargetTriggers) {

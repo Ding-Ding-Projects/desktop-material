@@ -65,9 +65,11 @@ security boundary.
 
 The manager therefore fails closed at several independent boundaries:
 
-- **Private repositories only.** A public repository or unknown visibility
-  cannot use a repository-scoped runner on a personal workstation. Use an
-  isolated disposable host or a restricted organization runner group instead.
+- **Public repositories are audited, not blanket-blocked.** A public repository
+  may use the manager only when the immutable workflow audit proves that no
+  untrusted event can reach the managed runner labels. Unknown visibility still
+  fails closed. This is a workflow-safety decision, not a promise that public
+  workflow code is isolated from the Windows user.
 - **Private-fork workflows disabled.** The selected account must prove through
   GitHub's repository Actions policy that pull-request workflows from private
   forks cannot run. Private visibility by itself is not sufficient.
@@ -137,7 +139,8 @@ runner-specific progress until the exact result is known.
 
 | Failure | Result and recovery |
 | --- | --- |
-| Repository is public or visibility cannot be proved | Setup and start remain disabled. Move the workload to an isolated runner host or use a restricted organization runner group. |
+| Repository visibility is unknown | Setup and start remain disabled until GitHub proves whether the repository is public or private. |
+| A public workflow can reach the managed labels from an untrusted event | Setup and start remain disabled. Move the workload to an isolated runner host or a restricted organization runner group, or make the workflow trust boundary safe. |
 | Private-fork Actions policy permits pull-request workflows | No runner operation starts. Disable private-fork pull-request workflows in repository Actions settings, then run the preflight again. |
 | Workflow audit or queue inventory is unsafe, incomplete, duplicated, oversized, stalled, or changing | The operation fails closed and names the audit boundary. Correct the workflows or retry when GitHub can return a complete stable inventory. |
 | Runner name already exists | Choose a unique name. The app never replaces the existing registration. |
@@ -166,15 +169,18 @@ runner-specific progress until the exact result is known.
 
 ## Verification
 
-Focused Windows-app verification on August 7, 2026 passed **48/48** tests:
+Focused Windows-app verification on August 8, 2026 passed **130/130** tests:
 
-- `app/test/unit/self-hosted-runner-contract-test.ts`: **38/38** main-process
+- `app/test/unit/self-hosted-runner-contract-test.ts`: main-process
   security, identity, workflow, queue, lifecycle, cancellation, recovery,
-  process-ownership, readiness, and WSL fail-closed contracts.
-- `app/test/unit/ui/self-hosted-runner-manager-test.tsx`: **10/10** setup-form
-  scoping, trust acknowledgement, public-repository blocking, WSL-disabled
-  presentation, exact accessible actions, cancellation, duplicate refusal, and
-  removal-progress routing contracts.
+  process-ownership, readiness, and WSL fail-closed contracts, including public
+  workflow auditing without the private-only fork-policy endpoint.
+- `app/test/unit/ui/self-hosted-runner-manager-test.tsx`: setup-form account
+  scoping, searchable rich account selection, trust acknowledgement,
+  public-repository auditing, WSL-disabled presentation, exact accessible
+  actions, cancellation, duplicate refusal, and removal-progress routing.
+- The focused OAuth, Actions layout, and release-details regressions complete
+  the same run: **130/130** tests passed.
 
 Reproduce the focused result with:
 
@@ -182,10 +188,9 @@ Reproduce the focused result with:
 node script/test.mjs app/test/unit/self-hosted-runner-contract-test.ts app/test/unit/ui/self-hosted-runner-manager-test.tsx
 ```
 
-The broader Windows app suite, exact production build, hidden-desktop runtime
-exercise, live runner registration, and GitHub-hosted CI verdict are still
-pending for this checkpoint. The focused result does not claim any of those
-external or end-to-end outcomes.
+The broader Windows app suite, hidden-desktop runtime exercise, live runner
+registration, and GitHub-hosted CI verdict remain separate evidence. The focused
+result does not claim any of those external or end-to-end outcomes.
 
 ## Suggested articles
 

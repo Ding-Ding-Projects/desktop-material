@@ -16,6 +16,7 @@ import { Button } from '../lib/button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Select } from '../lib/select'
 import { TextBox } from '../lib/text-box'
+import { AccountPicker } from '../account-picker'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { SelfHostedRunnerRemovalDialog } from './self-hosted-runner-removal-dialog'
@@ -117,7 +118,12 @@ export class SelfHostedRunnerManager extends React.Component<
     props: ISelfHostedRunnerManagerProps
   ): ISelfHostedRunnerManagerState {
     const remote = props.repository.gitHubRepository
-    const account = this.githubAccounts(props).at(0)
+    const accounts = this.githubAccounts(props)
+    const account =
+      accounts.find(
+        candidate =>
+          getAccountKey(candidate) === (props.repository.accountKey ?? '')
+      ) ?? accounts.at(0)
     return {
       status: null,
       remoteRunners: [],
@@ -344,22 +350,14 @@ export class SelfHostedRunnerManager extends React.Component<
             })
           }
         }
-        if (remote.isPrivate !== true) {
-          if (isCurrent()) {
-            this.setState({
-              setupPreflightStatus: 'unavailable',
-              setupPreflightDetail:
-                'Repository-scoped self-hosted runners are unavailable for public or unknown-visibility repositories on a personal workstation. Use an isolated disposable host or a restricted organization runner group.',
-              setupPreflightScopeKey: null,
-            })
-          }
-          return
-        }
         if (isCurrent()) {
           this.setState({
             setupPreflightStatus: 'checking',
-            setupPreflightDetail:
-              "The main process is checking the current setup form's account and proposed labels against private-fork policy, one immutable workflow commit, and pending runner jobs.",
+            setupPreflightDetail: `The main process is checking the current setup form's account and proposed labels against ${
+              remote.isPrivate === false
+                ? 'public workflow triggers'
+                : 'private-fork policy'
+            }, one immutable workflow commit, and pending runner jobs.`,
             setupPreflightScopeKey: null,
           })
         }
@@ -390,7 +388,11 @@ export class SelfHostedRunnerManager extends React.Component<
               audit.ok
                 ? {
                     setupPreflightStatus: 'safe',
-                    setupPreflightDetail: `The main process proved private-fork pull-request workflows disabled for the selected account and proposed labels ${runnerLabels.join(
+                    setupPreflightDetail: `The main process proved ${
+                      remote.isPrivate === false
+                        ? 'public workflow triggers cannot reach the managed runner from an untrusted event'
+                        : 'private-fork pull-request workflows are disabled'
+                    } for the selected account and proposed labels ${runnerLabels.join(
                       ', '
                     )}, audited ${
                       audit.result.workflowCount
@@ -459,6 +461,18 @@ export class SelfHostedRunnerManager extends React.Component<
     )
   }
 
+  private onAccountChanged = (account: Account) => {
+    if (this.labelAuditTimeout !== null) {
+      clearTimeout(this.labelAuditTimeout)
+      this.labelAuditTimeout = null
+    }
+    this.invalidateSetupPreflight()
+    this.setState(
+      { selectedAccountKey: getAccountKey(account) },
+      () => void this.refresh()
+    )
+  }
+
   private setupBlockReason(): string | null {
     const remote = this.props.repository.gitHubRepository
     if (this.state.busy || this.state.removeSubmitting) {
@@ -467,8 +481,8 @@ export class SelfHostedRunnerManager extends React.Component<
     if (remote === null || this.githubAccounts().length === 0) {
       return 'Connect the repository and select a signed-in GitHub account.'
     }
-    if (remote.isPrivate !== true) {
-      return 'Repository-scoped self-hosted runners are unavailable for public or unknown-visibility repositories on a personal workstation.'
+    if (remote.isPrivate !== true && remote.isPrivate !== false) {
+      return 'Repository visibility is unknown; refresh the repository before setting up a runner.'
     }
     if (this.state.status?.supported !== true) {
       return 'Runner setup is available only in the Windows desktop app.'
@@ -506,8 +520,12 @@ export class SelfHostedRunnerManager extends React.Component<
 
   private runnerStartBlockReason(): string | null {
     const remote = this.props.repository.gitHubRepository
-    if (remote?.isPrivate !== true) {
-      return 'Starting a repository-scoped runner requires a verified private repository.'
+    if (
+      remote !== null &&
+      remote.isPrivate !== true &&
+      remote.isPrivate !== false
+    ) {
+      return 'Repository visibility is unknown; refresh the repository before starting a runner.'
     }
     if (
       !this.state.workflowTrustAcknowledged ||
@@ -954,8 +972,8 @@ export class SelfHostedRunnerManager extends React.Component<
           {remote?.isPrivate === true
             ? ' This repository is private.'
             : remote?.isPrivate === false
-            ? ' This repository is public, so setup is unavailable on this personal workstation. Use an isolated disposable host or a restricted organization runner group.'
-            : ' Repository visibility is unknown, so setup is unavailable until a private repository can be proven.'}
+            ? ' This repository is public. Setup is permitted only after the immutable workflow audit proves that no untrusted event can reach this managed runner.'
+            : ' Repository visibility is unknown, so setup remains unavailable until GitHub proves whether it is public or private.'}
         </div>
 
         {this.state.error !== null && (
@@ -1019,31 +1037,13 @@ export class SelfHostedRunnerManager extends React.Component<
         ) : (
           <>
             <div className="actions-runner-form">
-              <Select
-                label="GitHub account"
-                value={this.state.selectedAccountKey}
+              <AccountPicker
+                accounts={githubAccounts}
+                selectedAccount={this.selectedAccount() ?? githubAccounts[0]!}
+                onSelectedAccountChanged={this.onAccountChanged}
                 disabled={this.state.busy || this.state.removeSubmitting}
-                onChange={event => {
-                  if (this.labelAuditTimeout !== null) {
-                    clearTimeout(this.labelAuditTimeout)
-                    this.labelAuditTimeout = null
-                  }
-                  this.invalidateSetupPreflight()
-                  this.setState(
-                    { selectedAccountKey: event.currentTarget.value },
-                    () => void this.refresh()
-                  )
-                }}
-              >
-                {githubAccounts.map(account => (
-                  <option
-                    key={getAccountKey(account)}
-                    value={getAccountKey(account)}
-                  >
-                    {account.friendlyName} · {account.friendlyEndpoint}
-                  </option>
-                ))}
-              </Select>
+                buttonAriaLabel="GitHub account"
+              />
               <TextBox
                 label="Runner name"
                 value={this.state.runnerName}

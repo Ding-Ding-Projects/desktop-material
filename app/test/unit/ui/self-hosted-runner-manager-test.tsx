@@ -15,7 +15,56 @@ import {
   defaultSelfHostedRunnerLabel,
   SelfHostedRunnerManager,
 } from '../../../src/ui/actions/self-hosted-runner-manager'
-import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '../../helpers/ui/render'
+
+class TestListResizeObserver implements ResizeObserver {
+  public constructor(private readonly callback: ResizeObserverCallback) {}
+
+  public observe(target: Element) {
+    const width = 640
+    const height = 480
+    Object.defineProperty(target, 'offsetWidth', {
+      configurable: true,
+      value: width,
+    })
+    Object.defineProperty(target, 'offsetHeight', {
+      configurable: true,
+      value: height,
+    })
+    this.callback(
+      [
+        {
+          target,
+          contentRect: {
+            x: 0,
+            y: 0,
+            width,
+            height,
+            top: 0,
+            right: width,
+            bottom: height,
+            left: 0,
+            toJSON: () => ({}),
+          },
+          borderBoxSize: [],
+          contentBoxSize: [],
+          devicePixelContentBoxSize: [],
+        },
+      ],
+      this
+    )
+  }
+
+  public unobserve() {}
+
+  public disconnect() {}
+}
 
 const account = new Account(
   'runner-owner',
@@ -209,7 +258,7 @@ describe('self-hosted runner manager', () => {
     )
   })
 
-  it('blocks public-repository setup without reading workflow content', async () => {
+  it('allows a public-repository setup after the main-process workflow audit', async () => {
     let workflowInventoryReads = 0
     let workflowContentReads = 0
     const fromAccount = mock.method(API, 'fromAccount', () => {
@@ -241,16 +290,13 @@ describe('self-hosted runner manager', () => {
 
       assert.ok(
         await screen.findByText(
-          /This repository is public, so setup is unavailable on this personal workstation\./
+          /This repository is public\. Setup is permitted only after the immutable workflow audit/
         )
       )
-      assert.equal(
-        (
-          await screen.findAllByText(
-            /Repository-scoped self-hosted runners are unavailable for public or unknown-visibility repositories/
-          )
-        ).length,
-        2
+      assert.ok(
+        await screen.findByText(
+          /Setup-form safety preflight: The main process proved public workflow triggers/
+        )
       )
       assert.equal(
         screen
@@ -325,6 +371,26 @@ describe('self-hosted runner manager', () => {
     })
     const installedIPC = await installRunnerIPC(supportedStatus)
     let view: ReturnType<typeof render> | null = null
+    const previousGlobalResizeObserver = globalThis.ResizeObserver
+    const previousWindowResizeObserver = window.ResizeObserver
+    const previousOffsetWidth = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      'offsetWidth'
+    )
+    const previousOffsetHeight = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      'offsetHeight'
+    )
+    Object.assign(globalThis, { ResizeObserver: TestListResizeObserver })
+    Object.assign(window, { ResizeObserver: TestListResizeObserver })
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+      configurable: true,
+      get: () => 640,
+    })
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+      configurable: true,
+      get: () => 480,
+    })
 
     try {
       view = render(
@@ -369,12 +435,15 @@ describe('self-hosted runner manager', () => {
         )
       )
 
-      const accountPicker = screen.getByRole('combobox', {
-        name: 'GitHub account',
+      fireEvent.click(screen.getByRole('button', { name: 'GitHub account' }))
+      const accountPicker = screen.getByRole('searchbox', {
+        name: 'Search accounts',
       })
       fireEvent.change(accountPicker, {
-        target: { value: getAccountKey(secondaryAccount) },
+        target: { value: secondaryAccount.login },
       })
+      await new Promise<void>(resolve => setImmediate(resolve))
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('option'))
       await waitFor(() => assert.equal(preflightInvokes().length, 2))
       assert.deepEqual(preflightInvokes()[1].args, [
         {
@@ -398,6 +467,28 @@ describe('self-hosted runner manager', () => {
       )
     } finally {
       view?.unmount()
+      Object.assign(globalThis, {
+        ResizeObserver: previousGlobalResizeObserver,
+      })
+      Object.assign(window, { ResizeObserver: previousWindowResizeObserver })
+      if (previousOffsetWidth === undefined) {
+        Reflect.deleteProperty(HTMLElement.prototype, 'offsetWidth')
+      } else {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          'offsetWidth',
+          previousOffsetWidth
+        )
+      }
+      if (previousOffsetHeight === undefined) {
+        Reflect.deleteProperty(HTMLElement.prototype, 'offsetHeight')
+      } else {
+        Object.defineProperty(
+          HTMLElement.prototype,
+          'offsetHeight',
+          previousOffsetHeight
+        )
+      }
       fromAccount.mock.restore()
       installedIPC.restore()
     }

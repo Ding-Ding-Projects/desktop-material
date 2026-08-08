@@ -1,5 +1,28 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-08 — Repair OAuth, public runner preflight, Actions layout, and release details
+
+The Windows desktop source now follows the upstream GitHub Desktop OAuth request
+shape: the authorization and token exchange omit an unregistered custom
+`redirect_uri`, so GitHub uses the callback registered on the OAuth application.
+The Actions runner manager now uses the rich searchable GitHub account picker,
+honours the repository's persisted account binding, and permits public
+repositories only after the immutable workflow audit proves that an untrusted
+event cannot reach the managed labels. Unknown visibility and unsafe workflows
+still fail closed.
+
+The Actions run list fills the available row when no workflow detail is open and
+returns to the resizable split when a run is selected. Release notes now have a
+separate collapsible section from release metadata, preventing the notes from
+appearing inside the Release details dropdown. Focused verification passed
+**130/130** tests, including the OAuth, public-runner, searchable-account,
+full-width Actions, and release-details contracts. Lint passed; the exact
+production build and hidden-desktop capture were still in flight at handoff.
+
+Changed source and tests are on `main` for the requested integration pass. Remote
+CI, release publication, and the final cleanup proof must not be described as
+green until their actual results are observed.
+
 ## 2026-08-07 — Opt-in post-clone runner provisioning
 
 **Scope:** Single interactive private GitHub/GitHub Enterprise clones can opt

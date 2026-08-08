@@ -26,7 +26,7 @@ export interface IRepositoryWorkflowAuditResult {
 
 export class RepositoryWorkflowAuditError extends Error {
   public constructor(
-    public readonly kind: 'unavailable' | 'unsafe' | 'public-repository',
+    public readonly kind: 'unavailable' | 'unsafe',
     public readonly findings: ReadonlyArray<
       ISelfHostedWorkflowRisk & { readonly path: string }
     > = []
@@ -202,38 +202,40 @@ export async function auditRepositoryWorkflowsForSelfHostedRunner(
       )
     ).value
   )
-  if (repository.private !== true) {
-    throw new RepositoryWorkflowAuditError('public-repository')
-  }
-  const forkPolicyURL = new URL(
-    `repos/${encodeURIComponent(request.owner)}/${encodeURIComponent(
-      request.repository
-    )}/actions/permissions/fork-pr-workflows-private-repos`,
-    request.endpoint
-  )
-  const forkPolicy = objectRecord(
-    (
-      await fetchBoundedJSON(
-        forkPolicyURL,
-        request.token,
-        dependencies,
-        false,
-        signal
-      )
-    ).value
-  )
-  if (typeof forkPolicy.run_workflows_from_fork_pull_requests !== 'boolean') {
+  if (typeof repository.private !== 'boolean') {
     throw new RepositoryWorkflowAuditError('unavailable')
   }
-  if (forkPolicy.run_workflows_from_fork_pull_requests) {
-    throw new RepositoryWorkflowAuditError('unsafe', [
-      {
-        path: '<repository-actions-policy>',
-        job: '*',
-        trigger: 'pull_request',
-        reason: 'untrusted-workflow-source',
-      },
-    ])
+  if (repository.private) {
+    const forkPolicyURL = new URL(
+      `repos/${encodeURIComponent(request.owner)}/${encodeURIComponent(
+        request.repository
+      )}/actions/permissions/fork-pr-workflows-private-repos`,
+      request.endpoint
+    )
+    const forkPolicy = objectRecord(
+      (
+        await fetchBoundedJSON(
+          forkPolicyURL,
+          request.token,
+          dependencies,
+          false,
+          signal
+        )
+      ).value
+    )
+    if (typeof forkPolicy.run_workflows_from_fork_pull_requests !== 'boolean') {
+      throw new RepositoryWorkflowAuditError('unavailable')
+    }
+    if (forkPolicy.run_workflows_from_fork_pull_requests) {
+      throw new RepositoryWorkflowAuditError('unsafe', [
+        {
+          path: '<repository-actions-policy>',
+          job: '*',
+          trigger: 'pull_request',
+          reason: 'untrusted-workflow-source',
+        },
+      ])
+    }
   }
   if (
     typeof repository.default_branch !== 'string' ||

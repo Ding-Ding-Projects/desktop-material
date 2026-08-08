@@ -226,23 +226,41 @@ describe('self-hosted runner setup contracts', () => {
     }
   })
 
-  it('blocks public or unknown repository visibility before reading workflows', async () => {
-    for (const repository of [{ private: false }, { default_branch: 'main' }]) {
-      const requests: IRecordedFetchRequest[] = []
-      await assert.rejects(
-        auditRepositoryWorkflowsForSelfHostedRunner(workflowAuditRequest, {
-          fetch: sequencedFetch([jsonResponse(repository)], requests),
-        }),
-        error =>
-          error instanceof RepositoryWorkflowAuditError &&
-          error.kind === 'public-repository'
-      )
-      assert.equal(requests.length, 1)
-      assert.equal(
-        requests[0].url,
-        'https://api.github.com/repos/owner/repository'
-      )
-    }
+  it('audits public repositories without the private-only fork policy endpoint', async () => {
+    const commitSHA = 'a'.repeat(40)
+    const requests: IRecordedFetchRequest[] = []
+    const result = await auditRepositoryWorkflowsForSelfHostedRunner(
+      workflowAuditRequest,
+      {
+        fetch: sequencedFetch(
+          [
+            jsonResponse({ private: false, default_branch: 'main' }),
+            jsonResponse({ sha: commitSHA }),
+            jsonResponse({}, 404),
+          ],
+          requests
+        ),
+      }
+    )
+    assert.deepEqual(result, { commitSHA, workflowCount: 0 })
+    assert.equal(requests.length, 3)
+    assert.doesNotMatch(requests[1].url, /fork-pr-workflows-private-repos/)
+  })
+
+  it('blocks unknown repository visibility before reading workflows', async () => {
+    const requests: IRecordedFetchRequest[] = []
+    await assert.rejects(
+      auditRepositoryWorkflowsForSelfHostedRunner(workflowAuditRequest, {
+        fetch: sequencedFetch(
+          [jsonResponse({ default_branch: 'main' })],
+          requests
+        ),
+      }),
+      error =>
+        error instanceof RepositoryWorkflowAuditError &&
+        error.kind === 'unavailable'
+    )
+    assert.equal(requests.length, 1)
   })
 
   it('fails closed unless private fork pull-request workflows cannot run', async () => {
@@ -675,7 +693,7 @@ describe('self-hosted runner setup contracts', () => {
     }
   })
 
-  it('rejects forged public-repository setup before creating managed files', async () => {
+  it('rejects setup when public-repository metadata is incomplete before creating managed files', async () => {
     const userData = await mkdtemp(join(tmpdir(), 'runner-public-setup-'))
     const managedRoot = join(userData, 'self-hosted-runners')
     const fetchMock = mock.method(globalThis, 'fetch', (async () =>
@@ -707,7 +725,7 @@ describe('self-hosted runner setup contracts', () => {
 
       assert.equal(reply.ok, false)
       if (!reply.ok) {
-        assert.equal(reply.code, 'public-repository-runner-disabled')
+        assert.equal(reply.code, 'workflow-trust-unavailable')
       }
       assert.equal(fetchMock.mock.callCount(), 1)
       await assert.rejects(access(managedRoot), { code: 'ENOENT' })
@@ -718,7 +736,7 @@ describe('self-hosted runner setup contracts', () => {
   })
 
   it(
-    'accepts complete built-in plus custom label sets for authoritative preflight',
+    'rejects incomplete public-repository metadata before authoritative preflight',
     { skip: process.platform !== 'win32' },
     async () => {
       const userData = await mkdtemp(join(tmpdir(), 'runner-preflight-labels-'))
@@ -748,7 +766,7 @@ describe('self-hosted runner setup contracts', () => {
         })
         assert.equal(accepted.ok, false)
         if (!accepted.ok) {
-          assert.equal(accepted.code, 'public-repository-runner-disabled')
+          assert.equal(accepted.code, 'workflow-trust-unavailable')
         }
 
         const refused = await manager.preflight({
@@ -1098,7 +1116,7 @@ describe('self-hosted runner setup contracts', () => {
     const cases = [
       {
         responses: () => [jsonResponse({ private: false })],
-        expectedCode: 'public-repository-runner-disabled',
+        expectedCode: 'workflow-trust-unavailable',
         expectedRequests: 1,
       },
       {
@@ -1674,7 +1692,7 @@ describe('self-hosted runner setup contracts', () => {
       repository
     )
 
-    for (const risks of [literal, dynamic, reusable, dynamicFallback, hosted]) {
+    for (const risks of [literal, dynamic, reusable, dynamicFallback]) {
       assert.deepEqual(risks, [
         {
           job: '*',
@@ -1683,6 +1701,7 @@ describe('self-hosted runner setup contracts', () => {
         },
       ])
     }
+    assert.deepEqual(hosted, [])
   })
 
   it('accepts only repository-main reusable calls and blocks proposed refs', () => {

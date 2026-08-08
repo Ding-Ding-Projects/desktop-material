@@ -18,6 +18,7 @@ const popoverFocusableSelector = [
 
 interface IPopoverDropdownProps {
   readonly className?: string
+  readonly disabled?: boolean
   readonly contentTitle: string
   readonly buttonContent: JSX.Element | string
   readonly buttonAriaLabel?: string
@@ -227,6 +228,7 @@ export class PopoverDropdown extends React.Component<
         <Button
           onClick={this.togglePopover}
           onButtonRef={this.onInvokeButtonRef}
+          disabled={this.props.disabled}
           id={this.openButtonId}
           className={this.props.openButtonClassName}
           ariaExpanded={this.state.showPopover}

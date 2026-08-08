@@ -9,7 +9,6 @@ import {
   getHTMLURL,
   getNextPagePathWithIncreasingPageSize,
   getOAuthAuthorizationURL,
-  GitHubOAuthRedirectURI,
   GitHubDotComRESTAPIVersion,
   GitHubRESTAPIVersionHeader,
 } from '../../src/lib/api'
@@ -76,10 +75,10 @@ describe('API', () => {
         authorization.searchParams.get('scope'),
         GitHubOAuthScopes.join(' ')
       )
-      assert.equal(
-        authorization.searchParams.get('redirect_uri'),
-        GitHubOAuthRedirectURI
-      )
+      // The shared GitHub Desktop OAuth application supplies the registered
+      // callback when redirect_uri is omitted. Sending the app protocol here
+      // makes GitHub reject the authorization request for this client.
+      assert.equal(authorization.searchParams.get('redirect_uri'), null)
       assert.equal(authorization.searchParams.get('state'), 'reviewed-state')
     })
   })

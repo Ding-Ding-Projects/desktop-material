@@ -21,9 +21,12 @@ credentials or machine-specific state in a repository.
   bounded job-log transfer retries, and visible recovery actions for transient
   provider 404 responses.
 - [Self-hosted GitHub Actions runner
-  manager](self-hosted-runner-manager.md) — private-repository-only Windows
-  runner setup with immutable workflow and pending-job audits, exact-account
-  credentials, lifecycle recovery, and fail-closed WSL controls.
+  manager](self-hosted-runner-manager.md) — Windows runner setup with a rich,
+  searchable account picker, immutable workflow and pending-job audits, public
+  workflow trust checks, exact-account credentials, lifecycle recovery, and
+  fail-closed WSL controls.
+- [GitHub OAuth login](github-oauth-login.md) — upstream-compatible GitHub
+  authorization and token exchange without an unregistered custom redirect.
 - [Local GitHub Actions runner](local-actions-runner.md)
 - [Local AI build repair with Codex or
   OpenCode](local-ai-build-fix.md)

@@ -2,6 +2,20 @@
 
 Updated: **August 7, 2026**
 
+## August 8 — repair GitHub auth and Actions runner surfaces
+
+- GitHub OAuth now follows the upstream Desktop authorization and token
+  exchange shape by omitting the unregistered custom `redirect_uri`.
+- The Windows self-hosted runner manager uses the rich searchable account
+  picker, preserves the repository's selected account, and audits public
+  repositories instead of blanket-blocking them. Unknown visibility and
+  workflows that can receive untrusted events remain fail-closed.
+- The Actions run list fills the available row while its detail pane is closed,
+  and release notes are isolated in their own collapsible section rather than
+  repeating inside release details.
+- Focused local verification is **130/130**; remote CI and release evidence
+  remain pending until the integrated commit is observed on `main`.
+
 ## August 7 — hardened self-hosted runner manager
 
 - The Windows Actions view now binds self-hosted runner setup to one exact

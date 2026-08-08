@@ -815,15 +815,6 @@ export class WindowsSelfHostedRunnerManager {
       this.throwIfOperationCancelled(signal)
       if (
         error instanceof RepositoryWorkflowAuditError &&
-        error.kind === 'public-repository'
-      ) {
-        throw new SelfHostedRunnerManagerError(
-          'public-repository-runner-disabled',
-          'Repository-scoped self-hosted runners are unavailable for public or unknown-visibility repositories on this personal workstation. Use a genuinely isolated disposable host or a restricted organization runner group.'
-        )
-      }
-      if (
-        error instanceof RepositoryWorkflowAuditError &&
         error.kind === 'unsafe'
       ) {
         const summary = error.findings

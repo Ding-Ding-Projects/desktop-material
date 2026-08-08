@@ -462,6 +462,13 @@
       d: 'Desktop Material automatically adds a small set of safe, read-only GitHub API functions to an eligible repository the first time its API functions surface is opened. The…',
     },
     {
+      t: 'GitHub OAuth login',
+      h: 'features/integrations/github-oauth-login.html',
+      s: 'features/integrations/github-oauth-login.md',
+      c: 'features',
+      d: 'Desktop Material uses the same GitHub OAuth request shape as the upstream GitHub Desktop client. The authorization request supplies the registered client ID, bounded feature…',
+    },
+    {
       t: 'Per-repository GitHub Packages explorer',
       h: 'features/integrations/github-packages-explorer.html',
       s: 'features/integrations/github-packages-explorer.md',

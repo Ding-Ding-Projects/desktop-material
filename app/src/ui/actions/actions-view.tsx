@@ -2323,6 +2323,7 @@ export class ActionsView extends React.Component<
                 width={this.state.runColumnWidth}
                 minimumWidth={ActionsRunColumnMinWidth}
                 maximumWidth={ActionsRunColumnMaxWidth}
+                fillAvailableWidth={selectedRun === null}
                 onResize={this.onRunColumnResize}
                 onReset={this.onRunColumnReset}
                 description="Workflow run list"

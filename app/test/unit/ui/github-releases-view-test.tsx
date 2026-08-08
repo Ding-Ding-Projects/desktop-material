@@ -238,6 +238,7 @@ describe('GitHub Releases view', () => {
       tagName: 'v0.9.0',
       name: 'Stable Material',
       draft: false,
+      body: '# Release notes\n\nStable body',
       publishedAt: new Date('2026-07-12T12:00:00Z'),
       authorLogin: 'release-bot',
     }
@@ -316,6 +317,12 @@ describe('GitHub Releases view', () => {
     assert.match(metadata.textContent ?? '', /StatusPublished/)
     assert.match(metadata.textContent ?? '', /Author@release-bot/)
     assert.match(metadata.textContent ?? '', /Loaded assets1 · 3 downloads/)
+    assert.equal(metadata.querySelector('.github-release-notes'), null)
+    assert.equal(document.querySelectorAll('.github-release-notes').length, 1)
+    assert.equal(
+      screen.getAllByRole('button', { name: 'Release notes' }).length,
+      1
+    )
     assert.ok(screen.getByText('application/octet-stream'))
     const timestamps = [...document.querySelectorAll('time')]
     assert.ok(timestamps.length >= 6)

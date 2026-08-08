@@ -913,7 +913,7 @@
   }
 }
 
-.github-release-notes > p {
+.github-release-notes > .collapsible-section-content > p {
   max-height: 240px;
   padding-right: 4px;
   overflow: auto;

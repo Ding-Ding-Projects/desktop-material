@@ -4,6 +4,15 @@
 
 # Desktop Material
 
+> **GitHub Actions and OAuth repair — August 8, 2026:** the Windows Actions
+> view now uses a searchable rich account picker, audits public repositories
+> instead of blanket-blocking them, fills the run-list row when no detail is
+> open, and keeps release notes outside the Release details dropdown. GitHub
+> sign-in follows the upstream Desktop OAuth request shape and omits the
+> unregistered custom `redirect_uri`. Focused source verification passes
+> **130/130**; remote CI and release evidence remain pending until the
+> integrated `main` commit is observed.
+
 > **Stash recovery manager:** the Windows app now keeps every Git stash entry
 > without a Desktop entry-count cap and provides a separate searchable dialog
 > for exact-identity recovery and export to a directory, ZIP, or configurable

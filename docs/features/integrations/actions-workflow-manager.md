@@ -28,6 +28,11 @@ workflow** uses the same five workflow-level states, so opening a second list
 does not make timing disappear. Reviewed bulk re-run/cancel lists retain the
 same per-run elapsed label in their confirmation dialog.
 
+When no run is selected, the run list expands to fill the available row instead
+of preserving the old fixed 55/45 split. Selecting a run restores the resizable
+detail pane. The list and detail states therefore use the same bounded layout
+without leaving a large empty surface beside an unselected run list.
+
 The duration answers the question a workflow list is usually opened to answer:
 *which of these is the slow one?* Before it existed, comparing two workflows'
 cost meant opening each run individually, or leaving the app for the web UI.

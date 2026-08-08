@@ -6289,13 +6289,15 @@ export function getOAuthAuthorizationURL(
   state: string
 ): string {
   const urlBase = getHTMLURL(endpoint)
-  const scope = encodeURIComponent(GitHubOAuthScopes.join(' '))
-  const redirectURI = encodeURIComponent(GitHubOAuthRedirectURI)
-
-  return new window.URL(
-    `/login/oauth/authorize?client_id=${ClientID}&redirect_uri=${redirectURI}&scope=${scope}&state=${state}`,
-    urlBase
-  ).toString()
+  const url = new window.URL('/login/oauth/authorize', urlBase)
+  // Keep this request aligned with the upstream GitHub Desktop OAuth flow.
+  // The OAuth application's registered callback is the source of truth; an
+  // explicit custom-scheme redirect_uri is rejected when this build uses the
+  // shared GitHub Desktop client registration.
+  url.searchParams.set('client_id', ClientID ?? '')
+  url.searchParams.set('scope', GitHubOAuthScopes.join(' '))
+  url.searchParams.set('state', state)
+  return url.toString()
 }
 
 export async function requestOAuthToken(
@@ -6312,7 +6314,6 @@ export async function requestOAuthToken(
       {
         client_id: ClientID,
         client_secret: ClientSecret,
-        redirect_uri: GitHubOAuthRedirectURI,
         code: code,
       }
     )
