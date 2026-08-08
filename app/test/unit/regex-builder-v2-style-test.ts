@@ -182,6 +182,29 @@ describe('Regex builder v2 style contract', () => {
     assert.doesNotMatch(styles, /\brgba?\(/)
   })
 
+  it('keeps keyboard focus visible across every interactive control', () => {
+    for (const selector of [
+      '.regex-builder-close',
+      '.regex-builder-view-tab',
+      '.regex-builder-pattern-field',
+      '.regex-builder-icon-button',
+      '.regex-flag-chip',
+      '.regex-builder-category',
+      '.regex-builder-token',
+      '.regex-test-sample',
+      '.regex-builder-cancel',
+      '.regex-builder-apply',
+    ]) {
+      assert.match(
+        styles,
+        new RegExp(
+          `${selector.replace(/\./g, '\\.')}\\s*\\{[\\s\\S]*?&:focus(?:-within|-visible)\\s*\\{[\\s\\S]*?var\\(--md-sys-color-primary\\)`,
+          'm'
+        )
+      )
+    }
+  })
+
   it('avoids title attributes on the new controls', () => {
     assert.doesNotMatch(builder, /\btitle=/)
     assert.doesNotMatch(guide, /\btitle=/)
