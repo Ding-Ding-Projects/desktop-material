@@ -198,7 +198,10 @@ describe('Regex builder v2 style contract', () => {
       assert.match(
         styles,
         new RegExp(
-          `${selector.replace(/\./g, '\\.')}\\s*\\{[\\s\\S]*?&:focus(?:-within|-visible)\\s*\\{[\\s\\S]*?var\\(--md-sys-color-primary\\)`,
+          `${selector.replace(
+            /\./g,
+            '\\.'
+          )}\\s*\\{[\\s\\S]*?&:focus(?:-within|-visible)\\s*\\{[\\s\\S]*?var\\(--md-sys-color-primary\\)`,
           'm'
         )
       )

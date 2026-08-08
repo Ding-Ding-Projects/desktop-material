@@ -39,4 +39,19 @@ describe('shared filter control hit targets', () => {
       /\.github-releases-search-field \{[\s\S]*?min-width: 32px;[\s\S]*?height: 32px;/
     )
   })
+
+  it('keeps every shared filter action keyboard-visible', () => {
+    assert.match(
+      styles,
+      /\.filter-mode-button,\s*\.filter-case-button\s*\{[\s\S]*?&:focus-visible\s*\{[\s\S]*?var\(--md-sys-color-primary\)/
+    )
+    assert.match(
+      styles,
+      /\.filter-regex-builder-button\s*\{[\s\S]*?&:focus-visible\s*\{[\s\S]*?var\(--md-sys-color-primary\)/
+    )
+    assert.match(
+      styles,
+      /\.filter-chip\s*\{[\s\S]*?&:focus-visible\s*\{[\s\S]*?var\(--md-sys-color-primary\)/
+    )
+  })
 })

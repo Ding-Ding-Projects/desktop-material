@@ -35,9 +35,7 @@ function walkScssFiles(dir: string): ReadonlyArray<string> {
 }
 
 function stripComments(text: string): string {
-  return text
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/^\s*\/\/.*$/gm, '')
+  return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
 }
 
 describe('style token contracts', () => {
