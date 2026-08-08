@@ -2,8 +2,22 @@ import { Branch, BranchType } from '../../models/branch'
 import { WorktreeEntry } from '../../models/worktree'
 
 export type MergeAllMode = 'branches' | 'worktrees'
+export interface IMergeAllOptions {
+  /**
+   * Checkpoint, synchronize, and publish a linked worktree before merging its
+   * branch. This remains opt-in because it creates a real commit.
+   */
+  readonly checkpointDirtyWorktrees: boolean
+}
+
+export const DefaultMergeAllOptions: IMergeAllOptions = {
+  checkpointDirtyWorktrees: false,
+}
+
 export type MergeAllPhase =
   | 'preparing'
+  | 'committing'
+  | 'pulling'
   | 'merging'
   | 'resolving'
   | 'cleaning'

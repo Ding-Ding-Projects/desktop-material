@@ -124,7 +124,10 @@ import type {
   IAutomationSettingsOverrides,
   IAutomationSettingsState,
 } from '../../lib/automation/automation-settings'
-import type { MergeAllMode } from '../../lib/automation/merge-all'
+import type {
+  IMergeAllOptions,
+  MergeAllMode,
+} from '../../lib/automation/merge-all'
 import type {
   IPullAllCandidate,
   PullAllProgressListener,
@@ -832,9 +835,10 @@ export class Dispatcher {
 
   public mergeAllIntoDefaultBranch(
     repository: Repository,
-    mode: MergeAllMode
+    mode: MergeAllMode,
+    options?: IMergeAllOptions
   ): Promise<void> {
-    return this.appStore._mergeAllIntoDefaultBranch(repository, mode)
+    return this.appStore._mergeAllIntoDefaultBranch(repository, mode, options)
   }
 
   public cancelMergeAll(repository: Repository): void {
