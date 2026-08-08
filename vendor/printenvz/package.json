@@ -5,10 +5,10 @@
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {
-    "install": "node-gyp rebuild",
-    "build": "node-gyp build",
-    "clean": "node-gyp clean",
-    "rebuild": "node-gyp rebuild"
+    "install": "node build.mjs --rebuild",
+    "build": "node build.mjs --build",
+    "clean": "node build.mjs --clean",
+    "rebuild": "node build.mjs --rebuild"
   },
   "gypfile": true,
   "dependencies": {

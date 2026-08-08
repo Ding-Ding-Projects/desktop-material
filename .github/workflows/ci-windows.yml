@@ -132,9 +132,8 @@ jobs:
           ref: ${{ inputs.ref }}
       - name: Bootstrap Git and Bash for self-hosted Windows
         if: runner.environment == 'self-hosted'
-        run:
-          powershell -NoProfile -ExecutionPolicy Bypass -File
-          .github/scripts/ensure-windows-git-bash.ps1
+        shell: cmd
+        run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
       - name: Repeat checkout with bootstrapped Git
         if: runner.environment == 'self-hosted'
         uses: actions/checkout@v7.0.1
@@ -266,9 +265,8 @@ jobs:
           ref: ${{ inputs.ref }}
       - name: Bootstrap Git and Bash for self-hosted Windows
         if: runner.environment == 'self-hosted'
-        run:
-          powershell -NoProfile -ExecutionPolicy Bypass -File
-          .github/scripts/ensure-windows-git-bash.ps1
+        shell: cmd
+        run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
       - name: Repeat checkout with bootstrapped Git
         if: runner.environment == 'self-hosted'
         uses: actions/checkout@v7.0.1
@@ -289,7 +287,7 @@ jobs:
       - name: Select mock update server port
         uses: ./.github/actions/setup-e2e-update-port
       - name: Build production app
-        run: yarn build:prod
+        run: yarn build:prod:e2e
         env:
           npm_config_arch: ${{ matrix.arch }}
           TARGET_ARCH: ${{ matrix.arch }}

@@ -3,11 +3,10 @@ name: Super Express Release
 # Manual emergency lane. It deliberately runs no tests, lint, type checks,
 # parity checks, or smoke tests. The ordinary CI and Express Release workflows
 # remain the tested release paths. Every job in this emergency lane runs on a
-# registered self-hosted runner: Linux jobs use the WSL runner and the Windows
-# package uses the native Windows runner. The Windows and Linux TUI build jobs
-# run in parallel, then one Linux self-hosted publisher creates the combined
-# Release so the Squirrel update feed and the TUI bootstrap URL still point at
-# one payload.
+# GitHub-hosted runner: Linux jobs use ubuntu-latest and the Windows package
+# uses windows-2022. The Windows and Linux TUI build jobs run in parallel,
+# then one Linux publisher creates the combined Release so the Squirrel
+# update feed and the TUI bootstrap URL still point at one payload.
 on:
   workflow_dispatch:
     inputs:
@@ -32,11 +31,7 @@ env:
 jobs:
   prepare:
     name: Prepare exact release target
-    runs-on:
-      - self-hosted
-      - Linux
-      - X64
-      - desktop-material-wsl-local
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     outputs:
@@ -105,17 +100,13 @@ jobs:
           echo "sha=$RELEASE_TARGET_SHA" >> "$GITHUB_OUTPUT"
 
   windows_build:
-    name: Build Windows x64 package (self-hosted)
+    name: Build Windows x64 package
     needs: prepare
     permissions:
       contents: read
     outputs:
       artifact_name: ${{ steps.package.outputs.artifact_name }}
-    runs-on:
-      - self-hosted
-      - Windows
-      - X64
-      - desktop-material-windows-local
+    runs-on: windows-2022
     timeout-minutes: 60
     steps:
       - name: Initial checkout for Windows bootstrap
@@ -124,9 +115,8 @@ jobs:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
       - name: Bootstrap Git and Bash for self-hosted Windows
-        run:
-          powershell -NoProfile -ExecutionPolicy Bypass -File
-          .github/scripts/ensure-windows-git-bash.ps1
+        shell: cmd
+        run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
       - name: Repeat checkout with bootstrapped Git
         uses: actions/checkout@v7.0.1
         with:
@@ -153,15 +143,11 @@ jobs:
             ${{ secrets.DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT }}
 
   tui_build:
-    name: Build Linux TUI packages (self-hosted)
+    name: Build Linux TUI packages
     needs: prepare
     outputs:
       artifact_name: ${{ steps.package.outputs.artifact_name }}
-    runs-on:
-      - self-hosted
-      - Linux
-      - X64
-      - desktop-material-wsl-local
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7.0.1
@@ -186,11 +172,7 @@ jobs:
       !cancelled() && always() && needs.prepare.result == 'success' &&
       needs.windows_build.result == 'success' && needs.tui_build.result ==
       'success' && inputs.publish
-    runs-on:
-      - self-hosted
-      - Linux
-      - X64
-      - desktop-material-wsl-local
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     env:
@@ -314,11 +296,7 @@ jobs:
     if: >-
       !cancelled() && always() && needs.prepare.result == 'success' &&
       needs.prepare_publication.result == 'success' && inputs.publish
-    runs-on:
-      - self-hosted
-      - Linux
-      - X64
-      - desktop-material-wsl-local
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
@@ -401,9 +379,10 @@ jobs:
             exit 1
           fi
           published_assets=$(cat release-payload/published-assets.txt)
+          # GitHub's release asset API normalizes spaces in this filename.
           for expected in \
             'RELEASES' \
-            'GitHub Desktop-x64.zip' \
+            'GitHub.Desktop-x64.zip' \
             'GitHubDesktopSetup-x64.exe' \
             'GitHubDesktopSetup-x64.msi' \
             "GitHubDesktop-${RELEASE_VERSION}-full.nupkg" \

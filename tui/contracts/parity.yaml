@@ -4,9 +4,9 @@
   "generator": "tui/tools/generate-parity-contract.mjs",
   "source": {
     "path": "docs/readme-tabs/complete-feature-list.md",
-    "sha256": "d5e64785f295bbe8b0477e01a575654b411ca5f346d9a8192fb3a88ae0255f82",
-    "declared_feature_count": 208,
-    "parsed_feature_count": 208,
+    "sha256": "285271559329d7b48277c403243845762c321d7890a458d667922d0c6562cf9f",
+    "declared_feature_count": 210,
+    "parsed_feature_count": 210,
     "section_count": 17
   },
   "semantics": {
@@ -17,7 +17,7 @@
   },
   "status_summary": {
     "adapted": 49,
-    "not_yet_available": 95,
+    "not_yet_available": 97,
     "partial": 62,
     "terminal_owned": 2
   },
@@ -700,6 +700,17 @@
       "title": "Clone queue settings",
       "upstream_relation": "added",
       "desktop_documentation": "../features/repository-management/clone-queue-settings.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-opt-in-post-clone-actions-runner",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Opt-in post-clone Actions runner",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/post-clone-runner-provisioning.md",
       "tui_status": "not_yet_available",
       "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
       "evidence": []
@@ -1910,6 +1921,17 @@
         "tui/tests/unit/infrastructure/github/test_client.py",
         "tui/tests/ui/test_github_actions_surface.py"
       ]
+    },
+    {
+      "id": "9-self-hosted-github-actions-runner-manager",
+      "section": 9,
+      "section_title": "GitHub Actions, releases, and packages",
+      "title": "Self-hosted GitHub Actions runner manager",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/self-hosted-runner-manager.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
     },
     {
       "id": "9-local-github-actions-runner",

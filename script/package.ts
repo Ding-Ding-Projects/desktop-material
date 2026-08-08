@@ -91,6 +91,7 @@ function packageWindows() {
   console.log(`Portable Windows ZIP created at ${portableZip}`)
 
   const nugetPkgName = getWindowsIdentifierName()
+  const makeDelta = shouldMakeDelta()
   const options: electronInstaller.Options = {
     name: nugetPkgName,
     appDirectory: distPath,
@@ -103,9 +104,12 @@ function packageWindows() {
     title: productName,
     setupExe: getWindowsStandaloneName(),
     setupMsi: getWindowsInstallerName(),
+    // Keep Squirrel.Windows aligned with the release policy. Full-only
+    // releases must not enter the fragile delta-compression path.
+    noDelta: !makeDelta,
   }
 
-  if (shouldMakeDelta()) {
+  if (makeDelta) {
     const url = new URL(getUpdatesURL())
     // Make sure Squirrel.Windows isn't affected by partially or completely
     // disabled releases.
@@ -125,7 +129,7 @@ function packageWindows() {
       const arch = getDistArchitecture()
       const prefix = `${getWindowsIdentifierName()}-${getVersion()}`
 
-      for (const kind of shouldMakeDelta() ? ['full', 'delta'] : ['full']) {
+      for (const kind of makeDelta ? ['full', 'delta'] : ['full']) {
         const from = join(outputDir, `${prefix}-${kind}.nupkg`)
         const to = join(outputDir, `${prefix}-${arch}-${kind}.nupkg`)
 

@@ -94,7 +94,34 @@ export async function listWorktrees(
     'listWorktrees'
   )
 
-  return addCreationTimes(parseWorktreePorcelainOutput(result.stdout))
+  return enrichWorktreeStatus(
+    await addCreationTimes(parseWorktreePorcelainOutput(result.stdout))
+  )
+}
+
+async function enrichWorktreeStatus(
+  entries: ReadonlyArray<WorktreeEntry>
+): Promise<ReadonlyArray<WorktreeEntry>> {
+  return Promise.all(
+    entries.map(async entry => {
+      if (entry.isPrunable) {
+        return { ...entry, dirtyFileCount: null }
+      }
+      try {
+        const status = await git(
+          ['status', '--porcelain', '--untracked-files=all'],
+          entry.path,
+          'listWorktreeStatus'
+        )
+        return {
+          ...entry,
+          dirtyFileCount: status.stdout.split(/\r?\n/).filter(Boolean).length,
+        }
+      } catch {
+        return { ...entry, dirtyFileCount: null }
+      }
+    })
+  )
 }
 
 export async function listWorktreesFromGitDir(

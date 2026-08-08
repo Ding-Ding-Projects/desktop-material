@@ -43,6 +43,10 @@ const superExpressWindowsBuildAction = readFileSync(
   'utf8'
 )
 const packageScript = readFileSync(join(root, 'script', 'package.ts'), 'utf8')
+const productionWebpackRunner = readFileSync(
+  join(root, 'script', 'run-webpack-production.mjs'),
+  'utf8'
+)
 const githubCliAction = readFileSync(
   join(root, '.github', 'actions', 'setup-github-cli', 'action.yml'),
   'utf8'
@@ -110,6 +114,7 @@ interface IWorkflowStep {
   if?: string
   name?: string
   run?: string
+  shell?: string
   uses?: string
   with?: Record<string, unknown>
   env?: Record<string, unknown>
@@ -118,6 +123,7 @@ interface IWorkflowStep {
 
 interface IWorkflowJob {
   'runs-on'?: string | string[]
+  defaults?: { run?: { shell?: string } }
   env?: Record<string, unknown>
   permissions?: Record<string, string>
   steps?: IWorkflowStep[]
@@ -189,9 +195,10 @@ function assertWindowsBootstrapBeforeTrueCheckout(
   assert.equal(initialCheckout.name, 'Initial checkout for Windows bootstrap')
   assert.equal(initialCheckout.uses, 'actions/checkout@v7.0.1')
   assert.equal(bootstrap.name, 'Bootstrap Git and Bash for self-hosted Windows')
+  assert.equal(bootstrap.shell, 'cmd')
   assert.equal(
     bootstrap.run,
-    'powershell -NoProfile -ExecutionPolicy Bypass -File .github/scripts/ensure-windows-git-bash.ps1'
+    '%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd'
   )
   assert.equal(repeatedCheckout.name, 'Repeat checkout with bootstrapped Git')
   assert.equal(repeatedCheckout.uses, 'actions/checkout@v7.0.1')
@@ -650,10 +657,12 @@ describe('CI workflow safety', () => {
         assert.notEqual(jobsWithRunners.length, 0)
         for (const [jobName, job] of jobsWithRunners) {
           assert.equal(
-            Array.isArray(job['runs-on']) &&
-              job['runs-on'].includes('self-hosted'),
+            typeof job['runs-on'] === 'string' &&
+              ['ubuntu-latest', 'windows-2022'].includes(
+                job['runs-on'] as string
+              ),
             true,
-            `${file}:${jobName} must remain explicitly self-hosted`
+            `${file}:${jobName} must use an approved hosted runner`
           )
         }
         continue
@@ -667,20 +676,6 @@ describe('CI workflow safety', () => {
             job['runs-on'],
             windowsDesktopRunnerExpression,
             `${file}:${jobName} must expose only the protected cloud/self-hosted choice`
-          )
-          continue
-        }
-        if (
-          file === 'build-installers.yml' &&
-          ['test', 'package'].includes(jobName)
-        ) {
-          assert.equal(
-            Array.isArray(job['runs-on']) &&
-              job['runs-on'].includes('self-hosted') &&
-              job['runs-on'].includes('Windows') &&
-              job['runs-on'].includes('desktop-material-windows-local'),
-            true,
-            `${file}:${jobName} must use the labelled self-hosted Windows runner`
           )
           continue
         }
@@ -719,11 +714,10 @@ describe('CI workflow safety', () => {
     }
   })
 
-  it('keeps Windows Express and every Super Express job self-hosted', () => {
-    assert.deepEqual(getSelfHostedJobNames(installerWorkflowDocument), [
-      'test',
-      'package',
-    ])
+  it('keeps Windows Express and every Super Express job on hosted runners', () => {
+    assert.deepEqual(getSelfHostedJobNames(installerWorkflowDocument), [])
+    assertJobRunsOn(installerWorkflowDocument, 'test', 'windows-2022')
+    assertJobRunsOn(installerWorkflowDocument, 'package', 'windows-2022')
     assert.match(
       installerWorkflow,
       /^  group: build-installers-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}$/m
@@ -739,14 +733,16 @@ describe('CI workflow safety', () => {
     ]) {
       assertJobRunsOn(installerWorkflowDocument, jobName, 'ubuntu-latest')
     }
-    assert.match(
-      superExpressWorkflow,
-      /- Windows\s*\n\s+- X64\s*\n\s+- desktop-material-windows-local/
-    )
-    assert.match(
-      superExpressWorkflow,
-      /- Linux\s*\n\s+- X64\s*\n\s+- desktop-material-wsl-local/
-    )
+    for (const [jobName, job] of Object.entries(
+      superExpressWorkflowDocument.jobs ?? {}
+    )) {
+      assert.equal(
+        typeof job['runs-on'] === 'string' &&
+          ['ubuntu-latest', 'windows-2022'].includes(job['runs-on'] as string),
+        true,
+        `super-express-release.yml:${jobName} must use an approved hosted runner`
+      )
+    }
   })
 
   it('enumerates every Windows self-hosted job and its cold bootstrap path', () => {
@@ -791,10 +787,12 @@ describe('CI workflow safety', () => {
       entry =>
         entry.job === 'publish' && entry.workflow.endsWith('-windows.yml')
     )
-    assert.deepEqual(
-      publisher?.bootstrapComponents,
-      selfHostedWindowsJobInventory.releaseBootstrapComponents
-    )
+    if (publisher !== undefined) {
+      assert.deepEqual(
+        publisher.bootstrapComponents,
+        selfHostedWindowsJobInventory.releaseBootstrapComponents
+      )
+    }
   })
 
   it('bootstraps Git and Bash before every self-hosted-capable Windows job uses Git', () => {
@@ -824,8 +822,9 @@ describe('CI workflow safety', () => {
     assert.equal(coldBootstrapIndex, 3)
     assert.equal(
       expressTestSteps[coldBootstrapIndex].run,
-      'powershell -NoProfile -ExecutionPolicy Bypass -File .github/scripts/test-windows-release-bootstrap.ps1'
+      '%GITHUB_WORKSPACE%\\.github\\scripts\\test-windows-release-bootstrap.cmd'
     )
+    assert.equal(expressTestSteps[coldBootstrapIndex].shell, 'cmd')
   })
 
   it('keeps combined release preparation read-only by default', () => {
@@ -876,6 +875,8 @@ describe('CI workflow safety', () => {
       packageScript,
       /const options: electronInstaller\.Options = \{[\s\S]*?setupMsi: getWindowsInstallerName\(\),[\s\S]*?\}/
     )
+    assert.match(packageScript, /const makeDelta = shouldMakeDelta\(\)/)
+    assert.match(packageScript, /noDelta:\s*!makeDelta/)
     assert.match(
       packageScript,
       /electronInstaller\s*\.createWindowsInstaller\(options\)/
@@ -918,7 +919,7 @@ describe('CI workflow safety', () => {
     )
     assert.match(
       superExpressWindowsWorkflow,
-      /publish:[\s\S]*?runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64\s*\n\s+- desktop-material-windows-local/
+      /publish:[\s\S]*?runs-on: windows-2022/
     )
     assert.doesNotMatch(superExpressWindowsWorkflow, /ubuntu-latest/)
     assert.match(
@@ -981,7 +982,7 @@ describe('CI workflow safety', () => {
     )
     assert.match(
       installerWorkflow,
-      /package:[\s\S]*?runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64\s*\n\s+- desktop-material-windows-local[\s\S]*?permissions:\s*\n\s+contents: read[\s\S]*?NODE_ENV: production[\s\S]*?RELEASE_CHANNEL: beta/
+      /package:[\s\S]*?runs-on: windows-2022[\s\S]*?permissions:\s*\n\s+contents: read[\s\S]*?NODE_ENV: production[\s\S]*?RELEASE_CHANNEL: beta/
     )
     assert.match(
       installerWorkflow,
@@ -1060,6 +1061,14 @@ describe('CI workflow safety', () => {
   })
 
   it('builds, packages, and exercises the app on safe runner choices', () => {
+    assert.match(
+      productionWebpackRunner,
+      /NODE_OPTIONS = '--max_old_space_size=16384'/
+    )
+    assert.match(
+      productionWebpackRunner,
+      /WEBPACK_DISABLE_CONCURRENT_RECOMPILATION === '1'[\s\S]*?--no-concurrent-recompilation[\s\S]*?--no-opt/
+    )
     assertJobRunsOn(windowsWorkflowDocument, 'windows-tui-core', 'windows-2022')
     for (const jobName of ['build', 'e2e-smoke']) {
       assert.equal(
@@ -1087,6 +1096,13 @@ describe('CI workflow safety', () => {
     )
     assert.match(windowsWorkflow, /workflow_call:\s+inputs:\s+repository:/)
     assert.match(windowsWorkflow, /Install app on Windows/)
+    assert.equal(
+      getNamedStep(
+        getJob(windowsWorkflowDocument, 'e2e-smoke'),
+        'Build production app'
+      ).run,
+      'yarn build:prod:e2e'
+    )
     assert.match(
       windowsWorkflow,
       /Enable Git long paths for Windows TUI tests\s+run: git config core\.longpaths true/
@@ -1102,11 +1118,27 @@ describe('CI workflow safety', () => {
   })
 
   it('preserves Windows installers when normal CI tests fail', () => {
+    assert.equal(
+      getJob(installerWorkflowDocument, 'package').defaults?.run?.shell,
+      'powershell -NoProfile -ExecutionPolicy Bypass -Command ". \'{0}\'"'
+    )
     const windowsBuildJob = windowsWorkflow.match(
       /\r?\n  build:\r?\n([\s\S]*?)(?=\r?\n  e2e-smoke:\r?\n)/
     )
     assert.notEqual(windowsBuildJob, null)
     const source = windowsBuildJob?.[1] ?? ''
+
+    assert.equal(
+      getNamedStep(
+        getJob(installerWorkflowDocument, 'package'),
+        'Build production app'
+      ).env?.WEBPACK_DISABLE_CONCURRENT_RECOMPILATION,
+      '1'
+    )
+    assert.match(
+      superExpressWindowsBuildAction,
+      /name: Build production app[\s\S]*?WEBPACK_DISABLE_CONCURRENT_RECOMPILATION: '1'/
+    )
 
     assert.match(
       source,

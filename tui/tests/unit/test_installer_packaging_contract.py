@@ -139,7 +139,7 @@ def test_ci_publishes_and_exercises_the_complete_payload() -> None:
     assert "TUI_BOOTSTRAP_NAME" in release
 
 
-def test_super_express_uses_a_native_linux_zero_test_packaging_lane() -> None:
+def test_super_express_uses_a_hosted_linux_zero_test_packaging_lane() -> None:
     lane = _read(
         REPOSITORY_ROOT
         / ".github"
@@ -155,12 +155,7 @@ def test_super_express_uses_a_native_linux_zero_test_packaging_lane() -> None:
     )
 
     assert "workflow_call:" in lane
-    assert re.search(
-        r"runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64\s*$",
-        lane,
-        re.MULTILINE,
-    )
-    assert not re.search(r"\b(?:ubuntu|windows|macos)[-_][A-Za-z0-9.]+\b", lane, re.IGNORECASE)
+    assert re.search(r"runs-on:\s+ubuntu-latest\s*$", lane, re.MULTILINE)
     assert "./.github/actions/super-express-linux-tui-build" in lane
     assert "uv build --clear" in build_action
     assert "uv export --locked --no-dev --no-emit-project --no-hashes" in build_action

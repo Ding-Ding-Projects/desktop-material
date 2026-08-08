@@ -1,6 +1,43 @@
 # Desktop Material roadmap
 
-Updated: **August 6, 2026**
+Updated: **August 7, 2026**
+
+## August 7 — hardened self-hosted runner manager
+
+- The Windows Actions view now binds self-hosted runner setup to one exact
+  account, private repository, and proposed label set. Setup and every later
+  start require private-fork pull-request workflows to be disabled, one
+  immutable default-branch workflow audit to pass, and two complete stable
+  pending-job snapshots to contain no job that can claim the runner.
+- Registration tokens remain in main-process memory and outside command-line
+  arguments, existing registrations are never replaced, official runner
+  packages are digest-verified, and readiness requires the exact new runner and
+  label set to appear online. Exclusive operation leases, owned process-tree
+  termination, lifecycle journaling, interrupted-operation reconciliation, and
+  stable remote-absence checks keep cancellation, shutdown, recovery, and
+  removal fail-closed.
+- Native Windows setup and control are implemented. Linux-in-WSL management
+  remains deliberately disabled until in-distribution process-group
+  cancellation can be proved; a WSL distribution is not treated as isolation
+  from Windows files or network access.
+- Focused local verification passes **48/48**: **38/38** main-process contracts
+  and **10/10** manager UI contracts. The broader Windows suite, exact
+  production build, hidden-desktop runtime exercise, live runner registration,
+  and remote CI verdict remain pending.
+- Behaviour, configuration, failure recovery, security boundaries,
+  accessibility, and verification are documented in
+  `docs/features/integrations/self-hosted-runner-manager.md`.
+
+## August 7 — opt-in post-clone runner provisioning
+
+- A single interactive clone of a private GitHub/GitHub Enterprise repository
+  can opt in to create a repository-scoped Windows or dedicated WSL/Linux
+  Actions runner after the clone is registered.
+- The option defaults off, demands explicit workflow-author trust, is excluded
+  from public, batch, and automatic clone paths, and preserves a successful
+  clone when runner provisioning needs recovery.
+- Focused source and option tests cover the intent and safety boundary. A live
+  runner setup remains pending an authorized private repository and host.
 
 ## August 6 — Windows renderer startup bundle safety
 

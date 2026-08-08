@@ -525,6 +525,13 @@
       d: 'Open Releases from a GitHub repository rail to search and status-filter the bounded loaded catalog, select a release, inspect metadata and assets, or enter the existing…',
     },
     {
+      t: 'Self-hosted GitHub Actions runner manager',
+      h: 'features/integrations/self-hosted-runner-manager.html',
+      s: 'features/integrations/self-hosted-runner-manager.md',
+      c: 'features',
+      d: 'Desktop Material can set up and control a repository-scoped GitHub Actions runner on the Windows computer that is running the app. The manager lives in the repository Actions…',
+    },
+    {
       t: 'Self-hosted Windows dependency bootstrap',
       h: 'features/integrations/self-hosted-windows-dependency-bootstrap.html',
       s: 'features/integrations/self-hosted-windows-dependency-bootstrap.md',
@@ -929,6 +936,13 @@
       s: 'features/repository-management/patch-series.md',
       c: 'features',
       d: 'Open Repository → Repository tools → Exchange patch series to move a reviewable sequence of commits without publishing a branch.',
+    },
+    {
+      t: 'Opt-in post-clone runner provisioning',
+      h: 'features/repository-management/post-clone-runner-provisioning.html',
+      s: 'features/repository-management/post-clone-runner-provisioning.md',
+      c: 'features',
+      d: 'Desktop Material can create a repository-scoped GitHub Actions self-hosted runner immediately after an interactive clone succeeds. The choice is off by default, applies to one…',
     },
     {
       t: 'Private-repository lock badge',

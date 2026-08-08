@@ -254,11 +254,7 @@ jobs:
     name: Express tests Windows x64
     if: github.event_name == 'workflow_dispatch'
     needs: prepare
-    runs-on:
-      - self-hosted
-      - Windows
-      - X64
-      - desktop-material-windows-local
+    runs-on: windows-2022
     timeout-minutes: 45
     permissions:
       contents: read
@@ -268,17 +264,15 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
       - name: Bootstrap Git and Bash for self-hosted Windows
-        run:
-          powershell -NoProfile -ExecutionPolicy Bypass -File
-          .github/scripts/ensure-windows-git-bash.ps1
+        shell: cmd
+        run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
       - name: Repeat checkout with bootstrapped Git
         uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.prepare.outputs.sha }}
       - name: Prove cold Windows release bootstrap
-        run:
-          powershell -NoProfile -ExecutionPolicy Bypass -File
-          .github/scripts/test-windows-release-bootstrap.ps1
+        shell: cmd
+        run: "%GITHUB_WORKSPACE%\\.github\\scripts\\test-windows-release-bootstrap.cmd"
       - name: Attempt to update submodules (non-fatal)
         continue-on-error: true
         run: |
@@ -557,14 +551,13 @@ jobs:
       needs.prepare.outputs.proceed == 'true' &&
       needs.prepare.outputs.windows_ok == 'true'
     needs: prepare
-    runs-on:
-      - self-hosted
-      - Windows
-      - X64
-      - desktop-material-windows-local
+    runs-on: windows-2022
     timeout-minutes: 60
     permissions:
       contents: read
+    defaults:
+      run:
+        shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
     env:
       RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
@@ -577,9 +570,8 @@ jobs:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
       - name: Bootstrap Git and Bash for self-hosted Windows
-        run:
-          powershell -NoProfile -ExecutionPolicy Bypass -File
-          .github/scripts/ensure-windows-git-bash.ps1
+        shell: cmd
+        run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
       - name: Repeat checkout with bootstrapped Git
         uses: actions/checkout@v7.0.1
         with:
@@ -607,6 +599,7 @@ jobs:
       - name: Build production app
         run: yarn build:prod
         env:
+          WEBPACK_DISABLE_CONCURRENT_RECOMPILATION: '1'
           npm_config_arch: x64
           TARGET_ARCH: x64
       - name: Package production app

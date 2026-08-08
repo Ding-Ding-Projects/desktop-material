@@ -2,6 +2,9 @@
   "compilerOptions": {
     "module": "commonjs",
     "moduleResolution": "node",
+    "ignoreDeprecations": "6.0",
+    "types": ["node"],
+    "rootDir": ".",
     "target": "ES2022",
     "esModuleInterop": true,
     "resolveJsonModule": true,

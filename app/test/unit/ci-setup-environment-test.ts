@@ -22,6 +22,17 @@ const postInstallScript = readFileSync(
   join(process.cwd(), 'script/post-install.ts'),
   'utf8'
 )
+const printenvzPackage = JSON.parse(
+  readFileSync(join(process.cwd(), 'vendor/printenvz/package.json'), 'utf8')
+) as { scripts?: Record<string, string> }
+const printenvzBuildScript = readFileSync(
+  join(process.cwd(), 'vendor/printenvz/build.mjs'),
+  'utf8'
+)
+const printenvzVerifier = readFileSync(
+  join(process.cwd(), 'script/verify-printenvz.mjs'),
+  'utf8'
+)
 const frozenManifestVerifier = join(
   process.cwd(),
   'script',
@@ -71,6 +82,7 @@ interface ICompositeActionStep {
   shell?: string
   uses?: string
   with?: Record<string, unknown>
+  env?: Record<string, string>
 }
 
 interface ICompositeActionDocument {
@@ -107,17 +119,13 @@ describe('CI environment setup', () => {
       preferGitBashStep?.if,
       "${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}"
     )
-    assert.match(
-      setupAction,
-      /shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '\{0\}'"/
-    )
     assert.equal(
       setupAction.match(
-        /shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '\{0\}'"/g
+        /shell: cmd\r?\n\s+run: .*ensure-windows-git-bash\.cmd/g
       )?.length,
-      2
+      1
     )
-    assert.doesNotMatch(setupAction, /^\s*shell: powershell\s*$/m)
+    assert.match(setupAction, /ensure-windows-git-bash\.cmd/)
     assert.doesNotMatch(setupAction, /shell: pwsh/)
     assert.match(setupAction, /ensure-windows-git-bash\.ps1/)
     assert.match(setupAction, /Install uv for self-hosted Windows Python/)
@@ -386,8 +394,47 @@ describe('CI environment setup', () => {
     )
     assert.match(
       setupAction,
+      /Check cached dependencies[\s\S]*?node_modules\/printenvz\/build\/Release\/printenvz\.exe/
+    )
+    assert.match(
+      setupAction,
+      /Verify installed dependencies before use[\s\S]*?node_modules\/printenvz\/build\/Release\/printenvz\.exe/
+    )
+    assert.match(
+      setupAction,
+      /Cached printenvz executable failed its bounded smoke test[\s\S]*?script\/verify-printenvz\.mjs/
+    )
+    assert.match(
+      setupAction,
+      /script\/verify-printenvz\.mjs[\s\S]*?inputs\.arch/
+    )
+    assert.match(printenvzVerifier, /readUInt16LE\(peOffset \+ 4\)/)
+    assert.match(printenvzVerifier, /0xaa64/)
+    assert.match(printenvzVerifier, /0x8664/)
+    assert.match(printenvzVerifier, /hostArchitecture !== targetArchitecture/)
+    assert.match(
+      setupAction,
       /Install and build dependencies[\s\S]*?cache-hit != 'true'[\s\S]*?yarn --frozen-lockfile/
     )
+    assert.equal(printenvzPackage.scripts?.install, 'node build.mjs --rebuild')
+    assert.equal(printenvzPackage.scripts?.build, 'node build.mjs --build')
+    assert.equal(printenvzPackage.scripts?.rebuild, 'node build.mjs --rebuild')
+    assert.match(printenvzBuildScript, /requiresWindowsDirectCompiler/)
+    assert.match(printenvzBuildScript, /node-gyp\/bin\/node-gyp\.js/)
+    assert.match(printenvzBuildScript, /VsDevCmd\.bat/)
+    assert.match(printenvzBuildScript, /vcvarsall\.bat/)
+    assert.match(printenvzBuildScript, /vswhere\.exe/)
+    assert.match(printenvzBuildScript, /discoverVisualStudioInstallation/)
+    assert.match(printenvzBuildScript, /printenvz-build\.cmd/)
+    assert.match(printenvzBuildScript, /-arch=\$\{targetArchitecture\}/)
+    assert.match(printenvzBuildScript, /cl\.exe \/nologo \/O2 \/MT/)
+    assert.match(
+      printenvzBuildScript,
+      /rmSync\(buildRoot, \{ recursive: true, force: true \}\)/
+    )
+    const dependencyInstallStep = getNamedStep('Install and build dependencies')
+    assert.equal(dependencyInstallStep.env?.NODE_ENV, 'development')
+    assert.equal(dependencyInstallStep.env?.YARN_PRODUCTION, 'false')
     assert.match(
       postInstallScript,
       /\[\s*path,\s*'--cwd',\s*'app',\s*'install',\s*'--force',\s*'--frozen-lockfile'\s*\]/

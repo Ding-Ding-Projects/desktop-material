@@ -132,7 +132,7 @@ scripts against the same cache, proving the warm path revalidates and reuses the
 cached bytes:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .github/scripts/test-windows-release-bootstrap.ps1
+\.github\scripts\test-windows-release-bootstrap.cmd
 ```
 
 The focused workflow and bootstrap contracts are:

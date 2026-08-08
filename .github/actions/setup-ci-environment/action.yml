@@ -13,9 +13,8 @@ runs:
   steps:
     - name: Reuse or install Git Bash on Windows self-hosted runners
       if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
-      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
-      run:
-        '& "$env:GITHUB_WORKSPACE\.github\scripts\ensure-windows-git-bash.ps1"'
+      shell: cmd
+      run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
 
     - name: Install Windows arm64 C++ toolset when missing
       if:
@@ -261,6 +260,7 @@ runs:
           Windows)
             required+=(
               node_modules/electron/dist/electron.exe
+              node_modules/printenvz/build/Release/printenvz.exe
               "app/node_modules/@github/copilot-win32-${{ inputs.arch }}/package.json"
             )
             ;;
@@ -284,6 +284,10 @@ runs:
             cache_complete=false
           fi
         done
+        if [ "$RUNNER_OS" = 'Windows' ] && [ -f node_modules/printenvz/build/Release/printenvz.exe ] && ! node script/verify-printenvz.mjs "${{ inputs.arch }}"; then
+          echo 'Cached printenvz executable failed its bounded smoke test.' >&2
+          cache_complete=false
+        fi
         playwright_ffmpeg=false
         for root in "$HOME/.cache/ms-playwright" "$HOME/AppData/Local/ms-playwright"; do
           if [ -d "$root" ] && find "$root" \
@@ -370,6 +374,11 @@ runs:
 
         exit 1
       env:
+        # The post-install hook compiles TypeScript and therefore needs the
+        # repository's dev type packages even when the caller packages with
+        # NODE_ENV=production later in the job.
+        NODE_ENV: development
+        YARN_PRODUCTION: 'false'
         npm_config_arch: ${{ inputs.arch }}
         TARGET_ARCH: ${{ inputs.arch }}
 
@@ -449,6 +458,7 @@ runs:
           Windows)
             required+=(
               node_modules/electron/dist/electron.exe
+              node_modules/printenvz/build/Release/printenvz.exe
               "app/node_modules/@github/copilot-win32-${{ inputs.arch }}/package.json"
             )
             ;;
@@ -471,6 +481,9 @@ runs:
             exit 1
           fi
         done
+        if [ "$RUNNER_OS" = 'Windows' ]; then
+          node script/verify-printenvz.mjs "${{ inputs.arch }}"
+        fi
         playwright_ffmpeg=false
         for root in "$HOME/.cache/ms-playwright" "$HOME/AppData/Local/ms-playwright"; do
           if [ -d "$root" ] && find "$root" \

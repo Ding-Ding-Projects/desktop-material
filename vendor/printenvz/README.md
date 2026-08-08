@@ -16,7 +16,10 @@ A minimal Node.js native module that provides a compiled executable to output al
 npm install
 ```
 
-This will automatically build the native executable using node-gyp.
+This automatically builds the native executable. Linux and macOS use
+node-gyp; Windows compiles the standalone C source through the selected Visual
+Studio developer environment, avoiding an unnecessary Node-header/MSBuild
+project for this executable.
 
 ## Usage
 

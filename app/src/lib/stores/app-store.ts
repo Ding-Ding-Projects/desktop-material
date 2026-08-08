@@ -757,6 +757,8 @@ import { AutomationScheduler } from './helpers/automation-scheduler'
 import {
   IMergeAllCandidate,
   IMergeAllResult,
+  DefaultMergeAllOptions,
+  IMergeAllOptions,
   IMergeAllState,
   MergeAllMode,
   selectBranchCandidates,
@@ -2707,9 +2709,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
       this.accounts = accounts
       this.syncCopilotModelsFromCache()
       this.updateCopilotModelsForCurrentAccount()
-      const endpointTokens = accounts.map<EndpointToken>(
-        ({ endpoint, token }) => ({ endpoint, token })
-      )
+      const endpointTokens = accounts.map<EndpointToken>(account => ({
+        endpoint: account.endpoint,
+        token: account.token,
+        accountKey: getAccountKey(account),
+      }))
 
       updateAccounts(endpointTokens)
 
@@ -10302,7 +10306,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   public async _mergeAllIntoDefaultBranch(
     repository: Repository,
-    mode: MergeAllMode
+    mode: MergeAllMode,
+    options: IMergeAllOptions = DefaultMergeAllOptions
   ): Promise<void> {
     if (!this.isTemporaryRepositoryActive(repository)) {
       return
@@ -10327,7 +10332,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.emitUpdate()
 
     try {
-      await this.performMergeAll(repository, mode, controller.signal)
+      await this.performMergeAll(repository, mode, options, controller.signal)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       if (this.isTemporaryRepositoryActive(repository)) {
@@ -10381,6 +10386,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private async performMergeAll(
     repository: Repository,
     mode: MergeAllMode,
+    options: IMergeAllOptions,
     signal: AbortSignal
   ): Promise<void> {
     await this._refreshRepository(repository)
@@ -10468,6 +10474,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       const outcome = await this.mergeAllCandidate(
         repository,
         candidate,
+        options,
         signal
       )
       if (signal.aborted || !this.isTemporaryRepositoryActive(repository)) {
@@ -10502,6 +10509,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private async mergeAllCandidate(
     repository: Repository,
     candidate: IMergeAllCandidate,
+    options: IMergeAllOptions,
     signal: AbortSignal
   ): Promise<IMergeAllResult> {
     const base = {
@@ -10517,10 +10525,24 @@ export class AppStore extends TypedBaseStore<IAppState> {
           'mergeAllWorktreeStatus'
         )
         if (status.stdout.trim().length > 0) {
-          return {
-            ...base,
-            status: 'skipped',
-            detail: 'Worktree has uncommitted changes.',
+          if (!options.checkpointDirtyWorktrees) {
+            return {
+              ...base,
+              status: 'skipped',
+              detail: 'Worktree has uncommitted changes.',
+            }
+          }
+          const checkpointFailure = await this.checkpointDirtyMergeAllWorktree(
+            repository,
+            candidate,
+            signal
+          )
+          if (checkpointFailure !== null) {
+            return {
+              ...base,
+              status: 'skipped',
+              detail: checkpointFailure,
+            }
           }
         }
       }
@@ -10598,6 +10620,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
       }
       completedStatus = status
 
+      if (signal.aborted || !this.isTemporaryRepositoryActive(repository)) {
+        throw new Error('Merge all cancelled before cleanup.')
+      }
+
       this.updateMergeAllState(repository, {
         phase: 'cleaning',
         currentBranch: candidate.branch.name,
@@ -10655,6 +10681,146 @@ export class AppStore extends TypedBaseStore<IAppState> {
         detail: error instanceof Error ? error.message : String(error),
       }
     }
+  }
+
+  /**
+   * Make an explicit, ordinary Git checkpoint in a linked worktree before the
+   * batch merge owns and removes it. We fetch first, fast-forward only when
+   * the remote is ahead, then publish the checkpoint. A divergent remote is
+   * left untouched instead of manufacturing a merge or rewriting history.
+   */
+  private async checkpointDirtyMergeAllWorktree(
+    repository: Repository,
+    candidate: IMergeAllCandidate,
+    signal: AbortSignal
+  ): Promise<string | null> {
+    const worktree = candidate.worktree
+    if (worktree === undefined) {
+      return null
+    }
+    if (signal.aborted || !this.isTemporaryRepositoryActive(repository)) {
+      throw new Error('Merge all cancelled.')
+    }
+
+    let checkpointFailure: string | null = null
+    await this.withCanonicalRemoteForNetwork(repository, false, async live => {
+      await this.withPushPullFetch(live, async () => {
+        try {
+          const remoteName = candidate.branch.upstreamRemoteName
+          const remoteBranch = candidate.branch.upstreamWithoutRemote
+          if (remoteName === null || remoteBranch === null) {
+            checkpointFailure =
+              'The dirty worktree has no tracked remote branch, so it was not changed.'
+            return
+          }
+          const remote = (await getRemotes(live)).find(
+            candidateRemote => candidateRemote.name === remoteName
+          )
+          if (remote === undefined) {
+            checkpointFailure = `The tracked remote ${remoteName} is unavailable, so the worktree was not changed.`
+            return
+          }
+          const accountKey = getRepositoryCredentialAccountKey(
+            this.accounts,
+            live
+          )
+          const networkOptions = {
+            env: await envForRemoteOperation(remote.url),
+            credentialAccountKey: accountKey,
+          }
+
+          this.updateMergeAllState(live, {
+            phase: 'pulling',
+            currentBranch: candidate.branch.name,
+          })
+          await git(
+            ['fetch', remoteName],
+            worktree.path,
+            'mergeAllFetchWorktree',
+            networkOptions
+          )
+          const aheadBehind = await git(
+            [
+              'rev-list',
+              '--left-right',
+              '--count',
+              `${candidate.branch.name}...${candidate.branch.upstream}`,
+            ],
+            worktree.path,
+            'mergeAllWorktreeAheadBehind'
+          )
+          const [aheadText, behindText] = aheadBehind.stdout.trim().split(/\s+/)
+          const ahead = Number(aheadText)
+          const behind = Number(behindText)
+          if (!Number.isFinite(ahead) || !Number.isFinite(behind)) {
+            checkpointFailure =
+              'Git did not return a valid remote comparison for the worktree.'
+            return
+          }
+          if (ahead > 0 && behind > 0) {
+            checkpointFailure =
+              'The worktree and its remote have diverged; it was not changed.'
+            return
+          }
+          if (behind > 0) {
+            await git(
+              ['pull', '--ff-only', remoteName, remoteBranch],
+              worktree.path,
+              'mergeAllPullIncomingWorktree',
+              networkOptions
+            )
+          }
+          if (signal.aborted || !this.isTemporaryRepositoryActive(live)) {
+            throw new Error('Merge all cancelled.')
+          }
+
+          this.updateMergeAllState(live, {
+            phase: 'committing',
+            currentBranch: candidate.branch.name,
+          })
+          await git(
+            ['add', '--all'],
+            worktree.path,
+            'mergeAllCheckpointWorktreeChanges'
+          )
+          const commit = await git(
+            ['commit', '-m', 'Checkpoint pending work before merge'],
+            worktree.path,
+            'mergeAllCheckpointWorktreeCommit',
+            { successExitCodes: new Set([0, 1]) }
+          )
+          if (commit.exitCode !== 0) {
+            checkpointFailure = 'The worktree changes could not be committed.'
+            return
+          }
+          if (signal.aborted || !this.isTemporaryRepositoryActive(live)) {
+            throw new Error('Merge all cancelled.')
+          }
+
+          this.updateMergeAllState(live, {
+            phase: 'pushing',
+            currentBranch: candidate.branch.name,
+          })
+          await git(
+            ['push', remoteName, `${candidate.branch.name}:${remoteBranch}`],
+            worktree.path,
+            'mergeAllPushWorktreeCheckpoint',
+            networkOptions
+          )
+          if (signal.aborted || !this.isTemporaryRepositoryActive(live)) {
+            throw new Error('Merge all cancelled.')
+          }
+        } catch (error) {
+          if (signal.aborted) {
+            throw error
+          }
+          checkpointFailure = `The worktree checkpoint/sync/push failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        }
+      })
+    })
+    return checkpointFailure
   }
 
   /** Open or close the notification centre side sheet. */

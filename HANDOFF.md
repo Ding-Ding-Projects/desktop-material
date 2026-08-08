@@ -1,5 +1,72 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-07 — Opt-in post-clone runner provisioning
+
+**Scope:** Single interactive private GitHub/GitHub Enterprise clones can opt
+in to a Windows or dedicated WSL/Linux self-hosted runner. The clone dialog
+keeps the feature off by default, requires a workflow-author trust acknowledgement,
+does not expose it for public repositories, and excludes batch/background
+clones. `Dispatcher.clone` triggers provisioning only after the new repository
+is registered and its canonical GitHub remote matches the original selection.
+
+**Changed:** Clone options, clone dialog and dispatcher, the trusted runner
+manager, clone styles, focused tests, and repository-management documentation.
+The main process now independently verifies that the target repository remains
+private before allocating a local runner, WSL distribution, download, or
+registration token.
+
+**Verification:** focused clone option/UI tests pass **8/8**, the root
+TypeScript check passes, and the documentation catalog check passes **19/19**.
+A real runner needs an authorized private repository plus a Windows/WSL host,
+so no local test claims live registration.
+
+## 2026-08-07 — Harden the Windows self-hosted runner manager
+
+The Windows Actions view now treats a managed GitHub Actions runner as one
+repository-scoped, exact-account operation. Public or unknown-visibility
+repositories are blocked. For a private repository, setup and every later
+start prove that private-fork pull-request workflows are disabled, resolve one
+default-branch commit, audit every workflow from that immutable commit, and
+scan complete stable pending-run and job inventories for any labels that could
+claim the runner. The setup-form result is bound to its current account and
+proposed labels; **Start** deliberately performs a fresh audit against the
+runner's live labels.
+
+The main process keeps one-time registration and removal tokens in memory and
+keeps Windows registration tokens out of command-line arguments. It never uses
+runner replacement, rejects duplicate or inconsistent paginated inventories,
+verifies the official runner package digest, and waits for the exact new
+registration and complete label set to be online before reporting readiness.
+Process ownership, process-tree termination, stopped-state postconditions,
+exclusive operation leases, a lifecycle journal, restart reconciliation, and
+stable GitHub absence checks now cover setup, start, stop, cancellation,
+scheduled trust rechecks, removal, and shutdown. Ambiguous registration or
+local metadata retains recoverable state instead of guessing that cleanup
+succeeded.
+
+The UI exposes contextual setup and start preflights, both security
+acknowledgements, runner-specific accessible controls, cancellable in-flight
+operations, and an irreversible removal dialog that keeps exact progress open
+after submission. Suggested labels stay within 64 characters without losing
+the platform suffix. Linux-in-WSL management is visibly disabled until the app
+can prove in-distribution process-group cancellation; WSL is not presented as
+isolation from the Windows host.
+
+Focused local verification on the current source passes **48/48** tests:
+`app/test/unit/self-hosted-runner-contract-test.ts` is **38/38**, and
+`app/test/unit/ui/self-hosted-runner-manager-test.tsx` is **10/10**. The command
+was:
+
+```powershell
+node script/test.mjs app/test/unit/self-hosted-runner-contract-test.ts app/test/unit/ui/self-hosted-runner-manager-test.tsx
+```
+
+The broader Windows app suite, exact production build, hidden-desktop runtime
+exercise, live runner registration, and remote CI verdict remain pending. The
+current source is not yet a published or remotely verified result. Detailed
+behaviour and recovery guidance are in
+`docs/features/integrations/self-hosted-runner-manager.md`.
+
 ## 2026-08-07 — Repair Windows CI, release contracts, and Pages validation
 
 Repair commit `fef8e7e5574d88dbd2f5720a2c0d5799a44032bb` restores the

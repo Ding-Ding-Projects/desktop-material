@@ -74,7 +74,7 @@ const releaseTokenExpression =
 
 function assertExactRunnerLabels(
   document: IWorkflowDocument,
-  expected: Readonly<Record<string, readonly string[]>>
+  expected: Readonly<Record<string, string | readonly string[]>>
 ): void {
   const jobs = document.jobs ?? {}
   assert.deepEqual(Object.keys(jobs).sort(), Object.keys(expected).sort())
@@ -163,32 +163,22 @@ function assertExactActiveVersionStep(
 }
 
 describe('Super Express Release workflow', () => {
-  it('pins every job to its complete custom runner label set', () => {
-    const linuxLabels = [
-      'self-hosted',
-      'Linux',
-      'X64',
-      'desktop-material-wsl-local',
-    ] as const
-    const windowsLabels = [
-      'self-hosted',
-      'Windows',
-      'X64',
-      'desktop-material-windows-local',
-    ] as const
+  it('pins every job to its approved hosted runner', () => {
+    const linuxRunner = 'ubuntu-latest'
+    const windowsRunner = 'windows-2022'
 
     assertExactRunnerLabels(workflowDocument, {
-      prepare: linuxLabels,
-      windows_build: windowsLabels,
-      tui_build: linuxLabels,
-      prepare_publication: linuxLabels,
-      publish: linuxLabels,
+      prepare: linuxRunner,
+      windows_build: windowsRunner,
+      tui_build: linuxRunner,
+      prepare_publication: linuxRunner,
+      publish: linuxRunner,
     })
     assertExactRunnerLabels(windowsWorkflowDocument, {
-      build: windowsLabels,
-      publish: windowsLabels,
+      build: windowsRunner,
+      publish: windowsRunner,
     })
-    assertExactRunnerLabels(tuiWorkflowDocument, { build: linuxLabels })
+    assertExactRunnerLabels(tuiWorkflowDocument, { build: linuxRunner })
   })
 
   it('scopes the exact release-token chain to every API step that needs it', () => {
@@ -209,17 +199,14 @@ describe('Super Express Release workflow', () => {
     ])
   })
 
-  it('is manual-only and dispatches self-hosted-only zero-test build lanes', () => {
+  it('is manual-only and dispatches hosted zero-test build lanes', () => {
     assert.match(workflow, /on:\s*\n\s+workflow_dispatch:/)
     assert.doesNotMatch(workflow, /\n\s+(?:push|workflow_run):/)
     assert.match(
       workflow,
-      /prepare:\s*\n\s+name: Prepare exact release target\s*\n\s+runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/
+      /prepare:\s*\n\s+name: Prepare exact release target\s*\n\s+runs-on: ubuntu-latest/
     )
-    assert.match(
-      workflow,
-      /publish:[\s\S]*?runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/
-    )
+    assert.match(workflow, /publish:[\s\S]*?runs-on: ubuntu-latest/)
     assert.doesNotMatch(workflow, /fromJSON\(needs\./)
     assert.doesNotMatch(
       workflow,
@@ -229,14 +216,8 @@ describe('Super Express Release workflow', () => {
       workflow,
       /GH_TOKEN:\s*\n\s+\$\{\{\s*secrets\.RELEASE_TOKEN\s*\|\|\s*secrets\.ORG_TOKEN\s*\|\|\s*secrets\.GITHUB_TOKEN\s*\}\}/
     )
-    assert.match(
-      workflow,
-      /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/
-    )
-    assert.match(
-      workflow,
-      /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/
-    )
+    assert.match(workflow, /runs-on: windows-2022/)
+    assert.match(workflow, /runs-on: ubuntu-latest/)
     assert.match(
       workflow,
       /uses: \.\/\.github\/actions\/super-express-windows-build/
@@ -283,7 +264,7 @@ describe('Super Express Release workflow', () => {
     )
     assert.match(
       windowsBuildAction,
-      /Prefer Git Bash on Windows self-hosted runners[\s\S]*?shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '\{0\}'"[\s\S]*?ensure-windows-git-bash\.ps1/
+      /Prefer Git Bash on Windows self-hosted runners[\s\S]*?shell: cmd[\s\S]*?ensure-windows-git-bash\.cmd/
     )
     assert.doesNotMatch(windowsBuildAction, /^\s*shell: powershell\s*$/m)
     assert.doesNotMatch(windowsBuildAction, /shell: pwsh/)
@@ -292,10 +273,7 @@ describe('Super Express Release workflow', () => {
       /cloud|fallback|runner_selection|use_self_hosted/
     )
     assert.match(windowsWorkflow, /build:/)
-    assert.match(
-      windowsWorkflow,
-      /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64/
-    )
+    assert.match(windowsWorkflow, /runs-on: windows-2022/)
     assert.match(windowsWorkflow, /super-express-windows-build/)
     assert.match(windowsBuildAction, /yarn build:prod/)
     assert.match(windowsBuildAction, /yarn package/)
@@ -317,10 +295,7 @@ describe('Super Express Release workflow', () => {
       /cloud|fallback|runner_selection|use_self_hosted/
     )
     assert.match(tuiWorkflow, /build:/)
-    assert.match(
-      tuiWorkflow,
-      /runs-on:\s*\n\s+- self-hosted\s*\n\s+- Linux\s*\n\s+- X64/
-    )
+    assert.match(tuiWorkflow, /runs-on: ubuntu-latest/)
     assert.match(tuiWorkflow, /super-express-linux-tui-build/)
     assert.match(tuiBuildAction, /uv python install 3\.12/)
     assert.doesNotMatch(tuiBuildAction, /actions\/setup-python@v7/)
