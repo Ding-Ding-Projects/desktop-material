@@ -1,4 +1,5 @@
 import * as Path from 'path'
+import * as Fs from 'fs/promises'
 import type { Repository } from '../../models/repository'
 import type { WorktreeEntry, WorktreeType } from '../../models/worktree'
 import { git } from './core'
@@ -62,6 +63,26 @@ export function parseWorktreePorcelainOutput(
   return entries
 }
 
+async function addCreationTimes(
+  entries: ReadonlyArray<WorktreeEntry>
+): Promise<ReadonlyArray<WorktreeEntry>> {
+  return Promise.all(
+    entries.map(async entry => {
+      try {
+        const stats = await Fs.stat(entry.path)
+        const createdAt = stats.birthtimeMs || stats.ctimeMs
+        return Number.isFinite(createdAt) && createdAt > 0
+          ? { ...entry, createdAt }
+          : entry
+      } catch {
+        // A prunable worktree may no longer exist; keep it visible without
+        // inventing a timestamp.
+        return entry
+      }
+    })
+  )
+}
+
 export async function listWorktrees(
   repositoryOrPath: Repository | string
 ): Promise<ReadonlyArray<WorktreeEntry>> {
@@ -73,7 +94,7 @@ export async function listWorktrees(
     'listWorktrees'
   )
 
-  return parseWorktreePorcelainOutput(result.stdout)
+  return addCreationTimes(parseWorktreePorcelainOutput(result.stdout))
 }
 
 export async function listWorktreesFromGitDir(
@@ -85,7 +106,7 @@ export async function listWorktreesFromGitDir(
     'listWorktreesFromGitDir'
   )
 
-  return parseWorktreePorcelainOutput(result.stdout)
+  return addCreationTimes(parseWorktreePorcelainOutput(result.stdout))
 }
 
 export async function addWorktree(
