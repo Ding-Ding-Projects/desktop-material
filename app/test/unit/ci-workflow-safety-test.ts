@@ -265,6 +265,7 @@ function assertReleasePublisherLeastPrivilege(
 
   const mutationSteps = new Set([
     publishStepName,
+    'Finalize exact workflow timing in release notes',
     'Reconcile Latest to the newest main release',
   ])
   for (const step of publisher.steps ?? []) {
