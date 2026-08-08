@@ -657,10 +657,12 @@ describe('CI workflow safety', () => {
         assert.notEqual(jobsWithRunners.length, 0)
         for (const [jobName, job] of jobsWithRunners) {
           assert.equal(
-            Array.isArray(job['runs-on']) &&
-              job['runs-on'].includes('self-hosted'),
+            typeof job['runs-on'] === 'string' &&
+              ['ubuntu-latest', 'windows-2022'].includes(
+                job['runs-on'] as string
+              ),
             true,
-            `${file}:${jobName} must remain explicitly self-hosted`
+            `${file}:${jobName} must use an approved hosted runner`
           )
         }
         continue
@@ -674,20 +676,6 @@ describe('CI workflow safety', () => {
             job['runs-on'],
             windowsDesktopRunnerExpression,
             `${file}:${jobName} must expose only the protected cloud/self-hosted choice`
-          )
-          continue
-        }
-        if (
-          file === 'build-installers.yml' &&
-          ['test', 'package'].includes(jobName)
-        ) {
-          assert.equal(
-            Array.isArray(job['runs-on']) &&
-              job['runs-on'].includes('self-hosted') &&
-              job['runs-on'].includes('Windows') &&
-              job['runs-on'].includes('desktop-material-windows-local'),
-            true,
-            `${file}:${jobName} must use the labelled self-hosted Windows runner`
           )
           continue
         }
@@ -726,11 +714,10 @@ describe('CI workflow safety', () => {
     }
   })
 
-  it('keeps Windows Express and every Super Express job self-hosted', () => {
-    assert.deepEqual(getSelfHostedJobNames(installerWorkflowDocument), [
-      'test',
-      'package',
-    ])
+  it('keeps Windows Express and every Super Express job on hosted runners', () => {
+    assert.deepEqual(getSelfHostedJobNames(installerWorkflowDocument), [])
+    assertJobRunsOn(installerWorkflowDocument, 'test', 'windows-2022')
+    assertJobRunsOn(installerWorkflowDocument, 'package', 'windows-2022')
     assert.match(
       installerWorkflow,
       /^  group: build-installers-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}$/m
@@ -746,14 +733,16 @@ describe('CI workflow safety', () => {
     ]) {
       assertJobRunsOn(installerWorkflowDocument, jobName, 'ubuntu-latest')
     }
-    assert.match(
-      superExpressWorkflow,
-      /- Windows\s*\n\s+- X64\s*\n\s+- desktop-material-windows-local/
-    )
-    assert.match(
-      superExpressWorkflow,
-      /- Linux\s*\n\s+- X64\s*\n\s+- desktop-material-wsl-local/
-    )
+    for (const [jobName, job] of Object.entries(
+      superExpressWorkflowDocument.jobs ?? {}
+    )) {
+      assert.equal(
+        typeof job['runs-on'] === 'string' &&
+          ['ubuntu-latest', 'windows-2022'].includes(job['runs-on'] as string),
+        true,
+        `super-express-release.yml:${jobName} must use an approved hosted runner`
+      )
+    }
   })
 
   it('enumerates every Windows self-hosted job and its cold bootstrap path', () => {
@@ -798,10 +787,12 @@ describe('CI workflow safety', () => {
       entry =>
         entry.job === 'publish' && entry.workflow.endsWith('-windows.yml')
     )
-    assert.deepEqual(
-      publisher?.bootstrapComponents,
-      selfHostedWindowsJobInventory.releaseBootstrapComponents
-    )
+    if (publisher !== undefined) {
+      assert.deepEqual(
+        publisher.bootstrapComponents,
+        selfHostedWindowsJobInventory.releaseBootstrapComponents
+      )
+    }
   })
 
   it('bootstraps Git and Bash before every self-hosted-capable Windows job uses Git', () => {
@@ -928,7 +919,7 @@ describe('CI workflow safety', () => {
     )
     assert.match(
       superExpressWindowsWorkflow,
-      /publish:[\s\S]*?runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64\s*\n\s+- desktop-material-windows-local/
+      /publish:[\s\S]*?runs-on: windows-2022/
     )
     assert.doesNotMatch(superExpressWindowsWorkflow, /ubuntu-latest/)
     assert.match(
@@ -991,7 +982,7 @@ describe('CI workflow safety', () => {
     )
     assert.match(
       installerWorkflow,
-      /package:[\s\S]*?runs-on:\s*\n\s+- self-hosted\s*\n\s+- Windows\s*\n\s+- X64\s*\n\s+- desktop-material-windows-local[\s\S]*?permissions:\s*\n\s+contents: read[\s\S]*?NODE_ENV: production[\s\S]*?RELEASE_CHANNEL: beta/
+      /package:[\s\S]*?runs-on: windows-2022[\s\S]*?permissions:\s*\n\s+contents: read[\s\S]*?NODE_ENV: production[\s\S]*?RELEASE_CHANNEL: beta/
     )
     assert.match(
       installerWorkflow,

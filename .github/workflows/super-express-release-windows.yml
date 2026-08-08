@@ -1,8 +1,8 @@
 name: Super Express Release / Windows
 
-# Reusable zero-test Windows lane for Super Express Release. Packaging stays on
-# the trusted labelled Windows runner so both packaging and publication reuse
-# the same bounded self-hosted dependency and tool caches.
+# Reusable zero-test Windows lane for Super Express Release. Packaging and
+# publication both run on GitHub-hosted windows-2022 runners and bootstrap
+# their own pinned Git Bash, GitHub CLI, and jq tooling.
 on:
   workflow_call:
     inputs:
@@ -39,7 +39,7 @@ env:
 
 jobs:
   build:
-    name: Build Windows x64 package (self-hosted)
+    name: Build Windows x64 package
     # Reusable calls may only come from this repository's protected main
     # workflow. Manual emergency dispatch remains the only direct caller.
     if: >-
@@ -52,11 +52,7 @@ jobs:
       release_version: ${{ steps.package.outputs.release_version }}
       release_tag: ${{ steps.package.outputs.release_tag }}
       artifact_name: ${{ steps.package.outputs.artifact_name }}
-    runs-on:
-      - self-hosted
-      - Windows
-      - X64
-      - desktop-material-windows-local
+    runs-on: windows-2022
     timeout-minutes: 60
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
@@ -121,11 +117,7 @@ jobs:
       !cancelled() && github.event_name == 'workflow_dispatch' &&
       needs.build.result == 'success'
     needs: build
-    runs-on:
-      - self-hosted
-      - Windows
-      - X64
-      - desktop-material-windows-local
+    runs-on: windows-2022
     timeout-minutes: 30
     permissions:
       contents: write

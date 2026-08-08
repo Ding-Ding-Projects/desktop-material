@@ -254,11 +254,7 @@ jobs:
     name: Express tests Windows x64
     if: github.event_name == 'workflow_dispatch'
     needs: prepare
-    runs-on:
-      - self-hosted
-      - Windows
-      - X64
-      - desktop-material-windows-local
+    runs-on: windows-2022
     timeout-minutes: 45
     permissions:
       contents: read
@@ -555,11 +551,7 @@ jobs:
       needs.prepare.outputs.proceed == 'true' &&
       needs.prepare.outputs.windows_ok == 'true'
     needs: prepare
-    runs-on:
-      - self-hosted
-      - Windows
-      - X64
-      - desktop-material-windows-local
+    runs-on: windows-2022
     timeout-minutes: 60
     permissions:
       contents: read
