@@ -2,6 +2,7 @@ import React from 'react'
 import { getAheadBehind, revSymmetricDifference } from '../../../lib/git'
 import { determineMergeability } from '../../../lib/git/merge-tree'
 import { getBranchesNotUpdatedWithDefault } from '../../../lib/git/not-updated-with-default'
+
 import { Branch, BranchType } from '../../../models/branch'
 import { ComputedAction } from '../../../models/computed-action'
 import { MergeTreeResult } from '../../../models/merge'
@@ -350,12 +351,14 @@ export class MergeChooseBranchDialog extends React.Component<
   private canDeleteSelectedBranch = (): boolean => {
     const { selectedBranch, commitCount, mergeStatus, mergeStatusKnown } =
       this.state
+
     const { currentBranch, defaultBranch } = this.props
 
     if (
       selectedBranch === null ||
       mergeStatus?.kind !== ComputedAction.Clean ||
       mergeStatusKnown !== true ||
+
       commitCount !== 0
     ) {
       return false
@@ -369,6 +372,7 @@ export class MergeChooseBranchDialog extends React.Component<
         selectedBranch.type === BranchType.Remote &&
         selectedBranch.nameWithoutRemote === currentBranch.nameWithoutRemote
       ) &&
+
       selectedBranch.nameWithoutRemote !== defaultBranch?.nameWithoutRemote
     )
   }
@@ -389,6 +393,7 @@ export class MergeChooseBranchDialog extends React.Component<
         repository,
         branch: selectedBranch,
         expectedSha: selectedBranch.tip.sha,
+
       })
       return
     }
@@ -398,6 +403,7 @@ export class MergeChooseBranchDialog extends React.Component<
       repository,
       branch: selectedBranch,
       expectedSha: selectedBranch.tip.sha,
+
       existsOnRemote:
         selectedBranch.upstreamRemoteName !== null &&
         selectedBranch.isGone !== true,
@@ -432,6 +438,7 @@ export class MergeChooseBranchDialog extends React.Component<
         dialogTitle={this.getDialogTitle()}
         onSelectionChanged={this.onSelectionChanged}
         customFilters={this.getBranchFilters()}
+
         renderAdditionalActions={this.renderDeleteBranchButton}
       >
         {this.renderStatusPreview()}

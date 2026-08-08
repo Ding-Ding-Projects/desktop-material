@@ -15,6 +15,7 @@ mock.module('../../../src/lib/git', {
   namedExports: {
     getAheadBehind: async () =>
       commitsBehind === null ? null : { ahead: 0, behind: commitsBehind },
+
     revSymmetricDifference: () => 'current...selected',
   },
 })
@@ -69,6 +70,7 @@ describe('MergeChooseBranchDialog branch cleanup action', () => {
       branch: Branch
       expectedSha?: string
     }> = []
+
     let dismissed = 0
 
     render(
@@ -103,6 +105,7 @@ describe('MergeChooseBranchDialog branch cleanup action', () => {
     assert.equal(popups[0].type, PopupType.DeleteRemoteBranch)
     assert.strictEqual(popups[0].branch, selectedBranch)
     assert.equal(popups[0].expectedSha, selectedBranch.tip.sha)
+
   })
 
   it('does not offer deletion when the selected branch has commits to merge', async () => {
@@ -132,7 +135,6 @@ describe('MergeChooseBranchDialog branch cleanup action', () => {
       null
     )
   })
-
   it('keeps deletion hidden when the ahead/behind result is unknown', async () => {
     commitsBehind = null
     const MergeChooseBranchDialog = await loadDialog()
@@ -205,4 +207,5 @@ describe('MergeChooseBranchDialog branch cleanup action', () => {
     assert.strictEqual(popups[0].branch, selectedBranch)
     assert.equal(popups[0].expectedSha, selectedBranch.tip.sha)
   })
+
 })

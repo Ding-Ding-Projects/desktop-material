@@ -15,3 +15,4 @@
 - **Documentation allowlist:** the dialog source, focused UI test, branch-switch feature article, wiki gallery, README reference, this manifest, cleanup ledger, promoted screenshots, and `HANDOFF.md`
 - **Remote:** `origin` (`https://github.com/Ding-Ding-Projects/desktop-material.git`)
 - **External state:** open issue scan was recorded in the task notes; do not claim remote verification until the pushed default-branch SHA is proven
+

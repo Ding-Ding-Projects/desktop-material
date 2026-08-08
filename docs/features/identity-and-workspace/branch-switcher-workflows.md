@@ -48,6 +48,7 @@ refs, change the checkout, or require credentials. Unexpected failures are
 logged through the existing Git error path and the normal branch chooser stays
 usable.
 
+
 When the current worktree has uncommitted changes, the switch dialog also
 offers **Leave my changes here**. This keeps the current branch and its working
 files exactly where they are, then opens the existing Add worktree flow with
@@ -91,3 +92,4 @@ form with the destination branch and worktree name already filled in:
 ![Dirty-worktree switch dialog with Leave my changes here selected](../../verification/dirty-worktree-worktree-option-20260805/dirty-worktree-switch-dialog.png)
 
 ![Add worktree form prefilled for the destination branch](../../verification/dirty-worktree-worktree-option-20260805/add-worktree-prefilled.png)
+
