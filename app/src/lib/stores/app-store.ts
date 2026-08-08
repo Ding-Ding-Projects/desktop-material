@@ -616,6 +616,7 @@ import {
   getAheadBehind,
   revSymmetricDifference,
 } from '../git'
+import { ensurePushAutoSetupRemote } from '../git/auto-setup-remote'
 import { envForRemoteOperation } from '../git/environment'
 import {
   isMissingRemoteRefFailure,
@@ -4908,6 +4909,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   /** Load the initial state for the app. */
   public async loadInitialState() {
+    // The CLI's "has no upstream branch" stop has an official remedy —
+    // push.autoSetupRemote — and this applies it automatically: an unset key
+    // becomes true so a first push of a new branch publishes in the CLI
+    // exactly as it does in the app. An explicit user value, true or false,
+    // is never overwritten, and a config failure never blocks startup.
+    ensurePushAutoSetupRemote()
+      .then(result => {
+        if (result === 'enabled') {
+          log.info(
+            '[AppStore] enabled push.autoSetupRemote in the global Git config'
+          )
+        }
+      })
+      .catch(error => log.error('Failed ensuring push.autoSetupRemote', error))
+
     const [accounts, repositories] = await Promise.all([
       this.accountsStore.getAll(),
       this.repositoriesStore.getAll(),

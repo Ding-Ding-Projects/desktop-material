@@ -1,4 +1,5 @@
 export * from './apply'
+export * from './auto-setup-remote'
 export * from './branch'
 export * from './checkout'
 export * from './clone'
