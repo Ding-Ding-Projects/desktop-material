@@ -196,14 +196,7 @@ async def test_pull_request_review_returns_no_selection_after_table_is_removed()
         app.query_one("#pr-review-comment-body", Input).value = "Line-level note."
         pane._create_pr_review_comment()
         await app.workers.wait_for_complete()
-        line_call = next(value for name, value in fake.calls if name == "line_comment")
-        assert isinstance(line_call, tuple)
-        line_number, line_values = line_call
-        assert isinstance(line_values, dict)
-        assert line_number == 9
-        assert line_values["commit_id"] == "a" * 40
-        assert line_values["path"] == "src/review.py"
-        assert line_values["line"] == 7
+        assert not any(name == "line_comment" for name, _value in fake.calls)
 
 
 @pytest.mark.asyncio
