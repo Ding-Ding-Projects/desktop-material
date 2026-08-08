@@ -29,6 +29,112 @@ const RetainedHistoricalEvidence = Object.freeze({
   }),
 })
 
+/**
+ * Current Windows refresh gaps are explicit acceptance blockers, not missing
+ * rows. The existing PNG remains retained evidence, while this machine-readable
+ * record prevents the capture campaign from reporting it as freshly recaptured.
+ * `commands` is filled from the owning batch below so the required rerun cannot
+ * drift away from the batch's real command sequence.
+ */
+const CaptureGapDefinitions = Object.freeze([
+  Object.freeze({
+    output: 'material-tab-groups',
+    status: 'blocked',
+    blocker:
+      'The disposable tab-group fixture is on a temporary drive that is unavailable after renderer reload; persisted group state was confirmed, but no current capture was produced.',
+    requiredEvidence:
+      'A genuine hidden-Windows-desktop run with a fixture path that remains available across reload, the original PNG, and the renderer privacy receipt.',
+  }),
+  Object.freeze({
+    output: 'material-ollama-model-manager',
+    status: 'blocked',
+    blocker:
+      'The manager surface exceeds the existing 1452x1001 acceptance frame by approximately 59px; the gate requires a complete in-viewport panel and therefore rejects the candidate.',
+    requiredEvidence:
+      'A genuine hidden-Windows-desktop capture after the acceptance viewport or surface contract is reconciled, with the complete panel, geometry receipt, and privacy receipt.',
+  }),
+  Object.freeze({
+    output: 'material-github-releases-compact',
+    status: 'blocked',
+    blocker:
+      'At the existing 200% / 480x330 logical viewport, the real fixture renders zero complete release rows inside the gate list.',
+    requiredEvidence:
+      'A genuine hidden-Windows-desktop 200% capture with one complete release row in the bounded list, plus the original PNG and privacy receipt.',
+  }),
+  Object.freeze({
+    output: 'material-pull-preview',
+    status: 'blocked',
+    blocker:
+      'At the existing 200% / 480x330 logical viewport, the real pull-preview fixture renders zero complete rows inside the gate list.',
+    requiredEvidence:
+      'A genuine hidden-Windows-desktop 200% capture with one complete pull-preview row in the bounded list, plus the original PNG and privacy receipt.',
+  }),
+  Object.freeze({
+    output: 'private-repository-lock-badge',
+    status: 'blocked',
+    blocker:
+      'At the existing 200% / 480x330 logical viewport, the real private-repository fixture renders zero complete rows inside the gate list.',
+    requiredEvidence:
+      'A genuine hidden-Windows-desktop 200% capture with one complete private-repository row in the bounded list, plus the original PNG and privacy receipt.',
+  }),
+  Object.freeze({
+    output: 'cheap-lfs-bambu-build-live',
+    status: 'blocked',
+    blocker:
+      'The live Cheap LFS scene needs its bespoke sparse-file/provider fixture; it was not re-run by the canonical gallery refresh.',
+    requiredEvidence:
+      'A genuine hidden-Windows-desktop run of the owning Cheap LFS live fixture, its original PNG, and the scene privacy receipt.',
+  }),
+  Object.freeze({
+    output: 'cheap-lfs-cloud-compression',
+    status: 'blocked',
+    blocker:
+      'The live Cheap LFS scene needs its bespoke sparse-file/provider fixture; it was not re-run by the canonical gallery refresh.',
+    requiredEvidence:
+      'A genuine hidden-Windows-desktop run of the owning Cheap LFS live fixture, its original PNG, and the scene privacy receipt.',
+  }),
+  Object.freeze({
+    output: 'cheap-lfs-ui-acceptance',
+    status: 'blocked',
+    blocker:
+      'The live Cheap LFS scene needs its bespoke sparse-file/provider fixture; it was not re-run by the canonical gallery refresh.',
+    requiredEvidence:
+      'A genuine hidden-Windows-desktop run of the owning Cheap LFS live fixture, its original PNG, and the scene privacy receipt.',
+  }),
+  Object.freeze({
+    output: 'cheap-lfs-commit-progress',
+    status: 'blocked',
+    blocker:
+      'The Cheap LFS commit-progress scene needs its bespoke sparse-file fixture; it was not re-run by the canonical gallery refresh.',
+    requiredEvidence:
+      'A genuine hidden-Windows-desktop run of the owning Cheap LFS commit fixture, its original PNG, and the progress receipt.',
+  }),
+  Object.freeze({
+    output: 'cheap-lfs-restore-lookahead',
+    status: 'blocked',
+    blocker:
+      'The Cheap LFS restore scene needs its bespoke restore fixture; it was not re-run by the canonical gallery refresh.',
+    requiredEvidence:
+      'A genuine hidden-Windows-desktop run of the owning Cheap LFS restore fixture, its original PNG, and the restore receipt.',
+  }),
+  Object.freeze({
+    output: 'app-hosted-browser-authentication',
+    status: 'blocked',
+    blocker:
+      'The internal-browser scene needs its bespoke loopback browser fixture; it was not re-run by the canonical gallery refresh.',
+    requiredEvidence:
+      'A genuine hidden-Windows-desktop run of the owning loopback browser fixture, its original PNG, and the browser privacy receipt.',
+  }),
+  Object.freeze({
+    output: 'auto-updater-current-source-ready',
+    status: 'blocked',
+    blocker:
+      'The current-source updater scene needs its bespoke signed-feed fixture; it was not re-run by the canonical gallery refresh.',
+    requiredEvidence:
+      'A genuine hidden-Windows-desktop run of the owning updater verifier with its original PNG, readiness receipt, and protected-resource cleanup evidence.',
+  }),
+])
+
 const galleryPath = path.resolve(
   __dirname,
   '../../docs/wiki/Feature-Gallery.md'
@@ -486,12 +592,34 @@ function buildGalleryCapturePlan() {
 
 const GalleryCapturePlan = buildGalleryCapturePlan()
 
+const CaptureGaps = Object.freeze(
+  CaptureGapDefinitions.map(definition => {
+    const entry = GalleryCapturePlan.find(
+      candidate => candidate.output === definition.output
+    )
+    if (entry === undefined) {
+      throw new Error(
+        `Capture gap ${definition.output} has no published gallery plan entry.`
+      )
+    }
+    return Object.freeze({
+      ...definition,
+      file: entry.file,
+      scene: entry.scene,
+      batch: entry.batch,
+      platform: entry.platform,
+      commands: entry.commands,
+    })
+  })
+)
+
 module.exports = {
   buildGalleryCapturePlan,
   CanonicalCandidateCount,
   CanonicalGalleryOutputs,
   CanonicalGalleryScenes,
   CaptureBatches,
+  CaptureGaps,
   DeferredCanonicalOutputs,
   DeferredSpecialistOutputs,
   ExpectedPublishedGalleryCount,
