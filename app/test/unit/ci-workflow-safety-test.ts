@@ -1090,6 +1090,13 @@ describe('CI workflow safety', () => {
     )
     assert.match(windowsWorkflow, /workflow_call:\s+inputs:\s+repository:/)
     assert.match(windowsWorkflow, /Install app on Windows/)
+    assert.equal(
+      getNamedStep(
+        getJob(windowsWorkflowDocument, 'e2e-smoke'),
+        'Build production app'
+      ).run,
+      'yarn build:prod:e2e'
+    )
     assert.match(
       windowsWorkflow,
       /Enable Git long paths for Windows TUI tests\s+run: git config core\.longpaths true/

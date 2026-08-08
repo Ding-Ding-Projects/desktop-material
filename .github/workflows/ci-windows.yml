@@ -287,7 +287,7 @@ jobs:
       - name: Select mock update server port
         uses: ./.github/actions/setup-e2e-update-port
       - name: Build production app
-        run: yarn build:prod
+        run: yarn build:prod:e2e
         env:
           npm_config_arch: ${{ matrix.arch }}
           TARGET_ARCH: ${{ matrix.arch }}
