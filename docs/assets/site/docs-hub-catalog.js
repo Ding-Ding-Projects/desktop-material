@@ -525,6 +525,13 @@
       d: 'Open Releases from a GitHub repository rail to search and status-filter the bounded loaded catalog, select a release, inspect metadata and assets, or enter the existing…',
     },
     {
+      t: 'Self-hosted GitHub Actions runner manager',
+      h: 'features/integrations/self-hosted-runner-manager.html',
+      s: 'features/integrations/self-hosted-runner-manager.md',
+      c: 'features',
+      d: 'Desktop Material can set up and control a repository-scoped GitHub Actions runner on the Windows computer that is running the app. The manager lives in the repository Actions…',
+    },
+    {
       t: 'Self-hosted Windows dependency bootstrap',
       h: 'features/integrations/self-hosted-windows-dependency-bootstrap.html',
       s: 'features/integrations/self-hosted-windows-dependency-bootstrap.md',
