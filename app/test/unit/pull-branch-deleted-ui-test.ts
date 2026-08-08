@@ -346,8 +346,8 @@ describe('deleted-upstream recovery localization', () => {
       }
     }
 
-    // Three distinct bands per language, so the slider demonstrably changes copy.
-    assert.equal(rendered.size, 6)
+    // Four distinct bands per language, so the slider demonstrably changes copy.
+    assert.equal(rendered.size, 8)
   })
 
   it('lets each language pick its own band in bilingual mode', () => {

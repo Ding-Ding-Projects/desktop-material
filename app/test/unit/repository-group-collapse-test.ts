@@ -161,7 +161,7 @@ describe('repository group header text', () => {
         english: 5,
         cantonese: 5,
       }),
-      'Other，4 個 repo，摺埋晒匿咗喺入面'
+      'Other，4 個 repo，摺到扁晒扮緊家俬'
     )
 
     for (const level of [1, 2, 3, 4, 5]) {
@@ -231,7 +231,7 @@ describe('repository group header text', () => {
         },
         {
           locale: 'zh-HK',
-          text: '撬開咗 2 個摺埋嘅組 —— 有搵到嘅嘢匿咗喺入面。',
+          text: '攞住搜查令撬開咗 2 個摺埋嘅組——每個入面都有結果匿緊，全部斷正。',
         },
       ]
     )
