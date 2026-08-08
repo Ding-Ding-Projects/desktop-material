@@ -32,11 +32,15 @@ async function readStylesheet(): Promise<string> {
  */
 function sizeBlock(css: string, size: string): string {
   const marker = `&.command-palette-size-${size} {`
-  const start = css.lastIndexOf(marker)
+  const shortHeightMarker = '@media (max-height: 420px) {'
+  const shortHeightStart = css.indexOf(shortHeightMarker)
+  const baseGeometry =
+    shortHeightStart === -1 ? css : css.slice(0, shortHeightStart)
+  const start = baseGeometry.lastIndexOf(marker)
   assert.notEqual(start, -1, `the ${size} size must exist`)
-  const end = css.indexOf('\n  }', start)
+  const end = baseGeometry.indexOf('\n  }', start)
   assert.notEqual(end, -1, `the ${size} size must be a closed rule`)
-  return css.slice(start, end)
+  return baseGeometry.slice(start, end)
 }
 
 describe('command palette size contract', () => {
@@ -73,6 +77,39 @@ describe('command palette size contract', () => {
     assert.match(block, /left: 50%/)
     assert.match(block, /transform: translateX\(-50%\)/)
     assert.match(block, /border-radius: var\(--md-sys-shape-corner-extra-large/)
+  })
+
+  it('keeps results usable in the 200 percent short-height viewport', async () => {
+    const css = await readStylesheet()
+    const marker = '@media (max-height: 420px) {'
+    const start = css.lastIndexOf(marker)
+    assert.notEqual(start, -1, 'the short-height palette layout must exist')
+    const shortHeight = css.slice(start)
+
+    assert.match(
+      shortHeight,
+      /&\.command-palette-size-medium,[\s\S]*?&\.command-palette-size-compact/
+    )
+    assert.match(shortHeight, /top: var\(--command-palette-top\);/)
+    assert.match(shortHeight, /bottom: 8px;/)
+    assert.match(shortHeight, /height: auto;/)
+    assert.match(
+      shortHeight,
+      /max-height: calc\(100vh - var\(--command-palette-top\) - 8px\);/
+    )
+    assert.match(
+      shortHeight,
+      /\.dialog-content\s*\{[\s\S]*?max-height: none !important;[\s\S]*?overflow-y: hidden;/
+    )
+    assert.match(
+      shortHeight,
+      /\.command-palette-body\s*\{[\s\S]*?min-height: min\(88px, 32vh\);/
+    )
+    assert.match(
+      shortHeight,
+      /\.command-palette-hints\s*\{[\s\S]*?display: none;/
+    )
+    assert.match(css, /\.command-palette-results\s*\{[\s\S]*?overflow-y: auto;/)
   })
 
   it('offers the size as a control, not only as a stored value', async () => {

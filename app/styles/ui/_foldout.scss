@@ -58,8 +58,11 @@
       left: 10px !important;
       bottom: 10px !important;
       right: auto !important;
-      width: 390px !important;
-      min-width: 390px !important;
+      // Keep the 390px desktop sheet, but let both dimensions contract with
+      // the viewport. A fixed 390px min-width defeats max-width and pushes the
+      // sheet past its 10px right inset on compact/high-zoom windows.
+      width: min(390px, calc(100vw - 20px)) !important;
+      min-width: min(390px, calc(100vw - 20px)) !important;
       max-width: calc(100vw - 20px);
       height: auto !important;
       margin: 0 !important;

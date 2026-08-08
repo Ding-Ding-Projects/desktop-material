@@ -1060,7 +1060,9 @@ describe('manual cheap LFS upload', () => {
           controller.signal,
           {
             onReady: async (handoff, plan) => {
-              uploadedBytes = await readFile(handoff.assets[0].path)
+              uploadedBytes = Buffer.from(
+                await readFile(handoff.assets[0].path)
+              )
               uploaded = asset(
                 49,
                 plan.files[0].assetName,

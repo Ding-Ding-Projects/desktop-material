@@ -198,19 +198,26 @@ export class Popover extends React.Component<IPopoverProps, IPopoverState> {
       flip({ padding: PopoverScreenBorderPadding }),
       size({
         apply({ availableHeight, availableWidth }) {
+          const boundedAvailableHeight = Math.max(0, availableHeight)
+          const boundedAvailableWidth = Math.max(0, availableWidth)
           const newMaxHeight =
             maxHeight === undefined
-              ? availableHeight
-              : Math.min(availableHeight, maxHeight)
+              ? boundedAvailableHeight
+              : Math.min(boundedAvailableHeight, maxHeight)
 
-          contentDiv.style.setProperty(
+          // The positioned container owns each consumer's declared width and
+          // minimum height. Capping only its child lets that outer surface keep
+          // painting outside the viewport even though the content is narrower.
+          // Put the bounds on the container so they constrain the box Floating
+          // UI positions; the content inherits the same custom properties.
+          containerDiv.style.setProperty(
             '--available-height',
             `${newMaxHeight}px`
           )
 
-          contentDiv.style.setProperty(
+          containerDiv.style.setProperty(
             '--available-width',
-            `${availableWidth}px`
+            `${boundedAvailableWidth}px`
           )
         },
         padding: PopoverScreenBorderPadding,
@@ -353,6 +360,10 @@ export class Popover extends React.Component<IPopoverProps, IPopoverState> {
       zIndex: 17, // same as --foldout-z-index
       height: 'auto',
       ...this.props.style,
+      // Viewport safety is not optional consumer styling. Width/min-height
+      // declarations live on this outer box, so it must carry the caps itself.
+      maxHeight: 'var(--available-height, calc(100vh - 20px))',
+      maxWidth: 'var(--available-width, calc(100vw - 20px))',
     }
     const contentStyle: React.CSSProperties = {
       // Vertically scroll rather than clip. `--available-height` caps the

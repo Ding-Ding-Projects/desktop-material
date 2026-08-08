@@ -44,6 +44,7 @@ module.exports = {
   create: function (context) {
     const sourceCode = context.getSourceCode()
     return {
+      /** @param {any} node */
       JSXExpressionContainer(node) {
         const text = sourceCode.getText(node)
 

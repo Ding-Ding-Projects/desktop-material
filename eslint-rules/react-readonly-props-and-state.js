@@ -13,7 +13,7 @@
  */
 
 /**
- * @typedef {import('@typescript-eslint/experimental-utils').TSESLint.RuleModule} RuleModule
+ * @typedef {import('@typescript-eslint/experimental-utils').TSESLint.RuleModule<string>} RuleModule
  * @typedef {import("@typescript-eslint/experimental-utils").TSESTree.TSInterfaceBody} TSInterfaceBody
  */
 

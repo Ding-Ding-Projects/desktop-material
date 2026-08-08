@@ -6,7 +6,8 @@
   justify-content: center;
   // ... and horizontally centered
   align-self: center;
-  width: 600px;
+  width: min(600px, 100%);
+  min-width: 0;
 
   /* TODO: Revisit, this might not be the best way to do it.
    * We don't want the contents to sit smack on the vertical
@@ -68,6 +69,35 @@
     .octicon.spin {
       margin-right: var(--spacing-half);
       height: 11px;
+    }
+  }
+}
+
+// Keep recovery controls in view when either window dimension is constrained.
+// The page itself scrolls at short heights; at narrow widths its actions become
+// full-width rows instead of preserving three desktop-sized buttons abreast.
+@media (max-height: 520px) {
+  #missing-repository-view {
+    margin-top: 0;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  #missing-repository-view > .row-component {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing);
+
+    > *:not(:last-child) {
+      margin-right: 0;
+    }
+
+    .button-component {
+      width: 100%;
+      min-width: 0;
+      align-self: stretch;
     }
   }
 }
