@@ -31,10 +31,11 @@ export const DefaultFunnyLevels: IFunnyLevels = {
 }
 
 /** The voice band a funny level selects; the facts are identical in each. */
-export type FunnyBand = 'plain' | 'light' | 'playful'
+export type FunnyBand = 'plain' | 'light' | 'playful' | 'maximum'
 
 /**
- * Key families which carry a `.plain` / `.light` / `.playful` variant.
+ * Key families which carry a `.plain` / `.light` / `.playful` / `.maximum`
+ * variant.
  *
  * Listing them keeps the composed key literal-checked against
  * `TranslationKey`, so a family that is missing a band fails to compile.
@@ -91,7 +92,11 @@ export function readFunnyLevels(): IFunnyLevels {
   }
 }
 
-/** 1-2 reads plain, 3 reads lightly playful, 4-5 reads maximally playful. */
+/**
+ * 1-2 reads plain, 3 reads lightly playful, 4 reads playful, and 5 gets its
+ * own maximum band — the slider's top stop must be audibly funnier than the
+ * stop below it, or "maximum playfulness" is a label with nothing behind it.
+ */
 export function funnyBand(level: number): FunnyBand {
   const clamped = clampFunnyLevel(
     level,
@@ -100,7 +105,10 @@ export function funnyBand(level: number): FunnyBand {
   if (clamped <= 2) {
     return 'plain'
   }
-  return clamped === 3 ? 'light' : 'playful'
+  if (clamped === 3) {
+    return 'light'
+  }
+  return clamped === 4 ? 'playful' : 'maximum'
 }
 
 /** Build one independently toned value for interpolation by both catalogs. */

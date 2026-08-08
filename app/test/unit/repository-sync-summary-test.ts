@@ -26,7 +26,8 @@ const cloningRepository = new CloningRepository(
 
 const Plain = { english: 1, cantonese: 1 }
 const Light = { english: 3, cantonese: 3 }
-const Playful = { english: 5, cantonese: 5 }
+const Playful = { english: 4, cantonese: 4 }
+const Maximum = { english: 5, cantonese: 5 }
 
 const status = (
   overrides: {
@@ -127,7 +128,7 @@ describe('repository list sync summary', () => {
 
     const inSync = englishText(repository, 'tracking', { ahead: 0, behind: 0 })
 
-    for (const funnyLevels of [Plain, Light, Playful]) {
+    for (const funnyLevels of [Plain, Light, Playful, Maximum]) {
       const { segments, accessibleName } = getRepositorySyncSummaryText(
         getRepositorySyncSummary(repository, 'unknown', null),
         'bilingual',
@@ -139,7 +140,7 @@ describe('repository list sync summary', () => {
         assert.notEqual(segment.text, inSync)
         assert.doesNotMatch(segment.text, /in sync/i, segment.text)
       }
-      assert.match(accessibleName, /unknown|No idea/i)
+      assert.match(accessibleName, /unknown|No idea|mystery/i)
     }
   })
 
@@ -224,9 +225,11 @@ describe('repository list sync summary', () => {
       .segments[0].text
     const playful = getRepositorySyncSummaryText(diverged, 'english', Playful)
       .segments[0].text
+    const maximum = getRepositorySyncSummaryText(diverged, 'english', Maximum)
+      .segments[0].text
 
-    assert.equal(new Set([plain, light, playful]).size, 3)
-    for (const text of [plain, light, playful]) {
+    assert.equal(new Set([plain, light, playful, maximum]).size, 4)
+    for (const text of [plain, light, playful, maximum]) {
       assert.match(text, /2 commits to push/)
       assert.match(text, /3 commits to pull/)
     }
@@ -243,7 +246,7 @@ describe('repository list sync summary', () => {
     assert.equal(mixed.segments[0].text, plain)
     assert.equal(
       mixed.segments[1].text,
-      '分咗岔喇，2 個 commit 要 push、3 個 commit 要 pull，快啲揀邊條路'
+      '分咗岔：2 個 commit 要 push，3 個 commit 要 pull，兩邊都覺得自己先係主角'
     )
   })
 
@@ -278,8 +281,8 @@ describe('repository list sync summary', () => {
         .filter(key => key.startsWith('repositorySync.'))
         .sort()
     )
-    // 10 states × 3 funny bands + the two commit-count phrases.
-    assert.equal(keys.length, 32)
+    // 10 states × 4 funny bands + the two commit-count phrases.
+    assert.equal(keys.length, 42)
 
     for (const key of keys) {
       const typed = key as TranslationKey

@@ -1,7 +1,8 @@
 #pull-request-review,
 #pull-request-comment {
   --avatar-size: 40px;
-  min-width: 500px;
+  width: min(500px, 100%);
+  min-width: 0;
 
   .dialog-header {
     height: unset;
@@ -179,7 +180,7 @@
       }
       .sandboxed-markdown-iframe-container {
         padding-left: 15px;
-        border-left: 2px solid var(--border-color);
+        border-left: 2px solid var(--pr-timeline-line-color);
         width: 100%;
       }
     }

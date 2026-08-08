@@ -196,6 +196,37 @@ describe('post-shell MD3 style contracts', () => {
     )
   })
 
+  it('keeps pull request review dialogs inside narrow windows and shows the timeline rail', () => {
+    const style = readStyle('dialogs/_pull-request-comment-like.scss')
+
+    assert.match(
+      style,
+      /#pull-request-review,\s*#pull-request-comment\s*\{[\s\S]*?width: min\(500px, 100%\);[\s\S]*?min-width: 0;/
+    )
+    assert.match(
+      style,
+      /\.sandboxed-markdown-iframe-container\s*\{[\s\S]*?border-left: 2px solid var\(--pr-timeline-line-color\);/
+    )
+  })
+
+  it('keeps release notes readable on narrow windows', () => {
+    const style = readStyle('dialogs/_release-notes.scss')
+
+    assert.match(
+      style,
+      /#release-notes\s*\{[\s\S]*?width: min\(800px, calc\(100vw - var\(--spacing-quad\)\)\);[\s\S]*?min-width: 0;/
+    )
+    assert.match(style, /@media \(max-width: 680px\)/)
+    assert.match(
+      style,
+      /@media \(max-width: 680px\)[\s\S]*?\.container\s*\{[\s\S]*?flex-direction: column;/
+    )
+    assert.match(
+      style,
+      /@media \(max-width: 680px\)[\s\S]*?\.dialog-header\s*\{[\s\S]*?padding-inline: 72px;[\s\S]*?background-size: auto 64px, auto 64px;/
+    )
+  })
+
   it('shrinks and wraps the Build & Run header controls', () => {
     const style = readStyle('_material-build-run.scss')
     assert.match(
@@ -554,7 +585,11 @@ describe('post-shell MD3 style contracts', () => {
 
     assert.match(
       source,
-      /const boundedAvailableHeight\s*=\s*Math\.max\(0, availableHeight\)[\s\S]*?const newMaxHeight\s*=\s*maxHeight === undefined\s*\?\s*boundedAvailableHeight\s*:\s*Math\.min\(boundedAvailableHeight, maxHeight\)/
+      /const boundedAvailableHeight\s*=\s*Math\.max\(0,\s*availableHeight\)/
+    )
+    assert.match(
+      source,
+      /const newMaxHeight\s*=\s*maxHeight === undefined\s*\? boundedAvailableHeight\s*:\s*Math\.min\(boundedAvailableHeight,\s*maxHeight\)/
     )
     assert.match(
       source,

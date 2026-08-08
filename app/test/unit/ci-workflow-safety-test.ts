@@ -618,7 +618,7 @@ describe('CI workflow safety', () => {
     )
     assert.match(
       windowsWorkflow,
-      /ci-windows-\$\{\{ github\.workflow \}\}-\$\{\{ github\.event_name \}\}-\$\{\{ github\.ref \}\}/
+      /ci-windows-\$\{\{ github\.workflow \}\}-\$\{\{ github\.event_name \}\}-\$\{\{ github\.ref\s+\}\}-\$\{\{ \(github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'\) &&\s+github\.run_id \|\| 'shared' \}\}/
     )
     assert.match(windowsWorkflow, /cancel-in-progress: true/)
     assert.match(linuxWorkflow, /cancel-in-progress: false/)

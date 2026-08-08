@@ -358,7 +358,6 @@ export class MergeChooseBranchDialog extends React.Component<
       selectedBranch === null ||
       mergeStatus?.kind !== ComputedAction.Clean ||
       mergeStatusKnown !== true ||
-
       commitCount !== 0
     ) {
       return false
@@ -372,7 +371,6 @@ export class MergeChooseBranchDialog extends React.Component<
         selectedBranch.type === BranchType.Remote &&
         selectedBranch.nameWithoutRemote === currentBranch.nameWithoutRemote
       ) &&
-
       selectedBranch.nameWithoutRemote !== defaultBranch?.nameWithoutRemote
     )
   }
@@ -393,7 +391,6 @@ export class MergeChooseBranchDialog extends React.Component<
         repository,
         branch: selectedBranch,
         expectedSha: selectedBranch.tip.sha,
-
       })
       return
     }
@@ -438,7 +435,6 @@ export class MergeChooseBranchDialog extends React.Component<
         dialogTitle={this.getDialogTitle()}
         onSelectionChanged={this.onSelectionChanged}
         customFilters={this.getBranchFilters()}
-
         renderAdditionalActions={this.renderDeleteBranchButton}
       >
         {this.renderStatusPreview()}

@@ -119,6 +119,11 @@
     &:active {
       transform: scale(0.86) rotate(90deg);
     }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
   }
 }
 
@@ -149,6 +154,11 @@
 
     &:active {
       transform: scale(0.96);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
     }
 
     &.selected {
@@ -256,6 +266,10 @@
     background: var(--md-sys-color-surface);
     border: 2px solid var(--md-sys-color-outline-variant);
     transition: border-color 220ms var(--emph);
+
+    &:focus-within {
+      border-color: var(--md-sys-color-primary);
+    }
   }
 
   &.invalid .regex-builder-pattern-field {
@@ -308,6 +322,11 @@
       background: var(--md-sys-color-error-container);
       color: var(--md-sys-color-error);
     }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
   }
 }
 
@@ -352,6 +371,11 @@
       background: var(--md-sys-color-secondary-container);
       color: var(--md-sys-color-on-secondary-container);
     }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
   }
 }
 
@@ -390,6 +414,11 @@
 
     &:hover {
       background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
     }
 
     &.selected {
@@ -435,6 +464,11 @@
 
     &:active {
       transform: scale(0.92);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
     }
   }
 
@@ -542,6 +576,10 @@
     line-height: 1.5;
     outline: none;
     overflow-y: auto;
+
+    &:focus-visible {
+      box-shadow: 0 0 0 2px var(--md-sys-color-primary);
+    }
   }
 
   .regex-test-preview {
@@ -656,6 +694,11 @@
     &:hover {
       background: var(--md-sys-color-surface-container-high);
     }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
   }
 
   .regex-builder-apply {
@@ -681,6 +724,11 @@
 
     &:hover {
       border-radius: 16px;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
     }
 
     &:disabled {

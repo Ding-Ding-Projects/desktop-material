@@ -69,6 +69,7 @@ export type TranslationKey =
   | 'appearance.elementGesture.plain'
   | 'appearance.elementGesture.light'
   | 'appearance.elementGesture.playful'
+  | 'appearance.elementGesture.maximum'
   | 'appearance.scheduledSettingsHeading'
   | 'appearance.scheduledSettingsDescription'
   | 'appearance.scheduledSettingsRuleDetails'
@@ -475,10 +476,12 @@ export type TranslationKey =
   | 'lazyView.loading.plain'
   | 'lazyView.loading.light'
   | 'lazyView.loading.playful'
+  | 'lazyView.loading.maximum'
   | 'lazyView.failedTitle'
   | 'lazyView.failedBody.plain'
   | 'lazyView.failedBody.light'
   | 'lazyView.failedBody.playful'
+  | 'lazyView.failedBody.maximum'
   | 'lazyView.failedDetail'
   | 'lazyView.retry'
   | 'lazyView.notificationTitle'
@@ -491,6 +494,7 @@ export type TranslationKey =
   | 'tabs.overflowDescription.plain'
   | 'tabs.overflowDescription.light'
   | 'tabs.overflowDescription.playful'
+  | 'tabs.overflowDescription.maximum'
   | 'tabs.overflowListLabel'
   | 'tabs.overflowEmpty'
   | 'tabs.overflowActiveSuffix'
@@ -1093,6 +1097,7 @@ export type TranslationKey =
   | 'pullBranchDeleted.intro.plain'
   | 'pullBranchDeleted.intro.light'
   | 'pullBranchDeleted.intro.playful'
+  | 'pullBranchDeleted.intro.maximum'
   | 'pullBranchDeleted.offer'
   | 'pullBranchDeleted.blockedTitle'
   | 'pullBranchDeleted.blockedNoDefaultBranch'
@@ -1116,6 +1121,7 @@ export type TranslationKey =
   | 'pullBranchDeleted.recovered.plain'
   | 'pullBranchDeleted.recovered.light'
   | 'pullBranchDeleted.recovered.playful'
+  | 'pullBranchDeleted.recovered.maximum'
   | 'pullBranchDeleted.retryFailedTitle'
   | 'pullBranchDeleted.retryFailedBody'
   | 'pullBranchDeleted.checkoutFailedTitle'
@@ -1266,47 +1272,61 @@ export type TranslationKey =
   | 'repositoryPicker.groupCollapsed.plain'
   | 'repositoryPicker.groupCollapsed.light'
   | 'repositoryPicker.groupCollapsed.playful'
+  | 'repositoryPicker.groupCollapsed.maximum'
   | 'repositoryPicker.groupExpanded.plain'
   | 'repositoryPicker.groupExpanded.light'
   | 'repositoryPicker.groupExpanded.playful'
+  | 'repositoryPicker.groupExpanded.maximum'
   | 'repositoryPicker.autoExpandedOne.plain'
   | 'repositoryPicker.autoExpandedOne.light'
   | 'repositoryPicker.autoExpandedOne.playful'
+  | 'repositoryPicker.autoExpandedOne.maximum'
   | 'repositoryPicker.autoExpandedMany.plain'
   | 'repositoryPicker.autoExpandedMany.light'
   | 'repositoryPicker.autoExpandedMany.playful'
+  | 'repositoryPicker.autoExpandedMany.maximum'
   | 'repositorySync.commitOne'
   | 'repositorySync.commitMany'
   | 'repositorySync.unknown.plain'
   | 'repositorySync.unknown.light'
   | 'repositorySync.unknown.playful'
+  | 'repositorySync.unknown.maximum'
   | 'repositorySync.inSync.plain'
   | 'repositorySync.inSync.light'
   | 'repositorySync.inSync.playful'
+  | 'repositorySync.inSync.maximum'
   | 'repositorySync.ahead.plain'
   | 'repositorySync.ahead.light'
   | 'repositorySync.ahead.playful'
+  | 'repositorySync.ahead.maximum'
   | 'repositorySync.behind.plain'
   | 'repositorySync.behind.light'
   | 'repositorySync.behind.playful'
+  | 'repositorySync.behind.maximum'
   | 'repositorySync.diverged.plain'
   | 'repositorySync.diverged.light'
   | 'repositorySync.diverged.playful'
+  | 'repositorySync.diverged.maximum'
   | 'repositorySync.noUpstream.plain'
   | 'repositorySync.noUpstream.light'
   | 'repositorySync.noUpstream.playful'
+  | 'repositorySync.noUpstream.maximum'
   | 'repositorySync.detached.plain'
   | 'repositorySync.detached.light'
   | 'repositorySync.detached.playful'
+  | 'repositorySync.detached.maximum'
   | 'repositorySync.empty.plain'
   | 'repositorySync.empty.light'
   | 'repositorySync.empty.playful'
+  | 'repositorySync.empty.maximum'
   | 'repositorySync.cloning.plain'
   | 'repositorySync.cloning.light'
   | 'repositorySync.cloning.playful'
+  | 'repositorySync.cloning.maximum'
   | 'repositorySync.missing.plain'
   | 'repositorySync.missing.light'
   | 'repositorySync.missing.playful'
+  | 'repositorySync.missing.maximum'
   | 'repositoryActions.add'
   | 'repositoryActions.addAria'
   | 'repositoryActions.select'
@@ -2855,6 +2875,7 @@ export type TranslationKey =
   | 'cheapLfs.encryption.dialog.commitDescription.plain'
   | 'cheapLfs.encryption.dialog.commitDescription.light'
   | 'cheapLfs.encryption.dialog.commitDescription.playful'
+  | 'cheapLfs.encryption.dialog.commitDescription.maximum'
   | 'cheapLfs.encryption.dialog.decryptDescription'
   | 'cheapLfs.encryption.dialog.changeDescription'
   | 'cheapLfs.encryption.dialog.forgetDescription'
@@ -2882,9 +2903,11 @@ export type TranslationKey =
   | 'ignoredSubmodule.intro.plain'
   | 'ignoredSubmodule.intro.light'
   | 'ignoredSubmodule.intro.playful'
+  | 'ignoredSubmodule.intro.maximum'
   | 'ignoredSubmodule.reviewLead.plain'
   | 'ignoredSubmodule.reviewLead.light'
   | 'ignoredSubmodule.reviewLead.playful'
+  | 'ignoredSubmodule.reviewLead.maximum'
   | 'ignoredSubmodule.loading'
   | 'ignoredSubmodule.loadFailed'
   | 'ignoredSubmodule.empty'
@@ -3027,6 +3050,7 @@ export type TranslationKey =
   | 'cheapLfs.unattendedEncryption.body.plain'
   | 'cheapLfs.unattendedEncryption.body.light'
   | 'cheapLfs.unattendedEncryption.body.playful'
+  | 'cheapLfs.unattendedEncryption.body.maximum'
   | 'cheapLfs.localState.pointer'
   | 'cheapLfs.localState.materialized'
   | 'cheapLfs.localState.modified'
@@ -3340,9 +3364,11 @@ export type TranslationKey =
   | 'changelog.summary.plain'
   | 'changelog.summary.light'
   | 'changelog.summary.playful'
+  | 'changelog.summary.maximum'
   | 'changelog.empty.plain'
   | 'changelog.empty.light'
   | 'changelog.empty.playful'
+  | 'changelog.empty.maximum'
   // The dim sum surprise. Only the framing carries bands: the dish's own name,
   // its romanization and the picture's description are facts the card exists
   // to state, and they read identically at every level in every mode.
@@ -3352,9 +3378,11 @@ export type TranslationKey =
   | 'dimSum.title.plain'
   | 'dimSum.title.light'
   | 'dimSum.title.playful'
+  | 'dimSum.title.maximum'
   | 'dimSum.lead.plain'
   | 'dimSum.lead.light'
   | 'dimSum.lead.playful'
+  | 'dimSum.lead.maximum'
   | 'contextMenu.filterPlaceholder'
   | 'contextMenu.filterLabel'
   | 'contextMenu.empty'
@@ -3523,6 +3551,7 @@ export type TranslationKey =
   | 'cheapLfs.restore.phase.decrypting.plain'
   | 'cheapLfs.restore.phase.decrypting.light'
   | 'cheapLfs.restore.phase.decrypting.playful'
+  | 'cheapLfs.restore.phase.decrypting.maximum'
   | 'cheapLfs.restore.phase.verifying'
   | 'cheapLfs.restore.phase.materializing'
   | 'cheapLfs.restore.phase.canceling'
@@ -3804,6 +3833,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'lazyView.loading.light': 'Fetching {name}. The rest of the app still works.',
   'lazyView.loading.playful':
     'Waking {name} up. Everything else keeps working while it stretches.',
+  'lazyView.loading.maximum':
+    'Sending {name} a very polite wake-up call. It says it is doing its hair. Everything else clocked in ages ago.',
   'lazyView.failedTitle': '{name} could not be loaded',
   'lazyView.failedBody.plain':
     'Nothing else in the app was affected. Select Try again to load {name} once more.',
@@ -3811,6 +3842,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Only {name} is affected — the rest of the app is fine. Select Try again to load it once more.',
   'lazyView.failedBody.playful':
     '{name} tripped on the doorstep; the rest of the app never noticed. Select Try again to give it another go.',
+  'lazyView.failedBody.maximum':
+    '{name} went for a dramatic entrance and missed the stage entirely; the rest of the app kept the show running without dropping a beat. Select Try again to send it back on.',
   'lazyView.failedDetail': 'Reported error: {error}',
   'lazyView.retry': 'Try again',
   'lazyView.notificationTitle': 'Could not open {name}',
@@ -3909,6 +3942,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Want to restyle something? Shift+Right-click it and its appearance editor opens. A plain right-click stays out of the way and opens that element’s ordinary menu. From the keyboard, focus the element and press Shift+F10 or the Menu key. Each element keeps its settings and history separate.',
   'appearance.elementGesture.playful':
     'Hold Shift, right-click anything, and its appearance editor pops out ready for a fresh coat of paint. A plain right-click keeps its day job: that element’s ordinary menu. Keyboard fans, focus the element and hit Shift+F10 or the Menu key. Every element hoards its own settings and history like a squirrel.',
+  'appearance.elementGesture.maximum':
+    'Hold Shift, right-click anything at all, and its appearance editor bursts in with colour swatches like a renovation-show host. A plain right-click keeps its day job — that element’s ordinary menu, no drama. Keyboard purists: focus the element and press Shift+F10 or the Menu key for the same grand entrance. Every element hoards its own settings and history, so one button’s makeover never touches another’s wardrobe.',
   'appearance.scheduledSettingsHeading': 'Scheduled settings',
   'appearance.scheduledSettingsDescription':
     'Apply language, theme, and appearance customizations during local date and time windows. A schedule can also read a validated API or a Home Assistant boolean entity; external failures leave the local settings unchanged.',
@@ -4372,6 +4407,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'These tabs ran out of room in the strip. Search them, switch to one, or customize one.',
   'tabs.overflowDescription.playful':
     'These tabs got elbowed off the strip. Search them, switch to one, or give one a makeover.',
+  'tabs.overflowDescription.maximum':
+    'These tabs are queuing outside a full strip like it is Saturday yum cha at peak hour. Search them, switch to one, or hand one a whole new outfit while it waits for a table.',
   'tabs.overflowListLabel': 'Overflowing repository tabs',
   'tabs.overflowEmpty': 'Every tab fits in the strip.',
   'tabs.overflowActiveSuffix': ', active',
@@ -5129,6 +5166,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'The pull of {repository} had nowhere to go: {remote} no longer has {remoteBranch}, and the local branch {branch} is still tracking it.',
   'pullBranchDeleted.intro.playful':
     '{repository} tried to pull from a branch that has left the building. {remote} no longer has {remoteBranch}, and your local {branch} is still loyally tracking the ghost.',
+  'pullBranchDeleted.intro.maximum':
+    '{repository} rang {remote} to pull {remoteBranch}, and the number has been disconnected — that branch moved out and left no forwarding address. Your local {branch} is still writing it letters.',
   'pullBranchDeleted.offer':
     'Desktop Material can check out {default} in {repository} and pull that instead.',
   'pullBranchDeleted.blockedTitle': 'Cannot switch branches',
@@ -5169,6 +5208,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     '{repository} has moved to {default}, and the pull finally went through.',
   'pullBranchDeleted.recovered.playful':
     '{repository} has moved on to {default}, and the pull that had nothing to pull from finally pulled something.',
+  'pullBranchDeleted.recovered.maximum':
+    '{repository} packed its bags, moved to {default}, and the pull that spent all day tugging at thin air finally reeled in a real catch.',
   'pullBranchDeleted.retryFailedTitle': 'Switched branch, pull failed',
   'pullBranchDeleted.retryFailedBody':
     '{repository} is now on {default}, but the pull failed: {error}',
@@ -5363,27 +5404,35 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     '{group}, {repositories}, currently folded away',
   'repositoryPicker.groupCollapsed.playful':
     '{group}, {repositories}, folded up and hiding',
+  'repositoryPicker.groupCollapsed.maximum':
+    '{group}, {repositories}, folded flat and pretending to be furniture',
   'repositoryPicker.groupExpanded.plain': '{group}, {repositories}, expanded',
   'repositoryPicker.groupExpanded.light':
     '{group}, {repositories}, currently open',
   'repositoryPicker.groupExpanded.playful':
     '{group}, {repositories}, wide open for business',
+  'repositoryPicker.groupExpanded.maximum':
+    '{group}, {repositories}, doors flung open and the kettle on',
   'repositoryPicker.autoExpandedOne.plain':
     'Filtering expanded 1 collapsed group so its matches stay visible.',
   'repositoryPicker.autoExpandedOne.light':
     'Filtering opened 1 collapsed group so none of its matches can hide.',
   'repositoryPicker.autoExpandedOne.playful':
     'Popped 1 folded group open — a search hit was hiding in there.',
+  'repositoryPicker.autoExpandedOne.maximum':
+    'The search warrant came through: 1 folded group opened up, and there was the match, hiding behind the sofa.',
   'repositoryPicker.autoExpandedMany.plain':
     'Filtering expanded {count} collapsed groups so their matches stay visible.',
   'repositoryPicker.autoExpandedMany.light':
     'Filtering opened {count} collapsed groups so none of their matches can hide.',
   'repositoryPicker.autoExpandedMany.playful':
     'Popped {count} folded groups open — search hits were hiding in there.',
-  // Repository-list sync line. The three bands per state are the funny-level
-  // voice (1-2 plain, 3 light, 4-5 playful); the counts and the state named in
-  // every band are identical, because the voice may change but the facts never
-  // do.
+  // Repository-list sync line. The four bands per state are the funny-level
+  // voice (1-2 plain, 3 light, 4 playful, 5 maximum); the counts and the state
+  // named in every band are identical, because the voice may change but the
+  // facts never do.
+  'repositoryPicker.autoExpandedMany.maximum':
+    'Search warrants for {count} folded groups — every one of them was hiding matches behind the sofa.',
   'repositorySync.commitOne': '1 commit',
   'repositorySync.commitMany': '{count} commits',
   'repositorySync.unknown.plain': 'Sync state unknown, not checked yet',
@@ -5391,46 +5440,66 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Not checked yet, so the sync state is unknown',
   'repositorySync.unknown.playful':
     'No idea yet, nobody has looked at the remote',
+  'repositorySync.unknown.maximum':
+    'A total mystery — nobody has so much as waved at the remote yet',
   'repositorySync.inSync.plain': 'In sync as of the last check',
   'repositorySync.inSync.light': 'Nothing to push or pull as of the last check',
   'repositorySync.inSync.playful':
     'Spotless at the last check, nothing to push or pull',
+  'repositorySync.inSync.maximum':
+    'Immaculate — the remote and this branch finish each other’s sentences; nothing to push, nothing to pull',
   'repositorySync.ahead.plain': '{ahead} to push, nothing to pull',
   'repositorySync.ahead.light': '{ahead} waiting to push, nothing to pull',
   'repositorySync.ahead.playful':
     '{ahead} queued for take-off, nothing to pull',
+  'repositorySync.ahead.maximum':
+    '{ahead} strapped in and revving on the runway, nothing to pull',
   'repositorySync.behind.plain': '{behind} to pull, nothing to push',
   'repositorySync.behind.light': '{behind} waiting to pull, nothing to push',
   'repositorySync.behind.playful':
     '{behind} parked at the remote with your name on them, nothing to push',
+  'repositorySync.behind.maximum':
+    '{behind} at the remote holding a little sign with your name on it, nothing to push',
   'repositorySync.diverged.plain': '{ahead} to push, {behind} to pull',
   'repositorySync.diverged.light':
     'Diverged: {ahead} to push and {behind} to pull',
   'repositorySync.diverged.playful':
     'Diverged, {ahead} to push and {behind} to pull, pick a lane',
+  'repositorySync.diverged.maximum':
+    'Diverged: {ahead} to push, {behind} to pull, and both sides think they are the main character',
   'repositorySync.noUpstream.plain': 'No upstream branch',
   'repositorySync.noUpstream.light': 'No upstream branch to compare against',
   'repositorySync.noUpstream.playful':
     'No upstream branch, this one is off the grid',
+  'repositorySync.noUpstream.maximum':
+    'No upstream branch — this one moved to the woods, fully off the grid',
   'repositorySync.detached.plain': 'Detached HEAD, no branch to compare',
   'repositorySync.detached.light':
     'Detached HEAD, so there is no branch to compare',
   'repositorySync.detached.playful':
     'Detached HEAD, floating free with no branch to compare',
+  'repositorySync.detached.maximum':
+    'Detached HEAD, drifting through space with no branch to phone home to',
   'repositorySync.empty.plain': 'No commits yet',
   'repositorySync.empty.light':
     'No commits yet, so there is nothing to compare',
   'repositorySync.empty.playful': 'Blank page energy, no commits yet',
+  'repositorySync.empty.maximum':
+    'No commits yet — a blank page doing breathing exercises before its big debut',
   'repositorySync.cloning.plain': 'Cloning, sync state not known yet',
   'repositorySync.cloning.light':
     'Still cloning, so the sync state is not known yet',
   'repositorySync.cloning.playful':
     'Still cloning, hold your horses before asking about the remote',
+  'repositorySync.cloning.maximum':
+    'Still cloning — the repository is literally being born, let it get dressed before you ask about the remote',
   'repositorySync.missing.plain': 'Missing from disk, sync state unknown',
   'repositorySync.missing.light':
     'Missing from disk, so the sync state is unknown',
   'repositorySync.missing.playful':
     'Vanished from disk, so the remote cannot be checked',
+  'repositorySync.missing.maximum':
+    'Gone from disk without leaving a note, so the remote cannot be checked',
   'repositoryActions.add': 'Add',
   'repositoryActions.addAria': 'Add a repository',
   'repositoryActions.select': 'Select',
@@ -7484,6 +7553,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'This commit is paused for a password: its large files will be pinned and uploaded only as encrypted ciphertext. Cancel stops the commit before any upload starts. Desktop Material cannot recover a lost password.',
   'cheapLfs.encryption.dialog.commitDescription.playful':
     'This commit is waiting at the encryption gate. Its large files will be pinned and uploaded only as encrypted ciphertext; Cancel stops the commit before any upload starts. Desktop Material cannot recover a lost password.',
+  'cheapLfs.encryption.dialog.commitDescription.maximum':
+    'This commit is at the encryption gate doing the secret handshake, and the gate still wants the password first. Its large files will be pinned and uploaded only as encrypted ciphertext; Cancel stops the commit before a single byte is uploaded. One part is said with a straight face: Desktop Material cannot recover a lost password — there is no locksmith.',
   'cheapLfs.encryption.dialog.decryptDescription':
     'Enter the password that was used to encrypt this Release payload.',
   'cheapLfs.encryption.dialog.changeDescription':
@@ -7529,12 +7600,16 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Only files Git itself swears are ignored show up here. The ones you pick get copied into a new local repository, every copy is checked by size and SHA-256, and that repository is added as a submodule. Your originals stay byte-for-byte where they are. Nothing is uploaded, no remote is created, and nothing is pushed.',
   'ignoredSubmodule.intro.playful':
     'Only files Git will personally vouch for as ignored get in here — no guessing, no reading .gitignore over its shoulder. Whatever you tick gets copied into a brand-new local repository, every copy frisked for size and SHA-256, and that repository joins the family as a submodule. Your originals do not move one byte. Nothing is uploaded, no remote is created, and nothing is pushed.',
+  'ignoredSubmodule.intro.maximum':
+    'Entry is strictly guest-list: only files Git will swear under oath are ignored — no guessing, no reading .gitignore over anyone’s shoulder. Everything you tick is copied into a brand-new local repository, each copy weighed (size) and fingerprinted (SHA-256) at the door, and that repository joins the family as a submodule. Your originals do not move a single byte. Nothing is uploaded, no remote is created, and nothing is pushed — the entire party stays in your house.',
   'ignoredSubmodule.reviewLead.plain':
     'Review this before it runs. Every step below happens locally, in this order, and the copy proofs finish before anything is added to Git.',
   'ignoredSubmodule.reviewLead.light':
     'Have a proper look before this runs. Everything below happens locally, in this order, and every copy is proven before Git is asked to change anything.',
   'ignoredSubmodule.reviewLead.playful':
     'Last look before the button does something real. Everything below happens on this machine, in this order, and every copy has to pass its size and hash check before Git is allowed to touch a single index entry.',
+  'ignoredSubmodule.reviewLead.maximum':
+    'Final boarding call — past this button things happen for real. Every step below runs on this machine, in exactly this order, and each copy must ace both its size and hash exams before Git is allowed anywhere near a single index entry.',
   'ignoredSubmodule.loading': 'Asking Git which files it currently ignores…',
   'ignoredSubmodule.loadFailed':
     'Could not read the ignored files from Git: {error}',
@@ -7686,6 +7761,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'No usable saved password was waiting in Windows Credential Manager, so the unattended commit stopped at the lock. Nothing was encrypted/uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Other changes remain eligible. Retry interactively, or save it in Repository settings > Large files & storage.',
   'cheapLfs.unattendedEncryption.body.playful':
     'The unattended commit found no usable saved key in Windows Credential Manager and wisely left the lock alone. Nothing was encrypted/uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Other changes remain eligible. Retry interactively, or save it in Repository settings > Large files & storage.',
+  'cheapLfs.unattendedEncryption.body.maximum':
+    'The unattended commit knocked at Windows Credential Manager, found no usable saved password, and very sensibly refused to guess. Nothing was encrypted or uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Everything else you selected is still eligible. Retry interactively, or save the password in Repository settings > Large files & storage so the door simply opens next time.',
   'cheapLfs.localState.pointer': 'Pointer stored locally',
   'cheapLfs.localState.materialized':
     'Materialized locally · verified against the committed pointer',
@@ -8050,6 +8127,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.restore.phase.decrypting.plain': 'Decrypting',
   'cheapLfs.restore.phase.decrypting.light': 'Securely decrypting',
   'cheapLfs.restore.phase.decrypting.playful': 'Decrypting the locked bytes',
+  'cheapLfs.restore.phase.decrypting.maximum':
+    'Sweet-talking the ciphertext into opening up',
   'cheapLfs.restore.phase.verifying': 'Verifying',
   'cheapLfs.restore.phase.materializing': 'Restoring',
   'cheapLfs.restore.phase.canceling': 'Stopping',
@@ -8175,10 +8254,14 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     '{releases} of {total} releases in view — {entries} entries.',
   'changelog.summary.playful':
     '{releases} of {total} releases dug up, {entries} entries and counting.',
+  'changelog.summary.maximum':
+    '{releases} of {total} releases hauled up from the archive, {entries} entries dusted off and on display.',
   'changelog.empty.plain': 'No releases match the current filters.',
   'changelog.empty.light': 'Nothing here matches those filters.',
   'changelog.empty.playful':
     'Not one release matches that. The filters win this round.',
+  'changelog.empty.maximum':
+    'Zero releases survived those filters — a flawless victory for the filters and a quiet afternoon for history.',
   'dimSum.region': 'Dim sum surprise',
   'dimSum.dismiss': 'Dismiss the dim sum surprise',
   // Read after the name, so it lands as "Har Gow, said haa1 gaau2".
@@ -8188,12 +8271,15 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'dimSum.title.playful': 'The trolley squeaked past',
   // The two facts every band states: the odds, and that the card leaves on its
   // own. Neither promises a way to switch it off, because there is not one.
+  'dimSum.title.maximum': 'The trolley chose you',
   'dimSum.lead.plain':
     'About 1 launch in 10 shows a dish. This card clears itself.',
   'dimSum.lead.light':
     'About 1 launch in 10 gets a dish. This one clears itself, so carry on.',
   'dimSum.lead.playful':
     'You drew the 1 launch in 10 that comes with food. It clears itself — no need to eat quickly.',
+  'dimSum.lead.maximum':
+    'One launch in 10 comes with food, and you are holding the winning ticket. The card clears itself — the dumplings, regrettably, are pixels.',
   'contextMenu.filterPlaceholder': 'Filter actions',
   'contextMenu.filterLabel': 'Filter menu actions',
   'contextMenu.empty': 'No matching actions',
@@ -8630,6 +8716,8 @@ export const cantoneseTranslations: Readonly<
   'lazyView.loading.plain': '載入緊 {name}…',
   'lazyView.loading.light': '拎緊 {name} 出嚟，其他部分照用得。',
   'lazyView.loading.playful': '嗌緊 {name} 起身，佢伸緊懶腰，其他嘢照玩。',
+  'lazyView.loading.maximum':
+    '好有禮貌咁嗌緊 {name} 起身，佢話整緊個頭先肯出嚟。其他嘢一早返晒工。',
   'lazyView.failedTitle': '載入唔到 {name}',
   'lazyView.failedBody.plain':
     'App 其他部分冇受影響。撳「再試一次」可以再載入 {name}。',
@@ -8637,6 +8725,8 @@ export const cantoneseTranslations: Readonly<
     '淨係 {name} 出事，App 其他部分無恙。撳「再試一次」再載入佢。',
   'lazyView.failedBody.playful':
     '{name} 一出門口就仆親，App 其他部分完全唔知發生咩事。撳「再試一次」畀佢再嚟過。',
+  'lazyView.failedBody.maximum':
+    '{name} 想華麗登場，點知一步踩空成個跌落台；App 其他部分繼續做騷，半拍都冇亂。撳「再試一次」請佢再上台。',
   'lazyView.failedDetail': '錯誤訊息：{error}',
   'lazyView.retry': '再試一次',
   'lazyView.notificationTitle': '打唔開 {name}',
@@ -8731,6 +8821,8 @@ export const cantoneseTranslations: Readonly<
     '想改個樣？撳住 Shift 右擊佢，外觀編輯器就會彈出嚟。淨係右擊就唔阻你，照開返該元素本身嘅選單。用鍵盤就先聚焦該元素，再撳 Shift+F10 或者 Menu 鍵。每個元素嘅設定同歷史都各自分開。',
   'appearance.elementGesture.playful':
     '撳住 Shift 再右擊，外觀編輯器即刻彈出嚟等你落色。淨係右擊嘅話，佢繼續做返本份——開該元素本身嘅選單。鍾意用鍵盤？聚焦該元素，撳 Shift+F10 或者 Menu 鍵。每個元素都好似松鼠咁，收埋自己嘅設定同歷史。',
+  'appearance.elementGesture.maximum':
+    '撳住 Shift 再右擊，外觀編輯器即刻拎住成板色卡衝出嚟，好似裝修節目主持咁問你今日想點裝。淨係右擊佢就照返朝九晚五——開該元素本身嘅選單，唔加戲。鍵盤派：聚焦該元素，撳 Shift+F10 或者 Menu 鍵，一樣咁隆重。每個元素自己收自己嘅設定同歷史，執靚呢個掣，嗰個掣件衫一條紋都唔會皺。',
   'appearance.scheduledSettingsHeading': '排程設定',
   'appearance.scheduledSettingsDescription':
     '喺指定本地日期同時間套用語言、主題同外觀自訂。排程亦可以讀經驗證嘅 API 或 Home Assistant 布林實體；外部來源失敗時，會保留本地設定唔亂郁。',
@@ -9177,6 +9269,8 @@ export const cantoneseTranslations: Readonly<
     '呢啲分頁喺條分頁列冇位企。喺呢度可以搵、揀，或者改外觀。',
   'tabs.overflowDescription.playful':
     '呢啲分頁俾人擠咗出嚟。喺呢度照搵、照揀，仲可以幫佢整色整水。',
+  'tabs.overflowDescription.maximum':
+    '條分頁列爆晒棚，呢啲分頁喺出面排緊隊，猶如禮拜六朝早等位飲茶。喺呢度照搵、照揀，等位嗰陣仲可以順便幫佢換套新衫。',
   'tabs.overflowListLabel': '擠唔落嘅倉庫分頁',
   'tabs.overflowEmpty': '所有分頁都擺得落。',
   'tabs.overflowActiveSuffix': '，使用緊',
@@ -9870,6 +9964,8 @@ export const cantoneseTranslations: Readonly<
     'Pull {repository} 拉咗個吉：{remote} 已經冇咗 {remoteBranch}，但係本地分支 {branch} 仲死心不息咁追蹤住佢。',
   'pullBranchDeleted.intro.playful':
     '{repository} 去 pull 一條走咗人嘅分支。{remote} 已經冇咗 {remoteBranch}，你部機嘅 {branch} 仲喺度癡心追蹤緊隻鬼。',
+  'pullBranchDeleted.intro.maximum':
+    '{repository} 打去 {remote} 想 pull {remoteBranch}，點知嗰邊話「呢條分支已經搬走，冇留地址」。你本地嘅 {branch} 仲日日寫緊信畀佢。',
   'pullBranchDeleted.offer':
     'Desktop Material 可以喺 {repository} 幫你 checkout 返 {default}，然後 pull 嗰條。',
   'pullBranchDeleted.blockedTitle': '轉唔到分支',
@@ -9909,6 +10005,8 @@ export const cantoneseTranslations: Readonly<
     '{repository} 搬咗去 {default}，今次 pull 終於過到骨。',
   'pullBranchDeleted.recovered.playful':
     '{repository} 移民去咗 {default}，之前拉極都拉唔到嘢嗰個 pull，今次終於拉到嘢返嚟。',
+  'pullBranchDeleted.recovered.maximum':
+    '{repository} 執好包袱搬咗去 {default}，拉咗成日空氣嗰個 pull，今次終於拉到真嘢返嚟。',
   'pullBranchDeleted.retryFailedTitle': '轉咗分支，但係 pull 失敗',
   'pullBranchDeleted.retryFailedBody':
     '{repository} 而家喺 {default} 度，不過 pull 失敗咗：{error}',
@@ -10088,58 +10186,83 @@ export const cantoneseTranslations: Readonly<
     '{group}，{repositories}，而家摺埋咗',
   'repositoryPicker.groupCollapsed.playful':
     '{group}，{repositories}，摺埋晒匿咗喺入面',
+  'repositoryPicker.groupCollapsed.maximum':
+    '{group}，{repositories}，摺到扁晒扮緊家俬',
   'repositoryPicker.groupExpanded.plain': '{group}，{repositories}，已展開',
   'repositoryPicker.groupExpanded.light': '{group}，{repositories}，而家打開咗',
   'repositoryPicker.groupExpanded.playful':
     '{group}，{repositories}，攤到大大版',
+  'repositoryPicker.groupExpanded.maximum':
+    '{group}，{repositories}，大門敞開仲煲埋水沖茶',
   'repositoryPicker.autoExpandedOne.plain':
     '篩選期間自動展開咗 1 個摺埋嘅組，令入面嘅結果唔會被隱藏。',
   'repositoryPicker.autoExpandedOne.light':
     '篩選幫你打開咗 1 個摺埋嘅組，唔會食咗入面嘅結果。',
   'repositoryPicker.autoExpandedOne.playful':
     '撬開咗 1 個摺埋嘅組 —— 有搵到嘅嘢匿咗喺入面。',
+  'repositoryPicker.autoExpandedOne.maximum':
+    '搜查令一到，撬開咗 1 個摺埋嘅組——個結果匿喺梳化後面，即場斷正。',
   'repositoryPicker.autoExpandedMany.plain':
     '篩選期間自動展開咗 {count} 個摺埋嘅組，令入面嘅結果唔會被隱藏。',
   'repositoryPicker.autoExpandedMany.light':
     '篩選幫你打開咗 {count} 個摺埋嘅組，唔會食咗入面嘅結果。',
   'repositoryPicker.autoExpandedMany.playful':
     '撬開咗 {count} 個摺埋嘅組 —— 有搵到嘅嘢匿咗喺入面。',
+  'repositoryPicker.autoExpandedMany.maximum':
+    '攞住搜查令撬開咗 {count} 個摺埋嘅組——每個入面都有結果匿緊，全部斷正。',
   'repositorySync.commitOne': '1 個 commit',
   'repositorySync.commitMany': '{count} 個 commit',
   'repositorySync.unknown.plain': '未檢查過，同步狀態未知',
   'repositorySync.unknown.light': '重未睇過，所以同步狀態係未知',
   'repositorySync.unknown.playful': '完全未知，仲未有人望過個遠端',
+  'repositorySync.unknown.maximum': '一團謎——連個遠端都未同人打過招呼',
   'repositorySync.inSync.plain': '上次檢查時同步咗',
   'repositorySync.inSync.light': '上次檢查時冇嘢要 push 又冇嘢要 pull',
   'repositorySync.inSync.playful':
     '上次望嗰陣乾乾淨淨，冇嘢要 push 又冇嘢要 pull',
+  'repositorySync.inSync.maximum':
+    '乾淨到反光，遠端同呢邊心有靈犀——冇嘢要 push，冇嘢要 pull',
   'repositorySync.ahead.plain': '{ahead} 要 push，冇嘢要 pull',
   'repositorySync.ahead.light': '有 {ahead} 排住隊等 push，冇嘢要 pull',
   'repositorySync.ahead.playful': '{ahead} 喺跑道等起飛，冇嘢要 pull',
+  'repositorySync.ahead.maximum': '{ahead} 喺跑道扣好安全帶踩緊油，冇嘢要 pull',
   'repositorySync.behind.plain': '{behind} 要 pull，冇嘢要 push',
   'repositorySync.behind.light': '有 {behind} 喺遠端等你 pull，冇嘢要 push',
   'repositorySync.behind.playful':
     '{behind} 喺遠端寫住你個名等你 pull，冇嘢要 push',
+  'repositorySync.behind.maximum':
+    '{behind} 喺遠端舉住寫咗你個名嘅牌仔等接機，冇嘢要 push',
   'repositorySync.diverged.plain': '{ahead} 要 push，{behind} 要 pull',
   'repositorySync.diverged.light':
     '已經分岔：{ahead} 要 push，{behind} 要 pull',
   'repositorySync.diverged.playful':
     '分咗岔喇，{ahead} 要 push、{behind} 要 pull，快啲揀邊條路',
+  'repositorySync.diverged.maximum':
+    '分咗岔：{ahead} 要 push，{behind} 要 pull，兩邊都覺得自己先係主角',
   'repositorySync.noUpstream.plain': '冇上游分支',
   'repositorySync.noUpstream.light': '冇上游分支可以比較',
   'repositorySync.noUpstream.playful': '冇上游分支，呢條枝自己玩自己',
+  'repositorySync.noUpstream.maximum':
+    '冇上游分支——呢條枝搬咗入深山，同世界斷聯',
   'repositorySync.detached.plain': 'HEAD 已分離，冇分支可以比較',
   'repositorySync.detached.light': 'HEAD 已分離，所以冇分支可以比較',
   'repositorySync.detached.playful': 'HEAD 飄咗開，冇分支可以比較',
+  'repositorySync.detached.maximum':
+    'HEAD 甩咗纜飄緊喺太空，冇分支可以打電話返屋企',
   'repositorySync.empty.plain': '仲未有 commit',
   'repositorySync.empty.light': '仲未有 commit，所以冇嘢可以比較',
   'repositorySync.empty.playful': '一張白紙，仲未有 commit',
+  'repositorySync.empty.maximum':
+    '仲未有 commit——張白紙做緊深呼吸，準備人生首演',
   'repositorySync.cloning.plain': '複製緊，同步狀態未知',
   'repositorySync.cloning.light': '仲複製緊，所以同步狀態未知',
   'repositorySync.cloning.playful': '仲複製緊，等陣先問遠端啦',
+  'repositorySync.cloning.maximum':
+    '仲複製緊——個 repo 啱啱出世，畀佢着好衫先問遠端啦',
   'repositorySync.missing.plain': '磁碟上搵唔到，同步狀態未知',
   'repositorySync.missing.light': '磁碟上搵唔到，所以同步狀態未知',
   'repositorySync.missing.playful': '喺磁碟上人間蒸發，查唔到個遠端',
+  'repositorySync.missing.maximum': '喺磁碟上走佬冇留紙仔，遠端想查都查唔到',
   'repositoryActions.add': '新增',
   'repositoryActions.addAria': '新增 repo',
   'repositoryActions.select': '揀選',
@@ -12057,6 +12180,8 @@ export const cantoneseTranslations: Readonly<
     '呢個 commit 暫停咗等密碼；大檔 pin 好之後只會以加密 ciphertext 上載。撳「取消」會喺任何上載開始前停止 commit。Desktop Material 無法復原遺失嘅密碼。',
   'cheapLfs.encryption.dialog.commitDescription.playful':
     '呢個 commit 喺加密閘口等緊密碼。大檔 pin 好之後只會以加密 ciphertext 上載；撳「取消」會喺任何上載開始前停止 commit。Desktop Material 無法復原遺失嘅密碼。',
+  'cheapLfs.encryption.dialog.commitDescription.maximum':
+    '呢個 commit 喺加密閘口耍緊暗號，個閘口都係嗰句：要密碼先放行。大檔 pin 好之後只會以加密 ciphertext 上載；撳「取消」就會喺一個 byte 都未上載之前叫停。呢句就要板起面講：Desktop Material 無法復原遺失嘅密碼——冇鎖匠㗎。',
   'cheapLfs.encryption.dialog.decryptDescription':
     '輸入當初用嚟加密呢個 Release payload 嘅密碼。',
   'cheapLfs.encryption.dialog.changeDescription':
@@ -12101,12 +12226,16 @@ export const cantoneseTranslations: Readonly<
     '入到嚟嘅，全部係 Git 親口認咗係 ignored 嘅檔案。你剔嘅會複製入一個新嘅本機 repo，每份複本都要過大小同 SHA-256 呢兩關，跟住個 repo 加做 submodule。原檔逐個 byte 留喺原位。唔會上載，唔會開 remote，亦唔會 push。',
   'ignoredSubmodule.intro.playful':
     '呢度淨係收 Git 肯拍心口擔保係 ignored 嘅檔案——唔靠估，亦唔會偷睇 .gitignore 自己解讀。你剔邊個，邊個就會俾人抄一份入一個全新嘅本機 repo，每份複本都要量身高（大小）同對指紋（SHA-256），過到關個 repo 先入嚟做 submodule。原檔一個 byte 都唔會郁。唔上載、唔開 remote、唔 push。',
+  'ignoredSubmodule.intro.maximum':
+    '呢度把關嚴過酒樓大堂：淨係收 Git 肯上庭作供話係 ignored 嘅檔案——唔靠估，亦唔會伸個頭過去偷睇 .gitignore。你剔邊個，邊個就抄一份入全新嘅本機 repo，每份複本喺門口過磅（大小）兼打指模（SHA-256），全部及格個 repo 先入嚟做 submodule。原檔一個 byte 都唔會郁。唔上載、唔開 remote、唔 push——成個派對都喺你屋企搞。',
   'ignoredSubmodule.reviewLead.plain':
     '執行之前請先睇清楚。下面每一步都喺你部機做，順序如下；所有複製核對做完，先至會改動 Git。',
   'ignoredSubmodule.reviewLead.light':
     '撳落去之前，好好睇一睇。下面全部喺你部機做，順序如下；每份複本核對完，先至輪到 Git 改嘢。',
   'ignoredSubmodule.reviewLead.playful':
     '撳之前望多眼，呢下係真㗎。下面全部喺你部機做，順序如下；每份複本要先過大小同 hash 兩關，Git 先有資格郁一條 index 記錄。',
+  'ignoredSubmodule.reviewLead.maximum':
+    '最後召集，過咗呢個掣就係嚟真。下面每一步都喺你部機做，次序一格都唔會亂；每份複本要考埋大小同 hash 兩科攞晒 A，Git 先有資格掂一條 index 記錄。',
   'ignoredSubmodule.loading': '問緊 Git 而家有邊啲檔案係 ignored…',
   'ignoredSubmodule.loadFailed': '讀唔到 Git 嘅 ignored 檔案清單：{error}',
   'ignoredSubmodule.empty':
@@ -12252,6 +12381,8 @@ export const cantoneseTranslations: Readonly<
     'Windows Credential Manager 冇可用已儲密碼，排程 commit 喺加密閘前停低。冇加密、冇上載，亦冇建立 Release anchor。原封不動、冇入 commit：{names}（總共 {count} 個）。其他變更仍可繼續。請人手重試，或喺 Repository settings > 大檔案同儲存 儲低密碼。',
   'cheapLfs.unattendedEncryption.body.playful':
     '排程 commit 喺 Windows Credential Manager 搵唔到可用已儲鎖匙，所以冇亂闖。冇加密、冇上載，亦冇建立 Release anchor。原封不動、冇入 commit：{names}（總共 {count} 個）。其他變更仍可繼續。請人手重試，或喺 Repository settings > 大檔案同儲存 儲低密碼。',
+  'cheapLfs.unattendedEncryption.body.maximum':
+    '排程 commit 去 Windows Credential Manager 敲門，發現冇可用已儲密碼，好識做咁冇亂估。冇加密、冇上載，亦冇建立 Release anchor。以下大檔原封不動、冇入 commit：{names}（總共 {count} 個）。其他已揀變更照舊有得行。請人手重試，或者去 Repository settings > 大檔案同儲存 儲低密碼，下次道門自己識開。',
   'cheapLfs.localState.pointer': '本機淨係擺住個 pointer',
   'cheapLfs.localState.materialized':
     '已經喺本機還原 · 同 commit 咗嘅 pointer 對得上',
@@ -12592,6 +12723,7 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.restore.phase.decrypting.plain': '解密緊',
   'cheapLfs.restore.phase.decrypting.light': '安全解密緊',
   'cheapLfs.restore.phase.decrypting.playful': '幫啲加密資料解密緊',
+  'cheapLfs.restore.phase.decrypting.maximum': '氹緊啲密文開口講嘢',
   'cheapLfs.restore.phase.verifying': '核實緊',
   'cheapLfs.restore.phase.materializing': '還原緊',
   'cheapLfs.restore.phase.canceling': '停緊',
@@ -12712,20 +12844,27 @@ export const cantoneseTranslations: Readonly<
     '{total} 個版本入面睇緊 {releases} 個，總共 {entries} 條紀錄。',
   'changelog.summary.playful':
     '喺 {total} 個版本度掘咗 {releases} 個出嚟，{entries} 條紀錄任你睇。',
+  'changelog.summary.maximum':
+    '喺 {total} 個版本嘅倉底捧咗 {releases} 個出嚟，{entries} 條紀錄抹到閃令令任你慢慢睇。',
   'changelog.empty.plain': '冇版本夾到而家嘅篩選條件。',
   'changelog.empty.light': '呢啲條件之下，乜都搵唔到。',
   'changelog.empty.playful': '一個都夾唔到，今鋪篩選贏咗。',
+  'changelog.empty.maximum':
+    '一個版本都闖唔過呢啲篩選條件，篩選今鋪完勝，歷史今日放假。',
   'dimSum.region': '點心驚喜',
   'dimSum.dismiss': '收起點心驚喜',
   'dimSum.romanization': '讀做 {jyutping}',
   'dimSum.title.plain': '點心驚喜',
   'dimSum.title.light': '推車經過，落咗一籠',
   'dimSum.title.playful': '點心車推到你枱邊',
+  'dimSum.title.maximum': '架推車今日揀咗你',
   'dimSum.lead.plain': '大約每 10 次開機有 1 次會有點心。呢張卡會自己收埋。',
   'dimSum.lead.light':
     '大約每 10 次開機得 1 次有得食。呢張卡自己會走，你照做嘢得㗎喇。',
   'dimSum.lead.playful':
     '10 次開機先中 1 次，今次連食嘅都有埋。佢自己會收，唔使趕住食。',
+  'dimSum.lead.maximum':
+    '開 10 次 app 先有 1 次有嘢食，今次畀你抽中咗。張卡自己會收——不過啲點心係像素嚟，食唔落肚，見諒。',
   'contextMenu.filterPlaceholder': '篩走用唔著嘅動作',
   'contextMenu.filterLabel': '篩選選單動作',
   'contextMenu.empty': '搵唔到夾得上嘅動作',
