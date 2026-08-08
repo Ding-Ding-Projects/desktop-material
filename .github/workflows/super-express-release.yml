@@ -379,9 +379,10 @@ jobs:
             exit 1
           fi
           published_assets=$(cat release-payload/published-assets.txt)
+          # GitHub's release asset API normalizes spaces in this filename.
           for expected in \
             'RELEASES' \
-            'GitHub Desktop-x64.zip' \
+            'GitHub.Desktop-x64.zip' \
             'GitHubDesktopSetup-x64.exe' \
             'GitHubDesktopSetup-x64.msi' \
             "GitHubDesktop-${RELEASE_VERSION}-full.nupkg" \
