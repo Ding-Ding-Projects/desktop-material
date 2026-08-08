@@ -96,7 +96,7 @@ export interface IRepositorySyncSummaryText {
  * disclosure text so both repository-list surfaces band playfulness the same
  * way instead of drifting apart.
  */
-export type FunnyBand = 'plain' | 'light' | 'playful'
+export type FunnyBand = 'plain' | 'light' | 'playful' | 'maximum'
 
 const SummaryTranslationKeys: Readonly<
   Record<RepositorySyncSummaryKind, Readonly<Record<FunnyBand, TranslationKey>>>
@@ -105,51 +105,61 @@ const SummaryTranslationKeys: Readonly<
     plain: 'repositorySync.cloning.plain',
     light: 'repositorySync.cloning.light',
     playful: 'repositorySync.cloning.playful',
+    maximum: 'repositorySync.cloning.maximum',
   },
   missing: {
     plain: 'repositorySync.missing.plain',
     light: 'repositorySync.missing.light',
     playful: 'repositorySync.missing.playful',
+    maximum: 'repositorySync.missing.maximum',
   },
   unknown: {
     plain: 'repositorySync.unknown.plain',
     light: 'repositorySync.unknown.light',
     playful: 'repositorySync.unknown.playful',
+    maximum: 'repositorySync.unknown.maximum',
   },
   empty: {
     plain: 'repositorySync.empty.plain',
     light: 'repositorySync.empty.light',
     playful: 'repositorySync.empty.playful',
+    maximum: 'repositorySync.empty.maximum',
   },
   detached: {
     plain: 'repositorySync.detached.plain',
     light: 'repositorySync.detached.light',
     playful: 'repositorySync.detached.playful',
+    maximum: 'repositorySync.detached.maximum',
   },
   'no-upstream': {
     plain: 'repositorySync.noUpstream.plain',
     light: 'repositorySync.noUpstream.light',
     playful: 'repositorySync.noUpstream.playful',
+    maximum: 'repositorySync.noUpstream.maximum',
   },
   'in-sync': {
     plain: 'repositorySync.inSync.plain',
     light: 'repositorySync.inSync.light',
     playful: 'repositorySync.inSync.playful',
+    maximum: 'repositorySync.inSync.maximum',
   },
   ahead: {
     plain: 'repositorySync.ahead.plain',
     light: 'repositorySync.ahead.light',
     playful: 'repositorySync.ahead.playful',
+    maximum: 'repositorySync.ahead.maximum',
   },
   behind: {
     plain: 'repositorySync.behind.plain',
     light: 'repositorySync.behind.light',
     playful: 'repositorySync.behind.playful',
+    maximum: 'repositorySync.behind.maximum',
   },
   diverged: {
     plain: 'repositorySync.diverged.plain',
     light: 'repositorySync.diverged.light',
     playful: 'repositorySync.diverged.playful',
+    maximum: 'repositorySync.diverged.maximum',
   },
 }
 
@@ -216,7 +226,7 @@ export function getRepositorySyncSummary(
   return { kind: 'in-sync', ahead, behind }
 }
 
-/** Map a 1..5 funny level onto the three bands the resources are written in. */
+/** Map a 1..5 funny level onto the four bands the resources are written in. */
 export function bandForFunnyLevel(level: number): FunnyBand {
   const clamped = clampFunnyLevel(
     level,
@@ -229,7 +239,7 @@ export function bandForFunnyLevel(level: number): FunnyBand {
   if (clamped === 3) {
     return 'light'
   }
-  return 'playful'
+  return clamped === 4 ? 'playful' : 'maximum'
 }
 
 function commitCountPhrase(

@@ -32,11 +32,13 @@ const DisclosureKeys: Readonly<
     plain: 'repositoryPicker.groupCollapsed.plain',
     light: 'repositoryPicker.groupCollapsed.light',
     playful: 'repositoryPicker.groupCollapsed.playful',
+    maximum: 'repositoryPicker.groupCollapsed.maximum',
   },
   expanded: {
     plain: 'repositoryPicker.groupExpanded.plain',
     light: 'repositoryPicker.groupExpanded.light',
     playful: 'repositoryPicker.groupExpanded.playful',
+    maximum: 'repositoryPicker.groupExpanded.maximum',
   },
 }
 
@@ -47,11 +49,13 @@ const AutoExpandedKeys: Readonly<
     plain: 'repositoryPicker.autoExpandedOne.plain',
     light: 'repositoryPicker.autoExpandedOne.light',
     playful: 'repositoryPicker.autoExpandedOne.playful',
+    maximum: 'repositoryPicker.autoExpandedOne.maximum',
   },
   many: {
     plain: 'repositoryPicker.autoExpandedMany.plain',
     light: 'repositoryPicker.autoExpandedMany.light',
     playful: 'repositoryPicker.autoExpandedMany.playful',
+    maximum: 'repositoryPicker.autoExpandedMany.maximum',
   },
 }
 
