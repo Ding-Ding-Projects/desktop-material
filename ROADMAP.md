@@ -2,6 +2,19 @@
 
 Updated: **August 7, 2026**
 
+## August 8 — Windows-only CI release gate and uncapped workflow jobs
+
+- Standard CI no longer runs the Linux TUI. The Linux workflow retains only
+  platform-neutral lint and supply-chain checks, while the Windows workflow
+  owns the desktop build, tests, packaging, and packaged E2E validation.
+- Automatic and manual combined release workflows now publish the Windows
+  desktop payload only. The separate manual TUI workflow and historical source
+  records remain available without gating the Windows release.
+- Explicit `timeout-minutes: 60` caps were removed from the desktop CI,
+  installer, and Windows emergency-release workflow definitions. Remote runtime
+  and release status remain pending until the new `main` run reports them.
+- Local workflow contract verification passes **31/31**.
+
 ## August 8 — repair GitHub auth and Actions runner surfaces
 
 - GitHub OAuth now follows the upstream Desktop authorization and token

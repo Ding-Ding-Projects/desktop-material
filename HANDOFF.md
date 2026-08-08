@@ -1,5 +1,24 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-08 — Keep standard CI Windows-only and remove the 60-minute cap
+
+The standard CI and automatic installer release gates no longer include the
+Linux TUI. `ci-linux.yml` retains only platform-neutral lint and supply-chain
+checks, `ci-windows.yml` retains the Windows desktop build and packaged E2E
+jobs, and the installer publisher listens only to `CI Windows` and uploads only
+the Windows installer payload. The manual combined Super Express lane is now
+Windows-only as well; the separate manual TUI workflow and all TUI source and
+historical verification records remain intact.
+
+All explicit `timeout-minutes: 60` entries were removed from the desktop CI,
+installer, and Windows emergency-release workflows. This removes the workflow
+cap; it does not claim a remote run is complete until GitHub reports its actual
+result.
+
+Focused verification: the CI workflow safety and Super Express contract suite
+passes **31/31**. Remote CI for the integrated commit and the resulting release
+are pending and must be reported from their actual run and asset records.
+
 ## 2026-08-08 — Repair OAuth, public runner preflight, Actions layout, and release details
 
 The Windows desktop source now follows the upstream GitHub Desktop OAuth request

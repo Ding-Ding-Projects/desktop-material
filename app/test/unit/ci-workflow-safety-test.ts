@@ -351,15 +351,21 @@ describe('CI workflow safety', () => {
     )
   })
 
-  it('installs Node before the self-hosted Linux TUI invokes Node', () => {
-    const tuiJob = linuxWorkflow.match(
-      /\r?\n  linux-tui:\r?\n([\s\S]*?)(?=\r?\n  [a-z-]+:\r?\n|$)/
+  it('keeps the terminal edition out of standard CI and release gating', () => {
+    assert.match(linuxWorkflow, /name: CI Linux/)
+    assert.match(windowsWorkflow, /name: CI Windows/)
+    assert.doesNotMatch(
+      linuxWorkflow,
+      /linux-tui|working-directory: tui|desktop-material-tui/i
     )
-    assert.notEqual(tuiJob, null)
-    const source = tuiJob?.[1] ?? ''
-    assert.match(source, /uses: actions\/setup-node@v7/)
-    assert.match(source, /node-version: \$\{\{ env\.NODE_VERSION \}\}/)
-    assert.match(source, /node tui\/tools\/generate-parity-contract\.mjs/)
+    assert.doesNotMatch(
+      windowsWorkflow,
+      /windows-tui-core|working-directory: tui|desktop-material-tui/i
+    )
+    assert.doesNotMatch(
+      installerWorkflow,
+      /tui_package|linux_ok|CI Linux|desktop-material-tui/i
+    )
   })
 
   it('keeps non-fatal submodule updates shell-neutral', () => {
@@ -391,22 +397,15 @@ describe('CI workflow safety', () => {
     assert.equal(guardedStepCount, 9)
   })
 
-  it('checks out complete history before validating the TUI changelog', () => {
-    const tuiJob = getJob(linuxWorkflowDocument, 'linux-tui')
-    const checkout = tuiJob.steps?.find(step =>
-      step.uses?.startsWith('actions/checkout@')
-    )
-
-    assert.notEqual(checkout, undefined)
-    assert.equal(checkout?.with?.['fetch-depth'], 0)
-    assert.equal(
-      tuiJob.steps?.some(
-        step =>
-          step.run ===
-          'node tui/tools/generate-tui-changelog-catalog.mjs --check'
-      ),
-      true
-    )
+  it('keeps standard CI job inventories focused on desktop validation', () => {
+    assert.deepEqual(Object.keys(linuxWorkflowDocument.jobs ?? {}).sort(), [
+      'lint',
+      'supply-chain',
+    ])
+    assert.deepEqual(Object.keys(windowsWorkflowDocument.jobs ?? {}).sort(), [
+      'build',
+      'e2e-smoke',
+    ])
   })
 
   it('uses one configurable loopback endpoint for the E2E build and server', () => {
@@ -438,12 +437,9 @@ describe('CI workflow safety', () => {
     }
   })
 
-  it('publishes once after automatic CI or parallel express gates succeed', () => {
+  it('publishes once after automatic Windows CI or express gates succeed', () => {
     assert.match(installerWorkflow, /workflow_run:/)
-    assert.match(
-      installerWorkflow,
-      /workflows:\s*\n\s*- CI Linux\s*\n\s*- CI Windows/
-    )
+    assert.match(installerWorkflow, /workflows:\s*\n\s*- CI Windows/)
     assert.doesNotMatch(installerWorkflow, /^  push:/m)
     assert.match(installerWorkflow, /CI_CONCLUSION.*workflow_run\.conclusion/)
     assert.match(installerWorkflow, /CI_CONCLUSION" = "success"/)
@@ -453,32 +449,15 @@ describe('CI workflow safety', () => {
     )
     assert.match(
       installerWorkflow,
-      /needs\.prepare\.outputs\.publish == 'true'/
-    )
-    const tuiPackageJob = installerWorkflow.match(
-      /\r?\n  tui_package:\r?\n([\s\S]*?)(?=\r?\n  [a-z_]+:\r?\n)/
-    )
-    assert.notEqual(tuiPackageJob, null)
-    // Each packaging job answers to its own lane, and the publisher is
-    // elected so the pair still produces exactly one Release per commit.
-    assert.match(
-      tuiPackageJob?.[1] ?? '',
-      /needs\.prepare\.outputs\.publish == 'true' &&\s*needs\.prepare\.outputs\.linux_ok\s*== 'true'/
+      /needs\.prepare\.outputs\.publish\s*== 'true'/
     )
     assert.match(
       installerWorkflow,
       /needs\.prepare\.outputs\.proceed == 'true' &&\s*needs\.prepare\.outputs\.windows_ok == 'true'/
     )
-    assert.match(
-      installerWorkflow,
-      /it will publish this commit once it finishes/
-    )
-    assert.match(installerWorkflow, /finished later; it publishes this commit/)
-    // Both tested payloads are mandatory; a red lane creates no Release.
-    assert.match(
-      installerWorkflow,
-      /needs\.package\.result == 'success' && needs\.tui_package\.result ==\s*'success'/
-    )
+    // The tested Windows desktop payload is mandatory; a red run creates no Release.
+    assert.match(installerWorkflow, /needs\.package\.result == 'success'/)
+    assert.doesNotMatch(installerWorkflow, /timeout-minutes:\s*60/)
     assert.doesNotMatch(installerWorkflow, /## Partial release/)
     assert.match(installerWorkflow, /name: Express lint/)
     assert.match(installerWorkflow, /name: Express tests Windows x64/)
@@ -728,7 +707,6 @@ describe('CI workflow safety', () => {
       'prepare',
       'lint',
       'release_notes',
-      'tui_package',
       'prepare_publication',
       'publish',
     ]) {
@@ -985,10 +963,7 @@ describe('CI workflow safety', () => {
       installerWorkflow,
       /package:[\s\S]*?runs-on: windows-2022[\s\S]*?permissions:\s*\n\s+contents: read[\s\S]*?NODE_ENV: production[\s\S]*?RELEASE_CHANNEL: beta/
     )
-    assert.match(
-      installerWorkflow,
-      /if \[ "\$windows_ok" = true \] && \[ "\$linux_ok" = true \]/
-    )
+    assert.match(installerWorkflow, /if \[ "\$CI_CONCLUSION" = "success" \]/)
     assert.doesNotMatch(
       releasePromotionScript,
       /Could not (?:resolve|fetch|list)[^\n]*leaving Latest untouched/
@@ -1052,13 +1027,12 @@ describe('CI workflow safety', () => {
     }
     assert.match(
       installerWorkflow,
-      /sibling_fields=\$\(gh api[\s\S]*?--jq[\s\S]*?@tsv/
+      /only CI Windows can publish the desktop release/
     )
-    assert.match(
+    assert.doesNotMatch(
       installerWorkflow,
-      /IFS=\$'\\t' read -r sibling_status sibling_conclusion sibling_updated <<< "\$sibling_fields"/
+      /sibling_fields|sibling_conclusion|sibling_updated/
     )
-    assert.doesNotMatch(installerWorkflow, /printf '%s' "\$sibling_run" \| jq/)
   })
 
   it('builds, packages, and exercises the app on safe runner choices', () => {
@@ -1070,14 +1044,13 @@ describe('CI workflow safety', () => {
       productionWebpackRunner,
       /WEBPACK_DISABLE_CONCURRENT_RECOMPILATION === '1'[\s\S]*?--no-concurrent-recompilation[\s\S]*?--no-opt/
     )
-    assertJobRunsOn(windowsWorkflowDocument, 'windows-tui-core', 'windows-2022')
     for (const jobName of ['build', 'e2e-smoke']) {
       assert.equal(
         getJob(windowsWorkflowDocument, jobName)['runs-on'],
         windowsDesktopRunnerExpression
       )
     }
-    for (const jobName of ['lint', 'supply-chain', 'linux-tui']) {
+    for (const jobName of ['lint', 'supply-chain']) {
       assertJobRunsOn(linuxWorkflowDocument, jobName, 'ubuntu-latest')
     }
     assert.deepEqual(getSelfHostedJobNames(linuxWorkflowDocument), [])
@@ -1104,10 +1077,7 @@ describe('CI workflow safety', () => {
       ).run,
       'yarn build:prod:e2e'
     )
-    assert.match(
-      windowsWorkflow,
-      /Enable Git long paths for Windows TUI tests\s+run: git config core\.longpaths true/
-    )
+    assert.doesNotMatch(windowsWorkflow, /Windows TUI|working-directory: tui/)
     assert.match(
       windowsWorkflow,
       /defaults:\s+run:\s+shell: powershell -NoProfile -ExecutionPolicy Bypass -Command \"\. '\{0\}'\"/

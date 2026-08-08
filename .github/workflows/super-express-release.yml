@@ -3,10 +3,9 @@ name: Super Express Release
 # Manual emergency lane. It deliberately runs no tests, lint, type checks,
 # parity checks, or smoke tests. The ordinary CI and Express Release workflows
 # remain the tested release paths. Every job in this emergency lane runs on a
-# GitHub-hosted runner: Linux jobs use ubuntu-latest and the Windows package
-# uses windows-2022. The Windows and Linux TUI build jobs run in parallel,
-# then one Linux publisher creates the combined Release so the Squirrel
-# update feed and the TUI bootstrap URL still point at one payload.
+# GitHub-hosted runner: the Windows package uses windows-2022 and the publisher
+# uses ubuntu-latest. This lane publishes the Windows desktop payload only; the
+# terminal edition remains available through its separate manual workflow.
 on:
   workflow_dispatch:
     inputs:
@@ -107,7 +106,6 @@ jobs:
     outputs:
       artifact_name: ${{ steps.package.outputs.artifact_name }}
     runs-on: windows-2022
-    timeout-minutes: 60
     steps:
       - name: Initial checkout for Windows bootstrap
         uses: actions/checkout@v7.0.1
@@ -142,36 +140,14 @@ jobs:
           DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT:
             ${{ secrets.DESKTOP_NON_FATAL_ERROR_REPORTING_ENDPOINT }}
 
-  tui_build:
-    name: Build Linux TUI packages
-    needs: prepare
-    outputs:
-      artifact_name: ${{ steps.package.outputs.artifact_name }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ needs.prepare.outputs.sha }}
-          fetch-depth: 0
-
-      - id: package
-        uses: ./.github/actions/super-express-linux-tui-build
-        with:
-          release_target_sha: ${{ needs.prepare.outputs.sha }}
-
   prepare_publication:
-    name: Prepare combined GitHub Release payload
+    name: Prepare Windows GitHub Release payload
     needs:
       - prepare
       - windows_build
-      - tui_build
-    outputs:
-      tui_version: ${{ steps.tui_version.outputs.version }}
     if: >-
       !cancelled() && always() && needs.prepare.result == 'success' &&
-      needs.windows_build.result == 'success' && needs.tui_build.result ==
-      'success' && inputs.publish
+      needs.windows_build.result == 'success' && inputs.publish
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -190,50 +166,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-        with:
-          version: 0.11.26
-          enable-cache: true
-          cache-dependency-glob: tui/uv.lock
-
-      - name: Install managed Python 3.12
-        shell: bash
-        run: uv python install 3.12
-
-      - name: Discover exact TUI package version
-        id: tui_version
-        working-directory: tui
-        shell: bash
-        run: |
-          version=$(uv run --python 3.12 python -c \
-            'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
-          if [ -z "$version" ] || [[ "$version" == *[[:space:]]* ]]; then
-            echo "TUI pyproject.toml did not provide one usable package version." >&2
-            exit 1
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
       - uses: actions/download-artifact@v8
         with:
           name: ${{ needs.windows_build.outputs.artifact_name }}
           path: release-payload/installers
 
-      - uses: actions/download-artifact@v8
-        with:
-          name: ${{ needs.tui_build.outputs.artifact_name }}
-          path: release-payload/tui
-
-      - name: Restore executable bits on downloaded TUI scripts
-        shell: bash
-        run:
-          chmod 0755 release-payload/tui/install-linux-tui.sh
-          release-payload/tui/bootstrap-linux-tui.sh
-
       - name: Verify downloaded release payload
         shell: bash
-        env:
-          TUI_VERSION: ${{ steps.tui_version.outputs.version }}
         run: |
           required=(
             release-payload/installers/RELEASES
@@ -242,11 +181,6 @@ jobs:
             release-payload/installers/GitHubDesktopSetup-x64.msi
             "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-full.nupkg"
             "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"
-            "release-payload/tui/desktop_material_tui-${TUI_VERSION}-py3-none-any.whl"
-            "release-payload/tui/desktop_material_tui-${TUI_VERSION}.tar.gz"
-            "release-payload/tui/desktop_material_tui-${TUI_VERSION}-runtime-requirements.txt"
-            release-payload/tui/install-linux-tui.sh
-            release-payload/tui/bootstrap-linux-tui.sh
           )
           for asset in "${required[@]}"; do
             if [ ! -s "$asset" ]; then
@@ -254,8 +188,6 @@ jobs:
               exit 1
             fi
           done
-          test -x release-payload/tui/install-linux-tui.sh
-          test -x release-payload/tui/bootstrap-linux-tui.sh
 
       - name: Write fast local commit note
         shell: bash
@@ -263,7 +195,7 @@ jobs:
           {
             echo "Super Express package for commit \`$RELEASE_TARGET_SHA\`."
             echo
-            echo 'Windows x64 and Linux TUI packages were built in parallel.'
+            echo 'Windows x64 desktop packages were built by the emergency lane.'
             echo 'The Windows setup executable and MSI are permanently unsigned and may trigger an unknown-publisher or SmartScreen warning.'
             echo 'This emergency lane deliberately runs no test or lint gates.'
             echo
@@ -279,7 +211,7 @@ jobs:
             echo "Counted by CI over \`$RELEASE_TARGET_SHA\` with \`node script/count-lines.mjs\`."
           } > release-payload/release-notes.md
 
-      - name: Preserve combined payload and notes artifact
+      - name: Preserve Windows payload and notes artifact
         uses: actions/upload-artifact@v7
         with:
           name: super-express-${{ github.run_id }}-${{ github.run_attempt }}
@@ -289,7 +221,7 @@ jobs:
           retention-days: 7
 
   publish:
-    name: Publish combined GitHub Release
+    name: Publish Windows GitHub Release
     needs:
       - prepare
       - prepare_publication
@@ -303,7 +235,6 @@ jobs:
       RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
       RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
-      TUI_VERSION: ${{ needs.prepare_publication.outputs.tui_version }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -327,7 +258,7 @@ jobs:
         run: |
           set +e
           shopt -s nullglob
-          assets=(release-payload/installers/* release-payload/tui/*)
+          assets=(release-payload/installers/*)
           shopt -u nullglob
           gh release create "$RELEASE_TAG" \
             "${assets[@]}" \
@@ -386,12 +317,7 @@ jobs:
             'GitHubDesktopSetup-x64.exe' \
             'GitHubDesktopSetup-x64.msi' \
             "GitHubDesktop-${RELEASE_VERSION}-full.nupkg" \
-            "GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg" \
-            "desktop_material_tui-${TUI_VERSION}-py3-none-any.whl" \
-            "desktop_material_tui-${TUI_VERSION}.tar.gz" \
-            "desktop_material_tui-${TUI_VERSION}-runtime-requirements.txt" \
-            'install-linux-tui.sh' \
-            'bootstrap-linux-tui.sh'; do
+            "GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"; do
             if ! grep -Fqx "$expected" <<<"$published_assets"; then
               echo "Published release is missing asset $expected." >&2
               exit 1

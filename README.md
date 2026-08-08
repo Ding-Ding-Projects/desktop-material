@@ -99,12 +99,11 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 > guide](docs/features/repository-management/multi-remote-fetch-sync.md).
 
 > **Platform support:** Desktop Material ships a Windows Electron desktop
-> application and a revived Linux-first
-> [terminal application](docs/features/linux-tui/README.md). Windows keeps the
-> x64 installer/portable ZIP, x64/arm64 build validation, and packaged x64 E2E.
-> Linux gets a separately packaged Textual TUI, a fresh-machine installer, and
-> real terminal/Xvfb acceptance; it adapts desktop workflows without claiming
-> that a terminal owns graphical window chrome.
+> application. Windows keeps the x64 installer/portable ZIP, x64/arm64 build
+> validation, packaged x64 E2E, and the automated release payload. The retained
+> [Linux-first terminal application](docs/features/linux-tui/README.md) is a
+> historical prototype with separate manual verification; it is deliberately
+> excluded from standard CI and automated release gating.
 
 Fresh Linux, including machines with no developer tools installed: copy the
 single command from the [Install tab](docs/readme-tabs/install.md#install-the-linux-tui-on-a-fresh-machine).

@@ -9,7 +9,6 @@ name: Build Installers / Express Release
 on:
   workflow_run:
     workflows:
-      - CI Linux
       - CI Windows
     types:
       - completed
@@ -40,7 +39,6 @@ jobs:
       publish: ${{ steps.target.outputs.publish }}
       block_reason: ${{ steps.target.outputs.block_reason }}
       windows_ok: ${{ steps.target.outputs.windows_ok }}
-      linux_ok: ${{ steps.target.outputs.linux_ok }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -57,15 +55,12 @@ jobs:
           CI_EVENT: ${{ github.event.workflow_run.event }}
           CI_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
           CI_LANE: ${{ github.event.workflow_run.name }}
-          CI_UPDATED_AT: ${{ github.event.workflow_run.updated_at }}
           CI_BRANCH: ${{ github.event.workflow_run.head_branch }}
           CI_REPOSITORY:
             ${{ github.event.workflow_run.head_repository.full_name }}
           CI_SHA: ${{ github.event.workflow_run.head_sha }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           windows_ok=true
-          linux_ok=true
           if [ "$EVENT_NAME" = "workflow_run" ]; then
             if [ "$CI_EVENT" != "push" ] || \
                [ "$CI_BRANCH" != "main" ] || \
@@ -83,70 +78,21 @@ jobs:
               echo "proceed=false" >> "$GITHUB_OUTPUT"
               exit 0
             fi
+            if [ "$CI_LANE" != "CI Windows" ]; then
+              echo "Installer packaging skipped: only CI Windows can publish the desktop release."
+              echo "proceed=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
             target="$CI_SHA"
-
-            # The two lanes are separate workflows so neither can withhold the
-            # other's assets, but this commit still gets exactly one Release.
-            # Whichever lane finishes last publishes; the one that finishes
-            # first stands down, because its sibling is still running and the
-            # Release would be short its half of the payload.
-            case "$CI_LANE" in
-              "CI Windows") sibling="CI Linux" ;;
-              "CI Linux") sibling="CI Windows" ;;
-              *)
-                echo "Installer packaging blocked: '$CI_LANE' is not a known CI lane." >&2
-                exit 1
-                ;;
-            esac
-            sibling_fields=$(gh api \
-              "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$CI_SHA&event=push&per_page=100" \
-              --jq "[.workflow_runs[] | select(
-                      .name == \"$sibling\" and
-                      .head_branch == \"main\" and
-                      .head_repository.full_name == env.GITHUB_REPOSITORY
-                    )]
-                    | sort_by(.run_number) | last // empty
-                    | [.status, (.conclusion // \"\"), .updated_at] | @tsv")
-            if [ -z "$sibling_fields" ]; then
-              echo "Installer packaging blocked: no $sibling run found for $CI_SHA." >&2
-              exit 1
-            fi
-            IFS=$'\t' read -r sibling_status sibling_conclusion sibling_updated <<< "$sibling_fields"
-            if [ "$sibling_status" != "completed" ]; then
-              echo "$sibling is still $sibling_status; it will publish this commit once it finishes."
-              echo "proceed=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-            # Both are done. On the vanishingly rare identical timestamp the
-            # Windows lane is the tie-breaker, so the pair still elects one.
-            if [ "$sibling_updated" \> "$CI_UPDATED_AT" ] || \
-               { [ "$sibling_updated" = "$CI_UPDATED_AT" ] && [ "$CI_LANE" != "CI Windows" ]; }; then
-              echo "$sibling finished later; it publishes this commit."
-              echo "proceed=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-
-            if [ "$CI_LANE" = "CI Windows" ]; then
-              [ "$CI_CONCLUSION" = "success" ] || windows_ok=false
-              [ "$sibling_conclusion" = "success" ] || linux_ok=false
-            else
-              [ "$CI_CONCLUSION" = "success" ] || linux_ok=false
-              [ "$sibling_conclusion" = "success" ] || windows_ok=false
-            fi
-
-            # Publication is all-or-nothing: a failed test lane creates no
-            # release. The successful lane may still preserve its artifact for
-            # diagnostics, but it cannot publish a partial product release.
-            if [ "$windows_ok" = true ] && [ "$linux_ok" = true ]; then
+            if [ "$CI_CONCLUSION" = "success" ]; then
               ci_can_publish=true
               block_reason=
             else
               ci_can_publish=false
               block_reason=ci-failed
-              echo "CI concluded '$CI_CONCLUSION'; packaging an artifact but blocking Release publication."
+              echo "CI Windows concluded '$CI_CONCLUSION'; packaging an artifact but blocking Release publication."
+              echo "CI Windows failed; no Release will be published."
             fi
-            [ "$windows_ok" = true ] || echo "CI Windows failed; no Release will be published."
-            [ "$linux_ok" = true ] || echo "CI Linux failed; no Release will be published."
           else
             if [ "$DISPATCH_REF" != "refs/heads/main" ]; then
               echo "Express Release must be dispatched from main." >&2
@@ -161,13 +107,11 @@ jobs:
             echo "Release target is not an exact commit SHA." >&2
             exit 1
           fi
-          # Every exact successful main build gets its own immutable Release,
-          # even when a newer main commit arrives while jobs overlap.
+          # Every exact successful main build gets its own immutable Release.
           publish="$ci_can_publish"
           {
             echo "proceed=true"
             echo "windows_ok=$windows_ok"
-            echo "linux_ok=$linux_ok"
             echo "sha=$target"
             echo "publish=$publish"
             echo "block_reason=$block_reason"
@@ -441,198 +385,15 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-  tui_package:
-    name: Linux TUI packages
-    # Built only when the Linux lane vouched for it. A red Windows lane costs
-    # this Release its installers, never its terminal edition.
-    if:
-      needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.linux_ok
-      == 'true'
-    needs: prepare
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    permissions:
-      contents: read
-    outputs:
-      version: ${{ steps.tui_version.outputs.version }}
-      wheel_name: ${{ steps.tui_payload.outputs.wheel_name }}
-      sdist_name: ${{ steps.tui_payload.outputs.sdist_name }}
-      constraints_name: ${{ steps.tui_payload.outputs.constraints_name }}
-      installer_name: ${{ steps.tui_payload.outputs.installer_name }}
-      bootstrap_name: ${{ steps.tui_payload.outputs.bootstrap_name }}
-    env:
-      RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ needs.prepare.outputs.sha }}
-          # Packaging only needs the exact source tree; avoid downloading the
-          # entire repository history on every release runner.
-          fetch-depth: 1
-      - name: Require the prepared exact commit
-        shell: bash
-        run: |
-          checked_out=$(git rev-parse HEAD)
-          if [ "$checked_out" != "$RELEASE_TARGET_SHA" ]; then
-            echo "Checked-out commit $checked_out does not match release target $RELEASE_TARGET_SHA." >&2
-            exit 1
-          fi
-      - uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - name: Install uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-        with:
-          version: 0.11.26
-          enable-cache: true
-          cache-dependency-glob: tui/uv.lock
-      - name: Install locked TUI environment
-        working-directory: tui
-        run: uv sync --locked --extra dev --python 3.12
-      - name: Test fresh-Linux installer contract
-        run: sh script/install-linux-tui-test.sh --unit
-      - name: Discover exact TUI package version
-        id: tui_version
-        working-directory: tui
-        shell: bash
-        run: |
-          version=$(uv run --python 3.12 python -c \
-            'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
-          if [ -z "$version" ] || [[ "$version" == *[[:space:]]* ]]; then
-            echo "TUI pyproject.toml did not provide one usable package version." >&2
-            exit 1
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-      - name: Verify generated parity contract
-        run: node tui/tools/generate-parity-contract.mjs --check
-      - name: Run TUI tests
-        working-directory: tui
-        run: uv run --python 3.12 pytest
-      - name: Run TUI lint and types
-        working-directory: tui
-        run: |
-          uv run --python 3.12 ruff check .
-          uv run --python 3.12 mypy src
-      - name: Build wheel and source distribution
-        working-directory: tui
-        run: uv build --clear
-      - name: Export lock-derived runtime constraints
-        working-directory: tui
-        env:
-          TUI_VERSION: ${{ steps.tui_version.outputs.version }}
-        run: >-
-          uv export --locked --no-dev --no-emit-project --no-hashes
-          --output-file
-          "dist/desktop_material_tui-${TUI_VERSION}-runtime-requirements.txt"
-      - name: Verify and collect exact TUI payload
-        id: tui_payload
-        shell: bash
-        env:
-          TUI_VERSION: ${{ steps.tui_version.outputs.version }}
-        run: |
-          shopt -s nullglob
-          wheels=(tui/dist/*.whl)
-          sdists=(tui/dist/*.tar.gz)
-          constraints=(tui/dist/*-runtime-requirements.txt)
-          if [ "${#wheels[@]}" -ne 1 ] || [ "${#sdists[@]}" -ne 1 ] || \
-             [ "${#constraints[@]}" -ne 1 ]; then
-            echo "Expected exactly one TUI wheel, source distribution, and constraints file." >&2
-            printf 'wheel: %s\n' "${wheels[@]:-<none>}" >&2
-            printf 'sdist: %s\n' "${sdists[@]:-<none>}" >&2
-            printf 'constraints: %s\n' "${constraints[@]:-<none>}" >&2
-            exit 1
-          fi
-          expected_wheel="desktop_material_tui-${TUI_VERSION}-py3-none-any.whl"
-          expected_sdist="desktop_material_tui-${TUI_VERSION}.tar.gz"
-          expected_constraints="desktop_material_tui-${TUI_VERSION}-runtime-requirements.txt"
-          wheel_name=$(basename "${wheels[0]}")
-          sdist_name=$(basename "${sdists[0]}")
-          constraints_name=$(basename "${constraints[0]}")
-          if [ "$wheel_name" != "$expected_wheel" ] || \
-             [ "$sdist_name" != "$expected_sdist" ] || \
-             [ "$constraints_name" != "$expected_constraints" ]; then
-            echo "Built TUI package names do not match pyproject.toml version $TUI_VERSION." >&2
-            printf 'Expected: %s, %s, and %s\n' \
-              "$expected_wheel" "$expected_sdist" "$expected_constraints" >&2
-            printf 'Actual:   %s, %s, and %s\n' \
-              "$wheel_name" "$sdist_name" "$constraints_name" >&2
-            exit 1
-          fi
-          installer_name=install-linux-tui.sh
-          bootstrap_name=bootstrap-linux-tui.sh
-          sh -n script/install-linux-tui.sh
-          sh -n script/bootstrap-linux-tui.sh
-          mkdir -p release-payload/tui
-          cp "${wheels[0]}" "${sdists[0]}" "${constraints[0]}" \
-            script/install-linux-tui.sh script/bootstrap-linux-tui.sh \
-            release-payload/tui/
-          chmod 0755 "release-payload/tui/$installer_name" \
-            "release-payload/tui/$bootstrap_name"
-          test -s "release-payload/tui/$wheel_name"
-          test -s "release-payload/tui/$sdist_name"
-          test -s "release-payload/tui/$constraints_name"
-          test -x "release-payload/tui/$installer_name"
-          test -x "release-payload/tui/$bootstrap_name"
-          {
-            echo "wheel_name=$wheel_name"
-            echo "sdist_name=$sdist_name"
-            echo "constraints_name=$constraints_name"
-            echo "installer_name=$installer_name"
-            echo "bootstrap_name=$bootstrap_name"
-          } >> "$GITHUB_OUTPUT"
-      - name: Smoke-test the fresh TUI wheel
-        shell: bash
-        env:
-          TUI_VERSION: ${{ steps.tui_version.outputs.version }}
-          TUI_WHEEL_NAME: ${{ steps.tui_payload.outputs.wheel_name }}
-          TUI_CONSTRAINTS_NAME:
-            ${{ steps.tui_payload.outputs.constraints_name }}
-        run: |
-          smoke="$RUNNER_TEMP/desktop-material-tui-release-smoke"
-          uv venv "$smoke" --python 3.12 --clear
-          UV_NO_CACHE=1 uv pip install \
-            --python "$smoke/bin/python" \
-            --constraint "release-payload/tui/$TUI_CONSTRAINTS_NAME" \
-            "release-payload/tui/$TUI_WHEEL_NAME"
-          installed=$("$smoke/bin/python" -c \
-            'import importlib.metadata; print(importlib.metadata.version("desktop-material-tui"))')
-          if [ "$installed" != "$TUI_VERSION" ]; then
-            echo "Fresh wheel installed version $installed, expected $TUI_VERSION." >&2
-            exit 1
-          fi
-          reported=$("$smoke/bin/desktop-material-tui" --version)
-          if [ "$reported" != "desktop-material-tui $TUI_VERSION" ]; then
-            echo "Fresh wheel entry point reported '$reported'." >&2
-            exit 1
-          fi
-      - name: Exercise the one-shot installer in fresh Debian slim
-        shell: bash
-        env:
-          TUI_WHEEL_NAME: ${{ steps.tui_payload.outputs.wheel_name }}
-          TUI_CONSTRAINTS_NAME:
-            ${{ steps.tui_payload.outputs.constraints_name }}
-        run: >-
-          sh script/install-linux-tui-test.sh --debian-container
-          "release-payload/tui/$TUI_WHEEL_NAME"
-          "release-payload/tui/$TUI_CONSTRAINTS_NAME"
-      - name: Preserve verified TUI packages
-        uses: actions/upload-artifact@v7
-        with:
-          name: express-tui-${{ github.run_id }}-${{ github.run_attempt }}
-          path: release-payload/tui/
-          if-no-files-found: error
-          retention-days: 3
-
   package:
     name: Windows x64
     # Preserve a diagnostic installer payload when Windows passed. Publication
-    # still requires both tested platform lanes.
+    # requires this tested desktop payload.
     if:
       needs.prepare.outputs.proceed == 'true' &&
       needs.prepare.outputs.windows_ok == 'true'
     needs: prepare
     runs-on: windows-2022
-    timeout-minutes: 60
     permissions:
       contents: read
     defaults:
@@ -786,16 +547,15 @@ jobs:
       - lint
       - test
       - release_notes
-      - tui_package
       - package
-    # Publication requires both tested payload families. A failed or cancelled
-    # lane creates no partial Release.
+    # Publication requires the tested Windows desktop payload. A failed or
+    # cancelled validation run creates no partial Release.
     if: >-
       !cancelled() && always() && needs.prepare.result == 'success' &&
       needs.prepare.outputs.proceed == 'true' && needs.prepare.outputs.publish
       == 'true' && needs.release_notes.result == 'success' &&
-      needs.package.result == 'success' && needs.tui_package.result == 'success'
-      && (github.event_name == 'workflow_run' ||
+      needs.package.result == 'success' && (github.event_name == 'workflow_run'
+      ||
        (needs.lint.result == 'success' && needs.test.result == 'success'))
     runs-on: ubuntu-latest
     permissions:
@@ -805,12 +565,6 @@ jobs:
       RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
       RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
-      TUI_VERSION: ${{ needs.tui_package.outputs.version }}
-      TUI_WHEEL_NAME: ${{ needs.tui_package.outputs.wheel_name }}
-      TUI_SDIST_NAME: ${{ needs.tui_package.outputs.sdist_name }}
-      TUI_CONSTRAINTS_NAME: ${{ needs.tui_package.outputs.constraints_name }}
-      TUI_INSTALLER_NAME: ${{ needs.tui_package.outputs.installer_name }}
-      TUI_BOOTSTRAP_NAME: ${{ needs.tui_package.outputs.bootstrap_name }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -833,20 +587,13 @@ jobs:
           name:
             express-release-notes-${{ github.run_id }}-${{ github.run_attempt }}
           path: release-payload
-      - uses: actions/download-artifact@v8
-        if: needs.tui_package.result == 'success'
-        with:
-          name: express-tui-${{ github.run_id }}-${{ github.run_attempt }}
-          path: release-payload/tui
       - name: Verify downloaded release payload
         shell: bash
         env:
           HAVE_INSTALLERS: ${{ needs.package.result == 'success' }}
-          HAVE_TUI: ${{ needs.tui_package.result == 'success' }}
         run: |
-          # Each family is demanded in full or not at all. A lane that was red
-          # contributes nothing and says so; a lane that was green may not
-          # contribute a half-built payload.
+          # The desktop payload is demanded in full or not at all. A failed
+          # validation run contributes no installer and says so.
           required=(release-payload/release-notes.md)
           if [ "$HAVE_INSTALLERS" = true ]; then
             required+=(
@@ -859,17 +606,6 @@ jobs:
             )
           else
             echo "CI Windows did not pass; this Release ships without the desktop installers."
-          fi
-          if [ "$HAVE_TUI" = true ]; then
-            required+=(
-              "release-payload/tui/$TUI_WHEEL_NAME"
-              "release-payload/tui/$TUI_SDIST_NAME"
-              "release-payload/tui/$TUI_CONSTRAINTS_NAME"
-              "release-payload/tui/$TUI_INSTALLER_NAME"
-              "release-payload/tui/$TUI_BOOTSTRAP_NAME"
-            )
-          else
-            echo "CI Linux did not pass; this Release ships without the terminal edition package."
           fi
           for asset in "${required[@]}"; do
             if [ ! -s "$asset" ]; then
@@ -892,7 +628,6 @@ jobs:
     needs:
       - prepare
       - prepare_publication
-      - tui_package
     if: >-
       !cancelled() && always() && needs.prepare.result == 'success' &&
       needs.prepare_publication.result == 'success'
@@ -904,11 +639,6 @@ jobs:
       RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
       RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
-      TUI_WHEEL_NAME: ${{ needs.tui_package.outputs.wheel_name }}
-      TUI_SDIST_NAME: ${{ needs.tui_package.outputs.sdist_name }}
-      TUI_CONSTRAINTS_NAME: ${{ needs.tui_package.outputs.constraints_name }}
-      TUI_INSTALLER_NAME: ${{ needs.tui_package.outputs.installer_name }}
-      TUI_BOOTSTRAP_NAME: ${{ needs.tui_package.outputs.bootstrap_name }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -953,7 +683,7 @@ jobs:
         run: |
           set +e
           shopt -s nullglob
-          assets=(release-payload/installers/* release-payload/tui/*)
+          assets=(release-payload/installers/*)
           shopt -u nullglob
           gh release create "$RELEASE_TAG" \
             "${assets[@]}" \
@@ -981,7 +711,7 @@ jobs:
               -f make_latest=false \
               -F body=@release-payload/release-notes.md >/dev/null
             gh release upload "$RELEASE_TAG" \
-              release-payload/installers/* release-payload/tui/* \
+              release-payload/installers/* \
               --repo "$GITHUB_REPOSITORY"
             gh release edit "$RELEASE_TAG" \
               --repo "$GITHUB_REPOSITORY" \
@@ -1007,11 +737,14 @@ jobs:
             exit 1
           fi
           published_assets=$(cat release-payload/published-assets.txt)
-          for expected in "$TUI_WHEEL_NAME" "$TUI_SDIST_NAME" \
-            "$TUI_CONSTRAINTS_NAME" "$TUI_INSTALLER_NAME" \
-            "$TUI_BOOTSTRAP_NAME"; do
+          for expected in RELEASES \
+            "GitHub Desktop-x64.zip" \
+            GitHubDesktopSetup-x64.exe \
+            GitHubDesktopSetup-x64.msi \
+            "GitHubDesktop-${RELEASE_VERSION}-full.nupkg" \
+            "GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"; do
             if ! grep -Fqx "$expected" <<<"$published_assets"; then
-              echo "Published release is missing TUI asset $expected." >&2
+              echo "Published release is missing desktop asset $expected." >&2
               exit 1
             fi
           done

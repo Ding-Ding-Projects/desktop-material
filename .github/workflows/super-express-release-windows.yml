@@ -53,7 +53,6 @@ jobs:
       release_tag: ${{ steps.package.outputs.release_tag }}
       artifact_name: ${{ steps.package.outputs.artifact_name }}
     runs-on: windows-2022
-    timeout-minutes: 60
     env:
       RELEASE_TARGET_SHA: ${{ inputs.release_target_sha || github.sha }}
       RELEASE_VERSION: ${{ inputs.release_version }}

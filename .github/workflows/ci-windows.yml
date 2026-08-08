@@ -1,16 +1,12 @@
 # The Windows lane: the desktop application's build, unit and script tests,
-# packaging, and installed-app smoke test, plus the terminal edition's Windows
-# core check. It is deliberately a separate workflow from the Linux lane so
-# that a red terminal test can never withhold the desktop installers, and a red
-# desktop build can never withhold the terminal package. Both lanes feed the
-# one Release; `build-installers.yml` waits for both to finish and publishes
-# only when both tested payload families passed.
+# packaging, and installed-app smoke test. The terminal edition is deliberately
+# outside CI and release gating; its source and local verification records remain
+# available separately.
 # Ordinary CI uses GitHub-hosted Windows runners so pushes, pull requests, and
 # workflow calls get a clean, reproducible machine. A manual dispatch from the
 # protected main branch may explicitly select the registered Windows
 # self-hosted pool for desktop build and packaged smoke jobs when its warm
-# dependency and compiler caches are faster; the Windows TUI core job remains
-# hosted.
+# dependency and compiler caches are faster.
 name: CI Windows
 
 on:
@@ -75,40 +71,6 @@ defaults:
     shell: powershell -NoProfile -ExecutionPolicy Bypass -Command ". '{0}'"
 
 jobs:
-  windows-tui-core:
-    name: Windows TUI core · Python 3.12
-    runs-on: windows-2022
-    permissions:
-      contents: read
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          repository: ${{ inputs.repository || github.repository }}
-          ref: ${{ inputs.ref }}
-      - name: Enable Git long paths for Windows TUI tests
-        run: git config core.longpaths true
-      - name: Install uv
-        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-        with:
-          version: 0.11.26
-          enable-cache: true
-          cache-dependency-glob: tui/uv.lock
-      - name: Install managed Python 3.12
-        run: uv python install 3.12
-      - name: Install locked TUI environment
-        working-directory: tui
-        run: uv sync --locked --extra dev --python 3.12
-      - name: Test non-PTY CLI, Cheap LFS, and core services
-        working-directory: tui
-        run: >-
-          uv run --python 3.12 pytest tests/unit tests/application
-          tests/infrastructure
-      - name: Lint and type-check cross-platform core
-        working-directory: tui
-        run: |
-          uv run ruff check src tests/unit tests/application tests/infrastructure
-          uv run mypy src
   build:
     name: ${{ matrix.friendlyName }} ${{ matrix.arch }}
     runs-on:
@@ -127,7 +89,6 @@ jobs:
             friendlyName: Windows
           - arch: arm64
             friendlyName: Windows
-    timeout-minutes: 60
     environment: ${{ inputs.environment }}
     env:
       RELEASE_CHANNEL: ${{ inputs.environment }}
@@ -260,7 +221,6 @@ jobs:
         include:
           - friendlyName: Windows
             arch: x64
-    timeout-minutes: 60
     environment: ${{ inputs.environment }}
     env:
       RELEASE_CHANNEL: ${{ inputs.environment }}

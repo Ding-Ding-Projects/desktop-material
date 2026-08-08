@@ -170,7 +170,6 @@ describe('Super Express Release workflow', () => {
     assertExactRunnerLabels(workflowDocument, {
       prepare: linuxRunner,
       windows_build: windowsRunner,
-      tui_build: linuxRunner,
       prepare_publication: linuxRunner,
       publish: linuxRunner,
     })
@@ -222,23 +221,16 @@ describe('Super Express Release workflow', () => {
       workflow,
       /uses: \.\/\.github\/actions\/super-express-windows-build/
     )
-    assert.match(
-      workflow,
-      /uses: \.\/\.github\/actions\/super-express-linux-tui-build/
-    )
     assert.match(workflow, /windows_build:/)
-    assert.match(workflow, /tui_build:/)
+    assert.doesNotMatch(workflow, /tui|linux/i)
     assert.doesNotMatch(workflow, /uses: \.\/\.github\/workflows\//)
     assert.match(workflow, /Require a main-branch manual dispatch/)
     assert.match(workflow, /ref: \$\{\{ env\.RELEASE_TARGET_SHA \}\}/)
-    assert.match(
-      workflow,
-      /needs:\s*\n\s+- prepare\s*\n\s+- windows_build\s*\n\s+- tui_build/
-    )
+    assert.match(workflow, /needs:\s*\n\s+- prepare\s*\n\s+- windows_build/)
     assert.match(workflow, /actions\/download-artifact@v8/)
     assert.match(
       workflow,
-      /Windows x64 and Linux TUI packages were built in parallel/
+      /Windows x64 desktop packages were built by the emergency lane/
     )
     assert.match(workflow, /node script\/count-lines\.mjs/)
     assert.doesNotMatch(workflow, /run: yarn test:unit/)
@@ -332,8 +324,10 @@ describe('Super Express Release workflow', () => {
       tuiBuildAction,
       /super-express-tui-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
     )
-    assert.match(workflow, /install-linux-tui\.sh/)
-    assert.match(workflow, /bootstrap-linux-tui\.sh/)
+    assert.doesNotMatch(
+      workflow,
+      /install-linux-tui\.sh|bootstrap-linux-tui\.sh/
+    )
     assert.match(
       workflow,
       /Reconcile Latest to the newest main release[\s\S]*?bash \.github\/scripts\/promote-current-release\.sh/
@@ -348,6 +342,7 @@ describe('Super Express Release workflow', () => {
     assert.match(promotionScript, /merge-base --is-ancestor/)
     assert.match(promotionScript, /git rev-list --count/)
     assert.doesNotMatch(workflow, /cancel-in-progress:\s*true/)
+    assert.doesNotMatch(workflow, /timeout-minutes:\s*60/)
   })
 
   it('uses one Squirrel-monotonic version namespace across release lanes', () => {
