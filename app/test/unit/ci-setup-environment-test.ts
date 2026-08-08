@@ -407,13 +407,12 @@ describe('CI environment setup', () => {
     assert.equal(printenvzPackage.scripts?.install, 'node build.mjs --rebuild')
     assert.equal(printenvzPackage.scripts?.build, 'node build.mjs --build')
     assert.equal(printenvzPackage.scripts?.rebuild, 'node build.mjs --rebuild')
-    assert.match(
-      printenvzBuildScript,
-      /process\.platform !== 'win32' \|\| !process\.env\.npm_config_msvs_version/
-    )
+    assert.match(printenvzBuildScript, /requiresWindowsDirectCompiler/)
     assert.match(printenvzBuildScript, /node-gyp\/bin\/node-gyp\.js/)
     assert.match(printenvzBuildScript, /VsDevCmd\.bat/)
     assert.match(printenvzBuildScript, /vcvarsall\.bat/)
+    assert.match(printenvzBuildScript, /vswhere\.exe/)
+    assert.match(printenvzBuildScript, /discoverVisualStudioInstallation/)
     assert.match(printenvzBuildScript, /-arch=\$\{targetArchitecture\}/)
     assert.match(printenvzBuildScript, /cl\.exe \/nologo \/O2 \/MT/)
     assert.match(

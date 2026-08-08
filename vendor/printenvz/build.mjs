@@ -42,7 +42,55 @@ if (mode === 'clean') {
   process.exit(0)
 }
 
-if (process.platform !== 'win32' || !process.env.npm_config_msvs_version) {
+const targetArchitecture =
+  process.env.npm_config_arch === 'arm64' || process.env.TARGET_ARCH === 'arm64'
+    ? 'arm64'
+    : 'x64'
+const explicitInstallationPath = process.env.npm_config_msvs_version?.trim()
+const requiresWindowsDirectCompiler =
+  process.platform === 'win32' && targetArchitecture === 'arm64'
+
+function discoverVisualStudioInstallation() {
+  const vswhereCandidates = [
+    process.env.VSWHERE_PATH,
+    process.env['ProgramFiles(x86)'] &&
+      join(
+        process.env['ProgramFiles(x86)'],
+        'Microsoft Visual Studio',
+        'Installer',
+        'vswhere.exe'
+      ),
+    process.env.ProgramFiles &&
+      join(
+        process.env.ProgramFiles,
+        'Microsoft Visual Studio',
+        'Installer',
+        'vswhere.exe'
+      ),
+  ].filter(candidate => candidate && existsSync(candidate))
+
+  for (const vswherePath of vswhereCandidates) {
+    const result = spawnSync(
+      vswherePath,
+      ['-latest', '-products', '*', '-property', 'installationPath'],
+      { encoding: 'utf8', windowsHide: true }
+    )
+    if (result.status === 0) {
+      const installationPath = result.stdout
+        ?.split(/\r?\n/)
+        .map(line => line.trim())
+        .find(Boolean)
+      if (installationPath) return installationPath
+    }
+  }
+
+  return undefined
+}
+
+if (
+  process.platform !== 'win32' ||
+  (!explicitInstallationPath && !requiresWindowsDirectCompiler)
+) {
   const require = (await import('node:module')).createRequire(import.meta.url)
   const nodeGyp = require.resolve('node-gyp/bin/node-gyp.js')
   run(process.execPath, [nodeGyp, mode])
@@ -55,13 +103,13 @@ if (process.platform !== 'win32' || !process.env.npm_config_msvs_version) {
 // usable binary, so compile the tiny source directly in the provisioned
 // developer environment instead. This keeps the install deterministic and
 // avoids depending on Node headers for a program that never links to Node.
-const targetArchitecture =
-  process.env.npm_config_arch === 'arm64' || process.env.TARGET_ARCH === 'arm64'
-    ? 'arm64'
-    : 'x64'
-const installationPath = process.env.npm_config_msvs_version
+const installationPath =
+  explicitInstallationPath ?? discoverVisualStudioInstallation()
 if (!installationPath) {
-  fail('npm_config_msvs_version is required for the Windows direct compiler')
+  fail(
+    'Visual Studio installation was not provided by npm_config_msvs_version '
+      + 'and could not be discovered with vswhere for the Windows arm64 build'
+  )
 }
 
 const developerCommands = [
