@@ -44,7 +44,7 @@ function findYarnVersion(callback: (path: string) => void) {
 findYarnVersion(path => {
   let result = spawnSync(
     'node',
-    [path, '--cwd', 'app', 'install', '--force'],
+    [path, '--cwd', 'app', 'install', '--force', '--frozen-lockfile'],
     options
   )
 

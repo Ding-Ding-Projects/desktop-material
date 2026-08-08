@@ -1,5 +1,15 @@
 import assert from 'node:assert'
-import { existsSync, readFileSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
 import { parse } from 'yaml'
@@ -7,6 +17,15 @@ import { parse } from 'yaml'
 const setupAction = readFileSync(
   join(process.cwd(), '.github/actions/setup-ci-environment/action.yml'),
   'utf8'
+)
+const postInstallScript = readFileSync(
+  join(process.cwd(), 'script/post-install.ts'),
+  'utf8'
+)
+const frozenManifestVerifier = join(
+  process.cwd(),
+  'script',
+  'verify-frozen-manifests.mjs'
 )
 const yarnBootstrap = readFileSync(
   join(process.cwd(), '.github/scripts/bootstrap-pinned-yarn.ps1'),
@@ -313,6 +332,9 @@ describe('CI environment setup', () => {
     const crossInstallIndex = getNamedStepIndex(
       'Install cross-compilation copilot package'
     )
+    const frozenManifestCheckIndex = getNamedStepIndex(
+      'Verify frozen dependency install preserved manifests'
+    )
     const restoreManifestIndex = getNamedStepIndex(
       'Restore dependency manifests after cross-compilation install'
     )
@@ -323,6 +345,8 @@ describe('CI environment setup', () => {
       'Save exact installed dependencies from Windows self-hosted runners'
     )
     assert.ok(snapshotIndex < crossInstallIndex)
+    assert.ok(snapshotIndex < frozenManifestCheckIndex)
+    assert.ok(frozenManifestCheckIndex < crossInstallIndex)
     assert.ok(crossInstallIndex < restoreManifestIndex)
     assert.ok(restoreManifestIndex < verifyIndex)
     assert.ok(verifyIndex < saveIndex)
@@ -341,7 +365,20 @@ describe('CI environment setup', () => {
       getNamedStep(
         'Restore dependency manifests after cross-compilation install'
       ).run ?? '',
-      /app-package\.json[\s\S]*app\/package\.json[\s\S]*app-yarn\.lock[\s\S]*app\/yarn\.lock[\s\S]*cmp -s/
+      /app-package\.json[\s\S]*app\/package\.json[\s\S]*app-yarn\.lock[\s\S]*app\/yarn\.lock/
+    )
+    assert.doesNotMatch(
+      getNamedStep(
+        'Restore dependency manifests after cross-compilation install'
+      ).run ?? '',
+      /cmp -s/
+    )
+    const frozenManifestRun =
+      getNamedStep('Verify frozen dependency install preserved manifests')
+        .run ?? ''
+    assert.equal(
+      frozenManifestRun,
+      'node script/verify-frozen-manifests.mjs "$RUNNER_TEMP/desktop-material-manifests-before-cross-compilation"'
     )
     assert.match(
       setupAction,
@@ -350,6 +387,10 @@ describe('CI environment setup', () => {
     assert.match(
       setupAction,
       /Install and build dependencies[\s\S]*?cache-hit != 'true'[\s\S]*?yarn --frozen-lockfile/
+    )
+    assert.match(
+      postInstallScript,
+      /\[\s*path,\s*'--cwd',\s*'app',\s*'install',\s*'--force',\s*'--frozen-lockfile'\s*\]/
     )
     assert.match(setupAction, /Check cached dependencies/)
     assert.match(setupAction, /dependency-cache-check/)
@@ -405,6 +446,96 @@ describe('CI environment setup', () => {
       ),
       false
     )
+  })
+
+  it('fails closed for every changed or missing frozen manifest', () => {
+    const fixtureRoot = mkdtempSync(join(tmpdir(), 'dm-frozen-manifests-'))
+    const backupRoot = join(fixtureRoot, 'backup')
+    const manifestPairs = [
+      ['root-package.json', 'package.json'],
+      ['root-yarn.lock', 'yarn.lock'],
+      ['app-package.json', 'app/package.json'],
+      ['app-yarn.lock', 'app/yarn.lock'],
+    ] as const
+    const verify = () =>
+      spawnSync(process.execPath, [frozenManifestVerifier, backupRoot], {
+        cwd: fixtureRoot,
+        encoding: 'utf8',
+      })
+
+    try {
+      mkdirSync(backupRoot, { recursive: true })
+      mkdirSync(join(fixtureRoot, 'app'), { recursive: true })
+      for (const [backupName, liveName] of manifestPairs) {
+        const contents = `locked ${liveName}\n`
+        writeFileSync(join(backupRoot, backupName), contents)
+        writeFileSync(join(fixtureRoot, liveName), contents)
+      }
+
+      const unchanged = verify()
+      assert.equal(unchanged.status, 0, unchanged.stderr)
+
+      for (const [, liveName] of manifestPairs) {
+        const livePath = join(fixtureRoot, liveName)
+        const original = readFileSync(livePath)
+        writeFileSync(livePath, Buffer.concat([original, Buffer.from('drift')]))
+        const changed = verify()
+        assert.equal(changed.status, 1, `${liveName}: ${changed.stderr}`)
+        assert.match(
+          changed.stderr,
+          /Frozen dependency install changed a locked dependency manifest/
+        )
+        assert.ok(changed.stderr.includes(liveName))
+        writeFileSync(livePath, original)
+      }
+
+      for (const [backupName, liveName] of manifestPairs) {
+        const backupPath = join(backupRoot, backupName)
+        const backup = readFileSync(backupPath)
+        unlinkSync(backupPath)
+        const missingBackup = verify()
+        assert.equal(
+          missingBackup.status,
+          1,
+          `${backupName}: ${missingBackup.stderr}`
+        )
+        assert.ok(missingBackup.stderr.includes(backupName))
+        assert.ok(missingBackup.stderr.includes(liveName))
+        writeFileSync(backupPath, backup)
+
+        const livePath = join(fixtureRoot, liveName)
+        const live = readFileSync(livePath)
+        unlinkSync(livePath)
+        const missingLive = verify()
+        assert.equal(
+          missingLive.status,
+          1,
+          `${liveName}: ${missingLive.stderr}`
+        )
+        assert.ok(missingLive.stderr.includes(liveName))
+        writeFileSync(livePath, live)
+      }
+
+      const unreadableBackupName = manifestPairs[0][0]
+      const unreadableLiveName = manifestPairs[0][1]
+      const unreadableBackupPath = join(backupRoot, unreadableBackupName)
+      const unreadableBackup = readFileSync(unreadableBackupPath)
+      unlinkSync(unreadableBackupPath)
+      mkdirSync(unreadableBackupPath)
+      const unreadable = verify()
+      assert.equal(
+        unreadable.status,
+        1,
+        `${unreadableBackupName}: ${unreadable.stderr}`
+      )
+      assert.ok(unreadable.stderr.includes(unreadableLiveName))
+      assert.doesNotMatch(unreadable.stderr, /ENOENT/)
+      assert.match(unreadable.stderr, /EISDIR|EPERM|directory/i)
+      rmSync(unreadableBackupPath, { recursive: true, force: true })
+      writeFileSync(unreadableBackupPath, unreadableBackup)
+    } finally {
+      rmSync(fixtureRoot, { recursive: true, force: true })
+    }
   })
 
   it('bootstraps every Windows release command from pinned canonical tools', () => {

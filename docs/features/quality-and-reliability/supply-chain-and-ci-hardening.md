@@ -226,18 +226,18 @@ that some file changed at the end of the job. Yarn Classic's message is generic
 and does not name the drifted dependency — running `yarn install` locally shows
 which one it is.
 
-Three install sites are **not** covered because they live in files outside this
-change's scope, and all three are recorded here so the gap is visible rather
-than assumed closed:
+The remaining nested and release installs are covered too:
 
-- `.github/actions/setup-ci-environment/action.yml` runs a bounded retry loop
-  around a plain `yarn`. This is the install used by the `build` and `e2e-smoke`
-  jobs.
+- `.github/actions/setup-ci-environment/action.yml` runs its bounded root
+  install with `yarn --frozen-lockfile`. It snapshots the root and app manifests
+  first, then runs `script/verify-frozen-manifests.mjs` before the intentional
+  cross-compilation package install. The verifier fails closed when any of the
+  four live files changed, disappeared, or cannot be read.
 - `script/post-install.ts` installs `app/` with the vendored Yarn using
-  `install --force`, which re-fetches packages and can rewrite `app/yarn.lock`.
-  The `lint` job's clean-working-directory check catches the resulting drift,
-  but only after the fact.
-- `.github/workflows/build-installers.yml` runs a plain `yarn install` for the
+  `install --force --frozen-lockfile`, so the nested install cannot rewrite
+  `app/yarn.lock` while rebuilding native dependencies.
+- `.github/workflows/build-installers.yml` runs
+  `yarn install --frozen-lockfile --production=false` for the
   desktop-trampoline tests in the release lane.
 
 On self-hosted Windows arm64 Super Express jobs, the setup action also

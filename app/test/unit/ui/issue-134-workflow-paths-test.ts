@@ -29,11 +29,17 @@ describe('issue #134 workflow invocation paths', () => {
     assert.match(operation, /onCreateNewBranch/)
   })
 
-  it('uses CodeMirror for the editable conflict result while retaining a fallback', () => {
+  it('keeps the editable conflict result on the native full-value control', () => {
     const editor = source('app/src/ui/lib/codemirror-editor.tsx')
     const merge = source('app/src/ui/merge-conflicts/ai-merge-editor.tsx')
-    assert.match(editor, /CodeMirror\.fromTextArea/)
-    assert.match(editor, /code-mirror-editor-fallback/)
+    assert.match(editor, /<textarea/)
+    assert.match(editor, /name=\{this\.props\.id\}/)
+    assert.match(editor, /value=\{this\.props\.value\}/)
+    assert.match(editor, /data-editor="native"/)
+    assert.doesNotMatch(
+      editor,
+      /from ['"]codemirror['"]|CodeMirror\.fromTextArea|\.CodeMirror/
+    )
     assert.match(merge, /<CodeMirrorEditor/)
     assert.doesNotMatch(merge, /<textarea[\s\S]*isResult/)
   })

@@ -34,6 +34,10 @@ const source = readFileSync(
   ),
   'utf8'
 )
+const editorControlSource = readFileSync(
+  join(process.cwd(), 'app', 'src', 'ui', 'lib', 'codemirror-editor.tsx'),
+  'utf8'
+)
 
 const labels: IAIMergeEditorLabels = {
   editor: 'AI merge editor',
@@ -95,34 +99,12 @@ function textbox(name: string): HTMLTextAreaElement {
   return screen.getByRole('textbox', { name }) as HTMLTextAreaElement
 }
 
-interface ITestCodeMirrorEditor {
-  getValue(): string
-  setValue(value: string): void
-}
-
-function codeMirrorEditor(
-  textarea: HTMLTextAreaElement
-): ITestCodeMirrorEditor | undefined {
-  return (
-    textarea.closest('.CodeMirror') as
-      | (HTMLElement & { CodeMirror?: ITestCodeMirrorEditor })
-      | null
-  )?.CodeMirror
-}
-
 function textboxValue(name: string): string {
-  const textarea = textbox(name)
-  return codeMirrorEditor(textarea)?.getValue() ?? textarea.value
+  return textbox(name).value
 }
 
 function changeTextbox(name: string, value: string): void {
-  const textarea = textbox(name)
-  const codeMirror = codeMirrorEditor(textarea)
-  if (codeMirror === undefined) {
-    fireEvent.change(textarea, { target: { value } })
-  } else {
-    codeMirror.setValue(value)
-  }
+  fireEvent.change(textbox(name), { target: { value } })
 }
 
 describe('AI merge editor', () => {
@@ -149,6 +131,8 @@ describe('AI merge editor', () => {
     assert.equal(ours.readOnly, true)
     assert.equal(theirs.readOnly, true)
     assert.equal(result.readOnly, false)
+    assert.equal(result.dataset.editor, 'native')
+    assert.equal(document.querySelector('.CodeMirror'), null)
     assert.equal(ours.getAttribute('aria-readonly'), 'true')
     assert.equal(theirs.getAttribute('aria-readonly'), 'true')
     assert.equal(result.hasAttribute('aria-readonly'), false)
@@ -165,6 +149,39 @@ describe('AI merge editor', () => {
 
     view.rerender(editor({ file: { ...file, result: nextText } }))
     assert.equal(textboxValue(labels.result), nextText)
+  })
+
+  it('submits exactly one current value from the accessible result control', () => {
+    const file = mergeFile()
+    const renderForm = (result: string) => (
+      <form>{editor({ file: { ...file, result } })}</form>
+    )
+    const view = render(renderForm(file.result))
+    const result = textbox(labels.result)
+    const form = result.form
+    assert.ok(form)
+    assert.deepEqual(new window.FormData(form).getAll(result.name), [
+      file.result,
+    ])
+
+    const nextText = 'const source = "submitted once"\n'
+    changeTextbox(labels.result, nextText)
+    view.rerender(renderForm(nextText))
+    const updatedResult = textbox(labels.result)
+    const updatedForm = updatedResult.form
+    assert.ok(updatedForm)
+    assert.deepEqual(
+      new window.FormData(updatedForm).getAll(updatedResult.name),
+      [nextText]
+    )
+  })
+
+  it('does not reintroduce CodeMirror hidden input buffers', () => {
+    assert.doesNotMatch(
+      editorControlSource,
+      /from ['"]codemirror['"]|CodeMirror\.fromTextArea|\.CodeMirror/
+    )
+    assert.match(editorControlSource, /data-editor="native"/)
   })
 
   it('refuses an over-limit result instead of emitting silently truncated code', () => {
