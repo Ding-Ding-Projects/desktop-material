@@ -16,4 +16,6 @@ export type WorktreeEntry = {
   readonly type: WorktreeType
   readonly isLocked: boolean
   readonly isPrunable: boolean
+  /** Number of uncommitted entries, or null when the worktree cannot be read. */
+  readonly dirtyFileCount?: number | null
 }

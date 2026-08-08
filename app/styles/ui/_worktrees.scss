@@ -86,6 +86,11 @@
       color: var(--text-color);
     }
 
+    &.dirty-worktree .description {
+      color: var(--md-sys-color-error);
+      font-weight: var(--font-weight-semibold);
+    }
+
     .name {
       flex-grow: 2;
       @include ellipsis;

@@ -10364,7 +10364,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             return {
               ...base,
               status: 'skipped',
-              detail: 'Worktree has uncommitted changes.',
+              detail: 'Gerk Tong Hui has uncommitted changes.',
             }
           }
           const checkpointFailure = await this.checkpointDirtyMergeAllWorktree(
@@ -10531,13 +10531,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
           const remoteName = candidate.branch.upstreamRemoteName
           const remoteBranch = candidate.branch.upstreamWithoutRemote
           if (remoteName === null || remoteBranch === null) {
-            return 'The dirty worktree has no tracked remote branch, so it was not changed.'
+            return 'The dirty Gerk Tong Hui has no tracked remote branch, so it was not changed.'
           }
           const remote = (await getRemotes(live)).find(
             candidateRemote => candidateRemote.name === remoteName
           )
           if (remote === undefined) {
-            return `The tracked remote ${remoteName} is unavailable, so the worktree was not changed.`
+            return `The tracked remote ${remoteName} is unavailable, so the Gerk Tong Hui was not changed.`
           }
           const accountKey = getRepositoryCredentialAccountKey(
             this.accounts,
@@ -10572,10 +10572,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
           const ahead = Number(aheadText)
           const behind = Number(behindText)
           if (!Number.isFinite(ahead) || !Number.isFinite(behind)) {
-            return 'Git did not return a valid remote comparison for the worktree.'
+            return 'Git did not return a valid remote comparison for the Gerk Tong Hui.'
           }
           if (ahead > 0 && behind > 0) {
-            return 'The worktree and its remote have diverged; it was not changed.'
+            return 'The Gerk Tong Hui and its remote have diverged; it was not changed.'
           }
           if (behind > 0) {
             await git(
@@ -10605,7 +10605,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             { successExitCodes: new Set([0, 1]) }
           )
           if (commit.exitCode !== 0) {
-            return 'The worktree changes could not be committed.'
+            return 'The Gerk Tong Hui changes could not be committed.'
           }
           if (signal.aborted || !this.isTemporaryRepositoryActive(live)) {
             throw new Error('Merge all cancelled.')
@@ -10629,7 +10629,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           if (signal.aborted) {
             throw error
           }
-          return `The worktree checkpoint/sync/push failed: ${
+          return `The Gerk Tong Hui checkpoint/sync/push failed: ${
             error instanceof Error ? error.message : String(error)
           }`
         }

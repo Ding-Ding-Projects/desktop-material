@@ -53,7 +53,7 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
         identifier: 'main',
         items: [
           {
-            text: [Path.basename(mainWorktree.path)],
+            text: worktreeFilterText(mainWorktree),
             id: mainWorktree.path,
             worktree: mainWorktree,
           },
@@ -65,7 +65,7 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
       groups.push({
         identifier: 'linked',
         items: linkedWorktrees.map(w => ({
-          text: [Path.basename(w.path)],
+          text: worktreeFilterText(w),
           id: w.path,
           worktree: w,
         })),
@@ -89,9 +89,8 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
   }
 
   private renderGroupHeader = (identifier: WorktreeGroupIdentifier) => {
-    const worktree = __DARWIN__ ? 'Worktree' : 'worktree'
     const label =
-      identifier === 'main' ? `Main ${worktree}` : `Linked ${worktree}s`
+      identifier === 'main' ? 'Main Gerk Tong Hui' : "Linked Gerk Tong Hui's"
     return <div className="filter-list-group-header">{label}</div>
   }
 
@@ -172,4 +171,16 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
       />
     )
   }
+}
+
+function worktreeFilterText(worktree: WorktreeEntry): ReadonlyArray<string> {
+  const branch = worktree.branch?.replace(/^refs\/heads\//, '') ?? 'detached'
+  const state = [
+    worktree.dirtyFileCount && worktree.dirtyFileCount > 0
+      ? `uncommitted ${worktree.dirtyFileCount}`
+      : 'clean',
+    worktree.isLocked ? 'locked' : '',
+    worktree.isPrunable ? 'missing' : '',
+  ]
+  return [Path.basename(worktree.path), worktree.path, branch, ...state]
 }

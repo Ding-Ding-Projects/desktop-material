@@ -93,7 +93,7 @@ export class MergeAllDialog extends React.Component<
                 checked={this.state.checkpointDirtyWorktrees}
                 onChange={this.onCheckpointDirtyWorktreesChanged}
               />
-              Commit, synchronize, and push dirty worktrees before merging
+              Commit, synchronize, and push dirty Gerk Tong Hui's before merging
             </label>
           )}
           {state?.currentBranch && (
