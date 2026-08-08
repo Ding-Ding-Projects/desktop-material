@@ -6864,35 +6864,55 @@ export class AppStore extends TypedBaseStore<IAppState> {
           'The exact remote branch changed before the pending automatic commit could be pushed.'
         )
       }
-      // When the remote moved beneath the waiting checkpoint, push against
-      // the tip observed just now instead of refusing outright. The push
-      // operation re-verifies both the compare-and-swap expectation and that
-      // the expectation is an ancestor of the checkpoint, so a pure
-      // fast-forward (the state a merge in the app routinely leaves behind)
-      // pushes exactly like `git push` would, while a genuinely diverged
-      // remote is still rejected without force.
-      const result = await session.operations.push({
-        remoteName: destination.remote.name,
-        localBranchRef: pending.intent.branchRef,
-        remoteBranchRef: destination.remoteBranchRef,
-        expectedRemoteSha: remoteMoved ? observedBefore : recordedExpectation,
-        headSha: pending.commitSha,
-        force: false,
-      })
-      if (result !== 'pushed') {
-        throw new CommitPushBatchError(
-          remoteMoved ? 'stale-commit' : 'push-failed',
-          remoteMoved
-            ? 'The exact remote branch changed before the pending automatic commit could be pushed.'
-            : 'The exact pending automatic commit could not be pushed.'
-        )
+      // A CLI push may already have carried the checkpoint to the remote,
+      // either alone or inside a newer commit. When the observed tip provably
+      // contains the checkpoint there is nothing left to push, and the batch
+      // simply proves and clears below.
+      const alreadyPublished =
+        remoteMoved &&
+        (await session.operations.isCheckpointPublished({
+          remoteName: destination.remote.name,
+          remoteBranchRef: destination.remoteBranchRef,
+          commitSha: pending.commitSha,
+        }))
+      if (!alreadyPublished) {
+        // When the remote moved beneath the waiting checkpoint, push against
+        // the tip observed just now instead of refusing outright. The push
+        // operation re-verifies both the compare-and-swap expectation and
+        // that the expectation is an ancestor of the checkpoint, so a pure
+        // fast-forward (the state a merge in the app routinely leaves behind)
+        // pushes exactly like `git push` would, while a genuinely diverged
+        // remote is still rejected without force.
+        const result = await session.operations.push({
+          remoteName: destination.remote.name,
+          localBranchRef: pending.intent.branchRef,
+          remoteBranchRef: destination.remoteBranchRef,
+          expectedRemoteSha: remoteMoved ? observedBefore : recordedExpectation,
+          headSha: pending.commitSha,
+          force: false,
+        })
+        if (result !== 'pushed') {
+          throw new CommitPushBatchError(
+            remoteMoved ? 'stale-commit' : 'push-failed',
+            remoteMoved
+              ? 'The exact remote branch changed before the pending automatic commit could be pushed.'
+              : 'The exact pending automatic commit could not be pushed.'
+          )
+        }
       }
     }
     const observedAfter = await session.operations.readRemoteTip({
       remoteName: destination.remote.name,
       remoteBranchRef: destination.remoteBranchRef,
     })
-    if (observedAfter !== pending.commitSha) {
+    if (
+      observedAfter !== pending.commitSha &&
+      !(await session.operations.isCheckpointPublished({
+        remoteName: destination.remote.name,
+        remoteBranchRef: destination.remoteBranchRef,
+        commitSha: pending.commitSha,
+      }))
+    ) {
       throw new CommitPushBatchError(
         'push-failed',
         'The exact pending automatic commit was not proven at the remote tip.'
@@ -6954,7 +6974,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
       remoteName: destination.remote.name,
       remoteBranchRef: destination.remoteBranchRef,
     })
-    if (observed !== pending.commitSha) {
+    if (
+      observed !== pending.commitSha &&
+      !(await session.operations.isCheckpointPublished({
+        remoteName: destination.remote.name,
+        remoteBranchRef: destination.remoteBranchRef,
+        commitSha: pending.commitSha,
+      }))
+    ) {
       throw new CommitPushBatchError(
         'push-failed',
         'The exact automatic commit batch was not proven at the remote tip.'
@@ -6982,10 +7009,41 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
     const headSha = await captureCommitPushBatchBase(repository)
     if (headSha !== pending.commitSha) {
-      throw new CommitPushBatchError(
-        'stale-commit',
-        'The branch changed while an automatic commit batch was waiting to be pushed.'
+      // The local branch moved past the checkpoint — the state a CLI commit
+      // or CLI push leaves behind. When the checkpoint provably reached the
+      // destination branch anyway, the batch is satisfied and clears; only a
+      // checkpoint that never landed anywhere keeps the fail-closed stop.
+      const destination = this.requireCommitPushBatchDestination(
+        repository,
+        pending.intent
       )
+      const session = createLocalCommitBatchingGitSession(repository, {
+        remote: destination.remote,
+        remoteBranchRef: destination.remoteBranchRef,
+        accountKey: getRepositoryCredentialAccountKey(
+          this.accounts,
+          repository
+        ),
+        isBackgroundTask,
+      })
+      const published = await session.operations.isCheckpointPublished({
+        remoteName: destination.remote.name,
+        remoteBranchRef: destination.remoteBranchRef,
+        commitSha: pending.commitSha,
+      })
+      if (!published) {
+        throw new CommitPushBatchError(
+          'stale-commit',
+          'The branch changed while an automatic commit batch was waiting to be pushed.'
+        )
+      }
+      await this.proveAndClearPendingCommitPushBatch(
+        repository,
+        pending,
+        isBackgroundTask
+      )
+      await this._refreshRepository(repository)
+      return
     }
     await this._refreshRepository(repository)
     const destination = this.requireCommitPushBatchDestination(

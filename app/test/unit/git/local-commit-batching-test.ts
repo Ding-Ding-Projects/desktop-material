@@ -310,6 +310,11 @@ function makeHarness(
       events.push(`remote:${remoteTip}`)
       return remoteTip
     },
+    isCheckpointPublished: async request => {
+      const published = remoteTip === request.commitSha
+      events.push(`published:${request.commitSha}:${String(published)}`)
+      return published
+    },
     isCommitReachableFromAnyRemote: async request => {
       const reachable =
         options.reachableCommitShas?.has(request.commitSha) ?? false

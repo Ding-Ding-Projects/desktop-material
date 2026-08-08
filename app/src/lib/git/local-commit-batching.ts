@@ -435,6 +435,19 @@ export interface ILocalCommitBatchingOperations {
   readonly isCommitReachableFromAnyRemote: (request: {
     readonly commitSha: string
   }) => Promise<boolean>
+  /**
+   * Prove the exact checkpoint commit is already contained in the destination
+   * branch's current remote tip — the state a CLI push of the checkpoint, or
+   * of a descendant carrying it, leaves behind. Any unprovable state (no
+   * branch, ambiguous refs, a tip object this repository does not hold)
+   * returns false so callers fail closed rather than clearing a checkpoint
+   * nobody can prove landed.
+   */
+  readonly isCheckpointPublished: (request: {
+    readonly remoteName: string
+    readonly remoteBranchRef: string
+    readonly commitSha: string
+  }) => Promise<boolean>
   /** Restore by CAS and mixed reset; never overwrite a mismatched branch tip. */
   readonly restoreFromBackup: (request: {
     readonly branchRef: string

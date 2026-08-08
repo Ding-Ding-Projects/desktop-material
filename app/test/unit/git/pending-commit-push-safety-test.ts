@@ -151,6 +151,98 @@ describe('pending automatic commit push safety', () => {
     )
   })
 
+  it('clears a checkpoint the CLI already pushed inside a newer commit', async t => {
+    const repository = await setupEmptyRepository(t)
+    const baseSha = await createBaseRepository(repository)
+    assert.ok(baseSha !== null)
+
+    const branchRef = await runGit(repository, ['symbolic-ref', 'HEAD'])
+    const branchName = branchRef.slice('refs/heads/'.length)
+    const remoteBranchRef = `refs/heads/${branchName}`
+    const remotePath = await createTempDirectory(t)
+    assert.equal((await exec(['init', '--bare'], remotePath)).exitCode, 0)
+    await runGit(repository, ['remote', 'add', 'origin', remotePath])
+    await runGit(repository, [
+      'push',
+      'origin',
+      `${baseSha}:${remoteBranchRef}`,
+    ])
+
+    await writeFile(join(repository.path, 'pending.txt'), 'pending\n')
+    await runGit(repository, ['add', '--', 'pending.txt'])
+    await beginCommitPushBatchIntent(repository, baseSha, ['pending.txt'], {
+      remoteName: 'origin',
+      remoteUrlSha256: hashCommitPushRemoteUrl(remotePath),
+      remoteBranchRef,
+      expectedRemoteSha: baseSha,
+    })
+    await runGit(repository, ['commit', '-m', 'pending batch'])
+    const pendingSha = await captureCommitPushBatchBase(repository)
+    assert.ok(pendingSha !== null)
+    await recoverCommitPushBatchIntent(repository)
+    assert.equal(await readPendingCommitPushBatch(repository), pendingSha)
+
+    // The user keeps working in the CLI: another commit lands on top of the
+    // checkpoint and a plain `git push` publishes both. The remote tip is now
+    // a descendant of the checkpoint — nothing is left for the app to push.
+    await writeFile(join(repository.path, 'cli.txt'), 'cli\n')
+    await runGit(repository, ['add', '--', 'cli.txt'])
+    await runGit(repository, ['commit', '-m', 'cli commit'])
+    const cliSha = await captureCommitPushBatchBase(repository)
+    assert.ok(cliSha !== null && cliSha !== pendingSha)
+    await runGit(repository, ['push', 'origin', `${cliSha}:${remoteBranchRef}`])
+
+    const remote = { name: 'origin', url: remotePath }
+    const state: any = {
+      remote,
+      isPushPullFetchInProgress: false,
+      branchesState: {
+        tip: {
+          kind: TipState.Valid,
+          branch: new Branch(
+            branchName,
+            null,
+            { sha: cliSha },
+            BranchType.Local,
+            branchRef
+          ),
+        },
+      },
+    }
+    const store = Object.create(AppStore.prototype) as AppStore
+    Object.assign(store, {
+      accounts: [],
+      repositoryStateCache: { get: () => state },
+      gitStoreCache: {
+        get: () => ({
+          remotes: [remote],
+          tagsToPush: [],
+          clearTagsToPush: () => undefined,
+        }),
+      },
+      _refreshRepository: async () => undefined,
+    })
+
+    assert.equal(
+      await (store as any).resolvePendingCommitPushBeforeManualPush(
+        repository,
+        undefined,
+        {}
+      ),
+      true
+    )
+    assert.equal(await readPendingCommitPushBatch(repository), null)
+    // The remote tip is untouched: the CLI's newer commit stays the tip.
+    assert.equal(
+      (await exec(['rev-parse', remoteBranchRef], remotePath)).stdout.trim(),
+      cliSha
+    )
+
+    // The resume path sees the same satisfied state as already finished.
+    await (store as any).resumePendingCommitPushBatch(repository)
+    assert.equal(await readPendingCommitPushBatch(repository), null)
+  })
+
   it('pushes a waiting checkpoint after the remote advanced to a tip the checkpoint contains', async t => {
     const repository = await setupEmptyRepository(t)
     const baseSha = await createBaseRepository(repository)

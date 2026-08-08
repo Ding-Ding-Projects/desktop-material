@@ -1959,6 +1959,40 @@ export function createLocalCommitBatchingGitSession(
       }
       return records[0].sha
     },
+    isCheckpointPublished: async request => {
+      requireObjectId(request.commitSha, 'published checkpoint commit')
+      const remote = getActiveRemote(
+        request.remoteName,
+        request.remoteBranchRef
+      )
+      const records = await readRemoteRecords(remote, request.remoteBranchRef)
+      if (records.length !== 1 || records[0].ref !== request.remoteBranchRef) {
+        return false
+      }
+      const tip = records[0].sha
+      if (tip === request.commitSha) {
+        return true
+      }
+      // Ancestry can only be proven against a tip object this repository
+      // actually holds. A tip pushed from elsewhere and never fetched here is
+      // unprovable, and unprovable means not published — fail closed.
+      const commitTip = await resolveOptional(
+        ['rev-parse', '--verify', `${tip}^{commit}`],
+        'localCommitBatchingPublishedTip'
+      )
+      if (commitTip === null) {
+        return false
+      }
+      const ancestry = await run(
+        ['merge-base', '--is-ancestor', request.commitSha, commitTip],
+        'localCommitBatchingPublishedAncestry',
+        {
+          successExitCodes: new Set([0, 1]),
+          maxBuffer: MaximumSmallGitOutputBytes,
+        }
+      )
+      return ancestry.exitCode === 0
+    },
     isCommitReachableFromAnyRemote: async request => {
       requireObjectId(request.commitSha, 'remote reachability commit')
       getActiveRemote()
