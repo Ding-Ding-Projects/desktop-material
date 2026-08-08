@@ -25,6 +25,7 @@ export interface ISelfHostedRunner {
   readonly platform: SelfHostedRunnerPlatform
   readonly wslDistribution: string | null
   readonly dedicatedWsl: boolean
+  readonly accountKey: string | null
   readonly createdAt: string
   readonly status: SelfHostedRunnerStatus
 }
@@ -51,9 +52,22 @@ export interface ISelfHostedRunnerRepositoryScope {
 
 export type ISelfHostedRunnerStatusRequest = ISelfHostedRunnerRepositoryScope
 
+export interface ISelfHostedRunnerPreflightRequest
+  extends ISelfHostedRunnerRepositoryScope {
+  readonly accountKey: string
+  readonly githubApiEndpoint: string
+  readonly labels: ReadonlyArray<string>
+}
+
+export interface ISelfHostedRunnerPreflightResult {
+  readonly commitSHA: string
+  readonly workflowCount: number
+}
+
 /** The main process resolves the account credential and mints the one-time token. */
 export interface ISelfHostedRunnerSetupRequest {
   readonly id: string
+  readonly accountKey: string
   readonly owner: string
   readonly repository: string
   readonly githubApiEndpoint: string
@@ -74,6 +88,7 @@ export interface ISelfHostedRunnerControlRequest
 
 export interface ISelfHostedRunnerRemoveRequest
   extends ISelfHostedRunnerControlRequest {
+  readonly accountKey: string
   readonly githubApiEndpoint: string
 }
 

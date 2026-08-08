@@ -2707,9 +2707,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
       this.accounts = accounts
       this.syncCopilotModelsFromCache()
       this.updateCopilotModelsForCurrentAccount()
-      const endpointTokens = accounts.map<EndpointToken>(
-        ({ endpoint, token }) => ({ endpoint, token })
-      )
+      const endpointTokens = accounts.map<EndpointToken>(account => ({
+        endpoint: account.endpoint,
+        token: account.token,
+        accountKey: getAccountKey(account),
+      }))
 
       updateAccounts(endpointTokens)
 
