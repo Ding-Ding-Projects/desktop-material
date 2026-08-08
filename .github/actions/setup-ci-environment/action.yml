@@ -284,7 +284,7 @@ runs:
             cache_complete=false
           fi
         done
-        if [ "$RUNNER_OS" = 'Windows' ] && ! node -e 'const { spawnSync } = require("node:child_process"); const { getPrintenvzPath } = require("printenvz"); const result = spawnSync(getPrintenvzPath(), { stdio: "ignore", timeout: 10000 }); if (result.error || result.status !== 0) { console.error(`Cached printenvz executable failed: ${result.error?.message ?? `exit ${result.status}`}`); process.exit(1) }'; then
+        if [ "$RUNNER_OS" = 'Windows' ] && [ -f node_modules/printenvz/build/Release/printenvz.exe ] && ! node script/verify-printenvz.mjs "${{ inputs.arch }}"; then
           echo 'Cached printenvz executable failed its bounded smoke test.' >&2
           cache_complete=false
         fi
@@ -482,7 +482,7 @@ runs:
           fi
         done
         if [ "$RUNNER_OS" = 'Windows' ]; then
-          node -e 'const { spawnSync } = require("node:child_process"); const { getPrintenvzPath } = require("printenvz"); const result = spawnSync(getPrintenvzPath(), { stdio: "ignore", timeout: 10000 }); if (result.error || result.status !== 0) { console.error(`Installed printenvz executable failed: ${result.error?.message ?? `exit ${result.status}`}`); process.exit(1) }'
+          node script/verify-printenvz.mjs "${{ inputs.arch }}"
         fi
         playwright_ffmpeg=false
         for root in "$HOME/.cache/ms-playwright" "$HOME/AppData/Local/ms-playwright"; do

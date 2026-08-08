@@ -29,6 +29,10 @@ const printenvzBuildScript = readFileSync(
   join(process.cwd(), 'vendor/printenvz/build.mjs'),
   'utf8'
 )
+const printenvzVerifier = readFileSync(
+  join(process.cwd(), 'script/verify-printenvz.mjs'),
+  'utf8'
+)
 const frozenManifestVerifier = join(
   process.cwd(),
   'script',
@@ -398,8 +402,16 @@ describe('CI environment setup', () => {
     )
     assert.match(
       setupAction,
-      /Cached printenvz executable failed its bounded smoke test[\s\S]*?Installed printenvz executable failed/
+      /Cached printenvz executable failed its bounded smoke test[\s\S]*?script\/verify-printenvz\.mjs/
     )
+    assert.match(
+      setupAction,
+      /script\/verify-printenvz\.mjs[\s\S]*?inputs\.arch/
+    )
+    assert.match(printenvzVerifier, /readUInt16LE\(peOffset \+ 4\)/)
+    assert.match(printenvzVerifier, /0xaa64/)
+    assert.match(printenvzVerifier, /0x8664/)
+    assert.match(printenvzVerifier, /hostArchitecture !== targetArchitecture/)
     assert.match(
       setupAction,
       /Install and build dependencies[\s\S]*?cache-hit != 'true'[\s\S]*?yarn --frozen-lockfile/
