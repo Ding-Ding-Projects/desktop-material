@@ -369,6 +369,11 @@ runs:
 
         exit 1
       env:
+        # The post-install hook compiles TypeScript and therefore needs the
+        # repository's dev type packages even when the caller packages with
+        # NODE_ENV=production later in the job.
+        NODE_ENV: development
+        YARN_PRODUCTION: 'false'
         npm_config_arch: ${{ inputs.arch }}
         TARGET_ARCH: ${{ inputs.arch }}
 

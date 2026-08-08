@@ -71,6 +71,7 @@ interface ICompositeActionStep {
   shell?: string
   uses?: string
   with?: Record<string, unknown>
+  env?: Record<string, string>
 }
 
 interface ICompositeActionDocument {
@@ -384,6 +385,9 @@ describe('CI environment setup', () => {
       setupAction,
       /Install and build dependencies[\s\S]*?cache-hit != 'true'[\s\S]*?yarn --frozen-lockfile/
     )
+    const dependencyInstallStep = getNamedStep('Install and build dependencies')
+    assert.equal(dependencyInstallStep.env?.NODE_ENV, 'development')
+    assert.equal(dependencyInstallStep.env?.YARN_PRODUCTION, 'false')
     assert.match(
       postInstallScript,
       /\[\s*path,\s*'--cwd',\s*'app',\s*'install',\s*'--force',\s*'--frozen-lockfile'\s*\]/
