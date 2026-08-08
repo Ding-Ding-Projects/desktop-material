@@ -10702,19 +10702,23 @@ export class AppStore extends TypedBaseStore<IAppState> {
       throw new Error('Merge all cancelled.')
     }
 
-    return this.withCanonicalRemoteForNetwork(repository, false, async live =>
-      this.withPushPullFetch(live, async () => {
+    let checkpointFailure: string | null = null
+    await this.withCanonicalRemoteForNetwork(repository, false, async live => {
+      await this.withPushPullFetch(live, async () => {
         try {
           const remoteName = candidate.branch.upstreamRemoteName
           const remoteBranch = candidate.branch.upstreamWithoutRemote
           if (remoteName === null || remoteBranch === null) {
-            return 'The dirty worktree has no tracked remote branch, so it was not changed.'
+            checkpointFailure =
+              'The dirty worktree has no tracked remote branch, so it was not changed.'
+            return
           }
           const remote = (await getRemotes(live)).find(
             candidateRemote => candidateRemote.name === remoteName
           )
           if (remote === undefined) {
-            return `The tracked remote ${remoteName} is unavailable, so the worktree was not changed.`
+            checkpointFailure = `The tracked remote ${remoteName} is unavailable, so the worktree was not changed.`
+            return
           }
           const accountKey = getRepositoryCredentialAccountKey(
             this.accounts,
@@ -10749,10 +10753,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
           const ahead = Number(aheadText)
           const behind = Number(behindText)
           if (!Number.isFinite(ahead) || !Number.isFinite(behind)) {
-            return 'Git did not return a valid remote comparison for the worktree.'
+            checkpointFailure =
+              'Git did not return a valid remote comparison for the worktree.'
+            return
           }
           if (ahead > 0 && behind > 0) {
-            return 'The worktree and its remote have diverged; it was not changed.'
+            checkpointFailure =
+              'The worktree and its remote have diverged; it was not changed.'
+            return
           }
           if (behind > 0) {
             await git(
@@ -10782,7 +10790,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
             { successExitCodes: new Set([0, 1]) }
           )
           if (commit.exitCode !== 0) {
-            return 'The worktree changes could not be committed.'
+            checkpointFailure = 'The worktree changes could not be committed.'
+            return
           }
           if (signal.aborted || !this.isTemporaryRepositoryActive(live)) {
             throw new Error('Merge all cancelled.')
@@ -10801,17 +10810,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
           if (signal.aborted || !this.isTemporaryRepositoryActive(live)) {
             throw new Error('Merge all cancelled.')
           }
-          return null
         } catch (error) {
           if (signal.aborted) {
             throw error
           }
-          return `The worktree checkpoint/sync/push failed: ${
+          checkpointFailure = `The worktree checkpoint/sync/push failed: ${
             error instanceof Error ? error.message : String(error)
           }`
         }
       })
-    )
+    })
+    return checkpointFailure
   }
 
   /** Open or close the notification centre side sheet. */

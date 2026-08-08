@@ -110,6 +110,7 @@ interface IWorkflowStep {
   if?: string
   name?: string
   run?: string
+  shell?: string
   uses?: string
   with?: Record<string, unknown>
   env?: Record<string, unknown>
