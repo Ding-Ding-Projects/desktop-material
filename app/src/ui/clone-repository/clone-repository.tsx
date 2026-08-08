@@ -975,7 +975,10 @@ export class CloneRepository extends React.Component<
         }
       >
         <div className="post-clone-runner-provisioning">
-          <label className="clone-shallow-toggle">
+          <label
+            className="clone-shallow-toggle"
+            aria-label="Provision a runner after this clone"
+          >
             <input
               type="checkbox"
               checked={enabled}
@@ -992,25 +995,21 @@ export class CloneRepository extends React.Component<
           {enabled && (
             <fieldset className="post-clone-runner-target">
               <legend>Runner target</legend>
-              <label>
+              <label aria-label="Windows runner target">
                 <input
                   type="radio"
                   name="post-clone-runner-platform"
                   checked={platform === 'windows'}
-                  onChange={() =>
-                    this.onPostCloneRunnerPlatformChanged('windows')
-                  }
+                  onChange={this.onPostCloneRunnerWindowsChanged}
                 />
                 Windows
               </label>
-              <label>
+              <label aria-label="Linux via WSL runner target">
                 <input
                   type="radio"
                   name="post-clone-runner-platform"
                   checked={platform === 'linux-wsl'}
-                  onChange={() =>
-                    this.onPostCloneRunnerPlatformChanged('linux-wsl')
-                  }
+                  onChange={this.onPostCloneRunnerLinuxWslChanged}
                 />
                 Linux via WSL
               </label>
@@ -1021,7 +1020,10 @@ export class CloneRepository extends React.Component<
                     {this.state.postCloneRunnerWslBaseDistribution}.
                   </small>
                 )}
-              <label className="clone-shallow-toggle">
+              <label
+                className="clone-shallow-toggle"
+                aria-label="I trust this repository's workflow authors"
+              >
                 <input
                   type="checkbox"
                   checked={this.state.postCloneRunnerTrustConfirmed}
@@ -1089,6 +1091,12 @@ export class CloneRepository extends React.Component<
       }
     )
   }
+
+  private onPostCloneRunnerWindowsChanged = () =>
+    this.onPostCloneRunnerPlatformChanged('windows')
+
+  private onPostCloneRunnerLinuxWslChanged = () =>
+    this.onPostCloneRunnerPlatformChanged('linux-wsl')
 
   private loadPostCloneRunnerWslDistribution = async () => {
     const repository = this.getSelectedGitHubRepositoryForRunner()

@@ -653,7 +653,6 @@ import {
   PullPreviewResult,
 } from '../git/pull-preview'
 import { pullToCommit } from '../git/pull'
-import { envForRemoteOperation } from '../git/environment'
 import {
   getPullStrategyPlan,
   IPullStrategyPlan,
