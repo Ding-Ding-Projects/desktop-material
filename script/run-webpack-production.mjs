@@ -3,7 +3,7 @@ import { resolve } from 'node:path'
 
 const environment = { ...process.env }
 if (!environment.NODE_OPTIONS?.trim()) {
-  environment.NODE_OPTIONS = '--max_old_space_size=12288'
+  environment.NODE_OPTIONS = '--max_old_space_size=16384'
 }
 
 const webpackPath = resolve('node_modules', 'webpack', 'bin', 'webpack.js')

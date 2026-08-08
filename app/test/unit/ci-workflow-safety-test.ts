@@ -43,6 +43,10 @@ const superExpressWindowsBuildAction = readFileSync(
   'utf8'
 )
 const packageScript = readFileSync(join(root, 'script', 'package.ts'), 'utf8')
+const productionWebpackRunner = readFileSync(
+  join(root, 'script', 'run-webpack-production.mjs'),
+  'utf8'
+)
 const githubCliAction = readFileSync(
   join(root, '.github', 'actions', 'setup-github-cli', 'action.yml'),
   'utf8'
@@ -1063,6 +1067,10 @@ describe('CI workflow safety', () => {
   })
 
   it('builds, packages, and exercises the app on safe runner choices', () => {
+    assert.match(
+      productionWebpackRunner,
+      /NODE_OPTIONS = '--max_old_space_size=16384'/
+    )
     assertJobRunsOn(windowsWorkflowDocument, 'windows-tui-core', 'windows-2022')
     for (const jobName of ['build', 'e2e-smoke']) {
       assert.equal(
