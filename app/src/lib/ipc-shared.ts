@@ -69,6 +69,8 @@ import {
 } from './self-hosted-server/provisioning'
 import {
   ISelfHostedRunnerProgress,
+  ISelfHostedRunnerPreflightRequest,
+  ISelfHostedRunnerPreflightResult,
   ISelfHostedRunnerRemoveRequest,
   ISelfHostedRunnerRemoveResult,
   ISelfHostedRunnerSetupRequest,
@@ -385,9 +387,13 @@ export type RequestResponseChannels = {
   'get-self-hosted-runner-status': (
     request: ISelfHostedRunnerStatusRequest
   ) => Promise<ISelfHostedRunnerStatus>
+  'preflight-self-hosted-runner': (
+    request: ISelfHostedRunnerPreflightRequest
+  ) => Promise<SelfHostedRunnerReply<ISelfHostedRunnerPreflightResult>>
   'setup-self-hosted-runner': (
     request: ISelfHostedRunnerSetupRequest
   ) => Promise<SelfHostedRunnerReply<ISelfHostedRunnerSetupResult>>
+  'cancel-self-hosted-runner-operation': (runnerId: string) => Promise<boolean>
   'start-self-hosted-runner': (request: {
     readonly id: string
     readonly owner: string

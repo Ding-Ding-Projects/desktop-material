@@ -8,6 +8,7 @@ import { fireEvent, render, screen } from '../../helpers/ui/render'
 
 const runner: ISelfHostedRunner = {
   id: 'runner-1',
+  accountKey: 'https://api.github.com/#1',
   owner: 'owner',
   repository: 'repository',
   name: 'windows-runner',
@@ -53,7 +54,25 @@ describe('self-hosted runner removal dialog', () => {
     assert.equal(confirmations, 1)
   })
 
-  it('keeps an emergency exit available and handles Escape', () => {
+  it('allows dismissal before removal begins', () => {
+    let dismissals = 0
+    render(
+      <SelfHostedRunnerRemovalDialog
+        runner={runner}
+        submitting={false}
+        error={null}
+        progressMessage={null}
+        onConfirm={() => undefined}
+        onDismissed={() => dismissals++}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Keep runner' }))
+    fireEvent.keyDown(screen.getByRole('alertdialog'), { key: 'Escape' })
+    assert.equal(dismissals, 2)
+  })
+
+  it('does not hide an irreversible removal while it is running', () => {
     let dismissals = 0
     render(
       <SelfHostedRunnerRemovalDialog
@@ -66,10 +85,10 @@ describe('self-hosted runner removal dialog', () => {
       />
     )
 
-    const emergencyExit = screen.getByRole('button', { name: 'Emergency exit' })
-    assert.equal(emergencyExit.getAttribute('aria-disabled'), null)
-    fireEvent.click(emergencyExit)
+    const wait = screen.getByRole('button', { name: 'Wait for removal result' })
+    assert.equal(wait.getAttribute('aria-disabled'), 'true')
+    fireEvent.click(wait)
     fireEvent.keyDown(screen.getByRole('alertdialog'), { key: 'Escape' })
-    assert.equal(dismissals, 2)
+    assert.equal(dismissals, 0)
   })
 })

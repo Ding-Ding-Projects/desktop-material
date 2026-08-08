@@ -548,6 +548,10 @@ const ownedShutdownTasks: ReadonlyArray<IOwnedShutdownTask> = [
   },
   { name: 'Build & Run processes', run: () => buildRunner.killAll() },
   { name: 'Local Actions runs', run: () => actionsLocalRunner.killAll() },
+  {
+    name: 'Self-hosted Actions runners',
+    run: () => selfHostedRunnerManager?.shutdown(),
+  },
   { name: 'opencode processes', run: () => opencodeRunner.killAll() },
   { name: 'Codex processes', run: () => codexRunner.killAll() },
   {
@@ -602,7 +606,7 @@ function reportOwnedShutdown(event: OwnedShutdownEvent): void {
 const ownedProcessShutdown = new OwnedProcessShutdownBarrier(
   ownedShutdownTasks,
   () => app.quit(),
-  undefined,
+  30_000,
   reportOwnedShutdown
 )
 // Wait until Electron has accepted every window close. A before-quit barrier
@@ -1250,8 +1254,15 @@ app.on('ready', () => {
   ipcMain.handle('get-self-hosted-runner-status', async (_event, request) =>
     selfHostedRunnerManager!.getStatus(request)
   )
+  ipcMain.handle('preflight-self-hosted-runner', async (_event, request) =>
+    selfHostedRunnerManager!.preflight(request)
+  )
   ipcMain.handle('setup-self-hosted-runner', async (_event, request) =>
     selfHostedRunnerManager!.setup(request)
+  )
+  ipcMain.handle(
+    'cancel-self-hosted-runner-operation',
+    async (_event, runnerId) => selfHostedRunnerManager!.cancel(runnerId)
   )
   ipcMain.handle('start-self-hosted-runner', async (_event, request) =>
     selfHostedRunnerManager!.start(request)
@@ -1354,9 +1365,8 @@ app.on('ready', () => {
     updateAccounts(accounts)
     selfHostedRunnerManager?.updateAccountTokens(accounts)
     updateGitHubReleaseTransferAccounts(accounts)
-    // EndpointToken deliberately omits login and account id. Every account
-    // refresh therefore revokes a provenance lease before the fingerprint
-    // shortcut: a credential rotation, removal, or login-only change in any
+    // Every account refresh revokes a provenance lease before the fingerprint
+    // shortcut: a credential rotation, removal, or identity change in any
     // window cannot leave an owned GHE verifier process authorized.
     releaseAllActionsArtifactProvenanceCredentialLeases()
     const fingerprint = JSON.stringify(accounts)
