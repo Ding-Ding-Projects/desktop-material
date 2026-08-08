@@ -209,6 +209,24 @@ describe('post-shell MD3 style contracts', () => {
     )
   })
 
+  it('keeps release notes readable on narrow windows', () => {
+    const style = readStyle('dialogs/_release-notes.scss')
+
+    assert.match(
+      style,
+      /#release-notes\s*\{[\s\S]*?width: min\(800px, calc\(100vw - var\(--spacing-quad\)\)\);[\s\S]*?min-width: 0;/
+    )
+    assert.match(style, /@media \(max-width: 680px\)/)
+    assert.match(
+      style,
+      /@media \(max-width: 680px\)[\s\S]*?\.container\s*\{[\s\S]*?flex-direction: column;/
+    )
+    assert.match(
+      style,
+      /@media \(max-width: 680px\)[\s\S]*?\.dialog-header\s*\{[\s\S]*?padding-inline: 72px;[\s\S]*?background-size: auto 64px, auto 64px;/
+    )
+  })
+
   it('shrinks and wraps the Build & Run header controls', () => {
     const style = readStyle('_material-build-run.scss')
     assert.match(
