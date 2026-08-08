@@ -151,6 +151,192 @@ describe('pending automatic commit push safety', () => {
     )
   })
 
+  it('pushes a waiting checkpoint after the remote advanced to a tip the checkpoint contains', async t => {
+    const repository = await setupEmptyRepository(t)
+    const baseSha = await createBaseRepository(repository)
+    assert.ok(baseSha !== null)
+
+    const branchRef = await runGit(repository, ['symbolic-ref', 'HEAD'])
+    const branchName = branchRef.slice('refs/heads/'.length)
+    const remoteBranchRef = `refs/heads/${branchName}`
+    const remotePath = await createTempDirectory(t)
+    assert.equal((await exec(['init', '--bare'], remotePath)).exitCode, 0)
+    await runGit(repository, ['remote', 'add', 'origin', remotePath])
+    await runGit(repository, [
+      'push',
+      'origin',
+      `${baseSha}:${remoteBranchRef}`,
+    ])
+
+    // The local branch already carries one commit beyond the remote tip —
+    // the state a merge leaves behind before the automatic push runs.
+    await writeFile(join(repository.path, 'merged.txt'), 'merged\n')
+    await runGit(repository, ['add', '--', 'merged.txt'])
+    await runGit(repository, ['commit', '-m', 'merged commit'])
+    const mergedSha = await captureCommitPushBatchBase(repository)
+    assert.ok(mergedSha !== null)
+
+    await writeFile(join(repository.path, 'pending.txt'), 'pending\n')
+    await runGit(repository, ['add', '--', 'pending.txt'])
+    await beginCommitPushBatchIntent(repository, mergedSha, ['pending.txt'], {
+      remoteName: 'origin',
+      remoteUrlSha256: hashCommitPushRemoteUrl(remotePath),
+      remoteBranchRef,
+      expectedRemoteSha: baseSha,
+    })
+    await runGit(repository, ['commit', '-m', 'pending batch'])
+    const pendingSha = await captureCommitPushBatchBase(repository)
+    assert.ok(pendingSha !== null)
+    await recoverCommitPushBatchIntent(repository)
+    assert.equal(await readPendingCommitPushBatch(repository), pendingSha)
+
+    // Another client publishes the merged commit first: the remote tip now
+    // differs from the recorded expectation but is an ancestor of the
+    // checkpoint, so pushing it is a pure fast-forward — exactly the case
+    // where a plain `git push` succeeds.
+    await runGit(repository, [
+      'push',
+      'origin',
+      `${mergedSha}:${remoteBranchRef}`,
+    ])
+
+    const remote = { name: 'origin', url: remotePath }
+    const state: any = {
+      remote,
+      isPushPullFetchInProgress: false,
+      branchesState: {
+        tip: {
+          kind: TipState.Valid,
+          branch: new Branch(
+            branchName,
+            null,
+            { sha: pendingSha },
+            BranchType.Local,
+            branchRef
+          ),
+        },
+      },
+    }
+    const store = Object.create(AppStore.prototype) as AppStore
+    Object.assign(store, {
+      accounts: [],
+      repositoryStateCache: { get: () => state },
+      gitStoreCache: {
+        get: () => ({
+          remotes: [remote],
+          tagsToPush: [],
+          clearTagsToPush: () => undefined,
+        }),
+      },
+      _refreshRepository: async () => undefined,
+    })
+
+    assert.equal(
+      await (store as any).resolvePendingCommitPushBeforeManualPush(
+        repository,
+        undefined,
+        {}
+      ),
+      true
+    )
+    assert.equal(await readPendingCommitPushBatch(repository), null)
+    assert.equal(
+      (await exec(['rev-parse', remoteBranchRef], remotePath)).stdout.trim(),
+      pendingSha
+    )
+  })
+
+  it('still refuses a waiting checkpoint when the remote genuinely diverged', async t => {
+    const repository = await setupEmptyRepository(t)
+    const baseSha = await createBaseRepository(repository)
+    assert.ok(baseSha !== null)
+
+    const branchRef = await runGit(repository, ['symbolic-ref', 'HEAD'])
+    const branchName = branchRef.slice('refs/heads/'.length)
+    const remoteBranchRef = `refs/heads/${branchName}`
+    const remotePath = await createTempDirectory(t)
+    assert.equal((await exec(['init', '--bare'], remotePath)).exitCode, 0)
+    await runGit(repository, ['remote', 'add', 'origin', remotePath])
+    await runGit(repository, [
+      'push',
+      'origin',
+      `${baseSha}:${remoteBranchRef}`,
+    ])
+
+    await writeFile(join(repository.path, 'pending.txt'), 'pending\n')
+    await runGit(repository, ['add', '--', 'pending.txt'])
+    await beginCommitPushBatchIntent(repository, baseSha, ['pending.txt'], {
+      remoteName: 'origin',
+      remoteUrlSha256: hashCommitPushRemoteUrl(remotePath),
+      remoteBranchRef,
+      expectedRemoteSha: baseSha,
+    })
+    await runGit(repository, ['commit', '-m', 'pending batch'])
+    const pendingSha = await captureCommitPushBatchBase(repository)
+    assert.ok(pendingSha !== null)
+    await recoverCommitPushBatchIntent(repository)
+    assert.equal(await readPendingCommitPushBatch(repository), pendingSha)
+
+    // The remote gains a commit the checkpoint does not contain, so a push
+    // would discard someone else's work and must stay refused.
+    await runGit(repository, ['checkout', '--detach', baseSha])
+    await writeFile(join(repository.path, 'divergent.txt'), 'divergent\n')
+    await runGit(repository, ['add', '--', 'divergent.txt'])
+    await runGit(repository, ['commit', '-m', 'divergent commit'])
+    const divergentSha = await runGit(repository, ['rev-parse', 'HEAD'])
+    await runGit(repository, [
+      'push',
+      'origin',
+      `+${divergentSha}:${remoteBranchRef}`,
+    ])
+    await runGit(repository, ['checkout', branchName])
+
+    const remote = { name: 'origin', url: remotePath }
+    const state: any = {
+      remote,
+      isPushPullFetchInProgress: false,
+      branchesState: {
+        tip: {
+          kind: TipState.Valid,
+          branch: new Branch(
+            branchName,
+            null,
+            { sha: pendingSha },
+            BranchType.Local,
+            branchRef
+          ),
+        },
+      },
+    }
+    const store = Object.create(AppStore.prototype) as AppStore
+    Object.assign(store, {
+      accounts: [],
+      repositoryStateCache: { get: () => state },
+      gitStoreCache: {
+        get: () => ({
+          remotes: [remote],
+          tagsToPush: [],
+          clearTagsToPush: () => undefined,
+        }),
+      },
+      _refreshRepository: async () => undefined,
+    })
+
+    await assert.rejects(
+      (store as any).resolvePendingCommitPushBeforeManualPush(
+        repository,
+        undefined,
+        {}
+      ),
+      /exact remote branch changed/
+    )
+    assert.equal(await readPendingCommitPushBatch(repository), pendingSha)
+    assert.equal(
+      (await exec(['rev-parse', remoteBranchRef], remotePath)).stdout.trim(),
+      divergentSha
+    )
+  })
+
   it('clears an intent captured from Desktop-owned staging after a no-commit rejection and permits retry', async t => {
     const repository = await setupEmptyRepository(t)
     const baseSha = await createBaseRepository(repository)

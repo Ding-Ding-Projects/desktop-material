@@ -6854,24 +6854,37 @@ export class AppStore extends TypedBaseStore<IAppState> {
       remoteBranchRef: destination.remoteBranchRef,
     })
     if (observedBefore !== pending.commitSha) {
-      if (observedBefore !== pending.intent.target.expectedRemoteSha) {
+      const recordedExpectation = pending.intent.target.expectedRemoteSha
+      const remoteMoved = observedBefore !== recordedExpectation
+      if (remoteMoved && observedBefore === null) {
+        // The remote branch disappeared while the checkpoint waited. Pushing
+        // would silently recreate it, so this window stays fail-closed.
         throw new CommitPushBatchError(
           'stale-commit',
           'The exact remote branch changed before the pending automatic commit could be pushed.'
         )
       }
+      // When the remote moved beneath the waiting checkpoint, push against
+      // the tip observed just now instead of refusing outright. The push
+      // operation re-verifies both the compare-and-swap expectation and that
+      // the expectation is an ancestor of the checkpoint, so a pure
+      // fast-forward (the state a merge in the app routinely leaves behind)
+      // pushes exactly like `git push` would, while a genuinely diverged
+      // remote is still rejected without force.
       const result = await session.operations.push({
         remoteName: destination.remote.name,
         localBranchRef: pending.intent.branchRef,
         remoteBranchRef: destination.remoteBranchRef,
-        expectedRemoteSha: pending.intent.target.expectedRemoteSha,
+        expectedRemoteSha: remoteMoved ? observedBefore : recordedExpectation,
         headSha: pending.commitSha,
         force: false,
       })
       if (result !== 'pushed') {
         throw new CommitPushBatchError(
-          'push-failed',
-          'The exact pending automatic commit could not be pushed.'
+          remoteMoved ? 'stale-commit' : 'push-failed',
+          remoteMoved
+            ? 'The exact remote branch changed before the pending automatic commit could be pushed.'
+            : 'The exact pending automatic commit could not be pushed.'
         )
       }
     }
@@ -6999,12 +7012,16 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
     if (observed !== pending.intent.target.expectedRemoteSha) {
-      throw new CommitPushBatchError(
-        'stale-commit',
-        'The exact remote branch changed before the pending automatic commit could be pushed.'
+      // The remote moved while the batch waited — the state a merge in the
+      // app routinely leaves behind. The exact-push path re-reads the tip and
+      // pushes when the checkpoint fast-forwards from it, and still fails
+      // closed on a genuinely diverged or deleted remote branch.
+      await this.pushExactPendingCommitPushBatch(
+        repository,
+        pending,
+        getRepositoryCredentialAccountKey(this.accounts, repository)
       )
-    }
-    if (
+    } else if (
       !(await this.performScheduledPush(repository, null, isBackgroundTask))
     ) {
       throw new CommitPushBatchError(
