@@ -1206,7 +1206,10 @@ class GitHubPane(Vertical):
         )
 
     def _selected_pr(self) -> object | None:
-        source_index = _source_index(self.query_one("#prs-table", DataTable))
+        table = self._live("#prs-table", DataTable)
+        if table is None:
+            return None
+        source_index = _source_index(table)
         if source_index is None or not (0 <= source_index < len(self.pull_requests)):
             return None
         selected = self.pull_requests[source_index]

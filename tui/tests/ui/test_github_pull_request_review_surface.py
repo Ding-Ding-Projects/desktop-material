@@ -174,6 +174,23 @@ async def test_pull_request_review_workspace_uses_exact_head_and_bounded_lists()
         assert review_values["body"] == "Please tighten the bound."
         assert review_values["commit_id"] == "a" * 40
 
+
+@pytest.mark.asyncio
+async def test_pull_request_review_returns_no_selection_after_table_is_removed() -> None:
+    app = _GitHubApp()
+    async with app.run_test(size=(150, 52), notifications=False) as pilot:
+        pane = app.query_one("#github-pane", GitHubPane)
+        fake = _FakeGitHub()
+        pane.github = fake
+        pane.pull_requests = [fake.pr]
+        pane._render_pull_requests(pane.pull_requests)
+        await pilot.pause()
+
+        app.query_one("#prs-table", DataTable).remove()
+        await pilot.pause()
+
+        assert pane._selected_pr() is None
+
         app.query_one("#pr-review-comment-path", Input).value = "src/review.py"
         app.query_one("#pr-review-comment-line", Input).value = "7"
         app.query_one("#pr-review-comment-body", Input).value = "Line-level note."
