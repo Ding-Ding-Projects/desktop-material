@@ -554,7 +554,7 @@ describe('post-shell MD3 style contracts', () => {
 
     assert.match(
       source,
-      /const newMaxHeight\s*=\s*maxHeight === undefined\s*\? availableHeight\s*:\s*Math\.min\(availableHeight, maxHeight\)/
+      /const boundedAvailableHeight\s*=\s*Math\.max\(0, availableHeight\)[\s\S]*?const newMaxHeight\s*=\s*maxHeight === undefined\s*\?\s*boundedAvailableHeight\s*:\s*Math\.min\(boundedAvailableHeight, maxHeight\)/
     )
     assert.match(
       source,
