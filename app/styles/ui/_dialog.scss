@@ -544,7 +544,12 @@ dialog {
 
       &.accounts-tab {
         max-height: $default-tab-height;
-        overflow: auto;
+        // Only the vertical axis scrolls. The `overflow: auto` shorthand also
+        // armed the horizontal axis, so the longest localized labels (or a
+        // provider card one pixel too wide) raised a stray horizontal
+        // scrollbar no other settings tab shows.
+        overflow-x: hidden;
+        overflow-y: auto;
       }
 
       &.copilot-tab {
@@ -553,7 +558,8 @@ dialog {
         .copilot-tab-content {
           padding: var(--spacing-double);
           max-height: $default-tab-height;
-          overflow: auto;
+          overflow-x: hidden;
+          overflow-y: auto;
         }
       }
     }
