@@ -259,6 +259,7 @@ export class SelfHostedRunnerManager extends React.Component<
     try {
       const reply = await ipcRenderer.invoke('setup-self-hosted-runner', {
         id: crypto.randomUUID(),
+        accountKey: getAccountKey(account),
         owner: remote.owner.login,
         repository: remote.name,
         githubApiEndpoint: account.endpoint,

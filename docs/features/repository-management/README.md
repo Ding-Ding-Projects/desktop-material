@@ -203,6 +203,10 @@ Material is displaying or how a repository is represented in the application.
 - [Clone queue settings](clone-queue-settings.md) — configure each signed-in
   account's background-clone directory, parallel/sequential mode, and enabled
   state from Settings while retaining the existing bounded recovery journal.
+- [Opt-in post-clone runner provisioning](post-clone-runner-provisioning.md) —
+  create a repository-scoped Windows or dedicated WSL/Linux Actions runner
+  only after a private GitHub repository clone succeeds and the user confirms
+  its workflow authors are trusted.
 - [Patch-series import and export](patch-series.md) — preview, validate, export,
   and apply portable patch sequences without silently changing unrelated work.
 - [Repository list transfer and Cheap LFS](repository-list-transfer.md) — export

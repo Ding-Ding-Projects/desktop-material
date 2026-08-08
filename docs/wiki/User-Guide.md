@@ -1007,6 +1007,20 @@ The multi-clone window clones **many repositories in one pass**.
    - **One-by-one** — clone sequentially (gentler; easier to watch progress and spot failures).
 6. Start the clone. Progress is shown per repository.
 
+### Optional post-clone Actions runner
+
+For one selected **private** GitHub or GitHub Enterprise repository, expand
+**Runner provisioning** before cloning, opt in, confirm that its workflow
+authors are trusted, and choose **Windows** or **Linux via WSL**. Desktop
+Material completes the clone first, then creates a repository-scoped runner
+without an elevated prompt. Public repositories, multi-clone queues, and
+background auto-clones cannot create runners. A setup failure leaves the clone
+available and directs you to the repository's **Actions** tab for recovery.
+
+Because a runner executes workflow code as your Windows user, remove it from
+the Actions tab before changing its repository to public. The app rechecks
+privacy before setup and before a stopped runner can restart.
+
 Changing the account clears repository selections from the previous identity before loading the new
 account's list. If a provider refresh fails, use **Try again** in the same view; a stale repository
 cannot remain selected for cloning under the replacement account.

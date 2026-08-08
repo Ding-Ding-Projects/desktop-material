@@ -54,6 +54,7 @@ export type ISelfHostedRunnerStatusRequest = ISelfHostedRunnerRepositoryScope
 /** The main process resolves the account credential and mints the one-time token. */
 export interface ISelfHostedRunnerSetupRequest {
   readonly id: string
+  readonly accountKey: string
   readonly owner: string
   readonly repository: string
   readonly githubApiEndpoint: string

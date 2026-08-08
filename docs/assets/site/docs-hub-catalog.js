@@ -931,6 +931,13 @@
       d: 'Open Repository → Repository tools → Exchange patch series to move a reviewable sequence of commits without publishing a branch.',
     },
     {
+      t: 'Opt-in post-clone runner provisioning',
+      h: 'features/repository-management/post-clone-runner-provisioning.html',
+      s: 'features/repository-management/post-clone-runner-provisioning.md',
+      c: 'features',
+      d: 'Desktop Material can create a repository-scoped GitHub Actions self-hosted runner immediately after an interactive clone succeeds. The choice is off by default, applies to one…',
+    },
+    {
       t: 'Private-repository lock badge',
       h: 'features/repository-management/private-repository-lock-badge.html',
       s: 'features/repository-management/private-repository-lock-badge.md',

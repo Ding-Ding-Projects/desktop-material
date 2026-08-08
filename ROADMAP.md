@@ -2,6 +2,17 @@
 
 Updated: **August 6, 2026**
 
+## August 7 — opt-in post-clone runner provisioning
+
+- A single interactive clone of a private GitHub/GitHub Enterprise repository
+  can opt in to create a repository-scoped Windows or dedicated WSL/Linux
+  Actions runner after the clone is registered.
+- The option defaults off, demands explicit workflow-author trust, is excluded
+  from public, batch, and automatic clone paths, and preserves a successful
+  clone when runner provisioning needs recovery.
+- Focused source and option tests cover the intent and safety boundary. A live
+  runner setup remains pending an authorized private repository and host.
+
 ## August 6 — Windows renderer startup bundle safety
 
 - The Node-oriented `@github/copilot-sdk` now stays outside the browser

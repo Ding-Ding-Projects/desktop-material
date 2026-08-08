@@ -100,6 +100,7 @@ interface ILaunchResult {
 
 interface IDiskRunnerRecord {
   readonly id: string
+  readonly accountKey?: string
   readonly owner: string
   readonly repository: string
   readonly githubApiEndpoint: string
@@ -636,6 +637,80 @@ async function mintRunnerToken(
   return validateRunnerToken((value as { token?: unknown }).token)
 }
 
+function validateAccountKey(value: unknown): string {
+  if (!isNonEmptyString(value, 2_048) || /[\0\r\n]/.test(value)) {
+    throw new SelfHostedRunnerManagerError(
+      'invalid-github-account',
+      'Select a signed-in GitHub account before managing a runner.'
+    )
+  }
+  return value
+}
+
+function accountTokenKey(endpoint: string, accountKey: string): string {
+  return `${endpoint}\u0000${accountKey}`
+}
+
+/**
+ * A runner executes repository-controlled workflow code. Re-check visibility
+ * in the trusted main process immediately before allocating any local runner
+ * resources; renderer metadata is intentionally not an authorization signal.
+ */
+async function verifyPrivateRunnerRepository(
+  endpoint: string,
+  owner: string,
+  repository: string,
+  accountToken: string
+): Promise<void> {
+  let response: Response
+  try {
+    response = await fetchWithTimeout(
+      new URL(`repos/${owner}/${repository}`, endpoint),
+      {
+        headers: {
+          Accept: 'application/vnd.github+json',
+          Authorization: `Bearer ${accountToken}`,
+          'User-Agent': RunnerUserAgent,
+        },
+        redirect: 'error',
+      },
+      NetworkTimeoutMilliseconds
+    )
+  } catch {
+    throw new SelfHostedRunnerManagerError(
+      'runner-repository-verification-failed',
+      'GitHub could not verify this repository before runner setup. Check the selected account and network, then retry.'
+    )
+  }
+
+  let value: unknown
+  try {
+    value = await readBoundedActionsJSON(response)
+  } catch {
+    throw new SelfHostedRunnerManagerError(
+      'runner-repository-verification-failed',
+      'GitHub returned an invalid repository-verification response. Retry after checking the account permission.'
+    )
+  }
+  if (!response.ok) {
+    throw new SelfHostedRunnerManagerError(
+      'runner-repository-verification-failed',
+      'GitHub refused repository verification. Check the selected account permission and retry.'
+    )
+  }
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    Array.isArray(value) ||
+    (value as { private?: unknown }).private !== true
+  ) {
+    throw new SelfHostedRunnerManagerError(
+      'runner-public-repository-blocked',
+      'Self-hosted runner setup is blocked for public repositories because untrusted pull requests can execute code on this computer.'
+    )
+  }
+}
+
 function isSafeStoredRunnerRecord(value: unknown): value is IDiskRunnerRecord {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return false
@@ -726,7 +801,10 @@ export class WindowsSelfHostedRunnerManager {
       }
       try {
         this.accountTokens.set(
-          normalizeGitHubAPIEndpoint(account.endpoint),
+          accountTokenKey(
+            normalizeGitHubAPIEndpoint(account.endpoint),
+            validateAccountKey(account.accountKey)
+          ),
           account.token
         )
       } catch {
@@ -987,6 +1065,7 @@ export class WindowsSelfHostedRunnerManager {
     }
     const normalized: ISelfHostedRunnerSetupRequest = {
       id: request.id,
+      accountKey: validateAccountKey(request.accountKey),
       owner: validateRepositoryPart(request.owner, 'owner'),
       repository: validateRepositoryPart(request.repository, 'repository'),
       githubApiEndpoint: normalizeGitHubAPIEndpoint(request.githubApiEndpoint),
@@ -1730,6 +1809,21 @@ export class WindowsSelfHostedRunnerManager {
           'That runner is already managed here. Refresh the list or remove it before creating another.'
         )
       }
+      const accountToken = this.accountTokens.get(
+        accountTokenKey(normalized.githubApiEndpoint, normalized.accountKey)
+      )
+      if (accountToken === undefined) {
+        throw new SelfHostedRunnerManagerError(
+          'github-account-unavailable',
+          'The selected GitHub account is no longer available in the main process. Refresh accounts and retry.'
+        )
+      }
+      await verifyPrivateRunnerRepository(
+        normalized.githubApiEndpoint,
+        normalized.owner,
+        normalized.repository,
+        accountToken
+      )
       if (normalized.platform === 'linux-wsl') {
         if (normalized.createDedicatedWsl) {
           const created = await this.createDedicatedWsl(
@@ -1777,13 +1871,12 @@ export class WindowsSelfHostedRunnerManager {
         normalized.id,
         distribution
       )
-      const accountToken = this.accountTokens.get(normalized.githubApiEndpoint)
-      if (accountToken === undefined) {
-        throw new SelfHostedRunnerManagerError(
-          'github-account-unavailable',
-          'The selected GitHub account is no longer available in the main process. Refresh accounts and retry.'
-        )
-      }
+      await verifyPrivateRunnerRepository(
+        normalized.githubApiEndpoint,
+        normalized.owner,
+        normalized.repository,
+        accountToken
+      )
       const registrationToken = await mintRunnerToken(
         normalized.githubApiEndpoint,
         normalized.owner,
@@ -1802,6 +1895,7 @@ export class WindowsSelfHostedRunnerManager {
 
       const record: IDiskRunnerRecord = {
         id: normalized.id,
+        accountKey: normalized.accountKey,
         owner: normalized.owner,
         repository: normalized.repository,
         githubApiEndpoint: normalized.githubApiEndpoint,
@@ -1838,7 +1932,7 @@ export class WindowsSelfHostedRunnerManager {
       if (registrationCompleted && !recordSaved) {
         registrationCompensated = false
         const accountToken = this.accountTokens.get(
-          normalized.githubApiEndpoint
+          accountTokenKey(normalized.githubApiEndpoint, normalized.accountKey)
         )
         if (accountToken !== undefined) {
           try {
@@ -2013,6 +2107,27 @@ export class WindowsSelfHostedRunnerManager {
       if (refreshed.status === 'running') {
         return { ok: true, result: { runner: this.publicRecord(refreshed) } }
       }
+      if (refreshed.accountKey === undefined) {
+        throw new SelfHostedRunnerManagerError(
+          'github-account-unavailable',
+          'This runner was created before account-specific routing. Remove it and create a new runner with a selected GitHub account.'
+        )
+      }
+      const accountToken = this.accountTokens.get(
+        accountTokenKey(refreshed.githubApiEndpoint, refreshed.accountKey)
+      )
+      if (accountToken === undefined) {
+        throw new SelfHostedRunnerManagerError(
+          'github-account-unavailable',
+          'The GitHub account that created this runner is no longer available. Sign in again before starting it.'
+        )
+      }
+      await verifyPrivateRunnerRepository(
+        refreshed.githubApiEndpoint,
+        refreshed.owner,
+        refreshed.repository,
+        accountToken
+      )
       this.progress(
         record.id,
         'starting-runner',
@@ -2084,7 +2199,15 @@ export class WindowsSelfHostedRunnerManager {
           'Select the GitHub account that created this runner before removing it.'
         )
       }
-      const accountToken = this.accountTokens.get(githubApiEndpoint)
+      if (record.accountKey === undefined) {
+        throw new SelfHostedRunnerManagerError(
+          'github-account-unavailable',
+          'This runner was created before account-specific routing. Sign in and remove it manually from GitHub if needed.'
+        )
+      }
+      const accountToken = this.accountTokens.get(
+        accountTokenKey(githubApiEndpoint, record.accountKey)
+      )
       if (accountToken === undefined) {
         throw new SelfHostedRunnerManagerError(
           'github-account-unavailable',

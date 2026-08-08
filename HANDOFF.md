@@ -1,5 +1,25 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-07 — Opt-in post-clone runner provisioning
+
+**Scope:** Single interactive private GitHub/GitHub Enterprise clones can opt
+in to a Windows or dedicated WSL/Linux self-hosted runner. The clone dialog
+keeps the feature off by default, requires a workflow-author trust acknowledgement,
+does not expose it for public repositories, and excludes batch/background
+clones. `Dispatcher.clone` triggers provisioning only after the new repository
+is registered and its canonical GitHub remote matches the original selection.
+
+**Changed:** Clone options, clone dialog and dispatcher, the trusted runner
+manager, clone styles, focused tests, and repository-management documentation.
+The main process now independently verifies that the target repository remains
+private before allocating a local runner, WSL distribution, download, or
+registration token.
+
+**Verification:** focused clone option/UI tests pass **8/8**, the root
+TypeScript check passes, and the documentation catalog check passes **19/19**.
+A real runner needs an authorized private repository plus a Windows/WSL host,
+so no local test claims live registration.
+
 ## 2026-08-07 — Repair Windows CI, release contracts, and Pages validation
 
 Repair commit `fef8e7e5574d88dbd2f5720a2c0d5799a44032bb` restores the

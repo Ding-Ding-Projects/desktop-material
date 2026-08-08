@@ -48,3 +48,20 @@ describe('guided shallow clone options', () => {
     )
   })
 })
+
+describe('post-clone runner provisioning intent', () => {
+  it('is opt-in and carries no credential material', () => {
+    const options = {
+      postCloneRunnerProvisioning: {
+        accountKey: 'https://api.github.com/#1',
+        githubApiEndpoint: 'https://api.github.com/',
+        owner: 'octocat',
+        repository: 'private-repository',
+        platform: 'linux-wsl' as const,
+        wslBaseDistribution: 'Ubuntu',
+      },
+    }
+    assert.equal(options.postCloneRunnerProvisioning.platform, 'linux-wsl')
+    assert.equal('token' in options.postCloneRunnerProvisioning, false)
+  })
+})

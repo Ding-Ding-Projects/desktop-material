@@ -1,4 +1,20 @@
 import { ICheapLfsCloneSelection } from './cheap-lfs-clone-selection'
+import { SelfHostedRunnerPlatform } from '../lib/self-hosted-runner/types'
+
+/**
+ * Explicit, one-shot intent to create a repository-scoped Actions runner after
+ * a successful interactive clone. This carries no credential; the main
+ * process resolves the selected account and mints the short-lived runner token.
+ */
+export type PostCloneRunnerProvisioning = {
+  readonly accountKey: string
+  readonly githubApiEndpoint: string
+  readonly owner: string
+  readonly repository: string
+  readonly platform: SelfHostedRunnerPlatform
+  /** The existing WSL distribution cloned into a dedicated runner distro. */
+  readonly wslBaseDistribution?: string
+}
 
 /** Additional arguments to provide when cloning a repository */
 export type CloneOptions = {
@@ -19,6 +35,11 @@ export type CloneOptions = {
    * Post-clone materialization must validate it against committed pointers.
    */
   readonly cheapLfsSelection?: ICheapLfsCloneSelection
+  /**
+   * Optional, explicit post-clone runner setup for a private GitHub repository.
+   * Batch and background clone paths deliberately never set this intent.
+   */
+  readonly postCloneRunnerProvisioning?: PostCloneRunnerProvisioning
 }
 
 export const MaximumCloneDepth = 2_147_483_647

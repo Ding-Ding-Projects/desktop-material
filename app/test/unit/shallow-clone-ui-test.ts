@@ -51,4 +51,25 @@ describe('guided shallow clone UI contracts', () => {
     assert.match(autoCloneStore, /startBackgroundBatch/)
     assert.match(style, /\.auto-clone-toggle[\s\S]*overflow-wrap: anywhere/)
   })
+
+  it('keeps post-clone runner provisioning explicit and blocks public repositories', () => {
+    const ui = read('app/src/ui/clone-repository/clone-repository.tsx')
+    const dispatcher = read('app/src/ui/dispatcher/dispatcher.ts')
+
+    assert.match(ui, /Provision a runner after this clone/)
+    assert.match(ui, /Self-hosted runners are blocked for public repositories/)
+    assert.match(ui, /I trust this repository’s workflow authors/)
+    assert.match(ui, /postCloneRunnerProvisioning/)
+    assert.match(dispatcher, /provisionPostCloneRunner/)
+    assert.match(dispatcher, /accountKey: provisioning\.accountKey/)
+    assert.match(dispatcher, /desktop-material-runner-/)
+    assert.match(
+      dispatcher,
+      /The repository cloned successfully, but its runner could not be provisioned/
+    )
+    assert.match(
+      dispatcher,
+      /selected GitHub repository no longer matches the cloned remote/
+    )
+  })
 })
