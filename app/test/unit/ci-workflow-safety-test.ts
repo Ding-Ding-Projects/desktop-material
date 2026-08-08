@@ -123,6 +123,7 @@ interface IWorkflowStep {
 
 interface IWorkflowJob {
   'runs-on'?: string | string[]
+  defaults?: { run?: { shell?: string } }
   env?: Record<string, unknown>
   permissions?: Record<string, string>
   steps?: IWorkflowStep[]
@@ -1120,6 +1121,10 @@ describe('CI workflow safety', () => {
   })
 
   it('preserves Windows installers when normal CI tests fail', () => {
+    assert.equal(
+      getJob(installerWorkflowDocument, 'package').defaults?.run?.shell,
+      'powershell -NoProfile -ExecutionPolicy Bypass -Command ". \'{0}\'"'
+    )
     const windowsBuildJob = windowsWorkflow.match(
       /\r?\n  build:\r?\n([\s\S]*?)(?=\r?\n  e2e-smoke:\r?\n)/
     )
