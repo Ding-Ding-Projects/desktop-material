@@ -43,7 +43,16 @@ async def run_desktop_material(
         await pilot.pause()
         await app.workers.wait_for_complete()
         await pilot.pause()
-        yield app, pilot
+        try:
+            yield app, pilot
+        finally:
+            # Stop any worker started by the test before Textual tears down the
+            # app. Otherwise a late UI callback can race the next fresh
+            # interpreter's native syntax setup (notably tree-sitter on
+            # Python 3.13) after this context has returned.
+            app.workers.cancel_all()
+            await app.workers.wait_for_complete()
+            await pilot.pause()
 
 
 def rendered_text(widget: Static) -> str:

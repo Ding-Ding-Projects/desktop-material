@@ -30,3 +30,13 @@ def test_runner_discovers_all_tests_and_separates_ui_files() -> None:
     assert all(runner.UI_ROOT not in path.parents for path in non_ui_files)
     assert runner.TEST_ROOT / "test_agent_cli.py" in non_ui_files
     assert runner.UI_ROOT / "test_layout_matrix.py" in ui_files
+
+
+def test_runner_collects_each_ui_node_for_process_isolation() -> None:
+    runner = _runner_module()
+    _non_ui_files, ui_files = runner.discover_test_files()
+    nodes = runner.discover_ui_test_nodes(ui_files)
+
+    assert nodes
+    assert all("::" in node for node in nodes)
+    assert any("tests/ui/test_layout_matrix.py::" in node for node in nodes)
