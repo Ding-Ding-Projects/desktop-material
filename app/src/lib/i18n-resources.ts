@@ -7756,13 +7756,13 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.unattendedEncryption.reason':
     'Windows Credential Manager had no usable saved password. This file stayed unchanged in the working tree and out of the commit; it was not encrypted or uploaded, and no Release anchor was created. Retry interactively to enter the password, or save it in Repository settings > Large files & storage.',
   'cheapLfs.unattendedEncryption.body.plain':
-    'Windows Credential Manager had no usable saved password. Nothing was encrypted or uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Other selected changes remain eligible. Retry interactively, or save it in Repository settings > Large files & storage.',
+    'Windows Credential Manager has no usable saved password. Nothing was encrypted or uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Other selected changes remain eligible. Retry interactively, or save it in Repository settings > Large files & storage.',
   'cheapLfs.unattendedEncryption.body.light':
-    'No usable saved password was waiting in Windows Credential Manager, so the unattended commit stopped at the lock. Nothing was encrypted/uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Other changes remain eligible. Retry interactively, or save it in Repository settings > Large files & storage.',
+    'No usable saved password was available in Windows Credential Manager, so the unattended commit stopped. Nothing was encrypted or uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Other changes remain eligible. Retry interactively, or save it in Repository settings > Large files & storage.',
   'cheapLfs.unattendedEncryption.body.playful':
-    'The unattended commit found no usable saved key in Windows Credential Manager and wisely left the lock alone. Nothing was encrypted/uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Other changes remain eligible. Retry interactively, or save it in Repository settings > Large files & storage.',
+    'The unattended commit found no usable saved key in Windows Credential Manager and left the lock alone. Nothing was encrypted or uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Other changes remain eligible. Retry interactively, or save it in Repository settings > Large files & storage.',
   'cheapLfs.unattendedEncryption.body.maximum':
-    'The unattended commit knocked at Windows Credential Manager, found no usable saved password, and very sensibly refused to guess. Nothing was encrypted or uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Everything else you selected is still eligible. Retry interactively, or save the password in Repository settings > Large files & storage so the door simply opens next time.',
+    'The unattended commit found no usable saved password in Windows Credential Manager and refused to guess. Nothing was encrypted or uploaded; no Release anchor was created. Unchanged and out of the commit: {names} ({count} total). Other changes remain eligible. Retry interactively, or save it in Repository settings > Large files & storage.',
   'cheapLfs.localState.pointer': 'Pointer stored locally',
   'cheapLfs.localState.materialized':
     'Materialized locally · verified against the committed pointer',
@@ -12376,13 +12376,13 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.unattendedEncryption.reason':
     'Windows Credential Manager 冇可用嘅已儲密碼。呢個檔案喺 working tree 原封不動、冇入 commit、冇加密、冇上載，亦冇建立 Release anchor。請人手重試輸入密碼，或喺 Repository settings > 大檔案同儲存 儲低。',
   'cheapLfs.unattendedEncryption.body.plain':
-    'Windows Credential Manager 冇可用已儲密碼。冇加密、冇上載，亦冇建立 Release anchor。以下大檔案原封不動、冇入 commit：{names}（總共 {count} 個）。其他已揀變更仍可繼續。請人手重試輸入密碼，或喺 Repository settings > 大檔案同儲存 儲低。',
+    'Windows Credential Manager 冇可用已儲密碼。冇加密、冇上載，亦冇建立 Release anchor。以下大檔案原封不動、冇入 commit：{names}（總共 {count} 個）。其他已揀變更仍可繼續。請人手重試，或喺 Repository settings > 大檔案同儲存 儲低。',
   'cheapLfs.unattendedEncryption.body.light':
     'Windows Credential Manager 冇可用已儲密碼，排程 commit 喺加密閘前停低。冇加密、冇上載，亦冇建立 Release anchor。原封不動、冇入 commit：{names}（總共 {count} 個）。其他變更仍可繼續。請人手重試，或喺 Repository settings > 大檔案同儲存 儲低密碼。',
   'cheapLfs.unattendedEncryption.body.playful':
     '排程 commit 喺 Windows Credential Manager 搵唔到可用已儲鎖匙，所以冇亂闖。冇加密、冇上載，亦冇建立 Release anchor。原封不動、冇入 commit：{names}（總共 {count} 個）。其他變更仍可繼續。請人手重試，或喺 Repository settings > 大檔案同儲存 儲低密碼。',
   'cheapLfs.unattendedEncryption.body.maximum':
-    '排程 commit 去 Windows Credential Manager 敲門，發現冇可用已儲密碼，好識做咁冇亂估。冇加密、冇上載，亦冇建立 Release anchor。以下大檔原封不動、冇入 commit：{names}（總共 {count} 個）。其他已揀變更照舊有得行。請人手重試，或者去 Repository settings > 大檔案同儲存 儲低密碼，下次道門自己識開。',
+    '排程 commit 敲 Windows Credential Manager 冇門，搵唔到可用已儲密碼，就唔亂估。冇加密、冇上載，亦冇建立 Release anchor。以下大檔原封不動、冇入 commit：{names}（總共 {count} 個）。其他變更仍可繼續。請人手重試，或喺 Repository settings > 大檔案同儲存 儲低密碼。',
   'cheapLfs.localState.pointer': '本機淨係擺住個 pointer',
   'cheapLfs.localState.materialized':
     '已經喺本機還原 · 同 commit 咗嘅 pointer 對得上',

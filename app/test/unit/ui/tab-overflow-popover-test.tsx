@@ -388,9 +388,9 @@ describe('TabOverflowPopover search', () => {
       // English reads fully plain at 1 while Cantonese reads maximally playful
       // at 5, and both still say what this menu holds and what can be done.
       const description = screen.getByText(/did not fit in the strip/)
-      assert.match(description.textContent ?? '', /俾人擠咗出嚟/)
+      assert.match(description.textContent ?? '', /喺出面排緊隊/)
       assert.match(description.textContent ?? '', /Search them, switch to one/)
-      assert.match(description.textContent ?? '', /整色整水/)
+      assert.match(description.textContent ?? '', /換套新衫/)
     } finally {
       localStorage.removeItem('audio-system-settings-v1')
     }
