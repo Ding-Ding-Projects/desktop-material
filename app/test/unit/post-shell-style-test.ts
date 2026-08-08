@@ -196,6 +196,19 @@ describe('post-shell MD3 style contracts', () => {
     )
   })
 
+  it('keeps pull request review dialogs inside narrow windows and shows the timeline rail', () => {
+    const style = readStyle('dialogs/_pull-request-comment-like.scss')
+
+    assert.match(
+      style,
+      /#pull-request-review,\s*#pull-request-comment\s*\{[\s\S]*?width: min\(500px, 100%\);[\s\S]*?min-width: 0;/
+    )
+    assert.match(
+      style,
+      /\.sandboxed-markdown-iframe-container\s*\{[\s\S]*?border-left: 2px solid var\(--pr-timeline-line-color\);/
+    )
+  })
+
   it('shrinks and wraps the Build & Run header controls', () => {
     const style = readStyle('_material-build-run.scss')
     assert.match(
