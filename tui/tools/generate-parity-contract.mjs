@@ -92,7 +92,7 @@ for (const line of source.split(/\r?\n/u)) {
   })
 }
 
-const DeclaredDesktopFeatureCount = 208
+const DeclaredDesktopFeatureCount = 210
 
 if (features.length !== DeclaredDesktopFeatureCount) {
   throw new Error(

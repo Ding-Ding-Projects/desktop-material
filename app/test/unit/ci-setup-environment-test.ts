@@ -108,8 +108,9 @@ describe('CI environment setup', () => {
       "${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}"
     )
     assert.equal(
-      setupAction.match(/shell: cmd\r?\n\s+run: .*ensure-windows-git-bash\.cmd/g)
-        ?.length,
+      setupAction.match(
+        /shell: cmd\r?\n\s+run: .*ensure-windows-git-bash\.cmd/g
+      )?.length,
       1
     )
     assert.match(setupAction, /ensure-windows-git-bash\.cmd/)
