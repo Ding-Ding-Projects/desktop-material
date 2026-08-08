@@ -22,6 +22,13 @@ const postInstallScript = readFileSync(
   join(process.cwd(), 'script/post-install.ts'),
   'utf8'
 )
+const printenvzPackage = JSON.parse(
+  readFileSync(join(process.cwd(), 'vendor/printenvz/package.json'), 'utf8')
+) as { scripts?: Record<string, string> }
+const printenvzBuildScript = readFileSync(
+  join(process.cwd(), 'vendor/printenvz/build.mjs'),
+  'utf8'
+)
 const frozenManifestVerifier = join(
   process.cwd(),
   'script',
@@ -383,7 +390,34 @@ describe('CI environment setup', () => {
     )
     assert.match(
       setupAction,
+      /Check cached dependencies[\s\S]*?node_modules\/printenvz\/build\/Release\/printenvz\.exe/
+    )
+    assert.match(
+      setupAction,
+      /Verify installed dependencies before use[\s\S]*?node_modules\/printenvz\/build\/Release\/printenvz\.exe/
+    )
+    assert.match(
+      setupAction,
+      /Cached printenvz executable failed its bounded smoke test[\s\S]*?Installed printenvz executable failed/
+    )
+    assert.match(
+      setupAction,
       /Install and build dependencies[\s\S]*?cache-hit != 'true'[\s\S]*?yarn --frozen-lockfile/
+    )
+    assert.equal(printenvzPackage.scripts?.install, 'node build.mjs')
+    assert.equal(printenvzPackage.scripts?.rebuild, 'node build.mjs --rebuild')
+    assert.match(
+      printenvzBuildScript,
+      /process\.platform !== 'win32' \|\| !process\.env\.npm_config_msvs_version/
+    )
+    assert.match(printenvzBuildScript, /node-gyp\/bin\/node-gyp\.js/)
+    assert.match(printenvzBuildScript, /VsDevCmd\.bat/)
+    assert.match(printenvzBuildScript, /vcvarsall\.bat/)
+    assert.match(printenvzBuildScript, /-arch=\$\{targetArchitecture\}/)
+    assert.match(printenvzBuildScript, /cl\.exe \/nologo \/O2 \/MT/)
+    assert.match(
+      printenvzBuildScript,
+      /rmSync\(buildRoot, \{ recursive: true, force: true \}\)/
     )
     const dependencyInstallStep = getNamedStep('Install and build dependencies')
     assert.equal(dependencyInstallStep.env?.NODE_ENV, 'development')
