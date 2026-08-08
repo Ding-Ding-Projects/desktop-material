@@ -107,17 +107,12 @@ describe('CI environment setup', () => {
       preferGitBashStep?.if,
       "${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}"
     )
-    assert.match(
-      setupAction,
-      /shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '\{0\}'"/
-    )
     assert.equal(
-      setupAction.match(
-        /shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '\{0\}'"/g
-      )?.length,
-      2
+      setupAction.match(/shell: cmd\r?\n\s+run: .*ensure-windows-git-bash\.cmd/g)
+        ?.length,
+      1
     )
-    assert.doesNotMatch(setupAction, /^\s*shell: powershell\s*$/m)
+    assert.match(setupAction, /ensure-windows-git-bash\.cmd/)
     assert.doesNotMatch(setupAction, /shell: pwsh/)
     assert.match(setupAction, /ensure-windows-git-bash\.ps1/)
     assert.match(setupAction, /Install uv for self-hosted Windows Python/)

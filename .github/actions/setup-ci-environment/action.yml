@@ -13,9 +13,8 @@ runs:
   steps:
     - name: Reuse or install Git Bash on Windows self-hosted runners
       if: ${{ runner.os == 'Windows' && runner.environment == 'self-hosted' }}
-      shell: powershell -NoProfile -ExecutionPolicy Bypass -Command "& '{0}'"
-      run:
-        '& "$env:GITHUB_WORKSPACE\.github\scripts\ensure-windows-git-bash.ps1"'
+      shell: cmd
+      run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
 
     - name: Install Windows arm64 C++ toolset when missing
       if:

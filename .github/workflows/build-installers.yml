@@ -268,9 +268,8 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
       - name: Bootstrap Git and Bash for self-hosted Windows
-        run:
-          powershell -NoProfile -ExecutionPolicy Bypass -File
-          .github/scripts/ensure-windows-git-bash.ps1
+        shell: cmd
+        run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
       - name: Repeat checkout with bootstrapped Git
         uses: actions/checkout@v7.0.1
         with:
@@ -577,9 +576,8 @@ jobs:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
       - name: Bootstrap Git and Bash for self-hosted Windows
-        run:
-          powershell -NoProfile -ExecutionPolicy Bypass -File
-          .github/scripts/ensure-windows-git-bash.ps1
+        shell: cmd
+        run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
       - name: Repeat checkout with bootstrapped Git
         uses: actions/checkout@v7.0.1
         with:

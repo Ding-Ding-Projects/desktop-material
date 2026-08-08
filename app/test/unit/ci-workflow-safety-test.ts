@@ -189,9 +189,10 @@ function assertWindowsBootstrapBeforeTrueCheckout(
   assert.equal(initialCheckout.name, 'Initial checkout for Windows bootstrap')
   assert.equal(initialCheckout.uses, 'actions/checkout@v7.0.1')
   assert.equal(bootstrap.name, 'Bootstrap Git and Bash for self-hosted Windows')
+  assert.equal(bootstrap.shell, 'cmd')
   assert.equal(
     bootstrap.run,
-    'powershell -NoProfile -ExecutionPolicy Bypass -File .github/scripts/ensure-windows-git-bash.ps1'
+    '%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd'
   )
   assert.equal(repeatedCheckout.name, 'Repeat checkout with bootstrapped Git')
   assert.equal(repeatedCheckout.uses, 'actions/checkout@v7.0.1')
