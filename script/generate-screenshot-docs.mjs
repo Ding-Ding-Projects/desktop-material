@@ -325,6 +325,9 @@ function buildEntries(plan, wiki, files, receipts) {
   const batchOrder = Object.keys(plan.CaptureBatches)
   const deferredCanonical = new Set(plan.DeferredCanonicalOutputs || [])
   const deferredSpecialist = new Set(plan.DeferredSpecialistOutputs || [])
+  const captureGaps = new Map(
+    (plan.CaptureGaps || []).map(gap => [gap.output, gap])
+  )
   const retained = plan.RetainedHistoricalEvidence || {}
 
   const ordered = []
@@ -354,6 +357,9 @@ function buildEntries(plan, wiki, files, receipts) {
       )
     }
     const planEntry = planByFile.get(fileName) || null
+    const refreshGap = planEntry
+      ? captureGaps.get(planEntry.output) || null
+      : null
     const batch = planEntry ? plan.CaptureBatches[planEntry.batch] : null
     const row = wiki.rows.get(fileName) || null
     const embedded = wiki.images.get(fileName) || null
@@ -457,13 +463,25 @@ function buildEntries(plan, wiki, files, receipts) {
       fact(
         'Publication status',
         planEntry
-          ? 'Published target in the current Windows guided gallery'
+          ? refreshGap
+            ? `Published asset retained; current Windows refresh is blocked (${refreshGap.status})`
+            : 'Published target in the current Windows guided gallery'
           : historicalStatus
           ? `Retained historical evidence — ${historicalStatus}`
           : '',
         'Not recorded: neither the capture plan nor the Feature Gallery states a publication status for this file.'
       )
     )
+    if (refreshGap) {
+      facts.push(
+        fact(
+          'Current refresh gap',
+          `${refreshGap.status}: ${refreshGap.blocker} Required evidence: ${
+            refreshGap.requiredEvidence
+          } Exact batch commands: ${refreshGap.commands.join(' | ')}`
+        )
+      )
+    }
     if (planEntry && deferredCanonical.has(planEntry.output)) {
       facts.push(
         fact(
@@ -526,6 +544,7 @@ function buildEntries(plan, wiki, files, receipts) {
       datedReceipts: datedReceipts,
       undatedReceipts: undatedReceipts,
       retained: retainedRecord || null,
+      refreshGap: refreshGap,
       interaction: planEntry ? planEntry.interaction : '',
       fixture: batch ? batch.fixture : planEntry ? planEntry.fixture : '',
       privacyGate: batch
@@ -1517,6 +1536,10 @@ ${cards}
             <dd class="shot-facts__value">${
               stats.published
             }, every entry in <code>GalleryCapturePlan</code></dd>
+            <dt class="shot-facts__key">Current Windows refresh gaps</dt>
+            <dd class="shot-facts__value">${
+              stats.refreshGaps
+            }, each marked <code>blocked</code> in <code>CaptureGaps</code> rather than reported as freshly recaptured</dd>
             <dt class="shot-facts__key">Retained historical frames</dt>
             <dd class="shot-facts__value">${
               stats.historical
@@ -1973,6 +1996,7 @@ function main() {
   const stats = {
     pages: entries.length,
     published: entries.filter(entry => entry.plan !== null).length,
+    refreshGaps: entries.filter(entry => entry.refreshGap !== null).length,
     historical: entries.filter(entry => entry.plan === null).length,
     batches: groups.filter(group => group.isBatch).length,
     withDatedReceipt: entries.filter(entry => entry.datedReceipts.length > 0)

@@ -417,7 +417,23 @@
             </dd>
             <dt class="shot-facts__key">Publication status</dt>
             <dd class="shot-facts__value">
-              Published target in the current Windows guided gallery
+              Published asset retained; current Windows refresh is blocked
+              (blocked)
+            </dd>
+            <dt class="shot-facts__key">Current refresh gap</dt>
+            <dd class="shot-facts__value">
+              blocked: The live Cheap LFS scene needs its bespoke
+              sparse-file/provider fixture; it was not re-run by the canonical
+              gallery refresh. Required evidence: A genuine
+              hidden-Windows-desktop run of the owning Cheap LFS live fixture,
+              its original PNG, and the scene privacy receipt. Exact batch
+              commands: npx --no-install cross-env RELEASE_CHANNEL=development
+              DESKTOP_SKIP_PACKAGE=1 yarn build:prod | Lowlevel launch the
+              production bundle with the named disposable Cheap LFS fixture,
+              perform the entry interaction exactly, then
+              capture_screenshot(client_only=true,
+              hwnd=&lt;resolved-app-hwnd&gt;,
+              path=&lt;owned-temp-run-root&gt;\captures\cheap-lfs-cloud-compression.png)
             </dd>
           </dl>
         </section>

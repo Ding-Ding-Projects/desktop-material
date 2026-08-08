@@ -413,7 +413,23 @@
             </dd>
             <dt class="shot-facts__key">Publication status</dt>
             <dd class="shot-facts__value">
-              Published target in the current Windows guided gallery
+              Published asset retained; current Windows refresh is blocked
+              (blocked)
+            </dd>
+            <dt class="shot-facts__key">Current refresh gap</dt>
+            <dd class="shot-facts__value">
+              blocked: The disposable tab-group fixture is on a temporary drive
+              that is unavailable after renderer reload; persisted group state
+              was confirmed, but no current capture was produced. Required
+              evidence: A genuine hidden-Windows-desktop run with a fixture path
+              that remains available across reload, the original PNG, and the
+              renderer privacy receipt. Exact batch commands: npx --no-install
+              cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn
+              build:prod | Lowlevel launch the production bundle with isolated
+              user data and the entry fixture, perform the entry interaction
+              exactly, then capture_screenshot(client_only=true,
+              hwnd=&lt;resolved-app-hwnd&gt;,
+              path=&lt;owned-temp-run-root&gt;\captures\material-tab-groups.png)
             </dd>
           </dl>
         </section>

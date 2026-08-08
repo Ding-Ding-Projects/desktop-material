@@ -413,7 +413,23 @@
             </dd>
             <dt class="shot-facts__key">Publication status</dt>
             <dd class="shot-facts__value">
-              Published target in the current Windows guided gallery
+              Published asset retained; current Windows refresh is blocked
+              (blocked)
+            </dd>
+            <dt class="shot-facts__key">Current refresh gap</dt>
+            <dd class="shot-facts__value">
+              blocked: The Cheap LFS restore scene needs its bespoke restore
+              fixture; it was not re-run by the canonical gallery refresh.
+              Required evidence: A genuine hidden-Windows-desktop run of the
+              owning Cheap LFS restore fixture, its original PNG, and the
+              restore receipt. Exact batch commands: node
+              .codex/verification/verify_cheap_lfs_restore_progress_cdp.js
+              --port &lt;owned-cdp-port&gt; --run-root
+              &lt;owned-temp-run-root&gt; --repository-path
+              &lt;owned-temp-run-root&gt;\fixture --scenario wide --capture
+              &lt;owned-temp-run-root&gt;\captures\cheap-lfs-restore-lookahead.png
+              --receipt
+              &lt;owned-temp-run-root&gt;\receipts\cheap-lfs-restore-lookahead.json
             </dd>
           </dl>
         </section>

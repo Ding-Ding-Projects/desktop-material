@@ -410,7 +410,24 @@
             </dd>
             <dt class="shot-facts__key">Publication status</dt>
             <dd class="shot-facts__value">
-              Published target in the current Windows guided gallery
+              Published asset retained; current Windows refresh is blocked
+              (blocked)
+            </dd>
+            <dt class="shot-facts__key">Current refresh gap</dt>
+            <dd class="shot-facts__value">
+              blocked: At the existing 200% / 480x330 logical viewport, the real
+              private-repository fixture renders zero complete rows inside the
+              gate list. Required evidence: A genuine hidden-Windows-desktop
+              200% capture with one complete private-repository row in the
+              bounded list, plus the original PNG and privacy receipt. Exact
+              batch commands: npx --no-install cross-env
+              RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod
+              | Lowlevel launch the production bundle with the disposable
+              repository, set exact isPrivate=true through the app-native state
+              hook, open the repository picker, then
+              capture_screenshot(client_only=true,
+              hwnd=&lt;resolved-app-hwnd&gt;,
+              path=&lt;owned-temp-run-root&gt;\captures\private-repository-lock-badge.png)
             </dd>
           </dl>
         </section>

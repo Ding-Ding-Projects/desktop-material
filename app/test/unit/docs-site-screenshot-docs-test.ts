@@ -38,6 +38,14 @@ interface ICapturePlanEntry {
 interface ICapturePlan {
   readonly GalleryCapturePlan: ReadonlyArray<ICapturePlanEntry>
   readonly PublishedGalleryOutputs: ReadonlyArray<string>
+  readonly CaptureGaps: ReadonlyArray<{
+    readonly output: string
+    readonly file: string
+    readonly status: 'blocked'
+    readonly blocker: string
+    readonly requiredEvidence: string
+    readonly commands: ReadonlyArray<string>
+  }>
 }
 
 const plan: ICapturePlan = require_(PlanPath)
@@ -541,5 +549,59 @@ describe('Generated screenshot documentation pages', () => {
         `the index has no group for capture batch ${batch}`
       )
     }
+  })
+
+  it('marks every unrecaptured Windows frame as a blocked gap', () => {
+    const gaps = plan.CaptureGaps
+    const outputs = new Set(plan.GalleryCapturePlan.map(entry => entry.output))
+    const seen = new Set<string>()
+
+    assert.ok(gaps.length > 0, 'the current refresh must expose its gaps')
+    for (const gap of gaps) {
+      assert.equal(gap.status, 'blocked')
+      assert.ok(!seen.has(gap.output), `duplicate capture gap: ${gap.output}`)
+      seen.add(gap.output)
+      assert.ok(
+        outputs.has(gap.output),
+        `gap is not a planned output: ${gap.output}`
+      )
+      assert.equal(gap.file, `${gap.output}.png`)
+      assert.ok(gap.blocker.length > 0, `${gap.output} has no blocker`)
+      assert.ok(
+        gap.requiredEvidence.length > 0,
+        `${gap.output} has no required evidence`
+      )
+      assert.ok(gap.commands.length > 0, `${gap.output} has no rerun command`)
+
+      const text = normalize(pages.get(`${gap.output}.html`) as string)
+      assert.ok(
+        text.includes(
+          'Published asset retained; current Windows refresh is blocked (blocked)'
+        ),
+        `${gap.output} still presents a blocked refresh as freshly published`
+      )
+      assert.ok(
+        text.includes(gap.blocker),
+        `${gap.output} does not state its exact blocker`
+      )
+      assert.ok(
+        text.includes(gap.requiredEvidence),
+        `${gap.output} does not state its required evidence`
+      )
+      assert.ok(
+        !text.includes(
+          'Published target in the current Windows guided gallery'
+        ),
+        `${gap.output} has a contradictory published-status claim`
+      )
+    }
+
+    const index = normalize(pages.get('index.html') as string)
+    assert.ok(
+      index.includes(
+        `${gaps.length}, each marked <code>blocked</code> in <code>CaptureGaps</code> rather than reported as freshly recaptured`
+      ),
+      'the index does not expose the current blocked-gap count'
+    )
   })
 })

@@ -413,7 +413,23 @@
             </dd>
             <dt class="shot-facts__key">Publication status</dt>
             <dd class="shot-facts__value">
-              Published target in the current Windows guided gallery
+              Published asset retained; current Windows refresh is blocked
+              (blocked)
+            </dd>
+            <dt class="shot-facts__key">Current refresh gap</dt>
+            <dd class="shot-facts__value">
+              blocked: The internal-browser scene needs its bespoke loopback
+              browser fixture; it was not re-run by the canonical gallery
+              refresh. Required evidence: A genuine hidden-Windows-desktop run
+              of the owning loopback browser fixture, its original PNG, and the
+              browser privacy receipt. Exact batch commands: node
+              .codex/verification/verify_internal_browser_cdp.js --port
+              &lt;owned-cdp-port&gt; --run-root &lt;owned-temp-run-root&gt;
+              --receipt
+              &lt;owned-temp-run-root&gt;\internal-browser-cdp-receipt.json |
+              Lowlevel capture_screenshot(client_only=true,
+              hwnd=&lt;resolved-browser-hwnd&gt;,
+              path=&lt;owned-temp-run-root&gt;\captures\app-hosted-browser-authentication.png)
             </dd>
           </dl>
         </section>
