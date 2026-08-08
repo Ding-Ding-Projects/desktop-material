@@ -9,6 +9,7 @@ import { HighlightText } from '../lib/highlight-text'
 import classNames from 'classnames'
 import { TooltippedContent } from '../lib/tooltipped-content'
 import { enableAccessibleListToolTips } from '../../lib/feature-flag'
+import { RelativeTime } from '../relative-time'
 
 interface IWorktreeListItemProps {
   readonly worktree: WorktreeEntry
@@ -48,15 +49,25 @@ export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
         >
           <HighlightText text={name} highlight={matches.title} />
         </TooltippedContent>
-        <TooltippedContent
-          className="description"
-          tooltip={description}
-          onlyWhenOverflowed={true}
-          tagName="div"
-          disabled={enableAccessibleListToolTips()}
-        >
-          {description}
-        </TooltippedContent>
+        <div className="description">
+          <TooltippedContent
+            className="ref-label"
+            tooltip={description}
+            onlyWhenOverflowed={true}
+            tagName="div"
+            disabled={enableAccessibleListToolTips()}
+          >
+            {description}
+          </TooltippedContent>
+          {worktree.createdAt !== undefined && (
+            <RelativeTime
+              className="creation-age"
+              date={new Date(worktree.createdAt)}
+              onlyRelative={true}
+              tooltip={true}
+            />
+          )}
+        </div>
       </div>
     )
   }

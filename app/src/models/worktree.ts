@@ -16,4 +16,6 @@ export type WorktreeEntry = {
   readonly type: WorktreeType
   readonly isLocked: boolean
   readonly isPrunable: boolean
+  /** Filesystem creation time for the worktree, when the platform reports it. */
+  readonly createdAt?: number
 }

@@ -10,6 +10,12 @@ integration. Presets show both a prefix/name and description, and the first nine
 can be selected by keyboard. Repository Settings can override the default
 branch used by comparisons and related workflows.
 
+The worktree list shows each worktree's filesystem creation age beneath its
+branch or detached-HEAD label using the shared live relative-time component.
+The timestamp is collected when Git worktrees are listed, with a filesystem
+creation-time fallback to change time; missing or prunable paths omit the age
+instead of displaying an invented value.
+
 A checkout still passes through the existing dirty-worktree, conflict,
 submodule, and in-progress-operation protections. Filter and visibility choices
 do not delete refs. Invalid preset output is treated as display input and the
