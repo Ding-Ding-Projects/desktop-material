@@ -48,6 +48,11 @@
       opacity: 0.4;
       cursor: default;
     }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 1px;
+    }
   }
 
   // The `.*` / `Aa` glyphs are the entire label of a 40px control, so they read
@@ -77,6 +82,11 @@
 
     &:hover {
       background: color-mix(in srgb, var(--md-sys-color-primary-container) 82%, var(--md-sys-color-on-primary-container));
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
     }
   }
 
@@ -115,6 +125,11 @@
 
     &:active {
       transform: scale(0.92);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
     }
   }
 }

@@ -2,8 +2,9 @@
 
 #release-notes {
   max-height: 500px;
+  width: min(800px, calc(100vw - var(--spacing-quad)));
   max-width: 800px;
-  min-width: 550px;
+  min-width: 0;
 
   .dialog-content {
     // we'll own the layout inside here
@@ -77,6 +78,32 @@
           letter-spacing: 0.08em;
           color: var(--md-sys-color-on-surface-variant);
         }
+      }
+    }
+  }
+
+  @media (max-width: 680px) {
+    .dialog-content {
+      padding: var(--spacing) var(--spacing-double);
+    }
+
+    .dialog-header {
+      height: auto;
+      min-height: 84px;
+      padding-inline: 72px;
+      background-size: auto 64px, auto 64px;
+      background-position: left var(--spacing) top var(--spacing-half), right var(--spacing) top var(--spacing-half);
+    }
+
+    .dialog-footer {
+      flex-wrap: wrap;
+    }
+
+    .container {
+      flex-direction: column;
+
+      .column {
+        margin-right: 0;
       }
     }
   }

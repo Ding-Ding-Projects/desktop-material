@@ -247,6 +247,17 @@
       background: var(--md-sys-color-surface-container-low);
       color: var(--md-sys-color-on-surface);
       cursor: pointer;
+      transition: background-color 160ms var(--emph, ease), border-color 160ms var(--emph, ease);
+
+      &:hover {
+        border-color: var(--md-sys-color-outline);
+        background: var(--md-sys-color-surface-container);
+      }
+
+      &:focus-visible {
+        outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 45%, transparent);
+        outline-offset: 2px;
+      }
 
       &[aria-pressed='true'] {
         background: var(--md-sys-color-secondary-container);
