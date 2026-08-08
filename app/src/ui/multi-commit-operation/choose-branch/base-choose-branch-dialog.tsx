@@ -258,6 +258,7 @@ export class ChooseBranchDialog extends React.Component<
             currentBranch={currentBranch}
             defaultBranch={this.props.defaultBranch}
             recentBranches={this.props.recentBranches}
+            filterListId="merge-choose-branch"
             filterText={this.state.filterText}
             onFilterTextChanged={this.onFilterTextChanged}
             selectedBranch={selectedBranch}
