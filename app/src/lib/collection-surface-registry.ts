@@ -205,6 +205,13 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
       implementation: 'standalone',
     },
     {
+      id: 'merge-choose-branch',
+      label: 'Merge branch choices',
+      source:
+        'multi-commit-operation/choose-branch/base-choose-branch-dialog.tsx',
+      implementation: 'shared-filter-list',
+    },
+    {
       id: 'copilot-models',
       label: 'Copilot models',
       source: 'lib/copilot-model-picker.tsx',
