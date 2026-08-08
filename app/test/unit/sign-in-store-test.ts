@@ -407,7 +407,9 @@ describe('SignInStore', () => {
         assert.equal(callbackStore.getState()?.kind, SignInStep.Success)
         assert.equal(authenticatedAccounts.length, 1)
         const authenticatedAccount = authenticatedAccounts[0]
-        assert.ok(authenticatedAccount)
+        if (authenticatedAccount === undefined) {
+          throw new Error('Expected an authenticated self-hosted account')
+        }
         assert.equal(authenticatedAccount.provider, 'self-hosted')
         assert.equal(authenticatedAccount.endpoint, 'https://tenant.example')
         assert.equal(authenticatedAccount.login, 'admin')
