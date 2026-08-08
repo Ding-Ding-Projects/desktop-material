@@ -54,11 +54,14 @@ process-local and does not survive a restart.
 administrator, `sub: "admin"`. It does not (yet) run a multi-user account
 database; per-user identity is out of scope for this pass.
 
-**SAML federation**: not attempted. Real SAML (metadata exchange, signed
-XML assertions, ACS bindings) is materially larger than the OAuth surface
-above and was deliberately left undone rather than stubbed with a fake
-success path. `capabilities.identity` in `/v1/capabilities` reflects only
-the OAuth surface.
+**SAML federation**: the wizard accepts optional operator-supplied metadata
+and the server validates and exposes its bounded, normalized record at
+`GET /oauth/saml/metadata`. Validation requires an HTTPS entity ID, HTTPS
+`SingleSignOnService` locations, and a bounded signing-certificate value; DTD
+and entity declarations are rejected. This is configuration/metadata handling
+only. Signed XML assertion verification, ACS bindings, and SAML login are not
+implemented, and `capabilities.identity` still reflects only the OAuth
+surface.
 
 **Sign-in wiring decision**: this app has no loopback OAuth listener — see
 `app/src/main-process/main.ts`'s `possibleProtocols` and
@@ -70,8 +73,13 @@ already uses, rather than opening a new listener. `parseAppURL` recognizes
 action distinct from dotcom's `oauth` action
 (`app/src/lib/parse-app-url.ts`), and
 `app/src/lib/self-hosted-server/oauth-sign-in.ts` builds the PKCE authorize
-request and performs the code exchange. Full IPC/UI/account-store wiring —
-an actual "Sign in" button that lands a session — is not implemented.
+request, performs the code exchange, and verifies `/oauth/userinfo` against the
+same normalized tenant origin. The preferences wizard now exposes the
+self-hosted sign-in entry point; the callback verifier accepts only the exact
+in-memory state and verifier, then lands the verified `sub` as a
+`self-hosted` account through the existing account store event. Refresh-token
+rotation remains a server contract; the newly created account keeps the
+short-lived access token and does not yet implement background refresh.
 
 ## Container boundary
 
@@ -91,6 +99,7 @@ C:\Users\cntow\AppData\Local\DesktopMaterialToolchains\node-v24.15.0-win-x64\nod
 This foundation alone does not complete roadmap item R1. The in-app Windows
 Docker installer, HTTPS provisioning, recovery UI, and real second-machine join
 receipt remain completion gates and must be integrated before #118 can close.
-R2 (#119) is likewise partial: the OAuth authorization server is real and
-Docker-verified, but SAML and full per-user identity are not attempted, and
-the sign-in protocol handshake is not wired to a UI or the account store.
+R2 (#119) is still bounded: the OAuth authorization server and local callback
+handshake are wired and tested, while SAML assertion acceptance, external
+identity-provider acceptance, and full per-user identity remain outside this
+local patch.
