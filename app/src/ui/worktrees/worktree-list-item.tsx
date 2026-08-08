@@ -26,6 +26,10 @@ export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
       ? worktree.branch.replace(/^refs\/heads\//, '')
       : shortenSHA(worktree.head)
     const stateLabels = [
+      worktree.dirtyFileCount === null ? 'status unavailable' : null,
+      worktree.dirtyFileCount && worktree.dirtyFileCount > 0
+        ? `${worktree.dirtyFileCount} uncommitted`
+        : null,
       worktree.isLocked ? 'locked' : null,
       worktree.isPrunable ? 'missing' : null,
     ].filter((label): label is string => label !== null)
@@ -35,6 +39,7 @@ export class WorktreeListItem extends React.Component<IWorktreeListItemProps> {
         : `${refLabel} · ${stateLabels.join(' · ')}`
     const className = classNames('worktrees-list-item', {
       'current-worktree': isCurrentWorktree,
+      'dirty-worktree': (worktree.dirtyFileCount ?? 0) > 0,
     })
 
     return (

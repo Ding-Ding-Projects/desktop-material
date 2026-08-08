@@ -18,4 +18,6 @@ export type WorktreeEntry = {
   readonly isPrunable: boolean
   /** Filesystem creation time for the worktree, when the platform reports it. */
   readonly createdAt?: number
+  /** Number of uncommitted entries, or null when the worktree cannot be read. */
+  readonly dirtyFileCount?: number | null
 }
