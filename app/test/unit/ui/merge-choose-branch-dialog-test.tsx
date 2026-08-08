@@ -105,7 +105,6 @@ describe('MergeChooseBranchDialog branch cleanup action', () => {
     assert.equal(popups[0].type, PopupType.DeleteRemoteBranch)
     assert.strictEqual(popups[0].branch, selectedBranch)
     assert.equal(popups[0].expectedSha, selectedBranch.tip.sha)
-
   })
 
   it('does not offer deletion when the selected branch has commits to merge', async () => {
@@ -207,5 +206,4 @@ describe('MergeChooseBranchDialog branch cleanup action', () => {
     assert.strictEqual(popups[0].branch, selectedBranch)
     assert.equal(popups[0].expectedSha, selectedBranch.tip.sha)
   })
-
 })
