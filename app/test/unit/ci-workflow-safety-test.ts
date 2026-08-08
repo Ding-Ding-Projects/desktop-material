@@ -884,6 +884,8 @@ describe('CI workflow safety', () => {
       packageScript,
       /const options: electronInstaller\.Options = \{[\s\S]*?setupMsi: getWindowsInstallerName\(\),[\s\S]*?\}/
     )
+    assert.match(packageScript, /const makeDelta = shouldMakeDelta\(\)/)
+    assert.match(packageScript, /noDelta:\s*!makeDelta/)
     assert.match(
       packageScript,
       /electronInstaller\s*\.createWindowsInstaller\(options\)/
