@@ -3,8 +3,9 @@ import {
   existsSync,
   mkdirSync,
   rmSync,
+  writeFileSync,
 } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const packageRoot = dirname(fileURLToPath(import.meta.url))
@@ -135,11 +136,39 @@ rmSync(buildRoot, { recursive: true, force: true })
 mkdirSync(releaseRoot, { recursive: true })
 
 const sourcePath = join(packageRoot, 'src', 'printenvz.c')
-const command = [
-  `call "${developerCommand.path}" ${developerCommand.arguments.join(' ')}`,
-  `cl.exe /nologo /O2 /MT /D_CRT_SECURE_NO_WARNINGS /Fe:"${executablePath}" "${sourcePath}"`,
-].join(' && ')
-run(process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/c', command])
+const commandFileName = 'printenvz-build.cmd'
+const commandFilePath = join(packageRoot, commandFileName)
+writeFileSync(
+  commandFilePath,
+  [
+    '@echo off',
+    `call "${developerCommand.path}" ${developerCommand.arguments.join(' ')}`,
+    'if errorlevel 1 exit /b 1',
+    `cl.exe /nologo /O2 /MT /D_CRT_SECURE_NO_WARNINGS /Fe:"${executablePath}" "${sourcePath}"`,
+    '',
+  ].join('\r\n'),
+  'utf8'
+)
+let result
+try {
+  result = spawnSync(
+    process.env.ComSpec ?? 'cmd.exe',
+    ['/d', '/s', '/c', 'call', basename(commandFilePath)],
+    {
+      cwd: packageRoot,
+      stdio: 'inherit',
+      windowsHide: true,
+    }
+  )
+} finally {
+  rmSync(commandFilePath, { force: true })
+}
+if (result.error) {
+  fail(result.error.message)
+}
+if (result.status !== 0) {
+  process.exit(result.status ?? 1)
+}
 
 if (!existsSync(executablePath)) {
   fail(`the compiler completed without creating ${executablePath}`)

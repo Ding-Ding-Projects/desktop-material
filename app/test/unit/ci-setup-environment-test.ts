@@ -413,6 +413,7 @@ describe('CI environment setup', () => {
     assert.match(printenvzBuildScript, /vcvarsall\.bat/)
     assert.match(printenvzBuildScript, /vswhere\.exe/)
     assert.match(printenvzBuildScript, /discoverVisualStudioInstallation/)
+    assert.match(printenvzBuildScript, /printenvz-build\.cmd/)
     assert.match(printenvzBuildScript, /-arch=\$\{targetArchitecture\}/)
     assert.match(printenvzBuildScript, /cl\.exe \/nologo \/O2 \/MT/)
     assert.match(
