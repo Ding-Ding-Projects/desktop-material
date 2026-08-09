@@ -19,7 +19,11 @@
 > audit and requires a Windows-owned confirmation bound to the current setup
 > evidence. That volatile decision never reaches disk and is never reused by
 > later Start or scheduled monitoring. Focused runner verification passes
-> **61/61** and TypeScript passes; full release verification remains pending.
+> **94/94**, the root TypeScript check, and the complete desktop suite
+> (**1,008/1,008** files; **8,494** tests) pass with no React
+> unmounted-state-update warnings. The pinned Node 24.15.0 production build
+> produced an unpackaged Windows application directory; installer verification,
+> remote CI, and release evidence remain pending.
 > See the [self-hosted runner manager guide](docs/features/integrations/self-hosted-runner-manager.md).
 
 > **GitHub Actions and OAuth repair — August 8, 2026:** the Windows Actions

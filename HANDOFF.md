@@ -17,10 +17,28 @@ before creating the managed root or registration, rejects more than 20 custom
 labels in the UI before a new preflight or setup request, and strips legacy
 renderer-provided risk fields from persisted runner state on load.
 
-Focused verification passes **61/61** across the runner contract, runner UI,
-and removal-dialog suites. The root TypeScript check passes. Full desktop-only
-gates, production packaging, hidden-desktop verification, remote CI, and the
-new release remain pending and must be reported from their actual results.
+Focused verification passes **94/94** across the runner contract, runner UI,
+removal-dialog, automatic commit proof, diff-theme, style-token, and lifecycle
+suites. The root TypeScript check passes, and the complete desktop test command
+reports **1,008/1,008** discovered files and **8,494** tests with no failures
+or React unmounted-state-update warnings. A production build run with the
+repository-pinned Node **24.15.0** produced
+`dist/GitHubDesktop-win32-x64/GitHubDesktop.exe`; the build script now owns a
+short-lived event-loop handle until asynchronous packaging settles, so Node
+cannot exit while Electron Packager is still copying the app.
+
+**Stop-and-handoff boundary:** this local handoff intentionally stops before
+`yarn package`, installer verification, remote CI, tag, and Release
+publication. The unpackaged application directory is real build evidence, not
+a verified Squirrel installer or a remotely published result.
+
+**Preservation note:** the detached audit worktree that was present during the
+initial inventory disappeared from disk and from Git worktree metadata during
+this handoff. Its base commit
+`d82f1fc1603ad3aa55cabdd016fd6b4adac4cce7` is an ancestor of `origin/main`,
+but its staged index had uncommitted deletions and is no longer available to
+inspect or recover. No cleanup command in this handoff removed that worktree;
+do not describe its disappearance as a verified safe deletion.
 
 ## 2026-08-09 — Complete School mode and settle command shortcuts
 

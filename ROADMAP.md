@@ -14,8 +14,13 @@ Updated: **August 9, 2026**
 - The receipt is cleared after a safe recheck, never reaches disk, and is never
   reused by Start or the scheduled trust monitor; unknown or incomplete
   evidence remains blocking.
-- Focused runner verification passes **61/61**, and the root TypeScript check
-  passes. Full release gates and remote release evidence remain pending.
+- Focused verification passes **94/94**, and the root TypeScript check passes.
+  The complete desktop suite reports **1,008/1,008** files and **8,494** tests
+  with no failures or React unmounted-state-update warnings. The pinned Node
+  24.15.0 production build produced
+  `dist/GitHubDesktop-win32-x64/GitHubDesktop.exe`; it is unpackaged local
+  build evidence, not a Squirrel installer. Installer verification, remote CI,
+  tag, and release evidence remain pending at the stop-and-handoff boundary.
 
 ## August 9 — School mode and command shortcut completion
 

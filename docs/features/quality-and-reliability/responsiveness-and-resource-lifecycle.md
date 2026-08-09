@@ -63,6 +63,12 @@ no preference, language string, credential format, or provider API.
   tab or switching repositories invalidates the request, so a late filesystem
   walk cannot call `setState` on an unmounted React component or replace the
   next repository's data with stale results.
+- The production build script retains one short-lived Node event-loop handle
+  while asynchronous packaging is pending, then clears it in `finally`. This
+  prevents Node from exiting after Electron Packager has started but before it
+  finishes materializing the application directory; a rejected build still
+  clears the handle and returns a non-zero exit code instead of being reported
+  as a successful partial package.
 
 ## Configuration and persistence
 
@@ -191,6 +197,9 @@ listener removal, debounce cancellation, and released iframe references.
 their settings tabs unmount, then assert that React reports no unmounted state
 update. The related preference and catalog tests exercise the normal mounted
 paths as well.
+`build-copy-test.ts` controls the build keep-alive scheduler and asserts that
+it is cleared only after the pending build settles; a source contract also
+prevents the CLI entry point from bypassing that lifecycle.
 
 App-source candidate `aabb111d2c01f38e7535ab077048816a5ad16893` completed
 the required fixed-Lowlevel-MCP production build in 1178.13 seconds. A final
