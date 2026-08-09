@@ -221,7 +221,7 @@
       h: 'features/design-system/command-palette-full-coverage.html',
       s: 'features/design-system/command-palette-full-coverage.md',
       c: 'features',
-      d: "The Ctrl+Shift+F master command palette is Material Design 3's full-screen search view: it covers the entire app below the title bar rather than floating as a small card, and…",
+      d: "The Ctrl+Shift+P master command palette is Material Design 3's full-screen search view. Ctrl+Shift+F remains the current-repository Open in Folder action. The palette covers…",
     },
     {
       t: 'Dialog wheel and trackpad scrolling',
@@ -271,6 +271,13 @@
       s: 'features/design-system/repository-theme-music.md',
       c: 'features',
       d: "Every repository gets its own recognizable, looping background theme — without shipping or downloading a single audio file. A stable hash of the repository's identity seeds a…",
+    },
+    {
+      t: 'School mode',
+      h: 'features/design-system/school-mode.html',
+      s: 'features/design-system/school-mode.md',
+      c: 'features',
+      d: 'School mode is a persisted, user-renamable presentation lock in Settings → Appearance. It keeps the application in English and temporarily removes the language, playfulness,…',
     },
     {
       t: 'Distinct sound-effect event mapping',
