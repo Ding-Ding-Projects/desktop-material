@@ -16,8 +16,12 @@ const GitTimeoutMilliseconds = 30_000
 const MaximumCommitCount = 50
 const MaximumSubjectCharacters = 180
 const MaximumReleaseNotesCharacters = 24_000
-const InstallerReleaseTagPattern = /^v[0-9A-Za-z.+-]{1,96}-b[0-9]{10}$/
-const MaximumReleaseLookupPages = 20
+// Release tags moved from the legacy numeric -b/-s forms to the alphabetic
+// run-id form emitted by release-version.js. Keep all supported installer
+// namespaces here so a new release can still find its previous full package.
+const InstallerReleaseTagPattern =
+  /^v[0-9A-Za-z.+-]{1,96}-(?:b[0-9]{10}|s[0-9]{12}|z[a-z]{9}(?:-r[a-z]{2})?)$/
+const MaximumReleaseLookupPages = 60
 const ReleaseLookupPageSize = 5
 
 export interface IAutomatedReleaseCommit {

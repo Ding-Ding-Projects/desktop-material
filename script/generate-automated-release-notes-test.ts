@@ -152,7 +152,7 @@ describe('automated release notes', () => {
         return new Response(
           JSON.stringify([
             {
-              tag_name: 'v3.6.3-beta3-b0000000998',
+              tag_name: 'v3.6.3-beta3-zadtazjjug',
               target_commitish: '1'.repeat(40),
               draft: false,
               prerelease: false,
@@ -167,7 +167,7 @@ describe('automated release notes', () => {
       }
     )
     assert.deepEqual(release, {
-      tagName: 'v3.6.3-beta3-b0000000998',
+      tagName: 'v3.6.3-beta3-zadtazjjug',
       targetCommitish: '1'.repeat(40),
     })
     assert.deepEqual(requestedPages, [1, 2])
@@ -195,7 +195,7 @@ describe('automated release notes', () => {
       ),
       /too many releases/
     )
-    assert.equal(boundedPages, 20)
+    assert.equal(boundedPages, 60)
 
     await assert.rejects(
       getLatestPublishedRelease(
