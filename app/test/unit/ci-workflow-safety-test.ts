@@ -531,6 +531,14 @@ describe('CI workflow safety', () => {
     )
     assert.match(
       installerWorkflow,
+      /Verify published release target[\s\S]*?GitHub\.Desktop-x64\.zip/
+    )
+    assert.doesNotMatch(
+      installerWorkflow,
+      /Verify published release target[\s\S]*?GitHub Desktop-x64\.zip/
+    )
+    assert.match(
+      installerWorkflow,
       /--notes-file release-payload\/release-notes\.md/
     )
     assert.doesNotMatch(installerWorkflow, /--fail-on-no-commits/)
