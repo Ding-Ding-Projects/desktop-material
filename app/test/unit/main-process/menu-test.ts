@@ -202,7 +202,7 @@ describe('main-process menu', () => {
       assert.equal(repositoryTools?.accelerator, 'CmdOrCtrl+4')
     })
 
-    it('exposes the command palette on Ctrl+Shift+F', () => {
+    it('exposes the command palette on Ctrl+Shift+P', () => {
       const template = buildDefaultMenuTemplate(baseParams)
       const editMenu = template.find(
         item => item.label?.replaceAll('&', '') === 'Edit'
@@ -211,7 +211,7 @@ describe('main-process menu', () => {
       const commandPalette = editMenu.submenu.find(
         item => item.id === 'command-palette'
       )
-      assert.equal(commandPalette?.accelerator, 'CmdOrCtrl+Shift+F')
+      assert.equal(commandPalette?.accelerator, 'CmdOrCtrl+Shift+P')
       assert.equal(commandPalette?.label, 'Command pal&ette')
       assert.equal(commandPalette?.click instanceof Function, true)
 
@@ -219,10 +219,18 @@ describe('main-process menu', () => {
         Array.isArray(item.submenu) ? item.submenu : []
       )
       assert.equal(
-        accelerators.filter(item => item.accelerator === 'CmdOrCtrl+Shift+F')
+        accelerators.filter(item => item.accelerator === 'CmdOrCtrl+Shift+P')
           .length,
         1
       )
+    })
+
+    it('keeps Ctrl+Shift+F for opening the current repository folder', () => {
+      const template = buildDefaultMenuTemplate(baseParams)
+      const openWorkingDirectory = template
+        .flatMap(item => (Array.isArray(item.submenu) ? item.submenu : []))
+        .find(item => item.id === 'open-working-directory')
+      assert.equal(openWorkingDirectory?.accelerator, 'CmdOrCtrl+Shift+F')
     })
 
     it('routes native Help links through the injected browser launcher', async () => {

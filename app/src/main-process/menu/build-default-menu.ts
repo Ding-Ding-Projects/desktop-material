@@ -213,7 +213,7 @@ export function buildDefaultMenuTemplate(
       {
         id: 'command-palette',
         label: __DARWIN__ ? 'Command palette' : 'Command pal&ette',
-        accelerator: 'CmdOrCtrl+Shift+F',
+        accelerator: 'CmdOrCtrl+Shift+P',
         click: emit('find-text'),
       },
     ],
@@ -373,7 +373,6 @@ export function buildDefaultMenuTemplate(
       {
         id: 'pull',
         label: __DARWIN__ ? 'Pull' : 'Pu&ll',
-        accelerator: 'CmdOrCtrl+Shift+P',
         click: emit('pull'),
       },
       {
@@ -425,6 +424,7 @@ export function buildDefaultMenuTemplate(
           ? 'Show in E&xplorer'
           : 'Show in your File Manager',
         id: 'open-working-directory',
+        accelerator: 'CmdOrCtrl+Shift+F',
         click: emit('open-working-directory'),
       },
       {
