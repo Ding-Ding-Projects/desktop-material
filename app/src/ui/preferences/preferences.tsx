@@ -528,6 +528,8 @@ export class Preferences extends React.Component<
         void this.focusScheduledSetting(field)
       } else if (entryId === 'appearance-scheduled-settings') {
         void teleportTo('settingsScheduledSettings')
+      } else if (entryId === 'appearance-school-mode') {
+        void teleportTo('settingsSchoolMode')
       }
     })
   }

@@ -1,0 +1,258 @@
+import * as React from 'react'
+import { LanguageMode } from '../../models/language-mode'
+import {
+  hasSchoolModeCredential,
+  isValidSchoolModeCredential,
+  readSchoolMode,
+  setSchoolModeCredential,
+  verifySchoolModeCredential,
+  writeSchoolMode,
+  ISchoolModeState as SchoolModeState,
+} from '../../lib/school-mode'
+import { translate } from '../../lib/i18n'
+import { Button } from '../lib/button'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
+import { PasswordTextBox } from '../lib/password-text-box'
+import { TextBox } from '../lib/text-box'
+import { teleportAnchor } from '../../lib/teleport-targets'
+
+interface ISchoolModeProps {
+  readonly languageMode: LanguageMode
+}
+
+interface ISchoolModePreferencesState {
+  readonly schoolMode: SchoolModeState
+  readonly name: string
+  readonly setupCredential: string
+  readonly setupConfirmation: string
+  readonly unlockCredential: string
+  readonly requestedEnable: boolean
+  readonly requestedDisable: boolean
+  readonly busy: boolean
+  readonly error: string | null
+}
+
+export class SchoolModePreferences extends React.Component<
+  ISchoolModeProps,
+  ISchoolModePreferencesState
+> {
+  public constructor(props: ISchoolModeProps) {
+    super(props)
+    const schoolMode = readSchoolMode()
+    this.state = {
+      schoolMode,
+      name: schoolMode.name,
+      setupCredential: '',
+      setupConfirmation: '',
+      unlockCredential: '',
+      requestedEnable: false,
+      requestedDisable: false,
+      busy: false,
+      error: null,
+    }
+  }
+
+  private localize = (key: Parameters<typeof translate>[0]) =>
+    translate(key, this.props.languageMode)
+
+  private onToggle = (event: React.FormEvent<HTMLInputElement>) => {
+    const checked = event.currentTarget.checked
+    this.setState({
+      requestedEnable: checked && !this.state.schoolMode.enabled,
+      requestedDisable: !checked && this.state.schoolMode.enabled,
+      error: null,
+    })
+  }
+
+  private onNameChanged = (name: string) => {
+    this.setState({ name })
+  }
+
+  private onNameBlur = () => {
+    const schoolMode = writeSchoolMode({
+      ...this.state.schoolMode,
+      name: this.state.name,
+    })
+    this.setState({ schoolMode, name: schoolMode.name })
+  }
+
+  private onSetupCredentialChanged = (setupCredential: string) => {
+    this.setState({ setupCredential, error: null })
+  }
+
+  private onSetupConfirmationChanged = (setupConfirmation: string) => {
+    this.setState({ setupConfirmation, error: null })
+  }
+
+  private onUnlockCredentialChanged = (unlockCredential: string) => {
+    this.setState({ unlockCredential, error: null })
+  }
+
+  private onEnable = async () => {
+    const { name, setupCredential, setupConfirmation } = this.state
+    if (!isValidSchoolModeCredential(setupCredential)) {
+      this.setState({
+        error: this.localize('appearance.schoolModeCredentialInvalid'),
+      })
+      return
+    }
+    if (setupCredential !== setupConfirmation) {
+      this.setState({
+        error: this.localize('appearance.schoolModeCredentialMismatch'),
+      })
+      return
+    }
+
+    this.setState({ busy: true, error: null })
+    try {
+      await setSchoolModeCredential(setupCredential)
+      const schoolMode = writeSchoolMode({ enabled: true, name })
+      this.setState({
+        schoolMode,
+        name: schoolMode.name,
+        setupCredential: '',
+        setupConfirmation: '',
+        requestedEnable: false,
+        busy: false,
+      })
+    } catch {
+      this.setState({
+        busy: false,
+        error: this.localize('appearance.schoolModeCredentialError'),
+      })
+    }
+  }
+
+  private onDisable = async () => {
+    this.setState({ busy: true, error: null })
+    try {
+      const valid = await verifySchoolModeCredential(
+        this.state.unlockCredential
+      )
+      if (!valid) {
+        this.setState({
+          busy: false,
+          error: this.localize('appearance.schoolModeCredentialError'),
+        })
+        return
+      }
+      const schoolMode = writeSchoolMode({
+        enabled: false,
+        name: this.state.name,
+      })
+      this.setState({
+        schoolMode,
+        name: schoolMode.name,
+        unlockCredential: '',
+        requestedDisable: false,
+        busy: false,
+      })
+    } catch {
+      this.setState({
+        busy: false,
+        error: this.localize('appearance.schoolModeCredentialError'),
+      })
+    }
+  }
+
+  private renderSetup() {
+    if (!this.state.requestedEnable || this.state.schoolMode.enabled) {
+      return null
+    }
+    return (
+      <div className="school-mode-credential-form">
+        <PasswordTextBox
+          label={this.localize('appearance.schoolModeCredential')}
+          value={this.state.setupCredential}
+          onValueChanged={this.onSetupCredentialChanged}
+          ariaDescribedBy="school-mode-credential-description"
+        />
+        <PasswordTextBox
+          label={this.localize('appearance.schoolModeCredentialConfirm')}
+          value={this.state.setupConfirmation}
+          onValueChanged={this.onSetupConfirmationChanged}
+          ariaDescribedBy="school-mode-credential-description"
+        />
+        <Button disabled={this.state.busy} onClick={this.onEnable}>
+          {this.localize('appearance.schoolModeEnable')}
+        </Button>
+      </div>
+    )
+  }
+
+  private renderDisable() {
+    if (!this.state.schoolMode.enabled && !this.state.requestedDisable) {
+      return null
+    }
+    return (
+      <div className="school-mode-credential-form">
+        <PasswordTextBox
+          label={this.localize('appearance.schoolModeCredential')}
+          value={this.state.unlockCredential}
+          onValueChanged={this.onUnlockCredentialChanged}
+          ariaDescribedBy="school-mode-unlock-description"
+        />
+        <Button disabled={this.state.busy} onClick={this.onDisable}>
+          {this.localize('appearance.schoolModeDisable')}
+        </Button>
+      </div>
+    )
+  }
+
+  public render() {
+    const { schoolMode } = this.state
+    const enabled = schoolMode.enabled || this.state.requestedEnable
+    const credentialReady = hasSchoolModeCredential()
+
+    return (
+      <section
+        className="appearance-section school-mode-section"
+        {...teleportAnchor('settings-school-mode')}
+        aria-labelledby="school-mode-heading"
+      >
+        <h2 id="school-mode-heading">
+          {this.localize('appearance.schoolModeHeading')}
+        </h2>
+        <p id="school-mode-description" className="settings-description">
+          {this.localize('appearance.schoolModeDescription')}
+        </p>
+        <TextBox
+          label={this.localize('appearance.schoolModeName')}
+          value={this.state.name}
+          onValueChanged={this.onNameChanged}
+          onBlur={this.onNameBlur}
+          ariaDescribedBy="school-mode-name-description"
+        />
+        <p id="school-mode-name-description" className="settings-description">
+          {this.localize('appearance.schoolModeNameDescription')}
+        </p>
+        <Checkbox
+          label={this.localize('appearance.schoolModeEnabled')}
+          value={enabled ? CheckboxValue.On : CheckboxValue.Off}
+          onChange={this.onToggle}
+          ariaDescribedBy="school-mode-description"
+        />
+        {this.renderSetup()}
+        {schoolMode.enabled && credentialReady ? (
+          <>
+            <p
+              id="school-mode-unlock-description"
+              className="settings-description"
+            >
+              {this.localize('appearance.schoolModeUnlockDescription')}
+            </p>
+            {this.renderDisable()}
+          </>
+        ) : null}
+        {this.state.error !== null ? (
+          <p className="settings-error" role="alert">
+            {this.state.error}
+          </p>
+        ) : null}
+        <p className="settings-description">
+          {this.localize('appearance.schoolModeResetDescription')}
+        </p>
+      </section>
+    )
+  }
+}

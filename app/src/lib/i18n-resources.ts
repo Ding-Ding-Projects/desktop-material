@@ -65,6 +65,20 @@ export type TranslationKey =
   | 'appearance.playfulnessValue'
   | 'appearance.playfulnessSerious'
   | 'appearance.playfulnessMaximum'
+  | 'appearance.schoolModeHeading'
+  | 'appearance.schoolModeDescription'
+  | 'appearance.schoolModeName'
+  | 'appearance.schoolModeNameDescription'
+  | 'appearance.schoolModeEnabled'
+  | 'appearance.schoolModeCredential'
+  | 'appearance.schoolModeCredentialConfirm'
+  | 'appearance.schoolModeUnlockDescription'
+  | 'appearance.schoolModeResetDescription'
+  | 'appearance.schoolModeEnable'
+  | 'appearance.schoolModeDisable'
+  | 'appearance.schoolModeCredentialInvalid'
+  | 'appearance.schoolModeCredentialMismatch'
+  | 'appearance.schoolModeCredentialError'
   | 'appearance.elementGestureHeading'
   | 'appearance.elementGesture.plain'
   | 'appearance.elementGesture.light'
@@ -3932,6 +3946,27 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'appearance.playfulnessValue': 'Level {value} of 5',
   'appearance.playfulnessSerious': '1 · Fully serious',
   'appearance.playfulnessMaximum': '5 · Maximum fun',
+  'appearance.schoolModeHeading': 'School mode',
+  'appearance.schoolModeDescription':
+    'Force English and temporarily hide Cantonese, bilingual, funny-level, and dim sum presentation. This is a local presentation lock, not a security boundary.',
+  'appearance.schoolModeName': 'Mode name',
+  'appearance.schoolModeNameDescription':
+    'Choose the name shown for this mode across the app. The application identity and data location do not change.',
+  'appearance.schoolModeEnabled': 'Enable school mode',
+  'appearance.schoolModeCredential': 'Unlock credential',
+  'appearance.schoolModeCredentialConfirm': 'Confirm unlock credential',
+  'appearance.schoolModeUnlockDescription':
+    'Enter the locally verified unlock credential to turn this mode off. The credential is stored only as a salted local digest.',
+  'appearance.schoolModeResetDescription':
+    'If the credential is lost, deleting the local application profile resets this presentation lock; it does not protect data from someone who can access that profile.',
+  'appearance.schoolModeEnable': 'Enable mode',
+  'appearance.schoolModeDisable': 'Turn off mode',
+  'appearance.schoolModeCredentialInvalid':
+    'Use an unlock credential between 4 and 128 characters.',
+  'appearance.schoolModeCredentialMismatch':
+    'The two unlock credential entries do not match.',
+  'appearance.schoolModeCredentialError':
+    'The unlock credential was not accepted, or local credential storage is unavailable.',
   'appearance.elementGestureHeading': 'Element appearance',
   // Every band names the same three facts: the gesture that opens an element's
   // appearance editor, what a plain right-click does instead, and the keyboard
@@ -8814,6 +8849,25 @@ export const cantoneseTranslations: Readonly<
   'appearance.playfulnessValue': '第 {value} 級，共 5 級',
   'appearance.playfulnessSerious': '1 · 完全認真',
   'appearance.playfulnessMaximum': '5 · 最玩得',
+  'appearance.schoolModeHeading': '學校模式',
+  'appearance.schoolModeDescription':
+    '強制使用英文，暫時收起廣東話、雙語、搞笑程度同點心顯示。呢個只係本地顯示鎖，唔係保安界線。',
+  'appearance.schoolModeName': '模式名稱',
+  'appearance.schoolModeNameDescription':
+    '揀一個全個程式顯示嘅模式名稱。程式身份同資料位置唔會改。',
+  'appearance.schoolModeEnabled': '開啟學校模式',
+  'appearance.schoolModeCredential': '解鎖憑證',
+  'appearance.schoolModeCredentialConfirm': '確認解鎖憑證',
+  'appearance.schoolModeUnlockDescription':
+    '輸入本地驗證嘅解鎖憑證先可以關閉模式。憑證只會以加鹽摘要留喺本地。',
+  'appearance.schoolModeResetDescription':
+    '如果唔記得憑證，刪除本地程式 profile 就可以重設呢個顯示鎖；任何可以讀取該 profile 嘅人都唔會因此被阻擋。',
+  'appearance.schoolModeEnable': '開啟模式',
+  'appearance.schoolModeDisable': '關閉模式',
+  'appearance.schoolModeCredentialInvalid': '解鎖憑證要有 4 至 128 個字元。',
+  'appearance.schoolModeCredentialMismatch': '兩次輸入嘅解鎖憑證唔一致。',
+  'appearance.schoolModeCredentialError':
+    '解鎖憑證唔正確，或者本地憑證儲存暫時用唔到。',
   'appearance.elementGestureHeading': '元素外觀',
   'appearance.elementGesture.plain':
     '撳住 Shift 再右擊一個元素，就會開佢嘅外觀編輯器。單純右擊照舊開返該元素本身嘅選單。用鍵盤嘅話，先聚焦該元素，再撳 Shift+F10 或者 Menu 鍵。每個元素嘅設定同歷史都各自分開。',

@@ -227,7 +227,7 @@ import {
 } from '../models/dim-sum'
 import { isWithinQuietHours } from '../lib/audio/audio-throttle'
 import { readFunnyLevels } from '../lib/funny-level-text'
-import { isSchoolModeEnabled } from '../lib/school-mode'
+import { isSchoolModeEnabled, SchoolModeChangedEvent } from '../lib/school-mode'
 import { CrashProofBoundary } from './crash-proof-boundary'
 import { Button } from './lib/button'
 import { Loading } from './lib/loading'
@@ -1010,6 +1010,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     document.removeEventListener('focus', this.onDocumentFocus, {
       capture: true,
     })
+    window.removeEventListener(SchoolModeChangedEvent, this.onSchoolModeChanged)
     document.ondragenter = null
     document.ondragleave = null
     document.ondragover = null
@@ -3523,6 +3524,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     document.addEventListener('focus', this.onDocumentFocus, {
       capture: true,
     })
+    window.addEventListener(SchoolModeChangedEvent, this.onSchoolModeChanged)
 
     this.updateWindowTitle()
     window.requestAnimationFrame(() => {
@@ -3914,6 +3916,12 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   private onDocumentFocus = (event: FocusEvent) => {
     this.props.dispatcher.appFocusedElementChanged()
+  }
+
+  private onSchoolModeChanged = () => {
+    if (this.mounted) {
+      this.forceUpdate()
+    }
   }
 
   /**

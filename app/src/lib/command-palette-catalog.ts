@@ -1166,6 +1166,19 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     home: { kind: 'preferences', tab: PreferencesTab.Appearance },
   },
   {
+    event: 'palette:school-mode',
+    title: 'School mode',
+    titleKey: 'appearance.schoolModeHeading',
+    descriptionKey: 'appearance.schoolModeDescription',
+    group: 'App',
+    keywords: 'settings classroom english lock mode school 學校模式',
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Appearance,
+      targetId: 'settingsSchoolMode',
+    },
+  },
+  {
     event: 'palette:preferences-integrations',
     title: 'Preferences: Integrations',
     titleKey: 'palette.preferencesIntegrations',

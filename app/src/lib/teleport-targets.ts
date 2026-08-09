@@ -46,6 +46,7 @@ export const TeleportTargetSelectors = {
   // of checkboxes has nothing else to aim at.
   settingsTheme: '[data-teleport-target="settings-theme"]',
   settingsLanguageMode: '[data-teleport-target="settings-language-mode"]',
+  settingsSchoolMode: '[data-teleport-target="settings-school-mode"]',
   settingsFunnyEnglish: '[data-teleport-target="settings-funny-english"]',
   settingsFunnyCantonese: '[data-teleport-target="settings-funny-cantonese"]',
   settingsTabSize: '[data-teleport-target="settings-tab-size"]',

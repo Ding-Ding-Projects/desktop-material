@@ -309,6 +309,13 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
       ],
     },
     {
+      id: 'appearance-school-mode',
+      tab: PreferencesTab.Appearance,
+      titleKey: 'appearance.schoolModeHeading',
+      descriptionKey: 'appearance.schoolModeDescription',
+      keywords: ['school', 'classroom', 'english', 'lock', '學校模式'],
+    },
+    {
       id: 'appearance-scheduled-settings',
       tab: PreferencesTab.Appearance,
       titleKey: 'appearance.scheduledSettingsHeading',

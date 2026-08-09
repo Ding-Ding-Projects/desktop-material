@@ -42,6 +42,7 @@ import {
   IScheduledSettingsProps,
   ScheduledSettings,
 } from './scheduled-settings'
+import { SchoolModePreferences } from './school-mode'
 
 type AppearanceSelectKey = 'languageMode'
 
@@ -801,6 +802,9 @@ export class Appearance extends React.Component<
       <DialogContent>
         {this.renderElementGestureNote()}
         {this.renderLanguageAndNavigation()}
+        <SchoolModePreferences
+          languageMode={this.props.appearanceCustomization.languageMode}
+        />
         {this.renderScheduledSettings()}
         {this.renderScaling()}
         {this.renderSelectedTheme()}
