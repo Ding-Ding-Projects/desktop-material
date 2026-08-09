@@ -1,9 +1,9 @@
 # Command palette rows and appearance
 
-The Ctrl+Shift+F command palette lists every named app function. Its result list is
-built for scanning: each row carries an icon, the command title, an optional
-keyword line, and a group chip, and the reader controls how much of that is
-shown.
+The Ctrl+Shift+P command palette lists every named app function. Ctrl+Shift+F
+opens the current repository folder. The result list is built for scanning:
+each row carries an icon, the command title, an optional keyword line, and a
+group chip, and the reader controls how much of that is shown.
 
 Direct results cover conflict repair, failed cloud CI repair, hiding or
 reopening background progress, and expanding or collapsing Cheap LFS restore

@@ -208,12 +208,12 @@ Each needs a Cantonese value too, and every `palette:` event below needs its `ti
 | **G1** | `increase-active-resizable-width` | Expand the active resizable pane | `App` | none | `home: { kind: 'surface', labelKey: 'commandPalette.homeSidebar', targetId: 'repositorySidebar' }` — **no `openEvent`**: teleport must show the pane edge, not resize it |
 | **G2** | `decrease-active-resizable-width` | Contract the active resizable pane | `App` | none | same as G1 |
 
-`find-text` (Edit ▸ Command palette, `CmdOrCtrl+Shift+F`) is **not a gap** — the menu opener dispatches the master palette, while `palette:find-in-view` dispatches `this.findText()` in `onPaletteCommand` and carries `find` in its keywords.
+`find-text` (Edit ▸ Command palette, `CmdOrCtrl+Shift+P`) is **not a gap** — the menu opener dispatches the master palette, while `palette:find-in-view` dispatches `this.findText()` in `onPaletteCommand` and carries `find` in its keywords. `CmdOrCtrl+Shift+F` remains the current-repository Open in Folder action.
 
 The notification routes are intentionally separate: `palette:notification-centre`
 opens the live notification centre, while `palette:notification-history` opens
-the local Git-backed history dialog. The menu shortcut is the same
-`CmdOrCtrl+Shift+F` contract on every supported desktop platform.
+the local Git-backed history dialog. Neither route steals the folder-opening
+shortcut on supported desktop platforms.
 
 ![Before the route fix, the notification search returned one misleading Open notification centre row](../../assets/screenshots/material-command-palette-notification-before.png)
 

@@ -177,7 +177,7 @@ mark{background:var(--md-sys-color-tertiary-container);color:var(--md-sys-color-
           </sc-if>
           <button type="button" onClick="{{ rxBar.toggle }}" aria-label="Treat the query as a regular expression" title="Treat the query as a regular expression" style="{{ rxBar.style }}">.*</button>
           <button type="button" onClick="{{ rxBar.build }}" aria-label="Open the regex builder" title="Open the regex builder" style="width:32px;height:32px;border-radius:999px;border:1px solid var(--md-sys-color-outline-variant);background:transparent;cursor:pointer;display:grid;place-items:center;flex:none"><span style="font-family:'Material Symbols Outlined';font-size:17px" aria-hidden="true">build</span></button>
-          <kbd aria-label="Ctrl+F opens site search; Ctrl+Shift+F opens the command palette" style="font-family:'Roboto Mono',monospace;font-size:11px;padding:2px 6px;border-radius:6px;background:var(--md-sys-color-surface-container-lowest);border:1px solid var(--md-sys-color-outline-variant);flex:none">Ctrl+F · Ctrl+Shift+F</kbd>
+          <kbd aria-label="Ctrl+F opens site search; Ctrl+Shift+P opens the command palette; Ctrl+Shift+F opens the current repository folder" style="font-family:'Roboto Mono',monospace;font-size:11px;padding:2px 6px;border-radius:6px;background:var(--md-sys-color-surface-container-lowest);border:1px solid var(--md-sys-color-outline-variant);flex:none">Ctrl+F · Ctrl+Shift+P · Ctrl+Shift+F</kbd>
           <sc-if value="{{ barHasResults }}" hint-placeholder-val="{{ false }}">
             <div style="position:absolute;top:52px;left:0;right:0;z-index:60;max-height:60vh;overflow:auto;padding:8px;border-radius:20px;background:var(--md-sys-color-surface-container-high);border:1px solid var(--md-sys-color-outline-variant);box-shadow:var(--dm-shadow-3);display:flex;flex-direction:column;gap:4px">
               <sc-for list="{{ barResults }}" as="hit" hint-placeholder-count="3">
@@ -191,7 +191,7 @@ mark{background:var(--md-sys-color-tertiary-container);color:var(--md-sys-color-
           </sc-if>
         </div>
         <!-- A phone has no room for a 300px field in the app bar and no
-             Ctrl+F to open the search panel with (Ctrl+Shift+F opens the
+             Ctrl+F to open the search panel with (Ctrl+Shift+P opens the
              command palette), so below 760px the field
              collapses into this button and the panel does the searching.
              It is hidden above that width, where the field itself is live. -->

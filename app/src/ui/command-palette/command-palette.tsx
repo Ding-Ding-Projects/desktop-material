@@ -220,7 +220,7 @@ interface ICommandPaletteState {
 }
 
 /**
- * The Ctrl+Shift+F master command palette.
+ * The Ctrl+Shift+P master command palette.
  *
  * It covers the whole app (Material Design 3's full-screen search view): a
  * docked search field over a list of every named app function, where a row is

@@ -1388,8 +1388,9 @@ export class App extends React.Component<IAppProps, IAppState> {
       case 'hide-stashed-changes':
         return this.hideStashedChanges()
       case 'find-text':
-        // Ctrl+Shift+F opens the master command palette; the previous find-in-view
-        // behavior remains available as the palette's "Find in current view".
+        // Ctrl+Shift+P opens the master command palette; Ctrl+Shift+F opens the
+        // current repository folder, and find-in-view remains available inside
+        // the palette as "Find in current view".
         return this.props.dispatcher.showPopup({
           type: PopupType.CommandPalette,
         })

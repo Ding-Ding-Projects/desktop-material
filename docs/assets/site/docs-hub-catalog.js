@@ -207,7 +207,7 @@
       h: 'features/design-system/command-palette-appearance.html',
       s: 'features/design-system/command-palette-appearance.md',
       c: 'features',
-      d: 'The Ctrl+Shift+F command palette lists every named app function. Its result list is built for scanning: each row carries an icon, the command title, an optional keyword line,…',
+      d: 'The Ctrl+Shift+P command palette lists every named app function. Ctrl+Shift+F opens the current repository folder. The result list is built for scanning: each row carries an…',
     },
     {
       t: 'Command palette coverage',
