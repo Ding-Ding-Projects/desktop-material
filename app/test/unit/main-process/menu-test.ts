@@ -214,6 +214,15 @@ describe('main-process menu', () => {
       assert.equal(commandPalette?.accelerator, 'CmdOrCtrl+Shift+F')
       assert.equal(commandPalette?.label, 'Command pal&ette')
       assert.equal(commandPalette?.click instanceof Function, true)
+
+      const accelerators = template.flatMap(item =>
+        Array.isArray(item.submenu) ? item.submenu : []
+      )
+      assert.equal(
+        accelerators.filter(item => item.accelerator === 'CmdOrCtrl+Shift+F')
+          .length,
+        1
+      )
     })
 
     it('routes native Help links through the injected browser launcher', async () => {

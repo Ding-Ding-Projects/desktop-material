@@ -425,7 +425,6 @@ export function buildDefaultMenuTemplate(
           ? 'Show in E&xplorer'
           : 'Show in your File Manager',
         id: 'open-working-directory',
-        accelerator: 'CmdOrCtrl+Shift+F',
         click: emit('open-working-directory'),
       },
       {
