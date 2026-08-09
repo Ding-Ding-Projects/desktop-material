@@ -1,5 +1,27 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-09 — Make self-hosted runner risk choice main-process owned
+
+The Actions runner form still warns before setup and requires the two host-risk
+acknowledgements plus a third acknowledgement for a completed known unsafe
+finding. That third checkbox is intentionally not an IPC permission. Setup
+reruns the current workflow and queue audits in the main process, presents a
+Windows-owned confirmation containing the repository, complete labels, and
+finding detail, and keeps a receipt only in memory for matching evidence during
+that one setup operation. A safe recheck erases the receipt; a changed finding
+requires a new native decision; **Start** and scheduled trust monitoring remain
+strict and never reuse any earlier choice.
+
+The manager now audits the complete runner label set—including `self-hosted`—
+before creating the managed root or registration, rejects more than 20 custom
+labels in the UI before a new preflight or setup request, and strips legacy
+renderer-provided risk fields from persisted runner state on load.
+
+Focused verification passes **61/61** across the runner contract, runner UI,
+and removal-dialog suites. The root TypeScript check passes. Full desktop-only
+gates, production packaging, hidden-desktop verification, remote CI, and the
+new release remain pending and must be reported from their actual results.
+
 ## 2026-08-09 — Complete School mode and settle command shortcuts
 
 School mode is now a complete Windows Appearance surface. It supports a

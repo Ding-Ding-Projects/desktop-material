@@ -70,6 +70,36 @@ const extendInfoPath = `${projectRoot}/script/info.plist`
 const outRoot = path.join(projectRoot, 'out')
 
 const rendererBundleNames = ['renderer.js', 'internal-browser.js'] as const
+const buildKeepAliveIntervalMilliseconds = 60_000
+
+type ProcessKeepAliveScheduler = (
+  callback: () => void,
+  delay: number
+) => ReturnType<typeof setInterval>
+type ProcessKeepAliveCanceller = (
+  handle: ReturnType<typeof setInterval>
+) => void
+
+/**
+ * Keep the Node event loop alive while an asynchronous build step is running.
+ *
+ * electron-packager can finish its synchronous setup before it owns an active
+ * handle. Without this explicit lifecycle handle, Node may exit while the
+ * packaging promise is still copying the app, leaving only a temporary output
+ * directory behind.
+ */
+export function keepNodeProcessAliveUntil<T>(
+  promise: Promise<T>,
+  schedule: ProcessKeepAliveScheduler = setInterval,
+  cancel: ProcessKeepAliveCanceller = clearInterval
+): Promise<T> {
+  const keepAliveHandle = schedule(
+    () => undefined,
+    buildKeepAliveIntervalMilliseconds
+  )
+
+  return promise.finally(() => cancel(keepAliveHandle))
+}
 
 /**
  * Fail the build before packaging when Webpack leaves a Node-only module
@@ -99,6 +129,44 @@ export function getSelfHostedServerExtraResourcePath(
   root: string = projectRoot
 ): string {
   return path.join(root, 'services', 'desktop-material-server')
+}
+
+async function finishBuildAfterPreparation(): Promise<void> {
+  try {
+    await verifyInjectedSassVariables(outRoot)
+  } catch (err) {
+    console.error(
+      'Error verifying the Sass variables in the rendered app. This is fatal for a published build.'
+    )
+
+    if (!isDevelopmentBuild) {
+      throw err
+    }
+  }
+
+  console.log('Updating our licenses dump…')
+  try {
+    await updateLicenseDump(projectRoot, outRoot)
+  } catch (err) {
+    console.error(
+      'Error updating the license dump. This is fatal for a published build.'
+    )
+
+    if (!isDevelopmentBuild) {
+      throw err
+    }
+  }
+
+  let appPaths: string[]
+  if (shouldSkipPackaging) {
+    console.log('Skipping packaging…')
+    appPaths = [outRoot]
+  } else {
+    console.log('Packaging…')
+    appPaths = await packageApp()
+  }
+
+  console.log(`Built to ${appPaths}`)
 }
 
 if (require.main === module) {
@@ -154,47 +222,14 @@ if (require.main === module) {
     cp.execSync(path.join(__dirname, 'setup-macos-keychain'))
   }
 
-  cheapLfsOrasPreparation
-    .then(() =>
-      verifyInjectedSassVariables(outRoot).catch(err => {
-        console.error(
-          'Error verifying the Sass variables in the rendered app. This is fatal for a published build.'
-        )
+  const buildPromise = cheapLfsOrasPreparation.then(() =>
+    finishBuildAfterPreparation()
+  )
 
-        if (!isDevelopmentBuild) {
-          process.exit(1)
-        }
-      })
-    )
-    .then(() => {
-      console.log('Updating our licenses dump…')
-      return updateLicenseDump(projectRoot, outRoot).catch(err => {
-        console.error(
-          'Error updating the license dump. This is fatal for a published build.'
-        )
-        console.error(err)
-
-        if (!isDevelopmentBuild) {
-          process.exit(1)
-        }
-      })
-    })
-    .then(() => {
-      if (shouldSkipPackaging) {
-        console.log('Skipping packaging…')
-        return [outRoot]
-      }
-
-      console.log('Packaging…')
-      return packageApp()
-    })
-    .catch(err => {
-      console.error(err)
-      process.exit(1)
-    })
-    .then(appPaths => {
-      console.log(`Built to ${appPaths}`)
-    })
+  void keepNodeProcessAliveUntil(buildPromise).catch(err => {
+    console.error(err)
+    process.exitCode = 1
+  })
 }
 
 function packageApp() {

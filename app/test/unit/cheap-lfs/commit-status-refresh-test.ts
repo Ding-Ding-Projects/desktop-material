@@ -52,13 +52,13 @@ describe('cheap LFS commit status diff refresh', () => {
     )
     const base = await captureCommitPushBatchBase(repository)
     await writeFile(join(repository.path, 'pending.txt'), 'pending')
+    assert.equal((await exec(['add', '--all'], repository.path)).exitCode, 0)
     await beginCommitPushBatchIntent(repository, base, ['pending.txt'], {
       remoteName: 'origin',
       remoteUrlSha256: hashCommitPushRemoteUrl(remotePath),
       remoteBranchRef: 'refs/heads/main',
       expectedRemoteSha: base,
     })
-    assert.equal((await exec(['add', '--all'], repository.path)).exitCode, 0)
     assert.equal(
       (await exec(['commit', '-m', 'pending batch'], repository.path)).exitCode,
       0

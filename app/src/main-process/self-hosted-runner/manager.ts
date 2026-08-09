@@ -59,6 +59,7 @@ import {
   ISelfHostedRunnerStatusRequest,
   ISelfHostedRunnerStatus,
   ISelfHostedRunnerWslResult,
+  KnownUnsafeSelfHostedRunnerPreflightCode,
   SelfHostedRunnerPlatform,
   SelfHostedRunnerProgressPhase,
   SelfHostedRunnerReply,
@@ -143,14 +144,42 @@ interface IRunnerRelease {
   readonly assets?: ReadonlyArray<IRunnerReleaseAsset>
 }
 
-class SelfHostedRunnerManagerError extends Error {
+export class SelfHostedRunnerManagerError extends Error {
   public constructor(
     public readonly code: string,
-    public readonly recovery: string
+    public readonly recovery: string,
+    /** A bounded main-process fingerprint for a completed known-risk audit. */
+    public readonly knownPreflightRiskEvidence?: string
   ) {
     super(code)
   }
 }
+
+function isKnownUnsafePreflightRiskCode(
+  value: unknown
+): value is KnownUnsafeSelfHostedRunnerPreflightCode {
+  return (
+    value === 'workflow-trust-unsafe' || value === 'runner-queued-job-blocked'
+  )
+}
+
+interface IKnownUnsafePreflightConfirmation {
+  readonly code: KnownUnsafeSelfHostedRunnerPreflightCode
+  readonly owner: string
+  readonly repository: string
+  readonly labels: ReadonlyArray<string>
+  readonly auditName: string
+  readonly recovery: string
+}
+
+interface IKnownUnsafePreflightReceipt {
+  readonly scope: string
+  readonly evidence: string
+}
+
+type ConfirmKnownUnsafePreflightRisk = (
+  confirmation: IKnownUnsafePreflightConfirmation
+) => Promise<boolean>
 
 function throwIfCancelled(signal?: AbortSignal): void {
   if (signal?.aborted) {
@@ -296,6 +325,32 @@ function normalizeDistribution(value: unknown, label: string): string {
 }
 
 type RunnerArchitecture = 'X64' | 'ARM64'
+
+/**
+ * Every audit uses the same complete label set that GitHub assigns at
+ * registration. The user-configurable labels stay bounded separately.
+ */
+function completeRunnerLabels(
+  customLabels: ReadonlyArray<string>,
+  operatingSystem: 'Windows' | 'Linux',
+  architecture: RunnerArchitecture
+): ReadonlyArray<string> {
+  const result: string[] = []
+  const seen = new Set<string>()
+  for (const label of [
+    'self-hosted',
+    ...customLabels,
+    operatingSystem,
+    architecture,
+  ]) {
+    const key = label.toLocaleLowerCase()
+    if (!seen.has(key)) {
+      seen.add(key)
+      result.push(label)
+    }
+  }
+  return result
+}
 
 function runnerDirectory(root: string, id: string): string {
   return Path.join(root, id, 'runner')
@@ -765,7 +820,9 @@ export class WindowsSelfHostedRunnerManager {
 
   public constructor(
     userDataPath: string,
-    private readonly onProgress: (progress: ISelfHostedRunnerProgress) => void
+    private readonly onProgress: (progress: ISelfHostedRunnerProgress) => void,
+    private readonly confirmKnownUnsafePreflightRisk: ConfirmKnownUnsafePreflightRisk = async () =>
+      false
   ) {
     this.root = Path.join(userDataPath, ManagedRootName)
     this.statePath = Path.join(this.root, StateFileName)
@@ -824,9 +881,27 @@ export class WindowsSelfHostedRunnerManager {
               `${finding.path} (${finding.job}: ${finding.trigger}/${finding.reason})`
           )
           .join('; ')
+        const evidence = createHash('sha256')
+          .update(
+            JSON.stringify({
+              commitSHA: error.commitSHA ?? null,
+              findings: error.findings
+                .map(finding => ({
+                  job: finding.job,
+                  path: finding.path,
+                  reason: finding.reason,
+                  trigger: finding.trigger,
+                }))
+                .sort((left, right) =>
+                  JSON.stringify(left).localeCompare(JSON.stringify(right))
+                ),
+            })
+          )
+          .digest('hex')
         throw new SelfHostedRunnerManagerError(
           'workflow-trust-unsafe',
-          `Runner operation is blocked because untrusted or indeterminate events can reach runner execution: ${summary}. Remove those paths or pin and audit the reusable workflows, then retry.`
+          `Runner operation is blocked because untrusted or indeterminate events can reach runner execution: ${summary}. Remove those paths or pin and audit the reusable workflows, then retry.`,
+          evidence
         )
       }
       throw new SelfHostedRunnerManagerError(
@@ -881,17 +956,224 @@ export class WindowsSelfHostedRunnerManager {
         error.kind === 'matching-job'
       ) {
         const match = error.match
+        const evidence =
+          match === undefined
+            ? undefined
+            : createHash('sha256')
+                .update(
+                  JSON.stringify({
+                    jobId: match.jobId,
+                    jobName: match.jobName,
+                    labels: [...match.labels]
+                      .map(label => label.toLocaleLowerCase())
+                      .sort(),
+                    runId: match.runId,
+                    status: match.status,
+                  })
+                )
+                .digest('hex')
         throw new SelfHostedRunnerManagerError(
           'runner-queued-job-blocked',
           match === undefined
             ? 'A pending GitHub Actions job can target this runner. Cancel or complete it before connecting the runner.'
-            : `GitHub Actions run ${match.runId}, job ${match.jobId} (${match.jobName}), is ${match.status} and can target these runner labels. Cancel or complete that run before connecting the runner.`
+            : `GitHub Actions run ${match.runId}, job ${match.jobId} (${match.jobName}), is ${match.status} and can target these runner labels. Cancel or complete that run before connecting the runner.`,
+          evidence
         )
       }
       throw new SelfHostedRunnerManagerError(
         'runner-queue-audit-unavailable',
         'The main process could not prove the repository free of historical pending jobs that can target this runner. No runner process was started.'
       )
+    }
+  }
+
+  /**
+   * A known-risk decision is main-process owned, volatile, and evidence bound.
+   * It is never persisted and never accepted from a renderer IPC payload.
+   */
+  private knownPreflightRiskScope(
+    accountKey: string,
+    endpoint: string,
+    owner: string,
+    repository: string,
+    runnerLabels: ReadonlyArray<string>
+  ): string {
+    return JSON.stringify({
+      accountKey,
+      endpoint,
+      labels: [...runnerLabels].map(label => label.toLocaleLowerCase()).sort(),
+      owner: owner.toLocaleLowerCase(),
+      repository: repository.toLocaleLowerCase(),
+    })
+  }
+
+  private async continueAfterConfirmedKnownPreflightRisk(
+    error: unknown,
+    receipts: Map<
+      KnownUnsafeSelfHostedRunnerPreflightCode,
+      IKnownUnsafePreflightReceipt
+    >,
+    accountKey: string,
+    endpoint: string,
+    owner: string,
+    repository: string,
+    runnerLabels: ReadonlyArray<string>,
+    runnerId: string,
+    auditName: string
+  ): Promise<boolean> {
+    if (
+      !(error instanceof SelfHostedRunnerManagerError) ||
+      !isKnownUnsafePreflightRiskCode(error.code) ||
+      error.knownPreflightRiskEvidence === undefined
+    ) {
+      return false
+    }
+
+    const scope = this.knownPreflightRiskScope(
+      accountKey,
+      endpoint,
+      owner,
+      repository,
+      runnerLabels
+    )
+    const existing = receipts.get(error.code)
+    if (
+      existing !== undefined &&
+      existing.scope === scope &&
+      existing.evidence === error.knownPreflightRiskEvidence
+    ) {
+      this.progress(
+        runnerId,
+        'validating',
+        `The ${auditName} finding exactly matches the main-process-confirmed evidence for this setup operation. Continuing; a changed finding or unavailable evidence still stops setup.`
+      )
+      return true
+    }
+
+    let confirmed: boolean
+    try {
+      confirmed = await this.confirmKnownUnsafePreflightRisk({
+        code: error.code,
+        owner,
+        repository,
+        labels: runnerLabels,
+        auditName,
+        recovery: error.recovery,
+      })
+    } catch {
+      throw new SelfHostedRunnerManagerError(
+        'preflight-risk-confirmation-unavailable',
+        'The Windows-owned confirmation for the completed preflight warning could not be shown. No runner process or managed file was changed.'
+      )
+    }
+    if (!confirmed) {
+      throw new SelfHostedRunnerManagerError(
+        'preflight-risk-not-accepted',
+        'The completed preflight warning was not accepted in the Windows confirmation. No runner process or managed file was changed.'
+      )
+    }
+
+    receipts.set(error.code, {
+      scope,
+      evidence: error.knownPreflightRiskEvidence,
+    })
+    this.progress(
+      runnerId,
+      'validating',
+      `The Windows-owned confirmation accepted the current ${auditName} warning. Only this exact scope and evidence can pass later setup rechecks; Start and scheduled monitoring remain strict.`
+    )
+    return true
+  }
+
+  private async assertRepositoryWorkflowTrustWithConfirmedRisk(
+    endpoint: string,
+    accountKey: string,
+    owner: string,
+    repository: string,
+    token: string,
+    runnerLabels: ReadonlyArray<string>,
+    signal: AbortSignal | undefined,
+    receipts: Map<
+      KnownUnsafeSelfHostedRunnerPreflightCode,
+      IKnownUnsafePreflightReceipt
+    >,
+    runnerId: string,
+    auditName: string
+  ): Promise<IRepositoryWorkflowAuditResult | null> {
+    try {
+      const audit = await this.assertRepositoryWorkflowTrust(
+        endpoint,
+        owner,
+        repository,
+        token,
+        runnerLabels,
+        signal
+      )
+      receipts.delete('workflow-trust-unsafe')
+      return audit
+    } catch (error) {
+      if (
+        await this.continueAfterConfirmedKnownPreflightRisk(
+          error,
+          receipts,
+          accountKey,
+          endpoint,
+          owner,
+          repository,
+          runnerLabels,
+          runnerId,
+          auditName
+        )
+      ) {
+        return null
+      }
+      throw error
+    }
+  }
+
+  private async assertStableRunnerQueueWithConfirmedRisk(
+    endpoint: string,
+    accountKey: string,
+    owner: string,
+    repository: string,
+    token: string,
+    runnerLabels: ReadonlyArray<string>,
+    signal: AbortSignal | undefined,
+    receipts: Map<
+      KnownUnsafeSelfHostedRunnerPreflightCode,
+      IKnownUnsafePreflightReceipt
+    >,
+    runnerId: string,
+    auditName: string
+  ): Promise<boolean> {
+    try {
+      await this.assertStableRunnerQueue(
+        endpoint,
+        owner,
+        repository,
+        token,
+        runnerLabels,
+        signal
+      )
+      receipts.delete('runner-queued-job-blocked')
+      return true
+    } catch (error) {
+      if (
+        await this.continueAfterConfirmedKnownPreflightRisk(
+          error,
+          receipts,
+          accountKey,
+          endpoint,
+          owner,
+          repository,
+          runnerLabels,
+          runnerId,
+          auditName
+        )
+      ) {
+        return false
+      }
+      throw error
     }
   }
 
@@ -1048,12 +1330,22 @@ export class WindowsSelfHostedRunnerManager {
       ) {
         throw new Error('invalid-state-record')
       }
-      this.records = (records as Array<IDiskRunnerRecord>).map(record => ({
-        ...record,
-        lifecyclePhase:
-          record.lifecyclePhase ??
-          (record.status === 'running' ? 'ready' : 'registered'),
-      }))
+      this.records = (records as Array<IDiskRunnerRecord>).map(record => {
+        // Versions that briefly persisted renderer-provided risk codes must
+        // forget them on load. Native confirmations are intentionally
+        // operation-local and never survive a restart.
+        const { acceptedPreflightRiskCode: _legacyAcceptance, ...safeRecord } =
+          record as IDiskRunnerRecord & {
+            readonly acceptedPreflightRiskCode?: unknown
+          }
+        void _legacyAcceptance
+        return {
+          ...safeRecord,
+          lifecyclePhase:
+            safeRecord.lifecyclePhase ??
+            (safeRecord.status === 'running' ? 'ready' : 'registered'),
+        }
+      })
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         this.records = []
@@ -1961,7 +2253,9 @@ export class WindowsSelfHostedRunnerManager {
         request.repository,
         'repository'
       )
-      const labels = normalizeLabels(request.labels, 24)
+      // The setup form accepts at most 20 custom labels plus these three
+      // GitHub-assigned labels. Reject an impossible form before audit IPC.
+      const labels = normalizeLabels(request.labels, 23)
       const token = this.accountToken(accountKey, endpoint)
       const signal = AbortSignal.timeout(45_000)
       const audit = await this.assertRepositoryWorkflowTrust(
@@ -2928,6 +3222,15 @@ export class WindowsSelfHostedRunnerManager {
     let launchedRecord: IDiskRunnerRecord | null = null
     let readinessCompleted = false
     let records: Array<IDiskRunnerRecord> | null = null
+    const knownPreflightRiskReceipts = new Map<
+      KnownUnsafeSelfHostedRunnerPreflightCode,
+      IKnownUnsafePreflightReceipt
+    >()
+    const initialRunnerLabels = completeRunnerLabels(
+      normalized.labels,
+      'Windows',
+      runnerArchitecture
+    )
     try {
       accountToken = this.accountToken(
         normalized.accountKey,
@@ -2938,13 +3241,34 @@ export class WindowsSelfHostedRunnerManager {
         'validating',
         'Auditing every workflow at the immutable default-branch commit.'
       )
-      await this.assertRepositoryWorkflowTrust(
+      await this.assertRepositoryWorkflowTrustWithConfirmedRisk(
         normalized.githubApiEndpoint,
+        normalized.accountKey,
         normalized.owner,
         normalized.repository,
         accountToken,
-        [...normalized.labels, 'Windows', hostRunnerArchitecture()],
-        operationSignal
+        initialRunnerLabels,
+        operationSignal,
+        knownPreflightRiskReceipts,
+        normalized.id,
+        'workflow-trust'
+      )
+      this.progress(
+        normalized.id,
+        'validating',
+        'Checking for historical pending jobs before creating managed runner files.'
+      )
+      await this.assertStableRunnerQueueWithConfirmedRisk(
+        normalized.githubApiEndpoint,
+        normalized.accountKey,
+        normalized.owner,
+        normalized.repository,
+        accountToken,
+        initialRunnerLabels,
+        operationSignal,
+        knownPreflightRiskReceipts,
+        normalized.id,
+        'queued-job'
       )
       this.throwIfOperationCancelled(operationSignal)
       records = await this.loadRecords()
@@ -3073,13 +3397,17 @@ export class WindowsSelfHostedRunnerManager {
         'validating',
         'Rechecking repository trust immediately before registration.'
       )
-      await this.assertRepositoryWorkflowTrust(
+      await this.assertRepositoryWorkflowTrustWithConfirmedRisk(
         normalized.githubApiEndpoint,
+        normalized.accountKey,
         normalized.owner,
         normalized.repository,
         accountToken,
-        [...normalized.labels, 'Windows', hostRunnerArchitecture()],
-        operationSignal
+        initialRunnerLabels,
+        operationSignal,
+        knownPreflightRiskReceipts,
+        normalized.id,
+        'pre-registration workflow-trust'
       )
       const registrationToken = await mintRunnerToken(
         normalized.githubApiEndpoint,
@@ -3174,34 +3502,46 @@ export class WindowsSelfHostedRunnerManager {
           'The registered runner identity or labels changed before launch. Setup stopped and rolled the registration back.'
         )
       }
-      await this.assertRepositoryWorkflowTrust(
+      await this.assertRepositoryWorkflowTrustWithConfirmedRisk(
         normalized.githubApiEndpoint,
+        normalized.accountKey,
         normalized.owner,
         normalized.repository,
         accountToken,
         prelaunchRunner.labels,
-        operationSignal
+        operationSignal,
+        knownPreflightRiskReceipts,
+        normalized.id,
+        'pre-launch workflow-trust'
       )
       this.progress(
         normalized.id,
         'validating',
         'Checking for historical pending jobs that could claim this runner.'
       )
-      await this.assertStableRunnerQueue(
+      await this.assertStableRunnerQueueWithConfirmedRisk(
         normalized.githubApiEndpoint,
+        normalized.accountKey,
         normalized.owner,
         normalized.repository,
         accountToken,
         prelaunchRunner.labels,
-        operationSignal
+        operationSignal,
+        knownPreflightRiskReceipts,
+        normalized.id,
+        'pre-launch queued-job'
       )
-      await this.assertRepositoryWorkflowTrust(
+      await this.assertRepositoryWorkflowTrustWithConfirmedRisk(
         normalized.githubApiEndpoint,
+        normalized.accountKey,
         normalized.owner,
         normalized.repository,
         accountToken,
         prelaunchRunner.labels,
-        operationSignal
+        operationSignal,
+        knownPreflightRiskReceipts,
+        normalized.id,
+        'final workflow-trust'
       )
       this.ensureNotShuttingDown()
       this.throwIfOperationCancelled(operationSignal)
@@ -3642,7 +3982,11 @@ export class WindowsSelfHostedRunnerManager {
         current.owner,
         current.repository,
         accountToken,
-        [...current.labels, 'Windows', hostRunnerArchitecture()],
+        completeRunnerLabels(
+          current.labels,
+          'Windows',
+          hostRunnerArchitecture()
+        ),
         operationSignal
       )
       let inventory: Awaited<ReturnType<typeof fetchRepositoryRunnerInventory>>

@@ -16,10 +16,48 @@ import {
   assertRendererBundlesAreRunnable,
   copyStaticResourceTree,
   getSelfHostedServerExtraResourcePath,
+  keepNodeProcessAliveUntil,
   removeAndCopy,
 } from '../../../script/build'
 
 describe('build copying', () => {
+  it('keeps Node alive until asynchronous packaging settles', async () => {
+    const timer = {} as ReturnType<typeof setInterval>
+    let scheduledDelay: number | undefined
+    let clearedHandle: ReturnType<typeof setInterval> | undefined
+    let resolveBuild: ((value: string) => void) | undefined
+    const build = new Promise<string>(resolve => {
+      resolveBuild = resolve
+    })
+
+    const result = keepNodeProcessAliveUntil(
+      build,
+      (_callback, delay) => {
+        scheduledDelay = delay
+        return timer
+      },
+      handle => {
+        clearedHandle = handle
+      }
+    )
+
+    assert.equal(scheduledDelay, 60_000)
+    assert.equal(clearedHandle, undefined)
+
+    resolveBuild?.('packaged')
+
+    assert.equal(await result, 'packaged')
+    assert.equal(clearedHandle, timer)
+  })
+
+  it('routes the CLI build through the process keep-alive lifecycle', () => {
+    const source = readFileSync(
+      join(process.cwd(), 'script', 'build.ts'),
+      'utf8'
+    )
+    assert.match(source, /void keepNodeProcessAliveUntil\(buildPromise\)/)
+  })
+
   it('rejects renderer bundles with an undefined Webpack module binding', () => {
     const root = mkdtempSync(join(tmpdir(), 'desktop-renderer-bundle-test-'))
     const rendererPath = join(root, 'renderer.js')

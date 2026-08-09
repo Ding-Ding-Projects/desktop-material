@@ -10,7 +10,7 @@
 .diff-code-mirror .CodeMirror {
   height: 100%;
   color: var(--diff-text-color);
-  background: var(--background-color);
+  background: var(--diff-background-color);
   font-size: var(--font-size-sm);
   font-family: var(--font-family-monospace);
 
@@ -287,7 +287,7 @@
   }
 
   &.diff-context {
-    background: var(--background-color);
+    background: var(--diff-background-color);
   }
 
   &.diff-hunk {
@@ -1060,6 +1060,7 @@
   flex-grow: 1;
   min-width: 0;
   max-height: 100%;
+  background: var(--diff-background-color);
 
   // MD3 diff palette remap: retints every diff row / gutter / hunk / sign /
   // text through the theme-aware `--diff-*` / `--dm-*` token set defined in
@@ -1071,6 +1072,7 @@
   --diff-alt-text-color: var(--md-sys-color-on-surface-variant);
   --diff-border-color: var(--md-sys-color-outline-variant);
   --diff-gutter-color: var(--md-sys-color-outline-variant);
+  --diff-background-color: var(--md-sys-color-surface);
   --diff-gutter-background-color: transparent;
   --diff-line-number-color: var(--md-sys-color-on-surface-variant);
 

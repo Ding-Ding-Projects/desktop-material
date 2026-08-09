@@ -1155,6 +1155,13 @@
       d: 'Desktop Material can review supported .tga changes through the existing image-diff modes after an in-memory conversion to a PNG data URL. It supports uncompressed 24/32-bit…',
     },
     {
+      t: 'Theme-aware diff surfaces',
+      h: 'features/review-and-diff/theme-aware-diff-surfaces.html',
+      s: 'features/review-and-diff/theme-aware-diff-surfaces.md',
+      c: 'features',
+      d: 'Desktop Material keeps every text diff surface on the active Material surface token. Unified CodeMirror context rows and standalone side-by-side diffs use the same theme-aware…',
+    },
+    {
       t: 'Session handoff — Cheap LFS test + feature wave + audio / 交接文件',
       h: 'handoff/2026-07-24-session.html',
       s: 'handoff/2026-07-24-session.md',

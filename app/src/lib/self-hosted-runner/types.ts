@@ -3,6 +3,11 @@ export type SelfHostedRunnerPlatform = 'windows' | 'linux-wsl'
 
 export type SelfHostedRunnerStatus = 'running' | 'stopped' | 'missing'
 
+/** Completed preflight findings that require an explicit native confirmation. */
+export type KnownUnsafeSelfHostedRunnerPreflightCode =
+  | 'workflow-trust-unsafe'
+  | 'runner-queued-job-blocked'
+
 export type SelfHostedRunnerProgressPhase =
   | 'validating'
   | 'detecting-wsl'

@@ -61,7 +61,13 @@ unchanged. Credentials, pre-push hooks, terminal callbacks, fast-forward rules,
 destination comparison, and the post-push exact-tip proof remain in force.
 
 After app-owned staging has prepared the exact index, but before `git commit`,
-the app stores the bounded path plan, exact pre-commit index/worktree trees,
+the app compares the selected paths with the effective index diff against the
+exact parent. A selected path that becomes a clean no-op after Git's filters
+(for example, line-ending normalization) is removed from the durable expected
+path set rather than causing recovery to report a false omission. The app
+still rejects every committed path outside that normalized plan, including
+paths added by a hook or a concurrent process. It then stores the bounded path
+plan, exact pre-commit index/worktree trees,
 branch, base object, remote name, hash of the push URL, and destination ref in
 `refs/desktop-material/commit-push-intent`. After it proves the resulting local
 commit, it records that object in

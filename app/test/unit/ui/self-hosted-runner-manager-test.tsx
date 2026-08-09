@@ -314,6 +314,9 @@ describe('self-hosted runner manager', () => {
   })
 
   it('requires both accessible trust acknowledgements after a safe audit', async () => {
+    let setupRequest: {
+      readonly acceptedPreflightRiskCode?: unknown
+    } | null = null
     const fromAccount = mock.method(API, 'fromAccount', () => {
       return {
         fetchSelfHostedRunners: async () => ({
@@ -322,7 +325,18 @@ describe('self-hosted runner manager', () => {
         }),
       } as unknown as API
     })
-    const installedIPC = await installRunnerIPC(supportedStatus)
+    const installedIPC = await installRunnerIPC(supportedStatus, {
+      'setup-self-hosted-runner': async request => {
+        setupRequest = request as {
+          readonly acceptedPreflightRiskCode?: unknown
+        }
+        return {
+          ok: false,
+          code: 'setup-test-refused',
+          recovery: 'The test setup request stopped after request inspection.',
+        }
+      },
+    })
     let view: ReturnType<typeof render> | null = null
 
     try {
@@ -352,6 +366,295 @@ describe('self-hosted runner manager', () => {
       fireEvent.click(hostAccess)
       await waitFor(() =>
         assert.equal(setup.getAttribute('aria-disabled'), null)
+      )
+      fireEvent.click(setup)
+      await waitFor(() => assert.notEqual(setupRequest, null))
+      assert.equal(
+        Object.prototype.hasOwnProperty.call(
+          setupRequest,
+          'acceptedPreflightRiskCode'
+        ),
+        false
+      )
+    } finally {
+      view?.unmount()
+      fromAccount.mock.restore()
+      installedIPC.restore()
+    }
+  })
+
+  it('requires explicit acknowledgement for each completed known preflight warning without sending a renderer risk bypass', async () => {
+    for (const risk of [
+      {
+        code: 'workflow-trust-unsafe' as const,
+        recovery:
+          'An untrusted pull-request workflow can reach the proposed runner labels.',
+      },
+      {
+        code: 'runner-queued-job-blocked' as const,
+        recovery: 'A queued job can claim the proposed runner labels.',
+      },
+    ]) {
+      const fromAccount = mock.method(API, 'fromAccount', () => {
+        return {
+          fetchSelfHostedRunners: async () => ({
+            total_count: 0,
+            runners: [],
+          }),
+        } as unknown as API
+      })
+      const installedIPC = await installRunnerIPC(supportedStatus, {
+        'preflight-self-hosted-runner': async () => ({
+          ok: false,
+          code: risk.code,
+          recovery: risk.recovery,
+        }),
+        'setup-self-hosted-runner': async () => ({
+          ok: false,
+          code: risk.code,
+          recovery: risk.recovery,
+        }),
+      })
+      let view: ReturnType<typeof render> | null = null
+
+      try {
+        view = render(
+          <SelfHostedRunnerManager
+            repository={repository(true)}
+            accounts={[account]}
+          />
+        )
+
+        await waitFor(() =>
+          assert.ok(
+            screen
+              .getAllByRole('alert')
+              .some(alert => alert.textContent?.includes(risk.recovery))
+          )
+        )
+        const setup = screen.getByRole('button', { name: 'Set up runner' })
+        const workflowTrust = screen.getByRole('checkbox', {
+          name: 'I trust everyone allowed to run repository workflows that can target a managed runner on this machine',
+        })
+        const hostAccess = screen.getByRole('checkbox', {
+          name: 'I understand jobs run as my Windows user and WSL does not isolate Windows files or network access',
+        })
+        const riskAcceptance = screen.getByRole('checkbox', {
+          name: 'I reviewed this completed preflight warning and choose to set up this runner despite the stated risks',
+        })
+
+        assert.equal(setup.getAttribute('aria-disabled'), 'true')
+        fireEvent.click(workflowTrust)
+        fireEvent.click(hostAccess)
+        assert.equal(setup.getAttribute('aria-disabled'), 'true')
+        fireEvent.click(riskAcceptance)
+        await waitFor(() =>
+          assert.equal(setup.getAttribute('aria-disabled'), null)
+        )
+        fireEvent.click(setup)
+
+        await waitFor(() => {
+          const setupInvoke = installedIPC.invokes.find(
+            invoke => invoke.channel === 'setup-self-hosted-runner'
+          )
+          assert.ok(setupInvoke)
+          assert.equal(
+            Object.prototype.hasOwnProperty.call(
+              setupInvoke.args[0],
+              'acceptedPreflightRiskCode'
+            ),
+            false
+          )
+        })
+      } finally {
+        view?.unmount()
+        fromAccount.mock.restore()
+        installedIPC.restore()
+      }
+    }
+  })
+
+  it('keeps unavailable preflight evidence blocking and does not offer a risk acceptance', async () => {
+    const fromAccount = mock.method(API, 'fromAccount', () => {
+      return {
+        fetchSelfHostedRunners: async () => ({
+          total_count: 0,
+          runners: [],
+        }),
+      } as unknown as API
+    })
+    const installedIPC = await installRunnerIPC(supportedStatus, {
+      'preflight-self-hosted-runner': async () => ({
+        ok: false,
+        code: 'workflow-trust-unavailable',
+        recovery:
+          'The complete immutable workflow inventory was unavailable for inspection.',
+      }),
+    })
+    let view: ReturnType<typeof render> | null = null
+
+    try {
+      view = render(
+        <SelfHostedRunnerManager
+          repository={repository(true)}
+          accounts={[account]}
+        />
+      )
+
+      await waitFor(() =>
+        assert.match(
+          screen.getByText(/Setup-form safety preflight:/).textContent ?? '',
+          /The complete immutable workflow inventory was unavailable for inspection\./
+        )
+      )
+      const setup = screen.getByRole('button', { name: 'Set up runner' })
+      assert.equal(
+        screen.queryByRole('checkbox', {
+          name: 'I reviewed this completed preflight warning and choose to set up this runner despite the stated risks',
+        }),
+        null
+      )
+      fireEvent.click(
+        screen.getByRole('checkbox', {
+          name: 'I trust everyone allowed to run repository workflows that can target a managed runner on this machine',
+        })
+      )
+      fireEvent.click(
+        screen.getByRole('checkbox', {
+          name: 'I understand jobs run as my Windows user and WSL does not isolate Windows files or network access',
+        })
+      )
+      assert.equal(setup.getAttribute('aria-disabled'), 'true')
+    } finally {
+      view?.unmount()
+      fromAccount.mock.restore()
+      installedIPC.restore()
+    }
+  })
+
+  it('resets risk acceptance whenever proposed runner labels change', async () => {
+    const fromAccount = mock.method(API, 'fromAccount', () => {
+      return {
+        fetchSelfHostedRunners: async () => ({
+          total_count: 0,
+          runners: [],
+        }),
+      } as unknown as API
+    })
+    const installedIPC = await installRunnerIPC(supportedStatus, {
+      'preflight-self-hosted-runner': async () => ({
+        ok: false,
+        code: 'workflow-trust-unsafe',
+        recovery: 'The proposed labels have an unsafe workflow target.',
+      }),
+    })
+    let view: ReturnType<typeof render> | null = null
+
+    try {
+      view = render(
+        <SelfHostedRunnerManager
+          repository={repository(true)}
+          accounts={[account]}
+        />
+      )
+
+      await screen.findByRole('checkbox', {
+        name: 'I reviewed this completed preflight warning and choose to set up this runner despite the stated risks',
+      })
+      fireEvent.click(
+        screen.getByRole('checkbox', {
+          name: 'I trust everyone allowed to run repository workflows that can target a managed runner on this machine',
+        })
+      )
+      fireEvent.click(
+        screen.getByRole('checkbox', {
+          name: 'I understand jobs run as my Windows user and WSL does not isolate Windows files or network access',
+        })
+      )
+      fireEvent.click(
+        screen.getByRole('checkbox', {
+          name: 'I reviewed this completed preflight warning and choose to set up this runner despite the stated risks',
+        })
+      )
+      const setup = screen.getByRole('button', { name: 'Set up runner' })
+      await waitFor(() =>
+        assert.equal(setup.getAttribute('aria-disabled'), null)
+      )
+
+      fireEvent.change(
+        screen.getByRole('textbox', { name: 'Labels (comma-separated)' }),
+        { target: { value: 'desktop-material-windows-local, GPU' } }
+      )
+      await waitFor(() =>
+        assert.equal(setup.getAttribute('aria-disabled'), 'true')
+      )
+      const resetRiskAcceptance = (await screen.findByRole('checkbox', {
+        name: 'I reviewed this completed preflight warning and choose to set up this runner despite the stated risks',
+      })) as HTMLInputElement
+      assert.equal(resetRiskAcceptance.checked, false)
+      assert.equal(setup.getAttribute('aria-disabled'), 'true')
+    } finally {
+      view?.unmount()
+      fromAccount.mock.restore()
+      installedIPC.restore()
+    }
+  })
+
+  it('blocks more than twenty custom runner labels before sending another preflight or setup request', async () => {
+    const fromAccount = mock.method(API, 'fromAccount', () => {
+      return {
+        fetchSelfHostedRunners: async () => ({
+          total_count: 0,
+          runners: [],
+        }),
+      } as unknown as API
+    })
+    const installedIPC = await installRunnerIPC(supportedStatus)
+    let view: ReturnType<typeof render> | null = null
+
+    try {
+      view = render(
+        <SelfHostedRunnerManager
+          repository={repository(true)}
+          accounts={[account]}
+        />
+      )
+      await screen.findByText(/Setup-form safety preflight:/)
+      const preflightInvokes = () =>
+        installedIPC.invokes.filter(
+          invoke => invoke.channel === 'preflight-self-hosted-runner'
+        )
+      await waitFor(() => assert.equal(preflightInvokes().length, 1))
+
+      fireEvent.change(
+        screen.getByRole('textbox', { name: 'Labels (comma-separated)' }),
+        {
+          target: {
+            value: Array.from(
+              { length: 21 },
+              (_, index) => `custom-label-${index}`
+            ).join(', '),
+          },
+        }
+      )
+
+      assert.ok(
+        await screen.findByText(
+          /Add between one and 20 custom runner labels before running the setup preflight\./
+        )
+      )
+      assert.equal(
+        screen
+          .getByRole('button', { name: 'Set up runner' })
+          .getAttribute('aria-disabled'),
+        'true'
+      )
+      assert.equal(preflightInvokes().length, 1)
+      assert.equal(
+        installedIPC.invokes.some(
+          invoke => invoke.channel === 'setup-self-hosted-runner'
+        ),
+        false
       )
     } finally {
       view?.unmount()
@@ -549,7 +852,7 @@ describe('self-hosted runner manager', () => {
       assert.equal(start.getAttribute('aria-disabled'), 'true')
       assert.ok(
         screen.getByText(
-          /Starting backup-windows-runner runs a fresh main-process audit using that runner's exact live labels, private-fork policy, immutable default-branch workflows, and pending jobs\. The setup-form preflight is not reused\./
+          /Starting backup-windows-runner runs a fresh main-process audit using that runner's exact live labels, private-fork policy, immutable default-branch workflows, and pending jobs\./
         )
       )
 

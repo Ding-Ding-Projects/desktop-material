@@ -11,6 +11,17 @@
 > with **Ctrl+Shift+P**; **Ctrl+Shift+F** remains **Open current repository in
 > folder**. The exact implementation is in the [School mode feature guide](docs/features/design-system/school-mode.md).
 
+> **Self-hosted runner risk confirmation — August 9, 2026:** the Windows
+> Actions runner setup form now audits all assigned labels—including
+> `self-hosted`—before creating runner files or registration, and limits users
+> to 20 custom labels. A completed known unsafe preflight can be reviewed in
+> the form, but the renderer cannot authorize it: the main process reruns the
+> audit and requires a Windows-owned confirmation bound to the current setup
+> evidence. That volatile decision never reaches disk and is never reused by
+> later Start or scheduled monitoring. Focused runner verification passes
+> **61/61** and TypeScript passes; full release verification remains pending.
+> See the [self-hosted runner manager guide](docs/features/integrations/self-hosted-runner-manager.md).
+
 > **GitHub Actions and OAuth repair — August 8, 2026:** the Windows Actions
 > view now uses a searchable rich account picker, audits public repositories
 > instead of blanket-blocking them, fills the run-list row when no detail is

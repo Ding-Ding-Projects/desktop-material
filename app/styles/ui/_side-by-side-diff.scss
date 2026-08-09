@@ -13,6 +13,7 @@
   --diff-alt-text-color: var(--md-sys-color-on-surface-variant);
   --diff-border-color: var(--md-sys-color-outline-variant);
   --diff-gutter-color: var(--md-sys-color-outline-variant);
+  --diff-background-color: var(--md-sys-color-surface);
   --diff-gutter-background-color: transparent;
   --diff-line-number-color: var(--md-sys-color-on-surface-variant);
 
@@ -115,7 +116,7 @@
     font-family: var(--font-family-monospace);
     font-size: var(--font-size-sm);
     color: var(--diff-text-color);
-    background: var(--background-color);
+    background: var(--diff-background-color);
   }
 
   .ReactVirtualized__Grid:focus {

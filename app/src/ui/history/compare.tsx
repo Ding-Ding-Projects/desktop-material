@@ -205,6 +205,7 @@ export class CompareSidebar extends React.Component<
   private commitListRef = React.createRef<CommitList>()
   private historyGraphViewRef = React.createRef<HistoryGraphView>()
   private loadingMoreCommitsPromise: Promise<void> | null = null
+  private loadingMoreCommitsResetTimer: number | null = null
   private loadingSearchCommitsPromise: Promise<void> | null = null
   private exhaustedSearchQuery: string | null = null
   private commitFilterCache: ICommitFilterCache | null = null
@@ -333,6 +334,11 @@ export class CompareSidebar extends React.Component<
   public componentWillUnmount() {
     this.isUnmounted = true
     this.textbox = null
+    if (this.loadingMoreCommitsResetTimer !== null) {
+      window.clearTimeout(this.loadingMoreCommitsResetTimer)
+      this.loadingMoreCommitsResetTimer = null
+    }
+    this.loadingMoreCommitsPromise = null
     document.removeEventListener(
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
@@ -1494,9 +1500,20 @@ export class CompareSidebar extends React.Component<
           // deferring unsetting this flag to some time _after_ the commits
           // have been appended to prevent eagerly adding more commits due
           // to scroll events (which fire indiscriminately)
-          window.setTimeout(() => {
+          if (this.isUnmounted) {
+            this.loadingMoreCommitsPromise = null
+            return
+          }
+          this.loadingMoreCommitsResetTimer = window.setTimeout(() => {
+            this.loadingMoreCommitsResetTimer = null
             this.loadingMoreCommitsPromise = null
           }, 500)
+        })
+        .catch(error => {
+          this.loadingMoreCommitsPromise = null
+          if (!this.isUnmounted) {
+            defaultErrorHandler(error, this.props.dispatcher)
+          }
         })
     }
   }

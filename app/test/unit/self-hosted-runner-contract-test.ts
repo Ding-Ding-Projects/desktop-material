@@ -19,7 +19,10 @@ import {
   buildWindowsRunnerRemovalInvocation,
 } from '../../src/lib/self-hosted-runner/registration-command'
 import { assessSelfHostedWorkflowRisk } from '../../src/lib/self-hosted-runner/workflow-trust'
-import { WindowsSelfHostedRunnerManager } from '../../src/main-process/self-hosted-runner/manager'
+import {
+  SelfHostedRunnerManagerError,
+  WindowsSelfHostedRunnerManager,
+} from '../../src/main-process/self-hosted-runner/manager'
 import {
   runSelfHostedRunnerProcess,
   waitForSelfHostedRunnerProcessStop,
@@ -736,6 +739,199 @@ describe('self-hosted runner setup contracts', () => {
   })
 
   it(
+    'audits the built-in self-hosted label before creating managed runner files',
+    { skip: process.platform !== 'win32' },
+    async () => {
+      const userData = await mkdtemp(join(tmpdir(), 'runner-complete-labels-'))
+      const managedRoot = join(userData, 'self-hosted-runners')
+      const manager = new WindowsSelfHostedRunnerManager(
+        userData,
+        () => undefined
+      )
+      const internal = manager as unknown as {
+        assertRepositoryWorkflowTrust(): Promise<{
+          readonly commitSHA: string
+          readonly workflowCount: number
+        }>
+        assertStableRunnerQueue(
+          endpoint: string,
+          owner: string,
+          repository: string,
+          token: string,
+          labels: ReadonlyArray<string>
+        ): Promise<void>
+      }
+      let auditedLabels: ReadonlyArray<string> = []
+      manager.updateAccountTokens([
+        {
+          accountKey: 'https://api.github.com/#101',
+          endpoint: 'https://api.github.com/',
+          token: 'account-token',
+        },
+      ])
+      internal.assertRepositoryWorkflowTrust = async () => ({
+        commitSHA: 'a'.repeat(40),
+        workflowCount: 0,
+      })
+      internal.assertStableRunnerQueue = async (
+        _endpoint,
+        _owner,
+        _repository,
+        _token,
+        labels
+      ) => {
+        auditedLabels = labels
+        throw new SelfHostedRunnerManagerError(
+          'runner-queued-job-blocked',
+          'A queued job with only the self-hosted label can target this runner.',
+          'queued-job-evidence'
+        )
+      }
+
+      try {
+        const reply = await manager.setup({
+          id: 'runner-id',
+          accountKey: 'https://api.github.com/#101',
+          owner: 'owner',
+          repository: 'repository',
+          githubApiEndpoint: 'https://api.github.com/',
+          name: 'repository-windows-runner',
+          labels: ['repository-windows-local'],
+          platform: 'windows',
+          createDedicatedWsl: false,
+          autoInstallDependencies: false,
+        })
+        assert.equal(reply.ok, false)
+        if (!reply.ok) {
+          assert.equal(reply.code, 'preflight-risk-not-accepted')
+        }
+        assert.deepEqual(auditedLabels, [
+          'self-hosted',
+          'repository-windows-local',
+          'Windows',
+          process.arch === 'arm64' ? 'ARM64' : 'X64',
+        ])
+        await assert.rejects(access(managedRoot), { code: 'ENOENT' })
+      } finally {
+        await manager.shutdown()
+        await rm(userData, { recursive: true, force: true })
+      }
+    }
+  )
+
+  it('keeps native risk acceptance exact, evidence-bound, and limited to one setup operation', async () => {
+    const userData = await mkdtemp(join(tmpdir(), 'runner-risk-receipt-'))
+    const progress: string[] = []
+    const confirmationCodes: string[] = []
+    let confirm = true
+    const manager = new WindowsSelfHostedRunnerManager(
+      userData,
+      event => {
+        progress.push(event.detail)
+      },
+      async confirmation => {
+        confirmationCodes.push(confirmation.code)
+        return confirm
+      }
+    )
+    const internal = manager as unknown as {
+      assertRepositoryWorkflowTrust(): Promise<unknown>
+      assertRepositoryWorkflowTrustWithConfirmedRisk(
+        endpoint: string,
+        accountKey: string,
+        owner: string,
+        repository: string,
+        token: string,
+        labels: ReadonlyArray<string>,
+        signal: AbortSignal | undefined,
+        receipts: Map<
+          'workflow-trust-unsafe' | 'runner-queued-job-blocked',
+          { readonly scope: string; readonly evidence: string }
+        >,
+        runnerId: string,
+        auditName: string
+      ): Promise<unknown>
+    }
+    const receipts = new Map<
+      'workflow-trust-unsafe' | 'runner-queued-job-blocked',
+      { readonly scope: string; readonly evidence: string }
+    >()
+    const invoke = () =>
+      internal.assertRepositoryWorkflowTrustWithConfirmedRisk(
+        'https://api.github.com/',
+        'https://api.github.com/#101',
+        'owner',
+        'repository',
+        'token',
+        ['self-hosted', 'Windows', 'X64'],
+        undefined,
+        receipts,
+        'runner-id',
+        'test workflow'
+      )
+
+    try {
+      internal.assertRepositoryWorkflowTrust = async () => {
+        throw new SelfHostedRunnerManagerError(
+          'workflow-trust-unsafe',
+          'unsafe workflow',
+          'workflow-evidence-one'
+        )
+      }
+      assert.equal(await invoke(), null)
+      assert.deepEqual(confirmationCodes, ['workflow-trust-unsafe'])
+
+      // The same main-process evidence can pass a later audit in this one
+      // setup operation without turning into a broad code-category bypass.
+      assert.equal(await invoke(), null)
+      assert.equal(confirmationCodes.length, 1)
+      assert.match(progress.at(-1) ?? '', /exactly matches/)
+
+      // A safe recheck erases the volatile receipt, so a later warning needs
+      // a new native decision even if its code and evidence look identical.
+      internal.assertRepositoryWorkflowTrust = async () => ({
+        commitSHA: 'a'.repeat(40),
+        workflowCount: 1,
+      })
+      await invoke()
+      assert.equal(receipts.size, 0)
+
+      confirm = false
+      internal.assertRepositoryWorkflowTrust = async () => {
+        throw new SelfHostedRunnerManagerError(
+          'workflow-trust-unsafe',
+          'unsafe workflow',
+          'workflow-evidence-one'
+        )
+      }
+      await assert.rejects(
+        invoke(),
+        error =>
+          error instanceof SelfHostedRunnerManagerError &&
+          error.code === 'preflight-risk-not-accepted'
+      )
+      assert.equal(confirmationCodes.length, 2)
+
+      internal.assertRepositoryWorkflowTrust = async () => {
+        throw new SelfHostedRunnerManagerError(
+          'workflow-trust-unavailable',
+          'workflow inventory unavailable'
+        )
+      }
+      await assert.rejects(
+        invoke(),
+        error =>
+          error instanceof SelfHostedRunnerManagerError &&
+          error.code === 'workflow-trust-unavailable'
+      )
+      assert.equal(confirmationCodes.length, 2)
+    } finally {
+      await manager.shutdown()
+      await rm(userData, { recursive: true, force: true })
+    }
+  })
+
+  it(
     'rejects incomplete public-repository metadata before authoritative preflight',
     { skip: process.platform !== 'win32' },
     async () => {
@@ -762,7 +958,7 @@ describe('self-hosted runner setup contracts', () => {
         }
         const accepted = await manager.preflight({
           ...base,
-          labels: Array.from({ length: 24 }, (_, index) => `label-${index}`),
+          labels: Array.from({ length: 23 }, (_, index) => `label-${index}`),
         })
         assert.equal(accepted.ok, false)
         if (!accepted.ok) {
@@ -771,7 +967,7 @@ describe('self-hosted runner setup contracts', () => {
 
         const refused = await manager.preflight({
           ...base,
-          labels: Array.from({ length: 25 }, (_, index) => `label-${index}`),
+          labels: Array.from({ length: 24 }, (_, index) => `label-${index}`),
         })
         assert.equal(refused.ok, false)
         if (!refused.ok) {
@@ -1968,6 +2164,68 @@ describe('self-hosted runner setup contracts', () => {
         manager.getStatus({ owner: 'owner', repository: 'repository' }),
         /runner-state-corrupt/
       )
+    } finally {
+      await rm(userData, { recursive: true, force: true })
+    }
+  })
+
+  it('removes legacy renderer-provided risk acceptance from persisted state', async () => {
+    const userData = await mkdtemp(join(tmpdir(), 'runner-state-risk-'))
+    const managedRoot = join(userData, 'self-hosted-runners')
+    await mkdir(managedRoot, { recursive: true })
+    await writeFile(
+      join(managedRoot, 'runners.json'),
+      JSON.stringify({
+        schemaVersion: 1,
+        runners: [
+          {
+            id: 'runner-id',
+            accountKey: 'https://api.github.com/#41',
+            owner: 'owner',
+            repository: 'repository',
+            githubApiEndpoint: 'https://api.github.com/',
+            name: 'runner-name',
+            labels: ['repository-windows-local'],
+            platform: 'windows',
+            wslDistribution: null,
+            dedicatedWsl: false,
+            acceptedPreflightRiskCode: 'workflow-trust-unavailable',
+            createdAt: '2026-08-07T20:00:00.000Z',
+            pid: null,
+            status: 'stopped',
+          },
+        ],
+      })
+    )
+    try {
+      const manager = new WindowsSelfHostedRunnerManager(
+        userData,
+        () => undefined
+      )
+      const internal = manager as unknown as {
+        loadRecords(): Promise<Array<Record<string, unknown>>>
+        saveRecords(): Promise<void>
+      }
+      const records = await internal.loadRecords()
+      assert.equal(
+        Object.prototype.hasOwnProperty.call(
+          records[0],
+          'acceptedPreflightRiskCode'
+        ),
+        false
+      )
+      await internal.saveRecords()
+      const saved = JSON.parse(
+        await readFile(join(managedRoot, 'runners.json'), 'utf8')
+      ) as { readonly runners: ReadonlyArray<Record<string, unknown>> }
+      assert.equal(
+        Object.prototype.hasOwnProperty.call(
+          saved.runners[0],
+          'acceptedPreflightRiskCode'
+        ),
+        false
+      )
+      await manager.shutdown()
     } finally {
       await rm(userData, { recursive: true, force: true })
     }

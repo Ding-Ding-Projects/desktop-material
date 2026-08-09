@@ -4,6 +4,7 @@ import {
   app,
   Menu,
   BrowserWindow,
+  dialog,
   shell,
   session,
   systemPreferences,
@@ -1195,6 +1196,31 @@ app.on('ready', () => {
       for (const window of getAppWindows()) {
         window.sendSelfHostedRunnerProgress(progress)
       }
+    },
+    async confirmation => {
+      const options: Electron.MessageBoxOptions = {
+        type: 'warning',
+        title: 'Confirm self-hosted runner risk',
+        message: `The current ${confirmation.auditName} check found a known risk.`,
+        detail: [
+          `Repository: ${confirmation.owner}/${confirmation.repository}`,
+          `Labels: ${confirmation.labels.join(', ')}`,
+          '',
+          confirmation.recovery,
+          '',
+          'Proceed only if you understand that a self-hosted Actions runner can run repository workflow code with this Windows user account. This confirmation applies only to this exact setup operation and current audit evidence.',
+        ].join('\n'),
+        buttons: ['Cancel setup', 'Proceed with current known risk'],
+        defaultId: 0,
+        cancelId: 0,
+        noLink: true,
+      }
+      const parent = BrowserWindow.getFocusedWindow()
+      const result =
+        parent === null
+          ? await dialog.showMessageBox(options)
+          : await dialog.showMessageBox(parent, options)
+      return result.response === 1
     }
   )
 

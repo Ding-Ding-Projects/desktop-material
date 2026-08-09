@@ -15,6 +15,9 @@ changes without changing Git's underlying patch or selection behavior.
 - [Changed-file trees and diff context](changed-file-trees-and-diff-context.md)
   — organize nested changed paths without changing file actions, and persist
   bounded context-expansion preferences.
+- [Theme-aware diff surfaces](theme-aware-diff-surfaces.md) — keep unified and
+  standalone side-by-side context rows on the active Material surface in both
+  light and dark themes.
 
 ## API applicability
 

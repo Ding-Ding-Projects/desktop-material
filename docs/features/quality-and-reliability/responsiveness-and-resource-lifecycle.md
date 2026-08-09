@@ -50,6 +50,19 @@ no preference, language string, credential format, or provider API.
 - A sandboxed Markdown preview removes its capture-phase document listener with
   the same capture option used at registration. Unmount also cancels deferred
   scroll work and releases iframe document/frame references.
+- UI components that defer work across a transition retain the timer handle
+  and clear it on unmount. The tutorial pull-request handoff, the preferences
+  popup opened from an application error, and history's delayed pagination
+  reset cannot dispatch through a destroyed component or retain its props until
+  the delay expires. History pagination also clears its in-flight marker after
+  a rejected load so one transient failure cannot permanently disable loading.
+- Repository Settings' Build & Run profile probe and `.gitignore` template
+  suggestion probe each carry a mount flag and monotonic request generation.
+  A result is applied only when the same settings tab is still mounted, its
+  repository path still matches, and no newer probe superseded it. Closing the
+  tab or switching repositories invalidates the request, so a late filesystem
+  walk cannot call `setState` on an unmounted React component or replace the
+  next repository's data with stale results.
 
 ## Configuration and persistence
 
@@ -173,6 +186,11 @@ that same-origin authorization survives only after the stale record is
 released. `sandboxed-markdown-lifecycle-test.tsx` performs 25 content reloads,
 dispatches an actual scroll before and after unmount, and checks matching
 listener removal, debounce cancellation, and released iframe references.
+`build-run-settings-lifecycle-test.tsx` and
+`git-ignore-lifecycle-test.tsx` resolve controlled filesystem probes only after
+their settings tabs unmount, then assert that React reports no unmounted state
+update. The related preference and catalog tests exercise the normal mounted
+paths as well.
 
 App-source candidate `aabb111d2c01f38e7535ab077048816a5ad16893` completed
 the required fixed-Lowlevel-MCP production build in 1178.13 seconds. A final

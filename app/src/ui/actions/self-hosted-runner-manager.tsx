@@ -8,6 +8,7 @@ import {
   ISelfHostedRunner,
   ISelfHostedRunnerProgress,
   ISelfHostedRunnerStatus,
+  KnownUnsafeSelfHostedRunnerPreflightCode,
   SelfHostedRunnerPlatform,
 } from '../../lib/self-hosted-runner/types'
 import { Account, getAccountKey } from '../../models/account'
@@ -33,8 +34,10 @@ interface ISelfHostedRunnerManagerState {
   readonly setupPreflightStatus: 'checking' | 'safe' | 'unsafe' | 'unavailable'
   readonly setupPreflightDetail: string
   readonly setupPreflightScopeKey: string | null
+  readonly setupPreflightRiskCode: KnownUnsafeSelfHostedRunnerPreflightCode | null
   readonly workflowTrustAcknowledged: boolean
   readonly hostAccessAcknowledged: boolean
+  readonly preflightRiskAcknowledged: boolean
   readonly selectedAccountKey: string
   readonly platform: SelfHostedRunnerPlatform
   readonly runnerName: string
@@ -99,6 +102,15 @@ function errorText(error: unknown, fallback: string): string {
     : fallback
 }
 
+function knownUnsafePreflightRiskCode(
+  code: unknown
+): KnownUnsafeSelfHostedRunnerPreflightCode | null {
+  return code === 'workflow-trust-unsafe' ||
+    code === 'runner-queued-job-blocked'
+    ? code
+    : null
+}
+
 export class SelfHostedRunnerManager extends React.Component<
   ISelfHostedRunnerManagerProps,
   ISelfHostedRunnerManagerState
@@ -132,8 +144,10 @@ export class SelfHostedRunnerManager extends React.Component<
       setupPreflightDetail:
         "Waiting to check the current setup form's account and proposed labels.",
       setupPreflightScopeKey: null,
+      setupPreflightRiskCode: null,
       workflowTrustAcknowledged: false,
       hostAccessAcknowledged: false,
+      preflightRiskAcknowledged: false,
       selectedAccountKey: account === undefined ? '' : getAccountKey(account),
       platform: 'windows',
       runnerName: `desktop-material-${
@@ -224,16 +238,46 @@ export class SelfHostedRunnerManager extends React.Component<
     ipcRenderer.removeListener('self-hosted-runner-progress', this.onProgress)
   }
 
+  private customRunnerLabels(): ReadonlyArray<string> {
+    const labels: string[] = []
+    const seen = new Set<string>()
+    for (const label of this.state.labels
+      .split(',')
+      .map(value => value.trim())
+      .filter(value => value.length > 0)) {
+      const key = label.toLocaleLowerCase()
+      if (!seen.has(key)) {
+        seen.add(key)
+        labels.push(label)
+      }
+    }
+    return labels
+  }
+
+  private setupLabelValidationError(): string | null {
+    const labels = this.customRunnerLabels()
+    if (labels.length < 1 || labels.length > 20) {
+      return 'Add between one and 20 custom runner labels before running the setup preflight.'
+    }
+    return null
+  }
+
   private setupPreflightLabels(): ReadonlyArray<string> {
-    return [
+    const labels: string[] = []
+    const seen = new Set<string>()
+    for (const label of [
       'self-hosted',
-      ...this.state.labels
-        .split(',')
-        .map(label => label.trim())
-        .filter(label => label.length > 0),
+      ...this.customRunnerLabels(),
       this.state.platform === 'windows' ? 'Windows' : 'Linux',
       process.arch === 'arm64' ? 'ARM64' : 'X64',
-    ]
+    ]) {
+      const key = label.toLocaleLowerCase()
+      if (!seen.has(key)) {
+        seen.add(key)
+        labels.push(label)
+      }
+    }
+    return labels
   }
 
   private currentSetupPreflightScopeKey(
@@ -257,6 +301,8 @@ export class SelfHostedRunnerManager extends React.Component<
       setupPreflightDetail:
         "Waiting to check the current setup form's account and proposed labels.",
       setupPreflightScopeKey: null,
+      setupPreflightRiskCode: null,
+      preflightRiskAcknowledged: false,
     })
   }
 
@@ -313,6 +359,8 @@ export class SelfHostedRunnerManager extends React.Component<
             setupPreflightDetail:
               'Connect the repository before workflow safety can be checked.',
             setupPreflightScopeKey: null,
+            setupPreflightRiskCode: null,
+            preflightRiskAcknowledged: false,
           })
         }
         return
@@ -359,7 +407,22 @@ export class SelfHostedRunnerManager extends React.Component<
                 : 'private-fork policy'
             }, one immutable workflow commit, and pending runner jobs.`,
             setupPreflightScopeKey: null,
+            setupPreflightRiskCode: null,
+            preflightRiskAcknowledged: false,
           })
+        }
+        const labelValidationError = this.setupLabelValidationError()
+        if (labelValidationError !== null) {
+          if (isCurrent()) {
+            this.setState({
+              setupPreflightStatus: 'unavailable',
+              setupPreflightDetail: labelValidationError,
+              setupPreflightScopeKey: null,
+              setupPreflightRiskCode: null,
+              preflightRiskAcknowledged: false,
+            })
+          }
+          return
         }
         try {
           const runnerLabels = this.setupPreflightLabels()
@@ -384,6 +447,9 @@ export class SelfHostedRunnerManager extends React.Component<
             isCurrent() &&
             preflightScopeKey === this.currentSetupPreflightScopeKey()
           ) {
+            const riskCode = audit.ok
+              ? null
+              : knownUnsafePreflightRiskCode(audit.code)
             this.setState(
               audit.ok
                 ? {
@@ -401,15 +467,17 @@ export class SelfHostedRunnerManager extends React.Component<
                       12
                     )}, and found two stable queue snapshots with no pending job that can claim these labels.`,
                     setupPreflightScopeKey: preflightScopeKey,
+                    setupPreflightRiskCode: null,
+                    preflightRiskAcknowledged: false,
                   }
                 : {
                     setupPreflightStatus:
-                      audit.code === 'workflow-trust-unsafe' ||
-                      audit.code === 'runner-queued-job-blocked'
-                        ? 'unsafe'
-                        : 'unavailable',
+                      riskCode === null ? 'unavailable' : 'unsafe',
                     setupPreflightDetail: audit.recovery,
-                    setupPreflightScopeKey: null,
+                    setupPreflightScopeKey:
+                      riskCode === null ? null : preflightScopeKey,
+                    setupPreflightRiskCode: riskCode,
+                    preflightRiskAcknowledged: false,
                   }
             )
           }
@@ -422,6 +490,8 @@ export class SelfHostedRunnerManager extends React.Component<
                 'The complete workflow inventory could not be read and parsed, so setup remains blocked.'
               ),
               setupPreflightScopeKey: null,
+              setupPreflightRiskCode: null,
+              preflightRiskAcknowledged: false,
             })
           }
         }
@@ -433,6 +503,8 @@ export class SelfHostedRunnerManager extends React.Component<
           setupPreflightDetail:
             'Select a signed-in GitHub account before workflow safety can be checked.',
           setupPreflightScopeKey: null,
+          setupPreflightRiskCode: null,
+          preflightRiskAcknowledged: false,
         })
       }
     } catch (error) {
@@ -442,6 +514,12 @@ export class SelfHostedRunnerManager extends React.Component<
             error,
             'The runner manager could not load its status.'
           ),
+          setupPreflightStatus: 'unavailable',
+          setupPreflightDetail:
+            'The runner manager status could not be loaded, so setup remains blocked.',
+          setupPreflightScopeKey: null,
+          setupPreflightRiskCode: null,
+          preflightRiskAcknowledged: false,
         })
       }
     }
@@ -487,12 +565,24 @@ export class SelfHostedRunnerManager extends React.Component<
     if (this.state.status?.supported !== true) {
       return 'Runner setup is available only in the Windows desktop app.'
     }
+    const labelValidationError = this.setupLabelValidationError()
+    if (labelValidationError !== null) {
+      return labelValidationError
+    }
     if (
-      this.state.setupPreflightStatus !== 'safe' ||
+      (this.state.setupPreflightStatus !== 'safe' &&
+        this.state.setupPreflightStatus !== 'unsafe') ||
       this.state.setupPreflightScopeKey === null ||
       this.state.setupPreflightScopeKey !== this.currentSetupPreflightScopeKey()
     ) {
-      return 'Wait for a complete safe setup-form preflight for the current account and proposed labels.'
+      return 'Wait for a complete setup-form preflight for the current account and proposed labels.'
+    }
+    if (
+      this.state.setupPreflightStatus === 'unsafe' &&
+      (this.state.setupPreflightRiskCode === null ||
+        !this.state.preflightRiskAcknowledged)
+    ) {
+      return 'Review the completed preflight warning and select the explicit risk-acceptance checkbox before setup.'
     }
     if (
       !this.state.workflowTrustAcknowledged ||
@@ -546,10 +636,7 @@ export class SelfHostedRunnerManager extends React.Component<
       }
       return
     }
-    const labels = this.state.labels
-      .split(',')
-      .map(label => label.trim())
-      .filter(label => label.length > 0)
+    const labels = this.customRunnerLabels()
     if (labels.length === 0) {
       this.setState({ error: 'Add at least one runner label.' })
       return
@@ -835,7 +922,8 @@ export class SelfHostedRunnerManager extends React.Component<
             Starting {runner.name} runs a fresh main-process audit using that
             runner&apos;s exact live labels, private-fork policy, immutable
             default-branch workflows, and pending jobs. The setup-form preflight
-            is not reused.
+            is not reused; Start remains strict and never reuses a prior
+            risk-acceptance decision.
           </p>
         )}
         {managementAvailable && startBlockReason !== null && (
@@ -1076,8 +1164,9 @@ export class SelfHostedRunnerManager extends React.Component<
               />
               <p className="actions-runner-help">
                 GitHub adds the built-in self-hosted, operating-system, and
-                architecture labels. The suggested project label matches this
-                repository&apos;s dedicated-runner workflow convention.
+                architecture labels. Enter one to 20 custom labels; the
+                suggested project label matches this repository&apos;s
+                dedicated-runner workflow convention.
               </p>
 
               <div
@@ -1099,7 +1188,11 @@ export class SelfHostedRunnerManager extends React.Component<
               <p className="actions-runner-help">
                 This result applies only to the selected account and proposed
                 labels currently shown in the setup form. Existing-runner Start
-                does not reuse it.
+                always runs a fresh audit of its live labels. The two
+                acknowledgements confirm the host risk. A completed known
+                warning can proceed only after the separate explicit choice
+                below and a Windows-owned confirmation of the fresh evidence;
+                unavailable or indeterminate checks stay blocked.
               </p>
               <Checkbox
                 value={
@@ -1129,6 +1222,34 @@ export class SelfHostedRunnerManager extends React.Component<
                   })
                 }
               />
+              {this.state.setupPreflightStatus === 'unsafe' && (
+                <>
+                  <Checkbox
+                    value={
+                      this.state.preflightRiskAcknowledged
+                        ? CheckboxValue.On
+                        : CheckboxValue.Off
+                    }
+                    disabled={this.state.busy || this.state.removeSubmitting}
+                    label="I reviewed this completed preflight warning and choose to set up this runner despite the stated risks"
+                    onChange={event =>
+                      this.setState({
+                        preflightRiskAcknowledged: event.currentTarget.checked,
+                      })
+                    }
+                  />
+                  <p className="actions-runner-help" role="note">
+                    This checkbox records your intent; it does not authorize
+                    setup by itself. The main process reruns the audit and shows
+                    a Windows-owned confirmation for the current known finding.
+                    Its evidence-bound decision exists only for this setup
+                    operation. A changed finding, unavailable evidence, package
+                    verification, identity checks, and unique-name protection
+                    still stop setup; Start and scheduled monitoring never reuse
+                    the decision.
+                  </p>
+                </>
+              )}
 
               {this.state.platform === 'linux-wsl' && (
                 <div className="actions-runner-wsl-options">

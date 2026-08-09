@@ -18,6 +18,7 @@ import {
   readCommitTreeEntries,
   readIndexStageEntries,
 } from './batched-object-reads'
+import { getIndexChanges } from './diff-index'
 
 const ObjectIdPattern = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/
 const RemoteNamePattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$/
@@ -735,7 +736,7 @@ export async function beginCommitPushBatchIntent(
   if (baseSha !== null) {
     requireObjectId(baseSha, 'intent base')
   }
-  const validatedPaths = validatePlannedPaths(paths)
+  validatePlannedPaths(paths)
   const target = validateCommitPushBatchTarget(targetInput)
   const branchRef = await captureCommitPushBatchBranchRef(repository)
   const actualBase = await captureCommitPushBatchBase(repository)
@@ -763,12 +764,27 @@ export async function beginCommitPushBatchIntent(
     captureRequiredFileProofs(repository, requiredFileInputs),
   ])
 
+  // The caller's paths describe the reviewed selection, but Git's index is
+  // the source of truth for what can actually reach the commit. In
+  // particular, core.autocrlf (and other clean filters) can turn a selected
+  // worktree change into a no-op in the index. Persist only the paths that
+  // differ from the exact parent. The post-commit proof remains the final
+  // hook/race check and rejects every committed path outside this normalized
+  // plan, so intent creation does not move that failure earlier than the
+  // crash-window recovery boundary.
+  const indexedPaths = [...(await getIndexChanges(repository)).keys()]
+  const allowedPathSet = new Set([
+    ...paths,
+    ...requiredFileInputs.map(file => file.relativePath),
+  ])
+  const effectivePaths = indexedPaths.filter(path => allowedPathSet.has(path))
+
   const serialized = serializeCommitPushBatchIntent(
     baseSha,
     branchRef,
     indexTreeSha,
     worktreeTreeSha,
-    validatedPaths,
+    effectivePaths,
     requiredFiles,
     target
   )
@@ -817,7 +833,7 @@ export async function beginCommitPushBatchIntent(
     branchRef,
     indexTreeSha,
     worktreeTreeSha,
-    paths: validatedPaths,
+    paths: effectivePaths,
     requiredFiles,
     target,
   }

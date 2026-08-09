@@ -1,6 +1,21 @@
 # Desktop Material roadmap
 
-Updated: **August 7, 2026**
+Updated: **August 9, 2026**
+
+## August 9 — evidence-bound self-hosted runner risk confirmation
+
+- The Windows self-hosted-runner form now limits custom labels to 20 and
+  audits the complete `self-hosted`, custom, operating-system, and architecture
+  label set before any managed runner file or registration exists.
+- A completed unsafe workflow or queued-job preflight can be intentionally
+  reviewed in the form, but the renderer cannot authorize it. The main process
+  reruns the check, shows a Windows-owned confirmation, and keeps a volatile
+  receipt only for matching scope and evidence during that setup operation.
+- The receipt is cleared after a safe recheck, never reaches disk, and is never
+  reused by Start or the scheduled trust monitor; unknown or incomplete
+  evidence remains blocking.
+- Focused runner verification passes **61/61**, and the root TypeScript check
+  passes. Full release gates and remote release evidence remain pending.
 
 ## August 9 — School mode and command shortcut completion
 

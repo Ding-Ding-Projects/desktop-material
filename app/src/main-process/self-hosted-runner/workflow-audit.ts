@@ -29,7 +29,9 @@ export class RepositoryWorkflowAuditError extends Error {
     public readonly kind: 'unavailable' | 'unsafe',
     public readonly findings: ReadonlyArray<
       ISelfHostedWorkflowRisk & { readonly path: string }
-    > = []
+    > = [],
+    /** Present when an unsafe finding was read from an immutable commit. */
+    public readonly commitSHA?: string
   ) {
     super(`repository-workflow-audit-${kind}`)
   }
@@ -341,7 +343,7 @@ export async function auditRepositoryWorkflowsForSelfHostedRunner(
     }
   }
   if (findings.length > 0) {
-    throw new RepositoryWorkflowAuditError('unsafe', findings)
+    throw new RepositoryWorkflowAuditError('unsafe', findings, commit.sha)
   }
   return { commitSHA: commit.sha, workflowCount: workflowPaths.length }
 }

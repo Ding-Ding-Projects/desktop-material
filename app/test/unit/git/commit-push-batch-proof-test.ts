@@ -261,6 +261,31 @@ describe('Git-backed automatic commit batch proof', () => {
     )
   })
 
+  it('drops selected paths which become index no-ops before recovery proof', async t => {
+    const repository = await setupProofRepository(t)
+    const base = await captureCommitPushBatchBase(repository)
+    await writeFile(join(repository.path, 'planned.txt'), 'planned')
+    // `base.txt` is included in the reviewed selection but has no effective
+    // index change. This is the same shape produced by line-ending cleanup
+    // when the worktree bytes differ but the normalized Git blob does not.
+    await runGit(repository, ['add', '--all'])
+
+    const intent = await beginCommitPushBatchIntent(
+      repository,
+      base,
+      ['planned.txt', 'base.txt'],
+      target
+    )
+    assert.deepEqual(intent.paths, ['planned.txt'])
+
+    await runGit(repository, ['commit', '-m', 'normalized batch'])
+    const recovery = await recoverCommitPushBatchIntent(repository)
+    assert.equal(recovery.kind, 'recovered-commit')
+    if (recovery.kind === 'recovered-commit') {
+      assert.deepEqual(recovery.proof.paths, ['planned.txt'])
+    }
+  })
+
   it('retains a no-commit intent when the index changed', async t => {
     const repository = await setupProofRepository(t)
     const base = await captureCommitPushBatchBase(repository)
