@@ -554,7 +554,10 @@ describe('CI workflow safety', () => {
     assert.doesNotMatch(installerWorkflow, /block_reason=stale/)
     assert.doesNotMatch(installerWorkflow, /Record stale non-publishing result/)
     assert.doesNotMatch(installerWorkflow, /became stale while building/)
-    assert.doesNotMatch(installerWorkflow, /group: build-installers-publisher/)
+    assert.match(
+      installerWorkflow,
+      /^  group: build-installers-publisher-\$\{\{ github\.repository \}\}$/m
+    )
     assert.match(
       installerWorkflow,
       /Publish GitHub release[\s\S]*?gh release create[\s\S]*?--latest=false/
@@ -685,6 +688,15 @@ describe('CI workflow safety', () => {
         continue
       }
 
+      if (file === 'build-installers.yml') {
+        assert.match(
+          source,
+          /^  group: build-installers-publisher-\$\{\{ github\.repository \}\}$/m,
+          `${file} must serialize release publishers by repository`
+        )
+        continue
+      }
+
       assert.doesNotMatch(source, /cancel-in-progress:\s*true/)
 
       if (/^concurrency:/m.test(source)) {
@@ -708,7 +720,7 @@ describe('CI workflow safety', () => {
     assertJobRunsOn(installerWorkflowDocument, 'package', 'windows-2022')
     assert.match(
       installerWorkflow,
-      /^  group: build-installers-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}$/m
+      /^  group: build-installers-publisher-\$\{\{ github\.repository \}\}$/m
     )
     assert.match(installerWorkflow, /cancel-in-progress:\s*false/)
     for (const jobName of [
