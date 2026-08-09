@@ -197,7 +197,7 @@ describe('Cheap LFS payload password dialog', () => {
         funnyLevelEnglish: 5,
         funnyLevelCantonese: 1,
         expected:
-          'This commit is waiting at the encryption gate. Its large files will be pinned and uploaded only as encrypted ciphertext; Cancel stops the commit before any upload starts. Desktop Material cannot recover a lost password. · 呢個 commit 正等緊密碼，之後先會將大檔 pin 好，而且只會以加密 ciphertext 上載。撳「取消」會喺任何上載開始前停止 commit。Desktop Material 無法復原遺失嘅密碼。',
+          'This commit is at the encryption gate doing the secret handshake, and the gate still wants the password first. Its large files will be pinned and uploaded only as encrypted ciphertext; Cancel stops the commit before a single byte is uploaded. One part is said with a straight face: Desktop Material cannot recover a lost password — there is no locksmith. · 呢個 commit 正等緊密碼，之後先會將大檔 pin 好，而且只會以加密 ciphertext 上載。撳「取消」會喺任何上載開始前停止 commit。Desktop Material 無法復原遺失嘅密碼。',
       },
     ] as const
 

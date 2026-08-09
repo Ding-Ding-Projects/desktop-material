@@ -390,7 +390,7 @@ describe('RepositoriesList collapsible groups', () => {
     await waitFor(() =>
       assert.ok(
         screen.getByRole('button', {
-          name: 'Other, 3 repositories, wide open for business',
+          name: 'Other, 3 repositories, doors flung open and the kettle on',
         })
       )
     )
@@ -399,7 +399,7 @@ describe('RepositoriesList collapsible groups', () => {
     await waitFor(() =>
       assert.ok(
         screen.getByRole('button', {
-          name: 'Other, 3 repositories, folded up and hiding',
+          name: 'Other, 3 repositories, folded flat and pretending to be furniture',
         })
       )
     )

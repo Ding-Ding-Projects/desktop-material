@@ -273,9 +273,9 @@ describe('CheapLfsRestoreProgress', () => {
     const phaseBadge = badges[badges.length - 1]
     assert.equal(
       phaseBadge.textContent,
-      'Phase: Decrypting · 階段：幫啲加密資料解密緊'
+      'Phase: Decrypting · 階段：氹緊啲密文開口講嘢'
     )
-    assert.ok(screen.getByText('Decrypting · 幫啲加密資料解密緊'))
+    assert.ok(screen.getByText('Decrypting · 氹緊啲密文開口講嘢'))
 
     localStorage.setItem('language-mode-v1', 'english')
     localStorage.setItem(
@@ -298,8 +298,10 @@ describe('CheapLfsRestoreProgress', () => {
       />
     )
 
-    assert.ok(screen.getByText('Phase: Decrypting the locked bytes'))
-    assert.ok(screen.getByText('Decrypting the locked bytes'))
+    assert.ok(
+      screen.getByText('Phase: Sweet-talking the ciphertext into opening up')
+    )
+    assert.ok(screen.getByText('Sweet-talking the ciphertext into opening up'))
   })
 
   it('renders the sequential compatibility snapshot without bogus lane data', () => {
