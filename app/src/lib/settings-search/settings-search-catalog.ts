@@ -1,5 +1,6 @@
 import { PreferencesTab } from '../../models/preferences'
 import { translate, TranslationKey } from '../i18n'
+import { isSchoolModeEnabled, readSchoolMode } from '../school-mode'
 import {
   FilterMode,
   IFilterOptions,
@@ -38,6 +39,9 @@ export interface ISettingsSearchEntry {
    * repeated here.
    */
   readonly keywords: ReadonlyArray<string>
+
+  /** The setting is omitted while School mode is active. */
+  readonly hiddenInSchoolMode?: boolean
 }
 
 /** The localized display name for a Preferences tab. */
@@ -307,6 +311,7 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
         '廣東話',
         '雙語',
       ],
+      hiddenInSchoolMode: true,
     },
     {
       id: 'appearance-school-mode',
@@ -356,6 +361,7 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
         'bilingual',
         '語言',
       ],
+      hiddenInSchoolMode: true,
     },
     {
       id: 'appearance-scheduled-theme',
@@ -592,6 +598,7 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
         '幾好玩',
         '玩到盡',
       ],
+      hiddenInSchoolMode: true,
     },
     {
       id: 'appearance-accent',
@@ -630,6 +637,7 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
         '語氣',
         '廣東話',
       ],
+      hiddenInSchoolMode: true,
     },
     // Notifications (reuses the pane's own localized labels)
     {
@@ -911,18 +919,35 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
 export function settingsSearchKeys(
   entry: ISettingsSearchEntry
 ): ReadonlyArray<string> {
+  const schoolModeName =
+    entry.id === 'appearance-school-mode' ? readSchoolMode().name : null
   const title = [
-    translate(entry.titleKey, 'english'),
-    translate(entry.titleKey, 'cantonese'),
+    settingsSearchText(entry, entry.titleKey, 'english'),
+    settingsSearchText(entry, entry.titleKey, 'cantonese'),
+    schoolModeName,
   ].join(' ')
 
   const detail = [
-    translate(entry.descriptionKey, 'english'),
-    translate(entry.descriptionKey, 'cantonese'),
+    settingsSearchText(entry, entry.descriptionKey, 'english'),
+    settingsSearchText(entry, entry.descriptionKey, 'cantonese'),
     ...entry.keywords,
+    schoolModeName ?? '',
   ].join(' ')
 
   return [title, detail]
+}
+
+/** Resolve visible settings text, including a renamed School mode. */
+export function settingsSearchText(
+  entry: ISettingsSearchEntry,
+  key: TranslationKey,
+  languageOrLocale: string
+): string {
+  return translate(
+    key,
+    languageOrLocale,
+    entry.id === 'appearance-school-mode' ? { name: readSchoolMode().name } : {}
+  )
 }
 
 /**
@@ -933,13 +958,21 @@ export function settingsSearchKeys(
 export function filterSettingsEntries(
   query: string,
   options: IFilterOptions,
-  entries: ReadonlyArray<ISettingsSearchEntry> = SettingsSearchCatalog
+  entries: ReadonlyArray<ISettingsSearchEntry> = SettingsSearchCatalog,
+  schoolModeEnabled = isSchoolModeEnabled()
 ): IMatchResult<ISettingsSearchEntry> {
   if (query.trim().length === 0) {
     return { results: [], regexError: null }
   }
 
-  return matchWithMode(query, entries, settingsSearchKeys, options)
+  return matchWithMode(
+    query,
+    entries.filter(
+      entry => !schoolModeEnabled || entry.hiddenInSchoolMode !== true
+    ),
+    settingsSearchKeys,
+    options
+  )
 }
 
 /**

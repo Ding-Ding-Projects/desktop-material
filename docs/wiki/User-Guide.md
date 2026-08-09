@@ -787,7 +787,8 @@ intact.
 
 ## Command palette
 
-Press `Ctrl+Shift+F` to search every named app function. The palette covers the
+Press `Ctrl+Shift+P` to search every named app function. `Ctrl+Shift+F` opens
+the current repository in its folder. The palette covers the
 whole app (Material 3's full-screen search view): results on the left, a
 detail pane on the right naming what the highlighted command does and **where
 it lives**, and a footer with the match count and keyboard hints. Each

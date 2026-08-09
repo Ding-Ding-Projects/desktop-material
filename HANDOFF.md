@@ -1,5 +1,25 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-09 — Complete School mode and settle command shortcuts
+
+School mode is now a complete Windows Appearance surface. It supports a
+persisted custom name, local salted credential setup and unlock, immediate
+English-only presentation, hidden language/playfulness controls and related
+palette/settings-search rows, hidden scheduled language selection, and dim-sum
+suppression. The renamed value is used by the visible mode surface, command
+palette, and settings search; deleting the local profile remains the documented
+reset route rather than a claim of security.
+
+The command palette is bound to `Ctrl+Shift+P`. `Ctrl+Shift+F` remains bound to
+opening the current repository in its folder, with a focused menu regression
+test covering both accelerators.
+
+Focused verification is **50/50** for the School mode, command-palette, and
+settings-search changes, and `yarn lint:src` passes. The required hidden-desktop
+capture is not claimed: the Lowlevel MCP server executes basic commands but
+hangs on its required Git preflight. Remote CI and installer-release evidence
+must still be read from the actual `main` runs.
+
 ## 2026-08-08 — Keep standard CI Windows-only and remove the 60-minute cap
 
 The standard CI and automatic installer release gates no longer include the

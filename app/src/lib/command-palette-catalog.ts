@@ -9,6 +9,7 @@ import type { MaterialSymbolName } from '../ui/lib/material-symbol'
 import type { TeleportTargetId } from './teleport-targets'
 import { PreferencesTab } from '../models/preferences'
 import { RepositorySettingsTab } from '../models/repository-settings'
+import { isSchoolModeEnabled } from './school-mode'
 
 /**
  * The application-selection snapshot an availability predicate inspects to
@@ -335,6 +336,8 @@ export interface IPaletteCommand {
    * it is never dispatched (e.g. push with no repository) from the palette.
    */
   readonly isAvailable?: PaletteAvailability
+  /** Language and playfulness controls are not installed in School mode. */
+  readonly hiddenInSchoolMode?: boolean
 }
 
 export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
@@ -876,6 +879,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     materialSymbol: 'text_format',
     keywords: 'language english cantonese bilingual 語言 廣東話 雙語',
     descriptionKey: 'palette.languageModeDescription',
+    hiddenInSchoolMode: true,
     control: {
       kind: 'choice',
       options: [
@@ -898,6 +902,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     materialSymbol: 'waving_hand',
     keywords: 'funny level playfulness humour humor english tone voice',
     descriptionKey: 'palette.funnyLevelDescription',
+    hiddenInSchoolMode: true,
     control: { kind: 'number', min: 1, max: 5, step: 1 },
     home: {
       kind: 'preferences',
@@ -913,6 +918,7 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     materialSymbol: 'waving_hand',
     keywords: 'funny level playfulness humour humor cantonese tone voice 幽默',
     descriptionKey: 'palette.funnyLevelDescription',
+    hiddenInSchoolMode: true,
     control: { kind: 'number', min: 1, max: 5, step: 1 },
     home: {
       kind: 'preferences',
@@ -3295,10 +3301,12 @@ export function filterPaletteCommands(
   commands: ReadonlyArray<IPaletteCommand>,
   query: string,
   platform?: string,
-  context?: IPaletteCommandContext
+  context?: IPaletteCommandContext,
+  schoolModeEnabled = isSchoolModeEnabled()
 ): ReadonlyArray<IPaletteCommand> {
   const platformEligible = commands.filter(
     command =>
+      (!schoolModeEnabled || command.hiddenInSchoolMode !== true) &&
       (command.platform === undefined ||
         platform === undefined ||
         command.platform === platform) &&

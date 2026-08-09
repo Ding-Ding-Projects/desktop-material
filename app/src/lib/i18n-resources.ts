@@ -3946,21 +3946,21 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'appearance.playfulnessValue': 'Level {value} of 5',
   'appearance.playfulnessSerious': '1 · Fully serious',
   'appearance.playfulnessMaximum': '5 · Maximum fun',
-  'appearance.schoolModeHeading': 'School mode',
+  'appearance.schoolModeHeading': '{name}',
   'appearance.schoolModeDescription':
-    'Force English and temporarily hide Cantonese, bilingual, funny-level, and dim sum presentation. This is a local presentation lock, not a security boundary.',
-  'appearance.schoolModeName': 'Mode name',
+    '{name} forces English and temporarily hides Cantonese, bilingual, funny-level, and dim sum presentation. This is a local presentation lock, not a security boundary.',
+  'appearance.schoolModeName': '{name} name',
   'appearance.schoolModeNameDescription':
-    'Choose the name shown for this mode across the app. The application identity and data location do not change.',
-  'appearance.schoolModeEnabled': 'Enable school mode',
+    'Choose the name shown for {name} across the app. The application identity and data location do not change.',
+  'appearance.schoolModeEnabled': 'Enable {name}',
   'appearance.schoolModeCredential': 'Unlock credential',
   'appearance.schoolModeCredentialConfirm': 'Confirm unlock credential',
   'appearance.schoolModeUnlockDescription':
-    'Enter the locally verified unlock credential to turn this mode off. The credential is stored only as a salted local digest.',
+    'Enter the locally verified unlock credential to turn {name} off. The credential is stored only as a salted local digest.',
   'appearance.schoolModeResetDescription':
-    'If the credential is lost, deleting the local application profile resets this presentation lock; it does not protect data from someone who can access that profile.',
-  'appearance.schoolModeEnable': 'Enable mode',
-  'appearance.schoolModeDisable': 'Turn off mode',
+    'If the credential is lost, deleting the local application profile resets {name}; it does not protect data from someone who can access that profile.',
+  'appearance.schoolModeEnable': 'Enable {name}',
+  'appearance.schoolModeDisable': 'Turn off {name}',
   'appearance.schoolModeCredentialInvalid':
     'Use an unlock credential between 4 and 128 characters.',
   'appearance.schoolModeCredentialMismatch':
@@ -8849,21 +8849,21 @@ export const cantoneseTranslations: Readonly<
   'appearance.playfulnessValue': '第 {value} 級，共 5 級',
   'appearance.playfulnessSerious': '1 · 完全認真',
   'appearance.playfulnessMaximum': '5 · 最玩得',
-  'appearance.schoolModeHeading': '學校模式',
+  'appearance.schoolModeHeading': '{name}',
   'appearance.schoolModeDescription':
-    '強制使用英文，暫時收起廣東話、雙語、搞笑程度同點心顯示。呢個只係本地顯示鎖，唔係保安界線。',
-  'appearance.schoolModeName': '模式名稱',
+    '{name}會強制使用英文，暫時收起廣東話、雙語、搞笑程度同點心顯示。呢個只係本地顯示鎖，唔係保安界線。',
+  'appearance.schoolModeName': '{name}名稱',
   'appearance.schoolModeNameDescription':
-    '揀一個全個程式顯示嘅模式名稱。程式身份同資料位置唔會改。',
-  'appearance.schoolModeEnabled': '開啟學校模式',
+    '揀一個全個程式顯示嘅{name}名稱。程式身份同資料位置唔會改。',
+  'appearance.schoolModeEnabled': '開啟{name}',
   'appearance.schoolModeCredential': '解鎖憑證',
   'appearance.schoolModeCredentialConfirm': '確認解鎖憑證',
   'appearance.schoolModeUnlockDescription':
-    '輸入本地驗證嘅解鎖憑證先可以關閉模式。憑證只會以加鹽摘要留喺本地。',
+    '輸入本地驗證嘅解鎖憑證先可以關閉{name}。憑證只會以加鹽摘要留喺本地。',
   'appearance.schoolModeResetDescription':
-    '如果唔記得憑證，刪除本地程式 profile 就可以重設呢個顯示鎖；任何可以讀取該 profile 嘅人都唔會因此被阻擋。',
-  'appearance.schoolModeEnable': '開啟模式',
-  'appearance.schoolModeDisable': '關閉模式',
+    '如果唔記得憑證，刪除本地程式 profile 就可以重設{name}；任何可以讀取該 profile 嘅人都唔會因此被阻擋。',
+  'appearance.schoolModeEnable': '開啟{name}',
+  'appearance.schoolModeDisable': '關閉{name}',
   'appearance.schoolModeCredentialInvalid': '解鎖憑證要有 4 至 128 個字元。',
   'appearance.schoolModeCredentialMismatch': '兩次輸入嘅解鎖憑證唔一致。',
   'appearance.schoolModeCredentialError':

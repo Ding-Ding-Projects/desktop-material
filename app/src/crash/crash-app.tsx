@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { ErrorType } from './shared'
+import { ErrorType, ICrashDetails } from './shared'
 import { TitleBar } from '../ui/window/title-bar'
 import { encodePathAsUrl } from '../lib/path'
 import { WindowState } from '../lib/window-state'
@@ -104,8 +104,7 @@ export class CrashApp extends React.Component<ICrashAppProps, ICrashAppState> {
 
   public componentDidMount() {
     ipcRenderer.on('window-state-changed', this.onWindowStateChanged)
-
-    ipcRenderer.on('error', (_, crashDetails) => this.setState(crashDetails))
+    ipcRenderer.on('error', this.onError)
 
     ipcRenderer.send('crash-ready')
   }
@@ -115,6 +114,7 @@ export class CrashApp extends React.Component<ICrashAppProps, ICrashAppState> {
       'window-state-changed',
       this.onWindowStateChanged
     )
+    ipcRenderer.removeListener('error', this.onError)
   }
 
   private initializeWindowState = async () => {
@@ -131,6 +131,13 @@ export class CrashApp extends React.Component<ICrashAppProps, ICrashAppState> {
     windowState: WindowState
   ) => {
     this.setState({ windowState })
+  }
+
+  private onError = (
+    _: Electron.IpcRendererEvent,
+    crashDetails: ICrashDetails
+  ) => {
+    this.setState({ type: crashDetails.type, error: crashDetails.error })
   }
 
   private onQuitButtonClicked = (e: React.MouseEvent<HTMLButtonElement>) => {

@@ -4,6 +4,13 @@
 
 # Desktop Material
 
+> **Current Windows closeout — August 9, 2026:** School mode is now a real
+> Appearance setting: it can be renamed, uses a local salted credential for
+> unlock, forces English, hides language/playfulness controls and search rows,
+> and suppresses the dim-sum surprise while active. The command palette opens
+> with **Ctrl+Shift+P**; **Ctrl+Shift+F** remains **Open current repository in
+> folder**. The exact implementation is in the [School mode feature guide](docs/features/design-system/school-mode.md).
+
 > **GitHub Actions and OAuth repair — August 8, 2026:** the Windows Actions
 > view now uses a searchable rich account picker, audits public repositories
 > instead of blanket-blocking them, fills the run-list row when no detail is

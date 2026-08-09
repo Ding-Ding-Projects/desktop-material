@@ -10,6 +10,12 @@ import {
   SchoolModeCredentialStorageKey,
   SchoolModeStorageKey,
 } from '../../src/lib/school-mode'
+import {
+  CommandPaletteCatalog,
+  filterPaletteCommands,
+} from '../../src/lib/command-palette-catalog'
+import { filterSettingsEntries } from '../../src/lib/settings-search/settings-search-catalog'
+import { FilterMode } from '../../src/lib/fuzzy-find'
 
 function createStorage() {
   const values = new Map<string, string>()
@@ -50,6 +56,35 @@ describe('School mode', () => {
     assert.equal(await verifySchoolModeCredential(credential, storage), true)
     assert.equal(
       await verifySchoolModeCredential('wrong credential', storage),
+      false
+    )
+  })
+
+  it('omits language and playfulness controls while enabled', () => {
+    const paletteEvents = new Set(
+      filterPaletteCommands(
+        CommandPaletteCatalog,
+        '',
+        'win32',
+        undefined,
+        true
+      ).map(command => command.event)
+    )
+    assert.equal(paletteEvents.has('palette:set-language-mode'), false)
+    assert.equal(paletteEvents.has('palette:set-funny-english'), false)
+    assert.equal(paletteEvents.has('palette:set-funny-cantonese'), false)
+    assert.equal(paletteEvents.has('palette:school-mode'), true)
+
+    const settings = filterSettingsEntries(
+      'funny level',
+      { mode: FilterMode.Substring, caseSensitive: false },
+      undefined,
+      true
+    )
+    assert.equal(
+      settings.results.some(
+        result => result.item.id === 'appearance-playfulness'
+      ),
       false
     )
   })

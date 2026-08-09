@@ -15,6 +15,7 @@ import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { PasswordTextBox } from '../lib/password-text-box'
 import { TextBox } from '../lib/text-box'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import type { TranslationVariables } from '../../lib/i18n'
 
 interface ISchoolModeProps {
   readonly languageMode: LanguageMode
@@ -52,8 +53,10 @@ export class SchoolModePreferences extends React.Component<
     }
   }
 
-  private localize = (key: Parameters<typeof translate>[0]) =>
-    translate(key, this.props.languageMode)
+  private localize = (
+    key: Parameters<typeof translate>[0],
+    variables: TranslationVariables = {}
+  ) => translate(key, this.props.languageMode, variables)
 
   private onToggle = (event: React.FormEvent<HTMLInputElement>) => {
     const checked = event.currentTarget.checked
@@ -159,6 +162,7 @@ export class SchoolModePreferences extends React.Component<
     if (!this.state.requestedEnable || this.state.schoolMode.enabled) {
       return null
     }
+    const nameVariables = { name: this.state.schoolMode.name }
     return (
       <div className="school-mode-credential-form">
         <PasswordTextBox
@@ -174,7 +178,7 @@ export class SchoolModePreferences extends React.Component<
           ariaDescribedBy="school-mode-credential-description"
         />
         <Button disabled={this.state.busy} onClick={this.onEnable}>
-          {this.localize('appearance.schoolModeEnable')}
+          {this.localize('appearance.schoolModeEnable', nameVariables)}
         </Button>
       </div>
     )
@@ -184,6 +188,7 @@ export class SchoolModePreferences extends React.Component<
     if (!this.state.schoolMode.enabled && !this.state.requestedDisable) {
       return null
     }
+    const nameVariables = { name: this.state.schoolMode.name }
     return (
       <div className="school-mode-credential-form">
         <PasswordTextBox
@@ -193,7 +198,7 @@ export class SchoolModePreferences extends React.Component<
           ariaDescribedBy="school-mode-unlock-description"
         />
         <Button disabled={this.state.busy} onClick={this.onDisable}>
-          {this.localize('appearance.schoolModeDisable')}
+          {this.localize('appearance.schoolModeDisable', nameVariables)}
         </Button>
       </div>
     )
@@ -203,6 +208,8 @@ export class SchoolModePreferences extends React.Component<
     const { schoolMode } = this.state
     const enabled = schoolMode.enabled || this.state.requestedEnable
     const credentialReady = hasSchoolModeCredential()
+    const name = schoolMode.name
+    const nameVariables = { name }
 
     return (
       <section
@@ -211,23 +218,23 @@ export class SchoolModePreferences extends React.Component<
         aria-labelledby="school-mode-heading"
       >
         <h2 id="school-mode-heading">
-          {this.localize('appearance.schoolModeHeading')}
+          {this.localize('appearance.schoolModeHeading', nameVariables)}
         </h2>
         <p id="school-mode-description" className="settings-description">
-          {this.localize('appearance.schoolModeDescription')}
+          {this.localize('appearance.schoolModeDescription', nameVariables)}
         </p>
         <TextBox
-          label={this.localize('appearance.schoolModeName')}
+          label={this.localize('appearance.schoolModeName', nameVariables)}
           value={this.state.name}
           onValueChanged={this.onNameChanged}
           onBlur={this.onNameBlur}
           ariaDescribedBy="school-mode-name-description"
         />
         <p id="school-mode-name-description" className="settings-description">
-          {this.localize('appearance.schoolModeNameDescription')}
+          {this.localize('appearance.schoolModeNameDescription', nameVariables)}
         </p>
         <Checkbox
-          label={this.localize('appearance.schoolModeEnabled')}
+          label={this.localize('appearance.schoolModeEnabled', nameVariables)}
           value={enabled ? CheckboxValue.On : CheckboxValue.Off}
           onChange={this.onToggle}
           ariaDescribedBy="school-mode-description"
@@ -239,7 +246,9 @@ export class SchoolModePreferences extends React.Component<
               id="school-mode-unlock-description"
               className="settings-description"
             >
-              {this.localize('appearance.schoolModeUnlockDescription')}
+              {this.localize('appearance.schoolModeUnlockDescription', {
+                name,
+              })}
             </p>
             {this.renderDisable()}
           </>
@@ -250,7 +259,10 @@ export class SchoolModePreferences extends React.Component<
           </p>
         ) : null}
         <p className="settings-description">
-          {this.localize('appearance.schoolModeResetDescription')}
+          {this.localize(
+            'appearance.schoolModeResetDescription',
+            nameVariables
+          )}
         </p>
       </section>
     )

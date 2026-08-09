@@ -43,6 +43,7 @@ import {
   ScheduledSettings,
 } from './scheduled-settings'
 import { SchoolModePreferences } from './school-mode'
+import { isSchoolModeEnabled } from '../../lib/school-mode'
 
 type AppearanceSelectKey = 'languageMode'
 
@@ -160,6 +161,10 @@ export class Appearance extends React.Component<
   }
 
   private renderLanguageAndNavigation() {
+    if (isSchoolModeEnabled()) {
+      return null
+    }
+
     const languageMode = this.props.appearanceCustomization.languageMode
     const localize = (key: Parameters<typeof translate>[0]) =>
       translate(key, languageMode)
@@ -789,6 +794,7 @@ export class Appearance extends React.Component<
     return (
       <ScheduledSettings
         languageMode={this.props.appearanceCustomization.languageMode}
+        schoolModeEnabled={isSchoolModeEnabled()}
         scheduledSettings={this.props.scheduledSettings}
         onScheduledSettingsChanged={this.props.onScheduledSettingsChanged}
         onHomeAssistantTokenChanged={this.props.onHomeAssistantTokenChanged}

@@ -38,6 +38,7 @@ import { CommandPaletteAppearanceEditor } from './command-palette-appearance-edi
 import { RepositorySettingsTab } from '../../models/repository-settings'
 import type { TranslationKey } from '../../lib/i18n-resources'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { readSchoolMode } from '../../lib/school-mode'
 
 /** The persistence id for the palette's filter mode. */
 const PaletteFilterListId = 'command-palette'
@@ -55,7 +56,19 @@ function paletteRowId(index: number): string {
  * command declares an i18n key, otherwise its English fallback title.
  */
 function resolvePaletteTitle(command: IPaletteCommand): string {
+  if (command.event === 'palette:school-mode') {
+    return readSchoolMode().name
+  }
   return command.titleKey !== undefined ? t(command.titleKey) : command.title
+}
+
+function resolvePaletteDescription(command: IPaletteCommand): string {
+  if (command.descriptionKey === undefined) {
+    return ''
+  }
+  return command.event === 'palette:school-mode'
+    ? t(command.descriptionKey, { name: readSchoolMode().name })
+    : t(command.descriptionKey)
 }
 
 /** Localize the six stable catalog groups shown as row chips. */
@@ -811,7 +824,7 @@ export class CommandPalette extends React.Component<
 
         {command.descriptionKey !== undefined && (
           <p className="command-palette-detail-description">
-            {t(command.descriptionKey)}
+            {resolvePaletteDescription(command)}
           </p>
         )}
 

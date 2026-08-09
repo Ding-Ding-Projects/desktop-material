@@ -58,6 +58,9 @@ export const WelcomeLeftBottomImageUri = encodePathAsUrl(
 
 /** The Welcome flow. */
 export class Welcome extends React.Component<IWelcomeProps, IWelcomeState> {
+  private mounted = false
+  private exitTimer: number | null = null
+
   public constructor(props: IWelcomeProps) {
     super(props)
 
@@ -72,8 +75,17 @@ export class Welcome extends React.Component<IWelcomeProps, IWelcomeState> {
   }
 
   public componentDidMount() {
+    this.mounted = true
     this.props.dispatcher.recordWelcomeWizardInitiated()
     this.refreshGlobalGitAuthorInfo()
+  }
+
+  public componentWillUnmount() {
+    this.mounted = false
+    if (this.exitTimer !== null) {
+      window.clearTimeout(this.exitTimer)
+      this.exitTimer = null
+    }
   }
 
   public refreshGlobalGitAuthorInfo() {
@@ -82,6 +94,9 @@ export class Welcome extends React.Component<IWelcomeProps, IWelcomeState> {
       getGlobalConfigValue('user.email'),
     ])
       .then(([globalUserName, globalUserEmail]) => {
+        if (!this.mounted) {
+          return
+        }
         this.setState({
           globalUserName: globalUserName ?? undefined,
           globalUserEmail: globalUserEmail ?? undefined,
@@ -217,7 +232,14 @@ export class Welcome extends React.Component<IWelcomeProps, IWelcomeState> {
     // Add a delay so that the exit animations (defined in css)
     // have time to run to completion.
     this.setState({ exiting: true }, () => {
-      setTimeout(() => {
+      if (!this.mounted) {
+        return
+      }
+      this.exitTimer = window.setTimeout(() => {
+        this.exitTimer = null
+        if (!this.mounted) {
+          return
+        }
         this.props.dispatcher.endWelcomeFlow()
       }, 250)
     })

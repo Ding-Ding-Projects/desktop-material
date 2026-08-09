@@ -2,6 +2,18 @@
 
 Updated: **August 7, 2026**
 
+## August 9 — School mode and command shortcut completion
+
+- School mode is now reachable from Settings → Appearance, can use a custom
+  display name, and unlocks through a local salted credential digest.
+- While active, the app forces English, hides language/playfulness controls and
+  their palette/settings-search routes, hides scheduled language selection, and
+  suppresses the dim-sum surprise.
+- The command palette is **Ctrl+Shift+P**. **Ctrl+Shift+F** remains the action
+  that opens the current repository's folder.
+- Focused verification passes **50/50** plus source lint. Hidden-desktop capture
+  remains blocked by the Lowlevel MCP Git preflight, so no capture is claimed.
+
 ## August 8 — Windows-only CI release gate and uncapped workflow jobs
 
 - Standard CI no longer runs the Linux TUI. The Linux workflow retains only

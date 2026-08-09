@@ -95,4 +95,38 @@ describe('App lifecycle resource ownership', () => {
       /window\.requestAnimationFrame\(\(\) => \{\s*if \(this\.mounted\) \{\s*this\.syncFeatureAppearanceOwners\(\)/
     )
   })
+
+  it('tears down transient drag resources when the draggable unmounts', async () => {
+    const source = await readSource('ui/lib/draggable.tsx')
+
+    assert.match(
+      source,
+      /public componentWillUnmount\(\)[\s\S]*?this\.disposed = true/
+    )
+    assert.match(
+      source,
+      /private cleanupDragListeners\(\): void \{[\s\S]*?document\.removeEventListener\('mousemove', this\.onMouseMove\)[\s\S]*?window\.removeEventListener\('keyup', this\.onKeyUp\)[\s\S]*?mouseScroller\.clearScrollTimer\(\)/
+    )
+    assert.match(
+      source,
+      /if \(this\.disposed \|\| !this\.canDragCommit\(event\)\)/
+    )
+  })
+
+  it('removes the crash renderer error listener and cancels welcome callbacks', async () => {
+    const crash = await readSource('crash/crash-app.tsx')
+    assert.match(crash, /ipcRenderer\.on\('error', this\.onError\)/)
+    assert.match(
+      crash,
+      /componentWillUnmount\(\)[\s\S]*?ipcRenderer\.removeListener\('error', this\.onError\)/
+    )
+
+    const welcome = await readSource('ui/welcome/welcome.tsx')
+    assert.match(welcome, /private mounted = false/)
+    assert.match(
+      welcome,
+      /componentWillUnmount\(\)[\s\S]*?window\.clearTimeout\(this\.exitTimer\)/
+    )
+    assert.match(welcome, /if \(!this\.mounted\) \{\s*return\s*\}/)
+  })
 })

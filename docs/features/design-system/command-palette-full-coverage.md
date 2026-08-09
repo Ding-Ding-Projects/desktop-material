@@ -1,7 +1,8 @@
 # Command palette: full-app coverage, rich controls and teleport
 
-The Ctrl+Shift+F master command palette is Material Design 3's full-screen search
-view: it covers the entire app below the title bar rather than floating as a
+The Ctrl+Shift+P master command palette is Material Design 3's full-screen search
+view. `Ctrl+Shift+F` remains the current-repository **Open in Folder** action.
+The palette covers the entire app below the title bar rather than floating as a
 small card, and its rows are no longer just names to dispatch — a row that is
 a setting renders the setting's live control inline, and choosing any row
 teleports to the place in the app where that feature actually lives.
@@ -86,6 +87,9 @@ control that matches the value:
   random-per-repository) is unchanged and applies to the full-screen layout.
 - Language modes and the per-language funny levels style every palette string
   through the standard i18n resources (`commandPalette.*`, `palette.*`).
+- When School mode is active, the language-mode and playfulness rows are
+  omitted from the palette. The renamed School mode row remains available so
+  the user can reach its unlock control.
 
 ## Failure modes
 
