@@ -17,7 +17,10 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: build-installers-${{ github.run_id }}-${{ github.run_attempt }}
+  # Release-note code names are selected from the existing published-release
+  # inventory. Serialize the whole publisher so two workflow_run events cannot
+  # choose the same dish before either release becomes visible to the API.
+  group: build-installers-publisher-${{ github.repository }}
   cancel-in-progress: false
 
 env:
