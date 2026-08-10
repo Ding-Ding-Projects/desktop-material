@@ -254,9 +254,12 @@ About updater can show **New update coming soon** (or the selected Cantonese or
 bilingual equivalent). This remote state is never persisted and cannot make an
 update installable. Once the Release exists, the next normal update check takes
 over. Each automated Release lists bounded, sanitized commit subjects from the
-previous installer release through its exact target SHA. CI, installer, and
-Pages invocations use independent per-run groups, so a newer run never cancels
-or replaces older running or pending work.
+previous installer release through its exact target SHA. CI and Pages
+invocations use independent per-run groups, so a newer run never cancels or
+replaces an older one. The installer publisher shares one group on purpose, so
+that two runs cannot choose the same release code name; it never cancels a
+running publisher, but only one run waits behind it, so a third push supersedes
+the one still queued.
 
 Automatic and Super Express installers now use the same fixed-width alphabetic
 `z` version lane. This lets an older Super Express installation move forward

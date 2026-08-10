@@ -242,10 +242,14 @@ soon** in the selected English, playful Hong Kong Cantonese, or bilingual mode.
 The state is transient and fails closed; normal Squirrel update behavior resumes
 on the next check after publication. Automated Release notes list bounded,
 sanitized commit subjects from the previous installer release through the exact
-release SHA. CI, installer, and Pages runs use unique groups so a newer
-invocation never cancels or replaces older running or pending work. See
+release SHA. CI and Pages runs use a per-run group, so a newer invocation never
+cancels or replaces an older one. The installer publisher is deliberately the
+exception: it shares one group across the repository so two runs cannot pick
+the same release code name before either release is visible to the API. A
+running publisher is never cancelled, but only one run waits behind it, so a
+third push supersedes the one that was still queued. See
 [Automated update build status and release
 notes](../features/integrations/automated-updates-and-release-notes.md).
 
 
-當 GitHub Actions 正在建置或者打包一個更新嘅精確 commit，但係仲未發佈佢個 Release 嗰陣，About 更新器會用揀咗嘅英文、活潑香港廣東話或者雙語模式報告 **New update coming soon**。呢個狀態係短暫嘅，並且 fail closed；發佈之後下次檢查就會回復正常 Squirrel 更新行為。自動發佈說明會列出由上一個安裝程式發佈到精確發佈 SHA 之間、有界並且消毒過嘅 commit 標題。CI、安裝程式同 Pages 執行用獨立群組，所以較新嘅呼叫永遠唔會取消或者取代仲行緊或者等緊嘅工作。睇 [自動更新建置狀態同發佈說明](../features/integrations/automated-updates-and-release-notes.md)。
+當 GitHub Actions 正在建置或者打包一個更新嘅精確 commit，但係仲未發佈佢個 Release 嗰陣，About 更新器會用揀咗嘅英文、活潑香港廣東話或者雙語模式報告 **New update coming soon**。呢個狀態係短暫嘅，並且 fail closed；發佈之後下次檢查就會回復正常 Squirrel 更新行為。自動發佈說明會列出由上一個安裝程式發佈到精確發佈 SHA 之間、有界並且消毒過嘅 commit 標題。CI 同 Pages 執行逐次一個群組，所以較新嘅呼叫唔會取消或者取代舊嗰個。安裝程式發佈器係刻意嘅例外：成個儲存庫共用一個群組，等兩次執行唔會喺任何一個發佈出現之前揀到同一個代號。行緊嘅發佈器永遠唔會俾人取消，但係後面淨係排得一個，所以第三次推送會頂走仲喺度排隊嗰個。睇 [自動更新建置狀態同發佈說明](../features/integrations/automated-updates-and-release-notes.md)。
