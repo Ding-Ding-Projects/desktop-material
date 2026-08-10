@@ -94,7 +94,7 @@ jobs:
       RELEASE_CHANNEL: ${{ inputs.environment }}
     steps:
       - name: Initial checkout for Windows bootstrap
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@v7
         with:
           repository: ${{ inputs.repository || github.repository }}
           ref: ${{ inputs.ref }}
@@ -104,7 +104,7 @@ jobs:
         run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
       - name: Repeat checkout with bootstrapped Git
         if: runner.environment == 'self-hosted'
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@v7
         with:
           repository: ${{ inputs.repository || github.repository }}
           ref: ${{ inputs.ref }}
@@ -226,7 +226,7 @@ jobs:
       RELEASE_CHANNEL: ${{ inputs.environment }}
     steps:
       - name: Initial checkout for Windows bootstrap
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@v7
         with:
           repository: ${{ inputs.repository || github.repository }}
           ref: ${{ inputs.ref }}
@@ -236,7 +236,7 @@ jobs:
         run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
       - name: Repeat checkout with bootstrapped Git
         if: runner.environment == 'self-hosted'
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@v7
         with:
           repository: ${{ inputs.repository || github.repository }}
           ref: ${{ inputs.ref }}

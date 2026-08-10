@@ -58,7 +58,7 @@ jobs:
       RELEASE_VERSION: ${{ inputs.release_version }}
     steps:
       - name: Retrieve repository bootstrap files
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.release_target_sha || github.sha }}
           fetch-depth: 0
@@ -69,7 +69,7 @@ jobs:
         run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
 
       - name: Check out the exact release target with Git
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.release_target_sha || github.sha }}
           fetch-depth: 0
@@ -127,7 +127,7 @@ jobs:
       RELEASE_TAG: ${{ needs.build.outputs.release_tag }}
     steps:
       - name: Retrieve repository bootstrap files
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TARGET_SHA }}
           fetch-depth: 0
@@ -138,7 +138,7 @@ jobs:
         run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
 
       - name: Check out the exact release target with Git
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TARGET_SHA }}
           fetch-depth: 0

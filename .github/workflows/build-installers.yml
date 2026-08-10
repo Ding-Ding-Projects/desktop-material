@@ -44,7 +44,7 @@ jobs:
       block_reason: ${{ steps.target.outputs.block_reason }}
       windows_ok: ${{ steps.target.outputs.windows_ok }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 1
@@ -121,7 +121,7 @@ jobs:
             echo "block_reason=$block_reason"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
         if: steps.target.outputs.proceed == 'true'
         with:
           ref: ${{ steps.target.outputs.sha }}
@@ -182,7 +182,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.sha }}
       - name: Attempt to update submodules (non-fatal)
@@ -209,7 +209,7 @@ jobs:
       contents: read
     steps:
       - name: Initial checkout for Windows bootstrap
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
@@ -217,7 +217,7 @@ jobs:
         shell: cmd
         run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
       - name: Repeat checkout with bootstrapped Git
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
@@ -269,7 +269,7 @@ jobs:
       RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
@@ -411,7 +411,7 @@ jobs:
       RELEASE_CHANNEL: beta
     steps:
       - name: Initial checkout for Windows bootstrap
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
@@ -419,7 +419,7 @@ jobs:
         shell: cmd
         run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
       - name: Repeat checkout with bootstrapped Git
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
@@ -571,7 +571,7 @@ jobs:
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
       RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           # Publishing verifies the tag explicitly below, so a shallow source
@@ -645,7 +645,7 @@ jobs:
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
       RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
