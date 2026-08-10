@@ -1507,10 +1507,10 @@ pretty-format@^27.0.2:
     ansi-styles "^5.0.0"
     react-is "^17.0.1"
 
-primer-support@^4.0.0:
-  version "4.3.0"
-  resolved "https://registry.yarnpkg.com/primer-support/-/primer-support-4.3.0.tgz#c470fef8c0bff2ec8a771a0749783c2b388118fe"
-  integrity sha1-xHD++MC/8uyKdxoHSXg8KziBGP4=
+primer-support@^5.0.0:
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/primer-support/-/primer-support-5.0.0.tgz#d19c7cea59e8783400b9391943c8a2bb2ebddc5e"
+  integrity sha512-inUxVSsGirn5IkPxBhFsMBgm8ZHyfOUmOWyDCN8cBXtbaLiCIAjHsPI46yS1zrWxnn0J2kvq8haomkrlHGF08g==
 
 process-nextick-args@~2.0.0:
   version "2.0.1"
