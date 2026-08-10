@@ -494,7 +494,11 @@ describe('pinned Cheap LFS ORAS build preparation', () => {
   })
 
   it('wires the pinned preparation before packaging in the Windows build', async () => {
-    const source = await readFile(join(__dirname, 'build.ts'), 'utf8')
+    // A Windows checkout hands back CRLF, so the assertions below read a
+    // normalized copy rather than encoding one platform's line ending.
+    const source = (
+      await readFile(join(__dirname, 'build.ts'), 'utf8')
+    ).replace(/\r\n/g, '\n')
     assert.match(
       source,
       /import \{ prepareBundledCheapLfsOrasForBuild \} from '\.\/prepare-cheap-lfs-oras'/
