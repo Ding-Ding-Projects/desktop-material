@@ -18,6 +18,29 @@ import {
 import { MenuListItem } from './menu-list-item'
 import { assertNever } from '../../lib/fatal-error'
 
+/**
+ * The item to select when the user types `char`, searching from just after the
+ * current selection and wrapping around.
+ *
+ * `selectedIndex` is the index of the selected item, or -1 when nothing is
+ * selected. Returns -1 when no item starts with that character.
+ *
+ * Searching from the wrong place is not harmless: the search used to start two
+ * rows past the selection rather than one, so the item directly below the
+ * selection was skipped and repeated presses of the same letter could never
+ * reach it.
+ */
+export function findByFirstCharacter(
+  firstCharacters: ReadonlyArray<string>,
+  char: string,
+  selectedIndex: number
+): number {
+  const start =
+    selectedIndex + 1 >= firstCharacters.length ? 0 : selectedIndex + 1
+  const after = firstCharacters.indexOf(char, start)
+  return after === -1 ? firstCharacters.indexOf(char, 0) : after
+}
+
 interface IMenuPaneProps {
   /**
    * An optional classname which will be appended to the 'menu-pane' class
@@ -154,20 +177,15 @@ export class MenuPane extends React.Component<IMenuPaneProps> {
     }
     const { items, selectedItem } = this.props
     const char = key.toLowerCase()
-    const currentRow = selectedItem ? items.indexOf(selectedItem) + 1 : 0
-    const start = currentRow + 1 > items.length ? 0 : currentRow + 1
-
     const firstChars = items.map(v =>
-      v.type === 'separator' ? '' : v.label.trim()[0].toLowerCase()
+      v.type === 'separator' ? '' : (v.label.trim().at(0) ?? '').toLowerCase()
     )
 
-    // Check menu items after selected
-    let ix: number = firstChars.indexOf(char, start)
-
-    // check menu items before selected
-    if (ix === -1) {
-      ix = firstChars.indexOf(char, 0)
-    }
+    const ix = findByFirstCharacter(
+      firstChars,
+      char,
+      selectedItem === undefined ? -1 : items.indexOf(selectedItem)
+    )
 
     if (ix >= 0 && items[ix] !== undefined) {
       this.props.onSelectionChanged(this.props.depth, items[ix], source)
