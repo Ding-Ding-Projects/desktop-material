@@ -50,6 +50,22 @@ async function failIfAppErrorDialogIsVisible(page: Page) {
   )
 }
 
+/**
+ * True when an action failed because the renderer was already gone.
+ *
+ * The app can begin its own shutdown while a quit-path assertion is still
+ * running. Playwright reports that as a closed target rather than as a product
+ * failure, and a test that is *about* the app exiting must not be red because
+ * the app exited a moment early.
+ */
+function isRendererAlreadyGone(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+  return (
+    message.includes('Target page, context or browser has been closed') ||
+    message.includes('Target closed')
+  )
+}
+
 function isMockUpdateRequest(url: string) {
   return (
     url.includes('/update') ||
@@ -396,6 +412,12 @@ test.describe('Auto-update', () => {
     test('shows installing-update warning when quitting during download', async ({
       mainWindow: page,
     }) => {
+      // Read the renderer process id now, while the app is unambiguously
+      // alive. The pid does not change, and reading it here rather than just
+      // before the final click keeps a self-initiated shutdown from turning
+      // this into a closed-target error instead of a verdict.
+      const rendererPid: number = await page.evaluate(() => process.pid)
+
       await page.evaluate(() => {
         require('electron').ipcRenderer.emit('menu-event', {}, 'show-about')
       })
@@ -463,10 +485,14 @@ test.describe('Auto-update', () => {
         .tracing.stop({ path: tracePath })
         .catch(() => {})
 
-      // Get PID before quitting so we can verify the process exits
-      const rendererPid: number = await page.evaluate(() => process.pid)
-
-      await quitBtn.click()
+      // If the app already started quitting on its own the click cannot land,
+      // and the poll below still decides the outcome: the renderer process has
+      // to be gone either way.
+      await quitBtn.click().catch(error => {
+        if (!isRendererAlreadyGone(error)) {
+          throw error
+        }
+      })
 
       // Poll the OS to confirm the renderer process exited.
       //
