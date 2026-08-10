@@ -7,9 +7,12 @@ on:
         description: 'Release channel'
         required: true
         type: choice
+        # Production first so the default dispatch drafts a numbered release.
+        # Desktop Material ships production versions; beta stays available for
+        # the occasional pre-release, it is no longer the normal path.
         options:
-          - beta
           - production
+          - beta
       ref:
         description:
           'Branch or tag to release from (default: development for beta, latest

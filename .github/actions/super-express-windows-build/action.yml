@@ -61,7 +61,7 @@ runs:
       run: |
         if [ -z "$RELEASE_VERSION" ]; then
           base=$(node -p "require('./app/package.json').version")
-          version=$(node script/release-version.js create "$base" "${{ github.run_id }}" "${{ github.run_attempt }}")
+          version=$(node script/release-version.js create "$base" "${{ github.run_id }}" "${{ github.run_attempt }}" "${{ github.run_number }}")
           echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"
         else
           base=$(node -p "require('./app/package.json').version")

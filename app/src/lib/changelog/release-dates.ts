@@ -17,13 +17,14 @@
  */
 
 /** Total releases in `changelog.json` at generation time. */
-export const ReleaseCount = 707
+export const ReleaseCount = 708
 
 /** How many have a tag or referenced entry-commit timestamp. */
-export const DatedReleaseCount = 668
+export const DatedReleaseCount = 669
 
 /** `version` to `YYYY-MM-DD HH:MM`, 24-hour, from a tag or entry commit. */
 export const ReleaseStamps: Readonly<Record<string, string>> = {
+  '4.0.0': '2026-08-10 08:24',
   '3.6.3-material22': '2026-08-07 19:21',
   '3.6.3-material21': '2026-07-31 23:23',
   '3.6.3-material20': '2026-07-30 23:54',

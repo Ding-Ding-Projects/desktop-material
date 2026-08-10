@@ -11,6 +11,19 @@ const maxRunAttemptDigits = 3
 const runAttemptWidth = 2
 const maxEncodedRunAttempt = runIdRadix ** BigInt(runAttemptWidth) - 1n
 
+// A numbered base version carries no prerelease to extend, and any prerelease
+// added to it would sort *below* it, so a build of 4.0.0 has to live in the
+// fourth version component: `4.0.0.<build>` outranks `4.0.0` and stays under
+// `4.0.1`. That component is a plain number, which rules out the 12-digit
+// GitHub run ID — legacy Squirrel reads it as Int32. The run *number* is the
+// per-workflow counter, small and monotonic, so the build number is
+// `runNumber * runAttemptScale + runAttempt`: ordered by run, then by attempt.
+const runAttemptScale = 100
+const maxNumericBuildComponent = 2_147_483_647
+const maxRunNumber = Math.floor(
+  (maxNumericBuildComponent - runAttemptScale) / runAttemptScale
+)
+
 const versionPattern = /^(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?(?:-([0-9A-Za-z-]+))?$/
 
 const defaultPackageName = 'GitHubDesktop'
@@ -101,12 +114,61 @@ function encodeRunAttempt(runAttempt) {
   return encoded
 }
 
-function createReleaseVersion(baseVersion, runId, runAttempt = '1') {
+/**
+ * The fourth-component build number for a numbered (non-prerelease) base.
+ *
+ * Ordered by run and then by attempt, so a rerun publishes a distinct release
+ * that outranks the original attempt without renaming it.
+ */
+function encodeNumericBuild(runNumber, runAttempt) {
+  if (
+    typeof runNumber !== 'string' ||
+    !/^[1-9]\d{0,11}$/.test(runNumber) ||
+    Number(runNumber) > maxRunNumber
+  ) {
+    throw new Error(
+      `GitHub run number must be a positive decimal no greater than ${maxRunNumber}.`
+    )
+  }
+  const attempt = Number(runAttempt)
+  if (!Number.isInteger(attempt) || attempt < 1 || attempt >= runAttemptScale) {
+    throw new Error(
+      `GitHub run attempt must be between 1 and ${
+        runAttemptScale - 1
+      } for a numbered release.`
+    )
+  }
+
+  return String(Number(runNumber) * runAttemptScale + attempt)
+}
+
+function createReleaseVersion(
+  baseVersion,
+  runId,
+  runAttempt = '1',
+  runNumber = undefined
+) {
   const base = parseReleaseVersion(baseVersion)
   if (base.prerelease === undefined) {
-    throw new Error(
-      `Base version '${baseVersion}' must already contain a prerelease channel.`
-    )
+    // A numbered release line: extend the version rather than prefix-suffixing
+    // a channel back onto it.
+    if (baseVersion.split('.').length !== 3) {
+      throw new Error(
+        `Numbered base version '${baseVersion}' must have exactly three components.`
+      )
+    }
+    if (runNumber === undefined) {
+      throw new Error(
+        `Base version '${baseVersion}' carries no prerelease channel, so a GitHub run number is required to build its release version.`
+      )
+    }
+
+    const version = `${baseVersion}.${encodeNumericBuild(
+      runNumber,
+      runAttempt
+    )}`
+    parseReleaseVersion(version)
+    return version
   }
 
   // Legacy Squirrel parses a trailing numeric prerelease token as Int32. Keep
@@ -131,9 +193,15 @@ function validateReleaseVersion(version, baseVersion) {
 
   const base = parseReleaseVersion(baseVersion)
   if (base.prerelease === undefined) {
-    throw new Error(
-      `Base version '${baseVersion}' must already contain a prerelease channel.`
-    )
+    if (
+      !new RegExp(`^${baseVersion.replace(/\./g, '\\.')}\\.\\d+$`).test(version)
+    ) {
+      throw new Error(
+        `Release version '${version}' is not a numbered build of ${baseVersion}.`
+      )
+    }
+
+    return version
   }
   const prefix = `${baseVersion}-z`
   const suffix = version.startsWith(prefix) ? version.slice(prefix.length) : ''
@@ -280,8 +348,10 @@ function filterReleasesManifest(
 
 function runCli(argv) {
   const [command, ...args] = argv
-  if (command === 'create' && (args.length === 2 || args.length === 3)) {
-    process.stdout.write(`${createReleaseVersion(args[0], args[1], args[2])}\n`)
+  if (command === 'create' && args.length >= 2 && args.length <= 4) {
+    process.stdout.write(
+      `${createReleaseVersion(args[0], args[1], args[2], args[3])}\n`
+    )
     return
   }
   if (command === 'validate' && (args.length === 1 || args.length === 2)) {
@@ -308,7 +378,7 @@ function runCli(argv) {
   }
 
   throw new Error(
-    'Usage: release-version.js create <base> <run-id> [run-attempt] | validate <version> [base] | compare <left> <right> | max | filter <version> [package]'
+    'Usage: release-version.js create <base> <run-id> [run-attempt] [run-number] | validate <version> [base] | compare <left> <right> | max | filter <version> [package]'
   )
 }
 

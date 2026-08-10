@@ -83,7 +83,11 @@ export const MOCK_CONTROL_URL = mockUpdateEndpoint.controlURL
 const currentWindowsPackageName = getWindowsFullNugetPackageName()
 export const MOCK_WINDOWS_UPDATE_VERSION = createReleaseVersion(
   getVersion(),
-  '999999999999'
+  '999999999999',
+  '1',
+  // Only consulted for a numbered base version, where the offered update has
+  // to outrank the running build in the fourth component.
+  '999999'
 )
 const nextWindowsPackageName = `${getWindowsIdentifierName()}-${MOCK_WINDOWS_UPDATE_VERSION}-full.nupkg`
 const fakeSha = '0123456789012345678901234567890123456789'

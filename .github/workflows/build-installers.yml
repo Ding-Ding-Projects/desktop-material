@@ -145,7 +145,7 @@ jobs:
             exit 1
           fi
           base=$(node -p "require('./app/package.json').version")
-          version=$(node script/release-version.js create "$base" "${{ github.run_id }}" "${{ github.run_attempt }}")
+          version=$(node script/release-version.js create "$base" "${{ github.run_id }}" "${{ github.run_attempt }}" "${{ github.run_number }}")
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag=v$version" >> "$GITHUB_OUTPUT"
 

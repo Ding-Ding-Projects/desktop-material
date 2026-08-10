@@ -1,5 +1,11 @@
 {
   "releases": {
+    "4.0.0": [
+      "[Added] Desktop Material leaves beta. Releases are plain numbered versions on the production channel, starting at 4.0.0, with no -beta or -material suffix",
+      "[Fixed] History no longer keeps every commit it has ever loaded in memory. The commit cache holds twenty pages, evicts the least recently used entries, and reloads an evicted commit on demand - 20ba942e79c9b84f8e87b5629cda7ce21a11583c",
+      "[Fixed] A failed or interrupted history load no longer leaves that view permanently stuck. Every history request releases its guard even when Git fails or throws - 20ba942e79c9b84f8e87b5629cda7ce21a11583c",
+      "[Fixed] The documentation hub advertises the number of articles the documentation actually contains - 20ba942e79c9b84f8e87b5629cda7ce21a11583c"
+    ],
     "3.6.3-material22": [
       "[Fixed] The Windows renderer no longer opens as a blank white window when the Node-oriented Copilot SDK is bundled: the SDK stays external, and the build rejects missing or unsafe startup bundles - 5fbc28b6cfe458943cdecd456fdc3622a4719fc1",
       "[Fixed] Settings > Accounts now uses one global active identity across GitHub.com, Enterprise, GitLab, and Bitbucket sections, so a cross-provider switch exposes Make active and never leaves two rows marked Active - 7a757f5b75d627e1b4b7ae5ed47b2181638fefa0",

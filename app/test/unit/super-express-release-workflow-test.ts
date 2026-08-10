@@ -359,7 +359,7 @@ describe('Super Express Release workflow', () => {
         'exit 1',
         'fi',
         'base=$(node -p "require(\'./app/package.json\').version")',
-        'version=$(node script/release-version.js create "$base" "${{ github.run_id }}" "${{ github.run_attempt }}")',
+        'version=$(node script/release-version.js create "$base" "${{ github.run_id }}" "${{ github.run_attempt }}" "${{ github.run_number }}")',
         'echo "version=$version" >> "$GITHUB_OUTPUT"',
         'echo "tag=v$version" >> "$GITHUB_OUTPUT"',
       ]
@@ -372,7 +372,7 @@ describe('Super Express Release workflow', () => {
       'Create a cross-lane monotonic package version',
       [
         'base=$(node -p "require(\'./app/package.json\').version")',
-        'version=$(node script/release-version.js create "$base" "${{ github.run_id }}" "${{ github.run_attempt }}")',
+        'version=$(node script/release-version.js create "$base" "${{ github.run_id }}" "${{ github.run_attempt }}" "${{ github.run_number }}")',
         'echo "version=$version" >> "$GITHUB_OUTPUT"',
         'echo "tag=v$version" >> "$GITHUB_OUTPUT"',
       ]
@@ -386,7 +386,7 @@ describe('Super Express Release workflow', () => {
       [
         'if [ -z "$RELEASE_VERSION" ]; then',
         'base=$(node -p "require(\'./app/package.json\').version")',
-        'version=$(node script/release-version.js create "$base" "${{ github.run_id }}" "${{ github.run_attempt }}")',
+        'version=$(node script/release-version.js create "$base" "${{ github.run_id }}" "${{ github.run_attempt }}" "${{ github.run_number }}")',
         'echo "RELEASE_VERSION=$version" >> "$GITHUB_ENV"',
         'else',
         'base=$(node -p "require(\'./app/package.json\').version")',

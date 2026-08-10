@@ -1,7 +1,9 @@
 export function createReleaseVersion(
   baseVersion: string,
   runId: string,
-  runAttempt?: string
+  runAttempt?: string,
+  /** Required when the base version carries no prerelease channel. */
+  runNumber?: string
 ): string
 
 export function validateReleaseVersion(

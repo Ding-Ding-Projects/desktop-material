@@ -18,12 +18,38 @@
 ;(function (global) {
   'use strict'
   var catalog = {
-    versionCount: 707,
-    datedCount: 668,
+    versionCount: 708,
+    datedCount: 669,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4158,
+    entryCount: 4162,
     releases: [
+      {
+        v: '4.0.0',
+        d: '2026-08-10',
+        t: '08:24',
+        e: [
+          [
+            'Added',
+            'Desktop Material leaves beta. Releases are plain numbered versions on the production channel, starting at 4.0.0, with no -beta or -material suffix',
+          ],
+          [
+            'Fixed',
+            'History no longer keeps every commit it has ever loaded in memory. The commit cache holds twenty pages, evicts the least recently used entries, and reloads an evicted commit on demand',
+            '20ba942e79c9b84f8e87b5629cda7ce21a11583c',
+          ],
+          [
+            'Fixed',
+            'A failed or interrupted history load no longer leaves that view permanently stuck. Every history request releases its guard even when Git fails or throws',
+            '20ba942e79c9b84f8e87b5629cda7ce21a11583c',
+          ],
+          [
+            'Fixed',
+            'The documentation hub advertises the number of articles the documentation actually contains',
+            '20ba942e79c9b84f8e87b5629cda7ce21a11583c',
+          ],
+        ],
+      },
       {
         v: '3.6.3-material22',
         d: '2026-08-07',

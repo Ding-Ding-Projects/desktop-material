@@ -198,3 +198,70 @@ describe('published RELEASES manifest', () => {
     )
   })
 })
+
+describe('numbered release versions', () => {
+  it('builds a numbered base in the fourth component, ordered by run then attempt', () => {
+    assert.equal(
+      createReleaseVersion('4.0.0', '31373153382', '1', '407'),
+      '4.0.0.40701'
+    )
+    assert.equal(
+      createReleaseVersion('4.0.0', '31373153382', '2', '407'),
+      '4.0.0.40702'
+    )
+
+    // A build of 4.0.0 outranks 4.0.0 itself, unlike any prerelease of it,
+    // and still sits below the next patch. `semver` is not consulted here: it
+    // rejects the four-component form that Squirrel and NuGet accept, and
+    // app/src/lib/update-version-order.ts is what actually judges an update.
+    assert.equal(compareReleaseVersions('4.0.0.40701', '4.0.0'), 1)
+    assert.equal(compareReleaseVersions('4.0.0.40702', '4.0.0.40701'), 1)
+    assert.equal(compareReleaseVersions('4.0.0.40801', '4.0.0.40702'), 1)
+    assert.equal(compareReleaseVersions('4.0.1', '4.0.0.40801'), 1)
+
+    // Leaving beta must not strand the beta install base.
+    assert.equal(compareReleaseVersions('4.0.0', '3.6.3-beta3-zadtorqoxa'), 1)
+    assert.equal(
+      compareReleaseVersions('4.0.0.40701', '3.6.3-beta3-zadtorqoxa'),
+      1
+    )
+  })
+
+  it('refuses a numbered base without the run number that orders it', () => {
+    assert.throws(
+      () => createReleaseVersion('4.0.0', '31373153382'),
+      /carries no prerelease channel, so a GitHub run number is required/
+    )
+    assert.throws(
+      () => createReleaseVersion('4.0.0', '31373153382', '1', '0'),
+      /run number must be a positive decimal/
+    )
+    assert.throws(
+      () => createReleaseVersion('4.0.0', '31373153382', '100', '407'),
+      /run attempt must be between 1 and 99/
+    )
+    assert.throws(
+      () => createReleaseVersion('4.0.0.1', '31373153382', '1', '407'),
+      /must have exactly three components/
+    )
+  })
+
+  it('validates a numbered build against its own base only', () => {
+    assert.equal(validateReleaseVersion('4.0.0.40701', '4.0.0'), '4.0.0.40701')
+    assert.throws(
+      () => validateReleaseVersion('4.0.1.40701', '4.0.0'),
+      /is not a numbered build of 4\.0\.0/
+    )
+    assert.throws(
+      () => validateReleaseVersion('4.0.0-zadtazjjug', '4.0.0'),
+      /is not a numbered build of 4\.0\.0/
+    )
+  })
+
+  it('keeps the prerelease lane working for a prerelease base', () => {
+    assert.equal(
+      createReleaseVersion('3.6.3-beta3', '29976419466', '1', '407'),
+      '3.6.3-beta3-zadtazjjug'
+    )
+  })
+})
