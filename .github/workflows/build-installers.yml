@@ -1,7 +1,8 @@
 name: Build Installers / Express Release
 
 # A successful main CI run still publishes automatically. Manual dispatch is
-# the express lane: lint, Windows x64 unit/script tests, and the x64 build run in parallel,
+# the express lane: static release checks, Windows x64 unit/script tests, and the
+# x64 build run in parallel,
 # then one create-only publisher releases the exact main commit. Installed
 # dependencies use an exact content cache; build and release outputs are never
 # cached because they embed the source SHA, version, and runtime configuration.
@@ -192,7 +193,8 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           arch: x64
       - run: yarn validate-electron-version
-      - run: yarn lint
+      # `yarn lint` (Prettier plus ESLint) is deliberately not a release gate.
+      # Run it locally with `yarn lint` before proposing a release.
       - run: yarn validate-changelog
       - name: Ensure a clean working directory
         run: git diff --name-status --exit-code
