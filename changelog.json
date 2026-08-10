@@ -4,7 +4,13 @@
       "[Added] Desktop Material leaves beta. Releases are plain numbered versions on the production channel, starting at 4.0.0, with no -beta or -material suffix",
       "[Fixed] History no longer keeps every commit it has ever loaded in memory. The commit cache holds twenty pages, evicts the least recently used entries, and reloads an evicted commit on demand - 20ba942e79c9b84f8e87b5629cda7ce21a11583c",
       "[Fixed] A failed or interrupted history load no longer leaves that view permanently stuck. Every history request releases its guard even when Git fails or throws - 20ba942e79c9b84f8e87b5629cda7ce21a11583c",
-      "[Fixed] The documentation hub advertises the number of articles the documentation actually contains - 20ba942e79c9b84f8e87b5629cda7ce21a11583c"
+      "[Fixed] The documentation hub advertises the number of articles the documentation actually contains - 20ba942e79c9b84f8e87b5629cda7ce21a11583c",
+      "[Fixed] Dragging commits in History onto the spot they already occupy is ignored again instead of reordering them through a rebase. Row numbers were compared as text, so a selection spanning row ten stopped looking contiguous - 4ec0782ef0e6556165936f333382b9fb1591f8a2",
+      "[Fixed] Expanding a diff hunk moves the keyboard to the nearest remaining expansion button rather than a distant one, on files with ten or more expandable hunks - 38ca712e34fe3dc03b19aa4da9fc04e480197ed7",
+      "[Fixed] A diff selection group is announced as its real line range. Screen readers heard \"Lines 10 to 9\" for a group covering lines 8 to 12 - 98a831eac2cfa1e57e2af23d9b9fbf248632e2ef",
+      "[Fixed] Typing a letter in a menu reaches the item directly below the selection, and repeated presses cycle through every match instead of sticking - 36fe1e66243b80de88d4324683bc9dba6b5ae6a8",
+      "[Fixed] Exporting several stashes no longer leaves one cancellation listener behind per archived tree, which Node reported as a leak past ten - 6d8d3140e4b88ad9823f4e841c67b2c794d8b232",
+      "[Fixed] Closing the repository list while a row is refreshing its appearance no longer updates a row that is already gone - 1ca3cc9272c554e9d31d1f19900f7ed912945839"
     ],
     "3.6.3-material22": [
       "[Fixed] The Windows renderer no longer opens as a blank white window when the Node-oriented Copilot SDK is bundled: the SDK stays external, and the build rejects missing or unsafe startup bundles - 5fbc28b6cfe458943cdecd456fdc3622a4719fc1",
