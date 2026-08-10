@@ -502,3 +502,17 @@ export function sortHunkExpansionKeys(
 export function getHunkExpansionKeyIndex(key: string): number {
   return parseInt(key.split('-').at(0) || '', 10)
 }
+
+/**
+ * Diff line numbers in ascending order.
+ *
+ * These come out of a `Set<number>`, and a bare sort compares them as text, so
+ * a group covering lines 8 to 12 ordered as 10, 11, 12, 8, 9. The group's
+ * screen-reader label is built from the first and last entry, so it announced
+ * "Lines 10 to 9".
+ */
+export function sortDiffLineNumbers(
+  lineNumbers: Iterable<number>
+): ReadonlyArray<number> {
+  return Array.from(lineNumbers).sort((left, right) => left - right)
+}

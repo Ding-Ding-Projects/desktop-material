@@ -53,6 +53,7 @@ import {
   DiffColumn,
   getHunkExpansionKeyIndex,
   getLineWidthFromDigitCount,
+  sortDiffLineNumbers,
   sortHunkExpansionKeys,
   getNumberOfDigits,
   MaxIntraLineDiffStringLength,
@@ -907,7 +908,7 @@ export class SideBySideDiff extends React.Component<
       diffRowStartIndex,
       diffRowStopIndex,
       diffType,
-      lineNumbers: Array.from(lineNumbers).sort(),
+      lineNumbers: sortDiffLineNumbers(lineNumbers),
       lineNumbersIdentifiers,
     }
 
