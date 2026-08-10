@@ -86,7 +86,7 @@ export const MOCK_WINDOWS_UPDATE_VERSION = createReleaseVersion(
   '999999999999',
   '1',
   // Only consulted for a numbered base version, where the offered update has
-  // to outrank the running build in the fourth component.
+  // to outrank the running build in the patch component.
   '999999'
 )
 const nextWindowsPackageName = `${getWindowsIdentifierName()}-${MOCK_WINDOWS_UPDATE_VERSION}-full.nupkg`

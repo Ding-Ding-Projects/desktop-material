@@ -11,12 +11,20 @@ const maxRunAttemptDigits = 3
 const runAttemptWidth = 2
 const maxEncodedRunAttempt = runIdRadix ** BigInt(runAttemptWidth) - 1n
 
-// A numbered base version carries no prerelease to extend, and any prerelease
-// added to it would sort *below* it, so a build of 4.0.0 has to live in the
-// fourth version component: `4.0.0.<build>` outranks `4.0.0` and stays under
-// `4.0.1`. That component is a plain number, which rules out the 12-digit
-// GitHub run ID — legacy Squirrel reads it as Int32. The run *number* is the
-// per-workflow counter, small and monotonic, so the build number is
+// A numbered base version carries no prerelease to extend, and semver cannot
+// express "a build of 4.0.0 that outranks 4.0.0" at all: a prerelease sorts
+// below it and build metadata is ignored in precedence. The run therefore
+// *becomes* the patch component — `4.0.<build>` — which keeps every published
+// version plain semver. That matters beyond taste: the packaging job writes
+// this string into `app/package.json`, and npm-side tooling (the license gate
+// among it) reads an unparseable version as no package at all.
+//
+// A numbered base is consequently `<major>.<minor>.0`; its patch is the lane,
+// not a hand-picked number. Choose the next line with major or minor.
+//
+// The component is a plain number, which rules out the 12-digit GitHub run ID —
+// legacy Squirrel reads it as Int32. The run *number* is the per-workflow
+// counter, small and monotonic, so the build number is
 // `runNumber * runAttemptScale + runAttempt`: ordered by run, then by attempt.
 const runAttemptScale = 100
 const maxNumericBuildComponent = 2_147_483_647
@@ -150,11 +158,11 @@ function createReleaseVersion(
 ) {
   const base = parseReleaseVersion(baseVersion)
   if (base.prerelease === undefined) {
-    // A numbered release line: extend the version rather than prefix-suffixing
-    // a channel back onto it.
-    if (baseVersion.split('.').length !== 3) {
+    // A numbered release line: the run becomes the patch component.
+    const parts = baseVersion.split('.')
+    if (parts.length !== 3 || parts[2] !== '0') {
       throw new Error(
-        `Numbered base version '${baseVersion}' must have exactly three components.`
+        `Numbered base version '${baseVersion}' must be <major>.<minor>.0, because its patch component carries the build.`
       )
     }
     if (runNumber === undefined) {
@@ -163,7 +171,7 @@ function createReleaseVersion(
       )
     }
 
-    const version = `${baseVersion}.${encodeNumericBuild(
+    const version = `${parts[0]}.${parts[1]}.${encodeNumericBuild(
       runNumber,
       runAttempt
     )}`
@@ -193,9 +201,8 @@ function validateReleaseVersion(version, baseVersion) {
 
   const base = parseReleaseVersion(baseVersion)
   if (base.prerelease === undefined) {
-    if (
-      !new RegExp(`^${baseVersion.replace(/\./g, '\\.')}\\.\\d+$`).test(version)
-    ) {
+    const [major, minor] = baseVersion.split('.')
+    if (!new RegExp(`^${major}\\.${minor}\\.\\d+$`).test(version)) {
       throw new Error(
         `Release version '${version}' is not a numbered build of ${baseVersion}.`
       )

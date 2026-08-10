@@ -200,34 +200,42 @@ describe('published RELEASES manifest', () => {
 })
 
 describe('numbered release versions', () => {
-  it('builds a numbered base in the fourth component, ordered by run then attempt', () => {
+  it('builds a numbered base in the patch component, ordered by run then attempt', () => {
     assert.equal(
       createReleaseVersion('4.0.0', '31373153382', '1', '407'),
-      '4.0.0.40701'
+      '4.0.40701'
     )
     assert.equal(
       createReleaseVersion('4.0.0', '31373153382', '2', '407'),
-      '4.0.0.40702'
+      '4.0.40702'
     )
 
-    // A build of 4.0.0 outranks 4.0.0 itself, unlike any prerelease of it,
-    // and still sits below the next patch. `semver` is not consulted here: it
-    // rejects the four-component form that Squirrel and NuGet accept, and
-    // app/src/lib/update-version-order.ts is what actually judges an update.
-    assert.equal(compareReleaseVersions('4.0.0.40701', '4.0.0'), 1)
-    assert.equal(compareReleaseVersions('4.0.0.40702', '4.0.0.40701'), 1)
-    assert.equal(compareReleaseVersions('4.0.0.40801', '4.0.0.40702'), 1)
-    assert.equal(compareReleaseVersions('4.0.1', '4.0.0.40801'), 1)
+    // Every published version stays plain semver, because the packaging job
+    // writes it into app/package.json and npm-side tooling has to read it.
+    for (const version of ['4.0.40701', '4.0.40702', '4.1.40701']) {
+      assert.doesNotThrow(() => new SemVer(version))
+    }
+
+    for (const comparer of [
+      compareReleaseVersions,
+      (l: string, r: string) => new SemVer(l).compare(new SemVer(r)),
+    ]) {
+      assert.equal(comparer('4.0.40702', '4.0.40701'), 1)
+      assert.equal(comparer('4.0.40801', '4.0.40702'), 1)
+      assert.equal(comparer('4.1.40701', '4.0.40801'), 1)
+    }
 
     // Leaving beta must not strand the beta install base.
-    assert.equal(compareReleaseVersions('4.0.0', '3.6.3-beta3-zadtorqoxa'), 1)
     assert.equal(
-      compareReleaseVersions('4.0.0.40701', '3.6.3-beta3-zadtorqoxa'),
+      compareReleaseVersions('4.0.40701', '3.6.3-beta3-zadtorqoxa'),
       1
+    )
+    assert.ok(
+      new SemVer('4.0.40701').compare(new SemVer('3.6.3-beta3-zadtorqoxa')) > 0
     )
   })
 
-  it('refuses a numbered base without the run number that orders it', () => {
+  it('refuses a numbered base it cannot safely number', () => {
     assert.throws(
       () => createReleaseVersion('4.0.0', '31373153382'),
       /carries no prerelease channel, so a GitHub run number is required/
@@ -240,16 +248,17 @@ describe('numbered release versions', () => {
       () => createReleaseVersion('4.0.0', '31373153382', '100', '407'),
       /run attempt must be between 1 and 99/
     )
+    // The patch component is the lane, so a base may not also claim one.
     assert.throws(
-      () => createReleaseVersion('4.0.0.1', '31373153382', '1', '407'),
-      /must have exactly three components/
+      () => createReleaseVersion('4.0.5', '31373153382', '1', '407'),
+      /must be <major>\.<minor>\.0/
     )
   })
 
-  it('validates a numbered build against its own base only', () => {
-    assert.equal(validateReleaseVersion('4.0.0.40701', '4.0.0'), '4.0.0.40701')
+  it('validates a numbered build against its own line only', () => {
+    assert.equal(validateReleaseVersion('4.0.40701', '4.0.0'), '4.0.40701')
     assert.throws(
-      () => validateReleaseVersion('4.0.1.40701', '4.0.0'),
+      () => validateReleaseVersion('4.1.40701', '4.0.0'),
       /is not a numbered build of 4\.0\.0/
     )
     assert.throws(
