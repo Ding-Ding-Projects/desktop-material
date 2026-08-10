@@ -1211,7 +1211,7 @@
       d: '',
     },
     {
-      t: 'Table of contents',
+      t: 'Table of contents / 目錄',
       h: 'known-issues.html',
       s: 'known-issues.md',
       c: 'root',
@@ -1351,7 +1351,7 @@
       d: 'The full Material Design 3 shell plus every Git and GitHub workflow Desktop Material ships. For milestone status and published CI/release evidence, see the Roadmap & receipts…',
     },
     {
-      t: 'Supported platform',
+      t: 'Supported platform / 支援平台',
       h: 'readme-tabs/install.html',
       s: 'readme-tabs/install.md',
       c: 'readme-tabs',
