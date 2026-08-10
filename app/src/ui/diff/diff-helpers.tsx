@@ -477,3 +477,28 @@ export function textDiffEquals(
 
   return false
 }
+
+/**
+ * Hunk expansion button keys (`<hunkIndex>-<expansionType>`) in tab order.
+ *
+ * The keys are strings, so a plain sort is lexicographic and puts hunk 10
+ * before hunk 2. Focus moves to the nearest remaining expansion button after an
+ * expansion, so on a diff with ten or more expandable hunks that sent focus to
+ * a distant part of the file instead of the neighbouring hunk.
+ *
+ * Ordering by the numeric index fixes that, and the sort is stable, so the up
+ * and down buttons of one hunk keep the render order they were recorded in.
+ */
+export function sortHunkExpansionKeys(
+  keys: Iterable<string>
+): ReadonlyArray<string> {
+  return Array.from(keys).sort(
+    (left, right) =>
+      getHunkExpansionKeyIndex(left) - getHunkExpansionKeyIndex(right)
+  )
+}
+
+/** The hunk index a hunk expansion button key belongs to. */
+export function getHunkExpansionKeyIndex(key: string): number {
+  return parseInt(key.split('-').at(0) || '', 10)
+}

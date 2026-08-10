@@ -51,7 +51,9 @@ import {
   SimplifiedDiffRow,
   IDiffRowData,
   DiffColumn,
+  getHunkExpansionKeyIndex,
   getLineWidthFromDigitCount,
+  sortHunkExpansionKeys,
   getNumberOfDigits,
   MaxIntraLineDiffStringLength,
   getFirstAndLastClassesSideBySide,
@@ -554,7 +556,9 @@ export class SideBySideDiff extends React.Component<
       return
     }
 
-    const expansionHunkKeys = Array.from(this.hunkExpansionRefs.keys()).sort()
+    const expansionHunkKeys = sortHunkExpansionKeys(
+      this.hunkExpansionRefs.keys()
+    )
     const { hunkIndex, expansionType } = this.state.lastExpandedHunk
     const lastExpandedKey = `${hunkIndex}-${expansionType}`
 
@@ -566,13 +570,9 @@ export class SideBySideDiff extends React.Component<
       return
     }
 
-    function getHunkKeyIndex(key: string) {
-      return parseInt(key.split('-').at(0) || '', 10)
-    }
-
     // No?, Then try to focus the next closest hunk in tab order
     const closestInTabOrder = expansionHunkKeys.find(
-      key => getHunkKeyIndex(key) >= hunkIndex
+      key => getHunkExpansionKeyIndex(key) >= hunkIndex
     )
 
     if (closestInTabOrder) {
@@ -582,9 +582,9 @@ export class SideBySideDiff extends React.Component<
     }
 
     // No? Then try to focus the next closest hunk in reverse tab order
-    const closestInReverseTabOrder = expansionHunkKeys
+    const closestInReverseTabOrder = [...expansionHunkKeys]
       .reverse()
-      .find(key => getHunkKeyIndex(key) <= hunkIndex)
+      .find(key => getHunkExpansionKeyIndex(key) <= hunkIndex)
 
     if (closestInReverseTabOrder) {
       const closetHunkButton = this.hunkExpansionRefs.get(
