@@ -164,6 +164,9 @@ export function getRemotesToFetch(
 /** The number of commits to load from history per batch. */
 const CommitBatchSize = 100
 
+/** Retain twenty full history pages while preventing unbounded commit growth. */
+const MaxCommitLookupEntries = CommitBatchSize * 20
+
 const LoadingHistoryRequestKey = 'history'
 
 /** The max number of recent branches to find. */
@@ -249,33 +252,37 @@ export class GitStore extends BaseStore {
 
     this.requestsInFight.add(LoadingHistoryRequestKey)
 
-    const range = revRange('HEAD', mergeBase)
+    try {
+      const range = revRange('HEAD', mergeBase)
 
-    const commits = await this.performFailableOperation(() =>
-      getCommits(this.repository, range, CommitBatchSize)
-    )
-    if (commits == null) {
-      return
-    }
-
-    const existingHistory = this._history
-    const index = existingHistory.findIndex(c => c === mergeBase)
-
-    if (index > -1) {
-      log.debug(
-        `reconciling history - adding ${
-          commits.length
-        } commits before merge base ${mergeBase.substring(0, 8)}`
+      const commits = await this.performFailableOperation(() =>
+        getCommits(this.repository, range, CommitBatchSize)
       )
+      if (commits == null) {
+        return
+      }
 
-      // rebuild the local history state by combining the commits _before_ the
-      // merge base with the current commits on the tip of this current branch
-      const remainingHistory = existingHistory.slice(index)
-      this._history = [...commits.map(c => c.sha), ...remainingHistory]
+      const existingHistory = this._history
+      const index = existingHistory.findIndex(c => c === mergeBase)
+
+      if (index > -1) {
+        log.debug(
+          `reconciling history - adding ${
+            commits.length
+          } commits before merge base ${mergeBase.substring(0, 8)}`
+        )
+
+        // rebuild the local history state by combining the commits _before_ the
+        // merge base with the current commits on the tip of this current branch
+        const remainingHistory = existingHistory.slice(index)
+        this._history = [...commits.map(c => c.sha), ...remainingHistory]
+      }
+
+      this.storeCommits(commits)
+    } finally {
+      this.requestsInFight.delete(LoadingHistoryRequestKey)
     }
 
-    this.storeCommits(commits)
-    this.requestsInFight.delete(LoadingHistoryRequestKey)
     this.emitUpdate()
   }
 
@@ -292,17 +299,20 @@ export class GitStore extends BaseStore {
 
     this.requestsInFight.add(requestKey)
 
-    const commits = await this.performFailableOperation(() =>
-      getCommits(this.repository, commitish, CommitBatchSize, skip)
-    )
+    try {
+      const commits = await this.performFailableOperation(() =>
+        getCommits(this.repository, commitish, CommitBatchSize, skip)
+      )
 
-    this.requestsInFight.delete(requestKey)
-    if (!commits) {
-      return null
+      if (!commits) {
+        return null
+      }
+
+      this.storeCommits(commits)
+      return commits.map(c => c.sha)
+    } finally {
+      this.requestsInFight.delete(requestKey)
     }
-
-    this.storeCommits(commits)
-    return commits.map(c => c.sha)
   }
 
   /**
@@ -322,22 +332,25 @@ export class GitStore extends BaseStore {
     }
 
     this.requestsInFight.add(requestKey)
-    const commits = await this.performFailableOperation(() =>
-      getCommits(this.repository, undefined, CommitBatchSize, skip, [
-        '--branches',
-        '--remotes',
-        '--tags',
-        '--topo-order',
-      ])
-    )
-    this.requestsInFight.delete(requestKey)
+    try {
+      const commits = await this.performFailableOperation(() =>
+        getCommits(this.repository, undefined, CommitBatchSize, skip, [
+          '--branches',
+          '--remotes',
+          '--tags',
+          '--topo-order',
+        ])
+      )
 
-    if (!commits) {
-      return null
+      if (!commits) {
+        return null
+      }
+
+      this.storeCommits(commits)
+      return commits.map(commit => commit.sha)
+    } finally {
+      this.requestsInFight.delete(requestKey)
     }
-
-    this.storeCommits(commits)
-    return commits.map(commit => commit.sha)
   }
 
   public async refreshTags() {
@@ -903,7 +916,24 @@ export class GitStore extends BaseStore {
   /** Store the given commits. */
   private storeCommits(commits: ReadonlyArray<Commit>) {
     for (const commit of commits) {
+      // Refresh insertion order so recently used entries are evicted last.
+      this.commitLookup.delete(commit.sha)
       this.commitLookup.set(commit.sha, commit)
+    }
+    this.pruneCommitLookup()
+  }
+
+  /**
+   * Evict the least recently stored or looked up commits so a long session
+   * with a large history cannot retain every hydrated commit object.
+   */
+  private pruneCommitLookup(): void {
+    while (this.commitLookup.size > MaxCommitLookupEntries) {
+      const oldestCommitSHA = this.commitLookup.keys().next().value
+      if (oldestCommitSHA === undefined) {
+        return
+      }
+      this.commitLookup.delete(oldestCommitSHA)
     }
   }
 
@@ -1422,6 +1452,9 @@ export class GitStore extends BaseStore {
   private async lookupCommit(sha: string): Promise<Commit> {
     const cachedCommit = this.commitLookup.get(sha)
     if (cachedCommit != null) {
+      // Refresh recency so an actively viewed commit survives eviction.
+      this.commitLookup.delete(sha)
+      this.commitLookup.set(sha, cachedCommit)
       return Promise.resolve(cachedCommit)
     }
 
@@ -1430,7 +1463,7 @@ export class GitStore extends BaseStore {
     )
 
     if (foundCommit != null) {
-      this.commitLookup.set(sha, foundCommit)
+      this.storeCommits([foundCommit])
       return foundCommit
     }
 

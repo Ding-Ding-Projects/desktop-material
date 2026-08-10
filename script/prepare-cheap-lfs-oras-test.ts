@@ -499,9 +499,27 @@ describe('pinned Cheap LFS ORAS build preparation', () => {
       source,
       /import \{ prepareBundledCheapLfsOrasForBuild \} from '\.\/prepare-cheap-lfs-oras'/
     )
+    // The Windows preparation runs behind the platform guard and produces the
+    // promise that gates the rest of the build.
     assert.match(
       source,
-      /process\.platform === 'win32'[\s\S]*prepareBundledCheapLfsOrasForBuild\(\{ generatedOutputRoot: outRoot \}\)[\s\S]*verifyInjectedSassVariables/
+      /process\.platform === 'win32'\n\s*\? prepareBundledCheapLfsOrasForBuild\(\{ generatedOutputRoot: outRoot \}\)/
     )
+
+    // Nothing that publishes the app may start before that promise settles.
+    // The finishing step is a named function rather than inline statements, so
+    // the contract is the gate plus that function's contents, not file order.
+    assert.match(
+      source,
+      /cheapLfsOrasPreparation\.then\(\(\) =>\s*finishBuildAfterPreparation\(\)\s*\)/
+    )
+    const finishBody = source.match(
+      /async function finishBuildAfterPreparation\(\): Promise<void> \{[\s\S]*?\n\}/
+    )?.[0]
+    assert.ok(
+      finishBody,
+      'build.ts should keep the gated finishing step in one function'
+    )
+    assert.match(finishBody, /verifyInjectedSassVariables[\s\S]*packageApp\(\)/)
   })
 })

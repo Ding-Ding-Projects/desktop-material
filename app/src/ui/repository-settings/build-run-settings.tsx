@@ -127,8 +127,8 @@ export class BuildRunSettings extends React.Component<
     void this.refreshDetectedProfiles()
   }
 
-  public componentDidUpdate(previousProps: IBuildRunSettingsProps) {
-    if (previousProps.repository.path !== this.props.repository.path) {
+  public componentDidUpdate(prevProps: IBuildRunSettingsProps) {
+    if (prevProps.repository.path !== this.props.repository.path) {
       void this.refreshDetectedProfiles()
     }
   }

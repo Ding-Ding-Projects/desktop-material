@@ -1,5 +1,74 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-10 — Land the audited history cache and request-guard repair
+
+Issue #177 shipped the debugging bundle
+`desktop-material-debug-handoff-31d3fd4.zip`, audited against
+`31d3fd4618fddb9d0941cc9ffdbcba02e5299a14`. Its Phase 1 source-safe patch is
+now applied, tested, and merged; the bundle's own patcher refused to run
+because its reconstructed anchors differ from this tree in whitespace only, so
+the changes were applied by hand against the real source and reviewed line by
+line rather than forced through a fuzzy match.
+
+What landed in `GitStore`:
+
+- `commitLookup` is capped at **2,000** entries (`CommitBatchSize * 20`, twenty
+  full history pages) with least-recently-used eviction. `storeCommits`
+  refreshes insertion order, `lookupCommit` refreshes a cache hit, and a lazily
+  loaded commit is routed through `storeCommits` so it is bounded too. An
+  evicted commit is transparently reloaded by the existing lazy lookup.
+- `reconcileHistory`, `loadCommitBatch`, and `loadHistoryBatch` release their
+  request keys through `finally`. Before this, a handled Git failure or an
+  unexpected throw left `history` or a batch key permanently in flight, and the
+  affected view never loaded again for that session.
+
+Two repairs outside the bundle were required to leave the gates green:
+
+- `BuildRunSettings` and `GitIgnore` named their `componentDidUpdate` parameter
+  `previousProps`, which the repository's `react-proper-lifecycle-methods` rule
+  rejects. `yarn lint:src` was red on the default branch before this change.
+- `script/prepare-cheap-lfs-oras-test.ts` asserted the Windows ORAS preparation
+  ordering as raw file order. The trampoline-build change hoisted
+  `verifyInjectedSassVariables` into `finishBuildAfterPreparation`, so the
+  regex failed while the runtime ordering stayed correct. The test now asserts
+  the real contract: the platform-guarded preparation promise gates
+  `finishBuildAfterPreparation`, and that function verifies the Sass variables
+  before packaging.
+- `site/index.html` advertised 283 articles and 6 review-and-diff articles while
+  `docs/` renders 284 and 7. `node script/sync-site-doc-counts.mjs` corrected
+  the hub counts, which is the Pages half of issue #174.
+
+Verification on this Linux container, with Node 22.22.2:
+
+- `node script/test.mjs app/test/unit/git-store-test.ts`: **21/21 passed**,
+  including the four new lifecycle regressions (handled reconciliation failure,
+  thrown compare-batch failure, thrown all-refs failure, and the cache bound
+  with recency preservation).
+- `node script/test.mjs app/test/unit/app-network-action-boundary-test.ts`:
+  **5/5 passed**.
+- Full unit gate: **1,008/1,008 files**, **8,495 tests**, **8,443 passed**,
+  **22 failed**, **13 skipped**.
+- `yarn test:script`: **218 tests**, **208 passed**, **2 failed**, **8 skipped**
+  (up from 206 passed and 4 failed before this change).
+- `yarn lint:src`, `yarn prettier --check`, `git diff --check`, and
+  `npx tsc --noEmit -p tsconfig.json`: all pass.
+
+**The 22 unit failures and 2 script failures are not caused by this change and
+are not claimed as fixed.** They are Windows contracts executed on a Linux
+host: WSL distribution discovery, UNC and drive-root probing, packaged Dugite
+path selection, 7-Zip stash export, `\`-separated ORAS staging paths, the
+self-hosted runner manager, and `update-coming-soon`, whose renderer returns
+`null` under `__LINUX__`. The exact same failing set was recorded on a stashed,
+unmodified tree and after the patch — an identical list, proving no regression.
+Windows CI remains the authority for those files.
+
+**Not verified here:** packaged Electron build, Windows E2E, the screenshot and
+accessibility matrix, heap soak evidence, and push/pull/commit stage timings.
+Phases 2 through 7 of the bundle's plan — push, pull, and commit latency
+instrumentation, the memory soak, the visual contract, and the release proof —
+remain open and need a packaged Windows runtime. Do not read this checkpoint as
+completing them.
+
 ## 2026-08-09 — Make self-hosted runner risk choice main-process owned
 
 The Actions runner form still warns before setup and requires the two host-risk

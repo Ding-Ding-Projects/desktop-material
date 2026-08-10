@@ -203,8 +203,8 @@ export class GitIgnore extends React.Component<
     void this.refreshSuggestions()
   }
 
-  public componentDidUpdate(previousProps: IGitIgnoreProps) {
-    if (previousProps.repository.path !== this.props.repository.path) {
+  public componentDidUpdate(prevProps: IGitIgnoreProps) {
+    if (prevProps.repository.path !== this.props.repository.path) {
       void this.refreshSuggestions()
     }
   }

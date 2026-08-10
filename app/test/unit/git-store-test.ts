@@ -22,6 +22,7 @@ import {
 } from '../helpers/repository-scaffolding'
 import { BranchType } from '../../src/models/branch'
 import { TestStatsStore } from '../helpers/test-stats-store'
+import { HistoryScope } from '../../src/lib/app-state'
 
 describe('GitStore', () => {
   describe('fetch remote selection', () => {
@@ -68,6 +69,95 @@ describe('GitStore', () => {
       assert(commits !== null)
       assert.equal(commits.length, 100)
       assert.equal(commits[0], '708a46eac512c7b2486da2247f116d11a100b611')
+    })
+  })
+
+  describe('history request and cache lifecycle', () => {
+    it('releases the shared request guard after a handled failure', async t => {
+      const repo = await setupEmptyRepository(t)
+      const gitStore = new GitStore(repo, shell, new TestStatsStore())
+      const internals = gitStore as unknown as {
+        _history: ReadonlyArray<string>
+        requestsInFight: Set<string>
+        performFailableOperation: (
+          operation: () => Promise<unknown>
+        ) => Promise<unknown>
+      }
+      internals._history = ['HEAD']
+      internals.performFailableOperation = async () => null
+
+      await gitStore.reconcileHistory('handled-failure')
+
+      assert.equal(internals.requestsInFight.size, 0)
+    })
+
+    it('releases a batch request guard after an unexpected throw', async t => {
+      const repo = await setupEmptyRepository(t)
+      const gitStore = new GitStore(repo, shell, new TestStatsStore())
+      const internals = gitStore as unknown as {
+        requestsInFight: Set<string>
+        performFailableOperation: (
+          operation: () => Promise<unknown>
+        ) => Promise<unknown>
+      }
+      internals.performFailableOperation = async () => {
+        throw new Error('unexpected history failure')
+      }
+
+      await assert.rejects(
+        gitStore.loadCommitBatch('HEAD', 0),
+        /unexpected history failure/
+      )
+
+      assert.equal(internals.requestsInFight.size, 0)
+    })
+
+    it('releases the all-refs request guard after an unexpected throw', async t => {
+      const repo = await setupEmptyRepository(t)
+      const gitStore = new GitStore(repo, shell, new TestStatsStore())
+      const internals = gitStore as unknown as {
+        requestsInFight: Set<string>
+        performFailableOperation: (
+          operation: () => Promise<unknown>
+        ) => Promise<unknown>
+      }
+      internals.performFailableOperation = async () => {
+        throw new Error('unexpected all-refs failure')
+      }
+
+      await assert.rejects(
+        gitStore.loadHistoryBatch(HistoryScope.AllRefs, 0),
+        /unexpected all-refs failure/
+      )
+
+      assert.equal(internals.requestsInFight.size, 0)
+    })
+
+    it('bounds commit retention and keeps recently used commits', async t => {
+      const repo = await setupEmptyRepository(t)
+      const gitStore = new GitStore(repo, shell, new TestStatsStore())
+      type MinimalCommit = { sha: string }
+      const internals = gitStore as unknown as {
+        commitLookup: Map<string, MinimalCommit>
+        storeCommits(commits: ReadonlyArray<MinimalCommit>): void
+        lookupCommit(sha: string): Promise<MinimalCommit>
+      }
+      const maxEntries = 2_000
+      internals.storeCommits(
+        Array.from({ length: maxEntries }, (_, index) => ({
+          sha: String(index),
+        }))
+      )
+
+      // Looking up a retained commit must refresh its recency so the next
+      // insertion evicts an older entry instead of the one in use.
+      await internals.lookupCommit('0')
+      internals.storeCommits([{ sha: String(maxEntries) }])
+
+      assert.equal(internals.commitLookup.size, maxEntries)
+      assert.equal(internals.commitLookup.has('0'), true)
+      assert.equal(internals.commitLookup.has('1'), false)
+      assert.equal(internals.commitLookup.has(String(maxEntries)), true)
     })
   })
 
