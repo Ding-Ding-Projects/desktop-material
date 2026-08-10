@@ -651,7 +651,7 @@
       d: 'Settings persists exactly three application language modes:',
     },
     {
-      t: 'Linux TUI — revived August 2, 2026',
+      t: 'Linux TUI — revived August 2, 2026 / Linux TUI — 2026 年 8 月 2 日復活',
       h: 'features/linux-tui/',
       s: 'features/linux-tui/README.md',
       c: 'features',
@@ -1372,7 +1372,7 @@
       d: 'The numbered roadmap now extends through M27. M0–M21 and M23 have published receipts, M22 retains its separately tracked visual refresh, and the exact acceptance/publication…',
     },
     {
-      t: 'Screenshots',
+      t: 'Screenshots / 截圖',
       h: 'readme-tabs/screenshots.html',
       s: 'readme-tabs/screenshots.md',
       c: 'readme-tabs',

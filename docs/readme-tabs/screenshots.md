@@ -1,30 +1,42 @@
 [Overview](../../README.md) · [Install](install.md) · [Features](features.md) · [Complete list](complete-feature-list.md) · **Screenshots** · [Roadmap & receipts](roadmap-and-receipts.md) · [Development](development.md)
 
+[總覽](../../README.md) · [安裝](install.md) · [功能](features.md) · [完整清單](complete-feature-list.md) · **截圖** · [路線圖同憑證](roadmap-and-receipts.md) · [開發](development.md)
+
 <sub>Tabbed README — GitHub can't run scripts, so each tab above is a separate page.</sub>
 
-# Screenshots
+<sub>分頁式 README — GitHub 唔行得 script，所以上面每個分頁都係獨立一版。</sub>
 
-## Original GitHub OAuth callback acceptance
+# Screenshots / 截圖
+
+## Original GitHub OAuth callback acceptance / 原始 GitHub OAuth 回呼接受
 
 The dated production-build receipt proves that Desktop Material's app-owned
 browser reaches the original registered GitHub OAuth application without the
 reported `redirect_uri` warning. The frame contains empty sign-in fields and no
 account or credential data.
 
+呢張有日期嘅生產建置收據證明咗 Desktop Material 自己擁有嘅瀏覽器去到原本註冊嘅 GitHub OAuth 應用程式，冇再出現報告過嘅 `redirect_uri` 警告。個畫面入面嘅登入欄位係空嘅，冇任何帳戶或者憑證資料。
+
 ![Real app-owned GitHub authorization page opened without a redirect URI warning](../assets/screenshots/material-original-github-oauth-release-20260806.png)
 
 [Read the exact-source verification receipt](../verification/original-github-oauth-release-20260806/README.md).
+
+[睇精確來源嘅驗證收據](../verification/original-github-oauth-release-20260806/README.md)。
 
 The compact selection below keeps this README scannable. The
 [guided feature gallery](../wiki/Feature-Gallery.md) and
 [task-oriented tutorial](../wiki/User-Guide.md) contain the full annotated
 set.
 
+下面精簡嘅選集係為咗令呢個 README 易掃。完整嘅註解版喺 [導覽式功能相簿](../wiki/Feature-Gallery.md) 同 [以任務為本嘅教學](../wiki/User-Guide.md)。
+
 The wiki now also includes a visual-learning layer: eight labeled workflow
 diagrams—one on every wiki page—and seven conceptual illustrations covering the
 safe Git loop, short-lived branches, conflict resolution, rebase, stash recovery,
 automation, and account isolation. The diagrams are reproducible with
 `node script/generate-wiki-diagrams.js`.
+
+Wiki 而家亦都有一層視覺學習材料：八張標註嘅工作流程圖（每一版 wiki 一張），同七張概念插圖，涵蓋安全 Git 循環、短命分支、解決衝突、rebase、stash 復原、自動化同帳戶隔離。啲圖可以用 `node script/generate-wiki-diagrams.js` 重現。
 
 | Launchpad full-width empty state |
 | --- |
@@ -34,7 +46,7 @@ automation, and account isolation. The diagrams are reproducible with
 | --- |
 | <img src="../assets/screenshots/not-updated-with-main-filter.png" alt="Merge into main chooser with Not updated with main active, showing only the stale fixture branch" width="720"><br><sub>Not updated with main · 960×660 client-only hidden-desktop capture · SHA-256 `DA046E4BC768324BAFF001B5DE0C7954F53F1CD498C25338081E8FDB83990346`</sub> |
 
-## Historical Linux terminal captures
+## Historical Linux terminal captures / 歷史 Linux 終端機擷取
 
 Five original-resolution Debian/Xvfb captures remain preserved with their
 [dated run manifest](../verification/linux-tui-2026-07-27/run-manifest.md).
@@ -42,12 +54,16 @@ They are historical evidence, not current Windows screenshots, and are
 therefore excluded from the 91-scene guided-gallery target, Pages manifest,
 and current refresh campaign.
 
-## Inherited external-UI assets — excluded from the capture mandate
+五張原始解析度嘅 Debian/Xvfb 擷取，連同佢哋 [有日期嘅執行清單](../verification/linux-tui-2026-07-27/run-manifest.md) 保留低。佢哋係歷史證據，唔係目前嘅 Windows 截圖，所以排除喺 91 場景導覽相簿目標、Pages 清單同目前更新行動之外。
+
+## Inherited external-UI assets — excluded from the capture mandate / 繼承嘅外部介面素材 — 不在擷取範圍
 
 Every screenshot of **Desktop Material's own interface** is produced by the
 app's capture harness and is replaceable on demand. Six inherited assets are a
 documented exception, because they show **other products' interfaces** that
 this app cannot render and the harness therefore cannot reproduce:
+
+每一張影 **Desktop Material 自己介面** 嘅截圖都係由 app 嘅擷取工具產生，隨時可以重拍。有六張繼承落嚟嘅素材係有記錄嘅例外，因為佢哋影嘅係**其他產品嘅介面**，呢個 app render 唔到，擷取工具亦都重現唔到：
 
 | Asset | External interface shown |
 | --- | --- |
@@ -63,6 +79,8 @@ They are referenced from `docs/integrations/azure-devops.md`,
 `docs/learn-more/unreachable-commits.md`, where they illustrate third-party
 sign-in flows a user meets outside this app.
 
+佢哋喺 `docs/integrations/azure-devops.md`、`docs/integrations/bitbucket.md`、`docs/integrations/gitlab.md` 同 `docs/learn-more/unreachable-commits.md` 入面被引用，用嚟說明用戶喺呢個 app 以外會遇到嘅第三方登入流程。
+
 Recapturing them would require live Azure DevOps, Bitbucket, and GitLab
 accounts plus a credential-prompt environment, and the result would still be
 someone else's UI rather than evidence about this app. They are therefore
@@ -71,7 +89,9 @@ capture coverage. Decision recorded 2026-07-27 (issue #25, option A). Anyone
 adding a new external-product screenshot should list it here with the same
 justification rather than leaving it to be mistaken for a stale app capture.
 
-## Current settings surfaces — browser-tab acceptance
+要重拍佢哋就要有真實嘅 Azure DevOps、Bitbucket 同 GitLab 帳戶，加一個會彈憑證提示嘅環境，而拍出嚟一樣係人哋嘅 UI，唔係關於呢個 app 嘅證據。所以佢哋**排除**喺「換晒所有截圖」嘅工作之外，亦都唔計入擷取覆蓋率。決定記錄於 2026-07-27（issue #25，選項 A）。如果有人加新嘅外部產品截圖，應該用同樣理由喺呢度列出，唔好留低俾人誤會係一張過時嘅 app 擷取。
+
+## Current settings surfaces — browser-tab acceptance / 目前設定介面 — 瀏覽器分頁接受
 
 These three frames come from the exact production Electron build on the named
 hidden desktop run recorded in
@@ -79,6 +99,8 @@ hidden desktop run recorded in
 They show the shared browser-style tab lane on Global Settings, Repository
 Settings, and Stash Manager, including close actions, search/overflow/new-page
 controls, and the active panel below the selected page.
+
+呢三個畫面嚟自精確嘅生產 Electron 建置，喺 [`settings-browser-tabs-headless-run-manifest.json`](../verification/settings-browser-tabs-headless-run-manifest.json) 記錄嗰次具名隱藏桌面執行。佢哋顯示全域設定、儲存庫設定同 Stash 管理員共用嘅瀏覽器式分頁列，包括關閉操作、搜尋／溢出／新頁控制項，同選定頁面下面嘅使用中面板。
 
 | Global Settings | Repository Settings | Stash Manager |
 | --- | --- | --- |
@@ -137,6 +159,8 @@ expansion plus original part and whole-file SHA-256 verification. The historical
 objects to verified 1,033-byte side assets while retaining their raw historical
 assets; both compressed pointers restored to the exact original bytes through
 the app.
+
+Cheap LFS 而家裝得到一個經覆核、SHA 釘住嘅 GitHub Actions 呼叫方，順序壓縮 Release 物件，唔使 Actions 產物或者快取。對一個已確認公開嘅儲存庫，Desktop Material 會喺 Changes 自動準備佢自己擁有嘅呼叫方；要等用戶覆核、commit 同推送咗嗰個工作流程，佢先開始行。私人儲存庫預設唔開，要用戶主動選擇；嗰個持久化嘅同意唔會安裝任何私人儲存庫工作流程，亦都唔會用私人 Actions 分鐘，而係將壓縮導向加密嘅公開建置器。失敗或者冇好處嘅物件保留佢精確嘅原始 pointer 同資產，而成功嘅物件會變成向後相容嘅 `part-deflate` 紀錄。解壓永遠喺 Desktop Material 本機做，有界展開，並且驗證原始分段同整個檔案嘅 SHA-256。2026-07-22 嘅歷史公開同私人 Actions 接受測試，將個別 1 MiB 物件轉成已驗證嘅 1,033 bytes 側資產，同時保留佢哋嘅原始歷史資產；兩個壓縮 pointer 都經 app 還原返精確嘅原始位元組。
 
 | Repository workflows | GitHub workflows | Accessibility and shell |
 | --- | --- | --- |
