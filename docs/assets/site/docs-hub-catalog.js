@@ -133,7 +133,7 @@
       d: 'Desktop Material ships an opt-in Agent API for trusted automation. The main process owns one versioned command contract and publishes it through a REST compatibility surface…',
     },
     {
-      t: 'Agent API',
+      t: 'Agent API / Agent API',
       h: 'features/agent-api/',
       s: 'features/agent-api/README.md',
       c: 'features',
@@ -182,7 +182,7 @@
       d: "Open a pull request's context menu and choose Manage Pull Request… to load a single account-bound workspace. A fixed header names the current pull request, shows an Open,…",
     },
     {
-      t: 'Collaboration features',
+      t: 'Collaboration features / 協作功能',
       h: 'features/collaboration/',
       s: 'features/collaboration/README.md',
       c: 'features',
@@ -259,7 +259,7 @@
       d: 'Wires the 244 pre-generated audio assets in app/static/audio/ into the optional audio runtime, so meaningful events can play a recorded human-style voice line and a composed…',
     },
     {
-      t: 'Design-system features',
+      t: 'Design-system features / 設計系統功能',
       h: 'features/design-system/',
       s: 'features/design-system/README.md',
       c: 'features',
@@ -329,7 +329,7 @@
       d: 'Desktop Material attaches appearance controls to the element that owns the setting. Shift+right-click, the keyboard Context Menu key, or Shift+F10 opens an anchored editor…',
     },
     {
-      t: 'Identity and workspace features',
+      t: 'Identity and workspace features / 身分同工作區功能',
       h: 'features/identity-and-workspace/',
       s: 'features/identity-and-workspace/README.md',
       c: 'features',
@@ -525,7 +525,7 @@
       d: 'The selected external editor is one action away from repository rows, the Changes empty state, changed-file context menus, conflict rows, and the diff header. File actions pass…',
     },
     {
-      t: 'Integrations',
+      t: 'Integrations / 整合',
       h: 'features/integrations/',
       s: 'features/integrations/README.md',
       c: 'features',
@@ -770,7 +770,7 @@
       d: 'Desktop Material paints and reveals its usable application shell before optional startup work finishes. Expensive repository sections are downloaded and evaluated only when…',
     },
     {
-      t: 'Quality and reliability',
+      t: 'Quality and reliability / 品質同可靠性',
       h: 'features/quality-and-reliability/',
       s: 'features/quality-and-reliability/README.md',
       c: 'features',
@@ -980,7 +980,7 @@
       d: 'The application-menu Pull action and a right click on the toolbar Pull remote button are a review boundary for an ordinary, single-repository Git pull. Desktop Material fetches…',
     },
     {
-      t: 'Repository management features',
+      t: 'Repository management features / 儲存庫管理功能',
       h: 'features/repository-management/',
       s: 'features/repository-management/README.md',
       c: 'features',
@@ -1127,7 +1127,7 @@
       d: 'Diff Options can automatically reveal whole-file context for eligible text diffs and can set manual expansion steps to 20, 50, or 100 lines. The preference is local…',
     },
     {
-      t: 'Review and diff features',
+      t: 'Review and diff features / 覆核同差異功能',
       h: 'features/review-and-diff/',
       s: 'features/review-and-diff/README.md',
       c: 'features',
@@ -1176,7 +1176,7 @@
       d: '2026 07 24 session',
     },
     {
-      t: 'Installing Desktop Material',
+      t: 'Installing Desktop Material / 安裝 Desktop Material',
       h: 'installation.html',
       s: 'installation.md',
       c: 'root',
@@ -1337,7 +1337,7 @@
       d: 'Every feature Desktop Material ships, grouped by area, with an honest label for how each one relates to upstream GitHub Desktop. The Features tab is',
     },
     {
-      t: 'Development',
+      t: 'Development / 開發',
       h: 'readme-tabs/development.html',
       s: 'readme-tabs/development.md',
       c: 'readme-tabs',
@@ -1358,14 +1358,14 @@
       d: 'Desktop Material ships as a Windows desktop application and as a Linux-first terminal application. The terminal package keeps the clickable Git and GitHub workflows, repository…',
     },
     {
-      t: 'Desktop Material — readme tabs',
+      t: 'Desktop Material — readme tabs / README 分頁',
       h: 'readme-tabs/',
       s: 'readme-tabs/README.md',
       c: 'readme-tabs',
       d: 'complete feature list',
     },
     {
-      t: 'Roadmap & receipts',
+      t: 'Roadmap & receipts / 路線圖同憑證',
       h: 'readme-tabs/roadmap-and-receipts.html',
       s: 'readme-tabs/roadmap-and-receipts.md',
       c: 'readme-tabs',
