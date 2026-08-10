@@ -611,6 +611,11 @@ export class RepositoryListItem extends React.Component<
       return
     }
 
+    // Unmounting bumps this, and a repository row unmounts whenever the list is
+    // filtered or the side sheet closes. Without it the path check below still
+    // passes — the row's own repository has not changed, the row is simply gone
+    // — and the state update lands on an unmounted component.
+    const requestId = this.appearanceEditorRequestId
     const elements = await dispatcher.getRepositoryAppearanceElements(
       repository
     )
@@ -620,7 +625,10 @@ export class RepositoryListItem extends React.Component<
     const profileLogoDesign = dispatcher.getProfileAppearanceElement(
       ProfileAppearanceElementId.DefaultRepositoryLogo
     )
-    if (this.getLogoPath(this.props.repository) !== repository.path) {
+    if (
+      requestId !== this.appearanceEditorRequestId ||
+      this.getLogoPath(this.props.repository) !== repository.path
+    ) {
       return
     }
     this.setState({
