@@ -1,6 +1,9 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
-import { sevenZipArguments } from '../../../src/lib/git/stash-export'
+import {
+  createAbortKill,
+  sevenZipArguments,
+} from '../../../src/lib/git/stash-export'
 import type { IStashSevenZipOptions } from '../../../src/lib/git/stash-export'
 
 describe('git/stash-export', () => {
@@ -56,5 +59,43 @@ describe('git/stash-export', () => {
     assert.ok(
       !sevenZipArguments('stash.7z', 'stash', options).includes('-mhe=on')
     )
+  })
+
+  it('stops listening for an abort once its Git command settles', () => {
+    const controller = new AbortController()
+    let killed = 0
+
+    // One export shares this signal across every tree it archives, so a
+    // listener left behind by a finished command accumulates for the whole run.
+    for (let index = 0; index < 20; index++) {
+      const abortKill = createAbortKill(controller.signal)
+      abortKill.processCallback({ kill: () => killed++ })
+      abortKill.dispose()
+    }
+
+    controller.abort()
+    assert.equal(killed, 0)
+  })
+
+  it('kills the running Git process when the export is aborted', () => {
+    const controller = new AbortController()
+    let killed = 0
+    const abortKill = createAbortKill(controller.signal)
+    abortKill.processCallback({ kill: () => killed++ })
+
+    controller.abort()
+    assert.equal(killed, 1)
+
+    // Disposing after the abort already fired must stay a no-op.
+    abortKill.dispose()
+    assert.equal(killed, 1)
+  })
+
+  it('is a no-op without a signal', () => {
+    const abortKill = createAbortKill(undefined)
+    assert.doesNotThrow(() => {
+      abortKill.processCallback({ kill: () => undefined })
+      abortKill.dispose()
+    })
   })
 })

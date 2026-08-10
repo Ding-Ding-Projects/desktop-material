@@ -181,6 +181,35 @@ async function extractZip(
   }
 }
 
+/**
+ * Kill the spawned Git process when `signal` aborts, and stop listening as
+ * soon as the command settles.
+ *
+ * One export shares a single signal across every entry it writes, and each
+ * entry archives up to three trees, so a listener that outlived its own
+ * `git archive` would leave one dead child process attached to that signal per
+ * archived tree. Past ten of them Node starts reporting a listener leak.
+ */
+export function createAbortKill(signal: AbortSignal | undefined): {
+  readonly processCallback: (process: { kill: () => void }) => void
+  readonly dispose: () => void
+} {
+  let listener: (() => void) | null = null
+
+  return {
+    processCallback: process => {
+      listener = () => process.kill()
+      signal?.addEventListener('abort', listener, { once: true })
+    },
+    dispose: () => {
+      if (listener !== null) {
+        signal?.removeEventListener('abort', listener)
+        listener = null
+      }
+    },
+  }
+}
+
 async function archiveTree(
   repository: Repository,
   tree: string,
@@ -188,16 +217,20 @@ async function archiveTree(
   signal?: AbortSignal
 ): Promise<void> {
   throwIfAborted(signal)
-  await git(
-    ['archive', '--format=zip', `--output=${destination}`, tree],
-    repository.path,
-    'exportStashTree',
-    {
-      maxBuffer: archiveLimit,
-      processCallback: process =>
-        signal?.addEventListener('abort', () => process.kill(), { once: true }),
-    }
-  )
+  const abortKill = createAbortKill(signal)
+  try {
+    await git(
+      ['archive', '--format=zip', `--output=${destination}`, tree],
+      repository.path,
+      'exportStashTree',
+      {
+        maxBuffer: archiveLimit,
+        processCallback: abortKill.processCallback,
+      }
+    )
+  } finally {
+    abortKill.dispose()
+  }
 }
 
 async function writeEntryExport(
