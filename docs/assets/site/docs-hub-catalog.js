@@ -1344,7 +1344,7 @@
       d: 'Full instructions live in docs/contributing/setup.md. In short, with Node 24.15.0:',
     },
     {
-      t: 'Features',
+      t: 'Features / 功能',
       h: 'readme-tabs/features.html',
       s: 'readme-tabs/features.md',
       c: 'readme-tabs',
