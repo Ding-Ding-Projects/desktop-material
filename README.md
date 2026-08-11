@@ -174,6 +174,41 @@ path. The installer also supplies GitHub CLI's `gh` and configures `PATH`.
   alt="Desktop Material workspace with a profile-customized app name and logo, a favorite repository tab, the Material navigation rail, and the Changes view"
 />
 
+<details>
+<summary><strong>Open the August 11 packaged Windows gallery</strong></summary>
+
+These frames were captured from the packaged application at commit
+`eb894d4218670f0e9fd1516dff964edd76e1824c` on an isolated off-screen Windows
+desktop. The capture pass produced 56 fresh scene-level frames. Twelve optional
+scenes remained gaps, and the aggregate canonical check did not pass because
+the current Settings surface no longer exposes the `Appearance` tab expected by
+the older capture driver. Only successfully rendered scene frames and clearly
+labelled manual captures were promoted; failed specialist outputs were not.
+
+呢批畫面係由 commit `eb894d4218670f0e9fd1516dff964edd76e1824c` 嘅已打包應用程式，喺隔離嘅離屏 Windows 桌面實際擷取。今次有 56 個場景成功更新；另外 12 個可選場景仍然係缺口，而整體 canonical 檢查亦因為目前 Settings 畫面已經冇舊擷取器預期嘅 `Appearance` 分頁而未通過。以下只收錄成功渲染嘅場景同清楚標明嘅人手擷取，失敗嘅 specialist 輸出冇被換入去。
+
+| First run | Changes | History |
+| --- | --- | --- |
+| <img src="docs/assets/screenshots/material-welcome.png" alt="Packaged Desktop Material first-run setup with GitHub sign-in, continue-without-signing-in, and a tonal workspace preview" width="360"> | <img src="docs/assets/screenshots/material-workspace-changes.png" alt="Desktop Material Changes workspace with two fixture files, a selected diff, commit form, and protected-branch notice" width="360"> | <img src="docs/assets/screenshots/material-history.png" alt="Desktop Material History with Commit list and Graph tabs, anchored search and regex builder, filters, and selected commit details" width="360"> |
+
+| Branches | Actions | Notifications |
+| --- | --- | --- |
+| <img src="docs/assets/screenshots/material-branches-sheet.png" alt="Branches side sheet with searchable local and remote branches, regex builder, pull-request tab, and merge actions" width="360"> | <img src="docs/assets/screenshots/material-actions-pagination.png" alt="Actions workflow runs with filters, anchored regex builder, selectable rows, run metadata, and pagination controls" width="360"> | <img src="docs/assets/screenshots/material-notification-center.png" alt="Notification centre with Local and GitHub tabs, search, filters, selection controls, and recovery messages" width="360"> |
+
+| Settings accounts | Command palette | Agents |
+| --- | --- | --- |
+| <img src="docs/assets/manual-captures/material-settings-accounts-bilingual.png" alt="Dark bilingual Settings accounts page with settings search, anchored regex builder, Accounts and AI tabs, and provider controls" width="360"> | <img src="docs/assets/manual-captures/material-command-palette-results-bilingual.png" alt="Dark bilingual command palette with its search field and live navigation and repository command results" width="360"> | <img src="docs/assets/manual-captures/material-agents-repository-drawer.png" alt="Dark bilingual Agents drawer with a new agent session action and the current disposable worktree" width="360"> |
+
+| Repositories | Releases | Narrow layout |
+| --- | --- | --- |
+| <img src="docs/assets/screenshots/material-repositories-sheet.png" alt="Dark bilingual repository drawer with List and Agents tabs, collapsed Filters, equal-width Add, Select, and More actions, and provider groups" width="360"> | <img src="docs/assets/screenshots/material-github-releases.png" alt="Repository Releases dashboard with search and filters, release inventory, metadata, notes, assets, hashes, and lifecycle actions" width="360"> | <img src="docs/assets/screenshots/material-responsive-overflow-fixed.png" alt="Narrow Desktop Material workspace with compact navigation, contained commit form, and a readable selected diff" width="360"> |
+
+| Cheap LFS candidates | Appearance editor | Error recovery |
+| --- | --- | --- |
+| <img src="docs/assets/manual-captures/cheap-lfs-candidate-selection.png" alt="Dark Changes view filtered to three large Cheap LFS candidate files with the anchored regex builder" width="360"> | <img src="docs/assets/screenshots/material-customization.png" alt="Repository toolbar appearance editor anchored above the workspace with density, typography, alignment, history, and preview controls" width="360"> | <img src="docs/assets/screenshots/material-error-notice.png" alt="Changes workspace with persistent bottom-right errors for a repository lock and an automatic Cheap LFS commit failure, including recovery actions" width="360"> |
+
+</details>
+
 ![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci-windows.yml/badge.svg?branch=main)
 
 > **The site is one Material Design 3 component — August 3, 2026:** the

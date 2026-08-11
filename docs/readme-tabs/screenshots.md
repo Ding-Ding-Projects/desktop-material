@@ -8,6 +8,31 @@
 
 # Screenshots / 截圖
 
+## Packaged application refresh — August 11, 2026 / 已打包應用程式更新 — 2026 年 8 月 11 日
+
+The current refresh used the packaged Windows application from commit
+`eb894d4218670f0e9fd1516dff964edd76e1824c` on an isolated off-screen desktop.
+Fifty-six scene-level captures rendered successfully and replaced their
+matching gallery assets. Twelve optional scenes remained gaps. The aggregate
+canonical check did not pass because the current Settings surface no longer
+contains the `Appearance` tab expected by the older driver, so this page does
+not treat that aggregate check as verified. Failed compact-Releases,
+command-appearance-editor, and Cheap-LFS-progress specialist outputs were not
+promoted.
+
+今次更新用 commit `eb894d4218670f0e9fd1516dff964edd76e1824c` 嘅已打包 Windows 應用程式，喺隔離嘅離屏桌面實際擷取。五十六個場景成功渲染並換入相簿；另外十二個可選場景仍然係缺口。由於目前 Settings 畫面已經冇舊擷取器預期嘅 `Appearance` 分頁，整體 canonical 檢查並未通過，所以呢一頁唔會扮佢已經驗證。失敗嘅 compact Releases、command appearance editor 同 Cheap LFS progress specialist 輸出全部冇換入去。
+
+The four frames below are genuine client-only captures of reachable packaged
+surfaces that the strict specialist routes could not complete. Their filenames,
+alt text, and captions describe exactly what rendered rather than borrowing the
+semantics of a failed specialist target.
+
+下面四張係已打包應用程式入面真係去得到嘅 client-only 畫面；嚴格 specialist 路線未完成，所以檔名、替代文字同說明全部只寫實際 render 出嚟嘅內容，唔會借用失敗目標嘅語意。
+
+| Settings accounts | Command palette results | Agents drawer | Cheap LFS candidates |
+| --- | --- | --- | --- |
+| <img src="../assets/manual-captures/material-settings-accounts-bilingual.png" alt="Dark bilingual Settings accounts page with settings search, anchored regex builder, Accounts and AI tabs, and provider controls" width="300"><br><sub>960×660 · SHA-256 `8611e80a2ea1aa146e991ce9d67719867588a12d5c0f7eb1f088577a576fa83d`</sub> | <img src="../assets/manual-captures/material-command-palette-results-bilingual.png" alt="Dark bilingual command palette with its search field and live navigation and repository command results" width="300"><br><sub>960×660 · SHA-256 `883636bf0a14cf0a5603fdfca8eff7988010fea28246d063345f28c8ba8ad552`</sub> | <img src="../assets/manual-captures/material-agents-repository-drawer.png" alt="Dark bilingual Agents drawer with a new agent session action and the current disposable worktree" width="300"><br><sub>960×660 · SHA-256 `d0b26258ea9ba6b2621f71341b83f21c4867c4aad12a3dba3cd19f7e0de3e7ed`</sub> | <img src="../assets/manual-captures/cheap-lfs-candidate-selection.png" alt="Dark Changes view filtered to three large Cheap LFS candidate files with the anchored regex builder" width="300"><br><sub>960×660 · SHA-256 `3f31678524fbca0332b02d4fe1d7920b66b99affab04f4bdb1022cef3623b30e`</sub> |
+
 ## Original GitHub OAuth callback acceptance / 原始 GitHub OAuth 回呼接受
 
 The dated production-build receipt proves that Desktop Material's app-owned
@@ -104,7 +129,7 @@ controls, and the active panel below the selected page.
 
 | Global Settings | Repository Settings | Stash Manager |
 | --- | --- | --- |
-| <img src="../assets/screenshots/material-settings.png" alt="Global Settings with browser-style tabs, close actions, search, and overflow" width="320"><br><sub>SHA-256 `43ff361771efeeeb01eb8b40b778b9a4e5b3a311457fc632271d9ad4aa513fc`</sub> | <img src="../assets/screenshots/material-remote-manager.png" alt="Repository Settings with browser-style tabs and the Remote page selected" width="320"><br><sub>SHA-256 `4850a060ed8ffb9c8fd06bf013e6b503b4928c58bf0449c45e56887be09ad962`</sub> | <img src="../assets/screenshots/material-stash-manager.png" alt="Stash Manager with browser-style Manage, Export, History, and Appearance and voice pages" width="320"><br><sub>SHA-256 `52254a7b62ba0a9ce3d84c19fe3cd5e4e30a37ede79d3122afa57665b9759ca3`</sub> |
+| <img src="../assets/screenshots/material-settings.png" alt="Global Settings with browser-style tabs, close actions, search, and overflow" width="320"><br><sub>SHA-256 `43ff361771efeeeb01eb8b40b778b9a4e5b3a311457fc632271d9ad4aa513fc`</sub> | <img src="../assets/screenshots/material-remote-manager.png" alt="Repository Settings with browser-style tabs and the Remote page selected" width="320"><br><sub>SHA-256 `bb432055f8e05e687f78a8ec0cd661fcfb24fe0993ac9fb87efbdf4cd2f07c16`</sub> | <img src="../assets/screenshots/material-stash-manager.png" alt="Stash Manager with browser-style Manage, Export, History, and Appearance and voice pages" width="320"><br><sub>SHA-256 `856671a301ce9954302ccd36ef665678c4ffb7c6a8102f3863125fb68858549b`</sub> |
 
 <sub>全域設定、倉庫設定同 Stash 管理員而家共用同一條似瀏覽器嘅分頁列；開新頁、關頁同搵滿瀉分頁都係同一套手勢。</sub>
 

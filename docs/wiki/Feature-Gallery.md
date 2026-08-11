@@ -145,6 +145,17 @@ workspace without adding it to the repository list, Recent, or persisted last
 selection. Its Back control returns to the persisted root and follows the
 active profile's style, label, and explicit language mode.
 
+The August 11, 2026 packaged-application refresh used commit
+`eb894d4218670f0e9fd1516dff964edd76e1824c` on an isolated off-screen Windows
+desktop. Fifty-six scene-level frames rendered successfully; twelve optional
+scenes remained gaps. The aggregate canonical check did not pass because the
+current Settings surface no longer exposes the `Appearance` tab expected by the
+older driver. This gallery promotes only successful scene frames. Four
+accurately named client-only captures of reachable packaged surfaces are shown
+on the [Screenshots tab](../readme-tabs/screenshots.md). Failed compact-Releases,
+command-appearance-editor, and Cheap-LFS-progress specialist outputs were not
+promoted.
+
 | Asset | Guided workflow shown |
 | --- | --- |
 | `material-app-identity-workspace.png` | Restart-restored profile app identity and favorite repository tab |
@@ -205,7 +216,7 @@ active profile's style, label, and explicit language mode.
 | `material-settings.png` | Global Settings with browser-style tabs, close actions, search, and overflow |
 | `auto-updater-current-source-ready.png` | Current-source production UI after a genuine Electron/Squirrel update-downloaded path with a disclosed inert verifier payload and no published-payload claim |
 | `settings-history-manager.png` | Git-backed Settings history side sheet |
-| `material-repositories-sheet.png` | Collapsible repository filters with compact Add, Select, and More actions |
+| `material-repositories-sheet.png` | Dark bilingual repository drawer with List and Agents tabs, collapsed Filters, and compact Add, Select, and More actions |
 | `material-publish-organization-picker.png` | Searchable personal-or-organization owner listbox with bounded filtering, keyboard selection, and physical narrow-window containment |
 | `material-branches-sheet.png` | Branch navigation and status side sheet |
 | `regex-builder.png` | Safe RE2 builder with bounded live matches and captures |
@@ -757,7 +768,7 @@ owner.
 
 ![Git-backed Settings history side sheet](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/settings-history-manager.png)
 
-![Dark repository side sheet with collapsed Filters and compact Add, Select, and More actions](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-repositories-sheet.png)
+![Dark bilingual repository drawer with List and Agents tabs, collapsed Filters, compact Add, Select, and More actions, and disposable provider groups](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-repositories-sheet.png)
 
 ![Branch navigation and status side sheet](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-branches-sheet.png)
 
