@@ -146,7 +146,7 @@
     }
 
     &[data-modal]::backdrop {
-      background: color-mix(in srgb, var(--md-sys-color-scrim) 42%, transparent);
+      background: color-mix(in srgb, var(--md-sys-color-scrim) 50%, transparent);
       animation: dmScrim 300ms var(--emph);
     }
 

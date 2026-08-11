@@ -915,6 +915,7 @@ export class CommandPalette extends React.Component<
           `command-palette-size-${appearance.size}`
         )}
         title={t('commandPalette.title')}
+        modal={true}
         onSubmit={this.props.onDismissed}
         onDismissed={this.props.onDismissed}
       >

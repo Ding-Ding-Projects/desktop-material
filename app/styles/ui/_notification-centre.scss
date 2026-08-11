@@ -79,12 +79,13 @@
   right: 10px;
   bottom: 10px;
   display: flex;
-  width: 384px;
+  width: 400px;
   max-width: calc(100vw - 20px);
   flex-direction: column;
   overflow-x: hidden;
   overflow: hidden;
-  border-radius: 28px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 20px;
   background: var(--md-sys-color-surface-container-low);
   box-shadow: var(--md-sys-elevation-level3);
   color: var(--md-sys-color-on-surface);
@@ -283,7 +284,7 @@
   select {
     width: 100%;
     min-width: 0;
-    height: 36px;
+    height: 40px;
     padding: 0 10px;
     border: 1px solid var(--md-sys-color-outline-variant);
     border-radius: 11px;
@@ -827,7 +828,17 @@
 }
 
 @media (max-width: 420px) {
+  .notification-centre-panel {
+    top: 4px;
+    right: 4px;
+    bottom: 4px;
+    width: calc(100vw - 8px);
+    max-width: calc(100vw - 8px);
+    border-radius: 16px;
+  }
+
   .notification-centre-header {
+    padding-top: 14px;
     padding-left: 14px;
   }
 
@@ -838,6 +849,14 @@
   .github-notifications-toolbar {
     grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
+  }
+
+  .notification-centre-filter-bar {
+    grid-template-columns: minmax(0, 1fr);
+
+    > * {
+      grid-column: 1;
+    }
   }
 
   .github-notifications-refresh {

@@ -13,6 +13,10 @@ const editor = Path.resolve(
   __dirname,
   '../../src/ui/command-palette/command-palette-appearance-editor.tsx'
 )
+const palette = Path.resolve(
+  __dirname,
+  '../../src/ui/command-palette/command-palette.tsx'
+)
 
 /**
  * The stylesheet with newlines normalized. The file is checked out with CRLF
@@ -32,10 +36,14 @@ async function readStylesheet(): Promise<string> {
  */
 function sizeBlock(css: string, size: string): string {
   const marker = `&.command-palette-size-${size} {`
+  const narrowWidthMarker = '@media (max-width: 560px) {'
   const shortHeightMarker = '@media (max-height: 420px) {'
+  const narrowWidthStart = css.indexOf(narrowWidthMarker)
   const shortHeightStart = css.indexOf(shortHeightMarker)
-  const baseGeometry =
-    shortHeightStart === -1 ? css : css.slice(0, shortHeightStart)
+  const baseGeometryEnd = [narrowWidthStart, shortHeightStart]
+    .filter(start => start !== -1)
+    .reduce((earliest, start) => Math.min(earliest, start), css.length)
+  const baseGeometry = css.slice(0, baseGeometryEnd)
   const start = baseGeometry.lastIndexOf(marker)
   assert.notEqual(start, -1, `the ${size} size must exist`)
   const end = baseGeometry.indexOf('\n  }', start)
@@ -76,7 +84,12 @@ describe('command palette size contract', () => {
     // rather than as a surface floating over the app.
     assert.match(block, /left: 50%/)
     assert.match(block, /transform: translateX\(-50%\)/)
-    assert.match(block, /border-radius: var\(--md-sys-shape-corner-extra-large/)
+    assert.match(block, /border-radius: 20px/)
+  })
+
+  it('uses the native modal layer for the centred scrim and focus trap', async () => {
+    const source = await readFile(palette, 'utf8')
+    assert.match(source, /id="command-palette"[\s\S]*?modal=\{true\}/)
   })
 
   it('keeps results usable in the 200 percent short-height viewport', async () => {

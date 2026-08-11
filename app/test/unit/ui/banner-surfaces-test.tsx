@@ -43,6 +43,9 @@ describe('banner surfaces', () => {
 
     assert.notEqual(banner, null)
     assert.ok(dismissButton)
+    assert.equal(banner?.getAttribute('role'), 'status')
+    assert.equal(banner?.getAttribute('aria-live'), 'polite')
+    assert.equal(banner?.getAttribute('aria-atomic'), 'true')
 
     advanceTimersBy(200)
 

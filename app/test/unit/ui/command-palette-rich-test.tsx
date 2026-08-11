@@ -21,11 +21,16 @@ beforeEach(async () => {
 
   const prototype = window.HTMLDialogElement.prototype
   const previousShow = prototype.show
+  const previousShowModal = prototype.showModal
   prototype.show = function () {
+    this.setAttribute('open', '')
+  }
+  prototype.showModal = function () {
     this.setAttribute('open', '')
   }
   restoreDialogShow = () => {
     prototype.show = previousShow
+    prototype.showModal = previousShowModal
     restoreDialogShow = null
   }
 
