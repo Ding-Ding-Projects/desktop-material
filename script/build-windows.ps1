@@ -41,6 +41,16 @@ function Invoke-Checked {
   }
 }
 
+function Invoke-StatusCommand {
+  param(
+    [Parameter(Mandatory = $true)][string]$FilePath,
+    [Parameter(Mandatory = $true)][string[]]$ArgumentList
+  )
+
+  & $FilePath @ArgumentList 2>&1 | ForEach-Object { Write-Host $_ }
+  return [int]$LASTEXITCODE
+}
+
 function Refresh-ProcessPath {
   $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
   $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
@@ -116,8 +126,12 @@ function Resolve-PinnedNode {
   $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
   if ($null -ne $winget) {
     Write-Phase "Installing Node.js $PinnedNodeVersion from the canonical winget package"
-    & $winget.Source install --id OpenJS.NodeJS --exact --version $PinnedNodeVersion --scope user --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
-    $wingetExit = $LASTEXITCODE
+    $wingetExit = Invoke-StatusCommand -FilePath $winget.Source -ArgumentList @(
+      'install', '--id', 'OpenJS.NodeJS', '--exact', '--version',
+      $PinnedNodeVersion, '--scope', 'user', '--silent',
+      '--accept-package-agreements', '--accept-source-agreements',
+      '--disable-interactivity'
+    )
     Refresh-ProcessPath
     $nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
     if ($wingetExit -eq 0 -and $null -ne $nodeCommand -and (Test-NodeVersion -NodePath $nodeCommand.Source)) {
@@ -192,8 +206,11 @@ function Ensure-VsBuildTools {
 
   Write-Phase 'Installing Visual Studio Build Tools 2022 with the C++ workload'
   $override = '--wait --quiet --norestart --nocache --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended'
-  & $winget.Source install --id Microsoft.VisualStudio.2022.BuildTools --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity --override $override
-  $installExit = $LASTEXITCODE
+  $installExit = Invoke-StatusCommand -FilePath $winget.Source -ArgumentList @(
+    'install', '--id', 'Microsoft.VisualStudio.2022.BuildTools', '--exact',
+    '--silent', '--accept-package-agreements', '--accept-source-agreements',
+    '--disable-interactivity', '--override', $override
+  )
   Refresh-ProcessPath
   $installationPath = Find-VsBuildTools
   if ($installExit -ne 0 -or [string]::IsNullOrWhiteSpace($installationPath)) {
@@ -315,7 +332,11 @@ function Get-RepositoryCommit {
 
 try {
   Write-Phase "Starting Desktop Material $Mode path"
-  $node = Resolve-PinnedNode
+  $nodeResult = @(Resolve-PinnedNode)
+  if ($nodeResult.Count -ne 1 -or $nodeResult[0] -isnot [string]) {
+    throw "Node resolver must return exactly one path string; received $($nodeResult.Count) success-stream values."
+  }
+  [string]$node = $nodeResult[0]
   Refresh-ProcessPath
   Ensure-VsBuildTools
   $yarn = Resolve-VendoredYarn -NodePath $node

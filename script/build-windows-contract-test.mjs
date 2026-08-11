@@ -52,6 +52,22 @@ describe('one-click Windows build contract', () => {
     assert.ok(pack > build, 'packaging must follow the production build')
   })
 
+  it('keeps tool status off the success stream used for the Node path', async () => {
+    const source = await read('script/build-windows.ps1')
+
+    assert.match(source, /function Invoke-StatusCommand/)
+    assert.match(
+      source,
+      /& \$FilePath @ArgumentList 2>&1 \| ForEach-Object \{ Write-Host \$_ \}/
+    )
+    assert.doesNotMatch(source, /& \$winget\.Source install/)
+    assert.match(source, /\$wingetExit = Invoke-StatusCommand/)
+    assert.match(source, /\$installExit = Invoke-StatusCommand/)
+    assert.match(source, /\$nodeResult = @\(Resolve-PinnedNode\)/)
+    assert.match(source, /\$nodeResult\.Count -ne 1/)
+    assert.match(source, /\[string\]\$node = \$nodeResult\[0\]/)
+  })
+
   it('fails closed on stale, incomplete, or signed artifacts', async () => {
     const source = await read('script/build-windows.ps1')
 
