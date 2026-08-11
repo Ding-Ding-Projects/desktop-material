@@ -1165,6 +1165,7 @@ export function Md3HistoryView(props: IMd3HistoryViewProps) {
       <div className="md3-history__list-pane">
         <Md3SearchField
           id="md3-history-filter"
+          searchSurfaceId="md3-history"
           value={filterText}
           placeholder={t('md3.history.filterPlaceholder')}
           fieldLabel={t('md3.history.fieldLabel')}

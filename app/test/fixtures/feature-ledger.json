@@ -1,7 +1,13 @@
 {
   "generatedBy": "script/extract-feature-ledger.mjs",
   "note": "Baseline inventory of user-facing surfaces. The conformance test iterates THIS ledger and demands each entry still exist, so a rewrite cannot drop a feature silently. An entry may move; an entry may only disappear by being listed in `retired` with a reason.",
-  "retired": [],
+  "retired": [
+    {
+      "id": "logMatchNavigation",
+      "reason": "Previous/next match stepping in the Actions job log is superseded by the MD3 log search, which filters the log rather than dimming it: every match is on screen at once, so there is nothing left to step between. Log group collapse is a separate capability and was kept."
+    }
+  ],
+  "orphanedPopupTypes": [],
   "popupTypes": [
     "About",
     "Acknowledgements",
@@ -217,6 +223,7 @@
     "docs/features/design-system/dim-sum-surprise.md",
     "docs/features/design-system/material-design-3-site.md",
     "docs/features/design-system/material-ripple-and-theme-reveal.md",
+    "docs/features/design-system/md3-shell.md",
     "docs/features/design-system/narration-assets.md",
     "docs/features/design-system/offline-documentation-browser.md",
     "docs/features/design-system/repository-theme-music.md",

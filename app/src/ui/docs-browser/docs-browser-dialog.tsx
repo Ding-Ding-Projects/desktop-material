@@ -764,6 +764,7 @@ export class DocsBrowserDialog extends React.Component<
               <div className="docs-browser__rail">
                 <Md3SearchField
                   id={`${this.listId}-search`}
+                  searchSurfaceId="md3-docs-browser"
                   value={this.state.query}
                   placeholder={this.text('docsBrowser.searchPlaceholder')}
                   fieldLabel={this.text('docsBrowser.searchField')}

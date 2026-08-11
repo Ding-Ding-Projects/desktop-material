@@ -376,6 +376,7 @@ export function Md3DiffPane(props: IMd3DiffPaneProps) {
 
       <Md3SearchField
         id={props.searchFieldId ?? 'md3-diff-search'}
+        searchSurfaceId="md3-diff-search"
         value={props.searchValue}
         placeholder={t('md3.diffPane.searchPlaceholder')}
         fieldLabel={t('md3.diffPane.searchField')}

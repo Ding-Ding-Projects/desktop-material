@@ -31,6 +31,7 @@ import {
   mergeActionsJobPage,
 } from '../../lib/actions-jobs'
 import { asError } from '../../lib/progressive-load'
+import { getMd3ViewPreferences } from '../../lib/md3-view-preferences'
 
 import {
   IMd3ActionsAttempts,
@@ -709,6 +710,119 @@ export class Md3ActionsController {
   }
 
   /**
+   * Re-read the run list from the provider, exactly as the pane's refresh
+   * control does.
+   */
+  public refresh(): void {
+    const repository = this.repository
+    if (repository === null) {
+      return
+    }
+    void this.host.actionsStore
+      .refresh(repository, true)
+      .catch(error => this.reportFailure(error))
+  }
+
+  /** Page through every remaining run, interruptibly. */
+  public loadAllRuns(): void {
+    this.onLoadAllRuns()
+  }
+
+  /** How many runs are loaded, and how many the provider reports in total. */
+  public getRunCounts(): { readonly loaded: number; readonly total: number } {
+    const { actions } = this.state
+    return {
+      loaded: actions.runs.length,
+      total: Math.max(actions.runsTotalCount, actions.runs.length),
+    }
+  }
+
+  /**
+   * Move the selected run to its previous attempt, wrapping to the latest once
+   * it passes the first.
+   *
+   * The wrap is what makes one menu row enough to reach every attempt, exactly
+   * as it is for `stepMd3DiffContextLines`. Returns the attempt now selected,
+   * or `null` when no run is selected or the run has only ever run once.
+   */
+  public stepSelectedAttempt(): number | null {
+    const attempts = this.attempts()
+    if (attempts === null || attempts.options.length < 2) {
+      return null
+    }
+    const index = attempts.options.indexOf(attempts.selected)
+    const next =
+      index <= 0
+        ? attempts.options[attempts.options.length - 1]
+        : attempts.options[index - 1]
+    this.onSelectAttempt(next)
+    return next
+  }
+
+  /** The attempt currently selected, or `null` when no run is selected. */
+  public getSelectedAttempt(): number | null {
+    return this.attempts()?.selected ?? null
+  }
+
+  /** The live Actions state, for a host rendering the real cache manager. */
+  public getActionsState(): IActionsState {
+    return this.state.actions
+  }
+
+  /** The repository the controller is pointed at, or `null`. */
+  public getRepository(): Repository | null {
+    return this.repository
+  }
+
+  /**
+   * Load the cache inventory once, for a host about to render the cache
+   * manager. The manager reads what the store holds and never fetches for
+   * itself, so opening it without this shows an empty inventory that looks
+   * like a repository with no caches.
+   */
+  public ensureCacheManagerLoaded(): void {
+    const repository = this.repository
+    const actions = this.state.actions
+    if (
+      repository === null ||
+      repository.gitHubRepository === null ||
+      !actions.supported ||
+      actions.caches !== null ||
+      actions.cacheUsage !== null ||
+      actions.cachesLoading ||
+      actions.cacheUsageLoading ||
+      actions.cachesError !== null
+    ) {
+      return
+    }
+    void this.host.actionsStore
+      .loadCacheManager(repository)
+      .catch(error => this.reportFailure(error))
+  }
+
+  /** Enable or disable a workflow, reporting the outcome on the pane's banners. */
+  public setWorkflowEnabled(workflowId: number, enabled: boolean): void {
+    const repository = this.repository
+    if (repository === null) {
+      return
+    }
+    const name =
+      this.state.actions.workflows.find(workflow => workflow.id === workflowId)
+        ?.name ?? String(workflowId)
+    void this.host.actionsStore
+      .setWorkflowEnabled(repository, workflowId, enabled)
+      .then(() =>
+        this.banner(
+          'success',
+          enabled
+            ? t('md3.actions.workflowEnabled', { name })
+            : t('md3.actions.workflowDisabled', { name })
+        )
+      )
+      .catch(error => this.reportFailure(error))
+  }
+
+  /**
    * The live workflow and run lists, for a host rendering the real
    * workflow-dispatch dialog. The dialog needs the same lists the run pane is
    * showing, so it reads them from here rather than fetching a second copy
@@ -830,6 +944,7 @@ export class Md3ActionsController {
     onOpenRunMenu: (runId: string) => void
   ): IMd3ActionsViewProps {
     const { state } = this
+    const preferences = getMd3ViewPreferences()
     const repository = this.repository
     const visible = this.visibleRuns()
     const runs = md3ActionsRuns({
@@ -924,6 +1039,11 @@ export class Md3ActionsController {
       logLoading: state.logLoading,
       logError: state.logError,
       onRetryLog: this.onRetryLog,
+      // Both are persisted presentation preferences the shell's menus flip, so
+      // they are read here rather than mirrored into controller state — a
+      // second copy is how a menu hint starts disagreeing with the pane.
+      logGroupsCollapsed: preferences.logGroupsCollapsed,
+      runListWidth: preferences.actionsRunListWidth,
       banners: this.banners(),
     }
   }

@@ -4464,7 +4464,6 @@ export type TranslationKey =
   | 'md3.shell.carry.refreshRuns'
   | 'md3.shell.carry.runCount'
   | 'md3.shell.carry.jumpToAttempt'
-  | 'md3.shell.carry.logMatchNavigation'
   | 'md3.shell.carry.logGroupCollapse'
   | 'md3.shell.carry.paneDivider'
   | 'md3.shell.carry.discardFile'
@@ -4499,6 +4498,34 @@ export type TranslationKey =
   | 'md3.shell.carry.bulkDeleteBranches'
   | 'md3.shell.carry.repositoryListMenu'
   | 'md3.shell.carry.newAgentSession'
+  | 'md3.carry.close'
+  | 'md3.carry.workflowManagerTitle'
+  | 'md3.carry.cacheManagerTitle'
+  | 'md3.carry.runnerManagerTitle'
+  | 'md3.carry.bulkDeleteTitle'
+  | 'md3.carry.gate.discardTitle'
+  | 'md3.carry.gate.discardConfirm'
+  | 'md3.carry.gate.discardSummary'
+  | 'md3.carry.gate.discardIrreversible'
+  | 'md3.carry.gate.discardTargetKey'
+  | 'md3.carry.gate.discardEffectKey'
+  | 'md3.carry.gate.discardPermanentTitle'
+  | 'md3.carry.gate.discardPermanentConfirm'
+  | 'md3.carry.gate.discardPermanentSummary'
+  | 'md3.carry.gate.discardPermanentIrreversible'
+  | 'md3.carry.gate.discardPermanentEffectKey'
+  | 'md3.carry.gate.mergeAndDeleteTitle'
+  | 'md3.carry.gate.mergeAndDeleteConfirm'
+  | 'md3.carry.gate.mergeAndDeleteSummary'
+  | 'md3.carry.gate.mergeAndDeleteIrreversible'
+  | 'md3.carry.gate.mergeAndDeleteTargetKey'
+  | 'md3.carry.gate.mergeAndDeleteEffectKey'
+  | 'md3.carry.gate.bulkDeleteTitle'
+  | 'md3.carry.gate.bulkDeleteConfirm'
+  | 'md3.carry.gate.bulkDeleteSummary'
+  | 'md3.carry.gate.bulkDeleteIrreversible'
+  | 'md3.carry.gate.bulkDeleteTargetKey'
+  | 'md3.carry.gate.bulkDeleteEffectKey'
   | 'classicToolbar.heading'
   | 'classicToolbar.toggleLabel'
   | 'classicToolbar.explanationSummary'
@@ -4627,6 +4654,8 @@ export type TranslationKey =
   | 'md3.actions.cancelRefused'
   | 'md3.actions.bulkDone'
   | 'md3.actions.bulkPartial'
+  | 'md3.actions.workflowEnabled'
+  | 'md3.actions.workflowDisabled'
   | 'md3.actions.unsupported'
   | 'md3.actions.moreFilters'
   | 'md3.actions.selectRuns'
@@ -10755,9 +10784,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'md3.shell.carry.cacheManager': 'Actions cache manager…',
   'md3.shell.carry.runnerManager': 'Self-hosted runner manager…',
   'md3.shell.carry.refreshRuns': 'Refresh workflow runs',
-  'md3.shell.carry.runCount': 'Showing {count} runs',
-  'md3.shell.carry.jumpToAttempt': 'Jump to attempt…',
-  'md3.shell.carry.logMatchNavigation': 'Step through log matches',
+  'md3.shell.carry.runCount': 'Load every workflow run',
+  'md3.shell.carry.jumpToAttempt': 'Jump to the previous attempt',
   'md3.shell.carry.logGroupCollapse': 'Collapse log groups',
   'md3.shell.carry.paneDivider': 'Resize the run list',
   'md3.shell.carry.discardFile': 'Discard changes',
@@ -10793,6 +10821,49 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'md3.shell.carry.bulkDeleteBranches': 'Delete the selected branches…',
   'md3.shell.carry.repositoryListMenu': 'Repository actions…',
   'md3.shell.carry.newAgentSession': 'New agent session…',
+  'md3.carry.close': 'Close',
+  'md3.carry.workflowManagerTitle': 'Workflow manager',
+  'md3.carry.cacheManagerTitle': 'Actions cache manager',
+  'md3.carry.runnerManagerTitle': 'Self-hosted runner manager',
+  'md3.carry.bulkDeleteTitle': 'Delete branches in bulk',
+  // Every fact below is rendered verbatim by the shared gate at every funny
+  // level and in every language mode: which files, which branch, which
+  // repository, and exactly what cannot be taken back.
+  'md3.carry.gate.discardTitle': 'Discard changes?',
+  'md3.carry.gate.discardConfirm': 'Discard changes',
+  'md3.carry.gate.discardSummary':
+    'Discards the uncommitted changes in {count} file(s): {files}.',
+  'md3.carry.gate.discardIrreversible':
+    'The changes are moved to the trash. Anything Git never recorded cannot be recovered from Git.',
+  'md3.carry.gate.discardTargetKey': '{count} file(s) in {repository}',
+  'md3.carry.gate.discardEffectKey':
+    'their uncommitted changes go to the trash',
+  'md3.carry.gate.discardPermanentTitle': 'Permanently discard changes?',
+  'md3.carry.gate.discardPermanentConfirm': 'Permanently discard',
+  'md3.carry.gate.discardPermanentSummary':
+    'Permanently deletes the uncommitted changes in {count} file(s): {files}.',
+  'md3.carry.gate.discardPermanentIrreversible':
+    'Nothing is moved to the trash. The changes are deleted from disk and cannot be restored.',
+  'md3.carry.gate.discardPermanentEffectKey':
+    'their uncommitted changes are deleted from disk',
+  'md3.carry.gate.mergeAndDeleteTitle': 'Merge and delete this branch?',
+  'md3.carry.gate.mergeAndDeleteConfirm': 'Merge and delete',
+  'md3.carry.gate.mergeAndDeleteSummary':
+    'Merges {branch} into {target}, then deletes the local branch {branch} once Git reports the merge completed.',
+  'md3.carry.gate.mergeAndDeleteIrreversible':
+    'The local branch is removed. A conflict, a hook failure or an aborted merge stops before the deletion and keeps the branch.',
+  'md3.carry.gate.mergeAndDeleteTargetKey': 'the local branch {branch}',
+  'md3.carry.gate.mergeAndDeleteEffectKey':
+    'it is deleted after a completed merge',
+  'md3.carry.gate.bulkDeleteTitle': 'Delete branches in bulk?',
+  'md3.carry.gate.bulkDeleteConfirm': 'Open the reviewed deletion',
+  'md3.carry.gate.bulkDeleteSummary':
+    'Opens the reviewed bulk deletion for {repository}, where up to {count} local branch(es) can be selected. The current and default branches are never candidates.',
+  'md3.carry.gate.bulkDeleteIrreversible':
+    'Every branch confirmed in that review is deleted locally. Each deletion records a recovery object id, and remote branches are never touched.',
+  'md3.carry.gate.bulkDeleteTargetKey': 'local branches in {repository}',
+  'md3.carry.gate.bulkDeleteEffectKey':
+    'the branches chosen in the review are deleted',
   'classicToolbar.heading': 'Classic toolbar',
   'classicToolbar.toggleLabel': 'Show the classic toolbar',
   'classicToolbar.explanationSummary': 'What this setting changes',
@@ -10950,6 +11021,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'GitHub would not cancel this run. It may have already finished.',
   'md3.actions.bulkDone': 'Done for {count} runs.',
   'md3.actions.bulkPartial': 'Done for {done} runs, {failed} failed.',
+  'md3.actions.workflowEnabled': 'Enabled {name}.',
+  'md3.actions.workflowDisabled': 'Disabled {name}.',
   'md3.actions.unsupported':
     'This repository is not on GitHub, so it has no workflow runs.',
   'md3.actions.moreFilters': 'More workflow run filters',
@@ -16941,9 +17014,8 @@ export const cantoneseTranslations: Readonly<
   'md3.shell.carry.cacheManager': 'Actions 快取管理…',
   'md3.shell.carry.runnerManager': '自架 runner 管理…',
   'md3.shell.carry.refreshRuns': '重新攞 workflow run',
-  'md3.shell.carry.runCount': '而家有 {count} 個 run',
-  'md3.shell.carry.jumpToAttempt': '跳去指定嘅 attempt…',
-  'md3.shell.carry.logMatchNavigation': '逐個行去 log 嘅配對',
+  'md3.shell.carry.runCount': '攞晒所有 workflow run',
+  'md3.shell.carry.jumpToAttempt': '跳返上一個 attempt',
   'md3.shell.carry.logGroupCollapse': '摺埋 log 嘅分組',
   'md3.shell.carry.paneDivider': '較 run 清單嘅闊度',
   'md3.shell.carry.discardFile': '掉咗啲改動',
@@ -16978,6 +17050,43 @@ export const cantoneseTranslations: Readonly<
   'md3.shell.carry.bulkDeleteBranches': '刪咗揀嘅分支…',
   'md3.shell.carry.repositoryListMenu': 'Repo 動作…',
   'md3.shell.carry.newAgentSession': '開新 agent 對話…',
+  'md3.carry.close': '閂咗佢',
+  'md3.carry.workflowManagerTitle': 'Workflow 管理',
+  'md3.carry.cacheManagerTitle': 'Actions 快取管理',
+  'md3.carry.runnerManagerTitle': '自架 runner 管理',
+  'md3.carry.bulkDeleteTitle': '一次過刪分支',
+  'md3.carry.gate.discardTitle': '要掉咗啲改動？',
+  'md3.carry.gate.discardConfirm': '掉咗啲改動',
+  'md3.carry.gate.discardSummary':
+    '會掉咗 {count} 個檔案未 commit 嘅改動：{files}。',
+  'md3.carry.gate.discardIrreversible':
+    '啲改動會入資源回收筒。Git 從來冇記錄過嘅嘢，Git 亦都救唔返。',
+  'md3.carry.gate.discardTargetKey': '{repository} 入面 {count} 個檔案',
+  'md3.carry.gate.discardEffectKey': '佢哋未 commit 嘅改動會入資源回收筒',
+  'md3.carry.gate.discardPermanentTitle': '要永久掉咗啲改動？',
+  'md3.carry.gate.discardPermanentConfirm': '永久掉咗',
+  'md3.carry.gate.discardPermanentSummary':
+    '會永久刪走 {count} 個檔案未 commit 嘅改動：{files}。',
+  'md3.carry.gate.discardPermanentIrreversible':
+    '唔會入資源回收筒。啲改動直接喺硬碟刪走，冇得攞返。',
+  'md3.carry.gate.discardPermanentEffectKey':
+    '佢哋未 commit 嘅改動會喺硬碟刪走',
+  'md3.carry.gate.mergeAndDeleteTitle': '要 merge 完順手刪咗呢個分支？',
+  'md3.carry.gate.mergeAndDeleteConfirm': 'Merge 完刪咗佢',
+  'md3.carry.gate.mergeAndDeleteSummary':
+    '會將 {branch} merge 入 {target}，等 Git 話 merge 完成之後，先刪走本機分支 {branch}。',
+  'md3.carry.gate.mergeAndDeleteIrreversible':
+    '本機分支會刪走。撞到衝突、hook 失敗或者 merge 中途停低，就會喺刪走之前停手，分支照樣留低。',
+  'md3.carry.gate.mergeAndDeleteTargetKey': '本機分支 {branch}',
+  'md3.carry.gate.mergeAndDeleteEffectKey': 'merge 完成之後就會刪走佢',
+  'md3.carry.gate.bulkDeleteTitle': '要一次過刪分支？',
+  'md3.carry.gate.bulkDeleteConfirm': '打開審核刪除',
+  'md3.carry.gate.bulkDeleteSummary':
+    '會打開 {repository} 嘅批次刪除審核，最多可以揀 {count} 條本機分支。而家用緊嗰條同預設分支永遠唔會入候選。',
+  'md3.carry.gate.bulkDeleteIrreversible':
+    '喺嗰個審核入面確認嘅分支都會喺本機刪走。每次刪除都會記低一個復原 object id，遠端分支唔會郁。',
+  'md3.carry.gate.bulkDeleteTargetKey': '{repository} 入面嘅本機分支',
+  'md3.carry.gate.bulkDeleteEffectKey': '審核入面揀咗嘅分支會刪走',
   'classicToolbar.heading': '舊版工具列',
   'classicToolbar.toggleLabel': '顯示舊版工具列',
   'classicToolbar.explanationSummary': '呢個設定會改咩',
@@ -17118,6 +17227,8 @@ export const cantoneseTranslations: Readonly<
   'md3.actions.cancelRefused': 'GitHub 唔肯取消呢個 run，可能佢早就跑完咗。',
   'md3.actions.bulkDone': '{count} 個 run 搞掂晒。',
   'md3.actions.bulkPartial': '{done} 個 run 搞掂，{failed} 個失敗。',
+  'md3.actions.workflowEnabled': '開咗 {name}。',
+  'md3.actions.workflowDisabled': '熄咗 {name}。',
   'md3.actions.unsupported':
     '呢個 repo 唔喺 GitHub，所以冇 workflow run 好睇。',
   'md3.actions.moreFilters': '仲有更多 workflow run 篩選',

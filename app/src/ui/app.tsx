@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as Path from 'path'
+import { EOL } from 'os'
 import { randomUUID } from 'crypto'
 import { CompositeDisposable } from 'event-kit'
 
@@ -10,6 +11,8 @@ import {
   FoldoutType,
   SelectionType,
   HistoryTabMode,
+  ComparisonMode,
+  ChangesSelectionKind,
   CommitOptions,
 } from '../lib/app-state'
 import { Dispatcher } from './dispatcher'
@@ -358,8 +361,17 @@ import {
   setMd3DiffContextLines,
   setMd3GroupChangesByFolder,
   setMd3GroupCommitsByDay,
+  setMd3LogGroupsCollapsed,
   setMd3WrapLongLines,
+  stepMd3ActionsRunListWidth,
 } from '../lib/md3-view-preferences'
+import {
+  buildMd3CarryOverExtensions,
+  md3CarryOverIsDestructive,
+  type Md3CarryOverCommand,
+} from './md3/md3-shell-carryover'
+import { Md3DestructiveGate } from './md3/md3-destructive-gate'
+import type { Md3DestructiveActionId } from './md3/md3-destructive-actions'
 import { Md3ActionsController } from './md3/md3-actions-controller'
 import { Md3TerminalController } from './md3/md3-terminal-controller'
 import { Md3RepositoriesController } from './md3/md3-repositories-controller'
@@ -380,8 +392,18 @@ import {
   saveRepositoryBranchVisibilityState,
 } from '../lib/branch-visibility'
 import { WorkflowDispatchDialog } from './actions/workflow-dispatch-dialog'
+import { WorkflowManager } from './actions/workflow-manager'
+import { WorkflowCatalogDialog } from './actions/workflow-catalog-dialog'
+import { ActionsCacheManager } from './actions/actions-cache-manager'
+import { SelfHostedRunnerManager } from './actions/self-hosted-runner-manager'
+import { BulkBranchDelete } from './branches/bulk-branch-delete'
+import { NewAgentSessionForm } from './agent-sessions/new-agent-session-form'
+import { UnreachableCommitsTab } from './history/unreachable-commits-dialog'
+import { openFile } from './lib/open-file'
 import { readAgentSessionConversation } from './agent-sessions/agent-session-conversation'
 import type { IAheadBehind } from '../models/branch'
+import type { WorkingDirectoryFileChange } from '../models/status'
+import { AppFileStatusKind } from '../models/status'
 import {
   ShowClassicToolbarChangedEvent,
   getShowClassicToolbar,
@@ -474,7 +496,12 @@ import { sendNonFatalException } from '../lib/helpers/non-fatal-exception'
 import { ICustomIntegration } from '../lib/custom-integration'
 import { createCommitURL } from '../lib/commit-url'
 import { InstallingUpdate } from './installing-update/installing-update'
-import { DialogStackContext } from './dialog'
+import {
+  DialogStackContext,
+  Dialog,
+  DialogContent,
+  DefaultDialogFooter,
+} from './dialog'
 import { TestNotifications } from './test-notifications/test-notifications'
 import { NotificationsDebugStore } from '../lib/stores/notifications-debug-store'
 import { PullRequestComment } from './notifications/pull-request-comment'
@@ -824,6 +851,32 @@ function noopMd3Navigate() {}
 function noopMd3OpenMenu() {}
 function noopMd3OpenBuilder() {}
 
+/**
+ * A destructive carried-over capability, waiting on the shared two-key gate.
+ *
+ * The target is resolved when the menu row is clicked and captured here, not
+ * re-read when the gate is confirmed: activating the row closes the menu that
+ * raised it, so a `run` that looked the row up again would find the menu gone
+ * and act on the pane's selection instead — a different set of files, silently.
+ */
+interface IMd3CarryOverGateRequest {
+  /** The registered action, so the gate is auditable against the registry. */
+  readonly actionId: Md3DestructiveActionId
+
+  readonly title: string
+  readonly summary: string
+  readonly irreversible: string
+  readonly targetKeyLabel: string
+  readonly effectKeyLabel: string
+  readonly confirmLabel: string
+
+  /** Runs once both keys are turned and the slider has reached its maximum. */
+  readonly run: () => void
+}
+
+/** How many file names a gate's summary spells out before it says "and more". */
+const Md3GateNamedFileLimit = 3
+
 export class App extends React.Component<IAppProps, IAppState> {
   private loading = true
   private mounted = false
@@ -873,6 +926,21 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   /** Whether the real workflow-dispatch dialog is open over the shell. */
   private md3WorkflowDispatchOpen = false
+
+  /** Which of the three Actions managers is open over the shell, if any. */
+  private md3ActionsManager: 'workflows' | 'caches' | 'runners' | null = null
+
+  /** Whether the workflow template catalog is open over the shell. */
+  private md3WorkflowCatalogOpen = false
+
+  /** Whether the reviewed bulk branch deletion is open over the shell. */
+  private md3BulkBranchDeleteOpen = false
+
+  /** Whether the new-agent-session form is open over the shell. */
+  private md3NewAgentSessionOpen = false
+
+  /** The destructive carry-over waiting on the shared two-key gate, if any. */
+  private md3CarryOverGate: IMd3CarryOverGateRequest | null = null
 
   /** True while `renderApp` is assembling the destination views. */
   private md3RenderInProgress = false
@@ -9207,6 +9275,850 @@ export class App extends React.Component<IAppProps, IAppState> {
     this.forceUpdate()
   }
 
+  // -------------------------------------------------------------------------
+  // Carried-over capabilities
+  // -------------------------------------------------------------------------
+  //
+  // `md3-shell-carryover.ts` catalogues every capability the eight MD3
+  // destination views could not host, with the menu each one now belongs to.
+  // A catalogue is not a route: until something builds the handlers and hands
+  // them to the shell, all of it compiles, keeps its dispatcher operation and
+  // its dialog, and is unreachable. This is that something. Every handler below
+  // calls the surface the application already owns — the same popup the classic
+  // chrome opened, the same dispatcher call the old menu made — rather than a
+  // second implementation built for the occasion.
+
+  /**
+   * The working-directory files a Changes carry-over acts on.
+   *
+   * The row that raised the menu wins, exactly as `md3RowMenuSha` lets a
+   * commit row's own sha win over the pane's selection; with no row, the app
+   * store's own file selection is what every other changes command uses.
+   */
+  private md3CarryOverFiles(): ReadonlyArray<WorkingDirectoryFileChange> {
+    const selection = this.md3Selection
+    if (selection === null) {
+      return []
+    }
+
+    const changes = selection.state.changesState
+    const files = changes.workingDirectory.files
+    const overlay = this.md3ShellState.overlay
+    const payload = this.md3MenuPayload
+
+    if (
+      payload !== null &&
+      overlay !== null &&
+      overlay.kind === 'menu' &&
+      overlay.menu === 'changeRowMenu'
+    ) {
+      const row = files.find(file => file.path === payload)
+      if (row !== undefined) {
+        return [row]
+      }
+    }
+
+    if (changes.selection.kind !== ChangesSelectionKind.WorkingDirectory) {
+      return []
+    }
+    const ids = new Set(changes.selection.selectedFileIDs)
+    return files.filter(file => ids.has(file.id))
+  }
+
+  /** Every uncommitted file, for the list-level carry-overs. */
+  private md3AllChangedFiles(): ReadonlyArray<WorkingDirectoryFileChange> {
+    return this.md3Selection?.state.changesState.workingDirectory.files ?? []
+  }
+
+  /**
+   * The branch a Branches carry-over acts on: the row that raised the menu,
+   * and otherwise whichever branch the pane has selected.
+   */
+  private md3CarryOverBranch(): Branch | null {
+    const selection = this.md3Selection
+    if (selection === null) {
+      return null
+    }
+
+    const overlay = this.md3ShellState.overlay
+    const payload = this.md3MenuPayload
+    const name =
+      payload !== null &&
+      overlay !== null &&
+      overlay.kind === 'menu' &&
+      overlay.menu === 'branchRowMenu'
+        ? payload
+        : this.md3LocalViewState.selectedBranchName
+
+    if (name === null) {
+      return null
+    }
+    return (
+      selection.state.branchesState.allBranches.find(
+        branch => branch.name === name
+      ) ?? null
+    )
+  }
+
+  /**
+   * Route a destructive carry-over through the shared two-key gate.
+   *
+   * Whether a command is destructive is read from the catalogue rather than
+   * decided here, so a call site cannot quietly skip the gate and a command
+   * that stops being destructive stops being gated without a second edit.
+   */
+  private md3GatedCarryOver(
+    command: Md3CarryOverCommand,
+    build: () => IMd3CarryOverGateRequest | null
+  ): () => void {
+    return () => {
+      const request = build()
+      if (request === null) {
+        // Nothing resolved to act on — no files selected, no branch, no
+        // repository. A gate offering to destroy nothing is worse than no row.
+        return
+      }
+      if (!md3CarryOverIsDestructive(command)) {
+        request.run()
+        return
+      }
+      this.md3CarryOverGate = request
+      this.forceUpdate()
+    }
+  }
+
+  private closeMd3CarryOverGate = () => {
+    this.md3CarryOverGate = null
+    this.forceUpdate()
+  }
+
+  private onMd3CarryOverGateConfirmed = () => {
+    const gate = this.md3CarryOverGate
+    this.md3CarryOverGate = null
+    this.forceUpdate()
+    gate?.run()
+  }
+
+  private renderMd3CarryOverGate() {
+    const gate = this.md3CarryOverGate
+    if (gate === null) {
+      return null
+    }
+
+    return (
+      <Md3DestructiveGate
+        actionId={gate.actionId}
+        title={gate.title}
+        summary={gate.summary}
+        irreversible={gate.irreversible}
+        targetKeyLabel={gate.targetKeyLabel}
+        effectKeyLabel={gate.effectKeyLabel}
+        confirmLabel={gate.confirmLabel}
+        onConfirm={this.onMd3CarryOverGateConfirmed}
+        onDismissed={this.closeMd3CarryOverGate}
+      />
+    )
+  }
+
+  /** The gate for discarding uncommitted work, permanently or to the trash. */
+  private md3DiscardGate(
+    files: ReadonlyArray<WorkingDirectoryFileChange>,
+    permanently: boolean
+  ): IMd3CarryOverGateRequest | null {
+    const selection = this.md3Selection
+    if (selection === null || files.length === 0) {
+      return null
+    }
+
+    const repository = selection.repository
+    const captured = [...files]
+    const count = String(captured.length)
+    const named = captured
+      .slice(0, Md3GateNamedFileLimit)
+      .map(file => file.path)
+      .join(', ')
+    const names =
+      captured.length > Md3GateNamedFileLimit ? `${named}, …` : named
+
+    return {
+      actionId: 'discard-changes',
+      title: permanently
+        ? t('md3.carry.gate.discardPermanentTitle')
+        : t('md3.carry.gate.discardTitle'),
+      summary: permanently
+        ? t('md3.carry.gate.discardPermanentSummary', { count, files: names })
+        : t('md3.carry.gate.discardSummary', { count, files: names }),
+      irreversible: permanently
+        ? t('md3.carry.gate.discardPermanentIrreversible')
+        : t('md3.carry.gate.discardIrreversible'),
+      targetKeyLabel: t('md3.carry.gate.discardTargetKey', {
+        count,
+        repository: repository.name,
+      }),
+      effectKeyLabel: permanently
+        ? t('md3.carry.gate.discardPermanentEffectKey')
+        : t('md3.carry.gate.discardEffectKey'),
+      confirmLabel: permanently
+        ? t('md3.carry.gate.discardPermanentConfirm')
+        : t('md3.carry.gate.discardConfirm'),
+      // The same call the discard dialog makes: a permanent discard skips the
+      // trash and cleans the untracked files it named.
+      run: () =>
+        void this.props.dispatcher.discardChanges(
+          repository,
+          captured,
+          !permanently,
+          permanently
+        ),
+    }
+  }
+
+  /** The gate for merging a branch and then deleting it. */
+  private md3MergeAndDeleteGate(): IMd3CarryOverGateRequest | null {
+    const selection = this.md3Selection
+    const branch = this.md3CarryOverBranch()
+    if (selection === null || branch === null) {
+      return null
+    }
+
+    const current = this.md3BranchName()
+    const defaultBranch = selection.state.branchesState.defaultBranch
+    if (
+      branch.type !== BranchType.Local ||
+      branch.name === current ||
+      branch.name === defaultBranch?.name
+    ) {
+      // The same three refusals `branches-container` makes: merging a branch
+      // into itself, or deleting the branch you are standing on, or deleting
+      // the default branch, are all mistakes rather than intentions.
+      return null
+    }
+
+    const repository = selection.repository
+    return {
+      actionId: 'delete-branch',
+      title: t('md3.carry.gate.mergeAndDeleteTitle'),
+      summary: t('md3.carry.gate.mergeAndDeleteSummary', {
+        branch: branch.name,
+        target: current,
+      }),
+      irreversible: t('md3.carry.gate.mergeAndDeleteIrreversible'),
+      targetKeyLabel: t('md3.carry.gate.mergeAndDeleteTargetKey', {
+        branch: branch.name,
+      }),
+      effectKeyLabel: t('md3.carry.gate.mergeAndDeleteEffectKey'),
+      confirmLabel: t('md3.carry.gate.mergeAndDeleteConfirm'),
+      run: () =>
+        this.props.dispatcher.startMergeBranchOperation(
+          repository,
+          false,
+          branch,
+          true
+        ),
+    }
+  }
+
+  /** The gate in front of the reviewed bulk branch deletion. */
+  private md3BulkDeleteBranchesGate(): IMd3CarryOverGateRequest | null {
+    const selection = this.md3Selection
+    if (selection === null) {
+      return null
+    }
+
+    const { branchesState } = selection.state
+    const current = this.md3BranchName()
+    const candidates = branchesState.allBranches.filter(
+      branch =>
+        branch.type === BranchType.Local &&
+        branch.name !== current &&
+        branch.name !== branchesState.defaultBranch?.name
+    )
+    if (candidates.length === 0) {
+      return null
+    }
+
+    return {
+      actionId: 'delete-branch',
+      title: t('md3.carry.gate.bulkDeleteTitle'),
+      summary: t('md3.carry.gate.bulkDeleteSummary', {
+        repository: selection.repository.name,
+        count: String(candidates.length),
+      }),
+      irreversible: t('md3.carry.gate.bulkDeleteIrreversible'),
+      targetKeyLabel: t('md3.carry.gate.bulkDeleteTargetKey', {
+        repository: selection.repository.name,
+      }),
+      effectKeyLabel: t('md3.carry.gate.bulkDeleteEffectKey'),
+      confirmLabel: t('md3.carry.gate.bulkDeleteConfirm'),
+      run: () => {
+        this.md3BulkBranchDeleteOpen = true
+        this.forceUpdate()
+      },
+    }
+  }
+
+  private md3StashFiles(files: ReadonlyArray<WorkingDirectoryFileChange>) {
+    const repository = this.md3Selection?.repository
+    if (repository !== undefined && files.length > 0) {
+      void this.props.dispatcher.stashChanges(repository, files)
+    }
+  }
+
+  private md3IncludeFiles(
+    files: ReadonlyArray<WorkingDirectoryFileChange>,
+    include: boolean
+  ) {
+    const repository = this.md3Selection?.repository
+    if (repository !== undefined && files.length > 0) {
+      void this.props.dispatcher.changeFileIncluded(repository, files, include)
+    }
+  }
+
+  /**
+   * Add the row's own folder to `.gitignore`, which is what the native file
+   * menu's `Ignore folder` submenu writes for its innermost entry.
+   */
+  private md3IgnoreFolder() {
+    const repository = this.md3Selection?.repository
+    const [file] = this.md3CarryOverFiles()
+    if (repository === undefined || file === undefined) {
+      return
+    }
+    // Git paths always use `/`, on every platform, so this is not `Path.sep`.
+    const components = file.path.split('/').slice(0, -1)
+    if (components.length === 0) {
+      return
+    }
+    void this.props.dispatcher.appendIgnoreFile(
+      repository,
+      `/${components.join('/')}`
+    )
+  }
+
+  /** Copy the files' paths, relative to the repository or absolute. */
+  private md3CopyPaths(
+    files: ReadonlyArray<WorkingDirectoryFileChange>,
+    relative: boolean
+  ) {
+    const repository = this.md3Selection?.repository
+    if (repository === undefined || files.length === 0) {
+      return
+    }
+    const paths = files.map(file =>
+      relative
+        ? Path.normalize(file.path)
+        : Path.join(repository.path, file.path)
+    )
+    clipboard.writeText(paths.join(EOL))
+  }
+
+  private md3OpenWithDefaultProgram() {
+    const repository = this.md3Selection?.repository
+    const [file] = this.md3CarryOverFiles()
+    if (repository === undefined || file === undefined) {
+      return
+    }
+    openFile(Path.join(repository.path, file.path), this.props.dispatcher)
+  }
+
+  /**
+   * Hand the selected files to Cheap LFS, naming the ones it cannot take.
+   *
+   * A deleted file has nothing to store and a partially staged one would store
+   * a version the user never chose, so both are excluded by name rather than
+   * silently dropped — the dialog prints the reason beside each.
+   */
+  private md3PinWithCheapLfs(files: ReadonlyArray<WorkingDirectoryFileChange>) {
+    const repository = this.md3Selection?.repository
+    if (repository === undefined || files.length === 0) {
+      return
+    }
+
+    const targets = files.filter(
+      file =>
+        file.status.kind !== AppFileStatusKind.Deleted &&
+        file.selection.getSelectionType() !== DiffSelectionType.Partial
+    )
+    const excludedPaths = files.flatMap(file => {
+      if (file.status.kind === AppFileStatusKind.Deleted) {
+        return [
+          {
+            path: file.path,
+            reason: t('cheapLfs.workingTree.skipped.deleted'),
+          },
+        ]
+      }
+      if (file.selection.getSelectionType() === DiffSelectionType.Partial) {
+        return [
+          {
+            path: file.path,
+            reason: t('cheapLfs.workingTree.skipped.partial'),
+          },
+        ]
+      }
+      return []
+    })
+
+    if (targets.length === 0) {
+      return
+    }
+
+    void this.props.dispatcher.showPopup({
+      type: PopupType.StoreWorkingTreeFilesInCheapLfs,
+      repository,
+      paths: targets.map(target => target.path),
+      excludedPaths,
+    })
+  }
+
+  /** Compare the history list against the branch the row menu was raised from. */
+  private md3CompareToCarryOverBranch() {
+    const selection = this.md3Selection
+    const branch = this.md3CarryOverBranch()
+    if (selection === null || branch === null) {
+      return
+    }
+    this.props.dispatcher.executeCompare(selection.repository, {
+      kind: HistoryTabMode.Compare,
+      branch,
+      comparisonMode: ComparisonMode.Behind,
+    })
+    // The comparison is what History renders, so land the user on it rather
+    // than leaving the result on a pane they are not looking at.
+    this.md3GoToDestination('history')
+  }
+
+  private md3SetBranchVisibility(
+    change: (
+      visibility: IMd3LocalViewState['branchVisibility'],
+      branch: Branch
+    ) => IMd3LocalViewState['branchVisibility']
+  ) {
+    const branch = this.md3CarryOverBranch()
+    if (branch === null) {
+      return
+    }
+    this.md3SetLocal({
+      branchVisibility: change(this.md3LocalViewState.branchVisibility, branch),
+    })
+  }
+
+  private md3SwitchToCarryOverWorktree() {
+    const selection = this.md3Selection
+    const branch = this.md3CarryOverBranch()
+    if (selection === null || branch === null) {
+      return
+    }
+    const worktree = selection.state.worktrees.find(
+      candidate => candidate.branch === branch.name
+    )
+    if (worktree !== undefined) {
+      void this.props.dispatcher.switchWorktree(selection.repository, worktree)
+    }
+  }
+
+  private md3OpenCarryOverBranchOnForge(pullRequest: boolean) {
+    const selection = this.md3Selection
+    const branch = this.md3CarryOverBranch()
+    const gitHubRepository = selection?.repository.gitHubRepository ?? null
+    if (selection === null || branch === null || gitHubRepository === null) {
+      return
+    }
+
+    if (!pullRequest) {
+      void this.props.dispatcher.openInBrowser(
+        `${gitHubRepository.htmlURL}/tree/${encodeURIComponent(branch.name)}`
+      )
+      return
+    }
+
+    const open = selection.state.branchesState.openPullRequests.find(
+      candidate => candidate.head.ref === branch.name
+    )
+    if (open !== undefined) {
+      void this.props.dispatcher.openInBrowser(
+        `${gitHubRepository.htmlURL}/pull/${open.pullRequestNumber}`
+      )
+    }
+  }
+
+  private openMd3ActionsManager(tab: 'workflows' | 'caches' | 'runners') {
+    if (tab === 'caches') {
+      // The manager renders what the store holds and never fetches for itself,
+      // so opening it cold would show an empty inventory that reads exactly
+      // like a repository with no caches.
+      this.md3ActionsController.ensureCacheManagerLoaded()
+    }
+    this.md3ActionsManager = tab
+    this.forceUpdate()
+  }
+
+  private closeMd3ActionsManager = () => {
+    this.md3ActionsManager = null
+    this.forceUpdate()
+  }
+
+  private openMd3WorkflowCatalog = () => {
+    this.md3ActionsManager = null
+    this.md3WorkflowCatalogOpen = true
+    this.forceUpdate()
+  }
+
+  private closeMd3WorkflowCatalog = () => {
+    this.md3WorkflowCatalogOpen = false
+    this.forceUpdate()
+  }
+
+  private onMd3SetWorkflowEnabled = (
+    workflow: { readonly id: number },
+    enabled: boolean
+  ) => this.md3ActionsController.setWorkflowEnabled(workflow.id, enabled)
+
+  private onMd3WorkflowTemplateAdded = () => {
+    this.md3WorkflowCatalogOpen = false
+    this.md3ActionsController.refresh()
+    this.forceUpdate()
+  }
+
+  private closeMd3BulkBranchDelete = () => {
+    this.md3BulkBranchDeleteOpen = false
+    this.forceUpdate()
+  }
+
+  private closeMd3NewAgentSession = () => {
+    if (this.isCreatingAgentSession) {
+      return
+    }
+    this.md3NewAgentSessionOpen = false
+    this.forceUpdate()
+  }
+
+  private onMd3NewAgentSessionStarted = async (
+    request: INewAgentSessionRequest,
+    setupCommands: ReadonlyArray<IAgentSetupCommand>,
+    restartSetup: boolean
+  ) => {
+    const accepted = await this.createAgentSession(
+      request,
+      setupCommands,
+      restartSetup
+    )
+    if (accepted) {
+      this.md3NewAgentSessionOpen = false
+      this.forceUpdate()
+    }
+  }
+
+  private renderMd3ActionsManager() {
+    const tab = this.md3ActionsManager
+    const repository = this.md3Selection?.repository ?? null
+    if (tab === null || repository === null) {
+      return null
+    }
+
+    const actions = this.md3ActionsController.getActionsState()
+    const title =
+      tab === 'workflows'
+        ? t('md3.carry.workflowManagerTitle')
+        : tab === 'caches'
+        ? t('md3.carry.cacheManagerTitle')
+        : t('md3.carry.runnerManagerTitle')
+
+    return (
+      <Dialog
+        id="md3-actions-manager"
+        title={title}
+        onDismissed={this.closeMd3ActionsManager}
+        onSubmit={this.closeMd3ActionsManager}
+      >
+        <DialogContent>
+          {tab === 'workflows' ? (
+            <WorkflowManager
+              workflows={actions.workflows}
+              runs={actions.runs}
+              busyWorkflowId={null}
+              onRequestChange={this.onMd3SetWorkflowEnabled}
+              onNewWorkflow={this.openMd3WorkflowCatalog}
+            />
+          ) : null}
+          {tab === 'caches' && repository.gitHubRepository !== null ? (
+            <ActionsCacheManager
+              repository={repository}
+              actionsStore={this.props.actionsStore}
+              state={actions}
+            />
+          ) : null}
+          {tab === 'runners' ? (
+            <SelfHostedRunnerManager
+              repository={repository}
+              accounts={this.state.accounts}
+            />
+          ) : null}
+        </DialogContent>
+        <DefaultDialogFooter buttonText={t('md3.carry.close')} />
+      </Dialog>
+    )
+  }
+
+  private renderMd3WorkflowCatalog() {
+    const selection = this.md3Selection
+    if (!this.md3WorkflowCatalogOpen || selection === null) {
+      return null
+    }
+
+    const branch = this.md3BranchName()
+    return (
+      <WorkflowCatalogDialog
+        repository={selection.repository}
+        workflows={this.md3ActionsController.getActionsState().workflows}
+        branchName={branch.length > 0 ? branch : 'main'}
+        onTemplateAdded={this.onMd3WorkflowTemplateAdded}
+        onDismissed={this.closeMd3WorkflowCatalog}
+      />
+    )
+  }
+
+  private renderMd3BulkBranchDelete() {
+    const selection = this.md3Selection
+    if (!this.md3BulkBranchDeleteOpen || selection === null) {
+      return null
+    }
+
+    const { branchesState } = selection.state
+    return (
+      <Dialog
+        id="md3-bulk-branch-delete"
+        title={t('md3.carry.bulkDeleteTitle')}
+        onDismissed={this.closeMd3BulkBranchDelete}
+        onSubmit={this.closeMd3BulkBranchDelete}
+      >
+        <DialogContent>
+          <BulkBranchDelete
+            repository={selection.repository}
+            allBranches={branchesState.allBranches}
+            currentBranch={
+              branchesState.tip.kind === TipState.Valid
+                ? branchesState.tip.branch
+                : null
+            }
+            defaultBranch={branchesState.defaultBranch}
+            dispatcher={this.props.dispatcher}
+          />
+        </DialogContent>
+        <DefaultDialogFooter buttonText={t('md3.carry.close')} />
+      </Dialog>
+    )
+  }
+
+  private renderMd3NewAgentSession() {
+    const context = this.md3NewAgentSessionOpen
+      ? this.agentSessionFormContext()
+      : null
+    if (context === null) {
+      return null
+    }
+
+    const busy = this.isCreatingAgentSession
+    return (
+      <Dialog
+        id="md3-new-agent-session"
+        title={t('agentSessions.newSession')}
+        className="new-agent-session-dialog"
+        loading={busy}
+        dismissDisabled={busy}
+        onDismissed={this.closeMd3NewAgentSession}
+      >
+        <DialogContent>
+          <NewAgentSessionForm
+            availability={this.agentRunnerAvailability}
+            baseBranches={context.baseBranches}
+            defaultBaseBranch={context.defaultBaseBranch}
+            existingWorktreeNames={context.sessions.map(
+              session => session.name
+            )}
+            existingBranchNames={context.branchNames}
+            isStarting={busy}
+            onStart={this.onMd3NewAgentSessionStarted}
+            onCancel={this.closeMd3NewAgentSession}
+            setupCommands={context.setupCommandsState.commands}
+            setupCommandsAvailable={context.setupCommandsState.available}
+            onSaveSetupCommands={this.saveAgentSetupCommands}
+            canCancelStart={this.activeAgentSetupOperationId !== null}
+            onCancelStart={this.onCancelAgentSessionCreate}
+            retryableSetups={context.retryableSetups}
+          />
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  /**
+   * Every carried-over capability, as the `menuExtensions` the shell renders.
+   *
+   * The object below has one entry per command in `Md3CarryOverCommands`.
+   * `md3UnplacedCarryOverCommands` reports any that do not, and
+   * `md3-carryover-reachability-test.ts` reads this very call, so a command
+   * that loses its handler goes red rather than quietly disappearing from a
+   * menu nobody was watching.
+   */
+  private md3CarryOverExtensions() {
+    const runs = this.md3ActionsController.getRunCounts()
+    const attempt = this.md3ActionsController.getSelectedAttempt()
+    const preferences = getMd3ViewPreferences()
+
+    return buildMd3CarryOverExtensions(
+      {
+        compareToBranch: () => this.md3GoToDestination('branches'),
+        unreachableCommits: () =>
+          this.props.dispatcher.showUnreachableCommits(
+            UnreachableCommitsTab.Unreachable
+          ),
+        workflowManager: () => this.openMd3ActionsManager('workflows'),
+        workflowCatalog: this.openMd3WorkflowCatalog,
+        cacheManager: () => this.openMd3ActionsManager('caches'),
+        runnerManager: () => this.openMd3ActionsManager('runners'),
+        refreshRuns: () => this.md3ActionsController.refresh(),
+        runCount: () => this.md3ActionsController.loadAllRuns(),
+        jumpToAttempt: () => {
+          this.md3ActionsController.stepSelectedAttempt()
+        },
+        logGroupCollapse: () =>
+          void setMd3LogGroupsCollapsed(
+            !getMd3ViewPreferences().logGroupsCollapsed
+          ),
+        paneDivider: () =>
+          void stepMd3ActionsRunListWidth(
+            getMd3ViewPreferences().actionsRunListWidth
+          ),
+        discardFile: this.md3GatedCarryOver('discardFile', () =>
+          this.md3DiscardGate(this.md3CarryOverFiles(), false)
+        ),
+        permanentlyDiscardFile: this.md3GatedCarryOver(
+          'permanentlyDiscardFile',
+          () => this.md3DiscardGate(this.md3CarryOverFiles(), true)
+        ),
+        stashFile: () => this.md3StashFiles(this.md3CarryOverFiles()),
+        ignoreFolder: () => this.md3IgnoreFolder(),
+        copyRelativePath: () =>
+          this.md3CopyPaths(this.md3CarryOverFiles(), true),
+        copySelectedPaths: () =>
+          this.md3CopyPaths(this.md3CarryOverFiles(), false),
+        openWithDefaultProgram: () => this.md3OpenWithDefaultProgram(),
+        cheapLfsPin: () => this.md3PinWithCheapLfs(this.md3CarryOverFiles()),
+        includeSelectedFiles: () =>
+          this.md3IncludeFiles(this.md3CarryOverFiles(), true),
+        excludeSelectedFiles: () =>
+          this.md3IncludeFiles(this.md3CarryOverFiles(), false),
+        discardAll: this.md3GatedCarryOver('discardAll', () =>
+          this.md3DiscardGate(this.md3AllChangedFiles(), false)
+        ),
+        permanentlyDiscardAll: this.md3GatedCarryOver(
+          'permanentlyDiscardAll',
+          () => this.md3DiscardGate(this.md3AllChangedFiles(), true)
+        ),
+        stashAll: () => {
+          const repository = this.md3Selection?.repository
+          if (repository !== undefined) {
+            this.props.dispatcher.createStashForCurrentBranch(repository)
+          }
+        },
+        mergeAndDelete: this.md3GatedCarryOver('mergeAndDelete', () =>
+          this.md3MergeAndDeleteGate()
+        ),
+        compareBranch: () => this.md3CompareToCarryOverBranch(),
+        copyBranchName: () => {
+          const branch = this.md3CarryOverBranch()
+          if (branch !== null) {
+            clipboard.writeText(branch.name)
+          }
+        },
+        togglePinBranch: () =>
+          this.md3SetBranchVisibility((visibility, branch) => {
+            const pinned = new Set(visibility.pinned)
+            if (pinned.has(branch.name)) {
+              pinned.delete(branch.name)
+            } else {
+              pinned.add(branch.name)
+            }
+            return { ...visibility, pinned: [...pinned] }
+          }),
+        hideBranch: () =>
+          this.md3SetBranchVisibility((visibility, branch) => ({
+            ...visibility,
+            hidden: [...new Set([...visibility.hidden, branch.name])],
+          })),
+        soloBranch: () =>
+          this.md3SetBranchVisibility((visibility, branch) => ({
+            ...visibility,
+            solo: visibility.solo === branch.name ? null : branch.name,
+          })),
+        restoreBranchVisibility: () =>
+          this.md3SetLocal({
+            branchVisibility: {
+              pinned: this.md3LocalViewState.branchVisibility.pinned,
+              hidden: [],
+              solo: null,
+            },
+          }),
+        checkoutInNewWorktree: () => {
+          const selection = this.md3Selection
+          const branch = this.md3CarryOverBranch()
+          if (selection === null || branch === null) {
+            return
+          }
+          void this.props.dispatcher.showPopup({
+            type: PopupType.AddWorktree,
+            repository: selection.repository,
+            initialBranchName: branch.name,
+          })
+        },
+        switchToWorktree: () => this.md3SwitchToCarryOverWorktree(),
+        viewBranchOnForge: () => this.md3OpenCarryOverBranchOnForge(false),
+        viewPullRequestOnForge: () => this.md3OpenCarryOverBranchOnForge(true),
+        sortBranchesByName: () => this.md3SetLocal({ branchSortOrder: 'name' }),
+        sortBranchesByRecent: () =>
+          this.md3SetLocal({ branchSortOrder: 'recent' }),
+        showPullRequests: () => {
+          const repository = this.md3Selection?.repository
+          if (repository !== undefined) {
+            void this.props.dispatcher.refreshPullRequests(repository)
+          }
+        },
+        fetchRemoteBranches: () => {
+          const repository = this.md3Selection?.repository
+          if (repository !== undefined) {
+            void this.props.dispatcher.refreshRepository(repository)
+          }
+        },
+        restoreAllBranches: () =>
+          this.md3SetLocal({
+            branchVisibility: {
+              pinned: this.md3LocalViewState.branchVisibility.pinned,
+              hidden: [],
+              solo: null,
+            },
+          }),
+        bulkDeleteBranches: this.md3GatedCarryOver('bulkDeleteBranches', () =>
+          this.md3BulkDeleteBranchesGate()
+        ),
+        repositoryListMenu: this.onRepositoryToolbarButtonContextMenu,
+        newAgentSession: () => {
+          this.md3NewAgentSessionOpen = true
+          this.forceUpdate()
+        },
+      },
+      {
+        // Trailing hints, so a row that reports a value reports the real one.
+        runCount: `${runs.loaded}/${runs.total}`,
+        jumpToAttempt: attempt === null ? '' : String(attempt),
+        logGroupCollapse: preferences.logGroupsCollapsed
+          ? t('md3.menu.hint.on')
+          : t('md3.menu.hint.off'),
+        paneDivider: `${preferences.actionsRunListWidth}px`,
+      }
+    )
+  }
+
   private renderApp() {
     // The controllers are pointed at the current repository before the views
     // are built, so a repository switch never renders one destination's data
@@ -9255,6 +10167,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           onPush={this.onMd3Push}
           menuContext={this.md3MenuContext()}
           menuHandlers={this.md3MenuHandlers()}
+          menuExtensions={this.md3CarryOverExtensions()}
           compose={this.md3ComposeProps()}
           views={views}
           renderLegacyDestination={this.renderMd3LegacyDestination}
@@ -9276,6 +10189,11 @@ export class App extends React.Component<IAppProps, IAppState> {
             {this.renderNotificationCentre()}
           </CrashProofBoundary>
           {this.renderMd3WorkflowDispatch()}
+          {this.renderMd3ActionsManager()}
+          {this.renderMd3WorkflowCatalog()}
+          {this.renderMd3BulkBranchDelete()}
+          {this.renderMd3NewAgentSession()}
+          {this.renderMd3CarryOverGate()}
           {this.renderAppearanceEditor()}
           {this.renderPopups()}
           {this.renderDragElement()}
@@ -9943,7 +10861,16 @@ export class App extends React.Component<IAppProps, IAppState> {
     })
   }
 
-  private renderAgentSessionsPanel() {
+  /**
+   * Everything the agent-session surfaces need, computed once.
+   *
+   * Both the classic panel and the MD3 shell's own `New agent session…` row
+   * open the same form over the same repository, so the base branches, the
+   * reviewed setup commands and the retryable setups are resolved here rather
+   * than twice — two copies of this are two chances for one surface to offer a
+   * base branch the other one does not.
+   */
+  private agentSessionFormContext() {
     const selection = this.getSelectedRepositoryState()
     if (
       selection === null ||
@@ -9986,30 +10913,51 @@ export class App extends React.Component<IAppProps, IAppState> {
       }))
       .sort((left, right) => left.name.localeCompare(right.name))
 
+    const sessions = worktrees.map(worktree =>
+      toAgentSession(
+        worktree,
+        this.agentSessionLiveStore.getOverlay(worktree.path)
+      )
+    )
+
+    return {
+      selection,
+      repositoryIdentity,
+      worktrees,
+      sessions,
+      branchNames,
+      baseBranches,
+      defaultBaseBranch,
+      setupCommandsState,
+      retryableSetups,
+    }
+  }
+
+  private renderAgentSessionsPanel() {
+    const context = this.agentSessionFormContext()
+    if (context === null) {
+      return null
+    }
+
     return (
       <AgentSessionsPanel
-        key={`agent-sessions-${repositoryIdentity}`}
-        sessions={worktrees.map(worktree =>
-          toAgentSession(
-            worktree,
-            this.agentSessionLiveStore.getOverlay(worktree.path)
-          )
-        )}
+        key={`agent-sessions-${context.repositoryIdentity}`}
+        sessions={context.sessions}
         availability={this.agentRunnerAvailability}
-        baseBranches={baseBranches}
-        defaultBaseBranch={defaultBaseBranch}
-        existingBranchNames={branchNames}
-        selectedPath={selection.repository.path}
+        baseBranches={context.baseBranches}
+        defaultBaseBranch={context.defaultBaseBranch}
+        existingBranchNames={context.branchNames}
+        selectedPath={context.selection.repository.path}
         onSelectSession={this.onSelectAgentSession}
         onCancelSession={this.onCancelAgentSession}
         onCreateSession={this.onCreateAgentSession}
         isCreating={this.isCreatingAgentSession}
-        setupCommands={setupCommandsState.commands}
-        setupCommandsAvailable={setupCommandsState.available}
+        setupCommands={context.setupCommandsState.commands}
+        setupCommandsAvailable={context.setupCommandsState.available}
         onSaveSetupCommands={this.saveAgentSetupCommands}
         canCancelCreate={this.activeAgentSetupOperationId !== null}
         onCancelCreate={this.onCancelAgentSessionCreate}
-        retryableSetups={retryableSetups}
+        retryableSetups={context.retryableSetups}
       />
     )
   }

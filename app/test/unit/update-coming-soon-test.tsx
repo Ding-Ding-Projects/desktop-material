@@ -867,6 +867,10 @@ describe('update coming soon', () => {
     })
     const view = render(<UpdateComingSoon signal={signal} now={now} />)
 
+    // Exactly one live region. The banner itself is the polite, atomic
+    // `role="status"`, so a nested one around the summary would make a screen
+    // reader announce the same sentence twice.
+    assert.equal(screen.getAllByRole('status').length, 1, 'one live region')
     const summary = screen.getByRole('status')
     assert.match(summary.textContent ?? '', /New update coming soon/)
     // 20 minutes typical, 5 already spent, and always worded as an estimate.

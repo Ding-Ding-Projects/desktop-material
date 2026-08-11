@@ -861,6 +861,7 @@ export function Md3ChangesView(props: IMd3ChangesViewProps) {
       <div className="md3-changes-view__sidebar">
         <Md3SearchField
           id="md3-changes-search"
+          searchSurfaceId="md3-changes"
           value={props.searchValue}
           placeholder={t('md3.changes.searchPlaceholder')}
           fieldLabel={t('md3.changes.searchField')}

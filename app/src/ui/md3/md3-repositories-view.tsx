@@ -1655,6 +1655,7 @@ export function Md3RepositoriesView(props: IMd3RepositoriesViewProps) {
       <div className="md3-repositories-view__pane">
         <Md3SearchField
           id={Md3RepositoriesSearchInputId}
+          searchSurfaceId="md3-repositories"
           fieldLabel={t('md3.repositories.searchFieldName')}
           placeholder={t('md3.repositories.searchPlaceholder')}
           value={props.searchValue}

@@ -1,9 +1,8 @@
 import * as React from 'react'
-import classNames from 'classnames'
 import { t } from '../../lib/i18n'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { createObservableRef } from '../lib/observable-ref'
-import { Md3IconButton, Md3TonalButton } from './md3-primitives'
+import { Md3IconButton, Md3SearchField, Md3TonalButton } from './md3-primitives'
 import { IMd3MenuItem, IMd3MenuSpec } from './md3-menu-specs'
 
 /**
@@ -132,7 +131,6 @@ export class Md3MenuOverlay extends React.Component<
   private readonly panelRef = createObservableRef<HTMLDivElement>()
   private readonly listRef = createObservableRef<HTMLDivElement>()
   private readonly filterRef = createObservableRef<HTMLInputElement>()
-  private readonly regexRef = createObservableRef<HTMLButtonElement>()
 
   /** Whatever held focus when the menu opened, restored when it closes. */
   private previouslyFocused: HTMLElement | null = null
@@ -330,8 +328,8 @@ export class Md3MenuOverlay extends React.Component<
     }
   }
 
-  private onFilterChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({ filter: event.currentTarget.value })
+  private onFilterChange = (value: string) => {
+    this.setState({ filter: value })
   }
 
   private onClearFilter = () => {
@@ -354,67 +352,28 @@ export class Md3MenuOverlay extends React.Component<
       return null
     }
 
-    const fieldLabel = spec.title
-    const clearLabel = t('md3.search.clear', { field: fieldLabel })
-    const regexLabel = t('md3.search.regexMode', { field: fieldLabel })
-    const builderLabel = t('md3.search.regexBuilder', { field: fieldLabel })
-    const { items } = this.filterResult
+    const { items, patternInvalid } = this.filterResult
 
+    // One audited surface for every menu, not one per menu kind: there is a
+    // single filter field, owned by this overlay and rendered for whichever
+    // menu is open, exactly as the app's context menus share the
+    // `material-context-menu` surface.
     return (
-      <div className="md3-search-row">
-        <MaterialSymbol
-          name="search"
-          className="md3-search-row__icon"
-          size={16}
-        />
-        <input
-          ref={this.filterRef}
-          type="text"
-          role="searchbox"
-          className="md3-search-row__input"
-          placeholder={spec.filterPlaceholder}
-          aria-label={spec.filterPlaceholder}
-          aria-invalid={this.filterResult.patternInvalid}
-          value={this.state.filter}
-          spellCheck={false}
-          autoComplete="off"
-          onChange={this.onFilterChange}
-        />
-        {this.state.filter.length === 0 ? null : (
-          <button
-            type="button"
-            className="md3-search-row__clear"
-            aria-label={clearLabel}
-            onClick={this.onClearFilter}
-          >
-            <MaterialSymbol name="close" size={15} />
-          </button>
-        )}
-        <button
-          ref={this.regexRef}
-          type="button"
-          className={classNames('md3-search-row__regex', {
-            'md3-search-row__regex--active': this.state.regexEnabled,
-          })}
-          aria-pressed={this.state.regexEnabled}
-          aria-label={regexLabel}
-          onClick={this.onToggleRegex}
-        >
-          .*
-        </button>
-        <Md3IconButton
-          small={true}
-          icon="construction"
-          label={builderLabel}
-          hasPopup="dialog"
-          onClick={this.onOpenBuilder}
-        />
-        {this.state.filter.length === 0 ? null : (
-          <span className="md3-search-row__hits" role="status">
-            {t('md3.search.hits', { count: String(items.length) })}
-          </span>
-        )}
-      </div>
+      <Md3SearchField
+        id={`md3-menu-${spec.kind}-filter`}
+        searchSurfaceId="md3-menu-filter"
+        inputRef={this.filterRef}
+        value={this.state.filter}
+        placeholder={spec.filterPlaceholder}
+        fieldLabel={spec.title}
+        regexEnabled={this.state.regexEnabled}
+        invalid={patternInvalid}
+        matchCount={items.length}
+        onChange={this.onFilterChange}
+        onClear={this.onClearFilter}
+        onToggleRegex={this.onToggleRegex}
+        onOpenBuilder={this.onOpenBuilder}
+      />
     )
   }
 

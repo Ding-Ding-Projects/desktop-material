@@ -39,7 +39,13 @@ export type Md3CarryOverCommand =
   | 'refreshRuns'
   | 'runCount'
   | 'jumpToAttempt'
-  | 'logMatchNavigation'
+  // `logMatchNavigation` — prev/next match stepping — was catalogued here and
+  // is deliberately retired rather than rehomed. The contract FILTERS the log
+  // rather than dimming it, so every match is on screen at once and there is
+  // nothing to step between; `app/test/fixtures/feature-ledger.json` records
+  // the retirement and that reason. Log GROUP collapse is not superseded by
+  // filtering — folding a `::group::` section is structure, not search — so it
+  // stays, and `Md3ActionsView` implements it.
   | 'logGroupCollapse'
   | 'paneDivider'
   // Changes — the native file context menu beyond the contract's five
@@ -92,7 +98,6 @@ export const Md3CarryOverCommands: ReadonlyArray<Md3CarryOverCommand> = [
   'refreshRuns',
   'runCount',
   'jumpToAttempt',
-  'logMatchNavigation',
   'logGroupCollapse',
   'paneDivider',
   'discardFile',
@@ -196,11 +201,6 @@ const Definitions: Readonly<
     menu: 'runMenu',
     icon: 'replay',
     labelKey: 'md3.shell.carry.jumpToAttempt',
-  },
-  logMatchNavigation: {
-    menu: 'runMenu',
-    icon: 'search',
-    labelKey: 'md3.shell.carry.logMatchNavigation',
   },
   logGroupCollapse: {
     menu: 'runMenu',

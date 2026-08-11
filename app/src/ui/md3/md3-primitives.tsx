@@ -241,6 +241,19 @@ export interface IMd3SearchFieldProps {
   /** The input's DOM id, so a caller can label or focus it. */
   readonly id: string
 
+  /**
+   * The audited collection search surface this field is, as registered in
+   * `lib/collection-surface-registry.ts`.
+   *
+   * Required, and deliberately so: this is the one shared search row of the
+   * MD3 shell, so a new field is created by rendering this component and
+   * nothing else. Without the id here a field would reach the screen carrying
+   * a regex builder that belongs to no registered surface, and the source
+   * audit — which is the project's guard that every search input is registered
+   * and carries the full builder — would have nothing to bind it to.
+   */
+  readonly searchSurfaceId: string
+
   readonly value: string
 
   /** The placeholder, which also serves as the input's accessible name. */
@@ -278,6 +291,13 @@ export interface IMd3SearchFieldProps {
    * report "0 hits".
    */
   readonly matchCount?: number
+
+  /**
+   * Marks the query as one the field cannot currently act on — an unfinished
+   * regular expression, typically. The list stays whole while this is true, so
+   * the flag is what says *why* nothing is being filtered.
+   */
+  readonly invalid?: boolean
 
   readonly onContextMenu?: (event: React.MouseEvent<HTMLDivElement>) => void
 
@@ -337,11 +357,13 @@ export function Md3SearchField(props: IMd3SearchFieldProps) {
       <input
         ref={props.inputRef}
         id={props.id}
+        data-search-surface-id={props.searchSurfaceId}
         type="text"
         role="searchbox"
         className="md3-search-row__input"
         placeholder={props.placeholder}
         aria-label={props.placeholder}
+        aria-invalid={props.invalid}
         value={props.value}
         spellCheck={false}
         autoComplete="off"

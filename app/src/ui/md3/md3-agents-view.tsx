@@ -749,6 +749,7 @@ export function Md3AgentsView(props: IMd3AgentsViewProps) {
       >
         <Md3SearchField
           id="md3-agents-search"
+          searchSurfaceId="md3-agents"
           value={query}
           placeholder={t('md3.agents.searchPlaceholder')}
           fieldLabel={t('md3.agents.searchFieldLabel')}

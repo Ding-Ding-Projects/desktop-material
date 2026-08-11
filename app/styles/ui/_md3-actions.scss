@@ -40,11 +40,16 @@
 }
 
 // The left pane: `flex: none; width: 356px; surface-container; radius 12px`.
+//
+// The width is the one value the persisted run-list-width preference overrides.
+// `Md3ActionsView` sets `--md3-actions-run-list-width` on this element when the
+// preference is present; the fallback is the contract's own 356px, so a profile
+// that has never touched it renders exactly what the contract draws.
 .md3-actions-pane--runs {
   background: var(--md-sys-color-surface-container);
   border-radius: 12px;
   flex: none;
-  width: 356px;
+  width: var(--md3-actions-run-list-width, 356px);
 }
 
 // The right pane: `flex: 1; surface-container-lowest; radius 12px`.
@@ -538,6 +543,39 @@
 
   .md3-actions-log__text {
     font-weight: 500;
+  }
+}
+
+// A `::group::` header. The row keeps the gutter so the group's own line number
+// still lines up with the numbers around it; the title becomes a real button
+// because folding the section is an action, not decoration.
+.md3-actions-log__line--group {
+  color: var(--md-sys-color-on-surface);
+}
+
+.md3-actions-log__group-toggle {
+  align-items: center;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-weight: 500;
+  gap: 4px;
+  min-height: 20px;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+
+  &:hover {
+    background: var(--md-sys-color-surface-container-high);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
   }
 }
 

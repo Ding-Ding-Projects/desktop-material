@@ -27,7 +27,11 @@ import { describe, it } from 'node:test'
  */
 
 interface IFeatureLedger {
-  readonly retired: ReadonlyArray<{ readonly id: string; readonly reason: string }>
+  readonly retired: ReadonlyArray<{
+    readonly id: string
+    readonly reason: string
+  }>
+  readonly orphanedPopupTypes: ReadonlyArray<string>
   readonly popupTypes: ReadonlyArray<string>
   readonly menuIds: ReadonlyArray<string>
   readonly featureDocs: ReadonlyArray<string>
@@ -72,7 +76,141 @@ describe('feature preservation ledger', () => {
       missing,
       [],
       `dialogs dropped from PopupType: ${missing.join(', ')}. ` +
-        'Restore them, or record each in the ledger\'s `retired` list with a reason.'
+        "Restore them, or record each in the ledger's `retired` list with a reason."
+    )
+  })
+
+  /**
+   * The REACHABILITY dimension.
+   *
+   * Every assertion above this one asks whether a capability still EXISTS.
+   * That is the wrong question on its own, and answering it is precisely how
+   * forty-four carried-over capabilities sat green in this repository while
+   * nothing in the running application could reach a single one of them: they
+   * still compiled, still had their dispatcher operations, still had their
+   * feature documents, and still had their entry in `PopupType`.
+   *
+   * A dialog whose last caller disappears behaves exactly the same way. The
+   * enum still declares it, `renderPopup` still has a `case` that draws it,
+   * every test that iterates what is present still passes — and no route in
+   * the product opens it ever again.
+   *
+   * So this asks the other question: for every dialog the ledger records, does
+   * some file actually CONSTRUCT one? A `case PopupType.X:` deliberately does
+   * not count. That proves the app can draw the dialog once somebody hands it
+   * one, which is the half that never breaks.
+   */
+  const popupOpeningSites = (): ReadonlyMap<string, ReadonlySet<string>> => {
+    const sites = new Map<string, Set<string>>()
+    const base = join(root, 'app/src')
+
+    const walk = (directory: string) => {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        const full = join(directory, entry.name)
+        if (entry.isDirectory()) {
+          walk(full)
+          continue
+        }
+        if (!/\.tsx?$/.test(entry.name)) {
+          continue
+        }
+
+        const relativePath = full
+          .slice(root.length + 1)
+          .split(/[\\/]/)
+          .join('/')
+
+        // The union's own declarations name every popup by definition, so
+        // counting them would make this assertion vacuous — it would report
+        // every dialog reachable, forever, including the ones nobody opens.
+        if (relativePath === 'app/src/models/popup.ts') {
+          continue
+        }
+
+        const text = readFileSync(full, 'utf8')
+        for (const match of text.matchAll(
+          /type\s*[:=]\s*PopupType\.([A-Za-z0-9_]+)/g
+        )) {
+          const found = sites.get(match[1]) ?? new Set<string>()
+          found.add(relativePath)
+          sites.set(match[1], found)
+        }
+      }
+    }
+
+    walk(base)
+    return sites
+  }
+
+  it('counts a construction as a route and a render switch as nothing', () => {
+    // The matcher above is the whole assertion, so it gets its own test. A
+    // pattern that also matched `case PopupType.X:` would find a route for
+    // every dialog the renderer can draw and this file would report a clean
+    // tree no matter how many dialogs had lost their last caller.
+    const pattern = /type\s*[:=]\s*PopupType\.([A-Za-z0-9_]+)/g
+
+    const renderSwitch = `
+      switch (popup.type) {
+        case PopupType.About:
+          return this.renderAboutDialog(popup)
+      }
+    `
+    assert.deepEqual(
+      [...renderSwitch.matchAll(pattern)].map(match => match[1]),
+      [],
+      'a render switch was counted as a route, which makes the reachability ' +
+        'assertion below pass on a dialog nothing opens'
+    )
+
+    const openings = `
+      this.props.dispatcher.showPopup({ type: PopupType.About })
+      const type = PopupType.StashAndSwitchBranch
+    `
+    assert.deepEqual(
+      [...openings.matchAll(pattern)].map(match => match[1]),
+      ['About', 'StashAndSwitchBranch'],
+      'the matcher missed a real opening site, so it would report a reachable ' +
+        'dialog as orphaned and the baseline below would grow for no reason'
+    )
+  })
+
+  it('still has a live route to every dialog it declares', () => {
+    const sites = popupOpeningSites()
+
+    // A scan that matched nothing would report every dialog orphaned, which
+    // reads as a catastrophe rather than as a broken scan. Say which it is.
+    assert.ok(
+      sites.size > 100,
+      `only ${sites.size} dialogs have an opening site at all; that is a ` +
+        'broken scan rather than a tree that lost its dialogs'
+    )
+
+    const orphaned = kept(ledger.popupTypes).filter(name => !sites.has(name))
+    const baseline = new Set(ledger.orphanedPopupTypes)
+
+    const grown = orphaned.filter(name => !baseline.has(name))
+    assert.deepEqual(
+      grown,
+      [],
+      `these dialogs are declared and rendered but nothing opens them: ` +
+        `${grown.join(', ')}. The enum entry, the render case and the ` +
+        'component all still exist, so nothing else in this suite notices. ' +
+        "Give each one a route, or record it in the ledger's " +
+        '`orphanedPopupTypes` baseline with the change that orphaned it.'
+    )
+
+    // The baseline is a debt list, not a permission slip: an entry that has
+    // since been given a route must leave it, or the list stops meaning
+    // anything and the next real orphan hides behind a stale name.
+    const reconnected = ledger.orphanedPopupTypes.filter(name =>
+      sites.has(name)
+    )
+    assert.deepEqual(
+      reconnected,
+      [],
+      `these dialogs are listed as orphaned but now have a route: ` +
+        `${reconnected.join(', ')}. Remove them from ` +
+        '`orphanedPopupTypes` so the list keeps naming only real debt.'
     )
   })
 
@@ -104,7 +242,9 @@ describe('feature preservation ledger', () => {
   it('still ships every UI feature area', () => {
     const base = join(root, 'app/src/ui')
     const present = new Set(
-      readdirSync(base).filter(entry => statSync(join(base, entry)).isDirectory())
+      readdirSync(base).filter(entry =>
+        statSync(join(base, entry)).isDirectory()
+      )
     )
     const missing = kept(ledger.uiAreas).filter(area => !present.has(area))
 
@@ -124,9 +264,11 @@ describe('feature preservation ledger', () => {
     assert.ok(file !== undefined, 'dispatcher source not found')
 
     const present = new Set(
-      [...source(file).matchAll(/^\s{2}public (?:async )?([A-Za-z0-9_]+)\s*[(<]/gm)].map(
-        m => m[1]
-      )
+      [
+        ...source(file).matchAll(
+          /^\s{2}public (?:async )?([A-Za-z0-9_]+)\s*[(<]/gm
+        ),
+      ].map(m => m[1])
     )
     const missing = kept(ledger.dispatcherOperations).filter(
       operation => !present.has(operation)

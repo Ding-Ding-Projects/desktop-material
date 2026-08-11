@@ -795,6 +795,7 @@ export function Md3TerminalView(props: IMd3TerminalViewProps) {
           >
             <Md3SearchField
               id={`md3-terminal-${instanceId}-search`}
+              searchSurfaceId="md3-terminal"
               className="md3-terminal__search"
               value={search.value}
               placeholder={t('md3.terminal.searchPlaceholder')}

@@ -1824,6 +1824,7 @@ export function Md3SupportTicketsDesk(props: IMd3SupportTicketsDeskProps) {
         >
           <Md3SearchField
             id="md3-support-tickets-search"
+            searchSurfaceId="md3-support-tickets"
             value={query}
             placeholder={t('supportTickets.searchPlaceholder')}
             fieldLabel={t('supportTickets.searchField')}

@@ -97,9 +97,54 @@ describe('Windows title-bar layout contract', () => {
     join(process.cwd(), 'app/src/ui/window/title-bar.tsx'),
     'utf8'
   )
+  const variables = readFileSync(
+    join(process.cwd(), 'app/styles/_variables.scss'),
+    'utf8'
+  )
+
+  function declaredPixels(source: string, pattern: RegExp): number {
+    const match = pattern.exec(source)
+
+    if (match === null) {
+      assert.fail(`expected ${String(pattern)} to be declared`)
+    }
+
+    return Number(match[1])
+  }
 
   it('reserves a fixed, edge-pinned cluster before flexible title content', () => {
-    assert.match(component, /return 44/)
+    // The Material shell turned the Windows title bar into the product header,
+    // so the measured bar height is the shell's 56px header rather than the
+    // 44px caption minimum it used to be. The caption target itself did not
+    // move, so assert the invariant rather than the old constant: the single
+    // height the renderer measures must still clear the caption target, and it
+    // must still agree with the height the stylesheet actually renders (dialog
+    // geometry is derived from the measured value).
+    const titleBarHeightSource =
+      /export function getTitleBarHeight\(\) \{[\s\S]*?\r?\n\}/.exec(
+        component
+      )?.[0] ?? ''
+    assert.notEqual(titleBarHeightSource, '')
+
+    const captionMinimumTarget = declaredPixels(
+      style,
+      /--window-control-min-target: (\d+)px;/
+    )
+    const measuredTitleBarHeight = declaredPixels(
+      titleBarHeightSource,
+      /return (\d+)\s*\r?\n\}/
+    )
+
+    assert.equal(captionMinimumTarget, 44)
+    assert.ok(
+      measuredTitleBarHeight >= captionMinimumTarget,
+      `title bar height ${measuredTitleBarHeight}px is shorter than the ${captionMinimumTarget}px caption target`
+    )
+    assert.equal(
+      measuredTitleBarHeight,
+      declaredPixels(variables, /--win32-title-bar-height: (\d+)px;/)
+    )
+
     assert.match(style, /--window-control-min-target: 44px;/)
     assert.match(
       style,
@@ -124,6 +169,13 @@ describe('Windows title-bar layout contract', () => {
     assert.match(
       style,
       /\.window-controls\s*\{[\s\S]*?position: absolute;[\s\S]*?right: 0;[\s\S]*?width: var\(--window-controls-width\);[\s\S]*?min-height: var\(--window-control-min-target\);/
+    )
+    // The shell's product-action lane holds fixed-width icon buttons that
+    // cannot shrink, so it has to be clipped at the reserved cluster's edge
+    // instead of overflowing underneath the caption buttons.
+    assert.match(
+      style,
+      /@include win32\s*\{[\s\S]*?> \.dm-shell-header-controls\s*\{[\s\S]*?min-width: 0;[\s\S]*?overflow: hidden;/
     )
   })
 
@@ -176,6 +228,12 @@ describe('Windows title-bar layout contract', () => {
     assert.match(
       style,
       /@media \(max-width: 210px\)\s*\{[\s\S]*?#desktop-app-title-bar\s*\{[\s\S]*?@include win32\s*\{[\s\S]*?> \.app-brand-container,\s*> #app-menu-bar\s*\{[\s\S]*?display: none;/
+    )
+    // The arithmetic above only holds while every non-caption lane collapses,
+    // including the Material shell's product actions.
+    assert.match(
+      style,
+      /@media \(max-width: 210px\)\s*\{[\s\S]*?@include win32\s*\{[\s\S]*?> \.dm-shell-header-controls,[\s\S]*?display: none;/
     )
   })
 

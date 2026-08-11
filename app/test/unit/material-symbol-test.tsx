@@ -29,7 +29,10 @@ const root = process.cwd()
 
 const fontManifest = () =>
   JSON.parse(
-    readFileSync(join(root, 'app/styles/fonts/font-assets-manifest.json'), 'utf8')
+    readFileSync(
+      join(root, 'app/styles/fonts/font-assets-manifest.json'),
+      'utf8'
+    )
   ) as IFontManifest
 
 const symbolsAsset = () =>
@@ -63,7 +66,11 @@ describe('MaterialSymbol', () => {
     )
 
     const missing = MaterialSymbolNames.filter(name => !ligatures.has(name))
-    assert.deepEqual(missing, [], `not in the bundled font: ${missing.join(', ')}`)
+    assert.deepEqual(
+      missing,
+      [],
+      `not in the bundled font: ${missing.join(', ')}`
+    )
   })
 
   it('renders a decorative ligature with safe defaults', () => {

@@ -11484,7 +11484,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const startedAt = previous.pushPullFetchProgress?.startedAt
     const now = Date.now()
     const safeStartedAt =
-      typeof startedAt === 'number' && Number.isFinite(startedAt) && startedAt >= 0
+      typeof startedAt === 'number' &&
+      Number.isFinite(startedAt) &&
+      startedAt >= 0
         ? startedAt
         : Number.isFinite(now) && now >= 0
         ? now

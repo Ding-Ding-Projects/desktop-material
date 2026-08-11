@@ -1246,14 +1246,27 @@ describe('self-hosted runner manager', () => {
         })
       )
       const dialog = screen.getByRole('alertdialog')
+
+      // A destructive dialog makes its CANCEL button the form's submit button,
+      // so Enter pressed anywhere in the form submits regardless of what the
+      // affirmative button looks like. The dialog's own submit handler is what
+      // gates the keyboard; a disabled button is not.
+      fireEvent.submit(dialog)
+      assert.equal(
+        installedIPC.invokes.filter(
+          invoke => invoke.channel === 'remove-self-hosted-runner'
+        ).length,
+        0
+      )
+
       fireEvent.click(
         screen.getByRole('checkbox', {
-          name: 'I confirmed the runner identity: backup-windows-runner.',
+          name: 'I checked the exact target: the runner backup-windows-runner on runner-owner/desktop-material',
         })
       )
       fireEvent.click(
         screen.getByRole('checkbox', {
-          name: 'I confirmed the affected repository: runner-owner/desktop-material.',
+          name: 'I accept the exact effect: it is unregistered from GitHub and its managed files are deleted',
         })
       )
       fireEvent.change(screen.getByRole('slider'), {

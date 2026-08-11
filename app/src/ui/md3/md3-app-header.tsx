@@ -222,6 +222,7 @@ export function Md3AppHeader(props: IMd3AppHeaderProps) {
         >
           <Md3SearchField
             id="md3-app-header-search"
+            searchSurfaceId="md3-global-search"
             className="md3-app-header__search-field"
             value={props.searchValue}
             placeholder={t('md3.appHeader.searchPlaceholder')}

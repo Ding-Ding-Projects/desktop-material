@@ -558,6 +558,7 @@ export function Md3LocksView(props: IMd3LocksViewProps) {
 
       <Md3SearchField
         id="md3-locks-search"
+        searchSurfaceId="md3-locks"
         value={query}
         placeholder={t('md3.locks.search.placeholder')}
         fieldLabel={t('md3.locks.search.fieldLabel')}

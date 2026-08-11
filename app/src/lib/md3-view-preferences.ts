@@ -46,6 +46,8 @@ export const Md3CommitGraphVisibleKey = 'md3-commit-graph-visible'
 export const Md3WrapLongLinesKey = 'md3-wrap-long-lines'
 export const Md3DiffContextLinesKey = 'md3-diff-context-lines'
 export const Md3GroupChangesByFolderKey = 'md3-group-changes-by-folder'
+export const Md3ActionsRunListWidthKey = 'md3-actions-run-list-width'
+export const Md3LogGroupsCollapsedKey = 'md3-log-groups-collapsed'
 
 /** Fired on `window` whenever any of the six changes. */
 export const Md3ViewPreferencesChangedEvent =
@@ -66,6 +68,21 @@ export const Md3MaxDiffContextLines = 20
 /** How far one `increaseDiffContextLines` step moves. */
 export const Md3DiffContextLineStep = 3
 
+/**
+ * The widths the Actions run list steps through.
+ *
+ * The contract draws one 356px run list and no divider, so a pointer drag has
+ * nothing to grab. The capability the replaced surface had was "make the run
+ * list narrower or wider", and a menu row that steps through named widths
+ * delivers exactly that from the keyboard as well as the pointer — which a
+ * drag handle never did. 356 is the contract's own width and is therefore the
+ * default; the stepper wraps, for the same reason `stepMd3DiffContextLines`
+ * does, so one row can reach every value.
+ */
+export const Md3ActionsRunListWidths: ReadonlyArray<number> = [
+  280, 356, 440, 560,
+]
+
 /** The shipped defaults, in one place so a reset cannot drift from a read. */
 export const Md3ViewPreferenceDefaults = {
   commitSortOrder: 'newest' as Md3CommitSortOrder,
@@ -74,6 +91,8 @@ export const Md3ViewPreferenceDefaults = {
   wrapLongLines: false,
   diffContextLines: 3,
   groupChangesByFolder: true,
+  actionsRunListWidth: 356,
+  logGroupsCollapsed: false,
 } as const
 
 /** Every persisted presentation preference, resolved. */
@@ -84,6 +103,12 @@ export interface IMd3ViewPreferences {
   readonly wrapLongLines: boolean
   readonly diffContextLines: number
   readonly groupChangesByFolder: boolean
+
+  /** How wide the Actions run list is drawn, in CSS pixels. */
+  readonly actionsRunListWidth: number
+
+  /** Whether `::group::` sections of a job log start collapsed. */
+  readonly logGroupsCollapsed: boolean
 }
 
 function hasStorage(): boolean {
@@ -133,7 +158,37 @@ export function getMd3ViewPreferences(): IMd3ViewPreferences {
       Md3GroupChangesByFolderKey,
       Md3ViewPreferenceDefaults.groupChangesByFolder
     ),
+    actionsRunListWidth: normalizeMd3ActionsRunListWidth(
+      getNumber(
+        Md3ActionsRunListWidthKey,
+        Md3ViewPreferenceDefaults.actionsRunListWidth
+      )
+    ),
+    logGroupsCollapsed: getBoolean(
+      Md3LogGroupsCollapsedKey,
+      Md3ViewPreferenceDefaults.logGroupsCollapsed
+    ),
   }
+}
+
+/**
+ * Snap a stored or requested run-list width onto one of the offered widths.
+ *
+ * A hand-edited profile holding 4000 would push the detail pane off the pane
+ * entirely, and there is no drag handle to pull it back with, so an unknown
+ * value becomes the nearest offered one rather than being honoured.
+ */
+export function normalizeMd3ActionsRunListWidth(value: number): number {
+  if (!Number.isFinite(value)) {
+    return Md3ViewPreferenceDefaults.actionsRunListWidth
+  }
+  let closest = Md3ActionsRunListWidths[0]
+  for (const width of Md3ActionsRunListWidths) {
+    if (Math.abs(width - value) < Math.abs(closest - value)) {
+      closest = width
+    }
+  }
+  return closest
 }
 
 function announce() {
@@ -215,6 +270,36 @@ export function setMd3GroupChangesByFolder(value: boolean): boolean {
   const normalized = value === true
   if (hasStorage()) {
     setBoolean(Md3GroupChangesByFolderKey, normalized)
+  }
+  announce()
+  return normalized
+}
+
+/** Persist the Actions run-list width, snapped to an offered width. */
+export function setMd3ActionsRunListWidth(value: number): number {
+  const normalized = normalizeMd3ActionsRunListWidth(value)
+  if (hasStorage()) {
+    setNumber(Md3ActionsRunListWidthKey, normalized)
+  }
+  announce()
+  return normalized
+}
+
+/** Step the run list to the next offered width, wrapping at the widest. */
+export function stepMd3ActionsRunListWidth(current: number): number {
+  const index = Md3ActionsRunListWidths.indexOf(
+    normalizeMd3ActionsRunListWidth(current)
+  )
+  const next =
+    Md3ActionsRunListWidths[(index + 1) % Md3ActionsRunListWidths.length]
+  return setMd3ActionsRunListWidth(next)
+}
+
+/** Persist whether job-log `::group::` sections start collapsed. */
+export function setMd3LogGroupsCollapsed(value: boolean): boolean {
+  const normalized = value === true
+  if (hasStorage()) {
+    setBoolean(Md3LogGroupsCollapsedKey, normalized)
   }
   announce()
   return normalized

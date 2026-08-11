@@ -1660,6 +1660,7 @@ export function Md3AuthenticatorView(props: IMd3AuthenticatorViewProps) {
       <section className="md3-auth__pane" aria-label={t('md3.auth.pane')}>
         <Md3SearchField
           id="md3-authenticator-search"
+          searchSurfaceId="md3-authenticator"
           value={query}
           placeholder={t('md3.auth.searchPlaceholder')}
           fieldLabel={t('md3.auth.searchField')}

@@ -3,11 +3,30 @@
  * introduced search field fail the source audit until it adopts the shared
  * fuzzy/substring/regex control and invalid-regex contract.
  */
+/**
+ * How a surface builds its search, which is also how the source audit proves
+ * it carries the full regex builder.
+ *
+ * - `standalone` owns its own input and its own `FilterModeControl`.
+ * - `shared-filter-list` delegates both to a shared filter-list component,
+ *   naming itself through that component's `filterListId`.
+ * - `md3-search-field` renders the MD3 shell's one shared search row,
+ *   `Md3SearchField`, which carries the input, the `.*` regex-mode toggle and
+ *   the anchored regex-builder launcher in a single component. The shell's
+ *   fields are not `standalone`: writing a second input and a second
+ *   `FilterModeControl` per field is exactly the duplication that component
+ *   exists to remove.
+ */
+export type SearchSurfaceImplementation =
+  | 'standalone'
+  | 'shared-filter-list'
+  | 'md3-search-field'
+
 export interface ISearchSurfaceRegistration {
   readonly id: string
   readonly label: string
   readonly source: string
-  readonly implementation: 'standalone' | 'shared-filter-list'
+  readonly implementation: SearchSurfaceImplementation
 }
 
 export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
@@ -384,6 +403,106 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
       label: 'Worktrees',
       source: 'worktrees/worktree-list.tsx',
       implementation: 'shared-filter-list',
+    },
+    // The MD3 shell's search fields. Every one of these is an independent
+    // surface — its own query, its own regex mode, and its own regex builder
+    // target — so every one is registered separately rather than as "the
+    // shell's search".
+    {
+      id: 'md3-global-search',
+      label: 'Global search',
+      source: 'md3/md3-app-header.tsx',
+      implementation: 'md3-search-field',
+    },
+    {
+      id: 'md3-history',
+      label: 'Commit history (shell)',
+      source: 'md3/md3-history-view.tsx',
+      implementation: 'md3-search-field',
+    },
+    {
+      id: 'md3-changes',
+      label: 'Changed files (shell)',
+      source: 'md3/md3-changes-view.tsx',
+      implementation: 'md3-search-field',
+    },
+    {
+      id: 'md3-branches',
+      label: 'Branches (shell)',
+      source: 'md3/md3-branches-view.tsx',
+      implementation: 'md3-search-field',
+    },
+    {
+      id: 'md3-actions-runs',
+      label: 'Workflow runs (shell)',
+      source: 'md3/md3-actions-view.tsx',
+      implementation: 'md3-search-field',
+    },
+    {
+      id: 'md3-actions-logs',
+      label: 'Workflow logs (shell)',
+      source: 'md3/md3-actions-view.tsx',
+      implementation: 'md3-search-field',
+    },
+    {
+      id: 'md3-inbox',
+      label: 'Inbox',
+      source: 'md3/md3-inbox-view.tsx',
+      implementation: 'md3-search-field',
+    },
+    {
+      id: 'md3-terminal',
+      label: 'Terminal output',
+      source: 'md3/md3-terminal-view.tsx',
+      implementation: 'md3-search-field',
+    },
+    {
+      id: 'md3-agents',
+      label: 'Agents',
+      source: 'md3/md3-agents-view.tsx',
+      implementation: 'md3-search-field',
+    },
+    {
+      id: 'md3-repositories',
+      label: 'Repositories (shell)',
+      source: 'md3/md3-repositories-view.tsx',
+      implementation: 'md3-search-field',
+    },
+    {
+      id: 'md3-diff-search',
+      label: 'Diff (shell)',
+      source: 'md3/md3-diff-pane.tsx',
+      implementation: 'md3-search-field',
+    },
+    {
+      id: 'md3-menu-filter',
+      label: 'Menu actions',
+      source: 'md3/md3-menu-overlay.tsx',
+      implementation: 'md3-search-field',
+    },
+    {
+      id: 'md3-authenticator',
+      label: 'Authenticator entries',
+      source: 'md3/md3-authenticator-view.tsx',
+      implementation: 'md3-search-field',
+    },
+    {
+      id: 'md3-locks',
+      label: 'Locks',
+      source: 'md3/md3-locks-view.tsx',
+      implementation: 'md3-search-field',
+    },
+    {
+      id: 'md3-support-tickets',
+      label: 'Support tickets',
+      source: 'md3/md3-support-tickets-view.tsx',
+      implementation: 'md3-search-field',
+    },
+    {
+      id: 'md3-docs-browser',
+      label: 'Documentation articles',
+      source: 'docs-browser/docs-browser-dialog.tsx',
+      implementation: 'md3-search-field',
     },
   ])
 

@@ -1114,6 +1114,7 @@ export function Md3BranchesView(props: IMd3BranchesViewProps) {
       <div className="md3-branches__pane">
         <Md3SearchField
           id="md3-branches-filter"
+          searchSurfaceId="md3-branches"
           value={filterText}
           placeholder={t('md3.branches.filterPlaceholder')}
           fieldLabel={t('md3.branches.fieldLabel')}

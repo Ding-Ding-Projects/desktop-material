@@ -1450,6 +1450,7 @@ export function Md3InboxView(props: IMd3InboxViewProps) {
       <section className="md3-inbox__pane" aria-label={t('md3.inbox.pane')}>
         <Md3SearchField
           id="md3-inbox-search"
+          searchSurfaceId="md3-inbox"
           value={query}
           placeholder={t('md3.inbox.searchPlaceholder')}
           fieldLabel={t('md3.inbox.searchField')}

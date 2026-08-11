@@ -159,11 +159,19 @@ the manager reconciles interrupted records before accepting new work:
   inventory, then removes managed files. A partial local cleanup returns an
   explicit recovery instruction.
 
-Removal is an irreversible operation and uses a dedicated alert dialog. The
-user must confirm the runner name, confirm the repository, and move a
-full-range authorization slider before submission. **Keep runner** and Escape
+Removal is an irreversible operation and uses a dedicated alert dialog built on
+the shared destructive-action gate. The user must turn both of the gate's keys —
+the exact target, naming the runner and the repository it is registered on, and
+the exact effect, naming what unregistering destroys — and then move a
+full-range authorization slider before submission. **Emergency exit** and Escape
 work before submission; once removal begins, the dialog stays open and shows
 runner-specific progress until the exact result is known.
+
+A destructive dialog makes its *cancel* button the form's submit button, so
+Enter pressed anywhere in the form submits it. The dialog's own submit handler
+is therefore what gates the keyboard: it returns without removing anything until
+the gate reports itself authorized. Holding the affirmative button disabled
+gates the pointer only.
 
 ## Failure modes and recovery
 
@@ -190,9 +198,9 @@ runner-specific progress until the exact result is known.
 - The removal alert dialog traps focus, labels its title and description,
   announces progress, supports Escape before submission, and returns focus to
   the originating control when it closes.
-- Both removal confirmations are independently keyboard-operable. The slider
+- Both of the gate's keys are independently keyboard-operable. The slider
   exposes its percentage through `aria-valuetext` and cannot move before both
-  confirmations are selected.
+  keys are turned.
 - Suggested runner labels remain within GitHub's 64-character label bound while
   preserving the operating-system and architecture suffix used to identify the
   execution target.

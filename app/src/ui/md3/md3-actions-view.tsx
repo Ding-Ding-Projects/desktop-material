@@ -384,10 +384,29 @@ export interface IMd3ActionsViewProps {
 
   readonly onRetryLog: () => void
 
+  /**
+   * Whether a job log's `::group::` sections start collapsed.
+   *
+   * Grouping is structure rather than search: a runner writes `::group::` to
+   * fold a phase of the job away, and folding it is useful whether or not the
+   * reader is looking for anything. So this is a persisted preference the run
+   * menu flips, and each section still has its own header button underneath it.
+   */
+  readonly logGroupsCollapsed?: boolean
+
   // --- Chrome ---------------------------------------------------------------
 
   /** Rate-limit, error and confirmation strips from the Actions store. */
   readonly banners?: ReadonlyArray<IMd3ActionsBanner>
+
+  /**
+   * How wide the run list is drawn, in CSS pixels.
+   *
+   * The contract fixes it at 356px in the stylesheet; the persisted preference
+   * overrides that through `--md3-actions-run-list-width`, which
+   * `_md3-actions.scss` reads. Omit it to keep the contract's own width.
+   */
+  readonly runListWidth?: number
 }
 
 /**
@@ -467,6 +486,46 @@ interface IMd3LogLine {
   readonly number: number
   readonly text: string
   readonly kind: Md3LogLineKind
+
+  /**
+   * The line number of the `::group::` marker that opened the section this
+   * line belongs to, or `null` when it belongs to none. A group's own opening
+   * line carries its own number, so a header and its body share one id.
+   */
+  readonly group: number | null
+
+  /** The section's title, on the line that opens it and nowhere else. */
+  readonly groupTitle: string | null
+}
+
+/**
+ * A leading ISO-8601 timestamp, which the Actions log downloader prefixes to
+ * every line. A group marker sits after it, so it has to come off before the
+ * marker can be recognised — matching only at the very start of the line would
+ * find no groups at all in a real downloaded log.
+ */
+const LogTimestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\s/
+
+/** A group marker, in either of the two forms a runner emits. */
+const LogGroupStartPattern = /^(?:::group::|##\[group\])(.*)$/
+const LogGroupEndPattern = /^(?:::endgroup::|##\[endgroup\])\s*$/
+
+/** What a log line does to the group structure, if anything. */
+export type Md3LogGroupMarker =
+  | { readonly kind: 'start'; readonly title: string }
+  | { readonly kind: 'end' }
+
+/**
+ * Read a line's group marker, tolerating the leading timestamp and both the
+ * `::group::` and `##[group]` spellings a runner may write.
+ */
+export function parseMd3LogGroupMarker(text: string): Md3LogGroupMarker | null {
+  const body = text.replace(LogTimestampPattern, '').trimStart()
+  const start = LogGroupStartPattern.exec(body)
+  if (start !== null) {
+    return { kind: 'start', title: start[1].trim() }
+  }
+  return LogGroupEndPattern.test(body) ? { kind: 'end' } : null
 }
 
 function splitLogLines(log: string): ReadonlyArray<IMd3LogLine> {
@@ -479,11 +538,42 @@ function splitLogLines(log: string): ReadonlyArray<IMd3LogLine> {
   if (raw.length > 1 && raw[raw.length - 1] === '') {
     raw.pop()
   }
-  return raw.map((text, index) => ({
-    number: index + 1,
-    text,
-    kind: classifyMd3LogLine(text),
-  }))
+
+  const lines: Array<IMd3LogLine> = []
+  let openGroup: number | null = null
+
+  raw.forEach((text, index) => {
+    const lineNumber = index + 1
+    const marker = parseMd3LogGroupMarker(text)
+
+    if (marker !== null && marker.kind === 'start') {
+      openGroup = lineNumber
+      lines.push({
+        number: lineNumber,
+        text,
+        kind: classifyMd3LogLine(text),
+        group: lineNumber,
+        groupTitle: marker.title.length > 0 ? marker.title : text,
+      })
+      return
+    }
+
+    lines.push({
+      number: lineNumber,
+      text,
+      kind: classifyMd3LogLine(text),
+      group: openGroup,
+      groupTitle: null,
+    })
+
+    if (marker !== null) {
+      // The closing marker belongs to the section it closes, so collapsing the
+      // section takes it away too rather than leaving an orphan `::endgroup::`.
+      openGroup = null
+    }
+  })
+
+  return lines
 }
 
 /**
@@ -1008,10 +1098,112 @@ interface IMd3LogViewerProps {
   readonly onRetry: () => void
   readonly onOpenOnGitHub?: () => void
   readonly filtered: boolean
+
+  /** The persisted default for every `::group::` section in this log. */
+  readonly groupsCollapsed: boolean
+}
+
+/**
+ * Which sections are folded away, and how a header toggles one.
+ *
+ * Collapsing is switched off entirely while a query is active. The log is
+ * filtered rather than dimmed, so every surviving line is a match; hiding some
+ * of them inside a folded section would hide matches the reader asked to see,
+ * and the section headers themselves would usually be filtered out, leaving no
+ * way to unfold anything.
+ */
+function useLogGroups(
+  lines: ReadonlyArray<IMd3LogLine>,
+  groupsCollapsed: boolean,
+  enabled: boolean
+) {
+  const groups = React.useMemo(() => {
+    const ids: Array<number> = []
+    for (const line of lines) {
+      if (line.groupTitle !== null && line.group !== null) {
+        ids.push(line.group)
+      }
+    }
+    return ids
+  }, [lines])
+
+  const [collapsed, setCollapsed] = React.useState<ReadonlySet<number>>(
+    () => new Set(groupsCollapsed ? groups : [])
+  )
+
+  // A different log, or a flipped preference, re-seeds every section rather
+  // than carrying one run's folded state onto the next one's line numbers.
+  React.useEffect(() => {
+    setCollapsed(new Set(groupsCollapsed ? groups : []))
+  }, [groups, groupsCollapsed])
+
+  const toggle = React.useCallback((group: number) => {
+    setCollapsed(current => {
+      const next = new Set(current)
+      if (next.has(group)) {
+        next.delete(group)
+      } else {
+        next.add(group)
+      }
+      return next
+    })
+  }, [])
+
+  const visible = React.useMemo(() => {
+    if (!enabled || collapsed.size === 0) {
+      return lines
+    }
+    return lines.filter(
+      line =>
+        line.groupTitle !== null ||
+        line.group === null ||
+        !collapsed.has(line.group)
+    )
+  }, [lines, collapsed, enabled])
+
+  return { visible, collapsed, toggle, enabled }
+}
+
+interface IMd3LogGroupRowProps {
+  readonly line: IMd3LogLine
+  readonly group: number
+  readonly collapsed: boolean
+  readonly onToggle: (group: number) => void
+}
+
+/** A `::group::` header row: the log's own line, rendered as a fold control. */
+function Md3LogGroupRow(props: IMd3LogGroupRowProps) {
+  const { line, group, collapsed, onToggle } = props
+  const toggle = React.useCallback(() => onToggle(group), [group, onToggle])
+
+  return (
+    <div className="md3-actions-log__line md3-actions-log__line--group">
+      <span className="md3-actions-log__number">{line.number}</span>
+      <button
+        type="button"
+        className="md3-actions-log__group-toggle"
+        aria-expanded={!collapsed}
+        onClick={toggle}
+      >
+        <MaterialSymbol
+          name={collapsed ? 'chevron_right' : 'expand_more'}
+          size={16}
+        />
+        <span className="md3-actions-log__text">
+          {line.groupTitle ?? line.text}
+        </span>
+      </button>
+    </div>
+  )
 }
 
 function Md3LogViewer(props: IMd3LogViewerProps) {
-  const { lines } = props
+  const groups = useLogGroups(
+    props.lines,
+    props.groupsCollapsed,
+    !props.filtered
+  )
+  const lines = groups.visible
   const logWindow = useIncrementalWindow(lines.length, LogWindowSize)
 
   if (props.loading) {
@@ -1072,18 +1264,34 @@ function Md3LogViewer(props: IMd3LogViewerProps) {
       tabIndex={0}
       onScroll={logWindow.onScroll}
     >
-      {lines.slice(0, logWindow.count).map(line => (
-        <div
-          key={line.number}
-          className={classNames(
-            'md3-actions-log__line',
-            `md3-actions-log__line--${line.kind}`
-          )}
-        >
-          <span className="md3-actions-log__number">{line.number}</span>
-          <span className="md3-actions-log__text">{line.text}</span>
-        </div>
-      ))}
+      {lines.slice(0, logWindow.count).map(line => {
+        const isHeader = groups.enabled && line.groupTitle !== null
+        if (!isHeader) {
+          return (
+            <div
+              key={line.number}
+              className={classNames(
+                'md3-actions-log__line',
+                `md3-actions-log__line--${line.kind}`
+              )}
+            >
+              <span className="md3-actions-log__number">{line.number}</span>
+              <span className="md3-actions-log__text">{line.text}</span>
+            </div>
+          )
+        }
+
+        const group = line.group ?? line.number
+        return (
+          <Md3LogGroupRow
+            key={line.number}
+            line={line}
+            group={group}
+            collapsed={groups.collapsed.has(group)}
+            onToggle={groups.toggle}
+          />
+        )
+      })}
       {logWindow.count < lines.length ? (
         <div className="md3-actions-window-more">
           <Md3GhostButton
@@ -1122,6 +1330,20 @@ export function Md3ActionsView(props: IMd3ActionsViewProps) {
   const isChipActive = React.useCallback(
     (chip: Md3ActionsChip) => activeChips.includes(chip),
     [activeChips]
+  )
+
+  // `_md3-actions.scss` reads this custom property for the runs pane's width
+  // and falls back to the contract's 356px when it is absent, so an omitted
+  // preference draws exactly what the contract draws.
+  const runListWidth = props.runListWidth
+  const runListStyle = React.useMemo(
+    () =>
+      runListWidth === undefined
+        ? undefined
+        : ({
+            '--md3-actions-run-list-width': `${runListWidth}px`,
+          } as React.CSSProperties),
+    [runListWidth]
   )
 
   // The chip reports its own untranslated id rather than the label it renders,
@@ -1208,9 +1430,11 @@ export function Md3ActionsView(props: IMd3ActionsViewProps) {
         <section
           className="md3-actions-pane md3-actions-pane--runs"
           aria-label={t('md3.actions.runList')}
+          style={runListStyle}
         >
           <Md3SearchField
             id="md3-actions-run-search"
+            searchSurfaceId="md3-actions-runs"
             fieldLabel={t('md3.actions.runFieldLabel')}
             placeholder={t('md3.actions.filterPlaceholder')}
             value={runSearch.value}
@@ -1577,6 +1801,7 @@ export function Md3ActionsView(props: IMd3ActionsViewProps) {
 
               <Md3SearchField
                 id="md3-actions-log-search"
+                searchSurfaceId="md3-actions-logs"
                 fieldLabel={t('md3.actions.logFieldLabel')}
                 placeholder={t('md3.actions.logPlaceholder')}
                 value={logSearch.value}
@@ -1600,6 +1825,7 @@ export function Md3ActionsView(props: IMd3ActionsViewProps) {
                 onRetry={props.onRetryLog}
                 onOpenOnGitHub={props.onOpenRunOnGitHub}
                 filtered={logQuery.length > 0}
+                groupsCollapsed={props.logGroupsCollapsed === true}
               />
             </>
           )}

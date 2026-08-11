@@ -103,6 +103,9 @@ describe('collection surface registries', () => {
     const shared = SearchSurfaceRegistry.filter(
       surface => surface.implementation === 'shared-filter-list'
     )
+    const md3Fields = SearchSurfaceRegistry.filter(
+      surface => surface.implementation === 'md3-search-field'
+    )
     const registryIds = SearchSurfaceRegistry.map(surface => surface.id)
     assert.strictEqual(
       new Set(registryIds).size,
@@ -129,6 +132,14 @@ describe('collection surface registries', () => {
     )
     const auditedInputs = [...nativeInputs, ...textBoxes, ...helperSearches]
     const auditedControls = [...controls, ...helperSearches]
+    // The MD3 shell's one shared search row. Its input, its `.*` regex-mode
+    // toggle and its anchored builder launcher live in a single component, so
+    // the call site's literal ID is the whole binding for that surface.
+    const md3SearchFields = markedTags(
+      sources,
+      'Md3SearchField',
+      'searchSurfaceId'
+    )
     const directBuilders = markedTags(
       sources,
       'RegexBuilder',
@@ -152,6 +163,11 @@ describe('collection surface registries', () => {
       sharedMarkers.map(marker => marker.id).sort(),
       shared.map(surface => surface.id).sort(),
       'Every shared filter-list control must have exactly one registered ID'
+    )
+    assert.deepStrictEqual(
+      md3SearchFields.map(field => field.id).sort(),
+      md3Fields.map(surface => surface.id).sort(),
+      'Every MD3 shell search field must have exactly one registered ID'
     )
 
     for (const surface of SearchSurfaceRegistry) {
@@ -186,6 +202,23 @@ describe('collection surface registries', () => {
           external
             ? `${surface.label} must bind its external regex builder to ${surface.id}`
             : `${surface.label} must use its FilterModeControl regex builder`
+        )
+      } else if (surface.implementation === 'md3-search-field') {
+        const matching = md3SearchFields.filter(
+          field => field.source === surface.source && field.id === surface.id
+        )
+        assert.strictEqual(
+          matching.length,
+          1,
+          `${surface.label} must have one Md3SearchField marked ${surface.id}`
+        )
+        // Registration is not wiring: the launcher has to be handed a real
+        // opener, or the surface would carry a builder button that does
+        // nothing while still passing the ID audit above.
+        assert.match(
+          matching[0].tag,
+          /\sonOpenBuilder=\{/,
+          `${surface.label} must wire its regex-builder launcher`
         )
       } else {
         assert.strictEqual(
@@ -291,6 +324,22 @@ describe('collection surface registries', () => {
         `Stale audited exclusion for ${exclusion.attributeValue} in ${exclusion.source}`
       )
     }
+
+    // `Md3SearchField` is to the MD3 surfaces what `FilterModeControl` is to
+    // the standalone ones: the single place the surface ID reaches the input
+    // and the regex builder. If either binding is dropped here, every MD3
+    // surface above is registered to a field that is no longer wired.
+    const md3SearchField = source('md3/md3-primitives.tsx')
+    assert.match(
+      md3SearchField,
+      /<input\b[^>]*?\bdata-search-surface-id=\{props\.searchSurfaceId\}/,
+      'Md3SearchField must mark its input with its exact surface ID'
+    )
+    assert.match(
+      md3SearchField,
+      /icon="construction"[\s\S]{0,240}?onClick=\{props\.onOpenBuilder\}/,
+      'Md3SearchField must anchor a regex-builder launcher beside its input'
+    )
 
     const filterModeControl = source('lib/filter-mode-control.tsx')
     assert.match(

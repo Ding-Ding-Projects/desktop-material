@@ -34,7 +34,13 @@
  *   node script/extract-feature-ledger.mjs --check    # fail if it would change
  */
 
-import { readFileSync, writeFileSync, readdirSync, statSync, existsSync } from 'node:fs'
+import {
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+  statSync,
+  existsSync,
+} from 'node:fs'
 import { join, dirname, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -51,7 +57,9 @@ function popupTypes() {
   if (block === null) {
     throw new Error('PopupType enum not found')
   }
-  return unique([...block[1].matchAll(/^\s{2}([A-Za-z0-9_]+)\s*(?:=|,)/gm)].map(m => m[1]))
+  return unique(
+    [...block[1].matchAll(/^\s{2}([A-Za-z0-9_]+)\s*(?:=|,)/gm)].map(m => m[1])
+  )
 }
 
 /** Every application-menu command id. */
@@ -110,9 +118,11 @@ function dispatcherOperations() {
     return []
   }
   return unique(
-    [...read(file).matchAll(/^\s{2}public (?:async )?([A-Za-z0-9_]+)\s*[(<]/gm)].map(
-      m => m[1]
-    )
+    [
+      ...read(file).matchAll(
+        /^\s{2}public (?:async )?([A-Za-z0-9_]+)\s*[(<]/gm
+      ),
+    ].map(m => m[1])
   )
 }
 
@@ -129,6 +139,12 @@ const ledger = {
     'listed in `retired` with a reason.',
   // Deliberate removals, carried forward across refreshes. Each needs a reason.
   retired: existing.retired ?? [],
+  // Dialogs that are declared and rendered but that nothing in the tree opens.
+  // Carried forward rather than regenerated: this is a recorded debt list, and
+  // the accompanying test fails when it GROWS. Deriving it here would let a
+  // refresh run absorb a newly orphaned dialog and go green on it, which is the
+  // exact failure the whole ledger exists to prevent.
+  orphanedPopupTypes: existing.orphanedPopupTypes ?? [],
   popupTypes: popupTypes(),
   menuIds: menuIds(),
   featureDocs: featureDocs(),
@@ -139,7 +155,10 @@ const ledger = {
 const serialized = JSON.stringify(ledger, null, 2) + '\n'
 
 if (process.argv.includes('--check')) {
-  if (!existsSync(ledgerPath) || readFileSync(ledgerPath, 'utf8') !== serialized) {
+  if (
+    !existsSync(ledgerPath) ||
+    readFileSync(ledgerPath, 'utf8') !== serialized
+  ) {
     process.stderr.write(
       'app/test/fixtures/feature-ledger.json is stale.\n' +
         'If a surface was added, re-run node script/extract-feature-ledger.mjs.\n' +
