@@ -1,0 +1,396 @@
+[CmdletBinding()]
+param(
+  [Parameter(Mandatory = $true)]
+  [ValidateSet('Build', 'Installer')]
+  [string]$Mode,
+
+  [switch]$Silent
+)
+
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
+
+$PinnedNodeVersion = '24.15.0'
+$PinnedYarnVersion = '1.21.1'
+$RepositoryRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$DistDirectory = [IO.Path]::GetFullPath((Join-Path $RepositoryRoot 'dist'))
+$IsSilent = $Silent.IsPresent -or $env:SILENT -eq '1'
+$OverallStopwatch = [Diagnostics.Stopwatch]::StartNew()
+$TargetArchitecture = switch ($env:PROCESSOR_ARCHITECTURE) {
+  'ARM64' { 'arm64' }
+  'AMD64' { 'x64' }
+  default { throw "Unsupported Windows build architecture '$env:PROCESSOR_ARCHITECTURE'. Expected AMD64 or ARM64." }
+}
+
+function Write-Phase {
+  param([Parameter(Mandatory = $true)][string]$Message)
+  Write-Host "==> $Message"
+}
+
+function Invoke-Checked {
+  param(
+    [Parameter(Mandatory = $true)][string]$FilePath,
+    [Parameter(Mandatory = $true)][string[]]$ArgumentList,
+    [Parameter(Mandatory = $true)][string]$FailureLabel
+  )
+
+  & $FilePath @ArgumentList
+  if ($LASTEXITCODE -ne 0) {
+    throw "$FailureLabel failed with exit code $LASTEXITCODE."
+  }
+}
+
+function Refresh-ProcessPath {
+  $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+  $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+  $parts = @($userPath, $machinePath, $env:Path) | Where-Object {
+    -not [string]::IsNullOrWhiteSpace($_)
+  }
+  $env:Path = $parts -join [IO.Path]::PathSeparator
+}
+
+function Test-NodeVersion {
+  param([Parameter(Mandatory = $true)][string]$NodePath)
+
+  try {
+    $version = (& $NodePath --version 2>$null).TrimStart('v').Trim()
+    return $LASTEXITCODE -eq 0 -and $version -eq $PinnedNodeVersion
+  } catch {
+    return $false
+  }
+}
+
+function Install-PortableNode {
+  $architecture = switch ($env:PROCESSOR_ARCHITECTURE) {
+    'ARM64' { 'arm64' }
+    default { 'x64' }
+  }
+  $archiveName = "node-v$PinnedNodeVersion-win-$architecture.zip"
+  $toolchainRoot = Join-Path $env:LOCALAPPDATA 'DesktopMaterial\toolchain'
+  $versionRoot = Join-Path $toolchainRoot "node-v$PinnedNodeVersion-win-$architecture"
+  $nodePath = Join-Path $versionRoot 'node.exe'
+  if (Test-Path -LiteralPath $nodePath -PathType Leaf) {
+    if (Test-NodeVersion -NodePath $nodePath) {
+      return $nodePath
+    }
+    throw "The cached Node executable at '$nodePath' is not version $PinnedNodeVersion. Remove that bounded cache directory and run this script again."
+  }
+
+  New-Item -ItemType Directory -Force -Path $toolchainRoot | Out-Null
+  $downloadRoot = Join-Path $toolchainRoot "download-node-$PinnedNodeVersion-$architecture"
+  New-Item -ItemType Directory -Force -Path $downloadRoot | Out-Null
+  $archivePath = Join-Path $downloadRoot $archiveName
+  $checksumsPath = Join-Path $downloadRoot 'SHASUMS256.txt'
+  $baseUrl = "https://nodejs.org/dist/v$PinnedNodeVersion"
+
+  Write-Phase "Downloading canonical Node.js $PinnedNodeVersion portable archive"
+  Invoke-WebRequest -UseBasicParsing -Uri "$baseUrl/$archiveName" -OutFile $archivePath
+  Invoke-WebRequest -UseBasicParsing -Uri "$baseUrl/SHASUMS256.txt" -OutFile $checksumsPath
+  $checksumLine = Get-Content -LiteralPath $checksumsPath | Where-Object {
+    $_ -match [regex]::Escape($archiveName) + '$'
+  }
+  if (@($checksumLine).Count -ne 1) {
+    throw "Node.js did not publish exactly one checksum for $archiveName."
+  }
+  $expectedHash = (($checksumLine -split '\s+')[0]).ToLowerInvariant()
+  $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+  if ($expectedHash -ne $actualHash) {
+    throw "Node.js archive checksum mismatch: expected $expectedHash, received $actualHash."
+  }
+
+  Expand-Archive -LiteralPath $archivePath -DestinationPath $toolchainRoot -Force
+  if (-not (Test-NodeVersion -NodePath $nodePath)) {
+    throw "Canonical Node.js $PinnedNodeVersion extracted, but '$nodePath' is missing or reports another version."
+  }
+  return $nodePath
+}
+
+function Resolve-PinnedNode {
+  $nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
+  if ($null -ne $nodeCommand -and (Test-NodeVersion -NodePath $nodeCommand.Source)) {
+    Write-Phase "Using Node.js $PinnedNodeVersion at $($nodeCommand.Source)"
+    return $nodeCommand.Source
+  }
+
+  $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
+  if ($null -ne $winget) {
+    Write-Phase "Installing Node.js $PinnedNodeVersion from the canonical winget package"
+    & $winget.Source install --id OpenJS.NodeJS --exact --version $PinnedNodeVersion --scope user --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+    $wingetExit = $LASTEXITCODE
+    Refresh-ProcessPath
+    $nodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
+    if ($wingetExit -eq 0 -and $null -ne $nodeCommand -and (Test-NodeVersion -NodePath $nodeCommand.Source)) {
+      return $nodeCommand.Source
+    }
+    Write-Warning "winget did not provide Node.js $PinnedNodeVersion (exit $wingetExit); using the canonical portable distribution."
+  } else {
+    Write-Warning 'winget is unavailable; using the canonical portable Node.js distribution.'
+  }
+
+  $portableNode = Install-PortableNode
+  $env:Path = "$(Split-Path -Parent $portableNode)$([IO.Path]::PathSeparator)$env:Path"
+  return $portableNode
+}
+
+function Resolve-VendoredYarn {
+  param([Parameter(Mandatory = $true)][string]$NodePath)
+
+  $candidates = @(
+    (Join-Path $RepositoryRoot '.yarn\releases\yarn-1.21.1.js'),
+    (Join-Path $RepositoryRoot '.yarn\releases\yarn-1.21.1.cjs'),
+    (Join-Path $RepositoryRoot 'vendor\yarn-1.21.1.js'),
+    (Join-Path $RepositoryRoot 'script\yarn-1.21.1.js'),
+    (Join-Path $RepositoryRoot 'app\node_modules\yarn\bin\yarn.js')
+  )
+  foreach ($candidate in $candidates) {
+    if (-not (Test-Path -LiteralPath $candidate -PathType Leaf)) {
+      continue
+    }
+    $version = (& $NodePath $candidate --version 2>$null).Trim()
+    if ($LASTEXITCODE -eq 0 -and $version -eq $PinnedYarnVersion) {
+      Write-Phase "Using vendored Yarn $PinnedYarnVersion at $candidate"
+      return $candidate
+    }
+  }
+  throw "Vendored Yarn $PinnedYarnVersion was not found at any supported repository path. Restore the repository's pinned Yarn entrypoint before building."
+}
+
+function Find-VsWhere {
+  $candidates = @(
+    (Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'),
+    (Join-Path $env:ProgramFiles 'Microsoft Visual Studio\Installer\vswhere.exe')
+  )
+  return $candidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+}
+
+function Find-VsBuildTools {
+  $vswhere = Find-VsWhere
+  if ([string]::IsNullOrWhiteSpace($vswhere)) {
+    return $null
+  }
+  $installationPath = (& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath).Trim()
+  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($installationPath)) {
+    return $null
+  }
+  return $installationPath
+}
+
+function Ensure-VsBuildTools {
+  $installationPath = Find-VsBuildTools
+  if (-not [string]::IsNullOrWhiteSpace($installationPath)) {
+    Write-Phase "Using Visual Studio Build Tools 2022 at $installationPath"
+    $env:GYP_MSVS_VERSION = '2022'
+    $env:npm_config_msvs_version = '2022'
+    return
+  }
+
+  $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
+  if ($null -eq $winget) {
+    throw 'Visual Studio Build Tools 2022 with Microsoft.VisualStudio.Workload.VCTools is missing, and winget.exe is unavailable for the canonical unattended install.'
+  }
+
+  Write-Phase 'Installing Visual Studio Build Tools 2022 with the C++ workload'
+  $override = '--wait --quiet --norestart --nocache --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended'
+  & $winget.Source install --id Microsoft.VisualStudio.2022.BuildTools --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity --override $override
+  $installExit = $LASTEXITCODE
+  Refresh-ProcessPath
+  $installationPath = Find-VsBuildTools
+  if ($installExit -ne 0 -or [string]::IsNullOrWhiteSpace($installationPath)) {
+    throw "Visual Studio Build Tools 2022 C++ workload installation failed with exit code $installExit. Required component: Microsoft.VisualStudio.Component.VC.Tools.x86.x64."
+  }
+  $env:GYP_MSVS_VERSION = '2022'
+  $env:npm_config_msvs_version = '2022'
+}
+
+function Remove-BoundedBuildOutput {
+  if (-not (Test-Path -LiteralPath $DistDirectory)) {
+    return
+  }
+  $resolvedRoot = $RepositoryRoot.TrimEnd('\') + '\'
+  if (-not $DistDirectory.StartsWith($resolvedRoot, [StringComparison]::OrdinalIgnoreCase) -or (Split-Path -Leaf $DistDirectory) -ne 'dist') {
+    throw "Refusing to clear unexpected build-output path '$DistDirectory'."
+  }
+  Write-Phase "Clearing stale build output at $DistDirectory"
+  Remove-Item -LiteralPath $DistDirectory -Recurse -Force
+}
+
+function Find-PackagedApplication {
+  param([Parameter(Mandatory = $true)][datetime]$NotBefore)
+
+  $roots = @($DistDirectory, (Join-Path $RepositoryRoot 'app\dist')) | Where-Object {
+    Test-Path -LiteralPath $_ -PathType Container
+  }
+  foreach ($root in $roots) {
+    $executables = Get-ChildItem -LiteralPath $root -Filter GitHubDesktop.exe -File -Recurse -ErrorAction SilentlyContinue |
+      Sort-Object LastWriteTimeUtc -Descending
+    foreach ($executable in $executables) {
+      $asar = Join-Path $executable.DirectoryName 'resources\app.asar'
+      if ($executable.LastWriteTimeUtc -ge $NotBefore.AddSeconds(-2) -and (Test-Path -LiteralPath $asar -PathType Leaf)) {
+        return [pscustomobject]@{ Executable = $executable; Asar = Get-Item -LiteralPath $asar }
+      }
+    }
+  }
+  throw 'Packaging completed without a fresh GitHubDesktop.exe and matching resources\app.asar. The build is not runnable.'
+}
+
+function Get-OneFreshArtifact {
+  param(
+    [Parameter(Mandatory = $true)][string]$Filter,
+    [Parameter(Mandatory = $true)][datetime]$NotBefore,
+    [Parameter(Mandatory = $true)][string]$Description
+  )
+
+  $matches = @(Get-ChildItem -LiteralPath $DistDirectory -Filter $Filter -File -Recurse -ErrorAction SilentlyContinue |
+    Where-Object { $_.LastWriteTimeUtc -ge $NotBefore.AddSeconds(-2) } |
+    Sort-Object FullName)
+  if ($matches.Count -ne 1) {
+    throw "$Description requires exactly one fresh '$Filter' artifact under '$DistDirectory'; found $($matches.Count)."
+  }
+  return $matches[0]
+}
+
+function Assert-NotSigned {
+  param([Parameter(Mandatory = $true)][IO.FileInfo]$File)
+
+  $signature = Get-AuthenticodeSignature -LiteralPath $File.FullName
+  if ($signature.Status -ne [Management.Automation.SignatureStatus]::NotSigned) {
+    throw "Code signing is prohibited: '$($File.FullName)' reported $($signature.Status) instead of NotSigned."
+  }
+  Write-Host "Unsigned verified: $($File.FullName)"
+}
+
+function Write-ArtifactReceipt {
+  param([Parameter(Mandatory = $true)][IO.FileInfo]$File)
+
+  $hash = (Get-FileHash -LiteralPath $File.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+  Write-Host "Artifact: $($File.FullName)"
+  Write-Host "Size: $($File.Length) bytes"
+  Write-Host "SHA256: $hash"
+}
+
+function Ensure-ManifestPackageAlias {
+  param(
+    [Parameter(Mandatory = $true)][IO.FileInfo]$Releases,
+    [Parameter(Mandatory = $true)][IO.FileInfo]$ArchitecturePackage,
+    [Parameter(Mandatory = $true)][datetime]$NotBefore
+  )
+
+  $entries = @(Get-Content -LiteralPath $Releases.FullName | Where-Object {
+    -not [string]::IsNullOrWhiteSpace($_)
+  })
+  if ($entries.Count -lt 1) {
+    throw "Squirrel RELEASES manifest '$($Releases.FullName)' contains no package entry."
+  }
+  $fields = @($entries[0] -split '\s+')
+  if ($fields.Count -ne 3) {
+    throw "Squirrel RELEASES manifest '$($Releases.FullName)' has an unreadable first entry."
+  }
+  $aliasName = $fields[1]
+  if ($aliasName -notmatch '^[^\\/]+-full\.nupkg$') {
+    throw "Squirrel RELEASES manifest names an unsafe or non-full package alias '$aliasName'."
+  }
+  $aliasPath = Join-Path $DistDirectory $aliasName
+  if (-not (Test-Path -LiteralPath $aliasPath -PathType Leaf)) {
+    Copy-Item -LiteralPath $ArchitecturePackage.FullName -Destination $aliasPath
+  }
+  $alias = Get-Item -LiteralPath $aliasPath
+  if ($alias.Length -le 0 -or $alias.LastWriteTimeUtc -lt $NotBefore.AddSeconds(-2)) {
+    throw "Squirrel manifest package alias '$aliasPath' is empty or stale."
+  }
+  return $alias
+}
+
+function Get-RepositoryCommit {
+  $git = Get-Command git.exe -ErrorAction SilentlyContinue
+  if ($null -eq $git) {
+    throw 'git.exe is required to identify the source commit but was not found after PATH refresh.'
+  }
+  $commit = (& $git.Source -C $RepositoryRoot rev-parse HEAD).Trim()
+  if ($LASTEXITCODE -ne 0 -or $commit -notmatch '^[0-9a-f]{40}$') {
+    throw 'Unable to resolve the exact source commit for this build.'
+  }
+  return $commit
+}
+
+try {
+  Write-Phase "Starting Desktop Material $Mode path"
+  $node = Resolve-PinnedNode
+  Refresh-ProcessPath
+  Ensure-VsBuildTools
+  $yarn = Resolve-VendoredYarn -NodePath $node
+
+  Push-Location $RepositoryRoot
+  try {
+    Remove-BoundedBuildOutput
+    Write-Phase 'Installing exact dependencies from the frozen lockfile'
+    Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'install', '--frozen-lockfile', '--non-interactive') -FailureLabel 'Frozen dependency installation'
+
+    $env:npm_config_arch = $TargetArchitecture
+    $env:TARGET_ARCH = $TargetArchitecture
+    $env:NODE_ENV = 'production'
+    $buildStartedAt = [datetime]::UtcNow
+    Write-Phase 'Building the production renderer and main process'
+    Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'build:prod') -FailureLabel 'Production build'
+
+    $env:WINDOWS_SIGNING_ENABLED = 'false'
+    $env:CSC_IDENTITY_AUTO_DISCOVERY = 'false'
+    $env:CSC_LINK = ''
+    $env:CSC_KEY_PASSWORD = ''
+    $env:WIN_CSC_LINK = ''
+    $env:WIN_CSC_KEY_PASSWORD = ''
+    $env:AZURE_TENANT_ID = ''
+    $env:AZURE_CLIENT_ID = ''
+    $env:AZURE_CLIENT_SECRET = ''
+
+    $packageStartedAt = [datetime]::UtcNow
+    Write-Phase 'Packaging with every signing input cleared or disabled'
+    Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'package') -FailureLabel 'Unsigned packaging'
+
+    $application = Find-PackagedApplication -NotBefore $buildStartedAt
+    Assert-NotSigned -File $application.Executable
+    Write-ArtifactReceipt -File $application.Executable
+    Write-ArtifactReceipt -File $application.Asar
+
+    $commit = Get-RepositoryCommit
+    Write-Host "Commit: $commit"
+
+    if ($Mode -eq 'Installer') {
+      $setup = Get-OneFreshArtifact -Filter "GitHubDesktopSetup-$TargetArchitecture.exe" -NotBefore $packageStartedAt -Description 'Setup executable'
+      $msi = Get-OneFreshArtifact -Filter "GitHubDesktopSetup-$TargetArchitecture.msi" -NotBefore $packageStartedAt -Description 'Setup MSI'
+      $releases = Get-OneFreshArtifact -Filter 'RELEASES' -NotBefore $packageStartedAt -Description 'Squirrel RELEASES manifest'
+      $releaseVersion = (Get-Content -LiteralPath (Join-Path $RepositoryRoot 'app\package.json') -Raw | ConvertFrom-Json).version
+      if ([string]::IsNullOrWhiteSpace($releaseVersion)) {
+        throw 'app\package.json did not provide an installer version.'
+      }
+      $fullPackage = Get-OneFreshArtifact -Filter "GitHubDesktop-$releaseVersion-$TargetArchitecture-full.nupkg" -NotBefore $packageStartedAt -Description 'Architecture-qualified full Squirrel package'
+      $manifestAlias = Ensure-ManifestPackageAlias -Releases $releases -ArchitecturePackage $fullPackage -NotBefore $packageStartedAt
+      $manifestVerifier = Join-Path $RepositoryRoot 'script\verify-releases-manifest.js'
+      if (-not (Test-Path -LiteralPath $manifestVerifier -PathType Leaf)) {
+        throw "Release manifest verifier is missing: '$manifestVerifier'."
+      }
+      Invoke-Checked -FilePath $node -ArgumentList @($manifestVerifier, $releases.FullName, $DistDirectory) -FailureLabel 'Squirrel RELEASES manifest verification'
+      Assert-NotSigned -File $setup
+      Assert-NotSigned -File $msi
+      foreach ($artifact in @($setup, $msi, $releases, $fullPackage, $manifestAlias)) {
+        Write-ArtifactReceipt -File $artifact
+      }
+      Write-Host 'Installer result: unsigned Squirrel.Windows artifacts verified. This script did not publish, tag, or upload anything.'
+    } elseif (-not $IsSilent) {
+      $answer = Read-Host "Run '$($application.Executable.FullName)' now? [y/N]"
+      if ($answer -match '^(?i:y|yes)$') {
+        Start-Process -FilePath $application.Executable.FullName -WorkingDirectory $application.Executable.DirectoryName
+      }
+    }
+  } finally {
+    Pop-Location
+  }
+
+  $OverallStopwatch.Stop()
+  Write-Host ("Completed in {0:hh\:mm\:ss}." -f $OverallStopwatch.Elapsed)
+  exit 0
+} catch {
+  $OverallStopwatch.Stop()
+  Write-Error ("Build failed after {0:hh\:mm\:ss}: {1}" -f $OverallStopwatch.Elapsed, $_.Exception.Message)
+  exit 1
+}
