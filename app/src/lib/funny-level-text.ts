@@ -109,6 +109,11 @@ export type FunnyLevelTextBase =
   // whether the current value was actually chosen are facts a reader acts on.
   | 'dialogEmoji.explanation'
   | 'classicToolbar.explanation'
+  // Only the framing of the shell's destination announcement is banded. The
+  // destination's own name is interpolated into every band unchanged, because
+  // it is the entire point of the announcement — a screen-reader user who
+  // hears the joke and not the surface has been told nothing.
+  | 'md3.shell.destinationAnnouncement'
   // Only the authenticator's two framing sentences are banded: the empty list,
   // and the sentence asking for a code back during pairing. Everything a user
   // acts on stays fixed — the digits themselves, the countdown, the algorithm,

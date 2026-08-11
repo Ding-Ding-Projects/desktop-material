@@ -426,9 +426,22 @@ export function Md3ChipRowSpacer() {
 export interface IMd3ChipProps {
   readonly label: string
 
+  /**
+   * The stable identifier `onToggle` reports, when the chip's label is not
+   * itself the thing being filtered on.
+   *
+   * A chip whose label is data — a repository group's own name, a commit's own
+   * day — filters by that label, so the two are the same string and this is
+   * omitted. A chip whose label is *copy* must not: the label is localized and
+   * changes with the language mode and the funny level, so a caller matching a
+   * filter against it would stop recognising its own chips the moment the user
+   * switched to Cantonese. Those chips pass their untranslated id here.
+   */
+  readonly value?: string
+
   readonly active: boolean
 
-  readonly onToggle: (label: string) => void
+  readonly onToggle: (value: string) => void
 
   readonly disabled?: boolean
 
@@ -443,10 +456,11 @@ export interface IMd3ChipProps {
  * carries an outline-variant border when it is off.
  */
 export function Md3Chip(props: IMd3ChipProps) {
-  const { onToggle, label } = props
+  const { onToggle, label, value } = props
+  const reported = value ?? label
   const onClick = React.useCallback(() => {
-    onToggle(label)
-  }, [onToggle, label])
+    onToggle(reported)
+  }, [onToggle, reported])
 
   return (
     <button

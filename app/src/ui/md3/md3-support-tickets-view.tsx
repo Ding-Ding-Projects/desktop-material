@@ -286,8 +286,11 @@ async function defaultExport(
   contents: string,
   fileName: string
 ): Promise<string | null> {
+  // The operating system's own save dialog reads this, so it is copy like any
+  // other and goes through the catalogs rather than shipping as English to a
+  // user who has the rest of the app in Cantonese.
   const destination = await showSaveDialog({
-    title: 'Export support tickets',
+    title: t('supportTickets.export.saveDialogTitle'),
     defaultPath: fileName,
   })
   if (destination === null) {

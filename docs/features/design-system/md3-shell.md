@@ -196,6 +196,73 @@ application reads and writes the real `changesState.commitMessage` through
 default duration is 3000ms. These are the shell's non-blocking notifications;
 a modal is reserved for a decision the user must make before continuing.
 
+### What a menu item actually does
+
+`app/src/ui/md3/md3-menu-bindings.ts` binds every `Md3MenuCommand` the contract
+can emit to a real application route. The design prototype's items call `toast()`
+and stop, because nothing was behind the prototype; each one here reaches the
+surface the app already owns.
+
+The bindings are a `Record` over the command union rather than a `switch` with a
+`default`, so a command added to the union with no binding is a compile error
+rather than a menu row that silently does nothing. A second `Record`,
+`Md3MenuCommandRoutes`, records how each command is bound and why:
+
+| Route | Meaning |
+| --- | --- |
+| `menu` | Runs the application's own main-menu command, which is what opens the existing Create branch, Create tag, Rename branch, Merge, Rebase, Clone, Add local repository and Repository settings dialogs. A second dialog is never built for a command that already has one. |
+| `direct` | A dispatcher call or an existing popup, opened from the binding itself. |
+| `reveal` | The command acts on a row — a notification, an agent session, a workflow run, a terminal buffer — that only the destination view owning that list can identify. Until that view supplies the row, the command takes the user to the surface that owns it. |
+
+`IMd3MenuRowContext` is where a row-scoped command gets its identity: `App` fills
+in what the app store genuinely knows and leaves the rest undefined, because the
+notification centre and the agent-session panel own their selections privately.
+A destination view supplies its own row as it is wired, and the command starts
+acting on the row instead of revealing the list.
+
+Three commands never reach a host at all. `toggleSearchRegexMode`,
+`clearSearchField` and `showRegexGuideEntry` act on the global search field's
+value, its regex mode and which overlay is open — all shell state — so `Md3Shell`
+performs them before the host's `onCommand` runs, exactly as it already does for
+navigation, the drawer toggle, opening another menu and opening the builder.
+
+### Presentation preferences
+
+Six of the contract's menu rows flip a value that decides how a destination
+draws itself, and each shows its live value as the row's hint. None of the six
+had an owner in the app store, so they live in
+`app/src/lib/md3-view-preferences.ts`: persisted through the same local-storage
+boolean/number store every other UI preference uses, read back by the menu
+context so each hint states the real value, and broadcast on a window event so
+every mounted surface updates together.
+
+They are the commit sort order, grouping commits by day, the commit graph
+column, wrapping long diff lines, the diff context-line count (1–20, stepping by
+three and wrapping at the maximum, because the contract offers an increase with
+no matching decrease) and grouping the changes list by folder.
+
+### In the command palette
+
+`Ctrl+Shift+F` reaches every surface the shell introduced. Each of the eight
+destinations teleports to **its own drawer tab** rather than to the drawer:
+landing on the rail and leaving the reader to find the row is the "general page"
+outcome a teleport exists to avoid. The header's search, palette chip, bell,
+theme, settings and account controls, the drawer's compose button and repository
+chip, and the pane header's repository, branch, fetch, push and overflow
+controls each have a teleport target of their own.
+
+The teleport hooks are the class names and `data-destination-id` attributes the
+shell already renders for its own layout and roving tab list, rather than
+anchors added for the palette — a hook with another reason to exist cannot rot
+into a dead selector without something else breaking first. Accessible names are
+deliberately **not** used as selectors: they are localized, so a selector built
+on one stops matching the moment the language mode changes.
+
+Every value the shell owns renders its live control inline in the palette row —
+the global search's regex mode, the drawer's expanded state, and all six
+presentation preferences — reading and writing the same place the menu hint
+does, so the two cannot disagree.
+
 ## Legacy chrome
 
 This is a deliberate product decision, not a transitional state.
@@ -452,6 +519,50 @@ runner，包喺 MD3 框架入面，就係佢令到八個檢視逐個接嘅時候
 十一個搜尋欄各有各嘅字同各有各嘅 regex 掣。喺邊個欄開 builder，套用個 pattern 就只
 寫返嗰個欄、只開嗰個欄嘅 regex：淨係寫字唔開掣，就會變成搵嗰堆符號本身，而呢個正正
 係佢要防嘅嘢。選單嗰邊就會連個 pattern 一齊開返嗰個選單，唔使人手抄多次。
+
+### 選單item真係做嘢
+
+`md3-menu-bindings.ts` 幫合約入面每一個 `Md3MenuCommand` 接返應用程式真有嘅路。原
+型嗰邊每個 item 都係 `toast()` 完就算，因為原型後面根本冇嘢；呢度每一個都去返應用程
+式本身嗰個介面。
+
+佢係一個蓋住成個 union 嘅 `Record`，唔係有 `default` 嘅 `switch` — 加咗個新指令又
+唔接線，係編譯行唔到，而唔係個選單靜靜雞乜都唔做。另一個 `Record`
+（`Md3MenuCommandRoutes`）會寫低每個指令行邊條路、點解：`menu` 係行應用程式本身嗰個
+主選單指令（開返原有嘅新增分支、新增 tag、改名、合併、rebase、clone、加本機儲存庫、
+儲存庫設定對話框，唔會再整多個）；`direct` 係直接叫 dispatcher 或者開返原有嘅
+popup；`reveal` 係嗰個指令要做嘅嘢綁住一行資料（一個通知、一個 agent 對話、一個
+workflow run、一個終端機畫面），而淨係擁有嗰個清單嘅目的地檢視先知係邊行 — 所以喺
+嗰個檢視接線之前，個指令會帶你去擁有嗰個清單嘅介面。
+
+有三個指令永遠去唔到 host：`toggleSearchRegexMode`、`clearSearchField` 同
+`showRegexGuideEntry` 改嘅係全域搜尋格嘅字、佢個 regex 掣、同而家開緊邊個浮層 — 全部
+都係外殼自己嘅狀態，所以 `Md3Shell` 喺 host 之前自己做咗，同佢一路以嚟處理導航、側邊
+導航開關、開另一個選單、開 builder 嘅做法一樣。
+
+### 呈現設定
+
+合約有六行選單係改「點畫」而唔係「做乜」，每行仲要用而家嘅值做提示。六個喺 store 度
+都冇主人，所以佢哋住喺 `md3-view-preferences.ts`：同其他 UI 設定用同一個 local
+storage（唔係第二個 store），選單 context 讀返嚟做提示，改動會廣播一個 window
+event，令每個掛住嘅介面一齊更新。六個係：commit 排序、按日子分組、commit 圖、長行自動
+換行、diff 上下文行數（1 至 20，一步三行，去到頂就轉返最細，因為合約淨係有「加」冇
+「減」），同埋改動清單按資料夾分組。
+
+### 喺指令板入面
+
+`Ctrl+Shift+F` 去得到外殼新加嘅每一個介面。八個目的地各自跳去**自己嗰個**側邊導航
+分頁，唔係跳去成條側邊導航 — 跌落一條 rail 度叫人自己揾，正正就係「跳轉」要避開嗰件
+事。頂欄嘅搜尋、指令板貼士、通知鐘、主題、設定、帳戶，側邊導航嘅撰寫掣同儲存庫牌，
+版面頂欄嘅儲存庫、分支、fetch、push、overflow，全部各有自己嘅跳轉目標。
+
+啲跳轉靠嘅係外殼本身為咗排版同 roving tab list 已經 render 咗嘅 class 同
+`data-destination-id`，唔係為咗指令板另外加嘅錨 — 一個本身就有用途嘅鈎，冇可能靜靜雞
+爛咗都冇嘢出聲。無障礙名就刻意唔攞嚟做 selector：嗰啲名係會翻譯嘅，語言一轉就即刻揾
+唔到嘢。
+
+外殼擁有嘅每一個值，喺指令板嗰行直接畫返個真控制項出嚟 — 全域搜尋嘅 regex 掣、側邊
+導航開合，同六個呈現設定 — 讀寫嘅位同選單提示一模一樣，所以兩邊唔會講唔同嘅嘢。
 
 ## 舊框架
 

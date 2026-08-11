@@ -298,7 +298,18 @@ export type PopupDetail =
   | { type: PopupType.NotificationHistory }
   | { type: PopupType.NotificationAutomations; entry?: INotificationEntry }
   | { type: PopupType.LogHistory }
-  | { type: PopupType.FileHistory; repository: Repository; path: string }
+  | {
+      type: PopupType.FileHistory
+      repository: Repository
+      path: string
+      /**
+       * Which of the dialog's two tabs opens first. Omitted, the dialog opens
+       * on its history tab exactly as it always has; `'blame'` is what lets a
+       * "Blame this file" command land on blame rather than on history with a
+       * tab the reader still has to find.
+       */
+      initialView?: 'history' | 'blame'
+    }
   | {
       type: PopupType.StoreWorkingTreeFilesInCheapLfs
       repository: Repository

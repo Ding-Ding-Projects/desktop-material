@@ -92,6 +92,7 @@ export type TranslationKey =
   | 'supportTickets.rowMenu.delete'
   | 'supportTickets.rowMenu.select'
   | 'supportTickets.rowMenu.deselect'
+  | 'supportTickets.export.saveDialogTitle'
   | 'supportTickets.exportMenu.title'
   | 'supportTickets.exportMenu.filterPlaceholder'
   | 'supportTickets.menuFilterPlaceholder'
@@ -219,6 +220,10 @@ export type TranslationKey =
   | 'palette.showDialogEmojiDescription'
   | 'settingsSearch.entry.appearanceDialogEmoji.title'
   | 'settingsSearch.entry.appearanceDialogEmoji.desc'
+  | 'palette.showClassicToolbar'
+  | 'palette.showClassicToolbarDescription'
+  | 'settingsSearch.entry.appearanceClassicToolbar.title'
+  | 'settingsSearch.entry.appearanceClassicToolbar.desc'
   | 'appearance.schoolModeHeading'
   | 'appearance.schoolModeDescription'
   | 'appearance.schoolModeName'
@@ -2590,6 +2595,44 @@ export type TranslationKey =
   | 'palette.redoSettingsChange'
   | 'palette.signInDotcom'
   | 'palette.signInEnterprise'
+  | 'palette.md3.changes'
+  | 'palette.md3.history'
+  | 'palette.md3.branches'
+  | 'palette.md3.actions'
+  | 'palette.md3.inbox'
+  | 'palette.md3.terminal'
+  | 'palette.md3.agents'
+  | 'palette.md3.repositories'
+  | 'palette.md3.focusSearch'
+  | 'palette.md3.searchRegex'
+  | 'palette.md3.searchRegexDescription'
+  | 'palette.md3.searchBuilder'
+  | 'palette.md3.searchMenu'
+  | 'palette.md3.regexGuide'
+  | 'palette.md3.compose'
+  | 'palette.md3.drawer'
+  | 'palette.md3.drawerDescription'
+  | 'palette.md3.drawerMenu'
+  | 'palette.md3.repositoryMenu'
+  | 'palette.md3.branchMenu'
+  | 'palette.md3.paneMenu'
+  | 'palette.md3.commitSort'
+  | 'palette.md3.commitSortDescription'
+  | 'palette.md3.commitSortNewest'
+  | 'palette.md3.commitSortOldest'
+  | 'palette.md3.groupCommitsByDay'
+  | 'palette.md3.groupCommitsByDayDescription'
+  | 'palette.md3.commitGraph'
+  | 'palette.md3.commitGraphDescription'
+  | 'palette.md3.wrapLongLines'
+  | 'palette.md3.wrapLongLinesDescription'
+  | 'palette.md3.diffContextLines'
+  | 'palette.md3.diffContextLinesDescription'
+  | 'palette.md3.groupChangesByFolder'
+  | 'palette.md3.groupChangesByFolderDescription'
+  | 'commandPalette.homeMd3Drawer'
+  | 'commandPalette.homeMd3Header'
+  | 'commandPalette.homeMd3PaneHeader'
   | 'commandPalette.homeRepositoryTools'
   | 'commandPalette.homePalette'
   | 'commandPalette.homeTabStrip'
@@ -4323,6 +4366,7 @@ export type TranslationKey =
   | 'md3.inbox.searchPlaceholder'
   | 'md3.inbox.searchField'
   | 'md3.inbox.invalidPattern'
+  | 'md3.inbox.exportName'
   | 'md3.inbox.chip.unread'
   | 'md3.inbox.chip.failures'
   | 'md3.inbox.chip.mentions'
@@ -4394,7 +4438,10 @@ export type TranslationKey =
   | 'md3.paneHeader.repository'
   | 'md3.paneHeader.branch'
   | 'md3.paneHeader.progress'
-  | 'md3.shell.destinationAnnouncement'
+  | 'md3.shell.destinationAnnouncement.plain'
+  | 'md3.shell.destinationAnnouncement.light'
+  | 'md3.shell.destinationAnnouncement.playful'
+  | 'md3.shell.destinationAnnouncement.maximum'
   | 'md3.shell.branchGroup.local'
   | 'md3.shell.branchGroup.remote'
   | 'md3.shell.searchTarget.global'
@@ -4465,6 +4512,15 @@ export type TranslationKey =
   | 'classicToolbar.stateOn'
   | 'classicToolbar.stateOff'
   | 'md3.repositories.searchPlaceholder'
+  | 'md3.repositories.gone'
+  | 'md3.repositories.favourited'
+  | 'md3.repositories.unfavourited'
+  | 'md3.repositories.removed'
+  | 'md3.repositories.pullingAll'
+  | 'md3.repositories.pulling'
+  | 'md3.repositories.fetching'
+  | 'md3.repositories.assigningGroup'
+  | 'md3.repositories.removingGroup'
   | 'md3.repositories.dismissNotice'
   | 'md3.repositories.searchFieldName'
   | 'md3.repositories.filtersLabel'
@@ -4563,6 +4619,15 @@ export type TranslationKey =
   | 'md3.actions.logPlaceholder'
   | 'md3.actions.logFieldLabel'
   | 'md3.actions.chipRowLabel'
+  | 'md3.actions.chip.running'
+  | 'md3.actions.chip.failed'
+  | 'md3.actions.chip.success'
+  | 'md3.actions.chip.thisBranch'
+  | 'md3.actions.cancelRequested'
+  | 'md3.actions.cancelRefused'
+  | 'md3.actions.bulkDone'
+  | 'md3.actions.bulkPartial'
+  | 'md3.actions.unsupported'
   | 'md3.actions.moreFilters'
   | 'md3.actions.selectRuns'
   | 'md3.actions.dispatch'
@@ -4623,6 +4688,29 @@ export type TranslationKey =
   | 'md3.actions.logNoMatch'
   | 'md3.actions.logShowMore'
   | 'md3.actions.logShowing'
+  | 'md3.actions.noRepository'
+  | 'md3.repositories.exportTitle'
+  | 'md3.repositories.exportBody'
+  | 'md3.inbox.exportTitle'
+  | 'md3.inbox.exportBody'
+  | 'md3.adapters.diff.none'
+  | 'md3.adapters.diff.noChanges'
+  | 'md3.adapters.diff.image'
+  | 'md3.adapters.diff.binary'
+  | 'md3.adapters.diff.submodule'
+  | 'md3.adapters.diff.unrenderable'
+  | 'md3.adapters.branch.metaSha'
+  | 'md3.adapters.branch.metaUpdated'
+  | 'md3.adapters.repository.cloning'
+  | 'md3.adapters.repository.local'
+  | 'md3.adapters.repository.fetchUnknown'
+  | 'md3.adapters.agent.permissions'
+  | 'md3.adapters.agent.missing'
+  | 'md3.adapters.agent.notRunning'
+  | 'md3.adapters.agent.status.running'
+  | 'md3.adapters.agent.status.exited'
+  | 'md3.adapters.agent.status.failed'
+  | 'md3.adapters.agent.status.cancelled'
   | 'md3.diffPane.region'
   | 'md3.diffPane.linesRegion'
   | 'md3.diffPane.noFile'
@@ -4735,9 +4823,20 @@ export type TranslationKey =
   | 'md3.terminal.status.running'
   | 'md3.terminal.status.exited'
   | 'md3.terminal.status.error'
+  | 'md3.terminal.sessionLabel'
+  | 'md3.terminal.banner'
+  | 'md3.terminal.cancelled'
+  | 'md3.terminal.failedWithError'
+  | 'md3.terminal.exitedWithCode'
+  | 'md3.terminal.failed'
+  | 'md3.terminal.notAllowed'
+  | 'md3.terminal.refreshFailed'
+  | 'md3.terminal.startFailed'
   | 'md3.branches.filterPlaceholder'
   | 'md3.branches.fieldLabel'
   | 'md3.branches.chipsLabel'
+  | 'md3.branches.chip.local'
+  | 'md3.branches.chip.remote'
   | 'md3.branches.listLabel'
   | 'md3.branches.newBranch'
   | 'md3.branches.mergeAll'
@@ -5266,6 +5365,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'supportTickets.rowMenu.delete': 'Delete this ticket',
   'supportTickets.rowMenu.select': 'Select this ticket',
   'supportTickets.rowMenu.deselect': 'Deselect this ticket',
+  'supportTickets.export.saveDialogTitle': 'Export support tickets',
   'supportTickets.exportMenu.title': 'Export format',
   'supportTickets.exportMenu.filterPlaceholder': 'Filter formats',
   'supportTickets.menuFilterPlaceholder': 'Filter this menu',
@@ -5466,6 +5566,13 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Show emojis in dialogs and message boxes',
   'settingsSearch.entry.appearanceDialogEmoji.desc':
     'Decorate dialog titles with one emoji, or keep the same copy without it.',
+  'palette.showClassicToolbar': 'Show the classic toolbar',
+  'palette.showClassicToolbarDescription':
+    'Keep the toolbar band above the content pane. Turning it off loses nothing: every action it carries is also on the pane header or in the pane menu.',
+  'settingsSearch.entry.appearanceClassicToolbar.title':
+    'Show the classic toolbar',
+  'settingsSearch.entry.appearanceClassicToolbar.desc':
+    'Show or hide the toolbar band the MD3 shell replaced. Its actions stay reachable from the pane header and the pane menu either way.',
   'appearance.schoolModeHeading': '{name}',
   'appearance.schoolModeDescription':
     '{name} forces English and temporarily hides Cantonese, bilingual, funny-level, and dim sum presentation. This is a local presentation lock, not a security boundary.',
@@ -8356,6 +8463,52 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'palette.redoSettingsChange': 'Redo the last settings change',
   'palette.signInDotcom': 'Sign in to GitHub.com',
   'palette.signInEnterprise': 'Sign in to GitHub Enterprise',
+  'palette.md3.changes': 'Go to Changes',
+  'palette.md3.history': 'Go to History',
+  'palette.md3.branches': 'Go to Branches',
+  'palette.md3.actions': 'Go to Actions',
+  'palette.md3.inbox': 'Go to Inbox',
+  'palette.md3.terminal': 'Go to Terminal',
+  'palette.md3.agents': 'Go to Agents',
+  'palette.md3.repositories': 'Go to Repositories',
+  'palette.md3.focusSearch': 'Focus the global search',
+  'palette.md3.searchRegex': 'Read the global search as a regular expression',
+  'palette.md3.searchRegexDescription':
+    'Turns regular expression matching on for the header search field only. Every other search field keeps its own mode.',
+  'palette.md3.searchBuilder': 'Build a pattern for the global search',
+  'palette.md3.searchMenu': 'Open the search menu',
+  'palette.md3.regexGuide': 'Open the regular expression guide',
+  'palette.md3.compose': 'Open the commit composer',
+  'palette.md3.drawer': 'Expand the navigation drawer',
+  'palette.md3.drawerDescription':
+    'On, the drawer shows its destination labels; off, it narrows to icons and keeps every destination reachable by name.',
+  'palette.md3.drawerMenu': 'Open the navigation drawer menu',
+  'palette.md3.repositoryMenu': 'Open the repository menu',
+  'palette.md3.branchMenu': 'Open the branch menu',
+  'palette.md3.paneMenu': 'Open the pane menu',
+  'palette.md3.commitSort': 'Commit order',
+  'palette.md3.commitSortDescription':
+    'Which way round the commit list is ordered. The History menu shows the live value as its hint.',
+  'palette.md3.commitSortNewest': 'Newest first',
+  'palette.md3.commitSortOldest': 'Oldest first',
+  'palette.md3.groupCommitsByDay': 'Group commits by day',
+  'palette.md3.groupCommitsByDayDescription':
+    'Puts a date heading above each day of commits instead of one unbroken list.',
+  'palette.md3.commitGraph': 'Show the commit graph',
+  'palette.md3.commitGraphDescription':
+    'Draws the ancestry column beside the commit list.',
+  'palette.md3.wrapLongLines': 'Wrap long diff lines',
+  'palette.md3.wrapLongLinesDescription':
+    'Wraps a long line onto the next row instead of scrolling the diff sideways.',
+  'palette.md3.diffContextLines': 'Diff context lines',
+  'palette.md3.diffContextLinesDescription':
+    'How many unchanged lines are shown around each change, from 1 to 20.',
+  'palette.md3.groupChangesByFolder': 'Group changes by folder',
+  'palette.md3.groupChangesByFolderDescription':
+    'Groups the changed files under their folders instead of listing every path flat.',
+  'commandPalette.homeMd3Drawer': 'The navigation drawer',
+  'commandPalette.homeMd3Header': 'The app header',
+  'commandPalette.homeMd3PaneHeader': 'The pane header',
   'commandPalette.homeRepositoryTools': 'Repository tools',
   'commandPalette.homePalette': 'The command palette itself',
   'commandPalette.homeTabStrip': 'The repository tab strip',
@@ -10575,7 +10728,13 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'md3.paneHeader.repository': 'Repository {name}',
   'md3.paneHeader.branch': 'Branch {name}',
   'md3.paneHeader.progress': '{operation}, {percent}% complete',
-  'md3.shell.destinationAnnouncement': 'Showing {name}',
+  // The destination's own name is interpolated verbatim into every band. A
+  // screen reader hears this on each navigation, so the name comes early and
+  // no band is longer than a breath.
+  'md3.shell.destinationAnnouncement.plain': 'Showing {name}',
+  'md3.shell.destinationAnnouncement.light': 'Showing {name} now',
+  'md3.shell.destinationAnnouncement.playful': 'Here we go — {name}',
+  'md3.shell.destinationAnnouncement.maximum': 'Ta-da! {name}, as requested',
   'md3.shell.branchGroup.local': 'Local',
   'md3.shell.branchGroup.remote': 'Remote',
   'md3.shell.searchTarget.global': 'the global search',
@@ -10654,6 +10813,17 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'classicToolbar.stateOn': 'shown',
   'classicToolbar.stateOff': 'hidden',
   'md3.repositories.searchPlaceholder': 'Search repositories, orgs, languages',
+  // Each of these states what actually happened and to how many
+  // repositories. The counts are interpolated facts, never rounded.
+  'md3.repositories.gone': 'This repository is no longer in the list.',
+  'md3.repositories.favourited': 'Favorited {count} repositories.',
+  'md3.repositories.unfavourited': 'Unfavorited {count} repositories.',
+  'md3.repositories.removed': 'Removed {count} repositories from the list.',
+  'md3.repositories.pullingAll': 'Pulling every selected repository.',
+  'md3.repositories.pulling': 'Pulling the selected repositories.',
+  'md3.repositories.fetching': 'Fetching the selected repositories.',
+  'md3.repositories.assigningGroup': 'Moving them into {group}.',
+  'md3.repositories.removingGroup': 'Taking them out of their group.',
   'md3.repositories.dismissNotice': 'Dismiss this message',
   'md3.repositories.searchFieldName': 'repositories',
   'md3.repositories.filtersLabel': 'Repository filters',
@@ -10767,6 +10937,21 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'md3.actions.logPlaceholder': 'Search log output',
   'md3.actions.logFieldLabel': 'the log',
   'md3.actions.chipRowLabel': 'Workflow run filters',
+  // The chip identifiers stay the contract's English words because a
+  // filter matches on them; these are what the chips actually read.
+  'md3.actions.chip.running': 'Running',
+  'md3.actions.chip.failed': 'Failed',
+  'md3.actions.chip.success': 'Success',
+  'md3.actions.chip.thisBranch': 'This branch',
+  // A cancellation is a request GitHub may refuse, so the two
+  // outcomes read differently rather than both claiming it stopped.
+  'md3.actions.cancelRequested': 'Cancellation requested.',
+  'md3.actions.cancelRefused':
+    'GitHub would not cancel this run. It may have already finished.',
+  'md3.actions.bulkDone': 'Done for {count} runs.',
+  'md3.actions.bulkPartial': 'Done for {done} runs, {failed} failed.',
+  'md3.actions.unsupported':
+    'This repository is not on GitHub, so it has no workflow runs.',
   'md3.actions.moreFilters': 'More workflow run filters',
   'md3.actions.selectRuns': 'Select workflow runs',
   'md3.actions.dispatch': 'Run workflow',
@@ -10868,6 +11053,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'md3.inbox.searchField': 'notifications',
   'md3.inbox.invalidPattern':
     'That regular expression is not valid yet, so every notification is still showing.',
+  'md3.inbox.exportName': 'notifications',
   'md3.inbox.chip.unread': 'Unread',
   'md3.inbox.chip.failures': 'Failures',
   'md3.inbox.chip.mentions': 'Mentions',
@@ -10934,6 +11120,37 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'md3.inbox.listMenu.githubInbox': 'GitHub notifications…',
   'md3.inbox.exportMenu.title': 'Export notifications',
   'md3.inbox.exportMenu.filterPlaceholder': 'Filter formats',
+  // The adapters turn real repository state into the views' row shapes, and
+  // these are the sentences that state what Git actually reported. Every one
+  // names the concrete situation rather than saying "nothing to show".
+  'md3.actions.noRepository': 'No repository is selected.',
+  'md3.repositories.exportTitle': 'Repository selection exported',
+  'md3.repositories.exportBody':
+    '{count} repositories were written to the export.',
+  'md3.inbox.exportTitle': 'Notifications exported',
+  'md3.inbox.exportBody': '{count} notifications were written to the export.',
+  'md3.adapters.diff.none': 'No diff to show for this file.',
+  'md3.adapters.diff.noChanges': 'This file has no textual changes.',
+  'md3.adapters.diff.image': 'This is an image. Open it to see the change.',
+  'md3.adapters.diff.binary':
+    'This is a binary file, so there are no lines to compare.',
+  'md3.adapters.diff.submodule':
+    'This is a submodule. Its own commits are the change.',
+  'md3.adapters.diff.unrenderable': 'This diff is too large to render.',
+  'md3.adapters.branch.metaSha': 'Tip {sha}',
+  'md3.adapters.branch.metaUpdated': 'Updated {when}',
+  'md3.adapters.repository.cloning': 'Cloning',
+  'md3.adapters.repository.local': 'Local',
+  'md3.adapters.repository.fetchUnknown': 'Never fetched',
+  'md3.adapters.agent.permissions': 'Runs in {path}',
+  'md3.adapters.agent.missing':
+    'This worktree is missing, so nothing can be sent to it.',
+  'md3.adapters.agent.notRunning':
+    'This session is not running. Resume it before sending an instruction.',
+  'md3.adapters.agent.status.running': 'Running',
+  'md3.adapters.agent.status.exited': 'Exited',
+  'md3.adapters.agent.status.failed': 'Failed',
+  'md3.adapters.agent.status.cancelled': 'Cancelled',
   'md3.diffPane.region': 'Diff',
   'md3.diffPane.linesRegion': 'Diff lines',
   'md3.diffPane.noFile': 'No file selected',
@@ -11050,9 +11267,22 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'md3.terminal.status.running': 'Running a command',
   'md3.terminal.status.exited': 'Exited',
   'md3.terminal.status.error': 'Failed to start',
+  'md3.terminal.sessionLabel': 'Session {number}',
+  'md3.terminal.banner': 'Working in {path}',
+  // Why a command stopped is the whole point of these, so the exit
+  // code and the reported error are carried through verbatim.
+  'md3.terminal.cancelled': 'Cancelled.',
+  'md3.terminal.failedWithError': 'Failed: {error}',
+  'md3.terminal.exitedWithCode': 'Exited with code {code}.',
+  'md3.terminal.failed': 'Failed.',
+  'md3.terminal.notAllowed': 'This command is not allowed here.',
+  'md3.terminal.refreshFailed': 'Could not refresh this session.',
+  'md3.terminal.startFailed': 'Could not start this command.',
   'md3.branches.filterPlaceholder': 'Filter branches',
   'md3.branches.fieldLabel': 'branches',
   'md3.branches.chipsLabel': 'Branch filters',
+  'md3.branches.chip.local': 'Local',
+  'md3.branches.chip.remote': 'Remote',
   'md3.branches.listLabel': 'Branches',
   'md3.branches.newBranch': 'New branch',
   'md3.branches.mergeAll': 'Merge all',
@@ -11690,6 +11920,7 @@ export const cantoneseTranslations: Readonly<
   'supportTickets.rowMenu.delete': '刪走呢張飛',
   'supportTickets.rowMenu.select': '揀呢張飛',
   'supportTickets.rowMenu.deselect': '唔揀呢張飛',
+  'supportTickets.export.saveDialogTitle': '匯出啲支援飛',
   'supportTickets.exportMenu.title': '匯出格式',
   'supportTickets.exportMenu.filterPlaceholder': '篩選格式',
   'supportTickets.menuFilterPlaceholder': '篩選呢個選單',
@@ -11878,6 +12109,12 @@ export const cantoneseTranslations: Readonly<
     '喺對話框同訊息框顯示 emoji',
   'settingsSearch.entry.appearanceDialogEmoji.desc':
     '喺對話框標題加一粒 emoji 做裝飾，或者用返同樣嘅字但唔要 emoji。',
+  'palette.showClassicToolbar': '顯示經典工具列',
+  'palette.showClassicToolbarDescription':
+    '喺內容窗上面保留返嗰條工具列。閂咗都唔會少咗嘢：佢上面每一個動作，內容標題列或者選單都做得到。',
+  'settingsSearch.entry.appearanceClassicToolbar.title': '顯示經典工具列',
+  'settingsSearch.entry.appearanceClassicToolbar.desc':
+    '顯示或者收起被 MD3 外殼取代嗰條工具列。無論開定閂，佢啲動作喺內容標題列同選單都仲揾得返。',
   'appearance.schoolModeHeading': '{name}',
   'appearance.schoolModeDescription':
     '{name}會強制使用英文，暫時收起廣東話、雙語、搞笑程度同點心顯示。呢個只係本地顯示鎖，唔係保安界線。',
@@ -14568,6 +14805,51 @@ export const cantoneseTranslations: Readonly<
   'palette.redoSettingsChange': '重做上一次設定改動',
   'palette.signInDotcom': '登入 GitHub.com',
   'palette.signInEnterprise': '登入 GitHub Enterprise',
+  'palette.md3.changes': '去「改動」',
+  'palette.md3.history': '去「歷史」',
+  'palette.md3.branches': '去「分支」',
+  'palette.md3.actions': '去「Actions」',
+  'palette.md3.inbox': '去「收件匣」',
+  'palette.md3.terminal': '去「終端機」',
+  'palette.md3.agents': '去「Agent」',
+  'palette.md3.repositories': '去「儲存庫」',
+  'palette.md3.focusSearch': '跳去上面個全域搜尋格',
+  'palette.md3.searchRegex': '全域搜尋當正則表達式睇',
+  'palette.md3.searchRegexDescription':
+    '淨係開上面個搜尋格嘅正則模式。其他搜尋格各有各嘅模式，唔會跟住變。',
+  'palette.md3.searchBuilder': '幫全域搜尋砌個 pattern',
+  'palette.md3.searchMenu': '開搜尋選單',
+  'palette.md3.regexGuide': '開正則表達式指南',
+  'palette.md3.compose': '開 commit 撰寫視窗',
+  'palette.md3.drawer': '攤開左邊個導覽抽屜',
+  'palette.md3.drawerDescription':
+    '開咗就見到每個目的地嘅名；閂咗就收窄成一行圖示，但每個目的地照樣搵得返。',
+  'palette.md3.drawerMenu': '開導覽抽屜嘅選單',
+  'palette.md3.repositoryMenu': '開儲存庫選單',
+  'palette.md3.branchMenu': '開分支選單',
+  'palette.md3.paneMenu': '開版面選單',
+  'palette.md3.commitSort': 'Commit 排序',
+  'palette.md3.commitSortDescription':
+    '個 commit 清單邊個行先。History 選單會用而家嘅值做提示。',
+  'palette.md3.commitSortNewest': '新嘅行先',
+  'palette.md3.commitSortOldest': '舊嘅行先',
+  'palette.md3.groupCommitsByDay': '按日子分組 commit',
+  'palette.md3.groupCommitsByDayDescription':
+    '每日加個日期標題，唔使成條長清單掃到眼花。',
+  'palette.md3.commitGraph': '顯示 commit 圖',
+  'palette.md3.commitGraphDescription': '喺 commit 清單隔籬畫返條血緣線。',
+  'palette.md3.wrapLongLines': '長嘅 diff 行自動換行',
+  'palette.md3.wrapLongLinesDescription':
+    '太長嘅行摺落下一行，唔使成份 diff 向左右拉。',
+  'palette.md3.diffContextLines': 'Diff 上下文行數',
+  'palette.md3.diffContextLinesDescription':
+    '每段改動前後顯示幾多行冇改過嘅嘢，1 到 20。',
+  'palette.md3.groupChangesByFolder': '按資料夾分組改動',
+  'palette.md3.groupChangesByFolderDescription':
+    '啲改咗嘅檔案按資料夾疊埋，唔係一條條平鋪路徑。',
+  'commandPalette.homeMd3Drawer': '導覽抽屜',
+  'commandPalette.homeMd3Header': '應用程式頂欄',
+  'commandPalette.homeMd3PaneHeader': '版面頂欄',
   'commandPalette.homeRepositoryTools': '儲存庫工具',
   'commandPalette.homePalette': '指令板本身',
   'commandPalette.homeTabStrip': '上面條 repo 分頁',
@@ -16635,7 +16917,10 @@ export const cantoneseTranslations: Readonly<
   'md3.paneHeader.repository': 'Repo {name}',
   'md3.paneHeader.branch': '分支 {name}',
   'md3.paneHeader.progress': '{operation}，做咗 {percent}%',
-  'md3.shell.destinationAnnouncement': '而家睇緊{name}',
+  'md3.shell.destinationAnnouncement.plain': '而家睇緊{name}',
+  'md3.shell.destinationAnnouncement.light': '而家睇緊{name}喇',
+  'md3.shell.destinationAnnouncement.playful': '嚟啦，{name}到咗',
+  'md3.shell.destinationAnnouncement.maximum': '登登登凳——{name}，即刻上枱',
   'md3.shell.branchGroup.local': '本機',
   'md3.shell.branchGroup.remote': '遠端',
   'md3.shell.searchTarget.global': '全域搜尋',
@@ -16712,6 +16997,15 @@ export const cantoneseTranslations: Readonly<
   'classicToolbar.stateOn': '顯示',
   'classicToolbar.stateOff': '隱藏',
   'md3.repositories.searchPlaceholder': '搵 repo、組織或者語言',
+  'md3.repositories.gone': '呢個 repo 已經唔喺個列表入面。',
+  'md3.repositories.favourited': '收藏咗 {count} 個 repo。',
+  'md3.repositories.unfavourited': '取消收藏咗 {count} 個 repo。',
+  'md3.repositories.removed': '喺個列表度移走咗 {count} 個 repo。',
+  'md3.repositories.pullingAll': 'Pull 緊揀晒嘅 repo。',
+  'md3.repositories.pulling': 'Pull 緊揀咗嘅 repo。',
+  'md3.repositories.fetching': 'Fetch 緊揀咗嘅 repo。',
+  'md3.repositories.assigningGroup': '搬緊佢哋入 {group}。',
+  'md3.repositories.removingGroup': '將佢哋抌出個組。',
   'md3.repositories.dismissNotice': '收埋呢句嘢',
   'md3.repositories.searchFieldName': '啲 repo',
   'md3.repositories.filtersLabel': 'Repo 篩選',
@@ -16816,6 +17110,16 @@ export const cantoneseTranslations: Readonly<
   'md3.actions.logPlaceholder': '搵 log 內容',
   'md3.actions.logFieldLabel': '份 log',
   'md3.actions.chipRowLabel': 'Workflow run 篩選',
+  'md3.actions.chip.running': '跑緊',
+  'md3.actions.chip.failed': '失敗',
+  'md3.actions.chip.success': '成功',
+  'md3.actions.chip.thisBranch': '呢條分支',
+  'md3.actions.cancelRequested': '叫咗佢停喇。',
+  'md3.actions.cancelRefused': 'GitHub 唔肯取消呢個 run，可能佢早就跑完咗。',
+  'md3.actions.bulkDone': '{count} 個 run 搞掂晒。',
+  'md3.actions.bulkPartial': '{done} 個 run 搞掂，{failed} 個失敗。',
+  'md3.actions.unsupported':
+    '呢個 repo 唔喺 GitHub，所以冇 workflow run 好睇。',
   'md3.actions.moreFilters': '仲有更多 workflow run 篩選',
   'md3.actions.selectRuns': '揀 workflow run',
   'md3.actions.dispatch': '行 workflow',
@@ -16915,6 +17219,7 @@ export const cantoneseTranslations: Readonly<
   'md3.inbox.searchPlaceholder': '搵通知',
   'md3.inbox.searchField': '通知',
   'md3.inbox.invalidPattern': '個 regex 仲未啱用，所以啲通知全部照樣顯示緊。',
+  'md3.inbox.exportName': '通知',
   'md3.inbox.chip.unread': '未睇',
   'md3.inbox.chip.failures': '炒咗嘅',
   'md3.inbox.chip.mentions': '有人叫你',
@@ -16979,6 +17284,30 @@ export const cantoneseTranslations: Readonly<
   'md3.inbox.listMenu.githubInbox': 'GitHub 通知…',
   'md3.inbox.exportMenu.title': '匯出通知',
   'md3.inbox.exportMenu.filterPlaceholder': '篩選格式',
+  'md3.actions.noRepository': '而家冇揀 repo。',
+  'md3.repositories.exportTitle': 'Repo 揀選已匯出',
+  'md3.repositories.exportBody': '匯出咗 {count} 個 repo。',
+  'md3.inbox.exportTitle': '通知已匯出',
+  'md3.inbox.exportBody': '匯出咗 {count} 個通知。',
+  'md3.adapters.diff.none': '呢個檔案冇 diff 好睇。',
+  'md3.adapters.diff.noChanges': '呢個檔案冇文字上嘅改動。',
+  'md3.adapters.diff.image': '呢個係圖片，開嚟睇先見到改咗咩。',
+  'md3.adapters.diff.binary': '呢個係二進位檔案，冇得逐行比。',
+  'md3.adapters.diff.submodule': '呢個係 submodule，佢自己啲 commit 就係改動。',
+  'md3.adapters.diff.unrenderable': '呢個 diff 太大，畫唔出。',
+  'md3.adapters.branch.metaSha': '頂位 {sha}',
+  'md3.adapters.branch.metaUpdated': '{when}更新過',
+  'md3.adapters.repository.cloning': 'Clone 緊',
+  'md3.adapters.repository.local': '本機',
+  'md3.adapters.repository.fetchUnknown': '未 fetch 過',
+  'md3.adapters.agent.permissions': '喺 {path} 度跑',
+  'md3.adapters.agent.missing': '搵唔到呢個 worktree，所以送唔到嘢入去。',
+  'md3.adapters.agent.notRunning':
+    '呢個 session 冇跑緊。想落指令就要先 resume 返佢。',
+  'md3.adapters.agent.status.running': '跑緊',
+  'md3.adapters.agent.status.exited': '收咗工',
+  'md3.adapters.agent.status.failed': '爆咗',
+  'md3.adapters.agent.status.cancelled': '取消咗',
   'md3.diffPane.region': '差異',
   'md3.diffPane.linesRegion': '差異行',
   'md3.diffPane.noFile': '未揀檔案',
@@ -17092,9 +17421,20 @@ export const cantoneseTranslations: Readonly<
   'md3.terminal.status.running': '行緊指令',
   'md3.terminal.status.exited': '已經收咗工',
   'md3.terminal.status.error': '開唔到',
+  'md3.terminal.sessionLabel': '第 {number} 個 session',
+  'md3.terminal.banner': '喺 {path} 度做嘢',
+  'md3.terminal.cancelled': '取消咗。',
+  'md3.terminal.failedWithError': '爆咗：{error}',
+  'md3.terminal.exitedWithCode': '收工咗，退出碼 {code}。',
+  'md3.terminal.failed': '爆咗。',
+  'md3.terminal.notAllowed': '呢度唔准跑呢個指令。',
+  'md3.terminal.refreshFailed': '刷新唔到呢個 session。',
+  'md3.terminal.startFailed': '開唔到呢個指令。',
   'md3.branches.filterPlaceholder': '篩分支',
   'md3.branches.fieldLabel': '分支',
   'md3.branches.chipsLabel': '分支篩選',
+  'md3.branches.chip.local': '本機',
+  'md3.branches.chip.remote': '遠端',
   'md3.branches.listLabel': '分支',
   'md3.branches.newBranch': '開新分支',
   'md3.branches.mergeAll': '全部合併',

@@ -3,6 +3,7 @@ import classNames from 'classnames'
 
 import { t } from '../../lib/i18n'
 import { MaterialSymbol } from '../lib/material-symbol'
+import { DialogEmoji } from '../lib/dialog-emoji'
 import { createObservableRef } from '../lib/observable-ref'
 import { Md3GhostButton, Md3TonalButton } from './md3-primitives'
 
@@ -210,6 +211,7 @@ export function Md3LockRemovalGate(props: IMd3LockRemovalGateProps) {
             className="md3-lock-gate__header-icon"
             size={HeaderGlyphSize}
           />
+          <DialogEmoji kind="destructive" />
           <span className="md3-lock-gate__eyebrow">
             {t('md3.locks.gate.eyebrow')}
           </span>

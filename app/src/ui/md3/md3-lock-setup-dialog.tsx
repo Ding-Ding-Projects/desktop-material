@@ -28,6 +28,7 @@ import {
   updateMd3Lock,
 } from '../../lib/md3-locks'
 import { MaterialSymbol } from '../lib/material-symbol'
+import { DialogEmoji } from '../lib/dialog-emoji'
 import { createObservableRef } from '../lib/observable-ref'
 import { Md3GhostButton, Md3IconButton, Md3TonalButton } from './md3-primitives'
 import {
@@ -427,6 +428,7 @@ export function Md3LockSetupDialog(props: IMd3LockSetupDialogProps) {
           className="md3-lock-setup__header-icon"
           size={HeaderGlyphSize}
         />
+        <DialogEmoji kind="security" />
         <h2 id={titleId} className="md3-lock-setup__title">
           {editing
             ? t('md3.locks.setup.titleEdit', { label: target.label })

@@ -178,7 +178,15 @@ export function Md3AppHeader(props: IMd3AppHeaderProps) {
       className={classNames('md3-app-header', props.className)}
       aria-label={t('md3.appHeader.label')}
     >
+      {/*
+        The three block classes on the icon buttons below are the command
+        palette's teleport hooks (`app/src/lib/teleport-targets.ts`). An
+        `aria-label` would be the obvious thing to select on and is exactly the
+        wrong thing: it is localized, so the selector would find nothing the
+        moment the language mode changed.
+      */}
       <Md3IconButton
+        className="md3-app-header__drawer-toggle"
         icon="menu"
         iconSize={20}
         label={t('md3.appHeader.menu')}
@@ -276,12 +284,14 @@ export function Md3AppHeader(props: IMd3AppHeaderProps) {
           ) : null}
         </button>
         <Md3IconButton
+          className="md3-app-header__theme"
           icon="contrast"
           iconSize={20}
           label={t('md3.appHeader.theme')}
           onClick={props.onToggleTheme}
         />
         <Md3IconButton
+          className="md3-app-header__settings"
           icon="settings"
           iconSize={20}
           label={t('md3.appHeader.settings')}

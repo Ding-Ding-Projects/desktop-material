@@ -57,7 +57,15 @@ export type Md3ActionsStatus =
   | 'cancelled'
   | 'queued'
 
-/** The four filter chips the contract's `runChips` declares. */
+/**
+ * The four filter chips the contract's `runChips` declares.
+ *
+ * These are identifiers, not copy. The contract writes them in English and a
+ * caller filters on them, so they stay exactly as the contract spells them
+ * however the interface is rendered — what the user reads comes from
+ * {@link md3ActionsChipLabel}, which is localized and carries no filtering
+ * meaning of its own.
+ */
 export type Md3ActionsChip = 'Running' | 'Failed' | 'Success' | 'This branch'
 
 /** The chips in the contract's order. Exported so the shell can enumerate. */
@@ -67,6 +75,26 @@ export const Md3ActionsChips: ReadonlyArray<Md3ActionsChip> = [
   'Success',
   'This branch',
 ]
+
+/**
+ * What a filter chip reads, in the active language mode.
+ *
+ * Kept apart from the identifier above deliberately: the chip's own id is what
+ * a filter matches on, so translating the two together would leave a Cantonese
+ * user with four chips the filter no longer recognises.
+ */
+export function md3ActionsChipLabel(chip: Md3ActionsChip): string {
+  switch (chip) {
+    case 'Running':
+      return t('md3.actions.chip.running')
+    case 'Failed':
+      return t('md3.actions.chip.failed')
+    case 'Success':
+      return t('md3.actions.chip.success')
+    case 'This branch':
+      return t('md3.actions.chip.thisBranch')
+  }
+}
 
 /** The four advanced filters the replaced surface exposes. */
 export type Md3ActionsFilterName = 'workflow' | 'branch' | 'event' | 'status'
@@ -1096,8 +1124,15 @@ export function Md3ActionsView(props: IMd3ActionsViewProps) {
     [activeChips]
   )
 
+  // The chip reports its own untranslated id rather than the label it renders,
+  // so this stays a straight lookup in every language mode.
   const toggleChip = React.useCallback(
-    (label: string) => onToggleChip(label as Md3ActionsChip),
+    (value: string) => {
+      const chip = Md3ActionsChips.find(candidate => candidate === value)
+      if (chip !== undefined) {
+        onToggleChip(chip)
+      }
+    },
     [onToggleChip]
   )
 
@@ -1195,7 +1230,8 @@ export function Md3ActionsView(props: IMd3ActionsViewProps) {
             {Md3ActionsChips.map(chip => (
               <Md3Chip
                 key={chip}
-                label={chip}
+                label={md3ActionsChipLabel(chip)}
+                value={chip}
                 active={isChipActive(chip)}
                 disabled={chip === 'This branch' && !props.thisBranchAvailable}
                 onToggle={toggleChip}

@@ -332,6 +332,22 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
       ],
     },
     {
+      id: 'appearance-classic-toolbar',
+      tab: PreferencesTab.Appearance,
+      titleKey: 'settingsSearch.entry.appearanceClassicToolbar.title',
+      descriptionKey: 'settingsSearch.entry.appearanceClassicToolbar.desc',
+      keywords: [
+        'toolbar',
+        'classic',
+        'band',
+        'chrome',
+        'legacy',
+        'shell',
+        '工具列',
+        '經典',
+      ],
+    },
+    {
       id: 'appearance-school-mode',
       tab: PreferencesTab.Appearance,
       titleKey: 'appearance.schoolModeHeading',

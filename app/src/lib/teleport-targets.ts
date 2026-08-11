@@ -50,6 +50,7 @@ export const TeleportTargetSelectors = {
   settingsFunnyEnglish: '[data-teleport-target="settings-funny-english"]',
   settingsFunnyCantonese: '[data-teleport-target="settings-funny-cantonese"]',
   settingsDialogEmoji: '[data-teleport-target="settings-dialog-emoji"]',
+  settingsClassicToolbar: '[data-teleport-target="settings-classic-toolbar"]',
   settingsTabSize: '[data-teleport-target="settings-tab-size"]',
   settingsConfirmDiscard: '[data-teleport-target="settings-confirm-discard"]',
   settingsConfirmForcePush:
@@ -234,6 +235,39 @@ export const TeleportTargetSelectors = {
     '[data-teleport-target="repo-settings-cheap-lfs-cloud-compression"]',
   repoSettingsCheapLfsEncryption:
     '[data-teleport-target="repo-settings-cheap-lfs-encryption"]',
+
+  // The MD3 shell.
+  //
+  // Every one of these is a class or data attribute the shell already renders
+  // for its own layout and bookkeeping, rather than an anchor added for the
+  // palette: the drawer's destinations carry `data-destination-id` so the
+  // roving tab list can find them, and the header's controls carry their block
+  // classes so the stylesheet can. A hook that has another reason to exist
+  // cannot rot into a dead selector without something else breaking first.
+  md3DrawerToggle: '.md3-app-header__drawer-toggle',
+  md3CommitAndPush: '.md3-app-header__commit',
+  md3GlobalSearch: '#md3-app-header-search',
+  md3PaletteButton: '.md3-app-header__palette',
+  md3Notifications: '.md3-app-header__bell',
+  md3ThemeToggle: '.md3-app-header__theme',
+  md3Settings: '.md3-app-header__settings',
+  md3Account: '.md3-app-header__account',
+  md3Drawer: '.md3-navigation-drawer',
+  md3Compose: '.md3-navigation-drawer__compose',
+  md3RepositoryChip: '.md3-navigation-drawer__repository',
+  md3DestinationChanges: '[data-destination-id="changes"]',
+  md3DestinationHistory: '[data-destination-id="history"]',
+  md3DestinationBranches: '[data-destination-id="branches"]',
+  md3DestinationActions: '[data-destination-id="actions"]',
+  md3DestinationInbox: '[data-destination-id="inbox"]',
+  md3DestinationTerminal: '[data-destination-id="terminal"]',
+  md3DestinationAgents: '[data-destination-id="agents"]',
+  md3DestinationRepositories: '[data-destination-id="repositories"]',
+  md3PaneRepositoryMenu: '.md3-pane-header__crumb--repository',
+  md3PaneBranchMenu: '.md3-pane-header__crumb--branch',
+  md3PaneFetch: '.md3-pane-header__fetch',
+  md3PanePush: '.md3-pane-header__push',
+  md3PaneMenu: '.md3-pane-header__menu',
 
   // Non-settings surfaces
   // The signing anchor is the hub's real navigation button. Focusing it selects

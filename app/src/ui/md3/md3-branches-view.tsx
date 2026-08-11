@@ -57,11 +57,33 @@ const RowMenuGlyphSize = 15
 /** The contract's three branch groups, in its order. */
 export type Md3BranchGroup = 'Current' | 'Local' | 'Remote'
 
-/** The contract's `branchChips` set. */
+/**
+ * The contract's `branchChips` set.
+ *
+ * Identifiers rather than copy: a caller filters on these, so they keep the
+ * contract's spelling in every language mode and
+ * {@link md3BranchChipLabel} supplies what the chip actually reads.
+ */
 export type Md3BranchChip = 'Local' | 'Remote'
 
 /** Every filter chip the contract ships for this destination, in its order. */
 export const Md3BranchChips: ReadonlyArray<Md3BranchChip> = ['Local', 'Remote']
+
+/**
+ * What a branch filter chip reads, in the active language mode.
+ *
+ * Deliberately not the group heading's key even though English spells both
+ * words the same: one names a section of the list and the other names a filter,
+ * and sharing a key would let a change to either quietly rewrite the other.
+ */
+export function md3BranchChipLabel(chip: Md3BranchChip): string {
+  switch (chip) {
+    case 'Local':
+      return t('md3.branches.chip.local')
+    case 'Remote':
+      return t('md3.branches.chip.remote')
+  }
+}
 
 /**
  * A pull request associated with a branch, for the detail line's trailing
@@ -1064,9 +1086,11 @@ export function Md3BranchesView(props: IMd3BranchesViewProps) {
     [rowByName, openRowMenu]
   )
 
+  // The chip reports its untranslated id, never the label it renders, so this
+  // lookup keeps working when the interface is in Cantonese or bilingual mode.
   const onChipToggle = React.useCallback(
-    (label: string) => {
-      const chip = Md3BranchChips.find(candidate => candidate === label)
+    (value: string) => {
+      const chip = Md3BranchChips.find(candidate => candidate === value)
       if (chip !== undefined) {
         onToggleChip(chip)
       }
@@ -1104,7 +1128,8 @@ export function Md3BranchesView(props: IMd3BranchesViewProps) {
           {Md3BranchChips.map(chip => (
             <Md3Chip
               key={chip}
-              label={chip}
+              label={md3BranchChipLabel(chip)}
+              value={chip}
               active={props.activeChips.includes(chip)}
               onToggle={onChipToggle}
             />

@@ -84,6 +84,7 @@ export {
   md3SearchBinding,
   md3SearchFieldLabel,
   md3PaneDestination,
+  md3DestinationAnnouncement,
   md3NoViews,
 } from './md3-shell'
 export type {
@@ -139,6 +140,7 @@ export type {
 export {
   Md3ActionsView,
   Md3ActionsChips,
+  md3ActionsChipLabel,
   md3ActionsStatusIcon,
   formatMd3RunMeta,
   formatMd3RunDetail,
@@ -240,6 +242,7 @@ export type { IMd3VirtualWindow } from './md3-virtual-window'
 export {
   Md3BranchesView,
   Md3BranchChips,
+  md3BranchChipLabel,
   md3BranchDetail,
   md3BranchRowActions,
   md3BranchListActions,
@@ -456,3 +459,17 @@ export type {
   Md3CaptureResult,
   IMd3CameraScan,
 } from './md3-authenticator-capture'
+
+export {
+  Md3MenuCommandActions,
+  Md3MenuCommandRoutes,
+  Md3ShellOwnedCommands,
+  isMd3ShellOwnedCommand,
+  runMd3MenuCommand,
+} from './md3-menu-bindings'
+export type {
+  IMd3MenuCommandEnvironment,
+  IMd3MenuCommandRoute,
+  IMd3MenuRowContext,
+  Md3MenuCommandRouteKind,
+} from './md3-menu-bindings'

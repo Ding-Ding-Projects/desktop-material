@@ -21,6 +21,7 @@ import {
   verifyMd3Lock,
 } from '../../lib/md3-locks'
 import { MaterialSymbol } from '../lib/material-symbol'
+import { DialogEmoji } from '../lib/dialog-emoji'
 import { createObservableRef } from '../lib/observable-ref'
 import { Md3GhostButton, Md3IconButton, Md3TonalButton } from './md3-primitives'
 import { notify } from './md3-toast'
@@ -403,6 +404,7 @@ export function Md3LockUnlockPrompt(props: IMd3LockUnlockPromptProps) {
           className="md3-lock-prompt__header-icon"
           size={HeaderGlyphSize}
         />
+        <DialogEmoji kind="security" />
         <h2 id={titleId} className="md3-lock-prompt__title">
           {t('md3.locks.unlock.title', { label: lock.target.label })}
         </h2>

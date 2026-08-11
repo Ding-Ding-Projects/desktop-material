@@ -179,9 +179,15 @@ export function Md3PaneHeader(props: IMd3PaneHeaderProps) {
               className="md3-pane-header__separator"
               size={16}
             />
+            {/*
+              The two crumbs share their block class and are told apart by a
+              modifier, which is what the palette's teleport selects on. Their
+              accessible names are localized and would make a selector that
+              stops matching the moment the language mode changes.
+            */}
             <button
               type="button"
-              className="md3-pane-header__crumb"
+              className="md3-pane-header__crumb md3-pane-header__crumb--repository"
               aria-label={t('md3.paneHeader.repository', {
                 name: props.repositoryName,
               })}
@@ -200,7 +206,7 @@ export function Md3PaneHeader(props: IMd3PaneHeaderProps) {
             </button>
             <button
               type="button"
-              className="md3-pane-header__crumb"
+              className="md3-pane-header__crumb md3-pane-header__crumb--branch"
               aria-label={t('md3.paneHeader.branch', {
                 name: props.branchName,
               })}
@@ -228,6 +234,7 @@ export function Md3PaneHeader(props: IMd3PaneHeaderProps) {
         {showSync ? (
           <>
             <Md3IconButton
+              className="md3-pane-header__fetch"
               icon="sync"
               iconSize={18}
               label={t('md3.paneHeader.fetch')}
@@ -249,6 +256,7 @@ export function Md3PaneHeader(props: IMd3PaneHeaderProps) {
           </>
         ) : null}
         <Md3IconButton
+          className="md3-pane-header__menu"
           icon="more_vert"
           iconSize={18}
           label={t('md3.paneHeader.moreActions')}

@@ -1,7 +1,11 @@
 import * as React from 'react'
 import classNames from 'classnames'
 
-import { t } from '../../lib/i18n'
+import { getPersistedLanguageMode, t } from '../../lib/i18n'
+import {
+  readFunnyLevels,
+  translateWithFunnyLevel,
+} from '../../lib/funny-level-text'
 import { IAppIdentityCustomization } from '../../models/app-identity'
 import { MaterialSymbolName } from '../lib/material-symbol'
 
@@ -676,6 +680,25 @@ export interface IMd3ShellProps {
   readonly rootProps?: React.HTMLAttributes<HTMLDivElement>
 }
 
+/**
+ * What the shell's live region says when the destination changes.
+ *
+ * The funny level styles the framing and nothing else: `{name}` is the
+ * destination's own localized label, interpolated verbatim into every band, so
+ * a listener always hears which surface they landed on however playful the
+ * sentence around it reads. Each language picks its own band, which is why
+ * this goes through `translateWithFunnyLevel` rather than reading one level
+ * and applying it to both.
+ */
+export function md3DestinationAnnouncement(name: string): string {
+  return translateWithFunnyLevel(
+    'md3.shell.destinationAnnouncement',
+    getPersistedLanguageMode(),
+    readFunnyLevels(),
+    { name }
+  )
+}
+
 /** The DOM id of the shell's main pane, referenced by the drawer's tabs. */
 export const Md3ShellPaneId = 'md3-shell-pane'
 
@@ -863,10 +886,32 @@ export function Md3Shell(props: IMd3ShellProps) {
    * host has no way to change them. Those four are wrapped here — the host's
    * handler still runs, so it can record, notify or act on the same event, it
    * simply does not have to reimplement the shell.
+   *
+   * `onCommand` is wrapped for the same reason and for three commands only.
+   * The search menu's own rows — toggle regex, clear the field, show the regex
+   * guide — act on the global search's value, its regex mode and which overlay
+   * is open. All three are shell state, so a host binding them could only
+   * guess; the shell performs them and the host's handler still runs after.
    */
   const effectiveMenuHandlers: IMd3MenuHandlers = React.useMemo(
     () => ({
       ...menuHandlers,
+      onCommand: command => {
+        switch (command) {
+          case 'toggleSearchRegexMode':
+            dispatch({ type: 'toggle-search-regex', field: 'global' })
+            break
+          case 'clearSearchField':
+            dispatch({ type: 'clear-search', field: 'global' })
+            break
+          case 'showRegexGuideEntry':
+            dispatch({ type: 'open-menu', menu: 'guide' })
+            break
+          default:
+            break
+        }
+        menuHandlers.onCommand(command)
+      },
       onNavigate: destination => {
         const id = destination.toLowerCase()
         if (isDestinationId(id)) {
@@ -924,6 +969,25 @@ export function Md3Shell(props: IMd3ShellProps) {
       dispatch({ type: 'apply-builder', pattern: application.pattern }),
     [dispatch]
   )
+
+  /**
+   * Close the builder — and only the builder.
+   *
+   * The dialog calls `onDismissed` immediately after `onApply`, which is
+   * correct for a dialog that owns its own visibility and wrong here, where
+   * applying a pattern is itself an overlay change. A builder opened from a
+   * menu's filter puts that menu back with the pattern seeded; an unconditional
+   * close then tore it straight back down, so the write-back the contract
+   * describes never reached the screen. Checking what is actually open keeps
+   * Escape, the scrim and the close button closing the builder exactly as
+   * before.
+   */
+  const onCloseBuilder = React.useCallback(() => {
+    const overlay = stateRef.current.overlay
+    if (overlay !== null && overlay.kind === 'builder') {
+      dispatch({ type: 'close-overlay' })
+    }
+  }, [dispatch])
 
   // -- Destination content -------------------------------------------------
 
@@ -1014,7 +1078,7 @@ export function Md3Shell(props: IMd3ShellProps) {
           targetLabel={targetLabel}
           initialPattern={overlay.pattern}
           onApply={onApplyBuilder}
-          onDismissed={onCloseOverlay}
+          onDismissed={onCloseBuilder}
         />
       )
     }
@@ -1161,7 +1225,7 @@ export function Md3Shell(props: IMd3ShellProps) {
         interrupt whatever a screen reader is already saying.
       */}
       <div className="sr-only" role="status">
-        {t('md3.shell.destinationAnnouncement', { name: destinationLabel })}
+        {md3DestinationAnnouncement(destinationLabel)}
       </div>
 
       {renderOverlay()}
