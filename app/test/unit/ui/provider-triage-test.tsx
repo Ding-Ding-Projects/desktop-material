@@ -281,6 +281,11 @@ describe('provider triage UI', () => {
     )
 
     await waitFor(() => assert.ok(screen.getByText('2 of 2 work items')))
+    assert.ok(
+      document
+        .querySelector('.provider-triage-view')
+        ?.classList.contains('provider-triage-tonal-list')
+    )
     assert.ok(screen.getByRole('heading', { name: 'Provider triage' }))
     assert.ok(screen.getByRole('search'))
     assert.ok(screen.getByRole('list', { name: 'Provider capability status' }))

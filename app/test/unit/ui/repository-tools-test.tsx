@@ -331,6 +331,12 @@ describe('Repository tools', () => {
     renderTools(client)
     await screen.findByText('git version 2.55.0')
 
+    assert.ok(
+      document
+        .querySelector('.repository-tools')
+        ?.classList.contains('repository-tools-tonal-workbench')
+    )
+
     for (const title of [
       'Status summary',
       'Repository health check',

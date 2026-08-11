@@ -130,6 +130,12 @@ describe('interactive rebase editor plan rows', () => {
     const plan = basicPlan()
     render(<InteractiveRebaseEditor {...editorProps({ plan })} />)
 
+    assert.ok(
+      document
+        .querySelector('.interactive-rebase-editor')
+        ?.classList.contains('interactive-rebase-editor--tonal-plan')
+    )
+
     const list = screen.getByRole('list', { name: labels.planHeading })
     const rows = within(list).getAllByRole('listitem')
     assert.equal(rows.length, plan.entries.length)

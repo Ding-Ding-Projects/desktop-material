@@ -39,14 +39,14 @@ describe('repository tools hub responsive contracts', () => {
   it('lets the fixed sidebar rail shrink instead of clipping narrow panes', () => {
     assert.match(
       tools,
-      /\.repository-tools-sidebar \{[\s\S]*?flex: 0 1 auto;[\s\S]*?max-width: 100%;[\s\S]*?min-width: 0;[\s\S]*?width: 300px;/
+      /\.repository-tools-sidebar \{[\s\S]*?flex: 0 1 auto;[\s\S]*?max-width: 100%;[\s\S]*?min-width: 0;[\s\S]*?width: 356px;/
     )
   })
 
   it('lets chips and the search pill grow instead of clipping wrapped text', () => {
     assert.match(
       tools,
-      /\.repository-tools-search \{[\s\S]*?height: auto;[\s\S]*?max-width: 100%;[\s\S]*?min-height: 44px;/
+      /\.repository-tools-search \{[\s\S]*?height: auto;[\s\S]*?max-width: 100%;[\s\S]*?min-height: 38px;/
     )
     assert.match(
       tools,
@@ -55,6 +55,21 @@ describe('repository tools hub responsive contracts', () => {
     assert.match(
       tools,
       /\.repository-tools-detail-chip \{[\s\S]*?height: auto;[\s\S]*?max-width: 100%;[\s\S]*?min-height: 26px;[\s\S]*?overflow-wrap: anywhere;/
+    )
+  })
+
+  it('uses the supplied tonal list/detail hierarchy', () => {
+    assert.match(
+      tools,
+      /\.repository-tools-modal \{[\s\S]*?surface-container-high[\s\S]*?border-radius: 20px/
+    )
+    assert.match(
+      tools,
+      /\.repository-tools-list-item[\s\S]*?&\[aria-current='true'\][\s\S]*?secondary-container/
+    )
+    assert.match(
+      tools,
+      /\.repository-tools-sidebar \{[\s\S]*?border-right:[\s\S]*?surface-container-high/
     )
   })
 

@@ -463,7 +463,7 @@ export class IntegratedTerminalView extends React.Component<IIntegratedTerminalV
 
     return (
       <section
-        className="integrated-terminal-view"
+        className="integrated-terminal-view integrated-terminal-view--material-shell"
         aria-label={requiredLabel(this.props.labels.view, 'view')}
       >
         {sessions.length > 0 || this.props.onCreateSession !== undefined ? (

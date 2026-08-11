@@ -8,12 +8,12 @@
   min-height: 0;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: var(--spacing-double, 16px);
-  padding: var(--spacing-double, 16px);
+  gap: 10px;
+  padding: 12px;
   overflow-x: auto;
   overflow-y: auto;
   color: var(--md-sys-color-on-surface);
-  background: var(--md-sys-color-surface);
+  background: var(--md-sys-color-surface-container-lowest);
 
   &,
   * {
@@ -32,6 +32,10 @@
     display: flex;
     flex-direction: column;
     gap: var(--spacing-half, 4px);
+    padding: 10px 12px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 16px;
+    background: var(--md-sys-color-surface-container-high);
   }
 
   &__title,
@@ -45,7 +49,7 @@
   }
 
   &__title {
-    font-size: var(--font-size-xl, 24px);
+    font-size: 18px;
     font-weight: var(--font-weight-semibold, 600);
     line-height: 1.25;
   }
@@ -59,7 +63,7 @@
   &__plan,
   &__confirmations {
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: var(--md-sys-shape-corner-large, 16px);
+    border-radius: 16px;
     background: var(--md-sys-color-surface-container-low);
   }
 
@@ -129,8 +133,9 @@
     min-width: 0;
     max-height: min(52vh, 36rem);
     min-height: 0;
-    margin: var(--spacing, 8px) 0 0;
-    padding: 0;
+    gap: 4px;
+    margin: 8px 0 0;
+    padding: 6px;
     overflow-x: auto;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -144,9 +149,14 @@
     grid-template-columns: minmax(0, 1fr) minmax(10rem, 0.38fr) auto;
     align-items: end;
     gap: var(--spacing, 8px) var(--spacing-double, 16px);
-    padding: var(--spacing-double, 16px);
-    border-block-start: 1px solid var(--md-sys-color-outline-variant);
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-radius: 10px;
     background: var(--md-sys-color-surface-container-lowest);
+
+    &:focus-within {
+      border-color: var(--md-sys-color-primary);
+    }
   }
 
   &__commit,
@@ -314,6 +324,14 @@
 
   &__footer {
     justify-content: flex-end;
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding: 10px 12px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 14px;
+    background: var(--md-sys-color-surface-container-high);
+    box-shadow: var(--md-sys-elevation-level1);
   }
 
   &__footer-button {

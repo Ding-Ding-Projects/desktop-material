@@ -2879,7 +2879,7 @@ export class RepositoryTools extends React.Component<
   public render() {
     return (
       <main
-        className="repository-tools repository-tools-hub"
+        className="repository-tools repository-tools-hub repository-tools-tonal-workbench"
         aria-label="Repository tools"
       >
         <div className="repository-tools-modal">

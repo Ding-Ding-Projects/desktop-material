@@ -509,7 +509,10 @@ export class RepositoryProviderTriage extends React.Component<
     const isLoading = triage.status === 'loading'
 
     return (
-      <main className="provider-triage-view" aria-label="Provider triage">
+      <main
+        className="provider-triage-view provider-triage-tonal-list"
+        aria-label="Provider triage"
+      >
         <section
           className="repository-tools-category provider-triage"
           aria-labelledby="provider-triage-title"

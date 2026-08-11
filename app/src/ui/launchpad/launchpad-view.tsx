@@ -753,7 +753,7 @@ export class LaunchpadView extends React.Component<
     const sections = normalizeSections(this.props.result.sections)
     const showingTeamView = this.props.team?.selected === true
     return (
-      <div className="launchpad-view">
+      <div className="launchpad-view launchpad-view--tonal-list">
         {this.renderTeamViewToggle()}
         {showingTeamView ? (
           this.renderTeamView()

@@ -224,6 +224,7 @@ describe('Launchpad view', () => {
     )
     const launchpad = document.querySelector<HTMLElement>('.launchpad-view')
     assert.ok(launchpad)
+    assert.ok(launchpad.classList.contains('launchpad-view--tonal-list'))
     assert.equal(
       launchpad.querySelectorAll(':scope > .launchpad-view__section').length,
       5

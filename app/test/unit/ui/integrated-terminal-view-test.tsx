@@ -522,6 +522,9 @@ describe('IntegratedTerminalView behavior', () => {
     const panelIds = new Set<string>()
 
     for (const workspace of workspaces) {
+      assert.ok(
+        workspace.classList.contains('integrated-terminal-view--material-shell')
+      )
       const tablist = within(workspace).getByRole('tablist', {
         name: labels.tabList,
       })
