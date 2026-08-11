@@ -13,6 +13,7 @@ const dialog = read(
   'repository-transfer',
   'repository-transfer-dialog.tsx'
 )
+const gate = read('app', 'src', 'ui', 'md3', 'md3-destructive-gate.tsx')
 const appStore = read('app', 'src', 'lib', 'stores', 'app-store.ts')
 const menu = read('app', 'src', 'main-process', 'menu', 'build-default-menu.ts')
 const palette = read('app', 'src', 'lib', 'command-palette-catalog.ts')
@@ -28,11 +29,18 @@ describe('repository transfer surface', () => {
   })
 
   it('requires two confirmations and a full-range authorization slider', () => {
-    assert.match(dialog, /confirmedDestination/)
-    assert.match(dialog, /confirmedHistory/)
-    assert.match(dialog, /type="range"/)
-    assert.match(dialog, /confirmationProgress === 100/)
+    // The gate itself moved into the shared destructive-action component, so
+    // the dialog is asserted to USE it and the two keys and full-range slider
+    // are asserted where they now live. Dropping either half of this would
+    // leave the transfer ungated with a green test.
+    assert.match(dialog, /<Md3DestructiveGateBody/)
+    assert.match(dialog, /actionId="repository-transfer"/)
+    assert.match(dialog, /gateAuthorized/)
     assert.match(dialog, /Emergency exit/)
+
+    assert.equal((gate.match(/type="checkbox"/g) ?? []).length, 2)
+    assert.match(gate, /type="range"/)
+    assert.match(gate, /progress >= Md3GateAuthorizationMaximum/)
   })
 
   it('keeps the old remote and history recoverable while publishing the destination', () => {

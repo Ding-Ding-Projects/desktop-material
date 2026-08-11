@@ -1,0 +1,67 @@
+// The decorative emoji rendered beside a dialog or message-box title when
+// "Show emojis in dialogs and message boxes" is on.
+//
+// It is decoration and nothing else: the element is `aria-hidden`, it sits
+// outside whatever `aria-labelledby` points at, and none of the rules below
+// may ever push it into a control. Sizing is deliberately tied to the local
+// font size so the glyph tracks the surrounding title at every display scale
+// rather than being pinned to a pixel height that clips at 200%.
+.dialog-emoji {
+  flex: 0 0 auto;
+  // A glyph that shrank would collide with the title it decorates at narrow
+  // widths, and one that grew would push the title out of the header.
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 1.15em;
+  line-height: 1;
+
+  // Nothing here is text a user reads, copies, or drags.
+  user-select: none;
+  pointer-events: none;
+
+  // Emoji fonts do not carry a monochrome fallback for every glyph, so keep
+  // the box from being squeezed below the glyph's own advance width.
+  min-width: 1.15em;
+
+  // Decoration must never be the reason a title clips. If the header runs out
+  // of room the title's own ellipsis takes the hit, not this element's box.
+  overflow: visible;
+}
+
+// The settings row that owns the preference. Bilingual mode gives every one of
+// these strings its longest form, and the provenance line is a whole sentence,
+// so nothing here may establish a minimum width the pane cannot shrink below.
+.appearance-dialog-emoji {
+  min-width: 0;
+  max-width: 100%;
+
+  .appearance-dialog-emoji-explanation,
+  .appearance-dialog-emoji-provenance {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  summary {
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+}
+
+// Both MD3 dialog headers and the legacy dialog header lay their contents out
+// with flex and a gap, so the decoration needs no margin of its own. A header
+// which centres its title still centres it, because the decoration is a
+// zero-shrink sibling rather than part of the heading element.
+.md3-compose-dialog__header,
+.md3-regex-builder__header,
+.md3-destructive-gate__header {
+  .dialog-emoji {
+    font-size: 1.05em;
+  }
+}

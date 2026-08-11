@@ -49,6 +49,7 @@ export const TeleportTargetSelectors = {
   settingsSchoolMode: '[data-teleport-target="settings-school-mode"]',
   settingsFunnyEnglish: '[data-teleport-target="settings-funny-english"]',
   settingsFunnyCantonese: '[data-teleport-target="settings-funny-cantonese"]',
+  settingsDialogEmoji: '[data-teleport-target="settings-dialog-emoji"]',
   settingsTabSize: '[data-teleport-target="settings-tab-size"]',
   settingsConfirmDiscard: '[data-teleport-target="settings-confirm-discard"]',
   settingsConfirmForcePush:

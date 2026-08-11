@@ -67,7 +67,7 @@ describe('self-hosted runner removal dialog', () => {
       />
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Keep runner' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Emergency exit' }))
     fireEvent.keyDown(screen.getByRole('alertdialog'), { key: 'Escape' })
     assert.equal(dismissals, 2)
   })

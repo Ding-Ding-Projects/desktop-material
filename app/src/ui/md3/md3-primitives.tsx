@@ -91,6 +91,12 @@ export interface IMd3IconButtonProps {
   /** Hover hint. Defaults to `label`; pass `null` to suppress it entirely. */
   readonly tooltip?: string | null
 
+  /**
+   * Set `-1` when this button sits inside a roving-tabindex list, so Tab
+   * reaches the list once rather than once per row.
+   */
+  readonly tabIndex?: number
+
   readonly className?: string
 
   /**
@@ -130,6 +136,7 @@ export function Md3IconButton(props: IMd3IconButtonProps) {
       aria-expanded={props.expanded}
       aria-haspopup={props.hasPopup}
       disabled={props.disabled}
+      tabIndex={props.tabIndex}
       onClick={props.onClick}
       onContextMenu={props.onContextMenu}
     >

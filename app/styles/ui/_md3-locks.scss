@@ -1,0 +1,665 @@
+// Surface locks: the anchored unlock prompt, the anchored lock setup dialog,
+// the bulk-removal super-confirmation gate, and the lock manager list.
+//
+// Every colour is an `--md-sys-color-*` role, so both themes are covered
+// without a single theme-specific rule. The two theme selectors this project
+// uses are `:root` and `body.theme-dark`; there is nothing here that needs
+// either, and inventing a `[data-theme]` rule would simply never match.
+//
+// The two anchored surfaces are `position: fixed` and bounded by the viewport:
+// they cap their height against the visible area and scroll INSIDE that cap,
+// because capping a height and hiding the overflow silently deletes whatever
+// falls past it — which here would be the recovery sentence, the one thing a
+// locked-out user has come to read.
+
+$md3-lock-prompt-width: 320px;
+$md3-lock-setup-width: 340px;
+
+@mixin md3-lock-anchored-panel($width) {
+  background: var(--md-sys-color-surface-container-high);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 16px;
+  box-shadow: var(--dm-elev3);
+  box-sizing: border-box;
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: calc(100vh - 16px);
+  max-width: calc(100vw - 16px);
+  overflow-y: auto;
+  padding: 14px;
+  position: fixed;
+  width: $width;
+  z-index: 30;
+}
+
+@mixin md3-lock-field {
+  display: flex;
+  flex-direction: column;
+  font-size: 11.5px;
+  font-weight: 600;
+  gap: 4px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+@mixin md3-lock-input {
+  background: var(--md-sys-color-surface-container-low);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 10px;
+  color: var(--md-sys-color-on-surface);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 400;
+  // 36px keeps the field itself an adequate pointer and touch target at every
+  // supported display scale.
+  min-height: 36px;
+  padding: 6px 10px;
+  width: 100%;
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+}
+
+@mixin md3-lock-fieldset {
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 10px 10px;
+
+  > legend {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 0 4px;
+    text-transform: uppercase;
+  }
+
+  label {
+    align-items: center;
+    display: flex;
+    font-size: 12.5px;
+    gap: 8px;
+    // A whole row is the target, not just the 13px control inside it.
+    min-height: 28px;
+  }
+}
+
+// The sentence that says this is not security. It is deliberately given the
+// same weight as the fields rather than being tucked away as fine print: a
+// disclosure nobody reads is a disclosure that was not made.
+@mixin md3-lock-honesty {
+  background: var(--md-sys-color-surface-container-highest);
+  border-radius: 10px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 0;
+  padding: 8px 10px;
+}
+
+@mixin md3-lock-recovery {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 0;
+  // The folder path is the actionable half and must not be truncated.
+  overflow-wrap: anywhere;
+}
+
+// ---------------------------------------------------------------------------
+// The anchored unlock prompt
+// ---------------------------------------------------------------------------
+
+.md3-lock-prompt {
+  @include md3-lock-anchored-panel($md3-lock-prompt-width);
+}
+
+.md3-lock-prompt__header {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.md3-lock-prompt__header-icon {
+  color: var(--md-sys-color-primary);
+}
+
+.md3-lock-prompt__title {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.md3-lock-prompt__lead {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.md3-lock-prompt__field {
+  @include md3-lock-field;
+}
+
+.md3-lock-prompt__input {
+  @include md3-lock-input;
+}
+
+.md3-lock-prompt__durations {
+  @include md3-lock-fieldset;
+}
+
+.md3-lock-prompt__minutes {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+
+  input {
+    @include md3-lock-input;
+    max-width: 96px;
+  }
+}
+
+.md3-lock-prompt__status {
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 0;
+  // Reserved so an appearing message does not shove the footer downward under
+  // the pointer that is about to press it.
+  min-height: 1.45em;
+
+  &.md3-lock-prompt__status--problem {
+    color: var(--md-sys-color-error);
+  }
+}
+
+.md3-lock-prompt__for-fun {
+  @include md3-lock-honesty;
+}
+
+.md3-lock-prompt__recovery {
+  @include md3-lock-recovery;
+}
+
+.md3-lock-prompt__footer {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.md3-lock-prompt__footer-spacer {
+  flex: 1;
+}
+
+.md3-lock-prompt__forgotten {
+  background: transparent;
+  border: 0;
+  color: var(--md-sys-color-primary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11.5px;
+  padding: 6px 2px;
+  text-decoration: underline;
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The anchored lock setup dialog
+// ---------------------------------------------------------------------------
+
+.md3-lock-setup {
+  @include md3-lock-anchored-panel($md3-lock-setup-width);
+}
+
+.md3-lock-setup__header {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.md3-lock-setup__header-icon {
+  color: var(--md-sys-color-primary);
+}
+
+.md3-lock-setup__title {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 700;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.md3-lock-setup__lead {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.md3-lock-setup__explanation-toggle {
+  align-self: flex-start;
+  background: transparent;
+  border: 0;
+  color: var(--md-sys-color-primary);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11.5px;
+  padding: 6px 2px;
+  text-decoration: underline;
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.md3-lock-setup__explanation {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.md3-lock-setup__factors,
+.md3-lock-setup__durations {
+  @include md3-lock-fieldset;
+}
+
+.md3-lock-setup__unavailable {
+  color: var(--md-sys-color-error);
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.md3-lock-setup__field {
+  @include md3-lock-field;
+}
+
+.md3-lock-setup__input {
+  @include md3-lock-input;
+}
+
+.md3-lock-setup__hint {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.md3-lock-setup__minutes {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+
+  input {
+    @include md3-lock-input;
+    max-width: 96px;
+  }
+}
+
+.md3-lock-setup__provenance {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+  line-height: 1.45;
+  margin: 4px 0 0;
+}
+
+.md3-lock-setup__toggle {
+  align-items: center;
+  display: flex;
+  font-size: 12.5px;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.md3-lock-setup__status {
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 0;
+  min-height: 1.45em;
+
+  &.md3-lock-setup__status--problem {
+    color: var(--md-sys-color-error);
+  }
+}
+
+.md3-lock-setup__for-fun {
+  @include md3-lock-honesty;
+}
+
+.md3-lock-setup__recovery {
+  @include md3-lock-recovery;
+}
+
+.md3-lock-setup__footer {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+// ---------------------------------------------------------------------------
+// The bulk-removal super-confirmation gate
+// ---------------------------------------------------------------------------
+
+.md3-lock-gate {
+  align-items: center;
+  background: var(--dm-scrim);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 16px;
+  position: fixed;
+  z-index: 40;
+}
+
+.md3-lock-gate__panel {
+  background: var(--md-sys-color-surface-container-high);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 20px;
+  box-shadow: var(--dm-elev3);
+  box-sizing: border-box;
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: calc(100vh - 32px);
+  max-width: 100%;
+  overflow-y: auto;
+  padding: 18px;
+  width: 420px;
+}
+
+.md3-lock-gate__header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.md3-lock-gate__header-icon {
+  color: var(--md-sys-color-error);
+}
+
+.md3-lock-gate__eyebrow {
+  color: var(--md-sys-color-error);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.md3-lock-gate__title {
+  flex: 1 0 100%;
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.md3-lock-gate__description {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12.5px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.md3-lock-gate__keys {
+  @include md3-lock-fieldset;
+}
+
+.md3-lock-gate__slider {
+  display: flex;
+  flex-direction: column;
+  font-size: 11.5px;
+  font-weight: 600;
+  gap: 6px;
+
+  input {
+    accent-color: var(--md-sys-color-error);
+    width: 100%;
+  }
+}
+
+.md3-lock-gate__progress {
+  background: var(--md-sys-color-surface-container-highest);
+  border-radius: 999px;
+  height: 6px;
+  overflow: hidden;
+}
+
+.md3-lock-gate__progress-fill {
+  background: var(--md-sys-color-primary);
+  display: block;
+  height: 100%;
+  transition: width 120ms linear;
+}
+
+.md3-lock-gate__progress--moving .md3-lock-gate__progress-fill {
+  background: var(--md-sys-color-tertiary, var(--md-sys-color-primary));
+}
+
+.md3-lock-gate__progress--complete .md3-lock-gate__progress-fill {
+  background: var(--md-sys-color-error);
+}
+
+.md3-lock-gate__status {
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 0;
+  min-height: 1.45em;
+}
+
+.md3-lock-gate__footer {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+// ---------------------------------------------------------------------------
+// The lock manager
+// ---------------------------------------------------------------------------
+
+.md3-locks {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+}
+
+.md3-locks__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.md3-locks__title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.md3-locks__lead,
+.md3-locks__subtitle {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.md3-locks__regex-error {
+  color: var(--md-sys-color-error);
+  font-size: 11.5px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.md3-locks__selection,
+.md3-locks__bulk {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.md3-locks__select-all {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.md3-locks__selection-count {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11.5px;
+}
+
+.md3-locks__formats {
+  @include md3-lock-fieldset;
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.md3-locks__format {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  gap: 6px;
+  min-height: 28px;
+}
+
+.md3-locks__list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.md3-locks__row {
+  align-items: center;
+  background: var(--md-sys-color-surface-container-low);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  display: flex;
+  gap: 8px;
+  min-height: 48px;
+  min-width: 0;
+  padding: 6px 8px;
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+
+  &.md3-locks__row--selected {
+    background: var(--md-sys-color-secondary-container);
+    border-color: var(--md-sys-color-outline-variant);
+    color: var(--md-sys-color-on-secondary-container);
+  }
+}
+
+.md3-locks__row-select {
+  align-items: center;
+  display: flex;
+  // The label is the target, so the hit area is the row's full height rather
+  // than the checkbox's own 13px.
+  min-height: 32px;
+  min-width: 32px;
+  justify-content: center;
+}
+
+.md3-locks__row-icon {
+  color: var(--md-sys-color-on-surface-variant);
+  flex: none;
+}
+
+.md3-locks__row--open .md3-locks__row-icon {
+  color: var(--md-sys-color-primary);
+}
+
+.md3-locks__row-body {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  min-width: 0;
+}
+
+.md3-locks__row-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.md3-locks__row-actions {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+.md3-locks__row-label {
+  font-size: 13px;
+  font-weight: 600;
+  // Wraps rather than clipping: bilingual mode makes every label longest, and a
+  // truncated lock label is a lock the user cannot identify.
+  overflow-wrap: anywhere;
+}
+
+.md3-locks__row-meta,
+.md3-locks__row-state {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+// A narrow window stacks the row rather than squeezing the label to nothing.
+@media (max-width: 560px) {
+  .md3-locks__row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .md3-locks__row-body {
+    flex: 1 0 100%;
+    order: 3;
+  }
+}
+
+// The manager repeats the recovery route, so it is styled like the one on the
+// two lock controls rather than as an afterthought.
+.md3-locks__recovery {
+  @include md3-lock-recovery;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md3-lock-gate__progress-fill {
+    transition: none;
+  }
+}

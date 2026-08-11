@@ -7,6 +7,7 @@ import {
   CommandPaletteCatalog,
   preferencesPaletteEvent,
 } from '../../src/lib/command-palette-catalog'
+import { DocsArticlePaletteEventPrefix } from '../../src/lib/docs-browser/docs-browser-palette'
 import { RepositorySettingsTab } from '../../src/models/repository-settings'
 import { PreferencesTab } from '../../src/models/preferences'
 
@@ -141,11 +142,24 @@ describe('palette settings coverage', () => {
 
   it('never offers a row that does nothing when selected', async () => {
     const app = await readFile(Path.join(src, 'ui/app.tsx'), 'utf8')
+
+    // A fourth way a row means something: one handler dispatching a whole
+    // family of events by prefix. The documentation browser offers one row per
+    // bundled article — far too many for a `case` each — and reads the article
+    // id out of the event itself. This is checked rather than exempted: if the
+    // prefix handler ever disappears, every one of those rows becomes dead
+    // again and this test says so.
+    const prefixDispatched = (event: string) =>
+      event.startsWith(DocsArticlePaletteEventPrefix) &&
+      app.includes('parseDocsArticlePaletteEvent(event)') &&
+      app.includes('this.showDocsBrowser(articleId)')
+
     const dead = CommandPaletteCatalog.filter(
       command =>
         command.home === undefined &&
         command.control === undefined &&
-        !app.includes(`case '${command.event}':`)
+        !app.includes(`case '${command.event}':`) &&
+        !prefixDispatched(command.event)
     )
     // Three ways a row can mean something: it goes somewhere, it changes a
     // value in place, or it runs a handler. A row with none of the three is

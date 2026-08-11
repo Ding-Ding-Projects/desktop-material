@@ -745,6 +745,7 @@ export class CloneRepository extends React.Component<
     return (
       <Dialog
         className="clone-repository"
+        emojiDecoration="repository"
         title={this.renderDialogTitle()}
         onSubmit={this.clone}
         onDismissed={this.props.onDismissed}

@@ -13,6 +13,12 @@
   appearance](command-palette-appearance.md) — icon/keyword/group rows, the
   compact aligned Customize appearance editor, stable random-per-repository
   layouts, and discoverability entries for otherwise-buried surfaces.
+- [Destructive-action super confirmation](destructive-action-gate.md) — the one
+  shared two-key gate every destructive or irreversible action runs through:
+  independent keys, a full-range authorization slider, a dramatic progress
+  treatment and a distinct completion treatment, an always-present emergency
+  exit, an anchored panel that falls back to a modal rather than covering its
+  own trigger, and a hand-written registry of the actions that must be gated.
 - [Material ripple and theme reveal](material-ripple-and-theme-reveal.md) —
   shared interaction feedback and bounded animated theme transitions.
 - [Dialog wheel and trackpad scrolling](dialog-wheel-scrolling.md) — route
@@ -22,9 +28,19 @@
   English and Cantonese 1..5 sliders on Settings → Appearance beside the
   language mode, wired to every category of copy (not just the narrator), with
   a live preview, the voice-not-facts rule, and searchable level names.
+- [Show emojis in dialogs and message boxes](dialog-emoji-decoration.md) — a
+  persisted Appearance switch that puts one decorative, `aria-hidden` emoji
+  beside every dialog title, chosen from a shared kind-to-glyph catalog, with
+  byte-identical accessible names and factual copy in both states and no emoji
+  in any button, action label, or field label.
 - [School mode](school-mode.md) — a persisted, user-renamable English-only
   presentation lock with local credential unlock, hidden language/playfulness
   surfaces, dim-sum suppression, and explicit reset semantics.
+- [Surface locks](surface-locks.md) — an opt-in, for-fun password or one-time-password
+  speed bump on a tab, a tab group or any appearance value, with one independent
+  credential per lock, an anchored non-modal unlock prompt, user-chosen unlock
+  duration, an enumerable searchable lock manager with bulk removal and export,
+  honest labelling in every search, and folder-deletion recovery.
 - [Audio system](audio-system.md) — optional, off-by-default spoken narrator,
   synthesized sound effects, and per-repository music, with rate-limiting,
   quiet hours, reduced-sound, screen-reader coexistence, and funny-level tone.
@@ -44,6 +60,13 @@
   synthesized looping theme per repository (no bundled files) seeded from its
   identity, with per-repo custom-track/mute overrides persisted in a Git-backed
   dedicated setting and a one-time migration from localStorage.
+- [Offline documentation browser](offline-documentation-browser.md) — every
+  feature article bundled into the build and browsable inside the app: a
+  category-filtered list, a search field over titles and body text with the
+  shared regex builder attached, rendering through the app's one sandboxed
+  Markdown renderer, article-to-article links that resolve in place, and a
+  completeness guard that fails the build when an article on disk is missing
+  from the bundle.
 - [The Material Design 3 site](material-design-3-site.md) — the published site
   as one Design Component: six pages in a browser-style tab strip, React and
   four content-subsetted font families vendored so nothing loads from another
@@ -56,12 +79,15 @@
 - [Material 漣漪同主題揭示](material-ripple-and-theme-reveal.md) — 共用嘅互動回饋同有界嘅主題轉場動畫。
 - [對話框滾輪同觸控板捲動](dialog-wheel-scrolling.md) — 將任何子元素嘅指標捲動導向最近可用嘅對話框捲動擁有者，同時保留巢狀控制項同堆疊面板行為。
 - [語氣：分語言搞笑程度滑桿](tone-funny-level.md) — 喺設定 → 外觀語言模式旁邊，獨立嘅英文同廣東話 1..5 滑桿，接駁到每一類文案（唔淨係旁白），有即時預覽、「改語氣唔改事實」規則同可搜尋嘅等級名。
+- [喺對話框同訊息框顯示 emoji](dialog-emoji-decoration.md) — 設定 → 外觀入面一個會記住嘅開關，喺每個對話框標題側邊加一粒裝飾用、`aria-hidden` 嘅 emoji，由共用嘅「種類對應字元」目錄揀；開同閂嘅無障礙名稱同事實文案完全一樣，而按鈕、動作名同欄位標籤永遠唔會有 emoji。
 - [School mode](school-mode.md) — 一個持久化、用戶改得名嘅純英文呈現鎖，配本機憑證解鎖、收埋語言／玩味介面、抑制點心彩蛋同明確嘅重設語意。
+- [版面鎖](surface-locks.md) — 自願開啟、純粹好玩嘅密碼／一次性密碼路障，可以落喺分頁、分頁群組或者任何外觀數值上面；每把鎖有自己獨立嘅憑證、貼住控制項嘅非模態解鎖提示、用戶自己揀解鎖時效、可列舉可搜尋兼支援批量刪除同匯出嘅鎖管理器、喺各搜尋度照樣誠實標示，同埋刪資料夾就重設嘅退路。
 - [音效系統](audio-system.md) — 可選、預設關閉嘅語音旁白、合成音效同逐儲存庫音樂，配速率限制、安靜時段、減少聲音、同螢幕閱讀器共存同搞笑程度語氣。
 - [錄製旁白 + 旋律資產](narration-assets.md) — 播放預先產生嘅逐事件語音片段（英文／廣東話／雙語，喺一條唔重疊嘅佇列串行播放）同旋律提示，取代即時語音同合成音效，有自動後備同持久化開關。
 - [獨立音效事件對應](sfx-event-mapping.md) — 純粹嘅事件 → 類別 → 動機對應，令 push／fetch／pull 同每一個 Build & Run 階段喺四個動機家族入面各有自己嘅提示音，配逐類別冷卻時間同設定 → 聲音入面嘅逐提示試聽格。
 - [點心彩蛋](dim-sum-surprise.md) — 十次啟動有一次會喺角落顯示一張隨附嘅香港點心相，雙語命名，會自己消失，永遠唔會阻住啟動、唔會搶焦點，亦都冇開關。
 - [儲存庫主題音樂](repository-theme-music.md) — 每個儲存庫一段確定性、合成嘅循環主題曲（唔隨附音檔），由佢嘅身分做種子，逐儲存庫嘅自訂曲目／靜音覆寫存喺一個 Git 支援嘅專屬設定，並且由 localStorage 一次性遷移。
+- [離線說明書瀏覽器](offline-documentation-browser.md) — 每篇功能文章都入咗 build，喺 app 入面就睇得到：分類篩選清單、搵標題同內文嘅搜尋欄（貼住共用正則建構器）、用 app 唯一嗰個沙箱 Markdown renderer render、文章之間嘅連結直接跳、仲有一個完整性守衛，一有文章喺硬碟度但唔喺 bundle 就 build fail。
 - [Material Design 3 網站](material-design-3-site.md) — 已發佈嘅網站本身就係一個 Design Component：瀏覽器式分頁列入面六版、React 同四款按內容裁切嘅字體全部自寄所以唔會由第二個 host 載嘢、單頁網站都有真網址，加埋證明呢一切真係出咗嘅契約測試。
 
 This category has no HTTP API. Postman collections are not applicable.

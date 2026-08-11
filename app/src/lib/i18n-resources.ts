@@ -1,4 +1,142 @@
 export type TranslationKey =
+  | 'supportTickets.title'
+  | 'supportTickets.subtitle'
+  | 'supportTickets.entry.unlockPrompt'
+  | 'supportTickets.entry.lockSetting'
+  | 'supportTickets.entry.help'
+  | 'supportTickets.entry.accessibleName'
+  | 'supportTickets.arrivedFrom.unlockPrompt'
+  | 'supportTickets.arrivedFrom.lockSetting'
+  | 'supportTickets.arrivedFrom.help'
+  | 'supportTickets.close'
+  | 'supportTickets.disclosure'
+  | 'supportTickets.deskLead.plain'
+  | 'supportTickets.deskLead.light'
+  | 'supportTickets.deskLead.playful'
+  | 'supportTickets.deskLead.maximum'
+  | 'supportTickets.explain.summary'
+  | 'supportTickets.explain.body'
+  | 'supportTickets.provenance.stored'
+  | 'supportTickets.provenance.default'
+  | 'supportTickets.form.legend'
+  | 'supportTickets.form.category'
+  | 'supportTickets.form.categoryHint'
+  | 'supportTickets.form.severity'
+  | 'supportTickets.form.severityHint'
+  | 'supportTickets.form.description'
+  | 'supportTickets.form.descriptionHint'
+  | 'supportTickets.form.descriptionRequired'
+  | 'supportTickets.form.submit'
+  | 'supportTickets.category.forgottenPassword'
+  | 'supportTickets.category.lostAuthenticator'
+  | 'supportTickets.category.lockedTab'
+  | 'supportTickets.category.lockedAppearance'
+  | 'supportTickets.category.somethingElse'
+  | 'supportTickets.severity.whenever'
+  | 'supportTickets.severity.normal'
+  | 'supportTickets.severity.urgent'
+  | 'supportTickets.severity.critical'
+  | 'supportTickets.searchPlaceholder'
+  | 'supportTickets.searchField'
+  | 'supportTickets.invalidPattern'
+  | 'supportTickets.filters'
+  | 'supportTickets.chip.open'
+  | 'supportTickets.chip.resolved'
+  | 'supportTickets.chip.urgent'
+  | 'supportTickets.list'
+  | 'supportTickets.empty.none'
+  | 'supportTickets.empty.noMatch'
+  | 'supportTickets.row.select'
+  | 'supportTickets.row.advance'
+  | 'supportTickets.row.delete'
+  | 'supportTickets.row.detail'
+  | 'supportTickets.row.opened'
+  | 'supportTickets.row.responses'
+  | 'supportTickets.status.received'
+  | 'supportTickets.status.triaged'
+  | 'supportTickets.status.awaitingCustomer'
+  | 'supportTickets.status.resolved'
+  | 'supportTickets.response.acknowledged.plain'
+  | 'supportTickets.response.acknowledged.light'
+  | 'supportTickets.response.acknowledged.playful'
+  | 'supportTickets.response.acknowledged.maximum'
+  | 'supportTickets.response.triaged'
+  | 'supportTickets.response.awaitingCustomer'
+  | 'supportTickets.response.resolved'
+  | 'supportTickets.responseAt'
+  | 'supportTickets.correspondence'
+  | 'supportTickets.selectAllFiltered'
+  | 'supportTickets.selectAllEverything'
+  | 'supportTickets.selectionCount'
+  | 'supportTickets.invertSelection'
+  | 'supportTickets.bulkAdvance'
+  | 'supportTickets.bulkExport'
+  | 'supportTickets.bulkDelete'
+  | 'supportTickets.bulkScoped'
+  | 'supportTickets.scope.selection'
+  | 'supportTickets.scope.filtered'
+  | 'supportTickets.scope.all'
+  | 'supportTickets.moreActions'
+  | 'supportTickets.listMenu.title'
+  | 'supportTickets.listMenu.selectFiltered'
+  | 'supportTickets.listMenu.selectEverything'
+  | 'supportTickets.listMenu.invert'
+  | 'supportTickets.listMenu.clearSelection'
+  | 'supportTickets.listMenu.advanceScope'
+  | 'supportTickets.listMenu.export'
+  | 'supportTickets.listMenu.deleteScope'
+  | 'supportTickets.rowMenu.title'
+  | 'supportTickets.rowMenu.advance'
+  | 'supportTickets.rowMenu.copyNumber'
+  | 'supportTickets.rowMenu.export'
+  | 'supportTickets.rowMenu.delete'
+  | 'supportTickets.rowMenu.select'
+  | 'supportTickets.rowMenu.deselect'
+  | 'supportTickets.exportMenu.title'
+  | 'supportTickets.exportMenu.filterPlaceholder'
+  | 'supportTickets.menuFilterPlaceholder'
+  | 'supportTickets.toast.created'
+  | 'supportTickets.toast.advanced'
+  | 'supportTickets.toast.alreadyResolved'
+  | 'supportTickets.toast.deleted'
+  | 'supportTickets.toast.deletedMany'
+  | 'supportTickets.toast.exported'
+  | 'supportTickets.toast.copied'
+  | 'supportTickets.toast.selectedAll'
+  | 'supportTickets.toast.copiedPath'
+  | 'supportTickets.toast.folderOpened'
+  | 'supportTickets.toast.folderFailed'
+  | 'supportTickets.toast.folderUnavailable'
+  | 'supportTickets.resolution.heading'
+  | 'supportTickets.resolution.lead.plain'
+  | 'supportTickets.resolution.lead.light'
+  | 'supportTickets.resolution.lead.playful'
+  | 'supportTickets.resolution.lead.maximum'
+  | 'supportTickets.resolution.pathLabel'
+  | 'supportTickets.resolution.pathResolving'
+  | 'supportTickets.resolution.pathUnavailable'
+  | 'supportTickets.resolution.pathProvenanceResolved'
+  | 'supportTickets.resolution.pathProvenanceUnresolved'
+  | 'supportTickets.resolution.open'
+  | 'supportTickets.resolution.copyPath'
+  | 'supportTickets.resolution.neverDeletes'
+  | 'supportTickets.resolution.opened'
+  | 'supportTickets.resolution.failed'
+  | 'supportTickets.resolution.unavailable'
+  | 'supportTickets.gate.eyebrow'
+  | 'supportTickets.gate.title'
+  | 'supportTickets.gate.description'
+  | 'supportTickets.gate.keysLegend'
+  | 'supportTickets.gate.keyCount'
+  | 'supportTickets.gate.keyScope'
+  | 'supportTickets.gate.sliderLabel'
+  | 'supportTickets.gate.sliderValue'
+  | 'supportTickets.gate.statusLocked'
+  | 'supportTickets.gate.statusReady'
+  | 'supportTickets.gate.statusMoving'
+  | 'supportTickets.gate.statusAuthorized'
+  | 'supportTickets.gate.emergencyExit'
+  | 'supportTickets.gate.confirm'
   | 'ci.status'
   | 'ci.successful'
   | 'ci.failed'
@@ -65,6 +203,22 @@ export type TranslationKey =
   | 'appearance.playfulnessValue'
   | 'appearance.playfulnessSerious'
   | 'appearance.playfulnessMaximum'
+  | 'dialogEmoji.heading'
+  | 'dialogEmoji.toggleLabel'
+  | 'dialogEmoji.explanationSummary'
+  | 'dialogEmoji.explanation.plain'
+  | 'dialogEmoji.explanation.light'
+  | 'dialogEmoji.explanation.playful'
+  | 'dialogEmoji.explanation.maximum'
+  | 'dialogEmoji.boundaryNote'
+  | 'dialogEmoji.provenanceDefault'
+  | 'dialogEmoji.provenanceStored'
+  | 'dialogEmoji.stateOn'
+  | 'dialogEmoji.stateOff'
+  | 'palette.showDialogEmoji'
+  | 'palette.showDialogEmojiDescription'
+  | 'settingsSearch.entry.appearanceDialogEmoji.title'
+  | 'settingsSearch.entry.appearanceDialogEmoji.desc'
   | 'appearance.schoolModeHeading'
   | 'appearance.schoolModeDescription'
   | 'appearance.schoolModeName'
@@ -3383,6 +3537,65 @@ export type TranslationKey =
   | 'changelog.empty.light'
   | 'changelog.empty.playful'
   | 'changelog.empty.maximum'
+  // The in-app offline documentation browser. Only its framing carries funny
+  // bands: an article's title, its category, its source path and the prose
+  // itself are the documentation's own words, and they read identically at
+  // every level in every mode.
+  | 'docsBrowser.title'
+  | 'docsBrowser.close'
+  | 'docsBrowser.searchPlaceholder'
+  | 'docsBrowser.searchField'
+  | 'docsBrowser.categoriesLabel'
+  | 'docsBrowser.categoryAll'
+  | 'docsBrowser.category.agentApi'
+  | 'docsBrowser.category.collaboration'
+  | 'docsBrowser.category.designSystem'
+  | 'docsBrowser.category.identityAndWorkspace'
+  | 'docsBrowser.category.integrations'
+  | 'docsBrowser.category.linuxTui'
+  | 'docsBrowser.category.qualityAndReliability'
+  | 'docsBrowser.category.repositoryManagement'
+  | 'docsBrowser.category.reviewAndDiff'
+  | 'docsBrowser.category.root'
+  | 'docsBrowser.listLabel'
+  | 'docsBrowser.articleLabel'
+  | 'docsBrowser.sourcePath'
+  | 'docsBrowser.selectArticle'
+  | 'docsBrowser.selectionCount'
+  | 'docsBrowser.selectAllMatches'
+  | 'docsBrowser.selectAllArticles'
+  | 'docsBrowser.invertSelection'
+  | 'docsBrowser.clearSelection'
+  | 'docsBrowser.selectionHint'
+  | 'docsBrowser.export'
+  | 'docsBrowser.exportMenuLabel'
+  | 'docsBrowser.exportMarkdown'
+  | 'docsBrowser.exportText'
+  | 'docsBrowser.exportJson'
+  | 'docsBrowser.exported'
+  | 'docsBrowser.exportFailed'
+  | 'docsBrowser.exportEmpty'
+  | 'docsBrowser.deleteLabel'
+  | 'docsBrowser.deleteUnavailable'
+  | 'docsBrowser.linkUnbundled'
+  | 'docsBrowser.linkSection'
+  | 'docsBrowser.linkOpened'
+  | 'docsBrowser.linkUnreadable'
+  | 'docsBrowser.linkExternal'
+  | 'docsBrowser.searchInvalid'
+  | 'docsBrowser.resetSearch'
+  | 'docsBrowser.offlineNote'
+  | 'docsBrowser.summary.plain'
+  | 'docsBrowser.summary.light'
+  | 'docsBrowser.summary.playful'
+  | 'docsBrowser.summary.maximum'
+  | 'docsBrowser.empty.plain'
+  | 'docsBrowser.empty.light'
+  | 'docsBrowser.empty.playful'
+  | 'docsBrowser.empty.maximum'
+  | 'palette.docsBrowser'
+  | 'palette.docsBrowserDescription'
+  | 'commandPalette.groupDocumentation'
   // The dim sum surprise. Only the framing carries bands: the dish's own name,
   // its romanization and the picture's description are facts the card exists
   // to state, and they read identically at every level in every mode.
@@ -4104,6 +4317,76 @@ export type TranslationKey =
   | 'md3.toast.undo'
   | 'md3.toast.dismiss'
   | 'md3.toast.region'
+  | 'md3.inbox.pane'
+  | 'md3.inbox.list'
+  | 'md3.inbox.filters'
+  | 'md3.inbox.searchPlaceholder'
+  | 'md3.inbox.searchField'
+  | 'md3.inbox.invalidPattern'
+  | 'md3.inbox.chip.unread'
+  | 'md3.inbox.chip.failures'
+  | 'md3.inbox.chip.mentions'
+  | 'md3.inbox.markAllRead'
+  | 'md3.inbox.muted'
+  | 'md3.inbox.state.read'
+  | 'md3.inbox.state.unread'
+  | 'md3.inbox.tone.success'
+  | 'md3.inbox.tone.failure'
+  | 'md3.inbox.tone.info'
+  | 'md3.inbox.detail'
+  | 'md3.inbox.detailNoSource'
+  | 'md3.inbox.row.select'
+  | 'md3.inbox.row.markRead'
+  | 'md3.inbox.row.markUnread'
+  | 'md3.inbox.row.delete'
+  | 'md3.inbox.row.received'
+  | 'md3.inbox.selectAllFiltered'
+  | 'md3.inbox.selectAllEverything'
+  | 'md3.inbox.selectionCount'
+  | 'md3.inbox.invertSelection'
+  | 'md3.inbox.bulkMarkRead'
+  | 'md3.inbox.bulkMarkReadScoped'
+  | 'md3.inbox.bulkMarkUnread'
+  | 'md3.inbox.bulkMarkUnreadScoped'
+  | 'md3.inbox.bulkDelete'
+  | 'md3.inbox.bulkDeleteScoped'
+  | 'md3.inbox.bulkExport'
+  | 'md3.inbox.bulkExportScoped'
+  | 'md3.inbox.moreActions'
+  | 'md3.inbox.empty.noMatch'
+  | 'md3.inbox.empty.caughtUp'
+  | 'md3.inbox.scope.selection'
+  | 'md3.inbox.scope.filtered'
+  | 'md3.inbox.scope.all'
+  | 'md3.inbox.scope.one'
+  | 'md3.inbox.undo'
+  | 'md3.inbox.toast.opened'
+  | 'md3.inbox.toast.deleted'
+  | 'md3.inbox.toast.deletedMany'
+  | 'md3.inbox.toast.markedRead'
+  | 'md3.inbox.toast.markedUnread'
+  | 'md3.inbox.toast.allRead'
+  | 'md3.inbox.toast.exported'
+  | 'md3.inbox.toast.selectedAll'
+  | 'md3.inbox.toast.muted'
+  | 'md3.inbox.toast.unmuted'
+  | 'md3.inbox.rowMenu.unmute'
+  | 'md3.inbox.rowMenu.automations'
+  | 'md3.inbox.rowMenu.select'
+  | 'md3.inbox.rowMenu.deselect'
+  | 'md3.inbox.rowMenu.copyDetails'
+  | 'md3.inbox.rowMenu.exportOne'
+  | 'md3.inbox.listMenu.title'
+  | 'md3.inbox.listMenu.selectFiltered'
+  | 'md3.inbox.listMenu.selectEverything'
+  | 'md3.inbox.listMenu.invert'
+  | 'md3.inbox.listMenu.clearSelection'
+  | 'md3.inbox.listMenu.deleteScope'
+  | 'md3.inbox.listMenu.export'
+  | 'md3.inbox.listMenu.history'
+  | 'md3.inbox.listMenu.githubInbox'
+  | 'md3.inbox.exportMenu.title'
+  | 'md3.inbox.exportMenu.filterPlaceholder'
   | 'md3.paneHeader.fetch'
   | 'md3.paneHeader.moreActions'
   | 'md3.paneHeader.push'
@@ -4111,9 +4394,873 @@ export type TranslationKey =
   | 'md3.paneHeader.repository'
   | 'md3.paneHeader.branch'
   | 'md3.paneHeader.progress'
+  | 'md3.repositories.searchPlaceholder'
+  | 'md3.repositories.dismissNotice'
+  | 'md3.repositories.searchFieldName'
+  | 'md3.repositories.filtersLabel'
+  | 'md3.repositories.hasChanges'
+  | 'md3.repositories.clone'
+  | 'md3.repositories.addLocal'
+  | 'md3.repositories.pullAll'
+  | 'md3.repositories.pullAllName'
+  | 'md3.repositories.selectMultiple'
+  | 'md3.repositories.listLabel'
+  | 'md3.repositories.empty'
+  | 'md3.repositories.invalidPattern'
+  | 'md3.repositories.meta'
+  | 'md3.repositories.neverFetched'
+  | 'md3.repositories.detail'
+  | 'md3.repositories.languageUnknown'
+  | 'md3.repositories.size'
+  | 'md3.repositories.sizeUnknown'
+  | 'md3.repositories.branchAheadBehind'
+  | 'md3.repositories.branchInSync'
+  | 'md3.repositories.branchNotChecked'
+  | 'md3.repositories.branchNoUpstream'
+  | 'md3.repositories.branchDetached'
+  | 'md3.repositories.branchEmpty'
+  | 'md3.repositories.branchCloning'
+  | 'md3.repositories.branchMissing'
+  | 'md3.repositories.branchNone'
+  | 'md3.repositories.remotes'
+  | 'md3.repositories.remotesOne'
+  | 'md3.repositories.changes'
+  | 'md3.repositories.changesOne'
+  | 'md3.repositories.clean'
+  | 'md3.repositories.changesUnknown'
+  | 'md3.repositories.open'
+  | 'md3.repositories.openName'
+  | 'md3.repositories.current'
+  | 'md3.repositories.rowMenu'
+  | 'md3.repositories.rowMenuHint'
+  | 'md3.repositories.pinnedFlag'
+  | 'md3.repositories.hiddenFlag'
+  | 'md3.repositories.missingFlag'
+  | 'md3.repositories.selectRow'
+  | 'md3.repositories.bulkRegion'
+  | 'md3.repositories.selectAllVisible'
+  | 'md3.repositories.selectionScope'
+  | 'md3.repositories.selectedCount'
+  | 'md3.repositories.invertSelection'
+  | 'md3.repositories.clearSelection'
+  | 'md3.repositories.exitSelection'
+  | 'md3.repositories.groupFieldLabel'
+  | 'md3.repositories.groupFieldPlaceholder'
+  | 'md3.repositories.bulkFetch'
+  | 'md3.repositories.bulkPull'
+  | 'md3.repositories.bulkOpen'
+  | 'md3.repositories.bulkFavorite'
+  | 'md3.repositories.bulkUnfavorite'
+  | 'md3.repositories.bulkAssignGroup'
+  | 'md3.repositories.bulkRemoveGroup'
+  | 'md3.repositories.bulkExport'
+  | 'md3.repositories.bulkRemove'
+  | 'md3.repositories.bulkActionName'
+  | 'md3.repositories.runRegion'
+  | 'md3.repositories.runCount'
+  | 'md3.repositories.runProgressText'
+  | 'md3.repositories.runCancelling'
+  | 'md3.repositories.runSummary'
+  | 'md3.repositories.runResults'
+  | 'md3.repositories.runNoDetail'
+  | 'md3.repositories.runCancel'
+  | 'md3.repositories.runCancelName'
+  | 'md3.repositories.runDismiss'
+  | 'md3.repositories.runStatusQueued'
+  | 'md3.repositories.runStatusRunning'
+  | 'md3.repositories.runStatusDone'
+  | 'md3.repositories.runStatusFailed'
+  | 'md3.repositories.runStatusSkipped'
+  | 'md3.repositories.runStatusCancelled'
+  | 'md3.repositories.removeEyebrow'
+  | 'md3.repositories.removeTitle'
+  | 'md3.repositories.removeTitleOne'
+  | 'md3.repositories.removeDescription'
+  | 'md3.repositories.removeListLabel'
+  | 'md3.repositories.removeKeysLegend'
+  | 'md3.repositories.removeKeyList'
+  | 'md3.repositories.removeKeyDisk'
+  | 'md3.repositories.removeSlider'
+  | 'md3.repositories.removeSliderName'
+  | 'md3.repositories.removeSliderValue'
+  | 'md3.repositories.removeStateLocked'
+  | 'md3.repositories.removeStateMoving'
+  | 'md3.repositories.removeStateReady'
+  | 'md3.repositories.removeConfirm'
+  | 'md3.repositories.removeCancel'
+  | 'md3.actions.filterPlaceholder'
+  | 'md3.actions.runFieldLabel'
+  | 'md3.actions.logPlaceholder'
+  | 'md3.actions.logFieldLabel'
+  | 'md3.actions.chipRowLabel'
+  | 'md3.actions.moreFilters'
+  | 'md3.actions.selectRuns'
+  | 'md3.actions.dispatch'
+  | 'md3.actions.filtersHeading'
+  | 'md3.actions.filterWorkflow'
+  | 'md3.actions.filterBranch'
+  | 'md3.actions.filterEvent'
+  | 'md3.actions.filterStatus'
+  | 'md3.actions.resetFilters'
+  | 'md3.actions.bulkLabel'
+  | 'md3.actions.selectAllVisible'
+  | 'md3.actions.selectedCount'
+  | 'md3.actions.bulkRerun'
+  | 'md3.actions.bulkCancel'
+  | 'md3.actions.clearSelection'
+  | 'md3.actions.selectRun'
+  | 'md3.actions.runList'
+  | 'md3.actions.runMeta'
+  | 'md3.actions.runDetail'
+  | 'md3.actions.rerun'
+  | 'md3.actions.rerunRun'
+  | 'md3.actions.runMenuFor'
+  | 'md3.actions.runMenuHint'
+  | 'md3.actions.noRuns'
+  | 'md3.actions.showMoreRuns'
+  | 'md3.actions.pagination'
+  | 'md3.actions.loadMoreRuns'
+  | 'md3.actions.loadingMore'
+  | 'md3.actions.loadAllRuns'
+  | 'md3.actions.stopLoading'
+  | 'md3.actions.detailLabel'
+  | 'md3.actions.detailHeading'
+  | 'md3.actions.rerunFailed'
+  | 'md3.actions.rerunFailedFor'
+  | 'md3.actions.paneMenu'
+  | 'md3.actions.runToolbar'
+  | 'md3.actions.attempt'
+  | 'md3.actions.attemptOption'
+  | 'md3.actions.attemptLatest'
+  | 'md3.actions.cancelRun'
+  | 'md3.actions.fixCiLocally'
+  | 'md3.actions.fixCiLocallyHint'
+  | 'md3.actions.artifacts'
+  | 'md3.actions.openOnGitHub'
+  | 'md3.actions.jobList'
+  | 'md3.actions.jobsLoading'
+  | 'md3.actions.jobsTruncated'
+  | 'md3.actions.loadMoreJobs'
+  | 'md3.actions.reloadJobs'
+  | 'md3.actions.rerunJob'
+  | 'md3.actions.jobOnGitHub'
+  | 'md3.actions.noRunSelected'
+  | 'md3.actions.logRegion'
+  | 'md3.actions.logLoading'
+  | 'md3.actions.logExpired'
+  | 'md3.actions.logRetry'
+  | 'md3.actions.logEmpty'
+  | 'md3.actions.logNoMatch'
+  | 'md3.actions.logShowMore'
+  | 'md3.actions.logShowing'
+  | 'md3.diffPane.region'
+  | 'md3.diffPane.linesRegion'
+  | 'md3.diffPane.noFile'
+  | 'md3.diffPane.empty'
+  | 'md3.diffPane.searchField'
+  | 'md3.diffPane.searchPlaceholder'
+  | 'md3.diffPane.details'
+  | 'md3.diffPane.detailsName'
+  | 'md3.diffPane.includeHunk'
+  | 'md3.diffPane.includeHunkName'
+  | 'md3.diffPane.wrap'
+  | 'md3.diffPane.diffOptions'
+  | 'md3.diffPane.fileTabs'
+  | 'md3.diffPane.fileTabName'
+  | 'md3.changes.searchField'
+  | 'md3.changes.searchPlaceholder'
+  | 'md3.changes.filters'
+  | 'md3.changes.includeAll'
+  | 'md3.changes.changesMenu'
+  | 'md3.changes.list'
+  | 'md3.changes.include'
+  | 'md3.changes.rowMenu'
+  | 'md3.changes.fileMenu'
+  | 'md3.changes.status.new'
+  | 'md3.changes.status.deleted'
+  | 'md3.changes.status.modified'
+  | 'md3.changes.state.included'
+  | 'md3.changes.state.excluded'
+  | 'md3.changes.empty'
+  | 'md3.changes.composer'
+  | 'md3.changes.avatar'
+  | 'md3.changes.summaryPlaceholder'
+  | 'md3.changes.descriptionPlaceholder'
+  | 'md3.changes.copilot'
+  | 'md3.changes.coAuthors'
+  | 'md3.changes.coAuthorsName'
+  | 'md3.changes.summaryHint'
+  | 'md3.changes.summaryHintLong'
+  | 'md3.changes.commitTo'
+  | 'md3.changes.commitNeedsSummary'
+  | 'md3.changes.commitAndPush'
+  | 'md3.agents.sessionsPane'
+  | 'md3.agents.conversationPane'
+  | 'md3.agents.listLabel'
+  | 'md3.agents.actionsLabel'
+  | 'md3.agents.searchPlaceholder'
+  | 'md3.agents.searchFieldLabel'
+  | 'md3.agents.newSession'
+  | 'md3.agents.agentAccess'
+  | 'md3.agents.emptyNoMatches'
+  | 'md3.agents.emptyNoSessions'
+  | 'md3.agents.state.running'
+  | 'md3.agents.state.done'
+  | 'md3.agents.state.paused'
+  | 'md3.agents.state.error'
+  | 'md3.agents.state.idle'
+  | 'md3.agents.meta.started'
+  | 'md3.agents.meta.notStarted'
+  | 'md3.agents.meta.branchStarted'
+  | 'md3.agents.meta.branchNotStarted'
+  | 'md3.agents.detail.model'
+  | 'md3.agents.detail.noModel'
+  | 'md3.agents.detail.turns'
+  | 'md3.agents.detail.oneTurn'
+  | 'md3.agents.elapsed.seconds'
+  | 'md3.agents.elapsed.minutes'
+  | 'md3.agents.elapsed.hours'
+  | 'md3.agents.badge.main'
+  | 'md3.agents.badge.locked'
+  | 'md3.agents.badge.missing'
+  | 'md3.agents.noSelection'
+  | 'md3.agents.noSelectionHint'
+  | 'md3.agents.noTurns'
+  | 'md3.agents.conversationLabel'
+  | 'md3.agents.role.you'
+  | 'md3.agents.role.error'
+  | 'md3.agents.pause'
+  | 'md3.agents.resume'
+  | 'md3.agents.pauseAccessibleName'
+  | 'md3.agents.resumeAccessibleName'
+  | 'md3.agents.more'
+  | 'md3.agents.instructionPlaceholder'
+  | 'md3.agents.send'
+  | 'md3.agents.sendAccessibleName'
+  | 'md3.agents.nothingToSend'
+  | 'md3.terminal.region'
+  | 'md3.terminal.shells'
+  | 'md3.terminal.newShell'
+  | 'md3.terminal.closeShell'
+  | 'md3.terminal.restart'
+  | 'md3.terminal.restartName'
+  | 'md3.terminal.stop'
+  | 'md3.terminal.stopName'
+  | 'md3.terminal.searchPlaceholder'
+  | 'md3.terminal.searchField'
+  | 'md3.terminal.output'
+  | 'md3.terminal.truncated'
+  | 'md3.terminal.noMatches'
+  | 'md3.terminal.noOutput'
+  | 'md3.terminal.clearSearch'
+  | 'md3.terminal.noSessions'
+  | 'md3.terminal.openShell'
+  | 'md3.terminal.inputPlaceholder'
+  | 'md3.terminal.inputLabel'
+  | 'md3.terminal.run'
+  | 'md3.terminal.runName'
+  | 'md3.terminal.nothingToRun'
+  | 'md3.terminal.status.connecting'
+  | 'md3.terminal.status.ready'
+  | 'md3.terminal.status.running'
+  | 'md3.terminal.status.exited'
+  | 'md3.terminal.status.error'
+  | 'md3.branches.filterPlaceholder'
+  | 'md3.branches.fieldLabel'
+  | 'md3.branches.chipsLabel'
+  | 'md3.branches.listLabel'
+  | 'md3.branches.newBranch'
+  | 'md3.branches.mergeAll'
+  | 'md3.branches.mergeAllRunning'
+  | 'md3.branches.mergeAllProgress'
+  | 'md3.branches.mergeAllProgressBranch'
+  | 'md3.branches.empty'
+  | 'md3.branches.current'
+  | 'md3.branches.checkout'
+  | 'md3.branches.checkoutLabel'
+  | 'md3.branches.rowLabel'
+  | 'md3.branches.rowMenu'
+  | 'md3.branches.rowMenuHint'
+  | 'md3.branches.aheadLabel'
+  | 'md3.branches.behindLabel'
+  | 'md3.branches.group.current'
+  | 'md3.branches.group.local'
+  | 'md3.branches.group.remote'
+  | 'md3.branches.detail.tip'
+  | 'md3.branches.detail.tracks'
+  | 'md3.branches.detail.trackingRemote'
+  | 'md3.branches.detail.untracked'
+  | 'md3.branches.detail.diverged'
+  | 'md3.branches.detail.inSync'
+  | 'md3.branches.detail.pullRequest'
+  | 'md3.branches.action.merge'
+  | 'md3.branches.action.rebase'
+  | 'md3.branches.action.openPullRequest'
+  | 'md3.branches.action.rename'
+  | 'md3.branches.action.delete'
+  | 'md3.branches.action.mergeAndDelete'
+  | 'md3.branches.action.compare'
+  | 'md3.branches.action.copyName'
+  | 'md3.branches.action.pin'
+  | 'md3.branches.action.unpin'
+  | 'md3.branches.action.hide'
+  | 'md3.branches.action.solo'
+  | 'md3.branches.action.restoreVisibility'
+  | 'md3.branches.action.checkoutInNewWorktree'
+  | 'md3.branches.action.switchToWorktree'
+  | 'md3.branches.action.viewOnForge'
+  | 'md3.branches.action.viewPullRequestOnForge'
+  | 'md3.branches.list.sortByName'
+  | 'md3.branches.list.sortByNameActive'
+  | 'md3.branches.list.sortByRecent'
+  | 'md3.branches.list.sortByRecentActive'
+  | 'md3.branches.list.pullRequests'
+  | 'md3.branches.list.fetchRemotes'
+  | 'md3.branches.list.bulkDelete'
+  | 'md3.locks.title'
+  | 'md3.locks.subtitle'
+  | 'md3.locks.search.placeholder'
+  | 'md3.locks.search.fieldLabel'
+  | 'md3.locks.empty.none'
+  | 'md3.locks.empty.noMatch'
+  | 'md3.locks.list.label'
+  | 'md3.locks.surface.tab'
+  | 'md3.locks.surface.tabGroup'
+  | 'md3.locks.surface.appearanceProperty'
+  | 'md3.locks.surface.appearanceElement'
+  | 'md3.locks.surface.appearancePreset'
+  | 'md3.locks.factor.password'
+  | 'md3.locks.factor.otp'
+  | 'md3.locks.row.created'
+  | 'md3.locks.row.lockOnLaunch'
+  | 'md3.locks.row.unlockedUntil'
+  | 'md3.locks.row.unlockedSession'
+  | 'md3.locks.row.unlockedSurface'
+  | 'md3.locks.row.locked'
+  | 'md3.locks.row.select'
+  | 'md3.locks.row.edit'
+  | 'md3.locks.row.remove'
+  | 'md3.locks.row.lockAgain'
+  | 'md3.locks.duration.surface'
+  | 'md3.locks.duration.minutes'
+  | 'md3.locks.duration.session'
+  | 'md3.locks.duration.minutesValue'
+  | 'md3.locks.selection.count'
+  | 'md3.locks.selection.selectAllFiltered'
+  | 'md3.locks.selection.selectAllEverything'
+  | 'md3.locks.selection.invert'
+  | 'md3.locks.selection.clear'
+  | 'md3.locks.bulk.remove'
+  | 'md3.locks.bulk.export'
+  | 'md3.locks.bulk.exportFormat'
+  | 'md3.locks.toast.exported'
+  | 'md3.locks.toast.removed'
+  | 'md3.locks.toast.added'
+  | 'md3.locks.toast.updated'
+  | 'md3.locks.toast.unlocked'
+  | 'md3.locks.toast.relocked'
+  | 'md3.locks.toast.selectedAll'
+  | 'md3.locks.gate.eyebrow'
+  | 'md3.locks.gate.title'
+  | 'md3.locks.gate.description'
+  | 'md3.locks.gate.keysLegend'
+  | 'md3.locks.gate.keyCount'
+  | 'md3.locks.gate.keyScope'
+  | 'md3.locks.gate.sliderLabel'
+  | 'md3.locks.gate.sliderValue'
+  | 'md3.locks.gate.statusLocked'
+  | 'md3.locks.gate.statusReady'
+  | 'md3.locks.gate.statusMoving'
+  | 'md3.locks.gate.statusAuthorized'
+  | 'md3.locks.gate.emergencyExit'
+  | 'md3.locks.gate.confirm'
+  | 'md3.locks.setup.title'
+  | 'md3.locks.setup.titleEdit'
+  | 'md3.locks.setup.close'
+  | 'md3.locks.setup.factorLegend'
+  | 'md3.locks.setup.factorPassword'
+  | 'md3.locks.setup.factorOtp'
+  | 'md3.locks.setup.otpUnavailable'
+  | 'md3.locks.setup.password'
+  | 'md3.locks.setup.passwordConfirm'
+  | 'md3.locks.setup.otpAccount'
+  | 'md3.locks.setup.otpAccountHint'
+  | 'md3.locks.setup.durationLegend'
+  | 'md3.locks.setup.lockOnLaunch'
+  | 'md3.locks.setup.forFun'
+  | 'md3.locks.setup.recovery'
+  | 'md3.locks.setup.recoveryUnknown'
+  | 'md3.locks.setup.explanationShow'
+  | 'md3.locks.setup.explanationHide'
+  | 'md3.locks.setup.explanation'
+  | 'md3.locks.setup.provenanceDefault'
+  | 'md3.locks.setup.provenanceStored'
+  | 'md3.locks.setup.save'
+  | 'md3.locks.setup.cancel'
+  | 'md3.locks.setup.errorTooShort'
+  | 'md3.locks.setup.errorMismatch'
+  | 'md3.locks.setup.errorOtpAccount'
+  | 'md3.locks.setup.errorVault'
+  | 'md3.locks.setup.errorOtpUnavailable'
+  | 'md3.locks.setup.minutesLabel'
+  | 'md3.locks.unlock.title'
+  | 'md3.locks.unlock.passwordLabel'
+  | 'md3.locks.unlock.codeLabel'
+  | 'md3.locks.unlock.durationLegend'
+  | 'md3.locks.unlock.submit'
+  | 'md3.locks.unlock.cancel'
+  | 'md3.locks.unlock.forFun'
+  | 'md3.locks.unlock.recovery'
+  | 'md3.locks.unlock.recoveryUnknown'
+  | 'md3.locks.unlock.forgotten'
+  | 'md3.locks.unlock.forgottenUnavailable'
+  | 'md3.locks.unlock.throttled'
+  | 'md3.locks.unlock.unavailable'
+  | 'md3.locks.unlock.success'
+  | 'md3.locks.unlock.lockAgain'
+  | 'md3.locks.unlock.minutesLabel'
+  | 'md3.locks.menu.lockTab'
+  | 'md3.locks.menu.lockGroup'
+  | 'md3.locks.menu.editLock'
+  | 'md3.locks.menu.removeLock'
+  | 'md3.locks.menu.lockAgain'
+  | 'md3.locks.menu.manage'
+  | 'md3.locks.affordance.locked'
+  | 'md3.locks.affordance.unlocked'
+  | 'md3.locks.searchResult.locked'
+  | 'md3.locks.bulkClose.excluded'
+  | 'md3.locks.settings.title'
+  | 'md3.locks.settings.description'
+  | 'md3.locks.setupLead.plain'
+  | 'md3.locks.setupLead.light'
+  | 'md3.locks.setupLead.playful'
+  | 'md3.locks.setupLead.maximum'
+  | 'md3.locks.unlockLead.plain'
+  | 'md3.locks.unlockLead.light'
+  | 'md3.locks.unlockLead.playful'
+  | 'md3.locks.unlockLead.maximum'
+  | 'md3.locks.wrongAttempt.plain'
+  | 'md3.locks.wrongAttempt.light'
+  | 'md3.locks.wrongAttempt.playful'
+  | 'md3.locks.wrongAttempt.maximum'
+  | 'md3.locks.managerLead.plain'
+  | 'md3.locks.managerLead.light'
+  | 'md3.locks.managerLead.playful'
+  | 'md3.locks.managerLead.maximum'
+  | 'md3.history.filterPlaceholder'
+  | 'md3.history.fieldLabel'
+  | 'md3.history.chipRowLabel'
+  | 'md3.history.chip.unpushed'
+  | 'md3.history.chip.tagged'
+  | 'md3.history.chip.mine'
+  | 'md3.history.chip.merges'
+  | 'md3.history.toggleGraph'
+  | 'md3.history.toggleDates'
+  | 'md3.history.sortAndGroup'
+  | 'md3.history.listLabel'
+  | 'md3.history.empty'
+  | 'md3.history.byline'
+  | 'md3.history.detail'
+  | 'md3.history.kind.merge'
+  | 'md3.history.kind.verified'
+  | 'md3.history.kind.unverified'
+  | 'md3.history.notPushed'
+  | 'md3.history.pin'
+  | 'md3.history.unpin'
+  | 'md3.history.rowMenu'
+  | 'md3.history.rowMenuHint'
+  | 'md3.history.fileMenu'
+  | 'md3.history.sheet.byline'
+  | 'md3.history.sheet.close'
+  | 'md3.history.sheet.copySha'
+  | 'md3.history.sheet.fileCount'
+  | 'md3.history.sheet.fileListLabel'
+  | 'md3.history.sheet.fileEntry'
+  | 'md3.history.sheet.viewOnGitHub'
+  | 'md3.history.sheet.revert'
+  | 'md3.history.sheet.menu'
+  | 'md3.destructiveGate.eyebrow'
+  | 'md3.destructiveGate.lead.plain'
+  | 'md3.destructiveGate.lead.light'
+  | 'md3.destructiveGate.lead.playful'
+  | 'md3.destructiveGate.lead.maximum'
+  | 'md3.destructiveGate.irreversibleLabel'
+  | 'md3.destructiveGate.keysLegend'
+  | 'md3.destructiveGate.keyTarget'
+  | 'md3.destructiveGate.keyEffect'
+  | 'md3.destructiveGate.sliderLabel'
+  | 'md3.destructiveGate.sliderValue'
+  | 'md3.destructiveGate.stateLocked'
+  | 'md3.destructiveGate.stateArmed'
+  | 'md3.destructiveGate.stateMoving'
+  | 'md3.destructiveGate.stateAuthorized'
+  | 'md3.destructiveGate.emergencyExit'
+  | 'md3.destructiveGate.emergencyExitName'
+  | 'md3.destructiveGate.busy'
+  | 'md3.inbox.gate.title'
+  | 'md3.inbox.gate.summary'
+  | 'md3.inbox.gate.irreversible'
+  | 'md3.inbox.gate.keyTarget'
+  | 'md3.inbox.gate.keyEffect'
+  | 'md3.inbox.gate.confirm'
+  | 'md3.auth.pane'
+  | 'md3.auth.list'
+  | 'md3.auth.searchPlaceholder'
+  | 'md3.auth.searchField'
+  | 'md3.auth.invalidPattern'
+  | 'md3.auth.filters'
+  | 'md3.auth.chipUngrouped'
+  | 'md3.auth.addFactor'
+  | 'md3.auth.empty.none.plain'
+  | 'md3.auth.empty.none.light'
+  | 'md3.auth.empty.none.playful'
+  | 'md3.auth.empty.none.maximum'
+  | 'md3.auth.empty.noMatch'
+  | 'md3.auth.selectAllFiltered'
+  | 'md3.auth.selectAllEverything'
+  | 'md3.auth.selectionCount'
+  | 'md3.auth.invertSelection'
+  | 'md3.auth.bulkGroup'
+  | 'md3.auth.bulkDelete'
+  | 'md3.auth.bulkExport'
+  | 'md3.auth.scopedAction'
+  | 'md3.auth.moreActions'
+  | 'md3.auth.scope.selection'
+  | 'md3.auth.scope.filtered'
+  | 'md3.auth.scope.all'
+  | 'md3.auth.scope.one'
+  | 'md3.auth.explain.toggle'
+  | 'md3.auth.explain.body'
+  | 'md3.auth.explain.provenance'
+  | 'md3.auth.row.select'
+  | 'md3.auth.row.code'
+  | 'md3.auth.row.codeChanged'
+  | 'md3.auth.row.copyCode'
+  | 'md3.auth.row.nextCode'
+  | 'md3.auth.row.countdown'
+  | 'md3.auth.row.countdownText'
+  | 'md3.auth.row.missingSecret'
+  | 'md3.auth.row.edit'
+  | 'md3.auth.row.delete'
+  | 'md3.auth.row.added'
+  | 'md3.auth.row.parameters'
+  | 'md3.auth.clock.ok'
+  | 'md3.auth.clock.ahead'
+  | 'md3.auth.clock.behind'
+  | 'md3.auth.clock.unverified'
+  | 'md3.auth.toast.registered'
+  | 'md3.auth.toast.edited'
+  | 'md3.auth.toast.deleted'
+  | 'md3.auth.toast.deletedMany'
+  | 'md3.auth.toast.vaultFailed'
+  | 'md3.auth.toast.grouped'
+  | 'md3.auth.toast.ungrouped'
+  | 'md3.auth.toast.copied'
+  | 'md3.auth.toast.exported'
+  | 'md3.auth.toast.secretsExported'
+  | 'md3.auth.toast.selectedAll'
+  | 'md3.auth.toast.moved'
+  | 'md3.auth.listMenu.title'
+  | 'md3.auth.listMenu.selectFiltered'
+  | 'md3.auth.listMenu.selectEverything'
+  | 'md3.auth.listMenu.invert'
+  | 'md3.auth.listMenu.clearSelection'
+  | 'md3.auth.listMenu.group'
+  | 'md3.auth.listMenu.deleteScope'
+  | 'md3.auth.listMenu.export'
+  | 'md3.auth.listMenu.exportSecrets'
+  | 'md3.auth.rowMenu.title'
+  | 'md3.auth.rowMenu.copyCode'
+  | 'md3.auth.rowMenu.copyNext'
+  | 'md3.auth.rowMenu.edit'
+  | 'md3.auth.rowMenu.group'
+  | 'md3.auth.rowMenu.moveUp'
+  | 'md3.auth.rowMenu.moveDown'
+  | 'md3.auth.rowMenu.select'
+  | 'md3.auth.rowMenu.deselect'
+  | 'md3.auth.rowMenu.delete'
+  | 'md3.auth.rowMenu.exportOne'
+  | 'md3.auth.exportMenu.title'
+  | 'md3.auth.exportMenu.filterPlaceholder'
+  | 'md3.auth.groupMenu.title'
+  | 'md3.auth.groupMenu.filterPlaceholder'
+  | 'md3.auth.groupMenu.ungrouped'
+  | 'md3.auth.groupMenu.empty'
+  | 'md3.auth.export.omissionNotice'
+  | 'md3.auth.secrets.warning'
+  | 'md3.auth.gate.title'
+  | 'md3.auth.gate.summary'
+  | 'md3.auth.gate.irreversible'
+  | 'md3.auth.gate.keyTarget'
+  | 'md3.auth.gate.keyEffect'
+  | 'md3.auth.gate.confirm'
+  | 'md3.auth.secretsGate.title'
+  | 'md3.auth.secretsGate.summary'
+  | 'md3.auth.secretsGate.irreversible'
+  | 'md3.auth.secretsGate.keyTarget'
+  | 'md3.auth.secretsGate.keyEffect'
+  | 'md3.auth.secretsGate.confirm'
+  | 'md3.auth.register.title'
+  | 'md3.auth.register.editTitle'
+  | 'md3.auth.register.close'
+  | 'md3.auth.register.sourceLegend'
+  | 'md3.auth.register.source.generate'
+  | 'md3.auth.register.source.uri'
+  | 'md3.auth.register.source.manual'
+  | 'md3.auth.register.source.image'
+  | 'md3.auth.register.source.clipboard'
+  | 'md3.auth.register.source.camera'
+  | 'md3.auth.register.hint.generate'
+  | 'md3.auth.register.hint.uri'
+  | 'md3.auth.register.hint.manual'
+  | 'md3.auth.register.hint.image'
+  | 'md3.auth.register.hint.clipboard'
+  | 'md3.auth.register.hint.camera'
+  | 'md3.auth.register.issuerLabel'
+  | 'md3.auth.register.issuerPlaceholder'
+  | 'md3.auth.register.accountLabel'
+  | 'md3.auth.register.accountPlaceholder'
+  | 'md3.auth.register.groupLabel'
+  | 'md3.auth.register.groupPlaceholder'
+  | 'md3.auth.register.algorithmLabel'
+  | 'md3.auth.register.digitsLabel'
+  | 'md3.auth.register.periodLabel'
+  | 'md3.auth.register.secretLabel'
+  | 'md3.auth.register.secretPlaceholder'
+  | 'md3.auth.register.uriLabel'
+  | 'md3.auth.register.uriPlaceholder'
+  | 'md3.auth.register.revealSecret'
+  | 'md3.auth.register.hideSecret'
+  | 'md3.auth.register.secretHidden'
+  | 'md3.auth.register.copySecret'
+  | 'md3.auth.register.copiedSecret'
+  | 'md3.auth.register.qrAlt'
+  | 'md3.auth.register.qrAltNoIssuer'
+  | 'md3.auth.register.qrCaption'
+  | 'md3.auth.register.parameterSummary'
+  | 'md3.auth.register.chooseImage'
+  | 'md3.auth.register.readClipboard'
+  | 'md3.auth.register.startCamera'
+  | 'md3.auth.register.stopCamera'
+  | 'md3.auth.register.cameraLive'
+  | 'md3.auth.register.cameraPreview'
+  | 'md3.auth.register.cameraMissing'
+  | 'md3.auth.register.cameraRefused'
+  | 'md3.auth.register.confirmHeading'
+  | 'md3.auth.register.confirmHint.plain'
+  | 'md3.auth.register.confirmHint.light'
+  | 'md3.auth.register.confirmHint.playful'
+  | 'md3.auth.register.confirmHint.maximum'
+  | 'md3.auth.register.confirmLabel'
+  | 'md3.auth.register.confirmPlaceholder'
+  | 'md3.auth.register.verifyFailed'
+  | 'md3.auth.register.add'
+  | 'md3.auth.register.save'
+  | 'md3.auth.register.cancel'
+  | 'md3.auth.register.error.badUri'
+  | 'md3.auth.register.error.wrongType'
+  | 'md3.auth.register.error.badSecret'
+  | 'md3.auth.register.error.missingAccount'
+  | 'md3.auth.register.error.noQr'
+  | 'md3.auth.register.error.unreadableFile'
+  | 'md3.auth.register.error.notSquare'
+  | 'md3.auth.register.error.damaged'
+  | 'md3.auth.register.error.unsupported'
+  | 'md3.auth.register.error.encodeFailed'
+  | 'md3.auth.register.error.accountRequired'
+  | 'md3.auth.register.explain.toggle'
+  | 'md3.auth.register.explain.storage'
+  | 'md3.auth.register.explain.provenanceDefault'
+  | 'md3.auth.register.explain.provenanceIssuer'
 
 /** Complete base catalog. Every missing locale entry falls back to this. */
 export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
+  'supportTickets.title': 'Support Tickets',
+  'supportTickets.subtitle':
+    'A local desk for getting back into a lock you set yourself.',
+  'supportTickets.entry.unlockPrompt': 'Forgotten your password?',
+  'supportTickets.entry.lockSetting': 'Support Tickets',
+  'supportTickets.entry.help': 'Support Tickets',
+  'supportTickets.entry.accessibleName':
+    '{label} — open the local Support Tickets desk',
+  'supportTickets.arrivedFrom.unlockPrompt':
+    'You arrived from the unlock prompt.',
+  'supportTickets.arrivedFrom.lockSetting':
+    'You arrived from the lock setting.',
+  'supportTickets.arrivedFrom.help': 'You arrived from Help.',
+  'supportTickets.close': 'Close the desk',
+  'supportTickets.disclosure':
+    'Nothing here is sent anywhere. No ticket exists outside this machine, no network request is made, no data is collected, and nobody is reading it. Do not wait for a reply.',
+  'supportTickets.deskLead.plain':
+    'Fill in a ticket to record what happened, then open the resolution below. The resolution is the only step that changes anything.',
+  'supportTickets.deskLead.light':
+    'Take a ticket, tell it your troubles, then open the resolution below — that last step is the one that actually does something.',
+  'supportTickets.deskLead.playful':
+    'Welcome to the desk. Take a ticket, describe the disaster in your own words, and admire the status as it advances. The resolution below is the only part that actually does anything.',
+  'supportTickets.deskLead.maximum':
+    'Welcome to the desk. There is one chair, no queue, and the entire staff is a switch statement. Take a ticket, describe the disaster in loving detail, and watch the status advance with the solemnity of an institution. The resolution below is the only part that actually does anything.',
+  'supportTickets.explain.summary': 'How this desk behaves',
+  'supportTickets.explain.body':
+    'Tickets are written to this profile only, on this machine. Numbers are generated here, statuses advance only when you advance them, and severity changes nothing. The resolution opens the application data folder in your file manager; deleting it is your own action, in your own file manager, and this app never deletes it for you.',
+  'supportTickets.provenance.stored':
+    'Value from this profile’s local ticket store: {count} recorded.',
+  'supportTickets.provenance.default':
+    'No ticket store has been written yet, so the desk is showing its shipped default: an empty queue.',
+  'supportTickets.form.legend': 'Raise a ticket',
+  'supportTickets.form.category': 'Category',
+  'supportTickets.form.categoryHint':
+    'Recorded on the ticket and included in every export. It does not route the ticket anywhere, because there is nowhere to route it to.',
+  'supportTickets.form.severity': 'Severity',
+  'supportTickets.form.severityHint':
+    'Recorded and shown, and honoured by nobody: every severity behaves identically, because there is no queue and no agent.',
+  'supportTickets.form.description': 'What happened',
+  'supportTickets.form.descriptionHint':
+    '{used} of {max} characters. Stored on this machine only.',
+  'supportTickets.form.descriptionRequired':
+    'Describe what happened before raising the ticket.',
+  'supportTickets.form.submit': 'Raise ticket',
+  'supportTickets.category.forgottenPassword': 'I have forgotten a password',
+  'supportTickets.category.lostAuthenticator': 'I have lost my authenticator',
+  'supportTickets.category.lockedTab': 'A tab is locked',
+  'supportTickets.category.lockedAppearance': 'An appearance setting is locked',
+  'supportTickets.category.somethingElse': 'Something else',
+  'supportTickets.severity.whenever': 'Whenever',
+  'supportTickets.severity.normal': 'Normal',
+  'supportTickets.severity.urgent': 'Urgent',
+  'supportTickets.severity.critical': 'Critical, business stopped',
+  'supportTickets.searchPlaceholder': 'Search tickets',
+  'supportTickets.searchField': 'support tickets',
+  'supportTickets.invalidPattern':
+    'That regular expression is not valid, so every ticket is still shown.',
+  'supportTickets.filters': 'Ticket filters',
+  'supportTickets.chip.open': 'Open',
+  'supportTickets.chip.resolved': 'Resolved',
+  'supportTickets.chip.urgent': 'Urgent or critical',
+  'supportTickets.list': 'Support tickets',
+  'supportTickets.empty.none':
+    'No tickets yet. Raise one above if you would like the full experience.',
+  'supportTickets.empty.noMatch':
+    'No ticket matches the current search and filters.',
+  'supportTickets.row.select': 'Select ticket {number}',
+  'supportTickets.row.advance': 'Advance ticket {number}',
+  'supportTickets.row.delete': 'Delete ticket {number}',
+  'supportTickets.row.detail': '{category} · {severity} · {status}',
+  'supportTickets.row.opened': 'Raised {timestamp}',
+  'supportTickets.row.responses': '{count} desk responses',
+  'supportTickets.status.received': 'Received',
+  'supportTickets.status.triaged': 'Triaged',
+  'supportTickets.status.awaitingCustomer': 'Awaiting customer',
+  'supportTickets.status.resolved': 'Resolved',
+  'supportTickets.response.acknowledged.plain':
+    'Ticket received. It was written to this machine and to nowhere else. The resolution is below.',
+  'supportTickets.response.acknowledged.light':
+    'Thank you for contacting the desk. Your ticket was filed on this machine, where it will remain. The resolution is below.',
+  'supportTickets.response.acknowledged.playful':
+    'Thank you for contacting Support. Your ticket has been logged and assigned to a highly qualified switch statement. No human has been notified, because there is no human. The resolution is below.',
+  'supportTickets.response.acknowledged.maximum':
+    'Thank you for contacting Support. Your ticket has been logged, stamped, filed and assigned to a highly qualified switch statement, which has read the manual once and remembers most of it. Your case is important to us in the sense that it is stored on your own disk. No human has been notified, because there is no human. The resolution is below.',
+  'supportTickets.response.triaged':
+    'Triaged. The category and severity were recorded, and neither changed anything.',
+  'supportTickets.response.awaitingCustomer':
+    'Awaiting customer: the remaining step is yours. Open the folder below and delete it yourself.',
+  'supportTickets.response.resolved':
+    'Resolved. The desk has nothing further; the resolution below is what it had all along.',
+  'supportTickets.responseAt': 'Recorded {time}',
+  'supportTickets.correspondence': 'Desk responses for ticket {number}',
+  'supportTickets.selectAllFiltered': 'Select the {count} matching tickets',
+  'supportTickets.selectAllEverything': 'Select all {count} tickets',
+  'supportTickets.selectionCount': '{count} selected',
+  'supportTickets.invertSelection': 'Invert selection',
+  'supportTickets.bulkAdvance': 'Advance',
+  'supportTickets.bulkExport': 'Export',
+  'supportTickets.bulkDelete': 'Delete',
+  'supportTickets.bulkScoped': '{label} — {scope}',
+  'supportTickets.scope.selection': '{count} selected tickets',
+  'supportTickets.scope.filtered':
+    'the {count} tickets matching the current search and filters',
+  'supportTickets.scope.all': 'all {count} tickets',
+  'supportTickets.moreActions': 'More ticket actions',
+  'supportTickets.listMenu.title': 'Tickets',
+  'supportTickets.listMenu.selectFiltered':
+    'Select the {count} matching tickets',
+  'supportTickets.listMenu.selectEverything': 'Select all {count} tickets',
+  'supportTickets.listMenu.invert': 'Invert selection',
+  'supportTickets.listMenu.clearSelection': 'Clear selection',
+  'supportTickets.listMenu.advanceScope': 'Advance {count} tickets',
+  'supportTickets.listMenu.export': 'Export {count} tickets…',
+  'supportTickets.listMenu.deleteScope': 'Delete {count} tickets…',
+  'supportTickets.rowMenu.title': 'Ticket {number}',
+  'supportTickets.rowMenu.advance': 'Advance this ticket',
+  'supportTickets.rowMenu.copyNumber': 'Copy ticket number',
+  'supportTickets.rowMenu.export': 'Export this ticket…',
+  'supportTickets.rowMenu.delete': 'Delete this ticket',
+  'supportTickets.rowMenu.select': 'Select this ticket',
+  'supportTickets.rowMenu.deselect': 'Deselect this ticket',
+  'supportTickets.exportMenu.title': 'Export format',
+  'supportTickets.exportMenu.filterPlaceholder': 'Filter formats',
+  'supportTickets.menuFilterPlaceholder': 'Filter this menu',
+  'supportTickets.toast.created': 'Ticket {number} raised on this machine.',
+  'supportTickets.toast.advanced': 'Ticket {number} is now {status}.',
+  'supportTickets.toast.alreadyResolved':
+    'Ticket {number} is already resolved; there is no further status.',
+  'supportTickets.toast.deleted': 'Ticket {number} deleted.',
+  'supportTickets.toast.deletedMany': '{count} tickets deleted.',
+  'supportTickets.toast.exported': '{count} tickets serialized as {format}.',
+  'supportTickets.toast.copied': 'Ticket number {number} copied.',
+  'supportTickets.toast.selectedAll': 'Selected all {count} tickets.',
+  'supportTickets.toast.copiedPath': 'Copied the folder path: {path}',
+  'supportTickets.toast.folderOpened': 'Opened {path} in your file manager.',
+  'supportTickets.toast.folderFailed':
+    'The file manager could not open {path}. It reported: {error}',
+  'supportTickets.toast.folderUnavailable':
+    'No folder could be opened. {error}',
+  'supportTickets.resolution.heading': 'Resolution',
+  'supportTickets.resolution.lead.plain':
+    'Open the application data folder and delete it yourself. That resets every lock in this app.',
+  'supportTickets.resolution.lead.light':
+    'Here is the whole solution: open the application data folder and delete it yourself. That resets every lock in this app.',
+  'supportTickets.resolution.lead.playful':
+    'After extensive investigation, the desk recommends the following: open the application data folder and delete it yourself. That resets every lock in this app.',
+  'supportTickets.resolution.lead.maximum':
+    'After extensive investigation, escalation to a second switch statement, and a brief internal review conducted entirely by this paragraph, the desk recommends the following: open the application data folder and delete it yourself. That resets every lock in this app. Please rate this experience out of nothing.',
+  'supportTickets.resolution.pathLabel': 'Application data folder',
+  'supportTickets.resolution.pathResolving':
+    'Resolving the folder from the running application…',
+  'supportTickets.resolution.pathUnavailable':
+    'The folder could not be resolved, so there is nothing to open. Its usual location is the app data directory of your user profile.',
+  'supportTickets.resolution.pathProvenanceResolved':
+    'Value from the running application, not a guess: this is the folder the Open button opens.',
+  'supportTickets.resolution.pathProvenanceUnresolved':
+    'No value from the running application yet, so no folder is shown and the Open button stays unavailable.',
+  'supportTickets.resolution.open': 'Open the folder',
+  'supportTickets.resolution.copyPath': 'Copy the path',
+  'supportTickets.resolution.neverDeletes':
+    'This app opens the folder and stops there. It never deletes it for you.',
+  'supportTickets.resolution.opened': 'Opened {path} in your file manager.',
+  'supportTickets.resolution.failed':
+    'The file manager could not open {path}. It reported: {error}',
+  'supportTickets.resolution.unavailable': 'No folder could be opened. {error}',
+  'supportTickets.gate.eyebrow': 'Irreversible in one gesture',
+  'supportTickets.gate.title': 'Delete {count} tickets',
+  'supportTickets.gate.description':
+    'This deletes {count} tickets — {scope} — from this machine. Their descriptions and desk responses go with them, and there is no undo.',
+  'supportTickets.gate.keysLegend': 'Turn both keys',
+  'supportTickets.gate.keyCount':
+    'I understand {count} tickets will be deleted',
+  'supportTickets.gate.keyScope': 'I understand this applies to {scope}',
+  'supportTickets.gate.sliderLabel': 'Slide to authorize ({percent}%)',
+  'supportTickets.gate.sliderValue':
+    '{percent} percent of the way to authorized',
+  'supportTickets.gate.statusLocked':
+    'Both keys are still off. Nothing can be deleted yet.',
+  'supportTickets.gate.statusReady':
+    'Both keys are turned. Slide all the way across to authorize.',
+  'supportTickets.gate.statusMoving':
+    'Authorizing. Release before the end to stop.',
+  'supportTickets.gate.statusAuthorized':
+    'Authorized. Delete is now available.',
+  'supportTickets.gate.emergencyExit': 'Emergency exit',
+  'supportTickets.gate.confirm': 'Delete {count} tickets',
   'settingsSearch.entry.appearanceLanguageMode.title': 'Language mode',
   'settingsSearch.entry.appearanceLanguageMode.desc':
     'Choose English, playful Hong Kong Cantonese, or a compact bilingual view.',
@@ -4223,6 +5370,32 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'appearance.playfulnessValue': 'Level {value} of 5',
   'appearance.playfulnessSerious': '1 · Fully serious',
   'appearance.playfulnessMaximum': '5 · Maximum fun',
+  'dialogEmoji.heading': 'Dialogs and message boxes',
+  'dialogEmoji.toggleLabel': 'Show emojis in dialogs and message boxes',
+  'dialogEmoji.explanationSummary': 'What this setting changes',
+  'dialogEmoji.explanation.plain':
+    'When this is on, a dialog or message box shows one emoji beside its title, chosen for the kind of dialog it is. When it is off, the same dialog shows the same words without the emoji. No wording changes either way, and the emoji never appears in a button, an action label, a field label, or anything a screen reader announces.',
+  'dialogEmoji.explanation.light':
+    'On means a dialog gets one small emoji beside its title, picked to suit the kind of dialog it is. Off means the same dialog, the same words, one fewer picture. Nothing is reworded, and the emoji stays out of buttons, action labels, field labels, and everything a screen reader announces.',
+  'dialogEmoji.explanation.playful':
+    'Flip this on and every dialog turns up wearing one emoji beside its title, chosen to match the occasion. Flip it off and the same dialog turns up in plain clothes saying exactly the same thing. The words never change, and the emoji is barred from buttons, action labels, field labels, and anything a screen reader reads out.',
+  'dialogEmoji.explanation.maximum':
+    'On, and every dialog arrives with one emoji pinned beside its title like a little enamel badge for the occasion. Off, and the very same dialog arrives badge-free, saying precisely the same thing in precisely the same words. The badge is decoration and knows it: it is banned from buttons, action labels, field labels, and everything a screen reader announces, so nobody is ever asked to interpret a picture to work out what a button does.',
+  'dialogEmoji.boundaryNote':
+    'The emoji is decoration only. It is hidden from screen readers and never appears in a button, an action label, or a field label.',
+  'dialogEmoji.provenanceDefault':
+    'No choice has been recorded on this computer, so the shipped value is in use: {value}.',
+  'dialogEmoji.provenanceStored':
+    'A choice was recorded on this computer: {value}.',
+  'dialogEmoji.stateOn': 'shown',
+  'dialogEmoji.stateOff': 'hidden',
+  'palette.showDialogEmoji': 'Show emojis in dialogs and message boxes',
+  'palette.showDialogEmojiDescription':
+    'Add one decorative emoji beside a dialog title. The wording is identical either way, and the emoji never reaches a button, a label, or a screen reader.',
+  'settingsSearch.entry.appearanceDialogEmoji.title':
+    'Show emojis in dialogs and message boxes',
+  'settingsSearch.entry.appearanceDialogEmoji.desc':
+    'Decorate dialog titles with one emoji, or keep the same copy without it.',
   'appearance.schoolModeHeading': '{name}',
   'appearance.schoolModeDescription':
     '{name} forces English and temporarily hides Cantonese, bilingual, funny-level, and dim sum presentation. This is a local presentation lock, not a security boundary.',
@@ -8574,6 +9747,71 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Not one release matches that. The filters win this round.',
   'changelog.empty.maximum':
     'Zero releases survived those filters — a flawless victory for the filters and a quiet afternoon for history.',
+  'docsBrowser.title': 'Feature documentation',
+  'docsBrowser.close': 'Close the documentation browser',
+  'docsBrowser.searchPlaceholder': 'Search titles and article text',
+  'docsBrowser.searchField': 'the documentation',
+  'docsBrowser.categoriesLabel': 'Documentation categories',
+  'docsBrowser.categoryAll': 'All categories',
+  'docsBrowser.category.agentApi': 'Agent API',
+  'docsBrowser.category.collaboration': 'Collaboration',
+  'docsBrowser.category.designSystem': 'Design system',
+  'docsBrowser.category.identityAndWorkspace': 'Identity and workspace',
+  'docsBrowser.category.integrations': 'Integrations',
+  'docsBrowser.category.linuxTui': 'Linux TUI',
+  'docsBrowser.category.qualityAndReliability': 'Quality and reliability',
+  'docsBrowser.category.repositoryManagement': 'Repository management',
+  'docsBrowser.category.reviewAndDiff': 'Review and diff',
+  'docsBrowser.category.root': 'Overview',
+  'docsBrowser.listLabel': 'Feature articles',
+  'docsBrowser.articleLabel': 'Documentation article: {title}',
+  'docsBrowser.sourcePath': 'Source: {path}',
+  'docsBrowser.selectArticle': 'Select {title}',
+  'docsBrowser.selectionCount': '{count} selected',
+  'docsBrowser.selectAllMatches': 'Select all {count} matching articles',
+  'docsBrowser.selectAllArticles': 'Select all {count} articles',
+  'docsBrowser.invertSelection': 'Invert selection',
+  'docsBrowser.clearSelection': 'Clear selection',
+  'docsBrowser.selectionHint':
+    'Space selects the focused article, Shift+click selects a range, Ctrl+A selects everything listed.',
+  'docsBrowser.export': 'Export',
+  'docsBrowser.exportMenuLabel': 'Export the selected articles',
+  'docsBrowser.exportMarkdown': 'Export as Markdown',
+  'docsBrowser.exportText': 'Export as plain text',
+  'docsBrowser.exportJson': 'Export as JSON',
+  'docsBrowser.exported': 'Exported {count} article(s) to {path}.',
+  'docsBrowser.exportFailed': 'The export was not written: {message}',
+  'docsBrowser.exportEmpty': 'Select at least one article to export.',
+  'docsBrowser.deleteLabel': 'Delete',
+  'docsBrowser.deleteUnavailable':
+    'These articles ship inside the app and are read-only, so there is nothing to delete. Export the selection instead.',
+  'docsBrowser.linkUnbundled':
+    'That link points at {path}, which is not one of the bundled feature articles.',
+  'docsBrowser.linkSection':
+    'That link points at the "{section}" section of the article you are reading.',
+  'docsBrowser.linkOpened': 'Opened {title}.',
+  'docsBrowser.linkUnreadable': 'That link could not be read: {href}',
+  'docsBrowser.linkExternal': 'Opening {href} in your browser.',
+  'docsBrowser.searchInvalid': 'That pattern was not searched: {message}',
+  'docsBrowser.resetSearch': 'Clear the search',
+  'docsBrowser.offlineNote':
+    'Every article is bundled into this build. Nothing here is downloaded, so it all works offline.',
+  'docsBrowser.summary.plain': '{shown} of {total} articles.',
+  'docsBrowser.summary.light': '{shown} of {total} articles in view.',
+  'docsBrowser.summary.playful':
+    '{shown} of {total} articles rounded up and waiting to be read.',
+  'docsBrowser.summary.maximum':
+    '{shown} of {total} articles hauled out of the shelf, dusted off and lined up for you.',
+  'docsBrowser.empty.plain': 'No article matches {query}.',
+  'docsBrowser.empty.light': 'Nothing in the documentation matches {query}.',
+  'docsBrowser.empty.playful':
+    'Not one article admits to knowing anything about {query}.',
+  'docsBrowser.empty.maximum':
+    'Every bundled article searched its pockets and not one of them has ever heard of {query}.',
+  'palette.docsBrowser': 'Browse feature documentation',
+  'palette.docsBrowserDescription':
+    'Open the offline documentation browser, which carries every feature article inside the app.',
+  'commandPalette.groupDocumentation': 'Documentation',
   'dimSum.region': 'Dim sum surprise',
   'dimSum.dismiss': 'Dismiss the dim sum surprise',
   // Read after the name, so it lands as "Har Gow, said haa1 gaau2".
@@ -9267,6 +10505,184 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'md3.paneHeader.repository': 'Repository {name}',
   'md3.paneHeader.branch': 'Branch {name}',
   'md3.paneHeader.progress': '{operation}, {percent}% complete',
+  'md3.repositories.searchPlaceholder': 'Search repositories, orgs, languages',
+  'md3.repositories.dismissNotice': 'Dismiss this message',
+  'md3.repositories.searchFieldName': 'repositories',
+  'md3.repositories.filtersLabel': 'Repository filters',
+  'md3.repositories.hasChanges': 'Has changes',
+  'md3.repositories.clone': 'Clone',
+  'md3.repositories.addLocal': 'Add local',
+  'md3.repositories.pullAll': 'Pull all',
+  'md3.repositories.pullAllName':
+    'Pull all {count} repositories the filter is showing',
+  'md3.repositories.selectMultiple': 'Select several repositories',
+  'md3.repositories.listLabel': 'Repositories',
+  'md3.repositories.empty': 'No repositories match.',
+  'md3.repositories.invalidPattern':
+    'That regular expression does not compile, so nothing was filtered out.',
+  'md3.repositories.meta': '{path} · fetched {when}',
+  'md3.repositories.neverFetched': 'never',
+  'md3.repositories.detail':
+    '{language} · {size} · {branch} · {remotes} · {changes}',
+  'md3.repositories.languageUnknown': 'Language not detected',
+  'md3.repositories.size': '{size} MB',
+  'md3.repositories.sizeUnknown': 'size not measured',
+  'md3.repositories.branchAheadBehind': '{branch} ↑{ahead} ↓{behind}',
+  'md3.repositories.branchInSync': '{branch} in sync',
+  'md3.repositories.branchNotChecked': '{branch} not checked yet',
+  'md3.repositories.branchNoUpstream': '{branch} has no upstream',
+  'md3.repositories.branchDetached': 'detached HEAD',
+  'md3.repositories.branchEmpty': 'no commits yet',
+  'md3.repositories.branchCloning': 'cloning',
+  'md3.repositories.branchMissing': 'missing from disk',
+  'md3.repositories.branchNone': 'no branch',
+  'md3.repositories.remotes': '{count} remotes',
+  'md3.repositories.remotesOne': '1 remote',
+  'md3.repositories.changes': '{count} changes',
+  'md3.repositories.changesOne': '1 change',
+  'md3.repositories.clean': 'Clean',
+  'md3.repositories.changesUnknown': 'Not inspected',
+  'md3.repositories.open': 'Open',
+  'md3.repositories.openName': 'Open {name}',
+  'md3.repositories.current': 'Current',
+  'md3.repositories.rowMenu': 'Actions for {name}',
+  'md3.repositories.rowMenuHint': 'Fetch, remove, reveal, settings',
+  'md3.repositories.pinnedFlag': 'Pinned',
+  'md3.repositories.hiddenFlag': 'Hidden',
+  'md3.repositories.missingFlag': 'Missing',
+  'md3.repositories.selectRow': 'Select {name}',
+  'md3.repositories.bulkRegion': 'Bulk repository actions',
+  'md3.repositories.selectAllVisible': 'Select all {count} shown',
+  'md3.repositories.selectionScope':
+    'Select all covers the {shown} repositories this filter is showing, not all {total} in the app.',
+  'md3.repositories.selectedCount': '{count} selected',
+  'md3.repositories.invertSelection': 'Invert the selection',
+  'md3.repositories.clearSelection': 'Clear the selection',
+  'md3.repositories.exitSelection': 'Done selecting',
+  'md3.repositories.groupFieldLabel': 'Group name',
+  'md3.repositories.groupFieldPlaceholder': 'An existing or new group',
+  'md3.repositories.bulkFetch': 'Fetch',
+  'md3.repositories.bulkPull': 'Pull',
+  'md3.repositories.bulkOpen': 'Open',
+  'md3.repositories.bulkFavorite': 'Pin',
+  'md3.repositories.bulkUnfavorite': 'Unpin',
+  'md3.repositories.bulkAssignGroup': 'Assign to group',
+  'md3.repositories.bulkRemoveGroup': 'Remove from group',
+  'md3.repositories.bulkExport': 'Export',
+  'md3.repositories.bulkRemove': 'Remove from list',
+  'md3.repositories.bulkActionName':
+    '{action} the {count} selected repositories',
+  'md3.repositories.runRegion': 'Repository batch progress',
+  'md3.repositories.runCount': '{completed} of {total}',
+  'md3.repositories.runProgressText': '{operation}, {percent}% complete',
+  'md3.repositories.runCancelling':
+    'Cancelling. The repository already running finishes first; the rest never start.',
+  'md3.repositories.runSummary':
+    '{done} of {total} succeeded · {failed} failed · {skipped} skipped · {remaining} never ran',
+  'md3.repositories.runResults': 'Result for every repository in this batch',
+  'md3.repositories.runNoDetail': 'No detail reported',
+  'md3.repositories.runCancel': 'Cancel',
+  'md3.repositories.runCancelName': 'Cancel {operation}',
+  'md3.repositories.runDismiss': 'Dismiss these results',
+  'md3.repositories.runStatusQueued': 'Queued',
+  'md3.repositories.runStatusRunning': 'Running',
+  'md3.repositories.runStatusDone': 'Done',
+  'md3.repositories.runStatusFailed': 'Failed',
+  'md3.repositories.runStatusSkipped': 'Skipped',
+  'md3.repositories.runStatusCancelled': 'Never ran',
+  'md3.repositories.removeEyebrow': 'Destructive action',
+  'md3.repositories.removeTitle':
+    'Remove these {count} repositories from the list?',
+  'md3.repositories.removeTitleOne': 'Remove this repository from the list?',
+  'md3.repositories.removeDescription':
+    'They stop being tracked here. Nothing on disk is deleted, and each one can be added again.',
+  'md3.repositories.removeListLabel': 'Repositories that will be removed',
+  'md3.repositories.removeKeysLegend': 'Authorize this exact removal',
+  'md3.repositories.removeKeyList':
+    'I read the list above and it is exactly what I want removed.',
+  'md3.repositories.removeKeyDisk':
+    'I understand all {count} stay on disk and can be added back later.',
+  'md3.repositories.removeSlider':
+    'Slide fully to authorize the removal ({percent}%)',
+  'md3.repositories.removeSliderName': 'Full-range removal authorization',
+  'md3.repositories.removeSliderValue': '{percent}% authorized',
+  'md3.repositories.removeStateLocked':
+    'Both confirmations are required before the slider moves.',
+  'md3.repositories.removeStateMoving':
+    'Keep sliding to the end to authorize the removal.',
+  'md3.repositories.removeStateReady':
+    'Authorization complete. Choose Remove from list to finish.',
+  'md3.repositories.removeConfirm': 'Remove from list',
+  'md3.repositories.removeCancel': 'Emergency exit',
+  'md3.actions.filterPlaceholder': 'Filter workflow runs',
+  'md3.actions.runFieldLabel': 'workflow runs',
+  'md3.actions.logPlaceholder': 'Search log output',
+  'md3.actions.logFieldLabel': 'the log',
+  'md3.actions.chipRowLabel': 'Workflow run filters',
+  'md3.actions.moreFilters': 'More workflow run filters',
+  'md3.actions.selectRuns': 'Select workflow runs',
+  'md3.actions.dispatch': 'Run workflow',
+  'md3.actions.filtersHeading': 'Workflow run filters',
+  'md3.actions.filterWorkflow': 'Workflow',
+  'md3.actions.filterBranch': 'Branch',
+  'md3.actions.filterEvent': 'Event',
+  'md3.actions.filterStatus': 'Status',
+  'md3.actions.resetFilters': 'Reset filters',
+  'md3.actions.bulkLabel': 'Bulk workflow run actions',
+  'md3.actions.selectAllVisible': 'Select all visible',
+  'md3.actions.selectedCount': '{count} selected',
+  'md3.actions.bulkRerun': 'Re-run completed ({count})',
+  'md3.actions.bulkCancel': 'Cancel active ({count})',
+  'md3.actions.clearSelection': 'Clear selection',
+  'md3.actions.selectRun': 'Select workflow run {name}',
+  'md3.actions.runList': 'Workflow runs',
+  'md3.actions.runMeta': '#{number} · {branch} · {event} · {duration}',
+  'md3.actions.runDetail':
+    '{status} · triggered by {actor} · {sha} · {jobs} jobs · {time} · attempt {attempt}',
+  'md3.actions.rerun': 'Re-run',
+  'md3.actions.rerunRun': 'Re-run {name}',
+  'md3.actions.runMenuFor': 'Actions for {name}',
+  'md3.actions.runMenuHint': 'Re-run failed jobs, cancel, view logs',
+  'md3.actions.noRuns': 'No workflow runs match.',
+  'md3.actions.showMoreRuns': 'Show more runs',
+  'md3.actions.pagination':
+    'Showing {shown} matching from {loaded} loaded of {total} workflow runs.',
+  'md3.actions.loadMoreRuns': 'Load more runs',
+  'md3.actions.loadingMore': 'Loading more…',
+  'md3.actions.loadAllRuns': 'Load all runs',
+  'md3.actions.stopLoading': 'Stop loading',
+  'md3.actions.detailLabel': 'Selected workflow run',
+  'md3.actions.detailHeading': '{name} · #{number} · {branch}',
+  'md3.actions.rerunFailed': 'Re-run failed',
+  'md3.actions.rerunFailedFor': 'Re-run failed jobs of {name}',
+  'md3.actions.paneMenu': 'More',
+  'md3.actions.runToolbar': 'Workflow run actions',
+  'md3.actions.attempt': 'Jobs from attempt',
+  'md3.actions.attemptOption': 'Attempt {attempt}',
+  'md3.actions.attemptLatest': 'Attempt {attempt} (latest)',
+  'md3.actions.cancelRun': 'Cancel run',
+  'md3.actions.fixCiLocally': 'Fix CI locally',
+  'md3.actions.fixCiLocallyHint':
+    'Fix locally with Codex or OpenCode, verify, then push to start cloud CI',
+  'md3.actions.artifacts': 'Artifacts',
+  'md3.actions.openOnGitHub': 'View on GitHub',
+  'md3.actions.jobList': 'Jobs and steps',
+  'md3.actions.jobsLoading': 'Loading jobs…',
+  'md3.actions.jobsTruncated':
+    'GitHub truncated this job list; reload to see the rest.',
+  'md3.actions.loadMoreJobs': 'Load more jobs',
+  'md3.actions.reloadJobs': 'Reload jobs',
+  'md3.actions.rerunJob': 'Re-run job {name}',
+  'md3.actions.jobOnGitHub': 'Open {name} on GitHub',
+  'md3.actions.noRunSelected': 'Select a workflow run to see its jobs and log.',
+  'md3.actions.logRegion': 'Job log',
+  'md3.actions.logLoading': 'Downloading job log…',
+  'md3.actions.logExpired': 'These workflow logs have expired on GitHub.',
+  'md3.actions.logRetry': 'Retry',
+  'md3.actions.logEmpty': 'No log output yet.',
+  'md3.actions.logNoMatch': 'No log lines match.',
+  'md3.actions.logShowMore': 'Show more log lines',
+  'md3.actions.logShowing': 'Showing {shown} of {total} log lines.',
   'md3.drawer.label': 'Main navigation',
   'md3.drawer.destinations': 'Destinations',
   'md3.drawer.commit': 'Commit',
@@ -9297,12 +10713,891 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'md3.toast.undo': 'Undo',
   'md3.toast.dismiss': 'Dismiss this notification',
   'md3.toast.region': 'Notifications',
+  'md3.inbox.pane': 'Notifications',
+  'md3.inbox.list': 'Notifications',
+  'md3.inbox.filters': 'Notification filters',
+  'md3.inbox.searchPlaceholder': 'Search notifications',
+  'md3.inbox.searchField': 'notifications',
+  'md3.inbox.invalidPattern':
+    'That regular expression is not valid yet, so every notification is still showing.',
+  'md3.inbox.chip.unread': 'Unread',
+  'md3.inbox.chip.failures': 'Failures',
+  'md3.inbox.chip.mentions': 'Mentions',
+  'md3.inbox.markAllRead': 'Mark all read',
+  'md3.inbox.muted': 'Muted',
+  'md3.inbox.state.read': 'read',
+  'md3.inbox.state.unread': 'unread',
+  'md3.inbox.tone.success': 'success',
+  'md3.inbox.tone.failure': 'failure',
+  'md3.inbox.tone.info': 'info',
+  'md3.inbox.detail': '{source} · {state} · {tone}',
+  'md3.inbox.detailNoSource': '{state} · {tone}',
+  'md3.inbox.row.select': 'Select {title}',
+  'md3.inbox.row.markRead': 'Mark {title} as read',
+  'md3.inbox.row.markUnread': 'Mark {title} as unread',
+  'md3.inbox.row.delete': 'Delete {title}',
+  'md3.inbox.row.received': 'Received {timestamp}',
+  'md3.inbox.selectAllFiltered': 'Select all {count} matching these filters',
+  'md3.inbox.selectAllEverything': 'Select all {count} notifications',
+  'md3.inbox.selectionCount': '{count} selected',
+  'md3.inbox.invertSelection': 'Invert selection',
+  'md3.inbox.bulkMarkRead': 'Mark read',
+  'md3.inbox.bulkMarkReadScoped': '{label} — {scope}',
+  'md3.inbox.bulkMarkUnread': 'Mark unread',
+  'md3.inbox.bulkMarkUnreadScoped': '{label} — {scope}',
+  'md3.inbox.bulkDelete': 'Delete',
+  'md3.inbox.bulkDeleteScoped': '{label} — {scope}',
+  'md3.inbox.bulkExport': 'Export',
+  'md3.inbox.bulkExportScoped': '{label} — {scope}',
+  'md3.inbox.moreActions': 'More notification actions',
+  'md3.inbox.empty.noMatch':
+    'No notifications match this search or these filters.',
+  'md3.inbox.empty.caughtUp': 'You are all caught up.',
+  'md3.inbox.scope.selection': '{count} selected notifications',
+  'md3.inbox.scope.filtered': '{count} notifications matching these filters',
+  'md3.inbox.scope.all': 'all {count} notifications',
+  'md3.inbox.scope.one': '{count} notification',
+  'md3.inbox.undo': 'Undo',
+  'md3.inbox.toast.opened': 'Opened: {title}',
+  'md3.inbox.toast.deleted': 'Deleted {title}',
+  'md3.inbox.toast.deletedMany': 'Deleted {count} notifications',
+  'md3.inbox.toast.markedRead': 'Marked {count} notifications read',
+  'md3.inbox.toast.markedUnread': 'Marked {count} notifications unread',
+  'md3.inbox.toast.allRead': 'All notifications marked read',
+  'md3.inbox.toast.exported': 'Exported {count} notifications as {format}',
+  'md3.inbox.toast.selectedAll': 'Selected all {count} notifications',
+  'md3.inbox.toast.muted': 'Muted the thread for {title}',
+  'md3.inbox.toast.unmuted': 'Unmuted the thread for {title}',
+  'md3.inbox.rowMenu.unmute': 'Unmute this thread',
+  'md3.inbox.rowMenu.automations': 'Notification automations…',
+  'md3.inbox.rowMenu.select': 'Select this notification',
+  'md3.inbox.rowMenu.deselect': 'Deselect this notification',
+  'md3.inbox.rowMenu.copyDetails': 'Copy details',
+  'md3.inbox.rowMenu.exportOne': 'Export this notification…',
+  'md3.inbox.listMenu.title': 'Notification list',
+  'md3.inbox.listMenu.selectFiltered':
+    'Select all {count} matching these filters',
+  'md3.inbox.listMenu.selectEverything': 'Select all {count} notifications',
+  'md3.inbox.listMenu.invert': 'Invert selection',
+  'md3.inbox.listMenu.clearSelection': 'Clear selection',
+  'md3.inbox.listMenu.deleteScope': 'Delete {count} notifications…',
+  'md3.inbox.listMenu.export': 'Export {count} notifications…',
+  'md3.inbox.listMenu.history': 'Notification history…',
+  'md3.inbox.listMenu.githubInbox': 'GitHub notifications…',
+  'md3.inbox.exportMenu.title': 'Export notifications',
+  'md3.inbox.exportMenu.filterPlaceholder': 'Filter formats',
+  'md3.diffPane.region': 'Diff',
+  'md3.diffPane.linesRegion': 'Diff lines',
+  'md3.diffPane.noFile': 'No file selected',
+  'md3.diffPane.empty': 'This file has no textual changes.',
+  'md3.diffPane.searchField': 'the diff',
+  'md3.diffPane.searchPlaceholder': 'Find in diff',
+  'md3.diffPane.details': 'Details',
+  'md3.diffPane.detailsName': 'Details about this commit',
+  'md3.diffPane.includeHunk': 'Include hunk',
+  'md3.diffPane.includeHunkName': 'Include hunk in the commit',
+  'md3.diffPane.wrap': 'Wrap lines',
+  'md3.diffPane.diffOptions': 'Diff options',
+  'md3.diffPane.fileTabs': 'Files in this commit',
+  'md3.diffPane.fileTabName': '{name} — {path}, +{added} −{deleted}',
+  'md3.changes.searchField': 'changed files',
+  'md3.changes.searchPlaceholder': 'Filter changed files',
+  'md3.changes.filters': 'Changed file filters',
+  'md3.changes.includeAll': '{included} of {total} included',
+  'md3.changes.changesMenu': 'Discard, ignore, stash',
+  'md3.changes.list': 'Changed files',
+  'md3.changes.include': 'Include {name} in the commit',
+  'md3.changes.rowMenu': 'Discard, ignore, reveal {name}',
+  'md3.changes.fileMenu': 'Open in editor, discard, ignore',
+  'md3.changes.status.new': 'new file',
+  'md3.changes.status.deleted': 'deleted',
+  'md3.changes.status.modified': 'modified',
+  'md3.changes.state.included': 'included',
+  'md3.changes.state.excluded': 'excluded',
+  'md3.changes.empty': 'No changed files match this filter.',
+  'md3.changes.composer': 'Commit composer',
+  'md3.changes.avatar': 'Committing as {name}',
+  'md3.changes.summaryPlaceholder': 'Summary (required)',
+  'md3.changes.descriptionPlaceholder': 'Description',
+  'md3.changes.copilot': 'Let Copilot write the message',
+  'md3.changes.coAuthors': 'Co-authors',
+  'md3.changes.coAuthorsName':
+    'Co-authors — credit the people who worked on this commit',
+  'md3.changes.summaryHint': '{count}/{limit}',
+  'md3.changes.summaryHintLong': '{count}/{limit} — summary is long',
+  'md3.changes.commitTo': 'Commit to {branch}',
+  'md3.changes.commitNeedsSummary':
+    'A summary is required — this opens the commit composer',
+  'md3.changes.commitAndPush': 'One-click commit & push',
+  'md3.agents.sessionsPane': 'Agent sessions',
+  'md3.agents.conversationPane': 'Agent conversation',
+  'md3.agents.listLabel': 'Agent sessions',
+  'md3.agents.actionsLabel': 'Agent session actions',
+  'md3.agents.searchPlaceholder': 'Search agent sessions',
+  'md3.agents.searchFieldLabel': 'agent sessions',
+  'md3.agents.newSession': 'New session',
+  'md3.agents.agentAccess': 'Agent access',
+  'md3.agents.emptyNoMatches': 'No agent sessions match.',
+  'md3.agents.emptyNoSessions': 'No agent sessions yet.',
+  'md3.agents.state.running': 'Running',
+  'md3.agents.state.done': 'Done',
+  'md3.agents.state.paused': 'Paused',
+  'md3.agents.state.error': 'Error',
+  'md3.agents.state.idle': 'Idle',
+  'md3.agents.meta.started': '{agent} · started {time}',
+  'md3.agents.meta.notStarted': '{agent} · not started',
+  'md3.agents.meta.branchStarted': '{agent} · {branch} · started {time}',
+  'md3.agents.meta.branchNotStarted': '{agent} · {branch} · not started',
+  'md3.agents.detail.model': 'model {model}',
+  'md3.agents.detail.noModel': 'model not reported',
+  'md3.agents.detail.turns': '{count} turns',
+  'md3.agents.detail.oneTurn': '1 turn',
+  'md3.agents.elapsed.seconds': '{seconds}s',
+  'md3.agents.elapsed.minutes': '{minutes}m {seconds}s',
+  'md3.agents.elapsed.hours': '{hours}h {minutes}m',
+  'md3.agents.badge.main': 'Main worktree',
+  'md3.agents.badge.locked': 'Locked',
+  'md3.agents.badge.missing': 'Missing',
+  'md3.agents.noSelection': 'No session selected',
+  'md3.agents.noSelectionHint':
+    'Select a session on the left to read its conversation.',
+  'md3.agents.noTurns': 'This session has not produced any output yet.',
+  'md3.agents.conversationLabel': 'Conversation with {name}',
+  'md3.agents.role.you': 'You',
+  'md3.agents.role.error': 'Error',
+  'md3.agents.pause': 'Pause',
+  'md3.agents.resume': 'Resume',
+  'md3.agents.pauseAccessibleName': '{label} — {name}',
+  'md3.agents.resumeAccessibleName': '{label} — {name}',
+  'md3.agents.more': 'More session actions',
+  'md3.agents.instructionPlaceholder': 'Send an instruction',
+  'md3.agents.send': 'Send',
+  'md3.agents.sendAccessibleName': '{label} the instruction to {name}',
+  'md3.agents.nothingToSend': 'Nothing to send',
+  'md3.terminal.region': 'Terminal',
+  'md3.terminal.shells': 'Shell sessions',
+  'md3.terminal.newShell': 'New shell',
+  'md3.terminal.closeShell': 'Close {shell}',
+  'md3.terminal.restart': 'Restart',
+  'md3.terminal.restartName': 'Restart {shell}',
+  'md3.terminal.stop': 'Stop',
+  'md3.terminal.stopName': 'Stop the command running in {shell}',
+  'md3.terminal.searchPlaceholder': 'Search terminal output',
+  'md3.terminal.searchField': 'terminal output',
+  'md3.terminal.output': 'Output from {shell}',
+  'md3.terminal.truncated':
+    'Showing the last {shown} of {total} lines. Search still reaches the rest.',
+  'md3.terminal.noMatches': 'No output matches.',
+  'md3.terminal.noOutput': 'This shell has printed nothing yet.',
+  'md3.terminal.clearSearch': 'Clear the search',
+  'md3.terminal.noSessions': 'No shell is open.',
+  'md3.terminal.openShell': 'Open a shell',
+  'md3.terminal.inputPlaceholder': 'Run a command',
+  'md3.terminal.inputLabel': 'Command to run in {shell} at {prompt}',
+  'md3.terminal.run': 'Run',
+  'md3.terminal.runName': 'Run this command in {shell}',
+  'md3.terminal.nothingToRun': 'Nothing to run',
+  'md3.terminal.status.connecting': 'Starting up',
+  'md3.terminal.status.ready': 'Ready',
+  'md3.terminal.status.running': 'Running a command',
+  'md3.terminal.status.exited': 'Exited',
+  'md3.terminal.status.error': 'Failed to start',
+  'md3.branches.filterPlaceholder': 'Filter branches',
+  'md3.branches.fieldLabel': 'branches',
+  'md3.branches.chipsLabel': 'Branch filters',
+  'md3.branches.listLabel': 'Branches',
+  'md3.branches.newBranch': 'New branch',
+  'md3.branches.mergeAll': 'Merge all',
+  'md3.branches.mergeAllRunning': '{label} — already running',
+  'md3.branches.mergeAllProgress':
+    'Merging all branches, {completed} of {total}',
+  'md3.branches.mergeAllProgressBranch':
+    'Merging {branch}, {completed} of {total}',
+  'md3.branches.empty': 'No branch matches this filter.',
+  'md3.branches.current': 'Current',
+  'md3.branches.checkout': 'Checkout',
+  'md3.branches.checkoutLabel': 'Check out {name}',
+  'md3.branches.rowLabel': '{name}, {group}',
+  'md3.branches.rowMenu': 'Actions for {name}',
+  'md3.branches.rowMenuHint': 'Merge, rename, delete, open PR',
+  'md3.branches.aheadLabel': '{count} commits ahead',
+  'md3.branches.behindLabel': '{count} commits behind',
+  'md3.branches.group.current': 'Current',
+  'md3.branches.group.local': 'Local',
+  'md3.branches.group.remote': 'Remote',
+  'md3.branches.detail.tip': 'tip {sha}',
+  'md3.branches.detail.tracks': 'tracks {upstream}',
+  'md3.branches.detail.trackingRemote': 'tracking origin',
+  'md3.branches.detail.untracked': 'no upstream',
+  'md3.branches.detail.diverged': '↑{ahead} ↓{behind}',
+  'md3.branches.detail.inSync': 'in sync',
+  'md3.branches.detail.pullRequest': 'PR #{number} {state}',
+  'md3.branches.action.merge': 'Merge into {branch}',
+  'md3.branches.action.rebase': 'Rebase onto {branch}',
+  'md3.branches.action.openPullRequest': 'Open pull request',
+  'md3.branches.action.rename': 'Rename branch…',
+  'md3.branches.action.delete': 'Delete branch…',
+  'md3.branches.action.mergeAndDelete': 'Merge and delete…',
+  'md3.branches.action.compare': 'Compare with this branch',
+  'md3.branches.action.copyName': 'Copy branch name',
+  'md3.branches.action.pin': 'Pin branch',
+  'md3.branches.action.unpin': 'Unpin branch',
+  'md3.branches.action.hide': 'Hide branch',
+  'md3.branches.action.solo': 'Solo branch',
+  'md3.branches.action.restoreVisibility': 'Restore all branches',
+  'md3.branches.action.checkoutInNewWorktree': 'Checkout in new worktree…',
+  'md3.branches.action.switchToWorktree': 'Switch to existing worktree',
+  'md3.branches.action.viewOnForge': 'View branch on the forge',
+  'md3.branches.action.viewPullRequestOnForge':
+    'View pull request on the forge',
+  'md3.branches.list.sortByName': 'Sort by name',
+  'md3.branches.list.sortByNameActive': 'Sort by name (current)',
+  'md3.branches.list.sortByRecent': 'Sort by most recent',
+  'md3.branches.list.sortByRecentActive': 'Sort by most recent (current)',
+  'md3.branches.list.pullRequests': 'Show pull requests',
+  'md3.branches.list.fetchRemotes': 'Fetch remote branches',
+  'md3.branches.list.bulkDelete': 'Delete several branches…',
+  'md3.locks.title': 'Locks',
+  'md3.locks.subtitle':
+    'Every lock on a tab, a tab group or an appearance value. Each one has its own credential.',
+  'md3.locks.search.placeholder': 'Search locks',
+  'md3.locks.search.fieldLabel': 'locks',
+  'md3.locks.empty.none':
+    'No locks yet. Add one from a tab’s context menu or from an appearance editor.',
+  'md3.locks.empty.noMatch': 'No lock matches this search.',
+  'md3.locks.list.label': 'Locks',
+  'md3.locks.surface.tab': 'Tab',
+  'md3.locks.surface.tabGroup': 'Tab group',
+  'md3.locks.surface.appearanceProperty': 'Appearance value',
+  'md3.locks.surface.appearanceElement': 'Appearance element',
+  'md3.locks.surface.appearancePreset': 'Appearance preset',
+  'md3.locks.factor.password': 'Password',
+  'md3.locks.factor.otp': 'One-time password',
+  'md3.locks.row.created': 'Created {date}',
+  'md3.locks.row.lockOnLaunch': 'Locks again on launch',
+  'md3.locks.row.unlockedUntil': 'Unlocked until {time}',
+  'md3.locks.row.unlockedSession': 'Unlocked until the app closes',
+  'md3.locks.row.unlockedSurface': 'Unlocked while you stay on this surface',
+  'md3.locks.row.locked': 'Locked',
+  'md3.locks.row.select': 'Select the lock on {label}',
+  'md3.locks.row.edit': 'Edit the lock on {label}',
+  'md3.locks.row.remove': 'Remove the lock on {label}',
+  'md3.locks.row.lockAgain': 'Lock {label} again now',
+  'md3.locks.duration.surface': 'This surface only',
+  'md3.locks.duration.minutes': 'For a set number of minutes',
+  'md3.locks.duration.session': 'Until the app closes',
+  'md3.locks.duration.minutesValue': '{minutes} minutes',
+  'md3.locks.selection.count': '{selected} of {total} selected',
+  'md3.locks.selection.selectAllFiltered':
+    'Select the {count} locks this search is showing',
+  'md3.locks.selection.selectAllEverything':
+    'Select all {count} locks, including the ones this search is hiding',
+  'md3.locks.selection.invert': 'Invert the selection',
+  'md3.locks.selection.clear': 'Clear the selection',
+  'md3.locks.bulk.remove': 'Remove {count} locks…',
+  'md3.locks.bulk.export': 'Export {count} locks',
+  'md3.locks.bulk.exportFormat': 'Export format',
+  'md3.locks.toast.exported':
+    'Exported {count} locks as {format}. Credentials are never included.',
+  'md3.locks.toast.removed': 'Removed {count} locks.',
+  'md3.locks.toast.added':
+    'Locked {label}. Only this lock’s own credential opens it.',
+  'md3.locks.toast.updated': 'Updated the lock on {label}.',
+  'md3.locks.toast.unlocked': 'Unlocked {label}.',
+  'md3.locks.toast.relocked': 'Locked {label} again.',
+  'md3.locks.toast.selectedAll': 'Selected all {count} locks.',
+  'md3.locks.gate.eyebrow': 'Cannot be undone',
+  'md3.locks.gate.title': 'Remove {count} locks?',
+  'md3.locks.gate.description':
+    'This removes {count} locks — {scope} — and forgets each one’s stored credential. The surfaces themselves and everything on them are untouched.',
+  'md3.locks.gate.keysLegend': 'Turn both keys',
+  'md3.locks.gate.keyCount': 'I want to remove {count} locks',
+  'md3.locks.gate.keyScope': 'I have checked which locks those are: {scope}',
+  'md3.locks.gate.sliderLabel': 'Slide all the way to authorize ({percent}%)',
+  'md3.locks.gate.sliderValue': '{percent}% of the way',
+  'md3.locks.gate.statusLocked': 'Turn both keys before the slider will move.',
+  'md3.locks.gate.statusReady':
+    'Both keys are turned. Slide all the way to authorize.',
+  'md3.locks.gate.statusMoving': 'Keep going…',
+  'md3.locks.gate.statusAuthorized': 'Authorized. Remove is now available.',
+  'md3.locks.gate.emergencyExit': 'Emergency exit',
+  'md3.locks.gate.confirm': 'Remove {count} locks',
+  'md3.locks.setup.title': 'Lock {label}',
+  'md3.locks.setup.titleEdit': 'Edit the lock on {label}',
+  'md3.locks.setup.close': 'Close without saving',
+  'md3.locks.setup.factorLegend': 'How this lock is answered',
+  'md3.locks.setup.factorPassword': 'A password',
+  'md3.locks.setup.factorOtp': 'A one-time password from your authenticator',
+  'md3.locks.setup.otpUnavailable':
+    'The one-time-password option needs the app’s authenticator, which is not available yet.',
+  'md3.locks.setup.password': 'Password for this lock',
+  'md3.locks.setup.passwordConfirm': 'Type it again',
+  'md3.locks.setup.otpAccount': 'Authenticator entry for this lock',
+  'md3.locks.setup.otpAccountHint':
+    'The name of the entry in the app’s authenticator. The app never reads the secret itself.',
+  'md3.locks.setup.durationLegend': 'How long an unlock lasts',
+  'md3.locks.setup.lockOnLaunch': 'Lock again when the app starts',
+  'md3.locks.setup.forFun':
+    'This is just for fun. It is not security, nothing is encrypted, and it does not keep out anybody else who has this computer.',
+  'md3.locks.setup.recovery':
+    'Forgotten the credential? Delete this folder and every lock goes with it: {folder}',
+  'md3.locks.setup.recoveryUnknown':
+    'Forgotten the credential? Deleting the app’s local application-data folder removes every lock. The folder’s exact path could not be read just now.',
+  'md3.locks.setup.explanationShow': 'What does this do?',
+  'md3.locks.setup.explanationHide': 'Hide the explanation',
+  'md3.locks.setup.explanation':
+    'A locked surface keeps its name and shows a lock beside it. Opening it asks for this lock’s own credential and nothing else: unlocking one surface never unlocks another, and a locked value inside a locked tab is two locks with two answers.',
+  'md3.locks.setup.provenanceDefault':
+    'Using the shipped default: {value}. Nothing has been saved for this lock yet.',
+  'md3.locks.setup.provenanceStored': 'Saved for this lock: {value}.',
+  'md3.locks.setup.save': 'Save this lock',
+  'md3.locks.setup.cancel': 'Cancel',
+  'md3.locks.setup.errorTooShort':
+    'A lock password must be {min} to {max} characters.',
+  'md3.locks.setup.errorMismatch': 'The two passwords are different.',
+  'md3.locks.setup.errorOtpAccount':
+    'Name the authenticator entry this lock reads.',
+  'md3.locks.setup.errorVault': 'The lock was not saved: {error}',
+  'md3.locks.setup.errorOtpUnavailable':
+    'The lock was not saved: the app’s authenticator is not available, so a one-time password cannot be checked.',
+  'md3.locks.setup.minutesLabel': 'Minutes',
+  'md3.locks.unlock.title': 'Unlock {label}',
+  'md3.locks.unlock.passwordLabel': 'This lock’s password',
+  'md3.locks.unlock.codeLabel': 'The current code from your authenticator',
+  'md3.locks.unlock.durationLegend': 'Keep it unlocked',
+  'md3.locks.unlock.submit': 'Unlock',
+  'md3.locks.unlock.cancel': 'Cancel',
+  'md3.locks.unlock.forFun':
+    'This is just for fun. It is not security, nothing is encrypted, and it does not keep out anybody else who has this computer.',
+  'md3.locks.unlock.recovery':
+    'Forgotten it? Delete this folder and every lock goes with it: {folder}',
+  'md3.locks.unlock.recoveryUnknown':
+    'Forgotten it? Deleting the app’s local application-data folder removes every lock. The folder’s exact path could not be read just now.',
+  'md3.locks.unlock.forgotten': 'Forgotten your password?',
+  'md3.locks.unlock.forgottenUnavailable':
+    'Support Tickets is not wired up in this build, so use the folder above.',
+  'md3.locks.unlock.throttled':
+    'Too many wrong answers just now. Try again in {seconds} seconds, or use the recovery route above.',
+  'md3.locks.unlock.unavailable':
+    'This lock cannot be checked right now: its credential is missing from the credential vault. Use the recovery route above.',
+  'md3.locks.unlock.success': 'Unlocked {label}.',
+  'md3.locks.unlock.lockAgain': 'Lock again',
+  'md3.locks.unlock.minutesLabel': 'Minutes',
+  'md3.locks.menu.lockTab': 'Lock this tab…',
+  'md3.locks.menu.lockGroup': 'Lock this group…',
+  'md3.locks.menu.editLock': 'Edit this lock…',
+  'md3.locks.menu.removeLock': 'Remove this lock',
+  'md3.locks.menu.lockAgain': 'Lock again now',
+  'md3.locks.menu.manage': 'Manage locks…',
+  'md3.locks.affordance.locked': '{label} is locked. Open it to unlock.',
+  'md3.locks.affordance.unlocked':
+    '{label} is unlocked. Select to lock it again.',
+  'md3.locks.searchResult.locked': '{label} (locked)',
+  'md3.locks.bulkClose.excluded':
+    '{count} locked tabs were left open, the same way pinned tabs are.',
+  'md3.locks.settings.title': 'Surface locks',
+  'md3.locks.settings.description':
+    'A for-fun password or one-time-password speed bump on a tab, a tab group or an appearance value. Off by default; every lock has its own credential.',
+  'md3.locks.setupLead.plain':
+    'Set a credential for this lock. It is answered on its own, and no other lock shares it.',
+  'md3.locks.setupLead.light':
+    'Give this lock its own credential. Nothing else uses it, and nothing else is opened by it.',
+  'md3.locks.setupLead.playful':
+    'One lock, one credential, no group discount. Nothing else uses it, and nothing else is opened by it.',
+  'md3.locks.setupLead.maximum':
+    'This lock gets its own credential and refuses to share it with any other lock, out of principle. Nothing else uses it, and nothing else is opened by it.',
+  'md3.locks.unlockLead.plain':
+    'This surface is locked. Answer this lock to open it.',
+  'md3.locks.unlockLead.light':
+    'This surface is locked. Only this lock’s own credential opens it.',
+  'md3.locks.unlockLead.playful':
+    'You locked this one yourself. Only this lock’s own credential opens it.',
+  'md3.locks.unlockLead.maximum':
+    'Past you locked this and told nobody. Only this lock’s own credential opens it.',
+  'md3.locks.wrongAttempt.plain':
+    'That did not match. Wrong answers so far: {failures}. If you cannot remember it, delete the folder named below.',
+  'md3.locks.wrongAttempt.light':
+    'Not that one. Wrong answers so far: {failures}. If you cannot remember it, delete the folder named below.',
+  'md3.locks.wrongAttempt.playful':
+    'Nope. Wrong answers so far: {failures}. If you cannot remember it, delete the folder named below — that is the whole recovery plan.',
+  'md3.locks.wrongAttempt.maximum':
+    'Still no. Wrong answers so far: {failures}. Forgetting a toy lock is entirely normal, so if you cannot remember it, delete the folder named below — that is the whole recovery plan.',
+  'md3.locks.managerLead.plain':
+    'Every lock is listed here and can be edited or removed one at a time or in bulk.',
+  'md3.locks.managerLead.light':
+    'Every lock is listed here, each with its own credential, and can be edited or removed one at a time or in bulk.',
+  'md3.locks.managerLead.playful':
+    'The complete list of speed bumps you have laid for yourself. Each has its own credential, and can be edited or removed one at a time or in bulk.',
+  'md3.locks.managerLead.maximum':
+    'Behold: every speed bump you have laid across your own path, catalogued. Each has its own credential, and can be edited or removed one at a time or in bulk.',
+  'md3.history.filterPlaceholder': 'Filter commits',
+  'md3.history.fieldLabel': 'commits',
+  'md3.history.chipRowLabel': 'Commit filters',
+  'md3.history.chip.unpushed': 'Unpushed',
+  'md3.history.chip.tagged': 'Tagged',
+  'md3.history.chip.mine': 'Mine',
+  'md3.history.chip.merges': 'Merges',
+  'md3.history.toggleGraph': 'Commit graph',
+  'md3.history.toggleDates': 'Absolute dates',
+  'md3.history.sortAndGroup': 'Sort and group',
+  'md3.history.listLabel': 'Commits',
+  'md3.history.empty': 'No commits match this filter.',
+  'md3.history.byline': '{author} · {time}',
+  'md3.history.detail': '{stat} · {files} files · {kind} · {branch}',
+  'md3.history.kind.merge': 'merge commit',
+  'md3.history.kind.verified': 'verified',
+  'md3.history.kind.unverified': 'unverified',
+  'md3.history.notPushed': 'Not pushed',
+  'md3.history.pin': 'Pin commit',
+  'md3.history.unpin': 'Unpin commit',
+  'md3.history.rowMenu': 'Actions for commit {sha}',
+  'md3.history.rowMenuHint': 'Revert, cherry-pick, tag, reset',
+  'md3.history.fileMenu': 'Open in editor, copy path, blame',
+  'md3.history.sheet.byline': '{author} committed {time}',
+  'md3.history.sheet.close': 'Close commit details',
+  'md3.history.sheet.copySha': 'Copy the SHA {sha}',
+  'md3.history.sheet.fileCount': '{count} files',
+  'md3.history.sheet.fileListLabel': 'Files in this commit',
+  'md3.history.sheet.fileEntry': '{path}, {stat}',
+  'md3.history.sheet.viewOnGitHub': 'View on GitHub',
+  'md3.history.sheet.revert': 'Revert commit',
+  'md3.history.sheet.menu': 'Cherry-pick, tag, reset',
+  'md3.destructiveGate.eyebrow': 'Destructive action',
+  'md3.destructiveGate.lead.plain':
+    'Turn both keys, then slide the authorization all the way to the end. Nothing happens before that.',
+  'md3.destructiveGate.lead.light':
+    'Two keys, then one slider all the way to the end. The ceremony is deliberate: nothing happens before the slider lands.',
+  'md3.destructiveGate.lead.playful':
+    'Two keys and a full-length slider stand between you and this one. It is deliberately more work than a stray click, and nothing at all happens until the slider lands on the far end.',
+  'md3.destructiveGate.lead.maximum':
+    'Behold the two-key launch console. Turn both, then walk the slider all the way to the far end like you mean it. Nothing whatsoever happens until it gets there, which is the entire reason you are being made to do all this.',
+  'md3.destructiveGate.irreversibleLabel': 'Cannot be undone:',
+  'md3.destructiveGate.keysLegend': 'Turn both keys to unlock the slider',
+  'md3.destructiveGate.keyTarget': 'I checked the exact target: {target}',
+  'md3.destructiveGate.keyEffect': 'I accept the exact effect: {effect}',
+  'md3.destructiveGate.sliderLabel': 'Slide fully to the end to authorize',
+  'md3.destructiveGate.sliderValue': '{percent}% authorized',
+  'md3.destructiveGate.stateLocked':
+    'Both keys are required before the slider moves.',
+  'md3.destructiveGate.stateArmed':
+    'Both keys are turned. Slide fully to the end to authorize.',
+  'md3.destructiveGate.stateMoving':
+    'Keep going. Nothing is destroyed until the slider reaches the far end.',
+  'md3.destructiveGate.stateAuthorized':
+    'Authorized. The confirm button is now available.',
+  'md3.destructiveGate.emergencyExit': 'Emergency exit',
+  'md3.destructiveGate.emergencyExitName':
+    'Emergency exit — close without running this destructive action',
+  'md3.destructiveGate.busy':
+    'Running. The gate stays open until the exact result is known.',
+  'md3.inbox.gate.title': 'Delete {count} notifications?',
+  'md3.inbox.gate.summary':
+    'This deletes {count} notifications from the inbox: {scope}.',
+  'md3.inbox.gate.irreversible':
+    'Deleted notifications cannot be restored from the inbox.',
+  'md3.inbox.gate.keyTarget': '{count} notifications — {scope}',
+  'md3.inbox.gate.keyEffect':
+    'They leave the inbox and cannot be restored from it.',
+  'md3.inbox.gate.confirm': 'Delete {count}',
+  'md3.auth.pane': 'Authenticator',
+  'md3.auth.list': 'Registered second factors',
+  'md3.auth.searchPlaceholder': 'Search factors',
+  'md3.auth.searchField': 'authenticator factors',
+  'md3.auth.invalidPattern':
+    'That pattern is not valid, so nothing has been filtered out yet.',
+  'md3.auth.filters': 'Group filters',
+  'md3.auth.chipUngrouped': 'Ungrouped',
+  'md3.auth.addFactor': 'Add factor',
+  'md3.auth.empty.none.plain':
+    'No second factors are registered. Add one and this app will show its codes.',
+  'md3.auth.empty.none.light':
+    'Nothing registered yet. Add a factor and the codes turn up here, thirty seconds at a time.',
+  'md3.auth.empty.none.playful':
+    'An empty authenticator, which is at least very fast. Add a factor and it will start counting down for you.',
+  'md3.auth.empty.none.maximum':
+    'Zero factors. Nothing to count, nothing to copy, nothing to lose — a spectacular result for a security tool and a useless one for you. Add a factor and it will earn its keep.',
+  'md3.auth.empty.noMatch': 'No factor matches.',
+  'md3.auth.selectAllFiltered': 'Select the {count} matching factors',
+  'md3.auth.selectAllEverything': 'Select all {count} factors',
+  'md3.auth.selectionCount': '{count} selected',
+  'md3.auth.invertSelection': 'Invert selection',
+  'md3.auth.bulkGroup': 'Move into group',
+  'md3.auth.bulkDelete': 'Delete',
+  'md3.auth.bulkExport': 'Export',
+  'md3.auth.scopedAction': '{label} — {scope}',
+  'md3.auth.moreActions': 'More authenticator actions',
+  'md3.auth.scope.selection': '{count} selected factors',
+  'md3.auth.scope.filtered': '{count} factors matching the current filters',
+  'md3.auth.scope.all': 'all {count} factors',
+  'md3.auth.scope.one': 'one factor',
+  'md3.auth.explain.toggle': 'How this list works',
+  'md3.auth.explain.body':
+    'Codes are computed on this machine from the system clock and a secret held in the operating system’s credential store. Nothing is sent anywhere, there is no account and no sync, and an ordinary export carries every field except the secret.',
+  'md3.auth.explain.provenance':
+    'Default in use: new factors are created as {algorithm} with {digits} digits every {period} seconds — the shipped values, because nothing has changed them.',
+  'md3.auth.row.select': 'Select {title}',
+  'md3.auth.row.code': 'Current code for {title}',
+  'md3.auth.row.codeChanged': 'New code for {title}: {code}',
+  'md3.auth.row.copyCode': 'Copy the current code for {title}',
+  'md3.auth.row.nextCode': 'Next: {code}',
+  'md3.auth.row.countdown': '{seconds}s',
+  'md3.auth.row.countdownText':
+    'This code is valid for another {seconds} seconds',
+  'md3.auth.row.missingSecret':
+    'No secret is stored for this factor, so it cannot produce a code. Delete it and register it again.',
+  'md3.auth.row.edit': 'Edit {title}',
+  'md3.auth.row.delete': 'Delete {title}',
+  'md3.auth.row.added': 'Registered {timestamp}',
+  'md3.auth.row.parameters': '{algorithm}, {digits} digits, every {period}s',
+  'md3.auth.clock.ok':
+    'This machine’s clock matches the reference within {tolerance} seconds, so codes will be accepted.',
+  'md3.auth.clock.ahead':
+    'This machine’s clock is {seconds} seconds ahead of the reference, which is more than the {tolerance} seconds these codes tolerate. Fix the system time or the codes below will be refused.',
+  'md3.auth.clock.behind':
+    'This machine’s clock is {seconds} seconds behind the reference, which is more than the {tolerance} seconds these codes tolerate. Fix the system time or the codes below will be refused.',
+  'md3.auth.clock.unverified':
+    'Nothing has been compared against this machine’s clock, so whether these codes will be accepted is unknown.',
+  'md3.auth.toast.registered': 'Registered {title}',
+  'md3.auth.toast.edited': 'Updated {title}',
+  'md3.auth.toast.deleted': 'Deleted {title}',
+  'md3.auth.toast.deletedMany': 'Deleted {count} factors',
+  'md3.auth.toast.vaultFailed':
+    '{count} secrets could not be removed from the credential store and are still on this machine.',
+  'md3.auth.toast.grouped': 'Moved {count} factors into {group}',
+  'md3.auth.toast.ungrouped': 'Moved {count} factors out of every group',
+  'md3.auth.toast.copied': 'Copied the code for {title}',
+  'md3.auth.toast.exported':
+    'Exported {count} factors as {format}, without their secrets',
+  'md3.auth.toast.secretsExported':
+    'Exported {count} working secrets in the clear',
+  'md3.auth.toast.selectedAll': 'Selected all {count} factors',
+  'md3.auth.toast.moved': 'Moved {title}',
+  'md3.auth.listMenu.title': 'Authenticator',
+  'md3.auth.listMenu.selectFiltered': 'Select the {count} matching factors',
+  'md3.auth.listMenu.selectEverything': 'Select all {count} factors',
+  'md3.auth.listMenu.invert': 'Invert selection',
+  'md3.auth.listMenu.clearSelection': 'Clear selection',
+  'md3.auth.listMenu.group': 'Move… into group…',
+  'md3.auth.listMenu.deleteScope': 'Delete {count} factors…',
+  'md3.auth.listMenu.export': 'Export {count} factors…',
+  'md3.auth.listMenu.exportSecrets': 'Export {count} secrets in the clear…',
+  'md3.auth.rowMenu.title': 'Factor',
+  'md3.auth.rowMenu.copyCode': 'Copy the current code',
+  'md3.auth.rowMenu.copyNext': 'Copy the next code',
+  'md3.auth.rowMenu.edit': 'Edit this factor…',
+  'md3.auth.rowMenu.group': 'Move… into group…',
+  'md3.auth.rowMenu.moveUp': 'Move up',
+  'md3.auth.rowMenu.moveDown': 'Move down',
+  'md3.auth.rowMenu.select': 'Add to the selection',
+  'md3.auth.rowMenu.deselect': 'Remove from the selection',
+  'md3.auth.rowMenu.delete': 'Delete this factor',
+  'md3.auth.rowMenu.exportOne': 'Export this factor…',
+  'md3.auth.exportMenu.title': 'Export without secrets',
+  'md3.auth.exportMenu.filterPlaceholder': 'Filter formats',
+  'md3.auth.groupMenu.title': 'Move into group',
+  'md3.auth.groupMenu.filterPlaceholder': 'Filter groups',
+  'md3.auth.groupMenu.ungrouped': 'No group',
+  'md3.auth.groupMenu.empty':
+    'No groups exist yet. Name one while editing a factor and it will appear here.',
+  'md3.auth.export.omissionNotice':
+    'Secrets are deliberately omitted from this file. Every factor below lists its issuer, account and parameters only.',
+  'md3.auth.secrets.warning':
+    'This file contains working second factors in the clear. Anyone who reads it can produce your codes.',
+  'md3.auth.gate.title': 'Delete {count} factors',
+  'md3.auth.gate.summary':
+    'Deletes {count} registered factors ({scope}) and forgets their secrets.',
+  'md3.auth.gate.irreversible':
+    'The secrets are removed from this machine’s credential store. Nothing here can bring them back — each account would have to issue you a new factor.',
+  'md3.auth.gate.keyTarget': '{count} factors — {scope}',
+  'md3.auth.gate.keyEffect':
+    'Their secrets leave this machine and cannot be recovered.',
+  'md3.auth.gate.confirm': 'Delete {count}',
+  'md3.auth.secretsGate.title': 'Export {count} secrets in the clear',
+  'md3.auth.secretsGate.summary':
+    'Writes {count} working second factors ({scope}) into a plain text file as otpauth:// links.',
+  'md3.auth.secretsGate.irreversible':
+    'Once the file is written this app cannot take it back. Anyone who reads it can produce your codes for those accounts.',
+  'md3.auth.secretsGate.keyTarget': '{count} factors — {scope}',
+  'md3.auth.secretsGate.keyEffect':
+    'The file will hold usable secrets, not just a list of accounts.',
+  'md3.auth.secretsGate.confirm': 'Export {count} secrets',
+  'md3.auth.register.title': 'Add a second factor',
+  'md3.auth.register.editTitle': 'Edit {title}',
+  'md3.auth.register.close': 'Close without adding a factor',
+  'md3.auth.register.sourceLegend': 'Where the secret comes from',
+  'md3.auth.register.source.generate': 'Generate here',
+  'md3.auth.register.source.uri': 'Paste a link',
+  'md3.auth.register.source.manual': 'Type the secret',
+  'md3.auth.register.source.image': 'Read an image',
+  'md3.auth.register.source.clipboard': 'Read the clipboard',
+  'md3.auth.register.source.camera': 'Scan with a camera',
+  'md3.auth.register.hint.generate':
+    'This app generates a secret on this machine and draws the QR for you to scan into the account you are protecting.',
+  'md3.auth.register.hint.uri':
+    'Paste the otpauth:// link the issuer gave you. It is read here and sent nowhere.',
+  'md3.auth.register.hint.manual':
+    'Type the base32 secret and its parameters exactly as the issuer stated them.',
+  'md3.auth.register.hint.image':
+    'Choose a saved QR image. It is decoded on this machine.',
+  'md3.auth.register.hint.clipboard':
+    'Reads a QR image, or an otpauth:// link, out of the clipboard.',
+  'md3.auth.register.hint.camera':
+    'Points a camera on this machine at the QR the issuer is showing you.',
+  'md3.auth.register.issuerLabel': 'Issuer',
+  'md3.auth.register.issuerPlaceholder': 'The service this factor protects',
+  'md3.auth.register.accountLabel': 'Account',
+  'md3.auth.register.accountPlaceholder': 'Your username or address there',
+  'md3.auth.register.groupLabel': 'Group',
+  'md3.auth.register.groupPlaceholder': 'Leave empty for no group',
+  'md3.auth.register.algorithmLabel': 'Algorithm',
+  'md3.auth.register.digitsLabel': 'Digits',
+  'md3.auth.register.periodLabel': 'Seconds per code',
+  'md3.auth.register.secretLabel': 'Base32 secret',
+  'md3.auth.register.secretPlaceholder': 'Letters A–Z and digits 2–7',
+  'md3.auth.register.uriLabel': 'otpauth:// link',
+  'md3.auth.register.uriPlaceholder': 'otpauth://totp/…',
+  'md3.auth.register.revealSecret': 'Show the secret',
+  'md3.auth.register.hideSecret': 'Hide the secret',
+  'md3.auth.register.secretHidden':
+    'The secret is hidden. Show it only if you are pairing by hand rather than scanning.',
+  'md3.auth.register.copySecret': 'Copy the secret',
+  'md3.auth.register.copiedSecret': 'Copied the secret to the clipboard',
+  'md3.auth.register.qrAlt':
+    'Pairing QR for {account} at {issuer}. It encodes the same secret shown beside it, using {algorithm} with {digits} digits every {period} seconds.',
+  'md3.auth.register.qrAltNoIssuer':
+    'Pairing QR for {account}. It encodes the same secret shown beside it, using {algorithm} with {digits} digits every {period} seconds.',
+  'md3.auth.register.qrCaption':
+    'Scan this with the account you are protecting, or type the secret beside it.',
+  'md3.auth.register.parameterSummary':
+    '{algorithm} · {digits} digits · {period} seconds',
+  'md3.auth.register.chooseImage': 'Choose a QR image',
+  'md3.auth.register.readClipboard': 'Read the clipboard',
+  'md3.auth.register.startCamera': 'Start the camera',
+  'md3.auth.register.stopCamera': 'Stop the camera',
+  'md3.auth.register.cameraLive':
+    'The camera is running. Hold the QR square to the lens; a code photographed at a steep angle cannot be read.',
+  'md3.auth.register.cameraPreview': 'Live camera preview',
+  'md3.auth.register.cameraMissing':
+    'This machine has no camera, so there is nothing to scan with. Read the QR from an image file instead.',
+  'md3.auth.register.cameraRefused':
+    'The camera was refused. Grant this app camera access, or read the QR from an image file instead.',
+  'md3.auth.register.confirmHeading': 'Confirm the pairing',
+  'md3.auth.register.confirmHint.plain':
+    'Type one current code back. The factor is added only once a code matches, so a mis-scanned secret cannot lock you out later.',
+  'md3.auth.register.confirmHint.light':
+    'Type one code back so we both know it works. The factor is added only once a code matches — better to find a mis-scanned secret now than at a login screen.',
+  'md3.auth.register.confirmHint.playful':
+    'One code, typed back, and we are done. The factor is added only once a code matches, because discovering a mis-scanned secret at a login screen is nobody’s idea of a good evening.',
+  'md3.auth.register.confirmHint.maximum':
+    'Prove it. Type one current code back at us. The factor is added only once a code matches, because the alternative is a beautifully stored secret that produces confident, wrong, universally rejected digits — and you find that out at the worst possible moment.',
+  'md3.auth.register.confirmLabel': 'Current code',
+  'md3.auth.register.confirmPlaceholder': 'The code showing right now',
+  'md3.auth.register.verifyFailed':
+    'That code does not match this secret. Check the code, and check that this machine’s clock is right.',
+  'md3.auth.register.add': 'Add factor',
+  'md3.auth.register.save': 'Save changes',
+  'md3.auth.register.cancel': 'Cancel',
+  'md3.auth.register.error.badUri':
+    'That is not an otpauth:// link this app can read.',
+  'md3.auth.register.error.wrongType':
+    'That link is for a counter-based factor. This authenticator reads time-based codes only.',
+  'md3.auth.register.error.badSecret':
+    'That secret is not valid base32. It should be letters A to Z and digits 2 to 7.',
+  'md3.auth.register.error.missingAccount':
+    'That link carries no account name, so there is nothing to file the factor under.',
+  'md3.auth.register.error.noQr': 'No QR was found in that image.',
+  'md3.auth.register.error.unreadableFile':
+    'That file could not be read as an image.',
+  'md3.auth.register.error.notSquare':
+    'A QR was found but its grid could not be read. Hold the code square to the lens and try again.',
+  'md3.auth.register.error.damaged':
+    'A QR was found but is too damaged to read.',
+  'md3.auth.register.error.unsupported':
+    'That QR carries content this app cannot read.',
+  'md3.auth.register.error.encodeFailed':
+    'The pairing link is too long to draw as a QR: {detail}',
+  'md3.auth.register.error.accountRequired': 'An account name is required.',
+  'md3.auth.register.explain.toggle': 'What happens to this secret',
+  'md3.auth.register.explain.storage':
+    'The secret is generated on this machine and kept in the operating system’s credential store under this factor’s own id. It never enters the settings file, an export, a log, a screenshot or the app’s local history, and it never leaves this machine.',
+  'md3.auth.register.explain.provenanceDefault':
+    'Default in use: {algorithm}, {digits} digits, every {period} seconds — the shipped values, because nothing has stated anything different.',
+  'md3.auth.register.explain.provenanceIssuer':
+    'Set by the issuer: {algorithm}, {digits} digits, every {period} seconds — read from the link you supplied, not from this app’s defaults.',
 }
 
 /** Hong Kong Cantonese catalog. Missing entries deliberately use English. */
 export const cantoneseTranslations: Readonly<
   Partial<Record<TranslationKey, string>>
 > = {
+  'supportTickets.title': 'Support Tickets 支援櫃檯',
+  'supportTickets.subtitle': '呢個係本機櫃檯，專門幫你搞返自己落嘅鎖。',
+  'supportTickets.entry.unlockPrompt': '唔記得咗密碼？',
+  'supportTickets.entry.lockSetting': 'Support Tickets 支援櫃檯',
+  'supportTickets.entry.help': 'Support Tickets 支援櫃檯',
+  'supportTickets.entry.accessibleName':
+    '{label} — 打開本機 Support Tickets 支援櫃檯',
+  'supportTickets.arrivedFrom.unlockPrompt': '你係由解鎖嗰版入嚟嘅。',
+  'supportTickets.arrivedFrom.lockSetting': '你係由個鎖嘅設定入嚟嘅。',
+  'supportTickets.arrivedFrom.help': '你係由「說明」入嚟嘅。',
+  'supportTickets.close': '閂咗個櫃檯',
+  'supportTickets.disclosure':
+    '呢度嘅嘢一律唔會send去任何地方。呢部機以外根本冇呢張飛，唔會出網絡request，唔會收集資料，亦都冇人會睇。唔好等回覆。',
+  'supportTickets.deskLead.plain':
+    '填張飛記低發生咗咩事，跟住睇下面嘅解決方法。得嗰步先至真係做到嘢。',
+  'supportTickets.deskLead.light':
+    '攞張飛，講下你有幾慘，跟住睇下面嘅解決方法——最後嗰步先至真係做到嘢。',
+  'supportTickets.deskLead.playful':
+    '歡迎光臨支援櫃檯。攞張飛，用你自己嘅字講下件慘案，再欣賞下個狀態一步步行。下面嘅解決方法先至係真係做到嘢嗰部分。',
+  'supportTickets.deskLead.maximum':
+    '歡迎光臨支援櫃檯。得一張凳，冇人排隊，全體員工就係一句 switch。攞張飛，繪聲繪影咁講你件慘案，再莊嚴咁睇住個狀態一步步行。下面嘅解決方法先至係真係做到嘢嗰部分。',
+  'supportTickets.explain.summary': '呢個櫃檯係點運作',
+  'supportTickets.explain.body':
+    '啲飛淨係寫喺呢部機、呢個 profile 度。飛號喺本機生成，狀態要你自己撳先會行，緊急程度乜都改變唔到。解決方法會喺你嘅檔案總管打開 application data 資料夾；要刪嘅話係你自己喺檔案總管度動手，呢個 app 永遠唔會幫你刪。',
+  'supportTickets.provenance.stored':
+    '呢個數字嚟自本 profile 嘅本機飛紀錄：有 {count} 張。',
+  'supportTickets.provenance.default':
+    '仲未寫過任何飛紀錄，所以櫃檯而家show緊出廠預設：吉隊。',
+  'supportTickets.form.legend': '開一張飛',
+  'supportTickets.form.category': '分類',
+  'supportTickets.form.categoryHint':
+    '會記喺張飛度，export 亦都有。佢唔會將張飛送去邊度，因為根本冇地方可以送。',
+  'supportTickets.form.severity': '緊急程度',
+  'supportTickets.form.severityHint':
+    '會記低亦都會show，但冇人會理：每個等級行為完全一樣，因為根本冇排隊亦都冇客服。',
+  'supportTickets.form.description': '發生咗咩事',
+  'supportTickets.form.descriptionHint':
+    '用咗 {used} 個字，上限 {max} 個。淨係存喺呢部機。',
+  'supportTickets.form.descriptionRequired': '開飛之前請講低發生咗咩事。',
+  'supportTickets.form.submit': '開飛',
+  'supportTickets.category.forgottenPassword': '我唔記得咗密碼',
+  'supportTickets.category.lostAuthenticator': '我唔見咗個驗證器',
+  'supportTickets.category.lockedTab': '有個分頁鎖咗',
+  'supportTickets.category.lockedAppearance': '有個外觀設定鎖咗',
+  'supportTickets.category.somethingElse': '第二啲嘢',
+  'supportTickets.severity.whenever': '幾時都得',
+  'supportTickets.severity.normal': '普通',
+  'supportTickets.severity.urgent': '緊急',
+  'supportTickets.severity.critical': '極緊急，成盤生意停晒',
+  'supportTickets.searchPlaceholder': '搵飛',
+  'supportTickets.searchField': '支援飛',
+  'supportTickets.invalidPattern': '呢個正規表達式唔啱，所以全部飛照show。',
+  'supportTickets.filters': '飛嘅篩選',
+  'supportTickets.chip.open': '未完',
+  'supportTickets.chip.resolved': '已解決',
+  'supportTickets.chip.urgent': '緊急或極緊急',
+  'supportTickets.list': '支援飛',
+  'supportTickets.empty.none': '仲未有飛。想體驗全套嘅話，喺上面開一張。',
+  'supportTickets.empty.noMatch': '冇飛啱而家嘅搜尋同篩選。',
+  'supportTickets.row.select': '揀飛 {number}',
+  'supportTickets.row.advance': '推進飛 {number}',
+  'supportTickets.row.delete': '刪走飛 {number}',
+  'supportTickets.row.detail': '{category} · {severity} · {status}',
+  'supportTickets.row.opened': '{timestamp} 開嘅',
+  'supportTickets.row.responses': '櫃檯回覆 {count} 條',
+  'supportTickets.status.received': '已收到',
+  'supportTickets.status.triaged': '已分流',
+  'supportTickets.status.awaitingCustomer': '等緊客人',
+  'supportTickets.status.resolved': '已解決',
+  'supportTickets.response.acknowledged.plain':
+    '飛已收到。淨係寫咗喺呢部機，第二度都冇。解決方法喺下面。',
+  'supportTickets.response.acknowledged.light':
+    '多謝你搵支援櫃檯。你張飛已經歸檔喺呢部機，就咁一直擺喺度。解決方法喺下面。',
+  'supportTickets.response.acknowledged.playful':
+    '多謝你聯絡支援部。你張飛已經登記咗，並且交畀一句非常專業嘅 switch 處理。冇通知過任何人，因為根本冇人。解決方法喺下面。',
+  'supportTickets.response.acknowledged.maximum':
+    '多謝你聯絡支援部。你張飛已經登記、蓋印、歸檔，並交畀一句非常專業嘅 switch 處理；佢睇過一次手冊，仲記得大部分。你嘅個案對我哋好重要，重要到我哋擺咗喺你自己嘅硬碟度。冇通知過任何人，因為根本冇人。解決方法喺下面。',
+  'supportTickets.response.triaged':
+    '已分流。分類同緊急程度都記低咗，兩樣都改變唔到任何嘢。',
+  'supportTickets.response.awaitingCustomer':
+    '等緊客人：淨返嘅一步係你嘅。打開下面個資料夾，自己刪走佢。',
+  'supportTickets.response.resolved':
+    '已解決。櫃檯冇嘢再做；下面嗰個解決方法由頭到尾都係佢唯一有嘅嘢。',
+  'supportTickets.responseAt': '{time} 記低',
+  'supportTickets.correspondence': '飛 {number} 嘅櫃檯回覆',
+  'supportTickets.selectAllFiltered': '揀晒啱嘅 {count} 張飛',
+  'supportTickets.selectAllEverything': '揀晒全部 {count} 張飛',
+  'supportTickets.selectionCount': '揀咗 {count} 張',
+  'supportTickets.invertSelection': '反轉揀選',
+  'supportTickets.bulkAdvance': '推進',
+  'supportTickets.bulkExport': '匯出',
+  'supportTickets.bulkDelete': '刪走',
+  'supportTickets.bulkScoped': '{label} — {scope}',
+  'supportTickets.scope.selection': '揀咗嘅 {count} 張飛',
+  'supportTickets.scope.filtered': '啱而家搜尋同篩選嘅 {count} 張飛',
+  'supportTickets.scope.all': '全部 {count} 張飛',
+  'supportTickets.moreActions': '更多飛嘅操作',
+  'supportTickets.listMenu.title': '啲飛',
+  'supportTickets.listMenu.selectFiltered': '揀晒啱嘅 {count} 張飛',
+  'supportTickets.listMenu.selectEverything': '揀晒全部 {count} 張飛',
+  'supportTickets.listMenu.invert': '反轉揀選',
+  'supportTickets.listMenu.clearSelection': '清走揀選',
+  'supportTickets.listMenu.advanceScope': '推進 {count} 張飛',
+  'supportTickets.listMenu.export': '匯出 {count} 張飛…',
+  'supportTickets.listMenu.deleteScope': '刪走 {count} 張飛…',
+  'supportTickets.rowMenu.title': '飛 {number}',
+  'supportTickets.rowMenu.advance': '推進呢張飛',
+  'supportTickets.rowMenu.copyNumber': '複製飛號',
+  'supportTickets.rowMenu.export': '匯出呢張飛…',
+  'supportTickets.rowMenu.delete': '刪走呢張飛',
+  'supportTickets.rowMenu.select': '揀呢張飛',
+  'supportTickets.rowMenu.deselect': '唔揀呢張飛',
+  'supportTickets.exportMenu.title': '匯出格式',
+  'supportTickets.exportMenu.filterPlaceholder': '篩選格式',
+  'supportTickets.menuFilterPlaceholder': '篩選呢個選單',
+  'supportTickets.toast.created': '飛 {number} 已經喺呢部機開咗。',
+  'supportTickets.toast.advanced': '飛 {number} 而家係「{status}」。',
+  'supportTickets.toast.alreadyResolved':
+    '飛 {number} 已經解決咗，冇下一個狀態。',
+  'supportTickets.toast.deleted': '飛 {number} 已刪。',
+  'supportTickets.toast.deletedMany': '刪咗 {count} 張飛。',
+  'supportTickets.toast.exported': '{count} 張飛已經整成 {format}。',
+  'supportTickets.toast.copied': '飛號 {number} 已複製。',
+  'supportTickets.toast.selectedAll': '揀晒全部 {count} 張飛。',
+  'supportTickets.toast.copiedPath': '已複製資料夾路徑：{path}',
+  'supportTickets.toast.folderOpened': '已經喺你嘅檔案總管打開 {path}。',
+  'supportTickets.toast.folderFailed': '檔案總管打唔開 {path}。佢報：{error}',
+  'supportTickets.toast.folderUnavailable': '冇資料夾可以打開。{error}',
+  'supportTickets.resolution.heading': '解決方法',
+  'supportTickets.resolution.lead.plain':
+    '打開 application data 資料夾，自己刪走佢。咁樣就會 reset 咗呢個 app 入面全部鎖。',
+  'supportTickets.resolution.lead.light':
+    '成套方案就係咁：打開 application data 資料夾，自己刪走佢。咁樣就會 reset 咗呢個 app 入面全部鎖。',
+  'supportTickets.resolution.lead.playful':
+    '經過深入調查之後，櫃檯建議如下：打開 application data 資料夾，自己刪走佢。咁樣就會 reset 咗呢個 app 入面全部鎖。',
+  'supportTickets.resolution.lead.maximum':
+    '經過深入調查、上報畀第二句 switch，再由呢段文字自己開咗個內部檢討會之後，櫃檯建議如下：打開 application data 資料夾，自己刪走佢。咁樣就會 reset 咗呢個 app 入面全部鎖。請為今次服務評分，滿分係零。',
+  'supportTickets.resolution.pathLabel': 'Application data 資料夾',
+  'supportTickets.resolution.pathResolving':
+    '正喺行緊嘅程式度攞緊個資料夾位置…',
+  'supportTickets.resolution.pathUnavailable':
+    '攞唔到個資料夾位置，所以冇嘢可以打開。佢平時喺你 user profile 嘅 app data 目錄入面。',
+  'supportTickets.resolution.pathProvenanceResolved':
+    '呢個位置係行緊嘅程式報返嚟，唔係估：撳「打開」開嘅就係呢個資料夾。',
+  'supportTickets.resolution.pathProvenanceUnresolved':
+    '行緊嘅程式仲未報返個位置，所以唔show資料夾，「打開」掣亦都撳唔到。',
+  'supportTickets.resolution.open': '打開個資料夾',
+  'supportTickets.resolution.copyPath': '複製路徑',
+  'supportTickets.resolution.neverDeletes':
+    '呢個 app 淨係幫你打開個資料夾，之後乜都唔做。佢永遠唔會幫你刪。',
+  'supportTickets.resolution.opened': '已經喺你嘅檔案總管打開 {path}。',
+  'supportTickets.resolution.failed': '檔案總管打唔開 {path}。佢報：{error}',
+  'supportTickets.resolution.unavailable': '冇資料夾可以打開。{error}',
+  'supportTickets.gate.eyebrow': '一撳落去冇得返轉頭',
+  'supportTickets.gate.title': '刪走 {count} 張飛',
+  'supportTickets.gate.description':
+    '呢個動作會由呢部機刪走 {count} 張飛——{scope}。連內容同櫃檯回覆一齊冇埋，而且冇得 undo。',
+  'supportTickets.gate.keysLegend': '扭齊兩條匙',
+  'supportTickets.gate.keyCount': '我明白會刪走 {count} 張飛',
+  'supportTickets.gate.keyScope': '我明白呢個動作針對 {scope}',
+  'supportTickets.gate.sliderLabel': '拉到盡先做得（{percent}%）',
+  'supportTickets.gate.sliderValue': '距離授權完成 {percent}%',
+  'supportTickets.gate.statusLocked': '兩條匙都仲未扭。而家乜都刪唔到。',
+  'supportTickets.gate.statusReady': '兩條匙都扭咗。拉到最盡就授權。',
+  'supportTickets.gate.statusMoving': '授權緊。未到盡頭放手就會停。',
+  'supportTickets.gate.statusAuthorized': '已授權。而家可以刪。',
+  'supportTickets.gate.emergencyExit': '緊急出口',
+  'supportTickets.gate.confirm': '刪走 {count} 張飛',
   'settingsSearch.entry.appearanceLanguageMode.title': '語言模式',
   'settingsSearch.entry.appearanceLanguageMode.desc':
     '揀英文、玩味港式廣東話，或者慳位雙語模式。',
@@ -9410,6 +11705,31 @@ export const cantoneseTranslations: Readonly<
   'appearance.playfulnessValue': '第 {value} 級，共 5 級',
   'appearance.playfulnessSerious': '1 · 完全認真',
   'appearance.playfulnessMaximum': '5 · 最玩得',
+  'dialogEmoji.heading': '對話框同訊息框',
+  'dialogEmoji.toggleLabel': '喺對話框同訊息框顯示 emoji',
+  'dialogEmoji.explanationSummary': '呢個設定會改咩',
+  'dialogEmoji.explanation.plain':
+    '開咗之後，對話框同訊息框會喺標題側邊顯示一個 emoji，按照嗰個對話框嘅類型揀。閂咗之後，同一個對話框會用同樣嘅字，但冇 emoji。兩邊嘅字句完全一樣，而 emoji 唔會出現喺按鈕、動作名、欄位標籤，或者任何螢幕閱讀器讀出嘅內容入面。',
+  'dialogEmoji.explanation.light':
+    '開咗，對話框標題側邊會多咗一粒細細嘅 emoji，按類型揀啱嗰隻。閂咗，同一個對話框、同樣嘅字，少咗一幅圖啫。字句一個字都唔會改，emoji 亦都入唔到按鈕、動作名、欄位標籤，同埋螢幕閱讀器會讀嘅嘢。',
+  'dialogEmoji.explanation.playful':
+    '撳開佢，每個對話框都會喺標題側邊戴住一粒襯返場合嘅 emoji 出場。撳閂佢，同一個對話框素顏出場，講嘅嘢一個字都唔差。字句永遠唔會變，而粒 emoji 係唔准入按鈕、動作名、欄位標籤，同埋任何螢幕閱讀器會讀出嚟嘅位。',
+  'dialogEmoji.explanation.maximum':
+    '開咗，每個對話框都會喺標題側邊別住一粒 emoji，好似襟章咁襯返今次嘅場合。閂咗，同一個對話框冇襟章咁出場，講返一模一樣嘅字、一模一樣嘅句。粒襟章好清楚自己只係裝飾：佢入唔到按鈕、動作名、欄位標籤，亦都入唔到螢幕閱讀器會讀嘅內容，所以冇人需要靠估幅圖去知撳落去會做咩。',
+  'dialogEmoji.boundaryNote':
+    'Emoji 純粹係裝飾。佢會對螢幕閱讀器隱藏，亦都唔會出現喺按鈕、動作名或者欄位標籤入面。',
+  'dialogEmoji.provenanceDefault':
+    '呢部電腦未記錄過你嘅選擇，所以而家用緊出廠設定：{value}。',
+  'dialogEmoji.provenanceStored': '呢部電腦記錄咗你嘅選擇：{value}。',
+  'dialogEmoji.stateOn': '顯示',
+  'dialogEmoji.stateOff': '隱藏',
+  'palette.showDialogEmoji': '喺對話框同訊息框顯示 emoji',
+  'palette.showDialogEmojiDescription':
+    '喺對話框標題側邊加一粒裝飾用嘅 emoji。開定閂，字句都一模一樣，而 emoji 唔會入到按鈕、標籤或者螢幕閱讀器度。',
+  'settingsSearch.entry.appearanceDialogEmoji.title':
+    '喺對話框同訊息框顯示 emoji',
+  'settingsSearch.entry.appearanceDialogEmoji.desc':
+    '喺對話框標題加一粒 emoji 做裝飾，或者用返同樣嘅字但唔要 emoji。',
   'appearance.schoolModeHeading': '{name}',
   'appearance.schoolModeDescription':
     '{name}會強制使用英文，暫時收起廣東話、雙語、搞笑程度同點心顯示。呢個只係本地顯示鎖，唔係保安界線。',
@@ -13466,6 +15786,70 @@ export const cantoneseTranslations: Readonly<
   'changelog.empty.playful': '一個都夾唔到，今鋪篩選贏咗。',
   'changelog.empty.maximum':
     '一個版本都闖唔過呢啲篩選條件，篩選今鋪完勝，歷史今日放假。',
+  'docsBrowser.title': '功能說明書',
+  'docsBrowser.close': '閂咗說明書',
+  'docsBrowser.searchPlaceholder': '搵標題同內文',
+  'docsBrowser.searchField': '說明書',
+  'docsBrowser.categoriesLabel': '說明書分類',
+  'docsBrowser.categoryAll': '全部分類',
+  'docsBrowser.category.agentApi': 'Agent API',
+  'docsBrowser.category.collaboration': '協作',
+  'docsBrowser.category.designSystem': '設計系統',
+  'docsBrowser.category.identityAndWorkspace': '身分同工作區',
+  'docsBrowser.category.integrations': '整合',
+  'docsBrowser.category.linuxTui': 'Linux TUI',
+  'docsBrowser.category.qualityAndReliability': '品質同可靠度',
+  'docsBrowser.category.repositoryManagement': '存放庫管理',
+  'docsBrowser.category.reviewAndDiff': '審閱同 diff',
+  'docsBrowser.category.root': '總覽',
+  'docsBrowser.listLabel': '功能文章',
+  'docsBrowser.articleLabel': '說明書文章：{title}',
+  'docsBrowser.sourcePath': '來源：{path}',
+  'docsBrowser.selectArticle': '揀「{title}」',
+  'docsBrowser.selectionCount': '揀咗 {count} 篇',
+  'docsBrowser.selectAllMatches': '揀晒夾到嘅 {count} 篇文章',
+  'docsBrowser.selectAllArticles': '揀晒全部 {count} 篇文章',
+  'docsBrowser.invertSelection': '反轉揀選',
+  'docsBrowser.clearSelection': '清走揀選',
+  'docsBrowser.selectionHint':
+    '撳空白鍵揀住個焦點文章，撳住 Shift 再 click 就揀一段，Ctrl+A 揀晒清單入面全部。',
+  'docsBrowser.export': '匯出',
+  'docsBrowser.exportMenuLabel': '匯出揀咗嘅文章',
+  'docsBrowser.exportMarkdown': '匯出做 Markdown',
+  'docsBrowser.exportText': '匯出做純文字',
+  'docsBrowser.exportJson': '匯出做 JSON',
+  'docsBrowser.exported': '已經匯出 {count} 篇文章去 {path}。',
+  'docsBrowser.exportFailed': '今次冇寫到匯出檔案：{message}',
+  'docsBrowser.exportEmpty': '最少揀一篇文章先可以匯出。',
+  'docsBrowser.deleteLabel': '刪除',
+  'docsBrowser.deleteUnavailable':
+    '呢啲文章係跟住個 app 一齊入面嚟，只可以讀，所以冇嘢刪得。想留底就匯出揀咗嗰啲啦。',
+  'docsBrowser.linkUnbundled':
+    '個連結指去 {path}，但係嗰個唔係內置嘅功能文章之一。',
+  'docsBrowser.linkSection':
+    '個連結指去你而家睇緊呢篇文章嘅「{section}」嗰段。',
+  'docsBrowser.linkOpened': '已經開咗「{title}」。',
+  'docsBrowser.linkUnreadable': '呢個連結讀唔到：{href}',
+  'docsBrowser.linkExternal': '而家用你部瀏覽器開 {href}。',
+  'docsBrowser.searchInvalid': '呢個 pattern 冇搵到嘢做：{message}',
+  'docsBrowser.resetSearch': '清走搜尋',
+  'docsBrowser.offlineNote':
+    '全部文章都係跟住呢個 build 入面，唔使上網下載，斷晒網一樣睇得。',
+  'docsBrowser.summary.plain': '{total} 篇文章入面顯示 {shown} 篇。',
+  'docsBrowser.summary.light': '{total} 篇文章入面而家睇緊 {shown} 篇。',
+  'docsBrowser.summary.playful':
+    '喺 {total} 篇文章度捉咗 {shown} 篇出嚟排好隊等你睇。',
+  'docsBrowser.summary.maximum':
+    '喺 {total} 篇文章嘅書架度捧咗 {shown} 篇出嚟，抹到閃令令排定隊等你翻。',
+  'docsBrowser.empty.plain': '冇文章夾到 {query}。',
+  'docsBrowser.empty.light': '成本說明書都冇嘢夾到 {query}。',
+  'docsBrowser.empty.playful': '一篇文章都唔認識 {query} 呢樣嘢。',
+  'docsBrowser.empty.maximum':
+    '每篇文章都摷晒個袋，冇一篇聽過 {query} 呢個名。',
+  'palette.docsBrowser': '揭功能說明書',
+  'palette.docsBrowserDescription':
+    '開內置嘅離線說明書，成套功能文章都係跟住個 app 入面，唔使上網。',
+  'commandPalette.groupDocumentation': '說明書',
   'dimSum.region': '點心驚喜',
   'dimSum.dismiss': '收起點心驚喜',
   'dimSum.romanization': '讀做 {jyutping}',
@@ -14103,6 +16487,174 @@ export const cantoneseTranslations: Readonly<
   'md3.paneHeader.repository': 'Repo {name}',
   'md3.paneHeader.branch': '分支 {name}',
   'md3.paneHeader.progress': '{operation}，做咗 {percent}%',
+  'md3.repositories.searchPlaceholder': '搵 repo、組織或者語言',
+  'md3.repositories.dismissNotice': '收埋呢句嘢',
+  'md3.repositories.searchFieldName': '啲 repo',
+  'md3.repositories.filtersLabel': 'Repo 篩選',
+  'md3.repositories.hasChanges': '有改動',
+  'md3.repositories.clone': 'Clone',
+  'md3.repositories.addLocal': '加本機',
+  'md3.repositories.pullAll': '全部 pull',
+  'md3.repositories.pullAllName': '全部 pull 篩選出嚟嘅 {count} 個 repo',
+  'md3.repositories.selectMultiple': '一次揀幾個 repo',
+  'md3.repositories.listLabel': 'Repo 清單',
+  'md3.repositories.empty': '冇 repo 啱呢個篩選。',
+  'md3.repositories.invalidPattern': '呢條正則寫唔通，所以乜都冇篩走。',
+  'md3.repositories.meta': '{path} · 上次 fetch：{when}',
+  'md3.repositories.neverFetched': '未 fetch 過',
+  'md3.repositories.detail':
+    '{language} · {size} · {branch} · {remotes} · {changes}',
+  'md3.repositories.languageUnknown': '認唔到語言',
+  'md3.repositories.size': '{size} MB',
+  'md3.repositories.sizeUnknown': '未量過大細',
+  'md3.repositories.branchAheadBehind': '{branch} ↑{ahead} ↓{behind}',
+  'md3.repositories.branchInSync': '{branch} 同步緊',
+  'md3.repositories.branchNotChecked': '{branch} 未查過',
+  'md3.repositories.branchNoUpstream': '{branch} 冇上游',
+  'md3.repositories.branchDetached': 'HEAD 甩咗 branch',
+  'md3.repositories.branchEmpty': '重未有 commit',
+  'md3.repositories.branchCloning': 'clone 緊',
+  'md3.repositories.branchMissing': '磁碟度搵唔到',
+  'md3.repositories.branchNone': '冇 branch',
+  'md3.repositories.remotes': '{count} 個 remote',
+  'md3.repositories.remotesOne': '1 個 remote',
+  'md3.repositories.changes': '{count} 個改動',
+  'md3.repositories.changesOne': '1 個改動',
+  'md3.repositories.clean': '乾淨',
+  'md3.repositories.changesUnknown': '未查過',
+  'md3.repositories.open': '打開',
+  'md3.repositories.openName': '打開 {name}',
+  'md3.repositories.current': '而家用緊',
+  'md3.repositories.rowMenu': '{name} 嘅動作',
+  'md3.repositories.rowMenuHint': 'Fetch、移除、開資料夾、設定',
+  'md3.repositories.pinnedFlag': '釘咗',
+  'md3.repositories.hiddenFlag': '收埋咗',
+  'md3.repositories.missingFlag': '搵唔到',
+  'md3.repositories.selectRow': '揀 {name}',
+  'md3.repositories.bulkRegion': '批次 repo 動作',
+  'md3.repositories.selectAllVisible': '揀晒眼前 {count} 個',
+  'md3.repositories.selectionScope':
+    '「揀晒」淨係包篩選而家見到嘅 {shown} 個 repo，唔係全部 {total} 個。',
+  'md3.repositories.selectedCount': '揀咗 {count} 個',
+  'md3.repositories.invertSelection': '反轉揀嘅嘢',
+  'md3.repositories.clearSelection': '清走揀咗嘅嘢',
+  'md3.repositories.exitSelection': '揀完',
+  'md3.repositories.groupFieldLabel': '組名',
+  'md3.repositories.groupFieldPlaceholder': '舊組或者開個新組',
+  'md3.repositories.bulkFetch': 'Fetch',
+  'md3.repositories.bulkPull': 'Pull',
+  'md3.repositories.bulkOpen': '打開',
+  'md3.repositories.bulkFavorite': '釘住',
+  'md3.repositories.bulkUnfavorite': '唔釘',
+  'md3.repositories.bulkAssignGroup': '放入組',
+  'md3.repositories.bulkRemoveGroup': '踢出組',
+  'md3.repositories.bulkExport': '匯出',
+  'md3.repositories.bulkRemove': '喺清單度移除',
+  'md3.repositories.bulkActionName': '對揀咗嘅 {count} 個 repo{action}',
+  'md3.repositories.runRegion': 'Repo 批次進度',
+  'md3.repositories.runCount': '{total} 個做咗 {completed} 個',
+  'md3.repositories.runProgressText': '{operation}，做咗 {percent}%',
+  'md3.repositories.runCancelling':
+    '取消緊。行緊嗰個做完先停，跟住嗰啲唔會開始。',
+  'md3.repositories.runSummary':
+    '{total} 個之中 {done} 個成功 · {failed} 個失敗 · {skipped} 個跳過 · {remaining} 個未開始',
+  'md3.repositories.runResults': '每個 repo 嘅結果',
+  'md3.repositories.runNoDetail': '冇詳細講',
+  'md3.repositories.runCancel': '取消',
+  'md3.repositories.runCancelName': '取消{operation}',
+  'md3.repositories.runDismiss': '收埋呢啲結果',
+  'md3.repositories.runStatusQueued': '排緊隊',
+  'md3.repositories.runStatusRunning': '行緊',
+  'md3.repositories.runStatusDone': '搞掂',
+  'md3.repositories.runStatusFailed': '失敗',
+  'md3.repositories.runStatusSkipped': '跳咗',
+  'md3.repositories.runStatusCancelled': '未行過',
+  'md3.repositories.removeEyebrow': '破壞性動作',
+  'md3.repositories.removeTitle': '真係要喺清單度移除呢 {count} 個 repo？',
+  'md3.repositories.removeTitleOne': '真係要喺清單度移除呢個 repo？',
+  'md3.repositories.removeDescription':
+    '呢度唔會再跟住佢哋。磁碟上面乜都唔會刪，之後想加返都得。',
+  'md3.repositories.removeListLabel': '會被移除嘅 repo',
+  'md3.repositories.removeKeysLegend': '授權呢一次移除',
+  'md3.repositories.removeKeyList': '我睇咗上面張清單，冇錯就係要移除呢啲。',
+  'md3.repositories.removeKeyDisk':
+    '我明白呢 {count} 個檔案仲喺磁碟度，遲啲可以加返。',
+  'md3.repositories.removeSlider': '拉到盡先可以授權移除（{percent}%）',
+  'md3.repositories.removeSliderName': '全程移除授權',
+  'md3.repositories.removeSliderValue': '授權咗 {percent}%',
+  'md3.repositories.removeStateLocked': '兩個確認都要剔咗，個滑桿先郁得。',
+  'md3.repositories.removeStateMoving': '繼續拉到最尾先算授權。',
+  'md3.repositories.removeStateReady': '授權完成。撳「喺清單度移除」就完成。',
+  'md3.repositories.removeConfirm': '喺清單度移除',
+  'md3.repositories.removeCancel': '緊急退出',
+  'md3.actions.filterPlaceholder': '篩 workflow run',
+  'md3.actions.runFieldLabel': 'workflow run',
+  'md3.actions.logPlaceholder': '搵 log 內容',
+  'md3.actions.logFieldLabel': '份 log',
+  'md3.actions.chipRowLabel': 'Workflow run 篩選',
+  'md3.actions.moreFilters': '仲有更多 workflow run 篩選',
+  'md3.actions.selectRuns': '揀 workflow run',
+  'md3.actions.dispatch': '行 workflow',
+  'md3.actions.filtersHeading': 'Workflow run 篩選',
+  'md3.actions.filterWorkflow': 'Workflow',
+  'md3.actions.filterBranch': 'Branch',
+  'md3.actions.filterEvent': 'Event',
+  'md3.actions.filterStatus': '狀態',
+  'md3.actions.resetFilters': '重設篩選',
+  'md3.actions.bulkLabel': '批量 workflow run 動作',
+  'md3.actions.selectAllVisible': '揀晒睇得到嗰啲',
+  'md3.actions.selectedCount': '揀咗 {count} 個',
+  'md3.actions.bulkRerun': '重跑做完嗰啲（{count}）',
+  'md3.actions.bulkCancel': '取消仲行緊嗰啲（{count}）',
+  'md3.actions.clearSelection': '清走揀咗嘅',
+  'md3.actions.selectRun': '揀 workflow run {name}',
+  'md3.actions.runList': 'Workflow run',
+  'md3.actions.runMeta': '#{number} · {branch} · {event} · {duration}',
+  'md3.actions.runDetail':
+    '{status} · 由 {actor} 撳起 · {sha} · {jobs} 個 job · {time} · 第 {attempt} 次',
+  'md3.actions.rerun': '重跑',
+  'md3.actions.rerunRun': '重跑 {name}',
+  'md3.actions.runMenuFor': '{name} 嘅動作',
+  'md3.actions.runMenuHint': '重跑失敗 job、取消、睇 log',
+  'md3.actions.noRuns': '冇 workflow run 啱呢個篩選。',
+  'md3.actions.showMoreRuns': '睇多啲 run',
+  'md3.actions.pagination':
+    '載咗 {loaded} 個（總共 {total} 個）workflow run，其中 {shown} 個啱篩選。',
+  'md3.actions.loadMoreRuns': '載多啲 run',
+  'md3.actions.loadingMore': '載緊…',
+  'md3.actions.loadAllRuns': '全部載晒',
+  'md3.actions.stopLoading': '唔好載住',
+  'md3.actions.detailLabel': '揀咗嘅 workflow run',
+  'md3.actions.detailHeading': '{name} · #{number} · {branch}',
+  'md3.actions.rerunFailed': '重跑失敗嗰啲',
+  'md3.actions.rerunFailedFor': '重跑 {name} 失敗嗰啲 job',
+  'md3.actions.paneMenu': '更多',
+  'md3.actions.runToolbar': 'Workflow run 動作',
+  'md3.actions.attempt': '睇邊次嘗試嘅 job',
+  'md3.actions.attemptOption': '第 {attempt} 次',
+  'md3.actions.attemptLatest': '第 {attempt} 次（最新）',
+  'md3.actions.cancelRun': '取消呢個 run',
+  'md3.actions.fixCiLocally': '喺本機修 CI',
+  'md3.actions.fixCiLocallyHint':
+    '用 Codex 或者 OpenCode 喺本機修好、驗證完先 push，跟住雲端 CI 就會行',
+  'md3.actions.artifacts': 'Artifact',
+  'md3.actions.openOnGitHub': '喺 GitHub 度睇',
+  'md3.actions.jobList': 'Job 同步驟',
+  'md3.actions.jobsLoading': '載緊 job…',
+  'md3.actions.jobsTruncated': 'GitHub 剪短咗呢張 job 清單，重新載入睇返晒。',
+  'md3.actions.loadMoreJobs': '載多啲 job',
+  'md3.actions.reloadJobs': '重新載入 job',
+  'md3.actions.rerunJob': '重跑 job {name}',
+  'md3.actions.jobOnGitHub': '喺 GitHub 開 {name}',
+  'md3.actions.noRunSelected': '揀個 workflow run 就會見到佢啲 job 同 log。',
+  'md3.actions.logRegion': 'Job log',
+  'md3.actions.logLoading': '下載緊 job log…',
+  'md3.actions.logExpired': '呢啲 workflow log 喺 GitHub 度過咗期喇。',
+  'md3.actions.logRetry': '再試多次',
+  'md3.actions.logEmpty': '暫時未有 log 輸出。',
+  'md3.actions.logNoMatch': '冇 log 行啱呢個搜尋。',
+  'md3.actions.logShowMore': '睇多啲 log',
+  'md3.actions.logShowing': '顯示緊 {total} 行 log 入面嘅 {shown} 行。',
   'md3.drawer.label': '主導覽',
   'md3.drawer.destinations': '目的地',
   'md3.drawer.commit': '提交',
@@ -14133,4 +16685,680 @@ export const cantoneseTranslations: Readonly<
   'md3.toast.undo': '返轉頭',
   'md3.toast.dismiss': '收咗呢個通知',
   'md3.toast.region': '通知',
+  'md3.inbox.pane': '通知',
+  'md3.inbox.list': '通知',
+  'md3.inbox.filters': '通知篩選',
+  'md3.inbox.searchPlaceholder': '搵通知',
+  'md3.inbox.searchField': '通知',
+  'md3.inbox.invalidPattern': '個 regex 仲未啱用，所以啲通知全部照樣顯示緊。',
+  'md3.inbox.chip.unread': '未睇',
+  'md3.inbox.chip.failures': '炒咗嘅',
+  'md3.inbox.chip.mentions': '有人叫你',
+  'md3.inbox.markAllRead': '全部當睇咗',
+  'md3.inbox.muted': '靜咗音',
+  'md3.inbox.state.read': '睇咗',
+  'md3.inbox.state.unread': '未睇',
+  'md3.inbox.tone.success': '搞掂',
+  'md3.inbox.tone.failure': '炒咗',
+  'md3.inbox.tone.info': '資訊',
+  'md3.inbox.detail': '{source} · {state} · {tone}',
+  'md3.inbox.detailNoSource': '{state} · {tone}',
+  'md3.inbox.row.select': '揀「{title}」',
+  'md3.inbox.row.markRead': '將「{title}」當睇咗',
+  'md3.inbox.row.markUnread': '將「{title}」當未睇',
+  'md3.inbox.row.delete': '刪咗「{title}」',
+  'md3.inbox.row.received': '{timestamp} 收到',
+  'md3.inbox.selectAllFiltered': '揀晒篩選後嘅 {count} 個',
+  'md3.inbox.selectAllEverything': '揀晒全部 {count} 個通知',
+  'md3.inbox.selectionCount': '揀咗 {count} 個',
+  'md3.inbox.invertSelection': '反轉揀嘅嘢',
+  'md3.inbox.bulkMarkRead': '當睇咗',
+  'md3.inbox.bulkMarkReadScoped': '{label} — {scope}',
+  'md3.inbox.bulkMarkUnread': '當未睇',
+  'md3.inbox.bulkMarkUnreadScoped': '{label} — {scope}',
+  'md3.inbox.bulkDelete': '刪咗佢',
+  'md3.inbox.bulkDeleteScoped': '{label} — {scope}',
+  'md3.inbox.bulkExport': '匯出',
+  'md3.inbox.bulkExportScoped': '{label} — {scope}',
+  'md3.inbox.moreActions': '通知仲有其他動作',
+  'md3.inbox.empty.noMatch': '冇通知配到呢個搜尋或者篩選。',
+  'md3.inbox.empty.caughtUp': '全部睇晒喇，好嘢。',
+  'md3.inbox.scope.selection': '揀咗嘅 {count} 個通知',
+  'md3.inbox.scope.filtered': '篩選後嘅 {count} 個通知',
+  'md3.inbox.scope.all': '全部 {count} 個通知',
+  'md3.inbox.scope.one': '{count} 個通知',
+  'md3.inbox.undo': '返轉頭',
+  'md3.inbox.toast.opened': '開咗：{title}',
+  'md3.inbox.toast.deleted': '刪咗「{title}」',
+  'md3.inbox.toast.deletedMany': '刪咗 {count} 個通知',
+  'md3.inbox.toast.markedRead': '將 {count} 個通知當睇咗',
+  'md3.inbox.toast.markedUnread': '將 {count} 個通知當未睇',
+  'md3.inbox.toast.allRead': '全部通知都當睇咗喇',
+  'md3.inbox.toast.exported': '用 {format} 匯出咗 {count} 個通知',
+  'md3.inbox.toast.selectedAll': '揀晒全部 {count} 個通知',
+  'md3.inbox.toast.muted': '「{title}」條 thread 靜咗音',
+  'md3.inbox.toast.unmuted': '「{title}」條 thread 開返聲',
+  'md3.inbox.rowMenu.unmute': '開返呢條 thread 嘅聲',
+  'md3.inbox.rowMenu.automations': '通知自動化…',
+  'md3.inbox.rowMenu.select': '揀呢個通知',
+  'md3.inbox.rowMenu.deselect': '唔揀呢個通知',
+  'md3.inbox.rowMenu.copyDetails': 'copy 埋啲詳情',
+  'md3.inbox.rowMenu.exportOne': '匯出呢個通知…',
+  'md3.inbox.listMenu.title': '通知清單',
+  'md3.inbox.listMenu.selectFiltered': '揀晒篩選後嘅 {count} 個',
+  'md3.inbox.listMenu.selectEverything': '揀晒全部 {count} 個通知',
+  'md3.inbox.listMenu.invert': '反轉揀嘅嘢',
+  'md3.inbox.listMenu.clearSelection': '唔揀住先',
+  'md3.inbox.listMenu.deleteScope': '刪咗 {count} 個通知…',
+  'md3.inbox.listMenu.export': '匯出 {count} 個通知…',
+  'md3.inbox.listMenu.history': '通知歷史…',
+  'md3.inbox.listMenu.githubInbox': 'GitHub 通知…',
+  'md3.inbox.exportMenu.title': '匯出通知',
+  'md3.inbox.exportMenu.filterPlaceholder': '篩選格式',
+  'md3.diffPane.region': '差異',
+  'md3.diffPane.linesRegion': '差異行',
+  'md3.diffPane.noFile': '未揀檔案',
+  'md3.diffPane.empty': '呢個檔案冇文字改動。',
+  'md3.diffPane.searchField': '差異',
+  'md3.diffPane.searchPlaceholder': '喺差異度搵嘢',
+  'md3.diffPane.details': '詳情',
+  'md3.diffPane.detailsName': '呢個 commit 嘅詳情',
+  'md3.diffPane.includeHunk': '加埋呢段',
+  'md3.diffPane.includeHunkName': '將呢段改動加入 commit',
+  'md3.diffPane.wrap': '自動換行',
+  'md3.diffPane.diffOptions': '差異選項',
+  'md3.diffPane.fileTabs': '呢個 commit 入面嘅檔案',
+  'md3.diffPane.fileTabName': '{name} — {path}，+{added} −{deleted}',
+  'md3.changes.searchField': '改咗嘅檔案',
+  'md3.changes.searchPlaceholder': '篩選改咗嘅檔案',
+  'md3.changes.filters': '改動檔案篩選',
+  'md3.changes.includeAll': '{total} 個入面揀咗 {included} 個',
+  'md3.changes.changesMenu': '掉咗、唔理、擺埋一邊',
+  'md3.changes.list': '改咗嘅檔案',
+  'md3.changes.include': '將「{name}」加入 commit',
+  'md3.changes.rowMenu': '掉咗、唔理、開資料夾睇「{name}」',
+  'md3.changes.fileMenu': '用編輯器開、掉咗、唔理',
+  'md3.changes.status.new': '新檔案',
+  'md3.changes.status.deleted': '刪咗',
+  'md3.changes.status.modified': '改咗',
+  'md3.changes.state.included': '會 commit',
+  'md3.changes.state.excluded': '唔 commit',
+  'md3.changes.empty': '冇改咗嘅檔案啱呢個篩選。',
+  'md3.changes.composer': 'Commit 訊息編輯區',
+  'md3.changes.avatar': '用「{name}」身份 commit',
+  'md3.changes.summaryPlaceholder': '摘要（一定要填）',
+  'md3.changes.descriptionPlaceholder': '詳細講吓',
+  'md3.changes.copilot': '叫 Copilot 幫你寫訊息',
+  'md3.changes.coAuthors': '共同作者',
+  'md3.changes.coAuthorsName': '共同作者 — 記低同你一齊做嘅人',
+  'md3.changes.summaryHint': '{count}/{limit}',
+  'md3.changes.summaryHintLong': '{count}/{limit} — 摘要有啲長',
+  'md3.changes.commitTo': 'Commit 落 {branch}',
+  'md3.changes.commitNeedsSummary': '一定要有摘要 — 撳落去會開埋編輯區',
+  'md3.changes.commitAndPush': '一撳就 commit 埋推上去',
+  'md3.agents.sessionsPane': '代理工作階段',
+  'md3.agents.conversationPane': '同代理傾嘅嘢',
+  'md3.agents.listLabel': '代理工作階段',
+  'md3.agents.actionsLabel': '代理工作階段動作',
+  'md3.agents.searchPlaceholder': '搵代理工作階段',
+  'md3.agents.searchFieldLabel': '代理工作階段',
+  'md3.agents.newSession': '開個新嘅',
+  'md3.agents.agentAccess': '代理權限',
+  'md3.agents.emptyNoMatches': '搵唔到夾嘅代理工作階段。',
+  'md3.agents.emptyNoSessions': '仲未有代理工作階段。',
+  'md3.agents.state.running': '行緊',
+  'md3.agents.state.done': '搞掂',
+  'md3.agents.state.paused': '暫停咗',
+  'md3.agents.state.error': '出咗事',
+  'md3.agents.state.idle': '閒置',
+  'md3.agents.meta.started': '{agent} · {time}開始',
+  'md3.agents.meta.notStarted': '{agent} · 仲未開始',
+  'md3.agents.meta.branchStarted': '{agent} · {branch} · {time}開始',
+  'md3.agents.meta.branchNotStarted': '{agent} · {branch} · 仲未開始',
+  'md3.agents.detail.model': '模型 {model}',
+  'md3.agents.detail.noModel': '冇報模型',
+  'md3.agents.detail.turns': '{count} 個回合',
+  'md3.agents.detail.oneTurn': '1 個回合',
+  'md3.agents.elapsed.seconds': '{seconds} 秒',
+  'md3.agents.elapsed.minutes': '{minutes} 分 {seconds} 秒',
+  'md3.agents.elapsed.hours': '{hours} 個鐘 {minutes} 分',
+  'md3.agents.badge.main': '主工作樹',
+  'md3.agents.badge.locked': '鎖咗',
+  'md3.agents.badge.missing': '唔見咗',
+  'md3.agents.noSelection': '未揀工作階段',
+  'md3.agents.noSelectionHint': '喺左邊揀個工作階段，就睇到佢傾過啲乜。',
+  'md3.agents.noTurns': '呢個工作階段仲未出過任何嘢。',
+  'md3.agents.conversationLabel': '同「{name}」傾嘅嘢',
+  'md3.agents.role.you': '你',
+  'md3.agents.role.error': '錯誤',
+  'md3.agents.pause': '暫停',
+  'md3.agents.resume': '繼續',
+  'md3.agents.pauseAccessibleName': '{label}「{name}」',
+  'md3.agents.resumeAccessibleName': '{label}「{name}」',
+  'md3.agents.more': '仲有其他工作階段動作',
+  'md3.agents.instructionPlaceholder': '打個指示畀佢',
+  'md3.agents.send': '寄出',
+  'md3.agents.sendAccessibleName': '{label}指示畀「{name}」',
+  'md3.agents.nothingToSend': '冇嘢可以寄',
+  'md3.terminal.region': '終端機',
+  'md3.terminal.shells': 'Shell session 一覽',
+  'md3.terminal.newShell': '開個新 shell',
+  'md3.terminal.closeShell': '閂咗 {shell}',
+  'md3.terminal.restart': '重開',
+  'md3.terminal.restartName': '重開 {shell}',
+  'md3.terminal.stop': '停',
+  'md3.terminal.stopName': '停低 {shell} 行緊嗰個指令',
+  'md3.terminal.searchPlaceholder': '搵吓終端機輸出',
+  'md3.terminal.searchField': '終端機輸出',
+  'md3.terminal.output': '{shell} 嘅輸出',
+  'md3.terminal.truncated':
+    '而家淨係顯示最後 {shown} 行，總共 {total} 行。搵嘢仲係搵晒全部㗎。',
+  'md3.terminal.noMatches': '冇輸出啱。',
+  'md3.terminal.noOutput': '呢個 shell 仲未出過嘢。',
+  'md3.terminal.clearSearch': '清走個搜尋',
+  'md3.terminal.noSessions': '一個 shell 都未開。',
+  'md3.terminal.openShell': '開個 shell',
+  'md3.terminal.inputPlaceholder': '入個指令嚟行',
+  'md3.terminal.inputLabel': '喺 {shell} 嘅 {prompt} 度行嘅指令',
+  'md3.terminal.run': '行',
+  'md3.terminal.runName': '喺 {shell} 度行呢個指令',
+  'md3.terminal.nothingToRun': '冇嘢可以行',
+  'md3.terminal.status.connecting': '開緊機',
+  'md3.terminal.status.ready': '準備好',
+  'md3.terminal.status.running': '行緊指令',
+  'md3.terminal.status.exited': '已經收咗工',
+  'md3.terminal.status.error': '開唔到',
+  'md3.branches.filterPlaceholder': '篩分支',
+  'md3.branches.fieldLabel': '分支',
+  'md3.branches.chipsLabel': '分支篩選',
+  'md3.branches.listLabel': '分支',
+  'md3.branches.newBranch': '開新分支',
+  'md3.branches.mergeAll': '全部合併',
+  'md3.branches.mergeAllRunning': '{label} — 做緊喇',
+  'md3.branches.mergeAllProgress': '合併緊全部分支，做咗 {completed}/{total}',
+  'md3.branches.mergeAllProgressBranch':
+    '合併緊「{branch}」，做咗 {completed}/{total}',
+  'md3.branches.empty': '冇分支啱呢個篩選。',
+  'md3.branches.current': '而家呢個',
+  'md3.branches.checkout': '轉去',
+  'md3.branches.checkoutLabel': '轉去「{name}」',
+  'md3.branches.rowLabel': '{name}，{group}',
+  'md3.branches.rowMenu': '「{name}」嘅動作',
+  'md3.branches.rowMenuHint': '合併、改名、刪走、開 PR',
+  'md3.branches.aheadLabel': '快咗 {count} 個 commit',
+  'md3.branches.behindLabel': '慢咗 {count} 個 commit',
+  'md3.branches.group.current': '而家呢個',
+  'md3.branches.group.local': '本機',
+  'md3.branches.group.remote': '遠端',
+  'md3.branches.detail.tip': '頂端 {sha}',
+  'md3.branches.detail.tracks': '跟住 {upstream}',
+  'md3.branches.detail.trackingRemote': '跟住 origin',
+  'md3.branches.detail.untracked': '冇上游',
+  'md3.branches.detail.diverged': '↑{ahead} ↓{behind}',
+  'md3.branches.detail.inSync': '同步齊晒',
+  'md3.branches.detail.pullRequest': 'PR #{number} {state}',
+  'md3.branches.action.merge': '合併入「{branch}」',
+  'md3.branches.action.rebase': '重訂基底去「{branch}」',
+  'md3.branches.action.openPullRequest': '開 pull request',
+  'md3.branches.action.rename': '改分支個名…',
+  'md3.branches.action.delete': '刪走分支…',
+  'md3.branches.action.mergeAndDelete': '合併完再刪走…',
+  'md3.branches.action.compare': '同呢個分支比較',
+  'md3.branches.action.copyName': '複製分支名',
+  'md3.branches.action.pin': '釘住分支',
+  'md3.branches.action.unpin': '唔釘住分支',
+  'md3.branches.action.hide': '收埋分支',
+  'md3.branches.action.solo': '淨係睇呢個分支',
+  'md3.branches.action.restoreVisibility': '全部分支show返出嚟',
+  'md3.branches.action.checkoutInNewWorktree': '喺新工作樹度轉去…',
+  'md3.branches.action.switchToWorktree': '轉去現有工作樹',
+  'md3.branches.action.viewOnForge': '喺網站度睇呢個分支',
+  'md3.branches.action.viewPullRequestOnForge': '喺網站度睇個 pull request',
+  'md3.branches.list.sortByName': '照個名排',
+  'md3.branches.list.sortByNameActive': '照個名排（而家用緊）',
+  'md3.branches.list.sortByRecent': '照最近郁過排',
+  'md3.branches.list.sortByRecentActive': '照最近郁過排（而家用緊）',
+  'md3.branches.list.pullRequests': '睇 pull request',
+  'md3.branches.list.fetchRemotes': '攞返遠端分支',
+  'md3.branches.list.bulkDelete': '一次過刪走幾個分支…',
+  'md3.locks.title': '鎖',
+  'md3.locks.subtitle':
+    '所有喺分頁、分頁群組同外觀設定上面嘅鎖。每一把鎖有佢自己嘅密碼，唔會互通。',
+  'md3.locks.search.placeholder': '搵鎖',
+  'md3.locks.search.fieldLabel': '啲鎖',
+  'md3.locks.empty.none':
+    '而家一把鎖都冇。喺分頁嘅右掣選單，或者外觀編輯器度加一把。',
+  'md3.locks.empty.noMatch': '呢個搜尋冇對到任何一把鎖。',
+  'md3.locks.list.label': '啲鎖',
+  'md3.locks.surface.tab': '分頁',
+  'md3.locks.surface.tabGroup': '分頁群組',
+  'md3.locks.surface.appearanceProperty': '外觀數值',
+  'md3.locks.surface.appearanceElement': '外觀元件',
+  'md3.locks.surface.appearancePreset': '外觀預設',
+  'md3.locks.factor.password': '密碼',
+  'md3.locks.factor.otp': '一次性密碼',
+  'md3.locks.row.created': '{date} 整嘅',
+  'md3.locks.row.lockOnLaunch': '開 App 就再鎖返',
+  'md3.locks.row.unlockedUntil': '解咗鎖，去到 {time} 為止',
+  'md3.locks.row.unlockedSession': '解咗鎖，閂 App 之前都唔使再解',
+  'md3.locks.row.unlockedSurface': '解咗鎖，你唔行開就一路開住',
+  'md3.locks.row.locked': '鎖住',
+  'md3.locks.row.select': '揀 {label} 嗰把鎖',
+  'md3.locks.row.edit': '改 {label} 嗰把鎖',
+  'md3.locks.row.remove': '除咗 {label} 嗰把鎖',
+  'md3.locks.row.lockAgain': '而家即刻再鎖返 {label}',
+  'md3.locks.duration.surface': '淨係呢一版',
+  'md3.locks.duration.minutes': '指定幾多分鐘',
+  'md3.locks.duration.session': '直至閂咗 App',
+  'md3.locks.duration.minutesValue': '{minutes} 分鐘',
+  'md3.locks.selection.count': '揀咗 {selected} 個，一共 {total} 個',
+  'md3.locks.selection.selectAllFiltered':
+    '揀晒呢個搜尋 show 緊嘅 {count} 把鎖',
+  'md3.locks.selection.selectAllEverything':
+    '揀晒全部 {count} 把鎖，連搜尋收埋咗嗰啲都要',
+  'md3.locks.selection.invert': '反轉揀嘅嘢',
+  'md3.locks.selection.clear': '唔揀住任何一個',
+  'md3.locks.bulk.remove': '除咗 {count} 把鎖…',
+  'md3.locks.bulk.export': '匯出 {count} 把鎖',
+  'md3.locks.bulk.exportFormat': '匯出格式',
+  'md3.locks.toast.exported':
+    '用 {format} 匯出咗 {count} 把鎖。密碼同一次性密碼嘅秘密永遠唔會喺入面。',
+  'md3.locks.toast.removed': '除咗 {count} 把鎖。',
+  'md3.locks.toast.added': '{label} 鎖咗。淨係呢把鎖自己嗰個密碼開得到佢。',
+  'md3.locks.toast.updated': '改咗 {label} 嗰把鎖。',
+  'md3.locks.toast.unlocked': '{label} 解咗鎖。',
+  'md3.locks.toast.relocked': '{label} 再鎖返咗。',
+  'md3.locks.toast.selectedAll': '揀晒全部 {count} 把鎖。',
+  'md3.locks.gate.eyebrow': '收唔返轉頭',
+  'md3.locks.gate.title': '真係要除咗 {count} 把鎖？',
+  'md3.locks.gate.description':
+    '呢下會除咗 {count} 把鎖（{scope}），順手唔記得晒佢哋各自存住嗰個密碼記錄。啲版面同入面啲嘢一樣都唔會少。',
+  'md3.locks.gate.keysLegend': '兩條匙都要扭',
+  'md3.locks.gate.keyCount': '我要除咗 {count} 把鎖',
+  'md3.locks.gate.keyScope': '我睇清楚係邊幾把：{scope}',
+  'md3.locks.gate.sliderLabel': '推到盡先算批准（{percent}%）',
+  'md3.locks.gate.sliderValue': '推咗 {percent}%',
+  'md3.locks.gate.statusLocked': '兩條匙都扭埋，條桿先郁得。',
+  'md3.locks.gate.statusReady': '兩條匙扭好晒。推到盡就批准。',
+  'md3.locks.gate.statusMoving': '繼續推…',
+  'md3.locks.gate.statusAuthorized': '批准咗。而家撳得「除咗佢」。',
+  'md3.locks.gate.emergencyExit': '緊急走佬',
+  'md3.locks.gate.confirm': '除咗 {count} 把鎖',
+  'md3.locks.setup.title': '鎖住 {label}',
+  'md3.locks.setup.titleEdit': '改 {label} 嗰把鎖',
+  'md3.locks.setup.close': '唔存檔，閂咗佢',
+  'md3.locks.setup.factorLegend': '呢把鎖點樣開',
+  'md3.locks.setup.factorPassword': '用個密碼',
+  'md3.locks.setup.factorOtp': '用你 authenticator 嗰個一次性密碼',
+  'md3.locks.setup.otpUnavailable':
+    '一次性密碼要靠 App 自己嗰個 authenticator，而家仲未有得用。',
+  'md3.locks.setup.password': '呢把鎖嘅密碼',
+  'md3.locks.setup.passwordConfirm': '再打多次',
+  'md3.locks.setup.otpAccount': '呢把鎖用邊個 authenticator 記錄',
+  'md3.locks.setup.otpAccountHint':
+    '係 App authenticator 入面嗰個記錄嘅名嚟。個秘密本身 App 唔會攞出嚟睇。',
+  'md3.locks.setup.durationLegend': '解一次鎖用得幾耐',
+  'md3.locks.setup.lockOnLaunch': '開 App 嗰陣自動再鎖返',
+  'md3.locks.setup.forFun':
+    '呢個純粹好玩。唔係保安，冇加密，第二個人攞到部電腦一樣入到去。',
+  'md3.locks.setup.recovery':
+    '唔記得密碼？刪咗呢個資料夾，全部鎖一齊冇埋：{folder}',
+  'md3.locks.setup.recoveryUnknown':
+    '唔記得密碼？刪咗 App 嗰個本機資料夾就全部鎖一齊冇。不過而家攞唔到個確實路徑。',
+  'md3.locks.setup.explanationShow': '呢樣做乜㗎？',
+  'md3.locks.setup.explanationHide': '收埋個解釋',
+  'md3.locks.setup.explanation':
+    '鎖咗嘅版面個名照樣睇到，旁邊多粒鎖。撳入去就淨係問呢把鎖自己嗰個密碼：解咗一把唔會順手解埋第二把，鎖住嘅分頁入面再鎖住個數值，就係兩把鎖兩個答案。',
+  'md3.locks.setup.provenanceDefault':
+    '而家用緊出廠設定：{value}。呢把鎖仲未存過任何嘢。',
+  'md3.locks.setup.provenanceStored': '呢把鎖存住嘅係：{value}。',
+  'md3.locks.setup.save': '存呢把鎖',
+  'md3.locks.setup.cancel': '算把啦',
+  'md3.locks.setup.errorTooShort': '鎖嘅密碼要 {min} 到 {max} 個字符。',
+  'md3.locks.setup.errorMismatch': '兩次打嘅密碼唔一樣。',
+  'md3.locks.setup.errorOtpAccount': '講清楚呢把鎖睇邊個 authenticator 記錄。',
+  'md3.locks.setup.errorVault': '存唔到呢把鎖：{error}',
+  'md3.locks.setup.errorOtpUnavailable':
+    '存唔到呢把鎖：App 嗰個 authenticator 而家用唔到，一次性密碼冇得對。',
+  'md3.locks.setup.minutesLabel': '幾多分鐘',
+  'md3.locks.unlock.title': '開 {label}',
+  'md3.locks.unlock.passwordLabel': '呢把鎖嘅密碼',
+  'md3.locks.unlock.codeLabel': 'Authenticator 而家 show 緊嗰組數',
+  'md3.locks.unlock.durationLegend': '解完鎖幾耐',
+  'md3.locks.unlock.submit': '開鎖',
+  'md3.locks.unlock.cancel': '算把啦',
+  'md3.locks.unlock.forFun':
+    '呢個純粹好玩。唔係保安，冇加密，第二個人攞到部電腦一樣入到去。',
+  'md3.locks.unlock.recovery':
+    '唔記得咗？刪咗呢個資料夾，全部鎖一齊冇埋：{folder}',
+  'md3.locks.unlock.recoveryUnknown':
+    '唔記得咗？刪咗 App 嗰個本機資料夾就全部鎖一齊冇。不過而家攞唔到個確實路徑。',
+  'md3.locks.unlock.forgotten': '唔記得咗密碼？',
+  'md3.locks.unlock.forgottenUnavailable':
+    '呢個版本仲未接得埋 Support Tickets，所以照上面個資料夾嚟做。',
+  'md3.locks.unlock.throttled':
+    '啱啱錯得太密。等 {seconds} 秒再試，或者用返上面條退路。',
+  'md3.locks.unlock.unavailable':
+    '呢把鎖而家對唔到：credential vault 入面搵唔到佢個記錄。用返上面條退路啦。',
+  'md3.locks.unlock.success': '{label} 開咗。',
+  'md3.locks.unlock.lockAgain': '再鎖返',
+  'md3.locks.unlock.minutesLabel': '幾多分鐘',
+  'md3.locks.menu.lockTab': '鎖住呢個分頁…',
+  'md3.locks.menu.lockGroup': '鎖住呢個群組…',
+  'md3.locks.menu.editLock': '改呢把鎖…',
+  'md3.locks.menu.removeLock': '除咗呢把鎖',
+  'md3.locks.menu.lockAgain': '而家即刻再鎖',
+  'md3.locks.menu.manage': '管理啲鎖…',
+  'md3.locks.affordance.locked': '{label} 鎖住咗。撳入去解鎖。',
+  'md3.locks.affordance.unlocked': '{label} 解咗鎖。撳一下就再鎖返。',
+  'md3.locks.searchResult.locked': '{label}（鎖住）',
+  'md3.locks.bulkClose.excluded':
+    '有 {count} 個鎖住嘅分頁冇閂，同釘住嗰啲一樣咁處理。',
+  'md3.locks.settings.title': '版面鎖',
+  'md3.locks.settings.description':
+    '喺分頁、分頁群組或者外觀數值上面加個好玩嘅密碼／一次性密碼路障。預設冇開；每把鎖有自己嘅密碼。',
+  'md3.locks.setupLead.plain':
+    '畀呢把鎖set個密碼。佢自己一把鎖自己答，同其他鎖冇關係。',
+  'md3.locks.setupLead.light':
+    '畀呢把鎖set個自己嘅密碼。冇第二度會用佢，佢亦都開唔到第二度。',
+  'md3.locks.setupLead.playful':
+    '一把鎖一個密碼，冇得夾份平啲。冇第二度用佢，佢亦都開唔到第二度。',
+  'md3.locks.setupLead.maximum':
+    '呢把鎖要自己一個密碼，同其他鎖有原則咁死都唔夾份。冇第二度用佢，佢亦都開唔到第二度。',
+  'md3.locks.unlockLead.plain': '呢一版鎖住咗。答返呢把鎖就開得。',
+  'md3.locks.unlockLead.light': '呢一版鎖住咗。淨係佢自己嗰個密碼開得到。',
+  'md3.locks.unlockLead.playful':
+    '呢把鎖係你自己落嘅。淨係佢自己嗰個密碼開得到。',
+  'md3.locks.unlockLead.maximum':
+    '之前嗰個你落咗鎖，仲要冇同人講。淨係佢自己嗰個密碼開得到。',
+  'md3.locks.wrongAttempt.plain':
+    '對唔上。到而家錯咗 {failures} 次。真係唔記得就刪咗下面個資料夾。',
+  'md3.locks.wrongAttempt.light':
+    '唔係呢個喎。到而家錯咗 {failures} 次。真係唔記得就刪咗下面個資料夾。',
+  'md3.locks.wrongAttempt.playful':
+    '唔啱喎。到而家錯咗 {failures} 次。真係唔記得就刪咗下面個資料夾——條退路就係咁多。',
+  'md3.locks.wrongAttempt.maximum':
+    '仲係唔啱。到而家錯咗 {failures} 次。玩具鎖唔記得晒好正常嘅，真係唔記得就刪咗下面個資料夾——條退路就係咁多。',
+  'md3.locks.managerLead.plain':
+    '所有鎖都喺呢度，一把把改／除，或者一次過搞掂都得。',
+  'md3.locks.managerLead.light':
+    '所有鎖都喺呢度，每把有自己嘅密碼，一把把改／除，或者一次過搞掂都得。',
+  'md3.locks.managerLead.playful':
+    '你自己畀自己整嘅路障，全部喺呢度。每把有自己嘅密碼，一把把改／除，或者一次過搞掂都得。',
+  'md3.locks.managerLead.maximum':
+    '嚟啦，你自己攔自己條路嘅路障大全，一個都冇漏。每把有自己嘅密碼，一把把改／除，或者一次過搞掂都得。',
+  'md3.history.filterPlaceholder': '篩吓啲 commit',
+  'md3.history.fieldLabel': 'commit',
+  'md3.history.chipRowLabel': 'Commit 篩選',
+  'md3.history.chip.unpushed': '未推上去',
+  'md3.history.chip.tagged': '有 tag',
+  'md3.history.chip.mine': '我嘅',
+  'md3.history.chip.merges': 'Merge',
+  'md3.history.toggleGraph': 'Commit 圖',
+  'md3.history.toggleDates': '真實日期',
+  'md3.history.sortAndGroup': '排序同分組',
+  'md3.history.listLabel': 'Commit 清單',
+  'md3.history.empty': '呢個篩選冇夾到任何 commit。',
+  'md3.history.byline': '{author} · {time}',
+  'md3.history.detail': '{stat} · {files} 個檔案 · {kind} · {branch}',
+  'md3.history.kind.merge': 'merge commit',
+  'md3.history.kind.verified': '驗證過',
+  'md3.history.kind.unverified': '未驗證',
+  'md3.history.notPushed': '未推上去',
+  'md3.history.pin': '釘住呢個 commit',
+  'md3.history.unpin': '唔釘住呢個 commit',
+  'md3.history.rowMenu': 'Commit {sha} 嘅動作',
+  'md3.history.rowMenuHint': 'Revert、cherry-pick、開 tag、reset',
+  'md3.history.fileMenu': '喺編輯器開、複製路徑、睇 blame',
+  'md3.history.sheet.byline': '{author} 喺 {time} commit',
+  'md3.history.sheet.close': '閂咗 commit 詳情',
+  'md3.history.sheet.copySha': '複製 SHA {sha}',
+  'md3.history.sheet.fileCount': '{count} 個檔案',
+  'md3.history.sheet.fileListLabel': '呢個 commit 入面嘅檔案',
+  'md3.history.sheet.fileEntry': '{path}，{stat}',
+  'md3.history.sheet.viewOnGitHub': '喺 GitHub 度睇',
+  'md3.history.sheet.revert': 'Revert 呢個 commit',
+  'md3.history.sheet.menu': 'Cherry-pick、開 tag、reset',
+  'md3.destructiveGate.eyebrow': '破壞性操作',
+  'md3.destructiveGate.lead.plain':
+    '扭好兩條匙，跟住將授權桿一路拉到最尾。未到之前咩都唔會發生。',
+  'md3.destructiveGate.lead.light':
+    '兩條匙，再加一條要拉到盡嘅桿。整到咁煩係故意嘅，條桿未到尾之前咩都唔會發生。',
+  'md3.destructiveGate.lead.playful':
+    '兩條匙加一條長桿擋喺你同呢件事中間。整到咁麻煩就係唔想你手滑撳錯，條桿未拉到最尾之前，一樣嘢都唔會郁。',
+  'md3.destructiveGate.lead.maximum':
+    '歡迎光臨雙匙發射台：兩條匙扭晒，再認認真真將條桿推到最盡。未到最尾之前一樣嘢都唔會發生 —— 要你做足呢一輪，為嘅就係呢一句。',
+  'md3.destructiveGate.irreversibleLabel': '救唔返：',
+  'md3.destructiveGate.keysLegend': '扭好兩條匙先解鎖到條桿',
+  'md3.destructiveGate.keyTarget': '我核對咗要郁邊個：{target}',
+  'md3.destructiveGate.keyEffect': '我接受個後果：{effect}',
+  'md3.destructiveGate.sliderLabel': '將條桿一路拉到最尾先批准',
+  'md3.destructiveGate.sliderValue': '批准咗 {percent}%',
+  'md3.destructiveGate.stateLocked': '兩條匙都要扭咗，條桿先郁得。',
+  'md3.destructiveGate.stateArmed': '兩條匙扭好喇，將條桿一路拉到最尾就批准。',
+  'md3.destructiveGate.stateMoving': '繼續拉。條桿未到最尾，咩都唔會刪。',
+  'md3.destructiveGate.stateAuthorized': '批准咗，而家撳到確認掣。',
+  'md3.destructiveGate.emergencyExit': '緊急撤退',
+  'md3.destructiveGate.emergencyExitName':
+    '緊急撤退 —— 唔執行呢個破壞性操作，直接關咗佢',
+  'md3.destructiveGate.busy': '執行緊。要等到知道實際結果，呢個閘先會收。',
+  'md3.inbox.gate.title': '刪走 {count} 個通知？',
+  'md3.inbox.gate.summary': '呢下會喺收件匣度刪走 {count} 個通知：{scope}。',
+  'md3.inbox.gate.irreversible': '刪咗嘅通知喺收件匣度攞唔返。',
+  'md3.inbox.gate.keyTarget': '{count} 個通知 —— {scope}',
+  'md3.inbox.gate.keyEffect': '佢哋會離開收件匣，喺收件匣度攞唔返。',
+  'md3.inbox.gate.confirm': '刪走 {count} 個',
+  'md3.auth.pane': '驗證器',
+  'md3.auth.list': '已登記嘅第二重驗證',
+  'md3.auth.searchPlaceholder': '搵驗證項目',
+  'md3.auth.searchField': '驗證器項目',
+  'md3.auth.invalidPattern': '呢個 pattern 唔啱格式，所以而家乜都未篩走。',
+  'md3.auth.filters': '分組篩選',
+  'md3.auth.chipUngrouped': '未分組',
+  'md3.auth.addFactor': '加驗證項目',
+  'md3.auth.empty.none.plain':
+    '而家一個第二重驗證都未登記。加一個，個 App 就會幫你顯示佢嘅密碼。',
+  'md3.auth.empty.none.light':
+    '而家乜都未登記。加個項目，啲密碼就會喺度出現，三十秒轉一次。',
+  'md3.auth.empty.none.playful':
+    '空空如也嘅驗證器，起碼快到爆。加個項目，佢就會開始幫你倒數。',
+  'md3.auth.empty.none.maximum':
+    '零個項目。冇嘢好數、冇嘢好複製、冇嘢好蝕——做保安工具嚟講勁到冇朋友，做你嘅工具嚟講就完全冇用。加個項目，等佢做返啲嘢。',
+  'md3.auth.empty.noMatch': '搵唔到夾嘅項目。',
+  'md3.auth.selectAllFiltered': '揀晒夾到嘅 {count} 個項目',
+  'md3.auth.selectAllEverything': '揀晒全部 {count} 個項目',
+  'md3.auth.selectionCount': '揀咗 {count} 個',
+  'md3.auth.invertSelection': '揀返相反嗰啲',
+  'md3.auth.bulkGroup': '搬入分組',
+  'md3.auth.bulkDelete': '刪走',
+  'md3.auth.bulkExport': '匯出',
+  'md3.auth.scopedAction': '{label}——{scope}',
+  'md3.auth.moreActions': '更多驗證器操作',
+  'md3.auth.scope.selection': '揀咗嘅 {count} 個項目',
+  'md3.auth.scope.filtered': '夾到而家篩選嘅 {count} 個項目',
+  'md3.auth.scope.all': '全部 {count} 個項目',
+  'md3.auth.scope.one': '一個項目',
+  'md3.auth.explain.toggle': '呢個清單點運作',
+  'md3.auth.explain.body':
+    '啲密碼係喺呢部機度計出嚟嘅，用系統時鐘同埋收喺作業系統憑證庫入面嘅密鑰。冇嘢會傳去任何地方，冇帳戶、冇同步；平時匯出會帶齊每個欄位，就係唔會帶密鑰。',
+  'md3.auth.explain.provenance':
+    '而家用緊嘅預設值：新項目一律用 {algorithm}、{digits} 位數、每 {period} 秒轉一次——出廠值嚟嘅，因為冇人改過。',
+  'md3.auth.row.select': '揀 {title}',
+  'md3.auth.row.code': '{title} 而家嘅密碼',
+  'md3.auth.row.codeChanged': '{title} 嘅新密碼：{code}',
+  'md3.auth.row.copyCode': '複製 {title} 而家嘅密碼',
+  'md3.auth.row.nextCode': '下一個：{code}',
+  'md3.auth.row.countdown': '{seconds} 秒',
+  'md3.auth.row.countdownText': '呢個密碼仲有 {seconds} 秒有效',
+  'md3.auth.row.missingSecret':
+    '呢個項目冇存到密鑰，所以出唔到密碼。刪咗佢再登記過。',
+  'md3.auth.row.edit': '改 {title}',
+  'md3.auth.row.delete': '刪走 {title}',
+  'md3.auth.row.added': '{timestamp} 登記',
+  'md3.auth.row.parameters': '{algorithm}、{digits} 位數、每 {period} 秒',
+  'md3.auth.clock.ok':
+    '呢部機嘅時鐘同參考時間相差喺 {tolerance} 秒之內，所以啲密碼會俾人收。',
+  'md3.auth.clock.ahead':
+    '呢部機嘅時鐘快咗 {seconds} 秒，超出咗呢啲密碼容忍嘅 {tolerance} 秒。快啲校返系統時間，唔係下面啲密碼會俾人彈返轉頭。',
+  'md3.auth.clock.behind':
+    '呢部機嘅時鐘慢咗 {seconds} 秒，超出咗呢啲密碼容忍嘅 {tolerance} 秒。快啲校返系統時間，唔係下面啲密碼會俾人彈返轉頭。',
+  'md3.auth.clock.unverified':
+    '未同呢部機嘅時鐘對過任何參考，所以唔知呢啲密碼會唔會俾人收。',
+  'md3.auth.toast.registered': '登記咗 {title}',
+  'md3.auth.toast.edited': '更新咗 {title}',
+  'md3.auth.toast.deleted': '刪走咗 {title}',
+  'md3.auth.toast.deletedMany': '刪走咗 {count} 個項目',
+  'md3.auth.toast.vaultFailed':
+    '有 {count} 條密鑰喺憑證庫度刪唔到，仲留喺呢部機度。',
+  'md3.auth.toast.grouped': '搬咗 {count} 個項目入 {group}',
+  'md3.auth.toast.ungrouped': '搬咗 {count} 個項目出晒所有分組',
+  'md3.auth.toast.copied': '複製咗 {title} 嘅密碼',
+  'md3.auth.toast.exported': '用 {format} 匯出咗 {count} 個項目，冇帶密鑰',
+  'md3.auth.toast.secretsExported': '用明文匯出咗 {count} 條可用密鑰',
+  'md3.auth.toast.selectedAll': '揀晒全部 {count} 個項目',
+  'md3.auth.toast.moved': '搬咗 {title}',
+  'md3.auth.listMenu.title': '驗證器',
+  'md3.auth.listMenu.selectFiltered': '揀晒夾到嘅 {count} 個項目',
+  'md3.auth.listMenu.selectEverything': '揀晒全部 {count} 個項目',
+  'md3.auth.listMenu.invert': '揀返相反嗰啲',
+  'md3.auth.listMenu.clearSelection': '唔揀住',
+  'md3.auth.listMenu.group': '搬…入分組…',
+  'md3.auth.listMenu.deleteScope': '刪走 {count} 個項目…',
+  'md3.auth.listMenu.export': '匯出 {count} 個項目…',
+  'md3.auth.listMenu.exportSecrets': '用明文匯出 {count} 條密鑰…',
+  'md3.auth.rowMenu.title': '驗證項目',
+  'md3.auth.rowMenu.copyCode': '複製而家嘅密碼',
+  'md3.auth.rowMenu.copyNext': '複製下一個密碼',
+  'md3.auth.rowMenu.edit': '改呢個項目…',
+  'md3.auth.rowMenu.group': '搬…入分組…',
+  'md3.auth.rowMenu.moveUp': '搬上',
+  'md3.auth.rowMenu.moveDown': '搬落',
+  'md3.auth.rowMenu.select': '加入揀咗嗰堆',
+  'md3.auth.rowMenu.deselect': '喺揀咗嗰堆度攞走',
+  'md3.auth.rowMenu.delete': '刪走呢個項目',
+  'md3.auth.rowMenu.exportOne': '匯出呢個項目…',
+  'md3.auth.exportMenu.title': '匯出（唔帶密鑰）',
+  'md3.auth.exportMenu.filterPlaceholder': '篩格式',
+  'md3.auth.groupMenu.title': '搬入分組',
+  'md3.auth.groupMenu.filterPlaceholder': '篩分組',
+  'md3.auth.groupMenu.ungrouped': '唔要分組',
+  'md3.auth.groupMenu.empty':
+    '而家仲未有分組。改項目嗰陣改個名，佢就會喺度出現。',
+  'md3.auth.export.omissionNotice':
+    '呢個檔案特登冇帶任何密鑰。下面每個項目淨係列出發行方、帳戶同參數。',
+  'md3.auth.secrets.warning':
+    '呢個檔案用明文裝住可以用嘅第二重驗證。邊個睇到都可以整出你嘅密碼。',
+  'md3.auth.gate.title': '刪走 {count} 個項目',
+  'md3.auth.gate.summary':
+    '會刪走 {count} 個已登記項目（{scope}），連佢哋嘅密鑰一齊唔記得晒。',
+  'md3.auth.gate.irreversible':
+    '啲密鑰會喺呢部機嘅憑證庫度消失。呢度冇嘢救得返——每個帳戶都要重新發一條俾你。',
+  'md3.auth.gate.keyTarget': '{count} 個項目——{scope}',
+  'md3.auth.gate.keyEffect': '佢哋嘅密鑰會離開呢部機，救唔返。',
+  'md3.auth.gate.confirm': '刪走 {count} 個',
+  'md3.auth.secretsGate.title': '用明文匯出 {count} 條密鑰',
+  'md3.auth.secretsGate.summary':
+    '會將 {count} 條可以用嘅第二重驗證（{scope}）用 otpauth:// 連結寫入一個純文字檔。',
+  'md3.auth.secretsGate.irreversible':
+    '個檔案一寫咗出去，個 App 就收唔返。邊個睇到都可以整出你嗰啲帳戶嘅密碼。',
+  'md3.auth.secretsGate.keyTarget': '{count} 個項目——{scope}',
+  'md3.auth.secretsGate.keyEffect':
+    '個檔案入面係可以用嘅密鑰，唔淨係一張帳戶清單。',
+  'md3.auth.secretsGate.confirm': '匯出 {count} 條密鑰',
+  'md3.auth.register.title': '加一個第二重驗證',
+  'md3.auth.register.editTitle': '改 {title}',
+  'md3.auth.register.close': '唔加住，閂咗佢',
+  'md3.auth.register.sourceLegend': '條密鑰邊度嚟',
+  'md3.auth.register.source.generate': '喺度整一條',
+  'md3.auth.register.source.uri': '貼條連結',
+  'md3.auth.register.source.manual': '自己打密鑰',
+  'md3.auth.register.source.image': '讀張圖',
+  'md3.auth.register.source.clipboard': '讀剪貼簿',
+  'md3.auth.register.source.camera': '用鏡頭掃',
+  'md3.auth.register.hint.generate':
+    '個 App 會喺呢部機度整條密鑰，再畫個 QR 俾你掃入你要保護嗰個帳戶。',
+  'md3.auth.register.hint.uri':
+    '貼返發行方俾你嘅 otpauth:// 連結。喺呢度讀，唔會傳去任何地方。',
+  'md3.auth.register.hint.manual': '照發行方講嘅，打返個 base32 密鑰同啲參數。',
+  'md3.auth.register.hint.image': '揀返張儲低咗嘅 QR 圖。喺呢部機度解碼。',
+  'md3.auth.register.hint.clipboard':
+    '喺剪貼簿度讀個 QR 圖，或者一條 otpauth:// 連結。',
+  'md3.auth.register.hint.camera': '用呢部機嘅鏡頭影住發行方 show 緊嗰個 QR。',
+  'md3.auth.register.issuerLabel': '發行方',
+  'md3.auth.register.issuerPlaceholder': '呢個驗證保護緊邊個服務',
+  'md3.auth.register.accountLabel': '帳戶',
+  'md3.auth.register.accountPlaceholder': '你喺嗰邊嘅用戶名或者電郵',
+  'md3.auth.register.groupLabel': '分組',
+  'md3.auth.register.groupPlaceholder': '唔想分組就留白',
+  'md3.auth.register.algorithmLabel': '演算法',
+  'md3.auth.register.digitsLabel': '位數',
+  'md3.auth.register.periodLabel': '每個密碼幾多秒',
+  'md3.auth.register.secretLabel': 'Base32 密鑰',
+  'md3.auth.register.secretPlaceholder': '得 A 至 Z 同 2 至 7',
+  'md3.auth.register.uriLabel': 'otpauth:// 連結',
+  'md3.auth.register.uriPlaceholder': 'otpauth://totp/…',
+  'md3.auth.register.revealSecret': 'show 條密鑰出嚟',
+  'md3.auth.register.hideSecret': '收埋條密鑰',
+  'md3.auth.register.secretHidden':
+    '條密鑰收埋咗。如果你唔係掃 QR，而係要自己打入去，先至 show 佢。',
+  'md3.auth.register.copySecret': '複製條密鑰',
+  'md3.auth.register.copiedSecret': '條密鑰複製咗去剪貼簿',
+  'md3.auth.register.qrAlt':
+    '{issuer} 嘅 {account} 配對 QR。入面裝住旁邊嗰條一模一樣嘅密鑰，用 {algorithm}、{digits} 位數、每 {period} 秒轉一次。',
+  'md3.auth.register.qrAltNoIssuer':
+    '{account} 嘅配對 QR。入面裝住旁邊嗰條一模一樣嘅密鑰，用 {algorithm}、{digits} 位數、每 {period} 秒轉一次。',
+  'md3.auth.register.qrCaption':
+    '攞你要保護嗰個帳戶掃呢個，或者照旁邊條密鑰打入去。',
+  'md3.auth.register.parameterSummary':
+    '{algorithm} · {digits} 位數 · {period} 秒',
+  'md3.auth.register.chooseImage': '揀張 QR 圖',
+  'md3.auth.register.readClipboard': '讀剪貼簿',
+  'md3.auth.register.startCamera': '開鏡頭',
+  'md3.auth.register.stopCamera': '熄鏡頭',
+  'md3.auth.register.cameraLive':
+    '鏡頭開緊。將個 QR 擺正對住鏡頭；斜住影嘅碼係讀唔到嘅。',
+  'md3.auth.register.cameraPreview': '鏡頭即時畫面',
+  'md3.auth.register.cameraMissing':
+    '呢部機冇鏡頭，冇嘢好掃。用圖檔嗰條路讀個 QR 啦。',
+  'md3.auth.register.cameraRefused':
+    '鏡頭俾人拒絕咗。開返個 App 嘅鏡頭權限，或者改用圖檔讀個 QR。',
+  'md3.auth.register.confirmHeading': '確認配對',
+  'md3.auth.register.confirmHint.plain':
+    '打返一個而家嘅密碼。夾到先加得呢個項目，咁掃錯咗條密鑰就唔會遲啲鎖死你。',
+  'md3.auth.register.confirmHint.light':
+    '打返一個密碼，等大家都知佢 work。夾到先加得——寧願而家發現掃錯，好過登入嗰陣先發現。',
+  'md3.auth.register.confirmHint.playful':
+    '打返一個密碼就搞掂。夾到先加得呢個項目，因為喺登入畫面前面先發現掃錯咗條密鑰，個晚一定唔會好過。',
+  'md3.auth.register.confirmHint.maximum':
+    '證明俾我睇。打返一個而家嘅密碼。夾到先加得，因為唔係嘅話你會有一條收得靚靚、出嚟嘅數字又靚又自信又全世界都唔收嘅密鑰——而你一定係喺最衰嗰刻先發現。',
+  'md3.auth.register.confirmLabel': '而家嘅密碼',
+  'md3.auth.register.confirmPlaceholder': '而家 show 緊嗰個密碼',
+  'md3.auth.register.verifyFailed':
+    '呢個密碼同呢條密鑰對唔上。睇清楚個密碼，順便睇下呢部機嘅時鐘啱唔啱。',
+  'md3.auth.register.add': '加驗證項目',
+  'md3.auth.register.save': '儲低啲改動',
+  'md3.auth.register.cancel': '算數',
+  'md3.auth.register.error.badUri': '呢條唔係個 App 讀得明嘅 otpauth:// 連結。',
+  'md3.auth.register.error.wrongType':
+    '呢條連結係計數器嗰種驗證。呢個驗證器淨係讀時間制嘅密碼。',
+  'md3.auth.register.error.badSecret':
+    '呢條密鑰唔係正確嘅 base32。應該淨係 A 至 Z 同 2 至 7。',
+  'md3.auth.register.error.missingAccount':
+    '呢條連結冇帶帳戶名，冇嘢好將個項目歸檔。',
+  'md3.auth.register.error.noQr': '喺張圖度搵唔到 QR。',
+  'md3.auth.register.error.unreadableFile': '呢個檔案讀唔到做圖片。',
+  'md3.auth.register.error.notSquare':
+    '搵到個 QR，但係格網讀唔到。將個碼擺正對住鏡頭再試過。',
+  'md3.auth.register.error.damaged': '搵到個 QR，但係爛得滯讀唔到。',
+  'md3.auth.register.error.unsupported': '呢個 QR 裝住個 App 讀唔到嘅內容。',
+  'md3.auth.register.error.encodeFailed':
+    '條配對連結太長，畫唔到做 QR：{detail}',
+  'md3.auth.register.error.accountRequired': '一定要有個帳戶名。',
+  'md3.auth.register.explain.toggle': '呢條密鑰會點',
+  'md3.auth.register.explain.storage':
+    '條密鑰喺呢部機度整，收喺作業系統嘅憑證庫入面，用呢個項目自己個 id 做鎖匙。佢唔會入設定檔、匯出檔、log、截圖或者個 App 嘅本機歷史，亦都唔會離開呢部機。',
+  'md3.auth.register.explain.provenanceDefault':
+    '而家用緊嘅預設值：{algorithm}、{digits} 位數、每 {period} 秒——出廠值嚟嘅，因為冇嘢講過唔同。',
+  'md3.auth.register.explain.provenanceIssuer':
+    '由發行方定：{algorithm}、{digits} 位數、每 {period} 秒——喺你俾嘅連結度讀返嚟，唔係個 App 嘅預設值。',
 }

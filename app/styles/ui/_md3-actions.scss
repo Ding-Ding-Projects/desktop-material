@@ -1,0 +1,597 @@
+// The Actions destination of the MD3 shell rewrite.
+//
+// Every literal here is copied from the `<sc-if value="{{ isActions }}">`
+// branch of `design/History MD3.dc.html` and from the `renderVals()` strings it
+// interpolates (`jobSteps[].style`, `logLines[].style`, `runDetail.iconStyle`).
+// Sizes, radii, gaps, paddings, font sizes and weights are the specification —
+// do not round them.
+//
+// Shared classes (`.md3-row`, `.md3-row__name`, `.md3-row__detail`,
+// `.md3-search-row`, `.md3-chip-row`, `.md3-icon-button`, `.md3-tonal-button`,
+// `.md3-ghost-button`, `.md3-empty-state`, `.md3-tone-on--*`, `.md3-anim-up`)
+// are defined once in `_md3-shell.scss` and only composed here.
+
+// ---------------------------------------------------------------------------
+// Root
+// ---------------------------------------------------------------------------
+
+.md3-actions-view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+// The contract's view body:
+// `display: flex; flex: 1; min-height: 0; gap: 8px; padding: 0 8px 8px 8px`.
+.md3-actions-view__panes {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  min-height: 0;
+  padding: 0 8px 8px 8px;
+}
+
+.md3-actions-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// The left pane: `flex: none; width: 356px; surface-container; radius 12px`.
+.md3-actions-pane--runs {
+  background: var(--md-sys-color-surface-container);
+  border-radius: 12px;
+  flex: none;
+  width: 356px;
+}
+
+// The right pane: `flex: 1; surface-container-lowest; radius 12px`.
+.md3-actions-pane--detail {
+  background: var(--md-sys-color-surface-container-lowest);
+  border-radius: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+// ---------------------------------------------------------------------------
+// Banners
+// ---------------------------------------------------------------------------
+//
+// Rate-limit, provider-error and confirmation strips. They are informational,
+// so they never gate the view; only their colour changes with the kind.
+
+.md3-actions-banners {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px 8px 8px;
+}
+
+.md3-actions-banner {
+  border-radius: 10px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  margin: 0;
+  padding: 8px 12px;
+}
+
+.md3-actions-banner--error {
+  background: var(--md-sys-color-error-container);
+  color: var(--md-sys-color-on-error-container);
+}
+
+.md3-actions-banner--warning {
+  background: var(--dm-amber-container);
+  color: var(--dm-amber-on-container);
+}
+
+.md3-actions-banner--success {
+  background: var(--dm-green-container);
+  color: var(--dm-green-on-container);
+}
+
+// ---------------------------------------------------------------------------
+// Filter validation
+// ---------------------------------------------------------------------------
+
+.md3-actions-query-error {
+  color: var(--md-sys-color-error);
+  flex: none;
+  font-size: 11px;
+  margin: 0 0 6px 0;
+  padding: 0 12px;
+}
+
+// ---------------------------------------------------------------------------
+// Advanced filters
+// ---------------------------------------------------------------------------
+//
+// Not in the drawn contract: the surface being replaced filters by workflow,
+// branch, event and status, and the rewrite may not drop that. The panel is
+// collapsed until the `tune` toggle opens it, so it costs nothing until asked
+// for.
+
+.md3-actions-filters {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 10px 8px 10px;
+}
+
+.md3-actions-filter {
+  display: flex;
+  flex: 1 1 140px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+
+  label {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  select {
+    background: var(--md-sys-color-surface-container-high);
+    border: 0;
+    border-radius: 10px;
+    color: var(--md-sys-color-on-surface);
+    font: inherit;
+    font-size: 11.5px;
+    height: 30px;
+    min-width: 0;
+    padding: 0 8px;
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 1px;
+    }
+  }
+}
+
+// The attempt selector sits on one line beside the run's other actions.
+.md3-actions-filter--inline {
+  align-items: center;
+  flex: none;
+  flex-direction: row;
+  gap: 6px;
+
+  label {
+    letter-spacing: 0;
+    text-transform: none;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Bulk selection
+// ---------------------------------------------------------------------------
+
+.md3-actions-bulk {
+  align-items: center;
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 10px 8px 10px;
+}
+
+.md3-actions-bulk__all {
+  align-items: center;
+  color: var(--md-sys-color-on-surface-variant);
+  display: inline-flex;
+  font-size: 11.5px;
+  font-weight: 600;
+  gap: 6px;
+
+  input {
+    accent-color: var(--md-sys-color-primary);
+    height: 16px;
+    margin: 0;
+    width: 16px;
+  }
+}
+
+.md3-actions-bulk__count {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+}
+
+// ---------------------------------------------------------------------------
+// Run list
+// ---------------------------------------------------------------------------
+
+// `flex: 1; min-height: 0; overflow-y: auto; padding: 0 6px 8px 6px`.
+.md3-actions-run-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 6px 8px 6px;
+}
+
+.md3-actions-run-list--empty {
+  overflow-y: hidden;
+}
+
+.md3-actions-run__check {
+  align-items: center;
+  display: flex;
+  flex: none;
+
+  input {
+    accent-color: var(--md-sys-color-primary);
+    height: 16px;
+    margin: 0;
+    width: 16px;
+  }
+}
+
+.md3-actions-run__status {
+  align-items: center;
+  display: flex;
+  flex: none;
+}
+
+// The contract's middle column:
+// `display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto`.
+.md3-actions-run__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+// The meta line, `font-size: 10.5px` at on-surface-variant with no opacity —
+// distinct from `.md3-row__detail`, which the contract dims to 0.85.
+.md3-actions-run__meta {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.md3-actions-run__actions {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+// The window's "show more" affordance, for a list longer than one render
+// window. It is a real control rather than a scroll-only trigger so a keyboard
+// user can reach past the window too.
+.md3-actions-window-more {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding: 8px 6px;
+}
+
+.md3-actions-window-more__status {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 10.5px;
+}
+
+// ---------------------------------------------------------------------------
+// Run pagination
+// ---------------------------------------------------------------------------
+
+.md3-actions-pagination {
+  align-items: center;
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  font-size: 10.5px;
+  gap: 6px;
+  padding: 8px 10px;
+}
+
+// ---------------------------------------------------------------------------
+// Detail header
+// ---------------------------------------------------------------------------
+
+// `flex: none; display: flex; align-items: center; gap: 8px; height: 42px;
+//  padding: 0 6px 0 12px`.
+.md3-actions-detail-header {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 8px;
+  height: 42px;
+  padding: 0 6px 0 12px;
+}
+
+// `flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600` with the
+// contract's ellipsis. It is an `h2` for document structure, so the inherited
+// heading margins and size are reset back to the contract's values.
+.md3-actions-detail-header__title {
+  color: var(--md-sys-color-on-surface);
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// The run-level actions the prototype's three header controls cannot hold.
+.md3-actions-run-toolbar {
+  align-items: center;
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 12px 8px 12px;
+
+  &:empty {
+    display: none;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Jobs and steps
+// ---------------------------------------------------------------------------
+
+// `flex: none; display: flex; flex-direction: column; gap: 1px;
+//  padding: 0 8px 8px 8px`. It scrolls once a run has more jobs than fit;
+// the contract's single hard-coded job never needed to.
+.md3-actions-steps {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: 1px;
+  max-height: 40%;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 8px 8px 8px;
+}
+
+.md3-actions-steps__message {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11.5px;
+  margin: 0;
+  padding: 6px 2px;
+}
+
+.md3-actions-steps__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 0 0 0;
+}
+
+.md3-actions-job {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.md3-actions-job__header {
+  align-items: center;
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  font-size: 11.5px;
+  font-weight: 700;
+  gap: 8px;
+  padding: 8px 10px 4px 10px;
+}
+
+.md3-actions-job__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.md3-actions-job__time {
+  color: var(--md-sys-color-on-surface-variant);
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 500;
+}
+
+// `jobSteps[].style` in its inactive branch: full width, 6px/10px padding,
+// 8px radius, 12px text at weight 500 on on-surface-variant.
+.md3-actions-step {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 8px;
+  padding: 6px 10px;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0, 1);
+  width: 100%;
+
+  &:hover {
+    background: var(--dm-state);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: -2px;
+  }
+}
+
+// `jobSteps[].style` in its active branch.
+.md3-actions-step--active {
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+  font-weight: 600;
+
+  &:hover {
+    background: var(--md-sys-color-surface-container-high);
+  }
+}
+
+.md3-actions-step__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.md3-actions-step__time {
+  color: var(--md-sys-color-on-surface-variant);
+  flex: none;
+  font-size: 10.5px;
+}
+
+// ---------------------------------------------------------------------------
+// Log viewer
+// ---------------------------------------------------------------------------
+
+// `flex: 1; min-height: 0; overflow: auto; padding: 6px 0 10px 0;
+//  font-family: monospace; font-size: 11.5px; line-height: 18px;
+//  border-top: 1px solid outline-variant`.
+.md3-actions-log {
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  flex: 1;
+  font-family: var(--font-family-monospace);
+  font-size: 11.5px;
+  line-height: 18px;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px 0 10px 0;
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: -2px;
+  }
+}
+
+// The loading, failed and empty states share the log's frame but not its
+// monospace body copy.
+.md3-actions-log--message {
+  color: var(--md-sys-color-on-surface-variant);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 16px 12px;
+}
+
+.md3-actions-log__error {
+  color: var(--md-sys-color-error);
+  margin: 0 0 10px 0;
+}
+
+.md3-actions-log__error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.md3-actions-log__line {
+  display: flex;
+}
+
+// `flex: none; width: 44px; padding-right: 10px; text-align: right;
+//  opacity: 0.45; user-select: none`.
+.md3-actions-log__number {
+  flex: none;
+  opacity: 0.45;
+  padding-right: 10px;
+  text-align: right;
+  user-select: none;
+  width: 44px;
+}
+
+// `padding-right: 16px; white-space: pre-wrap; word-break: break-word`.
+.md3-actions-log__text {
+  min-width: 0;
+  padding-right: 16px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.md3-actions-log__line--plain {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.md3-actions-log__line--error {
+  color: var(--md-sys-color-error);
+}
+
+// The contract's `$` branch: primary, and the text itself at weight 500.
+.md3-actions-log__line--command {
+  color: var(--md-sys-color-primary);
+
+  .md3-actions-log__text {
+    font-weight: 500;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The running glyph
+// ---------------------------------------------------------------------------
+//
+// `progress_activity` is drawn as a broken ring, so it only reads as "running"
+// while it turns. Namespaced because the global `_motion.scss` owns the
+// unprefixed names.
+
+@keyframes md3ActionsSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.md3-actions-spin {
+  animation: md3ActionsSpin 1200ms linear infinite;
+}
+
+// ---------------------------------------------------------------------------
+// Narrow widths
+// ---------------------------------------------------------------------------
+//
+// Below roughly two comfortable panes the fixed 356px list would leave the log
+// unreadable, so the panes stack and the list gives up its fixed width.
+
+@media (max-width: 860px) {
+  .md3-actions-view__panes {
+    flex-direction: column;
+  }
+
+  .md3-actions-pane--runs {
+    flex: 0 1 auto;
+    max-height: 45%;
+    width: auto;
+  }
+
+  .md3-actions-steps {
+    max-height: 30%;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Reduced motion
+// ---------------------------------------------------------------------------
+
+@media (prefers-reduced-motion: reduce) {
+  .md3-actions-spin {
+    animation: none;
+  }
+
+  .md3-actions-step {
+    transition: none;
+  }
+}

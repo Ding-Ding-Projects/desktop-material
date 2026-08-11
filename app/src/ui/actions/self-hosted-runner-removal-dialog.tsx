@@ -1,9 +1,8 @@
-/* eslint-disable react/jsx-no-bind -- controlled destructive-action gate callbacks */
 import * as React from 'react'
 
 import { ISelfHostedRunner } from '../../lib/self-hosted-runner/types'
 import { Button } from '../lib/button'
-import { Checkbox, CheckboxValue } from '../lib/checkbox'
+import { Md3DestructiveGateBody } from '../md3/md3-destructive-gate'
 import { trapActionsDialogFocus } from './actions-dialog-focus'
 
 interface ISelfHostedRunnerRemovalDialogProps {
@@ -16,17 +15,21 @@ interface ISelfHostedRunnerRemovalDialogProps {
 }
 
 interface ISelfHostedRunnerRemovalDialogState {
-  readonly identityConfirmed: boolean
-  readonly scopeConfirmed: boolean
-  readonly authorizationProgress: number
+  readonly gateAuthorized: boolean
 }
 
 let removalDialogSequence = 0
 
 /**
- * A runner-specific destructive-action gate. The runner is unregistered only
- * after both independent acknowledgements and the full-range authorization
- * slider have completed.
+ * The destructive-action gate for unregistering a self-hosted runner.
+ *
+ * The two keys, the authorization slider, the progress treatment and the
+ * completion treatment all come from the shared
+ * `Md3DestructiveGateBody`. This dialog owns only the chrome around it: the
+ * heading naming the exact runner, the emergency exit, the submit button it
+ * holds disabled until the gate reports itself authorized, and the running and
+ * failure states of the removal itself, which are facts about the operation
+ * rather than part of the gate.
  */
 export class SelfHostedRunnerRemovalDialog extends React.Component<
   ISelfHostedRunnerRemovalDialogProps,
@@ -46,11 +49,7 @@ export class SelfHostedRunnerRemovalDialog extends React.Component<
     this.descriptionId = `self-hosted-runner-removal-description-${instanceId}`
     this.progressId = `self-hosted-runner-removal-progress-${instanceId}`
     this.errorId = `self-hosted-runner-removal-error-${instanceId}`
-    this.state = {
-      identityConfirmed: false,
-      scopeConfirmed: false,
-      authorizationProgress: 0,
-    }
+    this.state = { gateAuthorized: false }
   }
 
   public componentDidMount() {
@@ -71,6 +70,10 @@ export class SelfHostedRunnerRemovalDialog extends React.Component<
     this.dismissButton = button
   }
 
+  private onGateAuthorizationChanged = (gateAuthorized: boolean) => {
+    this.setState({ gateAuthorized })
+  }
+
   private onKeyDown = (event: React.KeyboardEvent<HTMLFormElement>) => {
     event.stopPropagation()
     trapActionsDialogFocus(event, event.currentTarget)
@@ -82,31 +85,27 @@ export class SelfHostedRunnerRemovalDialog extends React.Component<
 
   private onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (
-      !this.props.submitting &&
-      this.state.identityConfirmed &&
-      this.state.scopeConfirmed &&
-      this.state.authorizationProgress === 100
-    ) {
+    if (!this.props.submitting && this.state.gateAuthorized) {
       this.props.onConfirm()
     }
   }
 
-  private onAuthorizationProgress = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    this.setState({ authorizationProgress: Number(event.currentTarget.value) })
+  /** What the confirmed removal destroys, in the words the user needs. */
+  private removalSummary() {
+    const { runner } = this.props
+    const scope = `${runner.owner}/${runner.repository}`
+    const wsl = runner.dedicatedWsl
+      ? ` The dedicated WSL distro ${
+          runner.wslDistribution ?? 'created for it'
+        } is deleted after GitHub unregisters the runner.`
+      : ''
+    return `This permanently unregisters ${runner.name} from ${scope} and deletes its managed runner files.${wsl}`
   }
 
   public render() {
     const { runner, submitting, error, progressMessage, onDismissed } =
       this.props
-    const { identityConfirmed, scopeConfirmed, authorizationProgress } =
-      this.state
-    const bothConfirmed = identityConfirmed && scopeConfirmed
-    const authorized = bothConfirmed && authorizationProgress === 100
-    const moving =
-      bothConfirmed && authorizationProgress > 0 && authorizationProgress < 100
+    const scope = `${runner.owner}/${runner.repository}`
     const describedBy = [
       this.descriptionId,
       progressMessage ? this.progressId : null,
@@ -136,69 +135,19 @@ export class SelfHostedRunnerRemovalDialog extends React.Component<
             </div>
           </header>
           <div className="actions-confirmation-body">
-            <div className="actions-confirmation-copy" id={this.descriptionId}>
-              <p>
-                This permanently unregisters <strong>{runner.name}</strong> from{' '}
-                <code>
-                  {runner.owner}/{runner.repository}
-                </code>{' '}
-                and deletes its managed runner files.
-              </p>
-              {runner.dedicatedWsl && (
-                <p>
-                  The dedicated WSL distro{' '}
-                  <strong>{runner.wslDistribution ?? 'created for it'}</strong>{' '}
-                  is also deleted after GitHub unregisters the runner.
-                </p>
-              )}
-            </div>
-            <fieldset className="actions-super-confirmation-checks">
-              <legend>Authorize this exact removal</legend>
-              <Checkbox
-                value={identityConfirmed ? CheckboxValue.On : CheckboxValue.Off}
-                disabled={submitting}
-                label={`I confirmed the runner identity: ${runner.name}.`}
-                onChange={event =>
-                  this.setState({
-                    identityConfirmed: event.currentTarget.checked,
-                    authorizationProgress: 0,
-                  })
-                }
-              />
-              <Checkbox
-                value={scopeConfirmed ? CheckboxValue.On : CheckboxValue.Off}
-                disabled={submitting}
-                label={`I confirmed the affected repository: ${runner.owner}/${runner.repository}.`}
-                onChange={event =>
-                  this.setState({
-                    scopeConfirmed: event.currentTarget.checked,
-                    authorizationProgress: 0,
-                  })
-                }
-              />
-            </fieldset>
-            <label className="actions-super-confirmation-slider">
-              <span>
-                Slide fully to authorize removal ({authorizationProgress}%)
-              </span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={bothConfirmed ? authorizationProgress : 0}
-                disabled={!bothConfirmed || submitting}
-                aria-label="Full-range removal authorization"
-                aria-valuetext={`${authorizationProgress}% authorized`}
-                onChange={this.onAuthorizationProgress}
-              />
-              <output aria-live="polite">{authorizationProgress}%</output>
-            </label>
+            <Md3DestructiveGateBody
+              actionId="self-hosted-runner-removal"
+              summaryId={this.descriptionId}
+              summary={this.removalSummary()}
+              irreversible={`${runner.name} has to be registered again from scratch to come back, and its managed files are not recoverable from this app.`}
+              targetKeyLabel={`the runner ${runner.name} on ${scope}`}
+              effectKeyLabel="it is unregistered from GitHub and its managed files are deleted"
+              disabled={submitting}
+              onAuthorizationChanged={this.onGateAuthorizationChanged}
+            />
             <div
               id={this.progressId}
-              className={`actions-super-confirmation-progress ${
-                authorized ? 'complete' : moving ? 'moving' : ''
-              }`}
+              className="actions-super-confirmation-progress"
               role="status"
               aria-live="polite"
               aria-atomic="true"
@@ -206,9 +155,7 @@ export class SelfHostedRunnerRemovalDialog extends React.Component<
               {submitting
                 ? progressMessage ??
                   'Removal is in progress and cannot be dismissed until the exact result is known.'
-                : authorized
-                ? 'Authorization complete. Submit to remove this runner.'
-                : 'Both confirmations are required before the slider can move.'}
+                : null}
             </div>
             {error && (
               <div
@@ -227,12 +174,12 @@ export class SelfHostedRunnerRemovalDialog extends React.Component<
               disabled={submitting}
               ariaDescribedBy={this.descriptionId}
             >
-              {submitting ? 'Wait for removal result' : 'Keep runner'}
+              {submitting ? 'Wait for removal result' : 'Emergency exit'}
             </Button>
             <Button
               type="submit"
               className="destructive"
-              disabled={!authorized || submitting}
+              disabled={!this.state.gateAuthorized || submitting}
               ariaDescribedBy={this.descriptionId}
             >
               {submitting ? 'Removing…' : 'Remove runner'}

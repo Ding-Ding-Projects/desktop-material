@@ -8,6 +8,7 @@ import { PathText } from '../lib/path-text'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { TrashNameLabel } from '../lib/context-menu'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
+import { Md3DestructiveGateBody } from '../md3/md3-destructive-gate'
 
 interface IDiscardChangesProps {
   readonly repository: Repository
@@ -34,6 +35,9 @@ interface IDiscardChangesState {
   readonly isDiscardingChanges: boolean
 
   readonly confirmDiscardChanges: boolean
+
+  /** Whether the shared destructive-action gate has been fully operated. */
+  readonly gateAuthorized: boolean
 }
 
 /**
@@ -53,6 +57,7 @@ export class DiscardChanges extends React.Component<
     this.state = {
       isDiscardingChanges: false,
       confirmDiscardChanges: this.props.confirmDiscardChanges,
+      gateAuthorized: false,
     }
   }
 
@@ -78,6 +83,7 @@ export class DiscardChanges extends React.Component<
     return (
       <Dialog
         id="discard-changes"
+        emojiDecoration="destructive"
         title={this.getDialogTitle()}
         onDismissed={this.props.onDismissed}
         onSubmit={this.discard}
@@ -90,6 +96,7 @@ export class DiscardChanges extends React.Component<
       >
         <DialogContent>
           {this.renderFileList()}
+          {this.renderGate()}
           {this.props.permanentlyDelete ? (
             <p id="discard-changes-confirmation-message">
               <span className="warning-icon">⚠️</span>{' '}
@@ -108,11 +115,51 @@ export class DiscardChanges extends React.Component<
           <OkCancelButtonGroup
             destructive={true}
             okButtonText={this.getOkButtonLabel()}
-            okButtonDisabled={isDiscardingChanges}
+            okButtonDisabled={isDiscardingChanges || !this.state.gateAuthorized}
+            cancelButtonText="Emergency exit"
             cancelButtonDisabled={isDiscardingChanges}
           />
         </DialogFooter>
       </Dialog>
+    )
+  }
+
+  private onGateAuthorizationChanged = (gateAuthorized: boolean) => {
+    this.setState({ gateAuthorized })
+  }
+
+  /**
+   * The shared destructive-action gate. Discarding is the one operation in this
+   * dialog that cannot be taken back from inside the app, so it goes through
+   * the same two keys and full-range slider as every other destructive action.
+   */
+  private renderGate() {
+    const { files, permanentlyDelete } = this.props
+    const target =
+      files.length > MaxFilesToList
+        ? `all ${files.length} changed files`
+        : files.map(file => file.path).join(', ')
+
+    return (
+      <Md3DestructiveGateBody
+        actionId="discard-changes"
+        summary={`This discards the uncommitted changes in ${
+          files.length === 1 ? '1 file' : `${files.length} files`
+        }: ${target}.`}
+        irreversible={
+          permanentlyDelete
+            ? 'The changes are deleted outright. They are not sent anywhere they can be retrieved from.'
+            : `The changes leave the working directory. They can only be retrieved from the ${TrashNameLabel}, and never from this app.`
+        }
+        targetKeyLabel={target}
+        effectKeyLabel={
+          permanentlyDelete
+            ? 'the changes are deleted permanently'
+            : `the changes are moved to the ${TrashNameLabel}`
+        }
+        disabled={this.state.isDiscardingChanges}
+        onAuthorizationChanged={this.onGateAuthorizationChanged}
+      />
     )
   }
 
@@ -164,6 +211,13 @@ export class DiscardChanges extends React.Component<
   }
 
   private discard = async () => {
+    // A destructive `Dialog` submits on Enter from anywhere inside the form,
+    // and the affirmative control is a plain button rather than the submit
+    // button, so a disabled button alone does not gate the keyboard path.
+    if (!this.state.gateAuthorized) {
+      return
+    }
+
     this.setState({ isDiscardingChanges: true })
 
     const moveToTrash = !this.props.permanentlyDelete

@@ -10,6 +10,7 @@ import {
   MaxRegexPatternLength,
 } from '../../lib/safe-regex'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
+import { DialogEmoji } from '../lib/dialog-emoji'
 import {
   flagsToString,
   IRegexFlags,
@@ -597,6 +598,7 @@ export function Md3RegexBuilderDialog(props: IMd3RegexBuilderDialogProps) {
             className="md3-regex-builder__header-icon"
             size={HeaderGlyphSize}
           />
+          <DialogEmoji kind="search" />
           <span id={titleId} className="md3-regex-builder__title">
             {t('md3.regexBuilder.title', { target: targetLabel })}
           </span>

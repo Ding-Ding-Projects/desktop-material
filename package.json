@@ -39,7 +39,7 @@
     "package": "ts-node -P script/tsconfig.json script/package.ts",
     "generate-octicons": "ts-node -P script/tsconfig.json script/generate-octicons.ts",
     "generate-gitignore-catalog": "ts-node -P script/tsconfig.json script/generate-gitignore-catalog.ts",
-    "generate-docs-hub-catalog": "node script/generate-docs-hub-catalog.mjs",
+    "generate-docs-hub-catalog": "node script/generate-docs-hub-catalog.mjs && node script/generate-docs-browser-bundle.mjs",
     "generate-dim-sum-assets": "ts-node -P script/tsconfig.json script/generate-dim-sum-assets.ts",
     "compile:script": "tsc -P script/tsconfig.json",
     "lint": "yarn prettier && yarn lint:src",
@@ -58,7 +58,8 @@
     "draft-release": "ts-node -P script/tsconfig.json script/draft-release/index.ts",
     "draft-release:format": "prettier --check --write changelog.json app/package.json && yarn validate-changelog",
     "draft-release:pr": "ts-node -P script/tsconfig.json script/draft-release/draft-pull-request.ts",
-    "validate-changelog": "ts-node -P script/tsconfig.json script/validate-changelog.ts"
+    "validate-changelog": "ts-node -P script/tsconfig.json script/validate-changelog.ts",
+    "generate-docs-browser-bundle": "node script/generate-docs-browser-bundle.mjs"
   },
   "author": {
     "name": "GitHub, Inc.",

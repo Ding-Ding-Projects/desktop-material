@@ -224,6 +224,20 @@
       d: "The Ctrl+Shift+P master command palette is Material Design 3's full-screen search view. Ctrl+Shift+F remains the current-repository Open in Folder action. The palette covers…",
     },
     {
+      t: 'Destructive-action super confirmation / 破壞性操作嘅雙匙閘',
+      h: 'features/design-system/destructive-action-gate.html',
+      s: 'features/design-system/destructive-action-gate.md',
+      c: 'features',
+      d: 'Every action in Desktop Material that destroys something, or that cannot be taken back from inside the app, is authorized through one shared gate:…',
+    },
+    {
+      t: 'Show emojis in dialogs and message boxes',
+      h: 'features/design-system/dialog-emoji-decoration.html',
+      s: 'features/design-system/dialog-emoji-decoration.md',
+      c: 'features',
+      d: "A persisted, per-profile switch on Settings → Appearance that puts one decorative emoji beside a dialog's title. Turn it off and the same dialog says exactly the same words…",
+    },
+    {
       t: 'Dialog wheel and trackpad scrolling',
       h: 'features/design-system/dialog-wheel-scrolling.html',
       s: 'features/design-system/dialog-wheel-scrolling.md',
@@ -259,6 +273,13 @@
       d: 'Wires the 244 pre-generated audio assets in app/static/audio/ into the optional audio runtime, so meaningful events can play a recorded human-style voice line and a composed…',
     },
     {
+      t: 'Offline documentation browser',
+      h: 'features/design-system/offline-documentation-browser.html',
+      s: 'features/design-system/offline-documentation-browser.md',
+      c: 'features',
+      d: 'Every feature article in docs/features ships inside the application. Help → Feature documentation (or the command palette) opens a browser that lists all of them, searches…',
+    },
+    {
       t: 'Design-system features / 設計系統功能',
       h: 'features/design-system/',
       s: 'features/design-system/README.md',
@@ -285,6 +306,13 @@
       s: 'features/design-system/sfx-event-mapping.md',
       c: 'features',
       d: 'Builds on the audio system to give each meaningful app event its own recognizable sound effect instead of routing everything through the shared commit / auto-commit cue. It…',
+    },
+    {
+      t: 'Surface locks / 版面鎖',
+      h: 'features/design-system/surface-locks.html',
+      s: 'features/design-system/surface-locks.md',
+      c: 'features',
+      d: 'A for-fun password or one-time-password speed bump on a tab, a tab group, or any appearance value. Off by default, opt-in per surface, and never described as security.',
     },
     {
       t: 'Tone: the per-language funny-level sliders',
@@ -369,6 +397,13 @@
       s: 'features/identity-and-workspace/settings-tab-docking.md',
       c: 'features',
       d: 'Repository Settings and application Settings use the same browser-style tab strip. The strip can be docked on the left, top, bottom, or right of its content. Left is the…',
+    },
+    {
+      t: 'Support Tickets: the local recovery desk / Support Tickets：本機支援櫃檯',
+      h: 'features/identity-and-workspace/support-tickets.html',
+      s: 'features/identity-and-workspace/support-tickets.md',
+      c: 'features',
+      d: 'Desktop Material ships several for-fun locks — a tab a user can put behind a password, an appearance property behind an OTP, the renamable presentation lock in settings. Every…',
     },
     {
       t: 'Tab groups',
@@ -1376,7 +1411,7 @@
       h: 'readme-tabs/screenshots.html',
       s: 'readme-tabs/screenshots.md',
       c: 'readme-tabs',
-      d: "The dated production-build receipt proves that Desktop Material's app-owned browser reaches the original registered GitHub OAuth application without the reported redirect_uri…",
+      d: 'The current refresh used the packaged Windows application from commit eb894d4218670f0e9fd1516dff964edd76e1824c on an isolated off-screen desktop. Fifty-six scene-level captures…',
     },
     {
       t: 'Desktop Material documentation',

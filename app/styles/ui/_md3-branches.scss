@@ -1,0 +1,196 @@
+// The MD3 shell's Branches destination.
+//
+// Every literal here is copied from the `<sc-if value="{{ isBranches }}">`
+// branch of `design/History MD3.dc.html` and from the `branchRows` mapping in
+// its `renderVals()`: the 8px view gutter, the 12px `surface-container` pane,
+// the 10.5px meta and detail lines, the 20px ahead/behind pills and the 26px
+// checkout button.
+//
+// The row itself, its name, its detail line, the chip row, the search row and
+// the group header are all `_md3-shell.scss` classes; only what is specific to
+// this destination lives here.
+
+// `display: flex; flex: 1; min-height: 0; gap: 8px; padding: 0 8px 8px 8px`.
+.md3-branches {
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  min-height: 0;
+  padding: 0 8px 8px 8px;
+}
+
+// The single full-width pane.
+.md3-branches__pane {
+  background: var(--md-sys-color-surface-container);
+  border-radius: 12px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+// `flex: 1; min-height: 0; overflow-y: auto; padding: 0 6px 8px 6px`.
+.md3-branches__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 6px 8px 6px;
+}
+
+// ---------------------------------------------------------------------------
+// Group headers
+// ---------------------------------------------------------------------------
+//
+// The contract renders the header as the first child of the row's own column;
+// here it is a real grid row so `role="rowheader"` has somewhere to live. The
+// wrappers carry no box of their own, so the header lands on the same pixel.
+
+.md3-branches__group-row,
+.md3-branches__group-cell {
+  display: block;
+}
+
+// ---------------------------------------------------------------------------
+// Rows
+// ---------------------------------------------------------------------------
+//
+// `content-visibility` lets the browser skip layout and paint for the rows
+// scrolled out of view. It keeps every row in the DOM — so focus, find-in-page
+// and the roving tabindex all still work — while a repository with a thousand
+// branches stops paying for the ones nobody can see. The intrinsic size is the
+// row's real height (three lines of text plus its padding), so the scrollbar
+// does not jump as rows are skipped.
+.md3-branches__row {
+  contain-intrinsic-size: auto 58px;
+  content-visibility: auto;
+}
+
+// The contract's leading column: the glyph and the three stacked lines.
+.md3-branches__main {
+  align-items: center;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 8px;
+  min-width: 0;
+}
+
+// `iconStyle`, in its default branch.
+.md3-branches__icon {
+  color: var(--md-sys-color-on-surface-variant);
+  flex: none;
+}
+
+// `iconStyle`, for the checked-out branch.
+.md3-branches__icon--current {
+  color: var(--md-sys-color-primary);
+}
+
+// The contract's `<span style="display: flex; flex-direction: column; gap: 1px">`.
+.md3-branches__text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+// The second line — "Updated 12 minutes ago by …".
+.md3-branches__meta {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// ---------------------------------------------------------------------------
+// Ahead / behind pills
+// ---------------------------------------------------------------------------
+
+.md3-branches__pills {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+
+// `aheadStyle` / `behindStyle`, minus the two colour declarations.
+.md3-branches__pill {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 600;
+  height: 20px;
+  padding: 0 8px;
+}
+
+.md3-branches__pill--ahead {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.md3-branches__pill--behind {
+  background: var(--dm-amber-container);
+  color: var(--dm-amber-on-container);
+}
+
+// ---------------------------------------------------------------------------
+// Checkout
+// ---------------------------------------------------------------------------
+
+.md3-branches__checkout-cell,
+.md3-branches__menu-cell {
+  align-items: center;
+  display: flex;
+  flex: none;
+}
+
+// `checkoutStyle`, in its actionable branch.
+.md3-branches__checkout {
+  align-items: center;
+  background: var(--md-sys-color-surface-container-high);
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  height: 26px;
+  justify-content: center;
+  padding: 0 12px;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0, 1);
+
+  &:hover {
+    background: color-mix(in srgb, var(--md-sys-color-surface-container-high) 88%, var(--md-sys-color-on-surface));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+}
+
+// `checkoutStyle`, for the branch that is already checked out. The contract
+// gives it `cursor: default` and no fill; it is rendered as a `<span>` here so
+// it is not a button that does nothing.
+.md3-branches__checkout--current {
+  background: transparent;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: default;
+}
+
+// ---------------------------------------------------------------------------
+// Reduced motion
+// ---------------------------------------------------------------------------
+
+@media (prefers-reduced-motion: reduce) {
+  .md3-branches__checkout {
+    transition: none;
+  }
+}

@@ -681,9 +681,16 @@ export function buildDefaultMenuTemplate(
     click: emit('show-changelog'),
   }
 
+  const showDocsBrowserItem: Electron.MenuItemConstructorOptions = {
+    id: 'show-docs-browser',
+    label: __DARWIN__ ? 'Feature Documentation' : '&Feature documentation',
+    click: emit('show-docs-browser'),
+  }
+
   const helpItems = [
     submitIssueItem,
     contactSupportItem,
+    showDocsBrowserItem,
     showUserGuides,
     showKeyboardShortcuts,
     showChangelogItem,

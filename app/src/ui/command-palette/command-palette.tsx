@@ -71,7 +71,7 @@ function resolvePaletteDescription(command: IPaletteCommand): string {
     : t(command.descriptionKey)
 }
 
-/** Localize the six stable catalog groups shown as row chips. */
+/** Localize the stable catalog groups shown as row chips. */
 function resolvePaletteGroup(group: string): string {
   switch (group) {
     case 'App':
@@ -80,6 +80,8 @@ function resolvePaletteGroup(group: string): string {
       return t('commandPalette.groupBranch')
     case 'Changes':
       return t('commandPalette.groupChanges')
+    case 'Documentation':
+      return t('commandPalette.groupDocumentation')
     case 'Edit':
       return t('commandPalette.groupEdit')
     case 'Navigate':

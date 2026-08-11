@@ -10,6 +10,7 @@ import type { TeleportTargetId } from './teleport-targets'
 import { PreferencesTab } from '../models/preferences'
 import { RepositorySettingsTab } from '../models/repository-settings'
 import { isSchoolModeEnabled } from './school-mode'
+import { DocsArticlePaletteCommands } from './docs-browser/docs-browser-palette'
 
 /**
  * The application-selection snapshot an availability predicate inspects to
@@ -1043,6 +1044,21 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
       kind: 'preferences',
       tab: PreferencesTab.Accessibility,
       targetId: 'settingsUnderlineLinks',
+    },
+  },
+  {
+    event: 'palette:set-dialog-emoji',
+    title: 'Show emojis in dialogs and message boxes',
+    titleKey: 'palette.showDialogEmoji',
+    group: 'App',
+    materialSymbol: 'palette',
+    keywords: 'emoji emojis dialog dialogs message box decoration',
+    descriptionKey: 'palette.showDialogEmojiDescription',
+    control: { kind: 'toggle' },
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Appearance,
+      targetId: 'settingsDialogEmoji',
     },
   },
   {
@@ -3286,6 +3302,19 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     group: 'App',
     keywords: 'account enterprise github in login sign',
   },
+  // The offline documentation browser itself. The per-article rows below open
+  // one article directly; this one opens the browser on whatever it opened
+  // last, for a reader who does not yet know which article they want.
+  {
+    event: 'show-docs-browser',
+    title: 'Browse feature documentation',
+    titleKey: 'palette.docsBrowser',
+    group: 'Documentation',
+    materialSymbol: 'menu_book',
+    descriptionKey: 'palette.docsBrowserDescription',
+    keywords: 'article docs documentation guide help manual offline reference',
+  },
+  ...DocsArticlePaletteCommands,
 ]
 
 /**

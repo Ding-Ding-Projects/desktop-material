@@ -26,6 +26,11 @@ Material installation manages many identities, repositories, and branches.
 - [Tab groups](tab-groups.md)
 - [Tab-strip overflow dropdown](tab-overflow-dropdown.md)
 - [Browser-style settings tabs](settings-browser-tabs.md)
+- [Support Tickets: the local recovery desk](support-tickets.md) — the
+  self-service route back in after forgetting a for-fun lock's credential
+- [The built-in authenticator and QR
+  pairing](authenticator-and-qr-registration.md) — registering TOTP second
+  factors, the in-process QR, and where the secrets are kept
 
 - [多帳戶、豐富帳戶選擇器同儲存庫身分](multiple-accounts-and-repository-identity.md)
 - [儲存庫側欄同釘選](repository-sidebar-and-pinning.md)
@@ -39,6 +44,8 @@ Material installation manages many identities, repositories, and branches.
 - [分頁群組](tab-groups.md)
 - [分頁列溢出下拉](tab-overflow-dropdown.md)
 - [瀏覽器式設定分頁](settings-browser-tabs.md)
+- [Support Tickets：本機支援櫃檯](support-tickets.md) — 唔記得咗「好玩」鎖嘅密碼之後，自己行返入去嘅路
+- [內置驗證器同 QR 配對](authenticator-and-qr-registration.md) — 登記 TOTP 第二重驗證、喺程序入面畫嘅 QR，同啲密鑰擺喺邊
 
 High-frequency visual edits are coalesced before persistence, while remote
 default-branch lookup reuses only a namespace-validated local symbolic ref.

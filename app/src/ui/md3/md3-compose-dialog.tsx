@@ -2,6 +2,7 @@ import * as React from 'react'
 import classNames from 'classnames'
 import { t } from '../../lib/i18n'
 import { MaterialSymbol } from '../lib/material-symbol'
+import { DialogEmoji } from '../lib/dialog-emoji'
 import { createUniqueId, releaseUniqueId } from '../lib/id-pool'
 import { Md3GhostButton, Md3IconButton, Md3TonalButton } from './md3-primitives'
 import { formatAddDelete } from './md3-style-contract'
@@ -293,6 +294,7 @@ export function Md3ComposeDialog(props: IMd3ComposeDialogProps) {
             name="edit"
             size={18}
           />
+          <DialogEmoji kind="commit" />
           <span id={titleId} className="md3-compose-dialog__title">
             {t('md3.compose.title')}
           </span>

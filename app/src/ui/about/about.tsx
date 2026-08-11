@@ -19,6 +19,7 @@ import { AriaLiveContainer } from '../accessibility/aria-live-container'
 import { formatDate } from '../../lib/format-date'
 import { DefaultAppDisplayName } from '../../models/app-identity'
 import { MaterialSymbol } from '../lib/material-symbol'
+import { Md3SupportTicketEntry } from '../md3/md3-support-ticket-entry'
 import { t } from '../../lib/i18n'
 import { deriveUpdateArrivalEstimate } from '../../lib/update-coming-soon-estimate'
 import {
@@ -389,6 +390,14 @@ export class About extends React.Component<IAboutProps, IAboutState> {
               <LinkButton uri="https://gh.io/copilot-for-desktop-transparency">
                 Responsible use of Copilot in {DefaultAppDisplayName}
               </LinkButton>
+            </p>
+            {/*
+              The Help route to the Support Tickets recovery desk. About is
+              what the Help menu opens, so it is where somebody looking for
+              help with a lock they can no longer get past will look.
+            */}
+            <p className="terms-and-license">
+              <Md3SupportTicketEntry entryPoint="help" />
             </p>
           </div>
         </DialogContent>

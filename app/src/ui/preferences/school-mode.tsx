@@ -15,6 +15,7 @@ import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { PasswordTextBox } from '../lib/password-text-box'
 import { TextBox } from '../lib/text-box'
 import { teleportAnchor } from '../../lib/teleport-targets'
+import { Md3SupportTicketEntry } from '../md3/md3-support-ticket-entry'
 import type { TranslationVariables } from '../../lib/i18n'
 
 interface ISchoolModeProps {
@@ -200,6 +201,12 @@ export class SchoolModePreferences extends React.Component<
         <Button disabled={this.state.busy} onClick={this.onDisable}>
           {this.localize('appearance.schoolModeDisable', nameVariables)}
         </Button>
+        {/*
+          The unlock prompt's own route to the recovery desk. Somebody who
+          cannot remember this credential is looking at this field, so this is
+          where "Forgotten your password?" belongs — not in a menu elsewhere.
+        */}
+        <Md3SupportTicketEntry entryPoint="unlockPrompt" />
       </div>
     )
   }
@@ -264,6 +271,12 @@ export class SchoolModePreferences extends React.Component<
             nameVariables
           )}
         </p>
+        {/*
+          The lock setting's own route to the recovery desk, available whether
+          or not the lock is currently on — the setting is where a user looks
+          for what to do when they can no longer get past it.
+        */}
+        <Md3SupportTicketEntry entryPoint="lockSetting" />
       </section>
     )
   }

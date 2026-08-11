@@ -146,10 +146,10 @@ describe('feature preservation ledger', () => {
   // the baseline and every assertion above would pass on the smaller tree.
   it('has not shrunk below the recorded baseline sizes', () => {
     const floors: ReadonlyArray<readonly [string, number, number]> = [
-      ['popupTypes', ledger.popupTypes.length, 133],
+      ['popupTypes', ledger.popupTypes.length, 134],
       ['menuIds', ledger.menuIds.length, 54],
-      ['featureDocs', ledger.featureDocs.length, 148],
-      ['uiAreas', ledger.uiAreas.length, 128],
+      ['featureDocs', ledger.featureDocs.length, 154],
+      ['uiAreas', ledger.uiAreas.length, 129],
       ['dispatcherOperations', ledger.dispatcherOperations.length, 506],
     ]
 

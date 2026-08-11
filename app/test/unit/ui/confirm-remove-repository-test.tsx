@@ -36,6 +36,25 @@ function submit(container: HTMLElement) {
   fireEvent.submit(form!)
 }
 
+/**
+ * Operate the shared destructive-action gate: turn both keys, then drive the
+ * authorization slider to its maximum.
+ */
+function authorizeGate(container: HTMLElement) {
+  const keys = container.querySelectorAll<HTMLInputElement>(
+    '.md3-destructive-gate__key-input'
+  )
+  assert.equal(keys.length, 2)
+  fireEvent.click(keys[0])
+  fireEvent.click(keys[1])
+
+  const slider = container.querySelector<HTMLInputElement>(
+    '.md3-destructive-gate__slider-input'
+  )
+  assert.notEqual(slider, null)
+  fireEvent.change(slider!, { target: { value: '100' } })
+}
+
 describe('ConfirmRemoveRepository force-delete fallback', () => {
   it('dismisses without offering force delete when removal succeeds', async () => {
     let dismissed = 0
@@ -51,6 +70,13 @@ describe('ConfirmRemoveRepository force-delete fallback', () => {
       />
     )
 
+    // An unauthorized submission — which is what pressing Enter anywhere in
+    // this form does — must not remove anything.
+    submit(view.container)
+    assert.equal(dismissed, 0)
+    assert.equal(forceDeleted, 0)
+
+    authorizeGate(view.container)
     submit(view.container)
 
     await waitFor(() => assert.equal(dismissed, 1))
@@ -83,6 +109,7 @@ describe('ConfirmRemoveRepository force-delete fallback', () => {
     )
     assert.notEqual(checkbox, null)
     fireEvent.click(checkbox!)
+    authorizeGate(view.container)
     submit(view.container)
 
     // The dialog stays open and surfaces the clearly-warned fallback.
@@ -101,8 +128,16 @@ describe('ConfirmRemoveRepository force-delete fallback', () => {
       { path: repository.path, deleteFromDisk: true },
     ])
 
+    // The fallback deletes permanently rather than moving to the trash, so the
+    // gate is re-armed: the authorization the user already gave was for a
+    // different consequence, and submitting again must do nothing until the
+    // new one has been authorized on its own.
+    submit(view.container)
+    assert.deepEqual(forceDeletedPaths, [])
+
     // Confirming the fallback permanently deletes exactly the repo path and
     // then dismisses.
+    authorizeGate(view.container)
     submit(view.container)
 
     await waitFor(() => assert.equal(dismissed, 1))

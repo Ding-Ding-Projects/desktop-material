@@ -8,6 +8,7 @@ import {
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Button } from '../lib/button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
+import { Md3DestructiveGateBody } from '../md3/md3-destructive-gate'
 import { RadioButton } from '../lib/radio-button'
 import { Select } from '../lib/select'
 import { TextBox } from '../lib/text-box'
@@ -60,9 +61,12 @@ interface IRepositoryTransferDialogState {
   readonly mode: RepositoryTransferMode
   readonly name: string
   readonly keepPrivate: boolean
-  readonly confirmedDestination: boolean
-  readonly confirmedHistory: boolean
-  readonly confirmationProgress: number
+  /**
+   * Whether the shared destructive-action gate on the review stage has been
+   * fully operated: both keys turned and the authorization slider driven to
+   * its maximum. The gate owns that state; this records only its verdict.
+   */
+  readonly gateAuthorized: boolean
   readonly progress?: IRepositoryTransferProgress
   readonly error?: Error
 }
@@ -127,9 +131,7 @@ export class RepositoryTransferDialog extends React.Component<
       // Preserve a known-private source by default. Making that repository
       // public should require an explicit user choice in the review step.
       keepPrivate: source.isPrivate === true,
-      confirmedDestination: false,
-      confirmedHistory: false,
-      confirmationProgress: 0,
+      gateAuthorized: false,
     }
   }
 
@@ -238,20 +240,8 @@ export class RepositoryTransferDialog extends React.Component<
   private onKeepPrivateChanged = (event: React.FormEvent<HTMLInputElement>) =>
     this.setState({ keepPrivate: event.currentTarget.checked })
 
-  private onDestinationConfirmationChanged = (
-    event: React.FormEvent<HTMLInputElement>
-  ) => this.setState({ confirmedDestination: event.currentTarget.checked })
-
-  private onHistoryConfirmationChanged = (
-    event: React.FormEvent<HTMLInputElement>
-  ) => this.setState({ confirmedHistory: event.currentTarget.checked })
-
-  private onConfirmationProgressChanged = (
-    event: React.FormEvent<HTMLInputElement>
-  ) =>
-    this.setState({
-      confirmationProgress: Number(event.currentTarget.value),
-    })
+  private onGateAuthorizationChanged = (gateAuthorized: boolean) =>
+    this.setState({ gateAuthorized })
 
   private onSignIn = () => {
     const endpoint = this.props.repository.gitHubRepository.endpoint
@@ -303,11 +293,7 @@ export class RepositoryTransferDialog extends React.Component<
   }
 
   private canTransfer(): boolean {
-    return (
-      this.state.confirmedDestination &&
-      this.state.confirmedHistory &&
-      this.state.confirmationProgress === 100
-    )
+    return this.state.gateAuthorized
   }
 
   private onDialogSubmit = () => {
@@ -315,9 +301,7 @@ export class RepositoryTransferDialog extends React.Component<
       if (this.canReview()) {
         this.setState({
           stage: 'review',
-          confirmedDestination: false,
-          confirmedHistory: false,
-          confirmationProgress: 0,
+          gateAuthorized: false,
           error: undefined,
         })
       }
@@ -564,51 +548,18 @@ export class RepositoryTransferDialog extends React.Component<
               destination reports a successful push.
             </p>
           </div>
-          <Checkbox
-            label="I verified the destination account, owner, and repository name."
-            value={
-              this.state.confirmedDestination
-                ? CheckboxValue.On
-                : CheckboxValue.Off
-            }
-            onChange={this.onDestinationConfirmationChanged}
+          <Md3DestructiveGateBody
+            actionId="repository-transfer"
+            summary={`This publishes ${
+              this.props.repository.gitHubRepository.fullName
+            } to ${destination} as a ${modeLabel.toLowerCase()} transfer.`}
+            irreversible={`This checkout's origin remote is retargeted at ${destination} once the destination reports a successful push, and the previous origin is not restored automatically.`}
+            targetKeyLabel={`the destination ${destination} on ${
+              account?.login ?? 'unknown account'
+            }`}
+            effectKeyLabel={`the ${modeLabel.toLowerCase()} history mode, and this checkout's origin moving to the new repository`}
+            onAuthorizationChanged={this.onGateAuthorizationChanged}
           />
-          <Checkbox
-            label="I understand the selected history mode and the local origin change."
-            value={
-              this.state.confirmedHistory ? CheckboxValue.On : CheckboxValue.Off
-            }
-            onChange={this.onHistoryConfirmationChanged}
-          />
-          <label
-            className="repository-transfer-slider-label"
-            htmlFor="repository-transfer-confirmation-slider"
-          >
-            Slide fully right to authorize the transfer
-          </label>
-          <input
-            id="repository-transfer-confirmation-slider"
-            className="repository-transfer-slider"
-            type="range"
-            min="0"
-            max="100"
-            step="1"
-            value={this.state.confirmationProgress}
-            disabled={
-              !this.state.confirmedDestination || !this.state.confirmedHistory
-            }
-            onChange={this.onConfirmationProgressChanged}
-            aria-valuetext={`${this.state.confirmationProgress}% authorized`}
-          />
-          <output className="repository-transfer-slider-output">
-            {`${this.state.confirmationProgress}%`}
-          </output>
-          {!transferReady && (
-            <p className="repository-transfer-note" role="status">
-              Both confirmations and the full-range authorization are required
-              before the transfer button becomes available.
-            </p>
-          )}
         </DialogContent>
         <DialogFooter>
           <OkCancelButtonGroup
