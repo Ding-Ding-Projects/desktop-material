@@ -907,6 +907,64 @@
   }
 }
 
+// Compact run-detail log pane from the Claude destination reference. The
+// production virtualized log, regex search, copy, retry, and focus behavior
+// remain unchanged.
+.actions-log-viewer {
+  inset: 8px;
+  padding: 8px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--md-sys-color-surface-container-lowest);
+
+  > header {
+    min-height: 42px;
+    margin: 0;
+    padding: 0 4px 6px;
+
+    h2 {
+      font-size: 17px;
+    }
+  }
+}
+
+.actions-log-search {
+  gap: 6px;
+  margin-bottom: 6px;
+  padding: 5px 6px;
+  border-radius: 12px;
+  background: var(--md-sys-color-surface-container);
+
+  input {
+    height: 32px;
+    border: 0;
+    background: var(--md-sys-color-surface-container-high);
+  }
+}
+
+.actions-log-list {
+  border-radius: 12px;
+}
+
+.actions-log-line {
+  min-height: 20px;
+  line-height: 18px;
+}
+
+.actions-log-number {
+  width: 44px;
+  min-width: 44px;
+  height: 20px;
+  padding: 0 10px 0 0;
+}
+
+@media (max-width: 620px) {
+  .actions-log-viewer {
+    inset: 4px;
+    padding: 6px;
+  }
+}
+
 .actions-cache-manager {
   flex: 0 0 500px;
   min-width: 0;

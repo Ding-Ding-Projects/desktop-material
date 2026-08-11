@@ -568,3 +568,96 @@
     width: 100%;
   }
 }
+
+// Match the forge destinations to the Claude list/detail hierarchy without
+// replacing any issue search, metadata, pagination, or mutation behavior.
+.github-issues-view {
+  gap: 8px;
+  padding: 0 8px 8px;
+}
+
+.github-issues-header {
+  min-height: 42px;
+  padding: 0 4px;
+
+  h1 {
+    font-size: 18px;
+  }
+}
+
+.github-issues-filters {
+  gap: 6px;
+  padding: 8px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--md-sys-color-surface-container);
+}
+
+.github-issues-view input,
+.github-issues-view select {
+  min-height: 34px;
+}
+
+.github-issues-layout {
+  grid-template-columns: 356px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.github-issues-list-panel,
+.github-issue-detail,
+.github-issues-empty,
+.github-issue-composer,
+.github-issue-confirmation,
+.github-issue-comments {
+  border: 0;
+  border-radius: 12px;
+}
+
+.github-issues-list-panel {
+  gap: 6px;
+  padding: 8px 6px;
+  background: var(--md-sys-color-surface-container);
+}
+
+.github-issue-detail,
+.github-issues-empty,
+.github-issue-composer,
+.github-issue-confirmation,
+.github-issue-comments {
+  background: var(--md-sys-color-surface-container-lowest);
+}
+
+.github-issue-detail {
+  padding: 12px;
+
+  > header h2 {
+    font-size: 17px;
+  }
+}
+
+.github-issues-list {
+  gap: 2px;
+}
+
+.github-issue-row {
+  padding: 8px;
+  border-radius: 10px;
+
+  &.selected {
+    border-color: transparent;
+    color: var(--md-sys-color-on-secondary-container);
+    background: var(--md-sys-color-secondary-container);
+  }
+}
+
+@media (max-width: 900px) {
+  .github-issues-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .github-issues-view {
+    padding: 0 6px 6px;
+  }
+}

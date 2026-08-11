@@ -2940,3 +2940,189 @@
     height: min(640px, calc(100vh - 16px));
   }
 }
+
+// Claude destination anatomy: compact tonal list/detail shell while retaining
+// the production run, filter, dispatch, selection, and pagination controls.
+.actions-view {
+  gap: 8px;
+  padding: 0 8px 8px;
+  overflow: hidden;
+
+  .actions-tab-bar {
+    margin: 0;
+  }
+}
+
+.actions-header {
+  min-height: 42px;
+  margin: 0;
+  padding: 0 4px;
+
+  h1 {
+    font-size: 18px;
+  }
+}
+
+.actions-content {
+  gap: 8px;
+}
+
+#actions-run-column {
+  border-radius: 12px;
+  background: var(--md-sys-color-surface-container);
+}
+
+.actions-run-column {
+  padding: 8px 6px;
+}
+
+.actions-run-tools {
+  display: flex;
+  min-width: 0;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.actions-run-tools .actions-search-row {
+  margin: 0 2px 2px;
+}
+
+.actions-run-tools .actions-search-pill {
+  height: 40px;
+  padding: 0 5px 0 12px;
+  border-width: 1px;
+  background: var(--md-sys-color-surface-container-high);
+}
+
+.actions-run-tools .actions-search-toggle,
+.actions-dispatch-compact {
+  width: 32px;
+  height: 32px;
+}
+
+.actions-run-tools .actions-filter-chips {
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 2px 2px;
+}
+
+.actions-run-tools .actions-filter-chip {
+  height: 28px;
+  padding: 0 9px;
+  flex: 0 0 auto;
+  font-size: 11px;
+
+  &.on {
+    color: var(--md-sys-color-on-secondary-container);
+    background: var(--md-sys-color-secondary-container);
+  }
+}
+
+.actions-dispatch-compact {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--md-sys-color-on-primary-container);
+  background: var(--md-sys-color-primary-container);
+}
+
+.actions-run-tools .actions-filters {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 2px 4px;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--md-sys-color-surface-container-high);
+
+  .select-component select {
+    height: 32px;
+    border-radius: 10px;
+  }
+}
+
+.actions-run-tools .actions-run-bulk-toolbar {
+  gap: 4px 6px;
+  margin: 0 2px 4px;
+  padding: 5px 6px;
+  background: var(--md-sys-color-surface-container-high);
+
+  .button-component {
+    min-height: 28px;
+    padding-inline: 8px;
+  }
+}
+
+.actions-run-list {
+  padding-right: 0;
+}
+
+.actions-run-card {
+  gap: 6px 8px;
+  padding: 8px 6px;
+  border-radius: 12px;
+
+  &:hover {
+    border-radius: 12px;
+  }
+
+  .actions-status-chip,
+  .branch-chip {
+    min-height: 20px;
+    padding-inline: 7px;
+    font-size: 10px;
+  }
+}
+
+.actions-run-select {
+  gap: 8px;
+}
+
+.actions-run-details {
+  flex: 1 1 auto;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--md-sys-color-surface-container-lowest);
+}
+
+.actions-details-header {
+  min-height: 42px;
+  margin-bottom: 8px;
+
+  h2 {
+    font-size: 17px;
+  }
+}
+
+.actions-job-card {
+  padding: 9px;
+  border-radius: 10px;
+  background: var(--md-sys-color-surface-container);
+}
+
+.actions-step-list {
+  margin-top: 6px;
+
+  li {
+    padding: 4px 2px;
+  }
+}
+
+@media (max-width: 900px) {
+  .actions-run-details {
+    inset: 50px 8px 8px;
+  }
+}
+
+@media (max-width: 620px) {
+  .actions-view {
+    padding: 0 6px 6px;
+  }
+
+  .actions-run-column {
+    padding-inline: 4px;
+  }
+
+  .actions-run-tools .actions-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1897,3 +1897,134 @@
     animation: none;
   }
 }
+
+// Claude destination anatomy: a compact 356px tonal collection beside a
+// lowest-surface detail pane. Existing release actions and disclosures stay
+// intact; this layer only aligns their visual density and hierarchy.
+.github-releases-view {
+  gap: 8px;
+  padding: 0 8px 8px;
+}
+
+.github-releases-header {
+  min-height: 42px;
+  padding: 0 4px;
+
+  h1 {
+    font-size: 18px;
+  }
+}
+
+.github-releases-stats-toggle {
+  min-height: 32px;
+  margin-bottom: 0;
+  padding: 4px 9px;
+  border: 0;
+  border-radius: 12px;
+}
+
+.github-releases-overview {
+  gap: 6px;
+}
+
+.github-release-metric {
+  min-height: 68px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 12px;
+}
+
+.github-releases-layout {
+  grid-template-columns: 356px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.github-releases-list-panel,
+.github-release-detail,
+.github-release-editor,
+.github-releases-empty {
+  border: 0;
+  border-radius: 12px;
+}
+
+.github-releases-list-panel {
+  padding: 8px 6px;
+  background: var(--md-sys-color-surface-container);
+}
+
+.github-release-detail,
+.github-release-editor,
+.github-releases-empty {
+  padding: 12px;
+  background: var(--md-sys-color-surface-container-lowest);
+}
+
+.github-releases-panel-heading {
+  margin-bottom: 6px;
+
+  h2,
+  h3 {
+    font-size: 15px;
+  }
+}
+
+.github-releases-compact-tools-toggle {
+  min-height: 32px;
+  margin-bottom: 5px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--md-sys-color-surface-container-high);
+}
+
+.github-releases-filter-area {
+  gap: 6px;
+  margin-bottom: 6px;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--md-sys-color-surface-container-high);
+}
+
+.github-releases-filter-toolbar {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.github-releases-search {
+  grid-column: 1 / -1;
+}
+
+.github-releases-view input,
+.github-releases-view select {
+  min-height: 34px;
+}
+
+.github-release-row {
+  border-radius: 10px;
+}
+
+.github-release-detail > header h2 {
+  font-size: 17px;
+}
+
+@media (max-width: 900px) {
+  .github-releases-view {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .github-releases-layout {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: visible;
+  }
+}
+
+@media (max-width: 620px) {
+  .github-releases-view {
+    padding: 0 6px 6px;
+  }
+
+  .github-releases-filter-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

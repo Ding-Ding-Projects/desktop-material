@@ -270,3 +270,98 @@
     flex-direction: row;
   }
 }
+
+// Preserve the real package transfer and version controls while presenting
+// the collection as the same 356px tonal list/detail destination anatomy.
+.github-packages-view {
+  gap: 8px;
+  padding: 0 8px 8px;
+  overflow: hidden;
+}
+
+.github-packages-header {
+  min-height: 42px;
+  padding: 0 4px;
+
+  h1 {
+    font-size: 18px;
+  }
+}
+
+.github-packages-layout {
+  display: grid;
+  min-height: 0;
+  flex: 1 1 auto;
+  grid-template-columns: 356px minmax(0, 1fr);
+  gap: 8px;
+  overflow: hidden;
+
+  > :only-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.github-packages-layout > .github-packages-list-panel,
+.github-packages-layout > .github-packages-empty {
+  min-height: 0;
+  padding: 8px 6px;
+  overflow: auto;
+  border: 0;
+  border-radius: 12px;
+  background: var(--md-sys-color-surface-container);
+}
+
+.github-packages-layout > .github-package-detail {
+  min-height: 0;
+  padding: 12px;
+  overflow: auto;
+  border: 0;
+  border-radius: 12px;
+  background: var(--md-sys-color-surface-container-lowest);
+}
+
+.github-packages-heading,
+.github-packages-toolbar {
+  gap: 6px 10px;
+}
+
+.github-packages-search {
+  min-width: min(280px, 100%);
+  gap: 5px;
+}
+
+.github-packages-view input,
+.github-packages-view select {
+  min-height: 34px;
+}
+
+.github-package-row,
+.github-package-version {
+  border: 0;
+  border-radius: 10px;
+  background: var(--md-sys-color-surface-container-high);
+}
+
+.github-package-row.selected {
+  border-color: transparent;
+  color: var(--md-sys-color-on-secondary-container);
+  background: var(--md-sys-color-secondary-container);
+}
+
+@container github-packages-pane (max-width: 900px) {
+  .github-packages-view {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .github-packages-layout {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: visible;
+  }
+}
+
+@container github-packages-pane (max-width: 620px) {
+  .github-packages-view {
+    padding: 0 6px 6px;
+  }
+}

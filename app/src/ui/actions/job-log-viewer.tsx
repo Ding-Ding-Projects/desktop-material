@@ -22,10 +22,10 @@ import { trapActionsDialogFocus } from './actions-dialog-focus'
 const JobLogFilterListId = 'actions-job-log'
 
 /** Fixed height of one rendered log row (see `.actions-log-line`). */
-const ActionsLogRowHeight = 24
+const ActionsLogRowHeight = 20
 
 /** Width of the line-number gutter (see `.actions-log-number`). */
-const ActionsLogNumberColumnWidth = 54
+const ActionsLogNumberColumnWidth = 44
 
 /**
  * Horizontal padding around the log text (the `code` element's 12px
