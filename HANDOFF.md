@@ -37,8 +37,8 @@ commits listed in the August 11 ROADMAP entry.
 
 | Check | Result |
 | --- | --- |
-| `npx tsc --noEmit -p tsconfig.json` | Clean at `5aa2b58` |
-| ESLint (`--rulesdir ./eslint-rules`) on touched files | Clean |
+| `npx tsc --noEmit -p tsconfig.json` | Clean at `5aa2b58`, and clean again on the whole tree after the concurrent destination-wiring work settled |
+| ESLint (`--rulesdir ./eslint-rules`) on touched files | Clean except `app/src/ui/app.tsx`, which reports three errors that belong to the concurrent destination-wiring work, not to this change — see below |
 | Prettier `--check` on touched files | Clean |
 | `feature-ledger-test.ts` | Pass — nothing went missing |
 | `md3-contract-conformance-test.ts` | Pass |
@@ -49,6 +49,16 @@ commits listed in the August 11 ROADMAP entry.
 **Not claimed:** no installer was built, no remote CI run was observed, no
 release was published, and no capture of the new shell exists. The screenshot
 gallery still photographs the pre-rewrite chrome.
+
+**`app/src/ui/app.tsx` is red on lint, and not because of this change.** The
+three errors are `@typescript-eslint/member-ordering` on `md3MenuPayload` and
+`md3SelectedAgentSessionPath` (both must be declared before the constructor) and
+one `react/jsx-no-bind` on the workflow-dispatch `onSubmit` arrow. All three
+belong to the destination-wiring work that was rewriting this file at the same
+time — that pass added 779 lines to it — and none of them is on a line this
+change touched. They were left rather than fixed because moving a member
+declaration in a file somebody else is actively rewriting is how a conflict is
+manufactured. Whoever lands that pass owns them.
 
 ### Two defects found and repaired while documenting
 
