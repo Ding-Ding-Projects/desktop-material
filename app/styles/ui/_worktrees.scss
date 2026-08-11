@@ -205,3 +205,122 @@
     }
   }
 }
+
+// Compact tonal worktree picker aligned with the supplied branch anatomy.
+.worktree-list {
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--md-sys-color-surface-container);
+
+  .filter-field-row {
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0 0 2px;
+  }
+
+  .filter-list-filter-field.text-box-component {
+    height: 40px;
+    padding-left: 12px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: var(--md-sys-color-surface-container-high);
+  }
+
+  .filter-chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 0 0 4px;
+
+    .filter-chip {
+      min-height: 28px;
+      padding: 0 10px;
+      border: 0;
+      border-radius: 999px;
+      color: var(--md-sys-color-on-surface-variant);
+      background: var(--md-sys-color-surface-container-high);
+      font-size: 11px;
+      font-weight: 700;
+
+      &.active {
+        color: var(--md-sys-color-on-secondary-container);
+        background: var(--md-sys-color-secondary-container);
+      }
+    }
+  }
+
+  .filter-list-group-header {
+    padding: 8px 6px 4px;
+    font-size: 10.5px;
+  }
+
+  .list-item {
+    margin: 1px 0;
+    border-radius: 10px;
+
+    &:hover {
+      background: var(--md-sys-color-surface-container-high);
+    }
+  }
+
+  .worktrees-list-item {
+    padding: 6px;
+
+    .name {
+      max-width: none;
+      font-family: var(--font-family-monospace);
+      font-size: 12px;
+      font-weight: var(--font-weight-semibold);
+    }
+
+    .description {
+      font-size: 10.5px;
+    }
+  }
+
+  .worktree-list-post-filter {
+    gap: 6px;
+    padding: 6px 0 0;
+    border-top: 0;
+  }
+
+  .worktree-list-actions,
+  .worktree-maintenance-controls {
+    gap: 4px;
+
+    .button-component {
+      min-height: 30px;
+      border-radius: 999px;
+    }
+  }
+
+  .worktree-administration {
+    padding: 8px;
+    border-radius: 12px;
+    background: var(--md-sys-color-surface-container-high);
+  }
+}
+
+#foldout-container .foldout:has(.worktree-list) {
+  border: 0;
+  border-radius: 12px;
+  background: var(--md-sys-color-surface-container);
+  box-shadow: var(--md-sys-elevation-level2);
+}
+
+.dialog-component:is(#add-worktree, #rename-worktree, #delete-worktree, #delete-worktree-failed) {
+  border-radius: 20px;
+  background: var(--md-sys-color-surface-container-low);
+
+  input,
+  select {
+    min-height: 40px;
+    border-color: var(--md-sys-color-outline-variant);
+    border-radius: 12px;
+    background: var(--md-sys-color-surface-container-high);
+  }
+
+  .button-component {
+    border-radius: 999px;
+  }
+}

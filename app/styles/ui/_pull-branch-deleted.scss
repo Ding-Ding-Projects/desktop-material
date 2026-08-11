@@ -1,6 +1,8 @@
 #pull-branch-deleted {
   min-width: 0;
   width: min(560px, 92vw);
+  border-radius: 20px;
+  background: var(--md-sys-color-surface-container-low);
 
   .dialog-content {
     display: flex;
@@ -22,8 +24,8 @@
 
   .pull-branch-deleted-delete {
     background: var(--md-sys-color-surface-container);
-    border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: var(--md-sys-shape-corner-large);
+    border: 0;
+    border-radius: 12px;
     display: flex;
     flex-direction: column;
     gap: var(--spacing-half);
@@ -42,5 +44,9 @@
     border-radius: var(--md-sys-shape-corner-medium);
     color: var(--md-sys-color-on-error-container);
     padding: var(--spacing);
+  }
+
+  .button-component {
+    border-radius: 999px;
   }
 }

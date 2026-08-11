@@ -8,6 +8,7 @@ import { Button } from '../lib/button'
 import { IMatches } from '../../lib/fuzzy-find'
 import { ClickSource } from '../lib/list'
 import memoizeOne from 'memoize-one'
+import { IListFilter } from '../lib/filter-list-mode'
 
 const RowHeight = 30
 
@@ -38,6 +39,19 @@ interface IWorktreeListProps {
 }
 
 type WorktreeGroupIdentifier = 'main' | 'linked'
+
+const WorktreeTypeFilters: ReadonlyArray<IListFilter<IWorktreeListItem>> = [
+  {
+    id: 'main',
+    label: 'Main',
+    predicate: item => item.worktree.type === 'main',
+  },
+  {
+    id: 'linked',
+    label: 'Linked',
+    predicate: item => item.worktree.type === 'linked',
+  },
+]
 
 export class WorktreeList extends React.Component<IWorktreeListProps> {
   private getGroups = memoizeOne((worktrees: ReadonlyArray<WorktreeEntry>) => {
@@ -167,6 +181,7 @@ export class WorktreeList extends React.Component<IWorktreeListProps> {
         renderPostFilter={this.onRenderNewButton}
         renderNoItems={this.onRenderNoItems}
         onItemContextMenu={this.onItemContextMenu}
+        customFilters={WorktreeTypeFilters}
       />
     )
   }

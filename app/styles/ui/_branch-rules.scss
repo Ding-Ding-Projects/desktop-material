@@ -499,3 +499,66 @@
     padding-top: 8px;
   }
 }
+
+// Carry the branch destination's compact list/detail language into the real
+// rule inspector without changing its fetch, cache, or recovery behavior.
+.branch-rules-panel {
+  top: calc(8px + var(--non-modal-sheet-cascade-offset, 0px));
+  right: calc(8px + var(--non-modal-sheet-cascade-offset, 0px));
+  bottom: 8px;
+  border-radius: 12px;
+  background: var(--md-sys-color-surface-container-lowest);
+}
+
+.branch-rules-header {
+  min-height: 42px;
+  padding: 8px 10px 4px 12px;
+}
+
+.branch-rules-header-icon,
+.branch-rules-icon-button.button-component {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+}
+
+.branch-rules-toolbar {
+  padding: 4px 12px 8px;
+  border-bottom: 0;
+}
+
+.branch-rules-content {
+  padding: 8px;
+}
+
+.branch-rules-grid {
+  gap: 8px;
+}
+
+.branch-rules-state-card,
+.branch-rules-empty,
+.branch-rules-warning-list,
+.branch-rules-card {
+  padding: 12px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--md-sys-color-surface-container);
+}
+
+.branch-rules-filter {
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--md-sys-color-surface-container);
+
+  .branch-rules-filter-input {
+    height: 34px;
+    border: 0;
+    background: var(--md-sys-color-surface-container-high);
+  }
+}
+
+.branch-rules-values li {
+  border-radius: 10px;
+}
