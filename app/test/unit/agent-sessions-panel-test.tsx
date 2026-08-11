@@ -14,6 +14,12 @@ import {
 } from '../../src/models/agent-session'
 import { fireEvent, render, within } from '../helpers/ui/render'
 import { LanguageModeChangedEvent } from '../../src/lib/i18n'
+import {
+  appendAgentSessionConversationLog,
+  beginAgentSessionConversation,
+  clearAgentSessionConversations,
+  finishAgentSessionConversation,
+} from '../../src/ui/agent-sessions/agent-session-conversation'
 
 // Dialog sends a renderer lifecycle event in the real app. Keep this focused
 // component suite independent of Electron's main process while still mounting
@@ -131,6 +137,33 @@ function renderPanel(
 }
 
 describe('AgentSessionsPanel fleet', () => {
+  it('pairs the fleet with the selected session real runner transcript', () => {
+    const selected = session({ name: 'feature-x', agent: 'codex' })
+    beginAgentSessionConversation({
+      operationId: 'agent-feature-x',
+      worktreePath: selected.path,
+      agent: 'codex',
+      prompt: 'Implement the repository navigation.',
+    })
+    appendAgentSessionConversationLog({
+      operationId: 'agent-feature-x',
+      stream: 'stdout',
+      text: 'Repository navigation implemented.',
+    })
+    finishAgentSessionConversation('agent-feature-x', 'exited')
+
+    const view = renderPanel([selected], () => true, {
+      selectedPath: selected.path,
+    })
+    const conversation = view.getByRole('region', { name: 'feature-x' })
+    const log = within(conversation).getByRole('log')
+
+    assert.ok(within(log).getByText('Implement the repository navigation.'))
+    assert.ok(within(log).getByText('Repository navigation implemented.'))
+    assert.equal(within(conversation).queryByRole('textbox'), null)
+    clearAgentSessionConversations()
+  })
+
   it('renders one card per worktree under a counted Worktrees header', () => {
     const view = renderPanel([
       session({ name: 'root', isMainWorktree: true }),

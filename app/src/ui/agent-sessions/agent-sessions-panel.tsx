@@ -9,6 +9,7 @@ import {
   IAgentRunnerAvailability,
   IAgentSetupCommand,
   buildAgentSessionFleet,
+  canonicalAgentSessionPath,
 } from '../../lib/agent-sessions'
 import { Button } from '../lib/button'
 import { MaterialSymbol } from '../lib/material-symbol'
@@ -16,6 +17,11 @@ import { AgentSessionFleetList } from './agent-session-fleet-list'
 import { IAgentSetupRetry, NewAgentSessionForm } from './new-agent-session-form'
 import { getPersistedLanguageMode, t } from '../../lib/i18n'
 import { Dialog, DialogContent, DialogLayerPortal } from '../dialog'
+import {
+  readAgentSessionConversation,
+  subscribeAgentSessionConversations,
+} from './agent-session-conversation'
+import { AgentSessionConversationPane } from './agent-session-conversation-pane'
 
 export interface IAgentSessionsPanelProps {
   /** Every worktree in the repository, whether or not an agent runs in it. */
@@ -50,6 +56,7 @@ export interface IAgentSessionsPanelProps {
 interface IAgentSessionsPanelState {
   readonly isCreatorOpen: boolean
   readonly isSubmitting: boolean
+  readonly conversationRevision: number
 }
 
 /**
@@ -68,6 +75,7 @@ export class AgentSessionsPanel extends React.Component<
   private readonly newSessionButton = React.createRef<Button>()
   private readonly newSessionForm = React.createRef<NewAgentSessionForm>()
   private mounted = false
+  private disposeConversation: (() => void) | null = null
 
   private getWorktreeNames = memoizeOne(
     (sessions: ReadonlyArray<IAgentSession>) => sessions.map(s => s.name)
@@ -75,15 +83,28 @@ export class AgentSessionsPanel extends React.Component<
 
   public constructor(props: IAgentSessionsPanelProps) {
     super(props)
-    this.state = { isCreatorOpen: false, isSubmitting: false }
+    this.state = {
+      isCreatorOpen: false,
+      isSubmitting: false,
+      conversationRevision: 0,
+    }
   }
 
   public componentDidMount() {
     this.mounted = true
+    this.disposeConversation = subscribeAgentSessionConversations(() => {
+      if (this.mounted) {
+        this.setState(state => ({
+          conversationRevision: state.conversationRevision + 1,
+        }))
+      }
+    })
   }
 
   public componentWillUnmount() {
     this.mounted = false
+    this.disposeConversation?.()
+    this.disposeConversation = null
   }
 
   private onOpenCreator = () => {
@@ -183,38 +204,65 @@ export class AgentSessionsPanel extends React.Component<
 
   public render() {
     const rows = this.getFleet(this.props.sessions, getPersistedLanguageMode())
+    const selectedPathKey =
+      this.props.selectedPath === null
+        ? null
+        : canonicalAgentSessionPath(this.props.selectedPath)
+    const selectedRow =
+      rows.find(
+        row =>
+          selectedPathKey !== null &&
+          canonicalAgentSessionPath(row.session.path) === selectedPathKey
+      ) ??
+      rows.find(row => !row.session.isMissing) ??
+      null
+    const conversation =
+      selectedRow === null
+        ? null
+        : readAgentSessionConversation(selectedRow.session.path)
 
     return (
       <div className="agent-sessions-panel">
-        <div className="agent-sessions-header">
-          <h2 className="agent-sessions-title">
-            {t('agentSessions.worktrees')}
-            <span className="agent-sessions-count">{rows.length}</span>
-          </h2>
-          <Button
-            ref={this.newSessionButton}
-            className="new-agent-session-button"
-            onClick={this.onOpenCreator}
-            ariaHaspopup="dialog"
-            disabled={
-              this.state.isCreatorOpen ||
-              this.props.isCreating ||
-              this.state.isSubmitting
-            }
+        <div className="agent-sessions-layout">
+          <section
+            className="agent-sessions-list-pane"
+            aria-label={t('agentSessions.worktrees')}
           >
-            <MaterialSymbol name="add" size={18} />
-            {t('agentSessions.newSession')}
-          </Button>
-        </div>
-        {this.renderCreator()}
-        <div className="agent-sessions-fleet-scroller">
-          <AgentSessionFleetList
-            rows={rows}
-            selectedPath={this.props.selectedPath}
-            onSelect={this.props.onSelectSession}
-            onCancel={this.props.onCancelSession}
+            <div className="agent-sessions-header">
+              <h2 className="agent-sessions-title">
+                {t('agentSessions.worktrees')}
+                <span className="agent-sessions-count">{rows.length}</span>
+              </h2>
+              <Button
+                ref={this.newSessionButton}
+                className="new-agent-session-button"
+                onClick={this.onOpenCreator}
+                ariaHaspopup="dialog"
+                disabled={
+                  this.state.isCreatorOpen ||
+                  this.props.isCreating ||
+                  this.state.isSubmitting
+                }
+              >
+                <MaterialSymbol name="add" size={18} />
+                {t('agentSessions.newSession')}
+              </Button>
+            </div>
+            <div className="agent-sessions-fleet-scroller">
+              <AgentSessionFleetList
+                rows={rows}
+                selectedPath={this.props.selectedPath}
+                onSelect={this.props.onSelectSession}
+                onCancel={this.props.onCancelSession}
+              />
+            </div>
+          </section>
+          <AgentSessionConversationPane
+            row={selectedRow}
+            conversation={conversation}
           />
         </div>
+        {this.renderCreator()}
       </div>
     )
   }

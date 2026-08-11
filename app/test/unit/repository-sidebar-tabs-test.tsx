@@ -1,7 +1,7 @@
 import assert from 'node:assert'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, it } from 'node:test'
+import { beforeEach, describe, it } from 'node:test'
 import * as React from 'react'
 
 import { RepositorySidebarTabs } from '../../src/ui/agent-sessions/repository-sidebar-tabs'
@@ -30,6 +30,12 @@ const readStyles = (...segments: ReadonlyArray<string>) =>
   readFileSync(join(process.cwd(), 'app', 'styles', ...segments), 'utf8')
 
 describe('RepositorySidebarTabs', () => {
+  beforeEach(() => {
+    window.localStorage.removeItem(
+      'desktop-material.repository-sidebar.drawer-expanded-v1'
+    )
+  })
+
   it('preserves the full-height chain used by the virtualized repository list', () => {
     const styles = readStyles('ui', '_agent-sessions.scss')
     const switcherRule = styles.match(
@@ -105,6 +111,30 @@ describe('RepositorySidebarTabs', () => {
     fireEvent.keyDown(list, { key: 'ArrowRight' })
 
     assert.deepStrictEqual(selected, ['agents', 'agents'])
+  })
+
+  it('persists a collapsed vertical rail with axis-correct keyboard movement', () => {
+    const selected: Array<string> = []
+    const first = renderTabs('list', false, next => selected.push(next))
+
+    fireEvent.click(
+      first.getByRole('button', { name: 'Collapse repository drawer' })
+    )
+
+    const tabs = first.getByRole('tablist', { name: 'Repository sidebar' })
+    assert.strictEqual(tabs.getAttribute('aria-orientation'), 'vertical')
+    assert.ok(first.getByText('Repository list').closest('[hidden]'))
+
+    fireEvent.keyDown(first.getByRole('tab', { name: 'List' }), {
+      key: 'ArrowDown',
+    })
+    assert.deepStrictEqual(selected, ['agents'])
+
+    first.unmount()
+    const restored = renderTabs('list')
+    assert.ok(
+      restored.getByRole('button', { name: 'Expand repository drawer' })
+    )
   })
 
   it('keeps Agents unreachable until a repository is selected', () => {

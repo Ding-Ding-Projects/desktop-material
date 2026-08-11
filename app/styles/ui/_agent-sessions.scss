@@ -13,7 +13,35 @@
   height: 100%;
   min-height: 0;
   min-width: 0;
+  position: relative;
   width: 100%;
+}
+
+.repository-sidebar-drawer-toggle {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  padding: 0;
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 36px;
+  z-index: 1;
+
+  &:hover {
+    background: var(--md-sys-color-surface-container-highest);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
 }
 
 .repository-sidebar-tabs {
@@ -22,17 +50,21 @@
   display: grid;
   flex-shrink: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  padding: 4px;
+  padding: 4px 46px 4px 4px;
 }
 
 .repository-sidebar-tab {
+  align-items: center;
   background: transparent;
   border: 0;
   border-radius: 8px;
   color: var(--md-sys-color-on-surface-variant);
   cursor: pointer;
+  display: inline-flex;
   font: inherit;
   font-weight: 600;
+  gap: 6px;
+  justify-content: center;
   min-height: 40px;
   padding: 6px var(--spacing-half);
 
@@ -84,6 +116,73 @@
   width: 100%;
 }
 
+.repository-sidebar-switcher.collapsed {
+  background: var(--md-sys-color-surface-container-low);
+  width: 68px;
+
+  .repository-sidebar-drawer-toggle {
+    margin: 6px auto 2px;
+    position: static;
+  }
+
+  .repository-sidebar-tabs {
+    border-bottom: 0;
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 4px 12px;
+  }
+
+  .repository-sidebar-tab {
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    width: 44px;
+  }
+
+  .repository-sidebar-tab-label {
+    display: none;
+  }
+}
+
+// The Agents destination is a real two-pane workbench: a fixed
+// 320px fleet beside the selected session's captured runner conversation. The
+// repository foldout normally inherits the toolbar button width; only this
+// visible destination widens the inline-sized foldout to the reference canvas.
+#foldout-container:has(#repository-sidebar-agents-panel:not([hidden])) {
+  width: min(760px, calc(100vw - 24px)) !important;
+  min-width: min(760px, calc(100vw - 24px)) !important;
+  max-width: calc(100vw - 24px);
+}
+
+#foldout-container:has(.repository-sidebar-switcher.collapsed) {
+  width: 68px !important;
+  min-width: 68px !important;
+  max-width: 68px;
+}
+
+.agent-sessions-layout {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 8px;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 8px 8px;
+}
+
+.agent-sessions-list-pane,
+.agent-session-conversation {
+  background: var(--md-sys-color-surface-container);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .agent-sessions-header {
   align-items: center;
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
@@ -92,7 +191,8 @@
   flex-wrap: wrap;
   gap: var(--spacing-half);
   justify-content: space-between;
-  padding: var(--spacing);
+  min-height: 42px;
+  padding: 6px 8px 6px 12px;
 }
 
 .agent-sessions-title {
@@ -122,6 +222,203 @@
   display: inline-flex;
   gap: 4px;
   white-space: nowrap;
+}
+
+.agent-session-conversation {
+  background: var(--md-sys-color-surface-container-lowest);
+
+  &.empty {
+    align-items: center;
+    color: var(--md-sys-color-on-surface-variant);
+    gap: 10px;
+    justify-content: center;
+    padding: 24px;
+    text-align: center;
+
+    p {
+      margin: 0;
+      max-width: 34ch;
+    }
+  }
+}
+
+.agent-session-conversation-header {
+  align-items: center;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  display: flex;
+  flex: none;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 10px 0 12px;
+}
+
+.agent-session-conversation-icon {
+  color: var(--md-sys-color-primary);
+  flex: none;
+}
+
+.agent-session-conversation-heading {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.agent-session-conversation-name,
+.agent-session-conversation-branch {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.agent-session-conversation-name {
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+.agent-session-conversation-branch {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 10.5px;
+}
+
+.agent-session-conversation-status {
+  align-items: center;
+  background: var(--md-sys-color-surface-container-high);
+  border-radius: 999px;
+  display: inline-flex;
+  flex: none;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+
+  > span {
+    background: var(--md-sys-color-on-surface-variant);
+    border-radius: 999px;
+    height: 8px;
+    width: 8px;
+  }
+
+  &.working > span {
+    background: var(--md-sys-color-primary);
+  }
+
+  &.error > span {
+    background: var(--md-sys-color-error);
+  }
+
+  &.diff > span {
+    background: var(--md-sys-color-tertiary);
+  }
+}
+
+.agent-session-conversation-log {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 12px 12px;
+  scroll-behavior: smooth;
+}
+
+.agent-session-conversation-turn {
+  align-self: flex-start;
+  background: var(--md-sys-color-surface-container);
+  border-radius: 12px;
+  display: grid;
+  gap: 4px;
+  max-width: min(100%, 720px);
+  padding: 10px 12px;
+
+  &.instruction {
+    align-self: flex-end;
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+  }
+
+  &.error {
+    background: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
+  }
+
+  &.meta {
+    background: var(--md-sys-color-surface-container-high);
+  }
+
+  pre {
+    font-family: var(--font-family-monospace);
+    font-size: 11.5px;
+    line-height: 1.5;
+    margin: 0;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+}
+
+.agent-session-conversation-role {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.agent-session-conversation-empty {
+  align-items: center;
+  color: var(--md-sys-color-on-surface-variant);
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 10px;
+  justify-content: center;
+  min-height: 180px;
+  padding: 24px;
+  text-align: center;
+
+  p {
+    margin: 0;
+    max-width: 42ch;
+  }
+
+  code {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}
+
+.agent-session-conversation-footer {
+  align-items: center;
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  display: flex;
+  flex: none;
+  font-size: 10.5px;
+  gap: 8px;
+  justify-content: space-between;
+  min-height: 36px;
+  padding: 6px 12px;
+
+  > span:first-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.agent-session-conversation-live-state {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  gap: 5px;
+  text-transform: capitalize;
+
+  > span {
+    background: var(--md-sys-color-primary);
+    border-radius: 999px;
+    height: 6px;
+    width: 6px;
+  }
 }
 
 .agent-sessions-fleet-scroller {
@@ -630,5 +927,36 @@ dialog.new-agent-session-dialog {
   .agent-session-card,
   .new-agent-session-options-chevron {
     transition: none;
+  }
+}
+
+@media (max-width: 760px) {
+  #foldout-container:has(#repository-sidebar-agents-panel:not([hidden])) {
+    width: calc(100vw - 16px) !important;
+    min-width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px);
+  }
+
+  .agent-sessions-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(210px, 0.8fr) minmax(250px, 1fr);
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .agent-sessions-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .new-agent-session-button {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .agent-session-conversation-footer {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

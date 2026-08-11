@@ -64,6 +64,26 @@ function createProps(showPopup: (popup: { type: PopupType }) => void) {
 }
 
 describe('RepositoriesList batch actions', () => {
+  it('keeps the current repository in an operable footer', () => {
+    const selected: Array<Repository> = []
+    render(
+      <RepositoriesList
+        {...createProps(() => {})}
+        selectedRepository={localRepository}
+        onSelectionChanged={repository =>
+          selected.push(repository as Repository)
+        }
+      />
+    )
+
+    const current = screen.getByRole('button', {
+      name: 'Open current repository, local-repo',
+    })
+    assert.ok(current)
+    fireEvent.click(current)
+    assert.deepStrictEqual(selected, [localRepository])
+  })
+
   it('keeps the frequent actions in one compact, accessible row', () => {
     render(<RepositoriesList {...createProps(() => {})} />)
 
