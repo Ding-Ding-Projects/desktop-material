@@ -120,6 +120,33 @@ describe('one-click Windows build contract', () => {
     assert.ok(build > production, 'build:prod must run in production mode')
   })
 
+  it('passes the detected Visual Studio path only to the direct native rebuild', async () => {
+    const source = await read('script/build-windows.ps1')
+
+    assert.match(source, /function Assert-VsDeveloperCommands/)
+    assert.match(source, /Common7\\Tools\\VsDevCmd\.bat/)
+    assert.match(source, /VC\\Auxiliary\\Build\\vcvarsall\.bat/)
+    assert.match(source, /Assert-VsDeveloperCommands -InstallationPath/)
+    assert.match(source, /\$env:GYP_MSVS_VERSION = '2022'/)
+    assert.match(source, /\$env:npm_config_msvs_version = '2022'/)
+    assert.match(source, /return \[string\]\$installationPath/)
+    assert.match(source, /\$vsInstallationResult = @\(Ensure-VsBuildTools\)/)
+    assert.match(source, /\[string\]\$vsInstallationPath =/)
+    assert.match(
+      source,
+      /\$env:npm_config_msvs_version = \$VisualStudioInstallationPath/
+    )
+    assert.match(source, /\$previousMsvsVersion/)
+    assert.match(
+      source,
+      /finally \{[\s\S]*?SetEnvironmentVariable\([\s\S]*?'npm_config_msvs_version'/
+    )
+    assert.match(
+      source,
+      /Ensure-PrintenvzExecutable -NodePath \$node -VisualStudioInstallationPath \$vsInstallationPath/
+    )
+  })
+
   it('fails closed on stale, incomplete, or signed artifacts', async () => {
     const source = await read('script/build-windows.ps1')
 

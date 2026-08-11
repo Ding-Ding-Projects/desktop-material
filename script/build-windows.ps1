@@ -190,13 +190,27 @@ function Find-VsBuildTools {
   return $installationPath
 }
 
+function Assert-VsDeveloperCommands {
+  param([Parameter(Mandatory = $true)][string]$InstallationPath)
+
+  $vsDevCmdPath = Join-Path $InstallationPath 'Common7\Tools\VsDevCmd.bat'
+  if (-not (Test-Path -LiteralPath $vsDevCmdPath -PathType Leaf)) {
+    throw "Visual Studio installation '$InstallationPath' is missing required developer command '$vsDevCmdPath'."
+  }
+  $vcVarsPath = Join-Path $InstallationPath 'VC\Auxiliary\Build\vcvarsall.bat'
+  if (-not (Test-Path -LiteralPath $vcVarsPath -PathType Leaf)) {
+    throw "Visual Studio installation '$InstallationPath' is missing required compiler environment command '$vcVarsPath'."
+  }
+}
+
 function Ensure-VsBuildTools {
   $installationPath = Find-VsBuildTools
   if (-not [string]::IsNullOrWhiteSpace($installationPath)) {
+    Assert-VsDeveloperCommands -InstallationPath $installationPath
     Write-Phase "Using Visual Studio Build Tools 2022 at $installationPath"
     $env:GYP_MSVS_VERSION = '2022'
     $env:npm_config_msvs_version = '2022'
-    return
+    return [string]$installationPath
   }
 
   $winget = Get-Command winget.exe -ErrorAction SilentlyContinue
@@ -216,8 +230,10 @@ function Ensure-VsBuildTools {
   if ($installExit -ne 0 -or [string]::IsNullOrWhiteSpace($installationPath)) {
     throw "Visual Studio Build Tools 2022 C++ workload installation failed with exit code $installExit. Required component: Microsoft.VisualStudio.Component.VC.Tools.x86.x64."
   }
+  Assert-VsDeveloperCommands -InstallationPath $installationPath
   $env:GYP_MSVS_VERSION = '2022'
   $env:npm_config_msvs_version = '2022'
+  return [string]$installationPath
 }
 
 function Remove-BoundedBuildOutput {
@@ -319,7 +335,10 @@ function Ensure-ManifestPackageAlias {
 }
 
 function Ensure-PrintenvzExecutable {
-  param([Parameter(Mandatory = $true)][string]$NodePath)
+  param(
+    [Parameter(Mandatory = $true)][string]$NodePath,
+    [Parameter(Mandatory = $true)][string]$VisualStudioInstallationPath
+  )
 
   $packageRoot = Join-Path $RepositoryRoot 'node_modules\printenvz'
   $executablePath = Join-Path $packageRoot 'build\Release\printenvz.exe'
@@ -337,7 +356,18 @@ function Ensure-PrintenvzExecutable {
   }
 
   Write-Phase 'Rebuilding the missing native printenvz prerequisite'
-  Invoke-Checked -FilePath $NodePath -ArgumentList @($buildScript, '--rebuild') -FailureLabel 'printenvz native rebuild'
+  $previousMsvsVersion =
+    [Environment]::GetEnvironmentVariable('npm_config_msvs_version', 'Process')
+  try {
+    $env:npm_config_msvs_version = $VisualStudioInstallationPath
+    Invoke-Checked -FilePath $NodePath -ArgumentList @($buildScript, '--rebuild') -FailureLabel 'printenvz native rebuild'
+  } finally {
+    [Environment]::SetEnvironmentVariable(
+      'npm_config_msvs_version',
+      $previousMsvsVersion,
+      'Process'
+    )
+  }
   if (-not (Test-Path -LiteralPath $executablePath -PathType Leaf)) {
     throw "printenvz rebuild completed without creating '$executablePath'."
   }
@@ -394,7 +424,14 @@ try {
   }
   [string]$node = $nodeResult[0]
   Refresh-ProcessPath
-  Ensure-VsBuildTools
+  $vsInstallationResult = @(Ensure-VsBuildTools)
+  if (
+    $vsInstallationResult.Count -ne 1 -or
+    $vsInstallationResult[0] -isnot [string]
+  ) {
+    throw "Visual Studio resolver must return exactly one installation path string; received $($vsInstallationResult.Count) success-stream values."
+  }
+  [string]$vsInstallationPath = $vsInstallationResult[0]
   $yarn = Resolve-VendoredYarn -NodePath $node
 
   Push-Location $RepositoryRoot
@@ -408,7 +445,7 @@ try {
     Write-Phase 'Installing exact dependencies from the frozen lockfile'
     Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'install', '--frozen-lockfile', '--non-interactive', '--production=false') -FailureLabel 'Frozen dependency installation'
 
-    Ensure-PrintenvzExecutable -NodePath $node
+    Ensure-PrintenvzExecutable -NodePath $node -VisualStudioInstallationPath $vsInstallationPath
     $env:NODE_ENV = 'production'
     $buildStartedAt = [datetime]::UtcNow
     Write-Phase 'Building the production renderer and main process'
