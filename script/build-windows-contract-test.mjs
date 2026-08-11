@@ -95,6 +95,31 @@ describe('one-click Windows build contract', () => {
     assert.ok(build > ensure, 'printenvz must be ensured before build:prod')
   })
 
+  it('forces dev dependencies before install and restores the process environment', async () => {
+    const source = await read('script/build-windows.ps1')
+
+    assert.match(source, /\$env:NODE_ENV = 'development'/)
+    assert.match(source, /\$env:YARN_PRODUCTION = 'false'/)
+    assert.match(source, /\$env:npm_config_production = 'false'/)
+    assert.match(source, /'--production=false'/)
+    assert.match(source, /\$env:NODE_ENV = 'production'/)
+    assert.match(source, /\$originalProcessEnvironment = @\{\}/)
+    assert.match(source, /finally \{[\s\S]*?SetEnvironmentVariable\(/)
+
+    const development = source.lastIndexOf("$env:NODE_ENV = 'development'")
+    const install = source.lastIndexOf("'install', '--frozen-lockfile'")
+    const printenvz = source.lastIndexOf(
+      'Ensure-PrintenvzExecutable -NodePath $node'
+    )
+    const production = source.lastIndexOf("$env:NODE_ENV = 'production'")
+    const build = source.lastIndexOf("'build:prod'")
+    assert.ok(development > 0, 'dependency mode must be set')
+    assert.ok(install > development, 'install must run in development mode')
+    assert.ok(printenvz > install, 'printenvz must follow dependency install')
+    assert.ok(production > printenvz, 'production mode must follow printenvz')
+    assert.ok(build > production, 'build:prod must run in production mode')
+  })
+
   it('fails closed on stale, incomplete, or signed artifacts', async () => {
     const source = await read('script/build-windows.ps1')
 

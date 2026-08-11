@@ -360,6 +360,32 @@ function Get-RepositoryCommit {
   return $commit
 }
 
+$managedEnvironmentNames = @(
+  'Path',
+  'GYP_MSVS_VERSION',
+  'npm_config_msvs_version',
+  'npm_config_arch',
+  'TARGET_ARCH',
+  'NODE_ENV',
+  'YARN_PRODUCTION',
+  'npm_config_production',
+  'WINDOWS_SIGNING_ENABLED',
+  'CSC_IDENTITY_AUTO_DISCOVERY',
+  'CSC_LINK',
+  'CSC_KEY_PASSWORD',
+  'WIN_CSC_LINK',
+  'WIN_CSC_KEY_PASSWORD',
+  'AZURE_TENANT_ID',
+  'AZURE_CLIENT_ID',
+  'AZURE_CLIENT_SECRET'
+)
+$originalProcessEnvironment = @{}
+foreach ($name in $managedEnvironmentNames) {
+  $originalProcessEnvironment[$name] =
+    [Environment]::GetEnvironmentVariable($name, 'Process')
+}
+$exitCode = 0
+
 try {
   Write-Phase "Starting Desktop Material $Mode path"
   $nodeResult = @(Resolve-PinnedNode)
@@ -376,11 +402,14 @@ try {
     Remove-BoundedBuildOutput
     $env:npm_config_arch = $TargetArchitecture
     $env:TARGET_ARCH = $TargetArchitecture
-    $env:NODE_ENV = 'production'
+    $env:NODE_ENV = 'development'
+    $env:YARN_PRODUCTION = 'false'
+    $env:npm_config_production = 'false'
     Write-Phase 'Installing exact dependencies from the frozen lockfile'
-    Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'install', '--frozen-lockfile', '--non-interactive') -FailureLabel 'Frozen dependency installation'
+    Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'install', '--frozen-lockfile', '--non-interactive', '--production=false') -FailureLabel 'Frozen dependency installation'
 
     Ensure-PrintenvzExecutable -NodePath $node
+    $env:NODE_ENV = 'production'
     $buildStartedAt = [datetime]::UtcNow
     Write-Phase 'Building the production renderer and main process'
     Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'build:prod') -FailureLabel 'Production build'
@@ -440,9 +469,18 @@ try {
 
   $OverallStopwatch.Stop()
   Write-Host ("Completed in {0:hh\:mm\:ss}." -f $OverallStopwatch.Elapsed)
-  exit 0
 } catch {
   $OverallStopwatch.Stop()
   Write-Error ("Build failed after {0:hh\:mm\:ss}: {1}" -f $OverallStopwatch.Elapsed, $_.Exception.Message)
-  exit 1
+  $exitCode = 1
+} finally {
+  foreach ($name in $managedEnvironmentNames) {
+    [Environment]::SetEnvironmentVariable(
+      $name,
+      $originalProcessEnvironment[$name],
+      'Process'
+    )
+  }
 }
+
+exit $exitCode
