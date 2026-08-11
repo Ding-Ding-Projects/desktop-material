@@ -286,6 +286,10 @@ function Find-PackagedApplication {
       if (-not (Test-Path -LiteralPath $unpackedPayloadPath -PathType Container)) {
         continue
       }
+      $unpackedPayload = Get-Item -LiteralPath $unpackedPayloadPath
+      if ($unpackedPayload.LastWriteTimeUtc -lt $freshnessFloor) {
+        continue
+      }
       $unpackedSentinels = @()
       foreach ($name in $unpackedSentinelNames) {
         $sentinelPath = Join-Path $unpackedPayloadPath $name
@@ -294,7 +298,7 @@ function Find-PackagedApplication {
           break
         }
         $sentinel = Get-Item -LiteralPath $sentinelPath
-        if ($sentinel.Length -le 0 -or $sentinel.LastWriteTimeUtc -lt $freshnessFloor) {
+        if ($sentinel.Length -le 0) {
           $unpackedSentinels = @()
           break
         }
@@ -303,7 +307,7 @@ function Find-PackagedApplication {
       if ($unpackedSentinels.Count -eq $unpackedSentinelNames.Count) {
         return [pscustomobject]@{
           Executable = $executable
-          Payload = Get-Item -LiteralPath $unpackedPayloadPath
+          Payload = $unpackedPayload
           PayloadSentinels = $unpackedSentinels
         }
       }

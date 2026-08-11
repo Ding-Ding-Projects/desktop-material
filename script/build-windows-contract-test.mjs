@@ -163,11 +163,11 @@ describe('one-click Windows build contract', () => {
     assert.match(source, /\$executable\.Length -le 0/)
     assert.match(source, /\$asarPayload\.Length -gt 0/)
     assert.match(source, /\$sentinel\.Length -le 0/)
-    assert.match(source, /\$sentinel\.LastWriteTimeUtc -lt \$freshnessFloor/)
     assert.match(
       source,
-      /Payload = Get-Item -LiteralPath \$unpackedPayloadPath/
+      /\$unpackedPayload\.LastWriteTimeUtc -lt \$freshnessFloor/
     )
+    assert.match(source, /Payload = \$unpackedPayload/)
     assert.match(source, /GitHubDesktopSetup-\$TargetArchitecture\.exe/)
     assert.match(source, /GitHubDesktopSetup-\$TargetArchitecture\.msi/)
     assert.match(source, /'RELEASES'/)
@@ -184,6 +184,21 @@ describe('one-click Windows build contract', () => {
     assert.match(source, /CSC_IDENTITY_AUTO_DISCOVERY = 'false'/)
     assert.match(source, /CSC_LINK = ''/)
     assert.match(source, /WIN_CSC_LINK = ''/)
+  })
+
+  it('uses directory freshness instead of copied sentinel mtimes for unpacked payloads', async () => {
+    const source = await read('script/build-windows.ps1')
+
+    assert.match(
+      source,
+      /\$unpackedPayload = Get-Item -LiteralPath \$unpackedPayloadPath/
+    )
+    assert.match(
+      source,
+      /\$unpackedPayload\.LastWriteTimeUtc -lt \$freshnessFloor/
+    )
+    assert.match(source, /\$sentinel\.Length -le 0/)
+    assert.doesNotMatch(source, /\$sentinel\.LastWriteTimeUtc/)
   })
 
   it('runs Squirrel packaging only for Installer mode after the runnable build', async () => {
