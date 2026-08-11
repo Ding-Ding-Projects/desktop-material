@@ -19,28 +19,51 @@ interface IFontManifest {
     readonly id: string
     readonly requestedIconNameCount?: number
     readonly requestedIconNames?: ReadonlyArray<string>
+    readonly officialSubsetInspection?: {
+      readonly ligatureNames?: ReadonlyArray<string>
+    }
   }>
 }
 
 const root = process.cwd()
 
+const fontManifest = () =>
+  JSON.parse(
+    readFileSync(join(root, 'app/styles/fonts/font-assets-manifest.json'), 'utf8')
+  ) as IFontManifest
+
+const symbolsAsset = () =>
+  fontManifest().assets.find(
+    candidate => candidate.id === 'material-symbols-rounded-subset-158'
+  )
+
 describe('MaterialSymbol', () => {
-  it('exposes exactly the 98 ligatures requested by the bundled manifest', () => {
-    const manifest = JSON.parse(
-      readFileSync(
-        join(root, 'app/styles/fonts/font-assets-manifest.json'),
-        'utf8'
-      )
-    ) as IFontManifest
-    const asset = manifest.assets.find(
-      candidate => candidate.id === 'material-symbols-rounded-prototype-98'
-    )
+  it('exposes exactly the 158 ligatures requested by the bundled manifest', () => {
+    const asset = symbolsAsset()
 
     assert.ok(asset !== undefined)
-    assert.equal(MaterialSymbolNames.length, 98)
-    assert.equal(new Set(MaterialSymbolNames).size, 98)
-    assert.equal(asset.requestedIconNameCount, 98)
+    assert.equal(MaterialSymbolNames.length, 158)
+    assert.equal(new Set(MaterialSymbolNames).size, 158)
+    assert.equal(asset.requestedIconNameCount, 158)
     assert.deepEqual(MaterialSymbolNames, asset.requestedIconNames)
+  })
+
+  // A ligature font renders the literal English word for a name it does not
+  // carry, so "the gallery lists it" proves nothing. This asserts every name
+  // the UI can render against the ligature table read out of the shipped
+  // WOFF2 by script/inspect-material-symbols.py.
+  it('carries every declared name in the shipped font ligature table', () => {
+    const inspection = symbolsAsset()?.officialSubsetInspection
+    const ligatures = new Set(inspection?.ligatureNames ?? [])
+
+    assert.ok(
+      ligatures.size > 0,
+      'font-assets-manifest.json has no officialSubsetInspection.ligatureNames; ' +
+        're-run py -3 script/inspect-material-symbols.py'
+    )
+
+    const missing = MaterialSymbolNames.filter(name => !ligatures.has(name))
+    assert.deepEqual(missing, [], `not in the bundled font: ${missing.join(', ')}`)
   })
 
   it('renders a decorative ligature with safe defaults', () => {

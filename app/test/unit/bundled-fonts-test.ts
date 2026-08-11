@@ -108,11 +108,11 @@ const expectedAssets = new Map<
     },
   ],
   [
-    'material-symbols-rounded-prototype-98',
+    'material-symbols-rounded-subset-158',
     {
-      bytes: 85756,
+      bytes: 122224,
       sha256:
-        'e834a2ac93cbdfbdbcf64c144196dfb2cfdb2f605cd5a9700c03f59d68e0674e',
+        '2b6bc8becaebdc4f280caa4ff9df49d8fe7c1aa2a336ec510c81cdaac6efa34f',
     },
   ],
 ])
@@ -164,7 +164,7 @@ const expectedLicenses = new Map<
 ])
 
 const expectedIconNames =
-  'account_circle,account_tree,add,alt_route,alternate_email,anchor,arrow_upward,auto_awesome,autoplay,backspace,bolt,book_2,build,build_circle,call_split,cancel,category,check,check_circle,circle,close,cloud_done,cloud_download,code,commit,content_copy,crop_square,dark_mode,database,delete,deployed_code,difference,do_not_disturb_on,edit,error,expand_more,extension,filter_list,flag,fork_right,format_align_center,format_align_left,format_align_right,format_bold,format_italic,format_underlined,group_add,handyman,history,join_inner,key,keyboard_arrow_down,library_add_check,light_mode,live_help,lock,low_priority,manage_history,mark_email_read,menu_book,merge,monitoring,notifications,notifications_off,open_in_new,package_2,palette,person_add,play_arrow,progress_activity,public,redo,remove,repeat,replay,rocket_launch,schedule,school,search,search_off,security,sell,settings,stacks,star,sync,sync_problem,task_alt,terminal,text_format,tune,undo,unfold_more,visibility,warning,waving_hand,zoom_in,zoom_out'.split(
+  'account_circle,account_tree,add,add_circle,alt_route,alternate_email,anchor,arrow_downward,arrow_upward,auto_awesome,autoplay,autorenew,backspace,badge,block,bolt,book_2,build,build_circle,calendar_month,call_merge,call_split,cancel,category,check,check_box,check_box_outline_blank,check_circle,checklist,chevron_right,circle,close,cloud,cloud_done,cloud_download,code,commit,construction,content_copy,content_paste,content_paste_go,contrast,crop_square,dark_mode,data_object,database,delete,delete_sweep,deployed_code,description,difference,dns,do_not_disturb_on,done_all,edit,edit_note,edit_square,error,expand_more,extension,filter_list,first_page,flag,folder,folder_open,fork_right,format_align_center,format_align_left,format_align_right,format_bold,format_italic,format_underlined,group_add,handyman,help,history,history_toggle_off,inbox,indeterminate_check_box,inventory_2,join_inner,key,keyboard_arrow_down,keyboard_return,label,last_page,library_add_check,light_mode,list,live_help,lock,low_priority,manage_history,mark_email_read,mark_email_unread,menu,menu_book,menu_open,merge,merge_type,monitoring,more_vert,notifications,notifications_off,open_in_new,package_2,palette,pause,pause_circle,person,person_add,person_search,play_arrow,play_circle,progress_activity,public,push_pin,rate_review,redo,refresh,remove,repeat,replay,restart_alt,rocket_launch,schedule,school,search,search_off,security,sell,send,settings,shield,smart_toy,sort,space_bar,stacks,star,subject,swap_horiz,sync,sync_problem,task_alt,terminal,text_fields,text_format,tune,undo,unfold_more,vertical_split,view_stream,visibility,warning,waving_hand,wrap_text,zoom_in,zoom_out'.split(
     ','
   )
 
@@ -201,15 +201,15 @@ describe('bundled Desktop Material fonts', () => {
     }
   })
 
-  it('pins the exact 98-name official Material Symbols request and axes', () => {
+  it('pins the exact 158-name official Material Symbols request and axes', () => {
     const symbols = manifest.assets.find(
-      asset => asset.id === 'material-symbols-rounded-prototype-98'
+      asset => asset.id === 'material-symbols-rounded-subset-158'
     )
     assert.ok(symbols !== undefined)
-    assert.equal(expectedIconNames.length, 98)
-    assert.equal(new Set(expectedIconNames).size, 98)
+    assert.equal(expectedIconNames.length, 158)
+    assert.equal(new Set(expectedIconNames).size, 158)
     assert.deepEqual([...expectedIconNames].sort(), expectedIconNames)
-    assert.equal(symbols.requestedIconNameCount, 98)
+    assert.equal(symbols.requestedIconNameCount, 158)
     assert.deepEqual(symbols.requestedIconNames, expectedIconNames)
     assert.match(
       symbols.cssRequest.url,
