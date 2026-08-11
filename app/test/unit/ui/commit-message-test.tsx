@@ -78,7 +78,7 @@ type CheapLfsTimingTestInstance = CommitMessageTestInstance & {
     callback?: () => void
   ) => void
   componentWillReceiveProps: (nextProps: CommitMessageProps) => void
-  tickCheapLfsTiming: () => void
+  tickCommitTiming: () => void
 }
 
 function installCheapLfsTimingSetState(component: CheapLfsTimingTestInstance) {
@@ -277,7 +277,7 @@ describe('CommitMessage', () => {
     )
     assert.equal(
       preparing.getButtonText(),
-      'Preparing 1 large file for cheap LFS'
+      'Preparing 1 large file for cheap LFS · Elapsed 0s'
     )
     assert.doesNotMatch(preparing.getButtonTitle(), /Committing.*main/)
 
@@ -302,7 +302,7 @@ describe('CommitMessage', () => {
     )
     assert.equal(
       uploading.getButtonText(),
-      'Uploading 1 large file to cheap LFS (50%)'
+      'Uploading 1 large file to cheap LFS (50%) · Elapsed 0s'
     )
 
     const verifying = toTestInstance(
@@ -326,7 +326,7 @@ describe('CommitMessage', () => {
     )
     assert.equal(
       verifying.getButtonText(),
-      'Verifying 1 large file for cheap LFS'
+      'Verifying 1 large file for cheap LFS · Elapsed 0s'
     )
 
     const committingPointer = toTestInstance(
@@ -343,7 +343,7 @@ describe('CommitMessage', () => {
     )
     assert.equal(
       committingPointer.getButtonText(),
-      'Committing 1 cheap-LFS pointer to main'
+      'Committing 1 cheap-LFS pointer to main · Elapsed 0s'
     )
   })
 
@@ -373,44 +373,50 @@ describe('CommitMessage', () => {
         )
       ).getButtonText()
 
-    assert.equal(textFor('hashing'), 'Hashing 2 large files for cheap LFS (0%)')
+    assert.equal(
+      textFor('hashing'),
+      'Hashing 2 large files for cheap LFS (0%) · Elapsed 0s'
+    )
     assert.equal(
       textFor('hashing', 101),
-      'Hashing 2 large files for cheap LFS (50%)'
+      'Hashing 2 large files for cheap LFS (50%) · Elapsed 0s'
     )
     assert.equal(
       textFor('release'),
-      'Preparing the GitHub Release for 2 large files'
+      'Preparing the GitHub Release for 2 large files · Elapsed 0s'
     )
     assert.equal(
       textFor('uploading'),
-      'Starting the cheap-LFS upload for 2 large files'
+      'Starting the cheap-LFS upload for 2 large files · Elapsed 0s'
     )
     assert.doesNotMatch(String(textFor('uploading')), /0%/)
     assert.equal(
       textFor('uploading', 101),
-      'Uploading 2 large files to cheap LFS (50%)'
+      'Uploading 2 large files to cheap LFS (50%) · Elapsed 0s'
     )
     assert.equal(
       textFor('verifying', 200),
-      'Verifying 2 large files for cheap LFS'
+      'Verifying 2 large files for cheap LFS · Elapsed 0s'
     )
     assert.equal(
       textFor('manual-preparing'),
-      'Preparing the manual upload handoff (0%)'
+      'Preparing the manual upload handoff (0%) · Elapsed 0s'
     )
     assert.equal(
       textFor('manual-preparing', 101),
-      'Preparing the manual upload handoff (50%)'
+      'Preparing the manual upload handoff (50%) · Elapsed 0s'
     )
     assert.equal(
       textFor('manual-waiting'),
-      'Upload all prepared files and save the GitHub release'
+      'Upload all prepared files and save the GitHub release · Elapsed 0s'
     )
-    assert.equal(textFor('manual-verifying'), 'Checking your manual upload')
+    assert.equal(
+      textFor('manual-verifying'),
+      'Checking your manual upload · Elapsed 0s'
+    )
     assert.equal(
       textFor('manual-detected'),
-      'Manual upload detected and verified'
+      'Manual upload detected and verified · Elapsed 0s'
     )
   })
 
@@ -849,7 +855,10 @@ describe('CommitMessage', () => {
         createProps({
           isCommitting: true,
           isGeneratingCommitMessage: false,
-          commitOperationPhase: { kind: 'maintenance' },
+          commitOperationPhase: {
+            kind: 'maintenance',
+            operation: 'repacking',
+          },
         })
       )
     )
@@ -881,7 +890,7 @@ describe('CommitMessage', () => {
       ) as unknown as CheapLfsTimingTestInstance
       installCheapLfsTimingSetState(component)
       now = 4_000
-      component.tickCheapLfsTiming()
+      component.tickCommitTiming()
       const progress = component.renderCommitProgress()
       assert.ok(progress)
       assert.match(render(progress).container.textContent ?? '', /Observed 3s/)
@@ -1158,7 +1167,7 @@ describe('CommitMessage', () => {
     )
     assert.equal(
       amendingUpload.getButtonText(),
-      'Uploading 1 large file to cheap LFS (50%) before amending'
+      'Uploading 1 large file to cheap LFS (50%) before amending · Elapsed 0s'
     )
 
     const amendingPointer = toTestInstance(
@@ -1176,7 +1185,7 @@ describe('CommitMessage', () => {
     )
     assert.equal(
       amendingPointer.getButtonText(),
-      'Amending last commit with 1 cheap-LFS pointer'
+      'Amending last commit with 1 cheap-LFS pointer · Elapsed 0s'
     )
   })
 
@@ -1223,7 +1232,7 @@ describe('CommitMessage', () => {
 
     assert.equal(
       component.state.isCommittingStatusMessage,
-      'Verifying 1 large file for cheap LFS'
+      'Verifying 1 large file for cheap LFS · Elapsed 0s'
     )
   })
 

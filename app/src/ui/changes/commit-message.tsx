@@ -298,7 +298,6 @@ function formatCheapLfsBytes(bytes: number): string {
   return bytes === 0 ? '0 B' : formatBytes(bytes, 1)
 }
 
-
 function formatCheapLfsRate(bytesPerSecond: number): string | null {
   if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) {
     return null
@@ -748,10 +747,9 @@ export class CommitMessage extends React.Component<
           getCheapLfsTimingProgress(nextProps),
           Date.now()
         ),
-        commitStartedAt:
-          nextProps.isCommitting
-            ? this.state.commitStartedAt ?? Date.now()
-            : null,
+        commitStartedAt: nextProps.isCommitting
+          ? this.state.commitStartedAt ?? Date.now()
+          : null,
         commitElapsedMilliseconds: nextProps.isCommitting
           ? this.state.commitElapsedMilliseconds
           : 0,
@@ -805,9 +803,6 @@ export class CommitMessage extends React.Component<
       return { commitElapsedMilliseconds, cheapLfsTransferTiming }
     })
   }
-
-  // Kept as a focused-test seam while one ticker now observes every commit phase.
-  private tickCheapLfsTiming = () => this.tickCommitTiming()
 
   public async componentDidUpdate(
     prevProps: ICommitMessageProps,
