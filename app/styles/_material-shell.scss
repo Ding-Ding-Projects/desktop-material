@@ -1191,6 +1191,459 @@ hr,
   background: transparent;
 }
 
+// ---------------------------------------------------------------------------
+// Material shell header and navigation drawer
+// ---------------------------------------------------------------------------
+// The reference conversion's 56px header replaces the previous two-row chrome
+// without replacing any behavior: each control below is the existing command,
+// notification, theme, account, or repository operation entry point.
+#desktop-app-title-bar {
+  align-items: center;
+  background: var(--md-sys-color-surface) !important;
+  border-bottom: 0 !important;
+  box-sizing: border-box;
+  gap: 8px;
+  height: 56px !important;
+  min-height: 56px !important;
+  padding-left: 6px;
+
+  > .app-brand-container {
+    flex-basis: 164px;
+    max-width: 164px;
+  }
+
+  > .dm-shell-header-controls {
+    -webkit-app-region: no-drag;
+    align-items: center;
+    align-self: stretch;
+    display: flex;
+    flex: 1 1 auto;
+    gap: 8px;
+    min-width: 0;
+  }
+}
+
+// Shared shell primitives. These classes are intentionally small and
+// composable so menus, sheets, snackbars, and future header actions share the
+// same token-backed anatomy without gaining a second state implementation.
+.dm-shell-icon-button,
+.dm-shell-account-button {
+  -webkit-app-region: no-drag;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  height: 34px;
+  justify-content: center;
+  padding: 0;
+  transition: background-color 180ms var(--emph), border-radius 240ms var(--spring), color 180ms var(--emph), transform 180ms var(--spring-fast);
+  width: 34px;
+
+  &:hover {
+    background: var(--md-sys-color-surface-container-high);
+    border-radius: var(--md-sys-shape-corner-medium);
+    color: var(--md-sys-color-on-surface);
+  }
+
+  &:active {
+    transform: scale(0.9);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+.dm-shell-commit-pill {
+  flex: 0 1 142px;
+  min-width: 0;
+
+  &:empty {
+    display: none;
+  }
+
+  .one-click-commit-push-button,
+  .one-click-commit-push-button > button {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .one-click-commit-push-button > button {
+    border-radius: 999px;
+    box-shadow: none;
+    gap: 7px;
+    height: 34px;
+    min-height: 34px;
+    padding: 0 13px;
+
+    .icon {
+      height: 17px;
+      width: 17px;
+    }
+
+    .text {
+      min-width: 0;
+    }
+
+    .title {
+      font-size: 12.5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .description {
+      display: none;
+    }
+  }
+}
+
+.dm-shell-search {
+  -webkit-app-region: no-drag;
+  align-items: center;
+  background: var(--md-sys-color-surface-container-high);
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: flex;
+  flex: 1 1 240px;
+  gap: 7px;
+  height: 40px;
+  max-width: 700px;
+  min-width: 48px;
+  overflow: hidden;
+  padding: 0 6px 0 14px;
+  text-align: left;
+  transition: background-color 180ms var(--emph), box-shadow 180ms var(--emph);
+
+  &:hover {
+    background: var(--md-sys-color-surface-container-highest);
+  }
+
+  &:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--md-sys-color-primary);
+    outline: 0;
+  }
+
+  .dm-shell-search-label {
+    color: var(--md-sys-color-on-surface-variant);
+    flex: 1 1 auto;
+    font-size: 13px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  kbd {
+    background: var(--md-sys-color-surface-container-highest);
+    border: 0;
+    border-radius: var(--md-sys-shape-corner-small);
+    box-shadow: none;
+    color: var(--md-sys-color-on-surface-variant);
+    flex: none;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    line-height: 24px;
+    padding: 0 8px;
+  }
+}
+
+.dm-shell-header-actions {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 2px;
+
+  .notification-bell-button,
+  .theme-toggle-button {
+    animation: none;
+    background: transparent;
+    border-radius: 999px;
+    height: 34px;
+    width: 34px;
+  }
+
+  .notification-bell-button:hover,
+  .theme-toggle-button:hover {
+    background: var(--md-sys-color-surface-container-high);
+    border-radius: var(--md-sys-shape-corner-medium);
+  }
+}
+
+.dm-shell-account-button {
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 2px;
+
+  &:hover {
+    background: var(--md-sys-color-tertiary-container);
+    color: var(--md-sys-color-on-tertiary-container);
+  }
+}
+
+.dm-shell-progress-line {
+  animation: dmBar calc(1100ms * var(--mdur, 1)) var(--emph) infinite;
+  background: var(--md-sys-color-primary);
+  border-radius: 999px;
+  bottom: 0;
+  height: 3px;
+  left: -30%;
+  pointer-events: none;
+  position: absolute;
+  width: 30%;
+}
+
+// The title bar now owns these real controls, so the tab strip and content
+// toolbar do not duplicate them. Repository tabs and their persistence remain
+// untouched.
+.dm-material-shell .repository-tab-strip .notification-bell-button {
+  display: none;
+}
+
+.dm-material-shell #desktop-app-toolbar {
+  gap: 6px;
+  min-height: 48px;
+  padding: 4px 8px;
+
+  .toolbar-button > button {
+    gap: 8px;
+    min-height: 40px;
+    padding-inline: 10px 12px;
+
+    .icon {
+      height: 28px;
+      padding: 5px;
+      width: 28px;
+    }
+
+    .description {
+      display: none;
+    }
+  }
+
+  .toolbar-overflow-trigger,
+  .toolbar-overflow-trigger > button {
+    height: 40px;
+  }
+
+  // The visible theme action moved into the header. Keep the existing toolbar
+  // registration as a compatibility fallback for its measured-action contract
+  // while ensuring only one control is presented to users.
+  > .toolbar-item:has(> .theme-toggle-button) {
+    display: none;
+  }
+}
+
+.dm-material-shell #repository {
+  background: var(--md-sys-color-surface);
+  gap: 8px;
+  padding: 0 8px 8px 0;
+}
+
+.dm-material-shell #repository > .repository-rail {
+  background: var(--md-sys-color-surface);
+  box-sizing: border-box;
+  gap: 2px;
+  padding: 4px 8px 10px;
+  transition: width 260ms var(--emph), padding 260ms var(--emph);
+}
+
+.dm-material-shell.dm-drawer-expanded #repository > .repository-rail {
+  align-items: stretch;
+  width: 208px;
+
+  .tab-bar,
+  .tab-bar.vertical {
+    align-items: stretch;
+    gap: 2px;
+    width: 100%;
+  }
+
+  .tab-bar.vertical .tab-bar-item,
+  .rail-nav-button {
+    align-items: center;
+    border-radius: 999px !important;
+    flex-direction: row;
+    gap: 10px;
+    height: 36px;
+    justify-content: flex-start;
+    min-height: 36px;
+    padding: 0 12px;
+    width: 100%;
+
+    &:hover {
+      background: var(--md-sys-color-surface-container-high) !important;
+    }
+  }
+
+  .tab-bar.vertical .tab-bar-item.selected {
+    background: var(--md-sys-color-secondary-container) !important;
+    color: var(--md-sys-color-on-secondary-container);
+  }
+
+  .rail-item {
+    align-items: center;
+    flex-direction: row;
+    gap: 10px;
+    min-width: 0;
+    position: relative;
+    width: 100%;
+  }
+
+  .rail-pill {
+    background: transparent !important;
+    flex: none;
+    height: 24px;
+    position: static;
+    width: 24px;
+  }
+
+  .rail-label {
+    flex: 1 1 auto;
+    font-size: 12.5px;
+    max-width: none;
+    min-width: 0;
+    overflow: hidden;
+    overflow-wrap: normal;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .rail-pill .counter {
+    left: auto;
+    right: 0;
+    top: 3px;
+  }
+
+  .rail-settings {
+    align-self: flex-start;
+  }
+
+  .rail-avatar {
+    align-self: flex-start;
+  }
+}
+
+.dm-material-shell.dm-drawer-collapsed #repository > .repository-rail {
+  align-items: center;
+  padding-inline: 12px;
+  width: 68px;
+
+  .tab-bar.vertical .tab-bar-item,
+  .rail-nav-button {
+    width: 44px;
+  }
+
+  .rail-label {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+}
+
+.dm-shell-menu-surface,
+.context-menu,
+.toolbar-dropdown .foldout {
+  background: var(--md-sys-color-surface-container);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-medium);
+  box-shadow: var(--md-sys-elevation-level3);
+  color: var(--md-sys-color-on-surface);
+}
+
+.dm-shell-sheet,
+.notification-centre-panel {
+  background: var(--md-sys-color-surface-container-low);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-corner-large);
+  box-shadow: var(--md-sys-elevation-level3);
+}
+
+.dm-shell-snackbar,
+.toast-notification {
+  background: var(--md-sys-color-inverse-surface);
+  border-radius: var(--md-sys-shape-corner-medium);
+  box-shadow: var(--md-sys-elevation-level3);
+  color: var(--md-sys-color-inverse-on-surface);
+}
+
+// Narrow CSS viewports also cover high renderer zoom: the same physical window
+// exposes fewer CSS pixels, so controls compact before they can clip.
+@media (max-width: 1120px) {
+  #desktop-app-title-bar .dm-shell-commit-pill {
+    display: none;
+  }
+}
+
+@media (max-width: 920px) {
+  #desktop-app-title-bar {
+    .dm-shell-settings,
+    .dm-shell-account-button {
+      display: none;
+    }
+  }
+}
+
+@media (max-width: 760px) {
+  #desktop-app-title-bar .dm-shell-search {
+    flex-basis: 44px;
+    max-width: 44px;
+    padding: 0;
+    place-content: center;
+
+    .dm-shell-search-label,
+    kbd {
+      display: none;
+    }
+  }
+
+  .dm-material-shell.dm-drawer-expanded #repository > .repository-rail {
+    align-items: center;
+    padding-inline: 12px;
+    width: 68px;
+
+    .tab-bar.vertical .tab-bar-item,
+    .rail-nav-button {
+      flex-direction: column;
+      justify-content: center;
+      padding: 4px 0;
+      width: 44px;
+    }
+
+    .rail-item {
+      justify-content: center;
+    }
+
+    .rail-label {
+      clip: rect(0 0 0 0);
+      clip-path: inset(50%);
+      height: 1px;
+      margin: -1px;
+      overflow: hidden;
+      position: absolute;
+      white-space: nowrap;
+      width: 1px;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

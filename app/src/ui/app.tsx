@@ -282,6 +282,8 @@ import {
   UpdateProgressAppearanceEditor,
 } from './appearance'
 import { LocalizedText } from './lib/localized-text'
+import { MaterialSymbol } from './lib/material-symbol'
+import { NotificationBellButton } from './notifications/notification-bell-button'
 import { SubtreeManagerDialog } from './subtrees/subtree-manager-dialog'
 import { AddSubtreeDialog } from './subtrees/add-subtree-dialog'
 import { IGitModulesEntry } from '../lib/git/gitmodules'
@@ -515,6 +517,17 @@ const HourInMilliseconds = MinuteInMilliseconds * 60
  */
 const UpdateCheckInterval = 4 * HourInMilliseconds
 
+/** The navigation drawer is a shell preference, independent of repository state. */
+const MaterialShellDrawerExpandedKey = 'desktop-material-shell-drawer-expanded'
+
+function readMaterialShellDrawerExpanded(): boolean {
+  try {
+    return localStorage.getItem(MaterialShellDrawerExpandedKey) !== '0'
+  } catch {
+    return true
+  }
+}
+
 /**
  * Send usage stats every 4 hours
  */
@@ -740,6 +753,7 @@ export class App extends React.Component<IAppProps, IAppState> {
   private dimSumDish: IDimSumDish | null = null
   private repositoryFileDragDepth = 0
   private repositorySidebarView: RepositorySidebarView = 'list'
+  private materialShellDrawerExpanded = readMaterialShellDrawerExpanded()
   private agentRunnerAvailability = UnknownAgentRunnerAvailability
   private isCreatingAgentSession = false
   private activeAgentSetupOperationId: string | null = null
@@ -4517,6 +4531,148 @@ export class App extends React.Component<IAppProps, IAppState> {
     this.props.dispatcher.setAppMenuState(menu => menu.withReset())
   }
 
+  private toggleMaterialShellDrawer = () => {
+    this.materialShellDrawerExpanded = !this.materialShellDrawerExpanded
+    try {
+      localStorage.setItem(
+        MaterialShellDrawerExpandedKey,
+        this.materialShellDrawerExpanded ? '1' : '0'
+      )
+    } catch {
+      // The drawer remains usable for this session when storage is unavailable.
+    }
+    this.forceUpdate()
+  }
+
+  private showCommandPalette = () => {
+    this.props.dispatcher.showPopup({ type: PopupType.CommandPalette })
+  }
+
+  private showShellSettings = () => {
+    this.props.dispatcher.showPopup({ type: PopupType.Preferences })
+  }
+
+  private toggleNotificationCentre = () => {
+    this.props.dispatcher.setNotificationCentreOpen(
+      !this.state.isNotificationCentreOpen
+    )
+  }
+
+  private getAccountInitials(): string {
+    const account = this.state.accounts[0]
+    if (account === undefined) {
+      return '?'
+    }
+
+    const words = account.friendlyName.trim().split(/\s+/).filter(Boolean)
+    if (words.length > 1) {
+      return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase()
+    }
+
+    return account.friendlyName.slice(0, 2).toUpperCase() || '?'
+  }
+
+  private renderMaterialShellHeaderControls(): JSX.Element | null {
+    if (!__WIN32__ || this.state.showWelcomeFlow) {
+      return null
+    }
+
+    const repositoryState =
+      this.state.selectedState?.type === SelectionType.Repository
+        ? this.state.selectedState.state
+        : null
+    const operationInProgress =
+      repositoryState !== null &&
+      (repositoryState.isPushPullFetchInProgress ||
+        repositoryState.isCommitting ||
+        repositoryState.oneClickCommitPushPhase !== null)
+
+    return (
+      <div className="dm-shell-header-controls">
+        {repositoryState !== null ? (
+          <button
+            type="button"
+            className="dm-shell-icon-button dm-shell-drawer-toggle"
+            aria-label={
+              this.materialShellDrawerExpanded
+                ? 'Collapse navigation drawer'
+                : 'Expand navigation drawer'
+            }
+            aria-expanded={this.materialShellDrawerExpanded}
+            aria-controls="repository"
+            onClick={this.toggleMaterialShellDrawer}
+          >
+            <Octicon
+              symbol={
+                this.materialShellDrawerExpanded
+                  ? octicons.sidebarCollapse
+                  : octicons.sidebarExpand
+              }
+              height={20}
+            />
+          </button>
+        ) : null}
+
+        <div className="dm-shell-commit-pill">
+          {this.renderOneClickCommitPushButton()}
+        </div>
+
+        <button
+          type="button"
+          className="dm-shell-search"
+          aria-label={t('commandPalette.title')}
+          aria-keyshortcuts="Control+Shift+F"
+          onClick={this.showCommandPalette}
+        >
+          <MaterialSymbol name="search" size={18} />
+          <span className="dm-shell-search-label">
+            {t('commandPalette.searchPlaceholder')}
+          </span>
+          <kbd>Ctrl+Shift+F</kbd>
+        </button>
+
+        <div className="dm-shell-header-actions">
+          <NotificationBellButton
+            unreadCount={this.state.unreadNotificationCount}
+            isOpen={this.state.isNotificationCentreOpen}
+            onClick={this.toggleNotificationCentre}
+          />
+          <ThemeToggleButton
+            dispatcher={this.props.dispatcher}
+            selectedTheme={this.state.selectedTheme}
+            currentTheme={this.state.currentTheme}
+          />
+          <button
+            type="button"
+            className="dm-shell-icon-button dm-shell-settings"
+            aria-label={t('settings.dialogTitle')}
+            onClick={this.showShellSettings}
+          >
+            <MaterialSymbol name="settings" size={20} />
+          </button>
+          <button
+            type="button"
+            className="dm-shell-account-button"
+            aria-label={`${t('settings.accountsTab')}: ${
+              this.state.accounts[0]?.friendlyName ?? t('palette.signInDotcom')
+            }`}
+            onClick={this.showAccountSettings}
+          >
+            {this.getAccountInitials()}
+          </button>
+        </div>
+
+        {operationInProgress ? (
+          <span
+            className="dm-shell-progress-line"
+            role="progressbar"
+            aria-label="Repository operation in progress"
+          />
+        ) : null}
+      </div>
+    )
+  }
+
   private renderTitlebar() {
     const inFullScreen = this.state.windowState === 'full-screen'
 
@@ -4562,6 +4718,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         windowZoomFactor={this.state.windowZoomFactor}
       >
         {this.renderAppMenuBar()}
+        {this.renderMaterialShellHeaderControls()}
       </TitleBar>
     )
   }
@@ -6960,6 +7117,9 @@ export class App extends React.Component<IAppProps, IAppState> {
       currentDragElement !== null && currentDragElement.type === DragType.Commit
     return classNames({
       'commit-being-dragged': isCommitBeingDragged,
+      'dm-material-shell': true,
+      'dm-drawer-expanded': this.materialShellDrawerExpanded,
+      'dm-drawer-collapsed': !this.materialShellDrawerExpanded,
     })
   }
 
@@ -9322,15 +9482,6 @@ export class App extends React.Component<IAppProps, IAppState> {
           {this.renderPushPullToolbarButton()}
         </ToolbarItem>
         <ToolbarItem
-          id="one-click-commit-push"
-          preferredWidth={180}
-          overflowPriority={2}
-          desktopMaterialFeature={true}
-          renderOverflow={this.renderOneClickCommitPushOverflowButton}
-        >
-          {this.renderOneClickCommitPushButton()}
-        </ToolbarItem>
-        <ToolbarItem
           id="build-run"
           preferredWidth={210}
           overflowPriority={1}
@@ -9412,9 +9563,6 @@ export class App extends React.Component<IAppProps, IAppState> {
       />
     )
   }
-
-  private renderOneClickCommitPushOverflowButton = () =>
-    this.renderOneClickCommitPushButton()
 
   private renderBuildRunPanel() {
     const selection = this.state.selectedState

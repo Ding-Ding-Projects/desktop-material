@@ -234,11 +234,11 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
 
   /**
    * The height of the title bar area on Win32 platforms.
-   * Design-spec-shell §2 sets this to 38px; kept in sync with
+   * The Material shell header is 56px; kept in sync with
    * getTitleBarHeight() in 'app/src/ui/window/title-bar.tsx' (which also feeds
    * titleBarHeight in 'app/src/ui/dialog/dialog.tsx').
   */
-  --win32-title-bar-height: 38px;
+  --win32-title-bar-height: 56px;
   --win32-title-bar-background-color: #{$gray-900};
 
   /**
@@ -267,7 +267,7 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
   --shadow-color: rgba(71, 83, 95, 0.19);
   --base-box-shadow: 0 2px 7px var(--shadow-color);
 
-  --toolbar-height: 50px;
+  --toolbar-height: 48px;
 
   --toolbar-background-color: #{$gray-900};
   --toolbar-border-color: #{$gray-900};

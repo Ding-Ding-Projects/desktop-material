@@ -9,38 +9,42 @@
 @import 'material/motion';
 
 :root {
-  --md-sys-color-primary: #006493;
+  // Claude's Material Design 3 conversion is the shell color authority. The
+  // green seed and its tonal surfaces are kept literal here so every existing
+  // real component (including popovers and native-window chrome) inherits the
+  // same palette without importing the Design Canvas runtime.
+  --md-sys-color-primary: #1c6b34;
   --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #c9e6ff;
-  --md-sys-color-on-primary-container: #001e30;
-  --md-sys-color-secondary: #50606e;
+  --md-sys-color-primary-container: #a9f6b4;
+  --md-sys-color-on-primary-container: #00210b;
+  --md-sys-color-secondary: #506350;
   --md-sys-color-on-secondary: #ffffff;
-  --md-sys-color-secondary-container: #d3e5f5;
-  --md-sys-color-on-secondary-container: #0c1d29;
-  --md-sys-color-tertiary: #68548a;
+  --md-sys-color-secondary-container: #d5e8d1;
+  --md-sys-color-on-secondary-container: #101f11;
+  --md-sys-color-tertiary: #3f656d;
   --md-sys-color-on-tertiary: #ffffff;
-  --md-sys-color-tertiary-container: #eedcff;
-  --md-sys-color-on-tertiary-container: #221534;
+  --md-sys-color-tertiary-container: #bcebf5;
+  --md-sys-color-on-tertiary-container: #001f24;
   --md-sys-color-error: #ba1a1a;
   --md-sys-color-on-error: #ffffff;
   --md-sys-color-error-container: #ffdad6;
   --md-sys-color-on-error-container: #410002;
-  --md-sys-color-surface: #f8f9ff;
-  --md-sys-color-surface-dim: #d8dae0;
-  --md-sys-color-surface-bright: #f8f9ff;
+  --md-sys-color-surface: #f7fbf2;
+  --md-sys-color-surface-dim: #d8dbd3;
+  --md-sys-color-surface-bright: #f7fbf2;
   --md-sys-color-surface-container-lowest: #ffffff;
-  --md-sys-color-surface-container-low: #f2f3f9;
-  --md-sys-color-surface-container: #eceef4;
-  --md-sys-color-surface-container-high: #e6e8ee;
-  --md-sys-color-surface-container-highest: #e0e2e8;
-  --md-sys-color-surface-variant: #dde3ea;
-  --md-sys-color-on-surface: #191c20;
-  --md-sys-color-on-surface-variant: #41474d;
-  --md-sys-color-outline: #71787e;
-  --md-sys-color-outline-variant: #c1c7ce;
-  --md-sys-color-inverse-surface: #2e3135;
-  --md-sys-color-inverse-on-surface: #eff1f7;
-  --md-sys-color-inverse-primary: #8dcdff;
+  --md-sys-color-surface-container-low: #f1f5ec;
+  --md-sys-color-surface-container: #ebefe6;
+  --md-sys-color-surface-container-high: #e5e9e1;
+  --md-sys-color-surface-container-highest: #dfe4db;
+  --md-sys-color-surface-variant: #dfe4db;
+  --md-sys-color-on-surface: #191d18;
+  --md-sys-color-on-surface-variant: #424940;
+  --md-sys-color-outline: #72796f;
+  --md-sys-color-outline-variant: #c2c9bd;
+  --md-sys-color-inverse-surface: #2e312d;
+  --md-sys-color-inverse-on-surface: #eef2e9;
+  --md-sys-color-inverse-primary: #8ed99a;
   --md-sys-color-shadow: #000000;
   --md-sys-color-scrim: #000000;
 
@@ -69,8 +73,8 @@
   --diff-add-gutter: #d0ebd3;
   --diff-del-bg: #fdecea;
   --diff-del-gutter: #f7d7d3;
-  --diff-hunk-bg: #e3effa;
-  --diff-hunk-text: #3d5a75;
+  --diff-hunk-bg: #e3f0f2;
+  --diff-hunk-text: #33565c;
 
   --md-sys-shape-corner-extra-small: 4px;
   --md-sys-shape-corner-small: 8px;
@@ -96,14 +100,14 @@
   --background-color: var(--md-sys-color-surface);
   --button-height: 40px;
   --button-background: var(--md-sys-color-primary);
-  --button-hover-background: #0874a6;
+  --button-hover-background: color-mix(in srgb, var(--md-sys-color-primary) 88%, var(--md-sys-color-on-primary));
   --button-text-color: var(--md-sys-color-on-primary);
   --button-border-radius: 999px;
   --secondary-button-background: var(--md-sys-color-secondary-container);
   --secondary-button-text-color: var(--md-sys-color-on-secondary-container);
   --secondary-button-border-color: transparent;
   --secondary-button-hover-border-color: transparent;
-  --secondary-button-hover-background: #c7d9e9;
+  --secondary-button-hover-background: color-mix(in srgb, var(--md-sys-color-secondary-container) 88%, var(--md-sys-color-on-secondary-container));
   --box-background-color: var(--md-sys-color-surface);
   --box-alt-background-color: var(--md-sys-color-surface-container);
   --box-border-color: var(--md-sys-color-outline-variant);
@@ -146,38 +150,38 @@ body {
 }
 
 body.theme-dark {
-  --md-sys-color-primary: #8dcdff;
-  --md-sys-color-on-primary: #00344f;
-  --md-sys-color-primary-container: #004b70;
-  --md-sys-color-on-primary-container: #c9e6ff;
-  --md-sys-color-secondary: #b7c9d9;
-  --md-sys-color-on-secondary: #22323f;
-  --md-sys-color-secondary-container: #394956;
-  --md-sys-color-on-secondary-container: #d3e5f5;
-  --md-sys-color-tertiary: #d4bfe8;
-  --md-sys-color-on-tertiary: #39294a;
-  --md-sys-color-tertiary-container: #504061;
-  --md-sys-color-on-tertiary-container: #efdbff;
+  --md-sys-color-primary: #8ed99a;
+  --md-sys-color-on-primary: #003917;
+  --md-sys-color-primary-container: #005322;
+  --md-sys-color-on-primary-container: #a9f6b4;
+  --md-sys-color-secondary: #b9ccb6;
+  --md-sys-color-on-secondary: #253425;
+  --md-sys-color-secondary-container: #3b4b39;
+  --md-sys-color-on-secondary-container: #d5e8d1;
+  --md-sys-color-tertiary: #a1ced7;
+  --md-sys-color-on-tertiary: #06363d;
+  --md-sys-color-tertiary-container: #1f4d55;
+  --md-sys-color-on-tertiary-container: #bcebf5;
   --md-sys-color-error: #ffb4ab;
   --md-sys-color-on-error: #690005;
   --md-sys-color-error-container: #93000a;
   --md-sys-color-on-error-container: #ffdad6;
-  --md-sys-color-surface: #111417;
-  --md-sys-color-surface-dim: #111417;
-  --md-sys-color-surface-bright: #37393d;
-  --md-sys-color-surface-container-lowest: #0c0f12;
-  --md-sys-color-surface-container-low: #191c20;
-  --md-sys-color-surface-container: #1d2024;
-  --md-sys-color-surface-container-high: #282a2e;
-  --md-sys-color-surface-container-highest: #333539;
-  --md-sys-color-surface-variant: #41474d;
-  --md-sys-color-on-surface: #e1e2e7;
-  --md-sys-color-on-surface-variant: #c1c7ce;
-  --md-sys-color-outline: #8b9198;
-  --md-sys-color-outline-variant: #41474d;
-  --md-sys-color-inverse-surface: #e1e2e7;
-  --md-sys-color-inverse-on-surface: #2e3135;
-  --md-sys-color-inverse-primary: #006493;
+  --md-sys-color-surface: #101410;
+  --md-sys-color-surface-dim: #101410;
+  --md-sys-color-surface-bright: #363a35;
+  --md-sys-color-surface-container-lowest: #0b0f0b;
+  --md-sys-color-surface-container-low: #181d18;
+  --md-sys-color-surface-container: #1c211c;
+  --md-sys-color-surface-container-high: #262b26;
+  --md-sys-color-surface-container-highest: #313631;
+  --md-sys-color-surface-variant: #414941;
+  --md-sys-color-on-surface: #e0e4dc;
+  --md-sys-color-on-surface-variant: #c0c9bf;
+  --md-sys-color-outline: #8a938a;
+  --md-sys-color-outline-variant: #414941;
+  --md-sys-color-inverse-surface: #e0e4dc;
+  --md-sys-color-inverse-on-surface: #2d312c;
+  --md-sys-color-inverse-primary: #1c6b34;
   --md-sys-color-shadow: #000000;
 
   // App-specific accent + diff tokens (dark).
@@ -193,12 +197,12 @@ body.theme-dark {
   --dm-term-stderr: #a30f0f;
   --dm-term-command: #00517a;
   --dm-term-meta: #6b4600;
-  --diff-add-bg: #12261a;
-  --diff-add-gutter: #1a3826;
+  --diff-add-bg: #10281a;
+  --diff-add-gutter: #17381f;
   --diff-del-bg: #2d1512;
   --diff-del-gutter: #46201b;
-  --diff-hunk-bg: #16242f;
-  --diff-hunk-text: #8ab4d8;
+  --diff-hunk-bg: #1b2a2e;
+  --diff-hunk-text: #9fc7cf;
 
   // Sync-pill state tokens ("vibes", dark). Re-declared so the aliases
   // substitute against the dark role values, matching the convention of the
@@ -220,13 +224,13 @@ body.theme-dark {
   --text-secondary-color: var(--md-sys-color-on-surface-variant);
   --background-color: var(--md-sys-color-surface);
   --button-background: var(--md-sys-color-primary);
-  --button-hover-background: #a8d7ff;
+  --button-hover-background: color-mix(in srgb, var(--md-sys-color-primary) 88%, var(--md-sys-color-on-primary));
   --button-text-color: var(--md-sys-color-on-primary);
   --secondary-button-background: var(--md-sys-color-secondary-container);
   --secondary-button-text-color: var(--md-sys-color-on-secondary-container);
   --secondary-button-border-color: transparent;
   --secondary-button-hover-border-color: transparent;
-  --secondary-button-hover-background: #465663;
+  --secondary-button-hover-background: color-mix(in srgb, var(--md-sys-color-secondary-container) 88%, var(--md-sys-color-on-secondary-container));
   --box-background-color: var(--md-sys-color-surface);
   --box-alt-background-color: var(--md-sys-color-surface-container);
   --box-border-color: var(--md-sys-color-outline-variant);

@@ -27,11 +27,10 @@ export function getTitleBarHeight() {
     }
   }
 
-  // The three Windows caption buttons are keyboard-focusable app controls, so
-  // the bar provides the required 44px minimum hit target vertically as well as
-  // horizontally. dialog.tsx consumes this value for drag/clamp geometry;
-  // _title-bar.scss applies the same minimum to the rendered bar.
-  return 44
+  // The Material shell uses one 56px header for product actions, dragging, and
+  // the three keyboard-focusable caption buttons. dialog.tsx consumes this
+  // value too, keeping floating-surface geometry aligned with the real chrome.
+  return 56
 }
 
 interface ITitleBarProps {
