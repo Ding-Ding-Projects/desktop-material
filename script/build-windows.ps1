@@ -437,6 +437,205 @@ function Ensure-PrintenvzExecutable {
   Write-Host "Native prerequisite ready: $executablePath"
 }
 
+function Test-CurrentNativeOutputs {
+  param(
+    [Parameter(Mandatory = $true)][string]$SourceRoot,
+    [Parameter(Mandatory = $true)][string[]]$OutputPaths
+  )
+
+  if (-not (Test-Path -LiteralPath $SourceRoot -PathType Container)) {
+    return $false
+  }
+  $sourceFiles = @(Get-ChildItem -LiteralPath $SourceRoot -File -Recurse)
+  if (
+    $sourceFiles.Count -eq 0 -or
+    @(
+      $sourceFiles | Where-Object {
+        ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0
+      }
+    ).Count -gt 0
+  ) {
+    return $false
+  }
+  $latestSource = $sourceFiles |
+    Sort-Object LastWriteTimeUtc -Descending |
+    Select-Object -First 1
+  foreach ($outputPath in $OutputPaths) {
+    if (-not (Test-Path -LiteralPath $outputPath -PathType Leaf)) {
+      return $false
+    }
+    $output = Get-Item -LiteralPath $outputPath
+    if (
+      $output.Length -le 0 -or
+      ($output.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or
+      $output.LastWriteTimeUtc -lt $latestSource.LastWriteTimeUtc
+    ) {
+      return $false
+    }
+  }
+  return $true
+}
+
+function Test-WindowsArgvParserInputsMatch {
+  $sourceRoot = Join-Path $RepositoryRoot 'vendor\windows-argv-parser'
+  $installedRoot = Join-Path $RepositoryRoot 'app\node_modules\windows-argv-parser'
+  foreach ($name in @(
+    'binding.gyp',
+    'index.ts',
+    'main.cc',
+    'package.json',
+    'tsconfig.json'
+  )) {
+    $sourcePath = Join-Path $sourceRoot $name
+    $installedPath = Join-Path $installedRoot $name
+    if (
+      -not (Test-Path -LiteralPath $sourcePath -PathType Leaf) -or
+      -not (Test-Path -LiteralPath $installedPath -PathType Leaf)
+    ) {
+      return $false
+    }
+    $source = Get-Item -LiteralPath $sourcePath
+    $installed = Get-Item -LiteralPath $installedPath
+    if (
+      ($source.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or
+      ($installed.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or
+      (Get-FileHash -LiteralPath $sourcePath -Algorithm SHA256).Hash -ne
+        (Get-FileHash -LiteralPath $installedPath -Algorithm SHA256).Hash
+    ) {
+      return $false
+    }
+  }
+  return $true
+}
+
+function Test-WindowsArgvParserRuntime {
+  param([Parameter(Mandatory = $true)][string]$NodePath)
+
+  $packageRoot = Join-Path $RepositoryRoot 'app\node_modules\windows-argv-parser'
+  $probe = @'
+const parser = require(process.argv[1])
+const actual = parser.parseCommandLineArgv('alpha "beta gamma"')
+if (JSON.stringify(actual) !== '["alpha","beta gamma"]') process.exit(1)
+'@
+  try {
+    & $NodePath -e $probe $packageRoot *> $null
+    return $LASTEXITCODE -eq 0
+  } catch {
+    return $false
+  }
+}
+
+function Restore-WindowsArgvParserFromBuildCache {
+  param([Parameter(Mandatory = $true)][string]$NodePath)
+
+  $sourceRoot = Join-Path $RepositoryRoot 'vendor\windows-argv-parser'
+  $cachedAddon = Join-Path $RepositoryRoot 'out\windows-argv-parser.node'
+  if (
+    -not (
+      Test-CurrentNativeOutputs `
+        -SourceRoot $sourceRoot `
+        -OutputPaths @($cachedAddon)
+    )
+  ) {
+    return $false
+  }
+
+  $packageRoot = Join-Path $RepositoryRoot 'app\node_modules\windows-argv-parser'
+  $typeScriptCompiler = Join-Path $RepositoryRoot 'node_modules\typescript\bin\tsc'
+  $typeScriptConfig = Join-Path $packageRoot 'tsconfig.json'
+  if (
+    -not (Test-WindowsArgvParserInputsMatch) -or
+    -not (Test-Path -LiteralPath $typeScriptCompiler -PathType Leaf) -or
+    -not (Test-Path -LiteralPath $typeScriptConfig -PathType Leaf)
+  ) {
+    return $false
+  }
+
+  Write-Phase 'Restoring the verified windows-argv-parser native output from the preceding build'
+  $releaseRoot = Join-Path $packageRoot 'build\Release'
+  New-Item -ItemType Directory -Force -Path $releaseRoot | Out-Null
+  Copy-Item -LiteralPath $cachedAddon -Destination (Join-Path $releaseRoot 'windows-argv-parser.node') -Force
+  $compileExit = Invoke-StatusCommand -FilePath $NodePath -ArgumentList @(
+    $typeScriptCompiler,
+    '--project',
+    $typeScriptConfig,
+    '--pretty',
+    'false'
+  )
+  if ($compileExit -ne 0) {
+    return $false
+  }
+  return Test-WindowsArgvParserRuntime -NodePath $NodePath
+}
+
+function Test-WarmNativeDependencyCache {
+  param([Parameter(Mandatory = $true)][string]$NodePath)
+
+  if (-not (Test-WindowsArgvParserInputsMatch)) {
+    return $false
+  }
+
+  $requirements = @(
+    [pscustomobject]@{
+      SourceRoot = Join-Path $RepositoryRoot 'vendor\windows-argv-parser'
+      OutputPaths = @(
+        (Join-Path $RepositoryRoot 'app\node_modules\windows-argv-parser\build\index.js'),
+        (Join-Path $RepositoryRoot 'app\node_modules\windows-argv-parser\build\Release\windows-argv-parser.node')
+      )
+    },
+    [pscustomobject]@{
+      SourceRoot = Join-Path $RepositoryRoot 'vendor\desktop-notifications'
+      OutputPaths = @(
+        (Join-Path $RepositoryRoot 'app\node_modules\desktop-notifications\dist\index.js'),
+        (Join-Path $RepositoryRoot 'app\node_modules\desktop-notifications\build\Release\desktop-notifications.node')
+      )
+    },
+    [pscustomobject]@{
+      SourceRoot = Join-Path $RepositoryRoot 'vendor\desktop-trampoline'
+      OutputPaths = @(
+        (Join-Path $RepositoryRoot 'app\node_modules\desktop-trampoline\dist\index.js'),
+        (Join-Path $RepositoryRoot 'app\node_modules\desktop-trampoline\build\Release\desktop-askpass-trampoline.exe'),
+        (Join-Path $RepositoryRoot 'app\node_modules\desktop-trampoline\build\Release\desktop-credential-helper-trampoline.exe')
+      )
+    },
+    [pscustomobject]@{
+      SourceRoot = Join-Path $RepositoryRoot 'vendor\printenvz'
+      OutputPaths = @(
+        (Join-Path $RepositoryRoot 'node_modules\printenvz\index.js'),
+        (Join-Path $RepositoryRoot 'node_modules\printenvz\build\Release\printenvz.exe')
+      )
+    }
+  )
+
+  foreach ($requirement in $requirements) {
+    if (
+      -not (
+        Test-CurrentNativeOutputs `
+          -SourceRoot $requirement.SourceRoot `
+          -OutputPaths $requirement.OutputPaths
+      )
+    ) {
+      return $false
+    }
+  }
+  return Test-WindowsArgvParserRuntime -NodePath $NodePath
+}
+
+function Test-FrozenDependencyIntegrity {
+  param(
+    [Parameter(Mandatory = $true)][string]$NodePath,
+    [Parameter(Mandatory = $true)][string]$YarnPath
+  )
+
+  Write-Phase 'Checking whether the frozen dependency tree can be reused'
+  $integrityExit = Invoke-StatusCommand -FilePath $NodePath -ArgumentList @(
+    $YarnPath,
+    'check',
+    '--integrity'
+  )
+  return $integrityExit -eq 0
+}
+
 function Get-RepositoryCommit {
   $git = Get-Command git.exe -ErrorAction SilentlyContinue
   if ($null -eq $git) {
@@ -501,8 +700,23 @@ try {
     $env:NODE_ENV = 'development'
     $env:YARN_PRODUCTION = 'false'
     $env:npm_config_production = 'false'
-    Write-Phase 'Installing exact dependencies from the frozen lockfile'
-    Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'install', '--frozen-lockfile', '--non-interactive', '--production=false') -FailureLabel 'Frozen dependency installation'
+    $reuseWarmDependencies = Test-FrozenDependencyIntegrity -NodePath $node -YarnPath $yarn
+    if (
+      $reuseWarmDependencies -and
+      -not (Test-WarmNativeDependencyCache -NodePath $node)
+    ) {
+      $null = Restore-WindowsArgvParserFromBuildCache -NodePath $node
+      $reuseWarmDependencies = Test-WarmNativeDependencyCache -NodePath $node
+    }
+    if ($reuseWarmDependencies) {
+      Write-Phase 'Reusing the verified frozen dependency tree and current native outputs'
+    } else {
+      Write-Phase 'Installing exact dependencies from the frozen lockfile'
+      Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'install', '--frozen-lockfile', '--non-interactive', '--production=false') -FailureLabel 'Frozen dependency installation'
+    }
+    if (-not (Test-WarmNativeDependencyCache -NodePath $node)) {
+      throw 'The frozen dependency tree is missing a current, nonempty local native output or the windows-argv-parser runtime probe failed.'
+    }
 
     Ensure-PrintenvzExecutable -NodePath $node -VisualStudioInstallationPath $vsInstallationPath
     $env:NODE_ENV = 'production'

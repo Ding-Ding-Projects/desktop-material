@@ -93,6 +93,102 @@ describe('one-click Windows build contract', () => {
     assert.ok(build > ensure, 'printenvz must be ensured before build:prod')
   })
 
+  it('reuses only a lockfile-current warm tree with verified local native outputs', async () => {
+    const source = await read('script/build-windows.ps1')
+
+    assert.match(source, /function Test-FrozenDependencyIntegrity/)
+    assert.match(source, /'check',[\s\S]*?'--integrity'/)
+    assert.match(source, /function Test-CurrentNativeOutputs/)
+    assert.match(source, /\$output\.Length -le 0/)
+    assert.match(source, /FileAttributes\]::ReparsePoint/)
+    assert.match(
+      source,
+      /\$output\.LastWriteTimeUtc -lt \$latestSource\.LastWriteTimeUtc/
+    )
+    assert.match(source, /function Test-WarmNativeDependencyCache/)
+    for (const artifact of [
+      'windows-argv-parser\\build\\index.js',
+      'windows-argv-parser\\build\\Release\\windows-argv-parser.node',
+      'desktop-notifications\\dist\\index.js',
+      'desktop-notifications\\build\\Release\\desktop-notifications.node',
+      'desktop-trampoline\\dist\\index.js',
+      'desktop-askpass-trampoline.exe',
+      'desktop-credential-helper-trampoline.exe',
+      'printenvz\\build\\Release\\printenvz.exe',
+    ]) {
+      assert.ok(source.includes(artifact), `missing native output ${artifact}`)
+    }
+    assert.match(source, /function Test-WindowsArgvParserRuntime/)
+    assert.match(source, /function Test-WindowsArgvParserInputsMatch/)
+    for (const input of [
+      'binding.gyp',
+      'index.ts',
+      'main.cc',
+      'package.json',
+      'tsconfig.json',
+    ]) {
+      assert.ok(source.includes(`'${input}'`), `missing hashed input ${input}`)
+    }
+    assert.match(source, /Get-FileHash[^\n]+SHA256/)
+    assert.match(source, /parseCommandLineArgv/)
+    assert.match(source, /Reusing the verified frozen dependency tree/)
+
+    const integrity = source.lastIndexOf(
+      'Test-FrozenDependencyIntegrity -NodePath $node'
+    )
+    const reuse = source.lastIndexOf('if ($reuseWarmDependencies) {')
+    const install = source.lastIndexOf("'install', '--frozen-lockfile'")
+    const requiredOutputs = source.lastIndexOf(
+      'if (-not (Test-WarmNativeDependencyCache -NodePath $node))'
+    )
+    assert.ok(integrity > 0, 'warm reuse must start with lockfile integrity')
+    assert.ok(reuse > integrity, 'reuse decision must follow integrity')
+    assert.ok(install > reuse, 'fresh install must remain in the fallback path')
+    assert.ok(
+      requiredOutputs > install,
+      'every path must verify native outputs after install or reuse'
+    )
+  })
+
+  it('restores only a current prior argv-parser build cache and keeps fresh native failures fatal', async () => {
+    const source = await read('script/build-windows.ps1')
+
+    assert.match(
+      source,
+      /function Restore-WindowsArgvParserFromBuildCache[\s\S]*?out\\windows-argv-parser\.node/
+    )
+    assert.match(
+      source,
+      /Test-CurrentNativeOutputs[\s\S]*?-OutputPaths @\(\$cachedAddon\)/
+    )
+    assert.match(source, /node_modules\\typescript\\bin\\tsc/)
+    assert.match(source, /Copy-Item -LiteralPath \$cachedAddon/)
+    assert.match(
+      source,
+      /return Test-WindowsArgvParserRuntime -NodePath \$NodePath/
+    )
+
+    const fallback = source.slice(
+      source.lastIndexOf('if ($reuseWarmDependencies) {'),
+      source.lastIndexOf(
+        'if (-not (Test-WarmNativeDependencyCache -NodePath $node))'
+      )
+    )
+    assert.match(
+      fallback,
+      /Invoke-Checked[\s\S]*?Frozen dependency installation/
+    )
+    assert.doesNotMatch(
+      fallback,
+      /catch\s*\{/,
+      'a real CL.exe or node-gyp failure from a fresh install must propagate'
+    )
+    assert.match(
+      source,
+      /throw 'The frozen dependency tree is missing a current, nonempty local native output/
+    )
+  })
+
   it('forces dev dependencies before install and restores the process environment', async () => {
     const source = await read('script/build-windows.ps1')
 
