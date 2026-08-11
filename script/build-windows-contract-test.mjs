@@ -68,6 +68,33 @@ describe('one-click Windows build contract', () => {
     assert.match(source, /\[string\]\$node = \$nodeResult\[0\]/)
   })
 
+  it('rebuilds the exact native printenvz prerequisite before production compilation', async () => {
+    const source = await read('script/build-windows.ps1')
+
+    assert.match(source, /function Ensure-PrintenvzExecutable/)
+    assert.match(
+      source,
+      /node_modules\\printenvz[\s\S]*?build\\Release\\printenvz\.exe/
+    )
+    assert.match(source, /Join-Path \$packageRoot 'build\.mjs'/)
+    assert.match(
+      source,
+      /Invoke-Checked -FilePath \$NodePath -ArgumentList @\(\$buildScript, '--rebuild'\)/
+    )
+    assert.match(source, /\$executable\.Length -gt 0/)
+    assert.match(source, /\$executable\.Length -le 0/)
+    assert.match(source, /rebuild completed without creating/)
+
+    const install = source.lastIndexOf("'install', '--frozen-lockfile'")
+    const ensure = source.lastIndexOf(
+      'Ensure-PrintenvzExecutable -NodePath $node'
+    )
+    const build = source.lastIndexOf("'build:prod'")
+    assert.ok(install > 0, 'frozen install must be present')
+    assert.ok(ensure > install, 'printenvz must be ensured after install')
+    assert.ok(build > ensure, 'printenvz must be ensured before build:prod')
+  })
+
   it('fails closed on stale, incomplete, or signed artifacts', async () => {
     const source = await read('script/build-windows.ps1')
 

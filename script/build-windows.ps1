@@ -318,6 +318,36 @@ function Ensure-ManifestPackageAlias {
   return $alias
 }
 
+function Ensure-PrintenvzExecutable {
+  param([Parameter(Mandatory = $true)][string]$NodePath)
+
+  $packageRoot = Join-Path $RepositoryRoot 'node_modules\printenvz'
+  $executablePath = Join-Path $packageRoot 'build\Release\printenvz.exe'
+  if (Test-Path -LiteralPath $executablePath -PathType Leaf) {
+    $executable = Get-Item -LiteralPath $executablePath
+    if ($executable.Length -gt 0) {
+      Write-Phase "Reusing native printenvz prerequisite at $executablePath"
+      return
+    }
+  }
+
+  $buildScript = Join-Path $packageRoot 'build.mjs'
+  if (-not (Test-Path -LiteralPath $buildScript -PathType Leaf)) {
+    throw "printenvz native prerequisite is missing, and its rebuild entrypoint was not installed: '$buildScript'."
+  }
+
+  Write-Phase 'Rebuilding the missing native printenvz prerequisite'
+  Invoke-Checked -FilePath $NodePath -ArgumentList @($buildScript, '--rebuild') -FailureLabel 'printenvz native rebuild'
+  if (-not (Test-Path -LiteralPath $executablePath -PathType Leaf)) {
+    throw "printenvz rebuild completed without creating '$executablePath'."
+  }
+  $executable = Get-Item -LiteralPath $executablePath
+  if ($executable.Length -le 0) {
+    throw "printenvz rebuild created an empty executable at '$executablePath'."
+  }
+  Write-Host "Native prerequisite ready: $executablePath"
+}
+
 function Get-RepositoryCommit {
   $git = Get-Command git.exe -ErrorAction SilentlyContinue
   if ($null -eq $git) {
@@ -344,12 +374,13 @@ try {
   Push-Location $RepositoryRoot
   try {
     Remove-BoundedBuildOutput
-    Write-Phase 'Installing exact dependencies from the frozen lockfile'
-    Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'install', '--frozen-lockfile', '--non-interactive') -FailureLabel 'Frozen dependency installation'
-
     $env:npm_config_arch = $TargetArchitecture
     $env:TARGET_ARCH = $TargetArchitecture
     $env:NODE_ENV = 'production'
+    Write-Phase 'Installing exact dependencies from the frozen lockfile'
+    Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'install', '--frozen-lockfile', '--non-interactive') -FailureLabel 'Frozen dependency installation'
+
+    Ensure-PrintenvzExecutable -NodePath $node
     $buildStartedAt = [datetime]::UtcNow
     Write-Phase 'Building the production renderer and main process'
     Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'build:prod') -FailureLabel 'Production build'
