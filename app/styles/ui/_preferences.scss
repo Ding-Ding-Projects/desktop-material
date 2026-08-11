@@ -167,15 +167,38 @@
   // Rail title ("Settings"), pinned to the top of the rail.
   .preferences-title {
     margin: 0;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: var(--font-weight-semibold);
     color: var(--md-sys-color-on-surface);
+  }
+
+  .preferences-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .preferences-title-icon {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    flex: none;
+    place-items: center;
+    border-radius: 11px;
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+
+    .octicon {
+      width: 17px;
+      height: 17px;
+    }
   }
 
   // Settings search box, pinned above the rail's tab list. Present on every
   // tab because the rail persists across panes.
   .settings-search {
-    margin: 0 6px 12px;
+    margin: 0 2px 10px;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -198,11 +221,11 @@
         flex: 1;
         min-width: 0;
         box-sizing: border-box;
-        height: 36px;
+        height: 38px;
         padding: 0 32px 0 30px;
         border-radius: 999px;
         border: 1px solid var(--md-sys-color-outline-variant);
-        background: var(--md-sys-color-surface-container-high);
+        background: var(--md-sys-color-surface-container-lowest);
         color: var(--md-sys-color-on-surface);
         font-size: 13px;
 
@@ -254,7 +277,12 @@
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
+      padding: 6px;
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 16px;
+      background: var(--md-sys-color-surface-container-high);
+      box-shadow: var(--md-sys-elevation-level2);
     }
 
     .settings-search-group {
@@ -408,19 +436,20 @@
 
   // Left navigation rail
   .preferences-rail {
-    width: 236px;
+    width: var(--settings-workbench-navigation-width, 260px);
     flex-shrink: 0;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    background: var(--md-sys-color-surface-container);
-    border-right: var(--base-border);
-    padding: 22px 12px 16px;
+    background: var(--md-sys-color-surface-container-high);
+    border-right: 1px solid var(--md-sys-color-outline-variant);
+    padding: 16px 10px 12px;
 
     .preferences-rail-header {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
+      padding: 0 4px 4px;
       min-width: 0;
     }
 
@@ -508,6 +537,7 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
+    background: var(--md-sys-color-surface-container-lowest);
   }
 
   // Browser-like header row: title on the left, round close ✕ on the right.
@@ -516,7 +546,9 @@
     display: flex;
     justify-content: flex-end;
     flex-shrink: 0;
-    padding: 14px 14px 0 22px;
+    min-height: 52px;
+    padding: 6px 12px 0 22px;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
   }
 
   // Search remains available above every settings page, but now shares the
@@ -597,7 +629,7 @@
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
-    padding: 4px 30px 20px;
+    padding: 14px 24px 20px;
 
     .dialog-content {
       padding: 8px 0 0;
@@ -2715,5 +2747,120 @@
   .color-picker-container {
     position: absolute;
     width: 100px;
+  }
+}
+
+// Claude-authored settings depth: the existing controls remain the source of
+// truth, while their containers use the same quiet tonal hierarchy as the
+// searchable settings menu in the supplied reference.
+#preferences {
+  .preference-toggle-card,
+  .preference-disclosure-card,
+  .integration-application-card,
+  .appearance-section,
+  .scaling-card,
+  .appearance-playfulness-card,
+  .app-identity-section,
+  .account-card,
+  .provider-sign-in-card {
+    border: 1px solid var(--md-sys-color-outline-variant);
+    background: var(--md-sys-color-surface-container-low);
+    box-shadow: none;
+  }
+
+  .tab-container {
+    h1,
+    h2,
+    h3 {
+      color: var(--md-sys-color-on-surface);
+      letter-spacing: -0.01em;
+    }
+
+    .settings-description {
+      color: var(--md-sys-color-on-surface-variant);
+      line-height: 1.5;
+    }
+
+    .text-box-component input,
+    .select-component select,
+    input[type='text'],
+    input[type='number'],
+    input[type='url'],
+    input[type='email'],
+    textarea {
+      min-height: 38px;
+      border-color: var(--md-sys-color-outline-variant);
+      border-radius: 10px;
+      background: var(--md-sys-color-surface-container-high);
+    }
+  }
+
+  @container preferences-dialog (max-width: 620px) {
+    .preferences-container[data-settings-tab-dock-position='left'],
+    .preferences-container[data-settings-tab-dock-position='right'] {
+      .preferences-rail {
+        width: 92px;
+
+        .preferences-title-group {
+          justify-content: center;
+        }
+
+        .preferences-title {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0 0 0 0);
+          white-space: nowrap;
+        }
+
+        .preferences-title-icon {
+          width: 36px;
+          height: 36px;
+        }
+
+        .settings-search {
+          margin-inline: 0;
+        }
+
+        .settings-search-field {
+          .settings-search-icon {
+            left: 8px;
+          }
+
+          .settings-search-input {
+            padding-inline: 26px 6px;
+          }
+        }
+
+        .settings-browser-tab {
+          min-height: 42px;
+        }
+
+        .settings-browser-tab-select {
+          justify-content: center;
+          padding: 0 2px;
+        }
+
+        .settings-browser-tab-title,
+        .settings-browser-tab-pin,
+        .preferences-tab-match-badge {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0 0 0 0);
+          white-space: nowrap;
+        }
+
+        .settings-browser-tab-close,
+        .settings-browser-tab-action {
+          min-width: 34px;
+          min-height: 34px;
+        }
+      }
+    }
   }
 }

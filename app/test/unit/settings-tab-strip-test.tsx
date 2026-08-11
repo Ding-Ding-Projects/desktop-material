@@ -606,9 +606,17 @@ describe('SettingsTabStrip', () => {
     fireEvent.click(trigger)
 
     const picker = view.getByRole('dialog', { hidden: true })
+    const heading = view.getByRole('heading', {
+      hidden: true,
+      name: 'Choose a settings page',
+    })
     const list = view.getByRole('listbox', { hidden: true })
     const input = view.getByRole('combobox', { hidden: true })
     assert.strictEqual(picker.id, pickerId)
+    assert.ok(
+      heading.closest('.settings-tab-picker-header'),
+      'the searchable picker keeps its visible Material panel heading'
+    )
     assert.strictEqual(input.getAttribute('aria-controls'), list.id)
     assert.strictEqual(
       input.getAttribute('aria-activedescendant'),

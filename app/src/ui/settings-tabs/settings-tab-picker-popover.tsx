@@ -12,6 +12,8 @@ import {
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
 import { ISettingsTabItem } from './settings-tab-model'
+import { Octicon } from '../octicons'
+import * as octicons from '../octicons/octicons.generated'
 
 interface ISettingsTabPickerPopoverProps {
   /** The pages this surface offers. Already narrowed by the caller. */
@@ -252,9 +254,12 @@ export class SettingsTabPickerPopover extends React.Component<
         className="settings-tab-picker"
         ariaLabelledby={`${this.props.pickerId}-title`}
       >
-        <h2 id={`${this.props.pickerId}-title`} className="sr-only">
-          {pickerTitle}
-        </h2>
+        <div className="settings-tab-picker-header">
+          <span className="settings-tab-picker-heading-icon" aria-hidden={true}>
+            <Octicon symbol={octicons.gear} />
+          </span>
+          <h2 id={`${this.props.pickerId}-title`}>{pickerTitle}</h2>
+        </div>
         {/* The list is driven from the field, so the whole surface listens. */}
         {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
         <div onKeyDown={this.onKeyDown}>

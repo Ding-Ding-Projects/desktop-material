@@ -78,12 +78,24 @@ beforeEach(() => {
 describe('Repository settings search', () => {
   it('uses browser-style tabs with a linked active panel', () => {
     const view = renderSettings()
+    const workbench = view.container.querySelector(
+      '.settings-workbench-repository'
+    )
     const tablist = view.getByRole('tablist', { hidden: true })
     const selected = tabsOf(view).find(
       tab => tab.getAttribute('aria-selected') === 'true'
     )
     const panel = view.getByRole('tabpanel', { hidden: true })
 
+    assert.ok(workbench)
+    assert.ok(
+      workbench?.querySelector(
+        '.settings-workbench-navigation.settings-tab-rail'
+      )
+    )
+    assert.ok(
+      workbench?.querySelector('.settings-workbench-content.active-tab')
+    )
     assert.equal(tablist.getAttribute('aria-orientation'), 'vertical')
     assert.ok(selected)
     assert.equal(selected?.getAttribute('aria-controls'), panel.id)

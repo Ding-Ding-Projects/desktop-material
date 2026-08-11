@@ -850,21 +850,26 @@ export class Preferences extends React.Component<
       >
         {this.renderDisallowedCharactersError()}
         <div
-          className="preferences-container"
+          className="preferences-container settings-workbench settings-workbench-global"
           data-settings-tab-dock-position={this.state.tabDockPosition}
         >
-          <div className="preferences-rail">
-            <div className="preferences-rail-header">
-              <h2 id={PreferencesTitleId} className="preferences-title">
-                <LocalizedText translationKey="settings.dialogTitle" />
-              </h2>
+          <div className="preferences-rail settings-workbench-navigation">
+            <div className="preferences-rail-header settings-workbench-heading">
+              <div className="preferences-title-group">
+                <span className="preferences-title-icon" aria-hidden={true}>
+                  <Octicon symbol={octicons.gear} />
+                </span>
+                <h2 id={PreferencesTitleId} className="preferences-title">
+                  <LocalizedText translationKey="settings.dialogTitle" />
+                </h2>
+              </div>
               <SettingsTabDockControl
                 strip="preferences"
                 position={this.state.tabDockPosition}
                 onChange={this.onTabDockPositionChanged}
               />
             </div>
-            <div className="preferences-browser-search">
+            <div className="preferences-browser-search settings-workbench-search">
               {this.renderSettingsSearch()}
             </div>
             <SettingsTabStrip
@@ -880,8 +885,8 @@ export class Preferences extends React.Component<
               accessibleLabels={this.getSettingsBrowserTabLabels()}
             />
           </div>
-          <div className="preferences-content-pane">
-            <div className="preferences-pane-header">
+          <div className="preferences-content-pane settings-workbench-content">
+            <div className="preferences-pane-header settings-workbench-content-header">
               <button
                 type="button"
                 className="preferences-close-button"

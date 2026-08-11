@@ -4,6 +4,10 @@
   max-height: calc(100vh - var(--spacing-quad));
   max-width: calc(100vw - var(--spacing-double));
   overflow: hidden;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 20px;
+  background: var(--md-sys-color-surface-container-high);
+  box-shadow: var(--md-sys-elevation-level3);
 
   // The generic dialog form uses `height: 100%`, which does not subtract the
   // Repository Settings header. At compact heights that lets the fieldset and
@@ -28,6 +32,17 @@
   .dialog-header,
   .dialog-footer {
     flex-shrink: 0;
+  }
+
+  .dialog-header {
+    min-height: 52px;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    background: var(--md-sys-color-surface-container-high);
+  }
+
+  .dialog-footer {
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    background: var(--md-sys-color-surface-container-high);
   }
 
   .repository-automation-settings {
@@ -159,25 +174,29 @@
       flex-direction: column;
       min-height: 0;
       min-width: 0;
-      padding: var(--spacing) var(--spacing) var(--spacing) var(--spacing-double);
-      width: 260px;
+      padding: 12px 10px;
+      width: var(--settings-workbench-navigation-width, 260px);
+      background: var(--md-sys-color-surface-container-high);
 
       .settings-tab-rail-header {
         display: flex;
         flex-direction: column;
-        gap: var(--spacing-half);
+        gap: 8px;
         min-width: 0;
+        padding: 0 2px 4px;
       }
 
       .repository-settings-tab-search {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: var(--spacing-half);
+        gap: 6px;
 
         > label {
           flex: 0 0 auto;
-          font-size: var(--font-size-sm);
+          padding-inline: 4px;
+          color: var(--md-sys-color-on-surface-variant);
+          font-size: 11px;
           font-weight: var(--font-weight-semibold);
         }
 
@@ -186,11 +205,27 @@
           flex: 1 1 280px;
           min-width: 0;
           align-items: center;
-          gap: var(--spacing-half);
+          gap: 4px;
+          padding: 4px 5px 4px 10px;
+          border: 1px solid var(--md-sys-color-outline-variant);
+          border-radius: 999px;
+          background: var(--md-sys-color-surface-container-lowest);
 
           input {
             flex: 1 1 auto;
+            height: 30px;
             min-width: 0;
+            border: 0;
+            background: transparent;
+
+            &:focus-visible {
+              outline: none;
+            }
+          }
+
+          &:focus-within {
+            border-color: var(--md-sys-color-primary);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary) 30%, transparent);
           }
         }
       }
@@ -209,6 +244,7 @@
       min-height: 0;
       overflow-x: hidden;
       overflow-y: auto;
+      background: var(--md-sys-color-surface-container-lowest);
     }
   }
 
@@ -217,7 +253,7 @@
   }
 
   .tab-container:not([data-settings-tab-dock-position='top']):not([data-settings-tab-dock-position='bottom']) .active-tab {
-    border-left: var(--base-border);
+    border-left: 0;
   }
 
   .tab-container[data-settings-tab-dock-position='right'] {
@@ -1803,6 +1839,73 @@
     .repository-appearance-section-actions .button-component {
       flex: 1 1 auto;
       justify-content: center;
+    }
+  }
+}
+
+// Match the supplied settings panel's tonal depth without replacing any of
+// the repository-specific controls or their real persistence/dispatcher path.
+#repository-settings {
+  .repository-account-setting,
+  .repository-metadata-card,
+  .remote-row,
+  .add-remote,
+  .remote-review,
+  .build-run-section,
+  .gitignore-section,
+  .submodules-section,
+  .repository-appearance-section,
+  .ssh-working-copy-manager {
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 16px;
+    background: var(--md-sys-color-surface-container-low);
+    box-shadow: none;
+  }
+
+  .active-tab {
+    h1,
+    h2,
+    h3 {
+      color: var(--md-sys-color-on-surface);
+      letter-spacing: -0.01em;
+    }
+
+    p,
+    .build-run-section-description,
+    .repository-appearance-intro-hint {
+      color: var(--md-sys-color-on-surface-variant);
+      line-height: 1.5;
+    }
+
+    .text-box-component input,
+    .select-component select,
+    input[type='text'],
+    input[type='number'],
+    input[type='url'],
+    input[type='email'],
+    textarea {
+      min-height: 38px;
+      border-color: var(--md-sys-color-outline-variant);
+      border-radius: 10px;
+      background: var(--md-sys-color-surface-container-high);
+    }
+  }
+
+  @container repository-settings-dialog (max-width: 520px) {
+    .tab-container[data-settings-tab-dock-position='left'],
+    .tab-container[data-settings-tab-dock-position='right'] {
+      > .settings-tab-rail {
+        width: 200px;
+      }
+
+      .repository-settings-tab-search {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .repository-settings-tab-filter-field {
+        flex-basis: auto;
+      }
     }
   }
 }

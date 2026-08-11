@@ -467,11 +467,11 @@ export class RepositorySettings extends React.Component<
         {this.renderErrors()}
 
         <div
-          className="tab-container"
+          className="tab-container settings-workbench settings-workbench-repository"
           data-settings-tab-dock-position={this.state.tabDockPosition}
         >
-          <div className="settings-tab-rail">
-            <div className="settings-tab-rail-header">
+          <div className="settings-tab-rail settings-workbench-navigation">
+            <div className="settings-tab-rail-header settings-workbench-heading">
               {this.renderTabSearch()}
               <SettingsTabDockControl
                 strip="repository-settings"
@@ -499,7 +499,7 @@ export class RepositorySettings extends React.Component<
           </div>
 
           <div
-            className="active-tab"
+            className="active-tab settings-workbench-content"
             id={this.getTabPanelId(
               RepositorySettingsTabIds[this.state.selectedTab]
             )}
@@ -1213,7 +1213,7 @@ export class RepositorySettings extends React.Component<
 
   private renderTabSearch() {
     return (
-      <div className="repository-settings-tab-search">
+      <div className="repository-settings-tab-search settings-workbench-search">
         <label htmlFor="repository-settings-tab-filter">
           <LocalizedText translationKey="repositorySettings.searchLabel" />
         </label>
