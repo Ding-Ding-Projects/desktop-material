@@ -1,0 +1,133 @@
+// The MD3 shell's toast, from the `toast` block of
+// `design/History MD3.dc.html`.
+//
+// Every literal below is the contract's:
+//
+//   position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+//   display: flex; align-items: center; gap: 12px; max-width: 520px;
+//   padding: 9px 12px 9px 16px; border-radius: 12px;
+//   background: var(--md-sys-color-on-surface);
+//   color: var(--md-sys-color-surface); box-shadow: var(--dm-elev3);
+//   font-size: 12px; animation: dmUp 240ms cubic-bezier(0.2,0,0,1) both;
+//   z-index: 60
+//
+// with one structural change: the fixed position, the centering translate and
+// the z-index live on the stack wrapper rather than on the toast. The contract
+// puts them on the same element as the rise animation, whose `both` fill mode
+// ends on `transform: none` — so the prototype's toast un-centres itself the
+// instant the animation finishes. Hoisting the centering one level up keeps
+// the appearance the contract intended and is also what lets several toasts
+// stack instead of painting on top of each other.
+//
+// The animation itself is the shared `.md3-anim-toast` class from
+// `_md3-shell.scss` (`md3Up`, 240ms), which is already disabled under
+// `prefers-reduced-motion`.
+
+.md3-toast-stack {
+  align-items: center;
+  bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  left: 50%;
+  // The stack spans the toasts' own width but must never swallow clicks meant
+  // for the application underneath it; each toast re-enables its own.
+  pointer-events: none;
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 60;
+}
+
+.md3-toast {
+  align-items: center;
+  background: var(--md-sys-color-on-surface);
+  border-radius: 12px;
+  box-shadow: var(--dm-elev3);
+  color: var(--md-sys-color-surface);
+  display: flex;
+  font-size: 12px;
+  gap: 12px;
+  max-width: 520px;
+  padding: 9px 12px 9px 16px;
+  pointer-events: auto;
+}
+
+// Severity is carried by a glyph rather than by a hue: the icon inherits the
+// toast's own foreground colour, so a message reads the same to a user who
+// cannot distinguish the colours as to one who can. `info` — the contract's
+// own toast — renders no glyph at all.
+.md3-toast__icon {
+  color: inherit;
+  flex: none;
+}
+
+.md3-toast__message {
+  // Long messages wrap inside the 520px cap instead of forcing the toast wider
+  // than the window.
+  min-width: 0;
+}
+
+// The contract's Undo action, verbatim, plus the minimum height and focus ring
+// a keyboard user needs. The height fits inside the toast's own 9px padding,
+// so it changes nothing about the row's size.
+.md3-toast__undo {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-primary);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  min-height: 24px;
+  padding: 0;
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+// Only rendered on a toast that waits to be dismissed — a warning or an error.
+// Without it those toasts would have no exit at all.
+.md3-toast__dismiss {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  flex: none;
+  height: 24px;
+  padding: 0;
+  place-items: center;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0, 1);
+  width: 24px;
+
+  &:hover {
+    background: color-mix(in srgb, var(--md-sys-color-surface) 16%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-surface);
+    outline-offset: 1px;
+  }
+}
+
+// A 520px toast plus the contract's 16px window gutters needs 552px. Below
+// that the cap becomes the window rather than the literal, so the message
+// wraps instead of being clipped.
+@media (max-width: 560px) {
+  .md3-toast {
+    max-width: calc(100vw - 32px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .md3-toast__dismiss {
+    transition: none;
+  }
+}

@@ -1,0 +1,628 @@
+// Shared style contract for the MD3 shell rewrite.
+//
+// Every literal in this file is copied from `design/History MD3.dc.html`: the
+// `renderVals()` constants (`iconBtn`, `iconBtnSm`, `smallTonalBtn`,
+// `smallGhostBtn`, `searchRow`, `searchIcon`, `searchInput`, `chipRow`,
+// `resetBtn`), the `chipVals()` / `rowStyle()` / `nameStyle()` helpers, the
+// group-header and empty-state blocks, and the four keyframes the contract
+// animates with. Sizes, radii, weights, durations and easings are the
+// specification — do not round them.
+//
+// Token note: `_material.scss` already declares every `--md-sys-color-*` role
+// and every `--dm-*` colour the contract uses except the four state/elevation
+// tokens added below, so only those four are declared here. The one value that
+// differs from the contract is dark `--dm-green-container` (`#113a1b` in
+// `_material.scss`, `#17381f` in the contract); it is deliberately left alone
+// here because it is a global token consumed by unrelated surfaces.
+
+// ---------------------------------------------------------------------------
+// Motion
+// ---------------------------------------------------------------------------
+//
+// The contract names these `dmUp`, `dmFade`, `dmSheet` and `dmMenu`, but
+// `dmUp` and `dmSheet` are already global keyframes in
+// `app/styles/material/_motion.scss` with different geometry (22px rise, and a
+// left-anchored 104% slide) and are consumed by dozens of existing partials.
+// Redefining them would silently retime every one of those surfaces, so the
+// contract's four are namespaced and exposed through the `.md3-anim-*` classes
+// below. Consume the classes; never the raw keyframe names.
+
+@keyframes md3Up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes md3Fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes md3Sheet {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes md3Menu {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// View bodies: `animation: dmUp 320ms cubic-bezier(0.2,0,0,1) both`.
+.md3-anim-up {
+  animation: md3Up 320ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+// The toast: `animation: dmUp 240ms cubic-bezier(0.2,0,0,1) both`.
+.md3-anim-toast {
+  animation: md3Up 240ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+// The commit-detail sheet scrim: `animation: dmFade 200ms ease both`.
+.md3-anim-fade {
+  animation: md3Fade 200ms ease both;
+}
+
+// Dialog and menu scrims: `animation: dmFade 160ms ease both`.
+.md3-anim-fade--overlay {
+  animation: md3Fade 160ms ease both;
+}
+
+// The right-anchored commit-detail sheet.
+.md3-anim-sheet {
+  animation: md3Sheet 280ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+// Dialogs, menus and the command palette panel.
+.md3-anim-menu {
+  animation: md3Menu 200ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+// ---------------------------------------------------------------------------
+// Tokens the contract declares that `_material.scss` does not
+// ---------------------------------------------------------------------------
+
+:root {
+  --dm-state: rgba(25, 29, 24, 0.08);
+  --dm-scrim: rgba(0, 0, 0, 0.3);
+  --dm-elev2: 0 1px 2px rgba(0, 0, 0, 0.16), 0 2px 6px 2px rgba(0, 0, 0, 0.08);
+  --dm-elev3: 0 1px 3px rgba(0, 0, 0, 0.18), 0 4px 8px 3px rgba(0, 0, 0, 0.1);
+}
+
+body.theme-dark {
+  --dm-state: rgba(224, 228, 220, 0.08);
+  --dm-scrim: rgba(0, 0, 0, 0.5);
+  --dm-elev2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
+  --dm-elev3: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 8px 3px rgba(0, 0, 0, 0.15);
+}
+
+// ---------------------------------------------------------------------------
+// Buttons
+// ---------------------------------------------------------------------------
+
+// `iconBtn` — the 32px circular icon button.
+.md3-icon-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: grid;
+  flex: none;
+  height: 32px;
+  padding: 0;
+  place-items: center;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0, 1);
+  width: 32px;
+
+  &:hover:not(:disabled) {
+    background: var(--dm-state);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.38;
+  }
+
+  // The contract's active treatment for the graph / dates / wrap / regex
+  // toggles: primary-container fill, on-primary-container glyph.
+  &.md3-icon-button--active {
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+  }
+}
+
+// `iconBtnSm` — the 26px circular icon button.
+.md3-icon-button--small {
+  height: 26px;
+  width: 26px;
+}
+
+// The 30px variant the diff toolbar's wrap toggle uses.
+.md3-icon-button--medium {
+  height: 30px;
+  width: 30px;
+}
+
+// `smallTonalBtn`.
+.md3-tonal-button {
+  align-items: center;
+  background: var(--md-sys-color-surface-container-high);
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0, 1);
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--md-sys-color-surface-container-high) 88%, var(--md-sys-color-on-surface));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.38;
+  }
+}
+
+// `smallGhostBtn`.
+.md3-ghost-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0, 1);
+
+  &:hover:not(:disabled) {
+    background: var(--dm-state);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.38;
+  }
+}
+
+// `resetBtn` — the empty state's "Reset filters" action.
+.md3-reset-button {
+  background: var(--md-sys-color-secondary-container);
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-secondary-container);
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+  height: 28px;
+  padding: 0 12px;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0, 1);
+
+  &:hover {
+    background: color-mix(in srgb, var(--md-sys-color-secondary-container) 88%, var(--md-sys-color-on-secondary-container));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Search row
+// ---------------------------------------------------------------------------
+
+// `searchRow`.
+.md3-search-row {
+  align-items: center;
+  background: var(--md-sys-color-surface-container-high);
+  border-radius: 999px;
+  display: flex;
+  flex: none;
+  gap: 6px;
+  height: 34px;
+  margin: 8px 10px;
+  padding: 0 6px 0 12px;
+
+  // The input itself carries the contract's `outline: none`, so the row shows
+  // keyboard focus on its behalf — without this the field would be focusable
+  // with no visible focus indicator at all.
+  &:focus-within {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+}
+
+// `searchIcon`.
+.md3-search-row__icon {
+  color: var(--md-sys-color-on-surface-variant);
+  flex: none;
+  font-size: 16px;
+}
+
+// `searchInput`.
+.md3-search-row__input {
+  background: transparent;
+  border: 0;
+  color: var(--md-sys-color-on-surface);
+  flex: 1;
+  font: inherit;
+  font-size: 12px;
+  min-width: 0;
+  outline: none;
+
+  &::placeholder {
+    color: var(--md-sys-color-on-surface-variant);
+  }
+}
+
+// `clearStyle` in its non-hidden branch.
+.md3-search-row__clear {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: grid;
+  flex: none;
+  height: 26px;
+  padding: 0;
+  place-items: center;
+  width: 26px;
+
+  &:hover {
+    background: var(--dm-state);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+}
+
+// `regexStyle` — the `.*` mode toggle.
+.md3-search-row__regex {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: grid;
+  flex: none;
+  font-family: var(--font-family-monospace);
+  font-size: 11.5px;
+  height: 26px;
+  padding: 0;
+  place-items: center;
+  width: 26px;
+
+  &:hover {
+    background: var(--dm-state);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+
+  &.md3-search-row__regex--active {
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+  }
+}
+
+// The trailing "N hits" label beside the diff, log and terminal searches.
+.md3-search-row__hits {
+  color: var(--md-sys-color-on-surface-variant);
+  flex: none;
+  font-size: 11px;
+}
+
+// ---------------------------------------------------------------------------
+// Chips
+// ---------------------------------------------------------------------------
+
+// `chipRow`.
+.md3-chip-row {
+  align-items: center;
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0 10px 8px 10px;
+  row-gap: 5px;
+}
+
+// The contract's `<div style="flex: 1">` between the chips and the trailing
+// toggles.
+.md3-chip-row__spacer {
+  flex: 1;
+}
+
+// `chipVals()` in its inactive branch.
+.md3-chip {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+  display: inline-flex;
+  flex: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  gap: 5px;
+  height: 26px;
+  padding: 0 11px;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0, 1);
+
+  &:hover {
+    background: var(--dm-state);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+}
+
+// `chipVals()` in its active branch.
+.md3-chip--active {
+  background: var(--md-sys-color-secondary-container);
+  border: 1px solid transparent;
+  color: var(--md-sys-color-on-secondary-container);
+
+  &:hover {
+    background: color-mix(in srgb, var(--md-sys-color-secondary-container) 88%, var(--md-sys-color-on-secondary-container));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Rows
+// ---------------------------------------------------------------------------
+
+// `rowStyle(false)`.
+.md3-row {
+  align-items: center;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 7px 6px 7px 8px;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0, 1);
+
+  &:hover {
+    background: var(--dm-state);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: -2px;
+  }
+}
+
+// `rowStyle(true)`.
+.md3-row--active {
+  background: var(--md-sys-color-secondary-container);
+
+  &:hover {
+    background: var(--md-sys-color-secondary-container);
+  }
+}
+
+// The commit row's `padding-left: 4px` extra, so the graph spine sits flush.
+.md3-row--spined {
+  padding-left: 4px;
+}
+
+// `nameStyle(false)`.
+.md3-row__name {
+  color: var(--md-sys-color-on-surface);
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// `nameStyle(true)`.
+.md3-row__name--active {
+  color: var(--md-sys-color-on-secondary-container);
+  font-weight: 700;
+}
+
+// The shared `detailStyle` third line.
+.md3-row__detail {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 10.5px;
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// The commit row's detail line, which also lays its parts out in a flex row.
+.md3-row__detail--inline {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+
+// ---------------------------------------------------------------------------
+// Group headers
+// ---------------------------------------------------------------------------
+
+// `headerStyle` — the uppercase day / group / org label above a group's first
+// row.
+.md3-group-header {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  padding: 10px 8px 4px 8px;
+  text-transform: uppercase;
+}
+
+// Opt-in sticky variant. `background: inherit` deliberately takes the
+// scrolling container's own surface rather than naming a colour the contract
+// never specified, so a sticky header can never disagree with the list it
+// pins to.
+.md3-group-header--sticky {
+  background: inherit;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+// ---------------------------------------------------------------------------
+// Empty state
+// ---------------------------------------------------------------------------
+
+// `historyEmptyStyle` / `repoEmptyStyle` in their visible branch.
+.md3-empty-state {
+  align-items: center;
+  color: var(--md-sys-color-on-surface-variant);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 36px 20px;
+  text-align: center;
+}
+
+.md3-empty-state__message {
+  font-size: 12px;
+}
+
+// ---------------------------------------------------------------------------
+// Status tones
+// ---------------------------------------------------------------------------
+//
+// `statusTone()` returns a `[container, on]` pair. `.md3-tone--*` paints the
+// container, `.md3-tone-on--*` paints the on-colour, so a caller that only
+// needs the foreground (icon glyphs) applies the second class alone.
+
+.md3-tone--green {
+  background: var(--dm-green-container);
+}
+
+.md3-tone-on--green {
+  color: var(--dm-green-on-container);
+}
+
+.md3-tone--error {
+  background: var(--md-sys-color-error-container);
+}
+
+.md3-tone-on--error {
+  color: var(--md-sys-color-on-error-container);
+}
+
+.md3-tone--primary {
+  background: var(--md-sys-color-primary-container);
+}
+
+.md3-tone-on--primary {
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.md3-tone--surface {
+  background: var(--md-sys-color-surface-container-highest);
+}
+
+.md3-tone-on--surface {
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.md3-tone--amber {
+  background: var(--dm-amber-container);
+}
+
+.md3-tone-on--amber {
+  color: var(--dm-amber-on-container);
+}
+
+// ---------------------------------------------------------------------------
+// Reduced motion
+// ---------------------------------------------------------------------------
+//
+// Every animation and transition introduced above is disabled here. The
+// surfaces still arrive and still change state; they simply do so instantly.
+
+@media (prefers-reduced-motion: reduce) {
+  .md3-anim-up,
+  .md3-anim-toast,
+  .md3-anim-fade,
+  .md3-anim-fade--overlay,
+  .md3-anim-sheet,
+  .md3-anim-menu {
+    animation: none;
+  }
+
+  .md3-icon-button,
+  .md3-tonal-button,
+  .md3-ghost-button,
+  .md3-reset-button,
+  .md3-chip,
+  .md3-row {
+    transition: none;
+  }
+}

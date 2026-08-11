@@ -1,0 +1,175 @@
+// The content pane's header and progress bar, from
+// `design/History MD3.dc.html` (markup lines 182–212, plus `crumbStyle`,
+// `pushStyle` and `progressBarStyle` in `renderVals()`).
+//
+// Every literal below is copied from the contract. The 32px icon buttons in
+// this header come from `_md3-shell.scss`; only the header frame, the
+// breadcrumbs, the push affordance and the progress bar live here.
+
+// ---------------------------------------------------------------------------
+// Header frame
+// ---------------------------------------------------------------------------
+
+.md3-pane-header {
+  align-items: center;
+  display: flex;
+  flex: none;
+  gap: 6px;
+  height: 48px;
+  overflow: hidden;
+  padding: 0 8px 0 12px;
+}
+
+// `<span class="ms" style="font-size: 18px; flex: none; color: primary">`.
+.md3-pane-header__icon {
+  color: var(--md-sys-color-primary);
+  flex: none;
+}
+
+// `<span style="flex: none; font-size: 13.5px; font-weight: 700">`.
+.md3-pane-header__title {
+  color: var(--md-sys-color-on-surface);
+  flex: none;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+// The `chevron_right` between the title and the breadcrumbs.
+.md3-pane-header__separator {
+  color: var(--md-sys-color-outline);
+  flex: none;
+}
+
+// The contract's `<div style="flex: 1">` before the remote controls.
+.md3-pane-header__spacer {
+  flex: 1;
+}
+
+// ---------------------------------------------------------------------------
+// Breadcrumbs — `crumbStyle`
+// ---------------------------------------------------------------------------
+
+.md3-pane-header__crumb {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-surface);
+  cursor: pointer;
+  display: flex;
+  flex: none;
+  font-size: 12.5px;
+  font-weight: 600;
+  gap: 6px;
+  height: 28px;
+  max-width: 200px;
+  min-width: 0;
+  padding: 0 10px;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0, 1);
+
+  &:hover {
+    background: var(--dm-state);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+}
+
+// The repository or branch name itself, which is what the 200px cap truncates.
+.md3-pane-header__crumb-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// `<span class="ms" style="font-size: 15px; color: primary">merge_type</span>`.
+.md3-pane-header__crumb-branch-icon {
+  color: var(--md-sys-color-primary);
+  flex: none;
+}
+
+// `<span class="ms" style="font-size: 16px; opacity: 0.6">expand_more</span>`.
+.md3-pane-header__crumb-chevron {
+  flex: none;
+  opacity: 0.6;
+}
+
+// ---------------------------------------------------------------------------
+// Push affordance — `pushStyle`
+// ---------------------------------------------------------------------------
+
+.md3-pane-header__push {
+  align-items: center;
+  background: var(--md-sys-color-primary);
+  border: 0;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-primary);
+  cursor: pointer;
+  display: flex;
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  height: 30px;
+  padding: 0 14px;
+  transition: background-color 180ms cubic-bezier(0.2, 0, 0, 1);
+
+  &:hover {
+    background: color-mix(in srgb, var(--md-sys-color-primary) 92%, var(--md-sys-color-on-primary));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+// The `clean` branch of `pushStyle`.
+.md3-pane-header__push--clean {
+  background: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface-variant);
+
+  &:hover {
+    background: color-mix(in srgb, var(--md-sys-color-surface-container-high) 88%, var(--md-sys-color-on-surface));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Progress bar
+// ---------------------------------------------------------------------------
+
+.md3-pane-header__progress {
+  background: var(--md-sys-color-surface-container-highest);
+  border-radius: 999px;
+  flex: none;
+  height: 3px;
+  margin: 0 12px 6px 12px;
+  overflow: hidden;
+}
+
+// `progressBarStyle`. The width itself is set inline, because it is the one
+// genuinely dynamic value in this surface.
+.md3-pane-header__progress-fill {
+  background: var(--md-sys-color-primary);
+  border-radius: 999px;
+  height: 100%;
+  transition: width 85ms linear;
+}
+
+// ---------------------------------------------------------------------------
+// Reduced motion
+// ---------------------------------------------------------------------------
+//
+// The bar still advances and the controls still change state; they simply do
+// so instantly rather than easing.
+
+@media (prefers-reduced-motion: reduce) {
+  .md3-pane-header__crumb,
+  .md3-pane-header__push,
+  .md3-pane-header__progress-fill {
+    transition: none;
+  }
+}

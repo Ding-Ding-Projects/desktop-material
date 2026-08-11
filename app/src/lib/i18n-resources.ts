@@ -3834,6 +3834,283 @@ export type TranslationKey =
   | 'repositorySigning.grade.cannotVerify'
   | 'repositorySigning.grade.unsigned'
   | 'repositorySigning.grade.unknown'
+  | 'md3.search.clear'
+  | 'md3.search.regexMode'
+  | 'md3.search.regexBuilder'
+  | 'md3.search.hits'
+  | 'md3.chip.filterBy'
+  | 'md3.emptyState.resetFilters'
+  | 'md3.regexBuilder.title'
+  | 'md3.regexBuilder.close'
+  | 'md3.regexBuilder.patternLabel'
+  | 'md3.regexBuilder.patternPlaceholder'
+  | 'md3.regexBuilder.flagsLabel'
+  | 'md3.regexBuilder.flagToggle'
+  | 'md3.regexBuilder.flag.i'
+  | 'md3.regexBuilder.flag.g'
+  | 'md3.regexBuilder.flag.m'
+  | 'md3.regexBuilder.flag.s'
+  | 'md3.regexBuilder.flag.u'
+  | 'md3.regexBuilder.flag.y'
+  | 'md3.regexBuilder.group.anchors'
+  | 'md3.regexBuilder.group.classes'
+  | 'md3.regexBuilder.group.quantifiers'
+  | 'md3.regexBuilder.group.groups'
+  | 'md3.regexBuilder.token.insert'
+  | 'md3.regexBuilder.token.start'
+  | 'md3.regexBuilder.token.end'
+  | 'md3.regexBuilder.token.wordBoundary'
+  | 'md3.regexBuilder.token.word'
+  | 'md3.regexBuilder.token.digit'
+  | 'md3.regexBuilder.token.space'
+  | 'md3.regexBuilder.token.charRange'
+  | 'md3.regexBuilder.token.notX'
+  | 'md3.regexBuilder.token.any'
+  | 'md3.regexBuilder.token.oneOrMore'
+  | 'md3.regexBuilder.token.zeroOrMore'
+  | 'md3.regexBuilder.token.optional'
+  | 'md3.regexBuilder.token.repeatRange'
+  | 'md3.regexBuilder.token.capture'
+  | 'md3.regexBuilder.token.nonCapture'
+  | 'md3.regexBuilder.token.either'
+  | 'md3.regexBuilder.token.lookahead'
+  | 'md3.regexBuilder.token.lookbehind'
+  | 'md3.regexBuilder.tester'
+  | 'md3.regexBuilder.testLabel'
+  | 'md3.regexBuilder.result.idle'
+  | 'md3.regexBuilder.result.match'
+  | 'md3.regexBuilder.result.matchWithGroups'
+  | 'md3.regexBuilder.result.noMatch'
+  | 'md3.regexBuilder.result.invalid'
+  | 'md3.regexBuilder.apply'
+  | 'md3.regexBuilder.applyName'
+  | 'md3.regexBuilder.clear'
+  | 'md3.regexBuilder.clearName'
+  | 'md3.regexBuilder.guide'
+  | 'md3.regexBuilder.guideName'
+  | 'md3.regexBuilder.guideHeading'
+  | 'md3.menu.filterPlaceholder'
+  | 'md3.menu.hint.active'
+  | 'md3.menu.hint.on'
+  | 'md3.menu.hint.off'
+  | 'md3.menu.hint.ask'
+  | 'md3.menu.hint.current'
+  | 'md3.menu.hint.anchor'
+  | 'md3.menu.hint.class'
+  | 'md3.menu.hint.quantifier'
+  | 'md3.menu.hint.group'
+  | 'md3.menu.hint.alternation'
+  | 'md3.menu.hint.flags'
+  | 'md3.menu.theme.dark'
+  | 'md3.menu.theme.light'
+  | 'md3.menuOverlay.close'
+  | 'md3.menuOverlay.itemsLabel'
+  | 'md3.menuOverlay.noMatches'
+  | 'md3.menuOverlay.clearFilter'
+  | 'md3.menuOverlay.invalidPattern'
+  | 'md3.menu.palette.title'
+  | 'md3.menu.palette.placeholder'
+  | 'md3.menu.palette.commitPushAll'
+  | 'md3.menu.palette.fetchOrigin'
+  | 'md3.menu.palette.pullAll'
+  | 'md3.menu.palette.mergeAll'
+  | 'md3.menu.palette.openRegexBuilder'
+  | 'md3.menu.palette.goRepositories'
+  | 'md3.menu.palette.goChanges'
+  | 'md3.menu.palette.goHistory'
+  | 'md3.menu.palette.goActions'
+  | 'md3.menu.palette.openSettings'
+  | 'md3.menu.settings.title'
+  | 'md3.menu.settings.placeholder'
+  | 'md3.menu.settings.appearance'
+  | 'md3.menu.settings.absoluteDates'
+  | 'md3.menu.settings.automation'
+  | 'md3.menu.settings.accounts'
+  | 'md3.menu.settings.copilot'
+  | 'md3.menu.settings.undoHistory'
+  | 'md3.menu.settings.git'
+  | 'md3.menu.settings.integrations'
+  | 'md3.menu.settings.notifications'
+  | 'md3.menu.account.title'
+  | 'md3.menu.account.entry'
+  | 'md3.menu.account.addGitHub'
+  | 'md3.menu.account.addGitLab'
+  | 'md3.menu.repoMenu.title'
+  | 'md3.menu.repoMenu.placeholder'
+  | 'md3.menu.repoMenu.entry'
+  | 'md3.menu.repoMenu.browseAll'
+  | 'md3.menu.branchMenu.title'
+  | 'md3.menu.branchMenu.placeholder'
+  | 'md3.menu.branchMenu.browseAll'
+  | 'md3.menu.paneMenu.title'
+  | 'md3.menu.paneMenu.commitPushCopilot'
+  | 'md3.menu.paneMenu.pullOrigin'
+  | 'md3.menu.paneMenu.forcePush'
+  | 'md3.menu.paneMenu.buildAndRun'
+  | 'md3.menu.paneMenu.mergeAll'
+  | 'md3.menu.paneMenu.openInTerminal'
+  | 'md3.menu.paneMenu.repositorySettings'
+  | 'md3.menu.listMenu.title'
+  | 'md3.menu.listMenu.newestFirst'
+  | 'md3.menu.listMenu.oldestFirst'
+  | 'md3.menu.listMenu.groupByDay'
+  | 'md3.menu.listMenu.showGraph'
+  | 'md3.menu.listMenu.selectMultiple'
+  | 'md3.menu.diffOptions.title'
+  | 'md3.menu.diffOptions.unified'
+  | 'md3.menu.diffOptions.split'
+  | 'md3.menu.diffOptions.wrap'
+  | 'md3.menu.diffOptions.hideWhitespace'
+  | 'md3.menu.diffOptions.moreContext'
+  | 'md3.menu.fileMenu.title'
+  | 'md3.menu.fileMenu.openInEditor'
+  | 'md3.menu.fileMenu.copyPath'
+  | 'md3.menu.fileMenu.fileHistory'
+  | 'md3.menu.fileMenu.blame'
+  | 'md3.menu.fileMenu.discardChanges'
+  | 'md3.menu.fileMenu.ignoreFile'
+  | 'md3.menu.rowMenu.title'
+  | 'md3.menu.rowMenu.revert'
+  | 'md3.menu.rowMenu.cherryPick'
+  | 'md3.menu.rowMenu.createTag'
+  | 'md3.menu.rowMenu.reset'
+  | 'md3.menu.rowMenu.copySha'
+  | 'md3.menu.rowMenu.viewOnGitHub'
+  | 'md3.menu.changesMenu.title'
+  | 'md3.menu.changesMenu.includeAll'
+  | 'md3.menu.changesMenu.excludeAll'
+  | 'md3.menu.changesMenu.stashAll'
+  | 'md3.menu.changesMenu.discardAll'
+  | 'md3.menu.changesMenu.groupByFolder'
+  | 'md3.menu.changeRowMenu.title'
+  | 'md3.menu.changeRowMenu.discardChanges'
+  | 'md3.menu.changeRowMenu.ignoreFile'
+  | 'md3.menu.changeRowMenu.ignoreType'
+  | 'md3.menu.changeRowMenu.reveal'
+  | 'md3.menu.changeRowMenu.openInEditor'
+  | 'md3.menu.branchRowMenu.title'
+  | 'md3.menu.branchRowMenu.mergeInto'
+  | 'md3.menu.branchRowMenu.rebaseOnto'
+  | 'md3.menu.branchRowMenu.openPullRequest'
+  | 'md3.menu.branchRowMenu.rename'
+  | 'md3.menu.branchRowMenu.delete'
+  | 'md3.menu.runMenu.title'
+  | 'md3.menu.runMenu.rerunAll'
+  | 'md3.menu.runMenu.rerunFailed'
+  | 'md3.menu.runMenu.cancel'
+  | 'md3.menu.runMenu.dispatch'
+  | 'md3.menu.runMenu.rawLogs'
+  | 'md3.menu.repoRowMenu.title'
+  | 'md3.menu.repoRowMenu.fetch'
+  | 'md3.menu.repoRowMenu.pull'
+  | 'md3.menu.repoRowMenu.changeAlias'
+  | 'md3.menu.repoRowMenu.moveToGroup'
+  | 'md3.menu.repoRowMenu.reveal'
+  | 'md3.menu.repoRowMenu.remove'
+  | 'md3.menu.compose.title'
+  | 'md3.menu.compose.openComposer'
+  | 'md3.menu.compose.copilotMessage'
+  | 'md3.menu.compose.addCoAuthors'
+  | 'md3.menu.compose.commitAndPush'
+  | 'md3.menu.agentAccess.title'
+  | 'md3.menu.agentAccess.readAccess'
+  | 'md3.menu.agentAccess.commits'
+  | 'md3.menu.agentAccess.push'
+  | 'md3.menu.agentAccess.sessionLog'
+  | 'md3.menu.inboxRowMenu.title'
+  | 'md3.menu.inboxRowMenu.markRead'
+  | 'md3.menu.inboxRowMenu.markUnread'
+  | 'md3.menu.inboxRowMenu.openInBrowser'
+  | 'md3.menu.inboxRowMenu.mute'
+  | 'md3.menu.inboxRowMenu.delete'
+  | 'md3.menu.agentRowMenu.title'
+  | 'md3.menu.agentRowMenu.resume'
+  | 'md3.menu.agentRowMenu.pause'
+  | 'md3.menu.agentRowMenu.openLog'
+  | 'md3.menu.agentRowMenu.duplicate'
+  | 'md3.menu.agentRowMenu.access'
+  | 'md3.menu.agentRowMenu.delete'
+  | 'md3.menu.terminalMenu.title'
+  | 'md3.menu.terminalMenu.copy'
+  | 'md3.menu.terminalMenu.paste'
+  | 'md3.menu.terminalMenu.clear'
+  | 'md3.menu.terminalMenu.split'
+  | 'md3.menu.terminalMenu.openSystem'
+  | 'md3.menu.terminalMenu.newShell'
+  | 'md3.menu.drawerMenu.title'
+  | 'md3.menu.drawerMenu.collapse'
+  | 'md3.menu.drawerMenu.expand'
+  | 'md3.menu.drawerMenu.goRepositories'
+  | 'md3.menu.drawerMenu.goChanges'
+  | 'md3.menu.drawerMenu.goHistory'
+  | 'md3.menu.drawerMenu.goBranches'
+  | 'md3.menu.drawerMenu.goActions'
+  | 'md3.menu.drawerMenu.goInbox'
+  | 'md3.menu.drawerMenu.goTerminal'
+  | 'md3.menu.drawerMenu.goAgents'
+  | 'md3.menu.searchMenu.title'
+  | 'md3.menu.searchMenu.openBuilder'
+  | 'md3.menu.searchMenu.toggleRegex'
+  | 'md3.menu.searchMenu.clearField'
+  | 'md3.menu.searchMenu.howRegexWorks'
+  | 'md3.menu.guide.title'
+  | 'md3.menu.guide.caret'
+  | 'md3.menu.guide.dollar'
+  | 'md3.menu.guide.classes'
+  | 'md3.menu.guide.quantifiers'
+  | 'md3.menu.guide.groups'
+  | 'md3.menu.guide.alternation'
+  | 'md3.menu.guide.flags'
+  | 'md3.appHeader.label'
+  | 'md3.appHeader.menu'
+  | 'md3.appHeader.commitAndPush'
+  | 'md3.appHeader.commitAndPushHint'
+  | 'md3.appHeader.searchPlaceholder'
+  | 'md3.appHeader.searchField'
+  | 'md3.appHeader.commandPalette'
+  | 'md3.appHeader.notifications'
+  | 'md3.appHeader.notificationsUnread'
+  | 'md3.appHeader.unreadBadge'
+  | 'md3.appHeader.theme'
+  | 'md3.appHeader.settings'
+  | 'md3.appHeader.account'
+  | 'md3.appHeader.accountFor'
+  | 'md3.drawer.label'
+  | 'md3.drawer.destinations'
+  | 'md3.drawer.commit'
+  | 'md3.drawer.destinationWithCount'
+  | 'md3.drawer.repository'
+  | 'md3.drawer.destination.changes'
+  | 'md3.drawer.destination.history'
+  | 'md3.drawer.destination.branches'
+  | 'md3.drawer.destination.actions'
+  | 'md3.drawer.destination.inbox'
+  | 'md3.drawer.destination.terminal'
+  | 'md3.drawer.destination.agents'
+  | 'md3.drawer.destination.repositories'
+  | 'md3.compose.title'
+  | 'md3.compose.close'
+  | 'md3.compose.context'
+  | 'md3.compose.summaryPlaceholder'
+  | 'md3.compose.copilot'
+  | 'md3.compose.copilotAccessibleName'
+  | 'md3.compose.descriptionPlaceholder'
+  | 'md3.compose.addCoAuthors'
+  | 'md3.compose.hintCharacters'
+  | 'md3.compose.hintRequired'
+  | 'md3.compose.commitOnly'
+  | 'md3.compose.commitAndPush'
+  | 'md3.compose.summaryStillRequired'
+  | 'md3.toast.undo'
+  | 'md3.toast.dismiss'
+  | 'md3.toast.region'
+  | 'md3.paneHeader.fetch'
+  | 'md3.paneHeader.moreActions'
+  | 'md3.paneHeader.push'
+  | 'md3.paneHeader.upToDate'
+  | 'md3.paneHeader.repository'
+  | 'md3.paneHeader.branch'
+  | 'md3.paneHeader.progress'
 
 /** Complete base catalog. Every missing locale entry falls back to this. */
 export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
@@ -8736,6 +9013,290 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositorySigning.grade.cannotVerify': 'Signature could not be checked',
   'repositorySigning.grade.unsigned': 'Unsigned',
   'repositorySigning.grade.unknown': 'Unknown signature state',
+  'md3.search.clear': 'Clear {field}',
+  'md3.search.regexMode': 'Regex mode for {field}',
+  'md3.search.regexBuilder': 'Regex builder for {field}',
+  'md3.search.hits': '{count} hits',
+  'md3.chip.filterBy': 'Filter by {label}',
+  'md3.emptyState.resetFilters': 'Reset filters',
+  'md3.regexBuilder.title': 'Regex builder — {target}',
+  'md3.regexBuilder.close': 'Close the regex builder',
+  'md3.regexBuilder.patternLabel': 'Regular expression pattern',
+  'md3.regexBuilder.patternPlaceholder': 'pattern',
+  'md3.regexBuilder.flagsLabel': 'Regular expression flags',
+  'md3.regexBuilder.flagToggle': 'Flag {flag} — {name}',
+  'md3.regexBuilder.flag.i': 'case-insensitive',
+  'md3.regexBuilder.flag.g': 'global',
+  'md3.regexBuilder.flag.m': 'multiline',
+  'md3.regexBuilder.flag.s': 'dotall',
+  'md3.regexBuilder.flag.u': 'unicode',
+  'md3.regexBuilder.flag.y': 'sticky',
+  'md3.regexBuilder.group.anchors': 'Anchors',
+  'md3.regexBuilder.group.classes': 'Classes',
+  'md3.regexBuilder.group.quantifiers': 'Quantifiers',
+  'md3.regexBuilder.group.groups': 'Groups and logic',
+  'md3.regexBuilder.token.insert': 'Insert {token} — {label}',
+  'md3.regexBuilder.token.start': 'start',
+  'md3.regexBuilder.token.end': 'end',
+  'md3.regexBuilder.token.wordBoundary': 'word boundary',
+  'md3.regexBuilder.token.word': 'word',
+  'md3.regexBuilder.token.digit': 'digit',
+  'md3.regexBuilder.token.space': 'space',
+  'md3.regexBuilder.token.charRange': 'range',
+  'md3.regexBuilder.token.notX': 'not x',
+  'md3.regexBuilder.token.any': 'any',
+  'md3.regexBuilder.token.oneOrMore': 'one or more',
+  'md3.regexBuilder.token.zeroOrMore': 'zero or more',
+  'md3.regexBuilder.token.optional': 'optional',
+  'md3.regexBuilder.token.repeatRange': 'range',
+  'md3.regexBuilder.token.capture': 'capture',
+  'md3.regexBuilder.token.nonCapture': 'non-capture',
+  'md3.regexBuilder.token.either': 'either',
+  'md3.regexBuilder.token.lookahead': 'lookahead',
+  'md3.regexBuilder.token.lookbehind': 'lookbehind',
+  'md3.regexBuilder.tester': 'Live tester',
+  'md3.regexBuilder.testLabel': 'Test string',
+  'md3.regexBuilder.result.idle': 'Enter a pattern to test.',
+  'md3.regexBuilder.result.match': 'Match: "{text}"',
+  'md3.regexBuilder.result.matchWithGroups':
+    'Match: "{text}" · groups: {groups}',
+  'md3.regexBuilder.result.noMatch': 'No match in the test string.',
+  'md3.regexBuilder.result.invalid': 'Invalid pattern: {message}',
+  'md3.regexBuilder.apply': 'Apply to search',
+  'md3.regexBuilder.applyName': 'Apply to search {target}',
+  'md3.regexBuilder.clear': 'Clear',
+  'md3.regexBuilder.clearName': 'Clear the pattern',
+  'md3.regexBuilder.guide': 'Guide',
+  'md3.regexBuilder.guideName': 'Guide to how regex works',
+  'md3.regexBuilder.guideHeading': 'How regex works',
+  'md3.menu.filterPlaceholder': 'Search these actions',
+  'md3.menu.hint.active': 'Active',
+  'md3.menu.hint.on': 'On',
+  'md3.menu.hint.off': 'Off',
+  'md3.menu.hint.ask': 'Ask',
+  'md3.menu.hint.current': 'Current',
+  'md3.menu.hint.anchor': 'anchor',
+  'md3.menu.hint.class': 'class',
+  'md3.menu.hint.quantifier': 'quantifier',
+  'md3.menu.hint.group': 'group',
+  'md3.menu.hint.alternation': 'alternation',
+  'md3.menu.hint.flags': 'flags',
+  'md3.menu.theme.dark': 'dark',
+  'md3.menu.theme.light': 'light',
+  'md3.menuOverlay.close': 'Close',
+  'md3.menuOverlay.itemsLabel': '{title} actions',
+  'md3.menuOverlay.noMatches': 'Nothing in {title} matches what you typed.',
+  'md3.menuOverlay.clearFilter': 'Clear the filter',
+  'md3.menuOverlay.invalidPattern':
+    'That is not a valid regular expression yet, so nothing is being filtered.',
+  'md3.menu.palette.title': 'Command palette',
+  'md3.menu.palette.placeholder': 'Type a command',
+  'md3.menu.palette.commitPushAll': 'Commit and push all changes',
+  'md3.menu.palette.fetchOrigin': 'Fetch origin',
+  'md3.menu.palette.pullAll': 'Pull all repositories',
+  'md3.menu.palette.mergeAll': 'Merge all branches into {branch}',
+  'md3.menu.palette.openRegexBuilder': 'Open regex builder',
+  'md3.menu.palette.goRepositories': 'Go to Repositories',
+  'md3.menu.palette.goChanges': 'Go to Changes',
+  'md3.menu.palette.goHistory': 'Go to History',
+  'md3.menu.palette.goActions': 'Go to GitHub Actions',
+  'md3.menu.palette.openSettings': 'Open Settings',
+  'md3.menu.settings.title': 'Settings',
+  'md3.menu.settings.placeholder': 'Search settings',
+  'md3.menu.settings.appearance': 'Appearance — theme, accent, UI scaling',
+  'md3.menu.settings.absoluteDates': 'Absolute commit dates',
+  'md3.menu.settings.automation': 'Automation — auto commit & push, auto pull',
+  'md3.menu.settings.accounts': 'Accounts — GitHub, GitLab self-hosted',
+  'md3.menu.settings.copilot': 'Copilot preferences',
+  'md3.menu.settings.undoHistory': 'Undo history manager',
+  'md3.menu.settings.git': 'Git — name, email, default branch',
+  'md3.menu.settings.integrations': 'Integrations — editor, shell, terminal',
+  'md3.menu.settings.notifications': 'Notifications and sounds',
+  'md3.menu.account.title': 'Accounts',
+  'md3.menu.account.entry': '{name} — {host}',
+  'md3.menu.account.addGitHub': 'Add GitHub account',
+  'md3.menu.account.addGitLab': 'Add GitLab self-hosted (endpoint + token)',
+  'md3.menu.repoMenu.title': 'Switch repository',
+  'md3.menu.repoMenu.placeholder': 'Filter repositories',
+  'md3.menu.repoMenu.entry': '{name} — {org}',
+  'md3.menu.repoMenu.browseAll': 'Browse all repositories',
+  'md3.menu.branchMenu.title': 'Switch branch',
+  'md3.menu.branchMenu.placeholder': 'Filter branches',
+  'md3.menu.branchMenu.browseAll': 'Browse all branches',
+  'md3.menu.paneMenu.title': 'Repository actions',
+  'md3.menu.paneMenu.commitPushCopilot': 'Commit & push with Copilot message',
+  'md3.menu.paneMenu.pullOrigin': 'Pull origin',
+  'md3.menu.paneMenu.forcePush': 'Force push',
+  'md3.menu.paneMenu.buildAndRun': 'Build & run',
+  'md3.menu.paneMenu.mergeAll': 'Merge all branches',
+  'md3.menu.paneMenu.openInTerminal': 'Open in terminal',
+  'md3.menu.paneMenu.repositorySettings': 'Repository settings',
+  'md3.menu.listMenu.title': 'Commit list',
+  'md3.menu.listMenu.newestFirst': 'Newest first',
+  'md3.menu.listMenu.oldestFirst': 'Oldest first',
+  'md3.menu.listMenu.groupByDay': 'Group by day',
+  'md3.menu.listMenu.showGraph': 'Show commit graph',
+  'md3.menu.listMenu.selectMultiple': 'Select multiple commits',
+  'md3.menu.diffOptions.title': 'Diff options',
+  'md3.menu.diffOptions.unified': 'Unified diff',
+  'md3.menu.diffOptions.split': 'Split diff',
+  'md3.menu.diffOptions.wrap': 'Wrap long lines',
+  'md3.menu.diffOptions.hideWhitespace': 'Hide whitespace changes',
+  'md3.menu.diffOptions.moreContext': 'More context lines',
+  'md3.menu.fileMenu.title': 'File actions',
+  'md3.menu.fileMenu.openInEditor': 'Open in external editor',
+  'md3.menu.fileMenu.copyPath': 'Copy file path',
+  'md3.menu.fileMenu.fileHistory': 'File history',
+  'md3.menu.fileMenu.blame': 'Blame',
+  'md3.menu.fileMenu.discardChanges': 'Discard changes',
+  'md3.menu.fileMenu.ignoreFile': 'Ignore file',
+  'md3.menu.rowMenu.title': '{sha} — commit actions',
+  'md3.menu.rowMenu.revert': 'Revert this commit',
+  'md3.menu.rowMenu.cherryPick': 'Cherry-pick to branch…',
+  'md3.menu.rowMenu.createTag': 'Create tag here…',
+  'md3.menu.rowMenu.reset': 'Reset to this commit…',
+  'md3.menu.rowMenu.copySha': 'Copy SHA',
+  'md3.menu.rowMenu.viewOnGitHub': 'View on GitHub',
+  'md3.menu.changesMenu.title': 'Changed files',
+  'md3.menu.changesMenu.includeAll': 'Include all files',
+  'md3.menu.changesMenu.excludeAll': 'Exclude all files',
+  'md3.menu.changesMenu.stashAll': 'Stash all changes',
+  'md3.menu.changesMenu.discardAll': 'Discard all changes…',
+  'md3.menu.changesMenu.groupByFolder': 'Group by folder',
+  'md3.menu.changeRowMenu.title': 'File actions',
+  'md3.menu.changeRowMenu.discardChanges': 'Discard changes',
+  'md3.menu.changeRowMenu.ignoreFile': 'Ignore file',
+  'md3.menu.changeRowMenu.ignoreType': 'Ignore all files of this type',
+  'md3.menu.changeRowMenu.reveal': 'Reveal in file manager',
+  'md3.menu.changeRowMenu.openInEditor': 'Open in external editor',
+  'md3.menu.branchRowMenu.title': 'Branch actions',
+  'md3.menu.branchRowMenu.mergeInto': 'Merge into {branch}',
+  'md3.menu.branchRowMenu.rebaseOnto': 'Rebase onto {branch}',
+  'md3.menu.branchRowMenu.openPullRequest': 'Open pull request',
+  'md3.menu.branchRowMenu.rename': 'Rename branch…',
+  'md3.menu.branchRowMenu.delete': 'Delete branch…',
+  'md3.menu.runMenu.title': 'Workflow run',
+  'md3.menu.runMenu.rerunAll': 'Re-run all jobs',
+  'md3.menu.runMenu.rerunFailed': 'Re-run failed jobs',
+  'md3.menu.runMenu.cancel': 'Cancel run',
+  'md3.menu.runMenu.dispatch': 'Run workflow (workflow_dispatch)…',
+  'md3.menu.runMenu.rawLogs': 'View raw logs',
+  'md3.menu.repoRowMenu.title': 'Repository actions',
+  'md3.menu.repoRowMenu.fetch': 'Fetch',
+  'md3.menu.repoRowMenu.pull': 'Pull',
+  'md3.menu.repoRowMenu.changeAlias': 'Change alias…',
+  'md3.menu.repoRowMenu.moveToGroup': 'Move to group…',
+  'md3.menu.repoRowMenu.reveal': 'Reveal in file manager',
+  'md3.menu.repoRowMenu.remove': 'Remove from list…',
+  'md3.menu.compose.title': 'New commit',
+  'md3.menu.compose.openComposer': 'Open the commit composer',
+  'md3.menu.compose.copilotMessage': 'Let Copilot write the message',
+  'md3.menu.compose.addCoAuthors': 'Add co-authors',
+  'md3.menu.compose.commitAndPush': 'Commit and push',
+  'md3.menu.agentAccess.title': 'Agent access',
+  'md3.menu.agentAccess.readAccess': 'Allow read access to working tree',
+  'md3.menu.agentAccess.commits': 'Allow commits',
+  'md3.menu.agentAccess.push': 'Allow push',
+  'md3.menu.agentAccess.sessionLog': 'Session log',
+  'md3.menu.inboxRowMenu.title': 'Notification',
+  'md3.menu.inboxRowMenu.markRead': 'Mark as read',
+  'md3.menu.inboxRowMenu.markUnread': 'Mark as unread',
+  'md3.menu.inboxRowMenu.openInBrowser': 'Open in browser',
+  'md3.menu.inboxRowMenu.mute': 'Mute this thread',
+  'md3.menu.inboxRowMenu.delete': 'Delete notification',
+  'md3.menu.agentRowMenu.title': 'Agent session',
+  'md3.menu.agentRowMenu.resume': 'Resume session',
+  'md3.menu.agentRowMenu.pause': 'Pause session',
+  'md3.menu.agentRowMenu.openLog': 'Open session log',
+  'md3.menu.agentRowMenu.duplicate': 'Duplicate session',
+  'md3.menu.agentRowMenu.access': 'Agent access…',
+  'md3.menu.agentRowMenu.delete': 'Delete session',
+  'md3.menu.terminalMenu.title': 'Terminal',
+  'md3.menu.terminalMenu.copy': 'Copy selection',
+  'md3.menu.terminalMenu.paste': 'Paste',
+  'md3.menu.terminalMenu.clear': 'Clear output',
+  'md3.menu.terminalMenu.split': 'Split shell',
+  'md3.menu.terminalMenu.openSystem': 'Open in system terminal',
+  'md3.menu.terminalMenu.newShell': 'New shell session',
+  'md3.menu.drawerMenu.title': 'Navigation',
+  'md3.menu.drawerMenu.collapse': 'Collapse drawer',
+  'md3.menu.drawerMenu.expand': 'Expand drawer',
+  'md3.menu.drawerMenu.goRepositories': 'Go to Repositories',
+  'md3.menu.drawerMenu.goChanges': 'Go to Changes',
+  'md3.menu.drawerMenu.goHistory': 'Go to History',
+  'md3.menu.drawerMenu.goBranches': 'Go to Branches',
+  'md3.menu.drawerMenu.goActions': 'Go to Actions',
+  'md3.menu.drawerMenu.goInbox': 'Go to Inbox',
+  'md3.menu.drawerMenu.goTerminal': 'Go to Terminal',
+  'md3.menu.drawerMenu.goAgents': 'Go to Agents',
+  'md3.menu.searchMenu.title': 'Search field',
+  'md3.menu.searchMenu.openBuilder': 'Open regex builder',
+  'md3.menu.searchMenu.toggleRegex': 'Toggle regex mode',
+  'md3.menu.searchMenu.clearField': 'Clear this field',
+  'md3.menu.searchMenu.howRegexWorks': 'How regex works',
+  'md3.menu.guide.title': 'How regex works',
+  'md3.menu.guide.caret': '^ anchors the match to the start of the line',
+  'md3.menu.guide.dollar': '$ anchors the match to the end of the line',
+  'md3.menu.guide.classes': '\\d matches any digit, \\w any word character',
+  'md3.menu.guide.quantifiers':
+    '+ means one or more, * zero or more, ? optional',
+  'md3.menu.guide.groups':
+    '(…) captures a group, (?:…) groups without capturing',
+  'md3.menu.guide.alternation': 'a|b matches either side of the alternation',
+  'md3.menu.guide.flags':
+    'Flags: i g m s u y — case, global, multiline, dotall',
+  'md3.appHeader.label': 'Application header',
+  'md3.appHeader.menu': 'Menu',
+  'md3.appHeader.commitAndPush': 'Commit & push',
+  'md3.appHeader.commitAndPushHint': 'Commit and push',
+  'md3.appHeader.searchPlaceholder':
+    'Search commits, files, branches, repositories',
+  'md3.appHeader.searchField': 'the global search',
+  'md3.appHeader.commandPalette': 'Command palette ({shortcut})',
+  'md3.appHeader.notifications': 'Notification centre',
+  'md3.appHeader.notificationsUnread': 'Notification centre, {count} unread',
+  'md3.appHeader.unreadBadge': '{count} unread notifications',
+  'md3.appHeader.theme': 'Light / dark',
+  'md3.appHeader.settings': 'Settings',
+  'md3.appHeader.account': 'Account switcher',
+  'md3.appHeader.accountFor': 'Account switcher for {name}',
+  'md3.paneHeader.fetch': 'Fetch origin',
+  'md3.paneHeader.moreActions': 'More actions',
+  'md3.paneHeader.push': 'Push · {count}',
+  'md3.paneHeader.upToDate': 'Up to date',
+  'md3.paneHeader.repository': 'Repository {name}',
+  'md3.paneHeader.branch': 'Branch {name}',
+  'md3.paneHeader.progress': '{operation}, {percent}% complete',
+  'md3.drawer.label': 'Main navigation',
+  'md3.drawer.destinations': 'Destinations',
+  'md3.drawer.commit': 'Commit',
+  'md3.drawer.destinationWithCount': '{label}, {count}',
+  'md3.drawer.repository': '{name}, switch repository',
+  'md3.drawer.destination.changes': 'Changes',
+  'md3.drawer.destination.history': 'History',
+  'md3.drawer.destination.branches': 'Branches',
+  'md3.drawer.destination.actions': 'Actions',
+  'md3.drawer.destination.inbox': 'Inbox',
+  'md3.drawer.destination.terminal': 'Terminal',
+  'md3.drawer.destination.agents': 'Agents',
+  'md3.drawer.destination.repositories': 'Repositories',
+  'md3.compose.title': 'Compose commit message',
+  'md3.compose.close': 'Close the commit composer',
+  'md3.compose.context':
+    '{included} of {total} files included · {stat} · {branch}',
+  'md3.compose.summaryPlaceholder': 'Summary (required)',
+  'md3.compose.copilot': 'Copilot',
+  'md3.compose.copilotAccessibleName': 'Copilot — draft the commit message',
+  'md3.compose.descriptionPlaceholder': 'Description (optional)',
+  'md3.compose.addCoAuthors': 'Add co-authors',
+  'md3.compose.hintCharacters': '{count}/{limit} characters',
+  'md3.compose.hintRequired': 'A summary is required before committing.',
+  'md3.compose.commitOnly': 'Commit only',
+  'md3.compose.commitAndPush': 'Commit & push',
+  'md3.compose.summaryStillRequired': 'A summary is still required',
+  'md3.toast.undo': 'Undo',
+  'md3.toast.dismiss': 'Dismiss this notification',
+  'md3.toast.region': 'Notifications',
 }
 
 /** Hong Kong Cantonese catalog. Missing entries deliberately use English. */
@@ -13293,4 +13854,283 @@ export const cantoneseTranslations: Readonly<
   'repositorySigning.grade.cannotVerify': '未能檢查簽署',
   'repositorySigning.grade.unsigned': '未簽署',
   'repositorySigning.grade.unknown': '簽署狀態未知',
+  'md3.search.clear': '清走「{field}」入面打咗嘅字',
+  'md3.search.regexMode': '「{field}」嘅 regex 模式',
+  'md3.search.regexBuilder': '「{field}」嘅 regex 建立器',
+  'md3.search.hits': '{count} 個命中',
+  'md3.chip.filterBy': '用「{label}」篩選',
+  'md3.emptyState.resetFilters': '重設篩選',
+  'md3.regexBuilder.title': 'Regex 建立器 — {target}',
+  'md3.regexBuilder.close': '閂咗 regex 建立器',
+  'md3.regexBuilder.patternLabel': '正則表達式 pattern',
+  'md3.regexBuilder.patternPlaceholder': 'pattern',
+  'md3.regexBuilder.flagsLabel': '正則表達式旗標',
+  'md3.regexBuilder.flagToggle': '旗標 {flag} — {name}',
+  'md3.regexBuilder.flag.i': '唔理大細楷',
+  'md3.regexBuilder.flag.g': '全域',
+  'md3.regexBuilder.flag.m': '多行',
+  'md3.regexBuilder.flag.s': '點號包埋換行',
+  'md3.regexBuilder.flag.u': 'Unicode',
+  'md3.regexBuilder.flag.y': '黐住開頭',
+  'md3.regexBuilder.group.anchors': '錨點',
+  'md3.regexBuilder.group.classes': '字元類',
+  'md3.regexBuilder.group.quantifiers': '數量詞',
+  'md3.regexBuilder.group.groups': '分組同邏輯',
+  'md3.regexBuilder.token.insert': '插入 {token} — {label}',
+  'md3.regexBuilder.token.start': '開頭',
+  'md3.regexBuilder.token.end': '結尾',
+  'md3.regexBuilder.token.wordBoundary': '字詞邊界',
+  'md3.regexBuilder.token.word': '字詞字元',
+  'md3.regexBuilder.token.digit': '數字',
+  'md3.regexBuilder.token.space': '空白',
+  'md3.regexBuilder.token.charRange': '範圍',
+  'md3.regexBuilder.token.notX': '唔係 x',
+  'md3.regexBuilder.token.any': '任何字元',
+  'md3.regexBuilder.token.oneOrMore': '一個或以上',
+  'md3.regexBuilder.token.zeroOrMore': '零個或以上',
+  'md3.regexBuilder.token.optional': '可有可無',
+  'md3.regexBuilder.token.repeatRange': '範圍',
+  'md3.regexBuilder.token.capture': '捕捉',
+  'md3.regexBuilder.token.nonCapture': '唔捕捉',
+  'md3.regexBuilder.token.either': '二揀一',
+  'md3.regexBuilder.token.lookahead': '向前望',
+  'md3.regexBuilder.token.lookbehind': '向後望',
+  'md3.regexBuilder.tester': '即時測試',
+  'md3.regexBuilder.testLabel': '測試字串',
+  'md3.regexBuilder.result.idle': '打個 pattern 嚟試下先。',
+  'md3.regexBuilder.result.match': '命中：「{text}」',
+  'md3.regexBuilder.result.matchWithGroups': '命中：「{text}」· 分組：{groups}',
+  'md3.regexBuilder.result.noMatch': '測試字串入面搵唔到。',
+  'md3.regexBuilder.result.invalid': 'Pattern 有問題：{message}',
+  'md3.regexBuilder.apply': '套用去搜尋',
+  'md3.regexBuilder.applyName': '套用去搜尋 {target}',
+  'md3.regexBuilder.clear': '清走',
+  'md3.regexBuilder.clearName': '清走個 pattern',
+  'md3.regexBuilder.guide': '教學',
+  'md3.regexBuilder.guideName': '教學：regex 點運作',
+  'md3.regexBuilder.guideHeading': 'Regex 點運作',
+  'md3.menu.filterPlaceholder': '搵下呢度嘅動作',
+  'md3.menu.hint.active': '用緊',
+  'md3.menu.hint.on': '開',
+  'md3.menu.hint.off': '閂',
+  'md3.menu.hint.ask': '問過先',
+  'md3.menu.hint.current': '而家用緊',
+  'md3.menu.hint.anchor': '錨點',
+  'md3.menu.hint.class': '字元類',
+  'md3.menu.hint.quantifier': '數量詞',
+  'md3.menu.hint.group': '分組',
+  'md3.menu.hint.alternation': '交替',
+  'md3.menu.hint.flags': '旗標',
+  'md3.menu.theme.dark': '深色',
+  'md3.menu.theme.light': '淺色',
+  'md3.menuOverlay.close': '閂咗佢',
+  'md3.menuOverlay.itemsLabel': '{title} 嘅動作',
+  'md3.menuOverlay.noMatches': '{title} 入面冇嘢配到你打嘅字。',
+  'md3.menuOverlay.clearFilter': '清走個篩選',
+  'md3.menuOverlay.invalidPattern':
+    '呢個仲未係有效嘅正規表達式，所以乜都冇篩到。',
+  'md3.menu.palette.title': '指令面板',
+  'md3.menu.palette.placeholder': '打個指令',
+  'md3.menu.palette.commitPushAll': 'Commit 晒所有改動再 push',
+  'md3.menu.palette.fetchOrigin': 'Fetch origin',
+  'md3.menu.palette.pullAll': 'Pull 晒所有 repository',
+  'md3.menu.palette.mergeAll': '將所有 branch merge 入 {branch}',
+  'md3.menu.palette.openRegexBuilder': '開 regex 建立器',
+  'md3.menu.palette.goRepositories': '去 Repositories',
+  'md3.menu.palette.goChanges': '去 Changes',
+  'md3.menu.palette.goHistory': '去 History',
+  'md3.menu.palette.goActions': '去 GitHub Actions',
+  'md3.menu.palette.openSettings': '開設定',
+  'md3.menu.settings.title': '設定',
+  'md3.menu.settings.placeholder': '搵設定',
+  'md3.menu.settings.appearance': '外觀 — 主題、強調色、介面縮放',
+  'md3.menu.settings.absoluteDates': '絕對嘅 commit 日期',
+  'md3.menu.settings.automation': '自動化 — 自動 commit & push、自動 pull',
+  'md3.menu.settings.accounts': '帳戶 — GitHub、自架 GitLab',
+  'md3.menu.settings.copilot': 'Copilot 偏好設定',
+  'md3.menu.settings.undoHistory': '還原記錄管理員',
+  'md3.menu.settings.git': 'Git — 名、電郵、預設 branch',
+  'md3.menu.settings.integrations': '整合 — 編輯器、shell、終端機',
+  'md3.menu.settings.notifications': '通知同聲音',
+  'md3.menu.account.title': '帳戶',
+  'md3.menu.account.entry': '{name} — {host}',
+  'md3.menu.account.addGitHub': '加個 GitHub 帳戶',
+  'md3.menu.account.addGitLab': '加自架 GitLab（endpoint + token）',
+  'md3.menu.repoMenu.title': '轉 repository',
+  'md3.menu.repoMenu.placeholder': '篩 repository',
+  'md3.menu.repoMenu.entry': '{name} — {org}',
+  'md3.menu.repoMenu.browseAll': '睇晒所有 repository',
+  'md3.menu.branchMenu.title': '轉 branch',
+  'md3.menu.branchMenu.placeholder': '篩 branch',
+  'md3.menu.branchMenu.browseAll': '睇晒所有 branch',
+  'md3.menu.paneMenu.title': 'Repository 動作',
+  'md3.menu.paneMenu.commitPushCopilot': '用 Copilot 寫嘅訊息 commit & push',
+  'md3.menu.paneMenu.pullOrigin': 'Pull origin',
+  'md3.menu.paneMenu.forcePush': '強制 push',
+  'md3.menu.paneMenu.buildAndRun': 'Build 完就行',
+  'md3.menu.paneMenu.mergeAll': 'Merge 晒所有 branch',
+  'md3.menu.paneMenu.openInTerminal': '喺終端機度開',
+  'md3.menu.paneMenu.repositorySettings': 'Repository 設定',
+  'md3.menu.listMenu.title': 'Commit 清單',
+  'md3.menu.listMenu.newestFirst': '最新排頭先',
+  'md3.menu.listMenu.oldestFirst': '最舊排頭先',
+  'md3.menu.listMenu.groupByDay': '按日分組',
+  'md3.menu.listMenu.showGraph': '顯示 commit 圖',
+  'md3.menu.listMenu.selectMultiple': '揀多過一個 commit',
+  'md3.menu.diffOptions.title': 'Diff 選項',
+  'md3.menu.diffOptions.unified': '統一 diff',
+  'md3.menu.diffOptions.split': '分欄 diff',
+  'md3.menu.diffOptions.wrap': '長行自動換行',
+  'md3.menu.diffOptions.hideWhitespace': '收起空白改動',
+  'md3.menu.diffOptions.moreContext': '多啲 context 行',
+  'md3.menu.fileMenu.title': '檔案動作',
+  'md3.menu.fileMenu.openInEditor': '喺外部編輯器開',
+  'md3.menu.fileMenu.copyPath': '複製檔案路徑',
+  'md3.menu.fileMenu.fileHistory': '檔案歷史',
+  'md3.menu.fileMenu.blame': 'Blame',
+  'md3.menu.fileMenu.discardChanges': '掉咗啲改動',
+  'md3.menu.fileMenu.ignoreFile': '忽略呢個檔案',
+  'md3.menu.rowMenu.title': '{sha} — commit 動作',
+  'md3.menu.rowMenu.revert': 'Revert 呢個 commit',
+  'md3.menu.rowMenu.cherryPick': 'Cherry-pick 去第個 branch…',
+  'md3.menu.rowMenu.createTag': '喺呢度開個 tag…',
+  'md3.menu.rowMenu.reset': 'Reset 返去呢個 commit…',
+  'md3.menu.rowMenu.copySha': '複製 SHA',
+  'md3.menu.rowMenu.viewOnGitHub': '去 GitHub 睇',
+  'md3.menu.changesMenu.title': '改咗嘅檔案',
+  'md3.menu.changesMenu.includeAll': '全部檔案都要',
+  'md3.menu.changesMenu.excludeAll': '全部檔案都唔要',
+  'md3.menu.changesMenu.stashAll': 'Stash 晒所有改動',
+  'md3.menu.changesMenu.discardAll': '掉晒所有改動…',
+  'md3.menu.changesMenu.groupByFolder': '按資料夾分組',
+  'md3.menu.changeRowMenu.title': '檔案動作',
+  'md3.menu.changeRowMenu.discardChanges': '掉咗啲改動',
+  'md3.menu.changeRowMenu.ignoreFile': '忽略呢個檔案',
+  'md3.menu.changeRowMenu.ignoreType': '忽略晒呢類檔案',
+  'md3.menu.changeRowMenu.reveal': '喺檔案總管度顯示',
+  'md3.menu.changeRowMenu.openInEditor': '喺外部編輯器開',
+  'md3.menu.branchRowMenu.title': 'Branch 動作',
+  'md3.menu.branchRowMenu.mergeInto': 'Merge 入 {branch}',
+  'md3.menu.branchRowMenu.rebaseOnto': 'Rebase 落 {branch}',
+  'md3.menu.branchRowMenu.openPullRequest': '開 pull request',
+  'md3.menu.branchRowMenu.rename': '改 branch 個名…',
+  'md3.menu.branchRowMenu.delete': '刪咗個 branch…',
+  'md3.menu.runMenu.title': 'Workflow run',
+  'md3.menu.runMenu.rerunAll': '重跑晒所有 job',
+  'md3.menu.runMenu.rerunFailed': '重跑失敗嗰啲 job',
+  'md3.menu.runMenu.cancel': '取消呢個 run',
+  'md3.menu.runMenu.dispatch': '行 workflow（workflow_dispatch）…',
+  'md3.menu.runMenu.rawLogs': '睇原始 log',
+  'md3.menu.repoRowMenu.title': 'Repository 動作',
+  'md3.menu.repoRowMenu.fetch': 'Fetch',
+  'md3.menu.repoRowMenu.pull': 'Pull',
+  'md3.menu.repoRowMenu.changeAlias': '改個別名…',
+  'md3.menu.repoRowMenu.moveToGroup': '搬去第個群組…',
+  'md3.menu.repoRowMenu.reveal': '喺檔案總管度顯示',
+  'md3.menu.repoRowMenu.remove': '喺清單度攞走…',
+  'md3.menu.compose.title': '新 commit',
+  'md3.menu.compose.openComposer': '開 commit 編寫器',
+  'md3.menu.compose.copilotMessage': '叫 Copilot 幫手寫段訊息',
+  'md3.menu.compose.addCoAuthors': '加 co-author',
+  'md3.menu.compose.commitAndPush': 'Commit 完就 push',
+  'md3.menu.agentAccess.title': 'Agent 權限',
+  'md3.menu.agentAccess.readAccess': '容許讀取 working tree',
+  'md3.menu.agentAccess.commits': '容許 commit',
+  'md3.menu.agentAccess.push': '容許 push',
+  'md3.menu.agentAccess.sessionLog': 'Session log',
+  'md3.menu.inboxRowMenu.title': '通知',
+  'md3.menu.inboxRowMenu.markRead': '標做已讀',
+  'md3.menu.inboxRowMenu.markUnread': '標做未讀',
+  'md3.menu.inboxRowMenu.openInBrowser': '喺瀏覽器開',
+  'md3.menu.inboxRowMenu.mute': '靜音呢條 thread',
+  'md3.menu.inboxRowMenu.delete': '刪咗個通知',
+  'md3.menu.agentRowMenu.title': 'Agent session',
+  'md3.menu.agentRowMenu.resume': '繼續個 session',
+  'md3.menu.agentRowMenu.pause': '暫停個 session',
+  'md3.menu.agentRowMenu.openLog': '開 session log',
+  'md3.menu.agentRowMenu.duplicate': '複製個 session',
+  'md3.menu.agentRowMenu.access': 'Agent 權限…',
+  'md3.menu.agentRowMenu.delete': '刪咗個 session',
+  'md3.menu.terminalMenu.title': '終端機',
+  'md3.menu.terminalMenu.copy': '複製揀咗嘅嘢',
+  'md3.menu.terminalMenu.paste': '貼上',
+  'md3.menu.terminalMenu.clear': '清走啲輸出',
+  'md3.menu.terminalMenu.split': '分開個 shell',
+  'md3.menu.terminalMenu.openSystem': '喺系統終端機開',
+  'md3.menu.terminalMenu.newShell': '開個新 shell session',
+  'md3.menu.drawerMenu.title': '導覽',
+  'md3.menu.drawerMenu.collapse': '收埋側欄',
+  'md3.menu.drawerMenu.expand': '打開側欄',
+  'md3.menu.drawerMenu.goRepositories': '去 Repositories',
+  'md3.menu.drawerMenu.goChanges': '去 Changes',
+  'md3.menu.drawerMenu.goHistory': '去 History',
+  'md3.menu.drawerMenu.goBranches': '去 Branches',
+  'md3.menu.drawerMenu.goActions': '去 Actions',
+  'md3.menu.drawerMenu.goInbox': '去 Inbox',
+  'md3.menu.drawerMenu.goTerminal': '去 Terminal',
+  'md3.menu.drawerMenu.goAgents': '去 Agents',
+  'md3.menu.searchMenu.title': '搜尋欄',
+  'md3.menu.searchMenu.openBuilder': '開 regex 建立器',
+  'md3.menu.searchMenu.toggleRegex': '切換 regex 模式',
+  'md3.menu.searchMenu.clearField': '清走呢欄',
+  'md3.menu.searchMenu.howRegexWorks': 'Regex 點用',
+  'md3.menu.guide.title': 'Regex 點用',
+  'md3.menu.guide.caret': '^ 將配對錨定喺行頭',
+  'md3.menu.guide.dollar': '$ 將配對錨定喺行尾',
+  'md3.menu.guide.classes': '\\d 配任何數字，\\w 配任何字詞字元',
+  'md3.menu.guide.quantifiers': '+ 係一個或以上，* 係零個或以上，? 係可有可無',
+  'md3.menu.guide.groups': '(…) 會擷取一組，(?:…) 淨係分組唔擷取',
+  'md3.menu.guide.alternation': 'a|b 兩邊邊個配到都算',
+  'md3.menu.guide.flags': '旗標：i g m s u y — 大小寫、全域、多行、dotall',
+  'md3.appHeader.label': '應用程式頂欄',
+  'md3.appHeader.menu': '選單',
+  'md3.appHeader.commitAndPush': 'Commit ＆ 推上去',
+  'md3.appHeader.commitAndPushHint': 'Commit 完順手推上去',
+  'md3.appHeader.searchPlaceholder': '搵 commit、檔案、branch、repository',
+  'md3.appHeader.searchField': '全域搜尋',
+  'md3.appHeader.commandPalette': '命令面板（{shortcut}）',
+  'md3.appHeader.notifications': '通知中心',
+  'md3.appHeader.notificationsUnread': '通知中心，有 {count} 個未睇',
+  'md3.appHeader.unreadBadge': '{count} 個未睇嘅通知',
+  'md3.appHeader.theme': '淺色／深色',
+  'md3.appHeader.settings': '設定',
+  'md3.appHeader.account': '轉帳戶',
+  'md3.appHeader.accountFor': '轉帳戶（{name}）',
+  'md3.paneHeader.fetch': '去 origin 攞返最新嘅嘢',
+  'md3.paneHeader.moreActions': '仲有其他動作',
+  'md3.paneHeader.push': '推 · {count}',
+  'md3.paneHeader.upToDate': '同步齊晒',
+  'md3.paneHeader.repository': 'Repo {name}',
+  'md3.paneHeader.branch': '分支 {name}',
+  'md3.paneHeader.progress': '{operation}，做咗 {percent}%',
+  'md3.drawer.label': '主導覽',
+  'md3.drawer.destinations': '目的地',
+  'md3.drawer.commit': '提交',
+  'md3.drawer.destinationWithCount': '{label}，{count}',
+  'md3.drawer.repository': '{name}，轉倉庫',
+  'md3.drawer.destination.changes': '變更',
+  'md3.drawer.destination.history': '歷史',
+  'md3.drawer.destination.branches': '分支',
+  'md3.drawer.destination.actions': '操作',
+  'md3.drawer.destination.inbox': '收件匣',
+  'md3.drawer.destination.terminal': '終端機',
+  'md3.drawer.destination.agents': '代理',
+  'md3.drawer.destination.repositories': '倉庫',
+  'md3.compose.title': '砌返個 commit 訊息',
+  'md3.compose.close': '閂咗個 commit 編寫器',
+  'md3.compose.context':
+    '{total} 個檔案入面揀咗 {included} 個 · {stat} · {branch}',
+  'md3.compose.summaryPlaceholder': '摘要（一定要填）',
+  'md3.compose.copilot': 'Copilot',
+  'md3.compose.copilotAccessibleName': 'Copilot — 幫你草擬 commit 訊息',
+  'md3.compose.descriptionPlaceholder': '詳細講吓（填唔填都得）',
+  'md3.compose.addCoAuthors': '加埋共同作者',
+  'md3.compose.hintCharacters': '{count}/{limit} 個字',
+  'md3.compose.hintRequired': '未寫摘要就 commit 唔到㗎。',
+  'md3.compose.commitOnly': '淨係 commit',
+  'md3.compose.commitAndPush': 'Commit 埋推上去',
+  'md3.compose.summaryStillRequired': '摘要仲係要填㗎',
+  'md3.toast.undo': '返轉頭',
+  'md3.toast.dismiss': '收咗呢個通知',
+  'md3.toast.region': '通知',
 }
