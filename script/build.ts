@@ -101,6 +101,53 @@ export function keepNodeProcessAliveUntil<T>(
 }
 
 /**
+ * Strip JavaScript string and template literals from a bundle.
+ *
+ * The bundle guard below looks for a Node-only binding being REFERENCED. Since
+ * the in-app documentation browser bundles every feature article into the
+ * renderer, the bundle also contains prose — and one of those articles
+ * documents this very failure mode, quoting the binding by name. A plain
+ * substring search cannot tell a reference from a sentence about a reference,
+ * and it failed the build on documentation that was completely correct.
+ *
+ * Removing literals first is not a full parse, but it is exactly the
+ * distinction that matters here: a real leaked binding is an identifier in
+ * code, and prose about it only ever lives inside a string.
+ */
+export function stripStringLiterals(source: string): string {
+  let out = ''
+  let index = 0
+
+  while (index < source.length) {
+    const character = source[index]
+
+    if (character === '"' || character === "'" || character === '`') {
+      const quote = character
+      index += 1
+      while (index < source.length) {
+        if (source[index] === '\\') {
+          index += 2
+          continue
+        }
+        if (source[index] === quote) {
+          index += 1
+          break
+        }
+        index += 1
+      }
+      // The literal is replaced by an empty one so adjacent tokens cannot fuse.
+      out += '""'
+      continue
+    }
+
+    out += character
+    index += 1
+  }
+
+  return out
+}
+
+/**
  * Fail the build before packaging when Webpack leaves a Node-only module
  * wrapper reference in a renderer bundle. That reference is not defined by
  * Electron's browser runtime and prevents React from mounting, which otherwise
@@ -117,8 +164,10 @@ export function assertRendererBundlesAreRunnable(
     )
 
     const bundle = readFileSync(bundlePath, 'utf8')
+    const code = stripStringLiterals(bundle)
+
     assert(
-      !bundle.includes('__webpack_module__'),
+      !code.includes('__webpack_module__'),
       `Renderer bundle contains the undefined Webpack module binding: ${bundlePath}`
     )
   }

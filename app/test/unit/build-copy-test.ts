@@ -84,6 +84,40 @@ describe('build copying', () => {
 
       assert.doesNotThrow(() => assertRendererBundlesAreRunnable(root))
 
+      // The in-app documentation browser bundles every feature article into
+      // the renderer, and one of those articles documents this exact failure
+      // mode by name. A substring search cannot tell a leaked reference from a
+      // sentence about one, and it failed the build on prose that was
+      // completely correct. The guard strips string literals first, so a
+      // quoted mention is ignored while a real identifier is still caught.
+      for (const bundlePath of bundlePaths) {
+        writeFileSync(
+          bundlePath,
+          'window.start();var a="A `__webpack_module__` binding fails the build";' +
+            "var b='ReferenceError: __webpack_module__ is not defined';" +
+            'var c=`zero __webpack_module__ tokens`;'
+        )
+      }
+
+      assert.doesNotThrow(
+        () => assertRendererBundlesAreRunnable(root),
+        'documentation quoting the binding must not fail the build'
+      )
+
+      // …and the real thing is still caught when it sits beside that prose,
+      // so the fix cannot have been "stop looking".
+      for (const bundlePath of bundlePaths) {
+        writeFileSync(
+          bundlePath,
+          'var a="the `__webpack_module__` binding";__webpack_module__.exports=a;'
+        )
+        assert.throws(
+          () => assertRendererBundlesAreRunnable(root),
+          /undefined Webpack module binding/
+        )
+        writeFileSync(bundlePath, 'window.start();')
+      }
+
       for (let index = 0; index < bundlePaths.length; index++) {
         rmSync(bundlePaths[index])
         assert.throws(
