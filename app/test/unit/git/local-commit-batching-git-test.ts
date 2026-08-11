@@ -581,92 +581,107 @@ describe('git/local-commit-batching-git', () => {
     assert.equal(await revParse(fixture.bare, 'refs/heads/main'), second)
   })
 
-  it('rewrites one oversized legacy commit using CAS refs and stdin-only paths', async t => {
-    const fixture = await setupRepository(t)
-    await writeFile(Path.join(fixture.worktree, 'one.bin'), '1234')
-    await writeFile(Path.join(fixture.worktree, 'two.bin'), '5678')
-    await runGit(fixture.worktree, ['add', '--', 'one.bin', 'two.bin'])
-    await runGit(fixture.worktree, ['commit', '-m', 'legacy oversized commit'])
-    const originalHead = await revParse(fixture.worktree)
-    const calls = new Array<{
-      readonly args: ReadonlyArray<string>
-      readonly name: string
-      readonly stdin?: string | Buffer
-    }>()
-    const session = createLocalCommitBatchingGitSession(fixture.repository, {
-      dependencies: { runGit: captureRunner(calls) },
-    })
-    const preparation = await session.prepare(
-      (_paths, index, total) => `legacy batch ${index + 1}/${total}`,
-      5
-    )
-    assert.equal(preparation.decision.kind, 'rewrite')
-    assert.equal(preparation.rewritePlan?.batches.length, 2)
+  // This one rewrites history through real `git` subprocesses, so its cost is
+  // disk and process spawning rather than anything this repository controls.
+  // Alone it finishes in about 25 seconds; inside the full suite, competing
+  // with the harness's own workers, it exceeds the shared 120s ceiling and is
+  // reported as a failure at almost exactly that value — a timeout, not a
+  // false assertion. The budget is raised HERE rather than globally, because a
+  // higher ceiling for every test is how the next genuine hang goes unnoticed.
+  it(
+    'rewrites one oversized legacy commit using CAS refs and stdin-only paths',
+    { timeout: 300_000 },
+    async t => {
+      const fixture = await setupRepository(t)
+      await writeFile(Path.join(fixture.worktree, 'one.bin'), '1234')
+      await writeFile(Path.join(fixture.worktree, 'two.bin'), '5678')
+      await runGit(fixture.worktree, ['add', '--', 'one.bin', 'two.bin'])
+      await runGit(fixture.worktree, [
+        'commit',
+        '-m',
+        'legacy oversized commit',
+      ])
+      const originalHead = await revParse(fixture.worktree)
+      const calls = new Array<{
+        readonly args: ReadonlyArray<string>
+        readonly name: string
+        readonly stdin?: string | Buffer
+      }>()
+      const session = createLocalCommitBatchingGitSession(fixture.repository, {
+        dependencies: { runGit: captureRunner(calls) },
+      })
+      const preparation = await session.prepare(
+        (_paths, index, total) => `legacy batch ${index + 1}/${total}`,
+        5
+      )
+      assert.equal(preparation.decision.kind, 'rewrite')
+      assert.equal(preparation.rewritePlan?.batches.length, 2)
 
-    const result = await handleLocalCommitPushBatching(
-      preparation.inspection,
-      session.operations,
-      preparation.rewritePlan,
-      5
-    )
-    assert.equal(result.status, 'completed')
-    if (result.status !== 'completed') {
-      assert.fail('expected completed rewrite')
-    }
-    assert.equal(result.mode, 'rewritten-commits')
-    assert.equal(result.batchesCommitted, 2)
-    assert.equal(result.batchesPushed, 2)
-    assert.notEqual(result.finalHeadSha, originalHead)
-    assert.equal(
-      await revParse(fixture.bare, 'refs/heads/main'),
-      result.finalHeadSha
-    )
-
-    const stages = calls.filter(
-      call => call.name === 'localCommitBatchingStagePaths'
-    )
-    assert.equal(stages.length, 2)
-    for (const stage of stages) {
-      assert.deepStrictEqual(stage.args, buildLocalCommitExplicitStageArgv())
+      const result = await handleLocalCommitPushBatching(
+        preparation.inspection,
+        session.operations,
+        preparation.rewritePlan,
+        5
+      )
+      assert.equal(result.status, 'completed')
+      if (result.status !== 'completed') {
+        assert.fail('expected completed rewrite')
+      }
+      assert.equal(result.mode, 'rewritten-commits')
+      assert.equal(result.batchesCommitted, 2)
+      assert.equal(result.batchesPushed, 2)
+      assert.notEqual(result.finalHeadSha, originalHead)
       assert.equal(
-        stage.args.some(arg => arg.endsWith('.bin')),
+        await revParse(fixture.bare, 'refs/heads/main'),
+        result.finalHeadSha
+      )
+
+      const stages = calls.filter(
+        call => call.name === 'localCommitBatchingStagePaths'
+      )
+      assert.equal(stages.length, 2)
+      for (const stage of stages) {
+        assert.deepStrictEqual(stage.args, buildLocalCommitExplicitStageArgv())
+        assert.equal(
+          stage.args.some(arg => arg.endsWith('.bin')),
+          false
+        )
+        assert.match(String(stage.stdin), /\.bin\0$/)
+      }
+      const commits = calls.filter(
+        call => call.name === 'localCommitBatchingCommit'
+      )
+      assert.deepStrictEqual(
+        commits.map(call => call.args),
+        [buildLocalCommitArgv(), buildLocalCommitArgv()]
+      )
+      assert.deepStrictEqual(
+        commits.map(call => call.stdin),
+        ['legacy batch 1/2', 'legacy batch 2/2']
+      )
+      const backupCreate = calls.find(
+        call => call.name === 'localCommitBatchingCreateBackup'
+      )
+      assert(backupCreate !== undefined)
+      assert.equal(backupCreate.args[3], '0'.repeat(originalHead.length))
+      assert.equal(
+        calls.some(
+          call => call.args.includes('--force') || call.args.includes('-f')
+        ),
         false
       )
-      assert.match(String(stage.stdin), /\.bin\0$/)
+      const backup = await runGit(
+        fixture.worktree,
+        ['show-ref', '--verify', '--quiet', result.backupRef as string],
+        new Set([0, 1])
+      )
+      assert.equal(backup.exitCode, 1)
+      assert.equal(
+        (await runGit(fixture.worktree, ['status', '--porcelain'])).stdout,
+        ''
+      )
     }
-    const commits = calls.filter(
-      call => call.name === 'localCommitBatchingCommit'
-    )
-    assert.deepStrictEqual(
-      commits.map(call => call.args),
-      [buildLocalCommitArgv(), buildLocalCommitArgv()]
-    )
-    assert.deepStrictEqual(
-      commits.map(call => call.stdin),
-      ['legacy batch 1/2', 'legacy batch 2/2']
-    )
-    const backupCreate = calls.find(
-      call => call.name === 'localCommitBatchingCreateBackup'
-    )
-    assert(backupCreate !== undefined)
-    assert.equal(backupCreate.args[3], '0'.repeat(originalHead.length))
-    assert.equal(
-      calls.some(
-        call => call.args.includes('--force') || call.args.includes('-f')
-      ),
-      false
-    )
-    const backup = await runGit(
-      fixture.worktree,
-      ['show-ref', '--verify', '--quiet', result.backupRef as string],
-      new Set([0, 1])
-    )
-    assert.equal(backup.exitCode, 1)
-    assert.equal(
-      (await runGit(fixture.worktree, ['status', '--porcelain'])).stdout,
-      ''
-    )
-  })
+  )
 
   it('uses an existing exact remote branch as the base without writing upstream config', async t => {
     const fixture = await setupRepository(t)
