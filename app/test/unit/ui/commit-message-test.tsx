@@ -5,6 +5,7 @@ import * as React from 'react'
 import { Account } from '../../../src/models/account'
 import { DefaultCommitMessage } from '../../../src/models/commit-message'
 import { DiffSelection, DiffSelectionType } from '../../../src/models/diff'
+import { advanceElapsedMilliseconds } from '../../../src/models/progress'
 import { GitHubRepository } from '../../../src/models/github-repository'
 import { Owner } from '../../../src/models/owner'
 import { RepoRulesInfo } from '../../../src/models/repo-rules'
@@ -837,6 +838,23 @@ describe('CommitMessage', () => {
       assert.match(text, /Observed 0s/)
       assert.doesNotMatch(text, /Workers:|ETA|speed|Current file:/)
     }
+  })
+
+  it('shares a monotonic elapsed clock with non-Cheap-LFS commit phases', () => {
+    assert.equal(advanceElapsedMilliseconds(1_000, 0, 4_000), 3_000)
+    assert.equal(advanceElapsedMilliseconds(1_000, 3_000, 2_000), 3_000)
+
+    const component = toTestInstance(
+      new CommitMessage(
+        createProps({
+          isCommitting: true,
+          isGeneratingCommitMessage: false,
+          commitOperationPhase: { kind: 'maintenance' },
+        })
+      )
+    )
+    assert.match(String(component.getButtonText()), /Elapsed 0s/)
+    assert.match(component.getButtonTitle(), /Elapsed 0s/)
   })
 
   it('keeps renderer-observed elapsed time moving while progress stalls', () => {

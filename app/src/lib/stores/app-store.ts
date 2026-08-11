@@ -11479,8 +11479,23 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (!this.isTemporaryRepositoryActive(repository)) {
       return
     }
+
+    const previous = this.repositoryStateCache.get(repository)
+    const startedAt = previous.pushPullFetchProgress?.startedAt
+    const now = Date.now()
+    const safeStartedAt =
+      typeof startedAt === 'number' && Number.isFinite(startedAt) && startedAt >= 0
+        ? startedAt
+        : Number.isFinite(now) && now >= 0
+        ? now
+        : 0
+    const progress =
+      pushPullFetchProgress === null
+        ? null
+        : { ...pushPullFetchProgress, startedAt: safeStartedAt }
+
     this.repositoryStateCache.update(repository, () => ({
-      pushPullFetchProgress,
+      pushPullFetchProgress: progress,
     }))
     if (this.selectedRepository === repository) {
       this.emitUpdate()
