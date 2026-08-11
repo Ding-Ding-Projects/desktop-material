@@ -107,7 +107,7 @@ describe('MD3 design-contract conformance', () => {
   })
 
   it('ships every destination the contract navigates to, in order', () => {
-    const built = md3Destinations({}, 'History')
+    const built = md3Destinations({}, 'history')
 
     assert.equal(built.length, contract.destinations.length)
 

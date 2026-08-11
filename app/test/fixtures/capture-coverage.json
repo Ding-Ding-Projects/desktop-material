@@ -1,0 +1,702 @@
+{
+  "generatedBy": "script/extract-capture-coverage.mjs",
+  "note": "Every surface that must carry a real capture of the built artifact. The destination and menu entries are derived from the design contract so one cannot be forgotten; the rest is hand-written, because a guard that only validates the captures already present passes on a gallery missing all of them. A capture that predates the shell it claims to show is stale, which is worse than absent: it is confidently wrong and the reader cannot tell.",
+  "statuses": {
+    "destination-changes": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "destination-history": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "destination-branches": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "destination-actions": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "destination-inbox": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "destination-terminal": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "destination-agents": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "destination-repositories": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-palette": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-settings": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-account": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-repomenu": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-branchmenu": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-panemenu": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-listmenu": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-diffoptions": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-filemenu": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-rowmenu": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-changesmenu": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-changerowmenu": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-branchrowmenu": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-runmenu": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-reporowmenu": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-compose": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-agentaccess": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-inboxrowmenu": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-agentrowmenu": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-terminalmenu": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-drawermenu": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-searchmenu": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "menu-guide": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "shell-drawer-expanded": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "shell-drawer-collapsed": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "shell-light-theme": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "shell-dark-theme": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "shell-progress-running": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "shell-push-ahead": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "shell-push-clean": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "shell-repository-tabs": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "shell-classic-toolbar-on": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "shell-classic-toolbar-off": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "overlay-compose-dialog": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "overlay-compose-empty-summary": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "overlay-regex-builder": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "overlay-regex-builder-invalid": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "overlay-toast": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "overlay-menu-filtered": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "overlay-menu-regex": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "overlay-menu-no-match": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "history-commit-sheet": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "history-empty-filter": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "diff-search-hits": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "diff-wrap-lines": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "destructive-gate-untouched": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "destructive-gate-both-keys": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "destructive-gate-complete": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "emoji-toggle-on": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "emoji-toggle-off": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "docs-browser-article": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "docs-browser-search": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "authenticator-registration-qr": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "authenticator-codes": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "support-tickets-form": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "support-tickets-resolution": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "locked-tab-affordance": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "locked-tab-unlock-prompt": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "locked-appearance-property": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "lock-manager-list": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "language-english": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "language-cantonese": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "language-bilingual": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "funny-level-1": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "funny-level-5": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "scale-125": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "scale-150": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "scale-200": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    },
+    "narrow-width": {
+      "state": "pending",
+      "reason": "Blocked on the MD3 shell assembly: the surface does not exist in a built artifact yet. Captures run from the packaged Windows build once the shell is wired, never from the design prototype."
+    }
+  },
+  "requiredCount": 77,
+  "required": [
+    {
+      "id": "destination-changes",
+      "source": "derived",
+      "shows": "The Changes destination as the design contract draws it"
+    },
+    {
+      "id": "destination-history",
+      "source": "derived",
+      "shows": "The History destination as the design contract draws it"
+    },
+    {
+      "id": "destination-branches",
+      "source": "derived",
+      "shows": "The Branches destination as the design contract draws it"
+    },
+    {
+      "id": "destination-actions",
+      "source": "derived",
+      "shows": "The Actions destination as the design contract draws it"
+    },
+    {
+      "id": "destination-inbox",
+      "source": "derived",
+      "shows": "The Inbox destination as the design contract draws it"
+    },
+    {
+      "id": "destination-terminal",
+      "source": "derived",
+      "shows": "The Terminal destination as the design contract draws it"
+    },
+    {
+      "id": "destination-agents",
+      "source": "derived",
+      "shows": "The Agents destination as the design contract draws it"
+    },
+    {
+      "id": "destination-repositories",
+      "source": "derived",
+      "shows": "The Repositories destination as the design contract draws it"
+    },
+    {
+      "id": "menu-palette",
+      "source": "derived",
+      "shows": "The palette menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-settings",
+      "source": "derived",
+      "shows": "The settings menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-account",
+      "source": "derived",
+      "shows": "The account menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-repomenu",
+      "source": "derived",
+      "shows": "The repoMenu menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-branchmenu",
+      "source": "derived",
+      "shows": "The branchMenu menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-panemenu",
+      "source": "derived",
+      "shows": "The paneMenu menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-listmenu",
+      "source": "derived",
+      "shows": "The listMenu menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-diffoptions",
+      "source": "derived",
+      "shows": "The diffOptions menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-filemenu",
+      "source": "derived",
+      "shows": "The fileMenu menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-rowmenu",
+      "source": "derived",
+      "shows": "The rowMenu menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-changesmenu",
+      "source": "derived",
+      "shows": "The changesMenu menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-changerowmenu",
+      "source": "derived",
+      "shows": "The changeRowMenu menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-branchrowmenu",
+      "source": "derived",
+      "shows": "The branchRowMenu menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-runmenu",
+      "source": "derived",
+      "shows": "The runMenu menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-reporowmenu",
+      "source": "derived",
+      "shows": "The repoRowMenu menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-compose",
+      "source": "derived",
+      "shows": "The compose menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-agentaccess",
+      "source": "derived",
+      "shows": "The agentAccess menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-inboxrowmenu",
+      "source": "derived",
+      "shows": "The inboxRowMenu menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-agentrowmenu",
+      "source": "derived",
+      "shows": "The agentRowMenu menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-terminalmenu",
+      "source": "derived",
+      "shows": "The terminalMenu menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-drawermenu",
+      "source": "derived",
+      "shows": "The drawerMenu menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-searchmenu",
+      "source": "derived",
+      "shows": "The searchMenu menu overlay with its items and filter row"
+    },
+    {
+      "id": "menu-guide",
+      "source": "derived",
+      "shows": "The guide menu overlay with its items and filter row"
+    },
+    {
+      "id": "shell-drawer-expanded",
+      "source": "declared",
+      "shows": "The shell with the navigation drawer at 208px, labels visible"
+    },
+    {
+      "id": "shell-drawer-collapsed",
+      "source": "declared",
+      "shows": "The shell with the drawer at 68px, icon-only, labels still named to assistive technology"
+    },
+    {
+      "id": "shell-light-theme",
+      "source": "declared",
+      "shows": "The whole shell in the light theme"
+    },
+    {
+      "id": "shell-dark-theme",
+      "source": "declared",
+      "shows": "The whole shell in the dark theme"
+    },
+    {
+      "id": "shell-progress-running",
+      "source": "declared",
+      "shows": "The pane header progress bar mid-operation with its real label"
+    },
+    {
+      "id": "shell-push-ahead",
+      "source": "declared",
+      "shows": "The pane header push button in its ahead state showing the commit count"
+    },
+    {
+      "id": "shell-push-clean",
+      "source": "declared",
+      "shows": "The pane header push button in its up-to-date state"
+    },
+    {
+      "id": "shell-repository-tabs",
+      "source": "declared",
+      "shows": "The repository tab strip, retained and restyled, shown by default"
+    },
+    {
+      "id": "shell-classic-toolbar-on",
+      "source": "declared",
+      "shows": "The classic toolbar band with its setting enabled, the shipped default"
+    },
+    {
+      "id": "shell-classic-toolbar-off",
+      "source": "declared",
+      "shows": "The shell with the classic toolbar switched off, its actions still reachable from the pane header"
+    },
+    {
+      "id": "overlay-compose-dialog",
+      "source": "declared",
+      "shows": "The commit composer with a summary present"
+    },
+    {
+      "id": "overlay-compose-empty-summary",
+      "source": "declared",
+      "shows": "The composer refusing an empty summary, error border and required-summary hint"
+    },
+    {
+      "id": "overlay-regex-builder",
+      "source": "declared",
+      "shows": "The regex builder with a pattern, flags and a live match"
+    },
+    {
+      "id": "overlay-regex-builder-invalid",
+      "source": "declared",
+      "shows": "The regex builder reporting an invalid pattern"
+    },
+    {
+      "id": "overlay-toast",
+      "source": "declared",
+      "shows": "A toast with its Undo action"
+    },
+    {
+      "id": "overlay-menu-filtered",
+      "source": "declared",
+      "shows": "A menu overlay filtered by its search field"
+    },
+    {
+      "id": "overlay-menu-regex",
+      "source": "declared",
+      "shows": "A menu overlay filtering in regex mode"
+    },
+    {
+      "id": "overlay-menu-no-match",
+      "source": "declared",
+      "shows": "A menu overlay with an honest no-match message rather than a blank panel"
+    },
+    {
+      "id": "history-commit-sheet",
+      "source": "declared",
+      "shows": "The commit detail sheet anchored over the diff"
+    },
+    {
+      "id": "history-empty-filter",
+      "source": "declared",
+      "shows": "The History empty state after a filter matches nothing"
+    },
+    {
+      "id": "diff-search-hits",
+      "source": "declared",
+      "shows": "The diff pane with a search active, non-matching lines dimmed and the hit count shown"
+    },
+    {
+      "id": "diff-wrap-lines",
+      "source": "declared",
+      "shows": "The diff pane with line wrapping on"
+    },
+    {
+      "id": "destructive-gate-untouched",
+      "source": "declared",
+      "shows": "The shared destructive gate before either key is turned"
+    },
+    {
+      "id": "destructive-gate-both-keys",
+      "source": "declared",
+      "shows": "The gate with both keys turned and the slider enabled"
+    },
+    {
+      "id": "destructive-gate-complete",
+      "source": "declared",
+      "shows": "The gate after authorization"
+    },
+    {
+      "id": "emoji-toggle-on",
+      "source": "declared",
+      "shows": "A dialog with the emoji decoration enabled"
+    },
+    {
+      "id": "emoji-toggle-off",
+      "source": "declared",
+      "shows": "The same dialog with emoji disabled and identical factual copy"
+    },
+    {
+      "id": "docs-browser-article",
+      "source": "declared",
+      "shows": "The in-app documentation browser rendering an article"
+    },
+    {
+      "id": "docs-browser-search",
+      "source": "declared",
+      "shows": "The documentation browser searching titles and body content"
+    },
+    {
+      "id": "authenticator-registration-qr",
+      "source": "declared",
+      "shows": "OTP registration showing the locally drawn QR and the manual secret"
+    },
+    {
+      "id": "authenticator-codes",
+      "source": "declared",
+      "shows": "The authenticator list showing a live code, its countdown and the next-code peek"
+    },
+    {
+      "id": "support-tickets-form",
+      "source": "declared",
+      "shows": "The Support Tickets form with its category and description"
+    },
+    {
+      "id": "support-tickets-resolution",
+      "source": "declared",
+      "shows": "The resolution step naming the application-data folder, with the disclosure line"
+    },
+    {
+      "id": "locked-tab-affordance",
+      "source": "declared",
+      "shows": "A locked tab keeping its readable label beside its lock affordance"
+    },
+    {
+      "id": "locked-tab-unlock-prompt",
+      "source": "declared",
+      "shows": "The anchored unlock prompt with its recovery route named"
+    },
+    {
+      "id": "locked-appearance-property",
+      "source": "declared",
+      "shows": "A locked appearance value in the appearance editor"
+    },
+    {
+      "id": "lock-manager-list",
+      "source": "declared",
+      "shows": "The enumerable list of every lock, searchable"
+    },
+    {
+      "id": "language-english",
+      "source": "declared",
+      "shows": "The shell in English"
+    },
+    {
+      "id": "language-cantonese",
+      "source": "declared",
+      "shows": "The shell in playful Hong Kong Cantonese"
+    },
+    {
+      "id": "language-bilingual",
+      "source": "declared",
+      "shows": "The shell in bilingual mode, where labels are longest"
+    },
+    {
+      "id": "funny-level-1",
+      "source": "declared",
+      "shows": "Copy at funny level 1, fully professional"
+    },
+    {
+      "id": "funny-level-5",
+      "source": "declared",
+      "shows": "Copy at funny level 5, maximum playfulness, facts unchanged"
+    },
+    {
+      "id": "scale-125",
+      "source": "declared",
+      "shows": "The shell at 125% display scale"
+    },
+    {
+      "id": "scale-150",
+      "source": "declared",
+      "shows": "The shell at 150% display scale"
+    },
+    {
+      "id": "scale-200",
+      "source": "declared",
+      "shows": "The shell at 200% display scale"
+    },
+    {
+      "id": "narrow-width",
+      "source": "declared",
+      "shows": "The shell at its narrowest supported width with nothing clipped"
+    }
+  ]
+}
