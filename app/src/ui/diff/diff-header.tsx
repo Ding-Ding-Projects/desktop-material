@@ -9,6 +9,11 @@ import { mapStatus } from '../../lib/status'
 import { DiffOptions } from './diff-options'
 import { externalOpenTarget } from '../../lib/external-open-guard'
 import { ExternalOpenBusy } from '../lib/external-open-busy'
+import {
+  DiffLineWrapChangedEvent,
+  readDiffLineWrap,
+  writeDiffLineWrap,
+} from './diff-line-wrap'
 
 interface IDiffHeaderProps {
   readonly path: string
@@ -58,10 +63,42 @@ interface IDiffHeaderProps {
    * while the launch it started is still settling.
    */
   readonly externalEditorTargetPath?: string
+
+  /** Opens the selected History commit's non-modal details sheet. */
+  readonly onToggleCommitDetails?: () => void
+
+  /** Whether the selected History commit's details sheet is open. */
+  readonly commitDetailsExpanded?: boolean
+}
+
+interface IDiffHeaderState {
+  readonly wrapLines: boolean
 }
 
 /** Displays information about a file */
-export class DiffHeader extends React.Component<IDiffHeaderProps, {}> {
+export class DiffHeader extends React.Component<
+  IDiffHeaderProps,
+  IDiffHeaderState
+> {
+  public constructor(props: IDiffHeaderProps) {
+    super(props)
+    this.state = { wrapLines: readDiffLineWrap() }
+  }
+
+  public componentDidMount() {
+    document.addEventListener(
+      DiffLineWrapChangedEvent,
+      this.onDiffLineWrapChanged as EventListener
+    )
+  }
+
+  public componentWillUnmount() {
+    document.removeEventListener(
+      DiffLineWrapChangedEvent,
+      this.onDiffLineWrapChanged as EventListener
+    )
+  }
+
   public render() {
     const status = this.props.status
     const fileStatus = mapStatus(status)
@@ -77,6 +114,10 @@ export class DiffHeader extends React.Component<IDiffHeaderProps, {}> {
 
         {this.renderOpenInEditor()}
 
+        {this.renderCommitDetailsButton()}
+
+        {this.renderWrapButton()}
+
         {this.renderDiffOptions()}
 
         <Octicon
@@ -86,6 +127,54 @@ export class DiffHeader extends React.Component<IDiffHeaderProps, {}> {
         />
       </div>
     )
+  }
+
+  private renderCommitDetailsButton() {
+    const { onToggleCommitDetails, commitDetailsExpanded } = this.props
+    if (onToggleCommitDetails === undefined) {
+      return null
+    }
+
+    return (
+      <button
+        type="button"
+        className="diff-details-button"
+        onClick={onToggleCommitDetails}
+        aria-expanded={commitDetailsExpanded === true}
+        aria-controls="history-commit-details-sheet"
+      >
+        <Octicon symbol={octicons.info} />
+        <span>Details</span>
+      </button>
+    )
+  }
+
+  private renderWrapButton() {
+    const label = this.state.wrapLines ? 'Disable line wrapping' : 'Wrap lines'
+    return (
+      <button
+        type="button"
+        className="diff-wrap-button"
+        onClick={this.onToggleLineWrap}
+        aria-label={label}
+        aria-pressed={this.state.wrapLines}
+        title={label}
+      >
+        <Octicon
+          symbol={this.state.wrapLines ? octicons.unwrap : octicons.wrap}
+        />
+      </button>
+    )
+  }
+
+  private onToggleLineWrap = () => {
+    writeDiffLineWrap(!this.state.wrapLines)
+  }
+
+  private onDiffLineWrapChanged = (event: CustomEvent<boolean>) => {
+    if (event.detail !== this.state.wrapLines) {
+      this.setState({ wrapLines: event.detail })
+    }
   }
 
   private renderStatusLine(fileStatus: string) {

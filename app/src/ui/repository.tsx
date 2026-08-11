@@ -1112,12 +1112,17 @@ export class RepositoryView extends React.Component<
     ) {
       return <React.Fragment />
     }
+    const maximumWidth =
+      selectedSection === RepositorySectionTab.Changes ||
+      selectedSection === RepositorySectionTab.History
+        ? Math.min(this.props.sidebarWidth.max, 356)
+        : this.props.sidebarWidth.max
     return (
       <FocusContainer onFocusWithinChanged={this.onSidebarFocusWithinChanged}>
         <Resizable
           id="repository-sidebar"
           width={this.props.sidebarWidth.value}
-          maximumWidth={this.props.sidebarWidth.max}
+          maximumWidth={maximumWidth}
           minimumWidth={this.props.sidebarWidth.min}
           onReset={this.handleSidebarWidthReset}
           onResize={this.handleSidebarResize}
@@ -1663,8 +1668,16 @@ export class RepositoryView extends React.Component<
   }
 
   public render() {
+    const selectedSection = this.getSelectedSection()
+    const className =
+      selectedSection === RepositorySectionTab.Changes
+        ? 'repository-workbench repository-workbench-changes'
+        : selectedSection === RepositorySectionTab.History
+        ? 'repository-workbench repository-workbench-history'
+        : undefined
+
     return (
-      <UiView id="repository">
+      <UiView id="repository" className={className}>
         {this.renderRail()}
         {this.renderAccountSwitcher()}
         {this.renderSidebar()}

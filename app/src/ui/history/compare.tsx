@@ -144,6 +144,9 @@ interface ICompareSidebarState {
   /** Chip predicate: only show commits authored by a signed-in account. */
   readonly commitFilterMine: boolean
 
+  /** Chip predicate: only show merge commits. */
+  readonly commitFilterMerges: boolean
+
   /** Whether the full regex-builder dialog is open. */
   readonly isRegexBuilderOpen: boolean
 
@@ -170,6 +173,7 @@ interface ICommitFilterCache {
   readonly filterUnpushed: boolean
   readonly filterTagged: boolean
   readonly filterMine: boolean
+  readonly filterMerges: boolean
   readonly localCommitSHAs: ReadonlyArray<string>
   readonly tagsToPush: ReadonlyArray<string> | null
   readonly accounts: ReadonlyArray<Account>
@@ -222,10 +226,11 @@ export class CompareSidebar extends React.Component<
       commitFilterCaseSensitive: false,
       showCommitGraph: getBoolean(ShowCommitGraphKey, true),
       showGraphView: getBoolean(ShowGraphViewKey, false),
-      showCommitFilterChips: false,
+      showCommitFilterChips: true,
       commitFilterUnpushed: false,
       commitFilterTagged: false,
       commitFilterMine: false,
+      commitFilterMerges: false,
       isRegexBuilderOpen: false,
       languageMode: getPersistedLanguageMode(),
     }
@@ -465,7 +470,8 @@ export class CompareSidebar extends React.Component<
     return (
       this.state.commitFilterUnpushed ||
       this.state.commitFilterTagged ||
-      this.state.commitFilterMine
+      this.state.commitFilterMine ||
+      this.state.commitFilterMerges
     )
   }
 
@@ -507,6 +513,10 @@ export class CompareSidebar extends React.Component<
       return false
     }
 
+    if (this.state.commitFilterMerges && !commit.isMergeCommit) {
+      return false
+    }
+
     return true
   }
 
@@ -538,6 +548,7 @@ export class CompareSidebar extends React.Component<
       cache.filterUnpushed === this.state.commitFilterUnpushed &&
       cache.filterTagged === this.state.commitFilterTagged &&
       cache.filterMine === this.state.commitFilterMine &&
+      cache.filterMerges === this.state.commitFilterMerges &&
       cache.commitLookup === this.props.commitLookup &&
       cache.localCommitSHAs === this.props.localCommitSHAs &&
       cache.tagsToPush === this.props.tagsToPush &&
@@ -618,6 +629,7 @@ export class CompareSidebar extends React.Component<
       filterUnpushed: this.state.commitFilterUnpushed,
       filterTagged: this.state.commitFilterTagged,
       filterMine: this.state.commitFilterMine,
+      filterMerges: this.state.commitFilterMerges,
       localCommitSHAs: this.props.localCommitSHAs,
       tagsToPush: this.props.tagsToPush,
       accounts: this.props.accounts,
@@ -717,6 +729,7 @@ export class CompareSidebar extends React.Component<
       this.state.commitFilterUnpushed,
       this.state.commitFilterTagged,
       this.state.commitFilterMine,
+      this.state.commitFilterMerges,
     ].filter(on => on).length
 
     const filterOptionsLabel = `Filter options${
@@ -870,6 +883,7 @@ export class CompareSidebar extends React.Component<
       },
       { id: 'tagged', label: 'Tagged', on: this.state.commitFilterTagged },
       { id: 'mine', label: 'Mine', on: this.state.commitFilterMine },
+      { id: 'merges', label: 'Merges', on: this.state.commitFilterMerges },
     ]
 
     return (
@@ -943,6 +957,10 @@ export class CompareSidebar extends React.Component<
       }))
     } else if (chipId === 'mine') {
       this.setState(state => ({ commitFilterMine: !state.commitFilterMine }))
+    } else if (chipId === 'merges') {
+      this.setState(state => ({
+        commitFilterMerges: !state.commitFilterMerges,
+      }))
     }
   }
 

@@ -638,3 +638,59 @@
     }
   }
 }
+
+// Workbench line-wrap preference. Wrapped is the existing renderer behavior;
+// nowrap exposes a horizontal scroller without changing row or gutter order.
+.side-by-side-diff-container.nowrap-lines {
+  .side-by-side-diff .content {
+    overflow-x: auto;
+    white-space: pre;
+    word-break: normal;
+  }
+
+  .side-by-side-diff .content-wrapper {
+    white-space: inherit;
+  }
+}
+
+.side-by-side-diff-container.wrap-lines {
+  .side-by-side-diff .content {
+    overflow-x: hidden;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+}
+
+// The in-diff search remains the existing Ctrl+F surface and matcher; only its
+// overlay anatomy changes to the Claude rounded tonal search card.
+.side-by-side-diff-container .diff-search {
+  top: 6px;
+  right: 8px;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 12px;
+  background: var(--md-sys-color-surface-container-high);
+  box-shadow: var(--md-sys-elevation-level2);
+
+  .text-box-component input {
+    height: 34px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: var(--md-sys-color-surface-container-lowest);
+  }
+
+  button:focus-visible,
+  input:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .diff-container .header .diff-details-button,
+  .diff-container .header .diff-wrap-button {
+    transition: none;
+  }
+}
