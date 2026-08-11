@@ -138,16 +138,29 @@
   min-width: 0;
 }
 
+// A flex child defaults to `min-width: auto`, which refuses to shrink below its
+// own content, so `text-overflow` never engages and the text pushes its
+// siblings out of the row instead of ellipsing. The byline needs both.
 .md3-history__byline-text {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+// `flex: none` keeps the abbreviated SHA whole at every width the pane
+// supports, which is the contract's intent. The floor and the ellipsis are a
+// backstop: if a caller ever hands this an unabbreviated value again, it
+// truncates inside its own box rather than sliding underneath the tag pill.
 .md3-history__sha {
-  flex: none;
+  flex: 0 1 auto;
   font-family: var(--font-family-monospace);
+  min-width: 0;
   opacity: 0.75;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 // The tag pill.

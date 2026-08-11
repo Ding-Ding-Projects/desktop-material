@@ -16,6 +16,7 @@ import { IMd3HistoryCommit } from './md3-history-view'
 export const md3HistoryCommitFixtures: ReadonlyArray<IMd3HistoryCommit> = [
   {
     sha: '4f1c9ae',
+    shortSha: '4f1c9ae',
     summary: 'Rewrite history panel surfaces on MD3 tonal containers',
     body: 'Replaces stacked pane borders with tonal containers, moves secondary actions into overflow menus, and turns commit detail into a right-anchored sheet over the diff.',
     author: 'Alice Lindqvist',
@@ -27,6 +28,7 @@ export const md3HistoryCommitFixtures: ReadonlyArray<IMd3HistoryCommit> = [
     isMine: true,
     pinned: false,
     kind: 'verified',
+    statsLoaded: true,
     addedLineCount: 218,
     deletedLineCount: 96,
     changedFileCount: 4,
@@ -34,6 +36,7 @@ export const md3HistoryCommitFixtures: ReadonlyArray<IMd3HistoryCommit> = [
   },
   {
     sha: '9b7de20',
+    shortSha: '9b7de20',
     summary: 'Add anchored regex builder to every search field',
     body: 'Each search field now owns its own builder, bound to that field’s query, pattern, flags and mode.',
     author: 'Alice Lindqvist',
@@ -45,6 +48,7 @@ export const md3HistoryCommitFixtures: ReadonlyArray<IMd3HistoryCommit> = [
     isMine: true,
     pinned: true,
     kind: 'verified',
+    statsLoaded: true,
     addedLineCount: 411,
     deletedLineCount: 38,
     changedFileCount: 4,
@@ -52,6 +56,7 @@ export const md3HistoryCommitFixtures: ReadonlyArray<IMd3HistoryCommit> = [
   },
   {
     sha: 'c30a8f1',
+    shortSha: 'c30a8f1',
     summary: 'Release 3.5.0',
     body: 'Version bump and changelog for the 3.5.0 release.',
     author: 'Ravi Chandran',
@@ -63,6 +68,7 @@ export const md3HistoryCommitFixtures: ReadonlyArray<IMd3HistoryCommit> = [
     isMine: false,
     pinned: false,
     kind: 'verified',
+    statsLoaded: true,
     addedLineCount: 12,
     deletedLineCount: 3,
     changedFileCount: 4,
@@ -70,6 +76,7 @@ export const md3HistoryCommitFixtures: ReadonlyArray<IMd3HistoryCommit> = [
   },
   {
     sha: '77ab4c9',
+    shortSha: '77ab4c9',
     summary: 'Merge branch ’feature/inbox’ into development',
     body: 'Brings the notification inbox onto development.',
     author: 'Mira Okonkwo',
@@ -81,6 +88,7 @@ export const md3HistoryCommitFixtures: ReadonlyArray<IMd3HistoryCommit> = [
     isMine: false,
     pinned: false,
     kind: 'merge',
+    statsLoaded: true,
     addedLineCount: 903,
     deletedLineCount: 140,
     changedFileCount: 4,

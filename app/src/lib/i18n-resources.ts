@@ -5059,6 +5059,7 @@ export type TranslationKey =
   | 'md3.history.empty'
   | 'md3.history.byline'
   | 'md3.history.detail'
+  | 'md3.history.detailWithoutStats'
   | 'md3.history.kind.merge'
   | 'md3.history.kind.verified'
   | 'md3.history.kind.unverified'
@@ -11595,6 +11596,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'md3.history.empty': 'No commits match this filter.',
   'md3.history.byline': '{author} · {time}',
   'md3.history.detail': '{stat} · {files} files · {kind} · {branch}',
+  'md3.history.detailWithoutStats': '{kind} · {branch}',
   'md3.history.kind.merge': 'merge commit',
   'md3.history.kind.verified': 'verified',
   'md3.history.kind.unverified': 'unverified',
@@ -17776,6 +17778,7 @@ export const cantoneseTranslations: Readonly<
   'md3.history.empty': '呢個篩選冇夾到任何 commit。',
   'md3.history.byline': '{author} · {time}',
   'md3.history.detail': '{stat} · {files} 個檔案 · {kind} · {branch}',
+  'md3.history.detailWithoutStats': '{kind} · {branch}',
   'md3.history.kind.merge': 'merge commit',
   'md3.history.kind.verified': '驗證過',
   'md3.history.kind.unverified': '未驗證',

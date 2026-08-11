@@ -65,8 +65,22 @@ export type Md3CommitKind = 'merge' | 'verified' | 'unverified'
 
 /** One commit in the left-hand list. */
 export interface IMd3HistoryCommit {
-  /** The short SHA the byline and the detail sheet render. Also the row key. */
+  /**
+   * The full SHA. It is the row key and the value every action is performed
+   * against — revert, cherry-pick, copy, open on the forge — so it must never
+   * be shortened here. `shortSha` is what the interface renders.
+   */
   readonly sha: string
+
+  /**
+   * The abbreviated SHA the byline and the detail sheet show.
+   *
+   * This is a display value, not an identity. Rendering the full 40 characters
+   * in the byline is what made the commit list unreadable: at monospace 11px it
+   * consumes the entire 356px pane, squeezing the author and the relative time
+   * out of sight and spilling under the tag pill beside it.
+   */
+  readonly shortSha: string
 
   /** The first line of the commit message. */
   readonly summary: string
@@ -76,6 +90,14 @@ export interface IMd3HistoryCommit {
 
   /** The author's display name; the avatar shows its initials. */
   readonly author: string
+
+  /**
+   * Whether `addedLineCount`, `deletedLineCount` and `changedFileCount` are
+   * real. They are loaded per selected commit, so they are zero — not absent —
+   * for every other row, and a zero that means "not known" must not render as
+   * a zero that means "nothing changed".
+   */
+  readonly statsLoaded: boolean
 
   /** "12 minutes ago" — used while `showAbsoluteDates` is off. */
   readonly relativeTime: string
@@ -341,6 +363,17 @@ export function formatMd3CommitDetail(commit: IMd3HistoryCommit): string {
       ? t('md3.history.kind.verified')
       : t('md3.history.kind.unverified')
 
+  // The line counts only exist once a commit's changeset has been loaded, and
+  // that happens for the selected commit alone. Rendering "+0 -0 - 0 files" for
+  // every other row states that those commits changed nothing, which is a
+  // confident lie about every commit in the list but one. Say nothing instead.
+  if (!commit.statsLoaded) {
+    return t('md3.history.detailWithoutStats', {
+      kind,
+      branch: commit.branchName,
+    })
+  }
+
   return t('md3.history.detail', {
     stat: formatAddDelete(commit.addedLineCount, commit.deletedLineCount),
     files: String(commit.changedFileCount),
@@ -501,7 +534,7 @@ const Md3HistoryRow = React.memo(function Md3HistoryRow(
             <span className="md3-history__byline-text">
               {t('md3.history.byline', { author: commit.author, time })}
             </span>
-            <span className="md3-history__sha">{commit.sha}</span>
+            <span className="md3-history__sha">{commit.shortSha}</span>
           </span>
           <span className="md3-row__detail md3-row__detail--inline">
             {formatMd3CommitDetail(commit)}

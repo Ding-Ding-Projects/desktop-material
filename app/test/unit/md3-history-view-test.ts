@@ -117,4 +117,70 @@ describe('md3 history view', () => {
       )
     )
   })
+  // Reported from the running app: commit summaries truncated to a few
+  // characters, and the tag pill drawn over the SHA with the author and the
+  // relative time nowhere to be seen. One chain caused all of it — the adapter
+  // put the full forty-character SHA into a field documented as abbreviated,
+  // and at monospace 11px that consumes the whole 356px pane.
+  describe('commit byline', () => {
+    it('renders the abbreviated SHA, never the full one', () => {
+      for (const commit of md3HistoryCommitFixtures) {
+        assert.equal(
+          commit.shortSha.length,
+          7,
+          `${commit.sha} should render as 7 characters, not ${commit.shortSha.length}`
+        )
+        assert.ok(
+          commit.sha.startsWith(commit.shortSha),
+          'the abbreviation must be a prefix of the identity it stands for'
+        )
+        // The full-SHA regression itself belongs to the adapter, which is the
+        // only thing that can produce one — these contract fixtures already
+        // use seven characters and so could never reproduce it. See
+        // md3-history-commits-adapter-test.ts.
+      }
+    })
+
+    it('carries an author and a relative time to render beside it', () => {
+      for (const commit of md3HistoryCommitFixtures) {
+        assert.ok(
+          commit.author.trim().length > 0,
+          `${commit.shortSha} has no author, so the byline reads as a bare SHA`
+        )
+        assert.ok(
+          commit.relativeTime.trim().length > 0,
+          `${commit.shortSha} has no relative time — "how long ago" is the ` +
+            'single most-read value on the row'
+        )
+        assert.ok(commit.absoluteTime.trim().length > 0)
+      }
+    })
+  })
+
+  describe('commit detail line', () => {
+    it('says nothing about line counts it has not loaded', () => {
+      const [loaded] = md3HistoryCommitFixtures
+      const unloaded = { ...loaded, statsLoaded: false }
+
+      const text = formatMd3CommitDetail(unloaded)
+
+      // A zero meaning "not known yet" must never render as a zero meaning
+      // "this commit changed nothing" — that is a confident lie about every
+      // row in the list except the selected one.
+      assert.ok(
+        !/0 files/.test(text),
+        `unloaded detail line still claims a file count: "${text}"`
+      )
+      assert.ok(!text.includes('+0'), `still claims added lines: "${text}"`)
+      assert.ok(text.includes(unloaded.branchName))
+    })
+
+    it('reports the real counts once they are loaded', () => {
+      const [loaded] = md3HistoryCommitFixtures
+      const text = formatMd3CommitDetail({ ...loaded, statsLoaded: true })
+
+      assert.ok(text.includes(String(loaded.changedFileCount)))
+      assert.ok(text.includes(loaded.branchName))
+    })
+  })
 })

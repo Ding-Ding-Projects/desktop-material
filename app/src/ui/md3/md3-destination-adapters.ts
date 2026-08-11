@@ -293,6 +293,7 @@ export function md3HistoryCommits(
 
     rows.push({
       sha,
+      shortSha: commit.shortSha,
       summary: commit.summary,
       body: commit.bodyNoCoAuthors,
       author: commit.author.name,
@@ -304,6 +305,7 @@ export function md3HistoryCommits(
       isMine: source.userEmails.has(commit.author.email.toLowerCase()),
       pinned: source.pinnedShas.has(sha),
       kind: commitKind(commit),
+      statsLoaded: loaded,
       addedLineCount: loaded ? source.changeset.linesAdded : 0,
       deletedLineCount: loaded ? source.changeset.linesDeleted : 0,
       changedFileCount: loaded ? source.changeset.fileCount : 0,
