@@ -440,13 +440,18 @@ function Ensure-PrintenvzExecutable {
 function Test-CurrentNativeOutputs {
   param(
     [Parameter(Mandatory = $true)][string]$SourceRoot,
-    [Parameter(Mandatory = $true)][string[]]$OutputPaths
+    [Parameter(Mandatory = $true)][string[]]$OutputPaths,
+    [string[]]$IgnoredSourceNames = @(),
+    [int]$FreshnessToleranceMilliseconds = 0
   )
 
   if (-not (Test-Path -LiteralPath $SourceRoot -PathType Container)) {
     return $false
   }
-  $sourceFiles = @(Get-ChildItem -LiteralPath $SourceRoot -File -Recurse)
+  $sourceFiles = @(
+    Get-ChildItem -LiteralPath $SourceRoot -File -Recurse |
+      Where-Object { $_.Name -notin $IgnoredSourceNames }
+  )
   if (
     $sourceFiles.Count -eq 0 -or
     @(
@@ -460,6 +465,9 @@ function Test-CurrentNativeOutputs {
   $latestSource = $sourceFiles |
     Sort-Object LastWriteTimeUtc -Descending |
     Select-Object -First 1
+  $freshnessFloor = $latestSource.LastWriteTimeUtc.AddMilliseconds(
+    -$FreshnessToleranceMilliseconds
+  )
   foreach ($outputPath in $OutputPaths) {
     if (-not (Test-Path -LiteralPath $outputPath -PathType Leaf)) {
       return $false
@@ -468,7 +476,7 @@ function Test-CurrentNativeOutputs {
     if (
       $output.Length -le 0 -or
       ($output.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 -or
-      $output.LastWriteTimeUtc -lt $latestSource.LastWriteTimeUtc
+      $output.LastWriteTimeUtc -lt $freshnessFloor
     ) {
       return $false
     }
@@ -647,6 +655,8 @@ function Test-WarmNativeDependencyCache {
   $requirements = @(
     [pscustomobject]@{
       SourceRoot = Join-Path $RepositoryRoot 'vendor\windows-argv-parser'
+      IgnoredSourceNames = @()
+      FreshnessToleranceMilliseconds = 0
       OutputPaths = @(
         (Join-Path $RepositoryRoot 'app\node_modules\windows-argv-parser\build\index.js'),
         (Join-Path $RepositoryRoot 'app\node_modules\windows-argv-parser\build\Release\windows-argv-parser.node')
@@ -654,6 +664,8 @@ function Test-WarmNativeDependencyCache {
     },
     [pscustomobject]@{
       SourceRoot = Join-Path $RepositoryRoot 'vendor\desktop-notifications'
+      IgnoredSourceNames = @()
+      FreshnessToleranceMilliseconds = 0
       OutputPaths = @(
         (Join-Path $RepositoryRoot 'app\node_modules\desktop-notifications\dist\index.js'),
         (Join-Path $RepositoryRoot 'app\node_modules\desktop-notifications\build\Release\desktop-notifications.node')
@@ -661,6 +673,8 @@ function Test-WarmNativeDependencyCache {
     },
     [pscustomobject]@{
       SourceRoot = Join-Path $RepositoryRoot 'vendor\desktop-trampoline'
+      IgnoredSourceNames = @()
+      FreshnessToleranceMilliseconds = 0
       OutputPaths = @(
         (Join-Path $RepositoryRoot 'app\node_modules\desktop-trampoline\dist\index.js'),
         (Join-Path $RepositoryRoot 'app\node_modules\desktop-trampoline\build\Release\desktop-askpass-trampoline.exe'),
@@ -669,6 +683,8 @@ function Test-WarmNativeDependencyCache {
     },
     [pscustomobject]@{
       SourceRoot = Join-Path $RepositoryRoot 'vendor\printenvz'
+      IgnoredSourceNames = @('package-lock.json')
+      FreshnessToleranceMilliseconds = 2
       OutputPaths = @(
         (Join-Path $RepositoryRoot 'node_modules\printenvz\index.js'),
         (Join-Path $RepositoryRoot 'node_modules\printenvz\build\Release\printenvz.exe')
@@ -681,7 +697,9 @@ function Test-WarmNativeDependencyCache {
       -not (
         Test-CurrentNativeOutputs `
           -SourceRoot $requirement.SourceRoot `
-          -OutputPaths $requirement.OutputPaths
+          -OutputPaths $requirement.OutputPaths `
+          -IgnoredSourceNames $requirement.IgnoredSourceNames `
+          -FreshnessToleranceMilliseconds $requirement.FreshnessToleranceMilliseconds
       )
     ) {
       return $false

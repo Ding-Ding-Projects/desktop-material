@@ -101,10 +101,7 @@ describe('one-click Windows build contract', () => {
     assert.match(source, /function Test-CurrentNativeOutputs/)
     assert.match(source, /\$output\.Length -le 0/)
     assert.match(source, /FileAttributes\]::ReparsePoint/)
-    assert.match(
-      source,
-      /\$output\.LastWriteTimeUtc -lt \$latestSource\.LastWriteTimeUtc/
-    )
+    assert.match(source, /\$output\.LastWriteTimeUtc -lt \$freshnessFloor/)
     assert.match(source, /function Test-WarmNativeDependencyCache/)
     for (const artifact of [
       'windows-argv-parser\\build\\index.js',
@@ -147,6 +144,67 @@ describe('one-click Windows build contract', () => {
     assert.ok(
       requiredOutputs > install,
       'every path must verify native outputs after install or reuse'
+    )
+  })
+
+  it('bounds only printenvz lock metadata and timestamp rounding for native freshness', async () => {
+    const source = await read('script/build-windows.ps1')
+
+    assert.match(source, /\[string\[\]\]\$IgnoredSourceNames = @\(\)/)
+    assert.match(
+      source,
+      /Where-Object \{ \$_\.Name -notin \$IgnoredSourceNames \}/
+    )
+    assert.match(
+      source,
+      /SourceRoot = Join-Path \$RepositoryRoot 'vendor\\printenvz'[\s\S]*?IgnoredSourceNames = @\('package-lock\.json'\)[\s\S]*?FreshnessToleranceMilliseconds = 2/
+    )
+    assert.equal(
+      source.match(/IgnoredSourceNames = @\('package-lock\.json'\)/g)?.length,
+      1,
+      'only printenvz may ignore its generated package-lock timestamp'
+    )
+    assert.equal(
+      source.match(/FreshnessToleranceMilliseconds = 2/g)?.length,
+      1,
+      'only printenvz may allow the observed one-millisecond copy rounding'
+    )
+    assert.match(source, /\[int\]\$FreshnessToleranceMilliseconds = 0/)
+    assert.match(
+      source,
+      /\$freshnessFloor = \$latestSource\.LastWriteTimeUtc\.AddMilliseconds/
+    )
+    assert.match(source, /\$output\.LastWriteTimeUtc -lt \$freshnessFloor/)
+    assert.match(source, /\$output\.Length -le 0/)
+    assert.match(source, /FileAttributes\]::ReparsePoint/)
+
+    const filteredSources = source.indexOf(
+      'Where-Object { $_.Name -notin $IgnoredSourceNames }'
+    )
+    const latestSource = source.indexOf('$latestSource = $sourceFiles')
+    const freshnessFloor = source.indexOf(
+      '$freshnessFloor = $latestSource.LastWriteTimeUtc.AddMilliseconds'
+    )
+    const warmIntegrity = source.lastIndexOf(
+      'Test-FrozenDependencyIntegrity -NodePath $node'
+    )
+    const warmPredicate = source.lastIndexOf(
+      'if (-not (Test-WarmNativeDependencyCache -NodePath $node))'
+    )
+
+    assert.ok(filteredSources > 0, 'lock metadata must be filtered explicitly')
+    assert.ok(
+      latestSource > filteredSources,
+      'freshness must use the filtered source set'
+    )
+    assert.ok(
+      freshnessFloor > latestSource,
+      'the bounded copy-rounding allowance must follow source selection'
+    )
+    assert.ok(warmIntegrity > 0, 'frozen lock integrity must remain required')
+    assert.ok(
+      warmPredicate > warmIntegrity,
+      'native validation must still follow frozen lock integrity'
     )
   })
 
