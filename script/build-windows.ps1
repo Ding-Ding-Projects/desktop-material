@@ -525,7 +525,26 @@ if (JSON.stringify(actual) !== '["alpha","beta gamma"]') process.exit(1)
   }
 }
 
-function Restore-WindowsArgvParserFromBuildCache {
+function Test-WindowsArgvParserAddon {
+  param(
+    [Parameter(Mandatory = $true)][string]$NodePath,
+    [Parameter(Mandatory = $true)][string]$AddonPath
+  )
+
+  $probe = @'
+const parser = require(process.argv[1])
+const actual = parser.parseCommandLineArgv('alpha "beta gamma"')
+if (JSON.stringify(actual) !== '["alpha","beta gamma"]') process.exit(1)
+'@
+  try {
+    & $NodePath -e $probe $AddonPath *> $null
+    return $LASTEXITCODE -eq 0
+  } catch {
+    return $false
+  }
+}
+
+function New-WindowsArgvParserRecoverySnapshot {
   param([Parameter(Mandatory = $true)][string]$NodePath)
 
   $sourceRoot = Join-Path $RepositoryRoot 'vendor\windows-argv-parser'
@@ -535,6 +554,56 @@ function Restore-WindowsArgvParserFromBuildCache {
       Test-CurrentNativeOutputs `
         -SourceRoot $sourceRoot `
         -OutputPaths @($cachedAddon)
+    ) -or
+    -not (
+      Test-WindowsArgvParserAddon `
+        -NodePath $NodePath `
+        -AddonPath $cachedAddon
+    )
+  ) {
+    return $null
+  }
+
+  $snapshotPath = Join-Path ([IO.Path]::GetTempPath()) (
+    "desktop-material-windows-argv-parser-$PID-$([guid]::NewGuid().ToString('N')).node"
+  )
+  Copy-Item -LiteralPath $cachedAddon -Destination $snapshotPath
+  $snapshot = Get-Item -LiteralPath $snapshotPath
+  if (
+    $snapshot.Length -le 0 -or
+    ($snapshot.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0
+  ) {
+    Remove-Item -LiteralPath $snapshotPath -Force -ErrorAction SilentlyContinue
+    return $null
+  }
+  $hash = (Get-FileHash -LiteralPath $snapshotPath -Algorithm SHA256).Hash
+  Write-Phase 'Preserved the verified windows-argv-parser recovery input across output cleanup and dependency installation'
+  return [pscustomobject]@{
+    Path = $snapshotPath
+    Hash = $hash
+  }
+}
+
+function Restore-WindowsArgvParserFromBuildCache {
+  param(
+    [Parameter(Mandatory = $true)][string]$NodePath,
+    [Parameter(Mandatory = $true)][pscustomobject]$RecoverySnapshot
+  )
+
+  $sourceRoot = Join-Path $RepositoryRoot 'vendor\windows-argv-parser'
+  $cachedAddon = [string]$RecoverySnapshot.Path
+  if (
+    -not (
+      Test-CurrentNativeOutputs `
+        -SourceRoot $sourceRoot `
+        -OutputPaths @($cachedAddon)
+    ) -or
+    (Get-FileHash -LiteralPath $cachedAddon -Algorithm SHA256).Hash -ne
+      [string]$RecoverySnapshot.Hash -or
+    -not (
+      Test-WindowsArgvParserAddon `
+        -NodePath $NodePath `
+        -AddonPath $cachedAddon
     )
   ) {
     return $false
@@ -693,7 +762,10 @@ try {
   $yarn = Resolve-VendoredYarn -NodePath $node
 
   Push-Location $RepositoryRoot
+  $windowsArgvParserRecoverySnapshot = $null
   try {
+    $windowsArgvParserRecoverySnapshot =
+      New-WindowsArgvParserRecoverySnapshot -NodePath $node
     Remove-BoundedBuildOutput
     $env:npm_config_arch = $TargetArchitecture
     $env:TARGET_ARCH = $TargetArchitecture
@@ -703,9 +775,12 @@ try {
     $reuseWarmDependencies = Test-FrozenDependencyIntegrity -NodePath $node -YarnPath $yarn
     if (
       $reuseWarmDependencies -and
-      -not (Test-WarmNativeDependencyCache -NodePath $node)
+      -not (Test-WarmNativeDependencyCache -NodePath $node) -and
+      $null -ne $windowsArgvParserRecoverySnapshot
     ) {
-      $null = Restore-WindowsArgvParserFromBuildCache -NodePath $node
+      $null = Restore-WindowsArgvParserFromBuildCache `
+        -NodePath $node `
+        -RecoverySnapshot $windowsArgvParserRecoverySnapshot
       $reuseWarmDependencies = Test-WarmNativeDependencyCache -NodePath $node
     }
     if ($reuseWarmDependencies) {
@@ -713,6 +788,14 @@ try {
     } else {
       Write-Phase 'Installing exact dependencies from the frozen lockfile'
       Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'install', '--frozen-lockfile', '--non-interactive', '--production=false') -FailureLabel 'Frozen dependency installation'
+    }
+    if (
+      -not (Test-WarmNativeDependencyCache -NodePath $node) -and
+      $null -ne $windowsArgvParserRecoverySnapshot
+    ) {
+      $null = Restore-WindowsArgvParserFromBuildCache `
+        -NodePath $node `
+        -RecoverySnapshot $windowsArgvParserRecoverySnapshot
     }
     if (-not (Test-WarmNativeDependencyCache -NodePath $node)) {
       throw 'The frozen dependency tree is missing a current, nonempty local native output or the windows-argv-parser runtime probe failed.'
@@ -773,6 +856,12 @@ try {
       }
     }
   } finally {
+    if (
+      $null -ne $windowsArgvParserRecoverySnapshot -and
+      (Test-Path -LiteralPath $windowsArgvParserRecoverySnapshot.Path -PathType Leaf)
+    ) {
+      Remove-Item -LiteralPath $windowsArgvParserRecoverySnapshot.Path -Force
+    }
     Pop-Location
   }
 

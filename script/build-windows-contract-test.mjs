@@ -155,7 +155,11 @@ describe('one-click Windows build contract', () => {
 
     assert.match(
       source,
-      /function Restore-WindowsArgvParserFromBuildCache[\s\S]*?out\\windows-argv-parser\.node/
+      /function New-WindowsArgvParserRecoverySnapshot[\s\S]*?out\\windows-argv-parser\.node/
+    )
+    assert.match(
+      source,
+      /function Restore-WindowsArgvParserFromBuildCache[\s\S]*?\$RecoverySnapshot\.Path/
     )
     assert.match(
       source,
@@ -186,6 +190,66 @@ describe('one-click Windows build contract', () => {
     assert.match(
       source,
       /throw 'The frozen dependency tree is missing a current, nonempty local native output/
+    )
+  })
+
+  it('preserves recovery state across cleanup and restores it after a successful fallback install', async () => {
+    const source = await read('script/build-windows.ps1')
+
+    assert.match(source, /function New-WindowsArgvParserRecoverySnapshot/)
+    assert.match(source, /Test-WindowsArgvParserAddon/)
+    assert.match(source, /\[IO\.Path\]::GetTempPath\(\)/)
+    assert.match(source, /\[guid\]::NewGuid\(\)/)
+    assert.match(source, /Get-FileHash[^\n]+SHA256/)
+    assert.match(
+      source,
+      /\$RecoverySnapshot\.Hash[\s\S]*?Test-WindowsArgvParserAddon/
+    )
+
+    const snapshot = source.lastIndexOf(
+      'New-WindowsArgvParserRecoverySnapshot -NodePath $node'
+    )
+    const cleanup = source.lastIndexOf('Remove-BoundedBuildOutput')
+    const preInstallRestore = source.indexOf(
+      'Restore-WindowsArgvParserFromBuildCache',
+      snapshot
+    )
+    const install = source.lastIndexOf("'install', '--frozen-lockfile'")
+    const postInstallRestore = source.indexOf(
+      'Restore-WindowsArgvParserFromBuildCache',
+      install
+    )
+    const finalProbe = source.lastIndexOf(
+      'if (-not (Test-WarmNativeDependencyCache -NodePath $node))'
+    )
+    const snapshotDelete = source.lastIndexOf(
+      'Remove-Item -LiteralPath $windowsArgvParserRecoverySnapshot.Path'
+    )
+
+    assert.ok(snapshot > 0, 'verified recovery input must be snapshotted')
+    assert.ok(cleanup > snapshot, 'snapshot must precede output cleanup')
+    assert.ok(
+      preInstallRestore > cleanup && preInstallRestore < install,
+      'warm recovery may run before the fallback install'
+    )
+    assert.ok(
+      postInstallRestore > install && postInstallRestore < finalProbe,
+      'a successful fallback install must be followed by recovery before the final probe'
+    )
+    assert.ok(
+      snapshotDelete > finalProbe,
+      'the exact snapshot must be cleaned in finally'
+    )
+
+    const fallback = source.slice(preInstallRestore, postInstallRestore)
+    assert.match(
+      fallback,
+      /Invoke-Checked[\s\S]*?Frozen dependency installation/
+    )
+    assert.doesNotMatch(
+      fallback,
+      /catch\s*\{/,
+      'a failed fallback install must remain fatal before post-install recovery'
     )
   })
 
