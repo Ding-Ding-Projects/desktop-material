@@ -145,7 +145,7 @@ interface IMd3RegexTokenGroup {
 }
 
 /** The contract's four token groups, verbatim. */
-const Md3RegexTokenGroups: ReadonlyArray<IMd3RegexTokenGroup> = [
+export const Md3RegexTokenGroups: ReadonlyArray<IMd3RegexTokenGroup> = [
   {
     id: 'anchors',
     titleKey: 'md3.regexBuilder.group.anchors',
