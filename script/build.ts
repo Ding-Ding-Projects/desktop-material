@@ -8,7 +8,7 @@ import * as os from 'os'
 import * as path from 'path'
 import { getPrintenvzPath } from 'printenvz'
 import { getProxyCommandPath } from 'process-proxy'
-import { externals } from '../app/webpack.common'
+import { externals, rendererBundleNames } from '../app/webpack.common'
 
 interface IChooseALicense {
   readonly title: string
@@ -69,7 +69,6 @@ const entitlementsPath = `${projectRoot}/script/entitlements${entitlementsSuffix
 const extendInfoPath = `${projectRoot}/script/info.plist`
 const outRoot = path.join(projectRoot, 'out')
 
-const rendererBundleNames = ['renderer.js', 'internal-browser.js'] as const
 const buildKeepAliveIntervalMilliseconds = 60_000
 
 type ProcessKeepAliveScheduler = (

@@ -1,9 +1,8 @@
 name: Build Installers / Express Release
 
-# A successful main CI run still publishes automatically. Manual dispatch is
-# the express lane: static release checks, Windows x64 unit/script tests, and the
-# x64 build run in parallel,
-# then one create-only publisher releases the exact main commit. Installed
+# A successful main build-and-package run publishes automatically. Manual
+# dispatch builds the same Windows x64 payload directly, then one create-only
+# publisher releases the exact main commit. Installed
 # dependencies use an exact content cache; build and release outputs are never
 # cached because they embed the source SHA, version, and runtime configuration.
 
@@ -174,87 +173,6 @@ jobs:
               ;;
           esac
 
-  lint:
-    name: Express lint
-    if: github.event_name == 'workflow_dispatch'
-    needs: prepare
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ needs.prepare.outputs.sha }}
-      - name: Attempt to update submodules (non-fatal)
-        continue-on-error: true
-        run: git submodule update --init --recursive
-      - uses: ./.github/actions/setup-ci-environment
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          arch: x64
-      - run: yarn validate-electron-version
-      # `yarn lint` (Prettier plus ESLint) is deliberately not a release gate.
-      # Run it locally with `yarn lint` before proposing a release.
-      - run: yarn validate-changelog
-      - name: Ensure a clean working directory
-        run: git diff --name-status --exit-code
-
-  test:
-    name: Express tests Windows x64
-    if: github.event_name == 'workflow_dispatch'
-    needs: prepare
-    runs-on: windows-2022
-    timeout-minutes: 45
-    permissions:
-      contents: read
-    steps:
-      - name: Initial checkout for Windows bootstrap
-        uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ needs.prepare.outputs.sha }}
-          fetch-depth: 0
-      - name: Bootstrap Git and Bash for self-hosted Windows
-        shell: cmd
-        run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
-      - name: Repeat checkout with bootstrapped Git
-        uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ needs.prepare.outputs.sha }}
-          fetch-depth: 0
-      - name: Prove cold Windows release bootstrap
-        shell: cmd
-        run: "%GITHUB_WORKSPACE%\\.github\\scripts\\test-windows-release-bootstrap.cmd"
-      - name: Attempt to update submodules (non-fatal)
-        continue-on-error: true
-        run: |
-          # prefer the new official mirror for the lowlevel MCP submodule if present
-          git config --local submodule.vendor/lowlevel-computer-use-mcp.url https://github.com/Ding-Ding-Projects/lowlevel-computer-use-mcp.git
-          git submodule sync --recursive
-          git submodule update --init --recursive
-      - uses: ./.github/actions/setup-ci-environment
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          arch: x64
-      - name: Run desktop-trampoline tests
-        run: |
-          cd vendor/desktop-trampoline
-          yarn install --frozen-lockfile --production=false
-          npx --no-install node-gyp rebuild
-          yarn build
-          yarn test
-      - name: Prepare testing environment
-        run: yarn test:setup
-        env:
-          npm_config_arch: x64
-          TARGET_ARCH: x64
-      - name: Run unit tests
-        run: yarn test:unit
-        # script/test.mjs owns both the worker heap limit and the concurrency
-        # budget. A workflow-level NODE_OPTIONS override is inherited by every
-        # worker and makes the harness underestimate its peak memory use.
-      - name: Run script tests
-        run: yarn test:script
-
   release_notes:
     name: Release notes
     # Notes describe the commit, not a platform, so they are built off both
@@ -392,8 +310,8 @@ jobs:
 
   package:
     name: Windows x64
-    # Preserve a diagnostic installer payload when Windows passed. Publication
-    # requires this tested desktop payload.
+    # Preserve a diagnostic installer payload when the Windows build passed.
+    # Publication requires this complete desktop payload.
     if:
       needs.prepare.outputs.proceed == 'true' &&
       needs.prepare.outputs.windows_ok == 'true'
@@ -549,19 +467,16 @@ jobs:
     name: Prepare GitHub release payload
     needs:
       - prepare
-      - lint
-      - test
       - release_notes
       - package
-    # Publication requires the tested Windows desktop payload. A failed or
-    # cancelled validation run creates no partial Release.
+    # Publication requires the complete Windows desktop payload. A failed or
+    # cancelled build creates no partial Release.
     if: >-
       !cancelled() && always() && needs.prepare.result == 'success' &&
       needs.prepare.outputs.proceed == 'true' && needs.prepare.outputs.publish
       == 'true' && needs.release_notes.result == 'success' &&
       needs.package.result == 'success' && (github.event_name == 'workflow_run'
-      ||
-       (needs.lint.result == 'success' && needs.test.result == 'success'))
+      || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       actions: read

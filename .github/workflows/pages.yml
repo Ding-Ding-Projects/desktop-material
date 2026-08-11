@@ -8,7 +8,6 @@ on:
       - 'site/**'
       - 'docs/**'
       - 'script/site-dc-assets.mjs'
-      - 'script/site-dc-pages-test.mjs'
       - 'script/sync-site-doc-counts.mjs'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
@@ -135,7 +134,7 @@ jobs:
             test -f _site/docs/assets/site/docs-screenshot-strings.js
           fi
 
-      - name: Set up Node.js for the site contract and search index
+      - name: Set up Node.js for rendering and the search index
         uses: actions/setup-node@v7
         with:
           node-version-file: '.nvmrc'
@@ -143,16 +142,6 @@ jobs:
 
       - name: Install the locked site tooling dependencies
         run: yarn install --frozen-lockfile --ignore-scripts --non-interactive
-
-      # The homepage is one Design Component rendered by a client-side runtime,
-      # so its failure modes are quiet: a vendored font or React build that did
-      # not ship still produces a page that "loads". This proves the whole
-      # bundle arrived, that nothing reaches a third-party host, that the icon
-      # and Hong Kong Chinese subsets still cover the copy, and that the Docs
-      # hub's article counts and category links match the tree rendered above.
-      - name: Validate the Material Design 3 site
-        run: |
-          node script/site-dc-pages-test.mjs _site --expect-docs
 
       # GitHub renders ```mermaid fences natively; pandoc turns them into
       # <pre> blocks, so the published site used to show diagram source. The

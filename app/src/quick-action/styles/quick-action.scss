@@ -7,29 +7,39 @@
 // defined so the panel follows the OS setting without a theme store.
 
 :root {
-  --qa-primary: #4a5aa8;
+  --qa-primary: #1c6b34;
   --qa-on-primary: #ffffff;
-  --qa-surface: #fbf8ff;
-  --qa-surface-container: #eff0fa;
-  --qa-on-surface: #1a1b21;
-  --qa-on-surface-variant: #45464f;
-  --qa-outline: #767680;
+  --qa-primary-container: #a9f6b4;
+  --qa-on-primary-container: #00210b;
+  --qa-surface: #f7fbf2;
+  --qa-surface-container-low: #f1f5ec;
+  --qa-surface-container: #ebefe6;
+  --qa-surface-container-high: #e5e9e1;
+  --qa-on-surface: #191d18;
+  --qa-on-surface-variant: #424940;
+  --qa-outline: #72796f;
+  --qa-outline-variant: #c2c9bd;
   --qa-error: #ba1a1a;
   --qa-success: #146c2e;
-  --qa-radius-l: 16px;
+  --qa-radius-l: 20px;
   --qa-radius-m: 12px;
   --qa-radius-s: 8px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --qa-primary: #b9c3ff;
-    --qa-on-primary: #1a2b78;
-    --qa-surface: #121318;
-    --qa-surface-container: #1e1f25;
-    --qa-on-surface: #e3e1e9;
-    --qa-on-surface-variant: #c6c5d0;
-    --qa-outline: #90909a;
+    --qa-primary: #8ed99a;
+    --qa-on-primary: #003918;
+    --qa-primary-container: #005322;
+    --qa-on-primary-container: #a9f6b4;
+    --qa-surface: #101410;
+    --qa-surface-container-low: #181d18;
+    --qa-surface-container: #1c211c;
+    --qa-surface-container-high: #262b26;
+    --qa-on-surface: #e0e4dc;
+    --qa-on-surface-variant: #c0c9bf;
+    --qa-outline: #8a938a;
+    --qa-outline-variant: #414941;
     --qa-error: #ffb4ab;
     --qa-success: #7cdc94;
   }
@@ -44,7 +54,7 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  background: var(--qa-surface);
+  background: var(--qa-surface-container-low);
   color: var(--qa-on-surface);
   font-family: system-ui, 'Segoe UI Variable Text', 'Segoe UI', 'Noto Sans HK', 'Microsoft JhengHei', sans-serif;
   font-size: 14px;
@@ -61,20 +71,23 @@ body {
 .quick-action-window {
   display: flex;
   flex-direction: column;
-  padding: 16px 20px 20px;
-  gap: 4px;
+  padding: 12px;
+  gap: 10px;
 }
 
 .quick-action-header {
   -webkit-app-region: drag;
-  padding-bottom: 8px;
+  padding: 14px 16px;
   flex: 0 0 auto;
+  border-radius: var(--qa-radius-l);
+  background: var(--qa-primary-container);
+  color: var(--qa-on-primary-container);
 }
 
 .quick-action-title {
   margin: 0;
-  font-size: 20px;
-  font-weight: 500;
+  font-size: 21px;
+  font-weight: 650;
   line-height: 1.3;
   // Long folder names must not push the panel wider or clip its controls.
   overflow: hidden;
@@ -85,7 +98,8 @@ body {
 .quick-action-path {
   margin: 2px 0 0;
   font-size: 11px;
-  color: var(--qa-on-surface-variant);
+  color: inherit;
+  opacity: 0.78;
   user-select: text;
   // Keep the tail of the path visible: the leaf folders identify it, and the
   // panel must never grow wider than the window to fit one.
@@ -99,7 +113,8 @@ body {
 .quick-action-branch {
   margin: 2px 0 0;
   font-size: 12px;
-  color: var(--qa-on-surface-variant);
+  color: inherit;
+  opacity: 0.86;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -111,9 +126,15 @@ body {
   gap: 10px;
   flex: 1 1 auto;
   min-height: 0;
+  padding: 14px;
+  overflow-y: auto;
+  border: 1px solid var(--qa-outline-variant);
+  border-radius: var(--qa-radius-l);
+  background: var(--qa-surface);
 }
 
 .quick-action-status {
+  min-height: 20px;
   margin: 0;
   font-size: 13px;
   color: var(--qa-on-surface-variant);
@@ -134,10 +155,11 @@ body {
   -webkit-app-region: no-drag;
   user-select: text;
   width: 100%;
-  padding: 10px 12px;
-  border-radius: var(--qa-radius-s);
-  border: 1px solid var(--qa-outline);
-  background: var(--qa-surface-container);
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: var(--qa-radius-m);
+  border: 1px solid transparent;
+  background: var(--qa-surface-container-high);
   color: inherit;
   font: inherit;
 
@@ -188,8 +210,8 @@ body {
 }
 
 .quick-action-secondary {
-  border: 1px solid var(--qa-outline);
-  background: transparent;
+  border: 1px solid var(--qa-outline-variant);
+  background: var(--qa-surface-container);
   color: var(--qa-primary);
 }
 
@@ -208,6 +230,28 @@ body {
 
 .quick-action-error {
   color: var(--qa-error);
+}
+
+@media (max-width: 420px), (max-height: 350px) {
+  .quick-action-window {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .quick-action-header,
+  .quick-action-body {
+    padding: 10px 12px;
+    border-radius: 16px;
+  }
+
+  .quick-action-actions {
+    flex-direction: column;
+  }
+
+  .quick-action-primary,
+  .quick-action-secondary {
+    width: 100%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

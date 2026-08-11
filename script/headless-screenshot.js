@@ -11,6 +11,7 @@
 
 const path = require('path')
 const { _electron } = require('playwright')
+const { assertCaptureBuildArtifacts } = require('./capture-app')
 
 const repoRoot = path.resolve(__dirname, '..')
 const electronExe =
@@ -20,9 +21,11 @@ const outPng = process.argv[2] || path.join(repoRoot, 'app-shot.png')
 const waitMs = parseInt(process.env.SHOT_WAIT_MS || '5000', 10)
 
 async function main() {
+  const mainPath = path.join(repoRoot, 'out', 'main.js')
+  assertCaptureBuildArtifacts(mainPath)
   const app = await _electron.launch({
     executablePath: electronExe,
-    args: [path.join(repoRoot, 'out', 'main.js')],
+    args: [mainPath],
     env: { ...process.env, NODE_ENV: 'production' },
     cwd: repoRoot,
   })

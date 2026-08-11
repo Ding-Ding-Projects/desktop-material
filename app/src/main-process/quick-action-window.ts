@@ -49,7 +49,7 @@ export class QuickActionWindow {
       fullscreenable: false,
       // Matches the crash window: avoids subpixel-aliasing artefacts on Windows
       // before the renderer paints its own themed background.
-      backgroundColor: '#fff',
+      backgroundColor: '#f7fbf2',
       webPreferences: {
         disableBlinkFeatures: 'Auxclick',
         nodeIntegration: true,

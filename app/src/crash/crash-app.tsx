@@ -1,7 +1,6 @@
 import * as React from 'react'
 import { ErrorType, ICrashDetails } from './shared'
 import { TitleBar } from '../ui/window/title-bar'
-import { encodePathAsUrl } from '../lib/path'
 import { WindowState } from '../lib/window-state'
 import { Octicon } from '../ui/octicons'
 import * as octicons from '../ui/octicons/octicons.generated'
@@ -38,13 +37,6 @@ interface ICrashAppState {
    */
   readonly windowState: WindowState | null
 }
-
-// Note that we're reusing the welcome illustration here, any changes to it
-// will have to be reflected in the welcome flow as well.
-const BottomImageUri = encodePathAsUrl(
-  __dirname,
-  'static/welcome-illustration-left-bottom.svg'
-)
 
 const issuesUri =
   'https://github.com/Ding-Ding-Projects/desktop-material/issues'
@@ -152,9 +144,12 @@ export class CrashApp extends React.Component<ICrashAppProps, ICrashAppState> {
         : `${DefaultAppDisplayName} encountered an error`
 
     return (
-      <header>
+      <header className="crash-heading">
         <Octicon symbol={octicons.stop} className="error-icon" />
-        <h1>{message}</h1>
+        <div>
+          <span className="crash-heading-kicker">Application recovery</span>
+          <h1 id="crash-title">{message}</h1>
+        </div>
       </header>
     )
   }
@@ -214,12 +209,6 @@ export class CrashApp extends React.Component<ICrashAppProps, ICrashAppState> {
     )
   }
 
-  private renderBackgroundGraphics() {
-    return (
-      <img className="background-graphic-bottom" alt="" src={BottomImageUri} />
-    )
-  }
-
   public render() {
     return (
       <div id="crash-app">
@@ -230,11 +219,12 @@ export class CrashApp extends React.Component<ICrashAppProps, ICrashAppState> {
           windowState={this.state.windowState}
         />
         <main>
-          {this.renderTitle()}
-          {this.renderDescription()}
-          {this.renderErrorDetails()}
-          {this.renderFooter()}
-          {this.renderBackgroundGraphics()}
+          <section className="crash-card" aria-labelledby="crash-title">
+            {this.renderTitle()}
+            <div className="crash-copy">{this.renderDescription()}</div>
+            {this.renderErrorDetails()}
+            {this.renderFooter()}
+          </section>
         </main>
       </div>
     )

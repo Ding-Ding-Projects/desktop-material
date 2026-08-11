@@ -126,7 +126,7 @@ export class InternalBrowserWindow {
       minHeight: 520,
       show: false,
       title: DefaultAppDisplayName,
-      backgroundColor: '#f7f7ff',
+      backgroundColor: '#f7fbf2',
       webPreferences: {
         disableBlinkFeatures: 'Auxclick',
         nodeIntegration: true,

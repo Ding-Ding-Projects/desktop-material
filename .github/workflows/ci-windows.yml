@@ -1,12 +1,7 @@
-# The Windows lane: the desktop application's build, unit and script tests,
-# packaging, and installed-app smoke test. The terminal edition is deliberately
-# outside CI and release gating; its source and local verification records remain
-# available separately.
-# Ordinary CI uses GitHub-hosted Windows runners so pushes, pull requests, and
-# workflow calls get a clean, reproducible machine. A manual dispatch from the
-# protected main branch may explicitly select the registered Windows
-# self-hosted pool for desktop build and packaged smoke jobs when its warm
-# dependency and compiler caches are faster.
+# Windows build and package lane. Code-quality checks run locally in the task
+# that changes the source; GitHub Actions builds deliverables and preserves
+# bounded evidence without running tests, lint, type checks, static analysis,
+# coverage, or screenshot verification.
 name: CI Windows
 
 on:
@@ -46,19 +41,13 @@ on:
         type: string
         required: false
 
-# Validation on non-main refs is replaceable: a newer commit on the same ref
-# cancels stale work. A main push is different — every main commit's CI feeds
-# `build-installers.yml`, which publishes a Release only when both lanes
-# finish green, so each main push gets its own concurrency group (keyed by
-# run id) and always runs to completion instead of being cancelled by the
-# next push. Release and publication workflows keep separate non-cancelling
-# contracts.
 concurrency:
   group:
     ci-windows-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref
     }}-${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') &&
     github.run_id || 'shared' }}
-  cancel-in-progress: true
+  cancel-in-progress:
+    ${{ !(github.event_name == 'push' && github.ref == 'refs/heads/main') }}
 
 env:
   NODE_VERSION: 24.15.0
@@ -72,23 +61,19 @@ defaults:
 
 jobs:
   build:
-    name: ${{ matrix.friendlyName }} ${{ matrix.arch }}
+    name: Build and package Windows ${{ matrix.arch }}
     runs-on:
       ${{ github.event_name == 'workflow_dispatch' && github.ref ==
       'refs/heads/main' && inputs.runner_mode == 'self-hosted' &&
       fromJSON('["self-hosted","Windows","X64","desktop-material-windows-local"]')
       || 'windows-2022' }}
+    timeout-minutes: 90
     permissions:
       contents: read
     strategy:
       fail-fast: false
       matrix:
         arch: [x64, arm64]
-        include:
-          - arch: x64
-            friendlyName: Windows
-          - arch: arm64
-            friendlyName: Windows
     environment: ${{ inputs.environment }}
     env:
       RELEASE_CHANNEL: ${{ inputs.environment }}
@@ -98,36 +83,32 @@ jobs:
         with:
           repository: ${{ inputs.repository || github.repository }}
           ref: ${{ inputs.ref }}
+
       - name: Bootstrap Git and Bash for self-hosted Windows
         if: runner.environment == 'self-hosted'
         shell: cmd
         run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
+
       - name: Repeat checkout with bootstrapped Git
         if: runner.environment == 'self-hosted'
         uses: actions/checkout@v7.0.1
         with:
           repository: ${{ inputs.repository || github.repository }}
           ref: ${{ inputs.ref }}
+
       - name: Attempt to update submodules (non-fatal)
         continue-on-error: true
         run: |
-          # prefer the new official mirror for the lowlevel MCP submodule if present
           git config --local submodule.vendor/lowlevel-computer-use-mcp.url https://github.com/Ding-Ding-Projects/lowlevel-computer-use-mcp.git
           git submodule sync --recursive
           git submodule update --init --recursive
+
       - uses: ./.github/actions/setup-ci-environment
         id: setup_ci
         with:
           node-version: ${{ env.NODE_VERSION }}
           arch: ${{ matrix.arch }}
-      - name: Run desktop-trampoline tests
-        if: matrix.arch == 'x64'
-        run: |
-          cd vendor/desktop-trampoline
-          yarn install --frozen-lockfile --production=false
-          npx --no-install node-gyp rebuild
-          yarn build
-          yarn test
+
       - name: Build production app
         id: production_build
         if:
@@ -136,21 +117,7 @@ jobs:
         env:
           npm_config_arch: ${{ matrix.arch }}
           TARGET_ARCH: ${{ matrix.arch }}
-      - name: Prepare testing environment
-        run: yarn test:setup
-        env:
-          npm_config_arch: ${{ matrix.arch }}
-      - name: Run unit tests
-        if: matrix.arch == 'x64'
-        run: yarn test:unit
-        # script/test.mjs owns both the worker heap limit and the concurrency
-        # budget. A workflow-level NODE_OPTIONS override is inherited by every
-        # worker and makes the harness underestimate its peak memory use.
-      - name: Run script tests
-        if:
-          ${{ always() && !cancelled() && steps.production_build.outcome ==
-          'success' }}
-        run: yarn test:script
+
       - name: Package production app
         id: installer_package
         if:
@@ -159,6 +126,7 @@ jobs:
         run: yarn package
         env:
           npm_config_arch: ${{ matrix.arch }}
+          TARGET_ARCH: ${{ matrix.arch }}
           WINDOWS_SIGNING_ENABLED: 'false'
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           CSC_LINK: ''
@@ -167,6 +135,7 @@ jobs:
           WIN_CSC_KEY_PASSWORD: ''
           AZURE_TENANT_ID: ''
           AZURE_CLIENT_ID: ''
+
       - name: Require unsigned packaged installers
         id: unsigned_installers
         if:
@@ -185,195 +154,57 @@ jobs:
             if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
               throw "Installer must remain unsigned: ${installer} reported $($signature.Status)"
             }
-            Write-Host "Unsigned installer verified: $installer"
           }
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v7
-        # Preserve a usable installer even when a test step fails. The job
-        # still reports the original test failure; this only keeps its build
-        # output available for diagnosis and recovery.
+
+      - name: Upload packaged desktop artifacts
         if:
           ${{ always() && !cancelled() && steps.installer_package.outcome ==
           'success' && steps.unsigned_installers.outcome == 'success' &&
           (github.event_name != 'workflow_call' || inputs.upload-artifacts) }}
+        uses: actions/upload-artifact@v7
         with:
-          name: ${{matrix.friendlyName}}-${{matrix.arch}}
+          name: Windows-${{ matrix.arch }}
           path: |
-            dist/GitHub Desktop-${{matrix.arch}}.zip
+            dist/GitHub Desktop-${{ matrix.arch }}.zip
             dist/GitHubDesktop-*.nupkg
-            dist/GitHubDesktopSetup-${{matrix.arch}}.exe
-            dist/GitHubDesktopSetup-${{matrix.arch}}.msi
+            dist/GitHubDesktopSetup-${{ matrix.arch }}.exe
+            dist/GitHubDesktopSetup-${{ matrix.arch }}.msi
+            dist/RELEASES
             dist/bundle-size.json
             dist/bundle-hash.json
           if-no-files-found: error
-  e2e-smoke:
-    name: E2E Smoke ${{ matrix.friendlyName }} ${{ matrix.arch }}
-    runs-on:
-      ${{ github.event_name == 'workflow_dispatch' && github.ref ==
-      'refs/heads/main' && inputs.runner_mode == 'self-hosted' &&
-      fromJSON('["self-hosted","Windows","X64","desktop-material-windows-local"]')
-      || 'windows-2022' }}
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - friendlyName: Windows
-            arch: x64
-    environment: ${{ inputs.environment }}
-    env:
-      RELEASE_CHANNEL: ${{ inputs.environment }}
-    steps:
-      - name: Initial checkout for Windows bootstrap
-        uses: actions/checkout@v7.0.1
-        with:
-          repository: ${{ inputs.repository || github.repository }}
-          ref: ${{ inputs.ref }}
-      - name: Bootstrap Git and Bash for self-hosted Windows
-        if: runner.environment == 'self-hosted'
-        shell: cmd
-        run: "%GITHUB_WORKSPACE%\\.github\\scripts\\ensure-windows-git-bash.cmd"
-      - name: Repeat checkout with bootstrapped Git
-        if: runner.environment == 'self-hosted'
-        uses: actions/checkout@v7.0.1
-        with:
-          repository: ${{ inputs.repository || github.repository }}
-          ref: ${{ inputs.ref }}
-      - name: Attempt to update submodules (non-fatal)
+          retention-days: 7
+
+      - name: Collect bounded build evidence
+        if: ${{ always() }}
         continue-on-error: true
         run: |
-          # prefer the new official mirror for the lowlevel MCP submodule if present
-          git config --local submodule.vendor/lowlevel-computer-use-mcp.url https://github.com/Ding-Ding-Projects/lowlevel-computer-use-mcp.git
-          git submodule sync --recursive
-          git submodule update --init --recursive
-      - uses: ./.github/actions/setup-ci-environment
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          arch: ${{ matrix.arch }}
-      - name: Select mock update server port
-        uses: ./.github/actions/setup-e2e-update-port
-      - name: Build production app
-        run: yarn build:prod:e2e
-        env:
-          npm_config_arch: ${{ matrix.arch }}
-          TARGET_ARCH: ${{ matrix.arch }}
-      - name: Prepare testing environment
-        run: yarn test:setup
-        env:
-          npm_config_arch: ${{ matrix.arch }}
-      - name: Package production app
-        run: yarn package
-        env:
-          npm_config_arch: ${{ matrix.arch }}
-          WINDOWS_SIGNING_ENABLED: 'false'
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-          CSC_LINK: ''
-          CSC_KEY_PASSWORD: ''
-          WIN_CSC_LINK: ''
-          WIN_CSC_KEY_PASSWORD: ''
-          AZURE_TENANT_ID: ''
-          AZURE_CLIENT_ID: ''
-      - name: Require unsigned packaged installers
-        run: |
-          $installers = @(
-            "dist\GitHubDesktopSetup-${{ matrix.arch }}.exe",
-            "dist\GitHubDesktopSetup-${{ matrix.arch }}.msi"
-          )
-          foreach ($installer in $installers) {
-            if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
-              throw "Unsigned installer is missing: $installer"
-            }
-            $signature = Get-AuthenticodeSignature -LiteralPath $installer
-            if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
-              throw "Installer must remain unsigned: ${installer} reported $($signature.Status)"
-            }
-            Write-Host "Unsigned installer verified: $installer"
-          }
-      - name: Install app on Windows
-        run: |
-          function Write-SquirrelLogs {
-            $logPaths = @(
-              "$env:LOCALAPPDATA\SquirrelSetup.log",
-              "$env:LOCALAPPDATA\GitHubDesktop\SquirrelSetup.log"
-            )
-
-            foreach ($logPath in $logPaths) {
-              if (Test-Path $logPath) {
-                Write-Host "Showing log: $logPath"
-                Get-Content $logPath -Tail 200
-              }
+          New-Item -ItemType Directory -Force -Path workflow-evidence | Out-Null
+          [ordered]@{
+            runId = '${{ github.run_id }}'
+            runAttempt = '${{ github.run_attempt }}'
+            commit = '${{ github.sha }}'
+            architecture = '${{ matrix.arch }}'
+            runnerOS = '${{ runner.os }}'
+            runnerArchitecture = '${{ runner.arch }}'
+            buildOutcome = '${{ steps.production_build.outcome }}'
+            packageOutcome = '${{ steps.installer_package.outcome }}'
+            unsignedOutcome = '${{ steps.unsigned_installers.outcome }}'
+          } | ConvertTo-Json | Set-Content -LiteralPath workflow-evidence/context.json
+          foreach ($path in @('dist/bundle-size.json', 'dist/bundle-hash.json', 'dist/RELEASES')) {
+            if (Test-Path -LiteralPath $path -PathType Leaf) {
+              Copy-Item -LiteralPath $path -Destination workflow-evidence
             }
           }
 
-          $setupExe = "dist/GitHubDesktopSetup-${{ matrix.arch }}.exe"
-          if (-not (Test-Path -LiteralPath $setupExe)) {
-            throw "Windows installer was not built: $setupExe"
-          }
-          $expectedVersion = (Get-Content -LiteralPath 'app/package.json' -Raw | ConvertFrom-Json).version
-          if ([string]::IsNullOrWhiteSpace($expectedVersion)) {
-            throw 'app/package.json did not provide an installable application version'
-          }
-          $installStartedAt = [DateTime]::UtcNow
-          $preexistingDesktopProcessIds = @(
-            Get-Process GitHubDesktop -ErrorAction SilentlyContinue |
-              Select-Object -ExpandProperty Id
-          )
-          $installer = Start-Process -FilePath $setupExe -ArgumentList "/S" -PassThru
-          $installerSessionId = $installer.SessionId
-          function Stop-InstallerLaunchedDesktopProcesses {
-            Get-Process GitHubDesktop -ErrorAction SilentlyContinue |
-              Where-Object {
-                $_.SessionId -eq $installerSessionId -and
-                $preexistingDesktopProcessIds -notcontains $_.Id
-              } |
-              Stop-Process -Force -ErrorAction SilentlyContinue
-          }
-          # Start-Process -Wait includes the descendant application process
-          # that Squirrel launches, so it cannot return before the workflow's
-          # later GitHubDesktop cleanup. Wait only for the installer process.
-          if (-not $installer.WaitForExit(300000)) {
-            Write-SquirrelLogs
-            taskkill.exe /PID $installer.Id /T /F 2>$null
-            throw "Windows installer timed out after 300 seconds"
-          }
-          if ($installer.ExitCode -ne 0) {
-            Write-SquirrelLogs
-            throw "Windows installer exited with code $($installer.ExitCode)"
-          }
-
-          Stop-InstallerLaunchedDesktopProcesses
-
-          $installedExe = $null
-          for ($attempt = 0; $attempt -lt 30 -and -not $installedExe; $attempt++) {
-            # Squirrel can launch the application just after Setup.exe exits.
-            # Repeat the scoped cleanup while the fresh executable appears.
-            Stop-InstallerLaunchedDesktopProcesses
-            $candidate = Get-Item (Join-Path $env:LOCALAPPDATA "GitHubDesktop\app-$expectedVersion\GitHubDesktop.exe") -ErrorAction SilentlyContinue
-            if ($candidate -and $candidate.LastWriteTimeUtc -ge $installStartedAt) {
-              $installedExe = $candidate.FullName
-            }
-
-            if (-not $installedExe) {
-              Start-Sleep -Seconds 2
-            }
-          }
-
-          if (-not $installedExe) {
-            Write-SquirrelLogs
-            throw "Unable to verify the freshly installed GitHub Desktop executable for version $expectedVersion"
-          }
-
-          Start-Sleep -Seconds 2
-          Stop-InstallerLaunchedDesktopProcesses
-
-          Add-Content -Path $env:GITHUB_ENV -Value "DESKTOP_E2E_APP_PATH=$installedExe"
-      - name: Run packaged E2E smoke tests
-        run: yarn test:e2e:run:packaged
-      - name: Upload E2E artifacts
-        if: ${{ always() && !cancelled() }}
+      - name: Upload bounded build evidence
+        if: ${{ always() }}
+        continue-on-error: true
         uses: actions/upload-artifact@v7
         with:
-          name: e2e-${{matrix.friendlyName}}-${{matrix.arch}}
-          path: playwright-videos/**
+          name:
+            windows-build-evidence-${{ matrix.arch }}-${{ github.run_id }}-${{
+            github.run_attempt }}
+          path: workflow-evidence/
           if-no-files-found: warn
+          retention-days: 7

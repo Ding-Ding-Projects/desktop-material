@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, it } from 'node:test'
@@ -8,6 +8,7 @@ import { describe, it } from 'node:test'
 import captureModule from './capture-app.js'
 
 const {
+  assertCaptureBuildArtifacts,
   assertCapturePrivacy,
   assertWindowControlsEvidence,
   captureApp,
@@ -743,6 +744,38 @@ describe('capture-app Windows caption-control probe', () => {
 })
 
 describe('capture-app fixture', () => {
+  it('requires every auxiliary renderer from the same built app', () => {
+    const root = mkdtempSync(join(tmpdir(), 'capture-renderer-contract-'))
+    const files = [
+      'main.js',
+      'renderer.js',
+      'internal-browser.js',
+      'crash.js',
+      'quick-action.js',
+      'index.html',
+      'internal-browser.html',
+      'crash.html',
+      'quick-action.html',
+    ]
+
+    try {
+      for (const file of files) {
+        writeFileSync(join(root, file), 'fixture')
+      }
+      assert.doesNotThrow(() =>
+        assertCaptureBuildArtifacts(join(root, 'main.js'))
+      )
+
+      rmSync(join(root, 'quick-action.js'))
+      assert.throws(
+        () => assertCaptureBuildArtifacts(join(root, 'main.js')),
+        /missing quick-action\.js/
+      )
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   it('runs the privacy gate before either screenshot implementation', () => {
     const gate = captureSource.indexOf(
       'const privacyReceipt = assertCapturePrivacy'
@@ -851,7 +884,7 @@ describe('capture-app fixture', () => {
   it('refuses to capture without a built app', async () => {
     await assert.rejects(
       captureApp({ mainPath: join(tmpdir(), 'no-such-main.js'), tabs: 3 }),
-      /No built app/
+      /No complete built app/
     )
   })
 })

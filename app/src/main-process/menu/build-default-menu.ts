@@ -213,7 +213,7 @@ export function buildDefaultMenuTemplate(
       {
         id: 'command-palette',
         label: __DARWIN__ ? 'Command palette' : 'Command pal&ette',
-        accelerator: 'CmdOrCtrl+Shift+P',
+        accelerator: 'CmdOrCtrl+Shift+F',
         click: emit('find-text'),
       },
     ],
@@ -424,7 +424,7 @@ export function buildDefaultMenuTemplate(
           ? 'Show in E&xplorer'
           : 'Show in your File Manager',
         id: 'open-working-directory',
-        accelerator: 'CmdOrCtrl+Shift+F',
+        accelerator: 'CmdOrCtrl+Alt+F',
         click: emit('open-working-directory'),
       },
       {

@@ -126,6 +126,32 @@ const WindowControlsSelectors = Object.freeze({
   dragRegion: '[data-verification="window-drag-region"]',
   group: '[data-verification="window-controls"]',
 })
+const RequiredCaptureBuildFiles = Object.freeze([
+  'main.js',
+  'renderer.js',
+  'internal-browser.js',
+  'crash.js',
+  'quick-action.js',
+  'index.html',
+  'internal-browser.html',
+  'crash.html',
+  'quick-action.html',
+])
+
+/** Require every renderer that can appear during a capture from one build. */
+function assertCaptureBuildArtifacts(mainPath) {
+  const outputDirectory = path.dirname(path.resolve(mainPath))
+  const missing = RequiredCaptureBuildFiles.filter(
+    file => !fs.existsSync(path.join(outputDirectory, file))
+  )
+  if (missing.length > 0) {
+    throw new Error(
+      `No complete built app at ${outputDirectory}; missing ${missing.join(
+        ', '
+      )}. Run: cross-env DESKTOP_SKIP_PACKAGE=1 yarn build:prod`
+    )
+  }
+}
 
 /** Parse `<width>x<height>`, or return null when it is not a size. */
 function parseSize(value) {
@@ -1724,10 +1750,6 @@ async function collectWindowControlsEvidence(page, electronApp) {
  * steps, and write a PNG. Resolves with a report describing what happened.
  */
 async function captureApp(options) {
-  // Required lazily so argument parsing and the unit tests never need
-  // Playwright (or a built app) to be installed.
-  const { _electron } = require('playwright')
-
   const outPath = path.resolve(
     options.outPath || path.join(repoRoot, 'app-shot.png')
   )
@@ -1737,11 +1759,11 @@ async function captureApp(options) {
   const timeoutMilliseconds =
     options.timeoutMilliseconds || DefaultTimeoutMilliseconds
 
-  if (!fs.existsSync(mainPath)) {
-    throw new Error(
-      `No built app at ${mainPath}. Run: cross-env DESKTOP_SKIP_PACKAGE=1 yarn build:prod`
-    )
-  }
+  assertCaptureBuildArtifacts(mainPath)
+
+  // Required only after the build contract is proven, so argument and
+  // missing-build checks never depend on Playwright being installed.
+  const { _electron } = require('playwright')
 
   const repositoriesRoot =
     options.repositoriesRoot ||
@@ -1957,6 +1979,7 @@ async function main() {
 }
 
 module.exports = {
+  assertCaptureBuildArtifacts,
   assertCapturePrivacy,
   assertWindowControlsEvidence,
   captureApp,

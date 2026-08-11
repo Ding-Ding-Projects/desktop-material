@@ -39,7 +39,7 @@ export class CrashWindow {
       show: false,
       // This fixes subpixel aliasing on Windows
       // See https://github.com/atom/atom/commit/683bef5b9d133cb194b476938c77cc07fd05b972
-      backgroundColor: '#fff',
+      backgroundColor: '#f7fbf2',
       webPreferences: {
         // Disable auxclick event
         // See https://developers.google.com/web/updates/2016/10/auxclick

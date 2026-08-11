@@ -1,37 +1,43 @@
 :root {
-  --browser-primary: #4656a6;
+  --browser-primary: #1c6b34;
   --browser-on-primary: #ffffff;
-  --browser-primary-container: #dfe2ff;
-  --browser-on-primary-container: #10164f;
-  --browser-surface: #fbf8ff;
-  --browser-surface-container: #f0f0fa;
-  --browser-surface-container-high: #e8e8f2;
-  --browser-on-surface: #1b1b22;
-  --browser-on-surface-variant: #46464f;
-  --browser-outline: #777680;
+  --browser-primary-container: #a9f6b4;
+  --browser-on-primary-container: #00210b;
+  --browser-surface: #f7fbf2;
+  --browser-surface-container-lowest: #ffffff;
+  --browser-surface-container-low: #f1f5ec;
+  --browser-surface-container: #ebefe6;
+  --browser-surface-container-high: #e5e9e1;
+  --browser-on-surface: #191d18;
+  --browser-on-surface-variant: #424940;
+  --browser-outline: #72796f;
+  --browser-outline-variant: #c2c9bd;
   --browser-error: #ba1a1a;
   --browser-error-container: #ffdad6;
   --browser-on-error-container: #410002;
-  --browser-auth-container: #e7deff;
-  --browser-on-auth-container: #22144b;
+  --browser-auth-container: #d5e8d1;
+  --browser-on-auth-container: #101f11;
 }
 
 .theme-dark {
-  --browser-primary: #bdc3ff;
-  --browser-on-primary: #17266f;
-  --browser-primary-container: #303f8d;
-  --browser-on-primary-container: #dfe2ff;
-  --browser-surface: #121318;
-  --browser-surface-container: #1e1f25;
-  --browser-surface-container-high: #292a30;
-  --browser-on-surface: #e4e1e9;
-  --browser-on-surface-variant: #c7c5d0;
-  --browser-outline: #91909a;
+  --browser-primary: #8ed99a;
+  --browser-on-primary: #003918;
+  --browser-primary-container: #005322;
+  --browser-on-primary-container: #a9f6b4;
+  --browser-surface: #101410;
+  --browser-surface-container-lowest: #0b0f0b;
+  --browser-surface-container-low: #181d18;
+  --browser-surface-container: #1c211c;
+  --browser-surface-container-high: #262b26;
+  --browser-on-surface: #e0e4dc;
+  --browser-on-surface-variant: #c0c9bf;
+  --browser-outline: #8a938a;
+  --browser-outline-variant: #414941;
   --browser-error: #ffb4ab;
   --browser-error-container: #93000a;
   --browser-on-error-container: #ffdad6;
-  --browser-auth-container: #3b2d63;
-  --browser-on-auth-container: #e8ddff;
+  --browser-auth-container: #394b38;
+  --browser-on-auth-container: #d5e8d1;
 }
 
 body[data-dm-accent='violet'] {
@@ -156,8 +162,8 @@ button:disabled {
 .internal-browser-chrome {
   z-index: 1;
   flex: 0 0 auto;
-  border-bottom: 1px solid color-mix(in srgb, var(--browser-outline) 45%, transparent);
-  background: var(--browser-surface);
+  border-bottom: 1px solid var(--browser-outline-variant);
+  background: var(--browser-surface-container-lowest);
   font-family: var(--browser-toolbar-font-family, inherit);
   font-size: var(--browser-toolbar-font-size, 14px);
   font-weight: var(--browser-toolbar-font-weight, 400);
@@ -171,7 +177,7 @@ button:disabled {
   min-height: 48px;
   align-items: end;
   padding: 6px 10px 0;
-  background: var(--browser-surface-container);
+  background: var(--browser-surface-container-low);
 }
 
 .internal-browser-tabs {
@@ -195,11 +201,12 @@ button:disabled {
   max-width: 260px;
   height: 40px;
   align-items: center;
-  border-radius: 12px 12px 0 0;
+  border-radius: 16px;
   background: var(--browser-surface-container-high);
 
   &.active {
-    background: var(--browser-surface);
+    background: var(--browser-primary-container);
+    color: var(--browser-on-primary-container);
   }
 }
 
@@ -262,6 +269,7 @@ button:disabled {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
+  background: var(--browser-surface-container-lowest);
 }
 
 .internal-browser-find-bar {
@@ -269,9 +277,11 @@ button:disabled {
   min-height: 52px;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-top: 1px solid color-mix(in srgb, var(--browser-outline) 30%, transparent);
-  background: var(--browser-surface-container);
+  margin: 0 10px 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--browser-outline-variant);
+  border-radius: 16px;
+  background: var(--browser-surface-container-high);
 }
 
 .internal-browser-find-input {
@@ -282,9 +292,9 @@ button:disabled {
     width: 100%;
     height: 38px;
     padding: 0 12px;
-    border: 1px solid var(--browser-outline);
-    border-radius: 19px;
-    background: var(--browser-surface);
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: var(--browser-surface-container-lowest);
     color: var(--browser-on-surface);
 
     &:focus {
@@ -317,7 +327,7 @@ button:disabled {
 .internal-browser-find-builder {
   min-height: 36px;
   padding: 0 10px;
-  border: 1px solid var(--browser-outline);
+  border: 1px solid var(--browser-outline-variant);
   border-radius: 18px;
   background: transparent;
   color: var(--browser-primary);
@@ -401,7 +411,7 @@ button:disabled {
     height: 42px;
     padding: 0 16px;
     border: 1px solid transparent;
-    border-radius: 22px;
+    border-radius: 12px;
     background: var(--browser-surface-container-high);
     color: var(--browser-on-surface);
 
@@ -432,8 +442,8 @@ button:disabled {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  border: 1px solid var(--browser-outline);
-  background: transparent;
+  border: 1px solid var(--browser-outline-variant);
+  background: var(--browser-surface-container-low);
   color: var(--browser-primary);
 }
 
@@ -442,8 +452,11 @@ button:disabled {
   min-height: 34px;
   align-items: center;
   gap: 5px;
-  padding: 0 12px 6px;
+  margin: 0 10px 8px;
+  padding: 4px 8px;
   overflow-x: auto;
+  border-radius: 12px;
+  background: var(--browser-surface-container-low);
 }
 
 .internal-browser-bookmarks-label {
@@ -484,7 +497,9 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  margin: 0 10px 8px;
   padding: 7px 16px;
+  border-radius: 12px;
   background: var(--browser-auth-container);
   color: var(--browser-on-auth-container);
 }
@@ -498,7 +513,7 @@ button:disabled {
 .internal-browser-content-viewport {
   min-height: 0;
   flex: 1 1 auto;
-  background: var(--browser-surface);
+  background: var(--browser-surface-container-lowest);
 }
 
 @keyframes internal-browser-spin {

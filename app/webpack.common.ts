@@ -11,6 +11,12 @@ import { getOAuthReplacements, getReplacements } from './app-info'
 // step installs every external listed here into the application directory, so
 // the renderer can still load it through Electron's Node integration.
 export const externals = ['7zip', '@github/copilot-sdk']
+export const rendererBundleNames = [
+  'renderer.js',
+  'internal-browser.js',
+  'crash.js',
+  'quick-action.js',
+] as const
 
 const outputDir = 'out'
 export const replacements = getReplacements()

@@ -60,40 +60,42 @@ describe('build copying', () => {
 
   it('rejects renderer bundles with an undefined Webpack module binding', () => {
     const root = mkdtempSync(join(tmpdir(), 'desktop-renderer-bundle-test-'))
-    const rendererPath = join(root, 'renderer.js')
-    const internalBrowserPath = join(root, 'internal-browser.js')
+    const bundleNames = [
+      'renderer.js',
+      'internal-browser.js',
+      'crash.js',
+      'quick-action.js',
+    ]
+    const bundlePaths = bundleNames.map(name => join(root, name))
 
     try {
-      writeFileSync(rendererPath, 'window.start(); __webpack_module__')
-      writeFileSync(internalBrowserPath, 'window.start();')
+      for (const bundlePath of bundlePaths) {
+        writeFileSync(bundlePath, 'window.start();')
+      }
 
-      assert.throws(
-        () => assertRendererBundlesAreRunnable(root),
-        /undefined Webpack module binding/
-      )
+      for (const bundlePath of bundlePaths) {
+        writeFileSync(bundlePath, 'window.start(); __webpack_module__')
+        assert.throws(
+          () => assertRendererBundlesAreRunnable(root),
+          /undefined Webpack module binding/
+        )
+        writeFileSync(bundlePath, 'window.start();')
+      }
 
-      writeFileSync(rendererPath, 'window.start();')
-      writeFileSync(internalBrowserPath, 'window.start(); __webpack_module__')
-      assert.throws(
-        () => assertRendererBundlesAreRunnable(root),
-        /undefined Webpack module binding/
-      )
-
-      writeFileSync(internalBrowserPath, 'window.start();')
       assert.doesNotThrow(() => assertRendererBundlesAreRunnable(root))
 
-      rmSync(rendererPath)
-      assert.throws(
-        () => assertRendererBundlesAreRunnable(root),
-        /Missing renderer bundle required for startup:.*renderer\.js/
-      )
-
-      writeFileSync(rendererPath, 'window.start();')
-      rmSync(internalBrowserPath)
-      assert.throws(
-        () => assertRendererBundlesAreRunnable(root),
-        /Missing renderer bundle required for startup:.*internal-browser\.js/
-      )
+      for (let index = 0; index < bundlePaths.length; index++) {
+        rmSync(bundlePaths[index])
+        assert.throws(
+          () => assertRendererBundlesAreRunnable(root),
+          new RegExp(
+            `Missing renderer bundle required for startup:.*${bundleNames[
+              index
+            ].replace('.', '\\.')}`
+          )
+        )
+        writeFileSync(bundlePaths[index], 'window.start();')
+      }
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
