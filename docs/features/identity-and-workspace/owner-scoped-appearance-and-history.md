@@ -53,6 +53,13 @@ workspace, toolbar, tabs, list name, and logo values; a null override inherits
 the matching profile owner. Feature highlights and individual tab titles have
 their own stable owner IDs and never share a mutable timeline.
 
+The toolbar owner survives the [MD3 shell](../design-system/md3-shell.md)
+unchanged, but the surface it customizes can now be hidden: **Settings →
+Appearance → Show the classic toolbar** governs whether the band is rendered at
+all, and it ships on. Customization is stored per owner rather than per rendered
+element, so hiding the band never discards a stored toolbar override — turning
+it back on restores exactly the appearance that was configured.
+
 The toolbar owner includes labels and density plus a responsive typography
 studio: curated font family, bounded size, safe text color, bold, italic,
 underline, strikethrough, small caps, case, spacing, effect, and alignment.

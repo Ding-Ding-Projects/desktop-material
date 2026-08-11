@@ -1,7 +1,9 @@
 # Command palette rows and appearance
 
-The Ctrl+Shift+P command palette lists every named app function. Ctrl+Shift+F
-opens the current repository folder. The result list is built for scanning:
+The <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> command palette lists every
+named app function; that is the accelerator the application menu registers for
+`command-palette`, and the MD3 shell header's palette chip prints whatever that
+menu item declares. The result list is built for scanning:
 each row carries an icon, the command title, an optional keyword line, and a
 group chip, and the reader controls how much of that is shown.
 

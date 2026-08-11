@@ -120,7 +120,7 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       category: 'design-system',
       title: 'Command palette rows and appearance',
       description:
-        'The Ctrl+Shift+P command palette lists every named app function. Ctrl+Shift+F opens the current repository folder. The result list is built for scanning: each row carries an…',
+        "The Ctrl+Shift+F command palette lists every named app function; that is the accelerator the application menu registers for command-palette, and the MD3 shell header's palette…",
       sourcePath: 'docs/features/design-system/command-palette-appearance.md',
     },
     {
@@ -137,7 +137,7 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       category: 'design-system',
       title: 'Command palette: full-app coverage, rich controls and teleport',
       description:
-        "The Ctrl+Shift+P master command palette is Material Design 3's full-screen search view. Ctrl+Shift+F remains the current-repository Open in Folder action. The palette covers…",
+        "The Ctrl+Shift+F master command palette is Material Design 3's full-screen search view. That is the accelerator the application menu actually registers for the command-palette…",
       sourcePath:
         'docs/features/design-system/command-palette-full-coverage.md',
     },
@@ -191,6 +191,14 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
         'docs/features/design-system/material-ripple-and-theme-reveal.md',
     },
     {
+      id: 'design-system/md3-shell',
+      category: 'design-system',
+      title: 'The Material Design 3 shell',
+      description:
+        'The application chrome, rewritten against design/History MD3.dc.html and assembled as one component. Md3Shell (app/src/ui/md3/md3-shell.tsx) is what App.renderApp() renders: a…',
+      sourcePath: 'docs/features/design-system/md3-shell.md',
+    },
+    {
       id: 'design-system/narration-assets',
       category: 'design-system',
       title: 'Recorded narration + melody assets',
@@ -211,7 +219,8 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       id: 'design-system/README',
       category: 'design-system',
       title: 'Design-system features / 設計系統功能',
-      description: '[Command palette: full-app coverage, rich controls and',
+      description:
+        'The Material Design 3 shell — the application chrome rewritten',
       sourcePath: 'docs/features/design-system/README.md',
     },
     {
@@ -261,6 +270,15 @@ export const DocsBrowserArticleSummaries: ReadonlyArray<IDocsBrowserArticleSumma
       description:
         'This ledger maps the 30 user-demand statements in the supplied research brief to their Desktop Material implementation and feature contract. Complete means the behavior is…',
       sourcePath: 'docs/features/github-desktop-demand-backlog.md',
+    },
+    {
+      id: 'identity-and-workspace/authenticator-and-qr-registration',
+      category: 'identity-and-workspace',
+      title: 'The built-in authenticator and QR pairing / 內置驗證器同 QR 配對',
+      description:
+        'Desktop Material ships its own TOTP authenticator: a place to register and keep second factors for whatever accounts the user likes, and to read live codes without reaching for…',
+      sourcePath:
+        'docs/features/identity-and-workspace/authenticator-and-qr-registration.md',
     },
     {
       id: 'identity-and-workspace/branch-switcher-workflows',
@@ -1329,12 +1347,12 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
   {
     name: 'design-system',
     label: 'Design System',
-    count: 18,
+    count: 19,
   },
   {
     name: 'identity-and-workspace',
     label: 'Identity And Workspace',
-    count: 14,
+    count: 15,
   },
   {
     name: 'integrations',
@@ -1369,4 +1387,4 @@ export const DocsBrowserCategories: ReadonlyArray<IDocsBrowserCategory> = [
 ]
 
 /** How many articles the bundle carries. Asserted against the tree in CI. */
-export const DocsBrowserArticleCount = 153
+export const DocsBrowserArticleCount = 155

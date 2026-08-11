@@ -1,5 +1,101 @@
 # Desktop Material — Active parity handoff
 
+## 2026-08-11 — The MD3 shell is assembled, wired and documented
+
+**Scope.** Assemble the Material Design 3 rewrite into the application chrome,
+keep the pre-rewrite chrome alongside it, and bring the documentation, the
+changelog and the site current in the same change.
+
+**Commit.** `5aa2b582c23de7256dbed0b860b79934f618272e` — "Assemble the MD3 shell
+and keep the classic chrome that came before it". It follows the nine rewrite
+commits listed in the August 11 ROADMAP entry.
+
+### What landed
+
+- `app/src/ui/md3/md3-shell.tsx` — the whole contract shell as one component,
+  with an exported state shape (`IMd3ShellState`), an exported pure reducer
+  (`md3ShellReducer`) and an exported per-field search binding
+  (`md3SearchBinding`). `App.renderApp()` renders it.
+- `app/src/ui/md3/md3-shell-carryover.ts` — the hand-written catalogue of the
+  forty-four capabilities the design contract never drew, each with its menu
+  kind, icon, localized label and destructive flag.
+  `buildMd3CarryOverExtensions` turns handlers into the shell's
+  `menuExtensions`; `md3UnplacedCarryOverCommands` names any without an action.
+- `app/src/lib/classic-toolbar.ts` — the persisted **Show the classic toolbar**
+  preference (default **on**) on the same local-storage boolean store every
+  other UI preference uses, with a provenance reader and a `window` change
+  event so the shell updates live.
+- `app/styles/ui/_md3-shell-layout.scss`, imported from `app/styles/_ui.scss`
+  immediately after `ui/md3-shell`.
+- Documentation: `docs/features/design-system/md3-shell.md`, indexed in that
+  category's README in both languages; notes added to the five existing feature
+  documents whose described route the rewrite changed; eighteen changelog
+  entries added to `4.0.0`, each carrying a commit whose existence was verified
+  with `git cat-file -t` before the file was written.
+
+### Verification actually performed
+
+| Check | Result |
+| --- | --- |
+| `npx tsc --noEmit -p tsconfig.json` | Clean at `5aa2b58` |
+| ESLint (`--rulesdir ./eslint-rules`) on touched files | Clean |
+| Prettier `--check` on touched files | Clean |
+| `feature-ledger-test.ts` | Pass — nothing went missing |
+| `md3-contract-conformance-test.ts` | Pass |
+| `docs-browser-bundle-test.ts` | Pass after regeneration |
+| `i18n-test`, `command-palette-catalog-test`, `settings-search-test`, `palette-settings-coverage-test`, `command-palette-appearance-test` | 84 pass, 0 fail |
+| `script/validate-changelog.ts` | Pass |
+
+**Not claimed:** no installer was built, no remote CI run was observed, no
+release was published, and no capture of the new shell exists. The screenshot
+gallery still photographs the pre-rewrite chrome.
+
+### Two defects found and repaired while documenting
+
+- **Unobserved promises in the shell's Git handlers.** `onMd3Fetch`,
+  `onMd3Push`, `onMd3CommitAndPush`, `onMd3Commit`, `onMd3SwitchBranch` and the
+  fetch/pull/commit-and-push arms of `onMd3MenuCommand` each started a
+  dispatcher promise with a bare `void`. React discards what a click handler
+  returns, so a rejection was dropped — the exact defect
+  `docs/features/quality-and-reliability/observed-user-initiated-operations.md`
+  records against the old toolbar's handlers. All of them now go through the
+  shared `observeUserInitiatedOperation`.
+- **The new setting was not discoverable.** "Show the classic toolbar" had a
+  `teleportAnchor` but no entry in the command-palette catalog, the settings
+  search catalog or `teleport-targets.ts`, so it could not be found by name from
+  either search surface. All three registrations were added, with real English
+  and Cantonese copy.
+
+### Remaining work, named
+
+1. **The carry-over handlers are not wired.** `buildMd3CarryOverExtensions` is
+   not called from `app.tsx`, so none of the forty-four renders in a menu today.
+   This is **not** a capability loss: `views` is `md3NoViews`, so every
+   destination renders the real repository workspace and build runner, and both
+   legacy surfaces are on by default. Each becomes unreachable only when a
+   destination's MD3 view replaces the legacy surface, so the change that wires
+   a view must supply that view's handlers and check
+   `md3UnplacedCarryOverCommands`.
+2. **Two carry-over entries need a decision.** Log match navigation and log
+   group collapse: the contract filters the log rather than dimming it, which
+   may supersede match-stepping. Both survive in `runMenu`. Neither has been
+   retired, and retiring one requires a `retired` record in
+   `app/test/fixtures/feature-ledger.json` with a reason.
+3. **Captures.** Every gallery frame still shows the pre-rewrite chrome. The
+   capture-coverage contract (`ab2374968`) enumerates what must be replaced.
+4. **The MD3 primitives do not ripple.** `Md3IconButton`, `Md3TonalButton` and
+   `Md3GhostButton` render their own `<button>` and never call `attachRipple`.
+   Recorded in the ripple feature document as the same open follow-up the
+   toolbar controls already carry.
+5. **Uncommitted at handoff.** The source-side repairs in item "Two defects"
+   above touch `app/src/ui/app.tsx` and `app/src/lib/i18n-resources.ts`, which
+   were being rewritten concurrently by the destination-wiring work. They are in
+   the working tree and deliberately not committed here, so that in-flight work
+   is not swept into a documentation commit. `command-palette-catalog.ts`,
+   `settings-search-catalog.ts` and `teleport-targets.ts` carry the matching
+   registrations and are in the same state, because their new rows reference
+   i18n keys that live in the uncommitted catalog.
+
 ## 2026-08-10 — Land the audited history cache and request-guard repair
 
 Issue #177 shipped the debugging bundle

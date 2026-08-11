@@ -207,7 +207,7 @@
       h: 'features/design-system/command-palette-appearance.html',
       s: 'features/design-system/command-palette-appearance.md',
       c: 'features',
-      d: 'The Ctrl+Shift+P command palette lists every named app function. Ctrl+Shift+F opens the current repository folder. The result list is built for scanning: each row carries an…',
+      d: "The Ctrl+Shift+F command palette lists every named app function; that is the accelerator the application menu registers for command-palette, and the MD3 shell header's palette…",
     },
     {
       t: 'Command palette coverage',
@@ -221,7 +221,7 @@
       h: 'features/design-system/command-palette-full-coverage.html',
       s: 'features/design-system/command-palette-full-coverage.md',
       c: 'features',
-      d: "The Ctrl+Shift+P master command palette is Material Design 3's full-screen search view. Ctrl+Shift+F remains the current-repository Open in Folder action. The palette covers…",
+      d: "The Ctrl+Shift+F master command palette is Material Design 3's full-screen search view. That is the accelerator the application menu actually registers for the command-palette…",
     },
     {
       t: 'Destructive-action super confirmation / 破壞性操作嘅雙匙閘',
@@ -266,6 +266,13 @@
       d: "Desktop Material mirrors the Desktop Material v2.dc.html prototype's two app-wide motion primitives:",
     },
     {
+      t: 'The Material Design 3 shell',
+      h: 'features/design-system/md3-shell.html',
+      s: 'features/design-system/md3-shell.md',
+      c: 'features',
+      d: 'The application chrome, rewritten against design/History MD3.dc.html and assembled as one component. Md3Shell (app/src/ui/md3/md3-shell.tsx) is what App.renderApp() renders: a…',
+    },
+    {
       t: 'Recorded narration + melody assets',
       h: 'features/design-system/narration-assets.html',
       s: 'features/design-system/narration-assets.md',
@@ -284,7 +291,7 @@
       h: 'features/design-system/',
       s: 'features/design-system/README.md',
       c: 'features',
-      d: '[Command palette: full-app coverage, rich controls and',
+      d: 'The Material Design 3 shell — the application chrome rewritten',
     },
     {
       t: 'Repository-themed music',
@@ -327,6 +334,13 @@
       s: 'features/github-desktop-demand-backlog.md',
       c: 'features',
       d: 'This ledger maps the 30 user-demand statements in the supplied research brief to their Desktop Material implementation and feature contract. Complete means the behavior is…',
+    },
+    {
+      t: 'The built-in authenticator and QR pairing / 內置驗證器同 QR 配對',
+      h: 'features/identity-and-workspace/authenticator-and-qr-registration.html',
+      s: 'features/identity-and-workspace/authenticator-and-qr-registration.md',
+      c: 'features',
+      d: 'Desktop Material ships its own TOTP authenticator: a place to register and keep second factors for whatever accounts the user likes, and to read live codes without reaching for…',
     },
     {
       t: 'Branch switcher workflows',

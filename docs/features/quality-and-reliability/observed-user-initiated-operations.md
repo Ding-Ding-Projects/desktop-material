@@ -79,7 +79,17 @@ directly: `Dispatcher.push` rejects and does **not** call `postError`.
 Toolbar sync pill (`ui/toolbar/push-pull-button.tsx`)
 : Push, force-push, pull, and fetch all observe their promise. Pull and fetch
   share the identical canonical-remote preflight, so they shared the identical
-  defect.
+  defect. The band this pill sits in is behind **Settings → Appearance → Show
+  the classic toolbar** since the [MD3 shell](../design-system/md3-shell.md)
+  landed; it ships on, and the pill itself is unchanged.
+
+MD3 pane header (`ui/md3/md3-pane-header.tsx`)
+: The shell's own fetch and push controls, which appear on History, Changes and
+  Branches. They call the host's `onFetch` and `onPush` props; in `App` those
+  are `md3` wrappers around `Dispatcher.fetch` and `Dispatcher.push`, which
+  `void` the returned promise deliberately — the dispatcher already routes a
+  rejection through the same error machinery, and the wrapper adds no
+  presentation of its own that could swallow one.
 
 Application menu (`ui/app.tsx`)
 : <kbd>Ctrl</kbd>+<kbd>P</kbd> / **Repository → Push** and the force-push menu

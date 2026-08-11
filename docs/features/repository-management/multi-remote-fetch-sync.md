@@ -5,6 +5,13 @@ configured topology. A checkout with more than one Git remote is fetched from
 every configured remote, so a mirror or secondary provider does not quietly
 remain stale while the button says it fetched `origin`.
 
+> [!NOTE]
+> Since the [MD3 shell](../design-system/md3-shell.md) landed, the toolbar band
+> described below is behind **Settings → Appearance → Show the classic
+> toolbar**, which ships **on**. Nothing here changed: the same Fetch action is
+> also on the pane header of History, Changes and Branches, and in the pane
+> menu, so the behaviour below is reachable with the band hidden.
+
 ## Behavior
 
 - With one configured remote, the existing **Fetch `<remote>`** title and

@@ -78,7 +78,20 @@ same interaction. As a defense in depth, `_ripple.scss` and the global rules in
 Controls that do not render through the shared `Button` — notably the toolbar
 `ToolbarButton`/`ToolbarDropdown` family used by the top-level menu bar — do not
 yet ripple. Wiring `attachRipple` into those toolbar controls is a follow-up
-owned by the toolbar surface.
+owned by the toolbar surface. That band is now behind **Settings → Appearance →
+Show the classic toolbar** (shipped on) since the
+[MD3 shell](md3-shell.md) landed, which narrows how much of the interface the
+gap covers but does not close it — the follow-up still stands for as long as the
+band ships.
+
+The shell added a second family in the same position: `Md3IconButton`,
+`Md3TonalButton` and `Md3GhostButton` in `app/src/ui/md3/md3-primitives.tsx`
+render their own `<button>` rather than the shared `Button`, and none of them
+calls `attachRipple` today. They carry the contract's own `:hover` and
+`:focus-visible` treatments, so they are not unstyled — but they do not ripple,
+and wiring
+`attachRipple` into the three MD3 primitives is the same follow-up, now owned by
+the shell surface.
 
 ## Verification
 

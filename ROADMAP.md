@@ -1,6 +1,46 @@
 # Desktop Material roadmap
 
-Updated: **August 9, 2026**
+Updated: **August 11, 2026**
+
+## August 11 — the Material Design 3 shell is the application chrome
+
+- `Md3Shell` (`app/src/ui/md3/md3-shell.tsx`) is what `App.renderApp()` renders:
+  the 56px application header, the repository tab strip band, the navigation
+  drawer beside a 16px `surface-container-low` pane, the pane header, the active
+  destination, and the menu, regex-builder and compose overlays with the toast
+  host. Commit `5aa2b582c23de7256dbed0b860b79934f618272e`.
+- The state is one exported shape driven by one exported pure reducer, so a
+  screenshot harness can put the shell into any state with no application behind
+  it. All eleven contract search fields are present and independent — each keeps
+  its own query and its own regex mode, and applying a built pattern arms only
+  the field that opened the builder.
+- **Nothing was removed.** The repository tab strip is unchanged and shown by
+  default; the classic toolbar is kept behind **Settings → Appearance → Show the
+  classic toolbar**, which also ships on. Every destination still renders the
+  real repository workspace and build runner, so every capability remains where
+  it was. `app/src/ui/md3/md3-shell-carryover.ts` catalogues the forty-four
+  capabilities the design contract never drew, each with the menu it will live
+  in, and names any left without an action rather than rendering a dead row.
+- The preceding rewrite commits are
+  `0f48c44ad05233bf50a58db2e966f7924278b07b` (a 158-ligature icon subset),
+  `8040e92f1e5b0f44d313f977da78becfa71f80a5` (the design source),
+  `e45d54d0e18891f91c3af655e2928ded8b9bcec7` (the extracted contract),
+  `51ed516b8b25a3316ac0928de226149d3c32d67e` (the frozen feature ledger),
+  `4f587f092616776c8763461f7818b08c6d5678b0` (chrome and overlays),
+  `72867cf170119313f91386719bec5f90157ae949` (drawer and token corrections),
+  `c663645db8115329157385c604bb86248d52b29d` (conformance),
+  `ab23749689d164df33e0adee375410bfdccc0f37` (capture coverage) and
+  `ed0749fc1604fd0cff4a21d1b6a65927e96a9cef` (eight destinations plus six
+  missing universal features).
+- Verification actually run: `npx tsc --noEmit -p tsconfig.json` clean at the
+  shell commit; ESLint with the repository rules and Prettier clean on every
+  touched file; the feature-preservation ledger, the design-contract conformance
+  suite, the i18n catalogs, the command-palette catalog, settings search and
+  palette settings coverage all pass.
+- **Not claimed:** no installer was built, no remote CI run was observed, no
+  release was published, and no hidden-desktop capture of this shell exists yet.
+  The screenshot gallery still photographs the pre-rewrite chrome; the capture
+  coverage contract landed in `ab2374968` enumerates what has to be replaced.
 
 ## August 9 — evidence-bound self-hosted runner risk confirmation
 
@@ -29,8 +69,10 @@ Updated: **August 9, 2026**
 - While active, the app forces English, hides language/playfulness controls and
   their palette/settings-search routes, hides scheduled language selection, and
   suppresses the dim-sum surprise.
-- The command palette is **Ctrl+Shift+P**. **Ctrl+Shift+F** remains the action
-  that opens the current repository's folder.
+- The command palette was recorded here as **Ctrl+Shift+P**. That was
+  superseded: the collision with the file browser was resolved in favour of the
+  palette, so the application menu registers **Ctrl+Shift+F** for
+  `command-palette`, and the MD3 header chip prints whatever that item declares.
 - Focused verification passes **50/50** plus source lint. Hidden-desktop capture
   remains blocked by the Lowlevel MCP Git preflight, so no capture is claimed.
 

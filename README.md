@@ -8,14 +8,35 @@
 
 # Desktop Material
 
+> **The Material Design 3 shell — August 11, 2026:** the application chrome is
+> now the MD3 shell from `design/History MD3.dc.html`: eight destinations
+> behind a navigation drawer, a 56px application header carrying the global
+> search field, and a content pane whose header holds the repository and branch
+> breadcrumbs, the fetch and push controls and the pane menu. Its eleven search
+> fields each keep their own query **and** their own regex mode, and a pattern
+> built in the regex builder is written into the field that opened it. **Nothing
+> was removed:** the repository tab strip is unchanged and still shown by
+> default, and the classic toolbar is kept behind **Settings → Appearance →
+> Show the classic toolbar**, which also ships **on**. Every destination still
+> renders the real repository workspace, so every capability is exactly where it
+> was. Typecheck, ESLint and Prettier are clean; the feature-preservation ledger
+> and the design-contract conformance suite are green. Installer, remote CI and
+> release evidence for this change are **not yet claimed**. See the
+> [MD3 shell feature guide](docs/features/design-system/md3-shell.md).
+
+> **Material Design 3 外殼 — 2026 年 8 月 11 日：** 應用程式框架而家係照住 `design/History MD3.dc.html` 重寫嘅 MD3 外殼：側邊導航加八個目的地、56px 頂部列連全域搜尋欄，內容窗嘅標題列拎住儲存庫同分支麵包屑、fetch／push 同選單。十一個搜尋欄各有各嘅字**同埋**各有各嘅 regex 掣，喺邊個欄開 regex builder，套用個 pattern 就寫返落嗰個欄。**一樣嘢都冇拆：** 儲存庫分頁列原封不動、預設照顯示，經典工具列收喺**設定 → 外觀 → 顯示經典工具列**後面，而且都係預設開。每個目的地仲係 render 緊真嘅儲存庫工作區，所以每一樣功能都仲喺原本嗰個位。Typecheck、ESLint、Prettier 全部乾淨，功能保存清單同設計合約一致性測試都綠。安裝程式、遠端 CI 同發佈證據**未有**，唔會當有。詳情睇 [MD3 外殼功能指南](docs/features/design-system/md3-shell.md)。
+
 > **Current Windows closeout — August 9, 2026:** School mode is now a real
 > Appearance setting: it can be renamed, uses a local salted credential for
 > unlock, forces English, hides language/playfulness controls and search rows,
-> and suppresses the dim-sum surprise while active. The command palette opens
-> with **Ctrl+Shift+P**; **Ctrl+Shift+F** remains **Open current repository in
-> folder**. The exact implementation is in the [School mode feature guide](docs/features/design-system/school-mode.md).
+> and suppresses the dim-sum surprise while active. The exact implementation is
+> in the [School mode feature guide](docs/features/design-system/school-mode.md).
+> (This banner originally said the palette opened with **Ctrl+Shift+P**. It does
+> not: the shortcut collision with the file browser was resolved in favour of
+> the palette, so **Ctrl+Shift+F** opens the command palette and is what the
+> application menu registers.)
 
-> **Windows 最新收尾 — 2026 年 8 月 9 日：** School mode 而家係一個真正嘅外觀設定：改得名、用本機加鹽憑證解鎖、強制英文、收埋語言同玩味控制項同相關搜尋列，開住嗰陣亦唔會出點心彩蛋。命令面板用 **Ctrl+Shift+P** 開；**Ctrl+Shift+F** 仍然係**喺資料夾開啟目前儲存庫**。實作詳情睇 [School mode 功能指南](docs/features/design-system/school-mode.md)。
+> **Windows 最新收尾 — 2026 年 8 月 9 日：** School mode 而家係一個真正嘅外觀設定：改得名、用本機加鹽憑證解鎖、強制英文、收埋語言同玩味控制項同相關搜尋列，開住嗰陣亦唔會出點心彩蛋。實作詳情睇 [School mode 功能指南](docs/features/design-system/school-mode.md)。（呢段原本寫命令面板用 **Ctrl+Shift+P**，其實唔係：同檔案瀏覽器爭快捷鍵嗰件事已經判咗畀面板，所以開命令面板係 **Ctrl+Shift+F**，亦都係應用程式選單真正註冊嗰個。）
 
 > **Self-hosted runner risk confirmation — August 9, 2026:** the Windows
 > Actions runner setup form now audits all assigned labels—including

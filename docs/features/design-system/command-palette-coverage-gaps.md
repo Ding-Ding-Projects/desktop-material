@@ -208,7 +208,7 @@ Each needs a Cantonese value too, and every `palette:` event below needs its `ti
 | **G1** | `increase-active-resizable-width` | Expand the active resizable pane | `App` | none | `home: { kind: 'surface', labelKey: 'commandPalette.homeSidebar', targetId: 'repositorySidebar' }` — **no `openEvent`**: teleport must show the pane edge, not resize it |
 | **G2** | `decrease-active-resizable-width` | Contract the active resizable pane | `App` | none | same as G1 |
 
-`find-text` (Edit ▸ Command palette, `CmdOrCtrl+Shift+P`) is **not a gap** — the menu opener dispatches the master palette, while `palette:find-in-view` dispatches `this.findText()` in `onPaletteCommand` and carries `find` in its keywords. `CmdOrCtrl+Shift+F` remains the current-repository Open in Folder action.
+`find-text` (Edit ▸ Command palette, `CmdOrCtrl+Shift+F`) is **not a gap** — the menu opener dispatches the master palette, while `palette:find-in-view` dispatches `this.findText()` in `onPaletteCommand` and carries `find` in its keywords. `CmdOrCtrl+Shift+F` has been the palette's own accelerator since the shortcut collision with the file browser was resolved, and the MD3 shell header's chip renders it from the registered menu item rather than from a hard-coded string.
 
 The notification routes are intentionally separate: `palette:notification-centre`
 opens the live notification centre, while `palette:notification-history` opens

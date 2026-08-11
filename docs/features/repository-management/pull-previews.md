@@ -8,6 +8,13 @@ exact current branch and configured upstream snapshot, and waits for
 the toolbar **Pull _remote_** button performs the pull directly without
 opening the review.
 
+> [!NOTE]
+> Since the [MD3 shell](../design-system/md3-shell.md) landed, the toolbar band
+> that carries the **Pull _remote_** button is behind **Settings → Appearance →
+> Show the classic toolbar**, which ships **on**. The application-menu **Pull**
+> action is unaffected and remains the route that always exists; with the band
+> hidden, the pane menu carries pull as well.
+
 ## Behavior and configuration
 
 - The preview fetches the current configured remote with the repository's

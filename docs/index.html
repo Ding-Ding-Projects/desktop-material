@@ -1275,7 +1275,7 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             Design system
           </h3>
           <p class="md-body subpanel__meta">
-            <strong>17</strong>
+            <strong>18</strong>
             <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
             <a href="features/design-system/"
               ><span class="i18n-inline" data-i18n="categoryIndex"
@@ -1307,10 +1307,10 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                 ><span class="doc-link__title"
                   >Command palette rows and appearance</span
                 ><span class="doc-link__desc"
-                  >The Ctrl+Shift+P command palette lists every named app
-                  function. Ctrl+Shift+F opens the current repository folder.
-                  The result list is built for scanning: each row carries
-                  an…</span
+                  >The Ctrl+Shift+F command palette lists every named app
+                  function; that is the accelerator the application menu
+                  registers for command-palette, and the MD3 shell header's
+                  palette…</span
                 ><span class="doc-link__path"
                   >features/design-system/command-palette-appearance.md</span
                 ></a
@@ -1338,10 +1338,10 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                   >Command palette: full-app coverage, rich controls and
                   teleport</span
                 ><span class="doc-link__desc"
-                  >The Ctrl+Shift+P master command palette is Material Design
-                  3's full-screen search view. Ctrl+Shift+F remains the
-                  current-repository Open in Folder action. The palette
-                  covers…</span
+                  >The Ctrl+Shift+F master command palette is Material Design
+                  3's full-screen search view. That is the accelerator the
+                  application menu actually registers for the
+                  command-palette…</span
                 ><span class="doc-link__path"
                   >features/design-system/command-palette-full-coverage.md</span
                 ></a
@@ -1434,6 +1434,19 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                   prototype's two app-wide motion primitives:</span
                 ><span class="doc-link__path"
                   >features/design-system/material-ripple-and-theme-reveal.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="features/design-system/md3-shell.html"
+                ><span class="doc-link__title">The Material Design 3 shell</span
+                ><span class="doc-link__desc"
+                  >The application chrome, rewritten against design/History
+                  MD3.dc.html and assembled as one component. Md3Shell
+                  (app/src/ui/md3/md3-shell.tsx) is what App.renderApp()
+                  renders: a…</span
+                ><span class="doc-link__path"
+                  >features/design-system/md3-shell.md</span
                 ></a
               >
             </li>
@@ -1552,7 +1565,7 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             Identity and workspace
           </h3>
           <p class="md-body subpanel__meta">
-            <strong>13</strong>
+            <strong>14</strong>
             <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
             <a href="features/identity-and-workspace/"
               ><span class="i18n-inline" data-i18n="categoryIndex"
@@ -1561,6 +1574,22 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             >
           </p>
           <ul class="doc-list">
+            <li>
+              <a
+                class="doc-link"
+                href="features/identity-and-workspace/authenticator-and-qr-registration.html"
+                ><span class="doc-link__title"
+                  >The built-in authenticator and QR pairing / 內置驗證器同 QR
+                  配對</span
+                ><span class="doc-link__desc"
+                  >Desktop Material ships its own TOTP authenticator: a place to
+                  register and keep second factors for whatever accounts the
+                  user likes, and to read live codes without reaching for…</span
+                ><span class="doc-link__path"
+                  >features/identity-and-workspace/authenticator-and-qr-registration.md</span
+                ></a
+              >
+            </li>
             <li>
               <a
                 class="doc-link"

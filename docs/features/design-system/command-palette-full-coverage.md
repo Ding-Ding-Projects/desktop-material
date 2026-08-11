@@ -1,7 +1,11 @@
 # Command palette: full-app coverage, rich controls and teleport
 
-The Ctrl+Shift+P master command palette is Material Design 3's full-screen search
-view. `Ctrl+Shift+F` remains the current-repository **Open in Folder** action.
+The <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> master command palette is
+Material Design 3's full-screen search view. That is the accelerator the
+application menu actually registers for the `command-palette` item, and since
+the MD3 shell landed it is also what the header's palette chip prints, because
+the chip is a read-through of the binding rather than a second copy of it — the
+two cannot drift.
 The palette covers the entire app below the title bar rather than floating as a
 small card, and its rows are no longer just names to dispatch — a row that is
 a setting renders the setting's live control inline, and choosing any row

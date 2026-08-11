@@ -24,7 +24,7 @@ export const DatedReleaseCount = 669
 
 /** `version` to `YYYY-MM-DD HH:MM`, 24-hour, from a tag or entry commit. */
 export const ReleaseStamps: Readonly<Record<string, string>> = {
-  '4.0.0': '2026-08-10 08:24',
+  '4.0.0': '2026-08-11 09:29',
   '3.6.3-material22': '2026-08-07 19:21',
   '3.6.3-material21': '2026-07-31 23:23',
   '3.6.3-material20': '2026-07-30 23:54',

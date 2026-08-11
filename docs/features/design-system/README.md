@@ -1,5 +1,12 @@
 # Design-system features / 設計系統功能
 
+- [The Material Design 3 shell](md3-shell.md) — the application chrome rewritten
+  against `design/History MD3.dc.html`: eight destinations behind a navigation
+  drawer, the 56px application header, the pane header with its breadcrumb and
+  sync rules, 23 filterable menu kinds, the regex builder reachable from every
+  search field and every menu filter, the commit composer, the toast host, and
+  the persisted "Show the classic toolbar" setting that keeps the pre-rewrite
+  chrome alongside it.
 - [Command palette: full-app coverage, rich controls and
   teleport](command-palette-full-coverage.md) — the Ctrl+Shift+P palette as MD3's
   full-screen search view: inline switches/boxes/steppers/selects for
@@ -73,6 +80,10 @@
   host, real URLs for a single-page site, and the contract test that proves it
   all shipped.
 
+- [Material Design 3 外殼](md3-shell.md) — 照住 `design/History MD3.dc.html`
+  重寫嘅應用程式框架：側邊導航加八個目的地、56px 頂部列、有麵包屑同同步規則嘅內容
+  標題列、23 種可篩選單、每個搜尋欄同每個選單篩選列都開得到嘅 regex builder、commit
+  撰寫框、toast，同埋一個會記住嘅「顯示經典工具列」設定，令重寫之前嗰套框架照樣留低。
 - [命令面板：全 app 覆蓋、豐富控制項同傳送](command-palette-full-coverage.md) — Ctrl+Shift+P 面板就係 MD3 嘅全螢幕搜尋檢視：設定行有行內開關／方框／步進器／選擇器，撳一下或者 Enter 就傳送到擁有該功能嘅確切控制項（Ctrl+Enter 改為直接執行）。
 - [命令面板覆蓋率](command-palette-coverage-gaps.md) — 完整 133 個命令嘅覆蓋調查同出貨狀態，分清楚即時控制項、淨係傳送嘅目的地、刻意排除，同仲欠嘅目錄前置條件。
 - [命令面板列同外觀](command-palette-appearance.md) — 圖示／關鍵字／群組列、緊湊對齊嘅「自訂外觀」編輯器、每個儲存庫穩定嘅隨機版面，以及俾原本埋得好深嘅畫面嘅可發現入口。
