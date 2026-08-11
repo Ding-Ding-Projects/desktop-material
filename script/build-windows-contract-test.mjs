@@ -46,10 +46,8 @@ describe('one-click Windows build contract', () => {
 
     const install = source.indexOf("'install', '--frozen-lockfile'")
     const build = source.indexOf("'build:prod'")
-    const pack = source.indexOf("'package'")
     assert.ok(install > 0, 'frozen install must be present')
     assert.ok(build > install, 'production build must follow installation')
-    assert.ok(pack > build, 'packaging must follow the production build')
   })
 
   it('keeps tool status off the success stream used for the Node path', async () => {
@@ -152,6 +150,24 @@ describe('one-click Windows build contract', () => {
 
     assert.match(source, /GitHubDesktop\.exe/)
     assert.match(source, /resources\\app\.asar/)
+    assert.match(source, /resources\\app'/)
+    for (const sentinel of [
+      'package.json',
+      'main.js',
+      'renderer.js',
+      'crash.js',
+      'quick-action.js',
+    ]) {
+      assert.match(source, new RegExp(sentinel.replace('.', '\\.')))
+    }
+    assert.match(source, /\$executable\.Length -le 0/)
+    assert.match(source, /\$asarPayload\.Length -gt 0/)
+    assert.match(source, /\$sentinel\.Length -le 0/)
+    assert.match(source, /\$sentinel\.LastWriteTimeUtc -lt \$freshnessFloor/)
+    assert.match(
+      source,
+      /Payload = Get-Item -LiteralPath \$unpackedPayloadPath/
+    )
     assert.match(source, /GitHubDesktopSetup-\$TargetArchitecture\.exe/)
     assert.match(source, /GitHubDesktopSetup-\$TargetArchitecture\.msi/)
     assert.match(source, /'RELEASES'/)
@@ -170,6 +186,29 @@ describe('one-click Windows build contract', () => {
     assert.match(source, /WIN_CSC_LINK = ''/)
   })
 
+  it('runs Squirrel packaging only for Installer mode after the runnable build', async () => {
+    const source = await read('script/build-windows.ps1')
+    const build = source.lastIndexOf("'build:prod'")
+    const installer = source.lastIndexOf("if ($Mode -eq 'Installer')")
+    const pack = source.lastIndexOf("@($yarn, 'package')")
+    const signing = source.lastIndexOf("$env:WINDOWS_SIGNING_ENABLED = 'false'")
+
+    assert.ok(signing > 0, 'signing inputs must be cleared')
+    assert.ok(
+      build > signing,
+      'signing inputs must be cleared before build:prod'
+    )
+    assert.ok(installer > build, 'Installer mode must branch after build:prod')
+    assert.ok(pack > installer, 'Yarn package must be inside Installer mode')
+    assert.doesNotMatch(
+      source.slice(build, installer),
+      /@\(\$yarn, 'package'\)/,
+      'Build mode must not run Squirrel packaging'
+    )
+    assert.match(source.slice(installer), /GitHubDesktopSetup-/)
+    assert.match(source.slice(installer), /verify-releases-manifest\.js/)
+  })
+
   it('prints reproducible receipts without shipping anything', async () => {
     const source = await read('script/build-windows.ps1')
 
@@ -177,6 +216,8 @@ describe('one-click Windows build contract', () => {
     assert.match(source, /Get-FileHash[^\n]+SHA256/)
     assert.match(source, /Size:/)
     assert.match(source, /SHA256:/)
+    assert.match(source, /Payload:/)
+    assert.match(source, /Write-ApplicationReceipt -Application \$application/)
     assert.match(source, /Read-Host/)
     assert.match(source, /Start-Process/)
     assert.match(source, /\$Mode -eq 'Installer'/)

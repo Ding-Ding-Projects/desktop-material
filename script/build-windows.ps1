@@ -251,6 +251,14 @@ function Remove-BoundedBuildOutput {
 function Find-PackagedApplication {
   param([Parameter(Mandatory = $true)][datetime]$NotBefore)
 
+  $freshnessFloor = $NotBefore.AddSeconds(-2)
+  $unpackedSentinelNames = @(
+    'package.json',
+    'main.js',
+    'renderer.js',
+    'crash.js',
+    'quick-action.js'
+  )
   $roots = @($DistDirectory, (Join-Path $RepositoryRoot 'app\dist')) | Where-Object {
     Test-Path -LiteralPath $_ -PathType Container
   }
@@ -258,13 +266,50 @@ function Find-PackagedApplication {
     $executables = Get-ChildItem -LiteralPath $root -Filter GitHubDesktop.exe -File -Recurse -ErrorAction SilentlyContinue |
       Sort-Object LastWriteTimeUtc -Descending
     foreach ($executable in $executables) {
+      if ($executable.Length -le 0 -or $executable.LastWriteTimeUtc -lt $freshnessFloor) {
+        continue
+      }
+
       $asar = Join-Path $executable.DirectoryName 'resources\app.asar'
-      if ($executable.LastWriteTimeUtc -ge $NotBefore.AddSeconds(-2) -and (Test-Path -LiteralPath $asar -PathType Leaf)) {
-        return [pscustomobject]@{ Executable = $executable; Asar = Get-Item -LiteralPath $asar }
+      if (Test-Path -LiteralPath $asar -PathType Leaf) {
+        $asarPayload = Get-Item -LiteralPath $asar
+        if ($asarPayload.Length -gt 0 -and $asarPayload.LastWriteTimeUtc -ge $freshnessFloor) {
+          return [pscustomobject]@{
+            Executable = $executable
+            Payload = $asarPayload
+            PayloadSentinels = @($asarPayload)
+          }
+        }
+      }
+
+      $unpackedPayloadPath = Join-Path $executable.DirectoryName 'resources\app'
+      if (-not (Test-Path -LiteralPath $unpackedPayloadPath -PathType Container)) {
+        continue
+      }
+      $unpackedSentinels = @()
+      foreach ($name in $unpackedSentinelNames) {
+        $sentinelPath = Join-Path $unpackedPayloadPath $name
+        if (-not (Test-Path -LiteralPath $sentinelPath -PathType Leaf)) {
+          $unpackedSentinels = @()
+          break
+        }
+        $sentinel = Get-Item -LiteralPath $sentinelPath
+        if ($sentinel.Length -le 0 -or $sentinel.LastWriteTimeUtc -lt $freshnessFloor) {
+          $unpackedSentinels = @()
+          break
+        }
+        $unpackedSentinels += $sentinel
+      }
+      if ($unpackedSentinels.Count -eq $unpackedSentinelNames.Count) {
+        return [pscustomobject]@{
+          Executable = $executable
+          Payload = Get-Item -LiteralPath $unpackedPayloadPath
+          PayloadSentinels = $unpackedSentinels
+        }
       }
     }
   }
-  throw 'Packaging completed without a fresh GitHubDesktop.exe and matching resources\app.asar. The build is not runnable.'
+  throw 'Packaging completed without a fresh, nonempty GitHubDesktop.exe and either a fresh nonempty resources\app.asar or a complete fresh unpacked resources\app payload. The build is not runnable.'
 }
 
 function Get-OneFreshArtifact {
@@ -300,6 +345,16 @@ function Write-ArtifactReceipt {
   Write-Host "Artifact: $($File.FullName)"
   Write-Host "Size: $($File.Length) bytes"
   Write-Host "SHA256: $hash"
+}
+
+function Write-ApplicationReceipt {
+  param([Parameter(Mandatory = $true)][pscustomobject]$Application)
+
+  Write-ArtifactReceipt -File $Application.Executable
+  Write-Host "Payload: $($Application.Payload.FullName)"
+  foreach ($sentinel in $Application.PayloadSentinels) {
+    Write-ArtifactReceipt -File $sentinel
+  }
 }
 
 function Ensure-ManifestPackageAlias {
@@ -447,10 +502,6 @@ try {
 
     Ensure-PrintenvzExecutable -NodePath $node -VisualStudioInstallationPath $vsInstallationPath
     $env:NODE_ENV = 'production'
-    $buildStartedAt = [datetime]::UtcNow
-    Write-Phase 'Building the production renderer and main process'
-    Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'build:prod') -FailureLabel 'Production build'
-
     $env:WINDOWS_SIGNING_ENABLED = 'false'
     $env:CSC_IDENTITY_AUTO_DISCOVERY = 'false'
     $env:CSC_LINK = ''
@@ -461,19 +512,22 @@ try {
     $env:AZURE_CLIENT_ID = ''
     $env:AZURE_CLIENT_SECRET = ''
 
-    $packageStartedAt = [datetime]::UtcNow
-    Write-Phase 'Packaging with every signing input cleared or disabled'
-    Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'package') -FailureLabel 'Unsigned packaging'
+    $buildStartedAt = [datetime]::UtcNow
+    Write-Phase 'Building the production renderer and runnable app with every signing input cleared or disabled'
+    Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'build:prod') -FailureLabel 'Production build'
 
     $application = Find-PackagedApplication -NotBefore $buildStartedAt
     Assert-NotSigned -File $application.Executable
-    Write-ArtifactReceipt -File $application.Executable
-    Write-ArtifactReceipt -File $application.Asar
+    Write-ApplicationReceipt -Application $application
 
     $commit = Get-RepositoryCommit
     Write-Host "Commit: $commit"
 
     if ($Mode -eq 'Installer') {
+      $packageStartedAt = [datetime]::UtcNow
+      Write-Phase 'Building unsigned Squirrel.Windows artifacts from the packaged app'
+      Invoke-Checked -FilePath $node -ArgumentList @($yarn, 'package') -FailureLabel 'Unsigned installer packaging'
+
       $setup = Get-OneFreshArtifact -Filter "GitHubDesktopSetup-$TargetArchitecture.exe" -NotBefore $packageStartedAt -Description 'Setup executable'
       $msi = Get-OneFreshArtifact -Filter "GitHubDesktopSetup-$TargetArchitecture.msi" -NotBefore $packageStartedAt -Description 'Setup MSI'
       $releases = Get-OneFreshArtifact -Filter 'RELEASES' -NotBefore $packageStartedAt -Description 'Squirrel RELEASES manifest'
