@@ -39,6 +39,12 @@ import {
   setShowDialogEmoji,
 } from '../../lib/dialog-emoji'
 import {
+  ClassicToolbarProvenance,
+  getShowClassicToolbar,
+  getShowClassicToolbarProvenance,
+  setShowClassicToolbar,
+} from '../../lib/classic-toolbar'
+import {
   clampFunnyLevel,
   IAudioSystemSettings,
 } from '../../lib/audio/audio-settings'
@@ -111,6 +117,10 @@ interface IAppearanceState {
   readonly showDialogEmoji: boolean
   /** Whether that value was recorded here or is the shipped fallback. */
   readonly showDialogEmojiProvenance: DialogEmojiProvenance
+  /** Live value of "Show the classic toolbar". */
+  readonly showClassicToolbar: boolean
+  /** Whether that value was recorded here or is the shipped fallback. */
+  readonly showClassicToolbarProvenance: ClassicToolbarProvenance
 }
 
 export class Appearance extends React.Component<
@@ -136,6 +146,8 @@ export class Appearance extends React.Component<
       funnyLevelCantonese: audioSettings.funnyLevelCantonese,
       showDialogEmoji: getShowDialogEmoji(),
       showDialogEmojiProvenance: getShowDialogEmojiProvenance(),
+      showClassicToolbar: getShowClassicToolbar(),
+      showClassicToolbarProvenance: getShowClassicToolbarProvenance(),
     }
 
     if (!usePropTheme) {
@@ -305,6 +317,87 @@ export class Appearance extends React.Component<
         </p>
       </div>
     )
+  }
+
+  /**
+   * "Show the classic toolbar".
+   *
+   * The band the MD3 shell replaced is kept rather than retired, and this is
+   * the switch that governs it. It ships on: the user decided the classic
+   * chrome stays, and a setting that shipped off would be a removal wearing a
+   * checkbox.
+   *
+   * The explanation sits behind progressive disclosure so the row stays a row,
+   * and the provenance line states whether the live value was actually chosen
+   * on this computer or is the shipped fallback — naming the real value rather
+   * than the opaque word "default".
+   */
+  private renderClassicToolbar() {
+    const languageMode = this.props.appearanceCustomization.languageMode
+    const localize = (key: Parameters<typeof translate>[0]) =>
+      translate(key, languageMode)
+    const levels: IFunnyLevels = {
+      english: this.state.funnyLevelEnglish,
+      cantonese: this.state.funnyLevelCantonese,
+    }
+
+    const enabled = this.state.showClassicToolbar
+    const provenance = translate(
+      this.state.showClassicToolbarProvenance === 'stored'
+        ? 'classicToolbar.provenanceStored'
+        : 'classicToolbar.provenanceDefault',
+      languageMode,
+      {
+        value: translatedVariable(
+          enabled ? 'classicToolbar.stateOn' : 'classicToolbar.stateOff'
+        ),
+      }
+    )
+
+    return (
+      <div
+        className="appearance-section appearance-customization-section appearance-classic-toolbar"
+        {...teleportAnchor('settings-classic-toolbar')}
+      >
+        <h2>{localize('classicToolbar.heading')}</h2>
+        <Checkbox
+          label={localize('classicToolbar.toggleLabel')}
+          value={enabled ? CheckboxValue.On : CheckboxValue.Off}
+          onChange={this.onShowClassicToolbarChanged}
+          ariaDescribedBy="classic-toolbar-provenance"
+        />
+        <details className="appearance-classic-toolbar-explanation">
+          <summary>{localize('classicToolbar.explanationSummary')}</summary>
+          <p className="appearance-customization-caption">
+            {translateWithFunnyLevel(
+              'classicToolbar.explanation',
+              languageMode,
+              levels
+            )}
+          </p>
+          <p className="appearance-customization-caption">
+            {localize('classicToolbar.boundaryNote')}
+          </p>
+        </details>
+        <p
+          id="classic-toolbar-provenance"
+          className="appearance-customization-caption appearance-classic-toolbar-provenance"
+        >
+          {provenance}
+        </p>
+      </div>
+    )
+  }
+
+  private onShowClassicToolbarChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    const enabled = event.currentTarget.checked
+    setShowClassicToolbar(enabled)
+    this.setState({
+      showClassicToolbar: enabled,
+      showClassicToolbarProvenance: getShowClassicToolbarProvenance(),
+    })
   }
 
   private onShowDialogEmojiChanged = (
@@ -905,6 +998,7 @@ export class Appearance extends React.Component<
         {this.renderElementGestureNote()}
         {this.renderLanguageAndNavigation()}
         {this.renderDialogEmoji()}
+        {this.renderClassicToolbar()}
         <SchoolModePreferences
           languageMode={this.props.appearanceCustomization.languageMode}
         />

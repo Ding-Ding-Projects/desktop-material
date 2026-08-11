@@ -4394,6 +4394,76 @@ export type TranslationKey =
   | 'md3.paneHeader.repository'
   | 'md3.paneHeader.branch'
   | 'md3.paneHeader.progress'
+  | 'md3.shell.destinationAnnouncement'
+  | 'md3.shell.branchGroup.local'
+  | 'md3.shell.branchGroup.remote'
+  | 'md3.shell.searchTarget.global'
+  | 'md3.shell.searchTarget.history'
+  | 'md3.shell.searchTarget.changes'
+  | 'md3.shell.searchTarget.branches'
+  | 'md3.shell.searchTarget.actions'
+  | 'md3.shell.searchTarget.logs'
+  | 'md3.shell.searchTarget.inbox'
+  | 'md3.shell.searchTarget.terminal'
+  | 'md3.shell.searchTarget.agents'
+  | 'md3.shell.searchTarget.repositories'
+  | 'md3.shell.searchTarget.diffSearch'
+  | 'md3.shell.carry.compareToBranch'
+  | 'md3.shell.carry.unreachableCommits'
+  | 'md3.shell.carry.workflowManager'
+  | 'md3.shell.carry.workflowCatalog'
+  | 'md3.shell.carry.cacheManager'
+  | 'md3.shell.carry.runnerManager'
+  | 'md3.shell.carry.refreshRuns'
+  | 'md3.shell.carry.runCount'
+  | 'md3.shell.carry.jumpToAttempt'
+  | 'md3.shell.carry.logMatchNavigation'
+  | 'md3.shell.carry.logGroupCollapse'
+  | 'md3.shell.carry.paneDivider'
+  | 'md3.shell.carry.discardFile'
+  | 'md3.shell.carry.permanentlyDiscardFile'
+  | 'md3.shell.carry.stashFile'
+  | 'md3.shell.carry.ignoreFolder'
+  | 'md3.shell.carry.copyRelativePath'
+  | 'md3.shell.carry.copySelectedPaths'
+  | 'md3.shell.carry.openWithDefaultProgram'
+  | 'md3.shell.carry.cheapLfsPin'
+  | 'md3.shell.carry.includeSelectedFiles'
+  | 'md3.shell.carry.excludeSelectedFiles'
+  | 'md3.shell.carry.discardAll'
+  | 'md3.shell.carry.permanentlyDiscardAll'
+  | 'md3.shell.carry.stashAll'
+  | 'md3.shell.carry.mergeAndDelete'
+  | 'md3.shell.carry.compareBranch'
+  | 'md3.shell.carry.copyBranchName'
+  | 'md3.shell.carry.togglePinBranch'
+  | 'md3.shell.carry.hideBranch'
+  | 'md3.shell.carry.soloBranch'
+  | 'md3.shell.carry.restoreBranchVisibility'
+  | 'md3.shell.carry.checkoutInNewWorktree'
+  | 'md3.shell.carry.switchToWorktree'
+  | 'md3.shell.carry.viewBranchOnForge'
+  | 'md3.shell.carry.viewPullRequestOnForge'
+  | 'md3.shell.carry.sortBranchesByName'
+  | 'md3.shell.carry.sortBranchesByRecent'
+  | 'md3.shell.carry.showPullRequests'
+  | 'md3.shell.carry.fetchRemoteBranches'
+  | 'md3.shell.carry.restoreAllBranches'
+  | 'md3.shell.carry.bulkDeleteBranches'
+  | 'md3.shell.carry.repositoryListMenu'
+  | 'md3.shell.carry.newAgentSession'
+  | 'classicToolbar.heading'
+  | 'classicToolbar.toggleLabel'
+  | 'classicToolbar.explanationSummary'
+  | 'classicToolbar.explanation.plain'
+  | 'classicToolbar.explanation.light'
+  | 'classicToolbar.explanation.playful'
+  | 'classicToolbar.explanation.maximum'
+  | 'classicToolbar.boundaryNote'
+  | 'classicToolbar.provenanceDefault'
+  | 'classicToolbar.provenanceStored'
+  | 'classicToolbar.stateOn'
+  | 'classicToolbar.stateOff'
   | 'md3.repositories.searchPlaceholder'
   | 'md3.repositories.dismissNotice'
   | 'md3.repositories.searchFieldName'
@@ -10505,6 +10575,84 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'md3.paneHeader.repository': 'Repository {name}',
   'md3.paneHeader.branch': 'Branch {name}',
   'md3.paneHeader.progress': '{operation}, {percent}% complete',
+  'md3.shell.destinationAnnouncement': 'Showing {name}',
+  'md3.shell.branchGroup.local': 'Local',
+  'md3.shell.branchGroup.remote': 'Remote',
+  'md3.shell.searchTarget.global': 'the global search',
+  'md3.shell.searchTarget.history': 'commits',
+  'md3.shell.searchTarget.changes': 'changed files',
+  'md3.shell.searchTarget.branches': 'branches',
+  'md3.shell.searchTarget.actions': 'workflow runs',
+  'md3.shell.searchTarget.logs': 'log output',
+  'md3.shell.searchTarget.inbox': 'notifications',
+  'md3.shell.searchTarget.terminal': 'terminal output',
+  'md3.shell.searchTarget.agents': 'agent sessions',
+  'md3.shell.searchTarget.repositories': 'repositories',
+  'md3.shell.searchTarget.diffSearch': 'the diff',
+  'md3.shell.carry.compareToBranch': 'Compare to branch…',
+  'md3.shell.carry.unreachableCommits': 'Unreachable commits…',
+  'md3.shell.carry.workflowManager': 'Workflow manager…',
+  'md3.shell.carry.workflowCatalog': 'New workflow from a template…',
+  'md3.shell.carry.cacheManager': 'Actions cache manager…',
+  'md3.shell.carry.runnerManager': 'Self-hosted runner manager…',
+  'md3.shell.carry.refreshRuns': 'Refresh workflow runs',
+  'md3.shell.carry.runCount': 'Showing {count} runs',
+  'md3.shell.carry.jumpToAttempt': 'Jump to attempt…',
+  'md3.shell.carry.logMatchNavigation': 'Step through log matches',
+  'md3.shell.carry.logGroupCollapse': 'Collapse log groups',
+  'md3.shell.carry.paneDivider': 'Resize the run list',
+  'md3.shell.carry.discardFile': 'Discard changes',
+  'md3.shell.carry.permanentlyDiscardFile': 'Permanently discard changes',
+  'md3.shell.carry.stashFile': 'Stash changes',
+  'md3.shell.carry.ignoreFolder': 'Ignore this folder',
+  'md3.shell.carry.copyRelativePath': 'Copy relative path',
+  'md3.shell.carry.copySelectedPaths': 'Copy the selected paths',
+  'md3.shell.carry.openWithDefaultProgram': 'Open with the default program',
+  'md3.shell.carry.cheapLfsPin': 'Pin with Cheap LFS',
+  'md3.shell.carry.includeSelectedFiles': 'Include the selected files',
+  'md3.shell.carry.excludeSelectedFiles': 'Exclude the selected files',
+  'md3.shell.carry.discardAll': 'Discard all changes',
+  'md3.shell.carry.permanentlyDiscardAll': 'Permanently discard all changes',
+  'md3.shell.carry.stashAll': 'Stash all changes',
+  'md3.shell.carry.mergeAndDelete': 'Merge and delete this branch',
+  'md3.shell.carry.compareBranch': 'Compare with this branch',
+  'md3.shell.carry.copyBranchName': 'Copy branch name',
+  'md3.shell.carry.togglePinBranch': 'Pin or unpin this branch',
+  'md3.shell.carry.hideBranch': 'Hide this branch',
+  'md3.shell.carry.soloBranch': 'Show only this branch',
+  'md3.shell.carry.restoreBranchVisibility': 'Restore hidden branches',
+  'md3.shell.carry.checkoutInNewWorktree': 'Check out in a new worktree',
+  'md3.shell.carry.switchToWorktree': 'Switch to this branch’s worktree',
+  'md3.shell.carry.viewBranchOnForge': 'View this branch on the forge',
+  'md3.shell.carry.viewPullRequestOnForge':
+    'View the pull request on the forge',
+  'md3.shell.carry.sortBranchesByName': 'Sort branches by name',
+  'md3.shell.carry.sortBranchesByRecent': 'Sort branches by most recent',
+  'md3.shell.carry.showPullRequests': 'Show pull requests',
+  'md3.shell.carry.fetchRemoteBranches': 'Fetch remote branches',
+  'md3.shell.carry.restoreAllBranches': 'Restore all hidden branches',
+  'md3.shell.carry.bulkDeleteBranches': 'Delete the selected branches…',
+  'md3.shell.carry.repositoryListMenu': 'Repository actions…',
+  'md3.shell.carry.newAgentSession': 'New agent session…',
+  'classicToolbar.heading': 'Classic toolbar',
+  'classicToolbar.toggleLabel': 'Show the classic toolbar',
+  'classicToolbar.explanationSummary': 'What this setting changes',
+  'classicToolbar.explanation.plain':
+    'When this is on, the classic toolbar band — the repository, worktree, branch, sync, build-and-run and theme controls — is shown above the main pane. When it is off, the band is hidden and every one of those actions stays reachable from the pane header and the pane’s More actions menu. Nothing is removed either way.',
+  'classicToolbar.explanation.light':
+    'On puts the classic toolbar band back above the pane: repository, worktree, branch, sync, build-and-run, theme. Off tucks it away, and every one of those actions is still in the pane header or the pane’s More actions menu. Nothing goes missing either way.',
+  'classicToolbar.explanation.playful':
+    'On, and the old toolbar band takes its usual seat above the pane with repository, worktree, branch, sync, build-and-run and theme all present and correct. Off, and it takes the evening off — every one of those actions is waiting in the pane header or behind More actions. Nothing is lost, only relocated.',
+  'classicToolbar.explanation.maximum':
+    'On, and the classic toolbar band strolls back to its old seat above the pane with the whole crew — repository, worktree, branch, sync, build-and-run, theme — exactly where a decade of muscle memory expects them. Off, and the band clocks off for the night, having first handed every single one of those actions to the pane header and the More actions menu. Not one of them is retired, sacked, or quietly lost down the back of the interface.',
+  'classicToolbar.boundaryNote':
+    'Hiding the band never removes an action. The repository tab strip is separate and is always shown.',
+  'classicToolbar.provenanceDefault':
+    'No choice has been recorded on this computer, so the shipped value is in use: {value}.',
+  'classicToolbar.provenanceStored':
+    'A choice was recorded on this computer: {value}.',
+  'classicToolbar.stateOn': 'shown',
+  'classicToolbar.stateOff': 'hidden',
   'md3.repositories.searchPlaceholder': 'Search repositories, orgs, languages',
   'md3.repositories.dismissNotice': 'Dismiss this message',
   'md3.repositories.searchFieldName': 'repositories',
@@ -16487,6 +16635,82 @@ export const cantoneseTranslations: Readonly<
   'md3.paneHeader.repository': 'Repo {name}',
   'md3.paneHeader.branch': '分支 {name}',
   'md3.paneHeader.progress': '{operation}，做咗 {percent}%',
+  'md3.shell.destinationAnnouncement': '而家睇緊{name}',
+  'md3.shell.branchGroup.local': '本機',
+  'md3.shell.branchGroup.remote': '遠端',
+  'md3.shell.searchTarget.global': '全域搜尋',
+  'md3.shell.searchTarget.history': '啲 commit',
+  'md3.shell.searchTarget.changes': '改咗嘅檔案',
+  'md3.shell.searchTarget.branches': '啲分支',
+  'md3.shell.searchTarget.actions': '啲 workflow run',
+  'md3.shell.searchTarget.logs': 'log 內容',
+  'md3.shell.searchTarget.inbox': '啲通知',
+  'md3.shell.searchTarget.terminal': '終端機輸出',
+  'md3.shell.searchTarget.agents': 'agent 對話',
+  'md3.shell.searchTarget.repositories': '啲 repo',
+  'md3.shell.searchTarget.diffSearch': '份 diff',
+  'md3.shell.carry.compareToBranch': '同第個分支比較…',
+  'md3.shell.carry.unreachableCommits': '搵唔返嘅 commit…',
+  'md3.shell.carry.workflowManager': 'Workflow 管理…',
+  'md3.shell.carry.workflowCatalog': '用範本開新 workflow…',
+  'md3.shell.carry.cacheManager': 'Actions 快取管理…',
+  'md3.shell.carry.runnerManager': '自架 runner 管理…',
+  'md3.shell.carry.refreshRuns': '重新攞 workflow run',
+  'md3.shell.carry.runCount': '而家有 {count} 個 run',
+  'md3.shell.carry.jumpToAttempt': '跳去指定嘅 attempt…',
+  'md3.shell.carry.logMatchNavigation': '逐個行去 log 嘅配對',
+  'md3.shell.carry.logGroupCollapse': '摺埋 log 嘅分組',
+  'md3.shell.carry.paneDivider': '較 run 清單嘅闊度',
+  'md3.shell.carry.discardFile': '掉咗啲改動',
+  'md3.shell.carry.permanentlyDiscardFile': '永久掉咗啲改動',
+  'md3.shell.carry.stashFile': 'Stash 起啲改動',
+  'md3.shell.carry.ignoreFolder': '唔理呢個資料夾',
+  'md3.shell.carry.copyRelativePath': '複製相對路徑',
+  'md3.shell.carry.copySelectedPaths': '複製揀咗嘅路徑',
+  'md3.shell.carry.openWithDefaultProgram': '用預設程式打開',
+  'md3.shell.carry.cheapLfsPin': '用 Cheap LFS 釘住',
+  'md3.shell.carry.includeSelectedFiles': '包埋揀咗嘅檔案',
+  'md3.shell.carry.excludeSelectedFiles': '唔包揀咗嘅檔案',
+  'md3.shell.carry.discardAll': '掉晒所有改動',
+  'md3.shell.carry.permanentlyDiscardAll': '永久掉晒所有改動',
+  'md3.shell.carry.stashAll': 'Stash 起所有改動',
+  'md3.shell.carry.mergeAndDelete': 'Merge 完順手刪咗呢個分支',
+  'md3.shell.carry.compareBranch': '同呢個分支比較',
+  'md3.shell.carry.copyBranchName': '複製分支名',
+  'md3.shell.carry.togglePinBranch': '釘住或者放低呢個分支',
+  'md3.shell.carry.hideBranch': '收埋呢個分支',
+  'md3.shell.carry.soloBranch': '淨係睇呢個分支',
+  'md3.shell.carry.restoreBranchVisibility': '攞返收埋咗嘅分支',
+  'md3.shell.carry.checkoutInNewWorktree': '喺新 worktree checkout',
+  'md3.shell.carry.switchToWorktree': '轉去呢個分支嘅 worktree',
+  'md3.shell.carry.viewBranchOnForge': '喺 forge 睇呢個分支',
+  'md3.shell.carry.viewPullRequestOnForge': '喺 forge 睇個 pull request',
+  'md3.shell.carry.sortBranchesByName': '按名排分支',
+  'md3.shell.carry.sortBranchesByRecent': '按最近用過排分支',
+  'md3.shell.carry.showPullRequests': '顯示 pull request',
+  'md3.shell.carry.fetchRemoteBranches': '去攞遠端分支',
+  'md3.shell.carry.restoreAllBranches': '攞返所有收埋咗嘅分支',
+  'md3.shell.carry.bulkDeleteBranches': '刪咗揀嘅分支…',
+  'md3.shell.carry.repositoryListMenu': 'Repo 動作…',
+  'md3.shell.carry.newAgentSession': '開新 agent 對話…',
+  'classicToolbar.heading': '舊版工具列',
+  'classicToolbar.toggleLabel': '顯示舊版工具列',
+  'classicToolbar.explanationSummary': '呢個設定會改咩',
+  'classicToolbar.explanation.plain':
+    '開咗之後，舊版工具列（repo、worktree、分支、同步、Build and run 同主題）會喺主面板上面顯示。閂咗之後，條工具列會收埋，而以上每一個動作都仲可以喺面板標題列同「仲有其他動作」選單搵到。兩邊都唔會少咗任何功能。',
+  'classicToolbar.explanation.light':
+    '開咗，舊版工具列返返去面板上面：repo、worktree、分支、同步、Build and run、主題。閂咗，收埋佢，但每個動作都仲喺面板標題列或者「仲有其他動作」入面。兩邊都冇嘢會唔見。',
+  'classicToolbar.explanation.playful':
+    '開咗，舊版工具列照舊坐返面板上面，repo、worktree、分支、同步、Build and run 同主題一個都冇走雞。閂咗，佢就放個假，而嗰啲動作全部喺面板標題列或者「仲有其他動作」度等緊你。冇嘢會唔見，淨係搬咗屋。',
+  'classicToolbar.explanation.maximum':
+    '開咗，舊版工具列就大搖大擺行返上面板頭頂嗰個熟悉嘅位，成隊人馬齊晒：repo、worktree、分支、同步、Build and run、主題，十年肌肉記憶擺喺邊就係邊。閂咗，佢就落更收工，臨走前將每一個動作都交晒俾面板標題列同「仲有其他動作」選單。冇一個會被裁、被退休，或者靜靜雞跌咗落介面後面。',
+  'classicToolbar.boundaryNote':
+    '收埋條工具列唔會刪走任何動作。Repo 分頁列係另一件事，佢一直都會顯示。',
+  'classicToolbar.provenanceDefault':
+    '呢部電腦未記錄過你嘅選擇，所以而家用緊出廠設定：{value}。',
+  'classicToolbar.provenanceStored': '呢部電腦記錄咗你嘅選擇：{value}。',
+  'classicToolbar.stateOn': '顯示',
+  'classicToolbar.stateOff': '隱藏',
   'md3.repositories.searchPlaceholder': '搵 repo、組織或者語言',
   'md3.repositories.dismissNotice': '收埋呢句嘢',
   'md3.repositories.searchFieldName': '啲 repo',

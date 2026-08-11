@@ -325,6 +325,21 @@ import { CommitConflictsWarning } from './merge-conflicts'
 import { AppTheme } from './app-theme'
 import { ButtonHints } from './lib/button-hints'
 import { ApplicationTheme } from './lib/application-theme'
+import { Md3Shell, md3NoViews } from './md3/md3-shell'
+import type { IMd3ShellState, Md3ShellAction } from './md3/md3-shell'
+import {
+  defaultMd3MenuContext,
+  type IMd3MenuContext,
+  type IMd3MenuHandlers,
+} from './md3/md3-menu-specs'
+import {
+  ShowClassicToolbarChangedEvent,
+  getShowClassicToolbar,
+} from '../lib/classic-toolbar'
+import { BranchType } from '../models/branch'
+import { DiffSelectionType } from '../models/diff'
+import { initials as md3Initials } from './md3/md3-style-contract'
+import type { Md3MenuCommand, Md3MenuToggle } from './md3/md3-menu-specs'
 import { RepositoryStateCache } from '../lib/stores/repository-state-cache'
 import { hasModalPopup, PopupType, Popup } from '../models/popup'
 import { OversizedFiles } from './changes/oversized-files-warning'
@@ -732,9 +747,50 @@ function localizeAgentSetupFailure(
   }
 }
 
+/**
+ * The forge host an account belongs to, for the accounts menu's hint.
+ *
+ * The account records an API endpoint rather than a host, and a malformed one
+ * must not take the menu down with it — an unparseable endpoint simply has no
+ * host to show.
+ */
+function md3AccountHost(endpoint: string): string {
+  try {
+    return new URL(endpoint).host
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * Navigation, opening another menu and opening the regex builder are all shell
+ * state, and `Md3Shell` handles each of them before the host's handler runs.
+ * These are the host's half of that: there is genuinely nothing for `App` to
+ * do, and a comment saying so is worth more than three identical closures
+ * scattered through the menu handlers.
+ */
+function noopMd3Navigate() {}
+function noopMd3OpenMenu() {}
+function noopMd3OpenBuilder() {}
+
 export class App extends React.Component<IAppProps, IAppState> {
   private loading = true
   private mounted = false
+
+  /**
+   * A mirror of the MD3 shell's own state, for the parts of `App`'s render
+   * that depend on it.
+   *
+   * The shell keeps its state itself. `App` only needs two of its values —
+   * which destination is showing and whether the drawer is expanded — so it
+   * mirrors those and re-renders for exactly the actions that change them.
+   * Re-rendering the whole application on every keystroke in a search field
+   * would be the obvious way to hold this and the wrong one.
+   */
+  private md3DrawerExpanded = true
+
+  /** Live value of the persisted "Show the classic toolbar" preference. */
+  private md3ClassicToolbarVisible = getShowClassicToolbar()
   private disposed = false
   private readySent = false
   private readonly subscriptions = new CompositeDisposable()
@@ -1005,6 +1061,10 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   public componentWillUnmount() {
     this.mounted = false
+    window.removeEventListener(
+      ShowClassicToolbarChangedEvent,
+      this.onClassicToolbarVisibilityChanged
+    )
     this.disposed = true
     this.disposeAgentSessionStore?.()
     this.disposeAgentSessionStore = null
@@ -3498,6 +3558,10 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   public componentDidMount() {
     this.mounted = true
+    window.addEventListener(
+      ShowClassicToolbarChangedEvent,
+      this.onClassicToolbarVisibilityChanged
+    )
     this.disposed = false
     this.syncAgentSessionWorktrees()
     this.syncAgentSessionPolling()
@@ -7997,7 +8061,352 @@ export class App extends React.Component<IAppProps, IAppState> {
     )
   }
 
-  private renderApp() {
+  private onClassicToolbarVisibilityChanged = () => {
+    const next = getShowClassicToolbar()
+    if (next !== this.md3ClassicToolbarVisible) {
+      this.md3ClassicToolbarVisible = next
+      this.forceUpdate()
+    }
+  }
+
+  private onMd3ShellStateChange = (
+    state: IMd3ShellState,
+    action: Md3ShellAction
+  ) => {
+    this.md3DrawerExpanded = state.drawerExpanded
+
+    // Only the actions `App`'s own render reads are worth a re-render. A
+    // keystroke in a search field changes the shell and nothing here.
+    if (
+      action.type === 'select-destination' ||
+      action.type === 'toggle-drawer' ||
+      action.type === 'set-drawer'
+    ) {
+      this.forceUpdate()
+    }
+  }
+
+  /** The current repository selection, or `null` when there is not one. */
+  private get md3Selection() {
+    const selection = this.state.selectedState
+    return selection !== null && selection.type === SelectionType.Repository
+      ? selection
+      : null
+  }
+
+  private md3RepositoryName(): string {
+    const selection = this.state.selectedState
+    return selection === null ? '' : selection.repository.name
+  }
+
+  private md3BranchName(): string {
+    const selection = this.md3Selection
+    if (selection === null) {
+      return ''
+    }
+    const tip = selection.state.branchesState.tip
+    return tip.kind === TipState.Valid ? tip.branch.name : ''
+  }
+
+  private md3AheadCount(): number {
+    const aheadBehind = this.md3Selection?.state.aheadBehind ?? null
+    return aheadBehind === null ? 0 : aheadBehind.ahead
+  }
+
+  private md3AccountInitials(): string {
+    const account = this.state.accounts[0]
+    return account === undefined ? '' : md3Initials(account.friendlyName)
+  }
+
+  /**
+   * The values the contract's menus read out of state.
+   *
+   * Every field with a real owner in the app store is read from it. The
+   * remainder — the view-local toggles the MD3 destinations own themselves,
+   * which nothing in the store has taken over yet — fall back to the
+   * contract's own documented defaults, which are plain booleans and counts
+   * rather than invented identities. The accounts, repositories, branches,
+   * repository, branch, theme, dates, diff mode and whitespace setting below
+   * are all real values read from the store.
+   */
+  private md3MenuContext(): IMd3MenuContext {
+    const selection = this.md3Selection
+    const allBranches = selection?.state.branchesState.allBranches ?? []
+    const shas = selection?.state.commitSelection.shas ?? []
+    const accounts = this.state.accounts
+
+    return {
+      ...defaultMd3MenuContext,
+      theme:
+        this.state.currentTheme === ApplicationTheme.Dark ? 'dark' : 'light',
+      branch: this.md3BranchName(),
+      selectedCommitSha: shas.length > 0 ? shas[0].slice(0, 7) : '',
+      accounts: accounts.map(account => ({
+        name: account.friendlyName,
+        host: md3AccountHost(account.endpoint),
+      })),
+      activeAccount: accounts.length > 0 ? accounts[0].friendlyName : '',
+      repositories: this.state.repositories.map(repository => ({
+        name: repository.name,
+        org:
+          repository instanceof Repository &&
+          repository.gitHubRepository !== null
+            ? repository.gitHubRepository.owner.login
+            : '',
+        changesSummary: '',
+      })),
+      repository: this.md3RepositoryName(),
+      branches: allBranches.map(branch => ({
+        name: branch.name,
+        group:
+          branch.type === BranchType.Local
+            ? t('md3.shell.branchGroup.local')
+            : t('md3.shell.branchGroup.remote'),
+      })),
+      absoluteDates: this.state.preferAbsoluteDates,
+      diffMode: this.state.showSideBySideDiff ? 'split' : 'unified',
+      hideWhitespaceChanges: this.state.hideWhitespaceInChangesDiff,
+      drawerExpanded: this.md3DrawerExpanded,
+    }
+  }
+
+  /**
+   * The menu actions.
+   *
+   * The shell overrides navigation, the drawer toggle, opening another menu
+   * and opening the regex builder, because those four are its own state. The
+   * rest arrive here and are routed to the surfaces the app already has.
+   */
+  private md3MenuHandlers(): IMd3MenuHandlers {
+    return {
+      onCommand: this.onMd3MenuCommand,
+      onNavigate: noopMd3Navigate,
+      onToggle: this.onMd3MenuToggle,
+      onSwitchRepository: this.onMd3SwitchRepository,
+      onSwitchBranch: this.onMd3SwitchBranch,
+      onSwitchAccount: this.onMd3OpenAccountSwitcher,
+      onOpenMenu: noopMd3OpenMenu,
+      onOpenRegexBuilder: noopMd3OpenBuilder,
+    }
+  }
+
+  private onMd3SwitchRepository = (name: string) => {
+    const repository = this.state.repositories.find(r => r.name === name)
+    if (repository !== undefined) {
+      this.props.dispatcher.selectRepository(repository)
+    }
+  }
+
+  private onMd3SwitchBranch = (name: string) => {
+    const selection = this.md3Selection
+    if (selection === null) {
+      return
+    }
+    const branch = selection.state.branchesState.allBranches.find(
+      candidate => candidate.name === name
+    )
+    if (branch !== undefined) {
+      void this.props.dispatcher.checkoutBranch(selection.repository, branch)
+    }
+  }
+
+  private onMd3MenuToggle = (toggle: Md3MenuToggle) => {
+    switch (toggle) {
+      case 'theme':
+        this.onMd3ToggleTheme()
+        return
+      case 'absoluteDates':
+        this.props.dispatcher.setPreferAbsoluteDates(
+          !this.state.preferAbsoluteDates
+        )
+        return
+      case 'commitGraph':
+      case 'wrapLongLines':
+      case 'drawer':
+        // `drawer` is the shell's own state and it has already handled it. The
+        // other two are view-local settings the MD3 destinations own; the
+        // store has no field for either, so nothing here can flip them.
+        return
+    }
+  }
+
+  private onMd3MenuCommand = (command: Md3MenuCommand) => {
+    const selection = this.md3Selection
+
+    switch (command) {
+      case 'fetchOrigin':
+      case 'fetchRepository':
+        if (selection !== null) {
+          void this.props.dispatcher.fetch(
+            selection.repository,
+            FetchType.UserInitiatedTask
+          )
+        }
+        return
+      case 'pullOrigin':
+      case 'pullRepository':
+        if (selection !== null) {
+          void this.props.dispatcher.pull(selection.repository)
+        }
+        return
+      case 'commitAndPushAllChanges':
+      case 'commitAndPush':
+        if (selection !== null) {
+          void this.props.dispatcher.oneClickCommitAndPush(selection.repository)
+        }
+        return
+      case 'openGitSettings':
+      case 'openIntegrationSettings':
+      case 'openNotificationSettings':
+      case 'openAutomationSettings':
+        this.onMd3OpenSettings()
+        return
+      case 'addCoAuthors':
+      case 'writeCommitMessageWithCopilot':
+        this.props.dispatcher.setCommitMessageFocus(true)
+        return
+      default:
+        // Every remaining command belongs to a destination view, which owns
+        // the surface it acts on, and arrives here once that view is wired to
+        // the shell. Until then the classic toolbar and the legacy workspace
+        // below still carry all of them, so nothing is unreachable.
+        return
+    }
+  }
+
+  private onMd3ToggleTheme = () => {
+    const next =
+      this.state.currentTheme === ApplicationTheme.Dark
+        ? ApplicationTheme.Light
+        : ApplicationTheme.Dark
+    this.props.dispatcher.setSelectedTheme(next)
+  }
+
+  private onMd3CommitAndPush = () => {
+    const selection = this.md3Selection
+    if (selection !== null) {
+      void this.props.dispatcher.oneClickCommitAndPush(selection.repository)
+    }
+  }
+
+  private onMd3Fetch = () => {
+    const selection = this.md3Selection
+    if (selection !== null) {
+      void this.props.dispatcher.fetch(
+        selection.repository,
+        FetchType.UserInitiatedTask
+      )
+    }
+  }
+
+  private onMd3Push = () => {
+    const selection = this.md3Selection
+    if (selection !== null) {
+      void this.props.dispatcher.push(selection.repository)
+    }
+  }
+
+  private onMd3OpenNotifications = () => {
+    this.props.dispatcher.setNotificationCentreOpen(
+      !this.state.isNotificationCentreOpen
+    )
+  }
+
+  private onMd3OpenPalette = () => {
+    void this.props.dispatcher.showPopup({ type: PopupType.CommandPalette })
+  }
+
+  private onMd3OpenSettings = () => {
+    void this.props.dispatcher.showPopup({ type: PopupType.Preferences })
+  }
+
+  /**
+   * The floating account switcher is owned by the repository view's own state
+   * and cannot be opened from here, so the header's avatar opens the surface
+   * `App` does own: Preferences, whose Accounts tab is where accounts are
+   * actually added, removed and signed in.
+   */
+  private onMd3OpenAccountSwitcher = () => {
+    void this.props.dispatcher.showPopup({ type: PopupType.Preferences })
+  }
+
+  private onMd3CommitSummaryChanged = (summary: string) => {
+    const selection = this.md3Selection
+    if (selection === null) {
+      return
+    }
+    const message = selection.state.changesState.commitMessage
+    void this.props.dispatcher.setCommitMessage(selection.repository, {
+      ...message,
+      summary,
+    })
+  }
+
+  private onMd3CommitDescriptionChanged = (description: string) => {
+    const selection = this.md3Selection
+    if (selection === null) {
+      return
+    }
+    const message = selection.state.changesState.commitMessage
+    void this.props.dispatcher.setCommitMessage(selection.repository, {
+      ...message,
+      description,
+    })
+  }
+
+  private onMd3Commit = () => {
+    const selection = this.md3Selection
+    if (selection === null) {
+      return
+    }
+    const message = selection.state.changesState.commitMessage
+    void this.props.dispatcher.commitIncludedChanges(selection.repository, {
+      summary: message.summary,
+      description: message.description,
+    })
+  }
+
+  private onMd3FocusCommitMessage = () => {
+    this.props.dispatcher.setCommitMessageFocus(true)
+  }
+
+  private md3ComposeProps() {
+    const selection = this.md3Selection
+    const message = selection?.state.changesState.commitMessage
+    const files = selection?.state.changesState.workingDirectory.files ?? []
+    const included = files.filter(
+      file => file.selection.getSelectionType() !== DiffSelectionType.None
+    )
+
+    return {
+      summary: message?.summary ?? '',
+      description: message?.description ?? '',
+      includedFileCount: included.length,
+      totalFileCount: files.length,
+      // The working directory carries no per-file line totals until a diff has
+      // been loaded, so the dialog reports none rather than a number nobody
+      // computed.
+      addedLineCount: 0,
+      deletedLineCount: 0,
+      branchName: this.md3BranchName(),
+      onSummaryChanged: this.onMd3CommitSummaryChanged,
+      onDescriptionChanged: this.onMd3CommitDescriptionChanged,
+      onCommit: this.onMd3Commit,
+      onCommitAndPush: this.onMd3CommitAndPush,
+      onDraftWithCopilot: this.onMd3FocusCommitMessage,
+      onAddCoAuthors: this.onMd3FocusCommitMessage,
+    }
+  }
+
+  /**
+   * The surface for a destination the MD3 views have not taken over.
+   *
+   * This is the app's real existing workspace, not a placeholder: the
+   * repository view and its build runner, exactly as they were. It is what
+   * keeps every capability reachable while the eight destinations are wired
+   * one at a time.
+   */
+  private renderMd3LegacyDestination = (): React.ReactNode => {
     const selectedState = this.state.selectedState
     const repositoryBoundaryKey =
       selectedState === null
@@ -8005,20 +8414,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         : `${selectedState.type}:${selectedState.repository.hash}`
 
     return (
-      <div
-        id="desktop-app-contents"
-        className={this.getDesktopAppContentsClassNames()}
-        {...teleportAnchor('app-workspace')}
-        data-customization-surface="app-workspace"
-        data-customization-label="App workspace"
-        data-customization-scope="profile"
-      >
-        {this.renderUpdateDownloadProgress()}
-        {this.renderRepositoryTabStrip()}
-        {this.renderToolbar()}
-        {this.renderCheapLfsRestoreProgress()}
-        {this.renderBanner()}
-        {this.renderSubmoduleRepositoryContext()}
+      <>
         <CrashProofBoundary
           name="Repository workspace"
           resetKey={repositoryBoundaryKey}
@@ -8031,28 +8427,82 @@ export class App extends React.Component<IAppProps, IAppState> {
         >
           {this.renderBuildRunPanel()}
         </CrashProofBoundary>
-        <CrashProofBoundary
-          name="Notification center"
-          resetKey={this.state.isNotificationCentreOpen ? 'open' : 'closed'}
+      </>
+    )
+  }
+
+  private renderApp() {
+    return (
+      <div
+        id="desktop-app-contents"
+        className={this.getDesktopAppContentsClassNames()}
+        {...teleportAnchor('app-workspace')}
+        data-customization-surface="app-workspace"
+        data-customization-label="App workspace"
+        data-customization-scope="profile"
+      >
+        {this.renderUpdateDownloadProgress()}
+        <Md3Shell
+          onStateChange={this.onMd3ShellStateChange}
+          appIdentity={this.state.appearanceCustomization.appIdentity}
+          accountInitials={this.md3AccountInitials()}
+          accountName={
+            this.state.accounts.length > 0
+              ? this.state.accounts[0].friendlyName
+              : undefined
+          }
+          unreadCount={this.state.unreadNotificationCount}
+          onCommitAndPush={this.onMd3CommitAndPush}
+          onOpenPalette={this.onMd3OpenPalette}
+          onOpenNotifications={this.onMd3OpenNotifications}
+          onToggleTheme={this.onMd3ToggleTheme}
+          onOpenSettings={this.onMd3OpenSettings}
+          onOpenAccountSwitcher={this.onMd3OpenAccountSwitcher}
+          repositoryName={this.md3RepositoryName()}
+          branchName={this.md3BranchName()}
+          pushState={this.md3AheadCount() > 0 ? 'ahead' : 'clean'}
+          aheadCount={this.md3AheadCount()}
+          onFetch={this.onMd3Fetch}
+          onPush={this.onMd3Push}
+          menuContext={this.md3MenuContext()}
+          menuHandlers={this.md3MenuHandlers()}
+          compose={this.md3ComposeProps()}
+          views={md3NoViews}
+          renderLegacyDestination={this.renderMd3LegacyDestination}
+          repositoryTabStrip={this.renderRepositoryTabStrip()}
+          classicToolbar={this.renderToolbar()}
+          showClassicToolbar={this.md3ClassicToolbarVisible}
+          paneBanners={
+            <>
+              {this.renderCheapLfsRestoreProgress()}
+              {this.renderBanner()}
+              {this.renderSubmoduleRepositoryContext()}
+            </>
+          }
         >
-          {this.renderNotificationCentre()}
-        </CrashProofBoundary>
-        {this.renderAppearanceEditor()}
-        {this.renderPopups()}
-        {this.renderDragElement()}
-        <div
-          className="repository-drop-overlay"
-          role="status"
-          aria-live="polite"
-        >
-          <span className="repository-drop-overlay-icon">
-            <Octicon symbol={octicons.repoPush} height={28} />
-          </span>
-          <strong>Drop repository folders to open tabs</strong>
-          <span>
-            Existing repositories switch instantly; new ones are added.
-          </span>
-        </div>
+          <CrashProofBoundary
+            name="Notification center"
+            resetKey={this.state.isNotificationCentreOpen ? 'open' : 'closed'}
+          >
+            {this.renderNotificationCentre()}
+          </CrashProofBoundary>
+          {this.renderAppearanceEditor()}
+          {this.renderPopups()}
+          {this.renderDragElement()}
+          <div
+            className="repository-drop-overlay"
+            role="status"
+            aria-live="polite"
+          >
+            <span className="repository-drop-overlay-icon">
+              <Octicon symbol={octicons.repoPush} height={28} />
+            </span>
+            <strong>Drop repository folders to open tabs</strong>
+            <span>
+              Existing repositories switch instantly; new ones are added.
+            </span>
+          </div>
+        </Md3Shell>
       </div>
     )
   }

@@ -95,6 +95,20 @@ export interface IMd3MenuOverlayProps {
    * remembered node would be stale.
    */
   readonly returnFocusTo?: IMd3FocusTarget
+
+  /**
+   * Seeds the filter field. Defaults to empty, which is how the contract opens
+   * every menu.
+   *
+   * The shell supplies it after the regex builder writes a pattern back into
+   * this menu's own filter: the menu is the field that opened the builder, so
+   * it has to come back carrying what was built rather than making the user
+   * retype it.
+   */
+  readonly initialFilter?: string
+
+  /** Seeds the filter's regex mode. Defaults to off. */
+  readonly initialRegexEnabled?: boolean
 }
 
 interface IMd3MenuOverlayState {
@@ -125,7 +139,10 @@ export class Md3MenuOverlay extends React.Component<
 
   public constructor(props: IMd3MenuOverlayProps) {
     super(props)
-    this.state = { filter: '', regexEnabled: false }
+    this.state = {
+      filter: props.initialFilter ?? '',
+      regexEnabled: props.initialRegexEnabled ?? false,
+    }
   }
 
   public componentDidMount() {

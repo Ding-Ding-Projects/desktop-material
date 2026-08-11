@@ -1,0 +1,133 @@
+// The MD3 shell's own layout — the four boxes of
+// `design/History MD3.dc.html`: the root column, the body row, the drawer's
+// sibling `<main>`, and the rounded pane inside it.
+//
+// Everything shared with the views (motion classes, tokens, icon buttons,
+// search rows, chips, empty states) already lives in `_md3-shell.scss` and the
+// per-component partials; nothing here restates them.
+//
+// The two legacy bands — the repository tab strip and the classic toolbar —
+// are this fork's, not the contract's. Multi-repository tabs are a real
+// feature the single-repository prototype never drew, and the classic toolbar
+// is kept behind a persisted setting that ships enabled. Both are laid out
+// here so the pane below them keeps the contract's exact geometry.
+
+.md3-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+}
+
+// `flex: 1; min-height: 0` — the pane scrolls, the shell never does.
+.md3-shell__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.md3-shell__main {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 8px 8px 0;
+}
+
+// The contract's `<section>`: a surface-container-low card with a 16px radius.
+.md3-shell__pane {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--md-sys-color-surface-container-low);
+  border-radius: 16px;
+}
+
+// The destination view fills what the pane header leaves.
+.md3-shell__destination {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// ---------------------------------------------------------------------------
+// Legacy chrome
+// ---------------------------------------------------------------------------
+
+// The repository tab strip, between the header and the shell body. It keeps
+// its own component's styles; this only reserves the band and restates the
+// shell's surface roles so the strip reads as part of the MD3 chrome rather
+// than as a leftover from the previous interface.
+.md3-shell__tab-strip {
+  flex: none;
+  min-width: 0;
+  padding: 0 8px 4px 8px;
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+
+  // A strip wider than the window scrolls inside itself; the shell body must
+  // never scroll sideways.
+  > * {
+    max-width: 100%;
+  }
+}
+
+// The classic toolbar band, above the pane and inside `<main>` so it shares
+// the pane's left edge.
+.md3-shell__classic-toolbar {
+  flex: none;
+  min-width: 0;
+  margin-bottom: 8px;
+  overflow-x: auto;
+  background: var(--md-sys-color-surface);
+  color: var(--md-sys-color-on-surface);
+}
+
+// ---------------------------------------------------------------------------
+// Focus
+// ---------------------------------------------------------------------------
+
+// The pane heading is a screen-reader-only focus target. It takes focus on a
+// destination change, so it needs a visible ring for a sighted keyboard user
+// even though the text itself is not rendered.
+.md3-shell__pane > h1.sr-only:focus-visible {
+  outline: 2px solid var(--md-sys-color-primary);
+  outline-offset: 2px;
+}
+
+// ---------------------------------------------------------------------------
+// The classic-toolbar setting's row
+// ---------------------------------------------------------------------------
+//
+// Same shape as the dialog-emoji row it sits beside: bilingual mode gives
+// every one of these strings its longest form and the provenance line is a
+// whole sentence, so nothing here may establish a minimum width the
+// preferences pane cannot shrink below.
+.appearance-classic-toolbar {
+  min-width: 0;
+  max-width: 100%;
+
+  .appearance-classic-toolbar-explanation,
+  .appearance-classic-toolbar-provenance {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  summary {
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+}

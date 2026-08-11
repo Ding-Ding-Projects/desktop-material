@@ -73,6 +73,43 @@ export type {
   IMd3FocusTarget,
 } from './md3-menu-overlay'
 
+export {
+  Md3Shell,
+  Md3SearchFieldKeys,
+  Md3DestinationIds,
+  Md3ShellPaneId,
+  Md3ShellHeadingId,
+  createMd3ShellState,
+  md3ShellReducer,
+  md3SearchBinding,
+  md3SearchFieldLabel,
+  md3PaneDestination,
+  md3NoViews,
+} from './md3-shell'
+export type {
+  IMd3ShellProps,
+  IMd3ShellState,
+  IMd3ShellViews,
+  IMd3SearchBinding,
+  IMd3SearchFieldState,
+  Md3ShellAction,
+  Md3ShellOverlay,
+  Md3SearchFieldKey,
+  Md3BuilderTarget,
+} from './md3-shell'
+
+export {
+  Md3CarryOverCommands,
+  buildMd3CarryOverExtensions,
+  md3CarryOverMenu,
+  md3CarryOverIsDestructive,
+  md3UnplacedCarryOverCommands,
+} from './md3-shell-carryover'
+export type {
+  Md3CarryOverCommand,
+  Md3CarryOverHandlers,
+} from './md3-shell-carryover'
+
 export { Md3AppHeader } from './md3-app-header'
 export type { IMd3AppHeaderProps } from './md3-app-header'
 

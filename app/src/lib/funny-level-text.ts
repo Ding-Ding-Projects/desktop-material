@@ -108,6 +108,7 @@ export type FunnyLevelTextBase =
   // fixed strings: what the switch is called, where emoji are forbidden, and
   // whether the current value was actually chosen are facts a reader acts on.
   | 'dialogEmoji.explanation'
+  | 'classicToolbar.explanation'
   // Only the authenticator's two framing sentences are banded: the empty list,
   // and the sentence asking for a code back during pairing. Everything a user
   // acts on stays fixed — the digits themselves, the countdown, the algorithm,
