@@ -81,6 +81,10 @@ import {
 import { getAccountForCommitMessageGeneration } from '../../lib/get-account-for-repository'
 import { AriaLiveContainer } from '../accessibility/aria-live-container'
 import { HookProgress } from '../../lib/git'
+import {
+  advanceElapsedMilliseconds,
+  formatElapsedDuration,
+} from '../../models/progress'
 import { assertNever } from '../../lib/fatal-error'
 import {
   getShowCommitAuthorInfo,
@@ -294,22 +298,6 @@ function formatCheapLfsBytes(bytes: number): string {
   return bytes === 0 ? '0 B' : formatBytes(bytes, 1)
 }
 
-function formatCheapLfsDuration(milliseconds: number): string {
-  const totalSeconds = Number.isFinite(milliseconds)
-    ? Math.max(0, Math.floor(milliseconds / 1_000))
-    : 0
-  const seconds = totalSeconds % 60
-  const totalMinutes = Math.floor(totalSeconds / 60)
-  if (totalMinutes === 0) {
-    return `${seconds}s`
-  }
-
-  const minutes = totalMinutes % 60
-  const hours = Math.floor(totalMinutes / 60)
-  return hours === 0
-    ? `${minutes}m ${seconds}s`
-    : `${hours}h ${minutes}m ${seconds}s`
-}
 
 function formatCheapLfsRate(bytesPerSecond: number): string | null {
   if (!Number.isFinite(bytesPerSecond) || bytesPerSecond <= 0) {
@@ -590,6 +578,10 @@ interface ICommitMessageState {
 
   readonly cheapLfsTransferTiming: ICheapLfsTransferTimingSample | null
 
+  /** Renderer-observed clock shared by every commit phase. */
+  readonly commitStartedAt: number | null
+  readonly commitElapsedMilliseconds: number
+
   /**
    * Cheap LFS commit actions already running, mirrored from
    * `cheapLfsActionGuard` so the controls can render as busy.
@@ -684,6 +676,8 @@ export class CommitMessage extends React.Component<
         getCheapLfsTimingProgress(props),
         Date.now()
       ),
+      commitStartedAt: props.isCommitting ? Date.now() : null,
+      commitElapsedMilliseconds: 0,
       cheapLfsActionsInFlight: EmptyInFlightGuard,
       commitMessageAutocompletionProviders:
         findCommitMessageAutoCompleteProvider(props.autocompletionProviders),
@@ -727,7 +721,7 @@ export class CommitMessage extends React.Component<
       ShowCommitAuthorInfoChangedEvent,
       this.onShowCommitAuthorInfoChanged
     )
-    this.syncCheapLfsTimingInterval()
+    this.syncCommitTimingInterval()
     await Promise.all([
       this.updateRepoRuleFailures(undefined, undefined, true),
       this.loadCommitAuthorOrigins(),
@@ -754,8 +748,15 @@ export class CommitMessage extends React.Component<
           getCheapLfsTimingProgress(nextProps),
           Date.now()
         ),
+        commitStartedAt:
+          nextProps.isCommitting
+            ? this.state.commitStartedAt ?? Date.now()
+            : null,
+        commitElapsedMilliseconds: nextProps.isCommitting
+          ? this.state.commitElapsedMilliseconds
+          : 0,
       },
-      this.syncCheapLfsTimingInterval
+      this.syncCommitTimingInterval
     )
 
     if (!commitMessage || commitMessage === this.props.commitMessage) {
@@ -769,11 +770,11 @@ export class CommitMessage extends React.Component<
     }
   }
 
-  private syncCheapLfsTimingInterval = () => {
-    const needsTicker = this.state.cheapLfsTransferTiming !== null
+  private syncCommitTimingInterval = () => {
+    const needsTicker = this.props.isCommitting === true
     if (needsTicker && this.cheapLfsTimingIntervalId === null) {
       this.cheapLfsTimingIntervalId = window.setInterval(
-        this.tickCheapLfsTiming,
+        this.tickCommitTiming,
         1_000
       )
     } else if (!needsTicker && this.cheapLfsTimingIntervalId !== null) {
@@ -782,22 +783,31 @@ export class CommitMessage extends React.Component<
     }
   }
 
-  private tickCheapLfsTiming = () => {
+  private tickCommitTiming = () => {
     const now = Date.now()
     this.setState(state => {
+      const commitElapsedMilliseconds = advanceElapsedMilliseconds(
+        state.commitStartedAt ?? undefined,
+        state.commitElapsedMilliseconds,
+        now
+      )
       const sample = state.cheapLfsTransferTiming
+      const cheapLfsTransferTiming =
+        sample !== null && Number.isFinite(now) && now > sample.lastObservedAt
+          ? { ...sample, lastObservedAt: now }
+          : sample
       if (
-        sample === null ||
-        !Number.isFinite(now) ||
-        now <= sample.lastObservedAt
+        commitElapsedMilliseconds === state.commitElapsedMilliseconds &&
+        cheapLfsTransferTiming === sample
       ) {
         return null
       }
-      return {
-        cheapLfsTransferTiming: { ...sample, lastObservedAt: now },
-      }
+      return { commitElapsedMilliseconds, cheapLfsTransferTiming }
     })
   }
+
+  // Kept as a focused-test seam while one ticker now observes every commit phase.
+  private tickCheapLfsTiming = () => this.tickCommitTiming()
 
   public async componentDidUpdate(
     prevProps: ICommitMessageProps,
@@ -2305,7 +2315,11 @@ export class CommitMessage extends React.Component<
   private getButtonText() {
     const operationText = this.getCommitOperationButtonText()
     if (operationText !== null) {
-      return operationText
+      return this.withCommitElapsed(operationText)
+    }
+
+    if (this.props.isCommitting) {
+      return this.withCommitElapsed(this.getButtonTitle())
     }
 
     const { commitToAmend, commitButtonText } = this.props
@@ -2318,10 +2332,18 @@ export class CommitMessage extends React.Component<
     return isAmending ? this.getButtonTitle() : this.getCommittingButtonText()
   }
 
+  private withCommitElapsed(text: string): string {
+    return this.props.isCommitting
+      ? `${text} · Elapsed ${formatElapsedDuration(
+          this.state.commitElapsedMilliseconds
+        )}`
+      : text
+  }
+
   private getButtonTitle(): string {
     const operationText = this.getCommitOperationButtonText()
     if (operationText !== null) {
-      return operationText
+      return this.withCommitElapsed(operationText)
     }
 
     const { commitToAmend, commitButtonText } = this.props
@@ -2651,7 +2673,7 @@ export class CommitMessage extends React.Component<
             active: activeFiles.toString(),
             queued: queuedFiles.toString(),
           })
-    const elapsed = formatCheapLfsDuration(timing.elapsedMilliseconds)
+    const elapsed = formatElapsedDuration(timing.elapsedMilliseconds)
     const rate =
       timing.bytesPerSecond === null
         ? null
@@ -2659,7 +2681,7 @@ export class CommitMessage extends React.Component<
     const eta =
       timing.etaMilliseconds === null
         ? null
-        : formatCheapLfsDuration(timing.etaMilliseconds)
+        : formatElapsedDuration(timing.etaMilliseconds)
     const timingSummary =
       progress.phase === 'uploading'
         ? t('cheapLfs.progress.terminalTiming', {

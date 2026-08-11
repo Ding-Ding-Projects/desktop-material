@@ -10,6 +10,12 @@ interface IProgress {
   readonly value: number
 
   /**
+   * The wall-clock time at which this active operation first reported progress.
+   * It is assigned by AppStore and retained while later progress phases arrive.
+   */
+  readonly startedAt?: number
+
+  /**
    * An informative text for user consumption indicating the current operation
    * state. This will be high level such as 'Pushing origin' or
    * 'Fetching upstream' and will typically persist over a number of progress
@@ -155,6 +161,48 @@ export type Progress =
   | IPushProgress
   | IRevertProgress
   | IMultiCommitOperationProgress
+
+/** Format a bounded elapsed duration for compact progress affordances. */
+export function formatElapsedDuration(milliseconds: number): string {
+  const totalSeconds = Number.isFinite(milliseconds)
+    ? Math.max(0, Math.floor(milliseconds / 1_000))
+    : 0
+  const seconds = totalSeconds % 60
+  const totalMinutes = Math.floor(totalSeconds / 60)
+  if (totalMinutes === 0) {
+    return `${seconds}s`
+  }
+
+  const minutes = totalMinutes % 60
+  const hours = Math.floor(totalMinutes / 60)
+  return hours === 0
+    ? `${minutes}m ${seconds}s`
+    : `${hours}h ${minutes}m ${seconds}s`
+}
+
+/**
+ * Advance an elapsed counter without allowing an invalid or regressing wall
+ * clock to make a visible duration move backwards.
+ */
+export function advanceElapsedMilliseconds(
+  startedAt: number | undefined,
+  previousElapsedMilliseconds: number,
+  now: number
+): number {
+  const previous = Number.isFinite(previousElapsedMilliseconds)
+    ? Math.max(0, previousElapsedMilliseconds)
+    : 0
+  if (
+    startedAt === undefined ||
+    !Number.isFinite(startedAt) ||
+    startedAt < 0 ||
+    !Number.isFinite(now)
+  ) {
+    return previous
+  }
+
+  return Math.max(previous, Math.max(0, now - startedAt))
+}
 
 /**
  * Clamps progress values between minimum and maximum.
