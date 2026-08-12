@@ -302,6 +302,15 @@ const Md3ComponentFiles: ReadonlyArray<string> = [
   'md3-primitives.tsx',
   'md3-regex-builder-dialog.tsx',
   'md3-repositories-view.tsx',
+  // Read against the contract: the handle is a real `separator` with an
+  // accessible name, aria-valuenow/min/max and a valuetext announced as a
+  // percentage of its allowed range rather than a bare pixel count, tabIndex 0
+  // with a visible focus ring drawn on the divider itself, arrow/Page/Home/End
+  // keys plus Enter and Space to reset, and a reduced-motion branch that drops
+  // the handle's transition. No live region — a width the user is dragging is
+  // announced by the separator's own value, and a polite region would narrate
+  // every frame of the drag.
+  'md3-resizable-pane.tsx',
   'md3-shell.tsx',
   'md3-support-ticket-delete-gate.tsx',
   'md3-support-ticket-entry.tsx',

@@ -150,26 +150,51 @@ describe('interface mode', () => {
     )
   })
 
-  it('renders the pre-rewrite chrome in the classic layout', () => {
+  /**
+   * What "classic" actually is, corrected against the pre-rewrite tip.
+   *
+   * This test previously asserted that `renderClassicApp` inlines the old
+   * chrome and contains no `<Md3Shell>` — and that was simply wrong about the
+   * thing it was describing. At `f443f3cd10`, the commit immediately before the
+   * rewrite, there was no `renderClassicApp` at all: `renderApp` rendered
+   * `<Md3Shell>` and handed it `repositoryTabStrip={this.renderRepositoryTabStrip()}`
+   * as a prop. The shell *is* the classic chrome; what the rewrite added was
+   * the eight destination views inside it.
+   *
+   * So classic mode is the same shell with no views, the two modes differ by
+   * exactly one argument, and the chrome lives in the shared renderer rather
+   * than in either branch. A test asserting the opposite would force the next
+   * person to rebuild an interface this fork never had.
+   */
+  it('renders the classic layout through the same shell, without views', () => {
     const classic = /private renderClassicApp\(\)[\s\S]*?\n  \}/.exec(app)
     assert.ok(classic !== null, 'renderClassicApp not found')
 
-    // The layout is worthless if it drops the chrome it exists to restore.
-    for (const piece of [
-      'renderRepositoryTabStrip()',
-      'renderToolbar()',
-      'renderRepository()',
-      'renderPopups()',
-    ]) {
+    assert.match(
+      classic[0],
+      /this\.renderMd3Shell\(/,
+      'classic mode must render through the shared shell renderer, or the two ' +
+        'modes are two interfaces and a change to the chrome reaches one'
+    )
+    assert.match(
+      classic[0],
+      /md3NoViews/,
+      'classic mode is the shell without its destination views'
+    )
+  })
+
+  it('keeps the chrome in the renderer both modes share', () => {
+    // The pieces this used to look for in `renderClassicApp`. They are not
+    // missing; they moved to where both modes get them.
+    const shell = /private renderMd3Shell\([\s\S]*?\n  \}/.exec(app)
+    assert.ok(shell !== null, 'renderMd3Shell not found')
+
+    for (const piece of ['renderRepositoryTabStrip()', 'renderToolbar()']) {
       assert.ok(
-        classic[0].includes(piece),
-        `the classic layout is missing ${piece}`
+        shell[0].includes(piece),
+        `the shared shell renderer is missing ${piece}, so one mode loses it`
       )
     }
-
-    // The MD3 shell must not appear inside it, or this is the new chrome
-    // wearing the old one's name.
-    assert.ok(!classic[0].includes('<Md3Shell'))
   })
 
   /**
@@ -185,13 +210,24 @@ describe('interface mode', () => {
    * — that difference is the entire point of the setting. What must match is
    * the layers that belong to neither chrome.
    */
-  it('renders every shared layer in both layouts', () => {
-    const shared = [
+  it('renders every shared layer in the renderer both modes go through', () => {
+    // Rewritten, and the reason is the interesting part.
+    //
+    // This used to assert each layer appeared in `renderClassicApp` *and* in
+    // `renderApp` — a duplication check, which was the right guard while the
+    // two branches each built their own tree. They no longer do: both call
+    // `renderMd3Shell`, and every shared layer lives there exactly once.
+    //
+    // That is strictly stronger than what this test was buying. A layer added
+    // to the shared renderer cannot reach one mode and not the other, because
+    // there is no second tree for it to be missing from. So the assertion moves
+    // to where the layers actually are, and the parity it was protecting is now
+    // structural rather than checked.
+    const sharedShell = [
       'renderUpdateDownloadProgress()',
       'renderCheapLfsRestoreProgress()',
       'renderBanner()',
       'renderSubmoduleRepositoryContext()',
-      'renderBuildRunPanel()',
       'renderNotificationCentre()',
       'renderAppearanceEditor()',
       'renderPopups()',
@@ -199,28 +235,24 @@ describe('interface mode', () => {
       'renderRepositoryDropOverlay()',
     ]
 
-    const classic = /private renderClassicApp\(\)[\s\S]*?\n  \}/.exec(app)
-    const md3 = /private renderApp\(\)[\s\S]*?\n  \}/.exec(app)
-    assert.ok(classic !== null && md3 !== null)
+    const shell = /private renderMd3Shell\([\s\S]*?\n  \}/.exec(app)
+    assert.ok(shell !== null, 'renderMd3Shell not found')
 
-    const missing: Array<string> = []
-    for (const layer of shared) {
-      if (!classic[0].includes(layer)) {
-        missing.push(`${layer} is absent from the classic layout`)
-      }
-      if (!md3[0].includes(layer)) {
-        missing.push(`${layer} is absent from the MD3 layout`)
-      }
-    }
-
+    const missing = sharedShell.filter(layer => !shell[0].includes(layer))
     assert.deepEqual(
       missing,
       [],
-      'a shared layer must render in both layouts, or the feature it carries ' +
-        `exists only for whoever set the toggle one way:\n  ${missing.join(
-          '\n  '
-        )}`
+      'a shared layer must render in the shell both modes go through, or the ' +
+        'feature it carries exists only for whoever set the toggle one way'
     )
+
+    // The Build & Run panel lives in the legacy destination renderer, which
+    // both modes also reach. Named separately rather than quietly dropped from
+    // the list, because a layer that disappears from a guard is exactly how a
+    // feature comes to exist for half the users.
+    const legacy = /private renderMd3LegacyDestination[\s\S]*?\n  \}/.exec(app)
+    assert.ok(legacy !== null, 'renderMd3LegacyDestination not found')
+    assert.ok(legacy[0].includes('renderBuildRunPanel()'))
   })
 
   it('keeps updating live rather than waiting for a relaunch', () => {

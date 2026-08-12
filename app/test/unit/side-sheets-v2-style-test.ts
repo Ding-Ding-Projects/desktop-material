@@ -72,10 +72,37 @@ describe('repository + branch side sheets v2 styles', () => {
       branchesStyle,
       /#foldout-container \.branches-container[\s\S]*?\.merge-button-row\s*\{[\s\S]*?display: grid;[\s\S]*?width: 100%;[\s\S]*?min-width: 0;[\s\S]*?flex: 0 0 auto;[\s\S]*?grid-template-columns: minmax\(0, 1fr\);[\s\S]*?gap: var\(--spacing\);/
     )
+    // `align-self: stretch` used to be asserted here, and it was the defect
+    // rather than the contract. Stretching is only correct while the grid is
+    // exactly as tall as its content; the moment it is taller — an empty branch
+    // list leaving slack, a container that sizes differently — both buttons
+    // inflate to fill it, and two 40px actions become slabs with their labels
+    // marooned in the middle. It shipped, it was reported from a screenshot,
+    // and this test had been holding it in place.
+    //
+    // What this test is actually for is that the buttons stay *inside* the
+    // sheet: full width, no intrinsic right margin pushing them out, and
+    // stretched across the column. That survives unchanged.
     assert.match(
       branchesStyle,
-      /\.merge-button-row\s*\{[\s\S]*?> \.button-component\s*\{[\s\S]*?width: 100%;[\s\S]*?max-width: 100%;[\s\S]*?margin-right: 0;[\s\S]*?align-self: stretch;[\s\S]*?justify-self: stretch;/
+      /\.merge-button-row\s*\{[\s\S]*?> \.button-component\s*\{[\s\S]*?width: 100%;[\s\S]*?max-width: 100%;[\s\S]*?margin-right: 0;[\s\S]*?justify-self: stretch;/
     )
+    // Bounded to the button rule's own body rather than written as
+    // `.merge-button-row[\s\S]*?align-self: stretch`. A lazy any-character run
+    // happily crosses closing braces, so that pattern matches an `align-self`
+    // belonging to some entirely different rule further down the file — which
+    // is how a negative assertion comes to fail on code that is correct.
+    const buttonRule = /> \.button-component \{([^}]*)\}/.exec(
+      branchesStyle.slice(branchesStyle.indexOf('.merge-button-row {'))
+    )
+    assert.ok(buttonRule !== null, 'the merge button rule is missing')
+    assert.doesNotMatch(
+      buttonRule[1],
+      /align-self: stretch/,
+      'a merge action must be the height of a button, not of whatever space is going spare'
+    )
+    assert.match(buttonRule[1], /align-self: start/)
+    assert.match(buttonRule[1], /min-height: var\(--button-height\)/)
     assert.match(
       branchesStyle,
       /--dm-merge-bar-height: calc\(var\(--button-height\) \* 2 \+ var\(--spacing\) \* 3 \+ 1px\);/

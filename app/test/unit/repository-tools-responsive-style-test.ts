@@ -36,10 +36,29 @@ describe('repository tools hub responsive contracts', () => {
     )
   })
 
-  it('lets the fixed sidebar rail shrink instead of clipping narrow panes', () => {
+  it('lets the sidebar rail shrink instead of clipping narrow panes', () => {
+    // The rail no longer states its own width. It is wrapped in the shared
+    // resizable pane, which owns the width, persists the user's choice and
+    // clamps it — so a fixed 356px here would silently win over a width the
+    // user dragged, which is the whole failure the pane exists to avoid.
+    //
+    // What still has to be true is the shrinking behaviour this test was
+    // written for: the rail fills its pane and refuses to impose a floor of
+    // its own, so a pane narrower than the rail squeezes it rather than
+    // pushing the detail column through the card's clipped edge.
     assert.match(
       tools,
-      /\.repository-tools-sidebar \{[\s\S]*?flex: 0 1 auto;[\s\S]*?max-width: 100%;[\s\S]*?min-width: 0;[\s\S]*?width: 356px;/
+      /\.repository-tools-sidebar \{[\s\S]*?flex: 0 1 auto;[\s\S]*?max-width: 100%;[\s\S]*?min-width: 0;/
+    )
+    assert.doesNotMatch(
+      tools,
+      /\.repository-tools-sidebar \{[^}]*?width: \d+px;/,
+      'a fixed width here overrides the width the user chose'
+    )
+    assert.match(
+      tools,
+      /\.repository-tools-sidebar-pane \{[\s\S]*?min-height: 0;/,
+      'the pane wrapper must let its contents scroll rather than grow'
     )
   })
 
