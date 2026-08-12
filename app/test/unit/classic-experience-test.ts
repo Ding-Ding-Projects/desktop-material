@@ -119,6 +119,57 @@ describe('classic experience', () => {
     assert.ok(!classic[0].includes('<Md3Shell'))
   })
 
+  /**
+   * Parity between the two layouts.
+   *
+   * Both must keep moving together. The moment a shared layer is added to one
+   * branch of `renderApp` and not the other, half the users lose it — and
+   * which half depends on a setting, which is the worst possible way for a
+   * feature to be missing, because it cannot be reproduced by whoever added it.
+   *
+   * The list is hand-written on purpose. A rule that compared the two branches
+   * wholesale would fail forever on the chrome that is legitimately different
+   * — that difference is the entire point of the setting. What must match is
+   * the layers that belong to neither chrome.
+   */
+  it('renders every shared layer in both layouts', () => {
+    const shared = [
+      'renderUpdateDownloadProgress()',
+      'renderCheapLfsRestoreProgress()',
+      'renderBanner()',
+      'renderSubmoduleRepositoryContext()',
+      'renderBuildRunPanel()',
+      'renderNotificationCentre()',
+      'renderAppearanceEditor()',
+      'renderPopups()',
+      'renderDragElement()',
+      'renderRepositoryDropOverlay()',
+    ]
+
+    const classic = /private renderClassicApp\(\)[\s\S]*?\n  \}/.exec(app)
+    const md3 = /private renderApp\(\)[\s\S]*?\n  \}/.exec(app)
+    assert.ok(classic !== null && md3 !== null)
+
+    const missing: Array<string> = []
+    for (const layer of shared) {
+      if (!classic[0].includes(layer)) {
+        missing.push(`${layer} is absent from the classic layout`)
+      }
+      if (!md3[0].includes(layer)) {
+        missing.push(`${layer} is absent from the MD3 layout`)
+      }
+    }
+
+    assert.deepEqual(
+      missing,
+      [],
+      'a shared layer must render in both layouts, or the feature it carries ' +
+        `exists only for whoever set the toggle one way:\n  ${missing.join(
+          '\n  '
+        )}`
+    )
+  })
+
   it('keeps updating live rather than waiting for a relaunch', () => {
     assert.match(
       app,

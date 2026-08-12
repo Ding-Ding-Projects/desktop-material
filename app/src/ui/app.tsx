@@ -10407,12 +10407,19 @@ export class App extends React.Component<IAppProps, IAppState> {
    * chrome, so hiding it would leave a classic experience with no classic
    * anything.
    */
-  private renderClassicApp() {
+  /**
+   * The reset key both layouts give their per-repository crash boundaries, so
+   * a crash in one repository's workspace cannot follow the user to the next.
+   */
+  private md3RepositoryBoundaryKey(): string {
     const selectedState = this.state.selectedState
-    const repositoryBoundaryKey =
-      selectedState === null
-        ? `none:${this.state.repositories.length}`
-        : `${selectedState.type}:${selectedState.repository.hash}`
+    return selectedState === null
+      ? `none:${this.state.repositories.length}`
+      : `${selectedState.type}:${selectedState.repository.hash}`
+  }
+
+  private renderClassicApp() {
+    const repositoryBoundaryKey = this.md3RepositoryBoundaryKey()
 
     return (
       <div
@@ -10522,6 +10529,19 @@ export class App extends React.Component<IAppProps, IAppState> {
             </>
           }
         >
+          {/*
+            Build and run. The shell shipped without it — the classic layout
+            rendered it and this one simply did not, so the panel was
+            unreachable for anyone on the new chrome, with no error and nothing
+            to notice. It is a panel rather than a destination, so it belongs
+            here beside the notification centre rather than in the drawer.
+          */}
+          <CrashProofBoundary
+            name="Build runner"
+            resetKey={this.md3RepositoryBoundaryKey()}
+          >
+            {this.renderBuildRunPanel()}
+          </CrashProofBoundary>
           <CrashProofBoundary
             name="Notification center"
             resetKey={this.state.isNotificationCentreOpen ? 'open' : 'closed'}
