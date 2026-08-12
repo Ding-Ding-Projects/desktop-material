@@ -2416,6 +2416,30 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     },
   },
   {
+    event: 'palette:set-sound-narrator-voice',
+    title: 'Narrator voice',
+    titleKey: 'palette.setSoundNarratorVoice',
+    group: 'App',
+    keywords: 'narrator voice speech english cantonese tts',
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Sound,
+      targetId: 'settingsSoundNarratorVoice',
+    },
+  },
+  {
+    event: 'palette:set-personal-vocabulary',
+    title: 'Personal vocabulary file',
+    titleKey: 'palette.setPersonalVocabulary',
+    group: 'App',
+    keywords: 'vocabulary personal words upload json wording rename',
+    home: {
+      kind: 'preferences',
+      tab: PreferencesTab.Appearance,
+      targetId: 'settingsPersonalVocabulary',
+    },
+  },
+  {
     event: 'palette:set-sound-narrator-cooldown',
     title: 'Minimum gap between narrated lines',
     titleKey: 'palette.setSoundNarratorCooldown',

@@ -2511,6 +2511,12 @@ export type TranslationKey =
   | 'palette.setSoundNarrator'
   | 'palette.setSoundRecordedNarration'
   | 'palette.setSoundNarratorVolume'
+  | 'palette.setSoundNarratorVoice'
+  | 'settings.soundNarratorVoiceTitle'
+  | 'settings.soundNarratorVoiceDescription'
+  | 'settings.personalVocabularyTitle'
+  | 'settings.personalVocabularyDescription'
+  | 'palette.setPersonalVocabulary'
   | 'palette.setSoundNarratorCooldown'
   | 'palette.setSoundMusic'
   | 'palette.setSoundMusicVolume'
@@ -8678,6 +8684,14 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'palette.setSoundNarrator': 'Spoken narrator',
   'palette.setSoundRecordedNarration': 'Use recorded narration',
   'palette.setSoundNarratorVolume': 'Narrator volume',
+  'palette.setSoundNarratorVoice': 'Narrator voice',
+  'settings.soundNarratorVoiceTitle': 'Narrator voice',
+  'settings.soundNarratorVoiceDescription':
+    'Choose which installed voice reads English and which reads Cantonese, or let the app pick the closest match.',
+  'settings.personalVocabularyTitle': 'Personal vocabulary file',
+  'settings.personalVocabularyDescription':
+    'Load a local JSON file that renames the words this app shows you. Nothing is uploaded.',
+  'palette.setPersonalVocabulary': 'Personal vocabulary file',
   'palette.setSoundNarratorCooldown': 'Minimum gap between narrated lines',
   'palette.setSoundMusic': 'Play themed music',
   'palette.setSoundMusicVolume': 'Music volume',
@@ -15437,6 +15451,14 @@ export const cantoneseTranslations: Readonly<
   'palette.setSoundNarrator': '語音旁白',
   'palette.setSoundRecordedNarration': '用錄好嘅旁白',
   'palette.setSoundNarratorVolume': '旁白音量',
+  'palette.setSoundNarratorVoice': '旁白把聲',
+  'settings.soundNarratorVoiceTitle': '旁白把聲',
+  'settings.soundNarratorVoiceDescription':
+    '揀邊把聲讀英文、邊把聲讀廣東話，唔揀就由個 app 幫你搵最啱嗰把。',
+  'settings.personalVocabularyTitle': '個人字典檔案',
+  'settings.personalVocabularyDescription':
+    '載入一個本機 JSON 檔，換走呢個 app 顯示嘅字眼。 唔會上載去任何地方。',
+  'palette.setPersonalVocabulary': '個人字典檔案',
   'palette.setSoundNarratorCooldown': '兩句旁白之間最短間隔',
   'palette.setSoundMusic': '播主題音樂',
   'palette.setSoundMusicVolume': '音樂音量',
