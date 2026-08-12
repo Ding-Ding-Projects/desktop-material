@@ -1,5 +1,9 @@
 import { LanguageMode, normalizeLanguageMode } from '../models/language-mode'
 import {
+  applyPersonalVocabulary,
+  getActivePersonalVocabulary,
+} from './personal-vocabulary'
+import {
   cantoneseTranslations,
   englishTranslations,
   TranslationKey,
@@ -121,18 +125,39 @@ export function translate(
   const split = splitBilingualVariables(variables)
 
   if (mode === 'cantonese') {
-    return interpolate(templateFor(key, 'zh-HK'), split.cantonese)
+    return personalize(interpolate(templateFor(key, 'zh-HK'), split.cantonese))
   }
   if (mode === 'bilingual') {
-    return `${interpolate(
-      templateFor(key, 'en'),
-      split.english
-    )}${BilingualSeparator}${interpolate(
-      templateFor(key, 'zh-HK'),
-      split.cantonese
-    )}`
+    return personalize(
+      `${interpolate(
+        templateFor(key, 'en'),
+        split.english
+      )}${BilingualSeparator}${interpolate(
+        templateFor(key, 'zh-HK'),
+        split.cantonese
+      )}`
+    )
   }
-  return interpolate(templateFor(key, 'en'), split.english)
+  return personalize(interpolate(templateFor(key, 'en'), split.english))
+}
+
+/**
+ * Apply the user's own vocabulary, if they have supplied one.
+ *
+ * This is the single point where it happens. Doing it here rather than at each
+ * call site is what makes the feature reach every surface at once, and doing it
+ * *after* interpolation is what makes a term inside a substituted value —
+ * a branch name, a file path — reachable too.
+ *
+ * Suppressed entirely in School mode, which the contract requires to behave as
+ * though the vocabulary feature were not installed at all rather than merely
+ * disabled.
+ */
+function personalize(text: string): string {
+  if (isSchoolModeEnabled()) {
+    return text
+  }
+  return applyPersonalVocabulary(text, getActivePersonalVocabulary())
 }
 
 /** Build a typed interpolation value from a resource key. */

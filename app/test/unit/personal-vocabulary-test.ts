@@ -243,3 +243,33 @@ describe('applying a vocabulary', () => {
     )
   })
 })
+
+describe('the compiled pattern is reused safely', () => {
+  const load = (terms: Record<string, string>) => {
+    const result = parsePersonalVocabulary(valid(terms))
+    assert.ok(result.ok)
+    return result.vocabulary
+  }
+
+  it('gives the same answer on the second call as the first', () => {
+    // Kept as a regression guard on reuse rather than as proof of a reset:
+    // `String.replace` with /g manages `lastIndex` itself, so this cannot be
+    // made to fail by removing one. It would fail if the cache ever started
+    // handing out a pattern that had been advanced by something that does not
+    // reset — `exec` or `test` — which is a plausible future edit.
+    const vocabulary = load({ push: 'dew' })
+    const first = applyPersonalVocabulary('push push', vocabulary)
+    const second = applyPersonalVocabulary('push push', vocabulary)
+    assert.strictEqual(first, 'dew dew')
+    assert.strictEqual(second, first)
+  })
+
+  it('still prefers the longest term after caching', () => {
+    const vocabulary = load({ push: 'dew', 'force push': 'force-dew' })
+    applyPersonalVocabulary('warm up', vocabulary)
+    assert.strictEqual(
+      applyPersonalVocabulary('force push', vocabulary),
+      'force-dew'
+    )
+  })
+})

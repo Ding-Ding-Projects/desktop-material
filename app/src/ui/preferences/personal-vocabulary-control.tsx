@@ -10,6 +10,7 @@ import {
   describeVocabularyRejection,
   parsePersonalVocabulary,
   readCachedPersonalVocabulary,
+  setActivePersonalVocabulary,
 } from '../../lib/personal-vocabulary'
 
 /**
@@ -121,12 +122,14 @@ export class PersonalVocabularyControl extends React.Component<
     }
 
     cachePersonalVocabulary(result.vocabulary)
+    setActivePersonalVocabulary(result.vocabulary)
     this.setState({ status: { kind: 'loaded', vocabulary: result.vocabulary } })
     this.props.onChanged?.(result.vocabulary)
   }
 
   private onClear = () => {
     clearPersonalVocabulary()
+    setActivePersonalVocabulary(null)
     this.setState({ status: { kind: 'none' } })
     this.props.onChanged?.(null)
   }

@@ -256,14 +256,66 @@ export function applyPersonalVocabulary(
     return text
   }
 
-  const terms = [...vocabulary.terms.keys()].sort((a, b) => b.length - a.length)
-  const pattern = new RegExp(terms.map(escapeForRegExp).join('|'), 'g')
+  // `String.replace` with a /g pattern resets `lastIndex` itself, before and
+  // after, so a cached pattern is safe to reuse across strings. Worth stating,
+  // because the instinct on seeing a module-level /g regex is to add a reset —
+  // and a test written to prove that reset was needed cannot be made to fail.
+  const pattern = compiledPattern(vocabulary)
   return text.replace(
     pattern,
     matched => vocabulary.terms.get(matched) ?? matched
   )
 }
 
+/**
+ * The compiled pattern for a vocabulary, built once.
+ *
+ * `translate` is called for every piece of copy the app renders, so rebuilding
+ * a regex from up to two thousand terms on each call is not a micro-optimisation
+ * to skip. Keyed by the vocabulary object rather than stored on it so the
+ * public shape stays plain data, and weak so replacing the vocabulary does not
+ * retain the old one.
+ */
+const patterns = new WeakMap<IPersonalVocabulary, RegExp>()
+
+function compiledPattern(vocabulary: IPersonalVocabulary): RegExp {
+  const existing = patterns.get(vocabulary)
+  if (existing !== undefined) {
+    return existing
+  }
+  // Longest first, so `force push` wins over `push` — a regex alternation
+  // takes the first branch that matches, not the longest.
+  const terms = [...vocabulary.terms.keys()].sort((a, b) => b.length - a.length)
+  const pattern = new RegExp(terms.map(escapeForRegExp).join('|'), 'g')
+  patterns.set(vocabulary, pattern)
+  return pattern
+}
+
 function escapeForRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * The vocabulary currently in effect, if any.
+ *
+ * Module state rather than a parameter threaded through every call site: the
+ * replacement happens at one text boundary, and a boundary that has to be told
+ * about the vocabulary by each of its several hundred callers is a boundary
+ * that will be forgotten by one of them.
+ */
+let active: IPersonalVocabulary | null = null
+
+export function setActivePersonalVocabulary(
+  vocabulary: IPersonalVocabulary | null
+): void {
+  active = vocabulary
+}
+
+export function getActivePersonalVocabulary(): IPersonalVocabulary | null {
+  return active
+}
+
+/** Load whatever was cached. Called once, at renderer start-up. */
+export function restorePersonalVocabulary(): void {
+  active = readCachedPersonalVocabulary()
 }

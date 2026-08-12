@@ -116,6 +116,7 @@ import {
 import { showBrowserExternalOpenFailure } from './lib/browser-external-open-failure'
 import { installOsLockCredentialVault } from '../lib/md3-locks/lock-vault-os'
 import { installAppearanceLockGate } from './appearance'
+import { restorePersonalVocabulary } from '../lib/personal-vocabulary'
 
 if (__DEV__) {
   installDevGlobals()
@@ -135,6 +136,11 @@ installOsLockCredentialVault()
 // carrying a lock target id, so locking an element's appearance locks the
 // element itself rather than only recording a row in the lock manager.
 installAppearanceLockGate()
+
+// Load the user's own vocabulary before any copy is rendered. Doing it after
+// the first render would show the shipped wording and then replace it, which
+// reads as the interface flickering rather than as a preference being applied.
+restorePersonalVocabulary()
 
 migrateRendererGUID()
 
