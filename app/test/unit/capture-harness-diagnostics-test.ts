@@ -74,6 +74,32 @@ describe('the capture harness reports why a capture failed', () => {
     assert.match(harness, /the renderer logged no errors/)
   })
 
+  it('handles dialogs explicitly rather than letting the default race', () => {
+    // With no handler registered, Playwright auto-dismisses every dialog, and
+    // that auto-dismiss races Electron's teardown: it can call
+    // `Page.handleJavaScriptDialog` after the dialog has gone, reject with
+    // "No dialog is showing", and abort the process on an unhandled rejection.
+    //
+    // The dialog is the app behaving correctly — `profile-git.ts` guards a
+    // reload while a profile write is in flight — so the harness accepts it
+    // deliberately and swallows a rejection for a dialog that has already
+    // closed.
+    assert.match(harness, /page\.on\('dialog'/)
+    assert.match(
+      harness,
+      /dialog\.accept\(\)\.catch\(/,
+      'accepting must tolerate the dialog having already closed'
+    )
+  })
+
+  it('survives a driver-level unhandled rejection', () => {
+    // Node aborts the process on an unhandled rejection, so a race inside
+    // Playwright killed the run with no failure line, no console errors and no
+    // indication which step was in flight — indistinguishable from the
+    // application itself crashing.
+    assert.match(harness, /process\.on\('unhandledRejection'/)
+  })
+
   it('names the development-build cause rather than leaving it to be inferred', () => {
     // ERR_CONNECTION_REFUSED with no further explanation sends a reader looking
     // at the network, at a proxy, at the app's own HTTP clients — anywhere but

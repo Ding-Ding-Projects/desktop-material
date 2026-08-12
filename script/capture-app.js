@@ -1817,6 +1817,22 @@ async function captureApp(options) {
     page.on('pageerror', error => {
       consoleErrors.push(`pageerror: ${error.stack || error.message}`)
     })
+    // An explicit dialog handler, because the default is worse than none here.
+    //
+    // With no handler registered, Playwright auto-dismisses every dialog — and
+    // its auto-dismiss races Electron's own teardown, so it can call
+    // `Page.handleJavaScriptDialog` after the dialog has already gone and reject
+    // with "No dialog is showing". That rejection is unhandled and aborts the
+    // whole process.
+    //
+    // The dialog in question is the app doing its job: `profile-git.ts` installs
+    // a `beforeunload` guard while a profile write is in flight, and the
+    // `--tabs=N` path seeds repositories and then reloads the renderer straight
+    // into it. Accepting deliberately, and swallowing a rejection for a dialog
+    // that has already closed, keeps the race from ending the run.
+    page.on('dialog', dialog => {
+      dialog.accept().catch(() => undefined)
+    })
 
     await page.waitForLoadState('domcontentloaded')
 
