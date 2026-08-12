@@ -23,17 +23,19 @@ $overlay-background-color: rgba(0, 0, 0, 0.4);
   --text-secondary-color-muted: #{lighten($gray-500, 30%)};
   --background-color: #{$white};
 
-  // Material Design 3 sizes its default (small) button at 40dp. 25px was
-  // inherited from the pre-Material chrome and is the single value that made
-  // every button in the app read as not-quite-Material: too short for the M3
-  // label baseline, and well under the 48dp minimum touch target the
-  // accessibility rules ask for.
+  // Kept in step with `_material.scss`, which redeclares this on the same
+  // `:root` and is imported after this file — so the value here is a fallback
+  // that never wins, and a *disagreement* here is invisible until something
+  // stops importing the Material layer. It was 25px, left over from the
+  // pre-Material chrome, and a reader comparing the two files would reasonably
+  // have concluded the app shipped 25px buttons. `app/test/unit/button-token-test.ts`
+  // fails if the two files drift apart again.
   --button-height: 40px;
 
   --button-background: #{$blue};
-  // M3 buttons are fully rounded — half the button height, which at 40px is
-  // 20px. A 6px radius is the one shape cue that reads as Material 2.
-  --button-border-radius: 20px;
+  // Same arrangement, same reason. The Material layer uses `999px` for a fully
+  // rounded button; this fallback matches it rather than the old 6px.
+  --button-border-radius: 999px;
   --button-hover-background: #{lighten($blue, 5%)};
   --button-text-color: #{$white};
   --button-focus-border-color: #{$blue-100};

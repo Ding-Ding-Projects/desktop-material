@@ -22,7 +22,7 @@
     datedCount: 669,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4195,
+    entryCount: 4194,
     releases: [
       {
         v: '4.0.0',
@@ -177,11 +177,6 @@
             'Added',
             'A locked element refuses activation until its credential is answered, and opens the unlock prompt anchored to the control that was pressed rather than simply going quiet',
             'b797efb005a5a033f45f5b1ac95b6aafd43a1fdf',
-          ],
-          [
-            'Fixed',
-            'Buttons are Material Design 3 again: 40px tall with a fully rounded corner, rather than 25px with a 6px radius inherited from the pre-Material chrome and under the minimum touch target',
-            'f3c72dd0648e380cdea5cb7456c6b0457b16d02f',
           ],
           [
             'Fixed',
