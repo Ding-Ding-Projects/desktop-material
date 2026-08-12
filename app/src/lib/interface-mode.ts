@@ -13,13 +13,19 @@
  * imagined. A recorded `'classic'` also survives a change of default, where a
  * recorded `false` would silently become whatever the new default means.
  *
- * Neither mode can reach anything the other cannot. Every destination the MD3
- * shell added is a dialog or surface Classic mode can also open, and every
- * action the classic chrome offered is carried into the shell by its menus and
- * carry-over extensions. That is the condition a mode switch is allowed to
- * exist under: a mode that stranded a capability would be two half-products
- * rather than one product with a preference. `interface-mode-test.ts`
- * holds both modes to the shared layers they must each render.
+ * The two modes are meant to be equals, and are not yet. Every action the
+ * classic chrome offered is carried into the shell by its menus and carry-over
+ * extensions, and every shared layer renders in both — `interface-mode-test.ts`
+ * holds them to that. But Classic mode's repository workspace has a tab bar
+ * reaching eleven sections, and the shell has no equivalent: six of them —
+ * Releases, Issues, Triage, Cheap LFS, Launchpad and the history graph — have
+ * no route in Material mode at all.
+ *
+ * That is recorded, not hidden. `interface-mode-parity-test.ts` names the six
+ * and fails if a seventh joins them, so the gap cannot quietly widen while it
+ * waits for a route. Nothing is lost outright, because Classic mode reaches
+ * all of them; what is wrong is that choosing the newer interface currently
+ * costs a user six surfaces, which is not the deal a mode switch offers.
  *
  * The preference round-trips through the same local-storage store every other
  * UI preference uses. It is not a second store.
