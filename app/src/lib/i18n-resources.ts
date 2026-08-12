@@ -12488,13 +12488,20 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'classicExperience.heading': 'Interface mode',
   'classicExperience.toggleLabel': 'Use Classic mode',
   'classicExperience.explanationSummary': 'What this setting changes',
-  'classicExperience.explanation.plain': 'The app ships two interfaces. Material mode is the Material Design 3 shell, with a navigation drawer and eight destinations. Classic mode is the interface the app had before that rewrite: the repository tab strip, the classic toolbar, the sidebar and the repository workspace. Both reach the same features; only the layout differs, and switching takes effect immediately.',
-  'classicExperience.explanation.light': 'Two interfaces, one switch. Material mode is the new shell with its drawer and eight destinations; Classic mode is the tab strip, toolbar, sidebar and workspace from before the rewrite. Same features either way, different furniture, and the change lands immediately.',
-  'classicExperience.explanation.playful': 'Two interfaces, and you pick. Material mode brings the new shell with its drawer and eight destinations. Classic mode walks the old one back in exactly as it was: tab strip, toolbar, sidebar, workspace, every one of them where a decade of muscle memory left them. Neither can do anything the other cannot, and the change takes effect the moment you click it — no restart, no ceremony.',
-  'classicExperience.explanation.maximum': 'Two entire interfaces, and the switch is yours. Material mode gives you the Material Design 3 shell with its navigation drawer and its eight destinations. Classic mode strolls the whole pre-rewrite interface back to its old seat — tab strip, toolbar, sidebar, workspace, the crew present and correct and exactly where you left them. Not one capability lives on only one side of this switch: everything the classic chrome offered is carried into the shell, and everything the shell added opens perfectly well from the classic layout. It takes effect the instant you click it — no restart, no relaunch, no being told to try turning it off and on again.',
-  'classicExperience.boundaryNote': 'Neither mode can reach anything the other cannot. While Classic mode is on, the separate "Show the classic toolbar" setting no longer applies: the toolbar is part of that interface rather than a band above the Material pane.',
-  'classicExperience.provenanceDefault': 'No mode has been chosen on this computer, so the shipped one is in use: {value}.',
-  'classicExperience.provenanceStored': 'A mode was chosen on this computer: {value}.',
+  'classicExperience.explanation.plain':
+    'The app ships two interfaces. Material mode is the Material Design 3 shell, with a navigation drawer and eight destinations. Classic mode is the interface the app had before that rewrite: the repository tab strip, the classic toolbar, the sidebar and the repository workspace. Both reach the same features; only the layout differs, and switching takes effect immediately.',
+  'classicExperience.explanation.light':
+    'Two interfaces, one switch. Material mode is the new shell with its drawer and eight destinations; Classic mode is the tab strip, toolbar, sidebar and workspace from before the rewrite. Same features either way, different furniture, and the change lands immediately.',
+  'classicExperience.explanation.playful':
+    'Two interfaces, and you pick. Material mode brings the new shell with its drawer and eight destinations. Classic mode walks the old one back in exactly as it was: tab strip, toolbar, sidebar, workspace, every one of them where a decade of muscle memory left them. Neither can do anything the other cannot, and the change takes effect the moment you click it — no restart, no ceremony.',
+  'classicExperience.explanation.maximum':
+    'Two entire interfaces, and the switch is yours. Material mode gives you the Material Design 3 shell with its navigation drawer and its eight destinations. Classic mode strolls the whole pre-rewrite interface back to its old seat — tab strip, toolbar, sidebar, workspace, the crew present and correct and exactly where you left them. Not one capability lives on only one side of this switch: everything the classic chrome offered is carried into the shell, and everything the shell added opens perfectly well from the classic layout. It takes effect the instant you click it — no restart, no relaunch, no being told to try turning it off and on again.',
+  'classicExperience.boundaryNote':
+    'Neither mode can reach anything the other cannot. While Classic mode is on, the separate "Show the classic toolbar" setting no longer applies: the toolbar is part of that interface rather than a band above the Material pane.',
+  'classicExperience.provenanceDefault':
+    'No mode has been chosen on this computer, so the shipped one is in use: {value}.',
+  'classicExperience.provenanceStored':
+    'A mode was chosen on this computer: {value}.',
   'classicExperience.stateOn': 'Classic mode',
   'classicExperience.stateOff': 'Material mode',
 }
@@ -18979,12 +18986,18 @@ export const cantoneseTranslations: Readonly<
   'classicExperience.heading': '介面模式',
   'classicExperience.toggleLabel': '用 Classic 模式',
   'classicExperience.explanationSummary': '呢個設定會改咩',
-  'classicExperience.explanation.plain': '呢個 app 有兩個介面。Material 模式係 Material Design 3 新殼，有導覽抽屜同八個目的地。Classic 模式就係重寫之前嗰個介面：repository 分頁條、經典工具列、側欄同 repository 工作區。兩邊功能一樣齊，淨係擺位唔同，而且轉模式即刻生效。',
-  'classicExperience.explanation.light': '兩個介面，一個掣。Material 模式係新殼，有抽屜同八個目的地；Classic 模式就係重寫之前嗰套分頁條、工具列、側欄同工作區。兩邊功能一樣，淨係傢俬擺法唔同，一撳即刻見到。',
-  'classicExperience.explanation.playful': '兩個介面，你揀。Material 模式帶嚟新殼，有抽屜同八個目的地。Classic 模式就將舊嗰個原原本本行返入嚟：分頁條、工具列、側欄、工作區，件件都喺你十年肌肉記憶擺低嗰個位。兩邊冇邊個做得到啲嘢另一邊做唔到，撳落去即刻生效——唔使重開，唔使搞儀式。',
-  'classicExperience.explanation.maximum': '兩個完整嘅介面，個掣喺你手。Material 模式俾你 Material Design 3 新殼，有導覽抽屜同八個目的地。Classic 模式就將成個重寫之前嘅介面施施然搬返去佢個舊位——分頁條、工具列、側欄、工作區，成班人齊齊整整，全部喺你走嗰陣擺低嗰度。冇任何一樣功能係淨係得一邊有：經典外殼有嘅嘢全部搬咗入新殼，新殼加嘅嘢喺經典佈局度一樣開得。撳落去嗰秒即刻生效——唔使重開、唔使重新啟動、更加唔使人叫你「試吓熄咗再開」。',
-  'classicExperience.boundaryNote': '兩個模式冇邊個去得到啲地方另一邊去唔到。用緊 Classic 模式嗰陣，另外嗰個「顯示舊版工具列」設定就唔再適用：工具列本身就係嗰個介面嘅一部分，唔係 Material 面板上面嗰條額外橫額。',
-  'classicExperience.provenanceDefault': '呢部電腦未揀過模式，所以用緊出廠嗰個：{value}。',
+  'classicExperience.explanation.plain':
+    '呢個 app 有兩個介面。Material 模式係 Material Design 3 新殼，有導覽抽屜同八個目的地。Classic 模式就係重寫之前嗰個介面：repository 分頁條、經典工具列、側欄同 repository 工作區。兩邊功能一樣齊，淨係擺位唔同，而且轉模式即刻生效。',
+  'classicExperience.explanation.light':
+    '兩個介面，一個掣。Material 模式係新殼，有抽屜同八個目的地；Classic 模式就係重寫之前嗰套分頁條、工具列、側欄同工作區。兩邊功能一樣，淨係傢俬擺法唔同，一撳即刻見到。',
+  'classicExperience.explanation.playful':
+    '兩個介面，你揀。Material 模式帶嚟新殼，有抽屜同八個目的地。Classic 模式就將舊嗰個原原本本行返入嚟：分頁條、工具列、側欄、工作區，件件都喺你十年肌肉記憶擺低嗰個位。兩邊冇邊個做得到啲嘢另一邊做唔到，撳落去即刻生效——唔使重開，唔使搞儀式。',
+  'classicExperience.explanation.maximum':
+    '兩個完整嘅介面，個掣喺你手。Material 模式俾你 Material Design 3 新殼，有導覽抽屜同八個目的地。Classic 模式就將成個重寫之前嘅介面施施然搬返去佢個舊位——分頁條、工具列、側欄、工作區，成班人齊齊整整，全部喺你走嗰陣擺低嗰度。冇任何一樣功能係淨係得一邊有：經典外殼有嘅嘢全部搬咗入新殼，新殼加嘅嘢喺經典佈局度一樣開得。撳落去嗰秒即刻生效——唔使重開、唔使重新啟動、更加唔使人叫你「試吓熄咗再開」。',
+  'classicExperience.boundaryNote':
+    '兩個模式冇邊個去得到啲地方另一邊去唔到。用緊 Classic 模式嗰陣，另外嗰個「顯示舊版工具列」設定就唔再適用：工具列本身就係嗰個介面嘅一部分，唔係 Material 面板上面嗰條額外橫額。',
+  'classicExperience.provenanceDefault':
+    '呢部電腦未揀過模式，所以用緊出廠嗰個：{value}。',
   'classicExperience.provenanceStored': '呢部電腦揀咗一個模式：{value}。',
   'classicExperience.stateOn': 'Classic 模式',
   'classicExperience.stateOff': 'Material 模式',
