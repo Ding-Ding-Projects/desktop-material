@@ -22,12 +22,12 @@
     datedCount: 669,
     unrecordedCount: 39,
     emptyCount: 45,
-    entryCount: 4186,
+    entryCount: 4195,
     releases: [
       {
         v: '4.0.0',
-        d: '2026-08-11',
-        t: '09:29',
+        d: '2026-08-12',
+        t: '17:40',
         e: [
           [
             'Added',
@@ -167,6 +167,51 @@
             'Fixed',
             'Fetch, push, pull, checkout, commit and commit-and-push started from the MD3 shell observe their own promise, so a rejection reaches the error machinery instead of being dropped by React',
             '5aa2b582c23de7256dbed0b860b79934f618272e',
+          ],
+          [
+            'Fixed',
+            "Locking an element's appearance now locks the element. The credential vault was never handed to the lock feature at start-up, so every attempt wrote a lock, was refused the password, rolled the lock back, and left a button that appeared to do nothing",
+            'f3c72dd0648e380cdea5cb7456c6b0457b16d02f',
+          ],
+          [
+            'Added',
+            'A locked element refuses activation until its credential is answered, and opens the unlock prompt anchored to the control that was pressed rather than simply going quiet',
+            'b797efb005a5a033f45f5b1ac95b6aafd43a1fdf',
+          ],
+          [
+            'Fixed',
+            'Buttons are Material Design 3 again: 40px tall with a fully rounded corner, rather than 25px with a 6px radius inherited from the pre-Material chrome and under the minimum touch target',
+            'f3c72dd0648e380cdea5cb7456c6b0457b16d02f',
+          ],
+          [
+            'Fixed',
+            'The Branches sheet tab strip sizes to its own tabs. A fixed 29px box around 50px of pills overflowed onto the control below it',
+            '95eb226612a252d41f73b2033887d8767a3c2e5d',
+          ],
+          [
+            'Fixed',
+            'The two merge actions in the Branches sheet stay the size of buttons. They stretched to fill whatever height was going spare, which turned two 40px actions into slabs',
+            '95eb226612a252d41f73b2033887d8767a3c2e5d',
+          ],
+          [
+            'Added',
+            "The narrator's voice is selectable, separately for English and Cantonese, along with speaking rate and pitch. A chosen voice that is no longer installed is reported as missing and the choice is kept",
+            '4d17b1053c056ce0d186d4b313bc6789912c4387',
+          ],
+          [
+            'Added',
+            'Personal vocabulary, on Settings then Appearance: a local JSON file that renames the words the app shows you. Nothing is uploaded, the whole file is validated before a single word is applied, and a refused file changes nothing at all',
+            '4d17b1053c056ce0d186d4b313bc6789912c4387',
+          ],
+          [
+            'Added',
+            'The commit list, the changes sidebar and the repository tools list can be resized by dragging or from the keyboard, and remember their width',
+            'a9ed7506c8f58b626d6758571b1218de4991c065',
+          ],
+          [
+            'Fixed',
+            'Classic mode renders the same chrome as the new interface, differing by exactly one argument, so a change to the chrome reaches both',
+            '5c71d509cbc283e20f26fd92b4b9cb1b2afaae94',
           ],
         ],
       },
