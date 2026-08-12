@@ -365,6 +365,57 @@ sizes the preview steps away so the setup task remains unclipped.
 
 ---
 
+## Your own words for things
+
+**Settings → Appearance → Personal vocabulary** takes a local JSON file that renames the words the
+app shows you. Nothing ships with it, so until you load one every surface reads exactly as it always
+has.
+
+```json
+{
+  "version": 1,
+  "terms": {
+    "Fetch origin": "Check for changes",
+    "Stash": "Set aside"
+  }
+}
+```
+
+At most 2000 terms and 1 MB. The whole file is checked before a single word of it is applied, and a
+file that fails any check changes **nothing** — not even partially, and never at the expense of a
+vocabulary you already had working. The control tells you what is in effect: a term count when one is
+loaded, and the exact reason when one is refused.
+
+It is read on this computer and stays here. It is never uploaded, and it never appears in an export,
+a log, a diagnostic report, a screenshot, or this app's own history — which is also why the refusal
+message tells you *what* was wrong without quoting your words back at you.
+
+School mode turns the whole feature off, along with the rest of the language settings.
+
+---
+
+## Choosing the narrator's voice
+
+If you turn the spoken narrator on (**Settings → Sound**), you also choose which voice reads it.
+English and Cantonese pick separately, because liking a particular English voice says nothing about
+which Cantonese voice should read the other half of a bilingual line. Speaking rate and pitch are
+there too.
+
+Leave either on **Choose automatically** and the app picks the closest match your computer has.
+
+The picker tells you what is actually going to be heard, which matters more often than it sounds:
+
+- a voice provided **over the network** will not speak while you are offline, and says so;
+- a voice you chose that has since been **uninstalled** is reported as missing — your choice is kept
+  in case it comes back, and the narrator falls back to the closest match meanwhile;
+- if your computer has **no voice at all** for a language, the picker says that rather than claiming
+  it will choose one automatically.
+
+If the list looks empty for a moment when you open the settings, give it a second. Windows and macOS
+both report their voices asynchronously, and the picker fills in as soon as they arrive.
+
+---
+
 ## The dim sum surprise
 
 About **one launch in ten**, a small photograph of a Hong Kong dim sum dish appears in the
