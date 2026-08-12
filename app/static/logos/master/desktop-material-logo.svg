@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img"
+     aria-label="Desktop Material: a commit graph branching inside a rounded tile">
+  <title>Desktop Material</title>
+  <desc>
+    The project's own mark, drawn for this repository rather than inherited.
+
+    A Git commit graph — a trunk of two nodes with a third branching away and
+    merging back — set in a Material Design 3 rounded tile. The subject is what
+    the application is for; the tile and the palette are where it lives.
+
+    Drawn for 16px first and scaled up, not the other way round. At sixteen
+    pixels a logo is a silhouette: three dots, one trunk, one curve. Everything
+    here is a filled shape or a thick round-capped stroke, there is no detail
+    below about eight units, and nothing relies on a hairline or a gradient
+    surviving the downscale. The two accent nodes stay distinguishable from the
+    trunk by position rather than by hue, so the mark still reads in greyscale
+    and to a colour-blind reader.
+
+    Colours are the app's own tokens rather than new ones: --dm-green for the
+    tile, --dm-green-container for the graph, --md-sys-color-primary-container
+    for the branch node. A logo that invents its own palette is a second brand.
+  </desc>
+
+  <!--
+    The tile. A superellipse-ish rounded square rather than a circle, because
+    the mark sits in a Windows taskbar and a square footprint keeps more of the
+    16px grid than a circle does.
+  -->
+  <rect x="8" y="8" width="240" height="240" rx="56" ry="56" fill="#1b7f37"/>
+
+  <!--
+    The trunk: one straight run with two nodes on it. Round caps so the stroke
+    stays a stroke at small sizes instead of turning into a rectangle with
+    visible corners.
+  -->
+  <g fill="none" stroke="#d2f2d8" stroke-width="18" stroke-linecap="round">
+    <path d="M96 62 L96 194"/>
+    <!--
+      The branch: out of the trunk, up and away, then back. The curve is a
+      single arc rather than two joined ones, because a join is the first thing
+      that goes muddy at 16px.
+    -->
+    <path d="M96 128 C 96 84, 160 84, 160 128"/>
+  </g>
+
+  <!-- Trunk nodes. Filled circles read at every size; rings do not. -->
+  <circle cx="96" cy="62" r="24" fill="#d2f2d8"/>
+  <circle cx="96" cy="194" r="24" fill="#d2f2d8"/>
+
+  <!--
+    The branch tip, in the container accent so the branch is identifiable as a
+    separate line of work rather than a decorative loop. Position carries the
+    meaning; colour only reinforces it.
+  -->
+  <circle cx="160" cy="128" r="24" fill="#a9f6b4"/>
+</svg>
