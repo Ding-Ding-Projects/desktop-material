@@ -189,6 +189,21 @@ provider-sync exercise is recorded in [`HANDOFF.md`](../../HANDOFF.md).
 - 純 Material 嘅首次執行 Welcome 任務卡同色調工作區預覽，配一個由表現力應用程式列、主視覺表面、原則卡片、證據相簿同色調行動呼籲組成嘅 Material 3 公開登陸頁
 
 **Appearance customization**
+- **Personal vocabulary** — load a local JSON file that renames the words the
+  app shows you. Always visible on **Settings → Appearance**, whether or not a
+  file has ever been loaded, because a control that only appears once it is in
+  use is a control nobody finds. Nothing ships with mappings; the complete byte
+  payload is validated before a single word is applied; a refused file changes
+  nothing, not even partially, and never displaces one that was already
+  working; and no term ever reaches an export, a log, a capture or the network.
+  Suppressed entirely in School mode
+- **Narrator voice** — the spoken narrator's voice, speaking rate and pitch are
+  chosen on **Settings → Sound**, separately for English and Cantonese, because
+  picking an English voice says nothing about which Cantonese voice should read
+  the other half of a bilingual line. Voices are enumerated from the platform
+  at runtime with an explicit *choose automatically* default; the stable voice
+  identity is persisted rather than the localized display name; and a voice
+  that has since been uninstalled is reported as missing with the choice kept
 - **Settings → Appearance** now contains only ordinary preferences such as language, theme, scale, repository-list behavior, branch sorting, formatting, and diff tab size. Custom visuals are never stuffed into a general Appearance page
 - Choose an explicit, persisted language mode: **English**, respectful and playful
   **Hong Kong Cantonese**, or a compact **Bilingual** presentation. English is
